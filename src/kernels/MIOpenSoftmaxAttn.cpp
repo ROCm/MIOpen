@@ -24,6 +24,9 @@
  *
  *******************************************************************************/
 
+// rocblas operates with non-ieee FP8
+#define MIOPEN_FP8_IEEE_EXPONENT_BIAS 0
+
 #ifndef MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS
 #include <hip/hip_runtime.h>
 #endif

@@ -23,14 +23,15 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#include <miopen/config.h>
 
 #include "get_handle.hpp"
 #include "mha_helper.hpp"
 #include "tensor_holder.hpp"
 #include "verify.hpp"
+#include "gtest_common.hpp"
 #include "../workspace.hpp"
 
-#include <hip_float8.hpp>
 #include <miopen/miopen.h>
 #include <miopen/solution.hpp>
 
@@ -77,7 +78,7 @@ struct TestCase
     float dropout;
 };
 
-inline std::vector<TestCase> GetSmokeTestCases()
+inline std::vector<TestCase> GetSmokeCases()
 {
     if(!(CheckFloatArg("--float") || CheckFloatArg("--float8")))
     {
@@ -350,22 +351,29 @@ class Test_Fwd_Mha_F32 : public Test_Fwd_Mha<float>
 
 class Test_Fwd_Mha_F8 : public Test_Fwd_Mha<float8>
 {
+    void SetUp() override
+    {
+
+        using e_mask = enabled<Gpu::gfx94X>;
+        using d_mask = disabled<Gpu::gfx900, Gpu::gfx906, Gpu::gfx908, Gpu::gfx90A>;
+        if(!IsTestSupportedForDevMask<d_mask, e_mask>() || MIOPEN_FP8_IEEE_EXPONENT_BIAS != 0)
+        {
+            GTEST_SKIP() << "FP8 is unsupported on this HW";
+        }
+
+        Test_Fwd_Mha<float8>::SetUp();
+    }
 };
 
 TEST_P(Test_Fwd_Mha_F32, Test_float) { return Test_Fwd_Mha<float>::TestBody(); };
 
-TEST_P(Test_Fwd_Mha_F8, Test_float) { return Test_Fwd_Mha<float8>::TestBody(); };
-
-INSTANTIATE_TEST_SUITE_P(Fwd_Mha_Smoke_F32,
-                         Test_Fwd_Mha_F32,
-                         testing::ValuesIn(GetSmokeTestCases()));
-
-INSTANTIATE_TEST_SUITE_P(Fwd_Mha_Smoke_F8, Test_Fwd_Mha_F8, testing::ValuesIn(GetSmokeTestCases()));
-
+INSTANTIATE_TEST_SUITE_P(Fwd_Mha_Smoke_F32, Test_Fwd_Mha_F32, testing::ValuesIn(GetSmokeCases()));
 INSTANTIATE_TEST_SUITE_P(Fwd_Mha_Full_F32, Test_Fwd_Mha_F32, testing::ValuesIn(GetFullTestCases()));
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(Test_Fwd_Mha_F32);
 
-// will be enabled later
-// INSTANTIATE_TEST_SUITE_P(Fwd_Mha_Full_F8, Test_Fwd_Mha_F8,
-// testing::ValuesIn(GetFullTestCases()));
-// GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(Test_Fwd_Mha_F8);
+
+TEST_P(Test_Fwd_Mha_F8, Test_float) { return Test_Fwd_Mha<float8>::TestBody(); };
+
+INSTANTIATE_TEST_SUITE_P(Fwd_Mha_Smoke_F8, Test_Fwd_Mha_F8, testing::ValuesIn(GetSmokeCases()));
+INSTANTIATE_TEST_SUITE_P(Fwd_Mha_Full_F8, Test_Fwd_Mha_F8, testing::ValuesIn(GetFullTestCases()));
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(Test_Fwd_Mha_F8);
