@@ -165,8 +165,6 @@ inline void gemm(const Handle& handle,
     {
         assert(miopen::StartsWith(handle.GetDeviceName(), "gfx94"));
 #if USE_ROCBLAS_EX3
-        // for some reason fp8 rocblas gemm produces correct result only with this multiplier
-        alpha *= 4.0f;
         rocblas_gemm_strided_batched_ex3(
             handle.rhandle().get(),
             transB ? rocblas_operation_transpose : rocblas_operation_none,
