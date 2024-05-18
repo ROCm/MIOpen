@@ -298,7 +298,7 @@ protected:
             };
 
             const double error_threshold     = 5e-6;
-            const double fp8_error_threshold = std::is_same_v<T, float8> ? 2e-4 : error_threshold;
+            const double fp8_error_threshold = (std::is_same_v<T, float8> ? 2e-4 : error_threshold);
 
             const auto& resAmaxS = GetResult(miopenTensorMhaAmaxS, float{});
             auto amaxS_abs_diff  = std::abs(amaxS_ref - resAmaxS[0]);
