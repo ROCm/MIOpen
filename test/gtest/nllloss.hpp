@@ -67,18 +67,18 @@ struct NLLLossTestCase
 inline std::vector<NLLLossTestCase> NLLLossTestConfigs()
 {
     return {
-        // {{16, 21, 21, 21, 10}, false, 255, 1, false},
-        // {{55, 21, 21, 21, 10}, false, 255, 0, false},
-        // {{24, 21, 21, 21, 10}, true, 255, 0, true},
-        // {{16, 21, 19, 23}, false, 255, 1, false},
-        // {{55, 21, 19, 23}, false, 255, 0, false},
-        // {{24, 21, 19, 23}, true, 255, 0, true},
-        // {{16, 21, 25}, false, 255, 1, false},
-        // {{16, 21, 25}, false, 255, 0, false},
-        // {{16, 21, 25}, true, 255, 0, true},
-        // {{16, 21}, false, 255, 1, false},
-        // {{16, 21}, false, 255, 0, false},
-        // {{16, 21}, true, 255, 0, true},
+        {{16, 21, 21, 21, 10}, false, 255, 1, false},
+        {{55, 21, 21, 21, 10}, false, 255, 0, false},
+        {{24, 21, 21, 21, 10}, true, 255, 0, true},
+        {{16, 21, 19, 23}, false, 255, 1, false},
+        {{55, 21, 19, 23}, false, 255, 0, false},
+        {{24, 21, 19, 23}, true, 255, 0, true},
+        {{16, 21, 25}, false, 255, 1, false},
+        {{16, 21, 25}, false, 255, 0, false},
+        {{16, 21, 25}, true, 255, 0, true},
+        {{16, 21}, false, 255, 1, false},
+        {{16, 21}, false, 255, 0, false},
+        {{16, 21}, true, 255, 0, true},
         {{8192, 52100}, true, -100, 1, false},
     };
 }
