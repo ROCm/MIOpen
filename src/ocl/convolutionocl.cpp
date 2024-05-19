@@ -204,8 +204,7 @@ static void ShrinkToFind10Results(std::vector<PerfField>& found)
 
 static inline std::vector<PerfField> FindConvolution(const ExecutionContext& ctx,
                                                      const conv::ProblemDescription& problem,
-                                                     const AnyInvokeParams& invoke_ctx,
-                                                     const int requestAlgoCount)
+                                                     const AnyInvokeParams& invoke_ctx)
 {
     auto results         = std::vector<PerfField>{};
     auto sol             = boost::optional<miopenConvSolution_t>{};
@@ -215,19 +214,10 @@ static inline std::vector<PerfField> FindConvolution(const ExecutionContext& ctx
     if(findMode.IsFast(ctx) || findMode.IsHybrid(ctx))
     {
         auto fallback = bool{};
-        auto sols     = conv.GetSolutions(ctx, problem, requestAlgoCount, &fallback);
-
-        // Remove solutions for which the given workspace size is insufficient
-        sols.erase(std::remove_if(sols.begin(),
-                                  sols.end(),
-                                  [&](const miopenConvSolution_t& entry) {
-                                      return invoke_ctx.GetWorkspaceSize() < entry.workspace_size;
-                                  }),
-                   sols.end());
-
+        auto sols     = conv.GetSolutions(ctx, problem, 1, &fallback, &invoke_ctx);
         // override the normal find with immed mode with env var
         if(!sols.empty() && (!(findMode.IsHybrid(ctx) && fallback) ||
-                             miopen::IsEnabled(ENV(MIOPEN_DEBUG_FORCE_IMMED_MODE_FALLBACK))))
+                             miopen::IsEnabled(MIOPEN_ENV(MIOPEN_DEBUG_FORCE_IMMED_MODE_FALLBACK))))
             sol = sols.front();
         // In Hybrid Find mode, we use Normal Find instead of Immediate fallback kernels.
     }
@@ -252,11 +242,12 @@ static inline std::vector<PerfField> FindConvolution(const ExecutionContext& ctx
             const auto params =
                 conv::ConvFindParameters{conv.IsWinograd3x3SupportedAndFast(ctx_copy, problem)};
 
-            FindCore(invoke_ctx, record, ctx_copy, problem, params, conv::GetConvSolverFinders());
+            return FindCore(
+                invoke_ctx, record, ctx_copy, problem, params, conv::GetConvSolverFinders());
         });
     }
 
-    if(IsEnabled(ENV(MIOPEN_DEBUG_COMPILE_ONLY)))
+    if(IsEnabled(MIOPEN_ENV(MIOPEN_DEBUG_COMPILE_ONLY)))
     {
         MIOPEN_THROW(
             miopenStatusGpuOperationsSkipped,
@@ -313,7 +304,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                                                    workSpaceSize,
                                                    attribute.gfx90aFp16alt.GetFwd()};
 
-    const auto results = FindConvolution(ctx, problem, invoke_ctx, requestAlgoCount);
+    const auto results = FindConvolution(ctx, problem, invoke_ctx);
 
     if(results.empty())
     {
@@ -338,12 +329,13 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
 
 namespace {
 
-void ValidateAlphaBeta(const void* alpha, const void* beta)
+// Currently 2D case only support default (alpha = 1.0 and beta = 0.0)
+void ValidateAlphaBeta(const conv::ProblemDescription& problem)
 {
-    if(!float_equal(*(static_cast<const float*>(alpha)), 1.0) ||
-       !float_equal(*(static_cast<const float*>(beta)), 0))
+    if(problem.Is2d() && problem.GetAlphaBetaCase() != DEFAULT)
     {
-        MIOPEN_THROW(miopenStatusNotImplemented, "Only alpha=1 and beta=0 is supported");
+        MIOPEN_THROW(miopenStatusNotImplemented,
+                     "Only alpha=1 and beta=0 is supported for 2D cases.");
     }
 }
 
@@ -414,7 +406,7 @@ static void ConvForwardCheckNumerics(const Handle& handle,
 
     flag |= miopen::checkNumericsOutput(handle, tensors.yDesc, tensors.y);
 
-    const auto& file_name = miopen::GetStringEnv(ENV(MIOPEN_DUMP_TENSOR_PATH));
+    const auto& file_name = miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_DUMP_TENSOR_PATH));
     if(flag && !file_name.empty())
     {
         DumpTensorToFileFromDevice(handle, tensors.xDesc, tensors.x, file_name + "_x.bin");
@@ -504,6 +496,18 @@ void ConvolutionDescriptor::ValidateTensors(const ConvTensors& tensors) const
     //}
 }
 
+miopenDataType_t GetScalarDataType(const TensorDescriptor& xDesc)
+{
+    if(xDesc.GetType() == miopenDataType_t::miopenDouble)
+    {
+        return miopenDataType_t::miopenDouble;
+    }
+    else
+    {
+        return miopenDataType_t::miopenFloat;
+    }
+}
+
 void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                                                const void* alpha,
                                                const TensorDescriptor& xDesc,
@@ -522,23 +526,28 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
 
     const auto tensors = ConvFwdTensors{xDesc, x, wDesc, w, yDesc, y};
     ValidateTensors(tensors);
-    ValidateAlphaBeta(alpha, beta);
+    Scalar alpha_val(alpha, GetScalarDataType(yDesc));
+    Scalar beta_val(beta, GetScalarDataType(yDesc));
+    const auto problem = conv::ProblemDescription{
+        xDesc, wDesc, yDesc, *this, conv::Direction::Forward, 0, alpha_val, beta_val};
+    ValidateAlphaBeta(problem);
 
     ConvForwardCheckNumerics(handle, tensors, [&]() {
         ValidateGroupCount(xDesc, wDesc, *this);
 
         const auto algorithm_name = AlgorithmName{ConvolutionAlgoToDirectionalString(
             static_cast<miopenConvAlgorithm_t>(algo), conv::Direction::Forward)};
-
-        const auto problem =
-            conv::ProblemDescription{xDesc, wDesc, yDesc, *this, conv::Direction::Forward};
         const auto network_config = problem.MakeNetworkConfig();
         const auto& invoker       = handle.GetInvoker(network_config, {}, algorithm_name);
 
         if(invoker)
         {
-            const auto& invoke_ctx = conv::DataInvokeParams{
-                tensors, workSpace, workSpaceSize, this->attribute.gfx90aFp16alt.GetFwd()};
+            const auto& invoke_ctx = conv::DataInvokeParams{tensors,
+                                                            workSpace,
+                                                            workSpaceSize,
+                                                            this->attribute.gfx90aFp16alt.GetFwd(),
+                                                            alpha_val,
+                                                            beta_val};
             (*invoker)(handle, invoke_ctx);
             return;
         }
@@ -613,9 +622,10 @@ struct SolutionTimeComparator
 std::vector<miopenConvSolution_t>
 ConvolutionDescriptor::GetSolutionsFallback(const ExecutionContext& ctx,
                                             const conv::ProblemDescription& problem,
-                                            const size_t maxSolutionCount) const
+                                            const size_t maxSolutionCount,
+                                            const AnyInvokeParams* const invokeParams) const
 {
-    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_IMMED_FALLBACK)))
+    if(miopen::IsDisabled(MIOPEN_ENV(MIOPEN_DEBUG_CONV_IMMED_FALLBACK)))
     {
         MIOPEN_LOG_I("Disabled via environment");
         return {};
@@ -633,7 +643,7 @@ ConvolutionDescriptor::GetSolutionsFallback(const ExecutionContext& ctx,
 
     // TunaNet Fallback
 #if MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK
-    if(!miopen::IsDisabled(ENV(MIOPEN_DEBUG_ENABLE_AI_IMMED_MODE_FALLBACK)))
+    if(!miopen::IsDisabled(MIOPEN_ENV(MIOPEN_DEBUG_ENABLE_AI_IMMED_MODE_FALLBACK)))
     {
         const static std::string arch = ctx.GetStream().GetDeviceName();
         auto solvers                  = ai::immed_mode::PredictSolver(problem, ctx, arch);
@@ -655,8 +665,11 @@ ConvolutionDescriptor::GetSolutionsFallback(const ExecutionContext& ctx,
                     continue; // branch should never be taken
                 if(!sol.IsApplicable(ctx, problem))
                     continue;
-                interim.emplace_back(miopenConvSolution_t{
-                    ai_time(idx), sol.GetWorkspaceSize(ctx, problem), solver_id.Value(), algo});
+                const auto ws = sol.GetWorkspaceSize(ctx, problem);
+                if(!conv::IsEnoughWorkspace("GetSolutionsFallback AI", solver_id, ws, invokeParams))
+                    continue;
+                interim.emplace_back(
+                    miopenConvSolution_t{ai_time(idx), ws, solver_id.Value(), algo});
                 ++idx;
             }
         }
@@ -686,13 +699,15 @@ ConvolutionDescriptor::GetSolutionsFallback(const ExecutionContext& ctx,
             // Let's allow non-dynamic later, if necessary.
             if(s.IsEmpty() || !s.IsDynamic() || !s.IsApplicable(ctx, problem))
                 continue;
+            const auto ws = s.GetWorkspaceSize(ctx, problem);
+            if(!conv::IsEnoughWorkspace("GetSolutionsFallback WTI", solver_id, ws, invokeParams))
+                continue;
 
             const auto wti = s.GetWti(ctx, problem);
             MIOPEN_LOG_I2(solver_id.ToString() << " Estimated WTI = " << wti);
             if(wti < 0.0f) // Skip unknown WTIs.
                 continue;
-            interim.emplace_back(miopenConvSolution_t{
-                wti2time(wti), s.GetWorkspaceSize(ctx, problem), solver_id.Value(), algo});
+            interim.emplace_back(miopenConvSolution_t{wti2time(wti), ws, solver_id.Value(), algo});
         }
     }
     MIOPEN_LOG_I2("maxSolutionCount = " << maxSolutionCount << ", available = " << interim.size());
@@ -712,7 +727,8 @@ namespace {
 
 std::vector<miopenConvSolution_t> GetSolutions(const ExecutionContext& ctx,
                                                const conv::ProblemDescription& problem,
-                                               const size_t maxSolutionCount)
+                                               const size_t maxSolutionCount,
+                                               const AnyInvokeParams* const invokeParams)
 {
     auto algo_resolver = std::function<int(const std::string&)>{};
 
@@ -740,6 +756,10 @@ std::vector<miopenConvSolution_t> GetSolutions(const ExecutionContext& ctx,
             continue;
 
         const auto solver_id = solver::Id{pair.first};
+
+        if(!conv::IsEnoughWorkspace("GetSolutions", solver_id, pair.second.workspace, invokeParams))
+            continue;
+
         // Wrong IDs can't be used to call IsApplicable(), so let's
         // ignore obsolete or invalid IDs read from find-db first.
         if(!solver_id.IsValid())
@@ -779,10 +799,11 @@ std::vector<miopenConvSolution_t>
 ConvolutionDescriptor::GetSolutions(const ExecutionContext& ctx,
                                     const conv::ProblemDescription& problem,
                                     size_t maxSolutionCount,
-                                    bool* fallbackPathTaken) const
+                                    bool* fallbackPathTaken,
+                                    const AnyInvokeParams* const invokeParams) const
 {
     MIOPEN_LOG_I("");
-    auto solutions = miopen::GetSolutions(ctx, problem, maxSolutionCount);
+    auto solutions = miopen::GetSolutions(ctx, problem, maxSolutionCount, invokeParams);
 
     if(fallbackPathTaken != nullptr)
         *fallbackPathTaken = solutions.empty();
@@ -790,7 +811,7 @@ ConvolutionDescriptor::GetSolutions(const ExecutionContext& ctx,
     if(!solutions.empty())
         return solutions;
 
-    return GetSolutionsFallback(ctx, problem, maxSolutionCount);
+    return GetSolutionsFallback(ctx, problem, maxSolutionCount, invokeParams);
 }
 
 std::size_t ConvolutionDescriptor::GetForwardSolutionWorkspaceSize(Handle& handle,
@@ -901,7 +922,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                                                    workSpaceSize,
                                                    this->attribute.gfx90aFp16alt.GetBwd()};
 
-    const auto results = FindConvolution(ctx, problem, invoke_ctx, requestAlgoCount);
+    const auto results = FindConvolution(ctx, problem, invoke_ctx);
 
     if(results.empty())
     {
@@ -946,7 +967,7 @@ static void ConvBwdCheckNumerics(const Handle& handle,
 
     flag |= miopen::checkNumericsOutput(handle, tensors.dxDesc, tensors.dx);
 
-    const auto& file_name = miopen::GetStringEnv(ENV(MIOPEN_DUMP_TENSOR_PATH));
+    const auto& file_name = miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_DUMP_TENSOR_PATH));
     if(flag && !file_name.empty())
     {
         DumpTensorToFileFromDevice(handle, tensors.dyDesc, tensors.dy, file_name + "_dy.bin");
@@ -975,7 +996,11 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
     auto tensors = ConvBwdTensors{dyDesc, dy, wDesc, w, dxDesc, dx};
 
     ValidateTensors(tensors);
-    ValidateAlphaBeta(alpha, beta);
+    Scalar alpha_val(alpha, GetScalarDataType(dxDesc));
+    Scalar beta_val(beta, GetScalarDataType(dxDesc));
+    const auto problem = conv::ProblemDescription{
+        dyDesc, wDesc, dxDesc, *this, conv::Direction::BackwardData, 0, alpha_val, beta_val};
+    ValidateAlphaBeta(problem);
 
     ConvBwdCheckNumerics(handle, tensors, beta, [&]() {
         if(dyDesc.GetLengths()[1] != wDesc.GetLengths()[0])
@@ -987,16 +1012,18 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
         const auto algorithm_name = AlgorithmName{ConvolutionAlgoToDirectionalString(
             static_cast<miopenConvAlgorithm_t>(algo), conv::Direction::BackwardData)};
 
-        const auto problem =
-            conv::ProblemDescription{dyDesc, wDesc, dxDesc, *this, conv::Direction::BackwardData};
         const auto network_config = problem.MakeNetworkConfig();
         const auto& invoker       = handle.GetInvoker(network_config, {}, algorithm_name);
 
         if(!invoker)
             MIOPEN_THROW("No invoker was registered for convolution backward. Was find executed?");
 
-        const auto& invoke_ctx = conv::DataInvokeParams{
-            tensors, workSpace, workSpaceSize, this->attribute.gfx90aFp16alt.GetBwd()};
+        const auto& invoke_ctx = conv::DataInvokeParams{tensors,
+                                                        workSpace,
+                                                        workSpaceSize,
+                                                        this->attribute.gfx90aFp16alt.GetBwd(),
+                                                        alpha_val,
+                                                        beta_val};
         (*invoker)(handle, invoke_ctx);
     });
 }
@@ -1112,7 +1139,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                                                   workSpaceSize,
                                                   attribute.gfx90aFp16alt.GetWrW()};
 
-    const auto results = FindConvolution(ctx, problem, invoke_ctx, requestAlgoCount);
+    const auto results = FindConvolution(ctx, problem, invoke_ctx);
 
     if(results.empty())
     {
@@ -1156,7 +1183,7 @@ static void ConvWrwCheckNumerics(const Handle& handle,
 
     flag |= miopen::checkNumericsOutput(handle, tensors.dwDesc, tensors.dw);
 
-    const auto& file_name = miopen::GetStringEnv(ENV(MIOPEN_DUMP_TENSOR_PATH));
+    const auto& file_name = miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_DUMP_TENSOR_PATH));
     if(flag && !file_name.empty())
     {
         DumpTensorToFileFromDevice(handle, tensors.dyDesc, tensors.dy, file_name + "_dy.bin");
@@ -1183,7 +1210,12 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(const Handle& handle,
     ValidateWorkspace(workSpace, workSpaceSize);
     decltype(auto) tensors = ConvWrwTensors{dyDesc, dy, xDesc, x, dwDesc, dw};
     ValidateTensors(tensors);
-    ValidateAlphaBeta(alpha, beta);
+    decltype(auto) direction = conv::Direction::BackwardWeights;
+    Scalar alpha_val(alpha, GetScalarDataType(dwDesc));
+    Scalar beta_val(beta, GetScalarDataType(dwDesc));
+    decltype(auto) problem =
+        conv::ProblemDescription{dyDesc, dwDesc, xDesc, *this, direction, 0, alpha_val, beta_val};
+    ValidateAlphaBeta(problem);
 
     if(xDesc.GetType() == miopenInt8)
         MIOPEN_THROW(miopenStatusBadParm);
@@ -1191,18 +1223,20 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(const Handle& handle,
     ConvWrwCheckNumerics(handle, tensors, beta, [&]() {
         ValidateGroupCount(xDesc, dwDesc, *this);
 
-        decltype(auto) direction      = conv::Direction::BackwardWeights;
         decltype(auto) algorithm_name = AlgorithmName{ConvolutionAlgoToDirectionalString(
             static_cast<miopenConvAlgorithm_t>(algo), direction)};
-        decltype(auto) problem = conv::ProblemDescription{dyDesc, dwDesc, xDesc, *this, direction};
         decltype(auto) network_config = problem.MakeNetworkConfig();
         decltype(auto) invoker = handle.GetInvoker(network_config, boost::none, algorithm_name);
 
         if(!invoker)
             MIOPEN_THROW("No invoker was registered for convolution weights. Was find executed?");
 
-        const auto invoke_ctx = conv::WrWInvokeParams{
-            tensors, workSpace, workSpaceSize, this->attribute.gfx90aFp16alt.GetWrW()};
+        const auto invoke_ctx = conv::WrWInvokeParams{tensors,
+                                                      workSpace,
+                                                      workSpaceSize,
+                                                      this->attribute.gfx90aFp16alt.GetWrW(),
+                                                      alpha_val,
+                                                      beta_val};
         (*invoker)(handle, invoke_ctx);
     });
 }

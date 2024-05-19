@@ -476,13 +476,13 @@ const std::vector<Kernel>& Handle::GetKernelsImpl(const std::string& algorithm,
     return this->impl->cache.GetKernels(algorithm, network_config);
 }
 
-KernelInvoke Handle::Run(Kernel k) const
+KernelInvoke Handle::Run(Kernel k, bool coop_launch) const
 {
     this->impl->set_ctx();
-    if(this->impl->enable_profiling || MIOPEN_GPU_SYNC)
-        return k.Invoke(this->GetStream(), this->impl->elapsed_time_handler());
-    else
-        return k.Invoke(this->GetStream());
+    auto callback = (this->impl->enable_profiling || MIOPEN_GPU_SYNC)
+                        ? this->impl->elapsed_time_handler()
+                        : nullptr;
+    return k.Invoke(this->GetStream(), callback, coop_launch);
 }
 
 Program Handle::LoadProgram(const std::string& program_name,
@@ -628,7 +628,7 @@ std::size_t Handle::GetGlobalMemorySize() const
 
 std::size_t Handle::GetMaxComputeUnits() const
 {
-    const std::size_t num_cu = Value(ENV(MIOPEN_DEVICE_CU));
+    const std::size_t num_cu = Value(MIOPEN_ENV(MIOPEN_DEVICE_CU));
     if(num_cu > 0)
         return num_cu;
 
@@ -673,6 +673,17 @@ std::size_t Handle::GetMaxMemoryAllocSize()
     }
 
     return m_MaxMemoryAllocSizeCached;
+}
+
+bool Handle::CooperativeLaunchSupported() const
+{
+    int result;
+    auto status =
+        hipDeviceGetAttribute(&result, hipDeviceAttributeCooperativeLaunch, this->impl->device);
+    if(status != hipSuccess)
+        MIOPEN_THROW_HIP_STATUS(status);
+
+    return result == 1;
 }
 
 std::string Handle::GetDeviceNameImpl() const { return this->impl->get_device_name(); }
