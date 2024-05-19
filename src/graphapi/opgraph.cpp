@@ -349,20 +349,20 @@ void BackendOperationGraphDescriptor::setAttribute(miopenBackendAttributeName_t 
             std::vector<OpNode*> nodes;
             nodes.reserve(elementCount);
 
-            std::for_each_n(static_cast<miopenBackendDescriptor_t*>(arrayOfElements),
-                            elementCount,
-                            [&descriptors, &nodes](miopenBackendDescriptor_t apiDescriptor) {
-                                BackendDescriptor& backendDescriptor = deref(apiDescriptor);
-                                if(backendDescriptor.isFinalized())
-                                {
-                                    descriptors.push_back(apiDescriptor);
-                                    nodes.push_back(backendDescriptor.getOperation());
-                                }
-                                else
-                                {
-                                    MIOPEN_THROW(miopenStatusBadParm);
-                                }
-                            });
+            std::for_each(static_cast<miopenBackendDescriptor_t*>(arrayOfElements),
+                          static_cast<miopenBackendDescriptor_t*>(arrayOfElements) + elementCount,
+                          [&descriptors, &nodes](miopenBackendDescriptor_t apiDescriptor) {
+                              BackendDescriptor& backendDescriptor = deref(apiDescriptor);
+                              if(backendDescriptor.isFinalized())
+                              {
+                                  descriptors.push_back(apiDescriptor);
+                                  nodes.push_back(backendDescriptor.getOperation());
+                              }
+                              else
+                              {
+                                  MIOPEN_THROW(miopenStatusBadParm);
+                              }
+                          });
 
             if(!internal::noRepetitions(nodes))
             {
@@ -422,7 +422,7 @@ void BackendOperationGraphDescriptor::getAttribute(miopenBackendAttributeName_t 
         {
             *elementCount = mOps.size();
             std::copy_n(mOps.cbegin(),
-                        std::min(*elementCount, requestedElementCount),
+                        minimum(*elementCount, requestedElementCount),
                         static_cast<miopenBackendDescriptor_t*>(arrayOfElements));
         }
         else

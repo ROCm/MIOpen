@@ -43,7 +43,7 @@ using ProblemDescription = miopen::conv::ProblemDescription;
 bool ConvAsm5x10u2v2f1::IsApplicable(const ExecutionContext& ctx,
                                      const ProblemDescription& problem) const
 {
-    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_DIRECT_ASM_5X10U2V2)))
+    if(miopen::IsDisabled(MIOPEN_ENV(MIOPEN_DEBUG_CONV_DIRECT_ASM_5X10U2V2)))
         return false;
     if(!ctx.use_asm_kernels)
         return false;
