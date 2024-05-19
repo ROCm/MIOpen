@@ -177,58 +177,8 @@ struct transpose_str<miopen::TransposeSolutionNhwc2Default>
     static std::string get() { return "nhwc2nchw"; }
 };
 
-template <typename T>
-struct to_miopen_data_type
-{
-};
-
-template <>
-struct to_miopen_data_type<float>
-{
-    static miopenDataType_t get() { return miopenFloat; }
-};
-
-template <>
-struct to_miopen_data_type<float16>
-{
-    static miopenDataType_t get() { return miopenHalf; }
-};
-
-template <>
-struct to_miopen_data_type<bfloat16>
-{
-    static miopenDataType_t get() { return miopenHalf; }
-};
-
-// TODO: try to get F8 working
-template <>
-struct to_miopen_data_type<miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>>
-{
-    static miopenDataType_t get() { return miopenFloat8; }
-};
-
-template <>
-struct to_miopen_data_type<uint16_t>
-{
-    static miopenDataType_t get() { return miopenHalf; } // we actually didn't calculate 16bit float
-};
-
-template <>
-struct to_miopen_data_type<uint8_t>
-{
-    static miopenDataType_t get() { return miopenInt8; }
-};
-
 static constexpr int RAND_INTEGER_MAX = 120;
 static constexpr int RAND_INTEGER_MIN = -88;
-
-template <typename T>
-void rand_tensor_integer(tensor<T>& t, int max = RAND_INTEGER_MAX, int min = RAND_INTEGER_MIN)
-{
-    // use integer to random.
-    for(size_t i = 0; i < t.data.size(); i++)
-        t[i] = static_cast<T>(prng::gen_A_to_B(min, max));
-}
 
 template <typename T>
 bool compare_equal(T r1, T r2)
@@ -351,13 +301,16 @@ protected:
                 auto t_dst       = tensor<T> {tensor_len, tensor_strides};
                 auto t_dst_gpu   = tensor<T> {tensor_len, tensor_strides};
 
-                rand_tensor_integer(t_src);
+                auto gen_value = [=](auto... is) {
+                    return static_cast<T>(prng::gen_A_to_B(RAND_INTEGER_MIN, RAND_INTEGER_MAX));
+                };
+                t_src.generate(gen_value);
 
                 auto src_dev = handle.Write(t_src.data);
 
                 ctx.SetStream(&handle);
 
-                TRANSPOSE_SOL transpose_sol(ctx, to_miopen_data_type<T>::get(), n, c, h, w);
+                TRANSPOSE_SOL transpose_sol(ctx, miopen_type<T>{}, n, c, h, w);
 
                 std::vector<OpKernelArg> opArgs = transpose_sol.GetKernelArg();
 
@@ -475,7 +428,7 @@ protected:
                     auto src_3d_dev = handle.Write(t_src.data);
                     auto src_2d_dev = handle.Write(t_src.data);
 
-                    TRANSPOSE_SOL transpose_sol_3d(ctx, to_miopen_data_type<T>::get(), n, c, d, h, w);
+                    TRANSPOSE_SOL transpose_sol_3d(ctx, miopen_type<T>{}, n, c, d, h, w);
                     std::vector<OpKernelArg> opArgs_3d = transpose_sol_3d.GetKernelArg();
 
                     boost::optional<miopen::InvokerFactory> invoker_factory_3d(
@@ -507,7 +460,7 @@ protected:
                     invoker_3d(handle, invoke_param_3d);
                     t_gpu_3d.data = handle.Read<T>(dst_3d_dev, t_gpu_3d.data.size());
 
-                    TRANSPOSE_SOL transpose_sol_2d(ctx, to_miopen_data_type<T>::get(), n, c, 1, d*h, w);
+                    TRANSPOSE_SOL transpose_sol_2d(ctx, miopen_type<T>{}, n, c, 1, d*h, w);
                     std::vector<OpKernelArg> opArgs_2d = transpose_sol_2d.GetKernelArg();
 
                     boost::optional<miopen::InvokerFactory> invoker_factory_2d(
