@@ -89,7 +89,7 @@ ConvSolution NLLLossUnreduceForward4d::GetSolution(
     result.invoker_factory = [](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
             decltype(auto) kernel = handle_.Run(kernels.front());
-            decltype(auto) params = raw_params.CastTo<miopen::nllloss::InvokeParams>();
+            decltype(auto) params = raw_params.CastTo<miopen::nllloss::FwdInvokeParams>();
 
             auto input_tv  = get_inner_expanded_tv_4d(deref(params.inputDesc));
             auto target_tv = get_inner_expanded_tv_3d(deref(params.targetDesc));

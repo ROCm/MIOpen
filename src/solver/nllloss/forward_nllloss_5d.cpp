@@ -92,7 +92,7 @@ NLLLossReduceForward5d::GetSolution(const ExecutionContext& context,
 
     result.invoker_factory = [](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
-            decltype(auto) params = raw_params.CastTo<miopen::nllloss::InvokeParams>();
+            decltype(auto) params = raw_params.CastTo<miopen::nllloss::FwdInvokeParams>();
             auto elapsed          = 0.f;
 
             {

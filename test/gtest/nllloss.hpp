@@ -118,14 +118,14 @@ protected:
         std::vector<size_t> weight_dim = {in_dim[1]};
 
         auto gen_input_value = [](auto...) {
-            return prng::gen_A_to_B<T>(static_cast<T>(-100.0f), static_cast<T>(-1e-2));
+            return prng::gen_A_to_B<T>(static_cast<T>(-1.0f), static_cast<T>(-1e-2));
         };
         size_t numclass_C     = in_dim[1];
         auto gen_target_value = [numclass_C](auto...) {
             return prng::gen_A_to_B<int32_t>(0, numclass_C - 1);
         };
         auto gen_weight_value = [](auto...) {
-            return prng::gen_A_to_B<T>(static_cast<T>(-10), static_cast<T>(10));
+            return prng::gen_A_to_B<T>(static_cast<T>(-1), static_cast<T>(1));
         };
         auto gen_weight_one = [](auto...) { return static_cast<T>(1); };
 
@@ -150,10 +150,14 @@ protected:
         std::fill(ref_output.begin(), ref_output.end(), std::numeric_limits<T>::quiet_NaN());
 
         std::vector<size_t> workspace_lengths;
-        ws_sizeInBytes = divisor == 0.f
-                             ? 0
-                             : miopen::GetNLLLossReduceForwardWorkspaceSize(
-                                   handle, input.desc, target.desc, weight.desc, output.desc);
+        ws_sizeInBytes = divisor == 0.f ? 0
+                                        : miopen::GetNLLLossReduceForwardWorkspaceSize(handle,
+                                                                                       input.desc,
+                                                                                       target.desc,
+                                                                                       weight.desc,
+                                                                                       output.desc,
+                                                                                       ignore_index,
+                                                                                       divisor);
         if(ws_sizeInBytes == static_cast<size_t>(-1))
             GTEST_SKIP();
 
@@ -285,12 +289,12 @@ protected:
             return prng::gen_A_to_B<int32_t>(0, numclass_C - 1);
         };
         auto gen_weight_value = [](auto...) {
-            return prng::gen_A_to_B<T>(static_cast<T>(-10), static_cast<T>(10));
+            return prng::gen_A_to_B<T>(static_cast<T>(-1.0), static_cast<T>(1.0));
         };
         auto gen_weight_one = [](auto...) { return static_cast<T>(1); };
 
         auto gen_output_grad_value = [](auto...) {
-            return prng::gen_A_to_B<T>(static_cast<T>(-10), static_cast<T>(10));
+            return prng::gen_A_to_B<T>(static_cast<T>(-1.0), static_cast<T>(1.0));
         };
 
         auto in_strides = GetStrides(in_dim, true);

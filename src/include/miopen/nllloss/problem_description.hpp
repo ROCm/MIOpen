@@ -79,7 +79,7 @@ struct ProblemDescription : ProblemDescriptionBase
         }
         if(inputDesc.GetLengths().size() > 5)
         {
-            MIOPEN_THROW(miopenStatusBadParm, "NLLLoss: Do not support Input Tensor size > 5.");
+            MIOPEN_THROW(miopenStatusBadParm, "NLLLoss: Do not support Input Tensor dims > 5.");
         }
         return true;
     }
@@ -193,7 +193,6 @@ struct ReduceProblemDescription : ProblemDescription
 
     size_t GetNtotal() const { return targetDesc.GetElementSize(); }
     size_t GetC() const { return weightDesc.GetElementSize(); }
-    float GetDivisor() const { return divisor; }
 
     bool IsValidLength() const
     {

@@ -48,7 +48,7 @@ miopenStatus_t NLLLossUnreduceForward(Handle& handle,
         inputDesc, targetDesc, weightDesc, outputDesc, ignore_index, true};
 
     const auto invoke_params = [&]() {
-        auto tmp       = nllloss::InvokeParams{};
+        auto tmp       = nllloss::FwdInvokeParams{};
         tmp.inputDesc  = &inputDesc;
         tmp.targetDesc = &targetDesc;
         tmp.weightDesc = &weightDesc;
@@ -113,7 +113,7 @@ miopenStatus_t NLLLossReduceForward(Handle& handle,
         inputDesc, targetDesc, weightDesc, outputDesc, ignore_index, divisor, true};
 
     const auto invoke_params = [&]() {
-        auto tmp       = nllloss::InvokeParams{};
+        auto tmp       = nllloss::FwdInvokeParams{};
         tmp.inputDesc  = &inputDesc;
         tmp.targetDesc = &targetDesc;
         tmp.weightDesc = &weightDesc;

@@ -513,7 +513,7 @@ typedef enum
     miopenActivationABS      = 5, /*!< Absolute value \f$abs(x)\f$ */
     miopenActivationPOWER = 6, /*!< Scaled and shifted power \f$(\alpha + \beta * x)^{gamma}\f$ */
     miopenActivationCLIPPEDRELU =
-        7, /*!< Clipped Rectified Linear Unit \f$ min(\alpha, max(0,x)) \f$ */
+        7,                     /*!< Clipped Rectified Linear Unit \f$ min(\alpha, max(0,x)) \f$ */
     miopenActivationLEAKYRELU =
         8, /*!< Leaky Rectified Linear Unit \f$ \alpha * x | x <= 0; x | x > 0 \f$ */
     miopenActivationELU =
@@ -6589,7 +6589,7 @@ MIOPEN_EXPORT miopenStatus_t miopenBackendInitialize(miopenBackendDescriptor_t d
  *
  *  @{
  */
-/*! @brief Execute a nllloss forward layer
+/*! @brief Execute a nllloss unreduced forward layer
  *
  * @param handle         MIOpen handle (input)
  * @param inputDesc      Tensor descriptor for data input tensor input (input)
@@ -6613,19 +6613,19 @@ MIOPEN_EXPORT miopenStatus_t miopenNLLLossUnreduceForward(miopenHandle_t handle,
                                                           const miopenTensorDescriptor_t outputDesc,
                                                           void* output,
                                                           int32_t ignore_index);
-/*! @brief Execute a nllloss backward layer
+/*! @brief Execute a nllloss unreduced backward layer
  *
- * @param handle         MIOpen handle (input)
- * @param inputGradDesc      Tensor descriptor for data input tensor input (input)
- * @param input_grad          Data tensor input grad (output)
- * @param targetDesc     Tensor descriptor for data input tensor target (input)
- * @param target         Data tensor target (input)
- * @param weightDesc     Tensor descriptor for data input tensor weight (input)
- * @param weight         Data tensor weight (input)
- * @param outputGradDesc     Tensor descriptor for output data tensor y (input)
- * @param output_grad         Data tensor output grad (input)
- * @param ignore_index   Class index to ignore (input)
- * @return               miopenStatus_t
+ * @param handle          MIOpen handle (input)
+ * @param inputGradDesc   Tensor descriptor for data input tensor input (input)
+ * @param input_grad      Data tensor input grad (output)
+ * @param targetDesc      Tensor descriptor for data input tensor target (input)
+ * @param target          Data tensor target (input)
+ * @param weightDesc      Tensor descriptor for data input tensor weight (input)
+ * @param weight          Data tensor weight (input)
+ * @param outputGradDesc  Tensor descriptor for output data tensor y (input)
+ * @param output_grad     Data tensor output grad (input)
+ * @param ignore_index    Class index to ignore (input)
+ * @return                miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t
 miopenNLLLossUnreduceBackward(miopenHandle_t handle,
@@ -6646,9 +6646,9 @@ miopenNLLLossUnreduceBackward(miopenHandle_t handle,
  * @param targetDesc               Tensor descriptor for target tensor (input)
  * @param weightDesc               Tensor descriptor for weight tensor (input)
  * @param outputDesc               Tensor descriptor for output tensor (input)
- * @param ignore_index             Ignore index (input)
+ * @param ignore_index             Class index to ignore (input)
  * @param divisor                  Divisor (input)
- * @param sizeInBytes              Pointer to data to return the minimum workspace size
+ * @param sizeInBytes              Pointer to data to return the minimum workspace size (output)
  * @return                         miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t
@@ -6661,7 +6661,7 @@ miopenGetNLLLossReduceForwardWorkspaceSize(miopenHandle_t handle,
                                            float divisor,
                                            size_t* sizeInBytes);
 
-/*! @brief Execute a NLLLoss forward layer
+/*! @brief Execute a NLLLoss reduced forward layer
  *
  * @param handle                   MIOpen handle (input)
  * @param workspace                Address of the allocated workspace data (input)
@@ -6674,7 +6674,7 @@ miopenGetNLLLossReduceForwardWorkspaceSize(miopenHandle_t handle,
  * @param weight                   Data tensor weight (input)
  * @param outputDesc               Tensor descriptor for output tensor (input)
  * @param output                   Data tensor output (output)
- * @param ignore_index             Ignore index (input)
+ * @param ignore_index             Class index to ignore (input)
  * @param divisor                  Divisor (input)
  * @return                         miopenStatus_t
  */
@@ -6692,20 +6692,20 @@ MIOPEN_EXPORT miopenStatus_t miopenNLLLossReduceForward(miopenHandle_t handle,
                                                         const int32_t ignore_index,
                                                         const float divisor);
 
-/*! @brief Execute a NLLLoss forward layer
+/*! @brief Execute a NLLLoss reduced backward layer
  *
  * @param handle                   MIOpen handle (input)
- * @param inputGradDesc      Tensor descriptor for data input tensor input (input)
- * @param input_grad          Data tensor input grad (output)
- * @param targetDesc     Tensor descriptor for data input tensor target (input)
- * @param target         Data tensor target (input)
- * @param weightDesc     Tensor descriptor for data input tensor weight (input)
- * @param weight         Data tensor weight (input)
- * @param outputGradDesc     Tensor descriptor for output data tensor y (input)
- * @param output_grad         Data tensor output grad (input)
- * @param divisor       Divisor (input)
- * @param ignore_index   Class index to ignore (input)
- * @return               miopenStatus_t
+ * @param inputGradDesc            Tensor descriptor for data input tensor input (input)
+ * @param input_grad               Data tensor input grad (output)
+ * @param targetDesc               Tensor descriptor for data input tensor target (input)
+ * @param target                   Data tensor target (input)
+ * @param weightDesc               Tensor descriptor for data input tensor weight (input)
+ * @param weight                   Data tensor weight (input)
+ * @param outputGradDesc           Tensor descriptor for output data tensor y (input)
+ * @param output_grad              Data tensor output grad (input)
+ * @param divisor                  Divisor (input)
+ * @param ignore_index             Class index to ignore (input)
+ * @return                         miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t
 miopenNLLLossReduceBackward(miopenHandle_t handle,

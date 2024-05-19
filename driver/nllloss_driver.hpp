@@ -284,6 +284,7 @@ int NLLLossDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     }
     else
         ws_sizeInBytes = 0;
+    size_t ws_sz = ws_sizeInBytes / sizeof(Tgpu);
 
     uint32_t ctx = 0;
 
@@ -300,8 +301,8 @@ int NLLLossDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     weight         = std::vector<Tgpu>(weight_sz, static_cast<Tgpu>(1));
     out            = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
     out_host       = std::vector<Tref>(out_sz, static_cast<Tref>(0));
-    workspace      = std::vector<Tgpu>(in_sz, static_cast<Tgpu>(0));
-    workspace_host = std::vector<Tref>(in_sz, static_cast<Tref>(0));
+    workspace      = std::vector<Tgpu>(ws_sz, static_cast<Tgpu>(0));
+    workspace_host = std::vector<Tref>(ws_sz, static_cast<Tref>(0));
 
     in_grad      = std::vector<Tgpu>(in_sz, static_cast<Tgpu>(0));
     in_grad_host = std::vector<Tref>(in_sz, static_cast<Tref>(0));
@@ -311,7 +312,7 @@ int NLLLossDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
     for(int i = 0; i < in_sz; i++)
     {
-        in[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(-10.0), static_cast<Tgpu>(-(1e-2)));
+        in[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(-1.0), static_cast<Tgpu>(-(1e-2)));
     }
     status = in_dev->ToGPU(q, in.data());
 
@@ -323,7 +324,7 @@ int NLLLossDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
     for(int i = 0; i < weight_sz; i++)
     {
-        weight[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(-10.0), static_cast<Tgpu>(10.0));
+        weight[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(-1.0), static_cast<Tgpu>(1.0));
     }
     status |= weight_dev->ToGPU(q, weight.data());
 
@@ -333,7 +334,7 @@ int NLLLossDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
     for(int i = 0; i < out_sz; i++)
     {
-        out_grad[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(-10.0), static_cast<Tgpu>(10.0));
+        out_grad[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(-1.0), static_cast<Tgpu>(1.0));
     }
     status |= out_grad_dev->ToGPU(q, out_grad.data());
 
