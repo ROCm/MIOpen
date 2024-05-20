@@ -61,9 +61,9 @@ void cpu_nllloss_reduce_forward_5d(tensor<T> input,
                                    int32_t ignore_index,
                                    float divisor)
 {
-    auto dims = input.desc.GetLengths();
+    auto dims  = input.desc.GetLengths();
     auto numel = target.desc.GetElementSize();
-    size_t C  = dims[1];
+    size_t C   = dims[1];
 
     auto I_tv = get_inner_expanded_tv_5d(input.desc);
     auto T_tv = get_inner_expanded_tv_4d(target.desc);
