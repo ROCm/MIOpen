@@ -686,7 +686,7 @@ private:
             softmaxRef,
             mDescRef,
             zInvDescRef,
-            lookup(miopenTensorMhaDescaleO)[0],
+            lookup(miopenTensorMhaDescaleQ)[0],
             lookup(miopenTensorMhaDescaleK)[0],
             lookup(miopenTensorMhaDescaleV)[0],
             lookup(miopenTensorMhaDescaleS)[0],
