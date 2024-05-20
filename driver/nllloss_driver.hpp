@@ -238,7 +238,7 @@ int NLLLossDriver<Tgpu, Tref>::AddCmdLineArgs()
     inflags.AddInputFlag("input_dims",
                          'D',
                          "16,21,21,21,10",
-                         "The dimensional lengths of the input tensor",
+                         "The dimensional lengths of the input tensor: N,C,D1,D2,... Example: 16,21,21,21,10.",
                          "string");
     inflags.AddInputFlag("ignore_index", 'g', "-1", "Ignore index", "int");
     inflags.AddInputFlag("reduce",
@@ -255,7 +255,7 @@ int NLLLossDriver<Tgpu, Tref>::AddCmdLineArgs()
 
     inflags.AddInputFlag("iter", 'i', "10", "Number of Iterations (Default=10)", "int");
     inflags.AddInputFlag("verify", 'V', "1", "Verify (Default=1)", "int");
-    inflags.AddInputFlag("time", 't', "1", "Time (Default=0)", "int");
+    inflags.AddInputFlag("time", 't', "1", "Time (Default=1)", "int");
     inflags.AddInputFlag(
         "wall", 'w', "0", "Wall-clock Time, Requires time == 1 (Default=0)", "int");
 
