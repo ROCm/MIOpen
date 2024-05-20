@@ -38,7 +38,7 @@ OpNode::~OpNode() = default;
 
 OpGraph OpGraphBuilder::build() &&
 {
-    if(mHandle == nullptr || mNodes.empty())
+    if(mNodes.empty())
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
@@ -67,6 +67,14 @@ OpGraph OpGraphBuilder::build() &&
             auto [iter, _ignore] =
                 e_map.try_emplace(o, EdgeInfo{}); // add empty EdgeInfo if not present
 
+            // REMOVE BEG
+            auto s = iter->second.mSrc;
+            if(s != nullptr)
+            {
+                MIOPEN_LOG_W("tensor with two sournces: orig = " << s->signName()
+                                                                 << ", n = " << n->signName());
+            }
+            // REMOVE END
             assert(iter->second.mSrc == nullptr);
             iter->second.mSrc = n;
         }
@@ -372,13 +380,17 @@ void BackendOperationGraphDescriptor::setAttribute(miopenBackendAttributeName_t 
                                 }
                                 else
                                 {
-                                    MIOPEN_THROW(miopenStatusBadParm);
+                                    MIOPEN_THROW(miopenStatusBadParm, "descriptor not finalized");
                                 }
                             });
 
             if(!internal::noRepetitions(nodes))
             {
-                MIOPEN_THROW(miopenStatusBadParm);
+                for(size_t i = 0; i < nodes.size(); ++i)
+                {
+                    std::cout << "node: " << nodes[i] << ", desc: " << descriptors[i] << std::endl;
+                }
+                MIOPEN_THROW(miopenStatusBadParm, "Repeated node pointer found");
             }
 
             mBuilder.setNodes(std::move(nodes));
@@ -386,7 +398,7 @@ void BackendOperationGraphDescriptor::setAttribute(miopenBackendAttributeName_t 
         }
         else
         {
-            MIOPEN_THROW(miopenStatusBadParm);
+            MIOPEN_THROW(miopenStatusBadParm, "Invalid attribute type or count");
         }
         break;
 

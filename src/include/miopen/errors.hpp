@@ -66,6 +66,7 @@ template <class... Params>
 #define MIOPEN_THROW(...)                                     \
     do                                                        \
     {                                                         \
+        std::abort(); /* TODO: Remove  */                     \
         miopen::MIOpenThrow(__FILE__, __LINE__, __VA_ARGS__); \
     } while(false)
 

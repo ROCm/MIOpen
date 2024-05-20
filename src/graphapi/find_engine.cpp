@@ -65,7 +65,6 @@ class MHA_FP8_Pattern : public GraphPatternMatcher
             {"OP_POINTWISE:MUL", {"T_RND", "T_MUL_0"}, {"T_MUL_1"}},
             {"OP_POINTWISE:MUL", {"T_MUL_1", "I_PROB"}, {"PW_S_3"}},
             {"OP_POINTWISE:MUL", {"PW_S_3", "SCL_S"}, {"PW_S_4"}},
-            {"OP_POINTWISE:MUL", {"PW_S_3", "SCL_S"}, {"PW_S_4"}},
             {"OP_MATMUL", {"PW_S_4", "V"}, {"T_BMM_1"}},
             {"OP_POINTWISE:MUL", {"T_BMM_1", "DSCL_S"}, {"PW_S_5"}},
             {"OP_POINTWISE:MUL", {"PW_S_5", "DSCL_V"}, {"PW_S_6"}},
@@ -318,6 +317,7 @@ std::vector<Engine> findEngines(OpGraph* graph)
         }
     }
 
+    MIOPEN_LOG_E("No patterns matched against the graph");
     MIOPEN_THROW("Solution not found");
     return {};
 }

@@ -61,9 +61,8 @@ class MhaFwdGraphTest : public testing::TestWithParam<std::tuple<int, int, int, 
         explicit TensorData(gr::Tensor* tens_ptr) : mTensPtr(tens_ptr), mCpuTensor()
         {
             assert(tens_ptr);
-            std::vector<size_t> dims;
             const auto& d = tens_ptr->getDimensions();
-            std::copy(d.begin(), d.end(), dims.begin());
+            std::vector<size_t> dims(d.begin(), d.end());
             mCpuTensor = tensor<float>{dims};
         }
 
