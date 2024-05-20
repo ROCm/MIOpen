@@ -26,18 +26,17 @@
 #ifndef MLO_KLDIVLOSSHOST_H_
 #define MLO_KLDIVLOSSHOST_H_
 
-#include <cstdint>
 #include <miopen/tensor.hpp>
 #include <miopen/tensor_view.hpp>
 
 template <typename Tgpu, typename Tcheck>
-int32_t mloKLDivLossReducedForwardRunHost5d(const miopenTensorDescriptor_t inputDesc,
-                                            const miopenTensorDescriptor_t targetDesc,
-                                            const miopenTensorDescriptor_t outputDesc,
-                                            const Tgpu* input,
-                                            const Tgpu* target,
-                                            Tcheck* output,
-                                            bool log_target)
+int32_t mloKLDivLossUnreducedForwardRunHost5d(const miopenTensorDescriptor_t inputDesc,
+                                              const miopenTensorDescriptor_t targetDesc,
+                                              const miopenTensorDescriptor_t outputDesc,
+                                              const Tgpu* input,
+                                              const Tgpu* target,
+                                              Tcheck* output,
+                                              bool log_target)
 {
     auto I_tv = get_inner_expanded_tv_5d(miopen::deref(inputDesc));
     auto T_tv = get_inner_expanded_tv_5d(miopen::deref(targetDesc));
@@ -134,17 +133,18 @@ int32_t mloKLDivLossUnreducedBackwardRunHost5d(const miopenTensorDescriptor_t in
             forward_output = target_value * (static_cast<Tgpu>(log(target_value)) - input_value);
             if(input_grad_out)
             {
-                Tgpu input_grad_value =
-                    std::isnan(forward_output) ? 0.0f : -target_value * output_grad_value;
-                input_grad[dIidx] = static_cast<Tcheck>(input_grad_value);
+                Tgpu input_grad_value = std::isnan(forward_output)
+                                            ? static_cast<Tgpu>(0.0f)
+                                            : -target_value * output_grad_value;
+                input_grad[dIidx]     = static_cast<Tcheck>(input_grad_value);
             }
             if(target_grad_out)
             {
                 Tgpu target_grad_value =
-                    (target_value == 0)
-                        ? 0.0f
-                        : (1 + (static_cast<Tgpu>(log(target_value)) - input_value)) *
-                              output_grad_value;
+                    (target_value == 0) ? static_cast<Tgpu>(0.0f)
+                                        : (static_cast<Tgpu>(1.0f) +
+                                           (static_cast<Tgpu>(log(target_value)) - input_value)) *
+                                              output_grad_value;
                 target_grad[dTidx] = static_cast<Tcheck>(target_grad_value);
             }
         }
@@ -215,7 +215,7 @@ int32_t mloKLDivLossUnreducedBackwardRunHost5d(const miopenTensorDescriptor_t in
 //             else
 //                 workspace[offset_b + i / local_size] = shared[0];
 //         }
-//         std::swap(offset_a, offset_b);
+//         swap(offset_a, offset_b);
 //         _size = (_size + local_size - 1) / local_size;
 //     } while(_size > 1);
 //     // printf("Output: %f\n", static_cast<float>(output[0]));
@@ -275,9 +275,8 @@ int32_t mloKLDivLossReducedBackwardRunHost5d(const miopenTensorDescriptor_t inpu
             }
             if(target_grad_out)
             {
-                Tgpu target_grad_value =
-                    static_cast<Tgpu>(forward_output + exp_target) / d * output_grad_value;
-                target_grad[dTidx] = static_cast<Tcheck>(target_grad_value);
+                Tgpu target_grad_value = ((forward_output + exp_target) / d) * output_grad_value;
+                target_grad[dTidx]     = static_cast<Tcheck>(target_grad_value);
             }
         }
         else
@@ -285,18 +284,20 @@ int32_t mloKLDivLossReducedBackwardRunHost5d(const miopenTensorDescriptor_t inpu
             forward_output = target_value * (static_cast<Tgpu>(log(target_value)) - input_value);
             if(input_grad_out)
             {
-                Tgpu input_grad_value = std::isnan(forward_output)
-                                            ? static_cast<Tgpu>(0.0f)
-                                            : -target_value / d * output_grad_value;
-                input_grad[dIidx]     = static_cast<Tcheck>(input_grad_value);
+                Tgpu input_grad_value =
+                    std::isnan(forward_output)
+                        ? static_cast<Tgpu>(0.0f)
+                        : static_cast<Tgpu>(-1.0f) * target_value / d * output_grad_value;
+                input_grad[dIidx] = static_cast<Tcheck>(input_grad_value);
             }
             if(target_grad_out)
             {
                 Tgpu target_grad_value =
-                    (target_value == 0) ? static_cast<Tgpu>(0.0f)
-                                        : (static_cast<Tgpu>(1.0f) +
-                                           (static_cast<Tgpu>(log(target_value)) - input_value)) /
-                                              d * output_grad_value;
+                    (target_value == static_cast<Tgpu>(0.0f))
+                        ? static_cast<Tgpu>(0.0f)
+                        : (static_cast<Tgpu>(1.0f) +
+                           (static_cast<Tgpu>(log(target_value)) - input_value)) /
+                              d * output_grad_value;
                 target_grad[dTidx] = static_cast<Tcheck>(target_grad_value);
             }
         }
