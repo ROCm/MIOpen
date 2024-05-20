@@ -46,9 +46,9 @@ __device__ void getitembuildindices(const IDX* __restrict__ index,
 {
     const uint64_t gid = threadIdx.x + blockIdx.x * blockDim.x;
 
-    tensor_layerout_t<5> ncdhw(index_tv, gid);
+    tensor_layout_t<5> ncdhw(index_tv, gid);
 
-    if(ncdhw.layerout[0] >= index_tv.size[0])
+    if(ncdhw.layout[0] >= index_tv.size[0])
         return;
 
     uint64_t idx      = index_tv.get_tensor_view_idx(ncdhw);
@@ -86,23 +86,23 @@ __device__ void getitembwd(const TI* __restrict__ dy,
 {
     const uint64_t gid = threadIdx.x + blockIdx.x * blockDim.x;
 
-    tensor_layerout_t<5> ncdhw(dy_tv, gid);
+    tensor_layout_t<5> ncdhw(dy_tv, gid);
 
-    if(ncdhw.layerout[0] >= dy_tv.size[0])
+    if(ncdhw.layout[0] >= dy_tv.size[0])
         return;
 
-    tensor_layerout_t<5> idx = ncdhw;
+    tensor_layout_t<5> idx = ncdhw;
 
     if(indexCount > 0)
     {
-        int32_t dim_cursor = ncdhw.layerout[start_dim];
+        int32_t dim_cursor = ncdhw.layout[start_dim];
         int32_t i          = start_dim;
         int32_t j          = 0;
 
         for(; i < start_dim + indexCount; ++i, ++j)
         {
             uint64_t dim_idx = static_cast<uint64_t>(element_index[dim_info_offset + j]);
-            idx.layerout[dim_idx] =
+            idx.layout[dim_idx] =
                 static_cast<uint64_t>(element_index[(dim_cursor * indexCount) + j]);
         }
 
@@ -110,12 +110,12 @@ __device__ void getitembwd(const TI* __restrict__ dy,
         dim_cursor = start_dim + 1;
         for(; i < 5; ++i, ++dim_cursor)
         {
-            idx.layerout[i] = ncdhw.layerout[dim_cursor];
+            idx.layout[i] = ncdhw.layout[dim_cursor];
         }
     }
 
-    idx.layerout[0] += offset;
-    ncdhw.layerout[0] += offset;
+    idx.layout[0] += offset;
+    ncdhw.layout[0] += offset;
 
     atomic_add_g(&dx[dx_tv.get_tensor_view_idx(idx)], dy[dy_tv.get_tensor_view_idx(ncdhw)]);
 }

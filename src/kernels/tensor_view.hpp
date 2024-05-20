@@ -28,19 +28,19 @@
 #define GUARD_TENSOR_VIEW_H
 
 template <int N>
-struct tensor_layerout_t;
+struct tensor_layout_t;
 
 template <int N>
 struct tensor_view_t
 {
     // Get index in tensor view at tensor layout
-    constexpr uint64_t get_tensor_view_idx(const tensor_layerout_t<N>& tensor_layout)
+    constexpr uint64_t get_tensor_view_idx(const tensor_layout_t<N>& tensor_layout)
     {
         static_assert(N > 0);
         uint64_t idx = 0;
         for(auto i = 0; i < N; ++i)
         {
-            idx += stride[i] * tensor_layout.layerout[i];
+            idx += stride[i] * tensor_layout.layout[i];
         }
         return idx;
     }
@@ -49,30 +49,30 @@ struct tensor_view_t
 };
 
 template <int N>
-struct tensor_layerout_t
+struct tensor_layout_t
 {
     // Make tensor layout at index using tensor view
-    constexpr tensor_layerout_t(const tensor_view_t<N>& tensor_view, uint64_t idx)
+    constexpr tensor_layout_t(const tensor_view_t<N>& tensor_view, uint64_t idx)
     {
         static_assert(N > 0);
         uint64_t temp = idx;
         if constexpr(N == 1)
         {
-            layerout[0] = idx;
+            layout[0] = idx;
         }
         else
         {
             for(auto i = N - 1; i > 1; --i)
             {
-                layerout[i] = temp % tensor_view.size[i];
-                temp        = idx / tensor_view.size[i];
+                layout[i] = temp % tensor_view.size[i];
+                temp      = idx / tensor_view.size[i];
             }
-            layerout[1] = temp % tensor_view.size[1];
-            layerout[0] = temp / tensor_view.size[1];
+            layout[1] = temp % tensor_view.size[1];
+            layout[0] = temp / tensor_view.size[1];
         }
     }
 
-    uint64_t layerout[N];
+    uint64_t layout[N];
 };
 
 #endif // GUARD_TENSOR_VIEW_H

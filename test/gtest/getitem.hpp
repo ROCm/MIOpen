@@ -98,26 +98,26 @@ void cpu_getitem_backward(tensor<T> dy,
 
     // GetItem
     par_ford(dy_numel)([&](int32_t o) {
-        tensor_layerout_t<5> ncdhw(dy_tv, o);
-        tensor_layerout_t<5> idx(ncdhw);
+        tensor_layout_t<5> ncdhw(dy_tv, o);
+        tensor_layout_t<5> idx(ncdhw);
 
         if(indexCount > 0)
         {
-            size_t dim_cursor = ncdhw.layerout[start_dim];
+            size_t dim_cursor = ncdhw.layout[start_dim];
             size_t i          = start_dim;
             size_t j          = 0;
 
             for(; i < start_dim + indexCount; ++i, ++j)
             {
-                size_t dim_idx        = element_index[dim_info_offset + j];
-                idx.layerout[dim_idx] = element_index[(dim_cursor * indexCount) + j];
+                size_t dim_idx      = element_index[dim_info_offset + j];
+                idx.layout[dim_idx] = element_index[(dim_cursor * indexCount) + j];
             }
 
             i          = element_index[dim_info_offset + indexCount - 1] + 1;
             dim_cursor = start_dim + 1;
             for(; i < 5; ++i, ++dim_cursor)
             {
-                idx.layerout[i] = ncdhw.layerout[dim_cursor];
+                idx.layout[i] = ncdhw.layout[dim_cursor];
             }
         }
 
