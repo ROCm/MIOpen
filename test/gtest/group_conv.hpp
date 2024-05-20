@@ -525,31 +525,30 @@ std::vector<miopenTensorLayout_t> GetLayoutValues()
 
 } // namespace group_conv
 
-#define DEFINE_GROUP_CONV_TEST(ndim, alpha, beta, type, dir, ab_case)                   \
-    bool GroupConv##ndim##D_##dir##_##type##_##ab_case##_SkipTest()                     \
-            { return get_handle_xnack(); }                                              \
-                                                                                        \
-    struct GroupConv##ndim##D_##dir##_##type##_##ab_case                                \
-        : GroupConvTestFix<ndim, type, Direction::dir>                                  \
-    {                                                                                   \
-    };                                                                                  \
-    TEST_P(GroupConv##ndim##D_##dir##_##type##_##ab_case,                               \
-           GroupConv##ndim##D_##dir##_##type##_##ab_case##_Test)                        \
-    {                                                                                   \
-        if(GroupConv##ndim##D_##dir##_##type##_##ab_case##_SkipTest())                  \
-        {                                                                               \
-            test_skipped = true;                                                        \
-            GTEST_SKIP() << "GROUP_CONV does not support xnack";                        \
-        }                                                                               \
-        RunSolver();                                                                    \
-    }                                                                                   \
-    INSTANTIATE_TEST_SUITE_P(                                                           \
-        GroupConv##ndim##D_##dir##_##type##_##ab_case##_Suite,                          \
-        GroupConv##ndim##D_##dir##_##type##_##ab_case,                                  \
-        testing::Combine(                                                               \
-            testing::ValuesIn(GroupConvTestConfig<ndim>::GetConfigs<Direction::dir>()), \
-            testing::ValuesIn({alpha}),                                                 \
-            testing::ValuesIn({beta}),                                                  \
+#define DEFINE_GROUP_CONV_TEST(ndim, alpha, beta, type, dir, ab_case)                              \
+    bool GroupConv##ndim##D_##dir##_##type##_##ab_case##_SkipTest() { return get_handle_xnack(); } \
+                                                                                                   \
+    struct GroupConv##ndim##D_##dir##_##type##_##ab_case                                           \
+        : GroupConvTestFix<ndim, type, Direction::dir>                                             \
+    {                                                                                              \
+    };                                                                                             \
+    TEST_P(GroupConv##ndim##D_##dir##_##type##_##ab_case,                                          \
+           GroupConv##ndim##D_##dir##_##type##_##ab_case##_Test)                                   \
+    {                                                                                              \
+        if(GroupConv##ndim##D_##dir##_##type##_##ab_case##_SkipTest())                             \
+        {                                                                                          \
+            test_skipped = true;                                                                   \
+            GTEST_SKIP() << "GROUP_CONV does not support xnack";                                   \
+        }                                                                                          \
+        RunSolver();                                                                               \
+    }                                                                                              \
+    INSTANTIATE_TEST_SUITE_P(                                                                      \
+        GroupConv##ndim##D_##dir##_##type##_##ab_case##_Suite,                                     \
+        GroupConv##ndim##D_##dir##_##type##_##ab_case,                                             \
+        testing::Combine(                                                                          \
+            testing::ValuesIn(GroupConvTestConfig<ndim>::GetConfigs<Direction::dir>()),            \
+            testing::ValuesIn({alpha}),                                                            \
+            testing::ValuesIn({beta}),                                                             \
             testing::ValuesIn(GetLayoutValues<ndim>())));
 
 #define DEFINE_GROUP_CONV2D_TEST(type, dir, alpha, beta, ab_case) \
