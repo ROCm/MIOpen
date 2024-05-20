@@ -138,10 +138,10 @@ struct ProblemDescription : ProblemDescriptionBase
     bool ExistStepTensor() const { return !stepInDesc.GetLengths().empty(); }
     bool IsAmp() const { return is_amp; }
     bool IsAdamW() const { return adamw; }
-    bool IsAllPacked() const
+    bool IsAllContiguous() const
     {
-        if(!(paramInDesc.IsPacked() && gradInDesc.IsPacked() && expAvgInDesc.IsPacked() &&
-             expAvgSqInDesc.IsPacked()))
+        if(!(paramInDesc.IsContiguous() && gradInDesc.IsContiguous() &&
+             expAvgInDesc.IsContiguous() && expAvgSqInDesc.IsContiguous()))
             return false;
         return true;
     }
