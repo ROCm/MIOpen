@@ -202,7 +202,6 @@ int NLLLossDriver<Tgpu, Tref>::GetandSetData()
     auto in_strides     = GetStrides(in_len, 1);
     auto tar_strides    = GetStrides(target_len, inflags.GetValueInt("contiguous"));
     auto weight_strides = GetStrides(weight_len, 1);
-    auto output_strides = GetStrides(out_len, 1);
 
     SetTensorNd(inputDesc, in_len, in_strides, data_type);
     SetTensorNd(targetDesc, target_len, tar_strides, data_type);
@@ -210,7 +209,8 @@ int NLLLossDriver<Tgpu, Tref>::GetandSetData()
 
     if(reduction == "none")
     {
-        divisor = std::numeric_limits<float>::quiet_NaN();
+        divisor             = std::numeric_limits<float>::quiet_NaN();
+        auto output_strides = GetStrides(out_len, 1);
         SetTensorNd(outputDesc, out_len, output_strides, data_type);
         SetTensorNd(outputGradDesc, out_len, output_strides, data_type);
     }
@@ -218,6 +218,7 @@ int NLLLossDriver<Tgpu, Tref>::GetandSetData()
     {
         std::vector<int> out_len_rd = {1};
         SetTensorNd(outputDesc, out_len_rd, data_type);
+        auto output_strides = GetStrides(out_len_rd, 1);
         SetTensorNd(outputGradDesc, out_len_rd, output_strides, data_type);
         if(reduction == "sum")
             divisor = 1;
