@@ -71,17 +71,17 @@ bool AttnSoftmax::IsApplicable([[maybe_unused]] const ExecutionContext& context,
     const size_t nhs     = problem.GetXDesc().GetLengths().front(); // n
 
     return !miopen::IsDisabled(ENV(MIOPEN_DEBUG_ATTN_SOFTMAX)) && //
-           seq_len <= std::numeric_limits<uint32_t>::max() &&            //
-           problem.GetAlgorithm() == MIOPEN_SOFTMAX_ACCURATE &&          //
-           problem.IsForward() &&                                        //
-           problem.GetXDesc().IsPacked() &&                              //
-           problem.GetYDesc().IsPacked() &&                              //
-           problem.GetXDesc().GetType() == miopenFloat &&                //
-           problem.GetYDesc().GetType() == miopenFloat &&                //
-           problem.GetMode() == MIOPEN_SOFTMAX_MODE_INSTANCE &&          //
-           float_equal(problem.GetAlpha(), 1.0f) &&                      //
-           float_equal(problem.GetBeta(), 0.f) &&                        //
-           (seq_len > 16 || nhs <= 1024);                                // heuristic
+           seq_len <= std::numeric_limits<uint32_t>::max() &&     //
+           problem.GetAlgorithm() == MIOPEN_SOFTMAX_ACCURATE &&   //
+           problem.IsForward() &&                                 //
+           problem.GetXDesc().IsPacked() &&                       //
+           problem.GetYDesc().IsPacked() &&                       //
+           problem.GetXDesc().GetType() == miopenFloat &&         //
+           problem.GetYDesc().GetType() == miopenFloat &&         //
+           problem.GetMode() == MIOPEN_SOFTMAX_MODE_INSTANCE &&   //
+           float_equal(problem.GetAlpha(), 1.0f) &&               //
+           float_equal(problem.GetBeta(), 0.f) &&                 //
+           (seq_len > 16 || nhs <= 1024);                         // heuristic
 }
 
 std::size_t AttnSoftmax::GetWorkspaceSize(

@@ -129,7 +129,7 @@ using namespace reduce_custom_fp32_fp16;
 
 TEST_P(ConfigWithFloat_reduce_custom_fp32_fp16, FloatTest_reduce_custom_fp32_fp16)
 {
-    if(!(IsTestSupportedForDevice()                             //
+    if(!(IsTestSupportedForDevice()                      //
          && (miopen::IsUnset(ENV(MIOPEN_TEST_ALL))       // standalone run
              || (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) // or --float full tests enabled
                  && miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG)) == "--float"))))
@@ -142,7 +142,7 @@ TEST_P(ConfigWithFloat_reduce_custom_fp32_fp16, FloatTest_reduce_custom_fp32_fp1
 
 TEST_P(ConfigWithHalf_reduce_custom_fp32_fp16, HalfTest_reduce_custom_fp32_fp16)
 {
-    if(!(IsTestSupportedForDevice()                             //
+    if(!(IsTestSupportedForDevice()                      //
          && (miopen::IsUnset(ENV(MIOPEN_TEST_ALL))       // standalone run
              || (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) // or --half full tests enabled
                  && miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG)) == "--half"))))

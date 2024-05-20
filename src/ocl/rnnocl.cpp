@@ -48,8 +48,7 @@ bool RNNForwardMSIsSupported([[maybe_unused]] const RNNDescriptor& desctiptor,
 #if MIOPEN_USE_GEMM && MIOPEN_BACKEND_HIP
     if(desctiptor.rnnMode == miopenLSTM && desctiptor.algoMode == miopenRNNdefault &&
        !use_dropout && desctiptor.nLayers > 1 && desctiptor.dirMode == miopenRNNunidirection &&
-       desctiptor.inputMode != miopenRNNskip &&
-       !(miopen::IsDisabled(ENV(MIOPEN_RNNFWD_exp))))
+       desctiptor.inputMode != miopenRNNskip && !(miopen::IsDisabled(ENV(MIOPEN_RNNFWD_exp))))
     {
         return true;
     }

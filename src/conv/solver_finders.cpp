@@ -89,8 +89,7 @@ protected:
                    const ProblemDescription& /*problem*/,
                    const ConvFindParameters& parameters) const override
     {
-        return !parameters.use_winograd_only &&
-               !IsDisabled(ENV(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM));
+        return !parameters.use_winograd_only && !IsDisabled(ENV(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM));
     }
 
     std::vector<solver::ConvSolution> FindImpl(const ExecutionContext& ctx,

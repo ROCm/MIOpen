@@ -611,8 +611,7 @@ ConvSolution ConvAsm1x1UV2::GetSolution(const ExecutionContext& ctx,
 
     PerformanceConfigConvAsm1x1UV2 fromEnv;
     {
-        const auto& s =
-            miopen::GetStringEnv(ENV(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1UV2_PERF_VALS));
+        const auto& s = miopen::GetStringEnv(ENV(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1UV2_PERF_VALS));
         if(!s.empty()) // else nothing to parse.
         {
             if(!fromEnv.Deserialize(s) || !fromEnv.IsValidValue())

@@ -33,10 +33,7 @@
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
 
 namespace regression_issue_2012 {
-void SetupEnvVar(void)
-{
-    miopen::UpdateEnvVar(ENV(MIOPEN_FIND_MODE), std::string("normal"));
-}
+void SetupEnvVar(void) { miopen::UpdateEnvVar(ENV(MIOPEN_FIND_MODE), std::string("normal")); }
 
 std::vector<std::string> GetArgs(const std::string& param)
 {

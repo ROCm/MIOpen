@@ -114,13 +114,13 @@ bool MhaForward::IsApplicable([[maybe_unused]] const ExecutionContext& context,
     auto [N, H, S, D] = miopen::tien<4>(descsForward.kDesc.GetLengths());
 
     return !miopen::IsDisabled(ENV(MIOPEN_DEBUG_ATTN_NAIVE_FWD)) //
-           && S <= std::numeric_limits<uint32_t>::max()                 //
-           && descsForward.kDesc.IsPacked()                             //
-           && descsForward.qDesc.IsPacked()                             //
-           && descsForward.vDesc.IsPacked()                             //
-           && descsForward.oDesc.IsPacked()                             //
-           && descsForward.mDesc.IsPacked()                             //
-           && descsForward.zInvDesc.IsPacked()                          //
+           && S <= std::numeric_limits<uint32_t>::max()          //
+           && descsForward.kDesc.IsPacked()                      //
+           && descsForward.qDesc.IsPacked()                      //
+           && descsForward.vDesc.IsPacked()                      //
+           && descsForward.oDesc.IsPacked()                      //
+           && descsForward.mDesc.IsPacked()                      //
+           && descsForward.zInvDesc.IsPacked()                   //
            && MIOPEN_USE_GEMM;
 }
 

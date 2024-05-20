@@ -223,8 +223,7 @@ void ExecutionContext::DetectRocm()
     rmv                     = rocm_meta_version::Default;
     if(IsAmdRocmOpencl(*this))
     {
-        use_asm_kernels =
-            !IsDisabled(ENV(MIOPEN_DEBUG_GCN_ASM_KERNELS)) && ValidateGcnAssembler();
+        use_asm_kernels = !IsDisabled(ENV(MIOPEN_DEBUG_GCN_ASM_KERNELS)) && ValidateGcnAssembler();
 #ifndef HIP_OC_FINALIZER
         use_binaries = !IsDisabled(ENV(MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES));
 #endif

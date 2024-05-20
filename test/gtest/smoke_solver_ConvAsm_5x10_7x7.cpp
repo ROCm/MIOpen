@@ -34,14 +34,12 @@ namespace {
 
 auto GetTestCases()
 {
-    const auto env5x10f =
-        std::tuple{std::pair{ENV(MIOPEN_FIND_MODE), std::string_view("normal")},
-                   std::pair{ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER),
-                             std::string_view("ConvAsm5x10u2v2f1")}};
-    const auto env5x10b =
-        std::tuple{std::pair{ENV(MIOPEN_FIND_MODE), std::string_view("normal")},
-                   std::pair{ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER),
-                             std::string_view("ConvAsm5x10u2v2b1")}};
+    const auto env5x10f = std::tuple{
+        std::pair{ENV(MIOPEN_FIND_MODE), std::string_view("normal")},
+        std::pair{ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER), std::string_view("ConvAsm5x10u2v2f1")}};
+    const auto env5x10b = std::tuple{
+        std::pair{ENV(MIOPEN_FIND_MODE), std::string_view("normal")},
+        std::pair{ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER), std::string_view("ConvAsm5x10u2v2b1")}};
     const auto env7x7 =
         std::tuple{std::pair{ENV(MIOPEN_FIND_MODE), std::string_view("normal")},
                    std::pair{ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER),

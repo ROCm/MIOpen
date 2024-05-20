@@ -1106,8 +1106,7 @@ ConvSolution ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm::GetSolution(
 bool ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm::IsApplicable(
     const ExecutionContext& ctx, const ProblemDescription& problem) const
 {
-    if(miopen::IsDisabled(
-           ENV(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R4_PADDED_GEMM_XDLOPS)))
+    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R4_PADDED_GEMM_XDLOPS)))
         return false;
 
     if(ThisSolverIsDeprecatedStatic::IsDisabled(ctx))

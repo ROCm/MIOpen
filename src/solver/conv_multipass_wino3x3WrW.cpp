@@ -494,8 +494,7 @@ bool ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>
         return false;
 
     {
-        std::size_t limit =
-            miopen::Value(ENV(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_WORKSPACE_MAX));
+        std::size_t limit = miopen::Value(ENV(MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_WORKSPACE_MAX));
 #if WORKAROUND_SWDEV_203031
         if(limit == 0)
         {

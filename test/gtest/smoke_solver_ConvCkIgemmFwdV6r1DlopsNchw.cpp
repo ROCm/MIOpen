@@ -45,8 +45,7 @@ auto GetTestCases()
         std::pair{ENV(MIOPEN_FIND_MODE), std::string_view("normal")},
         std::pair{ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER),
                   std::string_view("ConvCkIgemmFwdV6r1DlopsNchw")},
-        std::pair{ENV(MIOPEN_DEBUG_CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW),
-                  std::string_view("1")}};
+        std::pair{ENV(MIOPEN_DEBUG_CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW), std::string_view("1")}};
 
     const std::string vf = " --verbose --disable-backward-data --disable-backward-weights";
 

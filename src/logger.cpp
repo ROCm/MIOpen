@@ -120,8 +120,7 @@ inline float GetTimeDiff()
 
 bool IsLoggingDebugQuiet()
 {
-    return debug::LoggingQuiet &&
-           !miopen::IsEnabled(ENV(MIOPEN_DEBUG_LOGGING_QUIETING_DISABLE));
+    return debug::LoggingQuiet && !miopen::IsEnabled(ENV(MIOPEN_DEBUG_LOGGING_QUIETING_DISABLE));
 }
 
 bool IsLoggingFunctionCalls()

@@ -36,8 +36,7 @@ auto GetTestCases()
 {
     const auto env = std::tuple{
         std::pair{ENV(MIOPEN_FIND_MODE), std::string_view("normal")},
-        std::pair{ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER),
-                  std::string_view("ConvDirectNaiveConvFwd")},
+        std::pair{ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER), std::string_view("ConvDirectNaiveConvFwd")},
         std::pair{ENV(MIOPEN_DRIVER_USE_GPU_REFERENCE), std::string_view("0")},
     };
 

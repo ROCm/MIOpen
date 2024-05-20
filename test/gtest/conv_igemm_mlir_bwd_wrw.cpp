@@ -78,8 +78,7 @@ using TestCase = decltype(GetTestCases())::value_type;
 
 bool SkipTest()
 {
-    return !(miopen::IsEnabled(ENV(MIOPEN_TEST_MLIR))) ||
-           miopen::IsDisabled(ENV(MIOPEN_TEST_ALL));
+    return !(miopen::IsEnabled(ENV(MIOPEN_TEST_MLIR))) || miopen::IsDisabled(ENV(MIOPEN_TEST_ALL));
 }
 
 bool IsTestSupportedForDevice()

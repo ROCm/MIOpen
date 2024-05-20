@@ -207,8 +207,7 @@ static bool IsApplicableTransform(const ExecutionContext& ctx, const ProblemDesc
 #endif
 
     {
-        std::size_t limit =
-            miopen::Value(ENV(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_WORKSPACE_MAX));
+        std::size_t limit = miopen::Value(ENV(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_WORKSPACE_MAX));
 #if WORKAROUND_SWDEV_203031
         if(limit == 0)
         {
@@ -247,8 +246,7 @@ static bool IsApplicableTransform(const ExecutionContext& ctx, const ProblemDesc
     DEFINE_SHADER_ALIASES(problem)
     {
         const miopenDataType_t transform_data_type =
-            miopen::IsEnabled(
-                ENV(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_EXPEREMENTAL_FP16_TRANSFORM))
+            miopen::IsEnabled(ENV(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_EXPEREMENTAL_FP16_TRANSFORM))
                 ? problem.GetInDataType()
                 : miopenFloat;
 

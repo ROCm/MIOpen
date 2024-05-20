@@ -256,8 +256,7 @@ ConvSolution ConvAsm3x3U::GetSolution(const ExecutionContext& ctx,
 
     PerformanceConfigConvAsm3x3U fromEnv;
     {
-        const auto& s =
-            miopen::GetStringEnv(ENV(MIOPEN_DEBUG_CONV_DIRECT_ASM_3X3U_PERF_VALS));
+        const auto& s = miopen::GetStringEnv(ENV(MIOPEN_DEBUG_CONV_DIRECT_ASM_3X3U_PERF_VALS));
         if(!s.empty()) // else nothing to parse.
         {
             if(!fromEnv.Deserialize(s) || !fromEnv.IsValid(problem))

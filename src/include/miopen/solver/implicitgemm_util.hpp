@@ -214,8 +214,7 @@ static inline bool IsXdlopsSupport(const ExecutionContext& ctx)
     const bool is_xdlops_supported = StartsWith(ctx.GetStream().GetDeviceName(), "gfx908") ||
                                      StartsWith(ctx.GetStream().GetDeviceName(), "gfx90a") ||
                                      StartsWith(ctx.GetStream().GetDeviceName(), "gfx94");
-    return is_xdlops_supported &&
-           !miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS));
+    return is_xdlops_supported && !miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS));
 }
 
 ///\todo remove
@@ -551,11 +550,11 @@ static inline auto get_static_ck_common_compiler_flag(const ExecutionContext& ct
                      (support_amd_buffer_atomic_fadd(ctx.GetStream().GetDeviceName()) ? '1' : '0');
 
     // LDS sync
-    compiler_flag += std::string(" -DCK_BLOCK_SYNC_LDS_WITHOUT_SYNC_VMEM=") +
-                     (miopen::IsDisabled(ENV(
-                          MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_BLOCK_SYNC_LDS_WITHOUT_SYNC_VMEM))
-                          ? '0'
-                          : '1');
+    compiler_flag +=
+        std::string(" -DCK_BLOCK_SYNC_LDS_WITHOUT_SYNC_VMEM=") +
+        (miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_BLOCK_SYNC_LDS_WITHOUT_SYNC_VMEM))
+             ? '0'
+             : '1');
 
     // workaround
     compiler_flag +=

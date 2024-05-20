@@ -38,13 +38,13 @@ namespace {
 
 auto GetTestCases()
 {
-    const auto bwd = std::tuple{std::pair{ENV(MIOPEN_FIND_MODE), std::string_view("normal")},
-                                std::pair{ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER),
-                                          std::string_view("ConvMlirIgemmBwdXdlops")}};
+    const auto bwd = std::tuple{
+        std::pair{ENV(MIOPEN_FIND_MODE), std::string_view("normal")},
+        std::pair{ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER), std::string_view("ConvMlirIgemmBwdXdlops")}};
 
-    const auto wrw = std::tuple{std::pair{ENV(MIOPEN_FIND_MODE), std::string_view("normal")},
-                                std::pair{ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER),
-                                          std::string_view("ConvMlirIgemmWrWXdlops")}};
+    const auto wrw = std::tuple{
+        std::pair{ENV(MIOPEN_FIND_MODE), std::string_view("normal")},
+        std::pair{ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER), std::string_view("ConvMlirIgemmWrWXdlops")}};
 
     const std::string flags_bwd = " --verbose --disable-forward --disable-backward-weights";
     const std::string flags_wrw = " --verbose --disable-forward --disable-backward-data";
@@ -81,8 +81,7 @@ using TestCase = decltype(GetTestCases())::value_type;
 
 bool SkipTest()
 {
-    return !(miopen::IsEnabled(ENV(MIOPEN_TEST_MLIR))) ||
-           miopen::IsDisabled(ENV(MIOPEN_TEST_ALL));
+    return !(miopen::IsEnabled(ENV(MIOPEN_TEST_MLIR))) || miopen::IsDisabled(ENV(MIOPEN_TEST_ALL));
 }
 
 bool IsTestSupportedForDevice()

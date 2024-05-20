@@ -36,12 +36,11 @@ namespace conv_ck_igemm_fwd_v6r1_dlops_nchw {
 
 auto GetTestCases()
 {
-    const auto env =
-        std::tuple{std::pair{ENV(MIOPEN_FIND_MODE), std::string_view("normal")},
-                   std::pair{ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER),
-                             std::string_view("ConvCkIgemmFwdV6r1DlopsNchw")},
-                   std::pair{ENV(MIOPEN_DEBUG_CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW),
-                             std::string_view("1")}};
+    const auto env = std::tuple{
+        std::pair{ENV(MIOPEN_FIND_MODE), std::string_view("normal")},
+        std::pair{ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER),
+                  std::string_view("ConvCkIgemmFwdV6r1DlopsNchw")},
+        std::pair{ENV(MIOPEN_DEBUG_CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW), std::string_view("1")}};
 
     const std::string v           = " --verbose";
     const std::string dis_bk_data = " --disable-backward-data";

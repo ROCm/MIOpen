@@ -139,11 +139,8 @@ bool checkNumericsImpl(
 // Returns: 1 if abnormal value (inf or nan) detected in specified data, 0 otherwise
 bool checkNumericsInput(const Handle& handle, const TensorDescriptor& dDesc, ConstData_t data)
 {
-    return checkNumericsImpl(handle,
-                             static_cast<int>(miopen::Value(ENV(MIOPEN_CHECK_NUMERICS))),
-                             dDesc,
-                             data,
-                             true);
+    return checkNumericsImpl(
+        handle, static_cast<int>(miopen::Value(ENV(MIOPEN_CHECK_NUMERICS))), dDesc, data, true);
 }
 
 // Synchronizes to wait for kernel to finish, then checks data for output:
@@ -152,11 +149,8 @@ bool checkNumericsOutput(const Handle& handle, const TensorDescriptor& dDesc, Co
 {
     handle.Finish();
 
-    return checkNumericsImpl(handle,
-                             static_cast<int>(miopen::Value(ENV(MIOPEN_CHECK_NUMERICS))),
-                             dDesc,
-                             data,
-                             false);
+    return checkNumericsImpl(
+        handle, static_cast<int>(miopen::Value(ENV(MIOPEN_CHECK_NUMERICS))), dDesc, data, false);
 }
 
 } // namespace miopen

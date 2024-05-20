@@ -746,8 +746,7 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ExecutionContext& ctx,
 
     PerformanceConfigConvAsmBwdWrW1x1 fromEnv;
     {
-        const auto& s =
-            miopen::GetStringEnv(ENV(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW1X1_PERF_VALS));
+        const auto& s = miopen::GetStringEnv(ENV(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW1X1_PERF_VALS));
         if(!s.empty()) // else nothing to parse.
         {
             if(!fromEnv.Deserialize(s) || !fromEnv.IsValid(ctx, problem))
