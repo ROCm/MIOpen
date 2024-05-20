@@ -65,6 +65,34 @@ std::ostream& operator<<(std::ostream& stream, std::function<void(std::ostream&)
 
 } // namespace
 
+miopenAlphaBetaCase_t ClassifyAlphaBeta(const Scalar& alpha, const Scalar& beta)
+{
+    // double since we are comparing
+    double alpha_val = alpha.GetAsDouble();
+    double beta_val  = beta.GetAsDouble();
+
+    bool alpha_one  = (alpha_val == 1.0);
+    bool alpha_zero = (alpha_val == 0.0);
+    bool beta_zero  = (beta_val == 0.0);
+
+    if(alpha_one && beta_zero)
+    {
+        return DEFAULT;
+    }
+
+    if(!alpha_one && beta_zero)
+    {
+        return SCALE;
+    }
+
+    if(!alpha_zero && !beta_zero)
+    {
+        return BILINEAR;
+    }
+
+    return ERROR_STATE;
+}
+
 std::string ProblemDescription::GetDirectionStr() const
 {
     std::string s;
@@ -78,6 +106,17 @@ std::string ProblemDescription::GetDirectionStr() const
     }
 
     return s;
+}
+
+std::string ProblemDescription::GetAlphaBetaCaseStr() const
+{
+    switch(GetAlphaBetaCase())
+    {
+    case BILINEAR: return "Bilinear";
+    case SCALE: return "Scale";
+    case DEFAULT: return "Default";
+    default: MIOPEN_THROW(miopenStatusInvalidValue, "Alpha Beta Case in ERROR_STATE");
+    }
 }
 
 void ProblemDescription::HeuristicUpdateLayouts()
@@ -146,6 +185,7 @@ void ProblemDescription::MakeNetworkConfig(std::string& conf_key) const
     ss << 'x' << PrintDHW('x', GetSpatialDims(), GetDilationD(), GetDilationH(), GetDilationW());
     ss << 'x' << GetGroupCount();
     ss << 'x' << GetDirectionStr();
+    ss << 'x' << GetAlphaBetaCaseStr();
 
     conf_key = ss.str();
 }
