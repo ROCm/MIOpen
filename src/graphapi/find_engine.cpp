@@ -41,7 +41,7 @@ namespace graphapi {
 
 GraphPatternMatcher::~GraphPatternMatcher() = default;
 
-class MHA_FP8_Pattern : public GraphPatternMatcher
+class MHA_Fwd_F8_Pattern : public GraphPatternMatcher
 {
     static const OpGraph& getPatternGraph()
     {
@@ -57,8 +57,8 @@ class MHA_FP8_Pattern : public GraphPatternMatcher
             {"OP_REDUCTION:MAX", {"PW_S_2"}, {"M"}},
             {"OP_POINTWISE:SUB", {"PW_S_2", "M"}, {"T_SUB"}},
             {"OP_POINTWISE:EXP", {"T_SUB"}, {"T_EXP"}},
-            {"OP_REDUCTION:SUM", {"T_SUB"}, {"T_SUM"}},
-            {"OP_POINTWISE:RECIPROCAL", {"T_SUB"}, {"Z_INV"}},
+            {"OP_REDUCTION:ADD", {"T_EXP"}, {"T_SUM"}},
+            {"OP_POINTWISE:RECIPROCAL", {"T_SUM"}, {"Z_INV"}},
             {"OP_POINTWISE:MUL", {"Z_INV", "T_EXP"}, {"T_MUL_0"}},
             {"OP_REDUCTION:MAX", {"T_MUL_0"}, {"AMAX_S"}},
             {"OP_RNG", {"SEED", "OFFSET"}, {"T_RND"}},
@@ -109,13 +109,16 @@ class MHA_FP8_Pattern : public GraphPatternMatcher
                     add_mapping(miopenTensorMhaK, matmul->getB());
                     // TODO: dim check on Q and K
 
+                    // TODO(Amber): old code assuming attn_scale applies to pw_mult
+                    // auto* pw_0 = dynamic_cast<OperationPointwise*>(
+                    // graph.findOutNeighByName(matmul, "OP_POINTWISE:MUL"));
                     auto* pw_0 = dynamic_cast<OperationPointwise*>(
-                        graph.findOutNeighByName(matmul, "OP_POINTWISE:MUL"));
+                        graph.findOutNeighByName(matmul, "OP_POINTWISE:IDENTITY"));
                     assert(pw_0);
 
                     float alpha1 = std::get<float>(pw_0->getAlpha1());
                     *attn_scale  = alpha1;
-                    // TODO(Amber): uncomment
+                    // TODO(Amber): old code assuming attn_scale applies to pw_mult
                     // auto* attn_scl = pw_0->getB();
                     // assert(attn_scl->getDimensions() == all1s);
                     // add_mapping(miopenTensorMhaAttnScale, attn_scl);
@@ -138,7 +141,7 @@ class MHA_FP8_Pattern : public GraphPatternMatcher
                         graph.findOutNeighByName(pw_2, "OP_REDUCTION:MAX"));
                     assert(red);
                     auto* m = red->getY();
-                    assert(m->getDimensions()[2] == 1ll);
+                    assert(m->getDimensions()[3] == 1ll);
                     add_mapping(miopenTensorMhaM, m);
                 }
                 else
@@ -182,7 +185,6 @@ class MHA_FP8_Pattern : public GraphPatternMatcher
                     add_mapping(miopenTensorMhaScaleO, scl_o);
 
                     auto* o = pw_2->getY();
-                    assert(o->getDimensions() == all1s);
                     add_mapping(miopenTensorMhaO, o);
                 }
             }
@@ -232,7 +234,13 @@ class MHA_FP8_Pattern : public GraphPatternMatcher
 public:
     static std::unique_ptr<GraphPatternMatcher> Make()
     {
-        return std::make_unique<MHA_FP8_Pattern>();
+        return std::make_unique<MHA_Fwd_F8_Pattern>();
+    }
+
+    std::string_view name() const final
+    {
+        static const char* n = "mha_fwd_f8";
+        return n;
     }
 
     bool matches(const OpGraph* graph_ptr) const final
@@ -307,12 +315,13 @@ std::vector<Engine> findEngines(OpGraph* graph)
     assert(graph);
 
     std::vector<std::unique_ptr<GraphPatternMatcher>> patterns;
-    patterns.emplace_back(MHA_FP8_Pattern::Make());
+    patterns.emplace_back(MHA_Fwd_F8_Pattern::Make());
 
     for(const auto& p : patterns)
     {
         if(p->matches(graph))
         {
+            MIOPEN_LOG_I("Matched against pattern: " << p->name());
             return p->getEngines(graph);
         }
     }

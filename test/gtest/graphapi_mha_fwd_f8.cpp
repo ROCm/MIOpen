@@ -230,9 +230,9 @@ class MhaFwdGraphTest : public testing::TestWithParam<std::tuple<int, int, int, 
         {
             addReductionNode(MIOPEN_REDUCE_TENSOR_MAX, in_tensors, out_tensors);
         }
-        else if(name == "OP_REDUCTION:SUM")
+        else if(name == "OP_REDUCTION:ADD")
         {
-            addReductionNode(MIOPEN_REDUCE_TENSOR_MAX, in_tensors, out_tensors);
+            addReductionNode(MIOPEN_REDUCE_TENSOR_ADD, in_tensors, out_tensors);
         }
         else if(name == "OP_RNG")
         {

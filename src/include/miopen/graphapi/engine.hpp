@@ -33,6 +33,7 @@
 #include <miopen/solution.hpp>
 
 #include <memory>
+#include <string_view>
 
 namespace miopen {
 
@@ -47,6 +48,7 @@ class GraphPatternMatcher
 public:
     virtual bool matches(const OpGraph* graph) const             = 0;
     virtual std::vector<Engine> getEngines(OpGraph* graph) const = 0;
+    virtual std::string_view name() const                        = 0;
 
     virtual ~GraphPatternMatcher();
 };

@@ -512,7 +512,7 @@ private:
             MIOPEN_POINTWISE_SUB, pwS2, m_realTensorMap[miopenTensorMhaM]->m_gapiDesc, tSub));
         AddGraphNode(MakePointwise(MIOPEN_POINTWISE_EXP, tSub, DescriptorWrapperPtr(), tExp));
         AddGraphNode(MakeReduction(MIOPEN_REDUCE_TENSOR_ADD, tExp, tSum));
-        AddGraphNode(MakePointwise(MIOPEN_POINTWISE_EXP,
+        AddGraphNode(MakePointwise(MIOPEN_POINTWISE_RECIPROCAL,
                                    tSum,
                                    DescriptorWrapperPtr(),
                                    m_realTensorMap[miopenTensorMhaZInv]->m_gapiDesc));

@@ -186,6 +186,20 @@ bool checkSameNodesByName(const OpGraph& left, const OpGraph& right)
     std::sort(l_names.begin(), l_names.end());
     std::sort(r_names.begin(), r_names.end());
 
+    // REMOVE BEG
+    auto print_vec = [](const auto& vec, const char* name) {
+        std::cout << name << "= [";
+        for(const auto& v : vec)
+        {
+            std::cout << v << ", ";
+        }
+        std::cout << "]\n";
+    };
+
+    print_vec(l_names, "l_names");
+    print_vec(r_names, "r_names");
+    // REMOVE_END
+
     return l_names == r_names;
 }
 
