@@ -29,12 +29,17 @@
 
 using namespace group_conv;
 
-DEFINE_GROUP_CONV3D_TEST(float, BackwardWeights, 2.2, 3.0, Bilinear);
-DEFINE_GROUP_CONV3D_TEST(float, BackwardWeights, 2.2, 0.0, Scalar);
-DEFINE_GROUP_CONV3D_TEST(float, BackwardWeights, 1.0, 0.0, Default);
-DEFINE_GROUP_CONV3D_TEST(half, BackwardWeights, 2.2, 3.3, Bilinear);
-DEFINE_GROUP_CONV3D_TEST(half, BackwardWeights, 2.2, 0.0, Scalar);
-DEFINE_GROUP_CONV3D_TEST(half, BackwardWeights, 1.0, 0.0, Default);
+// Bilinear
+DEFINE_GROUP_CONV3D_BILINEAR_TEST(float, BackwardWeights);
+DEFINE_GROUP_CONV3D_BILINEAR_TEST(half, BackwardWeights);
+
+// Scale
+DEFINE_GROUP_CONV3D_SCALAR_TEST(float, BackwardWeights);
+DEFINE_GROUP_CONV3D_SCALAR_TEST(half, BackwardWeights);
+
+// Default
+DEFINE_GROUP_CONV3D_DEFAULT_TEST(float, BackwardWeights);
+DEFINE_GROUP_CONV3D_DEFAULT_TEST(half, BackwardWeights);
 // /// \todo int8_t tests don't work. Need debugging
 // // DEFINE_GROUP_CONV3D_TEST(int8_t, BackwardWeights);
-DEFINE_GROUP_CONV3D_TEST(bfloat16, BackwardWeights, 1.0, 0.0, Default);
+DEFINE_GROUP_CONV3D_DEFAULT_TEST(bfloat16, BackwardWeights);

@@ -108,19 +108,15 @@ MIOPEN_EXPORT miopenStatus_t miopenGetConvolutionFindMode(
 
 /*! @brief Get extra workspace for CK's backward weight kernel.
  *
- * @param miopenAlphaBetaCase_t type of alpha beta case
- * @param  miopenDataType_t data type
- * @param  size_t input channel
- * @param  size_t output channel
- * @param  size_t output tensor length
- * @param  size_t buffer_size for CK Backward weights work space
+ * @param  alpha_beta_case type of alpha beta case
+ * @param  inputTensorDesc Input data tensor descriptor (output)
+ * @param  outputTensorDesc Output data tensor descriptor (output)
+ * @param  buffer_size buffer size for CK Backward weights work space
  */
 extern "C" miopenStatus_t
 miopenConvolutionCKBackwardWeightsGetWorkSpaceSize(const miopenAlphaBetaCase_t alpha_beta_case,
-                                                   miopenDataType_t data_type,
-                                                   size_t C,
-                                                   size_t K,
-                                                   size_t output_tensor_size,
+                                                   const miopenTensorDescriptor_t inputTensorDesc,
+                                                   const miopenTensorDescriptor_t outputTensorDesc,
                                                    size_t* buffer_size);
 
 #ifdef __cplusplus

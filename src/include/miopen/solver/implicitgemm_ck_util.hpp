@@ -597,12 +597,12 @@ inline size_t GetPackedSize(const TensorDescriptor& td)
 inline size_t GetCKAlphaBetaWorkspace(const miopen::conv::ProblemDescription& problem)
 {
     std::size_t buff_size;
-    miopenConvolutionCKBackwardWeightsGetWorkSpaceSize(problem.GetAlphaBetaCase(),
-                                                       problem.GetOutDataType(),
-                                                       problem.GetInChannels(),
-                                                       problem.GetOutChannels(),
-                                                       problem.GetOut().GetElementSize(),
-                                                       &buff_size);
+
+    TensorDescriptor input  = problem.GetIn();
+    TensorDescriptor output = problem.GetOut();
+
+    miopenConvolutionCKBackwardWeightsGetWorkSpaceSize(
+        problem.GetAlphaBetaCase(), &input, &output, &buff_size);
     return buff_size;
 }
 

@@ -198,39 +198,46 @@ extern "C" miopenStatus_t miopenGetConvolutionFindMode(const miopenConvolutionDe
 
 extern "C" miopenStatus_t
 miopenConvolutionCKBackwardWeightsGetWorkSpaceSize(const miopenAlphaBetaCase_t alpha_beta_case,
-                                                   miopenDataType_t data_type,
-                                                   size_t C,
-                                                   size_t K,
-                                                   size_t output_tensor_size,
+                                                   const miopenTensorDescriptor_t inputTensorDesc,
+                                                   const miopenTensorDescriptor_t outputTensorDesc,
                                                    size_t* buffer_size)
 {
+    MIOPEN_LOG_FUNCTION(alpha_beta_case, outputTensorDesc);
+    return miopen::try_([&] {
+        miopenDataType_t data_type = miopen::deref(outputTensorDesc).GetType();
 
-    size_t byte_size = 0;
-    if(alpha_beta_case == BILINEAR || alpha_beta_case == SCALE ||
-       ((data_type == miopenHalf) && ((C & 1) != 0 || (K & 1) != 0 /* Test if odd*/)))
-    {
-        switch(data_type)
+        size_t in_spatial_dims = miopen::deref(inputTensorDesc).GetNumDims();
+        assert(in_spatial_dims == miopen::deref(outputTensorDesc).GetNumDims());
+        size_t C = std::get<1>(
+            miopen::GetNCDHW(in_spatial_dims, miopen::deref(inputTensorDesc).GetLengths()));
+        size_t K = std::get<1>(
+            miopen::GetNCDHW(in_spatial_dims, miopen::deref(outputTensorDesc).GetLengths()));
+        size_t output_tensor_size = miopen::deref(outputTensorDesc).GetElementSize();
+        size_t byte_size          = 0;
+        if(alpha_beta_case == BILINEAR || alpha_beta_case == SCALE ||
+           ((data_type == miopenHalf) && ((C & 1) != 0 || (K & 1) != 0 /* Test if odd*/)))
         {
-        case miopenInt32:
-        case miopenFloat:
-        case miopenHalf:
-        case miopenBFloat16:
-        case miopenInt8:
-        case miopenFloat8:
-        case miopenBFloat8: byte_size = 4; break;
-        case miopenDouble: byte_size = 8;
+            switch(data_type)
+            {
+            case miopenInt32:
+            case miopenFloat:
+            case miopenHalf:
+            case miopenBFloat16:
+            case miopenInt8:
+            case miopenFloat8:
+            case miopenBFloat8: byte_size = 4; break;
+            case miopenDouble: byte_size = 8;
+            }
+            *buffer_size = byte_size * output_tensor_size;
         }
-        *buffer_size = byte_size * output_tensor_size;
-    }
-    else
-    {
-        *buffer_size = 0;
-    }
+        else
+        {
+            *buffer_size = 0;
+        }
 
-    MIOPEN_LOG_FUNCTION(
-        alpha_beta_case, data_type, C, K, output_tensor_size, byte_size, *buffer_size);
-
-    return miopenStatusSuccess;
+        MIOPEN_LOG_FUNCTION(
+            alpha_beta_case, data_type, C, K, output_tensor_size, byte_size, *buffer_size);
+    });
 }
 
 // Hidden C++ functions for MIGraphX.

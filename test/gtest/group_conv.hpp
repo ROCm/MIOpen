@@ -560,3 +560,25 @@ std::vector<miopenTensorLayout_t> GetLayoutValues()
     DEFINE_GROUP_CONV_TEST(2, alpha, beta, type, dir, ab_case)
 #define DEFINE_GROUP_CONV3D_TEST(type, dir, alpha, beta, ab_case) \
     DEFINE_GROUP_CONV_TEST(3, alpha, beta, type, dir, ab_case)
+
+//// 2D
+// Bilinear where alpha = 2.2 and beta 3.3
+#define DEFINE_GROUP_CONV2D_BILINEAR_TEST(type, dir) \
+    DEFINE_GROUP_CONV2D_TEST(type, dir, 2.2, 3.3, Bilinear)
+// Scalar where alpha = 2.2 and beta = 0.0
+#define DEFINE_GROUP_CONV2D_SCALAR_TEST(type, dir) \
+    DEFINE_GROUP_CONV2D_TEST(type, dir, 2.2, 0.0, Scalar)
+// Default where alpha = 1.0 and beta = 0.0
+#define DEFINE_GROUP_CONV2D_DEFAULT_TEST(type, dir) \
+    DEFINE_GROUP_CONV2D_TEST(type, dir, 1.0, 0.0, Default)
+
+//// 3D
+// Bilinear where alpha = 2.2 and beta 3.3
+#define DEFINE_GROUP_CONV3D_BILINEAR_TEST(type, dir) \
+    DEFINE_GROUP_CONV3D_TEST(type, dir, 2.2, 3.3, Bilinear)
+// Scalar where alpha = 2.2 and beta = 0.0
+#define DEFINE_GROUP_CONV3D_SCALAR_TEST(type, dir) \
+    DEFINE_GROUP_CONV3D_TEST(type, dir, 2.2, 0.0, Scalar)
+// Default where alpha = 1.0 and beta = 0.0
+#define DEFINE_GROUP_CONV3D_DEFAULT_TEST(type, dir) \
+    DEFINE_GROUP_CONV3D_TEST(type, dir, 1.0, 0.0, Default)
