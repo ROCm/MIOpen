@@ -205,17 +205,19 @@ miopenConvolutionCKBackwardWeightsGetWorkSpaceSize(const miopenAlphaBetaCase_t a
     MIOPEN_LOG_FUNCTION(alpha_beta_case, outputTensorDesc);
     return miopen::try_([&] {
         miopenDataType_t data_type = miopen::deref(outputTensorDesc).GetType();
+        size_t in_spatial_dims     = miopen::deref(inputTensorDesc).GetNumDims();
 
-        size_t in_spatial_dims = miopen::deref(inputTensorDesc).GetNumDims();
         assert(in_spatial_dims == miopen::deref(outputTensorDesc).GetNumDims());
+
         size_t C = std::get<1>(
             miopen::GetNCDHW(in_spatial_dims, miopen::deref(inputTensorDesc).GetLengths()));
         size_t K = std::get<1>(
             miopen::GetNCDHW(in_spatial_dims, miopen::deref(outputTensorDesc).GetLengths()));
         size_t output_tensor_size = miopen::deref(outputTensorDesc).GetElementSize();
-        size_t byte_size          = 0;
-        if(alpha_beta_case == BILINEAR || alpha_beta_case == SCALE ||
-           ((data_type == miopenHalf) && ((C & 1) != 0 || (K & 1) != 0 /* Test if odd*/)))
+
+        size_t byte_size = 0;
+        if((alpha_beta_case == BILINEAR || alpha_beta_case == SCALE ||
+            ((data_type == miopenHalf) && ((C & 1) != 0 || (K & 1) != 0 /* Test if odd*/))))
         {
             switch(data_type)
             {

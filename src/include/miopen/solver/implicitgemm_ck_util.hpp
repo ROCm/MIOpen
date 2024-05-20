@@ -136,10 +136,11 @@ struct HipEventProfiler
 
 inline bool ShouldAllocateWorkSpaceBufferForWRW(const miopen::conv::ProblemDescription& problem)
 {
-    return problem.GetAlphaBetaCase() == BILINEAR || problem.GetAlphaBetaCase() == SCALE ||
-           ((problem.GetOutDataType() == miopenHalf) &&
-            ((problem.GetInChannels() & 1) != 0 ||
-             (problem.GetOutChannels() & 1) != 0 /* Test if odd*/));
+    return problem.GetSpatialDims() == 3 &&
+           (problem.GetAlphaBetaCase() == BILINEAR || problem.GetAlphaBetaCase() == SCALE ||
+            ((problem.GetOutDataType() == miopenHalf) &&
+             ((problem.GetInChannels() & 1) != 0 ||
+              (problem.GetOutChannels() & 1) != 0 /* Test if odd*/)));
 }
 
 template <typename DeviceOpType,
@@ -186,7 +187,7 @@ ConvSolution InitInvokerFactoryNHWC(const ExecutionContext&,
                            !(ShouldAllocateWorkSpaceBufferForWRW(problem_) &&
                              data_ctx.workSpace == nullptr));
 
-                    if(data_ctx.workSpace)
+                    if(problem_.GetSpatialDims() == 3 && data_ctx.workSpace)
                     {
                         sh_conv_ptr->SetWorkSpacePointer(argument_ptr.get(), data_ctx.workSpace);
                     }
@@ -657,7 +658,8 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
     auto conv_ptrs = DeviceOpType::GetInstances();
 
     std::shared_ptr<CKBWDWeightBufferDescriptor> _ck_buff_des;
-    if constexpr(std::is_same_v<CastType, miopen::conv::WrWInvokeParams>)
+
+    if(problem.GetSpatialDims() == 3 && problem.IsDirectionBackwardWrW())
     {
         _ck_buff_des =
             std::make_shared<CKBWDWeightBufferDescriptor>(GetCKAlphaBetaWorkspace(problem), 0);
@@ -742,7 +744,7 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
                                                        tr_ptrs[0]->GetBufferPtr(),
                                                        tr_ptrs[1]->GetBufferPtr(),
                                                        tr_ptrs[2]->GetBufferPtr());
-                if(ck_buff_des->ck_size)
+                if(ck_buff_des && ck_buff_des->ck_size)
                 {
                     auto buf_handle =
                         handle.CreateSubBuffer(data_ctx.workSpace, ck_buff_des->ck_offset, 0);
