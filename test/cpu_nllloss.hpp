@@ -62,13 +62,14 @@ void cpu_nllloss_reduce_forward_5d(tensor<T> input,
                                    float divisor)
 {
     auto dims = input.desc.GetLengths();
+    auto numel = target.desc.GetElementSize();
     size_t C  = dims[1];
 
     auto I_tv = get_inner_expanded_tv_5d(input.desc);
     auto T_tv = get_inner_expanded_tv_4d(target.desc);
     auto W_tv = get_inner_expanded_tv_1d(weight.desc);
 
-    for(size_t i = 0; i < target.desc.GetElementSize(); i++)
+    for(size_t i = 0; i < numel; i++)
     {
         uint64_t n[4];
         GET_NCDH(n[0], n[1], n[2], n[3], i, T_tv);
@@ -89,7 +90,7 @@ void cpu_nllloss_reduce_forward_5d(tensor<T> input,
         }
     }
 
-    auto reduce_size     = target.desc.GetElementSize();
+    auto reduce_size     = numel;
     const int local_size = 256;
     int offset_a         = 0;
     int offset_b         = reduce_size;

@@ -125,7 +125,7 @@ protected:
             return prng::gen_A_to_B<int32_t>(0, numclass_C - 1);
         };
         auto gen_weight_value = [](auto...) {
-            return prng::gen_A_to_B<T>(static_cast<T>(-1), static_cast<T>(1));
+            return prng::gen_A_to_B<T>(static_cast<T>(-1.0), static_cast<T>(1.0));
         };
         auto gen_weight_one = [](auto...) { return static_cast<T>(1); };
 

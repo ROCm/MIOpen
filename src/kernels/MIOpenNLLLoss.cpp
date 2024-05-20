@@ -82,7 +82,7 @@ __device__ void nlllossForward5d(const TI* __restrict__ input,
     FLOAT_ACCUM w = weight != nullptr ? CVT_FLOAT2ACCUM(weight[Widx]) : CVT_FP32_2ACCUM(1.0f);
 
     FLOAT_ACCUM input_value = CVT_FLOAT2ACCUM(input[Iidx]);
-    FLOAT_ACCUM d           = (divisor ? divisor : CVT_FP32_2ACCUM(1.0f));
+    FLOAT_ACCUM d           = (divisor ? CVT_FP32_2ACCUM(divisor) : CVT_FP32_2ACCUM(1.0f));
     FLOAT_ACCUM val         = (CVT_FP32_2ACCUM(-1.0f) * w * input_value) / d;
     loss_sum[gid]           = CVT_ACCUM2FLOAT(val);
 }
