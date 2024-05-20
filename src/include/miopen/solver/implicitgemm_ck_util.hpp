@@ -659,7 +659,8 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
     std::shared_ptr<CKBWDWeightBufferDescriptor> _ck_buff_des;
     if constexpr(std::is_same_v<CastType, miopen::conv::WrWInvokeParams>)
     {
-        _ck_buff_des = std::make_shared<CKBWDWeightBufferDescriptor>(GetCKAlphaBetaWorkspace(problem), 0);
+        _ck_buff_des =
+            std::make_shared<CKBWDWeightBufferDescriptor>(GetCKAlphaBetaWorkspace(problem), 0);
     }
 
     auto ptr_iter = FindConvPtrByID(conv_ptrs, kernel_id);
