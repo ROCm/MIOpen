@@ -43,7 +43,9 @@ inline std::ostream& operator<<(std::ostream& os, const std::vector<size_t>& v)
     return os;
 }
 
-static void LogCmdKLDivLoss(const miopenTensorDescriptor_t xDesc, const miopenTensorDescriptor_t tDesc, bool is_fwd)
+static void LogCmdKLDivLoss(const miopenTensorDescriptor_t xDesc,
+                            const miopenTensorDescriptor_t tDesc,
+                            bool is_fwd)
 {
     if(miopen::IsLoggingCmd())
     {

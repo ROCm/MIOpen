@@ -74,8 +74,8 @@ struct BwdInvokeParams : public miopen::InvokeParams
     Data_t input_grad       = nullptr;
     Data_t target_grad      = nullptr;
 
-    bool log_target            = false;
-    float divisor              = std::numeric_limits<float>::quiet_NaN();
+    bool log_target = false;
+    float divisor   = std::numeric_limits<float>::quiet_NaN();
 
     std::size_t GetWorkspaceSize() const { return 0; }
     Data_t GetWorkspace() const { return nullptr; }

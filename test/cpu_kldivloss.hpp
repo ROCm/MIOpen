@@ -30,7 +30,10 @@
 #include <miopen/tensor_view.hpp>
 
 template <class T>
-void cpu_kldivloss_unreduced_forward_5d(tensor<T> input, tensor<T> target, tensor<T>& output, bool log_target)
+void cpu_kldivloss_unreduced_forward_5d(tensor<T> input,
+                                        tensor<T> target,
+                                        tensor<T>& output,
+                                        bool log_target)
 {
     auto I_tv = get_inner_expanded_tv_5d(input.desc);
     auto T_tv = get_inner_expanded_tv_5d(target.desc);
@@ -62,13 +65,13 @@ void cpu_kldivloss_unreduced_forward_5d(tensor<T> input, tensor<T> target, tenso
 
 template <class T>
 void cpu_kldivloss_unreduced_backward_5d(tensor<T> input,
-                               tensor<T> target,
-                               tensor<T> output_grad,
-                               tensor<T>& input_grad,
-                               tensor<T>& target_grad,
-                               bool log_target,
-                               bool input_grad_out,
-                               bool target_grad_out)
+                                         tensor<T> target,
+                                         tensor<T> output_grad,
+                                         tensor<T>& input_grad,
+                                         tensor<T>& target_grad,
+                                         bool log_target,
+                                         bool input_grad_out,
+                                         bool target_grad_out)
 {
     auto I_tv  = get_inner_expanded_tv_5d(input.desc);
     auto T_tv  = get_inner_expanded_tv_5d(target.desc);
@@ -197,14 +200,14 @@ void cpu_kldivloss_unreduced_backward_5d(tensor<T> input,
 
 template <class T>
 void cpu_kldivloss_reduced_backward_5d(tensor<T> input,
-                               tensor<T> target,
-                               tensor<T> output_grad,
-                               tensor<T>& input_grad,
-                               tensor<T>& target_grad,
-                               float divisor,
-                               bool log_target,
-                               bool input_grad_out,
-                               bool target_grad_out)
+                                       tensor<T> target,
+                                       tensor<T> output_grad,
+                                       tensor<T>& input_grad,
+                                       tensor<T>& target_grad,
+                                       float divisor,
+                                       bool log_target,
+                                       bool input_grad_out,
+                                       bool target_grad_out)
 {
     auto I_tv  = get_inner_expanded_tv_5d(input.desc);
     auto T_tv  = get_inner_expanded_tv_5d(target.desc);
@@ -234,9 +237,10 @@ void cpu_kldivloss_reduced_backward_5d(tensor<T> input,
             forward_output = exp_target * (target_value - input_value);
             if(input_grad_out)
             {
-                input_grad[dIidx] = std::isnan(forward_output)
-                                        ? static_cast<T>(0.0f)
-                                        : static_cast<T>(-1.0f) * exp_target / d * output_grad_value;
+                input_grad[dIidx] =
+                    std::isnan(forward_output)
+                        ? static_cast<T>(0.0f)
+                        : static_cast<T>(-1.0f) * exp_target / d * output_grad_value;
             }
             if(target_grad_out)
             {
@@ -249,15 +253,17 @@ void cpu_kldivloss_reduced_backward_5d(tensor<T> input,
             forward_output = target_value * (static_cast<T>(log(target_value)) - input_value);
             if(input_grad_out)
             {
-                input_grad[dIidx] =
-                    std::isnan(forward_output) ? static_cast<T>(0.0f) : -target_value / d * output_grad_value;
+                input_grad[dIidx] = std::isnan(forward_output)
+                                        ? static_cast<T>(0.0f)
+                                        : -target_value / d * output_grad_value;
             }
             if(target_grad_out)
             {
                 target_grad[dTidx] = (target_value == 0)
                                          ? static_cast<T>(0.0f)
-                                         : (static_cast<T>(1.0f) + (static_cast<T>(log(target_value)) - input_value)) / d *
-                                               output_grad_value;
+                                         : (static_cast<T>(1.0f) +
+                                            (static_cast<T>(log(target_value)) - input_value)) /
+                                               d * output_grad_value;
             }
         }
     }

@@ -193,17 +193,17 @@ extern "C" __global__ void KLDivLossUnreducedBackward5d(const INPUT_TYPE* __rest
 
 template <typename TI, typename TO>
 __device__ void kldivLossReducedBackward5d(const TI* __restrict__ input,
-                                             const TI* __restrict__ target,
-                                             const TI* __restrict__ output_grad,
-                                             TO* __restrict__ input_grad,
-                                             TO* __restrict__ target_grad,
-                                             float divisor,
-                                             bool log_target,
-                                             tensor_view_5d_t input_tv,
-                                             tensor_view_5d_t target_tv,
-                                             tensor_view_1d_t output_grad_tv,
-                                             tensor_view_5d_t input_grad_tv,
-                                             tensor_view_5d_t target_grad_tv)
+                                           const TI* __restrict__ target,
+                                           const TI* __restrict__ output_grad,
+                                           TO* __restrict__ input_grad,
+                                           TO* __restrict__ target_grad,
+                                           float divisor,
+                                           bool log_target,
+                                           tensor_view_5d_t input_tv,
+                                           tensor_view_5d_t target_tv,
+                                           tensor_view_1d_t output_grad_tv,
+                                           tensor_view_5d_t input_grad_tv,
+                                           tensor_view_5d_t target_grad_tv)
 {
     uint64_t gid = threadIdx.x + blockIdx.x * blockDim.x;
 
@@ -232,8 +232,9 @@ __device__ void kldivLossReducedBackward5d(const TI* __restrict__ input,
         if(input_grad)
         {
             FLOAT_ACCUM input_grad_value =
-                isnan(forward_output) ? CVT_FP32_2ACCUM(0.0f)
-                                      : CVT_FP32_2ACCUM(-1.0f) * (exp_target / d) * output_grad_value;
+                isnan(forward_output)
+                    ? CVT_FP32_2ACCUM(0.0f)
+                    : CVT_FP32_2ACCUM(-1.0f) * (exp_target / d) * output_grad_value;
             input_grad[dIidx] = CVT_ACCUM2FLOAT(input_grad_value);
         }
         if(target_grad)
@@ -248,42 +249,45 @@ __device__ void kldivLossReducedBackward5d(const TI* __restrict__ input,
         if(input_grad)
         {
             FLOAT_ACCUM input_grad_value =
-                isnan(forward_output) ? CVT_FP32_2ACCUM(0.0f) : CVT_FP32_2ACCUM(-1.0f) * target_value / d * output_grad_value;
+                isnan(forward_output)
+                    ? CVT_FP32_2ACCUM(0.0f)
+                    : CVT_FP32_2ACCUM(-1.0f) * target_value / d * output_grad_value;
             input_grad[dIidx] = CVT_ACCUM2FLOAT(input_grad_value);
         }
         if(target_grad)
         {
             FLOAT_ACCUM target_grad_value =
                 (target_value == 0) ? CVT_FP32_2ACCUM(0.0f)
-                                    : (CVT_FP32_2ACCUM(1.0f) + (log(target_value) - input_value)) / d * output_grad_value;
+                                    : (CVT_FP32_2ACCUM(1.0f) + (log(target_value) - input_value)) /
+                                          d * output_grad_value;
             target_grad[dTidx] = CVT_ACCUM2FLOAT(target_grad_value);
         }
     }
 }
 
 extern "C" __global__ void KLDivLossReducedBackward5d(const INPUT_TYPE* __restrict__ input,
-                                                        const INPUT_TYPE* __restrict__ target,
-                                                        const INPUT_TYPE* __restrict__ output_grad,
-                                                        OUTPUT_TYPE* __restrict__ input_grad,
-                                                        OUTPUT_TYPE* __restrict__ target_grad,
-                                                        float divisor,
-                                                        bool log_target,
-                                                        tensor_view_5d_t input_tv,
-                                                        tensor_view_5d_t target_tv,
-                                                        tensor_view_1d_t output_grad_tv,
-                                                        tensor_view_5d_t input_grad_tv,
-                                                        tensor_view_5d_t target_grad_tv)
+                                                      const INPUT_TYPE* __restrict__ target,
+                                                      const INPUT_TYPE* __restrict__ output_grad,
+                                                      OUTPUT_TYPE* __restrict__ input_grad,
+                                                      OUTPUT_TYPE* __restrict__ target_grad,
+                                                      float divisor,
+                                                      bool log_target,
+                                                      tensor_view_5d_t input_tv,
+                                                      tensor_view_5d_t target_tv,
+                                                      tensor_view_1d_t output_grad_tv,
+                                                      tensor_view_5d_t input_grad_tv,
+                                                      tensor_view_5d_t target_grad_tv)
 {
     kldivLossReducedBackward5d<INPUT_TYPE, OUTPUT_TYPE>(input,
-                                                          target,
-                                                          output_grad,
-                                                          input_grad,
-                                                          target_grad,
-                                                          divisor,
-                                                          log_target,
-                                                          input_tv,
-                                                          target_tv,
-                                                          output_grad_tv,
-                                                          input_grad_tv,
-                                                          target_grad_tv);
+                                                        target,
+                                                        output_grad,
+                                                        input_grad,
+                                                        target_grad,
+                                                        divisor,
+                                                        log_target,
+                                                        input_tv,
+                                                        target_tv,
+                                                        output_grad_tv,
+                                                        input_grad_tv,
+                                                        target_grad_tv);
 }
