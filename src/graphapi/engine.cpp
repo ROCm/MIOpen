@@ -182,6 +182,8 @@ void BackendEngineDescriptor::finalize()
     {
         MIOPEN_THROW(miopenStatusNotInitialized);
     }
+
+    mFinalized = true;
 }
 
 void BackendEngineDescriptor::getAttribute(miopenBackendAttributeName_t attributeName,
