@@ -138,7 +138,6 @@ struct KLDivLossReducedBackward5d final : KLDivLossReducedSolver
     ConvSolution
     GetSolution(const ExecutionContext& context,
                 const miopen::kldivloss::ReducedProblemDescription& problem) const override;
-    bool MayNeedWorkspace() const override { return false; }
 };
 
 } // namespace kldivloss

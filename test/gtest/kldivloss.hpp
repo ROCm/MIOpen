@@ -61,34 +61,18 @@ struct KLDivLossTestCase
     std::vector<size_t> GetInput() const { return input; }
 };
 
-inline std::vector<KLDivLossTestCase> KLDivLossForwardTestConfigs()
-{ // dim, dims
-    // clang-format off
-    return {{{256, 4, 8732},true, 0.0f},
-            // {{256, 4, 8732},false, 0.0f},
-            // {{34, 4},false, 0},
-            {{34, 4},true, 0}};
-    // clang-format on
-}
-
-inline std::vector<KLDivLossTestCase> KLDivLossBackwardTestConfigs()
-{ // dim, dims
-    // clang-format off
-    return {{{256, 4, 8732},false, 0.0f},
-            {{256, 4, 8732},true, 0.0f},
-            {{34, 4},false, 0.0f},
-            {{34, 4},true, 0.0f}};
-    // clang-format on
-}
-
 inline std::vector<KLDivLossTestCase> KLDivLossTestConfigs()
 {
-    std::vector<KLDivLossTestCase> tcs, temp;
-    temp = KLDivLossForwardTestConfigs();
-    tcs.insert(tcs.end(), temp.begin(), temp.end());
-    // temp = KLDivLossBackwardTestConfigs();
-    // tcs.insert(tcs.end(), temp.begin(), temp.end());
-    return tcs;
+    return {
+        {{256, 4, 8732},false, 0.0f},
+        {{256, 4, 8732},false, 1.0f},
+        {{256, 4, 8732},true, 0.0f},
+        {{256, 4, 8732},true, 1.0f},
+        {{34, 4},false, 0.0f},
+        {{34, 4},false, 1.0f},
+        {{34, 4},true, 0.0f},
+        {{34, 4},true, 1.0f}
+    };
 }
 
 inline std::vector<size_t> GetStrides(std::vector<size_t> input, bool contiguous)
@@ -178,7 +162,7 @@ protected:
 
         if(divisor == 0.f)
         {
-            cpu_kldivloss_forward_5d<T>(input, target, ref_output, log_target);
+            cpu_kldivloss_unreduced_forward_5d<T>(input, target, ref_output, log_target);
 
             status = miopen::KLDivLossUnreducedForward(handle,
                                                        input.desc,
@@ -262,15 +246,15 @@ protected:
         auto target_dim = in_dim;
 
         auto gen_input_value = [](auto...) {
-            return prng::gen_A_to_B<T>(static_cast<T>(-10.0f), static_cast<T>(10.0f));
+            return prng::gen_A_to_B<T>(static_cast<T>(-2.0f), static_cast<T>(2.0f));
         };
 
         auto gen_target_value = [](auto...) {
-            return prng::gen_A_to_B<T>(static_cast<T>(1e-2), static_cast<T>(10.0f));
+            return prng::gen_A_to_B<T>(static_cast<T>(1e-1), static_cast<T>(2.0f));
         };
 
         auto gen_output_grad_value = [](auto...) {
-            return prng::gen_A_to_B<T>(static_cast<T>(-10.0f), static_cast<T>(10.0f));
+            return prng::gen_A_to_B<T>(static_cast<T>(-2.0f), static_cast<T>(2.0f));
         };
 
         auto in_strides = GetStrides(in_dim, true);
@@ -312,7 +296,7 @@ protected:
 
         if(divisor == 0.f)
         {
-            cpu_kldivloss_backward_5d<T>(input,
+            cpu_kldivloss_unreduced_backward_5d<T>(input,
                                          target,
                                          output_grad,
                                          ref_input_grad,
@@ -336,21 +320,29 @@ protected:
         }
         else
         {
-            // cpu_kldivloss_reduced_forward_5d<T>(
-            //     input, target, weight, ref_output, ref_workspace, ignore_index, divisor);
-            // status         = miopen::NLLLossReduceForward(handle,
-            //                                       workspace_dev.get(),
-            //                                       ws_sizeInBytes,
-            //                                       input.desc,
-            //                                       input_dev.get(),
-            //                                       target.desc,
-            //                                       target_dev.get(),
-            //                                       weight.desc,
-            //                                       weight_dev.get(),
-            //                                       output.desc,
-            //                                       output_dev.get(),
-            //                                       ignore_index,
-            //                                       divisor);
+            cpu_kldivloss_reduced_backward_5d<T>(input,
+                                         target,
+                                         output_grad,
+                                         ref_input_grad,
+                                         ref_target_grad,
+                                         divisor,
+                                         log_target,
+                                         true,
+                                         true);
+
+            status = miopen::KLDivLossReducedBackward(handle,
+                                                        input.desc,
+                                                        input_dev.get(),
+                                                        target.desc,
+                                                        target_dev.get(),
+                                                        output_grad.desc,
+                                                        output_grad_dev.get(),
+                                                        input_grad.desc,
+                                                        input_grad_dev.get(),
+                                                        target_grad.desc,
+                                                        target_grad_dev.get(),
+                                                        divisor,
+                                                        log_target);
         }
         fflush(stdout);
 

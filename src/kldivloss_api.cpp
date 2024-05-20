@@ -30,36 +30,48 @@
 #include <miopen/logger.hpp>
 #include <miopen/tensor_ops.hpp>
 
-static void LogCmdKLDivLoss(const miopenTensorDescriptor_t xDesc, bool is_fwd)
+inline std::ostream& operator<<(std::ostream& os, const std::vector<size_t>& v)
 {
-    // if(miopen::IsLoggingCmd())
-    // {
-    //     std::stringstream ss;
-    //     auto dtype = miopen::deref(xDesc).GetType();
-    //     if(dtype == miopenHalf)
-    //     {
-    //         ss << "nlllossfp16";
-    //     }
-    //     else if(dtype == miopenFloat)
-    //     {
-    //         ss << "nllloss";
-    //     }
-    //     else if(dtype == miopenBFloat16)
-    //     {
-    //         ss << "nlllossbfp16";
-    //     }
+    os << '{';
+    for(int i = 0; i < v.size(); ++i)
+    {
+        if(i != 0)
+            os << ',';
+        os << v[i];
+    }
+    os << '}';
+    return os;
+}
 
-    //     int32_t size = {0};
-    //     miopenGetTensorDescriptorSize(xDesc, &size);
-    //     ss << " -N " << miopen::deref(xDesc).GetLengths()[0];
-    //     ss << " -C " << miopen::deref(xDesc).GetLengths()[1] << " -d "
-    //        << miopen::deref(xDesc).GetLengths()[2] << " -D "
-    //        << miopen::deref(xDesc).GetLengths()[3];
+static void LogCmdKLDivLoss(const miopenTensorDescriptor_t xDesc, const miopenTensorDescriptor_t tDesc, bool is_fwd)
+{
+    if(miopen::IsLoggingCmd())
+    {
+        std::stringstream ss;
+        auto dtype = miopen::deref(xDesc).GetType();
+        if(dtype == miopenHalf)
+        {
+            ss << "kldivlossfp16";
+        }
+        else if(dtype == miopenFloat)
+        {
+            ss << "kldivlossfp32";
+        }
+        else if(dtype == miopenBFloat16)
+        {
+            ss << "kldivlossbfp16";
+        }
 
-    //     ss << " -F " << ((is_fwd) ? "1" : "2");
+        MIOPEN_LOG_FUNCTION(xDesc, tDesc);
+        ss << " -N " << miopen::deref(xDesc).GetLengths()[0];
+        ss << " -T " << miopen::deref(xDesc).GetLengths();
+        ss << " -Si " << miopen::deref(xDesc).GetStrides();
+        ss << " -St " << miopen::deref(tDesc).GetStrides();
 
-    //     MIOPEN_LOG_DRIVER_CMD(ss.str());
-    // }
+        ss << " -F " << ((is_fwd) ? "1" : "2");
+
+        MIOPEN_LOG_DRIVER_CMD(ss.str());
+    }
 }
 
 extern "C" miopenStatus_t miopenKLDivLossUnreducedForward(miopenHandle_t handle,
@@ -74,7 +86,7 @@ extern "C" miopenStatus_t miopenKLDivLossUnreducedForward(miopenHandle_t handle,
     MIOPEN_LOG_FUNCTION(
         handle, inputDesc, input, targetDesc, target, outputDesc, output, log_target);
 
-    LogCmdKLDivLoss(inputDesc, true);
+    LogCmdKLDivLoss(inputDesc, targetDesc, true);
     return miopen::try_([&] {
         miopen::KLDivLossUnreducedForward(miopen::deref(handle),
                                           miopen::deref(inputDesc),
@@ -181,7 +193,7 @@ miopenKLDivLossUnreducedBackward(miopenHandle_t handle,
                         target_grad,
                         log_target);
 
-    LogCmdKLDivLoss(inputGradDesc, false);
+    LogCmdKLDivLoss(inputDesc, targetDesc, true);
     return miopen::try_([&] {
         miopen::KLDivLossUnreducedBackward(miopen::deref(handle),
                                            miopen::deref(inputDesc),
@@ -227,7 +239,7 @@ miopenKLDivLossReducedBackward(miopenHandle_t handle,
                         divisor,
                         log_target);
 
-    LogCmdKLDivLoss(inputGradDesc, false);
+    LogCmdKLDivLoss(inputDesc, targetDesc, true);
     return miopen::try_([&] {
         miopen::KLDivLossReducedBackward(miopen::deref(handle),
                                          miopen::deref(inputDesc),

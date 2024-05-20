@@ -142,7 +142,6 @@ struct ReducedProblemDescription : ProblemDescription
         IsValidLength();
     }
 
-    float GetDivisor() const { return divisor; }
     bool IsValidLength() const
     {
         if(outputDesc.GetSize() != 1 || outputDesc.GetLengths()[0] != 1)

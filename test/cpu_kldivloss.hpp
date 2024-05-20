@@ -30,7 +30,7 @@
 #include <miopen/tensor_view.hpp>
 
 template <class T>
-void cpu_kldivloss_forward_5d(tensor<T> input, tensor<T> target, tensor<T>& output, bool log_target)
+void cpu_kldivloss_unreduced_forward_5d(tensor<T> input, tensor<T> target, tensor<T>& output, bool log_target)
 {
     auto I_tv = get_inner_expanded_tv_5d(input.desc);
     auto T_tv = get_inner_expanded_tv_5d(target.desc);
@@ -61,7 +61,7 @@ void cpu_kldivloss_forward_5d(tensor<T> input, tensor<T> target, tensor<T>& outp
 }
 
 template <class T>
-void cpu_kldivloss_backward_5d(tensor<T> input,
+void cpu_kldivloss_unreduced_backward_5d(tensor<T> input,
                                tensor<T> target,
                                tensor<T> output_grad,
                                tensor<T>& input_grad,
@@ -195,43 +195,72 @@ void cpu_kldivloss_backward_5d(tensor<T> input,
 //     // printf("Output: %f\n", static_cast<float>(output[0]));
 // }
 
-// template <class T>
-// void cpu_kldivloss_reduced_backward_5d(tensor<T>& input_grad,
-//                                     tensor<int32_t> target,
-//                                     tensor<T> weight,
-//                                     tensor<T> output_grad,
-//                                     int32_t ignore_index,
-//                                     float divisor)
-// {
-//     auto dims = input_grad.desc.GetLengths();
-//     size_t N  = dims[0];
-//     size_t C  = dims[1];
-//     size_t D1 = dims[2];
-//     size_t D2 = dims[3];
+template <class T>
+void cpu_kldivloss_reduced_backward_5d(tensor<T> input,
+                               tensor<T> target,
+                               tensor<T> output_grad,
+                               tensor<T>& input_grad,
+                               tensor<T>& target_grad,
+                               float divisor,
+                               bool log_target,
+                               bool input_grad_out,
+                               bool target_grad_out)
+{
+    auto I_tv  = get_inner_expanded_tv_5d(input.desc);
+    auto T_tv  = get_inner_expanded_tv_5d(target.desc);
+    auto dO_tv = get_inner_expanded_tv_1d(output_grad.desc);
+    auto dI_tv = get_inner_expanded_tv_5d(input_grad.desc);
+    auto dT_tv = get_inner_expanded_tv_5d(target_grad.desc);
 
-//     auto I_tv = get_inner_expanded_tv_4d(input_grad.desc);
-//     auto T_tv = get_inner_expanded_tv_3d(target.desc);
-//     auto W_tv = get_inner_expanded_tv_1d(weight.desc);
+    for(size_t i = 0; i < input.desc.GetElementSize(); ++i)
+    {
+        uint64_t n[5];
+        GET_NCDHW(n[0], n[1], n[2], n[3], n[4], i, dI_tv);
+        size_t Iidx  = TV5D_IDX(I_tv, n[0], n[1], n[2], n[3], n[4]);
+        size_t Tidx  = TV5D_IDX(T_tv, n[0], n[1], n[2], n[3], n[4]);
+        size_t dOidx = TV1D_IDX(dO_tv, 0);
+        size_t dIidx = TV5D_IDX(dI_tv, n[0], n[1], n[2], n[3], n[4]);
+        size_t dTidx = TV5D_IDX(dT_tv, n[0], n[1], n[2], n[3], n[4]);
 
-//     for(size_t i = 0; i < N * D1 * D2; i++)
-//     {
-//         uint64_t n[3];
-//         GET_NCD(n[0], n[1], n[2], i, T_tv);
-//         size_t target_index     = TV3D_IDX(T_tv, n[0], n[1], n[2]);
-//         int32_t t               = target[target_index];
-//         size_t input_grad_index = TV4D_IDX(I_tv, n[0], t, n[1], n[2]);
-//         size_t weight_index     = TV1D_IDX(W_tv, t);
+        T input_value       = input[Iidx];
+        T target_value      = target[Tidx];
+        T output_grad_value = output_grad[dOidx];
+        T forward_output;
+        T d = static_cast<T>(divisor);
 
-//         if(t < 0 || t == ignore_index || t >= C)
-//         {
-//             input_grad[input_grad_index] = static_cast<T>(0);
-//         }
-//         else
-//         {
-//             input_grad[input_grad_index] =
-//                 (static_cast<T>(-1.0f) * weight[weight_index] * output_grad[0]) /
-//                 static_cast<T>(divisor);
-//         }
-//     }
-// }
+        if(log_target)
+        {
+            T exp_target   = static_cast<T>(exp(target_value));
+            forward_output = exp_target * (target_value - input_value);
+            if(input_grad_out)
+            {
+                input_grad[dIidx] = std::isnan(forward_output)
+                                        ? static_cast<T>(0.0f)
+                                        : static_cast<T>(-1.0f) * exp_target / d * output_grad_value;
+            }
+            if(target_grad_out)
+            {
+                target_grad[dTidx] =
+                    static_cast<T>(forward_output + exp_target) / d * output_grad_value;
+            }
+        }
+        else
+        {
+            forward_output = target_value * (static_cast<T>(log(target_value)) - input_value);
+            if(input_grad_out)
+            {
+                input_grad[dIidx] =
+                    std::isnan(forward_output) ? static_cast<T>(0.0f) : -target_value / d * output_grad_value;
+            }
+            if(target_grad_out)
+            {
+                target_grad[dTidx] = (target_value == 0)
+                                         ? static_cast<T>(0.0f)
+                                         : (static_cast<T>(1.0f) + (static_cast<T>(log(target_value)) - input_value)) / d *
+                                               output_grad_value;
+            }
+        }
+    }
+}
+
 #endif

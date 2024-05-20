@@ -46,7 +46,7 @@ miopenStatus_t KLDivLossUnreducedForward(Handle& handle,
         kldivloss::UnreducedProblemDescription{inputDesc, targetDesc, outputDesc, log_target, true};
 
     const auto invoke_params = [&]() {
-        auto tmp       = kldivloss::InvokeParams{};
+        auto tmp       = kldivloss::FwdInvokeParams{};
         tmp.inputDesc  = &inputDesc;
         tmp.targetDesc = &targetDesc;
         tmp.outputDesc = &outputDesc;

@@ -35,10 +35,10 @@
 namespace miopen {
 namespace kldivloss {
 
-struct InvokeParams : public miopen::InvokeParams
+struct FwdInvokeParams : public miopen::InvokeParams
 {
 
-    InvokeParams() = default;
+    FwdInvokeParams() = default;
 
     const TensorDescriptor* inputDesc  = nullptr;
     const TensorDescriptor* targetDesc = nullptr;
@@ -76,11 +76,9 @@ struct BwdInvokeParams : public miopen::InvokeParams
 
     bool log_target            = false;
     float divisor              = std::numeric_limits<float>::quiet_NaN();
-    Data_t workspace           = nullptr;
-    std::size_t workspace_size = 0;
 
-    std::size_t GetWorkspaceSize() const { return workspace_size; }
-    Data_t GetWorkspace() const { return workspace; }
+    std::size_t GetWorkspaceSize() const { return 0; }
+    Data_t GetWorkspace() const { return nullptr; }
 };
 
 } // namespace kldivloss

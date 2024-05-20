@@ -190,3 +190,100 @@ extern "C" __global__ void KLDivLossUnreducedBackward5d(const INPUT_TYPE* __rest
                                                           input_grad_tv,
                                                           target_grad_tv);
 }
+
+template <typename TI, typename TO>
+__device__ void kldivLossReducedBackward5d(const TI* __restrict__ input,
+                                             const TI* __restrict__ target,
+                                             const TI* __restrict__ output_grad,
+                                             TO* __restrict__ input_grad,
+                                             TO* __restrict__ target_grad,
+                                             float divisor,
+                                             bool log_target,
+                                             tensor_view_5d_t input_tv,
+                                             tensor_view_5d_t target_tv,
+                                             tensor_view_1d_t output_grad_tv,
+                                             tensor_view_5d_t input_grad_tv,
+                                             tensor_view_5d_t target_grad_tv)
+{
+    uint64_t gid = threadIdx.x + blockIdx.x * blockDim.x;
+
+    size_t n[5];
+    GET_NCDHW(n[0], n[1], n[2], n[3], n[4], gid, input_grad_tv);
+
+    if(n[0] >= input_grad_tv.size[0])
+        return;
+
+    size_t Iidx  = TV5D_IDX(input_tv, n[0], n[1], n[2], n[3], n[4]);
+    size_t Tidx  = TV5D_IDX(target_tv, n[0], n[1], n[2], n[3], n[4]);
+    size_t dOidx = TV1D_IDX(output_grad_tv, 0);
+    size_t dIidx = TV5D_IDX(input_grad_tv, n[0], n[1], n[2], n[3], n[4]);
+    size_t dTidx = TV5D_IDX(target_grad_tv, n[0], n[1], n[2], n[3], n[4]);
+
+    FLOAT_ACCUM input_value       = CVT_FLOAT2ACCUM(input[Iidx]);
+    FLOAT_ACCUM target_value      = CVT_FLOAT2ACCUM(target[Tidx]);
+    FLOAT_ACCUM output_grad_value = CVT_FLOAT2ACCUM(output_grad[dOidx]);
+    FLOAT_ACCUM forward_output;
+    FLOAT_ACCUM d = CVT_FP32_2ACCUM(divisor);
+
+    if(log_target)
+    {
+        FLOAT_ACCUM exp_target = exp(target_value);
+        forward_output         = exp_target * (target_value - input_value);
+        if(input_grad)
+        {
+            FLOAT_ACCUM input_grad_value =
+                isnan(forward_output) ? CVT_FP32_2ACCUM(0.0f)
+                                      : CVT_FP32_2ACCUM(-1.0f) * (exp_target / d) * output_grad_value;
+            input_grad[dIidx] = CVT_ACCUM2FLOAT(input_grad_value);
+        }
+        if(target_grad)
+        {
+            FLOAT_ACCUM target_grad_value = ((forward_output + exp_target) / d) * output_grad_value;
+            target_grad[dTidx]            = CVT_ACCUM2FLOAT(target_grad_value);
+        }
+    }
+    else
+    {
+        forward_output = target_value * (log(target_value) - input_value);
+        if(input_grad)
+        {
+            FLOAT_ACCUM input_grad_value =
+                isnan(forward_output) ? CVT_FP32_2ACCUM(0.0f) : CVT_FP32_2ACCUM(-1.0f) * target_value / d * output_grad_value;
+            input_grad[dIidx] = CVT_ACCUM2FLOAT(input_grad_value);
+        }
+        if(target_grad)
+        {
+            FLOAT_ACCUM target_grad_value =
+                (target_value == 0) ? CVT_FP32_2ACCUM(0.0f)
+                                    : (CVT_FP32_2ACCUM(1.0f) + (log(target_value) - input_value)) / d * output_grad_value;
+            target_grad[dTidx] = CVT_ACCUM2FLOAT(target_grad_value);
+        }
+    }
+}
+
+extern "C" __global__ void KLDivLossReducedBackward5d(const INPUT_TYPE* __restrict__ input,
+                                                        const INPUT_TYPE* __restrict__ target,
+                                                        const INPUT_TYPE* __restrict__ output_grad,
+                                                        OUTPUT_TYPE* __restrict__ input_grad,
+                                                        OUTPUT_TYPE* __restrict__ target_grad,
+                                                        float divisor,
+                                                        bool log_target,
+                                                        tensor_view_5d_t input_tv,
+                                                        tensor_view_5d_t target_tv,
+                                                        tensor_view_1d_t output_grad_tv,
+                                                        tensor_view_5d_t input_grad_tv,
+                                                        tensor_view_5d_t target_grad_tv)
+{
+    kldivLossReducedBackward5d<INPUT_TYPE, OUTPUT_TYPE>(input,
+                                                          target,
+                                                          output_grad,
+                                                          input_grad,
+                                                          target_grad,
+                                                          divisor,
+                                                          log_target,
+                                                          input_tv,
+                                                          target_tv,
+                                                          output_grad_tv,
+                                                          input_grad_tv,
+                                                          target_grad_tv);
+}

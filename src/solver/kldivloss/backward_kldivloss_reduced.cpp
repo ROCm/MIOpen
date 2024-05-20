@@ -35,7 +35,7 @@
 #include <miopen/target_properties.hpp>
 #include <miopen/tensor_view.hpp>
 
-#define LOCAL_SIZE_UNREDUCED_BWD 1024
+#define LOCAL_SIZE_REDUCED_BWD 1024
 
 namespace miopen {
 
@@ -78,7 +78,7 @@ ConvSolution KLDivLossReducedBackward5d::GetSolution(
             {"OUTPUT_TYPE", output_dtype == "bfloat16" ? "ushort" : output_dtype},
         };
 
-        result.construction_params.push_back(make_hip_kernel({LOCAL_SIZE_UNREDUCED_BWD},
+        result.construction_params.push_back(make_hip_kernel({LOCAL_SIZE_REDUCED_BWD},
                                                              {N_total},
                                                              "MIOpenKLDivLoss.cpp",
                                                              "KLDivLossReducedBackward5d",
@@ -92,7 +92,7 @@ ConvSolution KLDivLossReducedBackward5d::GetSolution(
 
             auto input_tv       = get_inner_expanded_tv_5d(deref(params.inputDesc));
             auto target_tv      = get_inner_expanded_tv_5d(deref(params.targetDesc));
-            auto output_grad_tv = get_inner_expanded_tv_5d(deref(params.outputGradDesc));
+            auto output_grad_tv = get_inner_expanded_tv_1d(deref(params.outputGradDesc));
             auto input_grad_tv  = get_inner_expanded_tv_5d(deref(params.inputGradDesc));
             auto target_grad_tv = get_inner_expanded_tv_5d(deref(params.targetGradDesc));
 
@@ -101,6 +101,7 @@ ConvSolution KLDivLossReducedBackward5d::GetSolution(
                    params.output_grad,
                    params.input_grad,
                    params.target_grad,
+                   params.divisor,
                    params.log_target,
                    input_tv,
                    target_tv,
