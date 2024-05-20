@@ -35,7 +35,7 @@ MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
 namespace regression_issue_2012 {
 void SetupEnvVar(void)
 {
-    miopen::UpdateEnvVar(MIOPEN_ENV(MIOPEN_FIND_MODE), std::string("normal"));
+    miopen::UpdateEnvVar(ENV(MIOPEN_FIND_MODE), std::string("normal"));
 }
 
 std::vector<std::string> GetArgs(const std::string& param)
@@ -49,7 +49,7 @@ std::vector<std::string> GetArgs(const std::string& param)
 std::vector<std::string> GetTestCases(void)
 {
     const std::string& cmd       = "test_conv2d ";
-    const std::string& float_arg = miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_TEST_FLOAT_ARG));
+    const std::string& float_arg = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
     const std::string& args =
         " --verbose --disable-forward --disable-backward-data --disable-validation";
 
@@ -82,7 +82,7 @@ bool IsTestSupportedForDevice()
 void Run2dDriver(void)
 {
     if(!(IsTestSupportedForDevice() &&
-         miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_TEST_FLOAT_ARG)) == "--float"))
+         miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG)) == "--float"))
     {
         GTEST_SKIP();
     }

@@ -202,7 +202,7 @@ bool PerformanceConfigConvAsm1x1UV2::SetNextValue(const ProblemDescription&)
     // Increment with wrap-around:
     do
     {
-        if(!miopen::IsDisabled(MIOPEN_ENV(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1UV2_SEARCH_OPTIMIZED)))
+        if(!miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1UV2_SEARCH_OPTIMIZED)))
         {
             if(!IncPack<16, 32, 64>(chunk_size))
                 break;
@@ -263,7 +263,7 @@ bool PerformanceConfigConvAsm1x1UV2::SetNextValue(const ProblemDescription&)
 PerformanceConfigConvAsm1x1UV2::PerformanceConfigConvAsm1x1UV2(bool spare)
     : PerformanceConfigConvAsm1x1UV2(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, spare)
 {
-    if(!miopen::IsDisabled(MIOPEN_ENV(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1UV2_SEARCH_OPTIMIZED)))
+    if(!miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1UV2_SEARCH_OPTIMIZED)))
     {
         k_mult           = spare ? 1 : 8;
         chunk_size       = 16;
@@ -482,7 +482,7 @@ bool ConvAsm1x1UV2::IsValidPerformanceConfig(const ExecutionContext&,
 bool ConvAsm1x1UV2::IsApplicable(const ExecutionContext& ctx,
                                  const ProblemDescription& problem) const
 {
-    if(miopen::IsDisabled(MIOPEN_ENV(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1UV2)))
+    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1UV2)))
         return false;
     if(ThisSolverIsDeprecatedStatic::IsDisabled(ctx))
         return false;
@@ -612,7 +612,7 @@ ConvSolution ConvAsm1x1UV2::GetSolution(const ExecutionContext& ctx,
     PerformanceConfigConvAsm1x1UV2 fromEnv;
     {
         const auto& s =
-            miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1UV2_PERF_VALS));
+            miopen::GetStringEnv(ENV(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1UV2_PERF_VALS));
         if(!s.empty()) // else nothing to parse.
         {
             if(!fromEnv.Deserialize(s) || !fromEnv.IsValidValue())

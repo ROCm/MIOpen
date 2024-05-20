@@ -145,7 +145,7 @@ using namespace conv_trans;
 TEST_P(ConfigWithFloat_conv_trans, FloatTest_conv_trans)
 {
     const auto& handle = get_handle();
-    if(IsTestSupportedForDevice(handle) && miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_ALL)))
+    if(IsTestSupportedForDevice(handle) && miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)))
     {
         Run2dDriver(miopenFloat);
     }

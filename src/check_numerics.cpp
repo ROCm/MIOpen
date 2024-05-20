@@ -37,7 +37,7 @@ namespace miopen {
 
 bool CheckNumericsEnabled(const int bitMask)
 {
-    return (miopen::Value(MIOPEN_ENV(MIOPEN_CHECK_NUMERICS)) & bitMask) != 0;
+    return (miopen::Value(ENV(MIOPEN_CHECK_NUMERICS)) & bitMask) != 0;
 }
 
 // Must keep this structure synchronized with one in MIOpenCheckNumerics
@@ -140,7 +140,7 @@ bool checkNumericsImpl(
 bool checkNumericsInput(const Handle& handle, const TensorDescriptor& dDesc, ConstData_t data)
 {
     return checkNumericsImpl(handle,
-                             static_cast<int>(miopen::Value(MIOPEN_ENV(MIOPEN_CHECK_NUMERICS))),
+                             static_cast<int>(miopen::Value(ENV(MIOPEN_CHECK_NUMERICS))),
                              dDesc,
                              data,
                              true);
@@ -153,7 +153,7 @@ bool checkNumericsOutput(const Handle& handle, const TensorDescriptor& dDesc, Co
     handle.Finish();
 
     return checkNumericsImpl(handle,
-                             static_cast<int>(miopen::Value(MIOPEN_ENV(MIOPEN_CHECK_NUMERICS))),
+                             static_cast<int>(miopen::Value(ENV(MIOPEN_CHECK_NUMERICS))),
                              dDesc,
                              data,
                              false);

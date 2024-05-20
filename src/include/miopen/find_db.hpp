@@ -99,7 +99,7 @@ public:
                              : GetInstalledPath(handle, path_suffix)),
           db(boost::make_optional<DbTimer<TDb>>(
               debug::testing_find_db_enabled &&
-                  !IsEnabled(MIOPEN_ENV(MIOPEN_DEBUG_DISABLE_FIND_DB)),
+                  !IsEnabled(ENV(MIOPEN_DEBUG_DISABLE_FIND_DB)),
               DbTimer<TDb>{DbKinds::FindDb, installed_path, path}))
     {
         if(!db.is_initialized())
@@ -121,7 +121,7 @@ public:
 #else
           db(boost::make_optional<DbTimer<TDb>>(
               debug::testing_find_db_enabled &&
-                  !IsEnabled(MIOPEN_ENV(MIOPEN_DEBUG_DISABLE_FIND_DB)),
+                  !IsEnabled(ENV(MIOPEN_DEBUG_DISABLE_FIND_DB)),
               DbTimer<TDb>{DbKinds::FindDb, path, false}))
 #endif
     {

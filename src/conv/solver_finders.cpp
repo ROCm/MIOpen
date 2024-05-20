@@ -60,7 +60,7 @@ protected:
                    const ProblemDescription& /*problem*/,
                    const ConvFindParameters& parameters) const override
     {
-        return !parameters.use_winograd_only && !IsDisabled(MIOPEN_ENV(MIOPEN_DEBUG_CONV_DIRECT));
+        return !parameters.use_winograd_only && !IsDisabled(ENV(MIOPEN_DEBUG_CONV_DIRECT));
     }
 
     std::vector<solver::ConvSolution> FindImpl(const ExecutionContext& ctx,
@@ -90,7 +90,7 @@ protected:
                    const ConvFindParameters& parameters) const override
     {
         return !parameters.use_winograd_only &&
-               !IsDisabled(MIOPEN_ENV(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM));
+               !IsDisabled(ENV(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM));
     }
 
     std::vector<solver::ConvSolution> FindImpl(const ExecutionContext& ctx,
@@ -121,7 +121,7 @@ protected:
     {
         return !parameters.use_winograd_only &&
                problem.GetDirection() != conv::Direction::BackwardWeights &&
-               !IsDisabled(MIOPEN_ENV(MIOPEN_DEBUG_CONV_FFT));
+               !IsDisabled(ENV(MIOPEN_DEBUG_CONV_FFT));
     }
 
     std::vector<solver::ConvSolution> FindImpl(const ExecutionContext& ctx,
@@ -148,7 +148,7 @@ protected:
                    const ProblemDescription& /*problem*/,
                    const ConvFindParameters& parameters) const override
     {
-        return !parameters.use_winograd_only && !IsDisabled(MIOPEN_ENV(MIOPEN_DEBUG_CONV_GEMM));
+        return !parameters.use_winograd_only && !IsDisabled(ENV(MIOPEN_DEBUG_CONV_GEMM));
     }
 
     std::vector<solver::ConvSolution> FindImpl(const ExecutionContext& ctx,
@@ -175,7 +175,7 @@ protected:
                    const ProblemDescription& /*problem*/,
                    const ConvFindParameters& /*parameters*/) const override
     {
-        return !IsDisabled(MIOPEN_ENV(MIOPEN_DEBUG_CONV_WINOGRAD));
+        return !IsDisabled(ENV(MIOPEN_DEBUG_CONV_WINOGRAD));
     }
 
     std::vector<solver::ConvSolution> FindImpl(const ExecutionContext& ctx,
@@ -223,7 +223,7 @@ static void EvaluateInvokers(Handle& handle,
                              DbRecord& record,
                              bool& is_result_optimal)
 {
-    const auto& arch = miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_DEVICE_ARCH));
+    const auto& arch = miopen::GetStringEnv(ENV(MIOPEN_DEVICE_ARCH));
     if(!arch.empty())
         return;
 
@@ -246,7 +246,7 @@ static void EvaluateInvokers(Handle& handle,
             //
             // That is why we do not write sub-optimal results into persistent find-db (on disk)
             // unless this is explicitly enabled via environment setting.
-            if(!IsEnabled(MIOPEN_ENV(MIOPEN_FIND_CONV_INSUFFICIENT_WORKSPACE_ALLOW_FINDDB_UPDATE)))
+            if(!IsEnabled(ENV(MIOPEN_FIND_CONV_INSUFFICIENT_WORKSPACE_ALLOW_FINDDB_UPDATE)))
                 is_result_optimal = false;
             continue;
         }
@@ -343,15 +343,15 @@ bool IsAlgorithmDisabled(miopenConvAlgorithm_t algo)
     switch(algo)
     { // clang-format off
     case miopenConvolutionAlgoGEMM:
-        return !MIOPEN_USE_GEMM || miopen::IsDisabled(MIOPEN_ENV(MIOPEN_DEBUG_CONV_GEMM));
+        return !MIOPEN_USE_GEMM || miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_GEMM));
     case miopenConvolutionAlgoDirect:
-        return miopen::IsDisabled(MIOPEN_ENV(MIOPEN_DEBUG_CONV_DIRECT));
+        return miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_DIRECT));
     case miopenConvolutionAlgoFFT:
-        return miopen::IsDisabled(MIOPEN_ENV(MIOPEN_DEBUG_CONV_FFT));
+        return miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_FFT));
     case miopenConvolutionAlgoWinograd:
-        return miopen::IsDisabled(MIOPEN_ENV(MIOPEN_DEBUG_CONV_WINOGRAD));
+        return miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_WINOGRAD));
     case miopenConvolutionAlgoImplicitGEMM:
-        return miopen::IsDisabled(MIOPEN_ENV(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM));
+        return miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM));
     default: // Disable future algos by default to enforce explicit handling:
         return true;
     } // clang-format on

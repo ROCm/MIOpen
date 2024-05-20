@@ -35,17 +35,17 @@ namespace {
 auto GetTestCases()
 {
     const auto env_bwd = std::tuple{
-        std::pair{MIOPEN_ENV(MIOPEN_FIND_MODE), std::string_view("normal")},
-        std::pair{MIOPEN_ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER),
+        std::pair{ENV(MIOPEN_FIND_MODE), std::string_view("normal")},
+        std::pair{ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER),
                   std::string_view("ConvDirectNaiveConvBwd")},
-        std::pair{MIOPEN_ENV(MIOPEN_DRIVER_USE_GPU_REFERENCE), std::string_view("0")},
+        std::pair{ENV(MIOPEN_DRIVER_USE_GPU_REFERENCE), std::string_view("0")},
     };
 
     const auto env_wrw = std::tuple{
-        std::pair{MIOPEN_ENV(MIOPEN_FIND_MODE), std::string_view("normal")},
-        std::pair{MIOPEN_ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER),
+        std::pair{ENV(MIOPEN_FIND_MODE), std::string_view("normal")},
+        std::pair{ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER),
                   std::string_view("ConvDirectNaiveConvWrw")},
-        std::pair{MIOPEN_ENV(MIOPEN_DRIVER_USE_GPU_REFERENCE), std::string_view("0")},
+        std::pair{ENV(MIOPEN_DRIVER_USE_GPU_REFERENCE), std::string_view("0")},
     };
 
     const std::string vb = " --verbose --disable-forward --disable-backward-weights";

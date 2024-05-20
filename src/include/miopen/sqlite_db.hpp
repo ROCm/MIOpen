@@ -281,7 +281,7 @@ public:
         else
         {
             dbInvalid = false;
-            if(!is_system && !miopen::IsEnabled(MIOPEN_ENV(MIOPEN_DEBUG_DISABLE_SQL_WAL)))
+            if(!is_system && !miopen::IsEnabled(ENV(MIOPEN_DEBUG_DISABLE_SQL_WAL)))
             {
                 auto res = sql.Exec("PRAGMA journal_mode=WAL;");
                 if(res.empty() || res[0]["journal_mode"] != "wal")
@@ -446,7 +446,7 @@ public:
         if(dbInvalid)
             return boost::none;
 
-        const auto& pdb_ovr = miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_DEBUG_PERFDB_OVERRIDE));
+        const auto& pdb_ovr = miopen::GetStringEnv(ENV(MIOPEN_DEBUG_PERFDB_OVERRIDE));
         if(!pdb_ovr.empty())
         {
             MIOPEN_LOG_I2("overriding tuning params with: " << pdb_ovr);

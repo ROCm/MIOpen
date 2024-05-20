@@ -58,9 +58,9 @@ namespace fusion {
 bool ConvBinWinogradRxSFused::IsApplicable(const FusionContext& context,
                                            const FusionDescription& problem) const
 {
-    if(miopen::IsDisabled(MIOPEN_ENV(MIOPEN_DEBUG_AMD_FUSED_WINOGRAD)))
+    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_AMD_FUSED_WINOGRAD)))
         return false;
-    if(miopen::IsDisabled(MIOPEN_ENV(MIOPEN_DEBUG_GCN_ASM_KERNELS)))
+    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_GCN_ASM_KERNELS)))
         return false;
     if(!WinoCommonIsApplicable(context, problem))
         return false;

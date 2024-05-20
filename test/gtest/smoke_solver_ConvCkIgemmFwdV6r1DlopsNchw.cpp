@@ -39,13 +39,13 @@ auto GetTestCases()
     // MIOPEN_DEBUG_CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW is explicitly enabled due to the kernel is
     // disabled by default via #2306
     const auto env_fwd = std::tuple{
-        std::pair{MIOPEN_ENV(MIOPEN_FIND_ENFORCE), std::string_view("SEARCH_DB_UPDATE")},
-        std::pair{MIOPEN_ENV(MIOPEN_DEBUG_TUNING_ITERATIONS_MAX), std::string_view("2")},
-        std::pair{MIOPEN_ENV(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL), std::string_view("0")},
-        std::pair{MIOPEN_ENV(MIOPEN_FIND_MODE), std::string_view("normal")},
-        std::pair{MIOPEN_ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER),
+        std::pair{ENV(MIOPEN_FIND_ENFORCE), std::string_view("SEARCH_DB_UPDATE")},
+        std::pair{ENV(MIOPEN_DEBUG_TUNING_ITERATIONS_MAX), std::string_view("2")},
+        std::pair{ENV(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL), std::string_view("0")},
+        std::pair{ENV(MIOPEN_FIND_MODE), std::string_view("normal")},
+        std::pair{ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER),
                   std::string_view("ConvCkIgemmFwdV6r1DlopsNchw")},
-        std::pair{MIOPEN_ENV(MIOPEN_DEBUG_CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW),
+        std::pair{ENV(MIOPEN_DEBUG_CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW),
                   std::string_view("1")}};
 
     const std::string vf = " --verbose --disable-backward-data --disable-backward-weights";

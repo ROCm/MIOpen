@@ -178,7 +178,7 @@ bool IsNetworkedFilesystem(const fs::path& path_)
 namespace {
 std::string GetHomeDir()
 {
-    const auto p = GetStringEnv(MIOPEN_ENV(HOME));
+    const auto p = GetStringEnv(ENV(HOME));
     if(!(p.empty() || p == std::string("/")))
     {
         return p;
