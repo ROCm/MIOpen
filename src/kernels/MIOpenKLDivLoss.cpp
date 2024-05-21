@@ -259,8 +259,8 @@ __device__ void kldivLossReducedBackward5d(const TI* __restrict__ input,
             FLOAT_ACCUM target_grad_value =
                 (target_value == CVT_FP32_2ACCUM(0.0f))
                     ? CVT_FP32_2ACCUM(0.0f)
-                    : (CVT_FP32_2ACCUM(1.0f) + (CVT_FLOAT2ACCUM(log(target_value)) - input_value)) /
-                          d * output_grad_value;
+                    : (CVT_FP32_2ACCUM(1.0f) + (log(target_value) - input_value)) / d *
+                          output_grad_value;
             target_grad[dTidx] = CVT_ACCUM2FLOAT(target_grad_value);
         }
     }

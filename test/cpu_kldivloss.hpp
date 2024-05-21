@@ -233,7 +233,7 @@ void cpu_kldivloss_reduced_backward_5d(tensor<T> input,
 
         if(log_target)
         {
-            T exp_target   = static_cast<T>(exp(target_value));
+            T exp_target   = static_cast<T>(exp(static_cast<double>(target_value)));
             forward_output = exp_target * (target_value - input_value);
             if(input_grad_out)
             {
@@ -250,7 +250,8 @@ void cpu_kldivloss_reduced_backward_5d(tensor<T> input,
         }
         else
         {
-            forward_output = target_value * (static_cast<T>(log(target_value)) - input_value);
+            forward_output = target_value *
+                             (static_cast<T>(log(static_cast<double>(target_value))) - input_value);
             if(input_grad_out)
             {
                 input_grad[dIidx] = std::isnan(forward_output)
@@ -259,11 +260,12 @@ void cpu_kldivloss_reduced_backward_5d(tensor<T> input,
             }
             if(target_grad_out)
             {
-                target_grad[dTidx] = (target_value == 0)
-                                         ? static_cast<T>(0.0f)
-                                         : (static_cast<T>(1.0f) +
-                                            (static_cast<T>(log(target_value)) - input_value)) /
-                                               d * output_grad_value;
+                target_grad[dTidx] =
+                    (target_value == static_cast<T>(0.0f))
+                        ? static_cast<T>(0.0f)
+                        : (static_cast<T>(1.0f) +
+                           (static_cast<T>(log(static_cast<double>(target_value))) - input_value)) /
+                              d * output_grad_value;
             }
         }
     }

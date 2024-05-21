@@ -199,7 +199,7 @@ int KLDivLossDriver<Tgpu, Tref>::GetandSetData()
     std::vector<int> out_len    = in_len;
 
     auto in_strides  = GetStrides(in_len, 1);
-    auto tar_strides = GetStrides(in_len, inflags.GetValueInt("contiguous"));
+    auto tar_strides = GetStrides(target_len, inflags.GetValueInt("contiguous"));
 
     SetTensorNd(inputDesc, in_len, in_strides, data_type);
     SetTensorNd(targetDesc, target_len, tar_strides, data_type);
@@ -226,6 +226,7 @@ int KLDivLossDriver<Tgpu, Tref>::GetandSetData()
     }
 
     SetTensorNd(inputGradDesc, in_len, in_strides, data_type);
+    SetTensorNd(targetGradDesc, target_len, tar_strides, data_type);
 
     return miopenStatusSuccess;
 }

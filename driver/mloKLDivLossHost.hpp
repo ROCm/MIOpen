@@ -281,7 +281,9 @@ int32_t mloKLDivLossReducedBackwardRunHost5d(const miopenTensorDescriptor_t inpu
         }
         else
         {
-            forward_output = target_value * (static_cast<Tgpu>(log(target_value)) - input_value);
+            forward_output =
+                target_value *
+                (static_cast<Tgpu>(log(static_cast<double>(target_value))) - input_value);
             if(input_grad_out)
             {
                 Tgpu input_grad_value =
@@ -296,7 +298,8 @@ int32_t mloKLDivLossReducedBackwardRunHost5d(const miopenTensorDescriptor_t inpu
                     (target_value == static_cast<Tgpu>(0.0f))
                         ? static_cast<Tgpu>(0.0f)
                         : (static_cast<Tgpu>(1.0f) +
-                           (static_cast<Tgpu>(log(target_value)) - input_value)) /
+                           static_cast<Tgpu>(log(static_cast<double>(target_value))) -
+                           input_value) /
                               d * output_grad_value;
                 target_grad[dTidx] = static_cast<Tcheck>(target_grad_value);
             }

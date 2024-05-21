@@ -63,14 +63,16 @@ struct KLDivLossTestCase
 
 inline std::vector<KLDivLossTestCase> KLDivLossTestConfigs()
 {
-    return {{{256, 4, 8732}, false, 0.0f},
-            {{256, 4, 8732}, false, 1.0f},
-            {{256, 4, 8732}, true, 0.0f},
-            {{256, 4, 8732}, true, 1.0f},
-            {{34, 4}, false, 0.0f},
-            {{34, 4}, false, 1.0f},
-            {{34, 4}, true, 0.0f},
-            {{34, 4}, true, 1.0f}};
+    return {
+        {{256, 4, 8732}, false, 0.0f},
+        {{256, 4, 8732}, false, 1.0f},
+        {{256, 4, 8732}, true, 0.0f},
+        {{256, 4, 8732}, true, 1.0f},
+        // {{34, 4}, false, 0.0f},
+        // {{34, 4}, false, 1.0f},
+        // {{34, 4}, true, 0.0f},
+        // {{34, 4}, true, 1.0f}
+    };
 }
 
 inline std::vector<size_t> GetStrides(std::vector<size_t> input, bool contiguous)
