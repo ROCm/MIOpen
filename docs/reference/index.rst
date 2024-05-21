@@ -33,3 +33,4 @@ The MIOpen API library is structured as follows:
   * :doc:`Cat <../doxygen/html/group__cat>` (experimental)
   * :doc:`SGD <../doxygen/html/group___s_g_d>` (experimental)
   * :doc:`ReduceExtreme <../doxygen/html/group__ReduceExtreme>` (experimental)
+  * :doc:`RotaryPositionalEmbeddings <../doxygen/html/group__RotaryPositionalEmbeddings>` (experimental)
