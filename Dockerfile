@@ -105,6 +105,7 @@ RUN apt-get update && \
 DEBIAN_FRONTEND=noninteractive apt-get purge -y --allow-unauthenticated \
     composablekernel-dev
 ARG COMPILER_LAUNCHER=""
+# rbuild is used to trigger build of requirements.txt, dev-requirements.txt
 RUN if [ "$USE_FIN" = "ON" ]; then \
         rbuild prepare -s fin -d $PREFIX -DGPU_TARGETS=${GPU_ARCH} -DCMAKE_CXX_COMPILER_LAUNCHER="${COMPILER_LAUNCHER}"; \
     else \
