@@ -43,26 +43,6 @@
 #include "cpu_conv.hpp"
 #include "random.hpp"
 
-enum tensor_layout_t
-{
-    miopen_tensor_layout_nchw,
-    miopen_tensor_layout_ncdhw,
-    miopen_tensor_layout_nhwc,
-    miopen_tensor_layout_ndhwc,
-};
-
-std::string tensor_layout_to_string(tensor_layout_t layout)
-{
-    switch(layout)
-    {
-    case miopen_tensor_layout_nchw: return "NCHW";
-    case miopen_tensor_layout_ncdhw: return "NCDHW";
-    case miopen_tensor_layout_nhwc: return "NHWC";
-    case miopen_tensor_layout_ndhwc: return "NDHWC";
-    default: MIOPEN_THROW("Unsupported tensor layout");
-    }
-}
-
 struct gpu_reference_kernel_base
 {
     miopenHandle_t handle{};
@@ -311,7 +291,7 @@ void pad_tensor_strides(std::vector<int>& strides)
 template <miopen::conv::Direction direction,
           typename TRef,
           typename Tout,
-          tensor_layout_t tensor_layout>
+          miopen::tensor_layout_t tensor_layout>
 struct gpu_reference_conv_2d : gpu_reference_kernel_base
 {
     void run()
@@ -673,7 +653,7 @@ struct gpu_reference_conv_2d : gpu_reference_kernel_base
 template <miopen::conv::Direction direction,
           typename TRef,
           typename Tout,
-          tensor_layout_t tensor_layout>
+          miopen::tensor_layout_t tensor_layout>
 struct gpu_reference_conv_3d : gpu_reference_kernel_base
 {
     void run()
@@ -1042,183 +1022,183 @@ int main()
     run_test<gpu_reference_conv_2d<miopen::conv::Direction::Forward,
                                    float,
                                    float,
-                                   miopen_tensor_layout_nchw>>();
+                                   miopen::tensor_layout_nchw>>();
     run_test<gpu_reference_conv_2d<miopen::conv::Direction::Forward,
                                    half_float::half,
                                    half_float::half,
-                                   miopen_tensor_layout_nchw>>();
+                                   miopen::tensor_layout_nchw>>();
     run_test<gpu_reference_conv_2d<miopen::conv::Direction::Forward,
                                    bfloat16,
                                    bfloat16,
-                                   miopen_tensor_layout_nchw>>();
+                                   miopen::tensor_layout_nchw>>();
     run_test<gpu_reference_conv_2d<miopen::conv::Direction::Forward,
                                    int8_t,
                                    int32_t,
-                                   miopen_tensor_layout_nchw>>();
+                                   miopen::tensor_layout_nchw>>();
     run_test<gpu_reference_conv_2d<miopen::conv::Direction::Forward,
                                    int8_t,
                                    float,
-                                   miopen_tensor_layout_nchw>>();
+                                   miopen::tensor_layout_nchw>>();
     run_test<gpu_reference_conv_2d<miopen::conv::Direction::BackwardData,
                                    float,
                                    float,
-                                   miopen_tensor_layout_nchw>>();
+                                   miopen::tensor_layout_nchw>>();
     run_test<gpu_reference_conv_2d<miopen::conv::Direction::BackwardData,
                                    half_float::half,
                                    half_float::half,
-                                   miopen_tensor_layout_nchw>>();
+                                   miopen::tensor_layout_nchw>>();
     run_test<gpu_reference_conv_2d<miopen::conv::Direction::BackwardData,
                                    bfloat16,
                                    bfloat16,
-                                   miopen_tensor_layout_nchw>>();
+                                   miopen::tensor_layout_nchw>>();
     run_test<gpu_reference_conv_2d<miopen::conv::Direction::BackwardWeights,
                                    float,
                                    float,
-                                   miopen_tensor_layout_nchw>>();
+                                   miopen::tensor_layout_nchw>>();
     run_test<gpu_reference_conv_2d<miopen::conv::Direction::BackwardWeights,
                                    half_float::half,
                                    half_float::half,
-                                   miopen_tensor_layout_nchw>>();
+                                   miopen::tensor_layout_nchw>>();
     run_test<gpu_reference_conv_2d<miopen::conv::Direction::BackwardWeights,
                                    bfloat16,
                                    bfloat16,
-                                   miopen_tensor_layout_nchw>>();
+                                   miopen::tensor_layout_nchw>>();
 
     // 3d NCDHW
     run_test<gpu_reference_conv_3d<miopen::conv::Direction::Forward,
                                    float,
                                    float,
-                                   miopen_tensor_layout_ncdhw>>();
+                                   miopen::tensor_layout_ncdhw>>();
     run_test<gpu_reference_conv_3d<miopen::conv::Direction::Forward,
                                    half_float::half,
                                    half_float::half,
-                                   miopen_tensor_layout_ncdhw>>();
+                                   miopen::tensor_layout_ncdhw>>();
     run_test<gpu_reference_conv_3d<miopen::conv::Direction::Forward,
                                    bfloat16,
                                    bfloat16,
-                                   miopen_tensor_layout_ncdhw>>();
+                                   miopen::tensor_layout_ncdhw>>();
     run_test<gpu_reference_conv_3d<miopen::conv::Direction::Forward,
                                    int8_t,
                                    int32_t,
-                                   miopen_tensor_layout_ncdhw>>();
+                                   miopen::tensor_layout_ncdhw>>();
     run_test<gpu_reference_conv_3d<miopen::conv::Direction::Forward,
                                    int8_t,
                                    float,
-                                   miopen_tensor_layout_ncdhw>>();
+                                   miopen::tensor_layout_ncdhw>>();
     run_test<gpu_reference_conv_3d<miopen::conv::Direction::BackwardData,
                                    float,
                                    float,
-                                   miopen_tensor_layout_ncdhw>>();
+                                   miopen::tensor_layout_ncdhw>>();
     run_test<gpu_reference_conv_3d<miopen::conv::Direction::BackwardData,
                                    half_float::half,
                                    half_float::half,
-                                   miopen_tensor_layout_ncdhw>>();
+                                   miopen::tensor_layout_ncdhw>>();
     run_test<gpu_reference_conv_3d<miopen::conv::Direction::BackwardData,
                                    bfloat16,
                                    bfloat16,
-                                   miopen_tensor_layout_ncdhw>>();
+                                   miopen::tensor_layout_ncdhw>>();
     run_test<gpu_reference_conv_3d<miopen::conv::Direction::BackwardWeights,
                                    float,
                                    float,
-                                   miopen_tensor_layout_ncdhw>>();
+                                   miopen::tensor_layout_ncdhw>>();
     run_test<gpu_reference_conv_3d<miopen::conv::Direction::BackwardWeights,
                                    half_float::half,
                                    half_float::half,
-                                   miopen_tensor_layout_ncdhw>>();
+                                   miopen::tensor_layout_ncdhw>>();
     run_test<gpu_reference_conv_3d<miopen::conv::Direction::BackwardWeights,
                                    bfloat16,
                                    bfloat16,
-                                   miopen_tensor_layout_ncdhw>>();
+                                   miopen::tensor_layout_ncdhw>>();
 
     // 2d NHWC
     run_test<gpu_reference_conv_2d<miopen::conv::Direction::Forward,
                                    float,
                                    float,
-                                   miopen_tensor_layout_nhwc>>();
+                                   miopen::tensor_layout_nhwc>>();
     run_test<gpu_reference_conv_2d<miopen::conv::Direction::Forward,
                                    half_float::half,
                                    half_float::half,
-                                   miopen_tensor_layout_nhwc>>();
+                                   miopen::tensor_layout_nhwc>>();
     run_test<gpu_reference_conv_2d<miopen::conv::Direction::Forward,
                                    bfloat16,
                                    bfloat16,
-                                   miopen_tensor_layout_nhwc>>();
+                                   miopen::tensor_layout_nhwc>>();
     run_test<gpu_reference_conv_2d<miopen::conv::Direction::Forward,
                                    int8_t,
                                    int32_t,
-                                   miopen_tensor_layout_nhwc>>();
+                                   miopen::tensor_layout_nhwc>>();
     run_test<gpu_reference_conv_2d<miopen::conv::Direction::Forward,
                                    int8_t,
                                    float,
-                                   miopen_tensor_layout_nhwc>>();
+                                   miopen::tensor_layout_nhwc>>();
     run_test<gpu_reference_conv_2d<miopen::conv::Direction::BackwardData,
                                    float,
                                    float,
-                                   miopen_tensor_layout_nhwc>>();
+                                   miopen::tensor_layout_nhwc>>();
     run_test<gpu_reference_conv_2d<miopen::conv::Direction::BackwardData,
                                    half_float::half,
                                    half_float::half,
-                                   miopen_tensor_layout_nhwc>>();
+                                   miopen::tensor_layout_nhwc>>();
     run_test<gpu_reference_conv_2d<miopen::conv::Direction::BackwardData,
                                    bfloat16,
                                    bfloat16,
-                                   miopen_tensor_layout_nhwc>>();
+                                   miopen::tensor_layout_nhwc>>();
     run_test<gpu_reference_conv_2d<miopen::conv::Direction::BackwardWeights,
                                    float,
                                    float,
-                                   miopen_tensor_layout_nhwc>>();
+                                   miopen::tensor_layout_nhwc>>();
     run_test<gpu_reference_conv_2d<miopen::conv::Direction::BackwardWeights,
                                    half_float::half,
                                    half_float::half,
-                                   miopen_tensor_layout_nhwc>>();
+                                   miopen::tensor_layout_nhwc>>();
     run_test<gpu_reference_conv_2d<miopen::conv::Direction::BackwardWeights,
                                    bfloat16,
                                    bfloat16,
-                                   miopen_tensor_layout_nhwc>>();
+                                   miopen::tensor_layout_nhwc>>();
 
     // 3d NDHWC
     run_test<gpu_reference_conv_3d<miopen::conv::Direction::Forward,
                                    float,
                                    float,
-                                   miopen_tensor_layout_ndhwc>>();
+                                   miopen::tensor_layout_ndhwc>>();
     run_test<gpu_reference_conv_3d<miopen::conv::Direction::Forward,
                                    half_float::half,
                                    half_float::half,
-                                   miopen_tensor_layout_ndhwc>>();
+                                   miopen::tensor_layout_ndhwc>>();
     run_test<gpu_reference_conv_3d<miopen::conv::Direction::Forward,
                                    bfloat16,
                                    bfloat16,
-                                   miopen_tensor_layout_ndhwc>>();
+                                   miopen::tensor_layout_ndhwc>>();
     run_test<gpu_reference_conv_3d<miopen::conv::Direction::Forward,
                                    int8_t,
                                    int32_t,
-                                   miopen_tensor_layout_ndhwc>>();
+                                   miopen::tensor_layout_ndhwc>>();
     run_test<gpu_reference_conv_3d<miopen::conv::Direction::Forward,
                                    int8_t,
                                    float,
-                                   miopen_tensor_layout_ndhwc>>();
+                                   miopen::tensor_layout_ndhwc>>();
     run_test<gpu_reference_conv_3d<miopen::conv::Direction::BackwardData,
                                    float,
                                    float,
-                                   miopen_tensor_layout_ndhwc>>();
+                                   miopen::tensor_layout_ndhwc>>();
     run_test<gpu_reference_conv_3d<miopen::conv::Direction::BackwardData,
                                    half_float::half,
                                    half_float::half,
-                                   miopen_tensor_layout_ndhwc>>();
+                                   miopen::tensor_layout_ndhwc>>();
     run_test<gpu_reference_conv_3d<miopen::conv::Direction::BackwardData,
                                    bfloat16,
                                    bfloat16,
-                                   miopen_tensor_layout_ndhwc>>();
+                                   miopen::tensor_layout_ndhwc>>();
     run_test<gpu_reference_conv_3d<miopen::conv::Direction::BackwardWeights,
                                    float,
                                    float,
-                                   miopen_tensor_layout_ndhwc>>();
+                                   miopen::tensor_layout_ndhwc>>();
     run_test<gpu_reference_conv_3d<miopen::conv::Direction::BackwardWeights,
                                    half_float::half,
                                    half_float::half,
-                                   miopen_tensor_layout_ndhwc>>();
+                                   miopen::tensor_layout_ndhwc>>();
     run_test<gpu_reference_conv_3d<miopen::conv::Direction::BackwardWeights,
                                    bfloat16,
                                    bfloat16,
-                                   miopen_tensor_layout_ndhwc>>();
+                                   miopen::tensor_layout_ndhwc>>();
 }
