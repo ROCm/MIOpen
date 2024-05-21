@@ -33,6 +33,8 @@
 
 #include <miopen/process.hpp>
 
+#include <map>
+
 using ::testing::HasSubstr;
 using ::testing::Not;
 
@@ -44,7 +46,9 @@ static inline boost::filesystem::path& MIOpenDriverExePath()
     return exePath;
 }
 
-static inline void RunMIOpenDriverTestCommand(const std::vector<std::string>& params)
+static inline void RunMIOpenDriverTestCommand(
+    const std::vector<std::string>& params,
+    const std::map<std::string, std::string> additionalEnvironmentVariables = {})
 {
     for(const auto& testArguments : params)
     {
@@ -52,9 +56,10 @@ static inline void RunMIOpenDriverTestCommand(const std::vector<std::string>& pa
         miopen::Process p{MIOpenDriverExePath().string()};
         std::stringstream ss;
 
-        EXPECT_NO_THROW(commandResult = p(testArguments, "", &ss));
+        EXPECT_NO_THROW(commandResult = p(testArguments, "", &ss, additionalEnvironmentVariables));
         EXPECT_EQ(commandResult, 0)
-            << "MIOpenDriver exited with non-zero value when running with arguments: " << testArguments;
+            << "MIOpenDriver exited with non-zero value when running with arguments: "
+            << testArguments;
         EXPECT_THAT(ss.str(), Not(HasSubstr("FAILED")));
     }
 }

@@ -32,10 +32,8 @@
 #include <miopen/env.hpp>
 #include <miopen/miopen.h>
 #include <miopen/process.hpp>
-#include <miopen/filesystem.hpp>
 
-using ::testing::HasSubstr;
-using ::testing::Not;
+#include <map>
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
@@ -82,9 +80,10 @@ void RunMIOpenDriver()
         GTEST_SKIP();
     }
 
-    // TODO bharriso - handle setting the environment variables before running the child process
-    // test.
-    RunMIOpenDriverTestCommand(MIOpenDriverRegressionInt8Test::GetParam());
+    std::map<std::string, std::string> environmentVariables = {
+        {"MIOPEN_FIND_MODE", "1"}, {"MIOPEN_DEBUG_FIND_ONLY_SOLVER", "ConvDirectNaiveConvFwd"}};
+
+    RunMIOpenDriverTestCommand(MIOpenDriverRegressionInt8Test::GetParam(), environmentVariables);
 };
 
 } // namespace miopendriver_regression_int8

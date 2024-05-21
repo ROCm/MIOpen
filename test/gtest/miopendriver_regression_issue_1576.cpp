@@ -33,6 +33,8 @@
 #include <miopen/miopen.h>
 #include <miopen/process.hpp>
 
+#include <unordered_map>
+
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_WITH_MIOPENDRIVER)
@@ -79,7 +81,11 @@ void RunMIOpenDriver()
         GTEST_SKIP();
     }
 
-    RunMIOpenDriverTestCommand(MIOpenDriverRegressionIssue1576Test::GetParam());
+    std::map<std::string, std::string> environmentVariables = {
+        {"MIOPEN_FIND_MODE", "1"}, {"MIOPEN_DEBUG_FIND_ONLY_SOLVER", "ConvDirectNaiveConvBwd"}};
+
+    RunMIOpenDriverTestCommand(MIOpenDriverRegressionIssue1576Test::GetParam(),
+                               environmentVariables);
 };
 
 } // namespace miopendriver_regression_issue_1576

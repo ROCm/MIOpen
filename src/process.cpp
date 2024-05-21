@@ -40,7 +40,7 @@ struct ProcessImpl
 public:
     ProcessImpl(std::string_view cmd) : path{cmd} {}
 
-    void Create(std::string_view args, std::string_view cwd, std::ostream* out)
+    void Create(std::string_view args, std::string_view cwd, std::ostream* out, std::map<std::string, std::string> additionalEnvironmentVariables)
     {
         STARTUPINFOA info;
         ZeroMemory(&info, sizeof(STARTUPINFO));
@@ -60,6 +60,11 @@ public:
             info.hStdError = childStdOutWrite;
             info.hStdOutput = childStdOutWrite;
             info.dwFlags |= STARTF_USESTDHANDLES;
+        }
+
+        if(!additionalEnvironmentVariables.empty())
+        {
+            MIOPEN_THROW("Overriding environment variables not defined for Windows environment.");
         }
 
         std::string cmd{path.string()};
@@ -142,10 +147,19 @@ struct ProcessImpl
 {
     ProcessImpl(std::string_view cmd) : path{cmd} {}
 
-    void Create(std::string_view args, std::string_view cwd, std::ostream* out)
+    void Create(std::string_view args, std::string_view cwd, std::ostream* out, std::map<std::string, std::string> additionalEnvironmentVariables)
     {
         outStream = out;
         std::string cmd{path.string()};
+        if(!additionalEnvironmentVariables.empty())
+        {
+            std::stringstream environmentVariables;
+            for(const auto& envVariable : additionalEnvironmentVariables)
+            {
+                environmentVariables << envVariable.first << "=" << envVariable.second << " ";
+            }
+            cmd.insert(0, environmentVariables.str());
+        }
         if(!args.empty())
             cmd += " " + std::string{args};
         if(!cwd.empty())
@@ -186,16 +200,16 @@ Process::Process(const fs::path& cmd) : impl{std::make_unique<ProcessImpl>(cmd.s
 
 Process::~Process() noexcept = default;
 
-int Process::operator()(std::string_view args, const fs::path& cwd, std::ostream* out)
+int Process::operator()(std::string_view args, const fs::path& cwd, std::ostream* out, std::map<std::string, std::string> additionalEnvironmentVariables)
 {
-    impl->Create(args, cwd.string(), out);
+    impl->Create(args, cwd.string(), out, additionalEnvironmentVariables);
     return impl->Wait();
 }
 
-ProcessAsync::ProcessAsync(const fs::path& cmd, std::string_view args, const fs::path& cwd,  std::ostream* out)
+ProcessAsync::ProcessAsync(const fs::path& cmd, std::string_view args, const fs::path& cwd,  std::ostream* out, std::map<std::string, std::string> additionalEnvironmentVariables)
     : impl{std::make_unique<ProcessImpl>(cmd.string())}
 {
-    impl->Create(args, cwd.string(), out);
+    impl->Create(args, cwd.string(), out, additionalEnvironmentVariables);
 }
 
 ProcessAsync::~ProcessAsync() noexcept = default;
