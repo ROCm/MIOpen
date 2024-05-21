@@ -696,7 +696,7 @@ static bool IsApplicableBase(const ExecutionContext& ctx, const ProblemDescripti
         // clang-format on
 
 #if WORKAROUND_ISSUE_2492_GRANULARITY_LOSS
-    if(!miopen::IsDisabled(ENV(MIOPEN_DEBUG_WORKAROUND_ISSUE_2492)) &&
+    if(!miopen::IsDisabled(MIOPEN_ENV(MIOPEN_DEBUG_WORKAROUND_ISSUE_2492)) &&
        !miopen::debug::IsWarmupOngoing)
     {
         constexpr double max_perf_drop_due_to_granularity = 200; // Times.
@@ -710,7 +710,7 @@ static bool IsApplicableBase(const ExecutionContext& ctx, const ProblemDescripti
 #endif
 
 #if WORKAROUND_ISSUE_2492_TINY_TENSOR
-    if(!miopen::IsDisabled(ENV(MIOPEN_DEBUG_WORKAROUND_ISSUE_2492)) &&
+    if(!miopen::IsDisabled(MIOPEN_ENV(MIOPEN_DEBUG_WORKAROUND_ISSUE_2492)) &&
        !miopen::debug::IsWarmupOngoing)
     {
         // Group count is not taken into account intentionally.
@@ -763,7 +763,7 @@ bool ConvBinWinoRxS<Winodata, Winofilter>::IsApplicable(const ExecutionContext& 
 {
     if(IS2X3)
     {
-        if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3)))
+        if(miopen::IsDisabled(MIOPEN_ENV(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3)))
             return false;
 #if !WORKAROUND_ISSUE_1681
         if(problem.GetGroupCount() == 1 && !problem.IsDirectionBackwardWrW())
@@ -772,7 +772,7 @@ bool ConvBinWinoRxS<Winodata, Winofilter>::IsApplicable(const ExecutionContext& 
     }
     if(IS3X2)
     {
-        if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2)))
+        if(miopen::IsDisabled(MIOPEN_ENV(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2)))
             return false;
     }
     return IsApplicableBase<Winodata, Winofilter>(ctx, problem);
@@ -788,12 +788,12 @@ GetPerfConfFromEnv(const ExecutionContext& ctx)
 
     if(IS2X3)
     {
-        s        = miopen::GetStringEnv(ENV(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_PERF_VALS));
+        s        = miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_PERF_VALS));
         env_name = "MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_PERF_VALS";
     }
     else if(IS3X2)
     {
-        s        = miopen::GetStringEnv(ENV(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2_PERF_VALS));
+        s        = miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2_PERF_VALS));
         env_name = "MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F3X2_PERF_VALS";
     }
 
@@ -1141,7 +1141,7 @@ ConvSolution ConvBinWinoRxS<Winodata, Winofilter>::GetSolution(
 bool ConvBinWinogradRxSf2x3g1::IsApplicable(const ExecutionContext& ctx,
                                             const ProblemDescription& problem) const
 {
-    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_G1)))
+    if(miopen::IsDisabled(MIOPEN_ENV(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_G1)))
         return false;
     return IsApplicableBase<2, 3>(ctx, problem) && problem.GetGroupCount() == 1;
 }

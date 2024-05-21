@@ -47,7 +47,7 @@ namespace conv_bias_act_res_add_fwd {
 bool TestIsApplicable()
 {
 #if MIOPEN_USE_COMPOSABLEKERNEL
-    const auto float_arg = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
+    const auto float_arg = miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_TEST_FLOAT_ARG));
     return
 #if WORAROUND_ISSUE_2533
         miopen::solver::ck_utility::is_ck_whitelist(get_handle().GetDeviceName()) //
@@ -57,7 +57,7 @@ bool TestIsApplicable()
         && (float_arg == "--half" // So far only test for fp16 is implemented.
             || float_arg.empty()) // Empty when gtest is run without parameters.
         && !miopen::IsDisabled(
-               ENV(MIOPEN_TEST_ALL)); // Not disabled when gtest is run without parameters.
+               MIOPEN_ENV(MIOPEN_TEST_ALL)); // Not disabled when gtest is run without parameters.
 #else
     return false;
 #endif
@@ -104,7 +104,8 @@ protected:
         miopen::TensorDescriptor output_desc =
             conv_desc.GetForwardOutputTensor(input.desc, weights.desc, miopen_type<T>());
         output = tensor<T>{tensor_layout, output_desc.GetLengths()};
-        std::fill(output.begin(), output.end(), std::numeric_limits<double>::quiet_NaN());
+        // set output to zero since now beta is enabled in ref gpu kernel
+        std::fill(output.begin(), output.end(), 0.0);
 
         z = tensor<T>{tensor_layout, output_desc.GetLengths()};
         z.generate(gen_value);

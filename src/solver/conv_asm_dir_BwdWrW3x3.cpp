@@ -71,7 +71,7 @@ bool PerformanceConfigAsmDirect3x3WrW::SetNextValue(const ProblemDescription&)
     do
     {
 #if MIOPEN_GCN_ASM_DIRECT_3X3WRW_SEARCH_LWC_FIXED == 0
-        if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW3X3_SEARCH_OPTIMIZED)))
+        if(miopen::IsDisabled(MIOPEN_ENV(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW3X3_SEARCH_OPTIMIZED)))
         {
             // (0 <= limit_wave_cnt && limit_wave_cnt <= 9)
             if(++limit_wave_cnt <= 9)
@@ -391,7 +391,7 @@ bool ConvAsmBwdWrW3x3::IsValidPerformanceConfig(
 bool ConvAsmBwdWrW3x3::IsApplicable(const ExecutionContext& ctx,
                                     const ProblemDescription& problem) const
 {
-    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW3X3)))
+    if(miopen::IsDisabled(MIOPEN_ENV(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW3X3)))
         return false;
     if(ThisSolverIsDeprecatedStatic::IsDisabled(ctx))
         return false;
@@ -431,7 +431,7 @@ bool ConvAsmBwdWrW3x3::IsApplicable(const ExecutionContext& ctx,
         return false;
 
 #if WORKAROUND_SWDEV_330460
-    if(!miopen::IsEnabled(ENV(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW3X3)) && name == "gfx90a" &&
+    if(!miopen::IsEnabled(MIOPEN_ENV(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW3X3)) && name == "gfx90a" &&
        problem.IsFp32())
         return false;
 #endif
@@ -513,7 +513,8 @@ ConvSolution ConvAsmBwdWrW3x3::GetSolution(const ExecutionContext& ctx,
 
     PerformanceConfigAsmDirect3x3WrW fromEnv;
     {
-        const auto& s = miopen::GetStringEnv(ENV(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW3X3_PERF_VALS));
+        const auto& s =
+            miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW3X3_PERF_VALS));
         if(!s.empty()) // else nothing to parse.
         {
             if(!fromEnv.Deserialize(s) || !fromEnv.IsValid(ctx, problem))
