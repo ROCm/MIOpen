@@ -655,8 +655,11 @@ private:
                               devPtrs.data());
         varpack->SetAttribute(
             MIOPEN_ATTR_VARIANT_PACK_UNIQUE_IDS, MIOPEN_TYPE_INT64, numTensors, uids.data());
+
+        auto ptr = workspace.ptr();
+        
         varpack->SetAttribute(
-            MIOPEN_ATTR_VARIANT_PACK_WORKSPACE, MIOPEN_TYPE_VOID_PTR, 1, workspace.ptr());
+            MIOPEN_ATTR_VARIANT_PACK_WORKSPACE, MIOPEN_TYPE_VOID_PTR, 1, &ptr);
         varpack->Finalize();
 
         m_executionPlan->AddRef(varpack);
