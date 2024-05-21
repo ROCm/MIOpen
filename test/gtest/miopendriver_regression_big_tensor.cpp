@@ -33,9 +33,6 @@
 #include <miopen/miopen.h>
 #include <miopen/process.hpp>
 
-using ::testing::HasSubstr;
-using ::testing::Not;
-
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_WITH_MIOPENDRIVER)
@@ -45,7 +42,6 @@ namespace miopendriver_regression_big_tensor {
 
 std::vector<std::string> GetTestCases()
 {
-    const std::string& cmd = MIOpenDriverExePath().string();
     const std::string& modeConvolutionArg =
         miopen::GetStringEnv(MIOPEN_ENV(MIOPENDRIVER_MODE_CONV));
 
@@ -53,7 +49,7 @@ std::vector<std::string> GetTestCases()
     return std::vector<std::string>{
         // Regression test for https://github.com/ROCm/MIOpen/issues/1661
         // Issue #1697: this is large test which has to run in serial and not enabled on gfx900/gfx906
-        {cmd + " " + modeConvolutionArg + " -W 5078 -H 4903 -c 24 -n 5 -k 1 --fil_w 3 --fil_h 3 --pad_w 6 --pad_h 4 -F 1"}
+        {modeConvolutionArg + " -W 5078 -H 4903 -c 24 -n 5 -k 1 --fil_w 3 --fil_h 3 --pad_w 6 --pad_h 4 -F 1"}
     };
     // clang-format on
 }
@@ -84,21 +80,7 @@ void RunMIOpenDriver()
         GTEST_SKIP();
     }
 
-    // TODO bharriso - RUN_SERIAL & TIMEOUT aren't coming across, make sure to note that in PR.
-
-    std::vector<std::string> params = MIOpenDriverRegressionBigTensorTest::GetParam();
-    for(const auto& testCommand : params)
-    {
-        int commandResult = 0;
-        miopen::Process p{testCommand};
-
-        // TODO bharriso - get decision for capturing output, and either remove this if we can
-        // ignore,
-        //                 or add capturing output + check here.
-        EXPECT_NO_THROW(commandResult = p());
-        EXPECT_EQ(commandResult, 0)
-            << "MIOpenDriver exited with non-zero value when running command: " << testCommand;
-    }
+    RunMIOpenDriverTestCommand(MIOpenDriverRegressionBigTensorTest::GetParam());
 };
 
 } // namespace miopendriver_regression_big_tensor

@@ -33,9 +33,6 @@
 #include <miopen/miopen.h>
 #include <miopen/process.hpp>
 
-using ::testing::HasSubstr;
-using ::testing::Not;
-
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_WITH_MIOPENDRIVER)
@@ -45,14 +42,13 @@ namespace miopendriver_regression_issue_1576 {
 
 std::vector<std::string> GetTestCases()
 {
-    const std::string& cmd = MIOpenDriverExePath().string();
     const std::string& modeConvolutionArg =
         miopen::GetStringEnv(MIOPEN_ENV(MIOPENDRIVER_MODE_CONV));
 
     // clang-format off
     return std::vector<std::string>{
         // Regression test for https://github.com/ROCm/MIOpen/issues/1576
-        {cmd + " " + modeConvolutionArg + " --forw 2 --in_layout NCHW --out_layout NCHW --fil_layout NCHW -n 256 -c 1024 -H 14 -W 14 -k 256 -y 1 -x 1 -p 0 -q 0 -u 1 -v 1 -l 1 -j 1 -m conv -g 1 -t 1"}
+        {modeConvolutionArg + " --forw 2 --in_layout NCHW --out_layout NCHW --fil_layout NCHW -n 256 -c 1024 -H 14 -W 14 -k 256 -y 1 -x 1 -p 0 -q 0 -u 1 -v 1 -l 1 -j 1 -m conv -g 1 -t 1"}
     };
     // clang-format on
 }
@@ -83,21 +79,7 @@ void RunMIOpenDriver()
         GTEST_SKIP();
     }
 
-    // TODO bharriso - handle setting the environment variables before running the child process
-    // test.
-    std::vector<std::string> commands = MIOpenDriverRegressionIssue1576Test::GetParam();
-    for(const auto& testCommand : commands)
-    {
-        int commandResult = 0;
-        miopen::Process p{testCommand};
-
-        // TODO bharriso - get decision for capturing output, and either remove this if we can
-        // ignore,
-        //                 or add capturing output + check here.
-        EXPECT_NO_THROW(commandResult = p());
-        EXPECT_EQ(commandResult, 0)
-            << "MIOpenDriver exited with non-zero value when running command: " << testCommand;
-    }
+    RunMIOpenDriverTestCommand(MIOpenDriverRegressionIssue1576Test::GetParam());
 };
 
 } // namespace miopendriver_regression_issue_1576

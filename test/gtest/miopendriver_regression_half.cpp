@@ -35,9 +35,6 @@
 
 #include <boost/dll/runtime_symbol_info.hpp>
 
-using ::testing::HasSubstr;
-using ::testing::Not;
-
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_WITH_MIOPENDRIVER)
@@ -47,8 +44,6 @@ namespace miopendriver_regression_half {
 
 std::vector<std::string> GetTestCases()
 {
-    const std::string& cmd = MIOpenDriverExePath().string();
-    ;
     const std::string& modePoolingArg = miopen::GetStringEnv(MIOPEN_ENV(MIOPENDRIVER_MODE_POOL));
 
     // clang-format off
@@ -56,9 +51,9 @@ std::vector<std::string> GetTestCases()
         // WORKAROUND_ISSUE_2110_2: tests for 2110 and 2160 shall be added to "test_pooling3d --all" but this is
         // impossible until backward pooling limitation (issue #2110 (2)) is fully fixed.
         // Partial (3D only) regression test for https://github.com/ROCm/MIOpen/issues/2160.
-        {cmd + " " + modePoolingArg + " -M 0 --input 1x64x41x40x70 -y 41 -x 40 -Z 70 -m avg -F 1 -t 1 -i 1"},
+        {modePoolingArg + " -M 0 --input 1x64x41x40x70 -y 41 -x 40 -Z 70 -m avg -F 1 -t 1 -i 1"},
         // Partial (3D only) regression test for https://github.com/ROCm/MIOpen/issues/2110 (1).
-        {cmd + " " + modePoolingArg + " -M 0 --input 1x64x41x40x100 -y 4 -x 4 -Z 100 -m max -F 1 -t 1 -i 1"}
+        {modePoolingArg + " -M 0 --input 1x64x41x40x100 -y 4 -x 4 -Z 100 -m max -F 1 -t 1 -i 1"}
     };
     // clang-format on
 }
@@ -89,19 +84,7 @@ void RunMIOpenDriver()
         GTEST_SKIP();
     }
 
-    std::vector<std::string> params = MIOpenDriverRegressionHalfTest::GetParam();
-    for(const auto& testCommand : params)
-    {
-        int commandResult = 0;
-        miopen::Process p{testCommand};
-
-        // TODO bharriso - get decision for capturing output, and either remove this if we can
-        // ignore,
-        //                 or add capturing output + check here.
-        EXPECT_NO_THROW(commandResult = p());
-        EXPECT_EQ(commandResult, 0)
-            << "MIOpenDriver exited with non-zero value when running command: " << testCommand;
-    }
+    RunMIOpenDriverTestCommand(MIOpenDriverRegressionHalfTest::GetParam());
 };
 
 } // namespace miopendriver_regression_half

@@ -33,9 +33,6 @@
 #include <miopen/miopen.h>
 #include <miopen/process.hpp>
 
-using ::testing::HasSubstr;
-using ::testing::Not;
-
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_WITH_MIOPENDRIVER)
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPENDRIVER_MODE_CONV)
@@ -44,14 +41,13 @@ namespace miopendriver_regression_issue_2047 {
 
 std::vector<std::string> GetTestCases()
 {
-    const std::string& cmd = MIOpenDriverExePath().string();
     const std::string& modeConvolutionArg =
         miopen::GetStringEnv(MIOPEN_ENV(MIOPENDRIVER_MODE_CONV));
 
     // clang-format off
     return std::vector<std::string>{
         // Regression test for: MIOpenIm3d2Col stuck with ROCm update, https://github.com/ROCm/MIOpen/issues/2047
-        {cmd + " " + modeConvolutionArg + " -n 1 -c 1 --in_d 2 -H 1 -W 2 -k 2 --fil_d 2 -y 1 -x 2 --pad_d 0 -p 0 -q 0 --conv_stride_d 1 -u 1 -v 1 --dilation_d 1 -l 1 -j 1 --spatial_dim 3 -m conv -g 1 -F 1 -i 1 -t 1 -w 1"}
+        {modeConvolutionArg + " -n 1 -c 1 --in_d 2 -H 1 -W 2 -k 2 --fil_d 2 -y 1 -x 2 --pad_d 0 -p 0 -q 0 --conv_stride_d 1 -u 1 -v 1 --dilation_d 1 -l 1 -j 1 --spatial_dim 3 -m conv -g 1 -F 1 -i 1 -t 1 -w 1"}
     };
     // clang-format on
 }
@@ -84,21 +80,7 @@ void RunMIOpenDriver()
         GTEST_SKIP();
     }
 
-    // TODO bharriso - handle setting the environment variables before running the child process
-    // test.
-    std::vector<std::string> commands = MIOpenDriverRegressionIssue2047Test::GetParam();
-    for(const auto& testCommand : commands)
-    {
-        int commandResult = 0;
-        miopen::Process p{testCommand};
-
-        // TODO bharriso - get decision for capturing output, and either remove this if we can
-        // ignore,
-        //                 or add capturing output + check here.
-        EXPECT_NO_THROW(commandResult = p());
-        EXPECT_EQ(commandResult, 0)
-            << "MIOpenDriver exited with non-zero value when running command: " << testCommand;
-    }
+    RunMIOpenDriverTestCommand(MIOpenDriverRegressionIssue2047Test::GetParam());
 };
 
 } // namespace miopendriver_regression_issue_2047

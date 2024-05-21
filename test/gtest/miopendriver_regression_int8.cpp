@@ -46,13 +46,12 @@ namespace miopendriver_regression_int8 {
 
 std::vector<std::string> GetTestCases()
 {
-    const std::string& cmd = MIOpenDriverExePath().string();
     const std::string& modeConvolutionArg =
         miopen::GetStringEnv(MIOPEN_ENV(MIOPENDRIVER_MODE_CONV));
 
     // clang-format off
     return std::vector<std::string>{
-        {cmd + " " + modeConvolutionArg + " --forw 1 --in_layout NCHW --out_layout NCHW --fil_layout NCHW -n 256 -c 1024 -H 14 -W 14 -k 256 -y 1 -x 1 -p 0 -q 0 -u 1 -v 1 -l 1 -j 1 -m conv -g 1 -t 1"}
+        {modeConvolutionArg + " --forw 1 --in_layout NCHW --out_layout NCHW --fil_layout NCHW -n 256 -c 1024 -H 14 -W 14 -k 256 -y 1 -x 1 -p 0 -q 0 -u 1 -v 1 -l 1 -j 1 -m conv -g 1 -t 1"}
     };
     // clang-format on
 }
@@ -85,19 +84,7 @@ void RunMIOpenDriver()
 
     // TODO bharriso - handle setting the environment variables before running the child process
     // test.
-    std::vector<std::string> params = MIOpenDriverRegressionInt8Test::GetParam();
-    for(const auto& testCommand : params)
-    {
-        int commandResult = 0;
-        miopen::Process p{testCommand};
-
-        // TODO bharriso - get decision for capturing output, and either remove this if we can
-        // ignore,
-        //                 or add capturing output + check here.
-        EXPECT_NO_THROW(commandResult = p());
-        EXPECT_EQ(commandResult, 0)
-            << "MIOpenDriver exited with non-zero value when running command: " << testCommand;
-    }
+    RunMIOpenDriverTestCommand(MIOpenDriverRegressionInt8Test::GetParam());
 };
 
 } // namespace miopendriver_regression_int8

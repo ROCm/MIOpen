@@ -40,11 +40,27 @@ struct ProcessImpl
 public:
     ProcessImpl(std::string_view cmd) : path{cmd} {}
 
-    void Create(std::string_view args, std::string_view cwd)
+    void Create(std::string_view args, std::string_view cwd, std::ostream* out)
     {
         STARTUPINFOA info;
         ZeroMemory(&info, sizeof(STARTUPINFO));
         info.cb = sizeof(STARTUPINFO);
+
+        outStream = out;
+        if (outStream != nullptr)
+        {
+            // Refer to
+            // https://learn.microsoft.com/en-us/windows/win32/procthread/creating-a-child-process-with-redirected-input-and-output
+            if(!CreatePipe(&childStdOutRead, &childStdOutWrite, &saAttr, 0))
+                MIOPEN_THROW("CreatePipe error: " + std::to_string(GetLastError()));
+
+            if (!SetHandleInformation(childStdOutRead, HANDLE_FLAG_INHERIT, 0) )
+                MIOPEN_THROW("SetHandleInformation error: " + std::to_string(GetLastError()));
+
+            info.hStdError = childStdOutWrite;
+            info.hStdOutput = childStdOutWrite;
+            info.dwFlags |= STARTF_USESTDHANDLES;
+        }
 
         std::string cmd{path.string()};
         if(!args.empty())
@@ -72,6 +88,27 @@ public:
 
     int Wait()
     {
+        if(outStream != nullptr)
+        {
+            std::streamsize dwRead, dwWritten;
+            std::array<char, 1024> buffer{};
+            bool success = false;
+
+            while(true)
+            {
+                bSuccess = ReadFile( childStdOutRead, buffer.data(), buffer.size(), &dwRead, NULL);
+                if(!bSuccess || dwRead == 0)
+                    break; 
+
+                outStream->write(buffer.data(), dwRead);
+                if (outStream->bad())
+                    break; 
+            }
+
+            CloseHandle(childStdOutWrite);
+            CloseHandle(childStdOutRead);
+        }
+
         WaitForSingleObject(processInfo.hProcess, INFINITE);
 
         DWORD status;
@@ -80,6 +117,11 @@ public:
         CloseHandle(processInfo.hProcess);
         CloseHandle(processInfo.hThread);
 
+        if(outStream != nullptr)
+        {
+            CloseHandle()
+        }
+
         if(getExitCodeStatus == 0)
             MIOPEN_THROW("GetExitCodeProcess error: " + std::to_string(GetLastError()));
 
@@ -87,6 +129,9 @@ public:
     }
 
 private:
+    HANDLE childStdOutRead;
+    HANDLE childStdOutWrite;
+    std::ostream* outStream;
     fs::path path;
     PROCESS_INFORMATION processInfo{};
 };
@@ -97,25 +142,40 @@ struct ProcessImpl
 {
     ProcessImpl(std::string_view cmd) : path{cmd} {}
 
-    void Create(std::string_view args, std::string_view cwd)
+    void Create(std::string_view args, std::string_view cwd, std::ostream* out)
     {
+        outStream = out;
         std::string cmd{path.string()};
         if(!args.empty())
             cmd += " " + std::string{args};
         if(!cwd.empty())
             cmd.insert(0, "cd " + std::string{cwd} + "; ");
-        pipe = popen(cmd.c_str(), "w");
+
+        const auto fileMode = outStream != nullptr ? "r" : "w";
+        pipe = popen(cmd.c_str(), fileMode);
         if(pipe == nullptr)
             MIOPEN_THROW("Error: popen()");
     }
 
     int Wait()
     {
+        if(outStream != nullptr)
+        {
+            std::array<char, 1024> buffer{};
+
+            while(feof(pipe) == 0)
+            {
+                if(fgets(buffer.data(), buffer.size(), pipe) != nullptr)
+                    *outStream << buffer.data();
+            }
+        }
+
         auto status = pclose(pipe);
         return WEXITSTATUS(status);
     }
 
 private:
+    std::ostream* outStream;
     fs::path path;
     FILE* pipe = nullptr;
 };
@@ -126,16 +186,16 @@ Process::Process(const fs::path& cmd) : impl{std::make_unique<ProcessImpl>(cmd.s
 
 Process::~Process() noexcept = default;
 
-int Process::operator()(std::string_view args, const fs::path& cwd)
+int Process::operator()(std::string_view args, const fs::path& cwd, std::ostream* out)
 {
-    impl->Create(args, cwd.string());
+    impl->Create(args, cwd.string(), out);
     return impl->Wait();
 }
 
-ProcessAsync::ProcessAsync(const fs::path& cmd, std::string_view args, const fs::path& cwd)
+ProcessAsync::ProcessAsync(const fs::path& cmd, std::string_view args, const fs::path& cwd,  std::ostream* out)
     : impl{std::make_unique<ProcessImpl>(cmd.string())}
 {
-    impl->Create(args, cwd.string());
+    impl->Create(args, cwd.string(), out);
 }
 
 ProcessAsync::~ProcessAsync() noexcept = default;

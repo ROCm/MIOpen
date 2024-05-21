@@ -33,9 +33,6 @@
 #include <miopen/miopen.h>
 #include <miopen/process.hpp>
 
-using ::testing::HasSubstr;
-using ::testing::Not;
-
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_WITH_MIOPENDRIVER)
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPENDRIVER_MODE_GEMM)
@@ -44,12 +41,11 @@ namespace miopendriver_gemm {
 
 std::vector<std::string> GetTestCases()
 {
-    const std::string& cmd          = MIOpenDriverExePath().string();
     const std::string& modeGemmnArg = miopen::GetStringEnv(MIOPEN_ENV(MIOPENDRIVER_MODE_GEMM));
 
     // clang-format off
     return std::vector<std::string>{
-        {cmd + " " + modeGemmnArg + " -m 256 -n 512 -k 1024 -i 1 -V 1"}
+        {modeGemmnArg + " -m 256 -n 512 -k 1024 -i 1 -V 1"}
     };
     // clang-format on
 }
@@ -80,19 +76,7 @@ void RunMIOpenDriver()
         GTEST_SKIP();
     }
 
-    std::vector<std::string> commands = MIOpenDriverGemmTest::GetParam();
-    for(const auto& testCommand : commands)
-    {
-        int commandResult = 0;
-        miopen::Process p{testCommand};
-
-        // TODO bharriso - get decision for capturing output, and either remove this if we can
-        // ignore,
-        //                 or add capturing output + check here.
-        EXPECT_NO_THROW(commandResult = p());
-        EXPECT_EQ(commandResult, 0)
-            << "MIOpenDriver exited with non-zero value when running command: " << testCommand;
-    }
+    RunMIOpenDriverTestCommand(MIOpenDriverGemmTest::GetParam());
 };
 
 } // namespace miopendriver_gemm

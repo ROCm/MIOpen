@@ -34,9 +34,6 @@
 #include <miopen/process.hpp>
 #include <miopen/filesystem.hpp>
 
-using ::testing::HasSubstr;
-using ::testing::Not;
-
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_WITH_MIOPENDRIVER)
@@ -46,7 +43,6 @@ namespace miopendriver_regression_float_half_gfx10 {
 
 std::vector<std::string> GetTestCases()
 {
-    const std::string& cmd              = MIOpenDriverExePath().string();
     const std::string& modeBatchNormArg = miopen::GetStringEnv(MIOPEN_ENV(MIOPENDRIVER_MODE_BN));
 
     // clang-format off
@@ -54,8 +50,8 @@ std::vector<std::string> GetTestCases()
         // Regression test for:
         // [Navi21] Fixing Batchnorm backward precision issues by adjusting workgroup size (SWDEV-292187, SWDEV-319919)
         // https://github.com/ROCm/MIOpen/pull/1386
-        {cmd + " " + modeBatchNormArg + " -n 256 -c 512 -H 18 -W 18 -m 1 --forw 0 -b 1 -r 1"},
-        {cmd + " " + modeBatchNormArg + " -n 256 -c 512 -H 28 -W 28 -m 1 --forw 0 -b 1 -r 1"}
+        {modeBatchNormArg + " -n 256 -c 512 -H 18 -W 18 -m 1 --forw 0 -b 1 -r 1"},
+        {modeBatchNormArg + " -n 256 -c 512 -H 28 -W 28 -m 1 --forw 0 -b 1 -r 1"}
     };
     // clang-format on
 }
@@ -88,19 +84,7 @@ void RunMIOpenDriver()
         GTEST_SKIP();
     }
 
-    std::vector<std::string> params = MIOpenDriverRegressionFloatHalfGfx10Test::GetParam();
-    for(const auto& testCommand : params)
-    {
-        int commandResult = 0;
-        miopen::Process p{testCommand};
-
-        // TODO bharriso - get decision for capturing output, and either remove this if we can
-        // ignore,
-        //                 or add capturing output + check here.
-        EXPECT_NO_THROW(commandResult = p());
-        EXPECT_EQ(commandResult, 0)
-            << "MIOpenDriver exited with non-zero value when running command: " << testCommand;
-    }
+    RunMIOpenDriverTestCommand(MIOpenDriverRegressionFloatHalfGfx10Test::GetParam());
 };
 
 } // namespace miopendriver_regression_float_half_gfx10

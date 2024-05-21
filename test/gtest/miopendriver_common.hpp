@@ -27,10 +27,34 @@
 
 #include <boost/dll.hpp>
 
-// Assuming that the MIOpenDriver executable will be beside the test location.
+#include <gmock/gmock.h>
+#include <gtest/gtest.h>
+#include <gtest/gtest_common.hpp>
+
+#include <miopen/process.hpp>
+
+using ::testing::HasSubstr;
+using ::testing::Not;
+
+// Note: Assuming that the MIOpenDriver executable will be beside the testing output location.
 static inline boost::filesystem::path& MIOpenDriverExePath()
 {
     static boost::filesystem::path exePath = boost::dll::program_location().parent_path() /=
         "MIOpenDriver";
     return exePath;
+}
+
+static inline void RunMIOpenDriverTestCommand(const std::vector<std::string>& params)
+{
+    for(const auto& testArguments : params)
+    {
+        int commandResult = 0;
+        miopen::Process p{MIOpenDriverExePath().string()};
+        std::stringstream ss;
+
+        EXPECT_NO_THROW(commandResult = p(testArguments, "", &ss));
+        EXPECT_EQ(commandResult, 0)
+            << "MIOpenDriver exited with non-zero value when running with arguments: " << testArguments;
+        EXPECT_THAT(ss.str(), Not(HasSubstr("FAILED")));
+    }
 }
