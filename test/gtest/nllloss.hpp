@@ -149,7 +149,6 @@ protected:
         ref_output = tensor<T>{out_dim, out_strides};
         std::fill(ref_output.begin(), ref_output.end(), std::numeric_limits<T>::quiet_NaN());
 
-        std::vector<size_t> workspace_lengths;
         ws_sizeInBytes = divisor == 0.f ? 0
                                         : miopen::GetNLLLossReduceForwardWorkspaceSize(handle,
                                                                                        input.desc,

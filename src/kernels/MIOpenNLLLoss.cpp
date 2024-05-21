@@ -133,7 +133,7 @@ __device__ void nlllossBackward2d(TO* __restrict__ input_grad,
     FLOAT_ACCUM w = weight != nullptr ? CVT_FLOAT2ACCUM(weight[Widx]) : CVT_FP32_2ACCUM(1.0f);
     FLOAT_ACCUM grad_val         = CVT_FLOAT2ACCUM(output_grad[0]);
     FLOAT_ACCUM d                = (divisor ? divisor : CVT_FP32_2ACCUM(1.0f));
-    FLOAT_ACCUM input_grad_value = (CVT_FP32_2ACCUM(-1.0f) * w * grad_val) / d;
+    FLOAT_ACCUM input_grad_value = (-w * grad_val) / d;
 
     input_grad[Iidx] = CVT_ACCUM2FLOAT(input_grad_value);
 }
@@ -194,7 +194,7 @@ __device__ void nlllossBackward5d(TO* __restrict__ input_grad,
     FLOAT_ACCUM w = weight != nullptr ? CVT_FLOAT2ACCUM(weight[Widx]) : CVT_FP32_2ACCUM(1.0f);
     FLOAT_ACCUM grad_val         = CVT_FLOAT2ACCUM(output_grad[0]);
     FLOAT_ACCUM d                = (divisor ? divisor : CVT_FP32_2ACCUM(1.0f));
-    FLOAT_ACCUM input_grad_value = (CVT_FP32_2ACCUM(-1.0f) * w * grad_val) / d;
+    FLOAT_ACCUM input_grad_value = (-w * grad_val) / d;
 
     input_grad[Iidx] = CVT_ACCUM2FLOAT(input_grad_value);
 }
@@ -257,7 +257,7 @@ __device__ void nlllossUnreducedForward5d(const TI* __restrict__ input,
 
     FLOAT_ACCUM input_value = CVT_FLOAT2ACCUM(input[Iidx]);
 
-    FLOAT_ACCUM val = CVT_FP32_2ACCUM(-1.0f) * w * input_value;
+    FLOAT_ACCUM val = -w * input_value;
     output[Oidx]    = CVT_ACCUM2FLOAT(val);
 }
 
@@ -312,7 +312,7 @@ __device__ void nlllossUnreducedForward4d(const TI* __restrict__ input,
 
     FLOAT_ACCUM input_value = CVT_FLOAT2ACCUM(input[Iidx]);
 
-    FLOAT_ACCUM val = CVT_FP32_2ACCUM(-1.0f) * w * input_value;
+    FLOAT_ACCUM val = -w * input_value;
     output[Oidx]    = CVT_ACCUM2FLOAT(val);
 }
 
@@ -363,7 +363,7 @@ __device__ void nlllossUnreducedForward4dContiguous(const TI* __restrict__ input
 
     FLOAT_ACCUM input_value = CVT_FLOAT2ACCUM(input[Iidx]);
 
-    FLOAT_ACCUM val = CVT_FP32_2ACCUM(-1.0f) * w * input_value;
+    FLOAT_ACCUM val = -w * input_value;
     output[gid]     = CVT_ACCUM2FLOAT(val);
 }
 
@@ -415,7 +415,7 @@ __device__ void nlllossUnreducedForward2d(const TI* __restrict__ input,
 
     FLOAT_ACCUM input_value = CVT_FLOAT2ACCUM(input[Iidx]);
 
-    FLOAT_ACCUM val = CVT_FP32_2ACCUM(-1.0f) * w * input_value;
+    FLOAT_ACCUM val = -w * input_value;
     output[Oidx]    = CVT_ACCUM2FLOAT(val);
 }
 
@@ -462,7 +462,7 @@ __device__ void nlllossUnreducedForward2dContiguous(const TI* __restrict__ input
     uint32_t input_offset   = gid * C + t;
     FLOAT_ACCUM input_value = CVT_FLOAT2ACCUM(input[input_offset]);
 
-    FLOAT_ACCUM val = CVT_FP32_2ACCUM(-1.0f) * w * input_value;
+    FLOAT_ACCUM val = -w * input_value;
     output[gid]     = CVT_ACCUM2FLOAT(val);
 }
 
@@ -515,7 +515,7 @@ __device__ void nlllossUnreducedBackward5d(TO* __restrict__ input_grad,
 
     FLOAT_ACCUM w = weight != nullptr ? CVT_FLOAT2ACCUM(weight[Widx]) : CVT_FP32_2ACCUM(1.0f);
     FLOAT_ACCUM grad_val         = CVT_FLOAT2ACCUM(output_grad[Oidx]);
-    FLOAT_ACCUM input_grad_value = CVT_FP32_2ACCUM(-1.0f) * w * grad_val;
+    FLOAT_ACCUM input_grad_value = -w * grad_val;
 
     input_grad[Iidx] = CVT_ACCUM2FLOAT(input_grad_value);
 }
@@ -576,7 +576,7 @@ __device__ void nlllossUnreducedBackward4d(TO* __restrict__ input_grad,
 
     FLOAT_ACCUM w = weight != nullptr ? CVT_FLOAT2ACCUM(weight[Widx]) : CVT_FP32_2ACCUM(1.0f);
     FLOAT_ACCUM grad_val         = CVT_FLOAT2ACCUM(output_grad[Oidx]);
-    FLOAT_ACCUM input_grad_value = CVT_FP32_2ACCUM(-1.0f) * w * grad_val;
+    FLOAT_ACCUM input_grad_value = -w * grad_val;
 
     input_grad[Iidx] = CVT_ACCUM2FLOAT(input_grad_value);
 }
@@ -633,7 +633,7 @@ __device__ void nlllossUnreducedBackward4dContiguous(TO* __restrict__ input_grad
 
     FLOAT_ACCUM w        = weight != nullptr ? CVT_FLOAT2ACCUM(weight[t]) : CVT_FP32_2ACCUM(1.0f);
     FLOAT_ACCUM grad_val = CVT_FLOAT2ACCUM(output_grad[gid]);
-    FLOAT_ACCUM input_grad_value = CVT_FP32_2ACCUM(-1.0f) * w * grad_val;
+    FLOAT_ACCUM input_grad_value = -w * grad_val;
 
     input_grad[Iidx] = CVT_ACCUM2FLOAT(input_grad_value);
 }
@@ -692,7 +692,7 @@ __device__ void nlllossUnreducedBackward2d(TO* __restrict__ input_grad,
 
     FLOAT_ACCUM w = weight != nullptr ? CVT_FLOAT2ACCUM(weight[Widx]) : CVT_FP32_2ACCUM(1.0f);
     FLOAT_ACCUM grad_val         = CVT_FLOAT2ACCUM(output_grad[Oidx]);
-    FLOAT_ACCUM input_grad_value = CVT_FP32_2ACCUM(-1.0f) * w * grad_val;
+    FLOAT_ACCUM input_grad_value = -w * grad_val;
 
     input_grad[Iidx] = CVT_ACCUM2FLOAT(input_grad_value);
 }
@@ -746,7 +746,7 @@ __device__ void nlllossUnreducedBackward2dContiguous(TO* __restrict__ input_grad
 
     FLOAT_ACCUM w        = weight != nullptr ? CVT_FLOAT2ACCUM(weight[t]) : CVT_FP32_2ACCUM(1.0f);
     FLOAT_ACCUM grad_val = CVT_FLOAT2ACCUM(output_grad[gid]);
-    FLOAT_ACCUM input_grad_value = CVT_FP32_2ACCUM(-1.0f) * w * grad_val;
+    FLOAT_ACCUM input_grad_value = -w * grad_val;
 
     input_grad[Iidx] = CVT_ACCUM2FLOAT(input_grad_value);
 }
