@@ -29,7 +29,7 @@
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 
-namespace adam {
+namespace transformers_adam_w {
 
 std::string GetFloatArg()
 {
@@ -53,8 +53,8 @@ struct TransformersAmpAdamWTestFloat : TransformersAdamWTest<float, half_float::
 {
 };
 
-} // namespace adam
-using namespace adam;
+} // namespace transformers_adam_w
+using namespace transformers_adam_w;
 
 TEST_P(TransformersAdamWTestFloat, TransformersAdamWFloatTest)
 {
