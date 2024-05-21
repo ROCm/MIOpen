@@ -46,7 +46,7 @@ namespace miopendriver_regression_big_tensor {
 std::vector<std::string> GetTestCases()
 {
     const std::string& cmd       = MIOpenDriverExePath().string();
-    const std::string& modeConvolutionArg = miopen::GetStringEnv(ENV(MIOPENDRIVER_MODE_CONV));
+    const std::string& modeConvolutionArg = miopen::GetStringEnv(MIOPEN_ENV(MIOPENDRIVER_MODE_CONV));
 
     // clang-format off
     return std::vector<std::string>{
@@ -73,10 +73,10 @@ bool IsTestSupportedForDevice()
 
 void RunMIOpenDriver()
 {
-    bool runTestSuite = miopen::IsEnabled(ENV(MIOPEN_TEST_WITH_MIOPENDRIVER))
+    bool runTestSuite = miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_WITH_MIOPENDRIVER))
                             && IsTestSupportedForDevice()
-                                && miopen::IsEnabled(ENV(MIOPEN_TEST_ALL))
-                                    && miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG)) == "--float";
+                                && miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_ALL))
+                                    && miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_TEST_FLOAT_ARG)) == "--float";
 
     if(!runTestSuite)
     {

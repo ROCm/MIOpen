@@ -48,7 +48,7 @@ namespace miopendriver_regression_half {
 std::vector<std::string> GetTestCases()
 {
     const std::string& cmd       = MIOpenDriverExePath().string();;
-    const std::string& modePoolingArg = miopen::GetStringEnv(ENV(MIOPENDRIVER_MODE_POOL));
+    const std::string& modePoolingArg = miopen::GetStringEnv(MIOPEN_ENV(MIOPENDRIVER_MODE_POOL));
 
     // clang-format off
     return std::vector<std::string>{
@@ -78,10 +78,10 @@ bool IsTestSupportedForDevice()
 
 void RunMIOpenDriver()
 {
-    bool runTestSuite = miopen::IsEnabled(ENV(MIOPEN_TEST_WITH_MIOPENDRIVER))
+    bool runTestSuite = miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_WITH_MIOPENDRIVER))
                             && IsTestSupportedForDevice()
-                                && miopen::IsEnabled(ENV(MIOPEN_TEST_ALL))
-                                    && miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG)) == "--half";
+                                && miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_ALL))
+                                    && miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_TEST_FLOAT_ARG)) == "--half";
 
     if(!runTestSuite)
     {
