@@ -43,8 +43,6 @@
 #include "driver.hpp"
 #include "random.hpp"
 
-#define ASSERT_HIP_SUCCESS(x) ASSERT_EQ((x), hipSuccess)
-
 namespace batched_transpose {
 
 template <typename T>
