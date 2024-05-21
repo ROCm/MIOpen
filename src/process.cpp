@@ -125,11 +125,6 @@ public:
         CloseHandle(processInfo.hProcess);
         CloseHandle(processInfo.hThread);
 
-        if(outStream != nullptr)
-        {
-            CloseHandle()
-        }
-
         if(getExitCodeStatus == 0)
             MIOPEN_THROW("GetExitCodeProcess error: " + std::to_string(GetLastError()));
 
