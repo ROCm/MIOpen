@@ -66,24 +66,24 @@ __device__ void nlllossForward5d(const TI* __restrict__ input,
     if(n[0] >= target_tv.size[0])
         return;
 
-    size_t Tidx = TV4D_IDX(target_tv, n[0], n[1], n[2], n[3]);
+    int32_t C = weight_tv.size[0];
 
-    int32_t C   = weight_tv.size[0];
+    size_t Tidx = TV4D_IDX(target_tv, n[0], n[1], n[2], n[3]);
     int32_t t   = target[Tidx];
     size_t Iidx = TV5D_IDX(input_tv, n[0], t, n[1], n[2], n[3]);
     size_t Widx = TV1D_IDX(weight_tv, t);
 
     if(t < 0 || t == ignore_index || t >= C)
     {
-        loss_sum[gid] = static_cast<TO>(0);
+        loss_sum[gid] = CVT_FP32_2FLOAT(0.0f);
         return;
     }
 
     FLOAT_ACCUM w = weight != nullptr ? CVT_FLOAT2ACCUM(weight[Widx]) : CVT_FP32_2ACCUM(1.0f);
 
     FLOAT_ACCUM input_value = CVT_FLOAT2ACCUM(input[Iidx]);
-    FLOAT_ACCUM d           = (divisor ? CVT_FP32_2ACCUM(divisor) : CVT_FP32_2ACCUM(1.0f));
-    FLOAT_ACCUM val         = (CVT_FP32_2ACCUM(-1.0f) * w * input_value) / d;
+    FLOAT_ACCUM d           = !isnan(divisor) ? CVT_FP32_2ACCUM(divisor) : CVT_FP32_2ACCUM(1.0f);
+    FLOAT_ACCUM val         = (-w * input_value) / d;
     loss_sum[gid]           = CVT_ACCUM2FLOAT(val);
 }
 

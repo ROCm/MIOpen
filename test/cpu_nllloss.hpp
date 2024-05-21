@@ -80,13 +80,15 @@ void cpu_nllloss_reduce_forward_5d(tensor<T> input,
 
         if(t < 0 || t == ignore_index || t >= C)
         {
-            workspace[target_index] = static_cast<T>(0);
+            workspace[i] = static_cast<T>(0.0f);
         }
         else
         {
-            workspace[target_index] =
-                (static_cast<T>(-1.0f) * weight[weight_index] * input[input_index]) /
-                static_cast<T>(divisor);
+            T w = weight[weight_index];
+
+            T input_value = input[input_index];
+            T d           = !std::isnan(divisor) ? static_cast<T>(divisor) : static_cast<T>(1.0f);
+            workspace[i]  = (-w * input_value) / d;
         }
     }
 
