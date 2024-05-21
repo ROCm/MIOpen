@@ -151,6 +151,13 @@ struct TensorData
     DescriptorWrapperPtr m_gapiDesc;
     tensor<float> m_tensor;
     miopen::Allocator::ManageDataPtr m_gpuBuffer;
+
+    void Init(tensor<float>&& tens_val) { m_tensor = std::move(tens_val); }
+
+    void Init(float val)
+    {
+        m_tensor.generate([=](auto...) { return val; });
+    }
 };
 
 typedef std::shared_ptr<TensorData> TensorDataPtr;
@@ -406,30 +413,16 @@ private:
     void MakeRealTensors()
     {
         // We use identifiers from Find 2.0 enum to have sopmething unique for the test purposes
-        MakeAndAddRealTensorDescriptor(miopenTensorMhaQ,
-                                       GenerateType::GenerateRandom,
-                                       false,
-                                       m_testN,
-                                       m_testH,
-                                       m_testS,
-                                       m_testD);
+        MakeAndAddRealTensorDescriptor(miopenTensorMhaQ, false, m_testN, m_testH, m_testS, m_testD);
         MakeAndAddRealTensorDescriptor(miopenTensorMhaK,
-                                       GenerateType::GenerateRandom,
                                        false,
                                        m_testN,
                                        m_testH,
                                        m_testS,
                                        m_testD,
-                                       0,
                                        false); // no transpose for now
 
-        MakeAndAddRealTensorDescriptor(miopenTensorMhaV,
-                                       GenerateType::GenerateRandom,
-                                       false,
-                                       m_testN,
-                                       m_testH,
-                                       m_testS,
-                                       m_testD);
+        MakeAndAddRealTensorDescriptor(miopenTensorMhaV, false, m_testN, m_testH, m_testS, m_testD);
         MakeAndAddRealTensorDescriptor(miopenTensorMhaDescaleK);
         MakeAndAddRealTensorDescriptor(miopenTensorMhaDescaleQ);
         MakeAndAddRealTensorDescriptor(miopenTensorMhaDescaleV);
@@ -437,38 +430,81 @@ private:
         MakeAndAddRealTensorDescriptor(miopenTensorMhaScaleS);
         MakeAndAddRealTensorDescriptor(miopenTensorMhaScaleO);
 
-        // we have only double input for probability in RNG node (m_bernulliProbability), however
-        // for pointwise pwScale3 we need to have it as a tensor, so we need to have these values
-        // synced
-        MakeAndAddRealTensorDescriptor(miopenTensorMhaDropoutProbability,
-                                       GenerateType::GenerateConstant,
-                                       false,
-                                       1,
-                                       1,
-                                       1,
-                                       1,
-                                       m_bernulliProbability);
-
+        MakeAndAddRealTensorDescriptor(miopenTensorMhaDropoutProbability);
         MakeAndAddRealTensorDescriptor(miopenTensorMhaDropoutSeed);
         MakeAndAddRealTensorDescriptor(miopenTensorMhaDropoutOffset);
 
         // output real tensors
-        MakeAndAddRealTensorDescriptor(miopenTensorMhaO,
-                                       GenerateType::DontGenerate,
-                                       false,
-                                       m_testN,
-                                       m_testH,
-                                       m_testS,
-                                       m_testD);
-        MakeAndAddRealTensorDescriptor(miopenTensorMhaAmaxO, GenerateType::DontGenerate);
-        MakeAndAddRealTensorDescriptor(miopenTensorMhaAmaxS, GenerateType::DontGenerate);
-        MakeAndAddRealTensorDescriptor(
-            miopenTensorMhaM, GenerateType::DontGenerate, false, m_testN, m_testH, m_testS, 1.0);
-        MakeAndAddRealTensorDescriptor(
-            miopenTensorMhaZInv, GenerateType::DontGenerate, false, m_testN, m_testH, m_testS, 1.0);
+        MakeAndAddRealTensorDescriptor(miopenTensorMhaO, false, m_testN, m_testH, m_testS, m_testD);
+        MakeAndAddRealTensorDescriptor(miopenTensorMhaAmaxO);
+        MakeAndAddRealTensorDescriptor(miopenTensorMhaAmaxS);
+        MakeAndAddRealTensorDescriptor(miopenTensorMhaM, false, m_testN, m_testH, m_testS, 1);
+        MakeAndAddRealTensorDescriptor(miopenTensorMhaZInv, false, m_testN, m_testH, m_testS, 1);
+
+        InitTensorValues();
 
         // get next value for the rest of the tensors (which don't have any particular enum value)
         m_nextTensorId++;
+    }
+
+    void InitTensorValues()
+    {
+        using namespace test::cpu;
+
+        ScaledTensor Q = GenScaledTensor(m_testN, m_testH, m_testS, m_testD);
+        ScaledTensor K = GenScaledTensor(m_testN, m_testH, m_testS, m_testD);
+        ScaledTensor V = GenScaledTensor(m_testN, m_testH, m_testS, m_testD);
+
+        for(auto& [k, v] : m_realTensorMap)
+        {
+            if(k == miopenTensorMhaQ)
+            {
+                v->Init(std::move(Q.mTensor));
+            }
+            else if(k == miopenTensorMhaDescaleQ)
+            {
+                v->Init(Q.mDescale);
+            }
+            else if(k == miopenTensorMhaK)
+            {
+                v->Init(std::move(K.mTensor));
+            }
+            else if(k == miopenTensorMhaDescaleK)
+            {
+                v->Init(K.mDescale);
+            }
+            else if(k == miopenTensorMhaV)
+            {
+                v->Init(std::move(V.mTensor));
+            }
+            else if(k == miopenTensorMhaDescaleV)
+            {
+                v->Init(V.mDescale);
+            }
+            else if(k == miopenTensorMhaScaleO || k == miopenTensorMhaScaleS ||
+                    k == miopenTensorMhaDescaleS)
+            {
+                v->Init(1.0f);
+            }
+            else if(k == miopenTensorMhaDropoutProbability)
+            {
+                v->Init(m_bernulliProbability);
+            }
+            else if(k == miopenTensorMhaDropoutSeed || k == miopenTensorMhaDropoutOffset)
+            {
+                v->Init(1.0f);
+            }
+            else if(k == miopenTensorMhaM || k == miopenTensorMhaO || k == miopenTensorMhaZInv ||
+                    k == miopenTensorMhaAmaxO || k == miopenTensorMhaAmaxS)
+            {
+                // these are outputs
+                v->Init(0.0f);
+            }
+            else
+            {
+                FAIL() << "Uninitialized input or output: " << k;
+            }
+        }
     }
 
     void MakeVirtualTensorsAndNodes()
@@ -665,7 +701,8 @@ private:
         m_executionPlan->AddRef(varpack);
 
         // Execute the plan with a variant pack.
-        miopenStatus_t status = miopenBackendExecute(rawHandle, m_executionPlan->GetDescriptor(), varpack->GetDescriptor());
+        miopenStatus_t status = miopenBackendExecute(
+            rawHandle, m_executionPlan->GetDescriptor(), varpack->GetDescriptor());
         CheckStatusAndThrow(status, "miopenBackendExecute failed!");
     }
 
@@ -741,14 +778,12 @@ private:
     // some unique and named values. For virtual tensors we use identifiers starting from "max id
     // from real tensors" + 1
     void MakeAndAddRealTensorDescriptor(int64_t tensorId,
-                                        GenerateType generateType = GenerateType::GenerateConstant,
-                                        bool isVirtual            = false,
-                                        int64_t n                 = 1,
-                                        int64_t h                 = 1,
-                                        int64_t s                 = 1,
-                                        int64_t d                 = 1,
-                                        double genConstant        = 1.0,
-                                        bool transpose            = false)
+                                        bool isVirtual = false,
+                                        int64_t n      = 1,
+                                        int64_t h      = 1,
+                                        int64_t s      = 1,
+                                        int64_t d      = 1,
+                                        bool transpose = false)
     {
         DescriptorWrapperPtr realTensorGapiDesc =
             MakeGapiTensorDesc(tensorId, isVirtual, n, h, s, d, transpose);
@@ -760,7 +795,7 @@ private:
 
         tensorDataPtr->m_tensor = tensor<float>{n, h, s, d};
 
-        switch(generateType)
+        /*switch(generateType)
         {
         case GenerateType::GenerateConstant:
             tensorDataPtr->m_tensor.generate(
@@ -772,7 +807,7 @@ private:
             break;
 
         default: break;
-        }
+        }*/
 
         m_realTensorMap[tensorId] = tensorDataPtr;
 
@@ -790,7 +825,7 @@ private:
     const int64_t m_testS = 8;
     const int64_t m_testD = 16;
 
-    double m_bernulliProbability = 0.5;
+    double m_bernulliProbability = 0.0;
 
     // to be fed into OperationGraph
     std::vector<DescriptorWrapperPtr> m_nodeVector;
