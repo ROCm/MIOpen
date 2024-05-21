@@ -79,11 +79,11 @@ ConvSolution Adam::GetSolution(const ExecutionContext& context,
         kernel.kernel_file = "MIOpenAdam.cpp";
         if(problem.ExistStepTensor())
         {
-            kernel.kernel_name = "AmpAdamPackedWithStep";
+            kernel.kernel_name = "AmpAdamContiguousWithStep";
         }
         else
         {
-            kernel.kernel_name = problem.IsAmp() ? "AmpAdamPacked" : "AdamPacked";
+            kernel.kernel_name = problem.IsAmp() ? "AmpAdamContiguous" : "AdamContiguous";
         }
 
         result.construction_params.push_back(kernel);
