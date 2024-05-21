@@ -75,6 +75,7 @@ template <class... Params>
     {                                                                                  \
         if((condition))                                                                \
         {                                                                              \
+            std::abort(); /* TODO: remove */                                           \
             miopen::MIOpenThrow(__FILE__,                                              \
                                 __LINE__,                                              \
                                 miopenStatusInternalError,                             \

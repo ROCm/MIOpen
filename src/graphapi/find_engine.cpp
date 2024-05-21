@@ -185,6 +185,7 @@ class MHA_Fwd_F8_Pattern : public GraphPatternMatcher
                     add_mapping(miopenTensorMhaScaleO, scl_o);
 
                     auto* o = pw_2->getY();
+                    MIOPEN_LOG_W("Found miopenTensorMhaO: " << tensorIdAsStr(o));
                     add_mapping(miopenTensorMhaO, o);
                 }
             }

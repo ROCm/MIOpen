@@ -114,10 +114,8 @@ class MhaFwdGraphTest : public testing::TestWithParam<std::tuple<int, int, int, 
 
     auto* makePointWiseDesc(miopenPointwiseMode_t mode)
     {
-        return mAlloc.allocate(gr::PointwiseBuilder{}
-                                   .setMode(MIOPEN_POINTWISE_MUL)
-                                   .setMathPrecision(miopenFloat)
-                                   .build());
+        return mAlloc.allocate(
+            gr::PointwiseBuilder{}.setMode(mode).setMathPrecision(miopenFloat).build());
     }
 
     using TensorVec = std::vector<gr::Tensor*>;
@@ -308,7 +306,7 @@ class MhaFwdGraphTest : public testing::TestWithParam<std::tuple<int, int, int, 
         addNode("OP_POINTWISE:EXP", {T_SUB}, {T_EXP});
 
         MAKE_TENSOR(T_SUM, nhs1, true);
-        addNode("OP_REDUCTION:SUM", {T_EXP}, {T_SUM});
+        addNode("OP_REDUCTION:ADD", {T_EXP}, {T_SUM});
 
         MAKE_TENSOR(Z_INV, nhs1, false);
         addNode("OP_POINTWISE:RECIPROCAL", {T_SUM}, {Z_INV});
@@ -354,6 +352,8 @@ class MhaFwdGraphTest : public testing::TestWithParam<std::tuple<int, int, int, 
         MAKE_TENSOR(AMAX_O, all1s, false);
         addNode("OP_REDUCTION:MAX", {T_SCL_6}, {AMAX_O});
 
+        auto& handle = get_handle();
+        mGraphBuilder->setHandle(static_cast<miopenHandle_t>(&handle));
         mGraph = std::move(*mGraphBuilder).build();
         mGraphBuilder.reset(nullptr);
 
@@ -440,9 +440,14 @@ class MhaFwdGraphTest : public testing::TestWithParam<std::tuple<int, int, int, 
             {
                 v.init(0.0f);
             }
+            else if(k == "M" || k == "O" || k == "Z_INV" || k == "AMAX_O" || k == "AMAX_S")
+            {
+                // these are outputs
+                v.init(0.0f);
+            }
             else
             {
-                FAIL() << "Uninitialized input: " << k;
+                FAIL() << "Uninitialized input or output: " << k;
             }
         }
     }
