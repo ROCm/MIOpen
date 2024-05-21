@@ -40,24 +40,27 @@ struct ProcessImpl
 public:
     ProcessImpl(std::string_view cmd) : path{cmd} {}
 
-    void Create(std::string_view args, std::string_view cwd, std::ostream* out, std::map<std::string, std::string> additionalEnvironmentVariables)
+    void Create(std::string_view args,
+                std::string_view cwd,
+                std::ostream* out,
+                std::map<std::string, std::string> additionalEnvironmentVariables)
     {
         STARTUPINFOA info;
         ZeroMemory(&info, sizeof(STARTUPINFO));
         info.cb = sizeof(STARTUPINFO);
 
         outStream = out;
-        if (outStream != nullptr)
+        if(outStream != nullptr)
         {
             // Refer to
             // https://learn.microsoft.com/en-us/windows/win32/procthread/creating-a-child-process-with-redirected-input-and-output
             if(!CreatePipe(&childStdOutRead, &childStdOutWrite, &saAttr, 0))
                 MIOPEN_THROW("CreatePipe error: " + std::to_string(GetLastError()));
 
-            if (!SetHandleInformation(childStdOutRead, HANDLE_FLAG_INHERIT, 0) )
+            if(!SetHandleInformation(childStdOutRead, HANDLE_FLAG_INHERIT, 0))
                 MIOPEN_THROW("SetHandleInformation error: " + std::to_string(GetLastError()));
 
-            info.hStdError = childStdOutWrite;
+            info.hStdError  = childStdOutWrite;
             info.hStdOutput = childStdOutWrite;
             info.dwFlags |= STARTF_USESTDHANDLES;
         }
@@ -101,13 +104,13 @@ public:
 
             while(true)
             {
-                bSuccess = ReadFile( childStdOutRead, buffer.data(), buffer.size(), &dwRead, NULL);
+                bSuccess = ReadFile(childStdOutRead, buffer.data(), buffer.size(), &dwRead, NULL);
                 if(!bSuccess || dwRead == 0)
-                    break; 
+                    break;
 
                 outStream->write(buffer.data(), dwRead);
-                if (outStream->bad())
-                    break; 
+                if(outStream->bad())
+                    break;
             }
 
             CloseHandle(childStdOutWrite);
@@ -147,7 +150,10 @@ struct ProcessImpl
 {
     ProcessImpl(std::string_view cmd) : path{cmd} {}
 
-    void Create(std::string_view args, std::string_view cwd, std::ostream* out, std::map<std::string, std::string> additionalEnvironmentVariables)
+    void Create(std::string_view args,
+                std::string_view cwd,
+                std::ostream* out,
+                std::map<std::string, std::string> additionalEnvironmentVariables)
     {
         outStream = out;
         std::string cmd{path.string()};
@@ -166,7 +172,7 @@ struct ProcessImpl
             cmd.insert(0, "cd " + std::string{cwd} + "; ");
 
         const auto fileMode = outStream != nullptr ? "r" : "w";
-        pipe = popen(cmd.c_str(), fileMode);
+        pipe                = popen(cmd.c_str(), fileMode);
         if(pipe == nullptr)
             MIOPEN_THROW("Error: popen()");
     }
@@ -200,13 +206,20 @@ Process::Process(const fs::path& cmd) : impl{std::make_unique<ProcessImpl>(cmd.s
 
 Process::~Process() noexcept = default;
 
-int Process::operator()(std::string_view args, const fs::path& cwd, std::ostream* out, std::map<std::string, std::string> additionalEnvironmentVariables)
+int Process::operator()(std::string_view args,
+                        const fs::path& cwd,
+                        std::ostream* out,
+                        std::map<std::string, std::string> additionalEnvironmentVariables)
 {
     impl->Create(args, cwd.string(), out, additionalEnvironmentVariables);
     return impl->Wait();
 }
 
-ProcessAsync::ProcessAsync(const fs::path& cmd, std::string_view args, const fs::path& cwd,  std::ostream* out, std::map<std::string, std::string> additionalEnvironmentVariables)
+ProcessAsync::ProcessAsync(const fs::path& cmd,
+                           std::string_view args,
+                           const fs::path& cwd,
+                           std::ostream* out,
+                           std::map<std::string, std::string> additionalEnvironmentVariables)
     : impl{std::make_unique<ProcessImpl>(cmd.string())}
 {
     impl->Create(args, cwd.string(), out, additionalEnvironmentVariables);

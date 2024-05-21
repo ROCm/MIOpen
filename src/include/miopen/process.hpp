@@ -41,7 +41,10 @@ struct Process
     Process(const fs::path& cmd);
     ~Process() noexcept;
 
-    int operator()(std::string_view args = "", const fs::path& cwd = "", std::ostream* out = nullptr, std::map<std::string, std::string> additionalEnvironmentVariables = {});
+    int operator()(std::string_view args                                             = "",
+                   const fs::path& cwd                                               = "",
+                   std::ostream* out                                                 = nullptr,
+                   std::map<std::string, std::string> additionalEnvironmentVariables = {});
 
 private:
     std::unique_ptr<ProcessImpl> impl;
@@ -49,7 +52,11 @@ private:
 
 struct ProcessAsync
 {
-    ProcessAsync(const fs::path& cmd, std::string_view args = "", const fs::path& cwd = "", std::ostream* out = nullptr, std::map<std::string, std::string> additionalEnvironmentVariables = {});
+    ProcessAsync(const fs::path& cmd,
+                 std::string_view args                                             = "",
+                 const fs::path& cwd                                               = "",
+                 std::ostream* out                                                 = nullptr,
+                 std::map<std::string, std::string> additionalEnvironmentVariables = {});
     ~ProcessAsync() noexcept;
 
     ProcessAsync(ProcessAsync&&) noexcept;
