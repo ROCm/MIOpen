@@ -90,6 +90,10 @@ void GraphExecutorFind20::execute(miopenHandle_t handle, const VariantPack& vpk)
                                getWorkspaceSize());
 
     MIOPEN_THROW_IF(s != miopenStatusSuccess, "Run Solution failed");
+    if(s == miopenStatusSuccess)
+    {
+        MIOPEN_LOG_I("Graph API Find 2.0 Solution Ran");
+    }
 }
 
 EngineBuilder& EngineBuilder::setGraph(OpGraph* g)

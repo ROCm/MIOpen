@@ -228,6 +228,7 @@ public:
                               int64_t* elementCount,
                               void* arrayOfElements) override;
 
+    // TODO(Amber): return const ref and ref
     const VariantPack* getVariantPack() const { return &mVariantPack; }
     VariantPack* getVariantPack() { return &mVariantPack; }
 };

@@ -269,9 +269,9 @@ void BackendExecutionPlanDescriptor::execute(miopenHandle_t handle,
                                              miopenBackendDescriptor_t variantPack)
 {
     BackendDescriptor& bd = deref(variantPack);
-    VariantPack& vp       = dynamic_cast<VariantPack&>(bd);
-    assert(&vp);
-    mExecutionPlan.execute(handle, vp);
+    auto& bendvp          = dynamic_cast<BackendVariantPackDescriptor&>(bd);
+    assert(&bendvp);
+    mExecutionPlan.execute(handle, *bendvp.getVariantPack());
 }
 
 } // namespace graphapi
