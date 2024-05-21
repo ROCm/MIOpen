@@ -132,7 +132,7 @@ public:
 
     GraphPatternExecutor* getExecutor() noexcept { return mExecutor.get(); }
 
-    const GraphPatternExecutor* getExecutor() const noexcept { return mExecutor.get(); }
+    const std::shared_ptr<GraphPatternExecutor>& getExecutor() const noexcept { return mExecutor; }
 
     int64_t getGlobalIndex() const noexcept { return mGlobalIndex; }
     int32_t getSmCount() const noexcept { return mSmCount; }
@@ -143,11 +143,15 @@ public:
 
 class EngineBuilder
 {
+    friend class BackendEngineDescriptor;
 
-    Engine mEngine;
-    bool mGraphSet = false;
-    bool mExecSet  = false;
-    bool mIndexSet = false;
+    std::shared_ptr<GraphPatternExecutor> mExecutor = nullptr;
+    OpGraph* mGraph                                 = nullptr;
+    int64_t mGlobalIndex                            = -1;
+    int32_t mSmCount                                = 0;
+    bool mGraphSet                                  = false;
+    bool mExecSet                                   = false;
+    bool mIndexSet                                  = false;
 
 public:
     EngineBuilder& setGraph(OpGraph* g);
@@ -156,20 +160,9 @@ public:
 
     EngineBuilder& setSmCount(int32_t smCount);
 
-    EngineBuilder& setExecutor(const std::shared_ptr<GraphPatternExecutor>& e)
-    {
-        assert(e.get());
-        mEngine.mExecutor = e;
-        mExecSet          = true;
-        return *this;
-    }
+    EngineBuilder& setExecutor(const std::shared_ptr<GraphPatternExecutor>& e);
 
-    Engine build()
-    {
-        MIOPEN_THROW_IF(!mGraphSet || !mExecSet || !mIndexSet,
-                        "must set graph, index and executor attributes");
-        return mEngine;
-    }
+    Engine build();
 };
 
 class BackendEngineDescriptor : public BackendDescriptor

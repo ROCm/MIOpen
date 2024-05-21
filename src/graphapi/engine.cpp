@@ -95,24 +95,44 @@ void GraphExecutorFind20::execute(miopenHandle_t handle, const VariantPack& vpk)
 EngineBuilder& EngineBuilder::setGraph(OpGraph* g)
 {
     assert(g);
-    mEngine.mGraph = checkPtr(g);
-    mGraphSet      = true;
+    mGraph    = checkPtr(g);
+    mGraphSet = true;
     return *this;
 }
 
 EngineBuilder& EngineBuilder::setGlobalIndex(int64_t globalIndex)
 {
     MIOPEN_THROW_IF(globalIndex < 0, "globalIndex must be >= 0");
-    mEngine.mGlobalIndex = globalIndex;
-    mIndexSet            = true;
+    mGlobalIndex = globalIndex;
+    mIndexSet    = true;
     return *this;
 }
 
 EngineBuilder& EngineBuilder::setSmCount(int32_t smCount)
 {
     MIOPEN_THROW_IF(smCount <= 0, "SM count must be positive");
-    mEngine.mSmCount = smCount;
+    mSmCount = smCount;
     return *this;
+}
+
+EngineBuilder& EngineBuilder::setExecutor(const std::shared_ptr<GraphPatternExecutor>& e)
+{
+    assert(e.get());
+    mExecutor = e;
+    mExecSet  = true;
+    return *this;
+}
+
+Engine EngineBuilder::build()
+{
+    MIOPEN_THROW_IF(!mGraphSet || !mExecSet || !mIndexSet,
+                    "must set graph, index and executor attributes");
+    Engine e;
+    e.mGraph       = mGraph;
+    e.mGlobalIndex = mGlobalIndex;
+    e.mExecutor    = mExecutor;
+    e.mSmCount     = mSmCount;
+    return e;
 }
 
 void BackendEngineDescriptor::setAttribute(miopenBackendAttributeName_t attributeName,
@@ -182,6 +202,12 @@ void BackendEngineDescriptor::finalize()
     {
         MIOPEN_THROW(miopenStatusNotInitialized);
     }
+
+    const auto& engines = mBuilder.mGraph->getEngines();
+    assert(static_cast<size_t>(mBuilder.mGlobalIndex) < engines.size());
+    const auto& candidate_engine = engines.at(mBuilder.mGlobalIndex);
+    mBuilder.setExecutor(candidate_engine.getExecutor());
+    mEngine = mBuilder.build();
 
     mFinalized = true;
 }

@@ -63,9 +63,10 @@ public:
     const std::vector<int64_t>& getIntermediateIds() const noexcept { return mIntermediateIds; }
     std::string getJsonRepresentation() const;
 
-    void execute(const VariantPack& variantPack)
+    void execute(miopenHandle_t handle, const VariantPack& variantPack)
     {
-        mEngineCfg.getEngine().getExecutor()->execute(getHandle(), variantPack);
+        checkPtr(handle);
+        mEngineCfg.getEngine().getExecutor()->execute(handle, variantPack);
     }
 
     size_t getWorkspaceSize() const

@@ -611,10 +611,11 @@ private:
                                       &engineConfigDesc);
         m_executionPlan->Finalize();
 
+        int64_t ws_count = 0;
         m_executionPlan->GetAttribute(MIOPEN_ATTR_EXECUTION_PLAN_WORKSPACE_SIZE,
                                       MIOPEN_TYPE_INT64,
                                       1,
-                                      NULL,
+                                      &ws_count,
                                       &m_workspaceSize);
 
         // save references to prevent them from being released

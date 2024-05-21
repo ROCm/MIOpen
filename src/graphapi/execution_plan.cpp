@@ -219,6 +219,17 @@ void BackendExecutionPlanDescriptor::getAttribute(miopenBackendAttributeName_t a
             MIOPEN_THROW(miopenStatusBadParm);
         }
         break;
+    case MIOPEN_ATTR_EXECUTION_PLAN_WORKSPACE_SIZE:
+        if(attributeType == MIOPEN_TYPE_INT64 && requestedElementCount == 1)
+        {
+            *elementCount                           = 1;
+            *static_cast<int64_t*>(arrayOfElements) = mExecutionPlan.getWorkspaceSize();
+        }
+        else
+        {
+            MIOPEN_THROW(miopenStatusBadParm);
+        }
+        break;
 
     case MIOPEN_ATTR_EXECUTION_PLAN_RUN_ONLY_INTERMEDIATE_UIDS:
         if(attributeType == MIOPEN_TYPE_INT64 && requestedElementCount >= 0)
@@ -257,7 +268,10 @@ void BackendExecutionPlanDescriptor::getAttribute(miopenBackendAttributeName_t a
 void BackendExecutionPlanDescriptor::execute(miopenHandle_t handle,
                                              miopenBackendDescriptor_t variantPack)
 {
-    // TODO: Implement BackendExecutionPlanDescriptor::execute
+    BackendDescriptor& bd = deref(variantPack);
+    VariantPack& vp       = dynamic_cast<VariantPack&>(bd);
+    assert(&vp);
+    mExecutionPlan.execute(handle, vp);
 }
 
 } // namespace graphapi
