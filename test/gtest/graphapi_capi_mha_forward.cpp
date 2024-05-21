@@ -790,24 +790,7 @@ private:
 
         TensorDataPtr tensorDataPtr = std::make_shared<TensorData>();
         tensorDataPtr->m_gapiDesc   = realTensorGapiDesc;
-
-        // generate data
-
         tensorDataPtr->m_tensor = tensor<float>{n, h, s, d};
-
-        /*switch(generateType)
-        {
-        case GenerateType::GenerateConstant:
-            tensorDataPtr->m_tensor.generate(
-                [genConstant](auto n_, auto h_, auto s_, auto d_) { return genConstant; });
-            break;
-
-        case GenerateType::GenerateRandom:
-            tensorDataPtr->m_tensor.generate(tensor_elem_gen_integer{17});
-            break;
-
-        default: break;
-        }*/
 
         m_realTensorMap[tensorId] = tensorDataPtr;
 
