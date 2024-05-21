@@ -345,9 +345,9 @@ class MhaFwdGraphTest : public testing::TestWithParam<std::tuple<int, int, int, 
         MAKE_TENSOR(DSCL_V, all1s, false);
         addNode("OP_POINTWISE:MUL", {T_SCL_5, DSCL_V}, {T_SCL_6});
 
-        MAKE_TENSOR(T_SCL_7, nhsd, true);
+        MAKE_TENSOR(O, nhsd, false);
         MAKE_TENSOR(SCL_O, all1s, false);
-        addNode("OP_POINTWISE:MUL", {T_SCL_6, SCL_O}, {T_SCL_7});
+        addNode("OP_POINTWISE:MUL", {T_SCL_6, SCL_O}, {O});
 
         MAKE_TENSOR(AMAX_O, all1s, false);
         addNode("OP_REDUCTION:MAX", {T_SCL_6}, {AMAX_O});
