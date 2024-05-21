@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2019 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,25 +25,45 @@
  *******************************************************************************/
 #pragma once
 
-#include <boost/dll.hpp>
-
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include <gtest/gtest_common.hpp>
 
 #include <miopen/process.hpp>
+#include <miopen/filesystem.hpp>
 
 #include <map>
+
+#ifdef __linux__
+#include <dlfcn.h>
+#endif
 
 using ::testing::HasSubstr;
 using ::testing::Not;
 
+using namespace miopen;
+
 // Note: Assuming that the MIOpenDriver executable will be beside the testing output location.
-static inline boost::filesystem::path& MIOpenDriverExePath()
+static inline miopen::fs::path MIOpenDriverExePath()
 {
-    static boost::filesystem::path exePath = boost::dll::program_location().parent_path() /=
-        "MIOpenDriver";
-    return exePath;
+    static const std::string MIOpenDriverExeName = "MIOpenDriver";
+
+#ifdef __linux__
+    fs::path path = {""};
+    Dl_info info;
+
+    if(dladdr(reinterpret_cast<void*>(miopenCreate), &info) != 0)
+    {
+        path = fs::canonical(fs::path{info.dli_fname});
+        if(path.empty())
+            return path;
+
+        path = path.parent_path();
+    }
+    return path /= MIOpenDriverExeName;
+#else
+    return fs::path = {MIOpenDriverExeName};
+#endif
 }
 
 static inline void RunMIOpenDriverTestCommand(
