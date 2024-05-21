@@ -180,7 +180,12 @@ OperationMatmul OperationMatmulBuilder::build()
     int Cm = cDimensions[cDimensionsCount - 2];
     int Ck = cDimensions[cDimensionsCount - 1];
 
-    if(Am != Cm || An != Bn || Bk != Ck)
+    // non-tranpose case:
+    bool nt = (Am == Cm && An == Bn && Bk == Ck);
+    // test for transpose case, allowing [m, n] * [k, n] = [m, k]
+    bool tt = (Am == Cm && An == Bk && Bn == Ck);
+
+    if(!nt && !tt)
         MIOPEN_THROW(miopenStatusBadParm);
 
     auto correctBroadcastedDims = [](int dim1, int dim2, int dimOut) -> bool {

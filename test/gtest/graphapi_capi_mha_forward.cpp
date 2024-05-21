@@ -421,7 +421,8 @@ private:
                                        m_testS,
                                        m_testD,
                                        0,
-                                       true); // transpose this tensor
+                                       false); // no transpose for now
+
         MakeAndAddRealTensorDescriptor(miopenTensorMhaV,
                                        GenerateType::GenerateRandom,
                                        false,
@@ -657,9 +658,8 @@ private:
             MIOPEN_ATTR_VARIANT_PACK_UNIQUE_IDS, MIOPEN_TYPE_INT64, numTensors, uids.data());
 
         auto ptr = workspace.ptr();
-        
-        varpack->SetAttribute(
-            MIOPEN_ATTR_VARIANT_PACK_WORKSPACE, MIOPEN_TYPE_VOID_PTR, 1, &ptr);
+
+        varpack->SetAttribute(MIOPEN_ATTR_VARIANT_PACK_WORKSPACE, MIOPEN_TYPE_VOID_PTR, 1, &ptr);
         varpack->Finalize();
 
         m_executionPlan->AddRef(varpack);

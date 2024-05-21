@@ -395,7 +395,7 @@ class MhaFwdGraphTest : public testing::TestWithParam<std::tuple<int, int, int, 
 
         auto variant_pack = makeMhaVariantPack(ws.ptr());
 
-        plan.execute(variant_pack);
+        plan.execute(h, variant_pack);
     }
 
     void initInputs(size_t n, size_t h, size_t s, size_t d)
