@@ -120,7 +120,7 @@ int32_t mloNLLLossReduceForward5dRunHost(const miopenTensorDescriptor_t inputDes
 
             float input_value = static_cast<float>(input[input_index]);
             float d           = !std::isnan(divisor) ? divisor : 1.0f;
-            workspace[i]  = static_cast<Tcheck>((-w * input_value) / d);
+            workspace[i]      = static_cast<Tcheck>((-w * input_value) / d);
         }
     }
 
@@ -278,10 +278,9 @@ int32_t mloNLLLossUnreduceForwardRunHost2d(const miopenTensorDescriptor_t inputD
         }
         else
         {
-            float w = static_cast<float>(weight[weight_index]);
-            float input_value = static_cast<float>(input[input_index]);
-            float output_value =
-                -w * input_value;
+            float w              = static_cast<float>(weight[weight_index]);
+            float input_value    = static_cast<float>(input[input_index]);
+            float output_value   = -w * input_value;
             output[output_index] = static_cast<Tcheck>(output_value);
         }
     }
@@ -325,10 +324,9 @@ int32_t mloNLLLossUnreduceForwardRunHost4d(const miopenTensorDescriptor_t inputD
         }
         else
         {
-            float w = static_cast<float>(weight[weight_index]);
-            float input_value = static_cast<float>(input[input_index]);
-            float output_value =
-                -w * input_value;
+            float w              = static_cast<float>(weight[weight_index]);
+            float input_value    = static_cast<float>(input[input_index]);
+            float output_value   = -w * input_value;
             output[output_index] = static_cast<Tcheck>(output_value);
         }
     }
@@ -372,10 +370,9 @@ int32_t mloNLLLossUnreduceForwardRunHost5d(const miopenTensorDescriptor_t inputD
         }
         else
         {
-            float w = static_cast<float>(weight[weight_index]);
-            float input_value = static_cast<float>(input[input_index]);
-            float output_value =
-                -w * input_value;
+            float w              = static_cast<float>(weight[weight_index]);
+            float input_value    = static_cast<float>(input[input_index]);
+            float output_value   = -w * input_value;
             output[output_index] = static_cast<Tcheck>(output_value);
         }
     }
@@ -417,10 +414,10 @@ int32_t mloNLLLossUnreduceBackwardRunHost2d(const miopenTensorDescriptor_t input
         }
         else
         {
-            float w = static_cast<float>(weight[weight_index]);
+            float w                 = static_cast<float>(weight[weight_index]);
             float output_grad_value = static_cast<float>(output_grad[output_grad_index]);
-            
-            float input_grad_value = -w * output_grad_value;
+
+            float input_grad_value       = -w * output_grad_value;
             input_grad[input_grad_index] = static_cast<Tcheck>(input_grad_value);
         }
     }
@@ -464,10 +461,10 @@ int32_t mloNLLLossUnreduceBackwardRunHost4d(const miopenTensorDescriptor_t input
         }
         else
         {
-            float w = static_cast<float>(weight[weight_index]);
+            float w                 = static_cast<float>(weight[weight_index]);
             float output_grad_value = static_cast<float>(output_grad[output_grad_index]);
-            
-            float input_grad_value = -w * output_grad_value;
+
+            float input_grad_value       = -w * output_grad_value;
             input_grad[input_grad_index] = static_cast<Tcheck>(input_grad_value);
         }
     }
@@ -511,10 +508,10 @@ int32_t mloNLLLossUnreduceBackwardRunHost5d(const miopenTensorDescriptor_t input
         }
         else
         {
-            float w = static_cast<float>(weight[weight_index]);
+            float w                 = static_cast<float>(weight[weight_index]);
             float output_grad_value = static_cast<float>(output_grad[output_grad_index]);
-            
-            float input_grad_value = -w * output_grad_value;
+
+            float input_grad_value       = -w * output_grad_value;
             input_grad[input_grad_index] = static_cast<Tcheck>(input_grad_value);
         }
     }
@@ -554,10 +551,10 @@ int32_t mloNLLLossReduceBackwardRunHost2d(const miopenTensorDescriptor_t inputGr
         }
         else
         {
-            float w = static_cast<float>(weight[weight_index]);
+            float w                 = static_cast<float>(weight[weight_index]);
             float output_grad_value = static_cast<float>(output_grad[0]);
-            
-            float input_grad_value = -w * output_grad_value / divisor;
+
+            float input_grad_value       = -w * output_grad_value / divisor;
             input_grad[input_grad_index] = static_cast<Tcheck>(input_grad_value);
         }
     }
@@ -599,10 +596,10 @@ int32_t mloNLLLossReduceBackwardRunHost5d(const miopenTensorDescriptor_t inputGr
         }
         else
         {
-            float w = static_cast<float>(weight[weight_index]);
+            float w                 = static_cast<float>(weight[weight_index]);
             float output_grad_value = static_cast<float>(output_grad[0]);
-            
-            float input_grad_value = -w * output_grad_value / divisor;
+
+            float input_grad_value       = -w * output_grad_value / divisor;
             input_grad[input_grad_index] = static_cast<Tcheck>(input_grad_value);
         }
     }

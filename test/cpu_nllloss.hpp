@@ -88,7 +88,7 @@ void cpu_nllloss_reduce_forward_5d(tensor<T> input,
 
             float input_value = static_cast<float>(input[input_index]);
             float d           = !std::isnan(divisor) ? divisor : 1.0f;
-            workspace[i]  = static_cast<T>((-w * input_value) / d);
+            workspace[i]      = static_cast<T>((-w * input_value) / d);
         }
     }
 
@@ -192,10 +192,9 @@ void cpu_nllloss_unreduce_forward_2d(tensor<T> input,
         }
         else
         {
-            float w = static_cast<float>(weight[weight_index]);
-            float input_value = static_cast<float>(input[input_index]);
-            float output_value =
-                -w * input_value;
+            float w              = static_cast<float>(weight[weight_index]);
+            float input_value    = static_cast<float>(input[input_index]);
+            float output_value   = -w * input_value;
             output[output_index] = static_cast<T>(output_value);
         }
     }
@@ -232,10 +231,9 @@ void cpu_nllloss_unreduce_forward_4d(tensor<T> input,
         }
         else
         {
-            float w = static_cast<float>(weight[weight_index]);
-            float input_value = static_cast<float>(input[input_index]);
-            float output_value =
-                -w * input_value;
+            float w              = static_cast<float>(weight[weight_index]);
+            float input_value    = static_cast<float>(input[input_index]);
+            float output_value   = -w * input_value;
             output[output_index] = static_cast<T>(output_value);
         }
     }
@@ -272,9 +270,9 @@ void cpu_nllloss_unreduce_forward_5d(tensor<T> input,
         }
         else
         {
-            float w = static_cast<float>(weight[weight_index]);
-            float input_value = static_cast<float>(input[input_index]);
-            float output_value = -w * input_value;
+            float w              = static_cast<float>(weight[weight_index]);
+            float input_value    = static_cast<float>(input[input_index]);
+            float output_value   = -w * input_value;
             output[output_index] = static_cast<T>(output_value);
         }
     }
@@ -309,10 +307,10 @@ void cpu_nllloss_unreduce_backward_2d(tensor<T>& input_grad,
         }
         else
         {
-            float w = static_cast<float>(weight[weight_index]);
+            float w                 = static_cast<float>(weight[weight_index]);
             float output_grad_value = static_cast<float>(output_grad[output_grad_index]);
-            
-            float input_grad_value = -w * output_grad_value;
+
+            float input_grad_value       = -w * output_grad_value;
             input_grad[input_grad_index] = static_cast<T>(input_grad_value);
         }
     }
@@ -349,10 +347,10 @@ void cpu_nllloss_unreduce_backward_4d(tensor<T>& input_grad,
         }
         else
         {
-            float w = static_cast<float>(weight[weight_index]);
+            float w                 = static_cast<float>(weight[weight_index]);
             float output_grad_value = static_cast<float>(output_grad[output_grad_index]);
-            
-            float input_grad_value = -w * output_grad_value;
+
+            float input_grad_value       = -w * output_grad_value;
             input_grad[input_grad_index] = static_cast<T>(input_grad_value);
         }
     }
@@ -389,10 +387,10 @@ void cpu_nllloss_unreduce_backward_5d(tensor<T>& input_grad,
         }
         else
         {
-            float w = static_cast<float>(weight[weight_index]);
+            float w                 = static_cast<float>(weight[weight_index]);
             float output_grad_value = static_cast<float>(output_grad[output_grad_index]);
-            
-            float input_grad_value = -w * output_grad_value;
+
+            float input_grad_value       = -w * output_grad_value;
             input_grad[input_grad_index] = static_cast<T>(input_grad_value);
         }
     }
@@ -426,10 +424,10 @@ void cpu_nllloss_reduce_backward_2d(tensor<T>& input_grad,
         }
         else
         {
-            float w = static_cast<float>(weight[weight_index]);
+            float w                 = static_cast<float>(weight[weight_index]);
             float output_grad_value = static_cast<float>(output_grad[0]);
-            
-            float input_grad_value = -w * output_grad_value / divisor;
+
+            float input_grad_value       = -w * output_grad_value / divisor;
             input_grad[input_grad_index] = static_cast<T>(input_grad_value);
         }
     }
@@ -465,10 +463,10 @@ void cpu_nllloss_reduce_backward_5d(tensor<T>& input_grad,
         }
         else
         {
-            float w = static_cast<float>(weight[weight_index]);
+            float w                 = static_cast<float>(weight[weight_index]);
             float output_grad_value = static_cast<float>(output_grad[0]);
-            
-            float input_grad_value = -w * output_grad_value / divisor;
+
+            float input_grad_value       = -w * output_grad_value / divisor;
             input_grad[input_grad_index] = static_cast<T>(input_grad_value);
         }
     }
