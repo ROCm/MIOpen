@@ -45,8 +45,9 @@ namespace miopendriver_regression_half_gfx9 {
 
 std::vector<std::string> GetTestCases()
 {
-    const std::string& cmd       = MIOpenDriverExePath().string();
-    const std::string& modeConvolutionArg = miopen::GetStringEnv(MIOPEN_ENV(MIOPENDRIVER_MODE_CONV));
+    const std::string& cmd = MIOpenDriverExePath().string();
+    const std::string& modeConvolutionArg =
+        miopen::GetStringEnv(MIOPEN_ENV(MIOPENDRIVER_MODE_CONV));
 
     // clang-format off
     return std::vector<std::string>{
@@ -74,10 +75,10 @@ bool IsTestSupportedForDevice()
 
 void RunMIOpenDriver()
 {
-    bool runTestSuite = miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_WITH_MIOPENDRIVER))
-                            && IsTestSupportedForDevice()
-                                && miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_ALL))
-                                    && miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_TEST_FLOAT_ARG)) == "--half";
+    bool runTestSuite = miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_WITH_MIOPENDRIVER)) &&
+                        IsTestSupportedForDevice() &&
+                        miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_ALL)) &&
+                        miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_TEST_FLOAT_ARG)) == "--half";
 
     if(!runTestSuite)
     {
@@ -90,10 +91,12 @@ void RunMIOpenDriver()
         int commandResult = 0;
         miopen::Process p{testCommand};
 
-        // TODO bharriso - get decision for capturing output, and either remove this if we can ignore, 
-        //                 or add capturing output + check here for regrex not matching FAILED. 
+        // TODO bharriso - get decision for capturing output, and either remove this if we can
+        // ignore,
+        //                 or add capturing output + check here for regrex not matching FAILED.
         EXPECT_NO_THROW(commandResult = p());
-        EXPECT_EQ(commandResult, 0) << "MIOpenDriver exited with non-zero value when running command: " << testCommand;
+        EXPECT_EQ(commandResult, 0)
+            << "MIOpenDriver exited with non-zero value when running command: " << testCommand;
     }
 };
 

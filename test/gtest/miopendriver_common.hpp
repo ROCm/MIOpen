@@ -30,6 +30,7 @@
 // Assuming that the MIOpenDriver executable will be beside the test location.
 static inline boost::filesystem::path& MIOpenDriverExePath()
 {
-    static  boost::filesystem::path exePath = boost::dll::program_location().parent_path() /= "MIOpenDriver";
+    static boost::filesystem::path exePath = boost::dll::program_location().parent_path() /=
+        "MIOpenDriver";
     return exePath;
 }

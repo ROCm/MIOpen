@@ -37,7 +37,6 @@
 using ::testing::HasSubstr;
 using ::testing::Not;
 
-
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_WITH_MIOPENDRIVER)
@@ -47,7 +46,7 @@ namespace miopendriver_regression_float_half_gfx10 {
 
 std::vector<std::string> GetTestCases()
 {
-    const std::string& cmd       = MIOpenDriverExePath().string();
+    const std::string& cmd              = MIOpenDriverExePath().string();
     const std::string& modeBatchNormArg = miopen::GetStringEnv(MIOPEN_ENV(MIOPENDRIVER_MODE_BN));
 
     // clang-format off
@@ -63,7 +62,8 @@ std::vector<std::string> GetTestCases()
 
 using TestCase = decltype(GetTestCases())::value_type;
 
-class MIOpenDriverRegressionFloatHalfGfx10Test : public testing::TestWithParam<std::vector<TestCase>>
+class MIOpenDriverRegressionFloatHalfGfx10Test
+    : public testing::TestWithParam<std::vector<TestCase>>
 {
 };
 
@@ -77,11 +77,11 @@ bool IsTestSupportedForDevice()
 
 void RunMIOpenDriver()
 {
-    bool runTestSuite = miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_WITH_MIOPENDRIVER))
-                            && IsTestSupportedForDevice()
-                                && miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_ALL))
-                                    && (miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_TEST_FLOAT_ARG)) == "--half"
-                                        || miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_TEST_FLOAT_ARG)) == "--float");
+    bool runTestSuite = miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_WITH_MIOPENDRIVER)) &&
+                        IsTestSupportedForDevice() &&
+                        miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_ALL)) &&
+                        (miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_TEST_FLOAT_ARG)) == "--half" ||
+                         miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_TEST_FLOAT_ARG)) == "--float");
 
     if(!runTestSuite)
     {
@@ -94,17 +94,22 @@ void RunMIOpenDriver()
         int commandResult = 0;
         miopen::Process p{testCommand};
 
-        // TODO bharriso - get decision for capturing output, and either remove this if we can ignore, 
-        //                 or add capturing output + check here. 
+        // TODO bharriso - get decision for capturing output, and either remove this if we can
+        // ignore,
+        //                 or add capturing output + check here.
         EXPECT_NO_THROW(commandResult = p());
-        EXPECT_EQ(commandResult, 0) << "MIOpenDriver exited with non-zero value when running command: " << testCommand;
+        EXPECT_EQ(commandResult, 0)
+            << "MIOpenDriver exited with non-zero value when running command: " << testCommand;
     }
 };
 
 } // namespace miopendriver_regression_float_half_gfx10
 using namespace miopendriver_regression_float_half_gfx10;
 
-TEST_P(MIOpenDriverRegressionFloatHalfGfx10Test, MIOpenDriverRegressionFloatHalfGfx10) { RunMIOpenDriver(); };
+TEST_P(MIOpenDriverRegressionFloatHalfGfx10Test, MIOpenDriverRegressionFloatHalfGfx10)
+{
+    RunMIOpenDriver();
+};
 
 INSTANTIATE_TEST_SUITE_P(MIOpenDriverRegressionFloatHalfGfx10TestSet,
                          MIOpenDriverRegressionFloatHalfGfx10Test,
