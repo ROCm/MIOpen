@@ -33,7 +33,7 @@ namespace adam {
 
 std::string GetFloatArg()
 {
-    const auto& tmp = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
+    const auto& tmp = miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_TEST_FLOAT_ARG));
     if(tmp.empty())
     {
         return "";
@@ -58,7 +58,7 @@ using namespace adam;
 
 TEST_P(TransformersAdamWTestFloat, TransformersAdamWFloatTest)
 {
-    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float"))
+    if(miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float"))
     {
         RunTest();
         Verify();
@@ -71,7 +71,7 @@ TEST_P(TransformersAdamWTestFloat, TransformersAdamWFloatTest)
 
 TEST_P(TransformersAdamWTestFloat16, TransformersAdamWFloat16Test)
 {
-    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float"))
+    if(miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--half"))
     {
         RunTest();
         Verify();
@@ -84,7 +84,7 @@ TEST_P(TransformersAdamWTestFloat16, TransformersAdamWFloat16Test)
 
 TEST_P(TransformersAmpAdamWTestFloat, TransformersAmpAdamWTest)
 {
-    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float"))
+    if(miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float"))
     {
         RunTest();
         Verify();

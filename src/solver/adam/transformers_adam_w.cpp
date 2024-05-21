@@ -41,7 +41,7 @@ namespace adam {
 bool TransformersAdamW::IsApplicable([[maybe_unused]] const ExecutionContext& context,
                                      const miopen::adam::ProblemDescription& problem) const
 {
-    if(!problem.IsAllPacked())
+    if(!problem.IsAllContiguous())
         return false;
     return true;
 }
@@ -79,12 +79,12 @@ ConvSolution TransformersAdamW::GetSolution(const ExecutionContext& context,
         kernel.kernel_file = "MIOpenAdam.cpp";
         if(problem.ExistStepTensor())
         {
-            kernel.kernel_name = "TransformersAmpAdamWPackedWithStep";
+            kernel.kernel_name = "TransformersAmpAdamWContiguousWithStep";
         }
         else
         {
             kernel.kernel_name =
-                problem.IsAmp() ? "TransformersAmpAdamWPacked" : "TransformersAdamWPacked";
+                problem.IsAmp() ? "TransformersAmpAdamWContiguous" : "TransformersAdamWContiguous";
         }
 
         result.construction_params.push_back(kernel);

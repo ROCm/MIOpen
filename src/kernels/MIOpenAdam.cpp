@@ -413,19 +413,19 @@ inline __device__ void TransformersAdamWInternal(T1* param_in,
     exp_avg_sq_out[gid] = static_cast<T1>(exp_avg_sq);
 }
 
-extern "C" __global__ void TransformersAdamWPacked(PTYPE* param_in,
-                                                   PTYPE* param_out,
-                                                   PTYPE* grad_in,
-                                                   PTYPE* exp_avg_in,
-                                                   PTYPE* exp_avg_out,
-                                                   PTYPE* exp_avg_sq_in,
-                                                   PTYPE* exp_avg_sq_out,
-                                                   float beta1,
-                                                   float beta2,
-                                                   float eps,
-                                                   float lr_weight_decay,
-                                                   float step_size,
-                                                   size_t input_size)
+extern "C" __global__ void TransformersAdamWContiguous(PTYPE* param_in,
+                                                       PTYPE* param_out,
+                                                       PTYPE* grad_in,
+                                                       PTYPE* exp_avg_in,
+                                                       PTYPE* exp_avg_out,
+                                                       PTYPE* exp_avg_sq_in,
+                                                       PTYPE* exp_avg_sq_out,
+                                                       float beta1,
+                                                       float beta2,
+                                                       float eps,
+                                                       float lr_weight_decay,
+                                                       float step_size,
+                                                       size_t input_size)
 {
     size_t gid = blockIdx.x * blockDim.x + threadIdx.x;
     size_t gsz = gridDim.x * blockDim.x;
@@ -450,22 +450,22 @@ extern "C" __global__ void TransformersAdamWPacked(PTYPE* param_in,
     }
 }
 
-extern "C" __global__ void TransformersAmpAdamWPacked(PTYPE* param_in,
-                                                      PTYPE* param_out,
-                                                      half* param_out_fp16,
-                                                      GTYPE* grad_in,
-                                                      PTYPE* exp_avg_in,
-                                                      PTYPE* exp_avg_out,
-                                                      PTYPE* exp_avg_sq_in,
-                                                      PTYPE* exp_avg_sq_out,
-                                                      int32_t* grad_scale,
-                                                      bool* found_inf,
-                                                      float beta1,
-                                                      float beta2,
-                                                      float eps,
-                                                      float lr_weight_decay,
-                                                      float step_size,
-                                                      size_t input_size)
+extern "C" __global__ void TransformersAmpAdamWContiguous(PTYPE* param_in,
+                                                          PTYPE* param_out,
+                                                          half* param_out_fp16,
+                                                          GTYPE* grad_in,
+                                                          PTYPE* exp_avg_in,
+                                                          PTYPE* exp_avg_out,
+                                                          PTYPE* exp_avg_sq_in,
+                                                          PTYPE* exp_avg_sq_out,
+                                                          int32_t* grad_scale,
+                                                          bool* found_inf,
+                                                          float beta1,
+                                                          float beta2,
+                                                          float eps,
+                                                          float lr_weight_decay,
+                                                          float step_size,
+                                                          size_t input_size)
 {
     size_t gid = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -517,25 +517,25 @@ extern "C" __global__ void TransformersAmpAdamWPacked(PTYPE* param_in,
     }
 }
 
-extern "C" __global__ void TransformersAmpAdamWPackedWithStep(PTYPE* param_in,
-                                                              PTYPE* param_out,
-                                                              half* param_out_fp16,
-                                                              GTYPE* grad_in,
-                                                              PTYPE* exp_avg_in,
-                                                              PTYPE* exp_avg_out,
-                                                              PTYPE* exp_avg_sq_in,
-                                                              PTYPE* exp_avg_sq_out,
-                                                              int32_t* grad_scale,
-                                                              bool* found_inf,
-                                                              int* step,
-                                                              float lr,
-                                                              float beta1,
-                                                              float beta2,
-                                                              float eps,
-                                                              float lr_weight_decay,
-                                                              float step_size,
-                                                              bool correct_bias,
-                                                              size_t input_size)
+extern "C" __global__ void TransformersAmpAdamWContiguousWithStep(PTYPE* param_in,
+                                                                  PTYPE* param_out,
+                                                                  half* param_out_fp16,
+                                                                  GTYPE* grad_in,
+                                                                  PTYPE* exp_avg_in,
+                                                                  PTYPE* exp_avg_out,
+                                                                  PTYPE* exp_avg_sq_in,
+                                                                  PTYPE* exp_avg_sq_out,
+                                                                  int32_t* grad_scale,
+                                                                  bool* found_inf,
+                                                                  int* step,
+                                                                  float lr,
+                                                                  float beta1,
+                                                                  float beta2,
+                                                                  float eps,
+                                                                  float lr_weight_decay,
+                                                                  float step_size,
+                                                                  bool correct_bias,
+                                                                  size_t input_size)
 {
     size_t gid = blockIdx.x * blockDim.x + threadIdx.x;
 

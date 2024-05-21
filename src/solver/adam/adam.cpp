@@ -41,7 +41,7 @@ namespace adam {
 bool Adam::IsApplicable([[maybe_unused]] const ExecutionContext& context,
                         const miopen::adam::ProblemDescription& problem) const
 {
-    if(!problem.IsAllPacked())
+    if(!problem.IsAllContiguous())
         return false;
     if(problem.IsAdamW())
         return false;
