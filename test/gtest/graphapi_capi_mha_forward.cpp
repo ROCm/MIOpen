@@ -420,7 +420,7 @@ private:
                                        m_testH,
                                        m_testS,
                                        m_testD,
-                                       0,
+                                       1.0,
                                        false); // no transpose for now
 
         MakeAndAddRealTensorDescriptor(miopenTensorMhaV,
