@@ -41,20 +41,18 @@
 using ::testing::HasSubstr;
 using ::testing::Not;
 
-using namespace miopen;
-
 // Note: Assuming that the MIOpenDriver executable will be beside the testing output location.
 static inline miopen::fs::path MIOpenDriverExePath()
 {
     static const std::string MIOpenDriverExeName = "MIOpenDriver";
 
 #ifdef __linux__
-    fs::path path = {""};
+    miopen::fs::path path = {""};
     Dl_info info;
 
     if(dladdr(reinterpret_cast<void*>(miopenCreate), &info) != 0)
     {
-        path = fs::canonical(fs::path{info.dli_fname});
+        path = miopen::fs::canonical(miopen::fs::path{info.dli_fname});
         if(path.empty())
             return path;
 
@@ -62,7 +60,7 @@ static inline miopen::fs::path MIOpenDriverExePath()
     }
     return path /= MIOpenDriverExeName;
 #else
-    return fs::path = {MIOpenDriverExeName};
+    return miopen::fs::path = {MIOpenDriverExeName};
 #endif
 }
 
