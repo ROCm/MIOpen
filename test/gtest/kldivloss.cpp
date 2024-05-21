@@ -69,61 +69,8 @@ struct KLDivLossTestBFloat16Bwd : KLDivLossTestBwd<bfloat16>
 } // namespace kldivloss
 using namespace kldivloss;
 
-// // FORWARD TEST
-// TEST_P(KLDivLossTestFloat, KLDivLossTest)
-// {
-//     if((miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && GetFloatArg() == "--float") ||
-//        GetFloatArg() == "--testall")
-//     {
-//         RunTest();
-//         Verify();
-//     }
-//     else
-//     {
-//         GTEST_SKIP();
-//     }
-// };
-
-// TEST_P(KLDivLossTestHalf, KLDivLossTest)
-// {
-//     if((miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && GetFloatArg() == "--half") ||
-//        GetFloatArg() == "--testall")
-//     {
-//         RunTest();
-//         Verify();
-//     }
-//     else
-//     {
-//         GTEST_SKIP();
-//     }
-// };
-
-// TEST_P(KLDivLossTestBFloat16, KLDivLossTest)
-// {
-//     if((miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && GetFloatArg() == "--bfloat16") ||
-//        GetFloatArg() == "--testall")
-//     {
-//         RunTest();
-//         Verify();
-//     }
-//     else
-//     {
-//         GTEST_SKIP();
-//     }
-// };
-
-// INSTANTIATE_TEST_SUITE_P(KLDivLossTestSet,
-//                          KLDivLossTestFloat,
-//                          testing::ValuesIn(KLDivLossTestConfigs()));
-// INSTANTIATE_TEST_SUITE_P(KLDivLossTestSet,
-//                          KLDivLossTestHalf,
-//                          testing::ValuesIn(KLDivLossTestConfigs()));
-// INSTANTIATE_TEST_SUITE_P(KLDivLossTestSet,
-//                          KLDivLossTestBFloat16,
-//                          testing::ValuesIn(KLDivLossTestConfigs()));
-
-// BACKWARD TEST
-TEST_P(KLDivLossTestFloatBwd, KLDivLossTestBwd)
+// FORWARD TEST
+TEST_P(KLDivLossTestFloat, KLDivLossTest)
 {
     if((miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && GetFloatArg() == "--float") ||
        GetFloatArg() == "--testall")
@@ -137,7 +84,7 @@ TEST_P(KLDivLossTestFloatBwd, KLDivLossTestBwd)
     }
 };
 
-TEST_P(KLDivLossTestHalfBwd, KLDivLossTestBwd)
+TEST_P(KLDivLossTestHalf, KLDivLossTest)
 {
     if((miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && GetFloatArg() == "--half") ||
        GetFloatArg() == "--testall")
@@ -151,7 +98,7 @@ TEST_P(KLDivLossTestHalfBwd, KLDivLossTestBwd)
     }
 };
 
-TEST_P(KLDivLossTestBFloat16Bwd, KLDivLossTestBwd)
+TEST_P(KLDivLossTestBFloat16, KLDivLossTest)
 {
     if((miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && GetFloatArg() == "--bfloat16") ||
        GetFloatArg() == "--testall")
@@ -166,11 +113,64 @@ TEST_P(KLDivLossTestBFloat16Bwd, KLDivLossTestBwd)
 };
 
 INSTANTIATE_TEST_SUITE_P(KLDivLossTestSet,
-                         KLDivLossTestFloatBwd,
+                         KLDivLossTestFloat,
                          testing::ValuesIn(KLDivLossTestConfigs()));
 INSTANTIATE_TEST_SUITE_P(KLDivLossTestSet,
-                         KLDivLossTestHalfBwd,
+                         KLDivLossTestHalf,
                          testing::ValuesIn(KLDivLossTestConfigs()));
 INSTANTIATE_TEST_SUITE_P(KLDivLossTestSet,
-                         KLDivLossTestBFloat16Bwd,
+                         KLDivLossTestBFloat16,
                          testing::ValuesIn(KLDivLossTestConfigs()));
+
+// // BACKWARD TEST
+// TEST_P(KLDivLossTestFloatBwd, KLDivLossTestBwd)
+// {
+//     if((miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && GetFloatArg() == "--float") ||
+//        GetFloatArg() == "--testall")
+//     {
+//         RunTest();
+//         Verify();
+//     }
+//     else
+//     {
+//         GTEST_SKIP();
+//     }
+// };
+
+// TEST_P(KLDivLossTestHalfBwd, KLDivLossTestBwd)
+// {
+//     if((miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && GetFloatArg() == "--half") ||
+//        GetFloatArg() == "--testall")
+//     {
+//         RunTest();
+//         Verify();
+//     }
+//     else
+//     {
+//         GTEST_SKIP();
+//     }
+// };
+
+// TEST_P(KLDivLossTestBFloat16Bwd, KLDivLossTestBwd)
+// {
+//     if((miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && GetFloatArg() == "--bfloat16") ||
+//        GetFloatArg() == "--testall")
+//     {
+//         RunTest();
+//         Verify();
+//     }
+//     else
+//     {
+//         GTEST_SKIP();
+//     }
+// };
+
+// INSTANTIATE_TEST_SUITE_P(KLDivLossTestSet,
+//                          KLDivLossTestFloatBwd,
+//                          testing::ValuesIn(KLDivLossTestConfigs()));
+// INSTANTIATE_TEST_SUITE_P(KLDivLossTestSet,
+//                          KLDivLossTestHalfBwd,
+//                          testing::ValuesIn(KLDivLossTestConfigs()));
+// INSTANTIATE_TEST_SUITE_P(KLDivLossTestSet,
+//                          KLDivLossTestBFloat16Bwd,
+//                          testing::ValuesIn(KLDivLossTestConfigs()));

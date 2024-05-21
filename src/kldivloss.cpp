@@ -67,66 +67,63 @@ miopenStatus_t KLDivLossUnreducedForward(Handle& handle,
     return miopenStatusSuccess;
 }
 
-// size_t GetKLDivLossReducedForwardWorkspaceSize(Handle& handle,
-//                                             const TensorDescriptor& inputDesc,
-//                                             const TensorDescriptor& targetDesc,
-//                                             const TensorDescriptor& outputDesc)
-// {
-//     auto ctx = ExecutionContext{&handle};
-//     const auto problem =
-//         nllloss::ReducedProblemDescription{inputDesc, targetDesc, weightDesc, outputDesc, -1,
-//         true};
+size_t GetKLDivLossReducedForwardWorkspaceSize(Handle& handle,
+                                               const TensorDescriptor& inputDesc,
+                                               const TensorDescriptor& targetDesc,
+                                               const TensorDescriptor& outputDesc,
+                                               float divisor,
+                                               bool log_target)
+{
+    auto ctx           = ExecutionContext{&handle};
+    const auto problem = kldivloss::ReducedProblemDescription{
+        inputDesc, targetDesc, outputDesc, divisor, log_target, true};
 
-//     const auto algo    = AlgorithmName{"NLLLossReducedForward"};
-//     const auto solvers = solver::SolverContainer<solver::nllloss::NLLLossReducedForward4d>{};
+    const auto algo    = AlgorithmName{"KLDivLossReducedForward"};
+    const auto solvers = solver::SolverContainer<solver::kldivloss::KLDivLossReducedForward5d>{};
 
-//     auto pair_size_vector = solvers.GetWorkspaceSizes(ctx, problem);
+    auto pair_size_vector = solvers.GetWorkspaceSizes(ctx, problem);
 
-//     return pair_size_vector.empty() ? static_cast<size_t>(-1) : pair_size_vector.front().second;
-// }
+    return pair_size_vector.empty() ? static_cast<size_t>(-1) : pair_size_vector.front().second;
+}
 
-// miopenStatus_t NLLLossReducedForward(Handle& handle,
-//                                     Data_t workspace,
-//                                     size_t workspaceSizeInBytes,
-//                                     const TensorDescriptor& inputDesc,
-//                                     ConstData_t input,
-//                                     const TensorDescriptor& targetDesc,
-//                                     ConstData_t target,
-//                                     const TensorDescriptor& weightDesc,
-//                                     ConstData_t weight,
-//                                     const TensorDescriptor& outputDesc,
-//                                     Data_t output,
-//                                     int32_t ignore_index,
-//                                     float divisor)
-// {
-//     const auto problem = nllloss::ReducedProblemDescription{
-//         inputDesc, targetDesc, weightDesc, outputDesc, ignore_index, true};
+miopenStatus_t KLDivLossReducedForward(Handle& handle,
+                                       Data_t workspace,
+                                       size_t workspaceSizeInBytes,
+                                       const TensorDescriptor& inputDesc,
+                                       ConstData_t input,
+                                       const TensorDescriptor& targetDesc,
+                                       ConstData_t target,
+                                       const TensorDescriptor& outputDesc,
+                                       Data_t output,
+                                       float divisor,
+                                       bool log_target)
+{
+    const auto problem = kldivloss::ReducedProblemDescription{
+        inputDesc, targetDesc, outputDesc, divisor, log_target, true};
 
-//     const auto invoke_params = [&]() {
-//         auto tmp       = nllloss::InvokeParams{};
-//         tmp.inputDesc  = &inputDesc;
-//         tmp.targetDesc = &targetDesc;
-//         tmp.weightDesc = &weightDesc;
-//         tmp.outputDesc = &outputDesc;
+    const auto invoke_params = [&]() {
+        auto tmp       = kldivloss::FwdInvokeParams{};
+        tmp.inputDesc  = &inputDesc;
+        tmp.targetDesc = &targetDesc;
+        tmp.outputDesc = &outputDesc;
 
-//         tmp.input          = input;
-//         tmp.target         = target;
-//         tmp.weight         = weight;
-//         tmp.output         = output;
-//         tmp.workspace      = workspace;
-//         tmp.workspace_size = workspaceSizeInBytes;
-//         tmp.ignore_index   = ignore_index;
-//         tmp.divisor        = divisor;
-//         return tmp;
-//     }();
+        tmp.input          = input;
+        tmp.target         = target;
+        tmp.output         = output;
+        tmp.workspace      = workspace;
+        tmp.workspace_size = workspaceSizeInBytes;
+        tmp.divisor        = divisor;
+        tmp.log_target     = log_target;
+        return tmp;
+    }();
 
-//     const auto algo    = AlgorithmName{"NLLLossReducedForward"};
-//     const auto solvers = solver::SolverContainer<solver::nllloss::NLLLossReducedForward4d>{};
+    const auto algo    = AlgorithmName{"KLDivLossReducedForward"};
+    const auto solvers = solver::SolverContainer<solver::kldivloss::KLDivLossReducedForward5d>{};
 
-//     solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
+    solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
 
-//     return miopenStatusSuccess;
-// }
+    return miopenStatusSuccess;
+}
 
 miopenStatus_t KLDivLossUnreducedBackward(Handle& handle,
                                           const TensorDescriptor& inputDesc,

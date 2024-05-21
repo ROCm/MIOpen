@@ -513,7 +513,7 @@ typedef enum
     miopenActivationABS      = 5, /*!< Absolute value \f$abs(x)\f$ */
     miopenActivationPOWER = 6, /*!< Scaled and shifted power \f$(\alpha + \beta * x)^{gamma}\f$ */
     miopenActivationCLIPPEDRELU =
-        7, /*!< Clipped Rectified Linear Unit \f$ min(\alpha, max(0,x)) \f$ */
+        7,                     /*!< Clipped Rectified Linear Unit \f$ min(\alpha, max(0,x)) \f$ */
     miopenActivationLEAKYRELU =
         8, /*!< Leaky Rectified Linear Unit \f$ \alpha * x | x <= 0; x | x > 0 \f$ */
     miopenActivationELU =
@@ -6610,6 +6610,54 @@ miopenKLDivLossUnreducedForward(miopenHandle_t handle,
                                 const miopenTensorDescriptor_t outputDesc,
                                 void* output,
                                 bool log_target);
+
+/*! @brief Helper function to query the minimum workspace size required by the KLDivLoss call
+ *
+ * @param handle                   MIOpen Handle (input)
+ * @param inputDesc                Tensor descriptor for input tensor (input)
+ * @param targetDesc               Tensor descriptor for target tensor (input)
+ * @param outputDesc               Tensor descriptor for output tensor (input)
+ * @param divisor                  Divisor (input)
+ * @param log_target               Log target (input)
+ * @param sizeInBytes              Pointer to data to return the minimum workspace size (output)
+ * @return                         miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenGetKLDivLossReducedForwardWorkspaceSize(miopenHandle_t handle,
+                                              miopenTensorDescriptor_t inputDesc,
+                                              miopenTensorDescriptor_t targetDesc,
+                                              miopenTensorDescriptor_t outputDesc,
+                                              float divisor,
+                                              bool log_target,
+                                              size_t* sizeInBytes);
+
+/*! @brief Execute a KLDivLoss reduced forward layer
+ *
+ * @param handle                   MIOpen handle (input)
+ * @param workspace                Address of the allocated workspace data (input)
+ * @param workspaceSizeInBytes     Size in bytes of the allocated workspace data (input)
+ * @param inputDesc                Tensor descriptor for input tensor (input)
+ * @param input                    Data tensor input (input)
+ * @param targetDesc               Tensor descriptor for target tensor (input)
+ * @param target                   Data tensor target (input)
+ * @param outputDesc               Tensor descriptor for output tensor (input)
+ * @param output                   Data tensor output (output)
+ * @param log_target               Log target (input)
+ * @param divisor                  Divisor (input)
+ * @return                         miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenKLDivLossReducedForward(miopenHandle_t handle,
+                              void* workspace,
+                              size_t workspaceSizeInBytes,
+                              const miopenTensorDescriptor_t inputDesc,
+                              const void* input,
+                              const miopenTensorDescriptor_t targetDesc,
+                              const void* target,
+                              const miopenTensorDescriptor_t outputDesc,
+                              void* output,
+                              float divisor,
+                              bool log_target);
 
 /*! @brief Execute a kldivloss unreduced backward layer
  *

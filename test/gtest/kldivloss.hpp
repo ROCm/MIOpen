@@ -127,27 +127,27 @@ protected:
         std::fill(ref_output.begin(), ref_output.end(), std::numeric_limits<T>::quiet_NaN());
 
         std::vector<size_t> workspace_lengths;
-        // ws_sizeInBytes = divisor == 0.f
-        //                      ? 0
-        //                      : miopen::GetKLDivLossReducedForwardWorkspaceSize(
-        //                            handle, input.desc, target.desc, output.desc);
-        // if(ws_sizeInBytes == static_cast<size_t>(-1))
-        //     GTEST_SKIP();
+        ws_sizeInBytes =
+            divisor == 0.f ? 0
+                           : miopen::GetKLDivLossReducedForwardWorkspaceSize(
+                                 handle, input.desc, target.desc, output.desc, divisor, log_target);
+        if(ws_sizeInBytes == static_cast<size_t>(-1))
+            GTEST_SKIP();
 
-        // if(ws_sizeInBytes != 0)
-        // {
-        //     std::vector<size_t> workspace_dims;
-        //     workspace_dims.push_back(ws_sizeInBytes / sizeof(T));
+        if(ws_sizeInBytes != 0)
+        {
+            std::vector<size_t> workspace_dims;
+            workspace_dims.push_back(ws_sizeInBytes / sizeof(T));
 
-        //     workspace = tensor<T>{workspace_dims};
-        //     std::fill(workspace.begin(), workspace.end(), std::numeric_limits<T>::quiet_NaN());
+            workspace = tensor<T>{workspace_dims};
+            std::fill(workspace.begin(), workspace.end(), std::numeric_limits<T>::quiet_NaN());
 
-        //     ref_workspace = tensor<T>{workspace_dims};
-        //     std::fill(
-        //         ref_workspace.begin(), ref_workspace.end(), std::numeric_limits<T>::quiet_NaN());
+            ref_workspace = tensor<T>{workspace_dims};
+            std::fill(
+                ref_workspace.begin(), ref_workspace.end(), std::numeric_limits<T>::quiet_NaN());
 
-        //     workspace_dev = handle.Write(workspace.data);
-        // }
+            workspace_dev = handle.Write(workspace.data);
+        }
 
         input_dev  = handle.Write(input.data);
         target_dev = handle.Write(target.data);
@@ -175,22 +175,20 @@ protected:
         }
         else
         {
-            // cpu_kldivloss_reduced_forward_5d<T>(
-            //     input, target, weight, ref_output, ref_workspace, ignore_index, divisor);
-            // status         = miopen::NLLLossReduceForward(handle,
-            //                                       workspace_dev.get(),
-            //                                       ws_sizeInBytes,
-            //                                       input.desc,
-            //                                       input_dev.get(),
-            //                                       target.desc,
-            //                                       target_dev.get(),
-            //                                       weight.desc,
-            //                                       weight_dev.get(),
-            //                                       output.desc,
-            //                                       output_dev.get(),
-            //                                       ignore_index,
-            //                                       divisor);
-            // workspace.data = handle.Read<T>(workspace_dev, workspace.data.size());
+            cpu_kldivloss_reduced_forward_5d<T>(
+                input, target, ref_output, ref_workspace, divisor, log_target);
+            status         = miopen::KLDivLossReducedForward(handle,
+                                                     workspace_dev.get(),
+                                                     ws_sizeInBytes,
+                                                     input.desc,
+                                                     input_dev.get(),
+                                                     target.desc,
+                                                     target_dev.get(),
+                                                     output.desc,
+                                                     output_dev.get(),
+                                                     divisor,
+                                                     log_target);
+            workspace.data = handle.Read<T>(workspace_dev, workspace.data.size());
         }
         fflush(stdout);
 
@@ -229,7 +227,7 @@ protected:
     size_t ws_sizeInBytes;
 };
 
-// // BACKWARD TEST
+// BACKWARD TEST
 template <typename T = float>
 struct KLDivLossTestBwd : public ::testing::TestWithParam<KLDivLossTestCase>
 {
