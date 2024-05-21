@@ -665,7 +665,8 @@ private:
         m_executionPlan->AddRef(varpack);
 
         // Execute the plan with a variant pack.
-        miopenBackendExecute(rawHandle, m_executionPlan->GetDescriptor(), varpack->GetDescriptor());
+        miopenStatus_t status = miopenBackendExecute(rawHandle, m_executionPlan->GetDescriptor(), varpack->GetDescriptor());
+        CheckStatusAndThrow(status, "miopenBackendExecute failed!");
     }
 
     void RunCPUverify(miopen::Handle& handle)
