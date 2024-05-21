@@ -169,6 +169,8 @@ set( MIOpen_Source
     rnn_api.cpp
     rnn/rnn_util.cpp
     rnn/Solutions/rnn_transformer.cpp
+    rope/problem_description.cpp
+    rope_api.cpp
     scalar.cpp
     softmax.cpp
     softmax_api.cpp
@@ -292,6 +294,8 @@ set( MIOpen_Source
     solver/reduce/forward_max.cpp
     solver/reduce/forward_min.cpp
     solver/reduce/forward_sum.cpp
+    solver/rope/backward_rope.cpp
+    solver/rope/forawrd_rope.cpp
     solver/softmax/attn_softmax.cpp
     solver/softmax/softmax.cpp
     subbuffers.cpp
@@ -444,6 +448,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/neuron.inc
         kernels/rocm_version.inc
         kernels/stride_array.hpp
+        kernels/tensor_view.hpp
         kernels/utilities.inc
         kernels/winograd/Conv_Winograd_Fury_v2_4_1_gfx11_1536vgprs_fp16_fp16acc_f2x3_c16_stride1.inc
         kernels/winograd/Conv_Winograd_Fury_v2_4_1_gfx11_1536vgprs_fp16_fp16acc_f2x3_c32_stride1.inc
@@ -495,6 +500,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenConv1x1J1.cl
         kernels/MIOpenConv1x1J1_stride.cl
         kernels/MIOpenReduceExtreme.cpp
+        kernels/MIOpenRoPE.cpp
         kernels/MIOpenSoftmax.cl
         kernels/MIOpenSoftmaxAttn.cpp
         kernels/MIOpenSum.cpp
@@ -635,6 +641,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         ocl/fusionopconvocl.cpp
         ocl/fusionopbiasbnactivocl.cpp
         reduceextreme.cpp
+        rope.cpp
         sum.cpp
         ${PROJECT_BINARY_DIR}/db_path.cpp
         )

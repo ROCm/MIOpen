@@ -69,6 +69,7 @@
  * @defgroup groupnorm
  * @defgroup cat
  * @defgroup SGD
+ * @defgroup RotaryPositionalEmbeddings
  *
  */
 
@@ -7209,6 +7210,70 @@ miopenFusedAdamWithOutput(miopenHandle_t handle,
 /** @} */
 // CLOSEOUT SGD DOXYGEN GROUP
 #endif // MIOPEN_BETA_API
+
+#ifdef MIOPEN_BETA_API
+// RotaryPositionalEmbeddings APIs
+/** @addtogroup RotaryPositionalEmbeddings
+ *
+ *  @{
+ */
+/*! @brief Execute a rope forward layer
+ *
+ * @param handle         MIOpen handle (input)
+ * @param mode           LayerNorm mode (input)
+ * @param xDesc          Tensor descriptor for data input tensor x (input)
+ * @param x              Data tensor x (input)
+ * @param weightDesc     Tensor descriptor for data input tensor weight (input)
+ * @param weight         Data tensor weight (input)
+ * @param epsilon        Value to stablize inverse variance calculation (input)
+ * @param yDesc          Tensor descriptor for output data tensor y (input)
+ * @param y              Data tensor y (output)
+ * @param rstdDesc       Tensor descriptor for output data tensor rstd (input)
+ * @param rstd           Data tensor rstd (output)
+ * @return               miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenRoPEForward(miopenHandle_t handle,
+                                               const miopenTensorDescriptor_t xDesc,
+                                               const void* x,
+                                               const miopenTensorDescriptor_t scaledfreqscosDesc,
+                                               const void* scaledfreqscos,
+                                               const miopenTensorDescriptor_t scaledfreqssinDesc,
+                                               const void* scaledfreqssin,
+                                               const miopenTensorDescriptor_t yDesc,
+                                               void* y);
+
+/*! @brief Execute a rope backward layer
+ *
+ * @param handle                   MIOpen handle (input)
+ * @param mode                     LayerNorm mode (input)
+ * @param workspace                Address of the allocated workspace data (input)
+ * @param workspaceSizeInBytes     Size in bytes of the allocated workspace data (input)
+ * @param dyDesc                   Tensor descriptor for data input tensor dy (input)
+ * @param dy                       Data tensor dy (input)
+ * @param xDesc                    Tensor descriptor for output data tensor x (input)
+ * @param x                        Data tensor x (input)
+ * @param weightDesc               Tensor descriptor for data input tensor weight (input)
+ * @param weight                   Data tensor weight (input)
+ * @param rstdDesc                 Tensor descriptor for output data tensor rstd (input)
+ * @param rstd                     Data tensor rstd (output)
+ * @param dxDesc                   Tensor descriptor for output data tensor dx (input)
+ * @param dx                       Data tensor dx (output)
+ * @param dwDesc                   Tensor descriptor for output data tensor dw (input)
+ * @param dw                       Data tensor dw (output)
+ * @return                         miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenRoPEBackward(miopenHandle_t handle,
+                                                const miopenTensorDescriptor_t dyDesc,
+                                                const void* dy,
+                                                const miopenTensorDescriptor_t scaledfreqscosDesc,
+                                                const void* scaledfreqscos,
+                                                const miopenTensorDescriptor_t scaledfreqssinDesc,
+                                                const void* scaledfreqssin,
+                                                const miopenTensorDescriptor_t dxDesc,
+                                                void* dx);
+/** @} */
+// CLOSEOUT LAYERNORM DOXYGEN GROUP
+#endif
 
 #ifdef __cplusplus
 }
