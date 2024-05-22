@@ -237,6 +237,11 @@ private:
                              miopenStatusSuccess);
             }
 
+            std::cerr << "Testing with: ";
+            std::cerr << (tune != 0 ? "tuning" : "no tuning") << ", ";
+            std::cerr << (attach_binaries ? "attached binaries" : "no binaries") << ", ";
+            std::cerr << workspace_limit << " ws limit";
+
             EXPECT_EQUAL(miopenFindSolutions(
                              handle, problem, options, solutions.data(), &found, solutions.size()),
                          miopenStatusSuccess);
