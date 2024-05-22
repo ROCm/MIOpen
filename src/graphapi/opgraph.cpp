@@ -186,20 +186,6 @@ bool checkSameNodesByName(const OpGraph& left, const OpGraph& right)
     std::sort(l_names.begin(), l_names.end());
     std::sort(r_names.begin(), r_names.end());
 
-    // REMOVE BEG
-    auto print_vec = [](const auto& vec, const char* name) {
-        std::cout << name << "= [";
-        for(const auto& v : vec)
-        {
-            std::cout << v << ", ";
-        }
-        std::cout << "]\n";
-    };
-
-    print_vec(l_names, "l_names");
-    print_vec(r_names, "r_names");
-    // REMOVE_END
-
     return l_names == r_names;
 }
 
@@ -208,21 +194,6 @@ bool checkSameDegreeVecs(const OpGraph& left, const OpGraph& right)
     auto l_degs = left.getInOutDegrees();
     auto r_degs = right.getInOutDegrees();
 
-    /*
-    auto sort_deg_vec = [] (auto& deg_vec) {
-
-        std::sort(deg_vec.begin(), deg_vec.end(),
-            [] (const auto& left, const auto& right) {
-              if (left.first == right.first) {
-                return left.second < right.second;
-              }
-              return left.first < right.first;
-            });
-
-    };
-    sort_deg_vec(l_degs);
-    sort_deg_vec(r_degs);
-    */
     std::sort(l_degs.begin(), l_degs.end());
     std::sort(r_degs.begin(), r_degs.end());
     return l_degs == r_degs;
@@ -240,16 +211,6 @@ auto groupBySize(VecOfPaths&& all_paths)
 
     return paths_by_size;
 }
-
-/*
-auto sumPathSizes(const VecOfPaths& all_paths) {
-    size_t ret = 0;
-    for (const auto& p: all_paths) {
-      ret += p.size();
-    }
-    return ret;
-}
-*/
 
 bool checkSamePathVecs(const VecOfPaths& left, const VecOfPaths& right)
 {
@@ -326,26 +287,31 @@ bool isIsomorphic(const OpGraph& left, const OpGraph& right)
 {
     if(left.numNodes() != right.numNodes())
     {
+        MIOPEN_LOG_I("test failed due to num nodes being different");
         return false;
     }
 
     if(left.numEdges() != right.numEdges())
     {
+        MIOPEN_LOG_I("test failed due to num edges being different");
         return false;
     }
 
     if(!internal::checkSameNodesByName(left, right))
     {
+        MIOPEN_LOG_I("test failed due to node names being different");
         return false;
     }
 
     if(!internal::checkSameDegreeVecs(left, right))
     {
+        MIOPEN_LOG_I("test failed due to node degrees being different");
         return false;
     }
 
     if(!internal::checkSamePaths(left, right))
     {
+        MIOPEN_LOG_I("test failed due to paths being different");
         return false;
     }
 

@@ -49,7 +49,7 @@ namespace gr = miopen::graphapi;
 
 namespace mha_graph_test {
 
-class MhaFwdGraphTest : public testing::TestWithParam<std::tuple<int, int, int, int>>
+class MhaFwdGraphTest : public testing::TestWithParam<std::tuple<int, int, int, int, float>>
 {
 
     struct TensorData
@@ -100,6 +100,7 @@ class MhaFwdGraphTest : public testing::TestWithParam<std::tuple<int, int, int, 
     gr::AutoDeleteAllocator mAlloc;
     std::unordered_map<std::string, TensorData> mFilledTensors;
     float mAttentionScale = 1.0f;
+    float mProbDropout    = 0.0f;
 
     template <bool IsVirt>
     gr::Tensor* makeTensor(std::string_view name, const std::vector<int64_t>& dims)
@@ -234,10 +235,9 @@ class MhaFwdGraphTest : public testing::TestWithParam<std::tuple<int, int, int, 
         }
         else if(name == "OP_RNG")
         {
-            constexpr double BERNOULLI = 0.5;
-            auto* rng_desc             = mAlloc.allocate(gr::RngBuilder{}
+            auto* rng_desc = mAlloc.allocate(gr::RngBuilder{}
                                                  .setDistribution(MIOPEN_RNG_DISTRIBUTION_BERNOULLI)
-                                                 .setBernoulliProb(BERNOULLI)
+                                                 .setBernoulliProb(mProbDropout)
                                                  .build());
 
             assert(in_tensors.size() == 2); // first is seed tensor, second is offset
@@ -436,7 +436,11 @@ class MhaFwdGraphTest : public testing::TestWithParam<std::tuple<int, int, int, 
             {
                 v.init(1.0f);
             }
-            else if(k == "RND_PRB" || k == "RND_SD" || k == "RND_OFF")
+            else if(k == "RND_PRB")
+            {
+                v.init(mProbDropout);
+            }
+            else if(k == "RND_SD" || k == "RND_OFF")
             {
                 v.init(0.0f);
             }
@@ -520,7 +524,14 @@ class MhaFwdGraphTest : public testing::TestWithParam<std::tuple<int, int, int, 
 public:
     void Run()
     {
-        auto [n, h, s, d] = GetParam();
+        auto [n, h, s, d, p] = GetParam();
+        mProbDropout         = p;
+
+        auto& handle = get_handle();
+        if((p > 0.0f) && (s % handle.GetWavefrontWidth() != 0))
+        {
+            GTEST_SKIP() << "CPU Dropout currently supprorts only fully occupied warps";
+        }
         createMhaGraph(n, h, s, d);
         initInputs(n, h, s, d);
         executeMhaGraph();
@@ -536,8 +547,9 @@ TEST_P(MhaFwdGraphTest, MhaFwdGraph) { Run(); }
 
 INSTANTIATE_TEST_SUITE_P(MhaGraphFwdSuite,
                          MhaFwdGraphTest,
-                         testing::Combine(testing::ValuesIn({2}), // n
-                                          testing::ValuesIn({4}), // s
-                                          testing::ValuesIn({8}), // h
-                                          testing::ValuesIn({16}) // d
+                         testing::Combine(testing::ValuesIn({2}),         // n
+                                          testing::ValuesIn({4, 64}),     // s
+                                          testing::ValuesIn({8}),         // h
+                                          testing::ValuesIn({16}),        // d
+                                          testing::ValuesIn({0.0f, 0.5f}) // mProbDropout
                                           ));
