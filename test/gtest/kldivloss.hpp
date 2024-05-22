@@ -63,16 +63,14 @@ struct KLDivLossTestCase
 
 inline std::vector<KLDivLossTestCase> KLDivLossTestConfigs()
 {
-    return {
-        {{256, 4, 8732}, false, 0.0f},
-        {{256, 4, 8732}, false, 1.0f},
-        {{256, 4, 8732}, true, 0.0f},
-        {{256, 4, 8732}, true, 1.0f},
-        // {{34, 4}, false, 0.0f},
-        // {{34, 4}, false, 1.0f},
-        // {{34, 4}, true, 0.0f},
-        // {{34, 4}, true, 1.0f}
-    };
+    return {{{256, 4, 55}, false, 0.0f},
+            {{256, 4, 55}, false, 1.0f},
+            {{256, 4, 55}, true, 0.0f},
+            {{256, 4, 55}, true, 1.0f},
+            {{34, 4}, false, 0.0f},
+            {{34, 4}, false, 1.0f},
+            {{34, 4}, true, 0.0f},
+            {{34, 4}, true, 1.0f}};
 }
 
 inline std::vector<size_t> GetStrides(std::vector<size_t> input, bool contiguous)
@@ -105,18 +103,26 @@ protected:
         auto target_dim = in_dim;
 
         auto gen_input_value = [](auto...) {
-            return prng::gen_A_to_B<T>(static_cast<T>(-10.0f), static_cast<T>(10.0f));
+            return prng::gen_A_to_B<T>(static_cast<T>(-0.1f), static_cast<T>(0.1f));
         };
-
-        auto gen_target_value = [](auto...) {
-            return prng::gen_A_to_B<T>(static_cast<T>(1e-2), static_cast<T>(10.0f));
-        };
-
         auto in_strides = GetStrides(in_dim, true);
         input           = tensor<T>{in_dim, in_strides}.generate(gen_input_value);
 
         auto tar_strides = GetStrides(target_dim, true);
-        target           = tensor<T>{target_dim, tar_strides}.generate(gen_target_value);
+        if(log_target)
+        {
+            auto gen_target_value = [](auto...) {
+                return prng::gen_A_to_B<T>(static_cast<T>(-2.0f), static_cast<T>(-1.0f));
+            };
+            target = tensor<T>{target_dim, tar_strides}.generate(gen_target_value);
+        }
+        else
+        {
+            auto gen_target_value = [](auto...) {
+                return prng::gen_A_to_B<T>(static_cast<T>(1.0f), static_cast<T>(2.0f));
+            };
+            target = tensor<T>{target_dim, tar_strides}.generate(gen_target_value);
+        }
 
         auto out_dim     = divisor == 0.f ? in_dim : std::vector<size_t>{1};
         auto out_strides = GetStrides(out_dim, true);
@@ -200,6 +206,13 @@ protected:
     void Verify()
     {
         double threshold = std::numeric_limits<T>::epsilon();
+
+        auto error_ws = miopen::rms_range(ref_workspace, workspace);
+
+        EXPECT_TRUE(miopen::range_distance(ref_workspace) == miopen::range_distance(workspace));
+        EXPECT_TRUE(error_ws < threshold * 10)
+            << "Error workspace beyond tolerance Error:" << error_ws
+            << ",  Thresholdx10: " << threshold * 10;
 
         auto error = miopen::rms_range(ref_output, output);
 

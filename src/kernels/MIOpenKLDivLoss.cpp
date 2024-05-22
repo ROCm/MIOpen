@@ -59,9 +59,9 @@ __device__ void kldivLossUnreducedForward5d(const TI* __restrict__ input,
     uint64_t gid = threadIdx.x + blockIdx.x * blockDim.x;
 
     size_t n[5];
-    GET_NCDHW(n[0], n[1], n[2], n[3], n[4], gid, output_tv);
+    GET_NCDHW(n[0], n[1], n[2], n[3], n[4], gid, input_tv);
 
-    if(n[0] >= output_tv.size[0])
+    if(n[0] >= input_tv.size[0])
         return;
 
     size_t Iidx = TV5D_IDX(input_tv, n[0], n[1], n[2], n[3], n[4]);

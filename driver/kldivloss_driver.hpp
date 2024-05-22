@@ -214,8 +214,8 @@ int KLDivLossDriver<Tgpu, Tref>::GetandSetData()
     else
     {
         std::vector<int> out_len_rd = {1};
-        SetTensorNd(outputDesc, out_len_rd, data_type);
-        auto output_strides = GetStrides(out_len_rd, 1);
+        auto output_strides         = GetStrides(out_len_rd, 1);
+        SetTensorNd(outputDesc, out_len_rd, output_strides, data_type);
         SetTensorNd(outputGradDesc, out_len_rd, output_strides, data_type);
         if(reduction == "sum")
             divisor = 1;
@@ -272,12 +272,10 @@ int KLDivLossDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
     if(!std::isnan(divisor))
     {
-        // miopenGetKLDivLossReducedForwardWorkspaceSize(
-        //     GetHandle(), inputDesc, targetDesc, outputDesc, divisor, log_target,
-        //     &ws_sizeInBytes);
-        // if(ws_sizeInBytes == static_cast<size_t>(-1))
-        //     return miopenStatusAllocFailed;
-        ws_sizeInBytes = 0;
+        miopenGetKLDivLossReducedForwardWorkspaceSize(
+            GetHandle(), inputDesc, targetDesc, outputDesc, divisor, log_target, &ws_sizeInBytes);
+        if(ws_sizeInBytes == static_cast<size_t>(-1))
+            return miopenStatusAllocFailed;
     }
     else
         ws_sizeInBytes = 0;
@@ -310,13 +308,23 @@ int KLDivLossDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
     for(int i = 0; i < in_sz; i++)
     {
-        in[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(-2.0f), static_cast<Tgpu>(2.0f));
+        in[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(-0.1f), static_cast<Tgpu>(0.1f));
     }
     status = in_dev->ToGPU(q, in.data());
 
-    for(int i = 0; i < target_sz; i++)
+    if(log_target)
     {
-        target[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(1e-1), static_cast<Tgpu>(2.0f));
+        for(int i = 0; i < target_sz; i++)
+        {
+            target[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(-2.0f), static_cast<Tgpu>(-1.0f));
+        }
+    }
+    else
+    {
+        for(int i = 0; i < target_sz; i++)
+        {
+            target[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(1.0), static_cast<Tgpu>(2.0));
+        }
     }
     status |= target_dev->ToGPU(q, target.data());
 
@@ -351,17 +359,17 @@ int KLDivLossDriver<Tgpu, Tref>::RunForwardGPU()
     {
         if(!std::isnan(divisor))
         {
-            // miopenKLDivLossReducedForward(GetHandle(),
-            //                               workspace_dev->GetMem(),
-            //                               ws_sizeInBytes,
-            //                               inputDesc,
-            //                               in_dev->GetMem(),
-            //                               targetDesc,
-            //                               target_dev->GetMem(),
-            //                               outputDesc,
-            //                               out_dev->GetMem(),
-            //                               divisor,
-            //                               log_target);
+            miopenKLDivLossReducedForward(GetHandle(),
+                                          workspace_dev->GetMem(),
+                                          ws_sizeInBytes,
+                                          inputDesc,
+                                          in_dev->GetMem(),
+                                          targetDesc,
+                                          target_dev->GetMem(),
+                                          outputDesc,
+                                          out_dev->GetMem(),
+                                          divisor,
+                                          log_target);
         }
         else
         {
@@ -403,14 +411,14 @@ int KLDivLossDriver<Tgpu, Tref>::RunForwardCPU()
 {
     if(!std::isnan(divisor))
     {
-        // mloKLDivLossReducedForwardRunHost5d<Tgpu, Tref>(inputDesc,
-        //                                                 targetDesc,
-        //                                                 in.data(),
-        //                                                 target.data(),
-        //                                                 out_host.data(),
-        //                                                 workspace_host.data(),
-        //                                                 log_target,
-        //                                                 divisor);
+        mloKLDivLossReducedForwardRunHost5d<Tgpu, Tref>(inputDesc,
+                                                        targetDesc,
+                                                        in.data(),
+                                                        target.data(),
+                                                        out_host.data(),
+                                                        workspace_host.data(),
+                                                        divisor,
+                                                        log_target);
     }
     else
     {
@@ -551,6 +559,9 @@ int KLDivLossDriver<Tgpu, Tref>::VerifyForward()
     RunForwardCPU();
     const Tref tolerance = GetTolerance();
     auto error           = miopen::rms_range(out_host, out);
+
+    printf(
+        "[%d]CPU: %f, GPU: %f\n", 0, static_cast<float>(out_host[0]), static_cast<float>(out[0]));
 
     if(!std::isfinite(error) || error > tolerance)
     {

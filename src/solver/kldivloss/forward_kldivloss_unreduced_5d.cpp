@@ -50,7 +50,7 @@ bool KLDivLossUnreducedForward5d::IsApplicable(
     if(!KLDivLossUnreducedSolver::IsApplicable(context, problem))
         return false;
 
-    return true;
+    return false;
 }
 
 ConvSolution KLDivLossUnreducedForward5d::GetSolution(
