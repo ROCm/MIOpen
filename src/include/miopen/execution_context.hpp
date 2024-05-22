@@ -37,6 +37,7 @@
 #include <miopen/filesystem.hpp>
 
 #include <string>
+#include <string_view>
 
 class rocm_meta_version
 {
@@ -112,11 +113,13 @@ struct ExecutionContext
     ExecutionContext& operator=(ExecutionContext&&) = default;
 
 #if MIOPEN_EMBED_DB
-    fs::path GetPerfDbPathEmbed() const
+    fs::path GetPerfDbPathEmbed(std::string_view prefix = "") const
     {
         static const auto result = [&] {
             auto pdb_path(GetSystemDbPath());
             std::ostringstream filename;
+            if(!prefex.empty())
+                filename << prefix << '_';
             // clang-format off
             filename << GetStream().GetDbBasename();
 #if MIOPEN_ENABLE_SQLITE && MIOPEN_USE_SQLITE_PERFDB
@@ -179,10 +182,12 @@ struct ExecutionContext
         return result;
     }
 #else
-    fs::path GetPerfDbPathFile() const
+    fs::path GetPerfDbPathFile(std::string_view prefix = "") const
     {
         static const auto result = [&] {
             const auto pdb_path(GetSystemDbPath());
+            if(!prefix.empty())
+                filename << prefix << '_';
 #if MIOPEN_ENABLE_SQLITE && MIOPEN_USE_SQLITE_PERFDB
             constexpr std::string_view ext = ".db";
 #else
@@ -259,22 +264,24 @@ struct ExecutionContext
     }
 #endif
 
-    fs::path GetPerfDbPath() const
+    fs::path GetPerfDbPath(std::string_view prefix = "") const
     {
 #if MIOPEN_EMBED_DB
-        return GetPerfDbPathEmbed();
+        return GetPerfDbPathEmbed(prefix);
 #else
-        return GetPerfDbPathFile();
+        return GetPerfDbPathFile(prefix);
 #endif
     }
 
-    fs::path GetUserPerfDbPath() const
+    fs::path GetUserPerfDbPath(std::string_view prefix = "") const
     {
         // an empty user-db path indicates user intent to disable
         // the database. Default in when dev builds are on
         const auto& udb = GetUserDbPath();
         if(udb.empty())
             return "";
+        if(!prefix.empty())
+            filename << prefix << '_';
         const auto filename = GetStream().GetDbBasename() +
 #if MIOPEN_ENABLE_SQLITE && MIOPEN_USE_SQLITE_PERFDB
                               "_" + SQLitePerfDb::MIOPEN_PERFDB_SCHEMA_VER + ".udb";
