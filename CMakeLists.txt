@@ -282,7 +282,7 @@ if(HAS_HIP)
 else()
     # CXX compiler is not HIP compiler, let's analyze HIP version.
     set(MIOPEN_HIP_COMPILER_HAS_OPTION_OFFLOAD_UNIFORM_BLOCK Off)
-    if(${MIOPEN_hip_VERSION_FLAT} GREATER_EQUAL 500723302)
+    if(MIOPEN_hip_VERSION_FLAT GREATER_EQUAL 500723302)
         set(MIOPEN_HIP_COMPILER_HAS_OPTION_OFFLOAD_UNIFORM_BLOCK On)
     endif()
     message(STATUS "MIOPEN_HIP_COMPILER_HAS_OPTION_OFFLOAD_UNIFORM_BLOCK: ${MIOPEN_HIP_COMPILER_HAS_OPTION_OFFLOAD_UNIFORM_BLOCK}")
@@ -309,11 +309,12 @@ if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_B
     endif()
     set(MIOPEN_BACKEND_HIP 1)
 
-    find_program(HIP_OC_COMPILER amdclang
+    find_program(HIP_OC_COMPILER NAMES amdclang clang
         PATH_SUFFIXES bin
         PATHS
             /opt/rocm
             ${CMAKE_INSTALL_PREFIX}
+        ENV HIP_PATH
     )
     if(HIP_OC_COMPILER)
         message(STATUS "OpenCL compiler: ${HIP_OC_COMPILER}")

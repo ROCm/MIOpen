@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,44 +23,60 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef GUARD_CPU_ARGMAX_HPP
-#define GUARD_CPU_ARGMAX_HPP
+#include <miopen/env.hpp>
+#include "adam.hpp"
 
-#include "tensor_holder.hpp"
+MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 
-template <class T>
-void cpu_argmax_forward(tensor<T> input, tensor<int>& ref_output, int32_t dim)
+namespace adam {
+
+std::string GetFloatArg()
 {
-    auto input_dims  = input.desc.GetLengths();
-    auto output_dims = ref_output.desc.GetLengths();
-
-    auto reduce_size = input_dims[dim];
-    auto output_numel =
-        std::accumulate(output_dims.begin(), output_dims.end(), 1LL, std::multiplies<int64_t>());
-
-    auto inner_size = 1ULL;
-    for(int32_t i = dim + 1; i < input_dims.size(); i++)
+    const auto& tmp = miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_TEST_FLOAT_ARG));
+    if(tmp.empty())
     {
-        inner_size *= input_dims[i];
+        return "";
     }
-
-    par_ford(output_numel)([&](size_t o) {
-        size_t input_idx = (o / inner_size) * inner_size * reduce_size + o % inner_size;
-
-        int32_t max_idx = 0;
-        T max           = input[input_idx];
-
-        ford(reduce_size)([&](size_t i) {
-            T val = input[input_idx];
-            if(max < val)
-            {
-                max     = val;
-                max_idx = i;
-            }
-            input_idx += inner_size;
-        });
-
-        ref_output[o] = max_idx;
-    });
+    return tmp;
 }
-#endif
+
+struct AdamTestFloat : AdamTest<float, float>
+{
+};
+
+struct AmpAdamTestFloat : AdamTest<float, half_float::half, true>
+{
+};
+
+} // namespace adam
+using namespace adam;
+
+TEST_P(AdamTestFloat, AdamTestFw)
+{
+    if(miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float"))
+    {
+        RunTest();
+        Verify();
+    }
+    else
+    {
+        GTEST_SKIP();
+    }
+};
+
+TEST_P(AmpAdamTestFloat, AmpAdamTestFw)
+{
+    if(miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float"))
+    {
+        RunTest();
+        Verify();
+    }
+    else
+    {
+        GTEST_SKIP();
+    }
+};
+
+INSTANTIATE_TEST_SUITE_P(AdamTestSet, AdamTestFloat, testing::ValuesIn(AdamTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(AdamTestSet, AmpAdamTestFloat, testing::ValuesIn(AdamTestConfigs()));

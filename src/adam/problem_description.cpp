@@ -23,18 +23,41 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include "argmax_driver.hpp"
-#include "registry_driver_maker.hpp"
 
-static Driver* makeDriver(const std::string& base_arg)
+#include <miopen/adam/problem_description.hpp>
+#include <miopen/datatype.hpp>
+#include <miopen/names.hpp>
+
+#include <sstream>
+
+namespace miopen {
+
+namespace adam {
+
+NetworkConfig ProblemDescription::MakeNetworkConfig() const
 {
-    if(base_arg == "argmax")
-        return new ArgmaxDriver<float, float>();
-    if(base_arg == "argmaxfp16")
-        return new ArgmaxDriver<float16, float>();
-    if(base_arg == "argmaxbfp16")
-        return new ArgmaxDriver<bfloat16, float>();
-    return nullptr;
+    auto dtype    = paramInDesc.GetType();
+    auto kernel   = IsAmp() ? "ampadam" : "adam";
+    auto step_ind = ExistStepTensor() ? "device" : "host";
+
+    std::ostringstream ss;
+
+    ss << kernel;
+    if(IsAdamW())
+        ss << "w";
+    if(IsAllPacked())
+        ss << "packed";
+    ss << "step" << step_ind;
+    ss << "dtype" << dtype;
+    if(IsAmp())
+    {
+        auto grad_dtype = gradInDesc.GetType();
+        ss << "grad_dtype" << grad_dtype;
+    }
+
+    return NetworkConfig{ss.str()};
 }
 
-REGISTER_DRIVER_MAKER(makeDriver);
+} // namespace adam
+
+} // namespace miopen
