@@ -564,7 +564,7 @@ void CheckDynamicFDBEntry(size_t thread_index,
                     auto program_file = miopen::make_object_file_name(kern.kernel_file).string();
                     ASSERT_TRUE(!miopen::EndsWith(kern.kernel_file, ".mlir"))
                         << "MLIR detected in dynamic solvers";
-                    if(miopen::EndsWith(program_file, ".s"))
+                    if(miopen::EndsWith(kern.kernel_file, ".s"))
                     {
                         compile_options += " -mcpu=" + miopen::LcOptionTargetStrings{handle.GetTargetProperties()}.targetId;
                     }
@@ -745,7 +745,14 @@ void CheckFDBEntry(size_t thread_index,
                         if(!miopen::EndsWith(kern.kernel_file, ".mlir"))
                         {
                             auto& handle = ctx.GetStream();
-                            compile_options += " -mcpu=" + handle.GetDeviceName();
+                            if(miopen::EndsWith(kern.kernel_file, ".s"))
+                            {
+                                compile_options += " -mcpu=" + miopen::LcOptionTargetStrings{handle.GetTargetProperties()}.targetId;
+                            }
+                            else
+                            {
+                                compile_options += " -mcpu=" + handle.GetDeviceName();
+                            }
                         }
                         auto search           = checked_kdbs.find({program_file, compile_options});
                         bool reported_already = search != checked_kdbs.end();
