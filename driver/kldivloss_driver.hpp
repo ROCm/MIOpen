@@ -238,7 +238,7 @@ int KLDivLossDriver<Tgpu, Tref>::AddCmdLineArgs()
     inflags.AddInputFlag("input_dims",
                          'D',
                          "16,21,21,21,10",
-                         "The dimensional lengths of the input tensor",
+                         "The dimensional lengths of the input tensor: N,C,D1,D2,... Example: 16,21,21,21,10.",
                          "string");
     inflags.AddInputFlag("log_target", 'l', "0", "Log target or not", "int");
     inflags.AddInputFlag(
@@ -256,7 +256,7 @@ int KLDivLossDriver<Tgpu, Tref>::AddCmdLineArgs()
 
     inflags.AddInputFlag("iter", 'i', "10", "Number of Iterations (Default=10)", "int");
     inflags.AddInputFlag("verify", 'V', "1", "Verify (Default=1)", "int");
-    inflags.AddInputFlag("time", 't', "1", "Time (Default=0)", "int");
+    inflags.AddInputFlag("time", 't', "1", "Time (Default=1)", "int");
     inflags.AddInputFlag(
         "wall", 'w', "0", "Wall-clock Time, Requires time == 1 (Default=0)", "int");
 
@@ -559,9 +559,6 @@ int KLDivLossDriver<Tgpu, Tref>::VerifyForward()
     RunForwardCPU();
     const Tref tolerance = GetTolerance();
     auto error           = miopen::rms_range(out_host, out);
-
-    printf(
-        "[%d]CPU: %f, GPU: %f\n", 0, static_cast<float>(out_host[0]), static_cast<float>(out[0]));
 
     if(!std::isfinite(error) || error > tolerance)
     {

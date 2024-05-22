@@ -6618,7 +6618,7 @@ miopenKLDivLossUnreducedForward(miopenHandle_t handle,
  * @param targetDesc               Tensor descriptor for target tensor (input)
  * @param outputDesc               Tensor descriptor for output tensor (input)
  * @param divisor                  Divisor (input)
- * @param log_target               Log target (input)
+ * @param log_target               Specifies whether target is the log space (input)
  * @param sizeInBytes              Pointer to data to return the minimum workspace size (output)
  * @return                         miopenStatus_t
  */
@@ -6634,7 +6634,7 @@ miopenGetKLDivLossReducedForwardWorkspaceSize(miopenHandle_t handle,
 /*! @brief Execute a KLDivLoss reduced forward layer
  *
  * @param handle                   MIOpen handle (input)
- * @param workspace                Address of the allocated workspace data (input)
+ * @param workspace                Address of the allocated workspace data (output)
  * @param workspaceSizeInBytes     Size in bytes of the allocated workspace data (input)
  * @param inputDesc                Tensor descriptor for input tensor (input)
  * @param input                    Data tensor input (input)
@@ -6642,7 +6642,7 @@ miopenGetKLDivLossReducedForwardWorkspaceSize(miopenHandle_t handle,
  * @param target                   Data tensor target (input)
  * @param outputDesc               Tensor descriptor for output tensor (input)
  * @param output                   Data tensor output (output)
- * @param log_target               Log target (input)
+ * @param log_target               Specifies whether target is the log space (input)
  * @param divisor                  Divisor (input)
  * @return                         miopenStatus_t
  */

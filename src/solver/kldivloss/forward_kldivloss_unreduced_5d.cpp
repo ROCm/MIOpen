@@ -35,7 +35,7 @@
 #include <miopen/target_properties.hpp>
 #include <miopen/tensor_view.hpp>
 
-#define LOCAL_SIZE_UNREDUCED_FWD 1024
+#define LOCAL_SIZE_UNREDUCED_FWD 128
 
 namespace miopen {
 
@@ -50,7 +50,7 @@ bool KLDivLossUnreducedForward5d::IsApplicable(
     if(!KLDivLossUnreducedSolver::IsApplicable(context, problem))
         return false;
 
-    return false;
+    return true;
 }
 
 ConvSolution KLDivLossUnreducedForward5d::GetSolution(

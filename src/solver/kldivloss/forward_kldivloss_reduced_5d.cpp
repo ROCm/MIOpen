@@ -35,7 +35,7 @@
 #include <miopen/target_properties.hpp>
 #include <miopen/tensor_view.hpp>
 
-#define LOCAL_SIZE_NON_CON_FWD 1024
+#define LOCAL_SIZE_FWD 256
 #define LOCAL_SIZE_REDUCED_FWD 256
 
 namespace miopen {
@@ -76,7 +76,7 @@ ConvSolution KLDivLossReducedForward5d::GetSolution(
                               {"D_TYPE", output_dtype == "bfloat16" ? "ushort" : output_dtype},
                               {"REDUCE_SIZE", LOCAL_SIZE_REDUCED_FWD}};
 
-    result.construction_params.push_back(make_hip_kernel({LOCAL_SIZE_NON_CON_FWD},
+    result.construction_params.push_back(make_hip_kernel({LOCAL_SIZE_FWD},
                                                          {N_total},
                                                          "MIOpenKLDivLoss.cpp",
                                                          "KLDivLossReducedForward5d",

@@ -57,7 +57,7 @@ static void LogCmdKLDivLoss(const miopenTensorDescriptor_t xDesc,
         }
         else if(dtype == miopenFloat)
         {
-            ss << "kldivlossfp32";
+            ss << "kldivloss";
         }
         else if(dtype == miopenBFloat16)
         {
