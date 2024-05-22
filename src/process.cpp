@@ -49,25 +49,9 @@ public:
         ZeroMemory(&info, sizeof(STARTUPINFO));
         info.cb = sizeof(STARTUPINFO);
 
-        outStream = out;
-        if(outStream != nullptr)
+        if(out != nullptr)
         {
-            // Refer to
-            // https://learn.microsoft.com/en-us/windows/win32/procthread/creating-a-child-process-with-redirected-input-and-output
-            SECURITY_ATTRIBUTES securityAttributes;
-            securityAttributes.nLength = sizeof(SECURITY_ATTRIBUTES); 
-            securityAttributes.bInheritHandle = TRUE; 
-            securityAttributes.lpSecurityDescriptor = NULL; 
-
-            if(!CreatePipe(&childStdOutRead, &childStdOutWrite, &securityAttributes, 0))
-                MIOPEN_THROW("CreatePipe error: " + std::to_string(GetLastError()));
-
-            if(!SetHandleInformation(childStdOutRead, HANDLE_FLAG_INHERIT, 0))
-                MIOPEN_THROW("SetHandleInformation error: " + std::to_string(GetLastError()));
-
-            info.hStdError  = childStdOutWrite;
-            info.hStdOutput = childStdOutWrite;
-            info.dwFlags |= STARTF_USESTDHANDLES;
+            MIOPEN_THROW("Overriding environment variables not defined for Windows environment.");
         }
 
         if(!additionalEnvironmentVariables.empty())
@@ -101,27 +85,6 @@ public:
 
     int Wait()
     {
-        if(outStream != nullptr)
-        {
-            DWORD dwRead;
-            std::array<char, 1024> buffer{};
-            bool success = false;
-
-            while(true)
-            {
-                success = ReadFile(childStdOutRead, buffer.data(), buffer.size(), &dwRead, NULL);
-                if(!success || dwRead == 0)
-                    break;
-
-                outStream->write(buffer.data(), dwRead);
-                if(outStream->bad())
-                    break;
-            }
-
-            CloseHandle(childStdOutWrite);
-            CloseHandle(childStdOutRead);
-        }
-
         WaitForSingleObject(processInfo.hProcess, INFINITE);
 
         DWORD status;
@@ -137,9 +100,6 @@ public:
     }
 
 private:
-    HANDLE childStdOutRead;
-    HANDLE childStdOutWrite;
-    std::ostream* outStream;
     fs::path path;
     PROCESS_INFORMATION processInfo{};
 };
