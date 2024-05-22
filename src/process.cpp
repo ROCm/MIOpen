@@ -98,7 +98,7 @@ public:
     {
         if(outStream != nullptr)
         {
-            std::streamsize dwRead, dwWritten;
+            std::streamsize dwRead;
             std::array<char, 1024> buffer{};
             bool success = false;
 
