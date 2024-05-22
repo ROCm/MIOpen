@@ -32,6 +32,7 @@
 #include <miopen/execution_context.hpp>
 
 #include <miopen/find_db.hpp>
+#include <miopen/hip_build_utils.hpp>
 #include <miopen/tensor.hpp>
 #include <miopen/conv/problem_description.hpp>
 #include <miopen/conv_algo_name.hpp>
@@ -563,7 +564,14 @@ void CheckDynamicFDBEntry(size_t thread_index,
                     auto program_file = miopen::make_object_file_name(kern.kernel_file).string();
                     ASSERT_TRUE(!miopen::EndsWith(kern.kernel_file, ".mlir"))
                         << "MLIR detected in dynamic solvers";
-                    compile_options += " -mcpu=" + handle.GetDeviceName();
+                    if(miopen::EndsWith(program_file, ".s"))
+                    {
+                        compile_options += " -mcpu=" + miopen::LcOptionTargetStrings{handle.GetTargetProperties()}.targetId;
+                    }
+                    else
+                    {
+                        compile_options += " -mcpu=" + handle.GetDeviceName();
+                    }
                     auto search = checked_kdbs.find({program_file, compile_options});
                     if(search !=
                        checked_kdbs
