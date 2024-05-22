@@ -471,35 +471,35 @@ private:
     {
         using namespace test::cpu;
 
-        // ScaledTensor Q = GenScaledTensor(m_testN, m_testH, m_testS, m_testD);
-        // ScaledTensor K = GenScaledTensor(m_testN, m_testH, m_testS, m_testD);
-        // ScaledTensor V = GenScaledTensor(m_testN, m_testH, m_testS, m_testD);
+        ScaledTensor Q = GenScaledTensor(m_testN, m_testH, m_testS, m_testD);
+        ScaledTensor K = GenScaledTensor(m_testN, m_testH, m_testS, m_testD);
+        ScaledTensor V = GenScaledTensor(m_testN, m_testH, m_testS, m_testD);
 
         for(auto& [k, v] : m_realTensorMap)
         {
             if(k == miopenTensorMhaQ)
-            {
-                v->Init(1.0f);
+            {                
+                v->Init(std::move(Q.mTensor));
             }
             else if(k == miopenTensorMhaDescaleQ)
             {
-                v->Init(1.0f);
+                v->Init(Q.mDescale);
             }
             else if(k == miopenTensorMhaK)
             {
-                v->Init(1.0f);
+                v->Init(std::move(K.mTensor));
             }
             else if(k == miopenTensorMhaDescaleK)
-            {
-                v->Init(1.0f);
+            {                
+                v->Init(K.mDescale);
             }
             else if(k == miopenTensorMhaV)
             {
-                v->Init(1.0f);
+                v->Init(std::move(V.mTensor));
             }
             else if(k == miopenTensorMhaDescaleV)
             {
-                v->Init(1.0f);
+                v->Init(V.mDescale);
             }
             else if(k == miopenTensorMhaScaleO || k == miopenTensorMhaScaleS ||
                     k == miopenTensorMhaDescaleS)
@@ -791,16 +791,6 @@ private:
         auto oRes = GetResult(miopenTensorMhaO);
 
         std::vector<tensor<float>*> vec = {&oRes, &oDescRef};
-
-        /*for (const tensor<float>* t : vec)
-        {
-            for (float val : t->data)
-            {
-                std::cout << val << std::endl;
-            }
-
-            std::cout << "-----------------------------------" << std::endl;
-        } */
 
         double oError = miopen::rms_range(oDescRef, oRes);
         EXPECT_LT(oError, errorThreshold);
