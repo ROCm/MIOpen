@@ -26,6 +26,7 @@
 #include <miopen/batch_norm.hpp>
 
 #include <miopen/check_numerics.hpp>
+#include <miopen/db.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/float_equal.hpp>
@@ -39,11 +40,20 @@
 #include <miopen/stringutils.hpp>
 #include <miopen/batchnorm/invoke_params.hpp>
 #include <miopen/batchnorm/solvers.hpp>
+#include <miopen/batchnorm/problem_description.hpp>
 #include <miopen/find_solution.hpp>
 
 #include <chrono>
 
 namespace miopen {
+
+namespace batchnorm {
+miopen::PerformanceDb GetDb(const miopen::ExecutionContext& ctx,
+                            const miopen::batchnorm::ProblemDescriptionTag&)
+{
+    return {DbKinds::PerfDb, ctx.GetPerfDbPath("batchnorm"), ctx.GetUserPerfDbPath("batchnorm")};
+}
+} // namespace batchnorm
 
 void BatchNormForwardTraining(Handle& handle,
                               miopenBatchNormMode_t bn_mode,
