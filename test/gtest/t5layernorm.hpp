@@ -409,7 +409,7 @@ protected:
         std::fill(ref_dw.begin(), ref_dw.end(), std::numeric_limits<T>::quiet_NaN());
 
         std::vector<size_t> workspace_dims;
-        printf("GetT5LayerNormBackwardWorkspaceSize\n");
+
         ws_sizeInBytes = miopen::GetT5LayerNormBackwardWorkspaceSize(
             handle, dy.desc, x.desc, weight.desc, rstd.desc, dx.desc, dw.desc, ln_mode);
         if(ws_sizeInBytes == static_cast<size_t>(-1))
