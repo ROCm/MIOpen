@@ -54,7 +54,12 @@ public:
         {
             // Refer to
             // https://learn.microsoft.com/en-us/windows/win32/procthread/creating-a-child-process-with-redirected-input-and-output
-            if(!CreatePipe(&childStdOutRead, &childStdOutWrite, &saAttr, 0))
+            SECURITY_ATTRIBUTES securityAttributes;
+            securityAttributes.nLength = sizeof(SECURITY_ATTRIBUTES); 
+            securityAttributes.bInheritHandle = TRUE; 
+            securityAttributes.lpSecurityDescriptor = NULL; 
+
+            if(!CreatePipe(&childStdOutRead, &childStdOutWrite, &securityAttributes, 0))
                 MIOPEN_THROW("CreatePipe error: " + std::to_string(GetLastError()));
 
             if(!SetHandleInformation(childStdOutRead, HANDLE_FLAG_INHERIT, 0))
@@ -98,14 +103,14 @@ public:
     {
         if(outStream != nullptr)
         {
-            std::streamsize dwRead;
+            DWORD dwRead;
             std::array<char, 1024> buffer{};
             bool success = false;
 
             while(true)
             {
-                bSuccess = ReadFile(childStdOutRead, buffer.data(), buffer.size(), &dwRead, NULL);
-                if(!bSuccess || dwRead == 0)
+                success = ReadFile(childStdOutRead, buffer.data(), buffer.size(), &dwRead, NULL);
+                if(!success || dwRead == 0)
                     break;
 
                 outStream->write(buffer.data(), dwRead);
