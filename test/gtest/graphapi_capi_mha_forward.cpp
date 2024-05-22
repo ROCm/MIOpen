@@ -169,10 +169,10 @@ DescriptorWrapperPtr MakeDescriptor(miopenBackendDescriptorType_t descriptorType
 
 DescriptorWrapperPtr MakeGapiTensorDesc(int64_t uniqueId,
                                         bool isVirtual = false,
-                                        int64_t n      = 1,
-                                        int64_t h      = 1,
-                                        int64_t s      = 1,
-                                        int64_t d      = 1,
+                                        size_t n      = 1,
+                                        size_t h      = 1,
+                                        size_t s      = 1,
+                                        size_t d      = 1,
                                         bool transpose = false)
 {
     DescriptorWrapperPtr descWrapperPtr = MakeDescriptor(MIOPEN_BACKEND_TENSOR_DESCRIPTOR);
@@ -182,12 +182,18 @@ DescriptorWrapperPtr MakeGapiTensorDesc(int64_t uniqueId,
     descWrapperPtr->SetAttribute(MIOPEN_ATTR_TENSOR_DATA_TYPE, MIOPEN_TYPE_DATA_TYPE, 1, &dtype);
 
     std::vector<int64_t> dims    = {n, h, s, d};
-    std::vector<int64_t> strides = {1, n, n * h, n * h * s};
 
+    miopen::TensorDescriptor td(miopenFloat, {n, h, s, d});
+    const std::vector<std::size_t>& tdStrides = td.GetStrides();
+
+    std::vector<int64_t> strides(tdStrides.size());
+    std::copy_n(tdStrides.begin(), tdStrides.size(), strides.begin());
+    
     if(transpose)
     {
-        dims    = {n, h, d, s};
-        strides = {1, n, n * h * s, n * h};
+        //dims    = {n, h, d, s};
+        std::swap(dims[2], dims[3]);
+        std::swap(strides[2], strides[3]);
     }
 
     // commented this out as Not Implemented
@@ -779,10 +785,10 @@ private:
     // from real tensors" + 1
     void MakeAndAddRealTensorDescriptor(int64_t tensorId,
                                         bool isVirtual = false,
-                                        int64_t n      = 1,
-                                        int64_t h      = 1,
-                                        int64_t s      = 1,
-                                        int64_t d      = 1,
+                                        size_t n      = 1,
+                                        size_t h      = 1,
+                                        size_t s      = 1,
+                                        size_t d      = 1,
                                         bool transpose = false)
     {
         DescriptorWrapperPtr realTensorGapiDesc =
@@ -803,10 +809,10 @@ private:
     int64_t GetNextId() { return m_nextTensorId++; }
 
 private:
-    const int64_t m_testN = 2;
-    const int64_t m_testH = 4;
-    const int64_t m_testS = 8;
-    const int64_t m_testD = 16;
+    const size_t m_testN = 2;
+    const size_t m_testH = 4;
+    const size_t m_testS = 8;
+    const size_t m_testD = 16;
 
     double m_bernulliProbability = 0.0;
 
