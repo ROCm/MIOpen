@@ -216,5 +216,48 @@ public:
     const auto& graph() const { return mGraph; }
 };
 
+std::string tensorEnumIdToStr(miopenTensorArgumentId_t id)
+{
+#define ENUM_CASE(k) \
+    case k: return #k;
+    switch(id)
+    {
+        ENUM_CASE(miopenTensorMhaK)
+        ENUM_CASE(miopenTensorMhaQ)
+        ENUM_CASE(miopenTensorMhaV)
+        ENUM_CASE(miopenTensorMhaDescaleK)
+        ENUM_CASE(miopenTensorMhaDescaleQ)
+        ENUM_CASE(miopenTensorMhaDescaleV)
+        ENUM_CASE(miopenTensorMhaDescaleS)
+        ENUM_CASE(miopenTensorMhaScaleS)
+        ENUM_CASE(miopenTensorMhaScaleO)
+        ENUM_CASE(miopenTensorMhaDropoutProbability)
+        ENUM_CASE(miopenTensorMhaDropoutSeed)
+        ENUM_CASE(miopenTensorMhaDropoutOffset)
+        ENUM_CASE(miopenTensorMhaO)
+        ENUM_CASE(miopenTensorMhaAmaxO)
+        ENUM_CASE(miopenTensorMhaAmaxS)
+        ENUM_CASE(miopenTensorMhaM)
+        ENUM_CASE(miopenTensorMhaZInv)
+        ENUM_CASE(miopenTensorMhaDO)
+        ENUM_CASE(miopenTensorMhaDescaleO)
+        ENUM_CASE(miopenTensorMhaDescaleDO)
+        ENUM_CASE(miopenTensorMhaDescaleDS)
+        ENUM_CASE(miopenTensorMhaScaleDS)
+        ENUM_CASE(miopenTensorMhaScaleDQ)
+        ENUM_CASE(miopenTensorMhaScaleDK)
+        ENUM_CASE(miopenTensorMhaScaleDV)
+        ENUM_CASE(miopenTensorMhaDQ)
+        ENUM_CASE(miopenTensorMhaDK)
+        ENUM_CASE(miopenTensorMhaDV)
+        ENUM_CASE(miopenTensorMhaAmaxDQ)
+        ENUM_CASE(miopenTensorMhaAmaxDK)
+        ENUM_CASE(miopenTensorMhaAmaxDV)
+        ENUM_CASE(miopenTensorMhaAmaxDS)
+    default: MIOPEN_THROW(miopenStatusInternalError, "unknown tensor enum id");
+    }
+#undef ENUM_CASE
+}
+
 } // end namespace graphapi
 } // end namespace miopen

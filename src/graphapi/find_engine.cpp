@@ -90,7 +90,14 @@ class MHA_Fwd_F8_Pattern : public GraphPatternMatcher
             assert(tens_ptr);
             assert(enum_id != miopenTensorArgumentIdInvalid);
 
-            tensor_map->emplace(tens_ptr->getId(), TensorInfo(enum_id, tens_ptr));
+            /*
+             * leaving to check that correct tensors are picked
+            MIOPEN_LOG_W("Tensor enum id: " << tensorEnumIdToStr(enum_id)
+                                            << " tensor unique id as str: "
+                                            << tensorIdAsStr(tens_ptr));
+            */
+
+            tensor_map->try_emplace(tens_ptr->getId(), TensorInfo(enum_id, tens_ptr));
         };
 
         for(auto [neigh, tens_ptr] : graph.getOutEdges(graph.getSourceNode()))
@@ -185,7 +192,6 @@ class MHA_Fwd_F8_Pattern : public GraphPatternMatcher
                     add_mapping(miopenTensorMhaScaleO, scl_o);
 
                     auto* o = pw_2->getY();
-                    MIOPEN_LOG_W("Found miopenTensorMhaO: " << tensorIdAsStr(o));
                     add_mapping(miopenTensorMhaO, o);
                 }
             }

@@ -525,7 +525,9 @@ public:
     void Run()
     {
         auto [n, h, s, d, p] = GetParam();
-        mProbDropout         = p;
+        std::cout << "n:" << n << ", h:" << h << ", s:" << s << ", d:" << d << ", p:" << p
+                  << std::endl;
+        mProbDropout = p;
 
         auto& handle = get_handle();
         if((p > 0.0f) && (s % handle.GetWavefrontWidth() != 0))
@@ -548,8 +550,8 @@ TEST_P(MhaFwdGraphTest, MhaFwdGraph) { Run(); }
 INSTANTIATE_TEST_SUITE_P(MhaGraphFwdSuite,
                          MhaFwdGraphTest,
                          testing::Combine(testing::ValuesIn({2}),         // n
-                                          testing::ValuesIn({4, 64}),     // s
                                           testing::ValuesIn({8}),         // h
+                                          testing::ValuesIn({4, 64}),     // s
                                           testing::ValuesIn({16}),        // d
                                           testing::ValuesIn({0.0f, 0.5f}) // mProbDropout
                                           ));
