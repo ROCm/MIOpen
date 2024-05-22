@@ -235,11 +235,12 @@ template <typename Tgpu, typename Tref>
 int KLDivLossDriver<Tgpu, Tref>::AddCmdLineArgs()
 {
     inflags.AddInputFlag("forw", 'F', "1", "Run only Forward KLDivLoss (Default=1)", "int");
-    inflags.AddInputFlag("input_dims",
-                         'D',
-                         "16,21,21,21,10",
-                         "The dimensional lengths of the input tensor: N,C,D1,D2,... Example: 16,21,21,21,10.",
-                         "string");
+    inflags.AddInputFlag(
+        "input_dims",
+        'D',
+        "16,21,21,21,10",
+        "The dimensional lengths of the input tensor: N,C,D1,D2,... Example: 16,21,21,21,10.",
+        "string");
     inflags.AddInputFlag("log_target", 'l', "0", "Log target or not", "int");
     inflags.AddInputFlag(
         "reduce",
