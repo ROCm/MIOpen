@@ -7219,56 +7219,47 @@ miopenFusedAdamWithOutput(miopenHandle_t handle,
  */
 /*! @brief Execute a rope forward layer
  *
- * @param handle         MIOpen handle (input)
- * @param mode           LayerNorm mode (input)
- * @param xDesc          Tensor descriptor for data input tensor x (input)
- * @param x              Data tensor x (input)
- * @param weightDesc     Tensor descriptor for data input tensor weight (input)
- * @param weight         Data tensor weight (input)
- * @param epsilon        Value to stablize inverse variance calculation (input)
- * @param yDesc          Tensor descriptor for output data tensor y (input)
- * @param y              Data tensor y (output)
- * @param rstdDesc       Tensor descriptor for output data tensor rstd (input)
- * @param rstd           Data tensor rstd (output)
- * @return               miopenStatus_t
+ * @param [in]   handle         MIOpen handle
+ * @param [in]   xDesc          Tensor descriptor for data input tensor x
+ * @param [in]   x              Data tensor x
+ * @param [in]   cosDesc        Tensor descriptor for data input tensor cos
+ * @param [in]   cos            Data tensor cos
+ * @param [in]   sinDesc        Tensor descriptor for data input tensor sin
+ * @param [in]   sin            Data tensor sin
+ * @param [in]   yDesc          Tensor descriptor for output data tensor y
+ * @param [out]  y              Data tensor y
+ * @return                      miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t miopenRoPEForward(miopenHandle_t handle,
                                                const miopenTensorDescriptor_t xDesc,
                                                const void* x,
-                                               const miopenTensorDescriptor_t scaledfreqscosDesc,
-                                               const void* scaledfreqscos,
-                                               const miopenTensorDescriptor_t scaledfreqssinDesc,
-                                               const void* scaledfreqssin,
+                                               const miopenTensorDescriptor_t cosDesc,
+                                               const void* cos,
+                                               const miopenTensorDescriptor_t sinDesc,
+                                               const void* sin,
                                                const miopenTensorDescriptor_t yDesc,
                                                void* y);
 
 /*! @brief Execute a rope backward layer
  *
- * @param handle                   MIOpen handle (input)
- * @param mode                     LayerNorm mode (input)
- * @param workspace                Address of the allocated workspace data (input)
- * @param workspaceSizeInBytes     Size in bytes of the allocated workspace data (input)
- * @param dyDesc                   Tensor descriptor for data input tensor dy (input)
- * @param dy                       Data tensor dy (input)
- * @param xDesc                    Tensor descriptor for output data tensor x (input)
- * @param x                        Data tensor x (input)
- * @param weightDesc               Tensor descriptor for data input tensor weight (input)
- * @param weight                   Data tensor weight (input)
- * @param rstdDesc                 Tensor descriptor for output data tensor rstd (input)
- * @param rstd                     Data tensor rstd (output)
- * @param dxDesc                   Tensor descriptor for output data tensor dx (input)
- * @param dx                       Data tensor dx (output)
- * @param dwDesc                   Tensor descriptor for output data tensor dw (input)
- * @param dw                       Data tensor dw (output)
- * @return                         miopenStatus_t
+ * @param [in]   handle         MIOpen handle
+ * @param [in]   dyDesc         Tensor descriptor for data input tensor dy
+ * @param [in]   dy             Data tensor dy
+ * @param [in]   cosDesc        Tensor descriptor for output data tensor cos
+ * @param [in]   cos            Data tensor cos
+ * @param [in]   sinDesc        Tensor descriptor for data input tensor sin
+ * @param [in]   sin            Data tensor sin
+ * @param [in]   dxDesc         Tensor descriptor for output data tensor dx
+ * @param [out]  dx             Data tensor dx
+ * @return                      miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t miopenRoPEBackward(miopenHandle_t handle,
                                                 const miopenTensorDescriptor_t dyDesc,
                                                 const void* dy,
-                                                const miopenTensorDescriptor_t scaledfreqscosDesc,
-                                                const void* scaledfreqscos,
-                                                const miopenTensorDescriptor_t scaledfreqssinDesc,
-                                                const void* scaledfreqssin,
+                                                const miopenTensorDescriptor_t cosDesc,
+                                                const void* cos,
+                                                const miopenTensorDescriptor_t sinDesc,
+                                                const void* sin,
                                                 const miopenTensorDescriptor_t dxDesc,
                                                 void* dx);
 /** @} */
