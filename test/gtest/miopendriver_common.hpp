@@ -60,7 +60,7 @@ static inline miopen::fs::path MIOpenDriverExePath()
     }
     return path /= MIOpenDriverExeName;
 #else
-    return miopen::fs::path = {MIOpenDriverExeName};
+    return {MIOpenDriverExeName};
 #endif
 }
 

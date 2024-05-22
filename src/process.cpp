@@ -51,12 +51,12 @@ public:
 
         if(out != nullptr)
         {
-            MIOPEN_THROW("Overriding environment variables not defined for Windows environment.");
+            MIOPEN_THROW("Capturing output not defined for Windows.");
         }
 
         if(!additionalEnvironmentVariables.empty())
         {
-            MIOPEN_THROW("Overriding environment variables not defined for Windows environment.");
+            MIOPEN_THROW("Overriding environment variables not defined for Windows.");
         }
 
         std::string cmd{path.string()};
