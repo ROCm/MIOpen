@@ -660,6 +660,8 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
     Register(registry, ++id, Primitive::Cat, cat::CatForward{}.SolverDbId());
     Register(registry, ++id, Primitive::Adam, adam::Adam{}.SolverDbId());
 
+    Register(registry, ++id, Primitive::RoPE, rope::RoPEForward{}.SolverDbId());
+    Register(registry, ++id, Primitive::RoPE, rope::RoPEBackward{}.SolverDbId());
     // IMPORTANT: New solvers should be added to the end of the function!
 }
 
