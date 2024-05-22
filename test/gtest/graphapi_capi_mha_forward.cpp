@@ -498,7 +498,7 @@ private:
             }
             else if(k == miopenTensorMhaDropoutSeed || k == miopenTensorMhaDropoutOffset)
             {
-                v->Init(1.0f);
+                v->Init(0.0f);
             }
             else if(k == miopenTensorMhaM || k == miopenTensorMhaO || k == miopenTensorMhaZInv ||
                     k == miopenTensorMhaAmaxO || k == miopenTensorMhaAmaxS)
@@ -539,7 +539,7 @@ private:
                                 m_realTensorMap[miopenTensorMhaK]->m_gapiDesc,
                                 tMM0));
         AddGraphNode(
-            MakePointwise(MIOPEN_POINTWISE_IDENTITY, tMM0, nullptr, pwS0, m_attentionScale));
+            MakePointwise(MIOPEN_POINTWISE_IDENTITY, tMM0, nullptr, pwS0, false, m_attentionScale));
         AddGraphNode(MakePointwise(MIOPEN_POINTWISE_MUL,
                                    pwS0,
                                    m_realTensorMap[miopenTensorMhaDescaleQ]->m_gapiDesc,
