@@ -137,17 +137,12 @@ void BackendEngineHeurDescriptor::finalize()
 
     mEngineHeur = mBuilder.build();
 
-    // TODO(Amber): delete
-    /*
-    auto& engineCfgs = mEngineHeur.getResults();
+    const auto& engineCfgs = mEngineHeur.getResults();
     mResults.reserve(engineCfgs.size());
 
-    std::for_each(engineCfgs.begin(), engineCfgs.end(), [this](EngineCfg& engineCfg) {
-        mResults.emplace_back(std::move(engineCfg), mOpGraphDescriptor);
+    std::for_each(engineCfgs.begin(), engineCfgs.end(), [this](const EngineCfg& engineCfg) {
+        mResults.emplace_back(engineCfg, mOpGraphDescriptor);
     });
-
-    engineCfgs.clear();
-    */
 
     mFinalized = true;
 }
