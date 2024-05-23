@@ -152,11 +152,23 @@ struct TensorData
     tensor<float> m_tensor;
     miopen::Allocator::ManageDataPtr m_gpuBuffer;
 
-    void Init(tensor<float>&& tens_val) { m_tensor = std::move(tens_val); }
+    void InitAndWriteToGPU(miopen::Handle& handle, tensor<float>&& tens_val) 
+    {
+        m_tensor = std::move(tens_val); 
+        m_gpuBuffer = handle.Write(m_tensor.data);
+    }
 
-    void Init(float val)
+    void InitAndWriteToGPU(miopen::Handle& handle, float val)
     {
         m_tensor.generate([=](auto...) { return val; });
+        m_gpuBuffer = handle.Write(m_tensor.data);
+    }
+
+    // Since we dont support tensor<int64_t> type, lets initilize gpu memory just from the value
+    void InitWithInt64AndWriteToGPU(miopen::Handle& handle, int64_t val)
+    {
+        std::vector<int64_t> vec = {val};
+        m_gpuBuffer = handle.Write(vec);
     }
 };
 
@@ -191,7 +203,6 @@ DescriptorWrapperPtr MakeGapiTensorDesc(int64_t uniqueId,
 
     if(transpose)
     {
-        // dims    = {n, h, d, s};
         std::swap(dims[2], dims[3]);
         std::swap(strides[2], strides[3]);
     }
@@ -408,7 +419,7 @@ public:
 
         try
         {
-            MakeRealTensors();
+            MakeRealTensors(handle);
             MakeVirtualTensorsAndNodes();
 
             PrepareOpGraphAndEngines(handle);
@@ -430,7 +441,7 @@ private:
         GenerateConstant
     };
 
-    void MakeRealTensors()
+    void MakeRealTensors(miopen::Handle& handle)
     {
         // We use identifiers from Find 2.0 enum to have sopmething unique for the test purposes
         MakeAndAddRealTensorDescriptor(miopenTensorMhaQ, false, m_testN, m_testH, m_testS, m_testD);
@@ -461,13 +472,13 @@ private:
         MakeAndAddRealTensorDescriptor(miopenTensorMhaM, false, m_testN, m_testH, m_testS, 1);
         MakeAndAddRealTensorDescriptor(miopenTensorMhaZInv, false, m_testN, m_testH, m_testS, 1);
 
-        InitTensorValues();
+        InitTensorValues(handle);
 
         // get next value for the rest of the tensors (which don't have any particular enum value)
         m_nextTensorId++;
     }
 
-    void InitTensorValues()
+    void InitTensorValues(miopen::Handle& handle)
     {
         using namespace test::cpu;
 
@@ -479,46 +490,50 @@ private:
         {
             if(k == miopenTensorMhaQ)
             {                
-                v->Init(std::move(Q.mTensor));
+                v->InitAndWriteToGPU(handle, std::move(Q.mTensor));
             }
             else if(k == miopenTensorMhaDescaleQ)
             {
-                v->Init(Q.mDescale);
+                v->InitAndWriteToGPU(handle, Q.mDescale);
             }
             else if(k == miopenTensorMhaK)
             {
-                v->Init(std::move(K.mTensor));
+                v->InitAndWriteToGPU(handle, std::move(K.mTensor));
             }
             else if(k == miopenTensorMhaDescaleK)
             {                
-                v->Init(K.mDescale);
+                v->InitAndWriteToGPU(handle, K.mDescale);
             }
             else if(k == miopenTensorMhaV)
             {
-                v->Init(std::move(V.mTensor));
+                v->InitAndWriteToGPU(handle, std::move(V.mTensor));
             }
             else if(k == miopenTensorMhaDescaleV)
             {
-                v->Init(V.mDescale);
+                v->InitAndWriteToGPU(handle, V.mDescale);
             }
             else if(k == miopenTensorMhaScaleO || k == miopenTensorMhaScaleS ||
                     k == miopenTensorMhaDescaleS)
             {
-                v->Init(1.0f);
+                v->InitAndWriteToGPU(handle, 1.0f);
             }
             else if(k == miopenTensorMhaDropoutProbability)
             {
-                v->Init(m_bernulliProbability);
+                v->InitAndWriteToGPU(handle, m_bernulliProbability);
             }
-            else if(k == miopenTensorMhaDropoutSeed || k == miopenTensorMhaDropoutOffset)
+            else if(k == miopenTensorMhaDropoutSeed)
             {
-                v->Init(0.0f);
+                v->InitWithInt64AndWriteToGPU(handle, m_dropoutSedd);
+            }
+            else if (k == miopenTensorMhaDropoutOffset)
+            {
+                v->InitWithInt64AndWriteToGPU(handle, m_dropoutOffset);
             }
             else if(k == miopenTensorMhaM || k == miopenTensorMhaO || k == miopenTensorMhaZInv ||
                     k == miopenTensorMhaAmaxO || k == miopenTensorMhaAmaxS)
             {
                 // these are outputs
-                v->Init(0.0f);
+                v->InitAndWriteToGPU(handle, 0.0f);
             }
             else
             {
@@ -695,9 +710,7 @@ private:
 
         for(const auto& it : m_realTensorMap)
         {
-            it.second->m_gpuBuffer = handle.Write(it.second->m_tensor.data);
             devPtrs.push_back(it.second->m_gpuBuffer.get());
-
             uids.push_back(it.first);
         }
 
@@ -755,8 +768,8 @@ private:
             lookup(miopenTensorMhaScaleS)[0],
             lookup(miopenTensorMhaScaleO)[0],
             lookup(miopenTensorMhaDropoutProbability)[0],
-            static_cast<uint64_t>(lookup(miopenTensorMhaDropoutSeed)[0]),
-            static_cast<uint64_t>(lookup(miopenTensorMhaDropoutOffset)[0]),
+            m_dropoutSedd,
+            m_dropoutOffset,
             amaxSRef,
             amaxORef,
             oDescRef);
@@ -841,8 +854,11 @@ private:
     std::map<int64_t, TensorDataPtr> m_realTensorMap;
 
     int64_t m_nextTensorId = 0;
-
     int64_t m_workspaceSize = 0;
+
+    int64_t m_dropoutSedd = 0;
+    int64_t m_dropoutOffset = 0;
+
 
     DescriptorWrapperPtr m_executionPlan;
 };
