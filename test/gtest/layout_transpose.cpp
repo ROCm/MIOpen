@@ -39,7 +39,6 @@
 #include <miopen/tensor.hpp>
 #include "../tensor_holder.hpp"
 #include <miopen/tensor_layout.hpp>
-#include "tensor_layout_util.hpp"
 
 #include "driver.hpp"
 #include "random.hpp"
@@ -285,7 +284,7 @@ protected:
                 std::vector<int> tensor_strides;
 
                 std::string layout_default = miopen::tensor_layout_get_default(tensor_len.size());
-                std::string layout_string  = tensor_layout_to_string(miopenTensorNCHW);
+                std::string layout_string  = TensorDescriptor::GetLayoutStr(miopenTensorNCHW);
 
                 miopen::tensor_layout_to_strides(
                     tensor_len, layout_default, layout_string, tensor_strides);
@@ -393,7 +392,7 @@ protected:
                     std::vector<int> tensor_strides;
                     std::string layout_default =
                         miopen::tensor_layout_get_default(tensor_len.size());
-                    std::string layout_string = tensor_layout_to_string(miopenTensorNCDHW);
+                    std::string layout_string = TensorDescriptor::GetLayoutStr(miopenTensorNCDHW);
 
                     miopen::tensor_layout_to_strides(
                         tensor_len, layout_default, layout_string, tensor_strides);

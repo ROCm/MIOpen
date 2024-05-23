@@ -379,9 +379,9 @@ void TensorDescriptor::SetCastType(const miopenDataType_t cast_type_)
 
 miopenTensorLayout_t TensorDescriptor::GetLayout_t() const { return this->tensorLayout; }
 
-std::string TensorDescriptor::GetLayout_str() const
+std::string TensorDescriptor::GetLayoutStr(miopenTensorLayout_t tensorLayout)
 {
-    switch(this->tensorLayout)
+    switch(tensorLayout)
     {
     case miopenTensorNCHW: return "NCHW";
     case miopenTensorNHWC: return "NHWC";
@@ -392,8 +392,16 @@ std::string TensorDescriptor::GetLayout_str() const
     case miopenTensorCHWNc8: return "CHWNc";
     case miopenTensorNCDHW: return "NCDHW";
     case miopenTensorNDHWC: return "NDHWC";
+    default: MIOPEN_THROW(miopenStatusInternalError, "Unknown tensor layout");
     }
-    MIOPEN_THROW(miopenStatusInternalError, "Unknown tensor layout");
+
+    return "";
+}
+
+std::string TensorDescriptor::GetLayout_str() const
+{
+    auto str = GetLayoutStr(this->tensorLayout);
+    return str;
 }
 
 std::size_t TensorDescriptor::GetVectorLength() const { return this->vector_length; }

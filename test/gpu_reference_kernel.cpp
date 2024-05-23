@@ -40,7 +40,6 @@
 #include "test.hpp"
 #include "driver.hpp"
 #include "tensor_holder.hpp"
-#include "gtest/tensor_layout_util.hpp"
 #include "cpu_conv.hpp"
 #include "random.hpp"
 
@@ -330,7 +329,7 @@ struct gpu_reference_conv_2d : gpu_reference_kernel_base
             std::vector<int> out_strides;
 
             std::string layout_default = miopen::tensor_layout_get_default(4);
-            std::string layout_string  = tensor_layout_to_string(tensor_layout);
+            std::string layout_string  = TensorDescriptor::GetLayoutStr(tensor_layout);
 
             miopen::tensor_layout_to_strides(in_len, layout_default, layout_string, in_strides);
             miopen::tensor_layout_to_strides(wei_len, layout_default, layout_string, wei_strides);
@@ -698,7 +697,7 @@ struct gpu_reference_conv_3d : gpu_reference_kernel_base
             std::vector<int> out_strides;
 
             std::string layout_default = miopen::tensor_layout_get_default(5);
-            std::string layout_string  = tensor_layout_to_string(tensor_layout);
+            std::string layout_string  = TensorDescriptor::GetLayoutStr(tensor_layout);
 
             miopen::tensor_layout_to_strides(in_len, layout_default, layout_string, in_strides);
             miopen::tensor_layout_to_strides(wei_len, layout_default, layout_string, wei_strides);

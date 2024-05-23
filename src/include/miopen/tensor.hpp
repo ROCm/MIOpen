@@ -193,6 +193,7 @@ struct MIOPEN_EXPORT TensorDescriptor : miopenTensorDescriptor
 
     miopenDataType_t GetType() const;
     miopenTensorLayout_t GetLayout_t() const;
+    static std::string GetLayoutStr(miopenTensorLayout_t layout);
     std::string GetLayout_str() const;
 
     std::size_t GetVectorLength() const;
