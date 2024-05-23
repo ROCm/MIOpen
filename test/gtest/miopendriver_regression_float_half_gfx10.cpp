@@ -32,7 +32,6 @@
 #include <miopen/env.hpp>
 #include <miopen/miopen.h>
 #include <miopen/process.hpp>
-#include <miopen/filesystem.hpp>
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)

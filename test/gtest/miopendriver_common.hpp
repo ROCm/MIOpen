@@ -32,8 +32,6 @@
 #include <miopen/process.hpp>
 #include <miopen/filesystem.hpp>
 
-#include <map>
-
 #ifdef __linux__
 #include <dlfcn.h>
 #endif
@@ -64,9 +62,9 @@ static inline miopen::fs::path MIOpenDriverExePath()
 #endif
 }
 
-static inline void RunMIOpenDriverTestCommand(
-    const std::vector<std::string>& params,
-    const std::map<std::string, std::string> additionalEnvironmentVariables = {})
+static inline void
+RunMIOpenDriverTestCommand(const std::vector<std::string>& params,
+                           const miopen::ProcessEnvironmentMap& additionalEnvironmentVariables = {})
 {
     for(const auto& testArguments : params)
     {
