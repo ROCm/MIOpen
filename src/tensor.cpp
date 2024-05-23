@@ -52,6 +52,7 @@ bool IsDataTypeSupported(miopenDataType_t t)
     case miopenInt8:
     case miopenBFloat16:
     case miopenDouble: return true;
+    case miopenInt64: return false;
     }
     return false;
 }
