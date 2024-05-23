@@ -49,7 +49,7 @@ std::size_t GetSumWorkspaceSize(Handle& handle,
 
     auto pair_size_vector = solvers.GetWorkspaceSizes(ctx, problem);
 
-    return pair_size_vector.empty() ? static_cast<size_t>(-1) : pair_size_vector.front().second;
+    return pair_size_vector.empty() ? static_cast<size_t>(0) : pair_size_vector.front().second;
 }
 
 miopenStatus_t SumForward(Handle& handle,

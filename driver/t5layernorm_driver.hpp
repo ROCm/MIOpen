@@ -350,8 +350,6 @@ int T5LayerNormDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
     miopenGetT5LayerNormBackwardWorkspaceSize(
         GetHandle(), mode, dyDesc, xDesc, weightDesc, rstdDesc, dxDesc, dwDesc, &ws_sizeInBytes);
-    if(ws_sizeInBytes == static_cast<size_t>(-1))
-        return miopenStatusAllocFailed;
 
     uint32_t ctx = 0;
 
