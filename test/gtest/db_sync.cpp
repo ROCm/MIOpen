@@ -642,6 +642,7 @@ void CheckFDBEntry(size_t thread_index,
                    std::atomic<size_t>& counter)
 {
     fs::path fdb_file_path, pdb_file_path, kdb_file_path;
+    auto& handle = _ctx.GetStream();
     SetupPaths(fdb_file_path, pdb_file_path, kdb_file_path, _ctx.GetStream());
     std::unordered_set<KDBKey> checked_kdbs;
     const auto data_size = data.size();
@@ -742,9 +743,9 @@ void CheckFDBEntry(size_t thread_index,
                         std::string compile_options = kern.comp_options;
                         auto program_file =
                             miopen::make_object_file_name(kern.kernel_file).string();
+
                         if(!miopen::EndsWith(kern.kernel_file, ".mlir"))
                         {
-                            auto& handle = ctx.GetStream();
                             if(miopen::EndsWith(kern.kernel_file, ".s"))
                             {
                                 compile_options += " -mcpu=" + miopen::LcOptionTargetStrings{handle.GetTargetProperties()}.targetId;
@@ -774,7 +775,7 @@ void CheckFDBEntry(size_t thread_index,
                                 << compile_options; // for fdb key, solver id, solver pdb entry and
                                                     // kdb file and args
                         if(!reported_already)
-                            BuildKernel(kern.kernel_file, kern.comp_options, ctx.GetStream());
+                            BuildKernel(kern.kernel_file, kern.comp_options, handle);
                     }
                 }
             }
