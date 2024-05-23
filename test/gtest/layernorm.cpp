@@ -64,7 +64,8 @@ TEST_P(LayerNormTestFloat, LayerNormTestFw)
     if((miopen::StartsWith(handle.GetDeviceName(), "gfx908") ||
         miopen::StartsWith(handle.GetDeviceName(), "gfx90a") ||
         miopen::StartsWith(handle.GetDeviceName(), "gfx94")) &&
-       miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float"))
+       (miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
+        (miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float"))))
     {
         RunTest();
         Verify();
@@ -82,7 +83,8 @@ TEST_P(LayerNormTestHalf, LayerNormTestFw)
     if((miopen::StartsWith(handle.GetDeviceName(), "gfx908") ||
         miopen::StartsWith(handle.GetDeviceName(), "gfx90a") ||
         miopen::StartsWith(handle.GetDeviceName(), "gfx94")) &&
-       miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--half"))
+       (miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
+        (miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--half"))))
     {
         RunTest();
         Verify();
@@ -100,7 +102,8 @@ TEST_P(LayerNormTestBFloat16, LayerNormTestFw)
     if((miopen::StartsWith(handle.GetDeviceName(), "gfx908") ||
         miopen::StartsWith(handle.GetDeviceName(), "gfx90a") ||
         miopen::StartsWith(handle.GetDeviceName(), "gfx94")) &&
-       miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--bfloat16"))
+       (miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
+        (miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--bfloat16"))))
     {
         RunTest();
         Verify();

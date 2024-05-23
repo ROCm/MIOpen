@@ -54,7 +54,8 @@ using namespace adam;
 
 TEST_P(AdamTestFloat, AdamTestFw)
 {
-    if(miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float"))
+    if((miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
+        (miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float"))))
     {
         RunTest();
         Verify();
@@ -67,7 +68,8 @@ TEST_P(AdamTestFloat, AdamTestFw)
 
 TEST_P(AmpAdamTestFloat, AmpAdamTestFw)
 {
-    if(miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float"))
+    if((miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
+        (miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float"))))
     {
         RunTest();
         Verify();
