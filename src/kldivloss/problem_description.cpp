@@ -54,9 +54,9 @@ NetworkConfig UnreducedProblemDescription::MakeNetworkConfig() const
     size_t num_dims    = inputDesc.GetSize();
     bool is_log_target = GetLogTarget();
     auto input_dtype   = inputDesc.GetType();
-    auto Si = inputDesc.GetStrides();
-    auto St = targetDesc.GetStrides();
-    auto So = outputDesc.GetStrides();
+    auto Si            = inputDesc.GetStrides();
+    auto St            = targetDesc.GetStrides();
+    auto So            = outputDesc.GetStrides();
 
     std::ostringstream ss;
 
@@ -81,9 +81,9 @@ NetworkConfig ReducedProblemDescription::MakeNetworkConfig() const
     size_t num_dims    = inputDesc.GetSize();
     bool is_log_target = GetLogTarget();
     auto input_dtype   = inputDesc.GetType();
-    auto Si = inputDesc.GetStrides();
-    auto St = targetDesc.GetStrides();
-    auto So = outputDesc.GetStrides();
+    auto Si            = inputDesc.GetStrides();
+    auto St            = targetDesc.GetStrides();
+    auto So            = outputDesc.GetStrides();
 
     std::ostringstream ss;
 
