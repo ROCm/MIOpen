@@ -35,7 +35,7 @@
 #include <miopen/target_properties.hpp>
 #include <miopen/tensor_view.hpp>
 
-#define LOCAL_SIZE_FWD 256
+#define LOCAL_SIZE_FWD 1024
 #define LOCAL_SIZE_REDUCED_FWD 256
 
 namespace miopen {
