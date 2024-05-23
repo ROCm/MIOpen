@@ -103,7 +103,7 @@ miopenKLDivLossUnreducedBackward(miopenHandle_t handle,
                         target_grad,
                         log_target);
 
-    LogCmdKLDivLoss(inputDesc, targetDesc, true);
+    LogCmdKLDivLoss(inputDesc, targetDesc, false);
     return miopen::try_([&] {
         miopen::KLDivLossUnreducedBackward(miopen::deref(handle),
                                            miopen::deref(inputDesc),
@@ -149,7 +149,7 @@ miopenKLDivLossReducedBackward(miopenHandle_t handle,
                         divisor,
                         log_target);
 
-    LogCmdKLDivLoss(inputDesc, targetDesc, true);
+    LogCmdKLDivLoss(inputDesc, targetDesc, false);
     return miopen::try_([&] {
         miopen::KLDivLossReducedBackward(miopen::deref(handle),
                                          miopen::deref(inputDesc),
