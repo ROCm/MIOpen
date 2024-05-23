@@ -34,6 +34,19 @@ namespace miopen {
 
 namespace kldivloss {
 
+inline std::ostream& operator<<(std::ostream& os, const std::vector<size_t>& v)
+{
+    os << '{';
+    for(int i = 0; i < v.size(); ++i)
+    {
+        if(i != 0)
+            os << ',';
+        os << v[i];
+    }
+    os << '}';
+    return os;
+}
+
 NetworkConfig UnreducedProblemDescription::MakeNetworkConfig() const
 {
     size_t numel       = GetNtotal();
@@ -41,6 +54,9 @@ NetworkConfig UnreducedProblemDescription::MakeNetworkConfig() const
     size_t num_dims    = inputDesc.GetSize();
     bool is_log_target = GetLogTarget();
     auto input_dtype   = inputDesc.GetType();
+    auto Si = inputDesc.GetStrides();
+    auto St = targetDesc.GetStrides();
+    auto So = outputDesc.GetStrides();
 
     std::ostringstream ss;
 
@@ -51,6 +67,9 @@ NetworkConfig UnreducedProblemDescription::MakeNetworkConfig() const
     ss << "numel" << numel;
     ss << "num_dims" << num_dims;
     ss << "num_batches" << num_batches;
+    ss << "input_stride" << Si;
+    ss << "target_stride" << St;
+    ss << "output_stride" << So;
 
     return NetworkConfig{ss.str()};
 }
@@ -62,6 +81,9 @@ NetworkConfig ReducedProblemDescription::MakeNetworkConfig() const
     size_t num_dims    = inputDesc.GetSize();
     bool is_log_target = GetLogTarget();
     auto input_dtype   = inputDesc.GetType();
+    auto Si = inputDesc.GetStrides();
+    auto St = targetDesc.GetStrides();
+    auto So = outputDesc.GetStrides();
 
     std::ostringstream ss;
 
@@ -73,6 +95,9 @@ NetworkConfig ReducedProblemDescription::MakeNetworkConfig() const
     ss << "numel" << numel;
     ss << "num_dims" << num_dims;
     ss << "num_batches" << num_batches;
+    ss << "input_stride" << Si;
+    ss << "target_stride" << St;
+    ss << "output_stride" << So;
 
     return NetworkConfig{ss.str()};
 }
