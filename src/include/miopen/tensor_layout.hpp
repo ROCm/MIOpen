@@ -35,26 +35,6 @@
 
 namespace miopen {
 
-enum tensor_layout_t
-{
-    tensor_layout_nchw,
-    tensor_layout_ncdhw,
-    tensor_layout_nhwc,
-    tensor_layout_ndhwc,
-};
-
-inline std::string tensor_layout_to_string(tensor_layout_t layout)
-{
-    switch(layout)
-    {
-    case tensor_layout_nchw: return "NCHW";
-    case tensor_layout_ncdhw: return "NCDHW";
-    case tensor_layout_nhwc: return "NHWC";
-    case tensor_layout_ndhwc: return "NDHWC";
-    default: MIOPEN_THROW("Unsupported tensor layout");
-    }
-}
-
 template <typename T>
 void tensor_layout_to_strides(const std::vector<T>& len,
                               const std::string& len_layout,
