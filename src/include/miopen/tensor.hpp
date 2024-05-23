@@ -104,7 +104,7 @@ inline std::size_t GetTypeSize(miopenDataType_t d)
     case miopenInt8:
     case miopenFloat8:
     case miopenBFloat8: return 1;
-    case miopenDouble: return 8;
+    case miopenDouble:
     case miopenInt64: return 8;
     }
     MIOPEN_THROW("Unknown or unsupported data type");
