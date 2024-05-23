@@ -877,8 +877,12 @@ bool ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::IsApplicable(
         const auto pad_h    = problem.GetPadH();
         const auto pad_w    = problem.GetPadW();
 
-        if(c == 1 && k == 1 && hi == 1 && wi == 1 && y == 3 && x == 3 && pad_h == 2 && pad_w == 2 &&
-           stride_h == 2 && stride_w == 2)
+        if((c == 1 && k == 1 && hi == 1 && wi == 1 && y == 3 && x == 3 && pad_h == 2 &&
+            pad_w == 2 && stride_h == 2 && stride_w == 2) ||
+           (c == 1 && k == 1 && hi == 1 && wi == 5 && y == 3 && x == 6 && pad_h == 2 &&
+            pad_w == 1 && stride_h == 2 && stride_w == 1) ||
+           (c == 1 && k == 1 && hi == 1 && wi == 1 && y == 2 && x == 3 && pad_h == 1 &&
+            pad_w == 2 && stride_h == 1 && stride_w == 2))
             return false;
     }
 #endif
