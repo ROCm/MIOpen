@@ -193,7 +193,7 @@ int KLDivLossDriver<Tgpu, Tref>::GetandSetData()
 
     input_sizes = GetInputTensorDimsFromCmd();
     log_target  = static_cast<bool>(inflags.GetValueInt("log_target"));
-    
+
     std::vector<int> in_len     = input_sizes;
     std::vector<int> target_len = in_len;
     std::vector<int> out_len    = in_len;
@@ -241,7 +241,8 @@ int KLDivLossDriver<Tgpu, Tref>::AddCmdLineArgs()
         "16,21,21,21,10",
         "The dimensional lengths of the input tensor: N,C,D1,D2,... Example: 16,21,21,21,10.",
         "string");
-    inflags.AddInputFlag("log_target", 'l', "0", "Log target or not (Default=0 for not using Log target)", "int");
+    inflags.AddInputFlag(
+        "log_target", 'l', "0", "Log target or not (Default=0 for not using Log target)", "int");
     inflags.AddInputFlag(
         "reduce",
         'R',
@@ -280,10 +281,10 @@ int KLDivLossDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     target_grad_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, target_sz, sizeof(Tgpu)));
     out_grad_dev    = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(Tgpu)));
 
-    in             = std::vector<Tgpu>(in_sz, static_cast<Tgpu>(0));
-    target         = std::vector<Tgpu>(target_sz, static_cast<Tgpu>(0));
-    out            = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
-    out_host       = std::vector<Tref>(out_sz, static_cast<Tref>(0));
+    in       = std::vector<Tgpu>(in_sz, static_cast<Tgpu>(0));
+    target   = std::vector<Tgpu>(target_sz, static_cast<Tgpu>(0));
+    out      = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
+    out_host = std::vector<Tref>(out_sz, static_cast<Tref>(0));
 
     in_grad          = std::vector<Tgpu>(in_sz, static_cast<Tgpu>(0));
     in_grad_host     = std::vector<Tref>(in_sz, static_cast<Tref>(0));

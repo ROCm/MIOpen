@@ -32,7 +32,7 @@
 #include <miopen/find_solution.hpp>
 
 namespace miopen {
-    
+
 miopenStatus_t KLDivLossUnreducedBackward(Handle& handle,
                                           const TensorDescriptor& inputDesc,
                                           ConstData_t input,
