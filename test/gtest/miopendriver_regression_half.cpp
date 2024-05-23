@@ -33,8 +33,6 @@
 #include <miopen/miopen.h>
 #include <miopen/process.hpp>
 
-#include <boost/dll/runtime_symbol_info.hpp>
-
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_WITH_MIOPENDRIVER)
