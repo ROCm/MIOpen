@@ -40,3 +40,4 @@ do
         "$format" -i -style=file "$file"
     fi
 done
+
