@@ -193,7 +193,7 @@ int KLDivLossDriver<Tgpu, Tref>::GetandSetData()
 
     input_sizes = GetInputTensorDimsFromCmd();
     log_target  = static_cast<bool>(inflags.GetValueInt("log_target"));
-
+    
     std::vector<int> in_len     = input_sizes;
     std::vector<int> target_len = in_len;
     std::vector<int> out_len    = in_len;
@@ -234,14 +234,14 @@ int KLDivLossDriver<Tgpu, Tref>::GetandSetData()
 template <typename Tgpu, typename Tref>
 int KLDivLossDriver<Tgpu, Tref>::AddCmdLineArgs()
 {
-    inflags.AddInputFlag("forw", 'F', "1", "Run only Forward KLDivLoss (Default=1)", "int");
+    inflags.AddInputFlag("forw", 'F', "2", "Run only Backward KLDivLoss (Default=2)", "int");
     inflags.AddInputFlag(
         "input_dims",
         'D',
         "16,21,21,21,10",
         "The dimensional lengths of the input tensor: N,C,D1,D2,... Example: 16,21,21,21,10.",
         "string");
-    inflags.AddInputFlag("log_target", 'l', "0", "Log target or not", "int");
+    inflags.AddInputFlag("log_target", 'l', "0", "Log target or not (Default=0 for not using Log target)", "int");
     inflags.AddInputFlag(
         "reduce",
         'R',
@@ -271,23 +271,11 @@ int KLDivLossDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     size_t target_sz = GetTensorSize(targetDesc);
     size_t out_sz    = GetTensorSize(outputDesc);
 
-    if(!std::isnan(divisor))
-    {
-        miopenGetKLDivLossReducedForwardWorkspaceSize(
-            GetHandle(), inputDesc, targetDesc, outputDesc, divisor, log_target, &ws_sizeInBytes);
-        if(ws_sizeInBytes == static_cast<size_t>(-1))
-            return miopenStatusAllocFailed;
-    }
-    else
-        ws_sizeInBytes = 0;
-    size_t ws_sz = ws_sizeInBytes / sizeof(Tgpu);
-
     uint32_t ctx = 0;
 
     in_dev          = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(Tgpu)));
     target_dev      = std::unique_ptr<GPUMem>(new GPUMem(ctx, target_sz, sizeof(Tgpu)));
     out_dev         = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(Tgpu)));
-    workspace_dev   = std::unique_ptr<GPUMem>(new GPUMem(ctx, ws_sizeInBytes, sizeof(std::byte)));
     in_grad_dev     = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(Tgpu)));
     target_grad_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, target_sz, sizeof(Tgpu)));
     out_grad_dev    = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(Tgpu)));
@@ -296,8 +284,6 @@ int KLDivLossDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     target         = std::vector<Tgpu>(target_sz, static_cast<Tgpu>(0));
     out            = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
     out_host       = std::vector<Tref>(out_sz, static_cast<Tref>(0));
-    workspace      = std::vector<Tgpu>(ws_sz, static_cast<Tgpu>(0));
-    workspace_host = std::vector<Tref>(ws_sz, static_cast<Tref>(0));
 
     in_grad          = std::vector<Tgpu>(in_sz, static_cast<Tgpu>(0));
     in_grad_host     = std::vector<Tref>(in_sz, static_cast<Tref>(0));
@@ -350,87 +336,12 @@ int KLDivLossDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 template <typename Tgpu, typename Tref>
 int KLDivLossDriver<Tgpu, Tref>::RunForwardGPU()
 {
-    float kernel_total_time = 0.0;
-    float kernel_first_time = 0.0;
-
-    Timer t;
-    START_TIME
-
-    for(int i = 0; i < inflags.GetValueInt("iter"); i++)
-    {
-        if(!std::isnan(divisor))
-        {
-            miopenKLDivLossReducedForward(GetHandle(),
-                                          workspace_dev->GetMem(),
-                                          ws_sizeInBytes,
-                                          inputDesc,
-                                          in_dev->GetMem(),
-                                          targetDesc,
-                                          target_dev->GetMem(),
-                                          outputDesc,
-                                          out_dev->GetMem(),
-                                          divisor,
-                                          log_target);
-        }
-        else
-        {
-            miopenKLDivLossUnreducedForward(GetHandle(),
-                                            inputDesc,
-                                            in_dev->GetMem(),
-                                            targetDesc,
-                                            target_dev->GetMem(),
-                                            outputDesc,
-                                            out_dev->GetMem(),
-                                            log_target);
-        }
-        float time = 0.0;
-        miopenGetKernelTime(GetHandle(), &time);
-        kernel_total_time += time;
-        if(i == 0)
-            kernel_first_time = time;
-    }
-
-    if(inflags.GetValueInt("time") == 1)
-    {
-        STOP_TIME
-        int iter = inflags.GetValueInt("iter");
-        if(WALL_CLOCK)
-            printf("Wall-clock Time Forward KLDivLoss Elapsed: %f ms\n", t.gettime_ms() / iter);
-
-        float kernel_average_time =
-            iter > 1 ? (kernel_total_time - kernel_first_time) / (iter - 1) : kernel_first_time;
-        printf("GPU Kernel Time Forward KLDivLoss Elapsed: %f ms\n", kernel_average_time);
-    }
-
-    out_dev->FromGPU(GetStream(), out.data());
-
     return miopenStatusSuccess;
 }
 
 template <typename Tgpu, typename Tref>
 int KLDivLossDriver<Tgpu, Tref>::RunForwardCPU()
 {
-    if(!std::isnan(divisor))
-    {
-        mloKLDivLossReducedForwardRunHost5d<Tgpu, Tref>(inputDesc,
-                                                        targetDesc,
-                                                        in.data(),
-                                                        target.data(),
-                                                        out_host.data(),
-                                                        workspace_host.data(),
-                                                        divisor,
-                                                        log_target);
-    }
-    else
-    {
-        mloKLDivLossUnreducedForwardRunHost5d<Tgpu, Tref>(inputDesc,
-                                                          targetDesc,
-                                                          outputDesc,
-                                                          in.data(),
-                                                          target.data(),
-                                                          out_host.data(),
-                                                          log_target);
-    }
     return miopenStatusSuccess;
 }
 
@@ -557,20 +468,6 @@ Tref KLDivLossDriver<Tgpu, Tref>::GetTolerance()
 template <typename Tgpu, typename Tref>
 int KLDivLossDriver<Tgpu, Tref>::VerifyForward()
 {
-    RunForwardCPU();
-    const Tref tolerance = GetTolerance();
-    auto error           = miopen::rms_range(out_host, out);
-
-    if(!std::isfinite(error) || error > tolerance)
-    {
-        std::cout << "Forward KLDivLoss FAILED: " << error << std::endl;
-        return EC_VerifyFwd;
-    }
-    else
-    {
-        printf("Forward KLDivLoss Verifies on CPU and GPU (err=%f)\n", error);
-    }
-
     return miopenStatusSuccess;
 }
 

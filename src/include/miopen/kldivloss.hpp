@@ -34,34 +34,6 @@ namespace miopen {
 struct Handle;
 struct TensorDescriptor;
 
-miopenStatus_t KLDivLossUnreducedForward(Handle& handle,
-                                         const TensorDescriptor& inputDesc,
-                                         ConstData_t input,
-                                         const TensorDescriptor& targetDesc,
-                                         ConstData_t target,
-                                         const TensorDescriptor& outputDesc,
-                                         Data_t output,
-                                         bool log_target);
-
-size_t GetKLDivLossReducedForwardWorkspaceSize(Handle& handle,
-                                               const TensorDescriptor& inputDesc,
-                                               const TensorDescriptor& targetDesc,
-                                               const TensorDescriptor& outputDesc,
-                                               float divisor,
-                                               bool log_target);
-
-miopenStatus_t KLDivLossReducedForward(Handle& handle,
-                                       Data_t workspace,
-                                       size_t workspaceSizeInBytes,
-                                       const TensorDescriptor& inputDesc,
-                                       ConstData_t input,
-                                       const TensorDescriptor& targetDesc,
-                                       ConstData_t target,
-                                       const TensorDescriptor& outputDesc,
-                                       Data_t output,
-                                       float divisor,
-                                       bool log_target);
-
 miopenStatus_t KLDivLossUnreducedBackward(Handle& handle,
                                           const TensorDescriptor& inputDesc,
                                           ConstData_t input,

@@ -35,28 +35,6 @@
 namespace miopen {
 namespace kldivloss {
 
-struct FwdInvokeParams : public miopen::InvokeParams
-{
-
-    FwdInvokeParams() = default;
-
-    const TensorDescriptor* inputDesc  = nullptr;
-    const TensorDescriptor* targetDesc = nullptr;
-    const TensorDescriptor* outputDesc = nullptr;
-
-    ConstData_t input  = nullptr;
-    ConstData_t target = nullptr;
-    Data_t output      = nullptr;
-
-    bool log_target            = false;
-    float divisor              = std::numeric_limits<float>::quiet_NaN();
-    Data_t workspace           = nullptr;
-    std::size_t workspace_size = 0;
-
-    std::size_t GetWorkspaceSize() const { return workspace_size; }
-    Data_t GetWorkspace() const { return workspace; }
-};
-
 struct BwdInvokeParams : public miopen::InvokeParams
 {
 

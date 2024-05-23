@@ -74,41 +74,6 @@ struct KLDivLossReducedSolver : KLDivLossReduced
                       const miopen::kldivloss::ReducedProblemDescription& problem) const override;
 };
 
-// FORWARD UNREDUCE
-struct KLDivLossUnreducedForward5d final : KLDivLossUnreducedSolver
-{
-    const std::string& SolverDbId() const override
-    {
-        return GetSolverDbId<KLDivLossUnreducedForward5d>();
-    }
-
-    bool IsApplicable(const ExecutionContext& context,
-                      const miopen::kldivloss::UnreducedProblemDescription& problem) const override;
-
-    ConvSolution
-    GetSolution(const ExecutionContext& context,
-                const miopen::kldivloss::UnreducedProblemDescription& problem) const override;
-};
-
-// FORWARD REDUCE
-struct KLDivLossReducedForward5d final : KLDivLossReducedSolver
-{
-    const std::string& SolverDbId() const override
-    {
-        return GetSolverDbId<KLDivLossReducedForward5d>();
-    }
-
-    bool IsApplicable(const ExecutionContext& context,
-                      const miopen::kldivloss::ReducedProblemDescription& problem) const override;
-    ConvSolution
-    GetSolution(const ExecutionContext& context,
-                const miopen::kldivloss::ReducedProblemDescription& problem) const override;
-    std::size_t
-    GetWorkspaceSize(const ExecutionContext& context,
-                     const miopen::kldivloss::ReducedProblemDescription& problem) const override;
-    bool MayNeedWorkspace() const override { return true; }
-};
-
 // BACKWARD UNREDUCE
 struct KLDivLossUnreducedBackward5d final : KLDivLossUnreducedSolver
 {
