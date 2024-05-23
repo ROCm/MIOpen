@@ -51,7 +51,7 @@ using namespace sum;
 
 TEST_P(SumTestFloat, SumTestFw)
 {
-    if((miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
+    if((miopen::IsUnset(MIOPEN_ENV(MIOPEN_TEST_ALL)) ||
         (miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float"))))
     {
         RunTest();
