@@ -43,7 +43,7 @@ public:
     void Create(std::string_view args,
                 std::string_view cwd,
                 std::ostream* out,
-                std::map<std::string, std::string> additionalEnvironmentVariables)
+                const ProcessEnvironmentMap& additionalEnvironmentVariables)
     {
         STARTUPINFOA info;
         ZeroMemory(&info, sizeof(STARTUPINFO));
@@ -113,7 +113,7 @@ struct ProcessImpl
     void Create(std::string_view args,
                 std::string_view cwd,
                 std::ostream* out,
-                std::map<std::string, std::string> additionalEnvironmentVariables)
+                const ProcessEnvironmentMap& additionalEnvironmentVariables)
     {
         outStream = out;
         std::string cmd{path.string()};
@@ -169,7 +169,7 @@ Process::~Process() noexcept = default;
 int Process::operator()(std::string_view args,
                         const fs::path& cwd,
                         std::ostream* out,
-                        std::map<std::string, std::string> additionalEnvironmentVariables)
+                        const ProcessEnvironmentMap& additionalEnvironmentVariables)
 {
     impl->Create(args, cwd.string(), out, additionalEnvironmentVariables);
     return impl->Wait();
@@ -179,7 +179,7 @@ ProcessAsync::ProcessAsync(const fs::path& cmd,
                            std::string_view args,
                            const fs::path& cwd,
                            std::ostream* out,
-                           std::map<std::string, std::string> additionalEnvironmentVariables)
+                           const ProcessEnvironmentMap& additionalEnvironmentVariables)
     : impl{std::make_unique<ProcessImpl>(cmd.string())}
 {
     impl->Create(args, cwd.string(), out, additionalEnvironmentVariables);
