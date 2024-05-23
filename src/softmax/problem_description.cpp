@@ -24,6 +24,7 @@
  *
  *******************************************************************************/
 
+#include <miopen/datatype.hpp>
 #include <miopen/softmax/problem_description.hpp>
 #include <miopen/names.hpp>
 
@@ -52,6 +53,7 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
 
         ss << "xpk" << static_cast<int>(xdxDesc.IsPacked());
         ss << "ypk" << static_cast<int>(yDesc.IsPacked());
+        ss << GetDataType(xdxDesc.GetType());
     }
     else
     {
@@ -70,6 +72,7 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
         ss << "ypk" << static_cast<int>(yDesc.IsPacked());
         ss << "dypk" << static_cast<int>(dyDesc.IsPacked());
         ss << "dxpk" << static_cast<int>(xdxDesc.IsPacked());
+        ss << GetDataType(yDesc.GetType());
     }
 
     ss << "a" << alpha;
