@@ -80,7 +80,7 @@ void RunMIOpenDriver()
         GTEST_SKIP();
     }
 
-    std::map<std::string, std::string> environmentVariables = {
+    miopen::ProcessEnvironmentMap environmentVariables = {
         {"MIOPEN_FIND_MODE", "1"}, {"MIOPEN_DEBUG_FIND_ONLY_SOLVER", "ConvDirectNaiveConvFwd"}};
 
     RunMIOpenDriverTestCommand(MIOpenDriverRegressionInt8Test::GetParam(), environmentVariables);
