@@ -32,7 +32,7 @@
 #include <miopen/names.hpp>
 #include <miopen/problem_description_base.hpp>
 #include <miopen/solver.hpp>
-#include <miopen/temp_file.hpp>
+#include <miopen/filesystem.hpp>
 
 #include "get_handle.hpp"
 
@@ -55,8 +55,8 @@ struct TestResults
 struct TestProblemDescriptionTag
 {
     // In real code this type should not have any data
-    std::string pdb_path;
-    std::string updb_path;
+    miopen::fs::path pdb_path;
+    miopen::fs::path updb_path;
 };
 
 struct TestProblemDescription : miopen::ProblemDescriptionBase, TestProblemDescriptionTag
@@ -186,14 +186,14 @@ auto CallExecutePrimitive(const miopen::ExecutionContext& ctx) -> TestResults
 {
     static std::uint32_t call_id = 0; // this is to distinguish between test cases
 
-    miopen::TempFile pdb{"test_pdb"};
-    miopen::TempFile updb{"test_fdb"};
+    miopen::TmpDir pdb;
+    miopen::TmpDir updb;
 
     TestResults test_results{};
     TestProblemDescription problem{};
     problem.test_results = &test_results;
-    problem.pdb_path     = pdb;
-    problem.updb_path    = updb;
+    problem.pdb_path     = pdb / "test_pdb";
+    problem.updb_path    = updb / "test_fdb";
     problem.net_config   = call_id++;
 
     constexpr auto solvers =

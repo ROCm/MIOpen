@@ -186,14 +186,14 @@ struct ExecutionContext
     {
         static const auto result = [&] {
             const auto pdb_path(GetSystemDbPath());
-            if(!prefix.empty())
-                filename << prefix << '_';
 #if MIOPEN_ENABLE_SQLITE && MIOPEN_USE_SQLITE_PERFDB
             constexpr std::string_view ext = ".db";
 #else
             constexpr std::string_view ext = ".db.txt";
 #endif
-            fs::path filename{GetStream().GetDbBasename().append(ext)};
+            auto filename{GetStream().GetDbBasename().append(ext)};
+            if(!prefix.empty())
+                filename.insert(0, std::string{prefix}.append("_"));
 
             // clang-format on
             if(fs::exists(pdb_path / filename))
@@ -280,14 +280,15 @@ struct ExecutionContext
         const auto& udb = GetUserDbPath();
         if(udb.empty())
             return "";
-        if(!prefix.empty())
-            filename << prefix << '_';
-        const auto filename = GetStream().GetDbBasename() +
+        auto filename = GetStream().GetDbBasename() +
 #if MIOPEN_ENABLE_SQLITE && MIOPEN_USE_SQLITE_PERFDB
-                              "_" + SQLitePerfDb::MIOPEN_PERFDB_SCHEMA_VER + ".udb";
+                        "_" + SQLitePerfDb::MIOPEN_PERFDB_SCHEMA_VER + ".udb";
 #else
-                              "." + GetUserDbSuffix() + ".udb.txt";
+                        "." + GetUserDbSuffix() + ".udb.txt";
 #endif
+        if(!prefix.empty())
+            filename.insert(0, std::string{prefix}.append("_"));
+
         return udb / filename;
     }
 
