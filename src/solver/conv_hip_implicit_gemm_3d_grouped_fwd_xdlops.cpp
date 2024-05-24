@@ -99,9 +99,7 @@ using DeviceOpGFwdDefault =
                                                                   DataType,
                                                                   PassThrough,
                                                                   PassThrough,
-                                                                  PassThrough,
-                                                                  DataType,
-                                                                  DataType>;
+                                                                  PassThrough>;
 
 template <typename DataType>
 using DeviceOpGFwdBilinearPtrs =
