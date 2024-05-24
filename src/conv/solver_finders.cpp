@@ -354,9 +354,6 @@ FindCoreResult FindCore(const AnyInvokeParams& invoke_ctx,
 
     for(const auto& ss : solutions)
     {
-        if(ss.second.empty())
-            continue;
-
         auto evaluated = EvaluateInvokers(handle,
                                           ss.second,
                                           ss.first,
