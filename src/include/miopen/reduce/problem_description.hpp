@@ -45,6 +45,7 @@ struct ProblemDescription : ProblemDescriptionBase
                        int32_t dim_)
         : nanPropagation(nanPropagation_), xDesc(xDesc_), yDesc(yDesc_), dim(dim_)
     {
+        reduceExtremeOp = MIOPEN_REDUCE_CALCULATION_SUM;
     }
 
     ProblemDescription(const TensorDescriptor& xDesc_,

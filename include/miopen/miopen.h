@@ -5912,6 +5912,8 @@ typedef enum
         3, /*!< the operation is getting the minimum value and index of the reduced elements */
     MIOPEN_REDUCE_EXTREME_MAX =
         4, /*!< the operation is getting the maximum value and index of the reduced elements */
+    MIOPEN_REDUCE_CALCULATION_SUM =
+        5, /*!< the operation is multiplying the values of the reduced elements */
 } miopenReduceExtremeOp_t;
 
 // ReduceExtreme APIs
