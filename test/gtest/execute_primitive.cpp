@@ -34,6 +34,10 @@
 #include <miopen/solver.hpp>
 #include <miopen/temp_file.hpp>
 
+#if MIOPEN_ENABLE_SQLITE && MIOPEN_USE_SQLITE_PERFDB
+#include <miopen/sqlite_db.hpp>
+#endif
+
 #include "get_handle.hpp"
 
 #include <gtest/gtest_common.hpp>
@@ -59,7 +63,12 @@ struct TestProblemDescriptionTag
     std::string updb_path;
 };
 
-struct TestProblemDescription : miopen::ProblemDescriptionBase, TestProblemDescriptionTag
+struct TestProblemDescription : miopen::ProblemDescriptionBase,
+                                TestProblemDescriptionTag
+#if MIOPEN_ENABLE_SQLITE && MIOPEN_USE_SQLITE_PERFDB
+    ,
+                                miopen::SQLiteSerializable<TestProblemDescription>
+#endif
 {
     std::uint32_t net_config;
     TestResults* test_results;
@@ -71,10 +80,27 @@ struct TestProblemDescription : miopen::ProblemDescriptionBase, TestProblemDescr
 
     void Serialize(std::ostream& stream) const { stream << net_config; }
 
+#if MIOPEN_ENABLE_SQLITE && MIOPEN_USE_SQLITE_PERFDB
+    static std::string table_name() { return "config"; }
+#endif
+
+    template <class TSelf>
+    static void Visit(TSelf&& self, std::function<void(std::string, std::string)> visitor)
+    {
+    }
+
+    template <class TSelf>
+    static void Visit(TSelf&& self, std::function<void(std::int64_t, std::string)> visitor)
+    {
+        visitor(static_cast<std::int32_t>(self.net_config), "net_config");
+    }
+
     template <class TSelf, class Visitor>
     static void VisitAll(TSelf&& self, Visitor visitor)
     {
-        visitor(self.net_config, "net_config");
+        Visit(std::forward<Self>(self), [&](int64_t value, std::string name) { f(value, name); });
+        Visit(std::forward<Self>(self),
+              [&](std::string value, std::string name) { f(value, name); });
     }
 
     friend auto GetDb(const miopen::ExecutionContext&, const TestProblemDescriptionTag& problem)
