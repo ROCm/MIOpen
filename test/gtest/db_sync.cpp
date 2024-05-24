@@ -566,7 +566,9 @@ void CheckDynamicFDBEntry(size_t thread_index,
                         << "MLIR detected in dynamic solvers";
                     if(miopen::EndsWith(kern.kernel_file, ".s"))
                     {
-                        compile_options += " -mcpu=" + miopen::LcOptionTargetStrings{handle.GetTargetProperties()}.targetId;
+                        compile_options +=
+                            " -mcpu=" +
+                            miopen::LcOptionTargetStrings{handle.GetTargetProperties()}.targetId;
                     }
                     else
                     {
@@ -748,7 +750,10 @@ void CheckFDBEntry(size_t thread_index,
                         {
                             if(miopen::EndsWith(kern.kernel_file, ".s"))
                             {
-                                compile_options += " -mcpu=" + miopen::LcOptionTargetStrings{handle.GetTargetProperties()}.targetId;
+                                compile_options +=
+                                    " -mcpu=" +
+                                    miopen::LcOptionTargetStrings{handle.GetTargetProperties()}
+                                        .targetId;
                             }
                             else
                             {
