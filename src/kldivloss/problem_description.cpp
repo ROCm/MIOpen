@@ -60,7 +60,7 @@ NetworkConfig UnreducedProblemDescription::MakeNetworkConfig() const
 
     std::ostringstream ss;
 
-    ss << "kldivloss_unreduce";
+    ss << "kldivloss_unreduced";
     ss << "is_fwd" << is_fwd;
     ss << "log_target" << is_log_target;
     ss << "input_dtype" << input_dtype;
@@ -87,7 +87,7 @@ NetworkConfig ReducedProblemDescription::MakeNetworkConfig() const
 
     std::ostringstream ss;
 
-    ss << "kldivloss_reduce";
+    ss << "kldivloss_reduced";
     ss << "is_fwd" << is_fwd;
     ss << "divisor" << divisor;
     ss << "log_target" << is_log_target;
