@@ -98,9 +98,10 @@ struct TestProblemDescription : miopen::ProblemDescriptionBase,
     template <class TSelf, class Visitor>
     static void VisitAll(TSelf&& self, Visitor visitor)
     {
-        Visit(std::forward<Self>(self), [&](int64_t value, std::string name) { f(value, name); });
-        Visit(std::forward<Self>(self),
-              [&](std::string value, std::string name) { f(value, name); });
+        Visit(std::forward<TSelf>(self),
+              [&](int64_t value, std::string name) { visitor(value, name); });
+        Visit(std::forward<TSelf>(self),
+              [&](std::string value, std::string name) { visitor(value, name); });
     }
 
     friend auto GetDb(const miopen::ExecutionContext&, const TestProblemDescriptionTag& problem)
