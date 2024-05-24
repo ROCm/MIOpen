@@ -196,7 +196,6 @@ void BackendEngineHeurDescriptor::getAttribute(miopenBackendAttributeName_t attr
         if(attributeType == MIOPEN_TYPE_BACKEND_DESCRIPTOR && requestedElementCount >= 0)
         {
             *elementCount = mResults.size();
-            // std::min here caused duplicate definition with cuda_wrappers on windows
             std::transform(mResults.begin(),
                            mResults.begin() + minimum(*elementCount, requestedElementCount),
                            static_cast<miopenBackendDescriptor_t*>(arrayOfElements),
