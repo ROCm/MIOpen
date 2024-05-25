@@ -174,6 +174,7 @@ void PerformanceConfigHipImplicitGemmFwdXdlops::HeuristicInit(
     case miopenFloat: Init<float>(problem); break;
     case miopenFloat8:
     case miopenBFloat8:
+    case miopenInt64:
     case miopenInt32:
     case miopenBFloat16:
     case miopenDouble: break;
@@ -216,6 +217,7 @@ bool PerformanceConfigHipImplicitGemmFwdXdlops::IsValid(
     case miopenFloat: return CheckIsSupportCKArgs<float>(problem);
     case miopenFloat8:
     case miopenBFloat8:
+    case miopenInt64:
     case miopenInt32:
     case miopenBFloat16:
     case miopenDouble: break;
@@ -296,6 +298,7 @@ bool ConvHipImplicitGemmFwdXdlops::IsApplicable(
     case miopenFloat: return CheckCKApplicability<float>(problem);
     case miopenFloat8:
     case miopenBFloat8:
+    case miopenInt64:
     case miopenInt32:
     case miopenBFloat16:
     case miopenDouble: break;
@@ -323,6 +326,7 @@ ConvSolution ConvHipImplicitGemmFwdXdlops::GetSolution(
     case miopenFloat:
         return InitInvokerFactoryNHWC<DeviceOpPtrs<float>, CKArgs, miopen::conv::DataInvokeParams>(
             ctx, problem, config.kernel_id);
+    case miopenInt64:
     case miopenInt32:
     case miopenBFloat16:
     case miopenDouble:
