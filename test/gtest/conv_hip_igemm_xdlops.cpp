@@ -64,6 +64,7 @@ void Run2dDriver(miopenDataType_t prec)
     case miopenBFloat16:
     case miopenFloat:
     case miopenInt32:
+    case miopenInt64:
     case miopenDouble:
         FAIL() << "miopenHalf, miopenBFloat16, miopenFloat, miopenInt32, "
                   "miopenDouble data "
