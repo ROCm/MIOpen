@@ -535,7 +535,7 @@ pipeline {
             description: "")
         booleanParam(
             name: "WORKAROUND__TARGET_GFX94X_MINIMUM_TEST_ENABLE",
-            defaultValue: true,
+            defaultValue: false,
             description: "")
     }
 
