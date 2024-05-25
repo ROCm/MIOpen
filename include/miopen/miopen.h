@@ -378,6 +378,7 @@ typedef enum
 // miopenReserved1 = 7,
 // miopenReserved2 = 8,
 #endif
+    miopenInt64 = 9,
 } miopenDataType_t;
 
 /*! @ingroup tensor

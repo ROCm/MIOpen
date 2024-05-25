@@ -283,6 +283,7 @@ void PerfConfigConvCKIgemmFwdBiasResAddActivFused::HeuristicInit(
     case miopenFloat8:
     case miopenBFloat8:
     case miopenInt32:
+    case miopenInt64:
     case miopenDouble:
     default: MIOPEN_THROW("Unsupported datatype");
     }
@@ -337,6 +338,7 @@ bool PerfConfigConvCKIgemmFwdBiasResAddActivFused::IsValid(
     case miopenFloat8:
     case miopenBFloat8:
     case miopenInt32:
+    case miopenInt64:
     case miopenDouble:
     default: MIOPEN_THROW("Unsupported datatype");
     }
@@ -432,6 +434,7 @@ bool ConvCKIgemmFwdBiasResAddActivFused::IsApplicable(const FusionContext& ctx,
     case miopenFloat8:
     case miopenBFloat8:
     case miopenInt32:
+    case miopenInt64:
     case miopenDouble:
     default: MIOPEN_THROW("Unsupported datatype");
     }
@@ -468,6 +471,7 @@ ConvSolution ConvCKIgemmFwdBiasResAddActivFused::GetSolution(
             conv_problem, config.kernel_id);
 
     case miopenInt32:
+    case miopenInt64:
     case miopenDouble:
     case miopenFloat8:
     case miopenBFloat8:
