@@ -644,6 +644,11 @@ miopenStatus_t CallGemm(const Handle& handle,
             MIOPEN_THROW(miopenStatusBadParm, "miopenDouble data type not supported by rocBLAS.");
         };
         break;
+
+        case miopenInt64: {
+            MIOPEN_THROW(miopenStatusBadParm, "miopenInt64 is not currently supported.");
+        }
+        break;
         }
 
         if(handle.IsProfilingEnabled())
@@ -918,6 +923,10 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
             MIOPEN_THROW(miopenStatusBadParm, "miopenDouble data type not supported by rocBLAS.");
         }
         break;
+        case miopenInt64: {
+            MIOPEN_THROW(miopenStatusBadParm, "miopenInt64 is not currently supported.");
+        }
+        break;
         }
 
         if(handle.IsProfilingEnabled())
@@ -1188,6 +1197,11 @@ miopenStatus_t CallGemmStridedBatchedSequential(const Handle& handle,
 
         case miopenDouble: {
             MIOPEN_THROW(miopenStatusBadParm, "miopenDouble data type not supported by rocBLAS.");
+        }
+        break;
+
+        case miopenInt64: {
+            MIOPEN_THROW(miopenStatusBadParm, "miopenInt64 is not currently supported.");
         }
         break;
         }
