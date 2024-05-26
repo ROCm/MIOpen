@@ -776,7 +776,6 @@ target_include_directories(MIOpen PUBLIC
 
 if(MIOPEN_USE_COMPOSABLEKERNEL)
 set(MIOPEN_CK_LINK_FLAGS composable_kernel::device_other_operations composable_kernel::device_gemm_operations composable_kernel::device_conv_operations composable_kernel::device_contraction_operations composable_kernel::device_reduction_operations hip::host)
-
 endif()
 
 if(WIN32)
@@ -787,10 +786,6 @@ endif()
 target_include_directories(MIOpen SYSTEM PUBLIC $<BUILD_INTERFACE:${HALF_INCLUDE_DIR}>)
 # Workaround : change in rocm-cmake was causing linking error so had to add ${CMAKE_DL_LIBS}
 #               We can remove ${CMAKE_DL_LIBS} once root cause is identified.
-
-# get_target_property(LOCATION_ABC composable_kernel::device_conv_operations IMPORTED_LOCATION)
-# message(STATUS "\n\n\n IMPORTED_LOCATION: ${LOCATION_ABC}")
-
 target_link_libraries(MIOpen PRIVATE ${CMAKE_DL_LIBS} Threads::Threads BZip2::BZip2 ${MIOPEN_CK_LINK_FLAGS})
 miopen_generate_export_header(MIOpen)
 
