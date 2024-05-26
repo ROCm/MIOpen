@@ -138,6 +138,16 @@ if(NOT WIN32)
     check_cxx_linker_flag(stdc++fs HAS_LIB_STD_FILESYSTEM)
 endif()
 
+
+# Extract the first directory from CMAKE_PREFIX_PATH
+string(FIND "${CMAKE_PREFIX_PATH}" ";" FIRST_COLON_INDEX)
+if(FIRST_COLON_INDEX EQUAL -1)
+    set(FIRST_PREFIX_PATH "${CMAKE_PREFIX_PATH}")
+else()
+    string(SUBSTRING "${CMAKE_PREFIX_PATH}" 0 ${FIRST_COLON_INDEX} FIRST_PREFIX_PATH)
+endif()
+set(CK_LIB_PATH "${FIRST_PREFIX_PATH}/lib")
+set(CK_INCLUDE_PATH "${FIRST_PREFIX_PATH}/include")
 list(APPEND CMAKE_PREFIX_PATH ${CMAKE_INSTALL_PREFIX} ${CMAKE_INSTALL_PREFIX}/llvm ${CMAKE_INSTALL_PREFIX}/hip /opt/rocm /opt/rocm/llvm /opt/rocm/hip)
 
 option(ENABLE_HIP_WORKAROUNDS Off)
@@ -299,10 +309,44 @@ message(STATUS "Hip compiler flags: ${HIP_COMPILER_FLAGS}")
 
 add_compile_definitions($<$<COMPILE_LANGUAGE:CXX>:HIP_COMPILER_FLAGS=${HIP_COMPILER_FLAGS}>)
 
+
+
 # HIP
 if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIPNOGPU")
     if(MIOPEN_USE_COMPOSABLEKERNEL)
-        find_package(composable_kernel 1.0.0 COMPONENTS device_other_operations device_gemm_operations device_conv_operations device_contraction_operations device_reduction_operations)
+       find_library(LIB_device NAMES device_contraction_operations PATHS ${CK_LIB_PATH})
+       find_library(LIB_gemm NAMES device_gemm_operations PATHS ${CK_LIB_PATH})
+       find_library(LIB_reduction NAMES device_reduction_operations PATHS ${CK_LIB_PATH})
+       find_library(LIB_conv NAMES device_conv_operations PATHS ${CK_LIB_PATH})
+       find_library(LIB_other_op NAMES device_other_operations PATHS ${CK_LIB_PATH})
+        # Include directories
+       include_directories(${CK_INCLUDE_PATH})
+
+       # Define imported targets for the third-party static libraries
+       add_library(composable_kernel::device_conv_operations STATIC IMPORTED)
+       add_library(composable_kernel::device_contraction_operations STATIC IMPORTED)
+       add_library(composable_kernel::device_gemm_operations STATIC IMPORTED)
+       add_library(composable_kernel::device_reduction_operations STATIC IMPORTED)
+       add_library(composable_kernel::device_other_operations STATIC IMPORTED)
+       set_target_properties(composable_kernel::device_conv_operations PROPERTIES
+           IMPORTED_LOCATION "${LIB_conv}"
+       )
+
+       set_target_properties(composable_kernel::device_contraction_operations PROPERTIES
+           IMPORTED_LOCATION "${LIB_device}"
+       )
+
+       set_target_properties(composable_kernel::device_gemm_operations PROPERTIES
+           IMPORTED_LOCATION "${LIB_gemm}"
+       )
+
+       set_target_properties(composable_kernel::device_reduction_operations PROPERTIES
+           IMPORTED_LOCATION "${LIB_reduction}"
+       )
+
+       set_target_properties(composable_kernel::device_other_operations PROPERTIES
+           IMPORTED_LOCATION "${LIB_other_op}"
+       )
     endif()
     if( MIOPEN_BACKEND STREQUAL "HIPNOGPU")
         set(MIOPEN_MODE_NOGPU 1)
