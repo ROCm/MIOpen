@@ -303,7 +303,7 @@ TensorParametersUint64 InputFlags::GetValueTensorUint64(const std::string& long_
     auto parse = [](auto line) {
         auto ret        = std::vector<uint64_t>{};
         const auto strs = miopen::SplitDelim(line, 'x');
-    for(auto&& str : strs)
+        for(auto&& str : strs)
         {
             auto elem = uint64_t{};
             auto ss   = std::istringstream{str};
