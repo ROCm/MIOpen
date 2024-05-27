@@ -110,19 +110,17 @@ struct tensor_layout_t
     }
 
     // Add value at index
-    constexpr tensor_view_t<N>
-    add_tensor_layout_t(const tensor_view_t<N>& tensor_view, uint64_t idx, uint64_t value)
+    constexpr tensor_layout_t<N> add_tensor_layout_t(uint64_t idx, uint64_t value)
     {
-        tensor_view_t<N> out = tensor_view;
+        tensor_layout_t<N> out = *this;
         out.layout[idx] += value;
         return out;
     }
 
     // Sub value at index
-    constexpr tensor_view_t<N>
-    sub_tensor_layout_t(const tensor_view_t<N>& tensor_view, uint64_t idx, uint64_t value)
+    constexpr tensor_layout_t<N> sub_tensor_layout_t(uint64_t idx, uint64_t value)
     {
-        tensor_view_t<N> out = tensor_view;
+        tensor_layout_t<N> out = *this;
         out.layout[idx] -= value;
         return out;
     }
