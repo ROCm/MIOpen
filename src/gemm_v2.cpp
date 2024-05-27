@@ -361,55 +361,6 @@ static GemmBackend_t enforce_gemm_backend(miopenDataType_t data_type,
     return gemm_backend_enforced;
 }
 
-miopenStatus_t CallGemmTimeMeasure(const Handle& handle,
-                                   GemmDescriptor gemm_desc,
-                                   ConstData_t A,
-                                   std::size_t a_offset,
-                                   ConstData_t B,
-                                   std::size_t b_offset,
-                                   Data_t C,
-                                   std::size_t c_offset,
-                                   bool time_precision,
-                                   CallGemmType_t call_gemm_type,
-                                   GemmBackend_t gemm_backend)
-{
-    switch(call_gemm_type)
-    {
-    case callGemm: {
-        if(time_precision)
-        {
-            // rocBLAS need a warm-up call for accurate timing
-            CallGemm(handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset, gemm_backend);
-        }
-
-        return CallGemm(handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset, gemm_backend);
-    }
-    case callGemmStridedBatched: {
-        if(time_precision)
-        {
-            // rocBLAS need extra warm-up call for accurate timing
-            CallGemmStridedBatched(
-                handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset, gemm_backend);
-        }
-
-        return CallGemmStridedBatched(
-            handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset, gemm_backend);
-    }
-    case callGemmStridedBatchedSequential: {
-        if(time_precision)
-        {
-            // rocBLAS need a warm-up call for accurate timing
-            CallGemmStridedBatchedSequential(
-                handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset, gemm_backend);
-        }
-
-        return CallGemmStridedBatchedSequential(
-            handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset, gemm_backend);
-    }
-    }
-    return miopenStatusNotImplemented;
-}
-
 miopenStatus_t CallGemm(const Handle& handle,
                         GemmDescriptor gemm_desc,
                         ConstData_t A,
