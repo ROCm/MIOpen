@@ -25,7 +25,7 @@
  *******************************************************************************/
 #pragma once
 
-#include <miopen/rop/problem_description.hpp>
+#include <miopen/rope/problem_description.hpp>
 #include <miopen/solver.hpp>
 #include <utility>
 

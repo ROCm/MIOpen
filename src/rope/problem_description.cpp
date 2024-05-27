@@ -55,7 +55,6 @@ NetworkConfig ProblemDescriptionBwd::MakeNetworkConfig() const
     auto dylength = dyDesc.GetLengths();
     auto dxlength = dxDesc.GetLengths();
 
-    auto size         = xlength[dim];
     auto output_numel = std::accumulate(
         dxlength.begin(), dxlength.end(), static_cast<size_t>(1), std::multiplies<size_t>());
     auto dtype = dyDesc.GetType();

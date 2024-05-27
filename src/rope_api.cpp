@@ -81,15 +81,15 @@ extern "C" miopenStatus_t miopenRoPEForward(miopenHandle_t handle,
     LogCmdRoPE(xDesc, true);
 
     return miopen::try_([&] {
-        miopen::ReduceExtremeForward(miopen::deref(handle),
-                                     miopen::deref(xDesc),
-                                     DataCast(x),
-                                     miopen::deref(cosDesc),
-                                     DataCast(cos),
-                                     miopen::deref(sinDesc),
-                                     DataCast(sin),
-                                     miopen::deref(yDesc),
-                                     DataCast(y));
+        miopen::RoPEForward(miopen::deref(handle),
+                            miopen::deref(xDesc),
+                            DataCast(x),
+                            miopen::deref(cosDesc),
+                            DataCast(cos),
+                            miopen::deref(sinDesc),
+                            DataCast(sin),
+                            miopen::deref(yDesc),
+                            DataCast(y));
     });
 }
 
@@ -109,14 +109,14 @@ extern "C" miopenStatus_t miopenRoPEBackward(miopenHandle_t handle,
     LogCmdRoPE(dyDesc, true);
 
     return miopen::try_([&] {
-        miopen::ReduceExtremeForward(miopen::deref(handle),
-                                     miopen::deref(dyDesc),
-                                     DataCast(dy),
-                                     miopen::deref(cosDesc),
-                                     DataCast(cos),
-                                     miopen::deref(sinDesc),
-                                     DataCast(sin),
-                                     miopen::deref(dxDesc),
-                                     DataCast(dx));
+        miopen::RoPEBackward(miopen::deref(handle),
+                             miopen::deref(dyDesc),
+                             DataCast(dy),
+                             miopen::deref(cosDesc),
+                             DataCast(cos),
+                             miopen::deref(sinDesc),
+                             DataCast(sin),
+                             miopen::deref(dxDesc),
+                             DataCast(dx));
     });
 }

@@ -82,7 +82,7 @@ miopenStatus_t RoPEBackward(Handle& handle,
     const auto problem = rope::ProblemDescriptionBwd{dyDesc, cosDesc, sinDesc, dxDesc};
 
     const auto invoke_params = [&]() {
-        auto tmp    = rope::FwdInvokeParams{};
+        auto tmp    = rope::BwdInvokeParams{};
         tmp.type    = InvokeType::Run;
         tmp.dyDesc  = &dyDesc;
         tmp.cosDesc = &cosDesc;

@@ -43,7 +43,7 @@ miopenStatus_t RoPEForward(Handle& handle,
                            const TensorDescriptor& yDesc,
                            Data_t y);
 
-miopenStatus_t RoPeBackward(Handle& handle,
+miopenStatus_t RoPEBackward(Handle& handle,
                             const TensorDescriptor& dyDesc,
                             ConstData_t dy,
                             const TensorDescriptor& cosDesc,

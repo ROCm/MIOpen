@@ -30,11 +30,11 @@
 #include <miopen/tensor.hpp>
 
 namespace miopen {
-namespace reduce {
+namespace rope {
 
 struct FwdInvokeParams : public miopen::InvokeParams
 {
-    InvokeParams() = default;
+    FwdInvokeParams() = default;
 
     const TensorDescriptor* xDesc   = nullptr;
     const TensorDescriptor* cosDesc = nullptr;
@@ -52,7 +52,7 @@ struct FwdInvokeParams : public miopen::InvokeParams
 
 struct BwdInvokeParams : public miopen::InvokeParams
 {
-    InvokeParams() = default;
+    BwdInvokeParams() = default;
 
     const TensorDescriptor* dyDesc  = nullptr;
     const TensorDescriptor* cosDesc = nullptr;
@@ -68,6 +68,6 @@ struct BwdInvokeParams : public miopen::InvokeParams
     Data_t GetWorkspace() const { return 0; }
 };
 
-} // namespace reduce
+} // namespace rope
 
 } // namespace miopen

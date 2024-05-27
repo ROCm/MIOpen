@@ -38,18 +38,18 @@ namespace solver {
 
 namespace rope {
 
-bool RoPEForward::IsApplicable(const ExecutionContext& context,
-                               const miopen::rope::ProblemDescriptionBwd& problem) const
+bool RoPEBackward::IsApplicable(const ExecutionContext& context,
+                                const miopen::rope::ProblemDescriptionBwd& problem) const
 {
-    if(!problem.IsValidLengthIndice())
+    if(!problem.IsValidLength())
         return false;
     if(!problem.IsAllContiguous())
         return false;
     return true;
 }
 
-ConvSolution RoPEForward::GetSolution(const ExecutionContext&,
-                                      const miopen::rope::ProblemDescriptionBwd& problem) const
+ConvSolution RoPEBackward::GetSolution(const ExecutionContext&,
+                                       const miopen::rope::ProblemDescriptionBwd& problem) const
 {
     auto result = ConvSolution{miopenStatusSuccess};
 
@@ -98,7 +98,7 @@ ConvSolution RoPEForward::GetSolution(const ExecutionContext&,
     result.invoker_factory = [](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
             decltype(auto) kernel = handle_.Run(kernels.front());
-            decltype(auto) params = raw_params.CastTo<miopen::rope::InvokeParams>();
+            decltype(auto) params = raw_params.CastTo<miopen::rope::BwdInvokeParams>();
 
             auto dxdims = params.dxDesc->GetLengths();
 

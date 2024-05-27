@@ -35,6 +35,7 @@
 #include <miopen/layernorm/solvers.hpp>
 #include <miopen/pooling/solvers.hpp>
 #include <miopen/reduce/solvers.hpp>
+#include <miopen/rope/solvers.hpp>
 #include <miopen/mha/solvers.hpp>
 #include <miopen/softmax/solvers.hpp>
 

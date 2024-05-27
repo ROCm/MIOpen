@@ -295,7 +295,7 @@ set( MIOpen_Source
     solver/reduce/forward_min.cpp
     solver/reduce/forward_sum.cpp
     solver/rope/backward_rope.cpp
-    solver/rope/forawrd_rope.cpp
+    solver/rope/forward_rope.cpp
     solver/softmax/attn_softmax.cpp
     solver/softmax/softmax.cpp
     subbuffers.cpp
