@@ -57,7 +57,6 @@
 
 #include <boost/range/adaptors.hpp>
 
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_IMMED_FALLBACK)
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_DUMP_TENSOR_PATH)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_ENABLE_AI_IMMED_MODE_FALLBACK)
@@ -298,11 +297,8 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
         return tmp;
     }();
 
-    const auto invoke_ctx = conv::DataInvokeParams{InvokeType::Evaluate,
-                                                   {xDesc, x, wDesc, w, yDesc, y},
-                                                   workSpace,
-                                                   workSpaceSize,
-                                                   attribute.gfx90aFp16alt.GetFwd()};
+    const auto invoke_ctx = conv::DataInvokeParams{
+        {xDesc, x, wDesc, w, yDesc, y}, workSpace, workSpaceSize, attribute.gfx90aFp16alt.GetFwd()};
 
     const auto results = FindConvolution(ctx, problem, invoke_ctx);
 
@@ -619,6 +615,18 @@ struct SolutionTimeComparator
     }
 };
 
+namespace {
+
+std::ostream& operator<<(std::ostream& os, const miopenConvSolution_t& s)
+{
+    return os << "id: " << s.solution_id                              //
+              << ", algo: " << s.algorithm                            //
+              << ", time: " << s.time << ", ws: " << s.workspace_size //
+              << ", name: " << miopen::solver::Id(s.solution_id).ToString();
+}
+
+} // namespace
+
 std::vector<miopenConvSolution_t>
 ConvolutionDescriptor::GetSolutionsFallback(const ExecutionContext& ctx,
                                             const conv::ProblemDescription& problem,
@@ -712,11 +720,8 @@ ConvolutionDescriptor::GetSolutionsFallback(const ExecutionContext& ctx,
     }
     MIOPEN_LOG_I2("maxSolutionCount = " << maxSolutionCount << ", available = " << interim.size());
     for(const auto& s : interim)
-    {
-        MIOPEN_LOG_I2("id: " << s.solution_id << " algo: " << s.algorithm << ", time: " << s.time
-                             << " ms, ws: " << s.workspace_size
-                             << ", name: " << miopen::solver::Id(s.solution_id).ToString());
-    }
+        MIOPEN_LOG_I2(s);
+
     std::sort(begin(interim), end(interim), SolutionTimeComparator{});
     interim.resize(std::min(maxSolutionCount, interim.size()));
 
@@ -757,9 +762,6 @@ std::vector<miopenConvSolution_t> GetSolutions(const ExecutionContext& ctx,
 
         const auto solver_id = solver::Id{pair.first};
 
-        if(!conv::IsEnoughWorkspace("GetSolutions", solver_id, pair.second.workspace, invokeParams))
-            continue;
-
         // Wrong IDs can't be used to call IsApplicable(), so let's
         // ignore obsolete or invalid IDs read from find-db first.
         if(!solver_id.IsValid())
@@ -773,20 +775,41 @@ std::vector<miopenConvSolution_t> GetSolutions(const ExecutionContext& ctx,
             miopenConvSolution_t{pair.second.time, pair.second.workspace, solver_id.Value(), algo});
     }
 
+    /// Non-zero InvokeParams means that this function is used in Find to optimize host-side
+    /// performance (see Hybrid Find modes). Note that maxSolutionCount is usually 1 in this case.
+    ///
+    /// The size of the provided workspace in Hybrid Find modes is often smaller than necessary for
+    /// Normal Find, because GWSS in these modes return size suitable only for the "best" solver
+    /// \ref ffind_gwss_why_not_0. If we check IsEnoughWorkspace() for all solvers, then many false
+    /// warnings may be produced. That is why we have to check IsEnoughWorkspace for the
+    /// maxSolutionCount "best" solvers only.
+    ///
+    /// It is also highly desirable to avoid IsApplicable() checks for solutions that go beyond
+    /// maxSolutionCount, i.e. those that are not needed anyway. This optimization is important, for
+    /// example, to avoid applicability checks for MLIR solvers, since these may involve running the
+    /// MIIR compiler, which is very slow.
+    ///
+    /// The loop below does all the above at once.
     std::sort(begin(interim), end(interim), SolutionTimeComparator{});
+    auto out = std::vector<miopenConvSolution_t>{};
+    out.reserve(maxSolutionCount);
+    auto n_copied = 0;
+    for(const auto& s : interim)
+    {
+        const auto solver_id = solver::Id{s.solution_id};
+        if(!solver_id.GetSolver().IsApplicable(ctx, problem))
+            continue;
+        if(!conv::IsEnoughWorkspace("GetSolutions", solver_id, s.workspace_size, invokeParams))
+            continue;
+        out.push_back(s);
+        if(++n_copied >= maxSolutionCount)
+            break;
+    }
 
-    // Let's avoid checks of solvers that reside beyond maxSolutionCount,
-    // i.e. those that unnecessary anyway. This optimization is important
-    // because applicability check may involve running MIIR compiler
-    // (for MLIR solvers), which can be very slow.
-    interim.resize(std::min(interim.size(), maxSolutionCount));
-    const auto to_erase_from = std::remove_if(interim.begin(), interim.end(), [&](auto&& entry) {
-        const auto solver_id = solver::Id{entry.solution_id};
-        return !solver_id.GetSolver().IsApplicable(ctx, problem);
-    });
-    interim.erase(to_erase_from, interim.end());
+    for(const auto& s : out)
+        MIOPEN_LOG_I2(s);
 
-    return interim;
+    return out;
 }
 
 } // namespace
@@ -916,8 +939,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
         return tmp;
     }();
 
-    const auto invoke_ctx = conv::DataInvokeParams{InvokeType::Evaluate,
-                                                   {dyDesc, dy, wDesc, w, dxDesc, dx},
+    const auto invoke_ctx = conv::DataInvokeParams{{dyDesc, dy, wDesc, w, dxDesc, dx},
                                                    workSpace,
                                                    workSpaceSize,
                                                    this->attribute.gfx90aFp16alt.GetBwd()};
@@ -1133,8 +1155,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
         return tmp;
     }();
 
-    const auto invoke_ctx = conv::WrWInvokeParams{InvokeType::Evaluate,
-                                                  {dyDesc, dy, xDesc, x, dwDesc, dw},
+    const auto invoke_ctx = conv::WrWInvokeParams{{dyDesc, dy, xDesc, x, dwDesc, dw},
                                                   workSpace,
                                                   workSpaceSize,
                                                   attribute.gfx90aFp16alt.GetWrW()};

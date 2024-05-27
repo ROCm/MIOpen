@@ -50,6 +50,7 @@ static void LogCmdRedux(const miopen::ReduceTensorDescriptor reduceTensorDesc,
         case miopenDouble: ss << "reducefp64"; break;
         case miopenFloat8: ss << "reducefp8"; break;
         case miopenBFloat8: ss << "reducebfp8"; break;
+        case miopenInt64:
         default: ss << "reduce";
         }
 

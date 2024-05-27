@@ -1941,6 +1941,8 @@ std::string GetCastTensorBuildOptionFromType(const std::string& buildOption, mio
     case miopenDouble:
         // TODO
         MIOPEN_THROW(miopenStatusBadParm, "miopenDouble data type not supported in cast tensor.");
+    case miopenInt64:
+        MIOPEN_THROW(miopenStatusBadParm, "miopenInt64 data type not supported in cast tensor.");
     default: MIOPEN_THROW(miopenStatusBadParm, "Invalid data type in cast tensor desc.");
     }
 }
