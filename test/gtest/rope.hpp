@@ -25,6 +25,7 @@
  *******************************************************************************/
 
 #include "../driver/tensor_driver.hpp"
+#include "../src/include/miopen/rope/utils.hpp"
 #include "get_handle.hpp"
 #include "random.hpp"
 #include "tensor_holder.hpp"
@@ -36,69 +37,67 @@
 template <class T>
 void cpu_rope_forward(tensor<T> x, tensor<T> cos, tensor<T> sin, tensor<T>& ref_y)
 {
-    auto dims         = x.desc.GetLengths();
-    size_t outer_size = 1;
-    size_t inner_size = dims[dims.size() - 1];
+    auto x_dims  = x.desc.GetLengths();
+    auto y_dims  = ref_y.desc.GetLengths();
+    auto y_numel = std::accumulate(y_dims.begin(), y_dims.end(), 1L, std::multiplies<int64_t>());
 
-    for(size_t i = 0ULL; i < dims.size() - 1; ++i)
-    {
-        outer_size *= dims[i];
-    }
+    auto x_tv     = miopen::solver::rope::get_inner_expanded_tv<5>(x.desc);
+    auto cos_tv   = miopen::solver::rope::get_inner_expanded_tv<3>(cos.desc);
+    auto sin_tv   = miopen::solver::rope::get_inner_expanded_tv<3>(sin.desc);
+    auto ref_y_tv = miopen::solver::rope::get_inner_expanded_tv<5>(ref_y.desc);
 
-    par_ford(outer_size)([&](int32_t o) {
-        float pvar = 0;
+    par_ford(y_numel)([&](int32_t o) {
+        tensor_layout_t<5> ncdhw(x_tv, o);
 
-        ford(inner_size)([&](int32_t i) {
-            float tmp = static_cast<float>(x[o * inner_size + i]);
-            pvar += tmp * tmp;
-        });
+        T input = static_cast<T>(x[x_tv.get_tensor_view_idx(ncdhw)]);
+        T input_rotate_half =
+            (ncdhw.layout[4] % 2 == 0)
+                ? static_cast<T>(-x[x_tv.get_tensor_view_idx(ncdhw.add_tensor_layout_t(4, 1))])
+                : static_cast<T>(x[x_tv.get_tensor_view_idx(ncdhw.sub_tensor_layout_t(4, 1))]);
 
-        pvar        = pvar / inner_size;
-        float prstd = 1 / sqrt(pvar + eps);
+        tensor_layout_t<3> ncw(ncdhw.layout[2], ncdhw.layout[3], ncdhw.layout[4]);
 
-        ref_rstd[o] = static_cast<T>(prstd);
+        T cos_val = static_cast<T>(cos[cos_tv.get_tensor_view_idx(ncw)]);
+        T sin_val = static_cast<T>(sin[sin_tv.get_tensor_view_idx(ncw)]);
 
-        ford(inner_size)([&](int32_t i) {
-            float pweight = mode ? static_cast<float>(weight[i]) : 1;
-            ref_y[o * inner_size + i] =
-                static_cast<T>(static_cast<float>(x[o * inner_size + i]) * prstd * pweight);
-        });
+        T val = (input * cos_val) + (input_rotate_half * sin_val);
+
+        ref_y[ref_y_tv.get_tensor_view_idx(ncdhw)] = val;
     });
 }
 
 template <class T>
 void cpu_rope_backward(tensor<T> dy, tensor<T> cos, tensor<T> sin, tensor<T>& ref_dx)
 {
-    auto dims         = dy.desc.GetLengths();
-    size_t outer_size = 1;
-    size_t inner_size = dims[dims.size() - 1];
+    auto dy_dims  = dy.desc.GetLengths();
+    auto dx_dims  = ref_dx.desc.GetLengths();
+    auto dx_numel = std::accumulate(dx_dims.begin(), dx_dims.end(), 1L, std::multiplies<int64_t>());
 
-    for(size_t i = 0ULL; i < dims.size() - 1; ++i)
-    {
-        outer_size *= dims[i];
-    }
+    auto dy_tv     = miopen::solver::rope::get_inner_expanded_tv<5>(dy.desc);
+    auto cos_tv    = miopen::solver::rope::get_inner_expanded_tv<3>(cos.desc);
+    auto sin_tv    = miopen::solver::rope::get_inner_expanded_tv<3>(sin.desc);
+    auto ref_dx_tv = miopen::solver::rope::get_inner_expanded_tv<5>(ref_dx.desc);
 
-    par_ford(outer_size)([&](int32_t o) {
-        float sum = 0;
+    par_ford(dx_numel)([&](int32_t o) {
+        tensor_layout_t<5> ncdhw(dy_tv, o);
 
-        ford(inner_size)([&](int32_t i) {
-            float pweight = mode ? static_cast<float>(weight[i]) : 1;
-            float pdy     = (dy.GetSize() != 0) ? static_cast<float>(dy[o * inner_size + i]) : 0;
-            float px      = static_cast<float>(x[o * inner_size + i]);
-            sum += pdy * px * pweight;
-        });
+        T output_grad = static_cast<T>(dy[dy_tv.get_tensor_view_idx(ncdhw)]);
+        T output_grad_rotate_half =
+            (ncdhw.layout[4] % 2 == 0)
+                ? static_cast<T>(dy[dy_tv.get_tensor_view_idx(ncdhw.add_tensor_layout_t(4, 1))])
+                : static_cast<T>(-dy[dy_tv.get_tensor_view_idx(ncdhw.sub_tensor_layout_t(4, 1))]);
 
-        float s     = 1 / static_cast<float>(inner_size);
-        float prstd = static_cast<float>(rstd[o]);
-        float a     = sum * prstd * prstd * prstd * s;
+        tensor_layout_t<3> ncw(ncdhw.layout[2], ncdhw.layout[3], ncdhw.layout[4]);
 
-        ford(inner_size)([&](int32_t i) {
-            float pweight = mode ? static_cast<float>(weight[i]) : 1;
-            float pdy     = (dy.GetSize() != 0) ? static_cast<float>(dy[o * inner_size + i]) : 0;
+        T cos_val = static_cast<T>(cos[cos_tv.get_tensor_view_idx(ncw)]);
+        T sin_val =
+            (ncw.layout[2] % 2 == 0)
+                ? static_cast<T>(sin[sin_tv.get_tensor_view_idx(ncw.add_tensor_layout_t(2, 1))])
+                : static_cast<T>(sin[sin_tv.get_tensor_view_idx(ncw.sub_tensor_layout_t(2, 1))]);
 
-            float val = prstd * pdy * pweight - a * static_cast<float>(x[o * inner_size + i]);
-            ref_dx[o * inner_size + i] = static_cast<T>(val);
-        });
+        T val = (output_grad * cos_val) + (output_grad_rotate_half * sin_val);
+
+        ref_dx[ref_dx_tv.get_tensor_view_idx(ncdhw)] = val;
     });
 }
 
@@ -145,13 +144,13 @@ std::vector<RoPETestCase> RoPETestConfigs()
 { // n c d h w
     // clang-format off
     return {
-        { 32,  32,   12,  12,  12}
+        { 4,  512,   0,  6,  64}
       };
     // clang-format on
 }
 
 template <typename T = float>
-struct RoPETest : public ::testing::TestWithParam<RoPETestCase>
+struct RoPEFwdTest : public ::testing::TestWithParam<RoPETestCase>
 {
 protected:
     void SetUp() override

@@ -30,7 +30,7 @@
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 
-namespace RoPE {
+namespace rope {
 
 std::string GetFloatArg()
 {
@@ -42,15 +42,15 @@ std::string GetFloatArg()
     return tmp;
 }
 
-struct RoPETestFloat : RoPETest<float>
+struct RoPEFwdTestFloat : RoPEFwdTest<float>
 {
 };
 
-struct RoPETestHalf : RoPETest<half_float::half>
+struct RoPEFwdTestHalf : RoPEFwdTest<half_float::half>
 {
 };
 
-struct RoPETestBFloat16 : RoPETest<bfloat16>
+struct RoPEFwdTestBFloat16 : RoPEFwdTest<bfloat16>
 {
 };
 
@@ -66,13 +66,14 @@ struct RoPEBwdTestBFloat16 : RoPEBwdTest<bfloat16>
 {
 };
 
-} // namespace RoPE
+} // namespace rope
 using namespace rope;
 
-TEST_P(RoPETestFloat, RoPETestFw)
+TEST_P(RoPEFwdTestFloat, RoPEFwdTest)
 {
     auto TypeArg = miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_TEST_FLOAT_ARG));
-    if(miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float"))
+    if((miopen::IsUnset(MIOPEN_ENV(MIOPEN_TEST_ALL)) ||
+        (miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float"))))
     {
         RunTest();
         Verify();
@@ -83,10 +84,11 @@ TEST_P(RoPETestFloat, RoPETestFw)
     }
 };
 
-TEST_P(RoPETestHalf, RoPETestFw)
+TEST_P(RoPEFwdTestHalf, RoPEFwdTest)
 {
     auto TypeArg = miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_TEST_FLOAT_ARG));
-    if(miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--half"))
+    if((miopen::IsUnset(MIOPEN_ENV(MIOPEN_TEST_ALL)) ||
+        (miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--half"))))
     {
         RunTest();
         Verify();
@@ -97,10 +99,11 @@ TEST_P(RoPETestHalf, RoPETestFw)
     }
 };
 
-TEST_P(RoPETestBFloat16, RoPETestFw)
+TEST_P(RoPEFwdTestBFloat16, RoPEFwdTest)
 {
     auto TypeArg = miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_TEST_FLOAT_ARG));
-    if(miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--bfloat16"))
+    if((miopen::IsUnset(MIOPEN_ENV(MIOPEN_TEST_ALL)) ||
+        (miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--bfloat16"))))
     {
         RunTest();
         Verify();
@@ -111,10 +114,11 @@ TEST_P(RoPETestBFloat16, RoPETestFw)
     }
 };
 
-TEST_P(RoPEBwdTestFloat, RoPEBwdTestFw)
+TEST_P(RoPEBwdTestFloat, RoPEBwdTest)
 {
     auto TypeArg = miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_TEST_FLOAT_ARG));
-    if(miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float"))
+    if((miopen::IsUnset(MIOPEN_ENV(MIOPEN_TEST_ALL)) ||
+        (miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float"))))
     {
         RunTest();
         Verify();
@@ -125,10 +129,11 @@ TEST_P(RoPEBwdTestFloat, RoPEBwdTestFw)
     }
 };
 
-TEST_P(RoPEBwdTestHalf, RoPEBwdTestFw)
+TEST_P(RoPEBwdTestHalf, RoPEBwdTest)
 {
     auto TypeArg = miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_TEST_FLOAT_ARG));
-    if(miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--half"))
+    if((miopen::IsUnset(MIOPEN_ENV(MIOPEN_TEST_ALL)) ||
+        (miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--half"))))
     {
         RunTest();
         Verify();
@@ -139,10 +144,11 @@ TEST_P(RoPEBwdTestHalf, RoPEBwdTestFw)
     }
 };
 
-TEST_P(RoPEBwdTestBFloat16, RoPEBwdTestFw)
+TEST_P(RoPEBwdTestBFloat16, RoPEBwdTest)
 {
     auto TypeArg = miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_TEST_FLOAT_ARG));
-    if(miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--bfloat16"))
+    if((miopen::IsUnset(MIOPEN_ENV(MIOPEN_TEST_ALL)) ||
+        (miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--bfloat16"))))
     {
         RunTest();
         Verify();
@@ -153,9 +159,9 @@ TEST_P(RoPEBwdTestBFloat16, RoPEBwdTestFw)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(RoPETestSet, RoPETestFloat, testing::ValuesIn(RoPETestConfigs()));
-INSTANTIATE_TEST_SUITE_P(RoPETestSet, RoPETestHalf, testing::ValuesIn(RoPETestConfigs()));
-INSTANTIATE_TEST_SUITE_P(RoPETestSet, RoPETestBFloat16, testing::ValuesIn(RoPETestConfigs()));
+INSTANTIATE_TEST_SUITE_P(RoPETestSet, RoPEFwdTestFloat, testing::ValuesIn(RoPETestConfigs()));
+INSTANTIATE_TEST_SUITE_P(RoPETestSet, RoPEFwdTestHalf, testing::ValuesIn(RoPETestConfigs()));
+INSTANTIATE_TEST_SUITE_P(RoPETestSet, RoPEFwdTestBFloat16, testing::ValuesIn(RoPETestConfigs()));
 INSTANTIATE_TEST_SUITE_P(RoPETestSet, RoPEBwdTestFloat, testing::ValuesIn(RoPETestConfigs()));
 INSTANTIATE_TEST_SUITE_P(RoPETestSet, RoPEBwdTestHalf, testing::ValuesIn(RoPETestConfigs()));
 INSTANTIATE_TEST_SUITE_P(RoPETestSet, RoPEBwdTestBFloat16, testing::ValuesIn(RoPETestConfigs()));
