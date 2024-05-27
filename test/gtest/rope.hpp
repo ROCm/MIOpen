@@ -41,28 +41,29 @@ void cpu_rope_forward(tensor<T> x, tensor<T> cos, tensor<T> sin, tensor<T>& ref_
     auto y_dims  = ref_y.desc.GetLengths();
     auto y_numel = std::accumulate(y_dims.begin(), y_dims.end(), 1L, std::multiplies<int64_t>());
 
-    auto x_tv     = miopen::solver::rope::get_inner_expanded_tv<5>(x.desc);
+    auto x_tv     = miopen::solver::rope::get_inner_expanded_tv<4>(x.desc);
     auto cos_tv   = miopen::solver::rope::get_inner_expanded_tv<3>(cos.desc);
     auto sin_tv   = miopen::solver::rope::get_inner_expanded_tv<3>(sin.desc);
-    auto ref_y_tv = miopen::solver::rope::get_inner_expanded_tv<5>(ref_y.desc);
+    auto ref_y_tv = miopen::solver::rope::get_inner_expanded_tv<4>(ref_y.desc);
 
-    par_ford(y_numel)([&](int32_t o) {
-        tensor_layout_t<5> ncdhw(x_tv, o);
+    par_ford(y_numel)([&](size_t o) {
+        tensor_layout_t<4> ncdhw(x_tv, o);
 
         T input = static_cast<T>(x[x_tv.get_tensor_view_idx(ncdhw)]);
         T input_rotate_half =
-            (ncdhw.layout[4] % 2 == 0)
-                ? static_cast<T>(-x[x_tv.get_tensor_view_idx(ncdhw.add_tensor_layout_t(4, 1))])
-                : static_cast<T>(x[x_tv.get_tensor_view_idx(ncdhw.sub_tensor_layout_t(4, 1))]);
+            (x_tv.get_tensor_view_idx(ncdhw) % 2 == 0)
+                ? static_cast<T>(
+                      -x[x_tv.get_tensor_view_idx(ncdhw.add_tensor_layout_t(3, 1)) % y_numel])
+                : static_cast<T>(x[x_tv.get_tensor_view_idx(ncdhw.sub_tensor_layout_t(3, 1))]);
 
-        tensor_layout_t<3> ncw(ncdhw.layout[2], ncdhw.layout[3], ncdhw.layout[4]);
+        tensor_layout_t<3> ncw(ncdhw.layout[1], ncdhw.layout[2], ncdhw.layout[3]);
 
         T cos_val = static_cast<T>(cos[cos_tv.get_tensor_view_idx(ncw)]);
         T sin_val = static_cast<T>(sin[sin_tv.get_tensor_view_idx(ncw)]);
 
         T val = (input * cos_val) + (input_rotate_half * sin_val);
 
-        ref_y[ref_y_tv.get_tensor_view_idx(ncdhw)] = val;
+        ref_y[ref_y_tv.get_tensor_view_idx(ncdhw)] = input;
     });
 }
 
@@ -72,27 +73,32 @@ void cpu_rope_backward(tensor<T> dy, tensor<T> cos, tensor<T> sin, tensor<T>& re
     auto dy_dims  = dy.desc.GetLengths();
     auto dx_dims  = ref_dx.desc.GetLengths();
     auto dx_numel = std::accumulate(dx_dims.begin(), dx_dims.end(), 1L, std::multiplies<int64_t>());
+    auto cos_dims = cos.desc.GetLengths();
+    auto rotary_numel =
+        std::accumulate(cos_dims.begin(), cos_dims.end(), 1L, std::multiplies<int64_t>());
 
-    auto dy_tv     = miopen::solver::rope::get_inner_expanded_tv<5>(dy.desc);
+    auto dy_tv     = miopen::solver::rope::get_inner_expanded_tv<4>(dy.desc);
     auto cos_tv    = miopen::solver::rope::get_inner_expanded_tv<3>(cos.desc);
     auto sin_tv    = miopen::solver::rope::get_inner_expanded_tv<3>(sin.desc);
-    auto ref_dx_tv = miopen::solver::rope::get_inner_expanded_tv<5>(ref_dx.desc);
+    auto ref_dx_tv = miopen::solver::rope::get_inner_expanded_tv<4>(ref_dx.desc);
 
-    par_ford(dx_numel)([&](int32_t o) {
-        tensor_layout_t<5> ncdhw(dy_tv, o);
+    par_ford(dx_numel)([&](size_t o) {
+        tensor_layout_t<4> ncdhw(dy_tv, o);
 
         T output_grad = static_cast<T>(dy[dy_tv.get_tensor_view_idx(ncdhw)]);
         T output_grad_rotate_half =
-            (ncdhw.layout[4] % 2 == 0)
-                ? static_cast<T>(dy[dy_tv.get_tensor_view_idx(ncdhw.add_tensor_layout_t(4, 1))])
-                : static_cast<T>(-dy[dy_tv.get_tensor_view_idx(ncdhw.sub_tensor_layout_t(4, 1))]);
+            (dy_tv.get_tensor_view_idx(ncdhw) % 2 == 0)
+                ? static_cast<T>(
+                      dy[dy_tv.get_tensor_view_idx(ncdhw.add_tensor_layout_t(3, 1)) % dx_numel])
+                : static_cast<T>(-dy[dy_tv.get_tensor_view_idx(ncdhw.sub_tensor_layout_t(3, 1))]);
 
-        tensor_layout_t<3> ncw(ncdhw.layout[2], ncdhw.layout[3], ncdhw.layout[4]);
+        tensor_layout_t<3> ncw(ncdhw.layout[1], ncdhw.layout[2], ncdhw.layout[3]);
 
         T cos_val = static_cast<T>(cos[cos_tv.get_tensor_view_idx(ncw)]);
         T sin_val =
-            (ncw.layout[2] % 2 == 0)
-                ? static_cast<T>(sin[sin_tv.get_tensor_view_idx(ncw.add_tensor_layout_t(2, 1))])
+            (cos_tv.get_tensor_view_idx(ncw) % 2 == 0)
+                ? static_cast<T>(
+                      sin[sin_tv.get_tensor_view_idx(ncw.add_tensor_layout_t(2, 1)) % rotary_numel])
                 : static_cast<T>(sin[sin_tv.get_tensor_view_idx(ncw.sub_tensor_layout_t(2, 1))]);
 
         T val = (output_grad * cos_val) + (output_grad_rotate_half * sin_val);
@@ -162,7 +168,7 @@ protected:
         auto in_dim = rope_config.GetInput();
         x           = tensor<T>{in_dim}.generate(gen_value);
 
-        std::vector<size_t> rotary_dim = {in_dim.begin() + 1, in_dim.end()};
+        std::vector<size_t> rotary_dim = {in_dim[1], in_dim[2], in_dim[3]};
 
         cos = tensor<T>{rotary_dim}.generate(gen_value);
         sin = tensor<T>{rotary_dim}.generate(gen_value);
@@ -241,12 +247,13 @@ protected:
         rope_config    = GetParam();
         auto gen_value = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1e-2, 100); };
 
-        auto in_dim                    = rope_config.GetInput();
-        std::vector<size_t> rotary_dim = {in_dim.begin() + 1, in_dim.end()};
+        auto in_dim = rope_config.GetInput();
+        dy          = tensor<T>{in_dim}.generate(gen_value);
+
+        std::vector<size_t> rotary_dim = {in_dim[1], in_dim[2], in_dim[3]};
 
         cos = tensor<T>{rotary_dim}.generate(gen_value);
         sin = tensor<T>{rotary_dim}.generate(gen_value);
-        dy  = tensor<T>{in_dim}.generate(gen_value);
 
         dx = tensor<T>{in_dim};
         std::fill(dx.begin(), dx.end(), std::numeric_limits<T>::quiet_NaN());
