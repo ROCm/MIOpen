@@ -77,6 +77,7 @@ void Run3dDriver(miopenDataType_t prec)
     case miopenFloat8:
     case miopenBFloat8:
     case miopenInt32:
+    case miopenInt64:
     case miopenDouble:
         FAIL() << "miopenInt32, miopenDouble, miopenFloat8, miopenBFloat8 "
                   "data type not supported by "

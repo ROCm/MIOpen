@@ -87,6 +87,7 @@ void Run2dDriver(miopenDataType_t prec)
     case miopenInt8:
     case miopenBFloat16:
     case miopenInt32:
+    case miopenInt64:
     case miopenDouble:
     case miopenFloat8:
     case miopenBFloat8:
@@ -164,7 +165,7 @@ std::vector<std::string> GetTestCases(const std::string& precision)
     {flags + "  --input 2048  1 512 1024 --weights 1  1 1 1 --pads_strides_dilations 0 0 1 1 1 1" + dis_bk_data + dis_bk_wei + in_nhwc + fil_nhwc + out_nhwc},
     // ho=wo=1 stride=2
     {flags + "  --input  256 2048 2 2 --weights 1024  2048  1 1 --pads_strides_dilations 0 0 2 2 1 1" + dis_bk_data + dis_bk_wei + in_nhwc + fil_nhwc + out_nhwc},
-    
+
     //nhwc_fwd_nchw
     {flags + "  --input  64 256   7   7 --weights 128 256 1 1 --pads_strides_dilations 0 0 1 1 1 1" + dis_bk_data + dis_bk_wei},
     {flags + "  --input  32 160  73  73 --weights  64 160 1 1 --pads_strides_dilations 0 0 1 1 1 1" + dis_bk_data + dis_bk_wei},

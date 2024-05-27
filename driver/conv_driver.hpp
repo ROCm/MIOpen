@@ -547,6 +547,13 @@ private:
     Timer2 wrw_auxiliary_gwss;
     Timer2 warmup_wall_total; // Counts also auxiliary time.
 
+    float ComputeAverageTime(const float total_time, const float first_time) const
+    {
+        if(num_iterations > 1)
+            return (total_time - first_time) / (num_iterations - 1);
+        return total_time;
+    }
+
     void PrintForwardTime(float kernel_total_time, float kernel_first_time) const;
     int RunForwardGpuImmed(bool is_transform);
     int RunForwardGpuFind(bool is_transform);
@@ -1786,9 +1793,7 @@ template <typename Tgpu, typename Tref>
 void ConvDriver<Tgpu, Tref>::PrintForwardTime(const float kernel_total_time,
                                               const float kernel_first_time) const
 {
-    float kernel_average_time = num_iterations > 1
-                                    ? (kernel_total_time - kernel_first_time) / (num_iterations - 1)
-                                    : kernel_first_time;
+    float kernel_average_time = ComputeAverageTime(kernel_total_time, kernel_first_time);
     printf("GPU Kernel Time Forward Conv. Elapsed: %f ms (average)\n", kernel_average_time);
 
     const auto num_dim = miopen::deref(inputTensor).GetNumDims() - 2;
@@ -2149,12 +2154,18 @@ int ConvDriver<Tgpu, Tref>::RunForwardGpuFind(const bool is_transform)
 
     float alpha = static_cast<float>(1), beta = static_cast<float>(0);
 
-    float kernel_total_time = 0.0;
-    float kernel_first_time = 0.0;
+    float kernel_total_time = 0.f;
+    float kernel_first_time = 0.f;
+    float wall_first_time   = 0.f;
 
     const auto algo    = perf_results[0].fwd_algo; // use the fastest algo
     const auto ws_size = perf_results[0].memory;
     is_fwd_igemm       = (algo == miopenConvolutionFwdAlgoImplicitGEMM);
+
+    auto in_tens  = (is_transform ? inputTensor_vect4 : inputTensor);
+    auto in_buff  = (is_transform ? in_vect4_dev->GetMem() : in.GetDevicePtr());
+    auto wei_tens = (is_transform ? weightTensor_vect4 : weightTensor);
+    auto wei_buff = (is_transform ? wei_vect4_dev->GetMem() : wei.GetDevicePtr());
 
     if(ws_size > ws_sizeof_find_fwd)
     {
@@ -2166,11 +2177,6 @@ int ConvDriver<Tgpu, Tref>::RunForwardGpuFind(const bool is_transform)
     }
     ResizeWorkspaceDev(ctx, ws_size);
     wall.start(wall_enabled);
-
-    auto in_tens  = (is_transform ? inputTensor_vect4 : inputTensor);
-    auto in_buff  = (is_transform ? in_vect4_dev->GetMem() : in.GetDevicePtr());
-    auto wei_tens = (is_transform ? weightTensor_vect4 : weightTensor);
-    auto wei_buff = (is_transform ? wei_vect4_dev->GetMem() : wei.GetDevicePtr());
 
     for(int i = 0; i < num_iterations; i++)
     {
@@ -2190,6 +2196,9 @@ int ConvDriver<Tgpu, Tref>::RunForwardGpuFind(const bool is_transform)
         if(rc != miopenStatusSuccess)
             return rc;
 
+        if(wall_enabled && i == 0)
+            wall_first_time = wall.interim_time_ms();
+
         if(time_enabled)
         {
             float time = 0.0;
@@ -2206,7 +2215,7 @@ int ConvDriver<Tgpu, Tref>::RunForwardGpuFind(const bool is_transform)
         fwd_auxiliary.stop();
         fwd_auxiliary_gwss.stop();
         std::cout << "Wall-clock Time Forward Conv. Elapsed: "
-                  << (wall.gettime_ms() / num_iterations) << " ms"
+                  << ComputeAverageTime(wall.gettime_ms(), wall_first_time) << " ms"
                   << ", Auxiliary API calls: " << fwd_auxiliary.gettime_ms() << " ms"
                   << " (GWSS: " << fwd_auxiliary_gwss.gettime_ms() << ')' << std::endl;
     }
@@ -2318,8 +2327,9 @@ int ConvDriver<Tgpu, Tref>::RunForwardGpuImmed(const bool is_transform)
     if(rc != miopenStatusSuccess)
         return rc;
 
-    float kernel_total_time = 0.0;
-    float kernel_first_time = 0.0;
+    float kernel_total_time = 0.f;
+    float kernel_first_time = 0.f;
+    float wall_first_time   = 0.f;
 
     wall.start(wall_enabled);
 
@@ -2340,17 +2350,16 @@ int ConvDriver<Tgpu, Tref>::RunForwardGpuImmed(const bool is_transform)
         if(rc != miopenStatusSuccess)
             return rc;
 
+        if(wall_enabled && i == 0)
+            wall_first_time = wall.interim_time_ms();
+
         if(time_enabled)
         {
             float time = 0.0;
             miopenGetKernelTime(GetHandle(), &time);
             kernel_total_time += time;
             if(i == 0)
-            {
                 kernel_first_time = time;
-                if(wall_enabled && num_iterations > 1)
-                    wall.start(); // The 1st is warm-up. Disregard it in wall time.
-            }
         }
     }
 
@@ -2359,9 +2368,8 @@ int ConvDriver<Tgpu, Tref>::RunForwardGpuImmed(const bool is_transform)
         wall.stop();
         fwd_auxiliary.stop();
         fwd_auxiliary_gwss.stop();
-        const auto wall_iterations = (num_iterations > 1 ? num_iterations - 1 : 1);
         std::cout << "Wall-clock Time Forward Conv. Elapsed: "
-                  << (wall.gettime_ms() / wall_iterations) << " ms"
+                  << ComputeAverageTime(wall.gettime_ms(), wall_first_time) << " ms"
                   << ", Auxiliary API calls: " << fwd_auxiliary.gettime_ms() << " ms"
                   << " (GWSS: " << fwd_auxiliary_gwss.gettime_ms() << ')' << std::endl;
     }
@@ -2620,8 +2628,9 @@ int ConvDriver<Tgpu, Tref>::RunBackwardDataGpuFind()
     if(ret_algo_count == 0)
         throw std::runtime_error("Find Backward Data Conv. ret_algo_count == 0");
 
-    float kernel_total_time = 0.0;
-    float kernel_first_time = 0.0;
+    float kernel_total_time = 0.f;
+    float kernel_first_time = 0.f;
+    float wall_first_time   = 0.f;
     float alpha = static_cast<float>(1), beta = static_cast<float>(0);
 
     const auto algo    = perf_results_data[0].bwd_data_algo;
@@ -2658,6 +2667,9 @@ int ConvDriver<Tgpu, Tref>::RunBackwardDataGpuFind()
         if(rc != miopenStatusSuccess)
             return rc;
 
+        if(wall_enabled && i == 0)
+            wall_first_time = wall.interim_time_ms();
+
         if(time_enabled)
         {
             float time = 0.0;
@@ -2674,7 +2686,7 @@ int ConvDriver<Tgpu, Tref>::RunBackwardDataGpuFind()
         bwd_auxiliary.stop();
         bwd_auxiliary_gwss.stop();
         std::cout << "Wall-clock Time Backward Data Conv. Elapsed: "
-                  << (wall.gettime_ms() / num_iterations) << " ms"
+                  << ComputeAverageTime(wall.gettime_ms(), wall_first_time) << " ms"
                   << ", Auxiliary API calls: " << bwd_auxiliary.gettime_ms() << " ms"
                   << " (GWSS: " << bwd_auxiliary_gwss.gettime_ms() << ')' << std::endl;
     }
@@ -2699,10 +2711,7 @@ int ConvDriver<Tgpu, Tref>::RunBackwardDataGpuFind()
 template <typename Tgpu, typename Tref>
 void ConvDriver<Tgpu, Tref>::PrintBackwardDataTime(float kernel_total_time, float kernel_first_time)
 {
-    float kernel_average_time = num_iterations > 1
-                                    ? (kernel_total_time - kernel_first_time) / (num_iterations - 1)
-                                    : kernel_first_time;
-
+    float kernel_average_time = ComputeAverageTime(kernel_total_time, kernel_first_time);
     printf("GPU Kernel Time Backward Data Conv. Elapsed: %f ms (average)\n", kernel_average_time);
 
     const auto num_dim = miopen::deref(inputTensor).GetNumDims() - 2;
@@ -2814,8 +2823,9 @@ int ConvDriver<Tgpu, Tref>::RunBackwardWrwGpuFind()
     int ret_algo_count;
     int request_algo_count = 2;
 
-    float kernel_total_time = 0.0;
-    float kernel_first_time = 0.0;
+    float kernel_total_time = 0.f;
+    float kernel_first_time = 0.f;
+    float wall_first_time   = 0.f;
 
     float alpha = static_cast<float>(1), beta = static_cast<float>(0);
     std::vector<miopenConvAlgoPerf_t> perf_results_weights(request_algo_count);
@@ -2831,9 +2841,6 @@ int ConvDriver<Tgpu, Tref>::RunBackwardWrwGpuFind()
 
     if(ret_algo_count == 0)
         throw std::runtime_error("Find Backward Weights Conv. ret_algo_count == 0");
-
-    kernel_total_time = 0.0;
-    kernel_first_time = 0.0;
 
     const auto algo    = perf_results_weights[0].bwd_weights_algo;
     const auto ws_size = perf_results_weights[0].memory;
@@ -2870,6 +2877,9 @@ int ConvDriver<Tgpu, Tref>::RunBackwardWrwGpuFind()
         if(rc != miopenStatusSuccess)
             return rc;
 
+        if(wall_enabled && i == 0)
+            wall_first_time = wall.interim_time_ms();
+
         if(time_enabled)
         {
             float time = 0.0;
@@ -2886,7 +2896,7 @@ int ConvDriver<Tgpu, Tref>::RunBackwardWrwGpuFind()
         wrw_auxiliary.stop();
         wrw_auxiliary_gwss.stop();
         std::cout << "Wall-clock Time Backward Weights Conv. Elapsed: "
-                  << (wall.gettime_ms() / num_iterations) << " ms"
+                  << ComputeAverageTime(wall.gettime_ms(), wall_first_time) << " ms"
                   << ", Auxiliary API calls: " << wrw_auxiliary.gettime_ms() << " ms"
                   << " (GWSS: " << wrw_auxiliary_gwss.gettime_ms() << ')' << std::endl;
     }
@@ -2911,13 +2921,7 @@ int ConvDriver<Tgpu, Tref>::RunBackwardWrwGpuFind()
 template <typename Tgpu, typename Tref>
 void ConvDriver<Tgpu, Tref>::PrintBackwardWrwTime(float kernel_total_time, float kernel_first_time)
 {
-    float time = 0.0;
-    miopenGetKernelTime(GetHandle(), &time);
-
-    float kernel_average_time = num_iterations > 1
-                                    ? (kernel_total_time - kernel_first_time) / (num_iterations - 1)
-                                    : kernel_first_time;
-
+    float kernel_average_time = ComputeAverageTime(kernel_total_time, kernel_first_time);
     printf("GPU Kernel Time Backward Weights Conv. Elapsed: %f ms (average)\n",
            kernel_average_time);
 
@@ -3085,8 +3089,9 @@ int ConvDriver<Tgpu, Tref>::RunBackwardDataGpuImmed()
         handle, outputTensor, weightTensor, convDesc, inputTensor, selected->solution_id);
     bwd_auxiliary.pause(wall_enabled);
 
-    float kernel_total_time = 0.0;
-    float kernel_first_time = 0.0;
+    float kernel_total_time = 0.f;
+    float kernel_first_time = 0.f;
+    float wall_first_time   = 0.f;
 
     wall.start(wall_enabled);
 
@@ -3106,17 +3111,16 @@ int ConvDriver<Tgpu, Tref>::RunBackwardDataGpuImmed()
         if(rc != miopenStatusSuccess)
             return rc;
 
+        if(wall_enabled && i == 0)
+            wall_first_time = wall.interim_time_ms();
+
         if(time_enabled)
         {
             float time = 0.0;
             miopenGetKernelTime(GetHandle(), &time);
             kernel_total_time += time;
             if(i == 0)
-            {
                 kernel_first_time = time;
-                if(wall_enabled && num_iterations > 1)
-                    wall.start();
-            }
         }
     }
 
@@ -3125,9 +3129,8 @@ int ConvDriver<Tgpu, Tref>::RunBackwardDataGpuImmed()
         wall.stop();
         bwd_auxiliary.stop();
         bwd_auxiliary_gwss.stop();
-        const auto wall_iterations = (num_iterations > 1 ? num_iterations - 1 : 1);
         std::cout << "Wall-clock Time Backward Data Conv. Elapsed: "
-                  << (wall.gettime_ms() / wall_iterations) << " ms"
+                  << ComputeAverageTime(wall.gettime_ms(), wall_first_time) << " ms"
                   << ", Auxiliary API calls: " << bwd_auxiliary.gettime_ms() << " ms"
                   << " (GWSS: " << bwd_auxiliary_gwss.gettime_ms() << ')' << std::endl;
     }
@@ -3215,8 +3218,9 @@ int ConvDriver<Tgpu, Tref>::RunBackwardWrwGpuImmed()
         handle, outputTensor, inputTensor, convDesc, weightTensor, selected->solution_id);
     wrw_auxiliary.pause(wall_enabled);
 
-    float kernel_total_time = 0.0;
-    float kernel_first_time = 0.0;
+    float kernel_total_time = 0.f;
+    float kernel_first_time = 0.f;
+    float wall_first_time   = 0.f;
 
     wall.start(wall_enabled);
 
@@ -3236,17 +3240,16 @@ int ConvDriver<Tgpu, Tref>::RunBackwardWrwGpuImmed()
         if(rc != miopenStatusSuccess)
             return rc;
 
+        if(wall_enabled && i == 0)
+            wall_first_time = wall.interim_time_ms();
+
         if(time_enabled)
         {
             float time = 0.0;
             miopenGetKernelTime(GetHandle(), &time);
             kernel_total_time += time;
             if(i == 0)
-            {
                 kernel_first_time = time;
-                if(wall_enabled && num_iterations > 1)
-                    wall.start();
-            }
         }
     }
 
@@ -3255,9 +3258,8 @@ int ConvDriver<Tgpu, Tref>::RunBackwardWrwGpuImmed()
         wall.stop();
         wrw_auxiliary.stop();
         wrw_auxiliary_gwss.stop();
-        const auto wall_iterations = (num_iterations > 1 ? num_iterations - 1 : 1);
         std::cout << "Wall-clock Time Backward Weights Conv. Elapsed: "
-                  << (wall.gettime_ms() / wall_iterations) << " ms"
+                  << ComputeAverageTime(wall.gettime_ms(), wall_first_time) << " ms"
                   << ", Auxiliary API calls: " << wrw_auxiliary.gettime_ms() << " ms"
                   << " (GWSS: " << wrw_auxiliary_gwss.gettime_ms() << ')' << std::endl;
     }
