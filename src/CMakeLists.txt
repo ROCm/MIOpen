@@ -169,8 +169,8 @@ set( MIOpen_Source
     rnn_api.cpp
     rnn/rnn_util.cpp
     rnn/Solutions/rnn_transformer.cpp
-    rope/problem_description.cpp
     rope_api.cpp
+    rope/problem_description.cpp
     scalar.cpp
     softmax.cpp
     softmax_api.cpp
