@@ -228,10 +228,10 @@ int RoPEDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
 template <typename Tgpu, typename Tref>
 int RoPEDriver<Tgpu, Tref>::GetandSetData()
 {
-    auto inTensorParam = inflags.GetValueTensor("input");
+    auto inTensorParam = inflags.GetValueTensorUint64("input");
 
     auto in_len                 = inTensorParam.lengths;
-    std::vector<int> rotary_dim = {in_len.begin() + 1, in_len.end()};
+    std::vector<uint64_t> rotary_dim = {in_len.begin() + 1, in_len.end()};
 
     if(SetTensorNd(xDesc, in_len, data_type) != miopenStatusSuccess)
         MIOPEN_THROW("Error parsing input tensor: " + inflags.GetValueStr("input") + ".");
