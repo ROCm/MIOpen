@@ -73,7 +73,7 @@ ConvSolution RoPEForward::GetSolution(const ExecutionContext&,
         auto kernel = KernelInfo{};
 
         kernel.kernel_file = "MIOpenRoPE.cpp";
-        kernel.kernel_name = "RoPEBwdContiguous";
+        kernel.kernel_name = "RoPEFwdContiguous";
         xlocalsize         = LOCAL_SIZE;
         xgridsize          = output_numel;
 
