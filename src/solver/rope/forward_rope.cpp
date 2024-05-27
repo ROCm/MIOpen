@@ -80,8 +80,7 @@ ConvSolution RoPEForward::GetSolution(const ExecutionContext&,
             {"MIOPEN_USE_FP32", static_cast<int32_t>(dtype == miopenFloat)},
             {"MIOPEN_USE_BFP16", static_cast<int32_t>(dtype == miopenBFloat16)},
             {"INPUT_TYPE", input_dtype == "bfloat16" ? "ushort" : input_dtype},
-            {"OUTPUT_TYPE", input_dtype == "bfloat16" ? "ushort" : input_dtype},
-            {"INDICE_TYPE", indice_dtype}};
+            {"OUTPUT_TYPE", output_dtype == "bfloat16" ? "ushort" : output_dtype}};
 
         kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
 
