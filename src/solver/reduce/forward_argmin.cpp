@@ -80,6 +80,7 @@ ConvSolution ArgminForward::GetSolution(const ExecutionContext&,
 
     auto dtype        = problem.GetXDesc().GetType();
     auto input_dtype  = miopen::GetDataType(problem.GetXDesc().GetType());
+    auto output_dtype = miopen::GetDataType(problem.GetYDesc().GetType());
     auto indice_dtype = miopen::GetDataType(problem.GetIndiceDesc().GetType());
     auto xdims        = problem.GetXDesc().GetLengths();
     auto indicedims   = problem.GetIndiceDesc().GetLengths();
