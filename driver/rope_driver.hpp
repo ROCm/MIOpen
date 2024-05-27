@@ -26,92 +26,115 @@
 #ifndef GUARD_MIOPEN_ROPE_DRIVER_HPP
 #define GUARD_MIOPEN_ROPE_DRIVER_HPP
 
-#include <../test/tensor_holder.hpp>
-#include <../test/verify.hpp>
 #include "InputFlags.hpp"
 #include "driver.hpp"
-#include "random.hpp"
 #include "tensor_driver.hpp"
 #include "timer.hpp"
+#include "random.hpp"
 #include <algorithm>
 #include <cfloat>
 #include <cstdlib>
 #include <memory>
+#include <miopen/miopen.h>
 #include <miopen/tensor.hpp>
 #include <numeric>
 #include <vector>
+#include <../test/tensor_holder.hpp>
+#include <../test/verify.hpp>
+#include "../src/include/miopen/rope/utils.hpp"
 
 template <typename Tgpu, typename Tcheck>
-int32_t
-mloRoPEForwardRunHost(miopenTensorDescriptor_t xDesc, Tgpu* x, Tgpu* cos, Tgpu* sin, Tcheck* yhost)
+int32_t mloRoPEForwardRunHost(miopenTensorDescriptor_t xDesc,
+                              miopenTensorDescriptor_t cosDesc,
+                              miopenTensorDescriptor_t sinDesc,
+                              miopenTensorDescriptor_t yDesc,
+                              Tgpu* x,
+                              Tgpu* cos,
+                              Tgpu* sin,
+                              Tcheck* yhost)
 {
-    auto dims = miopen::deref(xDesc).GetLengths();
+    auto x_dims  = miopen::deref(xDesc).GetLengths();
+    auto y_dims  = miopen::deref(yDesc).GetLengths();
+    auto y_numel = std::accumulate(y_dims.begin(), y_dims.end(), 1LL, std::multiplies<int64_t>());
+
+    auto x_tv     = miopen::solver::rope::get_inner_expanded_tv<5>(miopen::deref(xDesc));
+    auto cos_tv   = miopen::solver::rope::get_inner_expanded_tv<3>(miopen::deref(cosDesc));
+    auto sin_tv   = miopen::solver::rope::get_inner_expanded_tv<3>(miopen::deref(sinDesc));
+    auto yhost_tv = miopen::solver::rope::get_inner_expanded_tv<5>(miopen::deref(yDesc));
 
     int32_t ret = 0;
 
-    for(int32_t o = 0; o < outer_size; ++o)
+    for(size_t o = 0; o < y_numel; o++)
     {
-        Tcheck pvar = static_cast<Tcheck>(0);
-        for(int32_t i = 0; i < inner_size; ++i)
-        {
-            Tcheck tmp = static_cast<Tcheck>(x[o * inner_size + i]);
-            pvar += tmp * tmp;
-        }
+        tensor_layout_t<5> ncdhw(x_tv, o);
 
-        pvar         = pvar / inner_size;
-        Tcheck prstd = static_cast<Tcheck>(1.0) / sqrt(pvar + eps);
+        Tcheck input = static_cast<Tcheck>(x[x_tv.get_tensor_view_idx(ncdhw)]);
+        Tcheck input_rotate_half =
+            (ncdhw.layout[4] % 2 == 0)
+                ? static_cast<Tcheck>(-x[x_tv.get_tensor_view_idx(ncdhw.add_tensor_layout_t(4, 1))])
+                : static_cast<Tcheck>(x[x_tv.get_tensor_view_idx(ncdhw.sub_tensor_layout_t(4, 1))]);
 
-        rstdhost[o] = prstd;
+        tensor_layout_t<3> ncw(ncdhw.layout[2], ncdhw.layout[3], ncdhw.layout[4]);
 
-        for(int32_t i = 0; i < inner_size; ++i)
-        {
-            Tcheck pweight = (mode == MIOPEN_ELEMENTWISE_AFFINE_T5)
-                                 ? static_cast<Tcheck>(1)
-                                 : static_cast<Tcheck>(weight[i]);
-            yhost[o * inner_size + i] =
-                (static_cast<Tcheck>(x[o * inner_size + i])) * prstd * pweight;
-        }
+        Tcheck cos_val = static_cast<Tcheck>(cos[cos_tv.get_tensor_view_idx(ncw)]);
+        Tcheck sin_val = static_cast<Tcheck>(sin[sin_tv.get_tensor_view_idx(ncw)]);
+
+        Tcheck val = (input * cos_val) + (input_rotate_half * sin_val);
+
+        yhost[yhost_tv.get_tensor_view_idx(ncdhw)] = val;
     }
+
     return ret;
 }
 
 template <typename Tgpu, typename Tcheck>
-int32_t mloRoPEBackwardRunHost(
-    miopenTensorDescriptor_t dyDesc, Tgpu* dy, Tgpu* cos, Tgpu* sin, Tcheck* dxhost)
+int32_t mloRoPEBackwardRunHost(miopenTensorDescriptor_t dyDesc,
+                               miopenTensorDescriptor_t cosDesc,
+                               miopenTensorDescriptor_t sinDesc,
+                               miopenTensorDescriptor_t dxDesc,
+                               Tgpu* dy,
+                               Tgpu* cos,
+                               Tgpu* sin,
+                               Tcheck* dxhost)
 {
-    auto dims = miopen::deref(dyDesc).GetLengths();
+    auto dy_dims = miopen::deref(dyDesc).GetLengths();
+    auto dx_dims = miopen::deref(dxDesc).GetLengths();
+    auto dx_numel =
+        std::accumulate(dx_dims.begin(), dx_dims.end(), 1LL, std::multiplies<int64_t>());
+
+    auto dy_tv     = miopen::solver::rope::get_inner_expanded_tv<5>(miopen::deref(dyDesc));
+    auto cos_tv    = miopen::solver::rope::get_inner_expanded_tv<3>(miopen::deref(cosDesc));
+    auto sin_tv    = miopen::solver::rope::get_inner_expanded_tv<3>(miopen::deref(sinDesc));
+    auto dxhost_tv = miopen::solver::rope::get_inner_expanded_tv<5>(miopen::deref(dxDesc));
 
     int32_t ret = 0;
 
-    for(int32_t o = 0; o < outer_size; ++o)
+    for(size_t o = 0; o < dx_numel; o++)
     {
-        Tcheck sum = static_cast<Tcheck>(0);
-        for(int32_t i = 0; i < inner_size; ++i)
-        {
-            Tcheck pweight = (mode == MIOPEN_ELEMENTWISE_AFFINE_T5)
-                                 ? static_cast<Tcheck>(1)
-                                 : static_cast<Tcheck>(weight[i]);
-            Tcheck pdy = dy ? static_cast<Tcheck>(dy[o * inner_size + i]) : static_cast<Tcheck>(0);
-            Tcheck px  = static_cast<Tcheck>(x[o * inner_size + i]);
-            sum += pdy * px * pweight;
-        }
+        tensor_layout_t<5> ncdhw(dy_tv, o);
 
-        Tcheck ds    = sum;
-        Tcheck s     = static_cast<Tcheck>(1) / inner_size;
-        Tcheck prstd = rstdhost[o];
-        Tcheck a     = ds * prstd * prstd * prstd * s;
+        Tcheck output_grad = static_cast<Tcheck>(dy[dy_tv.get_tensor_view_idx(ncdhw)]);
+        Tcheck output_grad_rotate_half =
+            (ncdhw.layout[4] % 2 == 0)
+                ? static_cast<Tcheck>(
+                      dy[dy_tv.get_tensor_view_idx(ncdhw.add_tensor_layout_t(4, 1))])
+                : static_cast<Tcheck>(
+                      -dy[dy_tv.get_tensor_view_idx(ncdhw.sub_tensor_layout_t(4, 1))]);
 
-        for(int32_t i = 0; i < inner_size; ++i)
-        {
-            Tcheck pweight = (mode == MIOPEN_ELEMENTWISE_AFFINE_T5)
-                                 ? static_cast<Tcheck>(1)
-                                 : static_cast<Tcheck>(weight[i]);
-            Tcheck pdy = dy ? static_cast<Tcheck>(dy[o * inner_size + i]) : static_cast<Tcheck>(0);
+        tensor_layout_t<3> ncw(ncdhw.layout[2], ncdhw.layout[3], ncdhw.layout[4]);
 
-            Tcheck val = prstd * pdy * pweight - a * static_cast<Tcheck>(x[o * inner_size + i]);
-            dxhost[o * inner_size + i] = static_cast<Tcheck>(val);
-        }
+        Tcheck cos_val = static_cast<Tcheck>(cos[cos_tv.get_tensor_view_idx(ncw)]);
+        Tcheck sin_val = (ncw.layout[2] % 2 == 0)
+                             ? static_cast<Tcheck>(
+                                   sin[sin_tv.get_tensor_view_idx(ncw.add_tensor_layout_t(2, 1))])
+                             : static_cast<Tcheck>(
+                                   sin[sin_tv.get_tensor_view_idx(ncw.sub_tensor_layout_t(2, 1))]);
+
+        Tcheck val = (output_grad * cos_val) + (output_grad_rotate_half * sin_val);
+
+        dxhost[dxhost_tv.get_tensor_view_idx(ncdhw)] = val;
     }
+
     return ret;
 }
 
@@ -207,8 +230,8 @@ int RoPEDriver<Tgpu, Tref>::GetandSetData()
 {
     auto inTensorParam = inflags.GetValueTensor("input");
 
-    auto in_len     = inTensorParam.lengths;
-    auto rotary_dim = {in_dim.begin() + 1, in_dim.end()};
+    auto in_len                 = inTensorParam.lengths;
+    std::vector<int> rotary_dim = {in_len.begin() + 1, in_len.end()};
 
     if(SetTensorNd(xDesc, in_len, data_type) != miopenStatusSuccess)
         MIOPEN_THROW("Error parsing input tensor: " + inflags.GetValueStr("input") + ".");
@@ -362,7 +385,8 @@ int RoPEDriver<Tgpu, Tref>::RunForwardGPU()
 template <typename Tgpu, typename Tref>
 int RoPEDriver<Tgpu, Tref>::RunForwardCPU()
 {
-    mloRoPEForwardRunHost<Tgpu, Tref>(xDesc, x.data(), cos.data(), sin.data(), yhost.data());
+    mloRoPEForwardRunHost<Tgpu, Tref>(
+        xDesc, cosDesc, sinDesc, yDesc, x.data(), cos.data(), sin.data(), yhost.data());
 
     return miopenStatusSuccess;
 }
@@ -379,7 +403,6 @@ int RoPEDriver<Tgpu, Tref>::RunBackwardGPU()
     for(int i = 0; i < inflags.GetValueInt("iter"); ++i)
     {
         miopenRoPEBackward(GetHandle(),
-                           mode,
                            dyDesc,
                            dy_dev->GetMem(),
                            cosDesc,
@@ -419,7 +442,8 @@ int RoPEDriver<Tgpu, Tref>::RunBackwardGPU()
 template <typename Tgpu, typename Tref>
 int RoPEDriver<Tgpu, Tref>::RunBackwardCPU()
 {
-    mloRoPEBackwardRunHost<Tgpu, Tref>(dyDesc, dy.data(), cos.data(), sin.data(), dxhost.data());
+    mloRoPEBackwardRunHost<Tgpu, Tref>(
+        dyDesc, cosDesc, sinDesc, dxDesc, dy.data(), cos.data(), sin.data(), dxhost.data());
 
     return miopenStatusSuccess;
 }
