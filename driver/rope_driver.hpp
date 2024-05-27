@@ -230,7 +230,7 @@ int RoPEDriver<Tgpu, Tref>::GetandSetData()
 {
     auto inTensorParam = inflags.GetValueTensorUint64("input");
 
-    auto in_len                 = inTensorParam.lengths;
+    auto in_len                      = inTensorParam.lengths;
     std::vector<uint64_t> rotary_dim = {in_len.begin() + 1, in_len.end()};
 
     if(SetTensorNd(xDesc, in_len, data_type) != miopenStatusSuccess)
