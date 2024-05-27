@@ -55,8 +55,7 @@ TEST_P(GroupNormTestFloat, GroupNormTestFw)
     if((miopen::StartsWith(handle.GetDeviceName(), "gfx908") ||
         miopen::StartsWith(handle.GetDeviceName(), "gfx90a") ||
         miopen::StartsWith(handle.GetDeviceName(), "gfx94")) &&
-       (miopen::IsUnset(MIOPEN_ENV(MIOPEN_TEST_ALL)) ||
-        (miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float"))))
+       (miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float")))
     {
         RunTest();
         Verify();

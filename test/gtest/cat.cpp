@@ -50,8 +50,7 @@ using namespace cat;
 
 TEST_P(CatTestFloat, CatTestFw)
 {
-    if((miopen::IsUnset(MIOPEN_ENV(MIOPEN_TEST_ALL)) ||
-        (miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float"))))
+    if(miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float"))
     {
         RunTest();
         Verify();
