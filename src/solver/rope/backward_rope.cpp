@@ -24,10 +24,12 @@
  *
  *******************************************************************************/
 
+#include <miopen/rope.hpp>
 #include <miopen/datatype.hpp>
 #include <miopen/kernel_build_params.hpp>
 #include <miopen/rope/invoke_params.hpp>
 #include <miopen/rope/solvers.hpp>
+#include <miopen/rope/utils.hpp>
 #include <miopen/target_properties.hpp>
 
 #define LOCAL_SIZE 256
@@ -100,12 +102,29 @@ ConvSolution RoPEBackward::GetSolution(const ExecutionContext&,
             decltype(auto) kernel = handle_.Run(kernels.front());
             decltype(auto) params = raw_params.CastTo<miopen::rope::BwdInvokeParams>();
 
-            auto dxdims = params.dxDesc->GetLengths();
+            auto dxdims  = params.dxDesc->GetLengths();
+            auto cosdims = params.cosDesc->GetLengths();
 
             auto output_numel =
                 std::accumulate(dxdims.begin(), dxdims.end(), 1ULL, std::multiplies<size_t>());
+            auto rotary_numel =
+                std::accumulate(cosdims.begin(), cosdims.end(), 1ULL, std::multiplies<size_t>());
 
-            kernel(params.dy, params.cos, params.sin, params.dx, output_numel);
+            auto dy_tv  = get_inner_expanded_tv<4>(*params.dyDesc);
+            auto cos_tv = get_inner_expanded_tv<3>(*params.cosDesc);
+            auto sin_tv = get_inner_expanded_tv<3>(*params.sinDesc);
+            auto dx_tv  = get_inner_expanded_tv<4>(*params.dxDesc);
+
+            kernel(params.dy,
+                   params.cos,
+                   params.sin,
+                   params.dx,
+                   dy_tv,
+                   cos_tv,
+                   sin_tv,
+                   dx_tv,
+                   output_numel,
+                   rotary_numel);
         };
     };
 

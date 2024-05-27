@@ -24,10 +24,12 @@
  *
  *******************************************************************************/
 
+#include <miopen/rope.hpp>
 #include <miopen/datatype.hpp>
 #include <miopen/kernel_build_params.hpp>
 #include <miopen/rope/invoke_params.hpp>
 #include <miopen/rope/solvers.hpp>
+#include <miopen/rope/utils.hpp>
 #include <miopen/target_properties.hpp>
 
 #define LOCAL_SIZE 256
@@ -105,7 +107,20 @@ ConvSolution RoPEForward::GetSolution(const ExecutionContext&,
             auto output_numel =
                 std::accumulate(ydims.begin(), ydims.end(), 1ULL, std::multiplies<size_t>());
 
-            kernel(params.x, params.cos, params.sin, params.y, output_numel);
+            auto x_tv   = get_inner_expanded_tv<4>(*params.xDesc);
+            auto cos_tv = get_inner_expanded_tv<3>(*params.cosDesc);
+            auto sin_tv = get_inner_expanded_tv<3>(*params.sinDesc);
+            auto y_tv   = get_inner_expanded_tv<4>(*params.yDesc);
+
+            kernel(params.x,
+                   params.cos,
+                   params.sin,
+                   params.y,
+                   x_tv,
+                   cos_tv,
+                   sin_tv,
+                   y_tv,
+                   output_numel);
         };
     };
 
