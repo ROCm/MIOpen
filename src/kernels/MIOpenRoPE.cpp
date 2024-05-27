@@ -33,12 +33,12 @@
 
 template <typename TI, typename TO>
 __device__ void ropefwdcontiguous(const TI* __restrict__ x,
-                                  const TI* __restrict__ scaled_freqs_cos,
-                                  const TI* __restrict__ scaled_freqs_sin,
+                                  const TI* __restrict__ cos,
+                                  const TI* __restrict__ sin,
                                   TO* __restrict__ y,
                                   tensor_view_t<5> x_tv,
-                                  tensor_view_t<3> scaled_freqs_cos_tv,
-                                  tensor_view_t<3> scaled_freqs_sin_tv,
+                                  tensor_view_t<3> cos_tv,
+                                  tensor_view_t<3> sin_tv,
                                   tensor_view_t<5> y_tv,
                                   uint64_t output_numele)
 {
@@ -56,10 +56,8 @@ __device__ void ropefwdcontiguous(const TI* __restrict__ x,
 
     tensor_layout_t<3> ncw(ncdhw.layout[2], ncdhw.layout[3], ncdhw.layout[4]);
 
-    FLOAT_ACCUM cos_val =
-        CVT_FLOAT2ACCUM(scaled_freqs_cos[scaled_freqs_cos_tv.get_tensor_view_idx(ncw)]);
-    FLOAT_ACCUM sin_val =
-        CVT_FLOAT2ACCUM(scaled_freqs_sin[scaled_freqs_sin_tv.get_tensor_view_idx(ncw)]);
+    FLOAT_ACCUM cos_val = CVT_FLOAT2ACCUM(cos[cos_tv.get_tensor_view_idx(ncw)]);
+    FLOAT_ACCUM sin_val = CVT_FLOAT2ACCUM(sin[sin_tv.get_tensor_view_idx(ncw)]);
 
     FLOAT_ACCUM val = (input * cos_val) + (input_rotate_half * sin_val);
 
@@ -68,12 +66,12 @@ __device__ void ropefwdcontiguous(const TI* __restrict__ x,
 
 template <typename TI, typename TO>
 __device__ void ropebwdcontiguous(const TI* __restrict__ dy,
-                                  const TI* __restrict__ scaled_freqs_cos,
-                                  const TI* __restrict__ scaled_freqs_sin,
+                                  const TI* __restrict__ cos,
+                                  const TI* __restrict__ sin,
                                   TO* __restrict__ dx,
                                   tensor_view_t<5> dy_tv,
-                                  tensor_view_t<3> scaled_freqs_cos_tv,
-                                  tensor_view_t<3> scaled_freqs_sin_tv,
+                                  tensor_view_t<3> cos_tv,
+                                  tensor_view_t<3> sin_tv,
                                   tensor_view_t<5> dx_tv,
                                   uint64_t output_numele)
 {
@@ -91,14 +89,11 @@ __device__ void ropebwdcontiguous(const TI* __restrict__ dy,
 
     tensor_layout_t<3> ncw(ncdhw.layout[2], ncdhw.layout[3], ncdhw.layout[4]);
 
-    FLOAT_ACCUM cos_val =
-        CVT_FLOAT2ACCUM(scaled_freqs_cos[scaled_freqs_cos_tv.get_tensor_view_idx(ncw)]);
+    FLOAT_ACCUM cos_val = CVT_FLOAT2ACCUM(cos[cos_tv.get_tensor_view_idx(ncw)]);
     FLOAT_ACCUM sin_val =
         (ncw.layout[2] % 2 == 0)
-            ? CVT_FLOAT2ACCUM(scaled_freqs_sin[scaled_freqs_sin_tv.get_tensor_view_idx(
-                  ncw.add_tensor_layout_t(2, 1))])
-            : CVT_FLOAT2ACCUM(scaled_freqs_sin[scaled_freqs_sin_tv.get_tensor_view_idx(
-                  ncw.sub_tensor_layout_t(2, 1))]);
+            ? CVT_FLOAT2ACCUM(sin[sin_tv.get_tensor_view_idx(ncw.add_tensor_layout_t(2, 1))])
+            : CVT_FLOAT2ACCUM(sin[sin_tv.get_tensor_view_idx(ncw.sub_tensor_layout_t(2, 1))]);
 
     FLOAT_ACCUM val = (output_grad * cos_val) + (output_grad_rotate_half * sin_val);
 
@@ -106,45 +101,31 @@ __device__ void ropebwdcontiguous(const TI* __restrict__ dy,
 }
 
 extern "C" __global__ void RoPEFwdContiguous(const INPUT_TYPE* __restrict__ x,
-                                             const INPUT_TYPE* __restrict__ scaled_freqs_cos,
-                                             const INPUT_TYPE* __restrict__ scaled_freqs_sin,
+                                             const INPUT_TYPE* __restrict__ cos,
+                                             const INPUT_TYPE* __restrict__ sin,
                                              OUTPUT_TYPE* __restrict__ y,
                                              tensor_view_t<5> x_tv,
-                                             tensor_view_t<3> scaled_freqs_cos_tv,
-                                             tensor_view_t<3> scaled_freqs_sin_tv,
+                                             tensor_view_t<3> cos_tv,
+                                             tensor_view_t<3> sin_tv,
                                              tensor_view_t<5> y_tv,
                                              uint64_t output_numel)
 {
     // instantiate the kernel
-    ropefwdcontiguous<INPUT_TYPE, OUTPUT_TYPE>(x,
-                                               scaled_freqs_cos,
-                                               scaled_freqs_sin,
-                                               y,
-                                               x_tv,
-                                               scaled_freqs_cos_tv,
-                                               scaled_freqs_sin_tv,
-                                               y_tv,
-                                               output_numel);
+    ropefwdcontiguous<INPUT_TYPE, OUTPUT_TYPE>(
+        x, cos, sin, y, x_tv, cos_tv, sin_tv, y_tv, output_numel);
 }
 
 extern "C" __global__ void RoPEBwdContiguous(const INPUT_TYPE* __restrict__ dy,
-                                             const INPUT_TYPE* __restrict__ scaled_freqs_cos,
-                                             const INPUT_TYPE* __restrict__ scaled_freqs_sin,
+                                             const INPUT_TYPE* __restrict__ cos,
+                                             const INPUT_TYPE* __restrict__ sin,
                                              OUTPUT_TYPE* __restrict__ dx,
                                              tensor_view_t<5> dy_tv,
-                                             tensor_view_t<3> scaled_freqs_cos_tv,
-                                             tensor_view_t<3> scaled_freqs_sin_tv,
+                                             tensor_view_t<3> cos_tv,
+                                             tensor_view_t<3> sin_tv,
                                              tensor_view_t<5> dx_tv,
                                              uint64_t output_numel)
 {
     // instantiate the kernel
-    ropebwdcontiguous<INPUT_TYPE, OUTPUT_TYPE>(dy,
-                                               scaled_freqs_cos,
-                                               scaled_freqs_sin,
-                                               dx,
-                                               dy_tv,
-                                               scaled_freqs_cos_tv,
-                                               scaled_freqs_sin_tv,
-                                               dx_tv,
-                                               output_numel);
+    ropebwdcontiguous<INPUT_TYPE, OUTPUT_TYPE>(
+        dy, cos, sin, dx, dy_tv, cos_tv, sin_tv, dx_tv, output_numel);
 }
