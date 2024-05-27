@@ -65,20 +65,20 @@ static void LogCmdRoPE(const miopenTensorDescriptor_t xDesc, bool is_fwd)
     }
 }
 
-extern "C" miopenStatus_t miopenReduceExtremeForward(miopenHandle_t handle,
-                                                     const miopenTensorDescriptor_t xDesc,
-                                                     const void* x,
-                                                     const miopenTensorDescriptor_t cosDesc,
-                                                     const void* cos,
-                                                     const miopenTensorDescriptor_t sinDesc,
-                                                     const void* sin,
-                                                     const miopenTensorDescriptor_t yDesc,
-                                                     void* y)
+extern "C" miopenStatus_t miopenRoPEForward(miopenHandle_t handle,
+                                            const miopenTensorDescriptor_t xDesc,
+                                            const void* x,
+                                            const miopenTensorDescriptor_t cosDesc,
+                                            const void* cos,
+                                            const miopenTensorDescriptor_t sinDesc,
+                                            const void* sin,
+                                            const miopenTensorDescriptor_t yDesc,
+                                            void* y)
 {
 
-    MIOPEN_LOG_FUNCTION(handle, xDesc, x, xDesc, x, xDesc, x, yDesc, y);
+    MIOPEN_LOG_FUNCTION(handle, xDesc, x, cosDesc, cos, sinDesc, sin, yDesc, y);
 
-    LogCmdReduceExtreme(xDesc, true);
+    LogCmdRoPE(xDesc, true);
 
     return miopen::try_([&] {
         miopen::ReduceExtremeForward(miopen::deref(handle),
@@ -90,5 +90,33 @@ extern "C" miopenStatus_t miopenReduceExtremeForward(miopenHandle_t handle,
                                      DataCast(sin),
                                      miopen::deref(yDesc),
                                      DataCast(y));
+    });
+}
+
+extern "C" miopenStatus_t miopenRoPEBackward(miopenHandle_t handle,
+                                             const miopenTensorDescriptor_t dyDesc,
+                                             const void* dy,
+                                             const miopenTensorDescriptor_t cosDesc,
+                                             const void* cos,
+                                             const miopenTensorDescriptor_t sinDesc,
+                                             const void* sin,
+                                             const miopenTensorDescriptor_t dxDesc,
+                                             void* dx)
+{
+
+    MIOPEN_LOG_FUNCTION(handle, dyDesc, dy, cosDesc, cos, sinDesc, sin, dxDesc, dx);
+
+    LogCmdRoPE(dyDesc, true);
+
+    return miopen::try_([&] {
+        miopen::ReduceExtremeForward(miopen::deref(handle),
+                                     miopen::deref(dyDesc),
+                                     DataCast(dy),
+                                     miopen::deref(cosDesc),
+                                     DataCast(cos),
+                                     miopen::deref(sinDesc),
+                                     DataCast(sin),
+                                     miopen::deref(dxDesc),
+                                     DataCast(dx));
     });
 }
