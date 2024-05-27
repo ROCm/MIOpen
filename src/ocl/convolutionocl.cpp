@@ -57,7 +57,6 @@
 
 #include <boost/range/adaptors.hpp>
 
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_IMMED_FALLBACK)
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_DUMP_TENSOR_PATH)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_ENABLE_AI_IMMED_MODE_FALLBACK)
@@ -298,11 +297,8 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
         return tmp;
     }();
 
-    const auto invoke_ctx = conv::DataInvokeParams{InvokeType::Evaluate,
-                                                   {xDesc, x, wDesc, w, yDesc, y},
-                                                   workSpace,
-                                                   workSpaceSize,
-                                                   attribute.gfx90aFp16alt.GetFwd()};
+    const auto invoke_ctx = conv::DataInvokeParams{
+        {xDesc, x, wDesc, w, yDesc, y}, workSpace, workSpaceSize, attribute.gfx90aFp16alt.GetFwd()};
 
     const auto results = FindConvolution(ctx, problem, invoke_ctx);
 
@@ -943,8 +939,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
         return tmp;
     }();
 
-    const auto invoke_ctx = conv::DataInvokeParams{InvokeType::Evaluate,
-                                                   {dyDesc, dy, wDesc, w, dxDesc, dx},
+    const auto invoke_ctx = conv::DataInvokeParams{{dyDesc, dy, wDesc, w, dxDesc, dx},
                                                    workSpace,
                                                    workSpaceSize,
                                                    this->attribute.gfx90aFp16alt.GetBwd()};
@@ -1160,8 +1155,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
         return tmp;
     }();
 
-    const auto invoke_ctx = conv::WrWInvokeParams{InvokeType::Evaluate,
-                                                  {dyDesc, dy, xDesc, x, dwDesc, dw},
+    const auto invoke_ctx = conv::WrWInvokeParams{{dyDesc, dy, xDesc, x, dwDesc, dw},
                                                   workSpace,
                                                   workSpaceSize,
                                                   attribute.gfx90aFp16alt.GetWrW()};
