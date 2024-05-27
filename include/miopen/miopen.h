@@ -7264,7 +7264,7 @@ MIOPEN_EXPORT miopenStatus_t miopenRoPEBackward(miopenHandle_t handle,
                                                 void* dx);
 /** @} */
 // CLOSEOUT LAYERNORM DOXYGEN GROUP
-#endif
+#endif // MIOPEN_BETA_API
 
 #ifdef __cplusplus
 }
