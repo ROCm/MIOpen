@@ -43,7 +43,7 @@ struct ProblemDescriptionFwd : ProblemDescriptionBase
                           const TensorDescriptor& cosDesc_,
                           const TensorDescriptor& sinDesc_,
                           const TensorDescriptor& yDesc_)
-        : xDesc_(xDesc), cosDesc(cosDesc_), sinDesc(sinDesc_), yDesc(yDesc_)
+        : xDesc(xDesc_), cosDesc(cosDesc_), sinDesc(sinDesc_), yDesc(yDesc_)
     {
     }
 
@@ -90,7 +90,7 @@ struct ProblemDescriptionBwd : ProblemDescriptionBase
                           const TensorDescriptor& cosDesc_,
                           const TensorDescriptor& sinDesc_,
                           const TensorDescriptor& dxDesc_)
-        : dyDesc_(dyDesc), cosDesc(cosDesc_), sinDesc(sinDesc_), dxDesc(dxDesc_)
+        : dyDesc(dyDesc_), cosDesc(cosDesc_), sinDesc(sinDesc_), dxDesc(dxDesc_)
     {
     }
 

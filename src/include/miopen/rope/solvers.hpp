@@ -38,12 +38,9 @@ namespace rope {
 using RoPESolverFwd = NonTunableSolverBase<ExecutionContext, miopen::rope::ProblemDescriptionFwd>;
 using RoPESolverBwd = NonTunableSolverBase<ExecutionContext, miopen::rope::ProblemDescriptionBwd>;
 
-struct MaxForward final : RoPESolverFwd
+struct RoPEForward final : RoPESolverFwd
 {
-    const std::string& SolverDbId() const override { return GetSolverDbId<MaxForward>(); }
-    size_t XGridSize(std::vector<size_t> ydims) const;
-    bool OverMaxGridSize(const ExecutionContext& context,
-                         const miopen::rope::ProblemDescriptionFwd& problem) const;
+    const std::string& SolverDbId() const override { return GetSolverDbId<RoPEForward>(); }
 
     bool IsApplicable(const ExecutionContext& context,
                       const miopen::rope::ProblemDescriptionFwd& problem) const override;
@@ -51,17 +48,14 @@ struct MaxForward final : RoPESolverFwd
                              const miopen::rope::ProblemDescriptionFwd& problem) const override;
 };
 
-struct MinForward final : RoPESolverBwd
+struct RoPEBackward final : RoPESolverBwd
 {
-    const std::string& SolverDbId() const override { return GetSolverDbId<MinForward>(); }
-    size_t XGridSize(std::vector<size_t> ydims) const;
-    bool OverMaxGridSize(const ExecutionContext& context,
-                         const miopen::rope::ProblemDescriptionBwd& problem) const;
+    const std::string& SolverDbId() const override { return GetSolverDbId<RoPEBackward>(); }
 
     bool IsApplicable(const ExecutionContext& context,
                       const miopen::rope::ProblemDescriptionBwd& problem) const override;
     ConvSolution GetSolution(const ExecutionContext& context,
-                             const miopen::reduce::ProblemDescriptionBwd& problem) const override;
+                             const miopen::rope::ProblemDescriptionBwd& problem) const override;
 };
 
 } // namespace rope
