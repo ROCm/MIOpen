@@ -42,7 +42,7 @@ namespace miopendriver_regression_issue_2047 {
 std::vector<std::string> GetTestCases()
 {
     const std::string& modeConvolutionArg =
-        miopen::GetStringEnv(MIOPEN_ENV(MIOPENDRIVER_MODE_CONV));
+        env::value(MIOPENDRIVER_MODE_CONV);
 
     // clang-format off
     return std::vector<std::string>{
@@ -68,12 +68,12 @@ bool IsTestSupportedForDevice()
 
 void RunMIOpenDriver()
 {
-    bool runTestSuite = miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_WITH_MIOPENDRIVER)) &&
+    bool runTestSuite = env::enabled(MIOPEN_TEST_WITH_MIOPENDRIVER) &&
                         IsTestSupportedForDevice() &&
-                        (miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_TEST_FLOAT_ARG)) == "--float" ||
-                         miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_TEST_FLOAT_ARG)) == "--half" ||
-                         miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_TEST_FLOAT_ARG)) == "--bf16" ||
-                         miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_TEST_FLOAT_ARG)) == "--int8");
+                        (env::value(MIOPEN_TEST_FLOAT_ARG) == "--float" ||
+                         env::value(MIOPEN_TEST_FLOAT_ARG) == "--half" ||
+                         env::value(MIOPEN_TEST_FLOAT_ARG) == "--bf16" ||
+                         env::value(MIOPEN_TEST_FLOAT_ARG) == "--int8");
 
     if(!runTestSuite)
     {

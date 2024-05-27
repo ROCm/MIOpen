@@ -42,7 +42,7 @@ namespace miopendriver_regression_float_half_gfx10 {
 
 std::vector<std::string> GetTestCases()
 {
-    const std::string& modeBatchNormArg = miopen::GetStringEnv(MIOPEN_ENV(MIOPENDRIVER_MODE_BN));
+    const std::string& modeBatchNormArg = env::value(MIOPENDRIVER_MODE_BN);
 
     // clang-format off
     return std::vector<std::string>{
@@ -72,11 +72,11 @@ bool IsTestSupportedForDevice()
 
 void RunMIOpenDriver()
 {
-    bool runTestSuite = miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_WITH_MIOPENDRIVER)) &&
+    bool runTestSuite = env::enabled(MIOPEN_TEST_WITH_MIOPENDRIVER) &&
                         IsTestSupportedForDevice() &&
-                        miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_ALL)) &&
-                        (miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_TEST_FLOAT_ARG)) == "--half" ||
-                         miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_TEST_FLOAT_ARG)) == "--float");
+                        env::enabled(MIOPEN_TEST_ALL) &&
+                        (env::value(MIOPEN_TEST_FLOAT_ARG) == "--half" ||
+                         env::value(MIOPEN_TEST_FLOAT_ARG) == "--float");
 
     if(!runTestSuite)
     {
