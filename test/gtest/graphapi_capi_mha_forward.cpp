@@ -152,9 +152,9 @@ struct TensorData
     tensor<float> m_tensor;
     miopen::Allocator::ManageDataPtr m_gpuBuffer;
 
-    void InitAndWriteToGPU(miopen::Handle& handle, tensor<float>&& tens_val) 
+    void InitAndWriteToGPU(miopen::Handle& handle, tensor<float>&& tens_val)
     {
-        m_tensor = std::move(tens_val); 
+        m_tensor    = std::move(tens_val);
         m_gpuBuffer = handle.Write(m_tensor.data);
     }
 
@@ -164,11 +164,10 @@ struct TensorData
         m_gpuBuffer = handle.Write(m_tensor.data);
     }
 
-    // Since we dont support tensor<int64_t> type, lets initilize gpu memory just from the value
     void InitWithInt64AndWriteToGPU(miopen::Handle& handle, int64_t val)
     {
         std::vector<int64_t> vec = {val};
-        m_gpuBuffer = handle.Write(vec);
+        m_gpuBuffer              = handle.Write(vec);
     }
 };
 
@@ -180,16 +179,15 @@ DescriptorWrapperPtr MakeDescriptor(miopenBackendDescriptorType_t descriptorType
 }
 
 DescriptorWrapperPtr MakeGapiTensorDesc(int64_t uniqueId,
-                                        bool isVirtual = false,
-                                        size_t n       = 1,
-                                        size_t h       = 1,
-                                        size_t s       = 1,
-                                        size_t d       = 1,
-                                        bool transpose = false)
+                                        bool isVirtual         = false,
+                                        size_t n               = 1,
+                                        size_t h               = 1,
+                                        size_t s               = 1,
+                                        size_t d               = 1,
+                                        miopenDataType_t dtype = miopenFloat,
+                                        bool transpose         = false)
 {
     DescriptorWrapperPtr descWrapperPtr = MakeDescriptor(MIOPEN_BACKEND_TENSOR_DESCRIPTOR);
-
-    miopenDataType_t dtype = miopenFloat;
 
     descWrapperPtr->SetAttribute(MIOPEN_ATTR_TENSOR_DATA_TYPE, MIOPEN_TYPE_DATA_TYPE, 1, &dtype);
 
@@ -451,6 +449,7 @@ private:
                                        m_testH,
                                        m_testS,
                                        m_testD,
+                                       miopenFloat,
                                        false); // no transpose for now
 
         MakeAndAddRealTensorDescriptor(miopenTensorMhaV, false, m_testN, m_testH, m_testS, m_testD);
@@ -462,8 +461,10 @@ private:
         MakeAndAddRealTensorDescriptor(miopenTensorMhaScaleO);
 
         MakeAndAddRealTensorDescriptor(miopenTensorMhaDropoutProbability);
-        MakeAndAddRealTensorDescriptor(miopenTensorMhaDropoutSeed);
-        MakeAndAddRealTensorDescriptor(miopenTensorMhaDropoutOffset);
+        MakeAndAddRealTensorDescriptor(
+            miopenTensorMhaDropoutSeed, false, 1, 1, 1, 1, miopenInt64, false);
+        MakeAndAddRealTensorDescriptor(
+            miopenTensorMhaDropoutOffset, false, 1, 1, 1, 1, miopenInt64, false);
 
         // output real tensors
         MakeAndAddRealTensorDescriptor(miopenTensorMhaO, false, m_testN, m_testH, m_testS, m_testD);
@@ -489,7 +490,7 @@ private:
         for(auto& [k, v] : m_realTensorMap)
         {
             if(k == miopenTensorMhaQ)
-            {                
+            {
                 v->InitAndWriteToGPU(handle, std::move(Q.mTensor));
             }
             else if(k == miopenTensorMhaDescaleQ)
@@ -501,7 +502,7 @@ private:
                 v->InitAndWriteToGPU(handle, std::move(K.mTensor));
             }
             else if(k == miopenTensorMhaDescaleK)
-            {                
+            {
                 v->InitAndWriteToGPU(handle, K.mDescale);
             }
             else if(k == miopenTensorMhaV)
@@ -523,9 +524,9 @@ private:
             }
             else if(k == miopenTensorMhaDropoutSeed)
             {
-                v->InitWithInt64AndWriteToGPU(handle, m_dropoutSedd);
+                v->InitWithInt64AndWriteToGPU(handle, m_dropoutSeed);
             }
-            else if (k == miopenTensorMhaDropoutOffset)
+            else if(k == miopenTensorMhaDropoutOffset)
             {
                 v->InitWithInt64AndWriteToGPU(handle, m_dropoutOffset);
             }
@@ -754,25 +755,24 @@ private:
             return it->second->m_tensor;
         };
 
-        test::cpu::MultiHeadAttentionfp8(
-            lookup(miopenTensorMhaQ),
-            lookup(miopenTensorMhaK),
-            lookup(miopenTensorMhaV),
-            softmaxRef,
-            mDescRef,
-            zInvDescRef,
-            lookup(miopenTensorMhaDescaleQ)[0],
-            lookup(miopenTensorMhaDescaleK)[0],
-            lookup(miopenTensorMhaDescaleV)[0],
-            lookup(miopenTensorMhaDescaleS)[0],
-            lookup(miopenTensorMhaScaleS)[0],
-            lookup(miopenTensorMhaScaleO)[0],
-            lookup(miopenTensorMhaDropoutProbability)[0],
-            m_dropoutSedd,
-            m_dropoutOffset,
-            amaxSRef,
-            amaxORef,
-            oDescRef);
+        test::cpu::MultiHeadAttentionfp8(lookup(miopenTensorMhaQ),
+                                         lookup(miopenTensorMhaK),
+                                         lookup(miopenTensorMhaV),
+                                         softmaxRef,
+                                         mDescRef,
+                                         zInvDescRef,
+                                         lookup(miopenTensorMhaDescaleQ)[0],
+                                         lookup(miopenTensorMhaDescaleK)[0],
+                                         lookup(miopenTensorMhaDescaleV)[0],
+                                         lookup(miopenTensorMhaDescaleS)[0],
+                                         lookup(miopenTensorMhaScaleS)[0],
+                                         lookup(miopenTensorMhaScaleO)[0],
+                                         lookup(miopenTensorMhaDropoutProbability)[0],
+                                         m_dropoutSeed,
+                                         m_dropoutOffset,
+                                         amaxSRef,
+                                         amaxORef,
+                                         oDescRef);
 
         auto GetResult = [&](const int64_t& id) -> const tensor<float>& {
             auto it = m_realTensorMap.find(id);
@@ -815,15 +815,16 @@ private:
     // some unique and named values. For virtual tensors we use identifiers starting from "max id
     // from real tensors" + 1
     void MakeAndAddRealTensorDescriptor(int64_t tensorId,
-                                        bool isVirtual = false,
-                                        size_t n       = 1,
-                                        size_t h       = 1,
-                                        size_t s       = 1,
-                                        size_t d       = 1,
-                                        bool transpose = false)
+                                        bool isVirtual         = false,
+                                        size_t n               = 1,
+                                        size_t h               = 1,
+                                        size_t s               = 1,
+                                        size_t d               = 1,
+                                        miopenDataType_t dtype = miopenFloat,
+                                        bool transpose         = false)
     {
         DescriptorWrapperPtr realTensorGapiDesc =
-            MakeGapiTensorDesc(tensorId, isVirtual, n, h, s, d, transpose);
+            MakeGapiTensorDesc(tensorId, isVirtual, n, h, s, d, dtype, transpose);
 
         TensorDataPtr tensorDataPtr = std::make_shared<TensorData>();
         tensorDataPtr->m_gapiDesc   = realTensorGapiDesc;
@@ -853,12 +854,11 @@ private:
 
     std::map<int64_t, TensorDataPtr> m_realTensorMap;
 
-    int64_t m_nextTensorId = 0;
+    int64_t m_nextTensorId  = 0;
     int64_t m_workspaceSize = 0;
 
-    int64_t m_dropoutSedd = 0;
+    int64_t m_dropoutSeed   = 0;
     int64_t m_dropoutOffset = 0;
-
 
     DescriptorWrapperPtr m_executionPlan;
 };
