@@ -23,8 +23,8 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include "rope_driver.hpp"
 #include "registry_driver_maker.hpp"
+#include "rope_driver.hpp"
 
 static Driver* makeDriver(const std::string& base_arg)
 {
