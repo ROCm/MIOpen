@@ -31,14 +31,15 @@ MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 
 namespace adam {
 
-std::string GetFloatArg()
+bool CheckFloatArg(std::string arg)
 {
-    const auto& tmp = miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_TEST_FLOAT_ARG));
-    if(tmp.empty())
+    if(miopen::IsUnset(MIOPEN_ENV(MIOPEN_TEST_ALL)) ||
+       (miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_ALL)) &&
+        (miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_TEST_FLOAT_ARG)) == arg)))
     {
-        return "";
+        return true;
     }
-    return tmp;
+    return false;
 }
 
 struct AdamTestFloat : AdamTest<float, float>
@@ -58,7 +59,7 @@ using namespace adam;
 
 TEST_P(AdamTestFloat, AdamFloatTestFw)
 {
-    if(miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float"))
+    if(CheckFloatArg("--float"))
     {
         RunTest();
         Verify();
@@ -71,7 +72,7 @@ TEST_P(AdamTestFloat, AdamFloatTestFw)
 
 TEST_P(AdamTestFloat16, AdamFloat16TestFw)
 {
-    if(miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--half"))
+    if(CheckFloatArg("--half"))
     {
         RunTest();
         Verify();
@@ -84,7 +85,7 @@ TEST_P(AdamTestFloat16, AdamFloat16TestFw)
 
 TEST_P(AmpAdamTestFloat, AmpAdamTestFw)
 {
-    if(miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float"))
+    if(CheckFloatArg("--float"))
     {
         RunTest();
         Verify();
