@@ -39,15 +39,15 @@ std::size_t GetGetitemWorkspaceSize(Handle& /*handle*/,
                                     int32_t indexCount,
                                     const TensorDescriptor* const* indexDescs)
 {
-    if(indexCount > 0)
-    {
-        auto index_dims = (*indexDescs)[0].GetLengths();
-        auto index_numel =
-            std::accumulate(index_dims.begin(), index_dims.end(), 1L, std::multiplies<int64_t>());
-        return (indexCount * index_numel + indexCount) * get_data_size((*indexDescs)[0].GetType());
-    }
+    auto ctx           = ExecutionContext{&handle};
+    const auto problem = item::ProblemDescription{indexCount, indexDescs};
 
-    return 0;
+    const auto algo    = AlgorithmName{"GetitemBackward"};
+    const auto solvers = solver::SolverContainer<solver::item::GetitemBackward>{};
+
+    auto pair_size_vector = solvers.GetWorkspaceSizes(ctx, problem);
+
+    return pair_size_vector.empty() ? static_cast<size_t>(0) : pair_size_vector.front().second;
 }
 
 miopenStatus_t GetitemBackward(Handle& handle,

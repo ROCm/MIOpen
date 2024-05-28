@@ -255,6 +255,22 @@ ConvSolution GetitemBackward::GetSolution(const ExecutionContext& /*context*/,
     return result;
 }
 
+std::size_t GetitemBackward::GetWorkspaceSize(const ExecutionContext& /*context*/,
+                                              const miopen::item::ProblemDescription& problem) const
+{
+    auto indexCount = problem.GetIndexCount();
+    if(indexCount > 0)
+    {
+        auto index_dims = problem.GetIndexDesc(0).GetLengths();
+        auto index_numel =
+            std::accumulate(index_dims.begin(), index_dims.end(), 1L, std::multiplies<int64_t>());
+        return (indexCount * index_numel + problem.GetIndexCount()) *
+               get_data_size(problem.GetIndexDesc(0).GetType());
+    }
+
+    return 0;
+}
+
 } // namespace item
 
 } // namespace solver
