@@ -158,9 +158,9 @@ private:
 } // end namespace detail
 
 #define MIOPEN_DECLARE_ENV_VAR(_name, _type, ...)                                  \
-    [[maybe_unused]] static const struct __struct_##_name                          \
+    [[maybe_unused]] static const struct __struct_ ## __LINE__ ## _name            \
     {                                                                              \
-        static_assert(std::is_same_v<__struct_##_name, ::__struct_##_name>,        \
+        static_assert(std::is_same_v<__struct_ ## __LINE__ ## _name, ::__struct_ ## __LINE__ ## _name>,        \
                       "MIOPEN_DECLARE_ENV* must be used in the global namespace"); \
         using value_type = _type;                                                  \
         static ::miopen::env::detail::EnvVar<_type>& ref()                         \
