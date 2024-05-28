@@ -27,7 +27,6 @@
 #pragma once
 
 #include <miopen/graphapi/graphapi.hpp>
-#include <miopen/graphapi/opgraph.hpp>
 #include <miopen/graphapi/tensor.hpp>
 #include <miopen/graphapi/variant_pack.hpp>
 #include <miopen/solution.hpp>
@@ -40,6 +39,7 @@ namespace miopen {
 namespace graphapi {
 
 class Engine;
+class OpGraph;
 
 // Pattern is a family of solvers for the same graph shape
 class GraphPatternMatcher

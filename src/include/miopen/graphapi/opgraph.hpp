@@ -26,6 +26,7 @@
 #pragma once
 
 #include <miopen/graphapi/tensor.hpp>
+#include <miopen/graphapi/engine.hpp>
 
 #include <algorithm>
 #include <memory>
