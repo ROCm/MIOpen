@@ -157,19 +157,19 @@ private:
 
 } // end namespace detail
 
-#define MIOPEN_DECLARE_ENV_VAR(_name, _type, ...)                                  \
-    [[maybe_unused]] static const struct __struct_ ## __LINE__ ## _name            \
-    {                                                                              \
-        static_assert(std::is_same_v<__struct_ ## __LINE__ ## _name, ::__struct_ ## __LINE__ ## _name>,        \
-                      "MIOPEN_DECLARE_ENV* must be used in the global namespace"); \
-        using value_type = _type;                                                  \
-        static ::miopen::env::detail::EnvVar<_type>& ref()                         \
-        {                                                                          \
-            static ::miopen::env::detail::EnvVar<_type> var{#_name, __VA_ARGS__};  \
-            return var;                                                            \
-        }                                                                          \
-        operator ::miopen::env::detail::EnvVar<_type>&() const { return ref(); }   \
-        operator bool() const { return ref().exist(); }                            \
+#define MIOPEN_DECLARE_ENV_VAR(_name, _type, ...)                                               \
+    [[maybe_unused]] static const struct __struct_##__LINE__##_name                             \
+    {                                                                                           \
+        static_assert(std::is_same_v<__struct_##__LINE__##_name, ::__struct_##__LINE__##_name>, \
+                      "MIOPEN_DECLARE_ENV* must be used in the global namespace");              \
+        using value_type = _type;                                                               \
+        static ::miopen::env::detail::EnvVar<_type>& ref()                                      \
+        {                                                                                       \
+            static ::miopen::env::detail::EnvVar<_type> var{#_name, __VA_ARGS__};               \
+            return var;                                                                         \
+        }                                                                                       \
+        operator ::miopen::env::detail::EnvVar<_type>&() const { return ref(); }                \
+        operator bool() const { return ref().exist(); }                                         \
     } _name;
 
 #define MIOPEN_DECLARE_ENV_VAR_BOOL(name, ...) MIOPEN_DECLARE_ENV_VAR(name, bool, __VA_ARGS__)
