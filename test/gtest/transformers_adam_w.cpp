@@ -31,14 +31,15 @@ MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 
 namespace transformers_adam_w {
 
-std::string GetFloatArg()
+bool CheckFloatArg(std::string arg)
 {
-    const auto& tmp = miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_TEST_FLOAT_ARG));
-    if(tmp.empty())
+    if(miopen::IsUnset(MIOPEN_ENV(MIOPEN_TEST_ALL)) ||
+       (miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_ALL)) &&
+        (miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_TEST_FLOAT_ARG)) == arg)))
     {
-        return "";
+        return true;
     }
-    return tmp;
+    return false;
 }
 
 struct TransformersAdamWTestFloat : TransformersAdamWTest<float, float>
@@ -58,7 +59,7 @@ using namespace transformers_adam_w;
 
 TEST_P(TransformersAdamWTestFloat, TransformersAdamWFloatTest)
 {
-    if(miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float"))
+    if(CheckFloatArg("--float"))
     {
         RunTest();
         Verify();
@@ -71,7 +72,7 @@ TEST_P(TransformersAdamWTestFloat, TransformersAdamWFloatTest)
 
 TEST_P(TransformersAdamWTestFloat16, TransformersAdamWFloat16Test)
 {
-    if(miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--half"))
+    if(CheckFloatArg("--half"))
     {
         RunTest();
         Verify();
@@ -84,7 +85,7 @@ TEST_P(TransformersAdamWTestFloat16, TransformersAdamWFloat16Test)
 
 TEST_P(TransformersAmpAdamWTestFloat, TransformersAmpAdamWTest)
 {
-    if(miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float"))
+    if(CheckFloatArg("--float"))
     {
         RunTest();
         Verify();
