@@ -60,8 +60,7 @@ using namespace getitem;
 TEST_P(GetitemBwdTestFloat, GetitemBwdTestFw)
 {
     auto TypeArg = miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_TEST_FLOAT_ARG));
-    if((miopen::IsUnset(MIOPEN_ENV(MIOPEN_TEST_ALL)) ||
-        (miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float"))))
+    if(miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float"))
     {
         RunTest();
         Verify();
@@ -75,8 +74,7 @@ TEST_P(GetitemBwdTestFloat, GetitemBwdTestFw)
 TEST_P(GetitemBwdTestHalf, GetitemBwdTestFw)
 {
     auto TypeArg = miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_TEST_FLOAT_ARG));
-    if((miopen::IsUnset(MIOPEN_ENV(MIOPEN_TEST_ALL)) ||
-        (miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--half"))))
+    if(miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--half"))
     {
         RunTest();
         Verify();
@@ -90,8 +88,7 @@ TEST_P(GetitemBwdTestHalf, GetitemBwdTestFw)
 TEST_P(GetitemBwdTestBFloat16, GetitemBwdTestFw)
 {
     auto TypeArg = miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_TEST_FLOAT_ARG));
-    if((miopen::IsUnset(MIOPEN_ENV(MIOPEN_TEST_ALL)) ||
-        (miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--bfloat16"))))
+    if(miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--bfloat16"))
     {
         RunTest();
         Verify();
