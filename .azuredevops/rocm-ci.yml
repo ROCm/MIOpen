@@ -1,0 +1,42 @@
+resources:
+  repositories:
+  - repository: pipelines_repo
+    type: github
+    endpoint: ROCm
+    name: ROCm/ROCm
+
+variables:
+- group: common
+- template: /.azuredevops/variables-global.yml@pipelines_repo
+
+trigger:
+  batch: true
+  branches:
+    include:
+    - develop
+  paths:
+    exclude:
+    - .githooks
+    - .github
+    - docs
+    - '.*.y*ml'
+    - '*.md'
+    - LICENSE.txt
+
+pr:
+  autoCancel: true
+  branches:
+    include:
+    - develop
+  paths:
+    exclude:
+    - .githooks
+    - .github
+    - docs
+    - '.*.y*ml'
+    - '*.md'
+    - LICENSE.txt
+  drafts: false
+
+jobs:
+  - template: ${{ variables.CI_COMPONENT_PATH }}/MIOpen.yml@pipelines_repo
