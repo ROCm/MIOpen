@@ -67,15 +67,7 @@ OpGraph OpGraphBuilder::build() &&
             auto [iter, _ignore] =
                 e_map.try_emplace(o, EdgeInfo{}); // add empty EdgeInfo if not present
 
-            // REMOVE BEG
-            auto s = iter->second.mSrc;
-            if(s != nullptr)
-            {
-                MIOPEN_LOG_W("tensor with two sournces: orig = " << s->signName()
-                                                                 << ", n = " << n->signName());
-            }
-            // REMOVE END
-            assert(iter->second.mSrc == nullptr);
+            MIOPEN_THROW_IF(iter->second.mSrc != nullptr, "Output tensor with two source op nodes");
             iter->second.mSrc = n;
         }
     }
