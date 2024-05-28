@@ -255,8 +255,9 @@ ConvSolution GetitemBackward::GetSolution(const ExecutionContext& /*context*/,
     return result;
 }
 
-std::size_t GetitemBackward::GetWorkspaceSize(const ExecutionContext& /*context*/,
-                                              const miopen::getitem::ProblemDescription& problem) const
+std::size_t
+GetitemBackward::GetWorkspaceSize(const ExecutionContext& /*context*/,
+                                  const miopen::getitem::ProblemDescription& problem) const
 {
     auto indexCount = problem.GetIndexCount();
     if(indexCount > 0)
