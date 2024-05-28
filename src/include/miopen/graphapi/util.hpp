@@ -46,14 +46,14 @@ inline std::string tensorIdAsStr(const Tensor* tens_ptr)
 }
 
 template <bool isVirtual, typename Vec>
-Tensor makeTensor(std::string_view name, const Vec& dims, const Vec& strides)
+Tensor makeTensor(std::string_view name, miopenDataType_t dt, const Vec& dims, const Vec& strides)
 {
     int64_t id = 0;
     MIOPEN_THROW_IF(name.size() > sizeof(id), "tensor name exceeds 8 chars");
     std::copy_n(name.begin(), std::min(sizeof(id), name.size()), reinterpret_cast<char*>(&id));
 
     return TensorBuilder{}
-        .setDataType(miopenFloat)
+        .setDataType(dt)
         .setDim(dims)
         .setStride(strides)
         .setId(id)
@@ -62,14 +62,14 @@ Tensor makeTensor(std::string_view name, const Vec& dims, const Vec& strides)
 }
 
 template <bool isVirtual, typename Vec>
-Tensor makeTensor(std::string_view name, const Vec& dims)
+Tensor makeTensor(std::string_view name, miopenDataType_t dt, const Vec& dims)
 {
 
     Vec strides(dims);
     using T = typename Vec::value_type;
     std::exclusive_scan(dims.begin(), dims.end(), strides.begin(), T{1ll}, std::multiplies<T>{});
 
-    return makeTensor<isVirtual>(name, dims, strides);
+    return makeTensor<isVirtual>(name, dt, dims, strides);
 }
 
 /// An RAII style class that captures a pointer to an object on heap and frees it
@@ -162,7 +162,7 @@ struct PatternGraphGenerator
     inline Tensor* makeDummyTensor(std::string_view name)
     {
 
-        return mAlloc.allocate(makeTensor<true>(name, std::vector<int64_t>({1})));
+        return mAlloc.allocate(makeTensor<true>(name, miopenFloat, std::vector<int64_t>({1})));
     }
 
 private:
@@ -216,6 +216,7 @@ public:
     const auto& graph() const { return mGraph; }
 };
 
+// TODO(Amber): move this function out so that other find 2.0 code can use it
 std::string tensorEnumIdToStr(miopenTensorArgumentId_t id)
 {
 #define ENUM_CASE(k) \
