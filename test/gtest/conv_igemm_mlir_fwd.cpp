@@ -61,7 +61,7 @@ auto GetTestCases()
 
 using TestCase = decltype(GetTestCases())::value_type;
 
-bool SkipTest() { return !(env::enabled(MIOPEN_TEST_MLIR)) || env::disabled(MIOPEN_TEST_ALL); }
+bool SkipTest() { return !env::enabled(MIOPEN_TEST_MLIR) || env::disabled(MIOPEN_TEST_ALL); }
 
 bool IsTestSupportedForDevice()
 {

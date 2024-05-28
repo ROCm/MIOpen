@@ -434,6 +434,8 @@ ConvBinWinoRxS<Winodata, Winofilter>::Search(const ExecutionContext& ctx,
     return GenericSearch(*this, ctx, problem, invoke_ctx);
 }
 
+namespace {
+
 class ShaderModel : public UnifiedDescriptionConv2d
 {
     static constexpr size_t NHW_tiles_factor = 32;
@@ -575,7 +577,7 @@ public:
         n_works_per_CU = Ceil(n_works, n_groups) * Ceil(G * n_groups, n_CU);
     }
 
-    size_t GetNGroups() const noexcept { return n_groups; }
+    [[maybe_unused]] size_t GetNGroups() const noexcept { return n_groups; }
 
     double ComputeWti() const noexcept
     {
@@ -636,8 +638,10 @@ public:
         return WTI_predicted;
     }
 
-    double GetGranularityLoss() const { return granularity_loss; }
+    [[maybe_unused]] double GetGranularityLoss() const { return granularity_loss; }
 };
+
+} // namespace
 
 template <int Winodata, int Winofilter>
 static float GetWtiBase(const ExecutionContext& ctx, const ProblemDescription& problem)

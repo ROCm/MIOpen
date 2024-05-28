@@ -207,6 +207,7 @@ bool BnCKBwdBackward::IsApplicable(
     case miopenHalf: return CheckCKApplicability<F16, F32, F32, F32, F16, F32, F32>(bn_problem);
     case miopenBFloat16:
         return CheckCKApplicability<BF16, F32, F32, F32, BF16, F32, F32>(bn_problem);
+    case miopenInt64:
     case miopenInt32:
     case miopenInt8:
     case miopenBFloat8:
@@ -231,6 +232,7 @@ ConvSolution BnCKBwdBackward::GetSolution(
         return MakeAnyInvokerFactory<BF16, F32, F32, F32, BF16, F32, F32>(bn_problem);
     case miopenInt8:
     case miopenInt32:
+    case miopenInt64:
     case miopenBFloat8:
     case miopenFloat8:
     default:

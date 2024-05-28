@@ -30,11 +30,13 @@
 #include <miopen/env.hpp>
 #include "get_handle.hpp"
 
+namespace env = miopen::env;
+
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
 
 namespace regression_half_vega {
-void SetupEnvVar(void)
+void SetupEnvVar()
 {
     env::update(MIOPEN_FIND_MODE, "normal");
     env::update(MIOPEN_DEBUG_FIND_ONLY_SOLVER, "GemmBwdRest");
@@ -48,7 +50,7 @@ std::vector<std::string> GetArgs(const std::string& param)
     return {begin, end};
 }
 
-std::vector<std::string> GetTestCases(void)
+std::vector<std::string> GetTestCases()
 {
     const std::string& cmd       = "test_conv3d ";
     const std::string& float_arg = env::value(MIOPEN_TEST_FLOAT_ARG);
@@ -75,7 +77,7 @@ bool IsTestSupportedForDevice()
     return ::IsTestSupportedForDevMask<d_mask, e_mask>();
 }
 
-void Run2dDriver(void)
+void Run2dDriver()
 {
     if(!(IsTestSupportedForDevice()            //
          && (!MIOPEN_TEST_ALL                  // standalone run

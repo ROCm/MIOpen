@@ -98,7 +98,7 @@ miopenStatus_t ConvBiasActivFusion(Handle& handle,
     float falpha1 = alpha1 != nullptr ? *(static_cast<const float*>(alpha1)) : 1.0f;
     float falpha2 = alpha2 != nullptr ? *(static_cast<const float*>(alpha2)) : 1.0f;
 
-    // if(z != nullptr || zDesc.GetSize() != 0)
+    // if(z != nullptr || zDesc.GetNumDims() != 0)
     // MIOPEN_THROW(miopenStatusNotImplemented, "The addition of z vector is not yet supported");
     FusionPlanDescriptor fusePlanDesc{miopenVerticalFusion, xDesc};
     OperatorArgs fusionArgs;
@@ -863,13 +863,13 @@ FindFusion(const ExecutionContext& ctx,
 
             // We need buffers for find, thus we lazily get them, possibly allocating.
             auto fusion_ctx = FusionContext(ctx.GetStream());
-            FindCore(invoke_params(),
-                     record,
-                     fusion_ctx,
-                     fusion_problem,
-                     FusionFindParameters{},
-                     GetFusionSolverFinders(),
-                     options);
+            return FindCore(invoke_params(),
+                            record,
+                            fusion_ctx,
+                            fusion_problem,
+                            FusionFindParameters{},
+                            GetFusionSolverFinders(),
+                            options);
         },
         "fusion");
 }

@@ -113,6 +113,11 @@ struct miopen_type<int> : std::integral_constant<miopenDataType_t, miopenInt32>
 };
 
 template <>
+struct miopen_type<int64_t> : std::integral_constant<miopenDataType_t, miopenInt64>
+{
+};
+
+template <>
 struct miopen_type<float8> : std::integral_constant<miopenDataType_t, miopenFloat8>
 {
 };
@@ -183,7 +188,12 @@ struct tensor
 
     tensor(miopen::TensorDescriptor rhs) : desc(std::move(rhs))
     {
-        assert(desc.GetType() == miopen_type<T>{});
+        assert(desc.GetType() == miopen_type<T>{}
+               /// In the driver, T is input tensor type, but output tensor holders
+               /// are instantiatied with T as well. This leads to false assertion
+               /// failures when T is INT8 because output type is different.
+               /// \todo Get rid of this hack when the driver is improved:
+               || (miopen_type<T>{} == miopenInt8 && desc.GetType() == miopenInt32));
         data.resize(desc.GetElementSpace());
     }
 

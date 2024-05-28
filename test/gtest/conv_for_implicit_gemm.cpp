@@ -95,6 +95,7 @@ void Run2dDriver(miopenDataType_t prec)
     case miopenFloat:
     case miopenInt8:
     case miopenInt32:
+    case miopenInt64:
     case miopenDouble:
     case miopenFloat8:
     case miopenBFloat8:
@@ -285,9 +286,9 @@ TEST_P(ConfigWithHalf, Test_conv_for_implicit_gemm_half)
 };
 
 INSTANTIATE_TEST_SUITE_P(ConvIgemm,
-                             ConfigWithBF16, 
+                             ConfigWithBF16,
                              testing::Values(GetTestCases("--bf16")));
 
 INSTANTIATE_TEST_SUITE_P(ConvIgemm,
-                             ConfigWithHalf, 
+                             ConfigWithHalf,
                              testing::Values(GetTestCases("--half")));

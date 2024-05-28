@@ -35,8 +35,6 @@
 
 #include <boost/range/adaptors.hpp>
 
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING)
-
 namespace miopen {
 namespace solver {
 namespace conv {
@@ -224,8 +222,6 @@ ConvSolution GemmWrw1x1_stride1::GetSolution(const ExecutionContext&,
     auto solution = ConvSolution{miopenStatusSuccess};
 
     solution.invoker_factory = [=](const std::vector<Kernel>&) {
-        const bool time_precision = !env::disabled(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING);
-
         return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
             const auto& conv_params = primitive_params.CastTo<miopen::conv::WrWInvokeParams>();
             const auto& dy          = conv_params.tensors.dy;
@@ -247,79 +243,51 @@ ConvSolution GemmWrw1x1_stride1::GetSolution(const ExecutionContext&,
                 tmp.gfx90a_alt_impl = conv_params.gfx90aFp16alt;
                 return tmp;
             }();
-            if(conv_params.type != InvokeType::Run)
+
+            // Zeroing out the output buffer
+            float zero = 0.0f;
+            SetTensor(handle, dwDesc_, dw, &zero);
+
+            if(group_count > 1)
             {
-                const auto status = CallGemmTimeMeasure(
-                    handle,
-                    gemm_desc,
-                    dy,
-                    0,
-                    x,
-                    0,
-                    dw,
-                    0,
-                    time_precision,
-                    group_count > 1 ? callGemmStridedBatched : callGemmStridedBatchedSequential,
-                    GemmBackend_t::rocblas);
+                auto time = 0;
 
-                if(status != miopenStatusSuccess)
-                    MIOPEN_THROW("GemmWrw1x1_stride1 execution failure.");
-
-                auto time = handle.GetKernelTime();
-
-                if(group_count > 1)
-                    time *= in_n;
-
-                handle.ResetKernelTime();
-                handle.AccumKernelTime(time);
-            }
-            else
-            {
-                // Zeroing out the output buffer
-                float zero = 0.0f;
-                SetTensor(handle, dwDesc_, dw, &zero);
-
-                if(group_count > 1)
+                for(std::size_t i = 0; i < in_n; i++)
                 {
-                    auto time = 0;
+                    const auto out_offset = i * wei_k * out_spatial_size;
+                    const auto in_offset  = i * in_c * in_spatial_size;
 
-                    for(std::size_t i = 0; i < in_n; i++)
-                    {
-                        const auto out_offset = i * wei_k * out_spatial_size;
-                        const auto in_offset  = i * in_c * in_spatial_size;
-
-                        const auto status = CallGemmStridedBatched(handle,
-                                                                   gemm_desc,
-                                                                   dy,
-                                                                   out_offset,
-                                                                   x,
-                                                                   in_offset,
-                                                                   dw,
-                                                                   0,
-                                                                   GemmBackend_t::rocblas);
-
-                        if(status != miopenStatusSuccess)
-                            MIOPEN_THROW("GemmWrw1x1_stride1 execution failure.");
-
-                        if(handle.IsProfilingEnabled())
-                            time += handle.GetKernelTime();
-                    }
-
-                    if(handle.IsProfilingEnabled())
-                    {
-                        handle.ResetKernelTime();
-                        handle.AccumKernelTime(time);
-                    }
-                }
-                else
-                {
-                    // dw = sum_over_batch(dy[i] * transpose(x[i])), i is batch id
-                    const auto status = CallGemmStridedBatchedSequential(
-                        handle, gemm_desc, dy, 0, x, 0, dw, 0, GemmBackend_t::rocblas);
+                    const auto status = CallGemmStridedBatched(handle,
+                                                               gemm_desc,
+                                                               dy,
+                                                               out_offset,
+                                                               x,
+                                                               in_offset,
+                                                               dw,
+                                                               0,
+                                                               GemmBackend_t::rocblas);
 
                     if(status != miopenStatusSuccess)
                         MIOPEN_THROW("GemmWrw1x1_stride1 execution failure.");
+
+                    if(handle.IsProfilingEnabled())
+                        time += handle.GetKernelTime();
                 }
+
+                if(handle.IsProfilingEnabled())
+                {
+                    handle.ResetKernelTime();
+                    handle.AccumKernelTime(time);
+                }
+            }
+            else
+            {
+                // dw = sum_over_batch(dy[i] * transpose(x[i])), i is batch id
+                const auto status = CallGemmStridedBatchedSequential(
+                    handle, gemm_desc, dy, 0, x, 0, dw, 0, GemmBackend_t::rocblas);
+
+                if(status != miopenStatusSuccess)
+                    MIOPEN_THROW("GemmWrw1x1_stride1 execution failure.");
             }
         };
     };
@@ -444,8 +412,6 @@ ConvSolution GemmWrwUniversal::GetSolution(const ExecutionContext& context,
     solution.workspace_sz = workspace_req;
 
     solution.invoker_factory = [=](const std::vector<Kernel>&) {
-        const bool time_precision = !env::disabled(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING);
-
         return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
             const auto& conv_params    = primitive_params.CastTo<miopen::conv::WrWInvokeParams>();
             const auto& dy             = conv_params.tensors.dy;
@@ -477,112 +443,72 @@ ConvSolution GemmWrwUniversal::GetSolution(const ExecutionContext& context,
                 tmp.gfx90a_alt_impl = conv_params.gfx90aFp16alt;
                 return tmp;
             }();
-            if(conv_params.type == InvokeType::Run)
+
+            // Zeroing out the output buffer
+            float zero = 0.0f;
+            SetTensor(handle, dwDesc_, dw, &zero);
+
+            float time = 0;
+
+            for(std::size_t i = 0; i < in_n; i++)
             {
-                // Zeroing out the output buffer
-                float zero = 0.0f;
-                SetTensor(handle, dwDesc_, dw, &zero);
+                const auto out_offset = i * wei_k * out_spatial_size;
+                const auto in_offset  = i * in_c * in_spatial_size;
 
-                float time = 0;
+                time += Im2ColGPU(handle,
+                                  spatial_dims,
+                                  x,
+                                  in_offset,
+                                  in_c,
+                                  in_spatial,
+                                  wei_spatial,
+                                  out_spatial,
+                                  conv_pads,
+                                  conv_strides,
+                                  conv_dilations,
+                                  workspace,
+                                  dyDesc_.GetType());
 
-                for(std::size_t i = 0; i < in_n; i++)
+                miopenStatus_t status;
+
+                if(group_count > 1)
                 {
-                    const auto out_offset = i * wei_k * out_spatial_size;
-                    const auto in_offset  = i * in_c * in_spatial_size;
-
-                    time += Im2ColGPU(handle,
-                                      spatial_dims,
-                                      x,
-                                      in_offset,
-                                      in_c,
-                                      in_spatial,
-                                      wei_spatial,
-                                      out_spatial,
-                                      conv_pads,
-                                      conv_strides,
-                                      conv_dilations,
+                    status = CallGemmStridedBatched(handle,
+                                                    gemm_desc,
+                                                    dy,
+                                                    out_offset,
+                                                    workspace,
+                                                    0,
+                                                    dw,
+                                                    0,
+                                                    GemmBackend_t::rocblas);
+                }
+                else
+                {
+                    // dw = dy * transpose(Im2Col(x))
+                    status = CallGemm(handle,
+                                      gemm_desc,
+                                      dy,
+                                      out_offset,
                                       workspace,
-                                      dyDesc_.GetType());
-
-                    miopenStatus_t status;
-
-                    if(group_count > 1)
-                    {
-                        status = CallGemmStridedBatched(handle,
-                                                        gemm_desc,
-                                                        dy,
-                                                        out_offset,
-                                                        workspace,
-                                                        0,
-                                                        dw,
-                                                        0,
-                                                        GemmBackend_t::rocblas);
-                    }
-                    else
-                    {
-                        // dw = dy * transpose(Im2Col(x))
-                        status = CallGemm(handle,
-                                          gemm_desc,
-                                          dy,
-                                          out_offset,
-                                          workspace,
-                                          0,
-                                          dw,
-                                          0,
-                                          GemmBackend_t::rocblas);
-                    }
-
-                    if(status != miopenStatusSuccess)
-                        MIOPEN_THROW("GemmWrw1x1_stride1 execution failure.");
-
-                    // Update times for both the kernels
-                    if(handle.IsProfilingEnabled())
-                        time += handle.GetKernelTime();
+                                      0,
+                                      dw,
+                                      0,
+                                      GemmBackend_t::rocblas);
                 }
-
-                if(handle.IsProfilingEnabled())
-                {
-                    handle.ResetKernelTime();
-                    handle.AccumKernelTime(time);
-                }
-            }
-            else
-            {
-                float time_im2col = 0;
-                int in_offset     = 0;
-                time_im2col       = Im2ColGPU(handle,
-                                        spatial_dims,
-                                        x,
-                                        in_offset,
-                                        in_c,
-                                        in_spatial,
-                                        wei_spatial,
-                                        out_spatial,
-                                        conv_pads,
-                                        conv_strides,
-                                        conv_dilations,
-                                        workspace,
-                                        dyDesc_.GetType());
-
-                const auto status =
-                    CallGemmTimeMeasure(handle,
-                                        gemm_desc,
-                                        dy,
-                                        0,
-                                        workspace,
-                                        0,
-                                        dw,
-                                        0,
-                                        time_precision,
-                                        group_count > 1 ? callGemmStridedBatched : callGemm,
-                                        GemmBackend_t::rocblas);
 
                 if(status != miopenStatusSuccess)
                     MIOPEN_THROW("GemmWrw1x1_stride1 execution failure.");
 
-                const auto gemm_time = handle.GetKernelTime();
+                // Update times for both the kernels
+                if(handle.IsProfilingEnabled())
+                    time += handle.GetKernelTime();
+            }
+
+            if(handle.IsProfilingEnabled())
+            {
                 handle.ResetKernelTime();
-                handle.AccumKernelTime(in_n * (time_im2col + gemm_time));
+                handle.AccumKernelTime(time);
             }
         };
     };

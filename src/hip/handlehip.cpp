@@ -31,6 +31,7 @@
 #include <miopen/env.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/handle_lock.hpp>
+#include <miopen/hip_build_utils.hpp>
 #include <miopen/invoker.hpp>
 #include <miopen/kernel_cache.hpp>
 #include <miopen/logger.hpp>
@@ -475,13 +476,13 @@ const std::vector<Kernel>& Handle::GetKernelsImpl(const std::string& algorithm,
     return this->impl->cache.GetKernels(algorithm, network_config);
 }
 
-KernelInvoke Handle::Run(Kernel k) const
+KernelInvoke Handle::Run(Kernel k, bool coop_launch) const
 {
     this->impl->set_ctx();
-    if(this->impl->enable_profiling || MIOPEN_GPU_SYNC)
-        return k.Invoke(this->GetStream(), this->impl->elapsed_time_handler());
-    else
-        return k.Invoke(this->GetStream());
+    auto callback = (this->impl->enable_profiling || MIOPEN_GPU_SYNC)
+                        ? this->impl->elapsed_time_handler()
+                        : nullptr;
+    return k.Invoke(this->GetStream(), callback, coop_launch);
 }
 
 Program Handle::LoadProgram(const std::string& program_name,
@@ -493,8 +494,17 @@ Program Handle::LoadProgram(const std::string& program_name,
 
     std::string orig_params = params; // make a copy for target ID fallback
 
-    if(!miopen::EndsWith(program_name, ".mlir"))
-        params = params + " -mcpu=" + this->GetTargetProperties().Name();
+    if(miopen::EndsWith(program_name, ".mlir"))
+    { // no -mcpu
+    }
+    else if(miopen::EndsWith(program_name, ".s"))
+    {
+        params += " -mcpu=" + LcOptionTargetStrings{this->GetTargetProperties()}.targetId;
+    }
+    else
+    {
+        params += " -mcpu=" + this->GetTargetProperties().Name();
+    }
 
     auto hsaco = miopen::LoadBinary(
         this->GetTargetProperties(), this->GetMaxComputeUnits(), program_name, params);
@@ -663,6 +673,17 @@ std::size_t Handle::GetMaxMemoryAllocSize()
     }
 
     return m_MaxMemoryAllocSizeCached;
+}
+
+bool Handle::CooperativeLaunchSupported() const
+{
+    int result;
+    auto status =
+        hipDeviceGetAttribute(&result, hipDeviceAttributeCooperativeLaunch, this->impl->device);
+    if(status != hipSuccess)
+        MIOPEN_THROW_HIP_STATUS(status);
+
+    return result == 1;
 }
 
 std::string Handle::GetDeviceNameImpl() const { return this->impl->get_device_name(); }

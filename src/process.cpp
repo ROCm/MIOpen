@@ -40,11 +40,24 @@ struct ProcessImpl
 public:
     ProcessImpl(std::string_view cmd) : path{cmd} {}
 
-    void Create(std::string_view args, std::string_view cwd)
+    void Create(std::string_view args,
+                std::string_view cwd,
+                std::ostream* out,
+                const ProcessEnvironmentMap& additionalEnvironmentVariables)
     {
         STARTUPINFOA info;
         ZeroMemory(&info, sizeof(STARTUPINFO));
         info.cb = sizeof(STARTUPINFO);
+
+        if(out != nullptr)
+        {
+            MIOPEN_THROW("Capturing output not defined for Windows.");
+        }
+
+        if(!additionalEnvironmentVariables.empty())
+        {
+            MIOPEN_THROW("Overriding environment variables not defined for Windows.");
+        }
 
         std::string cmd{path.string()};
         if(!args.empty())
@@ -54,11 +67,11 @@ public:
         // https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-createprocessa
         constexpr std::size_t BUFFER_CAPACITY = 32767;
 
-        TCHAR buffer[BUFFER_CAPACITY];
-        std::strncpy(buffer, cmd.data(), BUFFER_CAPACITY);
+        if(cmd.size() < BUFFER_CAPACITY)
+            cmd.resize(BUFFER_CAPACITY, '\0');
 
         if(CreateProcess(path.string().c_str(),
-                         buffer,
+                         cmd.data(),
                          nullptr,
                          nullptr,
                          FALSE,
@@ -97,25 +110,52 @@ struct ProcessImpl
 {
     ProcessImpl(std::string_view cmd) : path{cmd} {}
 
-    void Create(std::string_view args, std::string_view cwd)
+    void Create(std::string_view args,
+                std::string_view cwd,
+                std::ostream* out,
+                const ProcessEnvironmentMap& additionalEnvironmentVariables)
     {
+        outStream = out;
         std::string cmd{path.string()};
+        if(!additionalEnvironmentVariables.empty())
+        {
+            std::stringstream environmentVariables;
+            for(const auto& envVariable : additionalEnvironmentVariables)
+            {
+                environmentVariables << envVariable.first << "=" << envVariable.second << " ";
+            }
+            cmd.insert(0, environmentVariables.str());
+        }
         if(!args.empty())
             cmd += " " + std::string{args};
         if(!cwd.empty())
             cmd.insert(0, "cd " + std::string{cwd} + "; ");
-        pipe = popen(cmd.c_str(), "w");
+
+        const auto fileMode = outStream != nullptr ? "r" : "w";
+        pipe                = popen(cmd.c_str(), fileMode);
         if(pipe == nullptr)
             MIOPEN_THROW("Error: popen()");
     }
 
     int Wait()
     {
+        if(outStream != nullptr)
+        {
+            std::array<char, 1024> buffer{};
+
+            while(feof(pipe) == 0)
+            {
+                if(fgets(buffer.data(), buffer.size(), pipe) != nullptr)
+                    *outStream << buffer.data();
+            }
+        }
+
         auto status = pclose(pipe);
         return WEXITSTATUS(status);
     }
 
 private:
+    std::ostream* outStream;
     fs::path path;
     FILE* pipe = nullptr;
 };
@@ -126,16 +166,23 @@ Process::Process(const fs::path& cmd) : impl{std::make_unique<ProcessImpl>(cmd.s
 
 Process::~Process() noexcept = default;
 
-int Process::operator()(std::string_view args, const fs::path& cwd)
+int Process::operator()(std::string_view args,
+                        const fs::path& cwd,
+                        std::ostream* out,
+                        const ProcessEnvironmentMap& additionalEnvironmentVariables)
 {
-    impl->Create(args, cwd.string());
+    impl->Create(args, cwd.string(), out, additionalEnvironmentVariables);
     return impl->Wait();
 }
 
-ProcessAsync::ProcessAsync(const fs::path& cmd, std::string_view args, const fs::path& cwd)
+ProcessAsync::ProcessAsync(const fs::path& cmd,
+                           std::string_view args,
+                           const fs::path& cwd,
+                           std::ostream* out,
+                           const ProcessEnvironmentMap& additionalEnvironmentVariables)
     : impl{std::make_unique<ProcessImpl>(cmd.string())}
 {
-    impl->Create(args, cwd.string());
+    impl->Create(args, cwd.string(), out, additionalEnvironmentVariables);
 }
 
 ProcessAsync::~ProcessAsync() noexcept = default;

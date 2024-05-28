@@ -48,6 +48,14 @@ struct LayerNormTestFloat : LayerNormTest<float>
 {
 };
 
+struct LayerNormTestHalf : LayerNormTest<half_float::half>
+{
+};
+
+struct LayerNormTestBFloat16 : LayerNormTest<bfloat16>
+{
+};
+
 } // namespace layernorm
 using namespace layernorm;
 
@@ -69,6 +77,48 @@ TEST_P(LayerNormTestFloat, LayerNormTestFw)
     }
 };
 
+TEST_P(LayerNormTestHalf, LayerNormTestFw)
+{
+    auto TypeArg       = env::value(MIOPEN_TEST_FLOAT_ARG);
+    const auto& handle = get_handle();
+    if((miopen::StartsWith(handle.GetDeviceName(), "gfx908") ||
+        miopen::StartsWith(handle.GetDeviceName(), "gfx90a") ||
+        miopen::StartsWith(handle.GetDeviceName(), "gfx94")) &&
+       env::enabled(MIOPEN_TEST_ALL) && GetFloatArg() == "--half")
+    {
+        RunTest();
+        Verify();
+    }
+    else
+    {
+        GTEST_SKIP();
+    }
+};
+
+TEST_P(LayerNormTestBFloat16, LayerNormTestFw)
+{
+    auto TypeArg       = env::value(MIOPEN_TEST_FLOAT_ARG);
+    const auto& handle = get_handle();
+    if((miopen::StartsWith(handle.GetDeviceName(), "gfx908") ||
+        miopen::StartsWith(handle.GetDeviceName(), "gfx90a") ||
+        miopen::StartsWith(handle.GetDeviceName(), "gfx94")) &&
+       env::enabled(MIOPEN_TEST_ALL) && GetFloatArg() == "--bfloat16")
+    {
+        RunTest();
+        Verify();
+    }
+    else
+    {
+        GTEST_SKIP();
+    }
+};
+
 INSTANTIATE_TEST_SUITE_P(LayerNormTestSet,
                          LayerNormTestFloat,
+                         testing::ValuesIn(LayerNormTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(LayerNormTestSet,
+                         LayerNormTestHalf,
+                         testing::ValuesIn(LayerNormTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(LayerNormTestSet,
+                         LayerNormTestBFloat16,
                          testing::ValuesIn(LayerNormTestConfigs()));

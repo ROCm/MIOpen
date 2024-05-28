@@ -48,26 +48,26 @@ std::vector<std::string> GetTestCases(const std::string& precision)
 
     // clang-format off
     return std::vector<std::string>{
-        {cmd + " --scales 1 0 --CompType 1 --D 8 2 1 --I 0 --N 1 ---ReduceOp 0 --R 0 1 2"},
-        {cmd + " --scales 1 0 --CompType 1 --D 160 10 1 --I 0 --N 1 ---ReduceOp 0 --R 0 1 2"},
-        {cmd + " --scales 1 0 --CompType 1 --D 7 1024 1 --I 0 --N 1 ---ReduceOp 0 --R 0 1 2"},
-        {cmd + " --scales 1 0 --CompType 1 --D 3 1 1 --I 0 --N 1 ---ReduceOp 0 --R 0 1 2"},
-        {cmd + " --scales 1 0 --CompType 1 --D 3 1 1 --I 0 --N 1 ---ReduceOp 1 --R 0 1 2"},
-        {cmd + " --scales 1 0 --CompType 1 --D 3 1 1 --I 1 --N 1 ---ReduceOp 3 --R 0 1 2"},
-        {cmd + " --scales 1 0 --CompType 1 --D 3 2 1 --I 1 --N 1 ---ReduceOp 3 --R 1 2"},
-        {cmd + " --scales 1 0 --CompType 1 --D 6 2 1 --I 0 --N 1 ---ReduceOp 3 --R 1 2"},
-        {cmd + " --scales 1 0 --CompType 1 --D 6 2 1 --I 0 --N 1 ---ReduceOp 2 --R 1 2"},
-        {cmd + " --scales 1 0 --CompType 1 --D 2 2 1 --I 0 --N 1 ---ReduceOp 0 --R 1 2"},
-        {cmd + " --scales 1 0 --CompType 1 --D 4 3 1 --I 0 --N 1 ---ReduceOp 3 --R 1 2"},
-        {cmd + " --scales 1 0 --CompType 1 --D 3 4 1 --I 0 --N 1 ---ReduceOp 3 --R 1 2"},
-        {cmd + " --scales 1 0 --CompType 1 --D 3 4 1 --I 0 --N 1 ---ReduceOp 3 --R 0 2"},
-        {cmd + " --scales 1 0 --CompType 1 --D 2048 32 1 --I 0 --N 1 ---ReduceOp 3 --R 0 2"},
-        {cmd + " --scales 1 0 --CompType 1 --D 4 3 1 --I 0 --N 1 ---ReduceOp 2 --R 1 2"},
-        {cmd + " --scales 1 0 --CompType 1 --D 3 4 1 --I 0 --N 1 ---ReduceOp 2 --R 0 2"},
-        {cmd + " --scales 1 0 --CompType 1 --D 2048 32 1 --I 0 --N 1 ---ReduceOp 2 --R 0 2"},
-        {cmd + " --scales 1 0 --CompType 1 --D 3 4 1 --I 0 --N 1 ---ReduceOp 2 --R 0 2"},
-        {cmd + " --scales 1 0 --CompType 1 --D 12 11 1 --I 0 --N 1 ---ReduceOp 0 --R 0 1 2"},
-        {cmd + " --scales 1 0 --CompType 1 --D 13 4 7 7 --I 0 --N 1 ---ReduceOp 0 --R 0 1 2 3"},
+        {cmd + " --scales 1 0 --CompType 1 --D 8 2 1 --I 0 --N 1 --ReduceOp 0 --R 0 1 2"},
+        {cmd + " --scales 1 0 --CompType 1 --D 160 10 1 --I 0 --N 1 --ReduceOp 0 --R 0 1 2"},
+        {cmd + " --scales 1 0 --CompType 1 --D 7 1024 1 --I 0 --N 1 --ReduceOp 0 --R 0 1 2"},
+        {cmd + " --scales 1 0 --CompType 1 --D 3 1 1 --I 0 --N 1 --ReduceOp 0 --R 0 1 2"},
+        {cmd + " --scales 1 0 --CompType 1 --D 3 1 1 --I 0 --N 1 --ReduceOp 1 --R 0 1 2"},
+        {cmd + " --scales 1 0 --CompType 1 --D 3 1 1 --I 1 --N 1 --ReduceOp 3 --R 0 1 2"},
+        {cmd + " --scales 1 0 --CompType 1 --D 3 2 1 --I 1 --N 1 --ReduceOp 3 --R 1 2"},
+        {cmd + " --scales 1 0 --CompType 1 --D 6 2 1 --I 0 --N 1 --ReduceOp 3 --R 1 2"},
+        {cmd + " --scales 1 0 --CompType 1 --D 6 2 1 --I 0 --N 1 --ReduceOp 2 --R 1 2"},
+        {cmd + " --scales 1 0 --CompType 1 --D 2 2 1 --I 0 --N 1 --ReduceOp 0 --R 1 2"},
+        {cmd + " --scales 1 0 --CompType 1 --D 4 3 1 --I 0 --N 1 --ReduceOp 3 --R 1 2"},
+        {cmd + " --scales 1 0 --CompType 1 --D 3 4 1 --I 0 --N 1 --ReduceOp 3 --R 1 2"},
+        {cmd + " --scales 1 0 --CompType 1 --D 3 4 1 --I 0 --N 1 --ReduceOp 3 --R 0 2"},
+        {cmd + " --scales 1 0 --CompType 1 --D 2048 32 1 --I 0 --N 1 --ReduceOp 3 --R 0 2"},
+        {cmd + " --scales 1 0 --CompType 1 --D 4 3 1 --I 0 --N 1 --ReduceOp 2 --R 1 2"},
+        {cmd + " --scales 1 0 --CompType 1 --D 3 4 1 --I 0 --N 1 --ReduceOp 2 --R 0 2"},
+        {cmd + " --scales 1 0 --CompType 1 --D 2048 32 1 --I 0 --N 1 --ReduceOp 2 --R 0 2"},
+        {cmd + " --scales 1 0 --CompType 1 --D 3 4 1 --I 0 --N 1 --ReduceOp 2 --R 0 2"},
+        {cmd + " --scales 1 0 --CompType 1 --D 12 11 1 --I 0 --N 1 --ReduceOp 0 --R 0 1 2"},
+        {cmd + " --scales 1 0 --CompType 1 --D 13 4 7 7 --I 0 --N 1 --ReduceOp 0 --R 0 1 2 3"},
         {cmd + " --scales 1 0 --CompType 1 --D 64 3 280 81 --I 0 --N 0 --ReduceOp 0 --R 0"}
     };
     // clang-format on
@@ -100,6 +100,7 @@ void Run2dDriver(miopenDataType_t prec)
     case miopenInt8:
     case miopenBFloat16:
     case miopenInt32:
+    case miopenInt64:
     case miopenDouble:
     case miopenFloat8:
     case miopenBFloat8:

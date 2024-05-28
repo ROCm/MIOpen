@@ -26,6 +26,7 @@
 #include <miopen/batch_norm.hpp>
 
 #include <miopen/check_numerics.hpp>
+#include <miopen/db.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/float_equal.hpp>
@@ -39,11 +40,20 @@
 #include <miopen/stringutils.hpp>
 #include <miopen/batchnorm/invoke_params.hpp>
 #include <miopen/batchnorm/solvers.hpp>
+#include <miopen/batchnorm/problem_description.hpp>
 #include <miopen/find_solution.hpp>
 
 #include <chrono>
 
 namespace miopen {
+
+namespace batchnorm {
+miopen::PerformanceDb GetDb(const miopen::ExecutionContext& ctx,
+                            const miopen::batchnorm::ProblemDescriptionTag&)
+{
+    return {DbKinds::PerfDb, ctx.GetPerfDbPath("batchnorm"), ctx.GetUserPerfDbPath("batchnorm")};
+}
+} // namespace batchnorm
 
 void BatchNormForwardTraining(Handle& handle,
                               miopenBatchNormMode_t bn_mode,
@@ -68,7 +78,8 @@ void BatchNormForwardTraining(Handle& handle,
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
-    if(xDesc.GetSize() != yDesc.GetSize() || xDesc.GetSize() != bnScaleBiasMeanVarDesc.GetSize())
+    if(xDesc.GetNumDims() != yDesc.GetNumDims() ||
+       xDesc.GetNumDims() != bnScaleBiasMeanVarDesc.GetNumDims())
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
@@ -81,7 +92,7 @@ void BatchNormForwardTraining(Handle& handle,
         MIOPEN_LOG_E("Only fully packed tensors supported.");
         MIOPEN_THROW(miopenStatusBadParm);
     }
-    if(xDesc.GetSize() < 3)
+    if(xDesc.GetNumDims() < 3)
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
@@ -185,8 +196,8 @@ void BatchNormForwardInference(Handle& handle,
         {
             MIOPEN_THROW(miopenStatusBadParm);
         }
-        if(xDesc.GetSize() != yDesc.GetSize() ||
-           xDesc.GetSize() != bnScaleBiasMeanVarDesc.GetSize())
+        if(xDesc.GetNumDims() != yDesc.GetNumDims() ||
+           xDesc.GetNumDims() != bnScaleBiasMeanVarDesc.GetNumDims())
         {
             MIOPEN_THROW(miopenStatusBadParm);
         }
@@ -194,7 +205,7 @@ void BatchNormForwardInference(Handle& handle,
         {
             MIOPEN_THROW(miopenStatusBadParm);
         }
-        if(xDesc.GetSize() < 3)
+        if(xDesc.GetNumDims() < 3)
         {
             MIOPEN_THROW(miopenStatusBadParm);
         }
@@ -297,7 +308,8 @@ void BatchNormBackward(Handle& handle,
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
-    if(xDesc.GetSize() != dyDesc.GetSize() || xDesc.GetSize() != bnScaleBiasDiffDesc.GetSize())
+    if(xDesc.GetNumDims() != dyDesc.GetNumDims() ||
+       xDesc.GetNumDims() != bnScaleBiasDiffDesc.GetNumDims())
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
@@ -305,7 +317,7 @@ void BatchNormBackward(Handle& handle,
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
-    if(xDesc.GetSize() < 3)
+    if(xDesc.GetNumDims() < 3)
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }

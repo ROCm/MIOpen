@@ -30,6 +30,7 @@
 #include <miopen/env.hpp>
 #include "get_handle.hpp"
 
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
 
 namespace reduce_custom_fp32 {
@@ -48,7 +49,7 @@ std::vector<std::string> GetTestCases(void)
 
     // clang-format off
     return std::vector<std::string>{
-        {cmd + float_arg + " --scales 1 0 --CompType 1 --D 1024 30528 1 --I 0 --N 1 ---ReduceOp 0 --R 0 1 2"}
+        {cmd + float_arg + " --scales 1 0 --CompType 1 --D 1024 30528 1 --I 0 --N 1 --ReduceOp 0 --R 0 1 2"}
     };
     // clang-format on
 }
@@ -68,7 +69,10 @@ bool IsTestSupportedForDevice()
 
 void Run2dDriver(void)
 {
-    if(!(IsTestSupportedForDevice() && env::value(MIOPEN_TEST_FLOAT_ARG) == "--float"))
+    if(!(IsTestSupportedForDevice() &&
+         (!MIOPEN_TEST_ALL                  // standalone run
+          || (env::enabled(MIOPEN_TEST_ALL) // or --float full tests enabled
+              && env::value(MIOPEN_TEST_FLOAT_ARG) == "--float"))))
     {
         GTEST_SKIP();
     }

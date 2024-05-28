@@ -1099,8 +1099,8 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
-    if(hxDesc.GetSize() != cxDesc.GetSize() || hxDesc.GetSize() != hyDesc.GetSize() ||
-       hxDesc.GetSize() != cyDesc.GetSize())
+    if(hxDesc.GetNumDims() != cxDesc.GetNumDims() || hxDesc.GetNumDims() != hyDesc.GetNumDims() ||
+       hxDesc.GetNumDims() != cyDesc.GetNumDims())
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
@@ -2488,8 +2488,8 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
-    if(hxDesc.GetSize() != cxDesc.GetSize() || hxDesc.GetSize() != hyDesc.GetSize() ||
-       hxDesc.GetSize() != cyDesc.GetSize())
+    if(hxDesc.GetNumDims() != cxDesc.GetNumDims() || hxDesc.GetNumDims() != hyDesc.GetNumDims() ||
+       hxDesc.GetNumDims() != cyDesc.GetNumDims())
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
@@ -3973,9 +3973,9 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
-    if(dhyDesc.GetSize() != dcyDesc.GetSize() || dhyDesc.GetSize() != hxDesc.GetSize() ||
-       dhyDesc.GetSize() != cxDesc.GetSize() || dhyDesc.GetSize() != dhxDesc.GetSize() ||
-       dhyDesc.GetSize() != dcxDesc.GetSize())
+    if(dhyDesc.GetNumDims() != dcyDesc.GetNumDims() ||
+       dhyDesc.GetNumDims() != hxDesc.GetNumDims() || dhyDesc.GetNumDims() != cxDesc.GetNumDims() ||
+       dhyDesc.GetNumDims() != dhxDesc.GetNumDims() || dhyDesc.GetNumDims() != dcxDesc.GetNumDims())
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
@@ -4108,7 +4108,8 @@ void RNNDescriptor::RNNBackwardDataPackedTensors(
 
     // if projections supported, dcxDesc.GetLengths()[2] should be used for hidden_size,
     // dhxDesc.GetLengths()[2] for proj_size.
-    if(dhxDesc.GetSize() != dcxDesc.GetSize() || dhxDesc.GetLengths()[2] != dcxDesc.GetLengths()[2])
+    if(dhxDesc.GetNumDims() != dcxDesc.GetNumDims() ||
+       dhxDesc.GetLengths()[2] != dcxDesc.GetLengths()[2])
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
