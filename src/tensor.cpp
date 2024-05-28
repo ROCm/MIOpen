@@ -394,8 +394,6 @@ std::string TensorDescriptor::GetLayoutStr(miopenTensorLayout_t tensorLayout)
     case miopenTensorNDHWC: return "NDHWC";
     default: MIOPEN_THROW(miopenStatusInternalError, "Unknown tensor layout");
     }
-
-    return "";
 }
 
 std::string TensorDescriptor::GetLayout_str() const
