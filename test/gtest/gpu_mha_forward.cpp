@@ -23,7 +23,14 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <miopen/config.h>
+
+// Override MIOPEN_FP8_IEEE_EXPONENT_BIAS
+#define MIOPEN_FP8_IEEE_EXPONENT_BIAS 0
+// compilers complains that macro is not used, but it is used in line 364
+// workaround for false-positice "unused macro" warning
+#ifndef MIOPEN_FP8_IEEE_EXPONENT_BIAS
+#error "MIOPEN_FP8_IEEE_EXPONENT_BIAS must be defined"
+#endif
 
 #include "get_handle.hpp"
 #include "mha_helper.hpp"
