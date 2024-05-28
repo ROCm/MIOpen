@@ -35,7 +35,7 @@
 
 namespace miopen {
 
-std::size_t GetGetitemWorkspaceSize(Handle& /*handle*/,
+std::size_t GetGetitemWorkspaceSize(Handle& handle,
                                     int32_t indexCount,
                                     const TensorDescriptor* const* indexDescs)
 {
