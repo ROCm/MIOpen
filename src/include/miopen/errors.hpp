@@ -66,7 +66,6 @@ template <class... Params>
 #define MIOPEN_THROW(...)                                     \
     do                                                        \
     {                                                         \
-        std::abort(); /* TODO: Remove  */                     \
         miopen::MIOpenThrow(__FILE__, __LINE__, __VA_ARGS__); \
     } while(false)
 
@@ -75,7 +74,6 @@ template <class... Params>
     {                                                                                  \
         if((condition))                                                                \
         {                                                                              \
-            std::abort(); /* TODO: remove */                                           \
             miopen::MIOpenThrow(__FILE__,                                              \
                                 __LINE__,                                              \
                                 miopenStatusInternalError,                             \
