@@ -35,7 +35,7 @@ namespace miopen {
 
 struct NetworkConfig;
 
-namespace item {
+namespace getitem {
 
 struct ProblemDescription : ProblemDescriptionBase
 {
@@ -126,6 +126,6 @@ private:
     NetworkConfig MakeForwardNetworkConfig() const;
 };
 
-} // namespace item
+} // namespace getitem
 
 } // namespace miopen

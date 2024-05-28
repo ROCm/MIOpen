@@ -29,8 +29,8 @@
 #include <miopen/check_numerics.hpp>
 #include <miopen/tensor.hpp>
 #include <miopen/datatype.hpp>
-#include <miopen/item/invoke_params.hpp>
-#include <miopen/item/solvers.hpp>
+#include <miopen/getitem/invoke_params.hpp>
+#include <miopen/getitem/solvers.hpp>
 #include <miopen/find_solution.hpp>
 
 namespace miopen {
@@ -40,10 +40,10 @@ std::size_t GetGetitemWorkspaceSize(Handle& handle,
                                     const TensorDescriptor* const* indexDescs)
 {
     auto ctx           = ExecutionContext{&handle};
-    const auto problem = item::ProblemDescription{indexCount, indexDescs};
+    const auto problem = getitem::ProblemDescription{indexCount, indexDescs};
 
     const auto algo    = AlgorithmName{"GetitemBackward"};
-    const auto solvers = solver::SolverContainer<solver::item::GetitemBackward>{};
+    const auto solvers = solver::SolverContainer<solver::getitem::GetitemBackward>{};
 
     auto pair_size_vector = solvers.GetWorkspaceSizes(ctx, problem, true);
 
@@ -68,7 +68,7 @@ miopenStatus_t GetitemBackward(Handle& handle,
                                const int32_t* slices,
                                int32_t offset)
 {
-    const auto problem = item::ProblemDescription{dyDesc,
+    const auto problem = getitem::ProblemDescription{dyDesc,
                                                   indexCount,
                                                   indexDescs,
                                                   dxDesc,
@@ -79,7 +79,7 @@ miopenStatus_t GetitemBackward(Handle& handle,
                                                   slices,
                                                   offset};
 
-    const auto invoke_params = item::GetitemInvokeParams{workspace,
+    const auto invoke_params = getitem::GetitemInvokeParams{workspace,
                                                          workspaceSizeInBytes,
                                                          dyDesc,
                                                          dy,
@@ -97,7 +97,7 @@ miopenStatus_t GetitemBackward(Handle& handle,
                                                          offset};
 
     const auto algo    = AlgorithmName{"GetitemBackward"};
-    const auto solvers = solver::SolverContainer<solver::item::GetitemBackward>{};
+    const auto solvers = solver::SolverContainer<solver::getitem::GetitemBackward>{};
     solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
 
     return miopenStatusSuccess;

@@ -26,11 +26,11 @@
 #pragma once
 
 #include "../src/kernels/tensor_view.hpp"
-#include <miopen/item/solvers.hpp>
+#include <miopen/getitem/solvers.hpp>
 
 namespace miopen {
 namespace solver {
-namespace item {
+namespace getitem {
 
 template <int N>
 inline tensor_view_t<N> get_inner_expanded_tv(const TensorDescriptor Desc)
@@ -75,6 +75,6 @@ inline void slice_tv(tensor_view_t<N>& tensor_view, int32_t sliceCount, const in
     }
 }
 
-} // namespace item
+} // namespace getitem
 } // namespace solver
 } // namespace miopen

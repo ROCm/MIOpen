@@ -24,7 +24,7 @@
  *
  *******************************************************************************/
 
-#include <miopen/item/problem_description.hpp>
+#include <miopen/getitem/problem_description.hpp>
 #include <miopen/datatype.hpp>
 #include <miopen/names.hpp>
 
@@ -32,7 +32,7 @@
 
 namespace miopen {
 
-namespace item {
+namespace getitem {
 
 NetworkConfig ProblemDescription::MakeNetworkConfig() const
 {
@@ -70,6 +70,6 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
     return NetworkConfig{ss.str()};
 }
 
-} // namespace item
+} // namespace getitem
 
 } // namespace miopen

@@ -30,7 +30,7 @@
 #include <miopen/tensor.hpp>
 
 namespace miopen {
-namespace item {
+namespace getitem {
 
 struct GetitemInvokeParams : public miopen::InvokeParams
 {
@@ -92,6 +92,6 @@ struct GetitemInvokeParams : public miopen::InvokeParams
     Data_t GetWorkspace() const { return workspace; }
 };
 
-} // namespace item
+} // namespace getitem
 
 } // namespace miopen

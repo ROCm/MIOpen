@@ -27,9 +27,9 @@
 #include <miopen/datatype.hpp>
 #include <miopen/getitem.hpp>
 #include <miopen/kernel_build_params.hpp>
-#include <miopen/item/invoke_params.hpp>
-#include <miopen/item/solvers.hpp>
-#include <miopen/item/utils.hpp>
+#include <miopen/getitem/invoke_params.hpp>
+#include <miopen/getitem/solvers.hpp>
+#include <miopen/getitem/utils.hpp>
 #include <miopen/target_properties.hpp>
 
 #define LOCAL_SIZE 256
@@ -38,9 +38,9 @@ namespace miopen {
 
 namespace solver {
 
-namespace item {
+namespace getitem {
 
-bool IsLargeIndex(const miopen::item::ProblemDescription& problem)
+bool IsLargeIndex(const miopen::getitem::ProblemDescription& problem)
 {
     auto dy_dims = problem.GetDYDesc().GetLengths();
     auto dx_dims = problem.GetDXDesc().GetLengths();
@@ -55,7 +55,7 @@ bool IsLargeIndex(const miopen::item::ProblemDescription& problem)
 }
 
 bool GetitemBackward::IsApplicable(const ExecutionContext& /*context*/,
-                                   const miopen::item::ProblemDescription& problem) const
+                                   const miopen::getitem::ProblemDescription& problem) const
 {
     if(!problem.IsSameType())
         return false;
@@ -65,7 +65,7 @@ bool GetitemBackward::IsApplicable(const ExecutionContext& /*context*/,
 }
 
 ConvSolution GetitemBackward::GetSolution(const ExecutionContext& /*context*/,
-                                          const miopen::item::ProblemDescription& problem) const
+                                          const miopen::getitem::ProblemDescription& problem) const
 {
     auto result = ConvSolution{miopenStatusSuccess};
 
@@ -165,7 +165,7 @@ ConvSolution GetitemBackward::GetSolution(const ExecutionContext& /*context*/,
 
     result.invoker_factory = [](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
-            decltype(auto) params = raw_params.CastTo<miopen::item::GetitemInvokeParams>();
+            decltype(auto) params = raw_params.CastTo<miopen::getitem::GetitemInvokeParams>();
 
             auto start_dim = params.dims[0];
             auto dx_dims   = params.dxDesc.GetLengths();
@@ -256,7 +256,7 @@ ConvSolution GetitemBackward::GetSolution(const ExecutionContext& /*context*/,
 }
 
 std::size_t GetitemBackward::GetWorkspaceSize(const ExecutionContext& /*context*/,
-                                              const miopen::item::ProblemDescription& problem) const
+                                              const miopen::getitem::ProblemDescription& problem) const
 {
     auto indexCount = problem.GetIndexCount();
     if(indexCount > 0)
@@ -271,7 +271,7 @@ std::size_t GetitemBackward::GetWorkspaceSize(const ExecutionContext& /*context*
     return 0;
 }
 
-} // namespace item
+} // namespace getitem
 
 } // namespace solver
 

@@ -25,7 +25,7 @@
  *******************************************************************************/
 #pragma once
 
-#include <miopen/item/problem_description.hpp>
+#include <miopen/getitem/problem_description.hpp>
 #include <miopen/solver.hpp>
 #include <utility>
 
@@ -33,24 +33,24 @@ namespace miopen {
 
 namespace solver {
 
-namespace item {
+namespace getitem {
 
-using ItemSolver = NonTunableSolverBase<ExecutionContext, miopen::item::ProblemDescription>;
+using ItemSolver = NonTunableSolverBase<ExecutionContext, miopen::getitem::ProblemDescription>;
 
 struct GetitemBackward final : ItemSolver
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<GetitemBackward>(); }
 
     bool IsApplicable(const ExecutionContext& context,
-                      const miopen::item::ProblemDescription& problem) const override;
+                      const miopen::getitem::ProblemDescription& problem) const override;
     ConvSolution GetSolution(const ExecutionContext& context,
-                             const miopen::item::ProblemDescription& problem) const override;
+                             const miopen::getitem::ProblemDescription& problem) const override;
     std::size_t GetWorkspaceSize(const ExecutionContext& context,
-                                 const miopen::item::ProblemDescription& problem) const override;
+                                 const miopen::getitem::ProblemDescription& problem) const override;
     bool MayNeedWorkspace() const override { return true; }
 };
 
-} // namespace item
+} // namespace getitem
 
 } // namespace solver
 
