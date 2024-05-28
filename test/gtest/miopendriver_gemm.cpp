@@ -66,8 +66,7 @@ bool IsTestSupportedForDevice()
 
 void RunMIOpenDriver()
 {
-    bool runTestSuite = env::enabled(MIOPEN_TEST_WITH_MIOPENDRIVER) &&
-                        IsTestSupportedForDevice() &&
+    bool runTestSuite = env::enabled(MIOPEN_TEST_WITH_MIOPENDRIVER) && IsTestSupportedForDevice() &&
                         (env::value(MIOPEN_TEST_FLOAT_ARG) == "--float" ||
                          env::value(MIOPEN_TEST_FLOAT_ARG) == "--half");
 
