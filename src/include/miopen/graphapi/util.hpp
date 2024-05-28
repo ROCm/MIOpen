@@ -217,10 +217,12 @@ public:
 };
 
 // TODO(Amber): move this function out so that other find 2.0 code can use it
-std::string tensorEnumIdToStr(miopenTensorArgumentId_t id)
+inline std::string tensorEnumIdToStr(miopenTensorArgumentId_t id)
 {
+
 #define ENUM_CASE(k) \
     case k: return #k;
+
     switch(id)
     {
         ENUM_CASE(miopenTensorMhaK)
