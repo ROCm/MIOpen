@@ -400,8 +400,7 @@ std::string TensorDescriptor::GetLayoutStr(miopenTensorLayout_t tensorLayout)
 
 std::string TensorDescriptor::GetLayout_str() const
 {
-    auto str = GetLayoutStr(this->tensorLayout);
-    return str;
+    return GetLayoutStr(this->tensorLayout);
 }
 
 std::size_t TensorDescriptor::GetVectorLength() const { return this->vector_length; }
