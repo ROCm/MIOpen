@@ -49,7 +49,7 @@ void GraphExecutorFind20::execute(miopenHandle_t handle, const VariantPack& vpk)
 
     // TODO(amber) : verify that variant pack has all the expected input and output
     // tensors
-    for(auto i = 0ull; i < num; ++i)
+    for(std::size_t i = 0; i < num; ++i)
     {
         auto tens_id  = vpk.getTensorIds()[i];
         auto* gpu_ptr = vpk.getDataPtrs()[i];
