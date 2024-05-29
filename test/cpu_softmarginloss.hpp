@@ -27,15 +27,15 @@
 #define GUARD_CPU_SOFTMARGINLOSS_HPP
 
 #include "tensor_holder.hpp"
-#include "../src/include/miopen/softmarginloss/utils.hpp"
+#include <miopen/tensor_view_utils.hpp>
 
 template <class T>
 void cpu_softmarginloss_unreduced_forward(tensor<T> input, tensor<T>& ref_output, tensor<T> target)
 {
     auto input_numel = input.desc.GetElementSize();
-    auto i_tv        = miopen::solver::softmarginloss::get_inner_expanded_tv<5>(input.desc);
-    auto t_tv        = miopen::solver::softmarginloss::get_inner_expanded_tv<5>(target.desc);
-    auto o_tv        = miopen::solver::softmarginloss::get_inner_expanded_tv<5>(ref_output.desc);
+    auto i_tv        = miopen::get_inner_expanded_tv<5>(input.desc);
+    auto t_tv        = miopen::get_inner_expanded_tv<5>(target.desc);
+    auto o_tv        = miopen::get_inner_expanded_tv<5>(ref_output.desc);
 
     par_ford(input_numel)([&](size_t gid) {
         tensor_layout_t<5> idx(i_tv, gid);
@@ -52,10 +52,10 @@ void cpu_softmarginloss_unreduced_backward(tensor<T> input,
                                            tensor<T>& ref_dI)
 {
     auto input_numel = input.desc.GetElementSize();
-    auto i_tv        = miopen::solver::softmarginloss::get_inner_expanded_tv<5>(input.desc);
-    auto t_tv        = miopen::solver::softmarginloss::get_inner_expanded_tv<5>(target.desc);
-    auto dO_tv       = miopen::solver::softmarginloss::get_inner_expanded_tv<5>(dO.desc);
-    auto dI_tv       = miopen::solver::softmarginloss::get_inner_expanded_tv<5>(ref_dI.desc);
+    auto i_tv        = miopen::get_inner_expanded_tv<5>(input.desc);
+    auto t_tv        = miopen::get_inner_expanded_tv<5>(target.desc);
+    auto dO_tv       = miopen::get_inner_expanded_tv<5>(dO.desc);
+    auto dI_tv       = miopen::get_inner_expanded_tv<5>(ref_dI.desc);
 
     par_ford(input_numel)([&](size_t gid) {
         tensor_layout_t<5> idx(i_tv, gid);

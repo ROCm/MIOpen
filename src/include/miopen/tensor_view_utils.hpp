@@ -23,14 +23,14 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#pragma once
 
-#include "../src/kernels/tensor_view.hpp"
-#include <miopen/softmarginloss/solvers.hpp>
+#ifndef MIOPEN_TENSOR_VIEW_UTIL_HPP_
+#define MIOPEN_TENSOR_VIEW_UTIL_HPP_
+
+#include "../../kernels/tensor_view.hpp"
+#include "miopen/tensor.hpp"
 
 namespace miopen {
-namespace solver {
-namespace softmarginloss {
 
 template <int N>
 inline tensor_view_t<N> get_inner_expanded_tv(const TensorDescriptor Desc)
@@ -55,6 +55,26 @@ inline tensor_view_t<N> get_inner_expanded_tv(const TensorDescriptor Desc)
     return tensor_view;
 }
 
-} // namespace softmarginloss
-} // namespace solver
+template <int N>
+inline void slice_tv(tensor_view_t<N>& tensor_view, int32_t sliceCount, const int32_t* slices)
+{
+    for(int32_t i = 0; i < sliceCount; i++)
+    {
+        int32_t dim   = slices[4 * i + 0];
+        int32_t start = slices[4 * i + 1];
+        int32_t end   = slices[4 * i + 2];
+        int32_t step  = slices[4 * i + 3];
+
+        if(end > static_cast<int32_t>(tensor_view.size[dim]))
+            end = tensor_view.size[dim];
+
+        auto len = end - start;
+
+        tensor_view.size[dim] = (len + step - 1) / step;
+        tensor_view.stride[dim] *= step;
+    }
+}
+
 } // namespace miopen
+
+#endif // MIOPEN_TENSOR_REORDER_UTIL_HPP_

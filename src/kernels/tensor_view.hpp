@@ -24,13 +24,8 @@
  *
  *******************************************************************************/
 
-#ifndef GUARD_TENSOR_VIEW_H
-#define GUARD_TENSOR_VIEW_H
-
-// TODO: function get_inner_expanded_tv in src/include/miopen/softmarginloss/utils.hpp should be in
-// here instead of rewrite everytime creating new op. It means that we shouldn't have utils.hpp file
-// as well. I also think this file should in src/include/miopen like tensor.hpp, but it will require
-// some refactor
+#ifndef GUARD_TENSOR_VIEW_HPP
+#define GUARD_TENSOR_VIEW_HPP
 
 template <int N>
 struct tensor_layout_t;
@@ -80,4 +75,4 @@ struct tensor_layout_t
     uint64_t layout[N];
 };
 
-#endif // GUARD_TENSOR_VIEW_H
+#endif // GUARD_TENSOR_VIEW_HPP

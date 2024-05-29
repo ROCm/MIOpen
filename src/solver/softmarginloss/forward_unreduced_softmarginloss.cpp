@@ -30,7 +30,7 @@
 #include <miopen/softmarginloss/solvers.hpp>
 #include <miopen/softmarginloss.hpp>
 #include <miopen/target_properties.hpp>
-#include <miopen/softmarginloss/utils.hpp>
+#include <miopen/tensor_view_utils.hpp>
 
 #define LOCAL_SIZE 256
 

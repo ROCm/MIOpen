@@ -41,7 +41,7 @@
 #include <vector>
 #include <../test/tensor_holder.hpp>
 #include <../test/verify.hpp>
-#include "../src/include/miopen/softmarginloss/utils.hpp"
+#include <miopen/tensor_view_utils.hpp>
 
 template <typename Tgpu, typename Tcheck>
 int32_t mloSoftMarginLossUnreducedForwardRunHost(miopenTensorDescriptor_t inputDesc,
@@ -52,9 +52,9 @@ int32_t mloSoftMarginLossUnreducedForwardRunHost(miopenTensorDescriptor_t inputD
                                                  Tcheck* outputhost)
 {
     auto input_numel = miopen::deref(inputDesc).GetElementSize();
-    auto i_tv = miopen::solver::softmarginloss::get_inner_expanded_tv<5>(miopen::deref(inputDesc));
-    auto t_tv = miopen::solver::softmarginloss::get_inner_expanded_tv<5>(miopen::deref(targetDesc));
-    auto o_tv = miopen::solver::softmarginloss::get_inner_expanded_tv<5>(miopen::deref(outputDesc));
+    auto i_tv        = miopen::get_inner_expanded_tv<5>(miopen::deref(inputDesc));
+    auto t_tv        = miopen::get_inner_expanded_tv<5>(miopen::deref(targetDesc));
+    auto o_tv        = miopen::get_inner_expanded_tv<5>(miopen::deref(outputDesc));
 
     int32_t ret = 0;
 
@@ -81,10 +81,10 @@ int32_t mloSoftMarginLossUnreducedBackwardRunHost(miopenTensorDescriptor_t input
                                                   Tcheck* dIhost)
 {
     auto input_numel = miopen::deref(inputDesc).GetElementSize();
-    auto i_tv = miopen::solver::softmarginloss::get_inner_expanded_tv<5>(miopen::deref(inputDesc));
-    auto t_tv = miopen::solver::softmarginloss::get_inner_expanded_tv<5>(miopen::deref(targetDesc));
-    auto dO_tv = miopen::solver::softmarginloss::get_inner_expanded_tv<5>(miopen::deref(dODesc));
-    auto dI_tv = miopen::solver::softmarginloss::get_inner_expanded_tv<5>(miopen::deref(dIDesc));
+    auto i_tv        = miopen::get_inner_expanded_tv<5>(miopen::deref(inputDesc));
+    auto t_tv        = miopen::get_inner_expanded_tv<5>(miopen::deref(targetDesc));
+    auto dO_tv       = miopen::get_inner_expanded_tv<5>(miopen::deref(dODesc));
+    auto dI_tv       = miopen::get_inner_expanded_tv<5>(miopen::deref(dIDesc));
 
     int32_t ret = 0;
 
