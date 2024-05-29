@@ -236,6 +236,7 @@ bool Layernorm2DCKForward::IsApplicable(
         return CheckCKApplicability<DeviceOpLnFwdPtrs<F32, F32, F32, F32, F32>>(problem);
     case miopenBFloat16:
     case miopenDouble:
+    case miopenInt64:
     case miopenInt32:
     case miopenInt8:
     case miopenFloat8:
@@ -264,6 +265,7 @@ ConvSolution Layernorm2DCKForward::GetSolution(
     case miopenBFloat16:
     case miopenInt8:
     case miopenInt32:
+    case miopenInt64:
     case miopenFloat8:
     case miopenBFloat8:
     default:
