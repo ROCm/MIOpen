@@ -396,10 +396,7 @@ std::string TensorDescriptor::GetLayoutStr(miopenTensorLayout_t tensorLayout)
     }
 }
 
-std::string TensorDescriptor::GetLayout_str() const
-{
-    return GetLayoutStr(this->tensorLayout);
-}
+std::string TensorDescriptor::GetLayout_str() const { return GetLayoutStr(this->tensorLayout); }
 
 std::size_t TensorDescriptor::GetVectorLength() const { return this->vector_length; }
 
