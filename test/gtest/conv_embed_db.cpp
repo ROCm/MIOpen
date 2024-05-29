@@ -68,6 +68,7 @@ void Run2dDriver(miopenDataType_t prec)
     case miopenHalf: params = ConvEmbedConfigHalf::GetParam(); break;
     case miopenInt8: params = ConvEmbedConfigInt8::GetParam(); break;
     case miopenBFloat16: params = ConvEmbedConfigBFloat16::GetParam(); break;
+    case miopenInt64:
     case miopenInt32:
     case miopenFloat8:
     case miopenBFloat8:
