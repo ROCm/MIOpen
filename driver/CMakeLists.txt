@@ -48,6 +48,7 @@ add_executable(MIOpenDriver
     dm_pool.cpp
     dm_reduce.cpp
     dm_rnn.cpp
+    dm_softmarginloss.cpp
     dm_softmax.cpp
     dm_sum.cpp
     dm_tensorop.cpp
