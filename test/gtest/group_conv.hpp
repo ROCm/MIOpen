@@ -430,10 +430,11 @@ public:
 protected:
     void SetUp() override
     {
-        float alpha_val;
-        float beta_val;
+        std::tuple<float, float> alpha_beta;
         test_skipped = false;
-        // std::tie(conv_config, alpha_val, beta_val, tensor_layout) = Base::GetParam();
+        std::tie(conv_config, alpha_beta, tensor_layout) = Base::GetParam();
+
+        auto [ alpha_val, beta_val ] = alpha_beta;
 
         alpha = miopen::Scalar(&alpha_val, miopenFloat);
         beta  = miopen::Scalar(&beta_val, miopenFloat);
