@@ -200,10 +200,12 @@ extern "C" miopenStatus_t
 miopenConvolutionCKBackwardWeightsGetWorkSpaceSize(const miopenAlphaBetaCase_t alpha_beta_case,
                                                    const miopenTensorDescriptor_t inputTensorDesc,
                                                    const miopenTensorDescriptor_t outputTensorDesc,
+                                                   const miopenConvolutionDescriptor_t convDesc,
                                                    size_t* buffer_size)
 {
     MIOPEN_LOG_FUNCTION(alpha_beta_case, outputTensorDesc);
     return miopen::try_([&] {
+        assert(miopen::deref(convDesc).spatialDim == 3);
         miopenDataType_t data_type = miopen::deref(outputTensorDesc).GetType();
         size_t in_spatial_dims     = miopen::deref(inputTensorDesc).GetNumDims();
 

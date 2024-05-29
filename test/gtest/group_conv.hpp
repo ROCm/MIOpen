@@ -43,6 +43,13 @@ struct GroupConvTestConfig
 {
 };
 
+// Define specific combinations of alpha beta case.
+static std::vector<std::tuple<float, float>> combinations = {
+    {2.2, 3.3}, // bilinear
+    {2.2, 0.0}, // scale
+    {1.0, 0.0}  // default
+};
+
 template <>
 struct GroupConvTestConfig<2u>
 {
@@ -243,13 +250,13 @@ struct GroupConvTestConfig<3u>
 template <unsigned NDIM, typename T, Direction CONV_DIR>
 struct GroupConvTestFix
     : public ::testing::TestWithParam<
-          std::tuple<GroupConvTestConfig<NDIM>, double, double, miopenTensorLayout_t>>
+          std::tuple<GroupConvTestConfig<NDIM>, std::tuple<float, float>, miopenTensorLayout_t>>
 {
     static_assert(NDIM == 2u || NDIM == 3u, "NDIM must be 2 for 2D Conv and 3 for 3D Conv");
 
 private:
     using Base = ::testing::TestWithParam<
-        std::tuple<GroupConvTestConfig<NDIM>, double, double, miopenTensorLayout_t>>;
+        std::tuple<GroupConvTestConfig<NDIM>, std::tuple<float, float>, miopenTensorLayout_t>>;
 
     template <typename F>
     void SetupFwd(F&& gen_value)
@@ -425,8 +432,8 @@ protected:
     {
         float alpha_val;
         float beta_val;
-        test_skipped                                              = false;
-        std::tie(conv_config, alpha_val, beta_val, tensor_layout) = Base::GetParam();
+        test_skipped = false;
+        // std::tie(conv_config, alpha_val, beta_val, tensor_layout) = Base::GetParam();
 
         alpha = miopen::Scalar(&alpha_val, miopenFloat);
         beta  = miopen::Scalar(&beta_val, miopenFloat);
@@ -537,48 +544,21 @@ std::vector<miopenTensorLayout_t> GetLayoutValues()
 
 } // namespace group_conv
 
-#define DEFINE_GROUP_CONV_TEST(ndim, alpha, beta, type, dir, ab_case)                   \
-    struct GroupConv##ndim##D_##dir##_##type##_##ab_case                                \
-        : GroupConvTestFix<ndim, type, Direction::dir>                                  \
-    {                                                                                   \
-    };                                                                                  \
-    TEST_P(GroupConv##ndim##D_##dir##_##type##_##ab_case,                               \
-           GroupConv##ndim##D_##dir##_##type##_##ab_case##_Test)                        \
-    {                                                                                   \
-        RunSolver();                                                                    \
-    }                                                                                   \
-    INSTANTIATE_TEST_SUITE_P(                                                           \
-        GroupConv##ndim##D_##dir##_##type##_##ab_case##_Suite,                          \
-        GroupConv##ndim##D_##dir##_##type##_##ab_case,                                  \
-        testing::Combine(                                                               \
-            testing::ValuesIn(GroupConvTestConfig<ndim>::GetConfigs<Direction::dir>()), \
-            testing::ValuesIn({alpha}),                                                 \
-            testing::ValuesIn({beta}),                                                  \
+#define DEFINE_GROUP_CONV_TEST(ndim, type, dir)                                             \
+    struct GroupConv##ndim##D_##dir##_##type : GroupConvTestFix<ndim, type, Direction::dir> \
+    {                                                                                       \
+    };                                                                                      \
+    TEST_P(GroupConv##ndim##D_##dir##_##type, GroupConv##ndim##D_##dir##_##type##_Test)     \
+    {                                                                                       \
+        RunSolver();                                                                        \
+    }                                                                                       \
+    INSTANTIATE_TEST_SUITE_P(                                                               \
+        GroupConv##ndim##D_##dir##_##type##_Suite,                                          \
+        GroupConv##ndim##D_##dir##_##type,                                                  \
+        testing::Combine(                                                                   \
+            testing::ValuesIn(GroupConvTestConfig<ndim>::GetConfigs<Direction::dir>()),     \
+            testing::ValuesIn(group_conv::combinations),                                    \
             testing::ValuesIn(GetLayoutValues<ndim>())));
 
-#define DEFINE_GROUP_CONV2D_TEST(type, dir, alpha, beta, ab_case) \
-    DEFINE_GROUP_CONV_TEST(2, alpha, beta, type, dir, ab_case)
-#define DEFINE_GROUP_CONV3D_TEST(type, dir, alpha, beta, ab_case) \
-    DEFINE_GROUP_CONV_TEST(3, alpha, beta, type, dir, ab_case)
-
-//// 2D
-// Bilinear where alpha = 2.2 and beta 3.3
-#define DEFINE_GROUP_CONV2D_BILINEAR_TEST(type, dir) \
-    DEFINE_GROUP_CONV2D_TEST(type, dir, 2.2, 3.3, Bilinear)
-// Scalar where alpha = 2.2 and beta = 0.0
-#define DEFINE_GROUP_CONV2D_SCALAR_TEST(type, dir) \
-    DEFINE_GROUP_CONV2D_TEST(type, dir, 2.2, 0.0, Scalar)
-// Default where alpha = 1.0 and beta = 0.0
-#define DEFINE_GROUP_CONV2D_DEFAULT_TEST(type, dir) \
-    DEFINE_GROUP_CONV2D_TEST(type, dir, 1.0, 0.0, Default)
-
-//// 3D
-// Bilinear where alpha = 2.2 and beta 3.3
-#define DEFINE_GROUP_CONV3D_BILINEAR_TEST(type, dir) \
-    DEFINE_GROUP_CONV3D_TEST(type, dir, 2.2, 3.3, Bilinear)
-// Scalar where alpha = 2.2 and beta = 0.0
-#define DEFINE_GROUP_CONV3D_SCALAR_TEST(type, dir) \
-    DEFINE_GROUP_CONV3D_TEST(type, dir, 2.2, 0.0, Scalar)
-// Default where alpha = 1.0 and beta = 0.0
-#define DEFINE_GROUP_CONV3D_DEFAULT_TEST(type, dir) \
-    DEFINE_GROUP_CONV3D_TEST(type, dir, 1.0, 0.0, Default)
+#define DEFINE_GROUP_CONV2D_TEST(type, dir) DEFINE_GROUP_CONV_TEST(2, type, dir)
+#define DEFINE_GROUP_CONV3D_TEST(type, dir) DEFINE_GROUP_CONV_TEST(3, type, dir)
