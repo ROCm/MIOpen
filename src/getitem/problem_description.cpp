@@ -36,9 +36,10 @@ namespace getitem {
 
 NetworkConfig ProblemDescription::MakeNetworkConfig() const
 {
-    auto dx_dims         = dxDesc.GetLengths();
+    auto dy_dims         = dyDesc.GetLengths();
     auto index_dims      = (*indexDescs)[0].GetLengths();
     auto input_dtype     = dyDesc.GetType();
+    auto error_dtype     = errorDesc.GetType();
     auto output_dtype    = dxDesc.GetType();
     auto dim_info_offset = indexCount > 0 ? indexCount * index_dims[0] : 0;
     auto start_dim       = dims[0];
@@ -46,12 +47,13 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
     std::vector<int32_t> output_dims(dimCount);
     for(int32_t i = 0; i < dimCount; i++)
     {
-        output_dims[i] = static_cast<int32_t>(dx_dims[dims[i]]);
+        output_dims[i] = static_cast<int32_t>(dy_dims[dims[i]]);
     }
     std::ostringstream ss;
 
     ss << "getitembwd";
     ss << "input_dtype" << input_dtype;
+    ss << "error_dtype" << error_dtype;
     ss << "output_dtype" << output_dtype;
     ss << "indexCount" << indexCount;
     ss << "offset" << offset;
