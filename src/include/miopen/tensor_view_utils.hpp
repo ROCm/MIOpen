@@ -23,14 +23,14 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#pragma once
 
-#include "../src/kernels/tensor_view.hpp"
-#include <miopen/getitem/solvers.hpp>
+#ifndef MIOPEN_TENSOR_VIEW_UTIL_HPP_
+#define MIOPEN_TENSOR_VIEW_UTIL_HPP_
+
+#include <miopen/common.hpp>
+#include "../../kernels/tensor_view.hpp"
 
 namespace miopen {
-namespace solver {
-namespace getitem {
 
 template <int N>
 inline tensor_view_t<N> get_inner_expanded_tv(const TensorDescriptor Desc)
@@ -75,6 +75,6 @@ inline void slice_tv(tensor_view_t<N>& tensor_view, int32_t sliceCount, const in
     }
 }
 
-} // namespace getitem
-} // namespace solver
 } // namespace miopen
+
+#endif // MIOPEN_TENSOR_REORDER_UTIL_HPP_

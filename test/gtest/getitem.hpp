@@ -25,7 +25,6 @@
  *******************************************************************************/
 
 #include "../driver/tensor_driver.hpp"
-#include "../src/include/miopen/getitem/utils.hpp"
 #include "get_handle.hpp"
 #include "random.hpp"
 #include "tensor_holder.hpp"
@@ -33,6 +32,7 @@
 #include <gtest/gtest.h>
 #include <miopen/getitem.hpp>
 #include <miopen/miopen.h>
+#include <miopen/tensor_view_utils.hpp>
 
 template <class T>
 void cpu_getitem_backward(tensor<T> dy,
@@ -63,9 +63,9 @@ void cpu_getitem_backward(tensor<T> dy,
     auto dim_info_offset = indexCount > 0 ? indexCount * index_dims[0] : 0;
     auto start_dim       = dims[0];
 
-    auto dy_tv     = miopen::solver::getitem::get_inner_expanded_tv<5>(dy.desc);
-    auto ref_dx_tv = miopen::solver::getitem::get_inner_expanded_tv<5>(ref_dx.desc);
-    miopen::solver::getitem::slice_tv<5>(ref_dx_tv, sliceCount, slices);
+    auto dy_tv     = miopen::get_inner_expanded_tv<5>(dy.desc);
+    auto ref_dx_tv = miopen::get_inner_expanded_tv<5>(ref_dx.desc);
+    miopen::slice_tv<5>(ref_dx_tv, sliceCount, slices);
 
     // Get element index form indexs
     for(int j = 0; j < indexCount; j++)

@@ -37,11 +37,11 @@
 #include <memory>
 #include <miopen/miopen.h>
 #include <miopen/tensor.hpp>
+#include <miopen/tensor_view_utils.hpp>
 #include <numeric>
 #include <vector>
 #include <../test/tensor_holder.hpp>
 #include <../test/verify.hpp>
-#include "../src/include/miopen/getitem/utils.hpp"
 
 template <typename Tgpu, typename Tcheck>
 int32_t mloGetitemBackwardRunHost(miopenTensorDescriptor_t dyDesc,
@@ -76,9 +76,9 @@ int32_t mloGetitemBackwardRunHost(miopenTensorDescriptor_t dyDesc,
     auto dim_info_offset = indexCount > 0 ? indexCount * index_dims[0] : 0;
     auto start_dim       = dims[0];
 
-    auto dy_tv     = miopen::solver::getitem::get_inner_expanded_tv<5>(miopen::deref(dyDesc));
-    auto dxhost_tv = miopen::solver::getitem::get_inner_expanded_tv<5>(miopen::deref(dxDesc));
-    miopen::solver::getitem::slice_tv<5>(dxhost_tv, sliceCount, slices);
+    auto dy_tv     = miopen::get_inner_expanded_tv<5>(miopen::deref(dyDesc));
+    auto dxhost_tv = miopen::get_inner_expanded_tv<5>(miopen::deref(dxDesc));
+    miopen::slice_tv<5>(dxhost_tv, sliceCount, slices);
 
     int32_t ret = 0;
 
