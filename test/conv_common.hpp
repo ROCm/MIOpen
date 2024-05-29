@@ -88,7 +88,6 @@ static inline bool is_direct_fwd_bwd_data_supported(miopen::Handle& handle,
                 : miopen::conv::ProblemDescription{yDesc, wDesc, xDesc, convDesc, dir};
         auto ctx                    = miopen::ExecutionContext{};
         ctx.do_search               = false;
-        ctx.save_srch_req           = false;
         ctx.disable_perfdb_access   = true;
         ctx.general_compile_options = "";
         ctx.SetStream(&handle);
@@ -113,7 +112,6 @@ static inline bool is_direct_bwd_wrw_supported(miopen::Handle& handle,
     auto ctx = miopen::ExecutionContext{};
 
     ctx.do_search               = false;
-    ctx.save_srch_req           = false;
     ctx.general_compile_options = "";
     ctx.disable_perfdb_access   = true;
     ctx.SetStream(&handle);
