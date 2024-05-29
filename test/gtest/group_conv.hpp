@@ -43,13 +43,6 @@ struct GroupConvTestConfig
 {
 };
 
-// Define specific combinations of alpha beta case.
-static std::vector<std::tuple<float, float>> combinations = {
-    {2.2, 3.3}, // bilinear
-    {2.2, 0.0}, // scale
-    {1.0, 0.0}  // default
-};
-
 template <>
 struct GroupConvTestConfig<2u>
 {
@@ -250,13 +243,13 @@ struct GroupConvTestConfig<3u>
 template <unsigned NDIM, typename T, Direction CONV_DIR>
 struct GroupConvTestFix
     : public ::testing::TestWithParam<
-          std::tuple<GroupConvTestConfig<NDIM>, std::tuple<float, float>, miopenTensorLayout_t>>
+          std::tuple<GroupConvTestConfig<NDIM>, float, float, miopenTensorLayout_t>>
 {
     static_assert(NDIM == 2u || NDIM == 3u, "NDIM must be 2 for 2D Conv and 3 for 3D Conv");
 
 private:
     using Base = ::testing::TestWithParam<
-        std::tuple<GroupConvTestConfig<NDIM>, std::tuple<float, float>, miopenTensorLayout_t>>;
+        std::tuple<GroupConvTestConfig<NDIM>, float, float, miopenTensorLayout_t>>;
 
     template <typename F>
     void SetupFwd(F&& gen_value)
@@ -430,11 +423,10 @@ public:
 protected:
     void SetUp() override
     {
-        std::tuple<float, float> alpha_beta;
-        test_skipped = false;
-        std::tie(conv_config, alpha_beta, tensor_layout) = Base::GetParam();
-
-        auto [ alpha_val, beta_val ] = alpha_beta;
+        float alpha_val;
+        float beta_val;
+        test_skipped                                              = false;
+        std::tie(conv_config, alpha_val, beta_val, tensor_layout) = Base::GetParam();
 
         alpha = miopen::Scalar(&alpha_val, miopenFloat);
         beta  = miopen::Scalar(&beta_val, miopenFloat);
@@ -558,7 +550,8 @@ std::vector<miopenTensorLayout_t> GetLayoutValues()
         GroupConv##ndim##D_##dir##_##type,                                                  \
         testing::Combine(                                                                   \
             testing::ValuesIn(GroupConvTestConfig<ndim>::GetConfigs<Direction::dir>()),     \
-            testing::ValuesIn(group_conv::combinations),                                    \
+            testing::ValuesIn({1.0f, 2.2f}), /* alpha, can't be zero*/                      \
+            testing::ValuesIn({0.0f, 3.3f}), /* beta */                                     \
             testing::ValuesIn(GetLayoutValues<ndim>())));
 
 #define DEFINE_GROUP_CONV2D_TEST(type, dir) DEFINE_GROUP_CONV_TEST(2, type, dir)
