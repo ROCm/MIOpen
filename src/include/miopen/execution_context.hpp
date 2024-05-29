@@ -85,11 +85,9 @@ struct ExecutionContext
     // Operation modes & environment
     bool do_search               = false;
     bool db_update               = false;
-    bool save_srch_req           = false;
     bool use_asm_kernels         = false;
     bool use_hip_kernels         = true;
     bool use_opencl_convolutions = true;
-    bool use_binaries            = true;
     rocm_meta_version rmv        = rocm_meta_version::Default;
     bool disable_search_enforce  = false;
     // Skip perf-db reads and use the default performance configuration. This is used, for example,

@@ -33,8 +33,6 @@ Useful MIOpen environment variables include:
 
 * ``MIOPEN_ENABLE_LOGGING=1``: Logs all the MIOpen APIs called, including the parameters passed
   to those APIs
-* ``MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES=0``: Disables the Winograd convolution
-  algorithm
 * ``MIOPEN_DEBUG_GCN_ASM_KERNELS=0``: Disables hand-tuned ASM kernels for the direct
   convolution algorithm (the fall-back is to kernels written in high-level language)
 * ``MIOPEN_DEBUG_CONV_FFT=0``: Disables the FFT convolution algorithm
