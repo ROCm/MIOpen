@@ -82,7 +82,7 @@ class MHA_Fwd_F8_Pattern : public GraphPatternMatcher
 
         assert(attn_scale);
         assert(&graph);
-        std::vector<int64_t> all1s = {1ll, 1ll, 1ll, 1ll};
+        std::vector<int64_t> all1s = {1LL, 1LL, 1LL, 1LL};
 
         auto tensor_map = std::make_shared<TensorInfoMap>();
 
@@ -148,7 +148,7 @@ class MHA_Fwd_F8_Pattern : public GraphPatternMatcher
                         graph.findOutNeighByName(pw_2, "OP_REDUCTION:MAX"));
                     assert(red);
                     auto* m = red->getY();
-                    assert(m->getDimensions()[3] == 1ll);
+                    assert(m->getDimensions()[3] == 1LL);
                     add_mapping(miopenTensorMhaM, m);
                 }
                 else

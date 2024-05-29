@@ -103,7 +103,10 @@ protected:
     static Edge makeEdge(OpNode* n, Tensor* t) { return Edge{n, t}; }
     static Edge makeEdge(const OpNode* n, const Tensor* t)
     {
-        return Edge{const_cast<OpNode*>(n), const_cast<Tensor*>(t)};
+        return Edge{
+            const_cast<OpNode*>(n), // NOLINT (cppcoreguidelines-pro-type-const-cast)
+            const_cast<Tensor*>(t)  // NOLINT (cppcoreguidelines-pro-type-const-cast)
+        };
     }
     virtual std::vector<Tensor*> getInTensors() const = 0;
 
@@ -264,7 +267,7 @@ public:
         return ret;
     }
 
-    const std::vector<OpNode*> getNodes() const noexcept { return mNodes; }
+    const std::vector<OpNode*>& getNodes() const noexcept { return mNodes; }
 
     const std::vector<Edge>& getOutEdges(const OpNode* n) const noexcept
     {

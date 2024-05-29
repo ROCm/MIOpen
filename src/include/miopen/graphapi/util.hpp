@@ -67,7 +67,7 @@ Tensor makeTensor(std::string_view name, miopenDataType_t dt, const Vec& dims)
 
     Vec strides(dims);
     using T = typename Vec::value_type;
-    std::exclusive_scan(dims.begin(), dims.end(), strides.begin(), T{1ll}, std::multiplies<T>{});
+    std::exclusive_scan(dims.begin(), dims.end(), strides.begin(), T{1LL}, std::multiplies<T>{});
 
     return makeTensor<isVirtual>(name, dt, dims, strides);
 }
@@ -84,7 +84,7 @@ struct HeapPtrDeleter
     template <typename T>
     explicit HeapPtrDeleter(T* ptr)
     {
-        mFn = [ptr]() { delete ptr; };
+        mFn = [ptr]() { delete ptr; }; // NOLINT (cppcoreguidelines-owning-memory)
     }
 
     HeapPtrDeleter(const HeapPtrDeleter&) = delete;
@@ -123,7 +123,7 @@ struct AutoDeleteAllocator
     template <typename T>
     T* allocate(T&& val)
     {
-        T* ret = new T(std::forward<T>(val));
+        T* ret = new T(std::forward<T>(val)); // NOLINT (cppcoreguidelines-owning-memory)
         mPtrsToFree.emplace_back(ret);
         return ret;
     }
@@ -166,10 +166,10 @@ struct PatternGraphGenerator
     }
 
 private:
-    AutoDeleteAllocator mAlloc;
-    OpGraph mGraph;
+    AutoDeleteAllocator mAlloc{};
+    OpGraph mGraph{};
 
-    PatternGraphGenerator(const std::vector<DummyNodeGenSpec>& node_specs) : mGraph{}
+    PatternGraphGenerator(const std::vector<DummyNodeGenSpec>& node_specs)
     {
 
         std::unordered_map<std::string, Tensor*> tensor_map;

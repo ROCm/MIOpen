@@ -197,7 +197,7 @@ extern "C" miopenStatus_t miopenGetConvolutionFindMode(const miopenConvolutionDe
 }
 
 extern "C" miopenStatus_t
-miopenConvolutionCKBackwardWeightsGetWorkSpaceSize(const miopenAlphaBetaCase_t alpha_beta_case,
+miopenConvolutionCKBackwardWeightsGetWorkSpaceSize(miopenAlphaBetaCase_t alpha_beta_case,
                                                    miopenDataType_t data_type,
                                                    size_t C,
                                                    size_t K,

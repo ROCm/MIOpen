@@ -56,11 +56,11 @@ class MhaFwdGraphTest : public testing::TestWithParam<std::tuple<int, int, int, 
 
     struct TensorData
     {
-        using TF = tensor<float>;
-        using TI = tensor<int64_t>;
+        using TensFlt = tensor<float>;
+        using TensI64 = tensor<int64_t>;
 
         gr::Tensor* mTensPtr;
-        std::variant<TF, TI> mCpuTensor;
+        std::variant<TensFlt, TensI64> mCpuTensor;
         miopen::Allocator::ManageDataPtr mGpuBuf;
 
         explicit TensorData(gr::Tensor* tens_ptr) : mTensPtr(tens_ptr), mCpuTensor()
@@ -70,11 +70,11 @@ class MhaFwdGraphTest : public testing::TestWithParam<std::tuple<int, int, int, 
             std::vector<size_t> dims(d.begin(), d.end());
             if(auto dt = mTensPtr->getDataType(); dt == miopenFloat)
             {
-                mCpuTensor = TF{dims};
+                mCpuTensor = TensFlt{dims};
             }
             else if(dt == miopenInt64)
             {
-                mCpuTensor = TI{dims};
+                mCpuTensor = TensI64{dims};
             }
             else
             {
@@ -86,7 +86,7 @@ class MhaFwdGraphTest : public testing::TestWithParam<std::tuple<int, int, int, 
         {
             auto& handle = get_handle();
             assert(mTensPtr->getDataType() == miopenFloat);
-            auto& ct = std::get<TF>(mCpuTensor);
+            auto& ct = std::get<TensFlt>(mCpuTensor);
             ct       = std::move(tens_val);
             mGpuBuf  = handle.Write(ct.data);
         }
@@ -498,11 +498,11 @@ class MhaFwdGraphTest : public testing::TestWithParam<std::tuple<int, int, int, 
             return it->second;
         };
         auto lookup_f = [&](const std::string& k) {
-            return std::get<TensorData::TF>(lookup(k).mCpuTensor);
+            return std::get<TensorData::TensFlt>(lookup(k).mCpuTensor);
         };
 
         auto lookup_i = [&](const std::string& k) {
-            return std::get<TensorData::TI>(lookup(k).mCpuTensor);
+            return std::get<TensorData::TensI64>(lookup(k).mCpuTensor);
         };
 
         test::cpu::MultiHeadAttentionfp8(lookup_f("Q"),
@@ -529,7 +529,7 @@ class MhaFwdGraphTest : public testing::TestWithParam<std::tuple<int, int, int, 
             assert(it != mFilledTensors.cend());
             auto& v = it->second;
             v.copyBack();
-            return std::get<TensorData::TF>(v.mCpuTensor);
+            return std::get<TensorData::TensFlt>(v.mCpuTensor);
         };
 
         const double error_threshold = 5e-6;
