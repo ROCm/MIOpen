@@ -69,15 +69,15 @@ ConvSolution GetitemBackward::GetSolution(const ExecutionContext& /*context*/,
 {
     auto result = ConvSolution{miopenStatusSuccess};
 
-    auto dtype        = problem.GetDYDesc().GetType();
-    auto input_dtype  = miopen::GetDataType(problem.GetDYDesc().GetType());
-    auto index_dtype  = miopen::GetDataType(problem.GetIndexDesc(0).GetType());
-    auto error_dtype  = miopen::GetDataType(problem.GetErrorDesc().GetType());
-    auto output_dtype = miopen::GetDataType(problem.GetDXDesc().GetType());
-    auto dy_dims      = problem.GetDYDesc().GetLengths();
-    auto dx_dims      = problem.GetDXDesc().GetLengths();
-    auto indexCount   = problem.GetIndexCount();
-    auto dimCount     = problem.GetDimCount();
+    const auto& dtype        = problem.GetDYDesc().GetType();
+    const auto& input_dtype  = miopen::GetDataType(problem.GetDYDesc().GetType());
+    const auto& index_dtype  = miopen::GetDataType(problem.GetIndexDesc(0).GetType());
+    const auto& error_dtype  = miopen::GetDataType(problem.GetErrorDesc().GetType());
+    const auto& output_dtype = miopen::GetDataType(problem.GetDXDesc().GetType());
+    const auto& dy_dims      = problem.GetDYDesc().GetLengths();
+    const auto& dx_dims      = problem.GetDXDesc().GetLengths();
+    const auto& indexCount   = problem.GetIndexCount();
+    const auto& dimCount     = problem.GetDimCount();
 
     auto dy_numel =
         std::accumulate(dy_dims.begin(), dy_dims.end(), 1ULL, std::multiplies<size_t>());
@@ -90,7 +90,7 @@ ConvSolution GetitemBackward::GetSolution(const ExecutionContext& /*context*/,
 
     for(int32_t i = 0; i < indexCount; i++)
     {
-        auto index_dims = problem.GetIndexDesc(i).GetLengths();
+        const auto& index_dims = problem.GetIndexDesc(i).GetLengths();
         auto index_numel =
             std::accumulate(index_dims.begin(), index_dims.end(), 1L, std::multiplies<int64_t>());
 
@@ -167,11 +167,11 @@ ConvSolution GetitemBackward::GetSolution(const ExecutionContext& /*context*/,
         return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
             decltype(auto) params = raw_params.CastTo<miopen::getitem::GetitemInvokeParams>();
 
-            auto start_dim = params.dims[0];
-            auto dx_dims   = params.dxDesc.GetLengths();
+            const auto& start_dim = params.dims[0];
+            const auto& dx_dims   = params.dxDesc.GetLengths();
 
-            auto dims     = params.dims;
-            auto dimCount = params.dimCount;
+            const auto& dims     = params.dims;
+            const auto& dimCount = params.dimCount;
 
             std::vector<int32_t> output_dims(dimCount);
             for(int32_t i = 0; i < dimCount; i++)
@@ -179,10 +179,10 @@ ConvSolution GetitemBackward::GetSolution(const ExecutionContext& /*context*/,
                 output_dims[i] = static_cast<int32_t>(dx_dims[dims[i]]);
             }
 
-            auto indexCount = params.indexCount;
-            auto index_dims = params.indexDescs[0]->GetLengths();
-            auto sliceCount = params.sliceCount;
-            auto slices     = params.slices;
+            const auto& indexCount = params.indexCount;
+            const auto& index_dims = params.indexDescs[0]->GetLengths();
+            const auto& sliceCount = params.sliceCount;
+            const auto& slices     = params.slices;
             auto dim_info_offset =
                 indexCount > 0 ? indexCount * static_cast<int32_t>(index_dims[0]) : 0;
 
@@ -199,10 +199,10 @@ ConvSolution GetitemBackward::GetSolution(const ExecutionContext& /*context*/,
             {
                 decltype(auto) build_index_kernel = handle_.Run(kernels[i]);
 
-                auto index_dim  = dims[i];
-                auto dim_size   = output_dims[i];
-                auto index_tv   = get_inner_expanded_tv<5>(*params.indexDescs[i]);
-                auto dim_offset = i;
+                const auto& index_dim  = dims[i];
+                const auto& dim_size   = output_dims[i];
+                auto index_tv          = get_inner_expanded_tv<5>(*params.indexDescs[i]);
+                const auto& dim_offset = i;
 
                 if((i == 0) && handle_.IsProfilingEnabled())
                 {
@@ -259,10 +259,10 @@ std::size_t
 GetitemBackward::GetWorkspaceSize(const ExecutionContext& /*context*/,
                                   const miopen::getitem::ProblemDescription& problem) const
 {
-    auto indexCount = problem.GetIndexCount();
+    const auto& indexCount = problem.GetIndexCount();
     if(indexCount > 0)
     {
-        auto index_dims = problem.GetIndexDesc(0).GetLengths();
+        const auto& index_dims = problem.GetIndexDesc(0).GetLengths();
         auto index_numel =
             std::accumulate(index_dims.begin(), index_dims.end(), 1L, std::multiplies<int64_t>());
         return (indexCount * index_numel + problem.GetIndexCount()) *
