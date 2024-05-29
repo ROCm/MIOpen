@@ -37,20 +37,10 @@ NetworkConfig ForwardProblemDescription::MakeNetworkConfig() const
     std::ostringstream ss;
     ss << "softmarginloss_fwd";
     ss << "itype" << iDesc.GetType();
-    ss << "ttype" << tDesc.GetType();
-    ss << "otype" << oDesc.GetType();
     ss << "ilen";
     auto ilen = iDesc.GetLengths();
     for(int32_t i = 0; i < ilen.size(); i++)
         ss << ilen[i] << "_";
-    ss << "tlen";
-    auto tlen = tDesc.GetLengths();
-    for(int32_t i = 0; i < tlen.size(); i++)
-        ss << tlen[i] << "_";
-    ss << "olen";
-    auto olen = oDesc.GetLengths();
-    for(int32_t i = 0; i < olen.size(); i++)
-        ss << olen[i] << "_";
     return NetworkConfig{ss.str()};
 }
 
@@ -59,25 +49,10 @@ NetworkConfig BackwardProblemDescription::MakeNetworkConfig() const
     std::ostringstream ss;
     ss << "softmarginloss_bwd";
     ss << "itype" << iDesc.GetType();
-    ss << "ttype" << tDesc.GetType();
-    ss << "dOtype" << dODesc.GetType();
-    ss << "dItype" << dIDesc.GetType();
     ss << "ilen";
     auto ilen = iDesc.GetLengths();
     for(int32_t i = 0; i < ilen.size(); i++)
         ss << ilen[i] << "_";
-    ss << "tlen";
-    auto tlen = tDesc.GetLengths();
-    for(int32_t i = 0; i < tlen.size(); i++)
-        ss << tlen[i] << "_";
-    ss << "dOlen";
-    auto dOlen = dODesc.GetLengths();
-    for(int32_t i = 0; i < dOlen.size(); i++)
-        ss << dOlen[i] << "_";
-    ss << "dIlen";
-    auto dIlen = dIDesc.GetLengths();
-    for(int32_t i = 0; i < dIlen.size(); i++)
-        ss << dIlen[i] << "_";
     return NetworkConfig{ss.str()};
 }
 

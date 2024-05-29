@@ -52,7 +52,7 @@ std::vector<SoftMarginLossUnreducedTestCase> SoftMarginLossUnreducedTestConfigs(
         {{2, 3, 4, 5, 6}, {360, 120, 30, 6, 1}}, // 5d cont
         {{256, 4, 8732}, {34928, 8732, 1}}, // squeezenet (3d cont)
         {{32, 80, 870}, {69600, 870, 1}}, // t5
-        {{4, 182403, 91}, {16598673, 91, 1}}, // resnext (big test >= 1M elements)
+        {{4, 182403, 91}, {16598673, 91, 1}}, // resnext (very big test 66M elements)
         {{1534680}, {1}}, // maskrcnn (1d cont)
         {{16, 1, 512, 512}, {262144, 262144, 512, 1}}, // stdc (4d cont)
         {{32, 80, 870}, {69600, 1, 80}}, // t5 (3d uncontiguous, packed)

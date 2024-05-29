@@ -44,10 +44,6 @@ bool SoftMarginLossUnreducedBackward::IsApplicable(
     const ExecutionContext& /*context*/,
     const miopen::softmarginloss::BackwardProblemDescription& problem) const
 {
-    if(!problem.IsSameType())
-        return false;
-    if(!problem.IsRightLength())
-        return false;
     return true;
 }
 

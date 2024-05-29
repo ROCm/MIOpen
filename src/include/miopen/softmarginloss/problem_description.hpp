@@ -44,38 +44,20 @@ struct ForwardProblemDescription : ProblemDescriptionBase
                               const TensorDescriptor& oDesc_)
         : iDesc(iDesc_), tDesc(tDesc_), oDesc(oDesc_)
     {
+        if(iDesc.GetType() != tDesc.GetType() || iDesc.GetType() != oDesc.GetType())
+        {
+            MIOPEN_THROW(miopenStatusBadParm, "SoftMarginLoss: Tensor types do not match.");
+        }
+        if(iDesc.GetLengths() != tDesc.GetLengths() || iDesc.GetLengths() != oDesc.GetLengths())
+        {
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "SoftMarginLoss: Tensor dimension lengths do not match.");
+        }
     }
 
     const TensorDescriptor& GetiDesc() const { return iDesc; }
     const TensorDescriptor& GettDesc() const { return tDesc; }
     const TensorDescriptor& GetoDesc() const { return oDesc; }
-
-    bool IsSameType() const
-    {
-        if(iDesc.GetType() != tDesc.GetType() || iDesc.GetType() != oDesc.GetType())
-        {
-#if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
-            MIOPEN_THROW(miopenStatusBadParm, "SoftMarginLoss: Tensor types do not match.");
-#else
-            return false;
-#endif
-        }
-        return true;
-    }
-
-    bool IsRightLength() const
-    {
-        if(iDesc.GetLengths() != tDesc.GetLengths() || iDesc.GetLengths() != oDesc.GetLengths())
-        {
-#if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
-            MIOPEN_THROW(miopenStatusBadParm,
-                         "SoftMarginLoss: Tensor dimension lengths do not match.");
-#else
-            return false;
-#endif
-        }
-        return true;
-    }
 
     NetworkConfig MakeNetworkConfig() const override;
 
@@ -93,42 +75,23 @@ struct BackwardProblemDescription : ProblemDescriptionBase
                                const TensorDescriptor& dIDesc_)
         : iDesc(iDesc_), tDesc(tDesc_), dODesc(dODesc_), dIDesc(dIDesc_)
     {
+        if(iDesc.GetType() != tDesc.GetType() || iDesc.GetType() != dODesc.GetType() ||
+           iDesc.GetType() != dIDesc.GetType())
+        {
+            MIOPEN_THROW(miopenStatusBadParm, "SoftMarginLoss: Tensor types do not match.");
+        }
+        if(iDesc.GetLengths() != tDesc.GetLengths() || iDesc.GetLengths() != dODesc.GetLengths() ||
+           iDesc.GetLengths() != dIDesc.GetLengths())
+        {
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "SoftMarginLoss: Tensor dimension lengths do not match.");
+        }
     }
 
     const TensorDescriptor& GetiDesc() const { return iDesc; }
     const TensorDescriptor& GettDesc() const { return tDesc; }
     const TensorDescriptor& GetdODesc() const { return dODesc; }
     const TensorDescriptor& GetdIDesc() const { return dIDesc; }
-
-    // TODO: maybe target type can be different, only output type = input type is needed
-    bool IsSameType() const
-    {
-        if(iDesc.GetType() != tDesc.GetType() || iDesc.GetType() != dODesc.GetType() ||
-           iDesc.GetType() != dIDesc.GetType())
-        {
-#if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
-            MIOPEN_THROW(miopenStatusBadParm, "SoftMarginLoss: Tensor types do not match.");
-#else
-            return false;
-#endif
-        }
-        return true;
-    }
-
-    bool IsRightLength() const
-    {
-        if(iDesc.GetLengths() != tDesc.GetLengths() || iDesc.GetLengths() != dODesc.GetLengths() ||
-           iDesc.GetLengths() != dIDesc.GetLengths())
-        {
-#if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
-            MIOPEN_THROW(miopenStatusBadParm,
-                         "SoftMarginLoss: Tensor dimension lengths do not match.");
-#else
-            return false;
-#endif
-        }
-        return true;
-    }
 
     NetworkConfig MakeNetworkConfig() const override;
 
