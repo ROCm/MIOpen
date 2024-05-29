@@ -29,6 +29,8 @@
 #include <boost/optional.hpp>
 #include <string>
 
+#define WORKAROUND_ISSUE_3001 1
+
 namespace miopen {
 
 struct Handle;
