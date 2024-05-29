@@ -344,18 +344,18 @@ void BackendOperationGraphDescriptor::setAttribute(miopenBackendAttributeName_t 
             // for_each_n is not available on RHEL/SLES, see issue #2973
             std::for_each(static_cast<miopenBackendDescriptor_t*>(arrayOfElements),
                           static_cast<miopenBackendDescriptor_t*>(arrayOfElements) + elementCount,
-                            [&descriptors, &nodes](miopenBackendDescriptor_t apiDescriptor) {
-                                BackendDescriptor& backendDescriptor = deref(apiDescriptor);
-                                if(backendDescriptor.isFinalized())
-                                {
-                                    descriptors.push_back(apiDescriptor);
-                                    nodes.push_back(backendDescriptor.getOperation());
-                                }
-                                else
-                                {
-                                    MIOPEN_THROW(miopenStatusBadParm, "descriptor not finalized");
-                                }
-                            });
+                          [&descriptors, &nodes](miopenBackendDescriptor_t apiDescriptor) {
+                              BackendDescriptor& backendDescriptor = deref(apiDescriptor);
+                              if(backendDescriptor.isFinalized())
+                              {
+                                  descriptors.push_back(apiDescriptor);
+                                  nodes.push_back(backendDescriptor.getOperation());
+                              }
+                              else
+                              {
+                                  MIOPEN_THROW(miopenStatusBadParm, "descriptor not finalized");
+                              }
+                          });
 
             if(!internal::noRepetitions(nodes))
             {
