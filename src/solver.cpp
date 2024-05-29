@@ -30,6 +30,7 @@
 #include <miopen/adam/solvers.hpp>
 #include <miopen/batchnorm/solvers.hpp>
 #include <miopen/cat/solvers.hpp>
+#include <miopen/embedding/solvers.hpp>
 #include <miopen/fusion/solvers.hpp>
 #include <miopen/groupnorm/solvers.hpp>
 #include <miopen/layernorm/solvers.hpp>
@@ -662,6 +663,8 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
 
     Register(registry, ++id, Primitive::Cat, cat::CatForward{}.SolverDbId());
     Register(registry, ++id, Primitive::Adam, adam::Adam{}.SolverDbId());
+    Register(registry, ++id, Primitive::Embedding, embedding::EmbeddingForward{}.SolverDbId());
+    Register(registry, ++id, Primitive::Embedding, embedding::EmbeddingBackward{}.SolverDbId());
 
     Register(registry, ++id, Primitive::Adam, adam::TransformersAdamW{}.SolverDbId());
 

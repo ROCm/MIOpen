@@ -7538,6 +7538,82 @@ miopenTransformersAdamWWithOutput(miopenHandle_t handle,
 // CLOSEOUT SGD DOXYGEN GROUP
 #endif // MIOPEN_BETA_API
 
+#ifdef MIOPEN_BETA_API
+// Embedding APIs
+/** @addtogroup Embedding
+ *
+ *  @{
+ */
+/*! @brief A simple lookup table that stores embeddings of a fixed dictionary and size.
+ *
+ * This module is often used to store word embeddings and retrieve them using indices.
+ * The input to the module is a list of indices, and the output is the corresponding word
+ * embeddings.
+ *
+ * @param handle        MIOpen handle (input)
+ * @param inputDesc     Tensor descriptor for the input tensor (input)
+ * @param input         Input tensor (input)
+ * @param weightDesc    Tensor descriptor for the weight tensor (input)
+ * @param weight        Weight tensor (input)
+ * @param outputDesc    Tensor descriptor for the output tensor (output)
+ * @param output        Input output tensor (output)
+ * @param errorDesc     Tensor descriptor for the error tensor (output)
+ * @param error         Input error tensor (output)
+ * @param max_norm      If given, each embedding vector with norm larger than max_norm is
+ *                      renormalized to have norm max_norm. (input, optional)
+ * @param norm_type     The p of the p-norm to compute for the max_norm option. Default 2.
+ *                      (input, optional)
+ * @return              miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenEmbeddingForward(miopenHandle_t handle,
+                                                    const miopenTensorDescriptor_t inputDesc,
+                                                    const void* input,
+                                                    const miopenTensorDescriptor_t outputDesc,
+                                                    void* output,
+                                                    const miopenTensorDescriptor_t weightDesc,
+                                                    void* weight,
+                                                    const miopenTensorDescriptor_t errorDesc,
+                                                    void* error,
+                                                    bool has_max_norm,
+                                                    float max_norm,
+                                                    float norm_type);
+
+/*! @brief embedding backward
+ *
+ *
+ * @param handle              MIOpen handle (input)
+ * @param inputDesc           Tensor descriptor for the input tensor (input)
+ * @param input               Input tensor (input)
+ * @param weightGradDesc      Tensor descriptor for the weight grad tensor (input)
+ * @param weightGrad          Weight grad tensor (input)
+ * @param outputGradDesc      Tensor descriptor for the output grad tensor (output)
+ * @param outputGrad          Output grad tensor (output)
+ * @param errorDesc           Tensor descriptor for the error tensor (output)
+ * @param error               Error tensor (output)
+ * @param padding_idx         If specified, the entries at padding_idx do not contribute to the
+ *                            gradient. (input)
+ * @param scale_grad_by_freq  If given, this will scale gradients by the inverse of frequency of the
+ *                            words in the mini-batch. Default False. (input)
+ * @return                    miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenEmbeddingBackward(miopenHandle_t handle,
+                                                     void* workspace,
+                                                     size_t workspaceSizeInBytes,
+                                                     const miopenTensorDescriptor_t inputDesc,
+                                                     const void* input,
+                                                     const miopenTensorDescriptor_t outputGradDesc,
+                                                     const void* outputGrad,
+                                                     const miopenTensorDescriptor_t weightGradDesc,
+                                                     void* weightGrad,
+                                                     const miopenTensorDescriptor_t errorDesc,
+                                                     void* error,
+                                                     long long padding_idx,
+                                                     bool scale_grad_by_freq,
+                                                     bool deterministic_mode);
+/** @} */
+// CLOSEOUT EMBEDDING DOXYGEN GROUP
+#endif // MIOPEN_BETA_API
+
 #ifdef __cplusplus
 }
 #endif
