@@ -66,40 +66,39 @@ miopenStatus_t SoftMarginLossUnreducedForward(Handle& handle,
     return miopenStatusSuccess;
 }
 
-// miopenStatus_t SoftMarginLossUnreducedBackward(Handle& handle,
-//                                                const TensorDescriptor& iDesc,
-//                                                ConstData_t i,
-//                                                const TensorDescriptor& tDesc,
-//                                                ConstData_t t,
-//                                                const TensorDescriptor& dODesc,
-//                                                ConstData_t dO,
-//                                                const TensorDescriptor& dIDesc,
-//                                                Data_t dI)
-// {
-//     const auto problem = softmarginloss::BackwardProblemDescription{iDesc, tDesc, dODesc,
-//     dIDesc};
+miopenStatus_t SoftMarginLossUnreducedBackward(Handle& handle,
+                                               const TensorDescriptor& iDesc,
+                                               ConstData_t i,
+                                               const TensorDescriptor& tDesc,
+                                               ConstData_t t,
+                                               const TensorDescriptor& dODesc,
+                                               ConstData_t dO,
+                                               const TensorDescriptor& dIDesc,
+                                               Data_t dI)
+{
+    const auto problem = softmarginloss::BackwardProblemDescription{iDesc, tDesc, dODesc, dIDesc};
 
-//     const auto invoke_params = [&]() {
-//         auto tmp   = softmarginloss::InvokeParams{};
-//         tmp.type   = InvokeType::Run;
-//         tmp.iDesc  = &iDesc;
-//         tmp.i      = i;
-//         tmp.tDesc  = &tDesc;
-//         tmp.t      = t;
-//         tmp.dODesc = &dODesc;
-//         tmp.dO     = dO;
-//         tmp.dIDesc = &dIDesc;
-//         tmp.dI     = dI;
-//         return tmp;
-//     }();
+    const auto invoke_params = [&]() {
+        auto tmp   = softmarginloss::InvokeParams{};
+        tmp.type   = InvokeType::Run;
+        tmp.iDesc  = &iDesc;
+        tmp.i      = i;
+        tmp.tDesc  = &tDesc;
+        tmp.t      = t;
+        tmp.dODesc = &dODesc;
+        tmp.dO     = dO;
+        tmp.dIDesc = &dIDesc;
+        tmp.dI     = dI;
+        return tmp;
+    }();
 
-//     const auto algo = AlgorithmName{"SoftMarginLossUnreducedBackward"};
-//     const auto solvers =
-//         solver::SolverContainer<solver::softmarginloss::SoftMarginLossUnreducedBackward>{};
+    const auto algo = AlgorithmName{"SoftMarginLossUnreducedBackward"};
+    const auto solvers =
+        solver::SolverContainer<solver::softmarginloss::SoftMarginLossUnreducedBackward>{};
 
-//     solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
+    solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
 
-//     return miopenStatusSuccess;
-// }
+    return miopenStatusSuccess;
+}
 
 } // namespace miopen

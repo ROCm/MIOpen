@@ -50,28 +50,28 @@ extern "C" miopenStatus_t miopenSoftMarginLossUnreducedForward(miopenHandle_t ha
     });
 }
 
-// extern "C" miopenStatus_t
-// miopenSoftMarginLossUnreducedBackward(miopenHandle_t handle,
-//                                       const miopenTensorDescriptor_t iDesc,
-//                                       const void* i,
-//                                       const miopenTensorDescriptor_t tDesc,
-//                                       const void* t,
-//                                       const miopenTensorDescriptor_t dODesc,
-//                                       const void* dO,
-//                                       const miopenTensorDescriptor_t dIDesc,
-//                                       void* dI)
-// {
-//     MIOPEN_LOG_FUNCTION(handle, iDesc, i, tDesc, t, dODesc, dO, dIDesc, dI);
+extern "C" miopenStatus_t
+miopenSoftMarginLossUnreducedBackward(miopenHandle_t handle,
+                                      const miopenTensorDescriptor_t iDesc,
+                                      const void* i,
+                                      const miopenTensorDescriptor_t tDesc,
+                                      const void* t,
+                                      const miopenTensorDescriptor_t dODesc,
+                                      const void* dO,
+                                      const miopenTensorDescriptor_t dIDesc,
+                                      void* dI)
+{
+    MIOPEN_LOG_FUNCTION(handle, iDesc, i, tDesc, t, dODesc, dO, dIDesc, dI);
 
-//     return miopen::try_([&] {
-//         miopen::SoftMarginLossUnreducedBackward(miopen::deref(handle),
-//                                                 miopen::deref(iDesc),
-//                                                 DataCast(i),
-//                                                 miopen::deref(tDesc),
-//                                                 DataCast(t),
-//                                                 miopen::deref(dODesc),
-//                                                 DataCast(dO),
-//                                                 miopen::deref(dIDesc),
-//                                                 DataCast(dI));
-//     });
-// }
+    return miopen::try_([&] {
+        miopen::SoftMarginLossUnreducedBackward(miopen::deref(handle),
+                                                miopen::deref(iDesc),
+                                                DataCast(i),
+                                                miopen::deref(tDesc),
+                                                DataCast(t),
+                                                miopen::deref(dODesc),
+                                                DataCast(dO),
+                                                miopen::deref(dIDesc),
+                                                DataCast(dI));
+    });
+}

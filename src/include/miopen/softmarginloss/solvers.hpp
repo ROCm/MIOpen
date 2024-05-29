@@ -52,24 +52,22 @@ struct SoftMarginLossUnreducedForward final : ForwardSoftMarginLossSolver
                 const miopen::softmarginloss::ForwardProblemDescription& problem) const override;
 };
 
-// using BackwardSoftMarginLossSolver =
-//     NonTunableSolverBase<ExecutionContext, miopen::softmarginloss::BackwardProblemDescription>;
+using BackwardSoftMarginLossSolver =
+    NonTunableSolverBase<ExecutionContext, miopen::softmarginloss::BackwardProblemDescription>;
 
-// struct SoftMarginLossUnreducedBackward final : BackwardSoftMarginLossSolver
-// {
-//     const std::string& SolverDbId() const override
-//     {
-//         return GetSolverDbId<SoftMarginLossUnreducedBackward>();
-//     }
-//     bool
-//     IsApplicable(const ExecutionContext& context,
-//                  const miopen::softmarginloss::BackwardProblemDescription& problem) const
-//                  override;
-//     ConvSolution
-//     GetSolution(const ExecutionContext& context,
-//                 const miopen::softmarginloss::BackwardProblemDescription& problem) const
-//                 override;
-// };
+struct SoftMarginLossUnreducedBackward final : BackwardSoftMarginLossSolver
+{
+    const std::string& SolverDbId() const override
+    {
+        return GetSolverDbId<SoftMarginLossUnreducedBackward>();
+    }
+    bool
+    IsApplicable(const ExecutionContext& context,
+                 const miopen::softmarginloss::BackwardProblemDescription& problem) const override;
+    ConvSolution
+    GetSolution(const ExecutionContext& context,
+                const miopen::softmarginloss::BackwardProblemDescription& problem) const override;
+};
 
 } // namespace softmarginloss
 

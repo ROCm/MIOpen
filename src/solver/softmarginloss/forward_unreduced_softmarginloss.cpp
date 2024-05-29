@@ -80,9 +80,10 @@ ConvSolution SoftMarginLossUnreducedForward::GetSolution(
             {"MIOPEN_USE_FP32", static_cast<int32_t>(dtype == miopenFloat)},
             {"MIOPEN_USE_FP64", static_cast<int32_t>(dtype == miopenDouble)},
             {"MIOPEN_USE_BFP16", static_cast<int32_t>(dtype == miopenBFloat16)},
-            {"INPUT_TYPE", i_dtype == "bfloat16" ? "ushort" : i_dtype},
-            {"TARGET_TYPE", t_dtype == "bfloat16" ? "ushort" : t_dtype},
-            {"OUTPUT_TYPE", o_dtype == "bfloat16" ? "ushort" : o_dtype},
+            {"INPUT_TYPE",
+             (i_dtype == "bfloat16") ? "ushort"
+             : (i_dtype == "half")   ? "_Float16"
+                                     : i_dtype},
         };
 
         kernel.comp_options = build_params.GenerateFor(kbp::HIP{});

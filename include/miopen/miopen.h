@@ -6609,32 +6609,32 @@ miopenSoftMarginLossUnreducedForward(miopenHandle_t handle,
                                      const miopenTensorDescriptor_t oDesc,
                                      void* o);
 
-// /*! @brief Execute a SoftMarginLoss backward layer with no reduction
-//  *
-//  * @param handle         MIOpen handle (input)
-//  * @param iDesc          Tensor descriptor for input tensor (input)
-//  * @param i              Data tensor input (input)
-//  * @param tDesc          Tensor descriptor for target tensor (input)
-//  * @param t              Data tensor target (input)
-//  * @param dODesc         Tensor descriptor for output gradient (input)
-//  * @param dO             Output gradient (input)
-//  * @param dIDesc         Tensor descriptor for input gradient (input)
-//  * @param dI             Input gradient (output)
-//  * @return               miopenStatus_t
-//  */
-// MIOPEN_EXPORT miopenStatus_t
-// miopenSoftMarginLossUnreducedBackward(miopenHandle_t handle,
-//                                       const miopenTensorDescriptor_t iDesc,
-//                                       const void* i,
-//                                       const miopenTensorDescriptor_t tDesc,
-//                                       const void* t,
-//                                       const miopenTensorDescriptor_t dODesc,
-//                                       const void* dO,
-//                                       const miopenTensorDescriptor_t dIDesc,
-//                                       void* dI);
+/*! @brief Execute a SoftMarginLoss backward layer with no reduction
+ *
+ * @param handle         MIOpen handle (input)
+ * @param iDesc          Tensor descriptor for input tensor (input)
+ * @param i              Data tensor input (input)
+ * @param tDesc          Tensor descriptor for target tensor (input)
+ * @param t              Data tensor target (input)
+ * @param dODesc         Tensor descriptor for output gradient (input)
+ * @param dO             Output gradient (input)
+ * @param dIDesc         Tensor descriptor for input gradient (input)
+ * @param dI             Input gradient (output)
+ * @return               miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenSoftMarginLossUnreducedBackward(miopenHandle_t handle,
+                                      const miopenTensorDescriptor_t iDesc,
+                                      const void* i,
+                                      const miopenTensorDescriptor_t tDesc,
+                                      const void* t,
+                                      const miopenTensorDescriptor_t dODesc,
+                                      const void* dO,
+                                      const miopenTensorDescriptor_t dIDesc,
+                                      void* dI);
 
 /** @} */
-// CLOSEOUT groupnorm DOXYGEN GROUP
+// CLOSEOUT LossFunction DOXYGEN GROUP
 #endif
 
 #ifdef __cplusplus

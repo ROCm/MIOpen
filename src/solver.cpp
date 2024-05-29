@@ -654,6 +654,10 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
              ++id,
              Primitive::SoftMarginLoss,
              softmarginloss::SoftMarginLossUnreducedForward{}.SolverDbId());
+    Register(registry,
+             ++id,
+             Primitive::SoftMarginLoss,
+             softmarginloss::SoftMarginLossUnreducedBackward{}.SolverDbId());
     // Register(registry,
     //          ++id,
     //          Primitive::SoftMarginLoss,

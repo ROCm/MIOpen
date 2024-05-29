@@ -44,4 +44,26 @@ void cpu_softmarginloss_unreduced_forward(tensor<T> input, tensor<T>& ref_output
         ref_output[o_tv.get_tensor_view_idx(idx)] = log(1 + exp(-i * t));
     });
 }
+
+template <class T>
+void cpu_softmarginloss_unreduced_backward(tensor<T> input,
+                                           tensor<T> target,
+                                           tensor<T> dO,
+                                           tensor<T>& ref_dI)
+{
+    auto input_numel = input.desc.GetElementSize();
+    auto i_tv        = miopen::solver::softmarginloss::get_inner_expanded_tv<5>(input.desc);
+    auto t_tv        = miopen::solver::softmarginloss::get_inner_expanded_tv<5>(target.desc);
+    auto dO_tv       = miopen::solver::softmarginloss::get_inner_expanded_tv<5>(dO.desc);
+    auto dI_tv       = miopen::solver::softmarginloss::get_inner_expanded_tv<5>(ref_dI.desc);
+
+    par_ford(input_numel)([&](size_t gid) {
+        tensor_layout_t<5> idx(i_tv, gid);
+        T i                                    = input[i_tv.get_tensor_view_idx(idx)];
+        T t                                    = target[t_tv.get_tensor_view_idx(idx)];
+        T _dO                                  = dO[dO_tv.get_tensor_view_idx(idx)];
+        ref_dI[dI_tv.get_tensor_view_idx(idx)] = -t / (exp(i * t) + 1) * _dO;
+    });
+}
+
 #endif
