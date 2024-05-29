@@ -428,9 +428,9 @@ class MhaFwdGraphTest : public testing::TestWithParam<std::tuple<int, int, int, 
     {
         using namespace test::cpu;
 
-        ScaledTensor Q = GenScaledTensor(n, h, s, d);
-        ScaledTensor K = GenScaledTensor(n, h, s, d);
-        ScaledTensor V = GenScaledTensor(n, h, s, d);
+        auto Q = GenScaledTensor<float>(n, h, s, d);
+        auto K = GenScaledTensor<float>(n, h, s, d);
+        auto V = GenScaledTensor<float>(n, h, s, d);
 
         for(auto& [k, v] : mFilledTensors)
         {

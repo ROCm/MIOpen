@@ -483,9 +483,9 @@ private:
     {
         using namespace test::cpu;
 
-        ScaledTensor Q = GenScaledTensor(m_testN, m_testH, m_testS, m_testD);
-        ScaledTensor K = GenScaledTensor(m_testN, m_testH, m_testS, m_testD);
-        ScaledTensor V = GenScaledTensor(m_testN, m_testH, m_testS, m_testD);
+        auto Q = GenScaledTensor<float>(m_testN, m_testH, m_testS, m_testD);
+        auto K = GenScaledTensor<float>(m_testN, m_testH, m_testS, m_testD);
+        auto V = GenScaledTensor<float>(m_testN, m_testH, m_testS, m_testD);
 
         for(auto& [k, v] : m_realTensorMap)
         {

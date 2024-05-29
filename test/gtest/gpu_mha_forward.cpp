@@ -23,11 +23,13 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#include <miopen/config.h>
 
 #include "get_handle.hpp"
 #include "mha_helper.hpp"
 #include "tensor_holder.hpp"
 #include "verify.hpp"
+#include "gtest_common.hpp"
 #include "../workspace.hpp"
 
 #include <miopen/miopen.h>
@@ -63,7 +65,7 @@ struct TensorStruct
 
     ~TensorStruct() = default;
 
-    std::variant<tensor<float>, tensor<int>> m_cpu_tensor;
+    std::variant<tensor<float>, tensor<float8>, tensor<int>> m_cpu_tensor;
     Allocator::ManageDataPtr m_gpu_buffer;
 };
 
@@ -76,58 +78,55 @@ struct TestCase
     float dropout;
 };
 
-inline std::vector<TestCase> GetSmokeTestCases()
+inline std::vector<TestCase> GetSmokeCases()
 {
-    if(CheckFloatArg("--float"))
-    {
-        return {
-            {9, 8, 8, 8, 0.0f},
-            {1, 2, 4, 5, 0.0f},
-            {2, 1, 5, 4, 0.0f},
-            {4, 2, 1, 3, 0.0f},
-            {5, 3, 4, 1, 0.0f},
-            {1, 2, 65, 5, 0.0f},
-            {2, 1, 67, 4, 0.0f},
-            {8, 7, 68, 1, 0.0f},
-            {1, 2, 257, 5, 0.0f},
-            {2, 1, 259, 4, 0.0f},
-            {8, 7, 270, 1, 0.0f},
-            {1, 1, 1, 1, 0.0f},
-            {3, 5, 32, 7, 0.8f},
-            {2, 2, 64, 128, 0.8f},
-            {2, 1, 128, 4, 0.8f},
-            {2, 7, 256, 31, 0.8f},
-        };
-    }
-    else
+    if(!(CheckFloatArg("--float") || CheckFloatArg("--float8")))
     {
         return {};
     }
+
+    return {
+        {9, 8, 8, 8, 0.0f},
+        {1, 2, 4, 5, 0.0f},
+        {2, 1, 5, 4, 0.0f},
+        {4, 2, 1, 3, 0.0f},
+        {5, 3, 4, 1, 0.0f},
+        {1, 2, 65, 5, 0.0f},
+        {2, 1, 67, 4, 0.0f},
+        {8, 7, 68, 1, 0.0f},
+        {1, 2, 257, 5, 0.0f},
+        {2, 1, 259, 4, 0.0f},
+        {8, 7, 270, 1, 0.0f},
+        {1, 1, 1, 1, 0.0f},
+        {3, 5, 32, 7, 0.8f},
+        {2, 2, 64, 128, 0.8f},
+        {2, 1, 128, 4, 0.8f},
+        {2, 7, 256, 31, 0.8f},
+    };
 }
 
 inline std::vector<TestCase> GetFullTestCases()
 {
-    if((miopen::IsUnset(MIOPEN_ENV(MIOPEN_TEST_ALL)) ||
-        miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_ALL))) &&
-       CheckFloatArg("--float"))
-    {
-        return {
-            {3, 15, 2047, 15, 0.0f},
-            {2049, 17, 7, 7, 0.0f},
-            {3, 3, 257, 91, 0.0f},
-            {11, 150, 255, 31, 0.0f},
-            {9, 3, 129, 1023, 0.0f},
-            {3, 15, 31, 2047, 0.0f},
-            {2049, 17, 32, 7, 0.2f},
-            {11, 150, 256, 31, 0.4f},
-        };
-    }
-    else
+    if(miopen::IsDisabled(MIOPEN_ENV(MIOPEN_TEST_ALL)) ||
+       !(CheckFloatArg("--float") || CheckFloatArg("--float8")))
     {
         return {};
     }
+
+    return {
+        {3, 15, 2047, 15, 0.0f},
+        {2049, 17, 7, 7, 0.0f},
+        {3, 3, 257, 91, 0.0f},
+        {11, 150, 255, 31, 0.0f},
+        {9, 3, 129, 1023, 0.0f},
+        {3, 15, 31, 2047, 0.0f},
+        {2049, 17, 32, 7, 0.2f},
+        {11, 150, 256, 31, 0.4f},
+    };
 }
 } // namespace
+
+template <typename T>
 class Test_Fwd_Mha : public testing::TestWithParam<TestCase>
 {
 protected:
@@ -166,15 +165,15 @@ protected:
             tensors[id] = std::move(tmp);
         };
 
-        using ScaledTensor = test::cpu::ScaledTensor;
+        using ScaledTensor = test::cpu::ScaledTensor<T>;
 
-        ScaledTensor q = test::cpu::GenScaledTensor(n, h, s, d);
+        ScaledTensor q = test::cpu::GenScaledTensor<T>(n, h, s, d);
         InitTensor(miopenTensorMhaQ, std::move(q.mTensor));
 
-        ScaledTensor k = test::cpu::GenScaledTensor(n, h, s, d);
+        ScaledTensor k = test::cpu::GenScaledTensor<T>(n, h, s, d);
         InitTensor(miopenTensorMhaK, std::move(k.mTensor));
 
-        ScaledTensor v = test::cpu::GenScaledTensor(n, h, s, d);
+        ScaledTensor v = test::cpu::GenScaledTensor<T>(n, h, s, d);
         InitTensor(miopenTensorMhaV, std::move(v.mTensor));
 
         float s_scale = 1.f;
@@ -204,7 +203,7 @@ protected:
         InitTensor(miopenTensorMhaDropoutOffset,
                    tensor<int>{1, 1, 1, 2}.generate([](auto...) { return 0; }));
 
-        InitTensor(miopenTensorMhaO, tensor<float>{n, h, s, d});
+        InitTensor(miopenTensorMhaO, tensor<T>{n, h, s, d});
         InitTensor(miopenTensorMhaAmaxO, tensor<float>{1, 1, 1, 1});
         InitTensor(miopenTensorMhaAmaxS, tensor<float>{1, 1, 1, 1});
         InitTensor(miopenTensorMhaM, tensor<float>{n, h, s, 1});
@@ -218,14 +217,14 @@ protected:
         tensor<float> q_dot_k_transpose{n, h, s, s};
 
         softmax_ref  = tensor<float>{n, h, s, s};
-        oDesc_ref    = tensor<float>{n, h, s, d};
+        oDesc_ref    = tensor<T>{n, h, s, d};
         mDesc_ref    = tensor<float>{n, h, s, 1};
         zInvDesc_ref = tensor<float>{n, h, s, 1};
 
         test::cpu::MultiHeadAttentionfp8(
-            std::get<tensor<float>>(tensors[miopenTensorMhaQ]->m_cpu_tensor),
-            std::get<tensor<float>>(tensors[miopenTensorMhaK]->m_cpu_tensor),
-            std::get<tensor<float>>(tensors[miopenTensorMhaV]->m_cpu_tensor),
+            std::get<tensor<T>>(tensors[miopenTensorMhaQ]->m_cpu_tensor),
+            std::get<tensor<T>>(tensors[miopenTensorMhaK]->m_cpu_tensor),
+            std::get<tensor<T>>(tensors[miopenTensorMhaV]->m_cpu_tensor),
             softmax_ref,
             mDesc_ref,
             zInvDesc_ref,
@@ -243,6 +242,68 @@ protected:
             oDesc_ref);
     }
 
+    void TestBody() override
+    {
+        Handle& handle = get_handle();
+
+        std::vector<miopenSolution_t> solutions(16);
+        std::size_t found;
+
+        ASSERT_EQ(miopenFindSolutions(
+                      &handle, problem, nullptr, solutions.data(), &found, solutions.size()),
+                  miopenStatusSuccess);
+        ASSERT_GT(found, 0);
+        solutions.resize(found);
+
+        size_t workspace_size = 0;
+        Workspace workspace;
+
+        for(const auto& solution : solutions)
+        {
+            miopenGetSolutionWorkspaceSize(solution, &workspace_size);
+            workspace.resize(workspace_size);
+
+            ASSERT_EQ(
+                miopenRunSolution(
+                    &handle, solution, args.size(), args.data(), workspace.ptr(), workspace.size()),
+                miopenStatusSuccess);
+
+            auto GetResult = [this, &handle](miopenTensorArgumentId_t id, auto type) {
+                using ResultT         = std::decay_t<decltype(type)>;
+                auto& tensorStructPtr = tensors[id];
+                auto& cpu_tensor      = std::get<tensor<ResultT>>(tensorStructPtr->m_cpu_tensor);
+
+                cpu_tensor.data =
+                    handle.Read<ResultT>(tensorStructPtr->m_gpu_buffer, cpu_tensor.data.size());
+
+                return cpu_tensor;
+            };
+
+            const double error_threshold     = 5e-6;
+            const double fp8_error_threshold = (std::is_same_v<T, float8>) ? 2e-4 : error_threshold;
+
+            const auto& resAmaxS = GetResult(miopenTensorMhaAmaxS, float{});
+            auto amaxS_abs_diff  = std::abs(amaxS_ref - resAmaxS[0]);
+            EXPECT_LT(amaxS_abs_diff, error_threshold)
+                << " ref: " << amaxS_ref << " result: " << resAmaxS[0];
+
+            const auto& resAmaxO = GetResult(miopenTensorMhaAmaxO, float{});
+            auto amaxO_abs_diff  = std::abs(amaxO_ref - resAmaxO[0]);
+            EXPECT_LT(amaxO_abs_diff, error_threshold)
+                << " ref: " << amaxO_ref << " result: " << resAmaxO[0];
+
+            double M_error = miopen::rms_range(mDesc_ref, GetResult(miopenTensorMhaM, float{}));
+            EXPECT_LT(M_error, error_threshold);
+
+            double ZInv_error =
+                miopen::rms_range(zInvDesc_ref, GetResult(miopenTensorMhaZInv, float{}));
+            EXPECT_LT(ZInv_error, error_threshold);
+
+            double O_error = miopen::rms_range(oDesc_ref, GetResult(miopenTensorMhaO, T{}));
+            EXPECT_LT(O_error, fp8_error_threshold);
+        }
+    }
+
     void TearDown() override
     {
         if(problem)
@@ -257,7 +318,7 @@ protected:
 
     // ref data
     tensor<float> softmax_ref;
-    tensor<float> oDesc_ref;
+    tensor<T> oDesc_ref;
     tensor<float> mDesc_ref;
     tensor<float> zInvDesc_ref;
     float amaxS_ref;
@@ -267,67 +328,34 @@ protected:
     miopenProblem_t problem = nullptr;
 };
 
-TEST_P(Test_Fwd_Mha, Test_float)
+class Test_Fwd_Mha_F32 : public Test_Fwd_Mha<float>
 {
-    Handle& handle = get_handle();
+};
 
-    std::vector<miopenSolution_t> solutions(16);
-    std::size_t found;
-
-    ASSERT_EQ(
-        miopenFindSolutions(&handle, problem, nullptr, solutions.data(), &found, solutions.size()),
-        miopenStatusSuccess);
-    ASSERT_GT(found, 0);
-    solutions.resize(found);
-
-    size_t workspace_size = 0;
-    Workspace workspace;
-
-    for(const auto& solution : solutions)
+class Test_Fwd_Mha_F8 : public Test_Fwd_Mha<float8>
+{
+    void SetUp() override
     {
-        miopenGetSolutionWorkspaceSize(solution, &workspace_size);
-        workspace.resize(workspace_size);
 
-        ASSERT_EQ(
-            miopenRunSolution(
-                &handle, solution, args.size(), args.data(), workspace.ptr(), workspace.size()),
-            miopenStatusSuccess);
+        using e_mask = enabled<Gpu::gfx94X>;
+        using d_mask = disabled<Gpu::gfx900, Gpu::gfx906, Gpu::gfx908, Gpu::gfx90A>;
+        if(!IsTestSupportedForDevMask<d_mask, e_mask>() || MIOPEN_FP8_IEEE_EXPONENT_BIAS != 0)
+        {
+            GTEST_SKIP() << "FP8 is unsupported on this HW";
+        }
 
-        auto GetResult = [this, &handle](miopenTensorArgumentId_t id) {
-            auto& tensorStructPtr = tensors[id];
-            auto& cpu_tensor      = std::get<tensor<float>>(tensorStructPtr->m_cpu_tensor);
-
-            cpu_tensor.data =
-                handle.Read<float>(tensorStructPtr->m_gpu_buffer, cpu_tensor.data.size());
-
-            return cpu_tensor;
-        };
-
-        const double error_threshold = 5e-6;
-
-        const auto& resAmaxS = GetResult(miopenTensorMhaAmaxS);
-        auto amaxS_abs_diff  = std::abs(amaxS_ref - resAmaxS[0]);
-        EXPECT_LT(amaxS_abs_diff, error_threshold)
-            << " ref: " << amaxS_ref << " result: " << resAmaxS[0];
-
-        const auto& resAmaxO = GetResult(miopenTensorMhaAmaxO);
-        auto amaxO_abs_diff  = std::abs(amaxO_ref - resAmaxO[0]);
-        EXPECT_LT(amaxO_abs_diff, error_threshold)
-            << " ref: " << amaxO_ref << " result: " << resAmaxO[0];
-
-        double M_error = miopen::rms_range(mDesc_ref, GetResult(miopenTensorMhaM));
-        EXPECT_LT(M_error, error_threshold);
-
-        double ZInv_error = miopen::rms_range(zInvDesc_ref, GetResult(miopenTensorMhaZInv));
-        EXPECT_LT(ZInv_error, error_threshold);
-
-        double O_error = miopen::rms_range(oDesc_ref, GetResult(miopenTensorMhaO));
-        EXPECT_LT(O_error, error_threshold);
+        Test_Fwd_Mha<float8>::SetUp();
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(Fwd_Mha_Smoke, Test_Fwd_Mha, testing::ValuesIn(GetSmokeTestCases()));
+TEST_P(Test_Fwd_Mha_F32, Test_float) { return Test_Fwd_Mha<float>::TestBody(); };
 
-INSTANTIATE_TEST_SUITE_P(Fwd_Mha_Full, Test_Fwd_Mha, testing::ValuesIn(GetFullTestCases()));
+INSTANTIATE_TEST_SUITE_P(Fwd_Mha_Smoke_F32, Test_Fwd_Mha_F32, testing::ValuesIn(GetSmokeCases()));
+INSTANTIATE_TEST_SUITE_P(Fwd_Mha_Full_F32, Test_Fwd_Mha_F32, testing::ValuesIn(GetFullTestCases()));
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(Test_Fwd_Mha_F32);
 
-GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(Test_Fwd_Mha);
+TEST_P(Test_Fwd_Mha_F8, Test_float) { return Test_Fwd_Mha<float8>::TestBody(); };
+
+INSTANTIATE_TEST_SUITE_P(Fwd_Mha_Smoke_F8, Test_Fwd_Mha_F8, testing::ValuesIn(GetSmokeCases()));
+INSTANTIATE_TEST_SUITE_P(Fwd_Mha_Full_F8, Test_Fwd_Mha_F8, testing::ValuesIn(GetFullTestCases()));
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(Test_Fwd_Mha_F8);

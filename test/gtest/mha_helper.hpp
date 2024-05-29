@@ -615,29 +615,25 @@ tensor<float> ExtractGoldenDataFromJson(std::string_view json_attention_data,
     return res;
 }
 
+template <typename T>
 struct ScaledTensor
 {
-    tensor<float> mTensor;
+    tensor<T> mTensor;
     float mScale;
     float mDescale;
 };
 
-inline ScaledTensor GenScaledTensor(tensor<float>&& in)
+template <typename T, typename... Dims>
+ScaledTensor<T> GenScaledTensor(Dims... nhsd)
 {
-    float bias = prng::gen_A_to_B(-3.0f, 3.0f);
-    tensor<float> val_scaled(std::move(in));
-    auto val_full = val_scaled.generate(
+    auto val_scaled = tensor<T>{nhsd...};
+    float bias      = prng::gen_A_to_B(-3.0f, 3.0f);
+    auto val_full   = tensor<float>{nhsd...}.generate(
         [bias](auto...) { return prng::gen_A_to_B(-2.5f + bias, 2.5f + bias); });
     float scale   = GetF8Scaling(AbsoluteMax(val_full));
     float descale = 1.f / scale;
     ScaleMult(val_full, scale, val_scaled);
     return {val_scaled, scale, descale};
-}
-
-template <typename... Dims>
-ScaledTensor GenScaledTensor(Dims... nhsd)
-{
-    return GenScaledTensor(tensor<float>(nhsd...));
 }
 
 } // namespace cpu
