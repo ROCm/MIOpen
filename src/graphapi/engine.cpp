@@ -36,11 +36,7 @@ GraphPatternExecutor::~GraphPatternExecutor() = default;
 
 size_t GraphExecutorFind20::getWorkspaceSize() const
 {
-    size_t workspace_size = 0;
-    auto s                = miopenGetSolutionWorkspaceSize(mSolution, &workspace_size);
-    MIOPEN_THROW_IF(s != miopenStatusSuccess, "get solution workspace size failed");
-
-    return workspace_size;
+    return miopen::deref(mSolution).GetWorkspaceSize();
 }
 
 void GraphExecutorFind20::execute(miopenHandle_t handle, const VariantPack& vpk)
