@@ -230,7 +230,8 @@ miopenConvolutionCKBackwardWeightsGetWorkSpaceSize(const miopenAlphaBetaCase_t a
             case miopenInt8:
             case miopenFloat8:
             case miopenBFloat8: byte_size = 4; break;
-            case miopenDouble: byte_size = 8;
+            case miopenDouble:
+            case miopenInt64: byte_size = 8; break;
             }
             *buffer_size = byte_size * output_tensor_size;
         }

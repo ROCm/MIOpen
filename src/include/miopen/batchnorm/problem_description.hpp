@@ -29,6 +29,7 @@
 #include <miopen/problem_description_base.hpp>
 #include <miopen/activ.hpp>
 #include <miopen/tensor.hpp>
+#include <miopen/mlo_internal.hpp>
 
 #include <cassert>
 #include <string>
@@ -36,6 +37,7 @@
 namespace miopen {
 
 struct NetworkConfig;
+struct ExecutionContext;
 
 namespace batchnorm {
 
@@ -46,7 +48,11 @@ enum class Direction
     Backward,
 };
 
-struct ProblemDescription : ProblemDescriptionBase
+struct ProblemDescriptionTag
+{
+};
+
+struct ProblemDescription : ProblemDescriptionBase, ProblemDescriptionTag
 {
     // Forward
     ProblemDescription(miopenBatchNormMode_t bn_mode_,
@@ -177,6 +183,11 @@ struct ProblemDescription : ProblemDescriptionBase
     }
 
     NetworkConfig MakeNetworkConfig() const override;
+
+    // This declaration marks batchnorm as a primitive with tuning enabled.
+    // Any tunable solver would be able pick it and fetch a db instance in ExecutePrimitive.
+    // It has to be discoverable via ADL from problem description.
+    friend auto GetDb(const ExecutionContext& ctx, const ProblemDescriptionTag&) -> PerformanceDb;
 
 private:
     Direction direction;

@@ -107,9 +107,9 @@ DEBIAN_FRONTEND=noninteractive apt-get purge -y --allow-unauthenticated \
 ARG COMPILER_LAUNCHER=""
 # rbuild is used to trigger build of requirements.txt, dev-requirements.txt
 RUN if [ "$USE_FIN" = "ON" ]; then \
-        rbuild prepare -s fin -d $PREFIX -DGPU_TARGETS=${GPU_ARCH} -DCMAKE_CXX_COMPILER_LAUNCHER="${COMPILER_LAUNCHER}"; \
+        rbuild prepare -s fin -d $PREFIX -DCMAKE_CXX_COMPILER_LAUNCHER="${COMPILER_LAUNCHER}"; \
     else \
-        rbuild prepare -s develop -d $PREFIX -DGPU_TARGETS=${GPU_ARCH} -DCMAKE_CXX_COMPILER_LAUNCHER="${COMPILER_LAUNCHER}"; \
+        rbuild prepare -s develop -d $PREFIX -DCMAKE_CXX_COMPILER_LAUNCHER="${COMPILER_LAUNCHER}"; \
     fi
 
 RUN ccache -s 

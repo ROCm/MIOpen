@@ -37,6 +37,7 @@
 #include <miopen/filesystem.hpp>
 
 #include <string>
+#include <string_view>
 
 class rocm_meta_version
 {
@@ -84,11 +85,9 @@ struct ExecutionContext
     // Operation modes & environment
     bool do_search               = false;
     bool db_update               = false;
-    bool save_srch_req           = false;
     bool use_asm_kernels         = false;
     bool use_hip_kernels         = true;
     bool use_opencl_convolutions = true;
-    bool use_binaries            = true;
     rocm_meta_version rmv        = rocm_meta_version::Default;
     bool disable_search_enforce  = false;
     // Skip perf-db reads and use the default performance configuration. This is used, for example,
@@ -112,11 +111,13 @@ struct ExecutionContext
     ExecutionContext& operator=(ExecutionContext&&) = default;
 
 #if MIOPEN_EMBED_DB
-    std::string GetPerfDbPathEmbed() const
+    std::string GetPerfDbPathEmbed(std::string_view prefix = "") const
     {
         static const auto result = [&] {
             fs::path pdb_path(GetSystemDbPath());
             std::ostringstream filename;
+            if(!prefex.empty())
+                filename << prefix << '_';
             // clang-format off
             filename << GetStream().GetDbBasename();
 #if MIOPEN_ENABLE_SQLITE && MIOPEN_USE_SQLITE_PERFDB
@@ -179,11 +180,13 @@ struct ExecutionContext
         return result;
     }
 #else
-    std::string GetPerfDbPathFile() const
+    std::string GetPerfDbPathFile(std::string_view prefix = "") const
     {
         static const auto result = [&] {
             const fs::path pdb_path(GetSystemDbPath());
             std::ostringstream filename;
+            if(!prefix.empty())
+                filename << prefix << '_';
             // clang-format off
         filename << GetStream().GetDbBasename();
 #if MIOPEN_ENABLE_SQLITE && MIOPEN_USE_SQLITE_PERFDB
@@ -261,16 +264,16 @@ struct ExecutionContext
     }
 #endif
 
-    std::string GetPerfDbPath() const
+    std::string GetPerfDbPath(std::string_view prefix = "") const
     {
 #if MIOPEN_EMBED_DB
-        return GetPerfDbPathEmbed();
+        return GetPerfDbPathEmbed(prefix);
 #else
-        return GetPerfDbPathFile();
+        return GetPerfDbPathFile(prefix);
 #endif
     }
 
-    std::string GetUserPerfDbPath() const
+    std::string GetUserPerfDbPath(std::string_view prefix = "") const
     {
         // an empty user-db path indicates user intent to disable
         // the database. Default in when dev builds are on
@@ -278,6 +281,8 @@ struct ExecutionContext
         if(udb.empty())
             return "";
         std::ostringstream filename;
+        if(!prefix.empty())
+            filename << prefix << '_';
         filename << GetStream().GetDbBasename();
 #if MIOPEN_ENABLE_SQLITE && MIOPEN_USE_SQLITE_PERFDB
         filename << "_" << SQLitePerfDb::MIOPEN_PERFDB_SCHEMA_VER << ".udb";
