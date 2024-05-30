@@ -381,6 +381,10 @@ void BackendOperationGraphDescriptor::finalize()
     {
         MIOPEN_THROW(miopenStatusNotInitialized);
     }
+    if(mBuilder.getHandle() == nullptr) // this is not checked by build() so far but API requires
+    {
+        MIOPEN_THROW(miopenStatusBadParm);
+    }
     mOpGraph = std::move(mBuilder).build();
     mOpGraph.initEngines();
     mFinalized = true;

@@ -395,6 +395,7 @@ private:
 
 public:
     void setHandle(miopenHandle_t handle) { mHandle = checkPtr(handle); }
+    miopenHandle_t getHandle() const noexcept { return mHandle; }
 
     bool hasNode(OpNode* node) const { return internal::contains(mNodes, node); }
 

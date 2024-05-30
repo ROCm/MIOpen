@@ -332,7 +332,6 @@ std::vector<Engine> findEngines(OpGraph* graph)
         }
     }
 
-    MIOPEN_THROW("No patterns matched against the graph. Solution not found");
     return {};
 }
 
