@@ -119,8 +119,7 @@ struct ProblemDescription : ProblemDescriptionBase
         if(indexCount > 0)
         {
             if(indexDescs == nullptr)
-                MIOPEN_THROW(miopenStatusBadParm,
-                             "Getitem: indexDesc is nullptr at" + std::to_string(i) + ".");
+                MIOPEN_THROW(miopenStatusBadParm, "Getitem: indexDesc is nullptr.");
         }
         return true;
     }
@@ -130,8 +129,7 @@ struct ProblemDescription : ProblemDescriptionBase
         if(dimCount > 0)
 
             if(dims == nullptr)
-                MIOPEN_THROW(miopenStatusBadParm,
-                             "Getitem: dims is nullptr at" + std::to_string(i) + ".");
+                MIOPEN_THROW(miopenStatusBadParm, "Getitem: dims is nullptr.");
         return true;
     }
 
@@ -140,8 +138,7 @@ struct ProblemDescription : ProblemDescriptionBase
         if(sliceCount > 0)
         {
             if(slices == nullptr)
-                MIOPEN_THROW(miopenStatusBadParm,
-                             "Getitem: slices is nullptr at" + std::to_string(i) + ".");
+                MIOPEN_THROW(miopenStatusBadParm, "Getitem: slices is nullptr.");
         }
         return true;
     }
