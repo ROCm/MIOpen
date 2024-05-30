@@ -36,38 +36,30 @@ namespace getitem {
 
 NetworkConfig ProblemDescription::MakeNetworkConfig() const
 {
-    auto dy_dims         = dyDesc.GetLengths();
-    auto index_dims      = (*indexDescs)[0].GetLengths();
-    auto input_dtype     = dyDesc.GetType();
-    auto error_dtype     = errorDesc.GetType();
-    auto output_dtype    = dxDesc.GetType();
-    auto dim_info_offset = indexCount > 0 ? indexCount * index_dims[0] : 0;
-    auto start_dim       = dims[0];
+    auto dy_dims     = dyDesc.GetLengths();
+    auto input_dtype = dyDesc.GetType();
+    auto error_dtype = errorDesc.GetType();
 
-    std::vector<int32_t> output_dims(dimCount);
-    for(int32_t i = 0; i < dimCount; i++)
-    {
-        output_dims[i] = static_cast<int32_t>(dy_dims[dims[i]]);
-    }
+    auto input_size =
+        std::accumulate(dy_dims.begin(), dy_dims.begin(), 1ULL, std::multiplies<size_t>());
+
     std::ostringstream ss;
 
     ss << "getitembwd";
+    ss << "input_size" << input_size;
     ss << "input_dtype" << input_dtype;
     ss << "error_dtype" << error_dtype;
-    ss << "output_dtype" << output_dtype;
     ss << "indexCount" << indexCount;
-    ss << "offset" << offset;
-    ss << "dim_info_offset" << dim_info_offset;
-    ss << "index_dims";
-    for(int32_t i = 0; i < dimCount; i++)
-        ss << dims[i] << "_";
-    ss << "slices";
-    for(int32_t i = 0; i < sliceCount; i++)
-        ss << slices[i] << "_";
-    ss << "output_dims";
-    for(auto output_dim : output_dims)
-        ss << output_dim << "_";
-    ss << "start_dim" << start_dim;
+
+    for(int i = 0; i < indexCount; ++i)
+    {
+        if(i == 0)
+            ss << "indexs_size";
+        const auto& index_dims = (*indexDescs)[i].GetLengths();
+        auto index_size        = std::accumulate(
+            index_dims.begin(), index_dims.begin(), 1ULL, std::multiplies<size_t>());
+        ss << index_size << "_";
+    }
 
     return NetworkConfig{ss.str()};
 }

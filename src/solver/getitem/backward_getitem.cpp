@@ -59,6 +59,8 @@ bool GetitemBackward::IsApplicable(const ExecutionContext& /*context*/,
 {
     if(!problem.IsSameType())
         return false;
+    if(!problem.IsValidLength())
+        return false;
     if(!IsLargeIndex(problem))
         return false;
     return true;
@@ -75,18 +77,10 @@ ConvSolution GetitemBackward::GetSolution(const ExecutionContext& /*context*/,
     const auto& error_dtype  = miopen::GetDataType(problem.GetErrorDesc().GetType());
     const auto& output_dtype = miopen::GetDataType(problem.GetDXDesc().GetType());
     const auto& dy_dims      = problem.GetDYDesc().GetLengths();
-    const auto& dx_dims      = problem.GetDXDesc().GetLengths();
     const auto& indexCount   = problem.GetIndexCount();
-    const auto& dimCount     = problem.GetDimCount();
 
     auto dy_numel =
         std::accumulate(dy_dims.begin(), dy_dims.end(), 1ULL, std::multiplies<size_t>());
-
-    std::vector<int32_t> output_dims(dimCount);
-    for(int32_t i = 0; i < dimCount; i++)
-    {
-        output_dims[i] = static_cast<int32_t>(dx_dims[problem.GetDim(i)]);
-    }
 
     for(int32_t i = 0; i < indexCount; i++)
     {

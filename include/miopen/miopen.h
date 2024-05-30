@@ -7244,7 +7244,8 @@ miopenGetGetitemWorkspaceSize(miopenHandle_t handle,
  * @param [in]   dyDesc                  Tensor descriptor of input tensor dy
  * @param [in]   dy                      Source data tensor dy
  * @param [in]   indexCount              Number of input tensor indexs
- * @param [in]   indexDescs              Tensor descriptor of input tensor indexs
+ * @param [in]   indexDescs              Tensor descriptor of input tensor indexs(All indexs same
+ * size)
  * @param [in]   indexs                  Source data tensor indexs
  * @param [in]   dxDesc                  Tensor descriptor of output tensor dx
  * @param [out]  dx                      Data tensor dx(It must be initialized to 0)

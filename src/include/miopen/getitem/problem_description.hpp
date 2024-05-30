@@ -99,6 +99,21 @@ struct ProblemDescription : ProblemDescriptionBase
     }
     int32_t GetOffset() const { return offset; }
 
+    bool IsValidLength() const
+    {
+        if(indexCount > 0)
+        {
+            auto firstlength = (*indexDescs)[0];
+            for(int32_t i = 1; i < indexCount; ++i)
+            {
+                if(firstlength != (*indexDescs)[i])
+                    MIOPEN_THROW(miopenStatusBadParm,
+                                 "Getitem: Indexs dimension lengths do not match.");
+            }
+        }
+        return true;
+    }
+
     bool IsSameType() const
     {
         if(dyDesc.GetType() != dxDesc.GetType())
@@ -112,16 +127,16 @@ struct ProblemDescription : ProblemDescriptionBase
 
 private:
     TensorDescriptor dyDesc{};
-    uint32_t indexCount                        = 0;
+    uint32_t indexCount                       = 0;
     const TensorDescriptor* const* indexDescs = nullptr;
     TensorDescriptor dxDesc{};
     TensorDescriptor errorDesc{};
 
-    uint32_t dimCount      = 0;
+    uint32_t dimCount     = 0;
     const int32_t* dims   = nullptr;
-    uint32_t sliceCount    = 0;
+    uint32_t sliceCount   = 0;
     const int32_t* slices = nullptr;
-    uint32_t offset        = 0;
+    uint32_t offset       = 0;
 
     NetworkConfig MakeForwardNetworkConfig() const;
 };
