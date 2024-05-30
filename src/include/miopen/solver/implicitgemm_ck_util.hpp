@@ -167,8 +167,9 @@ ConvSolution InitInvokerFactoryNHWC(const ExecutionContext&,
     if constexpr(std::is_same_v<CastType, miopen::conv::WrWInvokeParams>)
     {
         miopenAlphaBetaCase_t alpha_beta_case = problem.GetAlphaBetaCase();
-        bool should_allocated_wrw_buffer      = ShouldAllocateWorkSpaceBufferForWRW(problem);
-        size_t spatial_dim                    = problem.GetSpatialDims();
+        [[maybe_unused]] bool should_allocated_wrw_buffer =
+            ShouldAllocateWorkSpaceBufferForWRW(problem);
+        size_t spatial_dim = problem.GetSpatialDims();
 
         ConvSolution result;
         result.invoker_factory = [ck_args                     = CKArgsType{problem},
@@ -179,8 +180,8 @@ ConvSolution InitInvokerFactoryNHWC(const ExecutionContext&,
                                      const std::vector<Kernel>&) mutable {
             return [ck_args                     = std::move(ck_args),
                     alpha_beta_case             = std::move(alpha_beta_case),
-                    should_allocated_wrw_buffer = should_allocated_wrw_buffer,
-                    spatial_dim                 = spatial_dim,
+                    should_allocated_wrw_buffer = std::move(should_allocated_wrw_buffer),
+                    spatial_dim                 = std::move(spatial_dim),
                     sh_conv_ptr                 = std::move(sh_conv_ptr)](
                        const Handle& handle, const AnyInvokeParams& primitive_parameters) {
                 const auto& data_ctx = primitive_parameters.CastTo<CastType>();
@@ -194,6 +195,9 @@ ConvSolution InitInvokerFactoryNHWC(const ExecutionContext&,
                     const auto& tensors = data_ctx.tensors;
                     SetTensor(handle, tensors.dwDesc, tensors.dw, &zero);
                 }
+                // use captured value, other wise getting warning
+                // "lambda capture is not used" since this variable is only used in assert.
+                (void)should_allocated_wrw_buffer;
                 assert((should_allocated_wrw_buffer && data_ctx.workSpace != nullptr) ||
                        !(should_allocated_wrw_buffer && data_ctx.workSpace == nullptr));
                 if(spatial_dim == 3 && data_ctx.workSpace)
