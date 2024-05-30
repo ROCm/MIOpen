@@ -391,6 +391,31 @@ void Solution::RunImpl(Handle& handle,
         return;
     }
 
+    solver::mha::MhaForward mhaForward;
+    solver::mha::MhaBackward mhaBackward;
+
+    if(!kernels.empty())
+    {
+        const auto ctx          = ExecutionContext{&handle};
+        const auto mha_solution = GetSolver() == mhaForward.SolverDbId()
+                                      ? mhaForward.GetSolution(ctx, problem_description)
+                                      : mhaBackward.GetSolution(ctx, problem_description);
+
+        auto kernel_handles = std::vector<Kernel>{};
+
+        std::transform(
+            std::begin(kernels),
+            std::end(kernels),
+            std::back_inserter(kernel_handles),
+            [](const KernelInfo& ki) {
+                return Kernel{ki.program, ki.kernel_name, ki.local_work_dims, ki.global_work_dims};
+            });
+
+        invoker = (*mha_solution.invoker_factory)(kernel_handles);
+        (*invoker)(handle, invoke_ctx);
+        return;
+    }
+
     const auto net_cfg = problem_description.MakeNetworkConfig();
     invoker            = handle.GetInvoker(net_cfg, GetSolver());
 
@@ -401,9 +426,6 @@ void Solution::RunImpl(Handle& handle,
     }
 
     auto ctx = ExecutionContext{&handle};
-
-    static solver::mha::MhaForward mhaForward;
-    static solver::mha::MhaBackward mhaBackward;
 
     const auto mha_solution = GetSolver() == mhaForward.SolverDbId()
                                   ? mhaForward.GetSolution(ctx, problem_description)
@@ -481,6 +503,31 @@ void Solution::RunImpl(Handle& handle,
         return;
     }
 
+    solver::softmax::Softmax regularSoftmax;
+    solver::softmax::AttnSoftmax attnSoftmax;
+
+    if(!kernels.empty())
+    {
+        const auto ctx              = ExecutionContext{&handle};
+        const auto softmax_solution = GetSolver() == regularSoftmax.SolverDbId()
+                                          ? regularSoftmax.GetSolution(ctx, problem_description)
+                                          : attnSoftmax.GetSolution(ctx, problem_description);
+
+        auto kernel_handles = std::vector<Kernel>{};
+
+        std::transform(
+            std::begin(kernels),
+            std::end(kernels),
+            std::back_inserter(kernel_handles),
+            [](const KernelInfo& ki) {
+                return Kernel{ki.program, ki.kernel_name, ki.local_work_dims, ki.global_work_dims};
+            });
+
+        invoker = (*softmax_solution.invoker_factory)(kernel_handles);
+        (*invoker)(handle, invoke_ctx);
+        return;
+    }
+
     const auto net_cfg = problem_description.MakeNetworkConfig();
     invoker            = handle.GetInvoker(net_cfg, GetSolver());
 
@@ -491,9 +538,6 @@ void Solution::RunImpl(Handle& handle,
     }
 
     auto ctx = ExecutionContext{&handle};
-
-    solver::softmax::Softmax regularSoftmax;
-    solver::softmax::AttnSoftmax attnSoftmax;
 
     const auto softmax_solution = GetSolver() == regularSoftmax.SolverDbId()
                                       ? regularSoftmax.GetSolution(ctx, problem_description)
@@ -533,7 +577,29 @@ void Solution::RunImpl(Handle& handle,
 
     const auto plan           = problem_.AsFusionPlan();
     const auto fusion_problem = FusionDescription{&plan};
-    const auto net_cfg        = fusion_problem.MakeNetworkConfig();
+
+    if(!kernels.empty())
+    {
+        const auto ctx = FusionContext{handle};
+        const auto solution =
+            MakeFusedSolution(ctx, solver, perf_cfg, fusion_problem, invoke_params);
+
+        auto kernel_handles = std::vector<Kernel>{};
+
+        std::transform(
+            std::begin(kernels),
+            std::end(kernels),
+            std::back_inserter(kernel_handles),
+            [](const KernelInfo& ki) {
+                return Kernel{ki.program, ki.kernel_name, ki.local_work_dims, ki.global_work_dims};
+            });
+
+        invoker = (*solution.invoker_factory)(kernel_handles);
+        (*invoker)(handle, invoke_params);
+        return;
+    }
+
+    const auto net_cfg = fusion_problem.MakeNetworkConfig();
 
     invoker = handle.GetInvoker(net_cfg, GetSolver());
     if(invoker)
