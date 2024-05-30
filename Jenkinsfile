@@ -469,7 +469,7 @@ pipeline {
             description: "")
         booleanParam(
             name: "TARGET_GFX908",
-            defaultValue: true,
+            defaultValue: env.BRANCH_NAME == "develop" ? true : false,
             description: "")
         booleanParam(
             name: "TARGET_GFX90A",
