@@ -359,10 +359,6 @@ void BackendOperationGraphDescriptor::setAttribute(miopenBackendAttributeName_t 
 
             if(!internal::noRepetitions(nodes))
             {
-                for(size_t i = 0; i < nodes.size(); ++i)
-                {
-                    std::cout << "node: " << nodes[i] << ", desc: " << descriptors[i] << std::endl;
-                }
                 MIOPEN_THROW(miopenStatusBadParm, "Repeated node pointer found");
             }
 
