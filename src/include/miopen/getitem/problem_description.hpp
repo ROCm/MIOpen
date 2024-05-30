@@ -60,11 +60,17 @@ struct ProblemDescription : ProblemDescriptionBase
           slices(slices_),
           offset(offset_)
     {
+        IsValidIndexsLength();
+        IsValidIndexs();
+        IsValidDims();
+        IsValidSlices();
     }
 
     ProblemDescription(const int32_t indexCount_, const TensorDescriptor* const* indexDescs_)
         : indexCount(indexCount_), indexDescs(indexDescs_)
     {
+        IsValidIndexsLength();
+        IsValidIndexs();
     }
 
     const TensorDescriptor& GetDYDesc() const { return dyDesc; }
