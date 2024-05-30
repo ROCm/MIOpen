@@ -91,6 +91,11 @@ struct Solution : miopenSolution
         std::vector<size_t> global_work_dims;
         std::string kernel_name;
         std::string program_name;
+
+        operator Kernel() const
+        {
+            return Kernel{program, kernel_name, local_work_dims, global_work_dims};
+        }
     };
 
     float GetTime() const { return time; }

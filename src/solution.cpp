@@ -224,16 +224,7 @@ void Solution::RunImpl(Handle& handle,
         conv_problem.SetupFloats(ctx);
         const auto invoker_factory =
             GetSolver().GetSolver().GetInvokeFactory(ctx, conv_problem, perf_cfg.value_or(""));
-
-        auto kernel_handles = std::vector<Kernel>{};
-
-        std::transform(
-            std::begin(kernels),
-            std::end(kernels),
-            std::back_inserter(kernel_handles),
-            [](const KernelInfo& ki) {
-                return Kernel{ki.program, ki.kernel_name, ki.local_work_dims, ki.global_work_dims};
-            });
+        auto kernel_handles = std::vector<Kernel>{std::begin(kernels), std::end(kernels)};
 
         invoker = invoker_factory(kernel_handles);
         (*invoker)(handle, invoke_ctx);
@@ -400,16 +391,7 @@ void Solution::RunImpl(Handle& handle,
         const auto mha_solution = GetSolver() == mhaForward.SolverDbId()
                                       ? mhaForward.GetSolution(ctx, problem_description)
                                       : mhaBackward.GetSolution(ctx, problem_description);
-
-        auto kernel_handles = std::vector<Kernel>{};
-
-        std::transform(
-            std::begin(kernels),
-            std::end(kernels),
-            std::back_inserter(kernel_handles),
-            [](const KernelInfo& ki) {
-                return Kernel{ki.program, ki.kernel_name, ki.local_work_dims, ki.global_work_dims};
-            });
+        auto kernel_handles     = std::vector<Kernel>{std::begin(kernels), std::end(kernels)};
 
         invoker = (*mha_solution.invoker_factory)(kernel_handles);
         (*invoker)(handle, invoke_ctx);
@@ -512,16 +494,7 @@ void Solution::RunImpl(Handle& handle,
         const auto softmax_solution = GetSolver() == regularSoftmax.SolverDbId()
                                           ? regularSoftmax.GetSolution(ctx, problem_description)
                                           : attnSoftmax.GetSolution(ctx, problem_description);
-
-        auto kernel_handles = std::vector<Kernel>{};
-
-        std::transform(
-            std::begin(kernels),
-            std::end(kernels),
-            std::back_inserter(kernel_handles),
-            [](const KernelInfo& ki) {
-                return Kernel{ki.program, ki.kernel_name, ki.local_work_dims, ki.global_work_dims};
-            });
+        auto kernel_handles         = std::vector<Kernel>{std::begin(kernels), std::end(kernels)};
 
         invoker = (*softmax_solution.invoker_factory)(kernel_handles);
         (*invoker)(handle, invoke_ctx);
@@ -583,16 +556,7 @@ void Solution::RunImpl(Handle& handle,
         const auto ctx = FusionContext{handle};
         const auto solution =
             MakeFusedSolution(ctx, solver, perf_cfg, fusion_problem, invoke_params);
-
-        auto kernel_handles = std::vector<Kernel>{};
-
-        std::transform(
-            std::begin(kernels),
-            std::end(kernels),
-            std::back_inserter(kernel_handles),
-            [](const KernelInfo& ki) {
-                return Kernel{ki.program, ki.kernel_name, ki.local_work_dims, ki.global_work_dims};
-            });
+        auto kernel_handles = std::vector<Kernel>{std::begin(kernels), std::end(kernels)};
 
         invoker = (*solution.invoker_factory)(kernel_handles);
         (*invoker)(handle, invoke_params);
