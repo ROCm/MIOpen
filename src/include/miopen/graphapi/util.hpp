@@ -79,7 +79,8 @@ struct HeapPtrDeleter
 {
     using Fn         = std::function<void()>;
     const Fn emptyFn = []() {};
-    Fn mFn           = emptyFn;
+
+    Fn mFn = emptyFn;
 
     template <typename T>
     explicit HeapPtrDeleter(T* ptr)
@@ -90,6 +91,11 @@ struct HeapPtrDeleter
     HeapPtrDeleter(const HeapPtrDeleter&) = delete;
     HeapPtrDeleter& operator=(const HeapPtrDeleter&) = delete;
 
+    friend void swap(HeapPtrDeleter& left, HeapPtrDeleter& right) noexcept
+    {
+        std::swap(left.mFn, right.mFn);
+    }
+
     HeapPtrDeleter(HeapPtrDeleter&& that) noexcept : mFn(std::move(that.mFn))
     {
         that.mFn = emptyFn;
@@ -97,9 +103,11 @@ struct HeapPtrDeleter
 
     HeapPtrDeleter& operator=(HeapPtrDeleter&& that) noexcept
     {
-        this->mFn(); // destruct self.
-        this->mFn = std::move(that.mFn);
-        that.mFn  = emptyFn;
+        if(this != &that)
+        {
+            HeapPtrDeleter tmp{std::move(that)};
+            swap(*this, tmp);
+        }
         return *this;
     }
 
