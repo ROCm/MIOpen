@@ -720,7 +720,7 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
                 input2_tr_inst      = std::move(input2_tr_inst),
                 output_tr_inst      = std::move(output_tr_inst),
                 output_init_tr_inst = std::move(output_init_tr_inst),
-                ck_buff_des         = std::move(ck_buff_des)](
+                ck_buff_des         = ck_buff_des](
                    const Handle& handle, const AnyInvokeParams& primitive_parameters) mutable {
             handle.ResetKernelTime();
 
