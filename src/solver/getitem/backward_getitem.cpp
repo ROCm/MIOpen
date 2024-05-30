@@ -57,9 +57,15 @@ bool IsLargeIndex(const miopen::getitem::ProblemDescription& problem)
 bool GetitemBackward::IsApplicable(const ExecutionContext& /*context*/,
                                    const miopen::getitem::ProblemDescription& problem) const
 {
-    if(!problem.IsSameType())
+    if(!problem.IsValidIndexs())
         return false;
-    if(!problem.IsValidLength())
+    if(!problem.IsValidDims())
+        return false;
+    if(!problem.IsValidSlices())
+        return false;
+    if(!problem.IsValidIndexsLength())
+        return false;
+    if(!problem.IsSameType())
         return false;
     if(!IsLargeIndex(problem))
         return false;

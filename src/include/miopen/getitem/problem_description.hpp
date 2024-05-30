@@ -99,7 +99,7 @@ struct ProblemDescription : ProblemDescriptionBase
     }
     int32_t GetOffset() const { return offset; }
 
-    bool IsValidLength() const
+    bool IsValidIndexsLength() const
     {
         if(indexCount > 0)
         {
@@ -109,6 +109,48 @@ struct ProblemDescription : ProblemDescriptionBase
                 if(firstlength != (*indexDescs)[i])
                     MIOPEN_THROW(miopenStatusBadParm,
                                  "Getitem: Indexs dimension lengths do not match.");
+            }
+        }
+        return true;
+    }
+
+    bool IsValidIndexs() const
+    {
+        if(indexCount > 0)
+        {
+            for(int32_t i = 0; i < indexCount; ++i)
+            {
+                if((indexDescs + i) == nullptr)
+                    MIOPEN_THROW(miopenStatusBadParm,
+                                 "Getitem: indexDesc is nullptr at" + std::to_string(i) + ".");
+            }
+        }
+        return true;
+    }
+
+    bool IsValidDims() const
+    {
+        if(dimCount > 0)
+        {
+            for(int32_t i = 0; i < dimCount; ++i)
+            {
+                if((dims + i) == nullptr)
+                    MIOPEN_THROW(miopenStatusBadParm,
+                                 "Getitem: dims is nullptr at" + std::to_string(i) + ".");
+            }
+        }
+        return true;
+    }
+
+    bool IsValidSlices() const
+    {
+        if(sliceCount > 0)
+        {
+            for(int32_t i = 0; i < sliceCount; ++i)
+            {
+                if((slices + i) == nullptr)
+                    MIOPEN_THROW(miopenStatusBadParm,
+                                 "Getitem: slices is nullptr at" + std::to_string(i) + ".");
             }
         }
         return true;
