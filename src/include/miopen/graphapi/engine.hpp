@@ -118,7 +118,7 @@ class Engine
 {
 private:
     std::shared_ptr<GraphPatternExecutor> mExecutor;
-    OpGraph* mGraph;
+    OpGraph* mGraph      = nullptr;
     int64_t mGlobalIndex = -1;
     int32_t mSmCount     = 0;
     friend class EngineBuilder;
