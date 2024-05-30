@@ -83,8 +83,8 @@ struct HeapPtrDeleter
 
     template <typename T>
     explicit HeapPtrDeleter(T* ptr)
+        : mFn([ptr]() { delete ptr; }) // NOLINT (cppcoreguidelines-owning-memory)
     {
-        mFn = [ptr]() { delete ptr; }; // NOLINT (cppcoreguidelines-owning-memory)
     }
 
     HeapPtrDeleter(const HeapPtrDeleter&) = delete;
@@ -173,7 +173,6 @@ private:
     {
 
         std::unordered_map<std::string, Tensor*> tensor_map;
-        std::vector<DummyNode> node_map;
         OpGraphBuilder builder;
 
         for(const auto& ns : node_specs)
