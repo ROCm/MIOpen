@@ -36,7 +36,7 @@
 namespace miopen {
 
 std::size_t GetGetitemWorkspaceSize(Handle& handle,
-                                    int32_t indexCount,
+                                    uint32_t indexCount,
                                     const TensorDescriptor* const* indexDescs)
 {
     auto ctx           = ExecutionContext{&handle};
@@ -55,18 +55,18 @@ miopenStatus_t GetitemBackward(Handle& handle,
                                size_t workspaceSizeInBytes,
                                const TensorDescriptor& dyDesc,
                                ConstData_t dy,
-                               int32_t indexCount,
+                               uint32_t indexCount,
                                const TensorDescriptor* const* indexDescs,
                                ConstData_t* indexs,
                                const TensorDescriptor& dxDesc,
                                Data_t dx,
                                const TensorDescriptor& errorDesc,
                                Data_t error,
-                               int32_t dimCount,
+                               uint32_t dimCount,
                                const int32_t* dims,
-                               int32_t sliceCount,
+                               uint32_t sliceCount,
                                const int32_t* slices,
-                               int32_t offset)
+                               uint32_t offset)
 {
     const auto problem = getitem::ProblemDescription{dyDesc,
                                                      indexCount,

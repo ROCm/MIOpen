@@ -7230,7 +7230,7 @@ miopenFusedAdamWithOutput(miopenHandle_t handle,
  */
 MIOPEN_EXPORT miopenStatus_t
 miopenGetGetitemWorkspaceSize(miopenHandle_t handle,
-                              int32_t indexCount,
+                              uint32_t indexCount,
                               const miopenTensorDescriptor_t* indexDescs,
                               size_t* sizeInBytes);
 
@@ -7260,18 +7260,18 @@ MIOPEN_EXPORT miopenStatus_t miopenGetitemBackward(miopenHandle_t handle,
                                                    size_t workspaceSizeInBytes,
                                                    const miopenTensorDescriptor_t dyDesc,
                                                    const void* dy,
-                                                   int32_t indexCount,
+                                                   uint32_t indexCount,
                                                    const miopenTensorDescriptor_t* indexDescs,
                                                    const void* const* indexs,
                                                    const miopenTensorDescriptor_t dxDesc,
                                                    void* dx,
                                                    const miopenTensorDescriptor_t errorDesc,
                                                    void* error,
-                                                   int32_t dimCount,
+                                                   uint32_t dimCount,
                                                    const int32_t* dims,
-                                                   int32_t sliceCount,
+                                                   uint32_t sliceCount,
                                                    const int32_t* slices,
-                                                   int32_t offset);
+                                                   uint32_t offset);
 
 /** @} */
 // CLOSEOUT GETITEM DOXYGEN GROUP

@@ -45,7 +45,7 @@
 
 template <typename Tgpu, typename Tcheck>
 int32_t mloGetitemBackwardRunHost(miopenTensorDescriptor_t dyDesc,
-                                  int32_t indexCount,
+                                  uint32_t indexCount,
                                   miopenTensorDescriptor_t* indexDescs,
                                   miopenTensorDescriptor_t dxDesc,
                                   miopenTensorDescriptor_t errorDesc,
@@ -53,11 +53,11 @@ int32_t mloGetitemBackwardRunHost(miopenTensorDescriptor_t dyDesc,
                                   int32_t** indexs,
                                   Tcheck* dxhost,
                                   int32_t* errorhost,
-                                  int32_t dimCount,
+                                  uint32_t dimCount,
                                   int32_t* dims,
-                                  int32_t sliceCount,
+                                  uint32_t sliceCount,
                                   int32_t* slices,
-                                  int32_t offset)
+                                  uint32_t offset)
 {
     auto dy_dims  = miopen::deref(dyDesc).GetLengths();
     auto dy_numel = std::accumulate(dy_dims.begin(), dy_dims.end(), 1L, std::multiplies<int64_t>());
@@ -67,7 +67,7 @@ int32_t mloGetitemBackwardRunHost(miopenTensorDescriptor_t dyDesc,
         std::accumulate(index_dims.begin(), index_dims.end(), 1L, std::multiplies<int64_t>());
     auto element_index = std::vector<int32_t>(indexCount * index_numel + indexCount);
 
-    std::vector<int32_t> output_dims;
+    std::vector<size_t> output_dims;
     for(int32_t i = 0; i < dimCount; i++)
     {
         output_dims.push_back(dx_dims[dims[i]]);
@@ -85,8 +85,8 @@ int32_t mloGetitemBackwardRunHost(miopenTensorDescriptor_t dyDesc,
     // Get element index form indexs
     for(size_t j = 0; j < indexCount; j++)
     {
-        auto index_dim = dims[j];
-        auto dim_size  = output_dims[j];
+        const auto& index_dim = dims[j];
+        const auto& dim_size  = output_dims[j];
 
         for(size_t o = 0; o < index_numel; o++)
         {
@@ -214,7 +214,7 @@ private:
     std::vector<int32_t> dims;
     std::vector<std::vector<int32_t>> slices;
     std::vector<int32_t> slices_flat;
-    int32_t offset;
+    uint32_t offset;
 
     std::vector<int32_t> output_dims;
     std::vector<void*> index_devs_ptr;

@@ -39,18 +39,18 @@ struct GetitemInvokeParams : public miopen::InvokeParams
                         std::size_t workspace_size_,
                         const TensorDescriptor& dyDesc_,
                         ConstData_t dy_,
-                        int32_t indexCount_,
+                        uint32_t indexCount_,
                         const TensorDescriptor* const* indexDescs_,
                         ConstData_t* indexs_,
                         const TensorDescriptor& dxDesc_,
                         Data_t dx_,
                         const TensorDescriptor& errorDesc_,
                         Data_t error_,
-                        int32_t dimCount_,
+                        uint32_t dimCount_,
                         const int32_t* dims_,
-                        int32_t sliceCount_,
+                        uint32_t sliceCount_,
                         const int32_t* slices_,
-                        int32_t offset_)
+                        uint32_t offset_)
         : workspace(workspace_),
           workspace_size(workspace_size_),
           dyDesc(dyDesc_),
@@ -74,7 +74,7 @@ struct GetitemInvokeParams : public miopen::InvokeParams
     std::size_t workspace_size = 0;
     const TensorDescriptor dyDesc{};
     ConstData_t dy                            = nullptr;
-    int32_t indexCount                        = 0;
+    uint32_t indexCount                       = 0;
     const TensorDescriptor* const* indexDescs = nullptr;
     ConstData_t* indexs                       = nullptr;
     const TensorDescriptor dxDesc{};
@@ -82,9 +82,9 @@ struct GetitemInvokeParams : public miopen::InvokeParams
     const TensorDescriptor errorDesc{};
     Data_t error = nullptr;
 
-    int32_t dimCount      = 0;
+    uint32_t dimCount     = 0;
     const int32_t* dims   = nullptr;
-    int32_t sliceCount    = 0;
+    uint32_t sliceCount   = 0;
     const int32_t* slices = nullptr;
     int32_t offset        = 0;
 

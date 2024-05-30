@@ -36,15 +36,15 @@
 
 template <class T>
 void cpu_getitem_backward(tensor<T> dy,
-                          int32_t indexCount,
+                          uint32_t indexCount,
                           std::vector<tensor<int32_t>> indexs,
                           tensor<T>& ref_dx,
                           tensor<int32_t>& ref_error,
-                          int32_t dimCount,
+                          uint32_t dimCount,
                           int32_t* dims,
-                          int32_t sliceCount,
+                          uint32_t sliceCount,
                           int32_t* slices,
-                          int32_t offset)
+                          uint32_t offset)
 {
     auto dy_dims  = dy.desc.GetLengths();
     auto dy_numel = std::accumulate(dy_dims.begin(), dy_dims.end(), 1L, std::multiplies<int64_t>());
@@ -132,7 +132,7 @@ struct GetitemTestCase
     std::vector<int32_t> dx;
     std::vector<int32_t> dims;
     std::vector<std::vector<int32_t>> slices;
-    int32_t offset;
+    uint32_t offset;
 
     friend std::ostream& operator<<(std::ostream& os, const GetitemTestCase& tc)
     {
@@ -406,5 +406,5 @@ protected:
     std::vector<int32_t> dims;
     std::vector<std::vector<int32_t>> slices;
     std::vector<int32_t> slices_flat;
-    int32_t offset;
+    uint32_t offset;
 };

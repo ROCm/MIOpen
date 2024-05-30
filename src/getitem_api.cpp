@@ -30,14 +30,14 @@
 #include <miopen/tensor_ops.hpp>
 
 static void LogCmdGetitem(const miopenTensorDescriptor_t dyDesc,
-                          int32_t indexCount,
+                          uint32_t indexCount,
                           const miopenTensorDescriptor_t* indexDescs,
                           const miopenTensorDescriptor_t dxDesc,
-                          int32_t dimCount,
+                          uint32_t dimCount,
                           const int32_t* dims,
-                          int32_t sliceCount,
+                          uint32_t sliceCount,
                           const int32_t* slices,
-                          int32_t offset,
+                          uint32_t offset,
                           bool is_fwd)
 {
     if(miopen::IsLoggingCmd())
@@ -118,7 +118,7 @@ static void LogCmdGetitem(const miopenTensorDescriptor_t dyDesc,
 }
 
 extern "C" miopenStatus_t miopenGetGetitemWorkspaceSize(miopenHandle_t handle,
-                                                        int32_t indexCount,
+                                                        uint32_t indexCount,
                                                         const miopenTensorDescriptor_t* indexDescs,
                                                         size_t* sizeInBytes)
 {
@@ -140,18 +140,18 @@ extern "C" miopenStatus_t miopenGetitemBackward(miopenHandle_t handle,
                                                 size_t workspaceSizeInBytes,
                                                 const miopenTensorDescriptor_t dyDesc,
                                                 const void* dy,
-                                                int32_t indexCount,
+                                                uint32_t indexCount,
                                                 const miopenTensorDescriptor_t* indexDescs,
                                                 const void* const* indexs,
                                                 const miopenTensorDescriptor_t dxDesc,
                                                 void* dx,
                                                 const miopenTensorDescriptor_t errorDesc,
                                                 void* error,
-                                                int32_t dimCount,
+                                                uint32_t dimCount,
                                                 const int32_t* dims,
-                                                int32_t sliceCount,
+                                                uint32_t sliceCount,
                                                 const int32_t* slices,
-                                                int32_t offset)
+                                                uint32_t offset)
 {
     MIOPEN_LOG_FUNCTION(handle,
                         workspace,

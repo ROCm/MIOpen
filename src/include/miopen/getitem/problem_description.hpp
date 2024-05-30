@@ -40,15 +40,15 @@ namespace getitem {
 struct ProblemDescription : ProblemDescriptionBase
 {
     ProblemDescription(const TensorDescriptor& dyDesc_,
-                       int32_t indexCount_,
+                       uint32_t indexCount_,
                        const TensorDescriptor* const* indexDescs_,
                        const TensorDescriptor& dxDesc_,
                        const TensorDescriptor& errorDesc_,
-                       int32_t dimCount_,
+                       uint32_t dimCount_,
                        const int32_t* dims_,
-                       int32_t sliceCount_,
+                       uint32_t sliceCount_,
                        const int32_t* slices_,
-                       int32_t offset_)
+                       uint32_t offset_)
         : dyDesc(dyDesc_),
           indexCount(indexCount_),
           indexDescs(indexDescs_),
@@ -112,16 +112,16 @@ struct ProblemDescription : ProblemDescriptionBase
 
 private:
     TensorDescriptor dyDesc{};
-    int32_t indexCount                        = 0;
+    uint32_t indexCount                        = 0;
     const TensorDescriptor* const* indexDescs = nullptr;
     TensorDescriptor dxDesc{};
     TensorDescriptor errorDesc{};
 
-    int32_t dimCount      = 0;
+    uint32_t dimCount      = 0;
     const int32_t* dims   = nullptr;
-    int32_t sliceCount    = 0;
+    uint32_t sliceCount    = 0;
     const int32_t* slices = nullptr;
-    int32_t offset        = 0;
+    uint32_t offset        = 0;
 
     NetworkConfig MakeForwardNetworkConfig() const;
 };
