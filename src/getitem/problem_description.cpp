@@ -41,7 +41,7 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
     auto error_dtype = errorDesc.GetType();
 
     auto input_size =
-        std::accumulate(dy_dims.begin(), dy_dims.begin(), 1ULL, std::multiplies<size_t>());
+        std::accumulate(dy_dims.begin(), dy_dims.end(), 1ULL, std::multiplies<size_t>());
 
     std::ostringstream ss;
 
