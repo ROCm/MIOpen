@@ -73,7 +73,7 @@ struct ProblemDescription : ProblemDescriptionBase
     {
         if(i >= indexCount)
         {
-            MIOPEN_THROW(miopenStatusBadParm, "Item: Invalid tensor index.");
+            MIOPEN_THROW(miopenStatusInternalError, "Item: Invalid tensor index.");
         }
         return (*indexDescs)[i];
     }
@@ -84,7 +84,7 @@ struct ProblemDescription : ProblemDescriptionBase
     {
         if(i >= indexCount)
         {
-            MIOPEN_THROW(miopenStatusBadParm, "Item: Invalid dim index.");
+            MIOPEN_THROW(miopenStatusInternalError, "Item: Invalid dim index.");
         }
         return dims[i];
     }
@@ -93,7 +93,7 @@ struct ProblemDescription : ProblemDescriptionBase
     {
         if(i >= sliceCount)
         {
-            MIOPEN_THROW(miopenStatusBadParm, "Item: Invalid slice index.");
+            MIOPEN_THROW(miopenStatusInternalError, "Item: Invalid slice index.");
         }
         return slices[i];
     }
