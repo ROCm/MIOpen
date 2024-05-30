@@ -776,19 +776,6 @@ target_include_directories(MIOpen PUBLIC
 
 if(MIOPEN_USE_COMPOSABLEKERNEL)
 set(MIOPEN_CK_LINK_FLAGS composable_kernel::device_other_operations composable_kernel::device_gemm_operations composable_kernel::device_conv_operations composable_kernel::device_contraction_operations composable_kernel::device_reduction_operations hip::host)
-foreach(item IN LISTS MIOPEN_CK_LINK_FLAGS)
-    message(STATUS "\n ==> ${item}")
-    message(STATUS "\n CMAKE_BUILD_TYPE: ${CMAKE_BUILD_TYPE}")
-    if (CMAKE_BUILD_TYPE)
-        message(STATUS "\n CMAKE_BUILD_TYPE::: ${CMAKE_BUILD_TYPE}")
-        get_target_property(LOCATION_ABC ${item} IMPORTED_LOCATION_${CMAKE_BUILD_TYPE})
-        message(STATUS "\n lib path :: ${LOCATION_ABC}")
-
-    else()
-        get_target_property(LOCATION_ABC ${item} IMPORTED_LOCATION)
-        message(STATUS "\n lib path ++: ${LOCATION_ABC}")
-    endif()
-endforeach()
 endif()
 
 if(WIN32)

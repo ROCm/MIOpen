@@ -303,18 +303,6 @@ add_compile_definitions($<$<COMPILE_LANGUAGE:CXX>:HIP_COMPILER_FLAGS=${HIP_COMPI
 if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIPNOGPU")
     if(MIOPEN_USE_COMPOSABLEKERNEL)
         find_package(composable_kernel 1.0.0 COMPONENTS device_other_operations device_gemm_operations device_conv_operations device_contraction_operations device_reduction_operations)
-        if (CMAKE_BUILD_TYPE)
-            message(STATUS "\n ===========????>???????????????111CMAKE_BUILD_TYPE::: ${CMAKE_BUILD_TYPE}")
-            get_target_property(LOCATION_ABC composable_kernel::device_conv_operations INTERFACE_LINK_LIBRARIES)
-            message(STATUS "\n hehe111lib path :: ${LOCATION_ABC}")
-
-            get_target_property(LOCATION_ABC composable_kernel::device_conv_operations INTERFACE_INCLUDE_DIRECTORIES)
-            message(STATUS "\n hehe111 inc path :: ${LOCATION_ABC}")
-        else()
-            get_target_property(LOCATION_ABC composable_kernel::device_conv_operations INTERFACE_LINK_LIBRARIES)
-            message(STATUS "\n 111lib path ++: ${LOCATION_ABC}")
-        endif()
-       
     endif()
     if( MIOPEN_BACKEND STREQUAL "HIPNOGPU")
         set(MIOPEN_MODE_NOGPU 1)
