@@ -205,6 +205,7 @@ miopenConvolutionCKBackwardWeightsGetWorkSpaceSize(const miopenAlphaBetaCase_t a
 {
     MIOPEN_LOG_FUNCTION(alpha_beta_case, outputTensorDesc);
     return miopen::try_([&] {
+        (void)convDesc; // -warn
         assert(miopen::deref(convDesc).spatialDim == 3);
         miopenDataType_t data_type = miopen::deref(outputTensorDesc).GetType();
         size_t in_spatial_dims     = miopen::deref(inputTensorDesc).GetNumDims();
