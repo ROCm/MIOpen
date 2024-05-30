@@ -118,12 +118,9 @@ struct ProblemDescription : ProblemDescriptionBase
     {
         if(indexCount > 0)
         {
-            for(int32_t i = 0; i < indexCount; ++i)
-            {
-                if((indexDescs + i) == nullptr)
-                    MIOPEN_THROW(miopenStatusBadParm,
-                                 "Getitem: indexDesc is nullptr at" + std::to_string(i) + ".");
-            }
+            if(indexDescs == nullptr)
+                MIOPEN_THROW(miopenStatusBadParm,
+                             "Getitem: indexDesc is nullptr at" + std::to_string(i) + ".");
         }
         return true;
     }
@@ -131,14 +128,10 @@ struct ProblemDescription : ProblemDescriptionBase
     bool IsValidDims() const
     {
         if(dimCount > 0)
-        {
-            for(int32_t i = 0; i < dimCount; ++i)
-            {
-                if((dims + i) == nullptr)
-                    MIOPEN_THROW(miopenStatusBadParm,
-                                 "Getitem: dims is nullptr at" + std::to_string(i) + ".");
-            }
-        }
+
+            if(dims == nullptr)
+                MIOPEN_THROW(miopenStatusBadParm,
+                             "Getitem: dims is nullptr at" + std::to_string(i) + ".");
         return true;
     }
 
@@ -146,12 +139,9 @@ struct ProblemDescription : ProblemDescriptionBase
     {
         if(sliceCount > 0)
         {
-            for(int32_t i = 0; i < sliceCount; ++i)
-            {
-                if((slices + i) == nullptr)
-                    MIOPEN_THROW(miopenStatusBadParm,
-                                 "Getitem: slices is nullptr at" + std::to_string(i) + ".");
-            }
+            if(slices == nullptr)
+                MIOPEN_THROW(miopenStatusBadParm,
+                             "Getitem: slices is nullptr at" + std::to_string(i) + ".");
         }
         return true;
     }
