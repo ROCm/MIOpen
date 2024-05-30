@@ -262,8 +262,17 @@ static std::vector<Solution> EvaluateInvokers(Handle& handle,
 
         try
         {
-            invoker(handle, invoke_ctx);
-            const auto elapsed = handle.GetKernelTime();
+            invoker(handle, invoke_ctx); // Dry-run once to warm-up.
+
+            constexpr int N_RUNS = 5;
+            using elapsed_t      = decltype(handle.GetKernelTime());
+            auto elapsed         = static_cast<elapsed_t>(0);
+            for(int i = 0; i < N_RUNS; ++i)
+            {
+                invoker(handle, invoke_ctx);
+                elapsed += handle.GetKernelTime();
+            }
+            elapsed /= static_cast<elapsed_t>(N_RUNS);
 
             MIOPEN_LOG_I(sol << ": " << elapsed << (elapsed < best ? " < " : " >= ") << best);
             if(elapsed < best)
