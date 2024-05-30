@@ -179,9 +179,9 @@ ConvSolution InitInvokerFactoryNHWC(const ExecutionContext&,
                                   sh_conv_ptr = std::shared_ptr{std::move(*ptr_iter)}](
                                      const std::vector<Kernel>&) mutable {
             return [ck_args                     = std::move(ck_args),
-                    alpha_beta_case             = std::move(alpha_beta_case),
-                    should_allocated_wrw_buffer = std::move(should_allocated_wrw_buffer),
-                    spatial_dim                 = std::move(spatial_dim),
+                    alpha_beta_case             = alpha_beta_case,
+                    should_allocated_wrw_buffer = should_allocated_wrw_buffer,
+                    spatial_dim                 = spatial_dim,
                     sh_conv_ptr                 = std::move(sh_conv_ptr)](
                        const Handle& handle, const AnyInvokeParams& primitive_parameters) {
                 const auto& data_ctx = primitive_parameters.CastTo<CastType>();
@@ -705,85 +705,85 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
         internal::MakeTaggedTransposeInstances<CKArgsType>(
             result, ctx, problem, ck_args, input1_op, input2_op, output_op, _ck_buff_des);
 
-    result.invoker_factory =
-        [ck_args             = std::move(ck_args),
-         sh_conv_ptr         = std::shared_ptr{std::move(*ptr_iter)},
-         input1_tr_inst      = std::move(_input1_tr_inst),
-         input2_tr_inst      = std::move(_input2_tr_inst),
-         output_tr_inst      = std::move(_output_tr_inst),
-         output_init_tr_inst = std::move(_output_init_tr_inst),
-         ck_buff_des = std::move(_ck_buff_des)](const std::vector<Kernel>& kernels) mutable {
-            return [kernels,
-                    ck_args             = std::move(ck_args),
-                    sh_conv_ptr         = std::move(sh_conv_ptr),
-                    input1_tr_inst      = std::move(input1_tr_inst),
-                    input2_tr_inst      = std::move(input2_tr_inst),
-                    output_tr_inst      = std::move(output_tr_inst),
-                    output_init_tr_inst = std::move(output_init_tr_inst),
-                    ck_buff_des         = std::move(ck_buff_des)](
-                       const Handle& handle, const AnyInvokeParams& primitive_parameters) mutable {
-                handle.ResetKernelTime();
+    result.invoker_factory = [ck_args             = std::move(ck_args),
+                              sh_conv_ptr         = std::shared_ptr{std::move(*ptr_iter)},
+                              input1_tr_inst      = std::move(_input1_tr_inst),
+                              input2_tr_inst      = std::move(_input2_tr_inst),
+                              output_tr_inst      = std::move(_output_tr_inst),
+                              output_init_tr_inst = std::move(_output_init_tr_inst),
+                              ck_buff_des =
+                                  _ck_buff_des](const std::vector<Kernel>& kernels) mutable {
+        return [kernels,
+                ck_args             = std::move(ck_args),
+                sh_conv_ptr         = std::move(sh_conv_ptr),
+                input1_tr_inst      = std::move(input1_tr_inst),
+                input2_tr_inst      = std::move(input2_tr_inst),
+                output_tr_inst      = std::move(output_tr_inst),
+                output_init_tr_inst = std::move(output_init_tr_inst),
+                ck_buff_des         = std::move(ck_buff_des)](
+                   const Handle& handle, const AnyInvokeParams& primitive_parameters) mutable {
+            handle.ResetKernelTime();
 
-                const auto& data_ctx = primitive_parameters.CastTo<CastType>();
+            const auto& data_ctx = primitive_parameters.CastTo<CastType>();
 
-                if(!data_ctx.workSpace)
-                {
-                    MIOPEN_THROW(miopenStatusInvalidValue, "workspace pointer is null");
-                }
+            if(!data_ctx.workSpace)
+            {
+                MIOPEN_THROW(miopenStatusInvalidValue, "workspace pointer is null");
+            }
 
-                input1_tr_inst.AssignBuffer(handle, data_ctx.workSpace);
-                input2_tr_inst.AssignBuffer(handle, data_ctx.workSpace);
-                output_tr_inst.AssignBuffer(handle, data_ctx.workSpace);
-                output_init_tr_inst.AssignBuffer(handle, data_ctx.workSpace);
+            input1_tr_inst.AssignBuffer(handle, data_ctx.workSpace);
+            input2_tr_inst.AssignBuffer(handle, data_ctx.workSpace);
+            output_tr_inst.AssignBuffer(handle, data_ctx.workSpace);
+            output_init_tr_inst.AssignBuffer(handle, data_ctx.workSpace);
 
-                // conversion operator applied here to convert to ConvTensors
-                auto conv_tensors = ConvTensors(data_ctx.tensors);
+            // conversion operator applied here to convert to ConvTensors
+            auto conv_tensors = ConvTensors(data_ctx.tensors);
 
-                /// \todo remove this when DataInvokeParams stops swapping
-                // "in" and "out" tensors for backward pass
-                if(output_tr_inst.GetConvOperandTag() == internal::ConvOperandTag::Input)
-                {
-                    // this is backward pass, swap back input and output
-                    std::swap(conv_tensors.x, conv_tensors.y);
-                    std::swap(conv_tensors.xDesc, conv_tensors.yDesc);
-                }
-                HipEventProfiler pfr(handle);
-                input1_tr_inst.ConvertFrom(handle, kernels, conv_tensors);
+            /// \todo remove this when DataInvokeParams stops swapping
+            // "in" and "out" tensors for backward pass
+            if(output_tr_inst.GetConvOperandTag() == internal::ConvOperandTag::Input)
+            {
+                // this is backward pass, swap back input and output
+                std::swap(conv_tensors.x, conv_tensors.y);
+                std::swap(conv_tensors.xDesc, conv_tensors.yDesc);
+            }
+            HipEventProfiler pfr(handle);
+            input1_tr_inst.ConvertFrom(handle, kernels, conv_tensors);
 
-                input2_tr_inst.ConvertFrom(handle, kernels, conv_tensors);
+            input2_tr_inst.ConvertFrom(handle, kernels, conv_tensors);
 
-                output_init_tr_inst.ConvertFrom(handle, kernels, conv_tensors);
+            output_init_tr_inst.ConvertFrom(handle, kernels, conv_tensors);
 
-                /// \todo: Will need SetTensor() to properly zero out non-packed tensors
-                if(output_tr_inst.GetConvOperandTag() == internal::ConvOperandTag::Weights)
-                {
-                    output_tr_inst.ZeroOutBuffer();
-                }
+            /// \todo: Will need SetTensor() to properly zero out non-packed tensors
+            if(output_tr_inst.GetConvOperandTag() == internal::ConvOperandTag::Weights)
+            {
+                output_tr_inst.ZeroOutBuffer();
+            }
 
-                std::array<internal::TransposeInstanceTagged*, 3> tr_ptrs = {
-                    &input1_tr_inst, &input2_tr_inst, &output_tr_inst};
+            std::array<internal::TransposeInstanceTagged*, 3> tr_ptrs = {
+                &input1_tr_inst, &input2_tr_inst, &output_tr_inst};
 
-                // sort by tag in order: Input, Weights, Output
-                std::sort(tr_ptrs.begin(), tr_ptrs.end(), [](const auto& left, const auto& right) {
-                    return left->GetConvOperandTagAsInt() < right->GetConvOperandTagAsInt();
-                });
+            // sort by tag in order: Input, Weights, Output
+            std::sort(tr_ptrs.begin(), tr_ptrs.end(), [](const auto& left, const auto& right) {
+                return left->GetConvOperandTagAsInt() < right->GetConvOperandTagAsInt();
+            });
 
-                auto invoker_ptr  = sh_conv_ptr->MakeInvokerPointer();
-                auto argument_ptr = ck_args.MakeArgPtr(sh_conv_ptr,
-                                                       tr_ptrs[0]->GetBufferPtr(),
-                                                       tr_ptrs[1]->GetBufferPtr(),
-                                                       tr_ptrs[2]->GetBufferPtr());
-                if(ck_buff_des.has_value() && ck_buff_des->ck_size)
-                {
-                    auto buf_handle =
-                        handle.CreateSubBuffer(data_ctx.workSpace, ck_buff_des->ck_offset, 0);
-                    assert(buf_handle.get());
-                    sh_conv_ptr->SetWorkSpacePointer(argument_ptr.get(), buf_handle.get());
-                }
-                invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), false});
-                output_tr_inst.ConvertTo(handle, kernels, conv_tensors);
-            };
+            auto invoker_ptr  = sh_conv_ptr->MakeInvokerPointer();
+            auto argument_ptr = ck_args.MakeArgPtr(sh_conv_ptr,
+                                                   tr_ptrs[0]->GetBufferPtr(),
+                                                   tr_ptrs[1]->GetBufferPtr(),
+                                                   tr_ptrs[2]->GetBufferPtr());
+            if(ck_buff_des.has_value() && ck_buff_des->ck_size)
+            {
+                auto buf_handle =
+                    handle.CreateSubBuffer(data_ctx.workSpace, ck_buff_des->ck_offset, 0);
+                assert(buf_handle.get());
+                sh_conv_ptr->SetWorkSpacePointer(argument_ptr.get(), buf_handle.get());
+            }
+            invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), false});
+            output_tr_inst.ConvertTo(handle, kernels, conv_tensors);
         };
+    };
 
     result.workspace_sz = GetWorkspaceSizeLayoutTransformConv(problem);
 
