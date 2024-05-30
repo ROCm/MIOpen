@@ -512,7 +512,7 @@ typedef enum
     miopenActivationABS      = 5, /*!< Absolute value \f$abs(x)\f$ */
     miopenActivationPOWER = 6, /*!< Scaled and shifted power \f$(\alpha + \beta * x)^{gamma}\f$ */
     miopenActivationCLIPPEDRELU =
-        7, /*!< Clipped Rectified Linear Unit \f$ min(\alpha, max(0,x)) \f$ */
+        7,                     /*!< Clipped Rectified Linear Unit \f$ min(\alpha, max(0,x)) \f$ */
     miopenActivationLEAKYRELU =
         8, /*!< Leaky Rectified Linear Unit \f$ \alpha * x | x <= 0; x | x > 0 \f$ */
     miopenActivationELU =
@@ -6632,6 +6632,57 @@ miopenSoftMarginLossUnreducedBackward(miopenHandle_t handle,
                                       const void* dO,
                                       const miopenTensorDescriptor_t dIDesc,
                                       void* dI);
+
+/*! @brief Helper function to query the minimum workspace size required by the
+SoftMarginLossForward
+ * call
+ *
+ * @param [in]  handle              MIOpen Handle
+ * @param [in]  iDesc               Tensor descriptor for input tensor
+ * @param [in]  tDesc               Tensor descriptor for target tensor
+ * @param [in]  oDesc               Tensor descriptor for output tensor
+ * @param [in]  divisor             Divisor. Set to number of output tensor elements to get "mean",
+set to 1 to get "sum"
+ * @param [out] sizeInBytes         Pointer to data to return the minimum workspace size
+ * @return                          miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenGetSoftMarginLossForwardWorkspaceSize(miopenHandle_t handle,
+                                            const miopenTensorDescriptor_t iDesc,
+                                            const miopenTensorDescriptor_t tDesc,
+                                            const miopenTensorDescriptor_t oDesc,
+                                            const float divisor,
+                                            size_t* sizeInBytes);
+
+// TODO: merge both unreduced and reduced to 1 function like
+// https://github.com/moreh-dev/MIOpen/pull/20
+
+/*! @brief Execute a SoftMarginLoss forward layer with reduction
+ *
+ * @param handle                    MIOpen handle (input)
+ * @param workspace                 Address of the allocated workspace data (input)
+ * @param workspaceSizeInBytes      Size in bytes of the allocated workspace data (input)
+ * @param iDesc                     Tensor descriptor for input tensor (input)
+ * @param i                         Data tensor input (input)
+ * @param tDesc                     Tensor descriptor for target tensor (input)
+ * @param t                         Data tensor target (input)
+ * @param oDesc                     Tensor descriptor for output tensor (input)
+ * @param o                         Data tensor output (output)
+ * @param divisor                   Divisor. Set to number of output tensor elements to get
+ "mean",
+ * set to 1 to get "sum" (input)
+ * @return                          miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenSoftMarginLossForward(miopenHandle_t handle,
+                                                         void* workspace,
+                                                         size_t workspaceSizeInBytes,
+                                                         const miopenTensorDescriptor_t iDesc,
+                                                         const void* i,
+                                                         const miopenTensorDescriptor_t tDesc,
+                                                         const void* t,
+                                                         const miopenTensorDescriptor_t oDesc,
+                                                         void* o,
+                                                         const float divisor);
 
 /** @} */
 // CLOSEOUT LossFunction DOXYGEN GROUP

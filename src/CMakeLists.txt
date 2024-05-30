@@ -273,6 +273,7 @@ set( MIOpen_Source
     solver/pooling/backwardNd.cpp
     solver/reduce/forward_argmax.cpp
     solver/reduce/forward_sum.cpp
+    solver/softmarginloss/forward_reduced_softmarginloss.cpp
     solver/softmarginloss/backward_unreduced_softmarginloss.cpp
     solver/softmarginloss/forward_unreduced_softmarginloss.cpp
     solver/softmax/attn_softmax.cpp
@@ -461,6 +462,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenConvDirGenFwd.cl
         kernels/MIOpenGroupNorm.cpp
         kernels/MIOpenLayerNorm.cpp
+        kernels/MIOpenLossReduce.cpp
         kernels/MIOpenLRNBwd.cl
         kernels/MIOpenLRNFwd.cl
         kernels/MIOpenNeuron.cl

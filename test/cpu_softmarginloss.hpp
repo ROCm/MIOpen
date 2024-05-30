@@ -30,7 +30,7 @@
 #include <miopen/tensor_view_utils.hpp>
 
 template <class T>
-void cpu_softmarginloss_unreduced_forward(tensor<T> input, tensor<T>& ref_output, tensor<T> target)
+void cpu_softmarginloss_unreduced_forward(tensor<T> input, tensor<T> target, tensor<T>& ref_output)
 {
     auto input_numel = input.desc.GetElementSize();
     auto i_tv        = miopen::get_inner_expanded_tv<5>(input.desc);
@@ -64,6 +64,31 @@ void cpu_softmarginloss_unreduced_backward(tensor<T> input,
         T _dO                                  = dO[dO_tv.get_tensor_view_idx(idx)];
         ref_dI[dI_tv.get_tensor_view_idx(idx)] = -t / (exp(i * t) + 1) * _dO;
     });
+}
+
+template <class T>
+void cpu_softmarginloss_reduced_forward(tensor<T> input,
+                                        tensor<T> target,
+                                        tensor<T>& ref_output,
+                                        tensor<T>& ref_workspace,
+                                        float divisor)
+{
+    auto input_numel = input.desc.GetElementSize();
+    auto i_tv        = miopen::get_inner_expanded_tv<5>(input.desc);
+    auto t_tv        = miopen::get_inner_expanded_tv<5>(target.desc);
+
+    par_ford(input_numel)([&](size_t gid) {
+        tensor_layout_t<5> idx(i_tv, gid);
+        double i           = input[i_tv.get_tensor_view_idx(idx)];
+        double t           = target[t_tv.get_tensor_view_idx(idx)];
+        ref_workspace[gid] = log(1 + exp(-i * t));
+    });
+
+    double sum = 0;
+    for(int i = 0; i < input_numel; i++)
+        sum += ref_workspace[i];
+    sum /= divisor;
+    ref_output[0] = static_cast<T>(sum);
 }
 
 #endif

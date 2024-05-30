@@ -41,23 +41,37 @@ struct ForwardProblemDescription : ProblemDescriptionBase
 {
     ForwardProblemDescription(const TensorDescriptor& iDesc_,
                               const TensorDescriptor& tDesc_,
-                              const TensorDescriptor& oDesc_)
-        : iDesc(iDesc_), tDesc(tDesc_), oDesc(oDesc_)
+                              const TensorDescriptor& oDesc_,
+                              const float divisor_)
+        : iDesc(iDesc_), tDesc(tDesc_), oDesc(oDesc_), divisor(divisor_)
     {
         if(iDesc.GetType() != tDesc.GetType() || iDesc.GetType() != oDesc.GetType())
         {
             MIOPEN_THROW(miopenStatusBadParm, "SoftMarginLoss: Tensor types do not match.");
         }
-        if(iDesc.GetLengths() != tDesc.GetLengths() || iDesc.GetLengths() != oDesc.GetLengths())
+        if((iDesc.GetLengths() != tDesc.GetLengths()) ||
+           ((divisor == 0) && (iDesc.GetLengths() != oDesc.GetLengths())))
         {
             MIOPEN_THROW(miopenStatusBadParm,
                          "SoftMarginLoss: Tensor dimension lengths do not match.");
+        }
+        if((divisor != 0) && (divisor != 1) && (divisor != iDesc.GetElementSize()))
+        {
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "SoftMarginLoss: Divisor need to be 0 (no reduction), or 1 (sum "
+                         "reduction), or number of input tensor elements (mean reduction).");
+        }
+        if(divisor != 0 && oDesc.GetElementSize() != 1)
+        {
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "SoftMarginLoss: When doing reduction, output tensor size need to be 1");
         }
     }
 
     const TensorDescriptor& GetiDesc() const { return iDesc; }
     const TensorDescriptor& GettDesc() const { return tDesc; }
     const TensorDescriptor& GetoDesc() const { return oDesc; }
+    float Getdivisor() const { return divisor; }
 
     NetworkConfig MakeNetworkConfig() const override;
 
@@ -65,6 +79,7 @@ private:
     TensorDescriptor iDesc;
     TensorDescriptor tDesc;
     TensorDescriptor oDesc;
+    float divisor;
 };
 
 struct BackwardProblemDescription : ProblemDescriptionBase

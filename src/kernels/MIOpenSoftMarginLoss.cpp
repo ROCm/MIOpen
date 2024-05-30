@@ -95,3 +95,33 @@ extern "C" __global__ void SoftMarginLossUnreducedBackward5d(const INPUT_TYPE* _
     // instantiate the kernel
     softmarginlossunreducedbackward5d<INPUT_TYPE>(I, T, dO, dI, I_tv, T_tv, dO_tv, dI_tv);
 }
+
+template <typename DTYPE>
+__device__ void softmarginlossforward5d(const DTYPE* __restrict__ I,
+                                        const DTYPE* __restrict__ T,
+                                        DTYPE* __restrict__ lsum,
+                                        float divisor,
+                                        tensor_view_t<5> I_tv,
+                                        tensor_view_t<5> T_tv)
+{
+    const uint64_t gid = threadIdx.x + blockIdx.x * blockDim.x;
+
+    tensor_layout_t<5> idx(I_tv, gid);
+    if(idx.layout[0] >= I_tv.size[0])
+        return;
+
+    FLOAT_ACCUM i = CVT_FLOAT2ACCUM(I[I_tv.get_tensor_view_idx(idx)]);
+    FLOAT_ACCUM t = CVT_FLOAT2ACCUM(T[T_tv.get_tensor_view_idx(idx)]);
+    lsum[gid]     = CVT_ACCUM2FLOAT(log(1 + exp(-i * t)) / divisor);
+}
+
+extern "C" __global__ void SoftMarginLossForward5d(const INPUT_TYPE* __restrict__ I,
+                                                   const INPUT_TYPE* __restrict__ T,
+                                                   INPUT_TYPE* __restrict__ lsum,
+                                                   float divisor,
+                                                   tensor_view_t<5> I_tv,
+                                                   tensor_view_t<5> T_tv)
+{
+    // instantiate the kernel
+    softmarginlossforward5d<INPUT_TYPE>(I, T, lsum, divisor, I_tv, T_tv);
+}

@@ -75,3 +75,51 @@ miopenSoftMarginLossUnreducedBackward(miopenHandle_t handle,
                                                 DataCast(dI));
     });
 }
+
+extern "C" miopenStatus_t
+miopenGetSoftMarginLossForwardWorkspaceSize(miopenHandle_t handle,
+                                            const miopenTensorDescriptor_t iDesc,
+                                            const miopenTensorDescriptor_t tDesc,
+                                            const miopenTensorDescriptor_t oDesc,
+                                            const float divisor,
+                                            size_t* sizeInBytes)
+{
+    MIOPEN_LOG_FUNCTION(handle, iDesc);
+
+    return miopen::try_([&] {
+        miopen::deref(sizeInBytes) =
+            miopen::GetSoftMarginLossForwardWorkspaceSize(miopen::deref(handle),
+                                                          miopen::deref(iDesc),
+                                                          miopen::deref(tDesc),
+                                                          miopen::deref(oDesc),
+                                                          divisor);
+    });
+}
+
+extern "C" miopenStatus_t miopenSoftMarginLossForward(miopenHandle_t handle,
+                                                      void* workspace,
+                                                      size_t workspaceSizeInBytes,
+                                                      const miopenTensorDescriptor_t iDesc,
+                                                      const void* i,
+                                                      const miopenTensorDescriptor_t tDesc,
+                                                      const void* t,
+                                                      const miopenTensorDescriptor_t oDesc,
+                                                      void* o,
+                                                      const float divisor)
+{
+    MIOPEN_LOG_FUNCTION(
+        handle, workspace, workspaceSizeInBytes, iDesc, i, tDesc, t, oDesc, o, divisor);
+
+    return miopen::try_([&] {
+        miopen::SoftMarginLossForward(miopen::deref(handle),
+                                      DataCast(workspace),
+                                      workspaceSizeInBytes,
+                                      miopen::deref(iDesc),
+                                      DataCast(i),
+                                      miopen::deref(tDesc),
+                                      DataCast(t),
+                                      miopen::deref(oDesc),
+                                      DataCast(o),
+                                      divisor);
+    });
+}

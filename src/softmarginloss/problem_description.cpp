@@ -41,6 +41,7 @@ NetworkConfig ForwardProblemDescription::MakeNetworkConfig() const
     auto ilen = iDesc.GetLengths();
     for(int32_t i = 0; i < ilen.size(); i++)
         ss << ilen[i] << "_";
+    ss << "divisor" << divisor;
     return NetworkConfig{ss.str()};
 }
 

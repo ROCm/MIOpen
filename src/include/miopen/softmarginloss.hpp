@@ -52,5 +52,21 @@ miopenStatus_t SoftMarginLossUnreducedBackward(Handle& handle,
                                                const TensorDescriptor& dIDesc,
                                                Data_t dI);
 
+std::size_t GetSoftMarginLossForwardWorkspaceSize(Handle& handle,
+                                                  const TensorDescriptor& iDesc,
+                                                  const TensorDescriptor& tDesc,
+                                                  const TensorDescriptor& oDesc,
+                                                  float divisor);
+
+miopenStatus_t SoftMarginLossForward(Handle& handle,
+                                     Data_t workspace,
+                                     size_t workspaceSizeInBytes,
+                                     const TensorDescriptor& iDesc,
+                                     ConstData_t i,
+                                     const TensorDescriptor& tDesc,
+                                     ConstData_t t,
+                                     const TensorDescriptor& oDesc,
+                                     Data_t o,
+                                     float divisor);
 } // namespace miopen
 #endif // _MIOPEN_SOFTMARGINLOSS_HPP_

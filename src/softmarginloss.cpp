@@ -43,7 +43,7 @@ miopenStatus_t SoftMarginLossUnreducedForward(Handle& handle,
                                               const TensorDescriptor& oDesc,
                                               Data_t o)
 {
-    const auto problem = softmarginloss::ForwardProblemDescription{iDesc, tDesc, oDesc};
+    const auto problem = softmarginloss::ForwardProblemDescription{iDesc, tDesc, oDesc, 0};
 
     const auto invoke_params = [&]() {
         auto tmp  = softmarginloss::InvokeParams{};
@@ -101,4 +101,56 @@ miopenStatus_t SoftMarginLossUnreducedBackward(Handle& handle,
     return miopenStatusSuccess;
 }
 
+std::size_t GetSoftMarginLossForwardWorkspaceSize(Handle& handle,
+                                                  const TensorDescriptor& iDesc,
+                                                  const TensorDescriptor& tDesc,
+                                                  const TensorDescriptor& oDesc,
+                                                  float divisor)
+{
+    auto ctx           = ExecutionContext{&handle};
+    const auto problem = softmarginloss::ForwardProblemDescription{iDesc, tDesc, oDesc, divisor};
+
+    const auto algo    = AlgorithmName{"SoftMarginLossForward"};
+    const auto solvers = solver::SolverContainer<solver::softmarginloss::SoftMarginLossForward>{};
+
+    auto pair_size_vector = solvers.GetWorkspaceSizes(ctx, problem);
+
+    return pair_size_vector.empty() ? static_cast<size_t>(-1) : pair_size_vector.front().second;
+}
+
+miopenStatus_t SoftMarginLossForward(Handle& handle,
+                                     Data_t workspace,
+                                     size_t workspaceSizeInBytes,
+                                     const TensorDescriptor& iDesc,
+                                     ConstData_t i,
+                                     const TensorDescriptor& tDesc,
+                                     ConstData_t t,
+                                     const TensorDescriptor& oDesc,
+                                     Data_t o,
+                                     const float divisor)
+{
+    const auto problem = softmarginloss::ForwardProblemDescription{iDesc, tDesc, oDesc, divisor};
+
+    const auto invoke_params = [&]() {
+        auto tmp           = softmarginloss::InvokeParams{};
+        tmp.type           = InvokeType::Run;
+        tmp.iDesc          = &iDesc;
+        tmp.i              = i;
+        tmp.tDesc          = &tDesc;
+        tmp.t              = t;
+        tmp.oDesc          = &oDesc;
+        tmp.o              = o;
+        tmp.workspace      = workspace;
+        tmp.workspace_size = workspaceSizeInBytes;
+        tmp.divisor        = divisor;
+        return tmp;
+    }();
+
+    const auto algo    = AlgorithmName{"SoftMarginLossForward"};
+    const auto solvers = solver::SolverContainer<solver::softmarginloss::SoftMarginLossForward>{};
+
+    solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
+
+    return miopenStatusSuccess;
+}
 } // namespace miopen

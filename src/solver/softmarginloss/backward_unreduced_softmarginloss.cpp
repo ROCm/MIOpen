@@ -53,8 +53,7 @@ ConvSolution SoftMarginLossUnreducedBackward::GetSolution(
 {
     auto result = ConvSolution{miopenStatusSuccess};
 
-    auto i_dtype = miopen::GetDataType(problem.GetiDesc().GetType());
-    auto elem    = problem.GetdIDesc().GetElementSize();
+    auto elem = problem.GetdIDesc().GetElementSize();
 
     {
         auto dtype        = problem.GetiDesc().GetType();
@@ -72,12 +71,11 @@ ConvSolution SoftMarginLossUnreducedBackward::GetSolution(
         const auto build_params = KernelBuildParameters{
             {"MIOPEN_USE_FP16", static_cast<int32_t>(dtype == miopenHalf)},
             {"MIOPEN_USE_FP32", static_cast<int32_t>(dtype == miopenFloat)},
-            {"MIOPEN_USE_FP64", static_cast<int32_t>(dtype == miopenDouble)},
             {"MIOPEN_USE_BFP16", static_cast<int32_t>(dtype == miopenBFloat16)},
             {"INPUT_TYPE",
-             (i_dtype == "bfloat16") ? "ushort"
-             : (i_dtype == "half")   ? "_Float16"
-                                     : i_dtype},
+             (dtype == miopenBFloat16) ? "ushort"
+             : (dtype == miopenHalf)   ? "_Float16"
+                                       : "float"},
         };
 
         kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
