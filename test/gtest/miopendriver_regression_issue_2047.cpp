@@ -72,7 +72,7 @@ void RunMIOpenDriver()
                         IsTestSupportedForDevice() &&
                         (miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_TEST_FLOAT_ARG)) == "--float" ||
                          miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_TEST_FLOAT_ARG)) == "--half" ||
-                         miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_TEST_FLOAT_ARG)) == "--bf16" ||
+                         miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_TEST_FLOAT_ARG)) == "--bfloat16 " ||
                          miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_TEST_FLOAT_ARG)) == "--int8");
 
     if(!runTestSuite)
