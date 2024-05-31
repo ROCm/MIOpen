@@ -47,7 +47,7 @@ struct FwdInvokeParams : public miopen::InvokeParams
     Data_t y        = nullptr;
 
     std::size_t GetWorkspaceSize() const { return 0; }
-    Data_t GetWorkspace() const { return 0; }
+    Data_t GetWorkspace() const { return nullptr; }
 };
 
 struct BwdInvokeParams : public miopen::InvokeParams
@@ -65,7 +65,7 @@ struct BwdInvokeParams : public miopen::InvokeParams
     Data_t dx       = nullptr;
 
     std::size_t GetWorkspaceSize() const { return 0; }
-    Data_t GetWorkspace() const { return 0; }
+    Data_t GetWorkspace() const { return nullptr; }
 };
 
 } // namespace rope
