@@ -47,7 +47,6 @@ private:
     EngineCfg mEngineCfg;
     miopenHandle_t mHandle = nullptr;
     std::vector<int64_t> mIntermediateIds;
-    int64_t mWorkspaceSize = 0;
 
     friend class ExecutionPlanBuilder;
 
@@ -62,10 +61,18 @@ public:
     const EngineCfg& getEngineCfg() const noexcept { return mEngineCfg; }
     EngineCfg& getEngineCfg() noexcept { return mEngineCfg; }
     const std::vector<int64_t>& getIntermediateIds() const noexcept { return mIntermediateIds; }
-    int64_t getWorkspaceSize() const { return mWorkspaceSize; }
     std::string getJsonRepresentation() const;
 
-    void execute(const VariantPack& variantPack);
+    void execute(miopenHandle_t handle, const VariantPack& variantPack)
+    {
+        checkPtr(handle);
+        mEngineCfg.getEngine().getExecutor()->execute(handle, variantPack);
+    }
+
+    size_t getWorkspaceSize() const
+    {
+        return mEngineCfg.getEngine().getExecutor()->getWorkspaceSize();
+    }
 };
 
 class ExecutionPlanBuilder

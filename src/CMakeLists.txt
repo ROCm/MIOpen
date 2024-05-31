@@ -130,6 +130,7 @@ set( MIOpen_Source
     graphapi/enginecfg.cpp
     graphapi/engineheur.cpp
     graphapi/execution_plan.cpp
+    graphapi/find_engine.cpp
     graphapi/graphapi.cpp
     graphapi/matmul.cpp
     graphapi/opgraph.cpp
