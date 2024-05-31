@@ -6634,8 +6634,7 @@ miopenSoftMarginLossUnreducedBackward(miopenHandle_t handle,
                                       void* dI);
 
 /*! @brief Helper function to query the minimum workspace size required by the
-SoftMarginLossForward
- * call
+SoftMarginLossForward call
  *
  * @param [in]  handle              MIOpen Handle
  * @param [in]  iDesc               Tensor descriptor for input tensor

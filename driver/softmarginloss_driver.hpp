@@ -63,8 +63,8 @@ int32_t mloSoftMarginLossUnreducedForwardRunHost(miopenTensorDescriptor_t inputD
         tensor_layout_t<5> idx(i_tv, gid);
         if(idx.layout[0] >= i_tv.size[0])
             continue;
-        Tgpu i                                    = input[i_tv.get_tensor_view_idx(idx)];
-        Tgpu t                                    = target[t_tv.get_tensor_view_idx(idx)];
+        Tcheck i                                  = input[i_tv.get_tensor_view_idx(idx)];
+        Tcheck t                                  = target[t_tv.get_tensor_view_idx(idx)];
         outputhost[o_tv.get_tensor_view_idx(idx)] = log(1 + exp(-i * t));
     }
     return ret;
@@ -120,9 +120,9 @@ int32_t mloSoftMarginLossUnreducedBackwardRunHost(miopenTensorDescriptor_t input
         tensor_layout_t<5> idx(i_tv, gid);
         if(idx.layout[0] >= i_tv.size[0])
             continue;
-        Tgpu i                                 = input[i_tv.get_tensor_view_idx(idx)];
-        Tgpu t                                 = target[t_tv.get_tensor_view_idx(idx)];
-        Tgpu _dO                               = dO[dO_tv.get_tensor_view_idx(idx)];
+        Tcheck i                               = input[i_tv.get_tensor_view_idx(idx)];
+        Tcheck t                               = target[t_tv.get_tensor_view_idx(idx)];
+        Tcheck _dO                             = dO[dO_tv.get_tensor_view_idx(idx)];
         dIhost[dI_tv.get_tensor_view_idx(idx)] = -t / (exp(i * t) + 1) * _dO;
     }
     return ret;

@@ -39,8 +39,9 @@ void cpu_softmarginloss_unreduced_forward(tensor<T> input, tensor<T> target, ten
 
     par_ford(input_numel)([&](size_t gid) {
         tensor_layout_t<5> idx(i_tv, gid);
-        T i                                       = input[i_tv.get_tensor_view_idx(idx)];
-        T t                                       = target[t_tv.get_tensor_view_idx(idx)];
+        // Convert to float for better precision
+        float i                                   = input[i_tv.get_tensor_view_idx(idx)];
+        float t                                   = target[t_tv.get_tensor_view_idx(idx)];
         ref_output[o_tv.get_tensor_view_idx(idx)] = log(1 + exp(-i * t));
     });
 }
@@ -59,9 +60,10 @@ void cpu_softmarginloss_unreduced_backward(tensor<T> input,
 
     par_ford(input_numel)([&](size_t gid) {
         tensor_layout_t<5> idx(i_tv, gid);
-        T i                                    = input[i_tv.get_tensor_view_idx(idx)];
-        T t                                    = target[t_tv.get_tensor_view_idx(idx)];
-        T _dO                                  = dO[dO_tv.get_tensor_view_idx(idx)];
+        // Convert to float for better precision
+        float i                                = input[i_tv.get_tensor_view_idx(idx)];
+        float t                                = target[t_tv.get_tensor_view_idx(idx)];
+        float _dO                              = dO[dO_tv.get_tensor_view_idx(idx)];
         ref_dI[dI_tv.get_tensor_view_idx(idx)] = -t / (exp(i * t) + 1) * _dO;
     });
 }
@@ -81,6 +83,7 @@ void cpu_softmarginloss_reduced_forward(tensor<T> input,
         tensor_layout_t<5> idx(i_tv, gid);
         if(idx.layout[0] >= i_tv.size[0])
             return;
+        // Convert to double for better precision
         double i           = input[i_tv.get_tensor_view_idx(idx)];
         double t           = target[t_tv.get_tensor_view_idx(idx)];
         ref_workspace[gid] = log(1 + exp(-i * t));
@@ -105,6 +108,7 @@ void cpu_softmarginloss_reduced_backward(
 
     par_ford(input_numel)([&](size_t gid) {
         tensor_layout_t<5> idx(i_tv, gid);
+        // Convert to float for better precision
         float i                                = input[i_tv.get_tensor_view_idx(idx)];
         float t                                = target[t_tv.get_tensor_view_idx(idx)];
         float _dO                              = dO[dO_tv.get_tensor_view_idx(idx)];
