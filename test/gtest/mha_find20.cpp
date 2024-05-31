@@ -47,7 +47,7 @@
 
 using namespace miopen;
 
-// This values should be syncronized with order of std::variant tensorVariant types
+// support only two types for now
 namespace 
 {
     enum TensorType
@@ -83,12 +83,12 @@ struct TensorStruct
 
     void GpuRead(Handle& handle)
     {
-        if (tensorVariant.index() == TensorType::Float)
+        if (std::holds_alternative<tensor<float>>(tensorVariant))
         {
             auto t = std::get<tensor<float>>(tensorVariant);
             t.data  = handle.Read<float>(gpuBuffer, t.data.size());
         }
-        else if (tensorVariant.index() == TensorType::Int64)
+        else if (std::holds_alternative<tensor<int64_t>>(tensorVariant))
         {
             auto t = std::get<tensor<int64_t>>(tensorVariant);
             t.data  = handle.Read<int64_t>(gpuBuffer, t.data.size());
@@ -101,37 +101,58 @@ struct TensorStruct
 
     void GpuWrite(Handle& handle)
     {
-/*        boost::apply_visitor(
-            boost::hof::match(
-                [&](const tensor<float>& tensorFloat) {
-                    gpuBuffer = handle.Write(tensorFloat.data);
-                },
-                [&](const tensor<int64_t>& tensorInt64) {
-                    gpuBuffer = handle.Write(tensorInt64.data);
-                }
-            ), tensorVariant);                */
+        if (std::holds_alternative<tensor<float>>(tensorVariant))
+        {
+            auto t = std::get<tensor<float>>(tensorVariant);
+            gpuBuffer = handle.Write(t.data);
+        }
+        else if (std::holds_alternative<tensor<int64_t>>(tensorVariant))
+        {
+            auto t = std::get<tensor<int64_t>>(tensorVariant);
+            gpuBuffer = handle.Write(t.data);
+        }
+        else
+        {
+            assert(false);
+        }           
     }
 
-    void InitWithRandomFloat()
+    void InitWithRandom()
     {
-        //std::get<tensor<float>>(tensorVariant) = std::move(tensorFloat);
+        if (std::holds_alternative<tensor<float>>(tensorVariant))
+        {
+            auto t = std::get<tensor<float>>(tensorVariant);
+            t.generate(tensor_elem_gen_integer{17});
+        }
+        else if (std::holds_alternative<tensor<int64_t>>(tensorVariant))
+        {
+            auto t = std::get<tensor<int64_t>>(tensorVariant);
+            t.generate(tensor_elem_gen_integer{17});
+        }
+        else
+        {
+            assert(false);
+        }           
     }
 
     void InitWithFloatValue(float val)
     {
+        assert(std::holds_alternative<tensor<float>>(tensorVariant));
         std::get<tensor<float>>(tensorVariant).generate([=](auto...) { return val; });
     }
 
     void InitWithInt64Value(int64_t val)
     {
+        assert(std::holds_alternative<tensor<int64_t>>(tensorVariant));
         std::get<tensor<int64_t>>(tensorVariant).generate([=](auto...) { return val; });
     }
 
+    // helper function for cases when we know exactly that given tensor is float
     tensor<float>& GetFloatTensor() {return std::get<tensor<float>>(tensorVariant);}
 
     TensorDescriptor& GetTensorDescriptor()
     {
-        if (tensorVariant.index() == TensorType::Float)
+        if (std::holds_alternative<tensor<float>>(tensorVariant))
         {
             return std::get<tensor<float>>(tensorVariant).desc;
         }
@@ -207,7 +228,7 @@ public:
         int i = 0;
         for(const auto& it : tensors)
         {
-            descVector[i] = &it.second->GetFloatTensor().desc;
+            descVector[i] = &it.second->GetTensorDescriptor();
 
             it.second->GpuWrite(handle);
 
@@ -334,9 +355,9 @@ private:
                                                       : miopenProblemDirectionBackward),
                      miopenStatusSuccess);
 
-        CreateTensor(miopenTensorMhaK, test_n, test_h, test_s, test_d).InitWithRandomFloat();
+        CreateTensor(miopenTensorMhaK, test_n, test_h, test_s, test_d).InitWithRandom();
 
-        CreateTensor(miopenTensorMhaV,test_n, test_h, test_s, test_d).InitWithRandomFloat();
+        CreateTensor(miopenTensorMhaV,test_n, test_h, test_s, test_d).InitWithRandom();
 
         CreateTensor(miopenTensorMhaDescaleK).InitWithFloatValue(1.0f);
         CreateTensor(miopenTensorMhaDescaleQ).InitWithFloatValue(1.0f);
@@ -351,7 +372,7 @@ private:
 
         if(isForward)
         {
-            CreateTensor(miopenTensorMhaQ, test_n, test_h, test_s, test_d).InitWithInt64Value(0);
+            CreateTensor(miopenTensorMhaQ, test_n, test_h, test_s, test_d).InitWithRandom();
 
             CreateTensor(miopenTensorMhaScaleO).InitWithFloatValue(1.0f);
             CreateTensor(miopenTensorMhaO, test_n, test_h, test_s, test_d);
@@ -364,20 +385,20 @@ private:
         {
             CreateTensor(miopenTensorMhaQ, test_n, test_h, test_s, test_d).InitWithFloatValue(0.0f);
 
-            CreateTensor(miopenTensorMhaO, test_n, test_h, test_s, test_d).InitWithRandomFloat();
+            CreateTensor(miopenTensorMhaO, test_n, test_h, test_s, test_d).InitWithRandom();
 
-            CreateTensor(miopenTensorMhaDO, test_n, test_h, test_s, test_d).InitWithRandomFloat();;
+            CreateTensor(miopenTensorMhaDO, test_n, test_h, test_s, test_d).InitWithRandom();;
 
             CreateTensor(miopenTensorMhaM, test_n, test_h, test_s, 1).InitWithFloatValue(0.0f);
             CreateTensor(miopenTensorMhaZInv, test_n, test_h, test_s, 1).InitWithFloatValue(1.0f);
 
-            CreateTensor(miopenTensorMhaDescaleO).InitWithRandomFloat();
-            CreateTensor(miopenTensorMhaDescaleDO).InitWithRandomFloat();
-            CreateTensor(miopenTensorMhaDescaleDS).InitWithRandomFloat();
-            CreateTensor(miopenTensorMhaScaleDS).InitWithRandomFloat();
-            CreateTensor(miopenTensorMhaScaleDQ).InitWithRandomFloat();
-            CreateTensor(miopenTensorMhaScaleDK).InitWithRandomFloat();
-            CreateTensor(miopenTensorMhaScaleDV).InitWithRandomFloat();
+            CreateTensor(miopenTensorMhaDescaleO).InitWithRandom();
+            CreateTensor(miopenTensorMhaDescaleDO).InitWithRandom();
+            CreateTensor(miopenTensorMhaDescaleDS).InitWithRandom();
+            CreateTensor(miopenTensorMhaScaleDS).InitWithRandom();
+            CreateTensor(miopenTensorMhaScaleDQ).InitWithRandom();
+            CreateTensor(miopenTensorMhaScaleDK).InitWithRandom();
+            CreateTensor(miopenTensorMhaScaleDV).InitWithRandom();
 
             CreateTensor(miopenTensorMhaDQ, test_n, test_h, test_s, test_d);
             CreateTensor(miopenTensorMhaDK, test_n, test_h, test_s, test_d);
