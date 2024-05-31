@@ -142,10 +142,10 @@ bin/speedtest_sequences --mode tmpl
 for field and template argument stored pointers respectively.
 
 Examples of real life usages may be found in:
-    src/solver/conv_asm_1x1u.cpp
-    src/solver/conv_asm_3x3u.cpp
-    src/solver/conv_asm_dir_BwdWrW1x1.cpp
-    src/solver/conv_asm_dir_BwdWrW3x3.cpp
+    src/solver/conv/conv_asm_1x1u.cpp
+    src/solver/conv/conv_asm_3x3u.cpp
+    src/solver/conv/conv_asm_dir_BwdWrW1x1.cpp
+    src/solver/conv/conv_asm_dir_BwdWrW3x3.cpp
 
 Rule class is not required to use RuleSet via MakeRuleSet or sequences directly mostly it's like a
 sequence but operating a specified field of a class and contains several helper methods.
