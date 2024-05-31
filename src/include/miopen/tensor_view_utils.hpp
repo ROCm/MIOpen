@@ -23,14 +23,14 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#pragma once
 
-#include "../src/kernels/tensor_view.hpp"
-#include <miopen/rope/solvers.hpp>
+#ifndef MIOPEN_TENSOR_VIEW_UTIL_HPP_
+#define MIOPEN_TENSOR_VIEW_UTIL_HPP_
+
+#include <miopen/common.hpp>
+#include "../../kernels/tensor_view.hpp"
 
 namespace miopen {
-namespace solver {
-namespace rope {
 
 template <int N>
 inline tensor_view_t<N> get_inner_expanded_tv(const TensorDescriptor Desc)
@@ -55,6 +55,6 @@ inline tensor_view_t<N> get_inner_expanded_tv(const TensorDescriptor Desc)
     return tensor_view;
 }
 
-} // namespace rope
-} // namespace solver
 } // namespace miopen
+
+#endif // MIOPEN_TENSOR_REORDER_UTIL_HPP_

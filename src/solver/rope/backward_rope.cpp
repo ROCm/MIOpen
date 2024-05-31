@@ -29,8 +29,8 @@
 #include <miopen/kernel_build_params.hpp>
 #include <miopen/rope/invoke_params.hpp>
 #include <miopen/rope/solvers.hpp>
-#include <miopen/rope/utils.hpp>
 #include <miopen/target_properties.hpp>
+#include <miopen/tensor_view_utils.hpp>
 
 #define LOCAL_SIZE 256
 

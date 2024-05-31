@@ -25,7 +25,6 @@
  *******************************************************************************/
 
 #include "../driver/tensor_driver.hpp"
-#include "../src/include/miopen/rope/utils.hpp"
 #include "get_handle.hpp"
 #include "random.hpp"
 #include "tensor_holder.hpp"
@@ -33,6 +32,7 @@
 #include <gtest/gtest.h>
 #include <miopen/rope.hpp>
 #include <miopen/miopen.h>
+#include <miopen/tensor_view_utils.hpp>
 
 template <class T>
 void cpu_rope_forward(tensor<T> x, tensor<T> cos, tensor<T> sin, tensor<T>& ref_y)
@@ -41,10 +41,10 @@ void cpu_rope_forward(tensor<T> x, tensor<T> cos, tensor<T> sin, tensor<T>& ref_
     auto y_dims  = ref_y.desc.GetLengths();
     auto y_numel = std::accumulate(y_dims.begin(), y_dims.end(), 1L, std::multiplies<int64_t>());
 
-    auto x_tv     = miopen::solver::rope::get_inner_expanded_tv<4>(x.desc);
-    auto cos_tv   = miopen::solver::rope::get_inner_expanded_tv<3>(cos.desc);
-    auto sin_tv   = miopen::solver::rope::get_inner_expanded_tv<3>(sin.desc);
-    auto ref_y_tv = miopen::solver::rope::get_inner_expanded_tv<4>(ref_y.desc);
+    auto x_tv     = miopen::get_inner_expanded_tv<4>(x.desc);
+    auto cos_tv   = miopen::get_inner_expanded_tv<3>(cos.desc);
+    auto sin_tv   = miopen::get_inner_expanded_tv<3>(sin.desc);
+    auto ref_y_tv = miopen::get_inner_expanded_tv<4>(ref_y.desc);
 
     par_ford(y_numel)([&](size_t o) {
         tensor_layout_t<4> ncdhw(x_tv, o);
@@ -77,10 +77,10 @@ void cpu_rope_backward(tensor<T> dy, tensor<T> cos, tensor<T> sin, tensor<T>& re
     auto rotary_numel =
         std::accumulate(cos_dims.begin(), cos_dims.end(), 1L, std::multiplies<int64_t>());
 
-    auto dy_tv     = miopen::solver::rope::get_inner_expanded_tv<4>(dy.desc);
-    auto cos_tv    = miopen::solver::rope::get_inner_expanded_tv<3>(cos.desc);
-    auto sin_tv    = miopen::solver::rope::get_inner_expanded_tv<3>(sin.desc);
-    auto ref_dx_tv = miopen::solver::rope::get_inner_expanded_tv<4>(ref_dx.desc);
+    auto dy_tv     = miopen::get_inner_expanded_tv<4>(dy.desc);
+    auto cos_tv    = miopen::get_inner_expanded_tv<3>(cos.desc);
+    auto sin_tv    = miopen::get_inner_expanded_tv<3>(sin.desc);
+    auto ref_dx_tv = miopen::get_inner_expanded_tv<4>(ref_dx.desc);
 
     par_ford(dx_numel)([&](size_t o) {
         tensor_layout_t<4> ncdhw(dy_tv, o);
@@ -150,7 +150,25 @@ std::vector<RoPETestCase> RoPETestConfigs()
 { // n c d h w
     // clang-format off
     return {
-        { 4,  512,   0,  6,  64}
+        { 4,  512, 0, 6, 64},
+        { 8,  512, 0, 6, 64},
+        { 16, 512, 0, 6, 64},
+        { 32, 512, 0, 6, 64},
+        { 4,  256, 0, 6, 64},
+        { 4,  128, 0, 6, 64},
+        { 4,  64,  0, 6,  64},
+        { 4,  512, 0, 6, 128},
+        { 4,  512, 0, 6, 256},
+        { 4,  512, 0, 6, 512},
+        { 4,  512, 0, 3, 384},
+        { 8,  512, 0, 3, 384},
+        { 16, 512, 0, 3, 384},
+        { 32, 512, 0, 3, 384},
+        { 32, 256, 0, 3, 384},
+        { 32, 128, 0, 3, 384},
+        { 32, 64,  0, 3, 384},
+        { 32, 512, 0, 3, 192},
+        { 32, 512, 0, 3, 768}
       };
     // clang-format on
 }

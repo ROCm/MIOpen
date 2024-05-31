@@ -37,11 +37,11 @@
 #include <memory>
 #include <miopen/miopen.h>
 #include <miopen/tensor.hpp>
+#include <miopen/tensor_view_utils.hpp>
 #include <numeric>
 #include <vector>
 #include <../test/tensor_holder.hpp>
 #include <../test/verify.hpp>
-#include "../src/include/miopen/rope/utils.hpp"
 
 template <typename Tgpu, typename Tcheck>
 int32_t mloRoPEForwardRunHost(miopenTensorDescriptor_t xDesc,
@@ -57,10 +57,10 @@ int32_t mloRoPEForwardRunHost(miopenTensorDescriptor_t xDesc,
     auto y_dims  = miopen::deref(yDesc).GetLengths();
     auto y_numel = std::accumulate(y_dims.begin(), y_dims.end(), 1LL, std::multiplies<int64_t>());
 
-    auto x_tv     = miopen::solver::rope::get_inner_expanded_tv<4>(miopen::deref(xDesc));
-    auto cos_tv   = miopen::solver::rope::get_inner_expanded_tv<3>(miopen::deref(cosDesc));
-    auto sin_tv   = miopen::solver::rope::get_inner_expanded_tv<3>(miopen::deref(sinDesc));
-    auto yhost_tv = miopen::solver::rope::get_inner_expanded_tv<4>(miopen::deref(yDesc));
+    auto x_tv     = miopen::get_inner_expanded_tv<4>(miopen::deref(xDesc));
+    auto cos_tv   = miopen::get_inner_expanded_tv<3>(miopen::deref(cosDesc));
+    auto sin_tv   = miopen::get_inner_expanded_tv<3>(miopen::deref(sinDesc));
+    auto yhost_tv = miopen::get_inner_expanded_tv<4>(miopen::deref(yDesc));
 
     int32_t ret = 0;
 
@@ -106,10 +106,10 @@ int32_t mloRoPEBackwardRunHost(miopenTensorDescriptor_t dyDesc,
     auto rotary_numel =
         std::accumulate(cos_dims.begin(), cos_dims.end(), 1LL, std::multiplies<int64_t>());
 
-    auto dy_tv     = miopen::solver::rope::get_inner_expanded_tv<4>(miopen::deref(dyDesc));
-    auto cos_tv    = miopen::solver::rope::get_inner_expanded_tv<3>(miopen::deref(cosDesc));
-    auto sin_tv    = miopen::solver::rope::get_inner_expanded_tv<3>(miopen::deref(sinDesc));
-    auto dxhost_tv = miopen::solver::rope::get_inner_expanded_tv<4>(miopen::deref(dxDesc));
+    auto dy_tv     = miopen::get_inner_expanded_tv<4>(miopen::deref(dyDesc));
+    auto cos_tv    = miopen::get_inner_expanded_tv<3>(miopen::deref(cosDesc));
+    auto sin_tv    = miopen::get_inner_expanded_tv<3>(miopen::deref(sinDesc));
+    auto dxhost_tv = miopen::get_inner_expanded_tv<4>(miopen::deref(dxDesc));
 
     int32_t ret = 0;
 
