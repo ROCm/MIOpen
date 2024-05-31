@@ -63,7 +63,7 @@ void cpu_rope_forward(tensor<T> x, tensor<T> cos, tensor<T> sin, tensor<T>& ref_
 
         T val = (input * cos_val) + (input_rotate_half * sin_val);
 
-        ref_y[ref_y_tv.get_tensor_view_idx(ncdhw)] = input;
+        ref_y[ref_y_tv.get_tensor_view_idx(ncdhw)] = val;
     });
 }
 

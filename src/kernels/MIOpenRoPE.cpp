@@ -60,9 +60,9 @@ __device__ void ropefwdcontiguous(const TI* __restrict__ x,
     FLOAT_ACCUM cos_val = CVT_FLOAT2ACCUM(cos[cos_tv.get_tensor_view_idx(ncw)]);
     FLOAT_ACCUM sin_val = CVT_FLOAT2ACCUM(sin[sin_tv.get_tensor_view_idx(ncw)]);
 
-    FLOAT_ACCUM val = (input * cos_val); // + (input_rotate_half * sin_val);
+    FLOAT_ACCUM val = (input * cos_val) + (input_rotate_half * sin_val);
 
-    y[y_tv.get_tensor_view_idx(ncdhw)] = CVT_ACCUM2FLOAT(input);
+    y[y_tv.get_tensor_view_idx(ncdhw)] = CVT_ACCUM2FLOAT(val);
 }
 
 template <typename TI, typename TO>
