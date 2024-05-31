@@ -24,7 +24,9 @@ function(add_gtest TEST_NAME TEST_CPP)
   if(MIOPEN_ENABLE_AI_KERNEL_TUNING)
     target_link_libraries(${TEST_NAME} frugally-deep::fdeep Eigen3::Eigen)
   endif()
-  target_link_libraries(${TEST_NAME} GTest::gtest GTest::gtest_main MIOpen ${Boost_LIBRARIES} hip::host $<BUILD_INTERFACE:roc::rocblas>)
+  # Workaround : change in rocm-cmake was causing linking error so had to add ${CMAKE_DL_LIBS} 
+  #               We can remove ${CMAKE_DL_LIBS} once root cause is identified.
+  target_link_libraries(${TEST_NAME} ${CMAKE_DL_LIBS} GTest::gtest GTest::gtest_main MIOpen ${Boost_LIBRARIES} hip::host $<BUILD_INTERFACE:roc::rocblas> )
   if(NOT MIOPEN_EMBED_DB STREQUAL "")
       target_link_libraries(${TEST_NAME} $<BUILD_INTERFACE:miopen_data>)
   endif()
