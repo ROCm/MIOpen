@@ -37,73 +37,52 @@
 template <class T>
 void cpu_rope_forward(tensor<T> x, tensor<T> cos, tensor<T> sin, tensor<T>& ref_y)
 {
-    auto x_dims  = x.desc.GetLengths();
-    auto y_dims  = ref_y.desc.GetLengths();
-    auto y_numel = std::accumulate(y_dims.begin(), y_dims.end(), 1L, std::multiplies<int64_t>());
+    auto x_dims   = x.desc.GetLengths();
+    auto cos_dims = cos.desc.GetLengths();
+    auto input_numel =
+        std::accumulate(x_dims.begin(), x_dims.end(), 1L, std::multiplies<int64_t>());
+    auto rotary_numel =
+        std::accumulate(cos_dims.begin(), cos_dims.end(), 1L, std::multiplies<int64_t>());
 
-    auto x_tv     = miopen::get_inner_expanded_tv<4>(x.desc);
-    auto cos_tv   = miopen::get_inner_expanded_tv<3>(cos.desc);
-    auto sin_tv   = miopen::get_inner_expanded_tv<3>(sin.desc);
-    auto ref_y_tv = miopen::get_inner_expanded_tv<4>(ref_y.desc);
+    par_ford(input_numel)([&](size_t o) {
+        size_t freq_idx = o % rotary_numel;
 
-    par_ford(y_numel)([&](size_t o) {
-        tensor_layout_t<4> ncdhw(x_tv, o);
+        T input             = static_cast<T>(x[o]);
+        T input_rotate_half = (o % 2 == 0) ? static_cast<T>(-x[o + 1]) : static_cast<T>(x[o - 1]);
 
-        T input = static_cast<T>(x[x_tv.get_tensor_view_idx(ncdhw)]);
-        T input_rotate_half =
-            (x_tv.get_tensor_view_idx(ncdhw) % 2 == 0)
-                ? static_cast<T>(
-                      -x[x_tv.get_tensor_view_idx(ncdhw.add_tensor_layout_t(3, 1)) % y_numel])
-                : static_cast<T>(x[x_tv.get_tensor_view_idx(ncdhw.sub_tensor_layout_t(3, 1))]);
-
-        tensor_layout_t<3> ncw(ncdhw.layout[1], ncdhw.layout[2], ncdhw.layout[3]);
-
-        T cos_val = static_cast<T>(cos[cos_tv.get_tensor_view_idx(ncw)]);
-        T sin_val = static_cast<T>(sin[sin_tv.get_tensor_view_idx(ncw)]);
+        T cos_val = static_cast<T>(cos[freq_idx]);
+        T sin_val = static_cast<T>(sin[freq_idx]);
 
         T val = (input * cos_val) + (input_rotate_half * sin_val);
 
-        ref_y[ref_y_tv.get_tensor_view_idx(ncdhw)] = val;
+        ref_y[o] = val;
     });
 }
 
 template <class T>
 void cpu_rope_backward(tensor<T> dy, tensor<T> cos, tensor<T> sin, tensor<T>& ref_dx)
 {
-    auto dy_dims  = dy.desc.GetLengths();
-    auto dx_dims  = ref_dx.desc.GetLengths();
-    auto dx_numel = std::accumulate(dx_dims.begin(), dx_dims.end(), 1L, std::multiplies<int64_t>());
+    auto dy_dims = dy.desc.GetLengths();
+    auto input_numel =
+        std::accumulate(dy_dims.begin(), dy_dims.end(), 1L, std::multiplies<int64_t>());
     auto cos_dims = cos.desc.GetLengths();
     auto rotary_numel =
         std::accumulate(cos_dims.begin(), cos_dims.end(), 1L, std::multiplies<int64_t>());
 
-    auto dy_tv     = miopen::get_inner_expanded_tv<4>(dy.desc);
-    auto cos_tv    = miopen::get_inner_expanded_tv<3>(cos.desc);
-    auto sin_tv    = miopen::get_inner_expanded_tv<3>(sin.desc);
-    auto ref_dx_tv = miopen::get_inner_expanded_tv<4>(ref_dx.desc);
+    par_ford(input_numel)([&](size_t o) {
+        size_t freq_idx = o % rotary_numel;
 
-    par_ford(dx_numel)([&](size_t o) {
-        tensor_layout_t<4> ncdhw(dy_tv, o);
-
-        T output_grad = static_cast<T>(dy[dy_tv.get_tensor_view_idx(ncdhw)]);
+        T output_grad = static_cast<T>(dy[o]);
         T output_grad_rotate_half =
-            (dy_tv.get_tensor_view_idx(ncdhw) % 2 == 0)
-                ? static_cast<T>(
-                      dy[dy_tv.get_tensor_view_idx(ncdhw.add_tensor_layout_t(3, 1)) % dx_numel])
-                : static_cast<T>(-dy[dy_tv.get_tensor_view_idx(ncdhw.sub_tensor_layout_t(3, 1))]);
+            (o % 2 == 0) ? static_cast<T>(dy[o + 1]) : static_cast<T>(-dy[o - 1]);
 
-        tensor_layout_t<3> ncw(ncdhw.layout[1], ncdhw.layout[2], ncdhw.layout[3]);
-
-        T cos_val = static_cast<T>(cos[cos_tv.get_tensor_view_idx(ncw)]);
-        T sin_val =
-            (cos_tv.get_tensor_view_idx(ncw) % 2 == 0)
-                ? static_cast<T>(
-                      sin[sin_tv.get_tensor_view_idx(ncw.add_tensor_layout_t(2, 1)) % rotary_numel])
-                : static_cast<T>(sin[sin_tv.get_tensor_view_idx(ncw.sub_tensor_layout_t(2, 1))]);
+        T cos_val = static_cast<T>(cos[freq_idx]);
+        T sin_val = (freq_idx % 2 == 0) ? static_cast<T>(sin[freq_idx + 1])
+                                        : static_cast<T>(sin[freq_idx - 1]);
 
         T val = (output_grad * cos_val) + (output_grad_rotate_half * sin_val);
 
-        ref_dx[ref_dx_tv.get_tensor_view_idx(ncdhw)] = val;
+        ref_dx[o] = val;
     });
 }
 

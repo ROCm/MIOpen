@@ -37,7 +37,6 @@
 #include <memory>
 #include <miopen/miopen.h>
 #include <miopen/tensor.hpp>
-#include <miopen/tensor_view_utils.hpp>
 #include <numeric>
 #include <vector>
 #include <../test/tensor_holder.hpp>
@@ -53,36 +52,28 @@ int32_t mloRoPEForwardRunHost(miopenTensorDescriptor_t xDesc,
                               Tgpu* sin,
                               Tcheck* yhost)
 {
-    auto x_dims  = miopen::deref(xDesc).GetLengths();
-    auto y_dims  = miopen::deref(yDesc).GetLengths();
-    auto y_numel = std::accumulate(y_dims.begin(), y_dims.end(), 1LL, std::multiplies<int64_t>());
-
-    auto x_tv     = miopen::get_inner_expanded_tv<4>(miopen::deref(xDesc));
-    auto cos_tv   = miopen::get_inner_expanded_tv<3>(miopen::deref(cosDesc));
-    auto sin_tv   = miopen::get_inner_expanded_tv<3>(miopen::deref(sinDesc));
-    auto yhost_tv = miopen::get_inner_expanded_tv<4>(miopen::deref(yDesc));
+    auto x_dims   = miopen::deref(xDesc).GetLengths();
+    auto cos_dims = miopen::deref(cosDesc).GetLengths();
+    auto input_numel =
+        std::accumulate(x_dims.begin(), x_dims.end(), 1LL, std::multiplies<int64_t>());
+    auto rotary_numel =
+        std::accumulate(cos_dims.begin(), cos_dims.end(), 1LL, std::multiplies<int64_t>());
 
     int32_t ret = 0;
 
-    for(size_t o = 0; o < y_numel; o++)
+    for(size_t o = 0; o < input_numel; o++)
     {
-        tensor_layout_t<4> ncdhw(x_tv, o);
-
-        Tcheck input = static_cast<Tcheck>(x[x_tv.get_tensor_view_idx(ncdhw)]);
+        size_t freq_idx = o % rotary_numel;
+        Tcheck input    = static_cast<Tcheck>(x[o]);
         Tcheck input_rotate_half =
-            (x_tv.get_tensor_view_idx(ncdhw) % 2 == 0)
-                ? static_cast<Tcheck>(
-                      -x[x_tv.get_tensor_view_idx(ncdhw.add_tensor_layout_t(4, 1)) % y_numel])
-                : static_cast<Tcheck>(x[x_tv.get_tensor_view_idx(ncdhw.sub_tensor_layout_t(4, 1))]);
+            (o % 2 == 0) ? static_cast<Tcheck>(-x[o + 1]) : static_cast<Tcheck>(x[o - 1]);
 
-        tensor_layout_t<3> ncw(ncdhw.layout[1], ncdhw.layout[2], ncdhw.layout[3]);
-
-        Tcheck cos_val = static_cast<Tcheck>(cos[cos_tv.get_tensor_view_idx(ncw)]);
-        Tcheck sin_val = static_cast<Tcheck>(sin[sin_tv.get_tensor_view_idx(ncw)]);
+        Tcheck cos_val = static_cast<Tcheck>(cos[freq_idx]);
+        Tcheck sin_val = static_cast<Tcheck>(sin[freq_idx]);
 
         Tcheck val = (input * cos_val) + (input_rotate_half * sin_val);
 
-        yhost[yhost_tv.get_tensor_view_idx(ncdhw)] = val;
+        yhost[o] = val;
     }
 
     return ret;
@@ -99,45 +90,29 @@ int32_t mloRoPEBackwardRunHost(miopenTensorDescriptor_t dyDesc,
                                Tcheck* dxhost)
 {
     auto dy_dims = miopen::deref(dyDesc).GetLengths();
-    auto dx_dims = miopen::deref(dxDesc).GetLengths();
-    auto dx_numel =
-        std::accumulate(dx_dims.begin(), dx_dims.end(), 1LL, std::multiplies<int64_t>());
+    auto input_numel =
+        std::accumulate(dy_dims.begin(), dy_dims.end(), 1LL, std::multiplies<int64_t>());
     auto cos_dims = miopen::deref(cosDesc).GetLengths();
     auto rotary_numel =
         std::accumulate(cos_dims.begin(), cos_dims.end(), 1LL, std::multiplies<int64_t>());
 
-    auto dy_tv     = miopen::get_inner_expanded_tv<4>(miopen::deref(dyDesc));
-    auto cos_tv    = miopen::get_inner_expanded_tv<3>(miopen::deref(cosDesc));
-    auto sin_tv    = miopen::get_inner_expanded_tv<3>(miopen::deref(sinDesc));
-    auto dxhost_tv = miopen::get_inner_expanded_tv<4>(miopen::deref(dxDesc));
-
     int32_t ret = 0;
 
-    for(size_t o = 0; o < dx_numel; o++)
+    for(size_t o = 0; o < input_numel; o++)
     {
-        tensor_layout_t<4> ncdhw(dy_tv, o);
+        size_t freq_idx = o % rotary_numel;
 
-        Tcheck output_grad = static_cast<Tcheck>(dy[dy_tv.get_tensor_view_idx(ncdhw)]);
+        Tcheck output_grad = static_cast<Tcheck>(dy[o]);
         Tcheck output_grad_rotate_half =
-            (dy_tv.get_tensor_view_idx(ncdhw) % 2 == 0)
-                ? static_cast<Tcheck>(
-                      dy[dy_tv.get_tensor_view_idx(ncdhw.add_tensor_layout_t(4, 1)) % dx_numel])
-                : static_cast<Tcheck>(
-                      -dy[dy_tv.get_tensor_view_idx(ncdhw.sub_tensor_layout_t(4, 1))]);
+            (o % 2 == 0) ? static_cast<Tcheck>(dy[o + 1]) : static_cast<Tcheck>(-dy[o - 1]);
 
-        tensor_layout_t<3> ncw(ncdhw.layout[1], ncdhw.layout[2], ncdhw.layout[3]);
-
-        Tcheck cos_val = static_cast<Tcheck>(cos[cos_tv.get_tensor_view_idx(ncw)]);
-        Tcheck sin_val =
-            (cos_tv.get_tensor_view_idx(ncw) % 2 == 0)
-                ? static_cast<Tcheck>(
-                      sin[sin_tv.get_tensor_view_idx(ncw.add_tensor_layout_t(2, 1)) % rotary_numel])
-                : static_cast<Tcheck>(
-                      sin[sin_tv.get_tensor_view_idx(ncw.sub_tensor_layout_t(2, 1))]);
+        Tcheck cos_val = static_cast<Tcheck>(cos[freq_idx]);
+        Tcheck sin_val = (freq_idx % 2 == 0) ? static_cast<Tcheck>(sin[freq_idx + 1])
+                                             : static_cast<Tcheck>(sin[freq_idx - 1]);
 
         Tcheck val = (output_grad * cos_val) + (output_grad_rotate_half * sin_val);
 
-        dxhost[dxhost_tv.get_tensor_view_idx(ncdhw)] = val;
+        dxhost[o] = val;
     }
 
     return ret;

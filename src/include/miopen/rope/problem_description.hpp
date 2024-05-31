@@ -65,7 +65,8 @@ struct ProblemDescriptionFwd : ProblemDescriptionBase
 
     bool IsAllContiguous() const
     {
-        if(!(xDesc.IsContiguous() && yDesc.IsContiguous()))
+        if(!(xDesc.IsContiguous() && cosDesc.IsContiguous() && sinDesc.IsContiguous() &&
+             yDesc.IsContiguous()))
         {
             return false;
         }
@@ -112,7 +113,8 @@ struct ProblemDescriptionBwd : ProblemDescriptionBase
 
     bool IsAllContiguous() const
     {
-        if(!(dyDesc.IsContiguous() && dxDesc.IsContiguous()))
+        if(!(dyDesc.IsContiguous() && cosDesc.IsContiguous() && sinDesc.IsContiguous() &&
+             dxDesc.IsContiguous()))
         {
             return false;
         }
