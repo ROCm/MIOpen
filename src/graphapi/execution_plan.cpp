@@ -36,8 +36,6 @@ std::string ExecutionPlan::getJsonRepresentation() const
     return {};
 }
 
-void ExecutionPlan::execute(const VariantPack& variantPack) {}
-
 ExecutionPlanBuilder& ExecutionPlanBuilder::setHandle(miopenHandle_t handle) &
 {
     mExecutionPlan.mHandle = checkPtr(handle);
@@ -221,6 +219,17 @@ void BackendExecutionPlanDescriptor::getAttribute(miopenBackendAttributeName_t a
             MIOPEN_THROW(miopenStatusBadParm);
         }
         break;
+    case MIOPEN_ATTR_EXECUTION_PLAN_WORKSPACE_SIZE:
+        if(attributeType == MIOPEN_TYPE_INT64 && requestedElementCount == 1)
+        {
+            *elementCount                           = 1;
+            *static_cast<int64_t*>(arrayOfElements) = mExecutionPlan.getWorkspaceSize();
+        }
+        else
+        {
+            MIOPEN_THROW(miopenStatusBadParm);
+        }
+        break;
 
     case MIOPEN_ATTR_EXECUTION_PLAN_RUN_ONLY_INTERMEDIATE_UIDS:
         if(attributeType == MIOPEN_TYPE_INT64 && requestedElementCount >= 0)
@@ -259,7 +268,10 @@ void BackendExecutionPlanDescriptor::getAttribute(miopenBackendAttributeName_t a
 void BackendExecutionPlanDescriptor::execute(miopenHandle_t handle,
                                              miopenBackendDescriptor_t variantPack)
 {
-    // TODO: Implement BackendExecutionPlanDescriptor::execute
+    BackendDescriptor& bd = deref(variantPack);
+    auto& bendvp          = dynamic_cast<BackendVariantPackDescriptor&>(bd);
+    assert(&bendvp);
+    mExecutionPlan.execute(handle, *bendvp.getVariantPack());
 }
 
 } // namespace graphapi

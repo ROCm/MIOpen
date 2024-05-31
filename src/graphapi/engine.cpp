@@ -32,52 +32,107 @@ namespace miopen {
 
 namespace graphapi {
 
-EngineBuilder& EngineBuilder::setOpGraph(const OpGraph* opGraph)
+GraphPatternExecutor::~GraphPatternExecutor() = default;
+
+size_t GraphExecutorFind20::getWorkspaceSize() const
 {
-    mOpGraph = checkPtr(opGraph);
+    return miopen::deref(mSolution).GetWorkspaceSize();
+}
+
+void GraphExecutorFind20::execute(miopenHandle_t handle, const VariantPack& vpk)
+{
+
+    std::vector<miopenTensorArgument_t> tens_args;
+
+    auto num = vpk.getTensorIds().size();
+    assert(num == vpk.getDataPtrs().size());
+
+    // TODO(amber) : verify that variant pack has all the expected input and output
+    // tensors
+    for(std::size_t i = 0; i < num; ++i)
+    {
+        auto tens_id  = vpk.getTensorIds()[i];
+        auto* gpu_ptr = vpk.getDataPtrs()[i];
+        assert(gpu_ptr);
+
+        auto it = mTensorInfoMap->find(tens_id);
+        MIOPEN_THROW_IF(it == mTensorInfoMap->cend(),
+                        "couldn't find a variant pack tensor id in the map");
+
+        auto& v = it->second;
+
+        /*
+         * TODO(Amber): use this code with C++20
+        miopenTensorArgument_t targ{
+          .id = v.mEnumId,
+          // .descriptor = &(v.mTensDesc),
+          .descriptor = nullptr,
+          .buffer = gpu_ptr
+        };
+        */
+        miopenTensorArgument_t targ{};
+        targ.id         = v.mEnumId;
+        targ.descriptor = nullptr;
+        targ.buffer     = gpu_ptr;
+
+        tens_args.emplace_back(targ);
+    }
+
+    auto s = miopenRunSolution(handle,
+                               mSolution,
+                               tens_args.size(),
+                               tens_args.data(),
+                               vpk.getWorkspace(),
+                               getWorkspaceSize());
+
+    MIOPEN_THROW_IF(s != miopenStatusSuccess, "Run Solution failed");
+    if(s == miopenStatusSuccess)
+    {
+        MIOPEN_LOG_I("Graph API Find 2.0 Solution Ran");
+    }
+}
+
+EngineBuilder& EngineBuilder::setGraph(OpGraph* g)
+{
+    assert(g);
+    mGraph    = checkPtr(g);
+    mGraphSet = true;
     return *this;
 }
 
 EngineBuilder& EngineBuilder::setGlobalIndex(int64_t globalIndex)
 {
-    if(globalIndex >= 0)
-    {
-        mGlobalIndex = globalIndex;
-    }
-    else
-    {
-        MIOPEN_THROW(miopenStatusBadParm);
-    }
+    MIOPEN_THROW_IF(globalIndex < 0, "globalIndex must be >= 0");
+    mGlobalIndex = globalIndex;
+    mIndexSet    = true;
     return *this;
 }
 
 EngineBuilder& EngineBuilder::setSmCount(int32_t smCount)
 {
-    if(smCount >= 0)
-    {
-        mSmCount = smCount;
-    }
-    else
-    {
-        MIOPEN_THROW(miopenStatusBadParm);
-    }
+    MIOPEN_THROW_IF(smCount <= 0, "SM count must be positive");
+    mSmCount = smCount;
+    return *this;
+}
+
+EngineBuilder& EngineBuilder::setExecutor(const std::shared_ptr<GraphPatternExecutor>& e)
+{
+    assert(e.get());
+    mExecutor = e;
+    mExecSet  = true;
     return *this;
 }
 
 Engine EngineBuilder::build()
 {
-    if(mOpGraph != nullptr && mGlobalIndexSet && mGlobalIndex < mOpGraph->getEngines().size())
-    {
-        // TODO: validate mSmCount
-        Engine engine       = mOpGraph->getEngines()[mGlobalIndex];
-        engine.mGlobalIndex = mGlobalIndex;
-        engine.mSmCount     = mSmCount;
-        return engine;
-    }
-    else
-    {
-        MIOPEN_THROW(miopenStatusBadParm);
-    }
+    MIOPEN_THROW_IF(!mGraphSet || !mExecSet || !mIndexSet,
+                    "must set graph, index and executor attributes");
+    Engine e;
+    e.mGraph       = mGraph;
+    e.mGlobalIndex = mGlobalIndex;
+    e.mExecutor    = mExecutor;
+    e.mSmCount     = mSmCount;
+    return e;
 }
 
 void BackendEngineDescriptor::setAttribute(miopenBackendAttributeName_t attributeName,
@@ -106,7 +161,7 @@ void BackendEngineDescriptor::setAttribute(miopenBackendAttributeName_t attribut
 
             BackendOperationGraphDescriptor& operationGraphDescriptor =
                 dynamic_cast<BackendOperationGraphDescriptor&>(backendDescriptor);
-            mBuilder.setOpGraph(operationGraphDescriptor.getOperationGraph());
+            mBuilder.setGraph(operationGraphDescriptor.getOperationGraph());
             mOpGraphDescriptor = apiDescriptor;
         }
         else
@@ -147,6 +202,14 @@ void BackendEngineDescriptor::finalize()
     {
         MIOPEN_THROW(miopenStatusNotInitialized);
     }
+
+    const auto& engines = mBuilder.mGraph->getEngines();
+    assert(static_cast<size_t>(mBuilder.mGlobalIndex) < engines.size());
+    const auto& candidate_engine = engines.at(mBuilder.mGlobalIndex);
+    mBuilder.setExecutor(candidate_engine.getExecutor());
+    mEngine = mBuilder.build();
+
+    mFinalized = true;
 }
 
 void BackendEngineDescriptor::getAttribute(miopenBackendAttributeName_t attributeName,

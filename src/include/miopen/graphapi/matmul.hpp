@@ -191,6 +191,7 @@ public:
                               int64_t requestedElementCount,
                               int64_t* elementCount,
                               void* arrayOfElements) override;
+    OpNode* getOperation() override;
 };
 
 } // namespace graphapi

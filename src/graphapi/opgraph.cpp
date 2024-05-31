@@ -26,6 +26,7 @@
 
 #include <miopen/errors.hpp>
 #include <miopen/graphapi/opgraph.hpp>
+#include <miopen/graphapi/engine.hpp>
 
 #include <deque>
 #include <unordered_map>
@@ -35,11 +36,9 @@ namespace graphapi {
 
 OpNode::~OpNode() = default;
 
-void OpGraphBuilder::setHandle(miopenHandle_t handle) { mHandle = checkPtr(handle); }
-
 OpGraph OpGraphBuilder::build() &&
 {
-    if(mHandle == nullptr || mNodes.empty())
+    if(mNodes.empty())
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
@@ -68,7 +67,7 @@ OpGraph OpGraphBuilder::build() &&
             auto [iter, _ignore] =
                 e_map.try_emplace(o, EdgeInfo{}); // add empty EdgeInfo if not present
 
-            assert(iter->second.mSrc == nullptr);
+            MIOPEN_THROW_IF(iter->second.mSrc != nullptr, "Output tensor with two source op nodes");
             iter->second.mSrc = n;
         }
     }
@@ -101,6 +100,19 @@ OpGraph OpGraphBuilder::build() &&
     }
 
     return graph;
+}
+
+void OpGraph::initEngines()
+{
+    // cache the engines in the graph.
+    // NOTE(amber): this may be expensive and there may be benefit in delaying
+    // findEngines to when the user calls it instead of calling it at graph build
+    // time, but cudnn graph API has semantics that suggest that graph knows its
+    // engines or engine count at least.
+    // TODO(Amber): findEngines takes pointer to the graph and uses it to construct
+    // engines. This pointer  may become invalid when the graph object is moved. Fix
+    // by using shared_ptr or not storing graph inside engine
+    mEngines = findEngines(this);
 }
 
 VecOfPaths OpGraph::getAllPaths() const
@@ -174,21 +186,6 @@ bool checkSameDegreeVecs(const OpGraph& left, const OpGraph& right)
     auto l_degs = left.getInOutDegrees();
     auto r_degs = right.getInOutDegrees();
 
-    /*
-    auto sort_deg_vec = [] (auto& deg_vec) {
-
-        std::sort(deg_vec.begin(), deg_vec.end(),
-            [] (const auto& left, const auto& right) {
-              if (left.first == right.first) {
-                return left.second < right.second;
-              }
-              return left.first < right.first;
-            });
-
-    };
-    sort_deg_vec(l_degs);
-    sort_deg_vec(r_degs);
-    */
     std::sort(l_degs.begin(), l_degs.end());
     std::sort(r_degs.begin(), r_degs.end());
     return l_degs == r_degs;
@@ -206,16 +203,6 @@ auto groupBySize(VecOfPaths&& all_paths)
 
     return paths_by_size;
 }
-
-/*
-auto sumPathSizes(const VecOfPaths& all_paths) {
-    size_t ret = 0;
-    for (const auto& p: all_paths) {
-      ret += p.size();
-    }
-    return ret;
-}
-*/
 
 bool checkSamePathVecs(const VecOfPaths& left, const VecOfPaths& right)
 {
@@ -292,26 +279,31 @@ bool isIsomorphic(const OpGraph& left, const OpGraph& right)
 {
     if(left.numNodes() != right.numNodes())
     {
+        MIOPEN_LOG_I("test failed due to num nodes being different");
         return false;
     }
 
     if(left.numEdges() != right.numEdges())
     {
+        MIOPEN_LOG_I("test failed due to num edges being different");
         return false;
     }
 
     if(!internal::checkSameNodesByName(left, right))
     {
+        MIOPEN_LOG_I("test failed due to node names being different");
         return false;
     }
 
     if(!internal::checkSameDegreeVecs(left, right))
     {
+        MIOPEN_LOG_I("test failed due to node degrees being different");
         return false;
     }
 
     if(!internal::checkSamePaths(left, right))
     {
+        MIOPEN_LOG_I("test failed due to paths being different");
         return false;
     }
 
@@ -349,6 +341,7 @@ void BackendOperationGraphDescriptor::setAttribute(miopenBackendAttributeName_t 
             std::vector<OpNode*> nodes;
             nodes.reserve(elementCount);
 
+            // for_each_n is not available on RHEL/SLES, see issue #2973
             std::for_each(static_cast<miopenBackendDescriptor_t*>(arrayOfElements),
                           static_cast<miopenBackendDescriptor_t*>(arrayOfElements) + elementCount,
                           [&descriptors, &nodes](miopenBackendDescriptor_t apiDescriptor) {
@@ -360,13 +353,13 @@ void BackendOperationGraphDescriptor::setAttribute(miopenBackendAttributeName_t 
                               }
                               else
                               {
-                                  MIOPEN_THROW(miopenStatusBadParm);
+                                  MIOPEN_THROW(miopenStatusBadParm, "descriptor not finalized");
                               }
                           });
 
             if(!internal::noRepetitions(nodes))
             {
-                MIOPEN_THROW(miopenStatusBadParm);
+                MIOPEN_THROW(miopenStatusBadParm, "Repeated node pointer found");
             }
 
             mBuilder.setNodes(std::move(nodes));
@@ -374,7 +367,7 @@ void BackendOperationGraphDescriptor::setAttribute(miopenBackendAttributeName_t 
         }
         else
         {
-            MIOPEN_THROW(miopenStatusBadParm);
+            MIOPEN_THROW(miopenStatusBadParm, "Invalid attribute type or count");
         }
         break;
 
@@ -388,7 +381,12 @@ void BackendOperationGraphDescriptor::finalize()
     {
         MIOPEN_THROW(miopenStatusNotInitialized);
     }
-    mOpGraph   = std::move(mBuilder).build();
+    if(mBuilder.getHandle() == nullptr) // this is not checked by build() so far but API requires
+    {
+        MIOPEN_THROW(miopenStatusBadParm);
+    }
+    mOpGraph = std::move(mBuilder).build();
+    mOpGraph.initEngines();
     mFinalized = true;
 }
 

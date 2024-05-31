@@ -84,16 +84,22 @@ private:
 
     class OwnedEngineCfgDescriptor : public BackendEngineCfgDescriptor
     {
-    private:
+        using Base = BackendEngineCfgDescriptor;
         BackendEngineDescriptor mOwnedEngineDescriptorInstance;
 
     public:
-        OwnedEngineCfgDescriptor(EngineCfg&& engineCfg,
-                                 miopenBackendDescriptor_t opGraphDescriptor);
-        OwnedEngineCfgDescriptor(const OwnedEngineCfgDescriptor& other);
-        OwnedEngineCfgDescriptor(OwnedEngineCfgDescriptor&& other) noexcept;
-        OwnedEngineCfgDescriptor& operator=(const OwnedEngineCfgDescriptor& other);
-        OwnedEngineCfgDescriptor& operator=(OwnedEngineCfgDescriptor&& other) noexcept;
+        OwnedEngineCfgDescriptor(const EngineCfg& engineCfg,
+                                 miopenBackendDescriptor_t opGraphDescriptor)
+            : Base(engineCfg, &mOwnedEngineDescriptorInstance),
+              mOwnedEngineDescriptorInstance(Base::getEngineCfg().getEngine(), opGraphDescriptor)
+        {
+        }
+
+        OwnedEngineCfgDescriptor(const OwnedEngineCfgDescriptor& other)     = default;
+        OwnedEngineCfgDescriptor(OwnedEngineCfgDescriptor&& other) noexcept = default;
+        ;
+        OwnedEngineCfgDescriptor& operator=(const OwnedEngineCfgDescriptor& other) = default;
+        OwnedEngineCfgDescriptor& operator=(OwnedEngineCfgDescriptor&& other) noexcept = default;
     };
 
     std::vector<OwnedEngineCfgDescriptor> mResults;
