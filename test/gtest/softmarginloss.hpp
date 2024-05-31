@@ -33,6 +33,7 @@
 #include <gtest/gtest.h>
 #include <miopen/miopen.h>
 #include <miopen/softmarginloss.hpp>
+#include <numeric>
 
 struct SoftMarginLossUnreducedTestCase
 {
@@ -40,28 +41,40 @@ struct SoftMarginLossUnreducedTestCase
     std::vector<size_t> strides;
 };
 
-// TODO: unreduced and reduced use same test config so we should change this to
-// SoftMarginLossTestConfigs
-std::vector<SoftMarginLossUnreducedTestCase> SoftMarginLossUnreducedTestConfigs()
+std::vector<SoftMarginLossUnreducedTestCase> SoftMarginLossTestConfigs()
 {
     // clang-format off
     return {
-        {{1, 4}, {4, 1}}, // ssd (small test)
-        {{12, 4}, {4, 1}}, // ssd
-        {{10}, {1}}, // 1d cont
-        {{3, 4}, {4, 1}}, // 2d cont
-        {{2, 3, 4}, {12, 4, 1}}, // 3d cont
-        {{2, 3, 4, 5}, {60, 20, 5 ,1}}, // 4d cont
-        {{2, 3, 4, 5, 6}, {360, 120, 30, 6, 1}}, // 5d cont
-        {{256, 4, 8732}, {34928, 8732, 1}}, // squeezenet (3d cont)
-        {{32, 80, 870}, {69600, 870, 1}}, // t5
-        {{4, 182403, 91}, {16598673, 91, 1}}, // resnext (very big test 66M elements)
-        {{1534680}, {1}}, // maskrcnn (1d cont)
-        {{16, 1, 512, 512}, {262144, 262144, 512, 1}}, // stdc (4d cont)
-        {{32, 80, 870}, {69600, 1, 80}}, // t5 (3d uncontiguous, packed)
-        {{2, 3, 160, 160}, {6528000, 2176000, 13600, 85}}, // yolor (4d uncontiguous, unpacked)
-        {{32756, 80}, {85, 1}}, // yolov5 (2d uncontiguous, unpacked)
-        {{64, 3, 80, 80}, {1632000, 544000, 6800, 85}}, // yolov5 (4d uncontiguous, unpacked)
+    {{256, 4, 8732}, {34928, 8732, 1}}, // squeezenet
+    {{32, 80, 870}, {69600, 1, 80}}, // t5
+    {{32, 80, 870}, {69600, 870, 1}}, // t5
+    {{4, 182403, 91}, {16598673, 91, 1}}, // resnext
+    {{1534680}, {1}}, // maskrcnn
+    {{16, 1, 512, 512}, {262144, 262144, 512, 1}}, // stdc
+    {{2, 3, 160, 160}, {6528000, 2176000, 13600, 85}}, // yolor
+    {{2, 3, 80, 80}, {1632000, 544000, 6800, 85}}, // yolor
+    {{32756, 80}, {85, 1}}, // yolov5
+    {{64, 3, 80, 80}, {1632000, 544000, 6800, 85}}, // yolov5
+    {{64, 3, 40, 40}, {408000, 136000, 3400, 85}}, // yolov5
+    {{22311, 80}, {85, 1}}, // yolov5
+    {{64, 3, 20, 20}, {102000, 34000, 1700, 85}}, // yolov5
+    {{8, 4}, {4, 1}}, // ssd
+    {{56, 4}, {4, 1}}, // ssd
+    {{131, 4}, {4, 1}}, // ssd
+    {{10000}, {1}}, // 1dcont
+    {{200, 50}, {50, 1}}, // 2dcont
+    {{20, 50, 10}, {500, 10, 1}}, // 3dcont
+    {{4, 25, 4, 25}, {2500, 100, 25, 1}}, // 4dcont
+    {{12, 3, 4, 5, 6}, {360, 120, 30, 6, 1}}, // 5dcont
+    {{10000}, {3}}, // 1d-uncont
+    {{200, 50}, {1, 200}}, // 2d-uncont
+    {{200, 50}, {505, 1}}, // 2d-unpacked
+    {{20, 50, 10}, {1, 20, 1000}}, // 3d-uncont
+    {{20, 50, 10}, {7575, 15, 1}}, // 3d-unpacked
+    {{4, 25, 4, 25}, {1, 16, 4, 400}}, // 4d-uncont
+    {{4, 25, 4, 25}, {5859, 217, 31, 1}}, // 4d-unpacked
+    {{12, 3, 4, 5, 6}, {360, 120, 6, 24, 1}}, // 5d-uncont
+    {{12, 3, 4, 5, 6}, {5760, 960, 120, 12, 1}}, // 5d-unpacked
     };
     // clang-format on
 }
@@ -241,10 +254,20 @@ protected:
         auto&& handle                  = get_handle();
         softmarginlossunreduced_config = GetParam();
 
-        auto in_dims      = softmarginlossunreduced_config.dims;
-        auto in_strides   = softmarginlossunreduced_config.strides;
-        auto gen_in_value = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1e-2, 100); };
+        auto in_dims    = softmarginlossunreduced_config.dims;
+        auto in_strides = softmarginlossunreduced_config.strides;
 
+        auto input_numel =
+            std::accumulate(in_dims.begin(), in_dims.end(), 1L, std::multiplies<int64_t>());
+        if(std::is_same<T, half_float::half>::value && input_numel > 80000)
+        {
+            std::cerr << "For fp16 test, too many elements in input tensor can lead to fp16 "
+                         "overflow when doing reduction"
+                      << std::endl;
+            GTEST_SKIP();
+        }
+
+        auto gen_in_value = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1e-2, 100); };
         // below commented code that I have seen in many files will not work correctly with unpacked
         // tensor tensor.generate() will call for_each() and this function only iterate through
         // desc.GetLengths().size(), not desc.GetElementSpace() Example input_tensor to verify:
@@ -256,16 +279,12 @@ protected:
         // This is the right method to generate value for tensor
         input = tensor<T>{in_dims, in_strides};
         std::generate(input.begin(), input.end(), gen_in_value);
-        // TODO: all input = 1 for debug
-        // std::fill(input.begin(), input.end(), 1);
 
         auto gen_target_value = [](auto...) {
             return (prng::gen_A_to_B<int32_t>(0, 2) == 0) ? -1 : 1;
         };
         target = tensor<T>{in_dims, in_strides};
         std::generate(target.begin(), target.end(), gen_target_value);
-        // TODO: all input = 1 for debug
-        // std::fill(target.begin(), target.end(), 1);
 
         // Tensor with 1 element to store result after reduce
         output = tensor<T>{std::vector<size_t>{1}};
@@ -302,8 +321,6 @@ protected:
         float divisor = input.desc.GetElementSize();
         cpu_softmarginloss_reduced_forward<T>(input, target, ref_output, ref_workspace, divisor);
 
-        // TODO: input tensor with >= 1M elements will not have correct enough result because of
-        // LossReduce kernel
         miopenStatus_t status;
         status = miopen::SoftMarginLossForward(handle,
                                                workspace_dev.get(),
@@ -324,30 +341,11 @@ protected:
 
     void Verify()
     {
-        std::cerr << "\nAfter run gpu:\n";
-        // std::cerr << "input: ";
-        // for(int i = 0; i < input.data.size(); i++)
-        //     std::cerr << input[i] << " ";
-        // std::cerr << "\ntarget: ";
-        // for(int i = 0; i < target.data.size(); i++)
-        //     std::cerr << target[i] << " ";
-        std::cerr << "\nref_output: ";
-        for(int i = 0; i < ref_output.data.size(); i++)
-            std::cerr << ref_output[i] << " ";
-        std::cerr << "\noutput: ";
-        for(int i = 0; i < output.data.size(); i++)
-            std::cerr << output[i] << " ";
-        // std::cerr << "\nref_workspace: ";
-        // for(int i = 0; i < 10; i++)
-        //     std::cerr << ref_workspace[i] << " ";
-        // std::cerr << "\nworkspace: ";
-        // for(int i = 0; i < 10; i++)
-        //     std::cerr << workspace[i] << " ";
-        std::cerr << std::endl;
-
+        // fp32: 1.19209e-07, fp16: 0.000976562, bf16: 0.0078125
         double threshold = std::numeric_limits<T>::epsilon();
         auto error       = miopen::rms_range(ref_output, output);
         std::cerr << "Error: " << error << std::endl;
+        std::cerr << "Threshold: " << threshold << std::endl;
         EXPECT_TRUE(miopen::range_distance(ref_output) == miopen::range_distance(output));
         EXPECT_TRUE(error < threshold * 10) << "Error output beyond tolerance "
                                                "Error:"

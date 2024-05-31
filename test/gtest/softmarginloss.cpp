@@ -83,107 +83,107 @@ struct SoftMarginLossReducedForwardTestBFloat16 : SoftMarginLossReducedForwardTe
 
 using namespace softmarginloss;
 
-// TEST_P(SoftMarginLossUnreducedForwardTestFloat, )
-// {
-//     if(miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
-//        (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float")))
-//     {
-//         RunTest();
-//         Verify();
-//     }
-//     else
-//     {
-//         GTEST_SKIP();
-//     }
-// };
+TEST_P(SoftMarginLossUnreducedForwardTestFloat, )
+{
+    if(miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
+       (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float")))
+    {
+        RunTest();
+        Verify();
+    }
+    else
+    {
+        GTEST_SKIP();
+    }
+};
 
-// TEST_P(SoftMarginLossUnreducedForwardTestHalf, )
-// {
-//     if(miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
-//        (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--half")))
-//     {
-//         RunTest();
-//         Verify();
-//     }
-//     else
-//     {
-//         GTEST_SKIP();
-//     }
-// };
+TEST_P(SoftMarginLossUnreducedForwardTestHalf, )
+{
+    if(miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
+       (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--half")))
+    {
+        RunTest();
+        Verify();
+    }
+    else
+    {
+        GTEST_SKIP();
+    }
+};
 
-// TEST_P(SoftMarginLossUnreducedForwardTestBFloat16, )
-// {
-//     if(miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
-//        (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--bfloat16")))
-//     {
-//         RunTest();
-//         Verify();
-//     }
-//     else
-//     {
-//         GTEST_SKIP();
-//     }
-// };
-// INSTANTIATE_TEST_SUITE_P(SoftMarginLossTestSet,
-//                          SoftMarginLossUnreducedForwardTestFloat,
-//                          testing::ValuesIn(SoftMarginLossUnreducedTestConfigs()));
-// INSTANTIATE_TEST_SUITE_P(SoftMarginLossTestSet,
-//                          SoftMarginLossUnreducedForwardTestHalf,
-//                          testing::ValuesIn(SoftMarginLossUnreducedTestConfigs()));
-// INSTANTIATE_TEST_SUITE_P(SoftMarginLossTestSet,
-//                          SoftMarginLossUnreducedForwardTestBFloat16,
-//                          testing::ValuesIn(SoftMarginLossUnreducedTestConfigs()));
+TEST_P(SoftMarginLossUnreducedForwardTestBFloat16, )
+{
+    if(miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
+       (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--bfloat16")))
+    {
+        RunTest();
+        Verify();
+    }
+    else
+    {
+        GTEST_SKIP();
+    }
+};
+INSTANTIATE_TEST_SUITE_P(SoftMarginLossTestSet,
+                         SoftMarginLossUnreducedForwardTestFloat,
+                         testing::ValuesIn(SoftMarginLossTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(SoftMarginLossTestSet,
+                         SoftMarginLossUnreducedForwardTestHalf,
+                         testing::ValuesIn(SoftMarginLossTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(SoftMarginLossTestSet,
+                         SoftMarginLossUnreducedForwardTestBFloat16,
+                         testing::ValuesIn(SoftMarginLossTestConfigs()));
 
-// TEST_P(SoftMarginLossUnreducedBackwardTestFloat, )
-// {
-//     if(miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
-//        (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float")))
-//     {
-//         RunTest();
-//         Verify();
-//     }
-//     else
-//     {
-//         GTEST_SKIP();
-//     }
-// };
+TEST_P(SoftMarginLossUnreducedBackwardTestFloat, )
+{
+    if(miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
+       (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float")))
+    {
+        RunTest();
+        Verify();
+    }
+    else
+    {
+        GTEST_SKIP();
+    }
+};
 
-// TEST_P(SoftMarginLossUnreducedBackwardTestHalf, )
-// {
-//     if(miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
-//        (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--half")))
-//     {
-//         RunTest();
-//         Verify();
-//     }
-//     else
-//     {
-//         GTEST_SKIP();
-//     }
-// };
+TEST_P(SoftMarginLossUnreducedBackwardTestHalf, )
+{
+    if(miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
+       (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--half")))
+    {
+        RunTest();
+        Verify();
+    }
+    else
+    {
+        GTEST_SKIP();
+    }
+};
 
-// TEST_P(SoftMarginLossUnreducedBackwardTestBFloat16, )
-// {
-//     if(miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
-//        (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--bfloat16")))
-//     {
-//         RunTest();
-//         Verify();
-//     }
-//     else
-//     {
-//         GTEST_SKIP();
-//     }
-// };
-// INSTANTIATE_TEST_SUITE_P(SoftMarginLossTestSet,
-//                          SoftMarginLossUnreducedBackwardTestFloat,
-//                          testing::ValuesIn(SoftMarginLossUnreducedTestConfigs()));
-// INSTANTIATE_TEST_SUITE_P(SoftMarginLossTestSet,
-//                          SoftMarginLossUnreducedBackwardTestHalf,
-//                          testing::ValuesIn(SoftMarginLossUnreducedTestConfigs()));
-// INSTANTIATE_TEST_SUITE_P(SoftMarginLossTestSet,
-//                          SoftMarginLossUnreducedBackwardTestBFloat16,
-//                          testing::ValuesIn(SoftMarginLossUnreducedTestConfigs()));
+TEST_P(SoftMarginLossUnreducedBackwardTestBFloat16, )
+{
+    if(miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
+       (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--bfloat16")))
+    {
+        RunTest();
+        Verify();
+    }
+    else
+    {
+        GTEST_SKIP();
+    }
+};
+INSTANTIATE_TEST_SUITE_P(SoftMarginLossTestSet,
+                         SoftMarginLossUnreducedBackwardTestFloat,
+                         testing::ValuesIn(SoftMarginLossTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(SoftMarginLossTestSet,
+                         SoftMarginLossUnreducedBackwardTestHalf,
+                         testing::ValuesIn(SoftMarginLossTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(SoftMarginLossTestSet,
+                         SoftMarginLossUnreducedBackwardTestBFloat16,
+                         testing::ValuesIn(SoftMarginLossTestConfigs()));
 
 TEST_P(SoftMarginLossReducedForwardTestFloat, )
 {
@@ -228,10 +228,10 @@ TEST_P(SoftMarginLossReducedForwardTestBFloat16, )
 };
 INSTANTIATE_TEST_SUITE_P(SoftMarginLossTestSet,
                          SoftMarginLossReducedForwardTestFloat,
-                         testing::ValuesIn(SoftMarginLossUnreducedTestConfigs()));
+                         testing::ValuesIn(SoftMarginLossTestConfigs()));
 INSTANTIATE_TEST_SUITE_P(SoftMarginLossTestSet,
                          SoftMarginLossReducedForwardTestHalf,
-                         testing::ValuesIn(SoftMarginLossUnreducedTestConfigs()));
+                         testing::ValuesIn(SoftMarginLossTestConfigs()));
 INSTANTIATE_TEST_SUITE_P(SoftMarginLossTestSet,
                          SoftMarginLossReducedForwardTestBFloat16,
-                         testing::ValuesIn(SoftMarginLossUnreducedTestConfigs()));
+                         testing::ValuesIn(SoftMarginLossTestConfigs()));

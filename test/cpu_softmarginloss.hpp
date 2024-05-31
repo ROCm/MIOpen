@@ -79,6 +79,8 @@ void cpu_softmarginloss_reduced_forward(tensor<T> input,
 
     par_ford(input_numel)([&](size_t gid) {
         tensor_layout_t<5> idx(i_tv, gid);
+        if(idx.layout[0] >= i_tv.size[0])
+            return;
         double i           = input[i_tv.get_tensor_view_idx(idx)];
         double t           = target[t_tv.get_tensor_view_idx(idx)];
         ref_workspace[gid] = log(1 + exp(-i * t));

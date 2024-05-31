@@ -71,6 +71,33 @@ int32_t mloSoftMarginLossUnreducedForwardRunHost(miopenTensorDescriptor_t inputD
 }
 
 template <typename Tgpu, typename Tcheck>
+int32_t mloSoftMarginLossReducedForwardRunHost(miopenTensorDescriptor_t inputDesc,
+                                               miopenTensorDescriptor_t targetDesc,
+                                               Tgpu* input,
+                                               Tgpu* target,
+                                               Tcheck* output,
+                                               float divisor)
+{
+    auto input_numel = miopen::deref(inputDesc).GetElementSize();
+    auto i_tv        = miopen::get_inner_expanded_tv<5>(miopen::deref(inputDesc));
+    auto t_tv        = miopen::get_inner_expanded_tv<5>(miopen::deref(targetDesc));
+    int32_t ret      = 0;
+
+    for(size_t gid = 0; gid < input_numel; gid++)
+    {
+        tensor_layout_t<5> idx(i_tv, gid);
+        if(idx.layout[0] >= i_tv.size[0])
+            continue;
+        // convert to Tcheck for better precision
+        Tcheck i = input[i_tv.get_tensor_view_idx(idx)];
+        Tcheck t = target[t_tv.get_tensor_view_idx(idx)];
+        output[0] += log(1 + exp(-i * t));
+    }
+    output[0] /= divisor;
+
+    return ret;
+};
+template <typename Tgpu, typename Tcheck>
 int32_t mloSoftMarginLossUnreducedBackwardRunHost(miopenTensorDescriptor_t inputDesc,
                                                   miopenTensorDescriptor_t targetDesc,
                                                   miopenTensorDescriptor_t dODesc,
@@ -159,6 +186,7 @@ private:
     std::unique_ptr<GPUMem> out_dev;
     std::unique_ptr<GPUMem> dO_dev;
     std::unique_ptr<GPUMem> dI_dev;
+    std::unique_ptr<GPUMem> workspace_dev;
 
     std::vector<Tgpu> in;
     std::vector<Tgpu> target;
@@ -167,6 +195,11 @@ private:
     std::vector<Tgpu> dO;
     std::vector<Tgpu> dI;
     std::vector<Tref> dIhost;
+    std::vector<Tgpu> workspace;
+    std::vector<Tref> workspacehost;
+
+    float divisor;
+    size_t ws_sizeInBytes;
 };
 
 template <typename Tgpu, typename Tref>
@@ -174,7 +207,7 @@ int SoftMarginLossDriver<Tgpu, Tref>::AddCmdLineArgs()
 {
     inflags.AddInputFlag("forw", 'F', "1", "Run only Forward Take (Default=1)", "int");
     inflags.AddInputFlag(
-        "dim", 'D', "256,4,8732", "Dim of input tensor (Default=256,4,8732)", "string");
+        "dim", 'D', "4,25,4,25", "Dim of input tensor (Default=4,25,4,25)", "string");
     inflags.AddInputFlag("stride",
                          'S',
                          "-1",
@@ -193,6 +226,12 @@ int SoftMarginLossDriver<Tgpu, Tref>::AddCmdLineArgs()
     inflags.AddInputFlag("time", 't', "0", "Time Each Layer (Default=0)", "int");
     inflags.AddInputFlag(
         "wall", 'w', "0", "Wall-clock Time Each Layer, Requires time == 1 (Default=0)", "int");
+    inflags.AddInputFlag("reduce",
+                         'R',
+                         "none",
+                         "Specifies the reduction to apply to the output ('none'|'mean'|'sum') "
+                         "(Default=none to indicate no reduction)",
+                         "string");
 
     return miopenStatusSuccess;
 }
@@ -202,6 +241,9 @@ int SoftMarginLossDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
 {
     inflags.Parse(argc, argv);
 
+    auto reduction = inflags.GetValueStr("reduce");
+    if(reduction != "none" && reduction != "mean" && reduction != "sum")
+        return miopenStatusInvalidValue;
     if(inflags.GetValueInt("time") == 1)
     {
         miopenEnableProfiling(GetHandle(), true);
@@ -239,10 +281,27 @@ int SoftMarginLossDriver<Tgpu, Tref>::GetandSetData()
 
     // run with contiguous target and output tensor to match with ROCm benchmark
     SetTensorNd(targetDesc, in_len, data_type);
-    SetTensorNd(outputDesc, in_len, data_type);
+
+    auto reduction = inflags.GetValueStr("reduce");
+    if(reduction == "none")
+        divisor = 0;
+    else if(reduction == "mean")
+        // Cannot call GetTensorSize on inputDesc because input tensor can be unpacked
+        divisor = GetTensorSize(targetDesc);
+    else if(reduction == "sum")
+        divisor = 1;
+
+    if(reduction == "none")
+        SetTensorNd(outputDesc, in_len, data_type);
+    else
+    {
+        std::vector<int> out_lens = {1};
+        SetTensorNd(outputDesc, out_lens, data_type);
+    }
     SetTensorNd(dODesc, in_len, data_type);
     SetTensorNd(dIDesc, in_len, data_type);
-    return 0;
+
+    return miopenStatusSuccess;
 }
 
 template <typename Tgpu, typename Tref>
@@ -276,47 +335,66 @@ std::vector<int> SoftMarginLossDriver<Tgpu, Tref>::ParseInputList(std::string in
 template <typename Tgpu, typename Tref>
 int SoftMarginLossDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 {
-    // only input tensor can be unpacked (to match with ROCm benchmark)
-    // for unpacked tensor, we need to use GetTensorSpace
-    size_t in_sz = GetTensorSpace(inputDesc);
-    size_t numel = GetTensorSize(targetDesc);
+    // to match with ROCm benchmark, only input tensor can be unpacked in driver for this op
+    // for unpacked tensor, we need to use GetTensorSpace instead of GetTensorSize
+    size_t in_sz     = GetTensorSpace(inputDesc);
+    size_t target_sz = GetTensorSpace(targetDesc);
+    size_t out_sz    = GetTensorSpace(outputDesc);
+    size_t dO_sz     = GetTensorSpace(dODesc);
+    size_t dI_sz     = GetTensorSpace(dIDesc);
+
+    if(divisor != 0)
+    {
+        miopenGetSoftMarginLossForwardWorkspaceSize(
+            GetHandle(), inputDesc, targetDesc, outputDesc, divisor, &ws_sizeInBytes);
+        if(ws_sizeInBytes == static_cast<size_t>(-1))
+            return miopenStatusAllocFailed;
+    }
+    else
+        ws_sizeInBytes = 0;
+    size_t ws_sz = ws_sizeInBytes / sizeof(Tgpu);
 
     uint32_t ctx = 0;
 
-    in_dev     = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(Tgpu)));
-    target_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, numel, sizeof(Tgpu)));
-    out_dev    = std::unique_ptr<GPUMem>(new GPUMem(ctx, numel, sizeof(Tgpu)));
-    dO_dev     = std::unique_ptr<GPUMem>(new GPUMem(ctx, numel, sizeof(Tgpu)));
-    dI_dev     = std::unique_ptr<GPUMem>(new GPUMem(ctx, numel, sizeof(Tgpu)));
+    in_dev        = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(Tgpu)));
+    target_dev    = std::unique_ptr<GPUMem>(new GPUMem(ctx, target_sz, sizeof(Tgpu)));
+    out_dev       = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(Tgpu)));
+    dO_dev        = std::unique_ptr<GPUMem>(new GPUMem(ctx, dO_sz, sizeof(Tgpu)));
+    dI_dev        = std::unique_ptr<GPUMem>(new GPUMem(ctx, dI_sz, sizeof(Tgpu)));
+    workspace_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, ws_sz, sizeof(Tgpu)));
 
-    in     = std::vector<Tgpu>(in_sz);
-    target = std::vector<Tgpu>(numel);
-    out    = std::vector<Tgpu>(numel);
-    dO     = std::vector<Tgpu>(numel);
-    dI     = std::vector<Tgpu>(numel);
+    in        = std::vector<Tgpu>(in_sz);
+    target    = std::vector<Tgpu>(target_sz);
+    out       = std::vector<Tgpu>(out_sz);
+    dO        = std::vector<Tgpu>(dO_sz);
+    dI        = std::vector<Tgpu>(dI_sz);
+    workspace = std::vector<Tgpu>(ws_sz);
 
-    outhost = std::vector<Tref>(numel);
-    dIhost  = std::vector<Tref>(numel);
+    outhost       = std::vector<Tref>(out_sz);
+    dIhost        = std::vector<Tref>(dI_sz);
+    workspacehost = std::vector<Tref>(ws_sz);
 
     for(int i = 0; i < in_sz; i++)
     {
         in[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(-1), static_cast<Tgpu>(1));
     }
     // -1 or 1
-    for(int i = 0; i < numel; i++)
+    for(int i = 0; i < target_sz; i++)
     {
         target[i] =
             (prng::gen_A_to_B<int32_t>(static_cast<int32_t>(0), static_cast<int32_t>(2)) == 0) ? -1
                                                                                                : 1;
     }
-    // similar to output_grad = torch.one_likes(output)
-    for(int i = 0; i < numel; i++)
-        dO[i] = 1;
     std::fill(out.begin(), out.end(), 0);
-    std::fill(outhost.begin(), outhost.end(), 0);
-
+    // similar to output_grad = torch.one_likes(output)
+    for(int i = 0; i < dO_sz; i++)
+        dO[i] = 1;
     std::fill(dI.begin(), dI.end(), 0);
+    std::fill(workspace.begin(), workspace.end(), 0);
+
+    std::fill(outhost.begin(), outhost.end(), 0);
     std::fill(dIhost.begin(), dIhost.end(), 0);
+    std::fill(workspacehost.begin(), workspacehost.end(), 0);
 
     if(in_dev->ToGPU(GetStream(), in.data()) != 0)
         std::cerr << "Error copying (in) to GPU, size: " << in_dev->GetSize() << std::endl;
@@ -333,6 +411,10 @@ int SoftMarginLossDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     if(dI_dev->ToGPU(GetStream(), dI.data()) != 0)
         std::cerr << "Error copying (dI) to GPU, size: " << dI_dev->GetSize() << std::endl;
 
+    if(workspace_dev->ToGPU(GetStream(), workspace.data()) != 0)
+        std::cerr << "Error copying (workspace) to GPU, size: " << workspace_dev->GetSize()
+                  << std::endl;
+
     return miopenStatusSuccess;
 }
 
@@ -347,13 +429,29 @@ int SoftMarginLossDriver<Tgpu, Tref>::RunForwardGPU()
 
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
-        miopenSoftMarginLossUnreducedForward(GetHandle(),
-                                             inputDesc,
-                                             in_dev->GetMem(),
-                                             targetDesc,
-                                             target_dev->GetMem(),
-                                             outputDesc,
-                                             out_dev->GetMem());
+        if(divisor == 0)
+        {
+            miopenSoftMarginLossUnreducedForward(GetHandle(),
+                                                 inputDesc,
+                                                 in_dev->GetMem(),
+                                                 targetDesc,
+                                                 target_dev->GetMem(),
+                                                 outputDesc,
+                                                 out_dev->GetMem());
+        }
+        else
+        {
+            miopenSoftMarginLossForward(GetHandle(),
+                                        workspace_dev->GetMem(),
+                                        ws_sizeInBytes,
+                                        inputDesc,
+                                        in_dev->GetMem(),
+                                        targetDesc,
+                                        target_dev->GetMem(),
+                                        outputDesc,
+                                        out_dev->GetMem(),
+                                        divisor);
+        }
 
         float time = 0.0;
         miopenGetKernelTime(GetHandle(), &time);
@@ -385,8 +483,16 @@ int SoftMarginLossDriver<Tgpu, Tref>::RunForwardGPU()
 template <typename Tgpu, typename Tref>
 int SoftMarginLossDriver<Tgpu, Tref>::RunForwardCPU()
 {
-    mloSoftMarginLossUnreducedForwardRunHost(
-        inputDesc, targetDesc, outputDesc, in.data(), target.data(), outhost.data());
+    if(divisor == 0)
+    {
+        mloSoftMarginLossUnreducedForwardRunHost(
+            inputDesc, targetDesc, outputDesc, in.data(), target.data(), outhost.data());
+    }
+    else
+    {
+        mloSoftMarginLossReducedForwardRunHost(
+            inputDesc, targetDesc, in.data(), target.data(), outhost.data(), divisor);
+    }
     return miopenStatusSuccess;
 }
 
@@ -463,6 +569,8 @@ template <typename Tgpu, typename Tref>
 int SoftMarginLossDriver<Tgpu, Tref>::VerifyForward()
 {
     RunForwardCPU();
+
+    // fp32: 1.5e-06, fp16: 0.0082, bf16: 0.0656
     const Tref tolerance = GetTolerance();
     auto error           = miopen::rms_range(outhost, out);
     if(!std::isfinite(error) || error > tolerance)

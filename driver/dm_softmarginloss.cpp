@@ -29,11 +29,11 @@
 static Driver* makeDriver(const std::string& base_arg)
 {
     if(base_arg == "softmarginloss")
-        return new SoftMarginLossDriver<float, float>();
+        return new SoftMarginLossDriver<float, double>();
     if(base_arg == "softmarginlossfp16")
-        return new SoftMarginLossDriver<float16, float>();
+        return new SoftMarginLossDriver<float16, double>();
     if(base_arg == "softmarginlossbfp16")
-        return new SoftMarginLossDriver<bfloat16, float>();
+        return new SoftMarginLossDriver<bfloat16, double>();
     return nullptr;
 }
 

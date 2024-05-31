@@ -46,11 +46,6 @@ bool SoftMarginLossForward::IsApplicable(
     const ExecutionContext& /*context*/,
     const miopen::softmarginloss::ForwardProblemDescription& problem) const
 {
-    // With big fp16 input tensor, the result is not correct because of floating-point precision
-    // issue in LossReduce kernel. Confirm by checking result in SoftMarginLoss op of ROCm and
-    // modnn, ROCM produce correct result while modnn produce incorrect
-    if(problem.GetiDesc().GetType() == miopenHalf && problem.GetiDesc().GetElementSize() >= 1e6)
-        return false;
     return true;
 }
 
@@ -146,11 +141,14 @@ ConvSolution SoftMarginLossForward::GetSolution(
             decltype(auto) params = raw_params.CastTo<miopen::softmarginloss::InvokeParams>();
             auto i_tv             = get_inner_expanded_tv<5>(*params.iDesc);
             auto t_tv             = get_inner_expanded_tv<5>(*params.tDesc);
+            float elapsed         = 0.0f;
 
             /* Phase 1: Calc loss for each element. */
             {
                 decltype(auto) kernel = handle_.Run(kernels.front());
                 kernel(params.i, params.t, params.workspace, params.divisor, i_tv, t_tv);
+                if(handle_.IsProfilingEnabled())
+                    elapsed += handle_.GetKernelTime();
             }
 
             /* Phase 2: Reduce */
@@ -171,8 +169,16 @@ ConvSolution SoftMarginLossForward::GetSolution(
                 {
                     kernel(reduce_in, params.o, size);
                 }
+                if(handle_.IsProfilingEnabled())
+                    elapsed += handle_.GetKernelTime();
                 size = AlignUp(size, LOCAL_SIZE_REDUCE) / LOCAL_SIZE_REDUCE;
             }
+
+            if(handle_.IsProfilingEnabled())
+            {
+                handle_.ResetKernelTime();
+                handle_.AccumKernelTime(elapsed);
+            };
         };
     };
 
