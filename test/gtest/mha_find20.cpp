@@ -42,8 +42,6 @@
 
 #include <vector>
 #include <variant>
-//#include <boost/variant.hpp>
-//#include <boost/hof/match.hpp>
 
 using namespace miopen;
 
