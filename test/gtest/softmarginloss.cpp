@@ -79,6 +79,18 @@ struct SoftMarginLossReducedForwardTestBFloat16 : SoftMarginLossReducedForwardTe
 {
 };
 
+struct SoftMarginLossReducedBackwardTestFloat : SoftMarginLossReducedBackwardTest<float>
+{
+};
+
+struct SoftMarginLossReducedBackwardTestHalf : SoftMarginLossReducedBackwardTest<half_float::half>
+{
+};
+
+struct SoftMarginLossReducedBackwardTestBFloat16 : SoftMarginLossReducedBackwardTest<bfloat16>
+{
+};
+
 } // namespace softmarginloss
 
 using namespace softmarginloss;
@@ -234,4 +246,55 @@ INSTANTIATE_TEST_SUITE_P(SoftMarginLossTestSet,
                          testing::ValuesIn(SoftMarginLossTestConfigs()));
 INSTANTIATE_TEST_SUITE_P(SoftMarginLossTestSet,
                          SoftMarginLossReducedForwardTestBFloat16,
+                         testing::ValuesIn(SoftMarginLossTestConfigs()));
+
+TEST_P(SoftMarginLossReducedBackwardTestFloat, )
+{
+    if(miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
+       (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float")))
+    {
+        RunTest();
+        Verify();
+    }
+    else
+    {
+        GTEST_SKIP();
+    }
+};
+
+TEST_P(SoftMarginLossReducedBackwardTestHalf, )
+{
+    if(miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
+       (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--half")))
+    {
+        RunTest();
+        Verify();
+    }
+    else
+    {
+        GTEST_SKIP();
+    }
+};
+
+TEST_P(SoftMarginLossReducedBackwardTestBFloat16, )
+{
+    if(miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
+       (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--bfloat16")))
+    {
+        RunTest();
+        Verify();
+    }
+    else
+    {
+        GTEST_SKIP();
+    }
+};
+INSTANTIATE_TEST_SUITE_P(SoftMarginLossTestSet,
+                         SoftMarginLossReducedBackwardTestFloat,
+                         testing::ValuesIn(SoftMarginLossTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(SoftMarginLossTestSet,
+                         SoftMarginLossReducedBackwardTestHalf,
+                         testing::ValuesIn(SoftMarginLossTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(SoftMarginLossTestSet,
+                         SoftMarginLossReducedBackwardTestBFloat16,
                          testing::ValuesIn(SoftMarginLossTestConfigs()));

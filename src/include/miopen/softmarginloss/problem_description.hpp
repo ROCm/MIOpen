@@ -63,8 +63,9 @@ struct ForwardProblemDescription : ProblemDescriptionBase
         }
         if(divisor != 0 && oDesc.GetElementSize() != 1)
         {
-            MIOPEN_THROW(miopenStatusBadParm,
-                         "SoftMarginLoss: When doing reduction, output tensor size need to be 1");
+            MIOPEN_THROW(
+                miopenStatusBadParm,
+                "SoftMarginLoss: When doing forward reduction, output tensor size need to be 1");
         }
     }
 
@@ -87,8 +88,9 @@ struct BackwardProblemDescription : ProblemDescriptionBase
     BackwardProblemDescription(const TensorDescriptor& iDesc_,
                                const TensorDescriptor& tDesc_,
                                const TensorDescriptor& dODesc_,
-                               const TensorDescriptor& dIDesc_)
-        : iDesc(iDesc_), tDesc(tDesc_), dODesc(dODesc_), dIDesc(dIDesc_)
+                               const TensorDescriptor& dIDesc_,
+                               const float divisor_)
+        : iDesc(iDesc_), tDesc(tDesc_), dODesc(dODesc_), dIDesc(dIDesc_), divisor(divisor_)
     {
         if(iDesc.GetType() != tDesc.GetType() || iDesc.GetType() != dODesc.GetType() ||
            iDesc.GetType() != dIDesc.GetType())
@@ -101,12 +103,19 @@ struct BackwardProblemDescription : ProblemDescriptionBase
             MIOPEN_THROW(miopenStatusBadParm,
                          "SoftMarginLoss: Tensor dimension lengths do not match.");
         }
+        if((divisor != 0) && (divisor != 1) && (divisor != iDesc.GetElementSize()))
+        {
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "SoftMarginLoss: Divisor need to be 0 (no reduction), or 1 (sum "
+                         "reduction), or number of input tensor elements (mean reduction).");
+        }
     }
 
     const TensorDescriptor& GetiDesc() const { return iDesc; }
     const TensorDescriptor& GettDesc() const { return tDesc; }
     const TensorDescriptor& GetdODesc() const { return dODesc; }
     const TensorDescriptor& GetdIDesc() const { return dIDesc; }
+    float Getdivisor() const { return divisor; }
 
     NetworkConfig MakeNetworkConfig() const override;
 
@@ -115,6 +124,7 @@ private:
     TensorDescriptor tDesc;
     TensorDescriptor dODesc;
     TensorDescriptor dIDesc;
+    float divisor;
 };
 
 } // namespace softmarginloss

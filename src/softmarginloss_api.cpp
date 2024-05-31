@@ -84,7 +84,7 @@ miopenGetSoftMarginLossForwardWorkspaceSize(miopenHandle_t handle,
                                             const float divisor,
                                             size_t* sizeInBytes)
 {
-    MIOPEN_LOG_FUNCTION(handle, iDesc);
+    MIOPEN_LOG_FUNCTION(handle, iDesc, tDesc, oDesc, divisor);
 
     return miopen::try_([&] {
         miopen::deref(sizeInBytes) =
@@ -121,5 +121,31 @@ extern "C" miopenStatus_t miopenSoftMarginLossForward(miopenHandle_t handle,
                                       miopen::deref(oDesc),
                                       DataCast(o),
                                       divisor);
+    });
+}
+
+extern "C" miopenStatus_t miopenSoftMarginLossBackward(miopenHandle_t handle,
+                                                       const miopenTensorDescriptor_t iDesc,
+                                                       const void* i,
+                                                       const miopenTensorDescriptor_t tDesc,
+                                                       const void* t,
+                                                       const miopenTensorDescriptor_t dODesc,
+                                                       const void* dO,
+                                                       const miopenTensorDescriptor_t dIDesc,
+                                                       void* dI,
+                                                       const float divisor)
+{
+    MIOPEN_LOG_FUNCTION(handle, iDesc, i, tDesc, t, dODesc, dO, dIDesc, dI, divisor);
+    return miopen::try_([&] {
+        miopen::SoftMarginLossBackward(miopen::deref(handle),
+                                       miopen::deref(iDesc),
+                                       DataCast(i),
+                                       miopen::deref(tDesc),
+                                       DataCast(t),
+                                       miopen::deref(dODesc),
+                                       DataCast(dO),
+                                       miopen::deref(dIDesc),
+                                       DataCast(dI),
+                                       divisor);
     });
 }

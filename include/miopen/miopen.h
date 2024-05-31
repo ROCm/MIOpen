@@ -512,7 +512,7 @@ typedef enum
     miopenActivationABS      = 5, /*!< Absolute value \f$abs(x)\f$ */
     miopenActivationPOWER = 6, /*!< Scaled and shifted power \f$(\alpha + \beta * x)^{gamma}\f$ */
     miopenActivationCLIPPEDRELU =
-        7, /*!< Clipped Rectified Linear Unit \f$ min(\alpha, max(0,x)) \f$ */
+        7,                     /*!< Clipped Rectified Linear Unit \f$ min(\alpha, max(0,x)) \f$ */
     miopenActivationLEAKYRELU =
         8, /*!< Leaky Rectified Linear Unit \f$ \alpha * x | x <= 0; x | x > 0 \f$ */
     miopenActivationELU =
@@ -6683,6 +6683,33 @@ MIOPEN_EXPORT miopenStatus_t miopenSoftMarginLossForward(miopenHandle_t handle,
                                                          const miopenTensorDescriptor_t oDesc,
                                                          void* o,
                                                          const float divisor);
+
+/*! @brief Execute a SoftMarginLoss backward layer with reduction
+ *
+ * @param handle                    MIOpen handle (input)
+ * @param iDesc                     Tensor descriptor for input tensor (input)
+ * @param i                         Data tensor input (input)
+ * @param tDesc                     Tensor descriptor for target tensor (input)
+ * @param t                         Data tensor target (input)
+ * @param dODesc                    Tensor descriptor for output gradient (input)
+ * @param dO                        Output gradient (input)
+ * @param dIDesc                    Tensor descriptor for input gradient (input)
+ * @param dI                        Input gradient (output)
+ * @param divisor                   Divisor. Set to number of output tensor elements to get
+ "mean",
+ * set to 1 to get "sum" (input)
+ * @return                          miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenSoftMarginLossBackward(miopenHandle_t handle,
+                                                          const miopenTensorDescriptor_t iDesc,
+                                                          const void* i,
+                                                          const miopenTensorDescriptor_t tDesc,
+                                                          const void* t,
+                                                          const miopenTensorDescriptor_t dODesc,
+                                                          const void* dO,
+                                                          const miopenTensorDescriptor_t dIDesc,
+                                                          void* dI,
+                                                          const float divisor);
 
 /** @} */
 // CLOSEOUT LossFunction DOXYGEN GROUP

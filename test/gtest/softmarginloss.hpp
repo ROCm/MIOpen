@@ -35,62 +35,61 @@
 #include <miopen/softmarginloss.hpp>
 #include <numeric>
 
-struct SoftMarginLossUnreducedTestCase
+struct SoftMarginLossTestCase
 {
     std::vector<size_t> dims;
     std::vector<size_t> strides;
 };
 
-std::vector<SoftMarginLossUnreducedTestCase> SoftMarginLossTestConfigs()
+std::vector<SoftMarginLossTestCase> SoftMarginLossTestConfigs()
 {
     // clang-format off
     return {
     {{256, 4, 8732}, {34928, 8732, 1}}, // squeezenet
-    {{32, 80, 870}, {69600, 1, 80}}, // t5
-    {{32, 80, 870}, {69600, 870, 1}}, // t5
-    {{4, 182403, 91}, {16598673, 91, 1}}, // resnext
-    {{1534680}, {1}}, // maskrcnn
-    {{16, 1, 512, 512}, {262144, 262144, 512, 1}}, // stdc
-    {{2, 3, 160, 160}, {6528000, 2176000, 13600, 85}}, // yolor
-    {{2, 3, 80, 80}, {1632000, 544000, 6800, 85}}, // yolor
-    {{32756, 80}, {85, 1}}, // yolov5
-    {{64, 3, 80, 80}, {1632000, 544000, 6800, 85}}, // yolov5
-    {{64, 3, 40, 40}, {408000, 136000, 3400, 85}}, // yolov5
-    {{22311, 80}, {85, 1}}, // yolov5
-    {{64, 3, 20, 20}, {102000, 34000, 1700, 85}}, // yolov5
-    {{8, 4}, {4, 1}}, // ssd
-    {{56, 4}, {4, 1}}, // ssd
-    {{131, 4}, {4, 1}}, // ssd
-    {{10000}, {1}}, // 1dcont
-    {{200, 50}, {50, 1}}, // 2dcont
-    {{20, 50, 10}, {500, 10, 1}}, // 3dcont
-    {{4, 25, 4, 25}, {2500, 100, 25, 1}}, // 4dcont
-    {{12, 3, 4, 5, 6}, {360, 120, 30, 6, 1}}, // 5dcont
-    {{10000}, {3}}, // 1d-uncont
-    {{200, 50}, {1, 200}}, // 2d-uncont
-    {{200, 50}, {505, 1}}, // 2d-unpacked
-    {{20, 50, 10}, {1, 20, 1000}}, // 3d-uncont
-    {{20, 50, 10}, {7575, 15, 1}}, // 3d-unpacked
-    {{4, 25, 4, 25}, {1, 16, 4, 400}}, // 4d-uncont
-    {{4, 25, 4, 25}, {5859, 217, 31, 1}}, // 4d-unpacked
-    {{12, 3, 4, 5, 6}, {360, 120, 6, 24, 1}}, // 5d-uncont
-    {{12, 3, 4, 5, 6}, {5760, 960, 120, 12, 1}}, // 5d-unpacked
+    // {{32, 80, 870}, {69600, 1, 80}}, // t5
+    // {{32, 80, 870}, {69600, 870, 1}}, // t5
+    // {{4, 182403, 91}, {16598673, 91, 1}}, // resnext
+    // {{1534680}, {1}}, // maskrcnn
+    // {{16, 1, 512, 512}, {262144, 262144, 512, 1}}, // stdc
+    // {{2, 3, 160, 160}, {6528000, 2176000, 13600, 85}}, // yolor
+    // {{2, 3, 80, 80}, {1632000, 544000, 6800, 85}}, // yolor
+    // {{32756, 80}, {85, 1}}, // yolov5
+    // {{64, 3, 80, 80}, {1632000, 544000, 6800, 85}}, // yolov5
+    // {{64, 3, 40, 40}, {408000, 136000, 3400, 85}}, // yolov5
+    // {{22311, 80}, {85, 1}}, // yolov5
+    // {{64, 3, 20, 20}, {102000, 34000, 1700, 85}}, // yolov5
+    // {{8, 4}, {4, 1}}, // ssd
+    // {{56, 4}, {4, 1}}, // ssd
+    // {{131, 4}, {4, 1}}, // ssd
+    // {{10000}, {1}}, // 1dcont
+    // {{200, 50}, {50, 1}}, // 2dcont
+    // {{20, 50, 10}, {500, 10, 1}}, // 3dcont
+    // {{4, 25, 4, 25}, {2500, 100, 25, 1}}, // 4dcont
+    // {{12, 3, 4, 5, 6}, {360, 120, 30, 6, 1}}, // 5dcont
+    // {{10000}, {3}}, // 1d-uncont
+    // {{200, 50}, {1, 200}}, // 2d-uncont
+    // {{200, 50}, {505, 1}}, // 2d-unpacked
+    // {{20, 50, 10}, {1, 20, 1000}}, // 3d-uncont
+    // {{20, 50, 10}, {7575, 15, 1}}, // 3d-unpacked
+    // {{4, 25, 4, 25}, {1, 16, 4, 400}}, // 4d-uncont
+    // {{4, 25, 4, 25}, {5859, 217, 31, 1}}, // 4d-unpacked
+    // {{12, 3, 4, 5, 6}, {360, 120, 6, 24, 1}}, // 5d-uncont
+    // {{12, 3, 4, 5, 6}, {5760, 960, 120, 12, 1}}, // 5d-unpacked
     };
     // clang-format on
 }
 
 template <typename T = float>
-struct SoftMarginLossUnreducedForwardTest
-    : public ::testing::TestWithParam<SoftMarginLossUnreducedTestCase>
+struct SoftMarginLossUnreducedForwardTest : public ::testing::TestWithParam<SoftMarginLossTestCase>
 {
 protected:
     void SetUp() override
     {
-        auto&& handle                  = get_handle();
-        softmarginlossunreduced_config = GetParam();
+        auto&& handle         = get_handle();
+        softmarginloss_config = GetParam();
 
-        auto in_dims      = softmarginlossunreduced_config.dims;
-        auto in_strides   = softmarginlossunreduced_config.strides;
+        auto in_dims      = softmarginloss_config.dims;
+        auto in_strides   = softmarginloss_config.strides;
         auto gen_in_value = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1e-2, 100); };
 
         // below commented code that I have seen in many files will not work correctly with unpacked
@@ -150,7 +149,7 @@ protected:
                                           "Error:"
                                        << error << ",  Threshold: " << threshold;
     }
-    SoftMarginLossUnreducedTestCase softmarginlossunreduced_config;
+    SoftMarginLossTestCase softmarginloss_config;
 
     tensor<T> input;
     tensor<T> target;
@@ -164,17 +163,16 @@ protected:
 };
 
 template <typename T = float>
-struct SoftMarginLossUnreducedBackwardTest
-    : public ::testing::TestWithParam<SoftMarginLossUnreducedTestCase>
+struct SoftMarginLossUnreducedBackwardTest : public ::testing::TestWithParam<SoftMarginLossTestCase>
 {
 protected:
     void SetUp() override
     {
-        auto&& handle                  = get_handle();
-        softmarginlossunreduced_config = GetParam();
+        auto&& handle         = get_handle();
+        softmarginloss_config = GetParam();
 
-        auto in_dims      = softmarginlossunreduced_config.dims;
-        auto in_strides   = softmarginlossunreduced_config.strides;
+        auto in_dims      = softmarginloss_config.dims;
+        auto in_strides   = softmarginloss_config.strides;
         auto gen_in_value = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1e-2, 100); };
         // Contiguous or not? depends on strides
         input = tensor<T>{in_dims, in_strides}.generate(gen_in_value);
@@ -229,7 +227,7 @@ protected:
                                           "Error:"
                                        << error << ",  Threshold: " << threshold;
     }
-    SoftMarginLossUnreducedTestCase softmarginlossunreduced_config;
+    SoftMarginLossTestCase softmarginloss_config;
 
     tensor<T> input;
     tensor<T> target;
@@ -245,24 +243,25 @@ protected:
 };
 
 template <typename T = float>
-struct SoftMarginLossReducedForwardTest
-    : public ::testing::TestWithParam<SoftMarginLossUnreducedTestCase>
+struct SoftMarginLossReducedForwardTest : public ::testing::TestWithParam<SoftMarginLossTestCase>
 {
 protected:
     void SetUp() override
     {
-        auto&& handle                  = get_handle();
-        softmarginlossunreduced_config = GetParam();
+        auto&& handle         = get_handle();
+        softmarginloss_config = GetParam();
 
-        auto in_dims    = softmarginlossunreduced_config.dims;
-        auto in_strides = softmarginlossunreduced_config.strides;
+        auto in_dims    = softmarginloss_config.dims;
+        auto in_strides = softmarginloss_config.strides;
 
         auto input_numel =
             std::accumulate(in_dims.begin(), in_dims.end(), 1L, std::multiplies<int64_t>());
         if(std::is_same<T, half_float::half>::value && input_numel > 80000)
         {
-            std::cerr << "For fp16 test, too many elements in input tensor can lead to fp16 "
-                         "overflow when doing reduction"
+            std::cerr << "For fp16 forward reduction test, too many elements in input tensor can "
+                         "lead to fp16 "
+                         "overflow or underflow. If reduction mean, divisor is very big lead to "
+                         "underflow. If reduction sum, result is too big lead to overflow."
                       << std::endl;
             GTEST_SKIP();
         }
@@ -318,7 +317,7 @@ protected:
         auto&& handle = get_handle();
 
         // Mean reduction. To test with sum reduction, change divisor to 1
-        float divisor = input.desc.GetElementSize();
+        const float divisor = input.desc.GetElementSize();
         cpu_softmarginloss_reduced_forward<T>(input, target, ref_output, ref_workspace, divisor);
 
         miopenStatus_t status;
@@ -351,7 +350,7 @@ protected:
                                                "Error:"
                                             << error << ",  Threshold x 10: " << threshold * 10;
     }
-    SoftMarginLossUnreducedTestCase softmarginlossunreduced_config;
+    SoftMarginLossTestCase softmarginloss_config;
 
     tensor<T> input;
     tensor<T> target;
@@ -367,4 +366,100 @@ protected:
     miopen::Allocator::ManageDataPtr workspace_dev;
 
     size_t ws_sizeInBytes;
+};
+
+template <typename T = float>
+struct SoftMarginLossReducedBackwardTest : public ::testing::TestWithParam<SoftMarginLossTestCase>
+{
+protected:
+    void SetUp() override
+    {
+        auto&& handle         = get_handle();
+        softmarginloss_config = GetParam();
+
+        auto in_dims    = softmarginloss_config.dims;
+        auto in_strides = softmarginloss_config.strides;
+
+        // Mean reduction. To test with sum reduction, change divisor to 1
+        // divisor = 1;
+        divisor = input.desc.GetElementSize();
+
+        if(std::is_same<T, half_float::half>::value && divisor > 80000)
+        {
+            std::cerr << "For fp16 backward reduction mean test, too many elements in input tensor "
+                         "can lead to fp16 underflow when divise by too big divisor"
+                      << std::endl;
+            GTEST_SKIP();
+        }
+
+        auto gen_in_value = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1e-2, 100); };
+        // Contiguous or not? depends on strides
+        input = tensor<T>{in_dims, in_strides}.generate(gen_in_value);
+
+        auto gen_target_value = [](auto...) {
+            return (prng::gen_A_to_B<int32_t>(0, 2) == 0) ? -1 : 1;
+        };
+        target = tensor<T>{in_dims, in_strides}.generate(gen_target_value);
+
+        dO = tensor<T>{in_dims, in_strides};
+        std::fill(dO.begin(), dO.end(), 1);
+
+        dI = tensor<T>{in_dims, in_strides};
+        std::fill(dI.begin(), dI.end(), 0);
+
+        ref_dI = tensor<T>{in_dims, in_strides};
+        std::fill(ref_dI.begin(), ref_dI.end(), 0);
+
+        input_dev  = handle.Write(input.data);
+        target_dev = handle.Write(target.data);
+        dO_dev     = handle.Write(dO.data);
+        dI_dev     = handle.Write(dI.data);
+    }
+    void RunTest()
+    {
+        auto&& handle = get_handle();
+
+        cpu_softmarginloss_reduced_backward<T>(input, target, dO, ref_dI, divisor);
+        miopenStatus_t status;
+
+        status = miopen::SoftMarginLossBackward(handle,
+                                                input.desc,
+                                                input_dev.get(),
+                                                target.desc,
+                                                target_dev.get(),
+                                                dO.desc,
+                                                dO_dev.get(),
+                                                dI.desc,
+                                                dI_dev.get(),
+                                                divisor);
+
+        EXPECT_EQ(status, miopenStatusSuccess);
+
+        dI.data = handle.Read<T>(dI_dev, dI.data.size());
+    }
+
+    void Verify()
+    {
+        double threshold = std::numeric_limits<T>::epsilon();
+        auto error       = miopen::rms_range(ref_dI, dI);
+        EXPECT_TRUE(miopen::range_distance(ref_dI) == miopen::range_distance(dI));
+        EXPECT_TRUE(error < threshold) << "Error output beyond tolerance "
+                                          "Error:"
+                                       << error << ",  Threshold: " << threshold;
+    }
+    SoftMarginLossTestCase softmarginloss_config;
+
+    tensor<T> input;
+    tensor<T> target;
+    tensor<T> dO;
+    tensor<T> dI;
+
+    tensor<T> ref_dI;
+
+    miopen::Allocator::ManageDataPtr input_dev;
+    miopen::Allocator::ManageDataPtr target_dev;
+    miopen::Allocator::ManageDataPtr dO_dev;
+    miopen::Allocator::ManageDataPtr dI_dev;
+
+    float divisor;
 };

@@ -46,6 +46,14 @@ bool SoftMarginLossForward::IsApplicable(
     const ExecutionContext& /*context*/,
     const miopen::softmarginloss::ForwardProblemDescription& problem) const
 {
+    if((problem.GetiDesc().GetType() == miopenHalf ||
+        problem.GetiDesc().GetType() == miopenBFloat16) &&
+       problem.GetiDesc().GetElementSize() >= 8000000)
+    {
+        // Performance is worse compare to ROCm. Moreover, miopenHalf result have a high possibility
+        // to be overflow.
+        return false;
+    }
     return true;
 }
 

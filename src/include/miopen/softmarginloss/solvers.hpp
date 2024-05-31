@@ -87,6 +87,20 @@ struct SoftMarginLossForward final : ForwardSoftMarginLossSolver
     bool MayNeedWorkspace() const override { return true; }
 };
 
+struct SoftMarginLossBackward final : BackwardSoftMarginLossSolver
+{
+    const std::string& SolverDbId() const override
+    {
+        return GetSolverDbId<SoftMarginLossBackward>();
+    }
+    bool
+    IsApplicable(const ExecutionContext& context,
+                 const miopen::softmarginloss::BackwardProblemDescription& problem) const override;
+    ConvSolution
+    GetSolution(const ExecutionContext& context,
+                const miopen::softmarginloss::BackwardProblemDescription& problem) const override;
+};
+
 } // namespace softmarginloss
 
 } // namespace solver
