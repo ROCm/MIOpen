@@ -44,6 +44,8 @@ bool RoPEBackward::IsApplicable(const ExecutionContext& context,
 {
     if(!problem.IsValidLength())
         return false;
+    if(!problem.IsSameType())
+        return false;
     if(!problem.IsAllContiguous())
         return false;
     return true;

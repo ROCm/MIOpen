@@ -45,6 +45,7 @@ struct ProblemDescriptionFwd : ProblemDescriptionBase
                           const TensorDescriptor& yDesc_)
         : xDesc(xDesc_), cosDesc(cosDesc_), sinDesc(sinDesc_), yDesc(yDesc_)
     {
+        IsValidLength();
     }
 
     const TensorDescriptor& GetXDesc() const { return xDesc; }
@@ -52,7 +53,21 @@ struct ProblemDescriptionFwd : ProblemDescriptionBase
     const TensorDescriptor& GetSinDesc() const { return sinDesc; }
     const TensorDescriptor& GetYDesc() const { return yDesc; }
 
-    bool IsValidLength() const { return true; }
+    bool IsValidLength() const
+    {
+        if(xDesc.GetLengths() != yDesc.GetLengths())
+        {
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "RoPEForward: Tensor x and y dimension lengths do not match.");
+        }
+
+        if(cosDesc.GetLengths() != sinDesc.GetLengths())
+        {
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "RoPEForward: Tensor cos and sin dimension lengths do not match.");
+        }
+        return true;
+    }
 
     bool IsSameType() const
     {
@@ -93,6 +108,7 @@ struct ProblemDescriptionBwd : ProblemDescriptionBase
                           const TensorDescriptor& dxDesc_)
         : dyDesc(dyDesc_), cosDesc(cosDesc_), sinDesc(sinDesc_), dxDesc(dxDesc_)
     {
+        IsValidLength();
     }
 
     const TensorDescriptor& GetDYDesc() const { return dyDesc; }
@@ -100,7 +116,21 @@ struct ProblemDescriptionBwd : ProblemDescriptionBase
     const TensorDescriptor& GetSinDesc() const { return sinDesc; }
     const TensorDescriptor& GetDXDesc() const { return dxDesc; }
 
-    bool IsValidLength() const { return true; }
+    bool IsValidLength() const
+    {
+        if(dyDesc.GetLengths() != dxDesc.GetLengths())
+        {
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "RoPEForward: Tensor dy and dx dimension lengths do not match.");
+        }
+
+        if(cosDesc.GetLengths() != sinDesc.GetLengths())
+        {
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "RoPEForward: Tensor cos and sin dimension lengths do not match.");
+        }
+        return true;
+    }
 
     bool IsSameType() const
     {
