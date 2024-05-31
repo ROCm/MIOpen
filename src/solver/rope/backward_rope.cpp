@@ -39,7 +39,7 @@ namespace solver {
 
 namespace rope {
 
-bool RoPEBackward::IsApplicable(const ExecutionContext& context,
+bool RoPEBackward::IsApplicable(const ExecutionContext& /*context*/,
                                 const miopen::rope::ProblemDescriptionBwd& problem) const
 {
     if(!problem.IsValidLength())
