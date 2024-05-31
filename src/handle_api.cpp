@@ -28,6 +28,148 @@
 #include <miopen/errors.hpp>
 #include <miopen/handle.hpp>
 
+extern const char* miopenTensorArgumentToString(miopenTensorArgumentId_t arg)
+{
+    switch(arg)
+    {
+    case miopenTensorArgumentIdInvalid: return "miopenTensorArgumentIdInvalid";
+
+    case miopenTensorConvolutionX: return "miopenTensorConvolutionX";
+
+    case miopenTensorConvolutionW: return "miopenTensorConvolutionW";
+
+    case miopenTensorConvolutionY: return "miopenTensorConvolutionY";
+
+    case miopenTensorMhaK: return "miopenTensorMhaK";
+
+    case miopenTensorMhaQ: return "miopenTensorMhaQ";
+
+    case miopenTensorMhaV: return "miopenTensorMhaV";
+
+    case miopenTensorMhaDescaleK: return "miopenTensorMhaDescaleK";
+
+    case miopenTensorMhaDescaleQ: return "miopenTensorMhaDescaleQ";
+
+    case miopenTensorMhaDescaleV: return "miopenTensorMhaDescaleV";
+
+    case miopenTensorMhaDescaleS: return "miopenTensorMhaDescaleS";
+
+    case miopenTensorMhaScaleS: return "miopenTensorMhaScaleS";
+
+    case miopenTensorMhaScaleO: return "miopenTensorMhaScaleO";
+
+    case miopenTensorMhaDropoutProbability: return "miopenTensorMhaDropoutProbability";
+
+    case miopenTensorMhaDropoutSeed: return "miopenTensorMhaDropoutSeed";
+
+    case miopenTensorMhaDropoutOffset: return "miopenTensorMhaDropoutOffset";
+
+    case miopenTensorMhaO: return "miopenTensorMhaO";
+
+    case miopenTensorMhaAmaxO: return "miopenTensorMhaAmaxO";
+
+    case miopenTensorMhaAmaxS: return "miopenTensorMhaAmaxS";
+
+    case miopenTensorMhaM: return "miopenTensorMhaM";
+
+    case miopenTensorMhaZInv: return "miopenTensorMhaZInv";
+
+    case miopenTensorMhaDO: return "miopenTensorMhaDO";
+
+    case miopenTensorMhaDescaleO: return "miopenTensorMhaDescaleO";
+
+    case miopenTensorMhaDescaleDO: return "miopenTensorMhaDescaleDO";
+
+    case miopenTensorMhaDescaleDS: return "miopenTensorMhaDescaleDS";
+
+    case miopenTensorMhaScaleDS: return "miopenTensorMhaScaleDS";
+
+    case miopenTensorMhaScaleDQ: return "miopenTensorMhaScaleDQ";
+
+    case miopenTensorMhaScaleDK: return "miopenTensorMhaScaleDK";
+
+    case miopenTensorMhaScaleDV: return "miopenTensorMhaScaleDV";
+
+    case miopenTensorMhaDQ: return "miopenTensorMhaDQ";
+
+    case miopenTensorMhaDK: return "miopenTensorMhaDK";
+
+    case miopenTensorMhaDV: return "miopenTensorMhaDV";
+
+    case miopenTensorMhaAmaxDQ: return "miopenTensorMhaAmaxDQ";
+
+    case miopenTensorMhaAmaxDK: return "miopenTensorMhaAmaxDK";
+
+    case miopenTensorMhaAmaxDV: return "miopenTensorMhaAmaxDV";
+
+    case miopenTensorMhaAmaxDS: return "miopenTensorMhaAmaxDS";
+
+#ifdef MIOPEN_BETA_API
+
+    case miopenTensorActivationX: return "miopenTensorActivationX";
+
+    case miopenTensorActivationY: return "miopenTensorActivationY";
+
+    case miopenTensorActivationDX: return "miopenTensorActivationDX";
+
+    case miopenTensorActivationDY: return "miopenTensorActivationDY";
+
+    case miopenTensorBiasX: return "miopenTensorBiasX";
+
+    case miopenTensorBiasY: return "miopenTensorBiasY";
+
+    case miopenTensorBias: return "miopenTensorBias";
+
+    case miopenTensorSoftmaxX: return "miopenTensorSoftmaxX";
+
+    case miopenTensorSoftmaxY: return "miopenTensorSoftmaxY";
+
+    case miopenTensorSoftmaxDX: return "miopenTensorSoftmaxDX";
+
+    case miopenTensorSoftmaxDY: return "miopenTensorSoftmaxDY";
+
+    case miopenTensorBatchnormX: return "miopenTensorBatchnormX";
+
+    case miopenTensorBatchnormY: return "miopenTensorBatchnormY";
+
+    case miopenTensorBatchnormRunningMean: return "miopenTensorBatchnormRunningMean";
+
+    case miopenTensorBatchnormRunningVariance: return "miopenTensorBatchnormRunningVariance";
+
+    case miopenTensorBatchnormSavedMean: return "miopenTensorBatchnormSavedMean";
+
+    case miopenTensorBatchnormSavedVariance: return "miopenTensorBatchnormSavedVariance";
+
+    case miopenTensorBatchnormScale: return "miopenTensorBatchnormScale";
+
+    case miopenTensorBatchnormScaleDiff: return "miopenTensorBatchnormScaleDiff";
+
+    case miopenTensorBatchnormEstimatedMean: return "miopenTensorBatchnormEstimatedMean";
+
+    case miopenTensorBatchnormEstimatedVariance: return "miopenTensorBatchnormEstimatedVariance";
+
+    case miopenTensorBatchnormBias: return "miopenTensorBatchnormBias";
+
+    case miopenTensorBatchnormBiasDiff: return "miopenTensorBatchnormBiasDiff";
+
+    case miopenTensorBatchnormDX: return "miopenTensorBatchnormDX";
+
+    case miopenTensorBatchnormDY: return "miopenTensorBatchnormDY";
+
+#endif
+
+    case miopenTensorArgumentIsScalar: return "miopenTensorArgumentIsScalar";
+
+#ifdef MIOPEN_BETA_API
+
+    case miopenScalarBatchnormExpAvgFactor: return "miopenScalarBatchnormExpAvgFactor";
+
+    case miopenScalarBatchnormEpsilon: return "miopenScalarBatchnormEpsilon";
+
+#endif
+    }
+}
+
 extern "C" const char* miopenGetErrorString(miopenStatus_t error)
 {
     switch(error)
