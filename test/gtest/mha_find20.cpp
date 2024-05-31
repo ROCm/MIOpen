@@ -366,7 +366,7 @@ private:
 
         CreateTensor(miopenTensorMhaScaleS).InitWithFloatValue(1.0f);
 
-        CreateTensor(miopenTensorMhaDropoutProbability).InitWithFloatValue(0.0f);
+        CreateTensor(miopenTensorMhaDropoutProbability).InitWithFloatValue(0.5f);
         CreateTensor(miopenTensorMhaDropoutSeed).InitWithInt64Value(0);
         CreateTensor(miopenTensorMhaDropoutOffset).InitWithInt64Value(0);
 
