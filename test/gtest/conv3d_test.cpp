@@ -67,6 +67,7 @@ void Run3dDriver(miopenDataType_t prec)
     case miopenHalf:
     case miopenBFloat16:
     case miopenInt32:
+    case miopenInt64:
     case miopenDouble:
         FAIL() << "miopenHalf, miopenBFloat16, miopenInt8, miopenInt32, "
                   "miopenDouble data "

@@ -41,16 +41,6 @@
 #include "get_handle.hpp"
 #include "workspace.hpp"
 
-template <>
-struct miopen_type<uint8_t> : std::integral_constant<miopenDataType_t, miopenInt8>
-{
-};
-
-template <>
-struct miopen_type<uint16_t> : std::integral_constant<miopenDataType_t, miopenHalf>
-{
-};
-
 template <typename T>
 void cpu_tensor_reorder(T* dst,
                         T* src,
@@ -129,26 +119,6 @@ struct reorder_str
                 std::to_string(order_3));
     }
 };
-
-enum tensor_layout_t
-{
-    miopen_tensor_layout_nchw,
-    miopen_tensor_layout_ncdhw,
-    miopen_tensor_layout_nhwc,
-    miopen_tensor_layout_ndhwc,
-};
-
-std::string tensor_layout_to_string(tensor_layout_t layout)
-{
-    switch(layout)
-    {
-    case miopen_tensor_layout_nchw: return "NCHW";
-    case miopen_tensor_layout_ncdhw: return "NCDHW";
-    case miopen_tensor_layout_nhwc: return "NHWC";
-    case miopen_tensor_layout_ndhwc: return "NDHWC";
-    default: MIOPEN_THROW("Unsupported tensor layout");
-    }
-}
 
 std::string
 supported_reorder_to_string(uint32_t order_0, uint32_t order_1, uint32_t order_2, uint32_t order_3)
@@ -369,7 +339,7 @@ struct tensor_reorder_driver : tensor_reorder_base_driver
             std::vector<int> tensor_strides;
 
             std::string layout_default = miopen::tensor_layout_get_default(4);
-            std::string layout_string  = tensor_layout_to_string(miopen_tensor_layout_nchw);
+            std::string layout_string  = miopen::TensorDescriptor::GetLayoutStr(miopenTensorNCHW);
             std::string reorder_string =
                 supported_reorder_to_string(order_0, order_1, order_2, order_3);
 

@@ -80,6 +80,7 @@ void Run2dDriver(miopenDataType_t prec)
     case miopenInt8:
     case miopenBFloat16:
     case miopenInt32:
+    case miopenInt64:
     case miopenDouble:
     case miopenFloat8:
     case miopenBFloat8:

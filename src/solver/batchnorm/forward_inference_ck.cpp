@@ -195,6 +195,7 @@ bool BnCKFwdInference::IsApplicable(
         return (CheckCKApplicability<F64, F64, F64, F64, F64, F64>(bn_problem) != -1);
     case miopenBFloat16:
         return (CheckCKApplicability<BF16, BF16, F32, BF16, BF16, F32>(bn_problem) != -1);
+    case miopenInt64:
     case miopenInt32:
     case miopenInt8:
     case miopenFloat8:
@@ -233,6 +234,7 @@ ConvSolution BnCKFwdInference::GetSolution(
                 break;
             case miopenInt8:
             case miopenInt32:
+            case miopenInt64:
             case miopenFloat8:
             case miopenBFloat8:
             default: MIOPEN_THROW("Unsupported datatype");
