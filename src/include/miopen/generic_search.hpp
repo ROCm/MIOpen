@@ -28,7 +28,7 @@
 #define GUARD_MIOPEN_GENERIC_SEARCH_HPP_
 
 #include <miopen/binary_cache.hpp>
-#include <miopen/config.h>
+#include <miopen/config.hpp>
 #include <miopen/conv_solution.hpp>
 #include <miopen/env.hpp>
 #include <miopen/execution_context.hpp>
@@ -55,7 +55,7 @@ namespace solver {
 namespace debug {
 // This struct is not MT-safe, meaning one should use it before starting threads, thus avoiding
 // constructing it inside a worker thread.
-struct TuningIterationScopedLimiter
+struct MIOPEN_INTERNALS_EXPORT TuningIterationScopedLimiter
 {
     TuningIterationScopedLimiter(std::size_t new_limit);
     ~TuningIterationScopedLimiter();

@@ -26,13 +26,15 @@
 #ifndef GUARD_MIOPEN_BZ2_HPP_
 #define GUARD_MIOPEN_BZ2_HPP_
 
+#include <miopen/config.hpp>
 #include <vector>
 #include <string>
 
 namespace miopen {
-void check_bz2_error(int e, const std::string& name);
-std::vector<char> compress(const std::vector<char>& v, bool* compressed = nullptr);
-std::vector<char> decompress(const std::vector<char>& v, unsigned int size);
+MIOPEN_INTERNALS_EXPORT void check_bz2_error(int e, const std::string& name);
+MIOPEN_INTERNALS_EXPORT std::vector<char> compress(const std::vector<char>& v,
+                                                   bool* compressed = nullptr);
+MIOPEN_INTERNALS_EXPORT std::vector<char> decompress(const std::vector<char>& v, unsigned int size);
 
 } // namespace miopen
 
