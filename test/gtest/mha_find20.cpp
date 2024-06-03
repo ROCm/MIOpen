@@ -41,20 +41,119 @@
 #include <gtest/gtest.h>
 
 #include <vector>
+#include <variant>
 
 using namespace miopen;
 
+// support only two types for now
+namespace {
+enum TensorType
+{
+    Float = 0,
+    Int64 = 1
+};
+}
+
+using TensorVariant = std::variant<tensor<float>, tensor<int64_t>>;
 struct TensorStruct
 {
-    TensorStruct(bool isFloat = true) : isFloatTensor(isFloat) {}
+    // support only two types for now - float and int64.
+    TensorStruct(TensorType type, unsigned int n, unsigned int h, unsigned int s, unsigned int d)
+    {
+        switch(type)
+        {
+        case TensorType::Float: tensorVariant = tensor<float>(n, h, s, d); break;
+        case TensorType::Int64: tensorVariant = tensor<int64_t>(n, h, s, d); break;
+        default: assert(false); // not supported
+        }
+    }
 
-    bool isFloatTensor;
-    tensor<float> tensorFloat;
+    TensorStruct(const TensorVariant& var) { tensorVariant = var; }
+
+    void GpuRead(Handle& handle)
+    {
+        if(std::holds_alternative<tensor<float>>(tensorVariant))
+        {
+            auto t = std::get<tensor<float>>(tensorVariant);
+            t.data = handle.Read<float>(gpuBuffer, t.data.size());
+        }
+        else if(std::holds_alternative<tensor<int64_t>>(tensorVariant))
+        {
+            auto t = std::get<tensor<int64_t>>(tensorVariant);
+            t.data = handle.Read<int64_t>(gpuBuffer, t.data.size());
+        }
+        else
+        {
+            assert(false);
+        }
+    }
+
+    void GpuWrite(Handle& handle)
+    {
+        if(std::holds_alternative<tensor<float>>(tensorVariant))
+        {
+            auto t    = std::get<tensor<float>>(tensorVariant);
+            gpuBuffer = handle.Write(t.data);
+        }
+        else if(std::holds_alternative<tensor<int64_t>>(tensorVariant))
+        {
+            auto t    = std::get<tensor<int64_t>>(tensorVariant);
+            gpuBuffer = handle.Write(t.data);
+        }
+        else
+        {
+            assert(false);
+        }
+    }
+
+    void InitWithRandom()
+    {
+        if(std::holds_alternative<tensor<float>>(tensorVariant))
+        {
+            auto t = std::get<tensor<float>>(tensorVariant);
+            t.generate(tensor_elem_gen_integer{17});
+        }
+        else if(std::holds_alternative<tensor<int64_t>>(tensorVariant))
+        {
+            auto t = std::get<tensor<int64_t>>(tensorVariant);
+            t.generate(tensor_elem_gen_integer{17});
+        }
+        else
+        {
+            assert(false);
+        }
+    }
+
+    void InitWithFloatValue(float val)
+    {
+        assert(std::holds_alternative<tensor<float>>(tensorVariant));
+        std::get<tensor<float>>(tensorVariant).generate([=](auto...) { return val; });
+    }
+
+    void InitWithInt64Value(int64_t val)
+    {
+        assert(std::holds_alternative<tensor<int64_t>>(tensorVariant));
+        std::get<tensor<int64_t>>(tensorVariant).generate([=](auto...) { return val; });
+    }
+
+    // helper function for cases when we know exactly that given tensor is float
+    tensor<float>& GetFloatTensor() { return std::get<tensor<float>>(tensorVariant); }
+
+    TensorDescriptor& GetTensorDescriptor()
+    {
+        if(std::holds_alternative<tensor<float>>(tensorVariant))
+        {
+            return std::get<tensor<float>>(tensorVariant).desc;
+        }
+        else
+        {
+            return std::get<tensor<int64_t>>(tensorVariant).desc;
+        }
+    }
+
+    TensorVariant tensorVariant;
 
     Allocator::ManageDataPtr gpuBuffer;
-
-    // TODO Unsued for now
-    // tensor<unit64_t> tensorUint64;
 };
 
 typedef std::unique_ptr<TensorStruct> TensorStructPtr;
@@ -118,9 +217,9 @@ public:
         int i = 0;
         for(const auto& it : tensors)
         {
-            descVector[i] = &it.second->tensorFloat.desc;
+            descVector[i] = &it.second->GetTensorDescriptor();
 
-            it.second->gpuBuffer = handle.Write(it.second->tensorFloat.data);
+            it.second->GpuWrite(handle);
 
             arguments[i].id         = it.first;
             arguments[i].descriptor = &descVector[i];
@@ -180,14 +279,12 @@ public:
             for(const auto& id : output_ids)
             {
                 const TensorStructPtr& tensorStructPtr = tensors[id];
-                tensorStructPtr->tensorFloat.data      = handle.Read<float>(
-                    tensorStructPtr->gpuBuffer, tensorStructPtr->tensorFloat.data.size());
+                tensorStructPtr->GpuRead(handle);
 
                 TensorStructPtr& ptr = outputTensorResults[id];
 
-                ptr              = std::make_unique<TensorStruct>();
-                ptr->tensorFloat = tensorStructPtr->tensorFloat;
-                ptr->gpuBuffer   = handle.Write(ptr->tensorFloat.data);
+                ptr = std::make_unique<TensorStruct>(tensorStructPtr->tensorVariant);
+                ptr->GpuWrite(handle);
             }
 
             std::cerr << "Run via solver infrastructure directly." << std::endl;
@@ -203,8 +300,8 @@ public:
 
             for(const auto& id : output_ids)
             {
-                double error = miopen::rms_range(outputTensorResults[id]->tensorFloat.data,
-                                                 tensors[id]->tensorFloat.data);
+                double error = miopen::rms_range(outputTensorResults[id]->GetFloatTensor().data,
+                                                 tensors[id]->GetFloatTensor().data);
                 const double tolerance = 1e-3;
 
                 EXPECT_TRUE(std::isfinite(error)) << "Tensor id: " << id;
@@ -223,46 +320,20 @@ private:
         return id == miopenTensorMhaDropoutSeed || id == miopenTensorMhaDropoutOffset;
     }
 
-    enum class GenerateType
+    TensorStruct& CreateTensor(miopenTensorArgumentId_t id,
+                               unsigned int n = 1,
+                               unsigned int h = 1,
+                               unsigned int s = 1,
+                               unsigned int d = 1)
     {
-        DontGenerate,
-        Generate_1_Always,
-        Generate_0_Always,
-        GenerateRandom
-    };
+        tensors[id] = std::make_unique<TensorStruct>(
+            IsInt64TensorId(id) ? TensorType::Int64 : TensorType::Float, n, h, s, d);
 
-    void CreateTensor(miopenTensorArgumentId_t id,
-                      GenerateType generateType = GenerateType::Generate_1_Always,
-                      unsigned int n            = 1,
-                      unsigned int h            = 1,
-                      unsigned int s            = 1,
-                      unsigned int d            = 1)
-    {
-        // TODO Unused for now
-        bool floatFlag = !IsInt64TensorId(id);
-        tensors[id]    = std::make_unique<TensorStruct>(floatFlag);
+        EXPECT_EQUAL(
+            miopenSetProblemTensorDescriptor(problem, id, &tensors[id]->GetTensorDescriptor()),
+            miopenStatusSuccess);
 
-        tensors[id]->tensorFloat = tensor<float>{n, h, s, d};
-
-        switch(generateType)
-        {
-        case GenerateType::Generate_0_Always:
-            tensors[id]->tensorFloat.generate([](auto n_, auto h_, auto s_, auto d_) { return 0; });
-            break;
-
-        case GenerateType::Generate_1_Always:
-            tensors[id]->tensorFloat.generate([](auto n_, auto h_, auto s_, auto d_) { return 1; });
-            break;
-
-        case GenerateType::GenerateRandom:
-            tensors[id]->tensorFloat.generate(tensor_elem_gen_integer{17});
-            break;
-
-        default: break;
-        }
-
-        EXPECT_EQUAL(miopenSetProblemTensorDescriptor(problem, id, &tensors[id]->tensorFloat.desc),
-                     miopenStatusSuccess);
+        return *tensors[id];
     }
 
     void Initialize()
@@ -275,72 +346,59 @@ private:
                                                       : miopenProblemDirectionBackward),
                      miopenStatusSuccess);
 
-        CreateTensor(
-            miopenTensorMhaK, GenerateType::GenerateRandom, test_n, test_h, test_s, test_d);
+        CreateTensor(miopenTensorMhaK, test_n, test_h, test_s, test_d).InitWithRandom();
 
-        CreateTensor(
-            miopenTensorMhaV, GenerateType::GenerateRandom, test_n, test_h, test_s, test_d);
+        CreateTensor(miopenTensorMhaV, test_n, test_h, test_s, test_d).InitWithRandom();
 
-        CreateTensor(miopenTensorMhaDescaleK);
-        CreateTensor(miopenTensorMhaDescaleQ);
-        CreateTensor(miopenTensorMhaDescaleV);
-        CreateTensor(miopenTensorMhaDescaleS);
+        CreateTensor(miopenTensorMhaDescaleK).InitWithFloatValue(1.0f);
+        CreateTensor(miopenTensorMhaDescaleQ).InitWithFloatValue(1.0f);
+        CreateTensor(miopenTensorMhaDescaleV).InitWithFloatValue(1.0f);
+        CreateTensor(miopenTensorMhaDescaleS).InitWithFloatValue(1.0f);
 
-        CreateTensor(miopenTensorMhaScaleS);
+        CreateTensor(miopenTensorMhaScaleS).InitWithFloatValue(1.0f);
 
-        CreateTensor(miopenTensorMhaDropoutProbability, GenerateType::Generate_0_Always);
-        CreateTensor(miopenTensorMhaDropoutSeed, GenerateType::GenerateRandom);
-        CreateTensor(miopenTensorMhaDropoutOffset, GenerateType::GenerateRandom);
+        CreateTensor(miopenTensorMhaDropoutProbability).InitWithFloatValue(0.5f);
+        CreateTensor(miopenTensorMhaDropoutSeed).InitWithInt64Value(0);
+        CreateTensor(miopenTensorMhaDropoutOffset).InitWithInt64Value(0);
 
         if(isForward)
         {
-            CreateTensor(
-                miopenTensorMhaQ, GenerateType::GenerateRandom, test_n, test_h, test_s, test_d);
+            CreateTensor(miopenTensorMhaQ, test_n, test_h, test_s, test_d).InitWithRandom();
 
-            CreateTensor(miopenTensorMhaScaleO);
-
-            CreateTensor(
-                miopenTensorMhaO, GenerateType::DontGenerate, test_n, test_h, test_s, test_d);
-            CreateTensor(miopenTensorMhaAmaxO, GenerateType::DontGenerate);
-            CreateTensor(miopenTensorMhaAmaxS, GenerateType::DontGenerate);
-            CreateTensor(miopenTensorMhaM, GenerateType::DontGenerate, test_n, test_h, test_s, 1);
-            CreateTensor(
-                miopenTensorMhaZInv, GenerateType::DontGenerate, test_n, test_h, test_s, 1);
+            CreateTensor(miopenTensorMhaScaleO).InitWithFloatValue(1.0f);
+            CreateTensor(miopenTensorMhaO, test_n, test_h, test_s, test_d);
+            CreateTensor(miopenTensorMhaAmaxO);
+            CreateTensor(miopenTensorMhaAmaxS);
+            CreateTensor(miopenTensorMhaM, test_n, test_h, test_s, 1);
+            CreateTensor(miopenTensorMhaZInv, test_n, test_h, test_s, 1);
         }
         else
         {
-            CreateTensor(
-                miopenTensorMhaQ, GenerateType::Generate_0_Always, test_n, test_h, test_s, test_d);
+            CreateTensor(miopenTensorMhaQ, test_n, test_h, test_s, test_d).InitWithFloatValue(0.0f);
 
-            CreateTensor(
-                miopenTensorMhaO, GenerateType::GenerateRandom, test_n, test_h, test_s, test_d);
+            CreateTensor(miopenTensorMhaO, test_n, test_h, test_s, test_d).InitWithRandom();
 
-            CreateTensor(
-                miopenTensorMhaDO, GenerateType::GenerateRandom, test_n, test_h, test_s, test_d);
+            CreateTensor(miopenTensorMhaDO, test_n, test_h, test_s, test_d).InitWithRandom();
+            ;
 
-            CreateTensor(
-                miopenTensorMhaM, GenerateType::Generate_0_Always, test_n, test_h, test_s, 1);
-            CreateTensor(
-                miopenTensorMhaZInv, GenerateType::Generate_1_Always, test_n, test_h, test_s, 1);
+            CreateTensor(miopenTensorMhaM, test_n, test_h, test_s, 1).InitWithFloatValue(0.0f);
+            CreateTensor(miopenTensorMhaZInv, test_n, test_h, test_s, 1).InitWithFloatValue(1.0f);
 
-            CreateTensor(miopenTensorMhaDescaleO, GenerateType::GenerateRandom);
-            CreateTensor(miopenTensorMhaDescaleDO, GenerateType::GenerateRandom);
-            CreateTensor(miopenTensorMhaDescaleDS, GenerateType::GenerateRandom);
-            CreateTensor(miopenTensorMhaScaleDS, GenerateType::GenerateRandom);
-            CreateTensor(miopenTensorMhaScaleDQ, GenerateType::GenerateRandom);
-            CreateTensor(miopenTensorMhaScaleDK, GenerateType::GenerateRandom);
-            CreateTensor(miopenTensorMhaScaleDV, GenerateType::GenerateRandom);
+            CreateTensor(miopenTensorMhaDescaleO).InitWithRandom();
+            CreateTensor(miopenTensorMhaDescaleDO).InitWithRandom();
+            CreateTensor(miopenTensorMhaDescaleDS).InitWithRandom();
+            CreateTensor(miopenTensorMhaScaleDS).InitWithRandom();
+            CreateTensor(miopenTensorMhaScaleDQ).InitWithRandom();
+            CreateTensor(miopenTensorMhaScaleDK).InitWithRandom();
+            CreateTensor(miopenTensorMhaScaleDV).InitWithRandom();
 
-            CreateTensor(
-                miopenTensorMhaDQ, GenerateType::DontGenerate, test_n, test_h, test_s, test_d);
-            CreateTensor(
-                miopenTensorMhaDK, GenerateType::DontGenerate, test_n, test_h, test_s, test_d);
-            CreateTensor(
-                miopenTensorMhaDV, GenerateType::DontGenerate, test_n, test_h, test_s, test_d);
-            CreateTensor(miopenTensorMhaAmaxDQ, GenerateType::DontGenerate);
-            CreateTensor(miopenTensorMhaAmaxDK, GenerateType::DontGenerate);
-            CreateTensor(miopenTensorMhaAmaxDV, GenerateType::DontGenerate);
-            CreateTensor(miopenTensorMhaAmaxDS, GenerateType::DontGenerate);
+            CreateTensor(miopenTensorMhaDQ, test_n, test_h, test_s, test_d);
+            CreateTensor(miopenTensorMhaDK, test_n, test_h, test_s, test_d);
+            CreateTensor(miopenTensorMhaDV, test_n, test_h, test_s, test_d);
+            CreateTensor(miopenTensorMhaAmaxDQ);
+            CreateTensor(miopenTensorMhaAmaxDK);
+            CreateTensor(miopenTensorMhaAmaxDV);
+            CreateTensor(miopenTensorMhaAmaxDS);
         }
     }
 
@@ -365,24 +423,25 @@ private:
         const auto& mhads = tensors[miopenTensorMhaDropoutSeed];
         const auto& mhado = tensors[miopenTensorMhaDropoutOffset];
 
-        mha::MhaInputDescsForward inputDescs = {mhaK->tensorFloat.desc,
-                                                mhaQ->tensorFloat.desc,
-                                                mhaV->tensorFloat.desc,
-                                                mhaDescaleK->tensorFloat.desc,
-                                                mhaDescaleQ->tensorFloat.desc,
-                                                mhaDescaleV->tensorFloat.desc,
-                                                mhaDescaleS->tensorFloat.desc,
-                                                mhaScaleS->tensorFloat.desc,
-                                                mhaScaleO->tensorFloat.desc,
-                                                scale,
-                                                mhadp->tensorFloat.desc,
-                                                mhads->tensorFloat.desc,
-                                                mhado->tensorFloat.desc,
-                                                tensors[miopenTensorMhaO]->tensorFloat.desc,
-                                                tensors[miopenTensorMhaAmaxO]->tensorFloat.desc,
-                                                tensors[miopenTensorMhaAmaxS]->tensorFloat.desc,
-                                                tensors[miopenTensorMhaM]->tensorFloat.desc,
-                                                tensors[miopenTensorMhaZInv]->tensorFloat.desc};
+        mha::MhaInputDescsForward inputDescs = {
+            mhaK->GetTensorDescriptor(),
+            mhaQ->GetTensorDescriptor(),
+            mhaV->GetTensorDescriptor(),
+            mhaDescaleK->GetTensorDescriptor(),
+            mhaDescaleQ->GetTensorDescriptor(),
+            mhaDescaleV->GetTensorDescriptor(),
+            mhaDescaleS->GetTensorDescriptor(),
+            mhaScaleS->GetTensorDescriptor(),
+            mhaScaleO->GetTensorDescriptor(),
+            scale,
+            mhadp->GetTensorDescriptor(),
+            mhads->GetTensorDescriptor(),
+            mhado->GetTensorDescriptor(),
+            tensors[miopenTensorMhaO]->GetTensorDescriptor(),
+            tensors[miopenTensorMhaAmaxO]->GetTensorDescriptor(),
+            tensors[miopenTensorMhaAmaxS]->GetTensorDescriptor(),
+            tensors[miopenTensorMhaM]->GetTensorDescriptor(),
+            tensors[miopenTensorMhaZInv]->GetTensorDescriptor()};
 
         const mha::ProblemDescription problem_description = {inputDescs};
 
@@ -465,36 +524,37 @@ private:
         const auto& mhads = tensors[miopenTensorMhaDropoutSeed];
         const auto& mhado = tensors[miopenTensorMhaDropoutOffset];
 
-        mha::MhaInputDescsBackward inputDescs = {mhaK->tensorFloat.desc,
-                                                 mhaQ->tensorFloat.desc,
-                                                 mhaV->tensorFloat.desc,
-                                                 mhaO->tensorFloat.desc,
-                                                 mhaDO->tensorFloat.desc,
-                                                 mhaM->tensorFloat.desc,
-                                                 mhaZInv->tensorFloat.desc,
-                                                 mhaDescaleK->tensorFloat.desc,
-                                                 mhaDescaleQ->tensorFloat.desc,
-                                                 mhaDescaleV->tensorFloat.desc,
-                                                 mhaDescaleS->tensorFloat.desc,
-                                                 mhaDescaleO->tensorFloat.desc,
-                                                 mhaDescaleDO->tensorFloat.desc,
-                                                 mhaDescaleDS->tensorFloat.desc,
-                                                 mhaScaleS->tensorFloat.desc,
-                                                 mhaScaleDS->tensorFloat.desc,
-                                                 mhaScaleDQ->tensorFloat.desc,
-                                                 mhaScaleDK->tensorFloat.desc,
-                                                 mhaScaleDV->tensorFloat.desc,
-                                                 scale,
-                                                 mhadp->tensorFloat.desc,
-                                                 mhads->tensorFloat.desc,
-                                                 mhado->tensorFloat.desc,
-                                                 tensors[miopenTensorMhaDQ]->tensorFloat.desc,
-                                                 tensors[miopenTensorMhaDK]->tensorFloat.desc,
-                                                 tensors[miopenTensorMhaDV]->tensorFloat.desc,
-                                                 tensors[miopenTensorMhaAmaxDQ]->tensorFloat.desc,
-                                                 tensors[miopenTensorMhaAmaxDK]->tensorFloat.desc,
-                                                 tensors[miopenTensorMhaAmaxDV]->tensorFloat.desc,
-                                                 tensors[miopenTensorMhaAmaxDS]->tensorFloat.desc};
+        mha::MhaInputDescsBackward inputDescs = {
+            mhaK->GetTensorDescriptor(),
+            mhaQ->GetTensorDescriptor(),
+            mhaV->GetTensorDescriptor(),
+            mhaO->GetTensorDescriptor(),
+            mhaDO->GetTensorDescriptor(),
+            mhaM->GetTensorDescriptor(),
+            mhaZInv->GetTensorDescriptor(),
+            mhaDescaleK->GetTensorDescriptor(),
+            mhaDescaleQ->GetTensorDescriptor(),
+            mhaDescaleV->GetTensorDescriptor(),
+            mhaDescaleS->GetTensorDescriptor(),
+            mhaDescaleO->GetTensorDescriptor(),
+            mhaDescaleDO->GetTensorDescriptor(),
+            mhaDescaleDS->GetTensorDescriptor(),
+            mhaScaleS->GetTensorDescriptor(),
+            mhaScaleDS->GetTensorDescriptor(),
+            mhaScaleDQ->GetTensorDescriptor(),
+            mhaScaleDK->GetTensorDescriptor(),
+            mhaScaleDV->GetTensorDescriptor(),
+            scale,
+            mhadp->GetTensorDescriptor(),
+            mhads->GetTensorDescriptor(),
+            mhado->GetTensorDescriptor(),
+            tensors[miopenTensorMhaDQ]->GetTensorDescriptor(),
+            tensors[miopenTensorMhaDK]->GetTensorDescriptor(),
+            tensors[miopenTensorMhaDV]->GetTensorDescriptor(),
+            tensors[miopenTensorMhaAmaxDQ]->GetTensorDescriptor(),
+            tensors[miopenTensorMhaAmaxDK]->GetTensorDescriptor(),
+            tensors[miopenTensorMhaAmaxDV]->GetTensorDescriptor(),
+            tensors[miopenTensorMhaAmaxDS]->GetTensorDescriptor()};
 
         const mha::ProblemDescription problem_description = {inputDescs};
 
@@ -561,8 +621,7 @@ private:
     {
         for(const auto& it : outputResultsMap)
         {
-            it.second->tensorFloat.data =
-                handle.Read<float>(it.second->gpuBuffer, it.second->tensorFloat.data.size());
+            it.second->GpuRead(handle);
         }
     }
 
