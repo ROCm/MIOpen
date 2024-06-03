@@ -32,6 +32,7 @@
 #include <miopen/solver/ck_utility_common.hpp>
 #include <ck/library/tensor_operation_instance/gpu/batchnorm_infer.hpp>
 #endif
+#include <miopen/solver/implicitgemm_ck_util.hpp>
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_CK_BN_INFER)
 
 namespace miopen {
@@ -126,9 +127,9 @@ template <typename XDataType,
           typename ScaleDataType,
           typename BiasDataType,
           typename MeanVarDataType>
-static void RunCKSolution(const Handle& handle,
-                          const AnyInvokeParams& primitive_parameters,
-                          const miopen::batchnorm::ProblemDescription& problem)
+static void RunCKSolutionNHWC(const Handle& handle,
+                              const AnyInvokeParams& primitive_parameters,
+                              const miopen::batchnorm::ProblemDescription& problem)
 {
     const auto& args = CKArgsBNormFwd{problem};
 
@@ -173,6 +174,128 @@ static void RunCKSolution(const Handle& handle,
         handle.AccumKernelTime(elapsed_time);
     }
 }
+
+template <typename XDataType,
+          typename YDataType,
+          typename AccDataType,
+          typename ScaleDataType,
+          typename BiasDataType,
+          typename MeanVarDataType,
+          typename InputTposeOp,
+          typename OutputTposeOp>
+static void RunCKSolutionNCHW(const ExecutionContext& ctx,
+                              const Handle& handle,
+                              const std::vector<Kernel>& kernels,
+                              const AnyInvokeParams& primitive_parameters,
+                              const miopen::batchnorm::ProblemDescription& problem,
+                              const InputTposeOp& input_op,
+                              const OutputTposeOp& output_op)
+{
+    const auto& args = CKArgsBNormFwd{problem};
+
+    using DeviceOp = ck::tensor_operation::device::DeviceElementwise<
+        ck::Tuple<XDataType, MeanVarDataType, MeanVarDataType, ScaleDataType, BiasDataType>,
+        ck::Tuple<YDataType>,
+        Normalize,
+        Rank>;
+    const auto bn_fwd_ptrs = ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
+        DeviceOp>::GetInstances();
+
+    // NCHW, update number of return?
+    ConvSolution result;
+    auto [input1_tr_inst, input2_tr_inst, output_tr_inst, output_init_tr_inst] =
+        internal::MakeTaggedTransposeInstances<CKArgsBNormFwd>(result /*ConvSolution result*/,
+                                                               ctx,
+                                                               problem,
+                                                               args,
+                                                               input_op,
+                                                               nullptr,
+                                                               output_op,
+                                                               nullptr);
+
+    int kernel_index = CheckCKApplicability<XDataType,
+                                            YDataType,
+                                            AccDataType,
+                                            ScaleDataType,
+                                            BiasDataType,
+                                            MeanVarDataType>(problem);
+    assert(kernel_index >= 0 && kernel_index < bn_fwd_ptrs.size());
+    auto& bn_ptr       = bn_fwd_ptrs.at(kernel_index);
+    const auto& params = primitive_parameters.CastTo<miopen::batchnorm::InfInvokeParams>();
+
+    if(!params.workSpace)
+    {
+        MIOPEN_THROW(miopenStatusInvalidValue, "workspace pointer is null");
+    }
+
+    input1_tr_inst.AssignBuffer(handle, ctx.workSpace);
+    // input2_tr_inst.AssignBuffer(handle, ctx.workSpace);
+    output_tr_inst.AssignBuffer(handle, ctx.workSpace);
+    output_init_tr_inst.AssignBuffer(handle, ctx.workSpace);
+
+    // conversion operator applied here to convert to ConvTensors
+    // auto conv_tensors = input1_tr_inst(ctx.tensors);
+
+    input1_tr_inst.ConvertFrom(handle, kernels, params.x);
+    // input2_tr_inst.ConvertFrom(handle, kernels, conv_tensors);
+    output_init_tr_inst.ConvertFrom(handle, kernels, params.x);
+
+    output_tr_inst.ZeroOutBuffer();
+
+    // Replace which arguments with NCHW buffer?
+    auto argument_ptr = bn_ptr->MakeArgumentPointer(args.xyLengths,
+                                                    {args.xyStrides,
+                                                     args.aligned_scaleBiasMeanVarStrides,
+                                                     args.aligned_scaleBiasMeanVarStrides,
+                                                     args.aligned_scaleBiasMeanVarStrides,
+                                                     args.aligned_scaleBiasMeanVarStrides},
+                                                    {args.xyStrides},
+                                                    {input1_tr_inst.GetBufferPtr(),
+                                                     params.estimatedMean,
+                                                     params.estimatedVariance,
+                                                     params.bnScale,
+                                                     params.bnBias},
+                                                    {output_tr_inst.GetBufferPtr()},
+                                                    Normalize{params.epsilon});
+
+    auto invoker_ptr            = bn_ptr->MakeInvokerPointer();
+    const auto enable_profiling = handle.IsProfilingEnabled();
+
+    float elapsed_time =
+        invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), enable_profiling});
+    output_tr_inst.ConvertTo(handle, kernels, params.x);
+    if(enable_profiling)
+    {
+        handle.ResetKernelTime();
+        handle.AccumKernelTime(elapsed_time);
+    }
+}
+
+template <typename XDataType,
+          typename YDataType,
+          typename AccDataType,
+          typename ScaleDataType,
+          typename BiasDataType,
+          typename MeanVarDataType>
+static void RunCKSolutionFwdNCHW(const ExecutionContext& ctx,
+                                 const Handle& handle,
+                                 const AnyInvokeParams& primitive_parameters,
+                                 const miopen::batchnorm::ProblemDescription& problem)
+{
+    // Double check dimension of X, Y, assume ND to be 2
+    // static_assert(ND == 2 || ND == 3, "Num Dimensions must be 2 or 3");
+
+    using Input  = internal::CKTransposeInputOp<2, internal::ConvOperandTag::Input>;
+    using Output = internal::CKTransposeOutputOp<2, internal::ConvOperandTag::Output>;
+
+    RunCKSolutionNCHW<XDataType,
+                      YDataType,
+                      AccDataType,
+                      ScaleDataType,
+                      BiasDataType,
+                      MeanVarDataType>(
+        ctx, handle, primitive_parameters, problem, Input{}, Output{});
+}
 #endif
 
 bool BnCKFwdInference::IsApplicable(
@@ -182,6 +305,7 @@ bool BnCKFwdInference::IsApplicable(
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
     if(miopen::IsDisabled(MIOPEN_ENV(MIOPEN_DEBUG_CONV_CK_BN_INFER)))
         return false;
+    // Todo: Remove
     if(!bn_problem.IsLayoutNHWC())
         return false;
     if(!ck_utility::is_ck_whitelist(context.GetStream()))
@@ -209,6 +333,9 @@ ConvSolution BnCKFwdInference::GetSolution(
     [[maybe_unused]] const miopen::batchnorm::ProblemDescription& bn_problem) const
 {
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
+    // Add another API before calling RunCKSoluiton. or
+    // use InitInvokerFactoryFwdNCHW()-> InitInvokerFactoryNCHW
+
     ConvSolution result;
     result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
         std::ignore = kernels;
@@ -216,19 +343,19 @@ ConvSolution BnCKFwdInference::GetSolution(
             switch(bn_problem.GetXDesc().GetType())
             {
             case miopenHalf:
-                RunCKSolution<F16, F16, F32, F16, F16, F32>(
+                RunCKSolutionNHWC<F16, F16, F32, F16, F16, F32>(
                     handle, primitive_parameters, bn_problem);
                 break;
             case miopenFloat:
-                RunCKSolution<F32, F32, F32, F32, F32, F32>(
+                RunCKSolutionNHWC<F32, F32, F32, F32, F32, F32>(
                     handle, primitive_parameters, bn_problem);
                 break;
             case miopenDouble:
-                RunCKSolution<F64, F64, F64, F64, F64, F64>(
+                RunCKSolutionNHWC<F64, F64, F64, F64, F64, F64>(
                     handle, primitive_parameters, bn_problem);
                 break;
             case miopenBFloat16:
-                RunCKSolution<BF16, BF16, F32, BF16, BF16, F32>(
+                RunCKSolutionNHWC<BF16, BF16, F32, BF16, BF16, F32>(
                     handle, primitive_parameters, bn_problem);
                 break;
             case miopenInt8:
