@@ -37,7 +37,7 @@ namespace miopen {
 
 namespace graphapi {
 
-class ExecutionPlan
+class MIOPEN_INTERNALS_EXPORT ExecutionPlan
 {
 private:
     /* we don't use a pointer for mEngineCfg
@@ -75,7 +75,7 @@ public:
     }
 };
 
-class ExecutionPlanBuilder
+class MIOPEN_INTERNALS_EXPORT ExecutionPlanBuilder
 {
 private:
     ExecutionPlan mExecutionPlan;
@@ -118,7 +118,7 @@ public:
     ExecutionPlan build() &&;
 };
 
-class BackendExecutionPlanDescriptor : public BackendDescriptor
+class MIOPEN_INTERNALS_EXPORT BackendExecutionPlanDescriptor : public BackendDescriptor
 {
 private:
     ExecutionPlanBuilder mBuilder;

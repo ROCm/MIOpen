@@ -29,6 +29,7 @@
 #include <string>
 #include <miopen/convolution.hpp>
 #include <miopen/driver_arguments.hpp>
+#include <miopen/config.hpp>
 
 extern std::string const logConv;
 extern std::string const logFindConv;
@@ -40,7 +41,7 @@ struct OperatorArgs;
 namespace debug {
 // Copy of function declaration that is in miopen.
 // This is for testing purpose only.
-MIOPEN_EXPORT
+MIOPEN_INTERNALS_EXPORT
 void LogCmdConvolution(const miopenTensorDescriptor_t& xDesc,
                        const miopenTensorDescriptor_t& wDesc,
                        const miopenConvolutionDescriptor_t& convDesc,
@@ -49,7 +50,7 @@ void LogCmdConvolution(const miopenTensorDescriptor_t& xDesc,
                        bool is_immediate);
 // Copy of function declaration that is in miopen.
 // This is for testing purpose only.
-MIOPEN_EXPORT
+MIOPEN_INTERNALS_EXPORT
 void LogCmdFindConvolution(const miopenTensorDescriptor_t& xDesc,
                            const miopenTensorDescriptor_t& wDesc,
                            const miopenConvolutionDescriptor_t& convDesc,
@@ -58,6 +59,7 @@ void LogCmdFindConvolution(const miopenTensorDescriptor_t& xDesc,
                            bool is_immediate);
 // Copy of function declaration that is in miopen.
 // This is for testing purpose only.
+MIOPEN_INTERNALS_EXPORT
 void LogCmdFusion(const miopenFusionPlanDescriptor_t);
 
 } // namespace debug

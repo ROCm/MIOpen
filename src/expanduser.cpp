@@ -25,6 +25,7 @@
  *******************************************************************************/
 
 #include <miopen/env.hpp>
+#include <miopen/expanduser.hpp>
 #include <miopen/filesystem.hpp>
 #include <miopen/logger.hpp>
 

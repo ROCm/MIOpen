@@ -141,7 +141,7 @@ public:
     OpGraph* getOpGraph() { return mGraph; }
 };
 
-class EngineBuilder
+class MIOPEN_INTERNALS_EXPORT EngineBuilder
 {
     friend class BackendEngineDescriptor;
 
@@ -165,7 +165,7 @@ public:
     Engine build();
 };
 
-class BackendEngineDescriptor : public BackendDescriptor
+class MIOPEN_INTERNALS_EXPORT BackendEngineDescriptor : public BackendDescriptor
 {
 private:
     EngineBuilder mBuilder;
@@ -196,7 +196,7 @@ public:
     Engine& getEngine() noexcept { return mEngine; }
 };
 
-std::vector<Engine> findEngines(OpGraph*);
+MIOPEN_INTERNALS_EXPORT std::vector<Engine> findEngines(OpGraph*);
 
 } // namespace graphapi
 

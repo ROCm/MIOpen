@@ -42,8 +42,7 @@ namespace miopendriver_regression_half_gfx9 {
 
 std::vector<std::string> GetTestCases()
 {
-    const std::string& modeConvolutionArg =
-        env::value(MIOPENDRIVER_MODE_CONV);
+    const std::string& modeConvolutionArg = env::value(MIOPENDRIVER_MODE_CONV);
 
     // clang-format off
     return std::vector<std::string>{
@@ -71,8 +70,7 @@ bool IsTestSupportedForDevice()
 
 void RunMIOpenDriver()
 {
-    bool runTestSuite = env::enabled(MIOPEN_TEST_WITH_MIOPENDRIVER) &&
-                        IsTestSupportedForDevice() &&
+    bool runTestSuite = env::enabled(MIOPEN_TEST_WITH_MIOPENDRIVER) && IsTestSupportedForDevice() &&
                         env::enabled(MIOPEN_TEST_ALL) &&
                         env::value(MIOPEN_TEST_FLOAT_ARG) == "--half";
 

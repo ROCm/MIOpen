@@ -50,8 +50,6 @@
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/split.hpp>
 
-namespace env = miopen::env;
-
 template <class U, class T>
 constexpr std::is_same<T, U> is_same(const T&)
 {
