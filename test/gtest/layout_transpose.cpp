@@ -405,8 +405,7 @@ protected:
                     auto t_dst_ref = tensor<T>{tensor_len, tensor_strides};
                     auto t_cpu_2d  = tensor<T>{tensor_len, tensor_strides};
 
-                    auto src_3d_dev = handle.Write(t_src.data);
-                    auto src_2d_dev = handle.Write(t_src.data);
+                    auto src_dev = handle.Write(t_src.data);
 
                     TRANSPOSE_SOL transpose_sol_3d(ctx, miopen_type<T>{}, n, c, d, h, w);
                     std::vector<OpKernelArg> opArgs_3d = transpose_sol_3d.GetKernelArg();
@@ -434,7 +433,7 @@ protected:
                         handle.PrepareInvoker(*invoker_factory_3d, construction_params_3d);
 
                     const auto invoke_param_3d =
-                        transpose_invoke_param{src_3d_dev.get(), dst_3d_dev.get()};
+                        transpose_invoke_param{src_dev.get(), dst_3d_dev.get()};
 
                     // run gpu 3D
                     invoker_3d(handle, invoke_param_3d);
@@ -466,7 +465,7 @@ protected:
                         handle.PrepareInvoker(*invoker_factory_2d, construction_params_2d);
 
                     const auto invoke_param_2d =
-                        transpose_invoke_param{src_2d_dev.get(), dst_2d_dev.get()};
+                        transpose_invoke_param{src_dev.get(), dst_2d_dev.get()};
 
                     invoker_2d(handle, invoke_param_2d);
 
