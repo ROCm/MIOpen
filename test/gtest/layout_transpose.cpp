@@ -247,6 +247,11 @@ struct transpose_invoke_param : public miopen::InvokeParams
     std::size_t GetWorkspaceSize() const { return 0; }
 };
 
+template <typename T>
+static auto gen_value = [](auto... is) {
+    return static_cast<T>(prng::gen_A_to_B(RAND_INTEGER_MIN, RAND_INTEGER_MAX));
+};
+
 } // namespace batched_transpose
 
 using namespace batched_transpose;
@@ -290,14 +295,9 @@ protected:
                 miopen::tensor_layout_to_strides(
                     tensor_len, layout_default, layout_string, tensor_strides);
 
-                auto t_src     = tensor<T>{tensor_len, tensor_strides};
+                auto t_src     = tensor<T>{tensor_len, tensor_strides}.generate(gen_value<T>);
                 auto t_dst     = tensor<T>{tensor_len, tensor_strides};
                 auto t_dst_gpu = tensor<T>{tensor_len, tensor_strides};
-
-                auto gen_value = [=](auto... is) {
-                    return static_cast<T>(prng::gen_A_to_B(RAND_INTEGER_MIN, RAND_INTEGER_MAX));
-                };
-                t_src.generate(gen_value);
 
                 auto src_dev = handle.Write(t_src.data);
 
@@ -399,16 +399,11 @@ protected:
                     miopen::tensor_layout_to_strides(
                         tensor_len, layout_default, layout_string, tensor_strides);
 
-                    auto t_src     = tensor<T>{tensor_len, tensor_strides};
+                    auto t_src     = tensor<T>{tensor_len, tensor_strides}.generate(gen_value<T>);
                     auto t_gpu_2d  = tensor<T>{tensor_len, tensor_strides};
                     auto t_gpu_3d  = tensor<T>{tensor_len, tensor_strides};
                     auto t_dst_ref = tensor<T>{tensor_len, tensor_strides};
                     auto t_cpu_2d  = tensor<T>{tensor_len, tensor_strides};
-
-                    auto gen_value = [=](auto... is) {
-                        return static_cast<T>(prng::gen_A_to_B(RAND_INTEGER_MIN, RAND_INTEGER_MAX));
-                    };
-                    t_src.generate(gen_value);
 
                     auto src_3d_dev = handle.Write(t_src.data);
                     auto src_2d_dev = handle.Write(t_src.data);
