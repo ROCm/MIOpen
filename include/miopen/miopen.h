@@ -5861,16 +5861,16 @@ typedef enum
 typedef enum
 {
     MIOPEN_REDUCE_CALCULATION_PROD =
-        1, /*!< the operation is adding the values of the reduced elements */
+        1, /*!< the operation is multiplying the values of the reduced elements */
     MIOPEN_REDUCE_CALCULATION_SUM =
-        2, /*!< the operation is multiplying the values of the reduced elements */
+        2, /*!< the operation is adding the values of the reduced elements */
 } miopenReduceCalculationOp_t;
 
 /*! @brief Helper function to query the minimum workspace size required by the ReduceTensor call
  *
  * @param [in]   handle                   MIOpen Handle
  * @param [in]   xDesc                    Tensor descriptor for data input tensor x
- * @param [in]   dim                      Dimension to sum.
+ * @param [in]   dim                      Dimension to calculation.
  * @param [in]   yDesc                    Tensor descriptor for output data tensor y
  * @param [out]  sizeInBytes              Pointer to data to return the minimum workspace size
  * @return                         miopenStatus_t
@@ -5891,7 +5891,7 @@ miopenGetReduceCalculationWorkspaceSize(miopenHandle_t handle,
  * @param [in]   workspaceSizeInBytes     Size in bytes of the allocated workspace data
  * @param [in]   xDesc                    Tensor descriptor for data input tensor x
  * @param [in]   x                        Data tensor x
- * @param [in]   dim                      Dimension to sum.
+ * @param [in]   dim                      Dimension to calculation.
  * @param [in]   yDesc                    Tensor descriptor for output data tensor y
  * @param [out]  y                        Data tensor y
  * @return                         miopenStatus_t
