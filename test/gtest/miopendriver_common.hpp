@@ -39,6 +39,20 @@
 using ::testing::HasSubstr;
 using ::testing::Not;
 
+#define CONV_FLOAT "conv"
+#define CONV_HALF "convfp16"
+#define CONV_BFLOAT16 "convbfp16"
+#define CONV_INT8 "convint8"
+
+#define POOL_FLOAT "pool"
+#define POOL_HALF "poolfp16"
+
+#define GEMM_FLOAT "gemm"
+#define GEMM_HALF "gemmfp16"
+
+#define BN_FLOAT "bnorm"
+#define BN_HALF "bnormfp16"
+
 // Note: Assuming that the MIOpenDriver executable will be beside the testing output location.
 static inline miopen::fs::path MIOpenDriverExePath()
 {

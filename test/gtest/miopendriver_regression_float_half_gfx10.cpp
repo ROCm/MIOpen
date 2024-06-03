@@ -36,14 +36,11 @@
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_WITH_MIOPENDRIVER)
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPENDRIVER_MODE_BN)
 
 namespace miopendriver_regression_float_half_gfx10 {
 
-std::vector<std::string> GetTestCases()
+std::vector<std::string> GetTestCases(const std::string& modeBatchNormArg)
 {
-    const std::string& modeBatchNormArg = miopen::GetStringEnv(MIOPEN_ENV(MIOPENDRIVER_MODE_BN));
-
     // clang-format off
     return std::vector<std::string>{
         // Regression test for:
@@ -55,10 +52,13 @@ std::vector<std::string> GetTestCases()
     // clang-format on
 }
 
-using TestCase = decltype(GetTestCases())::value_type;
+using TestCase = decltype(GetTestCases(""))::value_type;
 
-class MIOpenDriverRegressionFloatHalfGfx10Test
-    : public testing::TestWithParam<std::vector<TestCase>>
+class MIOpenDriverRegressionFloatGfx10Test : public testing::TestWithParam<std::vector<TestCase>>
+{
+};
+
+class MIOpenDriverRegressionHalfGfx10Test : public testing::TestWithParam<std::vector<TestCase>>
 {
 };
 
@@ -70,30 +70,39 @@ bool IsTestSupportedForDevice()
     return ::IsTestSupportedForDevMask<d_mask, e_mask>();
 }
 
-void RunMIOpenDriver()
+void RunMIOpenDriver(std::string floatArg, const std::vector<TestCase>& testCases)
 {
-    bool runTestSuite = miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_WITH_MIOPENDRIVER)) &&
-                        IsTestSupportedForDevice() &&
-                        miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_ALL)) &&
-                        (miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_TEST_FLOAT_ARG)) == "--half" ||
-                         miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_TEST_FLOAT_ARG)) == "--float");
+    bool runTestSuite = IsTestSupportedForDevice() &&
+                        (miopen::IsUnset(MIOPEN_ENV(MIOPEN_TEST_ALL)) || // Standalone
+                         (miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_ALL)) &&
+                          miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_WITH_MIOPENDRIVER)) &&
+                          miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_TEST_FLOAT_ARG)) == floatArg));
 
     if(!runTestSuite)
     {
         GTEST_SKIP();
     }
 
-    RunMIOpenDriverTestCommand(MIOpenDriverRegressionFloatHalfGfx10Test::GetParam());
+    RunMIOpenDriverTestCommand(testCases);
 };
 
 } // namespace miopendriver_regression_float_half_gfx10
 using namespace miopendriver_regression_float_half_gfx10;
 
-TEST_P(MIOpenDriverRegressionFloatHalfGfx10Test, MIOpenDriverRegressionFloatHalfGfx10)
+TEST_P(MIOpenDriverRegressionFloatGfx10Test, MIOpenDriverRegressionFloatHalfGfx10)
 {
-    RunMIOpenDriver();
+    RunMIOpenDriver("--float", GetParam());
 };
 
 INSTANTIATE_TEST_SUITE_P(MIOpenDriverRegressionFloatHalfGfx10TestSet,
-                         MIOpenDriverRegressionFloatHalfGfx10Test,
-                         testing::Values(GetTestCases()));
+                         MIOpenDriverRegressionFloatGfx10Test,
+                         testing::Values(GetTestCases(BN_FLOAT)));
+
+TEST_P(MIOpenDriverRegressionHalfGfx10Test, MIOpenDriverRegressionFloatHalfGfx10)
+{
+    RunMIOpenDriver("--half", GetParam());
+};
+
+INSTANTIATE_TEST_SUITE_P(MIOpenDriverRegressionFloatHalfGfx10TestSet,
+                         MIOpenDriverRegressionHalfGfx10Test,
+                         testing::Values(GetTestCases(BN_HALF)));

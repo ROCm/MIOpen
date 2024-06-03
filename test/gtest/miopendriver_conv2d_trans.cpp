@@ -36,15 +36,11 @@
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_WITH_MIOPENDRIVER)
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPENDRIVER_MODE_CONV)
 
 namespace miopendriver_conv2d_trans {
 
-std::vector<std::string> GetTestCases()
+std::vector<std::string> GetTestCases(const std::string& modeConvolutionArg)
 {
-    const std::string& modeConvolutionArg =
-        miopen::GetStringEnv(MIOPEN_ENV(MIOPENDRIVER_MODE_CONV));
-
     // clang-format off
     return std::vector<std::string>{
         // Why we have to use the driver:
@@ -63,9 +59,17 @@ std::vector<std::string> GetTestCases()
     // clang-format on
 }
 
-using TestCase = decltype(GetTestCases())::value_type;
+using TestCase = decltype(GetTestCases(""))::value_type;
 
-class MIOpenDriverConv2dTransTest : public testing::TestWithParam<std::vector<TestCase>>
+class MIOpenDriverConv2dTransTestFloat : public testing::TestWithParam<std::vector<TestCase>>
+{
+};
+
+class MIOpenDriverConv2dTransTestHalf : public testing::TestWithParam<std::vector<TestCase>>
+{
+};
+
+class MIOpenDriverConv2dTransTestBFloat16 : public testing::TestWithParam<std::vector<TestCase>>
 {
 };
 
@@ -77,28 +81,48 @@ bool IsTestSupportedForDevice()
     return ::IsTestSupportedForDevMask<d_mask, e_mask>();
 }
 
-void RunMIOpenDriver()
+void RunMIOpenDriver(const std::string& floatArg, const std::vector<TestCase>& testCases)
 {
-    bool runTestSuite = miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_WITH_MIOPENDRIVER)) &&
-                        IsTestSupportedForDevice() &&
-                        miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_ALL)) &&
-                        (miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_TEST_FLOAT_ARG)) == "--float" ||
-                         miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_TEST_FLOAT_ARG)) == "--half" ||
-                         miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_TEST_FLOAT_ARG)) == "--bfloat16");
+    bool runTestSuite = IsTestSupportedForDevice() &&
+                        (miopen::IsUnset(MIOPEN_ENV(MIOPEN_TEST_ALL)) || // Standalone
+                         (miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_ALL)) &&
+                          miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_WITH_MIOPENDRIVER)) &&
+                          miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_TEST_FLOAT_ARG)) == floatArg));
 
     if(!runTestSuite)
     {
         GTEST_SKIP();
     }
 
-    RunMIOpenDriverTestCommand(MIOpenDriverConv2dTransTest::GetParam());
+    RunMIOpenDriverTestCommand(testCases);
 };
 
 } // namespace miopendriver_conv2d_trans
 using namespace miopendriver_conv2d_trans;
 
-TEST_P(MIOpenDriverConv2dTransTest, MIOpenDriverConv2dTrans) { RunMIOpenDriver(); };
+TEST_P(MIOpenDriverConv2dTransTestFloat, MIOpenDriverConv2dTrans)
+{
+    RunMIOpenDriver("--float", GetParam());
+};
 
 INSTANTIATE_TEST_SUITE_P(MIOpenDriverConv2dTransTestSet,
-                         MIOpenDriverConv2dTransTest,
-                         testing::Values(GetTestCases()));
+                         MIOpenDriverConv2dTransTestFloat,
+                         testing::Values(GetTestCases(CONV_FLOAT)));
+
+TEST_P(MIOpenDriverConv2dTransTestHalf, MIOpenDriverConv2dTrans)
+{
+    RunMIOpenDriver("--half", GetParam());
+};
+
+INSTANTIATE_TEST_SUITE_P(MIOpenDriverConv2dTransTestSet,
+                         MIOpenDriverConv2dTransTestHalf,
+                         testing::Values(GetTestCases(CONV_HALF)));
+
+TEST_P(MIOpenDriverConv2dTransTestBFloat16, MIOpenDriverConv2dTrans)
+{
+    RunMIOpenDriver("--bfloat16", GetParam());
+};
+
+INSTANTIATE_TEST_SUITE_P(MIOpenDriverConv2dTransTestSet,
+                         MIOpenDriverConv2dTransTestBFloat16,
+                         testing::Values(GetTestCases(CONV_BFLOAT16)));

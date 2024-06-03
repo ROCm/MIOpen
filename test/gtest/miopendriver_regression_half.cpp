@@ -36,13 +36,12 @@
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_WITH_MIOPENDRIVER)
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPENDRIVER_MODE_POOL)
 
 namespace miopendriver_regression_half {
 
 std::vector<std::string> GetTestCases()
 {
-    const std::string& modePoolingArg = miopen::GetStringEnv(MIOPEN_ENV(MIOPENDRIVER_MODE_POOL));
+    std::string modePoolingArg = POOL_HALF;
 
     // clang-format off
     return std::vector<std::string>{
@@ -72,10 +71,11 @@ bool IsTestSupportedForDevice()
 
 void RunMIOpenDriver()
 {
-    bool runTestSuite = miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_WITH_MIOPENDRIVER)) &&
-                        IsTestSupportedForDevice() &&
-                        miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_ALL)) &&
-                        miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_TEST_FLOAT_ARG)) == "--half";
+    bool runTestSuite = IsTestSupportedForDevice() &&
+                        (miopen::IsUnset(MIOPEN_ENV(MIOPEN_TEST_ALL)) || // Standalone
+                         (miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_WITH_MIOPENDRIVER)) &&
+                          miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_ALL)) &&
+                          miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_TEST_FLOAT_ARG)) == "--half"));
 
     if(!runTestSuite)
     {

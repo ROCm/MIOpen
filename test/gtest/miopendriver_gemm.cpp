@@ -35,24 +35,26 @@
 
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_WITH_MIOPENDRIVER)
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPENDRIVER_MODE_GEMM)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 
 namespace miopendriver_gemm {
 
-std::vector<std::string> GetTestCases()
+std::vector<std::string> GetTestCases(const std::string& modeGemmArg)
 {
-    const std::string& modeGemmnArg = miopen::GetStringEnv(MIOPEN_ENV(MIOPENDRIVER_MODE_GEMM));
-
     // clang-format off
     return std::vector<std::string>{
-        {modeGemmnArg + " -m 256 -n 512 -k 1024 -i 1 -V 1"}
+        {modeGemmArg + " -m 256 -n 512 -k 1024 -i 1 -V 1"}
     };
     // clang-format on
 }
 
-using TestCase = decltype(GetTestCases())::value_type;
+using TestCase = decltype(GetTestCases(""))::value_type;
 
-class MIOpenDriverGemmTest : public testing::TestWithParam<std::vector<TestCase>>
+class MIOpenDriverGemmTestFloat : public testing::TestWithParam<std::vector<TestCase>>
+{
+};
+
+class MIOpenDriverGemmTestHalf : public testing::TestWithParam<std::vector<TestCase>>
 {
 };
 
@@ -64,26 +66,32 @@ bool IsTestSupportedForDevice()
     return ::IsTestSupportedForDevMask<d_mask, e_mask>();
 }
 
-void RunMIOpenDriver()
+void RunMIOpenDriver(const std::string& floatArg, const std::vector<TestCase>& testCases)
 {
-    bool runTestSuite = miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_WITH_MIOPENDRIVER)) &&
-                        IsTestSupportedForDevice() &&
-                        (miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_TEST_FLOAT_ARG)) == "--float" ||
-                         miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_TEST_FLOAT_ARG)) == "--half");
+    bool runTestSuite = IsTestSupportedForDevice() &&
+                        (miopen::IsUnset(MIOPEN_ENV(MIOPEN_TEST_ALL)) || // Standalone
+                         (miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_WITH_MIOPENDRIVER)) &&
+                          miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_TEST_FLOAT_ARG)) == floatArg));
 
     if(!runTestSuite)
     {
         GTEST_SKIP();
     }
 
-    RunMIOpenDriverTestCommand(MIOpenDriverGemmTest::GetParam());
+    RunMIOpenDriverTestCommand(testCases);
 };
 
 } // namespace miopendriver_gemm
 using namespace miopendriver_gemm;
 
-TEST_P(MIOpenDriverGemmTest, MIOpenDriverGemm) { RunMIOpenDriver(); };
+TEST_P(MIOpenDriverGemmTestFloat, MIOpenDriverGemm) { RunMIOpenDriver("--float", GetParam()); };
 
 INSTANTIATE_TEST_SUITE_P(MIOpenDriverGemmTestSet,
-                         MIOpenDriverGemmTest,
-                         testing::Values(GetTestCases()));
+                         MIOpenDriverGemmTestFloat,
+                         testing::Values(GetTestCases(GEMM_FLOAT)));
+
+TEST_P(MIOpenDriverGemmTestHalf, MIOpenDriverGemm) { RunMIOpenDriver("--half", GetParam()); };
+
+INSTANTIATE_TEST_SUITE_P(MIOpenDriverGemmTestSet,
+                         MIOpenDriverGemmTestHalf,
+                         testing::Values(GetTestCases(GEMM_HALF)));
