@@ -31,7 +31,7 @@
 
 namespace miopen {
 
-fs::path ExpandUser(const std::string& path);
+fs::path ExpandUser(const fs::path& path);
 bool IsNetworkedFilesystem(const fs::path&);
 
 } // namespace miopen

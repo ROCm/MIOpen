@@ -68,7 +68,7 @@ namespace debug {
 // For unit tests.
 MIOPEN_EXPORT extern bool
     testing_find_db_enabled; // NOLINT (cppcoreguidelines-avoid-non-const-global-variables)
-MIOPEN_EXPORT extern boost::optional<std::string>&
+MIOPEN_EXPORT extern boost::optional<fs::path>&
 testing_find_db_path_override(); /// \todo Remove when #1723 is resolved.
 
 } // namespace debug
@@ -174,17 +174,17 @@ public:
     }
 
 private:
-    std::string path;
-    std::string installed_path;
+    fs::path path;
+    fs::path installed_path;
     boost::optional<DbTimer<TDb>> db;
     boost::optional<DbRecord> content{boost::none};
     bool in_sync    = false;
     bool dont_store = false; // E.g. to skip writing sub-optimal find-db records to disk.
 
-    static std::string GetInstalledPath(Handle& handle, const std::string& path_suffix);
-    static std::string GetInstalledPathEmbed(Handle& handle, const std::string& path_suffix);
-    static std::string GetInstalledPathFile(Handle& handle, const std::string& path_suffix);
-    static std::string GetUserPath(Handle& handle, const std::string& path_suffix);
+    static fs::path GetInstalledPath(Handle& handle, const std::string& path_suffix);
+    static fs::path GetInstalledPathEmbed(Handle& handle, const std::string& path_suffix);
+    static fs::path GetInstalledPathFile(Handle& handle, const std::string& path_suffix);
+    static fs::path GetUserPath(Handle& handle, const std::string& path_suffix);
 
     // Returns true if rebuild is required
     bool Validate(Handle& handle, const NetworkConfig& config) const;

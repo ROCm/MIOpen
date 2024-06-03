@@ -108,7 +108,7 @@ const char* getOffloadBundlerBinPath()
 namespace miopen {
 
 static fs::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
-                             const std::string& filename,
+                             const fs::path& filename,
                              std::string src,
                              std::string params,
                              const TargetProperties& target,
@@ -210,7 +210,7 @@ static fs::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
 }
 
 fs::path HipBuild(boost::optional<TmpDir>& tmp_dir,
-                  const std::string& filename,
+                  const fs::path& filename,
                   std::string src,
                   std::string params,
                   const TargetProperties& target)

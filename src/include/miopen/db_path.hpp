@@ -31,7 +31,7 @@
 
 namespace miopen {
 
-std::string GetSystemDbPath();
+fs::path GetSystemDbPath();
 const fs::path& GetUserDbPath();
 std::string GetUserDbSuffix();
 std::string GetSystemFindDbSuffix();

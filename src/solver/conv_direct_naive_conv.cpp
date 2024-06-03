@@ -240,8 +240,8 @@ std::string ConvDirectNaiveConvKernelFile(const ExecutionContext& ctx,
 std::string ConvDirectNaiveConvCompileOption(const ExecutionContext& ctx,
                                              const ProblemDescription& problem)
 {
-    std::string filename = ConvDirectNaiveConvKernelFile(ctx, problem);
-    if(miopen::EndsWith(filename, ".s"))
+    fs::path filename = ConvDirectNaiveConvKernelFile(ctx, problem);
+    if(filename.extension() == ".s")
     {
         std::ostringstream options;
         GenerateClangDefsym(options, "ROCM_METADATA_VERSION", 5);
