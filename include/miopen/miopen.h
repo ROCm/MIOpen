@@ -68,6 +68,7 @@
  * @defgroup argmax
  * @defgroup groupnorm
  * @defgroup cat
+ * @defgroup where
  *
  */
 
@@ -6577,6 +6578,64 @@ MIOPEN_EXPORT miopenStatus_t miopenBackendDestroyDescriptor(miopenBackendDescrip
 MIOPEN_EXPORT miopenStatus_t miopenBackendInitialize(miopenBackendDescriptor_t descriptor,
                                                      miopenBackendDescriptorType_t descriptorType,
                                                      size_t sizeInBytes);
+
+/** @} */
+// CLOSEOUT BackendAPI DOXYGEN GROUP
+#endif // MIOPEN_BETA_API
+
+#ifdef MIOPEN_BETA_API
+
+// Where APIs
+/** @addtogroup where
+ *
+ *  @{
+ */
+
+/*! @brief Execute where forward layer
+ *
+ * @param handle                   MIOpen handle (input)
+ * @param inputDesc                Tensor descriptor for input tensor (input)
+ * @param input                    Input tensor (input)
+ * @param otherDesc                Tensor descriptor for other tensor (input)
+ * @param other                    Other tensor (input)
+ * @param conditionDesc            Tensor descriptor for condition tensor (input)
+ * @param condition                Condition tensor (input)
+ * @param outputDesc               Tensor descriptor for output tensor (input)
+ * @param output                   Output tensor (output)
+ * @return                         miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenWhereForward(miopenHandle_t handle,
+                                              const miopenTensorDescriptor_t inputDesc,
+                                              void* input,
+                                              const miopenTensorDescriptor_t otherDesc,
+                                              void* other,
+                                              const miopenTensorDescriptor_t conditionDesc,
+                                              void* condition,
+                                              const miopenTensorDescriptor_t outputDesc,
+                                              void* output);
+
+/*! @brief Execute where backward layer
+ *
+ * @param handle                   MIOpen handle (input)
+ * @param outputGradDesc           Tensor descriptor for output gradient tensor (input)
+ * @param outputGrad               Output gradient tensor (input)
+ * @param conditionDesc            Tensor descriptor for condition tensor (input)
+ * @param condition                Condition tensor (input)
+ * @param inputGradDesc            Tensor descriptor for input gradient tensor (input)
+ * @param inputGrad                Input gradient tensor (output)
+ * @param otherGradDesc            Tensor descriptor for other gradient tensor (input)
+ * @param otherGrad                Other gradient tensor (output)
+ * @return                         miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenWhereBackward(miopenHandle_t handle,
+                                              const miopenTensorDescriptor_t outputGradDesc,
+                                              void* outputGrad,
+                                              const miopenTensorDescriptor_t conditionDesc,
+                                              void* condition,
+                                              const miopenTensorDescriptor_t inputGradDesc,
+                                              void* inputGrad,
+                                              const miopenTensorDescriptor_t otherGradDesc,
+                                              void* otherGrad);
 
 /** @} */
 // CLOSEOUT BackendAPI DOXYGEN GROUP
