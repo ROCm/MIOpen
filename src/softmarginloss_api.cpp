@@ -23,129 +23,159 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#include "miopen/miopen.h"
 #include <miopen/softmarginloss.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/tensor_ops.hpp>
 
-extern "C" miopenStatus_t miopenSoftMarginLossUnreducedForward(miopenHandle_t handle,
-                                                               const miopenTensorDescriptor_t iDesc,
-                                                               const void* i,
-                                                               const miopenTensorDescriptor_t tDesc,
-                                                               const void* t,
-                                                               const miopenTensorDescriptor_t oDesc,
-                                                               void* o)
-{
-    MIOPEN_LOG_FUNCTION(handle, iDesc, i, tDesc, t, oDesc, o);
-
-    return miopen::try_([&] {
-        miopen::SoftMarginLossUnreducedForward(miopen::deref(handle),
-                                               miopen::deref(iDesc),
-                                               DataCast(i),
-                                               miopen::deref(tDesc),
-                                               DataCast(t),
-                                               miopen::deref(oDesc),
-                                               DataCast(o));
-    });
-}
-
-extern "C" miopenStatus_t
-miopenSoftMarginLossUnreducedBackward(miopenHandle_t handle,
-                                      const miopenTensorDescriptor_t iDesc,
-                                      const void* i,
-                                      const miopenTensorDescriptor_t tDesc,
-                                      const void* t,
-                                      const miopenTensorDescriptor_t dODesc,
-                                      const void* dO,
-                                      const miopenTensorDescriptor_t dIDesc,
-                                      void* dI)
-{
-    MIOPEN_LOG_FUNCTION(handle, iDesc, i, tDesc, t, dODesc, dO, dIDesc, dI);
-
-    return miopen::try_([&] {
-        miopen::SoftMarginLossUnreducedBackward(miopen::deref(handle),
-                                                miopen::deref(iDesc),
-                                                DataCast(i),
-                                                miopen::deref(tDesc),
-                                                DataCast(t),
-                                                miopen::deref(dODesc),
-                                                DataCast(dO),
-                                                miopen::deref(dIDesc),
-                                                DataCast(dI));
-    });
-}
-
 extern "C" miopenStatus_t
 miopenGetSoftMarginLossForwardWorkspaceSize(miopenHandle_t handle,
-                                            const miopenTensorDescriptor_t iDesc,
-                                            const miopenTensorDescriptor_t tDesc,
-                                            const miopenTensorDescriptor_t oDesc,
-                                            const float divisor,
+                                            const miopenTensorDescriptor_t inputDesc,
+                                            const miopenTensorDescriptor_t targetDesc,
+                                            const miopenTensorDescriptor_t outputDesc,
+                                            const miopenLossReductionMode_t reduction,
                                             size_t* sizeInBytes)
 {
-    MIOPEN_LOG_FUNCTION(handle, iDesc, tDesc, oDesc, divisor);
+    MIOPEN_LOG_FUNCTION(handle, inputDesc, targetDesc, outputDesc, reduction);
 
-    return miopen::try_([&] {
-        miopen::deref(sizeInBytes) =
-            miopen::GetSoftMarginLossForwardWorkspaceSize(miopen::deref(handle),
-                                                          miopen::deref(iDesc),
-                                                          miopen::deref(tDesc),
-                                                          miopen::deref(oDesc),
-                                                          divisor);
-    });
+    if(reduction != MIOPEN_LOSS_REDUCTION_SUM && reduction != MIOPEN_LOSS_REDUCTION_MEAN)
+    {
+        MIOPEN_THROW(miopenStatusBadParm,
+                     "miopenGetSoftMarginLossForwardWorkspaceSize: reduction should be "
+                     "MIOPEN_LOSS_REDUCTION_SUM or MIOPEN_LOSS_REDUCTION_MEAN.");
+    }
+    else
+    {
+        return miopen::try_([&] {
+            miopen::deref(sizeInBytes) = miopen::GetSoftMarginLossForwardWorkspaceSize(
+                miopen::deref(handle),
+                miopen::deref(inputDesc),
+                miopen::deref(targetDesc),
+                miopen::deref(outputDesc),
+                reduction == MIOPEN_LOSS_REDUCTION_SUM ? 1
+                                                       : miopen::deref(inputDesc).GetElementSize());
+        });
+    }
 }
 
 extern "C" miopenStatus_t miopenSoftMarginLossForward(miopenHandle_t handle,
+                                                      const miopenTensorDescriptor_t inputDesc,
+                                                      const void* input,
+                                                      const miopenTensorDescriptor_t targetDesc,
+                                                      const void* target,
+                                                      const miopenTensorDescriptor_t outputDesc,
+                                                      void* output,
+                                                      const miopenLossReductionMode_t reduction,
                                                       void* workspace,
-                                                      size_t workspaceSizeInBytes,
-                                                      const miopenTensorDescriptor_t iDesc,
-                                                      const void* i,
-                                                      const miopenTensorDescriptor_t tDesc,
-                                                      const void* t,
-                                                      const miopenTensorDescriptor_t oDesc,
-                                                      void* o,
-                                                      const float divisor)
+                                                      const size_t workspaceSizeInBytes)
 {
-    MIOPEN_LOG_FUNCTION(
-        handle, workspace, workspaceSizeInBytes, iDesc, i, tDesc, t, oDesc, o, divisor);
+    MIOPEN_LOG_FUNCTION(handle,
+                        workspace,
+                        workspaceSizeInBytes,
+                        inputDesc,
+                        input,
+                        targetDesc,
+                        target,
+                        outputDesc,
+                        output,
+                        reduction);
 
-    return miopen::try_([&] {
-        miopen::SoftMarginLossForward(miopen::deref(handle),
-                                      DataCast(workspace),
-                                      workspaceSizeInBytes,
-                                      miopen::deref(iDesc),
-                                      DataCast(i),
-                                      miopen::deref(tDesc),
-                                      DataCast(t),
-                                      miopen::deref(oDesc),
-                                      DataCast(o),
-                                      divisor);
-    });
+    if(reduction == MIOPEN_LOSS_REDUCTION_NONE)
+    {
+        return miopen::try_([&] {
+            miopen::SoftMarginLossUnreducedForward(miopen::deref(handle),
+                                                   miopen::deref(inputDesc),
+                                                   DataCast(input),
+                                                   miopen::deref(targetDesc),
+                                                   DataCast(target),
+                                                   miopen::deref(outputDesc),
+                                                   DataCast(output));
+        });
+    }
+    else if(reduction == MIOPEN_LOSS_REDUCTION_SUM || reduction == MIOPEN_LOSS_REDUCTION_MEAN)
+    {
+        return miopen::try_([&] {
+            miopen::SoftMarginLossForward(miopen::deref(handle),
+                                          DataCast(workspace),
+                                          workspaceSizeInBytes,
+                                          miopen::deref(inputDesc),
+                                          DataCast(input),
+                                          miopen::deref(targetDesc),
+                                          DataCast(target),
+                                          miopen::deref(outputDesc),
+                                          DataCast(output),
+                                          reduction == MIOPEN_LOSS_REDUCTION_SUM
+                                              ? 1
+                                              : miopen::deref(inputDesc).GetElementSize());
+        });
+    }
+    else
+    {
+        MIOPEN_THROW(miopenStatusBadParm,
+                     "miopenSoftMarginLossForward: reduction should be MIOPEN_LOSS_REDUCTION_NONE, "
+                     "MIOPEN_LOSS_REDUCTION_SUM or MIOPEN_LOSS_REDUCTION_MEAN.");
+    }
 }
 
 extern "C" miopenStatus_t miopenSoftMarginLossBackward(miopenHandle_t handle,
-                                                       const miopenTensorDescriptor_t iDesc,
-                                                       const void* i,
-                                                       const miopenTensorDescriptor_t tDesc,
-                                                       const void* t,
-                                                       const miopenTensorDescriptor_t dODesc,
-                                                       const void* dO,
-                                                       const miopenTensorDescriptor_t dIDesc,
-                                                       void* dI,
-                                                       const float divisor)
+                                                       const miopenTensorDescriptor_t inputDesc,
+                                                       const void* input,
+                                                       const miopenTensorDescriptor_t targetDesc,
+                                                       const void* target,
+                                                       const miopenTensorDescriptor_t doutputDesc,
+                                                       const void* doutput,
+                                                       const miopenTensorDescriptor_t dinputDesc,
+                                                       void* dinput,
+                                                       const miopenLossReductionMode_t reduction)
 {
-    MIOPEN_LOG_FUNCTION(handle, iDesc, i, tDesc, t, dODesc, dO, dIDesc, dI, divisor);
-    return miopen::try_([&] {
-        miopen::SoftMarginLossBackward(miopen::deref(handle),
-                                       miopen::deref(iDesc),
-                                       DataCast(i),
-                                       miopen::deref(tDesc),
-                                       DataCast(t),
-                                       miopen::deref(dODesc),
-                                       DataCast(dO),
-                                       miopen::deref(dIDesc),
-                                       DataCast(dI),
-                                       divisor);
-    });
+    MIOPEN_LOG_FUNCTION(handle,
+                        inputDesc,
+                        input,
+                        targetDesc,
+                        target,
+                        doutputDesc,
+                        doutput,
+                        dinputDesc,
+                        dinput,
+                        reduction);
+    if(reduction == MIOPEN_LOSS_REDUCTION_NONE)
+    {
+        return miopen::try_([&] {
+            miopen::SoftMarginLossUnreducedBackward(miopen::deref(handle),
+                                                    miopen::deref(inputDesc),
+                                                    DataCast(input),
+                                                    miopen::deref(targetDesc),
+                                                    DataCast(target),
+                                                    miopen::deref(doutputDesc),
+                                                    DataCast(doutput),
+                                                    miopen::deref(dinputDesc),
+                                                    DataCast(dinput));
+        });
+    }
+    else if(reduction == MIOPEN_LOSS_REDUCTION_SUM || reduction == MIOPEN_LOSS_REDUCTION_MEAN)
+    {
+        return miopen::try_([&] {
+            miopen::SoftMarginLossBackward(miopen::deref(handle),
+                                           miopen::deref(inputDesc),
+                                           DataCast(input),
+                                           miopen::deref(targetDesc),
+                                           DataCast(target),
+                                           miopen::deref(doutputDesc),
+                                           DataCast(doutput),
+                                           miopen::deref(dinputDesc),
+                                           DataCast(dinput),
+                                           reduction == MIOPEN_LOSS_REDUCTION_SUM
+                                               ? 1
+                                               : miopen::deref(inputDesc).GetElementSize());
+        });
+    }
+    else
+    {
+        MIOPEN_THROW(
+            miopenStatusBadParm,
+            "miopenSoftMarginLossBackward: reduction should be MIOPEN_LOSS_REDUCTION_NONE, "
+            "MIOPEN_LOSS_REDUCTION_SUM or MIOPEN_LOSS_REDUCTION_MEAN.");
+    }
 }

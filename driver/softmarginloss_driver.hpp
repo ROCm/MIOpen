@@ -413,8 +413,13 @@ int SoftMarginLossDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         size_t out_sz = GetTensorSpace(outputDesc);
         if(divisor != 0)
         {
-            miopenGetSoftMarginLossForwardWorkspaceSize(
-                GetHandle(), inputDesc, targetDesc, outputDesc, divisor, &ws_sizeInBytes);
+            miopenGetSoftMarginLossForwardWorkspaceSize(GetHandle(),
+                                                        inputDesc,
+                                                        targetDesc,
+                                                        outputDesc,
+                                                        divisor == 1 ? MIOPEN_LOSS_REDUCTION_SUM
+                                                                     : MIOPEN_LOSS_REDUCTION_MEAN,
+                                                        &ws_sizeInBytes);
             if(ws_sizeInBytes == static_cast<size_t>(-1))
             {
                 return miopenStatusAllocFailed;
@@ -474,26 +479,28 @@ int SoftMarginLossDriver<Tgpu, Tref>::RunForwardGPU()
     {
         if(divisor == 0)
         {
-            miopenSoftMarginLossUnreducedForward(GetHandle(),
-                                                 inputDesc,
-                                                 in_dev->GetMem(),
-                                                 targetDesc,
-                                                 target_dev->GetMem(),
-                                                 outputDesc,
-                                                 out_dev->GetMem());
-        }
-        else
-        {
             miopenSoftMarginLossForward(GetHandle(),
-                                        workspace_dev->GetMem(),
-                                        ws_sizeInBytes,
                                         inputDesc,
                                         in_dev->GetMem(),
                                         targetDesc,
                                         target_dev->GetMem(),
                                         outputDesc,
                                         out_dev->GetMem(),
-                                        divisor);
+                                        MIOPEN_LOSS_REDUCTION_NONE);
+        }
+        else
+        {
+            miopenSoftMarginLossForward(GetHandle(),
+                                        inputDesc,
+                                        in_dev->GetMem(),
+                                        targetDesc,
+                                        target_dev->GetMem(),
+                                        outputDesc,
+                                        out_dev->GetMem(),
+                                        (divisor == 1) ? MIOPEN_LOSS_REDUCTION_SUM
+                                                       : MIOPEN_LOSS_REDUCTION_MEAN,
+                                        workspace_dev->GetMem(),
+                                        ws_sizeInBytes);
         }
 
         float time = 0.0;
@@ -509,12 +516,12 @@ int SoftMarginLossDriver<Tgpu, Tref>::RunForwardGPU()
         int iter = inflags.GetValueInt("iter");
         if(WALL_CLOCK)
             std::cout << "Wall-clock Time Forward SoftMarginLoss Elapsed: " << t.gettime_ms() / iter
-                      << " ms\n";
+                      << " ms" << std::endl;
 
         float kernel_average_time =
             iter > 1 ? (kernel_total_time - kernel_first_time) / (iter - 1) : kernel_first_time;
         std::cout << "GPU Kernel Time Forward SoftMarginLoss Elapsed: " << kernel_average_time
-                  << " ms\n";
+                  << " ms" << std::endl;
     }
 
     if(out_dev->FromGPU(GetStream(), out.data()) != 0)
@@ -552,15 +559,16 @@ int SoftMarginLossDriver<Tgpu, Tref>::RunBackwardGPU()
     {
         if(divisor == 0)
         {
-            miopenSoftMarginLossUnreducedBackward(GetHandle(),
-                                                  inputDesc,
-                                                  in_dev->GetMem(),
-                                                  targetDesc,
-                                                  target_dev->GetMem(),
-                                                  dODesc,
-                                                  dO_dev->GetMem(),
-                                                  dIDesc,
-                                                  dI_dev->GetMem());
+            miopenSoftMarginLossBackward(GetHandle(),
+                                         inputDesc,
+                                         in_dev->GetMem(),
+                                         targetDesc,
+                                         target_dev->GetMem(),
+                                         dODesc,
+                                         dO_dev->GetMem(),
+                                         dIDesc,
+                                         dI_dev->GetMem(),
+                                         MIOPEN_LOSS_REDUCTION_NONE);
         }
         else
         {
@@ -573,7 +581,8 @@ int SoftMarginLossDriver<Tgpu, Tref>::RunBackwardGPU()
                                          dO_dev->GetMem(),
                                          dIDesc,
                                          dI_dev->GetMem(),
-                                         divisor);
+                                         (divisor == 1) ? MIOPEN_LOSS_REDUCTION_SUM
+                                                        : MIOPEN_LOSS_REDUCTION_MEAN);
         }
         float time = 0.0;
         miopenGetKernelTime(GetHandle(), &time);
@@ -588,12 +597,12 @@ int SoftMarginLossDriver<Tgpu, Tref>::RunBackwardGPU()
         int iter = inflags.GetValueInt("iter");
         if(WALL_CLOCK)
             std::cout << "Wall-clock Time Backward SoftMarginLoss Elapsed: "
-                      << t.gettime_ms() / iter << " ms\n";
+                      << t.gettime_ms() / iter << " ms" << std::endl;
 
         float kernel_average_time =
             iter > 1 ? (kernel_total_time - kernel_first_time) / (iter - 1) : kernel_first_time;
         std::cout << "GPU Kernel Time Backward SoftMarginLoss Elapsed: " << kernel_average_time
-                  << " ms\n";
+                  << " ms" << std::endl;
     }
 
     if(dI_dev->FromGPU(GetStream(), dI.data()) != 0)
@@ -649,10 +658,13 @@ int SoftMarginLossDriver<Tgpu, Tref>::VerifyForward()
 {
     // Please note that with fp16 reduction, if input tensor is too big the result will be wrong
     // because of fp16 overflow / underflow. For sum reduction, try with input tensor >= 90k
-    // elements and output will be overflow. For mean reduction, try with input tensor >= 8M
+    // elements and output will be overflow.
+    // Example: ./MIOpenDriver softmarginlossfp16 -t 1 -R sum -F 1 -D 90000
+    // For mean reduction, try with input tensor >= 8M
     // elements and output will be underflow (because divisor is too big). You can't even run mean
     // reduction with >= 8M elements because I write this condition in
     // SoftMarginLossForward::isApplicable()
+    // Example: ./MIOpenDriver softmarginlossfp16 -t 1 -R mean -F 1 -D 8000000
     RunForwardCPU();
     // fp32: 1.5e-06, fp16: 0.0082, bf16: 0.0656
     const Tref tolerance = GetTolerance();
@@ -675,8 +687,9 @@ template <typename Tgpu, typename Tref>
 int SoftMarginLossDriver<Tgpu, Tref>::VerifyBackward()
 {
     // Please note that with fp16 MEAN reduction backward, if input tensor is too big the result
-    // will be wrong because of fp16 underflow (divisor is too big). SUM reduction backward still
-    // worked because this case divisor = 1, nothing special.
+    // will be wrong because of fp16 underflow (divisor is too big).
+    // Example: ./MIOpenDriver softmarginlossfp16 -t 1 -R mean -F 2 -D 500000
+    // SUM reduction backward still worked because this case divisor = 1, nothing special.
     RunBackwardCPU();
     const Tref tolerance = GetTolerance();
     auto error           = miopen::rms_range(dIhost, dI);

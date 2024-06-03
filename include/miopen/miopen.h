@@ -6583,132 +6583,96 @@ MIOPEN_EXPORT miopenStatus_t miopenBackendInitialize(miopenBackendDescriptor_t d
 #endif // MIOPEN_BETA_API
 
 #ifdef MIOPEN_BETA_API
+
+/*! @ingroup LossFunction
+ * @enum miopenLossReductionMode_t
+ * Reduction mode for loss function
+ */
+typedef enum
+{
+    MIOPEN_LOSS_REDUCTION_NONE = 0, /*!< output tensor elements are not reduced */
+    MIOPEN_LOSS_REDUCTION_SUM  = 1, /*!< output tensor elements are summed up */
+    MIOPEN_LOSS_REDUCTION_MEAN = 2, /*!< output tensor elements are summed up and divided with total
+                                       number of elements to get mean value */
+} miopenLossReductionMode_t;
+
 // SoftMarginLoss APIs
 /** @addtogroup LossFunction
  *
  *  @{
  */
 
-/*! @brief Execute a SoftMarginLoss forward layer with no reduction
- *
- * @param handle         MIOpen handle (input)
- * @param iDesc          Tensor descriptor for input tensor (input)
- * @param i              Data tensor input (input)
- * @param tDesc          Tensor descriptor for target tensor (input)
- * @param t              Data tensor target (input)
- * @param oDesc          Tensor descriptor for output tensor (input)
- * @param o              Data tensor output (output)
- * @return               miopenStatus_t
- */
-MIOPEN_EXPORT miopenStatus_t
-miopenSoftMarginLossUnreducedForward(miopenHandle_t handle,
-                                     const miopenTensorDescriptor_t iDesc,
-                                     const void* i,
-                                     const miopenTensorDescriptor_t tDesc,
-                                     const void* t,
-                                     const miopenTensorDescriptor_t oDesc,
-                                     void* o);
-
-/*! @brief Execute a SoftMarginLoss backward layer with no reduction
- *
- * @param handle         MIOpen handle (input)
- * @param iDesc          Tensor descriptor for input tensor (input)
- * @param i              Data tensor input (input)
- * @param tDesc          Tensor descriptor for target tensor (input)
- * @param t              Data tensor target (input)
- * @param dODesc         Tensor descriptor for output gradient (input)
- * @param dO             Output gradient (input)
- * @param dIDesc         Tensor descriptor for input gradient (input)
- * @param dI             Input gradient (output)
- * @return               miopenStatus_t
- */
-MIOPEN_EXPORT miopenStatus_t
-miopenSoftMarginLossUnreducedBackward(miopenHandle_t handle,
-                                      const miopenTensorDescriptor_t iDesc,
-                                      const void* i,
-                                      const miopenTensorDescriptor_t tDesc,
-                                      const void* t,
-                                      const miopenTensorDescriptor_t dODesc,
-                                      const void* dO,
-                                      const miopenTensorDescriptor_t dIDesc,
-                                      void* dI);
-
 /*! @brief Helper function to query the minimum workspace size required by the
 SoftMarginLossForward call
  *
  * @param [in]  handle              MIOpen Handle
- * @param [in]  iDesc               Tensor descriptor for input tensor
- * @param [in]  tDesc               Tensor descriptor for target tensor
- * @param [in]  oDesc               Tensor descriptor for output tensor
- * @param [in]  divisor             Divisor. Set to number of output tensor elements to get "mean",
-set to 1 to get "sum"
+ * @param [in]  inputDesc           Tensor descriptor for input tensor
+ * @param [in]  targetDesc          Tensor descriptor for target tensor
+ * @param [in]  outputDesc          Tensor descriptor for output tensor
+*  @param [in]  reduction           Reduction mode (sum, mean). For none reduction we don't need to
+use this function
  * @param [out] sizeInBytes         Pointer to data to return the minimum workspace size
  * @return                          miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t
 miopenGetSoftMarginLossForwardWorkspaceSize(miopenHandle_t handle,
-                                            const miopenTensorDescriptor_t iDesc,
-                                            const miopenTensorDescriptor_t tDesc,
-                                            const miopenTensorDescriptor_t oDesc,
-                                            const float divisor,
+                                            miopenTensorDescriptor_t inputDesc,
+                                            miopenTensorDescriptor_t targetDesc,
+                                            miopenTensorDescriptor_t outputDesc,
+                                            miopenLossReductionMode_t reduction,
                                             size_t* sizeInBytes);
 
-// TODO: merge both unreduced and reduced to 1 function like
-// https://github.com/moreh-dev/MIOpen/pull/20
-
-/*! @brief Execute a SoftMarginLoss forward layer with reduction
+/*! @brief Execute a SoftMarginLoss forward layer
  *
- * @param handle                    MIOpen handle (input)
- * @param workspace                 Address of the allocated workspace data (input)
- * @param workspaceSizeInBytes      Size in bytes of the allocated workspace data (input)
- * @param iDesc                     Tensor descriptor for input tensor (input)
- * @param i                         Data tensor input (input)
- * @param tDesc                     Tensor descriptor for target tensor (input)
- * @param t                         Data tensor target (input)
- * @param oDesc                     Tensor descriptor for output tensor (input)
- * @param o                         Data tensor output (output)
- * @param divisor                   Divisor. Set to number of output tensor elements to get
- "mean",
- * set to 1 to get "sum" (input)
- * @return                          miopenStatus_t
+ * @param [in]  handle                  MIOpen handle
+ * @param [in]  inputDesc               Tensor descriptor for input tensor
+ * @param [in]  input                   Data tensor input
+ * @param [in]  targetDesc              Tensor descriptor for target tensor
+ * @param [in]  target                  Data tensor target
+ * @param [in]  outputDesc              Tensor descriptor for output tensor
+ * @param [out] output                  Data tensor output
+ * @param [in]  reduction               Reduction mode. If reduction mode is mean or sum, you must
+ * provide param workspace and workspaceSizeInBytes. Call
+ * miopenGetSoftMarginLossForwardWorkspaceSize to get workspaceSizeInBytes
+ * @param [in]  workspace               Address of the allocated workspace data (Default = null)
+ * @param [in]  workspaceSizeInBytes    Size in bytes of the allocated workspace data (Default = 0)
+ * @return                              miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t miopenSoftMarginLossForward(miopenHandle_t handle,
-                                                         void* workspace,
-                                                         size_t workspaceSizeInBytes,
-                                                         const miopenTensorDescriptor_t iDesc,
-                                                         const void* i,
-                                                         const miopenTensorDescriptor_t tDesc,
-                                                         const void* t,
-                                                         const miopenTensorDescriptor_t oDesc,
-                                                         void* o,
-                                                         const float divisor);
+                                                         miopenTensorDescriptor_t inputDesc,
+                                                         const void* input,
+                                                         miopenTensorDescriptor_t targetDesc,
+                                                         const void* target,
+                                                         miopenTensorDescriptor_t outputDesc,
+                                                         void* output,
+                                                         miopenLossReductionMode_t reduction,
+                                                         void* workspace             = nullptr,
+                                                         size_t workspaceSizeInBytes = 0);
 
-/*! @brief Execute a SoftMarginLoss backward layer with reduction
+/*! @brief Execute a SoftMarginLoss backward layer
  *
- * @param handle                    MIOpen handle (input)
- * @param iDesc                     Tensor descriptor for input tensor (input)
- * @param i                         Data tensor input (input)
- * @param tDesc                     Tensor descriptor for target tensor (input)
- * @param t                         Data tensor target (input)
- * @param dODesc                    Tensor descriptor for output gradient (input)
- * @param dO                        Output gradient (input)
- * @param dIDesc                    Tensor descriptor for input gradient (input)
- * @param dI                        Input gradient (output)
- * @param divisor                   Divisor. Set to number of output tensor elements to get
- "mean",
- * set to 1 to get "sum" (input)
- * @return                          miopenStatus_t
+ * @param [in]  handle                  MIOpen handle
+ * @param [in]  inputDesc               Tensor descriptor for input tensor
+ * @param [in]  input                   Data tensor input
+ * @param [in]  targetDesc              Tensor descriptor for target tensor
+ * @param [in]  target                  Data tensor target
+ * @param [in]  doutputDesc             Tensor descriptor for output gradient
+ * @param [in]  doutput                 Output gradient
+ * @param [in]  dinputDesc              Tensor descriptor for input gradient
+ * @param [out] dinput                  Input gradient
+ * @param [in]  reduction               Reduction mode (none, sum, mean)
+ * @return                              miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t miopenSoftMarginLossBackward(miopenHandle_t handle,
-                                                          const miopenTensorDescriptor_t iDesc,
-                                                          const void* i,
-                                                          const miopenTensorDescriptor_t tDesc,
-                                                          const void* t,
-                                                          const miopenTensorDescriptor_t dODesc,
-                                                          const void* dO,
-                                                          const miopenTensorDescriptor_t dIDesc,
-                                                          void* dI,
-                                                          const float divisor);
+                                                          miopenTensorDescriptor_t inputDesc,
+                                                          const void* input,
+                                                          miopenTensorDescriptor_t targetDesc,
+                                                          const void* target,
+                                                          miopenTensorDescriptor_t doutputDesc,
+                                                          const void* doutput,
+                                                          miopenTensorDescriptor_t dinputDesc,
+                                                          void* dinput,
+                                                          miopenLossReductionMode_t reduction);
 
 /** @} */
 // CLOSEOUT LossFunction DOXYGEN GROUP
