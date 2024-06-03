@@ -966,6 +966,10 @@ void BuildAsm(const fs::path& name,
         SetIsaName(action, target);
         action.SetLogging(true);
         auto optAsm = miopen::SplitSpaceSeparated(options);
+#if WORKAROUND_ISSUE_3001
+        if(target.Xnack() && !*target.Xnack())
+            optAsm.emplace_back("-mno-xnack");
+#endif
         compiler::lc::gcnasm::RemoveOptionsUnwanted(optAsm);
 #if WORKAROUND_ROCMCOMPILERSUPPORT_ISSUE_67
         optAsm.push_back("--rocm-path=.");
