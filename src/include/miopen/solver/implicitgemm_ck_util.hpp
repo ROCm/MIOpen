@@ -887,6 +887,7 @@ MakeSolutionGroupConvImplicitGemmXdlops(const miopen::conv::ProblemDescription& 
         case miopenHalf: return invoker_factory_maker_ncdhw(ck::half_t{});
         case miopenFloat: return invoker_factory_maker_ncdhw(float{});
         case miopenBFloat16: return invoker_factory_maker_ncdhw(ck::bhalf_t{});
+        case miopenInt64:
         case miopenInt32:
         case miopenDouble:
         case miopenFloat8:
@@ -905,6 +906,7 @@ MakeSolutionGroupConvImplicitGemmXdlops(const miopen::conv::ProblemDescription& 
         case miopenHalf: return invoker_factory_maker_ndhwc(ck::half_t{});
         case miopenFloat: return invoker_factory_maker_ndhwc(float{});
         case miopenBFloat16: return invoker_factory_maker_ndhwc(ck::bhalf_t{});
+        case miopenInt64:
         case miopenInt32:
         case miopenDouble:
         case miopenFloat8:
