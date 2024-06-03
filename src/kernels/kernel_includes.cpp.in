@@ -41,7 +41,7 @@ const std::unordered_map<fs::path, std::string_view>& kernel_includes()
 {
     static const std::unordered_map<fs::path, std::string_view> data{
 #ifndef MIOPEN_USE_CLANG_TIDY // Huge generated source
-${INIT_KERNELS}
+        ${INIT_KERNELS}
 #endif
     };
     return data;
@@ -58,17 +58,15 @@ std::string_view GetKernelInc(const fs::path& name)
 
 const std::vector<std::reference_wrapper<const fs::path>>& GetKernelIncList()
 {
-    static const std::vector<std::reference_wrapper<const fs::path>> keys{
-        []() {
-            std::vector<std::reference_wrapper<const fs::path>> ref_keys;
-            for(const auto& m : kernel_includes())
-            {
-                if(m.first.extension() == ".hpp" || m.first.extension() == ".h")
-                    ref_keys.emplace_back(std::cref(m.first));
-            }
-            return ref_keys;
-        }()
-    };
+    static const std::vector<std::reference_wrapper<const fs::path>> keys{[]() {
+        std::vector<std::reference_wrapper<const fs::path>> ref_keys;
+        for(const auto& m : kernel_includes())
+        {
+            if(m.first.extension() == ".hpp" || m.first.extension() == ".h")
+                ref_keys.emplace_back(std::cref(m.first));
+        }
+        return ref_keys;
+    }()};
     return keys;
 }
 
