@@ -32,7 +32,6 @@
 #include <gtest/gtest.h>
 #include <miopen/rope.hpp>
 #include <miopen/miopen.h>
-#include <miopen/tensor_view_utils.hpp>
 
 template <class T>
 void cpu_rope_forward(tensor<T> x, tensor<T> cos, tensor<T> sin, tensor<T>& ref_y)
