@@ -198,13 +198,18 @@ void BackendEngineDescriptor::setAttribute(miopenBackendAttributeName_t attribut
 
 void BackendEngineDescriptor::finalize()
 {
-    if(mFinalized)
+    if(mFinalized || mBuilder.mGraph == nullptr)
     {
         MIOPEN_THROW(miopenStatusNotInitialized);
     }
 
     const auto& engines = mBuilder.mGraph->getEngines();
-    assert(static_cast<size_t>(mBuilder.mGlobalIndex) < engines.size());
+
+    if(static_cast<size_t>(mBuilder.mGlobalIndex) >= engines.size())
+    {
+        MIOPEN_THROW(miopenStatusBadParm);
+    }
+
     const auto& candidate_engine = engines.at(mBuilder.mGlobalIndex);
     mBuilder.setExecutor(candidate_engine.getExecutor());
     mEngine = mBuilder.build();
