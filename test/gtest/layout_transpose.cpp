@@ -43,6 +43,8 @@
 #include "driver.hpp"
 #include "random.hpp"
 
+#include "layout_transpose.hpp"
+
 namespace batched_transpose {
 
 template <typename T>
@@ -232,25 +234,9 @@ struct transpose_dims
     }
 };
 
-struct transpose_invoke_param : public miopen::InvokeParams
-{
-    ConstData_t src = nullptr;
-    Data_t dst      = nullptr;
-
-    transpose_invoke_param(ConstData_t src_, Data_t dst_) : src(src_), dst(dst_) {}
-    transpose_invoke_param(miopen::InvokeType type_, ConstData_t src_, Data_t dst_)
-        : InvokeParams{type_}, src(src_), dst(dst_)
-    {
-    }
-
-    Data_t GetWorkspace() const { return nullptr; }
-    std::size_t GetWorkspaceSize() const { return 0; }
-};
-
 template <typename T>
-static auto gen_value = [](auto... is) {
-    return static_cast<T>(prng::gen_A_to_B(RAND_INTEGER_MIN, RAND_INTEGER_MAX));
-};
+static auto gen_value =
+    [](auto... is) { return static_cast<T>(prng::gen_A_to_B(RAND_INTEGER_MIN, RAND_INTEGER_MAX)); };
 
 } // namespace batched_transpose
 
@@ -264,6 +250,20 @@ protected:
 
     uint32_t n;
     uint32_t c;
+
+    miopen::Invoker PrepareLayoutTransposeInvoker(const miopen::ExecutionContext& ctx_,
+                                                  miopenDataType_t data_type_,
+                                                  uint32_t n_,
+                                                  uint32_t c_,
+                                                  uint32_t h_,
+                                                  uint32_t w_)
+    {
+        TRANSPOSE_SOL transpose_sol(ctx_, data_type_, n_, c_, h_, w_);
+        auto invoker_factory = transpose_sol.MakeBatchedTransposeInvokerFactory();
+        std::vector<miopen::solver::KernelInfo> construction_params{transpose_sol.GetKernelInfo()};
+
+        return ctx_.GetStream().PrepareInvoker(invoker_factory, construction_params);
+    }
 
     virtual void SetUp() override { std::tie(n, c) = GetParam(); }
     void RunTest()
@@ -303,31 +303,8 @@ protected:
 
                 ctx.SetStream(&handle);
 
-                TRANSPOSE_SOL transpose_sol(ctx, miopen_type<T>{}, n, c, h, w);
-
-                std::vector<OpKernelArg> opArgs = transpose_sol.GetKernelArg();
-
-                boost::optional<miopen::InvokerFactory> invoker_factory(
-                    [=](const std::vector<miopen::Kernel>& kernels) mutable {
-                        return [=](const miopen::Handle& _handle,
-                                   const miopen::AnyInvokeParams& primitive_param) mutable {
-                            decltype(auto) invoke_params =
-                                primitive_param.CastTo<transpose_invoke_param>();
-
-                            const auto k = _handle.Run(kernels[0]);
-
-                            opArgs[0] = OpKernelArg(invoke_params.dst);
-                            opArgs[1] = OpKernelArg(invoke_params.src);
-
-                            k(opArgs);
-                        };
-                    });
-
-                std::vector<miopen::solver::KernelInfo> construction_params{
-                    transpose_sol.GetKernelInfo()};
-
-                const auto invoker = handle.PrepareInvoker(*invoker_factory, construction_params);
-
+                // prep gpu invoker
+                auto invoker = PrepareLayoutTransposeInvoker(ctx, miopen_type<T>{}, n, c, h, w);
                 const auto invoke_param = transpose_invoke_param{src_dev.get(), dst_dev.get()};
 
                 // run gpu
@@ -338,13 +315,6 @@ protected:
                 // run cpu
                 cpu_transpose<T, TRANSPOSE_SOL>::run(
                     t_dst.data.data(), t_src.data.data(), n, c, h, w);
-
-#ifdef BREAK_IT
-                // TEMPCODE break it
-                auto tensor_sz = n * c * h * w;
-                t_dst.data[0]  = t_dst_gpu.data[0];
-                t_dst.data[prng::gen_0_to_B(tensor_sz)] += 1;
-#endif
 
                 // we expect exact match, since use integer
                 verify_tensor(t_dst_gpu, "gpu", t_dst, "cpu");
@@ -362,6 +332,21 @@ protected:
 
     uint32_t n;
     uint32_t c;
+
+    miopen::Invoker PrepareLayoutTransposeInvoker(const miopen::ExecutionContext& ctx_,
+                                                  miopenDataType_t data_type_,
+                                                  uint32_t n_,
+                                                  uint32_t c_,
+                                                  uint32_t d_,
+                                                  uint32_t h_,
+                                                  uint32_t w_)
+    {
+        TRANSPOSE_SOL transpose_sol(ctx_, data_type_, n_, c_, d_, h_, w_);
+        auto invoker_factory = transpose_sol.MakeBatchedTransposeInvokerFactory();
+        std::vector<miopen::solver::KernelInfo> construction_params{transpose_sol.GetKernelInfo()};
+
+        return ctx_.GetStream().PrepareInvoker(invoker_factory, construction_params);
+    }
 
     virtual void SetUp() override { std::tie(n, c) = GetParam(); }
     void RunTest()
@@ -403,85 +388,34 @@ protected:
                     auto t_gpu_2d  = tensor<T>{tensor_len, tensor_strides};
                     auto t_gpu_3d  = tensor<T>{tensor_len, tensor_strides};
                     auto t_dst_ref = tensor<T>{tensor_len, tensor_strides};
-                    auto t_cpu_2d  = tensor<T>{tensor_len, tensor_strides};
 
                     auto src_dev = handle.Write(t_src.data);
 
-                    TRANSPOSE_SOL transpose_sol_3d(ctx, miopen_type<T>{}, n, c, d, h, w);
-                    std::vector<OpKernelArg> opArgs_3d = transpose_sol_3d.GetKernelArg();
-
-                    boost::optional<miopen::InvokerFactory> invoker_factory_3d(
-                        [=](const std::vector<miopen::Kernel>& kernels) mutable {
-                            return [=](const miopen::Handle& _handle,
-                                       const miopen::AnyInvokeParams& primitive_param) mutable {
-                                decltype(auto) invoke_params =
-                                    primitive_param.CastTo<transpose_invoke_param>();
-
-                                const auto k = _handle.Run(kernels[0]);
-
-                                opArgs_3d[0] = OpKernelArg(invoke_params.dst);
-                                opArgs_3d[1] = OpKernelArg(invoke_params.src);
-
-                                k(opArgs_3d);
-                            };
-                        });
-
-                    std::vector<miopen::solver::KernelInfo> construction_params_3d{
-                        transpose_sol_3d.GetKernelInfo()};
-
-                    const auto invoker_3d =
-                        handle.PrepareInvoker(*invoker_factory_3d, construction_params_3d);
-
+                    // prep gpu 3D
+                    auto invoker_3d =
+                        PrepareLayoutTransposeInvoker(ctx, miopen_type<T>{}, n, c, d, h, w);
                     const auto invoke_param_3d =
                         transpose_invoke_param{src_dev.get(), dst_3d_dev.get()};
 
                     // run gpu 3D
                     invoker_3d(handle, invoke_param_3d);
+
                     t_gpu_3d.data = handle.Read<T>(dst_3d_dev, t_gpu_3d.data.size());
 
-                    TRANSPOSE_SOL transpose_sol_2d(ctx, miopen_type<T>{}, n, c, 1, d * h, w);
-                    std::vector<OpKernelArg> opArgs_2d = transpose_sol_2d.GetKernelArg();
-
-                    boost::optional<miopen::InvokerFactory> invoker_factory_2d(
-                        [=](const std::vector<miopen::Kernel>& kernels) mutable {
-                            return [=](const miopen::Handle& _handle,
-                                       const miopen::AnyInvokeParams& primitive_param) mutable {
-                                decltype(auto) invoke_params =
-                                    primitive_param.CastTo<transpose_invoke_param>();
-
-                                const auto k = _handle.Run(kernels[0]);
-
-                                opArgs_2d[0] = OpKernelArg(invoke_params.dst);
-                                opArgs_2d[1] = OpKernelArg(invoke_params.src);
-
-                                k(opArgs_2d);
-                            };
-                        });
-
-                    std::vector<miopen::solver::KernelInfo> construction_params_2d{
-                        transpose_sol_2d.GetKernelInfo()};
-
-                    const auto invoker_2d =
-                        handle.PrepareInvoker(*invoker_factory_2d, construction_params_2d);
-
+                    // prep gpu 2D
+                    auto invoker_2d =
+                        PrepareLayoutTransposeInvoker(ctx, miopen_type<T>{}, n, c, 1, d * h, w);
                     const auto invoke_param_2d =
                         transpose_invoke_param{src_dev.get(), dst_2d_dev.get()};
 
+                    // run gpu 2D
                     invoker_2d(handle, invoke_param_2d);
 
-                    // run gpu 2D
                     t_gpu_2d.data = handle.Read<T>(dst_2d_dev, t_gpu_2d.data.size());
 
                     // run cpu
                     cpu_transpose<T, TRANSPOSE_SOL>::run(
                         t_dst_ref.data.data(), t_src.data.data(), n, c, d, h, w);
-
-#ifdef BREAK_IT
-                    // TEMPCODE break it
-                    auto tensor_sz    = n * c * d * h * w;
-                    t_dst_ref.data[0] = t_gpu_3d.data[0];
-                    t_dst_ref.data[prng::gen_0_to_B(tensor_sz)] += 1;
-#endif
 
                     // we expect exact match, since use integer
                     verify_tensor(t_gpu_3d, "gpu3d", t_dst_ref, "cpu");
