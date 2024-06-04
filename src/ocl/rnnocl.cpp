@@ -1310,7 +1310,7 @@ void RNNDescriptor::RNNForwardInferencePacked(Handle& handle,
     }
     // input check end
 
-    if(RNNForwardMSIsSupported(*this, false) && RNNForwardMSIsFast(xDesc[0].GetType(), seqLen))
+    if(RNNForwardMSIsSupported(*this, false) && RNNForwardMSIsFast(seqLen))
     {
         return RNNForwardMS(handle,
                             in_n,
@@ -2704,7 +2704,7 @@ void RNNDescriptor::RNNForwardTrainingPackedTensors(
     // input check end
     bool use_dropout = !float_equal(miopen::deref(dropoutDesc).dropout, 0);
 
-    if(RNNForwardMSIsSupported(*this, false) && RNNForwardMSIsFast(xDesc[0].GetType(), seqLen))
+    if(RNNForwardMSIsSupported(*this, false) && RNNForwardMSIsFast(seqLen))
     {
         return RNNForwardMS(handle,
                             in_n,
