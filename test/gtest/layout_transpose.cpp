@@ -43,8 +43,6 @@
 #include "driver.hpp"
 #include "random.hpp"
 
-#include "layout_transpose.hpp"
-
 namespace batched_transpose {
 
 template <typename T>
