@@ -24,6 +24,7 @@
  *
  *******************************************************************************/
 
+#include "miopen/prelu/solvers.hpp"
 #include <miopen/solver.hpp>
 
 #include <miopen/activ/solvers.hpp>
@@ -648,6 +649,8 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
     Register(registry, ++id, Primitive::Mha, mha::Mha{}.SolverDbId());
     Register(registry, ++id, Primitive::Softmax, softmax::Softmax{}.SolverDbId());
     Register(registry, ++id, Primitive::Softmax, softmax::AttnSoftmax{}.SolverDbId());
+    Register(registry, ++id, Primitive::ReLU, prelu::SingleWeightBackward{}.SolverDbId());
+    Register(registry, ++id, Primitive::ReLU, prelu::MultiWeightsBackward{}.SolverDbId());
 
     // IMPORTANT: New solvers should be added to the end of the function!
 }

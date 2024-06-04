@@ -56,7 +56,8 @@ enum class Primitive
     Reduce,
     Cat,
     Mha,
-    Softmax
+    Softmax,
+    ReLU
 };
 
 struct MIOPEN_EXPORT Id
