@@ -34,24 +34,24 @@ struct Handle;
 struct TensorDescriptor;
 
 miopenStatus_t WhereForward(Handle& handle,
-                          const TensorDescriptor& inputDesc,
-                          Data_t input,
-                          const TensorDescriptor& otherDesc,
-                          Data_t other,
-                          const TensorDescriptor& conditionDesc,
-                          Data_t condition,
-                          const TensorDescriptor& outputDesc,
-                          Data_t output);
+                            const TensorDescriptor& inputDesc,
+                            Data_t input,
+                            const TensorDescriptor& otherDesc,
+                            Data_t other,
+                            const TensorDescriptor& conditionDesc,
+                            Data_t condition,
+                            const TensorDescriptor& outputDesc,
+                            Data_t output);
 
 miopenStatus_t WhereBackward(Handle& handle,
-                           const TensorDescriptor& outputGradDesc,
-                           Data_t outputGrad,
-                           const TensorDescriptor& conditionDesc,
-                           Data_t condition,
-                           const TensorDescriptor& inputGradDesc,
-                           Data_t inputGrad,
-                           const TensorDescriptor& otherGradDesc,
-                           Data_t otherGrad);
+                             const TensorDescriptor& outputGradDesc,
+                             Data_t outputGrad,
+                             const TensorDescriptor& conditionDesc,
+                             Data_t condition,
+                             const TensorDescriptor& inputGradDesc,
+                             Data_t inputGrad,
+                             const TensorDescriptor& otherGradDesc,
+                             Data_t otherGrad);
 
 } // namespace miopen
 #endif // _MIOPEN_WHERE_HPP_

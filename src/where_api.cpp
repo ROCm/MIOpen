@@ -31,51 +31,59 @@
 #include <miopen/tensor_ops.hpp>
 
 extern "C" miopenStatus_t miopenWhereForward(miopenHandle_t handle,
-                                                const miopenTensorDescriptor_t inputDesc,
-                                                void* input,
-                                                const miopenTensorDescriptor_t otherDesc,
-                                                void* other,
-                                                const miopenTensorDescriptor_t conditionDesc,
-                                                void* condition,
-                                                const miopenTensorDescriptor_t outputDesc,
-                                                void* output)
+                                             const miopenTensorDescriptor_t inputDesc,
+                                             void* input,
+                                             const miopenTensorDescriptor_t otherDesc,
+                                             void* other,
+                                             const miopenTensorDescriptor_t conditionDesc,
+                                             void* condition,
+                                             const miopenTensorDescriptor_t outputDesc,
+                                             void* output)
 {
-    MIOPEN_LOG_FUNCTION(handle, inputDesc, input, otherDesc, other, conditionDesc, condition, outputDesc, output);
+    MIOPEN_LOG_FUNCTION(
+        handle, inputDesc, input, otherDesc, other, conditionDesc, condition, outputDesc, output);
 
     return miopen::try_([&] {
         miopen::WhereForward(miopen::deref(handle),
-                           miopen::deref(inputDesc),
-                           DataCast(input),
-                           miopen::deref(otherDesc),
-                           DataCast(other),
-                           miopen::deref(conditionDesc),
-                           DataCast(condition),
-                           miopen::deref(outputDesc),
-                           DataCast(output));
+                             miopen::deref(inputDesc),
+                             DataCast(input),
+                             miopen::deref(otherDesc),
+                             DataCast(other),
+                             miopen::deref(conditionDesc),
+                             DataCast(condition),
+                             miopen::deref(outputDesc),
+                             DataCast(output));
     });
 }
 
 extern "C" miopenStatus_t miopenWhereBackward(miopenHandle_t handle,
-                                                 const miopenTensorDescriptor_t outputGradDesc,
-                                                 void* outputGrad,
-                                                 const miopenTensorDescriptor_t conditionDesc,
-                                                 void* condition,
-                                                 const miopenTensorDescriptor_t inputGradDesc,
-                                                 void* inputGrad,
-                                                 const miopenTensorDescriptor_t otherGradDesc,
-                                                 void* otherGrad)
+                                              const miopenTensorDescriptor_t outputGradDesc,
+                                              void* outputGrad,
+                                              const miopenTensorDescriptor_t conditionDesc,
+                                              void* condition,
+                                              const miopenTensorDescriptor_t inputGradDesc,
+                                              void* inputGrad,
+                                              const miopenTensorDescriptor_t otherGradDesc,
+                                              void* otherGrad)
 {
-    MIOPEN_LOG_FUNCTION(
-        handle, outputGradDesc, outputGrad, conditionDesc, condition, inputGradDesc, inputGrad, otherGradDesc, otherGrad);
+    MIOPEN_LOG_FUNCTION(handle,
+                        outputGradDesc,
+                        outputGrad,
+                        conditionDesc,
+                        condition,
+                        inputGradDesc,
+                        inputGrad,
+                        otherGradDesc,
+                        otherGrad);
     return miopen::try_([&] {
         miopen::WhereBackward(miopen::deref(handle),
-                            miopen::deref(outputGradDesc),
-                            DataCast(outputGrad),
-                            miopen::deref(conditionDesc),
-                            DataCast(condition),
-                            miopen::deref(inputGradDesc),
-                            DataCast(inputGrad),
-                            miopen::deref(otherGradDesc),
-                            DataCast(otherGrad));
+                              miopen::deref(outputGradDesc),
+                              DataCast(outputGrad),
+                              miopen::deref(conditionDesc),
+                              DataCast(condition),
+                              miopen::deref(inputGradDesc),
+                              DataCast(inputGrad),
+                              miopen::deref(otherGradDesc),
+                              DataCast(otherGrad));
     });
 }
