@@ -124,11 +124,6 @@ protected:
             workspace_dev = handle.Write(workspace.data);
         }
 
-        // size_t workspaceElements = workspaceSizeBytes / sizeof(TI);
-
-        // workspace = tensor<TI>(workspaceElements);
-        // std::fill(workspace.begin(), workspace.end(), 0);
-
         output = tensor<TIO>(1);
         std::fill(output.begin(), output.end(), 0);
 
@@ -142,7 +137,6 @@ protected:
         }
         input_dev     = handle.Write(input.data);
         target_dev    = handle.Write(target.data);
-        // workspace_dev = handle.Write(workspace.data);
         output_dev    = handle.Write(output.data);
     }
 
@@ -230,11 +224,6 @@ protected:
             workspace_dev = handle.Write(workspace.data);
         }
 
-        // size_t workspaceElements = workspaceSizeBytes / sizeof(TI);
-
-        // workspace = tensor<TI>(workspaceElements);
-        // std::fill(workspace.begin(), workspace.end(), 0);
-
         output = tensor<TIO>(in_dims[0]);
         std::fill(output.begin(), output.end(), 0);
 
@@ -242,7 +231,6 @@ protected:
         std::fill(ref_output.begin(), ref_output.end(), 0);
         input_dev     = handle.Write(input.data);
         target_dev    = handle.Write(target.data);
-        // workspace_dev = handle.Write(workspace.data);
         output_dev    = handle.Write(output.data);
     }
 
@@ -328,11 +316,6 @@ protected:
             workspace_dev = handle.Write(workspace.data);
         }
 
-        // size_t workspaceElements = workspaceSizeBytes / sizeof(TI);
-
-        // workspace = tensor<TI>(workspaceElements);
-        // std::fill(workspace.begin(), workspace.end(), 0);
-
         dO = tensor<TIO>(1);
         dO[0] = prng::gen_descreet_uniform_sign<TIO>(0.1, 50);
 
@@ -349,7 +332,6 @@ protected:
         }
         input_dev     = handle.Write(input.data);
         target_dev    = handle.Write(target.data);
-        // workspace_dev = handle.Write(workspace.data);
         dO_dev    = handle.Write(dO.data);
         dI_dev    = handle.Write(dI.data);
     }
