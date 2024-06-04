@@ -41,7 +41,7 @@ namespace miopendriver_regression_int8 {
 
 std::vector<std::string> GetTestCases()
 {
-    std::string modeConvolutionArg = CONV_INT8;
+    const std::string& modeConvolutionArg = miopendriver::basearg::conv::Int8;
 
     // clang-format off
     return std::vector<std::string>{

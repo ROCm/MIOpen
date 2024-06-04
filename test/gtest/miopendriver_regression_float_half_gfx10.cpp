@@ -96,7 +96,7 @@ TEST_P(MIOpenDriverRegressionFloatGfx10Test, MIOpenDriverRegressionFloatHalfGfx1
 
 INSTANTIATE_TEST_SUITE_P(MIOpenDriverRegressionFloatHalfGfx10TestSet,
                          MIOpenDriverRegressionFloatGfx10Test,
-                         testing::Values(GetTestCases(BN_FLOAT)));
+                         testing::Values(GetTestCases(miopendriver::basearg::bn::Float)));
 
 TEST_P(MIOpenDriverRegressionHalfGfx10Test, MIOpenDriverRegressionFloatHalfGfx10)
 {
@@ -105,4 +105,4 @@ TEST_P(MIOpenDriverRegressionHalfGfx10Test, MIOpenDriverRegressionFloatHalfGfx10
 
 INSTANTIATE_TEST_SUITE_P(MIOpenDriverRegressionFloatHalfGfx10TestSet,
                          MIOpenDriverRegressionHalfGfx10Test,
-                         testing::Values(GetTestCases(BN_HALF)));
+                         testing::Values(GetTestCases(miopendriver::basearg::bn::Half)));

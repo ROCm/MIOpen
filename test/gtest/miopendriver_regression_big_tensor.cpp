@@ -41,7 +41,7 @@ namespace miopendriver_regression_big_tensor {
 
 std::vector<std::string> GetTestCases()
 {
-    std::string modeConvolutionArg = CONV_FLOAT;
+    const std::string& modeConvolutionArg = miopendriver::basearg::conv::Float;
 
     // clang-format off
     return std::vector<std::string>{

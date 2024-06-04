@@ -41,7 +41,7 @@ namespace miopendriver_regression_issue_1576 {
 
 std::vector<std::string> GetTestCases()
 {
-    std::string modeConvolutionArg = CONV_HALF;
+    const std::string& modeConvolutionArg = miopendriver::basearg::conv::Half;
 
     // clang-format off
     return std::vector<std::string>{

@@ -88,10 +88,10 @@ TEST_P(MIOpenDriverGemmTestFloat, MIOpenDriverGemm) { RunMIOpenDriver("--float",
 
 INSTANTIATE_TEST_SUITE_P(MIOpenDriverGemmTestSet,
                          MIOpenDriverGemmTestFloat,
-                         testing::Values(GetTestCases(GEMM_FLOAT)));
+                         testing::Values(GetTestCases(miopendriver::basearg::gemm::Float)));
 
 TEST_P(MIOpenDriverGemmTestHalf, MIOpenDriverGemm) { RunMIOpenDriver("--half", GetParam()); };
 
 INSTANTIATE_TEST_SUITE_P(MIOpenDriverGemmTestSet,
                          MIOpenDriverGemmTestHalf,
-                         testing::Values(GetTestCases(GEMM_HALF)));
+                         testing::Values(GetTestCases(miopendriver::basearg::gemm::Half)));

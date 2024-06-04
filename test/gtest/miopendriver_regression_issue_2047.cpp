@@ -105,7 +105,7 @@ TEST_P(MIOpenDriverRegressionIssue2047TestFloat, MIOpenDriverRegressionIssue2047
 
 INSTANTIATE_TEST_SUITE_P(MIOpenDriverRegressionIssue2047TestSet,
                          MIOpenDriverRegressionIssue2047TestFloat,
-                         testing::Values(GetTestCases(CONV_FLOAT)));
+                         testing::Values(GetTestCases(miopendriver::basearg::conv::Float)));
 
 TEST_P(MIOpenDriverRegressionIssue2047TestHalf, MIOpenDriverRegressionIssue2047)
 {
@@ -114,7 +114,7 @@ TEST_P(MIOpenDriverRegressionIssue2047TestHalf, MIOpenDriverRegressionIssue2047)
 
 INSTANTIATE_TEST_SUITE_P(MIOpenDriverRegressionIssue2047TestSet,
                          MIOpenDriverRegressionIssue2047TestHalf,
-                         testing::Values(GetTestCases(CONV_HALF)));
+                         testing::Values(GetTestCases(miopendriver::basearg::conv::Half)));
 
 TEST_P(MIOpenDriverRegressionIssue2047TestBFloat16, MIOpenDriverRegressionIssue2047)
 {
@@ -123,7 +123,7 @@ TEST_P(MIOpenDriverRegressionIssue2047TestBFloat16, MIOpenDriverRegressionIssue2
 
 INSTANTIATE_TEST_SUITE_P(MIOpenDriverRegressionIssue2047TestSet,
                          MIOpenDriverRegressionIssue2047TestBFloat16,
-                         testing::Values(GetTestCases(CONV_BFLOAT16)));
+                         testing::Values(GetTestCases(miopendriver::basearg::conv::BFloat16)));
 
 TEST_P(MIOpenDriverRegressionIssue2047TestInt8, MIOpenDriverRegressionIssue2047)
 {
@@ -132,4 +132,4 @@ TEST_P(MIOpenDriverRegressionIssue2047TestInt8, MIOpenDriverRegressionIssue2047)
 
 INSTANTIATE_TEST_SUITE_P(MIOpenDriverRegressionIssue2047TestSet,
                          MIOpenDriverRegressionIssue2047TestInt8,
-                         testing::Values(GetTestCases(CONV_INT8)));
+                         testing::Values(GetTestCases(miopendriver::basearg::conv::Int8)));

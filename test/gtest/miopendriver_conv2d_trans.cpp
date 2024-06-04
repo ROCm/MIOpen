@@ -107,7 +107,7 @@ TEST_P(MIOpenDriverConv2dTransTestFloat, MIOpenDriverConv2dTrans)
 
 INSTANTIATE_TEST_SUITE_P(MIOpenDriverConv2dTransTestSet,
                          MIOpenDriverConv2dTransTestFloat,
-                         testing::Values(GetTestCases(CONV_FLOAT)));
+                         testing::Values(GetTestCases(miopendriver::basearg::conv::Float)));
 
 TEST_P(MIOpenDriverConv2dTransTestHalf, MIOpenDriverConv2dTrans)
 {
@@ -116,7 +116,7 @@ TEST_P(MIOpenDriverConv2dTransTestHalf, MIOpenDriverConv2dTrans)
 
 INSTANTIATE_TEST_SUITE_P(MIOpenDriverConv2dTransTestSet,
                          MIOpenDriverConv2dTransTestHalf,
-                         testing::Values(GetTestCases(CONV_HALF)));
+                         testing::Values(GetTestCases(miopendriver::basearg::conv::Half)));
 
 TEST_P(MIOpenDriverConv2dTransTestBFloat16, MIOpenDriverConv2dTrans)
 {
@@ -125,4 +125,4 @@ TEST_P(MIOpenDriverConv2dTransTestBFloat16, MIOpenDriverConv2dTrans)
 
 INSTANTIATE_TEST_SUITE_P(MIOpenDriverConv2dTransTestSet,
                          MIOpenDriverConv2dTransTestBFloat16,
-                         testing::Values(GetTestCases(CONV_BFLOAT16)));
+                         testing::Values(GetTestCases(miopendriver::basearg::conv::BFloat16)));

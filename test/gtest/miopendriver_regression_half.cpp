@@ -41,7 +41,7 @@ namespace miopendriver_regression_half {
 
 std::vector<std::string> GetTestCases()
 {
-    std::string modePoolingArg = POOL_HALF;
+    std::string modePoolingArg = miopendriver::basearg::pool::Half;
 
     // clang-format off
     return std::vector<std::string>{

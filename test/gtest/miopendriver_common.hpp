@@ -39,19 +39,35 @@
 using ::testing::HasSubstr;
 using ::testing::Not;
 
-#define CONV_FLOAT "conv"
-#define CONV_HALF "convfp16"
-#define CONV_BFLOAT16 "convbfp16"
-#define CONV_INT8 "convint8"
 
-#define POOL_FLOAT "pool"
-#define POOL_HALF "poolfp16"
+namespace miopendriver::basearg
+{
+    namespace conv
+    {
+        static const std::string Float = "conv";
+        static const std::string Half = "convfp16";
+        static const std::string BFloat16 = "convbfp16";
+        static const std::string Int8 = "convint8";
+    }
 
-#define GEMM_FLOAT "gemm"
-#define GEMM_HALF "gemmfp16"
+    namespace pool
+    {
+        static const std::string Float = "pool";
+        static const std::string Half = "poolfp16";
+    }
 
-#define BN_FLOAT "bnorm"
-#define BN_HALF "bnormfp16"
+    namespace gemm
+    {
+        static const std::string Float = "gemm";
+        static const std::string Half = "gemmfp16";
+    }
+
+    namespace bn
+    {
+        static const std::string Float = "bnorm";
+        static const std::string Half = "bnormfp16";
+    }
+}
 
 // Note: Assuming that the MIOpenDriver executable will be beside the testing output location.
 static inline miopen::fs::path MIOpenDriverExePath()
