@@ -175,7 +175,9 @@ static void RunCKSolutionNHWC(const Handle& handle,
     }
 }
 
-template <typename XDataType,
+// miopen::solver::batchnorm::BnCKFwdInference
+template <typename Solver,
+          typename XDataType,
           typename YDataType,
           typename AccDataType,
           typename ScaleDataType,
@@ -203,6 +205,7 @@ static void RunCKSolutionNCHW(const ExecutionContext& ctx,
 
     // NCHW, update number of return?
     ConvSolution result;
+    Solver solv{};
     auto [input1_tr_inst, input2_tr_inst, output_tr_inst, output_init_tr_inst] =
         internal::MakeTaggedTransposeInstances<CKArgsBNormFwd>(result /*ConvSolution result*/,
                                                                ctx,
@@ -220,18 +223,19 @@ static void RunCKSolutionNCHW(const ExecutionContext& ctx,
                                             BiasDataType,
                                             MeanVarDataType>(problem);
     assert(kernel_index >= 0 && kernel_index < bn_fwd_ptrs.size());
-    auto& bn_ptr       = bn_fwd_ptrs.at(kernel_index);
-    const auto& params = primitive_parameters.CastTo<miopen::batchnorm::InfInvokeParams>();
+    auto& bn_ptr         = bn_fwd_ptrs.at(kernel_index);
+    const auto& params   = primitive_parameters.CastTo<miopen::batchnorm::InfInvokeParams>();
+    params.workSpaceSize = solv.getWorkspaceSize();
 
     if(!params.workSpace)
     {
         MIOPEN_THROW(miopenStatusInvalidValue, "workspace pointer is null");
     }
 
-    input1_tr_inst.AssignBuffer(handle, ctx.workSpace);
-    // input2_tr_inst.AssignBuffer(handle, ctx.workSpace);
-    output_tr_inst.AssignBuffer(handle, ctx.workSpace);
-    output_init_tr_inst.AssignBuffer(handle, ctx.workSpace);
+    input1_tr_inst.AssignBuffer(handle, solv.workSpace);
+    // input2_tr_inst.AssignBuffer(handle, ctx.workSpace); //or solv.workSpace?
+    output_tr_inst.AssignBuffer(handle, solv.workSpace);
+    output_init_tr_inst.AssignBuffer(handle, solv.workSpace);
 
     // conversion operator applied here to convert to ConvTensors
     // auto conv_tensors = input1_tr_inst(ctx.tensors);
@@ -319,7 +323,6 @@ bool BnCKFwdInference::IsApplicable(
         return (CheckCKApplicability<F64, F64, F64, F64, F64, F64>(bn_problem) != -1);
     case miopenBFloat16:
         return (CheckCKApplicability<BF16, BF16, F32, BF16, BF16, F32>(bn_problem) != -1);
-    case miopenInt64:
     case miopenInt32:
     case miopenInt8:
     case miopenFloat8:
@@ -361,7 +364,6 @@ ConvSolution BnCKFwdInference::GetSolution(
                 break;
             case miopenInt8:
             case miopenInt32:
-            case miopenInt64:
             case miopenFloat8:
             case miopenBFloat8:
             default: MIOPEN_THROW("Unsupported datatype");
@@ -374,6 +376,14 @@ ConvSolution BnCKFwdInference::GetSolution(
 #endif
 }
 
+size_t BnCKFwdInference::GetWorkspaceSize(
+    [[maybe_unused]] const ExecutionContext& context,
+    [[maybe_unused]] const miopen::batchnorm::ProblemDescription& problem) const
+{
+    MultiBufferWorkspaceTraits wt(
+        {GetPackedSize(problem.GetXDesc()), GetPackedSize(problem.GetYDesc())});
+    return wt.GetSize();
+}
 } // namespace batchnorm
 } // namespace solver
 } // namespace miopen
