@@ -6605,14 +6605,14 @@ MIOPEN_EXPORT miopenStatus_t miopenBackendInitialize(miopenBackendDescriptor_t d
  * @return                         miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t miopenWhereForward(miopenHandle_t handle,
-                                              const miopenTensorDescriptor_t inputDesc,
-                                              void* input,
-                                              const miopenTensorDescriptor_t otherDesc,
-                                              void* other,
-                                              const miopenTensorDescriptor_t conditionDesc,
-                                              void* condition,
-                                              const miopenTensorDescriptor_t outputDesc,
-                                              void* output);
+                                                const miopenTensorDescriptor_t inputDesc,
+                                                void* input,
+                                                const miopenTensorDescriptor_t otherDesc,
+                                                void* other,
+                                                const miopenTensorDescriptor_t conditionDesc,
+                                                void* condition,
+                                                const miopenTensorDescriptor_t outputDesc,
+                                                void* output);
 
 /*! @brief Execute where backward layer
  *
@@ -6628,14 +6628,14 @@ MIOPEN_EXPORT miopenStatus_t miopenWhereForward(miopenHandle_t handle,
  * @return                         miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t miopenWhereBackward(miopenHandle_t handle,
-                                              const miopenTensorDescriptor_t outputGradDesc,
-                                              void* outputGrad,
-                                              const miopenTensorDescriptor_t conditionDesc,
-                                              void* condition,
-                                              const miopenTensorDescriptor_t inputGradDesc,
-                                              void* inputGrad,
-                                              const miopenTensorDescriptor_t otherGradDesc,
-                                              void* otherGrad);
+                                                 const miopenTensorDescriptor_t outputGradDesc,
+                                                 void* outputGrad,
+                                                 const miopenTensorDescriptor_t conditionDesc,
+                                                 void* condition,
+                                                 const miopenTensorDescriptor_t inputGradDesc,
+                                                 void* inputGrad,
+                                                 const miopenTensorDescriptor_t otherGradDesc,
+                                                 void* otherGrad);
 
 /** @} */
 // CLOSEOUT BackendAPI DOXYGEN GROUP
