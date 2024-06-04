@@ -166,8 +166,9 @@ struct lstm_MS_solver : rnn_seq_driver<T>
             return;
 
         // Optimization of test coverage.
-        // Non-float types are not used in this code-path and must be tested using another subtest.
-        if(this->type == miopenFloat)
+        // Non-[float, Half] types are not used in this code-path and must be tested using another
+        // subtest.
+        if(this->type == miopenFloat || this->type == miopenHalf)
             rnn_seq_driver<T>::run();
     }
 };
