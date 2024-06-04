@@ -82,7 +82,7 @@ struct BatchedTransposeSolution
 
     BatchedTransposeParam kernel_param_heuristic;
 
-    InvokerFactory MakeBatchedTransposeInvokerFactory();
+    InvokerFactory MakeBatchedTransposeInvokerFactory() const;
 };
 
 struct TransposeSolutionDefault2Nhwc : public BatchedTransposeSolution

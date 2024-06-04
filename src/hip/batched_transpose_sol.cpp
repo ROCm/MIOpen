@@ -414,7 +414,7 @@ size_t BatchedTransposeSolution::GetOutputTensorSize() const
     return miopen::GetTypeSize(data_type) * batch * height * width;
 }
 
-InvokerFactory BatchedTransposeSolution::MakeBatchedTransposeInvokerFactory()
+InvokerFactory BatchedTransposeSolution::MakeBatchedTransposeInvokerFactory() const
 {
     std::vector<OpKernelArg> opArgs = GetKernelArg();
 
@@ -434,49 +434,5 @@ InvokerFactory BatchedTransposeSolution::MakeBatchedTransposeInvokerFactory()
 
     return invoker_factory;
 }
-
-// InvokerFactory BatchedTransposeSolution::MakeBatchedTransposeInvokerFactory()
-// {
-//     std::vector<OpKernelArg> opArgs_2d = GetKernelArg();
-
-//     miopen::InvokerFactory invoker_factory_2d(
-//         [=](const std::vector<miopen::Kernel>& kernels) mutable {
-//             return [=](const miopen::Handle& _handle,
-//                        const miopen::AnyInvokeParams& primitive_param) mutable {
-//                 decltype(auto) invoke_params = primitive_param.CastTo<transpose_invoke_param>();
-
-//                 const auto k = _handle.Run(kernels[0]);
-
-//                 opArgs_2d[0] = OpKernelArg(invoke_params.dst);
-//                 opArgs_2d[1] = OpKernelArg(invoke_params.src);
-
-//                 k(opArgs_2d);
-//             };
-//         });
-
-//     return invoker_factory_2d;
-// }
-
-// InvokerFactory BatchedTransposeSolution3D::MakeBatchedTransposeInvokerFactory()
-// {
-//     std::vector<OpKernelArg> opArgs_2d = GetKernelArg();
-
-//     miopen::InvokerFactory invoker_factory_3d(
-//         [=](const std::vector<miopen::Kernel>& kernels) mutable {
-//             return [=](const miopen::Handle& _handle,
-//                        const miopen::AnyInvokeParams& primitive_param) mutable {
-//                 decltype(auto) invoke_params = primitive_param.CastTo<transpose_invoke_param>();
-
-//                 const auto k = _handle.Run(kernels[0]);
-
-//                 opArgs_2d[0] = OpKernelArg(invoke_params.dst);
-//                 opArgs_2d[1] = OpKernelArg(invoke_params.src);
-
-//                 k(opArgs_2d);
-//             };
-//         });
-
-//     return invoker_factory_3d;
-// }
 
 } // namespace miopen
