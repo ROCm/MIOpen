@@ -109,8 +109,8 @@ RunMIOpenDriverTestCommand(const std::vector<std::string>& params,
 
 static inline bool CheckFloatCondition(const std::string& floatArg)
 {
-     return miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_WITH_MIOPENDRIVER)) && 
-            miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_TEST_FLOAT_ARG)) == floatArg;
+    return miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_WITH_MIOPENDRIVER)) &&
+           miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_TEST_FLOAT_ARG)) == floatArg;
 }
 
 static inline bool CheckFloatAndAllCondition(const std::string& floatArg)
@@ -123,8 +123,10 @@ static inline bool ShouldRunMIOpenDriverTest(const std::string& floatArg, bool s
 {
     if(skipUnlessAllEnabled)
     {
-        return ShouldRunTestCase<disabled_mask, enabled_mask>([&](){ return CheckFloatAndAllCondition(floatArg); });
+        return ShouldRunTestCase<disabled_mask, enabled_mask>(
+            [&]() { return CheckFloatAndAllCondition(floatArg); });
     }
 
-    return ShouldRunTestCase<disabled_mask, enabled_mask>([&](){ return CheckFloatCondition(floatArg); });
+    return ShouldRunTestCase<disabled_mask, enabled_mask>(
+        [&]() { return CheckFloatCondition(floatArg); });
 }
