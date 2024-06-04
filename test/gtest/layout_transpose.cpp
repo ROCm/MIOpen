@@ -158,23 +158,6 @@ struct cpu_transpose<T, miopen::TransposeSolutionNdhwc2Default>
     }
 };
 
-template <typename TRANSPOSE_SOL>
-struct transpose_str
-{
-};
-
-template <>
-struct transpose_str<miopen::TransposeSolutionDefault2Nhwc>
-{
-    static std::string get() { return "nchw2nhwc"; }
-};
-
-template <>
-struct transpose_str<miopen::TransposeSolutionNhwc2Default>
-{
-    static std::string get() { return "nhwc2nchw"; }
-};
-
 constexpr int RAND_INTEGER_MAX = 120;
 constexpr int RAND_INTEGER_MIN = -88;
 
