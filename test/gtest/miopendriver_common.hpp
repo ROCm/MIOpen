@@ -27,7 +27,7 @@
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
-#include <gtest/gtest_common.hpp>
+#include <gtest/gtest_env_check_common.hpp>
 
 #include <miopen/process.hpp>
 #include <miopen/filesystem.hpp>
@@ -38,6 +38,9 @@
 
 using ::testing::HasSubstr;
 using ::testing::Not;
+
+MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_WITH_MIOPENDRIVER)
 
 namespace miopendriver::basearg {
 namespace conv {
@@ -102,4 +105,26 @@ RunMIOpenDriverTestCommand(const std::vector<std::string>& params,
             << testArguments;
         EXPECT_THAT(ss.str(), Not(HasSubstr("FAILED")));
     }
+}
+
+static inline bool CheckFloatCondition(const std::string& floatArg)
+{
+     return miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_WITH_MIOPENDRIVER)) && 
+            miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_TEST_FLOAT_ARG)) == floatArg;
+}
+
+static inline bool CheckFloatAndAllCondition(const std::string& floatArg)
+{
+    return miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_ALL)) && CheckFloatCondition(floatArg);
+}
+
+template <typename disabled_mask, typename enabled_mask>
+static inline bool ShouldRunMIOpenDriverTest(const std::string& floatArg, bool skipUnlessAllEnabled)
+{
+    if(skipUnlessAllEnabled)
+    {
+        return ShouldRunTestCase<disabled_mask, enabled_mask>([&](){ return CheckFloatAndAllCondition(floatArg); });
+    }
+
+    return ShouldRunTestCase<disabled_mask, enabled_mask>([&](){ return CheckFloatCondition(floatArg); });
 }

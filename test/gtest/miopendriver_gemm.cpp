@@ -27,15 +27,10 @@
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
-#include <gtest/gtest_common.hpp>
 
 #include <miopen/env.hpp>
 #include <miopen/miopen.h>
 #include <miopen/process.hpp>
-
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_WITH_MIOPENDRIVER)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 
 namespace miopendriver_gemm {
 
@@ -58,26 +53,11 @@ class MIOpenDriverGemmTestHalf : public testing::TestWithParam<std::vector<TestC
 {
 };
 
-bool IsTestSupportedForDevice()
-{
-    using namespace miopen::debug;
-    using e_mask = enabled<Gpu::gfx94X, Gpu::gfx103X, Gpu::gfx110X>;
-    using d_mask = disabled<Gpu::Default>;
-    return ::IsTestSupportedForDevMask<d_mask, e_mask>();
-}
-
 void RunMIOpenDriver(const std::string& floatArg, const std::vector<TestCase>& testCases)
 {
-    // For determining if we should run test suite, ensure that test is supported on the hardware.
-    // If the MIOPEN_TEST_ALL environment isn't set, then assume we are running standalone outside
-    // CICD, and include the test. Otherwise, check the environment conditions to ensure they match
-    // CICD conditions to run this test suite.
-    bool runTestSuite = IsTestSupportedForDevice() &&
-                        (miopen::IsUnset(MIOPEN_ENV(MIOPEN_TEST_ALL)) ||
-                         (miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_WITH_MIOPENDRIVER)) &&
-                          miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_TEST_FLOAT_ARG)) == floatArg));
-
-    if(!runTestSuite)
+    using e_mask = enabled<Gpu::gfx94X, Gpu::gfx103X, Gpu::gfx110X>;
+    using d_mask = disabled<Gpu::Default>;
+    if(!ShouldRunMIOpenDriverTest<d_mask, e_mask>(floatArg, false))
     {
         GTEST_SKIP();
     }
