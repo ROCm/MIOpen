@@ -4950,6 +4950,191 @@ MIOPEN_EXPORT miopenStatus_t miopenCTCLoss(miopenHandle_t handle,
                                            void* workSpace,
                                            size_t workSpaceSize);
 
+#ifdef MIOPEN_BETA_API
+
+typedef enum
+{
+    MIOPEN_LOSS_REDUCTION_NONE = 0, /*!< output tensor elements are not reduced */
+    MIOPEN_LOSS_REDUCTION_SUM  = 1, /*!< output tensor elements are summed up */
+    MIOPEN_LOSS_REDUCTION_MEAN = 2, /*!< output tensor elements are summed up and divided with total
+                                       number of elements to get mean value */
+} miopenLossReductionMode_t;
+
+/*! @brief Helper function to query the minimum workspace size required by the multilabel margin loss
+ * call
+ *
+ * @param handle                   MIOpen Handle (input)
+ * @param iDesc                    Tensor descriptor for input tensor (input)
+ * @param tDesc                    Tensor descriptor for target tensor (input)
+ * @param oDesc                    Tensor descriptor for output tensor (input)
+ * @param sizeInBytes              Pointer to data to return the minimum workspace size
+ * @return                         miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenGetMultilabelMarginLossForwardWorkspaceSize(miopenHandle_t handle,
+                                                miopenTensorDescriptor_t iDesc,
+                                                miopenTensorDescriptor_t tDesc,
+                                                miopenTensorDescriptor_t oDesc,
+                                                size_t* sizeInBytes);
+
+/*! @brief Execute MultilabelMargin Loss forward layer 
+ *
+ * @param handle                   MIOpen handle (input)
+ * @param workspace                Address of the allocated workspace data (input)
+ * @param workspaceSizeInBytes     Size in bytes of the allocated workspace data (input)
+ * @param iDesc                    Tensor descriptor for input tensor (input)
+ * @param i                        Data tensor input (input)
+ * @param tDesc                    Tensor descriptor for target tensor (input)
+ * @param t                        Data tensor target (input)
+ * @param oDesc                    Tensor descriptor for output tensor (input)
+ * @param o                        Data tensor output (output)
+ * @param divisor                  Divisor (input)
+ * @return                         miopenStatus_t
+ */
+
+MIOPEN_EXPORT miopenStatus_t miopenMultilabelMarginLossForward(miopenHandle_t handle,
+                                                                void * workspace,
+                                                                size_t workspaceSizeInBytes,
+                                                                const miopenTensorDescriptor_t iDesc,
+                                                                const void* i,
+                                                                const miopenTensorDescriptor_t tDesc,
+                                                                const void * t,
+                                                                const miopenTensorDescriptor_t oDesc,
+                                                                void * o,
+                                                                float divisor);
+
+/*! @brief Helper function to query the minimum workspace size required by the multilabel margin loss
+ * call
+ *
+ * @param handle                   MIOpen Handle (input)
+ * @param iDesc                    Tensor descriptor for input tensor (input)
+ * @param tDesc                    Tensor descriptor for target tensor (input)
+ * @param oDesc                    Tensor descriptor for output tensor (input)
+ * @param sizeInBytes              Pointer to data to return the minimum workspace size
+ * @return                         miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenGetMultilabelMarginLossBackwardWorkspaceSize(miopenHandle_t handle,
+                                                miopenTensorDescriptor_t iDesc,
+                                                miopenTensorDescriptor_t tDesc,
+                                                miopenTensorDescriptor_t dODesc,
+                                                miopenTensorDescriptor_t dIDesc,
+                                                size_t* sizeInBytes);
+
+/*! @brief Execute MultilabelMargin Loss backward layer 
+ *
+ * @param handle                   MIOpen handle (input)
+ * @param workspace                Address of the allocated workspace data (input)
+ * @param workspaceSizeInBytes     Size in bytes of the allocated workspace data (input)
+ * @param iDesc                    Tensor descriptor for input tensor (input)
+ * @param i                        Data tensor input (input)
+ * @param tDesc                    Tensor descriptor for target tensor (input)
+ * @param t                        Data tensor target (input)
+ * @param oDesc                    Tensor descriptor for output tensor (input)
+ * @param o                        Data tensor output (output)
+ * @param divisor                  Divisor (input)
+ * @return                         miopenStatus_t
+ */
+
+MIOPEN_EXPORT miopenStatus_t miopenMultilabelMarginLossBackward(miopenHandle_t handle,
+                                                                void * workspace,
+                                                                size_t workspaceSizeInBytes,
+                                                                const miopenTensorDescriptor_t iDesc,
+                                                                const void* i,
+                                                                const miopenTensorDescriptor_t tDesc,
+                                                                const void * t,
+                                                                const miopenTensorDescriptor_t dODesc,
+                                                                void * dO,
+                                                                const miopenTensorDescriptor_t dIDesc,
+                                                                void * dI,
+                                                                float divisor);
+
+/*! @brief Helper function to query the minimum workspace size required by the multilabel margin loss unreduce forward
+ * call
+ *
+ * @param handle                   MIOpen Handle (input)
+ * @param iDesc                    Tensor descriptor for input tensor (input)
+ * @param tDesc                    Tensor descriptor for target tensor (input)
+ * @param oDesc                    Tensor descriptor for output tensor (input)
+ * @param sizeInBytes              Pointer to data to return the minimum workspace size
+ * @return                         miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenGetMultilabelMarginLossUnreducedForwardWorkspaceSize(miopenHandle_t handle,
+                                                miopenTensorDescriptor_t iDesc,
+                                                miopenTensorDescriptor_t tDesc,
+                                                miopenTensorDescriptor_t oDesc,
+                                                size_t* sizeInBytes);
+
+/*! @brief Execute MultilabelMargin Loss forward layer 
+ *
+ * @param handle                   MIOpen handle (input)
+ * @param workspace                Address of the allocated workspace data (input)
+ * @param workspaceSizeInBytes     Size in bytes of the allocated workspace data (input)
+ * @param iDesc                    Tensor descriptor for input tensor (input)
+ * @param i                        Data tensor input (input)
+ * @param tDesc                    Tensor descriptor for target tensor (input)
+ * @param t                        Data tensor target (input)
+ * @param oDesc                    Tensor descriptor for output tensor (input)
+ * @param o                        Data tensor output (output)
+ * @param divisor                  Divisor (input)
+ * @return                         miopenStatus_t
+ */
+
+MIOPEN_EXPORT miopenStatus_t miopenMultilabelMarginLossUnreducedForward(miopenHandle_t handle,
+                                                                void * workspace,
+                                                                size_t workspaceSizeInBytes,
+                                                                const miopenTensorDescriptor_t iDesc,
+                                                                const void* i,
+                                                                const miopenTensorDescriptor_t tDesc,
+                                                                const void * t,
+                                                                const miopenTensorDescriptor_t oDesc,
+                                                                void * o);
+
+/*! @brief Helper function to query the minimum workspace size required by the multilabel margin loss
+ * call
+ *
+ * @param handle                   MIOpen Handle (input)
+ * @param iDesc                    Tensor descriptor for input tensor (input)
+ * @param tDesc                    Tensor descriptor for target tensor (input)
+ * @param oDesc                    Tensor descriptor for output tensor (input)
+ * @param sizeInBytes              Pointer to data to return the minimum workspace size
+ * @return                         miopenStatus_t
+ */
+ 
+MIOPEN_EXPORT miopenStatus_t
+miopenGetMultilabelMarginLossUnreducedBackwardWorkspaceSize(miopenHandle_t handle,
+                                                miopenTensorDescriptor_t iDesc,
+                                                miopenTensorDescriptor_t tDesc,
+                                                miopenTensorDescriptor_t dODesc,
+                                                miopenTensorDescriptor_t dIDesc,
+                                                size_t* sizeInBytes);
+
+/*! @brief Execute MultilabelMargin Loss backward layer 
+ *
+ * @param handle                   MIOpen handle (input)
+ * @param workspace                Address of the allocated workspace data (input)
+ * @param workspaceSizeInBytes     Size in bytes of the allocated workspace data (input)
+ * @param iDesc                    Tensor descriptor for input tensor (input)
+ * @param i                        Data tensor input (input)
+ * @param tDesc                    Tensor descriptor for target tensor (input)
+ * @param t                        Data tensor target (input)
+ * @param oDesc                    Tensor descriptor for output tensor (input)
+ * @param o                        Data tensor output (output)
+ * @return                         miopenStatus_t
+ */
+
+MIOPEN_EXPORT miopenStatus_t miopenMultilabelMarginLossUnreducedBackward(miopenHandle_t handle,
+                                                                void * workspace,
+                                                                size_t workspaceSizeInBytes,
+                                                                const miopenTensorDescriptor_t iDesc,
+                                                                const void* i,
+                                                                const miopenTensorDescriptor_t tDesc,
+                                                                const void * t,
+                                                                const miopenTensorDescriptor_t dODesc,
+                                                                void * dO,
+                                                                const miopenTensorDescriptor_t dIDesc,
+                                                                void * dI);
+#endif
+
 /** @} */
 // CLOSEOUT LossFunction DOXYGEN GROUP
 
