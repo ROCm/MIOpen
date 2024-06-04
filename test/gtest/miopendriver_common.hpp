@@ -39,35 +39,29 @@
 using ::testing::HasSubstr;
 using ::testing::Not;
 
+namespace miopendriver::basearg {
+namespace conv {
+static const std::string Float    = "conv";
+static const std::string Half     = "convfp16";
+static const std::string BFloat16 = "convbfp16";
+static const std::string Int8     = "convint8";
+} // namespace conv
 
-namespace miopendriver::basearg
-{
-    namespace conv
-    {
-        static const std::string Float = "conv";
-        static const std::string Half = "convfp16";
-        static const std::string BFloat16 = "convbfp16";
-        static const std::string Int8 = "convint8";
-    }
+namespace pool {
+static const std::string Float = "pool";
+static const std::string Half  = "poolfp16";
+} // namespace pool
 
-    namespace pool
-    {
-        static const std::string Float = "pool";
-        static const std::string Half = "poolfp16";
-    }
+namespace gemm {
+static const std::string Float = "gemm";
+static const std::string Half  = "gemmfp16";
+} // namespace gemm
 
-    namespace gemm
-    {
-        static const std::string Float = "gemm";
-        static const std::string Half = "gemmfp16";
-    }
-
-    namespace bn
-    {
-        static const std::string Float = "bnorm";
-        static const std::string Half = "bnormfp16";
-    }
-}
+namespace bn {
+static const std::string Float = "bnorm";
+static const std::string Half  = "bnormfp16";
+} // namespace bn
+} // namespace miopendriver::basearg
 
 // Note: Assuming that the MIOpenDriver executable will be beside the testing output location.
 static inline miopen::fs::path MIOpenDriverExePath()
