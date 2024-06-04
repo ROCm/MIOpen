@@ -252,9 +252,13 @@ void HIPOCProgramImpl::BuildCodeObjectInFile(std::string& params,
 #else // MIOPEN_USE_COMGR
 void HIPOCProgramImpl::BuildCodeObjectInMemory(const std::string& params,
                                                const std::string& src,
-                                               const std::string& filename)
+                                               const fs::path& filename)
 {
-    if(miopen::EndsWith(filename, ".so"))
+#ifdef _WIN32
+    if(filename.extension() == ".dll")
+#else
+    if(filename.extension() == ".so")
+#endif
     {
         std::size_t sz = src.length();
         binary.resize(sz);
@@ -266,7 +270,7 @@ void HIPOCProgramImpl::BuildCodeObjectInMemory(const std::string& params,
         static std::mutex mutex;
         std::lock_guard<std::mutex> lock(mutex);
 #endif
-        if(miopen::EndsWith(filename, ".cpp"))
+        if(filename.extension() == ".cpp")
         {
 #if MIOPEN_USE_HIPRTC
             if(!miopen::IsDisabled(MIOPEN_ENV(MIOPEN_DEBUG_USE_HIPRTC)))
@@ -275,12 +279,12 @@ void HIPOCProgramImpl::BuildCodeObjectInMemory(const std::string& params,
 #endif // MIOPEN_USE_HIPRTC
                 comgr::BuildHip(filename, src, params, target, binary);
         }
-        else if(miopen::EndsWith(filename, ".s"))
+        else if(filename.extension() == ".s")
         {
             comgr::BuildAsm(filename, src, params, target, binary);
         }
 #if MIOPEN_USE_MLIR
-        else if(miopen::EndsWith(filename, ".mlir"))
+        else if(filename.extension() == ".mlir")
         {
             MiirGenBin(params, binary);
         }
@@ -297,33 +301,32 @@ void HIPOCProgramImpl::BuildCodeObjectInMemory(const std::string& params,
 
 void HIPOCProgramImpl::BuildCodeObject(std::string params, const std::string& kernel_src)
 {
-    std::string filename = program;
     const auto src       = [&]() -> std::string {
-        if(miopen::EndsWith(filename, ".mlir"))
+        if(program.extension() == ".mlir")
             return {}; // MLIR solutions do not use source code.
         if(!kernel_src.empty())
             return kernel_src;
-        return GetKernelSrc(program);
+        return GetKernelSrc(program.string());
     }();
 
 #if MIOPEN_BUILD_DEV
-    if(miopen::EndsWith(filename, ".cpp"))
+    if(program.extension() == ".cpp")
     {
         params += " -Werror" + HipKernelWarningsString();
     }
-    else if(miopen::EndsWith(filename, ".cl"))
+    else if(program.extension() == ".cl")
     {
         params += " -Werror" + OclKernelWarningsString();
     }
 #else
-    if(miopen::EndsWith(filename, ".cpp") || miopen::EndsWith(filename, ".cl"))
+    if(program.extension() == ".cpp" || program.extension() == ".cl")
         params += " -Wno-everything";
 #endif
 
 #if MIOPEN_USE_COMGR /// \todo Refactor when functionality stabilize.
-    BuildCodeObjectInMemory(params, src, filename);
+    BuildCodeObjectInMemory(params, src, program.string());
 #else
-    BuildCodeObjectInFile(params, src, filename);
+    BuildCodeObjectInFile(params, src, program.string());
 #endif
 }
 

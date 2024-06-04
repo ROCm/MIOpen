@@ -51,7 +51,7 @@ struct HIPOCProgramImpl
                      const TargetProperties& target_,
                      const std::string& kernel_src);
 
-    std::string program;
+    fs::path program;
     TargetProperties target;
     fs::path hsaco_file;
     hipModulePtr module;
@@ -60,11 +60,11 @@ struct HIPOCProgramImpl
 
 #if !MIOPEN_USE_COMGR
     void
-    BuildCodeObjectInFile(std::string& params, const std::string& src, const std::string& filename);
+    BuildCodeObjectInFile(std::string& params, const std::string& src, const fs::path& filename);
 #else
     void BuildCodeObjectInMemory(const std::string& params,
                                  const std::string& src,
-                                 const std::string& filename);
+                                 const fs::path& filename);
 #endif
 
     void BuildCodeObject(std::string params, const std::string& kernel_src);

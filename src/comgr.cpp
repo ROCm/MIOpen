@@ -1248,7 +1248,7 @@ private:
     }
 };
 
-void BuildHip(const std::string& name,
+void BuildHip(const fs::path& name,
               const std::string& text,
               const std::string& options,
               const miopen::TargetProperties& target,
