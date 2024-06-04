@@ -37,7 +37,6 @@
 #include <miopen/miopen.h>
 #include <miopen/multilabel_margin_loss.hpp>
 
-
 struct MultilabelMarginLossCase
 {
     size_t N;
@@ -135,9 +134,9 @@ protected:
         {
             config.divisor *= input.desc.GetElementSize();
         }
-        input_dev     = handle.Write(input.data);
-        target_dev    = handle.Write(target.data);
-        output_dev    = handle.Write(output.data);
+        input_dev  = handle.Write(input.data);
+        target_dev = handle.Write(target.data);
+        output_dev = handle.Write(output.data);
     }
 
     void RunTest()
@@ -147,16 +146,17 @@ protected:
         miopenStatus_t status;
 
         status = miopen::MultilabelMarginLossForward(handle,
-                                                   workspace_dev.get(),
-                                                   workspace.GetDataByteSize(),
-                                                   input.desc,
-                                                   input_dev.get(),
-                                                   target.desc,
-                                                   target_dev.get(),
-                                                   output.desc,
-                                                   output_dev.get(),
-                                                   config.divisor);
-        cpu_multilabel_margin_loss_forward_2d<TIO, TT>(input, target, ref_workspace, ref_output, config.divisor);
+                                                     workspace_dev.get(),
+                                                     workspace.GetDataByteSize(),
+                                                     input.desc,
+                                                     input_dev.get(),
+                                                     target.desc,
+                                                     target_dev.get(),
+                                                     output.desc,
+                                                     output_dev.get(),
+                                                     config.divisor);
+        cpu_multilabel_margin_loss_forward_2d<TIO, TT>(
+            input, target, ref_workspace, ref_output, config.divisor);
 
         EXPECT_EQ(status, miopenStatusSuccess);
 
@@ -171,10 +171,10 @@ protected:
         auto error = miopen::rms_range(ref_output, output);
 
         EXPECT_TRUE(miopen::range_distance(output) == miopen::range_distance(ref_output));
-        EXPECT_TRUE(error < tolerance) << "Error output beyond tolerance Error: " << error
-                                            << ",  Thresholdx10: " << tolerance;
+        EXPECT_TRUE(error < tolerance)
+            << "Error output beyond tolerance Error: " << error << ",  Thresholdx10: " << tolerance;
     }
-    
+
     MultilabelMarginLossCase config;
 
     tensor<TIO> input;
@@ -192,7 +192,8 @@ protected:
 };
 
 template <typename TIO, typename TT>
-struct MultilabelMarginLossUnreducedFwdTest : public ::testing::TestWithParam<MultilabelMarginLossCase>
+struct MultilabelMarginLossUnreducedFwdTest
+    : public ::testing::TestWithParam<MultilabelMarginLossCase>
 {
 protected:
     void SetUp() override
@@ -229,9 +230,9 @@ protected:
 
         ref_output = tensor<TIO>(in_dims[0]);
         std::fill(ref_output.begin(), ref_output.end(), 0);
-        input_dev     = handle.Write(input.data);
-        target_dev    = handle.Write(target.data);
-        output_dev    = handle.Write(output.data);
+        input_dev  = handle.Write(input.data);
+        target_dev = handle.Write(target.data);
+        output_dev = handle.Write(output.data);
     }
 
     void RunTest()
@@ -241,15 +242,16 @@ protected:
         miopenStatus_t status;
 
         status = miopen::MultilabelMarginLossUnreducedForward(handle,
-                                                   workspace_dev.get(),
-                                                   workspace.GetDataByteSize(),
-                                                   input.desc,
-                                                   input_dev.get(),
-                                                   target.desc,
-                                                   target_dev.get(),
-                                                   output.desc,
-                                                   output_dev.get());
-        cpu_multilabel_margin_loss_unreduced_forward_2d<TIO, TT>(input, target, ref_workspace, ref_output);
+                                                              workspace_dev.get(),
+                                                              workspace.GetDataByteSize(),
+                                                              input.desc,
+                                                              input_dev.get(),
+                                                              target.desc,
+                                                              target_dev.get(),
+                                                              output.desc,
+                                                              output_dev.get());
+        cpu_multilabel_margin_loss_unreduced_forward_2d<TIO, TT>(
+            input, target, ref_workspace, ref_output);
 
         EXPECT_EQ(status, miopenStatusSuccess);
 
@@ -263,10 +265,10 @@ protected:
             tolerance *= 80.0;
         auto error = miopen::rms_range(ref_output, output);
         EXPECT_TRUE(miopen::range_distance(output) == miopen::range_distance(ref_output));
-        EXPECT_TRUE(error < tolerance) << "Error output beyond tolerance Error: " << error
-                                            << ",  Thresholdx10: " << tolerance;
+        EXPECT_TRUE(error < tolerance)
+            << "Error output beyond tolerance Error: " << error << ",  Thresholdx10: " << tolerance;
     }
-    
+
     MultilabelMarginLossCase config;
 
     tensor<TIO> input;
@@ -316,7 +318,7 @@ protected:
             workspace_dev = handle.Write(workspace.data);
         }
 
-        dO = tensor<TIO>(1);
+        dO    = tensor<TIO>(1);
         dO[0] = prng::gen_descreet_uniform_sign<TIO>(0.1, 50);
 
         dI = tensor<TIO>{in_dims};
@@ -330,10 +332,10 @@ protected:
         {
             config.divisor *= input.desc.GetElementSize();
         }
-        input_dev     = handle.Write(input.data);
-        target_dev    = handle.Write(target.data);
-        dO_dev    = handle.Write(dO.data);
-        dI_dev    = handle.Write(dI.data);
+        input_dev  = handle.Write(input.data);
+        target_dev = handle.Write(target.data);
+        dO_dev     = handle.Write(dO.data);
+        dI_dev     = handle.Write(dI.data);
     }
 
     void RunTest()
@@ -343,18 +345,19 @@ protected:
         miopenStatus_t status;
 
         status = miopen::MultilabelMarginLossBackward(handle,
-                                                   workspace_dev.get(),
-                                                   workspace.GetDataByteSize(),
-                                                   input.desc,
-                                                   input_dev.get(),
-                                                   target.desc,
-                                                   target_dev.get(),
-                                                   dO.desc,
-                                                   dO_dev.get(),
-                                                   dI.desc,
-                                                   dI_dev.get(),
-                                                   config.divisor);
-        cpu_multilabel_margin_loss_backward_2d<TIO, TT>(input, target, ref_workspace, dO, ref_dI, config.divisor);
+                                                      workspace_dev.get(),
+                                                      workspace.GetDataByteSize(),
+                                                      input.desc,
+                                                      input_dev.get(),
+                                                      target.desc,
+                                                      target_dev.get(),
+                                                      dO.desc,
+                                                      dO_dev.get(),
+                                                      dI.desc,
+                                                      dI_dev.get(),
+                                                      config.divisor);
+        cpu_multilabel_margin_loss_backward_2d<TIO, TT>(
+            input, target, ref_workspace, dO, ref_dI, config.divisor);
 
         EXPECT_EQ(status, miopenStatusSuccess);
 
@@ -369,10 +372,10 @@ protected:
         auto error = miopen::rms_range(ref_dI, dI);
 
         EXPECT_TRUE(miopen::range_distance(ref_dI) == miopen::range_distance(dI));
-        EXPECT_TRUE(error < tolerance) << "Error output beyond tolerance Error: " << error
-                                            << ",  Thresholdx10: " << tolerance;
+        EXPECT_TRUE(error < tolerance)
+            << "Error output beyond tolerance Error: " << error << ",  Thresholdx10: " << tolerance;
     }
-    
+
     MultilabelMarginLossCase config;
 
     tensor<TIO> input;
@@ -392,7 +395,8 @@ protected:
 };
 
 template <typename TIO, typename TT>
-struct MultilabelMarginLossUnreducedBwdTest : public ::testing::TestWithParam<MultilabelMarginLossCase>
+struct MultilabelMarginLossUnreducedBwdTest
+    : public ::testing::TestWithParam<MultilabelMarginLossCase>
 {
 protected:
     void SetUp() override
@@ -426,7 +430,7 @@ protected:
         std::vector<size_t> dOut_dims;
         dOut_dims.push_back(in_dims[0]);
         auto dOut_gen_value = [](auto...) { return prng::gen_descreet_uniform_sign<TIO>(0.1, 50); };
-        dO             = tensor<TIO>{in_dims}.generate(dOut_gen_value);
+        dO                  = tensor<TIO>{in_dims}.generate(dOut_gen_value);
 
         dI = tensor<TIO>{in_dims};
         std::fill(dI.begin(), dI.end(), 0);
@@ -434,10 +438,10 @@ protected:
         ref_dI = tensor<TIO>{in_dims};
         std::fill(ref_dI.begin(), ref_dI.end(), 0);
 
-        input_dev     = handle.Write(input.data);
-        target_dev    = handle.Write(target.data);
-        dO_dev    = handle.Write(dO.data);
-        dI_dev    = handle.Write(dI.data);
+        input_dev  = handle.Write(input.data);
+        target_dev = handle.Write(target.data);
+        dO_dev     = handle.Write(dO.data);
+        dI_dev     = handle.Write(dI.data);
     }
 
     void RunTest()
@@ -447,17 +451,18 @@ protected:
         miopenStatus_t status;
 
         status = miopen::MultilabelMarginLossUnreducedBackward(handle,
-                                                   workspace_dev.get(),
-                                                   workspace.GetDataByteSize(),
-                                                   input.desc,
-                                                   input_dev.get(),
-                                                   target.desc,
-                                                   target_dev.get(),
-                                                   dO.desc,
-                                                   dO_dev.get(),
-                                                   dI.desc,
-                                                   dI_dev.get());
-        cpu_multilabel_margin_loss_unreduced_backward_2d<TIO, TT>(input, target, ref_workspace, dO, ref_dI);
+                                                               workspace_dev.get(),
+                                                               workspace.GetDataByteSize(),
+                                                               input.desc,
+                                                               input_dev.get(),
+                                                               target.desc,
+                                                               target_dev.get(),
+                                                               dO.desc,
+                                                               dO_dev.get(),
+                                                               dI.desc,
+                                                               dI_dev.get());
+        cpu_multilabel_margin_loss_unreduced_backward_2d<TIO, TT>(
+            input, target, ref_workspace, dO, ref_dI);
 
         EXPECT_EQ(status, miopenStatusSuccess);
 
@@ -472,10 +477,10 @@ protected:
         auto error = miopen::rms_range(ref_dI, dI);
 
         EXPECT_TRUE(miopen::range_distance(ref_dI) == miopen::range_distance(dI));
-        EXPECT_TRUE(error < tolerance) << "Error output beyond tolerance Error: " << error
-                                            << ",  Thresholdx10: " << tolerance;
+        EXPECT_TRUE(error < tolerance)
+            << "Error output beyond tolerance Error: " << error << ",  Thresholdx10: " << tolerance;
     }
-    
+
     MultilabelMarginLossCase config;
 
     tensor<TIO> input;
