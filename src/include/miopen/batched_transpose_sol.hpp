@@ -39,7 +39,7 @@ struct transpose_invoke_param : public miopen::InvokeParams
     ConstData_t src = nullptr;
     Data_t dst      = nullptr;
 
-    transpose_invoke_param(ConstData_t src_, Data_t dst_) : src(src_), dst(dst_) {}
+    transpose_invoke_param(ConstData_t src_, Data_t dst_) : InvokeParams{}, src(src_), dst(dst_) {}
     transpose_invoke_param(miopen::InvokeType type_, ConstData_t src_, Data_t dst_)
         : InvokeParams{type_}, src(src_), dst(dst_)
     {

@@ -43,7 +43,7 @@
 #include "driver.hpp"
 #include "random.hpp"
 
-namespace batched_transpose {
+namespace {
 
 template <typename T>
 void cpu_ncdhw2ndhwc(T* dst, T* src, uint64_t N, uint64_t C, uint64_t D, uint64_t H, uint64_t W)
@@ -175,8 +175,8 @@ struct transpose_str<miopen::TransposeSolutionNhwc2Default>
     static std::string get() { return "nhwc2nchw"; }
 };
 
-static constexpr int RAND_INTEGER_MAX = 120;
-static constexpr int RAND_INTEGER_MIN = -88;
+constexpr int RAND_INTEGER_MAX = 120;
+constexpr int RAND_INTEGER_MIN = -88;
 
 template <typename T>
 bool compare_equal(T r1, T r2)
@@ -233,12 +233,10 @@ struct transpose_dims
 };
 
 template <typename T>
-static auto gen_value =
+auto gen_value =
     [](auto... is) { return static_cast<T>(prng::gen_A_to_B(RAND_INTEGER_MIN, RAND_INTEGER_MAX)); };
 
-} // namespace batched_transpose
-
-using namespace batched_transpose;
+} // namespace
 
 template <typename T, class TRANSPOSE_SOL>
 struct LayoutTransposeTest_2D : public ::testing::TestWithParam<std::tuple<uint32_t, uint32_t>>
