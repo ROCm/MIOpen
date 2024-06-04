@@ -68,8 +68,12 @@ bool IsTestSupportedForDevice()
 
 void RunMIOpenDriver(const std::string& floatArg, const std::vector<TestCase>& testCases)
 {
+    // For determining if we should run test suite, ensure that test is supported on the hardware.
+    // If the MIOPEN_TEST_ALL environment isn't set, then assume we are running standalone outside
+    // CICD, and include the test. Otherwise, check the environment conditions to ensure they match
+    // CICD conditions to run this test suite.
     bool runTestSuite = IsTestSupportedForDevice() &&
-                        (miopen::IsUnset(MIOPEN_ENV(MIOPEN_TEST_ALL)) || // Standalone
+                        (miopen::IsUnset(MIOPEN_ENV(MIOPEN_TEST_ALL)) ||
                          (miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_WITH_MIOPENDRIVER)) &&
                           miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_TEST_FLOAT_ARG)) == floatArg));
 
