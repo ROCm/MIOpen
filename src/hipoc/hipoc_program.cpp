@@ -203,32 +203,35 @@ HIPOCProgramImpl::HIPOCProgramImpl(const std::string& program_name,
 }
 
 #if !MIOPEN_USE_COMGR
-void HIPOCProgramImpl::BuildCodeObjectInFile(std::string& params,
-                                             const std::string& src,
-                                             const std::string& filename)
+void HIPOCProgramImpl::BuildCodeObjectInFile(std::string params,
+                                             std::string_view src,
+                                             const fs::path& filename)
 {
+    TmpDir dir;
+    hsaco_file = make_object_file_name(dir / filename.filename());
 
-    dir.emplace(filename);
-    hsaco_file = make_object_file_name(dir.get() / filename);
-
-    if(miopen::EndsWith(filename, ".so"))
+#ifdef _WIN32
+    if(filename.extension() == ".dll")
+#else
+    if(filename.extension() == ".so")
+#endif
     {
         WriteFile(src, hsaco_file);
     }
-    else if(miopen::EndsWith(filename, ".s"))
+    else if(filename.extension() == ".s")
     {
         const auto assembled = AmdgcnAssemble(src, params, target);
         WriteFile(assembled, hsaco_file);
     }
-    else if(miopen::EndsWith(filename, ".cpp"))
+    else if(filename.extension() == ".cpp")
     {
-        hsaco_file = HipBuild(dir, filename, src, params, target);
+        hsaco_file = HipBuild(dir, filename, std::string{src}, params, target);
     }
 #if MIOPEN_USE_MLIR
-    else if(miopen::EndsWith(filename, ".mlir"))
+    else if(filename.extension() == ".mlir")
     {
         std::vector<char> buffer;
-        MiirGenBin(params, buffer);
+        MiirGenBin(std::string{params}, buffer);
         WriteFile(buffer, hsaco_file);
     }
 #endif
@@ -237,13 +240,13 @@ void HIPOCProgramImpl::BuildCodeObjectInFile(std::string& params,
         params += " " + GetCodeObjectVersionOption();
         if(miopen::IsEnabled(MIOPEN_ENV(MIOPEN_DEBUG_OPENCL_WAVE64_NOWGP)))
             params += " -mwavefrontsize64 -mcumode";
-        WriteFile(src, dir->path / filename);
+        WriteFile(src, dir / filename);
         params += " -target amdgcn-amd-amdhsa -x cl -D__AMD__=1  -O3";
         params += " -cl-kernel-arg-info -cl-denorms-are-zero";
         params += " -cl-std=CL2.0 -mllvm -amdgpu-early-inline-all";
         params += " -mllvm -amdgpu-internalize-symbols ";
         params += " " + filename + " -o " + hsaco_file;
-        dir->Execute(HIP_OC_COMPILER, params);
+        std::ignore = dir.Execute(HIP_OC_COMPILER, params);
     }
     if(!fs::exists(hsaco_file))
         MIOPEN_THROW("Cant find file: " + hsaco_file);
@@ -251,7 +254,7 @@ void HIPOCProgramImpl::BuildCodeObjectInFile(std::string& params,
 
 #else // MIOPEN_USE_COMGR
 void HIPOCProgramImpl::BuildCodeObjectInMemory(const std::string& params,
-                                               const std::string_view src,
+                                               std::string_view src,
                                                const fs::path& filename)
 {
 #ifdef _WIN32
@@ -298,7 +301,7 @@ void HIPOCProgramImpl::BuildCodeObjectInMemory(const std::string& params,
 }
 #endif // MIOPEN_USE_COMGR
 
-void HIPOCProgramImpl::BuildCodeObject(std::string params, const std::string& kernel_src)
+void HIPOCProgramImpl::BuildCodeObject(std::string_view params, std::string_view kernel_src)
 {
     const auto src = [&]() -> std::string_view {
         if(program.extension() == ".mlir")
@@ -308,24 +311,26 @@ void HIPOCProgramImpl::BuildCodeObject(std::string params, const std::string& ke
         return GetKernelSrc(program);
     }();
 
+    std::string build_params{params};
+
 #if MIOPEN_BUILD_DEV
     if(program.extension() == ".cpp")
     {
-        params += " -Werror" + HipKernelWarningsString();
+        build_params += " -Werror" + HipKernelWarningsString();
     }
     else if(program.extension() == ".cl")
     {
-        params += " -Werror" + OclKernelWarningsString();
+        build_params += " -Werror" + OclKernelWarningsString();
     }
 #else
     if(program.extension() == ".cpp" || program.extension() == ".cl")
-        params += " -Wno-everything";
+        build_params += " -Wno-everything";
 #endif
 
 #if MIOPEN_USE_COMGR /// \todo Refactor when functionality stabilize.
-    BuildCodeObjectInMemory(params, src, program);
+    BuildCodeObjectInMemory(build_params, src, program);
 #else
-    BuildCodeObjectInFile(params, src, program);
+    BuildCodeObjectInFile(build_params, src, program);
 #endif
 }
 
@@ -366,7 +371,6 @@ std::vector<char> HIPOCProgram::GetCodeObjectBlob() const { return impl->binary;
 
 void HIPOCProgram::FreeCodeObjectFileStorage()
 {
-    impl->dir = boost::none;
     impl->hsaco_file.clear();
 }
 

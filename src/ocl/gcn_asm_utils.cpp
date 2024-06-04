@@ -173,8 +173,8 @@ static std::string CleanupPath(const char* p)
  * Not intended to be used in production code, so error handling is very straghtforward,
  * just catch whatever possible and throw an exception.
  */
-std::string AmdgcnAssemble(const std::string& source,
-                           const std::string& params,
+std::string AmdgcnAssemble(std::string_view source,
+                           std::string_view params,
                            const miopen::TargetProperties& target)
 {
 #ifdef __linux__
@@ -245,7 +245,7 @@ std::string AmdgcnAssemble(const std::string& source,
 #endif //__linux__
 }
 
-static void AmdgcnAssembleQuiet(const std::string& source, const std::string& params)
+static void AmdgcnAssembleQuiet(std::string_view source, std::string_view params)
 {
 #ifdef __linux__
     std::stringstream clang_stdout_unused;
