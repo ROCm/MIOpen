@@ -85,39 +85,7 @@ struct BatchedTransposeSolution
     InvokerFactory MakeBatchedTransposeInvokerFactory();
 };
 
-struct BatchedTransposeSolution2D : public BatchedTransposeSolution
-{
-    BatchedTransposeSolution2D(const ExecutionContext& ctx_,
-                               miopenDataType_t data_type_,
-                               uint32_t batch_,
-                               uint32_t channels_,
-                               uint32_t height_,
-                               uint32_t width_ = 1)
-        : BatchedTransposeSolution(ctx_, data_type_, batch_, channels_, height_ * width_)
-    {
-        MIOPEN_THROW_IF(size_t(height_ * width_) != (size_t(height_) * size_t(width_)),
-                        "integer overflow");
-    }
-};
-
-struct BatchedTransposeSolution3D : public BatchedTransposeSolution
-{
-    BatchedTransposeSolution3D(const ExecutionContext& ctx_,
-                               miopenDataType_t data_type_,
-                               uint32_t batch_,
-                               uint32_t channels_,
-                               uint32_t depth_,
-                               uint32_t height_ = 1,
-                               uint32_t width_  = 1)
-        : BatchedTransposeSolution(ctx_, data_type_, batch_, channels_, depth_ * height_ * width_)
-    {
-        MIOPEN_THROW_IF(size_t(depth_ * height_ * width_) !=
-                            (size_t(depth_) * size_t(height_) * size_t(width_)),
-                        "integer overflow");
-    }
-};
-
-struct TransposeSolutionDefault2Nhwc : public BatchedTransposeSolution2D
+struct TransposeSolutionDefault2Nhwc : public BatchedTransposeSolution
 {
     TransposeSolutionDefault2Nhwc(const ExecutionContext& ctx_,
                                   miopenDataType_t data_type_,
@@ -125,13 +93,13 @@ struct TransposeSolutionDefault2Nhwc : public BatchedTransposeSolution2D
                                   uint32_t c_,
                                   uint32_t h_,
                                   uint32_t w_)
-        : BatchedTransposeSolution2D(ctx_, data_type_, n_, c_, h_, w_)
+        : BatchedTransposeSolution(ctx_, data_type_, n_, c_, h_ * w_)
     {
         MIOPEN_THROW_IF(size_t(h_ * w_) != (size_t(h_) * size_t(w_)), "integer overflow");
     }
 };
 
-struct TransposeSolutionNhwc2Default : public BatchedTransposeSolution2D
+struct TransposeSolutionNhwc2Default : public BatchedTransposeSolution
 {
     TransposeSolutionNhwc2Default(const ExecutionContext& ctx_,
                                   miopenDataType_t data_type_,
@@ -139,13 +107,13 @@ struct TransposeSolutionNhwc2Default : public BatchedTransposeSolution2D
                                   uint32_t c_,
                                   uint32_t h_,
                                   uint32_t w_)
-        : BatchedTransposeSolution2D(ctx_, data_type_, n_, h_ * w_, c_)
+        : BatchedTransposeSolution(ctx_, data_type_, n_, h_ * w_, c_)
     {
         MIOPEN_THROW_IF(size_t(h_ * w_) != (size_t(h_) * size_t(w_)), "integer overflow");
     }
 };
 
-struct TransposeSolutionDefault2Ndhwc : public BatchedTransposeSolution3D
+struct TransposeSolutionDefault2Ndhwc : public BatchedTransposeSolution
 {
     TransposeSolutionDefault2Ndhwc(const ExecutionContext& ctx_,
                                    miopenDataType_t data_type_,
@@ -154,14 +122,14 @@ struct TransposeSolutionDefault2Ndhwc : public BatchedTransposeSolution3D
                                    uint32_t d_,
                                    uint32_t h_,
                                    uint32_t w_)
-        : BatchedTransposeSolution3D(ctx_, data_type_, n_, c_, d_, h_, w_)
+        : BatchedTransposeSolution(ctx_, data_type_, n_, c_, d_ * h_ * w_)
     {
         MIOPEN_THROW_IF(size_t(d_ * h_ * w_) != (size_t(d_) * size_t(h_) * size_t(w_)),
                         "integer overflow");
     }
 };
 
-struct TransposeSolutionNdhwc2Default : public BatchedTransposeSolution3D
+struct TransposeSolutionNdhwc2Default : public BatchedTransposeSolution
 {
     TransposeSolutionNdhwc2Default(const ExecutionContext& ctx_,
                                    miopenDataType_t data_type_,
@@ -170,7 +138,7 @@ struct TransposeSolutionNdhwc2Default : public BatchedTransposeSolution3D
                                    uint32_t d_,
                                    uint32_t h_,
                                    uint32_t w_)
-        : BatchedTransposeSolution3D(ctx_, data_type_, n_, d_ * h_ * w_, c_)
+        : BatchedTransposeSolution(ctx_, data_type_, n_, d_ * h_ * w_, c_)
     {
         MIOPEN_THROW_IF(size_t(d_ * h_ * w_) != (size_t(d_) * size_t(h_) * size_t(w_)),
                         "integer overflow");
