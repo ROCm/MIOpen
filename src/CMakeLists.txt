@@ -142,6 +142,8 @@ set( MIOpen_Source
     lrn_api.cpp
     mha/mha_descriptor.cpp
     mha/problem_description.cpp
+    multilabel_margin_loss/problem_description.cpp
+    multilabel_margin_loss_api.cpp
     op_args.cpp
     operator.cpp
     performance_config.cpp
@@ -264,6 +266,7 @@ set( MIOpen_Source
     solver/layernorm/forward_layernorm2d_ck.cpp
     solver/layernorm/forward_layernorm4d_ck.cpp
     solver/mha/mha_solver.cpp
+    solver/multilabel_margin_loss/multilabel_margin_loss.cpp
     solver/pooling/forward2d.cpp
     solver/pooling/forwardNaive.cpp
     solver/pooling/forwardNd.cpp
@@ -422,6 +425,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/rocm_version.inc
         kernels/stride_array.hpp
         kernels/utilities.inc
+        kernels/warp_shuffle.hpp
         kernels/workaround_issue_1431.hpp
         kernels/xform_bidirect_winograd_code.inc
         kernels/xform_data_filter.inc
@@ -467,6 +471,8 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenConv1x1S.cl
         kernels/MIOpenConv1x1J1.cl
         kernels/MIOpenConv1x1J1_stride.cl
+        kernels/MIOpenMultilabelMarginLoss.cpp
+        kernels/MIOpenLossSum.cpp
         kernels/MIOpenSoftmax.cl
         kernels/MIOpenSoftmaxAttn.cpp
         kernels/MIOpenSum.cpp
@@ -603,6 +609,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         pooling.cpp
         ocl/fusionopconvocl.cpp
         ocl/fusionopbiasbnactivocl.cpp
+        multilabel_margin_loss.cpp
         sum.cpp
         ${PROJECT_BINARY_DIR}/db_path.cpp
         )
