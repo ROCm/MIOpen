@@ -161,7 +161,7 @@ bool PerformanceConfigConvAsm1x1U::SetNextValue(const ProblemDescription&)
     {
         if(!NextLinear<1, 4>(read_size))
             break;
-        if(!miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_SEARCH_OPTIMIZED)))
+        if(!miopen::IsDisabled(MIOPEN_ENV(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_SEARCH_OPTIMIZED)))
         {
             /// Narrow search space in optimized mode.
             if(use_spare_set ? !Next_1_4(k_mult) : !NextTwoPower<8, 32>(k_mult))
@@ -205,7 +205,7 @@ bool PerformanceConfigConvAsm1x1U::SetNextValue(const ProblemDescription&)
 PerformanceConfigConvAsm1x1U::PerformanceConfigConvAsm1x1U(bool spare)
     : PerformanceConfigConvAsm1x1U(1, 1, 1, 1, 1, 1, 1, 1, spare)
 {
-    if(!miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_SEARCH_OPTIMIZED)))
+    if(!miopen::IsDisabled(MIOPEN_ENV(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_SEARCH_OPTIMIZED)))
     {
         k_mult     = spare ? 1 : 8;
         chunk_size = spare ? 1 : 16;
@@ -415,9 +415,10 @@ bool PerformanceConfigConvAsm1x1U::RunParameterPredictionModel(const ExecutionCo
     static const std::string& arch  = ctx.GetStream().GetDeviceName();
     static const std::string solver = "ConvAsm1x1U";
     std::vector<float> features     = TransformFeatures(problem, n);
-    if(ai::tuning::ModelSetParams(arch, solver, features, true, [&](int idx, std::string value) {
-           return this->ModelApplyToken(idx, value, problem);
-       }))
+    if(ai::tuning::ModelSetParams(
+           arch, solver, problem.GetDirection(), features, true, [&](int idx, std::string value) {
+               return this->ModelApplyToken(idx, value, problem);
+           }))
     {
         MIOPEN_LOG_I("Params set by AI: " << ToString());
         return true;
@@ -475,7 +476,7 @@ void PerformanceConfigConvAsm1x1U::StaticHeuristic(const ProblemDescription& pro
 bool PerformanceConfigConvAsm1x1U::IsModelApplicable(const ExecutionContext& ctx,
                                                      const ProblemDescription& problem) const
 {
-    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_AI_HEUR)))
+    if(miopen::IsDisabled(MIOPEN_ENV(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_AI_HEUR)))
         return false;
     if(ctx.GetStream().GetDeviceName() != "gfx908")
         return false;
@@ -520,7 +521,7 @@ bool ConvAsm1x1U::IsValidPerformanceConfig(const ExecutionContext&,
 
 bool ConvAsm1x1U::IsApplicable(const ExecutionContext& ctx, const ProblemDescription& problem) const
 {
-    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U)))
+    if(miopen::IsDisabled(MIOPEN_ENV(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U)))
         return false;
     if(ThisSolverIsDeprecatedStatic::IsDisabled(ctx))
         return false;
@@ -827,7 +828,8 @@ ConvSolution ConvAsm1x1U::GetSolution(const ExecutionContext& ctx,
 
     PerformanceConfigConvAsm1x1U fromEnv;
     {
-        const auto& s = miopen::GetStringEnv(ENV(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_PERF_VALS));
+        const auto& s =
+            miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U_PERF_VALS));
         if(!s.empty()) // else nothing to parse.
         {
             if(!fromEnv.Deserialize(s) || !fromEnv.IsValidValue())

@@ -24,12 +24,12 @@
  *
  *******************************************************************************/
 
-#include <miopen/layernorm/solvers.hpp>
-
-#include <miopen/layernorm/invoke_params.hpp>
 #include <miopen/datatype.hpp>
-#include <miopen/layernorm.hpp>
 #include <miopen/kernel_build_params.hpp>
+#include <miopen/layernorm.hpp>
+#include <miopen/layernorm/solvers.hpp>
+#include <miopen/layernorm/invoke_params.hpp>
+#include <miopen/layernorm/utils.hpp>
 #include <miopen/target_properties.hpp>
 
 #define LOCAL_SIZE 256
@@ -39,19 +39,6 @@ namespace miopen {
 namespace solver {
 
 namespace layernorm {
-
-std::size_t sizeof_kernel_FLOAT(const miopen::layernorm::ProblemDescription& problem)
-{
-    const auto datatype = problem.GetXDesc().GetType();
-    return get_data_size(datatype);
-}
-
-std::size_t sizeof_local_memory(const miopen::layernorm::ProblemDescription& problem)
-{
-    std::size_t rv = 0;
-    rv += LOCAL_SIZE * sizeof_kernel_FLOAT(problem) * 2;
-    return rv;
-}
 
 bool LayernormForward::IsApplicable(const ExecutionContext&,
                                     const miopen::layernorm::ProblemDescription& problem) const
@@ -78,8 +65,10 @@ LayernormForward::GetSolution(const ExecutionContext& context,
     auto result = ConvSolution{miopenStatusSuccess};
 
     {
-        auto dtype = problem.GetXDesc().GetType();
-        auto dims  = problem.GetXDesc().GetLengths();
+        auto dtype        = problem.GetXDesc().GetType();
+        auto input_dtype  = miopen::GetDataType(problem.GetXDesc().GetType());
+        auto output_dtype = miopen::GetDataType(problem.GetYDesc().GetType());
+        auto dims         = problem.GetXDesc().GetLengths();
 
         size_t outer_size = 1;
         for(size_t i = 0; i < problem.GetNormalizedDim(); i++)
@@ -102,9 +91,16 @@ LayernormForward::GetSolution(const ExecutionContext& context,
         const auto build_params = KernelBuildParameters{
             {"MIOPEN_USE_FP16", static_cast<int>(dtype == miopenHalf)},
             {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
-            {"MIOPEN_USE_FP64", static_cast<int>(dtype == miopenDouble)},
             {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
+            {"INPUT_TYPE", input_dtype == "bfloat16" ? "ushort" : input_dtype},
+            {"OUTPUT_TYPE", output_dtype == "bfloat16" ? "ushort" : output_dtype},
             {"LOCAL_SIZE", LOCAL_SIZE},
+            {"MIOPEN_ELEMENTWISE_AFFINE", 0},
+            {"MIOPEN_WEIGHT_BIAS", 1},
+            {"MIOPEN_ELEMENTWISE_AFFINE_FUSED_ADD", 2},
+            {"MIOPEN_WEIGHT_BIAS_FUSED_ADD", 3},
+            {"MIOPEN_ELEMENTWISE_AFFINE_T5", 4},
+            {"MIOPEN_WEIGHT_BIAS_T5", 5},
         };
 
         kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
@@ -134,9 +130,9 @@ LayernormForward::GetSolution(const ExecutionContext& context,
             }
 
             kernel(params.x,
-                   params.y,
                    params.weight,
                    params.bias,
+                   params.y,
                    params.mean,
                    params.rstd,
                    params.epsilon,

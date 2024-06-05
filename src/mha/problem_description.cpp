@@ -39,18 +39,50 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
 
     ss << "mha";
 
+    auto print_strides = [&ss](const TensorDescriptor& desc) {
+        for(const auto& d : desc.GetStrides())
+        {
+            ss << d << "x";
+        }
+    };
+
     if(isForward)
     {
         ss << "fwd-";
-        for(auto s : mhaInputDescsForward.oDesc.GetLengths())
+        for(auto s : mhaInputDescsForwardPtr->oDesc.GetLengths())
         {
             ss << s << "x";
         }
-        for(auto s : mhaInputDescsForward.oDesc.GetStrides())
+
+        print_strides(mhaInputDescsForwardPtr->kDesc);
+        print_strides(mhaInputDescsForwardPtr->qDesc);
+        print_strides(mhaInputDescsForwardPtr->vDesc);
+        print_strides(mhaInputDescsForwardPtr->oDesc);
+        print_strides(mhaInputDescsForwardPtr->mDesc);
+        print_strides(mhaInputDescsForwardPtr->zInvDesc);
+
+        ss << mhaInputDescsForwardPtr->oDesc.GetType();
+    }
+    else
+    {
+        ss << "bwd-";
+
+        for(auto s : mhaInputDescsBackwardPtr->oDesc.GetLengths())
         {
             ss << s << "x";
         }
-        ss << mhaInputDescsForward.oDesc.GetType();
+        print_strides(mhaInputDescsBackwardPtr->kDesc);
+        print_strides(mhaInputDescsBackwardPtr->qDesc);
+        print_strides(mhaInputDescsBackwardPtr->vDesc);
+        print_strides(mhaInputDescsBackwardPtr->oDesc);
+        print_strides(mhaInputDescsBackwardPtr->doDesc);
+        print_strides(mhaInputDescsBackwardPtr->mDesc);
+        print_strides(mhaInputDescsBackwardPtr->zInvDesc);
+        print_strides(mhaInputDescsBackwardPtr->dqDesc);
+        print_strides(mhaInputDescsBackwardPtr->dkDesc);
+        print_strides(mhaInputDescsBackwardPtr->dvDesc);
+
+        ss << mhaInputDescsBackwardPtr->oDesc.GetType();
     }
 
     return NetworkConfig{ss.str()};

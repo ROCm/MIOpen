@@ -42,9 +42,9 @@ namespace test_conv_for_implicit_gemm {
 
 static bool SkipTest()
 {
-    if(miopen::IsUnset(ENV(MIOPEN_TEST_ALL)))
+    if(miopen::IsUnset(MIOPEN_ENV(MIOPEN_TEST_ALL)))
         return false;
-    if(miopen::IsEnabled(ENV(IMPLICITGEMM_TESTING_ENV)))
+    if(miopen::IsEnabled(MIOPEN_ENV(IMPLICITGEMM_TESTING_ENV)))
         return false;
     return true;
 }
@@ -52,10 +52,10 @@ static bool SkipTest()
 static bool IsTestRunWith(const char* float_arg)
 {
     assert(float_arg != nullptr);
-    if(miopen::IsUnset(ENV(MIOPEN_TEST_ALL)))
+    if(miopen::IsUnset(MIOPEN_ENV(MIOPEN_TEST_ALL)))
         return true; // standalone run
-    return miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) &&
-           miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG)) == float_arg;
+    return miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_ALL)) &&
+           miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_TEST_FLOAT_ARG)) == float_arg;
 }
 
 void GetArgs(const TestCase& param, std::vector<std::string>& tokens)
@@ -94,6 +94,7 @@ void Run2dDriver(miopenDataType_t prec)
     case miopenFloat:
     case miopenInt8:
     case miopenInt32:
+    case miopenInt64:
     case miopenDouble:
     case miopenFloat8:
     case miopenBFloat8:
@@ -284,9 +285,9 @@ TEST_P(ConfigWithHalf, Test_conv_for_implicit_gemm_half)
 };
 
 INSTANTIATE_TEST_SUITE_P(ConvIgemm,
-                             ConfigWithBF16, 
+                             ConfigWithBF16,
                              testing::Values(GetTestCases("--bf16")));
 
 INSTANTIATE_TEST_SUITE_P(ConvIgemm,
-                             ConfigWithHalf, 
+                             ConfigWithHalf,
                              testing::Values(GetTestCases("--half")));

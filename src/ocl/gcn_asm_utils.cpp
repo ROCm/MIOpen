@@ -73,7 +73,7 @@ static std::string CleanupPath(const char* p);
 
 std::string GetGcnAssemblerPathImpl()
 {
-    const auto& asm_path_env_p = miopen::GetStringEnv(ENV(MIOPEN_EXPERIMENTAL_GCN_ASM_PATH));
+    const auto& asm_path_env_p = miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_EXPERIMENTAL_GCN_ASM_PATH));
     if(!asm_path_env_p.empty())
     {
         return CleanupPath(asm_path_env_p.c_str());
@@ -182,8 +182,10 @@ std::string AmdgcnAssemble(const std::string& source,
 
     std::ostringstream options;
     options << " -x assembler -target amdgcn--amdhsa";
+#if WORKAROUND_ISSUE_3001
     if(target.Xnack() && !*target.Xnack())
         options << " -mno-xnack";
+#endif
     /// \todo Hacky way to find out which CO version we need to assemble for.
     if(params.find("ROCM_METADATA_VERSION=5", 0) == std::string::npos) // Assume that !COv3 == COv2.
         if(GcnAssemblerSupportsNoCOv3()) // If assembling for COv2, then disable COv3.

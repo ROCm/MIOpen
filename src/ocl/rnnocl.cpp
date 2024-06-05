@@ -48,11 +48,21 @@ bool RNNForwardMSIsSupported([[maybe_unused]] const RNNDescriptor& desctiptor,
 #if MIOPEN_USE_GEMM && MIOPEN_BACKEND_HIP
     if(desctiptor.rnnMode == miopenLSTM && desctiptor.algoMode == miopenRNNdefault &&
        !use_dropout && desctiptor.nLayers > 1 && desctiptor.dirMode == miopenRNNunidirection &&
-       desctiptor.inputMode != miopenRNNskip && !(miopen::IsDisabled(ENV(MIOPEN_RNNFWD_exp))))
+       desctiptor.inputMode != miopenRNNskip)
     {
         return true;
     }
 #endif // MIOPEN_USE_GEMM&& MIOPEN_BACKEND_HIP
+    return false;
+}
+
+bool RNNForwardMSIsFast(miopenDataType_t dataT, const int seqLen)
+{
+    if(miopen::IsEnabled(MIOPEN_ENV(MIOPEN_RNNFWD_exp)))
+        return true;
+
+    if(dataT == miopenFloat && seqLen >= 32 && !(miopen::IsDisabled(MIOPEN_ENV(MIOPEN_RNNFWD_exp))))
+        return true;
     return false;
 }
 
@@ -1099,8 +1109,8 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
-    if(hxDesc.GetSize() != cxDesc.GetSize() || hxDesc.GetSize() != hyDesc.GetSize() ||
-       hxDesc.GetSize() != cyDesc.GetSize())
+    if(hxDesc.GetNumDims() != cxDesc.GetNumDims() || hxDesc.GetNumDims() != hyDesc.GetNumDims() ||
+       hxDesc.GetNumDims() != cyDesc.GetNumDims())
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
@@ -1300,7 +1310,7 @@ void RNNDescriptor::RNNForwardInferencePacked(Handle& handle,
     }
     // input check end
 
-    if(RNNForwardMSIsSupported(*this, false) && xDesc[0].GetType() == miopenFloat && seqLen >= 32)
+    if(RNNForwardMSIsSupported(*this, false) && RNNForwardMSIsFast(xDesc[0].GetType(), seqLen))
     {
         return RNNForwardMS(handle,
                             in_n,
@@ -2488,8 +2498,8 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
-    if(hxDesc.GetSize() != cxDesc.GetSize() || hxDesc.GetSize() != hyDesc.GetSize() ||
-       hxDesc.GetSize() != cyDesc.GetSize())
+    if(hxDesc.GetNumDims() != cxDesc.GetNumDims() || hxDesc.GetNumDims() != hyDesc.GetNumDims() ||
+       hxDesc.GetNumDims() != cyDesc.GetNumDims())
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
@@ -2694,8 +2704,7 @@ void RNNDescriptor::RNNForwardTrainingPackedTensors(
     // input check end
     bool use_dropout = !float_equal(miopen::deref(dropoutDesc).dropout, 0);
 
-    if(RNNForwardMSIsSupported(*this, use_dropout) && xDesc[0].GetType() == miopenFloat &&
-       seqLen >= 32)
+    if(RNNForwardMSIsSupported(*this, false) && RNNForwardMSIsFast(xDesc[0].GetType(), seqLen))
     {
         return RNNForwardMS(handle,
                             in_n,
@@ -3973,9 +3982,9 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
-    if(dhyDesc.GetSize() != dcyDesc.GetSize() || dhyDesc.GetSize() != hxDesc.GetSize() ||
-       dhyDesc.GetSize() != cxDesc.GetSize() || dhyDesc.GetSize() != dhxDesc.GetSize() ||
-       dhyDesc.GetSize() != dcxDesc.GetSize())
+    if(dhyDesc.GetNumDims() != dcyDesc.GetNumDims() ||
+       dhyDesc.GetNumDims() != hxDesc.GetNumDims() || dhyDesc.GetNumDims() != cxDesc.GetNumDims() ||
+       dhyDesc.GetNumDims() != dhxDesc.GetNumDims() || dhyDesc.GetNumDims() != dcxDesc.GetNumDims())
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
@@ -4108,7 +4117,8 @@ void RNNDescriptor::RNNBackwardDataPackedTensors(
 
     // if projections supported, dcxDesc.GetLengths()[2] should be used for hidden_size,
     // dhxDesc.GetLengths()[2] for proj_size.
-    if(dhxDesc.GetSize() != dcxDesc.GetSize() || dhxDesc.GetLengths()[2] != dcxDesc.GetLengths()[2])
+    if(dhxDesc.GetNumDims() != dcxDesc.GetNumDims() ||
+       dhxDesc.GetLengths()[2] != dcxDesc.GetLengths()[2])
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }

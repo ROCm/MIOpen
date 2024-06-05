@@ -40,11 +40,7 @@
 #pragma clang diagnostic ignored "-Wunused-macros"
 #define ROCBLAS_BETA_FEATURES_API 1
 #pragma clang diagnostic pop
-#if !defined(_WIN32)
 #include <half/half.hpp>
-#else
-#include <half.hpp>
-#endif
 #if MIOPEN_ROCBLAS_VERSION_FLAT < 2045000
 #include <rocblas.h>
 #else
@@ -341,7 +337,7 @@ static GemmBackend_t enforce_gemm_backend(miopenDataType_t data_type,
     // enforce backend based on env variable
     // I have left the commented lines here to preserve values for the enforce and hint at why are
     // they 1 and 3
-    switch(Value(ENV(MIOPEN_GEMM_ENFORCE_BACKEND)))
+    switch(Value(MIOPEN_ENV(MIOPEN_GEMM_ENFORCE_BACKEND)))
     {
     case 1: gemm_backend_env = GemmBackend_t::rocblas; break;
     // case 2: gemm_backend_env = GemmBackend_t::miopengemm; break;
@@ -363,55 +359,6 @@ static GemmBackend_t enforce_gemm_backend(miopenDataType_t data_type,
 #endif
 
     return gemm_backend_enforced;
-}
-
-miopenStatus_t CallGemmTimeMeasure(const Handle& handle,
-                                   GemmDescriptor gemm_desc,
-                                   ConstData_t A,
-                                   std::size_t a_offset,
-                                   ConstData_t B,
-                                   std::size_t b_offset,
-                                   Data_t C,
-                                   std::size_t c_offset,
-                                   bool time_precision,
-                                   CallGemmType_t call_gemm_type,
-                                   GemmBackend_t gemm_backend)
-{
-    switch(call_gemm_type)
-    {
-    case callGemm: {
-        if(time_precision)
-        {
-            // rocBLAS need a warm-up call for accurate timing
-            CallGemm(handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset, gemm_backend);
-        }
-
-        return CallGemm(handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset, gemm_backend);
-    }
-    case callGemmStridedBatched: {
-        if(time_precision)
-        {
-            // rocBLAS need extra warm-up call for accurate timing
-            CallGemmStridedBatched(
-                handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset, gemm_backend);
-        }
-
-        return CallGemmStridedBatched(
-            handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset, gemm_backend);
-    }
-    case callGemmStridedBatchedSequential: {
-        if(time_precision)
-        {
-            // rocBLAS need a warm-up call for accurate timing
-            CallGemmStridedBatchedSequential(
-                handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset, gemm_backend);
-        }
-
-        return CallGemmStridedBatchedSequential(
-            handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset, gemm_backend);
-    }
-    }
-    return miopenStatusNotImplemented;
 }
 
 miopenStatus_t CallGemm(const Handle& handle,
@@ -647,6 +594,11 @@ miopenStatus_t CallGemm(const Handle& handle,
         case miopenDouble: {
             MIOPEN_THROW(miopenStatusBadParm, "miopenDouble data type not supported by rocBLAS.");
         };
+        break;
+
+        case miopenInt64: {
+            MIOPEN_THROW(miopenStatusBadParm, "miopenInt64 is not currently supported.");
+        }
         break;
         }
 
@@ -922,6 +874,10 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
             MIOPEN_THROW(miopenStatusBadParm, "miopenDouble data type not supported by rocBLAS.");
         }
         break;
+        case miopenInt64: {
+            MIOPEN_THROW(miopenStatusBadParm, "miopenInt64 is not currently supported.");
+        }
+        break;
         }
 
         if(handle.IsProfilingEnabled())
@@ -1192,6 +1148,11 @@ miopenStatus_t CallGemmStridedBatchedSequential(const Handle& handle,
 
         case miopenDouble: {
             MIOPEN_THROW(miopenStatusBadParm, "miopenDouble data type not supported by rocBLAS.");
+        }
+        break;
+
+        case miopenInt64: {
+            MIOPEN_THROW(miopenStatusBadParm, "miopenInt64 is not currently supported.");
         }
         break;
         }

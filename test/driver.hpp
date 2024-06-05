@@ -37,11 +37,7 @@
 
 #include <functional>
 #include <deque>
-#if !defined(_WIN32)
 #include <half/half.hpp>
-#else
-#include <half.hpp>
-#endif
 #include <type_traits>
 #include <miopen/filesystem.hpp>
 #include <miopen/functional.hpp>
@@ -151,7 +147,7 @@ struct test_driver
 
     static std::string compute_cache_path()
     {
-        auto s = miopen::GetStringEnv(ENV(MIOPEN_VERIFY_CACHE_PATH));
+        auto s = miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_VERIFY_CACHE_PATH));
         if(s.empty())
             return "~/.cache/miopen/tests";
         else
@@ -276,6 +272,7 @@ struct test_driver
         case miopenBFloat16: ss << "--bfloat16 "; break;
         case miopenInt8: ss << "--int8 "; break;
         case miopenInt32: ss << "--int32 "; break;
+        case miopenInt64: ss << "--int64 "; break;
         case miopenFloat: ss << "--float "; break;
         case miopenDouble: ss << "--double "; break;
         case miopenFloat8: ss << "--float8"; break;
@@ -304,6 +301,7 @@ struct test_driver
         case miopenBFloat16: ret.emplace_back("--bf16"); break;
         case miopenInt8: ret.emplace_back("--int8"); break;
         case miopenInt32: ret.emplace_back("--int32"); break;
+        case miopenInt64: ret.emplace_back("--int64"); break;
         case miopenFloat: ret.emplace_back("--float"); break;
         case miopenDouble: ret.emplace_back("--double"); break;
         case miopenFloat8: ret.emplace_back("--float8"); break;

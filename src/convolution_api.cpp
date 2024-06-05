@@ -196,6 +196,44 @@ extern "C" miopenStatus_t miopenGetConvolutionFindMode(const miopenConvolutionDe
     });
 }
 
+extern "C" miopenStatus_t
+miopenConvolutionCKBackwardWeightsGetWorkSpaceSize(const miopenAlphaBetaCase_t alpha_beta_case,
+                                                   miopenDataType_t data_type,
+                                                   size_t C,
+                                                   size_t K,
+                                                   size_t output_tensor_size,
+                                                   size_t* buffer_size)
+{
+
+    size_t byte_size = 0;
+    if(alpha_beta_case == BILINEAR || alpha_beta_case == SCALE ||
+       ((data_type == miopenHalf) && ((C & 1) != 0 || (K & 1) != 0 /* Test if odd*/)))
+    {
+        switch(data_type)
+        {
+        case miopenInt32:
+        case miopenFloat:
+        case miopenHalf:
+        case miopenBFloat16:
+        case miopenInt8:
+        case miopenFloat8:
+        case miopenBFloat8: byte_size = 4; break;
+        case miopenDouble:
+        case miopenInt64: byte_size = 8; break;
+        }
+        *buffer_size = byte_size * output_tensor_size;
+    }
+    else
+    {
+        *buffer_size = 0;
+    }
+
+    MIOPEN_LOG_FUNCTION(
+        alpha_beta_case, data_type, C, K, output_tensor_size, byte_size, *buffer_size);
+
+    return miopenStatusSuccess;
+}
+
 // Hidden C++ functions for MIGraphX.
 extern "C" MIOPEN_EXPORT miopenStatus_t
 miopenHiddenSetConvolutionFindMode(miopenConvolutionDescriptor_t convDesc, int findMode)
@@ -344,9 +382,9 @@ miopenGetConvolutionNdForwardOutputDim(miopenConvolutionDescriptor_t convDesc,
         auto out_desc = miopen::deref(convDesc).GetForwardOutputTensor(
             miopen::deref(inputTensorDesc), miopen::deref(filterDesc));
 
-        miopen::deref(nDim) = out_desc.GetSize();
+        miopen::deref(nDim) = out_desc.GetNumDims();
 
-        for(int i = 0; i < out_desc.GetSize(); ++i)
+        for(unsigned i = 0; i < out_desc.GetNumDims(); ++i)
         {
             outputTensorDimA[i] = out_desc.GetLengths()[i];
         }

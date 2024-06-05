@@ -82,13 +82,14 @@ std::vector<uint64_t> PredictSolver(const conv::ProblemDescription& problem,
 namespace tuning {
 struct Metadata
 {
-    std::size_t num_tuning_params;
+    std::unordered_map<std::string, std::size_t> num_tuning_params;
     std::unordered_map<std::string, std::string> tuning_decodings;
     Metadata(const std::string& arch, const std::string& solver);
 };
 
 bool ModelSetParams(const std::string& arch,
                     const std::string& solver,
+                    conv::Direction direction,
                     const std::vector<float>& features,
                     bool transform_features,
                     std::function<bool(std::size_t, std::string)> validator);

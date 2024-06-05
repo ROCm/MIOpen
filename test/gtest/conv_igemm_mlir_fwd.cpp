@@ -38,8 +38,8 @@ namespace {
 auto GetTestCases()
 {
     const auto igemm_fwd = std::tuple{
-        std::pair{ENV(MIOPEN_FIND_MODE), std::string_view("normal")},
-        std::pair{ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER), std::string_view("ConvMlirIgemmFwd")}};
+        std::pair{MIOPEN_ENV(MIOPEN_FIND_MODE), std::string_view("normal")},
+        std::pair{MIOPEN_ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER), std::string_view("ConvMlirIgemmFwd")}};
 
     const std::string vf     = " --verbose --disable-backward-data --disable-backward-weights";
     const std::string layout = " --in_layout NHWC --fil_layout NHWC --out_layout NHWC";
@@ -64,7 +64,8 @@ using TestCase = decltype(GetTestCases())::value_type;
 
 bool SkipTest()
 {
-    return !(miopen::IsEnabled(ENV(MIOPEN_TEST_MLIR))) || miopen::IsDisabled(ENV(MIOPEN_TEST_ALL));
+    return !(miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_MLIR))) ||
+           miopen::IsDisabled(MIOPEN_ENV(MIOPEN_TEST_ALL));
 }
 
 bool IsTestSupportedForDevice()

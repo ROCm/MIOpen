@@ -102,8 +102,6 @@ Filtering by build method
   ImplicitGemm algorithm.
 * ``MIOPEN_DEBUG_OPENCL_CONVOLUTIONS``: Convolution kernels written in OpenCL; this only
   affects convolutions.
-* ``MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES``: Binary kernels. The library does not
-  currently use binaries.
 
 Filtering out all but one solution
 --------------------------------------------------------------------------------------------------------------
@@ -288,7 +286,7 @@ To disable using rocBlas entirely, set the  `-DMIOPEN_USE_ROCBLAS=Off` configura
 MIOpen configuration.
 
 You can find more information on logging with rocBLAS in the
-:doc:`rocBLAS programmer guide <rocblas:Programmers_Guide>`.
+:doc:`rocBLAS programmer guide <rocblas:how-to/Programmers_Guide>`.
 
 Numerical checking
 ==========================================================

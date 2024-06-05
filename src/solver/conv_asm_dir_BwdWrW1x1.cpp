@@ -149,7 +149,7 @@ bool PerformanceConfigConvAsmBwdWrW1x1::SetNextValue(const ProblemDescription&)
 {
     // Increment with wrap-around:
     // select fast or full method
-    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW1X1_SEARCH_OPTIMIZED)))
+    if(miopen::IsDisabled(MIOPEN_ENV(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW1X1_SEARCH_OPTIMIZED)))
     {
         do
         {
@@ -475,7 +475,7 @@ bool ConvAsmBwdWrW1x1::IsValidPerformanceConfig(
 bool ConvAsmBwdWrW1x1::IsApplicable(const ExecutionContext& ctx,
                                     const ProblemDescription& problem) const
 {
-    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW1X1)))
+    if(miopen::IsDisabled(MIOPEN_ENV(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW1X1)))
         return false;
     if(ThisSolverIsDeprecatedStatic::IsDisabled(ctx))
         return false;
@@ -746,7 +746,8 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ExecutionContext& ctx,
 
     PerformanceConfigConvAsmBwdWrW1x1 fromEnv;
     {
-        const auto& s = miopen::GetStringEnv(ENV(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW1X1_PERF_VALS));
+        const auto& s =
+            miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW1X1_PERF_VALS));
         if(!s.empty()) // else nothing to parse.
         {
             if(!fromEnv.Deserialize(s) || !fromEnv.IsValid(ctx, problem))

@@ -104,7 +104,8 @@ inline std::size_t GetTypeSize(miopenDataType_t d)
     case miopenInt8:
     case miopenFloat8:
     case miopenBFloat8: return 1;
-    case miopenDouble: return 8;
+    case miopenDouble:
+    case miopenInt64: return 8;
     }
     MIOPEN_THROW("Unknown or unsupported data type");
 }
@@ -171,16 +172,25 @@ struct MIOPEN_EXPORT TensorDescriptor : miopenTensorDescriptor
 
     // Use only for external API
     static TensorDescriptor MakeDescriptor(miopenDataType_t t, const int* plens, int size);
+    static TensorDescriptor MakeDescriptor(miopenDataType_t t, const std::size_t* plens, int size);
     static TensorDescriptor
     MakeDescriptor(miopenDataType_t t, miopenTensorLayout_t layout, const int* plens, int size);
+    static TensorDescriptor MakeDescriptor(miopenDataType_t t,
+                                           miopenTensorLayout_t layout,
+                                           const std::size_t* plens,
+                                           int size);
     static TensorDescriptor
     MakeDescriptor(miopenDataType_t t, const int* plens, const int* pstrides, int size);
+    static TensorDescriptor MakeDescriptor(miopenDataType_t t,
+                                           const std::size_t* plens,
+                                           const std::size_t* pstrides,
+                                           int size);
 
     bool IsVectorized() const;
 
     const std::vector<std::size_t>& GetLengths() const;
     const std::vector<std::size_t>& GetStrides() const;
-    int GetSize() const;
+    unsigned GetNumDims() const;
 
     miopenDataType_t GetType() const;
     miopenTensorLayout_t GetLayout_t() const;
@@ -205,7 +215,10 @@ struct MIOPEN_EXPORT TensorDescriptor : miopenTensorDescriptor
     }
 
     bool IsPacked() const;
+    /// Checks all lengths and strides.
     bool AllDimsFitIntoInt() const;
+    /// Checks only lengths.
+    bool AllLengthsFitIntoInt() const;
 
     bool operator==(const TensorDescriptor& rhs) const;
     bool operator!=(const TensorDescriptor& rhs) const;

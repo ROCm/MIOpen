@@ -111,6 +111,9 @@ std::string ConvArgsForMIOpenDriver(const miopen::TensorDescriptor& xDesc,
         case miopenProblemDirectionForward: return ConvDirection::Fwd;
         case miopenProblemDirectionBackward: return ConvDirection::Bwd;
         case miopenProblemDirectionBackwardWeights: return ConvDirection::WrW;
+        case miopenProblemDirectionInference:
+            MIOPEN_THROW(miopenStatusInternalError);
+            return ConvDirection::Fwd;
         }
     }();
 

@@ -27,11 +27,8 @@
 #ifndef GUARD_TENSOR_UTIL_HPP
 #define GUARD_TENSOR_UTIL_HPP
 
-#include <iostream>
 #include <miopen/miopen.h>
 #include <miopen/tensor.hpp>
-#include <utility>
-#include <cstdlib>
 #include "tensor_holder.hpp"
 
 // loop over sub-tensor, and operate on each data
@@ -123,9 +120,9 @@ void output_tensor_to_bin(const char* fileName, T* data, size_t dataNumItems)
 }
 
 template <typename T>
-void output_tensor_to_screen(const tensor<T>& tensor_val,
-                             std::string header_msg = "start",
-                             size_t set_precision   = 2)
+void print_tensor(const tensor<T>& tensor_val,
+                  std::string header_msg = "start",
+                  size_t set_precision   = 2)
 {
     std::cout << "\n================= " << header_msg << " =====================\n";
 
