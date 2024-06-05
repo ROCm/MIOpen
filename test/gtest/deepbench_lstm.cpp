@@ -109,7 +109,7 @@ using namespace deepbench_lstm;
 
 TEST_P(ConfigWithFloat_deepbench_lstm, FloatTest_deepbench_lstm)
 {
-    if(!miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_DEEPBENCH)))
+    if(!miopen::IsEnabled(ENV(MIOPEN_TEST_DEEPBENCH)))
     {
         GTEST_SKIP();
     }

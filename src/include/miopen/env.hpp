@@ -153,7 +153,7 @@ public:
 
 #define MIOPEN_DECLARE_ENV_VAR_STR(name) MIOPEN_DECLARE_ENV_VAR(name, std::string, "")
 
-#define MIOPEN_ENV(name) \
+#define ENV(name) \
     miopen::env::name {}
 
 /// \todo the following functions should be renamed to either include the word Env
