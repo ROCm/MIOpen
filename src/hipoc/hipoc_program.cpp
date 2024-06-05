@@ -301,7 +301,7 @@ void HIPOCProgramImpl::BuildCodeObjectInMemory(const std::string& params,
 
 void HIPOCProgramImpl::BuildCodeObject(std::string params, const std::string& kernel_src)
 {
-    const auto src       = [&]() -> std::string {
+    const auto src = [&]() -> std::string {
         if(program.extension() == ".mlir")
             return {}; // MLIR solutions do not use source code.
         if(!kernel_src.empty())

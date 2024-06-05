@@ -189,7 +189,11 @@ struct ExecutionContext
 #else
             constexpr std::string_view ext = ".db.txt";
 #endif
-            fs::path filename{GetStream().GetDbBasename().append(ext)};
+            std::string filename{prefix};
+            if(!prefix.empty())
+                filename.append("_");
+            filename.append(GetStream().GetDbBasename());
+            filename.append(ext);
 
             // clang-format on
             if(fs::exists(pdb_path / filename))
@@ -276,11 +280,14 @@ struct ExecutionContext
         const auto& udb = GetUserDbPath();
         if(udb.empty())
             return "";
-        const auto filename = GetStream().GetDbBasename() +
+        std::string filename{prefix};
+        if(!prefix.empty())
+            filename.append("_");
+        filename.append(GetStream().GetDbBasename());
 #if MIOPEN_ENABLE_SQLITE && MIOPEN_USE_SQLITE_PERFDB
-                              "_" + SQLitePerfDb::MIOPEN_PERFDB_SCHEMA_VER + ".udb";
+        filename.append("_").append(SQLitePerfDb::MIOPEN_PERFDB_SCHEMA_VER).append(".udb");
 #else
-                              "." + GetUserDbSuffix() + ".udb.txt";
+        filename.append("." + GetUserDbSuffix() + ".udb.txt");
 #endif
         return udb / filename;
     }
