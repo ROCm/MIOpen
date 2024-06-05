@@ -147,8 +147,8 @@ ConvSolution SoftMarginLossForward::GetSolution(
     result.invoker_factory = [](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
             decltype(auto) params = raw_params.CastTo<miopen::softmarginloss::InvokeParams>();
-            auto i_tv             = get_inner_expanded_tv<5>(*params.iDesc);
-            auto t_tv             = get_inner_expanded_tv<5>(*params.tDesc);
+            auto i_tv             = get_inner_expanded_tv<5>(deref(params.iDesc));
+            auto t_tv             = get_inner_expanded_tv<5>(deref(params.tDesc));
             float elapsed         = 0.0f;
 
             /* Phase 1: Calc loss for each element. */
@@ -194,7 +194,7 @@ ConvSolution SoftMarginLossForward::GetSolution(
 }
 
 std::size_t SoftMarginLossForward::GetWorkspaceSize(
-    const ExecutionContext& context,
+    const ExecutionContext& /*context*/,
     const miopen::softmarginloss::ForwardProblemDescription& problem) const
 {
     auto elem = problem.GetiDesc().GetElementSize();

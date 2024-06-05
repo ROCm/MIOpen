@@ -96,10 +96,10 @@ ConvSolution SoftMarginLossUnreducedBackward::GetSolution(
             decltype(auto) kernel = handle_.Run(kernels.front());
             decltype(auto) params = raw_params.CastTo<miopen::softmarginloss::InvokeParams>();
 
-            auto i_tv  = get_inner_expanded_tv<5>(*params.iDesc);
-            auto t_tv  = get_inner_expanded_tv<5>(*params.tDesc);
-            auto dO_tv = get_inner_expanded_tv<5>(*params.dODesc);
-            auto dI_tv = get_inner_expanded_tv<5>(*params.dIDesc);
+            auto i_tv  = get_inner_expanded_tv<5>(deref(params.iDesc));
+            auto t_tv  = get_inner_expanded_tv<5>(deref(params.tDesc));
+            auto dO_tv = get_inner_expanded_tv<5>(deref(params.dODesc));
+            auto dI_tv = get_inner_expanded_tv<5>(deref(params.dIDesc));
             kernel(params.i, params.t, params.dO, params.dI, i_tv, t_tv, dO_tv, dI_tv);
         };
     };
