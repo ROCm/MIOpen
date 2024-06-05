@@ -25,6 +25,7 @@
  *******************************************************************************/
 #pragma once
 
+#include <miopen/env.hpp>
 #include <gtest/gtest_common.hpp>
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
