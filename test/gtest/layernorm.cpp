@@ -25,12 +25,15 @@
  *******************************************************************************/
 
 #include "layernorm.hpp"
+#include "get_handle.hpp"
 #include <miopen/env.hpp>
 
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 
 namespace layernorm {
+
+bool SkipTest() { return get_handle_xnack(); }
 
 std::string GetFloatArg()
 {
@@ -59,6 +62,10 @@ using namespace layernorm;
 
 TEST_P(LayerNormTestFloat, LayerNormTestFw)
 {
+    if(SkipTest())
+    {
+        GTEST_SKIP() << "LayerNorm does not support xnack";
+    }
     auto TypeArg       = miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_TEST_FLOAT_ARG));
     const auto& handle = get_handle();
     if((miopen::StartsWith(handle.GetDeviceName(), "gfx908") ||
