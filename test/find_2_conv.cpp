@@ -78,7 +78,7 @@ struct Find2Test : test_driver
             }));
 
         add(tune, "tune", generate_data({0, 1}));
-        add(preallocate, "preallocate", generate_data({1, 0}));
+        add(preallocate, "preallocate", generate_data({0, 1}));
         add(attach_binaries, "attach_binaries", generate_data({1, 0}));
     }
 
