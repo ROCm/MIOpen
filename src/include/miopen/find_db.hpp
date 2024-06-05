@@ -86,7 +86,7 @@ private:
     using is_immediate_t = std::enable_if_t<std::is_same<TTestDb, FindDb>::value, int>;
 
 public:
-    FindDbRecord_t(const FindDbRecord_t&) = delete;
+    FindDbRecord_t(const FindDbRecord_t&)            = delete;
     FindDbRecord_t& operator=(const FindDbRecord_t&) = delete;
 
     template <class TProblemDescription, class TTestDb = TDb>
@@ -160,14 +160,8 @@ public:
 
         if(record.in_sync && !record.Validate(handle, network_config))
         {
-            auto tmp = std::vector<PerfField>{};
-            record.CopyTo(tmp);
-
             auto solutions = std::vector<Solution>{};
-            std::transform(tmp.begin(), tmp.end(), std::back_inserter(solutions), [](auto&& pf) {
-                return Solution{solver::Id{pf.solver_id}, pf.time, pf.workspace};
-            });
-
+            record.CopyTo(solutions);
             return solutions;
         }
 
@@ -207,7 +201,7 @@ private:
 
     // Returns true if rebuild is required
     bool Validate(Handle& handle, const NetworkConfig& config) const;
-    void CopyTo(std::vector<PerfField>& to) const;
+    void CopyTo(std::vector<Solution>& to) const;
 
     void LogFindDbItem(const std::pair<std::string, FindDbData>& item) const;
 };
