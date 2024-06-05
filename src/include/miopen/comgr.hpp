@@ -39,19 +39,19 @@ namespace miopen {
 namespace comgr {
 
 void BuildHip(const fs::path& name,
-              const std::string_view text,
+              std::string_view text,
               const std::string& options,
               const miopen::TargetProperties& target,
               std::vector<char>& binary);
 
 void BuildOcl(const fs::path& name,
-              const std::string_view text,
+              std::string_view text,
               const std::string& options,
               const miopen::TargetProperties& target,
               std::vector<char>& binary);
 
 void BuildAsm(const fs::path& name,
-              const std::string_view text,
+              std::string_view text,
               const std::string& options,
               const miopen::TargetProperties& target,
               std::vector<char>& binary);
@@ -67,7 +67,7 @@ namespace miopen {
 namespace hiprtc {
 
 void BuildHip(const fs::path& name,
-              const std::string_view text,
+              std::string_view text,
               const std::string& options,
               const miopen::TargetProperties& target,
               std::vector<char>& binary);

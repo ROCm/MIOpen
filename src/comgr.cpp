@@ -746,7 +746,7 @@ static inline bool IsWave64Enforced(const OptionList& opts)
 }
 
 void BuildHip(const fs::path& name,
-              const std::string_view text,
+              std::string_view text,
               const std::string& options,
               const miopen::TargetProperties& target,
               std::vector<char>& binary)
@@ -871,7 +871,7 @@ void BuildHip(const fs::path& name,
 }
 
 void BuildOcl(const fs::path& name,
-              const std::string_view text,
+              std::string_view text,
               const std::string& options,
               const miopen::TargetProperties& target,
               std::vector<char>& binary)
@@ -957,7 +957,7 @@ void BuildOcl(const fs::path& name,
 }
 
 void BuildAsm(const fs::path& name,
-              const std::string_view text,
+              std::string_view text,
               const std::string& options,
               const miopen::TargetProperties& target,
               std::vector<char>& binary)
@@ -1243,7 +1243,7 @@ private:
 };
 
 void BuildHip(const fs::path& name,
-              const std::string_view text,
+              std::string_view text,
               const std::string& options,
               const miopen::TargetProperties& target,
               std::vector<char>& binary)
