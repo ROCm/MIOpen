@@ -337,7 +337,7 @@ static GemmBackend_t enforce_gemm_backend(miopenDataType_t data_type,
     // enforce backend based on env variable
     // I have left the commented lines here to preserve values for the enforce and hint at why are
     // they 1 and 3
-    switch(Value(MIOPEN_ENV(MIOPEN_GEMM_ENFORCE_BACKEND)))
+    switch(Value(ENV(MIOPEN_GEMM_ENFORCE_BACKEND)))
     {
     case 1: gemm_backend_env = GemmBackend_t::rocblas; break;
     // case 2: gemm_backend_env = GemmBackend_t::miopengemm; break;
