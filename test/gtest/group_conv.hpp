@@ -539,29 +539,31 @@ std::vector<miopenTensorLayout_t> GetLayoutValues()
 
 // Test case based on 2d vs 3d dimension
 // 2d conv only support alpha 1.0
-std::vector<float> GetAlphaValues(size_t dim)
+template <unsigned ND>
+std::vector<float> GetAlphaValues()
 {
-    if(dim == 3)
+    if constexpr(ND == 3)
     {
         return {1.0f, 2.2f}; /* alpha, can't be zero*/
     }
     else
     {
-        return {1.0};
+        return {1.0f};
     }
 }
 
 // Test case based on 2d vs 3d dimension
 // 2d conv only support beta 0.0
-std::vector<float> GetBetaValues(size_t dim)
+template <unsigned ND>
+std::vector<float> GetBetaValues()
 {
-    if(dim == 3)
+    if constexpr(ND == 3)
     {
-        return {0.0, 3.3};
+        return {0.0f, 3.3f};
     }
     else
     {
-        return {0.0};
+        return {0.0f};
     }
 }
 
@@ -578,8 +580,8 @@ std::vector<float> GetBetaValues(size_t dim)
         GroupConv##ndim##D_##dir##_##type,                                                  \
         testing::Combine(                                                                   \
             testing::ValuesIn(GroupConvTestConfig<ndim>::GetConfigs<Direction::dir>()),     \
-            testing::ValuesIn(GetAlphaValues(ndim)),                                        \
-            testing::ValuesIn(GetBetaValues(ndim)),                                         \
+            testing::ValuesIn(GetAlphaValues<ndim>()),                                      \
+            testing::ValuesIn(GetBetaValues<ndim>()),                                       \
             testing::ValuesIn(GetLayoutValues<ndim>())));
 
 #define DEFINE_GROUP_CONV2D_TEST(type, dir) DEFINE_GROUP_CONV_TEST(2, type, dir)
