@@ -220,12 +220,12 @@ bool ConvWinoFuryRxS<Winodata, Winofilter>::IsApplicable(const ExecutionContext&
 {
     if constexpr(IS2X3)
     {
-        if(miopen::IsDisabled(MIOPEN_ENV(MIOPEN_DEBUG_AMD_WINOGRAD_FURY_RXS_F2X3)))
+        if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_AMD_WINOGRAD_FURY_RXS_F2X3)))
             return false;
     }
     if constexpr(IS3X2)
     {
-        if(miopen::IsDisabled(MIOPEN_ENV(MIOPEN_DEBUG_AMD_WINOGRAD_FURY_RXS_F3X2)))
+        if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_AMD_WINOGRAD_FURY_RXS_F3X2)))
             return false;
     }
 

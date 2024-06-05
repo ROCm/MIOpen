@@ -59,7 +59,7 @@ std::size_t MaxMemAllocSz(Handle& h,
     const auto m = h.GetMaxMemoryAllocSize();
 #if WORKAROUND_MLOPEN_ISSUE_1430
     auto limit = static_cast<std::size_t>(7287183769);
-    if(!miopen::IsDisabled(MIOPEN_ENV(MIOPEN_WORKAROUND_ISSUE_2789)))
+    if(!miopen::IsDisabled(ENV(MIOPEN_WORKAROUND_ISSUE_2789)))
     {
         if(problem.IsFp32() && double_limit_for_fp32)
             limit *= 2;

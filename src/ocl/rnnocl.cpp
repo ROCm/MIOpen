@@ -58,10 +58,10 @@ bool RNNForwardMSIsSupported([[maybe_unused]] const RNNDescriptor& desctiptor,
 
 bool RNNForwardMSIsFast(miopenDataType_t dataT, const int seqLen)
 {
-    if(miopen::IsEnabled(MIOPEN_ENV(MIOPEN_RNNFWD_exp)))
+    if(miopen::IsEnabled(ENV(MIOPEN_RNNFWD_exp)))
         return true;
 
-    if(dataT == miopenFloat && seqLen >= 32 && !(miopen::IsDisabled(MIOPEN_ENV(MIOPEN_RNNFWD_exp))))
+    if(dataT == miopenFloat && seqLen >= 32 && !(miopen::IsDisabled(ENV(MIOPEN_RNNFWD_exp))))
         return true;
     return false;
 }
