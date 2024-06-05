@@ -227,10 +227,10 @@ static std::vector<Solution> EvaluateInvokers(Handle& handle,
     if(!arch.empty())
         return {};
 
-    auto selected      = miopen::solver::ConvSolution{miopenStatusUnknownError};
-    auto best          = std::numeric_limits<float>::max();
-    auto best_invoker  = Invoker{};
-    auto best_programs = std::vector<Program>{};
+    auto selected     = miopen::solver::ConvSolution{miopenStatusUnknownError};
+    auto best         = std::numeric_limits<float>::max();
+    auto best_invoker = Invoker{};
+    auto ret          = std::vector<Solution>{};
 
     for(const auto& sol : solutions)
     {
@@ -277,11 +277,17 @@ static std::vector<Solution> EvaluateInvokers(Handle& handle,
             MIOPEN_LOG_I(sol << ": " << elapsed << (elapsed < best ? " < " : " >= ") << best);
             if(elapsed < best)
             {
-                best          = elapsed;
-                selected      = sol;
-                best_invoker  = invoker;
-                best_programs = programs;
+                best         = elapsed;
+                selected     = sol;
+                best_invoker = invoker;
             }
+
+            auto solution = Solution{solver::Id{selected.solver_id}, best, selected.workspace_sz};
+            if(force_attach_binary)
+                solution.SetInvoker(invoker, programs, selected.construction_params);
+            else
+                solution.SetInvoker(invoker, {}, {});
+            ret.emplace_back(std::move(solution));
         }
         catch(const miopen::Exception& ex)
         {
@@ -296,12 +302,7 @@ static std::vector<Solution> EvaluateInvokers(Handle& handle,
     MIOPEN_LOG_I("Selected: " << selected << ": " << best
                               << ", workspace_sz = " << selected.workspace_sz);
 
-    auto solution = Solution{solver::Id{selected.solver_id}, best, selected.workspace_sz};
-    if(force_attach_binary)
-        solution.SetInvoker(best_invoker, best_programs, selected.construction_params);
-    else
-        solution.SetInvoker(best_invoker, {}, {});
-    return {{solution}};
+    return ret;
 }
 
 FindCoreResult FindCore(const AnyInvokeParams& invoke_ctx,
