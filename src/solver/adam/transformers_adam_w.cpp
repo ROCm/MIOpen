@@ -58,11 +58,13 @@ ConvSolution TransformersAdamW::GetSolution(const ExecutionContext& context,
                                ? miopen::GetDataType(problem.GetGradDesc().GetType())
                                : "float";
 
-        const auto build_params = KernelBuildParameters{
-            {"PTYPE", param_dtype},
-            {"GTYPE", grad_dtype},
-            {"CTYPE", ptype_size > 4 ? "double" : "float"},
-        };
+        const auto build_params =
+            KernelBuildParameters{
+                {"PTYPE", param_dtype},
+                {"GTYPE", grad_dtype},
+                {"CTYPE", ptype_size > 4 ? "double" : "float"},
+            }
+            << GetDataTypeKBP(problem.GetParamDesc().GetType());
 
         constexpr size_t local_size = 256;
         auto& handle                = context.GetStream();
