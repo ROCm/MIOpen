@@ -107,7 +107,7 @@ inline std::vector<TestCase> GetSmokeCases()
 
 inline std::vector<TestCase> GetFullTestCases()
 {
-    if(miopen::IsDisabled(MIOPEN_ENV(MIOPEN_TEST_ALL)) ||
+    if(env::disabled(MIOPEN_TEST_ALL) ||
        !(CheckFloatArg("--float") || CheckFloatArg("--float8")))
     {
         return {};
