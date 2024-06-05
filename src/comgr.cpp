@@ -1131,7 +1131,7 @@ class HiprtcProgram
         string_ptr_array(const string_ptr_array&) = delete;
         std::size_t size() const { return c_strs.size(); }
         const char** data() { return c_strs.data(); }
-        void push_back(const std::string* s) { c_strs.push_back(s->c_str()); }
+        void push_back(const std::string* s) { c_strs.emplace_back(s->c_str()); }
     };
 
     struct string_array
@@ -1248,7 +1248,7 @@ private:
     }
 };
 
-void BuildHip(const fs::path& name,
+void BuildHip(const std::string& name,
               const std::string& text,
               const std::string& options,
               const miopen::TargetProperties& target,

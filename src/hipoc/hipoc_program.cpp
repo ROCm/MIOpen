@@ -274,14 +274,14 @@ void HIPOCProgramImpl::BuildCodeObjectInMemory(const std::string& params,
         {
 #if MIOPEN_USE_HIPRTC
             if(!miopen::IsDisabled(MIOPEN_ENV(MIOPEN_DEBUG_USE_HIPRTC)))
-                hiprtc::BuildHip(filename, src, params, target, binary);
+                hiprtc::BuildHip(filename.string(), src, params, target, binary);
             else
 #endif // MIOPEN_USE_HIPRTC
-                comgr::BuildHip(filename, src, params, target, binary);
+                comgr::BuildHip(filename.string(), src, params, target, binary);
         }
         else if(filename.extension() == ".s")
         {
-            comgr::BuildAsm(filename, src, params, target, binary);
+            comgr::BuildAsm(filename.string(), src, params, target, binary);
         }
 #if MIOPEN_USE_MLIR
         else if(filename.extension() == ".mlir")
@@ -291,7 +291,7 @@ void HIPOCProgramImpl::BuildCodeObjectInMemory(const std::string& params,
 #endif
         else
         {
-            comgr::BuildOcl(filename, src, params, target, binary);
+            comgr::BuildOcl(filename.string(), src, params, target, binary);
         }
     }
     if(binary.empty())
