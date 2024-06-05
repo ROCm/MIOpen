@@ -570,7 +570,8 @@ extern "C" __global__ void __launch_bounds__(THREADS)
                       : 0.0f;
 
         for(uint32_t loop_lid = lid + blockDim.x; loop_lid < d; loop_lid += blockDim.x)
-            local_val += dO_ptr[loop_lid] * O_ptr[loop_lid] * scaler;
+            local_val +=
+                static_cast<float>(dO_ptr[loop_lid]) * static_cast<float>(O_ptr[loop_lid]) * scaler;
 
         local_val = reductionBlock<NumWarps>(local_val, plus_op, lid, laneId, warpId);
 
