@@ -45,9 +45,7 @@ void SolverFwd(const miopen::TensorDescriptor& inputDesc,
                Data_t output,
                const miopen::ConvolutionDescriptor& convDesc,
                const NonPackTestCase& conv_config,
-               bool& test_skipped,
-               const miopen::Scalar& alpha = miopen::Scalar(1.0),
-               const miopen::Scalar& beta  = miopen::Scalar(0.0))
+               bool& test_skipped)
 {
     auto&& handle = get_handle();
 
@@ -57,7 +55,7 @@ void SolverFwd(const miopen::TensorDescriptor& inputDesc,
         miopen::ConvFwdTensors{inputDesc, input, wDesc, weight, outputDesc, output};
 
     const auto problem = miopen::conv::ProblemDescription{
-        inputDesc, wDesc, outputDesc, convDesc, miopen::conv::Direction::Forward, 0, alpha, beta};
+        inputDesc, wDesc, outputDesc, convDesc, miopen::conv::Direction::Forward};
     auto ctx = miopen::ExecutionContext{};
 
     ctx.SetStream(&handle);
@@ -69,8 +67,7 @@ void SolverFwd(const miopen::TensorDescriptor& inputDesc,
                      << "ConvHipImplicitGemm3DGroupFwdXdlops Not Applicable for this problem"
                      << conv_config;
     }
-    const auto invoke_params =
-        miopen::conv::DataInvokeParams{tensors, nullptr, 0, false, alpha, beta};
+    const auto invoke_params = miopen::conv::DataInvokeParams{tensors, nullptr, 0, false};
 
     ASSERT_TRUE(solv.IsApplicable(ctx, problem));
     auto sol = solv.GetSolution(ctx, problem, solv.GetDefaultPerformanceConfig(ctx, problem));
@@ -83,43 +80,19 @@ void SolverFwd(const miopen::TensorDescriptor& inputDesc,
 
 TEST_P(ConvNonpackFwdSolverTest3DHalf, CKNonPackConvFwd3D)
 {
-    SolverFwd<miopen::solver::conv::ConvHipImplicitGemm3DGroupFwdXdlops>(
-        input.desc,
-        in_dev.get(),
-        weights.desc,
-        wei_dev.get(),
-        output.desc,
-        out_dev.get(),
-        conv_desc,
-        conv_config,
-        test_skipped,
-        miopen::Scalar(&alpha_val, miopenFloat),
-        miopen::Scalar(&beta_val, miopenFloat));
+    SolverFwd<miopen::solver::conv::ConvHipImplicitGemm3DGroupFwdXdlops>(input.desc,
+                                                                         in_dev.get(),
+                                                                         weights.desc,
+                                                                         wei_dev.get(),
+                                                                         output.desc,
+                                                                         out_dev.get(),
+                                                                         conv_desc,
+                                                                         conv_config,
+                                                                         test_skipped);
 }
 
-// TODO: write test that varifies if values of alpha beta selects default, scalar or bilinear
-// solver.
-
-INSTANTIATE_TEST_SUITE_P(ConvFwdTestDefault,
+INSTANTIATE_TEST_SUITE_P(ConvFwdTest,
                          ConvNonpackFwdSolverTest3DHalf,
                          testing::Combine(testing::Values(miopenConvolutionFwdAlgoImplicitGEMM),
                                           testing::ValuesIn(ConvTestConfigs<NonPackTestCase>()),
-                                          testing::ValuesIn({1.0}), // alpha
-                                          testing::ValuesIn({0.0}), // beta
-                                          testing::Values(miopenTensorNDHWC)));
-
-INSTANTIATE_TEST_SUITE_P(ConvFwdTestScalar,
-                         ConvNonpackFwdSolverTest3DHalf,
-                         testing::Combine(testing::Values(miopenConvolutionFwdAlgoImplicitGEMM),
-                                          testing::ValuesIn(ConvTestConfigs<NonPackTestCase>()),
-                                          testing::ValuesIn({2.0}), // alpha
-                                          testing::ValuesIn({0.0}), // beta
-                                          testing::Values(miopenTensorNDHWC)));
-
-INSTANTIATE_TEST_SUITE_P(ConvFwdTestBilinear,
-                         ConvNonpackFwdSolverTest3DHalf,
-                         testing::Combine(testing::Values(miopenConvolutionFwdAlgoImplicitGEMM),
-                                          testing::ValuesIn(ConvTestConfigs<NonPackTestCase>()),
-                                          testing::ValuesIn({2.0}), // alpha
-                                          testing::ValuesIn({3.0}), // beta
                                           testing::Values(miopenTensorNDHWC)));

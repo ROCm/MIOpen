@@ -33,8 +33,6 @@
 #include <miopen/solver/problem_description_interpreter.hpp>
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 #include <miopen/solver/ck_utility_common.hpp>
-#include <ck/library/tensor_operation_instance/gpu/grouped_convolution_backward_weight_bilinear.hpp>
-#include <ck/library/tensor_operation_instance/gpu/grouped_convolution_backward_weight_scale.hpp>
 #include <ck/library/tensor_operation_instance/gpu/grouped_convolution_backward_weight.hpp>
 #endif
 #include <miopen/solver/implicitgemm_ck_util.hpp>
@@ -47,103 +45,48 @@ namespace conv {
 using ProblemDescription = miopen::conv::ProblemDescription;
 
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
-
-using InLayout    = ck::tensor_layout::convolution::NDHWGC;
-using WeiLayout   = ck::tensor_layout::convolution::GKZYXC;
-using OutLayout   = ck::tensor_layout::convolution::NDHWGK;
-using PassThrough = ck::tensor_operation::element_wise::PassThrough;
-using Bilinear    = ck::tensor_operation::element_wise::Bilinear;
-using Scale       = ck::tensor_operation::element_wise::Scale;
-
-static constexpr ck::index_t NumDimSpatial = 3;
+template <typename DataType>
+using DeviceOpGWrw = ck::tensor_operation::device::DeviceGroupedConvBwdWeight<
+    3,
+    ck::tensor_layout::convolution::NDHWGC,
+    ck::tensor_layout::convolution::GKZYXC,
+    ck::tensor_layout::convolution::NDHWGK,
+    DataType,
+    DataType,
+    DataType,
+    ck::tensor_operation::element_wise::PassThrough,
+    ck::tensor_operation::element_wise::PassThrough,
+    ck::tensor_operation::element_wise::PassThrough>;
 
 template <typename DataType>
-using DeviceOpGBwdWeightBilinear =
-    ck::tensor_operation::device::DeviceGroupedConvBwdWeightMultipleD<NumDimSpatial,
-                                                                      InLayout,
-                                                                      WeiLayout,
-                                                                      OutLayout,
-                                                                      ck::Tuple<WeiLayout>,
-                                                                      DataType,
-                                                                      DataType,
-                                                                      DataType,
-                                                                      ck::Tuple<DataType>,
-                                                                      PassThrough,
-                                                                      Bilinear,
-                                                                      PassThrough>;
-
-template <typename DataType>
-using DeviceOpGBwdWeightScale =
-    ck::tensor_operation::device::DeviceGroupedConvBwdWeightMultipleD<NumDimSpatial,
-                                                                      InLayout,
-                                                                      WeiLayout,
-                                                                      OutLayout,
-                                                                      ck::Tuple<>,
-                                                                      DataType,
-                                                                      DataType,
-                                                                      DataType,
-                                                                      ck::Tuple<>,
-                                                                      PassThrough,
-                                                                      Scale,
-                                                                      PassThrough>;
-
-template <typename DataType>
-using DeviceOpGBwdWeightDefault =
-    ck::tensor_operation::device::DeviceGroupedConvBwdWeight<NumDimSpatial,
-                                                             InLayout,
-                                                             WeiLayout,
-                                                             OutLayout,
-                                                             DataType,
-                                                             DataType,
-                                                             DataType,
-                                                             PassThrough,
-                                                             PassThrough,
-                                                             PassThrough>;
-
-template <typename DataType>
-using DeviceOpGBwdWeightBilinearPtrs =
-    ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
-        DeviceOpGBwdWeightBilinear<DataType>>;
-
-template <typename DataType>
-using DeviceOpGBwdWeightScalePtrs =
-    ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
-        DeviceOpGBwdWeightScale<DataType>>;
-
-template <typename DataType>
-using DeviceOpGBwdWeightDefaultPtrs =
-    ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
-        DeviceOpGBwdWeightDefault<DataType>>;
+using DeviceOpGWrwPtrs =
+    ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<DeviceOpGWrw<DataType>>;
 
 namespace {
 
-template <typename DataType>
 struct CKArgs
 {
     CKArgs(const ProblemDescription& problem)
-        : alpha(ProblemInterpreter::GetAlpha(problem)), beta(ProblemInterpreter::GetBeta(problem))
     {
-        G     = ProblemInterpreter::GetGroupCountG(problem);
-        N     = ProblemInterpreter::GetBatchN(problem);
-        K1    = ProblemInterpreter::GetOutputChannelK(problem);
-        C1    = ProblemInterpreter::GetInputChannelC(problem);
-        C     = C1 / G; // Number of input Channel per group
-        K     = K1 / G; // Number of output Channel per group
-        Hi    = ProblemInterpreter::GetInputHeightHi(problem);
-        Wi    = ProblemInterpreter::GetInputWidthWi(problem);
-        Ho    = ProblemInterpreter::GetOutputHeightHo(problem);
-        Wo    = ProblemInterpreter::GetOutputWidthWo(problem);
-        Y     = ProblemInterpreter::GetFilterHeightY(problem);
-        X     = ProblemInterpreter::GetFilterWidthX(problem);
-        Di    = ProblemInterpreter::GetInputDepthDi(problem);
-        Do    = ProblemInterpreter::GetOutputDepthDo(problem);
-        Z     = ProblemInterpreter::GetFilterDepthZ(problem);
-        alpha = ProblemInterpreter::GetAlpha(problem);
-        beta  = ProblemInterpreter::GetBeta(problem);
+        G  = ProblemInterpreter::GetGroupCountG(problem);
+        N  = ProblemInterpreter::GetBatchN(problem);
+        K1 = ProblemInterpreter::GetOutputChannelK(problem);
+        C1 = ProblemInterpreter::GetInputChannelC(problem);
+        C  = C1 / G; // Number of input Channel per group
+        K  = K1 / G; // Number of output Channel per group
+        Hi = ProblemInterpreter::GetInputHeightHi(problem);
+        Wi = ProblemInterpreter::GetInputWidthWi(problem);
+        Ho = ProblemInterpreter::GetOutputHeightHo(problem);
+        Wo = ProblemInterpreter::GetOutputWidthWo(problem);
+        Y  = ProblemInterpreter::GetFilterHeightY(problem);
+        X  = ProblemInterpreter::GetFilterWidthX(problem);
+        Di = ProblemInterpreter::GetInputDepthDi(problem);
+        Do = ProblemInterpreter::GetOutputDepthDo(problem);
+        Z  = ProblemInterpreter::GetFilterDepthZ(problem);
 
-        in_lengths  = {G, N, C, Di, Hi, Wi};
-        out_lengths = {G, N, K, Do, Ho, Wo};
-        wei_lengths = {G, K, C, Z, Y, X};
+        input  = {G, N, C, Di, Hi, Wi};
+        output = {G, N, K, Do, Ho, Wo};
+        weight = {G, K, C, Z, Y, X};
 
         // CK strides are in GNCDHW order
         if(problem.IsLayoutNHWC())
@@ -177,16 +120,16 @@ struct CKArgs
             wei_strides = {K * Z * Y * X * C, Z * Y * X * C, 1, Y * X * C, X * C, C};
         }
 
-        filter_strides   = {ProblemInterpreter::GetAdjustedConvolutionStrideD(problem),
-                          ProblemInterpreter::GetAdjustedConvolutionStrideH(problem),
-                          ProblemInterpreter::GetAdjustedConvolutionStrideW(problem)};
-        filter_dilations = {ProblemInterpreter::GetAdjustedConvolutionDilationD(problem),
-                            ProblemInterpreter::GetAdjustedConvolutionDilationH(problem),
-                            ProblemInterpreter::GetAdjustedConvolutionDilationW(problem)};
-        lPadding         = {ProblemInterpreter::GetInputLeftPadD(problem),
+        strides  = {ProblemInterpreter::GetAdjustedConvolutionStrideD(problem),
+                   ProblemInterpreter::GetAdjustedConvolutionStrideH(problem),
+                   ProblemInterpreter::GetAdjustedConvolutionStrideW(problem)};
+        dilation = {ProblemInterpreter::GetAdjustedConvolutionDilationD(problem),
+                    ProblemInterpreter::GetAdjustedConvolutionDilationH(problem),
+                    ProblemInterpreter::GetAdjustedConvolutionDilationW(problem)};
+        lPadding = {ProblemInterpreter::GetInputLeftPadD(problem),
                     ProblemInterpreter::GetInputLeftPadH(problem),
                     ProblemInterpreter::GetInputLeftPadW(problem)};
-        rPadding         = {ProblemInterpreter::GetAdjustedInputRightPadD(problem),
+        rPadding = {ProblemInterpreter::GetAdjustedInputRightPadD(problem),
                     ProblemInterpreter::GetAdjustedInputRightPadH(problem),
                     ProblemInterpreter::GetAdjustedInputRightPadW(problem)};
     }
@@ -197,91 +140,22 @@ struct CKArgs
     template <typename ConvPtr>
     auto MakeArgPtr(const ConvPtr& conv_ptr, ConstData_t x, Data_t dw, ConstData_t dy) const
     {
-        using DeviceP = std::remove_pointer_t<decltype(conv_ptr.get())>;
-        if constexpr(std::is_same_v<DeviceP, DeviceOpGBwdWeightBilinear<DataType>>)
-        {
-            return MakeBilinearArgPtr(conv_ptr, x, dw, dy);
-        }
-        else if constexpr(std::is_same_v<DeviceP, DeviceOpGBwdWeightScale<DataType>>)
-        {
-            return MakeScaleArgPtr(conv_ptr, x, dw, dy);
-        }
-        else
-        {
-            static_assert(std::is_same_v<DeviceP, DeviceOpGBwdWeightDefault<DataType>>,
-                          "Default should be wrw pass through");
-            return MakeDefaultArgPtr(conv_ptr, x, dw, dy);
-        }
-    }
-    template <typename ConvPtr>
-    auto MakeBilinearArgPtr(const ConvPtr& conv_ptr, ConstData_t x, Data_t dw, ConstData_t dy) const
-    {
         return conv_ptr->MakeArgumentPointer(x,
                                              dw,
                                              dy,
-                                             {dw},
-                                             in_lengths,
+                                             input,
                                              in_strides,
-                                             wei_lengths,
+                                             weight,
                                              wei_strides,
-                                             out_lengths,
+                                             output,
                                              out_strides,
-                                             {wei_lengths},
-                                             {wei_strides},
-                                             filter_strides,
-                                             filter_dilations,
+                                             strides,
+                                             dilation,
                                              lPadding,
                                              rPadding,
-                                             PassThrough{},
-                                             Bilinear{alpha.GetAsFloat(), beta.GetAsFloat()},
-                                             PassThrough{},
-                                             split_k);
-    }
-
-    template <typename ConvPtr>
-    auto MakeScaleArgPtr(const ConvPtr& conv_ptr, ConstData_t x, Data_t dw, ConstData_t dy) const
-    {
-        return conv_ptr->MakeArgumentPointer(x,
-                                             dw,
-                                             dy,
-                                             {},
-                                             in_lengths,
-                                             in_strides,
-                                             wei_lengths,
-                                             wei_strides,
-                                             out_lengths,
-                                             out_strides,
                                              {},
                                              {},
-                                             filter_strides,
-                                             filter_dilations,
-                                             lPadding,
-                                             rPadding,
-                                             PassThrough{},
-                                             Scale{alpha.GetAsFloat()},
-                                             PassThrough{},
-                                             split_k);
-    }
-
-    template <typename ConvPtr>
-    auto MakeDefaultArgPtr(const ConvPtr& conv_ptr, ConstData_t x, Data_t dw, ConstData_t dy) const
-    {
-        return conv_ptr->MakeArgumentPointer(x,
-                                             dw,
-                                             dy,
-                                             in_lengths,
-                                             in_strides,
-                                             wei_lengths,
-                                             wei_strides,
-                                             out_lengths,
-                                             out_strides,
-                                             filter_strides,
-                                             filter_dilations,
-                                             lPadding,
-                                             rPadding,
-                                             PassThrough{},
-                                             PassThrough{},
-                                             PassThrough{},
+                                             {},
                                              split_k);
     }
 
@@ -313,17 +187,15 @@ struct CKArgs
     int Y;
     int X;
     int Z;
-    Scalar alpha;
-    Scalar beta;
-    ck::index_t split_k = 2;
-    std::array<ck::index_t, 6> in_lengths;
+    ck::index_t split_k = 1;
+    std::array<ck::index_t, 6> input;
     std::array<ck::index_t, 6> in_strides;
-    std::array<ck::index_t, 6> out_lengths;
+    std::array<ck::index_t, 6> output;
     std::array<ck::index_t, 6> out_strides;
-    std::array<ck::index_t, 6> wei_lengths;
+    std::array<ck::index_t, 6> weight;
     std::array<ck::index_t, 6> wei_strides;
-    std::array<ck::index_t, 3> filter_strides;
-    std::array<ck::index_t, 3> filter_dilations;
+    std::array<ck::index_t, 3> strides;
+    std::array<ck::index_t, 3> dilation;
     std::array<ck::index_t, 3> lPadding;
     std::array<ck::index_t, 3> rPadding;
 };
@@ -332,57 +204,23 @@ struct CKArgs
 template <typename DataType>
 void PerformanceConfigHipImplicitGemm3DGroupWrwXdlops::Init(const ProblemDescription& problem)
 {
-    switch(problem.GetAlphaBetaCase())
-    {
-    case BILINEAR:
-        valid_kernels =
-            FillValidKernelsIDs<DeviceOpGBwdWeightBilinearPtrs<DataType>, CKArgs<DataType>>(
-                problem);
-        break;
-    case SCALE:
-        valid_kernels =
-            FillValidKernelsIDs<DeviceOpGBwdWeightScalePtrs<DataType>, CKArgs<DataType>>(problem);
-        break;
-    default:
-        valid_kernels =
-            FillValidKernelsIDs<DeviceOpGBwdWeightDefaultPtrs<DataType>, CKArgs<DataType>>(problem);
-        break;
-    }
-    index     = 0;
-    kernel_id = valid_kernels[index];
+    valid_kernels = FillValidKernelsIDs<DeviceOpGWrwPtrs<DataType>, CKArgs>(problem);
+    index         = 0;
+    kernel_id     = valid_kernels[index];
 }
 
 template <typename DataType>
 bool PerformanceConfigHipImplicitGemm3DGroupWrwXdlops::CheckIsSupportCKArgs(
     const ProblemDescription& problem) const
 {
-    switch(problem.GetAlphaBetaCase())
-    {
-    case BILINEAR:
-        return IsCKArgsSupported<DeviceOpGBwdWeightBilinearPtrs<DataType>, CKArgs<DataType>>(
-            problem, kernel_id);
-    case SCALE:
-        return IsCKArgsSupported<DeviceOpGBwdWeightScalePtrs<DataType>, CKArgs<DataType>>(
-            problem, kernel_id);
-    default:
-        return IsCKArgsSupported<DeviceOpGBwdWeightDefaultPtrs<DataType>, CKArgs<DataType>>(
-            problem, kernel_id);
-    }
+    return IsCKArgsSupported<DeviceOpGWrwPtrs<DataType>, CKArgs>(problem, kernel_id);
 }
 
 template <typename DataType>
 bool ConvHipImplicitGemm3DGroupWrwXdlops::CheckCKApplicability(
     const ProblemDescription& problem) const
 {
-    switch(problem.GetAlphaBetaCase())
-    {
-    case BILINEAR:
-        return IsCKApplicable<DeviceOpGBwdWeightBilinearPtrs<DataType>, CKArgs<DataType>>(problem);
-    case SCALE:
-        return IsCKApplicable<DeviceOpGBwdWeightScalePtrs<DataType>, CKArgs<DataType>>(problem);
-    default:
-        return IsCKApplicable<DeviceOpGBwdWeightDefaultPtrs<DataType>, CKArgs<DataType>>(problem);
-    }
+    return IsCKApplicable<DeviceOpGWrwPtrs<DataType>, CKArgs>(problem);
 }
 #endif
 
@@ -540,48 +378,18 @@ ConvSolution ConvHipImplicitGemm3DGroupWrwXdlops::GetSolution(
         problem,
         [&](auto data_type_val) {
             using T = decltype(data_type_val);
-            switch(problem.GetAlphaBetaCase())
-            {
-            case BILINEAR:
-                return InitInvokerFactoryWrwNCHW<3,
-                                                 DeviceOpGBwdWeightBilinearPtrs<T>,
-                                                 CKArgs<T>,
-                                                 miopen::conv::WrWInvokeParams>(
-                    ctx, problem, config.kernel_id);
-            case SCALE:
-                return InitInvokerFactoryWrwNCHW<3,
-                                                 DeviceOpGBwdWeightScalePtrs<T>,
-                                                 CKArgs<T>,
-                                                 miopen::conv::WrWInvokeParams>(
-                    ctx, problem, config.kernel_id);
-            default:
-                return InitInvokerFactoryWrwNCHW<3,
-                                                 DeviceOpGBwdWeightDefaultPtrs<T>,
-                                                 CKArgs<T>,
-                                                 miopen::conv::WrWInvokeParams>(
-                    ctx, problem, config.kernel_id);
-            }
+            return InitInvokerFactoryWrwNCHW<3,
+                                             DeviceOpGWrwPtrs<T>,
+                                             CKArgs,
+                                             miopen::conv::WrWInvokeParams>(
+                ctx, problem, config.kernel_id);
         },
         [&](auto data_type_val) {
             using T = decltype(data_type_val);
-            switch(problem.GetAlphaBetaCase())
-            {
-            case BILINEAR:
-                return InitInvokerFactoryNHWC<DeviceOpGBwdWeightBilinearPtrs<T>,
-                                              CKArgs<T>,
-                                              miopen::conv::WrWInvokeParams>(
-                    ctx, problem, config.kernel_id);
-            case SCALE:
-                return InitInvokerFactoryNHWC<DeviceOpGBwdWeightScalePtrs<T>,
-                                              CKArgs<T>,
-                                              miopen::conv::WrWInvokeParams>(
-                    ctx, problem, config.kernel_id);
-            default:
-                return InitInvokerFactoryNHWC<DeviceOpGBwdWeightDefaultPtrs<T>,
-                                              CKArgs<T>,
-                                              miopen::conv::WrWInvokeParams>(
-                    ctx, problem, config.kernel_id);
-            }
+            return InitInvokerFactoryNHWC<DeviceOpGWrwPtrs<T>,
+                                          CKArgs,
+                                          miopen::conv::WrWInvokeParams>(
+                ctx, problem, config.kernel_id);
         });
 
 #else

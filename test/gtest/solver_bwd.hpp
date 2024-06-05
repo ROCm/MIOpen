@@ -108,7 +108,7 @@ protected:
         output = tensor<T>{output_desc.GetLengths()};
         output.generate(GenData<T>{});
 
-        std::fill(input.begin(), input.end(), T(0));
+        std::fill(input.begin(), input.end(), std::numeric_limits<T>::quiet_NaN());
 
         auto&& handle = get_handle();
         in_dev        = handle.Write(input.data);

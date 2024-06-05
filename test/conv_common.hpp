@@ -343,9 +343,7 @@ template <typename T, typename Tout = T>
 tensor<Tout> ref_conv_fwd(const tensor<T>& input,
                           const tensor<T>& weights,
                           const tensor<Tout>& out,
-                          const miopen::ConvolutionDescriptor& filter,
-                          const miopen::Scalar& alpha = miopen::Scalar(1.0),
-                          const miopen::Scalar& beta  = miopen::Scalar(0.0))
+                          const miopen::ConvolutionDescriptor& filter)
 {
     auto rout = out;
     if(filter.mode == miopenTranspose)
@@ -367,7 +365,7 @@ tensor<Tout> ref_conv_fwd(const tensor<T>& input,
     }
     else
     {
-        bool gpu_ref_used = gpu_ref_convolution_fwd(input, weights, rout, filter, alpha, beta);
+        bool gpu_ref_used = gpu_ref_convolution_fwd(input, weights, rout, filter);
 
         if(!gpu_ref_used)
         {
@@ -389,13 +387,11 @@ template <typename T, typename Twei, typename Tout>
 tensor<Twei> ref_conv_wrw(const tensor<T>& input,
                           const tensor<Twei>& weights,
                           const tensor<Tout>& out,
-                          const miopen::ConvolutionDescriptor& filter,
-                          const miopen::Scalar& alpha = miopen::Scalar(1.0),
-                          const miopen::Scalar& beta  = miopen::Scalar(0.0))
+                          const miopen::ConvolutionDescriptor& filter)
 {
     auto rwei = weights;
     std::fill(rwei.begin(), rwei.end(), 0);
-    bool gpu_ref_used = gpu_ref_convolution_wrw(input, rwei, out, filter, alpha, beta);
+    bool gpu_ref_used = gpu_ref_convolution_wrw(input, rwei, out, filter);
     if(!gpu_ref_used)
     {
         MIOPEN_LOG_W("GPU reference skipped");
@@ -415,9 +411,7 @@ template <typename T, typename Tout = T>
 tensor<Tout> ref_conv_bwd(const tensor<Tout>& input,
                           const tensor<T>& weights,
                           const tensor<T>& out,
-                          const miopen::ConvolutionDescriptor& filter,
-                          const miopen::Scalar& alpha = miopen::Scalar(1.0),
-                          const miopen::Scalar& beta  = miopen::Scalar(0.0))
+                          const miopen::ConvolutionDescriptor& filter)
 {
     auto rinput = input;
 
@@ -425,7 +419,7 @@ tensor<Tout> ref_conv_bwd(const tensor<Tout>& input,
 
     if(filter.mode == miopenTranspose)
     {
-        bool gpu_ref_used = gpu_ref_convolution_fwd(out, weights, rinput, filter, alpha, beta);
+        bool gpu_ref_used = gpu_ref_convolution_fwd(out, weights, rinput, filter);
         if(!gpu_ref_used)
         {
             MIOPEN_LOG_W("GPU reference not run");
@@ -441,7 +435,7 @@ tensor<Tout> ref_conv_bwd(const tensor<Tout>& input,
     }
     else
     {
-        bool gpu_ref_used = gpu_ref_convolution_bwd(rinput, weights, out, filter, alpha, beta);
+        bool gpu_ref_used = gpu_ref_convolution_bwd(rinput, weights, out, filter);
         if(!gpu_ref_used)
         {
             MIOPEN_LOG_W("GPU reference not run");
@@ -462,16 +456,14 @@ template <typename T, typename Tout = T>
 tensor<Tout> ref_conv_wrw(const tensor<T>& input,
                           const tensor<Tout>& weights,
                           const tensor<T>& out,
-                          const miopen::ConvolutionDescriptor& filter,
-                          const miopen::Scalar& alpha = miopen::Scalar(1.0),
-                          const miopen::Scalar& beta  = miopen::Scalar(0.0))
+                          const miopen::ConvolutionDescriptor& filter)
 {
     auto rweights = weights;
     std::fill(rweights.begin(), rweights.end(), 0);
 
     if(filter.mode == miopenTranspose)
     {
-        bool gpu_ref_used = gpu_ref_convolution_wrw(out, rweights, input, filter, alpha, beta);
+        bool gpu_ref_used = gpu_ref_convolution_wrw(out, rweights, input, filter);
         if(!gpu_ref_used)
         {
             MIOPEN_LOG_W("GPU reference not run");
@@ -487,7 +479,7 @@ tensor<Tout> ref_conv_wrw(const tensor<T>& input,
     }
     else
     {
-        bool gpu_ref_used = gpu_ref_convolution_wrw(input, rweights, out, filter, alpha, beta);
+        bool gpu_ref_used = gpu_ref_convolution_wrw(input, rweights, out, filter);
         if(!gpu_ref_used)
         {
             MIOPEN_LOG_W("GPU reference not run");

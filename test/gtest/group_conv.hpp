@@ -242,21 +242,20 @@ struct GroupConvTestConfig<3u>
 
 template <unsigned NDIM, typename T, Direction CONV_DIR>
 struct GroupConvTestFix
-    : public ::testing::TestWithParam<
-          std::tuple<GroupConvTestConfig<NDIM>, double, double, miopenTensorLayout_t>>
+    : public ::testing::TestWithParam<std::tuple<GroupConvTestConfig<NDIM>, miopenTensorLayout_t>>
 {
     static_assert(NDIM == 2u || NDIM == 3u, "NDIM must be 2 for 2D Conv and 3 for 3D Conv");
 
 private:
-    using Base = ::testing::TestWithParam<
-        std::tuple<GroupConvTestConfig<NDIM>, double, double, miopenTensorLayout_t>>;
+    using Base =
+        ::testing::TestWithParam<std::tuple<GroupConvTestConfig<NDIM>, miopenTensorLayout_t>>;
 
     template <typename F>
     void SetupFwd(F&& gen_value)
     {
         input.generate(gen_value);
         weights.generate(gen_value);
-        std::fill(output.begin(), output.end(), T(0));
+        std::fill(output.begin(), output.end(), std::numeric_limits<T>::quiet_NaN());
     }
 
     template <typename F>
@@ -264,7 +263,7 @@ private:
     {
         output.generate(gen_value);
         weights.generate(gen_value);
-        std::fill(input.begin(), input.end(), T(0));
+        std::fill(input.begin(), input.end(), std::numeric_limits<T>::quiet_NaN());
     }
 
     template <typename F>
@@ -331,8 +330,7 @@ private:
             wspace.resize(solv.GetWorkspaceSize(ctx, problem));
         }
 
-        const auto invoke_params =
-            InvokeParamType{tensors, wspace.ptr(), wspace.size(), false, alpha, beta};
+        const auto invoke_params = InvokeParamType{tensors, wspace.ptr(), wspace.size(), false};
 
         ASSERT_TRUE(solv.IsApplicable(ctx, problem));
         auto sol = solv.GetSolution(ctx, problem, solv.GetDefaultPerformanceConfig(ctx, problem));
@@ -355,14 +353,8 @@ private:
                                         wei_dev.get(),
                                         output.desc,
                                         out_dev.get()},
-                miopen::conv::ProblemDescription{input.desc,
-                                                 weights.desc,
-                                                 output.desc,
-                                                 conv_desc,
-                                                 CONV_DIR,
-                                                 0 /*bias*/,
-                                                 alpha,
-                                                 beta});
+                miopen::conv::ProblemDescription{
+                    input.desc, weights.desc, output.desc, conv_desc, CONV_DIR});
         }
         else if constexpr(CONV_DIR == Direction::BackwardData)
         {
@@ -373,14 +365,8 @@ private:
                                         wei_dev.get(),
                                         input.desc,
                                         in_dev.get()},
-                miopen::conv::ProblemDescription{output.desc,
-                                                 weights.desc,
-                                                 input.desc,
-                                                 conv_desc,
-                                                 CONV_DIR,
-                                                 0 /*bias*/,
-                                                 alpha,
-                                                 beta});
+                miopen::conv::ProblemDescription{
+                    output.desc, weights.desc, input.desc, conv_desc, CONV_DIR});
         }
         else
         {
@@ -392,14 +378,8 @@ private:
                                        in_dev.get(),
                                        weights.desc,
                                        wei_dev.get()},
-                miopen::conv::ProblemDescription{output.desc,
-                                                 weights.desc,
-                                                 input.desc,
-                                                 conv_desc,
-                                                 CONV_DIR,
-                                                 0 /*bias*/,
-                                                 alpha,
-                                                 beta});
+                miopen::conv::ProblemDescription{
+                    output.desc, weights.desc, input.desc, conv_desc, CONV_DIR});
         }
     }
 
@@ -423,13 +403,8 @@ public:
 protected:
     void SetUp() override
     {
-        float alpha_val;
-        float beta_val;
-        test_skipped                                              = false;
-        std::tie(conv_config, alpha_val, beta_val, tensor_layout) = Base::GetParam();
-
-        alpha = miopen::Scalar(&alpha_val, miopenFloat);
-        beta  = miopen::Scalar(&beta_val, miopenFloat);
+        test_skipped                         = false;
+        std::tie(conv_config, tensor_layout) = Base::GetParam();
 
         input   = tensor<T>{tensor_layout, conv_config.GetInput()};
         weights = tensor<T>{tensor_layout, conv_config.GetWeights()};
@@ -473,20 +448,20 @@ protected:
 
         if constexpr(CONV_DIR == Direction::Forward)
         {
-            ref = ref_conv_fwd(input, weights, output, conv_desc, alpha, beta);
+            ref = ref_conv_fwd(input, weights, output, conv_desc);
             handle.ReadToVec(out_dev, output.data);
             verify(output);
         }
         else if constexpr(CONV_DIR == Direction::BackwardData)
         {
-            ref = ref_conv_bwd(input, weights, output, conv_desc, alpha, beta);
+            ref = ref_conv_bwd(input, weights, output, conv_desc);
             handle.ReadToVec(in_dev, input.data);
             verify(input);
         }
         else
         {
             static_assert(CONV_DIR == Direction::BackwardWeights);
-            ref = ref_conv_wrw(input, weights, output, conv_desc, alpha, beta);
+            ref = ref_conv_wrw(input, weights, output, conv_desc);
             handle.ReadToVec(wei_dev, weights.data);
             verify(weights);
         }
@@ -504,9 +479,6 @@ protected:
     bool test_skipped                  = false;
     miopenTensorLayout_t tensor_layout = miopenTensorNHWC;
     Workspace wspace{};
-
-    miopen::Scalar alpha{1.0};
-    miopen::Scalar beta{0.0};
 };
 
 template <unsigned NDIM>
@@ -525,26 +497,20 @@ std::vector<miopenTensorLayout_t> GetLayoutValues()
 
 } // namespace group_conv
 
-#define DEFINE_GROUP_CONV_TEST(ndim, alpha, beta, type, dir, ab_case)                   \
-    struct GroupConv##ndim##D_##dir##_##type##_##ab_case                                \
-        : GroupConvTestFix<ndim, type, Direction::dir>                                  \
-    {                                                                                   \
-    };                                                                                  \
-    TEST_P(GroupConv##ndim##D_##dir##_##type##_##ab_case,                               \
-           GroupConv##ndim##D_##dir##_##type##_##ab_case##_Test)                        \
-    {                                                                                   \
-        RunSolver();                                                                    \
-    }                                                                                   \
-    INSTANTIATE_TEST_SUITE_P(                                                           \
-        GroupConv##ndim##D_##dir##_##type##_##ab_case##_Suite,                          \
-        GroupConv##ndim##D_##dir##_##type##_##ab_case,                                  \
-        testing::Combine(                                                               \
-            testing::ValuesIn(GroupConvTestConfig<ndim>::GetConfigs<Direction::dir>()), \
-            testing::ValuesIn({alpha}),                                                 \
-            testing::ValuesIn({beta}),                                                  \
+#define DEFINE_GROUP_CONV_TEST(ndim, type, dir)                                             \
+    struct GroupConv##ndim##D_##dir##_##type : GroupConvTestFix<ndim, type, Direction::dir> \
+    {                                                                                       \
+    };                                                                                      \
+    TEST_P(GroupConv##ndim##D_##dir##_##type, GroupConv##ndim##D_##dir##_##type##_Test)     \
+    {                                                                                       \
+        RunSolver();                                                                        \
+    }                                                                                       \
+    INSTANTIATE_TEST_SUITE_P(                                                               \
+        GroupConv##ndim##D_##dir##_##type##_Suite,                                          \
+        GroupConv##ndim##D_##dir##_##type,                                                  \
+        testing::Combine(                                                                   \
+            testing::ValuesIn(GroupConvTestConfig<ndim>::GetConfigs<Direction::dir>()),     \
             testing::ValuesIn(GetLayoutValues<ndim>())));
 
-#define DEFINE_GROUP_CONV2D_TEST(type, dir, alpha, beta, ab_case) \
-    DEFINE_GROUP_CONV_TEST(2, alpha, beta, type, dir, ab_case)
-#define DEFINE_GROUP_CONV3D_TEST(type, dir, alpha, beta, ab_case) \
-    DEFINE_GROUP_CONV_TEST(3, alpha, beta, type, dir, ab_case)
+#define DEFINE_GROUP_CONV2D_TEST(type, dir) DEFINE_GROUP_CONV_TEST(2, type, dir)
+#define DEFINE_GROUP_CONV3D_TEST(type, dir) DEFINE_GROUP_CONV_TEST(3, type, dir)
