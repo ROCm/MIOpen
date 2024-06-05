@@ -48,8 +48,8 @@ std::vector<std::string> GetTestCases(void)
 {
     std::string cmd       = "test_conv2d ";
     std::string v         = " --verbose ";
-    std::string float_arg = miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_TEST_FLOAT_ARG));
-    std::string flag_arg  = miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_TEST_FLAGS_ARGS));
+    std::string float_arg = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
+    std::string flag_arg  = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLAGS_ARGS));
 
     // clang-format off
     return std::vector<std::string>{
@@ -102,7 +102,7 @@ bool IsTestSupportedForDevice()
 
 void Run2dDriver(void)
 {
-    if(!(IsTestSupportedForDevice() && (miopen::IsUnset(MIOPEN_ENV(MIOPEN_TEST_ALL)))))
+    if(!(IsTestSupportedForDevice() && (miopen::IsUnset(ENV(MIOPEN_TEST_ALL)))))
     {
         GTEST_SKIP();
     }
