@@ -285,7 +285,7 @@ struct ExecutionContext
             filename.append("_");
         filename.append(GetStream().GetDbBasename());
 #if MIOPEN_ENABLE_SQLITE && MIOPEN_USE_SQLITE_PERFDB
-        filename.append("_").append(SQLitePerfDb::MIOPEN_PERFDB_SCHEMA_VER).append(".udb");
+        filename.append("_" + std::string{SQLitePerfDb::MIOPEN_PERFDB_SCHEMA_VER} + ".udb");
 #else
         filename.append("." + GetUserDbSuffix() + ".udb.txt");
 #endif
