@@ -465,7 +465,7 @@ void SetupPaths(fs::path& fdb_file_path,
 
 TEST(DBSync, KDBTargetID)
 {
-    if(miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_DBSYNC)))
+    if(miopen::IsEnabled(ENV(MIOPEN_TEST_DBSYNC)))
     {
         fs::path fdb_file_path, pdb_file_path, kdb_file_path;
 #if WORKAROUND_ISSUE_2492
@@ -854,7 +854,7 @@ struct DBSync : testing::TestWithParam<std::pair<std::string, size_t>>
 
 TEST_P(DBSync, StaticFDBSync)
 {
-    if(miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_DBSYNC)))
+    if(miopen::IsEnabled(ENV(MIOPEN_TEST_DBSYNC)))
     {
         std::string arch;
         size_t num_cu;

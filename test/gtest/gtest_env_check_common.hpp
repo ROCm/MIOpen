@@ -38,5 +38,5 @@ template <typename disabled_mask, typename enabled_mask, typename check_functor>
 bool ShouldRunTestCase(check_functor&& checkConditions)
 {
     return IsTestSupportedForDevMask<disabled_mask, enabled_mask>() &&
-           (miopen::IsUnset(MIOPEN_ENV(MIOPEN_TEST_ALL)) || checkConditions());
+           (miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) || checkConditions());
 }
