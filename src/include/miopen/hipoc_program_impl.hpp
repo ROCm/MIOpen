@@ -49,21 +49,24 @@ struct HIPOCProgramImpl
                      const TargetProperties& target_,
                      const std::string& kernel_src);
 
-    fs::path program;
+    std::string program;
     TargetProperties target;
     fs::path hsaco_file;
     hipModulePtr module;
+    boost::optional<TmpDir> dir;
     std::vector<char> binary;
 
 #if !MIOPEN_USE_COMGR
-    void BuildCodeObjectInFile(std::string params, std::string_view src, const fs::path& filename);
+    void BuildCodeObjectInFile(std::string& params,
+                               const std::string_view src,
+                               const std::string& filename);
 #else
     void BuildCodeObjectInMemory(const std::string& params,
-                                 std::string_view src,
-                                 const fs::path& filename);
+                                 const std::string_view src,
+                                 const std::string& filename);
 #endif
 
-    void BuildCodeObject(std::string_view params, std::string_view kernel_src);
+    void BuildCodeObject(std::string params, const std::string& kernel_src);
 };
 } // namespace miopen
 #endif // GUARD_MIOPEN_HIPOC_PROGRAM_IMPL_HPP
