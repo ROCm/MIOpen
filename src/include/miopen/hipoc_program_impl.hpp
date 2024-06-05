@@ -58,11 +58,11 @@ struct HIPOCProgramImpl
 
 #if !MIOPEN_USE_COMGR
     void BuildCodeObjectInFile(std::string& params,
-                               const std::string_view src,
+                               std::string_view src,
                                const std::string& filename);
 #else
     void BuildCodeObjectInMemory(const std::string& params,
-                                 const std::string_view src,
+                                 std::string_view src,
                                  const std::string& filename);
 #endif
 
