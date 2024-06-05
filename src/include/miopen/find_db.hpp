@@ -176,8 +176,9 @@ public:
         record.content.emplace(DbKinds::FindDb, problem);
 
         const auto result = regenerator();
+        record.dont_store = !result.is_optimal;
 
-        if(!result.is_optimal)
+        if(record.dont_store)
             return result.solutions;
 
         for(const auto& solution : result.solutions)
