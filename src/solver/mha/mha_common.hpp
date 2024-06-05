@@ -105,8 +105,9 @@ inline void gemm(const Handle& handle,
                  long long int strideB,
                  long long int strideC,
                  float alpha,
-                 miopenDataType_t ABType,
+                 miopenDataType_t AType,
                  ConstData_t A,
+                 miopenDataType_t BType,
                  ConstData_t B,
                  Data_t C,
                  bool deterministic)
@@ -125,9 +126,18 @@ inline void gemm(const Handle& handle,
 
     float beta = 0.0f;
 
-    assert(ABType == miopenFloat || ABType == miopenFloat8);
+    auto cvtMiopen2Rocblas = [](miopenDataType_t miopen) {
+        switch(miopen)
+        {
+        case miopenFloat: return rocblas_datatype::rocblas_datatype_f32_r;
+        case miopenFloat8: return rocblas_datatype::rocblas_datatype_f8_r;
+        case miopenBFloat8: return rocblas_datatype::rocblas_datatype_bf8_r;
+        default: return rocblas_datatype::rocblas_datatype_invalid;
+        }
+    };
 
-    if(ABType == miopenFloat)
+    // fp32 x fp32 case
+    if(AType == miopenFloat && AType == BType)
     {
         // rocblas operates in column-major mode, so A and B (and M and N) are swapped
         (rocblas_gemm_strided_batched_ex)(
@@ -161,7 +171,10 @@ inline void gemm(const Handle& handle,
             0,
             0);
     }
-    else
+    // only bfp8 x fp32, fp32 x bfp8 and [b]fp8 x [b]fp8 combinations are supported
+    else if(cvtMiopen2Rocblas(AType) != rocblas_datatype::rocblas_datatype_invalid    //
+            && cvtMiopen2Rocblas(BType) != rocblas_datatype::rocblas_datatype_invalid //
+            && (AType == BType || AType == miopenBFloat8 || BType == miopenBFloat8))  //
     {
         assert(miopen::StartsWith(handle.GetDeviceName(), "gfx94"));
 #if USE_ROCBLAS_EX3
@@ -174,11 +187,11 @@ inline void gemm(const Handle& handle,
             k,
             &alpha,
             B,
-            rocblas_datatype::rocblas_datatype_f8_r,
+            cvtMiopen2Rocblas(BType),
             ldb,
             strideB,
             A,
-            rocblas_datatype::rocblas_datatype_f8_r,
+            cvtMiopen2Rocblas(AType),
             lda,
             strideA,
             &beta,
@@ -196,6 +209,10 @@ inline void gemm(const Handle& handle,
             0,
             0);
 #endif
+    }
+    else
+    {
+        MIOPEN_THROW("Unsupported type combination for rocblas GEMM");
     }
 
     if(deterministic)

@@ -56,6 +56,10 @@
 #define OUT_TYPE float
 #endif
 
+#ifndef dO_TYPE
+#define dO_TYPE float
+#endif
+
 namespace {
 constexpr float plus_op(float a, float b) { return a + b; };
 constexpr float fmaxf_op(float a, float b) { return fmaxf(a, b); };
@@ -466,7 +470,7 @@ extern "C" __global__ void __launch_bounds__(THREADS)
 }
 
 extern "C" __global__ void __launch_bounds__(THREADS)
-    ScaleRowReduceWarp(const OUT_TYPE* __restrict__ dO,
+    ScaleRowReduceWarp(const dO_TYPE* __restrict__ dO,
                        const OUT_TYPE* __restrict__ O,
                        float* __restrict__ out,
                        const float* __restrict__ descale_dO,
@@ -503,7 +507,7 @@ extern "C" __global__ void __launch_bounds__(THREADS)
 }
 
 extern "C" __global__ void __launch_bounds__(THREADS)
-    ScaleRowReduceBlock(const OUT_TYPE* __restrict__ dO,
+    ScaleRowReduceBlock(const dO_TYPE* __restrict__ dO,
                         const OUT_TYPE* __restrict__ O,
                         float* __restrict__ out,
                         const float* __restrict__ descale_dO,
@@ -540,7 +544,7 @@ extern "C" __global__ void __launch_bounds__(THREADS)
 }
 
 extern "C" __global__ void __launch_bounds__(THREADS)
-    ScaleRowReduceCommon(const OUT_TYPE* __restrict__ dO,
+    ScaleRowReduceCommon(const dO_TYPE* __restrict__ dO,
                          const OUT_TYPE* __restrict__ O,
                          float* __restrict__ out,
                          const float* __restrict__ descale_dO,

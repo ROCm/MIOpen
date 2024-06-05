@@ -105,8 +105,8 @@ void Dot_3D_3D_T(const tensor<T>& A_mat, const tensor<T>& B_mat, tensor<T>& C_ma
     });
 }
 
-template <typename T1, typename T2>
-void Dot_4D_4D_T(const tensor<T1>& A_mat, const tensor<T1>& B_mat, tensor<T2>& C_mat)
+template <typename T1, typename T2, typename T3 = T1>
+void Dot_4D_4D_T(const tensor<T1>& A_mat, const tensor<T3>& B_mat, tensor<T2>& C_mat)
 {
     size_t k_val = A_mat.desc.GetLengths()[3];
     assert(k_val == B_mat.desc.GetLengths()[3]); // since transpose
@@ -122,8 +122,8 @@ void Dot_4D_4D_T(const tensor<T1>& A_mat, const tensor<T1>& B_mat, tensor<T2>& C
     });
 }
 
-template <typename T1, typename T2>
-void Dot_4D_T_4D(const tensor<T1>& A_mat, const tensor<T1>& B_mat, tensor<T2>& C_mat)
+template <typename T1, typename T2, typename T3 = T1>
+void Dot_4D_T_4D(const tensor<T1>& A_mat, const tensor<T3>& B_mat, tensor<T2>& C_mat)
 {
     size_t k_val = A_mat.desc.GetLengths()[3];
     assert(k_val == B_mat.desc.GetLengths()[2]); // since transpose
@@ -483,12 +483,12 @@ void MultiHeadAttentionBackwardDataf32(const tensor<T>& q_val,
     Dot_4D_T_4D(bwd_intermediate, q_val, dK_val);
 }
 
-template <typename T = float8>
+template <typename T = float8, typename U = T>
 void MultiHeadAttentionBackwardDataf8(const tensor<T>& q_val,
                                       const tensor<T>& k_val,
                                       const tensor<T>& v_val,
                                       const tensor<T>& O_val, // attention (O)
-                                      const tensor<T>& dO_val,
+                                      const tensor<U>& dO_val,
                                       const tensor<float>& softmax_fp32,
                                       float q_descale,
                                       float k_descale,
