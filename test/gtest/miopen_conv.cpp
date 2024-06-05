@@ -33,7 +33,7 @@ MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_CONV)
 
 namespace miopen_conv {
 
-bool SkipTest() { return miopen::IsDisabled(MIOPEN_ENV(MIOPEN_TEST_CONV)); }
+bool SkipTest() { return miopen::IsDisabled(ENV(MIOPEN_TEST_CONV)); }
 
 void GetArgs(const std::string& param, std::vector<std::string>& tokens)
 {
