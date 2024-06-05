@@ -150,13 +150,19 @@ ConvSolution SoftMarginLossForward::GetSolution(
             auto i_tv             = get_inner_expanded_tv<5>(deref(params.iDesc));
             auto t_tv             = get_inner_expanded_tv<5>(deref(params.tDesc));
             float elapsed         = 0.0f;
+            HipEventPtr start;
+            HipEventPtr stop;
 
+            if(handle_.IsProfilingEnabled())
+            {
+                start = miopen::make_hip_event();
+                stop  = miopen::make_hip_event();
+                hipEventRecord(start.get(), handle_.GetStream());
+            }
             /* Phase 1: Calc loss for each element. */
             {
                 decltype(auto) kernel = handle_.Run(kernels.front());
                 kernel(params.i, params.t, params.workspace, params.divisor, i_tv, t_tv);
-                if(handle_.IsProfilingEnabled())
-                    elapsed += handle_.GetKernelTime();
             }
 
             /* Phase 2: Reduce */
@@ -177,13 +183,14 @@ ConvSolution SoftMarginLossForward::GetSolution(
                 {
                     kernel(reduce_in, params.o, size);
                 }
-                if(handle_.IsProfilingEnabled())
-                    elapsed += handle_.GetKernelTime();
                 size = AlignUp(size, LOCAL_SIZE_REDUCE) / LOCAL_SIZE_REDUCE;
             }
 
             if(handle_.IsProfilingEnabled())
             {
+                hipEventRecord(stop.get(), handle_.GetStream());
+                hipEventSynchronize(stop.get());
+                hipEventElapsedTime(&elapsed, start.get(), stop.get());
                 handle_.ResetKernelTime();
                 handle_.AccumKernelTime(elapsed);
             };
