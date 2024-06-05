@@ -32,7 +32,7 @@
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_DEEPBENCH)
 
 namespace deepbench_gru {
-static bool SkipTest(void) { return !miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_DEEPBENCH)); }
+static bool SkipTest(void) { return !miopen::IsEnabled(ENV(MIOPEN_TEST_DEEPBENCH)); }
 
 void GetArgs(const std::string& param, std::vector<std::string>& tokens)
 {
