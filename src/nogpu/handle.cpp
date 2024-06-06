@@ -215,9 +215,7 @@ bool Handle::HasProgram(const fs::path& program_name, const std::string& params)
     return this->impl->cache.HasProgram(program_name, params);
 }
 
-void Handle::AddProgram(Program prog,
-                        const fs::path& program_name,
-                        const std::string& params) const
+void Handle::AddProgram(Program prog, const fs::path& program_name, const std::string& params) const
 {
     this->impl->cache.AddProgram(prog, program_name, params);
 }

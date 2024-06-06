@@ -188,11 +188,11 @@ static fs::path HipBuildImpl(const TmpDir& tmp_dir,
 
 #if defined(MIOPEN_OFFLOADBUNDLER_BIN) && !MIOPEN_BACKEND_HIP
     // Unbundling is not required for HIP runtime && hip-clang
-    tmp_dir->Execute(MIOPEN_OFFLOADBUNDLER_BIN,
-                     "--type=o "
-                     "--targets=hipv4-amdgcn-amd-amdhsa-" +
-                         (std::string{'-'} + lots.device + lots.xnack) + " --inputs=" + bin_file +
-                         " --outputs=" + bin_file + ".hsaco --unbundle");
+    std::ignore = tmp_dir.Execute(MIOPEN_OFFLOADBUNDLER_BIN,
+                                  "--type=o "
+                                  "--targets=hipv4-amdgcn-amd-amdhsa-" +
+                                      (std::string{'-'} + lots.device + lots.xnack) + " --inputs=" +
+                                      bin_file + " --outputs=" + bin_file + ".hsaco --unbundle");
 
     auto hsaco = std::find_if(fs::directory_iterator{tmp_dir->path}, {}, [](auto entry) {
         return (entry.path().extension() == ".hsaco");

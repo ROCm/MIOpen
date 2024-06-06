@@ -61,7 +61,7 @@ struct HIPOCProgram
     /// \return True if CO blob resides in-memory.
     /// False if CO resides on filesystem.
     bool IsCodeObjectInMemory() const;
-    void FreeCodeObjectFileStorage();
+    void FreeCodeObjectFileStorage() const;
 };
 } // namespace miopen
 

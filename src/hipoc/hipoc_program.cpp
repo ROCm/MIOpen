@@ -365,10 +365,7 @@ fs::path HIPOCProgram::GetCodeObjectPathname() const
 
 std::vector<char> HIPOCProgram::GetCodeObjectBlob() const { return impl->binary; }
 
-void HIPOCProgram::FreeCodeObjectFileStorage()
-{
-    impl->hsaco_file.clear();
-}
+void HIPOCProgram::FreeCodeObjectFileStorage() const { impl->hsaco_file.clear(); }
 
 bool HIPOCProgram::IsCodeObjectInMemory() const { return !impl->binary.empty(); };
 
