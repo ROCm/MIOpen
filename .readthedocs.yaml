@@ -3,15 +3,6 @@
 
 version: 2
 
-sphinx:
-   configuration: docs/conf.py
-
-formats: [htmlzip, pdf, epub]
-
-python:
-   install:
-   - requirements: docs/sphinx/requirements.txt
-
 build:
    os: ubuntu-22.04
    tools:
@@ -20,3 +11,12 @@ build:
      - "doxygen"
      - "gfortran" # For pre-processing fortran sources
      - "graphviz" # For dot graphs in doxygen
+
+python:
+   install:
+   - requirements: docs/sphinx/requirements.txt
+
+sphinx:
+   configuration: docs/conf.py
+
+formats: []
