@@ -143,7 +143,7 @@ inline bool isDataTypeHalfAndChannelsEven(const miopen::conv::ProblemDescription
 
 inline bool ShouldAllocateWorkSpaceBufferForWRW(const miopen::conv::ProblemDescription& problem)
 {
-    return problem.GetSpatialDims() == 3 &&
+    return problem.Is3d() &&
            (problem.GetAlphaBetaCase() != DEFAULT || isDataTypeHalfAndChannelsEven(problem));
 }
 
