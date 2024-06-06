@@ -567,16 +567,16 @@ void MultiHeadAttentionBackwardDataf8(const tensor<T>& q_val,
     // s_scale to convert to fp8
     ScaleMult(bias_sub_fp32_pm_softmax, ds_scale, bias_sub_fp8_pm_softmax);
 
-    // fp8 matrix multiplication
-    Dot_4D_4D(bias_sub_fp8_pm_softmax, k_val, dQ_val);
-    // fp8 matrix multiplication
-    Dot_4D_T_4D(bias_sub_fp8_pm_softmax, q_val, dK_val);
-
     tensor<float> dQ_val_fp32(dQ_val.desc.GetLengths());
     tensor<float> dK_val_fp32(dK_val.desc.GetLengths());
+    // fp8 matrix multiplication
+    Dot_4D_4D(bias_sub_fp8_pm_softmax, k_val, dQ_val_fp32);
+    // fp8 matrix multiplication
+    Dot_4D_T_4D(bias_sub_fp8_pm_softmax, q_val, dK_val_fp32);
+
     // bring it back to fp32
-    ScaleMult(dQ_val, ds_descale * k_descale, dQ_val_fp32);
-    ScaleMult(dK_val, ds_descale * q_descale, dK_val_fp32);
+    ScaleMult(dQ_val_fp32, ds_descale * k_descale, dQ_val_fp32);
+    ScaleMult(dK_val_fp32, ds_descale * q_descale, dK_val_fp32);
 
     aMax_dQ = AbsoluteMax(dQ_val_fp32);
     aMax_dK = AbsoluteMax(dK_val_fp32);
