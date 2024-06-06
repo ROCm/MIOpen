@@ -38,4 +38,3 @@ static Driver* makeDriver(const std::string& base_arg)
 }
 
 REGISTER_DRIVER_MAKER(makeDriver);
-
