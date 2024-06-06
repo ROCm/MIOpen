@@ -165,10 +165,6 @@ struct ProblemDescription : ProblemDescriptionBase
           beta(beta_),
           alpha_beta_case(ClassifyAlphaBeta(alpha, beta))
     {
-        // std::cout << "pp alpha = " << alpha.GetAsFloat() << "\n";
-        // std::cout << "pp beta  = " << beta.GetAsFloat() <<"\n\n";
-        // std::cout << "pp alpha = " << alpha.GetAsDouble() << "\n";
-        // std::cout << "pp beta  = " << beta.GetAsDouble() <<"\n\n";
         HeuristicUpdateLayouts();
     }
 

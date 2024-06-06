@@ -553,8 +553,6 @@ GetConv3DFWDSolution(const ExecutionContext& ctx, const ::miopen::conv::ProblemD
 
             double alpha_val = data_ctx.alpha.GetAsDouble();
             double beta_val  = data_ctx.beta.GetAsDouble();
-            std::cout << "cc alpha = " << alpha_val << "\n";
-            std::cout << "cc beta  = " << beta_val << "\n\n";
             handle.Run(kern)(tensors.in,
                              tensors.w,
                              alpha_val,
