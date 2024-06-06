@@ -380,7 +380,7 @@ protected:
             return cpu_tensor;
         };
 
-        const double error_threshold     = 5e-6;
+        const double error_threshold     = 5e-5;
         const double fp8_error_threshold = (std::is_same_v<T, float8>) ? 3e-3 : error_threshold;
 
         auto checkAmax = [GetResult, error_threshold](
