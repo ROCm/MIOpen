@@ -49,10 +49,14 @@ struct ForwardProblemDescription : ProblemDescriptionBase
 {
     // Forward constructor
     ForwardProblemDescription(const TensorDescriptor& inputDesc_,
-                       const TensorDescriptor& otherDesc_,
-                       const TensorDescriptor& conditionDesc_,
-                       const TensorDescriptor& outputDesc_)
-        : direction(Direction::Forward), inputDesc(inputDesc_), otherDesc(otherDesc_), conditionDesc(conditionDesc_), outputDesc(outputDesc_)
+                              const TensorDescriptor& otherDesc_,
+                              const TensorDescriptor& conditionDesc_,
+                              const TensorDescriptor& outputDesc_)
+        : direction(Direction::Forward),
+          inputDesc(inputDesc_),
+          otherDesc(otherDesc_),
+          conditionDesc(conditionDesc_),
+          outputDesc(outputDesc_)
     {
         if(inputDesc.GetLengths().size() != outputDesc.GetLengths().size())
         {
@@ -138,10 +142,14 @@ struct BackwardProblemDescription : ProblemDescriptionBase
 {
     // Backward constructor
     BackwardProblemDescription(const TensorDescriptor& outputGradDesc_,
-                       const TensorDescriptor& conditionDesc_,
-                       const TensorDescriptor& inputGradDesc_,
-                       const TensorDescriptor& otherGradDesc_)
-        : direction(Direction::Backward), outputGradDesc(outputGradDesc_), conditionDesc(conditionDesc_), inputGradDesc(inputGradDesc_), otherGradDesc(otherGradDesc_)
+                               const TensorDescriptor& conditionDesc_,
+                               const TensorDescriptor& inputGradDesc_,
+                               const TensorDescriptor& otherGradDesc_)
+        : direction(Direction::Backward),
+          outputGradDesc(outputGradDesc_),
+          conditionDesc(conditionDesc_),
+          inputGradDesc(inputGradDesc_),
+          otherGradDesc(otherGradDesc_)
     {
         if(inputGradDesc.GetLengths().size() != otherGradDesc.GetLengths().size())
         {

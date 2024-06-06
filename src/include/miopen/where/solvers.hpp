@@ -35,7 +35,8 @@ namespace solver {
 
 namespace where {
 
-using WhereForwardSolver = NonTunableSolverBase<ExecutionContext, miopen::where::ForwardProblemDescription>;
+using WhereForwardSolver =
+    NonTunableSolverBase<ExecutionContext, miopen::where::ForwardProblemDescription>;
 
 struct WhereForward final : WhereForwardSolver
 {
@@ -43,11 +44,13 @@ struct WhereForward final : WhereForwardSolver
 
     bool IsApplicable(const ExecutionContext& context,
                       const miopen::where::ForwardProblemDescription& problem) const override;
-    ConvSolution GetSolution(const ExecutionContext& context,
-                             const miopen::where::ForwardProblemDescription& problem) const override;
+    ConvSolution
+    GetSolution(const ExecutionContext& context,
+                const miopen::where::ForwardProblemDescription& problem) const override;
 };
 
-using WhereBackwardSolver = NonTunableSolverBase<ExecutionContext, miopen::where::BackwardProblemDescription>;
+using WhereBackwardSolver =
+    NonTunableSolverBase<ExecutionContext, miopen::where::BackwardProblemDescription>;
 
 struct WhereBackward final : WhereBackwardSolver
 {
@@ -55,8 +58,9 @@ struct WhereBackward final : WhereBackwardSolver
 
     bool IsApplicable(const ExecutionContext& context,
                       const miopen::where::BackwardProblemDescription& problem) const override;
-    ConvSolution GetSolution(const ExecutionContext& context,
-                             const miopen::where::BackwardProblemDescription& problem) const override;
+    ConvSolution
+    GetSolution(const ExecutionContext& context,
+                const miopen::where::BackwardProblemDescription& problem) const override;
 };
 
 } // namespace where

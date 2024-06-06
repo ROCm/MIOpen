@@ -37,28 +37,29 @@
 namespace miopen {
 
 miopenStatus_t WhereForward(Handle& handle,
-                          const TensorDescriptor& inputDesc,
-                          Data_t input,
-                          const TensorDescriptor& otherDesc,
-                          Data_t other,
-                          const TensorDescriptor& conditionDesc,
-                          Data_t condition,
-                          const TensorDescriptor& outputDesc,
-                          Data_t output)
+                            const TensorDescriptor& inputDesc,
+                            Data_t input,
+                            const TensorDescriptor& otherDesc,
+                            Data_t other,
+                            const TensorDescriptor& conditionDesc,
+                            Data_t condition,
+                            const TensorDescriptor& outputDesc,
+                            Data_t output)
 {
-    const auto problem = where::ForwardProblemDescription{inputDesc, otherDesc, conditionDesc, outputDesc};
+    const auto problem =
+        where::ForwardProblemDescription{inputDesc, otherDesc, conditionDesc, outputDesc};
 
     const auto invoke_params = [&]() {
-        auto tmp       = where::InvokeParams{};
-        tmp.type       = InvokeType::Run;
-        tmp.inputDesc  = &inputDesc;
-        tmp.otherDesc  = &otherDesc;
+        auto tmp          = where::InvokeParams{};
+        tmp.type          = InvokeType::Run;
+        tmp.inputDesc     = &inputDesc;
+        tmp.otherDesc     = &otherDesc;
         tmp.conditionDesc = &conditionDesc;
-        tmp.outputDesc = &outputDesc;
-        tmp.input      = input;
-        tmp.other      = other;
-        tmp.condition  = condition;
-        tmp.output     = output;
+        tmp.outputDesc    = &outputDesc;
+        tmp.input         = input;
+        tmp.other         = other;
+        tmp.condition     = condition;
+        tmp.output        = output;
         return tmp;
     }();
 
@@ -71,16 +72,17 @@ miopenStatus_t WhereForward(Handle& handle,
 }
 
 miopenStatus_t WhereBackward(Handle& handle,
-                           const TensorDescriptor& outputGradDesc,
-                           Data_t outputGrad,
-                           const TensorDescriptor& conditionDesc,
-                           Data_t condition,
-                           const TensorDescriptor& inputGradDesc,
-                           Data_t inputGrad,
-                           const TensorDescriptor& otherGradDesc,
-                           Data_t otherGrad)
+                             const TensorDescriptor& outputGradDesc,
+                             Data_t outputGrad,
+                             const TensorDescriptor& conditionDesc,
+                             Data_t condition,
+                             const TensorDescriptor& inputGradDesc,
+                             Data_t inputGrad,
+                             const TensorDescriptor& otherGradDesc,
+                             Data_t otherGrad)
 {
-    const auto problem = where::BackwardProblemDescription{outputGradDesc, conditionDesc, inputGradDesc, otherGradDesc};
+    const auto problem = where::BackwardProblemDescription{
+        outputGradDesc, conditionDesc, inputGradDesc, otherGradDesc};
 
     const auto invoke_params = [&]() {
         auto tmp           = where::BwdInvokeParams{};

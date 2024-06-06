@@ -38,15 +38,15 @@ struct InvokeParams : public miopen::InvokeParams
 {
     InvokeParams() = default;
 
-    const TensorDescriptor* inputDesc  = nullptr;
-    const TensorDescriptor* otherDesc = nullptr;
+    const TensorDescriptor* inputDesc     = nullptr;
+    const TensorDescriptor* otherDesc     = nullptr;
     const TensorDescriptor* conditionDesc = nullptr;
-    const TensorDescriptor* outputDesc = nullptr;
+    const TensorDescriptor* outputDesc    = nullptr;
 
-    ConstData_t input = nullptr;
-    ConstData_t other = nullptr;
-    ConstData_t condition  = nullptr;
-    Data_t output     = nullptr;
+    ConstData_t input     = nullptr;
+    ConstData_t other     = nullptr;
+    ConstData_t condition = nullptr;
+    Data_t output         = nullptr;
 
     std::size_t GetWorkspaceSize() const { return 0; }
     Data_t GetWorkspace() const { return nullptr; }
@@ -59,10 +59,10 @@ struct BwdInvokeParams : public miopen::InvokeParams
     const TensorDescriptor* outputGradDesc = nullptr;
     const TensorDescriptor* conditionDesc  = nullptr;
     const TensorDescriptor* inputGradDesc  = nullptr;
-    const TensorDescriptor* otherGradDesc      = nullptr;
+    const TensorDescriptor* otherGradDesc  = nullptr;
 
-    ConstData_t outputGrad      = nullptr;
-    ConstData_t condition       = nullptr;
+    ConstData_t outputGrad = nullptr;
+    ConstData_t condition  = nullptr;
     Data_t inputGrad       = nullptr;
     Data_t otherGrad       = nullptr;
 

@@ -54,7 +54,7 @@ NetworkConfig ForwardProblemDescription::MakeForwardNetworkConfig() const
     ss << "input_dtype" << input_dtype;
     ss << "output_dtype" << output_dtype;
     ss << "input_numel" << input_numel;
-    //ss << IsAllPacked();
+    // ss << IsAllPacked();
 
     return NetworkConfig{ss.str()};
 }
