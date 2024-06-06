@@ -763,7 +763,11 @@ const hipblasLt_handle_ptr& Handle::HipblasLtHandle() const
 hipblasLt_handle_ptr Handle::CreateHipblasLtHandle() const
 {
     hipblasLtHandle_t handle = nullptr;
-    auto status = hipblasLtCreate(&handle);
+    if(hipblasLtCreate(&handle) != hipblasStatus_t::HIPBLAS_STATUS_SUCCESS)
+    {
+       MIOPEN_THROW(miopenStatusUnknownError, "failed creating hipBLASLt handle");
+    }
+
     return hipblasLt_handle_ptr{handle};
 }
 } // namespace miopen
