@@ -47,23 +47,26 @@ namespace mha {
 
 namespace { // TODO: Issue #2748
 
-MultiBufferWorkspaceTraits SplitBufferToWorkspace(size_t S, size_t D, size_t NHS)
+MultiBufferWorkspaceTraits
+SplitBufferToWorkspace(size_t S, size_t D, size_t NHS, miopenDataType_t out_type)
 {
     // the first MatMuls (N*H*S*D) * (N*H*S*D)T = (N*H*S*S)
     // the second MatMuls (N*H*S*S)[T] * (N*H*S*D) = (N*H*S*D)
     // dOxO row reduction (N*H*S*1)
     return MultiBufferWorkspaceTraits{
-        NHS * S * get_data_size(miopenFloat),              // fp32 QxK and fp32 S
-        NHS * S * get_data_size(miopenFloat),              // fp32 dOxV and fp8/32 dS
-        NHS * std::max(S, D) * get_data_size(miopenFloat), // fp32 dOxO and fp32 SxdO
-        NHS * D * get_data_size(miopenFloat),              // fp32 dSxK
-        NHS * D * get_data_size(miopenFloat)};             // fp32 dSxQ
+        NHS * S * get_data_size(miopenFloat),                             // fp32 QxK and fp32 S
+        NHS * S * get_data_size(miopenFloat),                             // fp32 dOxV and fp32 dS
+        NHS * std::max(S, D) * get_data_size(miopenFloat),                // fp32 dOxO and fp32 SxdO
+        NHS * D * get_data_size(miopenFloat),                             // fp32 dSxK
+        NHS * D * get_data_size(miopenFloat),                             // fp32 dSxQ
+        out_type == miopenFloat ? 0 : NHS * S * get_data_size(out_type)}; // fp8 dS
 }
 
-MultiBufferWorkspaceTraits SplitBufferToWorkspace(const std::vector<size_t>& lengths)
+MultiBufferWorkspaceTraits SplitBufferToWorkspace(const std::vector<size_t>& lengths,
+                                                  miopenDataType_t out_type)
 {
     const auto [N, H, S, D] = miopen::tien<4>(lengths);
-    return SplitBufferToWorkspace(S, D, N * H * S);
+    return SplitBufferToWorkspace(S, D, N * H * S, out_type);
 }
 
 miopen::HipEventPtr make_hip_fast_event()
@@ -122,7 +125,8 @@ bool MhaBackward::IsApplicable([[maybe_unused]] const ExecutionContext& context,
 std::size_t MhaBackward::GetWorkspaceSize([[maybe_unused]] const ExecutionContext& context,
                                           const miopen::mha::ProblemDescription& problem) const
 {
-    return SplitBufferToWorkspace(problem.GetDescsBackward().kDesc.GetLengths()).GetSize();
+    const auto& kDesc = problem.GetDescsBackward().kDesc;
+    return SplitBufferToWorkspace(kDesc.GetLengths(), kDesc.GetType()).GetSize();
 }
 
 ConvSolution MhaBackward::GetSolution(const ExecutionContext& context,
@@ -182,7 +186,8 @@ ConvSolution MhaBackward::GetSolution(const ExecutionContext& context,
     bwd_attention_kernel.g_wk = {global_threads, 1, 1};
     result.construction_params.push_back(bwd_attention_kernel);
 
-    auto getBuffPart = [ws = SplitBufferToWorkspace(S, D, nhs)](void* buffer, size_t part_idx) {
+    auto getBuffPart = [ws = SplitBufferToWorkspace(S, D, nhs, ABType_K)](void* buffer,
+                                                                          size_t part_idx) {
         return static_cast<void*>(static_cast<std::byte*>(buffer) + ws.GetOffset(part_idx));
     };
 
@@ -230,8 +235,10 @@ ConvSolution MhaBackward::GetSolution(const ExecutionContext& context,
                 hipEventRecord(start.get(), handle_.GetStream());
             }
 
-            void* fp32_QxK_S_ws     = getBuffPart(params.GetWorkspace(), 0);
-            void* fp32_dOxV_dS_ws   = getBuffPart(params.GetWorkspace(), 1);
+            void* fp32_QxK_S_ws = getBuffPart(params.GetWorkspace(), 0);
+            void* fp32_dOxV_ws  = getBuffPart(params.GetWorkspace(), 1);
+            void* fp32_dS_ws =
+                ABType_K == miopenFloat ? fp32_dOxV_ws : getBuffPart(params.GetWorkspace(), 5);
             void* fp32_dOxO_SxdO_ws = getBuffPart(params.GetWorkspace(), 2);
             void* fp32_dSxK_ws      = getBuffPart(params.GetWorkspace(), 3);
             void* fp32_dSxQ_ws      = getBuffPart(params.GetWorkspace(), 4);
@@ -292,7 +299,7 @@ ConvSolution MhaBackward::GetSolution(const ExecutionContext& context,
                  dataBwd.doData,
                  ABType_K,
                  dataBwd.vData,
-                 fp32_dOxV_dS_ws,
+                 fp32_dOxV_ws,
                  true);
 
             HipEventPtr event_dOxV = recordSyncEvent();
@@ -304,7 +311,8 @@ ConvSolution MhaBackward::GetSolution(const ExecutionContext& context,
 
             decltype(auto) bwd_attention_kernel = handle_.Run(kernels[1]);
             bwd_attention_kernel(fp32_QxK_S_ws,
-                                 fp32_dOxV_dS_ws,
+                                 fp32_dOxV_ws,
+                                 fp32_dS_ws,
                                  dataBwd.mData,
                                  dataBwd.zInvData,
                                  fp32_dOxO_SxdO_ws,
@@ -337,7 +345,7 @@ ConvSolution MhaBackward::GetSolution(const ExecutionContext& context,
                  S * D,
                  1.0f,
                  ABType_K,
-                 fp32_dOxV_dS_ws,
+                 fp32_dS_ws,
                  ABType_K,
                  dataBwd.kData,
                  fp32_dSxK_ws,
@@ -359,7 +367,7 @@ ConvSolution MhaBackward::GetSolution(const ExecutionContext& context,
                  S * D,
                  1.0f,
                  ABType_K,
-                 fp32_dOxV_dS_ws,
+                 fp32_dS_ws,
                  ABType_K,
                  dataBwd.qData,
                  fp32_dSxQ_ws,
