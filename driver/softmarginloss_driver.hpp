@@ -471,13 +471,11 @@ int SoftMarginLossDriver<Tgpu, Tref>::RunForwardGPU()
 {
     float kernel_total_time = 0;
     float kernel_first_time = 0;
-    int iter                = inflags.GetValueInt("iter");
 
     Timer t;
     START_TIME
 
-    std::vector<float> benchmark_time(iter - 1);
-    for(int i = 0; i < iter; i++)
+    for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
         if(divisor == 0)
         {
@@ -510,45 +508,18 @@ int SoftMarginLossDriver<Tgpu, Tref>::RunForwardGPU()
         kernel_total_time += time;
         if(i == 0)
             kernel_first_time = time;
-        else
-            benchmark_time[i - 1] = time;
     }
 
     if(inflags.GetValueInt("time") == 1)
     {
         STOP_TIME
+        int iter = inflags.GetValueInt("iter");
         if(WALL_CLOCK)
             std::cout << "Wall-clock Time Forward SoftMarginLoss Elapsed: " << t.gettime_ms() / iter
                       << " ms" << std::endl;
 
-        float kernel_average_time;
-        if(iter == 1)
-            kernel_average_time = kernel_first_time;
-        else if(divisor == 0)
-        {
-            kernel_average_time = (kernel_total_time - kernel_first_time) / (iter - 1);
-        }
-        else
-        {
-            // In reduced forward version, the benchmark method is from beginning time of first
-            // kernel to the ending time of last kernel. When running driver with this benchmark
-            // method with multiple iterations, there will be some iterations that produced time
-            // that significant large compared to other iterations, which I cannot explain the
-            // reason for now. Because there are 'outlier' data, we should not use average time
-            // among iterations. The solution now is to get median time among iterations so the
-            // result is resilient to outlier data
-            std::sort(benchmark_time.begin(), benchmark_time.end());
-            size_t size = benchmark_time.size();
-            if(size % 2 == 0)
-            {
-                kernel_average_time =
-                    (benchmark_time[size / 2 - 1] + benchmark_time[size / 2]) / 2.0;
-            }
-            else
-            {
-                kernel_average_time = benchmark_time[size / 2];
-            }
-        }
+        float kernel_average_time =
+            iter > 1 ? (kernel_total_time - kernel_first_time) / (iter - 1) : kernel_first_time;
         std::cout << "GPU Kernel Time Forward SoftMarginLoss Elapsed: " << kernel_average_time
                   << " ms" << std::endl;
     }
