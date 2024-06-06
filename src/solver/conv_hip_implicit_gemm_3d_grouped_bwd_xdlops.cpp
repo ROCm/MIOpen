@@ -401,6 +401,7 @@ void PerformanceConfigHipImplicitGemm3DGroupBwdXdlops::HeuristicInit(
     case miopenFloat: Init<float>(problem); break;
     case miopenInt8: Init<int8_t>(problem); break;
     case miopenBFloat16: Init<ck::bhalf_t>(problem); break;
+    case miopenInt64:
     case miopenInt32:
     case miopenFloat8:
     case miopenBFloat8:
@@ -443,6 +444,7 @@ bool PerformanceConfigHipImplicitGemm3DGroupBwdXdlops::IsValid(
     case miopenFloat: return CheckIsSupportCKArgs<float>(problem);
     case miopenInt8: return CheckIsSupportCKArgs<int8_t>(problem);
     case miopenBFloat16: return CheckIsSupportCKArgs<ck::bhalf_t>(problem);
+    case miopenInt64:
     case miopenInt32:
     case miopenFloat8:
     case miopenBFloat8:
@@ -495,9 +497,9 @@ bool ConvHipImplicitGemm3DGroupBwdXdlops::IsApplicable(
     [[maybe_unused]] const ProblemDescription& problem) const
 {
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
-    if(miopen::IsDisabled(MIOPEN_ENV(MIOPEN_DEBUG_3D_CONV_IMPLICIT_GEMM_HIP_BWD_XDLOPS)))
+    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_3D_CONV_IMPLICIT_GEMM_HIP_BWD_XDLOPS)))
         return false;
-    if(miopen::IsEnabled(MIOPEN_ENV(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC)))
+    if(miopen::IsEnabled(ENV(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC)))
         return false;
     if(!problem.AllTensorsDimsFitIntoInt())
         return false;
@@ -522,6 +524,7 @@ bool ConvHipImplicitGemm3DGroupBwdXdlops::IsApplicable(
     case miopenFloat: return CheckCKApplicability<float>(problem);
     case miopenInt8: return CheckCKApplicability<int8_t>(problem);
     case miopenBFloat16: return CheckCKApplicability<ck::bhalf_t>(problem);
+    case miopenInt64:
     case miopenInt32:
     case miopenFloat8:
     case miopenBFloat8:

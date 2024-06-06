@@ -183,7 +183,7 @@ bool BnCKFwdTraining::IsApplicable(
     [[maybe_unused]] const miopen::batchnorm::ProblemDescription& bn_problem) const
 {
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
-    if(miopen::IsDisabled(MIOPEN_ENV(MIOPEN_DEBUG_CONV_CK_BN_FWD_TRAINING)))
+    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_CK_BN_FWD_TRAINING)))
         return false;
     if(!bn_problem.IsLayoutNHWC())
         return false;
@@ -196,6 +196,7 @@ bool BnCKFwdTraining::IsApplicable(
     case miopenFloat: return CheckCKApplicability<F32, F32, F32, F32, F32, F32>(bn_problem);
     case miopenDouble: return CheckCKApplicability<F64, F64, F64, F64, F64, F64>(bn_problem);
     case miopenBFloat16: return CheckCKApplicability<BF16, BF16, F32, BF16, BF16, F32>(bn_problem);
+    case miopenInt64:
     case miopenInt32:
     case miopenInt8:
     case miopenBFloat8:
@@ -219,6 +220,7 @@ ConvSolution BnCKFwdTraining::GetSolution(
     case miopenBFloat16: return MakeAnyInvokerFactory<BF16, BF16, F32, BF16, BF16, F32>(bn_problem);
     case miopenInt8:
     case miopenInt32:
+    case miopenInt64:
     case miopenBFloat8:
     case miopenFloat8:
     default:

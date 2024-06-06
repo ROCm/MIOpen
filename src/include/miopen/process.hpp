@@ -30,17 +30,22 @@
 #include <miopen/filesystem.hpp>
 #include <memory>
 #include <string_view>
+#include <map>
 
 namespace miopen {
 
 struct ProcessImpl;
+using ProcessEnvironmentMap = std::map<std::string, std::string>;
 
 struct Process
 {
     Process(const fs::path& cmd);
     ~Process() noexcept;
 
-    int operator()(std::string_view args = "", const fs::path& cwd = "");
+    int operator()(std::string_view args                                       = "",
+                   const fs::path& cwd                                         = "",
+                   std::ostream* out                                           = nullptr,
+                   const ProcessEnvironmentMap& additionalEnvironmentVariables = {});
 
 private:
     std::unique_ptr<ProcessImpl> impl;
@@ -48,7 +53,11 @@ private:
 
 struct ProcessAsync
 {
-    ProcessAsync(const fs::path& cmd, std::string_view args = "", const fs::path& cwd = "");
+    ProcessAsync(const fs::path& cmd,
+                 std::string_view args                                       = "",
+                 const fs::path& cwd                                         = "",
+                 std::ostream* out                                           = nullptr,
+                 const ProcessEnvironmentMap& additionalEnvironmentVariables = {});
     ~ProcessAsync() noexcept;
 
     ProcessAsync(ProcessAsync&&) noexcept;

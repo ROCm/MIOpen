@@ -27,6 +27,7 @@
 #include <miopen/graphapi/convolution.hpp>
 #include <miopen/graphapi/engine.hpp>
 #include <miopen/graphapi/enginecfg.hpp>
+#include <miopen/graphapi/engineheur.hpp>
 #include <miopen/graphapi/execution_plan.hpp>
 #include <miopen/graphapi/graphapi.hpp>
 #include <miopen/graphapi/opgraph.hpp>
@@ -64,6 +65,9 @@ miopenBackendCreateDescriptor(miopenBackendDescriptorType_t descriptorType,
 
         case MIOPEN_BACKEND_ENGINECFG_DESCRIPTOR:
             outputDescriptor = new miopen::graphapi::BackendEngineCfgDescriptor(); break;
+
+        case MIOPEN_BACKEND_ENGINEHEUR_DESCRIPTOR:
+            outputDescriptor = new miopen::graphapi::BackendEngineHeurDescriptor(); break;
 
         case MIOPEN_BACKEND_EXECUTION_PLAN_DESCRIPTOR:
             outputDescriptor = new miopen::graphapi::BackendExecutionPlanDescriptor(); break;
@@ -232,6 +236,9 @@ extern "C" miopenStatus_t miopenBackendInitialize(miopenBackendDescriptor_t desc
 
         case MIOPEN_BACKEND_ENGINECFG_DESCRIPTOR:
             initializeBackendDescriptor<miopen::graphapi::BackendEngineCfgDescriptor>(descriptor, sizeInBytes); break;
+
+        case MIOPEN_BACKEND_ENGINEHEUR_DESCRIPTOR:
+            initializeBackendDescriptor<miopen::graphapi::BackendEngineHeurDescriptor>(descriptor, sizeInBytes); break;
 
         case MIOPEN_BACKEND_EXECUTION_PLAN_DESCRIPTOR:
             initializeBackendDescriptor<miopen::graphapi::BackendExecutionPlanDescriptor>(descriptor, sizeInBytes); break;

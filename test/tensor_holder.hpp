@@ -113,12 +113,27 @@ struct miopen_type<int> : std::integral_constant<miopenDataType_t, miopenInt32>
 };
 
 template <>
+struct miopen_type<int64_t> : std::integral_constant<miopenDataType_t, miopenInt64>
+{
+};
+
+template <>
 struct miopen_type<float8> : std::integral_constant<miopenDataType_t, miopenFloat8>
 {
 };
 
 template <>
 struct miopen_type<bfloat8> : std::integral_constant<miopenDataType_t, miopenBFloat8>
+{
+};
+
+template <>
+struct miopen_type<uint8_t> : std::integral_constant<miopenDataType_t, miopenInt8>
+{
+};
+
+template <>
+struct miopen_type<uint16_t> : std::integral_constant<miopenDataType_t, miopenHalf>
 {
 };
 

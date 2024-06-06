@@ -24,6 +24,8 @@
  *
  *******************************************************************************/
 
+#include "mha_common.hpp"
+
 #include <miopen/mha/solvers.hpp>
 
 #include <miopen/mha/invoke_params.hpp>
@@ -46,43 +48,6 @@ namespace solver {
 namespace mha {
 
 namespace { // TODO: Issue #2748
-template <typename T, typename S = std::enable_if_t<std::is_unsigned_v<T>, T>>
-constexpr inline S Ceil(const T val, const T div)
-{
-    return (val - 1 + div) / div;
-}
-
-template <typename T, typename S = std::enable_if_t<std::is_unsigned_v<T>, T>>
-constexpr S RoundUpToMultiple(T val, T mul)
-{
-    return Ceil(val, mul) * mul;
-}
-
-template <typename T>
-constexpr T nextPow2(T v)
-{
-    static_assert(std::is_unsigned_v<T>);
-
-    if(v == 1)
-    {
-        return (v << 1);
-    }
-    else
-    {
-        v--;
-        v |= v >> 1;
-        v |= v >> 2;
-        v |= v >> 4;
-        if constexpr(sizeof(T) > 1)
-            v |= v >> 8;
-        if constexpr(sizeof(T) > 2)
-            v |= v >> 16;
-        if constexpr(sizeof(T) > 4)
-            v |= v >> 32;
-        v++;
-        return v;
-    }
-}
 
 MultiBufferWorkspaceTraits SplitBufferToWorkspace(size_t S, size_t D, size_t NHS)
 {
@@ -124,19 +89,19 @@ bool MhaBackward::IsApplicable([[maybe_unused]] const ExecutionContext& context,
 
     auto [N, H, S, D] = miopen::tien<4>(descsBackward.kDesc.GetLengths());
 
-    return !miopen::IsDisabled(MIOPEN_ENV(MIOPEN_DEBUG_ATTN_NAIVE_BWD)) //
-           && S <= std::numeric_limits<uint32_t>::max()                 //
-           && D <= std::numeric_limits<uint32_t>::max()                 //
-           && descsBackward.kDesc.IsPacked()                            //
-           && descsBackward.qDesc.IsPacked()                            //
-           && descsBackward.vDesc.IsPacked()                            //
-           && descsBackward.oDesc.IsPacked()                            //
-           && descsBackward.doDesc.IsPacked()                           //
-           && descsBackward.mDesc.IsPacked()                            //
-           && descsBackward.zInvDesc.IsPacked()                         //
-           && descsBackward.dkDesc.IsPacked()                           //
-           && descsBackward.dqDesc.IsPacked()                           //
-           && descsBackward.dvDesc.IsPacked()                           //
+    return !miopen::IsDisabled(ENV(MIOPEN_DEBUG_ATTN_NAIVE_BWD)) //
+           && S <= std::numeric_limits<uint32_t>::max()          //
+           && D <= std::numeric_limits<uint32_t>::max()          //
+           && descsBackward.kDesc.IsPacked()                     //
+           && descsBackward.qDesc.IsPacked()                     //
+           && descsBackward.vDesc.IsPacked()                     //
+           && descsBackward.oDesc.IsPacked()                     //
+           && descsBackward.doDesc.IsPacked()                    //
+           && descsBackward.mDesc.IsPacked()                     //
+           && descsBackward.zInvDesc.IsPacked()                  //
+           && descsBackward.dkDesc.IsPacked()                    //
+           && descsBackward.dqDesc.IsPacked()                    //
+           && descsBackward.dvDesc.IsPacked()                    //
            && MIOPEN_USE_GEMM;
 }
 
