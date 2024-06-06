@@ -147,6 +147,8 @@ set( MIOpen_Source
     performance_config.cpp
     pooling/problem_description.cpp
     pooling_api.cpp
+    prelu/problem_description.cpp
+    prelu_api.cpp
     problem.cpp
     process.cpp
     ramdb.cpp
@@ -269,6 +271,8 @@ set( MIOpen_Source
     solver/pooling/forwardNd.cpp
     solver/pooling/backward2d.cpp
     solver/pooling/backwardNd.cpp
+    solver/prelu/backward_prelu.cpp
+    solver/prelu/utils.cpp
     solver/reduce/forward_argmax.cpp
     solver/reduce/forward_sum.cpp
     solver/softmax/attn_softmax.cpp
@@ -421,6 +425,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/neuron.inc
         kernels/rocm_version.inc
         kernels/stride_array.hpp
+        kernels/tensor_view.hpp
         kernels/utilities.inc
         kernels/workaround_issue_1431.hpp
         kernels/xform_bidirect_winograd_code.inc
@@ -459,6 +464,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenLRNBwd.cl
         kernels/MIOpenLRNFwd.cl
         kernels/MIOpenNeuron.cl
+        kernels/MIOpenPReLU.cpp
         kernels/MIOpenPooling.cl
         kernels/MIOpenPoolingBwd.cl
         kernels/MIOpenPoolingBwdND.cl
@@ -467,6 +473,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenConv1x1S.cl
         kernels/MIOpenConv1x1J1.cl
         kernels/MIOpenConv1x1J1_stride.cl
+        kernels/MIOpenReduce.cpp
         kernels/MIOpenSoftmax.cl
         kernels/MIOpenSoftmaxAttn.cpp
         kernels/MIOpenSum.cpp
@@ -603,6 +610,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         pooling.cpp
         ocl/fusionopconvocl.cpp
         ocl/fusionopbiasbnactivocl.cpp
+        prelu.cpp
         sum.cpp
         ${PROJECT_BINARY_DIR}/db_path.cpp
         )

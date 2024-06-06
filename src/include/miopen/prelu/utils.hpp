@@ -48,6 +48,11 @@ inline tensor_view_t<N> get_inner_expanded_tv(const TensorDescriptor Desc)
         tensor_view.stride[i] = strides[i];
         tensor_view.size[i]   = dims[i];
     }
+    for(size_t i = strides.size(); i < N; ++i)
+    {
+        tensor_view.stride[i] = tensor_view.stride[i - 1];
+        tensor_view.size[i]   = 1;
+    }
     return tensor_view;
 }
 

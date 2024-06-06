@@ -65,7 +65,7 @@ struct tensor_layout_t
             for(auto i = N - 1; i > 1; --i)
             {
                 layout[i] = temp % tensor_view.size[i];
-                temp      = idx / tensor_view.size[i];
+                temp      = temp / tensor_view.size[i];
             }
             layout[1] = temp % tensor_view.size[1];
             layout[0] = temp / tensor_view.size[1];

@@ -66,12 +66,12 @@ __device__ FLOAT_ACCUM block_reduce_sum(FLOAT_ACCUM val)
     return val;
 }
 
-template <typename DTYPE>
-__device__ void LossSum(const DTYPE* input, DTYPE* output, size_t N)
+template <typename TO>
+__device__ void ReduceSum(const FLOAT_ACCUM* input, TO* output, size_t N)
 {
     auto gid = blockIdx.x * blockDim.x + threadIdx.x;
 
-    FLOAT_ACCUM val = gid < N ? CVT_FLOAT2ACCUM(input[gid]) : CVT_FP32_2ACCUM(0.0f);
+    FLOAT_ACCUM val = gid < N ? input[gid] : CVT_FP32_2ACCUM(0.0f);
     val             = block_reduce_sum(val);
 
     if(threadIdx.x == 0)
@@ -79,8 +79,53 @@ __device__ void LossSum(const DTYPE* input, DTYPE* output, size_t N)
 }
 
 extern "C" __global__ void
-LossSum(const D_TYPE* __restrict__ input, D_TYPE* __restrict__ output, size_t N)
+ReduceSum(const FLOAT_ACCUM* __restrict__ input, OUTPUT_TYPE* __restrict__ output, size_t N)
 {
     // instantiate the kernel
-    LossSum<D_TYPE>(input, output, N);
+    ReduceSum<OUTPUT_TYPE>(input, output, N);
+}
+
+extern "C" __global__ void ReduceSumFLOATACCUM(const FLOAT_ACCUM* __restrict__ input,
+                                               FLOAT_ACCUM* __restrict__ output,
+                                               size_t N)
+{
+    auto gid = blockIdx.x * blockDim.x + threadIdx.x;
+
+    FLOAT_ACCUM val = gid < N ? input[gid] : 0.0f;
+    val             = block_reduce_sum(val);
+
+    if(threadIdx.x == 0)
+        output[blockIdx.x] = val;
+}
+
+template <typename TO>
+__device__ void Reduce1dSum(const FLOAT_ACCUM* __restrict__ input,
+                            TO* __restrict__ output,
+                            size_t output_numel,
+                            size_t inner_size,
+                            size_t outer_size)
+{
+    int tid  = threadIdx.x;
+    int oidx = blockIdx.x;
+
+    FLOAT_ACCUM sum = CVT_FP32_2ACCUM(0.0f);
+
+    for(int i = 0; i < outer_size; ++i)
+        for(int j = tid; j < inner_size; j += blockDim.x)
+            sum += input[i * output_numel * inner_size + oidx * inner_size + j];
+
+    sum = block_reduce_sum(sum);
+
+    if(tid == 0)
+        output[oidx] = CVT_ACCUM2FLOAT(sum);
+}
+
+extern "C" __global__ void Reduce1dSum(const FLOAT_ACCUM* __restrict__ input,
+                                       OUTPUT_TYPE* __restrict__ output,
+                                       size_t output_numel,
+                                       size_t inner_size,
+                                       size_t outer_size)
+{
+    // instantiate the kernel
+    Reduce1dSum<OUTPUT_TYPE>(input, output, output_numel, inner_size, outer_size);
 }

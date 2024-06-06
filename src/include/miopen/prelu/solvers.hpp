@@ -39,8 +39,6 @@ using BackwardSolverBase =
 
 struct Backward : BackwardSolverBase
 {
-    bool IsApplicable(const ExecutionContext& context,
-                      const miopen::prelu::BackwardProblemDescription& problem) const override;
     bool MayNeedWorkspace() const override { return true; }
 };
 

@@ -52,27 +52,19 @@ bool checkSameLength(const TensorDescriptor& x, const TensorDescriptor& y)
     return true;
 }
 
-bool checkSameStride(const TensorDescriptor& x, const TensorDescriptor& y)
-{
-    if(x.GetSize() != y.GetSize())
-        return false;
-    for(int32_t i = 0; i < x.GetSize(); ++i)
-    {
-        if(x.GetStrides()[i] != y.GetStrides()[i])
-            return false;
-    }
-    return true;
-}
-
 NetworkConfig BackwardProblemDescription::MakeNetworkConfig() const
 {
     auto input_dtype  = inputDesc.GetType();
     auto output_dtype = doutputDesc.GetType();
+    auto size         = inputDesc.GetElementSize();
+    auto num_params   = weightDesc.GetElementSize();
 
     std::ostringstream ss;
 
     ss << "idtype" << input_dtype;
     ss << "odtype" << output_dtype;
+    ss << "size" << size;
+    ss << "num_params" << num_params;
 
     return NetworkConfig{ss.str()};
 }

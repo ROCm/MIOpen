@@ -33,15 +33,15 @@
 namespace miopen {
 
 size_t GetPReLUBackwardWorkspaceSize(Handle& handle,
-                                     const TensorDescriptor& aDesc,
-                                     const TensorDescriptor& dODesc)
+                                     const TensorDescriptor& inputDesc,
+                                     const TensorDescriptor& weightDesc)
 {
     auto ctx = ExecutionContext{&handle};
     const auto problem =
-        prelu::BackwardProblemDescription{aDesc, aDesc, aDesc, dODesc, aDesc, aDesc, aDesc};
+        prelu::BackwardProblemDescription{inputDesc, weightDesc, inputDesc, inputDesc, weightDesc};
 
-    const auto solvers = solver::SolverContainer<solver::prelu::UnreducedBackward2d,
-                                                 solver::prelu::ReducedBackward2d>{};
+    const auto solvers = solver::SolverContainer<solver::prelu::SingleWeightBackward,
+                                                 solver::prelu::MultiWeightsBackward>{};
 
     auto pair_size_vector = solvers.GetWorkspaceSizes(ctx, problem);
 
@@ -50,60 +50,42 @@ size_t GetPReLUBackwardWorkspaceSize(Handle& handle,
 
 miopenStatus_t PReLUBackward(Handle& handle,
                              Data_t workspace,
-                             const size_t workspaceSizeInBytes,
-                             const TensorDescriptor& aDesc,
-                             ConstData_t anchor,
-                             const TensorDescriptor& pDesc,
-                             ConstData_t positive,
-                             const TensorDescriptor& nDesc,
-                             ConstData_t negative,
-                             const TensorDescriptor& dODesc,
-                             ConstData_t dO,
-                             const TensorDescriptor& dADesc,
-                             Data_t dA,
-                             const TensorDescriptor& dPDesc,
-                             Data_t dP,
-                             const TensorDescriptor& dNDesc,
-                             Data_t dN,
-                             const float margin,
-                             const int p,
-                             const float eps,
-                             const bool swap,
-                             const float divisor)
+                             size_t workspaceSizeInBytes,
+                             const TensorDescriptor& inputDesc,
+                             ConstData_t input,
+                             const TensorDescriptor& weightDesc,
+                             ConstData_t weight,
+                             const TensorDescriptor& doutputDesc,
+                             ConstData_t doutput,
+                             const TensorDescriptor& dinputDesc,
+                             Data_t dinput,
+                             const TensorDescriptor& dweightDesc,
+                             Data_t dweight)
 {
-    const auto problem =
-        prelu::BackwardProblemDescription{aDesc, pDesc, nDesc, dODesc, dADesc, dPDesc, dNDesc};
+    const auto problem = prelu::BackwardProblemDescription{
+        inputDesc, weightDesc, doutputDesc, inputDesc, dweightDesc};
 
     const auto invoke_params = [&]() {
         auto tmp           = prelu::InvokeParams{};
         tmp.type           = InvokeType::Run;
-        tmp.aDesc          = &aDesc;
-        tmp.pDesc          = &pDesc;
-        tmp.nDesc          = &nDesc;
-        tmp.dODesc         = &dODesc;
-        tmp.dADesc         = &dADesc;
-        tmp.dPDesc         = &dPDesc;
-        tmp.dNDesc         = &dNDesc;
-        tmp.anchor         = anchor;
-        tmp.positive       = positive;
-        tmp.negative       = negative;
-        tmp.dO             = dO;
-        tmp.dA             = dA;
-        tmp.dP             = dP;
-        tmp.dN             = dN;
+        tmp.inputDesc      = &inputDesc;
+        tmp.weightDesc     = &weightDesc;
+        tmp.doutputDesc    = &doutputDesc;
+        tmp.dinputDesc     = &dinputDesc;
+        tmp.dweightDesc    = &dweightDesc;
+        tmp.input          = input;
+        tmp.weight         = weight;
+        tmp.doutput        = doutput;
+        tmp.dinput         = dinput;
+        tmp.dweight        = dweight;
         tmp.workspace      = workspace;
         tmp.workspace_size = workspaceSizeInBytes;
-        tmp.margin         = margin;
-        tmp.p              = p;
-        tmp.eps            = eps;
-        tmp.swap           = swap;
-        tmp.divisor        = divisor;
         return tmp;
     }();
 
     const auto algo    = AlgorithmName{"PReLUBackward"};
-    const auto solvers = solver::SolverContainer<solver::prelu::UnreducedBackward2d,
-                                                 solver::prelu::ReducedBackward2d>{};
+    const auto solvers = solver::SolverContainer<solver::prelu::SingleWeightBackward,
+                                                 solver::prelu::MultiWeightsBackward>{};
 
     solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
 

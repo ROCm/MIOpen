@@ -36,39 +36,76 @@ namespace prelu {
 
 bool checkSameType(const TensorDescriptor& x, const TensorDescriptor& y);
 bool checkSameLength(const TensorDescriptor& x, const TensorDescriptor& y);
-bool checkSameStride(const TensorDescriptor& x, const TensorDescriptor& y);
 
 struct BackwardProblemDescription : ProblemDescriptionBase
 {
 
     BackwardProblemDescription(const TensorDescriptor& inputDesc_,
                                const TensorDescriptor& weightDesc_,
-                               const TensorDescriptor& outputDesc_,
                                const TensorDescriptor& doutputDesc_,
                                const TensorDescriptor& dinputDesc_,
                                const TensorDescriptor& dweightDesc_)
         : inputDesc(inputDesc_),
           weightDesc(weightDesc_),
-          outputDesc(outputDesc_),
           doutputDesc(doutputDesc_),
           dinputDesc(dinputDesc_),
           dweightDesc(dweightDesc_)
     {
+        IsSameType();
+        IsRightLength();
     }
 
     const TensorDescriptor& GetInputDesc() const { return inputDesc; }
     const TensorDescriptor& GetWeightDesc() const { return weightDesc; }
-    const TensorDescriptor& GetOutputDesc() const { return outputDesc; }
     const TensorDescriptor& GetdOuputDesc() const { return doutputDesc; }
     const TensorDescriptor& GetdInputDesc() const { return dinputDesc; }
     const TensorDescriptor& GetdWeightDesc() const { return dweightDesc; }
+
+    bool IsSameType() const
+    {
+        if(!checkSameType(inputDesc, weightDesc))
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "PReLU: Input and Weight tensor must have same type.");
+        if(!checkSameType(inputDesc, dinputDesc) || !checkSameType(weightDesc, dweightDesc))
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "PReLU: Gradient tensors (excluding Output gradient) must share a same "
+                         "type with Input and Weight tensor.");
+        return true;
+    }
+
+    bool IsRightLength() const
+    {
+        if(inputDesc.GetSize() > 5)
+            MIOPEN_THROW(miopenStatusBadParm, "PReLU: Input tensor max number of dimensions is 5.");
+        if(!checkSameLength(inputDesc, doutputDesc) || !checkSameLength(inputDesc, dinputDesc))
+            MIOPEN_THROW(
+                miopenStatusBadParm,
+                "PReLU: Input and Output Gradient tensors sizes must match with Input tensor.");
+        if(weightDesc.GetSize() != 1)
+            MIOPEN_THROW(miopenStatusBadParm, "PReLU: Weight tensor must have 1 dimension.");
+        if(weightDesc.GetElementSize() != 1 &&
+           (inputDesc.GetSize() == 1 || weightDesc.GetElementSize() != inputDesc.GetLengths()[1]))
+            MIOPEN_THROW(
+                miopenStatusBadParm,
+                "PReLU: Weight size must be 1 or equal to the second dim of Input tensor.");
+        if(!checkSameLength(weightDesc, dweightDesc))
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "PReLU: Weight Gradient tensors sizes must match with Weight tensor.");
+        return true;
+    }
+
+    bool IsSingleWeight() const
+    {
+        if(weightDesc.GetElementSize() > 1)
+            return false;
+        return true;
+    }
 
     NetworkConfig MakeNetworkConfig() const override;
 
 private:
     TensorDescriptor inputDesc;
     TensorDescriptor weightDesc;
-    TensorDescriptor outputDesc;
     TensorDescriptor doutputDesc;
     TensorDescriptor dinputDesc;
     TensorDescriptor dweightDesc;
