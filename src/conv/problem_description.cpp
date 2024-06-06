@@ -187,19 +187,6 @@ void ProblemDescription::MakeNetworkConfig(std::string& conf_key) const
     ss << 'x' << GetDirectionStr();
     ss << 'x' << GetAlphaBetaCaseStr();
 
-    // When alpha = 1.1 and beta = 2.2, kernel is cached as bilinear.
-    // In next run if alpha = 3.3 and beta = 3.3,
-    // same cached bilinear kernel (alpha = 1.1 and beta = 2.2)
-    // was retrived. So, had to add alpha value to
-    // network config to avoid picking wrongly cached kernel.
-    auto roundUpBilinearValues = [](double val) -> std::string {
-        std::ostringstream stream;
-        stream << std::fixed << std::setprecision(1) << val;
-        return stream.str();
-    };
-    ss << 'x' << roundUpBilinearValues(GetAlpha().GetAsDouble());
-    ss << 'x' << roundUpBilinearValues(GetBeta().GetAsDouble());
-
     conf_key = ss.str();
 }
 

@@ -281,6 +281,20 @@ private:
         EXPECT_FALSE(miopen::range_zero(computed)) << "Gpu data is all zeros";
         EXPECT_TRUE(miopen::range_distance(ref) == miopen::range_distance(computed));
 
+        // std::cout << "\n======== ref =============\n";
+        // for(int i = 0; i < 100; ++i)
+        // {
+        //     std::cout << ref.data[i] << " , ";
+        // }
+        // std::cout << "\n======== computed =============\n";
+        // for(int i = 0; i < 100; ++i)
+        // {
+        //     std::cout << computed.data[i] << " , ";
+        // }
+        // std::cout << "\n=====================\n";
+        // std::cout << "\n=====================\n";
+        // std::cout << "\n=====================\n";
+
         /// \todo figure out a better threshold for error checking, esp. for bwd
         /// data and weight passes. --amberhassaan
         double threshold = 80;
@@ -312,6 +326,7 @@ private:
     void RunSolverImpl(const ConvTensorsType& tensors, const ProblemDescription& problem)
     {
 
+        std::cout << conv_config << std::endl;
         auto&& handle = get_handle();
 
         Solver solv{};

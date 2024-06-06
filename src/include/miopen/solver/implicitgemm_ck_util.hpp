@@ -185,7 +185,10 @@ ConvSolution InitInvokerFactoryNHWC(const ExecutionContext&,
                     sh_conv_ptr                 = std::move(sh_conv_ptr)](
                        const Handle& handle, const AnyInvokeParams& primitive_parameters) {
                 const auto& data_ctx = primitive_parameters.CastTo<CastType>();
-                auto argument_ptr    = ck_args.MakeArgPtr(sh_conv_ptr, data_ctx.tensors);
+                auto argument_ptr    = ck_args.MakeArgPtr(sh_conv_ptr,
+                                                       data_ctx.tensors,
+                                                       data_ctx.alpha.GetAsFloat(),
+                                                       data_ctx.beta.GetAsFloat());
                 auto invoker_ptr     = sh_conv_ptr->MakeInvokerPointer();
                 HipEventProfiler pfr(handle);
 
@@ -218,7 +221,10 @@ ConvSolution InitInvokerFactoryNHWC(const ExecutionContext&,
             return [ck_args = std::move(ck_args), sh_conv_ptr = std::move(sh_conv_ptr)](
                        const Handle& handle, const AnyInvokeParams& primitive_parameters) {
                 const auto& data_ctx = primitive_parameters.CastTo<CastType>();
-                auto argument_ptr    = ck_args.MakeArgPtr(sh_conv_ptr, data_ctx.tensors);
+                auto argument_ptr    = ck_args.MakeArgPtr(sh_conv_ptr,
+                                                       data_ctx.tensors,
+                                                       data_ctx.alpha.GetAsFloat(),
+                                                       data_ctx.beta.GetAsFloat());
                 auto invoker_ptr     = sh_conv_ptr->MakeInvokerPointer();
                 HipEventProfiler pfr(handle);
                 invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), false});
@@ -772,7 +778,9 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
             auto argument_ptr = ck_args.MakeArgPtr(sh_conv_ptr,
                                                    tr_ptrs[0]->GetBufferPtr(),
                                                    tr_ptrs[1]->GetBufferPtr(),
-                                                   tr_ptrs[2]->GetBufferPtr());
+                                                   tr_ptrs[2]->GetBufferPtr(),
+                                                   data_ctx.alpha.GetAsFloat(),
+                                                   data_ctx.beta.GetAsFloat());
             if(ck_buff_des.has_value() && ck_buff_des->ck_size)
             {
                 auto buf_handle =
