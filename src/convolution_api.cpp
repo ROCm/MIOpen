@@ -197,7 +197,7 @@ extern "C" miopenStatus_t miopenGetConvolutionFindMode(const miopenConvolutionDe
 }
 
 extern "C" miopenStatus_t
-miopenConvolutionCKBackwardWeightsGetWorkSpaceSize(const miopenAlphaBetaCase_t alpha_beta_case,
+miopenConvolutionCKBackwardWeightsGetWorkSpaceSize(miopenAlphaBetaCase_t alpha_beta_case,
                                                    miopenDataType_t data_type,
                                                    size_t C,
                                                    size_t K,
@@ -218,7 +218,8 @@ miopenConvolutionCKBackwardWeightsGetWorkSpaceSize(const miopenAlphaBetaCase_t a
         case miopenInt8:
         case miopenFloat8:
         case miopenBFloat8: byte_size = 4; break;
-        case miopenDouble: byte_size = 8;
+        case miopenDouble:
+        case miopenInt64: byte_size = 8; break;
         }
         *buffer_size = byte_size * output_tensor_size;
     }

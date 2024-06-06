@@ -104,7 +104,8 @@ inline std::size_t GetTypeSize(miopenDataType_t d)
     case miopenInt8:
     case miopenFloat8:
     case miopenBFloat8: return 1;
-    case miopenDouble: return 8;
+    case miopenDouble:
+    case miopenInt64: return 8;
     }
     MIOPEN_THROW("Unknown or unsupported data type");
 }
@@ -193,6 +194,7 @@ struct MIOPEN_EXPORT TensorDescriptor : miopenTensorDescriptor
 
     miopenDataType_t GetType() const;
     miopenTensorLayout_t GetLayout_t() const;
+    static std::string GetLayoutStr(miopenTensorLayout_t layout);
     std::string GetLayout_str() const;
 
     std::size_t GetVectorLength() const;

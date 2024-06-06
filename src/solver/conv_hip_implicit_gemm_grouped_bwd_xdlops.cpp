@@ -322,7 +322,7 @@ bool PerformanceConfigHipImplicitGemmGroupBwdXdlops::IsModelApplicable(
         return false;
     if(problem.GetInDataType() != miopenFloat && problem.GetInDataType() != miopenHalf)
         return false;
-    if(miopen::IsDisabled(MIOPEN_ENV(MIOPEN_DEBUG_GROUP_CONV_IMPLICIT_GEMM_HIP_BWD_XDLOPS_AI_HEUR)))
+    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_GROUP_CONV_IMPLICIT_GEMM_HIP_BWD_XDLOPS_AI_HEUR)))
         return false;
     return true;
 }
@@ -356,6 +356,7 @@ void PerformanceConfigHipImplicitGemmGroupBwdXdlops::HeuristicInit(
     case miopenFloat: Init<float>(problem); break;
     case miopenInt8: Init<int8_t>(problem); break;
     case miopenBFloat16: Init<ck::bhalf_t>(problem); break;
+    case miopenInt64:
     case miopenInt32:
     case miopenFloat8:
     case miopenBFloat8:
@@ -375,6 +376,7 @@ bool PerformanceConfigHipImplicitGemmGroupBwdXdlops::SetNextValue(const ProblemD
         case miopenFloat: Init<float>(problem); break;
         case miopenInt8: Init<int8_t>(problem); break;
         case miopenBFloat16: Init<ck::bhalf_t>(problem); break;
+        case miopenInt64:
         case miopenInt32:
         case miopenFloat8:
         case miopenBFloat8:
@@ -409,6 +411,7 @@ bool PerformanceConfigHipImplicitGemmGroupBwdXdlops::IsValid(
     case miopenFloat: return CheckIsSupportCKArgs<float>(problem);
     case miopenInt8: return CheckIsSupportCKArgs<int8_t>(problem);
     case miopenBFloat16: return CheckIsSupportCKArgs<ck::bhalf_t>(problem);
+    case miopenInt64:
     case miopenInt32:
     case miopenFloat8:
     case miopenBFloat8:
@@ -460,9 +463,9 @@ bool ConvHipImplicitGemmGroupBwdXdlops::IsApplicable(
     [[maybe_unused]] const ProblemDescription& problem) const
 {
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
-    if(miopen::IsEnabled(MIOPEN_ENV(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_GROUP_BWD_XDLOPS)))
+    if(miopen::IsEnabled(ENV(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_GROUP_BWD_XDLOPS)))
         return false;
-    if(miopen::IsEnabled(MIOPEN_ENV(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC)))
+    if(miopen::IsEnabled(ENV(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC)))
         return false;
     if(problem.HasMixedDataTypes())
         return false;
@@ -487,6 +490,7 @@ bool ConvHipImplicitGemmGroupBwdXdlops::IsApplicable(
     case miopenFloat: return CheckCKApplicability<float>(problem);
     case miopenInt8: return CheckCKApplicability<int8_t>(problem);
     case miopenBFloat16: return CheckCKApplicability<ck::bhalf_t>(problem);
+    case miopenInt64:
     case miopenInt32:
     case miopenFloat8:
     case miopenBFloat8:
