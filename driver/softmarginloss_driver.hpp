@@ -549,10 +549,6 @@ int SoftMarginLossDriver<Tgpu, Tref>::RunForwardGPU()
                 kernel_average_time = benchmark_time[size / 2];
             }
         }
-        std::cerr << "Vector benchmark_time: ";
-        for(auto x : benchmark_time)
-            std::cerr << x << " ";
-        std::cerr << std::endl;
         std::cout << "GPU Kernel Time Forward SoftMarginLoss Elapsed: " << kernel_average_time
                   << " ms" << std::endl;
     }
