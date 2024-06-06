@@ -118,10 +118,10 @@ inline __device__ void applyalphaBetaUpdate(dst_data_t* __restrict__ p_array,
         p_array[index] = cast_to<acc_data_t, dst_data_t>(value);
         return;
     }
-
-    double val_alpha_beta = alpha * cast_to<double, acc_data_t>(value) +
-                            cast_to<double, acc_data_t>(p_array[index]) * beta;
-    p_array[index] = val_alpha_beta;
+    // cast_to<src, dst>
+    double val_alpha_beta = alpha * cast_to<acc_data_t, double>(value) +
+                            cast_to<dst_data_t, double>(p_array[index]) * beta;
+    p_array[index] = cast_to<double, dst_data_t>(val_alpha_beta);
 }
 
 /// \todo remove template parameter 'bool ASSUME_PACKED' in a follow up PR

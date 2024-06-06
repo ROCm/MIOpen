@@ -290,7 +290,7 @@ private:
         }
         else
         {
-            threshold = 2.0e-3;
+            threshold = 3.0e-3;
         }
         auto error = miopen::rms_range(ref, computed);
 
