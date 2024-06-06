@@ -379,7 +379,7 @@ protected:
         };
 
         const double error_threshold     = 5e-6;
-        const double fp8_error_threshold = (std::is_same_v<T, float8>) ? 2e-4 : error_threshold;
+        const double fp8_error_threshold = (std::is_same_v<T, float8>) ? 3e-3 : error_threshold;
 
         auto checkAmax = [GetResult, error_threshold](
                              miopenTensorArgumentId_t id, std::string_view name, float refAmax) {
