@@ -43,13 +43,13 @@ MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_DEVICE_ARCH)
 
 namespace miopen {
 
-HipEventProfiler::HipEventProfiler(const Handle& handle_) 
+HipEventProfiler::HipEventProfiler(const Handle& handle_)
     : handle(handle_), event_time(0.0f), start(nullptr), stop(nullptr)
 {
     if(handle.IsProfilingEnabled())
     {
         start = make_hip_event();
-        stop = make_hip_event();
+        stop  = make_hip_event();
         hipEventRecord(start.get(), handle.GetStream());
     }
 }

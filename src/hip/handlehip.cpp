@@ -256,7 +256,7 @@ struct HandleImpl
         }
 #else
         void add_stream(StreamPtr s_ptr, hipblasLt_handle_ptr h_ptr)
-        { 
+        {
             stream_pool.push_back(s_ptr);
             hhandle_pool.push_back(std::move(h_ptr));
         }
@@ -357,11 +357,12 @@ void Handle::ReserveExtraStreamsInPool(int cnt) const
     {
         for(; last_stream_id < cnt; last_stream_id++)
         {
-            auto new_stream = this->impl->create_stream_non_blocking();
+            auto new_stream  = this->impl->create_stream_non_blocking();
             auto new_hhandle = CreateHipblasLtHandle();
 #if MIOPEN_USE_ROCBLAS
             auto new_rhandle = CreateRocblasHandle(new_stream.get());
-            this->impl->ms_resourse_ptr->add_resours(std::move(new_stream), std::move(new_rhandle), std::move(new_hhandle));
+            this->impl->ms_resourse_ptr->add_resours(
+                std::move(new_stream), std::move(new_rhandle), std::move(new_hhandle));
 #else
             this->impl->ms_resourse_ptr->add_stream(std::move(new_stream), std::move(new_hhandle));
 #endif
@@ -752,8 +753,8 @@ rocblas_handle_ptr Handle::CreateRocblasHandle(miopenAcceleratorQueue_t stream) 
 #endif
 
 const hipblasLt_handle_ptr& Handle::HipblasLtHandle() const
-{ 
-     if(meopenHandle_current_stream_id == 0)
+{
+    if(meopenHandle_current_stream_id == 0)
         return this->impl->hip_blasLt_handle;
     // locking only if handle in multistream mode
     std::shared_lock<std::shared_timed_mutex> lock(this->impl->stream_pool_mutex);
@@ -765,7 +766,7 @@ hipblasLt_handle_ptr Handle::CreateHipblasLtHandle() const
     hipblasLtHandle_t handle = nullptr;
     if(hipblasLtCreate(&handle) != hipblasStatus_t::HIPBLAS_STATUS_SUCCESS)
     {
-       MIOPEN_THROW(miopenStatusUnknownError, "failed creating hipBLASLt handle");
+        MIOPEN_THROW(miopenStatusUnknownError, "failed creating hipBLASLt handle");
     }
 
     return hipblasLt_handle_ptr{handle};

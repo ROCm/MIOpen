@@ -86,7 +86,9 @@ static GemmBackend_t GetGemmBackend(const miopen::Handle& handle, miopenDataType
     // Only use the hipblaslt backend when device is MI300, and the datatype is half.
     // Otherwise, default to rocblas.
     // Note: environment variable can be used to force a specific backend.
-    return handle.GetDeviceName() == "gfx942" && dataType == miopenDataType_t::miopenHalf ? GemmBackend_t::hipblaslt : GemmBackend_t::rocblas;
+    return handle.GetDeviceName() == "gfx942" && dataType == miopenDataType_t::miopenHalf
+               ? GemmBackend_t::hipblaslt
+               : GemmBackend_t::rocblas;
 }
 
 miopenStatus_t ReducAddBias(miopen::Handle& handle,
@@ -170,8 +172,8 @@ miopenStatus_t ReducAddBias(miopen::Handle& handle,
         break;
         case 2:
         case 3: {
-            float alpha1  = 1.;
-            auto red_type = ws_desc.GetType();
+            float alpha1      = 1.;
+            auto red_type     = ws_desc.GetType();
             auto gemm_backend = GetGemmBackend(handle, red_type);
             int m = 1, n = ws_desc.GetLengths()[2], k = ws_desc.GetLengths()[1];
             int lda = k, ldb = ws_desc.GetStrides()[1], ldc = n;
@@ -545,7 +547,7 @@ void RNNDescriptor::RNNForwardMS(Handle& handle,
                   ldc = RBuff.gemm_write_stride();
 
         auto gemm_data_type = xDesc.GetType();
-        auto gemm_backend = GetGemmBackend(handle, gemm_data_type);
+        auto gemm_backend   = GetGemmBackend(handle, gemm_data_type);
 
         const miopen::GemmDescriptor gemm_desc = GemmDescriptor{false,
                                                                 false,
@@ -665,7 +667,7 @@ void RNNDescriptor::RNNForwardMS(Handle& handle,
         }
 
         auto gemm_data_type = xDesc.GetType();
-        auto gemm_backend = GetGemmBackend(handle, gemm_data_type);
+        auto gemm_backend   = GetGemmBackend(handle, gemm_data_type);
 
         const miopen::GemmDescriptor gemm_desc_hx = GemmDescriptor{false,
                                                                    false,
@@ -1436,7 +1438,7 @@ void RNNDescriptor::RNNForwardInferencePacked(Handle& handle,
     }
 
     auto gemm_data_type = xDesc[0].GetType();
-    auto gemm_backend = GetGemmBackend(handle, gemm_data_type);
+    auto gemm_backend   = GetGemmBackend(handle, gemm_data_type);
 
     for(int li = 0; li < nLayers; li++)
     {
@@ -1484,8 +1486,8 @@ void RNNDescriptor::RNNForwardInferencePacked(Handle& handle,
                                    gemm_data_type,
                                    false}; // RNN does not support determinism
 
-                miopenStatus_t gemm_status = CallGemm(
-                    handle, gemm_desc, x, 0, w, 0, workSpace, hid_shift, gemm_backend);
+                miopenStatus_t gemm_status =
+                    CallGemm(handle, gemm_desc, x, 0, w, 0, workSpace, hid_shift, gemm_backend);
 
                 if(gemm_status != miopenStatusSuccess)
                 {
@@ -2833,7 +2835,7 @@ void RNNDescriptor::RNNForwardTrainingPackedTensors(
     }
 
     auto gemm_data_type = xDesc[0].GetType();
-    auto gemm_backend = GetGemmBackend(handle, gemm_data_type);
+    auto gemm_backend   = GetGemmBackend(handle, gemm_data_type);
 
     for(int li = 0; li < nLayers; li++)
     {
@@ -2880,8 +2882,8 @@ void RNNDescriptor::RNNForwardTrainingPackedTensors(
                                                                   gemm_data_type,
                                                                   false};
 
-                miopenStatus_t gemm_status = CallGemm(
-                    handle, gemm_desc, x, 0, w, 0, reserveSpace, hid_shift, gemm_backend);
+                miopenStatus_t gemm_status =
+                    CallGemm(handle, gemm_desc, x, 0, w, 0, reserveSpace, hid_shift, gemm_backend);
 
                 if(gemm_status != miopenStatusSuccess)
                 {
@@ -4157,7 +4159,7 @@ void RNNDescriptor::RNNBackwardDataPackedTensors(
     }
 
     auto rnn_data_type = dhxDesc.GetType();
-    auto gemm_backend = GetGemmBackend(handle, rnn_data_type);
+    auto gemm_backend  = GetGemmBackend(handle, rnn_data_type);
 
     std::vector<int> in_n;
     int in_h  = dxDesc[0].GetLengths()[1];
@@ -5808,7 +5810,7 @@ void RNNDescriptor::RNNBackwardWeightsPackedTensors(
     int out_h = dyDesc[0].GetLengths()[1];
 
     miopenDataType_t rnn_data_t = hxDesc.GetType();
-    auto gemm_backend = GetGemmBackend(handle, rnn_data_t);
+    auto gemm_backend           = GetGemmBackend(handle, rnn_data_t);
 
     if(in_h <= 0 || hy_h <= 0 || hy_n <= 0 || hy_d <= 0 || out_h <= 0 || seqLen <= 0)
     {
