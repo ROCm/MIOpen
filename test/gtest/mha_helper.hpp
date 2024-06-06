@@ -513,8 +513,8 @@ void MultiHeadAttentionBackwardDataf8(const tensor<T>& q_val,
 
     // Calculate dV_val = softmax_T x dO
 
-    tensor<T> softmax_fp8(softmax_fp32.desc.GetLengths());
-    tensor<T> softmax_dot_dO_fp8(dV_val.desc.GetLengths());
+    tensor<float> softmax_fp8(softmax_fp32.desc.GetLengths());
+    tensor<float> softmax_dot_dO_fp8(dV_val.desc.GetLengths());
     ScaleMult(softmax_fp32, s_scale, softmax_fp8);
     // fp8 matrix multiplication
     Dot_4D_T_4D(softmax_fp8, dO_val, softmax_dot_dO_fp8);
@@ -531,7 +531,7 @@ void MultiHeadAttentionBackwardDataf8(const tensor<T>& q_val,
 
     // Calculate dQ_val and dK_val
     // dO x V
-    tensor<T> dO_dot_V_tranpose_val(inputLengths);
+    tensor<float> dO_dot_V_tranpose_val(inputLengths);
     tensor<float> dO_dot_V_tranpose_val_fp32(inputLengths);
     // fp8 matrix multiplication
     Dot_4D_4D_T(dO_val, v_val, dO_dot_V_tranpose_val);
