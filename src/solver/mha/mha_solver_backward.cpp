@@ -90,36 +90,36 @@ bool MhaBackward::IsApplicable([[maybe_unused]] const ExecutionContext& context,
 
     auto [N, H, S, D] = miopen::tien<4>(descsBwd.kDesc.GetLengths());
 
-    return MIOPEN_USE_GEMM                                                 //
-           && !miopen::IsDisabled(MIOPEN_ENV(MIOPEN_DEBUG_ATTN_NAIVE_BWD)) //
-           && S <= std::numeric_limits<uint32_t>::max()                    //
-           && D <= std::numeric_limits<uint32_t>::max()                    //
-           && descsBwd.kDesc.IsPacked()                                    //
-           && descsBwd.qDesc.IsPacked()                                    //
-           && descsBwd.vDesc.IsPacked()                                    //
-           && descsBwd.oDesc.IsPacked()                                    //
-           && descsBwd.doDesc.IsPacked()                                   //
-           && descsBwd.mDesc.IsPacked()                                    //
-           && descsBwd.zInvDesc.IsPacked()                                 //
-           && descsBwd.dkDesc.IsPacked()                                   //
-           && descsBwd.dqDesc.IsPacked()                                   //
-           && descsBwd.dvDesc.IsPacked()                                   //
-           && descsBwd.mDesc.GetType() == miopenFloat                      //
-           && descsBwd.zInvDesc.GetType() == miopenFloat                   //
-           && descsBwd.kDesc.GetType() == descsBwd.qDesc.GetType()         //
-           && descsBwd.kDesc.GetType() == descsBwd.vDesc.GetType()         //
-           && descsBwd.kDesc.GetType() == descsBwd.oDesc.GetType()         //
-           && descsBwd.kDesc.GetType() == descsBwd.dqDesc.GetType()        //
-           && descsBwd.kDesc.GetType() == descsBwd.dkDesc.GetType()        //
-           && descsBwd.kDesc.GetType() == descsBwd.dvDesc.GetType()        //
-           && ((descsBwd.kDesc.GetType() == miopenFloat)                   //
-               || (USE_ROCBLAS_EX3                                         //
-                   && (MIOPEN_FP8_IEEE_EXPONENT_BIAS == 0)                 //
-                   && (descsBwd.kDesc.GetType() == miopenFloat8)))         //
-           && ((descsBwd.doDesc.GetType() == miopenFloat)                  //
-               || (USE_ROCBLAS_EX3                                         //
-                   && (MIOPEN_FP8_IEEE_EXPONENT_BIAS == 0)                 //
-                   && (descsBwd.doDesc.GetType() == miopenBFloat8)));      //
+    return MIOPEN_USE_GEMM                                            //
+           && !miopen::IsDisabled(ENV(MIOPEN_DEBUG_ATTN_NAIVE_BWD))   //
+           && S <= std::numeric_limits<uint32_t>::max()               //
+           && D <= std::numeric_limits<uint32_t>::max()               //
+           && descsBwd.kDesc.IsPacked()                               //
+           && descsBwd.qDesc.IsPacked()                               //
+           && descsBwd.vDesc.IsPacked()                               //
+           && descsBwd.oDesc.IsPacked()                               //
+           && descsBwd.doDesc.IsPacked()                              //
+           && descsBwd.mDesc.IsPacked()                               //
+           && descsBwd.zInvDesc.IsPacked()                            //
+           && descsBwd.dkDesc.IsPacked()                              //
+           && descsBwd.dqDesc.IsPacked()                              //
+           && descsBwd.dvDesc.IsPacked()                              //
+           && descsBwd.mDesc.GetType() == miopenFloat                 //
+           && descsBwd.zInvDesc.GetType() == miopenFloat              //
+           && descsBwd.kDesc.GetType() == descsBwd.qDesc.GetType()    //
+           && descsBwd.kDesc.GetType() == descsBwd.vDesc.GetType()    //
+           && descsBwd.kDesc.GetType() == descsBwd.oDesc.GetType()    //
+           && descsBwd.kDesc.GetType() == descsBwd.dqDesc.GetType()   //
+           && descsBwd.kDesc.GetType() == descsBwd.dkDesc.GetType()   //
+           && descsBwd.kDesc.GetType() == descsBwd.dvDesc.GetType()   //
+           && ((descsBwd.kDesc.GetType() == miopenFloat)              //
+               || (USE_ROCBLAS_EX3                                    //
+                   && (MIOPEN_FP8_IEEE_EXPONENT_BIAS == 0)            //
+                   && (descsBwd.kDesc.GetType() == miopenFloat8)))    //
+           && ((descsBwd.doDesc.GetType() == miopenFloat)             //
+               || (USE_ROCBLAS_EX3                                    //
+                   && (MIOPEN_FP8_IEEE_EXPONENT_BIAS == 0)            //
+                   && (descsBwd.doDesc.GetType() == miopenBFloat8))); //
 }
 
 std::size_t MhaBackward::GetWorkspaceSize([[maybe_unused]] const ExecutionContext& context,
