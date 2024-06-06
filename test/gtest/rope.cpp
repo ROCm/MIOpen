@@ -34,7 +34,7 @@ namespace rope {
 
 std::string GetFloatArg()
 {
-    const auto& tmp = miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_TEST_FLOAT_ARG));
+    const auto& tmp = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
     if(tmp.empty())
     {
         return "";
@@ -71,9 +71,8 @@ using namespace rope;
 
 TEST_P(RoPEFwdTestFloat, RoPEFwdTest)
 {
-    auto TypeArg = miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_TEST_FLOAT_ARG));
-    if((miopen::IsUnset(MIOPEN_ENV(MIOPEN_TEST_ALL)) ||
-        (miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float"))))
+    if((miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
+        (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float"))))
     {
         RunTest();
         Verify();
@@ -86,9 +85,8 @@ TEST_P(RoPEFwdTestFloat, RoPEFwdTest)
 
 TEST_P(RoPEFwdTestHalf, RoPEFwdTest)
 {
-    auto TypeArg = miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_TEST_FLOAT_ARG));
-    if((miopen::IsUnset(MIOPEN_ENV(MIOPEN_TEST_ALL)) ||
-        (miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--half"))))
+    if((miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
+        (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--half"))))
     {
         RunTest();
         Verify();
@@ -101,9 +99,8 @@ TEST_P(RoPEFwdTestHalf, RoPEFwdTest)
 
 TEST_P(RoPEFwdTestBFloat16, RoPEFwdTest)
 {
-    auto TypeArg = miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_TEST_FLOAT_ARG));
-    if((miopen::IsUnset(MIOPEN_ENV(MIOPEN_TEST_ALL)) ||
-        (miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--bfloat16"))))
+    if((miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
+        (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--bfloat16"))))
     {
         RunTest();
         Verify();
@@ -116,9 +113,8 @@ TEST_P(RoPEFwdTestBFloat16, RoPEFwdTest)
 
 TEST_P(RoPEBwdTestFloat, RoPEBwdTest)
 {
-    auto TypeArg = miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_TEST_FLOAT_ARG));
-    if((miopen::IsUnset(MIOPEN_ENV(MIOPEN_TEST_ALL)) ||
-        (miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float"))))
+    if((miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
+        (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float"))))
     {
         RunTest();
         Verify();
@@ -131,9 +127,8 @@ TEST_P(RoPEBwdTestFloat, RoPEBwdTest)
 
 TEST_P(RoPEBwdTestHalf, RoPEBwdTest)
 {
-    auto TypeArg = miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_TEST_FLOAT_ARG));
-    if((miopen::IsUnset(MIOPEN_ENV(MIOPEN_TEST_ALL)) ||
-        (miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--half"))))
+    if((miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
+        (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--half"))))
     {
         RunTest();
         Verify();
@@ -146,9 +141,8 @@ TEST_P(RoPEBwdTestHalf, RoPEBwdTest)
 
 TEST_P(RoPEBwdTestBFloat16, RoPEBwdTest)
 {
-    auto TypeArg = miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_TEST_FLOAT_ARG));
-    if((miopen::IsUnset(MIOPEN_ENV(MIOPEN_TEST_ALL)) ||
-        (miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--bfloat16"))))
+    if((miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
+        (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--bfloat16"))))
     {
         RunTest();
         Verify();
