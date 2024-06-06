@@ -107,7 +107,7 @@ const char* getOffloadBundlerBinPath()
 
 namespace miopen {
 
-static fs::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
+static fs::path HipBuildImpl(const TmpDir& tmp_dir,
                              const fs::path& filename,
                              std::string src,
                              std::string params,
@@ -119,17 +119,16 @@ static fs::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
     if(!testing_mode)
     {
         auto inc_list = GetHipKernelIncList();
-        auto inc_path = tmp_dir->path;
-        fs::create_directories(inc_path);
+        fs::create_directories(tmp_dir);
         for(const auto& inc_file : inc_list)
         {
             auto inc_src = GetKernelInc(inc_file);
-            WriteFile(inc_src, inc_path / inc_file);
+            WriteFile(inc_src, tmp_dir / inc_file);
         }
     }
 
     src += "\nint main() {}\n";
-    WriteFile(src, tmp_dir->path / filename);
+    WriteFile(src, tmp_dir / filename);
 
     const LcOptionTargetStrings lots(target);
 
@@ -170,8 +169,8 @@ static fs::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
 #endif
 
     // hip version
-    params += " -DHIP_PACKAGE_VERSION_FLAT=" + std::string{HIP_PACKAGE_VERSION_FLAT} + " ";
-    auto bin_file = make_object_file_name(tmp_dir.get() / filename);
+    params += " -DHIP_PACKAGE_VERSION_FLAT=" + std::to_string(HIP_PACKAGE_VERSION_FLAT) + " ";
+    auto bin_file = make_object_file_name(tmp_dir / filename);
 
     // compile
     {
@@ -181,7 +180,7 @@ static fs::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
         if(testing_mode)
             args += " 1>/dev/null 2>&1";
 #endif
-        tmp_dir->Execute(MIOPEN_HIP_COMPILER, args);
+        std::ignore = tmp_dir.Execute(MIOPEN_HIP_COMPILER, args);
         if(!fs::exists(bin_file))
             MIOPEN_THROW("Failed cmd: '" + std::string(MIOPEN_HIP_COMPILER) + "', args: '" + args +
                          '\'');
@@ -209,7 +208,7 @@ static fs::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
 #endif
 }
 
-fs::path HipBuild(boost::optional<TmpDir>& tmp_dir,
+fs::path HipBuild(const TmpDir& tmp_dir,
                   const fs::path& filename,
                   std::string src,
                   std::string params,

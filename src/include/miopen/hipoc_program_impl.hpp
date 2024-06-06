@@ -55,7 +55,6 @@ struct HIPOCProgramImpl
     TargetProperties target;
     fs::path hsaco_file;
     hipModulePtr module;
-    boost::optional<TmpDir> dir;
     std::vector<char> binary;
 
 #if !MIOPEN_USE_COMGR

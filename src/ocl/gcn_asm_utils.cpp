@@ -209,7 +209,7 @@ std::string AmdgcnAssemble(const std::string& source,
     }
 
     std::string out;
-    std::ifstream file(outfile, std::ios::binary | std::ios::ate);
+    std::ifstream file(outfile.Path(), std::ios::binary | std::ios::ate);
     bool outfile_read_failed = false;
     do
     {
