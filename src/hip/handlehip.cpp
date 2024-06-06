@@ -57,6 +57,8 @@
 #include <mutex>
 #include <shared_mutex>
 
+#include <hipblaslt/hipblaslt.h>
+
 /// hipMemGetInfo constantly fails on gfx906/900 and Navi21.
 /// Brute-force W/A: return fixed values.
 #define WORKAROUND_FAULTY_HIPMEMGETINFO_VEGA_NAVI2X (HIP_PACKAGE_VERSION_FLAT >= 5007000000ULL)
@@ -230,6 +232,8 @@ struct HandleImpl
     rocblas_handle_ptr rhandle_;
     using RocblasHandlePtrPool = std::vector<rocblas_handle_ptr>;
 #endif
+    hipblasLt_handle_ptr hip_blasLt_handle;
+    using HipblasLtHandlePtrPool = std::vector<hipblasLt_handle_ptr>;
 
     StreamPtr root_stream = nullptr;
 
@@ -237,19 +241,25 @@ struct HandleImpl
     struct MultiStreamResourses
     {
 
+        HipblasLtHandlePtrPool hhandle_pool;
 #if MIOPEN_USE_ROCBLAS
         //  (rocBLAS doc):rocBLAS handle contains allocated device memory that must not be shared by
         //  multiple
         //  asynchronous streams at the same time.
         //  Each parallel thread must use its own rocblas_handle.
         RocblasHandlePtrPool rhandle_pool;
-        void add_resours(StreamPtr s_ptr, rocblas_handle_ptr r_ptr)
+        void add_resours(StreamPtr s_ptr, rocblas_handle_ptr r_ptr, hipblasLt_handle_ptr h_ptr)
         {
             stream_pool.push_back(std::move(s_ptr));
             rhandle_pool.push_back(std::move(r_ptr));
+            hhandle_pool.push_back(std::move(h_ptr));
         }
 #else
-        void add_stream(StreamPtr s_ptr) { stream_pool.push_back(s_ptr); }
+        void add_stream(StreamPtr s_ptr, hipblasLt_handle_ptr h_ptr)
+        { 
+            stream_pool.push_back(s_ptr);
+            hhandle_pool.push_back(std::move(h_ptr));
+        }
 #endif
         //  stream_pool used as cache for parallel streams created by MIOpen.
         StreamPtrPool stream_pool;
@@ -285,6 +295,7 @@ Handle::Handle(miopenAcceleratorQueue_t stream) : impl(std::make_unique<HandleIm
 #if MIOPEN_USE_ROCBLAS
     this->impl->rhandle_ = CreateRocblasHandle(stream);
 #endif
+    this->impl->hip_blasLt_handle = CreateHipblasLtHandle();
     this->impl->target_properties.Init(this);
     MIOPEN_LOG_NQI(*this);
 }
@@ -309,6 +320,7 @@ Handle::Handle() : impl(std::make_unique<HandleImpl>())
 #if MIOPEN_USE_ROCBLAS
     this->impl->rhandle_ = CreateRocblasHandle(root_stream);
 #endif
+    this->impl->hip_blasLt_handle = CreateHipblasLtHandle();
     this->impl->target_properties.Init(this);
     MIOPEN_LOG_NQI(*this);
 }
@@ -346,11 +358,12 @@ void Handle::ReserveExtraStreamsInPool(int cnt) const
         for(; last_stream_id < cnt; last_stream_id++)
         {
             auto new_stream = this->impl->create_stream_non_blocking();
+            auto new_hhandle = CreateHipblasLtHandle();
 #if MIOPEN_USE_ROCBLAS
             auto new_rhandle = CreateRocblasHandle(new_stream.get());
-            this->impl->ms_resourse_ptr->add_resours(std::move(new_stream), std::move(new_rhandle));
+            this->impl->ms_resourse_ptr->add_resours(std::move(new_stream), std::move(new_rhandle), std::move(new_hhandle));
 #else
-            this->impl->ms_resourse_ptr->add_stream(std::move(new_stream));
+            this->impl->ms_resourse_ptr->add_stream(std::move(new_stream), std::move(new_hhandle));
 #endif
         }
     }
@@ -737,4 +750,20 @@ rocblas_handle_ptr Handle::CreateRocblasHandle(miopenAcceleratorQueue_t stream) 
     return result;
 }
 #endif
+
+const hipblasLt_handle_ptr& Handle::HipblasLtHandle() const
+{ 
+     if(meopenHandle_current_stream_id == 0)
+        return this->impl->hip_blasLt_handle;
+    // locking only if handle in multistream mode
+    std::shared_lock<std::shared_timed_mutex> lock(this->impl->stream_pool_mutex);
+    return this->impl->ms_resourse_ptr->hhandle_pool.at(meopenHandle_current_stream_id - 1);
+}
+
+hipblasLt_handle_ptr Handle::CreateHipblasLtHandle() const
+{
+    hipblasLtHandle_t handle = nullptr;
+    auto status = hipblasLtCreate(&handle);
+    return hipblasLt_handle_ptr{handle};
+}
 } // namespace miopen

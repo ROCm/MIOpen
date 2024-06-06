@@ -55,6 +55,8 @@
 #include <thread>
 #include <miopen/nogpu/handle_impl.hpp>
 
+#include <hipblaslt/hipblaslt.h>
+
 namespace miopen {
 
 Handle::Handle(miopenAcceleratorQueue_t /* stream */) : Handle::Handle() {}
@@ -290,4 +292,13 @@ rocblas_handle_ptr Handle::CreateRocblasHandle(miopenAcceleratorQueue_t) const
     return result;
 }
 #endif
+
+const hipblasLt_handle_ptr& Handle::HipblasLtHandle() const { return impl->hip_blasLt_handle; }
+
+hipblasLt_handle_ptr Handle::CreateHipblasLtHandle() const
+{
+    hipblasLtHandle_t handle = nullptr;
+    hipblasLtCreate(&handle);
+    return hipblasLt_handle_ptr{handle};
+}
 } // namespace miopen

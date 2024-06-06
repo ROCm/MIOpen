@@ -33,6 +33,8 @@
 
 #if MIOPEN_BACKEND_HIP
 #include <miopen/hipoc_kernel.hpp>
+#include <hipblaslt/hipblaslt.h>
+#include <hipblaslt/hipblaslt-ext.hpp>
 #endif
 
 #if MIOPEN_USE_ROCBLAS
@@ -324,6 +326,158 @@ inline void ProfilingRecordStop(const Handle& handle, HipEventPtr& start, HipEve
     handle.ResetKernelTime();
     handle.AccumKernelTime(mS);
 }
+
+#define HIP_BLAS_STATUS_CHECK(cmd) do {                     \
+    hipblasStatus_t e = cmd;                                \
+    if(e != hipblasStatus_t::HIPBLAS_STATUS_SUCCESS){       \
+        return e;                                           \
+    }                                                       \
+} while(0)                                                  \
+
+template <typename DataTypeAB, hipDataType HipTypeAB, typename DataTypeC, hipDataType HipTypeC>
+static hipblasStatus_t miopen_hipblasLt_gemm(const miopen::Handle& handle,
+                                            const miopen::GemmDescriptor& gemm_desc,
+                                            ConstData_t A,
+                                            std::size_t a_offset,
+                                            ConstData_t B,
+                                            std::size_t b_offset,
+                                            Data_t C,
+                                            std::size_t c_offset)
+{
+    float alpha = gemm_desc.alpha;
+    float beta = gemm_desc.beta;
+    hipblaslt_ext::GemmInputs inputs;
+    inputs.a = const_cast<DataTypeAB*>(static_cast<const DataTypeAB*>(A) + a_offset);
+    inputs.b = const_cast<DataTypeAB*>(static_cast<const DataTypeAB*>(B) + b_offset);
+    inputs.c = static_cast<DataTypeC*>(C) + c_offset;
+    inputs.d = static_cast<DataTypeC*>(C) + c_offset;
+    inputs.alpha = &alpha;
+    inputs.beta  = &beta;
+
+    // TODO - bharriso - Need to pass down workspace size & pointer.
+    hipblaslt_ext::GemmPreference pref;
+    pref.setMaxWorkspaceBytes(0);
+
+    hipblaslt_ext::GemmEpilogue epilogue;
+    hipblaslt_ext::GemmTuning tuning;
+
+    hipblasOperation_t opTypeA = gemm_desc.transA ? HIPBLAS_OP_T : HIPBLAS_OP_N;
+    hipblasOperation_t opTypeB = gemm_desc.transB ? HIPBLAS_OP_T : HIPBLAS_OP_N;
+
+    hipblaslt_ext::GemmProblemType problemType;
+    problemType.op_a         = opTypeA;
+    problemType.op_b         = opTypeB;
+    problemType.type_a       = HipTypeAB;
+    problemType.type_b       = HipTypeAB;
+    problemType.type_c       = HipTypeC;
+    problemType.type_d       = HipTypeC;
+    problemType.type_compute = HIPBLAS_COMPUTE_32F;
+
+    hipblaslt_ext::Gemm gemm(handle.HipblasLtHandle().get(),
+                                opTypeA,
+                                opTypeB,
+                                HipTypeAB,
+                                HipTypeAB,
+                                HipTypeC,
+                                HipTypeC,
+                                HIPBLAS_COMPUTE_32F);
+    HIP_BLAS_STATUS_CHECK(gemm.setProblem(gemm_desc.m,
+                    gemm_desc.n,
+                    gemm_desc.k,
+                    gemm_desc.batch_count,
+                    gemm_desc.lda,
+                    gemm_desc.ldb,
+                    gemm_desc.ldc,
+                    gemm_desc.ldc,
+                    gemm_desc.strideA,
+                    gemm_desc.strideB,
+                    gemm_desc.strideC,
+                    gemm_desc.strideC,
+                    epilogue,
+                    inputs,
+                    problemType));
+
+    std::vector<hipblasLtMatmulHeuristicResult_t> heuristic;
+    HIP_BLAS_STATUS_CHECK(gemm.algoGetHeuristic(1, pref, heuristic));
+
+    HIP_BLAS_STATUS_CHECK(gemm.initialize(heuristic[0].algo, tuning, nullptr, handle.GetStream()));
+
+    return gemm.run(handle.GetStream());
+}
+
+static hipblasStatus_t call_miopen_hipblasLt_gemm(const miopen::Handle& handle,
+                                            const miopen::GemmDescriptor& gemm_desc,
+                                            ConstData_t A,
+                                            std::size_t a_offset,
+                                            ConstData_t B,
+                                            std::size_t b_offset,
+                                            Data_t C,
+                                            std::size_t c_offset)
+{
+    hipblasStatus_t status = hipblasStatus_t::HIPBLAS_STATUS_INTERNAL_ERROR;
+
+    switch(gemm_desc.dataType)
+    {
+    case miopenInt8:
+        MIOPEN_THROW(miopenStatusBadParm,
+                        "miopenInt8 type not supported for hipBlasLt GemmBackend");
+        break;
+    case miopenInt32:
+        MIOPEN_THROW(miopenStatusBadParm,
+                        "miopenInt32 type not supported for hipBlasLt GemmBackend");
+        break;
+    case miopenHalf: {
+        status = miopen_hipblasLt_gemm<hipblasLtHalf, HIP_R_16F, hipblasLtHalf, HIP_R_16F>(handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset);
+    }
+    break;
+    case miopenBFloat16: {
+        status = miopen_hipblasLt_gemm<hipblasLtBfloat16, HIP_R_16BF, hipblasLtBfloat16, HIP_R_16BF>(handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset);
+    }
+    break;
+    case miopenFloat: {
+        status = miopen_hipblasLt_gemm<hipblasLtFloat, HIP_R_32F, hipblasLtFloat, HIP_R_32F>(handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset);
+    }
+    break;
+    case miopenFloat8: {
+        const auto is_gfx94x = miopen::StartsWith(handle.GetDeviceName(), "gfx94");
+        if(is_gfx94x)
+        {
+            status = miopen_hipblasLt_gemm<hipblaslt_f8_fnuz, HIP_R_8F_E4M3_FNUZ, hipblaslt_f8_fnuz, HIP_R_8F_E4M3_FNUZ>(handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset);
+        }
+        else
+        {
+            MIOPEN_THROW(miopenStatusBadParm,
+                        "miopenFloat8 type only supported for hipBlasLt GemmBackend on gfx94");
+        }
+    }
+    break;
+    case miopenBFloat8: {
+        const auto is_gfx94x = miopen::StartsWith(handle.GetDeviceName(), "gfx94");
+        if(is_gfx94x)
+        {
+            status = miopen_hipblasLt_gemm<hipblaslt_bf8_fnuz, HIP_R_8F_E5M2_FNUZ, hipblaslt_bf8_fnuz, HIP_R_8F_E5M2_FNUZ>(handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset);
+        }
+        else
+        {
+            MIOPEN_THROW(miopenStatusBadParm,
+                        "miopenFloat8 type only supported for hipBlasLt GemmBackend on gfx94");
+        }
+    }
+    break;
+    case miopenDouble: {
+        MIOPEN_THROW(miopenStatusBadParm,
+                        "miopenDouble data type not supported for hipBlasLt GemmBackend");
+    }
+    break;
+    case miopenInt64: {
+        MIOPEN_THROW(miopenStatusBadParm,
+                        "miopenInt64 data type not supported for hipBlasLt GemmBackend");
+    }
+    break;
+    }
+
+    return status;
+}
 #endif
 
 // hacks: control GEMM backend by enviroment variable and build option
@@ -343,16 +497,24 @@ static GemmBackend_t enforce_gemm_backend(miopenDataType_t data_type,
     // case 2: gemm_backend_env = GemmBackend_t::miopengemm; break;
     case 3: gemm_backend_env = GemmBackend_t::nogemmbackend; break;
     // case 4: gemm_backend_env = GemmBackend_t::miopentensile; break;
+    case 5: gemm_backend_env = GemmBackend_t::hipblaslt; break;
     default: gemm_backend_env = gemm_backend_preferred;
     }
 
 // make sure backend chosen based on env variable is suppported
-#if MIOPEN_USE_ROCBLAS
-    (void)data_type;
+#if MIOPEN_USE_ROCBLAS && MIOPEN_BACKEND_HIP
     switch(gemm_backend_env)
     {
     case GemmBackend_t::nogemmbackend: gemm_backend_enforced = GemmBackend_t::nogemmbackend; break;
     case GemmBackend_t::rocblas: gemm_backend_enforced = GemmBackend_t::rocblas; break;
+    case GemmBackend_t::hipblaslt: gemm_backend_enforced = GemmBackend_t::hipblaslt; break;
+    }
+#elif MIOPEN_BACKEND_HIP
+    switch(gemm_backend_env)
+    {
+    case GemmBackend_t::nogemmbackend: gemm_backend_enforced = GemmBackend_t::nogemmbackend; break;
+    case GemmBackend_t::hipblaslt: gemm_backend_enforced = GemmBackend_t::hipblaslt; break;
+    default: gemm_backend_enforced = GemmBackend_t::nogemmbackend;
     }
 #else
     gemm_backend_enforced = GemmBackend_t::nogemmbackend;
@@ -610,6 +772,21 @@ miopenStatus_t CallGemm(const Handle& handle,
 
         if(gemm_desc.deterministic)
             SetRocblasAtomics(handle, cur_mode);
+        return miopenStatusSuccess;
+#else
+        return miopenStatusNotImplemented;
+#endif
+    }
+    case GemmBackend_t::hipblaslt: {
+#if MIOPEN_BACKEND_HIP
+        MIOPEN_LOG_FUNCTION("hipBLASLt");
+        HipEventProfiler profiler(handle);
+        if(call_miopen_hipblasLt_gemm(handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset) 
+            != hipblasStatus_t::HIPBLAS_STATUS_SUCCESS)
+        {
+            MIOPEN_THROW(miopenStatusInternalError, "hipBlasLt error encountered");
+        }
+
         return miopenStatusSuccess;
 #else
         return miopenStatusNotImplemented;
@@ -894,6 +1071,21 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
         return miopenStatusNotImplemented;
 #endif
     }
+    case GemmBackend_t::hipblaslt: {
+#if MIOPEN_BACKEND_HIP
+        MIOPEN_LOG_FUNCTION("hipBLASLt");
+        HipEventProfiler profiler(handle);
+        if(call_miopen_hipblasLt_gemm(handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset) 
+            != hipblasStatus_t::HIPBLAS_STATUS_SUCCESS)
+        {
+            MIOPEN_THROW(miopenStatusInternalError, "hipBlasLt error encountered");
+        }
+
+        return miopenStatusSuccess;
+#else
+        return miopenStatusNotImplemented;
+#endif
+    }
     }
 
     return miopenStatusUnknownError;
@@ -1165,6 +1357,21 @@ miopenStatus_t CallGemmStridedBatchedSequential(const Handle& handle,
 
         if(gemm_desc.deterministic)
             SetRocblasAtomics(handle, cur_mode);
+
+        return miopenStatusSuccess;
+#else
+        return miopenStatusNotImplemented;
+#endif
+    }
+    case GemmBackend_t::hipblaslt: {
+#if MIOPEN_BACKEND_HIP
+        MIOPEN_LOG_FUNCTION("hipBLASLt");
+        HipEventProfiler profiler(handle);
+        if(call_miopen_hipblasLt_gemm(handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset) 
+            != hipblasStatus_t::HIPBLAS_STATUS_SUCCESS)
+        {
+            MIOPEN_THROW(miopenStatusInternalError, "hipBlasLt error encountered");
+        }
 
         return miopenStatusSuccess;
 #else

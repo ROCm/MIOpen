@@ -63,6 +63,11 @@
 #endif
 #endif
 
+#include <hipblas/hipblas.h>
+
+typedef void* hipblasLtHandle_t;
+extern "C" hipblasStatus_t hipblasLtDestroy(const hipblasLtHandle_t handle);
+
 namespace miopen {
 
 struct HandleImpl;
@@ -70,6 +75,8 @@ struct HandleImpl;
 #if MIOPEN_USE_ROCBLAS
 using rocblas_handle_ptr = MIOPEN_MANAGE_PTR(rocblas_handle, rocblas_destroy_handle);
 #endif
+
+using hipblasLt_handle_ptr = MIOPEN_MANAGE_PTR(hipblasLtHandle_t, hipblasLtDestroy);
 
 struct MIOPEN_EXPORT Handle : miopenHandle
 {
@@ -268,6 +275,8 @@ public:
         return invokers.GetFound1_0SolverId(config, algo);
     }
 
+    const hipblasLt_handle_ptr& HipblasLtHandle() const;
+
 #if MIOPEN_USE_ROCBLAS
     const rocblas_handle_ptr& rhandle() const;
 
@@ -276,6 +285,8 @@ private:
 #else
 private:
 #endif
+    hipblasLt_handle_ptr CreateHipblasLtHandle() const;
+
     InvokerCache invokers;
 };
 

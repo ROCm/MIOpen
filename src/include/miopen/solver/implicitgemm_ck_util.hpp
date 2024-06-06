@@ -106,27 +106,7 @@ bool IsCKApplicable(const ProblemDescriptionType& problem)
 
 #define WORKAROUND_CK_ISSUE_1184 1
 #if WORKAROUND_CK_ISSUE_1184
-struct HipEventProfiler
-{
-    const Handle& handle;
-    float event_time;
-    HipEventPtr start;
-    HipEventPtr stop;
-
-    HipEventProfiler(const Handle& handle_)
-        : handle(handle_), event_time(0.0f), start(make_hip_event()), stop(make_hip_event())
-    {
-        hipEventRecord(start.get(), handle.GetStream());
-    }
-    ~HipEventProfiler()
-    {
-        hipEventRecord(stop.get(), handle.GetStream());
-        hipEventSynchronize(stop.get());
-        hipEventElapsedTime(&event_time, start.get(), stop.get());
-        handle.ResetKernelTime();
-        handle.AccumKernelTime(event_time);
-    }
-};
+using WorkAroundHipEventProfiler = HipEventProfiler;
 #endif
 
 template <typename DeviceOpType,
@@ -156,7 +136,7 @@ ConvSolution InitInvokerFactoryNHWC(const ExecutionContext&,
             auto argument_ptr    = ck_args.MakeArgPtr(sh_conv_ptr, data_ctx.tensors);
             auto invoker_ptr     = sh_conv_ptr->MakeInvokerPointer();
             {
-                HipEventProfiler pfr(handle);
+                WorkAroundHipEventProfiler pfr(handle);
                 if constexpr(std::is_same<CastType, miopen::conv::WrWInvokeParams>::value)
                 {
                     auto zero           = 0.0f;
@@ -684,7 +664,7 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
                 std::swap(conv_tensors.x, conv_tensors.y);
                 std::swap(conv_tensors.xDesc, conv_tensors.yDesc);
             }
-            HipEventProfiler pfr(handle);
+            WorkAroundHipEventProfiler pfr(handle);
             input1_tr_inst.ConvertFrom(handle, kernels, conv_tensors);
 
             input2_tr_inst.ConvertFrom(handle, kernels, conv_tensors);
@@ -827,7 +807,7 @@ ConvSolution InitInvokerFactoryWrwNCHW(const ExecutionContext& ctx,
                 std::swap(conv_tensors.x, conv_tensors.y);
                 std::swap(conv_tensors.xDesc, conv_tensors.yDesc);
             }
-            HipEventProfiler pfr(handle);
+            WorkAroundHipEventProfiler pfr(handle);
             input1_tr_inst.ConvertFrom(handle, kernels, conv_tensors);
 
             input2_tr_inst.ConvertFrom(handle, kernels, conv_tensors);
