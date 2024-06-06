@@ -34,6 +34,18 @@ namespace miopen {
 
 namespace where {
 
+bool isContiguous(const TensorDescriptor& x)
+{
+    size_t s = 1;
+    for(int i = x.GetSize() - 1; i >= 0; --i)
+    {
+        if(s != x.GetStrides()[i])
+            return false;
+        s *= x.GetLengths()[i];
+    }
+    return true;
+}
+
 NetworkConfig ForwardProblemDescription::MakeNetworkConfig() const
 {
     return MakeForwardNetworkConfig();

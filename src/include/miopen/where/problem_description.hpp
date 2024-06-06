@@ -45,6 +45,8 @@ enum class Direction
     Backward,
 };
 
+bool isContiguous(const TensorDescriptor& x);
+
 struct ForwardProblemDescription : ProblemDescriptionBase
 {
     // Forward constructor
@@ -77,9 +79,12 @@ struct ForwardProblemDescription : ProblemDescriptionBase
 
     Direction GetDirection() const { return direction; }
     const TensorDescriptor& GetInputDesc() const { return inputDesc; }
-    const TensorDescriptor& GetInputGradDesc() const { return inputGradDesc; }
+    const TensorDescriptor& GetOtherDesc() const { return otherDesc; }
+    const TensorDescriptor& GetConditionDesc() const { return conditionDesc; }
     const TensorDescriptor& GetOutputDesc() const { return outputDesc; }
     const TensorDescriptor& GetOutputGradDesc() const { return outputGradDesc; }
+    const TensorDescriptor& GetInputGradDesc() const { return inputGradDesc; }
+    const TensorDescriptor& GetOtherGradDesc() const { return otherGradDesc; }
 
     bool IsSameType() const
     {
