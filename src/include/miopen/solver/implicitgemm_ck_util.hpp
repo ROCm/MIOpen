@@ -695,7 +695,7 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
 
     std::optional<CKBWDWeightBufferDescriptor> _ck_buff_des;
 
-    if(problem.GetSpatialDims() == 3 && problem.IsDirectionBackwardWrW())
+    if(problem.Is3d() && problem.IsDirectionBackwardWrW())
     {
         _ck_buff_des.emplace(GetCKAlphaBetaWorkspace(problem), 0);
     }
