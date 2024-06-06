@@ -645,7 +645,7 @@ extern "C" __global__ void __launch_bounds__(THREADS)
 
         const float dOxV_val = (dOxV[idx] * descaler_dOxV - dOxO_val) * scale * QxK_val;
 
-        dS[idx] = dOxV_val * scaler_dS;
+        dS[idx] = static_cast<OUT_TYPE>(dOxV_val * scaler_dS);
 
         r_Amax = fmaxf_op(r_Amax, fabsf(dOxV_val));
     }
@@ -719,7 +719,7 @@ extern "C" __global__ void __launch_bounds__(THREADS)
 
         const float dOxV_val = (dOxV[idx] * descaler_dOxV - dOxO_val) * scale * QxK_val;
 
-        dS[idx] = dOxV_val * scaler_dS;
+        dS[idx] = static_cast<OUT_TYPE>(dOxV_val * scaler_dS);
 
         r_Amax = fmaxf_op(r_Amax, fabsf(dOxV_val));
     }
@@ -799,7 +799,7 @@ extern "C" __global__ void __launch_bounds__(THREADS)
             const float dOxV_val =
                 (dOxV_ptr[loop_lid] * descaler_dOxV - dOxO_val) * scale * QxK_val;
 
-            dS_ptr[loop_lid] = dOxV_val * scaler_dS;
+            dS_ptr[loop_lid] = static_cast<OUT_TYPE>(dOxV_val * scaler_dS);
 
             r_Amax = fmaxf_op(r_Amax, fabsf(dOxV_val));
         }
