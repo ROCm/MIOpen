@@ -96,28 +96,11 @@ ConvSolution SoftMarginLossUnreducedForward::GetSolution(
             decltype(auto) kernel = handle_.Run(kernels.front());
             decltype(auto) params = raw_params.CastTo<miopen::softmarginloss::InvokeParams>();
 
-            auto i_tv     = get_inner_expanded_tv<5>(deref(params.iDesc));
-            auto t_tv     = get_inner_expanded_tv<5>(deref(params.tDesc));
-            auto o_tv     = get_inner_expanded_tv<5>(deref(params.oDesc));
-            float elapsed = 0.0f;
-            HipEventPtr start;
-            HipEventPtr stop;
+            auto i_tv = get_inner_expanded_tv<5>(deref(params.iDesc));
+            auto t_tv = get_inner_expanded_tv<5>(deref(params.tDesc));
+            auto o_tv = get_inner_expanded_tv<5>(deref(params.oDesc));
 
-            if(handle_.IsProfilingEnabled())
-            {
-                start = miopen::make_hip_event();
-                stop  = miopen::make_hip_event();
-                hipEventRecord(start.get(), handle_.GetStream());
-            }
             kernel(params.i, params.t, params.o, i_tv, t_tv, o_tv);
-            if(handle_.IsProfilingEnabled())
-            {
-                hipEventRecord(stop.get(), handle_.GetStream());
-                hipEventSynchronize(stop.get());
-                hipEventElapsedTime(&elapsed, start.get(), stop.get());
-                handle_.ResetKernelTime();
-                handle_.AccumKernelTime(elapsed);
-            };
         };
     };
 
