@@ -327,7 +327,6 @@ inline void ProfilingRecordStop(const Handle& handle, HipEventPtr& start, HipEve
     handle.AccumKernelTime(mS);
 }
 
-
 template <typename HipBLASLtAPIFunction>
 static void call_hipblasLt_method(HipBLASLtAPIFunction&& hipblaslt_api_function)
 {
@@ -337,19 +336,19 @@ static void call_hipblasLt_method(HipBLASLtAPIFunction&& hipblaslt_api_function)
     }
 }
 
-#define CALL_HIPBLASLT_METHOD(cmd) call_hipblasLt_method([&]{ return cmd; })
+#define CALL_HIPBLASLT_METHOD(cmd) call_hipblasLt_method([&] { return cmd; })
 
 template <typename DataTypeAB, typename DataTypeC>
 static void miopen_hipblasLt_gemm(const miopen::Handle& handle,
-                                             const miopen::GemmDescriptor& gemm_desc,
-                                             ConstData_t A,
-                                             std::size_t a_offset,
-                                             ConstData_t B,
-                                             std::size_t b_offset,
-                                             hipDataType hip_type_AB,
-                                             Data_t C,
-                                             std::size_t c_offset,
-                                             hipDataType hip_type_C)
+                                  const miopen::GemmDescriptor& gemm_desc,
+                                  ConstData_t A,
+                                  std::size_t a_offset,
+                                  ConstData_t B,
+                                  std::size_t b_offset,
+                                  hipDataType hip_type_AB,
+                                  Data_t C,
+                                  std::size_t c_offset,
+                                  hipDataType hip_type_C)
 {
     float alpha = gemm_desc.alpha;
     float beta  = gemm_desc.beta;
@@ -389,22 +388,21 @@ static void miopen_hipblasLt_gemm(const miopen::Handle& handle,
                              hip_type_C,
                              HIPBLAS_COMPUTE_32F);
 
-    CALL_HIPBLASLT_METHOD(gemm.setProblem(
-                                    gemm_desc.m,
-                                    gemm_desc.n,
-                                    gemm_desc.k,
-                                    gemm_desc.batch_count,
-                                    gemm_desc.lda,
-                                    gemm_desc.ldb,
-                                    gemm_desc.ldc,
-                                    gemm_desc.ldc,
-                                    gemm_desc.strideA,
-                                    gemm_desc.strideB,
-                                    gemm_desc.strideC,
-                                    gemm_desc.strideC,
-                                    epilogue,
-                                    inputs,
-                                    problemType));
+    CALL_HIPBLASLT_METHOD(gemm.setProblem(gemm_desc.m,
+                                          gemm_desc.n,
+                                          gemm_desc.k,
+                                          gemm_desc.batch_count,
+                                          gemm_desc.lda,
+                                          gemm_desc.ldb,
+                                          gemm_desc.ldc,
+                                          gemm_desc.ldc,
+                                          gemm_desc.strideA,
+                                          gemm_desc.strideB,
+                                          gemm_desc.strideC,
+                                          gemm_desc.strideC,
+                                          epilogue,
+                                          inputs,
+                                          problemType));
 
     std::vector<hipblasLtMatmulHeuristicResult_t> heuristic;
     CALL_HIPBLASLT_METHOD(gemm.algoGetHeuristic(1, pref, heuristic));
@@ -418,13 +416,13 @@ static void miopen_hipblasLt_gemm(const miopen::Handle& handle,
 }
 
 static void call_miopen_hipblasLt_gemm(const miopen::Handle& handle,
-                                                  const miopen::GemmDescriptor& gemm_desc,
-                                                  ConstData_t A,
-                                                  std::size_t a_offset,
-                                                  ConstData_t B,
-                                                  std::size_t b_offset,
-                                                  Data_t C,
-                                                  std::size_t c_offset)
+                                       const miopen::GemmDescriptor& gemm_desc,
+                                       ConstData_t A,
+                                       std::size_t a_offset,
+                                       ConstData_t B,
+                                       std::size_t b_offset,
+                                       Data_t C,
+                                       std::size_t c_offset)
 {
     MIOPEN_LOG_FUNCTION("hipBLASLt");
 
@@ -457,8 +455,16 @@ static void call_miopen_hipblasLt_gemm(const miopen::Handle& handle,
         const auto is_gfx94x = miopen::StartsWith(handle.GetDeviceName(), "gfx94");
         if(is_gfx94x)
         {
-            miopen_hipblasLt_gemm<hipblaslt_f8_fnuz, hipblaslt_f8_fnuz>(
-                handle, gemm_desc, A, a_offset, B, b_offset, HIP_R_8F_E4M3_FNUZ, C, c_offset, HIP_R_8F_E4M3_FNUZ);
+            miopen_hipblasLt_gemm<hipblaslt_f8_fnuz, hipblaslt_f8_fnuz>(handle,
+                                                                        gemm_desc,
+                                                                        A,
+                                                                        a_offset,
+                                                                        B,
+                                                                        b_offset,
+                                                                        HIP_R_8F_E4M3_FNUZ,
+                                                                        C,
+                                                                        c_offset,
+                                                                        HIP_R_8F_E4M3_FNUZ);
         }
         else
         {
@@ -471,8 +477,16 @@ static void call_miopen_hipblasLt_gemm(const miopen::Handle& handle,
         const auto is_gfx94x = miopen::StartsWith(handle.GetDeviceName(), "gfx94");
         if(is_gfx94x)
         {
-            miopen_hipblasLt_gemm<hipblaslt_bf8_fnuz, hipblaslt_bf8_fnuz>(
-                handle, gemm_desc, A, a_offset, B, b_offset, HIP_R_8F_E5M2_FNUZ, C, c_offset, HIP_R_8F_E5M2_FNUZ);
+            miopen_hipblasLt_gemm<hipblaslt_bf8_fnuz, hipblaslt_bf8_fnuz>(handle,
+                                                                          gemm_desc,
+                                                                          A,
+                                                                          a_offset,
+                                                                          B,
+                                                                          b_offset,
+                                                                          HIP_R_8F_E5M2_FNUZ,
+                                                                          C,
+                                                                          c_offset,
+                                                                          HIP_R_8F_E5M2_FNUZ);
         }
         else
         {

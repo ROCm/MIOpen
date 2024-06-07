@@ -298,7 +298,11 @@ const hipblasLt_handle_ptr& Handle::HipblasLtHandle() const { return impl->hip_b
 hipblasLt_handle_ptr Handle::CreateHipblasLtHandle() const
 {
     hipblasLtHandle_t handle = nullptr;
-    hipblasLtCreate(&handle);
+    auto status              = hipblasLtCreate(&handle);
+    if(status != HIPBLAS_STATUS_SUCCESS)
+    {
+        MIOPEN_THROW(miopenStatusInternalError, "hipBLASLt error encountered");
+    }
     return hipblasLt_handle_ptr{handle};
 }
 } // namespace miopen
