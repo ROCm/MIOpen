@@ -122,7 +122,7 @@ void PrintHelp()
 
 [[noreturn]] void UnknownArgument(const std::string_view arg)
 {
-    std::stringstream ss;
+    std::ostringstream ss;
     ss << "unknown argument - " << arg;
     WrongUsage(ss.str());
 }
