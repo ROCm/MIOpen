@@ -37,7 +37,10 @@ thread_local int miopen::TensorDescriptor::leakedInstances = 0;
 extern "C" miopenStatus_t miopenCreateTensorDescriptor(miopenTensorDescriptor_t* tensorDesc)
 {
     MIOPEN_LOG_FUNCTION(tensorDesc);
-    return miopen::try_([&] { miopen::deref(tensorDesc) = new miopen::TensorDescriptor(); });
+    return miopen::try_([&] {
+        auto& desc = miopen::deref(tensorDesc);
+        desc       = new miopen::TensorDescriptor();
+    });
 }
 
 extern "C" miopenStatus_t miopenCreateSeqTensorDescriptor(miopenSeqTensorDescriptor_t* tensorDesc)
