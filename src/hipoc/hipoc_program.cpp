@@ -207,10 +207,10 @@ void HIPOCProgramImpl::BuildCodeObjectInFile(std::string& params,
                                              const std::string& src,
                                              const fs::path& filename)
 {
-    dir = TmpDir{filename.filename().string()};
-    hsaco_file = make_object_file_name(dir / filename);
+    dir.emplace(filename.filename().string());
+    hsaco_file = make_object_file_name(dir.get() / filename);
 
-    if(filename.extension() == ".so")
+    if(filename.extension() == dynamic_library_postfix) // ".so" or ".dll"
     {
         WriteFile(src, hsaco_file);
     }
@@ -221,7 +221,7 @@ void HIPOCProgramImpl::BuildCodeObjectInFile(std::string& params,
     }
     else if(filename.extension() == ".cpp")
     {
-        hsaco_file = HipBuild(dir, filename, src, params, target);
+        hsaco_file = HipBuild(dir.get(), filename, src, params, target);
     }
 #if MIOPEN_USE_MLIR
     else if(filename.extension() == ".mlir")
@@ -236,13 +236,13 @@ void HIPOCProgramImpl::BuildCodeObjectInFile(std::string& params,
         params += " " + GetCodeObjectVersionOption();
         if(miopen::IsEnabled(ENV(MIOPEN_DEBUG_OPENCL_WAVE64_NOWGP)))
             params += " -mwavefrontsize64 -mcumode";
-        WriteFile(src, dir / filename);
+        WriteFile(src, dir.get() / filename);
         params += " -target amdgcn-amd-amdhsa -x cl -D__AMD__=1  -O3";
         params += " -cl-kernel-arg-info -cl-denorms-are-zero";
         params += " -cl-std=CL2.0 -mllvm -amdgpu-early-inline-all";
         params += " -mllvm -amdgpu-internalize-symbols ";
         params += " " + filename + " -o " + hsaco_file;
-        std::ignore = dir.Execute(HIP_OC_COMPILER, params);
+        std::ignore = dir->Execute(HIP_OC_COMPILER, params);
     }
     if(!fs::exists(hsaco_file))
         MIOPEN_THROW("Cant find file: " + hsaco_file);
@@ -253,11 +253,7 @@ void HIPOCProgramImpl::BuildCodeObjectInMemory(const std::string& params,
                                                const std::string& src,
                                                const fs::path& filename)
 {
-#ifdef _WIN32
-    if(filename.extension() == ".dll")
-#else
-    if(filename.extension() == ".so")
-#endif
+    if(filename.extension() == dynamic_library_postfix) // ".so" or ".dll"
     {
         std::size_t sz = src.length();
         binary.resize(sz);
@@ -366,7 +362,7 @@ std::vector<char> HIPOCProgram::GetCodeObjectBlob() const { return impl->binary;
 
 void HIPOCProgram::FreeCodeObjectFileStorage() const
 {
-    impl->dir.clear();
+    impl->dir.reset();
     impl->hsaco_file.clear();
 }
 

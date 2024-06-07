@@ -15,14 +15,13 @@ struct TmpDir
     TmpDir& operator=(TmpDir&&) = default;
 
     fs::path operator/(std::string_view other) const { return path / other; }
-    void clear() const;
 
     operator const fs::path&() const { return path; }
     operator std::string() const { return path.string(); }
 
     int Execute(std::string_view cmd, std::string_view args) const;
 
-    ~TmpDir() { clear(); }
+    ~TmpDir();
 };
 
 } // namespace miopen

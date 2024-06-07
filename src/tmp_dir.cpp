@@ -64,7 +64,7 @@ int TmpDir::Execute(std::string_view cmd, std::string_view args) const
     return status;
 }
 
-void TmpDir::clear() const
+TmpDir::~TmpDir()
 {
     if(!miopen::IsEnabled(ENV(MIOPEN_DEBUG_SAVE_TEMP_DIR)))
     {

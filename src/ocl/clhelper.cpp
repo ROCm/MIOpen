@@ -159,12 +159,7 @@ ClProgramPtr LoadProgram(cl_context ctx,
         load_binary = true;
     }
 
-    if(load_binary ||
-#ifdef _WIN32
-       program_name.extension() == ".dll")
-#else
-       program_name.extension() == ".so")
-#endif
+    if(load_binary || program_name.extension() == dynamic_library_postfix)
         return LoadBinaryProgram(ctx, device, source);
 
     if(program_name.extension() == ".cpp")
