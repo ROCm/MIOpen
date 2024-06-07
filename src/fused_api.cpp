@@ -45,8 +45,8 @@ extern "C" miopenStatus_t miopenCreateFusionPlan(miopenFusionPlanDescriptor_t* f
 {
     MIOPEN_LOG_FUNCTION(fusePlanDesc, fuseDirection, inputDesc);
     return miopen::try_([&] {
-        miopen::deref(fusePlanDesc) =
-            new miopen::FusionPlanDescriptor(fuseDirection, miopen::deref(inputDesc));
+        auto& desc = miopen::deref(fusePlanDesc);
+        desc       = new miopen::FusionPlanDescriptor(fuseDirection, miopen::deref(inputDesc));
     });
 }
 
