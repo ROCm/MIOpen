@@ -30,12 +30,10 @@
 #include <miopen/tensor.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/datatype.hpp>
-
-#if MIOPEN_BACKEND_HIP
 #include <miopen/hipoc_kernel.hpp>
+
 #include <hipblaslt/hipblaslt.h>
 #include <hipblaslt/hipblaslt-ext.hpp>
-#endif
 
 #if MIOPEN_USE_ROCBLAS
 #pragma clang diagnostic push
@@ -309,7 +307,6 @@ inline void SetRocblasAtomics(const miopen::Handle& handle, rocblas_atomics_mode
 
 #endif
 
-#if MIOPEN_BACKEND_HIP
 inline void ProfilingRecordStart(const Handle& handle, HipEventPtr& start, HipEventPtr& stop)
 {
     start = make_hip_event();
@@ -512,7 +509,6 @@ static void call_miopen_hipblasLt_gemm(const miopen::Handle& handle,
     break;
     }
 }
-#endif
 
 // hacks: control GEMM backend by enviroment variable and build option
 // very nasty
@@ -536,22 +532,20 @@ static GemmBackend_t enforce_gemm_backend(miopenDataType_t data_type,
     }
 
 // make sure backend chosen based on env variable is suppported
-#if MIOPEN_USE_ROCBLAS && MIOPEN_BACKEND_HIP
+#if MIOPEN_USE_ROCBLAS
     switch(gemm_backend_env)
     {
     case GemmBackend_t::nogemmbackend: gemm_backend_enforced = GemmBackend_t::nogemmbackend; break;
     case GemmBackend_t::rocblas: gemm_backend_enforced = GemmBackend_t::rocblas; break;
     case GemmBackend_t::hipblaslt: gemm_backend_enforced = GemmBackend_t::hipblaslt; break;
     }
-#elif MIOPEN_BACKEND_HIP
+#else
     switch(gemm_backend_env)
     {
     case GemmBackend_t::nogemmbackend: gemm_backend_enforced = GemmBackend_t::nogemmbackend; break;
     case GemmBackend_t::hipblaslt: gemm_backend_enforced = GemmBackend_t::hipblaslt; break;
     default: gemm_backend_enforced = GemmBackend_t::nogemmbackend;
     }
-#else
-    gemm_backend_enforced = GemmBackend_t::nogemmbackend;
 #endif
 
     return gemm_backend_enforced;
@@ -812,12 +806,8 @@ miopenStatus_t CallGemm(const Handle& handle,
 #endif
     }
     case GemmBackend_t::hipblaslt: {
-#if MIOPEN_BACKEND_HIP
         call_miopen_hipblasLt_gemm(handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset);
         return miopenStatusSuccess;
-#else
-        return miopenStatusNotImplemented;
-#endif
     }
     }
 
@@ -1099,12 +1089,8 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
 #endif
     }
     case GemmBackend_t::hipblaslt: {
-#if MIOPEN_BACKEND_HIP
         call_miopen_hipblasLt_gemm(handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset);
         return miopenStatusSuccess;
-#else
-        return miopenStatusNotImplemented;
-#endif
     }
     }
 
@@ -1384,12 +1370,8 @@ miopenStatus_t CallGemmStridedBatchedSequential(const Handle& handle,
 #endif
     }
     case GemmBackend_t::hipblaslt: {
-#if MIOPEN_BACKEND_HIP
         call_miopen_hipblasLt_gemm(handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset);
         return miopenStatusSuccess;
-#else
-        return miopenStatusNotImplemented;
-#endif
     }
     }
 

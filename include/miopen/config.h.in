@@ -108,7 +108,7 @@ const char* getOffloadBundlerBinPath();
 
 #cmakedefine01 MIOPEN_USE_SQLITE_PERFDB
 
-#define MIOPEN_USE_GEMM (MIOPEN_USE_ROCBLAS || MIOPEN_BACKEND_HIP)
+#define MIOPEN_USE_GEMM 1
 
 // Usage of "defined" operator within macro expansion is undefined behavior,
 // so "defined(NDEBUG)" cannot be used there... unlike the following macro:
