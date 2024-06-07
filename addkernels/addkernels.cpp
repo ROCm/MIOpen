@@ -122,7 +122,9 @@ void PrintHelp()
 
 [[noreturn]] void UnknownArgument(const std::string_view arg)
 {
-    WrongUsage("unknown argument - " + std::string{arg});
+    std::stringstream ss;
+    ss << "unknown argument - " << arg;
+    WrongUsage(ss.str());
 }
 
 void Process(const fs::path& sourcePath,
