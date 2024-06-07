@@ -126,6 +126,21 @@ std::ptrdiff_t integer_division_ceil(X x, Y y)
 
 struct MIOPEN_EXPORT TensorDescriptor : miopenTensorDescriptor
 {
+    static thread_local int leakedInstances; // NOLINT
+
+    static void* operator new(std::size_t size)
+    {
+        auto ptr = ::operator new(size);
+        ++leakedInstances;
+        return ptr;
+    }
+
+    static void operator delete(void* ptr) noexcept
+    {
+        --leakedInstances;
+        ::operator delete(ptr);
+    }
+
     TensorDescriptor();
 
     // This constructor is only used in test/tensor_holder.hpp

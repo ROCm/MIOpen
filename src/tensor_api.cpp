@@ -32,6 +32,8 @@
 #include <miopen/seq_tensor.hpp>
 #include <miopen/tensor_ops.hpp>
 
+thread_local int miopen::TensorDescriptor::leakedInstances = 0;
+
 extern "C" miopenStatus_t miopenCreateTensorDescriptor(miopenTensorDescriptor_t* tensorDesc)
 {
     MIOPEN_LOG_FUNCTION(tensorDesc);
