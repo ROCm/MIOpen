@@ -177,6 +177,18 @@ SumForward::GetSolution(const ExecutionContext& context,
                     get_parallelism_size(reqd_work_item_cnt, output_numel, reduce_size);
 
                 auto elapsed = 0.f;
+                HipEventPtr start;
+                HipEventPtr stop;
+                bool reset_profiling_state = false;
+
+                if(handle_.IsProfilingEnabled())
+                {
+                    handle_.EnableProfiling(false);
+                    reset_profiling_state = true;
+                    start                 = miopen::make_hip_event();
+                    stop                  = miopen::make_hip_event();
+                    hipEventRecord(start.get(), handle_.GetStream());
+                }
 
                 parallel_kernel(params.x,
                                 params.workspace,
@@ -186,10 +198,6 @@ SumForward::GetSolution(const ExecutionContext& context,
                                 inner_size,
                                 static_cast<bool>(params.nanPropagation));
 
-                if(handle_.IsProfilingEnabled())
-                {
-                    elapsed += handle_.GetKernelTime();
-                }
                 kernel(params.workspace,
                        params.y,
                        output_numel,
@@ -197,9 +205,14 @@ SumForward::GetSolution(const ExecutionContext& context,
                        inner_size,
                        static_cast<bool>(params.nanPropagation));
 
-                if(handle_.IsProfilingEnabled())
+                if(reset_profiling_state)
                 {
-                    elapsed += handle_.GetKernelTime();
+                    hipEventRecord(stop.get(), handle_.GetStream());
+                    handle_.EnableProfiling(true);
+                    hipEventSynchronize(stop.get());
+                    hipEventElapsedTime(&elapsed, start.get(), stop.get());
+                    hipEventDestroy(start);
+                    hipEventDestroy(stop);
                     handle_.ResetKernelTime();
                     handle_.AccumKernelTime(elapsed);
                 };
