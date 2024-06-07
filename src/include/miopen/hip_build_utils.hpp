@@ -38,7 +38,7 @@ namespace miopen {
 
 fs::path HipBuild(boost::optional<miopen::TmpDir>& tmp_dir,
                   const std::string& filename,
-                  std::string src,
+                  std::string_view src,
                   std::string params,
                   const TargetProperties& target);
 
