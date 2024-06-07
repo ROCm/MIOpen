@@ -39,11 +39,7 @@ struct MIOPEN_INTERNALS_EXPORT Scalar
 
     Scalar(ConstData_t ptr, miopenDataType_t type);
 
-    float GetAsFloat() const
-    {
-        assert(mType == miopenFloat);
-        return static_cast<float>(mVal);
-    }
+    float GetAsFloat() const { return static_cast<float>(mVal); }
     double GetAsDouble() const { return mVal; }
 
     miopenDataType_t GetType() const { return mType; }
