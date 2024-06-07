@@ -38,11 +38,11 @@
 
 namespace miopen::env {
 
-namespace detail {
-
 std::optional<std::string> getEnvironmentVariable(std::string_view name);
 void setEnvironmentVariable(std::string_view name, std::string_view value);
 void clearEnvironmentVariable(std::string_view name);
+
+namespace detail {
 
 template <typename T>
 using remove_cvref_t = std::remove_cv_t<std::remove_reference_t<T>>;
@@ -158,7 +158,7 @@ private:
 } // end namespace detail
 
 #define MIOPEN_DECLARE_ENV_VAR(_name, _type, ...)                                  \
-    [[maybe_unused]] inline const struct __struct_##_name                          \
+    [[maybe_unused]] inline constexpr struct __struct_##_name                      \
     {                                                                              \
         static_assert(std::is_same_v<__struct_##_name, ::__struct_##_name>,        \
                       "MIOPEN_DECLARE_ENV* must be used in the global namespace"); \

@@ -142,10 +142,9 @@ TEST_P(ConvBiasActivInferTestHalf, ConvCKIgemmFwdBiasActivFused)
 
 #if MIOPEN_BACKEND_HIP
 
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_FIND_ENFORCE, "SEARCH_DB_UPDATE", true);
-
 TEST_P(ConvBiasActivInferTestFloatFusionCompileStep, ConvBiasActivAsm1x1UFloat_testCompile)
 {
+    env::setEnvironmentVariable("MIOPEN_FIND_ENFORCE", "SEARCH_DB_UPDATE");
     env::update(MIOPEN_DEBUG_TUNING_ITERATIONS_MAX, 5);
     fusePlanDesc.Compile(get_handle());
     const auto plan_params = std::make_unique<miopen::fusion::FusionInvokeParams>(

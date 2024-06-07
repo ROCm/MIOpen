@@ -235,10 +235,9 @@ TEST(TestFusionPlan, BadEmptyFusionPlan)
     EXPECT_ANY_THROW(obj.Applicability());
 }
 
-MIOPEN_DECLARE_ENV_VAR_UINT64(MIOPEN_FIND_ENFORCE, 3, true)
-
 TEST(TestFusionPlan, UnSupportedFusionPlanDuringSearchMode)
 {
+    env::setEnvironmentVariable("MIOPEN_FIND_ENFORCE", "3");
     TestFusionPlan<miopen::solver::fusion::ConvCKIgemmFwdBiasActivFused, half_float::half> obj(
         miopenTensorNHWC, miopenActivationRELU);
     if(obj.Skip())
