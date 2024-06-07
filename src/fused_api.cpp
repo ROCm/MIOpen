@@ -236,7 +236,10 @@ extern "C" miopenStatus_t miopenCreateOpBatchNormBackward(miopenFusionPlanDescri
 extern "C" miopenStatus_t miopenCreateOperatorArgs(miopenOperatorArgs_t* args)
 {
     MIOPEN_LOG_FUNCTION(args);
-    return miopen::try_([&] { miopen::deref(args) = new miopen::OperatorArgs(); });
+    return miopen::try_([&] {
+        auto& theArgs = miopen::deref(args);
+        theArgs       = new miopen::OperatorArgs();
+    });
 }
 
 extern "C" miopenStatus_t miopenDestroyOperatorArgs(miopenOperatorArgs_t args)

@@ -116,7 +116,10 @@ static inline auto MakeWrWCtxAndProblem(miopenHandle_t handle,
 extern "C" miopenStatus_t miopenCreateConvolutionDescriptor(miopenConvolutionDescriptor_t* convDesc)
 {
     MIOPEN_LOG_FUNCTION(convDesc);
-    return miopen::try_([&] { miopen::deref(convDesc) = new miopen::ConvolutionDescriptor(); });
+    return miopen::try_([&] {
+        auto& desc = miopen::deref(convDesc);
+        desc       = new miopen::ConvolutionDescriptor();
+    });
 }
 
 extern "C" miopenStatus_t miopenInitConvolutionDescriptor(miopenConvolutionDescriptor_t convDesc,
