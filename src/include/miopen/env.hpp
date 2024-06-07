@@ -85,7 +85,7 @@ struct EnvVar
                 }
                 else
                 {
-                    std::string value_env_str{};
+                    std::string value_env_str(value->length(), '\0');
                     std::transform(value->begin(), value->end(), value_env_str.begin(), [](int ch) {
                         return std::tolower(ch);
                     });
@@ -104,7 +104,7 @@ struct EnvVar
                     else
                     {
                         MIOPEN_THROW(miopenStatusInvalidValue,
-                                     "Invalid value for env variable (value='" + value.value() +
+                                     "Invalid value for env variable (value='" + value_env_str +
                                          "')");
                     }
                 }
