@@ -32,9 +32,10 @@
 
 #define FLOAT_ACCUM float
 #define VIEW_DIMS 5
+
 #define LOCAL_SIZE_SW_BWD 256
 #define LOCAL_SIZE_SW_REDUCE_BWD 256
-#define LOCAL_SIZE_MW_REDUCE_BWD 1024
+#define LOCAL_SIZE_MW_REDUCE_BWD warpSize
 
 namespace miopen {
 
@@ -92,25 +93,28 @@ SingleWeightBackward::GetSolution(const ExecutionContext& /*context*/,
         {
             result.construction_params.push_back(make_hip_kernel({LOCAL_SIZE_SW_REDUCE_BWD},
                                                                  {size},
-                                                                 "MIOpenReduce.cpp",
+                                                                 "MIOpenReduceSum.cpp",
                                                                  "ReduceSumFLOATACCUM",
                                                                  build_params));
             size = (size + LOCAL_SIZE_SW_REDUCE_BWD - 1) / LOCAL_SIZE_SW_REDUCE_BWD;
         }
         result.construction_params.push_back(make_hip_kernel(
-            {LOCAL_SIZE_SW_REDUCE_BWD}, {size}, "MIOpenReduce.cpp", "ReduceSum", build_params));
+            {LOCAL_SIZE_SW_REDUCE_BWD}, {size}, "MIOpenReduceSum.cpp", "ReduceSum", build_params));
     }
 
     result.invoker_factory = [](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
             auto params = raw_params.CastTo<miopen::prelu::InvokeParams>();
 
-            auto elapsed = 0.f;
+            auto elapsed = 0.0f;
             HipEventPtr start;
             HipEventPtr stop;
 
+            bool reset_profiling_state = false;
             if(handle_.IsProfilingEnabled())
             {
+                reset_profiling_state = true;
+                handle_.EnableProfiling(false);
                 start = miopen::make_hip_event();
                 stop  = miopen::make_hip_event();
                 hipEventRecord(start.get(), handle_.GetStream());
@@ -118,9 +122,9 @@ SingleWeightBackward::GetSolution(const ExecutionContext& /*context*/,
 
             int kernelCnt = 0;
             auto work_a   = params.workspace;
-            auto work_b =
-                reinterpret_cast<Data_t>(reinterpret_cast<char*>(params.workspace) +
-                                         params.inputDesc->GetElementSize() * sizeof(FLOAT_ACCUM));
+            auto work_b   = reinterpret_cast<Data_t>(reinterpret_cast<char*>(params.workspace) +
+                                                   deref(params.inputDesc).GetElementSize() *
+                                                       sizeof(FLOAT_ACCUM));
 
             /* Phase 1: Calc gradient for each elements. */
             {
@@ -133,7 +137,7 @@ SingleWeightBackward::GetSolution(const ExecutionContext& /*context*/,
                        params.doutput,
                        params.dinput,
                        work_a,
-                       (ulong)params.inputDesc->GetElementSize(),
+                       (ulong)deref(params.inputDesc).GetElementSize(),
                        input_tv,
                        output_grad_tv,
                        input_grad_tv);
@@ -141,7 +145,7 @@ SingleWeightBackward::GetSolution(const ExecutionContext& /*context*/,
 
             /* Phase 2: Reduce gradient. */
             {
-                auto size = params.inputDesc->GetElementSize();
+                auto size = deref(params.inputDesc).GetElementSize();
                 while(size > LOCAL_SIZE_SW_REDUCE_BWD)
                 {
                     auto kernel = handle_.Run(kernels[kernelCnt++]);
@@ -152,11 +156,17 @@ SingleWeightBackward::GetSolution(const ExecutionContext& /*context*/,
                 handle_.Run(kernels[kernelCnt++])(work_a, params.dweight, size);
             }
 
+            if(reset_profiling_state)
+                handle_.EnableProfiling(true);
             if(handle_.IsProfilingEnabled())
             {
                 hipEventRecord(stop.get(), handle_.GetStream());
                 hipEventSynchronize(stop.get());
                 hipEventElapsedTime(&elapsed, start.get(), stop.get());
+
+                // Clean up
+                hipEventDestroy(start.get());
+                hipEventDestroy(stop.get());
                 handle_.ResetKernelTime();
                 handle_.AccumKernelTime(elapsed);
             };
@@ -225,7 +235,7 @@ MultiWeightsBackward::GetSolution(const ExecutionContext& context,
         result.construction_params.push_back(
             make_hip_kernel({LOCAL_SIZE_MW_REDUCE_BWD},
                             {problem.GetdWeightDesc().GetElementSize() * LOCAL_SIZE_MW_REDUCE_BWD},
-                            "MIOpenReduce.cpp",
+                            "MIOpenReduceSum.cpp",
                             "Reduce1dSum",
                             build_params));
     }
@@ -237,6 +247,16 @@ MultiWeightsBackward::GetSolution(const ExecutionContext& context,
             auto elapsed = 0.f;
             HipEventPtr start;
             HipEventPtr stop;
+
+            bool reset_profiling_state = false;
+            if(handle_.IsProfilingEnabled())
+            {
+                reset_profiling_state = true;
+                handle_.EnableProfiling(false);
+                start = miopen::make_hip_event();
+                stop  = miopen::make_hip_event();
+                hipEventRecord(start.get(), handle_.GetStream());
+            }
 
             int kernelCnt = 0;
 
@@ -251,7 +271,7 @@ MultiWeightsBackward::GetSolution(const ExecutionContext& context,
                        params.doutput,
                        params.dinput,
                        params.workspace,
-                       (ulong)params.inputDesc->GetElementSize(),
+                       (ulong)deref(params.inputDesc).GetElementSize(),
                        input_tv,
                        output_grad_tv,
                        input_grad_tv);
@@ -259,18 +279,25 @@ MultiWeightsBackward::GetSolution(const ExecutionContext& context,
 
             /* Phase 2: Reduce gradient. */
             {
-                size_t output_numel = params.weightDesc->GetElementSize();
-                size_t outer_size   = params.inputDesc->GetLengths()[0];
-                size_t inner_size = params.inputDesc->GetElementSize() / outer_size / output_numel;
+                size_t output_numel = deref(params.weightDesc).GetElementSize();
+                size_t outer_size   = deref(params.inputDesc).GetLengths()[0];
+                size_t inner_size =
+                    deref(params.inputDesc).GetElementSize() / outer_size / output_numel;
                 handle_.Run(kernels[kernelCnt++])(
                     params.workspace, params.dweight, output_numel, inner_size, outer_size);
             }
 
+            if(reset_profiling_state)
+                handle_.EnableProfiling(true);
             if(handle_.IsProfilingEnabled())
             {
                 hipEventRecord(stop.get(), handle_.GetStream());
                 hipEventSynchronize(stop.get());
                 hipEventElapsedTime(&elapsed, start.get(), stop.get());
+
+                // Clean up
+                hipEventDestroy(start.get());
+                hipEventDestroy(stop.get());
                 handle_.ResetKernelTime();
                 handle_.AccumKernelTime(elapsed);
             };

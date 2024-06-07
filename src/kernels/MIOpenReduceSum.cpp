@@ -72,7 +72,10 @@ __device__ void ReduceSum(const FLOAT_ACCUM* input, TO* output, size_t N)
     auto gid = blockIdx.x * blockDim.x + threadIdx.x;
 
     FLOAT_ACCUM val = gid < N ? input[gid] : CVT_FP32_2ACCUM(0.0f);
-    val             = block_reduce_sum(val);
+    if(blockDim.x == warpSize)
+        val = warp_reduce_sum(val);
+    else
+        val = block_reduce_sum(val);
 
     if(threadIdx.x == 0)
         output[blockIdx.x] = CVT_ACCUM2FLOAT(val);
@@ -92,7 +95,10 @@ extern "C" __global__ void ReduceSumFLOATACCUM(const FLOAT_ACCUM* __restrict__ i
     auto gid = blockIdx.x * blockDim.x + threadIdx.x;
 
     FLOAT_ACCUM val = gid < N ? input[gid] : 0.0f;
-    val             = block_reduce_sum(val);
+    if(blockDim.x == warpSize)
+        val = warp_reduce_sum(val);
+    else
+        val = block_reduce_sum(val);
 
     if(threadIdx.x == 0)
         output[blockIdx.x] = val;
@@ -114,7 +120,10 @@ __device__ void Reduce1dSum(const FLOAT_ACCUM* __restrict__ input,
         for(int j = tid; j < inner_size; j += blockDim.x)
             sum += input[i * output_numel * inner_size + oidx * inner_size + j];
 
-    sum = block_reduce_sum(sum);
+    if(blockDim.x == warpSize)
+        sum = warp_reduce_sum(sum);
+    else
+        sum = block_reduce_sum(sum);
 
     if(tid == 0)
         output[oidx] = CVT_ACCUM2FLOAT(sum);
