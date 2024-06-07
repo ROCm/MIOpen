@@ -56,6 +56,10 @@
 #define OUT_TYPE float
 #endif
 
+#ifndef dO_TYPE
+#define dO_TYPE float
+#endif
+
 namespace {
 constexpr float plus_op(float a, float b) { return a + b; };
 constexpr float fmaxf_op(float a, float b) { return fmaxf(a, b); };
@@ -466,7 +470,7 @@ extern "C" __global__ void __launch_bounds__(THREADS)
 }
 
 extern "C" __global__ void __launch_bounds__(THREADS)
-    ScaleRowReduceWarp(const OUT_TYPE* __restrict__ dO,
+    ScaleRowReduceWarp(const dO_TYPE* __restrict__ dO,
                        const OUT_TYPE* __restrict__ O,
                        float* __restrict__ out,
                        const float* __restrict__ descale_dO,
@@ -503,7 +507,7 @@ extern "C" __global__ void __launch_bounds__(THREADS)
 }
 
 extern "C" __global__ void __launch_bounds__(THREADS)
-    ScaleRowReduceBlock(const OUT_TYPE* __restrict__ dO,
+    ScaleRowReduceBlock(const dO_TYPE* __restrict__ dO,
                         const OUT_TYPE* __restrict__ O,
                         float* __restrict__ out,
                         const float* __restrict__ descale_dO,
@@ -540,7 +544,7 @@ extern "C" __global__ void __launch_bounds__(THREADS)
 }
 
 extern "C" __global__ void __launch_bounds__(THREADS)
-    ScaleRowReduceCommon(const OUT_TYPE* __restrict__ dO,
+    ScaleRowReduceCommon(const dO_TYPE* __restrict__ dO,
                          const OUT_TYPE* __restrict__ O,
                          float* __restrict__ out,
                          const float* __restrict__ descale_dO,
@@ -566,7 +570,8 @@ extern "C" __global__ void __launch_bounds__(THREADS)
                       : 0.0f;
 
         for(uint32_t loop_lid = lid + blockDim.x; loop_lid < d; loop_lid += blockDim.x)
-            local_val += dO_ptr[loop_lid] * O_ptr[loop_lid] * scaler;
+            local_val +=
+                static_cast<float>(dO_ptr[loop_lid]) * static_cast<float>(O_ptr[loop_lid]) * scaler;
 
         local_val = reductionBlock<NumWarps>(local_val, plus_op, lid, laneId, warpId);
 
@@ -579,7 +584,8 @@ extern "C" __global__ void __launch_bounds__(THREADS)
 
 extern "C" __global__ void __launch_bounds__(THREADS)
     BwdAttentionWarp(float* __restrict__ QxK_S,
-                     float* __restrict__ dOxV_dS,
+                     const float* dOxV,
+                     OUT_TYPE* dS, // may overlap with dOxV
                      const float* __restrict__ M,
                      const float* __restrict__ Zinv,
                      const float* __restrict__ dOxO,
@@ -637,9 +643,9 @@ extern "C" __global__ void __launch_bounds__(THREADS)
 
         QxK_S[idx] = QxK_val * scaler_S;
 
-        const float dOxV_val = (dOxV_dS[idx] * descaler_dOxV - dOxO_val) * scale * QxK_val;
+        const float dOxV_val = (dOxV[idx] * descaler_dOxV - dOxO_val) * scale * QxK_val;
 
-        dOxV_dS[idx] = dOxV_val * scaler_dS;
+        dS[idx] = static_cast<OUT_TYPE>(dOxV_val * scaler_dS);
 
         r_Amax = fmaxf_op(r_Amax, fabsf(dOxV_val));
     }
@@ -653,7 +659,8 @@ extern "C" __global__ void __launch_bounds__(THREADS)
 
 extern "C" __global__ void __launch_bounds__(THREADS)
     BwdAttentionBlock(float* __restrict__ QxK_S,
-                      float* __restrict__ dOxV_dS,
+                      const float* dOxV,
+                      OUT_TYPE* dS, // may overlap with dOxV
                       const float* __restrict__ M,
                       const float* __restrict__ Zinv,
                       const float* __restrict__ dOxO,
@@ -710,9 +717,9 @@ extern "C" __global__ void __launch_bounds__(THREADS)
 
         QxK_S[idx] = QxK_val * scaler_S;
 
-        const float dOxV_val = (dOxV_dS[idx] * descaler_dOxV - dOxO_val) * scale * QxK_val;
+        const float dOxV_val = (dOxV[idx] * descaler_dOxV - dOxO_val) * scale * QxK_val;
 
-        dOxV_dS[idx] = dOxV_val * scaler_dS;
+        dS[idx] = static_cast<OUT_TYPE>(dOxV_val * scaler_dS);
 
         r_Amax = fmaxf_op(r_Amax, fabsf(dOxV_val));
     }
@@ -726,7 +733,8 @@ extern "C" __global__ void __launch_bounds__(THREADS)
 
 extern "C" __global__ void __launch_bounds__(THREADS)
     BwdAttentionCommon(float* __restrict__ QxK_S,
-                       float* __restrict__ dOxV_dS,
+                       const float* dOxV,
+                       OUT_TYPE* dS, // may overlap with dOxV
                        const float* __restrict__ M,
                        const float* __restrict__ Zinv,
                        const float* __restrict__ dOxO,
@@ -775,8 +783,9 @@ extern "C" __global__ void __launch_bounds__(THREADS)
         const float Zinv_val = Zinv[gid];
         const float dOxO_val = dOxO[gid];
 
-        float* QxK_S_ptr   = QxK_S + gid * seq_len;
-        float* dOxV_dS_ptr = dOxV_dS + gid * seq_len;
+        float* QxK_S_ptr      = QxK_S + gid * seq_len;
+        const float* dOxV_ptr = dOxV + gid * seq_len;
+        OUT_TYPE* dS_ptr      = dS + gid * seq_len;
 
         for(uint32_t loop_lid = lid; loop_lid < seq_len; loop_lid += blockDim.x)
         {
@@ -788,9 +797,9 @@ extern "C" __global__ void __launch_bounds__(THREADS)
             QxK_S_ptr[loop_lid] = QxK_val * scaler_S;
 
             const float dOxV_val =
-                (dOxV_dS_ptr[loop_lid] * descaler_dOxV - dOxO_val) * scale * QxK_val;
+                (dOxV_ptr[loop_lid] * descaler_dOxV - dOxO_val) * scale * QxK_val;
 
-            dOxV_dS_ptr[loop_lid] = dOxV_val * scaler_dS;
+            dS_ptr[loop_lid] = static_cast<OUT_TYPE>(dOxV_val * scaler_dS);
 
             r_Amax = fmaxf_op(r_Amax, fabsf(dOxV_val));
         }
