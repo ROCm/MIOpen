@@ -86,7 +86,7 @@ struct GetitemInvokeParams : public miopen::InvokeParams
     const int32_t* dims   = nullptr;
     uint32_t sliceCount   = 0;
     const int32_t* slices = nullptr;
-    int32_t offset        = 0;
+    uint32_t offset       = 0;
 
     std::size_t GetWorkspaceSize() const { return workspace_size; }
     Data_t GetWorkspace() const { return workspace; }
