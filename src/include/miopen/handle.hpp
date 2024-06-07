@@ -66,7 +66,7 @@
 #include <hipblas/hipblas.h>
 
 typedef void* hipblasLtHandle_t;
-extern "C" hipblasStatus_t hipblasLtDestroy(const hipblasLtHandle_t handle);
+extern "C" hipblasStatus_t hipblasLtDestroy(hipblasLtHandle_t handle);
 
 namespace miopen {
 
