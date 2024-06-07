@@ -44,7 +44,7 @@ MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_DEVICE_ARCH)
 namespace miopen {
 
 HipEventProfiler::HipEventProfiler(const Handle& handle_)
-    : handle(handle_), event_time(0.0f), start(nullptr), stop(nullptr)
+    : handle(handle_), start(nullptr), stop(nullptr)
 {
     if(handle.IsProfilingEnabled())
     {
@@ -60,6 +60,7 @@ HipEventProfiler::~HipEventProfiler()
     {
         hipEventRecord(stop.get(), handle.GetStream());
         hipEventSynchronize(stop.get());
+        float event_time = 0.0f;
         hipEventElapsedTime(&event_time, start.get(), stop.get());
         handle.ResetKernelTime();
         handle.AccumKernelTime(event_time);

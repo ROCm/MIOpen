@@ -49,7 +49,6 @@ inline HipEventPtr make_hip_event()
 struct HipEventProfiler
 {
     const Handle& handle;
-    float event_time;
     HipEventPtr start;
     HipEventPtr stop;
 
