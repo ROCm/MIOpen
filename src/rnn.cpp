@@ -276,19 +276,18 @@ std::vector<int> RNNDescriptor::pTensorLengthsCalculation(const TensorDescriptor
 
 RNNDescriptor::RNNDescriptor()
 {
-    nLayers                = 1;
-    hsize                  = 0;
-    nHiddenTensorsPerLayer = 0;
-    rnnMode                = miopenRNNTANH;
-    dirMode                = miopenRNNunidirection;
-    biasMode               = miopenRNNNoBias;
-    algoMode               = miopenRNNdefault;
-    inputMode              = miopenRNNlinear;
-    dataType               = miopenFloat;
-    typeSize               = 4;
-    workspaceScale         = 1;
-    auto& desc             = miopen::deref(&dropoutDesc);
-    desc                   = new miopen::DropoutDescriptor();
+    nLayers                     = 1;
+    hsize                       = 0;
+    nHiddenTensorsPerLayer      = 0;
+    rnnMode                     = miopenRNNTANH;
+    dirMode                     = miopenRNNunidirection;
+    biasMode                    = miopenRNNNoBias;
+    algoMode                    = miopenRNNdefault;
+    inputMode                   = miopenRNNlinear;
+    dataType                    = miopenFloat;
+    typeSize                    = 4;
+    workspaceScale              = 1;
+    miopen::deref(&dropoutDesc) = new miopen::DropoutDescriptor();
 }
 
 RNNDescriptor::RNNDescriptor(int hsz,
@@ -338,16 +337,15 @@ RNNDescriptor::RNNDescriptor(int hsz,
         typeSize = dType == miopenHalf ? 2 : 4;
     }
 
-    hsize      = hsz;
-    nLayers    = layers;
-    inputMode  = inMode;
-    dirMode    = bidir;
-    rnnMode    = rmode;
-    algoMode   = amode;
-    biasMode   = bmode;
-    dataType   = dType;
-    auto& desc = miopen::deref(&dropoutDesc);
-    desc       = new miopen::DropoutDescriptor();
+    hsize                       = hsz;
+    nLayers                     = layers;
+    inputMode                   = inMode;
+    dirMode                     = bidir;
+    rnnMode                     = rmode;
+    algoMode                    = amode;
+    biasMode                    = bmode;
+    dataType                    = dType;
+    miopen::deref(&dropoutDesc) = new miopen::DropoutDescriptor();
 
     switch(rmode)
     {
