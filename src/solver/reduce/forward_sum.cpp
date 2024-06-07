@@ -211,8 +211,8 @@ SumForward::GetSolution(const ExecutionContext& context,
                     handle_.EnableProfiling(true);
                     hipEventSynchronize(stop.get());
                     hipEventElapsedTime(&elapsed, start.get(), stop.get());
-                    hipEventDestroy(start);
-                    hipEventDestroy(stop);
+                    hipEventDestroy(start.get());
+                    hipEventDestroy(stop.get());
                     handle_.ResetKernelTime();
                     handle_.AccumKernelTime(elapsed);
                 };
