@@ -198,6 +198,7 @@ ConvSolution GetitemBackward::GetSolution(const ExecutionContext& /*context*/,
 
                 if((i == 0) && handle_.IsProfilingEnabled())
                 {
+                    handle_.EnableProfiling(false);
                     start = miopen::make_hip_event();
                     stop  = miopen::make_hip_event();
                     hipEventRecord(start.get(), handle_.GetStream());
@@ -216,6 +217,7 @@ ConvSolution GetitemBackward::GetSolution(const ExecutionContext& /*context*/,
 
             if((indexCount == 0) && handle_.IsProfilingEnabled())
             {
+                handle_.EnableProfiling(false);
                 start = miopen::make_hip_event();
                 stop  = miopen::make_hip_event();
                 hipEventRecord(start.get(), handle_.GetStream());
@@ -236,8 +238,11 @@ ConvSolution GetitemBackward::GetSolution(const ExecutionContext& /*context*/,
             if(handle_.IsProfilingEnabled())
             {
                 hipEventRecord(stop.get(), handle_.GetStream());
+                handle_.EnableProfiling(true);
                 hipEventSynchronize(stop.get());
                 hipEventElapsedTime(&elapsed, start.get(), stop.get());
+                hipEventDestroy(start);
+                hipEventDestroy(stop);
                 handle_.ResetKernelTime();
                 handle_.AccumKernelTime(elapsed);
             };
