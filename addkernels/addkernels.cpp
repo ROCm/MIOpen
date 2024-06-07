@@ -221,9 +221,9 @@ int main(int argc, char* argv[])
     std::string targetFile;
     std::vector<fs::path> sourceFiles;
 
-    bool recurse         = true;
-    bool as_extern       = false;
-    bool mark_includes   = false;
+    bool recurse       = true;
+    bool as_extern     = false;
+    bool mark_includes = false;
 
     // Parse command line options to establish configuration
 
