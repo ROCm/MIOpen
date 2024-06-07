@@ -118,7 +118,7 @@ static fs::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
     // Let's assume includes are overkill for feature tests & optimize'em out.
     if(!testing_mode)
     {
-        auto inc_list = GetHipKernelIncList();
+        auto inc_list = GetKernelIncList();
         auto inc_path = tmp_dir->path;
         fs::create_directories(inc_path);
         for(const auto& inc_file : inc_list)
@@ -211,13 +211,13 @@ static fs::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
 
 fs::path HipBuild(boost::optional<TmpDir>& tmp_dir,
                   const std::string& filename,
-                  std::string src,
+                  std::string_view src,
                   std::string params,
                   const TargetProperties& target)
 {
     if(miopen::solver::support_amd_buffer_atomic_fadd(target.Name()))
         params += " -DCK_AMD_BUFFER_ATOMIC_FADD_RETURNS_FLOAT=1";
-    return HipBuildImpl(tmp_dir, filename, src, params, target, false);
+    return HipBuildImpl(tmp_dir, filename, std::string{src}, params, target, false);
 }
 
 } // namespace miopen

@@ -168,9 +168,7 @@ ClProgramPtr LoadProgram(cl_context ctx,
         boost::optional<miopen::TmpDir> dir(program_name);
 #if MIOPEN_BUILD_DEV
         params += " -Werror";
-#ifdef __linux__
         params += HipKernelWarningsString();
-#endif
 #endif
         auto hsaco_file = HipBuild(dir, program_name, source, params, target);
         // load the hsaco file as a data stream and then load the binary
@@ -193,9 +191,7 @@ ClProgramPtr LoadProgram(cl_context ctx,
             params += " -Wf,-mwavefrontsize64 -Wf,-mcumode";
 #if MIOPEN_BUILD_DEV
         params += " -Werror";
-#ifdef __linux__
         params += OclKernelWarningsString();
-#endif
 #endif
         params += " -cl-std=CL2.0";
         MIOPEN_LOG_I2("Building OpenCL program: '" << program_name << "', options: '" << params);
