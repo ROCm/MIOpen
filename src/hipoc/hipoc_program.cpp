@@ -204,7 +204,7 @@ HIPOCProgramImpl::HIPOCProgramImpl(const fs::path& program_name,
 
 #if !MIOPEN_USE_COMGR
 void HIPOCProgramImpl::BuildCodeObjectInFile(std::string& params,
-                                             const std::string& src,
+                                             std::string_view src,
                                              const fs::path& filename)
 {
     dir.emplace(filename.filename().string());
@@ -250,14 +250,13 @@ void HIPOCProgramImpl::BuildCodeObjectInFile(std::string& params,
 
 #else // MIOPEN_USE_COMGR
 void HIPOCProgramImpl::BuildCodeObjectInMemory(const std::string& params,
-                                               const std::string& src,
+                                               const std::string_view src,
                                                const fs::path& filename)
 {
     if(filename.extension() == dynamic_library_postfix) // ".so" or ".dll"
     {
-        std::size_t sz = src.length();
-        binary.resize(sz);
-        std::memcpy(&binary[0], src.c_str(), sz);
+        binary.resize(src.size());
+        std::memcpy(&binary[0], src.data(), src.size());
     }
     else
     {
@@ -296,7 +295,7 @@ void HIPOCProgramImpl::BuildCodeObjectInMemory(const std::string& params,
 
 void HIPOCProgramImpl::BuildCodeObject(std::string params, const std::string& kernel_src)
 {
-    const auto src = [&]() -> std::string {
+    const auto src       = [&]() -> std::string_view {
         if(program.extension() == ".mlir")
             return {}; // MLIR solutions do not use source code.
         if(!kernel_src.empty())

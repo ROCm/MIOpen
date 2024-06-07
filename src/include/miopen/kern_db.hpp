@@ -38,6 +38,7 @@
 #include <boost/none.hpp>
 #include <boost/optional/optional.hpp>
 
+#include <functional>
 #include <string>
 #include <chrono>
 #include <thread>
