@@ -27,22 +27,15 @@
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
-#include <gtest/gtest_common.hpp>
 
 #include <miopen/env.hpp>
 #include <miopen/miopen.h>
 #include <miopen/process.hpp>
 
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_WITH_MIOPENDRIVER)
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPENDRIVER_MODE_CONV)
-
 namespace miopendriver_regression_issue_2047 {
 
-std::vector<std::string> GetTestCases()
+std::vector<std::string> GetTestCases(const std::string& modeConvolutionArg)
 {
-    const std::string& modeConvolutionArg = miopen::GetStringEnv(ENV(MIOPENDRIVER_MODE_CONV));
-
     // clang-format off
     return std::vector<std::string>{
         // Regression test for: MIOpenIm3d2Col stuck with ROCm update, https://github.com/ROCm/MIOpen/issues/2047
@@ -51,30 +44,31 @@ std::vector<std::string> GetTestCases()
     // clang-format on
 }
 
-using TestCase = decltype(GetTestCases())::value_type;
+using TestCase = decltype(GetTestCases(""))::value_type;
 
-class MIOpenDriverRegressionIssue2047Test : public testing::TestWithParam<std::vector<TestCase>>
+class MIOpenDriverRegressionIssue2047TestFloat
+    : public testing::TestWithParam<std::vector<TestCase>>
 {
 };
 
-bool IsTestSupportedForDevice()
+class MIOpenDriverRegressionIssue2047TestHalf : public testing::TestWithParam<std::vector<TestCase>>
 {
-    using namespace miopen::debug;
+};
+
+class MIOpenDriverRegressionIssue2047TestBFloat16
+    : public testing::TestWithParam<std::vector<TestCase>>
+{
+};
+
+class MIOpenDriverRegressionIssue2047TestInt8 : public testing::TestWithParam<std::vector<TestCase>>
+{
+};
+
+void RunMIOpenDriver(const std::string& floatArg, const std::vector<TestCase>& testCases)
+{
     using e_mask = enabled<Gpu::gfx94X, Gpu::gfx103X, Gpu::gfx110X>;
     using d_mask = disabled<Gpu::Default>;
-    return ::IsTestSupportedForDevMask<d_mask, e_mask>();
-}
-
-void RunMIOpenDriver()
-{
-    bool runTestSuite = miopen::IsEnabled(ENV(MIOPEN_TEST_WITH_MIOPENDRIVER)) &&
-                        IsTestSupportedForDevice() &&
-                        (miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG)) == "--float" ||
-                         miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG)) == "--half" ||
-                         miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG)) == "--bf16" ||
-                         miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG)) == "--int8");
-
-    if(!runTestSuite)
+    if(!ShouldRunMIOpenDriverTest<d_mask, e_mask>(floatArg, false))
     {
         GTEST_SKIP();
     }
@@ -82,14 +76,44 @@ void RunMIOpenDriver()
     miopen::ProcessEnvironmentMap environmentVariables = {
         {"MIOPEN_FIND_MODE", "normal"}, {"MIOPEN_DEBUG_FIND_ONLY_SOLVER", "GemmFwdRest"}};
 
-    RunMIOpenDriverTestCommand(MIOpenDriverRegressionIssue2047Test::GetParam());
+    RunMIOpenDriverTestCommand(testCases, environmentVariables);
 };
 
 } // namespace miopendriver_regression_issue_2047
 using namespace miopendriver_regression_issue_2047;
 
-TEST_P(MIOpenDriverRegressionIssue2047Test, MIOpenDriverRegressionIssue2047) { RunMIOpenDriver(); };
+TEST_P(MIOpenDriverRegressionIssue2047TestFloat, MIOpenDriverRegressionIssue2047)
+{
+    RunMIOpenDriver("--float", GetParam());
+};
 
 INSTANTIATE_TEST_SUITE_P(MIOpenDriverRegressionIssue2047TestSet,
-                         MIOpenDriverRegressionIssue2047Test,
-                         testing::Values(GetTestCases()));
+                         MIOpenDriverRegressionIssue2047TestFloat,
+                         testing::Values(GetTestCases(miopendriver::basearg::conv::Float)));
+
+TEST_P(MIOpenDriverRegressionIssue2047TestHalf, MIOpenDriverRegressionIssue2047)
+{
+    RunMIOpenDriver("--half", GetParam());
+};
+
+INSTANTIATE_TEST_SUITE_P(MIOpenDriverRegressionIssue2047TestSet,
+                         MIOpenDriverRegressionIssue2047TestHalf,
+                         testing::Values(GetTestCases(miopendriver::basearg::conv::Half)));
+
+TEST_P(MIOpenDriverRegressionIssue2047TestBFloat16, MIOpenDriverRegressionIssue2047)
+{
+    RunMIOpenDriver("--bfloat16", GetParam());
+};
+
+INSTANTIATE_TEST_SUITE_P(MIOpenDriverRegressionIssue2047TestSet,
+                         MIOpenDriverRegressionIssue2047TestBFloat16,
+                         testing::Values(GetTestCases(miopendriver::basearg::conv::BFloat16)));
+
+TEST_P(MIOpenDriverRegressionIssue2047TestInt8, MIOpenDriverRegressionIssue2047)
+{
+    RunMIOpenDriver("--int8", GetParam());
+};
+
+INSTANTIATE_TEST_SUITE_P(MIOpenDriverRegressionIssue2047TestSet,
+                         MIOpenDriverRegressionIssue2047TestInt8,
+                         testing::Values(GetTestCases(miopendriver::basearg::conv::Int8)));
