@@ -115,6 +115,7 @@ SingleWeightBackward::GetSolution(const ExecutionContext& /*context*/,
             {
                 reset_profiling_state = true;
                 handle_.EnableProfiling(false);
+                hipStreamSynchronize(handle_.GetStream());
                 start = miopen::make_hip_event();
                 stop  = miopen::make_hip_event();
                 hipEventRecord(start.get(), handle_.GetStream());
@@ -253,6 +254,7 @@ MultiWeightsBackward::GetSolution(const ExecutionContext& context,
             {
                 reset_profiling_state = true;
                 handle_.EnableProfiling(false);
+                hipStreamSynchronize(handle_.GetStream());
                 start = miopen::make_hip_event();
                 stop  = miopen::make_hip_event();
                 hipEventRecord(start.get(), handle_.GetStream());
