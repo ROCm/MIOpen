@@ -648,7 +648,7 @@ inline size_t GetWorkspaceSizeLayoutTransformConv(const miopen::conv::ProblemDes
 {
     if(problem.IsLayoutNHWC())
     {
-        if(problem.GetDirection() == ::miopen::conv::Direction::BackwardWeights)
+        if(problem.Is3d() && problem.GetDirection() == ::miopen::conv::Direction::BackwardWeights)
         {
             return GetCKAlphaBetaWorkspace(problem);
         }
@@ -657,7 +657,7 @@ inline size_t GetWorkspaceSizeLayoutTransformConv(const miopen::conv::ProblemDes
 
     assert(problem.IsLayoutDefault());
 
-    if(problem.GetDirection() == ::miopen::conv::Direction::BackwardWeights)
+    if(problem.Is3d() && problem.GetDirection() == ::miopen::conv::Direction::BackwardWeights)
     {
         MultiBufferWorkspaceTraits wt({GetPackedSize(problem.GetIn()),
                                        GetPackedSize(problem.GetWeights()),
