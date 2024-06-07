@@ -29,16 +29,8 @@
 
 using namespace group_conv;
 
-// Bilinear
-DEFINE_GROUP_CONV3D_TEST(float, Forward, 2.2, 3.3, Bilinear);
-DEFINE_GROUP_CONV3D_TEST(half, Forward, 2.2, 3.3, Bilinear);
-// Scale
-DEFINE_GROUP_CONV3D_TEST(float, Forward, 2.2, 0.0, Scalar);
-DEFINE_GROUP_CONV3D_TEST(half, Forward, 2.2, 0.0, Scalar);
-// Default
-DEFINE_GROUP_CONV3D_TEST(float, Forward, 1.0, 0.0, Default);
-DEFINE_GROUP_CONV3D_TEST(half, Forward, 1.0, 0.0, Default);
-DEFINE_GROUP_CONV3D_TEST(bfloat16, Forward, 1.0, 0.0, Default);
-// DEFINE_GROUP_CONV3D_TEST(half, Forward);
+DEFINE_GROUP_CONV3D_TEST(float, Forward);
+DEFINE_GROUP_CONV3D_TEST(half, Forward);
+DEFINE_GROUP_CONV3D_TEST(bfloat16, Forward);
 /// \todo int8_t tests don't work. Need debugging
 // DEFINE_GROUP_CONV3D_TEST(int8_t, Forward);
