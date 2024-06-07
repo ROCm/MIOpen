@@ -319,9 +319,9 @@ void HIPOCProgramImpl::BuildCodeObject(std::string params, const std::string& ke
 #endif
 
 #if MIOPEN_USE_COMGR /// \todo Refactor when functionality stabilize.
-    BuildCodeObjectInMemory(params, src, program.string());
+    BuildCodeObjectInMemory(params, src, program);
 #else
-    BuildCodeObjectInFile(params, src, program.string());
+    BuildCodeObjectInFile(params, src, program);
 #endif
 }
 
