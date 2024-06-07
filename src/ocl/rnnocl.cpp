@@ -56,12 +56,12 @@ bool RNNForwardMSIsSupported([[maybe_unused]] const RNNDescriptor& desctiptor,
     return false;
 }
 
-bool RNNForwardMSIsFast(miopenDataType_t dataT, const int seqLen)
+bool RNNForwardMSIsFast(const int seqLen)
 {
     if(env::enabled(MIOPEN_RNNFWD_exp))
         return true;
 
-    if(dataT == miopenFloat && seqLen >= 32 && !env::disabled(MIOPEN_RNNFWD_exp))
+    if(seqLen >= 32 && !env::disabled(MIOPEN_RNNFWD_exp))
         return true;
     return false;
 }
@@ -1310,7 +1310,7 @@ void RNNDescriptor::RNNForwardInferencePacked(Handle& handle,
     }
     // input check end
 
-    if(RNNForwardMSIsSupported(*this, false) && RNNForwardMSIsFast(xDesc[0].GetType(), seqLen))
+    if(RNNForwardMSIsSupported(*this, false) && RNNForwardMSIsFast(seqLen))
     {
         return RNNForwardMS(handle,
                             in_n,
@@ -2704,7 +2704,7 @@ void RNNDescriptor::RNNForwardTrainingPackedTensors(
     // input check end
     bool use_dropout = !float_equal(miopen::deref(dropoutDesc).dropout, 0);
 
-    if(RNNForwardMSIsSupported(*this, false) && RNNForwardMSIsFast(xDesc[0].GetType(), seqLen))
+    if(RNNForwardMSIsSupported(*this, false) && RNNForwardMSIsFast(seqLen))
     {
         return RNNForwardMS(handle,
                             in_n,

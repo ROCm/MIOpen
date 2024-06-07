@@ -27,22 +27,16 @@
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
-#include <gtest/gtest_common.hpp>
 
 #include <miopen/env.hpp>
 #include <miopen/miopen.h>
 #include <miopen/process.hpp>
 
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_WITH_MIOPENDRIVER)
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPENDRIVER_MODE_CONV)
-
 namespace miopendriver_regression_issue_1576 {
 
 std::vector<std::string> GetTestCases()
 {
-    const std::string& modeConvolutionArg = env::value(MIOPENDRIVER_MODE_CONV);
+    const std::string& modeConvolutionArg = miopendriver::basearg::conv::Half;
 
     // clang-format off
     return std::vector<std::string>{
@@ -58,21 +52,11 @@ class MIOpenDriverRegressionIssue1576Test : public testing::TestWithParam<std::v
 {
 };
 
-bool IsTestSupportedForDevice()
-{
-    using namespace miopen::debug;
-    using e_mask = enabled<Gpu::gfx94X, Gpu::gfx103X, Gpu::gfx110X>;
-    using d_mask = disabled<Gpu::Default>;
-    return ::IsTestSupportedForDevMask<d_mask, e_mask>();
-}
-
 void RunMIOpenDriver()
 {
-    bool runTestSuite = env::enabled(MIOPEN_TEST_WITH_MIOPENDRIVER) && IsTestSupportedForDevice() &&
-                        env::enabled(MIOPEN_TEST_ALL) &&
-                        env::value(MIOPEN_TEST_FLOAT_ARG) == "--half";
-
-    if(!runTestSuite)
+    using e_mask = enabled<Gpu::gfx94X, Gpu::gfx103X, Gpu::gfx110X>;
+    using d_mask = disabled<Gpu::Default>;
+    if(!ShouldRunMIOpenDriverTest<d_mask, e_mask>("--half", true))
     {
         GTEST_SKIP();
     }
