@@ -114,7 +114,7 @@ void PrintHelp()
 
 [[noreturn]] void WrongUsage(std::string_view error)
 {
-    std::cout << "Wrong usage: " << error << std::endl;
+    std::cout << "Wrong usage: " << error << "\n" << std::endl;
     PrintHelp();
     // NOLINTNEXTLINE (concurrency-mt-unsafe)
     std::exit(1);
