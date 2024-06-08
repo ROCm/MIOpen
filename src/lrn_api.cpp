@@ -32,7 +32,10 @@
 extern "C" miopenStatus_t miopenCreateLRNDescriptor(miopenLRNDescriptor_t* lrnDesc)
 {
 
-    return miopen::try_([&] { miopen::deref(lrnDesc) = new miopen::LRNDescriptor(); });
+    return miopen::try_([&] {
+        auto& desc = miopen::deref(lrnDesc);
+        desc       = new miopen::LRNDescriptor();
+    });
 }
 
 extern "C" miopenStatus_t miopenSetLRNDescriptor(miopenLRNDescriptor_t lrnDesc,

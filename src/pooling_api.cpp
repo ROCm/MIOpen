@@ -125,7 +125,10 @@ inline void Pooling_logging_cmd(const miopenPoolingDescriptor_t poolDesc,
 extern "C" miopenStatus_t miopenCreatePoolingDescriptor(miopenPoolingDescriptor_t* poolDesc)
 {
     MIOPEN_LOG_FUNCTION(poolDesc);
-    return miopen::try_([&] { miopen::deref(poolDesc) = new miopen::PoolingDescriptor(); });
+    return miopen::try_([&] {
+        auto& desc = miopen::deref(poolDesc);
+        desc       = new miopen::PoolingDescriptor();
+    });
 }
 
 extern "C" miopenStatus_t miopenSetPoolingIndexType(miopenPoolingDescriptor_t poolDesc,
