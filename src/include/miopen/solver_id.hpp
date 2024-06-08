@@ -27,6 +27,7 @@
 #ifndef MIOPEN_GUARD_MLOPEN_SOLVER_ID_HPP
 #define MIOPEN_GUARD_MLOPEN_SOLVER_ID_HPP
 
+#include <miopen/config.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/conv_algo_name.hpp>
 
@@ -60,7 +61,7 @@ enum class Primitive
     Adam
 };
 
-struct MIOPEN_EXPORT Id
+struct MIOPEN_INTERNALS_EXPORT Id
 {
     static constexpr uint64_t invalid_value = 0;
 
@@ -91,7 +92,7 @@ private:
     bool is_valid  = false;
 };
 
-const std::vector<Id>& GetSolversByPrimitive(Primitive primitive);
+MIOPEN_INTERNALS_EXPORT const std::vector<Id>& GetSolversByPrimitive(Primitive primitive);
 
 } // namespace solver
 } // namespace miopen

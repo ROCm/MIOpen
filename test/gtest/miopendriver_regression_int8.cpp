@@ -27,23 +27,16 @@
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
-#include <gtest/gtest_common.hpp>
 
 #include <miopen/env.hpp>
 #include <miopen/miopen.h>
 #include <miopen/process.hpp>
 
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_WITH_MIOPENDRIVER)
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPENDRIVER_MODE_CONV)
-
 namespace miopendriver_regression_int8 {
 
 std::vector<std::string> GetTestCases()
 {
-    const std::string& modeConvolutionArg =
-        miopen::GetStringEnv(MIOPEN_ENV(MIOPENDRIVER_MODE_CONV));
+    const std::string& modeConvolutionArg = miopendriver::basearg::conv::Int8;
 
     // clang-format off
     return std::vector<std::string>{
@@ -58,22 +51,11 @@ class MIOpenDriverRegressionInt8Test : public testing::TestWithParam<std::vector
 {
 };
 
-bool IsTestSupportedForDevice()
-{
-    using namespace miopen::debug;
-    using e_mask = enabled<Gpu::gfx94X, Gpu::gfx103X, Gpu::gfx110X>;
-    using d_mask = disabled<Gpu::Default>;
-    return ::IsTestSupportedForDevMask<d_mask, e_mask>();
-}
-
 void RunMIOpenDriver()
 {
-    bool runTestSuite = miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_WITH_MIOPENDRIVER)) &&
-                        IsTestSupportedForDevice() &&
-                        miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_ALL)) &&
-                        miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_TEST_FLOAT_ARG)) == "--int8";
-
-    if(!runTestSuite)
+    using e_mask = enabled<Gpu::gfx94X, Gpu::gfx103X, Gpu::gfx110X>;
+    using d_mask = disabled<Gpu::Default>;
+    if(!ShouldRunMIOpenDriverTest<d_mask, e_mask>("--int8", true))
     {
         GTEST_SKIP();
     }
