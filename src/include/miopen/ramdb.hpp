@@ -45,7 +45,7 @@ using ramdb_clock = std::chrono::steady_clock;
 
 class LockFile;
 
-class RamDb : protected PlainTextDb
+class MIOPEN_INTERNALS_EXPORT RamDb : protected PlainTextDb
 {
 public:
     RamDb(DbKinds db_kind_,

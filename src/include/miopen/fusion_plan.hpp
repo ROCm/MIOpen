@@ -2,6 +2,7 @@
 #ifndef MIOPEN_GUARD_MLOPEN_FUSION_PLAN_HPP
 #define MIOPEN_GUARD_MLOPEN_FUSION_PLAN_HPP
 
+#include <miopen/config.hpp>
 #include <miopen/miopen.h>
 #include <miopen/tensor.hpp>
 #include <miopen/fusion.hpp>
@@ -42,7 +43,7 @@ struct Exec_arg_t
 };
 
 struct FusionContext;
-struct FusionPlanDescriptor : miopenFusionPlanDescriptor
+struct MIOPEN_INTERNALS_EXPORT FusionPlanDescriptor : miopenFusionPlanDescriptor
 {
     FusionPlanDescriptor() {}
     FusionPlanDescriptor(miopenFusionDirection_t dir, const TensorDescriptor& inDesc);

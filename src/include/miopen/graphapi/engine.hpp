@@ -42,7 +42,7 @@ class Engine;
 class OpGraph;
 
 // Pattern is a family of solvers for the same graph shape
-class GraphPatternMatcher
+class MIOPEN_INTERNALS_EXPORT GraphPatternMatcher
 {
 
 public:
@@ -81,7 +81,7 @@ struct TensorInfo
 // int64_t is the graph tensor id
 using TensorInfoMap = std::unordered_map<int64_t, TensorInfo>;
 
-class GraphPatternExecutor
+class MIOPEN_INTERNALS_EXPORT GraphPatternExecutor
 {
 
 public:
@@ -141,7 +141,7 @@ public:
     OpGraph* getOpGraph() { return mGraph; }
 };
 
-class EngineBuilder
+class MIOPEN_INTERNALS_EXPORT EngineBuilder
 {
     friend class BackendEngineDescriptor;
 
@@ -165,7 +165,7 @@ public:
     Engine build();
 };
 
-class BackendEngineDescriptor : public BackendDescriptor
+class MIOPEN_INTERNALS_EXPORT BackendEngineDescriptor : public BackendDescriptor
 {
 private:
     EngineBuilder mBuilder;
@@ -196,7 +196,7 @@ public:
     Engine& getEngine() noexcept { return mEngine; }
 };
 
-std::vector<Engine> findEngines(OpGraph*);
+MIOPEN_INTERNALS_EXPORT std::vector<Engine> findEngines(OpGraph*);
 
 } // namespace graphapi
 

@@ -28,6 +28,7 @@
 
 #include <miopen/miopen.h>
 
+#include <miopen/config.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/object.hpp>
 #include <miopen/problem.hpp>
@@ -45,7 +46,7 @@ namespace miopen {
 
 struct Handle;
 
-struct Solution : miopenSolution
+struct MIOPEN_INTERNALS_EXPORT Solution : miopenSolution
 {
     std::vector<std::uint8_t> serialization_cache;
 

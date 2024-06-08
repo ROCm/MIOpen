@@ -52,7 +52,7 @@ struct ProblemDescriptionTag
 {
 };
 
-struct ProblemDescription : ProblemDescriptionBase, ProblemDescriptionTag
+struct MIOPEN_INTERNALS_EXPORT ProblemDescription : ProblemDescriptionBase, ProblemDescriptionTag
 {
     // Forward
     ProblemDescription(miopenBatchNormMode_t bn_mode_,
