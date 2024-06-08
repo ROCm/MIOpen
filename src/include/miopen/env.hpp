@@ -38,9 +38,9 @@
 
 namespace miopen::env {
 
-std::optional<std::string> getEnvironmentVariable(std::string_view name);
-void setEnvironmentVariable(std::string_view name, std::string_view value);
-void clearEnvironmentVariable(std::string_view name);
+MIOPEN_EXPORT std::optional<std::string> getEnvironmentVariable(std::string_view name);
+MIOPEN_EXPORT void setEnvironmentVariable(std::string_view name, std::string_view value);
+MIOPEN_EXPORT void clearEnvironmentVariable(std::string_view name);
 
 namespace detail {
 
