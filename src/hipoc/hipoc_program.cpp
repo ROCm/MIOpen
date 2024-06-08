@@ -35,6 +35,7 @@
 #include <miopen/mlir_build.hpp>
 #include <miopen/stringutils.hpp>
 #include <miopen/target_properties.hpp>
+#include <miopen/temp_file.hpp>
 #include <miopen/write_file.hpp>
 #include <miopen/env.hpp>
 #include <miopen/comgr.hpp>

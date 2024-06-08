@@ -33,6 +33,7 @@
 #include <miopen/db_record.hpp>
 #include <miopen/lock_file.hpp>
 #include <miopen/process.hpp>
+#include <miopen/temp_file.hpp>
 #include <miopen/filesystem.hpp>
 
 #include <boost/optional.hpp>
@@ -243,13 +244,12 @@ std::ostream& operator<<(std::ostream& s, const SolverData& td)
 class DbTest
 {
 public:
-    DbTest() : temp_file{tmp / "perf.db"}, db_inst{DbKinds::PerfDb, temp_file, false} {}
+    DbTest() : temp_file("miopen.tests.perfdb"), db_inst{DbKinds::PerfDb, temp_file, false} {}
 
     virtual ~DbTest() {}
 
 protected:
-    TmpDir tmp{};
-    fs::path temp_file;
+    TempFile temp_file;
     SQLitePerfDb db_inst;
 
     static const std::array<std::pair<std::string, SolverData>, 2>& common_data()
@@ -267,7 +267,7 @@ protected:
         db.sql.Exec("delete from config; delete from perf_db;");
     }
 
-    virtual void ResetDb() const { db_inst.sql.Exec("delete from config; delete from perf_db;"); }
+    void ResetDb() const { db_inst.sql.Exec("delete from config; delete from perf_db;"); }
 
     static const ProblemData& key()
     {
@@ -971,11 +971,9 @@ private:
 class DbMultiFileTest : public DbTest
 {
 protected:
-    DbMultiFileTest() : DbTest(), user_db_path{tmp / "user.db"} {}
+    const fs::path user_db_path = temp_file.Path() + ".user";
 
-    const fs::path user_db_path;
-
-    void ResetDb() const override
+    void ResetDb() const
     {
         DbTest::ResetDb();
         // (void)std::ofstream(user_db_path);

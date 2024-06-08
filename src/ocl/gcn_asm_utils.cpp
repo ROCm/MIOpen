@@ -45,6 +45,7 @@ bool ValidateGcnAssembler() { return true; }
 #include <miopen/kernel.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/exec_utils.hpp>
+#include <miopen/temp_file.hpp>
 #include <sstream>
 
 #ifdef __linux__
@@ -174,8 +175,7 @@ std::string AmdgcnAssemble(std::string_view source,
                            std::string_view params,
                            const miopen::TargetProperties& target)
 {
-    miopen::TmpDir dir;
-    auto outfile = dir / "assmbly";
+    miopen::TempFile outfile("assembly");
 
     std::ostringstream options;
     options << " -x assembler -target amdgcn--amdhsa";
@@ -192,7 +192,7 @@ std::string AmdgcnAssemble(std::string_view source,
     if(GcnAssemblerHasBug34765())
         GenerateClangDefsym(options, "WORKAROUND_BUG_34765", 1);
 
-    options << " - -o " << outfile;
+    options << " - -o " << outfile.Path();
     MIOPEN_LOG_I2("'" << options.str() << "'");
 
     std::istringstream clang_stdin(source.data());
@@ -206,7 +206,7 @@ std::string AmdgcnAssemble(std::string_view source,
     }
 
     std::string out;
-    std::ifstream file(outfile, std::ios::binary | std::ios::ate);
+    std::ifstream file(outfile.Path(), std::ios::binary | std::ios::ate);
     bool outfile_read_failed = false;
     do
     {

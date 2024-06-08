@@ -30,6 +30,7 @@
 #include <miopen/invoke_params.hpp>
 #include <miopen/mlo_internal.hpp>
 #include <miopen/solver.hpp>
+#include <miopen/temp_file.hpp>
 
 #include <cstdlib>
 #include <functional>
@@ -169,8 +170,7 @@ class SolverTest
 public:
     void Run() const
     {
-        const TmpDir tmp;
-        auto db_path = (tmp / "solver.db").string();
+        const TempFile db_path("miopen.tests.solver");
 
         ConstructTest(db_path, TrivialTestSolver::FileName(), {1, 1, 1, 1});
 
