@@ -37,7 +37,7 @@ namespace miopen {
 bool IsCacheDisabled();
 
 MIOPEN_INTERNALS_EXPORT fs::path
-fs::path GetCacheFile(const std::string& device, const fs::path& name, const std::string& args);
+GetCacheFile(const std::string& device, const fs::path& name, const std::string& args);
 
 MIOPEN_INTERNALS_EXPORT fs::path GetCachePath(bool is_system);
 
