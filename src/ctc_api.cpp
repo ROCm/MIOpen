@@ -34,7 +34,10 @@
 extern "C" miopenStatus_t miopenCreateCTCLossDescriptor(miopenCTCLossDescriptor_t* ctcLossDesc)
 {
     MIOPEN_LOG_FUNCTION(ctcLossDesc);
-    return miopen::try_([&] { miopen::deref(ctcLossDesc) = new miopen::CTCLossDescriptor(); });
+    return miopen::try_([&] {
+        auto& desc = miopen::deref(ctcLossDesc);
+        desc       = new miopen::CTCLossDescriptor();
+    });
 }
 
 extern "C" miopenStatus_t miopenDestroyCTCLossDescriptor(miopenCTCLossDescriptor_t ctcLossDesc)

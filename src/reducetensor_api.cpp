@@ -90,8 +90,10 @@ extern "C" miopenStatus_t
 miopenCreateReduceTensorDescriptor(miopenReduceTensorDescriptor_t* reduceTensorDesc)
 {
     MIOPEN_LOG_FUNCTION(reduceTensorDesc);
-    return miopen::try_(
-        [&] { miopen::deref(reduceTensorDesc) = new miopen::ReduceTensorDescriptor(); });
+    return miopen::try_([&] {
+        auto& desc = miopen::deref(reduceTensorDesc);
+        desc       = new miopen::ReduceTensorDescriptor();
+    });
 };
 
 extern "C" miopenStatus_t

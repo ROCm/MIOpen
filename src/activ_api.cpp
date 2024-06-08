@@ -36,7 +36,10 @@ extern "C" miopenStatus_t miopenCreateActivationDescriptor(miopenActivationDescr
 {
 
     MIOPEN_LOG_FUNCTION(activDesc);
-    return miopen::try_([&] { miopen::deref(activDesc) = new miopen::ActivationDescriptor(); });
+    return miopen::try_([&] {
+        auto& desc = miopen::deref(activDesc);
+        desc       = new miopen::ActivationDescriptor();
+    });
 }
 
 extern "C" miopenStatus_t miopenSetActivationDescriptor(miopenActivationDescriptor_t activDesc,
