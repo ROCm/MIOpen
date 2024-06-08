@@ -27,6 +27,7 @@
 #ifndef MIOPEN_GUARD_MLOPEN_PROCESS_HPP
 #define MIOPEN_GUARD_MLOPEN_PROCESS_HPP
 
+#include <miopen/config.hpp>
 #include <miopen/filesystem.hpp>
 #include <memory>
 #include <string_view>
@@ -37,7 +38,7 @@ namespace miopen {
 struct ProcessImpl;
 using ProcessEnvironmentMap = std::map<std::string, std::string>;
 
-struct Process
+struct MIOPEN_INTERNALS_EXPORT Process
 {
     Process(const fs::path& cmd);
     ~Process() noexcept;
@@ -51,7 +52,7 @@ private:
     std::unique_ptr<ProcessImpl> impl;
 };
 
-struct ProcessAsync
+struct MIOPEN_INTERNALS_EXPORT ProcessAsync
 {
     ProcessAsync(const fs::path& cmd,
                  std::string_view args                                       = "",

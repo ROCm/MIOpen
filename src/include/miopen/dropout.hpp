@@ -54,7 +54,7 @@ using prngStates = xorwowStates;
 
 namespace miopen {
 
-struct DropoutDescriptor : miopenDropoutDescriptor
+struct MIOPEN_INTERNALS_EXPORT DropoutDescriptor : miopenDropoutDescriptor
 {
     DropoutDescriptor();
 

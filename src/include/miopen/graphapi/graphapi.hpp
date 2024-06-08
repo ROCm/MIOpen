@@ -26,6 +26,7 @@
 #pragma once
 
 #include <miopen/miopen.h>
+#include <miopen/config.hpp>
 #include <miopen/object.hpp>
 
 #include <cstdint>
@@ -44,7 +45,7 @@ constexpr std::int64_t minimum(std::int64_t a, std::int64_t b) { return a < b ? 
 
 class OpNode;
 
-class BackendDescriptor : public miopenBackendDescriptor
+class MIOPEN_INTERNALS_EXPORT BackendDescriptor : public miopenBackendDescriptor
 {
 public:
     virtual ~BackendDescriptor();

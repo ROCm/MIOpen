@@ -28,6 +28,7 @@
 #include <miopen/logger.hpp>
 #include <miopen/stringutils.hpp>
 
+#include <miopen/expanduser.hpp>
 #include <miopen/filesystem.hpp>
 
 #include <string>
