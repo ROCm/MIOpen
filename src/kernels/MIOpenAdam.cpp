@@ -63,8 +63,18 @@ inline __device__ void AdamInternal(T1* param_in,
 
     if(maximize)
         grad *= -1;
+
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wfloat-equal"
+#endif
+
     if(weight_decay != 0)
         grad += param * weight_decay;
+
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 
     exp_avg    = exp_avg * beta1 + grad * (1 - beta1);
     exp_avg_sq = exp_avg_sq * beta2 + grad * grad * (1 - beta2);

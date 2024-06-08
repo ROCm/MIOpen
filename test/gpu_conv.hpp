@@ -146,6 +146,7 @@ bool gpu_ref_convolution_bwd(tensor<Tin>& input,
                                                               beta};
         auto ctx           = miopen::ExecutionContext{};
         ctx.SetStream(&handle);
+
         if(naive_solver.IsApplicable(ctx, problem))
         {
             gpu_ref_used          = true;

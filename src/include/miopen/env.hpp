@@ -34,16 +34,15 @@
 #include <string_view>
 #include <vector>
 
-#include <miopen/config.hpp>
 #include <miopen/errors.hpp>
 
 namespace miopen::env {
 
-namespace detail {
-
 MIOPEN_EXPORT std::optional<std::string> getEnvironmentVariable(std::string_view name);
 MIOPEN_EXPORT void setEnvironmentVariable(std::string_view name, std::string_view value);
 MIOPEN_EXPORT void clearEnvironmentVariable(std::string_view name);
+
+namespace detail {
 
 template <typename T>
 using remove_cvref_t = std::remove_cv_t<std::remove_reference_t<T>>;
@@ -86,7 +85,7 @@ struct EnvVar
                 }
                 else
                 {
-                    std::string value_env_str{};
+                    std::string value_env_str(value->length(), '\0');
                     std::transform(value->begin(), value->end(), value_env_str.begin(), [](int ch) {
                         return std::tolower(ch);
                     });
@@ -105,7 +104,7 @@ struct EnvVar
                     else
                     {
                         MIOPEN_THROW(miopenStatusInvalidValue,
-                                     "Invalid value for env variable (value='" + value.value() +
+                                     "Invalid value for env variable (value='" + value_env_str +
                                          "')");
                     }
                 }
@@ -158,19 +157,19 @@ private:
 
 } // end namespace detail
 
-#define MIOPEN_DECLARE_ENV_VAR(_name, _type, ...)                                               \
-    [[maybe_unused]] static const struct __struct_##__LINE__##_name                             \
-    {                                                                                           \
-        static_assert(std::is_same_v<__struct_##__LINE__##_name, ::__struct_##__LINE__##_name>, \
-                      "MIOPEN_DECLARE_ENV* must be used in the global namespace");              \
-        using value_type = _type;                                                               \
-        static ::miopen::env::detail::EnvVar<_type>& ref()                                      \
-        {                                                                                       \
-            static ::miopen::env::detail::EnvVar<_type> var{#_name, __VA_ARGS__};               \
-            return var;                                                                         \
-        }                                                                                       \
-        operator ::miopen::env::detail::EnvVar<_type>&() const { return ref(); }                \
-        operator bool() const { return ref().exist(); }                                         \
+#define MIOPEN_DECLARE_ENV_VAR(_name, _type, ...)                                  \
+    [[maybe_unused]] inline constexpr struct __struct_##_name                      \
+    {                                                                              \
+        static_assert(std::is_same_v<__struct_##_name, ::__struct_##_name>,        \
+                      "MIOPEN_DECLARE_ENV* must be used in the global namespace"); \
+        using value_type = _type;                                                  \
+        static ::miopen::env::detail::EnvVar<_type>& ref()                         \
+        {                                                                          \
+            static ::miopen::env::detail::EnvVar<_type> var{#_name, __VA_ARGS__};  \
+            return var;                                                            \
+        }                                                                          \
+        operator ::miopen::env::detail::EnvVar<_type>&() const { return ref(); }   \
+        operator bool() const { return ref().exist(); }                            \
     } _name;
 
 #define MIOPEN_DECLARE_ENV_VAR_BOOL(name, ...) MIOPEN_DECLARE_ENV_VAR(name, bool, __VA_ARGS__)

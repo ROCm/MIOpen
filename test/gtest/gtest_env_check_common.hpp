@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2021 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,38 +23,20 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <algorithm>
-#include <unordered_map>
-#include <string_view>
-#include <miopen/filesystem.hpp>
-#include <miopen/kernel.hpp>
+#pragma once
 
-#ifndef MIOPEN_USE_CLANG_TIDY // Huge generated source
-// clang-format off
-${KERNELS_DECLS}
-// clang-format on
-#endif
+#include <miopen/env.hpp>
+#include <gtest/gtest_common.hpp>
 
-namespace miopen {
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 
-const std::unordered_map<fs::path, std::string_view>& kernels()
+// For determining if we should run test suite. First ensure that test is supported on the hardware.
+// If the MIOPEN_TEST_ALL environment isn't set, then assume we are running standalone outside
+// CICD, and include the test. Otherwise, check the provided functor to ensure the environment
+// conditions match expected conditions to run this test suite.
+template <typename disabled_mask, typename enabled_mask, typename check_functor>
+bool ShouldRunTestCase(check_functor&& checkConditions)
 {
-    static const std::unordered_map<fs::path, std::string_view> data{
-#ifndef MIOPEN_USE_CLANG_TIDY // Huge generated source
-        ${INIT_KERNELS}
-#endif
-    };
-    return data;
+    return IsTestSupportedForDevMask<disabled_mask, enabled_mask>() &&
+           (!MIOPEN_TEST_ALL || checkConditions());
 }
-
-std::string_view GetKernelSrc(const fs::path& name)
-{
-    // Use the base name of the string
-    auto it = kernels().find(name.filename());
-    if(it == kernels().end())
-        MIOPEN_THROW("Failed to load kernel source: " + name.filename());
-
-    return it->second;
-}
-
-} // namespace miopen

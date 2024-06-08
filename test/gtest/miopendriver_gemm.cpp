@@ -27,62 +27,55 @@
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
-#include <gtest/gtest_common.hpp>
 
 #include <miopen/env.hpp>
 #include <miopen/miopen.h>
 #include <miopen/process.hpp>
 
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_WITH_MIOPENDRIVER)
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPENDRIVER_MODE_GEMM)
-
 namespace miopendriver_gemm {
 
-std::vector<std::string> GetTestCases()
+std::vector<std::string> GetTestCases(const std::string& modeGemmArg)
 {
-    const std::string& modeGemmnArg = env::value(MIOPENDRIVER_MODE_GEMM);
-
     // clang-format off
     return std::vector<std::string>{
-        {modeGemmnArg + " -m 256 -n 512 -k 1024 -i 1 -V 1"}
+        {modeGemmArg + " -m 256 -n 512 -k 1024 -i 1 -V 1"}
     };
     // clang-format on
 }
 
-using TestCase = decltype(GetTestCases())::value_type;
+using TestCase = decltype(GetTestCases(""))::value_type;
 
-class MIOpenDriverGemmTest : public testing::TestWithParam<std::vector<TestCase>>
+class MIOpenDriverGemmTestFloat : public testing::TestWithParam<std::vector<TestCase>>
 {
 };
 
-bool IsTestSupportedForDevice()
+class MIOpenDriverGemmTestHalf : public testing::TestWithParam<std::vector<TestCase>>
 {
-    using namespace miopen::debug;
+};
+
+void RunMIOpenDriver(const std::string& floatArg, const std::vector<TestCase>& testCases)
+{
     using e_mask = enabled<Gpu::gfx94X, Gpu::gfx103X, Gpu::gfx110X>;
     using d_mask = disabled<Gpu::Default>;
-    return ::IsTestSupportedForDevMask<d_mask, e_mask>();
-}
-
-void RunMIOpenDriver()
-{
-    bool runTestSuite = env::enabled(MIOPEN_TEST_WITH_MIOPENDRIVER) && IsTestSupportedForDevice() &&
-                        (env::value(MIOPEN_TEST_FLOAT_ARG) == "--float" ||
-                         env::value(MIOPEN_TEST_FLOAT_ARG) == "--half");
-
-    if(!runTestSuite)
+    if(!ShouldRunMIOpenDriverTest<d_mask, e_mask>(floatArg, false))
     {
         GTEST_SKIP();
     }
 
-    RunMIOpenDriverTestCommand(MIOpenDriverGemmTest::GetParam());
+    RunMIOpenDriverTestCommand(testCases);
 };
 
 } // namespace miopendriver_gemm
 using namespace miopendriver_gemm;
 
-TEST_P(MIOpenDriverGemmTest, MIOpenDriverGemm) { RunMIOpenDriver(); };
+TEST_P(MIOpenDriverGemmTestFloat, MIOpenDriverGemm) { RunMIOpenDriver("--float", GetParam()); };
 
 INSTANTIATE_TEST_SUITE_P(MIOpenDriverGemmTestSet,
-                         MIOpenDriverGemmTest,
-                         testing::Values(GetTestCases()));
+                         MIOpenDriverGemmTestFloat,
+                         testing::Values(GetTestCases(miopendriver::basearg::gemm::Float)));
+
+TEST_P(MIOpenDriverGemmTestHalf, MIOpenDriverGemm) { RunMIOpenDriver("--half", GetParam()); };
+
+INSTANTIATE_TEST_SUITE_P(MIOpenDriverGemmTestSet,
+                         MIOpenDriverGemmTestHalf,
+                         testing::Values(GetTestCases(miopendriver::basearg::gemm::Half)));

@@ -203,14 +203,13 @@ HIPOCProgramImpl::HIPOCProgramImpl(const fs::path& program_name,
 
 #if !MIOPEN_USE_COMGR
 void HIPOCProgramImpl::BuildCodeObjectInFile(std::string& params,
-                                             const std::string& src,
+                                             std::string_view src,
                                              const fs::path& filename)
 {
-
-    dir.emplace(filename);
+    dir.emplace(filename.filename().string());
     hsaco_file = make_object_file_name(dir.get() / filename);
 
-    if(filename.extension() == ".so")
+    if(filename.extension() == dynamic_library_postfix) // ".so" or ".dll"
     {
         WriteFile(src, hsaco_file);
     }
@@ -221,7 +220,7 @@ void HIPOCProgramImpl::BuildCodeObjectInFile(std::string& params,
     }
     else if(filename.extension() == ".cpp")
     {
-        hsaco_file = HipBuild(dir, filename, src, params, target);
+        hsaco_file = HipBuild(dir.get(), filename, src, params, target);
     }
 #if MIOPEN_USE_MLIR
     else if(filename.extension() == ".mlir")
@@ -236,13 +235,13 @@ void HIPOCProgramImpl::BuildCodeObjectInFile(std::string& params,
         params += " " + GetCodeObjectVersionOption();
         if(env::enabled(MIOPEN_DEBUG_OPENCL_WAVE64_NOWGP))
             params += " -mwavefrontsize64 -mcumode";
-        WriteFile(src, dir->path / filename);
+        WriteFile(src, dir.get() / filename);
         params += " -target amdgcn-amd-amdhsa -x cl -D__AMD__=1  -O3";
         params += " -cl-kernel-arg-info -cl-denorms-are-zero";
         params += " -cl-std=CL2.0 -mllvm -amdgpu-early-inline-all";
         params += " -mllvm -amdgpu-internalize-symbols ";
         params += " " + filename + " -o " + hsaco_file;
-        dir->Execute(HIP_OC_COMPILER, params);
+        std::ignore = dir->Execute(HIP_OC_COMPILER, params);
     }
     if(!fs::exists(hsaco_file))
         MIOPEN_THROW("Cant find file: " + hsaco_file);
@@ -253,11 +252,7 @@ void HIPOCProgramImpl::BuildCodeObjectInMemory(const std::string& params,
                                                const std::string_view src,
                                                const fs::path& filename)
 {
-#ifdef _WIN32
-    if(filename.extension() == ".dll")
-#else
-    if(filename.extension() == ".so")
-#endif
+    if(filename.extension() == dynamic_library_postfix) // ".so" or ".dll"
     {
         binary.resize(src.size());
         std::memcpy(&binary[0], src.data(), src.size());
@@ -272,14 +267,14 @@ void HIPOCProgramImpl::BuildCodeObjectInMemory(const std::string& params,
         {
 #if MIOPEN_USE_HIPRTC
             if(!env::disabled(MIOPEN_DEBUG_USE_HIPRTC))
-                hiprtc::BuildHip(filename, src, params, target, binary);
+                hiprtc::BuildHip(filename.string(), src, params, target, binary);
             else
 #endif // MIOPEN_USE_HIPRTC
-                comgr::BuildHip(filename, src, params, target, binary);
+                comgr::BuildHip(filename.string(), src, params, target, binary);
         }
         else if(filename.extension() == ".s")
         {
-            comgr::BuildAsm(filename, src, params, target, binary);
+            comgr::BuildAsm(filename.string(), src, params, target, binary);
         }
 #if MIOPEN_USE_MLIR
         else if(filename.extension() == ".mlir")
@@ -289,7 +284,7 @@ void HIPOCProgramImpl::BuildCodeObjectInMemory(const std::string& params,
 #endif
         else
         {
-            comgr::BuildOcl(filename, src, params, target, binary);
+            comgr::BuildOcl(filename.string(), src, params, target, binary);
         }
     }
     if(binary.empty())
@@ -304,7 +299,7 @@ void HIPOCProgramImpl::BuildCodeObject(std::string params, const std::string& ke
             return {}; // MLIR solutions do not use source code.
         if(!kernel_src.empty())
             return kernel_src;
-        return GetKernelSrc(program);
+        return GetKernelSrc(program.string());
     }();
 
 #if MIOPEN_BUILD_DEV
@@ -363,9 +358,9 @@ fs::path HIPOCProgram::GetCodeObjectPathname() const
 
 std::vector<char> HIPOCProgram::GetCodeObjectBlob() const { return impl->binary; }
 
-void HIPOCProgram::FreeCodeObjectFileStorage()
+void HIPOCProgram::FreeCodeObjectFileStorage() const
 {
-    impl->dir = boost::none;
+    impl->dir.reset();
     impl->hsaco_file.clear();
 }
 

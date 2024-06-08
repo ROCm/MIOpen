@@ -27,8 +27,6 @@
 #define GUARD_COMGR_HPP
 
 #include <miopen/config.h>
-#include <miopen/filesystem.hpp>
-
 #if MIOPEN_USE_COMGR
 
 #include <miopen/target_properties.hpp>
@@ -38,20 +36,20 @@
 namespace miopen {
 namespace comgr {
 
-void BuildHip(const fs::path& name,
-              const std::string_view text,
+void BuildHip(const std::string& name,
+              std::string_view text,
               const std::string& options,
               const miopen::TargetProperties& target,
               std::vector<char>& binary);
 
-void BuildOcl(const fs::path& name,
-              const std::string_view text,
+void BuildOcl(const std::string& name,
+              std::string_view text,
               const std::string& options,
               const miopen::TargetProperties& target,
               std::vector<char>& binary);
 
-void BuildAsm(const fs::path& name,
-              const std::string_view text,
+void BuildAsm(const std::string& name,
+              std::string_view text,
               const std::string& options,
               const miopen::TargetProperties& target,
               std::vector<char>& binary);
@@ -66,8 +64,8 @@ void BuildAsm(const fs::path& name,
 namespace miopen {
 namespace hiprtc {
 
-void BuildHip(const fs::path& name,
-              const std::string_view text,
+void BuildHip(const std::string& name,
+              std::string_view text,
               const std::string& options,
               const miopen::TargetProperties& target,
               std::vector<char>& binary);

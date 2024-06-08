@@ -27,22 +27,16 @@
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
-#include <gtest/gtest_common.hpp>
 
 #include <miopen/env.hpp>
 #include <miopen/miopen.h>
 #include <miopen/process.hpp>
 
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_WITH_MIOPENDRIVER)
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPENDRIVER_MODE_CONV)
-
 namespace miopendriver_regression_big_tensor {
 
 std::vector<std::string> GetTestCases()
 {
-    const std::string& modeConvolutionArg = env::value(MIOPENDRIVER_MODE_CONV);
+    const std::string& modeConvolutionArg = miopendriver::basearg::conv::Float;
 
     // clang-format off
     return std::vector<std::string>{
@@ -59,21 +53,11 @@ class MIOpenDriverRegressionBigTensorTest : public testing::TestWithParam<std::v
 {
 };
 
-bool IsTestSupportedForDevice()
-{
-    using namespace miopen::debug;
-    using e_mask = enabled<Gpu::gfx94X, Gpu::gfx103X>;
-    using d_mask = disabled<Gpu::gfx900, Gpu::gfx906, Gpu::gfx908>;
-    return ::IsTestSupportedForDevMask<d_mask, e_mask>();
-}
-
 void RunMIOpenDriver()
 {
-    bool runTestSuite = env::enabled(MIOPEN_TEST_WITH_MIOPENDRIVER) && IsTestSupportedForDevice() &&
-                        env::enabled(MIOPEN_TEST_ALL) &&
-                        env::value(MIOPEN_TEST_FLOAT_ARG) == "--float";
-
-    if(!runTestSuite)
+    using e_mask = enabled<Gpu::gfx94X, Gpu::gfx103X>;
+    using d_mask = disabled<Gpu::gfx900, Gpu::gfx906, Gpu::gfx908>;
+    if(!ShouldRunMIOpenDriverTest<d_mask, e_mask>("--float", true))
     {
         GTEST_SKIP();
     }

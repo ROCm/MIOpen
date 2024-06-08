@@ -534,7 +534,7 @@ public:
     {
         ECI_THROW(amd_comgr_set_data_name(handle, s.c_str()), s);
     }
-    void SetBytes(const std::string_view bytes) const
+    void SetBytes(std::string_view bytes) const
     {
         ECI_THROW(amd_comgr_set_data(handle, bytes.size(), bytes.data()), bytes.size());
     }
@@ -580,14 +580,14 @@ public:
     ~Dataset() { EC(amd_comgr_destroy_data_set(handle)); }
     auto GetHandle() const { return handle; }
     void AddData(const Data& d) const { EC_THROW(amd_comgr_data_set_add(handle, d.GetHandle())); }
-    void AddData(const fs::path& name,
-                 const std::string_view content,
+    void AddData(const std::string& name,
+                 std::string_view content,
                  const amd_comgr_data_kind_t type) const
     {
         const Data d(type);
         if(env::enabled(MIOPEN_DEBUG_COMGR_LOG_SOURCE_NAMES))
             MIOPEN_LOG_I(name << ' ' << content.size() << " bytes");
-        d.SetName(name.string());
+        d.SetName(name);
         d.SetBytes(content);
         AddData(d);
         const auto show_first = env::value(MIOPEN_DEBUG_COMGR_LOG_SOURCE_TEXT);
@@ -739,8 +739,8 @@ static inline bool IsWave64Enforced(const OptionList& opts)
         opts.begin(), opts.end(), [](const std::string& s) { return s == "-mwavefrontsize64"; });
 }
 
-void BuildHip(const fs::path& name,
-              const std::string_view text,
+void BuildHip(const std::string& name,
+              std::string_view text,
               const std::string& options,
               const miopen::TargetProperties& target,
               std::vector<char>& binary)
@@ -756,8 +756,8 @@ void BuildHip(const fs::path& name,
         // of the addkernels tool. We don't do that for HIP sources, and, therefore
         // have to export include files prior compilation.
         // Note that we do not need any "subdirs" in the include "pathnames" so far.
-        for(const auto& inc : miopen::GetKernelIncList())
-            inputs.AddData(inc, miopen::GetKernelInc(inc), AMD_COMGR_DATA_KIND_INCLUDE);
+        for(const auto& inc : GetKernelIncList())
+            inputs.AddData(inc.get().string(), GetKernelInc(inc), AMD_COMGR_DATA_KIND_INCLUDE);
 
 #if PCH_IS_SUPPORTED
         if(compiler::lc::hip::IsPchEnabled())
@@ -864,8 +864,8 @@ void BuildHip(const fs::path& name,
     }
 }
 
-void BuildOcl(const fs::path& name,
-              const std::string_view text,
+void BuildOcl(const std::string& name,
+              std::string_view text,
               const std::string& options,
               const miopen::TargetProperties& target,
               std::vector<char>& binary)
@@ -950,8 +950,8 @@ void BuildOcl(const fs::path& name,
     }
 }
 
-void BuildAsm(const fs::path& name,
-              const std::string_view text,
+void BuildAsm(const std::string& name,
+              std::string_view text,
               const std::string& options,
               const miopen::TargetProperties& target,
               std::vector<char>& binary)
@@ -1048,23 +1048,27 @@ struct Error : std::exception
     throw Error{s, text};
 }
 
+inline std::string_view to_string(std::string_view v) { return v; }
+inline std::string_view to_string(const char* v) { return v; }
+inline std::string to_string(const std::size_t& v) { return std::to_string(v); }
+
 static std::string GetStatusText(const hiprtcResult status)
 {
     const char* reason = hiprtcGetErrorString(status);
     return std::string(reason) + " (" + std::to_string(static_cast<int>(status)) + ')';
 }
 
-#define HIPRTC_CALL_BASE(call, info, action, statusdef)                              \
-    do                                                                               \
-    {                                                                                \
-        statusdef status = (call);                                                   \
-        if(status != HIPRTC_SUCCESS)                                                 \
-        {                                                                            \
-            MIOPEN_LOG_E("\'" #call "\' " << info << ": " << GetStatusText(status)); \
-            (action);                                                                \
-        }                                                                            \
-        else if(env::enabled(MIOPEN_DEBUG_COMGR_LOG_CALLS))                          \
-            MIOPEN_LOG_I("Ok \'" #call "\' " << info);                               \
+#define HIPRTC_CALL_BASE(call, info, action, statusdef)                                         \
+    do                                                                                          \
+    {                                                                                           \
+        statusdef status = (call);                                                              \
+        if(status != HIPRTC_SUCCESS)                                                            \
+        {                                                                                       \
+            MIOPEN_LOG_E("\'" #call "\' " << to_string(info) << ": " << GetStatusText(status)); \
+            (action);                                                                           \
+        }                                                                                       \
+        else if(env::enabled(MIOPEN_DEBUG_COMGR_LOG_CALLS))                                     \
+            MIOPEN_LOG_I("Ok \'" #call "\' " << to_string(info));                               \
     } while(false)
 
 /// \ref comgr_throw_macros
@@ -1093,8 +1097,8 @@ static void PrintVersion()
 static void hiprtc_program_destroy(hiprtcProgram prog) { hiprtcDestroyProgram(&prog); }
 using hiprtc_program_ptr = MIOPEN_MANAGE_PTR(hiprtcProgram, hiprtc_program_destroy);
 
-static hiprtc_program_ptr CreateProgram(const std::string_view src,
-                                        const fs::path& name,
+static hiprtc_program_ptr CreateProgram(std::string_view src,
+                                        std::string_view name,
                                         int numHeaders,
                                         const char** headers,
                                         const char** includeNames)
@@ -1102,8 +1106,7 @@ static hiprtc_program_ptr CreateProgram(const std::string_view src,
     hiprtcProgram prog = nullptr;
     hiprtcResult status;
     HIPRTC_CALL_INFO_NOSTATUSDEF(
-        hiprtcCreateProgram(
-            &prog, src.data(), name.string().c_str(), numHeaders, headers, includeNames),
+        hiprtcCreateProgram(&prog, src.data(), name.data(), numHeaders, headers, includeNames),
         name);
     hiprtc_program_ptr p{prog}; // To destroy prog even if hiprtcCreateProgram() failed.
     if(status != HIPRTC_SUCCESS)
@@ -1122,36 +1125,36 @@ class HiprtcProgram
         string_ptr_array(const string_ptr_array&) = delete;
         std::size_t size() const { return c_strs.size(); }
         const char** data() { return c_strs.data(); }
-        void push_back(const std::string_view s) { c_strs.emplace_back(s.data()); }
+        void push_back(std::string_view s) { c_strs.emplace_back(s.data()); }
     };
 
-    struct fs_path_array
+    struct string_array
     {
-        std::vector<std::string> paths{};
+        std::vector<std::string> strings{};
         std::vector<const char*> c_strs{};
-        fs_path_array() {}
-        fs_path_array(const fs_path_array&) = delete;
-        std::size_t size() const { return paths.size(); }
+        string_array() {}
+        string_array(const string_array&) = delete;
+        std::size_t size() const { return strings.size(); }
         const char** data() { return c_strs.data(); }
-        void push_back(const fs::path& s)
+        void push_back(std::string s)
         {
-            paths.emplace_back(s.string());
-            c_strs.push_back(paths.back().c_str());
+            strings.push_back(std::move(s));
+            c_strs.push_back(strings.back().c_str());
         }
         // Use to avoid invalidation of pointers to existing strings
         // stored in 'c_strs' when new items added to 'strings'.
-        void reserve(size_t new_cap) { paths.reserve(new_cap); }
+        void reserve(size_t new_cap) { strings.reserve(new_cap); }
     };
 
     hiprtc_program_ptr prog = nullptr;
     string_ptr_array include_texts{}; // Copying of text is not necessary.
-    fs_path_array include_names{};
+    string_array include_names{};
 
-    const fs::path& src_name;
+    std::string_view src_name;
     std::string_view src_text;
 
 public:
-    HiprtcProgram(const fs::path& src_name_, const std::string_view src_text_)
+    HiprtcProgram(std::string_view src_name_, std::string_view src_text_)
         : src_name(src_name_), src_text(src_text_)
     {
         LogInputFile(src_name, src_text);
@@ -1159,9 +1162,9 @@ public:
         include_names.reserve(inc_names.size());
         for(const auto& inc_name : inc_names)
         {
-            const auto inc_text = miopen::GetKernelInc(inc_name);
+            const auto inc_text = GetKernelInc(inc_name);
             LogInputFile(inc_name, inc_text);
-            include_names.push_back(inc_name);
+            include_names.push_back(inc_name.get().string());
             include_texts.push_back(inc_text);
         }
         prog = CreateProgram(
@@ -1195,7 +1198,7 @@ public:
     }
 
 private:
-    void LogInputFile(const fs::path& name, const std::string_view content)
+    void LogInputFile(const fs::path& name, std::string_view content)
     {
         if(env::enabled(MIOPEN_DEBUG_COMGR_LOG_SOURCE_NAMES))
             MIOPEN_LOG_I(name << ' ' << content.size() << " bytes");
@@ -1236,8 +1239,8 @@ private:
     }
 };
 
-void BuildHip(const fs::path& name,
-              const std::string_view text,
+void BuildHip(const std::string& name,
+              std::string_view text,
               const std::string& options,
               const miopen::TargetProperties& target,
               std::vector<char>& binary)

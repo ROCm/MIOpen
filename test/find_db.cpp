@@ -40,6 +40,8 @@
 #include <chrono>
 #include <functional>
 
+namespace env = miopen::env;
+
 namespace miopen {
 
 struct TestRordbEmbedFsOverrideLock
@@ -222,8 +224,11 @@ private:
 };
 } // namespace miopen
 
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_ENABLE_LOGGING_ELAPSED_TIME, true, true)
-MIOPEN_DECLARE_ENV_VAR_UINT64(MIOPEN_LOG_LEVEL, 6, true)
-MIOPEN_DECLARE_ENV_VAR_UINT64(MIOPEN_COMPILE_PARALLEL_LEVEL, 1, true)
+int main(int argc, const char* argv[])
+{
+    env::setEnvironmentVariable("MIOPEN_ENABLE_LOGGING_ELAPSED_TIME", "1");
+    env::setEnvironmentVariable("MIOPEN_LOG_LEVEL", "6");
+    env::setEnvironmentVariable("MIOPEN_COMPILE_PARALLEL_LEVEL", "1");
 
-int main(int argc, const char* argv[]) { test_drive<miopen::FindDbTest>(argc, argv); }
+    test_drive<miopen::FindDbTest>(argc, argv);
+}

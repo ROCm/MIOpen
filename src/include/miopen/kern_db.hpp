@@ -73,7 +73,7 @@ struct KernelConfig
     std::string Where() const
     {
         std::ostringstream ss;
-        ss << "(kernel_name = '" << kernel_name << "')"
+        ss << "(kernel_name = '" << kernel_name.string() << "')"
            << " AND (kernel_args = '" << kernel_args << "')";
         return ss.str();
     }

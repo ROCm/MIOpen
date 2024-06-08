@@ -27,8 +27,6 @@
 #include <miopen/gcn_asm_utils.hpp>
 #include <miopen/config.h>
 
-namespace env = miopen::env;
-
 #if MIOPEN_USE_COMGR
 
 bool ValidateGcnAssembler() { return true; }
@@ -50,8 +48,6 @@ bool ValidateGcnAssembler() { return true; }
 #include <sstream>
 
 #ifdef __linux__
-#include <miopen/temp_file.hpp>
-
 #include <paths.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -76,7 +72,7 @@ static std::string CleanupPath(const char* p);
 
 std::string GetGcnAssemblerPathImpl()
 {
-    const auto& asm_path_env_p = env::value(MIOPEN_EXPERIMENTAL_GCN_ASM_PATH);
+    const auto& asm_path_env_p = miopen::env::value(MIOPEN_EXPERIMENTAL_GCN_ASM_PATH);
     if(!asm_path_env_p.empty())
     {
         return CleanupPath(asm_path_env_p.c_str());
@@ -96,7 +92,6 @@ std::string GetGcnAssemblerPath()
 
 bool ValidateGcnAssemblerImpl()
 {
-#ifdef __linux__
     const auto path = GetGcnAssemblerPath();
     if(path.empty())
     {
@@ -137,7 +132,6 @@ bool ValidateGcnAssemblerImpl()
         return true;
 #endif
     }
-#endif // __linux__
     MIOPEN_LOG_NQE("Specified assembler does not support AMDGPU. Expect performance degradation.");
     return false;
 }
@@ -176,12 +170,12 @@ static std::string CleanupPath(const char* p)
  * Not intended to be used in production code, so error handling is very straghtforward,
  * just catch whatever possible and throw an exception.
  */
-std::string AmdgcnAssemble(const std::string& source,
-                           const std::string& params,
+std::string AmdgcnAssemble(std::string_view source,
+                           std::string_view params,
                            const miopen::TargetProperties& target)
 {
-#ifdef __linux__
-    miopen::TempFile outfile("assembly");
+    miopen::TmpDir dir;
+    auto outfile = dir / "assmbly";
 
     std::ostringstream options;
     options << " -x assembler -target amdgcn--amdhsa";
@@ -198,10 +192,10 @@ std::string AmdgcnAssemble(const std::string& source,
     if(GcnAssemblerHasBug34765())
         GenerateClangDefsym(options, "WORKAROUND_BUG_34765", 1);
 
-    options << " - -o " << outfile.Path();
+    options << " - -o " << outfile;
     MIOPEN_LOG_I2("'" << options.str() << "'");
 
-    std::istringstream clang_stdin(source);
+    std::istringstream clang_stdin(source.data());
     const auto clang_path = GetGcnAssemblerPath();
     const auto clang_rc =
         miopen::exec::Run(clang_path + " " + options.str(), &clang_stdin, nullptr);
@@ -241,16 +235,10 @@ std::string AmdgcnAssemble(const std::string& source,
         MIOPEN_THROW("Error: X-AMDGCN-ASM: outfile_read_failed");
     }
     return out;
-#else
-    (void)source; // -warning
-    (void)params; // -warning
-    MIOPEN_THROW("Error: X-AMDGCN-ASM: online assembly under Windows is not supported");
-#endif //__linux__
 }
 
-static void AmdgcnAssembleQuiet(const std::string& source, const std::string& params)
+static void AmdgcnAssembleQuiet(std::string_view source, std::string_view params)
 {
-#ifdef __linux__
     std::stringstream clang_stdout_unused;
     const auto clang_path = GetGcnAssemblerPath();
     const auto args       = std::string(" -x assembler -target amdgcn--amdhsa") //
@@ -262,11 +250,6 @@ static void AmdgcnAssembleQuiet(const std::string& source, const std::string& pa
     const int clang_rc = miopen::exec::Run(clang_path + " " + args, nullptr, &clang_stdout_unused);
     if(clang_rc != 0)
         MIOPEN_THROW("Assembly error(" + std::to_string(clang_rc) + ")");
-#else
-    (void)source; // -warning
-    (void)params; // -warning
-    MIOPEN_THROW("Error: X-AMDGCN-ASM: online assembly under Windows is not supported");
-#endif //__linux__
 }
 
 static bool GcnAssemblerHasBug34765Impl()

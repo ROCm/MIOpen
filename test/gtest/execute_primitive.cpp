@@ -32,7 +32,9 @@
 #include <miopen/names.hpp>
 #include <miopen/problem_description_base.hpp>
 #include <miopen/solver.hpp>
-#include <miopen/filesystem.hpp>
+#include <miopen/temp_file.hpp>
+
+namespace fs = miopen::fs;
 
 #if MIOPEN_ENABLE_SQLITE && MIOPEN_USE_SQLITE_PERFDB
 #include <miopen/sqlite_db.hpp>
@@ -59,8 +61,8 @@ struct TestResults
 struct TestProblemDescriptionTag
 {
     // In real code this type should not have any data
-    miopen::fs::path pdb_path;
-    miopen::fs::path updb_path;
+    fs::path pdb_path;
+    fs::path updb_path;
 };
 
 struct TestProblemDescription : miopen::ProblemDescriptionBase,
@@ -213,14 +215,14 @@ auto CallExecutePrimitive(const miopen::ExecutionContext& ctx) -> TestResults
 {
     static std::uint32_t call_id = 0; // this is to distinguish between test cases
 
-    miopen::TmpDir pdb;
-    miopen::TmpDir updb;
+    miopen::TempFile pdb{"test_pdb"};
+    miopen::TempFile updb{"test_fdb"};
 
     TestResults test_results{};
     TestProblemDescription problem{};
     problem.test_results = &test_results;
-    problem.pdb_path     = pdb / "test_pdb";
-    problem.updb_path    = updb / "test_fdb";
+    problem.pdb_path     = pdb;
+    problem.updb_path    = updb;
     problem.net_config   = call_id++;
 
     constexpr auto solvers =

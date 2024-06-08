@@ -60,12 +60,10 @@ struct HIPOCProgramImpl
     std::vector<char> binary;
 
 #if !MIOPEN_USE_COMGR
-    void BuildCodeObjectInFile(std::string& params,
-                               const std::string_view src,
-                               const fs::path& filename);
+    void BuildCodeObjectInFile(std::string& params, std::string_view src, const fs::path& filename);
 #else
     void BuildCodeObjectInMemory(const std::string& params,
-                                 const std::string_view src,
+                                 std::string_view src,
                                  const fs::path& filename);
 #endif
 

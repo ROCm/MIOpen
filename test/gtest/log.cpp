@@ -43,7 +43,7 @@ namespace env = miopen::env;
 #ifdef _WIN32
 #define MDEXE "MIOpenDriver.exe"
 #else
-#define MDEXE "./bin/MIOpendriver"
+#define MDEXE "./bin/MIOpenDriver"
 #endif
 
 const std::string logConv =

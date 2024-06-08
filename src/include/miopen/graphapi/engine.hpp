@@ -42,7 +42,7 @@ class Engine;
 class OpGraph;
 
 // Pattern is a family of solvers for the same graph shape
-class GraphPatternMatcher
+class MIOPEN_INTERNALS_EXPORT GraphPatternMatcher
 {
 
 public:
@@ -81,7 +81,7 @@ struct TensorInfo
 // int64_t is the graph tensor id
 using TensorInfoMap = std::unordered_map<int64_t, TensorInfo>;
 
-class GraphPatternExecutor
+class MIOPEN_INTERNALS_EXPORT GraphPatternExecutor
 {
 
 public:
