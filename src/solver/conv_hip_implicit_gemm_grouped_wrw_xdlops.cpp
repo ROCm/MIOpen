@@ -253,10 +253,19 @@ void PerformanceConfigHipImplicitGemmGroupWrwXdlops::InitHeuristicKernelIDs()
     }
 }
 
-bool PerformanceConfigHipImplicitGemmGroupWrwXdlops::ModelApplyToken(int idx, std::string value)
+bool PerformanceConfigHipImplicitGemmGroupWrwXdlops::ModelApplyToken(int idx, std::string value, const std::string& arch)
 {
-    if(idx == 13)
-        idx += 1; // skip
+    if(arch == "gfx90a"){
+        if(idx == 13)//constant parameter, skip
+            idx += 1;
+    }
+    else if(arch == "gfx942")
+    {
+        if(idx >= 3)
+            idx += 1;
+        if(idx >= 12)
+            idx += 2;
+    }
 
     auto eraseBegin = std::remove_if(
         heuristic_indexes.begin(), heuristic_indexes.end(), [&](int heuristic_index) {
@@ -271,28 +280,51 @@ bool PerformanceConfigHipImplicitGemmGroupWrwXdlops::ModelApplyToken(int idx, st
     return false;
 }
 
-static std::vector<float> GetFeatures(const ProblemDescription& problem)
+static std::vector<float> GetFeatures(const ProblemDescription& problem, const std::string& arch)
 {
-    std::size_t n = 18;
+    if(arch == "gfx90a")
+    {
+        std::size_t n = 18;
+        std::vector<float> features(n * n, 0.0f);
+        features[0]           = 1.0;
+        features[n + 1]       = problem.GetOutChannels();
+        features[2 * n + 2]   = problem.GetOutHeight();
+        features[3 * n + 3]   = problem.GetOutWidth();
+        features[4 * n + 4]   = problem.GetInChannels();
+        features[5 * n + 5]   = problem.GetInHeight();
+        features[6 * n + 6]   = problem.GetInWidth();
+        features[7 * n + 7]   = problem.GetWeightsHeight();
+        features[8 * n + 8]   = problem.GetWeightsWidth();
+        features[9 * n + 9]   = problem.GetPadH();
+        features[10 * n + 10] = problem.GetPadW();
+        features[11 * n + 11] = problem.GetKernelStrideH();
+        features[12 * n + 12] = problem.GetKernelStrideW();
+        features[13 * n + 13] = problem.GetDilationH();
+        features[14 * n + 14] = problem.GetDilationW();
+        features[15 * n + 15] = problem.GetBatchSize();
+        features[16 * n + 16] = problem.GetInDataType() == miopenFloat ? 2.0 : 1.0;
+        features[17 * n + 17] = problem.GetGroupCount();
+        return features;
+    }
+    std::size_t n = 17;
     std::vector<float> features(n * n, 0.0f);
-    features[0]           = 1.0;
-    features[n + 1]       = problem.GetOutChannels();
-    features[2 * n + 2]   = problem.GetOutHeight();
-    features[3 * n + 3]   = problem.GetOutWidth();
-    features[4 * n + 4]   = problem.GetInChannels();
-    features[5 * n + 5]   = problem.GetInHeight();
-    features[6 * n + 6]   = problem.GetInWidth();
-    features[7 * n + 7]   = problem.GetWeightsHeight();
-    features[8 * n + 8]   = problem.GetWeightsWidth();
-    features[9 * n + 9]   = problem.GetPadH();
-    features[10 * n + 10] = problem.GetPadW();
-    features[11 * n + 11] = problem.GetKernelStrideH();
-    features[12 * n + 12] = problem.GetKernelStrideW();
-    features[13 * n + 13] = problem.GetDilationH();
-    features[14 * n + 14] = problem.GetDilationW();
-    features[15 * n + 15] = problem.GetBatchSize();
-    features[16 * n + 16] = problem.GetInDataType() == miopenFloat ? 2.0 : 1.0;
-    features[17 * n + 17] = problem.GetGroupCount();
+    features[0]       = problem.GetOutChannels();
+    features[1 * n + 1]   = problem.GetOutHeight();
+    features[2 * n + 2]   = problem.GetOutWidth();
+    features[3 * n + 3]   = problem.GetInChannels();
+    features[4 * n + 4]   = problem.GetInHeight();
+    features[5 * n + 5]   = problem.GetInWidth();
+    features[6 * n + 6]   = problem.GetWeightsHeight();
+    features[7 * n + 7]   = problem.GetWeightsWidth();
+    features[8 * n + 8]   = problem.GetPadH();
+    features[9 * n + 9] = problem.GetPadW();
+    features[10 * n + 10] = problem.GetKernelStrideH();
+    features[11 * n + 11] = problem.GetKernelStrideW();
+    features[12 * n + 12] = problem.GetDilationH();
+    features[13 * n + 13] = problem.GetDilationW();
+    features[14 * n + 14] = problem.GetBatchSize();
+    features[15 * n + 15] = problem.GetInDataType() == miopenFloat ? 2.0 : 1.0;
+    features[16 * n + 16] = problem.GetGroupCount();
     return features;
 }
 
@@ -304,11 +336,11 @@ bool PerformanceConfigHipImplicitGemmGroupWrwXdlops::RunParameterPredictionModel
         problem); // filter valid_kernel ID's
     InitHeuristicKernelIDs();
     static const std::string& arch  = ctx.GetStream().GetDeviceName();
-    static const std::string solver = "ConvHipIgemmGroupXdlops";
-    std::vector<float> features     = GetFeatures(problem);
+    static const std::string solver = (arch == "gfx90a") ? "ConvHipIgemmGroupXdlops" : "ConvHipIgemmGroupWrwXdlops";
+    std::vector<float> features     = GetFeatures(problem, arch);
     if(ai::tuning::ModelSetParams(
            arch, solver, problem.GetDirection(), features, true, [&](int idx, std::string value) {
-               return this->ModelApplyToken(idx, value);
+               return this->ModelApplyToken(idx, value, arch);
            }))
     {
         index     = heuristic_indexes[0];
