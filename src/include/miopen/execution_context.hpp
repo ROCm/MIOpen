@@ -77,7 +77,7 @@ MIOPEN_EXPORT extern bool
 
 } // namespace debug
 
-struct ExecutionContext
+struct MIOPEN_INTERNALS_EXPORT ExecutionContext
 {
     // Solution-specific
     std::string general_compile_options;
@@ -302,6 +302,6 @@ struct [[deprecated]] ConvolutionContext : ExecutionContext
 {
 };
 
-bool IsHipKernelsEnabled();
+MIOPEN_INTERNALS_EXPORT bool IsHipKernelsEnabled();
 
 } // namespace miopen

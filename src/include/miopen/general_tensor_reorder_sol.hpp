@@ -44,7 +44,7 @@ struct GeneralReorderParam
     int ediv_y{0};
 };
 
-struct GenericReorderSolutionImpl
+struct MIOPEN_INTERNALS_EXPORT GenericReorderSolutionImpl
 {
     GenericReorderSolutionImpl(miopenDataType_t data_type_,
                                uint32_t dim_0_,

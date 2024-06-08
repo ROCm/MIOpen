@@ -36,8 +36,7 @@
 
 #include <miopen/each_args.hpp>
 #include <miopen/object.hpp>
-#include <miopen/config.h>
-#include <miopen/export.h>
+#include <miopen/config.hpp>
 
 #if MIOPEN_USE_ROCTRACER
 #include <roctracer/roctx.h>
@@ -218,13 +217,14 @@ MIOPEN_EXPORT extern bool
 
 } // namespace debug
 
-MIOPEN_EXPORT std::string LoggingLevelToCustomString(LoggingLevel level, const char* custom);
-MIOPEN_EXPORT const char* LoggingLevelToCString(LoggingLevel level);
-MIOPEN_EXPORT std::string LoggingPrefix();
+MIOPEN_INTERNALS_EXPORT std::string LoggingLevelToCustomString(LoggingLevel level,
+                                                               const char* custom);
+MIOPEN_INTERNALS_EXPORT const char* LoggingLevelToCString(LoggingLevel level);
+MIOPEN_INTERNALS_EXPORT std::string LoggingPrefix();
 
 /// \return true if level is enabled.
 /// \param level - one of the values defined in LoggingLevel.
-MIOPEN_EXPORT bool IsLogging(LoggingLevel level, bool disableQuieting = false);
+MIOPEN_INTERNALS_EXPORT bool IsLogging(LoggingLevel level, bool disableQuieting = false);
 bool IsLoggingCmd();
 bool IsLoggingFunctionCalls();
 #if MIOPEN_USE_ROCTRACER

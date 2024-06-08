@@ -25,7 +25,7 @@
  *******************************************************************************/
 #pragma once
 
-#include <miopen/config.h>
+#include <miopen/config.hpp>
 
 #if !MIOPEN_ENABLE_SQLITE
 #error "MIOPEN_ENABLE_SQLITE = Off"
@@ -159,14 +159,14 @@ struct SQLiteSerializable
     }
 };
 
-class SQLite
+class MIOPEN_INTERNALS_EXPORT SQLite
 {
     class impl;
     // do we need propagate const
     std::unique_ptr<impl> pImpl;
 
 public:
-    class Statement
+    class MIOPEN_INTERNALS_EXPORT Statement
     {
         class impl;
         std::unique_ptr<impl> pImpl;
@@ -397,6 +397,7 @@ class SQLitePerfDb : public SQLiteBase<SQLitePerfDb>
 {
 public:
     static constexpr char const* MIOPEN_PERFDB_SCHEMA_VER = "1.1.0";
+    MIOPEN_INTERNALS_EXPORT
     SQLitePerfDb(DbKinds db_kind, const std::string& filename_, bool is_system);
 
     template <class T>

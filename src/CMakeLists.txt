@@ -791,12 +791,13 @@ target_link_libraries(MIOpen PRIVATE ${CMAKE_DL_LIBS} Threads::Threads BZip2::BZ
 miopen_generate_export_header(MIOpen)
 
 if(BUILD_TESTING)
-    # On Windows, export all symbols only when tests are built, too.
-    # The officially released binaries must not have internals exposed
-    # because it violates threat model requirements.
-    # The property applies only to MS-compatible tools on Windows, and
-    # is ignored for the rest.
-    set_target_properties(MIOpen PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
+    # On Windows, export selected internal symbols only when tests are built. The officially released
+    # binaries must not have internals exposed because doing so violates the threats model requirements.
+    # We cannot use the CMake property CMAKE_EXPORT_ALL_SYMBOLS here because the number of automatically
+    # exported symbols exceeds the maximum allowed number in a DLL library (64K).
+    # See details here: https://learn.microsoft.com/en-us/cpp/build/exporting-from-a-dll?view=msvc-170
+    generate_export_header(MIOpen BASE_NAME MIOPEN_INTERNALS EXPORT_FILE_NAME ${CMAKE_BINARY_DIR}/include/miopen/export_internals.h)
+    target_compile_definitions(MIOpen PUBLIC $<BUILD_INTERFACE:MIOPEN_BUILD_TESTING>)
 endif()
 
 if(MIOPEN_ENABLE_AI_KERNEL_TUNING OR MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK)

@@ -72,9 +72,9 @@ public:
     size_t EncodeLayout(const std::string& layout) const;
 };
 class Model;
-std::vector<uint64_t> PredictSolver(const conv::ProblemDescription& problem,
-                                    const ExecutionContext& ctx,
-                                    const std::string& device);
+MIOPEN_INTERNALS_EXPORT std::vector<uint64_t> PredictSolver(const conv::ProblemDescription& problem,
+                                                            const ExecutionContext& ctx,
+                                                            const std::string& device);
 } // namespace immed_mode
 
 #endif // MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK

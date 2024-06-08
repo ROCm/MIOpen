@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2017 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,37 +23,16 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#ifndef GUARD_MIOPEN_CONFIG_HPP
+#define GUARD_MIOPEN_CONFIG_HPP
 
-#pragma once
+#include <miopen/config.h>
+#include <miopen/export.h>
 
-#include <miopen/solver.hpp>
-#include <miopen/groupnorm/problem_description.hpp>
+#ifdef MIOPEN_BUILD_TESTING
+#include <miopen/export_internals.h>
+#else
+#define MIOPEN_INTERNALS_EXPORT
+#endif
 
-#include <utility>
-
-namespace miopen {
-
-namespace solver {
-
-namespace groupnorm {
-
-using NormalizationSolver =
-    NonTunableSolverBase<ExecutionContext, miopen::groupnorm::ProblemDescription>;
-
-struct GroupNormForward final : NormalizationSolver
-{
-    const std::string& SolverDbId() const override { return GetSolverDbId<GroupNormForward>(); }
-
-    MIOPEN_INTERNALS_EXPORT bool
-    IsApplicable(const ExecutionContext& context,
-                 const miopen::groupnorm::ProblemDescription& problem) const override;
-    MIOPEN_INTERNALS_EXPORT ConvSolution
-    GetSolution(const ExecutionContext& context,
-                const miopen::groupnorm::ProblemDescription& problem) const override;
-};
-
-} // namespace groupnorm
-
-} // namespace solver
-
-} // namespace miopen
+#endif // GUARD_MIOPEN_CONFIG_HPP

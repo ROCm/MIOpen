@@ -26,8 +26,7 @@
 #ifndef GUARD_MIOPEN_DB_RECORD_HPP_
 #define GUARD_MIOPEN_DB_RECORD_HPP_
 
-#include <miopen/config.h>
-
+#include <miopen/config.hpp>
 #include <miopen/logger.hpp>
 
 #include <cassert>
@@ -73,7 +72,7 @@ enum class DbKinds : std::uint8_t
 /// Upon construction, allows getting and modifying contents of a record (IDs and VALUES).
 ///
 /// All operations are MP- and MT-safe.
-class DbRecord
+class MIOPEN_INTERNALS_EXPORT DbRecord
 {
 public:
     template <class TValue>

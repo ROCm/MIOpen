@@ -40,6 +40,7 @@
 #include <miopen/find_solution.hpp>
 #include <miopen/conv/solver_finders.hpp>
 #include <miopen/driver_arguments.hpp>
+#include <miopen/config.hpp>
 
 #include <ostream>
 #include <ios>
@@ -404,6 +405,7 @@ std::string LogCmdBnormFusion(const miopenFusionPlanDescriptor_t fusePlanDesc, i
     return str;
 }
 
+MIOPEN_INTERNALS_EXPORT
 void LogCmdFusion(const miopenFusionPlanDescriptor_t fusePlanDesc)
 {
     if(miopen::IsLoggingCmd())

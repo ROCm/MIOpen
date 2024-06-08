@@ -37,10 +37,10 @@
 namespace miopen {
 
 namespace debug {
-extern bool& rordb_embed_fs_override();
+MIOPEN_INTERNALS_EXPORT bool& rordb_embed_fs_override();
 } // namespace debug
 
-class ReadonlyRamDb
+class MIOPEN_INTERNALS_EXPORT ReadonlyRamDb
 {
 public:
     ReadonlyRamDb(DbKinds db_kind_, const std::string& path) : db_kind(db_kind_), db_path(path) {}
