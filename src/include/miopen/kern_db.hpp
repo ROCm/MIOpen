@@ -85,8 +85,9 @@ class KernDb : public SQLiteBase<KernDb>
     std::function<std::vector<char>(const std::vector<char>&, unsigned int)> decompress_fn;
 
 public:
-    KernDb(DbKinds db_kind, const fs::path& filename_, bool is_system);
+    MIOPEN_INTERNALS_EXPORT KernDb(DbKinds db_kind, const fs::path& filename_, bool is_system);
     // This constructor is only intended for testing
+    MIOPEN_INTERNALS_EXPORT
     KernDb(DbKinds db_kind,
            const fs::path& filename_,
            bool is_system_,

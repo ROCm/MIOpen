@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2018 Advanced Micro Devices, Inc.
+ * Copyright (c) 2017 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,18 +23,16 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef MIOPEN_GUARD_MLOPEN_EXPANDUSER_HPP
-#define MIOPEN_GUARD_MLOPEN_EXPANDUSER_HPP
+#ifndef GUARD_MIOPEN_CONFIG_HPP
+#define GUARD_MIOPEN_CONFIG_HPP
 
-#include <miopen/config.hpp>
-#include <miopen/filesystem.hpp>
-#include <string>
+#include <miopen/config.h>
+#include <miopen/export.h>
 
-namespace miopen {
-
-MIOPEN_INTERNALS_EXPORT fs::path ExpandUser(const fs::path& path);
-bool IsNetworkedFilesystem(const fs::path&);
-
-} // namespace miopen
-
+#ifdef MIOPEN_BUILD_TESTING
+#include <miopen/export_internals.h>
+#else
+#define MIOPEN_INTERNALS_EXPORT
 #endif
+
+#endif // GUARD_MIOPEN_CONFIG_HPP
