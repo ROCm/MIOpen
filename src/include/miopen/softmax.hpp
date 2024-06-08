@@ -37,7 +37,7 @@ namespace miopen {
 struct Handle;
 struct TensorDescriptor;
 
-struct SoftmaxDescriptor : miopenSoftmaxDescriptor
+struct MIOPEN_INTERNALS_EXPORT SoftmaxDescriptor : miopenSoftmaxDescriptor
 {
     SoftmaxDescriptor() {}
 
@@ -57,7 +57,8 @@ struct SoftmaxDescriptor : miopenSoftmaxDescriptor
         mode      = mode_;
     }
 
-    friend std::ostream& operator<<(std::ostream& stream, const SoftmaxDescriptor& x);
+    MIOPEN_INTERNALS_EXPORT friend std::ostream& operator<<(std::ostream& stream,
+                                                            const SoftmaxDescriptor& x);
 
     friend void to_json(nlohmann::json& json, const SoftmaxDescriptor& descriptor);
     friend void from_json(const nlohmann::json& json, SoftmaxDescriptor& descriptor);
@@ -69,32 +70,32 @@ private:
     miopenSoftmaxMode_t mode;
 };
 
-miopenStatus_t SoftmaxForward(Handle& handle,
-                              const void* alpha,
-                              const void* beta,
-                              const TensorDescriptor& xDesc,
-                              ConstData_t x,
-                              const TensorDescriptor& yDesc,
-                              Data_t y,
-                              miopenSoftmaxAlgorithm_t algorithm,
-                              miopenSoftmaxMode_t mode,
-                              int x_offset = 0,
-                              int y_offset = 0);
+MIOPEN_INTERNALS_EXPORT miopenStatus_t SoftmaxForward(Handle& handle,
+                                                      const void* alpha,
+                                                      const void* beta,
+                                                      const TensorDescriptor& xDesc,
+                                                      ConstData_t x,
+                                                      const TensorDescriptor& yDesc,
+                                                      Data_t y,
+                                                      miopenSoftmaxAlgorithm_t algorithm,
+                                                      miopenSoftmaxMode_t mode,
+                                                      int x_offset = 0,
+                                                      int y_offset = 0);
 
-miopenStatus_t SoftmaxBackward(Handle& handle,
-                               const void* alpha,
-                               const TensorDescriptor& yDesc,
-                               ConstData_t y,
-                               const TensorDescriptor& dyDesc,
-                               ConstData_t dy,
-                               const void* beta,
-                               const TensorDescriptor& dxDesc,
-                               Data_t dx,
-                               miopenSoftmaxAlgorithm_t algorithm,
-                               miopenSoftmaxMode_t mode,
-                               int y_offset  = 0,
-                               int dy_offset = 0,
-                               int dx_offset = 0);
+MIOPEN_INTERNALS_EXPORT miopenStatus_t SoftmaxBackward(Handle& handle,
+                                                       const void* alpha,
+                                                       const TensorDescriptor& yDesc,
+                                                       ConstData_t y,
+                                                       const TensorDescriptor& dyDesc,
+                                                       ConstData_t dy,
+                                                       const void* beta,
+                                                       const TensorDescriptor& dxDesc,
+                                                       Data_t dx,
+                                                       miopenSoftmaxAlgorithm_t algorithm,
+                                                       miopenSoftmaxMode_t mode,
+                                                       int y_offset  = 0,
+                                                       int dy_offset = 0,
+                                                       int dx_offset = 0);
 
 } // namespace miopen
 

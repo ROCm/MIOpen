@@ -33,7 +33,7 @@
 
 namespace miopen {
 // Class store value in double for higher precision.
-struct Scalar
+struct MIOPEN_INTERNALS_EXPORT Scalar
 {
     explicit Scalar(double val) : mVal(val), mType(miopenDouble) {}
 
