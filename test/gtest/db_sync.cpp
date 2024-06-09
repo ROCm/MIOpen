@@ -79,7 +79,8 @@ struct std::hash<KDBKey>
 {
     std::size_t operator()(const KDBKey& k) const
     {
-        return std::hash<std::string>()(k.program_file.string()) ^ (hash<string>()(k.program_args) << 1) >> 1;
+        return std::hash<std::string>()(k.program_file.string()) ^
+               (hash<string>()(k.program_args) << 1) >> 1;
     }
 };
 
