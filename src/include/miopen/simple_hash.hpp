@@ -37,8 +37,7 @@ struct SimpleHash
 {
     size_t operator()(const std::pair<fs::path, std::string>& p) const
     {
-        using std::hash;
-        return (hash<fs::path>()(p.first) ^ hash<std::string>()(p.second));
+        return (std::hash<std::string>()(p.first.string()) ^ std::hash<std::string>()(p.second));
     }
 };
 
