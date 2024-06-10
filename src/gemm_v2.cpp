@@ -324,16 +324,13 @@ inline void ProfilingRecordStop(const Handle& handle, HipEventPtr& start, HipEve
     handle.AccumKernelTime(mS);
 }
 
-template <typename HipBLASLtAPIFunction>
-static void call_hipblasLt_method(HipBLASLtAPIFunction&& hipblaslt_api_function)
+static inline void check_hipblas_status(hipblasStatus_t status)
 {
-    if(hipblaslt_api_function() != hipblasStatus_t::HIPBLAS_STATUS_SUCCESS)
+    if(status != hipblasStatus_t::HIPBLAS_STATUS_SUCCESS)
     {
         MIOPEN_THROW(miopenStatusInternalError, "hipBlasLt error encountered");
     }
 }
-
-#define CALL_HIPBLASLT_METHOD(cmd) call_hipblasLt_method([&] { return cmd; })
 
 template <typename DataTypeAB, typename DataTypeC>
 static void miopen_hipblasLt_gemm(const miopen::Handle& handle,
@@ -390,30 +387,30 @@ static void miopen_hipblasLt_gemm(const miopen::Handle& handle,
                              hip_type_C,
                              HIPBLAS_COMPUTE_32F);
 
-    CALL_HIPBLASLT_METHOD(gemm.setProblem(gemm_desc.m,
-                                          gemm_desc.n,
-                                          gemm_desc.k,
-                                          gemm_desc.batch_count,
-                                          gemm_desc.lda,
-                                          gemm_desc.ldb,
-                                          gemm_desc.ldc,
-                                          gemm_desc.ldc,
-                                          gemm_desc.strideA,
-                                          gemm_desc.strideB,
-                                          gemm_desc.strideC,
-                                          gemm_desc.strideC,
-                                          epilogue,
-                                          inputs,
-                                          problemType));
+    check_hipblas_status(gemm.setProblem(gemm_desc.m,
+                                         gemm_desc.n,
+                                         gemm_desc.k,
+                                         gemm_desc.batch_count,
+                                         gemm_desc.lda,
+                                         gemm_desc.ldb,
+                                         gemm_desc.ldc,
+                                         gemm_desc.ldc,
+                                         gemm_desc.strideA,
+                                         gemm_desc.strideB,
+                                         gemm_desc.strideC,
+                                         gemm_desc.strideC,
+                                         epilogue,
+                                         inputs,
+                                         problemType));
 
     std::vector<hipblasLtMatmulHeuristicResult_t> heuristic;
-    CALL_HIPBLASLT_METHOD(gemm.algoGetHeuristic(1, pref, heuristic));
+    check_hipblas_status(gemm.algoGetHeuristic(1, pref, heuristic));
 
-    CALL_HIPBLASLT_METHOD(gemm.initialize(heuristic[0].algo, tuning, nullptr, handle.GetStream()));
+    check_hipblas_status(gemm.initialize(heuristic[0].algo, tuning, nullptr, handle.GetStream()));
 
     {
         HipEventProfiler profiler(handle);
-        CALL_HIPBLASLT_METHOD(gemm.run(handle.GetStream()));
+        check_hipblas_status(gemm.run(handle.GetStream()));
     }
 }
 
@@ -430,14 +427,16 @@ static void call_miopen_hipblasLt_gemm(const miopen::Handle& handle,
 
     switch(gemm_desc.dataType)
     {
-    case miopenInt8:
+    case miopenInt8: {
         MIOPEN_THROW(miopenStatusBadParm,
                      "miopenInt8 type not supported for hipBlasLt GemmBackend");
-        break;
-    case miopenInt32:
+    }
+    break;
+    case miopenInt32: {
         MIOPEN_THROW(miopenStatusBadParm,
                      "miopenInt32 type not supported for hipBlasLt GemmBackend");
-        break;
+    }
+    break;
     case miopenHalf: {
         miopen_hipblasLt_gemm<hipblasLtHalf, hipblasLtHalf>(
             handle, gemm_desc, A, a_offset, B, b_offset, HIP_R_16F, C, c_offset, HIP_R_16F);

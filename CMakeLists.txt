@@ -339,7 +339,7 @@ if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_B
     endif()
 
     # hipblaslt
-    find_package(hipblaslt REQUIRED PATHS /opt/rocm)
+    find_package(hipblaslt REQUIRED PATHS /opt/rocm $ENV{HIP_PATH})
 else()
     #CK is only enabled when HIP backend is selected   
     set(MIOPEN_USE_COMPOSABLEKERNEL Off)

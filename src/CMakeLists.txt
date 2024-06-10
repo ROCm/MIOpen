@@ -854,9 +854,11 @@ if(rocblas_FOUND)
     list(APPEND PACKAGE_STATIC_DEPENDS PACKAGE rocblas)
 endif()
 
-target_link_libraries( MIOpen INTERFACE $<BUILD_INTERFACE:hipblaslt> )
-target_link_libraries( MIOpen PRIVATE hipblaslt )
-list(APPEND PACKAGE_STATIC_DEPENDS PACKAGE hipblaslt)
+if(hipblaslt_FOUND)
+    target_link_libraries( MIOpen INTERFACE $<BUILD_INTERFACE:roc::hipblaslt> )
+    target_link_libraries( MIOpen PRIVATE roc::hipblaslt )
+    list(APPEND PACKAGE_STATIC_DEPENDS PACKAGE hipblaslt)
+endif()
 
 # For backward compatibility with ROCm 5.3
 # Build with library libMLIRMIOpen
