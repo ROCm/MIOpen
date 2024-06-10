@@ -842,7 +842,7 @@ OperationPointwise OperationPointwiseBuilder::build()
         }
         break;
 
-    /* TODO: Implement the remaining cases
+    /** \todo Implement the remaining cases --Sergei Apr, 2024
      */
     case MIOPEN_POINTWISE_ERF:
     case MIOPEN_POINTWISE_GEN_INDEX: MIOPEN_THROW(miopenStatusNotImplemented);

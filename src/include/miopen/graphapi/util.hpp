@@ -223,7 +223,8 @@ public:
     const auto& graph() const { return mGraph; }
 };
 
-// TODO(Amber): move this function out so that other find 2.0 code can use it
+/// \todo move this function out so that other find 2.0 code can use it
+/// --amberhassaan May, 2024
 inline std::string_view tensorEnumIdToStr(miopenTensorArgumentId_t id)
 {
 

@@ -109,16 +109,18 @@ void OpGraph::initEngines()
     // findEngines to when the user calls it instead of calling it at graph build
     // time, but cudnn graph API has semantics that suggest that graph knows its
     // engines or engine count at least.
-    // TODO(Amber): findEngines takes pointer to the graph and uses it to construct
+    //
+    /// \todo findEngines takes pointer to the graph and uses it to construct
     // engines. This pointer  may become invalid when the graph object is moved. Fix
     // by using shared_ptr or not storing graph inside engine
+    // --amberhassaan May, 2024
     mEngines = findEngines(this);
 }
 
 VecOfPaths OpGraph::getAllPaths() const
 {
-    // TODO(Amber): does not check for cycles. Use DFS to first check for cycles
-    // at construction time perhaps.
+    /// \todo does not check for cycles. Use DFS to first check for cycles
+    /// at construction time perhaps. --amberhassaan May, 2024
     VecOfPaths all_paths;
 
     std::deque<Path> paths_to_explore;
