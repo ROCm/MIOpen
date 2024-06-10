@@ -71,6 +71,7 @@ NetworkConfig ForwardProblemDescription::MakeForwardNetworkConfig() const
     return NetworkConfig{ss.str()};
 }
 
+/*
 NetworkConfig BackwardProblemDescription::MakeNetworkConfig() const
 {
     return MakeBackwardNetworkConfig();
@@ -95,6 +96,7 @@ NetworkConfig BackwardProblemDescription::MakeBackwardNetworkConfig() const
 
     return NetworkConfig{ss.str()};
 }
+*/
 
 } // namespace where
 

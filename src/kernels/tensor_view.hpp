@@ -23,37 +23,56 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef MIOPEN_WHERE_HPP_
-#define MIOPEN_WHERE_HPP_
 
-#include <miopen/common.hpp>
+#ifndef GUARD_TENSOR_VIEW_HPP
+#define GUARD_TENSOR_VIEW_HPP
 
-namespace miopen {
+template <int N>
+struct tensor_layout_t;
 
-struct Handle;
-struct TensorDescriptor;
+template <int N>
+struct tensor_view_t
+{
+    // Get index in tensor view at tensor layout
+    constexpr uint64_t get_tensor_view_idx(const tensor_layout_t<N>& tensor_layout)
+    {
+        static_assert(N > 0);
+        uint64_t idx = 0;
+        for(auto i = 0; i < N; ++i)
+        {
+            idx += stride[i] * tensor_layout.layout[i];
+        }
+        return idx;
+    }
+    uint64_t stride[N];
+    uint64_t size[N];
+};
 
-miopenStatus_t WhereForward(Handle& handle,
-                            const TensorDescriptor& inputDesc,
-                            Data_t input,
-                            const TensorDescriptor& otherDesc,
-                            Data_t other,
-                            const TensorDescriptor& conditionDesc,
-                            Data_t condition,
-                            const TensorDescriptor& outputDesc,
-                            Data_t output);
+template <int N>
+struct tensor_layout_t
+{
+    // Make tensor layout at index using tensor view
+    constexpr tensor_layout_t(const tensor_view_t<N>& tensor_view, uint64_t idx)
+    {
+        static_assert(N > 0);
+        uint64_t temp = idx;
+        if constexpr(N == 1)
+        {
+            layout[0] = idx;
+        }
+        else
+        {
+            for(auto i = N - 1; i > 1; --i)
+            {
+                layout[i] = temp % tensor_view.size[i];
+                temp      = temp / tensor_view.size[i];
+            }
+            layout[1] = temp % tensor_view.size[1];
+            layout[0] = temp / tensor_view.size[1];
+        }
+    }
 
-/*
-miopenStatus_t WhereBackward(Handle& handle,
-                             const TensorDescriptor& outputGradDesc,
-                             Data_t outputGrad,
-                             const TensorDescriptor& conditionDesc,
-                             Data_t condition,
-                             const TensorDescriptor& inputGradDesc,
-                             Data_t inputGrad,
-                             const TensorDescriptor& otherGradDesc,
-                             Data_t otherGrad);
-*/
+    uint64_t layout[N];
+};
 
-} // namespace miopen
-#endif // _MIOPEN_WHERE_HPP_
+#endif // GUARD_TENSOR_VIEW_HPP

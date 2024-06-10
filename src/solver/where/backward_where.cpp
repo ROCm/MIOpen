@@ -27,7 +27,6 @@
 #include "miopen/kernel_info.hpp"
 #include "miopen/mlo_internal.hpp"
 #include "miopen/tensor.hpp"
-#include "miopen/tensor_view_utils.hpp"
 #include "miopen/where/problem_description.hpp"
 #include <cstddef>
 #include <miopen/datatype.hpp>
@@ -36,7 +35,6 @@
 #include <miopen/where/solvers.hpp>
 #include <miopen/where.hpp>
 #include <miopen/target_properties.hpp>
-#include <../kernels/tensor_view.hpp>
 
 #define LOCAL_SIZE 256
 
@@ -46,46 +44,35 @@ namespace solver {
 
 namespace where {
 
-template <int N>
-void printTv(const tensor_view_t<N> tv) {
-    std::cout << "Size = ";
-    for(int i = 0; i < N; i++)
-        std::cout << tv.size[i] << " ";
-    std::cout << std::endl;
-
-    std::cout << "Stride = ";
-    for(int i = 0; i < N; i++)
-        std::cout << tv.stride[i] << " ";
-    std::cout << std::endl;
-}
-
-template <int N>
-int64_t check_broadcasted_contiguous(const tensor_view_t<N>& tensorView)
+int64_t check_broadcasted_contiguous(const TensorDescriptor& tensorDesc)
 {
     int64_t num_elems = 1;
+    auto len          = tensorDesc.GetLengths();
+    auto strides      = tensorDesc.GetStrides();
 
-    for(int i = N - 1; i >= 0; i--)
+    for(int i = len.size() - 1; i >= 0; i--)
     {
-        if(tensorView.stride[i] != 0 && tensorView.stride[i] != num_elems)
+        if(strides[i] != 0 && strides[i] != num_elems)
             return 0;
-        if(tensorView.stride[i] == 0)
+        if(strides[i] == 0)
         {
             for(int j = i; j >= 0; j--)
-                if(tensorView.stride[j] != 0)
+                if(strides[j] != 0)
                     return 0;
             return num_elems;
         }
-        num_elems *= tensorView.size[i];
+        num_elems *= len[i];
     }
 
     return num_elems;
 }
 
-bool WhereForward::IsApplicable(const ExecutionContext& context,
-                                const miopen::where::ForwardProblemDescription& problem) const
+/*
+bool WhereBackward::IsApplicable(const ExecutionContext& context,
+                                const miopen::where::BackwardProblemDescription& problem) const
 {
     std::ignore    = context;
-    auto inputDims = problem.GetInputDesc().GetLengths();
+    auto inputDims = problem.GetInputGradDesc().GetLengths();
 
     if(!problem.IsSameType())
         return false;
@@ -95,33 +82,14 @@ bool WhereForward::IsApplicable(const ExecutionContext& context,
 }
 
 ConvSolution
-WhereForward::GetSolution(const ExecutionContext& context,
-                          const miopen::where::ForwardProblemDescription& problem) const
+WhereBackward::GetSolution(const ExecutionContext& context,
+                          const miopen::where::BackwardProblemDescription& problem) const
 {
     std::ignore = context;
 
-    tensor_view_t<5> input_tv = get_inner_expanded_tv<5>(problem.GetInputDesc());
-    tensor_view_t<5> other_tv = get_inner_expanded_tv<5>(problem.GetOtherDesc());
-    tensor_view_t<5> cond_tv = get_inner_expanded_tv<5>(problem.GetConditionDesc());
-    tensor_view_t<5> output_tv = get_inner_expanded_tv<5>(problem.GetOutputDesc());
-
-    printTv(input_tv);
-    printTv(other_tv);
-    printTv(cond_tv);
-    printTv(output_tv);
-
-    input_tv = broadcast_to(input_tv, output_tv);
-    other_tv = broadcast_to(other_tv, output_tv);
-    cond_tv  = broadcast_to(cond_tv, output_tv);
-
-    printTv(input_tv);
-    printTv(other_tv);
-    printTv(cond_tv);
-    printTv(output_tv);
-
-    auto cond_contig_size  = check_broadcasted_contiguous(cond_tv);
-    auto input_contig_size = check_broadcasted_contiguous(input_tv);
-    auto other_contig_size = check_broadcasted_contiguous(other_tv);
+    auto cond_contig_size  = check_broadcasted_contiguous(problem.GetConditionDesc());
+    auto input_contig_size = check_broadcasted_contiguous(problem.GetInputDesc());
+    auto other_contig_size = check_broadcasted_contiguous(problem.GetOtherDesc());
 
     bool is_all_broadcasted_contiguous = cond_contig_size && input_contig_size &&
                                          other_contig_size &&
@@ -137,9 +105,8 @@ WhereForward::GetSolution(const ExecutionContext& context,
     auto input_dtype  = miopen::GetDataType(problem.GetInputDesc().GetType());
     auto output_dtype = miopen::GetDataType(problem.GetOutputDesc().GetType());
     auto outputDims   = problem.GetOutputDesc().GetLengths();
-
-    auto cond_numel = problem.GetConditionDesc().GetElementSize();
-    auto output_numel = problem.GetOutputDesc().GetElementSize();
+    auto output_numel =
+        std::accumulate(outputDims.begin(), outputDims.end(), 1ULL, std::multiplies<size_t>());
 
     auto kernel        = KernelInfo{};
     kernel.kernel_file = "MIOpenWhere.cpp";
@@ -157,11 +124,7 @@ WhereForward::GetSolution(const ExecutionContext& context,
     if(is_all_broadcasted_contiguous && is_condition_broadcasted)
     {
         size_t xlocalsize = LOCAL_SIZE;
-        size_t xgridsize  = AlignUp(cond_numel, xlocalsize);
-        std::cout << "cond_contig_size " << cond_contig_size << std::endl;
-        std::cout << "input size" << input_contig_size << std::endl;
-        std::cout << "other size" << other_contig_size << std::endl;
-        std::cout << "output_numel" << output_numel << std::endl;
+        size_t xgridsize  = AlignUp(cond_contig_size, xlocalsize);
         size_t ylocalsize = 1;
         size_t ygridsize  = 1;
         size_t zlocalsize = 1;
@@ -200,30 +163,21 @@ WhereForward::GetSolution(const ExecutionContext& context,
     result.construction_params.push_back(kernel);
 
     result.invoker_factory =
-        [=](
+        [=, &cond_contig_size, &input_contig_size, &other_contig_size, &output_numel](
             const std::vector<Kernel>& kernels) {
             return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
                 decltype(auto) kernel = handle_.Run(kernels.front());
                 decltype(auto) params = raw_params.CastTo<miopen::where::InvokeParams>();
-
-                size_t output_numel = problem.GetOutputDesc().GetElementSize();
-                size_t condition_off = 0;
-                size_t input_off = 0;
-                size_t other_off = 0;
-                size_t output_off = 0;
-                size_t cond_contig_size = check_broadcasted_contiguous(cond_tv);
-                size_t input_contig_size = check_broadcasted_contiguous(input_tv);
-                size_t other_contig_size = check_broadcasted_contiguous(other_tv);
 
                 kernel(params.condition,
                        params.input,
                        params.other,
                        params.output,
                        output_numel,
-                       condition_off,
-                       input_off,
-                       other_off,
-                       output_off,
+                       0,
+                       0,
+                       0,
+                       0,
                        cond_contig_size,
                        input_contig_size,
                        other_contig_size);
@@ -232,6 +186,7 @@ WhereForward::GetSolution(const ExecutionContext& context,
 
     return result;
 }
+*/
 
 } // namespace where
 

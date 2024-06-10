@@ -71,6 +71,7 @@ miopenStatus_t WhereForward(Handle& handle,
     return miopenStatusSuccess;
 }
 
+/*
 miopenStatus_t WhereBackward(Handle& handle,
                              const TensorDescriptor& outputGradDesc,
                              Data_t outputGrad,
@@ -105,5 +106,6 @@ miopenStatus_t WhereBackward(Handle& handle,
 
     return miopenStatusSuccess;
 }
+*/
 
 } // namespace miopen

@@ -49,6 +49,7 @@ struct WhereForward final : WhereForwardSolver
                 const miopen::where::ForwardProblemDescription& problem) const override;
 };
 
+/*
 using WhereBackwardSolver =
     NonTunableSolverBase<ExecutionContext, miopen::where::BackwardProblemDescription>;
 
@@ -62,6 +63,7 @@ struct WhereBackward final : WhereBackwardSolver
     GetSolution(const ExecutionContext& context,
                 const miopen::where::BackwardProblemDescription& problem) const override;
 };
+*/
 
 } // namespace where
 

@@ -60,21 +60,6 @@ struct ForwardProblemDescription : ProblemDescriptionBase
           conditionDesc(conditionDesc_),
           outputDesc(outputDesc_)
     {
-        if(inputDesc.GetLengths().size() != outputDesc.GetLengths().size())
-        {
-            MIOPEN_THROW(miopenStatusBadParm,
-                         "Where::ProblemDescription: Number of tensor dimension do not match.");
-        }
-
-        for(int32_t i = 0; i < inputDesc.GetLengths().size(); i++)
-        {
-            if(inputDesc.GetLengths()[i] != outputDesc.GetLengths()[i])
-            {
-                MIOPEN_THROW(miopenStatusBadParm,
-                             "Where::ProblemDescription: Dimension sizes don't match between "
-                             "input tensor and output tensor.");
-            }
-        }
     }
 
     Direction GetDirection() const { return direction; }
@@ -88,20 +73,9 @@ struct ForwardProblemDescription : ProblemDescriptionBase
 
     bool IsSameType() const
     {
-        if(direction == Direction::Forward)
+        if(inputDesc.GetType() != outputDesc.GetType())
         {
-            if(inputDesc.GetType() != outputDesc.GetType())
-            {
-                return false;
-            }
-        }
-        else
-        {
-            if(inputDesc.GetType() != inputGradDesc.GetType() ||
-               inputGradDesc.GetType() != outputGradDesc.GetType())
-            {
-                return false;
-            }
+            return false;
         }
 
         return true;
@@ -109,19 +83,9 @@ struct ForwardProblemDescription : ProblemDescriptionBase
 
     bool IsAllPacked() const
     {
-        if(direction == Direction::Forward)
+        if(!(inputDesc.IsPacked() && outputDesc.IsPacked()))
         {
-            if(!(inputDesc.IsPacked() && outputDesc.IsPacked()))
-            {
-                return false;
-            }
-        }
-        else
-        {
-            if(!(inputDesc.IsPacked() && inputGradDesc.IsPacked() && outputGradDesc.IsPacked()))
-            {
-                return false;
-            }
+            return false;
         }
 
         return true;
@@ -143,6 +107,7 @@ private:
     NetworkConfig MakeBackwardNetworkConfig() const;
 };
 
+/*
 struct BackwardProblemDescription : ProblemDescriptionBase
 {
     // Backward constructor
@@ -212,6 +177,7 @@ private:
     NetworkConfig MakeForwardNetworkConfig() const;
     NetworkConfig MakeBackwardNetworkConfig() const;
 };
+*/
 
 } // namespace where
 

@@ -48,7 +48,7 @@ struct InvokeParams : public miopen::InvokeParams
     ConstData_t condition = nullptr;
     Data_t output         = nullptr;
 
-    size_t cond_contig_size = 0;
+    size_t cond_contig_size  = 0;
     size_t input_contig_size = 0;
     size_t other_contig_size = 0;
 
@@ -56,6 +56,7 @@ struct InvokeParams : public miopen::InvokeParams
     Data_t GetWorkspace() const { return nullptr; }
 };
 
+/*
 struct BwdInvokeParams : public miopen::InvokeParams
 {
     BwdInvokeParams() = default;
@@ -73,6 +74,7 @@ struct BwdInvokeParams : public miopen::InvokeParams
     std::size_t GetWorkspaceSize() const { return 0; }
     Data_t GetWorkspace() const { return nullptr; }
 };
+*/
 
 } // namespace where
 

@@ -28,6 +28,8 @@
 
 #include "InputFlags.hpp"
 #include "driver.hpp"
+#include "miopen/errors.hpp"
+#include "miopen/tensor_view_utils.hpp"
 #include "tensor_driver.hpp"
 #include <algorithm>
 #include <cstddef>
@@ -236,84 +238,28 @@ int WhereDriver<Tgpu, Tref>::GetandSetData()
     std::vector<int> other_len = GetTensorLengthsFromCmdLine("otherDims");
     std::vector<int> cond_len  = GetTensorLengthsFromCmdLine("condDims");
 
-    size_t in_sz = in_len.size();
-    std::vector<int> in_strides(in_sz, 0);
-    size_t other_sz = other_len.size();
-    std::vector<int> other_strides(other_sz, 0);
-    size_t cond_sz = cond_len.size();
-    std::vector<int> cond_strides(cond_sz, 0);
+    SetTensorNd(inputTensor, in_len, data_type);
+    SetTensorNd(otherTensor, other_len, data_type);
+    SetTensorNd(condTensor, cond_len, data_type);
 
-    if(in_sz != other_sz || other_sz != cond_sz)
-    {
-        std::cerr << "inputDims, otherDims and condDims must have same length" << std::endl;
+    if (!(miopen::isBroadcastable(miopen::deref(inputTensor), miopen::deref(otherTensor)) 
+                                && miopen::isBroadcastable(miopen::deref(otherTensor), miopen::deref(condTensor)))) {
+        std::cerr << "inputDims, otherDims and condDims must be broadcastable" << std::endl;
         return miopenStatusBadParm;
     }
 
-    std::vector<int> out_len;
-    int curElemInput = 1;
-    int curElemOther = 1;
-    int curElemCond  = 1;
-    for(int i = in_sz - 1; i >= 0; i--)
-    {
-        int inIdx    = in_len[i];
-        int otherIdx = other_len[i];
-        int condIdx  = cond_len[i];
-        int maxIdx   = findMax(inIdx, otherIdx, condIdx);
+    int in_sz = in_len.size();
+    int other_sz = other_len.size();
+    int cond_sz = cond_len.size();
+    int out_sz = findMax(in_sz, other_sz, cond_sz);
+    std::vector<int> out_len(out_sz);
 
-        if(inIdx != maxIdx && inIdx == 1)
-        {
-            in_len[i]     = maxIdx;
-            in_strides[i] = 0;
-        }
-        else if(inIdx == maxIdx)
-        {
-            in_strides[i] = curElemInput;
-            curElemInput *= maxIdx;
-        }
-        else
-        {
-            std::cerr << "Input tensor are not broadcastable" << std::endl;
-            return miopenStatusBadParm;
-        }
-
-        if(otherIdx != maxIdx && otherIdx == 1)
-        {
-            other_len[i]     = maxIdx;
-            other_strides[i] = 0;
-        }
-        else if(otherIdx == maxIdx)
-        {
-            other_strides[i] = curElemOther;
-            curElemOther *= maxIdx;
-        }
-        else
-        {
-            std::cerr << "Input tensor are not broadcastable" << std::endl;
-            return miopenStatusBadParm;
-        }
-
-        if(condIdx != maxIdx && condIdx == 1)
-        {
-            cond_len[i]     = maxIdx;
-            cond_strides[i] = 0;
-        }
-        else if(condIdx == maxIdx)
-        {
-            cond_strides[i] = curElemCond;
-            curElemCond *= maxIdx;
-        }
-        else
-        {
-            std::cerr << "Input tensor are not broadcastable" << std::endl;
-            return miopenStatusBadParm;
-        }
-
-        out_len.push_back(maxIdx);
+    for (int i  = 0; i < out_sz; i++) {
+        int InVal = (in_sz - 1 - i >= 0) ? in_len[in_sz - 1 - i] : 1;
+        int OtherVal = (other_sz - 1 - i >= 0) ? other_len[other_sz - 1 - i] : 1;
+        int CondVal = (cond_sz - 1 - i >= 0) ? cond_len[cond_sz - 1 - i] : 1;
+        out_len[out_sz - 1 - i] = findMax(InVal, OtherVal, CondVal);
     }
-
-    SetTensorNd(inputTensor, in_len, in_strides, data_type);
-    SetTensorNd(otherTensor, other_len, other_strides, data_type);
-    SetTensorNd(condTensor, cond_len, cond_strides, miopenInt8);
 
     SetTensorNd(outputTensor, out_len, data_type);
 
@@ -333,11 +279,11 @@ int WhereDriver<Tgpu, Tref>::AddCmdLineArgs()
                          "Run only Forward (1) or Run both Forward and Backward (0) (Default=1)",
                          "int");
     inflags.AddInputFlag(
-        "inputDims", 'I', "100,3,0,32,32", "The dimensional lengths of input tensor", "string");
+        "inputDims", 'I', "1,1,0,2,2", "The dimensional lengths of input tensor", "string");
     inflags.AddInputFlag(
-        "otherDims", 'O', "100,3,0,32,32", "The dimensional lengths of other tensor", "string");
+        "otherDims", 'O', "1,1,0,2,2", "The dimensional lengths of other tensor", "string");
     inflags.AddInputFlag(
-        "condDims", 'C', "100,3,0,32,32", "The dimensional lengths of condition tensor", "string");
+        "condDims", 'C', "4,1,0,2,2", "The dimensional lengths of condition tensor", "string");
 
     inflags.AddInputFlag("iter", 'i', "10", "Number of Iterations (Default=10)", "int");
     inflags.AddInputFlag("verify", 'V', "1", "Verify Each Layer (Default=1)", "int");
@@ -390,6 +336,11 @@ std::vector<int> WhereDriver<Tgpu, Tref>::GetTensorLengthsFromCmdLine(std::strin
         return std::vector<int>({0});
     }
 
+
+    for (int len : lengths) {
+        std::cout << len << ", ";
+    }
+    std::cout << std::endl;
     return lengths;
 }
 
@@ -566,12 +517,12 @@ int WhereDriver<Tgpu, Tref>::RunForwardGPU()
         STOP_TIME
         int iter = inflags.GetValueInt("iter");
         if(WALL_CLOCK)
-            std::cout << "Wall-clock Time Forward GLU Elapsed: " << t.gettime_ms() / iter
+            std::cout << "Wall-clock Time Forward Where Elapsed: " << t.gettime_ms() / iter
                       << " ms\n";
 
         float kernel_average_time =
             iter > 1 ? (kernel_total_time - kernel_first_time) / (iter - 1) : kernel_first_time;
-        std::cout << "GPU Kernel Time Forward GLU Elapsed: " << kernel_average_time << " ms\n";
+        std::cout << "GPU Kernel Time Forward Where Elapsed: " << kernel_average_time << " ms\n";
     }
 
     if(out_dev->FromGPU(GetStream(), out.data()) != 0)
@@ -655,6 +606,13 @@ template <typename Tgpu, typename Tref>
 int WhereDriver<Tgpu, Tref>::VerifyForward()
 {
     RunForwardCPU();
+    size_t outsize = outhost.size();
+    for (int i = 0; i < outsize; i++) {
+        if (outhost[i] != out[i]) {
+            std::cout << "outhost[" << i << "] = " << outhost[i] << " " << "out[" << i << "] = " << out[i] << " input[" << i << "] = " << in[i] << " other[" << i << "] = " << other[i] << " cond[" << i << "] = " << cond[i] << std::endl;
+        }
+    }
+
     const Tref tolerance = GetTolerance();
     auto error           = miopen::rms_range(outhost, out);
 

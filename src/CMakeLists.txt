@@ -273,6 +273,7 @@ set( MIOpen_Source
     solver/reduce/forward_sum.cpp
     solver/softmax/attn_softmax.cpp
     solver/softmax/softmax.cpp
+    solver/where/forward_where.cpp
     subbuffers.cpp
     sum_api.cpp
     target_properties.cpp
@@ -280,6 +281,9 @@ set( MIOpen_Source
     tensor.cpp
     tensor_api.cpp
     seq_tensor.cpp
+    where.cpp
+    where_api.cpp
+    where/problem_description.cpp
 )
 
 if(MIOPEN_ENABLE_AI_KERNEL_TUNING OR MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK)
@@ -470,6 +474,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenSoftmax.cl
         kernels/MIOpenSoftmaxAttn.cpp
         kernels/MIOpenSum.cpp
+        kernels/MIOpenWhere.cpp
         kernels/MIOpenUtilKernels3.cl
         kernels/MIOpenUtilKernels4.cl
         kernels/MIOpenUtilKernels5.cl
