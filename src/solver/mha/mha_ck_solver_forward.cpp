@@ -312,6 +312,7 @@ ConvSolution MhaCKForward::GetSolution(const ExecutionContext& context,
             float ave_time = fmha_fwd(fmha_traits, fmha_args, stream_config_tmp);
         };
     };
+    return result;
 }
 
 bool MhaCKForward::MayNeedWorkspace() const { return false; }

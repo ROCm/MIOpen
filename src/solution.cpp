@@ -387,7 +387,7 @@ void Solution::RunImpl(Handle& handle,
     {
         auto ctx = ExecutionContext{&handle};
 
-        static solver::mha::MhaForward mhaForward;
+        static solver::mha::MhaCKForward mhaForward;
         static solver::mha::MhaBackward mhaBackward;
 
         const auto mha_solution = GetSolver().ToString() == mhaForward.SolverDbId()
