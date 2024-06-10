@@ -130,6 +130,35 @@ int32_t mloWhereForwardRunHost(miopenTensorDescriptor_t inputDesc,
     return ret;
 }
 
+template <typename Tgpu, typename Tcheck>
+int32_t mloWhereBackwardRunHost(miopenTensorDescriptor_t outputGradDesc,
+                                Tgpu* outputGrad,
+                                miopenTensorDescriptor_t conditionDesc,
+                                Tgpu* condition,
+                                miopenTensorDescriptor_t inputGradDesc,
+                                Tcheck* inputGrad,
+                                miopenTensorDescriptor_t otherGradDesc,
+                                Tcheck* otherGrad)
+{
+    auto input_grad_contig_size = check_broadcasted_contiguous(inputGradDesc);
+    auto other_grad_contig_size = check_broadcasted_contiguous(otherGradDesc);
+    auto cond_contig_size  = check_broadcasted_contiguous(conditionDesc);
+
+    auto output_grad_numel = miopen::deref(outputGradDesc).GetElementSize();
+    
+    for (size_t o = 0; o < output_grad_numel; o++) {
+        auto cond = condition[o % cond_contig_size];
+        if (inputGrad) {
+            inputGrad[o % input_grad_contig_size] = outputGrad[o] * cond; 
+        }
+        if (otherGrad) {
+            otherGrad[o % other_grad_contig_size] = outputGrad[o] * (static_cast<Tcheck>(1) - cond);
+        }
+    }
+
+    return 0;
+}
+
 #endif
 
 template <typename Tgpu, typename Tref>
@@ -242,30 +271,33 @@ int WhereDriver<Tgpu, Tref>::GetandSetData()
     SetTensorNd(otherTensor, other_len, data_type);
     SetTensorNd(condTensor, cond_len, data_type);
 
-    if (!(miopen::isBroadcastable(miopen::deref(inputTensor), miopen::deref(otherTensor)) 
-                                && miopen::isBroadcastable(miopen::deref(otherTensor), miopen::deref(condTensor)))) {
+    if(!(miopen::isBroadcastable(miopen::deref(inputTensor), miopen::deref(otherTensor)) &&
+         miopen::isBroadcastable(miopen::deref(otherTensor), miopen::deref(condTensor))))
+    {
         std::cerr << "inputDims, otherDims and condDims must be broadcastable" << std::endl;
         return miopenStatusBadParm;
     }
 
-    int in_sz = in_len.size();
+    int in_sz    = in_len.size();
     int other_sz = other_len.size();
-    int cond_sz = cond_len.size();
-    int out_sz = findMax(in_sz, other_sz, cond_sz);
+    int cond_sz  = cond_len.size();
+    int out_sz   = findMax(in_sz, other_sz, cond_sz);
     std::vector<int> out_len(out_sz);
 
-    for (int i  = 0; i < out_sz; i++) {
-        int InVal = (in_sz - 1 - i >= 0) ? in_len[in_sz - 1 - i] : 1;
-        int OtherVal = (other_sz - 1 - i >= 0) ? other_len[other_sz - 1 - i] : 1;
-        int CondVal = (cond_sz - 1 - i >= 0) ? cond_len[cond_sz - 1 - i] : 1;
+    for(int i = 0; i < out_sz; i++)
+    {
+        int InVal               = (in_sz - 1 - i >= 0) ? in_len[in_sz - 1 - i] : 1;
+        int OtherVal            = (other_sz - 1 - i >= 0) ? other_len[other_sz - 1 - i] : 1;
+        int CondVal             = (cond_sz - 1 - i >= 0) ? cond_len[cond_sz - 1 - i] : 1;
         out_len[out_sz - 1 - i] = findMax(InVal, OtherVal, CondVal);
     }
 
     SetTensorNd(outputTensor, out_len, data_type);
 
     // Backwards
-    // SetTensorNd(inputTensorGrad, in_len, data_type);
-    // SetTensorNd(outputTensorGrad, out_len, data_type);
+    SetTensorNd(inputTensorGrad, in_len, data_type);
+    SetTensorNd(otherTensorGrad, other_len, data_type);
+    SetTensorNd(outputTensorGrad, out_len, data_type);
 
     return miopenStatusSuccess;
 }
@@ -279,11 +311,11 @@ int WhereDriver<Tgpu, Tref>::AddCmdLineArgs()
                          "Run only Forward (1) or Run both Forward and Backward (0) (Default=1)",
                          "int");
     inflags.AddInputFlag(
-        "inputDims", 'I', "1,1,0,2,2", "The dimensional lengths of input tensor", "string");
+        "inputDims", 'I', "1,4,2,2", "The dimensional lengths of input tensor", "string");
     inflags.AddInputFlag(
-        "otherDims", 'O', "1,1,0,2,2", "The dimensional lengths of other tensor", "string");
+        "otherDims", 'O', "1,4,2,2", "The dimensional lengths of other tensor", "string");
     inflags.AddInputFlag(
-        "condDims", 'C', "4,1,0,2,2", "The dimensional lengths of condition tensor", "string");
+        "condDims", 'C', "2,4,2,2", "The dimensional lengths of condition tensor", "string");
 
     inflags.AddInputFlag("iter", 'i', "10", "Number of Iterations (Default=10)", "int");
     inflags.AddInputFlag("verify", 'V', "1", "Verify Each Layer (Default=1)", "int");
@@ -336,8 +368,8 @@ std::vector<int> WhereDriver<Tgpu, Tref>::GetTensorLengthsFromCmdLine(std::strin
         return std::vector<int>({0});
     }
 
-
-    for (int len : lengths) {
+    for(int len : lengths)
+    {
         std::cout << len << ", ";
     }
     std::cout << std::endl;
@@ -549,42 +581,43 @@ int WhereDriver<Tgpu, Tref>::RunForwardCPU()
 template <typename Tgpu, typename Tref>
 int WhereDriver<Tgpu, Tref>::RunBackwardGPU()
 {
-    // float kernel_total_time = 0;
-    // float kernel_first_time = 0;
-    // Timer t;
-    // START_TIME;
-    // for(int i = 0; i < inflags.GetValueInt("iter"); i++)
-    //{
-    //    miopenGLUBackward(GetHandle(),
-    //                      inputTensor,
-    //                      in_dev->GetMem(),
-    //                      inputTensorGrad,
-    //                      inGrad_dev->GetMem(),
-    //                      outputTensorGrad,
-    //                      outGrad_dev->GetMem(),
-    //                      dim);
-    //    float time = 0.0;
-    //    miopenGetKernelTime(GetHandle(), &time);
-    //    kernel_total_time += time;
-    //    if(i == 0)
-    //        kernel_first_time = time;
-    //}
-    //
-    // if(inflags.GetValueInt("time") == 1)
-    //{
-    //    STOP_TIME
-    //    int iter = inflags.GetValueInt("iter");
-    //    if(WALL_CLOCK)
-    //        std::cout << "Wall-clock Time Backward GLU Elapsed: " << t.gettime_ms() / iter
-    //                  << " ms\n";
-    //    float kernel_average_time =
-    //        iter > 1 ? (kernel_total_time - kernel_first_time) / (iter - 1) : kernel_first_time;
-    //    std::cout << "GPU Kernel Time Backward GLU Elapsed: " << kernel_average_time << " ms\n";
-    //}
-    //
-    // if(inGrad_dev->FromGPU(GetStream(), inGrad.data()) != 0)
-    //    std::cerr << "Error copying (out_dev) from GPU, size: " << inGrad_dev->GetSize()
-    //              << std::endl;
+     float kernel_total_time = 0;
+     float kernel_first_time = 0;
+     Timer t;
+     START_TIME;
+     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
+    {
+        miopenWhereBackward(GetHandle(),
+                          outputTensorGrad,
+                          outGrad_dev->GetMem(),
+                          condTensor,
+                          cond_dev->GetMem(),
+                          inputTensorGrad,
+                          in_dev->GetMem(),
+                          otherTensorGrad,
+                          other_dev->GetMem());
+        float time = 0.0;
+        miopenGetKernelTime(GetHandle(), &time);
+        kernel_total_time += time;
+        if(i == 0)
+            kernel_first_time = time;
+    }
+    
+     if(inflags.GetValueInt("time") == 1)
+    {
+        STOP_TIME
+        int iter = inflags.GetValueInt("iter");
+        if(WALL_CLOCK)
+            std::cout << "Wall-clock Time Backward Where Elapsed: " << t.gettime_ms() / iter
+                      << " ms\n";
+        float kernel_average_time =
+            iter > 1 ? (kernel_total_time - kernel_first_time) / (iter - 1) : kernel_first_time;
+        std::cout << "GPU Kernel Time Backward Where Elapsed: " << kernel_average_time << " ms\n";
+    }
+    
+     if(inGrad_dev->FromGPU(GetStream(), inGrad.data()) != 0)
+        std::cerr << "Error copying (out_dev) from GPU, size: " << inGrad_dev->GetSize()
+                  << std::endl;
 
     return miopenStatusSuccess;
 }
@@ -607,9 +640,14 @@ int WhereDriver<Tgpu, Tref>::VerifyForward()
 {
     RunForwardCPU();
     size_t outsize = outhost.size();
-    for (int i = 0; i < outsize; i++) {
-        if (outhost[i] != out[i]) {
-            std::cout << "outhost[" << i << "] = " << outhost[i] << " " << "out[" << i << "] = " << out[i] << " input[" << i << "] = " << in[i] << " other[" << i << "] = " << other[i] << " cond[" << i << "] = " << cond[i] << std::endl;
+    for(int i = 0; i < outsize; i++)
+    {
+        if(outhost[i] != out[i])
+        {
+            std::cout << "outhost[" << i << "] = " << outhost[i] << " "
+                      << "out[" << i << "] = " << out[i] << " input[" << i << "] = " << in[i]
+                      << " other[" << i << "] = " << other[i] << " cond[" << i << "] = " << cond[i]
+                      << std::endl;
         }
     }
 
@@ -633,12 +671,15 @@ int WhereDriver<Tgpu, Tref>::VerifyForward()
 template <typename Tgpu, typename Tref>
 int WhereDriver<Tgpu, Tref>::RunBackwardCPU()
 {
-    // mloGLUBackwardCongiguousRunHost<Tgpu, Tref>(inputTensor,
-    //                                            in.data(),
-    //                                            outputTensorGrad,
-    //                                            outGrad.data(),
-    //                                            inputTensorGrad,
-    //                                            inGradhost.data());
+    mloWhereBackwardRunHost<Tgpu, Tref>
+        (outputTensorGrad, 
+        outGrad.data(), 
+        condTensor, 
+        cond.data(), 
+        inputTensorGrad, 
+        inGradhost.data(), 
+        otherTensorGrad, 
+        otherGradhost.data());
 
     return miopenStatusSuccess;
 }
@@ -646,19 +687,20 @@ int WhereDriver<Tgpu, Tref>::RunBackwardCPU()
 template <typename Tgpu, typename Tref>
 int WhereDriver<Tgpu, Tref>::VerifyBackward()
 {
-    // RunBackwardCPU();
-    // const Tref tolerance = GetTolerance();
-    // auto error           = miopen::rms_range(inGradhost, inGrad);
-    // if(!std::isfinite(error) || error > tolerance)
-    //{
-    //    std::cout << "Backward GLU FAILED: " << error << " > " << tolerance << std::endl;
-    //    return EC_VerifyBwd;
-    //}
-    // else
-    //{
-    //    std::cout << "Backward GLU Verifies OK on CPU reference (" << error << " < " << tolerance
-    //              << ')' << std::endl;
-    //}
+     RunBackwardCPU();
+     const Tref tolerance = GetTolerance();
+     auto error1           = miopen::rms_range(inGradhost, inGrad);
+     auto error2           = miopen::rms_range(otherGradhost, otherGrad);
+     if(!std::isfinite(error1) || error1 > tolerance || !std::isfinite(error2) || error2 > tolerance)
+    {
+        std::cout << "Backward Where FAILED: " << error1 << " " << error2 << " > " << tolerance << std::endl;
+        return EC_VerifyBwd;
+    }
+     else
+    {
+        std::cout << "Backward Where Verifies OK on CPU reference (" << error1 << ", " << error2 << " < " << tolerance
+                  << ')' << std::endl;
+    }
 
     return miopenStatusSuccess;
 }

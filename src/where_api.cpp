@@ -56,7 +56,6 @@ extern "C" miopenStatus_t miopenWhereForward(miopenHandle_t handle,
     });
 }
 
-/*
 extern "C" miopenStatus_t miopenWhereBackward(miopenHandle_t handle,
                                               const miopenTensorDescriptor_t outputGradDesc,
                                               void* outputGrad,
@@ -88,4 +87,3 @@ extern "C" miopenStatus_t miopenWhereBackward(miopenHandle_t handle,
                               DataCast(otherGrad));
     });
 }
-*/

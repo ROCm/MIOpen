@@ -6628,7 +6628,6 @@ MIOPEN_EXPORT miopenStatus_t miopenWhereForward(miopenHandle_t handle,
  * @return                         miopenStatus_t
  */
 
-/*
 MIOPEN_EXPORT miopenStatus_t miopenWhereBackward(miopenHandle_t handle,
                                                  const miopenTensorDescriptor_t outputGradDesc,
                                                  void* outputGrad,
@@ -6638,7 +6637,6 @@ MIOPEN_EXPORT miopenStatus_t miopenWhereBackward(miopenHandle_t handle,
                                                  void* inputGrad,
                                                  const miopenTensorDescriptor_t otherGradDesc,
                                                  void* otherGrad);
-*/
 
 /** @} */
 // CLOSEOUT BackendAPI DOXYGEN GROUP

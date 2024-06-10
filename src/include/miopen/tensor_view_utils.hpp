@@ -76,17 +76,18 @@ inline void slice_tv(tensor_view_t<N>& tensor_view, int32_t sliceCount, const in
     }
 }
 
-inline bool isBroadcastable(const TensorDescriptor x, const TensorDescriptor y) {
+inline bool isBroadcastable(const TensorDescriptor x, const TensorDescriptor y)
+{
     auto xLen = x.GetLengths();
     auto yLen = y.GetLengths();
-    if (xLen.empty() || yLen.empty())
+    if(xLen.empty() || yLen.empty())
         return false;
-
 
     int trailIdxX = xLen.size() - 1;
     int trailIdxY = yLen.size() - 1;
-    while (trailIdxX >= 0 && trailIdxY >= 0) {
-        if (xLen[trailIdxX] != yLen[trailIdxY] && xLen[trailIdxX] != 1 && yLen[trailIdxY] != 1)
+    while(trailIdxX >= 0 && trailIdxY >= 0)
+    {
+        if(xLen[trailIdxX] != yLen[trailIdxY] && xLen[trailIdxX] != 1 && yLen[trailIdxY] != 1)
             return false;
         trailIdxX--;
         trailIdxY--;
@@ -95,14 +96,19 @@ inline bool isBroadcastable(const TensorDescriptor x, const TensorDescriptor y) 
 }
 
 template <int N>
-inline tensor_view_t<N> broadcast_to(const tensor_view_t<N> in, const tensor_view_t<N> target) {
+inline tensor_view_t<N> broadcast_to(const tensor_view_t<N> in, const tensor_view_t<N> target)
+{
     tensor_view_t<N> out;
-    for (int i = 0; i < N; i++) {
-        if (in.size[i] == target.size[i]) {
-            out.size[i] = in.size[i];
+    for(int i = 0; i < N; i++)
+    {
+        if(in.size[i] == target.size[i])
+        {
+            out.size[i]   = in.size[i];
             out.stride[i] = in.stride[i];
-        } else {
-            out.size[i] = target.size[i];
+        }
+        else
+        {
+            out.size[i]   = target.size[i];
             out.stride[i] = 0;
         }
     }

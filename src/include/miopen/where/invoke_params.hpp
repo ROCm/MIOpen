@@ -56,7 +56,6 @@ struct InvokeParams : public miopen::InvokeParams
     Data_t GetWorkspace() const { return nullptr; }
 };
 
-/*
 struct BwdInvokeParams : public miopen::InvokeParams
 {
     BwdInvokeParams() = default;
@@ -74,7 +73,6 @@ struct BwdInvokeParams : public miopen::InvokeParams
     std::size_t GetWorkspaceSize() const { return 0; }
     Data_t GetWorkspace() const { return nullptr; }
 };
-*/
 
 } // namespace where
 

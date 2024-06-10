@@ -107,7 +107,6 @@ private:
     NetworkConfig MakeBackwardNetworkConfig() const;
 };
 
-/*
 struct BackwardProblemDescription : ProblemDescriptionBase
 {
     // Backward constructor
@@ -121,21 +120,6 @@ struct BackwardProblemDescription : ProblemDescriptionBase
           inputGradDesc(inputGradDesc_),
           otherGradDesc(otherGradDesc_)
     {
-        if(inputGradDesc.GetLengths().size() != otherGradDesc.GetLengths().size())
-        {
-            MIOPEN_THROW(miopenStatusBadParm,
-                         "Where::ProblemDescription: Number of tensor dimension do not match.");
-        }
-
-        for(int32_t i = 0; i < inputGradDesc.GetLengths().size(); i++)
-        {
-            if(inputGradDesc.GetLengths()[i] != otherGradDesc.GetLengths()[i])
-            {
-                MIOPEN_THROW(miopenStatusBadParm,
-                             "Where::ProblemDescription: Dimension sizes don't match between "
-                             "input tensor and output tensor.");
-            }
-        }
     }
 
     Direction GetDirection() const { return direction; }
@@ -177,7 +161,6 @@ private:
     NetworkConfig MakeForwardNetworkConfig() const;
     NetworkConfig MakeBackwardNetworkConfig() const;
 };
-*/
 
 } // namespace where
 

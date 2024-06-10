@@ -273,6 +273,7 @@ set( MIOpen_Source
     solver/reduce/forward_sum.cpp
     solver/softmax/attn_softmax.cpp
     solver/softmax/softmax.cpp
+    solver/where/backward_where.cpp
     solver/where/forward_where.cpp
     subbuffers.cpp
     sum_api.cpp

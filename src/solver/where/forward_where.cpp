@@ -47,7 +47,8 @@ namespace solver {
 namespace where {
 
 template <int N>
-void printTv(const tensor_view_t<N> tv) {
+void printTv(const tensor_view_t<N> tv)
+{
     std::cout << "Size = ";
     for(int i = 0; i < N; i++)
         std::cout << tv.size[i] << " ";
@@ -100,9 +101,9 @@ WhereForward::GetSolution(const ExecutionContext& context,
 {
     std::ignore = context;
 
-    tensor_view_t<5> input_tv = get_inner_expanded_tv<5>(problem.GetInputDesc());
-    tensor_view_t<5> other_tv = get_inner_expanded_tv<5>(problem.GetOtherDesc());
-    tensor_view_t<5> cond_tv = get_inner_expanded_tv<5>(problem.GetConditionDesc());
+    tensor_view_t<5> input_tv  = get_inner_expanded_tv<5>(problem.GetInputDesc());
+    tensor_view_t<5> other_tv  = get_inner_expanded_tv<5>(problem.GetOtherDesc());
+    tensor_view_t<5> cond_tv   = get_inner_expanded_tv<5>(problem.GetConditionDesc());
     tensor_view_t<5> output_tv = get_inner_expanded_tv<5>(problem.GetOutputDesc());
 
     printTv(input_tv);
@@ -130,6 +131,8 @@ WhereForward::GetSolution(const ExecutionContext& context,
     bool is_condition_broadcasted =
         cond_contig_size && ((input_contig_size % cond_contig_size) == 0 ||
                              (other_contig_size % cond_contig_size) == 0);
+    std::cout << "cond_contig_size = " << cond_contig_size << " input_contig_size = " << input_contig_size << " other_contig_size = " << other_contig_size << std::endl;
+    std::cout << "is_condition_broadcasted = " << is_condition_broadcasted << "is_all_broadcasted_contiguous = " << is_all_broadcasted_contiguous << std::endl;
 
     auto result = ConvSolution{miopenStatusSuccess};
 
@@ -138,7 +141,7 @@ WhereForward::GetSolution(const ExecutionContext& context,
     auto output_dtype = miopen::GetDataType(problem.GetOutputDesc().GetType());
     auto outputDims   = problem.GetOutputDesc().GetLengths();
 
-    auto cond_numel = problem.GetConditionDesc().GetElementSize();
+    auto cond_numel   = problem.GetConditionDesc().GetElementSize();
     auto output_numel = problem.GetOutputDesc().GetElementSize();
 
     auto kernel        = KernelInfo{};
@@ -199,36 +202,34 @@ WhereForward::GetSolution(const ExecutionContext& context,
 
     result.construction_params.push_back(kernel);
 
-    result.invoker_factory =
-        [=](
-            const std::vector<Kernel>& kernels) {
-            return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
-                decltype(auto) kernel = handle_.Run(kernels.front());
-                decltype(auto) params = raw_params.CastTo<miopen::where::InvokeParams>();
+    result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
+        return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
+            decltype(auto) kernel = handle_.Run(kernels.front());
+            decltype(auto) params = raw_params.CastTo<miopen::where::InvokeParams>();
 
-                size_t output_numel = problem.GetOutputDesc().GetElementSize();
-                size_t condition_off = 0;
-                size_t input_off = 0;
-                size_t other_off = 0;
-                size_t output_off = 0;
-                size_t cond_contig_size = check_broadcasted_contiguous(cond_tv);
-                size_t input_contig_size = check_broadcasted_contiguous(input_tv);
-                size_t other_contig_size = check_broadcasted_contiguous(other_tv);
+            size_t output_numel      = problem.GetOutputDesc().GetElementSize();
+            size_t condition_off     = 0;
+            size_t input_off         = 0;
+            size_t other_off         = 0;
+            size_t output_off        = 0;
+            size_t cond_contig_size  = check_broadcasted_contiguous(cond_tv);
+            size_t input_contig_size = check_broadcasted_contiguous(input_tv);
+            size_t other_contig_size = check_broadcasted_contiguous(other_tv);
 
-                kernel(params.condition,
-                       params.input,
-                       params.other,
-                       params.output,
-                       output_numel,
-                       condition_off,
-                       input_off,
-                       other_off,
-                       output_off,
-                       cond_contig_size,
-                       input_contig_size,
-                       other_contig_size);
-            };
+            kernel(params.condition,
+                   params.input,
+                   params.other,
+                   params.output,
+                   output_numel,
+                   condition_off,
+                   input_off,
+                   other_off,
+                   output_off,
+                   cond_contig_size,
+                   input_contig_size,
+                   other_contig_size);
         };
+    };
 
     return result;
 }
