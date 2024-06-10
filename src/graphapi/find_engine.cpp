@@ -327,7 +327,7 @@ std::vector<Engine> findEngines(OpGraph* graph)
     {
         if(p->matches(graph))
         {
-            MIOPEN_LOG_I("Matched against pattern: " << p->name());
+            MIOPEN_LOG_I2("Matched against pattern: " << p->name());
             return p->getEngines(graph);
         }
     }

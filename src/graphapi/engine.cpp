@@ -88,7 +88,7 @@ void GraphExecutorFind20::execute(miopenHandle_t handle, const VariantPack& vpk)
     MIOPEN_THROW_IF(s != miopenStatusSuccess, "Run Solution failed");
     if(s == miopenStatusSuccess)
     {
-        MIOPEN_LOG_I("Graph API Find 2.0 Solution Ran");
+        MIOPEN_LOG_I2("Graph API Find 2.0 Solution Ran");
     }
 }
 

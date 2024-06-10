@@ -281,31 +281,31 @@ bool isIsomorphic(const OpGraph& left, const OpGraph& right)
 {
     if(left.numNodes() != right.numNodes())
     {
-        MIOPEN_LOG_I("test failed due to num nodes being different");
+        MIOPEN_LOG_I2("test failed due to num nodes being different");
         return false;
     }
 
     if(left.numEdges() != right.numEdges())
     {
-        MIOPEN_LOG_I("test failed due to num edges being different");
+        MIOPEN_LOG_I2("test failed due to num edges being different");
         return false;
     }
 
     if(!internal::checkSameNodesByName(left, right))
     {
-        MIOPEN_LOG_I("test failed due to node names being different");
+        MIOPEN_LOG_I2("test failed due to node names being different");
         return false;
     }
 
     if(!internal::checkSameDegreeVecs(left, right))
     {
-        MIOPEN_LOG_I("test failed due to node degrees being different");
+        MIOPEN_LOG_I2("test failed due to node degrees being different");
         return false;
     }
 
     if(!internal::checkSamePaths(left, right))
     {
-        MIOPEN_LOG_I("test failed due to paths being different");
+        MIOPEN_LOG_I2("test failed due to paths being different");
         return false;
     }
 
