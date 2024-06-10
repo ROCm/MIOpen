@@ -49,7 +49,7 @@ class LockFile;
 constexpr bool DisableUserDbFileIO = MIOPEN_DISABLE_USERDB;
 
 /// No instance of this class should be used from several threads at the same time.
-class PlainTextDb
+class MIOPEN_INTERNALS_EXPORT PlainTextDb
 {
 public:
     PlainTextDb(DbKinds db_kind_, const std::string& filename_, bool is_system = false);

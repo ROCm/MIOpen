@@ -32,6 +32,8 @@
 #include <string>
 #include <vector>
 
+#include <miopen/config.hpp>
+
 namespace miopen {
 
 namespace kbp {
@@ -133,17 +135,17 @@ private:
 };
 
 namespace kbp {
-struct OpenCL
+struct MIOPEN_INTERNALS_EXPORT OpenCL
 {
     static std::string Generate(const std::vector<KernelBuildParameter>& options);
 };
 
-struct GcnAsm
+struct MIOPEN_INTERNALS_EXPORT GcnAsm
 {
     static std::string Generate(const std::vector<KernelBuildParameter>& options);
 };
 
-struct HIP
+struct MIOPEN_INTERNALS_EXPORT HIP
 {
     static std::string Generate(const std::vector<KernelBuildParameter>& options);
 };

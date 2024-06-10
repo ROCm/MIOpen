@@ -84,7 +84,7 @@ bool noRepetitions(const R& r)
 class OpGraphBuilder;
 class OpGraph;
 
-class OpNode
+class MIOPEN_INTERNALS_EXPORT OpNode
 {
 public:
     using Edge = std::pair<OpNode*, Tensor*>;
@@ -158,7 +158,7 @@ protected:
 
 using Edge = OpNode::Edge;
 
-class SourceOpNode : public OpNode
+class MIOPEN_INTERNALS_EXPORT SourceOpNode : public OpNode
 {
 protected:
     std::vector<Tensor*> mOutTensors;
@@ -186,7 +186,7 @@ protected:
     }
 };
 
-class SinkOpNode : public OpNode
+class MIOPEN_INTERNALS_EXPORT SinkOpNode : public OpNode
 {
 protected:
     std::vector<Tensor*> mInTensors;
@@ -216,7 +216,7 @@ using VecOfPaths = std::vector<Path>;
 
 class Engine;
 
-class OpGraph
+class MIOPEN_INTERNALS_EXPORT OpGraph
 {
     // NOTE: mSrcNode and mSinkNode need to reside on the heap because the graph may move
     // to a new memory location after building, while the nodes maintain address
@@ -387,7 +387,7 @@ private:
     }
 };
 
-class OpGraphBuilder
+class MIOPEN_INTERNALS_EXPORT OpGraphBuilder
 {
 private:
     std::vector<OpNode*> mNodes;
@@ -427,11 +427,11 @@ public:
     OpGraph build() &&;
 };
 
-bool isIsomorphic(const OpGraph& left, const OpGraph& right);
+MIOPEN_INTERNALS_EXPORT bool isIsomorphic(const OpGraph& left, const OpGraph& right);
 
-std::string pathToStr(const Path& path);
+MIOPEN_INTERNALS_EXPORT std::string pathToStr(const Path& path);
 
-class BackendOperationGraphDescriptor : public BackendDescriptor
+class MIOPEN_INTERNALS_EXPORT BackendOperationGraphDescriptor : public BackendDescriptor
 {
 private:
     OpGraphBuilder mBuilder;
