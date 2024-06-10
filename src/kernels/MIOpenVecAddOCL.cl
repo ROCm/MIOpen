@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2017 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,14 +23,17 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-__kernel void vector_add(__global const float *x, 
+__kernel void vector_add_ocl(__global const float *x, 
                          __global const float *y, 
-                         __global float* restrict z)
+                         __global float* restrict z,
+                         uint vec_size
+                         )
 {
     // get index of the work item
     int index = get_global_id(0);
 
-    // add the vector elements
-    z[index] = x[index] + y[index];
+    // check if the index is within the vector size
+    if(index < vec_size)
+        z[index] = x[index] + y[index]; // add the vector elements
 }
 

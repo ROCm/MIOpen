@@ -23,20 +23,28 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS
-#include <hip/hip_fp16.h>
-#include <hip/hip_runtime.h>
-#endif
+#include <miopen/env.hpp>
+#include "vec_add.hpp"
 
-extern "C" __global__ void vector_add_hip(const float * a, const float * b, float * c, uint vec_size)
+namespace vecadd {
+
+struct VecAddTestFloat : VecAddTest<float>
 {
-    // Get the index of the current element
-    int index = blockIdx.x * blockDim.x + threadIdx.x;
+};
 
-    // Check if the index is within the range of the vector size
-    if(index < vec_size)
-    {
-        c[index] = a[index] + b[index]; // Add the two elements
-    }
+} // namespace cat
+using namespace vecadd;
 
-}
+TEST_P(VecAddTestFloat, VecAddTestFw)
+{
+    RunTestOCL();
+    VerifyOCL();
+    RunTestHIP();
+    VerifyHIP();
+
+    // This verifies OCL and HIP results.
+    // VerifyGPU();
+
+};
+
+INSTANTIATE_TEST_SUITE_P(VecAddTestSet, VecAddTestFloat, testing::ValuesIn(VecAddTestConfigs()));
