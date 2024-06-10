@@ -46,6 +46,8 @@
 /// strided_batched_ex3 introduced in rocblas 4.0
 #define USE_ROCBLAS_EX3 ((MIOPEN_ROCBLAS_VERSION_FLAT >= 4000000) && ROCBLAS_BETA_FEATURES_API)
 #endif
+#else
+#define USE_ROCBLAS_EX3 false
 #endif
 
 namespace miopen::solver::mha {
