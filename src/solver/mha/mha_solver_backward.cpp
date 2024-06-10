@@ -90,8 +90,8 @@ bool MhaBackward::IsApplicable([[maybe_unused]] const ExecutionContext& context,
 
     auto [N, H, S, D] = miopen::tien<4>(descsBwd.kDesc.GetLengths());
 
-    return MIOPEN_USE_GEMM                                            //
-           && !miopen::IsDisabled(ENV(MIOPEN_DEBUG_ATTN_NAIVE_BWD))   //
+#if MIOPEN_USE_ROCBLAS
+    return !miopen::IsDisabled(ENV(MIOPEN_DEBUG_ATTN_NAIVE_BWD))      //
            && S <= std::numeric_limits<uint32_t>::max()               //
            && D <= std::numeric_limits<uint32_t>::max()               //
            && descsBwd.kDesc.IsPacked()                               //
@@ -120,6 +120,9 @@ bool MhaBackward::IsApplicable([[maybe_unused]] const ExecutionContext& context,
                || (USE_ROCBLAS_EX3                                    //
                    && (MIOPEN_FP8_IEEE_EXPONENT_BIAS == 0)            //
                    && (descsBwd.doDesc.GetType() == miopenBFloat8))); //
+#else
+    return false;
+#endif
 }
 
 std::size_t MhaBackward::GetWorkspaceSize([[maybe_unused]] const ExecutionContext& context,

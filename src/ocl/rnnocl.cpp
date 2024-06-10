@@ -42,17 +42,17 @@ namespace miopen {
 
 namespace {
 
+#if MIOPEN_USE_ROCBLAS && MIOPEN_BACKEND_HIP
+
 bool RNNForwardMSIsSupported([[maybe_unused]] const RNNDescriptor& desctiptor,
                              [[maybe_unused]] bool use_dropout)
 {
-#if MIOPEN_USE_GEMM && MIOPEN_BACKEND_HIP
     if(desctiptor.rnnMode == miopenLSTM && desctiptor.algoMode == miopenRNNdefault &&
        !use_dropout && desctiptor.nLayers > 1 && desctiptor.dirMode == miopenRNNunidirection &&
        desctiptor.inputMode != miopenRNNskip)
     {
         return true;
     }
-#endif // MIOPEN_USE_GEMM&& MIOPEN_BACKEND_HIP
     return false;
 }
 
@@ -242,6 +242,8 @@ miopenStatus_t ReducAddBias(miopen::Handle& handle,
 
     return miopenStatusSuccess;
 }
+
+#endif // MIOPEN_USE_ROCBLAS && MIOPEN_BACKEND_HIP
 
 } // namespace
 
@@ -1078,8 +1080,6 @@ void RNNDescriptor::RNNForwardMS(Handle& handle,
     (void)y;
     (void)hy;
     (void)cy;
-    (void)reserveSpace;
-    (void)reserveSpaceSize;
 
     MIOPEN_THROW("GEMM is not supported");
 #endif
@@ -1242,7 +1242,7 @@ void RNNDescriptor::RNNForwardInferencePacked(Handle& handle,
     (void)hxDesc;
     (void)cxDesc;
 
-#if MIOPEN_USE_GEMM
+#if MIOPEN_USE_ROCBLAS
 
     float ctime = 0.;
     // reset kernel timer
@@ -2634,7 +2634,7 @@ void RNNDescriptor::RNNForwardTrainingPackedTensors(
 {
     (void)cxDesc;
     (void)cyDesc;
-#if MIOPEN_USE_GEMM
+#if MIOPEN_USE_ROCBLAS
 
     // OCL legacy
     float ctime = 0.;
@@ -4109,7 +4109,7 @@ void RNNDescriptor::RNNBackwardDataPackedTensors(
     Data_t reserveSpace,
     size_t reserveSpaceSize) const
 {
-#if MIOPEN_USE_GEMM
+#if MIOPEN_USE_ROCBLAS
 
     float ctime = 0.;
     // reset kernel timer
@@ -5752,7 +5752,7 @@ void RNNDescriptor::RNNBackwardWeightsPackedTensors(
     size_t reserveSpaceSize) const
 {
 
-#if MIOPEN_USE_GEMM
+#if MIOPEN_USE_ROCBLAS
     float ctime = 0.;
     // reset kernel timer
     profileRNNkernels(handle, 0, ctime);
