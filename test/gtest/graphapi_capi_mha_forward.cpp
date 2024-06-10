@@ -172,12 +172,6 @@ struct TensorData
         GetTensor<T>(m_tensorVariant).generate([=](auto...) { return val; });
         m_gpuBuffer = handle.Write(GetTensor<T>(m_tensorVariant).data);
     }
-
-    void InitWithInt64AndWriteToGPU(miopen::Handle& handle, int64_t val)
-    {
-        std::vector<int64_t> vec = {val};
-        m_gpuBuffer              = handle.Write(vec);
-    }
 };
 
 typedef std::shared_ptr<TensorData> TensorDataPtr;
@@ -542,11 +536,11 @@ private:
             }
             else if(k == miopenTensorMhaDropoutSeed)
             {
-                v->InitWithInt64AndWriteToGPU(handle, m_dropoutSeed);
+                v->InitAndWriteToGPU<int64_t>(handle, 0);
             }
             else if(k == miopenTensorMhaDropoutOffset)
             {
-                v->InitWithInt64AndWriteToGPU(handle, m_dropoutOffset);
+                v->InitAndWriteToGPU<int64_t>(handle, 0);
             }
             else if(k == miopenTensorMhaM || k == miopenTensorMhaO || k == miopenTensorMhaZInv ||
                     k == miopenTensorMhaAmaxO || k == miopenTensorMhaAmaxS)
@@ -799,8 +793,8 @@ private:
                                          GetTensor<float>(lookup(miopenTensorMhaScaleS))[0],
                                          GetTensor<float>(lookup(miopenTensorMhaScaleO))[0],
                                          GetTensor<float>(lookup(miopenTensorMhaDropoutProbability))[0],
-                                         m_dropoutSeed,
-                                         m_dropoutOffset,
+                                         GetTensor<int64_t>(lookup(miopenTensorMhaDropoutSeed))[0],
+                                         GetTensor<int64_t>(lookup(miopenTensorMhaDropoutOffset))[0],
                                          amaxSRef,
                                          amaxORef,
                                          oDescRef);
@@ -849,7 +843,19 @@ private:
 
         TensorDataPtr tensorDataPtr = std::make_shared<TensorData>();
         tensorDataPtr->m_gapiDesc   = realTensorGapiDesc;
-        tensorDataPtr->m_tensorVariant     = tensor<float>{n, h, s, d};
+
+        if (dtype == miopenFloat)
+        {
+            tensorDataPtr->m_tensorVariant     = tensor<float>{n, h, s, d};
+        }
+        else if (dtype == miopenInt64)
+        {
+            tensorDataPtr->m_tensorVariant     = tensor<int64_t>{n, h, s, d};
+        }
+        else
+        {
+            assert(false);
+        }
 
         m_realTensorMap[tensorId] = tensorDataPtr;
 
@@ -878,9 +884,6 @@ private:
     int64_t m_nextTensorId  = 0;
     int64_t m_workspaceSize = 0;
 
-    int64_t m_dropoutSeed   = 0;
-    int64_t m_dropoutOffset = 0;
-
     DescriptorWrapperPtr m_executionPlan;
 };
 
@@ -904,6 +907,7 @@ class MhaForwardTestFp8 : public MhaForwardTest<float8>
 };
 
 TEST_P(MhaForwardTestFp32, TestFloat) { Run(); }
+TEST_P(MhaForwardTestFp8, TestFloat) { Run(); }
 
 inline auto GetCases()
 {
@@ -917,3 +921,8 @@ inline auto GetCases()
 INSTANTIATE_TEST_SUITE_P(MhaFwdSuiteFp32,
                          MhaForwardTestFp32,
                          GetCases() );
+
+INSTANTIATE_TEST_SUITE_P(MhaFwdSuiteFp8,
+                         MhaForwardTestFp8,
+                         GetCases() );
+
