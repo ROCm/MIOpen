@@ -77,10 +77,8 @@ Tensor makeTensor(std::string_view name, miopenDataType_t dt, const Vec& dims)
 /// capturing multiple types of pointers
 struct HeapPtrDeleter
 {
-    using Fn         = std::function<void()>;
-    const Fn emptyFn = []() {};
-
-    Fn mFn = emptyFn;
+    using Fn = std::function<void()>;
+    Fn mFn   = {};
 
     template <typename T>
     explicit HeapPtrDeleter(T* ptr)
@@ -96,10 +94,7 @@ struct HeapPtrDeleter
         std::swap(left.mFn, right.mFn);
     }
 
-    HeapPtrDeleter(HeapPtrDeleter&& that) noexcept : mFn(std::move(that.mFn))
-    {
-        that.mFn = emptyFn;
-    }
+    HeapPtrDeleter(HeapPtrDeleter&& that) noexcept : mFn(std::move(that.mFn)) { that.mFn = {}; }
 
     HeapPtrDeleter& operator=(HeapPtrDeleter&& that) noexcept
     {
@@ -111,7 +106,12 @@ struct HeapPtrDeleter
         return *this;
     }
 
-    ~HeapPtrDeleter() { mFn(); }
+    ~HeapPtrDeleter()
+    {
+        // default initialized std::function cannot be invoked
+        if(mFn)
+            mFn();
+    }
 };
 
 /// an automatically deleting allocator that frees the allocated objects upon
