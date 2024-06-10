@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,37 +23,20 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-
 #pragma once
 
-#include <miopen/solver.hpp>
-#include <miopen/groupnorm/problem_description.hpp>
+#include <miopen/env.hpp>
+#include <gtest/gtest_common.hpp>
 
-#include <utility>
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 
-namespace miopen {
-
-namespace solver {
-
-namespace groupnorm {
-
-using NormalizationSolver =
-    NonTunableSolverBase<ExecutionContext, miopen::groupnorm::ProblemDescription>;
-
-struct GroupNormForward final : NormalizationSolver
+// For determining if we should run test suite. First ensure that test is supported on the hardware.
+// If the MIOPEN_TEST_ALL environment isn't set, then assume we are running standalone outside
+// CICD, and include the test. Otherwise, check the provided functor to ensure the environment
+// conditions match expected conditions to run this test suite.
+template <typename disabled_mask, typename enabled_mask, typename check_functor>
+bool ShouldRunTestCase(check_functor&& checkConditions)
 {
-    const std::string& SolverDbId() const override { return GetSolverDbId<GroupNormForward>(); }
-
-    MIOPEN_INTERNALS_EXPORT bool
-    IsApplicable(const ExecutionContext& context,
-                 const miopen::groupnorm::ProblemDescription& problem) const override;
-    MIOPEN_INTERNALS_EXPORT ConvSolution
-    GetSolution(const ExecutionContext& context,
-                const miopen::groupnorm::ProblemDescription& problem) const override;
-};
-
-} // namespace groupnorm
-
-} // namespace solver
-
-} // namespace miopen
+    return IsTestSupportedForDevMask<disabled_mask, enabled_mask>() &&
+           (miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) || checkConditions());
+}
