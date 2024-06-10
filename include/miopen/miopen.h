@@ -6097,7 +6097,7 @@ MIOPEN_EXPORT miopenStatus_t miopenT5LayerNormForward(miopenHandle_t handle,
  * @param sizeInBytes              Pointer to data to return the minimum workspace size
  * @return                         miopenStatus_t
  */
-extern "C" miopenStatus_t
+MIOPEN_EXPORT miopenStatus_t
 miopenGetT5LayerNormBackwardWorkspaceSize(miopenHandle_t handle,
                                           miopenNormMode_t mode,
                                           const miopenTensorDescriptor_t dyDesc,
