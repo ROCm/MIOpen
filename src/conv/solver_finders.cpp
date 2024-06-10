@@ -351,8 +351,10 @@ bool IsAlgorithmDisabled(miopenConvAlgorithm_t algo)
 {
     switch(algo)
     { // clang-format off
+#if MIOPEN_USE_ROCBLAS
     case miopenConvolutionAlgoGEMM:
-        return !MIOPEN_USE_GEMM || env::disabled(MIOPEN_DEBUG_CONV_GEMM);
+        return env::disabled(MIOPEN_DEBUG_CONV_GEMM);
+#endif
     case miopenConvolutionAlgoDirect:
         return env::disabled(MIOPEN_DEBUG_CONV_DIRECT);
     case miopenConvolutionAlgoFFT:
