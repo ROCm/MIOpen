@@ -150,8 +150,10 @@ private:
 using TensorVariant = std::variant<tensor<float>, tensor<float8>, tensor<int64_t>>;
 
 template <typename T>
-    tensor<T>& GetTensor(TensorVariant& var) {return std::get<tensor<T>>(var);}
-
+tensor<T>& GetTensor(TensorVariant& var)
+{
+    return std::get<tensor<T>>(var);
+}
 
 struct TensorData
 {
@@ -162,8 +164,8 @@ struct TensorData
     template <typename T>
     void InitAndWriteToGPU(miopen::Handle& handle, tensor<T>&& tensor)
     {
-        m_tensorVariant    = std::move(tensor);
-        m_gpuBuffer = handle.Write(GetTensor<T>(m_tensorVariant).data);
+        m_tensorVariant = std::move(tensor);
+        m_gpuBuffer     = handle.Write(GetTensor<T>(m_tensorVariant).data);
     }
 
     template <typename T>
@@ -438,11 +440,11 @@ public:
 private:
     miopenDataType_t GetMainType()
     {
-        if (std::is_same_v<T, float8>)
+        if(std::is_same_v<T, float8>)
         {
             return miopenFloat8;
         }
-        else if (std::is_same_v<T, float>)
+        else if(std::is_same_v<T, float>)
         {
             return miopenFloat;
         }
@@ -454,7 +456,8 @@ private:
     void MakeRealTensors(miopen::Handle& handle)
     {
         // We use identifiers from Find 2.0 enum to have sopmething unique for the test purposes
-        MakeAndAddRealTensorDescriptor(miopenTensorMhaQ, false, m_testN, m_testH, m_testS, m_testD, GetMainType());
+        MakeAndAddRealTensorDescriptor(
+            miopenTensorMhaQ, false, m_testN, m_testH, m_testS, m_testD, GetMainType());
         MakeAndAddRealTensorDescriptor(miopenTensorMhaK,
                                        false,
                                        m_testN,
@@ -464,7 +467,8 @@ private:
                                        GetMainType(),
                                        false); // no transpose for now
 
-        MakeAndAddRealTensorDescriptor(miopenTensorMhaV, false, m_testN, m_testH, m_testS, m_testD, GetMainType());
+        MakeAndAddRealTensorDescriptor(
+            miopenTensorMhaV, false, m_testN, m_testH, m_testS, m_testD, GetMainType());
         MakeAndAddRealTensorDescriptor(miopenTensorMhaDescaleK);
         MakeAndAddRealTensorDescriptor(miopenTensorMhaDescaleQ);
         MakeAndAddRealTensorDescriptor(miopenTensorMhaDescaleV);
@@ -479,7 +483,8 @@ private:
             miopenTensorMhaDropoutOffset, false, 1, 1, 1, 1, miopenInt64, false);
 
         // output real tensors
-        MakeAndAddRealTensorDescriptor(miopenTensorMhaO, false, m_testN, m_testH, m_testS, m_testD, GetMainType());
+        MakeAndAddRealTensorDescriptor(
+            miopenTensorMhaO, false, m_testN, m_testH, m_testS, m_testD, GetMainType());
         MakeAndAddRealTensorDescriptor(miopenTensorMhaAmaxO);
         MakeAndAddRealTensorDescriptor(miopenTensorMhaAmaxS);
         MakeAndAddRealTensorDescriptor(miopenTensorMhaM, false, m_testN, m_testH, m_testS, 1);
@@ -570,7 +575,8 @@ private:
         auto tRnd   = MakeGapiTensorDesc(GetNextId(), true, m_testN, m_testH, m_testS, m_testS);
         auto tMult1 = MakeGapiTensorDesc(GetNextId(), true, m_testN, m_testH, m_testS, m_testS);
         auto pwS3   = MakeGapiTensorDesc(GetNextId(), true, m_testN, m_testH, m_testS, m_testS);
-        auto pwS4   = MakeGapiTensorDesc(GetNextId(), true, m_testN, m_testH, m_testS, m_testS, GetMainType());
+        auto pwS4   = MakeGapiTensorDesc(
+            GetNextId(), true, m_testN, m_testH, m_testS, m_testS, GetMainType());
 
         auto tMM1 = MakeGapiTensorDesc(GetNextId(), true, m_testN, m_testH, m_testS, m_testD);
         auto pwS5 = MakeGapiTensorDesc(GetNextId(), true, m_testN, m_testH, m_testS, m_testD);
@@ -753,14 +759,14 @@ private:
     }
 
     template <typename ResultT>
-    tensor<ResultT>& GetResult (const int64_t& id, miopen::Handle& handle)
+    tensor<ResultT>& GetResult(const int64_t& id, miopen::Handle& handle)
     {
         auto it = m_realTensorMap.find(id);
         assert(it != m_realTensorMap.cend());
 
-        TensorDataPtr ptr  = it->second;
+        TensorDataPtr ptr    = it->second;
         tensor<ResultT>& ret = GetTensor<ResultT>(ptr->m_tensorVariant);
-        
+
         ret.data = handle.Read<ResultT>(ptr->m_gpuBuffer, ret.data.size());
         return ret;
     };
@@ -780,28 +786,29 @@ private:
             return it->second->m_tensorVariant;
         };
 
-        test::cpu::MultiHeadAttentionfp8(GetTensor<T>(lookup(miopenTensorMhaQ)),
-                                         GetTensor<T>(lookup(miopenTensorMhaK)),
-                                         GetTensor<T>(lookup(miopenTensorMhaV)),
-                                         softmaxRef,
-                                         mDescRef,
-                                         zInvDescRef,
-                                         GetTensor<float>(lookup(miopenTensorMhaDescaleQ))[0],
-                                         GetTensor<float>(lookup(miopenTensorMhaDescaleK))[0],
-                                         GetTensor<float>(lookup(miopenTensorMhaDescaleV))[0],
-                                         GetTensor<float>(lookup(miopenTensorMhaDescaleS))[0],
-                                         GetTensor<float>(lookup(miopenTensorMhaScaleS))[0],
-                                         GetTensor<float>(lookup(miopenTensorMhaScaleO))[0],
-                                         GetTensor<float>(lookup(miopenTensorMhaDropoutProbability))[0],
-                                         GetTensor<int64_t>(lookup(miopenTensorMhaDropoutSeed))[0],
-                                         GetTensor<int64_t>(lookup(miopenTensorMhaDropoutOffset))[0],
-                                         amaxSRef,
-                                         amaxORef,
-                                         oDescRef);
+        test::cpu::MultiHeadAttentionfp8(
+            GetTensor<T>(lookup(miopenTensorMhaQ)),
+            GetTensor<T>(lookup(miopenTensorMhaK)),
+            GetTensor<T>(lookup(miopenTensorMhaV)),
+            softmaxRef,
+            mDescRef,
+            zInvDescRef,
+            GetTensor<float>(lookup(miopenTensorMhaDescaleQ))[0],
+            GetTensor<float>(lookup(miopenTensorMhaDescaleK))[0],
+            GetTensor<float>(lookup(miopenTensorMhaDescaleV))[0],
+            GetTensor<float>(lookup(miopenTensorMhaDescaleS))[0],
+            GetTensor<float>(lookup(miopenTensorMhaScaleS))[0],
+            GetTensor<float>(lookup(miopenTensorMhaScaleO))[0],
+            GetTensor<float>(lookup(miopenTensorMhaDropoutProbability))[0],
+            GetTensor<int64_t>(lookup(miopenTensorMhaDropoutSeed))[0],
+            GetTensor<int64_t>(lookup(miopenTensorMhaDropoutOffset))[0],
+            amaxSRef,
+            amaxORef,
+            oDescRef);
 
-        const double errorThreshold     = 5e-6;
+        const double errorThreshold      = 5e-6;
         const double typedErrorThreshold = (std::is_same_v<T, float8>) ? 2e-4 : errorThreshold;
-      
+
         const auto& resAmaxS = GetResult<float>(miopenTensorMhaAmaxS, handle);
         auto amaxSAbsDiff    = std::abs(amaxSRef - resAmaxS[0]);
         EXPECT_LT(amaxSAbsDiff, errorThreshold)
@@ -815,7 +822,8 @@ private:
         double mError = miopen::rms_range(mDescRef, GetResult<float>(miopenTensorMhaM, handle));
         EXPECT_LT(mError, errorThreshold);
 
-        double zInvError = miopen::rms_range(zInvDescRef, GetResult<float>(miopenTensorMhaZInv, handle));
+        double zInvError =
+            miopen::rms_range(zInvDescRef, GetResult<float>(miopenTensorMhaZInv, handle));
         EXPECT_LT(zInvError, errorThreshold);
 
         auto oRes = GetResult<T>(miopenTensorMhaO, handle);
@@ -844,13 +852,13 @@ private:
         TensorDataPtr tensorDataPtr = std::make_shared<TensorData>();
         tensorDataPtr->m_gapiDesc   = realTensorGapiDesc;
 
-        if (dtype == miopenFloat)
+        if(dtype == miopenFloat)
         {
-            tensorDataPtr->m_tensorVariant     = tensor<float>{n, h, s, d};
+            tensorDataPtr->m_tensorVariant = tensor<float>{n, h, s, d};
         }
-        else if (dtype == miopenInt64)
+        else if(dtype == miopenInt64)
         {
-            tensorDataPtr->m_tensorVariant     = tensor<int64_t>{n, h, s, d};
+            tensorDataPtr->m_tensorVariant = tensor<int64_t>{n, h, s, d};
         }
         else
         {
@@ -911,18 +919,13 @@ TEST_P(MhaForwardTestFp8, TestFloat) { Run(); }
 
 inline auto GetCases()
 {
-    return testing::Combine(testing::ValuesIn({2}),      // n
-                            testing::ValuesIn({4}),      // h
-                            testing::ValuesIn({32, 64}), // s
-                            testing::ValuesIn({16}),     // d
-                            testing::ValuesIn({0.0f, 0.5f})); // bernulli probability                                          
+    return testing::Combine(testing::ValuesIn({2}),           // n
+                            testing::ValuesIn({4}),           // h
+                            testing::ValuesIn({32, 64}),      // s
+                            testing::ValuesIn({16}),          // d
+                            testing::ValuesIn({0.0f, 0.5f})); // bernulli probability
 }
 
-INSTANTIATE_TEST_SUITE_P(MhaFwdSuiteFp32,
-                         MhaForwardTestFp32,
-                         GetCases() );
+INSTANTIATE_TEST_SUITE_P(MhaFwdSuiteFp32, MhaForwardTestFp32, GetCases());
 
-INSTANTIATE_TEST_SUITE_P(MhaFwdSuiteFp8,
-                         MhaForwardTestFp8,
-                         GetCases() );
-
+INSTANTIATE_TEST_SUITE_P(MhaFwdSuiteFp8, MhaForwardTestFp8, GetCases());
