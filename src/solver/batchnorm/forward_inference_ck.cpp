@@ -223,8 +223,9 @@ static void RunCKSolutionNCHW(const ExecutionContext& ctx,
                                             BiasDataType,
                                             MeanVarDataType>(problem);
     assert(kernel_index >= 0 && kernel_index < bn_fwd_ptrs.size());
-    auto& bn_ptr         = bn_fwd_ptrs.at(kernel_index);
-    const auto& params   = primitive_parameters.CastTo<miopen::batchnorm::InfInvokeParams>();
+    auto& bn_ptr       = bn_fwd_ptrs.at(kernel_index);
+    const auto& params = primitive_parameters.CastTo<miopen::batchnorm::InfInvokeParams>();
+    // Todo: workSpaceSize will be populated in upper level
     params.workSpaceSize = solv.getWorkspaceSize();
 
     if(!params.workSpace)
@@ -232,10 +233,10 @@ static void RunCKSolutionNCHW(const ExecutionContext& ctx,
         MIOPEN_THROW(miopenStatusInvalidValue, "workspace pointer is null");
     }
 
-    input1_tr_inst.AssignBuffer(handle, solv.workSpace);
+    input1_tr_inst.AssignBuffer(handle, params.workSpace;
     // input2_tr_inst.AssignBuffer(handle, ctx.workSpace); //or solv.workSpace?
-    output_tr_inst.AssignBuffer(handle, solv.workSpace);
-    output_init_tr_inst.AssignBuffer(handle, solv.workSpace);
+    output_tr_inst.AssignBuffer(handle, params.workSpace);
+    output_init_tr_inst.AssignBuffer(handle, params.workSpace);
 
     // conversion operator applied here to convert to ConvTensors
     // auto conv_tensors = input1_tr_inst(ctx.tensors);
