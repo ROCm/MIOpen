@@ -204,7 +204,7 @@ HIPOCProgramImpl::HIPOCProgramImpl(const std::string& program_name,
 
 #if !MIOPEN_USE_COMGR
 void HIPOCProgramImpl::BuildCodeObjectInFile(std::string& params,
-                                             const std::string& src,
+                                             std::string_view src,
                                              const std::string& filename)
 {
 
@@ -251,14 +251,13 @@ void HIPOCProgramImpl::BuildCodeObjectInFile(std::string& params,
 
 #else // MIOPEN_USE_COMGR
 void HIPOCProgramImpl::BuildCodeObjectInMemory(const std::string& params,
-                                               const std::string& src,
+                                               const std::string_view src,
                                                const std::string& filename)
 {
     if(miopen::EndsWith(filename, ".so"))
     {
-        std::size_t sz = src.length();
-        binary.resize(sz);
-        std::memcpy(&binary[0], src.c_str(), sz);
+        binary.resize(src.size());
+        std::memcpy(&binary[0], src.data(), src.size());
     }
     else
     {
@@ -298,7 +297,7 @@ void HIPOCProgramImpl::BuildCodeObjectInMemory(const std::string& params,
 void HIPOCProgramImpl::BuildCodeObject(std::string params, const std::string& kernel_src)
 {
     std::string filename = program;
-    const auto src       = [&]() -> std::string {
+    const auto src       = [&]() -> std::string_view {
         if(miopen::EndsWith(filename, ".mlir"))
             return {}; // MLIR solutions do not use source code.
         if(!kernel_src.empty())

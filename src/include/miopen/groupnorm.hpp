@@ -23,10 +23,10 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <miopen/miopen.h>
 #ifndef MIOPEN_GROUPNORM_HPP_
 #define MIOPEN_GROUPNORM_HPP_
 
+#include <miopen/miopen.h>
 #include <miopen/common.hpp>
 
 namespace miopen {
@@ -34,22 +34,22 @@ namespace miopen {
 struct Handle;
 struct TensorDescriptor;
 
-miopenStatus_t GroupNormForward(Handle& handle,
-                                const TensorDescriptor& xDesc,
-                                ConstData_t x,
-                                const TensorDescriptor& weightDesc,
-                                ConstData_t weight,
-                                const TensorDescriptor& biasDesc,
-                                ConstData_t bias,
-                                const TensorDescriptor& yDesc,
-                                Data_t y,
-                                const TensorDescriptor& meanDesc,
-                                Data_t mean,
-                                const TensorDescriptor& rstdDesc,
-                                Data_t rstd,
-                                miopenNormMode_t mode,
-                                uint64_t num_groups,
-                                float epsilon);
+MIOPEN_INTERNALS_EXPORT miopenStatus_t GroupNormForward(Handle& handle,
+                                                        const TensorDescriptor& xDesc,
+                                                        ConstData_t x,
+                                                        const TensorDescriptor& weightDesc,
+                                                        ConstData_t weight,
+                                                        const TensorDescriptor& biasDesc,
+                                                        ConstData_t bias,
+                                                        const TensorDescriptor& yDesc,
+                                                        Data_t y,
+                                                        const TensorDescriptor& meanDesc,
+                                                        Data_t mean,
+                                                        const TensorDescriptor& rstdDesc,
+                                                        Data_t rstd,
+                                                        miopenNormMode_t mode,
+                                                        uint64_t num_groups,
+                                                        float epsilon);
 
 } // namespace miopen
 #endif // _MIOPEN_GROUPNORM_HPP_

@@ -47,10 +47,10 @@ void Bin2Hex(std::istream& source,
     if(variable.length() != 0)
     {
         target << "extern const size_t " << variable << "_SIZE;" << std::endl;
-        target << "extern const unsigned char " << variable << "[];" << std::endl;
+        target << "extern const char " << variable << "[];" << std::endl;
         target << "const size_t " << variable << "_SIZE = " << std::setbase(10) << sourceSize << ";"
                << std::endl;
-        target << "const unsigned char " << variable << "[] = {" << std::endl;
+        target << "const char " << variable << "[] = {" << std::endl;
     }
 
     target << std::setbase(16) << std::setfill('0');

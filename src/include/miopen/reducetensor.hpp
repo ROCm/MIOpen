@@ -41,7 +41,7 @@
 
 namespace miopen {
 
-struct ReduceTensorDescriptor : miopenReduceTensorDescriptor
+struct MIOPEN_INTERNALS_EXPORT ReduceTensorDescriptor : miopenReduceTensorDescriptor
 {
     ReduceTensorDescriptor() = default;
     ReduceTensorDescriptor(miopenReduceTensorOp_t reduceTensorOp,
