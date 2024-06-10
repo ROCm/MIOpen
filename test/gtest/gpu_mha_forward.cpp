@@ -49,7 +49,7 @@ using namespace miopen;
 namespace {
 inline bool CheckFloatArg(std::string_view arg)
 {
-    const std::string& tmp = miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_TEST_FLOAT_ARG));
+    const std::string& tmp = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
     return tmp.empty() || tmp == arg;
 }
 
@@ -65,7 +65,7 @@ struct TensorStruct
 
     ~TensorStruct() = default;
 
-    std::variant<tensor<float>, tensor<float8>, tensor<int>> m_cpu_tensor;
+    std::variant<tensor<float>, tensor<float8>, tensor<int64_t>> m_cpu_tensor;
     Allocator::ManageDataPtr m_gpu_buffer;
 };
 
@@ -107,7 +107,7 @@ inline std::vector<TestCase> GetSmokeCases()
 
 inline std::vector<TestCase> GetFullTestCases()
 {
-    if(miopen::IsDisabled(MIOPEN_ENV(MIOPEN_TEST_ALL)) ||
+    if(miopen::IsDisabled(ENV(MIOPEN_TEST_ALL)) ||
        !(CheckFloatArg("--float") || CheckFloatArg("--float8")))
     {
         return {};
@@ -129,6 +129,8 @@ inline std::vector<TestCase> GetFullTestCases()
 template <typename T>
 class Test_Fwd_Mha : public testing::TestWithParam<TestCase>
 {
+    static_assert(std::is_same_v<T, float> || std::is_same_v<T, float8>);
+
 protected:
     void SetUp() override
     {
@@ -199,9 +201,9 @@ protected:
         InitTensor(miopenTensorMhaDropoutProbability,
                    tensor<float>{1, 1, 1, 1}.generate([rate = drop](auto...) { return rate; }));
         InitTensor(miopenTensorMhaDropoutSeed,
-                   tensor<int>{1, 1, 1, 2}.generate([](auto...) { return 0; }));
+                   tensor<int64_t>{1, 1, 1, 1}.generate([](auto...) { return 0xAAFFFFFFFFull; }));
         InitTensor(miopenTensorMhaDropoutOffset,
-                   tensor<int>{1, 1, 1, 2}.generate([](auto...) { return 0; }));
+                   tensor<int64_t>{1, 1, 1, 1}.generate([](auto...) { return 1; }));
 
         InitTensor(miopenTensorMhaO, tensor<T>{n, h, s, d});
         InitTensor(miopenTensorMhaAmaxO, tensor<float>{1, 1, 1, 1});
@@ -235,8 +237,10 @@ protected:
             s_scale,
             o_scale,
             drop,
-            0,
-            0,
+            std::get<tensor<int64_t>>(tensors[miopenTensorMhaDropoutSeed]->m_cpu_tensor)
+                .data.front(),
+            std::get<tensor<int64_t>>(tensors[miopenTensorMhaDropoutOffset]->m_cpu_tensor)
+                .data.front(),
             amaxS_ref,
             amaxO_ref,
             oDesc_ref);
@@ -336,7 +340,6 @@ class Test_Fwd_Mha_F8 : public Test_Fwd_Mha<float8>
 {
     void SetUp() override
     {
-
         using e_mask = enabled<Gpu::gfx94X>;
         using d_mask = disabled<Gpu::gfx900, Gpu::gfx906, Gpu::gfx908, Gpu::gfx90A>;
         if(!IsTestSupportedForDevMask<d_mask, e_mask>() || MIOPEN_FP8_IEEE_EXPONENT_BIAS != 0)

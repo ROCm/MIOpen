@@ -61,7 +61,7 @@ public:
     int32_t getSmCount() const noexcept { return mSmCount; }
 };
 
-class EngineHeurBuilder
+class MIOPEN_INTERNALS_EXPORT EngineHeurBuilder
 {
 private:
     EngineHeur mEngineHeur;
