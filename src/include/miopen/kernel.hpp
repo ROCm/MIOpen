@@ -36,6 +36,10 @@ namespace miopen {
 std::string_view GetKernelSrc(const fs::path& name);
 std::string_view GetKernelInc(const fs::path& name);
 const std::vector<std::reference_wrapper<const fs::path>>& GetKernelIncList();
+struct FsPathHash
+{
+    std::size_t operator()(const fs::path& path) { return fs::hash_value(path); }
+};
 } // namespace miopen
 
 #if MIOPEN_BACKEND_OPENCL
