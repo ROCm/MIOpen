@@ -32,7 +32,7 @@
 
 namespace miopen {
 
-MIOPEN_INTERNALS_EXPORT fs::path ExpandUser(const std::string& path);
+MIOPEN_INTERNALS_EXPORT fs::path ExpandUser(const fs::path& path);
 bool IsNetworkedFilesystem(const fs::path&);
 
 } // namespace miopen
