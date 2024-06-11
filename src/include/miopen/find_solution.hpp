@@ -439,7 +439,7 @@ struct SolverContainer
         const auto& sln = slns.front();
 
         if(const auto existingInvoker =
-                ctx.GetStream().GetInvoker(network_config, solver::Id{sln.solver_id}, algo))
+               ctx.GetStream().GetInvoker(network_config, solver::Id{sln.solver_id}, algo))
         {
             (*existingInvoker)(ctx.GetStream(), invoke_params);
             return;
