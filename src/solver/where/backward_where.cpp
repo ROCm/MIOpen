@@ -69,7 +69,7 @@ int64_t check_broadcasted_contiguous(const tensor_view_t<N>& tensorView)
 }
 
 bool WhereBackward::IsApplicable(const ExecutionContext& context,
-                                const miopen::where::BackwardProblemDescription& problem) const
+                                 const miopen::where::BackwardProblemDescription& problem) const
 {
     std::ignore    = context;
     auto inputDims = problem.GetInputGradDesc().GetLengths();
@@ -83,29 +83,31 @@ bool WhereBackward::IsApplicable(const ExecutionContext& context,
 
 ConvSolution
 WhereBackward::GetSolution(const ExecutionContext& context,
-                          const miopen::where::BackwardProblemDescription& problem) const
+                           const miopen::where::BackwardProblemDescription& problem) const
 {
     std::ignore = context;
 
-    tensor_view_t<5> input_grad_tv = get_inner_expanded_tv<5>(problem.GetInputGradDesc());
-    tensor_view_t<5> other_grad_tv = get_inner_expanded_tv<5>(problem.GetOtherGradDesc());
-    tensor_view_t<5> cond_tv       = get_inner_expanded_tv<5>(problem.GetConditionDesc());
-    tensor_view_t<5> output_grad_tv     = get_inner_expanded_tv<5>(problem.GetOutputGradDesc());
+    tensor_view_t<5> input_grad_tv  = get_inner_expanded_tv<5>(problem.GetInputGradDesc());
+    tensor_view_t<5> other_grad_tv  = get_inner_expanded_tv<5>(problem.GetOtherGradDesc());
+    tensor_view_t<5> cond_tv        = get_inner_expanded_tv<5>(problem.GetConditionDesc());
+    tensor_view_t<5> output_grad_tv = get_inner_expanded_tv<5>(problem.GetOutputGradDesc());
 
     input_grad_tv = broadcast_to(input_grad_tv, output_grad_tv);
     other_grad_tv = broadcast_to(other_grad_tv, output_grad_tv);
     cond_tv       = broadcast_to(cond_tv, output_grad_tv);
 
-    auto cond_contig_size  = check_broadcasted_contiguous(cond_tv);
-    auto input_grad_contig_size = check_broadcasted_contiguous(input_grad_tv);
-    auto other_grad_contig_size = check_broadcasted_contiguous(other_grad_tv);
+    auto cond_contig_size        = check_broadcasted_contiguous(cond_tv);
+    auto input_grad_contig_size  = check_broadcasted_contiguous(input_grad_tv);
+    auto other_grad_contig_size  = check_broadcasted_contiguous(other_grad_tv);
     auto output_grad_contig_size = check_broadcasted_contiguous(output_grad_tv);
 
-    auto is_all_contiguous = miopen::where::isContiguous(problem.GetInputGradDesc()) && miopen::where::isContiguous(problem.GetConditionDesc())
-                             && miopen::where::isContiguous(problem.GetOtherGradDesc()) && miopen::where::isContiguous(problem.GetOutputGradDesc());
+    auto is_all_contiguous = isTensorViewContiguous(input_grad_tv) &&
+                             isTensorViewContiguous(other_grad_tv) &&
+                             isTensorViewContiguous(cond_tv) &&
+                             isTensorViewContiguous(output_grad_tv);
 
     bool is_all_broadcasted_contiguous = cond_contig_size && output_grad_contig_size &&
-                                         input_grad_contig_size && other_grad_contig_size && is_all_contiguous;
+                                         input_grad_contig_size && other_grad_contig_size;
 
     bool is_condition_broadcasted =
         cond_contig_size && ((input_grad_contig_size % cond_contig_size) == 0 ||
@@ -113,13 +115,13 @@ WhereBackward::GetSolution(const ExecutionContext& context,
 
     auto result = ConvSolution{miopenStatusSuccess};
 
-    auto dtype        = problem.GetOtherGradDesc().GetType();
-    auto input_dtype  = miopen::GetDataType(problem.GetOutputGradDesc().GetType());
-    auto output_dtype = miopen::GetDataType(problem.GetInputGradDesc().GetType());
-    auto outputDims   = problem.GetOutputGradDesc().GetLengths();
+    auto dtype           = problem.GetOtherGradDesc().GetType();
+    auto input_dtype     = miopen::GetDataType(problem.GetOutputGradDesc().GetType());
+    auto output_dtype    = miopen::GetDataType(problem.GetInputGradDesc().GetType());
+    auto outputDims      = problem.GetOutputGradDesc().GetLengths();
     auto outputGradNumel = problem.GetOutputGradDesc().GetElementSize();
-    auto kernel        = KernelInfo{};
-    kernel.kernel_file = "MIOpenWhere.cpp";
+    auto kernel          = KernelInfo{};
+    kernel.kernel_file   = "MIOpenWhere.cpp";
 
     const auto build_params = KernelBuildParameters{
         {"MIOPEN_USE_FP16", static_cast<int>(dtype == miopenHalf)},
@@ -130,8 +132,11 @@ WhereBackward::GetSolution(const ExecutionContext& context,
         {"OUTPUT_TYPE", output_dtype == "bfloat16" ? "ushort" : output_dtype}};
 
     kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
+    std::cout << "is_all_broadcasted_contiguous = " << is_all_broadcasted_contiguous
+    << "is_condition_broadcasted = " << is_condition_broadcasted << "is_all_contiguous" << is_all_contiguous << std::endl;
 
-    if (is_all_contiguous) {
+    if(is_all_contiguous)
+    {
         size_t xlocalsize = LOCAL_SIZE;
         size_t xgridsize  = AlignUp(outputGradNumel, xlocalsize);
         size_t ylocalsize = 1;
@@ -151,24 +156,23 @@ WhereBackward::GetSolution(const ExecutionContext& context,
 
         result.construction_params.push_back(kernel);
 
-        result.invoker_factory =
-            [=](
-                const std::vector<Kernel>& kernels) {
-                return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
-                    decltype(auto) kernel = handle_.Run(kernels.front());
-                    decltype(auto) params = raw_params.CastTo<miopen::where::BwdInvokeParams>();
+        result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
+            return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
+                decltype(auto) kernel = handle_.Run(kernels.front());
+                decltype(auto) params = raw_params.CastTo<miopen::where::BwdInvokeParams>();
 
-                    size_t output_grad_numel = problem.GetOutputGradDesc().GetElementSize();
+                size_t output_grad_numel = problem.GetOutputGradDesc().GetElementSize();
 
-
-                    kernel(params.condition,
-                           params.outputGrad,
-                           params.inputGrad,
-                           params.otherGrad,
-                           output_grad_numel);
-                };
+                kernel(params.condition,
+                       params.outputGrad,
+                       params.inputGrad,
+                       params.otherGrad,
+                       output_grad_numel);
             };
-    } else if (is_condition_broadcasted && is_all_broadcasted_contiguous) {
+        };
+    }
+    else if(is_condition_broadcasted && is_all_broadcasted_contiguous)
+    {
         size_t xlocalsize = LOCAL_SIZE;
         size_t xgridsize  = AlignUp(cond_contig_size, xlocalsize);
         size_t ylocalsize = 1;
@@ -185,39 +189,40 @@ WhereBackward::GetSolution(const ExecutionContext& context,
         kernel.g_wk.push_back(xgridsize);
         kernel.g_wk.push_back(ygridsize);
         kernel.g_wk.push_back(zgridsize);
-        
+
         result.construction_params.push_back(kernel);
 
-        result.invoker_factory =
-            [=](const std::vector<Kernel>& kernels) {
-                return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
-                    decltype(auto) kernel = handle_.Run(kernels.front());
-                    decltype(auto) params = raw_params.CastTo<miopen::where::BwdInvokeParams>();
+        result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
+            return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
+                decltype(auto) kernel = handle_.Run(kernels.front());
+                decltype(auto) params = raw_params.CastTo<miopen::where::BwdInvokeParams>();
 
-                    size_t output_grad_numel = problem.GetOutputGradDesc().GetElementSize();
-                    size_t output_grad_off = 0;
-                    size_t condition_off = 0;
-                    size_t input_grad_off = 0;
-                    size_t other_grad_off = 0;
-                    size_t cond_contig_size = check_broadcasted_contiguous(cond_tv);
-                    size_t input_grad_contig_size = check_broadcasted_contiguous(input_grad_tv);
-                    size_t other_grad_contig_size = check_broadcasted_contiguous(other_grad_tv);
+                size_t output_grad_numel      = problem.GetOutputGradDesc().GetElementSize();
+                size_t output_grad_off        = 0;
+                size_t condition_off          = 0;
+                size_t input_grad_off         = 0;
+                size_t other_grad_off         = 0;
+                size_t cond_contig_size       = check_broadcasted_contiguous(cond_tv);
+                size_t input_grad_contig_size = check_broadcasted_contiguous(input_grad_tv);
+                size_t other_grad_contig_size = check_broadcasted_contiguous(other_grad_tv);
 
-                    kernel(params.condition,
-                           params.outputGrad,
-                           params.inputGrad,
-                           params.otherGrad,
-                           output_grad_numel,
-                           output_grad_off,
-                           condition_off,
-                           input_grad_off,
-                           other_grad_off,
-                           cond_contig_size,
-                           input_grad_contig_size,
-                           other_grad_contig_size);
-                };
+                kernel(params.condition,
+                       params.outputGrad,
+                       params.inputGrad,
+                       params.otherGrad,
+                       output_grad_numel,
+                       output_grad_off,
+                       condition_off,
+                       input_grad_off,
+                       other_grad_off,
+                       cond_contig_size,
+                       input_grad_contig_size,
+                       other_grad_contig_size);
             };
-    } else if (is_all_broadcasted_contiguous) {
+        };
+    }
+    else if(is_all_broadcasted_contiguous)
+    {
         size_t xlocalsize = LOCAL_SIZE;
         size_t xgridsize  = AlignUp(outputGradNumel, xlocalsize);
         size_t ylocalsize = 1;
@@ -237,19 +242,17 @@ WhereBackward::GetSolution(const ExecutionContext& context,
 
         result.construction_params.push_back(kernel);
 
-        result.invoker_factory =
-        [=](
-            const std::vector<Kernel>& kernels) {
+        result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
             return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
                 decltype(auto) kernel = handle_.Run(kernels.front());
                 decltype(auto) params = raw_params.CastTo<miopen::where::BwdInvokeParams>();
 
-                size_t output_grad_numel = problem.GetOutputGradDesc().GetElementSize();
-                size_t output_grad_off = 0;
-                size_t condition_off = 0;
-                size_t input_grad_off = 0;
-                size_t other_grad_off = 0;
-                size_t cond_contig_size = check_broadcasted_contiguous(cond_tv);
+                size_t output_grad_numel      = problem.GetOutputGradDesc().GetElementSize();
+                size_t output_grad_off        = 0;
+                size_t condition_off          = 0;
+                size_t input_grad_off         = 0;
+                size_t other_grad_off         = 0;
+                size_t cond_contig_size       = check_broadcasted_contiguous(cond_tv);
                 size_t input_grad_contig_size = check_broadcasted_contiguous(input_grad_tv);
                 size_t other_grad_contig_size = check_broadcasted_contiguous(other_grad_tv);
 

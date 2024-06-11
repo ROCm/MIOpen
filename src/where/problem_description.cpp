@@ -48,11 +48,6 @@ bool isContiguous(const TensorDescriptor& x)
 
 NetworkConfig ForwardProblemDescription::MakeNetworkConfig() const
 {
-    return MakeForwardNetworkConfig();
-}
-
-NetworkConfig ForwardProblemDescription::MakeForwardNetworkConfig() const
-{
     auto inputlength = inputDesc.GetLengths();
 
     auto input_numel = std::accumulate(
@@ -71,13 +66,7 @@ NetworkConfig ForwardProblemDescription::MakeForwardNetworkConfig() const
     return NetworkConfig{ss.str()};
 }
 
-/*
 NetworkConfig BackwardProblemDescription::MakeNetworkConfig() const
-{
-    return MakeBackwardNetworkConfig();
-}
-
-NetworkConfig BackwardProblemDescription::MakeBackwardNetworkConfig() const
 {
     auto inputlength = inputGradDesc.GetLengths();
 
@@ -92,11 +81,10 @@ NetworkConfig BackwardProblemDescription::MakeBackwardNetworkConfig() const
     ss << "input_dtype" << input_dtype;
     ss << "inputGrad_dtype" << inputGrad_dtype;
     ss << "input_numel" << input_numel;
-    ss << IsAllPacked();
+    //ss << IsAllPacked();
 
     return NetworkConfig{ss.str()};
 }
-*/
 
 } // namespace where
 

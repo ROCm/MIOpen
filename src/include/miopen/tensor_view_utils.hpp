@@ -27,6 +27,7 @@
 #ifndef MIOPEN_TENSOR_VIEW_UTIL_HPP_
 #define MIOPEN_TENSOR_VIEW_UTIL_HPP_
 
+#include <cstdlib>
 #include <miopen/common.hpp>
 #include "../../kernels/tensor_view.hpp"
 #include "miopen/tensor.hpp"
@@ -113,6 +114,17 @@ inline tensor_view_t<N> broadcast_to(const tensor_view_t<N> in, const tensor_vie
         }
     }
     return out;
+}
+
+template <int N>
+inline bool isTensorViewContiguous(const tensor_view_t<N>& tv) {
+    size_t planeSize = 1;
+    for (int i = N - 1; i >= 0; i--) {
+        if (tv.stride[i] != planeSize)
+            return false;
+        planeSize *= tv.size[i];
+    }
+    return true;
 }
 
 } // namespace miopen

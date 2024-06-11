@@ -102,9 +102,6 @@ private:
     TensorDescriptor conditionDesc;
     TensorDescriptor outputDesc;
     TensorDescriptor outputGradDesc;
-
-    NetworkConfig MakeForwardNetworkConfig() const;
-    NetworkConfig MakeBackwardNetworkConfig() const;
 };
 
 struct BackwardProblemDescription : ProblemDescriptionBase
@@ -157,9 +154,6 @@ private:
     TensorDescriptor conditionDesc;
     TensorDescriptor inputGradDesc;
     TensorDescriptor otherGradDesc;
-
-    NetworkConfig MakeForwardNetworkConfig() const;
-    NetworkConfig MakeBackwardNetworkConfig() const;
 };
 
 } // namespace where

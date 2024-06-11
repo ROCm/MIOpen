@@ -131,8 +131,11 @@ WhereForward::GetSolution(const ExecutionContext& context,
     bool is_condition_broadcasted =
         cond_contig_size && ((input_contig_size % cond_contig_size) == 0 ||
                              (other_contig_size % cond_contig_size) == 0);
-    std::cout << "cond_contig_size = " << cond_contig_size << " input_contig_size = " << input_contig_size << " other_contig_size = " << other_contig_size << std::endl;
-    std::cout << "is_condition_broadcasted = " << is_condition_broadcasted << "is_all_broadcasted_contiguous = " << is_all_broadcasted_contiguous << std::endl;
+    std::cout << "cond_contig_size = " << cond_contig_size
+              << " input_contig_size = " << input_contig_size
+              << " other_contig_size = " << other_contig_size << std::endl;
+    std::cout << "is_condition_broadcasted = " << is_condition_broadcasted
+              << "is_all_broadcasted_contiguous = " << is_all_broadcasted_contiguous << std::endl;
 
     auto result = ConvSolution{miopenStatusSuccess};
 

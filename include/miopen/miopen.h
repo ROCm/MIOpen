@@ -6585,13 +6585,13 @@ MIOPEN_EXPORT miopenStatus_t miopenBackendInitialize(miopenBackendDescriptor_t d
 
 #ifdef MIOPEN_BETA_API
 
-// Where APIs
+// WHERE APIs
 /** @addtogroup where
  *
  *  @{
  */
 
-/*! @brief Execute where forward layer
+/*! @brief Execute WHERE forward layer
  *
  * @param handle                   MIOpen handle (input)
  * @param inputDesc                Tensor descriptor for input tensor (input)
@@ -6614,7 +6614,7 @@ MIOPEN_EXPORT miopenStatus_t miopenWhereForward(miopenHandle_t handle,
                                                 const miopenTensorDescriptor_t outputDesc,
                                                 void* output);
 
-/*! @brief Execute where backward layer
+/*! @brief Execute WHERE backward layer
  *
  * @param handle                   MIOpen handle (input)
  * @param outputGradDesc           Tensor descriptor for output gradient tensor (input)
@@ -6627,7 +6627,6 @@ MIOPEN_EXPORT miopenStatus_t miopenWhereForward(miopenHandle_t handle,
  * @param otherGrad                Other gradient tensor (output)
  * @return                         miopenStatus_t
  */
-
 MIOPEN_EXPORT miopenStatus_t miopenWhereBackward(miopenHandle_t handle,
                                                  const miopenTensorDescriptor_t outputGradDesc,
                                                  void* outputGrad,

@@ -142,16 +142,19 @@ int32_t mloWhereBackwardRunHost(miopenTensorDescriptor_t outputGradDesc,
 {
     auto input_grad_contig_size = check_broadcasted_contiguous(inputGradDesc);
     auto other_grad_contig_size = check_broadcasted_contiguous(otherGradDesc);
-    auto cond_contig_size  = check_broadcasted_contiguous(conditionDesc);
+    auto cond_contig_size       = check_broadcasted_contiguous(conditionDesc);
 
     auto output_grad_numel = miopen::deref(outputGradDesc).GetElementSize();
-    
-    for (size_t o = 0; o < output_grad_numel; o++) {
+
+    for(size_t o = 0; o < output_grad_numel; o++)
+    {
         auto cond = condition[o % cond_contig_size];
-        if (inputGrad) {
-            inputGrad[o % input_grad_contig_size] = outputGrad[o] * cond; 
+        if(inputGrad)
+        {
+            inputGrad[o % input_grad_contig_size] = outputGrad[o] * cond;
         }
-        if (otherGrad) {
+        if(otherGrad)
+        {
             otherGrad[o % other_grad_contig_size] = outputGrad[o] * (static_cast<Tcheck>(1) - cond);
         }
     }
@@ -581,29 +584,29 @@ int WhereDriver<Tgpu, Tref>::RunForwardCPU()
 template <typename Tgpu, typename Tref>
 int WhereDriver<Tgpu, Tref>::RunBackwardGPU()
 {
-     float kernel_total_time = 0;
-     float kernel_first_time = 0;
-     Timer t;
-     START_TIME;
-     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
+    float kernel_total_time = 0;
+    float kernel_first_time = 0;
+    Timer t;
+    START_TIME;
+    for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
         miopenWhereBackward(GetHandle(),
-                          outputTensorGrad,
-                          outGrad_dev->GetMem(),
-                          condTensor,
-                          cond_dev->GetMem(),
-                          inputTensorGrad,
-                          in_dev->GetMem(),
-                          otherTensorGrad,
-                          other_dev->GetMem());
+                            outputTensorGrad,
+                            outGrad_dev->GetMem(),
+                            condTensor,
+                            cond_dev->GetMem(),
+                            inputTensorGrad,
+                            inGrad_dev->GetMem(),
+                            otherTensorGrad,
+                            otherGrad_dev->GetMem());
         float time = 0.0;
         miopenGetKernelTime(GetHandle(), &time);
         kernel_total_time += time;
         if(i == 0)
             kernel_first_time = time;
     }
-    
-     if(inflags.GetValueInt("time") == 1)
+
+    if(inflags.GetValueInt("time") == 1)
     {
         STOP_TIME
         int iter = inflags.GetValueInt("iter");
@@ -614,9 +617,12 @@ int WhereDriver<Tgpu, Tref>::RunBackwardGPU()
             iter > 1 ? (kernel_total_time - kernel_first_time) / (iter - 1) : kernel_first_time;
         std::cout << "GPU Kernel Time Backward Where Elapsed: " << kernel_average_time << " ms\n";
     }
-    
-     if(inGrad_dev->FromGPU(GetStream(), inGrad.data()) != 0)
-        std::cerr << "Error copying (out_dev) from GPU, size: " << inGrad_dev->GetSize()
+
+    if(inGrad_dev->FromGPU(GetStream(), inGrad.data()) != 0)
+        std::cerr << "Error copying (inGrad_dev) from GPU, size: " << inGrad_dev->GetSize()
+                  << std::endl;
+    if(otherGrad_dev->FromGPU(GetStream(), otherGrad.data()) != 0)
+        std::cerr << "Error copying (otherGrad_dev) from GPU, size: " << otherGrad_dev->GetSize()
                   << std::endl;
 
     return miopenStatusSuccess;
@@ -671,15 +677,14 @@ int WhereDriver<Tgpu, Tref>::VerifyForward()
 template <typename Tgpu, typename Tref>
 int WhereDriver<Tgpu, Tref>::RunBackwardCPU()
 {
-    mloWhereBackwardRunHost<Tgpu, Tref>
-        (outputTensorGrad, 
-        outGrad.data(), 
-        condTensor, 
-        cond.data(), 
-        inputTensorGrad, 
-        inGradhost.data(), 
-        otherTensorGrad, 
-        otherGradhost.data());
+    mloWhereBackwardRunHost<Tgpu, Tref>(outputTensorGrad,
+                                        outGrad.data(),
+                                        condTensor,
+                                        cond.data(),
+                                        inputTensorGrad,
+                                        inGradhost.data(),
+                                        otherTensorGrad,
+                                        otherGradhost.data());
 
     return miopenStatusSuccess;
 }
@@ -687,19 +692,29 @@ int WhereDriver<Tgpu, Tref>::RunBackwardCPU()
 template <typename Tgpu, typename Tref>
 int WhereDriver<Tgpu, Tref>::VerifyBackward()
 {
-     RunBackwardCPU();
-     const Tref tolerance = GetTolerance();
-     auto error1           = miopen::rms_range(inGradhost, inGrad);
-     auto error2           = miopen::rms_range(otherGradhost, otherGrad);
-     if(!std::isfinite(error1) || error1 > tolerance || !std::isfinite(error2) || error2 > tolerance)
+    RunBackwardCPU();
+    const Tref tolerance = GetTolerance();
+
+    auto inGradNum = inGradhost.size();
+    auto otherGradNum = otherGradhost.size();
+    for (int i = 0; i < inGradNum; i++) {
+        if (inGradhost[i] != inGrad[i]) {
+            std::cout << "inGradhost[" << i << "] = " << inGradhost[i] << " " << "inGrad[" << i << "] = " << inGrad[i] << std::endl;
+            std::cout << "outputGrad[" << i << "] = " << outGrad[i] << " cond[" << i << "] = " << cond[i] << std::endl;
+        }
+    }
+    auto error1          = miopen::rms_range(inGradhost, inGrad);
+    auto error2          = miopen::rms_range(otherGradhost, otherGrad);
+    if(!std::isfinite(error1) || error1 > tolerance || !std::isfinite(error2) || error2 > tolerance)
     {
-        std::cout << "Backward Where FAILED: " << error1 << " " << error2 << " > " << tolerance << std::endl;
+        std::cout << "Backward WHERE FAILED: " << error1 << " " << error2 << " > " << tolerance
+                  << std::endl;
         return EC_VerifyBwd;
     }
-     else
+    else
     {
-        std::cout << "Backward Where Verifies OK on CPU reference (" << error1 << ", " << error2 << " < " << tolerance
-                  << ')' << std::endl;
+        std::cout << "Backward WHERE Verifies OK on CPU reference (" << error1 << ", " << error2
+                  << " < " << tolerance << ')' << std::endl;
     }
 
     return miopenStatusSuccess;
