@@ -41,8 +41,8 @@ public:
     TempFile& operator=(TempFile&& other) noexcept = default;
 
     const std::string& GetPathInfix() const { return path_infix; }
-    std::string Path() const { return (dir.path / "file").string(); }
-    operator std::string() const { return Path(); }
+    fs::path Path() const { return dir.path / "file"; }
+    operator fs::path() const { return Path(); }
 
 private:
     std::string path_infix;
