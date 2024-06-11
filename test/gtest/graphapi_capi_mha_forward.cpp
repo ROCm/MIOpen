@@ -547,11 +547,15 @@ private:
             {
                 v->InitAndWriteToGPU<int64_t>(handle, 0);
             }
-            else if(k == miopenTensorMhaM || k == miopenTensorMhaO || k == miopenTensorMhaZInv ||
+            else if(k == miopenTensorMhaM || k == miopenTensorMhaZInv ||
                     k == miopenTensorMhaAmaxO || k == miopenTensorMhaAmaxS)
             {
                 // these are outputs
                 v->InitAndWriteToGPU(handle, 0.0f);
+            }
+            else if (k == miopenTensorMhaO)
+            {
+                v->InitAndWriteToGPU<T>(handle, 0.0f);
             }
             else
             {
