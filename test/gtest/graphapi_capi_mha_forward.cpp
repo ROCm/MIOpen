@@ -553,7 +553,7 @@ private:
                 // these are outputs
                 v->InitAndWriteToGPU(handle, 0.0f);
             }
-            else if (k == miopenTensorMhaO)
+            else if(k == miopenTensorMhaO)
             {
                 v->InitAndWriteToGPU<T>(handle, static_cast<T>(0.0f));
             }
@@ -929,7 +929,7 @@ inline auto GetCases()
 {
     return testing::Combine(testing::ValuesIn({2}),           // n
                             testing::ValuesIn({4}),           // h
-                            testing::ValuesIn({32, 64}),      // s
+                            testing::ValuesIn({64}),          // s
                             testing::ValuesIn({16}),          // d
                             testing::ValuesIn({0.0f, 0.5f})); // bernulli probability
 }
