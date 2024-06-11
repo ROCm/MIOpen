@@ -25,11 +25,9 @@
  *******************************************************************************/
 
 #include <miopen/env.hpp>
-#include <miopen/logger.hpp>
-#include <miopen/stringutils.hpp>
-
 #include <miopen/expanduser.hpp>
 #include <miopen/filesystem.hpp>
+#include <miopen/logger.hpp>
 
 #include <string>
 #ifdef _WIN32
@@ -38,6 +36,7 @@
 #endif
 
 #ifdef __linux__
+#include <miopen/stringutils.hpp>
 #include <errno.h>
 #include <string.h>
 #include <sys/vfs.h>
@@ -194,14 +193,14 @@ std::string GetHomeDir()
     // need to figure out what is the correct thing to do here
     // in tensoflow unit tests run via bazel, $HOME is not set, so this can happen
     // setting home_dir to the /tmp for now
-    return {fs::temp_directory_path().string()};
+    return fs::temp_directory_path().string();
 }
 } // namespace
 
-fs::path ExpandUser(const std::string& path)
+fs::path ExpandUser(const fs::path& path)
 {
-    static const std::string home_dir = GetHomeDir();
-    return {ReplaceString(path, "~", home_dir)};
+    static const auto home_dir = GetHomeDir();
+    return {ReplaceString(path.string(), "~", home_dir)};
 }
 
 #else
@@ -227,15 +226,15 @@ std::optional<std::pair<std::string::size_type, std::string>> ReplaceVariable(
 }
 } // namespace
 
-fs::path ExpandUser(const std::string& path)
+fs::path ExpandUser(const fs::path& path)
 {
-    auto result{ReplaceVariable(path, USERPROFILE)};
+    auto result{ReplaceVariable(path.string(), USERPROFILE)};
     if(!result)
     {
-        result = ReplaceVariable(path, HOME);
+        result = ReplaceVariable(path.string(), HOME);
         if(!result)
         {
-            result = ReplaceVariable(path, HOMEDRIVE);
+            result = ReplaceVariable(path.string(), HOMEDRIVE);
             if(result)
             {
                 result = ReplaceVariable(result->second, HOMEPATH, result->first);
