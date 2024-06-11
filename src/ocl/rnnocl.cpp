@@ -81,8 +81,7 @@ void checkGemmStatusAndLog(miopenStatus_t gemm_status)
     }
 }
 
-GemmBackend_t
-GetGemmBackend(const miopen::Handle& handle, miopenDataType_t dataType)
+GemmBackend_t GetGemmBackend(const miopen::Handle& handle, miopenDataType_t dataType)
 {
     // Only use the hipblaslt backend when device is MI300, and the datatype is half.
     // Otherwise, default to rocblas.
@@ -173,9 +172,9 @@ miopenStatus_t ReducAddBias(miopen::Handle& handle,
         break;
         case 2:
         case 3: {
-            float alpha1       = 1.;
-            auto red_type      = ws_desc.GetType();
-            auto gemm_backend  = GetGemmBackend(handle, red_type);
+            float alpha1      = 1.;
+            auto red_type     = ws_desc.GetType();
+            auto gemm_backend = GetGemmBackend(handle, red_type);
             int m = 1, n = ws_desc.GetLengths()[2], k = ws_desc.GetLengths()[1];
             int lda = k, ldb = ws_desc.GetStrides()[1], ldc = n;
 
