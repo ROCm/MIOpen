@@ -338,40 +338,69 @@ ConvSolution BnCKFwdInference::GetSolution(
     [[maybe_unused]] const miopen::batchnorm::ProblemDescription& bn_problem) const
 {
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
-    // Add another API before calling RunCKSoluiton. or
-    // use InitInvokerFactoryFwdNCHW()-> InitInvokerFactoryNCHW
-
     ConvSolution result;
-    result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
-        std::ignore = kernels;
-        return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
-            switch(bn_problem.GetXDesc().GetType())
-            {
-            case miopenHalf:
-                RunCKSolutionNHWC<F16, F16, F32, F16, F16, F32>(
-                    handle, primitive_parameters, bn_problem);
-                break;
-            case miopenFloat:
-                RunCKSolutionNHWC<F32, F32, F32, F32, F32, F32>(
-                    handle, primitive_parameters, bn_problem);
-                break;
-            case miopenDouble:
-                RunCKSolutionNHWC<F64, F64, F64, F64, F64, F64>(
-                    handle, primitive_parameters, bn_problem);
-                break;
-            case miopenBFloat16:
-                RunCKSolutionNHWC<BF16, BF16, F32, BF16, BF16, F32>(
-                    handle, primitive_parameters, bn_problem);
-                break;
-            case miopenInt8:
-            case miopenInt32:
-            case miopenFloat8:
-            case miopenBFloat8:
-            default: MIOPEN_THROW("Unsupported datatype");
-            }
+
+    if(bn_problem.IsLayoutDefault())
+    {
+        result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
+            return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
+                switch(bn_problem.GetXDesc().GetType())
+                {
+                case miopenHalf:
+                    RunCKSolutionFwdNCHW<F16, F16, F32, F16, F16, F32>(
+                        context, handle, kernels, primitive_parameters, bn_problem);
+                    break;
+                case miopenFloat:
+                    RunCKSolutionFwdNCHW<F32, F32, F32, F32, F32, F32>(
+                        context, handle, kernels, primitive_parameters, bn_problem);
+                    break;
+                case miopenDouble:
+                    RunCKSolutionFwdNCHW<F64, F64, F64, F64, F64, F64>(
+                        context, handle, kernels, primitive_parameters, bn_problem);
+                    break;
+                case miopenBFloat16:
+                    RunCKSolutionFwdNCHW<BF16, BF16, F32, BF16, BF16, F32>(
+                        context, handle, kernels, primitive_parameters, bn_problem);
+                    break;
+                default: MIOPEN_THROW("Unsupported datatype");
+                }
+            };
         };
-    };
-    return result;
+        return result;
+    }
+    else if(bn_problem.IsLayoutNHWC())
+    {
+        result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
+            std::ignore = kernels;
+            return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
+                switch(bn_problem.GetXDesc().GetType())
+                {
+                case miopenHalf:
+                    RunCKSolutionNHWC<F16, F16, F32, F16, F16, F32>(
+                        handle, primitive_parameters, bn_problem);
+                    break;
+                case miopenFloat:
+                    RunCKSolutionNHWC<F32, F32, F32, F32, F32, F32>(
+                        handle, primitive_parameters, bn_problem);
+                    break;
+                case miopenDouble:
+                    RunCKSolutionNHWC<F64, F64, F64, F64, F64, F64>(
+                        handle, primitive_parameters, bn_problem);
+                    break;
+                case miopenBFloat16:
+                    RunCKSolutionNHWC<BF16, BF16, F32, BF16, BF16, F32>(
+                        handle, primitive_parameters, bn_problem);
+                    break;
+                default: MIOPEN_THROW("Unsupported datatype");
+                }
+            };
+        };
+        return result;
+    }
+    else
+    {
+        MIOPEN_THROW(miopenStatusInternalError, "Unsupported data layout");
+    }
 #else
     return {};
 #endif
