@@ -67,7 +67,7 @@ struct ExecutionContext;
 struct Handle;
 struct TensorDescriptor;
 
-struct ConvolutionAttribute
+struct MIOPEN_INTERNALS_EXPORT ConvolutionAttribute
 {
     class Gfx90aFp16alt
     {
@@ -161,7 +161,7 @@ std::vector<Solution> FindConvolution(const ExecutionContext& ctx,
                                       int requestAlgoCount,
                                       bool force_attach_binary);
 
-struct MIOPEN_EXPORT ConvolutionDescriptor : miopenConvolutionDescriptor
+struct MIOPEN_INTERNALS_EXPORT ConvolutionDescriptor : miopenConvolutionDescriptor
 {
     ConvolutionDescriptor(std::size_t spatial_dim,
                           miopenConvolutionMode_t c_mode,
@@ -381,24 +381,25 @@ private:
     void ValidateTensors(const ConvTensors& conv_tensors) const;
 };
 
-void ConvolutionBackwardBias(const Handle& handle,
-                             const void* alpha,
-                             const TensorDescriptor& dyDesc,
-                             ConstData_t dy,
-                             const void* beta,
-                             const TensorDescriptor& dbDesc,
-                             Data_t db);
+MIOPEN_INTERNALS_EXPORT void ConvolutionBackwardBias(const Handle& handle,
+                                                     const void* alpha,
+                                                     const TensorDescriptor& dyDesc,
+                                                     ConstData_t dy,
+                                                     const void* beta,
+                                                     const TensorDescriptor& dbDesc,
+                                                     Data_t db);
 
-Invoker LoadOrPrepareInvoker(const ExecutionContext& ctx,
-                             const conv::ProblemDescription& problem,
-                             solver::Id solver_id);
+MIOPEN_INTERNALS_EXPORT Invoker LoadOrPrepareInvoker(const ExecutionContext& ctx,
+                                                     const conv::ProblemDescription& problem,
+                                                     solver::Id solver_id);
 
-std::ostream& operator<<(std::ostream& stream, const ConvolutionDescriptor& c);
+MIOPEN_INTERNALS_EXPORT std::ostream& operator<<(std::ostream& stream,
+                                                 const ConvolutionDescriptor& c);
 
-void DumpTensorToFileFromDevice(const miopen::Handle& handle,
-                                const miopen::TensorDescriptor& tDesc,
-                                ConstData_t dData,
-                                const std::string& filename);
+MIOPEN_INTERNALS_EXPORT void DumpTensorToFileFromDevice(const miopen::Handle& handle,
+                                                        const miopen::TensorDescriptor& tDesc,
+                                                        ConstData_t dData,
+                                                        const fs::path& filename);
 
 } // namespace miopen
 

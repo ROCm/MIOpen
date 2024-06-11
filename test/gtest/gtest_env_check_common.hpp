@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2018 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,18 +23,20 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef MIOPEN_GUARD_MLOPEN_EXPANDUSER_HPP
-#define MIOPEN_GUARD_MLOPEN_EXPANDUSER_HPP
+#pragma once
 
-#include <miopen/config.hpp>
-#include <miopen/filesystem.hpp>
-#include <string>
+#include <miopen/env.hpp>
+#include <gtest/gtest_common.hpp>
 
-namespace miopen {
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 
-MIOPEN_INTERNALS_EXPORT fs::path ExpandUser(const fs::path& path);
-bool IsNetworkedFilesystem(const fs::path&);
-
-} // namespace miopen
-
-#endif
+// For determining if we should run test suite. First ensure that test is supported on the hardware.
+// If the MIOPEN_TEST_ALL environment isn't set, then assume we are running standalone outside
+// CICD, and include the test. Otherwise, check the provided functor to ensure the environment
+// conditions match expected conditions to run this test suite.
+template <typename disabled_mask, typename enabled_mask, typename check_functor>
+bool ShouldRunTestCase(check_functor&& checkConditions)
+{
+    return IsTestSupportedForDevMask<disabled_mask, enabled_mask>() &&
+           (miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) || checkConditions());
+}

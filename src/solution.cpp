@@ -668,14 +668,14 @@ struct SerializedSolutionKernelInfo
     std::vector<size_t> local_work_dims;
     std::vector<size_t> global_work_dims;
     std::string kernel_name;
-    std::string program_name;
+    fs::path program_name;
 
     friend void to_json(nlohmann::json& json, const SerializedSolutionKernelInfo& kernel_info)
     {
         json = nlohmann::json{
             {fields::kernels::Program, kernel_info.program},
             {fields::kernels::Name, kernel_info.kernel_name},
-            {fields::kernels::File, kernel_info.program_name},
+            {fields::kernels::File, kernel_info.program_name.string()},
             {fields::kernels::LocalWorkDims, kernel_info.local_work_dims},
             {fields::kernels::GlobalWorkDims, kernel_info.global_work_dims},
         };
@@ -689,7 +689,7 @@ struct SerializedSolutionKernelInfo
     {
         json.at(fields::kernels::Program).get_to(kernel_info.program);
         json.at(fields::kernels::Name).get_to(kernel_info.kernel_name);
-        json.at(fields::kernels::File).get_to(kernel_info.program_name);
+        kernel_info.program_name = json.at(fields::kernels::File).get<std::string>();
         json.at(fields::kernels::LocalWorkDims).get_to(kernel_info.local_work_dims);
         json.at(fields::kernels::GlobalWorkDims).get_to(kernel_info.global_work_dims);
 

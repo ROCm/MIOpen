@@ -28,6 +28,7 @@
 
 #include <miopen/miopen.h>
 
+#include <miopen/config.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/kernel_info.hpp>
 #include <miopen/object.hpp>
@@ -46,7 +47,7 @@ namespace miopen {
 
 struct Handle;
 
-struct Solution : miopenSolution
+struct MIOPEN_INTERNALS_EXPORT Solution : miopenSolution
 {
     std::vector<std::uint8_t> serialization_cache;
 
@@ -90,7 +91,7 @@ struct Solution : miopenSolution
         std::vector<size_t> local_work_dims;
         std::vector<size_t> global_work_dims;
         std::string kernel_name;
-        std::string program_name;
+        fs::path program_name;
 
         operator Kernel() const
         {

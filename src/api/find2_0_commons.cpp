@@ -44,7 +44,8 @@ static miopenStatus_t MakeProblem(miopenProblem_t* problem,
                                   miopenProblemDirection_t direction)
 {
     return miopen::try_([&] {
-        miopen::deref(problem) = new miopen::ProblemContainer();
+        auto& in_problem_deref = miopen::deref(problem);
+        in_problem_deref       = new miopen::ProblemContainer();
         auto& container_deref  = miopen::deref(*problem);
 
         container_deref.item = miopen::Problem();
@@ -292,7 +293,10 @@ miopenStatus_t miopenFindSolutions(miopenHandle_t handle,
             problem_deref);
 
         for(auto i = 0; i < solutions_deref.size(); ++i)
-            miopen::deref(solutions + i) = new miopen::Solution{std::move(solutions_deref[i])};
+        {
+            auto& theSolution = miopen::deref(solutions + i);
+            theSolution       = new miopen::Solution{std::move(solutions_deref[i])};
+        }
 
         if(numSolutions != nullptr)
             *numSolutions = solutions_deref.size();
