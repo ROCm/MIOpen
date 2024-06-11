@@ -339,7 +339,13 @@ if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_B
     endif()
 
     # hipblaslt
-    find_package(hipblaslt REQUIRED PATHS /opt/rocm $ENV{HIP_PATH})
+    set(MIOPEN_USE_HIPBLASLT ON CACHE BOOL "")
+    if(MIOPEN_USE_HIPBLASLT)
+        find_package(hipblaslt REQUIRED PATHS /opt/rocm $ENV{HIP_PATH})
+        message(STATUS "Build with hipbBLASLt")
+    else()
+        message(STATUS "Build without hipbBLASLt")
+    endif()
 else()
     #CK is only enabled when HIP backend is selected   
     set(MIOPEN_USE_COMPOSABLEKERNEL Off)
@@ -513,6 +519,10 @@ if(MIOPEN_USE_ROCBLAS)
     set(MIOPEN_PACKAGE_REQS "${MIOPEN_PACKAGE_REQS}, rocblas")
 endif()
 
+if(MIOPEN_USE_HIPBLASLT)
+    set(MIOPEN_PACKAGE_REQS "${MIOPEN_PACKAGE_REQS}, hipblaslt")
+endif()
+
 if(MIOPEN_OFFLINE_COMPILER_PATHS_V2)
     set(MIOPEN_PACKAGE_REQS "${MIOPEN_PACKAGE_REQS}, rocm-core")
 endif()
@@ -531,8 +541,6 @@ if(MIOPEN_BACKEND STREQUAL "HIP")
     # Make backends explicitly conflict
     set(CPACK_DEBIAN_PACKAGE_CONFLICTS miopen-opencl)
     set(CPACK_RPM_PACKAGE_CONFLICTS miopen-opencl)
-
-    set(MIOPEN_PACKAGE_REQS "${MIOPEN_PACKAGE_REQS}, hipblaslt")
 
 elseif(MIOPEN_BACKEND STREQUAL "OpenCL")
     set(CPACK_DEBIAN_PACKAGE_DEPENDS "${MIOPEN_PACKAGE_REQS}, rocm-opencl-dev")
