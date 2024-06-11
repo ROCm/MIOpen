@@ -233,7 +233,7 @@ static void RunCKSolutionNCHW(const ExecutionContext& ctx,
         MIOPEN_THROW(miopenStatusInvalidValue, "workspace pointer is null");
     }
 
-    input1_tr_inst.AssignBuffer(handle, params.workSpace;
+    input1_tr_inst.AssignBuffer(handle, params.workSpace);
     // input2_tr_inst.AssignBuffer(handle, ctx.workSpace); //or solv.workSpace?
     output_tr_inst.AssignBuffer(handle, params.workSpace);
     output_init_tr_inst.AssignBuffer(handle, params.workSpace);
