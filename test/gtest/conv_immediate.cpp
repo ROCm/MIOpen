@@ -51,10 +51,10 @@ void run_test()
 #include "driver.hpp"
 #include "tensor_holder.hpp"
 #include "cpu_conv.hpp"
-// #include "random.hpp"
 
+using float16 = half_float::half;
 
-class gpu_reference_kernel_base : public ::testing::Test
+class ReferenceConvBase : public ::testing::Test
 {
 protected:
     miopenHandle_t handle{};
@@ -300,330 +300,353 @@ void pad_tensor_strides(std::vector<int>& strides)
     }
 }
 
-template </*miopen::conv::Direction direction,*/
-            typename TREF,
-            typename TOUT
-            /*miopenTensorLayout_t tensor_layout*/>
+template <miopen::conv::Direction direction,
+          typename TREF,
+          typename TOUT,
+          miopenTensorLayout_t tensor_layout>
 struct TypeDefs
 {
+    static constexpr miopen::conv::Direction get_direction() { return direction; };
     typedef TREF TRef;
     typedef TOUT Tout;
+    static constexpr miopenTensorLayout_t get_tensor_layout() { return tensor_layout; };
 };
 
-// template <miopen::conv::Direction direction,
-//           typename TRef,
-//           typename Tout,
-//           miopenTensorLayout_t tensor_layout>
 template <class Types>
-class ReferenceConv2d : public gpu_reference_kernel_base
+class ReferenceConv2d : public ReferenceConvBase
 {
 protected:
-    miopen::conv::Direction direction;
-    miopenTensorLayout_t tensor_layout;
+    template <miopen::conv::Direction direction,
+              typename TRef,
+              typename Tout,
+              miopenTensorLayout_t tensor_layout>
+    void run()
+    {
+        auto run_conv_2d = [&](int n,
+                               int wi,
+                               int hi,
+                               int c,
+                               int k,
+                               int fx,
+                               int fy,
+                               int px,
+                               int py,
+                               int sx,
+                               int sy,
+                               int dx,
+                               int dy,
+                               int g) {
+            miopenConvolutionDescriptor_t convDesc;
+            miopenTensorDescriptor_t inDesc, weiDesc, outDesc;
+
+            int pads[]      = {py, px};
+            int strides[]   = {sy, sx};
+            int dilations[] = {dy, dx};
+            int ho          = this->conv_out_size(hi, py, dy, fy, sy);
+            int wo          = this->conv_out_size(wi, px, dx, fx, sx);
+            int c_per_group = c / g;
+
+            std::vector<int> in_len({n, c, hi, wi});
+            std::vector<int> wei_len({k, c_per_group, fy, fx});
+            std::vector<int> out_len({n, k, ho, wo});
+
+            std::vector<int> in_strides;
+            std::vector<int> wei_strides;
+            std::vector<int> out_strides;
+
+            std::string layout_default = miopen::tensor_layout_get_default(4);
+            std::string layout_string  = miopen::TensorDescriptor::GetLayoutStr(tensor_layout);
+
+            miopen::tensor_layout_to_strides(in_len, layout_default, layout_string, in_strides);
+            miopen::tensor_layout_to_strides(wei_len, layout_default, layout_string, wei_strides);
+            miopen::tensor_layout_to_strides(out_len, layout_default, layout_string, out_strides);
+
+            pad_tensor_strides(in_strides);
+            pad_tensor_strides(wei_strides);
+            pad_tensor_strides(out_strides);
+
+            tensor<TRef> in(in_len, in_strides);
+            tensor<TRef> wei(wei_len, wei_strides);
+            tensor<Tout> out(out_len, out_strides);
+
+            auto in_sz  = in.data.size();
+            auto wei_sz = wei.data.size();
+            auto out_sz = out.data.size();
+
+            void* in_dev;
+            void* wei_dev;
+            void* out_dev;
+            EXPECT_TRUE(hipMalloc(&in_dev, sizeof(TRef) * in_sz) == hipSuccess);
+            EXPECT_TRUE(hipMalloc(&wei_dev, sizeof(TRef) * wei_sz) == hipSuccess);
+            EXPECT_TRUE(hipMalloc(&out_dev, sizeof(Tout) * out_sz) == hipSuccess);
+
+            EXPECT_TRUE(miopenCreateConvolutionDescriptor(&convDesc) == miopenStatusSuccess);
+            EXPECT_TRUE(miopenInitConvolutionNdDescriptor(convDesc,
+                                                          2,
+                                                          static_cast<int*>(pads),
+                                                          static_cast<int*>(strides),
+                                                          static_cast<int*>(dilations),
+                                                          miopenConvolution) ==
+                        miopenStatusSuccess);
+            EXPECT_TRUE(miopenSetConvolutionGroupCount(convDesc, g) == miopenStatusSuccess);
+
+            EXPECT_TRUE(miopenCreateTensorDescriptor(&inDesc) == miopenStatusSuccess);
+            EXPECT_TRUE(miopenCreateTensorDescriptor(&weiDesc) == miopenStatusSuccess);
+            EXPECT_TRUE(miopenCreateTensorDescriptor(&outDesc) == miopenStatusSuccess);
+
+            EXPECT_TRUE(
+                miopenSetTensorDescriptor(
+                    inDesc, miopen_type<TRef>{}, in_len.size(), in_len.data(), in_strides.data()) ==
+                miopenStatusSuccess);
+            EXPECT_TRUE(miopenSetTensorDescriptor(weiDesc,
+                                                  miopen_type<TRef>{},
+                                                  wei_len.size(),
+                                                  wei_len.data(),
+                                                  wei_strides.data()) == miopenStatusSuccess);
+            EXPECT_TRUE(miopenSetTensorDescriptor(outDesc,
+                                                  miopen_type<Tout>{},
+                                                  out_len.size(),
+                                                  out_len.data(),
+                                                  out_strides.data()) == miopenStatusSuccess);
+
+            bool valid_result = false;
+
+            if(direction == miopen::conv::Direction::Forward)
+            {
+                // initialize data with integer
+                rand_tensor_integer(in);
+                rand_tensor_integer(wei);
+                /// \ref copy_non_packed_output_before_convolution
+                rand_tensor_integer(out);
+
+                EXPECT_TRUE(hipMemcpy(in_dev,
+                                      in.data.data(),
+                                      sizeof(TRef) * in_sz,
+                                      hipMemcpyHostToDevice) == hipSuccess);
+                EXPECT_TRUE(hipMemcpy(wei_dev,
+                                      wei.data.data(),
+                                      sizeof(TRef) * wei_sz,
+                                      hipMemcpyHostToDevice) == hipSuccess);
+                /// \anchor copy_non_packed_output_before_convolution
+                /// \note Output is a non-packed tensor, which means there are
+                /// elements that convolution will not update. In order to verify
+                /// the convolution result, the GPU buffer should have the same
+                /// data as the CPU in both update and not-updated elements.
+                /// Therefore, we copy the output to the GPU buffer after
+                /// initializing it with random values.
+                ///
+                EXPECT_TRUE(hipMemcpy(out_dev,
+                                      out.data.data(),
+                                      sizeof(Tout) * out_sz,
+                                      hipMemcpyHostToDevice) == hipSuccess);
+
+                cpu_convolution_forward(miopen::deref(convDesc).GetSpatialDimension(),
+                                        in,
+                                        wei,
+                                        out,
+                                        miopen::deref(convDesc).GetConvPads(),
+                                        miopen::deref(convDesc).GetConvStrides(),
+                                        miopen::deref(convDesc).GetConvDilations(),
+                                        miopen::deref(convDesc).GetGroupCount());
+
+                EXPECT_TRUE(miopenConvolutionForwardImmediate(
+                                this->handle,
+                                weiDesc,
+                                wei_dev,
+                                inDesc,
+                                in_dev,
+                                convDesc,
+                                outDesc,
+                                out_dev,
+                                nullptr,
+                                0,
+                                miopen::solver::Id("ConvDirectNaiveConvFwd").Value()) ==
+                            miopenStatusSuccess);
+
+                tensor<Tout> out_host(out_len, out_strides);
+                EXPECT_TRUE(hipMemcpy(out_host.data.data(),
+                                      out_dev,
+                                      sizeof(Tout) * out_sz,
+                                      hipMemcpyDeviceToHost) == hipSuccess);
+
+                // we expect excact match, since use integer
+                valid_result = verify_tensor(out_host, out);
+            }
+            else if(direction == miopen::conv::Direction::BackwardData)
+            {
+                // initialize data with integer
+                rand_tensor_integer(out);
+                rand_tensor_integer(wei);
+                /// \ref copy_non_packed_output_before_convolution
+                rand_tensor_integer(in);
+
+                /// \ref copy_non_packed_output_before_convolution
+                EXPECT_TRUE(hipMemcpy(in_dev,
+                                      in.data.data(),
+                                      sizeof(TRef) * in_sz,
+                                      hipMemcpyHostToDevice) == hipSuccess);
+                EXPECT_TRUE(hipMemcpy(out_dev,
+                                      out.data.data(),
+                                      sizeof(Tout) * out_sz,
+                                      hipMemcpyHostToDevice) == hipSuccess);
+                EXPECT_TRUE(hipMemcpy(wei_dev,
+                                      wei.data.data(),
+                                      sizeof(TRef) * wei_sz,
+                                      hipMemcpyHostToDevice) == hipSuccess);
+
+                cpu_convolution_backward_data(miopen::deref(convDesc).GetSpatialDimension(),
+                                              in,
+                                              wei,
+                                              out,
+                                              miopen::deref(convDesc).GetConvPads(),
+                                              miopen::deref(convDesc).GetConvStrides(),
+                                              miopen::deref(convDesc).GetConvDilations(),
+                                              miopen::deref(convDesc).GetGroupCount());
+
+                EXPECT_TRUE(miopenConvolutionBackwardDataImmediate(
+                                this->handle,
+                                outDesc,
+                                out_dev,
+                                weiDesc,
+                                wei_dev,
+                                convDesc,
+                                inDesc,
+                                in_dev,
+                                nullptr,
+                                0,
+                                miopen::solver::Id("ConvDirectNaiveConvBwd").Value()) ==
+                            miopenStatusSuccess);
+
+                tensor<TRef> in_host(in_len, in_strides);
+
+                EXPECT_TRUE(hipMemcpy(in_host.data.data(),
+                                      in_dev,
+                                      sizeof(TRef) * in_sz,
+                                      hipMemcpyDeviceToHost) == hipSuccess);
+
+                // we expect excact match, since use integer
+                valid_result = verify_tensor(in_host, in);
+            }
+            else if(direction == miopen::conv::Direction::BackwardWeights)
+            {
+                rand_tensor_integer(in);
+                rand_tensor_integer(out);
+                /// \ref copy_non_packed_output_before_convolution
+                rand_tensor_integer(wei);
+
+                EXPECT_TRUE(hipMemcpy(in_dev,
+                                      in.data.data(),
+                                      sizeof(TRef) * in_sz,
+                                      hipMemcpyHostToDevice) == hipSuccess);
+                /// \ref copy_non_packed_output_before_convolution
+                EXPECT_TRUE(hipMemcpy(wei_dev,
+                                      wei.data.data(),
+                                      sizeof(TRef) * wei_sz,
+                                      hipMemcpyHostToDevice) == hipSuccess);
+                EXPECT_TRUE(hipMemcpy(out_dev,
+                                      out.data.data(),
+                                      sizeof(Tout) * out_sz,
+                                      hipMemcpyHostToDevice) == hipSuccess);
+
+                cpu_convolution_backward_weight(miopen::deref(convDesc).GetSpatialDimension(),
+                                                in,
+                                                wei,
+                                                out,
+                                                miopen::deref(convDesc).GetConvPads(),
+                                                miopen::deref(convDesc).GetConvStrides(),
+                                                miopen::deref(convDesc).GetConvDilations(),
+                                                miopen::deref(convDesc).GetGroupCount());
+
+                EXPECT_TRUE(miopenConvolutionBackwardWeightsImmediate(
+                                this->handle,
+                                outDesc,
+                                out_dev,
+                                inDesc,
+                                in_dev,
+                                convDesc,
+                                weiDesc,
+                                wei_dev,
+                                nullptr,
+                                0,
+                                miopen::solver::Id("ConvDirectNaiveConvWrw").Value()) ==
+                            miopenStatusSuccess);
+
+                tensor<TRef> wei_host(wei_len, wei_strides);
+
+                EXPECT_TRUE(hipMemcpy(wei_host.data.data(),
+                                      wei_dev,
+                                      sizeof(TRef) * wei_sz,
+                                      hipMemcpyDeviceToHost) == hipSuccess);
+
+                // we expect excact match, since use integer
+                valid_result = verify_tensor(wei_host, wei);
+            }
+
+            EXPECT_TRUE(valid_result == true);
+
+            miopenDestroyConvolutionDescriptor(convDesc);
+            miopenDestroyTensorDescriptor(inDesc);
+            miopenDestroyTensorDescriptor(weiDesc);
+            miopenDestroyTensorDescriptor(outDesc);
+
+            hipFree(in_dev);
+            hipFree(wei_dev);
+            hipFree(out_dev);
+        };
+
+        this->iterate_conv_2d(run_conv_2d);
+    }
 };
 
-typedef ::testing::Types <
-    TypeDefs<float, float>,
-    TypeDefs<half_float::half, half_float::half>
-> Implementations;
+// clang-format off
+typedef ::testing::Types<
+        TypeDefs<miopen::conv::Direction::Forward,          float,       float,      miopenTensorNCHW>,
+        TypeDefs<miopen::conv::Direction::Forward,          float16,     float16,    miopenTensorNCHW>,
+        TypeDefs<miopen::conv::Direction::Forward,          bfloat16,    bfloat16,   miopenTensorNCHW>,
+        TypeDefs<miopen::conv::Direction::Forward,          int8_t,      int32_t,    miopenTensorNCHW>,
+        TypeDefs<miopen::conv::Direction::Forward,          int8_t,      float,      miopenTensorNCHW>,
 
-TYPED_TEST_CASE(ReferenceConv2d, Implementations);
+        TypeDefs<miopen::conv::Direction::BackwardData,     float,       float,      miopenTensorNCHW>,
+        TypeDefs<miopen::conv::Direction::BackwardData,     float16,     float16,    miopenTensorNCHW>,
+        TypeDefs<miopen::conv::Direction::BackwardData,     bfloat16,    bfloat16,   miopenTensorNCHW>,
 
-TYPED_TEST(ReferenceConv2d, Forward2DNCHW)
+        TypeDefs<miopen::conv::Direction::BackwardWeights,  float,       float,      miopenTensorNCHW>,
+        TypeDefs<miopen::conv::Direction::BackwardWeights,  float16,     float16,    miopenTensorNCHW>,
+        TypeDefs<miopen::conv::Direction::BackwardWeights,  bfloat16,    bfloat16,   miopenTensorNCHW>,
+
+        TypeDefs<miopen::conv::Direction::Forward,          float,       float,      miopenTensorNHWC>,
+        TypeDefs<miopen::conv::Direction::Forward,          float16,     float16,    miopenTensorNHWC>,
+        TypeDefs<miopen::conv::Direction::Forward,          bfloat16,    bfloat16,   miopenTensorNHWC>,
+        TypeDefs<miopen::conv::Direction::Forward,          int8_t,      int32_t,    miopenTensorNHWC>,
+        TypeDefs<miopen::conv::Direction::Forward,          int8_t,      float,      miopenTensorNHWC>,
+
+        TypeDefs<miopen::conv::Direction::BackwardData,     float,       float,      miopenTensorNHWC>,
+        TypeDefs<miopen::conv::Direction::BackwardData,     float16,     float16,    miopenTensorNHWC>,
+        TypeDefs<miopen::conv::Direction::BackwardData,     bfloat16,    bfloat16,   miopenTensorNHWC>,
+
+        TypeDefs<miopen::conv::Direction::BackwardWeights,  float,       float,      miopenTensorNHWC>,
+        TypeDefs<miopen::conv::Direction::BackwardWeights,  float16,     float16,    miopenTensorNHWC>,
+        TypeDefs<miopen::conv::Direction::BackwardWeights,  bfloat16,    bfloat16,   miopenTensorNHWC>
+> Implementations2d;
+// clang-format on
+
+TYPED_TEST_CASE(ReferenceConv2d, Implementations2d);
+
+TYPED_TEST(ReferenceConv2d, Forward2dNCHW)
 {
-    this->direction = miopen::conv::Direction::Forward;
-    this->tensor_layout = miopenTensorNCHW;
-
     typedef typename TypeParam::TRef TRef;
     typedef typename TypeParam::Tout Tout;
-    auto run_conv_2d = [&](int n,
-                            int wi,
-                            int hi,
-                            int c,
-                            int k,
-                            int fx,
-                            int fy,
-                            int px,
-                            int py,
-                            int sx,
-                            int sy,
-                            int dx,
-                            int dy,
-                            int g) {
-        miopenConvolutionDescriptor_t convDesc;
-        miopenTensorDescriptor_t inDesc, weiDesc, outDesc;
 
-        int pads[]      = {py, px};
-        int strides[]   = {sy, sx};
-        int dilations[] = {dy, dx};
-        int ho          = this->conv_out_size(hi, py, dy, fy, sy);
-        int wo          = this->conv_out_size(wi, px, dx, fx, sx);
-        int c_per_group = c / g;
-
-        std::vector<int> in_len({n, c, hi, wi});
-        std::vector<int> wei_len({k, c_per_group, fy, fx});
-        std::vector<int> out_len({n, k, ho, wo});
-
-        std::vector<int> in_strides;
-        std::vector<int> wei_strides;
-        std::vector<int> out_strides;
-
-        std::string layout_default = miopen::tensor_layout_get_default(4);
-        std::string layout_string  = miopen::TensorDescriptor::GetLayoutStr(this->tensor_layout);
-
-        miopen::tensor_layout_to_strides(in_len, layout_default, layout_string, in_strides);
-        miopen::tensor_layout_to_strides(wei_len, layout_default, layout_string, wei_strides);
-        miopen::tensor_layout_to_strides(out_len, layout_default, layout_string, out_strides);
-
-        pad_tensor_strides(in_strides);
-        pad_tensor_strides(wei_strides);
-        pad_tensor_strides(out_strides);
-
-        tensor<TRef> in(in_len, in_strides);
-        tensor<TRef> wei(wei_len, wei_strides);
-        tensor<Tout> out(out_len, out_strides);
-
-        auto in_sz  = in.data.size();
-        auto wei_sz = wei.data.size();
-        auto out_sz = out.data.size();
-
-        void* in_dev;
-        void* wei_dev;
-        void* out_dev;
-        EXPECT_TRUE(hipMalloc(&in_dev, sizeof(TRef) * in_sz) == hipSuccess);
-        EXPECT_TRUE(hipMalloc(&wei_dev, sizeof(TRef) * wei_sz) == hipSuccess);
-        EXPECT_TRUE(hipMalloc(&out_dev, sizeof(Tout) * out_sz) == hipSuccess);
-
-        EXPECT_TRUE(miopenCreateConvolutionDescriptor(&convDesc) == miopenStatusSuccess);
-        EXPECT_TRUE(miopenInitConvolutionNdDescriptor(convDesc,
-                                                    2,
-                                                    static_cast<int*>(pads),
-                                                    static_cast<int*>(strides),
-                                                    static_cast<int*>(dilations),
-                                                    miopenConvolution) == miopenStatusSuccess);
-        EXPECT_TRUE(miopenSetConvolutionGroupCount(convDesc, g) == miopenStatusSuccess);
-
-        EXPECT_TRUE(miopenCreateTensorDescriptor(&inDesc) == miopenStatusSuccess);
-        EXPECT_TRUE(miopenCreateTensorDescriptor(&weiDesc) == miopenStatusSuccess);
-        EXPECT_TRUE(miopenCreateTensorDescriptor(&outDesc) == miopenStatusSuccess);
-
-        EXPECT_TRUE(
-            miopenSetTensorDescriptor(
-                inDesc, miopen_type<TRef>{}, in_len.size(), in_len.data(), in_strides.data()) ==
-            miopenStatusSuccess);
-        EXPECT_TRUE(miopenSetTensorDescriptor(weiDesc,
-                                            miopen_type<TRef>{},
-                                            wei_len.size(),
-                                            wei_len.data(),
-                                            wei_strides.data()) == miopenStatusSuccess);
-        EXPECT_TRUE(miopenSetTensorDescriptor(outDesc,
-                                            miopen_type<Tout>{},
-                                            out_len.size(),
-                                            out_len.data(),
-                                            out_strides.data()) == miopenStatusSuccess);
-
-        bool valid_result = false;
-
-        if(this->direction == miopen::conv::Direction::Forward)
-        {
-            // initialize data with integer
-            rand_tensor_integer(in);
-            rand_tensor_integer(wei);
-            /// \ref copy_non_packed_output_before_convolution
-            rand_tensor_integer(out);
-
-            EXPECT_TRUE(hipMemcpy(
-                        in_dev, in.data.data(), sizeof(TRef) * in_sz, hipMemcpyHostToDevice) ==
-                    hipSuccess);
-            EXPECT_TRUE(hipMemcpy(wei_dev,
-                                wei.data.data(),
-                                sizeof(TRef) * wei_sz,
-                                hipMemcpyHostToDevice) == hipSuccess);
-            /// \anchor copy_non_packed_output_before_convolution
-            /// \note Output is a non-packed tensor, which means there are
-            /// elements that convolution will not update. In order to verify
-            /// the convolution result, the GPU buffer should have the same
-            /// data as the CPU in both update and not-updated elements.
-            /// Therefore, we copy the output to the GPU buffer after
-            /// initializing it with random values.
-            ///
-            EXPECT_TRUE(hipMemcpy(out_dev,
-                                out.data.data(),
-                                sizeof(Tout) * out_sz,
-                                hipMemcpyHostToDevice) == hipSuccess);
-
-            cpu_convolution_forward(miopen::deref(convDesc).GetSpatialDimension(),
-                                    in,
-                                    wei,
-                                    out,
-                                    miopen::deref(convDesc).GetConvPads(),
-                                    miopen::deref(convDesc).GetConvStrides(),
-                                    miopen::deref(convDesc).GetConvDilations(),
-                                    miopen::deref(convDesc).GetGroupCount());
-
-            EXPECT_TRUE(miopenConvolutionForwardImmediate(
-                        this->handle,
-                        weiDesc,
-                        wei_dev,
-                        inDesc,
-                        in_dev,
-                        convDesc,
-                        outDesc,
-                        out_dev,
-                        nullptr,
-                        0,
-                        miopen::solver::Id("ConvDirectNaiveConvFwd").Value()) ==
-                    miopenStatusSuccess);
-
-            tensor<Tout> out_host(out_len, out_strides);
-            EXPECT_TRUE(hipMemcpy(out_host.data.data(),
-                                out_dev,
-                                sizeof(Tout) * out_sz,
-                                hipMemcpyDeviceToHost) == hipSuccess);
-
-            // we expect excact match, since use integer
-            valid_result = verify_tensor(out_host, out);
-        }
-        else if(this->direction == miopen::conv::Direction::BackwardData)
-        {
-            // initialize data with integer
-            rand_tensor_integer(out);
-            rand_tensor_integer(wei);
-            /// \ref copy_non_packed_output_before_convolution
-            rand_tensor_integer(in);
-
-            /// \ref copy_non_packed_output_before_convolution
-            EXPECT_TRUE(hipMemcpy(
-                        in_dev, in.data.data(), sizeof(TRef) * in_sz, hipMemcpyHostToDevice) ==
-                    hipSuccess);
-            EXPECT_TRUE(hipMemcpy(out_dev,
-                                out.data.data(),
-                                sizeof(Tout) * out_sz,
-                                hipMemcpyHostToDevice) == hipSuccess);
-            EXPECT_TRUE(hipMemcpy(wei_dev,
-                                wei.data.data(),
-                                sizeof(TRef) * wei_sz,
-                                hipMemcpyHostToDevice) == hipSuccess);
-
-            cpu_convolution_backward_data(miopen::deref(convDesc).GetSpatialDimension(),
-                                            in,
-                                            wei,
-                                            out,
-                                            miopen::deref(convDesc).GetConvPads(),
-                                            miopen::deref(convDesc).GetConvStrides(),
-                                            miopen::deref(convDesc).GetConvDilations(),
-                                            miopen::deref(convDesc).GetGroupCount());
-
-            EXPECT_TRUE(miopenConvolutionBackwardDataImmediate(
-                        this->handle,
-                        outDesc,
-                        out_dev,
-                        weiDesc,
-                        wei_dev,
-                        convDesc,
-                        inDesc,
-                        in_dev,
-                        nullptr,
-                        0,
-                        miopen::solver::Id("ConvDirectNaiveConvBwd").Value()) ==
-                    miopenStatusSuccess);
-
-            tensor<TRef> in_host(in_len, in_strides);
-
-            EXPECT_TRUE(hipMemcpy(in_host.data.data(),
-                                in_dev,
-                                sizeof(TRef) * in_sz,
-                                hipMemcpyDeviceToHost) == hipSuccess);
-
-            // we expect excact match, since use integer
-            valid_result = verify_tensor(in_host, in);
-        }
-        else if(this->direction == miopen::conv::Direction::BackwardWeights)
-        {
-            rand_tensor_integer(in);
-            rand_tensor_integer(out);
-            /// \ref copy_non_packed_output_before_convolution
-            rand_tensor_integer(wei);
-
-            EXPECT_TRUE(hipMemcpy(
-                        in_dev, in.data.data(), sizeof(TRef) * in_sz, hipMemcpyHostToDevice) ==
-                    hipSuccess);
-            /// \ref copy_non_packed_output_before_convolution
-            EXPECT_TRUE(hipMemcpy(wei_dev,
-                                wei.data.data(),
-                                sizeof(TRef) * wei_sz,
-                                hipMemcpyHostToDevice) == hipSuccess);
-            EXPECT_TRUE(hipMemcpy(out_dev,
-                                out.data.data(),
-                                sizeof(Tout) * out_sz,
-                                hipMemcpyHostToDevice) == hipSuccess);
-
-            cpu_convolution_backward_weight(miopen::deref(convDesc).GetSpatialDimension(),
-                                            in,
-                                            wei,
-                                            out,
-                                            miopen::deref(convDesc).GetConvPads(),
-                                            miopen::deref(convDesc).GetConvStrides(),
-                                            miopen::deref(convDesc).GetConvDilations(),
-                                            miopen::deref(convDesc).GetGroupCount());
-
-            EXPECT_TRUE(miopenConvolutionBackwardWeightsImmediate(
-                        this->handle,
-                        outDesc,
-                        out_dev,
-                        inDesc,
-                        in_dev,
-                        convDesc,
-                        weiDesc,
-                        wei_dev,
-                        nullptr,
-                        0,
-                        miopen::solver::Id("ConvDirectNaiveConvWrw").Value()) ==
-                    miopenStatusSuccess);
-
-            tensor<TRef> wei_host(wei_len, wei_strides);
-
-            EXPECT_TRUE(hipMemcpy(wei_host.data.data(),
-                                wei_dev,
-                                sizeof(TRef) * wei_sz,
-                                hipMemcpyDeviceToHost) == hipSuccess);
-
-            // we expect excact match, since use integer
-            valid_result = verify_tensor(wei_host, wei);
-        }
-
-        // auto error        = miopen::rms_range(out_host.data, out.data);
-        // auto tolerance = get_default_tolerence<TRef>();
-        // bool valid_result = error <= tolerance;
-        std::cout << "n:" << n << ", c:" << c << ", hi:" << hi << ", wi:" << wi << ", k:" << k
-                    << ", ho:" << ho << ", wo:" << wo << ", fy:" << fy << ",fx:" << fx
-                    << ", py:" << py << ", px:" << px << ", sy:" << sy << ", sx:" << sx
-                    << ", dy:" << dy << ",dx:" << dx << ", g:" << g
-                    << ", dir:" << direction_to_string(this->direction)
-                    << ", type:" << miopen_type_to_string(miopen_type<TRef>{})
-                    << ", layout:" << layout_string << ", valid:" << valid_result << std::endl;
-        EXPECT_TRUE(valid_result == true);
-
-        miopenDestroyConvolutionDescriptor(convDesc);
-        miopenDestroyTensorDescriptor(inDesc);
-        miopenDestroyTensorDescriptor(weiDesc);
-        miopenDestroyTensorDescriptor(outDesc);
-
-        hipFree(in_dev);
-        hipFree(wei_dev);
-        hipFree(out_dev);
-    };
-
-    this->iterate_conv_2d(run_conv_2d);
-
+    this->template run<TypeParam::get_direction(), TRef, Tout, TypeParam::get_tensor_layout()>();
 }
 
-template <miopen::conv::Direction direction,
-          typename TRef,
-          typename Tout,
-          miopenTensorLayout_t tensor_layout>
-struct gpu_reference_conv_3d : gpu_reference_kernel_base
+template <class Types>
+struct ReferenceConv3d : ReferenceConvBase
 {
+    template <miopen::conv::Direction direction,
+              typename TRef,
+              typename Tout,
+              miopenTensorLayout_t tensor_layout>
     void run()
     {
         auto run_conv_3d = [&](int n,
@@ -693,11 +716,12 @@ struct gpu_reference_conv_3d : gpu_reference_kernel_base
 
             EXPECT_TRUE(miopenCreateConvolutionDescriptor(&convDesc) == miopenStatusSuccess);
             EXPECT_TRUE(miopenInitConvolutionNdDescriptor(convDesc,
-                                                     3,
-                                                     static_cast<int*>(pads),
-                                                     static_cast<int*>(strides),
-                                                     static_cast<int*>(dilations),
-                                                     miopenConvolution) == miopenStatusSuccess);
+                                                          3,
+                                                          static_cast<int*>(pads),
+                                                          static_cast<int*>(strides),
+                                                          static_cast<int*>(dilations),
+                                                          miopenConvolution) ==
+                        miopenStatusSuccess);
             EXPECT_TRUE(miopenSetConvolutionGroupCount(convDesc, g) == miopenStatusSuccess);
 
             EXPECT_TRUE(miopenCreateTensorDescriptor(&inDesc) == miopenStatusSuccess);
@@ -709,15 +733,15 @@ struct gpu_reference_conv_3d : gpu_reference_kernel_base
                     inDesc, miopen_type<TRef>{}, in_len.size(), in_len.data(), in_strides.data()) ==
                 miopenStatusSuccess);
             EXPECT_TRUE(miopenSetTensorDescriptor(weiDesc,
-                                             miopen_type<TRef>{},
-                                             wei_len.size(),
-                                             wei_len.data(),
-                                             wei_strides.data()) == miopenStatusSuccess);
+                                                  miopen_type<TRef>{},
+                                                  wei_len.size(),
+                                                  wei_len.data(),
+                                                  wei_strides.data()) == miopenStatusSuccess);
             EXPECT_TRUE(miopenSetTensorDescriptor(outDesc,
-                                             miopen_type<Tout>{},
-                                             out_len.size(),
-                                             out_len.data(),
-                                             out_strides.data()) == miopenStatusSuccess);
+                                                  miopen_type<Tout>{},
+                                                  out_len.size(),
+                                                  out_len.data(),
+                                                  out_strides.data()) == miopenStatusSuccess);
 
             bool valid_result = false;
 
@@ -729,18 +753,19 @@ struct gpu_reference_conv_3d : gpu_reference_kernel_base
                 /// \ref copy_non_packed_output_before_convolution
                 rand_tensor_integer(out);
 
-                EXPECT_TRUE(hipMemcpy(
-                           in_dev, in.data.data(), sizeof(TRef) * in_sz, hipMemcpyHostToDevice) ==
-                       hipSuccess);
+                EXPECT_TRUE(hipMemcpy(in_dev,
+                                      in.data.data(),
+                                      sizeof(TRef) * in_sz,
+                                      hipMemcpyHostToDevice) == hipSuccess);
                 /// \ref copy_non_packed_output_before_convolution
                 EXPECT_TRUE(hipMemcpy(out_dev,
-                                 out.data.data(),
-                                 sizeof(Tout) * out_sz,
-                                 hipMemcpyHostToDevice) == hipSuccess);
+                                      out.data.data(),
+                                      sizeof(Tout) * out_sz,
+                                      hipMemcpyHostToDevice) == hipSuccess);
                 EXPECT_TRUE(hipMemcpy(wei_dev,
-                                 wei.data.data(),
-                                 sizeof(TRef) * wei_sz,
-                                 hipMemcpyHostToDevice) == hipSuccess);
+                                      wei.data.data(),
+                                      sizeof(TRef) * wei_sz,
+                                      hipMemcpyHostToDevice) == hipSuccess);
 
                 cpu_convolution_forward(miopen::deref(convDesc).GetSpatialDimension(),
                                         in,
@@ -752,25 +777,25 @@ struct gpu_reference_conv_3d : gpu_reference_kernel_base
                                         miopen::deref(convDesc).GetGroupCount());
 
                 EXPECT_TRUE(miopenConvolutionForwardImmediate(
-                           handle,
-                           weiDesc,
-                           wei_dev,
-                           inDesc,
-                           in_dev,
-                           convDesc,
-                           outDesc,
-                           out_dev,
-                           nullptr,
-                           0,
-                           miopen::solver::Id("ConvDirectNaiveConvFwd").Value()) ==
-                       miopenStatusSuccess);
+                                this->handle,
+                                weiDesc,
+                                wei_dev,
+                                inDesc,
+                                in_dev,
+                                convDesc,
+                                outDesc,
+                                out_dev,
+                                nullptr,
+                                0,
+                                miopen::solver::Id("ConvDirectNaiveConvFwd").Value()) ==
+                            miopenStatusSuccess);
 
                 tensor<Tout> out_host(out_len, out_strides);
 
                 EXPECT_TRUE(hipMemcpy(out_host.data.data(),
-                                 out_dev,
-                                 sizeof(Tout) * out_sz,
-                                 hipMemcpyDeviceToHost) == hipSuccess);
+                                      out_dev,
+                                      sizeof(Tout) * out_sz,
+                                      hipMemcpyDeviceToHost) == hipSuccess);
 
                 // we expect excact match, since use integer
                 valid_result = verify_tensor(out_host, out);
@@ -784,17 +809,18 @@ struct gpu_reference_conv_3d : gpu_reference_kernel_base
                 rand_tensor_integer(in);
 
                 /// \ref copy_non_packed_output_before_convolution
-                EXPECT_TRUE(hipMemcpy(
-                           in_dev, in.data.data(), sizeof(TRef) * in_sz, hipMemcpyHostToDevice) ==
-                       hipSuccess);
+                EXPECT_TRUE(hipMemcpy(in_dev,
+                                      in.data.data(),
+                                      sizeof(TRef) * in_sz,
+                                      hipMemcpyHostToDevice) == hipSuccess);
                 EXPECT_TRUE(hipMemcpy(out_dev,
-                                 out.data.data(),
-                                 sizeof(Tout) * out_sz,
-                                 hipMemcpyHostToDevice) == hipSuccess);
+                                      out.data.data(),
+                                      sizeof(Tout) * out_sz,
+                                      hipMemcpyHostToDevice) == hipSuccess);
                 EXPECT_TRUE(hipMemcpy(wei_dev,
-                                 wei.data.data(),
-                                 sizeof(TRef) * wei_sz,
-                                 hipMemcpyHostToDevice) == hipSuccess);
+                                      wei.data.data(),
+                                      sizeof(TRef) * wei_sz,
+                                      hipMemcpyHostToDevice) == hipSuccess);
 
                 cpu_convolution_backward_data(miopen::deref(convDesc).GetSpatialDimension(),
                                               in,
@@ -806,25 +832,25 @@ struct gpu_reference_conv_3d : gpu_reference_kernel_base
                                               miopen::deref(convDesc).GetGroupCount());
 
                 EXPECT_TRUE(miopenConvolutionBackwardDataImmediate(
-                           handle,
-                           outDesc,
-                           out_dev,
-                           weiDesc,
-                           wei_dev,
-                           convDesc,
-                           inDesc,
-                           in_dev,
-                           nullptr,
-                           0,
-                           miopen::solver::Id("ConvDirectNaiveConvBwd").Value()) ==
-                       miopenStatusSuccess);
+                                this->handle,
+                                outDesc,
+                                out_dev,
+                                weiDesc,
+                                wei_dev,
+                                convDesc,
+                                inDesc,
+                                in_dev,
+                                nullptr,
+                                0,
+                                miopen::solver::Id("ConvDirectNaiveConvBwd").Value()) ==
+                            miopenStatusSuccess);
 
                 tensor<TRef> in_host(in_len, in_strides);
 
                 EXPECT_TRUE(hipMemcpy(in_host.data.data(),
-                                 in_dev,
-                                 sizeof(TRef) * in_sz,
-                                 hipMemcpyDeviceToHost) == hipSuccess);
+                                      in_dev,
+                                      sizeof(TRef) * in_sz,
+                                      hipMemcpyDeviceToHost) == hipSuccess);
 
                 // we expect excact match, since use integer
                 valid_result = verify_tensor(in_host, in);
@@ -836,18 +862,19 @@ struct gpu_reference_conv_3d : gpu_reference_kernel_base
                 /// \ref copy_non_packed_output_before_convolution
                 rand_tensor_integer(wei);
 
-                EXPECT_TRUE(hipMemcpy(
-                           in_dev, in.data.data(), sizeof(TRef) * in_sz, hipMemcpyHostToDevice) ==
-                       hipSuccess);
+                EXPECT_TRUE(hipMemcpy(in_dev,
+                                      in.data.data(),
+                                      sizeof(TRef) * in_sz,
+                                      hipMemcpyHostToDevice) == hipSuccess);
                 /// \ref copy_non_packed_output_before_convolution
                 EXPECT_TRUE(hipMemcpy(wei_dev,
-                                 wei.data.data(),
-                                 sizeof(TRef) * wei_sz,
-                                 hipMemcpyHostToDevice) == hipSuccess);
+                                      wei.data.data(),
+                                      sizeof(TRef) * wei_sz,
+                                      hipMemcpyHostToDevice) == hipSuccess);
                 EXPECT_TRUE(hipMemcpy(out_dev,
-                                 out.data.data(),
-                                 sizeof(Tout) * out_sz,
-                                 hipMemcpyHostToDevice) == hipSuccess);
+                                      out.data.data(),
+                                      sizeof(Tout) * out_sz,
+                                      hipMemcpyHostToDevice) == hipSuccess);
 
                 cpu_convolution_backward_weight(miopen::deref(convDesc).GetSpatialDimension(),
                                                 in,
@@ -859,25 +886,25 @@ struct gpu_reference_conv_3d : gpu_reference_kernel_base
                                                 miopen::deref(convDesc).GetGroupCount());
 
                 EXPECT_TRUE(miopenConvolutionBackwardWeightsImmediate(
-                           handle,
-                           outDesc,
-                           out_dev,
-                           inDesc,
-                           in_dev,
-                           convDesc,
-                           weiDesc,
-                           wei_dev,
-                           nullptr,
-                           0,
-                           miopen::solver::Id("ConvDirectNaiveConvWrw").Value()) ==
-                       miopenStatusSuccess);
+                                this->handle,
+                                outDesc,
+                                out_dev,
+                                inDesc,
+                                in_dev,
+                                convDesc,
+                                weiDesc,
+                                wei_dev,
+                                nullptr,
+                                0,
+                                miopen::solver::Id("ConvDirectNaiveConvWrw").Value()) ==
+                            miopenStatusSuccess);
 
                 tensor<TRef> wei_host(wei_len, wei_strides);
 
                 EXPECT_TRUE(hipMemcpy(wei_host.data.data(),
-                                 wei_dev,
-                                 sizeof(TRef) * wei_sz,
-                                 hipMemcpyDeviceToHost) == hipSuccess);
+                                      wei_dev,
+                                      sizeof(TRef) * wei_sz,
+                                      hipMemcpyDeviceToHost) == hipSuccess);
 
                 // we expect excact match, since use integer
                 valid_result = verify_tensor(wei_host, wei, 8.0); // max possible int
@@ -885,17 +912,6 @@ struct gpu_reference_conv_3d : gpu_reference_kernel_base
                                                                   // int interval might be 8
             }
 
-            // auto error        = miopen::rms_range(out_host.data, out.data);
-            // auto tolerance = get_default_tolerence<TRef>();
-            // bool valid_result = error <= tolerance;
-            std::cout << "n:" << n << ", c:" << c << ", di:" << di << ", hi:" << hi << ", wi:" << wi
-                      << ", k:" << k << ", do:" << do_ << ", ho:" << ho << ", wo:" << wo
-                      << ", fz:" << fz << ", fy:" << fy << ",fx:" << fx << ", pz:" << pz
-                      << ", py:" << py << ", px:" << px << ", sz:" << sz << ", sy:" << sy
-                      << ", sx:" << sx << ", dz:" << dz << ", dy:" << dy << ", dx:" << dx
-                      << ", g:" << g << ", dir:" << direction_to_string(direction)
-                      << ", type:" << miopen_type_to_string(miopen_type<TRef>{})
-                      << ", layout:" << layout_string << ", valid:" << valid_result << std::endl;
             EXPECT_TRUE(valid_result == true);
 
             miopenDestroyConvolutionDescriptor(convDesc);
@@ -908,9 +924,51 @@ struct gpu_reference_conv_3d : gpu_reference_kernel_base
             hipFree(out_dev);
         };
 
-        iterate_conv_3d(run_conv_3d);
+        this->iterate_conv_3d(run_conv_3d);
     }
 };
+
+// clang-format off
+typedef ::testing::Types<
+        TypeDefs<miopen::conv::Direction::Forward,          float,       float,      miopenTensorNCDHW>,
+        TypeDefs<miopen::conv::Direction::Forward,          float16,     float16,    miopenTensorNCDHW>,
+        TypeDefs<miopen::conv::Direction::Forward,          bfloat16,    bfloat16,   miopenTensorNCDHW>,
+        TypeDefs<miopen::conv::Direction::Forward,          int8_t,      int32_t,    miopenTensorNCDHW>,
+        TypeDefs<miopen::conv::Direction::Forward,          int8_t,      float,      miopenTensorNCDHW>,
+
+        TypeDefs<miopen::conv::Direction::BackwardData,     float,       float,      miopenTensorNCDHW>,
+        TypeDefs<miopen::conv::Direction::BackwardData,     float16,     float16,    miopenTensorNCDHW>,
+        TypeDefs<miopen::conv::Direction::BackwardData,     bfloat16,    bfloat16,   miopenTensorNCDHW>,
+
+        TypeDefs<miopen::conv::Direction::BackwardWeights,  float,       float,      miopenTensorNCDHW>,
+        TypeDefs<miopen::conv::Direction::BackwardWeights,  float16,     float16,    miopenTensorNCDHW>,
+        TypeDefs<miopen::conv::Direction::BackwardWeights,  bfloat16,    bfloat16,   miopenTensorNCDHW>,
+
+        TypeDefs<miopen::conv::Direction::Forward,          float,       float,      miopenTensorNDHWC>,
+        TypeDefs<miopen::conv::Direction::Forward,          float16,     float16,    miopenTensorNDHWC>,
+        TypeDefs<miopen::conv::Direction::Forward,          bfloat16,    bfloat16,   miopenTensorNDHWC>,
+        TypeDefs<miopen::conv::Direction::Forward,          int8_t,      int32_t,    miopenTensorNDHWC>,
+        TypeDefs<miopen::conv::Direction::Forward,          int8_t,      float,      miopenTensorNDHWC>,
+
+        TypeDefs<miopen::conv::Direction::BackwardData,     float,       float,      miopenTensorNDHWC>,
+        TypeDefs<miopen::conv::Direction::BackwardData,     float16,     float16,    miopenTensorNDHWC>,
+        TypeDefs<miopen::conv::Direction::BackwardData,     bfloat16,    bfloat16,   miopenTensorNDHWC>,
+
+        TypeDefs<miopen::conv::Direction::BackwardWeights,  float,       float,      miopenTensorNDHWC>,
+        TypeDefs<miopen::conv::Direction::BackwardWeights,  float16,     float16,    miopenTensorNDHWC>,
+        TypeDefs<miopen::conv::Direction::BackwardWeights,  bfloat16,    bfloat16,   miopenTensorNDHWC>
+> Implementations3d;
+// clang-format on
+
+TYPED_TEST_CASE(ReferenceConv3d, Implementations3d);
+
+TYPED_TEST(ReferenceConv3d, Forward3dNCHW)
+{
+    typedef typename TypeParam::TRef TRef;
+    typedef typename TypeParam::Tout Tout;
+
+    this->template run<TypeParam::get_direction(), TRef, Tout, TypeParam::get_tensor_layout()>();
+}
 
 TEST(CONV_IMMEDIATE, test_all)
 {
@@ -929,6 +987,7 @@ TEST(CONV_IMMEDIATE, test_all)
     //                                miopenTensorNCHW>>();
     // run_test<
     //     ReferenceConv2d<miopen::conv::Direction::Forward, int8_t, float, miopenTensorNCHW>>();
+
     // run_test<ReferenceConv2d<miopen::conv::Direction::BackwardData,
     //                                float,
     //                                float,
@@ -955,48 +1014,48 @@ TEST(CONV_IMMEDIATE, test_all)
     //                                miopenTensorNCHW>>();
 
     // 3d NCDHW
-    run_test<
-        gpu_reference_conv_3d<miopen::conv::Direction::Forward, float, float, miopenTensorNCDHW>>();
-    run_test<gpu_reference_conv_3d<miopen::conv::Direction::Forward,
-                                   half_float::half,
-                                   half_float::half,
-                                   miopenTensorNCDHW>>();
-    run_test<gpu_reference_conv_3d<miopen::conv::Direction::Forward,
-                                   bfloat16,
-                                   bfloat16,
-                                   miopenTensorNCDHW>>();
-    run_test<gpu_reference_conv_3d<miopen::conv::Direction::Forward,
-                                   int8_t,
-                                   int32_t,
-                                   miopenTensorNCDHW>>();
-    run_test<gpu_reference_conv_3d<miopen::conv::Direction::Forward,
-                                   int8_t,
-                                   float,
-                                   miopenTensorNCDHW>>();
-    run_test<gpu_reference_conv_3d<miopen::conv::Direction::BackwardData,
-                                   float,
-                                   float,
-                                   miopenTensorNCDHW>>();
-    run_test<gpu_reference_conv_3d<miopen::conv::Direction::BackwardData,
-                                   half_float::half,
-                                   half_float::half,
-                                   miopenTensorNCDHW>>();
-    run_test<gpu_reference_conv_3d<miopen::conv::Direction::BackwardData,
-                                   bfloat16,
-                                   bfloat16,
-                                   miopenTensorNCDHW>>();
-    run_test<gpu_reference_conv_3d<miopen::conv::Direction::BackwardWeights,
-                                   float,
-                                   float,
-                                   miopenTensorNCDHW>>();
-    run_test<gpu_reference_conv_3d<miopen::conv::Direction::BackwardWeights,
-                                   half_float::half,
-                                   half_float::half,
-                                   miopenTensorNCDHW>>();
-    run_test<gpu_reference_conv_3d<miopen::conv::Direction::BackwardWeights,
-                                   bfloat16,
-                                   bfloat16,
-                                   miopenTensorNCDHW>>();
+    // run_test<
+    //     gpu_reference_conv_3d<miopen::conv::Direction::Forward, float, float, miopenTensorNCDHW>>();
+    // run_test<gpu_reference_conv_3d<miopen::conv::Direction::Forward,
+    //                                half_float::half,
+    //                                half_float::half,
+    //                                miopenTensorNCDHW>>();
+    // run_test<gpu_reference_conv_3d<miopen::conv::Direction::Forward,
+    //                                bfloat16,
+    //                                bfloat16,
+    //                                miopenTensorNCDHW>>();
+    // run_test<gpu_reference_conv_3d<miopen::conv::Direction::Forward,
+    //                                int8_t,
+    //                                int32_t,
+    //                                miopenTensorNCDHW>>();
+    // run_test<gpu_reference_conv_3d<miopen::conv::Direction::Forward,
+    //                                int8_t,
+    //                                float,
+    //                                miopenTensorNCDHW>>();
+    // run_test<gpu_reference_conv_3d<miopen::conv::Direction::BackwardData,
+    //                                float,
+    //                                float,
+    //                                miopenTensorNCDHW>>();
+    // run_test<gpu_reference_conv_3d<miopen::conv::Direction::BackwardData,
+    //                                half_float::half,
+    //                                half_float::half,
+    //                                miopenTensorNCDHW>>();
+    // run_test<gpu_reference_conv_3d<miopen::conv::Direction::BackwardData,
+    //                                bfloat16,
+    //                                bfloat16,
+    //                                miopenTensorNCDHW>>();
+    // run_test<gpu_reference_conv_3d<miopen::conv::Direction::BackwardWeights,
+    //                                float,
+    //                                float,
+    //                                miopenTensorNCDHW>>();
+    // run_test<gpu_reference_conv_3d<miopen::conv::Direction::BackwardWeights,
+    //                                half_float::half,
+    //                                half_float::half,
+    //                                miopenTensorNCDHW>>();
+    // run_test<gpu_reference_conv_3d<miopen::conv::Direction::BackwardWeights,
+    //                                bfloat16,
+    //                                bfloat16,
+    //                                miopenTensorNCDHW>>();
 
     // 2d NHWC
     // run_test<
@@ -1041,46 +1100,46 @@ TEST(CONV_IMMEDIATE, test_all)
     //                                miopenTensorNHWC>>();
 
     // 3d NDHWC
-    run_test<
-        gpu_reference_conv_3d<miopen::conv::Direction::Forward, float, float, miopenTensorNDHWC>>();
-    run_test<gpu_reference_conv_3d<miopen::conv::Direction::Forward,
-                                   half_float::half,
-                                   half_float::half,
-                                   miopenTensorNDHWC>>();
-    run_test<gpu_reference_conv_3d<miopen::conv::Direction::Forward,
-                                   bfloat16,
-                                   bfloat16,
-                                   miopenTensorNDHWC>>();
-    run_test<gpu_reference_conv_3d<miopen::conv::Direction::Forward,
-                                   int8_t,
-                                   int32_t,
-                                   miopenTensorNDHWC>>();
-    run_test<gpu_reference_conv_3d<miopen::conv::Direction::Forward,
-                                   int8_t,
-                                   float,
-                                   miopenTensorNDHWC>>();
-    run_test<gpu_reference_conv_3d<miopen::conv::Direction::BackwardData,
-                                   float,
-                                   float,
-                                   miopenTensorNDHWC>>();
-    run_test<gpu_reference_conv_3d<miopen::conv::Direction::BackwardData,
-                                   half_float::half,
-                                   half_float::half,
-                                   miopenTensorNDHWC>>();
-    run_test<gpu_reference_conv_3d<miopen::conv::Direction::BackwardData,
-                                   bfloat16,
-                                   bfloat16,
-                                   miopenTensorNDHWC>>();
-    run_test<gpu_reference_conv_3d<miopen::conv::Direction::BackwardWeights,
-                                   float,
-                                   float,
-                                   miopenTensorNDHWC>>();
-    run_test<gpu_reference_conv_3d<miopen::conv::Direction::BackwardWeights,
-                                   half_float::half,
-                                   half_float::half,
-                                   miopenTensorNDHWC>>();
-    run_test<gpu_reference_conv_3d<miopen::conv::Direction::BackwardWeights,
-                                   bfloat16,
-                                   bfloat16,
-                                   miopenTensorNDHWC>>();
+    // run_test<
+    //     gpu_reference_conv_3d<miopen::conv::Direction::Forward, float, float, miopenTensorNDHWC>>();
+    // run_test<gpu_reference_conv_3d<miopen::conv::Direction::Forward,
+    //                                half_float::half,
+    //                                half_float::half,
+    //                                miopenTensorNDHWC>>();
+    // run_test<gpu_reference_conv_3d<miopen::conv::Direction::Forward,
+    //                                bfloat16,
+    //                                bfloat16,
+    //                                miopenTensorNDHWC>>();
+    // run_test<gpu_reference_conv_3d<miopen::conv::Direction::Forward,
+    //                                int8_t,
+    //                                int32_t,
+    //                                miopenTensorNDHWC>>();
+    // run_test<gpu_reference_conv_3d<miopen::conv::Direction::Forward,
+    //                                int8_t,
+    //                                float,
+    //                                miopenTensorNDHWC>>();
+    // run_test<gpu_reference_conv_3d<miopen::conv::Direction::BackwardData,
+    //                                float,
+    //                                float,
+    //                                miopenTensorNDHWC>>();
+    // run_test<gpu_reference_conv_3d<miopen::conv::Direction::BackwardData,
+    //                                half_float::half,
+    //                                half_float::half,
+    //                                miopenTensorNDHWC>>();
+    // run_test<gpu_reference_conv_3d<miopen::conv::Direction::BackwardData,
+    //                                bfloat16,
+    //                                bfloat16,
+    //                                miopenTensorNDHWC>>();
+    // run_test<gpu_reference_conv_3d<miopen::conv::Direction::BackwardWeights,
+    //                                float,
+    //                                float,
+    //                                miopenTensorNDHWC>>();
+    // run_test<gpu_reference_conv_3d<miopen::conv::Direction::BackwardWeights,
+    //                                half_float::half,
+    //                                half_float::half,
+    //                                miopenTensorNDHWC>>();
+    // run_test<gpu_reference_conv_3d<miopen::conv::Direction::BackwardWeights,
+    //                                bfloat16,
+    //                                bfloat16,
+    //                                miopenTensorNDHWC>>();
 }
