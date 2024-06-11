@@ -344,11 +344,6 @@ static void miopen_hipblasLt_gemm(const miopen::Handle& handle,
                                   std::size_t c_offset,
                                   hipDataType hip_type_C)
 {
-    if(gemm_desc.deterministic)
-    {
-        MIOPEN_THROW(miopenStatusNotImplemented, "deterministic mode not supported for hipBlasLt");
-    }
-
     float alpha = gemm_desc.alpha;
     float beta  = gemm_desc.beta;
     hipblaslt_ext::GemmInputs inputs;

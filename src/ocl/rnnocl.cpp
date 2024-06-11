@@ -82,13 +82,12 @@ void checkGemmStatusAndLog(miopenStatus_t gemm_status)
 }
 
 GemmBackend_t
-GetGemmBackend(const miopen::Handle& handle, miopenDataType_t dataType, bool deterministic)
+GetGemmBackend(const miopen::Handle& handle, miopenDataType_t dataType)
 {
-    // Only use the hipblaslt backend when device is MI300, the datatype is half,
-    // and we don't require deterministic results. Otherwise, default to rocblas.
+    // Only use the hipblaslt backend when device is MI300, and the datatype is half.
+    // Otherwise, default to rocblas.
     // Note: environment variable can be used to force a specific backend.
-    return handle.GetDeviceName() == "gfx942" && dataType == miopenDataType_t::miopenHalf &&
-                   !deterministic
+    return handle.GetDeviceName() == "gfx942" && dataType == miopenDataType_t::miopenHalf
                ? GemmBackend_t::hipblaslt
                : GemmBackend_t::rocblas;
 }
@@ -176,8 +175,7 @@ miopenStatus_t ReducAddBias(miopen::Handle& handle,
         case 3: {
             float alpha1       = 1.;
             auto red_type      = ws_desc.GetType();
-            bool deterministic = false; // Note: RNN's don't support deterministic results.
-            auto gemm_backend  = GetGemmBackend(handle, red_type, deterministic);
+            auto gemm_backend  = GetGemmBackend(handle, red_type);
             int m = 1, n = ws_desc.GetLengths()[2], k = ws_desc.GetLengths()[1];
             int lda = k, ldb = ws_desc.GetStrides()[1], ldc = n;
 
@@ -205,7 +203,7 @@ miopenStatus_t ReducAddBias(miopen::Handle& handle,
                                                                   alpha, // alpha
                                                                   beta,  // beta
                                                                   red_type,
-                                                                  deterministic};
+                                                                  false};
 
                 miopenStatus_t gemm_status = CallGemm(handle,
                                                       gemm_desc,
@@ -550,8 +548,7 @@ void RNNDescriptor::RNNForwardMS(Handle& handle,
                   ldc = RBuff.gemm_write_stride();
 
         auto gemm_data_type = xDesc.GetType();
-        bool deterministic  = false; // Note: RNN's don't support deterministic results.
-        auto gemm_backend   = GetGemmBackend(handle, gemm_data_type, deterministic);
+        auto gemm_backend   = GetGemmBackend(handle, gemm_data_type);
 
         const miopen::GemmDescriptor gemm_desc = GemmDescriptor{false,
                                                                 false,
@@ -569,7 +566,7 @@ void RNNDescriptor::RNNForwardMS(Handle& handle,
                                                                 1,      // alpha
                                                                 beta_t, // beta
                                                                 gemm_data_type,
-                                                                deterministic};
+                                                                false};
 
         const auto wx_off     = WeiBuf.get_matrix_x_off(layer);
         const auto out_offset = RBuff.gemm_write_offset(layer, start_b);
@@ -671,8 +668,7 @@ void RNNDescriptor::RNNForwardMS(Handle& handle,
         }
 
         auto gemm_data_type = xDesc.GetType();
-        bool deterministic  = false; // Note: RNN's don't support deterministic results.
-        auto gemm_backend   = GetGemmBackend(handle, gemm_data_type, deterministic);
+        auto gemm_backend   = GetGemmBackend(handle, gemm_data_type);
 
         const miopen::GemmDescriptor gemm_desc_hx = GemmDescriptor{false,
                                                                    false,
@@ -690,7 +686,7 @@ void RNNDescriptor::RNNForwardMS(Handle& handle,
                                                                    1, // alpha
                                                                    1, // beta
                                                                    gemm_data_type,
-                                                                   deterministic};
+                                                                   false};
 
         const auto RB_layer_save_points_off =
             RBuff.gemm_write_offset(layer, bacc_per_time[cur_time]);
@@ -1443,8 +1439,7 @@ void RNNDescriptor::RNNForwardInferencePacked(Handle& handle,
     }
 
     auto gemm_data_type = xDesc[0].GetType();
-    bool deterministic  = false; // Note: RNN's don't support deterministic results.
-    auto gemm_backend   = GetGemmBackend(handle, gemm_data_type, deterministic);
+    auto gemm_backend   = GetGemmBackend(handle, gemm_data_type);
 
     for(int li = 0; li < nLayers; li++)
     {
@@ -1489,7 +1484,7 @@ void RNNDescriptor::RNNForwardInferencePacked(Handle& handle,
                                                                   1, // alpha
                                                                   1, // beta
                                                                   gemm_data_type,
-                                                                  deterministic};
+                                                                  false};
 
                 miopenStatus_t gemm_status =
                     CallGemm(handle, gemm_desc, x, 0, w, 0, workSpace, hid_shift, gemm_backend);
@@ -1530,7 +1525,7 @@ void RNNDescriptor::RNNForwardInferencePacked(Handle& handle,
                                                               1, // alpha
                                                               1, // beta
                                                               gemm_data_type,
-                                                              deterministic};
+                                                              false};
             miopenStatus_t gemm_status       = CallGemm(handle,
                                                   gemm_desc,
                                                   workSpace,
@@ -1794,7 +1789,7 @@ void RNNDescriptor::RNNForwardInferencePacked(Handle& handle,
                                                                               1, // alpha
                                                                               1, // beta
                                                                               gemm_data_type,
-                                                                              deterministic};
+                                                                              false};
 
                             miopenStatus_t gemm_status =
                                 CallGemm(handle,
@@ -1843,7 +1838,7 @@ void RNNDescriptor::RNNForwardInferencePacked(Handle& handle,
                                                1, // alpha
                                                1, // beta
                                                gemm_data_type,
-                                               deterministic};
+                                               false};
                             miopenStatus_t gemm_status =
                                 CallGemm(handle,
                                          gemm_desc,
@@ -1889,7 +1884,7 @@ void RNNDescriptor::RNNForwardInferencePacked(Handle& handle,
                                                                               1, // alpha
                                                                               1, // beta
                                                                               gemm_data_type,
-                                                                              deterministic};
+                                                                              false};
 
                             miopenStatus_t gemm_status =
                                 CallGemm(handle,
@@ -2840,8 +2835,7 @@ void RNNDescriptor::RNNForwardTrainingPackedTensors(
     }
 
     auto gemm_data_type = xDesc[0].GetType();
-    bool deterministic  = false; // Note: RNN's don't support deterministic results.
-    auto gemm_backend   = GetGemmBackend(handle, gemm_data_type, deterministic);
+    auto gemm_backend   = GetGemmBackend(handle, gemm_data_type);
 
     for(int li = 0; li < nLayers; li++)
     {
@@ -2886,7 +2880,7 @@ void RNNDescriptor::RNNForwardTrainingPackedTensors(
                                                                   1, // alpha
                                                                   1, // beta
                                                                   gemm_data_type,
-                                                                  deterministic};
+                                                                  false};
 
                 miopenStatus_t gemm_status =
                     CallGemm(handle, gemm_desc, x, 0, w, 0, reserveSpace, hid_shift, gemm_backend);
@@ -2970,7 +2964,7 @@ void RNNDescriptor::RNNForwardTrainingPackedTensors(
                                                               1, // alpha
                                                               1, // beta
                                                               gemm_data_type,
-                                                              deterministic};
+                                                              false};
 
             miopenStatus_t gemm_status = CallGemm(handle,
                                                   gemm_desc,
@@ -3236,7 +3230,7 @@ void RNNDescriptor::RNNForwardTrainingPackedTensors(
                                                                               1, // alpha
                                                                               1, // beta
                                                                               gemm_data_type,
-                                                                              deterministic};
+                                                                              false};
 
                             miopenStatus_t gemm_status =
                                 CallGemm(handle,
@@ -3285,7 +3279,7 @@ void RNNDescriptor::RNNForwardTrainingPackedTensors(
                                                1, // alpha
                                                1, // beta
                                                gemm_data_type,
-                                               deterministic};
+                                               false};
 
                             miopenStatus_t gemm_status =
                                 CallGemm(handle,
@@ -3332,7 +3326,7 @@ void RNNDescriptor::RNNForwardTrainingPackedTensors(
                                                                               1, // alpha
                                                                               1, // beta
                                                                               gemm_data_type,
-                                                                              deterministic};
+                                                                              false};
 
                             miopenStatus_t gemm_status =
                                 CallGemm(handle,
@@ -4165,8 +4159,7 @@ void RNNDescriptor::RNNBackwardDataPackedTensors(
     }
 
     auto rnn_data_type = dhxDesc.GetType();
-    bool deterministic = false; // Note: RNN's don't support deterministic results.
-    auto gemm_backend  = GetGemmBackend(handle, rnn_data_type, deterministic);
+    auto gemm_backend  = GetGemmBackend(handle, rnn_data_type);
 
     std::vector<int> in_n;
     int in_h  = dxDesc[0].GetLengths()[1];
@@ -4362,7 +4355,7 @@ void RNNDescriptor::RNNBackwardDataPackedTensors(
                                                               1, // alpha
                                                               1, // beta
                                                               rnn_data_type,
-                                                              deterministic};
+                                                              false};
 
             miopenStatus_t gemm_status = CallGemm(handle,
                                                   gemm_desc,
@@ -4589,7 +4582,7 @@ void RNNDescriptor::RNNBackwardDataPackedTensors(
                                                                               1, // alpha
                                                                               1, // beta
                                                                               rnn_data_type,
-                                                                              deterministic};
+                                                                              false};
 
                             miopenStatus_t gemm_status =
                                 CallGemm(handle,
@@ -5425,7 +5418,7 @@ void RNNDescriptor::RNNBackwardDataPackedTensors(
                                                    1, // alpha
                                                    0, // beta
                                                    rnn_data_type,
-                                                   deterministic};
+                                                   false};
 
                                 miopenStatus_t gemm_status = CallGemm(
                                     handle,
@@ -5493,7 +5486,7 @@ void RNNDescriptor::RNNBackwardDataPackedTensors(
                                                1, // alpha
                                                1, // beta
                                                rnn_data_type,
-                                               deterministic};
+                                               false};
 
                             miopenStatus_t gemm_status =
                                 CallGemm(handle,
@@ -5625,7 +5618,7 @@ void RNNDescriptor::RNNBackwardDataPackedTensors(
                                                           1, // alpha
                                                           0, // beta
                                                           rnn_data_type,
-                                                          deterministic};
+                                                          false};
         miopenStatus_t gemm_status =
             CallGemm(handle, gemm_desc, workSpace, 0, w, 0, dx, 0, gemm_backend);
         if(gemm_status != miopenStatusSuccess)
@@ -5817,8 +5810,7 @@ void RNNDescriptor::RNNBackwardWeightsPackedTensors(
     int out_h = dyDesc[0].GetLengths()[1];
 
     miopenDataType_t rnn_data_t = hxDesc.GetType();
-    bool deterministic          = false; // Note: RNN's don't support deterministic results.
-    auto gemm_backend           = GetGemmBackend(handle, rnn_data_t, deterministic);
+    auto gemm_backend           = GetGemmBackend(handle, rnn_data_t);
 
     if(in_h <= 0 || hy_h <= 0 || hy_n <= 0 || hy_d <= 0 || out_h <= 0 || seqLen <= 0)
     {
@@ -5953,7 +5945,7 @@ void RNNDescriptor::RNNBackwardWeightsPackedTensors(
                                                                   1, // alpha
                                                                   1, // beta
                                                                   rnn_data_t,
-                                                                  deterministic};
+                                                                  false};
 
                 miopenStatus_t gemm_status =
                     CallGemm(handle, gemm_desc, workSpace, 0, x, 0, dw, 0, gemm_backend);
@@ -5989,7 +5981,7 @@ void RNNDescriptor::RNNBackwardWeightsPackedTensors(
                                                               1, // alpha
                                                               1, // beta
                                                               rnn_data_t,
-                                                              deterministic};
+                                                              false};
 
             miopenStatus_t gemm_status = CallGemm(handle,
                                                   gemm_desc,
@@ -6230,7 +6222,7 @@ void RNNDescriptor::RNNBackwardWeightsPackedTensors(
                                                                       1, // alpha
                                                                       1, // beta
                                                                       rnn_data_t,
-                                                                      deterministic};
+                                                                      false};
 
                     miopenStatus_t gemm_status = CallGemm(handle,
                                                           gemm_desc,
@@ -6272,7 +6264,7 @@ void RNNDescriptor::RNNBackwardWeightsPackedTensors(
                                            1, // alpha
                                            1, // beta
                                            rnn_data_t,
-                                           deterministic};
+                                           false};
 
                         miopenStatus_t gemm_status =
                             CallGemm(handle,
@@ -6315,7 +6307,7 @@ void RNNDescriptor::RNNBackwardWeightsPackedTensors(
                                        1, // alpha
                                        1, // beta
                                        rnn_data_t,
-                                       deterministic};
+                                       false};
 
                     miopenStatus_t gemm_status = CallGemm(handle,
                                                           gemm_desc,
@@ -6382,7 +6374,7 @@ void RNNDescriptor::RNNBackwardWeightsPackedTensors(
                                                                                   1, // alpha
                                                                                   1, // beta
                                                                                   rnn_data_t,
-                                                                                  deterministic};
+                                                                                  false};
 
                                 miopenStatus_t gemm_status =
                                     CallGemm(handle,
@@ -6424,7 +6416,7 @@ void RNNDescriptor::RNNBackwardWeightsPackedTensors(
                                                    1, // alpha
                                                    1, // beta
                                                    rnn_data_t,
-                                                   deterministic};
+                                                   false};
 
                                 miopenStatus_t gemm_status = CallGemm(
                                     handle,
@@ -6463,7 +6455,7 @@ void RNNDescriptor::RNNBackwardWeightsPackedTensors(
                                                                                   1, // alpha
                                                                                   1, // beta
                                                                                   rnn_data_t,
-                                                                                  deterministic};
+                                                                                  false};
 
                                 miopenStatus_t gemm_status =
                                     CallGemm(handle,
