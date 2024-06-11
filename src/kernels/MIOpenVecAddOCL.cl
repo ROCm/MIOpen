@@ -26,7 +26,7 @@
 __kernel void vector_add_ocl(__global const float *x, 
                          __global const float *y, 
                          __global float* restrict z,
-                         uint vec_size
+                         ulong vec_size
                          )
 {
     // get index of the work item
