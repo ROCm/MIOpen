@@ -38,6 +38,7 @@
 #include <boost/none.hpp>
 #include <boost/optional/optional.hpp>
 
+#include <functional>
 #include <string>
 #include <chrono>
 #include <thread>
@@ -84,8 +85,9 @@ class KernDb : public SQLiteBase<KernDb>
     std::function<std::vector<char>(const std::vector<char>&, unsigned int)> decompress_fn;
 
 public:
-    KernDb(DbKinds db_kind, const std::string& filename_, bool is_system);
+    MIOPEN_INTERNALS_EXPORT KernDb(DbKinds db_kind, const std::string& filename_, bool is_system);
     // This constructor is only intended for testing
+    MIOPEN_INTERNALS_EXPORT
     KernDb(DbKinds db_kind,
            const std::string& filename_,
            bool is_system_,
