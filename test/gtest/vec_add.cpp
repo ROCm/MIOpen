@@ -225,12 +225,15 @@ using namespace vecadd;
 TEST_P(VecAddTestFloat, VecAddTestFw)
 {
     RunTestOCL();
+    // Verify OCL results against CPU reference
     VerifyOCL();
+
     RunTestHIP();
+    // Verify HIP results against CPU reference
     VerifyHIP();
 
-    // This verifies OCL and HIP results.
-    // VerifyGPU();
+    // Verify OCL and HIP results against each other
+    VerifyGPU();
 
 };
 
