@@ -84,9 +84,9 @@ function(generate_embed_source EMBED_NAME)
 
     file(WRITE "${PARSE_HEADER}" "
 #include <string>
-#include <unordered_map>
+#include <map>
 #include <utility>
-const std::unordered_map<std::string, std::pair<const char*,const char*>>& ${EMBED_NAME}();
+const std::map<std::string, std::pair<const char*,const char*>>& ${EMBED_NAME}();
 ")
 
     file(WRITE "${PARSE_SRC}" "
@@ -94,9 +94,9 @@ const std::unordered_map<std::string, std::pair<const char*,const char*>>& ${EMB
 #pragma clang diagnostic ignored \"-Wreserved-identifier\"
 #include <${EMBED_NAME}.hpp>
 ${EXTERNS}
-const std::unordered_map<fs::path, std::string_view>& ${EMBED_NAME}()
+const std::map<fs::path, std::string_view>& ${EMBED_NAME}()
 {
-    static const std::unordered_map<fs::path, std::string_view> result = {${INIT_KERNELS}};
+    static const std::map<fs::path, std::string_view> result = {${INIT_KERNELS}};
     return result;
 }
 #pragma clang diagnostic pop // \"-Wreserved-identifier\"

@@ -80,10 +80,8 @@ struct std::hash<KDBKey>
 {
     std::size_t operator()(const KDBKey& k) const
     {
-        using std::hash;
-        using std::string;
-
-        return ((hash<fs::path>()(k.program_file)) ^ (hash<string>()(k.program_args) << 1) >> 1);
+        return ((hash<string>()(k.program_file)) ^ (hash<string>()(k.program_args) << 1) >> 1);
+               (hash<string>()(k.program_args) << 1) >> 1;
     }
 };
 
