@@ -67,6 +67,7 @@ MultiBufferWorkspaceTraits SplitBufferToWorkspace(const std::vector<size_t>& len
 bool MhaForward::IsApplicable([[maybe_unused]] const ExecutionContext& context,
                               const miopen::mha::ProblemDescription& problem) const
 {
+#if MIOPEN_USE_GEMM
     // It's important to have this check before problem.GetDescsForward() call
     if(!problem.IsForward())
     {
@@ -77,7 +78,6 @@ bool MhaForward::IsApplicable([[maybe_unused]] const ExecutionContext& context,
 
     auto [N, H, S, D] = miopen::tien<4>(descsFwd.kDesc.GetLengths());
 
-#if MIOPEN_USE_ROCBLAS
     return !env::disabled(MIOPEN_DEBUG_ATTN_NAIVE_FWD)              //
            && S <= std::numeric_limits<uint32_t>::max()             //
            && descsFwd.kDesc.IsPacked()                             //
