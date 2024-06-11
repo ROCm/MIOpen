@@ -81,7 +81,7 @@ void checkGemmStatusAndLog(miopenStatus_t gemm_status)
     }
 }
 
-static GemmBackend_t
+GemmBackend_t
 GetGemmBackend(const miopen::Handle& handle, miopenDataType_t dataType, bool deterministic)
 {
     // Only use the hipblaslt backend when device is MI300, the datatype is half,

@@ -352,8 +352,11 @@ static void miopen_hipblasLt_gemm(const miopen::Handle& handle,
     float alpha = gemm_desc.alpha;
     float beta  = gemm_desc.beta;
     hipblaslt_ext::GemmInputs inputs;
-    inputs.a     = const_cast<DataTypeAB*>(static_cast<const DataTypeAB*>(A) + a_offset);
-    inputs.b     = const_cast<DataTypeAB*>(static_cast<const DataTypeAB*>(B) + b_offset);
+    // Note: Need to const cast here due to hipblaslt_ext::GemmInputs API requirements.
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-const-cast)
+    inputs.a = const_cast<DataTypeAB*>(static_cast<const DataTypeAB*>(A) + a_offset);
+    inputs.b = const_cast<DataTypeAB*>(static_cast<const DataTypeAB*>(B) + b_offset);
+    // NOLINTEND(cppcoreguidelines-pro-type-const-cast)
     inputs.c     = static_cast<DataTypeC*>(C) + c_offset;
     inputs.d     = static_cast<DataTypeC*>(C) + c_offset;
     inputs.alpha = &alpha;
@@ -470,7 +473,7 @@ static void call_miopen_hipblasLt_gemm(const miopen::Handle& handle,
         else
         {
             MIOPEN_THROW(miopenStatusBadParm,
-                         "miopenFloat8 type only supported for hipBlasLt GemmBackend on gfx94");
+                         "miopenFloat8 type only supported for hipBlasLt GemmBackend on gfx94x");
         }
     }
     break;
@@ -492,7 +495,7 @@ static void call_miopen_hipblasLt_gemm(const miopen::Handle& handle,
         else
         {
             MIOPEN_THROW(miopenStatusBadParm,
-                         "miopenFloat8 type only supported for hipBlasLt GemmBackend on gfx94");
+                         "miopenFloat8 type only supported for hipBlasLt GemmBackend on gfx94x");
         }
     }
     break;
@@ -511,8 +514,7 @@ static void call_miopen_hipblasLt_gemm(const miopen::Handle& handle,
 
 // hacks: control GEMM backend by enviroment variable and build option
 // very nasty
-static GemmBackend_t enforce_gemm_backend(miopenDataType_t data_type,
-                                          GemmBackend_t gemm_backend_preferred)
+static GemmBackend_t enforce_gemm_backend(GemmBackend_t gemm_backend_preferred)
 {
     GemmBackend_t gemm_backend_enforced = GemmBackend_t::nogemmbackend;
     GemmBackend_t gemm_backend_env      = GemmBackend_t::nogemmbackend;
@@ -562,7 +564,7 @@ miopenStatus_t CallGemm(const Handle& handle,
 {
     MIOPEN_LOG_I2("gemm_desc: " << gemm_desc);
 
-    gemm_backend = enforce_gemm_backend(gemm_desc.dataType, gemm_backend);
+    gemm_backend = enforce_gemm_backend(gemm_backend);
 
     if(!gemm_desc.isColMajor)
     {
@@ -825,7 +827,7 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
 {
     MIOPEN_LOG_I2("gemm_desc: " << gemm_desc);
 
-    gemm_backend = enforce_gemm_backend(gemm_desc.dataType, gemm_backend);
+    gemm_backend = enforce_gemm_backend(gemm_backend);
 
     if(!gemm_desc.isColMajor)
     {
@@ -1108,7 +1110,7 @@ miopenStatus_t CallGemmStridedBatchedSequential(const Handle& handle,
 {
     MIOPEN_LOG_I2("gemm_desc: " << gemm_desc);
 
-    gemm_backend = enforce_gemm_backend(gemm_desc.dataType, gemm_backend);
+    gemm_backend = enforce_gemm_backend(gemm_backend);
 
     if(!gemm_desc.isColMajor)
     {
