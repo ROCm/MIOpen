@@ -305,12 +305,6 @@ int RoPEDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     if(sin_dev->ToGPU(GetStream(), sin.data()) != 0)
         std::cerr << "Error copying (sin) to GPU, size: " << sin_dev->GetSize() << std::endl;
 
-    if(y_dev->ToGPU(GetStream(), y.data()) != 0)
-        std::cerr << "Error copying (y) to GPU, size: " << y_dev->GetSize() << std::endl;
-
-    if(dx_dev->ToGPU(GetStream(), dx.data()) != 0)
-        std::cerr << "Error copying (dx) to GPU, size: " << dx_dev->GetSize() << std::endl;
-
     return miopenStatusSuccess;
 }
 
