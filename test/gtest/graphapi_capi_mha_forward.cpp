@@ -555,7 +555,7 @@ private:
             }
             else if (k == miopenTensorMhaO)
             {
-                v->InitAndWriteToGPU<T>(handle, 0.0f);
+                v->InitAndWriteToGPU<T>(handle, static_cast<T>(0.0f));
             }
             else
             {
