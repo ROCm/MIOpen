@@ -266,11 +266,9 @@ TensorParameters InputFlags::GetValueTensor(const std::string& long_name) const
             auto ss   = std::istringstream{str};
             ss >> elem;
 
-            if(!ss.good())
-            {
-                printf("eof : %d", ss.eof());
+            if(ss.bad() || ss.fail())
                 MIOPEN_THROW("Invalid tensor component " + str + " in " + line + ".");
-            }
+
             ret.push_back(elem);
         }
         return ret;
@@ -311,13 +309,9 @@ TensorParametersUint64 InputFlags::GetValueTensorUint64(const std::string& long_
             auto ss   = std::istringstream{str};
             ss >> elem;
 
-            if(!ss.good())
-            {
-                std::ostringstream oss;
-                oss << ss.eof();
-                std::string s = oss.str();
-                MIOPEN_THROW("Invalid tensor component " + str + "eof" + s + " in " + line + ".");
-            }
+            if(ss.bad() || ss.fail())
+                MIOPEN_THROW("Invalid tensor component " + str + " in " + line + ".");
+
             ret.push_back(elem);
         }
         return ret;
