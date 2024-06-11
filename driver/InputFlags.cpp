@@ -254,7 +254,7 @@ TensorParameters InputFlags::GetValueTensor(const std::string& long_name) const
     const auto& input     = MapInputs.at(FindShortName(long_name));
     const auto components = miopen::SplitDelim(input.value.c_str(), ',');
 
-    if(components.size() < 1)
+    if(components.empty())
         return {};
 
     auto parse = [](auto line) {
@@ -266,7 +266,7 @@ TensorParameters InputFlags::GetValueTensor(const std::string& long_name) const
             auto ss   = std::istringstream{str};
             ss >> elem;
 
-            if(ss.bad() || ss.fail())
+            if(!ss.good())
                 MIOPEN_THROW("Invalid tensor component " + str + " in " + line + ".");
 
             ret.push_back(elem);
@@ -297,7 +297,7 @@ TensorParametersUint64 InputFlags::GetValueTensorUint64(const std::string& long_
     const auto& input     = MapInputs.at(FindShortName(long_name));
     const auto components = miopen::SplitDelim(input.value.c_str(), ',');
 
-    if(components.size() < 1)
+    if(components.empty())
         return {};
 
     auto parse = [](auto line) {
@@ -309,7 +309,7 @@ TensorParametersUint64 InputFlags::GetValueTensorUint64(const std::string& long_
             auto ss   = std::istringstream{str};
             ss >> elem;
 
-            if(ss.bad() || ss.fail())
+            if(!ss.good())
                 MIOPEN_THROW("Invalid tensor component " + str + " in " + line + ".");
 
             ret.push_back(elem);
