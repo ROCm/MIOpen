@@ -144,7 +144,7 @@ int SearchableTestSolver::_serches_done = 0;
 
 static solver::ConvSolution FindSolution(const ExecutionContext& ctx,
                                          const conv::ProblemDescription& problem,
-                                         const std::string& db_path)
+                                         const fs::path& db_path)
 {
     PlainTextDb db(DbKinds::PerfDb, db_path);
 
@@ -207,7 +207,7 @@ public:
 
 private:
     static void ConstructTest(
-        const std::string& db_path,
+        const fs::path& db_path,
         const char* expected_kernel,
         const std::initializer_list<size_t>& in,
         const std::function<void(ExecutionContext&)>& context_filler = [](ExecutionContext&) {})

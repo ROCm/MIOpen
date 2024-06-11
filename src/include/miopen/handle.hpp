@@ -99,7 +99,7 @@ struct MIOPEN_EXPORT Handle : miopenHandle
 
     KernelInvoke AddKernel(const std::string& algorithm,
                            const std::string& network_config,
-                           const std::string& program_name,
+                           const fs::path& program_name,
                            const std::string& kernel_name,
                            const std::vector<size_t>& vld,
                            const std::vector<size_t>& vgd,
@@ -129,13 +129,13 @@ struct MIOPEN_EXPORT Handle : miopenHandle
     const std::vector<Kernel>& GetKernelsImpl(const std::string& algorithm,
                                               const std::string& network_config) const;
 
-    Program LoadProgram(const std::string& program_name,
+    Program LoadProgram(const fs::path& program_name,
                         std::string params,
                         const std::string& kernel_src) const;
 
-    bool HasProgram(const std::string& program_name, const std::string& params) const;
-    void ClearProgram(const std::string& program_name, const std::string& params) const;
-    void AddProgram(Program prog, const std::string& program_name, const std::string& params) const;
+    bool HasProgram(const fs::path& program_name, const std::string& params) const;
+    void ClearProgram(const fs::path& program_name, const std::string& params) const;
+    void AddProgram(Program prog, const fs::path& program_name, const std::string& params) const;
 
     void Finish() const;
     void Flush() const;

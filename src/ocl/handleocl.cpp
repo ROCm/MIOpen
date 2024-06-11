@@ -411,7 +411,7 @@ Program Handle::LoadProgram(const std::string& program_name,
 #else
         auto path = miopen::GetCachePath(false) / boost::filesystem::unique_path().string();
         miopen::SaveProgramBinary(p, path.string());
-        miopen::SaveBinary(path.string(), this->GetTargetProperties(), program_name, params);
+        miopen::SaveBinary(path, this->GetTargetProperties(), program_name, params);
 #endif
         return p;
     }

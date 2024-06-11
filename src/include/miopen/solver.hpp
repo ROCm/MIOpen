@@ -2141,11 +2141,11 @@ struct ConvMPBidirectWinograd final : ConvSolver
     GetSolution(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
 
     // kernel_file_name for solver identification
-    static std::string GetSolverFileNames(int id)
+    static fs::path GetSolverFileNames(int id)
     {
-        static const std::string names[3] = {"xform_bidirect_winograd_data.s",
-                                             "xform_bidirect_winograd_filter.s",
-                                             "xform_bidirect_winograd_out.s"};
+        static const fs::path names[3] = {"xform_bidirect_winograd_data.s",
+                                          "xform_bidirect_winograd_filter.s",
+                                          "xform_bidirect_winograd_out.s"};
         return names[id];
     }
 
@@ -2254,7 +2254,7 @@ private:
     GetTransformedProblem(const miopen::conv::ProblemDescription& problem) const;
 
     // kernel_file_name for solver identification
-    static std::string GetSolverFileNames(int id)
+    static fs::path GetSolverFileNames(int id)
     {
         return ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::
             GetSolverFileNames(id);
@@ -2314,9 +2314,9 @@ struct ConvWinograd3x3MultipassWrW final : ConvSolver
     GetSolution(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
 
     // kernel_file_name for solver identification
-    static std::string GetSolverFileNames(int id)
+    static fs::path GetSolverFileNames(int id)
     {
-        static const std::string names[3] = {"xform_data.s", "xform_filter.s", "xform_out.s"};
+        static const fs::path names[3] = {"xform_data.s", "xform_filter.s", "xform_out.s"};
         return names[id];
     }
 
