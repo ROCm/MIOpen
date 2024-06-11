@@ -140,7 +140,7 @@ protected:
 
         if((drop > 0.0f) && (s % handle.GetWavefrontWidth() != 0))
         {
-            GTEST_SKIP() << "CPU Dropout currently supprorts only fully occupied warps";
+            GTEST_SKIP() << "CPU Dropout currently supports only fully occupied warps";
         }
 
         mha_descriptor.SetParams(1);
@@ -215,8 +215,6 @@ protected:
         {
             args[i].descriptor = &descVector[i];
         }
-
-        tensor<float> q_dot_k_transpose{n, h, s, s};
 
         softmax_ref  = tensor<float>{n, h, s, s};
         oDesc_ref    = tensor<T>{n, h, s, d};
