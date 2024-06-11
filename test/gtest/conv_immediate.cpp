@@ -572,27 +572,25 @@ protected:
     }
 };
 
-#define MakeTypeDefs(layout)                                                          \
-    TypeDefs<miopen::conv::Direction::Forward, float, float, layout>,                 \
-        TypeDefs<miopen::conv::Direction::Forward, float16, float16, layout>,         \
-        TypeDefs<miopen::conv::Direction::Forward, bfloat16, bfloat16, layout>,       \
-        TypeDefs<miopen::conv::Direction::Forward, int8_t, int32_t, layout>,          \
-        TypeDefs<miopen::conv::Direction::Forward, int8_t, float, layout>,            \
-                                                                                      \
-        TypeDefs<miopen::conv::Direction::BackwardData, float, float, layout>,        \
-        TypeDefs<miopen::conv::Direction::BackwardData, float16, float16, layout>,    \
-        TypeDefs<miopen::conv::Direction::BackwardData, bfloat16, bfloat16, layout>,  \
-                                                                                      \
-        TypeDefs<miopen::conv::Direction::BackwardWeights, float, float, layout>,     \
-        TypeDefs<miopen::conv::Direction::BackwardWeights, float16, float16, layout>, \
-        TypeDefs<miopen::conv::Direction::BackwardWeights, bfloat16, bfloat16, layout>
-
 // clang-format off
-typedef ::testing::Types<
-        MakeTypeDefs(miopenTensorNCHW),
-        MakeTypeDefs(miopenTensorNHWC)
-> Implementations2d;
+#define MakeTypeDefs(layout)                                                                \
+    TypeDefs<miopen::conv::Direction::Forward,          float,      float,      layout>,    \
+    TypeDefs<miopen::conv::Direction::Forward,          float16,    float16,    layout>,    \
+    TypeDefs<miopen::conv::Direction::Forward,          bfloat16,   bfloat16,   layout>,    \
+    TypeDefs<miopen::conv::Direction::Forward,          int8_t,     int32_t,    layout>,    \
+    TypeDefs<miopen::conv::Direction::Forward,          int8_t,     float,      layout>,    \
+                                                                                            \
+    TypeDefs<miopen::conv::Direction::BackwardData,     float,      float,      layout>,    \
+    TypeDefs<miopen::conv::Direction::BackwardData,     float16,    float16,    layout>,    \
+    TypeDefs<miopen::conv::Direction::BackwardData,     bfloat16,   bfloat16,   layout>,    \
+                                                                                            \
+    TypeDefs<miopen::conv::Direction::BackwardWeights,  float,      float,      layout>,    \
+    TypeDefs<miopen::conv::Direction::BackwardWeights,  float16,    float16,    layout>,    \
+    TypeDefs<miopen::conv::Direction::BackwardWeights,  bfloat16,   bfloat16,   layout>
 // clang-format on
+
+typedef ::testing::Types<MakeTypeDefs(miopenTensorNCHW), MakeTypeDefs(miopenTensorNHWC)>
+    Implementations2d;
 
 TYPED_TEST_CASE(ReferenceConv2d, Implementations2d);
 
@@ -892,12 +890,8 @@ struct ReferenceConv3d : ReferenceConvBase
     }
 };
 
-// clang-format off
-typedef ::testing::Types<
-        MakeTypeDefs(miopenTensorNCDHW),
-        MakeTypeDefs(miopenTensorNDHWC)
-> Implementations3d;
-// clang-format on
+typedef ::testing::Types<MakeTypeDefs(miopenTensorNCDHW), MakeTypeDefs(miopenTensorNDHWC)>
+    Implementations3d;
 
 TYPED_TEST_CASE(ReferenceConv3d, Implementations3d);
 
