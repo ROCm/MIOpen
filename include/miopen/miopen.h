@@ -6582,6 +6582,131 @@ MIOPEN_EXPORT miopenStatus_t miopenBackendInitialize(miopenBackendDescriptor_t d
 // CLOSEOUT BackendAPI DOXYGEN GROUP
 #endif // MIOPEN_BETA_API
 
+#ifdef MIOPEN_BETA_API
+
+/*! @ingroup LossFunction
+ * @enum miopenLossReductionMode_t
+ * Reduction mode for loss function
+ */
+typedef enum
+{
+    MIOPEN_LOSS_REDUCTION_NONE = 0, /*!< output tensor elements are not reduced */
+    MIOPEN_LOSS_REDUCTION_SUM  = 1, /*!< output tensor elements are summed up */
+    MIOPEN_LOSS_REDUCTION_MEAN = 2, /*!< output tensor elements are summed up and divided with total
+                                       number of elements to get mean value */
+} miopenLossReductionMode_t;
+
+// MultilabelSoftMarginLoss APIs
+/** @addtogroup LossFunction
+ *
+ *  @{
+ */
+
+/*! @brief Helper function to query the minimum workspace size required by the
+MultilabelSoftMarginLossForward call
+ *
+ * @param [in]  handle              MIOpen Handle
+ * @param [in]  inputDesc           Tensor descriptor for input tensor (N, C) where N is the batch
+size and C is the number of classes
+ * @param [in]  targetDesc          Tensor descriptor for target tensor, must have the same shape as
+the input tensor
+ * @param [in]  weightDesc          Tensor descriptor for weight tensor. It is a manual rescaling
+weight given to each class. It has to be a Tensor of size C
+ * @param [in]  outputDesc          Tensor descriptor for output tensor
+*  @param [in]  reduction           Reduction mode (sum, mean). For none reduction we don't need to
+use this function
+ * @param [out] sizeInBytes         Pointer to data to return the minimum workspace size
+ * @return                          miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenGetMultilabelSoftMarginLossForwardWorkspaceSize(miopenHandle_t handle,
+                                                      miopenTensorDescriptor_t inputDesc,
+                                                      miopenTensorDescriptor_t targetDesc,
+                                                      miopenTensorDescriptor_t weightDesc,
+                                                      miopenTensorDescriptor_t outputDesc,
+                                                      miopenLossReductionMode_t reduction,
+                                                      size_t* sizeInBytes);
+
+/*! @brief Execute a MultilabelSoftMarginLoss forward layer
+ *
+ * @param [in]  handle                  MIOpen handle
+ * @param [in]  inputDesc               Tensor descriptor for input tensor (N, C) where N is the
+batch size and C is the number of classes.
+ * @param [in]  input                   Data tensor input
+ * @param [in]  targetDesc              Tensor descriptor for target tensor, must have the same
+shape as the input tensor
+ * @param [in]  target                  Data tensor target
+ * @param [in]  weightDesc              Tensor descriptor for weight tensor. It is a manual
+rescaling weight given to each class. It has to be a Tensor of size C
+ * @param [in]  weight                  Data tensor weight
+ * @param [in]  outputDesc              Tensor descriptor for output tensor. If reduction is 'none,
+then it must have shape (N). Otherwise, it is a scalar.
+ * @param [out] output                  Data tensor output
+ * @param [in]  reduction               Reduction mode. If reduction mode is mean or sum, you must
+ * provide param workspace and workspaceSizeInBytes. Call
+ * miopenGetMultilabelSoftMarginLossForwardWorkspaceSize to get workspaceSizeInBytes
+ * @param [in]  workspace               Address of the allocated workspace data. Set = nullptr if
+reduction = 'none'
+ * @param [in]  workspaceSizeInBytes    Size in bytes of the allocated workspace data. Set = 0 if
+reduction = 'none
+ * @return                              miopenStatus_t
+ */
+miopenStatus_t miopenMultilabelSoftMarginLossForward(miopenHandle_t handle,
+                                                     miopenTensorDescriptor_t inputDesc,
+                                                     const void* input,
+                                                     miopenTensorDescriptor_t targetDesc,
+                                                     const void* target,
+                                                     miopenTensorDescriptor_t weightDesc,
+                                                     const void* weight,
+                                                     miopenTensorDescriptor_t outputDesc,
+                                                     void* output,
+                                                     miopenLossReductionMode_t reduction,
+                                                     void* workspace,
+                                                     size_t workspaceSizeInBytes);
+
+/*! @brief Execute a MultilabelSoftMarginLoss backward layer
+ *
+ * @param [in]  handle                  MIOpen handle
+ * @param [in]  inputDesc               Tensor descriptor for input tensor (N, C) where N is the
+batch size and C is the number of classes.
+ * @param [in]  input                   Data tensor input
+ * @param [in]  targetDesc              Tensor descriptor for target tensor, must have the same
+shape as the input tensor
+ * @param [in]  target                  Data tensor target
+ * @param [in]  weightDesc              Tensor descriptor for weight tensor. It is a manual
+rescaling weight given to each class. It has to be a Tensor of size C
+ * @param [in]  weight                  Data tensor weight
+ * @param [in]  doutputDesc             Tensor descriptor for output gradient
+ * @param [in]  doutput                 Output gradient
+ * @param [in]  dinputDesc              Tensor descriptor for input gradient. It must have the same
+shape as the input tensor
+ * @param [out] dinput                  Input gradient
+ * @param [in]  dweightDesc             Tensor descriptor for weight gradient. It must have the same
+shape as the weight tensor
+ * @param [out] dweight                 Weight gradient
+ * @param [in]  reduction               Reduction mode (none, sum, mean)
+ * @return                              miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenMultilabelSoftMarginLossBackward(miopenHandle_t handle,
+                                       miopenTensorDescriptor_t inputDesc,
+                                       const void* input,
+                                       miopenTensorDescriptor_t targetDesc,
+                                       const void* target,
+                                       miopenTensorDescriptor_t weightDesc,
+                                       const void* weight,
+                                       miopenTensorDescriptor_t doutputDesc,
+                                       const void* doutput,
+                                       miopenTensorDescriptor_t dinputDesc,
+                                       void* dinput,
+                                       miopenTensorDescriptor_t dweightDesc,
+                                       void* dweight,
+                                       miopenLossReductionMode_t reduction);
+
+/** @} */
+// CLOSEOUT LossFunction DOXYGEN GROUP
+#endif
+
 #ifdef __cplusplus
 }
 #endif

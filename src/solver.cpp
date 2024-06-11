@@ -34,6 +34,7 @@
 #include <miopen/pooling/solvers.hpp>
 #include <miopen/reduce/solvers.hpp>
 #include <miopen/mha/solvers.hpp>
+#include <miopen/multilabelsoftmarginloss/solvers.hpp>
 #include <miopen/softmax/solvers.hpp>
 
 #include <miopen/conv_algo_name.hpp>
@@ -648,6 +649,23 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
     Register(registry, ++id, Primitive::Mha, mha::Mha{}.SolverDbId());
     Register(registry, ++id, Primitive::Softmax, softmax::Softmax{}.SolverDbId());
     Register(registry, ++id, Primitive::Softmax, softmax::AttnSoftmax{}.SolverDbId());
+
+    Register(registry,
+             ++id,
+             Primitive::MultilabelSoftMarginLoss,
+             multilabelsoftmarginloss::MultilabelSoftMarginLossUnreducedForward{}.SolverDbId());
+    Register(registry,
+             ++id,
+             Primitive::MultilabelSoftMarginLoss,
+             multilabelsoftmarginloss::MultilabelSoftMarginLossUnreducedBackward{}.SolverDbId());
+    Register(registry,
+             ++id,
+             Primitive::MultilabelSoftMarginLoss,
+             multilabelsoftmarginloss::MultilabelSoftMarginLossForward{}.SolverDbId());
+    Register(registry,
+             ++id,
+             Primitive::MultilabelSoftMarginLoss,
+             multilabelsoftmarginloss::MultilabelSoftMarginLossBackward{}.SolverDbId());
 
     // IMPORTANT: New solvers should be added to the end of the function!
 }

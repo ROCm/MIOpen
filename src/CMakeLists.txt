@@ -142,6 +142,8 @@ set( MIOpen_Source
     lrn_api.cpp
     mha/mha_descriptor.cpp
     mha/problem_description.cpp
+    multilabelsoftmarginloss/problem_description.cpp
+    multilabelsoftmarginloss_api.cpp
     op_args.cpp
     operator.cpp
     performance_config.cpp
@@ -264,6 +266,10 @@ set( MIOpen_Source
     solver/layernorm/forward_layernorm2d_ck.cpp
     solver/layernorm/forward_layernorm4d_ck.cpp
     solver/mha/mha_solver.cpp
+    solver/multilabelsoftmarginloss/backward_reduced_multilabelsoftmarginloss.cpp
+    solver/multilabelsoftmarginloss/backward_unreduced_multilabelsoftmarginloss.cpp
+    solver/multilabelsoftmarginloss/forward_reduced_multilabelsoftmarginloss.cpp
+    solver/multilabelsoftmarginloss/forward_unreduced_multilabelsoftmarginloss.cpp
     solver/pooling/forward2d.cpp
     solver/pooling/forwardNaive.cpp
     solver/pooling/forwardNd.cpp
@@ -421,7 +427,9 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/neuron.inc
         kernels/rocm_version.inc
         kernels/stride_array.hpp
+        kernels/tensor_view.hpp
         kernels/utilities.inc
+        kernels/warp_shuffle.hpp
         kernels/workaround_issue_1431.hpp
         kernels/xform_bidirect_winograd_code.inc
         kernels/xform_data_filter.inc
@@ -456,8 +464,10 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenConvDirGenFwd.cl
         kernels/MIOpenGroupNorm.cpp
         kernels/MIOpenLayerNorm.cpp
+        kernels/MIOpenLossReduce.cpp
         kernels/MIOpenLRNBwd.cl
         kernels/MIOpenLRNFwd.cl
+        kernels/MIOpenMultilabelSoftMarginLoss.cpp
         kernels/MIOpenNeuron.cl
         kernels/MIOpenPooling.cl
         kernels/MIOpenPoolingBwd.cl
@@ -584,6 +594,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         lrn.cpp
         mlo_dir_conv.cpp
         exec_utils.cpp
+        multilabelsoftmarginloss.cpp
         ocl/activ_ocl.cpp
         ocl/batchnormocl.cpp
         ocl/convolutionocl.cpp
