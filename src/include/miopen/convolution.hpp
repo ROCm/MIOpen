@@ -391,7 +391,7 @@ MIOPEN_INTERNALS_EXPORT std::ostream& operator<<(std::ostream& stream,
 MIOPEN_INTERNALS_EXPORT void DumpTensorToFileFromDevice(const miopen::Handle& handle,
                                                         const miopen::TensorDescriptor& tDesc,
                                                         ConstData_t dData,
-                                                        const std::string& filename);
+                                                        const fs::path& filename);
 
 } // namespace miopen
 
