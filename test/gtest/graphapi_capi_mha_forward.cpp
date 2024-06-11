@@ -860,6 +860,10 @@ private:
         {
             tensorDataPtr->m_tensorVariant = tensor<int64_t>{n, h, s, d};
         }
+        else if(dtype == miopenFloat8)
+        {
+            tensorDataPtr->m_tensorVariant = tensor<float8>{n, h, s, d};
+        }
         else
         {
             assert(false);
