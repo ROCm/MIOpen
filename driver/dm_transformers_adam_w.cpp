@@ -33,7 +33,7 @@ static Driver* makeDriver(const std::string& base_arg)
     else if(base_arg == "transformersadamwfp16")
         return new TransformersAdamWDriver<float16, float>();
     else if(base_arg == "transformersampadamw")
-        return new TransformersAdamWDriver<float, float, true, float16>();
+        return new TransformersAdamWDriver<float, float, float16>(true);
     return nullptr;
 }
 
