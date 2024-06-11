@@ -636,5 +636,19 @@ ScaledTensor<T> GenScaledTensor(Dims... nhsd)
     return {val_scaled, scale, descale};
 }
 
+template <typename T, typename... Dims>
+ScaledTensor<T> GenScaledTensorBackward(Dims... nhsd)
+{
+    auto val_full = tensor<T>{nhsd...};
+    val_full.for_each([&](auto... id) {
+        // backward pass is very sensitive to input data due to possible subtraction of
+        // similar values and later significant error amplification
+        val_full(id...) = prng::gen_descreet_uniform_sign<T>(4, 60);
+    });
+    float scale   = 0.5f;
+    float descale = 1.0f / scale;
+    return {val_full, scale, descale};
+};
+
 } // namespace cpu
 } // namespace test

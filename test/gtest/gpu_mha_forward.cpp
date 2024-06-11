@@ -167,15 +167,13 @@ protected:
             tensors[id] = std::move(tmp);
         };
 
-        using ScaledTensor = test::cpu::ScaledTensor<T>;
-
-        ScaledTensor q = test::cpu::GenScaledTensor<T>(n, h, s, d);
+        auto q = test::cpu::GenScaledTensor<T>(n, h, s, d);
         InitTensor(miopenTensorMhaQ, std::move(q.mTensor));
 
-        ScaledTensor k = test::cpu::GenScaledTensor<T>(n, h, s, d);
+        auto k = test::cpu::GenScaledTensor<T>(n, h, s, d);
         InitTensor(miopenTensorMhaK, std::move(k.mTensor));
 
-        ScaledTensor v = test::cpu::GenScaledTensor<T>(n, h, s, d);
+        auto v = test::cpu::GenScaledTensor<T>(n, h, s, d);
         InitTensor(miopenTensorMhaV, std::move(v.mTensor));
 
         float s_scale = 1.f;
@@ -186,11 +184,11 @@ protected:
         // clang-tidy complains about the same expression on both sides of "/": 1.f / 1.f
 
         InitTensor(miopenTensorMhaDescaleQ,
-                   tensor<float>{1, 1, 1, 1}.generate([=](auto...) { return q.mDescale; }));
+                   tensor<float>{1, 1, 1, 1}.generate([&q](auto...) { return q.mDescale; }));
         InitTensor(miopenTensorMhaDescaleK,
-                   tensor<float>{1, 1, 1, 1}.generate([=](auto...) { return k.mDescale; }));
+                   tensor<float>{1, 1, 1, 1}.generate([&k](auto...) { return k.mDescale; }));
         InitTensor(miopenTensorMhaDescaleV,
-                   tensor<float>{1, 1, 1, 1}.generate([=](auto...) { return v.mDescale; }));
+                   tensor<float>{1, 1, 1, 1}.generate([&v](auto...) { return v.mDescale; }));
         InitTensor(miopenTensorMhaDescaleS,
                    tensor<float>{1, 1, 1, 1}.generate([=](auto...) { return s_descale; }));
         InitTensor(miopenTensorMhaScaleS,
