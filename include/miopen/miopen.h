@@ -5873,7 +5873,7 @@ typedef enum
  * @param [in]   dim                      Dimension to calculation.
  * @param [in]   yDesc                    Tensor descriptor for output data tensor y
  * @param [out]  sizeInBytes              Pointer to data to return the minimum workspace size
- * @return                         miopenStatus_t
+ * @return                                miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t
 miopenGetReduceCalculationWorkspaceSize(miopenHandle_t handle,
@@ -5894,7 +5894,7 @@ miopenGetReduceCalculationWorkspaceSize(miopenHandle_t handle,
  * @param [in]   dim                      Dimension to calculation.
  * @param [in]   yDesc                    Tensor descriptor for output data tensor y
  * @param [out]  y                        Data tensor y
- * @return                         miopenStatus_t
+ * @return                                miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t
 miopenReduceCalculationForward(miopenHandle_t handle,
