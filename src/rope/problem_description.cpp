@@ -65,13 +65,21 @@ NetworkConfig ProblemDescriptionFwd::MakeNetworkConfig() const
 
 NetworkConfig ProblemDescriptionBwd::MakeNetworkConfig() const
 {
+    std::ostringstream ss;
+    ss << "rope";
+
+    auto print_strides = [&ss](const TensorDescriptor& desc) {
+        for(const auto& d : desc.GetStrides())
+        {
+            ss << d << "x";
+        }
+    };
+
     auto dxlength = dxDesc.GetLengths();
 
     auto output_numel = std::accumulate(
         dxlength.begin(), dxlength.end(), static_cast<size_t>(1), std::multiplies<size_t>());
     auto dtype = dyDesc.GetType();
-
-    std::ostringstream ss;
 
     print_strides(dyDesc);
     print_strides(cosDesc);
