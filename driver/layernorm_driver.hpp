@@ -144,7 +144,6 @@ public:
 private:
     InputFlags inflags;
 
-    int forw;
     int dim_size;
 
     miopenTensorDescriptor_t inputDesc;
