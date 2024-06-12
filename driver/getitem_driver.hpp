@@ -442,11 +442,12 @@ int GetitemDriver<Tgpu, Tref>::RunBackwardGPU()
         int32_t iter = inflags.GetValueInt("iter");
         if(WALL_CLOCK)
             std::cout << "Wall-clock Time Forward Getitem Elapsed: " << t.gettime_ms() / iter
-                      << " ms\n";
+                      << " ms" << std::endl;
 
         float kernel_average_time =
             iter > 1 ? (kernel_total_time - kernel_first_time) / (iter - 1) : kernel_first_time;
-        std::cout << "GPU Kernel Time Forward Getitem Elapsed: " << kernel_average_time << " ms\n";
+        std::cout << "GPU Kernel Time Forward Getitem Elapsed: " << kernel_average_time << " ms"
+                  << std::endl;
     }
 
     if(dx_dev->FromGPU(GetStream(), dx.data()) != 0)
@@ -529,7 +530,7 @@ int GetitemDriver<Tgpu, Tref>::VerifyBackward()
     }
     else
     {
-        std::cout << "Backward Getitem Verifies OK on CPU and GPU (err=" << error << ")\n";
+        std::cout << "Backward Getitem Verifies OK on CPU and GPU" << std::endl;
     }
 
     return miopenStatusSuccess;

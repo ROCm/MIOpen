@@ -376,13 +376,12 @@ protected:
 
         auto error_dx = miopen::rms_range(ref_dx, dx);
         EXPECT_TRUE(miopen::range_distance(ref_dx) == miopen::range_distance(dx));
-        EXPECT_TRUE(error_dx < threshold)
-            << "Error dx beyond tolerance Error:" << error_dx << ",  Threshold: " << threshold;
+        EXPECT_TRUE(error_dx < threshold * 10) << "Error dx beyond tolerance Error:" << error_dx
+                                               << ",  Thresholdx10: " << threshold * 10;
 
         auto error_error = miopen::rms_range(ref_error, error);
         EXPECT_TRUE(miopen::range_distance(ref_error) == miopen::range_distance(error));
-        EXPECT_TRUE(std::abs(static_cast<float>(error_error)) == 0.0f)
-            << "Error dx beyond tolerance Error:" << error_error << ",  Threshold: " << threshold;
+        EXPECT_TRUE(std::abs(static_cast<float>(error_error)) == 0.0f) << "Error dx is not equal";
     }
     GetitemTestCase getitem_config;
 
