@@ -414,8 +414,8 @@ int InstanceNormDriver<T>::VerifyForward()
     if(!std::isfinite(error_output) || error_output > tolerance || !std::isfinite(error_mean_var) ||
        error_mean_var > tolerance)
     {
-        std::cout << "Forward Instance Norm FAILED: {" << error_output << "," << error_mean_var << "} > "
-                  << tolerance << std::endl;
+        std::cout << "Forward Instance Norm FAILED: {" << error_output << "," << error_mean_var
+                  << "} > " << tolerance << std::endl;
         return EC_VerifyFwd;
     }
     else
