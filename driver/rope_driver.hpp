@@ -166,8 +166,6 @@ public:
 private:
     InputFlags inflags;
 
-    int forw;
-
     miopenTensorDescriptor_t xDesc;
     miopenTensorDescriptor_t cosDesc;
     miopenTensorDescriptor_t sinDesc;
