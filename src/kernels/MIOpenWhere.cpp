@@ -104,7 +104,7 @@ __device__ void WhereConditionBroadcastedContiguousForward_Kernel(const TI* cond
     if(gid >= condition_size)
         return;
 
-    char cond = condition[gid % condition_size + condition_off];
+    char cond = condition[gid + condition_off];
 
     if(cond)
     {
@@ -168,16 +168,17 @@ __device__ void WhereBroadcastedContiguousBackward_Kernel(const TI* condition,
     if(gid >= size)
         return;
 
-    if(input_grad)
+    if(input_grad && gid < input_size)
     {
-        input_grad[gid % input_size + input_grad_off] =
-            output_grad[gid + output_grad_off] * condition[gid % condition_size + condition_off];
+        FLOAT_ACCUM outgrad = CVT_FLOAT2ACCUM(output_grad[gid + output_grad_off]);
+        FLOAT_ACCUM cond = CVT_FLOAT2ACCUM(condition[gid % condition_size + condition_off]);
+        input_grad[gid + input_grad_off] = CVT_ACCUM2FLOAT(outgrad * cond);
     }
-    if(other_grad)
+    if(other_grad && gid < other_size)
     {
-        other_grad[gid % other_size + other_grad_off] =
-            output_grad[gid + output_grad_off] *
-            (static_cast<TO>(1) - condition[gid % condition_size + condition_off]);
+        FLOAT_ACCUM outgrad = CVT_FLOAT2ACCUM(output_grad[gid + output_grad_off]);
+        FLOAT_ACCUM cond = CVT_FLOAT2ACCUM(condition[gid % condition_size + condition_off]);
+        other_grad[gid + other_grad_off] = CVT_ACCUM2FLOAT(outgrad * (1 - cond));
     }
 }
 
@@ -226,21 +227,23 @@ __device__ void WhereConditionBroadcastedContiguousBackward_Kernel(const TI* con
     if(gid >= condition_size)
         return;
 
-    TI cond = condition[gid % condition_size + condition_off];
+    FLOAT_ACCUM cond = CVT_FLOAT2ACCUM(condition[gid + condition_off]);
 
     if(input_grad)
     {
         for(int idx = gid; idx < input_size; idx += condition_size)
         {
-            input_grad[idx + input_grad_off] = output_grad[idx % size + output_grad_off] * cond;
+            FLOAT_ACCUM outgrad = CVT_FLOAT2ACCUM(output_grad[idx % size + output_grad_off]);
+            input_grad[idx + input_grad_off] = CVT_ACCUM2FLOAT(outgrad * cond);
         }
     }
     if(other_grad)
     {
         for(int idx = gid; idx < other_size; idx += condition_size)
         {
+            FLOAT_ACCUM outgrad = CVT_FLOAT2ACCUM(output_grad[idx % size + output_grad_off]);
             other_grad[idx + other_grad_off] =
-                output_grad[idx % size + output_grad_off] * (static_cast<TO>(1) - cond);
+                CVT_ACCUM2FLOAT(outgrad * (1 - cond));
         }
     }
 }
@@ -284,11 +287,15 @@ __device__ void WhereContiguousBackward_Kernel(
 
     if(input_grad)
     {
-        input_grad[gid] = output_grad[gid] * condition[gid];
+        FLOAT_ACCUM outgrad = CVT_FLOAT2ACCUM(output_grad[gid]);
+        FLOAT_ACCUM cond = CVT_FLOAT2ACCUM(condition[gid]);
+        input_grad[gid] = CVT_ACCUM2FLOAT(outgrad * cond);
     }
     if(other_grad)
     {
-        other_grad[gid] = output_grad[gid] * (static_cast<TO>(1) - condition[gid]);
+        FLOAT_ACCUM outgrad = CVT_FLOAT2ACCUM(output_grad[gid]);
+        FLOAT_ACCUM cond = CVT_FLOAT2ACCUM(condition[gid]);
+        other_grad[gid] = CVT_ACCUM2FLOAT(outgrad * (1 - cond));
     }
 }
 

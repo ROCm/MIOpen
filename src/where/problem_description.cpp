@@ -48,11 +48,9 @@ bool isContiguous(const TensorDescriptor& x)
 
 NetworkConfig ForwardProblemDescription::MakeNetworkConfig() const
 {
-    auto inputlength = inputDesc.GetLengths();
-
-    auto input_numel = std::accumulate(
-        inputlength.begin(), inputlength.end(), static_cast<size_t>(1), std::multiplies<size_t>());
-
+    auto input_numel = inputDesc.GetElementSize();
+    auto other_numel = otherDesc.GetElementSize();
+    auto cond_numel = conditionDesc.GetElementSize();
     auto input_dtype  = miopen::GetDataType(inputDesc.GetType());
     auto output_dtype = miopen::GetDataType(outputDesc.GetType());
 
@@ -61,6 +59,8 @@ NetworkConfig ForwardProblemDescription::MakeNetworkConfig() const
     ss << "input_dtype" << input_dtype;
     ss << "output_dtype" << output_dtype;
     ss << "input_numel" << input_numel;
+    ss << "other_numel" << other_numel;
+    ss << "cond_numel" << cond_numel;
     // ss << IsAllPacked();
 
     return NetworkConfig{ss.str()};
@@ -68,20 +68,21 @@ NetworkConfig ForwardProblemDescription::MakeNetworkConfig() const
 
 NetworkConfig BackwardProblemDescription::MakeNetworkConfig() const
 {
-    auto inputlength = inputGradDesc.GetLengths();
+    auto input_grad_numel = inputGradDesc.GetElementSize();
+    auto other_grad_numel = otherGradDesc.GetElementSize();
+    auto cond_numel  = conditionDesc.GetElementSize();
 
-    auto input_numel = std::accumulate(
-        inputlength.begin(), inputlength.end(), static_cast<size_t>(1), std::multiplies<size_t>());
-
-    auto input_dtype     = miopen::GetDataType(inputGradDesc.GetType());
+    auto outputGrad_dtype     = miopen::GetDataType(outputGradDesc.GetType());
     auto inputGrad_dtype = miopen::GetDataType(inputGradDesc.GetType());
 
     std::ostringstream ss;
 
-    ss << "input_dtype" << input_dtype;
     ss << "inputGrad_dtype" << inputGrad_dtype;
-    ss << "input_numel" << input_numel;
-    //ss << IsAllPacked();
+    ss << "outputGrad_dtype" << outputGrad_dtype;
+    ss << "inputGrad_numel" << input_grad_numel;
+    ss << "otherGrad_numel" << other_grad_numel;
+    ss << "cond_numel" << cond_numel;
+    // ss << IsAllPacked();
 
     return NetworkConfig{ss.str()};
 }

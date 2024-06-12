@@ -101,10 +101,9 @@ WhereBackward::GetSolution(const ExecutionContext& context,
     auto other_grad_contig_size  = check_broadcasted_contiguous(other_grad_tv);
     auto output_grad_contig_size = check_broadcasted_contiguous(output_grad_tv);
 
-    auto is_all_contiguous = isTensorViewContiguous(input_grad_tv) &&
-                             isTensorViewContiguous(other_grad_tv) &&
-                             isTensorViewContiguous(cond_tv) &&
-                             isTensorViewContiguous(output_grad_tv);
+    auto is_all_contiguous =
+        isTensorViewContiguous(input_grad_tv) && isTensorViewContiguous(other_grad_tv) &&
+        isTensorViewContiguous(cond_tv) && isTensorViewContiguous(output_grad_tv);
 
     bool is_all_broadcasted_contiguous = cond_contig_size && output_grad_contig_size &&
                                          input_grad_contig_size && other_grad_contig_size;
@@ -133,7 +132,8 @@ WhereBackward::GetSolution(const ExecutionContext& context,
 
     kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
     std::cout << "is_all_broadcasted_contiguous = " << is_all_broadcasted_contiguous
-    << "is_condition_broadcasted = " << is_condition_broadcasted << "is_all_contiguous" << is_all_contiguous << std::endl;
+              << "is_condition_broadcasted = " << is_condition_broadcasted << "is_all_contiguous"
+              << is_all_contiguous << std::endl;
 
     if(is_all_contiguous)
     {

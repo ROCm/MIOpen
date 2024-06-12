@@ -71,32 +71,6 @@ int64_t check_broadcasted_contiguous(miopenTensorDescriptor_t tensorDesc)
     return num_elems;
 }
 
-int findMax(int a, int b, int c)
-{
-    if(a >= b)
-    {
-        if(a >= c)
-        {
-            return a;
-        }
-        else
-        {
-            return c;
-        }
-    }
-    else
-    {
-        if(b >= c)
-        {
-            return b;
-        }
-        else
-        {
-            return c;
-        }
-    }
-}
-
 template <typename Tgpu, typename Tcheck>
 int32_t mloWhereForwardRunHost(miopenTensorDescriptor_t inputDesc,
                                Tgpu* input,
@@ -140,23 +114,16 @@ int32_t mloWhereBackwardRunHost(miopenTensorDescriptor_t outputGradDesc,
                                 miopenTensorDescriptor_t otherGradDesc,
                                 Tcheck* otherGrad)
 {
-    auto input_grad_contig_size = check_broadcasted_contiguous(inputGradDesc);
-    auto other_grad_contig_size = check_broadcasted_contiguous(otherGradDesc);
-    auto cond_contig_size       = check_broadcasted_contiguous(conditionDesc);
-
+    auto input_grad_numel = miopen::deref(inputGradDesc).GetElementSize();
+    auto other_grad_numel = miopen::deref(otherGradDesc).GetElementSize();
+    auto cond_numel       = miopen::deref(conditionDesc).GetElementSize();
     auto output_grad_numel = miopen::deref(outputGradDesc).GetElementSize();
 
-    for(size_t o = 0; o < output_grad_numel; o++)
-    {
-        auto cond = condition[o % cond_contig_size];
-        if(inputGrad)
-        {
-            inputGrad[o % input_grad_contig_size] = outputGrad[o] * cond;
-        }
-        if(otherGrad)
-        {
-            otherGrad[o % other_grad_contig_size] = outputGrad[o] * (static_cast<Tcheck>(1) - cond);
-        }
+    for (size_t i = 0; i < input_grad_numel; i++) {
+        inputGrad[i] = outputGrad[i % output_grad_numel] * condition[i % cond_numel];
+    }
+    for (size_t o = 0; o < other_grad_numel; o++) {
+        otherGrad[o] = outputGrad[o % output_grad_numel] * (1 - condition[o % cond_numel]);
     }
 
     return 0;
@@ -284,15 +251,15 @@ int WhereDriver<Tgpu, Tref>::GetandSetData()
     int in_sz    = in_len.size();
     int other_sz = other_len.size();
     int cond_sz  = cond_len.size();
-    int out_sz   = findMax(in_sz, other_sz, cond_sz);
+    int out_sz   = std::max({in_sz, other_sz, cond_sz});
     std::vector<int> out_len(out_sz);
 
     for(int i = 0; i < out_sz; i++)
     {
-        int InVal               = (in_sz - 1 - i >= 0) ? in_len[in_sz - 1 - i] : 1;
-        int OtherVal            = (other_sz - 1 - i >= 0) ? other_len[other_sz - 1 - i] : 1;
-        int CondVal             = (cond_sz - 1 - i >= 0) ? cond_len[cond_sz - 1 - i] : 1;
-        out_len[out_sz - 1 - i] = findMax(InVal, OtherVal, CondVal);
+        int InVal               = (i < in_sz) ? in_len[i] : 1;
+        int OtherVal            = (i < other_sz) ? other_len[i] : 1;
+        int CondVal             = (i < cond_sz) ? cond_len[i] : 1;
+        out_len[i] = std::max({InVal, OtherVal, CondVal});
     }
 
     SetTensorNd(outputTensor, out_len, data_type);
@@ -314,11 +281,11 @@ int WhereDriver<Tgpu, Tref>::AddCmdLineArgs()
                          "Run only Forward (1) or Run both Forward and Backward (0) (Default=1)",
                          "int");
     inflags.AddInputFlag(
-        "inputDims", 'I', "1,4,2,2", "The dimensional lengths of input tensor", "string");
+        "inputDims", 'I', "1,2,2,2,2", "The dimensional lengths of input tensor", "string");
     inflags.AddInputFlag(
-        "otherDims", 'O', "1,4,2,2", "The dimensional lengths of other tensor", "string");
+        "otherDims", 'O', "1,2,2,2,2", "The dimensional lengths of other tensor", "string");
     inflags.AddInputFlag(
-        "condDims", 'C', "2,4,2,2", "The dimensional lengths of condition tensor", "string");
+        "condDims", 'C', "4,2,2,2,2", "The dimensional lengths of condition tensor", "string");
 
     inflags.AddInputFlag("iter", 'i', "10", "Number of Iterations (Default=10)", "int");
     inflags.AddInputFlag("verify", 'V', "1", "Verify Each Layer (Default=1)", "int");
@@ -695,16 +662,28 @@ int WhereDriver<Tgpu, Tref>::VerifyBackward()
     RunBackwardCPU();
     const Tref tolerance = GetTolerance();
 
-    auto inGradNum = inGradhost.size();
+    auto inGradNum    = inGradhost.size();
     auto otherGradNum = otherGradhost.size();
-    for (int i = 0; i < inGradNum; i++) {
-        if (inGradhost[i] != inGrad[i]) {
-            std::cout << "inGradhost[" << i << "] = " << inGradhost[i] << " " << "inGrad[" << i << "] = " << inGrad[i] << std::endl;
-            std::cout << "outputGrad[" << i << "] = " << outGrad[i] << " cond[" << i << "] = " << cond[i] << std::endl;
+    for(int i = 0; i < inGradNum; i++)
+    {
+        if(inGradhost[i] != inGrad[i])
+        {
+            std::cout << "inGradhost[" << i << "] = " << inGradhost[i] << " "
+                      << "inGrad[" << i << "] = " << inGrad[i] << std::endl;
+            std::cout << "outputGrad[" << i << "] = " << outGrad[i] << " cond[" << i
+                      << "] = " << cond[i] << std::endl;
         }
     }
-    auto error1          = miopen::rms_range(inGradhost, inGrad);
-    auto error2          = miopen::rms_range(otherGradhost, otherGrad);
+    for(int i = 0; i < otherGradNum; i++) {
+        if (otherGradhost[i] != otherGrad[i]) {
+            std::cout << "otherGradhost[" << i << "] = " << otherGradhost[i] << " "
+                      << "otherGrad[" << i << "] = " << otherGrad[i] << std::endl;
+            std::cout << "outputGrad[" << i << "] = " << outGrad[i] << " cond[" << i
+                      << "] = " << cond[i] << std::endl;
+        }
+    }
+    auto error1 = miopen::rms_range(inGradhost, inGrad);
+    auto error2 = miopen::rms_range(otherGradhost, otherGrad);
     if(!std::isfinite(error1) || error1 > tolerance || !std::isfinite(error2) || error2 > tolerance)
     {
         std::cout << "Backward WHERE FAILED: " << error1 << " " << error2 << " > " << tolerance

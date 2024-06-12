@@ -106,18 +106,26 @@ WhereForward::GetSolution(const ExecutionContext& context,
     tensor_view_t<5> cond_tv   = get_inner_expanded_tv<5>(problem.GetConditionDesc());
     tensor_view_t<5> output_tv = get_inner_expanded_tv<5>(problem.GetOutputDesc());
 
+    std:: cout << "input_tv = " << std::endl;
     printTv(input_tv);
+    std::cout << "other_tv = " << std::endl;
     printTv(other_tv);
+    std::cout << "cond_tv = " << std::endl;
     printTv(cond_tv);
+    std::cout << "output_tv = " << std::endl;
     printTv(output_tv);
 
     input_tv = broadcast_to(input_tv, output_tv);
     other_tv = broadcast_to(other_tv, output_tv);
     cond_tv  = broadcast_to(cond_tv, output_tv);
 
+    std::cout << "input_tv after broadcast = " << std::endl;
     printTv(input_tv);
+    std::cout << "other_tv after broadcast = " << std::endl;
     printTv(other_tv);
+    std::cout << "cond_tv after broadcast = " << std::endl;
     printTv(cond_tv);
+    std::cout << "output_tv after broadcast = " << std::endl;
     printTv(output_tv);
 
     auto cond_contig_size  = check_broadcasted_contiguous(cond_tv);

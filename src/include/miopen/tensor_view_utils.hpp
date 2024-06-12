@@ -50,31 +50,11 @@ inline tensor_view_t<N> get_inner_expanded_tv(const TensorDescriptor Desc)
         }
         else
         {
-            tensor_view.stride[i] = (i == 0 ? 1 : strides[i - 1]);
+            tensor_view.stride[i] = (i == 0 ? 1 : tensor_view.stride[i - 1]);
             tensor_view.size[i]   = 1;
         }
     }
     return tensor_view;
-}
-
-template <int N>
-inline void slice_tv(tensor_view_t<N>& tensor_view, int32_t sliceCount, const int32_t* slices)
-{
-    for(int32_t i = 0; i < sliceCount; i++)
-    {
-        int32_t dim   = slices[4 * i + 0];
-        int32_t start = slices[4 * i + 1];
-        int32_t end   = slices[4 * i + 2];
-        int32_t step  = slices[4 * i + 3];
-
-        if(end > static_cast<int32_t>(tensor_view.size[dim]))
-            end = tensor_view.size[dim];
-
-        auto len = end - start;
-
-        tensor_view.size[dim] = (len + step - 1) / step;
-        tensor_view.stride[dim] *= step;
-    }
 }
 
 inline bool isBroadcastable(const TensorDescriptor x, const TensorDescriptor y)
@@ -117,10 +97,12 @@ inline tensor_view_t<N> broadcast_to(const tensor_view_t<N> in, const tensor_vie
 }
 
 template <int N>
-inline bool isTensorViewContiguous(const tensor_view_t<N>& tv) {
+inline bool isTensorViewContiguous(const tensor_view_t<N>& tv)
+{
     size_t planeSize = 1;
-    for (int i = N - 1; i >= 0; i--) {
-        if (tv.stride[i] != planeSize)
+    for(int i = N - 1; i >= 0; i--)
+    {
+        if(tv.stride[i] != planeSize)
             return false;
         planeSize *= tv.size[i];
     }
