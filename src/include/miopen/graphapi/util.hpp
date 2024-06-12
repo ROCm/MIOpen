@@ -67,7 +67,19 @@ Tensor makeTensor(std::string_view name, miopenDataType_t dt, const Vec& dims)
 
     Vec strides(dims);
     using T = typename Vec::value_type;
-    std::exclusive_scan(dims.begin(), dims.end(), strides.begin(), T{1LL}, std::multiplies<T>{});
+    // former std::exclusive_scan(dims.begin(),
+    //                            dims.end(),
+    //                            strides.begin(),
+    //                            T{1LL}, std::multiplies<T>{});
+    // replaced by the loop due to std::exclusive_scan is not supported on gcc older that 11
+    if(!dims.empty())
+    {
+        strides[0] = static_cast<T>(1);
+        for(size_t i = 0; i < dims.size() - 1; ++i)
+        {
+            strides[i + 1] = dims[i] * strides[i];
+        }
+    }
 
     return makeTensor<isVirtual>(name, dt, dims, strides);
 }
