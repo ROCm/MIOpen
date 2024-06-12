@@ -46,7 +46,7 @@ bool BnFwdTrgActivationFused::IsApplicable(const FusionContext& /*context*/,
     const auto& desc = *problem.fusion_plan_desc;
     if(desc.op_map.empty())
         MIOPEN_THROW("");
-    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_BN_FWDTRG_ACTIV_FUSED)))
+    if(env::disabled(MIOPEN_DEBUG_BN_FWDTRG_ACTIV_FUSED))
         return false;
     if(desc.op_map.size() != 2)
         return false;

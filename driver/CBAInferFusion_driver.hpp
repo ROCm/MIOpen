@@ -601,7 +601,7 @@ int CBAInferFusionDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     else
         out_sz = in_sz; // This is for N+A so the output is the same as the input size
 
-    if(miopen::IsEnabled(ENV(MIOPEN_DRIVER_PAD_BUFFERS_2M)))
+    if(env::enabled(MIOPEN_DRIVER_PAD_BUFFERS_2M))
     {
         PadBufferSize(wei_sz, sizeof(Tgpu));
     }
