@@ -26,10 +26,12 @@
 
 #include <miopen/errors.hpp>
 #include <miopen/load_file.hpp>
+
 #include <fstream>
 #include <ios>
 #include <iterator>
 #include <vector>
+#include <sstream>
 
 namespace miopen {
 

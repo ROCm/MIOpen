@@ -74,7 +74,8 @@ public:
                      const std::vector<size_t>& vgd,
                      std::string params            = "",
                      std::size_t cache_index       = 0,
-                     const std::string& kernel_src = "");
+                     const std::string& kernel_src = "",
+                     Program* program_out          = nullptr);
 
     void AddKernel(Key key, Kernel k, std::size_t cache_index);
 

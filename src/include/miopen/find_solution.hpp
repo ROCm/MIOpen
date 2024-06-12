@@ -161,6 +161,38 @@ auto FindSolutionImpl(rank<0>,
     return s.GetSolution(context, problem);
 }
 
+template <class Solver, class Context, class Problem>
+auto GetInvokeFactoryImpl(
+    rank<1>, Solver s, const Context& context, const Problem& problem, const std::string& perf_cfg)
+    -> decltype(s.GetInvokerFactory(context,
+                                    problem,
+                                    s.GetDefaultPerformanceConfig(context, problem)))
+{
+    if(!perf_cfg.empty())
+    {
+        using PerformanceConfig = decltype(s.GetDefaultPerformanceConfig(context, problem));
+        PerformanceConfig config{};
+        config.Deserialize(perf_cfg);
+        if(s.IsValidPerformanceConfig(context, problem, config))
+        {
+            return s.GetInvokerFactory(context, problem, config);
+        }
+        MIOPEN_LOG_WE("Invalid config loaded from Perf Db: " << s.SolverDbId() << ": " << config
+                                                             << ". Performance may degrade.");
+    }
+
+    return s.GetInvokerFactory(context, problem, s.GetDefaultPerformanceConfig(context, problem));
+}
+
+template <class Solver, class Context, class Problem>
+auto GetInvokeFactoryImpl(
+    rank<0>, Solver s, const Context& context, const Problem& problem, const std::string&)
+    -> decltype(s.GetInvokerFactory(context, problem))
+{
+    MIOPEN_LOG_I(s.SolverDbId() << " (not searchable)");
+    return s.GetInvokerFactory(context, problem);
+}
+
 /// Finds optimized Solution. Generic method.
 ///
 /// Given the specific problem config, finds (hopefully) optimal
@@ -191,6 +223,18 @@ ConvSolution FindSolution(Solver s,
         FindSolutionImpl(rank<1>{}, s, context, problem, db_getter, invoke_ctx, perf_cfg, options);
     solution.solver_id = s.SolverDbId();
     return solution;
+}
+
+template <class Solver, class Context, class Problem>
+InvokerFactory GetInvokeFactory(Solver s,
+                                const Context& context,
+                                const Problem& problem,
+                                const std::string& perf_cfg)
+{
+    static_assert(sizeof(Solver) == sizeof(SolverBase), "Solver must be stateless");
+    static_assert(std::is_base_of<SolverBase, Solver>{}, "Not derived class of SolverBase");
+    // TODO: This assumes all solutions are ConvSolution
+    return GetInvokeFactoryImpl(rank<1>{}, s, context, problem, perf_cfg);
 }
 
 template <class... Solvers>
@@ -432,7 +476,7 @@ struct SolverContainer
         const auto network_config = problem.MakeNetworkConfig();
 
         if(const auto existingInvoker =
-               ctx.GetStream().GetInvoker(network_config, boost::none, algo))
+               ctx.GetStream().GetInvoker(network_config, std::nullopt, algo))
         {
             (*existingInvoker)(ctx.GetStream(), invoke_params);
             return;
