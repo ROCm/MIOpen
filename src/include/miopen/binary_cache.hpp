@@ -47,10 +47,10 @@ fs::path LoadBinary(const TargetProperties& target,
                     const fs::path& name,
                     const std::string& args);
 
-void SaveBinary(const fs::path& binary_path,
-                const TargetProperties& target,
-                const fs::path& name,
-                const std::string& args);
+fs::path SaveBinary(const fs::path& binary_path,
+                    const TargetProperties& target,
+                    const fs::path& name,
+                    const std::string& args);
 #else
 std::vector<char> LoadBinary(const TargetProperties& target,
                              std::size_t num_cu,

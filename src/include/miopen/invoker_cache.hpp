@@ -29,12 +29,11 @@
 #include <miopen/errors.hpp>
 #include <miopen/invoker.hpp>
 
-#include <boost/optional.hpp>
-
 #include <map>
 #include <memory>
 #include <string>
 #include <utility>
+#include <optional>
 
 namespace miopen {
 
@@ -44,12 +43,12 @@ public:
     // network_config, solver_id
     using Key = std::pair<std::string, std::string>;
 
-    boost::optional<const Invoker&> operator[](const Key& key) const;
+    std::optional<Invoker> operator[](const Key& key) const;
     // For find 1.0
-    boost::optional<const Invoker&> GetFound1_0(const std::string& network_config,
-                                                const std::string& algorithm) const;
-    boost::optional<const std::string&> GetFound1_0SolverId(const std::string& network_config,
-                                                            const std::string& algorithm) const;
+    std::optional<Invoker> GetFound1_0(const std::string& network_config,
+                                       const std::string& algorithm) const;
+    std::optional<std::string> GetFound1_0SolverId(const std::string& network_config,
+                                                   const std::string& algorithm) const;
 
     void Register(const Key& key, const Invoker& invoker);
     // For find 1.0

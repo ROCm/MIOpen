@@ -66,7 +66,8 @@ std::ostream& operator<<(std::ostream& os, const KernelInfo& k)
     return os << "} '" << k.comp_options << '\'';
 }
 
-std::vector<Program> PrecompileKernels(const Handle& h, const std::vector<KernelInfo>& kernels)
+std::vector<Program>
+PrecompileKernels(const Handle& h, const std::vector<KernelInfo>& kernels, bool force_attach_binary)
 {
     CompileTimer ct;
     std::vector<Program> programs(kernels.size());
@@ -76,14 +77,16 @@ std::vector<Program> PrecompileKernels(const Handle& h, const std::vector<Kernel
                     max_threads{GetTuningThreadsMax()},
                     [&](auto i) {
                         const KernelInfo& k = kernels[i];
-                        programs[i]         = h.LoadProgram(k.kernel_file, k.comp_options, "");
+                        programs[i]         = h.LoadProgram(k.kernel_file, k.comp_options, "", force_attach_binary);
                     });
     // clang-format on
     ct.Log("PrecompileKernels");
     return programs;
 }
 
-void PrecompileSolutions(const Handle& h, const std::vector<const ConvSolution*>& sols)
+void PrecompileSolutions(const Handle& h,
+                         const std::vector<const ConvSolution*>& sols,
+                         bool force_attach_binary)
 {
     // Find all kernels that need to be compiled from the solutions
     std::vector<KernelInfo> kernels;
@@ -99,8 +102,8 @@ void PrecompileSolutions(const Handle& h, const std::vector<const ConvSolution*>
         }
     }
 
-    // Precompile the kernels in parallel, but dont add them to the cache
-    std::vector<Program> programs = PrecompileKernels(h, kernels);
+    // Precompile the kernels in parallel, but don't add them to the cache
+    std::vector<Program> programs = PrecompileKernels(h, kernels, force_attach_binary);
 
     // Add programs to the cache
     for(std::size_t i = 0; i < programs.size(); i++)

@@ -47,6 +47,8 @@ struct HIPOCProgramImpl
 
     HIPOCProgramImpl(const fs::path& program_name, const std::vector<char>& blob);
 
+    HIPOCProgramImpl(const fs::path& program_name, const std::vector<uint8_t>& blob);
+
     HIPOCProgramImpl(const fs::path& program_name,
                      std::string params,
                      const TargetProperties& target_,
