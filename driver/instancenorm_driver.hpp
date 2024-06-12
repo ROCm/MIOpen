@@ -414,13 +414,13 @@ int InstanceNormDriver<T>::VerifyForward()
     if(!std::isfinite(error_output) || error_output > tolerance || !std::isfinite(error_mean_var) ||
        error_mean_var > tolerance)
     {
-        std::cout << "Backward PReLU FAILED: {" << error_output << "," << error_mean_var << "} > "
+        std::cout << "Forward Instance Norm FAILED: {" << error_output << "," << error_mean_var << "} > "
                   << tolerance << std::endl;
         return EC_VerifyFwd;
     }
     else
     {
-        std::cout << "Backward PReLU Verifies OK on CPU reference ({" << error_output << ","
+        std::cout << "Forward Instance Norm Verifies OK on CPU reference ({" << error_output << ","
                   << error_mean_var << "} < " << tolerance << ')' << std::endl;
     }
     return miopenStatusSuccess;
