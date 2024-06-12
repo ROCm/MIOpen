@@ -1,5 +1,6 @@
 find_package(GTest REQUIRED)
 find_package(rocblas)
+find_package(hipblaslt REQUIRED PATHS /opt/rocm $ENV{HIP_PATH})
 
 set(SOURCES
     log.cpp
