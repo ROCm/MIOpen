@@ -444,12 +444,21 @@ KernelInvoke Handle::AddKernel(const std::string& algorithm,
 }
 
 Invoker Handle::PrepareInvoker(const InvokerFactory& factory,
-                               const std::vector<solver::KernelInfo>& kernels) const
+                               const std::vector<solver::KernelInfo>& kernels,
+                               std::vector<Program>* programs_out) const
 {
     std::vector<Kernel> built;
-    for(auto& k : kernels)
+    built.reserve(kernels.size());
+    if(programs_out != nullptr)
+        programs_out->resize(kernels.size());
+
+    for(auto i = 0; i < kernels.size(); ++i)
     {
+        const auto& k        = kernels[i];
+        Program* program_out = programs_out != nullptr ? &(*programs_out)[i] : nullptr;
+
         MIOPEN_LOG_I2("Preparing kernel: " << k.kernel_name);
+
         const auto kernel = this->impl->cache.AddKernel(*this,
                                                         "",
                                                         "",
@@ -458,7 +467,9 @@ Invoker Handle::PrepareInvoker(const InvokerFactory& factory,
                                                         k.l_wk,
                                                         k.g_wk,
                                                         k.comp_options,
-                                                        kernels.size());
+                                                        kernels.size(),
+                                                        "",
+                                                        program_out);
         built.push_back(kernel);
     }
     return factory(built);
@@ -486,7 +497,8 @@ KernelInvoke Handle::Run(Kernel k, bool coop_launch) const
 
 Program Handle::LoadProgram(const fs::path& program_name,
                             std::string params,
-                            const std::string& kernel_src) const
+                            const std::string& kernel_src,
+                            bool force_attach_binary) const
 {
     this->impl->set_ctx();
     std::string arch_name = this->GetTargetProperties().Name();
@@ -535,28 +547,69 @@ Program Handle::LoadProgram(const fs::path& program_name,
             HIPOCProgram{program_name.string(), params, this->GetTargetProperties(), kernel_src};
         ct.Log("Kernel", program_name.string());
 
-// Save to cache
+        // Save to cache
 #if MIOPEN_ENABLE_SQLITE_KERN_CACHE
-        miopen::SaveBinary(p.IsCodeObjectInMemory() ? p.GetCodeObjectBlob()
-                                                    : miopen::LoadFile(p.GetCodeObjectPathname()),
+        std::vector<char> binary;
+        if(!p.IsCodeObjectInMemory())
+            binary = miopen::LoadFile(p.GetCodeObjectPathname());
+
+        miopen::SaveBinary(p.IsCodeObjectInMemory() ? p.GetCodeObjectBlob() : binary,
                            this->GetTargetProperties(),
                            this->GetMaxComputeUnits(),
                            program_name,
                            params);
-#else
-        auto path = miopen::GetCachePath(false) / boost::filesystem::unique_path().string();
-        if(p.IsCodeObjectInMemory())
-            miopen::WriteFile(p.GetCodeObjectBlob(), path);
+
+        if(force_attach_binary && p.IsCodeObjectInTempFile())
+        {
+            MIOPEN_LOG_I2("Attaching a binary to the program for future serialization");
+            p.AttachBinary(std::vector<char>{binary.data(), binary.data() + binary.size()});
+        }
         else
-            fs::copy_file(p.GetCodeObjectPathname(), path);
-        miopen::SaveBinary(path, this->GetTargetProperties(), program_name, params);
-#endif
+        {
+            MIOPEN_LOG_I2("Skipped attaching a binary to the program for future serialization as "
+                          "it is in permanent file storage");
+        }
+
         p.FreeCodeObjectFileStorage();
+#else
+        boost::filesystem::path cache_path;
+
+        // If cache is disabled we don't need to dump binary and move it there
+        if(!miopen::IsCacheDisabled())
+        {
+            auto path = miopen::GetCachePath(false) / boost::filesystem::unique_path();
+            if(p.IsCodeObjectInMemory())
+                miopen::WriteFile(p.GetCodeObjectBlob(), path);
+            else
+                boost::filesystem::copy_file(p.GetCodeObjectPathname(), path);
+            cache_path = miopen::SaveBinary(
+                path, this->GetTargetProperties(), program_name, params, is_kernel_str);
+        }
+
+        if(force_attach_binary && p.IsCodeObjectInTempFile())
+        {
+            MIOPEN_LOG_I2("Attaching a binary to the program for future serialization");
+            if(cache_path.empty())
+                p.AttachBinary(LoadFileAsVector(p.GetCodeObjectPathname()));
+            else
+                p.AttachBinary(std::move(cache_path));
+        }
+
+        p.FreeCodeObjectFileStorage();
+#endif
         return p;
     }
     else
     {
-        return HIPOCProgram{program_name, hsaco};
+        auto p = HIPOCProgram{program_name, hsaco};
+#if MIOPEN_ENABLE_SQLITE_KERN_CACHE
+        if(force_attach_binary)
+        {
+            MIOPEN_LOG_I2("Attaching a binary to the program for future serialization");
+            p.AttachBinary(std::vector<char>{hsaco.data(), hsaco.data() + hsaco.size()});
+        }
+#endif
+        return p;
     }
 }
 
