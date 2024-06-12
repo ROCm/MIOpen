@@ -185,7 +185,7 @@ HIPOCProgramImpl::HIPOCProgramImpl(const fs::path& program_name,
                                    const std::vector<uint8_t>& blob)
     : program(program_name) ///, module(CreateModuleInMem(blob))
 {
-    const auto& arch = miopen::GetStringEnv(ENV(MIOPEN_DEVICE_ARCH));
+    const auto& arch = env::value(MIOPEN_DEVICE_ARCH);
     if(!arch.empty())
         return;
     module = CreateModuleInMem(blob);
