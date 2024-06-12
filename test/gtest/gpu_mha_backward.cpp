@@ -178,36 +178,14 @@ protected:
             tensors[id] = std::move(tmp);
         };
 
-        auto GenScaledTensor = [](auto type, auto... nhsd) {
-            using ResultT = std::decay_t<decltype(type)>;
-            auto val_full = tensor<ResultT>{nhsd...};
-            val_full.for_each([&](auto... id) {
-                // backward pass is very sensible to input data due to possible subtraction of
-                // similar values and later significant error amplification
-                val_full(id...) = prng::gen_descreet_uniform_sign<ResultT>(4, 60);
-            });
-            float scale   = 0.5f;
-            float descale = 1.0f / scale;
-            return std::tuple{val_full, scale, descale};
-        };
+        auto q = test::cpu::GenScaledTensorBackward<T>(n, h, s, d);
+        InitTensor(miopenTensorMhaQ, std::move(q.mTensor));
 
-        float q_scale;
-        float q_descale;
-        tensor<T> q_val;
-        std::tie(q_val, q_scale, q_descale) = GenScaledTensor(T{}, n, h, s, d);
-        InitTensor(miopenTensorMhaQ, std::move(q_val));
+        auto k = test::cpu::GenScaledTensorBackward<T>(n, h, s, d);
+        InitTensor(miopenTensorMhaK, std::move(k.mTensor));
 
-        float k_scale;
-        float k_descale;
-        tensor<T> k_val;
-        std::tie(k_val, k_scale, k_descale) = GenScaledTensor(T{}, n, h, s, d);
-        InitTensor(miopenTensorMhaK, std::move(k_val));
-
-        float v_scale;
-        float v_descale;
-        tensor<T> v_val;
-        std::tie(v_val, v_scale, v_descale) = GenScaledTensor(T{}, n, h, s, d);
-        InitTensor(miopenTensorMhaV, std::move(v_val));
+        auto v = test::cpu::GenScaledTensorBackward<T>(n, h, s, d);
+        InitTensor(miopenTensorMhaV, std::move(v.mTensor));
 
         float s_scale = 1.f;
         // clang-tidy complains about the same expression on both sides of "/": 1.f / 1.f
@@ -218,11 +196,11 @@ protected:
         float o_descale = 1.f; // / o_scale;
 
         InitTensor(miopenTensorMhaDescaleQ,
-                   tensor<float>{1, 1, 1, 1}.generate([=](auto...) { return q_descale; }));
+                   tensor<float>{1, 1, 1, 1}.generate([&q](auto...) { return q.mDescale; }));
         InitTensor(miopenTensorMhaDescaleK,
-                   tensor<float>{1, 1, 1, 1}.generate([=](auto...) { return k_descale; }));
+                   tensor<float>{1, 1, 1, 1}.generate([&k](auto...) { return k.mDescale; }));
         InitTensor(miopenTensorMhaDescaleV,
-                   tensor<float>{1, 1, 1, 1}.generate([=](auto...) { return v_descale; }));
+                   tensor<float>{1, 1, 1, 1}.generate([&v](auto...) { return v.mDescale; }));
         InitTensor(miopenTensorMhaDescaleS,
                    tensor<float>{1, 1, 1, 1}.generate([=](auto...) { return s_descale; }));
         InitTensor(miopenTensorMhaScaleS,
@@ -251,9 +229,9 @@ protected:
             softmax,
             mDesc,
             zInvDesc,
-            q_descale,
-            k_descale,
-            v_descale,
+            q.mDescale,
+            k.mDescale,
+            v.mDescale,
             s_descale,
             s_scale,
             o_scale,
@@ -266,11 +244,8 @@ protected:
             amaxO,
             oDesc);
 
-        float dO_scale;
-        float dO_descale;
-        tensor<dO_T> dO_val;
-        std::tie(dO_val, dO_scale, dO_descale) = GenScaledTensor(dO_T{}, n, h, s, d);
-        InitTensor(miopenTensorMhaDO, std::move(dO_val));
+        auto dO = test::cpu::GenScaledTensorBackward<dO_T>(n, h, s, d);
+        InitTensor(miopenTensorMhaDO, std::move(dO.mTensor));
 
         InitTensor(miopenTensorMhaO, std::move(oDesc));
         InitTensor(miopenTensorMhaM, std::move(mDesc));
@@ -287,7 +262,7 @@ protected:
         InitTensor(miopenTensorMhaDescaleO,
                    tensor<float>{1, 1, 1, 1}.generate([=](auto...) { return o_descale; }));
         InitTensor(miopenTensorMhaDescaleDO,
-                   tensor<float>{1, 1, 1, 1}.generate([=](auto...) { return dO_descale; }));
+                   tensor<float>{1, 1, 1, 1}.generate([&dO](auto...) { return dO.mDescale; }));
         InitTensor(miopenTensorMhaDescaleDS,
                    tensor<float>{1, 1, 1, 1}.generate([=](auto...) { return dS_descale; }));
         InitTensor(miopenTensorMhaScaleDS,
@@ -323,9 +298,9 @@ protected:
             std::get<tensor<T>>(tensors[miopenTensorMhaO]->m_cpu_tensor),
             std::get<tensor<dO_T>>(tensors[miopenTensorMhaDO]->m_cpu_tensor),
             softmax,
-            q_descale,
-            k_descale,
-            v_descale,
+            q.mDescale,
+            k.mDescale,
+            v.mDescale,
             dQ_scale,
             dK_scale,
             dV_scale,
@@ -334,7 +309,7 @@ protected:
             dS_scale,
             dS_descale,
             o_descale,
-            dO_descale,
+            dO.mDescale,
             amax_dS_ref,
             amax_dQ_ref,
             amax_dK_ref,

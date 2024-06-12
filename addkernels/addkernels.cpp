@@ -114,7 +114,7 @@ void PrintHelp()
 
 [[noreturn]] void WrongUsage(std::string_view error)
 {
-    std::cout << "Wrong usage: " << error << "\n";
+    std::cout << "Wrong usage: " << error << "\n" << std::endl;
     PrintHelp();
     // NOLINTNEXTLINE (concurrency-mt-unsafe)
     std::exit(1);
@@ -209,8 +209,8 @@ int main(int argc, char* argv[])
         return 2;
     }
 
-    // Prerequisites: the configuration to establish with command line options
-    //                before running the algorithm.
+    // The configuration to establish with command line options
+    // before running the algorithm.
 
     std::string guard;
     size_t bufferSize = 512;
@@ -219,11 +219,11 @@ int main(int argc, char* argv[])
     std::string targetFile;
     std::vector<fs::path> sourceFiles;
 
-    bool recurse         = true;
-    bool as_extern       = false;
-    bool mark_includes   = false;
+    bool recurse       = true;
+    bool as_extern     = false;
+    bool mark_includes = false;
 
-    // Step 1: parse command line options to establish configuration
+    // Parse command line options to establish configuration
 
     int i = 0;
     while(++i < argc)
@@ -274,7 +274,7 @@ int main(int argc, char* argv[])
         }
     }
 
-    // Step 2: execute the algorithm on established configuration
+    // Execute the algorithm on the established configuration
 
     if(sourceFiles.empty())
         WrongUsage("'source' option is required");
