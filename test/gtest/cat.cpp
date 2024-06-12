@@ -29,11 +29,13 @@
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 
+namespace env = miopen::env;
+
 namespace cat {
 
 std::string GetFloatArg()
 {
-    const auto& tmp = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
+    const auto tmp = env::value(MIOPEN_TEST_FLOAT_ARG);
     if(tmp.empty())
     {
         return "";
@@ -50,7 +52,7 @@ using namespace cat;
 
 TEST_P(CatTestFloat, CatTestFw)
 {
-    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float"))
+    if(env::enabled(MIOPEN_TEST_ALL) && (GetFloatArg() == "--float"))
     {
         RunTest();
         Verify();

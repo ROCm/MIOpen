@@ -7,7 +7,10 @@
 #include <iostream>
 #include <random>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_DRIVER_PRNG_SEED, uint64_t, 12345678)
+MIOPEN_DECLARE_ENV_VAR_UINT64(MIOPEN_DEBUG_DRIVER_PRNG_SEED, 12345678)
+
+namespace env = miopen::env;
+
 namespace prng {
 namespace details {
 using glibc_gen = std::linear_congruential_engine<std::uint32_t, 1103515245, 12345, 2147483648>;
@@ -15,7 +18,7 @@ using glibc_gen = std::linear_congruential_engine<std::uint32_t, 1103515245, 123
 inline std::random_device::result_type get_default_seed()
 {
     static std::random_device::result_type seed{[] {
-        auto external_seed = miopen::Value(ENV(MIOPEN_DEBUG_DRIVER_PRNG_SEED));
+        auto external_seed = env::value(MIOPEN_DEBUG_DRIVER_PRNG_SEED);
 
         auto seed = external_seed == 0
                         ? std::random_device{}()
