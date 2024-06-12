@@ -80,6 +80,7 @@ miopen::HipEventPtr make_hip_fast_event()
 bool MhaBackward::IsApplicable([[maybe_unused]] const ExecutionContext& context,
                                const miopen::mha::ProblemDescription& problem) const
 {
+#if MIOPEN_USE_GEMM
     // It's important to have this check before problem.GetDescsBackward() call
     if(problem.IsForward())
     {
@@ -90,8 +91,7 @@ bool MhaBackward::IsApplicable([[maybe_unused]] const ExecutionContext& context,
 
     auto [N, H, S, D] = miopen::tien<4>(descsBwd.kDesc.GetLengths());
 
-    return MIOPEN_USE_GEMM                                            //
-           && !env::disabled(MIOPEN_DEBUG_ATTN_NAIVE_BWD)             //
+    return !env::disabled(MIOPEN_DEBUG_ATTN_NAIVE_BWD)                //
            && S <= std::numeric_limits<uint32_t>::max()               //
            && D <= std::numeric_limits<uint32_t>::max()               //
            && descsBwd.kDesc.IsPacked()                               //
@@ -120,6 +120,9 @@ bool MhaBackward::IsApplicable([[maybe_unused]] const ExecutionContext& context,
                || (USE_ROCBLAS_EX3                                    //
                    && (MIOPEN_FP8_IEEE_EXPONENT_BIAS == 0)            //
                    && (descsBwd.doDesc.GetType() == miopenBFloat8))); //
+#else
+    return false;
+#endif
 }
 
 std::size_t MhaBackward::GetWorkspaceSize([[maybe_unused]] const ExecutionContext& context,
