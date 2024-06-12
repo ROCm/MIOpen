@@ -35,6 +35,8 @@
 #include <miopen/perf_field.hpp>
 #include <miopen/ramdb.hpp>
 #include <miopen/readonlyramdb.hpp>
+#include <miopen/solution.hpp>
+#include <miopen/conv/solver_finders.hpp>
 
 #include <boost/optional.hpp>
 
@@ -145,30 +147,41 @@ public:
     bool empty() const { return !content.is_initialized(); }
 
     template <class TProblemDescription>
-    static std::vector<PerfField> TryLoad(Handle& handle,
-                                          const TProblemDescription& problem,
-                                          const std::function<bool(DbRecord&)>& regenerator,
-                                          const std::string& path_suffix = "")
+    static std::vector<Solution> TryLoad(Handle& handle,
+                                         const TProblemDescription& problem,
+                                         const std::function<FindCoreResult()>& regenerator,
+                                         const std::string& path_suffix = "")
     {
-        auto ret = std::vector<PerfField>{};
         FindDbRecord_t<TDb> record{handle, problem, path_suffix};
 
         const auto network_config = problem.MakeNetworkConfig();
 
         if(record.in_sync && !record.Validate(handle, network_config))
         {
-            record.CopyTo(ret);
-            return ret;
+            auto solutions = std::vector<Solution>{};
+            record.CopyTo(solutions);
+            return solutions;
         }
 
         MIOPEN_LOG_I("Find-db regenerating.");
-        ret.clear();
         record.in_sync = false;
         record.content.emplace(DbKinds::FindDb, problem);
-        record.dont_store = !regenerator(*record.content);
-        record.CopyTo(ret);
 
-        return ret;
+        const auto result = regenerator();
+        record.dont_store = !result.is_optimal;
+
+        if(record.dont_store)
+            return result.solutions;
+
+        for(const auto& solution : result.solutions)
+        {
+            const auto algo = solution.GetSolver().GetAlgo(problem.GetDirection());
+            record.content->SetValues(
+                solution.GetSolver().ToString(),
+                FindDbData{solution.GetTime(), solution.GetWorkspaceSize(), algo});
+        }
+
+        return result.solutions;
     }
 
 private:
@@ -186,7 +199,7 @@ private:
 
     // Returns true if rebuild is required
     bool Validate(Handle& handle, const NetworkConfig& config) const;
-    void CopyTo(std::vector<PerfField>& to) const;
+    void CopyTo(std::vector<Solution>& to) const;
 
     void LogFindDbItem(const std::pair<std::string, FindDbData>& item) const;
 };

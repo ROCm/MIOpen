@@ -182,6 +182,16 @@ HIPOCProgramImpl::HIPOCProgramImpl(const fs::path& program_name, const std::vect
 }
 
 HIPOCProgramImpl::HIPOCProgramImpl(const fs::path& program_name,
+                                   const std::vector<uint8_t>& blob)
+    : program(program_name) ///, module(CreateModuleInMem(blob))
+{
+    const auto& arch = miopen::GetStringEnv(ENV(MIOPEN_DEVICE_ARCH));
+    if(!arch.empty())
+        return;
+    module = CreateModuleInMem(blob);
+}
+
+HIPOCProgramImpl::HIPOCProgramImpl(const fs::path& program_name,
                                    std::string params,
                                    const TargetProperties& target_,
                                    const std::string& kernel_src)
@@ -343,6 +353,11 @@ HIPOCProgram::HIPOCProgram(const fs::path& program_name, const std::vector<char>
 {
 }
 
+HIPOCProgram::HIPOCProgram(const fs::path& program_name, const std::vector<uint8_t>& hsaco)
+    : impl(std::make_shared<HIPOCProgramImpl>(program_name, hsaco))
+{
+}
+
 hipModule_t HIPOCProgram::GetModule() const { return impl->module.get(); }
 
 fs::path HIPOCProgram::GetCodeObjectPathname() const
@@ -357,14 +372,30 @@ fs::path HIPOCProgram::GetCodeObjectPathname() const
     }
 }
 
-std::vector<char> HIPOCProgram::GetCodeObjectBlob() const { return impl->binary; }
+const std::vector<char>& HIPOCProgram::GetCodeObjectBlob() const { return impl->binary; }
 
-void HIPOCProgram::FreeCodeObjectFileStorage() const
+void HIPOCProgram::FreeCodeObjectFileStorage()
 {
-    impl->dir.reset();
-    impl->hsaco_file.clear();
+    if(impl->dir.has_value())
+    {
+        impl->dir.reset();
+        impl->hsaco_file.clear();
+    }
 }
 
 bool HIPOCProgram::IsCodeObjectInMemory() const { return !impl->binary.empty(); };
+
+bool HIPOCProgram::IsCodeObjectInFile() const { return !impl->hsaco_file.empty(); }
+
+bool HIPOCProgram::IsCodeObjectInTempFile() const { return impl->dir.has_value(); }
+
+void HIPOCProgram::AttachBinary(std::vector<char> binary) { impl->binary = std::move(binary); }
+
+void HIPOCProgram::AttachBinary(fs::path binary)
+{
+    if(impl->hsaco_file != binary)
+        impl->dir = boost::none;
+    impl->hsaco_file = std::move(binary);
+}
 
 } // namespace miopen

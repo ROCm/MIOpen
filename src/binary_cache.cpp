@@ -215,20 +215,22 @@ fs::path LoadBinary(const TargetProperties& target,
     }
 }
 
-void SaveBinary(const fs::path& binary_path,
-                const TargetProperties& target,
-                const fs::path& name,
-                const std::string& args)
+fs::path SaveBinary(const fs::path& binary_path,
+                    const TargetProperties& target,
+                    const fs::path& name,
+                    const std::string& args)
 {
     if(miopen::IsCacheDisabled())
     {
         fs::remove(binary_path);
+        return {};
     }
     else
     {
         auto p = GetCacheFile(target.DbId(), name, args);
         fs::create_directories(p.parent_path());
         fs::rename(binary_path, p);
+        return p;
     }
 }
 #endif

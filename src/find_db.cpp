@@ -253,12 +253,11 @@ bool FindDbRecord_t<TDb>::Validate(Handle& handle, const NetworkConfig& config) 
 }
 
 template <class TDb>
-void FindDbRecord_t<TDb>::CopyTo(std::vector<PerfField>& to) const
+void FindDbRecord_t<TDb>::CopyTo(std::vector<Solution>& to) const
 {
     const auto range = content->As<FindDbData>();
     std::transform(range.begin(), range.end(), std::back_inserter(to), [](const auto& pair) {
-        return PerfField{
-            pair.second.algorithm, pair.first, pair.second.time, pair.second.workspace};
+        return Solution{solver::Id{pair.first}, pair.second.time, pair.second.workspace};
     });
 }
 

@@ -143,6 +143,14 @@ struct MIOPEN_INTERNALS_EXPORT ConvolutionAttribute
     friend void from_json(const nlohmann::json& json, ConvolutionAttribute& conv);
 };
 
+struct Solution;
+
+std::vector<Solution> FindConvolution(const ExecutionContext& ctx,
+                                      const conv::ProblemDescription& problem,
+                                      const AnyInvokeParams& invoke_ctx,
+                                      int requestAlgoCount,
+                                      bool force_attach_binary);
+
 struct MIOPEN_INTERNALS_EXPORT ConvolutionDescriptor : miopenConvolutionDescriptor
 {
     ConvolutionDescriptor(std::size_t spatial_dim,
