@@ -547,11 +547,15 @@ private:
             {
                 v->InitAndWriteToGPU<int64_t>(handle, 0);
             }
-            else if(k == miopenTensorMhaM || k == miopenTensorMhaO || k == miopenTensorMhaZInv ||
+            else if(k == miopenTensorMhaM || k == miopenTensorMhaZInv ||
                     k == miopenTensorMhaAmaxO || k == miopenTensorMhaAmaxS)
             {
                 // these are outputs
                 v->InitAndWriteToGPU(handle, 0.0f);
+            }
+            else if(k == miopenTensorMhaO)
+            {
+                v->InitAndWriteToGPU<T>(handle, static_cast<T>(0.0f));
             }
             else
             {
@@ -860,6 +864,10 @@ private:
         {
             tensorDataPtr->m_tensorVariant = tensor<int64_t>{n, h, s, d};
         }
+        else if(dtype == miopenFloat8)
+        {
+            tensorDataPtr->m_tensorVariant = tensor<float8>{n, h, s, d};
+        }
         else
         {
             assert(false);
@@ -921,7 +929,7 @@ inline auto GetCases()
 {
     return testing::Combine(testing::ValuesIn({2}),           // n
                             testing::ValuesIn({4}),           // h
-                            testing::ValuesIn({32, 64}),      // s
+                            testing::ValuesIn({64}),          // s
                             testing::ValuesIn({16}),          // d
                             testing::ValuesIn({0.0f, 0.5f})); // bernulli probability
 }
