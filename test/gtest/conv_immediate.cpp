@@ -280,22 +280,23 @@ template <miopen::conv::Direction direction,
           miopenTensorLayout_t tensor_layout>
 struct TypeDefs
 {
-    static constexpr miopen::conv::Direction get_direction() { return direction; };
-    typedef TREF TRef;
-    typedef TOUT Tout;
-    static constexpr miopenTensorLayout_t get_tensor_layout() { return tensor_layout; };
+    static constexpr miopen::conv::Direction Direction = direction;
+    using TRef                                         = TREF;
+    using Tout                                         = TOUT;
+    static constexpr miopenTensorLayout_t Layout       = tensor_layout;
 };
 
 template <class Types>
 class ReferenceConv2d : public ReferenceConvBase
 {
 protected:
-    template <miopen::conv::Direction direction,
-              typename TRef,
-              typename Tout,
-              miopenTensorLayout_t tensor_layout>
     void run()
     {
+        static constexpr auto direction     = Types::Direction;
+        using TRef                          = typename Types::TRef;
+        using Tout                          = typename Types::Tout;
+        static constexpr auto tensor_layout = Types::Layout;
+
         auto run_conv_2d = [&](int n,
                                int wi,
                                int hi,
@@ -589,28 +590,23 @@ protected:
     TypeDefs<miopen::conv::Direction::BackwardWeights,  bfloat16,   bfloat16,   layout>
 // clang-format on
 
-typedef ::testing::Types<MakeTypeDefs(miopenTensorNCHW), MakeTypeDefs(miopenTensorNHWC)>
-    Implementations2d;
+using Implementations2d =
+    ::testing::Types<MakeTypeDefs(miopenTensorNCHW), MakeTypeDefs(miopenTensorNHWC)>;
 
 TYPED_TEST_CASE(ReferenceConv2d, Implementations2d);
 
-TYPED_TEST(ReferenceConv2d, Test)
-{
-    typedef typename TypeParam::TRef TRef;
-    typedef typename TypeParam::Tout Tout;
-
-    this->template run<TypeParam::get_direction(), TRef, Tout, TypeParam::get_tensor_layout()>();
-}
+TYPED_TEST(ReferenceConv2d, Test) { this->run(); }
 
 template <class Types>
 struct ReferenceConv3d : ReferenceConvBase
 {
-    template <miopen::conv::Direction direction,
-              typename TRef,
-              typename Tout,
-              miopenTensorLayout_t tensor_layout>
     void run()
     {
+        static constexpr auto direction     = Types::Direction;
+        using TRef                          = typename Types::TRef;
+        using Tout                          = typename Types::Tout;
+        static constexpr auto tensor_layout = Types::Layout;
+
         auto run_conv_3d = [&](int n,
                                int di,
                                int wi,
@@ -890,15 +886,9 @@ struct ReferenceConv3d : ReferenceConvBase
     }
 };
 
-typedef ::testing::Types<MakeTypeDefs(miopenTensorNCDHW), MakeTypeDefs(miopenTensorNDHWC)>
-    Implementations3d;
+using Implementations3d =
+    ::testing::Types<MakeTypeDefs(miopenTensorNCDHW), MakeTypeDefs(miopenTensorNDHWC)>;
 
 TYPED_TEST_CASE(ReferenceConv3d, Implementations3d);
 
-TYPED_TEST(ReferenceConv3d, Test)
-{
-    typedef typename TypeParam::TRef TRef;
-    typedef typename TypeParam::Tout Tout;
-
-    this->template run<TypeParam::get_direction(), TRef, Tout, TypeParam::get_tensor_layout()>();
-}
+TYPED_TEST(ReferenceConv3d, Test) { this->run(); }
