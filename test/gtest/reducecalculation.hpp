@@ -244,12 +244,18 @@ protected:
 
     void Verify()
     {
-        double threshold = std::numeric_limits<T>::epsilon();
-        auto error       = miopen::rms_range(ref_output, output);
+        // Computation error of fp16 is ~2^13 (=8192) bigger than
+        // the one of fp32 because mantissa is shorter by 13 bits.
+        auto threshold = std::is_same<T, float>::value ? 1.5e-5 : 8.2e-2;
+
+        // bf16 mantissa has 7 bits, by 3 bits shorter than fp16.
+        if(std::is_same<T, bfloat16>::value)
+            threshold *= 8.0;
+        auto error = miopen::rms_range(ref_output, output);
 
         EXPECT_TRUE(miopen::range_distance(ref_output) == miopen::range_distance(output));
-        EXPECT_TRUE(error < threshold * 10) << "Error output beyond tolerance Error:" << error
-                                            << ",  Thresholdx10: " << threshold * 10;
+        EXPECT_TRUE(error < threshold)
+            << "Error output beyond tolerance Error:" << error << ",  Threshold: " << threshold;
     }
     ReduceCalculationTestCase reducecalculation_config;
 
