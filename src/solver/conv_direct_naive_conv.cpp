@@ -127,7 +127,7 @@ std::string ConvDirectNaiveConvKernelName(const ProblemDescription& problem)
 
     /// \todo remove packed reference convolution kernels --amberhassaan
 #ifndef NDEBUG // enable in debug mode only
-    if(miopen::IsEnabled(ENV(MIOPEN_DEBUG_CONV_DIRECT_NAIVE_USE_PACKED_KERNELS)))
+    if(env::enabled(MIOPEN_DEBUG_CONV_DIRECT_NAIVE_USE_PACKED_KERNELS))
     {
         kernel_name << "naive_conv_packed_";
     }
@@ -240,8 +240,8 @@ std::string ConvDirectNaiveConvKernelFile(const ExecutionContext& ctx,
 std::string ConvDirectNaiveConvCompileOption(const ExecutionContext& ctx,
                                              const ProblemDescription& problem)
 {
-    std::string filename = ConvDirectNaiveConvKernelFile(ctx, problem);
-    if(miopen::EndsWith(filename, ".s"))
+    fs::path filename = ConvDirectNaiveConvKernelFile(ctx, problem);
+    if(filename.extension() == ".s")
     {
         std::ostringstream options;
         GenerateClangDefsym(options, "ROCM_METADATA_VERSION", 5);
@@ -332,6 +332,785 @@ void conv_internal::DebugPrintTensorStrides(const TensorDescriptor& inDesc,
     printOneStrideVec("outDesc = ", outDesc.GetStrides());
 }
 
+namespace conv_internal {
+::miopen::solver::ConvSolution
+GetConv2DFWDSolution(const ExecutionContext& ctx, const ::miopen::conv::ProblemDescription& problem)
+{
+    ::miopen::solver::ConvSolution result;
+
+    int hi          = ProblemInterpreter::GetInputHeightHi(problem);
+    int wi          = ProblemInterpreter::GetInputWidthWi(problem);
+    int n           = ProblemInterpreter::GetBatchN(problem);
+    int k           = ProblemInterpreter::GetOutputChannelK(problem);
+    int c           = ProblemInterpreter::GetInputChannelC(problem);
+    int ho          = ProblemInterpreter::GetOutputHeightHo(problem);
+    int wo          = ProblemInterpreter::GetOutputWidthWo(problem);
+    int sy          = ProblemInterpreter::GetAdjustedConvolutionStrideH(problem);
+    int sx          = ProblemInterpreter::GetAdjustedConvolutionStrideW(problem);
+    int dy          = ProblemInterpreter::GetAdjustedConvolutionDilationH(problem);
+    int dx          = ProblemInterpreter::GetAdjustedConvolutionDilationW(problem);
+    int py          = ProblemInterpreter::GetInputLeftPadH(problem);
+    int px          = ProblemInterpreter::GetInputLeftPadW(problem);
+    int fy          = ProblemInterpreter::GetFilterHeightY(problem);
+    int fx          = ProblemInterpreter::GetFilterWidthX(problem);
+    int group       = ProblemInterpreter::GetGroupCountG(problem);
+    int c_per_group = c / group;
+    int k_per_group = k / group;
+
+    size_t block_size = 256;
+    size_t grid_size  = 1;
+    if(problem.IsLayoutDefault())
+    {
+        grid_size = static_cast<size_t>(n) * k;
+    }
+    else if(problem.IsLayoutNHWC())
+    {
+        grid_size = static_cast<size_t>(group) * n * ho;
+    }
+    else
+        MIOPEN_THROW("Unsupported layout");
+
+    KernelInfo kernel;
+
+    kernel.kernel_file = ConvDirectNaiveConvKernelFile(ctx, problem);
+    kernel.kernel_name = ConvDirectNaiveConvKernelName(problem);
+    kernel.g_wk.clear();
+
+    kernel.g_wk.push_back(grid_size * block_size);
+    kernel.g_wk.push_back(1);
+    kernel.g_wk.push_back(1);
+    kernel.l_wk.clear();
+    kernel.l_wk.push_back(block_size);
+    kernel.l_wk.push_back(1);
+    kernel.l_wk.push_back(1);
+
+    const auto is_f8 = (kernel.kernel_file == "fp8_naive_conv.cpp");
+
+    kernel.comp_options = ConvDirectNaiveConvCompileOption(ctx, problem);
+
+    int G_stride_idx = GetGroupStrideIndex(problem);
+
+    result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
+        const auto kern = kernels[0];
+        return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
+            decltype(auto) data_ctx =
+                primitive_parameters.CastTo<::miopen::conv::DataInvokeParams>();
+            const auto& tensors = data_ctx.tensors;
+            float elapsed       = 0;
+            auto in_strides     = MakeStrideArray<5>(
+                SplitStrideCtoGC(group, tensors.inDesc.GetStrides(), G_stride_idx));
+            // For weights, we split K to (G, K_per_group), which is always index 0
+            auto wei_strides =
+                MakeStrideArray<5>(SplitWeiStrideKtoGK(k_per_group, tensors.wDesc.GetStrides()));
+            auto out_strides = MakeStrideArray<5>(
+                SplitStrideCtoGC(group, tensors.outDesc.GetStrides(), G_stride_idx));
+            if(is_f8)
+            {
+                handle.Run(kern)(tensors.in,
+                                 tensors.w,
+                                 tensors.out,
+                                 in_strides,
+                                 wei_strides,
+                                 out_strides,
+                                 hi,
+                                 wi,
+                                 n,
+                                 k_per_group,
+                                 c_per_group,
+                                 ho,
+                                 wo,
+                                 sy,
+                                 sx,
+                                 dy,
+                                 dx,
+                                 py,
+                                 px,
+                                 fy,
+                                 fx,
+                                 group,
+                                 problem.GetConv().attribute.fp8rounding_mode.Get() ==
+                                     miopenF8RoundingModeStochastic,
+                                 problem.GetConv().attribute.fp8rounding_mode.GetSeed());
+            }
+            else
+            {
+                double alpha_val = data_ctx.alpha.GetAsDouble();
+                double beta_val  = data_ctx.beta.GetAsDouble();
+                handle.Run(kern)(tensors.in,
+                                 tensors.w,
+                                 alpha_val,
+                                 beta_val,
+                                 tensors.out,
+                                 in_strides,
+                                 wei_strides,
+                                 out_strides,
+                                 hi,
+                                 wi,
+                                 n,
+                                 k_per_group,
+                                 c_per_group,
+                                 ho,
+                                 wo,
+                                 sy,
+                                 sx,
+                                 dy,
+                                 dx,
+                                 py,
+                                 px,
+                                 fy,
+                                 fx,
+                                 group);
+            }
+            if(handle.IsProfilingEnabled())
+                elapsed += handle.GetKernelTime();
+            if(handle.IsProfilingEnabled())
+            {
+                handle.ResetKernelTime();
+                handle.AccumKernelTime(elapsed);
+            }
+        };
+    };
+
+    result.construction_params.push_back(kernel);
+    return result;
+}
+
+::miopen::solver::ConvSolution
+GetConv3DFWDSolution(const ExecutionContext& ctx, const ::miopen::conv::ProblemDescription& problem)
+{
+    ::miopen::solver::ConvSolution result;
+
+    int di          = ProblemInterpreter::GetInputDepthDi(problem);
+    int hi          = ProblemInterpreter::GetInputHeightHi(problem);
+    int wi          = ProblemInterpreter::GetInputWidthWi(problem);
+    int n           = ProblemInterpreter::GetBatchN(problem);
+    int k           = ProblemInterpreter::GetOutputChannelK(problem);
+    int c           = ProblemInterpreter::GetInputChannelC(problem);
+    int do_         = ProblemInterpreter::GetOutputDepthDo(problem);
+    int ho          = ProblemInterpreter::GetOutputHeightHo(problem);
+    int wo          = ProblemInterpreter::GetOutputWidthWo(problem);
+    int sz          = ProblemInterpreter::GetAdjustedConvolutionStrideD(problem);
+    int sy          = ProblemInterpreter::GetAdjustedConvolutionStrideH(problem);
+    int sx          = ProblemInterpreter::GetAdjustedConvolutionStrideW(problem);
+    int dz          = ProblemInterpreter::GetAdjustedConvolutionDilationD(problem);
+    int dy          = ProblemInterpreter::GetAdjustedConvolutionDilationH(problem);
+    int dx          = ProblemInterpreter::GetAdjustedConvolutionDilationW(problem);
+    int pz          = ProblemInterpreter::GetInputLeftPadD(problem);
+    int py          = ProblemInterpreter::GetInputLeftPadH(problem);
+    int px          = ProblemInterpreter::GetInputLeftPadW(problem);
+    int fz          = ProblemInterpreter::GetFilterDepthZ(problem);
+    int fy          = ProblemInterpreter::GetFilterHeightY(problem);
+    int fx          = ProblemInterpreter::GetFilterWidthX(problem);
+    int group       = ProblemInterpreter::GetGroupCountG(problem);
+    int c_per_group = c / group;
+    int k_per_group = k / group;
+
+    size_t block_size = 256;
+    size_t grid_size  = 1;
+    if(problem.IsLayoutDefault())
+    {
+        grid_size = static_cast<size_t>(n) * k;
+    }
+    else if(problem.IsLayoutNHWC())
+    {
+        grid_size = static_cast<size_t>(group) * n * do_;
+    }
+    else
+        MIOPEN_THROW("Unsupported layout");
+
+    KernelInfo kernel;
+
+    kernel.kernel_file = ConvDirectNaiveConvKernelFile(ctx, problem);
+    kernel.kernel_name = ConvDirectNaiveConvKernelName(problem);
+    kernel.g_wk.clear();
+
+    kernel.g_wk.push_back(grid_size * block_size);
+    kernel.g_wk.push_back(1);
+    kernel.g_wk.push_back(1);
+    kernel.l_wk.clear();
+    kernel.l_wk.push_back(block_size);
+    kernel.l_wk.push_back(1);
+    kernel.l_wk.push_back(1);
+
+    kernel.comp_options = ConvDirectNaiveConvCompileOption(ctx, problem);
+
+    int G_stride_idx = GetGroupStrideIndex(problem);
+
+    result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
+        const auto kern = kernels[0];
+        return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
+            decltype(auto) data_ctx =
+                primitive_parameters.CastTo<::miopen::conv::DataInvokeParams>();
+            const auto& tensors = data_ctx.tensors;
+            float elapsed       = 0;
+            auto in_strides     = MakeStrideArray<6>(
+                SplitStrideCtoGC(group, tensors.inDesc.GetStrides(), G_stride_idx));
+            // For weights, we split K to (G, K_per_group), which is always index 0
+            auto wei_strides =
+                MakeStrideArray<6>(SplitWeiStrideKtoGK(k_per_group, tensors.wDesc.GetStrides()));
+            auto out_strides = MakeStrideArray<6>(
+                SplitStrideCtoGC(group, tensors.outDesc.GetStrides(), G_stride_idx));
+
+            double alpha_val = data_ctx.alpha.GetAsDouble();
+            double beta_val  = data_ctx.beta.GetAsDouble();
+            handle.Run(kern)(tensors.in,
+                             tensors.w,
+                             alpha_val,
+                             beta_val,
+                             tensors.out,
+                             in_strides,
+                             wei_strides,
+                             out_strides,
+                             di,
+                             hi,
+                             wi,
+                             n,
+                             k_per_group,
+                             c_per_group,
+                             do_,
+                             ho,
+                             wo,
+                             sz,
+                             sy,
+                             sx,
+                             dz,
+                             dy,
+                             dx,
+                             pz,
+                             py,
+                             px,
+                             fz,
+                             fy,
+                             fx,
+                             group);
+
+            if(handle.IsProfilingEnabled())
+                elapsed += handle.GetKernelTime();
+            if(handle.IsProfilingEnabled())
+            {
+                handle.ResetKernelTime();
+                handle.AccumKernelTime(elapsed);
+            }
+        };
+    };
+    result.construction_params.push_back(kernel);
+    return result;
+}
+
+::miopen::solver::ConvSolution
+GetConv2DWRWSolution(const ExecutionContext& ctx, const ::miopen::conv::ProblemDescription& problem)
+{
+    ::miopen::solver::ConvSolution result;
+
+    int hi          = ProblemInterpreter::GetInputHeightHi(problem);
+    int wi          = ProblemInterpreter::GetInputWidthWi(problem);
+    int n           = ProblemInterpreter::GetBatchN(problem);
+    int k           = ProblemInterpreter::GetOutputChannelK(problem);
+    int c           = ProblemInterpreter::GetInputChannelC(problem);
+    int ho          = ProblemInterpreter::GetOutputHeightHo(problem);
+    int wo          = ProblemInterpreter::GetOutputWidthWo(problem);
+    int sy          = ProblemInterpreter::GetAdjustedConvolutionStrideH(problem);
+    int sx          = ProblemInterpreter::GetAdjustedConvolutionStrideW(problem);
+    int dy          = ProblemInterpreter::GetAdjustedConvolutionDilationH(problem);
+    int dx          = ProblemInterpreter::GetAdjustedConvolutionDilationW(problem);
+    int py          = ProblemInterpreter::GetInputLeftPadH(problem);
+    int px          = ProblemInterpreter::GetInputLeftPadW(problem);
+    int fy          = ProblemInterpreter::GetFilterHeightY(problem);
+    int fx          = ProblemInterpreter::GetFilterWidthX(problem);
+    int group       = ProblemInterpreter::GetGroupCountG(problem);
+    int c_per_group = c / group;
+    int k_per_group = k / group;
+
+    size_t block_size = 256;
+    size_t grid_size  = static_cast<size_t>(k);
+
+    KernelInfo kernel;
+
+    kernel.kernel_file = ConvDirectNaiveConvKernelFile(ctx, problem);
+    kernel.kernel_name = ConvDirectNaiveConvKernelName(problem);
+    kernel.g_wk.clear();
+
+    kernel.g_wk.push_back(grid_size * block_size);
+    kernel.g_wk.push_back(1);
+    kernel.g_wk.push_back(1);
+    kernel.l_wk.clear();
+    kernel.l_wk.push_back(block_size);
+    kernel.l_wk.push_back(1);
+    kernel.l_wk.push_back(1);
+
+    const auto is_f8 = (kernel.kernel_file == "fp8_naive_conv.cpp");
+
+    kernel.comp_options = ConvDirectNaiveConvCompileOption(ctx, problem);
+
+    int G_stride_idx = GetGroupStrideIndex(problem);
+
+    result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
+        const auto kern = kernels[0];
+        return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
+            decltype(auto) data_ctx = primitive_parameters.CastTo<miopen::conv::WrWInvokeParams>();
+            const auto& tensors     = data_ctx.tensors;
+            float elapsed           = 0;
+            auto in_strides         = MakeStrideArray<5>(
+                SplitStrideCtoGC(group, tensors.xDesc.GetStrides(), G_stride_idx));
+            // For weights, we split K to (G, K_per_group), which is always index 0
+            auto wei_strides =
+                MakeStrideArray<5>(SplitWeiStrideKtoGK(k_per_group, tensors.dwDesc.GetStrides()));
+            auto out_strides = MakeStrideArray<5>(
+                SplitStrideCtoGC(group, tensors.dyDesc.GetStrides(), G_stride_idx));
+            if(is_f8)
+            {
+                handle.Run(kern)(tensors.x,
+                                 tensors.dw,
+                                 tensors.dy,
+                                 in_strides,
+                                 wei_strides,
+                                 out_strides,
+                                 hi,
+                                 wi,
+                                 n,
+                                 k_per_group,
+                                 c_per_group,
+                                 ho,
+                                 wo,
+                                 sy,
+                                 sx,
+                                 dy,
+                                 dx,
+                                 py,
+                                 px,
+                                 fy,
+                                 fx,
+                                 group,
+                                 problem.GetConv().attribute.fp8rounding_mode.Get() ==
+                                     miopenF8RoundingModeStochastic,
+                                 problem.GetConv().attribute.fp8rounding_mode.GetSeed());
+            }
+            else
+            {
+                double alpha_val = data_ctx.alpha.GetAsDouble();
+                double beta_val  = data_ctx.beta.GetAsDouble();
+                handle.Run(kern)(tensors.x,
+                                 tensors.dw,
+                                 alpha_val,
+                                 beta_val,
+                                 tensors.dy,
+                                 in_strides,
+                                 wei_strides,
+                                 out_strides,
+                                 hi,
+                                 wi,
+                                 n,
+                                 k_per_group,
+                                 c_per_group,
+                                 ho,
+                                 wo,
+                                 sy,
+                                 sx,
+                                 dy,
+                                 dx,
+                                 py,
+                                 px,
+                                 fy,
+                                 fx,
+                                 group);
+            }
+            if(handle.IsProfilingEnabled())
+                elapsed += handle.GetKernelTime();
+            if(handle.IsProfilingEnabled())
+            {
+                handle.ResetKernelTime();
+                handle.AccumKernelTime(elapsed);
+            }
+        };
+    };
+
+    result.construction_params.push_back(kernel);
+    return result;
+}
+
+::miopen::solver::ConvSolution
+GetConv3DWRWSolution(const ExecutionContext& ctx, const ::miopen::conv::ProblemDescription& problem)
+{
+    ::miopen::solver::ConvSolution result;
+
+    int di          = ProblemInterpreter::GetInputDepthDi(problem);
+    int hi          = ProblemInterpreter::GetInputHeightHi(problem);
+    int wi          = ProblemInterpreter::GetInputWidthWi(problem);
+    int n           = ProblemInterpreter::GetBatchN(problem);
+    int k           = ProblemInterpreter::GetOutputChannelK(problem);
+    int c           = ProblemInterpreter::GetInputChannelC(problem);
+    int do_         = ProblemInterpreter::GetOutputDepthDo(problem);
+    int ho          = ProblemInterpreter::GetOutputHeightHo(problem);
+    int wo          = ProblemInterpreter::GetOutputWidthWo(problem);
+    int sz          = ProblemInterpreter::GetAdjustedConvolutionStrideD(problem);
+    int sy          = ProblemInterpreter::GetAdjustedConvolutionStrideH(problem);
+    int sx          = ProblemInterpreter::GetAdjustedConvolutionStrideW(problem);
+    int dz          = ProblemInterpreter::GetAdjustedConvolutionDilationD(problem);
+    int dy          = ProblemInterpreter::GetAdjustedConvolutionDilationH(problem);
+    int dx          = ProblemInterpreter::GetAdjustedConvolutionDilationW(problem);
+    int pz          = ProblemInterpreter::GetInputLeftPadD(problem);
+    int py          = ProblemInterpreter::GetInputLeftPadH(problem);
+    int px          = ProblemInterpreter::GetInputLeftPadW(problem);
+    int fz          = ProblemInterpreter::GetFilterDepthZ(problem);
+    int fy          = ProblemInterpreter::GetFilterHeightY(problem);
+    int fx          = ProblemInterpreter::GetFilterWidthX(problem);
+    int group       = ProblemInterpreter::GetGroupCountG(problem);
+    int c_per_group = c / group;
+    int k_per_group = k / group;
+
+    size_t block_size = 256;
+    size_t grid_size  = static_cast<size_t>(k);
+
+    KernelInfo kernel;
+
+    kernel.kernel_file = ConvDirectNaiveConvKernelFile(ctx, problem);
+    kernel.kernel_name = ConvDirectNaiveConvKernelName(problem);
+    kernel.g_wk.clear();
+
+    kernel.g_wk.push_back(grid_size * block_size);
+    kernel.g_wk.push_back(1);
+    kernel.g_wk.push_back(1);
+    kernel.l_wk.clear();
+    kernel.l_wk.push_back(block_size);
+    kernel.l_wk.push_back(1);
+    kernel.l_wk.push_back(1);
+
+    kernel.comp_options = ConvDirectNaiveConvCompileOption(ctx, problem);
+
+    int G_stride_idx = GetGroupStrideIndex(problem);
+
+    result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
+        const auto kern = kernels[0];
+        return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
+            decltype(auto) data_ctx = primitive_parameters.CastTo<miopen::conv::WrWInvokeParams>();
+            const auto& tensors     = data_ctx.tensors;
+            float elapsed           = 0;
+            auto in_strides         = MakeStrideArray<6>(
+                SplitStrideCtoGC(group, tensors.xDesc.GetStrides(), G_stride_idx));
+            // For weights, we split K to (G, K_per_group), which is always index 0
+            auto wei_strides =
+                MakeStrideArray<6>(SplitWeiStrideKtoGK(k_per_group, tensors.dwDesc.GetStrides()));
+            auto out_strides = MakeStrideArray<6>(
+                SplitStrideCtoGC(group, tensors.dyDesc.GetStrides(), G_stride_idx));
+
+            double alpha_val = data_ctx.alpha.GetAsDouble();
+            double beta_val  = data_ctx.beta.GetAsDouble();
+            handle.Run(kern)(tensors.x,
+                             tensors.dw,
+                             alpha_val,
+                             beta_val,
+                             tensors.dy,
+                             in_strides,
+                             wei_strides,
+                             out_strides,
+                             di,
+                             hi,
+                             wi,
+                             n,
+                             k_per_group,
+                             c_per_group,
+                             do_,
+                             ho,
+                             wo,
+                             sz,
+                             sy,
+                             sx,
+                             dz,
+                             dy,
+                             dx,
+                             pz,
+                             py,
+                             px,
+                             fz,
+                             fy,
+                             fx,
+                             group);
+
+            if(handle.IsProfilingEnabled())
+                elapsed += handle.GetKernelTime();
+            if(handle.IsProfilingEnabled())
+            {
+                handle.ResetKernelTime();
+                handle.AccumKernelTime(elapsed);
+            }
+        };
+    };
+    result.construction_params.push_back(kernel);
+    return result;
+}
+
+::miopen::solver::ConvSolution
+GetConv2DBWDSolution(const ExecutionContext& ctx, const ::miopen::conv::ProblemDescription& problem)
+{
+    ::miopen::solver::ConvSolution result;
+
+    int hi          = ProblemInterpreter::GetInputHeightHi(problem);
+    int wi          = ProblemInterpreter::GetInputWidthWi(problem);
+    int n           = ProblemInterpreter::GetBatchN(problem);
+    int k           = ProblemInterpreter::GetOutputChannelK(problem);
+    int c           = ProblemInterpreter::GetInputChannelC(problem);
+    int ho          = ProblemInterpreter::GetOutputHeightHo(problem);
+    int wo          = ProblemInterpreter::GetOutputWidthWo(problem);
+    int sy          = ProblemInterpreter::GetAdjustedConvolutionStrideH(problem);
+    int sx          = ProblemInterpreter::GetAdjustedConvolutionStrideW(problem);
+    int dy          = ProblemInterpreter::GetAdjustedConvolutionDilationH(problem);
+    int dx          = ProblemInterpreter::GetAdjustedConvolutionDilationW(problem);
+    int py          = ProblemInterpreter::GetInputLeftPadH(problem);
+    int px          = ProblemInterpreter::GetInputLeftPadW(problem);
+    int fy          = ProblemInterpreter::GetFilterHeightY(problem);
+    int fx          = ProblemInterpreter::GetFilterWidthX(problem);
+    int group       = ProblemInterpreter::GetGroupCountG(problem);
+    int c_per_group = c / group;
+    int k_per_group = k / group;
+
+    size_t block_size = 256;
+    size_t grid_size  = 1;
+    if(problem.IsLayoutDefault())
+    {
+        grid_size = static_cast<size_t>(n) * c;
+    }
+    else if(problem.IsLayoutNHWC())
+    {
+        grid_size = static_cast<size_t>(group) * n * hi;
+    }
+    else
+    {
+        MIOPEN_THROW("Unsupported layout");
+    }
+
+    KernelInfo kernel;
+
+    kernel.kernel_file = ConvDirectNaiveConvKernelFile(ctx, problem);
+    kernel.kernel_name = ConvDirectNaiveConvKernelName(problem);
+    kernel.g_wk.clear();
+
+    kernel.g_wk.push_back(grid_size * block_size);
+    kernel.g_wk.push_back(1);
+    kernel.g_wk.push_back(1);
+    kernel.l_wk.clear();
+    kernel.l_wk.push_back(block_size);
+    kernel.l_wk.push_back(1);
+    kernel.l_wk.push_back(1);
+
+    const auto is_f8 = (kernel.kernel_file == "fp8_naive_conv.cpp");
+
+    kernel.comp_options = ConvDirectNaiveConvCompileOption(ctx, problem);
+
+    int G_stride_idx = GetGroupStrideIndex(problem);
+
+    result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
+        const auto kern = kernels[0];
+        return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
+            decltype(auto) data_ctx = primitive_parameters.CastTo<miopen::conv::DataInvokeParams>();
+            const auto& tensors     = data_ctx.tensors;
+            float elapsed           = 0;
+            auto in_strides         = MakeStrideArray<5>(
+                SplitStrideCtoGC(group, tensors.inDesc.GetStrides(), G_stride_idx));
+            // For weights, we split K to (G, K_per_group), which is always index 0
+            auto wei_strides =
+                MakeStrideArray<5>(SplitWeiStrideKtoGK(k_per_group, tensors.wDesc.GetStrides()));
+            auto out_strides = MakeStrideArray<5>(
+                SplitStrideCtoGC(group, tensors.outDesc.GetStrides(), G_stride_idx));
+            /// \ref backward_tensors_reversed_why
+            if(is_f8)
+            {
+                handle.Run(kern)(tensors.out,
+                                 tensors.w,
+                                 tensors.in,
+                                 out_strides,
+                                 wei_strides,
+                                 in_strides,
+                                 hi,
+                                 wi,
+                                 n,
+                                 k_per_group,
+                                 c_per_group,
+                                 ho,
+                                 wo,
+                                 sy,
+                                 sx,
+                                 dy,
+                                 dx,
+                                 py,
+                                 px,
+                                 fy,
+                                 fx,
+                                 group,
+                                 problem.GetConv().attribute.fp8rounding_mode.Get() ==
+                                     miopenF8RoundingModeStochastic,
+                                 problem.GetConv().attribute.fp8rounding_mode.GetSeed());
+            }
+            else
+            {
+                double alpha_val = data_ctx.alpha.GetAsDouble();
+                double beta_val  = data_ctx.beta.GetAsDouble();
+                handle.Run(kern)(tensors.out,
+                                 tensors.w,
+                                 alpha_val,
+                                 beta_val,
+                                 tensors.in,
+                                 out_strides,
+                                 wei_strides,
+                                 in_strides,
+                                 hi,
+                                 wi,
+                                 n,
+                                 k_per_group,
+                                 c_per_group,
+                                 ho,
+                                 wo,
+                                 sy,
+                                 sx,
+                                 dy,
+                                 dx,
+                                 py,
+                                 px,
+                                 fy,
+                                 fx,
+                                 group);
+            }
+            if(handle.IsProfilingEnabled())
+                elapsed += handle.GetKernelTime();
+            if(handle.IsProfilingEnabled())
+            {
+                handle.ResetKernelTime();
+                handle.AccumKernelTime(elapsed);
+            }
+        };
+    };
+
+    result.construction_params.push_back(kernel);
+    return result;
+}
+
+::miopen::solver::ConvSolution
+GetConv3DBWDSolution(const ExecutionContext& ctx, const ::miopen::conv::ProblemDescription& problem)
+{
+    ::miopen::solver::ConvSolution result;
+
+    int di          = ProblemInterpreter::GetInputDepthDi(problem);
+    int hi          = ProblemInterpreter::GetInputHeightHi(problem);
+    int wi          = ProblemInterpreter::GetInputWidthWi(problem);
+    int n           = ProblemInterpreter::GetBatchN(problem);
+    int k           = ProblemInterpreter::GetOutputChannelK(problem);
+    int c           = ProblemInterpreter::GetInputChannelC(problem);
+    int do_         = ProblemInterpreter::GetOutputDepthDo(problem);
+    int ho          = ProblemInterpreter::GetOutputHeightHo(problem);
+    int wo          = ProblemInterpreter::GetOutputWidthWo(problem);
+    int sz          = ProblemInterpreter::GetAdjustedConvolutionStrideD(problem);
+    int sy          = ProblemInterpreter::GetAdjustedConvolutionStrideH(problem);
+    int sx          = ProblemInterpreter::GetAdjustedConvolutionStrideW(problem);
+    int dz          = ProblemInterpreter::GetAdjustedConvolutionDilationD(problem);
+    int dy          = ProblemInterpreter::GetAdjustedConvolutionDilationH(problem);
+    int dx          = ProblemInterpreter::GetAdjustedConvolutionDilationW(problem);
+    int pz          = ProblemInterpreter::GetInputLeftPadD(problem);
+    int py          = ProblemInterpreter::GetInputLeftPadH(problem);
+    int px          = ProblemInterpreter::GetInputLeftPadW(problem);
+    int fz          = ProblemInterpreter::GetFilterDepthZ(problem);
+    int fy          = ProblemInterpreter::GetFilterHeightY(problem);
+    int fx          = ProblemInterpreter::GetFilterWidthX(problem);
+    int group       = ProblemInterpreter::GetGroupCountG(problem);
+    int c_per_group = c / group;
+    int k_per_group = k / group;
+
+    size_t block_size = 256;
+    size_t grid_size  = 1;
+    if(problem.IsLayoutDefault())
+    {
+        grid_size = static_cast<size_t>(n) * c;
+    }
+    else if(problem.IsLayoutNHWC())
+    {
+        grid_size = static_cast<size_t>(group) * n * di;
+    }
+    else
+    {
+        MIOPEN_THROW("Unsupported layout");
+    }
+
+    KernelInfo kernel;
+
+    kernel.kernel_file = ConvDirectNaiveConvKernelFile(ctx, problem);
+    kernel.kernel_name = ConvDirectNaiveConvKernelName(problem);
+    kernel.g_wk.clear();
+
+    kernel.g_wk.push_back(grid_size * block_size);
+    kernel.g_wk.push_back(1);
+    kernel.g_wk.push_back(1);
+    kernel.l_wk.clear();
+    kernel.l_wk.push_back(block_size);
+    kernel.l_wk.push_back(1);
+    kernel.l_wk.push_back(1);
+
+    kernel.comp_options = ConvDirectNaiveConvCompileOption(ctx, problem);
+
+    int G_stride_idx = GetGroupStrideIndex(problem);
+
+    result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
+        const auto kern = kernels[0];
+        return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
+            decltype(auto) data_ctx = primitive_parameters.CastTo<miopen::conv::DataInvokeParams>();
+            const auto& tensors     = data_ctx.tensors;
+            float elapsed           = 0;
+            auto in_strides         = MakeStrideArray<6>(
+                SplitStrideCtoGC(group, tensors.inDesc.GetStrides(), G_stride_idx));
+            // For weights, we split K to (G, K_per_group), which is always index 0
+            auto wei_strides =
+                MakeStrideArray<6>(SplitWeiStrideKtoGK(k_per_group, tensors.wDesc.GetStrides()));
+            auto out_strides = MakeStrideArray<6>(
+                SplitStrideCtoGC(group, tensors.outDesc.GetStrides(), G_stride_idx));
+            /// \anchor backward_tensors_reversed_why
+            /// \todo Someone made the silly decision of swapping in and
+            /// out pointers in ConvTensors for backward pass, so now I have to
+            /// pass out in place of in, out_strides in place of in_strides and
+            /// vice-versa --amberhassaan
+            double alpha_val = data_ctx.alpha.GetAsDouble();
+            double beta_val  = data_ctx.beta.GetAsDouble();
+            handle.Run(kern)(tensors.out,
+                             tensors.w,
+                             alpha_val,
+                             beta_val,
+                             tensors.in,
+                             out_strides,
+                             wei_strides,
+                             in_strides,
+                             di,
+                             hi,
+                             wi,
+                             n,
+                             k_per_group,
+                             c_per_group,
+                             do_,
+                             ho,
+                             wo,
+                             sz,
+                             sy,
+                             sx,
+                             dz,
+                             dy,
+                             dx,
+                             pz,
+                             py,
+                             px,
+                             fz,
+                             fy,
+                             fx,
+                             group);
+
+            if(handle.IsProfilingEnabled())
+                elapsed += handle.GetKernelTime();
+            if(handle.IsProfilingEnabled())
+            {
+                handle.ResetKernelTime();
+                handle.AccumKernelTime(elapsed);
+            }
+        };
+    };
+    result.construction_params.push_back(kernel);
+    return result;
+}
+
+} // namespace conv_internal
 } // namespace conv
 } // namespace solver
 } // namespace miopen

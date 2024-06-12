@@ -92,8 +92,15 @@ struct CKArgs
     ~CKArgs()                        = default;
 
     template <typename ConvPtr>
-    auto MakeArgPtr(const ConvPtr& conv_ptr, ConstData_t in, ConstData_t w, Data_t out) const
+    auto MakeArgPtr(const ConvPtr& conv_ptr,
+                    ConstData_t in,
+                    ConstData_t w,
+                    Data_t out,
+                    float alpha,
+                    float beta) const
     {
+        (void)alpha;
+        (void)beta;
         return conv_ptr->MakeArgumentPointer(in,
                                              w,
                                              out,
@@ -113,15 +120,18 @@ struct CKArgs
     }
 
     template <typename ConvPtr>
-    auto MakeArgPtr(const ConvPtr& conv_ptr, const ConvDataTensors& tensors) const
+    auto MakeArgPtr(const ConvPtr& conv_ptr,
+                    const ConvDataTensors& tensors,
+                    float alpha,
+                    float beta) const
     {
-        return MakeArgPtr(conv_ptr, tensors.in, tensors.w, tensors.out);
+        return MakeArgPtr(conv_ptr, tensors.in, tensors.w, tensors.out, alpha, beta);
     }
 
     template <typename ConvPtr>
     bool IsSupportedBy(const ConvPtr& conv_ptr) const
     {
-        auto arg_ptr = MakeArgPtr(conv_ptr, nullptr, nullptr, nullptr);
+        auto arg_ptr = MakeArgPtr(conv_ptr, nullptr, nullptr, nullptr, 1.0f, 0.0f);
         return conv_ptr->IsSupportedArgument(arg_ptr.get());
     }
 
@@ -174,6 +184,7 @@ void PerformanceConfigHipImplicitGemmFwdXdlops::HeuristicInit(
     case miopenFloat: Init<float>(problem); break;
     case miopenFloat8:
     case miopenBFloat8:
+    case miopenInt64:
     case miopenInt32:
     case miopenBFloat16:
     case miopenDouble: break;
@@ -216,6 +227,7 @@ bool PerformanceConfigHipImplicitGemmFwdXdlops::IsValid(
     case miopenFloat: return CheckIsSupportCKArgs<float>(problem);
     case miopenFloat8:
     case miopenBFloat8:
+    case miopenInt64:
     case miopenInt32:
     case miopenBFloat16:
     case miopenDouble: break;
@@ -260,7 +272,7 @@ bool ConvHipImplicitGemmFwdXdlops::IsApplicable(
     [[maybe_unused]] const ProblemDescription& problem) const
 {
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
-    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_XDLOPS)))
+    if(env::disabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_XDLOPS))
         return false;
     if(problem.GetConv().attribute.deterministic)
         return false;
@@ -296,6 +308,7 @@ bool ConvHipImplicitGemmFwdXdlops::IsApplicable(
     case miopenFloat: return CheckCKApplicability<float>(problem);
     case miopenFloat8:
     case miopenBFloat8:
+    case miopenInt64:
     case miopenInt32:
     case miopenBFloat16:
     case miopenDouble: break;
@@ -323,6 +336,7 @@ ConvSolution ConvHipImplicitGemmFwdXdlops::GetSolution(
     case miopenFloat:
         return InitInvokerFactoryNHWC<DeviceOpPtrs<float>, CKArgs, miopen::conv::DataInvokeParams>(
             ctx, problem, config.kernel_id);
+    case miopenInt64:
     case miopenInt32:
     case miopenBFloat16:
     case miopenDouble:

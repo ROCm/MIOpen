@@ -51,52 +51,59 @@ struct NonPackTestCase : Conv3DTestCase
 
 template <>
 std::vector<NonPackTestCase> ConvTestConfigs()
-{ // g    n   c   d    h   w   k   z  y  x pad_x pad_y pad_z stri_x stri_y stri_z dia_x dia_y dia_z
-    return {{{1, 4, 16, 4, 9, 16, 16, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
-             10240,
-             1,
-             2560,
-             160,
-             16,
-             432,
-             1,
-             144,
-             48,
-             16,
-             9216,
-             1,
-             2304,
-             256,
-             16},
-            {{1, 1, 64, 3, 16, 16, 128, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
-             65536,
-             1,
-             24000,
-             2048,
-             64,
-             1728,
-             1,
-             576,
-             192,
-             64,
-             98304,
-             1,
-             32768,
-             2048,
-             128}};
+{ // g  n  c  d  h  w  k  z  y  x  pad_x pad_y pad_z stri_x stri_y stri_z dia_x dia_y dia_z
+    return {{
+                {1, 4, 16, 4, 9, 16, 16, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
+                10240,
+                1,
+                2560,
+                160,
+                16,
+                432,
+                1,
+                144,
+                48,
+                16,
+                9216,
+                1,
+                2304,
+                256,
+                16,
+            },
+            {
+                {1, 1, 64, 3, 16, 16, 128, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
+                65536,
+                1,
+                24000,
+                2048,
+                64,
+                1728,
+                1,
+                576,
+                192,
+                64,
+                98304,
+                1,
+                32768,
+                2048,
+                128,
+            }};
 }
 
 template <typename T = float>
 struct ConvNonpackFwdSolverTest3D
-    : public ::testing::TestWithParam<
-          std::tuple<miopenConvFwdAlgorithm_t, NonPackTestCase, miopenTensorLayout_t>>
+    : public ::testing::TestWithParam<std::tuple<miopenConvFwdAlgorithm_t,
+                                                 NonPackTestCase,
+                                                 double,
+                                                 double,
+                                                 miopenTensorLayout_t>>
 {
 protected:
     void SetUp() override
     {
         test_skipped = false;
 
-        std::tie(algo, conv_config, tensor_layout) = GetParam();
+        std::tie(algo, conv_config, alpha_val, beta_val, tensor_layout) = GetParam();
         input   = tensor<T>{tensor_layout, conv_config.GetInput(), conv_config.GetInputStrides()};
         weights = tensor<T>{tensor_layout, conv_config.GetWeights()};
         std::random_device rd{};
@@ -105,12 +112,15 @@ protected:
         auto gen_value = [&](auto...) { return d(gen); };
         input.generate(gen_value);
         weights.generate(gen_value);
+
         conv_desc = conv_config.GetConv();
 
         miopen::TensorDescriptor output_desc =
             conv_desc.GetForwardOutputTensor(input.desc, weights.desc, miopen_type<T>{});
         output = tensor<T>{tensor_layout, output_desc.GetLengths()};
-        std::fill(output.begin(), output.end(), std::numeric_limits<double>::quiet_NaN());
+        // since now we do alpha*value + output*beta
+        // we set output with values other then nan.
+        std::fill(output.begin(), output.end(), 0.0);
         auto&& handle = get_handle();
         in_dev        = handle.Write(input.data);
         wei_dev       = handle.Write(weights.data);
@@ -125,8 +135,10 @@ protected:
 
         miopen::TensorDescriptor output_desc =
             conv_desc.GetForwardOutputTensor(input.desc, weights.desc, miopen_type<T>{});
-        ref_out     = tensor<T>{tensor_layout, output_desc.GetLengths()};
-        ref_out     = ref_conv_fwd(input, weights, output, conv_desc);
+        ref_out = tensor<T>{tensor_layout, output_desc.GetLengths()};
+        ref_out = ref_conv_fwd(
+            input, weights, output, conv_desc, miopen::Scalar(alpha_val), miopen::Scalar(beta_val));
+
         output.data = handle.Read<T>(out_dev, output.data.size());
         EXPECT_FALSE(miopen::range_zero(ref_out)) << "Cpu data is all zeros";
         EXPECT_FALSE(miopen::range_zero(output)) << "Gpu data is all zeros";
@@ -148,6 +160,10 @@ protected:
     tensor<T> weights;
     tensor<T> output;
     tensor<T> ref_out;
+
+    float alpha_val = 1.0f;
+    float beta_val  = 0.0f;
+
     miopen::Allocator::ManageDataPtr in_dev;
     miopen::Allocator::ManageDataPtr wei_dev;
     miopen::Allocator::ManageDataPtr out_dev;

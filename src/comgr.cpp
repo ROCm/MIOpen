@@ -40,7 +40,6 @@
 #include <amd_comgr/amd_comgr.h>
 #include <hip/hip_runtime_api.h>
 #if MIOPEN_USE_HIPRTC
-#include <miopen/manage_ptr.hpp>
 #include <hip/hiprtc.h>
 #endif
 
@@ -133,7 +132,7 @@ MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_COMGR_HIP_PCH_ENFORCE)
                                                << GetStatusText(status)); \
             (action);                                                     \
         }                                                                 \
-        else if(miopen::IsEnabled(ENV(MIOPEN_DEBUG_COMGR_LOG_CALLS)))     \
+        else if(env::enabled(MIOPEN_DEBUG_COMGR_LOG_CALLS))               \
             MIOPEN_LOG_I("Ok \'" #comgrcall "\' " << to_string(info));    \
     } while(false)
 
@@ -212,7 +211,7 @@ static void AddCompilerOptions(OptionList& list)
 #endif
     list.push_back("-mllvm");
     list.push_back("-amdgpu-prelink");
-    if(miopen::IsEnabled(ENV(MIOPEN_DEBUG_OPENCL_WAVE64_NOWGP)))
+    if(env::enabled(MIOPEN_DEBUG_OPENCL_WAVE64_NOWGP))
     {
         list.push_back("-mwavefrontsize64");
         list.push_back("-mcumode");
@@ -239,14 +238,14 @@ static void RemoveOptionsUnwanted(OptionList& list)
 namespace hip {
 
 #if PCH_IS_SUPPORTED
-static bool IsPchEnabled() { return !miopen::IsDisabled(ENV(MIOPEN_DEBUG_COMGR_HIP_PCH_ENFORCE)); }
+static bool IsPchEnabled() { return !env::disabled(MIOPEN_DEBUG_COMGR_HIP_PCH_ENFORCE); }
 #endif
 
 static std::string GetPchEnableStatus()
 {
 #if PCH_IS_SUPPORTED
     auto rv = std::string{IsPchEnabled() ? "1" : "0"};
-    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_COMGR_HIP_PCH_ENFORCE)))
+    if(env::disabled(MIOPEN_DEBUG_COMGR_HIP_PCH_ENFORCE))
         return rv += " (enforced)";
     return rv;
 #else
@@ -293,7 +292,7 @@ static void RemoveCompilerOptionsUnwanted(OptionList& list)
     list.erase(remove_if(list.begin(),
                          list.end(),
                          [&](const auto& option) { // clang-format off
-                             return (!miopen::IsEnabled(ENV(MIOPEN_DEBUG_COMGR_HIP_BUILD_FATBIN))
+                             return (!env::enabled(MIOPEN_DEBUG_COMGR_HIP_BUILD_FATBIN)
                                     && (IsLinkerOption(option))); // clang-format on
                          }),
                list.end());
@@ -442,7 +441,7 @@ static std::string GetStatusText(const amd_comgr_status_t status, const bool unk
 
 static void LogOptions(const char* options[], size_t count)
 {
-    static const auto control = miopen::Value(ENV(MIOPEN_DEBUG_COMGR_LOG_OPTIONS));
+    static const auto control = env::value(MIOPEN_DEBUG_COMGR_LOG_OPTIONS);
     if(!(control != 0 && miopen::IsLogging(miopen::LoggingLevel::Info)))
         return;
     if(control == 2)
@@ -535,7 +534,7 @@ public:
     {
         ECI_THROW(amd_comgr_set_data_name(handle, s.c_str()), s);
     }
-    void SetBytes(const std::string& bytes) const
+    void SetBytes(std::string_view bytes) const
     {
         ECI_THROW(amd_comgr_set_data(handle, bytes.size(), bytes.data()), bytes.size());
     }
@@ -582,16 +581,16 @@ public:
     auto GetHandle() const { return handle; }
     void AddData(const Data& d) const { EC_THROW(amd_comgr_data_set_add(handle, d.GetHandle())); }
     void AddData(const std::string& name,
-                 const std::string& content,
+                 std::string_view content,
                  const amd_comgr_data_kind_t type) const
     {
         const Data d(type);
-        if(miopen::IsEnabled(ENV(MIOPEN_DEBUG_COMGR_LOG_SOURCE_NAMES)))
+        if(env::enabled(MIOPEN_DEBUG_COMGR_LOG_SOURCE_NAMES))
             MIOPEN_LOG_I(name << ' ' << content.size() << " bytes");
         d.SetName(name);
         d.SetBytes(content);
         AddData(d);
-        const auto show_first = miopen::Value(ENV(MIOPEN_DEBUG_COMGR_LOG_SOURCE_TEXT));
+        const auto show_first = env::value(MIOPEN_DEBUG_COMGR_LOG_SOURCE_TEXT);
         if(show_first > 0 && miopen::IsLogging(miopen::LoggingLevel::Info) &&
            (type == AMD_COMGR_DATA_KIND_SOURCE || type == AMD_COMGR_DATA_KIND_INCLUDE))
         {
@@ -605,7 +604,7 @@ public:
     {
         const char name[] = "hip.pch";
         const Data d(AMD_COMGR_DATA_KIND_PRECOMPILED_HEADER);
-        if(miopen::IsEnabled(ENV(MIOPEN_DEBUG_COMGR_LOG_SOURCE_NAMES)))
+        if(env::enabled(MIOPEN_DEBUG_COMGR_LOG_SOURCE_NAMES))
         {
             MIOPEN_LOG_I(name << ' ' << size
                               << " bytes,  ptr = " << static_cast<const void*>(content));
@@ -731,8 +730,7 @@ static void SetIsaName(const ActionInfo& action,
 
 static std::string GetDebugCompilerOptionsInsert()
 {
-    const auto& p = miopen::GetStringEnv(ENV(MIOPEN_DEBUG_COMGR_COMPILER_OPTIONS_INSERT));
-    return {p};
+    return env::value(MIOPEN_DEBUG_COMGR_COMPILER_OPTIONS_INSERT);
 }
 
 static inline bool IsWave64Enforced(const OptionList& opts)
@@ -742,7 +740,7 @@ static inline bool IsWave64Enforced(const OptionList& opts)
 }
 
 void BuildHip(const std::string& name,
-              const std::string& text,
+              std::string_view text,
               const std::string& options,
               const miopen::TargetProperties& target,
               std::vector<char>& binary)
@@ -758,9 +756,8 @@ void BuildHip(const std::string& name,
         // of the addkernels tool. We don't do that for HIP sources, and, therefore
         // have to export include files prior compilation.
         // Note that we do not need any "subdirs" in the include "pathnames" so far.
-        const auto incNames = miopen::GetHipKernelIncList();
-        for(const auto& inc : incNames)
-            inputs.AddData(inc, miopen::GetKernelInc(inc), AMD_COMGR_DATA_KIND_INCLUDE);
+        for(const auto& inc : GetKernelIncList())
+            inputs.AddData(inc.get().string(), GetKernelInc(inc), AMD_COMGR_DATA_KIND_INCLUDE);
 
 #if PCH_IS_SUPPORTED
         if(compiler::lc::hip::IsPchEnabled())
@@ -778,7 +775,7 @@ void BuildHip(const std::string& name,
         action.SetLogging(true);
 
         const Dataset exe;
-        if(miopen::IsEnabled(ENV(MIOPEN_DEBUG_COMGR_HIP_BUILD_FATBIN)))
+        if(env::enabled(MIOPEN_DEBUG_COMGR_HIP_BUILD_FATBIN))
         {
             auto raw = options                                 //
                        + " " + GetDebugCompilerOptionsInsert() //
@@ -868,7 +865,7 @@ void BuildHip(const std::string& name,
 }
 
 void BuildOcl(const std::string& name,
-              const std::string& text,
+              std::string_view text,
               const std::string& options,
               const miopen::TargetProperties& target,
               std::vector<char>& binary)
@@ -954,7 +951,7 @@ void BuildOcl(const std::string& name,
 }
 
 void BuildAsm(const std::string& name,
-              const std::string& text,
+              std::string_view text,
               const std::string& options,
               const miopen::TargetProperties& target,
               std::vector<char>& binary)
@@ -969,6 +966,10 @@ void BuildAsm(const std::string& name,
         SetIsaName(action, target);
         action.SetLogging(true);
         auto optAsm = miopen::SplitSpaceSeparated(options);
+#if WORKAROUND_ISSUE_3001
+        if(target.Xnack() && !*target.Xnack())
+            optAsm.emplace_back("-mno-xnack");
+#endif
         compiler::lc::gcnasm::RemoveOptionsUnwanted(optAsm);
 #if WORKAROUND_ROCMCOMPILERSUPPORT_ISSUE_67
         optAsm.push_back("--rocm-path=.");
@@ -1047,9 +1048,9 @@ struct Error : std::exception
     throw Error{s, text};
 }
 
-static inline std::string to_string(const std::string& v) { return {v}; }
-static inline std::string to_string(const char* v) { return {v}; }
-static inline auto to_string(const std::size_t& v) { return std::to_string(v); }
+inline std::string_view to_string(std::string_view v) { return v; }
+inline std::string_view to_string(const char* v) { return v; }
+inline std::string to_string(const std::size_t& v) { return std::to_string(v); }
 
 static std::string GetStatusText(const hiprtcResult status)
 {
@@ -1066,7 +1067,7 @@ static std::string GetStatusText(const hiprtcResult status)
             MIOPEN_LOG_E("\'" #call "\' " << to_string(info) << ": " << GetStatusText(status)); \
             (action);                                                                           \
         }                                                                                       \
-        else if(miopen::IsEnabled(ENV(MIOPEN_DEBUG_COMGR_LOG_CALLS)))                           \
+        else if(env::enabled(MIOPEN_DEBUG_COMGR_LOG_CALLS))                                     \
             MIOPEN_LOG_I("Ok \'" #call "\' " << to_string(info));                               \
     } while(false)
 
@@ -1096,8 +1097,8 @@ static void PrintVersion()
 static void hiprtc_program_destroy(hiprtcProgram prog) { hiprtcDestroyProgram(&prog); }
 using hiprtc_program_ptr = MIOPEN_MANAGE_PTR(hiprtcProgram, hiprtc_program_destroy);
 
-static hiprtc_program_ptr CreateProgram(const char* src,
-                                        const char* name,
+static hiprtc_program_ptr CreateProgram(std::string_view src,
+                                        std::string_view name,
                                         int numHeaders,
                                         const char** headers,
                                         const char** includeNames)
@@ -1105,7 +1106,8 @@ static hiprtc_program_ptr CreateProgram(const char* src,
     hiprtcProgram prog = nullptr;
     hiprtcResult status;
     HIPRTC_CALL_INFO_NOSTATUSDEF(
-        hiprtcCreateProgram(&prog, src, name, numHeaders, headers, includeNames), name);
+        hiprtcCreateProgram(&prog, src.data(), name.data(), numHeaders, headers, includeNames),
+        name);
     hiprtc_program_ptr p{prog}; // To destroy prog even if hiprtcCreateProgram() failed.
     if(status != HIPRTC_SUCCESS)
     {
@@ -1123,7 +1125,7 @@ class HiprtcProgram
         string_ptr_array(const string_ptr_array&) = delete;
         std::size_t size() const { return c_strs.size(); }
         const char** data() { return c_strs.data(); }
-        void push_back(const std::string* s) { c_strs.push_back(s->c_str()); }
+        void push_back(std::string_view s) { c_strs.emplace_back(s.data()); }
     };
 
     struct string_array
@@ -1148,28 +1150,25 @@ class HiprtcProgram
     string_ptr_array include_texts{}; // Copying of text is not necessary.
     string_array include_names{};
 
-    const std::string& src_name;
-    const std::string& src_text;
+    std::string_view src_name;
+    std::string_view src_text;
 
 public:
-    HiprtcProgram(const std::string& src_name_, const std::string& src_text_)
+    HiprtcProgram(std::string_view src_name_, std::string_view src_text_)
         : src_name(src_name_), src_text(src_text_)
     {
         LogInputFile(src_name, src_text);
-        const auto inc_names = miopen::GetHipKernelIncList();
+        const auto inc_names = miopen::GetKernelIncList();
         include_names.reserve(inc_names.size());
         for(const auto& inc_name : inc_names)
         {
-            const auto inc_text = miopen::GetKernelIncPtr(inc_name);
-            LogInputFile(inc_name, *inc_text);
-            include_names.push_back(inc_name);
+            const auto inc_text = GetKernelInc(inc_name);
+            LogInputFile(inc_name, inc_text);
+            include_names.push_back(inc_name.get().string());
             include_texts.push_back(inc_text);
         }
-        prog = CreateProgram(src_text.c_str(),
-                             src_name.c_str(),
-                             include_texts.size(),
-                             include_texts.data(),
-                             include_names.data());
+        prog = CreateProgram(
+            src_text, src_name, include_texts.size(), include_texts.data(), include_names.data());
     }
 
     void Compile(const std::vector<std::string>& options)
@@ -1199,13 +1198,13 @@ public:
     }
 
 private:
-    void LogInputFile(const std::string& name, const std::string& content)
+    void LogInputFile(const fs::path& name, std::string_view content)
     {
-        if(miopen::IsEnabled(ENV(MIOPEN_DEBUG_COMGR_LOG_SOURCE_NAMES)))
+        if(env::enabled(MIOPEN_DEBUG_COMGR_LOG_SOURCE_NAMES))
             MIOPEN_LOG_I(name << ' ' << content.size() << " bytes");
         if(miopen::IsLogging(miopen::LoggingLevel::Info))
         {
-            const auto show_first = miopen::Value(ENV(MIOPEN_DEBUG_COMGR_LOG_SOURCE_TEXT));
+            const auto show_first = env::value(MIOPEN_DEBUG_COMGR_LOG_SOURCE_TEXT);
             if(show_first > 0)
             {
                 const auto text_length =
@@ -1241,7 +1240,7 @@ private:
 };
 
 void BuildHip(const std::string& name,
-              const std::string& text,
+              std::string_view text,
               const std::string& options,
               const miopen::TargetProperties& target,
               std::vector<char>& binary)

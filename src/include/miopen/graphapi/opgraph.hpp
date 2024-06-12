@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,8 +25,8 @@
  *******************************************************************************/
 #pragma once
 
-#include <miopen/graphapi/engine.hpp>
 #include <miopen/graphapi/tensor.hpp>
+#include <miopen/graphapi/engine.hpp>
 
 #include <algorithm>
 #include <memory>
@@ -84,10 +84,10 @@ bool noRepetitions(const R& r)
 class OpGraphBuilder;
 class OpGraph;
 
-class OpNode
+class MIOPEN_INTERNALS_EXPORT OpNode
 {
 public:
-    using Edge = std::pair<const OpNode*, const Tensor*>;
+    using Edge = std::pair<OpNode*, Tensor*>;
     virtual ~OpNode();
 
     virtual const std::string& signName() const = 0;
@@ -100,6 +100,14 @@ private:
     friend class OpGraph;
 
 protected:
+    static Edge makeEdge(OpNode* n, Tensor* t) { return Edge{n, t}; }
+    static Edge makeEdge(const OpNode* n, const Tensor* t)
+    {
+        return Edge{
+            const_cast<OpNode*>(n), // NOLINT (cppcoreguidelines-pro-type-const-cast)
+            const_cast<Tensor*>(t)  // NOLINT (cppcoreguidelines-pro-type-const-cast)
+        };
+    }
     virtual std::vector<Tensor*> getInTensors() const = 0;
 
     virtual std::vector<Tensor*> getOutTensors() const = 0;
@@ -112,7 +120,7 @@ protected:
     {
         assert(src);
         assert(tens_ptr);
-        Edge e{src, tens_ptr};
+        auto e = makeEdge(src, tens_ptr);
         return internal::contains(mInEdges, e);
     }
 
@@ -120,7 +128,7 @@ protected:
     {
         assert(dst);
         assert(tens_ptr);
-        Edge e{dst, tens_ptr};
+        auto e = makeEdge(dst, tens_ptr);
         return internal::contains(mOutEdges, e);
     }
 
@@ -148,9 +156,9 @@ protected:
     size_t getOutDegree() const { return mOutEdges.size(); }
 };
 
-using OpEdge = OpNode::Edge;
+using Edge = OpNode::Edge;
 
-class SourceOpNode : public OpNode
+class MIOPEN_INTERNALS_EXPORT SourceOpNode : public OpNode
 {
 protected:
     std::vector<Tensor*> mOutTensors;
@@ -178,7 +186,7 @@ protected:
     }
 };
 
-class SinkOpNode : public OpNode
+class MIOPEN_INTERNALS_EXPORT SinkOpNode : public OpNode
 {
 protected:
     std::vector<Tensor*> mInTensors;
@@ -206,7 +214,9 @@ protected:
 using Path       = std::vector<const OpNode*>;
 using VecOfPaths = std::vector<Path>;
 
-class OpGraph
+class Engine;
+
+class MIOPEN_INTERNALS_EXPORT OpGraph
 {
     // NOTE: mSrcNode and mSinkNode need to reside on the heap because the graph may move
     // to a new memory location after building, while the nodes maintain address
@@ -217,7 +227,7 @@ class OpGraph
 
     // Descriptor related members
     miopenHandle_t mHandle = nullptr;
-    std::vector<Engine> mEngines;
+    std::vector<Engine> mEngines{};
 
 public:
     OpGraph(const OpGraph&) = delete;
@@ -227,6 +237,10 @@ public:
     OpGraph(OpGraph&&) = default;
     OpGraph& operator=(OpGraph&&) = default;
     ~OpGraph()                    = default;
+
+    SourceOpNode* getSourceNode() const noexcept { return mSrcNode.get(); }
+
+    SinkOpNode* getSinkNode() const noexcept { return mSinkNode.get(); }
 
     bool hasNode(const OpNode* n) const { return internal::contains(mNodes, n); }
 
@@ -251,6 +265,60 @@ public:
         ret -= mSinkNode->getInDegree();
 
         return ret;
+    }
+
+    const std::vector<OpNode*>& getNodes() const noexcept { return mNodes; }
+
+    const std::vector<Edge>& getOutEdges(const OpNode* n) const noexcept
+    {
+        assert(n);
+        return n->getOutEdges();
+    }
+
+    const std::vector<Edge>& getInEdges(const OpNode* n) const noexcept
+    {
+        assert(n);
+        return n->getInEdges();
+    }
+
+    OpNode* findNodeByName(const std::string& name) const noexcept
+    {
+        for(auto* n : getNodes())
+        {
+            if(n->signName() == name)
+            {
+                return n;
+            }
+        }
+        return nullptr;
+    }
+
+    OpNode* findOutNeighByName(const OpNode* node, const std::string& neigh_name) const noexcept
+    {
+        assert(node);
+        for(auto [m, t] : getOutEdges(node))
+        {
+            std::ignore = t;
+            if(m->signName() == neigh_name)
+            {
+                return m;
+            }
+        }
+        return nullptr;
+    }
+
+    OpNode* findInNeighByName(const OpNode* node, const std::string& neigh_name) const
+    {
+        assert(node);
+        for(auto [m, t] : getInEdges(node))
+        {
+            std::ignore = t;
+            if(m->signName() == neigh_name)
+            {
+                return m;
+            }
+        }
+        return nullptr;
     }
 
     std::vector<std::string> getNodeNames() const
@@ -290,6 +358,9 @@ public:
     miopenHandle_t getHandle() const noexcept { return mHandle; }
     const std::vector<Engine>& getEngines() const noexcept { return mEngines; }
 
+    void initEngines(); /// \todo make private. Called in finalize, but also
+                        /// from C++ tests --amberhassaan May, 2024
+
 private:
     friend class OpGraphBuilder;
 
@@ -316,14 +387,15 @@ private:
     }
 };
 
-class OpGraphBuilder
+class MIOPEN_INTERNALS_EXPORT OpGraphBuilder
 {
 private:
     std::vector<OpNode*> mNodes;
     miopenHandle_t mHandle = nullptr;
 
 public:
-    void setHandle(miopenHandle_t handle);
+    void setHandle(miopenHandle_t handle) { mHandle = checkPtr(handle); }
+    miopenHandle_t getHandle() const noexcept { return mHandle; }
 
     bool hasNode(OpNode* node) const { return internal::contains(mNodes, node); }
 
@@ -355,11 +427,11 @@ public:
     OpGraph build() &&;
 };
 
-bool isIsomorphic(const OpGraph& left, const OpGraph& right);
+MIOPEN_INTERNALS_EXPORT bool isIsomorphic(const OpGraph& left, const OpGraph& right);
 
-std::string pathToStr(const Path& path);
+MIOPEN_INTERNALS_EXPORT std::string pathToStr(const Path& path);
 
-class BackendOperationGraphDescriptor : public BackendDescriptor
+class MIOPEN_INTERNALS_EXPORT BackendOperationGraphDescriptor : public BackendDescriptor
 {
 private:
     OpGraphBuilder mBuilder;

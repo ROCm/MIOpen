@@ -51,7 +51,8 @@ bool IsDataTypeSupported(miopenDataType_t t)
     case miopenBFloat8:
     case miopenInt8:
     case miopenBFloat16:
-    case miopenDouble: return true;
+    case miopenDouble:
+    case miopenInt64: return true;
     }
     return false;
 }
@@ -379,9 +380,9 @@ void TensorDescriptor::SetCastType(const miopenDataType_t cast_type_)
 
 miopenTensorLayout_t TensorDescriptor::GetLayout_t() const { return this->tensorLayout; }
 
-std::string TensorDescriptor::GetLayout_str() const
+std::string TensorDescriptor::GetLayoutStr(miopenTensorLayout_t tensorLayout)
 {
-    switch(this->tensorLayout)
+    switch(tensorLayout)
     {
     case miopenTensorNCHW: return "NCHW";
     case miopenTensorNHWC: return "NHWC";
@@ -392,9 +393,11 @@ std::string TensorDescriptor::GetLayout_str() const
     case miopenTensorCHWNc8: return "CHWNc";
     case miopenTensorNCDHW: return "NCDHW";
     case miopenTensorNDHWC: return "NDHWC";
+    default: MIOPEN_THROW(miopenStatusInternalError, "Unknown tensor layout");
     }
-    MIOPEN_THROW(miopenStatusInternalError, "Unknown tensor layout");
 }
+
+std::string TensorDescriptor::GetLayout_str() const { return GetLayoutStr(this->tensorLayout); }
 
 std::size_t TensorDescriptor::GetVectorLength() const { return this->vector_length; }
 

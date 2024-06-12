@@ -31,7 +31,6 @@
 #include <miopen/env.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/handle_lock.hpp>
-#include <miopen/hip_build_utils.hpp>
 #include <miopen/invoker.hpp>
 #include <miopen/kernel_cache.hpp>
 #include <miopen/logger.hpp>
@@ -423,7 +422,7 @@ void Handle::Copy(ConstData_t src, Data_t dest, std::size_t size) const
 
 KernelInvoke Handle::AddKernel(const std::string& algorithm,
                                const std::string& network_config,
-                               const std::string& program_name,
+                               const fs::path& program_name,
                                const std::string& kernel_name,
                                const std::vector<size_t>& vld,
                                const std::vector<size_t>& vgd,
@@ -445,12 +444,21 @@ KernelInvoke Handle::AddKernel(const std::string& algorithm,
 }
 
 Invoker Handle::PrepareInvoker(const InvokerFactory& factory,
-                               const std::vector<solver::KernelInfo>& kernels) const
+                               const std::vector<solver::KernelInfo>& kernels,
+                               std::vector<Program>* programs_out) const
 {
     std::vector<Kernel> built;
-    for(auto& k : kernels)
+    built.reserve(kernels.size());
+    if(programs_out != nullptr)
+        programs_out->resize(kernels.size());
+
+    for(auto i = 0; i < kernels.size(); ++i)
     {
+        const auto& k        = kernels[i];
+        Program* program_out = programs_out != nullptr ? &(*programs_out)[i] : nullptr;
+
         MIOPEN_LOG_I2("Preparing kernel: " << k.kernel_name);
+
         const auto kernel = this->impl->cache.AddKernel(*this,
                                                         "",
                                                         "",
@@ -459,7 +467,9 @@ Invoker Handle::PrepareInvoker(const InvokerFactory& factory,
                                                         k.l_wk,
                                                         k.g_wk,
                                                         k.comp_options,
-                                                        kernels.size());
+                                                        kernels.size(),
+                                                        "",
+                                                        program_out);
         built.push_back(kernel);
     }
     return factory(built);
@@ -485,19 +495,24 @@ KernelInvoke Handle::Run(Kernel k, bool coop_launch) const
     return k.Invoke(this->GetStream(), callback, coop_launch);
 }
 
-Program Handle::LoadProgram(const std::string& program_name,
+Program Handle::LoadProgram(const fs::path& program_name,
                             std::string params,
-                            const std::string& kernel_src) const
+                            const std::string& kernel_src,
+                            bool force_attach_binary) const
 {
     this->impl->set_ctx();
     std::string arch_name = this->GetTargetProperties().Name();
 
     std::string orig_params = params; // make a copy for target ID fallback
 
-    if(miopen::EndsWith(program_name, ".mlir"))
+#if WORKAROUND_ISSUE_3001
+    if(program_name.extension() != ".mlir")
+        params = params + " -mcpu=" + this->GetTargetProperties().Name();
+#else
+    if(program_name.extension() == ".mlir")
     { // no -mcpu
     }
-    else if(miopen::EndsWith(program_name, ".s"))
+    else if(program_name.extension() == ".s")
     {
         params += " -mcpu=" + LcOptionTargetStrings{this->GetTargetProperties()}.targetId;
     }
@@ -505,6 +520,7 @@ Program Handle::LoadProgram(const std::string& program_name,
     {
         params += " -mcpu=" + this->GetTargetProperties().Name();
     }
+#endif
 
     auto hsaco = miopen::LoadBinary(
         this->GetTargetProperties(), this->GetMaxComputeUnits(), program_name, params);
@@ -527,47 +543,87 @@ Program Handle::LoadProgram(const std::string& program_name,
     if(hsaco.empty())
     {
         CompileTimer ct;
-        auto p = HIPOCProgram{program_name, params, this->GetTargetProperties(), kernel_src};
-        ct.Log("Kernel", program_name);
+        auto p =
+            HIPOCProgram{program_name.string(), params, this->GetTargetProperties(), kernel_src};
+        ct.Log("Kernel", program_name.string());
 
-// Save to cache
+        // Save to cache
 #if MIOPEN_ENABLE_SQLITE_KERN_CACHE
-        miopen::SaveBinary(p.IsCodeObjectInMemory() ? p.GetCodeObjectBlob()
-                                                    : miopen::LoadFile(p.GetCodeObjectPathname()),
+        std::vector<char> binary;
+        if(!p.IsCodeObjectInMemory())
+            binary = miopen::LoadFile(p.GetCodeObjectPathname());
+
+        miopen::SaveBinary(p.IsCodeObjectInMemory() ? p.GetCodeObjectBlob() : binary,
                            this->GetTargetProperties(),
                            this->GetMaxComputeUnits(),
                            program_name,
                            params);
-#else
-        auto path = miopen::GetCachePath(false) / boost::filesystem::unique_path().string();
-        if(p.IsCodeObjectInMemory())
-            miopen::WriteFile(p.GetCodeObjectBlob(), path);
+
+        if(force_attach_binary && p.IsCodeObjectInTempFile())
+        {
+            MIOPEN_LOG_I2("Attaching a binary to the program for future serialization");
+            p.AttachBinary(std::vector<char>{binary.data(), binary.data() + binary.size()});
+        }
         else
-            fs::copy_file(p.GetCodeObjectPathname(), path);
-        miopen::SaveBinary(path, this->GetTargetProperties(), program_name, params);
-#endif
+        {
+            MIOPEN_LOG_I2("Skipped attaching a binary to the program for future serialization as "
+                          "it is in permanent file storage");
+        }
+
         p.FreeCodeObjectFileStorage();
+#else
+        boost::filesystem::path cache_path;
+
+        // If cache is disabled we don't need to dump binary and move it there
+        if(!miopen::IsCacheDisabled())
+        {
+            auto path = miopen::GetCachePath(false) / boost::filesystem::unique_path();
+            if(p.IsCodeObjectInMemory())
+                miopen::WriteFile(p.GetCodeObjectBlob(), path);
+            else
+                boost::filesystem::copy_file(p.GetCodeObjectPathname(), path);
+            cache_path = miopen::SaveBinary(
+                path, this->GetTargetProperties(), program_name, params, is_kernel_str);
+        }
+
+        if(force_attach_binary && p.IsCodeObjectInTempFile())
+        {
+            MIOPEN_LOG_I2("Attaching a binary to the program for future serialization");
+            if(cache_path.empty())
+                p.AttachBinary(LoadFileAsVector(p.GetCodeObjectPathname()));
+            else
+                p.AttachBinary(std::move(cache_path));
+        }
+
+        p.FreeCodeObjectFileStorage();
+#endif
         return p;
     }
     else
     {
-        return HIPOCProgram{program_name, hsaco};
+        auto p = HIPOCProgram{program_name, hsaco};
+#if MIOPEN_ENABLE_SQLITE_KERN_CACHE
+        if(force_attach_binary)
+        {
+            MIOPEN_LOG_I2("Attaching a binary to the program for future serialization");
+            p.AttachBinary(std::vector<char>{hsaco.data(), hsaco.data() + hsaco.size()});
+        }
+#endif
+        return p;
     }
 }
 
-bool Handle::HasProgram(const std::string& program_name, const std::string& params) const
+bool Handle::HasProgram(const fs::path& program_name, const std::string& params) const
 {
     return this->impl->cache.HasProgram(program_name, params);
 }
 
-void Handle::AddProgram(Program prog,
-                        const std::string& program_name,
-                        const std::string& params) const
+void Handle::AddProgram(Program prog, const fs::path& program_name, const std::string& params) const
 {
     this->impl->cache.AddProgram(prog, program_name, params);
 }
 
-void Handle::ClearProgram(const std::string& program_name, const std::string& params) const
+void Handle::ClearProgram(const fs::path& program_name, const std::string& params) const
 {
     this->impl->cache.ClearProgram(program_name, params);
 }
@@ -628,7 +684,7 @@ std::size_t Handle::GetGlobalMemorySize() const
 
 std::size_t Handle::GetMaxComputeUnits() const
 {
-    const std::size_t num_cu = Value(ENV(MIOPEN_DEVICE_CU));
+    const std::size_t num_cu = env::value(MIOPEN_DEVICE_CU);
     if(num_cu > 0)
         return num_cu;
 
