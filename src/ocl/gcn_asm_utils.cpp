@@ -23,6 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#include <miopen/env.hpp>
 #include <miopen/gcn_asm_utils.hpp>
 #include <miopen/config.h>
 
@@ -72,7 +73,7 @@ static std::string CleanupPath(const char* p);
 
 std::string GetGcnAssemblerPathImpl()
 {
-    const auto& asm_path_env_p = miopen::GetStringEnv(ENV(MIOPEN_EXPERIMENTAL_GCN_ASM_PATH));
+    const auto& asm_path_env_p = miopen::env::value(MIOPEN_EXPERIMENTAL_GCN_ASM_PATH);
     if(!asm_path_env_p.empty())
     {
         return CleanupPath(asm_path_env_p.c_str());
