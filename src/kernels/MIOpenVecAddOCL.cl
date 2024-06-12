@@ -23,11 +23,10 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-__kernel void vector_add_ocl(__global const float *x, 
-                         __global const float *y, 
-                         __global float* restrict z,
-                         ulong vec_size
-                         )
+__kernel void vector_add_ocl(__global const float* x,
+                             __global const float* y,
+                             __global float* restrict z,
+                             ulong vec_size)
 {
     // get index of the work item
     int index = get_global_id(0);
@@ -36,4 +35,3 @@ __kernel void vector_add_ocl(__global const float *x,
     if(index < vec_size)
         z[index] = x[index] + y[index]; // add the vector elements
 }
-

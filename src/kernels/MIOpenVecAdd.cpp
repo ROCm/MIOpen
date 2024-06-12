@@ -28,7 +28,7 @@
 #include <hip/hip_runtime.h>
 #endif
 
-extern "C" __global__ void vector_add_hip(const float * a, const float * b, float * c, size_t vec_size)
+extern "C" __global__ void vector_add_hip(const float* a, const float* b, float* c, size_t vec_size)
 {
     // Get the index of the current element
     int index = blockIdx.x * blockDim.x + threadIdx.x;
@@ -38,5 +38,4 @@ extern "C" __global__ void vector_add_hip(const float * a, const float * b, floa
     {
         c[index] = a[index] + b[index]; // Add the two elements
     }
-
 }
