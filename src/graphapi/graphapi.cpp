@@ -222,10 +222,11 @@ extern "C" miopenStatus_t miopenBackendInitialize(miopenBackendDescriptor_t desc
     return miopen::try_([&] {
         switch(descriptorType)
         {
-        /* This part is a common place of changes of about 25 PRs and merge conflicts arise heavily
+        /** This part is a common place of changes of about 25 PRs and merge conflicts arise heavily
          * here. Turn off clang-format to keep each line unique to simplify resolving of conflicts.
          *
-         * TODO: Turn on clang-format when active phase of development is finished.
+         * \todo Turn on clang-format when active phase of development is finished.
+         * --Sergei Apr, 2024
          */
         // clang-format off
         case MIOPEN_BACKEND_CONVOLUTION_DESCRIPTOR:
