@@ -36,7 +36,7 @@ MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLAGS_ARGS)
 
 namespace immed_conv2d_codecov {
 
-static bool SkipTest(void) { return !miopen::IsEnabled(ENV(CODECOV_TEST)); }
+static bool SkipTest(void) { return !env::enabled(CODECOV_TEST); }
 
 void GetArgs(const std::string& param, std::vector<std::string>& tokens)
 {
@@ -76,6 +76,7 @@ void Run2dDriver(miopenDataType_t prec)
     case miopenFloat8:
     case miopenBFloat8:
     case miopenInt32:
+    case miopenInt64:
     case miopenDouble:
         FAIL() << "miopenInt32, miopenDouble, miopenFloat8, miopenBFloat8 "
                   "data type not supported by "
@@ -105,7 +106,7 @@ bool IsTestSupportedForDevice(const miopen::Handle& handle) { return true; }
 
 std::vector<std::string> GetTestCases(const std::string& precision)
 {
-    const auto& flag_arg = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLAGS_ARGS));
+    const auto& flag_arg = env::value(MIOPEN_TEST_FLAGS_ARGS);
 
     const std::vector<std::string> test_cases = {
         // clang-format off

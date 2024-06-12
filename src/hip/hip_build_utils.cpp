@@ -107,8 +107,8 @@ const char* getOffloadBundlerBinPath()
 
 namespace miopen {
 
-static fs::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
-                             const std::string& filename,
+static fs::path HipBuildImpl(const TmpDir& tmp_dir,
+                             const fs::path& filename,
                              std::string src,
                              std::string params,
                              const TargetProperties& target,
@@ -118,18 +118,17 @@ static fs::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
     // Let's assume includes are overkill for feature tests & optimize'em out.
     if(!testing_mode)
     {
-        auto inc_list = GetHipKernelIncList();
-        auto inc_path = tmp_dir->path;
-        fs::create_directories(inc_path);
+        auto inc_list = GetKernelIncList();
+        fs::create_directories(tmp_dir);
         for(const auto& inc_file : inc_list)
         {
             auto inc_src = GetKernelInc(inc_file);
-            WriteFile(inc_src, inc_path / inc_file);
+            WriteFile(inc_src, tmp_dir / inc_file);
         }
     }
 
     src += "\nint main() {}\n";
-    WriteFile(src, tmp_dir->path / filename);
+    WriteFile(src, tmp_dir / filename);
 
     const LcOptionTargetStrings lots(target);
 
@@ -158,11 +157,11 @@ static fs::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
     params += MIOPEN_STRINGIZE(HIP_COMPILER_FLAGS);
 
 #if MIOPEN_BUILD_DEV
-    if(miopen::IsEnabled(ENV(MIOPEN_DEBUG_HIP_VERBOSE)))
+    if(env::enabled(MIOPEN_DEBUG_HIP_VERBOSE))
     {
         params += " -v";
     }
-    if(miopen::IsEnabled(ENV(MIOPEN_DEBUG_HIP_DUMP)))
+    if(env::enabled(MIOPEN_DEBUG_HIP_DUMP))
     {
         params += " -gline-tables-only";
         params += " -save-temps";
@@ -170,8 +169,8 @@ static fs::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
 #endif
 
     // hip version
-    params += " -DHIP_PACKAGE_VERSION_FLAT=" + std::string{HIP_PACKAGE_VERSION_FLAT} + " ";
-    auto bin_file = make_object_file_name(tmp_dir.get() / filename);
+    params += " -DHIP_PACKAGE_VERSION_FLAT=" + std::to_string(HIP_PACKAGE_VERSION_FLAT) + " ";
+    auto bin_file = make_object_file_name(tmp_dir / filename);
 
     // compile
     {
@@ -181,7 +180,7 @@ static fs::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
         if(testing_mode)
             args += " 1>/dev/null 2>&1";
 #endif
-        tmp_dir->Execute(MIOPEN_HIP_COMPILER, args);
+        std::ignore = tmp_dir.Execute(MIOPEN_HIP_COMPILER, args);
         if(!fs::exists(bin_file))
             MIOPEN_THROW("Failed cmd: '" + std::string(MIOPEN_HIP_COMPILER) + "', args: '" + args +
                          '\'');
@@ -189,11 +188,11 @@ static fs::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
 
 #if defined(MIOPEN_OFFLOADBUNDLER_BIN) && !MIOPEN_BACKEND_HIP
     // Unbundling is not required for HIP runtime && hip-clang
-    tmp_dir->Execute(MIOPEN_OFFLOADBUNDLER_BIN,
-                     "--type=o "
-                     "--targets=hipv4-amdgcn-amd-amdhsa-" +
-                         (std::string{'-'} + lots.device + lots.xnack) + " --inputs=" + bin_file +
-                         " --outputs=" + bin_file + ".hsaco --unbundle");
+    std::ignore = tmp_dir.Execute(MIOPEN_OFFLOADBUNDLER_BIN,
+                                  "--type=o "
+                                  "--targets=hipv4-amdgcn-amd-amdhsa-" +
+                                      (std::string{'-'} + lots.device + lots.xnack) + " --inputs=" +
+                                      bin_file + " --outputs=" + bin_file + ".hsaco --unbundle");
 
     auto hsaco = std::find_if(fs::directory_iterator{tmp_dir->path}, {}, [](auto entry) {
         return (entry.path().extension() == ".hsaco");
@@ -209,15 +208,15 @@ static fs::path HipBuildImpl(boost::optional<TmpDir>& tmp_dir,
 #endif
 }
 
-fs::path HipBuild(boost::optional<TmpDir>& tmp_dir,
-                  const std::string& filename,
-                  std::string src,
+fs::path HipBuild(const TmpDir& tmp_dir,
+                  const fs::path& filename,
+                  std::string_view src,
                   std::string params,
                   const TargetProperties& target)
 {
     if(miopen::solver::support_amd_buffer_atomic_fadd(target.Name()))
         params += " -DCK_AMD_BUFFER_ATOMIC_FADD_RETURNS_FLOAT=1";
-    return HipBuildImpl(tmp_dir, filename, src, params, target, false);
+    return HipBuildImpl(tmp_dir, filename, std::string{src}, params, target, false);
 }
 
 } // namespace miopen

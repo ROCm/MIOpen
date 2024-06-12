@@ -33,8 +33,8 @@
 
 bool ValidateGcnAssembler();
 #if !MIOPEN_USE_COMGR
-std::string AmdgcnAssemble(const std::string& source,
-                           const std::string& params,
+std::string AmdgcnAssemble(std::string_view source,
+                           std::string_view params,
                            const miopen::TargetProperties& target);
 #endif
 

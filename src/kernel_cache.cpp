@@ -71,13 +71,13 @@ const std::vector<Kernel>& KernelCache::GetKernels(const std::string& algorithm,
     return empty;
 }
 
-bool KernelCache::HasProgram(const std::string& name, const std::string& params) const
+bool KernelCache::HasProgram(const fs::path& name, const std::string& params) const
 {
     const auto key = std::make_pair(name, params);
     return program_map.count(key) > 0;
 }
 
-void KernelCache::ClearProgram(const std::string& name, const std::string& params)
+void KernelCache::ClearProgram(const fs::path& name, const std::string& params)
 {
     if(HasProgram(name, params))
     {
@@ -86,7 +86,7 @@ void KernelCache::ClearProgram(const std::string& name, const std::string& param
     }
 }
 
-void KernelCache::AddProgram(Program prog, const std::string& program_name, std::string params)
+void KernelCache::AddProgram(Program prog, const fs::path& program_name, std::string params)
 {
     program_map[std::make_pair(program_name, params)] = prog;
 }
@@ -94,33 +94,50 @@ void KernelCache::AddProgram(Program prog, const std::string& program_name, std:
 Kernel KernelCache::AddKernel(const Handle& h,
                               const std::string& algorithm,
                               const std::string& network_config,
-                              const std::string& program_name,
+                              const fs::path& program_name,
                               const std::string& kernel_name,
                               const std::vector<size_t>& vld,
                               const std::vector<size_t>& vgd,
                               std::string params,
                               std::size_t cache_index,
-                              const std::string& kernel_src)
+                              const std::string& kernel_src,
+                              Program* program_out)
 {
     const std::pair<std::string, std::string> key = std::make_pair(algorithm, network_config);
     if(!network_config.empty() || !algorithm.empty()) // Don't log only _empty_ keys.
         MIOPEN_LOG_I2("Key: " << key.first << " \"" << key.second << '\"');
 
-    Program program;
+    const auto program = [&] {
+        auto program_it = program_map.find(std::make_pair(program_name, params));
+        if(program_it != program_map.end())
+        {
+            auto& program = program_it->second;
 
-    auto program_it = program_map.find(std::make_pair(program_name, params));
-    if(program_it != program_map.end())
-    {
-        program = program_it->second;
-    }
-    else
-    {
-        program = h.LoadProgram(program_name, params, kernel_src);
-        program_map[std::make_pair(program_name, params)] = program;
-    }
+            if(program_out != nullptr && !program.IsCodeObjectInMemory() &&
+               !program.IsCodeObjectInFile())
+            {
+                // We need the binaries attached to the program.
+                // This may happen if someone calls immediate mode and then find 2.0 with request
+                // for binaries.
+                program = h.LoadProgram(program_name, params, kernel_src, true);
+            }
+
+            return program;
+        }
+        else
+        {
+            auto program = h.LoadProgram(program_name, params, kernel_src, program_out != nullptr);
+
+            program_map[std::make_pair(program_name, params)] = program;
+            return program;
+        }
+    }();
+
+    if(program_out != nullptr)
+        *program_out = program;
 
     Kernel kernel{};
-    const auto& arch = miopen::GetStringEnv(ENV(MIOPEN_DEVICE_ARCH));
+    const auto& arch = env::value(MIOPEN_DEVICE_ARCH);
     if(!arch.empty())
     {
         kernel = Kernel{program, kernel_name};

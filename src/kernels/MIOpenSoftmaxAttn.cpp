@@ -24,16 +24,40 @@
  *
  *******************************************************************************/
 
+// rocblas operates with non-ieee FP8
+#define MIOPEN_FP8_IEEE_EXPONENT_BIAS 0
+
 #ifndef MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS
+#include <hip/hip_fp16.h>
 #include <hip/hip_runtime.h>
+#include <hip/hip_bfloat16.h>
 #endif
 
 #include "miopen_cstdint.hpp"
 #include "miopen_limits.hpp"
 #include "miopen_rocrand.hpp"
 
+#define MIOPEN_ENABLE_F8_DEVICE_CODE 1
+#include <hip_float8.hpp>
+
+// Some versions of amd-clang treats MIOPEN_ENABLE_F8_DEVICE_CODE as unused despite the fact that
+// it's used in the subsequent include. Some other versions amd-clang failed to compile everything
+// without MIOPEN_ENABLE_F8_DEVICE_CODE explicitely defined.
+// Fake-using it.
+#ifndef MIOPEN_ENABLE_F8_DEVICE_CODE
+#message "MIOPEN_ENABLE_F8_DEVICE_CODE must be defined"
+#endif
+
 #ifndef THREADS
 #define THREADS 64
+#endif
+
+#ifndef OUT_TYPE
+#define OUT_TYPE float
+#endif
+
+#ifndef dO_TYPE
+#define dO_TYPE float
 #endif
 
 namespace {
@@ -160,7 +184,7 @@ __forceinline__ __device__ bool doDropout(float dropout, rocrand_device::xorwow_
 
 extern "C" __global__ void __launch_bounds__(THREADS)
     SoftMaxWarp(const float* in,
-                float* out,
+                OUT_TYPE* out,
                 float* __restrict__ M,
                 float* __restrict__ Z,
                 float* __restrict__ Amax,
@@ -195,7 +219,7 @@ extern "C" __global__ void __launch_bounds__(THREADS)
     for(uint64_t gid = blockIdx.x * NumWarps + warpId; gid < nhs; gid += gridDim.x * NumWarps)
     {
         const float* line = in + gid * seq_len + laneId;
-        float* res        = out + gid * seq_len + laneId;
+        auto res          = out + gid * seq_len + laneId;
 
         float local_val =
             (laneId < seq_len) ? (*line) * descaler : std::numeric_limits<float>::lowest();
@@ -215,7 +239,7 @@ extern "C" __global__ void __launch_bounds__(THREADS)
 
         if(laneId < seq_len)
         {
-            *res = doDropout(dropout, &rng) ? 0.0f : local_val * scaler;
+            *res = static_cast<OUT_TYPE>(doDropout(dropout, &rng) ? 0.0f : local_val * scaler);
         }
 
         if(save_stats)
@@ -237,7 +261,7 @@ extern "C" __global__ void __launch_bounds__(THREADS)
 
 extern "C" __global__ void __launch_bounds__(THREADS)
     SoftMaxBlock(const float* in,
-                 float* out,
+                 OUT_TYPE* out,
                  float* __restrict__ M,
                  float* __restrict__ Z,
                  float* __restrict__ Amax,
@@ -272,7 +296,7 @@ extern "C" __global__ void __launch_bounds__(THREADS)
     for(uint64_t gid = blockIdx.x; gid < nhs; gid += gridDim.x)
     {
         const float* line = in + gid * seq_len + lid;
-        float* res        = out + gid * seq_len + lid;
+        auto res          = out + gid * seq_len + lid;
 
         float local_val =
             (lid < seq_len) ? (*line) * descaler : std::numeric_limits<float>::lowest();
@@ -291,7 +315,7 @@ extern "C" __global__ void __launch_bounds__(THREADS)
 
         if(lid < seq_len)
         {
-            *res = doDropout(dropout, &rng) ? 0.0f : local_val * scaler;
+            *res = static_cast<OUT_TYPE>(doDropout(dropout, &rng) ? 0.0f : local_val * scaler);
         }
 
         if(save_stats)
@@ -313,7 +337,7 @@ extern "C" __global__ void __launch_bounds__(THREADS)
 
 extern "C" __global__ void __launch_bounds__(THREADS)
     SoftMaxCommon(const float* in,
-                  float* out,
+                  OUT_TYPE* out,
                   float* __restrict__ M,
                   float* __restrict__ Z,
                   float* __restrict__ Amax,
@@ -348,7 +372,7 @@ extern "C" __global__ void __launch_bounds__(THREADS)
     for(uint64_t gid = blockIdx.x; gid < nhs; gid += gridDim.x)
     {
         const float* line = in + gid * seq_len;
-        float* res        = out + gid * seq_len;
+        auto res          = out + gid * seq_len;
 
         float r_max = reductionCommon<NumWarps>(
             line,
@@ -379,7 +403,8 @@ extern "C" __global__ void __launch_bounds__(THREADS)
             // non-negative value. Plain max() is enough.
             r_Amax = fmaxf_op(r_Amax, local_val);
 
-            res[loop_lid] = doDropout(dropout, &rng) ? 0.0f : local_val * scaler;
+            res[loop_lid] =
+                static_cast<OUT_TYPE>(doDropout(dropout, &rng) ? 0.0f : local_val * scaler);
         }
 
         if(save_stats)
@@ -401,7 +426,7 @@ extern "C" __global__ void __launch_bounds__(THREADS)
 
 extern "C" __global__ void __launch_bounds__(THREADS)
     ScaleReduce(const float* __restrict__ in,
-                float* __restrict__ out,
+                OUT_TYPE* __restrict__ out,
                 float* __restrict__ Amax,
                 const float* __restrict__ descale_S,
                 const float* __restrict__ descale_V,
@@ -426,7 +451,7 @@ extern "C" __global__ void __launch_bounds__(THREADS)
 
         r_Amax = fmaxf_op(r_Amax, fabsf(res));
 
-        *out_ptr = res * scaler;
+        *out_ptr = static_cast<OUT_TYPE>(res * scaler);
 
         in_ptr += step;
         out_ptr += step;
@@ -445,8 +470,8 @@ extern "C" __global__ void __launch_bounds__(THREADS)
 }
 
 extern "C" __global__ void __launch_bounds__(THREADS)
-    ScaleRowReduceWarp(const float* __restrict__ dO,
-                       const float* __restrict__ O,
+    ScaleRowReduceWarp(const dO_TYPE* __restrict__ dO,
+                       const OUT_TYPE* __restrict__ O,
                        float* __restrict__ out,
                        const float* __restrict__ descale_dO,
                        const float* __restrict__ descale_O,
@@ -466,10 +491,10 @@ extern "C" __global__ void __launch_bounds__(THREADS)
         float local_val = 0.0f;
         if(laneId < d)
         {
-            const float* dO_ptr = dO + gid * d + laneId;
-            const float* O_ptr  = O + gid * d + laneId;
+            const auto dO_ptr = dO + gid * d + laneId;
+            const auto O_ptr  = O + gid * d + laneId;
 
-            local_val = (*dO_ptr) * (*O_ptr) * scaler;
+            local_val = static_cast<float>(*dO_ptr) * static_cast<float>(*O_ptr) * scaler;
         }
 
         local_val = reductionFullWarp<warpSize>(local_val, laneId, plus_op);
@@ -482,8 +507,8 @@ extern "C" __global__ void __launch_bounds__(THREADS)
 }
 
 extern "C" __global__ void __launch_bounds__(THREADS)
-    ScaleRowReduceBlock(const float* __restrict__ dO,
-                        const float* __restrict__ O,
+    ScaleRowReduceBlock(const dO_TYPE* __restrict__ dO,
+                        const OUT_TYPE* __restrict__ O,
                         float* __restrict__ out,
                         const float* __restrict__ descale_dO,
                         const float* __restrict__ descale_O,
@@ -500,13 +525,13 @@ extern "C" __global__ void __launch_bounds__(THREADS)
 
     for(uint64_t gid = blockIdx.x; gid < nhs; gid += gridDim.x)
     {
-        const float* dO_ptr = dO + gid * d + lid;
-        const float* O_ptr  = O + gid * d + lid;
+        const auto dO_ptr = dO + gid * d + lid;
+        const auto O_ptr  = O + gid * d + lid;
 
         float local_val = 0.0f;
         if(lid < d)
         {
-            local_val = (*dO_ptr) * (*O_ptr) * scaler;
+            local_val = static_cast<float>(*dO_ptr) * static_cast<float>(*O_ptr) * scaler;
         }
 
         local_val = reductionBlock<NumWarps>(local_val, plus_op, lid, laneId, warpId);
@@ -519,8 +544,8 @@ extern "C" __global__ void __launch_bounds__(THREADS)
 }
 
 extern "C" __global__ void __launch_bounds__(THREADS)
-    ScaleRowReduceCommon(const float* __restrict__ dO,
-                         const float* __restrict__ O,
+    ScaleRowReduceCommon(const dO_TYPE* __restrict__ dO,
+                         const OUT_TYPE* __restrict__ O,
                          float* __restrict__ out,
                          const float* __restrict__ descale_dO,
                          const float* __restrict__ descale_O,
@@ -537,13 +562,16 @@ extern "C" __global__ void __launch_bounds__(THREADS)
 
     for(uint64_t gid = blockIdx.x; gid < nhs; gid += gridDim.x)
     {
-        const float* dO_ptr = dO + gid * d;
-        const float* O_ptr  = O + gid * d;
+        const auto dO_ptr = dO + gid * d;
+        const auto O_ptr  = O + gid * d;
 
-        float local_val = (lid < d) ? dO_ptr[lid] * O_ptr[lid] * scaler : 0.0f;
+        float local_val =
+            (lid < d) ? static_cast<float>(dO_ptr[lid]) * static_cast<float>(O_ptr[lid]) * scaler
+                      : 0.0f;
 
         for(uint32_t loop_lid = lid + blockDim.x; loop_lid < d; loop_lid += blockDim.x)
-            local_val += dO_ptr[loop_lid] * O_ptr[loop_lid] * scaler;
+            local_val +=
+                static_cast<float>(dO_ptr[loop_lid]) * static_cast<float>(O_ptr[loop_lid]) * scaler;
 
         local_val = reductionBlock<NumWarps>(local_val, plus_op, lid, laneId, warpId);
 
@@ -556,7 +584,8 @@ extern "C" __global__ void __launch_bounds__(THREADS)
 
 extern "C" __global__ void __launch_bounds__(THREADS)
     BwdAttentionWarp(float* __restrict__ QxK_S,
-                     float* __restrict__ dOxV_dS,
+                     const float* dOxV,
+                     OUT_TYPE* dS, // may overlap with dOxV
                      const float* __restrict__ M,
                      const float* __restrict__ Zinv,
                      const float* __restrict__ dOxO,
@@ -614,9 +643,9 @@ extern "C" __global__ void __launch_bounds__(THREADS)
 
         QxK_S[idx] = QxK_val * scaler_S;
 
-        const float dOxV_val = (dOxV_dS[idx] * descaler_dOxV - dOxO_val) * scale * QxK_val;
+        const float dOxV_val = (dOxV[idx] * descaler_dOxV - dOxO_val) * scale * QxK_val;
 
-        dOxV_dS[idx] = dOxV_val * scaler_dS;
+        dS[idx] = static_cast<OUT_TYPE>(dOxV_val * scaler_dS);
 
         r_Amax = fmaxf_op(r_Amax, fabsf(dOxV_val));
     }
@@ -630,7 +659,8 @@ extern "C" __global__ void __launch_bounds__(THREADS)
 
 extern "C" __global__ void __launch_bounds__(THREADS)
     BwdAttentionBlock(float* __restrict__ QxK_S,
-                      float* __restrict__ dOxV_dS,
+                      const float* dOxV,
+                      OUT_TYPE* dS, // may overlap with dOxV
                       const float* __restrict__ M,
                       const float* __restrict__ Zinv,
                       const float* __restrict__ dOxO,
@@ -687,9 +717,9 @@ extern "C" __global__ void __launch_bounds__(THREADS)
 
         QxK_S[idx] = QxK_val * scaler_S;
 
-        const float dOxV_val = (dOxV_dS[idx] * descaler_dOxV - dOxO_val) * scale * QxK_val;
+        const float dOxV_val = (dOxV[idx] * descaler_dOxV - dOxO_val) * scale * QxK_val;
 
-        dOxV_dS[idx] = dOxV_val * scaler_dS;
+        dS[idx] = static_cast<OUT_TYPE>(dOxV_val * scaler_dS);
 
         r_Amax = fmaxf_op(r_Amax, fabsf(dOxV_val));
     }
@@ -703,7 +733,8 @@ extern "C" __global__ void __launch_bounds__(THREADS)
 
 extern "C" __global__ void __launch_bounds__(THREADS)
     BwdAttentionCommon(float* __restrict__ QxK_S,
-                       float* __restrict__ dOxV_dS,
+                       const float* dOxV,
+                       OUT_TYPE* dS, // may overlap with dOxV
                        const float* __restrict__ M,
                        const float* __restrict__ Zinv,
                        const float* __restrict__ dOxO,
@@ -752,8 +783,9 @@ extern "C" __global__ void __launch_bounds__(THREADS)
         const float Zinv_val = Zinv[gid];
         const float dOxO_val = dOxO[gid];
 
-        float* QxK_S_ptr   = QxK_S + gid * seq_len;
-        float* dOxV_dS_ptr = dOxV_dS + gid * seq_len;
+        float* QxK_S_ptr      = QxK_S + gid * seq_len;
+        const float* dOxV_ptr = dOxV + gid * seq_len;
+        OUT_TYPE* dS_ptr      = dS + gid * seq_len;
 
         for(uint32_t loop_lid = lid; loop_lid < seq_len; loop_lid += blockDim.x)
         {
@@ -765,9 +797,9 @@ extern "C" __global__ void __launch_bounds__(THREADS)
             QxK_S_ptr[loop_lid] = QxK_val * scaler_S;
 
             const float dOxV_val =
-                (dOxV_dS_ptr[loop_lid] * descaler_dOxV - dOxO_val) * scale * QxK_val;
+                (dOxV_ptr[loop_lid] * descaler_dOxV - dOxO_val) * scale * QxK_val;
 
-            dOxV_dS_ptr[loop_lid] = dOxV_val * scaler_dS;
+            dS_ptr[loop_lid] = static_cast<OUT_TYPE>(dOxV_val * scaler_dS);
 
             r_Amax = fmaxf_op(r_Amax, fabsf(dOxV_val));
         }

@@ -27,7 +27,7 @@
 #ifndef GUARD_MLOPEN_BINARY_CACHE_HPP
 #define GUARD_MLOPEN_BINARY_CACHE_HPP
 
-#include <miopen/config.h>
+#include <miopen/config.hpp>
 #include <miopen/target_properties.hpp>
 #include <miopen/filesystem.hpp>
 #include <string>
@@ -36,30 +36,31 @@ namespace miopen {
 
 bool IsCacheDisabled();
 
-fs::path GetCacheFile(const std::string& device, const std::string& name, const std::string& args);
+MIOPEN_INTERNALS_EXPORT fs::path
+GetCacheFile(const std::string& device, const fs::path& name, const std::string& args);
 
-fs::path GetCachePath(bool is_system);
+MIOPEN_INTERNALS_EXPORT fs::path GetCachePath(bool is_system);
 
 #if !MIOPEN_ENABLE_SQLITE_KERN_CACHE
 fs::path LoadBinary(const TargetProperties& target,
                     std::size_t num_cu,
-                    const std::string& name,
+                    const fs::path& name,
                     const std::string& args);
 
-void SaveBinary(const fs::path& binary_path,
-                const TargetProperties& target,
-                const std::string& name,
-                const std::string& args);
+fs::path SaveBinary(const fs::path& binary_path,
+                    const TargetProperties& target,
+                    const fs::path& name,
+                    const std::string& args);
 #else
 std::vector<char> LoadBinary(const TargetProperties& target,
                              std::size_t num_cu,
-                             const std::string& name,
+                             const fs::path& name,
                              const std::string& args);
 
 void SaveBinary(const std::vector<char>& hsaco,
                 const TargetProperties& target,
                 std::size_t num_cu,
-                const std::string& name,
+                const fs::path& name,
                 const std::string& args);
 #endif
 

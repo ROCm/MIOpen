@@ -72,14 +72,20 @@ extern "C" miopenStatus_t miopenGetVersion(size_t* major, size_t* minor, size_t*
 extern "C" miopenStatus_t miopenCreate(miopenHandle_t* handle)
 {
 
-    return miopen::try_([&] { miopen::deref(handle) = new miopen::Handle(); });
+    return miopen::try_([&] {
+        auto& h = miopen::deref(handle);
+        h       = new miopen::Handle();
+    });
 }
 
 extern "C" miopenStatus_t miopenCreateWithStream(miopenHandle_t* handle,
                                                  miopenAcceleratorQueue_t stream)
 {
 
-    return miopen::try_([&] { miopen::deref(handle) = new miopen::Handle(stream); });
+    return miopen::try_([&] {
+        auto& h = miopen::deref(handle);
+        h       = new miopen::Handle(stream);
+    });
 }
 
 extern "C" miopenStatus_t miopenSetStream(miopenHandle_t handle, miopenAcceleratorQueue_t streamID)

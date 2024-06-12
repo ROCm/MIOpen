@@ -42,17 +42,29 @@ namespace miopen {
 
 namespace {
 
+#if MIOPEN_USE_ROCBLAS
+
 bool RNNForwardMSIsSupported([[maybe_unused]] const RNNDescriptor& desctiptor,
                              [[maybe_unused]] bool use_dropout)
 {
 #if MIOPEN_USE_GEMM && MIOPEN_BACKEND_HIP
     if(desctiptor.rnnMode == miopenLSTM && desctiptor.algoMode == miopenRNNdefault &&
        !use_dropout && desctiptor.nLayers > 1 && desctiptor.dirMode == miopenRNNunidirection &&
-       desctiptor.inputMode != miopenRNNskip && !(miopen::IsDisabled(ENV(MIOPEN_RNNFWD_exp))))
+       desctiptor.inputMode != miopenRNNskip)
     {
         return true;
     }
 #endif // MIOPEN_USE_GEMM&& MIOPEN_BACKEND_HIP
+    return false;
+}
+
+bool RNNForwardMSIsFast(const int seqLen)
+{
+    if(env::enabled(MIOPEN_RNNFWD_exp))
+        return true;
+
+    if(seqLen >= 32 && !env::disabled(MIOPEN_RNNFWD_exp))
+        return true;
     return false;
 }
 
@@ -232,6 +244,8 @@ miopenStatus_t ReducAddBias(miopen::Handle& handle,
 
     return miopenStatusSuccess;
 }
+
+#endif // MIOPEN_USE_ROCBLAS
 
 } // namespace
 
@@ -1068,8 +1082,6 @@ void RNNDescriptor::RNNForwardMS(Handle& handle,
     (void)y;
     (void)hy;
     (void)cy;
-    (void)reserveSpace;
-    (void)reserveSpaceSize;
 
     MIOPEN_THROW("GEMM is not supported");
 #endif
@@ -1300,7 +1312,7 @@ void RNNDescriptor::RNNForwardInferencePacked(Handle& handle,
     }
     // input check end
 
-    if(RNNForwardMSIsSupported(*this, false) && xDesc[0].GetType() == miopenFloat && seqLen >= 32)
+    if(RNNForwardMSIsSupported(*this, false) && RNNForwardMSIsFast(seqLen))
     {
         return RNNForwardMS(handle,
                             in_n,
@@ -2694,8 +2706,7 @@ void RNNDescriptor::RNNForwardTrainingPackedTensors(
     // input check end
     bool use_dropout = !float_equal(miopen::deref(dropoutDesc).dropout, 0);
 
-    if(RNNForwardMSIsSupported(*this, use_dropout) && xDesc[0].GetType() == miopenFloat &&
-       seqLen >= 32)
+    if(RNNForwardMSIsSupported(*this, false) && RNNForwardMSIsFast(seqLen))
     {
         return RNNForwardMS(handle,
                             in_n,

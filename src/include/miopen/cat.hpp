@@ -33,13 +33,13 @@ namespace miopen {
 struct Handle;
 struct TensorDescriptor;
 
-miopenStatus_t CatForward(Handle& handle,
-                          int32_t xCount,
-                          const TensorDescriptor* const* xDescs,
-                          ConstData_t* xs,
-                          const TensorDescriptor& yDesc,
-                          Data_t y,
-                          int32_t dim);
+MIOPEN_INTERNALS_EXPORT miopenStatus_t CatForward(Handle& handle,
+                                                  int32_t xCount,
+                                                  const TensorDescriptor* const* xDescs,
+                                                  ConstData_t* xs,
+                                                  const TensorDescriptor& yDesc,
+                                                  Data_t y,
+                                                  int32_t dim);
 
 } // namespace miopen
 #endif // _MIOPEN_CAT_HPP_

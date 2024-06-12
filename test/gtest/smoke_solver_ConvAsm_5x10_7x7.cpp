@@ -34,16 +34,13 @@ namespace {
 
 auto GetTestCases()
 {
-    const auto env5x10f = std::tuple{
-        std::pair{ENV(MIOPEN_FIND_MODE), std::string_view("normal")},
-        std::pair{ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER), std::string_view("ConvAsm5x10u2v2f1")}};
-    const auto env5x10b = std::tuple{
-        std::pair{ENV(MIOPEN_FIND_MODE), std::string_view("normal")},
-        std::pair{ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER), std::string_view("ConvAsm5x10u2v2b1")}};
+    const auto env5x10f = std::tuple{std::pair{MIOPEN_FIND_MODE, "normal"},
+                                     std::pair{MIOPEN_DEBUG_FIND_ONLY_SOLVER, "ConvAsm5x10u2v2f1"}};
+    const auto env5x10b = std::tuple{std::pair{MIOPEN_FIND_MODE, "normal"},
+                                     std::pair{MIOPEN_DEBUG_FIND_ONLY_SOLVER, "ConvAsm5x10u2v2b1"}};
     const auto env7x7 =
-        std::tuple{std::pair{ENV(MIOPEN_FIND_MODE), std::string_view("normal")},
-                   std::pair{ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER),
-                             std::string_view("ConvAsm7x7c3h224w224k64u2v2p3q3f1")}};
+        std::tuple{std::pair{MIOPEN_FIND_MODE, "normal"},
+                   std::pair{MIOPEN_DEBUG_FIND_ONLY_SOLVER, "ConvAsm7x7c3h224w224k64u2v2p3q3f1"}};
 
     const std::string vf = " --verbose --disable-backward-data --disable-backward-weights";
     const std::string vb = " --verbose --disable-forward --disable-backward-weights";

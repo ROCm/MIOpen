@@ -52,7 +52,7 @@ public:
     miopenDataType_t getCompType() const { return mCompType; }
 };
 
-class ReductionBuilder
+class MIOPEN_INTERNALS_EXPORT ReductionBuilder
 {
 private:
     Reduction mReduction;
@@ -77,7 +77,7 @@ public:
     Reduction build();
 };
 
-class BackendReductionDescriptor : public BackendDescriptor
+class MIOPEN_INTERNALS_EXPORT BackendReductionDescriptor : public BackendDescriptor
 {
 private:
     ReductionBuilder mBuilder;
@@ -99,7 +99,7 @@ public:
     Reduction* getReduction() { return &mReduction; }
 };
 
-class OperationReduction : public OpNode
+class MIOPEN_INTERNALS_EXPORT OperationReduction : public OpNode
 {
 private:
     Reduction* mReduction = nullptr;
@@ -124,7 +124,7 @@ public:
     std::vector<Tensor*> getOutTensors() const override;
 };
 
-class OperationReductionBuilder
+class MIOPEN_INTERNALS_EXPORT OperationReductionBuilder
 {
 private:
     OperationReduction mOperationReduction;
@@ -136,7 +136,7 @@ public:
     OperationReduction build();
 };
 
-class BackendOperationReductionDescriptor : public BackendDescriptor
+class MIOPEN_INTERNALS_EXPORT BackendOperationReductionDescriptor : public BackendDescriptor
 {
 private:
     OperationReductionBuilder mBuilder;

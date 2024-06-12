@@ -102,8 +102,6 @@ Filtering by build method
   ImplicitGemm algorithm.
 * ``MIOPEN_DEBUG_OPENCL_CONVOLUTIONS``: Convolution kernels written in OpenCL; this only
   affects convolutions.
-* ``MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES``: Binary kernels. The library does not
-  currently use binaries.
 
 Filtering out all but one solution
 --------------------------------------------------------------------------------------------------------------

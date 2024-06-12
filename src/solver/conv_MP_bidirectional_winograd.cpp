@@ -51,10 +51,10 @@
 
 #if WORKAROUND_SWDEV_257202
 // Workaround, solver disabled by default.
-#define IS_DISABLED(expr) !miopen::IsEnabled(expr)
+#define IS_DISABLED(expr) !env::enabled(expr)
 #else
 // Normal behavior (solver enabled by default).
-#define IS_DISABLED(expr) miopen::IsDisabled(expr)
+#define IS_DISABLED(expr) env::disabled(expr)
 #endif
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F2X3)
@@ -72,8 +72,6 @@ MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F6X3)
 MIOPEN_DECLARE_ENV_VAR_UINT64(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_WORKSPACE_MAX)
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_EXPEREMENTAL_FP16_TRANSFORM)
-
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_CONV_PRECISE_ROCBLAS_TIMING)
 
 namespace miopen {
 namespace solver {
@@ -160,7 +158,7 @@ static bool IsApplicableGEMM(const ProblemDescription& problem)
 #if(MIOPEN_BACKEND_HIP && MIOPEN_USE_ROCBLAS)
 
     const miopenDataType_t transform_data_type =
-        miopen::IsEnabled(ENV(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_EXPEREMENTAL_FP16_TRANSFORM))
+        env::enabled(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_EXPEREMENTAL_FP16_TRANSFORM)
             ? problem.GetInDataType()
             : miopenFloat;
 
@@ -207,7 +205,7 @@ static bool IsApplicableTransform(const ExecutionContext& ctx, const ProblemDesc
 #endif
 
     {
-        std::size_t limit = miopen::Value(ENV(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_WORKSPACE_MAX));
+        std::size_t limit = env::value(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_WORKSPACE_MAX);
 #if WORKAROUND_SWDEV_203031
         if(limit == 0)
         {
@@ -246,7 +244,7 @@ static bool IsApplicableTransform(const ExecutionContext& ctx, const ProblemDesc
     DEFINE_SHADER_ALIASES(problem)
     {
         const miopenDataType_t transform_data_type =
-            miopen::IsEnabled(ENV(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_EXPEREMENTAL_FP16_TRANSFORM))
+            env::enabled(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_EXPEREMENTAL_FP16_TRANSFORM)
                 ? problem.GetInDataType()
                 : miopenFloat;
 
@@ -344,27 +342,27 @@ bool ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::IsA
 
     if(wino_data_tile == 6 && wino_filter_tile == 3)
     {
-        if(IS_DISABLED(ENV(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F6X3)))
+        if(IS_DISABLED(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F6X3))
             return false;
     }
     if(wino_data_tile == 5 && wino_filter_tile == 3)
     {
-        if(IS_DISABLED(ENV(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F5X3)))
+        if(IS_DISABLED(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F5X3))
             return false;
     }
     if(wino_data_tile == 4 && wino_filter_tile == 3)
     {
-        if(IS_DISABLED(ENV(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F4X3)))
+        if(IS_DISABLED(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F4X3))
             return false;
     }
     if(wino_data_tile == 3 && wino_filter_tile == 3)
     {
-        if(IS_DISABLED(ENV(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F3X3)))
+        if(IS_DISABLED(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F3X3))
             return false;
     }
     if(wino_data_tile == 2 && wino_filter_tile == 3)
     {
-        if(IS_DISABLED(ENV(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F2X3)))
+        if(IS_DISABLED(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F2X3))
             return false;
     }
 
@@ -376,7 +374,7 @@ size_t ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::G
     const ExecutionContext&, const ProblemDescription& problem) const
 {
     const miopenDataType_t transform_data_type =
-        miopen::IsEnabled(ENV(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_EXPEREMENTAL_FP16_TRANSFORM))
+        env::enabled(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_EXPEREMENTAL_FP16_TRANSFORM)
             ? problem.GetInDataType()
             : miopenFloat;
 
@@ -431,7 +429,7 @@ static InvokerFactory MakeWinogradInvokerFactory(const ExecutionContext& ctx,
                      GetTypeSize(problem.GetWeightsDataType()));
 
     const miopenDataType_t transform_data_type =
-        miopen::IsEnabled(ENV(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_EXPEREMENTAL_FP16_TRANSFORM))
+        env::enabled(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_EXPEREMENTAL_FP16_TRANSFORM)
             ? problem.GetInDataType()
             : miopenFloat;
     auto wino_in = GetWinoBuffer<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>(
@@ -667,7 +665,7 @@ ConvSolution ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilte
     const size_t g_wk_0 = n_groups * l_wk[0];
     const std::vector<size_t> g_wk{g_wk_0, 1, 1};
     const miopenDataType_t transform_data_type =
-        miopen::IsEnabled(ENV(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_EXPEREMENTAL_FP16_TRANSFORM))
+        env::enabled(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_EXPEREMENTAL_FP16_TRANSFORM)
             ? problem.GetInDataType()
             : miopenFloat;
     std::ostringstream options_in;
@@ -759,7 +757,7 @@ ProblemDescription ConvMPBidirectWinograd_xdlops<WinoDataH, WinoFilterH, WinoDat
     DEFINE_GETXFORMHWSIZE()
     int batch_count = wino_xform_h * wino_xform_w * problem.GetGroupCount();
     const miopenDataType_t transform_data_type =
-        miopen::IsEnabled(ENV(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_EXPEREMENTAL_FP16_TRANSFORM))
+        env::enabled(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_EXPEREMENTAL_FP16_TRANSFORM)
             ? problem.GetInDataType()
             : miopenFloat;
 
@@ -815,7 +813,7 @@ static miopen::conv::DataInvokeParams GetTransformedInvokeContext(const ProblemD
 {
 #if MIOPEN_BACKEND_HIP
     const miopenDataType_t transform_data_type =
-        miopen::IsEnabled(ENV(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_EXPEREMENTAL_FP16_TRANSFORM))
+        env::enabled(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_EXPEREMENTAL_FP16_TRANSFORM)
             ? problem.GetInDataType()
             : miopenFloat;
     WinogradBufferInfo<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>
@@ -869,27 +867,27 @@ bool ConvMPBidirectWinograd_xdlops<WinoDataH, WinoFilterH, WinoDataW, WinoFilter
 
     if(wino_data_tile == 6 && wino_filter_tile == 3)
     {
-        if(IS_DISABLED(ENV(MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F6X3)))
+        if(IS_DISABLED(MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F6X3))
             return false;
     }
     if(wino_data_tile == 5 && wino_filter_tile == 3)
     {
-        if(IS_DISABLED(ENV(MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F5X3)))
+        if(IS_DISABLED(MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F5X3))
             return false;
     }
     if(wino_data_tile == 4 && wino_filter_tile == 3)
     {
-        if(IS_DISABLED(ENV(MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F4X3)))
+        if(IS_DISABLED(MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F4X3))
             return false;
     }
     if(wino_data_tile == 3 && wino_filter_tile == 3)
     {
-        if(IS_DISABLED(ENV(MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F3X3)))
+        if(IS_DISABLED(MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F3X3))
             return false;
     }
     if(wino_data_tile == 2 && wino_filter_tile == 3)
     {
-        if(IS_DISABLED(ENV(MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F2X3)))
+        if(IS_DISABLED(MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F2X3))
             return false;
     }
 

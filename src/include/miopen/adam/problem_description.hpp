@@ -37,7 +37,7 @@ struct NetworkConfig;
 
 namespace adam {
 
-struct ProblemDescription : ProblemDescriptionBase
+struct MIOPEN_INTERNALS_EXPORT ProblemDescription : ProblemDescriptionBase
 {
     ProblemDescription(const TensorDescriptor& paramInDesc_,
                        const TensorDescriptor& paramOutDesc_,

@@ -145,7 +145,7 @@ const std::string& OperationReduction::signName() const
         return name;
     }
     case MIOPEN_REDUCE_TENSOR_MUL: {
-        static const std::string name = "OP_REDUCTION:MUK";
+        static const std::string name = "OP_REDUCTION:MUL";
         return name;
     }
     case MIOPEN_REDUCE_TENSOR_MIN: {

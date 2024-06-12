@@ -28,6 +28,7 @@
 #define MIOPEN_GUARD_MLOPEN_LOAD_FILE_HPP
 
 #include <miopen/filesystem.hpp>
+#include <string>
 #include <vector>
 
 namespace miopen {
