@@ -124,12 +124,10 @@ class RoPEDriver : public Driver
 public:
     RoPEDriver() : Driver()
     {
-        miopenCreateTensorDescriptor(&xDesc);
+        miopenCreateTensorDescriptor(&x_dyDesc);
         miopenCreateTensorDescriptor(&cosDesc);
         miopenCreateTensorDescriptor(&sinDesc);
-        miopenCreateTensorDescriptor(&yDesc);
-        miopenCreateTensorDescriptor(&dyDesc);
-        miopenCreateTensorDescriptor(&dxDesc);
+        miopenCreateTensorDescriptor(&y_dxDesc);
 
         data_type = miopen_type<Tgpu>{};
     }
@@ -155,40 +153,30 @@ public:
     ~RoPEDriver() override
     {
 
-        miopenDestroyTensorDescriptor(xDesc);
+        miopenDestroyTensorDescriptor(x_dyDesc);
         miopenDestroyTensorDescriptor(cosDesc);
         miopenDestroyTensorDescriptor(sinDesc);
-        miopenDestroyTensorDescriptor(yDesc);
-        miopenDestroyTensorDescriptor(dyDesc);
-        miopenDestroyTensorDescriptor(dxDesc);
+        miopenDestroyTensorDescriptor(y_dxDesc);
     }
 
 private:
     InputFlags inflags;
 
-    miopenTensorDescriptor_t xDesc;
+    miopenTensorDescriptor_t x_dyDesc;
     miopenTensorDescriptor_t cosDesc;
     miopenTensorDescriptor_t sinDesc;
-    miopenTensorDescriptor_t yDesc;
-    miopenTensorDescriptor_t dyDesc;
-    miopenTensorDescriptor_t dxDesc;
+    miopenTensorDescriptor_t y_dxDesc;
 
-    std::unique_ptr<GPUMem> x_dev;
+    std::unique_ptr<GPUMem> x_dy_dev;
     std::unique_ptr<GPUMem> cos_dev;
     std::unique_ptr<GPUMem> sin_dev;
-    std::unique_ptr<GPUMem> y_dev;
-    std::unique_ptr<GPUMem> rstd_dev;
-    std::unique_ptr<GPUMem> dy_dev;
-    std::unique_ptr<GPUMem> dx_dev;
+    std::unique_ptr<GPUMem> y_dx_dev;
 
-    std::vector<Tgpu> x;
+    std::vector<Tgpu> x_dy;
     std::vector<Tgpu> cos;
     std::vector<Tgpu> sin;
-    std::vector<Tgpu> y;
-    std::vector<Tref> yhost;
-    std::vector<Tgpu> dy;
-    std::vector<Tgpu> dx;
-    std::vector<Tref> dxhost;
+    std::vector<Tgpu> y_dx;
+    std::vector<Tref> y_dxhost;
 };
 
 template <typename Tgpu, typename Tref>
@@ -211,7 +199,7 @@ int RoPEDriver<Tgpu, Tref>::GetandSetData()
     auto in_len                      = inTensorParam.lengths;
     std::vector<uint64_t> rotary_dim = {in_len[1], in_len[2], in_len[3]};
 
-    if(SetTensorNd(xDesc, in_len, data_type) != miopenStatusSuccess)
+    if(SetTensorNd(x_dyDesc, in_len, data_type) != miopenStatusSuccess)
         MIOPEN_THROW("Error parsing input tensor: " + inflags.GetValueStr("input") + ".");
 
     if(SetTensorNd(cosDesc, rotary_dim, data_type) != miopenStatusSuccess)
@@ -220,14 +208,8 @@ int RoPEDriver<Tgpu, Tref>::GetandSetData()
     if(SetTensorNd(sinDesc, rotary_dim, data_type) != miopenStatusSuccess)
         MIOPEN_THROW("Error setting sin tensor.");
 
-    if(SetTensorNd(yDesc, in_len, data_type) != miopenStatusSuccess)
+    if(SetTensorNd(y_dxDesc, in_len, data_type) != miopenStatusSuccess)
         MIOPEN_THROW("Error setting output tensor.");
-
-    if(SetTensorNd(dyDesc, in_len, data_type) != miopenStatusSuccess)
-        MIOPEN_THROW("Error setting dy tensor.");
-
-    if(SetTensorNd(dxDesc, in_len, data_type) != miopenStatusSuccess)
-        MIOPEN_THROW("Error setting dx tensor.");
 
     return 0;
 }
@@ -254,42 +236,31 @@ int RoPEDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     const Tgpu Tgpu1val      = static_cast<Tgpu>(1.0);
     const Tgpu Tgpuminus1val = static_cast<Tgpu>(-1.0);
     const Tref Tref0ref      = static_cast<Tref>(0.0);
-    size_t x_sz              = GetTensorSize(xDesc);
+    size_t x_dy_sz           = GetTensorSize(x_dyDesc);
     size_t cos_sz            = GetTensorSize(cosDesc);
     size_t sin_sz            = GetTensorSize(sinDesc);
-    size_t y_sz              = GetTensorSize(yDesc);
-    size_t dy_sz             = GetTensorSize(dyDesc);
-    size_t dx_sz             = GetTensorSize(dxDesc);
+    size_t y_dx_sz           = GetTensorSize(y_dxDesc);
 
     uint32_t ctx = 0;
 
-    x_dev   = std::unique_ptr<GPUMem>(new GPUMem(ctx, x_sz, sizeof(Tgpu)));
-    cos_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, cos_sz, sizeof(Tgpu)));
-    sin_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, sin_sz, sizeof(Tgpu)));
-    y_dev   = std::unique_ptr<GPUMem>(new GPUMem(ctx, y_sz, sizeof(Tgpu)));
-    dy_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, dy_sz, sizeof(Tgpu)));
-    dx_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, dx_sz, sizeof(Tgpu)));
+    x_dy_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, x_dy_sz, sizeof(Tgpu)));
+    cos_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, cos_sz, sizeof(Tgpu)));
+    sin_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, sin_sz, sizeof(Tgpu)));
+    y_dx_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, y_dx_sz, sizeof(Tgpu)));
 
-    x      = std::vector<Tgpu>(x_sz, Tgpu0val);
-    cos    = std::vector<Tgpu>(cos_sz, Tgpu0val);
-    sin    = std::vector<Tgpu>(sin_sz, Tgpu0val);
-    y      = std::vector<Tgpu>(y_sz, Tgpu0val);
-    dy     = std::vector<Tgpu>(dy_sz, Tgpu0val);
-    dx     = std::vector<Tgpu>(dx_sz, Tgpu0val);
-    yhost  = std::vector<Tref>(y_sz, Tref0ref);
-    dxhost = std::vector<Tref>(dx_sz, Tref0ref);
+    x_dy     = std::vector<Tgpu>(x_dy_sz, Tgpu0val);
+    cos      = std::vector<Tgpu>(cos_sz, Tgpu0val);
+    sin      = std::vector<Tgpu>(sin_sz, Tgpu0val);
+    y_dx     = std::vector<Tgpu>(y_dx_sz, Tgpu0val);
+    y_dxhost = std::vector<Tref>(y_dx_sz, Tref0ref);
 
-    for(int i = 0; i < x_sz; ++i)
+    for(int i = 0; i < x_dy_sz; ++i)
     {
-        x[i]  = prng::gen_A_to_B<Tgpu>(Tgpuminus1val, Tgpu1val);
-        dy[i] = prng::gen_A_to_B<Tgpu>(Tgpuminus1val, Tgpu1val);
+        x_dy[i] = prng::gen_A_to_B<Tgpu>(Tgpuminus1val, Tgpu1val);
     }
 
-    if(x_dev->ToGPU(GetStream(), x.data()) != 0)
-        std::cerr << "Error copying (x) to GPU, size: " << x_dev->GetSize() << std::endl;
-
-    if(dy_dev->ToGPU(GetStream(), dy.data()) != 0)
-        std::cerr << "Error copying (dy) to GPU, size: " << x_dev->GetSize() << std::endl;
+    if(x_dy_dev->ToGPU(GetStream(), x_dy.data()) != 0)
+        std::cerr << "Error copying (x) to GPU, size: " << x_dy_dev->GetSize() << std::endl;
 
     for(int i = 0; i < cos_sz; ++i)
     {
@@ -318,14 +289,14 @@ int RoPEDriver<Tgpu, Tref>::RunForwardGPU()
     for(int i = 0; i < inflags.GetValueInt("iter"); ++i)
     {
         miopenRoPEForward(GetHandle(),
-                          xDesc,
-                          x_dev->GetMem(),
+                          x_dyDesc,
+                          x_dy_dev->GetMem(),
                           cosDesc,
                           cos_dev->GetMem(),
                           sinDesc,
                           sin_dev->GetMem(),
-                          yDesc,
-                          y_dev->GetMem());
+                          y_dxDesc,
+                          y_dx_dev->GetMem());
 
         float time = 0.0;
         miopenGetKernelTime(GetHandle(), &time);
@@ -348,8 +319,8 @@ int RoPEDriver<Tgpu, Tref>::RunForwardGPU()
                   << std::endl;
     }
 
-    if(y_dev->FromGPU(GetStream(), y.data()) != 0)
-        std::cerr << "Error copying (y_dev) from GPU, size: " << y_dev->GetSize() << std::endl;
+    if(y_dx_dev->FromGPU(GetStream(), y_dx.data()) != 0)
+        std::cerr << "Error copying (y_dev) from GPU, size: " << y_dx_dev->GetSize() << std::endl;
 
     return miopenStatusSuccess;
 }
@@ -358,7 +329,7 @@ template <typename Tgpu, typename Tref>
 int RoPEDriver<Tgpu, Tref>::RunForwardCPU()
 {
     mloRoPEForwardRunHost<Tgpu, Tref>(
-        xDesc, cosDesc, sinDesc, yDesc, x.data(), cos.data(), sin.data(), yhost.data());
+        x_dyDesc, cosDesc, sinDesc, y_dxDesc, x_dy.data(), cos.data(), sin.data(), y_dxhost.data());
 
     return miopenStatusSuccess;
 }
@@ -375,14 +346,14 @@ int RoPEDriver<Tgpu, Tref>::RunBackwardGPU()
     for(int i = 0; i < inflags.GetValueInt("iter"); ++i)
     {
         miopenRoPEBackward(GetHandle(),
-                           dyDesc,
-                           dy_dev->GetMem(),
+                           x_dyDesc,
+                           x_dy_dev->GetMem(),
                            cosDesc,
                            cos_dev->GetMem(),
                            sinDesc,
                            sin_dev->GetMem(),
-                           dxDesc,
-                           dx_dev->GetMem());
+                           y_dxDesc,
+                           y_dx_dev->GetMem());
 
         float time = 0.0;
         miopenGetKernelTime(GetHandle(), &time);
@@ -405,8 +376,9 @@ int RoPEDriver<Tgpu, Tref>::RunBackwardGPU()
                   << std::endl;
     }
 
-    if(dx_dev->FromGPU(GetStream(), dx.data()) != 0)
-        std::cerr << "Error copying (dx_dev) from GPU, size: " << dx_dev->GetSize() << std::endl;
+    if(y_dx_dev->FromGPU(GetStream(), y_dx.data()) != 0)
+        std::cerr << "Error copying (y_dx_dev) from GPU, size: " << y_dx_dev->GetSize()
+                  << std::endl;
 
     return miopenStatusSuccess;
 }
@@ -415,7 +387,7 @@ template <typename Tgpu, typename Tref>
 int RoPEDriver<Tgpu, Tref>::RunBackwardCPU()
 {
     mloRoPEBackwardRunHost<Tgpu, Tref>(
-        dyDesc, cosDesc, sinDesc, dxDesc, dy.data(), cos.data(), sin.data(), dxhost.data());
+        x_dyDesc, cosDesc, sinDesc, y_dxDesc, x_dy.data(), cos.data(), sin.data(), y_dxhost.data());
 
     return miopenStatusSuccess;
 }
@@ -439,7 +411,7 @@ int RoPEDriver<Tgpu, Tref>::VerifyForward()
     RunForwardCPU();
     const Tref tolerance = GetTolerance();
 
-    auto error = miopen::rms_range(yhost, y);
+    auto error = miopen::rms_range(y_dxhost, y_dx);
 
     if(!std::isfinite(error) || error > tolerance)
     {
@@ -461,7 +433,7 @@ int RoPEDriver<Tgpu, Tref>::VerifyBackward()
     RunBackwardCPU();
     const Tref tolerance = GetTolerance();
 
-    auto error = miopen::rms_range(dxhost, dx);
+    auto error = miopen::rms_range(y_dxhost, y_dx);
 
     if(!std::isfinite(error) || error > tolerance)
     {
