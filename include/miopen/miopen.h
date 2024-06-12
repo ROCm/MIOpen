@@ -6613,7 +6613,7 @@ miopenGetPReLUBackwardWorkspaceSize(miopenHandle_t handle,
  * @param weightDesc               Tensor descriptor for weight tensor (input)
  * @param weight                   Data tensor weight (input)
  * @param doutputDesc              Tensor descriptor for output gradient (input)
- * @param doutputDesc              Tensor descriptor for output gradient (input)
+ * @param doutput                  Gradient of output (input)
  * @param dinputDesc               Tensor descriptor for input gradient (input)
  * @param dinput                   Gradient of input (output)
  * @param dweightDesc              Tensor descriptor for weight gradient (input)

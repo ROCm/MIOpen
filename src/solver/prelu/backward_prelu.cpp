@@ -47,6 +47,8 @@ bool SingleWeightBackward::IsApplicable(
     const ExecutionContext& /*context*/,
     const miopen::prelu::BackwardProblemDescription& problem) const
 {
+    if(problem.GetdInputDesc().GetVectorLength() > VIEW_DIMS)
+        return false;
     if(!problem.IsSingleWeight())
         return false;
     return true;
@@ -123,9 +125,9 @@ SingleWeightBackward::GetSolution(const ExecutionContext& /*context*/,
 
             int kernelCnt = 0;
             auto work_a   = params.workspace;
-            auto work_b   = reinterpret_cast<Data_t>(reinterpret_cast<char*>(params.workspace) +
-                                                   deref(params.inputDesc).GetElementSize() *
-                                                       sizeof(FLOAT_ACCUM));
+            auto work_b =
+                static_cast<Data_t>(static_cast<char*>(params.workspace) +
+                                    deref(params.inputDesc).GetElementSize() * sizeof(FLOAT_ACCUM));
 
             /* Phase 1: Calc gradient for each elements. */
             {
@@ -192,13 +194,15 @@ bool MultiWeightsBackward::IsApplicable(
     const ExecutionContext& /*context*/,
     const miopen::prelu::BackwardProblemDescription& problem) const
 {
+    if(problem.GetdInputDesc().GetVectorLength() > VIEW_DIMS)
+        return false;
     if(problem.IsSingleWeight())
         return false;
     return true;
 }
 
 ConvSolution
-MultiWeightsBackward::GetSolution(const ExecutionContext& context,
+MultiWeightsBackward::GetSolution(const ExecutionContext& /*context*/,
                                   const miopen::prelu::BackwardProblemDescription& problem) const
 {
     auto result = ConvSolution{miopenStatusSuccess};
