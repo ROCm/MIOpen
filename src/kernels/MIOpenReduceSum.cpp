@@ -114,11 +114,13 @@ __device__ void Reduce1dSum(const FLOAT_ACCUM* __restrict__ input,
     int tid  = threadIdx.x;
     int oidx = blockIdx.x;
 
-    FLOAT_ACCUM sum = 0.0f;
+    // use double instead of FLOAT_ACCUM for better precision
+    double sum_double = 0.0;
     for(int i = tid; i < outer_size * inner_size; i += blockDim.x)
-        sum +=
+        sum_double +=
             input[i / inner_size * output_numel * inner_size + oidx * inner_size + i % inner_size];
 
+    FLOAT_ACCUM sum = FLOAT_ACCUM(sum_double);
     if(blockDim.x == warpSize)
         sum = warp_reduce_sum(sum);
     else
