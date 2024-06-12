@@ -47,8 +47,8 @@ void GraphExecutorFind20::execute(miopenHandle_t handle, const VariantPack& vpk)
     auto num = vpk.getTensorIds().size();
     assert(num == vpk.getDataPtrs().size());
 
-    // TODO(amber) : verify that variant pack has all the expected input and output
-    // tensors
+    /// \todo  verify that variant pack has all the expected input and output
+    /// tensors --amberhassaan May, 2024
     for(std::size_t i = 0; i < num; ++i)
     {
         auto tens_id  = vpk.getTensorIds()[i];
@@ -61,8 +61,8 @@ void GraphExecutorFind20::execute(miopenHandle_t handle, const VariantPack& vpk)
 
         auto& v = it->second;
 
+        /// \todo use this code with C++20 --amberhassaan May, 2024
         /*
-         * TODO(Amber): use this code with C++20
         miopenTensorArgument_t targ{
           .id = v.mEnumId,
           // .descriptor = &(v.mTensDesc),
@@ -88,7 +88,7 @@ void GraphExecutorFind20::execute(miopenHandle_t handle, const VariantPack& vpk)
     MIOPEN_THROW_IF(s != miopenStatusSuccess, "Run Solution failed");
     if(s == miopenStatusSuccess)
     {
-        MIOPEN_LOG_I("Graph API Find 2.0 Solution Ran");
+        MIOPEN_LOG_I2("Graph API Find 2.0 Solution Ran");
     }
 }
 
@@ -270,7 +270,7 @@ void BackendEngineDescriptor::getAttribute(miopenBackendAttributeName_t attribut
     case MIOPEN_ATTR_ENGINE_KNOB_INFO:
     case MIOPEN_ATTR_ENGINE_LAYOUT_INFO:
     case MIOPEN_ATTR_ENGINE_NUMERICAL_NOTE:
-        // TODO: figure out what we can return here
+        /// \todo figure out what we can return here --Sergei May, 2024
         *elementCount = 0;
         break;
 

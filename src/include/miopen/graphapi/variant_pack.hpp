@@ -228,7 +228,7 @@ public:
                               int64_t* elementCount,
                               void* arrayOfElements) override;
 
-    // TODO(Amber): return const ref and ref
+    /// \todo return const ref and ref --amberhassaan May, 2024
     const VariantPack* getVariantPack() const { return &mVariantPack; }
     VariantPack* getVariantPack() { return &mVariantPack; }
 };

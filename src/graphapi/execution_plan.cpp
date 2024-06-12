@@ -32,7 +32,7 @@ namespace graphapi {
 
 std::string ExecutionPlan::getJsonRepresentation() const
 {
-    // TODO: Implement ExecutionPlan::getJsonRepresentation
+    /// \todo Implement ExecutionPlan::getJsonRepresentation --Sergei May, 2024
     return {};
 }
 
