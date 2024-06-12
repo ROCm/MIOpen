@@ -43,7 +43,6 @@
 #include <miopen/tensor.hpp>
 #include <vector>
 
-
 template <typename T>
 class InstanceNormDriver : public Driver
 {
@@ -141,23 +140,22 @@ int InstanceNormDriver<T>::ParseCmdLineArgs(int argc, char* argv[])
     return miopenStatusSuccess;
 }
 
-
 template <typename T>
 int InstanceNormDriver<T>::GetandSetData()
 {
     std::vector<int> input_length = GetTensorLengthsFromCmdLine();
-    epsilon                 = inflags.GetValueDouble("epsilon");
-    momentum                 = inflags.GetValueDouble("momentum");
+    epsilon                       = inflags.GetValueDouble("epsilon");
+    momentum                      = inflags.GetValueDouble("momentum");
     useInputStats                 = inflags.GetValueInt("useInputStats") == 1;
     if(!(input_length.size() == 5))
     {
         std::cout << "Tensor must not be 5D";
         return miopenStatusInvalidValue;
     }
-    std::vector<int> weight_length = {input_length[1]};
-    std::vector<int> bias_length = {input_length[1]};
-    std::vector<int> meanIn_length = {input_length[1]};
-    std::vector<int> varIn_length = {input_length[1]};
+    std::vector<int> weight_length  = {input_length[1]};
+    std::vector<int> bias_length    = {input_length[1]};
+    std::vector<int> meanIn_length  = {input_length[1]};
+    std::vector<int> varIn_length   = {input_length[1]};
     std::vector<int> meanVar_length = {input_length[0], input_length[1] * 2};
 
     SetTensorNd(inputDesc, input_length, data_type);
@@ -222,39 +220,38 @@ std::vector<int> InstanceNormDriver<T>::GetTensorLengthsFromCmdLine()
     return (lengths);
 }
 
-
 template <typename T>
 int InstanceNormDriver<T>::AllocateBuffersAndCopy()
 {
-    size_t input_sz  = GetTensorSize(inputDesc);
+    size_t input_sz   = GetTensorSize(inputDesc);
     size_t output_sz  = GetTensorSize(outputDesc);
     size_t weight_sz  = GetTensorSize(weightDesc);
-    size_t bias_sz  = GetTensorSize(biasDesc);
+    size_t bias_sz    = GetTensorSize(biasDesc);
     size_t meanIn_sz  = GetTensorSize(meanInDesc);
-    size_t varIn_sz  = GetTensorSize(varInDesc);
-    size_t meanVar_sz  = GetTensorSize(meanVarDesc);
+    size_t varIn_sz   = GetTensorSize(varInDesc);
+    size_t meanVar_sz = GetTensorSize(meanVarDesc);
 
     uint32_t ctx = 0;
 
-    input_dev     = std::unique_ptr<GPUMem>(new GPUMem(ctx, input_sz, sizeof(T)));
-    output_dev     = std::unique_ptr<GPUMem>(new GPUMem(ctx, output_sz, sizeof(T)));
-    weight_dev     = std::unique_ptr<GPUMem>(new GPUMem(ctx, weight_sz, sizeof(T)));
-    bias_dev     = std::unique_ptr<GPUMem>(new GPUMem(ctx, bias_sz, sizeof(T)));
-    meanIn_dev     = std::unique_ptr<GPUMem>(new GPUMem(ctx, meanIn_sz, sizeof(T)));
-    varIn_dev     = std::unique_ptr<GPUMem>(new GPUMem(ctx, varIn_sz, sizeof(T)));
-    meanVar_dev     = std::unique_ptr<GPUMem>(new GPUMem(ctx, meanVar_sz, sizeof(T)));
+    input_dev   = std::unique_ptr<GPUMem>(new GPUMem(ctx, input_sz, sizeof(T)));
+    output_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, output_sz, sizeof(T)));
+    weight_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, weight_sz, sizeof(T)));
+    bias_dev    = std::unique_ptr<GPUMem>(new GPUMem(ctx, bias_sz, sizeof(T)));
+    meanIn_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, meanIn_sz, sizeof(T)));
+    varIn_dev   = std::unique_ptr<GPUMem>(new GPUMem(ctx, varIn_sz, sizeof(T)));
+    meanVar_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, meanVar_sz, sizeof(T)));
 
     input   = std::vector<T>(input_sz, static_cast<T>(0.0f));
     output  = std::vector<T>(output_sz, static_cast<T>(0.0f));
-    weight = std::vector<T>(weight_sz, static_cast<T>(0.0f));
-    bias  = std::vector<T>(bias_sz, static_cast<T>(0.0f));
-    meanIn = std::vector<T>(meanIn_sz, static_cast<T>(0.0f));
-    varIn = std::vector<T>(varIn_sz, static_cast<T>(1.0f));
+    weight  = std::vector<T>(weight_sz, static_cast<T>(0.0f));
+    bias    = std::vector<T>(bias_sz, static_cast<T>(0.0f));
+    meanIn  = std::vector<T>(meanIn_sz, static_cast<T>(0.0f));
+    varIn   = std::vector<T>(varIn_sz, static_cast<T>(1.0f));
     meanVar = std::vector<T>(meanVar_sz, static_cast<T>(0.0f));
 
     output_host  = std::vector<T>(output_sz, static_cast<T>(0.0f));
-    meanIn_host = std::vector<T>(meanIn_sz, static_cast<T>(0.0f));
-    varIn_host = std::vector<T>(varIn_sz, static_cast<T>(1.0f));
+    meanIn_host  = std::vector<T>(meanIn_sz, static_cast<T>(0.0f));
+    varIn_host   = std::vector<T>(varIn_sz, static_cast<T>(1.0f));
     meanVar_host = std::vector<T>(meanVar_sz, static_cast<T>(0.0f));
 
     int status;
@@ -294,28 +291,28 @@ int InstanceNormDriver<T>::RunForwardGPU()
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
         miopenInstanceNormForward(GetHandle(),
-            inputDesc,
-            input_dev->GetMem(),
-            outputDesc,
-            output_dev->GetMem(),
-            weightDesc,
-            weight_dev->GetMem(),
-            biasDesc,
-            bias_dev->GetMem(),
-            meanInDesc,
-            meanIn_dev->GetMem(),
-            varInDesc,
-            varIn_dev->GetMem(),
-            meanInDesc,
-            meanIn_dev->GetMem(),
-            varInDesc,
-            varIn_dev->GetMem(),
-            meanVarDesc,
-            meanVar_dev->GetMem(),
-            epsilon,
-            momentum,
-            useInputStats);
-            
+                                  inputDesc,
+                                  input_dev->GetMem(),
+                                  outputDesc,
+                                  output_dev->GetMem(),
+                                  weightDesc,
+                                  weight_dev->GetMem(),
+                                  biasDesc,
+                                  bias_dev->GetMem(),
+                                  meanInDesc,
+                                  meanIn_dev->GetMem(),
+                                  varInDesc,
+                                  varIn_dev->GetMem(),
+                                  meanInDesc,
+                                  meanIn_dev->GetMem(),
+                                  varInDesc,
+                                  varIn_dev->GetMem(),
+                                  meanVarDesc,
+                                  meanVar_dev->GetMem(),
+                                  epsilon,
+                                  momentum,
+                                  useInputStats);
+
         float time = 0.0;
         miopenGetKernelTime(GetHandle(), &time);
         kernel_total_time += time;
@@ -328,16 +325,15 @@ int InstanceNormDriver<T>::RunForwardGPU()
         STOP_TIME
         int iter = inflags.GetValueInt("iter");
         if(WALL_CLOCK)
-            std::cout << "Wall-clock Time Instance Norm Forward Elapsed: "
-                      << t.gettime_ms() / iter << " ms" << std::endl;
+            std::cout << "Wall-clock Time Instance Norm Forward Elapsed: " << t.gettime_ms() / iter
+                      << " ms" << std::endl;
 
         float kernel_average_time =
             iter > 1 ? (kernel_total_time - kernel_first_time) / (iter - 1) : kernel_first_time;
-        std::cout << "GPU Kernel Time Instance Norm Forward Elapsed: "
-                  << kernel_average_time << " ms" << std::endl;
+        std::cout << "GPU Kernel Time Instance Norm Forward Elapsed: " << kernel_average_time
+                  << " ms" << std::endl;
     }
 
-    
     if(output_dev->FromGPU(GetStream(), output.data()) != 0)
         std::cerr << "Error copying (out_dev) from GPU, size: " << output_dev->GetSize()
                   << std::endl;
@@ -358,30 +354,29 @@ template <typename T>
 int InstanceNormDriver<T>::RunForwardCPU()
 {
     mloInstanceNormRunHost<T>(input.data(),
-                                inputDesc,
-                                output_host.data(),
-                                outputDesc,
-                                weight.data(),
-                                weightDesc,
-                                bias.data(),
-                                biasDesc,
-                                meanIn_host.data(),
-                                meanInDesc,
-                                varIn_host.data(),
-                                varInDesc,
-                                meanIn_host.data(),
-                                meanInDesc,
-                                varIn_host.data(),
-                                varInDesc,
-                                meanVar_host.data(),
-                                meanVarDesc,
-                                epsilon,
-                                momentum,
-                                useInputStats);
+                              inputDesc,
+                              output_host.data(),
+                              outputDesc,
+                              weight.data(),
+                              weightDesc,
+                              bias.data(),
+                              biasDesc,
+                              meanIn_host.data(),
+                              meanInDesc,
+                              varIn_host.data(),
+                              varInDesc,
+                              meanIn_host.data(),
+                              meanInDesc,
+                              varIn_host.data(),
+                              varInDesc,
+                              meanVar_host.data(),
+                              meanVarDesc,
+                              epsilon,
+                              momentum,
+                              useInputStats);
 
     return miopenStatusSuccess;
 }
-
 
 template <typename T>
 int InstanceNormDriver<T>::RunBackwardGPU()
@@ -413,11 +408,11 @@ int InstanceNormDriver<T>::VerifyForward()
 {
     RunForwardCPU();
     const float tolerance = GetTolerance();
-    auto error_output    = miopen::rms_range(output_host, output);
+    auto error_output     = miopen::rms_range(output_host, output);
     auto error_mean_var   = miopen::rms_range(meanVar_host, meanVar);
 
-    if(!std::isfinite(error_output) || error_output > tolerance ||
-        !std::isfinite(error_mean_var) || error_mean_var > tolerance)
+    if(!std::isfinite(error_output) || error_output > tolerance || !std::isfinite(error_mean_var) ||
+       error_mean_var > tolerance)
     {
         std::cout << "Backward PReLU FAILED: {" << error_output << "," << error_mean_var << "} > "
                   << tolerance << std::endl;
@@ -425,7 +420,8 @@ int InstanceNormDriver<T>::VerifyForward()
     }
     else
     {
-        std::cout << "Backward PReLU Verifies OK on CPU reference ({" << error_output << "," << error_mean_var <<  "} < " << tolerance << ')' << std::endl;
+        std::cout << "Backward PReLU Verifies OK on CPU reference ({" << error_output << ","
+                  << error_mean_var << "} < " << tolerance << ')' << std::endl;
     }
     return miopenStatusSuccess;
 }

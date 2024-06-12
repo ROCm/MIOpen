@@ -43,30 +43,28 @@ namespace instancenorm {
 struct InstanceNormFwdProblemDescription : ProblemDescriptionBase
 {
     InstanceNormFwdProblemDescription(const TensorDescriptor& inputDesc_,
-                                        const TensorDescriptor& outputDesc_,
-                                        const TensorDescriptor& weightDesc_,
-                                        const TensorDescriptor& biasDesc_,
-                                        const TensorDescriptor& meanInDesc_,
-                                        const TensorDescriptor& varInDesc_,
-                                        const TensorDescriptor& meanOutDesc_,
-                                        const TensorDescriptor& varOutDesc_,
-                                        const TensorDescriptor& meanVarDesc_,
-                                        const bool useInputStats_)
-                                        : inputDesc(inputDesc_),
-                                        outputDesc(outputDesc_),
-                                        weightDesc(weightDesc_),
-                                        biasDesc(biasDesc_),
-                                        meanInDesc(meanInDesc_),
-                                        varInDesc(varInDesc_),
-                                        meanOutDesc(meanOutDesc_),
-                                        varOutDesc(varOutDesc_),
-                                        meanVarDesc(meanVarDesc_),
-                                        useInputStats(useInputStats_)
+                                      const TensorDescriptor& outputDesc_,
+                                      const TensorDescriptor& weightDesc_,
+                                      const TensorDescriptor& biasDesc_,
+                                      const TensorDescriptor& meanInDesc_,
+                                      const TensorDescriptor& varInDesc_,
+                                      const TensorDescriptor& meanOutDesc_,
+                                      const TensorDescriptor& varOutDesc_,
+                                      const TensorDescriptor& meanVarDesc_,
+                                      const bool useInputStats_)
+        : inputDesc(inputDesc_),
+          outputDesc(outputDesc_),
+          weightDesc(weightDesc_),
+          biasDesc(biasDesc_),
+          meanInDesc(meanInDesc_),
+          varInDesc(varInDesc_),
+          meanOutDesc(meanOutDesc_),
+          varOutDesc(varOutDesc_),
+          meanVarDesc(meanVarDesc_),
+          useInputStats(useInputStats_)
     {
-
     }
 
-    
     const TensorDescriptor& GetInputDesc() const { return inputDesc; }
     const TensorDescriptor& GetOutputDesc() const { return outputDesc; }
     const TensorDescriptor& GetWeightDesc() const { return weightDesc; }
@@ -77,20 +75,20 @@ struct InstanceNormFwdProblemDescription : ProblemDescriptionBase
     const TensorDescriptor& GetVarOutDesc() const { return varOutDesc; }
     const TensorDescriptor& GetMeanVarDesc() const { return meanVarDesc; }
     bool IsUseInputStats() const { return useInputStats; }
-    
+
     NetworkConfig MakeNetworkConfig() const override;
 
-    public:
-        TensorDescriptor inputDesc;
-        TensorDescriptor outputDesc;
-        TensorDescriptor weightDesc;
-        TensorDescriptor biasDesc;
-        TensorDescriptor meanInDesc;
-        TensorDescriptor varInDesc;
-        TensorDescriptor meanOutDesc;
-        TensorDescriptor varOutDesc;
-        TensorDescriptor meanVarDesc;
-        bool useInputStats;
+public:
+    TensorDescriptor inputDesc;
+    TensorDescriptor outputDesc;
+    TensorDescriptor weightDesc;
+    TensorDescriptor biasDesc;
+    TensorDescriptor meanInDesc;
+    TensorDescriptor varInDesc;
+    TensorDescriptor meanOutDesc;
+    TensorDescriptor varOutDesc;
+    TensorDescriptor meanVarDesc;
+    bool useInputStats;
 };
 
 } // namespace instancenorm

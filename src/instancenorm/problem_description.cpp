@@ -47,11 +47,11 @@ bool checkSameLength(const TensorDescriptor& x, const TensorDescriptor& y)
 
 NetworkConfig InstanceNormFwdProblemDescription::MakeNetworkConfig() const
 {
-    auto input_dtype  = inputDesc.GetType();
-    auto output_dtype = outputDesc.GetType();
-    auto size         = inputDesc.GetElementSize();
-    auto dim_num      = inputDesc.GetSize();
-    auto mean_in_size = meanInDesc.GetElementSize();
+    auto input_dtype   = inputDesc.GetType();
+    auto output_dtype  = outputDesc.GetType();
+    auto size          = inputDesc.GetElementSize();
+    auto dim_num       = inputDesc.GetSize();
+    auto mean_in_size  = meanInDesc.GetElementSize();
     auto mean_out_size = meanOutDesc.GetElementSize();
     auto mean_var_size = meanVarDesc.GetElementSize();
 

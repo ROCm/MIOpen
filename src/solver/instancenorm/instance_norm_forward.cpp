@@ -34,7 +34,6 @@
 #include <miopen/target_properties.hpp>
 #include <miopen/tensor_view_utils.hpp>
 
-
 #define LOCAL_SIZE 256
 
 namespace miopen {
@@ -42,14 +41,16 @@ namespace miopen {
 namespace solver {
 
 namespace instancenorm {
-    
-std::size_t sizeof_kernel_FLOAT_ACCUM(const miopen::instancenorm::InstanceNormFwdProblemDescription& problem)
+
+std::size_t
+sizeof_kernel_FLOAT_ACCUM(const miopen::instancenorm::InstanceNormFwdProblemDescription& problem)
 {
     const auto datatype = problem.GetMeanInDesc().GetType();
     return get_data_size(datatype);
 }
 
-std::size_t sizeof_local_memory(const miopen::instancenorm::InstanceNormFwdProblemDescription& problem)
+std::size_t
+sizeof_local_memory(const miopen::instancenorm::InstanceNormFwdProblemDescription& problem)
 {
     return LOCAL_SIZE * sizeof_kernel_FLOAT_ACCUM(problem) * 2;
 }
@@ -70,14 +71,15 @@ ConvSolution InstanceNormFwd::GetSolution(
     std::ignore = context;
     auto result = ConvSolution{miopenStatusSuccess};
 
-    auto in_dtype     = miopen::GetDataType(problem.GetInputDesc().GetType());
-    auto dtype        = problem.GetOutputDesc().GetType();
-    auto input_dims = problem.GetInputDesc().GetLengths();
+    auto in_dtype    = miopen::GetDataType(problem.GetInputDesc().GetType());
+    auto dtype       = problem.GetOutputDesc().GetType();
+    auto input_dims  = problem.GetInputDesc().GetLengths();
     auto target_size = input_dims[1];
     {
         auto kernel        = KernelInfo{};
         kernel.kernel_file = "MIOpenInstanceNorm.cpp";
-        kernel.kernel_name = problem.IsUseInputStats() ? "InstanceNormFwdTrain" : "InstanceNormFwdTrain";
+        kernel.kernel_name =
+            problem.IsUseInputStats() ? "InstanceNormFwdTrain" : "InstanceNormFwdTrain";
 
         const auto build_params = KernelBuildParameters{
             {"MIOPEN_USE_FP16", static_cast<int>(dtype == miopenHalf)},
@@ -109,42 +111,44 @@ ConvSolution InstanceNormFwd::GetSolution(
     result.invoker_factory = [](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
             decltype(auto) kernel = handle_.Run(kernels.front());
-            decltype(auto) params = raw_params.CastTo<miopen::instancenorm::InstanceNormInvokeParams>();
+            decltype(auto) params =
+                raw_params.CastTo<miopen::instancenorm::InstanceNormInvokeParams>();
 
-            auto x_tv         = get_inner_expanded_tv<5>(deref(params.inputDesc));
-            auto y_tv        = get_inner_expanded_tv<5>(deref(params.outputDesc));
-            auto scale_tv        = get_inner_expanded_tv<1>(deref(params.weightDesc));
-            auto bias_tv        = get_inner_expanded_tv<1>(deref(params.biasDesc));
-            auto running_mean_in_tv        = get_inner_expanded_tv<1>(deref(params.meanInDesc));
-            auto running_var_in_tv        = get_inner_expanded_tv<1>(deref(params.varInDesc));
-            auto running_mean_out_tv        = get_inner_expanded_tv<1>(deref(params.meanOutDesc));
-            auto running_var_out_tv        = get_inner_expanded_tv<1>(deref(params.varOutDesc));
-            auto mean_var_tv        = get_inner_expanded_tv<2>(deref(params.meanVarDesc));
-            auto input_dims = deref(params.inputDesc).GetLengths();
-            auto outer_size = input_dims[0];
-            auto inner_size = std::accumulate(input_dims.begin() + 2, input_dims.end(), 1UL, std::multiplies<size_t>());
+            auto x_tv                = get_inner_expanded_tv<5>(deref(params.inputDesc));
+            auto y_tv                = get_inner_expanded_tv<5>(deref(params.outputDesc));
+            auto scale_tv            = get_inner_expanded_tv<1>(deref(params.weightDesc));
+            auto bias_tv             = get_inner_expanded_tv<1>(deref(params.biasDesc));
+            auto running_mean_in_tv  = get_inner_expanded_tv<1>(deref(params.meanInDesc));
+            auto running_var_in_tv   = get_inner_expanded_tv<1>(deref(params.varInDesc));
+            auto running_mean_out_tv = get_inner_expanded_tv<1>(deref(params.meanOutDesc));
+            auto running_var_out_tv  = get_inner_expanded_tv<1>(deref(params.varOutDesc));
+            auto mean_var_tv         = get_inner_expanded_tv<2>(deref(params.meanVarDesc));
+            auto input_dims          = deref(params.inputDesc).GetLengths();
+            auto outer_size          = input_dims[0];
+            auto inner_size          = std::accumulate(
+                input_dims.begin() + 2, input_dims.end(), 1UL, std::multiplies<size_t>());
             kernel(params.input,
-                    params.output,
-                    params.weight,
-                    params.bias,
-                    params.meanIn,
-                    params.varIn,
-                    params.meanOut,
-                    params.varOut,
-                    params.meanVar,
-                    params.epsilon,
-                    params.momentum,
-                    outer_size,
-                    inner_size,
-                    x_tv,
-                    y_tv,
-                    scale_tv,
-                    bias_tv,
-                    running_mean_in_tv,
-                    running_var_in_tv,
-                    running_mean_out_tv, 
-                    running_var_out_tv,
-                    mean_var_tv);
+                   params.output,
+                   params.weight,
+                   params.bias,
+                   params.meanIn,
+                   params.varIn,
+                   params.meanOut,
+                   params.varOut,
+                   params.meanVar,
+                   params.epsilon,
+                   params.momentum,
+                   outer_size,
+                   inner_size,
+                   x_tv,
+                   y_tv,
+                   scale_tv,
+                   bias_tv,
+                   running_mean_in_tv,
+                   running_var_in_tv,
+                   running_mean_out_tv,
+                   running_var_out_tv,
+                   mean_var_tv);
         };
     };
 

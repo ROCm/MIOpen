@@ -23,7 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
- #ifndef MIOPEN_INSTANCE_NORM_HPP_
+#ifndef MIOPEN_INSTANCE_NORM_HPP_
 #define MIOPEN_INSTANCE_NORM_HPP_
 
 #include <miopen/common.hpp>
@@ -34,27 +34,27 @@ struct Handle;
 struct TensorDescriptor;
 
 miopenStatus_t InstanceNormForward(Handle& handle,
-                                       const TensorDescriptor& inputDesc,
-                                       ConstData_t input,
-                                       const TensorDescriptor& outputDesc,
-                                       Data_t output,
-                                       const TensorDescriptor& weightDesc,
-                                       ConstData_t weight,
-                                       const TensorDescriptor& biasDesc,
-                                       ConstData_t bias,
-                                       const TensorDescriptor& meanInDesc,
-                                       ConstData_t meanIn,
-                                       const TensorDescriptor& varInDesc,
-                                       ConstData_t varIn,
-                                       const TensorDescriptor& meanOutDesc,
-                                       Data_t meanOut,
-                                       const TensorDescriptor& varOutDesc,
-                                       Data_t varOut,
-                                       const TensorDescriptor& meanVarDesc,
-                                       Data_t meanVar,
-                                       float epsilon,
-                                       float momentum,
-                                       bool useInputStats);
+                                   const TensorDescriptor& inputDesc,
+                                   ConstData_t input,
+                                   const TensorDescriptor& outputDesc,
+                                   Data_t output,
+                                   const TensorDescriptor& weightDesc,
+                                   ConstData_t weight,
+                                   const TensorDescriptor& biasDesc,
+                                   ConstData_t bias,
+                                   const TensorDescriptor& meanInDesc,
+                                   ConstData_t meanIn,
+                                   const TensorDescriptor& varInDesc,
+                                   ConstData_t varIn,
+                                   const TensorDescriptor& meanOutDesc,
+                                   Data_t meanOut,
+                                   const TensorDescriptor& varOutDesc,
+                                   Data_t varOut,
+                                   const TensorDescriptor& meanVarDesc,
+                                   Data_t meanVar,
+                                   float epsilon,
+                                   float momentum,
+                                   bool useInputStats);
 
 } // namespace miopen
 #endif // MIOPEN_INSTANCE_NORM_HPP_

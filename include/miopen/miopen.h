@@ -5862,7 +5862,6 @@ MIOPEN_EXPORT miopenStatus_t miopenGroupNormForward(miopenHandle_t handle,
 // CLOSEOUT groupnorm DOXYGEN GROUP
 #endif
 
-
 #ifdef MIOPEN_BETA_API
 // InstanceNorm APIs
 /** @addtogroup instancenorm
@@ -5892,32 +5891,33 @@ MIOPEN_EXPORT miopenStatus_t miopenGroupNormForward(miopenHandle_t handle,
  * @param meanVar           Data tensor mean var (output)
  * @param epsilon          Value to stablize inverse variance calculation (input)
  * @param momentum          Value used for running_mean and running_var computation (input)
- * @param useInputStats    Reduce the normalization stats mean and var from input mean and var tensors or use the precomputed mean and var tensors (input)
+ * @param useInputStats    Reduce the normalization stats mean and var from input mean and var
+ * tensors or use the precomputed mean and var tensors (input)
  * @return               miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t miopenInstanceNormForward(miopenHandle_t handle,
-                                                    const miopenTensorDescriptor_t inputDesc,
-                                                    const void* input,
-                                                    const miopenTensorDescriptor_t outputDesc,
-                                                    void* output,
-                                                    const miopenTensorDescriptor_t weightDesc,
-                                                    const void* weight,
-                                                    const miopenTensorDescriptor_t biasDesc,
-                                                    const void* bias,
-                                                    const miopenTensorDescriptor_t meanInDesc,
-                                                    const void* meanIn,
-                                                    const miopenTensorDescriptor_t varInDesc,
-                                                    const void* varIn,
-                                                    const miopenTensorDescriptor_t meanOutDesc,
-                                                    void* meanOut,
-                                                    const miopenTensorDescriptor_t varOutDesc,
-                                                    void* varOut,
-                                                    const miopenTensorDescriptor_t meanVarDesc,
-                                                    void* meanVar,
-                                                    float epsilon,
-                                                    float momentum,
-                                                    bool useInputStats);
- /** @} */
+                                                       const miopenTensorDescriptor_t inputDesc,
+                                                       const void* input,
+                                                       const miopenTensorDescriptor_t outputDesc,
+                                                       void* output,
+                                                       const miopenTensorDescriptor_t weightDesc,
+                                                       const void* weight,
+                                                       const miopenTensorDescriptor_t biasDesc,
+                                                       const void* bias,
+                                                       const miopenTensorDescriptor_t meanInDesc,
+                                                       const void* meanIn,
+                                                       const miopenTensorDescriptor_t varInDesc,
+                                                       const void* varIn,
+                                                       const miopenTensorDescriptor_t meanOutDesc,
+                                                       void* meanOut,
+                                                       const miopenTensorDescriptor_t varOutDesc,
+                                                       void* varOut,
+                                                       const miopenTensorDescriptor_t meanVarDesc,
+                                                       void* meanVar,
+                                                       float epsilon,
+                                                       float momentum,
+                                                       bool useInputStats);
+/** @} */
 // CLOSEOUT instancenorm DOXYGEN GROUP
 #endif
 

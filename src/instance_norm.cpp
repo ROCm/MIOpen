@@ -37,60 +37,68 @@
 
 namespace miopen {
 
-miopenStatus_t InstanceNormForward(Handle &handle,
-                                    const TensorDescriptor &inputDesc,
-                                    ConstData_t input,
-                                    const TensorDescriptor &outputDesc,
-                                    Data_t output,
-                                    const TensorDescriptor &weightDesc,
-                                    ConstData_t weight,
-                                    const TensorDescriptor &biasDesc,
-                                    ConstData_t bias,
-                                    const TensorDescriptor &meanInDesc,
-                                    ConstData_t meanIn,
-                                    const TensorDescriptor &varInDesc,
-                                    ConstData_t varIn,
-                                    const TensorDescriptor &meanOutDesc,
-                                    Data_t meanOut,
-                                    const TensorDescriptor &varOutDesc,
-                                    Data_t varOut,
-                                    const TensorDescriptor &meanVarDesc,
-                                    Data_t meanVar,
-                                    float epsilon,
-                                    float momentum,
-                                    bool useInputStats)
+miopenStatus_t InstanceNormForward(Handle& handle,
+                                   const TensorDescriptor& inputDesc,
+                                   ConstData_t input,
+                                   const TensorDescriptor& outputDesc,
+                                   Data_t output,
+                                   const TensorDescriptor& weightDesc,
+                                   ConstData_t weight,
+                                   const TensorDescriptor& biasDesc,
+                                   ConstData_t bias,
+                                   const TensorDescriptor& meanInDesc,
+                                   ConstData_t meanIn,
+                                   const TensorDescriptor& varInDesc,
+                                   ConstData_t varIn,
+                                   const TensorDescriptor& meanOutDesc,
+                                   Data_t meanOut,
+                                   const TensorDescriptor& varOutDesc,
+                                   Data_t varOut,
+                                   const TensorDescriptor& meanVarDesc,
+                                   Data_t meanVar,
+                                   float epsilon,
+                                   float momentum,
+                                   bool useInputStats)
 {
-    const auto problem = instancenorm::InstanceNormFwdProblemDescription{ inputDesc, outputDesc, weightDesc, biasDesc, meanInDesc, varInDesc, meanOutDesc, varOutDesc, meanVarDesc, useInputStats};
+    const auto problem = instancenorm::InstanceNormFwdProblemDescription{inputDesc,
+                                                                         outputDesc,
+                                                                         weightDesc,
+                                                                         biasDesc,
+                                                                         meanInDesc,
+                                                                         varInDesc,
+                                                                         meanOutDesc,
+                                                                         varOutDesc,
+                                                                         meanVarDesc,
+                                                                         useInputStats};
 
     const auto invoke_params = [&]() {
-        auto tmp           = instancenorm::InstanceNormInvokeParams{};
-        tmp.inputDesc      = &inputDesc;
-        tmp.outputDesc      = &outputDesc;
-        tmp.weightDesc      = &weightDesc;
+        auto tmp          = instancenorm::InstanceNormInvokeParams{};
+        tmp.inputDesc     = &inputDesc;
+        tmp.outputDesc    = &outputDesc;
+        tmp.weightDesc    = &weightDesc;
         tmp.biasDesc      = &biasDesc;
-        tmp.meanInDesc      = &meanInDesc;
-        tmp.varInDesc      = &varInDesc;
-        tmp.meanOutDesc      = &meanOutDesc;
-        tmp.varOutDesc      = &varOutDesc;
-        tmp.meanVarDesc      = &meanVarDesc;
-        tmp.input      = input;
-        tmp.output      = output;
-        tmp.weight      = weight;
-        tmp.bias      = bias;
-        tmp.meanIn      = meanIn;
-        tmp.varIn      = varIn;
-        tmp.meanOut      = meanOut;
-        tmp.varOut      = varOut;
-        tmp.meanVar      = meanVar;
-        tmp.epsilon      = epsilon;
+        tmp.meanInDesc    = &meanInDesc;
+        tmp.varInDesc     = &varInDesc;
+        tmp.meanOutDesc   = &meanOutDesc;
+        tmp.varOutDesc    = &varOutDesc;
+        tmp.meanVarDesc   = &meanVarDesc;
+        tmp.input         = input;
+        tmp.output        = output;
+        tmp.weight        = weight;
+        tmp.bias          = bias;
+        tmp.meanIn        = meanIn;
+        tmp.varIn         = varIn;
+        tmp.meanOut       = meanOut;
+        tmp.varOut        = varOut;
+        tmp.meanVar       = meanVar;
+        tmp.epsilon       = epsilon;
         tmp.momentum      = momentum;
-        tmp.useInputStats      = useInputStats;
+        tmp.useInputStats = useInputStats;
         return tmp;
     }();
 
-    const auto algo = AlgorithmName{"InstanceNormFwd"};
-    const auto solvers =
-        solver::SolverContainer<solver::instancenorm::InstanceNormFwd>{};
+    const auto algo    = AlgorithmName{"InstanceNormFwd"};
+    const auto solvers = solver::SolverContainer<solver::instancenorm::InstanceNormFwd>{};
 
     solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
 

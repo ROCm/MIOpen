@@ -37,7 +37,6 @@
 #include <miopen/miopen.h>
 #include <miopen/instance_norm.hpp>
 
-
 struct InstanceNormTestCase
 {
     size_t N;
@@ -45,7 +44,7 @@ struct InstanceNormTestCase
     size_t D;
     size_t H;
     size_t W;
-    float epsilon = 1e-05;
+    float epsilon  = 1e-05;
     float momentum = 0.1;
     bool useInputStats;
     std::string model_name;
@@ -117,7 +116,6 @@ std::vector<InstanceNormTestCase> InstanceNormTestConfigs()
     };
 }
 
-
 template <typename T>
 struct InstanceNormFwdTest : public ::testing::TestWithParam<InstanceNormTestCase>
 {
@@ -127,42 +125,42 @@ protected:
         auto&& handle = get_handle();
         config        = GetParam();
 
-        std::vector<size_t> in_dims    = config.GetInput();
-        std::vector<size_t> in_strides = config.ComputeStrides(in_dims);
-        std::vector<size_t> weight_dims    = {in_dims[1]};
-        std::vector<size_t> weight_strides = config.ComputeStrides(weight_dims);
-        std::vector<size_t> bias_dims    = {in_dims[1]};
-        std::vector<size_t> bias_strides = config.ComputeStrides(bias_dims);
-        std::vector<size_t> mean_in_dims    = {in_dims[1]};
-        std::vector<size_t> mean_in_strides = config.ComputeStrides(mean_in_dims);
-        std::vector<size_t> var_in_dims    = {in_dims[1]};
-        std::vector<size_t> var_in_strides = config.ComputeStrides(var_in_dims);
-        std::vector<size_t> mean_var_dims = {in_dims[0], in_dims[1] * 2};
+        std::vector<size_t> in_dims          = config.GetInput();
+        std::vector<size_t> in_strides       = config.ComputeStrides(in_dims);
+        std::vector<size_t> weight_dims      = {in_dims[1]};
+        std::vector<size_t> weight_strides   = config.ComputeStrides(weight_dims);
+        std::vector<size_t> bias_dims        = {in_dims[1]};
+        std::vector<size_t> bias_strides     = config.ComputeStrides(bias_dims);
+        std::vector<size_t> mean_in_dims     = {in_dims[1]};
+        std::vector<size_t> mean_in_strides  = config.ComputeStrides(mean_in_dims);
+        std::vector<size_t> var_in_dims      = {in_dims[1]};
+        std::vector<size_t> var_in_strides   = config.ComputeStrides(var_in_dims);
+        std::vector<size_t> mean_var_dims    = {in_dims[0], in_dims[1] * 2};
         std::vector<size_t> mean_var_strides = config.ComputeStrides(mean_var_dims);
 
         auto gen_value = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1e-2, 100); };
-        auto gen_one  = [&](auto...) { return 1; };
-        auto gen_zero = [&](auto...) { return 0; };
-        input             = tensor<T>{in_dims, in_strides}.generate(gen_value);
-        weight             = tensor<T>{weight_dims, weight_strides}.generate(gen_value);
-        bias             = tensor<T>{bias_dims, bias_strides}.generate(gen_value);
-        meanIn = tensor<T>{mean_in_dims, mean_in_strides}.generate(gen_zero);
-        meanInHost = tensor<T>{mean_in_dims, mean_in_strides}.generate(gen_zero);
-        varIn = tensor<T>{var_in_dims, var_in_strides}.generate(gen_one);
-        varInHost = tensor<T>{var_in_dims, var_in_strides}.generate(gen_one);
-        meanVar = tensor<T>{mean_var_dims, mean_var_strides}.generate(gen_zero);
-        meanVarHost = tensor<T>{mean_var_dims, mean_var_strides}.generate(gen_zero);
+        auto gen_one   = [&](auto...) { return 1; };
+        auto gen_zero  = [&](auto...) { return 0; };
+        input          = tensor<T>{in_dims, in_strides}.generate(gen_value);
+        weight         = tensor<T>{weight_dims, weight_strides}.generate(gen_value);
+        bias           = tensor<T>{bias_dims, bias_strides}.generate(gen_value);
+        meanIn         = tensor<T>{mean_in_dims, mean_in_strides}.generate(gen_zero);
+        meanInHost     = tensor<T>{mean_in_dims, mean_in_strides}.generate(gen_zero);
+        varIn          = tensor<T>{var_in_dims, var_in_strides}.generate(gen_one);
+        varInHost      = tensor<T>{var_in_dims, var_in_strides}.generate(gen_one);
+        meanVar        = tensor<T>{mean_var_dims, mean_var_strides}.generate(gen_zero);
+        meanVarHost    = tensor<T>{mean_var_dims, mean_var_strides}.generate(gen_zero);
 
-        output = tensor<T>{in_dims}.generate(gen_zero);
+        output     = tensor<T>{in_dims}.generate(gen_zero);
         outputHost = tensor<T>{in_dims}.generate(gen_zero);
 
-        input_dev  = handle.Write(input.data);
-        output_dev = handle.Write(output.data);
+        input_dev   = handle.Write(input.data);
+        output_dev  = handle.Write(output.data);
         weight_dev  = handle.Write(weight.data);
-        bias_dev = handle.Write(bias.data);
+        bias_dev    = handle.Write(bias.data);
         meanIn_dev  = handle.Write(meanIn.data);
-        varIn_dev = handle.Write(varIn.data);
-        meanVar_dev  = handle.Write(meanVar.data);
+        varIn_dev   = handle.Write(varIn.data);
+        meanVar_dev = handle.Write(meanVar.data);
     }
 
     void RunTest()
@@ -171,43 +169,43 @@ protected:
         miopenStatus_t status;
 
         status = miopen::InstanceNormForward(handle,
-                                    input.desc,
-                                    input_dev.get(),
-                                    output.desc,
-                                    output_dev.get(),
-                                    weight.desc,
-                                    weight_dev.get(),
-                                    bias.desc,
-                                    bias_dev.get(),
-                                    meanIn.desc,
-                                    meanIn_dev.get(),
-                                    varIn.desc,
-                                    varIn_dev.get(),
-                                    meanIn.desc,
-                                    meanIn_dev.get(),
-                                    varIn.desc,
-                                    varIn_dev.get(),
-                                    meanVar.desc,
-                                    meanVar_dev.get(),
-                                    config.epsilon,
-                                    config.momentum,
-                                    config.useInputStats);
+                                             input.desc,
+                                             input_dev.get(),
+                                             output.desc,
+                                             output_dev.get(),
+                                             weight.desc,
+                                             weight_dev.get(),
+                                             bias.desc,
+                                             bias_dev.get(),
+                                             meanIn.desc,
+                                             meanIn_dev.get(),
+                                             varIn.desc,
+                                             varIn_dev.get(),
+                                             meanIn.desc,
+                                             meanIn_dev.get(),
+                                             varIn.desc,
+                                             varIn_dev.get(),
+                                             meanVar.desc,
+                                             meanVar_dev.get(),
+                                             config.epsilon,
+                                             config.momentum,
+                                             config.useInputStats);
 
         cpu_instance_norm_forward<T>(input,
-         outputHost,
-         weight,
-         bias,
-         meanInHost,
-         varInHost,
-         meanInHost,
-         varInHost,
-         meanVarHost,
-         config.epsilon,
-         config.momentum,
-         config.useInputStats);
+                                     outputHost,
+                                     weight,
+                                     bias,
+                                     meanInHost,
+                                     varInHost,
+                                     meanInHost,
+                                     varInHost,
+                                     meanVarHost,
+                                     config.epsilon,
+                                     config.momentum,
+                                     config.useInputStats);
 
         EXPECT_EQ(status, miopenStatusSuccess);
-        output.data = handle.Read<T>(output_dev, output.data.size());
+        output.data  = handle.Read<T>(output_dev, output.data.size());
         meanVar.data = handle.Read<T>(meanVar_dev, meanVar.data.size());
     }
 
@@ -221,7 +219,7 @@ protected:
         if(std::is_same<T, bfloat16>::value)
             tolerance *= 8.0;
 
-        auto error_output  = miopen::rms_range(outputHost, output);
+        auto error_output   = miopen::rms_range(outputHost, output);
         auto error_mean_var = miopen::rms_range(meanVarHost, meanVar);
         EXPECT_TRUE(miopen::range_distance(outputHost) == miopen::range_distance(output));
         EXPECT_TRUE(miopen::range_distance(meanVarHost) == miopen::range_distance(meanVar));

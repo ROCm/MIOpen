@@ -39,27 +39,27 @@ struct InstanceNormInvokeParams : public miopen::InvokeParams
 {
     InstanceNormInvokeParams() = default;
 
-    const TensorDescriptor* inputDesc  = nullptr;
+    const TensorDescriptor* inputDesc   = nullptr;
     const TensorDescriptor* outputDesc  = nullptr;
     const TensorDescriptor* weightDesc  = nullptr;
-    const TensorDescriptor* biasDesc  = nullptr;
+    const TensorDescriptor* biasDesc    = nullptr;
     const TensorDescriptor* meanInDesc  = nullptr;
-    const TensorDescriptor* varInDesc  = nullptr;
-    const TensorDescriptor* meanOutDesc  = nullptr;
+    const TensorDescriptor* varInDesc   = nullptr;
+    const TensorDescriptor* meanOutDesc = nullptr;
     const TensorDescriptor* varOutDesc  = nullptr;
-    const TensorDescriptor* meanVarDesc  = nullptr;
+    const TensorDescriptor* meanVarDesc = nullptr;
 
-    ConstData_t input                   = nullptr;
-    Data_t output                   = nullptr;
-    ConstData_t weight                  = nullptr;
-    ConstData_t bias                   = nullptr;
-    ConstData_t meanIn                   = nullptr;
-    ConstData_t varIn                   = nullptr;
-    Data_t meanOut                   = nullptr;
-    Data_t varOut                   = nullptr;
-    Data_t meanVar                   = nullptr;
-    float epsilon                         = 1e-05f;
-    float momentum                         = 0.1f;
+    ConstData_t input  = nullptr;
+    Data_t output      = nullptr;
+    ConstData_t weight = nullptr;
+    ConstData_t bias   = nullptr;
+    ConstData_t meanIn = nullptr;
+    ConstData_t varIn  = nullptr;
+    Data_t meanOut     = nullptr;
+    Data_t varOut      = nullptr;
+    Data_t meanVar     = nullptr;
+    float epsilon      = 1e-05f;
+    float momentum     = 0.1f;
     bool useInputStats = false;
 
     std::size_t GetWorkspaceSize() const { return 0; }

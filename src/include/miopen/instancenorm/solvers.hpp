@@ -37,24 +37,22 @@ namespace solver {
 namespace instancenorm {
 
 using InstanceNormFwdSolverBase =
-    NonTunableSolverBase<ExecutionContext,
-                         miopen::instancenorm::InstanceNormFwdProblemDescription>;
+    NonTunableSolverBase<ExecutionContext, miopen::instancenorm::InstanceNormFwdProblemDescription>;
 
 struct InstanceNormFwd final : InstanceNormFwdSolverBase
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<InstanceNormFwd>(); }
 
-    bool IsApplicable(const ExecutionContext& context,
-                      const miopen::instancenorm::InstanceNormFwdProblemDescription&
-                          problem) const override;
+    bool IsApplicable(
+        const ExecutionContext& context,
+        const miopen::instancenorm::InstanceNormFwdProblemDescription& problem) const override;
 
-    ConvSolution GetSolution(const ExecutionContext& context,
-                             const miopen::instancenorm::InstanceNormFwdProblemDescription&
-                                 problem) const override;
+    ConvSolution GetSolution(
+        const ExecutionContext& context,
+        const miopen::instancenorm::InstanceNormFwdProblemDescription& problem) const override;
 };
 
 } // namespace instancenorm
-
 
 } // namespace solver
 

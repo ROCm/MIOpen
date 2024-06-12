@@ -31,7 +31,6 @@
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 
-
 namespace instancenorm {
 struct InstanceNormForwardTestFloat32 : InstanceNormFwdTest<float>
 {
