@@ -49,17 +49,20 @@ struct WhereTestCase
     friend std::ostream& operator<<(std::ostream& os, const WhereTestCase& tc)
     {
         os << "Input dim: ";
-        for (auto inDim : tc.inDims) {
+        for(auto inDim : tc.inDims)
+        {
             os << inDim << " ";
         }
         os << std::endl;
         os << "Other dim: ";
-        for (auto otherDim : tc.otherDims) {
+        for(auto otherDim : tc.otherDims)
+        {
             os << otherDim << " ";
         }
         os << std::endl;
         os << "Cond dim: ";
-        for (auto condDim : tc.condDims) {
+        for(auto condDim : tc.condDims)
+        {
             os << condDim << " ";
         }
         os << std::endl;
@@ -69,11 +72,14 @@ struct WhereTestCase
     std::vector<size_t> GetInputDim()
     {
         std::vector<size_t> res;
-        if (inDims.empty()) {
+        if(inDims.empty())
+        {
             return std::vector<size_t>{0};
         }
-        for (auto inDim : inDims) {
-            if (inDim != 0) {
+        for(auto inDim : inDims)
+        {
+            if(inDim != 0)
+            {
                 res.push_back(inDim);
             }
         }
@@ -83,11 +89,14 @@ struct WhereTestCase
     std::vector<size_t> GetOtherDim()
     {
         std::vector<size_t> res;
-        if (otherDims.empty()) {
+        if(otherDims.empty())
+        {
             return std::vector<size_t>{0};
         }
-        for (auto otherDim : otherDims) {
-            if (otherDim != 0) {
+        for(auto otherDim : otherDims)
+        {
+            if(otherDim != 0)
+            {
                 res.push_back(otherDim);
             }
         }
@@ -97,16 +106,19 @@ struct WhereTestCase
     std::vector<size_t> GetCondDim()
     {
         std::vector<size_t> res;
-        if (condDims.empty()) {
+        if(condDims.empty())
+        {
             return std::vector<size_t>{0};
         }
-        for (auto condDim : condDims) {
-            if (condDim != 0) {
+        for(auto condDim : condDims)
+        {
+            if(condDim != 0)
+            {
                 res.push_back(condDim);
             }
         }
         return res;
-    }    
+    }
 };
 
 std::vector<WhereTestCase> WhereTestConfigs()
@@ -130,35 +142,40 @@ protected:
     {
 
         auto&& handle  = get_handle();
-        where_config     = GetParam();
+        where_config   = GetParam();
         auto gen_value = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1e-2, 100); };
 
-        auto in_dims = where_config.GetInputDim();
+        auto in_dims    = where_config.GetInputDim();
         auto other_dims = where_config.GetOtherDim();
-        auto cond_dims = where_config.GetCondDim();
+        auto cond_dims  = where_config.GetCondDim();
 
         input = tensor<T>{in_dims}.generate(gen_value);
         other = tensor<T>{other_dims}.generate(gen_value);
         cond  = tensor<T>{cond_dims}.generate(gen_value);
 
-        for (auto i = 0; i < cond.GetSize(); i++) {
-            if (cond[i] > 0.5) {
+        for(auto i = 0; i < cond.GetSize(); i++)
+        {
+            if(cond[i] > 0.5)
+            {
                 cond[i] = 1;
-            } else {
+            }
+            else
+            {
                 cond[i] = 0;
             }
         }
 
         size_t out_sz = std::max({in_dims.size(), other_dims.size(), cond_dims.size()});
-        int in_sz = in_dims.size();
-        int other_sz = other_dims.size();
-        int cond_sz = cond_dims.size();
+        int in_sz     = in_dims.size();
+        int other_sz  = other_dims.size();
+        int cond_sz   = cond_dims.size();
         std::vector<size_t> out_dims(out_sz);
-        for (int i = 0; i < out_sz; i++) {
-            size_t in_dim = (i < in_sz) ? in_dims[i] : 1;
+        for(int i = 0; i < out_sz; i++)
+        {
+            size_t in_dim    = (i < in_sz) ? in_dims[i] : 1;
             size_t other_dim = (i < other_sz) ? other_dims[i] : 1;
-            size_t cond_dim = (i < cond_sz) ? cond_dims[i] : 1;
-            out_dims[i] = std::max({in_dim, other_dim, cond_dim});
+            size_t cond_dim  = (i < cond_sz) ? cond_dims[i] : 1;
+            out_dims[i]      = std::max({in_dim, other_dim, cond_dim});
         }
 
         output = tensor<T>{out_dims};
@@ -168,7 +185,7 @@ protected:
         std::fill(ref_output.begin(), ref_output.end(), std::numeric_limits<T>::quiet_NaN());
 
         input_dev  = handle.Write(input.data);
-        other_dev = handle.Write(other.data);
+        other_dev  = handle.Write(other.data);
         cond_dev   = handle.Write(cond.data);
         output_dev = handle.Write(output.data);
     }
@@ -180,8 +197,15 @@ protected:
         cpu_where_forward<T>(input, other, cond, ref_output);
         miopenStatus_t status;
 
-        status = miopen::WhereForward(
-            handle, input.desc, input_dev.get(), other.desc, other_dev.get(), cond.desc, cond_dev.get(), output.desc, output_dev.get());
+        status = miopen::WhereForward(handle,
+                                      input.desc,
+                                      input_dev.get(),
+                                      other.desc,
+                                      other_dev.get(),
+                                      cond.desc,
+                                      cond_dev.get(),
+                                      output.desc,
+                                      output_dev.get());
 
         EXPECT_EQ(status, miopenStatusSuccess);
 
@@ -231,32 +255,37 @@ protected:
     void SetUp() override
     {
         auto&& handle  = get_handle();
-        where_config     = GetParam();
+        where_config   = GetParam();
         auto gen_value = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1e-2, 100); };
 
-        auto in_dims = where_config.GetInputDim();
+        auto in_dims    = where_config.GetInputDim();
         auto other_dims = where_config.GetOtherDim();
-        auto cond_dims = where_config.GetCondDim();
+        auto cond_dims  = where_config.GetCondDim();
 
-        cond  = tensor<T>{cond_dims}.generate(gen_value);
-        for (auto i = 0; i < cond.GetSize(); i++) {
-            if (cond[i] > 0.5) {
+        cond = tensor<T>{cond_dims}.generate(gen_value);
+        for(auto i = 0; i < cond.GetSize(); i++)
+        {
+            if(cond[i] > 0.5)
+            {
                 cond[i] = 1;
-            } else {
+            }
+            else
+            {
                 cond[i] = 0;
             }
         }
 
         size_t out_sz = std::max({in_dims.size(), other_dims.size(), cond_dims.size()});
-        int in_sz = in_dims.size();
-        int other_sz = other_dims.size();
-        int cond_sz = cond_dims.size();
+        int in_sz     = in_dims.size();
+        int other_sz  = other_dims.size();
+        int cond_sz   = cond_dims.size();
         std::vector<size_t> out_dims(out_sz);
-        for (int i = 0; i < out_sz; i++) {
-            size_t in_dim = (i < in_sz) ? in_dims[i] : 1;
+        for(int i = 0; i < out_sz; i++)
+        {
+            size_t in_dim    = (i < in_sz) ? in_dims[i] : 1;
             size_t other_dim = (i < other_sz) ? other_dims[i] : 1;
-            size_t cond_dim = (i < cond_sz) ? cond_dims[i] : 1;
-            out_dims[i] = std::max({in_dim, other_dim, cond_dim});
+            size_t cond_dim  = (i < cond_sz) ? cond_dims[i] : 1;
+            out_dims[i]      = std::max({in_dim, other_dim, cond_dim});
         }
 
         outputGrad = tensor<T>{out_dims}.generate(gen_value);
@@ -287,14 +316,14 @@ protected:
         miopenStatus_t status;
 
         status = miopen::WhereBackward(handle,
-                                     outputGrad.desc,
-                                     outputGrad_dev.get(),
-                                     cond.desc,
-                                     cond_dev.get(),
-                                     inputGrad.desc,
-                                     inputGrad_dev.get(),
-                                     otherGrad.desc,
-                                     otherGrad_dev.get());
+                                       outputGrad.desc,
+                                       outputGrad_dev.get(),
+                                       cond.desc,
+                                       cond_dev.get(),
+                                       inputGrad.desc,
+                                       inputGrad_dev.get(),
+                                       otherGrad.desc,
+                                       otherGrad_dev.get());
 
         EXPECT_EQ(status, miopenStatusSuccess);
 
@@ -317,16 +346,18 @@ protected:
     void Verify()
     {
         double threshold = GetTolerance();
-        auto error1       = miopen::rms_range(ref_inputGrad, inputGrad);
-        auto error2       = miopen::rms_range(ref_otherGrad, otherGrad);
+        auto error1      = miopen::rms_range(ref_inputGrad, inputGrad);
+        auto error2      = miopen::rms_range(ref_otherGrad, otherGrad);
 
         EXPECT_TRUE(miopen::range_distance(ref_inputGrad) == miopen::range_distance(inputGrad));
         EXPECT_TRUE(miopen::range_distance(ref_otherGrad) == miopen::range_distance(otherGrad));
-        EXPECT_TRUE(error1 < threshold * 10) << "Error output (input grad) beyond tolerance Error:" << error1
-                                            << ",  Thresholdx10: " << threshold * 10 << std::endl;
+        EXPECT_TRUE(error1 < threshold * 10)
+            << "Error output (input grad) beyond tolerance Error:" << error1
+            << ",  Thresholdx10: " << threshold * 10 << std::endl;
 
-        EXPECT_TRUE(error2 < threshold * 10) << "Error output (other grad) beyond tolerance Error:" << error2
-                                            << ",  Thresholdx10: " << threshold * 10 << std::endl;
+        EXPECT_TRUE(error2 < threshold * 10)
+            << "Error output (other grad) beyond tolerance Error:" << error2
+            << ",  Thresholdx10: " << threshold * 10 << std::endl;
     }
     WhereTestCase where_config;
 

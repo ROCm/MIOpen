@@ -48,29 +48,6 @@
 #ifndef MLO_WHEREHOST_H_
 #define MLO_WHEREHOST_H_
 
-int64_t check_broadcasted_contiguous(miopenTensorDescriptor_t tensorDesc)
-{
-    int64_t num_elems = 1;
-    auto len          = miopen::deref(tensorDesc).GetLengths();
-    auto strides      = miopen::deref(tensorDesc).GetStrides();
-
-    for(int i = len.size() - 1; i >= 0; i--)
-    {
-        if(strides[i] != 0 && strides[i] != num_elems)
-            return 0;
-        if(strides[i] == 0)
-        {
-            for(int j = i; j >= 0; j--)
-                if(strides[j] != 0)
-                    return 0;
-            return num_elems;
-        }
-        num_elems *= len[i];
-    }
-
-    return num_elems;
-}
-
 template <typename Tgpu, typename Tcheck>
 int32_t mloWhereForwardRunHost(miopenTensorDescriptor_t inputDesc,
                                Tgpu* input,
@@ -81,23 +58,22 @@ int32_t mloWhereForwardRunHost(miopenTensorDescriptor_t inputDesc,
                                miopenTensorDescriptor_t outputDesc,
                                Tcheck* outputHost)
 {
-    auto input_contig_size = check_broadcasted_contiguous(inputDesc);
-    auto other_contig_size = check_broadcasted_contiguous(otherDesc);
-    auto cond_contig_size  = check_broadcasted_contiguous(conditionDesc);
-
+    auto input_numel       = miopen::deref(inputDesc).GetElementSize();
+    auto other_numel       = miopen::deref(otherDesc).GetElementSize();
+    auto cond_numel        = miopen::deref(conditionDesc).GetElementSize();
     auto output_numel = miopen::deref(outputDesc).GetElementSize();
 
     int32_t ret = 0;
 
     for(size_t o = 0; o < output_numel; o++)
     {
-        if(condition[o % cond_contig_size])
+        if(condition[o % cond_numel])
         {
-            outputHost[o] = input[o % input_contig_size];
+            outputHost[o] = input[o % input_numel];
         }
         else
         {
-            outputHost[o] = other[o % other_contig_size];
+            outputHost[o] = other[o % other_numel];
         }
     }
 
@@ -114,15 +90,17 @@ int32_t mloWhereBackwardRunHost(miopenTensorDescriptor_t outputGradDesc,
                                 miopenTensorDescriptor_t otherGradDesc,
                                 Tcheck* otherGrad)
 {
-    auto input_grad_numel = miopen::deref(inputGradDesc).GetElementSize();
-    auto other_grad_numel = miopen::deref(otherGradDesc).GetElementSize();
-    auto cond_numel       = miopen::deref(conditionDesc).GetElementSize();
+    auto input_grad_numel  = miopen::deref(inputGradDesc).GetElementSize();
+    auto other_grad_numel  = miopen::deref(otherGradDesc).GetElementSize();
+    auto cond_numel        = miopen::deref(conditionDesc).GetElementSize();
     auto output_grad_numel = miopen::deref(outputGradDesc).GetElementSize();
 
-    for (size_t i = 0; i < input_grad_numel; i++) {
+    for(size_t i = 0; i < input_grad_numel; i++)
+    {
         inputGrad[i] = outputGrad[i % output_grad_numel] * condition[i % cond_numel];
     }
-    for (size_t o = 0; o < other_grad_numel; o++) {
+    for(size_t o = 0; o < other_grad_numel; o++)
+    {
         otherGrad[o] = outputGrad[o % output_grad_numel] * (1 - condition[o % cond_numel]);
     }
 
@@ -256,10 +234,10 @@ int WhereDriver<Tgpu, Tref>::GetandSetData()
 
     for(int i = 0; i < out_sz; i++)
     {
-        int InVal               = (i < in_sz) ? in_len[i] : 1;
-        int OtherVal            = (i < other_sz) ? other_len[i] : 1;
-        int CondVal             = (i < cond_sz) ? cond_len[i] : 1;
-        out_len[i] = std::max({InVal, OtherVal, CondVal});
+        int InVal    = (i < in_sz) ? in_len[i] : 1;
+        int OtherVal = (i < other_sz) ? other_len[i] : 1;
+        int CondVal  = (i < cond_sz) ? cond_len[i] : 1;
+        out_len[i]   = std::max({InVal, OtherVal, CondVal});
     }
 
     SetTensorNd(outputTensor, out_len, data_type);
@@ -612,29 +590,17 @@ template <typename Tgpu, typename Tref>
 int WhereDriver<Tgpu, Tref>::VerifyForward()
 {
     RunForwardCPU();
-    size_t outsize = outhost.size();
-    for(int i = 0; i < outsize; i++)
-    {
-        if(outhost[i] != out[i])
-        {
-            std::cout << "outhost[" << i << "] = " << outhost[i] << " "
-                      << "out[" << i << "] = " << out[i] << " input[" << i << "] = " << in[i]
-                      << " other[" << i << "] = " << other[i] << " cond[" << i << "] = " << cond[i]
-                      << std::endl;
-        }
-    }
-
     const Tref tolerance = GetTolerance();
     auto error           = miopen::rms_range(outhost, out);
 
     if(!std::isfinite(error) || error > tolerance)
     {
-        std::cout << "Forward Where FAILED: " << error << " > " << tolerance << std::endl;
+        std::cout << "Forward WHERE FAILED: " << error << " > " << tolerance << std::endl;
         return EC_VerifyFwd;
     }
     else
     {
-        std::cout << "Forward Where Verifies OK on CPU reference (" << error << " < " << tolerance
+        std::cout << "Forward WHERE Verifies OK on CPU reference (" << error << " < " << tolerance
                   << ')' << std::endl;
     }
 
@@ -661,29 +627,9 @@ int WhereDriver<Tgpu, Tref>::VerifyBackward()
 {
     RunBackwardCPU();
     const Tref tolerance = GetTolerance();
-
-    auto inGradNum    = inGradhost.size();
-    auto otherGradNum = otherGradhost.size();
-    for(int i = 0; i < inGradNum; i++)
-    {
-        if(inGradhost[i] != inGrad[i])
-        {
-            std::cout << "inGradhost[" << i << "] = " << inGradhost[i] << " "
-                      << "inGrad[" << i << "] = " << inGrad[i] << std::endl;
-            std::cout << "outputGrad[" << i << "] = " << outGrad[i] << " cond[" << i
-                      << "] = " << cond[i] << std::endl;
-        }
-    }
-    for(int i = 0; i < otherGradNum; i++) {
-        if (otherGradhost[i] != otherGrad[i]) {
-            std::cout << "otherGradhost[" << i << "] = " << otherGradhost[i] << " "
-                      << "otherGrad[" << i << "] = " << otherGrad[i] << std::endl;
-            std::cout << "outputGrad[" << i << "] = " << outGrad[i] << " cond[" << i
-                      << "] = " << cond[i] << std::endl;
-        }
-    }
     auto error1 = miopen::rms_range(inGradhost, inGrad);
     auto error2 = miopen::rms_range(otherGradhost, otherGrad);
+    
     if(!std::isfinite(error1) || error1 > tolerance || !std::isfinite(error2) || error2 > tolerance)
     {
         std::cout << "Backward WHERE FAILED: " << error1 << " " << error2 << " > " << tolerance

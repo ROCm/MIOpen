@@ -109,6 +109,28 @@ inline bool isTensorViewContiguous(const tensor_view_t<N>& tv)
     return true;
 }
 
+template <int N>
+int64_t check_broadcasted_contiguous(const tensor_view_t<N>& tensorView)
+{
+    int64_t num_elems = 1;
+
+    for(int i = N - 1; i >= 0; i--)
+    {
+        if(tensorView.stride[i] != 0 && tensorView.stride[i] != num_elems)
+            return 0;
+        if(tensorView.stride[i] == 0)
+        {
+            for(int j = i; j >= 0; j--)
+                if(tensorView.stride[j] != 0)
+                    return 0;
+            return num_elems;
+        }
+        num_elems *= tensorView.size[i];
+    }
+
+    return num_elems;
+}
+
 } // namespace miopen
 
 #endif // MIOPEN_TENSOR_REORDER_UTIL_HPP_

@@ -32,34 +32,39 @@
 template <class T>
 void cpu_where_forward(tensor<T> input, tensor<T> other, tensor<T> cond, tensor<T>& ref_output)
 {
-    auto inputSize = input.desc.GetElementSize();
-    auto otherSize = other.desc.GetElementSize();
-    auto condSize = cond.desc.GetElementSize();
+    auto inputSize  = input.desc.GetElementSize();
+    auto otherSize  = other.desc.GetElementSize();
+    auto condSize   = cond.desc.GetElementSize();
     auto outputSize = ref_output.desc.GetElementSize();
 
     par_ford(outputSize)([&](size_t o) {
-        if (cond[o % condSize]) {
+        if(cond[o % condSize])
+        {
             ref_output[o] = input[o % inputSize];
-        } else {
+        }
+        else
+        {
             ref_output[o] = other[o % otherSize];
         }
     });
 }
 
 template <class T>
-void cpu_where_backward(tensor<T> outputGrad, tensor<T> cond, tensor<T>& inputGrad, tensor<T>& otherGrad)
+void cpu_where_backward(tensor<T> outputGrad,
+                        tensor<T> cond,
+                        tensor<T>& inputGrad,
+                        tensor<T>& otherGrad)
 {
     auto outputGradSize = outputGrad.desc.GetElementSize();
     auto condSize       = cond.desc.GetElementSize();
     auto inputGradSize  = inputGrad.desc.GetElementSize();
     auto otherGradSize  = otherGrad.desc.GetElementSize();
 
-    par_ford(inputGradSize)([&](size_t i) { 
-        inputGrad[i] = outputGrad[i % outputGradSize] * cond[i % condSize]; 
-    });
+    par_ford(inputGradSize)(
+        [&](size_t i) { inputGrad[i] = outputGrad[i % outputGradSize] * cond[i % condSize]; });
 
-    par_ford(otherGradSize)([&](size_t i) { 
-        otherGrad[i] = outputGrad[i % outputGradSize] * (1 - cond[i % condSize]); 
+    par_ford(otherGradSize)([&](size_t i) {
+        otherGrad[i] = outputGrad[i % outputGradSize] * (1 - cond[i % condSize]);
     });
 }
 

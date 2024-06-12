@@ -171,13 +171,13 @@ __device__ void WhereBroadcastedContiguousBackward_Kernel(const TI* condition,
     if(input_grad && gid < input_size)
     {
         FLOAT_ACCUM outgrad = CVT_FLOAT2ACCUM(output_grad[gid + output_grad_off]);
-        FLOAT_ACCUM cond = CVT_FLOAT2ACCUM(condition[gid % condition_size + condition_off]);
+        FLOAT_ACCUM cond    = CVT_FLOAT2ACCUM(condition[gid % condition_size + condition_off]);
         input_grad[gid + input_grad_off] = CVT_ACCUM2FLOAT(outgrad * cond);
     }
     if(other_grad && gid < other_size)
     {
         FLOAT_ACCUM outgrad = CVT_FLOAT2ACCUM(output_grad[gid + output_grad_off]);
-        FLOAT_ACCUM cond = CVT_FLOAT2ACCUM(condition[gid % condition_size + condition_off]);
+        FLOAT_ACCUM cond    = CVT_FLOAT2ACCUM(condition[gid % condition_size + condition_off]);
         other_grad[gid + other_grad_off] = CVT_ACCUM2FLOAT(outgrad * (1 - cond));
     }
 }
@@ -242,8 +242,7 @@ __device__ void WhereConditionBroadcastedContiguousBackward_Kernel(const TI* con
         for(int idx = gid; idx < other_size; idx += condition_size)
         {
             FLOAT_ACCUM outgrad = CVT_FLOAT2ACCUM(output_grad[idx % size + output_grad_off]);
-            other_grad[idx + other_grad_off] =
-                CVT_ACCUM2FLOAT(outgrad * (1 - cond));
+            other_grad[idx + other_grad_off] = CVT_ACCUM2FLOAT(outgrad * (1 - cond));
         }
     }
 }
@@ -288,14 +287,14 @@ __device__ void WhereContiguousBackward_Kernel(
     if(input_grad)
     {
         FLOAT_ACCUM outgrad = CVT_FLOAT2ACCUM(output_grad[gid]);
-        FLOAT_ACCUM cond = CVT_FLOAT2ACCUM(condition[gid]);
-        input_grad[gid] = CVT_ACCUM2FLOAT(outgrad * cond);
+        FLOAT_ACCUM cond    = CVT_FLOAT2ACCUM(condition[gid]);
+        input_grad[gid]     = CVT_ACCUM2FLOAT(outgrad * cond);
     }
     if(other_grad)
     {
         FLOAT_ACCUM outgrad = CVT_FLOAT2ACCUM(output_grad[gid]);
-        FLOAT_ACCUM cond = CVT_FLOAT2ACCUM(condition[gid]);
-        other_grad[gid] = CVT_ACCUM2FLOAT(outgrad * (1 - cond));
+        FLOAT_ACCUM cond    = CVT_FLOAT2ACCUM(condition[gid]);
+        other_grad[gid]     = CVT_ACCUM2FLOAT(outgrad * (1 - cond));
     }
 }
 

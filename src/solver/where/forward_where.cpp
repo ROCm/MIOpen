@@ -46,48 +46,30 @@ namespace solver {
 
 namespace where {
 
-template <int N>
-void printTv(const tensor_view_t<N> tv)
-{
-    std::cout << "Size = ";
-    for(int i = 0; i < N; i++)
-        std::cout << tv.size[i] << " ";
-    std::cout << std::endl;
-
-    std::cout << "Stride = ";
-    for(int i = 0; i < N; i++)
-        std::cout << tv.stride[i] << " ";
-    std::cout << std::endl;
-}
-
-template <int N>
-int64_t check_broadcasted_contiguous(const tensor_view_t<N>& tensorView)
-{
-    int64_t num_elems = 1;
-
-    for(int i = N - 1; i >= 0; i--)
-    {
-        if(tensorView.stride[i] != 0 && tensorView.stride[i] != num_elems)
-            return 0;
-        if(tensorView.stride[i] == 0)
-        {
-            for(int j = i; j >= 0; j--)
-                if(tensorView.stride[j] != 0)
-                    return 0;
-            return num_elems;
-        }
-        num_elems *= tensorView.size[i];
-    }
-
-    return num_elems;
-}
-
 bool WhereForward::IsApplicable(const ExecutionContext& context,
                                 const miopen::where::ForwardProblemDescription& problem) const
 {
     std::ignore    = context;
-    auto inputDims = problem.GetInputDesc().GetLengths();
 
+    tensor_view_t<5> input_tv  = get_inner_expanded_tv<5>(problem.GetInputDesc());
+    tensor_view_t<5> other_tv  = get_inner_expanded_tv<5>(problem.GetOtherDesc());
+    tensor_view_t<5> cond_tv   = get_inner_expanded_tv<5>(problem.GetConditionDesc());
+    tensor_view_t<5> output_tv = get_inner_expanded_tv<5>(problem.GetOutputDesc());
+
+    input_tv = broadcast_to(input_tv, output_tv);
+    other_tv = broadcast_to(other_tv, output_tv);
+    cond_tv  = broadcast_to(cond_tv, output_tv);
+
+    auto cond_contig_size  = check_broadcasted_contiguous(cond_tv);
+    auto input_contig_size = check_broadcasted_contiguous(input_tv);
+    auto other_contig_size = check_broadcasted_contiguous(other_tv);
+
+    bool is_all_broadcasted_contiguous = cond_contig_size && input_contig_size &&
+                                         other_contig_size &&
+                                         isTensorViewContiguous(output_tv);
+
+    if(!is_all_broadcasted_contiguous)
+        return false;
     if(!problem.IsSameType())
         return false;
     if(!problem.IsAllPacked())
@@ -106,27 +88,9 @@ WhereForward::GetSolution(const ExecutionContext& context,
     tensor_view_t<5> cond_tv   = get_inner_expanded_tv<5>(problem.GetConditionDesc());
     tensor_view_t<5> output_tv = get_inner_expanded_tv<5>(problem.GetOutputDesc());
 
-    std:: cout << "input_tv = " << std::endl;
-    printTv(input_tv);
-    std::cout << "other_tv = " << std::endl;
-    printTv(other_tv);
-    std::cout << "cond_tv = " << std::endl;
-    printTv(cond_tv);
-    std::cout << "output_tv = " << std::endl;
-    printTv(output_tv);
-
     input_tv = broadcast_to(input_tv, output_tv);
     other_tv = broadcast_to(other_tv, output_tv);
     cond_tv  = broadcast_to(cond_tv, output_tv);
-
-    std::cout << "input_tv after broadcast = " << std::endl;
-    printTv(input_tv);
-    std::cout << "other_tv after broadcast = " << std::endl;
-    printTv(other_tv);
-    std::cout << "cond_tv after broadcast = " << std::endl;
-    printTv(cond_tv);
-    std::cout << "output_tv after broadcast = " << std::endl;
-    printTv(output_tv);
 
     auto cond_contig_size  = check_broadcasted_contiguous(cond_tv);
     auto input_contig_size = check_broadcasted_contiguous(input_tv);
@@ -134,23 +98,17 @@ WhereForward::GetSolution(const ExecutionContext& context,
 
     bool is_all_broadcasted_contiguous = cond_contig_size && input_contig_size &&
                                          other_contig_size &&
-                                         miopen::where::isContiguous(problem.GetOutputDesc());
+                                         isTensorViewContiguous(output_tv);
 
     bool is_condition_broadcasted =
         cond_contig_size && ((input_contig_size % cond_contig_size) == 0 ||
                              (other_contig_size % cond_contig_size) == 0);
-    std::cout << "cond_contig_size = " << cond_contig_size
-              << " input_contig_size = " << input_contig_size
-              << " other_contig_size = " << other_contig_size << std::endl;
-    std::cout << "is_condition_broadcasted = " << is_condition_broadcasted
-              << "is_all_broadcasted_contiguous = " << is_all_broadcasted_contiguous << std::endl;
 
     auto result = ConvSolution{miopenStatusSuccess};
 
     auto dtype        = problem.GetInputDesc().GetType();
     auto input_dtype  = miopen::GetDataType(problem.GetInputDesc().GetType());
     auto output_dtype = miopen::GetDataType(problem.GetOutputDesc().GetType());
-    auto outputDims   = problem.GetOutputDesc().GetLengths();
 
     auto cond_numel   = problem.GetConditionDesc().GetElementSize();
     auto output_numel = problem.GetOutputDesc().GetElementSize();
@@ -172,10 +130,6 @@ WhereForward::GetSolution(const ExecutionContext& context,
     {
         size_t xlocalsize = LOCAL_SIZE;
         size_t xgridsize  = AlignUp(cond_numel, xlocalsize);
-        std::cout << "cond_contig_size " << cond_contig_size << std::endl;
-        std::cout << "input size" << input_contig_size << std::endl;
-        std::cout << "other size" << other_contig_size << std::endl;
-        std::cout << "output_numel" << output_numel << std::endl;
         size_t ylocalsize = 1;
         size_t ygridsize  = 1;
         size_t zlocalsize = 1;

@@ -34,23 +34,11 @@ namespace miopen {
 
 namespace where {
 
-bool isContiguous(const TensorDescriptor& x)
-{
-    size_t s = 1;
-    for(int i = x.GetSize() - 1; i >= 0; --i)
-    {
-        if(s != x.GetStrides()[i])
-            return false;
-        s *= x.GetLengths()[i];
-    }
-    return true;
-}
-
 NetworkConfig ForwardProblemDescription::MakeNetworkConfig() const
 {
-    auto input_numel = inputDesc.GetElementSize();
-    auto other_numel = otherDesc.GetElementSize();
-    auto cond_numel = conditionDesc.GetElementSize();
+    auto input_numel  = inputDesc.GetElementSize();
+    auto other_numel  = otherDesc.GetElementSize();
+    auto cond_numel   = conditionDesc.GetElementSize();
     auto input_dtype  = miopen::GetDataType(inputDesc.GetType());
     auto output_dtype = miopen::GetDataType(outputDesc.GetType());
 
@@ -61,7 +49,7 @@ NetworkConfig ForwardProblemDescription::MakeNetworkConfig() const
     ss << "input_numel" << input_numel;
     ss << "other_numel" << other_numel;
     ss << "cond_numel" << cond_numel;
-    // ss << IsAllPacked();
+    ss << IsAllPacked();
 
     return NetworkConfig{ss.str()};
 }
@@ -70,10 +58,10 @@ NetworkConfig BackwardProblemDescription::MakeNetworkConfig() const
 {
     auto input_grad_numel = inputGradDesc.GetElementSize();
     auto other_grad_numel = otherGradDesc.GetElementSize();
-    auto cond_numel  = conditionDesc.GetElementSize();
+    auto cond_numel       = conditionDesc.GetElementSize();
 
-    auto outputGrad_dtype     = miopen::GetDataType(outputGradDesc.GetType());
-    auto inputGrad_dtype = miopen::GetDataType(inputGradDesc.GetType());
+    auto outputGrad_dtype = miopen::GetDataType(outputGradDesc.GetType());
+    auto inputGrad_dtype  = miopen::GetDataType(inputGradDesc.GetType());
 
     std::ostringstream ss;
 
@@ -82,7 +70,7 @@ NetworkConfig BackwardProblemDescription::MakeNetworkConfig() const
     ss << "inputGrad_numel" << input_grad_numel;
     ss << "otherGrad_numel" << other_grad_numel;
     ss << "cond_numel" << cond_numel;
-    // ss << IsAllPacked();
+    ss << IsAllPacked();
 
     return NetworkConfig{ss.str()};
 }
