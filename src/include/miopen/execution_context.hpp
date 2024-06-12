@@ -116,7 +116,7 @@ struct MIOPEN_INTERNALS_EXPORT ExecutionContext
         static const auto result = [&] {
             auto pdb_path(GetSystemDbPath());
             std::ostringstream filename;
-            if(!prefex.empty())
+            if(!prefix.empty())
                 filename << prefix << '_';
             // clang-format off
             filename << GetStream().GetDbBasename();
@@ -127,10 +127,10 @@ struct MIOPEN_INTERNALS_EXPORT ExecutionContext
 #endif
             filename << ext;
             // clang-format on
-            if(miopen_data().find(filename.str() + ".o") != miopen_data().end())
+            if(miopen_data().find(fs::path(filename.str() + ".o")) != miopen_data().end())
             {
                 MIOPEN_LOG_I("Found exact embedded perf database file");
-                return (pdb_path / filename.str()).string();
+                return pdb_path / filename.str();
             }
             else
             {
@@ -142,7 +142,7 @@ struct MIOPEN_INTERNALS_EXPORT ExecutionContext
                 for(auto const& entry : miopen_data())
                 {
                     // string the .o from the filename
-                    const auto fname = entry.first.substr(0, entry.first.size() - 2);
+                    const auto fname = entry.first.stem().string();
                     MIOPEN_LOG_I2("Testing embedded file:" << fname);
                     const auto& filepath = pdb_path / fname;
                     if(filepath.extension() == ext &&
@@ -173,9 +173,9 @@ struct MIOPEN_INTERNALS_EXPORT ExecutionContext
                         }
                     }
                 }
-                return best_path.string();
+                return best_path;
             }
-            return std::string();
+            return fs::path();
         }();
         return result;
     }
