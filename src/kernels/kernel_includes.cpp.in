@@ -37,9 +37,9 @@ ${KERNELS_DECLS}
 
 namespace miopen {
 
-const std::unorderd_map<fs::path, std::string_view, FsPathHash>& kernel_includes()
+const std::unordered_map<fs::path, std::string_view, FsPathHash>& kernel_includes()
 {
-    static const std::unorderd_map<fs::path, std::string_view, FsPathHash> data{
+    static const std::unordered_map<fs::path, std::string_view, FsPathHash> data{
 #ifndef MIOPEN_USE_CLANG_TIDY // Huge generated source
         ${INIT_KERNELS}
 #endif
