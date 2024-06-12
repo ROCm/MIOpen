@@ -104,7 +104,7 @@ void Handle::Copy(ConstData_t /* src */, Data_t /* dest */, std::size_t /* size 
 
 KernelInvoke Handle::AddKernel(const std::string& algorithm,
                                const std::string& network_config,
-                               const std::string& program_name,
+                               const fs::path& program_name,
                                const std::string& kernel_name,
                                const std::vector<size_t>& vld,
                                const std::vector<size_t>& vgd,
@@ -150,7 +150,7 @@ void Handle::ClearKernels(const std::string& algorithm, const std::string& netwo
 {
     this->impl->cache.ClearKernels(algorithm, network_config);
 }
-void Handle::ClearProgram(const std::string& program_name, const std::string& params) const
+void Handle::ClearProgram(const fs::path& program_name, const std::string& params) const
 {
     this->impl->cache.ClearProgram(program_name, params);
 }
@@ -163,17 +163,17 @@ const std::vector<Kernel>& Handle::GetKernelsImpl(const std::string& algorithm,
 
 KernelInvoke Handle::Run(Kernel /*k*/, bool /*coop_launch*/) const { return {}; }
 
-Program Handle::LoadProgram(const std::string& program_name,
+Program Handle::LoadProgram(const fs::path& program_name,
                             std::string params,
                             const std::string& kernel_src) const
 {
-    if(!miopen::EndsWith(program_name, ".mlir"))
+    if(program_name.extension() == ".mlir")
     {
         params += " -mcpu=" + this->GetTargetProperties().Name();
     }
 
-    auto hsaco = miopen::LoadBinary(
-        this->GetTargetProperties(), this->GetMaxComputeUnits(), program_name, params);
+    auto hsaco =
+        miopen::LoadBinary(GetTargetProperties(), GetMaxComputeUnits(), program_name, params);
     auto pgmImpl     = std::make_shared<HIPOCProgramImpl>();
     pgmImpl->program = program_name;
     pgmImpl->target  = this->GetTargetProperties();
@@ -199,7 +199,7 @@ Program Handle::LoadProgram(const std::string& program_name,
             miopen::WriteFile(p.GetCodeObjectBlob(), path);
         else
             fs::copy_file(p.GetCodeObjectPathname(), path);
-        miopen::SaveBinary(path, this->GetTargetProperties(), program_name, params);
+        miopen::SaveBinary(path, GetTargetProperties(), program_name, params);
 #endif
     }
     else
@@ -210,14 +210,12 @@ Program Handle::LoadProgram(const std::string& program_name,
     return p;
 }
 
-bool Handle::HasProgram(const std::string& program_name, const std::string& params) const
+bool Handle::HasProgram(const fs::path& program_name, const std::string& params) const
 {
     return this->impl->cache.HasProgram(program_name, params);
 }
 
-void Handle::AddProgram(Program prog,
-                        const std::string& program_name,
-                        const std::string& params) const
+void Handle::AddProgram(Program prog, const fs::path& program_name, const std::string& params) const
 {
     this->impl->cache.AddProgram(prog, program_name, params);
 }
