@@ -35,15 +35,28 @@ namespace rope {
 
 NetworkConfig ProblemDescriptionFwd::MakeNetworkConfig() const
 {
-    auto xlength = xDesc.GetLengths();
+    std::ostringstream ss;
+    ss << "rope";
+
+    auto print_strides = [&ss](const TensorDescriptor& desc) {
+        for(const auto& d : desc.GetStrides())
+        {
+            ss << d << "x";
+        }
+    };
+
     auto ylength = yDesc.GetLengths();
 
     auto output_numel = std::accumulate(
         ylength.begin(), ylength.end(), static_cast<size_t>(1), std::multiplies<size_t>());
     auto dtype = xDesc.GetType();
 
-    std::ostringstream ss;
+    print_strides(xDesc);
+    print_strides(cosDesc);
+    print_strides(sinDesc);
+    print_strides(yDesc);
 
+    ss << "fwd-";
     ss << "dtype" << dtype;
     ss << "output_numel" << output_numel;
 
@@ -52,7 +65,6 @@ NetworkConfig ProblemDescriptionFwd::MakeNetworkConfig() const
 
 NetworkConfig ProblemDescriptionBwd::MakeNetworkConfig() const
 {
-    auto dylength = dyDesc.GetLengths();
     auto dxlength = dxDesc.GetLengths();
 
     auto output_numel = std::accumulate(
@@ -61,6 +73,12 @@ NetworkConfig ProblemDescriptionBwd::MakeNetworkConfig() const
 
     std::ostringstream ss;
 
+    print_strides(dyDesc);
+    print_strides(cosDesc);
+    print_strides(sinDesc);
+    print_strides(dxDesc);
+
+    ss << "bwd-";
     ss << "dtype" << dtype;
     ss << "output_numel" << output_numel;
 
