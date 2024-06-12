@@ -188,8 +188,6 @@ public:
 private:
     InputFlags inflags;
 
-    int forw;
-
     miopenTensorDescriptor_t dyDesc;
     std::vector<miopenTensorDescriptor_t> indexDescs;
     miopenTensorDescriptor_t dxDesc;
