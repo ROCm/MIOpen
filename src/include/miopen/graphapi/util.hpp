@@ -89,9 +89,8 @@ Tensor makeTensor(std::string_view name, miopenDataType_t dt, const Vec& dims)
 /// capturing multiple types of pointers
 struct HeapPtrDeleter
 {
-    using Fn         = std::function<void()>;
-    const Fn emptyFn = []() {};
-    Fn mFn           = emptyFn;
+    using Fn = std::function<void()>;
+    Fn mFn   = {};
 
     template <typename T>
     explicit HeapPtrDeleter(T* ptr)
@@ -102,20 +101,29 @@ struct HeapPtrDeleter
     HeapPtrDeleter(const HeapPtrDeleter&) = delete;
     HeapPtrDeleter& operator=(const HeapPtrDeleter&) = delete;
 
-    HeapPtrDeleter(HeapPtrDeleter&& that) noexcept : mFn(std::move(that.mFn))
+    friend void swap(HeapPtrDeleter& left, HeapPtrDeleter& right) noexcept
     {
-        that.mFn = emptyFn;
+        std::swap(left.mFn, right.mFn);
     }
+
+    HeapPtrDeleter(HeapPtrDeleter&& that) noexcept : mFn(std::move(that.mFn)) { that.mFn = {}; }
 
     HeapPtrDeleter& operator=(HeapPtrDeleter&& that) noexcept
     {
-        this->mFn(); // destruct self.
-        this->mFn = std::move(that.mFn);
-        that.mFn  = emptyFn;
+        if(this != &that)
+        {
+            HeapPtrDeleter tmp{std::move(that)};
+            swap(*this, tmp);
+        }
         return *this;
     }
 
-    ~HeapPtrDeleter() { mFn(); }
+    ~HeapPtrDeleter()
+    {
+        // default initialized std::function cannot be invoked
+        if(mFn)
+            mFn();
+    }
 };
 
 /// an automatically deleting allocator that frees the allocated objects upon
@@ -227,8 +235,9 @@ public:
     const auto& graph() const { return mGraph; }
 };
 
-// TODO(Amber): move this function out so that other find 2.0 code can use it
-inline std::string tensorEnumIdToStr(miopenTensorArgumentId_t id)
+/// \todo move this function out so that other find 2.0 code can use it
+/// --amberhassaan May, 2024
+inline std::string_view tensorEnumIdToStr(miopenTensorArgumentId_t id)
 {
 
 #define ENUM_CASE(k) \
