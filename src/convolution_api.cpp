@@ -216,8 +216,6 @@ miopenConvolutionCKBackwardWeightsGetWorkSpaceSize(const miopenAlphaBetaCase_t a
 {
     MIOPEN_LOG_FUNCTION(alpha_beta_case, outputTensorDesc);
     return miopen::try_([&] {
-        (void)convDesc; // -warn
-        assert(miopen::deref(convDesc).spatialDim == 3);
         miopenDataType_t data_type = miopen::deref(outputTensorDesc).GetType();
         size_t in_spatial_dims     = miopen::deref(inputTensorDesc).GetNumDims();
 
@@ -229,9 +227,14 @@ miopenConvolutionCKBackwardWeightsGetWorkSpaceSize(const miopenAlphaBetaCase_t a
             miopen::GetNCDHW(in_spatial_dims, miopen::deref(outputTensorDesc).GetLengths()));
         size_t output_tensor_size = miopen::deref(outputTensorDesc).GetElementSize();
 
+        int group_count = miopen::deref(convDesc).GetGroupCount();
+
         size_t byte_size = 0;
         if((alpha_beta_case == BILINEAR || alpha_beta_case == SCALE ||
-            ((data_type == miopenHalf) && ((C & 1) != 0 || (K & 1) != 0 /* Test if odd*/))))
+            ((data_type == miopenHalf) &&
+             (((C / group_count == 1) && (K / group_count == 1)) || ((C & 1) != 0 || (K & 1) != 0
+                                                                     /* Test if odd*/
+                                                                     )))))
         {
             switch(data_type)
             {
