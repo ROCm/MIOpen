@@ -81,12 +81,12 @@ INSTANTIATE_TEST_SUITE_P(BNInferTestFloatSuite,
                          testing::Combine(testing::ValuesIn(Network1<BNTestCase>()),
                                           testing::ValuesIn({miopenTensorNHWC, miopenTensorNCHW})));
 
-INSTANTIATE_TEST_SUITE_P(BNInferTestFloatSuite,
+INSTANTIATE_TEST_SUITE_P(BNInferTestDoubleNHWCSuite,
                          BNInferTestDouble,
                          testing::Combine(testing::ValuesIn(Network1<BNTestCase>()),
                                           testing::ValuesIn({miopenTensorNHWC})));
 
-INSTANTIATE_TEST_SUITE_P(BNInferTestFloatSuite,
+INSTANTIATE_TEST_SUITE_P(BNInferTestBFloat16NHWCSuite,
                          BNInferTestBFloat16,
                          testing::Combine(testing::ValuesIn(Network1<BNTestCase>()),
                                           testing::ValuesIn({miopenTensorNHWC})));

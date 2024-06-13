@@ -60,12 +60,12 @@ INSTANTIATE_TEST_SUITE_P(BNFwdTrainTestFloatNHWCSuite,
                          testing::Combine(testing::ValuesIn(Network1<BNTestCase>()),
                                           testing::Values(miopenTensorNHWC)));
 
-INSTANTIATE_TEST_SUITE_P(BNFwdTrainTestFloatNHWCSuite,
+INSTANTIATE_TEST_SUITE_P(BNFwdTrainTestDoubleNHWCSuite,
                          BNFwdTrainTestDouble,
                          testing::Combine(testing::ValuesIn(Network1<BNTestCase>()),
                                           testing::Values(miopenTensorNHWC)));
 
-INSTANTIATE_TEST_SUITE_P(BNFwdTrainTestFloatNHWCSuite,
+INSTANTIATE_TEST_SUITE_P(BNFwdTrainTestBFloat16NHWCSuite,
                          BNFwdTrainTestBFloat16,
                          testing::Combine(testing::ValuesIn(Network1<BNTestCase>()),
                                           testing::Values(miopenTensorNHWC)));
