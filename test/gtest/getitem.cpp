@@ -60,43 +60,43 @@ using namespace getitem;
 TEST_P(GetitemBwdTestFloat, GetitemBwdTestFw)
 {
     GTEST_SKIP();
-    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    // if(env::enabled(MIOPEN_TEST_ALL) && GetFloatArg() == "--float")
+    // {
+    //     RunTest();
+    //     Verify();
+    // }
+    // else
+    // {
+    //     GTEST_SKIP();
+    // }
 };
 
 TEST_P(GetitemBwdTestHalf, GetitemBwdTestFw)
 {
     GTEST_SKIP();
-    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--half"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    // if(env::enabled(MIOPEN_TEST_ALL) && GetFloatArg() == "--half")
+    // {
+    //     RunTest();
+    //     Verify();
+    // }
+    // else
+    // {
+    //     GTEST_SKIP();
+    // }
 };
 
 TEST_P(GetitemBwdTestBFloat16, GetitemBwdTestFw)
 {
     GTEST_SKIP();
-    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--bfloat16"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    // if(env::enabled(MIOPEN_TEST_ALL) && GetFloatArg() == "--bfloat16")
+    // {
+    //     RunTest();
+    //     Verify();
+    // }
+    // else
+    // {
+    //     GTEST_SKIP();
+    // }
 };
 
 INSTANTIATE_TEST_SUITE_P(GetitemTestSet,
