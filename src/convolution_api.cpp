@@ -232,7 +232,7 @@ miopenConvolutionCKBackwardWeightsGetWorkSpaceSize(const miopenAlphaBetaCase_t a
         size_t byte_size = 0;
         if((alpha_beta_case == BILINEAR || alpha_beta_case == SCALE ||
             ((data_type == miopenHalf) &&
-             (((C / group_count == 1) && (K / group_count == 1)) || ((C & 1) != 0 || (K & 1) != 0
+             (((C / group_count == 1) || (K / group_count == 1)) || ((C & 1) != 0 || (K & 1) != 0
                                                                      /* Test if odd*/
                                                                      )))))
         {
