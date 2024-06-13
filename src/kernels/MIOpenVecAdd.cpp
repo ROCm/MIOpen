@@ -31,7 +31,7 @@
 extern "C" __global__ void vector_add_hip(const float* a, const float* b, float* c, size_t vec_size)
 {
     // Get the index of the current element
-    int index = blockIdx.x * blockDim.x + threadIdx.x;
+    size_t index = blockIdx.x * blockDim.x + threadIdx.x;
 
     // Check if the index is within the range of the vector size
     if(index < vec_size)
