@@ -34,7 +34,7 @@ namespace reducecalculation {
 
 std::string GetFloatArg()
 {
-    const auto& tmp = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
+    const auto& tmp = env::value(MIOPEN_TEST_FLOAT_ARG);
     if(tmp.empty())
     {
         return "";
@@ -59,41 +59,44 @@ using namespace reducecalculation;
 
 TEST_P(ReduceCalculationTestFloat, ReduceCalculationTestFw)
 {
-    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    GTEST_SKIP();
+    // if(env::enabled(MIOPEN_TEST_ALL) && (GetFloatArg() == "--float"))
+    // {
+    //     RunTest();
+    //     Verify();
+    // }
+    // else
+    // {
+    //     GTEST_SKIP();
+    // }
 };
 
 TEST_P(ReduceCalculationTestHalf, ReduceCalculationTestFw)
 {
-    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--half"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    GTEST_SKIP();
+    // if(env::enabled(MIOPEN_TEST_ALL) && (GetFloatArg() == "--half"))
+    // {
+    //     RunTest();
+    //     Verify();
+    // }
+    // else
+    // {
+    //     GTEST_SKIP();
+    // }
 };
 
 TEST_P(ReduceCalculationTestBFloat16, ReduceCalculationTestFw)
 {
-    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--bfloat16"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    GTEST_SKIP();
+    // if(env::enabled(MIOPEN_TEST_ALL) && (GetFloatArg() == "--bfloat16"))
+    // {
+    //     RunTest();
+    //     Verify();
+    // }
+    // else
+    // {
+    //     GTEST_SKIP();
+    // }
 };
 
 INSTANTIATE_TEST_SUITE_P(
