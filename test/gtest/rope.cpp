@@ -71,8 +71,7 @@ using namespace rope;
 
 TEST_P(RoPEFwdTestFloat, RoPEFwdTest)
 {
-    if((miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
-        (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float"))))
+    if(env::enabled(MIOPEN_TEST_ALL) && GetFloatArg() == "--float")
     {
         RunTest();
         Verify();
@@ -85,8 +84,7 @@ TEST_P(RoPEFwdTestFloat, RoPEFwdTest)
 
 TEST_P(RoPEFwdTestHalf, RoPEFwdTest)
 {
-    if((miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
-        (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--half"))))
+    if(env::enabled(MIOPEN_TEST_ALL) && GetFloatArg() == "--float")
     {
         RunTest();
         Verify();
@@ -99,8 +97,7 @@ TEST_P(RoPEFwdTestHalf, RoPEFwdTest)
 
 TEST_P(RoPEFwdTestBFloat16, RoPEFwdTest)
 {
-    if((miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
-        (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--bfloat16"))))
+    if(env::enabled(MIOPEN_TEST_ALL) && GetFloatArg() == "--float")
     {
         RunTest();
         Verify();
@@ -113,8 +110,7 @@ TEST_P(RoPEFwdTestBFloat16, RoPEFwdTest)
 
 TEST_P(RoPEBwdTestFloat, RoPEBwdTest)
 {
-    if((miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
-        (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float"))))
+    if(env::enabled(MIOPEN_TEST_ALL) && GetFloatArg() == "--float")
     {
         RunTest();
         Verify();
@@ -127,8 +123,7 @@ TEST_P(RoPEBwdTestFloat, RoPEBwdTest)
 
 TEST_P(RoPEBwdTestHalf, RoPEBwdTest)
 {
-    if((miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
-        (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--half"))))
+    if(env::enabled(MIOPEN_TEST_ALL) && GetFloatArg() == "--float")
     {
         RunTest();
         Verify();
@@ -141,8 +136,7 @@ TEST_P(RoPEBwdTestHalf, RoPEBwdTest)
 
 TEST_P(RoPEBwdTestBFloat16, RoPEBwdTest)
 {
-    if((miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
-        (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--bfloat16"))))
+    if(env::enabled(MIOPEN_TEST_ALL) && GetFloatArg() == "--float")
     {
         RunTest();
         Verify();
