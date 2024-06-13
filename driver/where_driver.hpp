@@ -261,11 +261,6 @@ std::vector<int> WhereDriver<Tgpu, Tref>::GetTensorLengthsFromCmdLine(std::strin
         return std::vector<int>({0});
     }
 
-    for(int len : lengths)
-    {
-        std::cout << len << ", ";
-    }
-    std::cout << std::endl;
     return lengths;
 }
 
