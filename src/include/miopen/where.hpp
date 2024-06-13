@@ -33,16 +33,6 @@ namespace miopen {
 struct Handle;
 struct TensorDescriptor;
 
-miopenStatus_t WhereForward(Handle& handle,
-                            const TensorDescriptor& inputDesc,
-                            Data_t input,
-                            const TensorDescriptor& otherDesc,
-                            Data_t other,
-                            const TensorDescriptor& conditionDesc,
-                            Data_t condition,
-                            const TensorDescriptor& outputDesc,
-                            Data_t output);
-
 miopenStatus_t WhereBackward(Handle& handle,
                              const TensorDescriptor& outputGradDesc,
                              Data_t outputGrad,

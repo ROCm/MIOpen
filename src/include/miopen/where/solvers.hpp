@@ -35,20 +35,6 @@ namespace solver {
 
 namespace where {
 
-using WhereForwardSolver =
-    NonTunableSolverBase<ExecutionContext, miopen::where::ForwardProblemDescription>;
-
-struct WhereForward final : WhereForwardSolver
-{
-    const std::string& SolverDbId() const override { return GetSolverDbId<WhereForward>(); }
-
-    bool IsApplicable(const ExecutionContext& context,
-                      const miopen::where::ForwardProblemDescription& problem) const override;
-    ConvSolution
-    GetSolution(const ExecutionContext& context,
-                const miopen::where::ForwardProblemDescription& problem) const override;
-};
-
 using WhereBackwardSolver =
     NonTunableSolverBase<ExecutionContext, miopen::where::BackwardProblemDescription>;
 

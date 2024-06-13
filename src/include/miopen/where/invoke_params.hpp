@@ -32,25 +32,8 @@
 #include <miopen/tensor.hpp>
 
 namespace miopen {
+
 namespace where {
-
-struct InvokeParams : public miopen::InvokeParams
-{
-    InvokeParams() = default;
-
-    const TensorDescriptor* inputDesc     = nullptr;
-    const TensorDescriptor* otherDesc     = nullptr;
-    const TensorDescriptor* conditionDesc = nullptr;
-    const TensorDescriptor* outputDesc    = nullptr;
-
-    ConstData_t input     = nullptr;
-    ConstData_t other     = nullptr;
-    ConstData_t condition = nullptr;
-    Data_t output         = nullptr;
-
-    std::size_t GetWorkspaceSize() const { return 0; }
-    Data_t GetWorkspace() const { return nullptr; }
-};
 
 struct BwdInvokeParams : public miopen::InvokeParams
 {

@@ -43,18 +43,6 @@ std::string GetFloatArg()
     return tmp;
 }
 
-struct WhereFwdTestFloat : WhereFwdTest<float>
-{
-};
-
-struct WhereFwdTestFP16 : WhereFwdTest<float16>
-{
-};
-
-struct WhereFwdTestBFP16 : WhereFwdTest<bfloat16>
-{
-};
-
 struct WhereBwdTestFloat : WhereBwdTest<float>
 {
 };
@@ -69,48 +57,6 @@ struct WhereBwdTestBFP16 : WhereBwdTest<bfloat16>
 
 } // namespace where
 using namespace where;
-
-TEST_P(WhereFwdTestFloat, WhereTestFw)
-{
-    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) &&
-       (GetFloatArg() == "--float" || GetFloatArg() == "--all"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
-};
-
-TEST_P(WhereFwdTestFP16, WhereTestFw)
-{
-    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) &&
-       (GetFloatArg() == "--fp16" || GetFloatArg() == "--all"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
-};
-
-TEST_P(WhereFwdTestBFP16, WhereTestFw)
-{
-    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) &&
-       (GetFloatArg() == "--bfp16" || GetFloatArg() == "--all"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
-}
 
 TEST_P(WhereBwdTestFloat, WhereTestBw)
 {
@@ -154,9 +100,6 @@ TEST_P(WhereBwdTestBFP16, WhereTestBw)
     }
 }
 
-INSTANTIATE_TEST_SUITE_P(WhereTestSet, WhereFwdTestFloat, testing::ValuesIn(WhereTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(WhereTestSet, WhereFwdTestFP16, testing::ValuesIn(WhereTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(WhereTestSet, WhereFwdTestBFP16, testing::ValuesIn(WhereTestConfigs()));
 INSTANTIATE_TEST_SUITE_P(WhereTestSet, WhereBwdTestFloat, testing::ValuesIn(WhereTestConfigs()));
 INSTANTIATE_TEST_SUITE_P(WhereTestSet, WhereBwdTestFP16, testing::ValuesIn(WhereTestConfigs()));
 INSTANTIATE_TEST_SUITE_P(WhereTestSet, WhereBwdTestBFP16, testing::ValuesIn(WhereTestConfigs()));

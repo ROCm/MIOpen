@@ -274,7 +274,6 @@ set( MIOpen_Source
     solver/softmax/attn_softmax.cpp
     solver/softmax/softmax.cpp
     solver/where/backward_where.cpp
-    solver/where/forward_where.cpp
     subbuffers.cpp
     sum_api.cpp
     target_properties.cpp

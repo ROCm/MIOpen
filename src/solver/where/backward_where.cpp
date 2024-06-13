@@ -49,7 +49,7 @@ namespace where {
 bool WhereBackward::IsApplicable(const ExecutionContext& context,
                                  const miopen::where::BackwardProblemDescription& problem) const
 {
-    std::ignore    = context;
+    std::ignore                     = context;
     tensor_view_t<5> input_grad_tv  = get_inner_expanded_tv<5>(problem.GetInputGradDesc());
     tensor_view_t<5> other_grad_tv  = get_inner_expanded_tv<5>(problem.GetOtherGradDesc());
     tensor_view_t<5> cond_tv        = get_inner_expanded_tv<5>(problem.GetConditionDesc());

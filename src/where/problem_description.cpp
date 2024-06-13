@@ -34,26 +34,6 @@ namespace miopen {
 
 namespace where {
 
-NetworkConfig ForwardProblemDescription::MakeNetworkConfig() const
-{
-    auto input_numel  = inputDesc.GetElementSize();
-    auto other_numel  = otherDesc.GetElementSize();
-    auto cond_numel   = conditionDesc.GetElementSize();
-    auto input_dtype  = miopen::GetDataType(inputDesc.GetType());
-    auto output_dtype = miopen::GetDataType(outputDesc.GetType());
-
-    std::ostringstream ss;
-
-    ss << "input_dtype" << input_dtype;
-    ss << "output_dtype" << output_dtype;
-    ss << "input_numel" << input_numel;
-    ss << "other_numel" << other_numel;
-    ss << "cond_numel" << cond_numel;
-    ss << IsAllPacked();
-
-    return NetworkConfig{ss.str()};
-}
-
 NetworkConfig BackwardProblemDescription::MakeNetworkConfig() const
 {
     auto input_grad_numel = inputGradDesc.GetElementSize();

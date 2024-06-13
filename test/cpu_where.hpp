@@ -30,26 +30,6 @@
 #include "tensor_holder.hpp"
 
 template <class T>
-void cpu_where_forward(tensor<T> input, tensor<T> other, tensor<T> cond, tensor<T>& ref_output)
-{
-    auto inputSize  = input.desc.GetElementSize();
-    auto otherSize  = other.desc.GetElementSize();
-    auto condSize   = cond.desc.GetElementSize();
-    auto outputSize = ref_output.desc.GetElementSize();
-
-    par_ford(outputSize)([&](size_t o) {
-        if(cond[o % condSize])
-        {
-            ref_output[o] = input[o % inputSize];
-        }
-        else
-        {
-            ref_output[o] = other[o % otherSize];
-        }
-    });
-}
-
-template <class T>
 void cpu_where_backward(tensor<T> outputGrad,
                         tensor<T> cond,
                         tensor<T>& inputGrad,

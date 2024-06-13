@@ -49,38 +49,6 @@
 #define MLO_WHEREHOST_H_
 
 template <typename Tgpu, typename Tcheck>
-int32_t mloWhereForwardRunHost(miopenTensorDescriptor_t inputDesc,
-                               Tgpu* input,
-                               miopenTensorDescriptor_t otherDesc,
-                               Tgpu* other,
-                               miopenTensorDescriptor_t conditionDesc,
-                               Tgpu* condition,
-                               miopenTensorDescriptor_t outputDesc,
-                               Tcheck* outputHost)
-{
-    auto input_numel       = miopen::deref(inputDesc).GetElementSize();
-    auto other_numel       = miopen::deref(otherDesc).GetElementSize();
-    auto cond_numel        = miopen::deref(conditionDesc).GetElementSize();
-    auto output_numel = miopen::deref(outputDesc).GetElementSize();
-
-    int32_t ret = 0;
-
-    for(size_t o = 0; o < output_numel; o++)
-    {
-        if(condition[o % cond_numel])
-        {
-            outputHost[o] = input[o % input_numel];
-        }
-        else
-        {
-            outputHost[o] = other[o % other_numel];
-        }
-    }
-
-    return ret;
-}
-
-template <typename Tgpu, typename Tcheck>
 int32_t mloWhereBackwardRunHost(miopenTensorDescriptor_t outputGradDesc,
                                 Tgpu* outputGrad,
                                 miopenTensorDescriptor_t conditionDesc,
@@ -115,10 +83,7 @@ class WhereDriver : public Driver
 public:
     WhereDriver() : Driver()
     {
-        miopenCreateTensorDescriptor(&inputTensor);
-        miopenCreateTensorDescriptor(&otherTensor);
         miopenCreateTensorDescriptor(&condTensor);
-        miopenCreateTensorDescriptor(&outputTensor);
         miopenCreateTensorDescriptor(&inputTensorGrad);
         miopenCreateTensorDescriptor(&otherTensorGrad);
         miopenCreateTensorDescriptor(&outputTensorGrad);
@@ -148,10 +113,7 @@ public:
     int VerifyForward() override;
     ~WhereDriver() override
     {
-        miopenDestroyTensorDescriptor(inputTensor);
-        miopenDestroyTensorDescriptor(otherTensor);
         miopenDestroyTensorDescriptor(condTensor);
-        miopenDestroyTensorDescriptor(outputTensor);
         miopenDestroyTensorDescriptor(inputTensorGrad);
         miopenDestroyTensorDescriptor(otherTensorGrad);
         miopenDestroyTensorDescriptor(outputTensorGrad);
@@ -162,31 +124,18 @@ private:
 
     int forw;
 
-    miopenTensorDescriptor_t inputTensor;
-    miopenTensorDescriptor_t otherTensor;
-    miopenTensorDescriptor_t condTensor;
-    miopenTensorDescriptor_t outputTensor;
-
     // Backwards
+    miopenTensorDescriptor_t condTensor;
     miopenTensorDescriptor_t outputTensorGrad;
     miopenTensorDescriptor_t inputTensorGrad;
     miopenTensorDescriptor_t otherTensorGrad;
 
-    std::unique_ptr<GPUMem> in_dev;
-    std::unique_ptr<GPUMem> other_dev;
     std::unique_ptr<GPUMem> cond_dev;
-    std::unique_ptr<GPUMem> out_dev;
-
     std::unique_ptr<GPUMem> outGrad_dev;
     std::unique_ptr<GPUMem> inGrad_dev;
     std::unique_ptr<GPUMem> otherGrad_dev;
 
-    std::vector<Tgpu> in;
-    std::vector<Tgpu> other;
     std::vector<Tgpu> cond;
-    std::vector<Tgpu> out;
-    std::vector<Tref> outhost;
-
     std::vector<Tgpu> outGrad;
     std::vector<Tgpu> inGrad;
     std::vector<Tgpu> otherGrad;
@@ -215,12 +164,12 @@ int WhereDriver<Tgpu, Tref>::GetandSetData()
     std::vector<int> other_len = GetTensorLengthsFromCmdLine("otherDims");
     std::vector<int> cond_len  = GetTensorLengthsFromCmdLine("condDims");
 
-    SetTensorNd(inputTensor, in_len, data_type);
-    SetTensorNd(otherTensor, other_len, data_type);
+    SetTensorNd(inputTensorGrad, in_len, data_type);
+    SetTensorNd(otherTensorGrad, other_len, data_type);
     SetTensorNd(condTensor, cond_len, data_type);
 
-    if(!(miopen::isBroadcastable(miopen::deref(inputTensor), miopen::deref(otherTensor)) &&
-         miopen::isBroadcastable(miopen::deref(otherTensor), miopen::deref(condTensor))))
+    if(!(miopen::isBroadcastable(miopen::deref(inputTensorGrad), miopen::deref(otherTensorGrad)) &&
+         miopen::isBroadcastable(miopen::deref(otherTensorGrad), miopen::deref(condTensor))))
     {
         std::cerr << "inputDims, otherDims and condDims must be broadcastable" << std::endl;
         return miopenStatusBadParm;
@@ -240,11 +189,7 @@ int WhereDriver<Tgpu, Tref>::GetandSetData()
         out_len[i]   = std::max({InVal, OtherVal, CondVal});
     }
 
-    SetTensorNd(outputTensor, out_len, data_type);
-
     // Backwards
-    SetTensorNd(inputTensorGrad, in_len, data_type);
-    SetTensorNd(otherTensorGrad, other_len, data_type);
     SetTensorNd(outputTensorGrad, out_len, data_type);
 
     return miopenStatusSuccess;
@@ -342,57 +287,7 @@ int WhereDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 {
     uint32_t ctx = 0;
 
-    size_t in_sz    = GetTensorSpace(inputTensor);
-    size_t other_sz = GetTensorSpace(otherTensor);
     size_t cond_sz  = GetTensorSpace(condTensor);
-    size_t out_sz   = GetTensorSpace(outputTensor);
-
-    if(forw == 1)
-    {
-        // GPU allocation
-        in_dev    = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(Tgpu)));
-        other_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, other_sz, sizeof(Tgpu)));
-        cond_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, cond_sz, sizeof(Tgpu)));
-        out_dev   = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(Tgpu)));
-
-        // GPU host allocation
-        in    = std::vector<Tgpu>(in_sz, static_cast<Tgpu>(0));
-        other = std::vector<Tgpu>(other_sz, static_cast<Tgpu>(0));
-        cond  = std::vector<Tgpu>(cond_sz, static_cast<Tgpu>(0));
-        out   = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
-
-        // CPU allocation
-        outhost = std::vector<Tref>(out_sz, static_cast<Tref>(0));
-
-        for(int i = 0; i < in_sz; i++)
-        {
-            in[i] = prng::gen_A_to_B(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
-        }
-
-        for(int i = 0; i < other_sz; i++)
-        {
-            other[i] = prng::gen_A_to_B(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
-        }
-
-        for(int i = 0; i < cond_sz; i++)
-        {
-            Tgpu tmp = prng::gen_A_to_B(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
-            cond[i]  = (tmp > 0.5) ? 1 : 0;
-        }
-
-        if(in_dev->ToGPU(GetStream(), in.data()) != 0)
-            std::cerr << "Error copying (input) to GPU, size: " << in_dev->GetSize() << std::endl;
-
-        if(other_dev->ToGPU(GetStream(), other.data()) != 0)
-            std::cerr << "Error copying (other) to GPU, size: " << other_dev->GetSize()
-                      << std::endl;
-
-        if(cond_dev->ToGPU(GetStream(), cond.data()) != 0)
-            std::cerr << "Error copying (cond) to GPU, size: " << cond_dev->GetSize() << std::endl;
-
-        if(out_dev->ToGPU(GetStream(), out.data()) != 0)
-            std::cerr << "Error copying (out) to GPU, size: " << out_dev->GetSize() << std::endl;
-    }
 
     if(forw == 0)
     {
@@ -401,36 +296,21 @@ int WhereDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         size_t outGrad_sz   = GetTensorSpace(outputTensorGrad);
 
         // GPU allocation
-        in_dev        = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(Tgpu)));
-        other_dev     = std::unique_ptr<GPUMem>(new GPUMem(ctx, other_sz, sizeof(Tgpu)));
         cond_dev      = std::unique_ptr<GPUMem>(new GPUMem(ctx, cond_sz, sizeof(Tgpu)));
-        out_dev       = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(Tgpu)));
         inGrad_dev    = std::unique_ptr<GPUMem>(new GPUMem(ctx, inGrad_sz, sizeof(Tgpu)));
         otherGrad_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, otherGrad_sz, sizeof(Tgpu)));
         outGrad_dev   = std::unique_ptr<GPUMem>(new GPUMem(ctx, outGrad_sz, sizeof(Tgpu)));
 
         // GPU host allocation
-        in        = std::vector<Tgpu>(in_sz, static_cast<Tgpu>(0));
-        other     = std::vector<Tgpu>(other_sz, static_cast<Tgpu>(0));
         cond      = std::vector<Tgpu>(cond_sz, static_cast<Tgpu>(0));
-        out       = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
         inGrad    = std::vector<Tgpu>(inGrad_sz, static_cast<Tgpu>(0));
         otherGrad = std::vector<Tgpu>(otherGrad_sz, static_cast<Tgpu>(0));
         outGrad   = std::vector<Tgpu>(outGrad_sz, static_cast<Tgpu>(0));
 
         // CPU allocation
-        outhost       = std::vector<Tref>(out_sz, static_cast<Tref>(0));
         inGradhost    = std::vector<Tref>(inGrad_sz, static_cast<Tref>(0));
         otherGradhost = std::vector<Tref>(otherGrad_sz, static_cast<Tref>(0));
 
-        for(int i = 0; i < in_sz; i++)
-        {
-            in[i] = prng::gen_A_to_B(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
-        }
-        for(int i = 0; i < other_sz; i++)
-        {
-            other[i] = prng::gen_A_to_B(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
-        }
         for(int i = 0; i < cond_sz; i++)
         {
             Tgpu tmp = prng::gen_A_to_B(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
@@ -441,15 +321,8 @@ int WhereDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
             outGrad[i] = prng::gen_A_to_B(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
         }
 
-        if(in_dev->ToGPU(GetStream(), in.data()) != 0)
-            std::cerr << "Error copying (input) to GPU, size: " << in_dev->GetSize() << std::endl;
-        if(other_dev->ToGPU(GetStream(), other.data()) != 0)
-            std::cerr << "Error copying (other) to GPU, size: " << other_dev->GetSize()
-                      << std::endl;
         if(cond_dev->ToGPU(GetStream(), cond.data()) != 0)
             std::cerr << "Error copying (cond) to GPU, size: " << cond_dev->GetSize() << std::endl;
-        if(out_dev->ToGPU(GetStream(), out.data()) != 0)
-            std::cerr << "Error copying (out) to GPU, size: " << out_dev->GetSize() << std::endl;
         if(outGrad_dev->ToGPU(GetStream(), outGrad.data()) != 0)
             std::cerr << "Error copying (output gradient) to GPU, size: " << outGrad_dev->GetSize()
                       << std::endl;
@@ -467,62 +340,12 @@ int WhereDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 template <typename Tgpu, typename Tref>
 int WhereDriver<Tgpu, Tref>::RunForwardGPU()
 {
-    float kernel_total_time = 0;
-    float kernel_first_time = 0;
-
-    Timer t;
-    START_TIME
-
-    for(int i = 0; i < inflags.GetValueInt("iter"); i++)
-    {
-        miopenWhereForward(GetHandle(),
-                           inputTensor,
-                           in_dev->GetMem(),
-                           otherTensor,
-                           other_dev->GetMem(),
-                           condTensor,
-                           cond_dev->GetMem(),
-                           outputTensor,
-                           out_dev->GetMem());
-
-        float time = 0.0;
-        miopenGetKernelTime(GetHandle(), &time);
-        kernel_total_time += time;
-        if(i == 0)
-            kernel_first_time = time;
-    }
-
-    if(inflags.GetValueInt("time") == 1)
-    {
-        STOP_TIME
-        int iter = inflags.GetValueInt("iter");
-        if(WALL_CLOCK)
-            std::cout << "Wall-clock Time Forward Where Elapsed: " << t.gettime_ms() / iter
-                      << " ms\n";
-
-        float kernel_average_time =
-            iter > 1 ? (kernel_total_time - kernel_first_time) / (iter - 1) : kernel_first_time;
-        std::cout << "GPU Kernel Time Forward Where Elapsed: " << kernel_average_time << " ms\n";
-    }
-
-    if(out_dev->FromGPU(GetStream(), out.data()) != 0)
-        std::cerr << "Error copying (out_dev) from GPU, size: " << out_dev->GetSize() << std::endl;
-
     return miopenStatusSuccess;
 }
 
 template <typename Tgpu, typename Tref>
 int WhereDriver<Tgpu, Tref>::RunForwardCPU()
 {
-    mloWhereForwardRunHost<Tgpu, Tref>(inputTensor,
-                                       in.data(),
-                                       otherTensor,
-                                       other.data(),
-                                       condTensor,
-                                       cond.data(),
-                                       outputTensor,
-                                       outhost.data());
-
     return miopenStatusSuccess;
 }
 
@@ -589,21 +412,6 @@ Tref WhereDriver<Tgpu, Tref>::GetTolerance()
 template <typename Tgpu, typename Tref>
 int WhereDriver<Tgpu, Tref>::VerifyForward()
 {
-    RunForwardCPU();
-    const Tref tolerance = GetTolerance();
-    auto error           = miopen::rms_range(outhost, out);
-
-    if(!std::isfinite(error) || error > tolerance)
-    {
-        std::cout << "Forward WHERE FAILED: " << error << " > " << tolerance << std::endl;
-        return EC_VerifyFwd;
-    }
-    else
-    {
-        std::cout << "Forward WHERE Verifies OK on CPU reference (" << error << " < " << tolerance
-                  << ')' << std::endl;
-    }
-
     return miopenStatusSuccess;
 }
 
@@ -627,9 +435,9 @@ int WhereDriver<Tgpu, Tref>::VerifyBackward()
 {
     RunBackwardCPU();
     const Tref tolerance = GetTolerance();
-    auto error1 = miopen::rms_range(inGradhost, inGrad);
-    auto error2 = miopen::rms_range(otherGradhost, otherGrad);
-    
+    auto error1          = miopen::rms_range(inGradhost, inGrad);
+    auto error2          = miopen::rms_range(otherGradhost, otherGrad);
+
     if(!std::isfinite(error1) || error1 > tolerance || !std::isfinite(error2) || error2 > tolerance)
     {
         std::cout << "Backward WHERE FAILED: " << error1 << " " << error2 << " > " << tolerance

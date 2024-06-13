@@ -6591,29 +6591,6 @@ MIOPEN_EXPORT miopenStatus_t miopenBackendInitialize(miopenBackendDescriptor_t d
  *  @{
  */
 
-/*! @brief Execute WHERE forward layer
- *
- * @param handle                   MIOpen handle (input)
- * @param inputDesc                Tensor descriptor for input tensor (input)
- * @param input                    Input tensor (input)
- * @param otherDesc                Tensor descriptor for other tensor (input)
- * @param other                    Other tensor (input)
- * @param conditionDesc            Tensor descriptor for condition tensor (input)
- * @param condition                Condition tensor (input)
- * @param outputDesc               Tensor descriptor for output tensor (input)
- * @param output                   Output tensor (output)
- * @return                         miopenStatus_t
- */
-MIOPEN_EXPORT miopenStatus_t miopenWhereForward(miopenHandle_t handle,
-                                                const miopenTensorDescriptor_t inputDesc,
-                                                void* input,
-                                                const miopenTensorDescriptor_t otherDesc,
-                                                void* other,
-                                                const miopenTensorDescriptor_t conditionDesc,
-                                                void* condition,
-                                                const miopenTensorDescriptor_t outputDesc,
-                                                void* output);
-
 /*! @brief Execute WHERE backward layer
  *
  * @param handle                   MIOpen handle (input)

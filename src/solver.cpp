@@ -650,7 +650,6 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
     Register(registry, ++id, Primitive::Softmax, softmax::Softmax{}.SolverDbId());
     Register(registry, ++id, Primitive::Softmax, softmax::AttnSoftmax{}.SolverDbId());
     Register(registry, ++id, Primitive::Where, where::WhereBackward{}.SolverDbId());
-    Register(registry, ++id, Primitive::Where, where::WhereForward{}.SolverDbId());
 
     // IMPORTANT: New solvers should be added to the end of the function!
 }

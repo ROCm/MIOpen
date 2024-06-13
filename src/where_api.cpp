@@ -30,32 +30,6 @@
 #include <miopen/logger.hpp>
 #include <miopen/tensor_ops.hpp>
 
-extern "C" miopenStatus_t miopenWhereForward(miopenHandle_t handle,
-                                             const miopenTensorDescriptor_t inputDesc,
-                                             void* input,
-                                             const miopenTensorDescriptor_t otherDesc,
-                                             void* other,
-                                             const miopenTensorDescriptor_t conditionDesc,
-                                             void* condition,
-                                             const miopenTensorDescriptor_t outputDesc,
-                                             void* output)
-{
-    MIOPEN_LOG_FUNCTION(
-        handle, inputDesc, input, otherDesc, other, conditionDesc, condition, outputDesc, output);
-
-    return miopen::try_([&] {
-        miopen::WhereForward(miopen::deref(handle),
-                             miopen::deref(inputDesc),
-                             DataCast(input),
-                             miopen::deref(otherDesc),
-                             DataCast(other),
-                             miopen::deref(conditionDesc),
-                             DataCast(condition),
-                             miopen::deref(outputDesc),
-                             DataCast(output));
-    });
-}
-
 extern "C" miopenStatus_t miopenWhereBackward(miopenHandle_t handle,
                                               const miopenTensorDescriptor_t outputGradDesc,
                                               void* outputGrad,

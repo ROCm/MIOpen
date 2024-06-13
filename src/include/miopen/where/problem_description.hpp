@@ -46,61 +46,6 @@ enum class Direction
     Backward,
 };
 
-struct ForwardProblemDescription : ProblemDescriptionBase
-{
-    // Forward constructor
-    ForwardProblemDescription(const TensorDescriptor& inputDesc_,
-                              const TensorDescriptor& otherDesc_,
-                              const TensorDescriptor& conditionDesc_,
-                              const TensorDescriptor& outputDesc_)
-        : direction(Direction::Forward),
-          inputDesc(inputDesc_),
-          otherDesc(otherDesc_),
-          conditionDesc(conditionDesc_),
-          outputDesc(outputDesc_)
-    {
-        if(!(isBroadcastable(inputDesc, otherDesc) && isBroadcastable(otherDesc, conditionDesc))) {
-            MIOPEN_THROW(miopenStatusBadParm,
-                         "WHERE::ProblemDescription: Dimensions of input, other, condition must be broadcastable.");            
-        }
-    }
-
-    Direction GetDirection() const { return direction; }
-    const TensorDescriptor& GetInputDesc() const { return inputDesc; }
-    const TensorDescriptor& GetOtherDesc() const { return otherDesc; }
-    const TensorDescriptor& GetConditionDesc() const { return conditionDesc; }
-    const TensorDescriptor& GetOutputDesc() const { return outputDesc; }
-
-    bool IsSameType() const
-    {
-        if(inputDesc.GetType() != otherDesc.GetType() || otherDesc.GetType() != outputDesc.GetType())
-        {
-            return false;
-        }
-
-        return true;
-    }
-
-    bool IsAllPacked() const
-    {
-        if(!(inputDesc.IsPacked() && otherDesc.IsPacked() && outputDesc.IsPacked()))
-        {
-            return false;
-        }
-
-        return true;
-    }
-
-    NetworkConfig MakeNetworkConfig() const override;
-
-private:
-    Direction direction;
-    TensorDescriptor inputDesc;
-    TensorDescriptor otherDesc;
-    TensorDescriptor conditionDesc;
-    TensorDescriptor outputDesc;
-};
-
 struct BackwardProblemDescription : ProblemDescriptionBase
 {
     // Backward constructor
@@ -114,9 +59,12 @@ struct BackwardProblemDescription : ProblemDescriptionBase
           inputGradDesc(inputGradDesc_),
           otherGradDesc(otherGradDesc_)
     {
-        if(!(isBroadcastable(inputGradDesc, otherGradDesc) && isBroadcastable(otherGradDesc, conditionDesc))) {
+        if(!(isBroadcastable(inputGradDesc, otherGradDesc) &&
+             isBroadcastable(otherGradDesc, conditionDesc)))
+        {
             MIOPEN_THROW(miopenStatusBadParm,
-                         "WHERE::ProblemDescription: Dimensions of input, other, condition must be broadcastable.");
+                         "WHERE::ProblemDescription: Dimensions of input, other, condition must be "
+                         "broadcastable.");
         }
     }
 
