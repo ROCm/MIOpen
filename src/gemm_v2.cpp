@@ -515,7 +515,6 @@ static void call_miopen_hipblasLt_gemm(const miopen::Handle& handle,
 // very nasty
 static GemmBackend_t enforce_gemm_backend(GemmBackend_t gemm_backend_preferred)
 {
-    GemmBackend_t gemm_backend_enforced = GemmBackend_t::nogemmbackend;
     GemmBackend_t gemm_backend_env      = GemmBackend_t::nogemmbackend;
 
     // enforce backend based on env variable
@@ -535,7 +534,7 @@ static GemmBackend_t enforce_gemm_backend(GemmBackend_t gemm_backend_preferred)
     default: gemm_backend_env = GemmBackend_t::nogemmbackend;
     }
 
-    return gemm_backend_enforced;
+    return gemm_backend_env;
 }
 
 miopenStatus_t CallGemm(const Handle& handle,

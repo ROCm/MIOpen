@@ -90,8 +90,9 @@ GemmBackend_t GetGemmBackend(const miopen::Handle& handle, miopenDataType_t data
     return handle.GetDeviceName() == "gfx942" && dataType == miopenDataType_t::miopenHalf
                ? GemmBackend_t::hipblaslt
                : GemmBackend_t::rocblas;
-#endif
+#else
     return GemmBackend_t::rocblas;
+#endif
 }
 
 miopenStatus_t ReducAddBias(miopen::Handle& handle,
