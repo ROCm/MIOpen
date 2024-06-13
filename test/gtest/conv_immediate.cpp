@@ -98,11 +98,15 @@ int conv_out_size(int in_size, int pad, int dilation, int ksize, int stride)
     return (in_size + 2 * pad - dilation * (ksize - 1) - 1) / stride + 1;
 }
 
-std::vector<int> get_out_sizes(std::vector<int> dims, std::vector<int> pads, std::vector<int> dilations, std::vector<int> filters, std::vector<int> strides)
+std::vector<int> get_out_sizes(std::vector<int> dims,
+                               std::vector<int> pads,
+                               std::vector<int> dilations,
+                               std::vector<int> filters,
+                               std::vector<int> strides)
 {
     std::vector<int> sizes{};
 
-    for (int i = dims.size() - 1; i >= 0; --i)
+    for(int i = dims.size() - 1; i >= 0; --i)
     {
         sizes.push_back(conv_out_size(dims[i], pads[i], dilations[i], filters[i], strides[i]));
     }
@@ -112,30 +116,32 @@ std::vector<int> get_out_sizes(std::vector<int> dims, std::vector<int> pads, std
 
 // void print_strides(std::vector<int>&)
 
-miopenConvolutionDescriptor_t init_convolution_descriptor(std::vector<int> pads, std::vector<int> strides, std::vector<int> dilations, int groupCount)
+miopenConvolutionDescriptor_t init_convolution_descriptor(std::vector<int> pads,
+                                                          std::vector<int> strides,
+                                                          std::vector<int> dilations,
+                                                          int groupCount)
 {
     miopenConvolutionDescriptor_t desc;
 
     EXPECT_TRUE(miopenCreateConvolutionDescriptor(&desc) == miopenStatusSuccess);
-    EXPECT_TRUE(miopenInitConvolutionNdDescriptor(desc,
-                                                    pads.size(),
-                                                    pads.data(),
-                                                    strides.data(),
-                                                    dilations.data(),
-                                                    miopenConvolution) ==
-                miopenStatusSuccess);
+    EXPECT_TRUE(
+        miopenInitConvolutionNdDescriptor(
+            desc, pads.size(), pads.data(), strides.data(), dilations.data(), miopenConvolution) ==
+        miopenStatusSuccess);
     EXPECT_TRUE(miopenSetConvolutionGroupCount(desc, groupCount) == miopenStatusSuccess);
 
     return desc;
 }
 
-miopenTensorDescriptor_t init_tensor_descriptor(miopenDataType_t type, const std::vector<int>& lens, const std::vector<int>& strides)
+miopenTensorDescriptor_t init_tensor_descriptor(miopenDataType_t type,
+                                                const std::vector<int>& lens,
+                                                const std::vector<int>& strides)
 {
     miopenTensorDescriptor_t desc;
 
     EXPECT_TRUE(miopenCreateTensorDescriptor(&desc) == miopenStatusSuccess);
     EXPECT_TRUE(miopenSetTensorDescriptor(desc, type, lens.size(), lens.data(), strides.data()) ==
-        miopenStatusSuccess);
+                miopenStatusSuccess);
 
     return desc;
 }
@@ -211,21 +217,40 @@ protected:
         return cartesian_product_abb(vec_to_tuple(A), B);
     }
 
+    static auto cartesian_product_axx(const std::vector<int>& A,
+                                      const std::vector<int>& B,
+                                      const std::vector<int>& C)
+        -> std::vector<std::tuple<int, int, int, int, int>>
+    {
+        auto product = cartesian_product_abb(A, B);
+        return cartesian_product_abb(product, C);
+    }
+
+    static auto cartesian_product_axx(const std::vector<int>& A,
+                                      const std::vector<int>& B,
+                                      const std::vector<int>& C,
+                                      const std::vector<int>& D)
+        -> std::vector<std::tuple<int, int, int, int, int, int, int>>
+    {
+        auto product  = cartesian_product_abb(A, B);
+        auto product2 = cartesian_product_abb(product, C);
+        return cartesian_product_abb(product2, D);
+    }
+
     template <typename F>
     void iterate_conv_2d(F f)
     {
-        auto ci   = cartesian_product_abb(get_channel_size(), get_image_size());
-        auto cif  = cartesian_product_abb(ci, get_filter_size());
-        auto cifp = cartesian_product_abb(cif, get_pad_size());
+        auto test_cases = cartesian_product_axx(
+            get_channel_size(), get_image_size(), get_filter_size(), get_pad_size());
 
-        for(auto szs : cifp)
+        for(auto test_case : test_cases)
         {
             int c, hi, wi, fy, fx, py, px;
-            std::tie(c, hi, wi, fy, fx, py, px) = szs;
+            std::tie(c, hi, wi, fy, fx, py, px) = test_case;
 
-            int n  = get_batch_size()[prng::gen_canonical<size_t>()];
-            int g  = get_group_size()[prng::gen_canonical<size_t>()];
-            int k  = get_channel_size()[prng::gen_canonical<size_t>()];
+            int n = get_batch_size()[prng::gen_canonical<size_t>()];
+            int g = get_group_size()[prng::gen_canonical<size_t>()];
+            int k = get_channel_size()[prng::gen_canonical<size_t>()];
 
             int sy = get_stride_dilation_size()[prng::gen_canonical<size_t>()];
             int sx = get_stride_dilation_size()[prng::gen_canonical<size_t>()];
@@ -249,32 +274,32 @@ protected:
     template <typename F>
     void iterate_conv_3d(F f)
     {
-        auto cf  = cartesian_product_abb(get_channel_size(), get_filter_size());
-        auto cfp = cartesian_product_abb(cf, get_pad_size());
+        auto test_cases =
+            cartesian_product_axx(get_channel_size(), get_filter_size(), get_pad_size());
 
-        for(auto szs : cfp)
+        for(auto test_case : test_cases)
         {
             int c, fy, fx, py, px;
-            std::tie(c, fy, fx, py, px) = szs;
+            std::tie(c, fy, fx, py, px) = test_case;
 
-            int n   = get_batch_size()[prng::gen_canonical<size_t>()];
-            int g   = get_group_size()[prng::gen_canonical<size_t>()];
-            int k   = get_channel_size()[prng::gen_canonical<size_t>()];
+            int n = get_batch_size()[prng::gen_canonical<size_t>()];
+            int g = get_group_size()[prng::gen_canonical<size_t>()];
+            int k = get_channel_size()[prng::gen_canonical<size_t>()];
 
-            int di  = get_image_depth()[prng::gen_canonical<size_t>()];
-            int hi  = get_image_size()[prng::gen_canonical<size_t>()];
-            int wi  = get_image_size()[prng::gen_canonical<size_t>()];
+            int di = get_image_depth()[prng::gen_canonical<size_t>()];
+            int hi = get_image_size()[prng::gen_canonical<size_t>()];
+            int wi = get_image_size()[prng::gen_canonical<size_t>()];
 
-            int fz  = get_filter_depth()[prng::gen_canonical<size_t>()];
-            int pz  = get_pad_depth()[prng::gen_canonical<size_t>()];
+            int fz = get_filter_depth()[prng::gen_canonical<size_t>()];
+            int pz = get_pad_depth()[prng::gen_canonical<size_t>()];
 
-            int sz  = get_stride_depth()[prng::gen_canonical<size_t>()];
-            int sy  = get_stride_dilation_size()[prng::gen_canonical<size_t>()];
-            int sx  = get_stride_dilation_size()[prng::gen_canonical<size_t>()];
+            int sz = get_stride_depth()[prng::gen_canonical<size_t>()];
+            int sy = get_stride_dilation_size()[prng::gen_canonical<size_t>()];
+            int sx = get_stride_dilation_size()[prng::gen_canonical<size_t>()];
 
-            int dz  = get_dilation_depth()[0];
-            int dy  = get_stride_dilation_size()[prng::gen_canonical<size_t>()];
-            int dx  = get_stride_dilation_size()[prng::gen_canonical<size_t>()];
+            int dz = get_dilation_depth()[0];
+            int dy = get_stride_dilation_size()[prng::gen_canonical<size_t>()];
+            int dx = get_stride_dilation_size()[prng::gen_canonical<size_t>()];
 
             int do_ = conv_out_size(di, pz, dz, fz, sz);
             int ho  = conv_out_size(hi, py, dy, fy, sy);
@@ -362,14 +387,14 @@ protected:
                                int g) {
             auto&& handle = get_handle();
 
-            auto out_sizes = get_out_sizes(dims, pads, dilations, filters, strides);
+            auto out_sizes  = get_out_sizes(dims, pads, dilations, filters, strides);
             int c_per_group = c / g;
 
-            auto in_len = get_layout_lengths(n, c, dims);
+            auto in_len  = get_layout_lengths(n, c, dims);
             auto wei_len = get_layout_lengths(k, c_per_group, filters);
             auto out_len = get_layout_lengths(n, k, out_sizes);
 
-            auto in_strides = get_strides(in_len, dims.size(), tensor_layout);
+            auto in_strides  = get_strides(in_len, dims.size(), tensor_layout);
             auto wei_strides = get_strides(wei_len, dims.size(), tensor_layout);
             auto out_strides = get_strides(out_len, dims.size(), tensor_layout);
 
@@ -378,9 +403,9 @@ protected:
             auto out = tensor<TOut>{out_len, out_strides}.generate(gen_value<TOut>);
 
             auto convDesc = init_convolution_descriptor(pads, strides, dilations, g);
-            auto inDesc = init_tensor_descriptor(miopen_type<TRef>{}, in_len, in_strides);
-            auto weiDesc = init_tensor_descriptor(miopen_type<TRef>{}, wei_len, wei_strides);
-            auto outDesc = init_tensor_descriptor(miopen_type<TOut>{}, out_len, out_strides);
+            auto inDesc   = init_tensor_descriptor(miopen_type<TRef>{}, in_len, in_strides);
+            auto weiDesc  = init_tensor_descriptor(miopen_type<TRef>{}, wei_len, wei_strides);
+            auto outDesc  = init_tensor_descriptor(miopen_type<TOut>{}, out_len, out_strides);
 
             bool valid_result = false;
 
@@ -551,14 +576,14 @@ struct ReferenceConv3d : ReferenceConvBase
                                int g) {
             auto&& handle = get_handle();
 
-            auto out_sizes = get_out_sizes(dims, pads, dilations, filters, strides);
+            auto out_sizes  = get_out_sizes(dims, pads, dilations, filters, strides);
             int c_per_group = c / g;
 
-            auto in_len = get_layout_lengths(n, c, dims);
+            auto in_len  = get_layout_lengths(n, c, dims);
             auto wei_len = get_layout_lengths(k, c_per_group, filters);
             auto out_len = get_layout_lengths(n, k, out_sizes);
 
-            auto in_strides = get_strides(in_len, dims.size(), tensor_layout);
+            auto in_strides  = get_strides(in_len, dims.size(), tensor_layout);
             auto wei_strides = get_strides(wei_len, dims.size(), tensor_layout);
             auto out_strides = get_strides(out_len, dims.size(), tensor_layout);
 
@@ -567,9 +592,9 @@ struct ReferenceConv3d : ReferenceConvBase
             auto out = tensor<TOut>{out_len, out_strides}.generate(gen_value<TOut>);
 
             auto convDesc = init_convolution_descriptor(pads, strides, dilations, g);
-            auto inDesc = init_tensor_descriptor(miopen_type<TRef>{}, in_len, in_strides);
-            auto weiDesc = init_tensor_descriptor(miopen_type<TRef>{}, wei_len, wei_strides);
-            auto outDesc = init_tensor_descriptor(miopen_type<TOut>{}, out_len, out_strides);
+            auto inDesc   = init_tensor_descriptor(miopen_type<TRef>{}, in_len, in_strides);
+            auto weiDesc  = init_tensor_descriptor(miopen_type<TRef>{}, wei_len, wei_strides);
+            auto outDesc  = init_tensor_descriptor(miopen_type<TOut>{}, out_len, out_strides);
 
             bool valid_result = false;
 
