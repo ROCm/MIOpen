@@ -271,7 +271,8 @@ set( MIOpen_Source
     solver/pooling/forwardNd.cpp
     solver/pooling/backward2d.cpp
     solver/pooling/backwardNd.cpp
-    solver/prelu/backward_prelu.cpp
+    solver/prelu/backward_prelu_multi_weights.cpp
+    solver/prelu/backward_prelu_single_weight.cpp
     solver/prelu/utils.cpp
     solver/reduce/forward_argmax.cpp
     solver/reduce/forward_sum.cpp
