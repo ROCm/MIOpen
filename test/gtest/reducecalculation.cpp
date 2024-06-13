@@ -59,44 +59,44 @@ using namespace reducecalculation;
 
 TEST_P(ReduceCalculationTestFloat, ReduceCalculationTestFw)
 {
-    GTEST_SKIP();
-    // if(env::enabled(MIOPEN_TEST_ALL) && (GetFloatArg() == "--float"))
-    // {
-    //     RunTest();
-    //     Verify();
-    // }
-    // else
-    // {
-    //     GTEST_SKIP();
-    // }
+    if(!MIOPEN_TEST_ALL ||
+       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--float"))
+    {
+        RunTest();
+        Verify();
+    }
+    else
+    {
+        GTEST_SKIP();
+    }
 };
 
 TEST_P(ReduceCalculationTestHalf, ReduceCalculationTestFw)
 {
-    GTEST_SKIP();
-    // if(env::enabled(MIOPEN_TEST_ALL) && (GetFloatArg() == "--half"))
-    // {
-    //     RunTest();
-    //     Verify();
-    // }
-    // else
-    // {
-    //     GTEST_SKIP();
-    // }
+    if(!MIOPEN_TEST_ALL ||
+       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--half"))
+    {
+        RunTest();
+        Verify();
+    }
+    else
+    {
+        GTEST_SKIP();
+    }
 };
 
 TEST_P(ReduceCalculationTestBFloat16, ReduceCalculationTestFw)
 {
-    GTEST_SKIP();
-    // if(env::enabled(MIOPEN_TEST_ALL) && (GetFloatArg() == "--bfloat16"))
-    // {
-    //     RunTest();
-    //     Verify();
-    // }
-    // else
-    // {
-    //     GTEST_SKIP();
-    // }
+    if(!MIOPEN_TEST_ALL ||
+       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--bfloat16"))
+    {
+        RunTest();
+        Verify();
+    }
+    else
+    {
+        GTEST_SKIP();
+    }
 };
 
 INSTANTIATE_TEST_SUITE_P(
