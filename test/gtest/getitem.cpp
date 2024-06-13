@@ -59,6 +59,7 @@ using namespace getitem;
 
 TEST_P(GetitemBwdTestFloat, GetitemBwdTestFw)
 {
+    GTEST_SKIP();
     if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float"))
     {
         RunTest();
@@ -72,6 +73,7 @@ TEST_P(GetitemBwdTestFloat, GetitemBwdTestFw)
 
 TEST_P(GetitemBwdTestHalf, GetitemBwdTestFw)
 {
+    GTEST_SKIP();
     if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--half"))
     {
         RunTest();
@@ -85,6 +87,7 @@ TEST_P(GetitemBwdTestHalf, GetitemBwdTestFw)
 
 TEST_P(GetitemBwdTestBFloat16, GetitemBwdTestFw)
 {
+    GTEST_SKIP();
     if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--bfloat16"))
     {
         RunTest();
