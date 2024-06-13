@@ -112,7 +112,7 @@ std::vector<AdamTestCase> AdamTestConfigs()
     return result;
 }
 
-template <typename Tp = float, typename Tg = float, bool is_amp = false>
+template <typename Tp = float, typename Tg = float>
 struct AdamTest : public ::testing::TestWithParam<AdamTestCase>
 {
 protected:
@@ -133,6 +133,7 @@ protected:
         maximize        = adam_config.maximize;
         adamw           = adam_config.adamw;
         use_step_tensor = adam_config.use_step_tensor;
+        is_amp          = !std::is_same<Tp, Tg>::value;
 
         param      = tensor<Tp>{dims}.generate(gen_value);
         grad       = tensor<Tg>{dims}.generate(gen_value);
@@ -294,5 +295,6 @@ protected:
     bool maximize        = false;
     bool adamw           = false;
     bool use_step_tensor = false;
+    bool is_amp          = false;
     int32_t step_count   = 5;
 };

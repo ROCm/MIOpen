@@ -51,7 +51,7 @@ struct AdamTestFloat16 : AdamTest<half_float::half, half_float::half>
 {
 };
 
-struct AmpAdamTestFloat : AdamTest<float, half_float::half, true>
+struct AmpAdamTestFloat : AdamTest<float, half_float::half>
 {
 };
 
