@@ -71,7 +71,8 @@ using namespace rope;
 
 TEST_P(RoPEFwdTestFloat, RoPEFwdTest)
 {
-    if(env::enabled(MIOPEN_TEST_ALL) && GetFloatArg() == "--float")
+    if(!MIOPEN_TEST_ALL ||
+       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--float"))
     {
         RunTest();
         Verify();
@@ -84,7 +85,8 @@ TEST_P(RoPEFwdTestFloat, RoPEFwdTest)
 
 TEST_P(RoPEFwdTestHalf, RoPEFwdTest)
 {
-    if(env::enabled(MIOPEN_TEST_ALL) && GetFloatArg() == "--half")
+    if(!MIOPEN_TEST_ALL ||
+       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--half"))
     {
         RunTest();
         Verify();
@@ -97,7 +99,8 @@ TEST_P(RoPEFwdTestHalf, RoPEFwdTest)
 
 TEST_P(RoPEFwdTestBFloat16, RoPEFwdTest)
 {
-    if(env::enabled(MIOPEN_TEST_ALL) && GetFloatArg() == "--bfloat16")
+    if(!MIOPEN_TEST_ALL ||
+       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--bfloat16"))
     {
         RunTest();
         Verify();
