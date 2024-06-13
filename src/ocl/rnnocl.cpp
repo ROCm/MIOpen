@@ -83,12 +83,15 @@ void checkGemmStatusAndLog(miopenStatus_t gemm_status)
 
 GemmBackend_t GetGemmBackend(const miopen::Handle& handle, miopenDataType_t dataType)
 {
+#if MIOPEN_USE_HIPBLASLT
     // Only use the hipblaslt backend when device is MI300, and the datatype is half.
     // Otherwise, default to rocblas.
     // Note: environment variable can be used to force a specific backend.
     return handle.GetDeviceName() == "gfx942" && dataType == miopenDataType_t::miopenHalf
                ? GemmBackend_t::hipblaslt
                : GemmBackend_t::rocblas;
+#endif
+    return GemmBackend_t::rocblas;
 }
 
 miopenStatus_t ReducAddBias(miopen::Handle& handle,

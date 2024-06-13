@@ -339,7 +339,11 @@ if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_B
     endif()
 
     # hipblaslt
-    set(MIOPEN_USE_HIPBLASLT ON CACHE BOOL "")
+    if(WIN32)
+        set(MIOPEN_USE_HIPBLASLT OFF CACHE BOOL "")
+    else()
+        set(MIOPEN_USE_HIPBLASLT ON CACHE BOOL "")
+    endif()
     if(MIOPEN_USE_HIPBLASLT)
         find_package(hipblaslt REQUIRED PATHS /opt/rocm $ENV{HIP_PATH})
         message(STATUS "Build with hipbBLASLt")

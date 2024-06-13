@@ -291,6 +291,7 @@ rocblas_handle_ptr Handle::CreateRocblasHandle(miopenAcceleratorQueue_t) const
 }
 #endif
 
+#if MIOPEN_USE_HIPBLASLT
 const hipblasLt_handle_ptr& Handle::HipblasLtHandle() const { return impl->hip_blasLt_handle; }
 
 hipblasLt_handle_ptr Handle::CreateHipblasLtHandle() const
@@ -303,4 +304,5 @@ hipblasLt_handle_ptr Handle::CreateHipblasLtHandle() const
     }
     return hipblasLt_handle_ptr{handle};
 }
+#endif
 } // namespace miopen

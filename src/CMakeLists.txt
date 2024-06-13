@@ -637,7 +637,6 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         ocl/fusionopbiasbnactivocl.cpp
         reduceextreme.cpp
         sum.cpp
-        gemm_v2.cpp
         ${PROJECT_BINARY_DIR}/db_path.cpp
         )
 
@@ -645,6 +644,12 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         ${PROJECT_BINARY_DIR}/kernel.cpp
         ${PROJECT_BINARY_DIR}/kernel_includes.cpp
         )
+endif()
+
+if(MIOPEN_USE_ROCBLAS OR MIOPEN_USE_HIPBLASLT)
+    list(APPEND MIOpen_Source
+        gemm_v2.cpp
+    )
 endif()
 
 if( MIOPEN_BACKEND STREQUAL "OpenCL" )
