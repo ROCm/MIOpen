@@ -28,11 +28,14 @@
 #include "driver.hpp"
 #include "get_handle.hpp"
 #include "workspace.hpp"
+#include <miopen/env.hpp>
 
 #include <miopen/miopen.h>
 
 #include <miopen/convolution.hpp>
 #include <miopen/solution.hpp>
+
+#include <miopen/solver_id.hpp>
 
 #include <nlohmann/json.hpp>
 
@@ -55,9 +58,12 @@ struct Find2Test : test_driver
     int tune;
     bool preallocate;
     std::size_t workspace_limit;
+    bool attach_binaries;
 
     Find2Test()
     {
+        add(attach_binaries, "attach_binaries", generate_data({0, 1}));
+
         add(direction,
             "direction",
             generate_data({
@@ -184,6 +190,8 @@ private:
                          miopenStatusSuccess);
             EXPECT_EQUAL(miopenSetFindOptionWorkspaceLimit(options, workspace_limit),
                          miopenStatusSuccess);
+            EXPECT_EQUAL(miopenSetFindOptionAttachBinaries(options, attach_binaries),
+                         miopenStatusSuccess);
 
             Allocator::ManageDataPtr workspace_dev;
 
@@ -230,6 +238,11 @@ private:
                              miopenStatusSuccess);
             }
 
+            std::cerr << "Testing with: ";
+            std::cerr << (tune != 0 ? "tuning" : "no tuning") << ", ";
+            std::cerr << (attach_binaries ? "attached binaries" : "no binaries") << ", ";
+            std::cerr << workspace_limit << " ws limit";
+
             EXPECT_EQUAL(miopenFindSolutions(
                              handle, problem, options, solutions.data(), &found, solutions.size()),
                          miopenStatusSuccess);
@@ -273,6 +286,11 @@ private:
 
         for(const auto& solution : solutions)
         {
+            uint64_t solver_id;
+            EXPECT_EQUAL(miopenGetSolutionSolverId(solution, &solver_id), miopenStatusSuccess);
+            std::cerr << "Testing solver " << solver_id << " (" << solver::Id(solver_id).ToString()
+                      << ")" << std::endl;
+
             miopenTensorArgumentId_t names[3] = {
                 miopenTensorConvolutionX, miopenTensorConvolutionW, miopenTensorConvolutionY};
             void* buffers[3]                        = {x_dev.get(), w_dev.get(), y_dev.get()};
@@ -281,15 +299,20 @@ private:
             TestRunSolution(handle, solution, 3, names, descriptors, buffers);
 
             // Save-load cycle
+            std::cerr << "Testing miopenGetSolutionSize..." << std::endl;
             std::size_t solution_size;
             EXPECT_EQUAL(miopenGetSolutionSize(solution, &solution_size), miopenStatusSuccess);
+            EXPECT_OP(solution_size, >, 0);
 
             auto solution_binary = std::vector<char>{};
             solution_binary.resize(solution_size);
 
+            std::cerr << "Testing miopenSaveSolution..." << std::endl;
             EXPECT_EQUAL(miopenSaveSolution(solution, solution_binary.data()), miopenStatusSuccess);
+            std::cerr << "Destroying original solution..." << std::endl;
             EXPECT_EQUAL(miopenDestroySolution(solution), miopenStatusSuccess);
 
+            std::cerr << "Testing miopenLoadSolution..." << std::endl;
             miopenSolution_t read_solution;
             EXPECT_EQUAL(
                 miopenLoadSolution(&read_solution, solution_binary.data(), solution_binary.size()),
@@ -342,4 +365,8 @@ private:
 };
 } // namespace miopen
 
-int main(int argc, const char* argv[]) { test_drive<miopen::Find2Test>(argc, argv); }
+int main(int argc, const char* argv[])
+{
+    miopen::env::setEnvironmentVariable("MIOPEN_LOG_LEVEL", "6");
+    test_drive<miopen::Find2Test>(argc, argv);
+}
