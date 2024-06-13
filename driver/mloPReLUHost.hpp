@@ -78,7 +78,7 @@ int32_t mloPReLUBackwardRunHost(const miopenTensorDescriptor_t inputDesc,
         {
             double sum = 0;
             for(int i = 0; i < input_sz; ++i)
-                sum += weight_grad_collector[i];
+                sum += static_cast<double>(weight_grad_collector[i]);
             dweight_host[0] = static_cast<Tcheck>(sum);
         }
         else
@@ -90,7 +90,8 @@ int32_t mloPReLUBackwardRunHost(const miopenTensorDescriptor_t inputDesc,
                 double sum = 0;
                 ford(input_tv.size[0])([&](int j) {
                     ford(inner_size)([&](int k) {
-                        sum += weight_grad_collector[j * outer_size + i * inner_size + k];
+                        sum += static_cast<double>(
+                            weight_grad_collector[j * outer_size + i * inner_size + k]);
                     });
                 });
                 dweight_host[i] = static_cast<Tcheck>(sum);

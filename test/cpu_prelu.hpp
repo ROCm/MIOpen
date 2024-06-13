@@ -74,7 +74,7 @@ void cpu_prelu_backward(const tensor<T> input,
         {
             double sum = 0;
             for(int i = 0; i < N; ++i)
-                sum += weight_grad_collector[i];
+                sum += static_cast<double>(weight_grad_collector[i]);
             ref_weight_grad[0] = static_cast<T>(sum);
         }
         else
@@ -86,7 +86,8 @@ void cpu_prelu_backward(const tensor<T> input,
                 double sum = 0;
                 ford(input_tv.size[0])([&](int j) {
                     ford(inner_size)([&](int k) {
-                        sum += weight_grad_collector[j * outer_size + i * inner_size + k];
+                        sum += static_cast<double>(
+                            weight_grad_collector[j * outer_size + i * inner_size + k]);
                     });
                 });
                 ref_weight_grad[i] = static_cast<T>(sum);
