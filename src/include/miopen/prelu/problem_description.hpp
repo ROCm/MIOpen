@@ -53,6 +53,10 @@ struct BackwardProblemDescription : ProblemDescriptionBase
     {
         IsSameType();
         IsRightLength();
+        if(!weightDesc.IsPacked())
+            MIOPEN_THROW(miopenStatusBadParm, "PReLU: Weight tensor must be contiguous.");
+        if(!dweightDesc.IsPacked())
+            MIOPEN_THROW(miopenStatusBadParm, "PReLU: Weight Gradient tensor must be contiguous.");
     }
 
     const TensorDescriptor& GetInputDesc() const { return inputDesc; }
