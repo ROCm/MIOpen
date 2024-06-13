@@ -49,7 +49,7 @@ using namespace miopen;
 namespace {
 inline bool CheckFloatArg(std::string_view arg)
 {
-    const std::string& tmp = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
+    const std::string& tmp = env::value(MIOPEN_TEST_FLOAT_ARG);
     return tmp.empty() || tmp == arg;
 }
 
@@ -107,8 +107,7 @@ inline std::vector<TestCase> GetSmokeCases()
 
 inline std::vector<TestCase> GetFullTestCases()
 {
-    if(miopen::IsDisabled(ENV(MIOPEN_TEST_ALL)) ||
-       !(CheckFloatArg("--float") || CheckFloatArg("--float8")))
+    if(env::disabled(MIOPEN_TEST_ALL) || !(CheckFloatArg("--float") || CheckFloatArg("--float8")))
     {
         return {};
     }
@@ -140,7 +139,7 @@ protected:
 
         if((drop > 0.0f) && (s % handle.GetWavefrontWidth() != 0))
         {
-            GTEST_SKIP() << "CPU Dropout currently supprorts only fully occupied warps";
+            GTEST_SKIP() << "CPU Dropout currently supports only fully occupied warps";
         }
 
         mha_descriptor.SetParams(1);
@@ -167,15 +166,13 @@ protected:
             tensors[id] = std::move(tmp);
         };
 
-        using ScaledTensor = test::cpu::ScaledTensor<T>;
-
-        ScaledTensor q = test::cpu::GenScaledTensor<T>(n, h, s, d);
+        auto q = test::cpu::GenScaledTensor<T>(n, h, s, d);
         InitTensor(miopenTensorMhaQ, std::move(q.mTensor));
 
-        ScaledTensor k = test::cpu::GenScaledTensor<T>(n, h, s, d);
+        auto k = test::cpu::GenScaledTensor<T>(n, h, s, d);
         InitTensor(miopenTensorMhaK, std::move(k.mTensor));
 
-        ScaledTensor v = test::cpu::GenScaledTensor<T>(n, h, s, d);
+        auto v = test::cpu::GenScaledTensor<T>(n, h, s, d);
         InitTensor(miopenTensorMhaV, std::move(v.mTensor));
 
         float s_scale = 1.f;
@@ -186,11 +183,11 @@ protected:
         // clang-tidy complains about the same expression on both sides of "/": 1.f / 1.f
 
         InitTensor(miopenTensorMhaDescaleQ,
-                   tensor<float>{1, 1, 1, 1}.generate([=](auto...) { return q.mDescale; }));
+                   tensor<float>{1, 1, 1, 1}.generate([&q](auto...) { return q.mDescale; }));
         InitTensor(miopenTensorMhaDescaleK,
-                   tensor<float>{1, 1, 1, 1}.generate([=](auto...) { return k.mDescale; }));
+                   tensor<float>{1, 1, 1, 1}.generate([&k](auto...) { return k.mDescale; }));
         InitTensor(miopenTensorMhaDescaleV,
-                   tensor<float>{1, 1, 1, 1}.generate([=](auto...) { return v.mDescale; }));
+                   tensor<float>{1, 1, 1, 1}.generate([&v](auto...) { return v.mDescale; }));
         InitTensor(miopenTensorMhaDescaleS,
                    tensor<float>{1, 1, 1, 1}.generate([=](auto...) { return s_descale; }));
         InitTensor(miopenTensorMhaScaleS,
@@ -215,8 +212,6 @@ protected:
         {
             args[i].descriptor = &descVector[i];
         }
-
-        tensor<float> q_dot_k_transpose{n, h, s, s};
 
         softmax_ref  = tensor<float>{n, h, s, s};
         oDesc_ref    = tensor<T>{n, h, s, d};

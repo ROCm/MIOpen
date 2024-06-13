@@ -76,9 +76,7 @@ struct MIOPEN_INTERNALS_EXPORT ConvolutionAttribute
 
         inline int Get() const
         {
-            if(!miopen::IsUnset(ENV(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL)))
-                return miopen::Value(ENV(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL));
-            return value;
+            return env::value_or(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL, value);
         }
 
     public:
@@ -105,18 +103,13 @@ struct MIOPEN_INTERNALS_EXPORT ConvolutionAttribute
 
         inline miopenF8RoundingMode_t Get() const
         {
-            if(!miopen::IsUnset(ENV(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP8_ROUNDING_MODE)))
-                return static_cast<miopenF8RoundingMode_t>(
-                    miopen::Value(ENV(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP8_ROUNDING_MODE)));
-            return rounding_mode;
+            return env::value_or(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP8_ROUNDING_MODE, rounding_mode);
         }
 
         inline uint32_t GetSeed() const
         {
             // assert(rounding_mode == miopenF8RoundingModeStochastic);
-            if(!miopen::IsUnset(ENV(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP8_ROUNDING_SEED)))
-                return miopen::Value(ENV(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP8_ROUNDING_SEED));
-            return seed;
+            return env::value_or(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP8_ROUNDING_SEED, seed);
         }
 
         inline void SetSeed(const uint32_t s) { seed = s; }
@@ -130,10 +123,7 @@ struct MIOPEN_INTERNALS_EXPORT ConvolutionAttribute
     public:
         inline int Get() const
         {
-            if(!miopen::IsUnset(ENV(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC)))
-                return static_cast<int>(
-                    miopen::IsEnabled(ENV(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC)));
-            return value;
+            return env::value_or(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC, value);
         }
         operator bool() const
         {
@@ -152,6 +142,14 @@ struct MIOPEN_INTERNALS_EXPORT ConvolutionAttribute
     friend void to_json(nlohmann::json& json, const ConvolutionAttribute& conv);
     friend void from_json(const nlohmann::json& json, ConvolutionAttribute& conv);
 };
+
+struct Solution;
+
+std::vector<Solution> FindConvolution(const ExecutionContext& ctx,
+                                      const conv::ProblemDescription& problem,
+                                      const AnyInvokeParams& invoke_ctx,
+                                      int requestAlgoCount,
+                                      bool force_attach_binary);
 
 struct MIOPEN_INTERNALS_EXPORT ConvolutionDescriptor : miopenConvolutionDescriptor
 {
@@ -391,7 +389,7 @@ MIOPEN_INTERNALS_EXPORT std::ostream& operator<<(std::ostream& stream,
 MIOPEN_INTERNALS_EXPORT void DumpTensorToFileFromDevice(const miopen::Handle& handle,
                                                         const miopen::TensorDescriptor& tDesc,
                                                         ConstData_t dData,
-                                                        const std::string& filename);
+                                                        const fs::path& filename);
 
 } // namespace miopen
 
