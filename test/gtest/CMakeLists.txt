@@ -1,6 +1,9 @@
 find_package(GTest REQUIRED)
 find_package(rocblas)
-find_package(hipblaslt REQUIRED PATHS /opt/rocm $ENV{HIP_PATH})
+
+if(MIOPEN_USE_HIPBLASLT)
+  find_package(hipblaslt REQUIRED PATHS /opt/rocm $ENV{HIP_PATH})
+endif()
 
 set(SOURCES
     log.cpp
@@ -17,6 +20,9 @@ function(add_gtest TEST_NAME TEST_CPP)
   add_executable(${TEST_NAME} ${TEST_CPP}  ${SOURCES})
   if(WIN32)
     target_compile_definitions(${TEST_NAME} PRIVATE NOMINMAX)
+  endif()
+  if(MIOPEN_USE_HIPBLASLT)
+    target_link_libraries( ${TEST_NAME} roc::hipblaslt )
   endif()
   add_dependencies(tests ${TEST_NAME})
   add_dependencies(check ${TEST_NAME})
