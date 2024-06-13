@@ -47,27 +47,25 @@ TEST_P(BNBwdTestTestHalf, BnBwdCKHalf) {}
 
 TEST_P(BNBwdTestFloat, BnBwdCKFloat) {}
 
-// Currently disabled since miopen::batchnorm::MakeForwardTrainingNetworkConfig
-// only supports half and float
-TEST_P(BNBwdTestBFloat16, DISABLED_BnBwdCKBFloat16) {}
-TEST_P(BNBwdTestDouble, DISABLED_BnBwdCKDouble) {}
+TEST_P(BNBwdTestBFloat16, BnBwdCKBFloat16) {}
+TEST_P(BNBwdTestDouble, BnBwdCKDouble) {}
 
-INSTANTIATE_TEST_SUITE_P(BNBwdTestTestHalfNHWCSuite,
+INSTANTIATE_TEST_SUITE_P(BNBwdTestTestHalfSuite,
                          BNBwdTestTestHalf,
                          testing::Combine(testing::ValuesIn(Network1<BNTestCase>()),
                                           testing::Values(miopenTensorNHWC)));
 
-INSTANTIATE_TEST_SUITE_P(BNBwdTestFloatNHWCSuite,
+INSTANTIATE_TEST_SUITE_P(BNBwdTestFloatSuite,
                          BNBwdTestFloat,
                          testing::Combine(testing::ValuesIn(Network1<BNTestCase>()),
                                           testing::Values(miopenTensorNHWC)));
 
-INSTANTIATE_TEST_SUITE_P(BNBwdTestBFloat16NHWCSuite,
+INSTANTIATE_TEST_SUITE_P(BNBwdTestBFloat16Suite,
                          BNBwdTestBFloat16,
                          testing::Combine(testing::ValuesIn(Network1<BNTestCase>()),
                                           testing::Values(miopenTensorNHWC)));
 
-INSTANTIATE_TEST_SUITE_P(BNBwdTestDoubleNHWCSuite,
+INSTANTIATE_TEST_SUITE_P(BNBwdTestDoubleSuite,
                          BNBwdTestDouble,
                          testing::Combine(testing::ValuesIn(Network1<BNTestCase>()),
                                           testing::Values(miopenTensorNHWC)));

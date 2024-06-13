@@ -39,7 +39,7 @@ struct BNFwdTrainTestDouble : BNFwdTrainTest<double, double, double, double, dou
 {
 };
 
-struct BNFwdTrainTestBFloat16 : BNFwdTrainTest<bfloat16, bfloat16, bfloat16, bfloat16, double>
+struct BNFwdTrainTestBFloat16 : BNFwdTrainTest<bfloat16, bfloat16, bfloat16, bfloat16, float>
 {
 };
 
@@ -47,10 +47,8 @@ TEST_P(BNFwdTrainTestHalf, BnFwdTrainCKHalf) {}
 
 TEST_P(BNFwdTrainTestFloat, BnFwdTrainCKFloat) {}
 
-// Currently disabled since miopen::batchnorm::MakeForwardTrainingNetworkConfig
-// only supports half and float
-TEST_P(BNFwdTrainTestDouble, DISABLED_BnFwdTrainCKDouble) {}
-TEST_P(BNFwdTrainTestBFloat16, DISABLED_BnFwdTrainCKBFloat16) {}
+TEST_P(BNFwdTrainTestDouble, BnFwdTrainCKDouble) {}
+TEST_P(BNFwdTrainTestBFloat16, BnFwdTrainCKBFloat16) {}
 
 INSTANTIATE_TEST_SUITE_P(BNFwdTrainTestHalfNHWCSuite,
                          BNFwdTrainTestHalf,
