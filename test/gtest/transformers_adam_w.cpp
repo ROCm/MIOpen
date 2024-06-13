@@ -33,9 +33,8 @@ namespace transformers_adam_w {
 
 bool CheckFloatArg(std::string arg)
 {
-    if(miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
-       (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) &&
-        (miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG)) == arg)))
+    if(!MIOPEN_TEST_ALL ||
+       (env::enabled(MIOPEN_TEST_ALL) && (env::value(MIOPEN_TEST_FLOAT_ARG) == arg)))
     {
         return true;
     }
