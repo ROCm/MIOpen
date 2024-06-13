@@ -309,6 +309,9 @@ struct CKArgs
     bool IsSupportedBy(const ConvPtr& conv_ptr) const
     {
         auto arg_ptr = MakeArgPtr(conv_ptr, nullptr, nullptr, nullptr, 1.0f, 0.0f);
+        // Creat dummy workspace to pass the ck IsSupportedArgument check.
+        int dummy_var = 1;
+        conv_ptr->SetWorkSpacePointer(arg_ptr.get(), &dummy_var);
         return conv_ptr->IsSupportedArgument(arg_ptr.get());
     }
 
