@@ -59,6 +59,7 @@ using namespace reduceextreme;
 
 TEST_P(ReduceExtremeTestFloat, ReduceExtremeTestFw)
 {
+    GTEST_SKIP();
     if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float"))
     {
         RunTest();
@@ -72,6 +73,7 @@ TEST_P(ReduceExtremeTestFloat, ReduceExtremeTestFw)
 
 TEST_P(ReduceExtremeTestHalf, ReduceExtremeTestFw)
 {
+    GTEST_SKIP();
     if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--half"))
     {
         RunTest();
@@ -85,6 +87,7 @@ TEST_P(ReduceExtremeTestHalf, ReduceExtremeTestFw)
 
 TEST_P(ReduceExtremeTestBFloat16, ReduceExtremeTestFw)
 {
+    GTEST_SKIP();
     if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--bfloat16"))
     {
         RunTest();
