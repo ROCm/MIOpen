@@ -26,6 +26,7 @@
 
 #pragma once
 
+#include <miopen/config.hpp>
 #include <miopen/graphapi/engine.hpp>
 
 namespace miopen {
@@ -61,9 +62,8 @@ public:
 /* For now we don't support tuning and a builder is not needed,
  * but in future it will be needed.
  */
-class EngineCfgBuilder
+class MIOPEN_INTERNALS_EXPORT EngineCfgBuilder
 {
-private:
     EngineCfg mEngineCfg;
     bool mEngineSet = false;
 
@@ -89,7 +89,7 @@ public:
     EngineCfg build() &&;
 };
 
-class BackendEngineCfgDescriptor : public BackendDescriptor
+class MIOPEN_INTERNALS_EXPORT BackendEngineCfgDescriptor : public BackendDescriptor
 {
 protected:
     EngineCfgBuilder mBuilder;

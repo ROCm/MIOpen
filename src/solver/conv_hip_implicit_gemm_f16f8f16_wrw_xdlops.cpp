@@ -122,8 +122,15 @@ struct CKArgs
     CKArgs& operator=(const CKArgs&) = default;
 
     template <typename ConvPtr>
-    auto MakeArgPtr(const ConvPtr& conv_ptr, ConstData_t x, Data_t dw, ConstData_t dy) const
+    auto MakeArgPtr(const ConvPtr& conv_ptr,
+                    ConstData_t x,
+                    Data_t dw,
+                    ConstData_t dy,
+                    float alpha,
+                    float beta) const
     {
+        (void)alpha;
+        (void)beta;
         return conv_ptr->MakeArgumentPointer(x,
                                              dw,
                                              dy,
@@ -144,15 +151,18 @@ struct CKArgs
     }
 
     template <typename ConvPtr>
-    auto MakeArgPtr(const ConvPtr& conv_ptr, const ConvWrwTensors& tensors) const
+    auto MakeArgPtr(const ConvPtr& conv_ptr,
+                    const ConvWrwTensors& tensors,
+                    float alpha,
+                    float beta) const
     {
-        return MakeArgPtr(conv_ptr, tensors.x, tensors.dw, tensors.dy);
+        return MakeArgPtr(conv_ptr, tensors.x, tensors.dw, tensors.dy, alpha, beta);
     }
 
     template <typename ConvPtr>
     bool IsSupportedBy(const ConvPtr& conv_ptr) const
     {
-        auto arg_ptr = MakeArgPtr(conv_ptr, nullptr, nullptr, nullptr);
+        auto arg_ptr = MakeArgPtr(conv_ptr, nullptr, nullptr, nullptr, 1.0f, 0.0f);
         return conv_ptr->IsSupportedArgument(arg_ptr.get());
     }
 
@@ -296,7 +306,7 @@ bool ConvHipImplicitGemmF16F8F16WrwXdlops::IsApplicable(
     [[maybe_unused]] const ProblemDescription& problem) const
 {
 #if MIOPEN_USE_COMPOSABLEKERNEL
-    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_F16F8F16_CONV_IMPLICIT_GEMM_HIP_WRW_XDLOPS)))
+    if(env::disabled(MIOPEN_DEBUG_F16F8F16_CONV_IMPLICIT_GEMM_HIP_WRW_XDLOPS))
         return false;
     if(problem.GetConv().attribute.deterministic)
         return false;

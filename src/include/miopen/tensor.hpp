@@ -124,7 +124,7 @@ std::ptrdiff_t integer_division_ceil(X x, Y y)
     return (tx + ty - 1) / ty;
 }
 
-struct MIOPEN_EXPORT TensorDescriptor : miopenTensorDescriptor
+struct MIOPEN_INTERNALS_EXPORT TensorDescriptor : miopenTensorDescriptor
 {
     TensorDescriptor();
 
@@ -274,7 +274,8 @@ struct MIOPEN_EXPORT TensorDescriptor : miopenTensorDescriptor
         }
     }
 
-    friend std::ostream& operator<<(std::ostream& stream, const TensorDescriptor& t);
+    friend MIOPEN_INTERNALS_EXPORT std::ostream& operator<<(std::ostream& stream,
+                                                            const TensorDescriptor& t);
 
     friend void to_json(nlohmann::json& j, const TensorDescriptor& descriptor);
     friend void from_json(const nlohmann::json& j, TensorDescriptor& descriptor);

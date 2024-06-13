@@ -89,7 +89,7 @@ public:
     bool isVirtual() const noexcept { return mVirtual; }
 };
 
-class TensorBuilder
+class MIOPEN_INTERNALS_EXPORT TensorBuilder
 {
 private:
     std::vector<int64_t> mDimensions;
@@ -138,7 +138,7 @@ public:
     Tensor build() &&;
 };
 
-class BackendTensorDescriptor : public BackendDescriptor
+class MIOPEN_INTERNALS_EXPORT BackendTensorDescriptor : public BackendDescriptor
 {
 private:
     TensorBuilder mBuilder;

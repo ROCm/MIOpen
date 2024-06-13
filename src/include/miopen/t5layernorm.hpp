@@ -33,43 +33,44 @@ namespace miopen {
 struct Handle;
 struct TensorDescriptor;
 
-miopenStatus_t T5LayerNormForward(Handle& handle,
-                                  const TensorDescriptor& xDesc,
-                                  ConstData_t x,
-                                  const TensorDescriptor& weightDesc,
-                                  ConstData_t weight,
-                                  const TensorDescriptor& yDesc,
-                                  Data_t y,
-                                  const TensorDescriptor& rstdDesc,
-                                  Data_t rstd,
-                                  miopenNormMode_t mode,
-                                  float epsilon);
+MIOPEN_INTERNALS_EXPORT miopenStatus_t T5LayerNormForward(Handle& handle,
+                                                          const TensorDescriptor& xDesc,
+                                                          ConstData_t x,
+                                                          const TensorDescriptor& weightDesc,
+                                                          ConstData_t weight,
+                                                          const TensorDescriptor& yDesc,
+                                                          Data_t y,
+                                                          const TensorDescriptor& rstdDesc,
+                                                          Data_t rstd,
+                                                          miopenNormMode_t mode,
+                                                          float epsilon);
 
-std::size_t GetT5LayerNormBackwardWorkspaceSize(Handle& handle,
-                                                const TensorDescriptor& dyDesc,
-                                                const TensorDescriptor& xDesc,
-                                                const TensorDescriptor& weightDesc,
-                                                const TensorDescriptor& rstdDesc,
-                                                const TensorDescriptor& dxDesc,
-                                                const TensorDescriptor& dwDesc,
-                                                miopenNormMode_t mode);
+MIOPEN_INTERNALS_EXPORT std::size_t
+GetT5LayerNormBackwardWorkspaceSize(Handle& handle,
+                                    const TensorDescriptor& dyDesc,
+                                    const TensorDescriptor& xDesc,
+                                    const TensorDescriptor& weightDesc,
+                                    const TensorDescriptor& rstdDesc,
+                                    const TensorDescriptor& dxDesc,
+                                    const TensorDescriptor& dwDesc,
+                                    miopenNormMode_t mode);
 
-miopenStatus_t T5LayerNormBackward(Handle& handle,
-                                   Data_t workspace,
-                                   size_t workspaceSizeInBytes,
-                                   const TensorDescriptor& dyDesc,
-                                   ConstData_t dy,
-                                   const TensorDescriptor& xDesc,
-                                   ConstData_t x,
-                                   const TensorDescriptor& weightDesc,
-                                   ConstData_t weight,
-                                   const TensorDescriptor& rstdDesc,
-                                   ConstData_t rstd,
-                                   const TensorDescriptor& dxDesc,
-                                   Data_t dx,
-                                   const TensorDescriptor& dwDesc,
-                                   Data_t dw,
-                                   miopenNormMode_t mode);
+MIOPEN_INTERNALS_EXPORT miopenStatus_t T5LayerNormBackward(Handle& handle,
+                                                           Data_t workspace,
+                                                           size_t workspaceSizeInBytes,
+                                                           const TensorDescriptor& dyDesc,
+                                                           ConstData_t dy,
+                                                           const TensorDescriptor& xDesc,
+                                                           ConstData_t x,
+                                                           const TensorDescriptor& weightDesc,
+                                                           ConstData_t weight,
+                                                           const TensorDescriptor& rstdDesc,
+                                                           ConstData_t rstd,
+                                                           const TensorDescriptor& dxDesc,
+                                                           Data_t dx,
+                                                           const TensorDescriptor& dwDesc,
+                                                           Data_t dw,
+                                                           miopenNormMode_t mode);
 
 } // namespace miopen
 #endif // MIOPEN_T5LAYERNORM_HPP_

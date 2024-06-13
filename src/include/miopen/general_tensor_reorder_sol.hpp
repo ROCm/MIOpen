@@ -44,7 +44,7 @@ struct GeneralReorderParam
     int ediv_y{0};
 };
 
-struct GenericReorderSolutionImpl
+struct MIOPEN_INTERNALS_EXPORT GenericReorderSolutionImpl
 {
     GenericReorderSolutionImpl(miopenDataType_t data_type_,
                                uint32_t dim_0_,
@@ -58,7 +58,7 @@ struct GenericReorderSolutionImpl
     // TODO batched transpose API
     solver::KernelInfo GetKernelInfo() const;
     std::vector<OpKernelArg> GetKernelArg() const;
-    std::string GetKernelFileName() const;
+    fs::path GetKernelFileName() const;
     std::string GetKernelName() const;
     bool IsSkippable() const;
     size_t GetOutputTensorSize() const;
