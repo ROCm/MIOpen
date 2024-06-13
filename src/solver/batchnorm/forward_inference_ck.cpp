@@ -197,11 +197,8 @@ bool BnCKFwdInference::IsApplicable(
     case miopenFloat: return (CheckCKApplicability<F32, F32, F32, F32, F32, F32>(bn_problem) != -1);
     case miopenDouble:
         return (CheckCKApplicability<F64, F64, F64, F64, F64, F64>(bn_problem) != -1);
-    case miopenBFloat16: {
-
-        bool var = (CheckCKApplicability<BF16, BF16, F32, BF16, BF16, F32>(bn_problem) != -1);
-        return var;
-    }
+    case miopenBFloat16:
+        return (CheckCKApplicability<BF16, BF16, F32, BF16, BF16, F32>(bn_problem) != -1);
     case miopenInt64:
     case miopenInt32:
     case miopenInt8:
