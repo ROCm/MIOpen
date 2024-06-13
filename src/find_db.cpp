@@ -55,8 +55,7 @@ boost::optional<fs::path>& testing_find_db_path_override()
 
 #if MIOPEN_EMBED_DB
 template <class TDb>
-std::string FindDbRecord_t<TDb>::GetInstalledPathEmbed(Handle& handle,
-                                                       const std::string& path_suffix)
+fs::path FindDbRecord_t<TDb>::GetInstalledPathEmbed(Handle& handle, const std::string& path_suffix)
 {
     static const auto embed_path = [&] {
         const std::string ext = ".fdb.txt";
@@ -65,10 +64,10 @@ std::string FindDbRecord_t<TDb>::GetInstalledPathEmbed(Handle& handle,
         const auto suffix     = GetSystemFindDbSuffix() + path_suffix;
         const auto filename   = base_name + "." + suffix + ext;
         const auto file_path  = root_path / filename;
-        if(miopen_data().find(make_object_file_name(filename).string()) != miopen_data().end())
+        if(miopen_data().find(make_object_file_name(filename)) != miopen_data().end())
         {
             MIOPEN_LOG_I2("Found exact embedded find database file:" << filename);
-            return file_path.string();
+            return file_path;
         }
         else
         {
@@ -76,9 +75,9 @@ std::string FindDbRecord_t<TDb>::GetInstalledPathEmbed(Handle& handle,
             std::vector<fs::path> all_files;
             for(const auto& kinder : miopen_data())
             {
-                const auto& fname    = kinder.first.substr(0, kinder.first.size() - 2);
+                const auto& fname    = kinder.first.stem();
                 const auto& filepath = root_path / fname;
-                if(EndsWith(fname, path_suffix + ".fdb.txt"))
+                if(EndsWith(fname.string(), path_suffix + ".fdb.txt"))
                     all_files.push_back(filepath);
             }
 
@@ -93,10 +92,10 @@ std::string FindDbRecord_t<TDb>::GetInstalledPathEmbed(Handle& handle,
                 // Check for alternate back end same ASIC
                 if(fname.rfind(base_name, 0) == 0)
                 {
-                    return entry.string();
+                    return entry;
                 }
                 if(db_id.empty() || !miopen::StartsWith(db_id, "gfx") || real_cu_count == 0)
-                    return std::string();
+                    return fs::path{};
                 // Check for alternate ASIC any back end
                 if(fname.rfind(db_id, 0) == 0)
                 {
@@ -113,7 +112,7 @@ std::string FindDbRecord_t<TDb>::GetInstalledPathEmbed(Handle& handle,
                     }
                 }
             }
-            return best_path.string();
+            return best_path;
         }
     }();
     return embed_path;
@@ -254,12 +253,11 @@ bool FindDbRecord_t<TDb>::Validate(Handle& handle, const NetworkConfig& config) 
 }
 
 template <class TDb>
-void FindDbRecord_t<TDb>::CopyTo(std::vector<PerfField>& to) const
+void FindDbRecord_t<TDb>::CopyTo(std::vector<Solution>& to) const
 {
     const auto range = content->As<FindDbData>();
     std::transform(range.begin(), range.end(), std::back_inserter(to), [](const auto& pair) {
-        return PerfField{
-            pair.second.algorithm, pair.first, pair.second.time, pair.second.workspace};
+        return Solution{solver::Id{pair.first}, pair.second.time, pair.second.workspace};
     });
 }
 

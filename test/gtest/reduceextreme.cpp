@@ -34,7 +34,7 @@ namespace reduceextreme {
 
 std::string GetFloatArg()
 {
-    const auto& tmp = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
+    const auto& tmp = env::value(MIOPEN_TEST_FLOAT_ARG);
     if(tmp.empty())
     {
         return "";
@@ -60,7 +60,7 @@ using namespace reduceextreme;
 TEST_P(ReduceExtremeTestFloat, ReduceExtremeTestFw)
 {
     GTEST_SKIP();
-    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float"))
+    if(env::enabled(MIOPEN_TEST_ALL) && GetFloatArg() == "--float")
     {
         RunTest();
         Verify();
@@ -74,7 +74,7 @@ TEST_P(ReduceExtremeTestFloat, ReduceExtremeTestFw)
 TEST_P(ReduceExtremeTestHalf, ReduceExtremeTestFw)
 {
     GTEST_SKIP();
-    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--half"))
+    if(env::enabled(MIOPEN_TEST_ALL) && GetFloatArg() == "--half")
     {
         RunTest();
         Verify();
@@ -88,7 +88,7 @@ TEST_P(ReduceExtremeTestHalf, ReduceExtremeTestFw)
 TEST_P(ReduceExtremeTestBFloat16, ReduceExtremeTestFw)
 {
     GTEST_SKIP();
-    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--bfloat16"))
+    if(env::enabled(MIOPEN_TEST_ALL) && GetFloatArg() == "--bfloat16")
     {
         RunTest();
         Verify();
