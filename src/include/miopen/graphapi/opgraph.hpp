@@ -358,8 +358,8 @@ public:
     miopenHandle_t getHandle() const noexcept { return mHandle; }
     const std::vector<Engine>& getEngines() const noexcept { return mEngines; }
 
-    void initEngines(); // TODO(Amber): make private. Called in finalize, but also
-                        // from C++ tests
+    void initEngines(); /// \todo make private. Called in finalize, but also
+                        /// from C++ tests --amberhassaan May, 2024
 
 private:
     friend class OpGraphBuilder;

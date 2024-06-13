@@ -64,7 +64,7 @@ static fs::path ComputeUserCachePath()
     fs::path p;
     /// If MIOPEN_CUSTOM_CACHE_DIR is set in the environment, then
     /// use exactly that path.
-    const auto& custom = miopen::GetStringEnv(ENV(MIOPEN_CUSTOM_CACHE_DIR));
+    const auto& custom = env::value(MIOPEN_CUSTOM_CACHE_DIR);
     if(!custom.empty())
     {
         p = ExpandUser(custom);
@@ -117,7 +117,7 @@ bool IsCacheDisabled()
     if(MIOPEN_DISABLE_USERDB && MIOPEN_DISABLE_SYSDB)
         return true;
     else
-        return miopen::IsEnabled(ENV(MIOPEN_DISABLE_CACHE));
+        return env::enabled(MIOPEN_DISABLE_CACHE);
 #else
     return true;
 #endif
@@ -215,20 +215,22 @@ fs::path LoadBinary(const TargetProperties& target,
     }
 }
 
-void SaveBinary(const fs::path& binary_path,
-                const TargetProperties& target,
-                const fs::path& name,
-                const std::string& args)
+fs::path SaveBinary(const fs::path& binary_path,
+                    const TargetProperties& target,
+                    const fs::path& name,
+                    const std::string& args)
 {
     if(miopen::IsCacheDisabled())
     {
         fs::remove(binary_path);
+        return {};
     }
     else
     {
         auto p = GetCacheFile(target.DbId(), name, args);
         fs::create_directories(p.parent_path());
         fs::rename(binary_path, p);
+        return p;
     }
 }
 #endif

@@ -60,7 +60,8 @@
 #define SKIP_KDB_PDB_TESTING 0       // Allows testing FDB on gfx1030.
 #define SKIP_CONVOCLDIRECTFWDFUSED 0 // Allows testing FDB on gfx1030 (legacy fdb).
 
-namespace fs = miopen::fs;
+namespace fs  = miopen::fs;
+namespace env = miopen::env;
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_DBSYNC)
 
@@ -464,7 +465,7 @@ void SetupPaths(fs::path& fdb_file_path,
 
 TEST(DBSync, KDBTargetID)
 {
-    if(miopen::IsEnabled(ENV(MIOPEN_TEST_DBSYNC)))
+    if(env::enabled(MIOPEN_TEST_DBSYNC))
     {
         fs::path fdb_file_path, pdb_file_path, kdb_file_path;
 #if WORKAROUND_ISSUE_2492
@@ -852,7 +853,7 @@ struct DBSync : testing::TestWithParam<std::pair<std::string, size_t>>
 
 TEST_P(DBSync, StaticFDBSync)
 {
-    if(miopen::IsEnabled(ENV(MIOPEN_TEST_DBSYNC)))
+    if(env::enabled(MIOPEN_TEST_DBSYNC))
     {
         std::string arch;
         size_t num_cu;

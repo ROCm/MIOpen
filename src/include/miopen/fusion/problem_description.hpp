@@ -86,6 +86,8 @@ struct FusionDescription : ProblemDescriptionBase
     }
 #endif
 
+    conv::Direction GetDirection() const { return conv::Direction::Forward; }
+
     // This and the following method should be moved to the Ops once the return type can be unified
     conv::ProblemDescription GetConvProblem(size_t idx, conv::Direction dir, int bias = 0) const
     {
