@@ -152,6 +152,7 @@ public:
 private:
     InputFlags inflags;
 
+    int forw;
     int dim_size;
 
     miopenTensorDescriptor_t inputDesc;
@@ -201,7 +202,7 @@ int AddLayerNormDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
 template <typename Tgpu, typename Tref>
 int AddLayerNormDriver<Tgpu, Tref>::GetandSetData()
 {
-    auto inTensorParam = inflags.GetValueTensorUint64("input");
+    auto inTensorParam = inflags.GetValueTensor("input");
 
     auto in_len = inTensorParam.lengths;
 
