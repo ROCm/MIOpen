@@ -475,19 +475,19 @@ struct SolverContainer
     {
         const auto network_config = problem.MakeNetworkConfig();
 
+        if(const auto existingInvoker =
+               ctx.GetStream().GetInvoker(network_config, std::nullopt, algo))
+        {
+            (*existingInvoker)(ctx.GetStream(), invoke_params);
+            return;
+        }
+
         const auto slns = SearchForSolutions(ctx, problem, 1, invoke_params);
 
         if(slns.empty())
             MIOPEN_THROW(miopenStatusNotImplemented, "No solver found.");
 
         const auto& sln = slns.front();
-
-        if(const auto existingInvoker =
-               ctx.GetStream().GetInvoker(network_config, solver::Id{sln.solver_id}, algo))
-        {
-            (*existingInvoker)(ctx.GetStream(), invoke_params);
-            return;
-        }
 
         if(!sln.invoker_factory)
             MIOPEN_THROW(miopenStatusInternalError, "Invoker missing in solver " + sln.solver_id);
