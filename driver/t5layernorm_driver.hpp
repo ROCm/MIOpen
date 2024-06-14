@@ -193,6 +193,7 @@ public:
     InputFlags& GetInputFlags() override { return inflags; }
 
     int GetandSetData() override;
+    std::vector<int> GetInputTensorLengthsFromCmdLine();
 
     int AllocateBuffersAndCopy() override;
 
@@ -220,6 +221,7 @@ public:
 private:
     InputFlags inflags;
 
+    int forw;
     int dim_size;
 
     miopenTensorDescriptor_t xDesc;
@@ -272,7 +274,7 @@ int T5LayerNormDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
 template <typename Tgpu, typename Tref>
 int T5LayerNormDriver<Tgpu, Tref>::GetandSetData()
 {
-    auto inTensorParam = inflags.GetValueTensorUint64("input");
+    auto inTensorParam = inflags.GetValueTensor("input");
 
     auto in_len = inTensorParam.lengths;
 
@@ -349,6 +351,8 @@ int T5LayerNormDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
     miopenGetT5LayerNormBackwardWorkspaceSize(
         GetHandle(), mode, dyDesc, xDesc, weightDesc, rstdDesc, dxDesc, dwDesc, &ws_sizeInBytes);
+    if(ws_sizeInBytes == static_cast<size_t>(-1))
+        return miopenStatusAllocFailed;
 
     uint32_t ctx = 0;
 

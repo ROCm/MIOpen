@@ -119,6 +119,7 @@ public:
     InputFlags& GetInputFlags() override { return inflags; }
 
     int GetandSetData() override;
+    std::vector<int> GetInputTensorLengthsFromCmdLine();
 
     int AllocateBuffersAndCopy() override;
 
@@ -144,6 +145,7 @@ public:
 private:
     InputFlags inflags;
 
+    int forw;
     int dim_size;
 
     miopenTensorDescriptor_t inputDesc;
@@ -190,7 +192,7 @@ int LayerNormDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
 template <typename Tgpu, typename Tref>
 int LayerNormDriver<Tgpu, Tref>::GetandSetData()
 {
-    auto inTensorParam = inflags.GetValueTensorUint64("input");
+    auto inTensorParam = inflags.GetValueTensor("input");
 
     auto in_len = inTensorParam.lengths;
 

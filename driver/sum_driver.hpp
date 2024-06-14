@@ -127,6 +127,8 @@ public:
 private:
     InputFlags inflags;
 
+    int forw;
+
     miopenTensorDescriptor_t inputDesc;
     miopenTensorDescriptor_t yDesc;
 
@@ -254,6 +256,8 @@ int SumDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     size_t out_sz = GetTensorSize(yDesc);
 
     miopenGetSumWorkspaceSize(GetHandle(), inputDesc, dim, yDesc, &ws_sizeInBytes);
+    if(ws_sizeInBytes == static_cast<size_t>(-1))
+        return miopenStatusAllocFailed;
 
     uint32_t ctx = 0;
 
