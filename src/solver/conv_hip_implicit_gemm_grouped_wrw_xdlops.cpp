@@ -248,7 +248,7 @@ void PerformanceConfigHipImplicitGemmGroupWrwXdlops::InitHeuristicKernelIDs()
         if(valid_kernels[i].find("DeviceGroupedConvBwdWeight_Xdl_CShuffle") != std::string::npos)
         {
             heuristic_indexes.push_back(i);
-            heuristic_kernels.push_back(GetKernelAsTokens(valid_kernels[i]));
+            heuristic_kernels[i] = GetKernelAsTokens(valid_kernels[i]);
         }
     }
 }
