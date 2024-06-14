@@ -441,7 +441,7 @@ public:
 
         try
         {
-            MakeRealTensors(handle);
+            MakeRealTensorsAndFillData(handle);
             MakeVirtualTensorsAndNodes();
 
             PrepareOpGraphAndEngines(handle);
@@ -456,7 +456,7 @@ public:
     }
 
 protected:
-    virtual void MakeRealTensors(miopen::Handle& handle) = 0;
+    virtual void MakeRealTensorsAndFillData(miopen::Handle& handle) = 0;
 
     virtual void MakeVirtualTensorsAndNodes() = 0;
 

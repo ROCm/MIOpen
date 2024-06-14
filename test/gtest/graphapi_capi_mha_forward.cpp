@@ -32,7 +32,7 @@ template <typename T>
 class MhaForwardTest : public MhaCommonTest
 {
 protected:
-    virtual void MakeRealTensors(miopen::Handle& handle) override
+    virtual void MakeRealTensorsAndFillData(miopen::Handle& handle) override
     {
         // We use identifiers from Find 2.0 enum to have sopmething unique for the test purposes
         MakeAndAddRealTensorDescriptor(
