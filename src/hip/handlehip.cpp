@@ -271,10 +271,7 @@ struct HandleImpl
             hhandle_pool.push_back(std::move(h_ptr));
         }
 #else
-        void add_stream(StreamPtr s_ptr)
-        {
-            stream_pool.push_back(s_ptr);
-        }
+        void add_stream(StreamPtr s_ptr) { stream_pool.push_back(s_ptr); }
 #endif
         //  stream_pool used as cache for parallel streams created by MIOpen.
         StreamPtrPool stream_pool;
@@ -376,7 +373,7 @@ void Handle::ReserveExtraStreamsInPool(int cnt) const
     {
         for(; last_stream_id < cnt; last_stream_id++)
         {
-            auto new_stream  = this->impl->create_stream_non_blocking();
+            auto new_stream = this->impl->create_stream_non_blocking();
 #if MIOPEN_USE_ROCBLAS && MIOPEN_USE_HIPBLASLT
             auto new_rhandle = CreateRocblasHandle(new_stream.get());
             auto new_hhandle = CreateHipblasLtHandle();

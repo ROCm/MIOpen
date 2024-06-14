@@ -515,7 +515,7 @@ static void call_miopen_hipblasLt_gemm(const miopen::Handle& handle,
 // very nasty
 static GemmBackend_t enforce_gemm_backend(GemmBackend_t gemm_backend_preferred)
 {
-    GemmBackend_t gemm_backend_env      = GemmBackend_t::nogemmbackend;
+    GemmBackend_t gemm_backend_env = GemmBackend_t::nogemmbackend;
 
     // enforce backend based on env variable
     // I have left the commented lines here to preserve values for the enforce and hint at why are
@@ -526,8 +526,10 @@ static GemmBackend_t enforce_gemm_backend(GemmBackend_t gemm_backend_preferred)
     case 1: gemm_backend_env = GemmBackend_t::rocblas; break;
 #endif
     // case 2: gemm_backend_env = GemmBackend_t::miopengemm; break;
-    case 3: gemm_backend_env = GemmBackend_t::nogemmbackend; break;
-    // case 4: gemm_backend_env = GemmBackend_t::miopentensile; break;
+    case 3:
+        gemm_backend_env = GemmBackend_t::nogemmbackend;
+        break;
+        // case 4: gemm_backend_env = GemmBackend_t::miopentensile; break;
 #if MIOPEN_USE_HIPBLASLT
     case 5: gemm_backend_env = GemmBackend_t::hipblaslt; break;
 #endif
