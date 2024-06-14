@@ -34,9 +34,6 @@
 
 #if MIOPEN_USE_HIPBLASLT
 #include <hipblaslt/hipblaslt.h>
-#include <hipblaslt/hipblaslt-ext.hpp>
-
-#define WORKAROUND_HIPBLASLT_ISSUE_832 1
 #endif
 
 #if MIOPEN_USE_ROCBLAS
@@ -347,78 +344,127 @@ static void miopen_hipblasLt_gemm(const miopen::Handle& handle,
                                   hipDataType hip_type_AB,
                                   Data_t C,
                                   std::size_t c_offset,
-                                  hipDataType hip_type_C)
+                                  hipDataType hip_type_C,
+                                  bool skip_batches)
 {
-    float alpha = gemm_desc.alpha;
-    float beta  = gemm_desc.beta;
-    hipblaslt_ext::GemmInputs inputs;
-#if WORKAROUND_HIPBLASLT_ISSUE_832
-    // Note: Need to const cast here due to hipblaslt_ext::GemmInputs API requirements.
-    // NOLINTBEGIN(cppcoreguidelines-pro-type-const-cast)
-    inputs.a = const_cast<DataTypeAB*>(static_cast<const DataTypeAB*>(A) + a_offset);
-    inputs.b = const_cast<DataTypeAB*>(static_cast<const DataTypeAB*>(B) + b_offset);
-    // NOLINTEND(cppcoreguidelines-pro-type-const-cast)
-#else
-    inputs.a = static_cast<const DataTypeAB*>(A) + a_offset;
-    inputs.b = static_cast<const DataTypeAB*>(B) + b_offset;
-#endif
-    inputs.c     = static_cast<DataTypeC*>(C) + c_offset;
-    inputs.d     = inputs.c;
-    inputs.alpha = &alpha;
-    inputs.beta  = &beta;
+    hipblasLtMatrixLayout_t matA, matB, matC, matD;
+    check_hipblas_status(
+        hipblasLtMatrixLayoutCreate(&matA, hip_type_AB, gemm_desc.m, gemm_desc.k, gemm_desc.lda));
+    check_hipblas_status(
+        hipblasLtMatrixLayoutCreate(&matB, hip_type_AB, gemm_desc.k, gemm_desc.m, gemm_desc.ldb));
+    check_hipblas_status(
+        hipblasLtMatrixLayoutCreate(&matC, hip_type_C, gemm_desc.m, gemm_desc.n, gemm_desc.ldc));
+    check_hipblas_status(
+        hipblasLtMatrixLayoutCreate(&matD, hip_type_C, gemm_desc.m, gemm_desc.n, gemm_desc.ldc));
 
-    // TODO - bharriso - Need to pass down workspace size & pointer.
-    hipblaslt_ext::GemmPreference pref;
-    pref.setMaxWorkspaceBytes(0);
+    if(gemm_desc.batch_count > 1 && !skip_batches)
+    {
+        check_hipblas_status(hipblasLtMatrixLayoutSetAttribute(matA,
+                                                               HIPBLASLT_MATRIX_LAYOUT_BATCH_COUNT,
+                                                               &gemm_desc.batch_count,
+                                                               sizeof(gemm_desc.batch_count)));
+        check_hipblas_status(
+            hipblasLtMatrixLayoutSetAttribute(matA,
+                                              HIPBLASLT_MATRIX_LAYOUT_STRIDED_BATCH_OFFSET,
+                                              &gemm_desc.strideA,
+                                              sizeof(gemm_desc.strideA)));
+        check_hipblas_status(hipblasLtMatrixLayoutSetAttribute(matB,
+                                                               HIPBLASLT_MATRIX_LAYOUT_BATCH_COUNT,
+                                                               &gemm_desc.batch_count,
+                                                               sizeof(gemm_desc.batch_count)));
+        check_hipblas_status(
+            hipblasLtMatrixLayoutSetAttribute(matB,
+                                              HIPBLASLT_MATRIX_LAYOUT_STRIDED_BATCH_OFFSET,
+                                              &gemm_desc.strideB,
+                                              sizeof(gemm_desc.strideB)));
+        check_hipblas_status(hipblasLtMatrixLayoutSetAttribute(matC,
+                                                               HIPBLASLT_MATRIX_LAYOUT_BATCH_COUNT,
+                                                               &gemm_desc.batch_count,
+                                                               sizeof(gemm_desc.batch_count)));
+        check_hipblas_status(
+            hipblasLtMatrixLayoutSetAttribute(matC,
+                                              HIPBLASLT_MATRIX_LAYOUT_STRIDED_BATCH_OFFSET,
+                                              &gemm_desc.strideC,
+                                              sizeof(gemm_desc.strideC)));
+        check_hipblas_status(hipblasLtMatrixLayoutSetAttribute(matD,
+                                                               HIPBLASLT_MATRIX_LAYOUT_BATCH_COUNT,
+                                                               &gemm_desc.batch_count,
+                                                               sizeof(gemm_desc.batch_count)));
+        check_hipblas_status(
+            hipblasLtMatrixLayoutSetAttribute(matD,
+                                              HIPBLASLT_MATRIX_LAYOUT_STRIDED_BATCH_OFFSET,
+                                              &gemm_desc.strideC,
+                                              sizeof(gemm_desc.strideC)));
+    }
 
-    hipblaslt_ext::GemmEpilogue epilogue;
-    hipblaslt_ext::GemmTuning tuning;
+    hipblasLtMatmulDesc_t matmul;
+    check_hipblas_status(hipblasLtMatmulDescCreate(&matmul, HIPBLAS_COMPUTE_32F, HIP_R_32F));
 
     hipblasOperation_t opTypeA = gemm_desc.transA ? HIPBLAS_OP_T : HIPBLAS_OP_N;
     hipblasOperation_t opTypeB = gemm_desc.transB ? HIPBLAS_OP_T : HIPBLAS_OP_N;
+    check_hipblas_status(hipblasLtMatmulDescSetAttribute(
+        matmul, HIPBLASLT_MATMUL_DESC_TRANSA, &opTypeA, sizeof(opTypeA)));
+    check_hipblas_status(hipblasLtMatmulDescSetAttribute(
+        matmul, HIPBLASLT_MATMUL_DESC_TRANSB, &opTypeB, sizeof(opTypeB)));
 
-    hipblaslt_ext::GemmProblemType problemType;
-    problemType.op_a         = opTypeA;
-    problemType.op_b         = opTypeB;
-    problemType.type_a       = hip_type_AB;
-    problemType.type_b       = hip_type_AB;
-    problemType.type_c       = hip_type_C;
-    problemType.type_d       = hip_type_C;
-    problemType.type_compute = HIPBLAS_COMPUTE_32F;
+    hipblasLtEpilogue_t epilogue = HIPBLASLT_EPILOGUE_DEFAULT;
+    check_hipblas_status(hipblasLtMatmulDescSetAttribute(
+        matmul, HIPBLASLT_MATMUL_DESC_EPILOGUE, &epilogue, sizeof(epilogue)));
 
-    hipblaslt_ext::Gemm gemm(handle.HipblasLtHandle().get(),
-                             opTypeA,
-                             opTypeB,
-                             hip_type_AB,
-                             hip_type_AB,
-                             hip_type_C,
-                             hip_type_C,
-                             HIPBLAS_COMPUTE_32F);
+    // TODO bharriso pass workspace size down, and add to workspace calculation.
+    int64_t max_workspace_size = 0;
+    hipblasLtMatmulPreference_t pref;
+    check_hipblas_status(hipblasLtMatmulPreferenceCreate(&pref));
+    check_hipblas_status(
+        hipblasLtMatmulPreferenceSetAttribute(pref,
+                                              HIPBLASLT_MATMUL_PREF_MAX_WORKSPACE_BYTES,
+                                              &max_workspace_size,
+                                              sizeof(max_workspace_size)));
 
-    check_hipblas_status(gemm.setProblem(gemm_desc.m,
-                                         gemm_desc.n,
-                                         gemm_desc.k,
-                                         gemm_desc.batch_count,
-                                         gemm_desc.lda,
-                                         gemm_desc.ldb,
-                                         gemm_desc.ldc,
-                                         gemm_desc.ldc,
-                                         gemm_desc.strideA,
-                                         gemm_desc.strideB,
-                                         gemm_desc.strideC,
-                                         gemm_desc.strideC,
-                                         epilogue,
-                                         inputs,
-                                         problemType));
+    const int requestSolutions = 1;
+    hipblasLtMatmulHeuristicResult_t heuristicResult[requestSolutions];
+    int returnedAlgoCount = 0;
+    check_hipblas_status(hipblasLtMatmulAlgoGetHeuristic(handle.HipblasLtHandle().get(),
+                                                         matmul,
+                                                         matA,
+                                                         matB,
+                                                         matC,
+                                                         matD,
+                                                         pref,
+                                                         requestSolutions,
+                                                         heuristicResult,
+                                                         &returnedAlgoCount));
 
-    std::vector<hipblasLtMatmulHeuristicResult_t> heuristic;
-    check_hipblas_status(gemm.algoGetHeuristic(1, pref, heuristic));
+    if(returnedAlgoCount == 0)
+    {
+        MIOPEN_THROW(miopenStatusInternalError, "no solution found for hipBLASLt matmul");
+    }
 
-    check_hipblas_status(gemm.initialize(heuristic[0].algo, tuning, nullptr, handle.GetStream()));
+    float alpha       = gemm_desc.alpha;
+    float beta        = gemm_desc.beta;
+    const void* aData = static_cast<const DataTypeAB*>(A) + a_offset;
+    const void* bData = static_cast<const DataTypeAB*>(B) + b_offset;
+    const void* cData = static_cast<const DataTypeC*>(C) + c_offset;
+    void* dData       = static_cast<DataTypeC*>(C) + c_offset;
 
     {
         HipEventProfiler profiler(handle);
-        check_hipblas_status(gemm.run(handle.GetStream()));
+        check_hipblas_status(hipblasLtMatmul(handle.HipblasLtHandle().get(),
+                                             matmul,
+                                             &alpha,
+                                             aData,
+                                             matA,
+                                             bData,
+                                             matB,
+                                             &beta,
+                                             cData,
+                                             matC,
+                                             dData,
+                                             matD,
+                                             &heuristicResult[0].algo,
+                                             nullptr,
+                                             max_workspace_size,
+                                             handle.GetStream()));
     }
 }
 
@@ -429,7 +475,8 @@ static void call_miopen_hipblasLt_gemm(const miopen::Handle& handle,
                                        ConstData_t B,
                                        std::size_t b_offset,
                                        Data_t C,
-                                       std::size_t c_offset)
+                                       std::size_t c_offset,
+                                       bool skip_batches)
 {
     switch(gemm_desc.dataType)
     {
@@ -442,18 +489,45 @@ static void call_miopen_hipblasLt_gemm(const miopen::Handle& handle,
     }
     break;
     case miopenHalf: {
-        miopen_hipblasLt_gemm<hipblasLtHalf, hipblasLtHalf>(
-            handle, gemm_desc, A, a_offset, B, b_offset, HIP_R_16F, C, c_offset, HIP_R_16F);
+        miopen_hipblasLt_gemm<hipblasLtHalf, hipblasLtHalf>(handle,
+                                                            gemm_desc,
+                                                            A,
+                                                            a_offset,
+                                                            B,
+                                                            b_offset,
+                                                            HIP_R_16F,
+                                                            C,
+                                                            c_offset,
+                                                            HIP_R_16F,
+                                                            skip_batches);
     }
     break;
     case miopenBFloat16: {
-        miopen_hipblasLt_gemm<hipblasLtBfloat16, hipblasLtBfloat16>(
-            handle, gemm_desc, A, a_offset, B, b_offset, HIP_R_16BF, C, c_offset, HIP_R_16BF);
+        miopen_hipblasLt_gemm<hipblasLtBfloat16, hipblasLtBfloat16>(handle,
+                                                                    gemm_desc,
+                                                                    A,
+                                                                    a_offset,
+                                                                    B,
+                                                                    b_offset,
+                                                                    HIP_R_16BF,
+                                                                    C,
+                                                                    c_offset,
+                                                                    HIP_R_16BF,
+                                                                    skip_batches);
     }
     break;
     case miopenFloat: {
-        miopen_hipblasLt_gemm<hipblasLtFloat, hipblasLtFloat>(
-            handle, gemm_desc, A, a_offset, B, b_offset, HIP_R_32F, C, c_offset, HIP_R_32F);
+        miopen_hipblasLt_gemm<hipblasLtFloat, hipblasLtFloat>(handle,
+                                                              gemm_desc,
+                                                              A,
+                                                              a_offset,
+                                                              B,
+                                                              b_offset,
+                                                              HIP_R_32F,
+                                                              C,
+                                                              c_offset,
+                                                              HIP_R_32F,
+                                                              skip_batches);
     }
     break;
     case miopenFloat8: {
@@ -469,7 +543,8 @@ static void call_miopen_hipblasLt_gemm(const miopen::Handle& handle,
                                                                         HIP_R_8F_E4M3_FNUZ,
                                                                         C,
                                                                         c_offset,
-                                                                        HIP_R_8F_E4M3_FNUZ);
+                                                                        HIP_R_8F_E4M3_FNUZ,
+                                                                        skip_batches);
         }
         else
         {
@@ -491,7 +566,8 @@ static void call_miopen_hipblasLt_gemm(const miopen::Handle& handle,
                                                                           HIP_R_8F_E5M2_FNUZ,
                                                                           C,
                                                                           c_offset,
-                                                                          HIP_R_8F_E5M2_FNUZ);
+                                                                          HIP_R_8F_E5M2_FNUZ,
+                                                                          skip_batches);
         }
         else
         {
@@ -796,7 +872,7 @@ miopenStatus_t CallGemm(const Handle& handle,
     }
     case GemmBackend_t::hipblaslt: {
 #if MIOPEN_USE_HIPBLASLT
-        call_miopen_hipblasLt_gemm(handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset);
+        call_miopen_hipblasLt_gemm(handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset, true);
         return miopenStatusSuccess;
 #else
         return miopenStatusNotImplemented;
@@ -1083,7 +1159,7 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
     }
     case GemmBackend_t::hipblaslt: {
 #if MIOPEN_USE_HIPBLASLT
-        call_miopen_hipblasLt_gemm(handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset);
+        call_miopen_hipblasLt_gemm(handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset, false);
         return miopenStatusSuccess;
 #else
         return miopenStatusNotImplemented;
@@ -1368,7 +1444,9 @@ miopenStatus_t CallGemmStridedBatchedSequential(const Handle& handle,
     }
     case GemmBackend_t::hipblaslt: {
 #if MIOPEN_USE_HIPBLASLT
-        call_miopen_hipblasLt_gemm(handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset);
+        // todo bharriso - find out if we need to support iterative variant, or if using regular
+        // batching is alright.
+        call_miopen_hipblasLt_gemm(handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset, false);
         return miopenStatusSuccess;
 #else
         return miopenStatusNotImplemented;
