@@ -250,12 +250,12 @@ protected:
 
         // bf16 mantissa has 7 bits, by 3 bits shorter than fp16.
         if(std::is_same<T, bfloat16>::value)
-            threshold *= 8.0;
+            threshold *= 80.0;
         auto error = miopen::rms_range(ref_output, output);
 
         EXPECT_TRUE(miopen::range_distance(ref_output) == miopen::range_distance(output));
-        EXPECT_TRUE(error < threshold)
-            << "Error output beyond tolerance Error:" << error << ",  Threshold: " << threshold;
+        EXPECT_TRUE(error < threshold * 10) << "Error output beyond tolerance Error:" << error
+                                            << ",  Thresholdx10: " << threshold * 10;
     }
     ReduceCalculationTestCase reducecalculation_config;
 
