@@ -35,6 +35,8 @@
 #if MIOPEN_USE_HIPBLASLT
 #include <hipblaslt/hipblaslt.h>
 #include <hipblaslt/hipblaslt-ext.hpp>
+
+#define WORKAROUND_HIPBLASLT_ISSUE_832 1
 #endif
 
 #if MIOPEN_USE_ROCBLAS
@@ -350,13 +352,18 @@ static void miopen_hipblasLt_gemm(const miopen::Handle& handle,
     float alpha = gemm_desc.alpha;
     float beta  = gemm_desc.beta;
     hipblaslt_ext::GemmInputs inputs;
+#if WORKAROUND_HIPBLASLT_ISSUE_832
     // Note: Need to const cast here due to hipblaslt_ext::GemmInputs API requirements.
     // NOLINTBEGIN(cppcoreguidelines-pro-type-const-cast)
     inputs.a = const_cast<DataTypeAB*>(static_cast<const DataTypeAB*>(A) + a_offset);
     inputs.b = const_cast<DataTypeAB*>(static_cast<const DataTypeAB*>(B) + b_offset);
     // NOLINTEND(cppcoreguidelines-pro-type-const-cast)
+#else
+    inputs.a = static_cast<const DataTypeAB*>(A) + a_offset;
+    inputs.b = static_cast<const DataTypeAB*>(B) + b_offset;
+#endif
     inputs.c     = static_cast<DataTypeC*>(C) + c_offset;
-    inputs.d     = static_cast<DataTypeC*>(C) + c_offset;
+    inputs.d     = inputs.c;
     inputs.alpha = &alpha;
     inputs.beta  = &beta;
 
@@ -424,18 +431,14 @@ static void call_miopen_hipblasLt_gemm(const miopen::Handle& handle,
                                        Data_t C,
                                        std::size_t c_offset)
 {
-    MIOPEN_LOG_FUNCTION("hipBLASLt");
-
     switch(gemm_desc.dataType)
     {
     case miopenInt8: {
-        MIOPEN_THROW(miopenStatusBadParm,
-                     "miopenInt8 type not supported for hipBlasLt GemmBackend");
+        MIOPEN_THROW(miopenStatusInternalError, "miopenInt8 is not supported for hipBLASLt");
     }
     break;
     case miopenInt32: {
-        MIOPEN_THROW(miopenStatusBadParm,
-                     "miopenInt32 type not supported for hipBlasLt GemmBackend");
+        MIOPEN_THROW(miopenStatusInternalError, "miopenInt32 is not supported for hipBLASLt");
     }
     break;
     case miopenHalf: {
@@ -470,8 +473,8 @@ static void call_miopen_hipblasLt_gemm(const miopen::Handle& handle,
         }
         else
         {
-            MIOPEN_THROW(miopenStatusBadParm,
-                         "miopenFloat8 type only supported for hipBlasLt GemmBackend on gfx94x");
+            MIOPEN_THROW(miopenStatusInternalError,
+                         "miopenFloat8 is only supported for hipBlasLt on gfx94x");
         }
     }
     break;
@@ -492,19 +495,17 @@ static void call_miopen_hipblasLt_gemm(const miopen::Handle& handle,
         }
         else
         {
-            MIOPEN_THROW(miopenStatusBadParm,
-                         "miopenFloat8 type only supported for hipBlasLt GemmBackend on gfx94x");
+            MIOPEN_THROW(miopenStatusInternalError,
+                         "miopenFloat8 is only supported for hipBlasLt on gfx94x");
         }
     }
     break;
     case miopenDouble: {
-        MIOPEN_THROW(miopenStatusBadParm,
-                     "miopenDouble data type not supported for hipBlasLt GemmBackend");
+        MIOPEN_THROW(miopenStatusInternalError, "miopenDouble is not supported for hipBlasLt");
     }
     break;
     case miopenInt64: {
-        MIOPEN_THROW(miopenStatusBadParm,
-                     "miopenInt64 data type not supported for hipBlasLt GemmBackend");
+        MIOPEN_THROW(miopenStatusInternalError, "miopenInt64 is not supported for hipBlasLt");
     }
     break;
     }
