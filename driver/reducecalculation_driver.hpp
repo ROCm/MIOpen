@@ -210,7 +210,7 @@ int ReduceCalculationDriver<Tgpu, Tref>::AddCmdLineArgs()
     inflags.AddInputFlag(
         "ReduceCalculationOp",
         'O',
-        "0",
+        "2",
         "Reduce Calculation Operation Type (check the miopenReduceCalculationOp_t in "
         "miopen.h) (Default=2 to add the values of the reduced elements)",
         "int");
