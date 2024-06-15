@@ -382,7 +382,7 @@ protected:
         auto error_error = miopen::rms_range(ref_error, error);
         EXPECT_TRUE(miopen::range_distance(ref_error) == miopen::range_distance(error));
         EXPECT_TRUE(std::abs(static_cast<float>(error_error)) == 0.0f) << "Error dx is not
-        equal";
+            equal ";
     }
     GetitemTestCase getitem_config;
 
