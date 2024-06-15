@@ -610,7 +610,7 @@ static GemmBackend_t enforce_gemm_backend(GemmBackend_t gemm_backend_preferred)
 #if MIOPEN_USE_HIPBLASLT
     case 5: gemm_backend_env = GemmBackend_t::hipblaslt; break;
 #endif
-    default: gemm_backend_env = GemmBackend_t::nogemmbackend;
+    default: gemm_backend_env = gemm_backend_preferred;
     }
 
     return gemm_backend_env;
