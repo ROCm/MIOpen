@@ -208,7 +208,7 @@ extern "C" miopenStatus_t miopenGetConvolutionFindMode(const miopenConvolutionDe
 }
 
 MIOPEN_EXPORT extern "C" miopenStatus_t
-miopenConvolutionCKBackwardWeightsGetWorkSpaceSize(const miopenAlphaBetaCase_t alpha_beta_case,
+miopenConvolutionABBackwardWeightsGetWorkSpaceSize(const miopenAlphaBetaCase_t alpha_beta_case,
                                                    const miopenTensorDescriptor_t inputTensorDesc,
                                                    const miopenTensorDescriptor_t outputTensorDesc,
                                                    const miopenConvolutionDescriptor_t convDesc,
@@ -237,8 +237,7 @@ miopenConvolutionCKBackwardWeightsGetWorkSpaceSize(const miopenAlphaBetaCase_t a
             size_t K_per_group = K / G;
 
             return (alpha_beta_case == BILINEAR || alpha_beta_case == SCALE) ||
-                   (data_type == miopenHalf &&
-                    ((C_per_group == 1 || K_per_group == 1) || (is_odd(C) || is_odd(K))));
+                   (data_type == miopenHalf && (is_odd(C_per_group) || is_odd(K_per_group)));
         };
 
         size_t output_tensor_size = miopen::deref(outputTensorDesc).GetElementSize();

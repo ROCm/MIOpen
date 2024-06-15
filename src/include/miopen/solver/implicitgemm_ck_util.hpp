@@ -550,7 +550,7 @@ inline size_t GetCKAlphaBetaWorkspace(const miopen::conv::ProblemDescription& pr
     TensorDescriptor output         = problem.GetOut();
     ConvolutionDescriptor conv_desc = problem.GetConv();
 
-    miopenConvolutionCKBackwardWeightsGetWorkSpaceSize(
+    miopenConvolutionABBackwardWeightsGetWorkSpaceSize(
         problem.GetAlphaBetaCase(), &input, &output, &conv_desc, &buff_size);
     return buff_size;
 }
@@ -563,8 +563,7 @@ inline bool CKWrwRequireWorkspace(
     size_t K_per_group = K / G;
 
     return (alpha_beta_case == BILINEAR || alpha_beta_case == SCALE) ||
-           (data_type == miopenHalf &&
-            ((C_per_group == 1 || K_per_group == 1) || (is_odd(C) || is_odd(K))));
+           (data_type == miopenHalf && (is_odd(C_per_group) || is_odd(K_per_group)));
 }
 
 /// \todo move to a cpp file
