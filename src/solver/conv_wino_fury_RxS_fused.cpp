@@ -186,8 +186,8 @@ private:
 } // namespace
 
 template <uint32_t Winodata, uint32_t Winofilter>
-bool ConvWinoFuryRxSFused<Winodata, Winofilter>::IsApplicable(const FusionContext& ctx,
-                                                              const FusionDescription& problem) const
+bool ConvWinoFuryRxSFused<Winodata, Winofilter>::IsApplicable(
+    const FusionContext& ctx, const FusionDescription& problem) const
 {
     const auto& desc = *problem.fusion_plan_desc;
 
@@ -200,11 +200,11 @@ bool ConvWinoFuryRxSFused<Winodata, Winofilter>::IsApplicable(const FusionContex
         return false;
     if(desc.op_map[0]->kind() != miopenFusionOpConvForward)
         return false;
-    
+
     // TODO add bias & activation
-    
+
     const auto conv_problem = problem.GetConvProblem(0, miopen::conv::Direction::Forward);
-    const auto base     = conv::ConvWinoFuryRxS<Winodata, Winofilter>{};
+    const auto base         = conv::ConvWinoFuryRxS<Winodata, Winofilter>{};
     return base.IsApplicable(ctx, conv_problem);
 }
 
