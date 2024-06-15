@@ -57,6 +57,7 @@ struct CKBWDWeightBufferDescriptor
     }
 };
 
+
 template <typename ConvPtrsType>
 typename ConvPtrsType::iterator FindConvPtrByID(ConvPtrsType& conv_ptrs,
                                                 const std::string& kernel_id)
@@ -92,8 +93,11 @@ template <typename DeviceOpType,
 bool IsCKArgsSupported(const ProblemDescriptionType& problem, const std::string& kernel_id)
 {
     auto conv_ptrs = DeviceOpType::GetInstances();
+    
     auto ptr_iter  = FindConvPtrByID(conv_ptrs, kernel_id);
-
+    //if(problem.IsDirectionBackwardWrW()){
+    //    std::cout<<"I am here!"<<std::endl;
+    //}
     return (ptr_iter != conv_ptrs.end()) && CKArgsType{problem}.IsSupportedBy(*ptr_iter);
 }
 

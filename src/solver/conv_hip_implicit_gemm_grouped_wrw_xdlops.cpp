@@ -211,14 +211,15 @@ void PerformanceConfigHipImplicitGemmGroupWrwXdlops::Init(const ProblemDescripti
 {
     valid_kernels = FillValidKernelsIDs<DeviceOpGWrwPtrs<DataType>, CKArgs>(problem);
     index         = 0;
-    kernel_id     = valid_kernels[index];
+    split_k       = 1;
+    kernel_id     = valid_kernels[index] + "_" + std::to_string(split_k);
 }
 
 template <typename DataType>
 bool PerformanceConfigHipImplicitGemmGroupWrwXdlops::CheckIsSupportCKArgs(
     const ProblemDescription& problem) const
 {
-    return IsCKArgsSupported<DeviceOpGWrwPtrs<DataType>, CKArgs>(problem, kernel_id);
+    return IsCKArgsSupported<DeviceOpGWrwPtrs<DataType>, CKArgs>(problem, kernel_id.substr(0,kernel_id.find_last_of("_")));
 }
 
 template <typename DataType>
@@ -315,7 +316,7 @@ bool PerformanceConfigHipImplicitGemmGroupWrwXdlops::RunParameterPredictionModel
            }))
     {
         index     = heuristic_indexes[0];
-        kernel_id = valid_kernels[index];
+        kernel_id = valid_kernels[index] + "_" + std::to_string(split_k);
         MIOPEN_LOG_I("Params set by AI: " << ToString());
         return true;
     }
@@ -341,6 +342,7 @@ void PerformanceConfigHipImplicitGemmGroupWrwXdlops::HeuristicInit(
     [[maybe_unused]] const ProblemDescription& problem)
 {
     // these seem redundant
+    split_k   = 1;
     index     = 0;
     kernel_id = "";
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
@@ -374,6 +376,30 @@ void PerformanceConfigHipImplicitGemmGroupWrwXdlops::HeuristicInit(
 #endif
 }
 
+template <int L, int H>
+bool IsTwoPower(const int v)
+{
+    static_assert(L <= H, "L <= H");
+    if(((v - 1) & v) != 0)
+        return false;
+    return L <= v && v <= H;
+}
+
+template <int L, int H>
+bool NextTwoPower(int& v)
+{
+    static_assert((((L - 1) & L) == 0), "L is not power of 2");
+    static_assert((((H - 1) & H) == 0), "H is not power of 2");
+    assert((IsTwoPower<L, H>(v)));
+    if(v == H)
+    {
+        v = L;
+        return true;
+    }
+    v *= 2;
+    return false;
+}
+
 bool PerformanceConfigHipImplicitGemmGroupWrwXdlops::SetNextValue(const ProblemDescription& problem)
 {
 #if MIOPEN_USE_COMPOSABLEKERNEL
@@ -394,19 +420,34 @@ bool PerformanceConfigHipImplicitGemmGroupWrwXdlops::SetNextValue(const ProblemD
         assert(!valid_kernels.empty());
         return true;
     }
-    if((index + 1) < valid_kernels.size())
-    {
-        ++index;
-        kernel_id = valid_kernels[index];
-        return true;
-    }
-    else
-#endif
+    do{
+        bool  flag = NextTwoPower<1,128>(split_k);
+        kernel_id = valid_kernels[index] + "_" + std::to_string(split_k);
+        std::cout<<"~~~~~~~flag~~~~~: "<<flag<<std::endl;
+        if(!flag){
+                    //kernel_id = valid_kernels[index] + "_" + std::to_string(split_k);
+            std::cout<<"breaking now!!!!!!!!"<<std::endl;
+                    break;
+        } 
+//kernel_id = valid_kernels[index] + "_" + std::to_string(split_k);
+        if((index + 1) < valid_kernels.size())
+        {
+            ++index;
+            //kernel_id = valid_kernels[index] + "_" + std::to_string(split_k);
+            std::cout<<"~~~~kernel_id~~~: "<<kernel_id<<std::endl;
+            break;
+        }
+        std::cout<<"return false in set next value"<<std::endl;
+        // All split_k and index values were iterated
         return false;
+    } while(false);
+    std::cout<<"return true in set next value"<<std::endl;
+#endif
+    return true;
 }
 
 bool PerformanceConfigHipImplicitGemmGroupWrwXdlops::IsValidValue() const
-{
+{   
     return index < valid_kernels.size();
 }
 
@@ -521,14 +562,14 @@ ConvSolution ConvHipImplicitGemmGroupWrwXdlops::GetSolution(
                                              DeviceOpGWrwPtrs<T>,
                                              CKArgs,
                                              miopen::conv::WrWInvokeParams>(
-                ctx, problem, config.kernel_id);
+                ctx, problem, config.kernel_id.substr(0,config.kernel_id.find_last_of("_")));
         },
         [&](auto data_type_val) {
             using T = decltype(data_type_val);
             return InitInvokerFactoryNHWC<DeviceOpGWrwPtrs<T>,
                                           CKArgs,
                                           miopen::conv::WrWInvokeParams>(
-                ctx, problem, config.kernel_id);
+                ctx, problem, config.kernel_id.substr(0,config.kernel_id.find_last_of("_")));
         });
 
 #else
