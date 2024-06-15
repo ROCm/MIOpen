@@ -138,7 +138,8 @@ struct CKArgs
                     Data_t dw,
                     ConstData_t dy,
                     float alpha,
-                    float beta) const
+                    float beta,
+                    int split_k) const
     {
         (void)alpha;
         (void)beta;
@@ -165,15 +166,16 @@ struct CKArgs
     auto MakeArgPtr(const ConvPtr& conv_ptr,
                     const ConvWrwTensors& tensors,
                     float alpha,
-                    float beta) const
+                    float beta,
+                    int split_k) const
     {
-        return MakeArgPtr(conv_ptr, tensors.x, tensors.dw, tensors.dy, alpha, beta);
+        return MakeArgPtr(conv_ptr, tensors.x, tensors.dw, tensors.dy, alpha, beta, split_k);
     }
 
     template <typename ConvPtr>
-    bool IsSupportedBy(const ConvPtr& conv_ptr) const
+    bool IsSupportedBy(const ConvPtr& conv_ptr, int split_k) const
     {
-        auto arg_ptr = MakeArgPtr(conv_ptr, nullptr, nullptr, nullptr, 1.0f, 0.0f);
+        auto arg_ptr = MakeArgPtr(conv_ptr, nullptr, nullptr, nullptr, 1.0f, 0.0f, split_k);
         // Creat dummy workspace to pass the ck IsSupportedArgument check.
         int dummy_var = 1;
         conv_ptr->SetWorkSpacePointer(arg_ptr.get(), &dummy_var);
@@ -192,7 +194,7 @@ struct CKArgs
     int Wo;
     int Y;
     int X;
-    ck::index_t split_k = 1;
+    //ck::index_t split_k = 1;
     std::array<ck::index_t, 5> input;
     std::array<ck::index_t, 5> in_strides;
     std::array<ck::index_t, 5> output;
@@ -400,6 +402,26 @@ bool NextTwoPower(int& v)
     return false;
 }
 
+
+bool IsLinear(int L, int H, const int v)
+{
+    assert(L <= H);
+    return L <= v && v <= H;
+}
+
+bool NextLinear(int L, int H, int& v)
+{
+    assert((IsLinear(L, H, v)));
+    if(H == v)
+    {
+        v = L;
+        return true;
+    }
+    ++v;
+    return false;
+}
+
+
 bool PerformanceConfigHipImplicitGemmGroupWrwXdlops::SetNextValue(const ProblemDescription& problem)
 {
 #if MIOPEN_USE_COMPOSABLEKERNEL
@@ -421,26 +443,37 @@ bool PerformanceConfigHipImplicitGemmGroupWrwXdlops::SetNextValue(const ProblemD
         return true;
     }
     do{
+        //if(split_k != 1){
+        //    kernel_id = valid_kernels[index] + "_" + std::to_string(split_k);
+        //    std::cout<<"~~~~kernel_id~~~: "<<kernel_id<<std::endl;
+        //}
         bool  flag = NextTwoPower<1,128>(split_k);
-        kernel_id = valid_kernels[index] + "_" + std::to_string(split_k);
         std::cout<<"~~~~~~~flag~~~~~: "<<flag<<std::endl;
         if(!flag){
-                    //kernel_id = valid_kernels[index] + "_" + std::to_string(split_k);
+            kernel_id = valid_kernels[index] + "_" + std::to_string(split_k);
+            std::cout<<"~~~~kernel_id~~~: "<<kernel_id<<std::endl;
             std::cout<<"breaking now!!!!!!!!"<<std::endl;
                     break;
-        } 
+        }
+
+        if(!NextLinear(0, valid_kernels.size()-1, index)){
+            kernel_id = valid_kernels[index] + "_" + std::to_string(split_k);
+            std::cout<<"~~~~kernel_id~~~: "<<kernel_id<<std::endl;
+            break;            
+        }
 //kernel_id = valid_kernels[index] + "_" + std::to_string(split_k);
-        if((index + 1) < valid_kernels.size())
+        /*if((index + 1) < valid_kernels.size())
         {
             ++index;
-            //kernel_id = valid_kernels[index] + "_" + std::to_string(split_k);
+            kernel_id = valid_kernels[index] + "_" + std::to_string(split_k);
             std::cout<<"~~~~kernel_id~~~: "<<kernel_id<<std::endl;
             break;
-        }
+        }*/
         std::cout<<"return false in set next value"<<std::endl;
         // All split_k and index values were iterated
         return false;
     } while(false);
+    std::cout<<"valid_kernels.size(): "<<valid_kernels.size()<<std::endl;
     std::cout<<"return true in set next value"<<std::endl;
 #endif
     return true;
@@ -562,14 +595,14 @@ ConvSolution ConvHipImplicitGemmGroupWrwXdlops::GetSolution(
                                              DeviceOpGWrwPtrs<T>,
                                              CKArgs,
                                              miopen::conv::WrWInvokeParams>(
-                ctx, problem, config.kernel_id.substr(0,config.kernel_id.find_last_of("_")));
+                ctx, problem, config.kernel_id);
         },
         [&](auto data_type_val) {
             using T = decltype(data_type_val);
             return InitInvokerFactoryNHWC<DeviceOpGWrwPtrs<T>,
                                           CKArgs,
                                           miopen::conv::WrWInvokeParams>(
-                ctx, problem, config.kernel_id.substr(0,config.kernel_id.find_last_of("_")));
+                ctx, problem, config.kernel_id);
         });
 
 #else

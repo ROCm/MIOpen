@@ -197,7 +197,8 @@ struct CKArgs
                     Data_t dw,
                     ConstData_t dy,
                     float alpha,
-                    float beta) const
+                    float beta,
+                    int split_k) const
     {
         using DeviceP = std::remove_pointer_t<decltype(conv_ptr.get())>;
         if constexpr(std::is_same_v<DeviceP, DeviceOpGBwdWeightBilinear<DataType>>)
@@ -300,15 +301,16 @@ struct CKArgs
     auto MakeArgPtr(const ConvPtr& conv_ptr,
                     const ConvWrwTensors& tensors,
                     float alpha,
-                    float beta) const
+                    float beta,
+                    int split_k) const
     {
-        return MakeArgPtr(conv_ptr, tensors.x, tensors.dw, tensors.dy, alpha, beta);
+        return MakeArgPtr(conv_ptr, tensors.x, tensors.dw, tensors.dy, alpha, beta, split_k);
     }
 
     template <typename ConvPtr>
-    bool IsSupportedBy(const ConvPtr& conv_ptr) const
+    bool IsSupportedBy(const ConvPtr& conv_ptr, int split_k) const
     {
-        auto arg_ptr = MakeArgPtr(conv_ptr, nullptr, nullptr, nullptr, 1.0f, 0.0f);
+        auto arg_ptr = MakeArgPtr(conv_ptr, nullptr, nullptr, nullptr, 1.0f, 0.0f, split_k);
         // Creat dummy workspace to pass the ck IsSupportedArgument check.
         int dummy_var = 1;
         conv_ptr->SetWorkSpacePointer(arg_ptr.get(), &dummy_var);

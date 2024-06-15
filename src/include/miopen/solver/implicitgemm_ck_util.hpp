@@ -615,8 +615,10 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
     {
         _ck_buff_des.emplace(GetCKAlphaBetaWorkspace(problem), 0);
     }
-
-    auto ptr_iter = FindConvPtrByID(conv_ptrs, kernel_id);
+    auto find = kernel_id.find_last_of("_");
+    auto& ck_string = kernel_id.substr(0, find);
+    int split_k = std::to_int(kernel_id.substr(find+1));
+    auto ptr_iter = FindConvPtrByID(conv_ptrs, ck_string);
     if(ptr_iter == conv_ptrs.end())
     {
         MIOPEN_LOG_E("PerformanceConfig kernel '" + kernel_id + "' does not exist.");
@@ -691,7 +693,27 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
             });
 
             auto invoker_ptr  = sh_conv_ptr->MakeInvokerPointer();
+            if constexpr(std::is_same_v<CastType, miopen::conv::WrWInvokeParams>)
+            {
             auto argument_ptr = ck_args.MakeArgPtr(sh_conv_ptr,
+                                                   tr_ptrs[0]->GetBufferPtr(),
+                                                   tr_ptrs[1]->GetBufferPtr(),
+                                                   tr_ptrs[2]->GetBufferPtr(),
+                                                   data_ctx.alpha.GetAsFloat(),
+                                                   data_ctx.beta.GetAsFloat(),
+                                                   split_k);
+
+            if(ck_buff_des.has_value() && ck_buff_des->ck_size)
+            {
+                auto buf_handle =
+                    handle.CreateSubBuffer(data_ctx.workSpace, ck_buff_des->ck_offset, 0);
+                assert(buf_handle.get());
+                sh_conv_ptr->SetWorkSpacePointer(argument_ptr.get(), buf_handle.get());
+            }
+        
+            invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), false});
+            } else {
+                           auto argument_ptr = ck_args.MakeArgPtr(sh_conv_ptr,
                                                    tr_ptrs[0]->GetBufferPtr(),
                                                    tr_ptrs[1]->GetBufferPtr(),
                                                    tr_ptrs[2]->GetBufferPtr(),
@@ -705,7 +727,9 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
                 assert(buf_handle.get());
                 sh_conv_ptr->SetWorkSpacePointer(argument_ptr.get(), buf_handle.get());
             }
-            invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), false});
+        
+            invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), false}); 
+            }
             output_tr_inst.ConvertTo(handle, kernels, conv_tensors);
         };
     };
@@ -754,10 +778,13 @@ ConvSolution InitInvokerFactoryNHWC(const ExecutionContext&,
                        const Handle& handle, const AnyInvokeParams& primitive_parameters) {
                 (void)spatial_dim; // -warn
                 const auto& data_ctx = primitive_parameters.CastTo<CastType>();
+                // if constexptr
+                // if constexpr(std::is_same_v<DeviceP, DeviceOpGBwdWeightBilinear<DataType>>)
                 auto argument_ptr    = ck_args.MakeArgPtr(sh_conv_ptr,
                                                        data_ctx.tensors,
                                                        data_ctx.alpha.GetAsFloat(),
-                                                       data_ctx.beta.GetAsFloat());
+                                                       data_ctx.beta.GetAsFloat(),
+                                                       1);
                 auto invoker_ptr     = sh_conv_ptr->MakeInvokerPointer();
                 HipEventProfiler pfr(handle);
 
