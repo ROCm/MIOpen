@@ -30,6 +30,8 @@
 #include <ostream>
 #include <stdint.h>
 
+#include <miopen/miopen.h>
+
 namespace miopen {
 
 namespace conv {
@@ -128,8 +130,6 @@ struct WinoShaderArgsV2
     uint32_t o_G_stride; // stride in number of elements of the G dimension of the output buffer
 
     // Fused activation parameters
-    float alpha;                                  // activation parameter alpha
-    float beta;                                   // activation parameter beta
     WinoShaderActivationModeV2_t activation_mode; // activation mode
 
     // Other shader parameters
@@ -140,7 +140,7 @@ struct WinoShaderArgsV2
 
     bool SetConvParams(const conv::ProblemDescription& problem);
     void SetStrides(const conv::ProblemDescription& problem);
-    void SetActivParams(WinoShaderActivationModeV2_t mode, float alpha, float beta) noexcept;
+    void SetActivParams(miopenActivationMode_t mode);
     void SetShaderParams(uint32_t n_groups,
                          WinoShaderFlagsV2 flags,
                          uint8_t sync_limit,

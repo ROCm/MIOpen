@@ -41,6 +41,12 @@ InvokerFactory MakeGcnAsmWinoV2InvokerFactory(const WinoShaderArgsV2& args,
 {
     const bool is_backWrW  = (direction == conv::Direction::BackwardWeights);
     const bool coop_launch = (args.sync_period != 0);
+    const bool do_bias = static_cast<uint64_t>(args.flags64 & WinoShaderFlagsV2::F_BIAS) ? true : false;
+
+    if(fused && (direction != conv::Direction::Forward))
+    {
+        MIOPEN_THROW(miopenStatusInternalError);
+    }
 
     return [=](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
@@ -56,10 +62,6 @@ InvokerFactory MakeGcnAsmWinoV2InvokerFactory(const WinoShaderArgsV2& args,
 
             if(fused)
             {
-                if(direction != conv::Direction::Forward)
-                {
-                    MIOPEN_THROW(miopenStatusInternalError);
-                }
                 const auto& invoke_ctx = primitive_params.CastTo<fusion::FusionInvokeParams>();
                 const auto& conv_params =
                     dynamic_cast<fusion::ConvolutionOpInvokeParam&>(*invoke_ctx.op_args.params[0]);
@@ -68,7 +70,7 @@ InvokerFactory MakeGcnAsmWinoV2InvokerFactory(const WinoShaderArgsV2& args,
                 filter_addr = conv_params.weights;
                 output_addr = invoke_ctx.out;
 
-                if(static_cast<uint64_t>(args.flags64 & WinoShaderFlagsV2::F_BIAS))
+                if(do_bias)
                 {
                     const auto& bias_params =
                         dynamic_cast<fusion::BiasOpInvokeParam&>(*invoke_ctx.op_args.params[1]);
@@ -109,13 +111,26 @@ InvokerFactory MakeGcnAsmWinoV2InvokerFactory(const WinoShaderArgsV2& args,
             uint64_t b_offset = 0;
             uint64_t a_offset = 0;
 
+            // activation parameters
+            float alpha = 0.0f;
+            float beta = 0.0f;
+
+            if(fused && (args.activation_mode != WinoShaderActivationModeV2_t::IDENTITY))
+            {
+                const auto& invoke_ctx = primitive_params.CastTo<fusion::FusionInvokeParams>();
+                const int activ_idx = do_bias ? 2 : 1;
+                const auto& activ_args = dynamic_cast<fusion::ActivationOpInvokeParam&>(*invoke_ctx.op_args.params[activ_idx]);
+                alpha = activ_args.activAlpha;
+                beta = activ_args.activBeta;
+            }
+
             // clang-format off
             MIOPEN_LOG_I2(" N=" << args.N << " C=" << args.C << " H=" << args.H << " W=" << args.W
                 << " K=" << args.K << " R=" << args.R << " S=" << args.S
                 << " pad_H=" << args.pad_h << " pad_W=" << args.pad_w
                 << " out_H=" << args.out_h << " out_W=" << args.out_w
                 << " G=" << args.G
-                << " alpha=" << args.alpha << " beta=" << args.beta << " act_mode=" << args.activation_mode
+                << " alpha=" << alpha << " beta=" << beta << " act_mode=" << args.activation_mode
                 << " d_offset=" << d_offset << " f_offset=" << f_offset
                 << " o_offset=" << o_offset << " b_offset=" << b_offset
                 << " d_N_stride=" << args.d_N_stride << " d_C_stride=" << args.d_C_stride
@@ -161,8 +176,8 @@ InvokerFactory MakeGcnAsmWinoV2InvokerFactory(const WinoShaderArgsV2& args,
                 args.out_h,               // uint32_t,    output height
                 args.out_w,               // uint32_t,    output width
                 bias_addr,                // uint64_t,    address of bias buffer
-                args.alpha,               // fp32,        activation parameter alpha
-                args.beta,                // fp32,        activation parameter beta
+                alpha,                    // fp32,        activation parameter alpha
+                beta,                     // fp32,        activation parameter beta
                 d_offset,                 // uint64_t,    byte offset for buffer referenced by data_addr
                 f_offset,                 // uint64_t,    byte offset for buffer referenced by filter_addr
                 o_offset,                 // uint64_t,    byte offset for buffer referenced by output_addr

@@ -200,14 +200,26 @@ void WinoShaderArgsV2::SetStrides(const conv::ProblemDescription& problem)
     o_G_stride = o_strides.g;
 }
 
-void WinoShaderArgsV2::SetActivParams(WinoShaderActivationModeV2_t mode,
-                                      float alpha_,
-                                      float beta_) noexcept
+void WinoShaderArgsV2::SetActivParams(miopenActivationMode_t mode)
 {
     // Fused activation parameters
-    activation_mode = mode;
-    alpha           = alpha_;
-    beta            = beta_;
+    switch(mode)
+    {
+        case miopenActivationPASTHRU:
+            activation_mode = WinoShaderActivationModeV2_t::IDENTITY;
+            break;
+        case miopenActivationLOGISTIC:
+            activation_mode = WinoShaderActivationModeV2_t::SIGMOID;
+            break;
+        case miopenActivationTANH:
+            activation_mode = WinoShaderActivationModeV2_t::SCALED_TANH;
+            break;
+        case miopenActivationLEAKYRELU:
+            activation_mode = WinoShaderActivationModeV2_t::LEAKY_RELU;
+            break;
+        default:
+            MIOPEN_THROW(miopenStatusInternalError);
+    }
 }
 
 void WinoShaderArgsV2::SetShaderParams(uint32_t n_groups_,
