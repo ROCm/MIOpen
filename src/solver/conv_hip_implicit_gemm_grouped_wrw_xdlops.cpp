@@ -400,6 +400,26 @@ bool NextTwoPower(int& v)
     return false;
 }
 
+
+bool IsLinear(int L, int H, const int v)
+{
+    assert(L <= H);
+    return L <= v && v <= H;
+}
+
+bool NextLinear(int L, int H, int& v)
+{
+    assert((IsLinear(L, H, v)));
+    if(H == v)
+    {
+        v = L;
+        return true;
+    }
+    ++v;
+    return false;
+}
+
+
 bool PerformanceConfigHipImplicitGemmGroupWrwXdlops::SetNextValue(const ProblemDescription& problem)
 {
 #if MIOPEN_USE_COMPOSABLEKERNEL
@@ -421,26 +441,37 @@ bool PerformanceConfigHipImplicitGemmGroupWrwXdlops::SetNextValue(const ProblemD
         return true;
     }
     do{
+        //if(split_k != 1){
+        //    kernel_id = valid_kernels[index] + "_" + std::to_string(split_k);
+        //    std::cout<<"~~~~kernel_id~~~: "<<kernel_id<<std::endl;
+        //}
         bool  flag = NextTwoPower<1,128>(split_k);
-        kernel_id = valid_kernels[index] + "_" + std::to_string(split_k);
         std::cout<<"~~~~~~~flag~~~~~: "<<flag<<std::endl;
         if(!flag){
-                    //kernel_id = valid_kernels[index] + "_" + std::to_string(split_k);
+            kernel_id = valid_kernels[index] + "_" + std::to_string(split_k);
+            std::cout<<"~~~~kernel_id~~~: "<<kernel_id<<std::endl;
             std::cout<<"breaking now!!!!!!!!"<<std::endl;
                     break;
-        } 
+        }
+
+        if(!NextLinear(0, valid_kernels.size()-1, index)){
+            kernel_id = valid_kernels[index] + "_" + std::to_string(split_k);
+            std::cout<<"~~~~kernel_id~~~: "<<kernel_id<<std::endl;
+            break;            
+        }
 //kernel_id = valid_kernels[index] + "_" + std::to_string(split_k);
-        if((index + 1) < valid_kernels.size())
+        /*if((index + 1) < valid_kernels.size())
         {
             ++index;
-            //kernel_id = valid_kernels[index] + "_" + std::to_string(split_k);
+            kernel_id = valid_kernels[index] + "_" + std::to_string(split_k);
             std::cout<<"~~~~kernel_id~~~: "<<kernel_id<<std::endl;
             break;
-        }
+        }*/
         std::cout<<"return false in set next value"<<std::endl;
         // All split_k and index values were iterated
         return false;
     } while(false);
+    std::cout<<"valid_kernels.size(): "<<valid_kernels.size()<<std::endl;
     std::cout<<"return true in set next value"<<std::endl;
 #endif
     return true;
