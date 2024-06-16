@@ -804,6 +804,102 @@ ConvSolution InitInvokerFactoryNHWC(const ExecutionContext&,
     }
 }
 
+template <typename DeviceOpType,
+          typename CKArgsType,
+          typename CastType,
+          typename ProblemDescriptionType = miopen::conv::ProblemDescription>
+ConvSolution SplitKInitInvokerFactoryNHWC(const ExecutionContext&,
+                                    const ProblemDescriptionType& problem,
+                                    const std::string& kernel_id)
+{
+    auto conv_ptrs = DeviceOpType::GetInstances();
+    auto pos = kernel_id.find_last_of("_");
+    assert(pos!=std::string::npos);
+    int split_k = std::stoi(kernel_id.substr(pos+1));
+    std::cout<<"~~~~~split_k~~~~~: "<<split_k<<std::endl;
+    //std::cout<<"I am here ~~~~~~~~~~~~~~~~~~~~"<<std::endl;
+    auto ptr_iter  = FindConvPtrByID(conv_ptrs, kernel_id.substr(0, pos));
+
+    if(ptr_iter == conv_ptrs.end())
+    {
+        MIOPEN_LOG_E("PerformanceConfig kernel '" + kernel_id + "' does not exist.");
+        return {miopenStatusInvalidValue};
+    }
+
+    if constexpr(std::is_same_v<CastType, miopen::conv::WrWInvokeParams>)
+    {
+        miopenAlphaBetaCase_t alpha_beta_case = problem.GetAlphaBetaCase();
+        [[maybe_unused]] bool should_allocated_wrw_buffer =
+            ShouldAllocateWorkSpaceBufferForWRW(problem);
+        size_t spatial_dim = problem.GetSpatialDims();
+
+        ConvSolution result;
+        result.invoker_factory = [&split_k,ck_args                     = CKArgsType{problem},
+                                  alpha_beta_case             = alpha_beta_case,
+                                  should_allocated_wrw_buffer = should_allocated_wrw_buffer,
+                                  spatial_dim                 = spatial_dim,
+                                  sh_conv_ptr = std::shared_ptr{std::move(*ptr_iter)}](
+                                     const std::vector<Kernel>&) mutable {
+            return [&split_k,ck_args                     = std::move(ck_args),
+                    alpha_beta_case             = alpha_beta_case,
+                    should_allocated_wrw_buffer = should_allocated_wrw_buffer,
+                    spatial_dim                 = spatial_dim,
+                    sh_conv_ptr                 = std::move(sh_conv_ptr)](
+                       const Handle& handle, const AnyInvokeParams& primitive_parameters) {
+                (void)spatial_dim; // -warn
+                (void)split_k;
+                const auto& data_ctx = primitive_parameters.CastTo<CastType>();
+                auto argument_ptr    = ck_args.MakeArgPtr(sh_conv_ptr,
+                                                       data_ctx.tensors,
+                                                       data_ctx.alpha.GetAsFloat(),
+                                                       data_ctx.beta.GetAsFloat(),
+                                                        split_k); // pass split_k value will cause core dump but constant value works fine
+                auto invoker_ptr     = sh_conv_ptr->MakeInvokerPointer();
+                HipEventProfiler pfr(handle);
+
+                if(alpha_beta_case == DEFAULT)
+                {
+                    auto zero           = 0.0f;
+                    const auto& tensors = data_ctx.tensors;
+                    SetTensor(handle, tensors.dwDesc, tensors.dw, &zero);
+                }
+                // use captured value, other wise getting warning
+                // "lambda capture is not used" since this variable is only used in assert.
+                (void)should_allocated_wrw_buffer;
+                assert((should_allocated_wrw_buffer && data_ctx.workSpace != nullptr) ||
+                       !(should_allocated_wrw_buffer && data_ctx.workSpace == nullptr));
+                if(data_ctx.workSpace)
+                {
+                    sh_conv_ptr->SetWorkSpacePointer(argument_ptr.get(), data_ctx.workSpace);
+                }
+                invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), false});
+            };
+        };
+        result.workspace_sz = GetWorkspaceSizeLayoutTransformConv(problem);
+        return result;
+    }
+    else
+    {
+        ConvSolution result;
+        result.invoker_factory = [ck_args     = CKArgsType{problem},
+                                  sh_conv_ptr = std::shared_ptr{std::move(*ptr_iter)}](
+                                     const std::vector<Kernel>&) mutable {
+            return [ck_args = std::move(ck_args), sh_conv_ptr = std::move(sh_conv_ptr)](
+                       const Handle& handle, const AnyInvokeParams& primitive_parameters) {
+                const auto& data_ctx = primitive_parameters.CastTo<CastType>();
+                auto argument_ptr    = ck_args.MakeArgPtr(sh_conv_ptr,
+                                                       data_ctx.tensors,
+                                                       data_ctx.alpha.GetAsFloat(),
+                                                       data_ctx.beta.GetAsFloat());
+                auto invoker_ptr     = sh_conv_ptr->MakeInvokerPointer();
+                HipEventProfiler pfr(handle);
+                invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), false});
+            };
+        };
+        return result;
+    }
+}
+
 template <int ND, typename DeviceOpType, typename CKArgsType, typename CastType>
 ConvSolution InitInvokerFactoryFwdNCHW(const ExecutionContext& ctx,
                                        const miopen::conv::ProblemDescription& problem,
@@ -879,6 +975,43 @@ MakeSolutionGroupConvImplicitGemmXdlops(const miopen::conv::ProblemDescription& 
         }
     }
     else if(problem.IsLayoutNHWC())
+    {
+        switch(problem.GetInDataType())
+        {
+        case miopenInt8: return invoker_factory_maker_ndhwc(int8_t{});
+        case miopenHalf: return invoker_factory_maker_ndhwc(ck::half_t{});
+        case miopenFloat: return invoker_factory_maker_ndhwc(float{});
+        case miopenBFloat16: return invoker_factory_maker_ndhwc(ck::bhalf_t{});
+        case miopenInt64:
+        case miopenInt32:
+        case miopenDouble:
+        case miopenFloat8:
+        case miopenBFloat8:
+        default:
+            MIOPEN_THROW(miopenStatusInternalError,
+                         "3DGroupConvolutionImplicitGemmXdlops operation not implemented for this "
+                         "data type");
+        }
+    }
+    else
+    {
+        MIOPEN_THROW(
+            miopenStatusInternalError,
+            "3DGroupConvolutionImplicitGemmXdlops operation not implemented for this data type");
+    }
+#else
+    return {};
+#endif
+}
+
+template <typename InvokerFactoryMakerNHWC>
+ConvSolution
+SplitKMakeSolutionGroupConvImplicitGemmXdlops(const miopen::conv::ProblemDescription& problem,
+                                        InvokerFactoryMakerNHWC&& invoker_factory_maker_ndhwc)
+{
+
+#if MIOPEN_USE_COMPOSABLEKERNEL
+if(problem.IsLayoutNHWC())
     {
         switch(problem.GetInDataType())
         {
