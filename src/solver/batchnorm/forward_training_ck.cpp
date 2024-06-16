@@ -189,13 +189,20 @@ bool BnCKFwdTraining::IsApplicable(
         return false;
     if(!ck_utility::is_ck_supported_hardware(context.GetStream()))
         return false;
+    if(!bn_problem.Is2D())
+        return false;
+    if(bn_problem.GetDirection() != miopen::batchnorm::Direction::ForwardTraining)
+        return false;
 
     switch(bn_problem.GetXDesc().GetType())
     {
     case miopenHalf: return CheckCKApplicability<F16, F16, F32, F16, F16, F32>(bn_problem);
     case miopenFloat: return CheckCKApplicability<F32, F32, F32, F32, F32, F32>(bn_problem);
     case miopenDouble: return CheckCKApplicability<F64, F64, F64, F64, F64, F64>(bn_problem);
-    case miopenBFloat16: return CheckCKApplicability<BF16, BF16, F32, BF16, BF16, F32>(bn_problem);
+    case miopenBFloat16: {
+        bool var = CheckCKApplicability<BF16, BF16, F32, BF16, BF16, F32>(bn_problem);
+        return var;
+    }
     case miopenInt64:
     case miopenInt32:
     case miopenInt8:
