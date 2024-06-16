@@ -292,7 +292,7 @@ struct ConvWinoFuryRxSFused final : FusionSolverBase
                                          const FusionDescription&) const override;
     MIOPEN_INTERNALS_EXPORT size_t GetWorkspaceSize(const FusionContext&,
                                                     const FusionDescription&) const override;
-    bool MayNeedWorkspace() const override { return true; }
+    bool MayNeedWorkspace() const override;
 
     MIOPEN_INTERNALS_EXPORT ConvSolution GetSolution(const FusionContext&,
                                                      const FusionDescription&) const override;
