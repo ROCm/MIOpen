@@ -41,7 +41,8 @@ InvokerFactory MakeGcnAsmWinoV2InvokerFactory(const WinoShaderArgsV2& args,
 {
     const bool is_backWrW  = (direction == conv::Direction::BackwardWeights);
     const bool coop_launch = (args.sync_period != 0);
-    const bool do_bias = static_cast<uint64_t>(args.flags64 & WinoShaderFlagsV2::F_BIAS) ? true : false;
+    const bool do_bias =
+        static_cast<uint64_t>(args.flags64 & WinoShaderFlagsV2::F_BIAS) ? true : false;
 
     if(fused && (direction != conv::Direction::Forward))
     {
@@ -113,15 +114,16 @@ InvokerFactory MakeGcnAsmWinoV2InvokerFactory(const WinoShaderArgsV2& args,
 
             // activation parameters
             float alpha = 0.0f;
-            float beta = 0.0f;
+            float beta  = 0.0f;
 
             if(fused && (args.activation_mode != WinoShaderActivationModeV2_t::IDENTITY))
             {
                 const auto& invoke_ctx = primitive_params.CastTo<fusion::FusionInvokeParams>();
-                const int activ_idx = do_bias ? 2 : 1;
-                const auto& activ_args = dynamic_cast<fusion::ActivationOpInvokeParam&>(*invoke_ctx.op_args.params[activ_idx]);
+                const int activ_idx    = do_bias ? 2 : 1;
+                const auto& activ_args = dynamic_cast<fusion::ActivationOpInvokeParam&>(
+                    *invoke_ctx.op_args.params[activ_idx]);
                 alpha = activ_args.activAlpha;
-                beta = activ_args.activBeta;
+                beta  = activ_args.activBeta;
             }
 
             // clang-format off

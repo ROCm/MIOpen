@@ -203,23 +203,25 @@ void WinoShaderArgsV2::SetStrides(const conv::ProblemDescription& problem)
 void WinoShaderArgsV2::SetActivParams(miopenActivationMode_t mode)
 {
     // Fused activation parameters
+    // clang-format off
     switch(mode)
     {
-        case miopenActivationPASTHRU:
-            activation_mode = WinoShaderActivationModeV2_t::IDENTITY;
-            break;
-        case miopenActivationLOGISTIC:
-            activation_mode = WinoShaderActivationModeV2_t::SIGMOID;
-            break;
-        case miopenActivationTANH:
-            activation_mode = WinoShaderActivationModeV2_t::SCALED_TANH;
-            break;
-        case miopenActivationLEAKYRELU:
-            activation_mode = WinoShaderActivationModeV2_t::LEAKY_RELU;
-            break;
-        default:
-            MIOPEN_THROW(miopenStatusInternalError);
+    case miopenActivationPASTHRU:
+        activation_mode = WinoShaderActivationModeV2_t::IDENTITY;
+        break;
+    case miopenActivationLOGISTIC:
+        activation_mode = WinoShaderActivationModeV2_t::SIGMOID;
+        break;
+    case miopenActivationTANH:
+        activation_mode = WinoShaderActivationModeV2_t::SCALED_TANH;
+        break;
+    case miopenActivationLEAKYRELU:
+        activation_mode = WinoShaderActivationModeV2_t::LEAKY_RELU;
+        break;
+    default:
+        MIOPEN_THROW(miopenStatusInternalError);
     }
+    // clang-format on
 }
 
 void WinoShaderArgsV2::SetShaderParams(uint32_t n_groups_,

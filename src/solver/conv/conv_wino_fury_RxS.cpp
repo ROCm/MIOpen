@@ -221,8 +221,8 @@ struct ConvWinoFuryRxSCommon
     static size_t GetWorkspaceSize(const ExecutionContext&, bool fused = false);
     static ConvSolution GetSolution(const ExecutionContext&,
                                     const ProblemDescription&,
-                                    bool fused   = false,
-                                    bool do_bias = false,
+                                    bool fused                        = false,
+                                    bool do_bias                      = false,
                                     miopenActivationMode_t activ_mode = miopenActivationPASTHRU);
 };
 
@@ -293,8 +293,12 @@ size_t ConvWinoFuryRxSCommon<Winodata, Winofilter>::GetWorkspaceSize(const Execu
 }
 
 template <uint32_t Winodata, uint32_t Winofilter>
-ConvSolution ConvWinoFuryRxSCommon<Winodata, Winofilter>::GetSolution(
-    const ExecutionContext& ctx, const ProblemDescription& problem, bool fused, bool do_bias, miopenActivationMode_t activ_mode)
+ConvSolution
+ConvWinoFuryRxSCommon<Winodata, Winofilter>::GetSolution(const ExecutionContext& ctx,
+                                                         const ProblemDescription& problem,
+                                                         bool fused,
+                                                         bool do_bias,
+                                                         miopenActivationMode_t activ_mode)
 {
     const auto dev_name         = ctx.GetStream().GetDeviceName();
     const auto cu_count         = ctx.GetStream().GetMaxHardwareComputeUnits();
@@ -497,16 +501,14 @@ bool ConvWinoFuryRxSFused<Winodata, Winofilter>::IsApplicable(
     const int activ_idx = GetOpIdx(desc.op_map, miopenFusionOpActivForward);
     if(activ_idx != -1)
     {
-        const auto& activ_op  = dynamic_cast<ActivFwdFusionOpDescriptor&>(*desc.op_map[activ_idx]);
+        const auto& activ_op = dynamic_cast<ActivFwdFusionOpDescriptor&>(*desc.op_map[activ_idx]);
         switch(activ_op.activMode)
         {
-            case miopenActivationPASTHRU:
-            case miopenActivationLOGISTIC:
-            case miopenActivationTANH:
-            case miopenActivationLEAKYRELU:
-                break;
-            default:
-                return false;
+        case miopenActivationPASTHRU:
+        case miopenActivationLOGISTIC:
+        case miopenActivationTANH:
+        case miopenActivationLEAKYRELU: break;
+        default: return false;
         }
     }
 
@@ -537,18 +539,18 @@ ConvSolution
 ConvWinoFuryRxSFused<Winodata, Winofilter>::GetSolution(const FusionContext& ctx,
                                                         const FusionDescription& problem) const
 {
-    const auto& desc        = *problem.fusion_plan_desc;
-    const int bias_idx      = GetOpIdx(desc.op_map, miopenFusionOpBiasForward);
-    const int activ_idx     = GetOpIdx(desc.op_map, miopenFusionOpActivForward);
+    const auto& desc    = *problem.fusion_plan_desc;
+    const int bias_idx  = GetOpIdx(desc.op_map, miopenFusionOpBiasForward);
+    const int activ_idx = GetOpIdx(desc.op_map, miopenFusionOpActivForward);
 
     const auto conv_problem = problem.GetConvProblem(0, miopen::conv::Direction::Forward);
 
-    const bool do_bias      = (bias_idx != -1);
-    auto activ_mode = miopenActivationPASTHRU;
+    const bool do_bias = (bias_idx != -1);
+    auto activ_mode    = miopenActivationPASTHRU;
     if(activ_idx != -1)
     {
-        const auto& activ_op  = dynamic_cast<ActivFwdFusionOpDescriptor&>(*desc.op_map[activ_idx]);
-        activ_mode = activ_op.activMode;
+        const auto& activ_op = dynamic_cast<ActivFwdFusionOpDescriptor&>(*desc.op_map[activ_idx]);
+        activ_mode           = activ_op.activMode;
     }
 
     return ConvWinoFuryRxSCommon<Winodata, Winofilter>::GetSolution(
