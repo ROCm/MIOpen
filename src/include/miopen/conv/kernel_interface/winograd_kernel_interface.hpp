@@ -31,9 +31,10 @@
 #include <stdint.h>
 
 namespace miopen {
-namespace conv {
 
+namespace conv {
 struct ProblemDescription;
+} // namespace conv
 
 enum class WinoShaderFlagsV2 : uint64_t
 {
@@ -54,6 +55,12 @@ enum class WinoShaderFlagsV2 : uint64_t
     F_USE_ACTIVATION_MODE        = 1ULL << 14,
     F_USE_EXTENDED_FLAGS_64      = 1ULL << 15,
 };
+
+inline WinoShaderFlagsV2 operator&(WinoShaderFlagsV2 lhs, WinoShaderFlagsV2 rhs)
+{
+    using T = std::underlying_type_t<WinoShaderFlagsV2>;
+    return static_cast<WinoShaderFlagsV2>(static_cast<T>(lhs) & static_cast<T>(rhs));
+}
 
 inline WinoShaderFlagsV2 operator|(WinoShaderFlagsV2 lhs, WinoShaderFlagsV2 rhs)
 {
@@ -131,8 +138,8 @@ struct WinoShaderArgsV2
     uint8_t sync_limit;        // maximum number of sync attempts
     uint8_t sync_period;       // synchronization period
 
-    bool SetConvParams(const ProblemDescription& problem);
-    void SetStrides(const ProblemDescription& problem);
+    bool SetConvParams(const conv::ProblemDescription& problem);
+    void SetStrides(const conv::ProblemDescription& problem);
     void SetActivParams(WinoShaderActivationModeV2_t mode, float alpha, float beta) noexcept;
     void SetShaderParams(uint32_t n_groups,
                          WinoShaderFlagsV2 flags,
@@ -140,5 +147,4 @@ struct WinoShaderArgsV2
                          uint8_t sync_period) noexcept;
 };
 
-} // namespace conv
 } // namespace miopen

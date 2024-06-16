@@ -193,14 +193,12 @@ struct FusionInvokeParams : InvokeParams
 
     Data_t GetWorkspace() const
     {
-        MIOPEN_THROW(miopenStatusNotImplemented);
-        return {};
+        return nullptr;
     }
 
     std::size_t GetWorkspaceSize() const
     {
-        MIOPEN_THROW(miopenStatusNotImplemented);
-        return {};
+        return 0;
     }
 };
 

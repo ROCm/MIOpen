@@ -30,7 +30,6 @@
 #include <miopen/conv/problem_description.hpp>
 
 namespace miopen {
-namespace conv {
 
 namespace {
 
@@ -62,7 +61,7 @@ bool AssignAndCheck(Tdst& dst_v, Tsrc src_v) noexcept
 
 } // namespace
 
-bool WinoShaderArgsV2::SetConvParams(const ProblemDescription& problem)
+bool WinoShaderArgsV2::SetConvParams(const conv::ProblemDescription& problem)
 {
     if(!problem.Is2d())
         return false;
@@ -154,7 +153,7 @@ bool WinoShaderArgsV2::SetConvParams(const ProblemDescription& problem)
     return true;
 }
 
-void WinoShaderArgsV2::SetStrides(const ProblemDescription& problem)
+void WinoShaderArgsV2::SetStrides(const conv::ProblemDescription& problem)
 {
     MemLayout_t d_layout, o_layout, f_layout;
 
@@ -222,5 +221,4 @@ void WinoShaderArgsV2::SetShaderParams(uint32_t n_groups_,
     sync_period = sync_period_;
 }
 
-} // namespace conv
 } // namespace miopen

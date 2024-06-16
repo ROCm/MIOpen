@@ -270,7 +270,6 @@ set( MIOpen_Source
     solver/conv_MP_bidirectional_winograd.cpp
     solver/conv_multipass_wino3x3WrW.cpp
     solver/conv_ocl_dir2Dfwd_fused.cpp
-    solver/conv_wino_fury_RxS_fused.cpp
     solver/conv_winoRxS_fused.cpp
     solver/gemm.cpp
     solver/gemm_bwd.cpp
