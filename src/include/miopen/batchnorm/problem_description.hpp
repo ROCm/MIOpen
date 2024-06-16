@@ -54,7 +54,7 @@ struct ProblemDescriptionTag
 
 struct MIOPEN_INTERNALS_EXPORT ProblemDescription : ProblemDescriptionBase, ProblemDescriptionTag
 {
-    // Forward
+    // Forward Training
     ProblemDescription(miopenBatchNormMode_t bn_mode_,
                        const TensorDescriptor& xDesc_,
                        const TensorDescriptor& yDesc_,
@@ -181,6 +181,13 @@ struct MIOPEN_INTERNALS_EXPORT ProblemDescription : ProblemDescriptionBase, Prob
         return xDesc.GetLengths().size() == 4 ? ((in_layout == "NHWC") && (out_layout == "NHWC"))
                                               : ((in_layout == "NDHWC") && (out_layout == "NDHWC"));
     }
+
+    bool Is2D() const { return xDesc.GetLengths().size() == 4; }
+
+    bool IsFp64() const { return xDesc.GetType() == miopenDouble; }
+    bool IsFp32() const { return xDesc.GetType() == miopenFloat; }
+    bool IsFp16() const { return xDesc.GetType() == miopenHalf; }
+    bool IsBfp16() const { return xDesc.GetType() == miopenBFloat16; }
 
     NetworkConfig MakeNetworkConfig() const override;
 
