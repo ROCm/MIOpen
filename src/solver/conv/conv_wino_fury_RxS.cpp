@@ -221,7 +221,7 @@ struct ConvWinoFuryRxSCommon
     static size_t GetWorkspaceSize(const ExecutionContext&, bool fused = false);
     static ConvSolution GetSolution(const ExecutionContext&,
                                     const ProblemDescription&,
-                                    bool fused = false,
+                                    bool fused   = false,
                                     bool do_bias = false);
 };
 
@@ -280,8 +280,8 @@ float ConvWinoFuryRxSCommon<Winodata, Winofilter>::GetWti(const ExecutionContext
 }
 
 template <uint32_t Winodata, uint32_t Winofilter>
-size_t
-ConvWinoFuryRxSCommon<Winodata, Winofilter>::GetWorkspaceSize(const ExecutionContext& ctx, bool fused)
+size_t ConvWinoFuryRxSCommon<Winodata, Winofilter>::GetWorkspaceSize(const ExecutionContext& ctx,
+                                                                     bool fused)
 {
     // fusions do not support workspace
     if(fused)
@@ -292,11 +292,8 @@ ConvWinoFuryRxSCommon<Winodata, Winofilter>::GetWorkspaceSize(const ExecutionCon
 }
 
 template <uint32_t Winodata, uint32_t Winofilter>
-ConvSolution
-ConvWinoFuryRxSCommon<Winodata, Winofilter>::GetSolution(const ExecutionContext& ctx,
-                                                         const ProblemDescription& problem,
-                                                         bool fused,
-                                                         bool do_bias)
+ConvSolution ConvWinoFuryRxSCommon<Winodata, Winofilter>::GetSolution(
+    const ExecutionContext& ctx, const ProblemDescription& problem, bool fused, bool do_bias)
 {
     const auto dev_name         = ctx.GetStream().GetDeviceName();
     const auto cu_count         = ctx.GetStream().GetMaxHardwareComputeUnits();
@@ -517,12 +514,13 @@ ConvSolution
 ConvWinoFuryRxSFused<Winodata, Winofilter>::GetSolution(const FusionContext& ctx,
                                                         const FusionDescription& problem) const
 {
-    const auto& desc    = *problem.fusion_plan_desc;
-    const int bias_idx  = GetOpIdx(desc.op_map, miopenFusionOpBiasForward);
-    const bool do_bias = (bias_idx != -1);
+    const auto& desc        = *problem.fusion_plan_desc;
+    const int bias_idx      = GetOpIdx(desc.op_map, miopenFusionOpBiasForward);
+    const bool do_bias      = (bias_idx != -1);
     const auto conv_problem = problem.GetConvProblem(0, miopen::conv::Direction::Forward);
 
-    return ConvWinoFuryRxSCommon<Winodata, Winofilter>::GetSolution(ctx, conv_problem, true, do_bias);
+    return ConvWinoFuryRxSCommon<Winodata, Winofilter>::GetSolution(
+        ctx, conv_problem, true, do_bias);
 }
 
 template struct ConvWinoFuryRxSFused<2, 3>;

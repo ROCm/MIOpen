@@ -191,15 +191,9 @@ struct FusionInvokeParams : InvokeParams
     Data_t out = nullptr;
     bool gfx90aFp16alt;
 
-    Data_t GetWorkspace() const
-    {
-        return nullptr;
-    }
+    Data_t GetWorkspace() const { return nullptr; }
 
-    std::size_t GetWorkspaceSize() const
-    {
-        return 0;
-    }
+    std::size_t GetWorkspaceSize() const { return 0; }
 };
 
 } // namespace fusion

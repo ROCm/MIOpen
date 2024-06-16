@@ -51,8 +51,8 @@ InvokerFactory MakeGcnAsmWinoV2InvokerFactory(const WinoShaderArgsV2& args,
             ConstData_t filter_addr;
             Data_t output_addr;
             ConstData_t bias_addr = nullptr;
-            Data_t acc_addr = nullptr;
-            Data_t sync_addr = nullptr;
+            Data_t acc_addr       = nullptr;
+            Data_t sync_addr      = nullptr;
 
             if(fused)
             {
@@ -61,14 +61,18 @@ InvokerFactory MakeGcnAsmWinoV2InvokerFactory(const WinoShaderArgsV2& args,
                     MIOPEN_THROW(miopenStatusInternalError);
                 }
                 const auto& invoke_ctx = primitive_params.CastTo<fusion::FusionInvokeParams>();
+                const auto& conv_params =
+                    dynamic_cast<fusion::ConvolutionOpInvokeParam&>(*invoke_ctx.op_args.params[0]);
 
-                data_addr = invoke_ctx.in;
-                filter_addr = dynamic_cast<fusion::ConvolutionOpInvokeParam&>(*invoke_ctx.op_args.params[0]).weights;
+                data_addr   = invoke_ctx.in;
+                filter_addr = conv_params.weights;
                 output_addr = invoke_ctx.out;
 
-                if(static_cast<std::underlying_type_t<WinoShaderFlagsV2>>(args.flags64 & WinoShaderFlagsV2::F_BIAS))
+                if(static_cast<uint64_t>(args.flags64 & WinoShaderFlagsV2::F_BIAS))
                 {
-                    bias_addr = dynamic_cast<miopen::fusion::BiasOpInvokeParam&>(*invoke_ctx.op_args.params[1]).bdata;
+                    const auto& bias_params =
+                        dynamic_cast<fusion::BiasOpInvokeParam&>(*invoke_ctx.op_args.params[0]);
+                    bias_addr = bias_params.bdata;
                 }
 
                 if(coop_launch)
@@ -78,7 +82,7 @@ InvokerFactory MakeGcnAsmWinoV2InvokerFactory(const WinoShaderArgsV2& args,
             {
                 const auto& invoke_ctx = primitive_params.CastTo<conv::DataInvokeParams>();
 
-                data_addr = invoke_ctx.tensors.in;
+                data_addr   = invoke_ctx.tensors.in;
                 filter_addr = invoke_ctx.tensors.w;
                 output_addr = invoke_ctx.tensors.out;
 
@@ -89,7 +93,7 @@ InvokerFactory MakeGcnAsmWinoV2InvokerFactory(const WinoShaderArgsV2& args,
             {
                 const auto& invoke_ctx = primitive_params.CastTo<conv::WrWInvokeParams>();
 
-                data_addr = invoke_ctx.tensors.x;
+                data_addr   = invoke_ctx.tensors.x;
                 filter_addr = invoke_ctx.tensors.dy;
                 output_addr = invoke_ctx.tensors.dw;
 
