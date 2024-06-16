@@ -36,7 +36,7 @@
 #include <ck/library/tensor_operation_instance/gpu/grouped_convolution_backward_weight.hpp>
 #include <miopen/conv/heuristics/ai_heuristics.hpp>
 #endif
-#include <miopen/solver/implicitgemm_ck_util.hpp>
+#include <miopen/solver/wrw_implicitgemm_ck_util.hpp>
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_GROUP_CONV_IMPLICIT_GEMM_HIP_WRW_XDLOPS)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_GROUP_CONV_IMPLICIT_GEMM_HIP_WRW_XDLOPS_AI_HEUR)
 
@@ -221,6 +221,7 @@ template <typename DataType>
 bool PerformanceConfigHipImplicitGemmGroupWrwXdlops::CheckIsSupportCKArgs(
     const ProblemDescription& problem) const
 {
+    std::cout<<"                   CheckIsSupportCKArgs kernel_id: "<<kernel_id<<std::endl;
     return IsCKArgsSupported<DeviceOpGWrwPtrs<DataType>, CKArgs>(problem, kernel_id.substr(0,kernel_id.find_last_of("_")));
 }
 

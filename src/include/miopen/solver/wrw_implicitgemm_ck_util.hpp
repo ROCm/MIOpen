@@ -854,7 +854,7 @@ ConvSolution SplitKInitInvokerFactoryNHWC(const ExecutionContext&,
                                                        data_ctx.tensors,
                                                        data_ctx.alpha.GetAsFloat(),
                                                        data_ctx.beta.GetAsFloat(),
-                                                        split_k); // pass split_k value will cause core dump but constant value works fine
+                                                    split_k); // pass split_k value will cause core dump but constant value works fine
                 auto invoker_ptr     = sh_conv_ptr->MakeInvokerPointer();
                 HipEventProfiler pfr(handle);
 
