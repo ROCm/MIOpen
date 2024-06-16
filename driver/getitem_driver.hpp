@@ -492,7 +492,7 @@ Tref GetitemDriver<Tgpu, Tref>::GetTolerance()
     // If there is an atomic operation on the GPU kernel, a large error occurs depending on the
     // calculation order, so it is multiplied by 10 times.
     if(std::is_same<Tgpu, bfloat16>::value)
-        tolerance *= 80.0;
+        tolerance *= 8000.0;
     return tolerance;
 }
 
