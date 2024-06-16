@@ -71,7 +71,7 @@ InvokerFactory MakeGcnAsmWinoV2InvokerFactory(const WinoShaderArgsV2& args,
                 if(static_cast<uint64_t>(args.flags64 & WinoShaderFlagsV2::F_BIAS))
                 {
                     const auto& bias_params =
-                        dynamic_cast<fusion::BiasOpInvokeParam&>(*invoke_ctx.op_args.params[0]);
+                        dynamic_cast<fusion::BiasOpInvokeParam&>(*invoke_ctx.op_args.params[1]);
                     bias_addr = bias_params.bdata;
                 }
 
