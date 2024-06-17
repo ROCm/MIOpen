@@ -1944,7 +1944,7 @@ inline __device__ void naive_conv_wrw_ndhwc(const src_data_t* __restrict__ p_in,
             group);                                                                                      \
     }                                                                                                    \
     extern "C" __global__ void                                                                           \
-        naive_conv_nonpacked_##direction##_##tensor_layout##_##src_data_t##_##acc_data_t##_##dst_data_t( \
+        naive_conv_ab_nonpacked_##direction##_##tensor_layout##_##src_data_t##_##acc_data_t##_##dst_data_t( \
             src_data_t* __restrict__ p_in,                                                               \
             src_data_t* __restrict__ p_wei,                                                              \
             double alpha,                                                                                \
@@ -2064,7 +2064,7 @@ inline __device__ void naive_conv_wrw_ndhwc(const src_data_t* __restrict__ p_in,
             group);                                                                                      \
     }                                                                                                    \
     extern "C" __global__ void                                                                           \
-        naive_conv_nonpacked_##direction##_##tensor_layout##_##src_data_t##_##acc_data_t##_##dst_data_t( \
+        naive_conv_ab_nonpacked_##direction##_##tensor_layout##_##src_data_t##_##acc_data_t##_##dst_data_t( \
             src_data_t* __restrict__ p_in,                                                               \
             src_data_t* __restrict__ p_wei,                                                              \
             double alpha,                                                                                \
