@@ -46,6 +46,28 @@ namespace solver {
 
 namespace where {
 
+template <int N>
+int64_t check_broadcasted_contiguous(const tensor_view_t<N>& tensorView)
+{
+    int64_t num_elems = 1;
+
+    for(int i = N - 1; i >= 0; i--)
+    {
+        if(tensorView.stride[i] != 0 && tensorView.stride[i] != num_elems)
+            return 0;
+        if(tensorView.stride[i] == 0)
+        {
+            for(int j = i; j >= 0; j--)
+                if(tensorView.stride[j] != 0)
+                    return 0;
+            return num_elems;
+        }
+        num_elems *= tensorView.size[i];
+    }
+
+    return num_elems;
+}
+
 bool WhereBackward::IsApplicable(const ExecutionContext& context,
                                  const miopen::where::BackwardProblemDescription& problem) const
 {
@@ -193,10 +215,6 @@ WhereBackward::GetSolution(const ExecutionContext& context,
                 decltype(auto) params = raw_params.CastTo<miopen::where::BwdInvokeParams>();
 
                 size_t output_grad_numel      = problem.GetOutputGradDesc().GetElementSize();
-                size_t output_grad_off        = 0;
-                size_t condition_off          = 0;
-                size_t input_grad_off         = 0;
-                size_t other_grad_off         = 0;
                 size_t cond_contig_size       = check_broadcasted_contiguous(cond_tv);
                 size_t input_grad_contig_size = check_broadcasted_contiguous(input_grad_tv);
                 size_t other_grad_contig_size = check_broadcasted_contiguous(other_grad_tv);
@@ -206,10 +224,6 @@ WhereBackward::GetSolution(const ExecutionContext& context,
                        params.inputGrad,
                        params.otherGrad,
                        output_grad_numel,
-                       output_grad_off,
-                       condition_off,
-                       input_grad_off,
-                       other_grad_off,
                        cond_contig_size,
                        input_grad_contig_size,
                        other_grad_contig_size);
@@ -243,10 +257,6 @@ WhereBackward::GetSolution(const ExecutionContext& context,
                 decltype(auto) params = raw_params.CastTo<miopen::where::BwdInvokeParams>();
 
                 size_t output_grad_numel      = problem.GetOutputGradDesc().GetElementSize();
-                size_t output_grad_off        = 0;
-                size_t condition_off          = 0;
-                size_t input_grad_off         = 0;
-                size_t other_grad_off         = 0;
                 size_t cond_contig_size       = check_broadcasted_contiguous(cond_tv);
                 size_t input_grad_contig_size = check_broadcasted_contiguous(input_grad_tv);
                 size_t other_grad_contig_size = check_broadcasted_contiguous(other_grad_tv);
@@ -256,10 +266,6 @@ WhereBackward::GetSolution(const ExecutionContext& context,
                        params.inputGrad,
                        params.otherGrad,
                        output_grad_numel,
-                       output_grad_off,
-                       condition_off,
-                       input_grad_off,
-                       other_grad_off,
                        cond_contig_size,
                        input_grad_contig_size,
                        other_grad_contig_size);

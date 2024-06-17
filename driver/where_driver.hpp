@@ -282,7 +282,7 @@ int WhereDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 {
     uint32_t ctx = 0;
 
-    size_t cond_sz  = GetTensorSpace(condTensor);
+    size_t cond_sz = GetTensorSpace(condTensor);
 
     if(forw == 0)
     {

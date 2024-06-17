@@ -60,8 +60,8 @@ using namespace where;
 
 TEST_P(WhereBwdTestFloat, WhereTestBw)
 {
-    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) &&
-       (GetFloatArg() == "--float" || GetFloatArg() == "--all"))
+    if(miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
+       (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && GetFloatArg() == "--float"))
     {
         RunTest();
         Verify();
@@ -74,8 +74,8 @@ TEST_P(WhereBwdTestFloat, WhereTestBw)
 
 TEST_P(WhereBwdTestFP16, WhereTestBw)
 {
-    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) &&
-       (GetFloatArg() == "--fp16" || GetFloatArg() == "--all"))
+    if(miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
+       (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && GetFloatArg() == "--fp16"))
     {
         RunTest();
         Verify();
@@ -88,8 +88,8 @@ TEST_P(WhereBwdTestFP16, WhereTestBw)
 
 TEST_P(WhereBwdTestBFP16, WhereTestBw)
 {
-    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) &&
-       (GetFloatArg() == "--bfp16" || GetFloatArg() == "--all"))
+    if(miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
+       (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && GetFloatArg() == "--bfp16"))
     {
         RunTest();
         Verify();

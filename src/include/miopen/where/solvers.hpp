@@ -35,6 +35,9 @@ namespace solver {
 
 namespace where {
 
+template <int N>
+int64_t check_broadcasted_contiguous(const tensor_view_t<N>& tensorView);
+
 using WhereBackwardSolver =
     NonTunableSolverBase<ExecutionContext, miopen::where::BackwardProblemDescription>;
 
