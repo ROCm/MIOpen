@@ -134,6 +134,8 @@ public:
 private:
     InputFlags inflags;
 
+    int forw;
+
     miopenTensorDescriptor_t xDesc;
     miopenTensorDescriptor_t yDesc;
     miopenTensorDescriptor_t indiceDesc;
