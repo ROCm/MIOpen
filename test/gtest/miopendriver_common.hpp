@@ -99,10 +99,10 @@ RunMIOpenDriverTestCommand(const std::vector<std::string>& params,
         miopen::Process p{MIOpenDriverExePath()};
         std::vector<char> buffer;
 
-        EXPECT_NO_THROW(commandResult = p.Arguments(param).EnvironmentVariables(map).Capture(buffer).Wait());
+        EXPECT_NO_THROW(commandResult =
+                            p.Arguments(param).EnvironmentVariables(map).Capture(buffer).Wait());
         EXPECT_EQ(commandResult, 0)
-            << "MIOpenDriver exited with non-zero value when running with arguments: "
-            << param;
+            << "MIOpenDriver exited with non-zero value when running with arguments: " << param;
         std::string result{buffer.begin(), buffer.end()};
         EXPECT_THAT(result, Not(HasSubstr("FAILED")));
     }

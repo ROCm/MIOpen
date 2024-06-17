@@ -44,10 +44,7 @@ enum class Direction : bool
 
 struct SystemError : std::runtime_error
 {
-    SystemError()
-        : std::runtime_error{std::system_category().message(GetLastError())}
-    {
-    }
+    SystemError() : std::runtime_error{std::system_category().message(GetLastError())} {}
 };
 
 template <Direction direction>
@@ -55,12 +52,11 @@ struct Pipe
 {
     HANDLE readHandle, writeHandle;
 
-    Pipe()
-        : readHandle{nullptr}, writeHandle{nullptr}
+    Pipe() : readHandle{nullptr}, writeHandle{nullptr}
     {
         SECURITY_ATTRIBUTES attrs;
-        attrs.nLength = sizeof(SECURITY_ATTRIBUTES);
-        attrs.bInheritHandle = TRUE;
+        attrs.nLength              = sizeof(SECURITY_ATTRIBUTES);
+        attrs.bInheritHandle       = TRUE;
         attrs.lpSecurityDescriptor = nullptr;
 
         if(CreatePipe(&readHandle, &writeHandle, &attrs, 0) == FALSE)
@@ -92,7 +88,6 @@ struct Pipe
         {
             CloseHandle(readHandle);
         }
-
     }
 
     bool CloseWriteHandle()
@@ -100,7 +95,7 @@ struct Pipe
         auto result = true;
         if(writeHandle != nullptr)
         {
-            result  = CloseHandle(writeHandle) == TRUE;
+            result      = CloseHandle(writeHandle) == TRUE;
             writeHandle = nullptr;
         }
         return result;
@@ -111,7 +106,7 @@ struct Pipe
         auto result = true;
         if(readHandle != nullptr)
         {
-            result = CloseHandle(readHandle) == TRUE;
+            result     = CloseHandle(readHandle) == TRUE;
             readHandle = nullptr;
         }
         return result;
@@ -173,16 +168,14 @@ struct ProcessImpl
 
         if(!output.CloseWriteHandle())
             MIOPEN_THROW("Error closing STDOUT handle for writing (" +
-                           std::to_string(GetLastError()) + ")");
+                         std::to_string(GetLastError()) + ")");
 
         if(!input.CloseReadHandle())
             MIOPEN_THROW("Error closing STDIN handle for reading (" +
-                          std::to_string(GetLastError()) + ")");
+                         std::to_string(GetLastError()) + ")");
     }
 
-    void EnvironmentVariables(const std::map<std::string_view, std::string_view>& map)
-    {
-    }
+    void EnvironmentVariables(const std::map<std::string_view, std::string_view>& map) {}
 
     void Arguments(std::string_view arguments) { this->args = arguments; }
     void WorkingDirectory(const fs::path& path) { this->cwd = path.string(); }
@@ -191,7 +184,7 @@ struct ProcessImpl
     {
         if(!input.CloseWriteHandle())
             MIOPEN_THROW("Error closing STDIN handle for writing (" +
-                           std::to_string(GetLastError()) + ")");
+                         std::to_string(GetLastError()) + ")");
 
         WaitForSingleObject(processInfo.hProcess, INFINITE);
 
@@ -228,9 +221,9 @@ struct ProcessImpl
                 const std::map<std::string_view, std::string_view>& envs)
     {
         std::string cmd{path.string()};
-        for (auto e : envs)
+        for(auto e : envs)
         {
-            std::string s{}
+            std::string s {}
             cmd.insert(0, " ").insert(0, e.second).insert(0, "=").insert(0, e.first);
         }
         if(!args.empty())
@@ -298,7 +291,7 @@ const Process& Process::Capture(std::vector<char>& buffer) const
 
 const Process& Process::Execute(const std::vector<char>& buffer) const
 {
-    //impl->Create<Direction::Input>({});
+    // impl->Create<Direction::Input>({});
     return *this;
 }
 

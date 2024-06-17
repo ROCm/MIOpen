@@ -60,8 +60,9 @@ void RunMIOpenDriver()
         GTEST_SKIP();
     }
 
-    RunMIOpenDriverTestCommand(MIOpenDriverRegressionInt8Test::GetParam(), {
-        {"MIOPEN_FIND_MODE", "1"}, {"MIOPEN_DEBUG_FIND_ONLY_SOLVER", "ConvDirectNaiveConvFwd"}});
+    RunMIOpenDriverTestCommand(
+        MIOpenDriverRegressionInt8Test::GetParam(),
+        {{"MIOPEN_FIND_MODE", "1"}, {"MIOPEN_DEBUG_FIND_ONLY_SOLVER", "ConvDirectNaiveConvFwd"}});
 };
 
 } // namespace miopendriver_regression_int8

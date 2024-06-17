@@ -73,8 +73,9 @@ void RunMIOpenDriver(const std::string& floatArg, const std::vector<TestCase>& t
         GTEST_SKIP();
     }
 
-    RunMIOpenDriverTestCommand(testCases, {
-        {"MIOPEN_FIND_MODE", "normal"}, {"MIOPEN_DEBUG_FIND_ONLY_SOLVER", "GemmFwdRest"}});
+    RunMIOpenDriverTestCommand(
+        testCases,
+        {{"MIOPEN_FIND_MODE", "normal"}, {"MIOPEN_DEBUG_FIND_ONLY_SOLVER", "GemmFwdRest"}});
 };
 
 } // namespace miopendriver_regression_issue_2047
