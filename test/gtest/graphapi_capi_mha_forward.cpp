@@ -166,64 +166,56 @@ protected:
         auto pwS6 = MakeGapiTensorDesc(GetNextId(), true, m_testN, m_testH, m_testS, m_testD);
 
         // Node creation
-        AddGraphNode(MakeMatmul(m_realTensorMap[miopenTensorMhaQ]->m_gapiDesc,
-                                m_realTensorMap[miopenTensorMhaK]->m_gapiDesc,
-                                tMM0));
-        AddGraphNode(
-            MakePointwise(MIOPEN_POINTWISE_IDENTITY, tMM0, nullptr, pwS0, false, m_attentionScale));
-        AddGraphNode(MakePointwise(MIOPEN_POINTWISE_MUL,
-                                   pwS0,
-                                   m_realTensorMap[miopenTensorMhaDescaleQ]->m_gapiDesc,
-                                   pwS1));
-        AddGraphNode(MakePointwise(MIOPEN_POINTWISE_MUL,
-                                   pwS1,
-                                   m_realTensorMap[miopenTensorMhaDescaleK]->m_gapiDesc,
-                                   pwS2));
+        MakeMatmul(m_realTensorMap[miopenTensorMhaQ]->m_gapiDesc,
+                   m_realTensorMap[miopenTensorMhaK]->m_gapiDesc,
+                   tMM0);
 
-        AddGraphNode(MakeReduction(
-            MIOPEN_REDUCE_TENSOR_MAX, pwS2, m_realTensorMap[miopenTensorMhaM]->m_gapiDesc));
-        AddGraphNode(MakePointwise(
-            MIOPEN_POINTWISE_SUB, pwS2, m_realTensorMap[miopenTensorMhaM]->m_gapiDesc, tSub));
-        AddGraphNode(MakePointwise(MIOPEN_POINTWISE_EXP, tSub, DescriptorWrapperPtr(), tExp));
-        AddGraphNode(MakeReduction(MIOPEN_REDUCE_TENSOR_ADD, tExp, tSum));
-        AddGraphNode(MakePointwise(MIOPEN_POINTWISE_RECIPROCAL,
-                                   tSum,
-                                   DescriptorWrapperPtr(),
-                                   m_realTensorMap[miopenTensorMhaZInv]->m_gapiDesc));
-        AddGraphNode(MakePointwise(
-            MIOPEN_POINTWISE_MUL, tExp, m_realTensorMap[miopenTensorMhaZInv]->m_gapiDesc, tMult0));
+        MakePointwise(MIOPEN_POINTWISE_IDENTITY, tMM0, nullptr, pwS0, false, m_attentionScale);
+        MakePointwise(
+            MIOPEN_POINTWISE_MUL, pwS0, m_realTensorMap[miopenTensorMhaDescaleQ]->m_gapiDesc, pwS1);
+        MakePointwise(
+            MIOPEN_POINTWISE_MUL, pwS1, m_realTensorMap[miopenTensorMhaDescaleK]->m_gapiDesc, pwS2);
 
-        AddGraphNode(MakeReduction(
-            MIOPEN_REDUCE_TENSOR_MAX, tMult0, m_realTensorMap[miopenTensorMhaAmaxS]->m_gapiDesc));
+        MakeReduction(
+            MIOPEN_REDUCE_TENSOR_MAX, pwS2, m_realTensorMap[miopenTensorMhaM]->m_gapiDesc);
+        MakePointwise(
+            MIOPEN_POINTWISE_SUB, pwS2, m_realTensorMap[miopenTensorMhaM]->m_gapiDesc, tSub);
+        MakePointwise(MIOPEN_POINTWISE_EXP, tSub, DescriptorWrapperPtr(), tExp);
+        MakeReduction(MIOPEN_REDUCE_TENSOR_ADD, tExp, tSum);
+        MakePointwise(MIOPEN_POINTWISE_RECIPROCAL,
+                      tSum,
+                      DescriptorWrapperPtr(),
+                      m_realTensorMap[miopenTensorMhaZInv]->m_gapiDesc);
+        MakePointwise(
+            MIOPEN_POINTWISE_MUL, tExp, m_realTensorMap[miopenTensorMhaZInv]->m_gapiDesc, tMult0);
 
-        AddGraphNode(MakeRNG(m_bernulliProbability,
-                             m_realTensorMap[miopenTensorMhaDropoutSeed]->m_gapiDesc,
-                             m_realTensorMap[miopenTensorMhaDropoutOffset]->m_gapiDesc,
-                             tRnd));
+        MakeReduction(
+            MIOPEN_REDUCE_TENSOR_MAX, tMult0, m_realTensorMap[miopenTensorMhaAmaxS]->m_gapiDesc);
 
-        AddGraphNode(MakePointwise(MIOPEN_POINTWISE_MUL, tMult0, tRnd, tMult1));
-        AddGraphNode(MakePointwise(MIOPEN_POINTWISE_MUL,
-                                   tMult1,
-                                   m_realTensorMap[miopenTensorMhaDropoutProbability]->m_gapiDesc,
-                                   pwS3));
-        AddGraphNode(MakePointwise(
-            MIOPEN_POINTWISE_MUL, pwS3, m_realTensorMap[miopenTensorMhaScaleS]->m_gapiDesc, pwS4));
+        MakeRNG(m_bernulliProbability,
+                m_realTensorMap[miopenTensorMhaDropoutSeed]->m_gapiDesc,
+                m_realTensorMap[miopenTensorMhaDropoutOffset]->m_gapiDesc,
+                tRnd);
 
-        AddGraphNode(MakeMatmul(pwS4, m_realTensorMap[miopenTensorMhaV]->m_gapiDesc, tMM1));
-        AddGraphNode(MakePointwise(MIOPEN_POINTWISE_MUL,
-                                   tMM1,
-                                   m_realTensorMap[miopenTensorMhaDescaleS]->m_gapiDesc,
-                                   pwS5));
-        AddGraphNode(MakePointwise(MIOPEN_POINTWISE_MUL,
-                                   pwS5,
-                                   m_realTensorMap[miopenTensorMhaDescaleV]->m_gapiDesc,
-                                   pwS6));
-        AddGraphNode(MakeReduction(
-            MIOPEN_REDUCE_TENSOR_MAX, pwS6, m_realTensorMap[miopenTensorMhaAmaxO]->m_gapiDesc));
-        AddGraphNode(MakePointwise(MIOPEN_POINTWISE_MUL,
-                                   pwS6,
-                                   m_realTensorMap[miopenTensorMhaScaleO]->m_gapiDesc,
-                                   m_realTensorMap[miopenTensorMhaO]->m_gapiDesc));
+        MakePointwise(MIOPEN_POINTWISE_MUL, tMult0, tRnd, tMult1);
+        MakePointwise(MIOPEN_POINTWISE_MUL,
+                      tMult1,
+                      m_realTensorMap[miopenTensorMhaDropoutProbability]->m_gapiDesc,
+                      pwS3);
+        MakePointwise(
+            MIOPEN_POINTWISE_MUL, pwS3, m_realTensorMap[miopenTensorMhaScaleS]->m_gapiDesc, pwS4);
+
+        MakeMatmul(pwS4, m_realTensorMap[miopenTensorMhaV]->m_gapiDesc, tMM1);
+        MakePointwise(
+            MIOPEN_POINTWISE_MUL, tMM1, m_realTensorMap[miopenTensorMhaDescaleS]->m_gapiDesc, pwS5);
+        MakePointwise(
+            MIOPEN_POINTWISE_MUL, pwS5, m_realTensorMap[miopenTensorMhaDescaleV]->m_gapiDesc, pwS6);
+        MakeReduction(
+            MIOPEN_REDUCE_TENSOR_MAX, pwS6, m_realTensorMap[miopenTensorMhaAmaxO]->m_gapiDesc);
+        MakePointwise(MIOPEN_POINTWISE_MUL,
+                      pwS6,
+                      m_realTensorMap[miopenTensorMhaScaleO]->m_gapiDesc,
+                      m_realTensorMap[miopenTensorMhaO]->m_gapiDesc);
     }
 
     virtual void RunCPUverify(miopen::Handle& handle) override
@@ -286,7 +278,7 @@ protected:
         double oError = miopen::rms_range(oDescRef, oRes);
         EXPECT_LT(oError, typedErrorThreshold);
     }
- };
+};
 
 class MhaForwardTestFp32 : public MhaForwardTest<float>
 {

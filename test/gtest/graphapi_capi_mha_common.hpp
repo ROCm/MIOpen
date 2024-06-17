@@ -40,7 +40,6 @@
 #include "../workspace.hpp"
 #include "gtest/mha_helper.hpp"
 
-
 namespace capi_test_mha_common {
 
 miopenStatus_t
@@ -150,7 +149,7 @@ private:
     std::vector<DescriptorWrapperPtr> m_refsToKeep;
 };
 
-using TensorVariant = std::variant<tensor<float>, tensor<float8>, tensor<int64_t>>;
+using TensorVariant = std::variant<tensor<float>, tensor<float8>, tensor<bfloat8>, tensor<int64_t>>;
 
 template <typename T>
 tensor<T>& GetTensor(TensorVariant& var)
@@ -229,177 +228,6 @@ DescriptorWrapperPtr MakeGapiTensorDesc(int64_t uniqueId,
     descWrapperPtr->Finalize();
 
     return descWrapperPtr;
-}
-
-DescriptorWrapperPtr
-MakeMatmul(DescriptorWrapperPtr tensor1, DescriptorWrapperPtr tensor2, DescriptorWrapperPtr output)
-{
-    DescriptorWrapperPtr matmul = MakeDescriptor(MIOPEN_BACKEND_MATMUL_DESCRIPTOR);
-
-    miopenDataType_t dType = miopenFloat;
-    matmul->SetAttribute(MIOPEN_ATTR_MATMUL_COMP_TYPE, MIOPEN_TYPE_DATA_TYPE, 1, &dType);
-    matmul->Finalize();
-
-    miopenBackendDescriptor_t childDesc = matmul->GetDescriptor();
-
-    miopenBackendDescriptor_t tensor1Desc = tensor1->GetDescriptor();
-    miopenBackendDescriptor_t tensor2Desc = tensor2->GetDescriptor();
-    miopenBackendDescriptor_t outputDesc  = output->GetDescriptor();
-
-    DescriptorWrapperPtr matmulOperation =
-        MakeDescriptor(MIOPEN_BACKEND_OPERATION_MATMUL_DESCRIPTOR);
-    matmulOperation->SetAttribute(
-        MIOPEN_ATTR_OPERATION_MATMUL_DESC, MIOPEN_TYPE_BACKEND_DESCRIPTOR, 1, &childDesc);
-    matmulOperation->SetAttribute(
-        MIOPEN_ATTR_OPERATION_MATMUL_ADESC, MIOPEN_TYPE_BACKEND_DESCRIPTOR, 1, &tensor1Desc);
-    matmulOperation->SetAttribute(
-        MIOPEN_ATTR_OPERATION_MATMUL_BDESC, MIOPEN_TYPE_BACKEND_DESCRIPTOR, 1, &tensor2Desc);
-    matmulOperation->SetAttribute(
-        MIOPEN_ATTR_OPERATION_MATMUL_CDESC, MIOPEN_TYPE_BACKEND_DESCRIPTOR, 1, &outputDesc);
-
-    matmulOperation->AddRef(matmul);
-    matmulOperation->AddRef(tensor1);
-    matmulOperation->AddRef(tensor2);
-    matmulOperation->AddRef(output);
-
-    matmulOperation->Finalize();
-
-    return matmulOperation;
-}
-
-DescriptorWrapperPtr MakePointwise(miopenPointwiseMode_t mode,
-                                   DescriptorWrapperPtr tensor1,
-                                   DescriptorWrapperPtr tensor2,
-                                   DescriptorWrapperPtr output,
-                                   bool setAlpha1Param = false,
-                                   float alpha1Param   = 0.0f)
-{
-    DescriptorWrapperPtr pointwise = MakeDescriptor(MIOPEN_BACKEND_POINTWISE_DESCRIPTOR);
-
-    pointwise->SetAttribute(MIOPEN_ATTR_POINTWISE_MODE, MIOPEN_TYPE_POINTWISE_MODE, 1, &mode);
-
-    miopenDataType_t dType = miopenFloat;
-    pointwise->SetAttribute(MIOPEN_ATTR_POINTWISE_MATH_PREC, MIOPEN_TYPE_DATA_TYPE, 1, &dType);
-    pointwise->Finalize();
-
-    miopenBackendDescriptor_t childDesc = pointwise->GetDescriptor();
-
-    miopenBackendDescriptor_t tensor1Desc = tensor1->GetDescriptor();
-    miopenBackendDescriptor_t tensor2Desc = nullptr;
-
-    if(tensor2)
-    {
-        tensor2Desc = tensor2->GetDescriptor();
-    }
-
-    miopenBackendDescriptor_t outputDesc = output->GetDescriptor();
-
-    DescriptorWrapperPtr pointwiseOperation =
-        MakeDescriptor(MIOPEN_BACKEND_OPERATION_POINTWISE_DESCRIPTOR);
-    pointwiseOperation->SetAttribute(MIOPEN_ATTR_OPERATION_POINTWISE_PW_DESCRIPTOR,
-                                     MIOPEN_TYPE_BACKEND_DESCRIPTOR,
-                                     1,
-                                     &childDesc);
-    pointwiseOperation->SetAttribute(
-        MIOPEN_ATTR_OPERATION_POINTWISE_XDESC, MIOPEN_TYPE_BACKEND_DESCRIPTOR, 1, &tensor1Desc);
-
-    if(tensor2)
-    {
-        pointwiseOperation->SetAttribute(
-            MIOPEN_ATTR_OPERATION_POINTWISE_BDESC, MIOPEN_TYPE_BACKEND_DESCRIPTOR, 1, &tensor2Desc);
-
-        pointwiseOperation->AddRef(tensor2);
-    }
-
-    pointwiseOperation->SetAttribute(
-        MIOPEN_ATTR_OPERATION_POINTWISE_YDESC, MIOPEN_TYPE_BACKEND_DESCRIPTOR, 1, &outputDesc);
-
-    if(setAlpha1Param)
-    {
-        pointwiseOperation->SetAttribute(
-            MIOPEN_ATTR_OPERATION_POINTWISE_ALPHA1, MIOPEN_TYPE_FLOAT, 1, &alpha1Param);
-    }
-
-    pointwiseOperation->AddRef(pointwise);
-    pointwiseOperation->AddRef(tensor1);
-    pointwiseOperation->AddRef(output);
-
-    pointwiseOperation->Finalize();
-
-    return pointwiseOperation;
-}
-
-DescriptorWrapperPtr MakeReduction(miopenReduceTensorOp_t opType,
-                                   DescriptorWrapperPtr tensor1,
-                                   DescriptorWrapperPtr output)
-{
-    DescriptorWrapperPtr reduction = MakeDescriptor(MIOPEN_BACKEND_REDUCTION_DESCRIPTOR);
-
-    miopenDataType_t dType = miopenFloat;
-    reduction->SetAttribute(MIOPEN_ATTR_REDUCTION_COMP_TYPE, MIOPEN_TYPE_DATA_TYPE, 1, &dType);
-
-    reduction->SetAttribute(
-        MIOPEN_ATTR_REDUCTION_OPERATOR, MIOPEN_TYPE_REDUCTION_OPERATOR_TYPE, 1, &opType);
-    reduction->Finalize();
-
-    miopenBackendDescriptor_t childDesc = reduction->GetDescriptor();
-
-    miopenBackendDescriptor_t tensor1Desc = tensor1->GetDescriptor();
-    miopenBackendDescriptor_t outputDesc  = output->GetDescriptor();
-
-    DescriptorWrapperPtr reductionOperation =
-        MakeDescriptor(MIOPEN_BACKEND_OPERATION_REDUCTION_DESCRIPTOR);
-    reductionOperation->SetAttribute(
-        MIOPEN_ATTR_OPERATION_REDUCTION_XDESC, MIOPEN_TYPE_BACKEND_DESCRIPTOR, 1, &tensor1Desc);
-    reductionOperation->SetAttribute(
-        MIOPEN_ATTR_OPERATION_REDUCTION_YDESC, MIOPEN_TYPE_BACKEND_DESCRIPTOR, 1, &outputDesc);
-    reductionOperation->SetAttribute(
-        MIOPEN_ATTR_OPERATION_REDUCTION_DESC, MIOPEN_TYPE_BACKEND_DESCRIPTOR, 1, &childDesc);
-
-    reductionOperation->AddRef(reduction);
-    reductionOperation->AddRef(tensor1);
-    reductionOperation->AddRef(output);
-
-    reductionOperation->Finalize();
-
-    return reductionOperation;
-}
-
-DescriptorWrapperPtr MakeRNG(double probability,
-                             DescriptorWrapperPtr seed,
-                             DescriptorWrapperPtr offset,
-                             DescriptorWrapperPtr output)
-{
-    DescriptorWrapperPtr rng = MakeDescriptor(MIOPEN_BACKEND_RNG_DESCRIPTOR);
-
-    rng->SetAttribute(
-        MIOPEN_ATTR_RNG_BERNOULLI_DIST_PROBABILITY, MIOPEN_TYPE_DOUBLE, 1, &probability);
-    rng->Finalize();
-
-    miopenBackendDescriptor_t childDesc = rng->GetDescriptor();
-
-    miopenBackendDescriptor_t seedDesc   = seed->GetDescriptor();
-    miopenBackendDescriptor_t offsetDesc = offset->GetDescriptor();
-    miopenBackendDescriptor_t outputDesc = output->GetDescriptor();
-
-    DescriptorWrapperPtr rngOperation = MakeDescriptor(MIOPEN_BACKEND_OPERATION_RNG_DESCRIPTOR);
-    rngOperation->SetAttribute(
-        MIOPEN_ATTR_OPERATION_RNG_DESC, MIOPEN_TYPE_BACKEND_DESCRIPTOR, 1, &childDesc);
-    rngOperation->SetAttribute(
-        MIOPEN_ATTR_OPERATION_RNG_SEED, MIOPEN_TYPE_BACKEND_DESCRIPTOR, 1, &seedDesc);
-    rngOperation->SetAttribute(
-        MIOPEN_ATTR_OPERATION_RNG_OFFSET_DESC, MIOPEN_TYPE_BACKEND_DESCRIPTOR, 1, &offsetDesc);
-    rngOperation->SetAttribute(
-        MIOPEN_ATTR_OPERATION_RNG_YDESC, MIOPEN_TYPE_BACKEND_DESCRIPTOR, 1, &outputDesc);
-
-    rngOperation->AddRef(rng);
-    rngOperation->AddRef(seed);
-    rngOperation->AddRef(offset);
-    rngOperation->AddRef(output);
-
-    rngOperation->Finalize();
-
-    return rngOperation;
 }
 
 template <typename T>
@@ -590,19 +418,17 @@ protected:
 
     virtual void RunCPUverify(miopen::Handle& handle) = 0;
 
-    void AddGraphNode(DescriptorWrapperPtr node) { m_nodeVector.push_back(node); }
-
     // For real tensors we use values from enum miopenTensorArgumentId_t (miopen.h) jsut to have
     // some unique and named values. For virtual tensors we use identifiers starting from "max id
     // from real tensors" + 1
-    void MakeAndAddRealTensorDescriptor(int64_t tensorId,
-                                        bool isVirtual         = false,
-                                        size_t n               = 1,
-                                        size_t h               = 1,
-                                        size_t s               = 1,
-                                        size_t d               = 1,
-                                        miopenDataType_t dtype = miopenFloat,
-                                        bool transpose         = false)
+    TensorData& MakeAndAddRealTensorDescriptor(int64_t tensorId,
+                                               bool isVirtual         = false,
+                                               size_t n               = 1,
+                                               size_t h               = 1,
+                                               size_t s               = 1,
+                                               size_t d               = 1,
+                                               miopenDataType_t dtype = miopenFloat,
+                                               bool transpose         = false)
     {
         DescriptorWrapperPtr realTensorGapiDesc =
             MakeGapiTensorDesc(tensorId, isVirtual, n, h, s, d, dtype, transpose);
@@ -632,10 +458,194 @@ protected:
         // Here we memorize maximum id from real tensors set -to start from this value + 1 for
         // virtual tensors set.
         m_nextTensorId = std::max(m_nextTensorId, tensorId);
+
+        return *tensorDataPtr;
     }
 
     // just a simple id generator, might be redone if necessary
     int64_t GetNextId() { return m_nextTensorId++; }
+
+    DescriptorWrapperPtr MakeMatmul(DescriptorWrapperPtr tensor1,
+                                    DescriptorWrapperPtr tensor2,
+                                    DescriptorWrapperPtr output)
+    {
+        DescriptorWrapperPtr matmul = MakeDescriptor(MIOPEN_BACKEND_MATMUL_DESCRIPTOR);
+
+        miopenDataType_t dType = miopenFloat;
+        matmul->SetAttribute(MIOPEN_ATTR_MATMUL_COMP_TYPE, MIOPEN_TYPE_DATA_TYPE, 1, &dType);
+        matmul->Finalize();
+
+        miopenBackendDescriptor_t childDesc = matmul->GetDescriptor();
+
+        miopenBackendDescriptor_t tensor1Desc = tensor1->GetDescriptor();
+        miopenBackendDescriptor_t tensor2Desc = tensor2->GetDescriptor();
+        miopenBackendDescriptor_t outputDesc  = output->GetDescriptor();
+
+        DescriptorWrapperPtr matmulOperation =
+            MakeDescriptor(MIOPEN_BACKEND_OPERATION_MATMUL_DESCRIPTOR);
+        matmulOperation->SetAttribute(
+            MIOPEN_ATTR_OPERATION_MATMUL_DESC, MIOPEN_TYPE_BACKEND_DESCRIPTOR, 1, &childDesc);
+        matmulOperation->SetAttribute(
+            MIOPEN_ATTR_OPERATION_MATMUL_ADESC, MIOPEN_TYPE_BACKEND_DESCRIPTOR, 1, &tensor1Desc);
+        matmulOperation->SetAttribute(
+            MIOPEN_ATTR_OPERATION_MATMUL_BDESC, MIOPEN_TYPE_BACKEND_DESCRIPTOR, 1, &tensor2Desc);
+        matmulOperation->SetAttribute(
+            MIOPEN_ATTR_OPERATION_MATMUL_CDESC, MIOPEN_TYPE_BACKEND_DESCRIPTOR, 1, &outputDesc);
+
+        matmulOperation->AddRef(matmul);
+        matmulOperation->AddRef(tensor1);
+        matmulOperation->AddRef(tensor2);
+        matmulOperation->AddRef(output);
+
+        matmulOperation->Finalize();
+
+        AddGraphNode(matmulOperation);
+
+        return matmulOperation;
+    }
+
+    DescriptorWrapperPtr MakePointwise(miopenPointwiseMode_t mode,
+                                       DescriptorWrapperPtr tensor1,
+                                       DescriptorWrapperPtr tensor2,
+                                       DescriptorWrapperPtr output,
+                                       bool setAlpha1Param = false,
+                                       float alpha1Param   = 0.0f)
+    {
+        DescriptorWrapperPtr pointwise = MakeDescriptor(MIOPEN_BACKEND_POINTWISE_DESCRIPTOR);
+
+        pointwise->SetAttribute(MIOPEN_ATTR_POINTWISE_MODE, MIOPEN_TYPE_POINTWISE_MODE, 1, &mode);
+
+        miopenDataType_t dType = miopenFloat;
+        pointwise->SetAttribute(MIOPEN_ATTR_POINTWISE_MATH_PREC, MIOPEN_TYPE_DATA_TYPE, 1, &dType);
+        pointwise->Finalize();
+
+        miopenBackendDescriptor_t childDesc = pointwise->GetDescriptor();
+
+        miopenBackendDescriptor_t tensor1Desc = tensor1->GetDescriptor();
+        miopenBackendDescriptor_t tensor2Desc = nullptr;
+
+        if(tensor2)
+        {
+            tensor2Desc = tensor2->GetDescriptor();
+        }
+
+        miopenBackendDescriptor_t outputDesc = output->GetDescriptor();
+
+        DescriptorWrapperPtr pointwiseOperation =
+            MakeDescriptor(MIOPEN_BACKEND_OPERATION_POINTWISE_DESCRIPTOR);
+        pointwiseOperation->SetAttribute(MIOPEN_ATTR_OPERATION_POINTWISE_PW_DESCRIPTOR,
+                                         MIOPEN_TYPE_BACKEND_DESCRIPTOR,
+                                         1,
+                                         &childDesc);
+        pointwiseOperation->SetAttribute(
+            MIOPEN_ATTR_OPERATION_POINTWISE_XDESC, MIOPEN_TYPE_BACKEND_DESCRIPTOR, 1, &tensor1Desc);
+
+        if(tensor2)
+        {
+            pointwiseOperation->SetAttribute(MIOPEN_ATTR_OPERATION_POINTWISE_BDESC,
+                                             MIOPEN_TYPE_BACKEND_DESCRIPTOR,
+                                             1,
+                                             &tensor2Desc);
+
+            pointwiseOperation->AddRef(tensor2);
+        }
+
+        pointwiseOperation->SetAttribute(
+            MIOPEN_ATTR_OPERATION_POINTWISE_YDESC, MIOPEN_TYPE_BACKEND_DESCRIPTOR, 1, &outputDesc);
+
+        if(setAlpha1Param)
+        {
+            pointwiseOperation->SetAttribute(
+                MIOPEN_ATTR_OPERATION_POINTWISE_ALPHA1, MIOPEN_TYPE_FLOAT, 1, &alpha1Param);
+        }
+
+        pointwiseOperation->AddRef(pointwise);
+        pointwiseOperation->AddRef(tensor1);
+        pointwiseOperation->AddRef(output);
+
+        pointwiseOperation->Finalize();
+
+        AddGraphNode(pointwiseOperation);
+
+        return pointwiseOperation;
+    }
+
+    DescriptorWrapperPtr MakeReduction(miopenReduceTensorOp_t opType,
+                                       DescriptorWrapperPtr tensor1,
+                                       DescriptorWrapperPtr output)
+    {
+        DescriptorWrapperPtr reduction = MakeDescriptor(MIOPEN_BACKEND_REDUCTION_DESCRIPTOR);
+
+        miopenDataType_t dType = miopenFloat;
+        reduction->SetAttribute(MIOPEN_ATTR_REDUCTION_COMP_TYPE, MIOPEN_TYPE_DATA_TYPE, 1, &dType);
+
+        reduction->SetAttribute(
+            MIOPEN_ATTR_REDUCTION_OPERATOR, MIOPEN_TYPE_REDUCTION_OPERATOR_TYPE, 1, &opType);
+        reduction->Finalize();
+
+        miopenBackendDescriptor_t childDesc = reduction->GetDescriptor();
+
+        miopenBackendDescriptor_t tensor1Desc = tensor1->GetDescriptor();
+        miopenBackendDescriptor_t outputDesc  = output->GetDescriptor();
+
+        DescriptorWrapperPtr reductionOperation =
+            MakeDescriptor(MIOPEN_BACKEND_OPERATION_REDUCTION_DESCRIPTOR);
+        reductionOperation->SetAttribute(
+            MIOPEN_ATTR_OPERATION_REDUCTION_XDESC, MIOPEN_TYPE_BACKEND_DESCRIPTOR, 1, &tensor1Desc);
+        reductionOperation->SetAttribute(
+            MIOPEN_ATTR_OPERATION_REDUCTION_YDESC, MIOPEN_TYPE_BACKEND_DESCRIPTOR, 1, &outputDesc);
+        reductionOperation->SetAttribute(
+            MIOPEN_ATTR_OPERATION_REDUCTION_DESC, MIOPEN_TYPE_BACKEND_DESCRIPTOR, 1, &childDesc);
+
+        reductionOperation->AddRef(reduction);
+        reductionOperation->AddRef(tensor1);
+        reductionOperation->AddRef(output);
+
+        reductionOperation->Finalize();
+
+        AddGraphNode(reductionOperation);
+
+        return reductionOperation;
+    }
+
+    DescriptorWrapperPtr MakeRNG(double probability,
+                                 DescriptorWrapperPtr seed,
+                                 DescriptorWrapperPtr offset,
+                                 DescriptorWrapperPtr output)
+    {
+        DescriptorWrapperPtr rng = MakeDescriptor(MIOPEN_BACKEND_RNG_DESCRIPTOR);
+
+        rng->SetAttribute(
+            MIOPEN_ATTR_RNG_BERNOULLI_DIST_PROBABILITY, MIOPEN_TYPE_DOUBLE, 1, &probability);
+        rng->Finalize();
+
+        miopenBackendDescriptor_t childDesc = rng->GetDescriptor();
+
+        miopenBackendDescriptor_t seedDesc   = seed->GetDescriptor();
+        miopenBackendDescriptor_t offsetDesc = offset->GetDescriptor();
+        miopenBackendDescriptor_t outputDesc = output->GetDescriptor();
+
+        DescriptorWrapperPtr rngOperation = MakeDescriptor(MIOPEN_BACKEND_OPERATION_RNG_DESCRIPTOR);
+        rngOperation->SetAttribute(
+            MIOPEN_ATTR_OPERATION_RNG_DESC, MIOPEN_TYPE_BACKEND_DESCRIPTOR, 1, &childDesc);
+        rngOperation->SetAttribute(
+            MIOPEN_ATTR_OPERATION_RNG_SEED, MIOPEN_TYPE_BACKEND_DESCRIPTOR, 1, &seedDesc);
+        rngOperation->SetAttribute(
+            MIOPEN_ATTR_OPERATION_RNG_OFFSET_DESC, MIOPEN_TYPE_BACKEND_DESCRIPTOR, 1, &offsetDesc);
+        rngOperation->SetAttribute(
+            MIOPEN_ATTR_OPERATION_RNG_YDESC, MIOPEN_TYPE_BACKEND_DESCRIPTOR, 1, &outputDesc);
+
+        rngOperation->AddRef(rng);
+        rngOperation->AddRef(seed);
+        rngOperation->AddRef(offset);
+        rngOperation->AddRef(output);
+
+        rngOperation->Finalize();
+
+        AddGraphNode(rngOperation);
+
+        return rngOperation;
+    }
 
 protected:
     size_t m_testN = 0;
@@ -655,9 +665,9 @@ protected:
     int64_t m_workspaceSize = 0;
 
     DescriptorWrapperPtr m_executionPlan;
+
+private:
+    void AddGraphNode(DescriptorWrapperPtr node) { m_nodeVector.push_back(node); }
 };
 
-
-
-
-} // capi_test_mha_common
+} // namespace capi_test_mha_common

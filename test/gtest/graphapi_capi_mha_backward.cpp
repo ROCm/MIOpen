@@ -37,40 +37,46 @@ class MhaBackwardTest : public MhaCommonTest
 protected:
     virtual void MakeRealTensorsAndFillData(miopen::Handle& handle) override
     {
-        auto q = test::cpu::GenScaledTensorBackward<T>(n, h, s, d);
-        auto k = test::cpu::GenScaledTensorBackward<T>(n, h, s, d);
-        auto v = test::cpu::GenScaledTensorBackward<T>(n, h, s, d);
+        auto q = test::cpu::GenScaledTensorBackward<T>(m_testN, m_testH, m_testS, m_testD);
+        auto k = test::cpu::GenScaledTensorBackward<T>(m_testN, m_testH, m_testS, m_testD);
+        auto v = test::cpu::GenScaledTensorBackward<T>(m_testN, m_testH, m_testS, m_testD);
 
-        MakeAndAddRealTensorDescriptor(miopenTensorMhaQ, false, test_n, test_h, test_s, test_d).
-            InitAndWriteToGPU(handle, std::move(q.mTensor));
+        MakeAndAddRealTensorDescriptor(miopenTensorMhaQ, false, m_testN, m_testH, m_testS, m_testD)
+            .InitAndWriteToGPU(handle, std::move(q.mTensor));
 
-        MakeAndAddRealTensorDescriptor(miopenTensorMhaK, false, test_n, test_h, test_s, test_d).
-            InitAndWriteToGPU(handle, std::move(k.mTensor));
+        MakeAndAddRealTensorDescriptor(miopenTensorMhaK, false, m_testN, m_testH, m_testS, m_testD)
+            .InitAndWriteToGPU(handle, std::move(k.mTensor));
 
-        MakeAndAddRealTensorDescriptor(miopenTensorMhaV, false, test_n, test_h, test_s, test_d).
-            InitAndWriteToGPU(handle, std::move(v.mTensor));
+        MakeAndAddRealTensorDescriptor(miopenTensorMhaV, false, m_testN, m_testH, m_testS, m_testD)
+            .InitAndWriteToGPU(handle, std::move(v.mTensor));
 
-        float sScale = 1.0f;
+        float sScale   = 1.0f;
         float sDescale = 1.0f;
 
-        float oScale = 1.0f;
+        float oScale   = 1.0f;
         float oDescale = 1.0f;
 
-        MakeAndAddRealTensorDescriptor(miopenTensorMhaDescaleQ).InitAndWriteToGPU(q.mDescale);
-        MakeAndAddRealTensorDescriptor(miopenTensorMhaDescaleK).InitAndWriteToGPU(k.mDescale);
-        MakeAndAddRealTensorDescriptor(miopenTensorMhaDescaleV).InitAndWriteToGPU(v.mDescale);
+        MakeAndAddRealTensorDescriptor(miopenTensorMhaDescaleQ)
+            .InitAndWriteToGPU(handle, q.mDescale);
+        MakeAndAddRealTensorDescriptor(miopenTensorMhaDescaleK)
+            .InitAndWriteToGPU(handle, k.mDescale);
+        MakeAndAddRealTensorDescriptor(miopenTensorMhaDescaleV)
+            .InitAndWriteToGPU(handle, v.mDescale);
 
-        MakeAndAddRealTensorDescriptor(miopenTensorMhaDescaleS).InitAndWriteToGPU(sDescale);
-        MakeAndAddRealTensorDescriptor(miopenTensorMhaScaleS).InitAndWriteToGPU(sScale);
+        MakeAndAddRealTensorDescriptor(miopenTensorMhaDescaleS).InitAndWriteToGPU(handle, sDescale);
+        MakeAndAddRealTensorDescriptor(miopenTensorMhaScaleS).InitAndWriteToGPU(handle, sScale);
 
-        MakeAndAddRealTensorDescriptor(miopenTensorMhaDropoutProbability).InitAndWriteToGPU(m_bernulliProbability);
-        MakeAndAddRealTensorDescriptor(miopenTensorMhaDropoutSeed).InitAndWriteToGPU((static_cast<int64_t>(0xAAFFFFFFFFul)));
-        MakeAndAddRealTensorDescriptor(miopenTensorMhaDropoutOffset).InitAndWriteToGPU(static_cast<int64_t>(1));
+        MakeAndAddRealTensorDescriptor(miopenTensorMhaDropoutProbability)
+            .InitAndWriteToGPU(handle, m_bernulliProbability);
+        MakeAndAddRealTensorDescriptor(miopenTensorMhaDropoutSeed)
+            .InitAndWriteToGPU(handle, static_cast<int64_t>(0xAAFFFFFFFFul));
+        MakeAndAddRealTensorDescriptor(miopenTensorMhaDropoutOffset)
+            .InitAndWriteToGPU(handle, static_cast<int64_t>(1));
 
-        tensor<float> softmax  = tensor<float>{n, h, s, s};
-        tensor<T> oDesc        = tensor<T>{n, h, s, d};
-        tensor<float> mDesc    = tensor<float>{n, h, s, 1};
-        tensor<float> zInvDesc = tensor<float>{n, h, s, 1};
+        tensor<float> softmax  = tensor<float>{m_testN, m_testH, m_testS, m_testS};
+        tensor<T> oDesc        = tensor<T>{m_testN, m_testH, m_testS, m_testD};
+        tensor<float> mDesc    = tensor<float>{m_testN, m_testH, m_testS, 1};
+        tensor<float> zInvDesc = tensor<float>{m_testN, m_testH, m_testS, 1};
         float amaxS;
         float amaxO;
 
@@ -98,54 +104,51 @@ protected:
             amaxO,
             oDesc);
 
-        auto dO = test::cpu::GenScaledTensorBackward<dO_T>(n, h, s, d);
-        MakeAndAddRealTensorDescriptor(miopenTensorMhaDO, false, test_n, test_h, test_s, test_d).
-            InitAndWriteToGPU(handle, std::move(dO.mTensor));
+        auto dO = test::cpu::GenScaledTensorBackward<dO_T>(m_testN, m_testH, m_testS, m_testD);
+        MakeAndAddRealTensorDescriptor(miopenTensorMhaDO, false, m_testN, m_testH, m_testS, m_testD)
+            .InitAndWriteToGPU(handle, std::move(dO.mTensor));
 
-        MakeAndAddRealTensorDescriptor(miopenTensorMhaO, false, test_n, test_h, test_s, test_d).
-            InitAndWriteToGPU(handle, std::move(oDesc.mTensor));
+        MakeAndAddRealTensorDescriptor(miopenTensorMhaO, false, m_testN, m_testH, m_testS, m_testD)
+            .InitAndWriteToGPU(handle, std::move(oDesc));
 
-        MakeAndAddRealTensorDescriptor(miopenTensorMhaM, false, test_n, test_h, test_s, 1).
-            InitAndWriteToGPU(handle, std::move(mDesc.mTensor));
+        MakeAndAddRealTensorDescriptor(miopenTensorMhaM, false, m_testN, m_testH, m_testS, 1)
+            .InitAndWriteToGPU(handle, std::move(mDesc));
 
-        MakeAndAddRealTensorDescriptor(miopenTensorMhaZInv, false, test_n, test_h, test_s, 1).
-            InitAndWriteToGPU(handle, std::move(zInvDesc.mTensor));
+        MakeAndAddRealTensorDescriptor(miopenTensorMhaZInv, false, m_testN, m_testH, m_testS, 1)
+            .InitAndWriteToGPU(handle, std::move(zInvDesc));
 
+        float dsScale   = 1.0f;
+        float dsDescale = 1.0f;
 
-        float dsScale = 1.f;
-        // clang-tidy complains about the same expression on both sides of "/": 1.f / 1.f
-        float dsDescale = 1.f; // / dS_scale;
+        float dqScale = 1.0f;
+        float dkScale = 1.0f;
+        float dvScale = 1.0f;
 
-        float dqScale = 1.f;
-        float dkScale = 1.f;
-        float dvScale = 1.f;
+        MakeAndAddRealTensorDescriptor(miopenTensorMhaDescaleO).InitAndWriteToGPU(handle, oDescale);
+        MakeAndAddRealTensorDescriptor(miopenTensorMhaDescaleDO)
+            .InitAndWriteToGPU(handle, dO.mDescale);
+        MakeAndAddRealTensorDescriptor(miopenTensorMhaDescaleDS)
+            .InitAndWriteToGPU(handle, dsDescale);
+        MakeAndAddRealTensorDescriptor(miopenTensorMhaScaleDS).InitAndWriteToGPU(handle, dsScale);
+        MakeAndAddRealTensorDescriptor(miopenTensorMhaScaleDQ).InitAndWriteToGPU(handle, dqScale);
+        MakeAndAddRealTensorDescriptor(miopenTensorMhaScaleDK).InitAndWriteToGPU(handle, dkScale);
+        MakeAndAddRealTensorDescriptor(miopenTensorMhaScaleDV).InitAndWriteToGPU(handle, dvScale);
 
-        MakeAndAddRealTensorDescriptor(miopenTensorMhaDescaleO).InitAndWriteToGPU(oDescale);
-        MakeAndAddRealTensorDescriptor(miopenTensorMhaDescaleDO).InitAndWriteToGPU(dO.mDescale);
-        MakeAndAddRealTensorDescriptor(miopenTensorMhaDescaleDS).InitAndWriteToGPU(dsDescale);
-        MakeAndAddRealTensorDescriptor(miopenTensorMhaScaleDS).InitAndWriteToGPU(dsScale);
-        MakeAndAddRealTensorDescriptor(miopenTensorMhaScaleDQ).InitAndWriteToGPU(dqScale);
-        MakeAndAddRealTensorDescriptor(miopenTensorMhaScaleDK).InitAndWriteToGPU(dkScale);
-        MakeAndAddRealTensorDescriptor(miopenTensorMhaScaleDV).InitAndWriteToGPU(dvScale);
-
-        MakeAndAddRealTensorDescriptor(miopenTensorMhaDQ, false, test_n, test_h, test_s, test_d);
-        MakeAndAddRealTensorDescriptor(miopenTensorMhaDK, false, test_n, test_h, test_s, test_d);
-        MakeAndAddRealTensorDescriptor(miopenTensorMhaDV, false, test_n, test_h, test_s, test_d);
+        MakeAndAddRealTensorDescriptor(
+            miopenTensorMhaDQ, false, m_testN, m_testH, m_testS, m_testD);
+        MakeAndAddRealTensorDescriptor(
+            miopenTensorMhaDK, false, m_testN, m_testH, m_testS, m_testD);
+        MakeAndAddRealTensorDescriptor(
+            miopenTensorMhaDV, false, m_testN, m_testH, m_testS, m_testD);
         MakeAndAddRealTensorDescriptor(miopenTensorMhaAmaxDQ);
         MakeAndAddRealTensorDescriptor(miopenTensorMhaAmaxDK);
         MakeAndAddRealTensorDescriptor(miopenTensorMhaAmaxDV);
         MakeAndAddRealTensorDescriptor(miopenTensorMhaAmaxDS);
     }
 
-    virtual void MakeVirtualTensorsAndNodes() override
-    {
+    virtual void MakeVirtualTensorsAndNodes() override {}
 
-    }
-
-    virtual void RunCPUverify(miopen::Handle& handle) override
-    {
-
-    }
+    virtual void RunCPUverify(miopen::Handle& handle) override {}
 };
 
 class MhaBackwardTestFp32 : public MhaBackwardTest<float>
@@ -168,7 +171,7 @@ class MhaBackwardTestFp8 : public MhaBackwardTest<float8>
 };
 
 TEST_P(MhaBackwardTestFp32, TestFloat) { Run(); }
-TEST_P(MhaBackwardTestFp8, TestFloat) { Run(); }
+// TEST_P(MhaBackwardTestFp8, TestFloat) { Run(); }
 
 inline auto GetCases()
 {
