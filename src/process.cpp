@@ -26,6 +26,7 @@
 
 #include <miopen/errors.hpp>
 #include <miopen/process.hpp>
+#include <functional>
 #include <vector>
 #include <string_view>
 
@@ -236,46 +237,35 @@ struct ProcessImpl
         pipe = popen(GetCommand().c_str(), "r");
         if(pipe == nullptr)
             MIOPEN_THROW("Error: popen()");
-        output_buffer = nullptr;
+        buffer_reference = nullptr;
     }
 
-    void Read(std::vector<char>& buffer)
+    void Read(void *buffer, const std::size_t size)
     {
-        pipe = popen(GetCommand().c_str(), "r");
+        const auto cmd{GetCommand()};
+        std::cout << "COMMAND: " << cmd << "\n";
+        pipe = popen(cmd.c_str(), "r");
         if(pipe == nullptr)
             MIOPEN_THROW("Error: popen()");
-        output_buffer = &buffer;
+        buffer_size = size;
+        buffer_reference = buffer;
     }
 
-    void Write(const std::vector<char>& buffer)
+    void Write(const void *buffer, const std::size_t size)
     {
         pipe = popen(GetCommand().c_str(), "w");
         if(pipe == nullptr)
             MIOPEN_THROW("Error: popen()");
-        output_buffer = nullptr;
-        std::fwrite(buffer.data(), 1, buffer.size(), pipe);
+        buffer_reference = nullptr;
+        std::fwrite(buffer, 1, size, pipe);
     }
 
     int Wait() const
     {
-        std::array<char, 1024> buffer{};
-        if(output_buffer != nullptr)
-        {
-            output_buffer->clear();
-            while(feof(pipe) == 0)
-            {
-                if(fgets(buffer.data(), buffer.size(), pipe) != nullptr)
-                    output_buffer->insert(output_buffer->end(), buffer.begin(), buffer.end());
-            }
-        }
-        else
-        {
-            while(feof(pipe) == 0)
-            {
-                if(fgets(buffer.data(), buffer.size(), pipe) != nullptr)
-                    std::cout << buffer.data();
-            }
-        }
+        // std::array<char, 1024> buffer{};
+        // std::size_t offset = 0;
+        // while(fgets(buffer.data(), buffer.size(), pipe) != nullptr)
+        //    offset = std_out(buffer.data(), offset);
         auto status = pclose(pipe);
         return WEXITSTATUS(status);
     }
@@ -294,7 +284,8 @@ private:
     std::string args;
     std::string cwd;
     std::string envs;
-    std::vector<char>* output_buffer = nullptr;
+    void* buffer_reference = nullptr;
+    std::size_t buffer_size = 0;
 };
 
 #endif
@@ -327,15 +318,15 @@ const Process& Process::Execute() const
     return *this;
 }
 
-const Process& Process::Read(std::vector<char>& buffer) const
+const Process& Process::Read(void *buffer, const std::size_t size) const
 {
-    impl->Read(buffer);
+    impl->Read(buffer, size);
     return *this;
 }
 
-const Process& Process::Write(const std::vector<char>& buffer) const
+const Process& Process::Write(const void *buffer, const std::size_t size) const
 {
-    impl->Write(buffer);
+    impl->Write(buffer, size);
     return *this;
 }
 
