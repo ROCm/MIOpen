@@ -122,8 +122,17 @@ InvokerFactory MakeGcnAsmWinoV2InvokerFactory(const WinoShaderArgsV2& args,
                 const int idx          = do_bias ? 2 : 1;
                 const auto& activ_args =
                     dynamic_cast<fusion::ActivationOpInvokeParam&>(*invoke_ctx.op_args.params[idx]);
-                alpha = activ_args.activAlpha;
-                beta  = activ_args.activBeta;
+                if(args.activation_mode == WinoShaderActivationModeV2_t::SCALED_TANH)
+                {
+                    // The kernel uses a different expression in which alpha and beta are swapped
+                    alpha = activ_args.activBeta;
+                    beta  = activ_args.activAlpha;
+                }
+                else
+                {
+                    alpha = activ_args.activAlpha;
+                    beta  = activ_args.activBeta;
+                }
             }
 
             // clang-format off
