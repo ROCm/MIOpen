@@ -40,48 +40,6 @@
 #include <ck/utility/data_type.hpp>
 #endif // MIOPEN_USE_COMPOSABLEKERNEL
 
-template <int L, int H>
-bool IsTwoPower(const int v)
-{
-    static_assert(L <= H, "L <= H");
-    if(((v - 1) & v) != 0)
-        return false;
-    return L <= v && v <= H;
-}
-
-template <int L, int H>
-bool NextTwoPower(int& v)
-{
-    static_assert((((L - 1) & L) == 0), "L is not power of 2");
-    static_assert((((H - 1) & H) == 0), "H is not power of 2");
-    assert((IsTwoPower<L, H>(v)));
-    if(v == H)
-    {
-        v = L;
-        return true;
-    }
-    v *= 2;
-    return false;
-}
-
-bool IsLinear(int L, int H, const int v)
-{
-    assert(L <= H);
-    return L <= v && v <= H;
-}
-
-bool NextLinear(int L, int H, int& v)
-{
-    assert((IsLinear(L, H, v)));
-    if(H == v)
-    {
-        v = L;
-        return true;
-    }
-    ++v;
-    return false;
-}
-
 namespace miopen {
 
 namespace conv {
@@ -137,11 +95,11 @@ template <typename DeviceOpType,
           typename ProblemDescriptionType = miopen::conv::ProblemDescription>
 bool IsCKArgsSupported(const ProblemDescriptionType& problem, const std::string& kernel_id)
 {
-    if(kernel_id != "")
+    if(!kernel_id.empty())
     {
         auto conv_ptrs = DeviceOpType::GetInstances();
 
-        auto pos        = kernel_id.find_last_of("+");
+        auto pos        = kernel_id.find_last_of('+');
         auto splitk_str = kernel_id.substr(pos + 1);
         assert(pos != std::string::npos);
         int split_k   = std::stoi(splitk_str);
@@ -672,7 +630,7 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
 
     auto conv_ptrs = DeviceOpType::GetInstances();
 
-    auto pos = kernel_id.find_last_of("+");
+    auto pos = kernel_id.find_last_of('+');
     assert(pos != std::string::npos);
     int split_k = std::stoi(kernel_id.substr(pos + 1));
 
@@ -794,7 +752,7 @@ ConvSolution SplitKInitInvokerFactoryNHWC(const ExecutionContext&,
                                           const std::string& kernel_id)
 {
     auto conv_ptrs = DeviceOpType::GetInstances();
-    auto pos       = kernel_id.find_last_of("+");
+    auto pos       = kernel_id.find_last_of('+');
     assert(pos != std::string::npos);
     int split_k = std::stoi(kernel_id.substr(pos + 1));
 

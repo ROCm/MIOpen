@@ -227,6 +227,48 @@ struct CKArgs
 };
 } // namespace
 
+template <int L, int H>
+bool IsTwoPower(const int v)
+{
+    static_assert(L <= H, "L <= H");
+    if(((v - 1) & v) != 0)
+        return false;
+    return L <= v && v <= H;
+}
+
+template <int L, int H>
+bool NextTwoPower(int& v)
+{
+    static_assert((((L - 1) & L) == 0), "L is not power of 2");
+    static_assert((((H - 1) & H) == 0), "H is not power of 2");
+    assert((IsTwoPower<L, H>(v)));
+    if(v == H)
+    {
+        v = L;
+        return true;
+    }
+    v *= 2;
+    return false;
+}
+
+inline bool IsLinear(int L, int H, const int v)
+{
+    assert(L <= H);
+    return L <= v && v <= H;
+}
+
+inline bool NextLinear(int L, int H, int& v)
+{
+    assert((IsLinear(L, H, v)));
+    if(H == v)
+    {
+        v = L;
+        return true;
+    }
+    ++v;
+    return false;
+}
+
 template <typename DataType>
 void PerformanceConfigHipImplicitGemmGroupWrwXdlops::Init(const ProblemDescription& problem)
 {
