@@ -61,9 +61,9 @@ static inline bool is_ck_supported_hardware(const Handle& handle)
            StartsWith(handle.GetDeviceName(), "gfx1031") ||
            StartsWith(handle.GetDeviceName(), "gfx1100") ||
            StartsWith(handle.GetDeviceName(), "gfx1101") ||
-           StartsWith(handle.GetDeviceName(), "gfx1200")
-               StartsWith(handle.GetDeviceName(), "gfx1201")
-                   StartsWith(handle.GetDeviceName(), "gfx1102");
+           StartsWith(handle.GetDeviceName(), "gfx1200") ||
+           StartsWith(handle.GetDeviceName(), "gfx1201") ||
+           StartsWith(handle.GetDeviceName(), "gfx1102");
 }
 
 // MI100 : gfx908
