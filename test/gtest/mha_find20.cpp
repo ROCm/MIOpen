@@ -169,17 +169,13 @@ public:
     {
         std::cerr << "Testing miopenFindSolutions..." << std::endl;
 
-        auto solutions    = std::vector<miopenSolution_t>{};
+        std::vector<miopenSolution_t> solutions(16);
         std::size_t found = 0;
-
-        solutions.resize(16);
 
         EXPECT_EQUAL(miopenFindSolutions(
                          &handle, problem, nullptr, solutions.data(), &found, solutions.size()),
                      miopenStatusSuccess);
         EXPECT_TRUE(found > 0);
-
-        solutions.resize(found);
 
         std::cerr << "Finished testing miopenFindSolutions." << std::endl;
         return solutions;

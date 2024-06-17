@@ -27,6 +27,7 @@
 #include <miopen/errors.hpp>
 #include <miopen/process.hpp>
 #include <string_view>
+#include <system_error>
 
 namespace miopen {
 
@@ -35,33 +36,119 @@ namespace miopen {
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 
+enum class Direction : bool
+{
+    Input,
+    Output
+};
+
+struct SystemError : std::runtime_error
+{
+    SystemError()
+        : std::runtime_error{std::system_category().message(GetLastError())}
+    {
+    }
+};
+
+template <Direction direction>
+struct Pipe
+{
+    HANDLE readHandle, writeHandle;
+
+    Pipe()
+        : readHandle{nullptr}, writeHandle{nullptr}
+    {
+        SECURITY_ATTRIBUTES attrs;
+        attrs.nLength = sizeof(SECURITY_ATTRIBUTES);
+        attrs.bInheritHandle = TRUE;
+        attrs.lpSecurityDescriptor = nullptr;
+
+        if(CreatePipe(&readHandle, &writeHandle, &attrs, 0) == FALSE)
+            throw SystemError();
+
+        if(direction == Direction::Output)
+        {
+            // Do not inherit the read handle for the output pipe
+            if(SetHandleInformation(readHandle, HANDLE_FLAG_INHERIT, 0) == 0)
+                throw SystemError();
+        }
+        else
+        {
+            // Do not inherit the write handle for the input pipe
+            if(SetHandleInformation(writeHandle, HANDLE_FLAG_INHERIT, 0) == 0)
+                throw SystemError();
+        }
+    }
+
+    Pipe(Pipe&&) = default;
+
+    ~Pipe()
+    {
+        if(writeHandle != nullptr)
+        {
+            CloseHandle(writeHandle);
+        }
+        if(readHandle != nullptr)
+        {
+            CloseHandle(readHandle);
+        }
+
+    }
+
+    bool CloseWriteHandle()
+    {
+        auto result = true;
+        if(writeHandle != nullptr)
+        {
+            result  = CloseHandle(writeHandle) == TRUE;
+            writeHandle = nullptr;
+        }
+        return result;
+    }
+
+    bool CloseReadHandle()
+    {
+        auto result = true;
+        if(readHandle != nullptr)
+        {
+            result = CloseHandle(readHandle) == TRUE;
+            readHandle = nullptr;
+        }
+        return result;
+    }
+
+    std::pair<bool, DWORD> Read(LPVOID buffer, DWORD size) const
+    {
+        DWORD bytes_read;
+        if(ReadFile(readHandle, buffer, size, &bytes_read, nullptr) == FALSE &&
+           GetLastError() == ERROR_MORE_DATA)
+        {
+            return {true, bytes_read};
+        }
+        return {false, bytes_read};
+    }
+
+    bool Write(LPVOID buffer, DWORD size) const
+    {
+        DWORD bytes_written;
+        return WriteFile(writeHandle, buffer, size, &bytes_written, nullptr) == TRUE;
+    }
+};
+
 struct ProcessImpl
 {
-public:
-    ProcessImpl(std::string_view cmd) : path{cmd} {}
+    ProcessImpl(std::string_view cmd) : command{cmd} {}
 
-    void Create(std::string_view args,
-                std::string_view cwd,
-                std::ostream* out,
-                const ProcessEnvironmentMap& additionalEnvironmentVariables)
+    template <Direction direction>
+    void Create(std::vector<char>& buffer)
     {
         STARTUPINFOA info;
         ZeroMemory(&info, sizeof(STARTUPINFO));
         info.cb = sizeof(STARTUPINFO);
 
-        if(out != nullptr)
-        {
-            MIOPEN_THROW("Capturing output not defined for Windows.");
-        }
-
-        if(!additionalEnvironmentVariables.empty())
-        {
-            MIOPEN_THROW("Overriding environment variables not defined for Windows.");
-        }
-
-        std::string cmd{path.string()};
+        std::string cmd{command};
         if(!args.empty())
-            cmd += " " + std::string{args};
+            cmd += " " + args;
 
         // Refer to
         // https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-createprocessa
@@ -70,21 +157,42 @@ public:
         if(cmd.size() < BUFFER_CAPACITY)
             cmd.resize(BUFFER_CAPACITY, '\0');
 
-        if(CreateProcess(path.string().c_str(),
+        if(CreateProcess(command.c_str(),
                          cmd.data(),
                          nullptr,
                          nullptr,
                          FALSE,
                          0,
-                         nullptr,
-                         cwd.empty() ? nullptr : cwd.data(),
+                         envs.empty() ? nullptr : envs.data(),
+                         cwd.empty() ? nullptr : cwd.c_str(),
                          &info,
                          &processInfo) == FALSE)
             MIOPEN_THROW("CreateProcess error: " + std::to_string(GetLastError()));
+
+        CloseHandle(processInfo.hThread);
+
+        if(!output.CloseWriteHandle())
+            MIOPEN_THROW("Error closing STDOUT handle for writing (" +
+                           std::to_string(GetLastError()) + ")");
+
+        if(!input.CloseReadHandle())
+            MIOPEN_THROW("Error closing STDIN handle for reading (" +
+                          std::to_string(GetLastError()) + ")");
     }
 
-    int Wait()
+    void EnvironmentVariables(const std::map<std::string_view, std::string_view>& map)
     {
+    }
+
+    void Arguments(std::string_view arguments) { this->args = arguments; }
+    void WorkingDirectory(const fs::path& path) { this->cwd = path.string(); }
+
+    int Wait() const
+    {
+        if(!input.CloseWriteHandle())
+            MIOPEN_THROW("Error closing STDIN handle for writing (" +
+                           std::to_string(GetLastError()) + ")");
+
         WaitForSingleObject(processInfo.hProcess, INFINITE);
 
         DWORD status;
@@ -100,8 +208,13 @@ public:
     }
 
 private:
-    fs::path path;
+    std::string command;
     PROCESS_INFORMATION processInfo{};
+    std::string args;
+    std::string cwd; // converted to std::string from fs::path in WokringDirectory() (read-only)
+    std::vector<char> envs;
+    mutable Pipe<Direction::Input> input;
+    Pipe<Direction::Output> output;
 };
 
 #else
@@ -112,19 +225,13 @@ struct ProcessImpl
 
     void Create(std::string_view args,
                 std::string_view cwd,
-                std::ostream* out,
-                const ProcessEnvironmentMap& additionalEnvironmentVariables)
+                const std::map<std::string_view, std::string_view>& envs)
     {
-        outStream = out;
         std::string cmd{path.string()};
-        if(!additionalEnvironmentVariables.empty())
+        for (auto e : envs)
         {
-            std::stringstream environmentVariables;
-            for(const auto& envVariable : additionalEnvironmentVariables)
-            {
-                environmentVariables << envVariable.first << "=" << envVariable.second << " ";
-            }
-            cmd.insert(0, environmentVariables.str());
+            std::string s{}
+            cmd.insert(0, " ").insert(0, e.second).insert(0, "=").insert(0, e.first);
         }
         if(!args.empty())
             cmd += " " + std::string{args};
@@ -139,15 +246,12 @@ struct ProcessImpl
 
     int Wait()
     {
-        if(outStream != nullptr)
-        {
-            std::array<char, 1024> buffer{};
+        std::array<char, 1024> buffer{};
 
-            while(feof(pipe) == 0)
-            {
-                if(fgets(buffer.data(), buffer.size(), pipe) != nullptr)
-                    *outStream << buffer.data();
-            }
+        while(feof(pipe) == 0)
+        {
+            if(fgets(buffer.data(), buffer.size(), pipe) != nullptr)
+                output_buffer.empace_back(buffer.data(), buffer.size());
         }
 
         auto status = pclose(pipe);
@@ -155,7 +259,6 @@ struct ProcessImpl
     }
 
 private:
-    std::ostream* outStream;
     fs::path path;
     FILE* pipe = nullptr;
 };
@@ -166,35 +269,39 @@ Process::Process(const fs::path& cmd) : impl{std::make_unique<ProcessImpl>(cmd.s
 
 Process::~Process() noexcept = default;
 
-int Process::operator()(std::string_view args,
-                        const fs::path& cwd,
-                        std::ostream* out,
-                        const ProcessEnvironmentMap& additionalEnvironmentVariables)
+Process::Process(Process&&) noexcept = default;
+Process& Process::operator=(Process&&) noexcept = default;
+
+Process& Process::Arguments(std::string_view args)
 {
-    impl->Create(args, cwd.string(), out, additionalEnvironmentVariables);
-    return impl->Wait();
-}
-
-ProcessAsync::ProcessAsync(const fs::path& cmd,
-                           std::string_view args,
-                           const fs::path& cwd,
-                           std::ostream* out,
-                           const ProcessEnvironmentMap& additionalEnvironmentVariables)
-    : impl{std::make_unique<ProcessImpl>(cmd.string())}
-{
-    impl->Create(args, cwd.string(), out, additionalEnvironmentVariables);
-}
-
-ProcessAsync::~ProcessAsync() noexcept = default;
-
-int ProcessAsync::Wait() { return impl->Wait(); }
-
-ProcessAsync& ProcessAsync::operator=(ProcessAsync&& other) noexcept
-{
-    impl = std::move(other.impl);
+    impl->Arguments(args);
     return *this;
 }
 
-ProcessAsync::ProcessAsync(ProcessAsync&& other) noexcept : impl{std::move(other.impl)} {}
+Process& Process::WorkingDirectory(const fs::path& cwd)
+{
+    impl->WorkingDirectory(cwd);
+    return *this;
+}
+
+Process& Process::EnvironmentVariables(std::map<std::string_view, std::string_view> vars)
+{
+    impl->EnvironmentVariables(vars);
+    return *this;
+}
+
+const Process& Process::Capture(std::vector<char>& buffer) const
+{
+    impl->Create<Direction::Output>(buffer);
+    return *this;
+}
+
+const Process& Process::Execute(const std::vector<char>& buffer) const
+{
+    //impl->Create<Direction::Input>({});
+    return *this;
+}
+
+int Process::Wait() const { return impl->Wait(); }
 
 } // namespace miopen

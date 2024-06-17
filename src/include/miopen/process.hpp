@@ -36,35 +36,23 @@
 namespace miopen {
 
 struct ProcessImpl;
-using ProcessEnvironmentMap = std::map<std::string, std::string>;
 
 struct MIOPEN_INTERNALS_EXPORT Process
 {
-    Process(const fs::path& cmd);
+    explicit Process(const fs::path& cmd);
     ~Process() noexcept;
 
-    int operator()(std::string_view args                                       = "",
-                   const fs::path& cwd                                         = "",
-                   std::ostream* out                                           = nullptr,
-                   const ProcessEnvironmentMap& additionalEnvironmentVariables = {});
+    Process(Process&&) noexcept;
+    Process& operator=(Process&&) noexcept;
 
-private:
-    std::unique_ptr<ProcessImpl> impl;
-};
+    Process& Arguments(std::string_view args);
+    Process& WorkingDirectory(const fs::path& cwd);
+    Process& EnvironmentVariables(std::map<std::string_view, std::string_view> vars);
 
-struct MIOPEN_INTERNALS_EXPORT ProcessAsync
-{
-    ProcessAsync(const fs::path& cmd,
-                 std::string_view args                                       = "",
-                 const fs::path& cwd                                         = "",
-                 std::ostream* out                                           = nullptr,
-                 const ProcessEnvironmentMap& additionalEnvironmentVariables = {});
-    ~ProcessAsync() noexcept;
+    const Process& Capture(std::vector<char>& buffer) const;
+    const Process& Execute(const std::vector<char>& buffer = {}) const;
 
-    ProcessAsync(ProcessAsync&&) noexcept;
-    ProcessAsync& operator=(ProcessAsync&&) noexcept;
-
-    int Wait();
+    int Wait() const;
 
 private:
     std::unique_ptr<ProcessImpl> impl;

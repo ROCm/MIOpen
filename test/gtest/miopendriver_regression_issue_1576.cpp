@@ -61,11 +61,8 @@ void RunMIOpenDriver()
         GTEST_SKIP();
     }
 
-    miopen::ProcessEnvironmentMap environmentVariables = {
-        {"MIOPEN_FIND_MODE", "1"}, {"MIOPEN_DEBUG_FIND_ONLY_SOLVER", "ConvDirectNaiveConvBwd"}};
-
-    RunMIOpenDriverTestCommand(MIOpenDriverRegressionIssue1576Test::GetParam(),
-                               environmentVariables);
+    RunMIOpenDriverTestCommand(MIOpenDriverRegressionIssue1576Test::GetParam(), {
+        {"MIOPEN_FIND_MODE", "1"}, {"MIOPEN_DEBUG_FIND_ONLY_SOLVER", "ConvDirectNaiveConvBwd"}});
 };
 
 } // namespace miopendriver_regression_issue_1576

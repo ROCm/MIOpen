@@ -833,7 +833,7 @@ public:
         std::cout << "Testing db for multiprocess write access..." << std::endl;
 
         ResetDb();
-        std::vector<ProcessAsync> children{};
+        std::vector<Process> children{};
         const auto lock_file_path = LockFilePath(temp_file);
 
         std::cout << "Initializing test data..." << std::endl;
@@ -862,7 +862,7 @@ public:
                 if(full_set())
                     args += " --all";
 
-                children.emplace_back(exe_path(), args);
+                std::ignore = children.emplace_back(exe_path()).Arguments(args).Execute();
             }
             // clang-format on
         }
@@ -908,7 +908,7 @@ public:
     {
         std::cout << "Testing db for multiprocess read access..." << std::endl;
 
-        std::vector<ProcessAsync> children{};
+        std::vector<Process> children{};
 
         const auto lock_file_path = LockFilePath(temp_file);
 
@@ -939,7 +939,7 @@ public:
                     args += " --all";
 
                 std::cout << exe_path() << " " << args << std::endl;
-                children.emplace_back(exe_path(), args);
+                std::ignore = children.emplace_back(exe_path()).Arguments(args).Execute();
             }
             // clang-format on
         }

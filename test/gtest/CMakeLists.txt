@@ -8,7 +8,11 @@ set(SOURCES
     )
 
 if(MIOPEN_BACKEND_OPENCL)
-  set(SKIP_TESTS dumpTensorTest.cpp)
+  list(APPEND SKIP_TESTS dumpTensorTest.cpp)
+endif()
+
+if(NOT MIOPEN_USE_ROCBLAS)
+  list(APPEND SKIP_TESTS mha_find20.cpp graphapi_mha_fwd_f8.cpp gpu_mha_forward.cpp gpu_mha_backward.cpp graphapi_capi_mha_forward.cpp)
 endif()
 
 function(add_gtest TEST_NAME TEST_CPP)

@@ -91,19 +91,20 @@ static inline miopen::fs::path MIOpenDriverExePath()
 
 static inline void
 RunMIOpenDriverTestCommand(const std::vector<std::string>& params,
-                           const miopen::ProcessEnvironmentMap& additionalEnvironmentVariables = {})
+                           const std::map<std::string_view, std::string_view>& map = {})
 {
-    for(const auto& testArguments : params)
+    for(const auto& param : params)
     {
         int commandResult = 0;
-        miopen::Process p{MIOpenDriverExePath().string()};
-        std::stringstream ss;
+        miopen::Process p{MIOpenDriverExePath()};
+        std::vector<char> buffer;
 
-        EXPECT_NO_THROW(commandResult = p(testArguments, "", &ss, additionalEnvironmentVariables));
+        EXPECT_NO_THROW(commandResult = p.Arguments(param).EnvironmentVariables(map).Capture(buffer).Wait());
         EXPECT_EQ(commandResult, 0)
             << "MIOpenDriver exited with non-zero value when running with arguments: "
-            << testArguments;
-        EXPECT_THAT(ss.str(), Not(HasSubstr("FAILED")));
+            << param;
+        std::string result{buffer.begin(), buffer.end()};
+        EXPECT_THAT(result, Not(HasSubstr("FAILED")));
     }
 }
 

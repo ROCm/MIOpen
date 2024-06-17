@@ -972,7 +972,7 @@ public:
                           "Testing " << ArgsHelper::db_class::Get<TDb>()
                                      << " for multiprocess write access...");
 
-        std::vector<ProcessAsync> children{};
+        std::vector<Process> children{};
         const auto lock_file_path = LockFilePath(temp_file);
 
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Initializing test data...");
@@ -1002,7 +1002,7 @@ public:
                 if(full_set())
                     args += " --all";
 
-                children.emplace_back(exe_path(), args);
+                std::ignore = children.emplace_back(exe_path()).Arguments(args).Execute();
             }
             // clang-format on
         }
@@ -1056,7 +1056,7 @@ public:
                           "Testing " << ArgsHelper::db_class::Get<TDb>()
                                      << " for multiprocess read access...");
 
-        std::vector<ProcessAsync> children{};
+        std::vector<Process> children{};
         const auto lock_file_path = LockFilePath(temp_file);
 
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Initializing test data...");
@@ -1088,7 +1088,7 @@ public:
                     args += " --all";
 
                 MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", exe_path() + " " + args);
-                children.emplace_back(exe_path(), args);
+                std::ignore = children.emplace_back(exe_path()).Arguments(args).Execute();
             }
             // clang-format on
         }
