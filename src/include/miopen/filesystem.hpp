@@ -145,6 +145,10 @@ inline fs::path make_static_library_name(const fs::path& path)
     return path.parent_path() / (library_prefix + path.filename() + static_library_postfix);
 }
 
+struct FsPathHash
+{
+    std::size_t operator()(const fs::path& path) const { return fs::hash_value(path); }
+};
 } // namespace miopen
 
 #endif // GUARD_MIOPEN_FILESYSTEM_HPP_

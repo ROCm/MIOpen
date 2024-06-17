@@ -597,7 +597,7 @@ static GemmBackend_t enforce_gemm_backend(GemmBackend_t gemm_backend_preferred)
     // enforce backend based on env variable
     // I have left the commented lines here to preserve values for the enforce and hint at why are
     // they 1, 3, and 5
-    switch(Value(ENV(MIOPEN_GEMM_ENFORCE_BACKEND)))
+    switch(env::value(MIOPEN_GEMM_ENFORCE_BACKEND))
     {
 #if MIOPEN_USE_ROCBLAS
     case 1: gemm_backend_env = GemmBackend_t::rocblas; break;

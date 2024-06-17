@@ -42,6 +42,8 @@ namespace miopen {
 
 namespace {
 
+#if MIOPEN_USE_ROCBLAS
+
 bool RNNForwardMSIsSupported([[maybe_unused]] const RNNDescriptor& desctiptor,
                              [[maybe_unused]] bool use_dropout)
 {
@@ -58,10 +60,10 @@ bool RNNForwardMSIsSupported([[maybe_unused]] const RNNDescriptor& desctiptor,
 
 bool RNNForwardMSIsFast(const int seqLen)
 {
-    if(miopen::IsEnabled(ENV(MIOPEN_RNNFWD_exp)))
+    if(env::enabled(MIOPEN_RNNFWD_exp))
         return true;
 
-    if(seqLen >= 32 && !(miopen::IsDisabled(ENV(MIOPEN_RNNFWD_exp))))
+    if(seqLen >= 32 && !env::disabled(MIOPEN_RNNFWD_exp))
         return true;
     return false;
 }
@@ -257,6 +259,8 @@ miopenStatus_t ReducAddBias(miopen::Handle& handle,
 
     return miopenStatusSuccess;
 }
+
+#endif // MIOPEN_USE_ROCBLAS
 
 } // namespace
 
@@ -1099,8 +1103,6 @@ void RNNDescriptor::RNNForwardMS(Handle& handle,
     (void)y;
     (void)hy;
     (void)cy;
-    (void)reserveSpace;
-    (void)reserveSpaceSize;
 
     MIOPEN_THROW("GEMM is not supported");
 #endif
