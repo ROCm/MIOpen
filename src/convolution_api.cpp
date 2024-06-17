@@ -208,7 +208,7 @@ extern "C" miopenStatus_t miopenGetConvolutionFindMode(const miopenConvolutionDe
 }
 
 MIOPEN_EXPORT extern "C" miopenStatus_t
-miopenConvolutionCKBackwardWeightsGetWorkSpaceSize(const miopenAlphaBetaCase_t alpha_beta_case,
+miopenConvolutionABBackwardWeightsGetWorkSpaceSize(const miopenAlphaBetaCase_t alpha_beta_case,
                                                    const miopenTensorDescriptor_t inputTensorDesc,
                                                    const miopenTensorDescriptor_t outputTensorDesc,
                                                    const miopenConvolutionDescriptor_t convDesc,
@@ -221,20 +221,31 @@ miopenConvolutionCKBackwardWeightsGetWorkSpaceSize(const miopenAlphaBetaCase_t a
 
         assert(in_spatial_dims == miopen::deref(outputTensorDesc).GetNumDims());
 
+        int G    = miopen::deref(convDesc).GetGroupCount();
         size_t C = std::get<1>(
             miopen::GetNCDHW(in_spatial_dims, miopen::deref(inputTensorDesc).GetLengths()));
         size_t K = std::get<1>(
             miopen::GetNCDHW(in_spatial_dims, miopen::deref(outputTensorDesc).GetLengths()));
+
+        auto CKWrwRequireWorkspace = [&](size_t G,
+                                         size_t C,
+                                         size_t K,
+                                         miopenDataType_t data_type,
+                                         miopenAlphaBetaCase_t alpha_beta_case) {
+            auto is_odd        = [](int num) { return num % 2 != 0; };
+            auto is_one    = [](int num) { return num==1; };
+            size_t C_per_group = C / G;
+            size_t K_per_group = K / G;
+
+            return (alpha_beta_case == BILINEAR || alpha_beta_case == SCALE) ||
+                   (data_type == miopenHalf && (is_one(C_per_group) || is_one(K_per_group) || (is_odd(C_per_group) || is_odd(K_per_group))));
+        };
+
         size_t output_tensor_size = miopen::deref(outputTensorDesc).GetElementSize();
-
-        int group_count = miopen::deref(convDesc).GetGroupCount();
-
-        size_t byte_size = 0;
-        if((alpha_beta_case == BILINEAR || alpha_beta_case == SCALE ||
-            ((data_type == miopenHalf) &&
-             (((C / group_count == 1) || (K / group_count == 1)) || ((C & 1) != 0 || (K & 1) != 0
-                                                                     /* Test if odd*/
-                                                                     )))))
+        size_t byte_size          = 0;
+        bool is_space_need = CKWrwRequireWorkspace(G, C, K, data_type, alpha_beta_case);
+        std::cout<<"in convolution_api,  is_space_need = "<<is_space_need<<std::endl;
+        if(is_space_need)
         {
             switch(data_type)
             {

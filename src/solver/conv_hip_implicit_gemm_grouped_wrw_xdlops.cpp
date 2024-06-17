@@ -70,22 +70,23 @@ struct CKArgs
 {
     CKArgs(const ProblemDescription& problem)
     {
-        G  = ProblemInterpreter::GetGroupCountG(problem);
-        N  = ProblemInterpreter::GetBatchN(problem);
-        K1 = ProblemInterpreter::GetOutputChannelK(problem);
-        C1 = ProblemInterpreter::GetInputChannelC(problem);
-        C  = C1 / G; // Number of input Channel per group
-        K  = K1 / G; // Number of output Channel per group
-        Hi = ProblemInterpreter::GetInputHeightHi(problem);
-        Wi = ProblemInterpreter::GetInputWidthWi(problem);
-        Ho = ProblemInterpreter::GetOutputHeightHo(problem);
-        Wo = ProblemInterpreter::GetOutputWidthWo(problem);
-        Y  = ProblemInterpreter::GetFilterHeightY(problem);
-        X  = ProblemInterpreter::GetFilterWidthX(problem);
-
-        input  = {G, N, C, Hi, Wi};
-        output = {G, N, K, Ho, Wo};
-        weight = {G, K, C, Y, X};
+        G               = ProblemInterpreter::GetGroupCountG(problem);
+        N               = ProblemInterpreter::GetBatchN(problem);
+        K1              = ProblemInterpreter::GetOutputChannelK(problem);
+        C1              = ProblemInterpreter::GetInputChannelC(problem);
+        C               = C1 / G; // Number of input Channel per group
+        K               = K1 / G; // Number of output Channel per group
+        Hi              = ProblemInterpreter::GetInputHeightHi(problem);
+        Wi              = ProblemInterpreter::GetInputWidthWi(problem);
+        Ho              = ProblemInterpreter::GetOutputHeightHo(problem);
+        Wo              = ProblemInterpreter::GetOutputWidthWo(problem);
+        Y               = ProblemInterpreter::GetFilterHeightY(problem);
+        X               = ProblemInterpreter::GetFilterWidthX(problem);
+        data_type       = ProblemInterpreter::GetOutputDataType(problem);
+        alpha_beta_case = ProblemInterpreter::GetAlphaBetaCase(problem);
+        input           = {G, N, C, Hi, Wi};
+        output          = {G, N, K, Ho, Wo};
+        weight          = {G, K, C, Y, X};
 
         // CK strides are in GNCDHW order
         if(problem.IsLayoutNHWC())
@@ -187,9 +188,14 @@ struct CKArgs
     bool IsSupportedBySplitK(const ConvPtr& conv_ptr, int split_k) const
     {
         auto arg_ptr = MakeArgPtr(conv_ptr, nullptr, nullptr, nullptr, 1.0f, 0.0f, split_k);
-        // Creat dummy workspace to pass the ck IsSupportedArgument check.
-        int dummy_var = 1;
-        conv_ptr->SetWorkSpacePointer(arg_ptr.get(), &dummy_var);
+        bool is_space_need = CKWrwRequireWorkspace(G, C, K, data_type, alpha_beta_case);
+        std::cout<<"is_space_need: "<<is_space_need<<std::endl;
+        if(is_space_need)
+        {
+            // Creat dummy workspace to pass the ck IsSupportedArgument check.
+            int dummy_var = 1;
+            conv_ptr->SetWorkSpacePointer(arg_ptr.get(), &dummy_var);
+        }
         return conv_ptr->IsSupportedArgument(arg_ptr.get());
     }
 
@@ -206,6 +212,8 @@ struct CKArgs
     int Y;
     int X;
     //ck::index_t split_k = 1;
+    miopenDataType_t data_type;
+    miopenAlphaBetaCase_t alpha_beta_case;
     std::array<ck::index_t, 5> input;
     std::array<ck::index_t, 5> in_strides;
     std::array<ck::index_t, 5> output;
@@ -346,7 +354,7 @@ bool PerformanceConfigHipImplicitGemmGroupWrwXdlops::IsModelApplicable(
         return false;
     if(problem.GetInDataType() != miopenFloat && problem.GetInDataType() != miopenHalf)
         return false;
-    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_GROUP_CONV_IMPLICIT_GEMM_HIP_WRW_XDLOPS_AI_HEUR)))
+    if(env::disabled(MIOPEN_DEBUG_GROUP_CONV_IMPLICIT_GEMM_HIP_WRW_XDLOPS_AI_HEUR))
         return false;
     return true;
 }
@@ -514,9 +522,9 @@ bool ConvHipImplicitGemmGroupWrwXdlops::IsApplicable(
     [[maybe_unused]] const ProblemDescription& problem) const
 {
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
-    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_GROUP_CONV_IMPLICIT_GEMM_HIP_WRW_XDLOPS)))
+    if(env::disabled(MIOPEN_DEBUG_GROUP_CONV_IMPLICIT_GEMM_HIP_WRW_XDLOPS))
         return false;
-    if(miopen::IsEnabled(ENV(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC)))
+    if(env::enabled(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC))
         return false;
     if(problem.HasMixedDataTypes())
         return false;

@@ -109,16 +109,18 @@ void OpGraph::initEngines()
     // findEngines to when the user calls it instead of calling it at graph build
     // time, but cudnn graph API has semantics that suggest that graph knows its
     // engines or engine count at least.
-    // TODO(Amber): findEngines takes pointer to the graph and uses it to construct
+    //
+    /// \todo findEngines takes pointer to the graph and uses it to construct
     // engines. This pointer  may become invalid when the graph object is moved. Fix
     // by using shared_ptr or not storing graph inside engine
+    // --amberhassaan May, 2024
     mEngines = findEngines(this);
 }
 
 VecOfPaths OpGraph::getAllPaths() const
 {
-    // TODO(Amber): does not check for cycles. Use DFS to first check for cycles
-    // at construction time perhaps.
+    /// \todo does not check for cycles. Use DFS to first check for cycles
+    /// at construction time perhaps. --amberhassaan May, 2024
     VecOfPaths all_paths;
 
     std::deque<Path> paths_to_explore;
@@ -279,31 +281,31 @@ bool isIsomorphic(const OpGraph& left, const OpGraph& right)
 {
     if(left.numNodes() != right.numNodes())
     {
-        MIOPEN_LOG_I("test failed due to num nodes being different");
+        MIOPEN_LOG_I2("test failed due to num nodes being different");
         return false;
     }
 
     if(left.numEdges() != right.numEdges())
     {
-        MIOPEN_LOG_I("test failed due to num edges being different");
+        MIOPEN_LOG_I2("test failed due to num edges being different");
         return false;
     }
 
     if(!internal::checkSameNodesByName(left, right))
     {
-        MIOPEN_LOG_I("test failed due to node names being different");
+        MIOPEN_LOG_I2("test failed due to node names being different");
         return false;
     }
 
     if(!internal::checkSameDegreeVecs(left, right))
     {
-        MIOPEN_LOG_I("test failed due to node degrees being different");
+        MIOPEN_LOG_I2("test failed due to node degrees being different");
         return false;
     }
 
     if(!internal::checkSamePaths(left, right))
     {
-        MIOPEN_LOG_I("test failed due to paths being different");
+        MIOPEN_LOG_I2("test failed due to paths being different");
         return false;
     }
 
