@@ -178,9 +178,10 @@ struct CKArgs
     {
         auto arg_ptr = MakeArgPtr(conv_ptr, nullptr, nullptr, nullptr, 1.0f, 0.0f, 1);
         // Creat dummy workspace to pass the ck IsSupportedArgument check.
-        
+
         int dummy_var = 1;
         conv_ptr->SetWorkSpacePointer(arg_ptr.get(), &dummy_var);
+
         return conv_ptr->IsSupportedArgument(arg_ptr.get());
     }
 
@@ -188,6 +189,7 @@ struct CKArgs
     bool IsSupportedBySplitK(const ConvPtr& conv_ptr, int split_k) const
     {
         auto arg_ptr = MakeArgPtr(conv_ptr, nullptr, nullptr, nullptr, 1.0f, 0.0f, split_k);
+
         if(CKWrwRequireWorkspace(G, C1, K1, data_type, alpha_beta_case))
         {
             // Creat dummy workspace to pass the ck IsSupportedArgument check.
@@ -209,7 +211,7 @@ struct CKArgs
     int Wo;
     int Y;
     int X;
-    //ck::index_t split_k = 1;
+    // ck::index_t split_k = 1;
     miopenDataType_t data_type;
     miopenAlphaBetaCase_t alpha_beta_case;
     std::array<ck::index_t, 5> input;
@@ -231,14 +233,13 @@ void PerformanceConfigHipImplicitGemmGroupWrwXdlops::Init(const ProblemDescripti
     valid_kernels = FillValidKernelsIDs<DeviceOpGWrwPtrs<DataType>, CKArgs>(problem);
     index         = 0;
     split_k       = 1;
-    kernel_id     = valid_kernels[index] + "_" + std::to_string(split_k);
+    kernel_id     = valid_kernels[index] + "+" + std::to_string(split_k);
 }
 
 template <typename DataType>
 bool PerformanceConfigHipImplicitGemmGroupWrwXdlops::CheckIsSupportCKArgs(
     const ProblemDescription& problem) const
 {
-    std::cout<<"CheckIsSupportCKArgs kernel_id: "<<kernel_id<<std::endl;
     return IsCKArgsSupported<DeviceOpGWrwPtrs<DataType>, CKArgs>(problem, kernel_id);
 }
 
@@ -336,7 +337,7 @@ bool PerformanceConfigHipImplicitGemmGroupWrwXdlops::RunParameterPredictionModel
            }))
     {
         index     = heuristic_indexes[0];
-        kernel_id = valid_kernels[index] + "_" + std::to_string(split_k);
+        kernel_id = valid_kernels[index] + "+" + std::to_string(split_k);
         MIOPEN_LOG_I("Params set by AI: " << ToString());
         return true;
     }
@@ -416,45 +417,30 @@ bool PerformanceConfigHipImplicitGemmGroupWrwXdlops::SetNextValue(const ProblemD
         assert(!valid_kernels.empty());
         return true;
     }
-    do{
-        //if(split_k != 1){
-        //    kernel_id = valid_kernels[index] + "_" + std::to_string(split_k);
-        //    std::cout<<"~~~~kernel_id~~~: "<<kernel_id<<std::endl;
-        //}
-        bool  flag = NextTwoPower<1,128>(split_k);
-        //std::cout<<"~~~~~~~flag~~~~~: "<<flag<<std::endl;
-        if(!flag){
-            kernel_id = valid_kernels[index] + "_" + std::to_string(split_k);
-            //std::cout<<"~~~~kernel_id~~~: "<<kernel_id<<std::endl;
-            //std::cout<<"breaking now!!!!!!!!"<<std::endl;
-                    break;
+    do
+    {
+        bool flag = NextTwoPower<1, 128>(split_k);
+        if(!flag)
+        {
+            kernel_id = valid_kernels[index] + "+" + std::to_string(split_k);
+            break;
         }
 
-        if(!NextLinear(0, valid_kernels.size()-1, index)){
-            kernel_id = valid_kernels[index] + "_" + std::to_string(split_k);
-            //std::cout<<"~~~~kernel_id~~~: "<<kernel_id<<std::endl;
-            break;            
-        }
-//kernel_id = valid_kernels[index] + "_" + std::to_string(split_k);
-        /*if((index + 1) < valid_kernels.size())
+        if(!NextLinear(0, valid_kernels.size() - 1, index))
         {
-            ++index;
-            kernel_id = valid_kernels[index] + "_" + std::to_string(split_k);
-            std::cout<<"~~~~kernel_id~~~: "<<kernel_id<<std::endl;
+            kernel_id = valid_kernels[index] + "+" + std::to_string(split_k);
             break;
-        }*/
-        //std::cout<<"return false in set next value"<<std::endl;
+        }
         // All split_k and index values were iterated
         return false;
     } while(false);
-    //std::cout<<"valid_kernels.size(): "<<valid_kernels.size()<<std::endl;
-    //std::cout<<"return true in set next value"<<std::endl;
+
 #endif
     return true;
 }
 
 bool PerformanceConfigHipImplicitGemmGroupWrwXdlops::IsValidValue() const
-{   
+{
     return index < valid_kernels.size();
 }
 
@@ -574,8 +560,8 @@ ConvSolution ConvHipImplicitGemmGroupWrwXdlops::GetSolution(
         [&](auto data_type_val) {
             using T = decltype(data_type_val);
             return SplitKInitInvokerFactoryNHWC<DeviceOpGWrwPtrs<T>,
-                                          CKArgs,
-                                          miopen::conv::WrWInvokeParams>(
+                                                CKArgs,
+                                                miopen::conv::WrWInvokeParams>(
                 ctx, problem, config.kernel_id);
         });
 

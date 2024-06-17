@@ -24,6 +24,10 @@
  *
  *******************************************************************************/
 
+// This file is created only for 2d ck wrw which add split_k as tuning parameters
+// to handle the urgent performance requirement for CVT case
+// TODO: Need refactor the code and combine it with "implicitgemm_ck_util.hpp"
+
 #pragma once
 
 #include <miopen/conv/data_invoke_params.hpp>
@@ -59,7 +63,6 @@ bool NextTwoPower(int& v)
     v *= 2;
     return false;
 }
-
 
 bool IsLinear(int L, int H, const int v)
 {
@@ -133,21 +136,19 @@ template <typename DeviceOpType,
           typename CKArgsType,
           typename ProblemDescriptionType = miopen::conv::ProblemDescription>
 bool IsCKArgsSupported(const ProblemDescriptionType& problem, const std::string& kernel_id)
-{   
-    if(kernel_id !=""){
-    auto conv_ptrs = DeviceOpType::GetInstances();
-    std::cout<<"IsCKArgsSupported kernel_id:  "<<kernel_id<<std::endl;
-    
-    auto pos = kernel_id.find_last_of("_");
-    auto splitk_str =  kernel_id.substr(pos+1);
-    std::cout<<"splitk string is :  "<<splitk_str<<std::endl;
-    assert(pos!=std::string::npos);
-    int split_k = std::stoi(splitk_str);
-    auto ptr_iter  = FindConvPtrByID(conv_ptrs, kernel_id.substr(0,pos));
-    //if(problem.IsDirectionBackwardWrW()){
-    //std::cout<<"I am here! split_k = "<<split_k<<std::endl;
-    //}
-    return (ptr_iter != conv_ptrs.end()) && CKArgsType{problem}.IsSupportedBySplitK(*ptr_iter, split_k);
+{
+    if(kernel_id != "")
+    {
+        auto conv_ptrs = DeviceOpType::GetInstances();
+
+        auto pos        = kernel_id.find_last_of("+");
+        auto splitk_str = kernel_id.substr(pos + 1);
+        assert(pos != std::string::npos);
+        int split_k   = std::stoi(splitk_str);
+        auto ptr_iter = FindConvPtrByID(conv_ptrs, kernel_id.substr(0, pos));
+
+        return (ptr_iter != conv_ptrs.end()) &&
+               CKArgsType{problem}.IsSupportedBySplitK(*ptr_iter, split_k);
     }
     return false;
 }
@@ -613,13 +614,12 @@ inline size_t GetCKAlphaBetaWorkspace(const miopen::conv::ProblemDescription& pr
 inline bool CKWrwRequireWorkspace(
     size_t G, size_t C, size_t K, miopenDataType_t data_type, miopenAlphaBetaCase_t alpha_beta_case)
 {
-            auto is_odd        = [](int num) { return num % 2 != 0; };
-            auto is_one    = [](int num) { return num==1; };
-            size_t C_per_group = C / G;
-            size_t K_per_group = K / G;
+    auto is_odd        = [](int num) { return num % 2 != 0; };
+    size_t C_per_group = C / G;
+    size_t K_per_group = K / G;
 
-            return (alpha_beta_case == BILINEAR || alpha_beta_case == SCALE) ||
-                   (data_type == miopenHalf && (is_one(C_per_group) || is_one(K_per_group) || (is_odd(C_per_group) || is_odd(K_per_group))));
+    return (alpha_beta_case == BILINEAR || alpha_beta_case == SCALE) ||
+           (data_type == miopenHalf && ((is_odd(C_per_group) || is_odd(K_per_group))));
 }
 
 /// \todo move to a cpp file
@@ -672,9 +672,9 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
 
     auto conv_ptrs = DeviceOpType::GetInstances();
 
-    auto pos = kernel_id.find_last_of("_");
-    assert(pos!=std::string::npos);
-    int split_k = std::stoi(kernel_id.substr(pos+1)); 
+    auto pos = kernel_id.find_last_of("+");
+    assert(pos != std::string::npos);
+    int split_k = std::stoi(kernel_id.substr(pos + 1));
 
     std::optional<CKBWDWeightBufferDescriptor> _ck_buff_des;
 
@@ -694,8 +694,8 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
         internal::MakeTaggedTransposeInstances<CKArgsType>(
             result, ctx, problem, ck_args, input1_op, input2_op, output_op, _ck_buff_des);
 
-    result.invoker_factory = [split_k = split_k,
-                            ck_args             = std::move(ck_args),
+    result.invoker_factory = [split_k             = split_k,
+                              ck_args             = std::move(ck_args),
                               sh_conv_ptr         = std::shared_ptr{std::move(*ptr_iter)},
                               input1_tr_inst      = std::move(_input1_tr_inst),
                               input2_tr_inst      = std::move(_input2_tr_inst),
@@ -703,7 +703,7 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
                               output_init_tr_inst = std::move(_output_init_tr_inst),
                               ck_buff_des =
                                   _ck_buff_des](const std::vector<Kernel>& kernels) mutable {
-        return [split_k = split_k, 
+        return [split_k = split_k,
                 kernels,
                 ck_args             = std::move(ck_args),
                 sh_conv_ptr         = std::move(sh_conv_ptr),
@@ -790,16 +790,15 @@ template <typename DeviceOpType,
           typename CastType,
           typename ProblemDescriptionType = miopen::conv::ProblemDescription>
 ConvSolution SplitKInitInvokerFactoryNHWC(const ExecutionContext&,
-                                    const ProblemDescriptionType& problem,
-                                    const std::string& kernel_id)
+                                          const ProblemDescriptionType& problem,
+                                          const std::string& kernel_id)
 {
     auto conv_ptrs = DeviceOpType::GetInstances();
-    auto pos = kernel_id.find_last_of("_");
-    assert(pos!=std::string::npos);
-    int split_k = std::stoi(kernel_id.substr(pos+1));
-    
-    //std::cout<<"I am here ~~~~~~~~~~~~~~~~~~~~"<<std::endl;
-    auto ptr_iter  = FindConvPtrByID(conv_ptrs, kernel_id.substr(0, pos));
+    auto pos       = kernel_id.find_last_of("+");
+    assert(pos != std::string::npos);
+    int split_k = std::stoi(kernel_id.substr(pos + 1));
+
+    auto ptr_iter = FindConvPtrByID(conv_ptrs, kernel_id.substr(0, pos));
 
     if(ptr_iter == conv_ptrs.end())
     {
@@ -815,28 +814,31 @@ ConvSolution SplitKInitInvokerFactoryNHWC(const ExecutionContext&,
         size_t spatial_dim = problem.GetSpatialDims();
 
         ConvSolution result;
-        result.invoker_factory = [split_k = split_k, ck_args                     = CKArgsType{problem},
+        result.invoker_factory = [split_k                     = split_k,
+                                  ck_args                     = CKArgsType{problem},
                                   alpha_beta_case             = alpha_beta_case,
                                   should_allocated_wrw_buffer = should_allocated_wrw_buffer,
                                   spatial_dim                 = spatial_dim,
                                   sh_conv_ptr = std::shared_ptr{std::move(*ptr_iter)}](
                                      const std::vector<Kernel>&) mutable {
-            return [split_k = split_k, ck_args                     = std::move(ck_args),
+            return [split_k                     = split_k,
+                    ck_args                     = std::move(ck_args),
                     alpha_beta_case             = alpha_beta_case,
                     should_allocated_wrw_buffer = should_allocated_wrw_buffer,
                     spatial_dim                 = spatial_dim,
                     sh_conv_ptr                 = std::move(sh_conv_ptr)](
                        const Handle& handle, const AnyInvokeParams& primitive_parameters) {
-                        std::cout<<"~~~~~split_k~~~~~: "<<split_k<<std::endl;
                 (void)spatial_dim; // -warn
-                (void)split_k;
+
                 const auto& data_ctx = primitive_parameters.CastTo<CastType>();
-                auto argument_ptr    = ck_args.MakeArgPtr(sh_conv_ptr,
-                                                       data_ctx.tensors,
-                                                       data_ctx.alpha.GetAsFloat(),
-                                                       data_ctx.beta.GetAsFloat(),
-                                                    split_k); // pass split_k value will cause core dump but constant value works fine
-                auto invoker_ptr     = sh_conv_ptr->MakeInvokerPointer();
+                auto argument_ptr =
+                    ck_args.MakeArgPtr(sh_conv_ptr,
+                                       data_ctx.tensors,
+                                       data_ctx.alpha.GetAsFloat(),
+                                       data_ctx.beta.GetAsFloat(),
+                                       split_k); // pass split_k value will cause core dump but
+                                                 // constant value works fine
+                auto invoker_ptr = sh_conv_ptr->MakeInvokerPointer();
                 HipEventProfiler pfr(handle);
 
                 if(alpha_beta_case == DEFAULT)
@@ -957,43 +959,6 @@ MakeSolutionGroupConvImplicitGemmXdlops(const miopen::conv::ProblemDescription& 
         }
     }
     else if(problem.IsLayoutNHWC())
-    {
-        switch(problem.GetInDataType())
-        {
-        case miopenInt8: return invoker_factory_maker_ndhwc(int8_t{});
-        case miopenHalf: return invoker_factory_maker_ndhwc(ck::half_t{});
-        case miopenFloat: return invoker_factory_maker_ndhwc(float{});
-        case miopenBFloat16: return invoker_factory_maker_ndhwc(ck::bhalf_t{});
-        case miopenInt64:
-        case miopenInt32:
-        case miopenDouble:
-        case miopenFloat8:
-        case miopenBFloat8:
-        default:
-            MIOPEN_THROW(miopenStatusInternalError,
-                         "3DGroupConvolutionImplicitGemmXdlops operation not implemented for this "
-                         "data type");
-        }
-    }
-    else
-    {
-        MIOPEN_THROW(
-            miopenStatusInternalError,
-            "3DGroupConvolutionImplicitGemmXdlops operation not implemented for this data type");
-    }
-#else
-    return {};
-#endif
-}
-
-template <typename InvokerFactoryMakerNHWC>
-ConvSolution
-SplitKMakeSolutionGroupConvImplicitGemmXdlops(const miopen::conv::ProblemDescription& problem,
-                                        InvokerFactoryMakerNHWC&& invoker_factory_maker_ndhwc)
-{
-
-#if MIOPEN_USE_COMPOSABLEKERNEL
-if(problem.IsLayoutNHWC())
     {
         switch(problem.GetInDataType())
         {

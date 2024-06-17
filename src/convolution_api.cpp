@@ -233,12 +233,11 @@ miopenConvolutionABBackwardWeightsGetWorkSpaceSize(const miopenAlphaBetaCase_t a
                                          miopenDataType_t data_type,
                                          miopenAlphaBetaCase_t alpha_beta_case) {
             auto is_odd        = [](int num) { return num % 2 != 0; };
-            auto is_one    = [](int num) { return num==1; };
             size_t C_per_group = C / G;
             size_t K_per_group = K / G;
 
             return (alpha_beta_case == BILINEAR || alpha_beta_case == SCALE) ||
-                   (data_type == miopenHalf && (is_one(C_per_group) || is_one(K_per_group) || (is_odd(C_per_group) || is_odd(K_per_group))));
+                   (data_type == miopenHalf && (is_odd(C_per_group) || is_odd(K_per_group)));
         };
 
         size_t output_tensor_size = miopen::deref(outputTensorDesc).GetElementSize();
