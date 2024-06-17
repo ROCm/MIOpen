@@ -862,7 +862,7 @@ public:
                 if(full_set())
                     args += " --all";
 
-                std::ignore = children.emplace_back(exe_path()).Arguments(args).Execute();
+                std::ignore = children.emplace_back(exe_path(), args).Execute();
             }
             // clang-format on
         }
@@ -939,7 +939,7 @@ public:
                     args += " --all";
 
                 std::cout << exe_path() << " " << args << std::endl;
-                std::ignore = children.emplace_back(exe_path()).Arguments(args).Execute();
+                std::ignore = children.emplace_back(exe_path(), args).Execute();
             }
             // clang-format on
         }

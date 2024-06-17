@@ -76,7 +76,7 @@ int32_t mloSumForwardRunHost(miopenTensorDescriptor_t inputDesc,
         for(size_t i = 0; i < reduce_size; i++)
         {
             Tcheck val = static_cast<Tcheck>(input[input_idx]);
-            if(nanPropagation && isnan(val))
+            if(nanPropagation && std::isnan(val))
             {
                 val = 0.0f;
             }

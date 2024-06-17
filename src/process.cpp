@@ -26,8 +26,12 @@
 
 #include <miopen/errors.hpp>
 #include <miopen/process.hpp>
+#include <vector>
 #include <string_view>
+
+#ifdef _WIN32
 #include <system_error>
+#endif
 
 namespace miopen {
 
@@ -132,7 +136,7 @@ struct Pipe
 
 struct ProcessImpl
 {
-    ProcessImpl(std::string_view cmd) : command{cmd} {}
+    explicit ProcessImpl(const std::string_view cmd) : command{cmd} {}
 
     template <Direction direction>
     void Create(std::vector<char>& buffer)
@@ -214,62 +218,96 @@ private:
 
 struct ProcessImpl
 {
-    ProcessImpl(std::string_view cmd) : path{cmd} {}
+    ProcessImpl(std::string_view cmd, std::string_view arguments) : command{cmd}, args{arguments} {}
 
-    void Create(std::string_view args,
-                std::string_view cwd,
-                const std::map<std::string_view, std::string_view>& envs)
+    std::string GetCommand() const
     {
-        std::string cmd{path.string()};
-        for(auto e : envs)
-        {
-            std::string s {}
-            cmd.insert(0, " ").insert(0, e.second).insert(0, "=").insert(0, e.first);
-        }
-        if(!args.empty())
-            cmd += " " + std::string{args};
+        std::string cmd{cwd};
         if(!cwd.empty())
-            cmd.insert(0, "cd " + std::string{cwd} + "; ");
-
-        const auto fileMode = outStream != nullptr ? "r" : "w";
-        pipe                = popen(cmd.c_str(), fileMode);
-        if(pipe == nullptr)
-            MIOPEN_THROW("Error: popen()");
+            cmd += "; ";
+        cmd += envs + command;
+        if(!args.empty())
+            cmd += " " + args;
+        return cmd;
     }
 
-    int Wait()
+    void Execute()
+    {
+        pipe = popen(GetCommand().c_str(), "r");
+        if(pipe == nullptr)
+            MIOPEN_THROW("Error: popen()");
+        output_buffer = nullptr;
+    }
+
+    void Read(std::vector<char>& buffer)
+    {
+        pipe = popen(GetCommand().c_str(), "r");
+        if(pipe == nullptr)
+            MIOPEN_THROW("Error: popen()");
+        output_buffer = &buffer;
+    }
+
+    void Write(const std::vector<char>& buffer)
+    {
+        pipe = popen(GetCommand().c_str(), "w");
+        if(pipe == nullptr)
+            MIOPEN_THROW("Error: popen()");
+        output_buffer = nullptr;
+        std::fwrite(buffer.data(), 1, buffer.size(), pipe);
+    }
+
+    int Wait() const
     {
         std::array<char, 1024> buffer{};
-
-        while(feof(pipe) == 0)
+        if(output_buffer != nullptr)
         {
-            if(fgets(buffer.data(), buffer.size(), pipe) != nullptr)
-                output_buffer.empace_back(buffer.data(), buffer.size());
+            output_buffer->clear();
+            while(feof(pipe) == 0)
+            {
+                if(fgets(buffer.data(), buffer.size(), pipe) != nullptr)
+                    output_buffer->insert(output_buffer->end(), buffer.begin(), buffer.end());
+            }
         }
-
+        else
+        {
+            while(feof(pipe) == 0)
+            {
+                if(fgets(buffer.data(), buffer.size(), pipe) != nullptr)
+                    std::cout << buffer.data();
+            }
+        }
         auto status = pclose(pipe);
         return WEXITSTATUS(status);
     }
 
+    void WorkingDirectory(const fs::path& path) { cwd = path.string(); }
+    void EnvironmentVariables(const std::map<std::string_view, std::string_view>& map)
+    {
+        envs.clear();
+        for (const auto& [name, value] : map)
+            envs += name + "=" + value + " ";
+    }
+
 private:
-    fs::path path;
+    std::string command;
     FILE* pipe = nullptr;
+    std::string args;
+    std::string cwd;
+    std::string envs;
+    std::vector<char>* output_buffer = nullptr;
 };
 
 #endif
 
-Process::Process(const fs::path& cmd) : impl{std::make_unique<ProcessImpl>(cmd.string())} {}
+Process::Process(const fs::path& cmd, std::string_view args)
+    : impl{std::make_unique<ProcessImpl>(cmd.string(), args)}
+{
+}
 
 Process::~Process() noexcept = default;
 
 Process::Process(Process&&) noexcept = default;
 Process& Process::operator=(Process&&) noexcept = default;
-
-Process& Process::Arguments(std::string_view args)
-{
-    impl->Arguments(args);
-    return *this;
-}
 
 Process& Process::WorkingDirectory(const fs::path& cwd)
 {
@@ -283,15 +321,21 @@ Process& Process::EnvironmentVariables(std::map<std::string_view, std::string_vi
     return *this;
 }
 
-const Process& Process::Capture(std::vector<char>& buffer) const
+const Process& Process::Execute() const
 {
-    impl->Create<Direction::Output>(buffer);
+    impl->Execute();
     return *this;
 }
 
-const Process& Process::Execute(const std::vector<char>& buffer) const
+const Process& Process::Read(std::vector<char>& buffer) const
 {
-    // impl->Create<Direction::Input>({});
+    impl->Read(buffer);
+    return *this;
+}
+
+const Process& Process::Write(const std::vector<char>& buffer) const
+{
+    impl->Write(buffer);
     return *this;
 }
 

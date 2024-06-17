@@ -1002,7 +1002,7 @@ public:
                 if(full_set())
                     args += " --all";
 
-                std::ignore = children.emplace_back(exe_path()).Arguments(args).Execute();
+                std::ignore = children.emplace_back(exe_path(), args).Execute();
             }
             // clang-format on
         }
@@ -1088,7 +1088,7 @@ public:
                     args += " --all";
 
                 MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", exe_path() + " " + args);
-                std::ignore = children.emplace_back(exe_path()).Arguments(args).Execute();
+                std::ignore = children.emplace_back(exe_path(), args).Execute();
             }
             // clang-format on
         }

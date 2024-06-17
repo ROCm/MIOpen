@@ -29,9 +29,10 @@
 
 #include <miopen/config.hpp>
 #include <miopen/filesystem.hpp>
+#include <map>
 #include <memory>
 #include <string_view>
-#include <map>
+#include <vector>
 
 namespace miopen {
 
@@ -39,18 +40,18 @@ struct ProcessImpl;
 
 struct MIOPEN_INTERNALS_EXPORT Process
 {
-    explicit Process(const fs::path& cmd);
+    explicit Process(const fs::path& cmd, std::string_view args);
     ~Process() noexcept;
 
     Process(Process&&) noexcept;
     Process& operator=(Process&&) noexcept;
 
-    Process& Arguments(std::string_view args);
     Process& WorkingDirectory(const fs::path& cwd);
     Process& EnvironmentVariables(std::map<std::string_view, std::string_view> vars);
 
-    const Process& Capture(std::vector<char>& buffer) const;
-    const Process& Execute(const std::vector<char>& buffer = {}) const;
+    const Process& Execute() const;
+    const Process& Read(std::vector<char>& buffer) const;
+    const Process& Write(const std::vector<char>& buffer = {}) const;
 
     int Wait() const;
 
