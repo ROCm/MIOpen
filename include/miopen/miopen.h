@@ -7259,12 +7259,14 @@ miopenGetGetitemWorkspaceSize(miopenHandle_t handle,
  * @param [in]   indexs                  Source data tensor indexs
  * @param [in]   dxDesc                  Tensor descriptor of output tensor dx
  * @param [out]  dx                      Data tensor dx(It must be initialized to 0)
+ * @param [in]   errorDesc               Tensor descriptor of output tensor error
+ * @param [out]  error                   Data tensor error
  * @param [in]   dimCount                Number of dimensions
  * @param [in]   dims                    Dimensions
  * @param [in]   sliceCount              Number of slices
  * @param [in]   slices                  Slices
  * @param [in]   offset                  Offset of output tensor dx
- * @return                        miopenStatus_t
+ * @return                               miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t miopenGetitemBackward(miopenHandle_t handle,
                                                    void* workspace,
