@@ -91,14 +91,23 @@ template <typename DeviceOpType,
           typename CKArgsType,
           typename ProblemDescriptionType = miopen::conv::ProblemDescription>
 bool IsCKArgsSupported(const ProblemDescriptionType& problem, const std::string& kernel_id)
-{
+{   
+    if(kernel_id !=""){
     auto conv_ptrs = DeviceOpType::GetInstances();
+    std::cout<<"IsCKArgsSupported kernel_id:  "<<kernel_id<<std::endl;
     
-    auto ptr_iter  = FindConvPtrByID(conv_ptrs, kernel_id);
+    auto pos = kernel_id.find_last_of("_");
+    auto splitk_str =  kernel_id.substr(pos+1);
+    std::cout<<"splitk string is :  "<<splitk_str<<std::endl;
+    assert(pos!=std::string::npos);
+    int split_k = std::stoi(splitk_str);
+    auto ptr_iter  = FindConvPtrByID(conv_ptrs, kernel_id.substr(0,pos));
     //if(problem.IsDirectionBackwardWrW()){
-    //    std::cout<<"I am here!"<<std::endl;
+    //std::cout<<"I am here! split_k = "<<split_k<<std::endl;
     //}
-    return (ptr_iter != conv_ptrs.end()) && CKArgsType{problem}.IsSupportedBy(*ptr_iter);
+    return (ptr_iter != conv_ptrs.end()) && CKArgsType{problem}.IsSupportedBySplitK(*ptr_iter, split_k);
+    }
+    return false;
 }
 
 template <typename DeviceOpType,
