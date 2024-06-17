@@ -243,9 +243,7 @@ miopenConvolutionABBackwardWeightsGetWorkSpaceSize(const miopenAlphaBetaCase_t a
 
         size_t output_tensor_size = miopen::deref(outputTensorDesc).GetElementSize();
         size_t byte_size          = 0;
-        bool is_space_need = CKWrwRequireWorkspace(G, C, K, data_type, alpha_beta_case);
-        std::cout<<"in convolution_api,  is_space_need = "<<is_space_need<<std::endl;
-        if(is_space_need)
+        if(CKWrwRequireWorkspace(G, C, K, data_type, alpha_beta_case))
         {
             switch(data_type)
             {

@@ -188,9 +188,7 @@ struct CKArgs
     bool IsSupportedBySplitK(const ConvPtr& conv_ptr, int split_k) const
     {
         auto arg_ptr = MakeArgPtr(conv_ptr, nullptr, nullptr, nullptr, 1.0f, 0.0f, split_k);
-        bool is_space_need = CKWrwRequireWorkspace(G, C, K, data_type, alpha_beta_case);
-        std::cout<<"is_space_need: "<<is_space_need<<std::endl;
-        if(is_space_need)
+        if(CKWrwRequireWorkspace(G, C1, K1, data_type, alpha_beta_case))
         {
             // Creat dummy workspace to pass the ck IsSupportedArgument check.
             int dummy_var = 1;
