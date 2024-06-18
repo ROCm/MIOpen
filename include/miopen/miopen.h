@@ -7260,7 +7260,7 @@ miopenGetGetitemWorkspaceSize(miopenHandle_t handle,
  * @param [in]   dxDesc                  Tensor descriptor of output tensor dx
  * @param [out]  dx                      Data tensor dx(It must be initialized to 0)
  * @param [in]   errorDesc               Tensor descriptor of output tensor error
- * @param [out]  error                   Data tensor error
+ * @param [out]  error                   Data tensor error(It must be initialized to 0)
  * @param [in]   dimCount                Number of dimensions
  * @param [in]   dims                    Dimensions
  * @param [in]   sliceCount              Number of slices
