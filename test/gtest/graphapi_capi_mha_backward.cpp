@@ -144,9 +144,67 @@ protected:
         MakeAndAddRealTensorDescriptor(miopenTensorMhaAmaxDK);
         MakeAndAddRealTensorDescriptor(miopenTensorMhaAmaxDV);
         MakeAndAddRealTensorDescriptor(miopenTensorMhaAmaxDS);
+
+        // get next value for the rest of the tensors (which don't have any particular enum value)
+        GetNextId();
     }
 
-    virtual void MakeVirtualTensorsAndNodes() override {}
+    virtual void MakeVirtualTensorsAndNodes() override 
+    {
+        ////////////// Left part (column) of the Mha backward graph ///////////////
+        ///////////////////////////////////////////////////////////////////////////
+
+        auto mm0 = MakeGapiTensorDesc(true, m_testN, m_testH, m_testS, m_testS);
+
+        MakeMatmul(m_realTensorMap[miopenTensorMhaQ]->m_gapiDesc,
+                   m_realTensorMap[miopenTensorMhaK]->m_gapiDesc,
+                   mm0);
+
+        // MakePointwise function will automatically create a tensor for output,
+        // if output is nullptr    
+        DescriptorWrapperPtr pwS0;
+        MakePointwise(MIOPEN_POINTWISE_IDENTITY, mm0, nullptr, pwS0, false, m_attentionScale);
+
+        DescriptorWrapperPtr pwS1;
+        DescriptorWrapperPtr pwS2;
+        MakePointwise(
+            MIOPEN_POINTWISE_MUL, pwS0, m_realTensorMap[miopenTensorMhaDescaleQ]->m_gapiDesc, pwS1);
+        MakePointwise(
+            MIOPEN_POINTWISE_MUL, pwS1, m_realTensorMap[miopenTensorMhaDescaleK]->m_gapiDesc, pwS2);
+
+        DescriptorWrapperPtr sub0;
+        DescriptorWrapperPtr exp0;
+        DescriptorWrapperPtr mult0;
+        MakePointwise(MIOPEN_POINTWISE_SUB, pwS2, m_realTensorMap[miopenTensorMhaM]->m_gapiDesc, sub0);
+        MakePointwise(MIOPEN_POINTWISE_EXP, sub0, DescriptorWrapperPtr(), exp0);
+        MakePointwise(MIOPEN_POINTWISE_MUL, exp0, m_realTensorMap[miopenTensorMhaZInv]->m_gapiDesc, mult0);
+
+        auto rnd   = MakeGapiTensorDesc(true, m_testN, m_testH, m_testS, m_testS);
+        MakeRNG(m_bernulliProbability,
+                m_realTensorMap[miopenTensorMhaDropoutSeed]->m_gapiDesc,
+                m_realTensorMap[miopenTensorMhaDropoutOffset]->m_gapiDesc,
+                rnd);
+
+        DescriptorWrapperPtr mult1;
+        DescriptorWrapperPtr pwS3, pwS4;
+        MakePointwise(MIOPEN_POINTWISE_MUL, mult0, rnd, mult1);
+        MakePointwise(MIOPEN_POINTWISE_MUL, mult1, m_realTensorMap[miopenTensorMhaDropoutProbability]->m_gapiDesc, pwS3);
+        MakePointwise(MIOPEN_POINTWISE_MUL, pwS3, m_realTensorMap[miopenTensorMhaScaleS]->m_gapiDesc, pwS4);
+
+        //////reshape transpose on a scheme here////////
+
+        auto mm1 = MakeGapiTensorDesc(true, m_testN, m_testH, m_testS, m_testD);
+        MakeMatmul(pwS4, m_realTensorMap[miopenTensorMhaDO]->m_gapiDesc, mm1);
+        DescriptorWrapperPtr pwS5, pwS6;
+        MakePointwise(MIOPEN_POINTWISE_MUL, mm1, m_realTensorMap[miopenTensorMhaDescaleS]->m_gapiDesc, pwS5);
+        MakePointwise(MIOPEN_POINTWISE_MUL, pwS5, m_realTensorMap[miopenTensorMhaDescaleDO]->m_gapiDesc, pwS6);
+
+        MakeReduction(MIOPEN_REDUCE_TENSOR_MAX, pwS6, m_realTensorMap[miopenTensorMhaAmaxDV]->m_gapiDesc);
+        MakePointwise(MIOPEN_POINTWISE_MUL,
+                      pwS6,
+                      m_realTensorMap[miopenTensorMhaScaleDV]->m_gapiDesc,
+                      m_realTensorMap[miopenTensorMhaDV]->m_gapiDesc);
+    }
 
     virtual void RunCPUverify(miopen::Handle& handle) override {}
 };

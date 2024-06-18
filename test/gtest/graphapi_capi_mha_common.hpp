@@ -142,6 +142,15 @@ public:
     miopenBackendDescriptor_t GetDescriptor() const { return m_descriptor; }
     miopenBackendDescriptorType_t GetDescriptorType() const { return m_descriptorType; }
 
+    // helper for tensor
+    void GetTensorDims(std::vectorr<size_t> dims) const
+    {
+        assert(m_descriptorType == MIOPEN_BACKEND_TENSOR_DESCRIPTOR);
+
+        dims.resize(4);
+        GetAttribute(MIOPEN_ATTR_TENSOR_DIMENSIONS, MIOPEN_TYPE_INT64, dims.size(), dims.data());
+    }
+
 private:
     miopenBackendDescriptorType_t m_descriptorType;
     miopenBackendDescriptor_t m_descriptor;
@@ -185,8 +194,7 @@ DescriptorWrapperPtr MakeDescriptor(miopenBackendDescriptorType_t descriptorType
     return std::make_shared<DescriptorWrapper>(descriptorType);
 }
 
-DescriptorWrapperPtr MakeGapiTensorDesc(int64_t uniqueId,
-                                        bool isVirtual         = false,
+DescriptorWrapperPtr MakeGapiTensorDesc(bool isVirtual         = false,
                                         size_t n               = 1,
                                         size_t h               = 1,
                                         size_t s               = 1,
@@ -194,6 +202,8 @@ DescriptorWrapperPtr MakeGapiTensorDesc(int64_t uniqueId,
                                         miopenDataType_t dtype = miopenFloat,
                                         bool transpose         = false)
 {
+    int64_t uniqueId = GetNextId();
+
     DescriptorWrapperPtr descWrapperPtr = MakeDescriptor(MIOPEN_BACKEND_TENSOR_DESCRIPTOR);
 
     descWrapperPtr->SetAttribute(MIOPEN_ATTR_TENSOR_DATA_TYPE, MIOPEN_TYPE_DATA_TYPE, 1, &dtype);
@@ -217,7 +227,7 @@ DescriptorWrapperPtr MakeGapiTensorDesc(int64_t uniqueId,
 
     descWrapperPtr->SetAttribute(MIOPEN_ATTR_TENSOR_DIMENSIONS, MIOPEN_TYPE_INT64, 4, dims.data());
 
-    descWrapperPtr->SetAttribute(MIOPEN_ATTR_TENSOR_STRIDES, MIOPEN_TYPE_INT64, 4, strides.data());
+    descWrapperPtr->SetAttribute(MIOPEN_ATTR_TENSOR_STRIDES, MIOPEN_TYPE_INT64, m_tensorDimCount, strides.data());
     descWrapperPtr->SetAttribute(MIOPEN_ATTR_TENSOR_UNIQUE_ID, MIOPEN_TYPE_INT64, 1, &uniqueId);
 
     // commented this out as Not Implemented
@@ -504,10 +514,11 @@ protected:
         return matmulOperation;
     }
 
+    // if output is nullptr, let's automatically create virtual tensor with size of input tensor   
     DescriptorWrapperPtr MakePointwise(miopenPointwiseMode_t mode,
                                        DescriptorWrapperPtr tensor1,
                                        DescriptorWrapperPtr tensor2,
-                                       DescriptorWrapperPtr output,
+                                       DescriptorWrapperPtr& output,
                                        bool setAlpha1Param = false,
                                        float alpha1Param   = 0.0f)
     {
@@ -527,6 +538,14 @@ protected:
         if(tensor2)
         {
             tensor2Desc = tensor2->GetDescriptor();
+        }
+
+        if (output == nullptr)
+        {
+            std::vector<size_t> dims;
+            tensor1->GetTensorDims(dims);
+
+            output = MakeGapiTensorDesc(true, dims[0], dims[1], dims[2], dims[3]);
         }
 
         miopenBackendDescriptor_t outputDesc = output->GetDescriptor();
