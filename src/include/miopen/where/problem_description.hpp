@@ -53,17 +53,6 @@ extern template tensor_view_t<5> broadcastTo(const tensor_view_t<5>&, const tens
 template <int N>
 int64_t checkBroadcastedContiguous(const tensor_view_t<N>& tensorView);
 extern template int64_t checkBroadcastedContiguous(const tensor_view_t<5>&);
-bool isAllContiguous(const tensor_view_t<5>& inputGrad_tv,
-                     const tensor_view_t<5>& otherGrad_tv,
-                     const tensor_view_t<5>& cond_tv,
-                     const tensor_view_t<5>& outputGrad_tv);
-bool isAllBroadcastedContiguous(const tensor_view_t<5>& inputGrad_tv,
-                                const tensor_view_t<5>& otherGrad_tv,
-                                const tensor_view_t<5>& cond_tv,
-                                const tensor_view_t<5>& outputGrad_tv);
-bool isConditionBroadcasted(const tensor_view_t<5>& inputGrad_tv,
-                            const tensor_view_t<5>& otherGrad_tv,
-                            const tensor_view_t<5>& cond_tv);
 
 struct BackwardProblemDescription : ProblemDescriptionBase
 {
@@ -94,10 +83,10 @@ struct BackwardProblemDescription : ProblemDescriptionBase
                          "broadcastable.");
         }
 
-        inputGrad_tv  = get_inner_expanded_tv<5>(inputGradDesc);
-        otherGrad_tv  = get_inner_expanded_tv<5>(otherGradDesc);
-        condition_tv  = get_inner_expanded_tv<5>(conditionDesc);
-        outputGrad_tv = get_inner_expanded_tv<5>(outputGradDesc);
+        inputGrad_tv  = get_inner_expanded_5dtv(inputGradDesc);
+        otherGrad_tv  = get_inner_expanded_5dtv(otherGradDesc);
+        condition_tv  = get_inner_expanded_5dtv(conditionDesc);
+        outputGrad_tv = get_inner_expanded_5dtv(outputGradDesc);
 
         inputGrad_tv = broadcastTo(inputGrad_tv, outputGrad_tv);
         otherGrad_tv = broadcastTo(otherGrad_tv, outputGrad_tv);
@@ -136,6 +125,40 @@ struct BackwardProblemDescription : ProblemDescriptionBase
         }
 
         return true;
+    }
+
+    bool isAllContiguous() const
+    {
+        auto is_all_contiguous =
+            isTensorViewContiguous(inputGrad_tv) && isTensorViewContiguous(otherGrad_tv) &&
+            isTensorViewContiguous(condition_tv) && isTensorViewContiguous(outputGrad_tv);
+
+        return is_all_contiguous;
+    }
+
+    bool isAllBroadcastedContiguous() const
+    {
+        auto cond_contig_size        = checkBroadcastedContiguous(condition_tv);
+        auto input_grad_contig_size  = checkBroadcastedContiguous(inputGrad_tv);
+        auto other_grad_contig_size  = checkBroadcastedContiguous(otherGrad_tv);
+        auto output_grad_contig_size = checkBroadcastedContiguous(outputGrad_tv);
+
+        bool is_all_broadcasted_contiguous = (cond_contig_size > 0) && (output_grad_contig_size > 0) &&
+                                             (input_grad_contig_size > 0) &&
+                                             (other_grad_contig_size > 0);
+        return is_all_broadcasted_contiguous;
+    }
+
+    bool isConditionBroadcasted() const
+    {
+        auto cond_contig_size       = checkBroadcastedContiguous(condition_tv);
+        auto input_grad_contig_size = checkBroadcastedContiguous(inputGrad_tv);
+        auto other_grad_contig_size = checkBroadcastedContiguous(otherGrad_tv);
+
+        bool is_condition_broadcasted =
+            (cond_contig_size > 0) && ((input_grad_contig_size % cond_contig_size == 0) ||
+                                       (other_grad_contig_size % cond_contig_size == 0));
+        return is_condition_broadcasted;
     }
 
     NetworkConfig MakeNetworkConfig() const override;

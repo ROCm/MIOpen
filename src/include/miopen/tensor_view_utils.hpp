@@ -34,14 +34,12 @@
 
 namespace miopen {
 
-template <int N>
-inline tensor_view_t<N> get_inner_expanded_tv(const TensorDescriptor Desc)
-{
+inline tensor_view_t<5> get_inner_expanded_5dtv(const TensorDescriptor Desc) {
     auto dims    = Desc.GetLengths();
     auto strides = Desc.GetStrides();
 
-    tensor_view_t<N> tensor_view;
-    for(size_t i = 0; i < N; ++i)
+    tensor_view_t<5> tensor_view;
+    for(size_t i = 0; i < 5; ++i)
     {
         if(i < dims.size())
         {

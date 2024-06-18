@@ -101,60 +101,15 @@ tensor_view_t<N> broadcastTo(const tensor_view_t<N>& in, const tensor_view_t<N>&
 
 template tensor_view_t<5> broadcastTo(const tensor_view_t<5>&, const tensor_view_t<5>&);
 
-bool isAllContiguous(const tensor_view_t<5>& inputGrad_tv,
-                     const tensor_view_t<5>& otherGrad_tv,
-                     const tensor_view_t<5>& cond_tv,
-                     const tensor_view_t<5>& outputGrad_tv)
-{
-    auto is_all_contiguous =
-        isTensorViewContiguous(inputGrad_tv) && isTensorViewContiguous(otherGrad_tv) &&
-        isTensorViewContiguous(cond_tv) && isTensorViewContiguous(outputGrad_tv);
-
-    return is_all_contiguous;
-}
-
-bool isAllBroadcastedContiguous(const tensor_view_t<5>& inputGrad_tv,
-                                const tensor_view_t<5>& otherGrad_tv,
-                                const tensor_view_t<5>& cond_tv,
-                                const tensor_view_t<5>& outputGrad_tv)
-{
-    auto cond_contig_size        = checkBroadcastedContiguous(cond_tv);
-    auto input_grad_contig_size  = checkBroadcastedContiguous(inputGrad_tv);
-    auto other_grad_contig_size  = checkBroadcastedContiguous(otherGrad_tv);
-    auto output_grad_contig_size = checkBroadcastedContiguous(outputGrad_tv);
-
-    bool is_all_broadcasted_contiguous = (cond_contig_size > 0) && (output_grad_contig_size > 0) &&
-                                         (input_grad_contig_size > 0) &&
-                                         (other_grad_contig_size > 0);
-    return is_all_broadcasted_contiguous;
-}
-
-bool isConditionBroadcasted(const tensor_view_t<5>& inputGrad_tv,
-                            const tensor_view_t<5>& otherGrad_tv,
-                            const tensor_view_t<5>& cond_tv)
-{
-    auto cond_contig_size       = checkBroadcastedContiguous(cond_tv);
-    auto input_grad_contig_size = checkBroadcastedContiguous(inputGrad_tv);
-    auto other_grad_contig_size = checkBroadcastedContiguous(otherGrad_tv);
-
-    bool is_condition_broadcasted =
-        (cond_contig_size > 0) && ((input_grad_contig_size % cond_contig_size == 0) ||
-                                   (other_grad_contig_size % cond_contig_size == 0));
-    return is_condition_broadcasted;
-}
-
 NetworkConfig BackwardProblemDescription::MakeNetworkConfig() const
 {
     auto cond_contig_size       = checkBroadcastedContiguous(condition_tv);
     auto input_grad_contig_size = checkBroadcastedContiguous(inputGrad_tv);
     auto other_grad_contig_size = checkBroadcastedContiguous(otherGrad_tv);
 
-    bool is_all_contiguous =
-        isAllContiguous(inputGrad_tv, otherGrad_tv, condition_tv, outputGrad_tv);
-    bool is_all_broadcasted_contiguous =
-        isAllBroadcastedContiguous(inputGrad_tv, otherGrad_tv, condition_tv, outputGrad_tv);
-    bool is_condition_broadcasted =
-        isConditionBroadcasted(inputGrad_tv, otherGrad_tv, condition_tv);
+    bool is_all_contiguous = this->isAllContiguous();
+    bool is_all_broadcasted_contiguous = this->isAllBroadcastedContiguous();
+    bool is_condition_broadcasted = this->isConditionBroadcasted();
 
     auto output_grad_numel = outputGradDesc.GetElementSize();
     auto outputGrad_dtype  = miopen::GetDataType(outputGradDesc.GetType());

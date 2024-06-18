@@ -51,15 +51,8 @@ bool WhereBackward::IsApplicable(const ExecutionContext& context,
 {
     auto ignore = context;
 
-    bool is_all_contiguous = miopen::where::isAllContiguous(problem.GetInputGrad_tv(),
-                                                            problem.GetOtherGrad_tv(),
-                                                            problem.GetCondition_tv(),
-                                                            problem.GetOutputGrad_tv());
-    bool is_all_broadcasted_contiguous =
-        miopen::where::isAllBroadcastedContiguous(problem.GetInputGrad_tv(),
-                                                  problem.GetOtherGrad_tv(),
-                                                  problem.GetCondition_tv(),
-                                                  problem.GetOutputGrad_tv());
+    bool is_all_contiguous = problem.isAllContiguous();
+    bool is_all_broadcasted_contiguous = problem.isAllBroadcastedContiguous();
 
     if(!is_all_broadcasted_contiguous && !is_all_contiguous)
         return false;
@@ -77,17 +70,9 @@ WhereBackward::GetSolution(const ExecutionContext& context,
     std::ignore = context;
 
     auto cond_contig_size  = miopen::where::checkBroadcastedContiguous(problem.GetCondition_tv());
-    bool is_all_contiguous = miopen::where::isAllContiguous(problem.GetInputGrad_tv(),
-                                                            problem.GetOtherGrad_tv(),
-                                                            problem.GetCondition_tv(),
-                                                            problem.GetOutputGrad_tv());
-    bool is_all_broadcasted_contiguous =
-        miopen::where::isAllBroadcastedContiguous(problem.GetInputGrad_tv(),
-                                                  problem.GetOtherGrad_tv(),
-                                                  problem.GetCondition_tv(),
-                                                  problem.GetOutputGrad_tv());
-    bool is_condition_broadcasted = miopen::where::isConditionBroadcasted(
-        problem.GetInputGrad_tv(), problem.GetOtherGrad_tv(), problem.GetCondition_tv());
+    bool is_all_contiguous = problem.isAllContiguous();
+    bool is_all_broadcasted_contiguous = problem.isAllBroadcastedContiguous();
+    bool is_condition_broadcasted = problem.isConditionBroadcasted();
 
     auto result = ConvSolution{miopenStatusSuccess};
 
