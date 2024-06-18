@@ -25,6 +25,7 @@
  *******************************************************************************/
 
 #include "miopen/datatype.hpp"
+#include "miopen/tensor.hpp"
 #include <miopen/where/problem_description.hpp>
 #include <miopen/where/solvers.hpp>
 #include <miopen/names.hpp>
@@ -35,35 +36,129 @@ namespace miopen {
 
 namespace where {
 
-NetworkConfig BackwardProblemDescription::MakeNetworkConfig() const
+bool isBroadcastable(const TensorDescriptor& x, const TensorDescriptor& y)
 {
-    tensor_view_t<5> input_grad_tv  = get_inner_expanded_tv<5>(inputGradDesc);
-    tensor_view_t<5> other_grad_tv  = get_inner_expanded_tv<5>(otherGradDesc);
-    tensor_view_t<5> cond_tv        = get_inner_expanded_tv<5>(conditionDesc);
-    tensor_view_t<5> output_grad_tv = get_inner_expanded_tv<5>(outputGradDesc);
+    auto xLen = x.GetLengths();
+    auto yLen = y.GetLengths();
+    if(xLen.empty() || yLen.empty())
+        return false;
 
-    input_grad_tv = broadcast_to(input_grad_tv, output_grad_tv);
-    other_grad_tv = broadcast_to(other_grad_tv, output_grad_tv);
-    cond_tv       = broadcast_to(cond_tv, output_grad_tv);
+    int trailIdxX = xLen.size() - 1;
+    int trailIdxY = yLen.size() - 1;
+    while(trailIdxX >= 0 && trailIdxY >= 0)
+    {
+        if(xLen[trailIdxX] != yLen[trailIdxY] && xLen[trailIdxX] != 1 && yLen[trailIdxY] != 1)
+            return false;
+        trailIdxX--;
+        trailIdxY--;
+    }
+    return true;
+}
 
-    auto cond_contig_size        = solver::where::check_broadcasted_contiguous(cond_tv);
-    auto input_grad_contig_size  = solver::where::check_broadcasted_contiguous(input_grad_tv);
-    auto other_grad_contig_size  = solver::where::check_broadcasted_contiguous(other_grad_tv);
-    auto output_grad_contig_size = solver::where::check_broadcasted_contiguous(output_grad_tv);
+template <int N>
+int64_t checkBroadcastedContiguous(const tensor_view_t<N>& tensorView)
+{
+    int64_t num_elems = 1;
 
+    for(int i = N - 1; i >= 0; i--)
+    {
+        if(tensorView.stride[i] != 0 && tensorView.stride[i] != num_elems)
+            return 0;
+        if(tensorView.stride[i] == 0)
+        {
+            for(int j = i; j >= 0; j--)
+                if(tensorView.stride[j] != 0)
+                    return 0;
+            return num_elems;
+        }
+        num_elems *= tensorView.size[i];
+    }
+
+    return num_elems;
+}
+
+template int64_t checkBroadcastedContiguous(const tensor_view_t<5>&);
+
+template <int N>
+tensor_view_t<N> broadcastTo(const tensor_view_t<N>& in, const tensor_view_t<N>& target)
+{
+    tensor_view_t<N> out;
+    for(int i = 0; i < N; i++)
+    {
+        if(in.size[i] == target.size[i])
+        {
+            out.size[i]   = in.size[i];
+            out.stride[i] = in.stride[i];
+        }
+        else
+        {
+            out.size[i]   = target.size[i];
+            out.stride[i] = 0;
+        }
+    }
+    return out;
+}
+
+template tensor_view_t<5> broadcastTo(const tensor_view_t<5>&, const tensor_view_t<5>&);
+
+bool isAllContiguous(const tensor_view_t<5>& inputGrad_tv,
+                     const tensor_view_t<5>& otherGrad_tv,
+                     const tensor_view_t<5>& cond_tv,
+                     const tensor_view_t<5>& outputGrad_tv)
+{
     auto is_all_contiguous =
-        isTensorViewContiguous(input_grad_tv) && isTensorViewContiguous(other_grad_tv) &&
-        isTensorViewContiguous(cond_tv) && isTensorViewContiguous(output_grad_tv);
+        isTensorViewContiguous(inputGrad_tv) && isTensorViewContiguous(otherGrad_tv) &&
+        isTensorViewContiguous(cond_tv) && isTensorViewContiguous(outputGrad_tv);
 
-    bool is_all_broadcasted_contiguous = cond_contig_size && output_grad_contig_size &&
-                                         input_grad_contig_size && other_grad_contig_size;
+    return is_all_contiguous;
+}
+
+bool isAllBroadcastedContiguous(const tensor_view_t<5>& inputGrad_tv,
+                                const tensor_view_t<5>& otherGrad_tv,
+                                const tensor_view_t<5>& cond_tv,
+                                const tensor_view_t<5>& outputGrad_tv)
+{
+    auto cond_contig_size        = checkBroadcastedContiguous(cond_tv);
+    auto input_grad_contig_size  = checkBroadcastedContiguous(inputGrad_tv);
+    auto other_grad_contig_size  = checkBroadcastedContiguous(otherGrad_tv);
+    auto output_grad_contig_size = checkBroadcastedContiguous(outputGrad_tv);
+
+    bool is_all_broadcasted_contiguous = (cond_contig_size > 0) && (output_grad_contig_size > 0) &&
+                                         (input_grad_contig_size > 0) &&
+                                         (other_grad_contig_size > 0);
+    return is_all_broadcasted_contiguous;
+}
+
+bool isConditionBroadcasted(const tensor_view_t<5>& inputGrad_tv,
+                            const tensor_view_t<5>& otherGrad_tv,
+                            const tensor_view_t<5>& cond_tv)
+{
+    auto cond_contig_size       = checkBroadcastedContiguous(cond_tv);
+    auto input_grad_contig_size = checkBroadcastedContiguous(inputGrad_tv);
+    auto other_grad_contig_size = checkBroadcastedContiguous(otherGrad_tv);
 
     bool is_condition_broadcasted =
-        cond_contig_size && ((input_grad_contig_size % cond_contig_size) == 0 ||
-                             (other_grad_contig_size % cond_contig_size) == 0);
+        (cond_contig_size > 0) && ((input_grad_contig_size % cond_contig_size == 0) ||
+                                   (other_grad_contig_size % cond_contig_size == 0));
+    return is_condition_broadcasted;
+}
+
+NetworkConfig BackwardProblemDescription::MakeNetworkConfig() const
+{
+    auto cond_contig_size       = checkBroadcastedContiguous(condition_tv);
+    auto input_grad_contig_size = checkBroadcastedContiguous(inputGrad_tv);
+    auto other_grad_contig_size = checkBroadcastedContiguous(otherGrad_tv);
+
+    bool is_all_contiguous =
+        isAllContiguous(inputGrad_tv, otherGrad_tv, condition_tv, outputGrad_tv);
+    bool is_all_broadcasted_contiguous =
+        isAllBroadcastedContiguous(inputGrad_tv, otherGrad_tv, condition_tv, outputGrad_tv);
+    bool is_condition_broadcasted =
+        isConditionBroadcasted(inputGrad_tv, otherGrad_tv, condition_tv);
+
     auto output_grad_numel = outputGradDesc.GetElementSize();
-    auto outputGrad_dtype = miopen::GetDataType(outputGradDesc.GetType());
-    auto inputGrad_dtype  = miopen::GetDataType(inputGradDesc.GetType());
+    auto outputGrad_dtype  = miopen::GetDataType(outputGradDesc.GetType());
+    auto inputGrad_dtype   = miopen::GetDataType(inputGradDesc.GetType());
 
     std::ostringstream ss;
 

@@ -46,52 +46,20 @@ namespace solver {
 
 namespace where {
 
-template <int N>
-int64_t check_broadcasted_contiguous(const tensor_view_t<N>& tensorView)
-{
-    int64_t num_elems = 1;
-
-    for(int i = N - 1; i >= 0; i--)
-    {
-        if(tensorView.stride[i] != 0 && tensorView.stride[i] != num_elems)
-            return 0;
-        if(tensorView.stride[i] == 0)
-        {
-            for(int j = i; j >= 0; j--)
-                if(tensorView.stride[j] != 0)
-                    return 0;
-            return num_elems;
-        }
-        num_elems *= tensorView.size[i];
-    }
-
-    return num_elems;
-}
-
 bool WhereBackward::IsApplicable(const ExecutionContext& context,
                                  const miopen::where::BackwardProblemDescription& problem) const
 {
-    std::ignore                     = context;
-    tensor_view_t<5> input_grad_tv  = get_inner_expanded_tv<5>(problem.GetInputGradDesc());
-    tensor_view_t<5> other_grad_tv  = get_inner_expanded_tv<5>(problem.GetOtherGradDesc());
-    tensor_view_t<5> cond_tv        = get_inner_expanded_tv<5>(problem.GetConditionDesc());
-    tensor_view_t<5> output_grad_tv = get_inner_expanded_tv<5>(problem.GetOutputGradDesc());
+    auto ignore = context;
 
-    input_grad_tv = broadcast_to(input_grad_tv, output_grad_tv);
-    other_grad_tv = broadcast_to(other_grad_tv, output_grad_tv);
-    cond_tv       = broadcast_to(cond_tv, output_grad_tv);
-
-    auto cond_contig_size        = check_broadcasted_contiguous(cond_tv);
-    auto input_grad_contig_size  = check_broadcasted_contiguous(input_grad_tv);
-    auto other_grad_contig_size  = check_broadcasted_contiguous(other_grad_tv);
-    auto output_grad_contig_size = check_broadcasted_contiguous(output_grad_tv);
-
-    auto is_all_contiguous =
-        isTensorViewContiguous(input_grad_tv) && isTensorViewContiguous(other_grad_tv) &&
-        isTensorViewContiguous(cond_tv) && isTensorViewContiguous(output_grad_tv);
-
-    bool is_all_broadcasted_contiguous = cond_contig_size && output_grad_contig_size &&
-                                         input_grad_contig_size && other_grad_contig_size;
+    bool is_all_contiguous = miopen::where::isAllContiguous(problem.GetInputGrad_tv(),
+                                                            problem.GetOtherGrad_tv(),
+                                                            problem.GetCondition_tv(),
+                                                            problem.GetOutputGrad_tv());
+    bool is_all_broadcasted_contiguous =
+        miopen::where::isAllBroadcastedContiguous(problem.GetInputGrad_tv(),
+                                                  problem.GetOtherGrad_tv(),
+                                                  problem.GetCondition_tv(),
+                                                  problem.GetOutputGrad_tv());
 
     if(!is_all_broadcasted_contiguous && !is_all_contiguous)
         return false;
@@ -108,30 +76,18 @@ WhereBackward::GetSolution(const ExecutionContext& context,
 {
     std::ignore = context;
 
-    tensor_view_t<5> input_grad_tv  = get_inner_expanded_tv<5>(problem.GetInputGradDesc());
-    tensor_view_t<5> other_grad_tv  = get_inner_expanded_tv<5>(problem.GetOtherGradDesc());
-    tensor_view_t<5> cond_tv        = get_inner_expanded_tv<5>(problem.GetConditionDesc());
-    tensor_view_t<5> output_grad_tv = get_inner_expanded_tv<5>(problem.GetOutputGradDesc());
-
-    input_grad_tv = broadcast_to(input_grad_tv, output_grad_tv);
-    other_grad_tv = broadcast_to(other_grad_tv, output_grad_tv);
-    cond_tv       = broadcast_to(cond_tv, output_grad_tv);
-
-    auto cond_contig_size        = check_broadcasted_contiguous(cond_tv);
-    auto input_grad_contig_size  = check_broadcasted_contiguous(input_grad_tv);
-    auto other_grad_contig_size  = check_broadcasted_contiguous(other_grad_tv);
-    auto output_grad_contig_size = check_broadcasted_contiguous(output_grad_tv);
-
-    auto is_all_contiguous =
-        isTensorViewContiguous(input_grad_tv) && isTensorViewContiguous(other_grad_tv) &&
-        isTensorViewContiguous(cond_tv) && isTensorViewContiguous(output_grad_tv);
-
-    bool is_all_broadcasted_contiguous = cond_contig_size && output_grad_contig_size &&
-                                         input_grad_contig_size && other_grad_contig_size;
-
-    bool is_condition_broadcasted =
-        cond_contig_size && ((input_grad_contig_size % cond_contig_size) == 0 ||
-                             (other_grad_contig_size % cond_contig_size) == 0);
+    auto cond_contig_size  = miopen::where::checkBroadcastedContiguous(problem.GetCondition_tv());
+    bool is_all_contiguous = miopen::where::isAllContiguous(problem.GetInputGrad_tv(),
+                                                            problem.GetOtherGrad_tv(),
+                                                            problem.GetCondition_tv(),
+                                                            problem.GetOutputGrad_tv());
+    bool is_all_broadcasted_contiguous =
+        miopen::where::isAllBroadcastedContiguous(problem.GetInputGrad_tv(),
+                                                  problem.GetOtherGrad_tv(),
+                                                  problem.GetCondition_tv(),
+                                                  problem.GetOutputGrad_tv());
+    bool is_condition_broadcasted = miopen::where::isConditionBroadcasted(
+        problem.GetInputGrad_tv(), problem.GetOtherGrad_tv(), problem.GetCondition_tv());
 
     auto result = ConvSolution{miopenStatusSuccess};
 
@@ -214,10 +170,13 @@ WhereBackward::GetSolution(const ExecutionContext& context,
                 decltype(auto) kernel = handle_.Run(kernels.front());
                 decltype(auto) params = raw_params.CastTo<miopen::where::BwdInvokeParams>();
 
-                size_t output_grad_numel      = problem.GetOutputGradDesc().GetElementSize();
-                size_t cond_contig_size       = check_broadcasted_contiguous(cond_tv);
-                size_t input_grad_contig_size = check_broadcasted_contiguous(input_grad_tv);
-                size_t other_grad_contig_size = check_broadcasted_contiguous(other_grad_tv);
+                size_t output_grad_numel = problem.GetOutputGradDesc().GetElementSize();
+                size_t cond_contig_size =
+                    miopen::where::checkBroadcastedContiguous(problem.GetCondition_tv());
+                size_t input_grad_contig_size =
+                    miopen::where::checkBroadcastedContiguous(problem.GetInputGrad_tv());
+                size_t other_grad_contig_size =
+                    miopen::where::checkBroadcastedContiguous(problem.GetOtherGrad_tv());
 
                 kernel(params.condition,
                        params.outputGrad,
@@ -256,10 +215,13 @@ WhereBackward::GetSolution(const ExecutionContext& context,
                 decltype(auto) kernel = handle_.Run(kernels.front());
                 decltype(auto) params = raw_params.CastTo<miopen::where::BwdInvokeParams>();
 
-                size_t output_grad_numel      = problem.GetOutputGradDesc().GetElementSize();
-                size_t cond_contig_size       = check_broadcasted_contiguous(cond_tv);
-                size_t input_grad_contig_size = check_broadcasted_contiguous(input_grad_tv);
-                size_t other_grad_contig_size = check_broadcasted_contiguous(other_grad_tv);
+                size_t output_grad_numel = problem.GetOutputGradDesc().GetElementSize();
+                size_t cond_contig_size =
+                    miopen::where::checkBroadcastedContiguous(problem.GetCondition_tv());
+                size_t input_grad_contig_size =
+                    miopen::where::checkBroadcastedContiguous(problem.GetInputGrad_tv());
+                size_t other_grad_contig_size =
+                    miopen::where::checkBroadcastedContiguous(problem.GetOtherGrad_tv());
 
                 kernel(params.condition,
                        params.outputGrad,

@@ -46,6 +46,25 @@ enum class Direction
     Backward,
 };
 
+bool isBroadcastable(const TensorDescriptor& x, const TensorDescriptor& y);
+template <int N>
+tensor_view_t<N> broadcastTo(const tensor_view_t<N>& in, const tensor_view_t<N>& target);
+extern template tensor_view_t<5> broadcastTo(const tensor_view_t<5>&, const tensor_view_t<5>&);
+template <int N>
+int64_t checkBroadcastedContiguous(const tensor_view_t<N>& tensorView);
+extern template int64_t checkBroadcastedContiguous(const tensor_view_t<5>&);
+bool isAllContiguous(const tensor_view_t<5>& inputGrad_tv,
+                     const tensor_view_t<5>& otherGrad_tv,
+                     const tensor_view_t<5>& cond_tv,
+                     const tensor_view_t<5>& outputGrad_tv);
+bool isAllBroadcastedContiguous(const tensor_view_t<5>& inputGrad_tv,
+                                const tensor_view_t<5>& otherGrad_tv,
+                                const tensor_view_t<5>& cond_tv,
+                                const tensor_view_t<5>& outputGrad_tv);
+bool isConditionBroadcasted(const tensor_view_t<5>& inputGrad_tv,
+                            const tensor_view_t<5>& otherGrad_tv,
+                            const tensor_view_t<5>& cond_tv);
+
 struct BackwardProblemDescription : ProblemDescriptionBase
 {
     // Backward constructor
@@ -59,13 +78,30 @@ struct BackwardProblemDescription : ProblemDescriptionBase
           inputGradDesc(inputGradDesc_),
           otherGradDesc(otherGradDesc_)
     {
-        if(!(isBroadcastable(inputGradDesc, otherGradDesc) &&
-             isBroadcastable(otherGradDesc, conditionDesc)))
+        if(!isBroadcastable(inputGradDesc, outputGradDesc))
         {
             MIOPEN_THROW(miopenStatusBadParm,
-                         "WHERE::ProblemDescription: Dimensions of input, other, condition must be "
+                         "WHERE::ProblemDescription: Dimensions of input gradient and output "
+                         "gradient must be "
                          "broadcastable.");
         }
+
+        if(!isBroadcastable(otherGradDesc, outputGradDesc))
+        {
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "WHERE::ProblemDescription: Dimensions of other gradient and output "
+                         "gradient must be "
+                         "broadcastable.");
+        }
+
+        inputGrad_tv  = get_inner_expanded_tv<5>(inputGradDesc);
+        otherGrad_tv  = get_inner_expanded_tv<5>(otherGradDesc);
+        condition_tv  = get_inner_expanded_tv<5>(conditionDesc);
+        outputGrad_tv = get_inner_expanded_tv<5>(outputGradDesc);
+
+        inputGrad_tv = broadcastTo(inputGrad_tv, outputGrad_tv);
+        otherGrad_tv = broadcastTo(otherGrad_tv, outputGrad_tv);
+        condition_tv = broadcastTo(condition_tv, outputGrad_tv);
     }
 
     Direction GetDirection() const { return direction; }
@@ -73,11 +109,18 @@ struct BackwardProblemDescription : ProblemDescriptionBase
     const TensorDescriptor& GetConditionDesc() const { return conditionDesc; }
     const TensorDescriptor& GetInputGradDesc() const { return inputGradDesc; }
     const TensorDescriptor& GetOtherGradDesc() const { return otherGradDesc; }
+    const tensor_view_t<5>& GetOutputGrad_tv() const { return outputGrad_tv; }
+    const tensor_view_t<5>& GetCondition_tv() const { return condition_tv; }
+    const tensor_view_t<5>& GetInputGrad_tv() const { return inputGrad_tv; }
+    const tensor_view_t<5>& GetOtherGrad_tv() const { return otherGrad_tv; }
 
     bool IsSameType() const
     {
-        if(inputGradDesc.GetType() != otherGradDesc.GetType() ||
-           inputGradDesc.GetType() != outputGradDesc.GetType())
+        if(inputGradDesc.GetType() != outputGradDesc.GetType())
+        {
+            return false;
+        }
+        if(otherGradDesc.GetType() != outputGradDesc.GetType())
         {
             return false;
         }
@@ -103,6 +146,11 @@ private:
     TensorDescriptor conditionDesc;
     TensorDescriptor inputGradDesc;
     TensorDescriptor otherGradDesc;
+
+    tensor_view_t<5> outputGrad_tv;
+    tensor_view_t<5> condition_tv;
+    tensor_view_t<5> inputGrad_tv;
+    tensor_view_t<5> otherGrad_tv;
 };
 
 } // namespace where

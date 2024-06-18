@@ -57,45 +57,6 @@ inline tensor_view_t<N> get_inner_expanded_tv(const TensorDescriptor Desc)
     return tensor_view;
 }
 
-inline bool isBroadcastable(const TensorDescriptor x, const TensorDescriptor y)
-{
-    auto xLen = x.GetLengths();
-    auto yLen = y.GetLengths();
-    if(xLen.empty() || yLen.empty())
-        return false;
-
-    int trailIdxX = xLen.size() - 1;
-    int trailIdxY = yLen.size() - 1;
-    while(trailIdxX >= 0 && trailIdxY >= 0)
-    {
-        if(xLen[trailIdxX] != yLen[trailIdxY] && xLen[trailIdxX] != 1 && yLen[trailIdxY] != 1)
-            return false;
-        trailIdxX--;
-        trailIdxY--;
-    }
-    return true;
-}
-
-template <int N>
-inline tensor_view_t<N> broadcast_to(const tensor_view_t<N> in, const tensor_view_t<N> target)
-{
-    tensor_view_t<N> out;
-    for(int i = 0; i < N; i++)
-    {
-        if(in.size[i] == target.size[i])
-        {
-            out.size[i]   = in.size[i];
-            out.stride[i] = in.stride[i];
-        }
-        else
-        {
-            out.size[i]   = target.size[i];
-            out.stride[i] = 0;
-        }
-    }
-    return out;
-}
-
 template <int N>
 inline bool isTensorViewContiguous(const tensor_view_t<N>& tv)
 {

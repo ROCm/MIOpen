@@ -63,13 +63,18 @@ int32_t mloWhereBackwardRunHost(miopenTensorDescriptor_t outputGradDesc,
     auto cond_numel        = miopen::deref(conditionDesc).GetElementSize();
     auto output_grad_numel = miopen::deref(outputGradDesc).GetElementSize();
 
-    for(size_t i = 0; i < input_grad_numel; i++)
-    {
-        inputGrad[i] = outputGrad[i % output_grad_numel] * condition[i % cond_numel];
+    if (inputGrad) {
+        for(size_t i = 0; i < input_grad_numel; i++)
+        {
+            inputGrad[i] = outputGrad[i % output_grad_numel] * condition[i % cond_numel];
+        }
     }
-    for(size_t o = 0; o < other_grad_numel; o++)
-    {
-        otherGrad[o] = outputGrad[o % output_grad_numel] * (1 - condition[o % cond_numel]);
+
+    if (otherGrad) {
+        for(size_t o = 0; o < other_grad_numel; o++)
+        {
+            otherGrad[o] = outputGrad[o % output_grad_numel] * (1 - condition[o % cond_numel]);
+        }
     }
 
     return 0;
@@ -125,15 +130,15 @@ private:
     int forw;
 
     // Backwards
-    miopenTensorDescriptor_t condTensor;
-    miopenTensorDescriptor_t outputTensorGrad;
-    miopenTensorDescriptor_t inputTensorGrad;
-    miopenTensorDescriptor_t otherTensorGrad;
+    miopenTensorDescriptor_t condTensor = nullptr;
+    miopenTensorDescriptor_t outputTensorGrad = nullptr;
+    miopenTensorDescriptor_t inputTensorGrad = nullptr;
+    miopenTensorDescriptor_t otherTensorGrad = nullptr;
 
-    std::unique_ptr<GPUMem> cond_dev;
-    std::unique_ptr<GPUMem> outGrad_dev;
-    std::unique_ptr<GPUMem> inGrad_dev;
-    std::unique_ptr<GPUMem> otherGrad_dev;
+    std::unique_ptr<GPUMem> cond_dev = nullptr;
+    std::unique_ptr<GPUMem> outGrad_dev = nullptr;
+    std::unique_ptr<GPUMem> inGrad_dev =    nullptr;
+    std::unique_ptr<GPUMem> otherGrad_dev = nullptr;
 
     std::vector<Tgpu> cond;
     std::vector<Tgpu> outGrad;
@@ -164,16 +169,9 @@ int WhereDriver<Tgpu, Tref>::GetandSetData()
     std::vector<int> other_len = GetTensorLengthsFromCmdLine("otherDims");
     std::vector<int> cond_len  = GetTensorLengthsFromCmdLine("condDims");
 
-    SetTensorNd(inputTensorGrad, in_len, data_type);
-    SetTensorNd(otherTensorGrad, other_len, data_type);
+        SetTensorNd(inputTensorGrad, in_len, data_type);
+        SetTensorNd(otherTensorGrad, other_len, data_type);
     SetTensorNd(condTensor, cond_len, data_type);
-
-    if(!(miopen::isBroadcastable(miopen::deref(inputTensorGrad), miopen::deref(otherTensorGrad)) &&
-         miopen::isBroadcastable(miopen::deref(otherTensorGrad), miopen::deref(condTensor))))
-    {
-        std::cerr << "inputDims, otherDims and condDims must be broadcastable" << std::endl;
-        return miopenStatusBadParm;
-    }
 
     int in_sz    = in_len.size();
     int other_sz = other_len.size();
@@ -206,7 +204,7 @@ int WhereDriver<Tgpu, Tref>::AddCmdLineArgs()
     inflags.AddInputFlag(
         "inputDims", 'I', "1,2,2,2,2", "The dimensional lengths of input tensor", "string");
     inflags.AddInputFlag(
-        "otherDims", 'O', "1,2,2,2,2", "The dimensional lengths of other tensor", "string");
+        "otherDims", 'O', "1,2,2", "The dimensional lengths of other tensor", "string");
     inflags.AddInputFlag(
         "condDims", 'C', "4,2,2,2,2", "The dimensional lengths of condition tensor", "string");
 
@@ -257,7 +255,6 @@ std::vector<int> WhereDriver<Tgpu, Tref>::GetTensorLengthsFromCmdLine(std::strin
 
     if(lengths.empty())
     {
-        std::cerr << "Error Input Tensor Lengths\n" << std::endl;
         return std::vector<int>({0});
     }
 
@@ -286,7 +283,7 @@ int WhereDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
     if(forw == 0)
     {
-        size_t inGrad_sz    = GetTensorSpace(inputTensorGrad);
+        size_t inGrad_sz    = (inputTensorGrad != nullptr) ? GetTensorSpace(inputTensorGrad) : 0;
         size_t otherGrad_sz = GetTensorSpace(otherTensorGrad);
         size_t outGrad_sz   = GetTensorSpace(outputTensorGrad);
 
