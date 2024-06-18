@@ -240,12 +240,6 @@ private:
     conv::ProblemDescription GetConvProblem();
 };
 
-namespace fusion {
-
-MIOPEN_INTERNALS_EXPORT bool IsWinograd(const std::vector<solver::AnySolver>& ss);
-
-} // namespace fusion
-
 MIOPEN_INTERNALS_EXPORT
 miopenStatus_t ConvBiasActivFusion(Handle& handle,
                                    const void* alpha1,
