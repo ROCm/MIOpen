@@ -120,7 +120,7 @@ struct Pipe
         return result;
     }
 
-    std::pair<bool, DWORD> Read(void *buffer, DWORD size) const
+    std::pair<bool, DWORD> Read(void* buffer, DWORD size) const
     {
         DWORD bytes_read;
         if(ReadFile(readHandle, buffer, size, &bytes_read, nullptr) == FALSE &&
@@ -131,7 +131,7 @@ struct Pipe
         return {false, bytes_read};
     }
 
-    bool Write(const void *buffer, DWORD size) const
+    bool Write(const void* buffer, DWORD size) const
     {
         DWORD bytes_written;
         return WriteFile(writeHandle, buffer, size, &bytes_written, nullptr) == TRUE;
@@ -163,8 +163,8 @@ struct ProcessImpl
 
         STARTUPINFOA info;
         ZeroMemory(&info, sizeof(STARTUPINFO));
-        info.cb = sizeof(STARTUPINFO);
-        info.hStdError = output.writeHandle;
+        info.cb         = sizeof(STARTUPINFO);
+        info.hStdError  = output.writeHandle;
         info.hStdOutput = output.writeHandle;
         info.hStdInput  = input.readHandle;
         info.dwFlags |= STARTF_USESTDHANDLES;
@@ -177,7 +177,7 @@ struct ProcessImpl
                          nullptr,
                          TRUE,
                          0,
-                         //lpEnvironment,
+                         // lpEnvironment,
                          envs.empty() ? nullptr : envs.data(),
                          cwd.empty() ? nullptr : cwd.c_str(),
                          &info,
@@ -202,9 +202,12 @@ struct ProcessImpl
         if(envStrings == nullptr)
             MIOPEN_THROW("Unable to get environment strings");
         auto p = envStrings;
-        while (*p != 0)
+        while(*p != 0)
         {
-            while (*p != 0) { envs.push_back(*p++); }
+            while(*p != 0)
+            {
+                envs.push_back(*p++);
+            }
             envs.push_back(*p++);
         }
         for(const auto& [name, value] : vars)
@@ -217,7 +220,7 @@ struct ProcessImpl
         envs.push_back('\0');
         FreeEnvironmentStrings(envStrings);
     }
-    
+
     void WorkingDirectory(const fs::path& path) { cwd = path.string(); }
 
     template <typename T>
@@ -225,7 +228,7 @@ struct ProcessImpl
     {
         Execute();
         TCHAR chunk[MIOPEN_PROCESS_BUFSIZE];
-        for (;;)
+        for(;;)
         {
             auto [more_data, bytes_read] = output.Read(chunk, MIOPEN_PROCESS_BUFSIZE);
             if(bytes_read == 0)
@@ -293,18 +296,18 @@ struct ProcessImpl
         buffer_reference = nullptr;
     }
 
-    void Read(void *buffer, const std::size_t size)
+    void Read(void* buffer, const std::size_t size)
     {
         const auto cmd{GetCommand()};
         std::cout << "COMMAND: " << cmd << "\n";
         pipe = popen(cmd.c_str(), "r");
         if(pipe == nullptr)
             MIOPEN_THROW("Error: popen()");
-        buffer_size = size;
+        buffer_size      = size;
         buffer_reference = buffer;
     }
 
-    void Write(const void *buffer, const std::size_t size)
+    void Write(const void* buffer, const std::size_t size)
     {
         pipe = popen(GetCommand().c_str(), "w");
         if(pipe == nullptr)
@@ -327,7 +330,7 @@ struct ProcessImpl
     void EnvironmentVariables(const std::map<std::string_view, std::string_view>& map)
     {
         envs.clear();
-        for (const auto& [name, value] : map)
+        for(const auto& [name, value] : map)
             envs += name + "=" + value + " ";
     }
 
@@ -337,7 +340,7 @@ private:
     std::string args;
     std::string cwd;
     std::string envs;
-    void* buffer_reference = nullptr;
+    void* buffer_reference  = nullptr;
     std::size_t buffer_size = 0;
 };
 
@@ -383,7 +386,7 @@ const Process& Process::Read(std::string& buffer) const
     return *this;
 }
 
-const Process& Process::Write(const void *buffer, const std::size_t size) const
+const Process& Process::Write(const void* buffer, const std::size_t size) const
 {
     impl->Write(buffer, size);
     return *this;

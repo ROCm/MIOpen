@@ -41,7 +41,7 @@
 
 #include "gtest/gtest.h"
 
-namespace fs = miopen::fs;
+namespace fs  = miopen::fs;
 namespace env = miopen::env;
 
 #ifndef _WIN32

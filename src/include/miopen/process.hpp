@@ -52,7 +52,7 @@ struct MIOPEN_INTERNALS_EXPORT Process
     const Process& Execute() const;
     const Process& Read(std::vector<char>& buffer) const;
     const Process& Read(std::string& buffer) const;
-    const Process& Write(const void *buffer, std::size_t size) const;
+    const Process& Write(const void* buffer, std::size_t size) const;
     const Process& Write(const std::vector<char>& buffer) const
     {
         return Write(buffer.data(), buffer.size());
