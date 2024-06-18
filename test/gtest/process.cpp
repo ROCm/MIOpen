@@ -132,7 +132,7 @@ std::vector<char> read_stdin()
 }
 } // namespace
 
-TEST(ProcessTest, string_stdin)
+TEST(ProcessTest, StringStdin)
 {
     const miopen::TmpDir tmp{};
     const auto out = tmp / "output.txt";
@@ -144,7 +144,7 @@ TEST(ProcessTest, string_stdin)
     EXPECT_EQ(fs::remove(out), true);
 }
 
-TEST(ProcessTest, binary_stdin)
+TEST(ProcessTest, BinaryStdin)
 {
     std::random_device rd;
     std::independent_bits_engine<std::mt19937, CHAR_BIT, unsigned short> rbe(rd());
@@ -160,7 +160,7 @@ TEST(ProcessTest, binary_stdin)
     EXPECT_EQ(fs::remove(out), true);
 }
 
-TEST(ProcessTest, read_stdout)
+TEST(ProcessTest, ReadStdout)
 {
     std::string buffer;
     miopen::Process p{executable, "--stdout"};
@@ -168,19 +168,19 @@ TEST(ProcessTest, read_stdout)
     EXPECT_EQ(buffer, string_data);
 }
 
-TEST(ProcessTest, current_working_dir)
+TEST(ProcessTest, CurrentWorkingDirectory)
 {
     const miopen::TmpDir tmp{};
     const auto out = tmp / "output.txt";
     miopen::Process p{executable, "--stdin output.txt"};
-    EXPECT_EQ(p.WorkingDirectory(tmp.path).Write(string_data).Wait(), 0);
+    EXPECT_EQ(p.WorkingDirectory(tmp).Write(string_data).Wait(), 0);
     EXPECT_EQ(fs::is_regular_file(out), true);
     const std::string result{read_string(out)};
     EXPECT_EQ(result, string_data);
     EXPECT_EQ(fs::remove(out), true);
 }
 
-TEST(ProcessTest, environment_variable)
+TEST(ProcessTest, EnvironmentVariable)
 {
     std::string buffer;
     miopen::Process p{executable, "--stdout"};

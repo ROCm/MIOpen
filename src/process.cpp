@@ -279,9 +279,9 @@ struct ProcessImpl
 
     std::string GetCommand() const
     {
-        std::string cmd{cwd};
+        std::string cmd;
         if(!cwd.empty())
-            cmd += "; ";
+            cmd += "cd " + cwd + "; ";
         cmd += envs + command;
         if(!args.empty())
             cmd += " " + args;
@@ -302,7 +302,7 @@ struct ProcessImpl
         std::array<char, 128> chunk;
         buffer.clear();
         while(fgets(chunk.data(), chunk.size(), pipe) != nullptr)
-            buffer.insert(buffer.end(), chunk.begin(), chunk.end());
+            buffer.insert(buffer.end(), chunk.data(), chunk.data() + strlen(chunk.data()));
     }
 
     void Write(const void* buffer, const std::size_t size)
