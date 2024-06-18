@@ -207,13 +207,12 @@ std::vector<GetitemTestCase> GetitemTestConfigs()
 { // dy indexs dx dims slices offset
     // clang-format off
     return {
-        { {4, 4}, {{4}},  {4, 4},   {0}, {}, 0}
-        // { {128, 128}, {{128}},  {128, 128},   {0}, {}, 0}, //llama2
-        // { {16, 4},    {{16}},   {3234, 4},    {0}, {}, 0}, //ssdlite
-        // { {149, 128}, {{1490}}, {1490, 1128}, {0}, {}, 0}, //llama2_7b
-        // { {10, 128},  {{10}},   {160, 128},   {0}, {}, 0},
-        // { {4260, 4},  {{4300}}, {4300, 4},    {0}, {}, 0}, //fasterrcnn
-        // { {4260},     {{4300}}, {4300},       {0}, {}, 0}  //maskrcnn
+        { {128, 128}, {{128}},  {128, 128},   {0}, {}, 0}, //llama2
+        { {16, 4},    {{16}},   {3234, 4},    {0}, {}, 0}, //ssdlite
+        { {149, 128}, {{1490}}, {1490, 1128}, {0}, {}, 0}, //llama2_7b
+        { {10, 128},  {{10}},   {160, 128},   {0}, {}, 0},
+        { {4260, 4},  {{4300}}, {4300, 4},    {0}, {}, 0}, //fasterrcnn
+        { {4260},     {{4300}}, {4300},       {0}, {}, 0}  //maskrcnn
       };
     // clang-format on
 }
@@ -296,7 +295,7 @@ protected:
         if(ws_sizeInBytes != 0)
         {
             workspace = tensor<T>{workspace_dims};
-            std::fill(workspace.begin(), workspace.end(), std::numeric_limits<T>::quiet_NaN());
+            std::fill(workspace.begin(), workspace.end(), static_cast<T>(0));
             workspace_dev = handle.Write(workspace.data);
         }
 

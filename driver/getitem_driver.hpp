@@ -350,11 +350,11 @@ int GetitemDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     error     = std::vector<int32_t>(error_sz, static_cast<int32_t>(0));
     workspace = std::vector<int32_t>(ws_sizeInBytes / sizeof(int32_t), static_cast<int32_t>(0));
     dxhost    = std::vector<Tref>(dx_sz, static_cast<Tref>(0));
-    errorhost = std::vector<int32_t>(error_sz, static_cast<int32_t>(1));
+    errorhost = std::vector<int32_t>(error_sz, static_cast<int32_t>(0));
 
     for(int32_t i = 0; i < dy_sz; i++)
     {
-        dy[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(-0.01), static_cast<Tgpu>(0.01));
+        dy[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(-1), static_cast<Tgpu>(1));
     }
 
     for(int32_t i = 0; i < indexDescs.size(); i++)
@@ -384,7 +384,10 @@ int GetitemDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         std::cerr << "Error copying (workspace) to GPU, size: " << workspace_dev->GetSize()
                   << std::endl;
 
-    if(error_dev->ToGPU(GetStream(), errorhost.data()) != 0)
+    if(dx_dev->ToGPU(GetStream(), dx.data()) != 0)
+        std::cerr << "Error copying (dx) to GPU, size: " << dx_dev->GetSize() << std::endl;
+
+    if(error_dev->ToGPU(GetStream(), error.data()) != 0)
         std::cerr << "Error copying (error) to GPU, size: " << error_dev->GetSize() << std::endl;
 
     return miopenStatusSuccess;
