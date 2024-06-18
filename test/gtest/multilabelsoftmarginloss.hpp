@@ -90,7 +90,7 @@ protected:
 
         auto in_dims = config.dims;
 
-        auto gen_in_value = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1e-2, 100); };
+        auto gen_in_value = [](auto...) { return prng::gen_descreet_uniform_sign<T>(0.1, 50); };
         input             = tensor<T>{in_dims};
         std::generate(input.begin(), input.end(), gen_in_value);
 
@@ -98,9 +98,7 @@ protected:
         target                = tensor<T>{in_dims};
         std::generate(target.begin(), target.end(), gen_target_value);
 
-        auto gen_weight_value = [](auto...) {
-            return prng::gen_descreet_uniform_sign<T>(1e-2, 100);
-        };
+        auto gen_weight_value = [](auto...) { return prng::gen_descreet_uniform_sign<T>(0.1, 50); };
         // input is (N, C) -> weight is (C)
         weight = tensor<T>{std::vector<size_t>{in_dims[1]}};
         std::generate(weight.begin(), weight.end(), gen_weight_value);
@@ -175,18 +173,7 @@ protected:
 
         auto in_dims = config.dims;
 
-        auto N = in_dims[0];
-        if(std::is_same<T, half_float::half>::value && N > 20000)
-        {
-            std::cerr
-                << "For fp16 forward reduction test, too many elements in input tensor can"
-                   "lead to fp16 overflow or underflow. If reduction mean, divisor is very "
-                   "big lead to underflow. If reduction sum, result is too big lead to overflow."
-                << std::endl;
-            GTEST_SKIP();
-        }
-
-        auto gen_in_value = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1e-2, 100); };
+        auto gen_in_value = [](auto...) { return prng::gen_descreet_uniform_sign<T>(0.1, 50); };
         input             = tensor<T>{in_dims};
         std::generate(input.begin(), input.end(), gen_in_value);
 
@@ -194,9 +181,7 @@ protected:
         target                = tensor<T>{in_dims};
         std::generate(target.begin(), target.end(), gen_target_value);
 
-        auto gen_weight_value = [](auto...) {
-            return prng::gen_descreet_uniform_sign<T>(1e-2, 100);
-        };
+        auto gen_weight_value = [](auto...) { return prng::gen_descreet_uniform_sign<T>(0.1, 50); };
         // input is (N, C) -> weight is (C)
         weight = tensor<T>{std::vector<size_t>{in_dims[1]}};
         std::generate(weight.begin(), weight.end(), gen_weight_value);
@@ -227,9 +212,6 @@ protected:
         workspace = tensor<T>{workspace_dims};
         std::fill(workspace.begin(), workspace.end(), 0);
 
-        ref_workspace = tensor<T>{workspace_dims};
-        std::fill(ref_workspace.begin(), ref_workspace.end(), 0);
-
         // Write from CPU to GPU
         input_dev     = handle.Write(input.data);
         target_dev    = handle.Write(target.data);
@@ -241,8 +223,7 @@ protected:
     {
         auto&& handle = get_handle();
 
-        cpu_multilabelsoftmarginloss_reduced_forward<T>(
-            input, target, weight, ref_output, ref_workspace, divisor);
+        cpu_multilabelsoftmarginloss_reduced_forward<T>(input, target, weight, ref_output, divisor);
 
         miopenStatus_t status;
         status = miopen::MultilabelSoftMarginLossForward(handle,
@@ -283,7 +264,6 @@ protected:
     tensor<T> workspace;
 
     tensor<T> ref_output;
-    tensor<T> ref_workspace;
 
     miopen::Allocator::ManageDataPtr input_dev;
     miopen::Allocator::ManageDataPtr target_dev;

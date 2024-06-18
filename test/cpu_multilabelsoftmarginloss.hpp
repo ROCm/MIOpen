@@ -66,12 +66,8 @@ void cpu_multilabelsoftmarginloss_unreduced_forward(tensor<T> input,
 }
 
 template <class T>
-void cpu_multilabelsoftmarginloss_reduced_forward(tensor<T> input,
-                                                  tensor<T> target,
-                                                  tensor<T> weight,
-                                                  tensor<T>& ref_output,
-                                                  tensor<T>& ref_workspace,
-                                                  const float divisor)
+void cpu_multilabelsoftmarginloss_reduced_forward(
+    tensor<T> input, tensor<T> target, tensor<T> weight, tensor<T>& ref_output, const float divisor)
 {
     auto N    = input.desc.GetLengths()[0];
     auto C    = input.desc.GetLengths()[1];
@@ -79,41 +75,22 @@ void cpu_multilabelsoftmarginloss_reduced_forward(tensor<T> input,
     auto t_tv = miopen::get_inner_expanded_tv<2>(target.desc);
     auto w_tv = miopen::get_inner_expanded_tv<1>(weight.desc);
 
-    par_ford(N)([&](size_t n) {
-        float loss = 0;
-        // Convert to float for better precision
+    double sum = 0;
+    for(size_t n = 0; n < N; n++)
+    {
+        double loss = 0;
         for(size_t c = 0; c < C; c++)
         {
-            float w = weight[w_tv.get_tensor_view_idx({c})];
-            float i = input[i_tv.get_tensor_view_idx({n, c})];
-            float t = target[t_tv.get_tensor_view_idx({n, c})];
+            double w = weight[w_tv.get_tensor_view_idx({c})];
+            double i = input[i_tv.get_tensor_view_idx({n, c})];
+            double t = target[t_tv.get_tensor_view_idx({n, c})];
             loss += -w * calc_loss(i, t);
         }
-        ref_workspace[n] = loss / C / divisor;
-    });
-    // Reduce loss
-    const int local_size = 256;
-    int offset_a         = 0;
-    int offset_b         = N;
-    size_t _size         = N;
-    do
-    {
-        for(int i = 0; i < _size; i += local_size)
-        {
-            T shared[local_size];
-            for(int j = 0; j < local_size; ++j)
-                shared[j] = i + j < _size ? ref_workspace[offset_a + i + j] : 0.0f;
-            for(int offset = local_size / 2; offset > 0; offset >>= 1)
-                for(int j = 0; j < offset; ++j)
-                    shared[j] += shared[j + offset];
-            if(_size <= local_size)
-                ref_output[0] = shared[0];
-            else
-                ref_workspace[offset_b + i / local_size] = shared[0];
-        }
-        std::swap(offset_a, offset_b);
-        _size = (_size + local_size - 1) / local_size;
-    } while(_size > 1);
+
+        sum += loss / C;
+    }
+    sum /= divisor;
+    ref_output[0] = static_cast<T>(sum);
 }
 
 #endif
