@@ -88,59 +88,59 @@ MultilabelSoftMarginLossUnreducedForward2d(const INPUT_TYPE* __restrict__ I,
     multilabelsoftmarginlossunreducedforward2d<INPUT_TYPE>(I, T, W, O, I_tv, T_tv, W_tv, O_tv);
 }
 
-template <typename DTYPE>
-__device__ void multilabelsoftmarginlossunreducedbackward2d(const DTYPE* __restrict__ I,
-                                                            const DTYPE* __restrict__ T,
-                                                            const DTYPE* __restrict__ W,
-                                                            const DTYPE* __restrict__ dO,
-                                                            DTYPE* __restrict__ dI,
-                                                            DTYPE* __restrict__ dW,
-                                                            tensor_view_t<2> I_tv,
-                                                            tensor_view_t<2> T_tv,
-                                                            tensor_view_t<1> W_tv,
-                                                            tensor_view_t<1> dO_tv,
-                                                            tensor_view_t<2> dI_tv,
-                                                            tensor_view_t<1> dW_tv)
-{
-    const uint64_t gid = threadIdx.x + blockIdx.x * blockDim.x;
+// template <typename DTYPE>
+// __device__ void multilabelsoftmarginlossunreducedbackward2d(const DTYPE* __restrict__ I,
+//                                                             const DTYPE* __restrict__ T,
+//                                                             const DTYPE* __restrict__ W,
+//                                                             const DTYPE* __restrict__ dO,
+//                                                             DTYPE* __restrict__ dI,
+//                                                             DTYPE* __restrict__ dW,
+//                                                             tensor_view_t<2> I_tv,
+//                                                             tensor_view_t<2> T_tv,
+//                                                             tensor_view_t<1> W_tv,
+//                                                             tensor_view_t<1> dO_tv,
+//                                                             tensor_view_t<2> dI_tv,
+//                                                             tensor_view_t<1> dW_tv)
+// {
+//     const uint64_t gid = threadIdx.x + blockIdx.x * blockDim.x;
 
-    size_t N = I_tv.size[0], C = I_tv.size[1];
-    size_t n = gid;
+//     size_t N = I_tv.size[0], C = I_tv.size[1];
+//     size_t n = gid;
 
-    if(n >= N)
-        return;
+//     if(n >= N)
+//         return;
 
-    for(size_t c = 0; c < C; c++)
-    {
-        FLOAT_ACCUM w = CVT_FLOAT2ACCUM(W[W_tv.get_tensor_view_idx({c})]);
-        FLOAT_ACCUM i = CVT_FLOAT2ACCUM(I[I_tv.get_tensor_view_idx({n, c})]);
-        FLOAT_ACCUM t = CVT_FLOAT2ACCUM(T[T_tv.get_tensor_view_idx({n, c})]);
-        FLOAT_ACCUM o = CVT_FLOAT2ACCUM(dO[dO_tv.get_tensor_view_idx({n})]);
+//     for(size_t c = 0; c < C; c++)
+//     {
+//         FLOAT_ACCUM w = CVT_FLOAT2ACCUM(W[W_tv.get_tensor_view_idx({c})]);
+//         FLOAT_ACCUM i = CVT_FLOAT2ACCUM(I[I_tv.get_tensor_view_idx({n, c})]);
+//         FLOAT_ACCUM t = CVT_FLOAT2ACCUM(T[T_tv.get_tensor_view_idx({n, c})]);
+//         FLOAT_ACCUM o = CVT_FLOAT2ACCUM(dO[dO_tv.get_tensor_view_idx({n})]);
 
-        FLOAT_ACCUM grad                      = calc_loss_grad(i, t);
-        dI[dI_tv.get_tensor_view_idx({n, c})] = CVT_ACCUM2FLOAT(-w * o * grad / C);
-        atomicAdd(&dW[dW_tv.get_tensor_view_idx({c})], -o / C * calc_loss(i, t));
-    }
-}
+//         FLOAT_ACCUM grad                      = calc_loss_grad(i, t);
+//         dI[dI_tv.get_tensor_view_idx({n, c})] = CVT_ACCUM2FLOAT(-w * o * grad / C);
+//         atomicAdd(&dW[dW_tv.get_tensor_view_idx({c})], -o / C * calc_loss(i, t));
+//     }
+// }
 
-extern "C" __global__ void
-MultilabelSoftMarginLossUnreducedBackward2d(const INPUT_TYPE* __restrict__ I,
-                                            const INPUT_TYPE* __restrict__ T,
-                                            const INPUT_TYPE* __restrict__ W,
-                                            const INPUT_TYPE* __restrict__ dO,
-                                            INPUT_TYPE* __restrict__ dI,
-                                            INPUT_TYPE* __restrict__ dW,
-                                            tensor_view_t<2> I_tv,
-                                            tensor_view_t<2> T_tv,
-                                            tensor_view_t<1> W_tv,
-                                            tensor_view_t<1> dO_tv,
-                                            tensor_view_t<2> dI_tv,
-                                            tensor_view_t<1> dW_tv)
-{
-    // instantiate the kernel
-    multilabelsoftmarginlossunreducedbackward2d<INPUT_TYPE>(
-        I, T, W, dO, dI, dW, I_tv, T_tv, W_tv, dO_tv, dI_tv, dW_tv);
-}
+// extern "C" __global__ void
+// MultilabelSoftMarginLossUnreducedBackward2d(const INPUT_TYPE* __restrict__ I,
+//                                             const INPUT_TYPE* __restrict__ T,
+//                                             const INPUT_TYPE* __restrict__ W,
+//                                             const INPUT_TYPE* __restrict__ dO,
+//                                             INPUT_TYPE* __restrict__ dI,
+//                                             INPUT_TYPE* __restrict__ dW,
+//                                             tensor_view_t<2> I_tv,
+//                                             tensor_view_t<2> T_tv,
+//                                             tensor_view_t<1> W_tv,
+//                                             tensor_view_t<1> dO_tv,
+//                                             tensor_view_t<2> dI_tv,
+//                                             tensor_view_t<1> dW_tv)
+// {
+//     // instantiate the kernel
+//     multilabelsoftmarginlossunreducedbackward2d<INPUT_TYPE>(
+//         I, T, W, dO, dI, dW, I_tv, T_tv, W_tv, dO_tv, dI_tv, dW_tv);
+// }
 
 template <typename DTYPE>
 __device__ void multilabelsoftmarginlossforward2d(const DTYPE* __restrict__ I,
@@ -187,57 +187,57 @@ extern "C" __global__ void MultilabelSoftMarginLossForward2d(const INPUT_TYPE* _
     multilabelsoftmarginlossforward2d<INPUT_TYPE>(I, T, W, lsum, divisor, I_tv, T_tv, W_tv);
 }
 
-template <typename DTYPE>
-__device__ void multilabelsoftmarginlossbackward2d(const DTYPE* __restrict__ I,
-                                                   const DTYPE* __restrict__ T,
-                                                   const DTYPE* __restrict__ W,
-                                                   const DTYPE* __restrict__ dO,
-                                                   DTYPE* __restrict__ dI,
-                                                   DTYPE* __restrict__ dW,
-                                                   const float divisor,
-                                                   tensor_view_t<2> I_tv,
-                                                   tensor_view_t<2> T_tv,
-                                                   tensor_view_t<1> W_tv,
-                                                   tensor_view_t<1> dO_tv,
-                                                   tensor_view_t<2> dI_tv,
-                                                   tensor_view_t<1> dW_tv)
-{
-    const uint64_t gid = threadIdx.x + blockIdx.x * blockDim.x;
+// template <typename DTYPE>
+// __device__ void multilabelsoftmarginlossbackward2d(const DTYPE* __restrict__ I,
+//                                                    const DTYPE* __restrict__ T,
+//                                                    const DTYPE* __restrict__ W,
+//                                                    const DTYPE* __restrict__ dO,
+//                                                    DTYPE* __restrict__ dI,
+//                                                    DTYPE* __restrict__ dW,
+//                                                    const float divisor,
+//                                                    tensor_view_t<2> I_tv,
+//                                                    tensor_view_t<2> T_tv,
+//                                                    tensor_view_t<1> W_tv,
+//                                                    tensor_view_t<1> dO_tv,
+//                                                    tensor_view_t<2> dI_tv,
+//                                                    tensor_view_t<1> dW_tv)
+// {
+//     const uint64_t gid = threadIdx.x + blockIdx.x * blockDim.x;
 
-    size_t N = I_tv.size[0], C = I_tv.size[1];
-    size_t n = gid;
+//     size_t N = I_tv.size[0], C = I_tv.size[1];
+//     size_t n = gid;
 
-    if(n >= N)
-        return;
+//     if(n >= N)
+//         return;
 
-    for(size_t c = 0; c < C; c++)
-    {
-        FLOAT_ACCUM w = CVT_FLOAT2ACCUM(W[W_tv.get_tensor_view_idx({c})]);
-        FLOAT_ACCUM i = CVT_FLOAT2ACCUM(I[I_tv.get_tensor_view_idx({n, c})]);
-        FLOAT_ACCUM t = CVT_FLOAT2ACCUM(T[T_tv.get_tensor_view_idx({n, c})]);
-        FLOAT_ACCUM o = CVT_FLOAT2ACCUM(dO[dO_tv.get_tensor_view_idx({0})]);
+//     for(size_t c = 0; c < C; c++)
+//     {
+//         FLOAT_ACCUM w = CVT_FLOAT2ACCUM(W[W_tv.get_tensor_view_idx({c})]);
+//         FLOAT_ACCUM i = CVT_FLOAT2ACCUM(I[I_tv.get_tensor_view_idx({n, c})]);
+//         FLOAT_ACCUM t = CVT_FLOAT2ACCUM(T[T_tv.get_tensor_view_idx({n, c})]);
+//         FLOAT_ACCUM o = CVT_FLOAT2ACCUM(dO[dO_tv.get_tensor_view_idx({0})]);
 
-        FLOAT_ACCUM grad                      = calc_loss_grad(i, t);
-        dI[dI_tv.get_tensor_view_idx({n, c})] = CVT_ACCUM2FLOAT(-w * o * grad / C / divisor);
-        atomicAdd(&dW[dW_tv.get_tensor_view_idx({c})], -o / C * calc_loss(i, t) / divisor);
-    }
-}
+//         FLOAT_ACCUM grad                      = calc_loss_grad(i, t);
+//         dI[dI_tv.get_tensor_view_idx({n, c})] = CVT_ACCUM2FLOAT(-w * o * grad / C / divisor);
+//         atomicAdd(&dW[dW_tv.get_tensor_view_idx({c})], -o / C * calc_loss(i, t) / divisor);
+//     }
+// }
 
-extern "C" __global__ void MultilabelSoftMarginLossBackward2d(const INPUT_TYPE* __restrict__ I,
-                                                              const INPUT_TYPE* __restrict__ T,
-                                                              const INPUT_TYPE* __restrict__ W,
-                                                              const INPUT_TYPE* __restrict__ dO,
-                                                              INPUT_TYPE* __restrict__ dI,
-                                                              INPUT_TYPE* __restrict__ dW,
-                                                              const float divisor,
-                                                              tensor_view_t<2> I_tv,
-                                                              tensor_view_t<2> T_tv,
-                                                              tensor_view_t<1> W_tv,
-                                                              tensor_view_t<1> dO_tv,
-                                                              tensor_view_t<2> dI_tv,
-                                                              tensor_view_t<1> dW_tv)
-{
-    // instantiate the kernel
-    multilabelsoftmarginlossbackward2d<INPUT_TYPE>(
-        I, T, W, dO, dI, dW, divisor, I_tv, T_tv, W_tv, dO_tv, dI_tv, dW_tv);
-}
+// extern "C" __global__ void MultilabelSoftMarginLossBackward2d(const INPUT_TYPE* __restrict__ I,
+//                                                               const INPUT_TYPE* __restrict__ T,
+//                                                               const INPUT_TYPE* __restrict__ W,
+//                                                               const INPUT_TYPE* __restrict__ dO,
+//                                                               INPUT_TYPE* __restrict__ dI,
+//                                                               INPUT_TYPE* __restrict__ dW,
+//                                                               const float divisor,
+//                                                               tensor_view_t<2> I_tv,
+//                                                               tensor_view_t<2> T_tv,
+//                                                               tensor_view_t<1> W_tv,
+//                                                               tensor_view_t<1> dO_tv,
+//                                                               tensor_view_t<2> dI_tv,
+//                                                               tensor_view_t<1> dW_tv)
+// {
+//     // instantiate the kernel
+//     multilabelsoftmarginlossbackward2d<INPUT_TYPE>(
+//         I, T, W, dO, dI, dW, divisor, I_tv, T_tv, W_tv, dO_tv, dI_tv, dW_tv);
+// }

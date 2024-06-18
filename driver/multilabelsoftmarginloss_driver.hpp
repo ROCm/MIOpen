@@ -207,7 +207,7 @@ int32_t mloMultilabelSoftMarginLossReducedBackwardRunHost(miopenTensorDescriptor
             Tcheck w = W[W_tv.get_tensor_view_idx({c})];
             Tcheck i = I[I_tv.get_tensor_view_idx({n, c})];
             Tcheck t = T[T_tv.get_tensor_view_idx({n, c})];
-            Tcheck o = dO[dO_tv.get_tensor_view_idx({n})];
+            Tcheck o = dO[dO_tv.get_tensor_view_idx({0})];
 
             Tcheck grad                           = calc_loss_grad(i, t);
             dI[dI_tv.get_tensor_view_idx({n, c})] = -w * o * grad / C / divisor;
@@ -636,6 +636,9 @@ int MultilabelSoftMarginLossDriver<Tgpu, Tref>::RunForwardGPU()
 
     if(o_dev->FromGPU(GetStream(), O.data()) != 0)
         std::cerr << "Error copying (o_dev) from GPU, size: " << o_dev->GetSize() << std::endl;
+    if(workspace_dev->FromGPU(GetStream(), workspace.data()) != 0)
+        std::cerr << "Error copying (workspace_dev) from GPU, size: " << workspace_dev->GetSize()
+                  << std::endl;
 
     return miopenStatusSuccess;
 }
@@ -811,14 +814,14 @@ int MultilabelSoftMarginLossDriver<Tgpu, Tref>::VerifyBackward()
     auto dW_error        = miopen::rms_range(dWhost, dW);
     if(!std::isfinite(dI_error) || dI_error > tolerance)
     {
-        std::cout << "Backward MultilabelSoftMarginLoss FAILED: " << dI_error << " > " << tolerance
-                  << std::endl;
+        std::cout << "Backward MultilabelSoftMarginLoss FAILED (DI_error): " << dI_error << " > "
+                  << tolerance << std::endl;
         return EC_VerifyBwd;
     }
     else if(!std::isfinite(dW_error) || dW_error > tolerance)
     {
-        std::cout << "Backward MultilabelSoftMarginLoss FAILED: " << dW_error << " > " << tolerance
-                  << std::endl;
+        std::cout << "Backward MultilabelSoftMarginLoss FAILED (DW_error): " << dW_error << " > "
+                  << tolerance << std::endl;
         return EC_VerifyBwd;
     }
     else

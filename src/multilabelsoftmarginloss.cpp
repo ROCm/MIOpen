@@ -122,7 +122,7 @@ std::size_t GetMultilabelSoftMarginLossForwardWorkspaceSize(Handle& handle,
                                                             miopenLossReductionMode_t reduction)
 {
     auto ctx            = ExecutionContext{&handle};
-    const float divisor = (reduction == MIOPEN_LOSS_REDUCTION_MEAN) ? oDesc.GetLengths()[0] : 1;
+    const float divisor = (reduction == MIOPEN_LOSS_REDUCTION_MEAN) ? iDesc.GetLengths()[0] : 1;
     const auto problem =
         multilabelsoftmarginloss::ForwardProblemDescription{iDesc, tDesc, wDesc, oDesc, divisor};
 
@@ -147,7 +147,7 @@ miopenStatus_t MultilabelSoftMarginLossForward(Handle& handle,
                                                Data_t o,
                                                miopenLossReductionMode_t reduction)
 {
-    const float divisor = (reduction == MIOPEN_LOSS_REDUCTION_MEAN) ? oDesc.GetLengths()[0] : 1;
+    const float divisor = (reduction == MIOPEN_LOSS_REDUCTION_MEAN) ? iDesc.GetLengths()[0] : 1;
     const auto problem =
         multilabelsoftmarginloss::ForwardProblemDescription{iDesc, tDesc, wDesc, oDesc, divisor};
 
@@ -192,7 +192,7 @@ miopenStatus_t MultilabelSoftMarginLossBackward(Handle& handle,
                                                 Data_t dW,
                                                 miopenLossReductionMode_t reduction)
 {
-    const float divisor = (reduction == MIOPEN_LOSS_REDUCTION_MEAN) ? dODesc.GetLengths()[0] : 1;
+    const float divisor = (reduction == MIOPEN_LOSS_REDUCTION_MEAN) ? iDesc.GetLengths()[0] : 1;
     const auto problem  = multilabelsoftmarginloss::BackwardProblemDescription{
         iDesc, tDesc, wDesc, dODesc, dIDesc, dWDesc, divisor};
 

@@ -171,11 +171,12 @@ ConvSolution MultilabelSoftMarginLossForward::GetSolution(
             }
 
             /* Phase 2: Reduce */
-            auto reduce_in  = params.workspace;
-            auto reduce_out = static_cast<Data_t>(static_cast<char*>(params.workspace) +
-                                                  deref(params.iDesc).GetElementSize() *
-                                                      get_data_size(deref(params.oDesc).GetType()));
-            auto size       = deref(params.iDesc).GetElementSize();
+            auto size      = deref(params.iDesc).GetLengths()[0];
+            auto reduce_in = params.workspace;
+            auto reduce_out =
+                static_cast<Data_t>(static_cast<char*>(params.workspace) +
+                                    size * get_data_size(deref(params.oDesc).GetType()));
+
             for(int i = 1; i < kernels.size(); ++i)
             {
                 decltype(auto) kernel = handle_.Run(kernels[i]);
