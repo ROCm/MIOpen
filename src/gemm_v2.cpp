@@ -492,7 +492,6 @@ static void call_miopen_hipblasLt_gemm(const miopen::Handle& handle,
     }
     break;
     case miopenHalf: {
-        std::cout << " half" << std::endl;
         miopen_hipblasLt_gemm<hipblasLtHalf, hipblasLtHalf>(handle,
                                                             gemm_desc,
                                                             A,
