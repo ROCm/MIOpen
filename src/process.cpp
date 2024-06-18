@@ -265,7 +265,7 @@ private:
     std::string command;
     PROCESS_INFORMATION processInfo{};
     std::string args;
-    std::string cwd; // converted to std::string from fs::path in WokringDirectory() (read-only)
+    std::string cwd;
     std::vector<CHAR> envs;
     mutable Pipe<Direction::Input> input;
     Pipe<Direction::Output> output;
@@ -293,18 +293,16 @@ struct ProcessImpl
         pipe = popen(GetCommand().c_str(), "r");
         if(pipe == nullptr)
             MIOPEN_THROW("Error: popen()");
-        buffer_reference = nullptr;
     }
 
-    void Read(void* buffer, const std::size_t size)
+    template <typename T>
+    void Read(T& buffer)
     {
-        const auto cmd{GetCommand()};
-        std::cout << "COMMAND: " << cmd << "\n";
-        pipe = popen(cmd.c_str(), "r");
-        if(pipe == nullptr)
-            MIOPEN_THROW("Error: popen()");
-        buffer_size      = size;
-        buffer_reference = buffer;
+        Execute();
+        std::array<char, 128> chunk;
+        buffer.clear();
+        while(fgets(chunk.data(), chunk.size(), pipe) != nullptr)
+            buffer.insert(buffer.end(), chunk.begin(), chunk.end());
     }
 
     void Write(const void* buffer, const std::size_t size)
@@ -312,16 +310,11 @@ struct ProcessImpl
         pipe = popen(GetCommand().c_str(), "w");
         if(pipe == nullptr)
             MIOPEN_THROW("Error: popen()");
-        buffer_reference = nullptr;
         std::fwrite(buffer, 1, size, pipe);
     }
 
     int Wait() const
     {
-        // std::array<char, 1024> buffer{};
-        // std::size_t offset = 0;
-        // while(fgets(buffer.data(), buffer.size(), pipe) != nullptr)
-        //    offset = std_out(buffer.data(), offset);
         auto status = pclose(pipe);
         return WEXITSTATUS(status);
     }
@@ -340,8 +333,6 @@ private:
     std::string args;
     std::string cwd;
     std::string envs;
-    void* buffer_reference  = nullptr;
-    std::size_t buffer_size = 0;
 };
 
 #endif
