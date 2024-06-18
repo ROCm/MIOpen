@@ -42,12 +42,6 @@ std::ostream& operator<<(std::ostream& stream, const FusionOpDescriptor& x)
     return stream;
 }
 
-std::ostream& operator<<(std::ostream& stream, const MDGraph_op_t& o)
-{
-    MIOPEN_LOG_ENUM(stream, o, OpEqual, OpNotEqual, OpAny, OpModulo, OpGTE, OpLTE);
-    return stream;
-}
-
 std::ostream& operator<<(std::ostream& stream, const boost::any& a)
 {
     // NOLINTBEGIN(*-braces-around-statements)
