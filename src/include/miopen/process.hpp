@@ -40,22 +40,27 @@ struct ProcessImpl;
 
 struct MIOPEN_INTERNALS_EXPORT Process
 {
-    explicit Process(const fs::path& cmd, std::string_view args);
+    Process(const fs::path& cmd, std::string_view args);
     ~Process() noexcept;
 
     Process(Process&&) noexcept;
     Process& operator=(Process&&) noexcept;
 
     Process& WorkingDirectory(const fs::path& cwd);
-    Process& EnvironmentVariables(std::map<std::string_view, std::string_view> vars);
+    Process& EnvironmentVariables(const std::map<std::string_view, std::string_view>& vars);
 
     const Process& Execute() const;
-    const Process& Read(void *buffer, std::size_t size) const;
-    const Process& Read(std::vector<char>& buffer) const { return Read(buffer.data(), buffer.size()); }
-    const Process& Read(std::string& buffer) const { return Read(buffer.data(), buffer.size()); }
+    const Process& Read(std::vector<char>& buffer) const;
+    const Process& Read(std::string& buffer) const;
     const Process& Write(const void *buffer, std::size_t size) const;
-    const Process& Write(const std::vector<char>& buffer) const { return Write(buffer.data(), buffer.size()); }
-    const Process& Write(std::string_view buffer) const { return Write(buffer.data(), buffer.size()); }
+    const Process& Write(const std::vector<char>& buffer) const
+    {
+        return Write(buffer.data(), buffer.size());
+    }
+    const Process& Write(std::string_view buffer) const
+    {
+        return Write(buffer.data(), buffer.size());
+    }
 
     int Wait() const;
 

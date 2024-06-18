@@ -28,9 +28,10 @@
 #include <miopen/process.hpp>
 #include <functional>
 #include <vector>
-#include <string_view>
 
 #ifdef _WIN32
+#include <miopen/tmp_dir.hpp>
+#include <sstream>
 #include <system_error>
 #endif
 
@@ -40,6 +41,8 @@ namespace miopen {
 
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
+
+constexpr std::size_t MIOPEN_PROCESS_BUFSIZE = 4096;
 
 enum class Direction : bool
 {
@@ -117,7 +120,7 @@ struct Pipe
         return result;
     }
 
-    std::pair<bool, DWORD> Read(LPVOID buffer, DWORD size) const
+    std::pair<bool, DWORD> Read(void *buffer, DWORD size) const
     {
         DWORD bytes_read;
         if(ReadFile(readHandle, buffer, size, &bytes_read, nullptr) == FALSE &&
@@ -128,7 +131,7 @@ struct Pipe
         return {false, bytes_read};
     }
 
-    bool Write(LPVOID buffer, DWORD size) const
+    bool Write(const void *buffer, DWORD size) const
     {
         DWORD bytes_written;
         return WriteFile(writeHandle, buffer, size, &bytes_written, nullptr) == TRUE;
@@ -137,32 +140,44 @@ struct Pipe
 
 struct ProcessImpl
 {
-    explicit ProcessImpl(const std::string_view cmd) : command{cmd} {}
+    ProcessImpl(std::string_view cmd, std::string_view arguments) : command{cmd}, args{arguments} {}
 
-    template <Direction direction>
-    void Create(std::vector<char>& buffer)
+    void Execute()
     {
+        // See CreateProcess() WIN32 documentation for details.
+        constexpr std::size_t CMDLINE_LENGTH = 32767;
+
+        // Build lpCommandLine parameter.
+        std::string cmdline{command};
+        if(!args.empty())
+            cmdline += " " + args;
+
+        // clang-format off
+        if(cmdline.size() > CMDLINE_LENGTH)
+            MIOPEN_THROW("Command line too long, required maximum " +
+                         std::to_string(CMDLINE_LENGTH) + " cjaracters.");
+        // clang-format on
+
+        if(cmdline.size() < CMDLINE_LENGTH)
+            cmdline.resize(CMDLINE_LENGTH, '\0');
+
         STARTUPINFOA info;
         ZeroMemory(&info, sizeof(STARTUPINFO));
         info.cb = sizeof(STARTUPINFO);
+        info.hStdError = output.writeHandle;
+        info.hStdOutput = output.writeHandle;
+        info.hStdInput  = input.readHandle;
+        info.dwFlags |= STARTF_USESTDHANDLES;
 
-        std::string cmd{command};
-        if(!args.empty())
-            cmd += " " + args;
-
-        // Refer to
-        // https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-createprocessa
-        constexpr std::size_t BUFFER_CAPACITY = 32767;
-
-        if(cmd.size() < BUFFER_CAPACITY)
-            cmd.resize(BUFFER_CAPACITY, '\0');
+        ZeroMemory(&processInfo, sizeof(PROCESS_INFORMATION));
 
         if(CreateProcess(command.c_str(),
-                         cmd.data(),
+                         cmdline.data(),
                          nullptr,
                          nullptr,
-                         FALSE,
+                         TRUE,
                          0,
+                         //lpEnvironment,
                          envs.empty() ? nullptr : envs.data(),
                          cwd.empty() ? nullptr : cwd.c_str(),
                          &info,
@@ -180,10 +195,52 @@ struct ProcessImpl
                          std::to_string(GetLastError()) + ")");
     }
 
-    void EnvironmentVariables(const std::map<std::string_view, std::string_view>& map) {}
+    void EnvironmentVariables(const std::map<std::string_view, std::string_view>& vars)
+    {
+        envs.clear();
+        auto envStrings = GetEnvironmentStrings();
+        if(envStrings == nullptr)
+            MIOPEN_THROW("Unable to get environment strings");
+        auto p = envStrings;
+        while (*p != 0)
+        {
+            while (*p != 0) { envs.push_back(*p++); }
+            envs.push_back(*p++);
+        }
+        for(const auto& [name, value] : vars)
+        {
+            envs.insert(envs.end(), name.begin(), name.end());
+            envs.push_back('=');
+            envs.insert(envs.end(), value.begin(), value.end());
+            envs.push_back('\0');
+        }
+        envs.push_back('\0');
+        FreeEnvironmentStrings(envStrings);
+    }
+    
+    void WorkingDirectory(const fs::path& path) { cwd = path.string(); }
 
-    void Arguments(std::string_view arguments) { this->args = arguments; }
-    void WorkingDirectory(const fs::path& path) { this->cwd = path.string(); }
+    template <typename T>
+    void Read(T& buffer)
+    {
+        Execute();
+        TCHAR chunk[MIOPEN_PROCESS_BUFSIZE];
+        for (;;)
+        {
+            auto [more_data, bytes_read] = output.Read(chunk, MIOPEN_PROCESS_BUFSIZE);
+            if(bytes_read == 0)
+                break;
+            buffer.insert(buffer.end(), chunk, chunk + bytes_read);
+            if(!more_data)
+                break;
+        }
+    }
+
+    void Write(const void* buffer, const std::size_t size)
+    {
+        Execute();
+        std::ignore = input.Write(buffer, size);
+    }
 
     int Wait() const
     {
@@ -193,16 +250,12 @@ struct ProcessImpl
 
         WaitForSingleObject(processInfo.hProcess, INFINITE);
 
-        DWORD status;
-        const auto getExitCodeStatus = GetExitCodeProcess(processInfo.hProcess, &status);
+        DWORD status{};
+        GetExitCodeProcess(processInfo.hProcess, &status);
 
         CloseHandle(processInfo.hProcess);
-        CloseHandle(processInfo.hThread);
 
-        if(getExitCodeStatus == 0)
-            MIOPEN_THROW("GetExitCodeProcess error: " + std::to_string(GetLastError()));
-
-        return status;
+        return static_cast<int>(status);
     }
 
 private:
@@ -210,7 +263,7 @@ private:
     PROCESS_INFORMATION processInfo{};
     std::string args;
     std::string cwd; // converted to std::string from fs::path in WokringDirectory() (read-only)
-    std::vector<char> envs;
+    std::vector<CHAR> envs;
     mutable Pipe<Direction::Input> input;
     Pipe<Direction::Output> output;
 };
@@ -306,7 +359,7 @@ Process& Process::WorkingDirectory(const fs::path& cwd)
     return *this;
 }
 
-Process& Process::EnvironmentVariables(std::map<std::string_view, std::string_view> vars)
+Process& Process::EnvironmentVariables(const std::map<std::string_view, std::string_view>& vars)
 {
     impl->EnvironmentVariables(vars);
     return *this;
@@ -318,9 +371,15 @@ const Process& Process::Execute() const
     return *this;
 }
 
-const Process& Process::Read(void *buffer, const std::size_t size) const
+const Process& Process::Read(std::vector<char>& buffer) const
 {
-    impl->Read(buffer, size);
+    impl->Read(buffer);
+    return *this;
+}
+
+const Process& Process::Read(std::string& buffer) const
+{
+    impl->Read(buffer);
     return *this;
 }
 
