@@ -665,6 +665,12 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
 
     Register(registry, ++id, Primitive::Adam, adam::TransformersAdamW{}.SolverDbId());
 
+    Register(registry,
+             ++id,
+             Primitive::Fusion,
+             fusion::ConvWinoFuryRxSFused<2, 3>{}.SolverDbId(),
+             miopenConvolutionAlgoWinograd);
+
     // IMPORTANT: New solvers should be added to the end of the function!
 }
 

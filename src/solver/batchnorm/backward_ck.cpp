@@ -199,6 +199,8 @@ bool BnCKBwdBackward::IsApplicable(
         return false;
     if(bn_problem.GetXDesc().GetType() != bn_problem.GetScaleBiasDiffDesc().GetType())
         return false;
+    if(bn_problem.GetDirection() != miopen::batchnorm::Direction::Backward)
+        return false;
 
     switch(bn_problem.GetXDesc().GetType())
     {
