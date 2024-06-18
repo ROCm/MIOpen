@@ -558,7 +558,7 @@ inline size_t GetCKAlphaBetaWorkspace(const miopen::conv::ProblemDescription& pr
 inline bool CKWrwRequireWorkspace(
     size_t G, size_t C, size_t K, miopenDataType_t data_type, miopenAlphaBetaCase_t alpha_beta_case)
 {
-    auto is_odd        = [](int num) { return num % 2 != 0; };
+    auto is_odd        = [](size_t num) { return num % 2 != 0; };
     size_t C_per_group = C / G;
     size_t K_per_group = K / G;
 
