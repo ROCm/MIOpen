@@ -37,11 +37,6 @@ __device__ FLOAT_ACCUM calc_loss(FLOAT_ACCUM x, FLOAT_ACCUM y)
     FLOAT_ACCUM sig = sigmoid(x);
     return y * log(sig) + (1 - y) * log(1 - sig);
 }
-__device__ FLOAT_ACCUM calc_loss_grad(FLOAT_ACCUM x, FLOAT_ACCUM y)
-{
-    FLOAT_ACCUM sig = sigmoid(x);
-    return y * (1 - sig) + (y - 1) * sig;
-}
 
 template <typename DTYPE>
 __device__ void multilabelsoftmarginlossunreducedforward2d(const DTYPE* __restrict__ I,
