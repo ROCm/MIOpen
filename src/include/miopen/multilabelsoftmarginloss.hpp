@@ -64,34 +64,5 @@ miopenStatus_t MultilabelSoftMarginLossForward(Handle& handle,
                                                Data_t o,
                                                miopenLossReductionMode_t reduction);
 
-miopenStatus_t MultilabelSoftMarginLossUnreducedBackward(Handle& handle,
-                                                         const TensorDescriptor& iDesc,
-                                                         ConstData_t i,
-                                                         const TensorDescriptor& tDesc,
-                                                         ConstData_t t,
-                                                         const TensorDescriptor& wDesc,
-                                                         ConstData_t w,
-                                                         const TensorDescriptor& dODesc,
-                                                         ConstData_t dO,
-                                                         const TensorDescriptor& dIDesc,
-                                                         Data_t dI,
-                                                         const TensorDescriptor& dWDesc,
-                                                         Data_t dW);
-
-miopenStatus_t MultilabelSoftMarginLossBackward(Handle& handle,
-                                                const TensorDescriptor& iDesc,
-                                                ConstData_t i,
-                                                const TensorDescriptor& tDesc,
-                                                ConstData_t t,
-                                                const TensorDescriptor& wDesc,
-                                                ConstData_t w,
-                                                const TensorDescriptor& dODesc,
-                                                ConstData_t dO,
-                                                const TensorDescriptor& dIDesc,
-                                                Data_t dI,
-                                                const TensorDescriptor& dWDesc,
-                                                Data_t dW,
-                                                miopenLossReductionMode_t reduction);
-
 } // namespace miopen
 #endif // _MIOPEN_MULTILABELSOFTMARGINLOSS_HPP_

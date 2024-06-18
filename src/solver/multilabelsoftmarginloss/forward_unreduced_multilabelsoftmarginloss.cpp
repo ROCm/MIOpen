@@ -44,6 +44,8 @@ bool MultilabelSoftMarginLossUnreducedForward::IsApplicable(
     const ExecutionContext& /*context*/,
     const miopen::multilabelsoftmarginloss::ForwardProblemDescription& problem) const
 {
+    if(problem.GetiDesc().GetLengths()[1] > 24)
+        return false;
     return true;
 }
 
@@ -56,6 +58,10 @@ ConvSolution MultilabelSoftMarginLossUnreducedForward::GetSolution(
     auto xgrid = problem.GetiDesc().GetLengths()[0];
 
     {
+        // TODO: Currently if using short and _Float16 we cannot call math function like log, exp,
+        // ... Try to use fp16 and bfp16 in HIP to see if we can use HIP built-in math function like
+        // hlog, hexp which may improve performance because we don't have to convert to float before
+        // calling math function
         auto dtype        = problem.GetiDesc().GetType();
         size_t xlocalsize = LOCAL_SIZE;
         size_t xgridsize  = AlignUp(xgrid, xlocalsize);

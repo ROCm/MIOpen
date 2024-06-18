@@ -512,7 +512,7 @@ typedef enum
     miopenActivationABS      = 5, /*!< Absolute value \f$abs(x)\f$ */
     miopenActivationPOWER = 6, /*!< Scaled and shifted power \f$(\alpha + \beta * x)^{gamma}\f$ */
     miopenActivationCLIPPEDRELU =
-        7, /*!< Clipped Rectified Linear Unit \f$ min(\alpha, max(0,x)) \f$ */
+        7,                     /*!< Clipped Rectified Linear Unit \f$ min(\alpha, max(0,x)) \f$ */
     miopenActivationLEAKYRELU =
         8, /*!< Leaky Rectified Linear Unit \f$ \alpha * x | x <= 0; x | x > 0 \f$ */
     miopenActivationELU =
@@ -6663,45 +6663,6 @@ miopenStatus_t miopenMultilabelSoftMarginLossForward(miopenHandle_t handle,
                                                      miopenLossReductionMode_t reduction,
                                                      void* workspace,
                                                      size_t workspaceSizeInBytes);
-
-/*! @brief Execute a MultilabelSoftMarginLoss backward layer
- *
- * @param [in]  handle                  MIOpen handle
- * @param [in]  inputDesc               Tensor descriptor for input tensor (N, C) where N is the
-batch size and C is the number of classes.
- * @param [in]  input                   Data tensor input
- * @param [in]  targetDesc              Tensor descriptor for target tensor, must have the same
-shape as the input tensor
- * @param [in]  target                  Data tensor target
- * @param [in]  weightDesc              Tensor descriptor for weight tensor. It is a manual
-rescaling weight given to each class. It has to be a Tensor of size C
- * @param [in]  weight                  Data tensor weight
- * @param [in]  doutputDesc             Tensor descriptor for output gradient
- * @param [in]  doutput                 Output gradient
- * @param [in]  dinputDesc              Tensor descriptor for input gradient. It must have the same
-shape as the input tensor
- * @param [out] dinput                  Input gradient
- * @param [in]  dweightDesc             Tensor descriptor for weight gradient. It must have the same
-shape as the weight tensor
- * @param [out] dweight                 Weight gradient
- * @param [in]  reduction               Reduction mode (none, sum, mean)
- * @return                              miopenStatus_t
- */
-MIOPEN_EXPORT miopenStatus_t
-miopenMultilabelSoftMarginLossBackward(miopenHandle_t handle,
-                                       miopenTensorDescriptor_t inputDesc,
-                                       const void* input,
-                                       miopenTensorDescriptor_t targetDesc,
-                                       const void* target,
-                                       miopenTensorDescriptor_t weightDesc,
-                                       const void* weight,
-                                       miopenTensorDescriptor_t doutputDesc,
-                                       const void* doutput,
-                                       miopenTensorDescriptor_t dinputDesc,
-                                       void* dinput,
-                                       miopenTensorDescriptor_t dweightDesc,
-                                       void* dweight,
-                                       miopenLossReductionMode_t reduction);
 
 /** @} */
 // CLOSEOUT LossFunction DOXYGEN GROUP

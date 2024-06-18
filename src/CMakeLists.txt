@@ -266,8 +266,6 @@ set( MIOpen_Source
     solver/layernorm/forward_layernorm2d_ck.cpp
     solver/layernorm/forward_layernorm4d_ck.cpp
     solver/mha/mha_solver.cpp
-    solver/multilabelsoftmarginloss/backward_reduced_multilabelsoftmarginloss.cpp
-    solver/multilabelsoftmarginloss/backward_unreduced_multilabelsoftmarginloss.cpp
     solver/multilabelsoftmarginloss/forward_reduced_multilabelsoftmarginloss.cpp
     solver/multilabelsoftmarginloss/forward_unreduced_multilabelsoftmarginloss.cpp
     solver/pooling/forward2d.cpp

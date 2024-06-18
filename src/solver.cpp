@@ -657,15 +657,7 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
     Register(registry,
              ++id,
              Primitive::MultilabelSoftMarginLoss,
-             multilabelsoftmarginloss::MultilabelSoftMarginLossUnreducedBackward{}.SolverDbId());
-    Register(registry,
-             ++id,
-             Primitive::MultilabelSoftMarginLoss,
              multilabelsoftmarginloss::MultilabelSoftMarginLossForward{}.SolverDbId());
-    Register(registry,
-             ++id,
-             Primitive::MultilabelSoftMarginLoss,
-             multilabelsoftmarginloss::MultilabelSoftMarginLossBackward{}.SolverDbId());
 
     // IMPORTANT: New solvers should be added to the end of the function!
 }

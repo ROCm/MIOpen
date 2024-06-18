@@ -46,6 +46,8 @@ bool MultilabelSoftMarginLossForward::IsApplicable(
     const ExecutionContext& /*context*/,
     const miopen::multilabelsoftmarginloss::ForwardProblemDescription& problem) const
 {
+    if(problem.GetiDesc().GetLengths()[1] > 24)
+        return false;
     return true;
 }
 

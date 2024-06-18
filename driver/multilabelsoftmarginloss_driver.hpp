@@ -133,90 +133,6 @@ int32_t mloMultilabelSoftMarginLossReducedForwardRunHost(miopenTensorDescriptor_
 
     return ret;
 };
-template <typename Tgpu, typename Tcheck>
-int32_t mloMultilabelSoftMarginLossUnreducedBackwardRunHost(miopenTensorDescriptor_t iDesc,
-                                                            miopenTensorDescriptor_t tDesc,
-                                                            miopenTensorDescriptor_t wDesc,
-                                                            miopenTensorDescriptor_t dODesc,
-                                                            miopenTensorDescriptor_t dIDesc,
-                                                            miopenTensorDescriptor_t dWDesc,
-                                                            Tgpu* I,
-                                                            Tgpu* T,
-                                                            Tgpu* W,
-                                                            Tgpu* dO,
-                                                            Tcheck* dI,
-                                                            Tcheck* dW)
-{
-    auto I_tv  = miopen::get_inner_expanded_tv<2>(miopen::deref(iDesc));
-    auto T_tv  = miopen::get_inner_expanded_tv<2>(miopen::deref(tDesc));
-    auto W_tv  = miopen::get_inner_expanded_tv<1>(miopen::deref(wDesc));
-    auto dO_tv = miopen::get_inner_expanded_tv<1>(miopen::deref(dODesc));
-    auto dI_tv = miopen::get_inner_expanded_tv<2>(miopen::deref(dIDesc));
-    auto dW_tv = miopen::get_inner_expanded_tv<1>(miopen::deref(dWDesc));
-    auto N = I_tv.size[0], C = I_tv.size[1];
-
-    int32_t ret = 0;
-
-    for(size_t n = 0; n < N; n++)
-    {
-        for(size_t c = 0; c < C; c++)
-        {
-            Tcheck w = W[W_tv.get_tensor_view_idx({c})];
-            Tcheck i = I[I_tv.get_tensor_view_idx({n, c})];
-            Tcheck t = T[T_tv.get_tensor_view_idx({n, c})];
-            Tcheck o = dO[dO_tv.get_tensor_view_idx({n})];
-
-            Tcheck grad                           = calc_loss_grad(i, t);
-            dI[dI_tv.get_tensor_view_idx({n, c})] = -w * o * grad / C;
-            dW[dW_tv.get_tensor_view_idx({c})] += -o / C * calc_loss(i, t);
-        }
-    }
-
-    return ret;
-}
-
-template <typename Tgpu, typename Tcheck>
-int32_t mloMultilabelSoftMarginLossReducedBackwardRunHost(miopenTensorDescriptor_t iDesc,
-                                                          miopenTensorDescriptor_t tDesc,
-                                                          miopenTensorDescriptor_t wDesc,
-                                                          miopenTensorDescriptor_t dODesc,
-                                                          miopenTensorDescriptor_t dIDesc,
-                                                          miopenTensorDescriptor_t dWDesc,
-                                                          const float divisor,
-                                                          Tgpu* I,
-                                                          Tgpu* T,
-                                                          Tgpu* W,
-                                                          Tgpu* dO,
-                                                          Tcheck* dI,
-                                                          Tcheck* dW)
-{
-    auto I_tv  = miopen::get_inner_expanded_tv<2>(miopen::deref(iDesc));
-    auto T_tv  = miopen::get_inner_expanded_tv<2>(miopen::deref(tDesc));
-    auto W_tv  = miopen::get_inner_expanded_tv<1>(miopen::deref(wDesc));
-    auto dO_tv = miopen::get_inner_expanded_tv<1>(miopen::deref(dODesc));
-    auto dI_tv = miopen::get_inner_expanded_tv<2>(miopen::deref(dIDesc));
-    auto dW_tv = miopen::get_inner_expanded_tv<1>(miopen::deref(dWDesc));
-    auto N = I_tv.size[0], C = I_tv.size[1];
-
-    int32_t ret = 0;
-
-    for(size_t n = 0; n < N; n++)
-    {
-        for(size_t c = 0; c < C; c++)
-        {
-            Tcheck w = W[W_tv.get_tensor_view_idx({c})];
-            Tcheck i = I[I_tv.get_tensor_view_idx({n, c})];
-            Tcheck t = T[T_tv.get_tensor_view_idx({n, c})];
-            Tcheck o = dO[dO_tv.get_tensor_view_idx({0})];
-
-            Tcheck grad                           = calc_loss_grad(i, t);
-            dI[dI_tv.get_tensor_view_idx({n, c})] = -w * o * grad / C / divisor;
-            dW[dW_tv.get_tensor_view_idx({c})] += -o / C * calc_loss(i, t) / divisor;
-        }
-    }
-
-    return ret;
-}
 
 template <typename Tgpu, typename Tref>
 class MultilabelSoftMarginLossDriver : public Driver
@@ -228,9 +144,6 @@ public:
         miopenCreateTensorDescriptor(&tDesc);
         miopenCreateTensorDescriptor(&wDesc);
         miopenCreateTensorDescriptor(&oDesc);
-        miopenCreateTensorDescriptor(&dODesc);
-        miopenCreateTensorDescriptor(&dIDesc);
-        miopenCreateTensorDescriptor(&dWDesc);
 
         data_type = miopen_type<Tgpu>{};
     }
@@ -248,7 +161,6 @@ public:
     int RunForwardCPU();
 
     int RunBackwardGPU() override;
-    int RunBackwardCPU();
 
     Tref GetTolerance();
     int VerifyBackward() override;
@@ -259,9 +171,6 @@ public:
         miopenDestroyTensorDescriptor(tDesc);
         miopenDestroyTensorDescriptor(wDesc);
         miopenDestroyTensorDescriptor(oDesc);
-        miopenDestroyTensorDescriptor(dODesc);
-        miopenDestroyTensorDescriptor(dIDesc);
-        miopenDestroyTensorDescriptor(dWDesc);
     }
 
 private:
@@ -274,17 +183,11 @@ private:
     miopenTensorDescriptor_t tDesc;
     miopenTensorDescriptor_t wDesc;
     miopenTensorDescriptor_t oDesc;
-    miopenTensorDescriptor_t dODesc;
-    miopenTensorDescriptor_t dIDesc;
-    miopenTensorDescriptor_t dWDesc;
 
     std::unique_ptr<GPUMem> i_dev;
     std::unique_ptr<GPUMem> t_dev;
     std::unique_ptr<GPUMem> w_dev;
     std::unique_ptr<GPUMem> o_dev;
-    std::unique_ptr<GPUMem> dO_dev;
-    std::unique_ptr<GPUMem> dI_dev;
-    std::unique_ptr<GPUMem> dW_dev;
     std::unique_ptr<GPUMem> workspace_dev;
 
     std::vector<Tgpu> I;
@@ -292,11 +195,6 @@ private:
     std::vector<Tgpu> W;
     std::vector<Tgpu> O;
     std::vector<Tref> Ohost;
-    std::vector<Tgpu> dO;
-    std::vector<Tgpu> dI;
-    std::vector<Tgpu> dW;
-    std::vector<Tref> dIhost;
-    std::vector<Tref> dWhost;
     std::vector<Tgpu> workspace;
 
     float divisor;
@@ -414,25 +312,6 @@ int MultilabelSoftMarginLossDriver<Tgpu, Tref>::GetandSetData()
         }
     }
 
-    // Set dO, dI tensor description (forw = 2 or 0)
-    if(forw == 0 || forw == 2)
-    {
-        if(reduction == "none")
-        {
-            std::vector<int> dO_lens = {N};
-            SetTensorNd(dODesc, dO_lens, data_type);
-        }
-        else
-        {
-            std::vector<int> dO_lens = {1};
-            SetTensorNd(dODesc, dO_lens, data_type);
-        }
-        std::vector<int> dI_lens = {N, C};
-        SetTensorNd(dIDesc, dI_lens, data_type);
-        std::vector<int> dW_lens = {C};
-        SetTensorNd(dWDesc, dW_lens, data_type);
-    }
-
     return miopenStatusSuccess;
 }
 
@@ -537,35 +416,6 @@ int MultilabelSoftMarginLossDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
             std::cerr << "Error copying (workspace) to GPU, size: " << workspace_dev->GetSize()
                       << std::endl;
     }
-    if(forw == 0 || forw == 2)
-    {
-        size_t dO_sz = GetTensorSpace(dODesc);
-        size_t dI_sz = GetTensorSpace(dIDesc);
-        size_t dW_sz = GetTensorSpace(dWDesc);
-        dO_dev       = std::unique_ptr<GPUMem>(new GPUMem(ctx, dO_sz, sizeof(Tgpu)));
-        dI_dev       = std::unique_ptr<GPUMem>(new GPUMem(ctx, dI_sz, sizeof(Tgpu)));
-        dW_dev       = std::unique_ptr<GPUMem>(new GPUMem(ctx, dW_sz, sizeof(Tgpu)));
-        dO           = std::vector<Tgpu>(dO_sz);
-        dI           = std::vector<Tgpu>(dI_sz);
-        dIhost       = std::vector<Tref>(dI_sz);
-        dW           = std::vector<Tgpu>(dW_sz);
-        dWhost       = std::vector<Tref>(dW_sz);
-        // similar to output_grad = torch.one_likes(output)
-        for(int i = 0; i < dO_sz; i++)
-            dO[i] = 1;
-        std::fill(dI.begin(), dI.end(), 0);
-        std::fill(dW.begin(), dW.end(), 0);
-        std::fill(dIhost.begin(), dIhost.end(), 0);
-        std::fill(dWhost.begin(), dWhost.end(), 0);
-        if(dO_dev->ToGPU(GetStream(), dO.data()) != 0)
-            std::cerr << "Error copying (dO) to GPU, size: " << dO_dev->GetSize() << std::endl;
-
-        if(dI_dev->ToGPU(GetStream(), dI.data()) != 0)
-            std::cerr << "Error copying (dI) to GPU, size: " << dI_dev->GetSize() << std::endl;
-
-        if(dW_dev->ToGPU(GetStream(), dW.data()) != 0)
-            std::cerr << "Error copying (dW) to GPU, size: " << dW_dev->GetSize() << std::endl;
-    }
 
     return miopenStatusSuccess;
 }
@@ -662,112 +512,6 @@ int MultilabelSoftMarginLossDriver<Tgpu, Tref>::RunForwardCPU()
 template <typename Tgpu, typename Tref>
 int MultilabelSoftMarginLossDriver<Tgpu, Tref>::RunBackwardGPU()
 {
-    float kernel_total_time = 0;
-    float kernel_first_time = 0;
-
-    Timer t;
-    START_TIME
-
-    for(int i = 0; i < inflags.GetValueInt("iter"); i++)
-    {
-        if(divisor == 0)
-        {
-            miopenMultilabelSoftMarginLossBackward(GetHandle(),
-                                                   iDesc,
-                                                   i_dev->GetMem(),
-                                                   tDesc,
-                                                   t_dev->GetMem(),
-                                                   wDesc,
-                                                   w_dev->GetMem(),
-                                                   dODesc,
-                                                   dO_dev->GetMem(),
-                                                   dIDesc,
-                                                   dI_dev->GetMem(),
-                                                   dWDesc,
-                                                   dW_dev->GetMem(),
-                                                   MIOPEN_LOSS_REDUCTION_NONE);
-        }
-        else
-        {
-            miopenMultilabelSoftMarginLossBackward(GetHandle(),
-                                                   iDesc,
-                                                   i_dev->GetMem(),
-                                                   tDesc,
-                                                   t_dev->GetMem(),
-                                                   wDesc,
-                                                   w_dev->GetMem(),
-                                                   dODesc,
-                                                   dO_dev->GetMem(),
-                                                   dIDesc,
-                                                   dI_dev->GetMem(),
-                                                   dWDesc,
-                                                   dW_dev->GetMem(),
-                                                   (divisor == 1) ? MIOPEN_LOSS_REDUCTION_SUM
-                                                                  : MIOPEN_LOSS_REDUCTION_MEAN);
-        }
-        float time = 0.0;
-        miopenGetKernelTime(GetHandle(), &time);
-        kernel_total_time += time;
-        if(i == 0)
-            kernel_first_time = time;
-    }
-
-    if(inflags.GetValueInt("time") == 1)
-    {
-        STOP_TIME
-        int iter = inflags.GetValueInt("iter");
-        if(WALL_CLOCK)
-            std::cout << "Wall-clock Time Backward MultilabelSoftMarginLoss Elapsed: "
-                      << t.gettime_ms() / iter << " ms" << std::endl;
-
-        float kernel_average_time =
-            iter > 1 ? (kernel_total_time - kernel_first_time) / (iter - 1) : kernel_first_time;
-        std::cout << "GPU Kernel Time Backward MultilabelSoftMarginLoss Elapsed: "
-                  << kernel_average_time << " ms" << std::endl;
-    }
-
-    if(dI_dev->FromGPU(GetStream(), dI.data()) != 0)
-        std::cerr << "Error copying (dI_dev) from GPU, size: " << dI_dev->GetSize() << std::endl;
-    if(dW_dev->FromGPU(GetStream(), dW.data()) != 0)
-        std::cerr << "Error copying (dW_dev) from GPU, size: " << dW_dev->GetSize() << std::endl;
-
-    return miopenStatusSuccess;
-}
-
-template <typename Tgpu, typename Tref>
-int MultilabelSoftMarginLossDriver<Tgpu, Tref>::RunBackwardCPU()
-{
-    if(divisor == 0)
-    {
-        mloMultilabelSoftMarginLossUnreducedBackwardRunHost(iDesc,
-                                                            tDesc,
-                                                            wDesc,
-                                                            dODesc,
-                                                            dIDesc,
-                                                            dWDesc,
-                                                            I.data(),
-                                                            T.data(),
-                                                            W.data(),
-                                                            dO.data(),
-                                                            dIhost.data(),
-                                                            dWhost.data());
-    }
-    else
-    {
-        mloMultilabelSoftMarginLossReducedBackwardRunHost(iDesc,
-                                                          tDesc,
-                                                          wDesc,
-                                                          dODesc,
-                                                          dIDesc,
-                                                          dWDesc,
-                                                          divisor,
-                                                          I.data(),
-                                                          T.data(),
-                                                          W.data(),
-                                                          dO.data(),
-                                                          dIhost.data(),
-                                                          dWhost.data());
-    }
     return miopenStatusSuccess;
 }
 
@@ -808,27 +552,6 @@ int MultilabelSoftMarginLossDriver<Tgpu, Tref>::VerifyForward()
 template <typename Tgpu, typename Tref>
 int MultilabelSoftMarginLossDriver<Tgpu, Tref>::VerifyBackward()
 {
-    RunBackwardCPU();
-    const Tref tolerance = GetTolerance();
-    auto dI_error        = miopen::rms_range(dIhost, dI);
-    auto dW_error        = miopen::rms_range(dWhost, dW);
-    if(!std::isfinite(dI_error) || dI_error > tolerance)
-    {
-        std::cout << "Backward MultilabelSoftMarginLoss FAILED (DI_error): " << dI_error << " > "
-                  << tolerance << std::endl;
-        return EC_VerifyBwd;
-    }
-    else if(!std::isfinite(dW_error) || dW_error > tolerance)
-    {
-        std::cout << "Backward MultilabelSoftMarginLoss FAILED (DW_error): " << dW_error << " > "
-                  << tolerance << std::endl;
-        return EC_VerifyBwd;
-    }
-    else
-    {
-        std::cout << "Backward MultilabelSoftMarginLoss Verifies OK on CPU reference" << std::endl;
-    }
-
     return miopenStatusSuccess;
 }
 

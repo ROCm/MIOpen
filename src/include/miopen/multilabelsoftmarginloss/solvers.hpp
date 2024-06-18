@@ -71,38 +71,6 @@ struct MultilabelSoftMarginLossForward final : ForwardMultilabelSoftMarginLossSo
     bool MayNeedWorkspace() const override { return true; }
 };
 
-using BackwardMultilabelSoftMarginLossSolver =
-    NonTunableSolverBase<ExecutionContext,
-                         miopen::multilabelsoftmarginloss::BackwardProblemDescription>;
-
-struct MultilabelSoftMarginLossUnreducedBackward final : BackwardMultilabelSoftMarginLossSolver
-{
-    const std::string& SolverDbId() const override
-    {
-        return GetSolverDbId<MultilabelSoftMarginLossUnreducedBackward>();
-    }
-    bool IsApplicable(
-        const ExecutionContext& context,
-        const miopen::multilabelsoftmarginloss::BackwardProblemDescription& problem) const override;
-    ConvSolution GetSolution(
-        const ExecutionContext& context,
-        const miopen::multilabelsoftmarginloss::BackwardProblemDescription& problem) const override;
-};
-
-struct MultilabelSoftMarginLossBackward final : BackwardMultilabelSoftMarginLossSolver
-{
-    const std::string& SolverDbId() const override
-    {
-        return GetSolverDbId<MultilabelSoftMarginLossBackward>();
-    }
-    bool IsApplicable(
-        const ExecutionContext& context,
-        const miopen::multilabelsoftmarginloss::BackwardProblemDescription& problem) const override;
-    ConvSolution GetSolution(
-        const ExecutionContext& context,
-        const miopen::multilabelsoftmarginloss::BackwardProblemDescription& problem) const override;
-};
-
 } // namespace multilabelsoftmarginloss
 
 } // namespace solver

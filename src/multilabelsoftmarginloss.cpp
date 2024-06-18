@@ -71,49 +71,6 @@ miopenStatus_t MultilabelSoftMarginLossUnreducedForward(Handle& handle,
     return miopenStatusSuccess;
 }
 
-miopenStatus_t MultilabelSoftMarginLossUnreducedBackward(Handle& handle,
-                                                         const TensorDescriptor& iDesc,
-                                                         ConstData_t i,
-                                                         const TensorDescriptor& tDesc,
-                                                         ConstData_t t,
-                                                         const TensorDescriptor& wDesc,
-                                                         ConstData_t w,
-                                                         const TensorDescriptor& dODesc,
-                                                         ConstData_t dO,
-                                                         const TensorDescriptor& dIDesc,
-                                                         Data_t dI,
-                                                         const TensorDescriptor& dWDesc,
-                                                         Data_t dW)
-{
-    const auto problem = multilabelsoftmarginloss::BackwardProblemDescription{
-        iDesc, tDesc, wDesc, dODesc, dIDesc, dWDesc, 0};
-    const auto invoke_params = [&]() {
-        auto tmp   = multilabelsoftmarginloss::InvokeParams{};
-        tmp.type   = InvokeType::Run;
-        tmp.iDesc  = &iDesc;
-        tmp.i      = i;
-        tmp.tDesc  = &tDesc;
-        tmp.t      = t;
-        tmp.wDesc  = &wDesc;
-        tmp.w      = w;
-        tmp.dODesc = &dODesc;
-        tmp.dO     = dO;
-        tmp.dIDesc = &dIDesc;
-        tmp.dI     = dI;
-        tmp.dWDesc = &dWDesc;
-        tmp.dW     = dW;
-        return tmp;
-    }();
-
-    const auto algo    = AlgorithmName{"MultilabelSoftMarginLossUnreducedBackward"};
-    const auto solvers = solver::SolverContainer<
-        solver::multilabelsoftmarginloss::MultilabelSoftMarginLossUnreducedBackward>{};
-
-    solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
-
-    return miopenStatusSuccess;
-}
-
 std::size_t GetMultilabelSoftMarginLossForwardWorkspaceSize(Handle& handle,
                                                             const TensorDescriptor& iDesc,
                                                             const TensorDescriptor& tDesc,
@@ -171,53 +128,6 @@ miopenStatus_t MultilabelSoftMarginLossForward(Handle& handle,
     const auto algo    = AlgorithmName{"MultilabelSoftMarginLossForward"};
     const auto solvers = solver::SolverContainer<
         solver::multilabelsoftmarginloss::MultilabelSoftMarginLossForward>{};
-
-    solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
-
-    return miopenStatusSuccess;
-}
-
-miopenStatus_t MultilabelSoftMarginLossBackward(Handle& handle,
-                                                const TensorDescriptor& iDesc,
-                                                ConstData_t i,
-                                                const TensorDescriptor& tDesc,
-                                                ConstData_t t,
-                                                const TensorDescriptor& wDesc,
-                                                ConstData_t w,
-                                                const TensorDescriptor& dODesc,
-                                                ConstData_t dO,
-                                                const TensorDescriptor& dIDesc,
-                                                Data_t dI,
-                                                const TensorDescriptor& dWDesc,
-                                                Data_t dW,
-                                                miopenLossReductionMode_t reduction)
-{
-    const float divisor = (reduction == MIOPEN_LOSS_REDUCTION_MEAN) ? iDesc.GetLengths()[0] : 1;
-    const auto problem  = multilabelsoftmarginloss::BackwardProblemDescription{
-        iDesc, tDesc, wDesc, dODesc, dIDesc, dWDesc, divisor};
-
-    const auto invoke_params = [&]() {
-        auto tmp    = multilabelsoftmarginloss::InvokeParams{};
-        tmp.type    = InvokeType::Run;
-        tmp.iDesc   = &iDesc;
-        tmp.i       = i;
-        tmp.tDesc   = &tDesc;
-        tmp.t       = t;
-        tmp.wDesc   = &wDesc;
-        tmp.w       = w;
-        tmp.dODesc  = &dODesc;
-        tmp.dO      = dO;
-        tmp.dIDesc  = &dIDesc;
-        tmp.dI      = dI;
-        tmp.dWDesc  = &dWDesc;
-        tmp.dW      = dW;
-        tmp.divisor = divisor;
-        return tmp;
-    }();
-
-    const auto algo    = AlgorithmName{"MultilabelSoftMarginLossBackward"};
-    const auto solvers = solver::SolverContainer<
-        solver::multilabelsoftmarginloss::MultilabelSoftMarginLossBackward>{};
 
     solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
 
