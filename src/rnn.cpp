@@ -440,6 +440,19 @@ RNNDescriptor::RNNDescriptor(int hsz,
     }
 }
 
+size_t RNNDescriptor::GetGemmWorkspaceSize(const Handle& handle) const
+{
+#if MIOPEN_USE_HIPBLASLT
+    // hipBLASLt needs 128 MB of workspace size avaliable to ensure optimal solution.
+    // Only use the hipblaslt backend when device is MI300, and the datatype is half.
+    return (handle.GetDeviceName() == "gfx942" && dataType == miopenDataType_t::miopenHalf)
+               ? 128 * 1024 * 1024
+               : 0;
+#else
+    return 0;
+#endif
+}
+
 // Main Solution
 // RNN pure algo miopenRNNDataSeqMajorNotPadded
 size_t RNNDescriptor::GetMainSolWorkspaceSize(size_t batchLenSum,
@@ -483,7 +496,7 @@ size_t RNNDescriptor::GetWorkspaceSize(Handle& handle,
                                                  dirMode == miopenRNNbidirection,
                                                  dataType);
 
-    return transformer_tmp_space + reduction_ws +
+    return transformer_tmp_space + reduction_ws + GetGemmWorkspaceSize(handle) +
            GetMainSolWorkspaceSize(total_sequence_len, fwdMode, miopenRNNDataSeqMajorNotPadded);
 }
 
@@ -536,7 +549,7 @@ size_t RNNDescriptor::GetWorkspaceSize(Handle& handle,
                                                  dirMode == miopenRNNbidirection,
                                                  dataType);
 
-    return padding_converter_tmp_space + reduction_ws +
+    return padding_converter_tmp_space + reduction_ws + GetGemmWorkspaceSize(handle) +
            GetMainSolWorkspaceSize(
                total_sequence_len, miopenRNNInference, miopenRNNDataSeqMajorNotPadded);
 }
@@ -1157,6 +1170,8 @@ void RNNDescriptor::RNNVanillaForward(Handle& handle,
                                                hy,
                                                cDesc,
                                                cy,
+                                               workSpace,
+                                               workSpaceSize,
                                                reserveSpace,
                                                reserveSpaceSize);
     }

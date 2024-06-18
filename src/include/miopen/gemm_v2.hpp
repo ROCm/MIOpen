@@ -125,7 +125,9 @@ miopenStatus_t CallGemm(const Handle& handle,
                         std::size_t b_offset,
                         Data_t C,
                         std::size_t c_offset,
-                        GemmBackend_t gemm_backend = GemmBackend_t::rocblas);
+                        GemmBackend_t gemm_backend     = GemmBackend_t::rocblas,
+                        std::size_t max_workspace_size = 0,
+                        Data_t workspace               = nullptr);
 
 MIOPEN_EXPORT
 miopenStatus_t CallGemmStridedBatched(const Handle& handle,
@@ -136,18 +138,21 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
                                       std::size_t b_offset,
                                       Data_t C,
                                       std::size_t c_offset,
-                                      GemmBackend_t gemm_backend = GemmBackend_t::rocblas);
+                                      GemmBackend_t gemm_backend     = GemmBackend_t::rocblas,
+                                      std::size_t max_workspace_size = 0,
+                                      Data_t workspace               = nullptr);
 
-miopenStatus_t
-CallGemmStridedBatchedSequential(const Handle& handle,
-                                 GemmDescriptor gemm_desc,
-                                 ConstData_t A,
-                                 std::size_t a_offset,
-                                 ConstData_t B,
-                                 std::size_t b_offset,
-                                 Data_t C,
-                                 std::size_t c_offset,
-                                 GemmBackend_t gemm_backend = GemmBackend_t::rocblas);
+miopenStatus_t CallGemmStridedBatchedSequential(const Handle& handle,
+                                                GemmDescriptor gemm_desc,
+                                                ConstData_t A,
+                                                std::size_t a_offset,
+                                                ConstData_t B,
+                                                std::size_t b_offset,
+                                                Data_t C,
+                                                std::size_t c_offset,
+                                                GemmBackend_t gemm_backend = GemmBackend_t::rocblas,
+                                                std::size_t max_workspace_size = 0,
+                                                Data_t workspace               = nullptr);
 
 // GEMM parameters for Convolution (using Im2Col) Fwd
 // y = w * Im2Col(x)
