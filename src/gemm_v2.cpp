@@ -326,10 +326,34 @@ inline void ProfilingRecordStop(const Handle& handle, HipEventPtr& start, HipEve
 }
 
 #if MIOPEN_USE_HIPBLASLT
+
+struct HipBLASLtMemoryHandles
+{
+    hipblasLtMatrixLayout_t matA, matB, matC, matD;
+    hipblasLtMatmulDesc_t matmul;
+    hipblasLtMatmulPreference_t pref;
+
+    HipBLASLtMemoryHandles()
+        : matA(nullptr), matB(nullptr), matC(nullptr), matD(nullptr), matmul(nullptr), pref(nullptr)
+    {
+    }
+
+    ~HipBLASLtMemoryHandles()
+    {
+        hipblasLtMatrixLayoutDestroy(matA);
+        hipblasLtMatrixLayoutDestroy(matB);
+        hipblasLtMatrixLayoutDestroy(matC);
+        hipblasLtMatrixLayoutDestroy(matD);
+        hipblasLtMatmulDescDestroy(matmul);
+        hipblasLtMatmulPreferenceDestroy(pref);
+    }
+};
+
 static inline void check_hipblas_status(hipblasStatus_t status)
 {
     if(status != hipblasStatus_t::HIPBLAS_STATUS_SUCCESS)
     {
+        std::cout << "error msg" << std::endl;
         MIOPEN_THROW(miopenStatusInternalError, "hipBlasLt error encountered");
     }
 }
@@ -349,75 +373,75 @@ static void miopen_hipblasLt_gemm(const miopen::Handle& handle,
                                   std::size_t max_workspace_size,
                                   Data_t workspace)
 {
-    hipblasLtMatrixLayout_t matA, matB, matC, matD;
-    check_hipblas_status(
-        hipblasLtMatrixLayoutCreate(&matA, hip_type_AB, gemm_desc.m, gemm_desc.k, gemm_desc.lda));
-    check_hipblas_status(
-        hipblasLtMatrixLayoutCreate(&matB, hip_type_AB, gemm_desc.k, gemm_desc.n, gemm_desc.ldb));
-    check_hipblas_status(
-        hipblasLtMatrixLayoutCreate(&matC, hip_type_C, gemm_desc.m, gemm_desc.n, gemm_desc.ldc));
-    check_hipblas_status(
-        hipblasLtMatrixLayoutCreate(&matD, hip_type_C, gemm_desc.m, gemm_desc.n, gemm_desc.ldc));
+    HipBLASLtMemoryHandles hipBLASLtHandles;
+
+    check_hipblas_status(hipblasLtMatrixLayoutCreate(
+        &hipBLASLtHandles.matA, hip_type_AB, gemm_desc.m, gemm_desc.k, gemm_desc.lda));
+    check_hipblas_status(hipblasLtMatrixLayoutCreate(
+        &hipBLASLtHandles.matB, hip_type_AB, gemm_desc.k, gemm_desc.n, gemm_desc.ldb));
+    check_hipblas_status(hipblasLtMatrixLayoutCreate(
+        &hipBLASLtHandles.matC, hip_type_C, gemm_desc.m, gemm_desc.n, gemm_desc.ldc));
+    check_hipblas_status(hipblasLtMatrixLayoutCreate(
+        &hipBLASLtHandles.matD, hip_type_C, gemm_desc.m, gemm_desc.n, gemm_desc.ldc));
 
     if(gemm_desc.batch_count > 1 && !skip_batches)
     {
-        check_hipblas_status(hipblasLtMatrixLayoutSetAttribute(matA,
+        check_hipblas_status(hipblasLtMatrixLayoutSetAttribute(hipBLASLtHandles.matA,
                                                                HIPBLASLT_MATRIX_LAYOUT_BATCH_COUNT,
                                                                &gemm_desc.batch_count,
                                                                sizeof(gemm_desc.batch_count)));
         check_hipblas_status(
-            hipblasLtMatrixLayoutSetAttribute(matA,
+            hipblasLtMatrixLayoutSetAttribute(hipBLASLtHandles.matA,
                                               HIPBLASLT_MATRIX_LAYOUT_STRIDED_BATCH_OFFSET,
                                               &gemm_desc.strideA,
                                               sizeof(gemm_desc.strideA)));
-        check_hipblas_status(hipblasLtMatrixLayoutSetAttribute(matB,
+        check_hipblas_status(hipblasLtMatrixLayoutSetAttribute(hipBLASLtHandles.matB,
                                                                HIPBLASLT_MATRIX_LAYOUT_BATCH_COUNT,
                                                                &gemm_desc.batch_count,
                                                                sizeof(gemm_desc.batch_count)));
         check_hipblas_status(
-            hipblasLtMatrixLayoutSetAttribute(matB,
+            hipblasLtMatrixLayoutSetAttribute(hipBLASLtHandles.matB,
                                               HIPBLASLT_MATRIX_LAYOUT_STRIDED_BATCH_OFFSET,
                                               &gemm_desc.strideB,
                                               sizeof(gemm_desc.strideB)));
-        check_hipblas_status(hipblasLtMatrixLayoutSetAttribute(matC,
+        check_hipblas_status(hipblasLtMatrixLayoutSetAttribute(hipBLASLtHandles.matC,
                                                                HIPBLASLT_MATRIX_LAYOUT_BATCH_COUNT,
                                                                &gemm_desc.batch_count,
                                                                sizeof(gemm_desc.batch_count)));
         check_hipblas_status(
-            hipblasLtMatrixLayoutSetAttribute(matC,
+            hipblasLtMatrixLayoutSetAttribute(hipBLASLtHandles.matC,
                                               HIPBLASLT_MATRIX_LAYOUT_STRIDED_BATCH_OFFSET,
                                               &gemm_desc.strideC,
                                               sizeof(gemm_desc.strideC)));
-        check_hipblas_status(hipblasLtMatrixLayoutSetAttribute(matD,
+        check_hipblas_status(hipblasLtMatrixLayoutSetAttribute(hipBLASLtHandles.matD,
                                                                HIPBLASLT_MATRIX_LAYOUT_BATCH_COUNT,
                                                                &gemm_desc.batch_count,
                                                                sizeof(gemm_desc.batch_count)));
         check_hipblas_status(
-            hipblasLtMatrixLayoutSetAttribute(matD,
+            hipblasLtMatrixLayoutSetAttribute(hipBLASLtHandles.matD,
                                               HIPBLASLT_MATRIX_LAYOUT_STRIDED_BATCH_OFFSET,
                                               &gemm_desc.strideC,
                                               sizeof(gemm_desc.strideC)));
     }
 
-    hipblasLtMatmulDesc_t matmul;
-    check_hipblas_status(hipblasLtMatmulDescCreate(&matmul, HIPBLAS_COMPUTE_32F, HIP_R_32F));
+    check_hipblas_status(
+        hipblasLtMatmulDescCreate(&hipBLASLtHandles.matmul, HIPBLAS_COMPUTE_32F, HIP_R_32F));
 
     hipblasOperation_t opTypeA = gemm_desc.transA ? HIPBLAS_OP_T : HIPBLAS_OP_N;
     hipblasOperation_t opTypeB = gemm_desc.transB ? HIPBLAS_OP_T : HIPBLAS_OP_N;
 
     check_hipblas_status(hipblasLtMatmulDescSetAttribute(
-        matmul, HIPBLASLT_MATMUL_DESC_TRANSA, &opTypeA, sizeof(int32_t)));
+        hipBLASLtHandles.matmul, HIPBLASLT_MATMUL_DESC_TRANSA, &opTypeA, sizeof(opTypeA)));
     check_hipblas_status(hipblasLtMatmulDescSetAttribute(
-        matmul, HIPBLASLT_MATMUL_DESC_TRANSB, &opTypeB, sizeof(int32_t)));
+        hipBLASLtHandles.matmul, HIPBLASLT_MATMUL_DESC_TRANSB, &opTypeB, sizeof(opTypeB)));
 
     hipblasLtEpilogue_t epilogue = HIPBLASLT_EPILOGUE_DEFAULT;
     check_hipblas_status(hipblasLtMatmulDescSetAttribute(
-        matmul, HIPBLASLT_MATMUL_DESC_EPILOGUE, &epilogue, sizeof(epilogue)));
+        hipBLASLtHandles.matmul, HIPBLASLT_MATMUL_DESC_EPILOGUE, &epilogue, sizeof(epilogue)));
 
-    hipblasLtMatmulPreference_t pref;
-    check_hipblas_status(hipblasLtMatmulPreferenceCreate(&pref));
+    check_hipblas_status(hipblasLtMatmulPreferenceCreate(&hipBLASLtHandles.pref));
     check_hipblas_status(
-        hipblasLtMatmulPreferenceSetAttribute(pref,
+        hipblasLtMatmulPreferenceSetAttribute(hipBLASLtHandles.pref,
                                               HIPBLASLT_MATMUL_PREF_MAX_WORKSPACE_BYTES,
                                               &max_workspace_size,
                                               sizeof(max_workspace_size)));
@@ -426,19 +450,20 @@ static void miopen_hipblasLt_gemm(const miopen::Handle& handle,
     hipblasLtMatmulHeuristicResult_t heuristicResult[requestSolutions];
     int returnedAlgoCount = 0;
     check_hipblas_status(hipblasLtMatmulAlgoGetHeuristic(handle.HipblasLtHandle().get(),
-                                                         matmul,
-                                                         matA,
-                                                         matB,
-                                                         matC,
-                                                         matD,
-                                                         pref,
+                                                         hipBLASLtHandles.matmul,
+                                                         hipBLASLtHandles.matA,
+                                                         hipBLASLtHandles.matB,
+                                                         hipBLASLtHandles.matC,
+                                                         hipBLASLtHandles.matD,
+                                                         hipBLASLtHandles.pref,
                                                          requestSolutions,
                                                          heuristicResult,
                                                          &returnedAlgoCount));
 
     if(returnedAlgoCount == 0)
     {
-        MIOPEN_THROW(miopenStatusInternalError, "no solution found for hipBLASLt matmul");
+        MIOPEN_THROW(miopenStatusInternalError,
+                     "no solution found for hipBLASLt hipBLASLtHandles.matmul");
     }
 
     float alpha       = gemm_desc.alpha;
@@ -451,17 +476,17 @@ static void miopen_hipblasLt_gemm(const miopen::Handle& handle,
     {
         HipEventProfiler profiler(handle);
         check_hipblas_status(hipblasLtMatmul(handle.HipblasLtHandle().get(),
-                                             matmul,
+                                             hipBLASLtHandles.matmul,
                                              &alpha,
                                              aData,
-                                             matA,
+                                             hipBLASLtHandles.matA,
                                              bData,
-                                             matB,
+                                             hipBLASLtHandles.matB,
                                              &beta,
                                              cData,
-                                             matC,
+                                             hipBLASLtHandles.matC,
                                              dData,
-                                             matD,
+                                             hipBLASLtHandles.matD,
                                              &heuristicResult[0].algo,
                                              workspace,
                                              max_workspace_size,
