@@ -241,13 +241,14 @@ ConvSolution GetitemBackward::GetSolution(const ExecutionContext& /*context*/,
             if(reset_profiling_state)
             {
                 hipEventRecord(stop.get(), handle_.GetStream());
-                handle_.EnableProfiling(true);
                 hipEventSynchronize(stop.get());
                 hipEventElapsedTime(&elapsed, start.get(), stop.get());
-                hipEventDestroy(start.get());
-                hipEventDestroy(stop.get());
                 handle_.ResetKernelTime();
                 handle_.AccumKernelTime(elapsed);
+
+                hipEventDestroy(start.get());
+                hipEventDestroy(stop.get());
+                handle_.EnableProfiling(true);
             };
         };
     };
