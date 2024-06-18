@@ -107,9 +107,9 @@ NetworkConfig BackwardProblemDescription::MakeNetworkConfig() const
     auto input_grad_contig_size = checkBroadcastedContiguous(inputGrad_tv);
     auto other_grad_contig_size = checkBroadcastedContiguous(otherGrad_tv);
 
-    bool is_all_contiguous = this->isAllContiguous();
+    bool is_all_contiguous             = this->isAllContiguous();
     bool is_all_broadcasted_contiguous = this->isAllBroadcastedContiguous();
-    bool is_condition_broadcasted = this->isConditionBroadcasted();
+    bool is_condition_broadcasted      = this->isConditionBroadcasted();
 
     auto output_grad_numel = outputGradDesc.GetElementSize();
     auto outputGrad_dtype  = miopen::GetDataType(outputGradDesc.GetType());

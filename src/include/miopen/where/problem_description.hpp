@@ -143,9 +143,9 @@ struct BackwardProblemDescription : ProblemDescriptionBase
         auto other_grad_contig_size  = checkBroadcastedContiguous(otherGrad_tv);
         auto output_grad_contig_size = checkBroadcastedContiguous(outputGrad_tv);
 
-        bool is_all_broadcasted_contiguous = (cond_contig_size > 0) && (output_grad_contig_size > 0) &&
-                                             (input_grad_contig_size > 0) &&
-                                             (other_grad_contig_size > 0);
+        bool is_all_broadcasted_contiguous =
+            (cond_contig_size > 0) && (output_grad_contig_size > 0) &&
+            (input_grad_contig_size > 0) && (other_grad_contig_size > 0);
         return is_all_broadcasted_contiguous;
     }
 

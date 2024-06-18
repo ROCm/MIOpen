@@ -51,7 +51,7 @@ bool WhereBackward::IsApplicable(const ExecutionContext& context,
 {
     auto ignore = context;
 
-    bool is_all_contiguous = problem.isAllContiguous();
+    bool is_all_contiguous             = problem.isAllContiguous();
     bool is_all_broadcasted_contiguous = problem.isAllBroadcastedContiguous();
 
     if(!is_all_broadcasted_contiguous && !is_all_contiguous)
@@ -72,7 +72,7 @@ WhereBackward::GetSolution(const ExecutionContext& context,
     auto cond_contig_size  = miopen::where::checkBroadcastedContiguous(problem.GetCondition_tv());
     bool is_all_contiguous = problem.isAllContiguous();
     bool is_all_broadcasted_contiguous = problem.isAllBroadcastedContiguous();
-    bool is_condition_broadcasted = problem.isConditionBroadcasted();
+    bool is_condition_broadcasted      = problem.isConditionBroadcasted();
 
     auto result = ConvSolution{miopenStatusSuccess};
 
