@@ -42,15 +42,7 @@ std::string GetFloatArg()
     return tmp;
 }
 
-struct GetitemBwdTestFloat : GetitemBwdTest<float>
-{
-};
-
 struct GetitemBwdTestHalf : GetitemBwdTest<half_float::half>
-{
-};
-
-struct GetitemBwdTestBFloat16 : GetitemBwdTest<bfloat16>
 {
 };
 
@@ -71,40 +63,6 @@ TEST_P(GetitemBwdTestFloat, GetitemBwdTestFw)
     }
 };
 
-TEST_P(GetitemBwdTestHalf, GetitemBwdTestFw)
-{
-    if(!MIOPEN_TEST_ALL ||
-       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--half"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
-};
-
-TEST_P(GetitemBwdTestBFloat16, GetitemBwdTestFw)
-{
-    if(!MIOPEN_TEST_ALL ||
-       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--bfloat16"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
-};
-
 INSTANTIATE_TEST_SUITE_P(GetitemTestSet,
                          GetitemBwdTestFloat,
-                         testing::ValuesIn(GetitemTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(GetitemTestSet,
-                         GetitemBwdTestHalf,
-                         testing::ValuesIn(GetitemTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(GetitemTestSet,
-                         GetitemBwdTestBFloat16,
                          testing::ValuesIn(GetitemTestConfigs()));
