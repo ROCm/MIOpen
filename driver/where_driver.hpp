@@ -63,14 +63,16 @@ int32_t mloWhereBackwardRunHost(miopenTensorDescriptor_t outputGradDesc,
     auto cond_numel        = miopen::deref(conditionDesc).GetElementSize();
     auto output_grad_numel = miopen::deref(outputGradDesc).GetElementSize();
 
-    if (inputGrad) {
+    if(inputGrad)
+    {
         for(size_t i = 0; i < input_grad_numel; i++)
         {
             inputGrad[i] = outputGrad[i % output_grad_numel] * condition[i % cond_numel];
         }
     }
 
-    if (otherGrad) {
+    if(otherGrad)
+    {
         for(size_t o = 0; o < other_grad_numel; o++)
         {
             otherGrad[o] = outputGrad[o % output_grad_numel] * (1 - condition[o % cond_numel]);
@@ -130,14 +132,14 @@ private:
     int forw;
 
     // Backwards
-    miopenTensorDescriptor_t condTensor = nullptr;
+    miopenTensorDescriptor_t condTensor       = nullptr;
     miopenTensorDescriptor_t outputTensorGrad = nullptr;
-    miopenTensorDescriptor_t inputTensorGrad = nullptr;
-    miopenTensorDescriptor_t otherTensorGrad = nullptr;
+    miopenTensorDescriptor_t inputTensorGrad  = nullptr;
+    miopenTensorDescriptor_t otherTensorGrad  = nullptr;
 
-    std::unique_ptr<GPUMem> cond_dev = nullptr;
-    std::unique_ptr<GPUMem> outGrad_dev = nullptr;
-    std::unique_ptr<GPUMem> inGrad_dev =    nullptr;
+    std::unique_ptr<GPUMem> cond_dev      = nullptr;
+    std::unique_ptr<GPUMem> outGrad_dev   = nullptr;
+    std::unique_ptr<GPUMem> inGrad_dev    = nullptr;
     std::unique_ptr<GPUMem> otherGrad_dev = nullptr;
 
     std::vector<Tgpu> cond;
@@ -169,8 +171,8 @@ int WhereDriver<Tgpu, Tref>::GetandSetData()
     std::vector<int> other_len = GetTensorLengthsFromCmdLine("otherDims");
     std::vector<int> cond_len  = GetTensorLengthsFromCmdLine("condDims");
 
-        SetTensorNd(inputTensorGrad, in_len, data_type);
-        SetTensorNd(otherTensorGrad, other_len, data_type);
+    SetTensorNd(inputTensorGrad, in_len, data_type);
+    SetTensorNd(otherTensorGrad, other_len, data_type);
     SetTensorNd(condTensor, cond_len, data_type);
 
     int in_sz    = in_len.size();
