@@ -37,6 +37,8 @@
 #include <algorithm>
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_RNNFWD_exp)
+MIOPEN_DECLARE_ENV_VAR_UINT64(MIOPEN_RNNFWD_MS_DISPATCH)
+MIOPEN_DECLARE_ENV_VAR_UINT64(MIOPEN_RNN_MS_STREAM_CNT)
 
 namespace miopen {
 
@@ -273,10 +275,13 @@ void RNNDescriptor::RNNForwardMS(Handle& handle,
 
     std::tie(std::ignore, max_batch, hidden_size) = miopen::tien<3>(hxDesc.GetLengths());
 
-    auto extra_stream_cnt = 2;
+    const int extra_stream_cnt = [](const int forced_extra_stream_cnt) {
+        return forced_extra_stream_cnt == 0 ? 2 : forced_extra_stream_cnt;
+    }(miopen::Value(ENV(MIOPEN_RNN_MS_STREAM_CNT)));
+
     handle.ReserveExtraStreamsInPool(extra_stream_cnt);
 
-    auto root_stream_id = 0;
+    constexpr auto root_stream_id = 0;
     std::vector<hipStream_t> stream_pull;
     for(int i = 0; i <= extra_stream_cnt; i++)
     {
@@ -768,9 +773,11 @@ void RNNDescriptor::RNNForwardMS(Handle& handle,
                               cy,
                               max_batch,
                               hidden_size,
-                              seq_len](int layer_id) {
+                              seq_len](int layer_id, int extra_stream_id) {
         if(hy != nullptr || (cy != nullptr))
         {
+            handle.SetStreamFromPool(extra_stream_id);
+
             auto hcy_layer_offset = get_HxBuff_offset(layer_id);
 
             const std::vector<size_t> hcy_src_stride{
@@ -873,7 +880,7 @@ void RNNDescriptor::RNNForwardMS(Handle& handle,
     if(seq_len == 0)
         return;
 
-    const int try_chunks_cnt = 16;
+    constexpr int try_chunks_cnt = 16;
     const int time_chunk_sz  = ((seq_len + try_chunks_cnt - 1) / try_chunks_cnt);
     const int chunks_cnt     = (seq_len + time_chunk_sz - 1) / time_chunk_sz;
 
@@ -891,15 +898,13 @@ void RNNDescriptor::RNNForwardMS(Handle& handle,
             layer_chunk_end_event[layer_id][chunk_id] = make_hip_fast_event();
     }
 
-    std::vector<int> layer_stream_id(nLayers, 2);
-    layer_stream_id[0] = 1;
 
     auto call_inx_next_chunk_preload = [&](int layer_id) {
         auto start_time = layer_inx_cur_time[layer_id];
         auto time_cnt   = std::min(time_chunk_sz, seq_len - start_time);
 
         call_x_gemm(layer_id, start_time, time_cnt);
-        layer_inx_cur_time[layer_id] += time_chunk_sz;
+        layer_inx_cur_time[layer_id] += time_cnt;
     };
 
     auto call_hx_next_gemm = [&](int layer_id) {
@@ -921,26 +926,18 @@ void RNNDescriptor::RNNForwardMS(Handle& handle,
     };
 
     auto call_next_chunk_compute = [&handle,
-                                    &stream_pull,
-                                    &layer_stream_id,
                                     &call_next_hidden_state_update,
                                     &call_hx_next_gemm,
                                     &call_inx_next_chunk_preload,
                                     &layer_upd_cur_time,
                                     &layer_chunk_end_event,
                                     time_chunk_sz,
-                                    seq_len](int layer_id) {
-        auto stream_id = layer_stream_id[layer_id];
+                                    seq_len](hipStream_t stream, int layer_id, int stream_id) {
+        
         handle.SetStreamFromPool(stream_id);
 
         const int chunk_id   = layer_upd_cur_time[layer_id] / time_chunk_sz;
         const int chunk_time = std::min(time_chunk_sz, seq_len - chunk_id * time_chunk_sz);
-
-        if(layer_id > 0 && layer_stream_id[layer_id - 1] != stream_id)
-        {
-            hipStreamWaitEvent(
-                stream_pull[stream_id], layer_chunk_end_event[layer_id - 1][chunk_id].get(), 0);
-        }
 
         if(!(layer_id == 0 && chunk_id == 1))
         {
@@ -952,8 +949,24 @@ void RNNDescriptor::RNNForwardMS(Handle& handle,
             call_hx_next_gemm(layer_id);
             call_next_hidden_state_update(layer_id);
         }
-        hipEventRecord(layer_chunk_end_event[layer_id][chunk_id].get(), stream_pull[stream_id]);
+        hipEventRecord(layer_chunk_end_event[layer_id][chunk_id].get(), stream);
     };
+
+    auto sync_next_chunk_across_time =
+        [&layer_chunk_end_event](hipStream_t stream, int layer_id, int chunk_id) {
+            if(chunk_id > 0)
+            {
+                hipStreamWaitEvent(stream, layer_chunk_end_event[layer_id][chunk_id - 1].get(), 0);
+            }
+        };
+
+    auto sync_next_chunk_across_layers =
+        [&layer_chunk_end_event](hipStream_t stream, int layer_id, int chunk_id) {
+            if(layer_id > 0)
+            {
+                hipStreamWaitEvent(stream, layer_chunk_end_event[layer_id - 1][chunk_id].get(), 0);
+            }
+        };
 
     { // extra_space clean set 0
         const int fill_val = 0;
@@ -966,7 +979,7 @@ void RNNDescriptor::RNNForwardMS(Handle& handle,
     {
         call_sync_all_stream_pull_to_root_stream();
         const auto first_layer_id  = 0;
-        const auto stream_id       = layer_stream_id[first_layer_id]; // 1
+        const auto stream_id       = 1; // 1
         const auto extra_stream_id = 2;
 
         handle.SetStreamFromPool(stream_id);
@@ -974,7 +987,7 @@ void RNNDescriptor::RNNForwardMS(Handle& handle,
         if(biasMode != 0u)
             call_bias_add(first_layer_id);
 
-        call_next_chunk_compute(first_layer_id);
+        call_next_chunk_compute(stream_pull[stream_id], first_layer_id, stream_id);
 
         handle.SetStreamFromPool(extra_stream_id);
 
@@ -992,53 +1005,146 @@ void RNNDescriptor::RNNForwardMS(Handle& handle,
         hipStreamWaitEvent(stream_pull[stream_id], next_chunk_inx.get(), 0);
     }
 
-    for(int layer_id = 0; layer_id < nLayers; layer_id++)
+
+    auto spiral_dispatch = [&](int first_stream, int last_stream) {
+
+        auto layers_last_state = layer_upd_cur_time;
+
+        auto update_last_state = [&layer_upd_cur_time, &layers_last_state]() {
+            std::copy(
+                layer_upd_cur_time.begin(), layer_upd_cur_time.end(), layers_last_state.begin());
+        };
+
+        auto is_dispatchable = [&layers_last_state, seq_len, time_chunk_sz](int layer,
+                                                                            int dispatch_chunks) {
+            auto cur_seq_time = layers_last_state[layer];
+            return seq_len <= cur_seq_time ? false
+                   : layer == 0
+                       ? true
+                       : layers_last_state[layer - 1] >=
+                             std::min(cur_seq_time + (dispatch_chunks * time_chunk_sz), seq_len);
+        };
+
+        auto try_dispatch_next_chunk =
+            [&layer_upd_cur_time,
+             &stream_pull,
+             &sync_next_chunk_across_time,
+             &sync_next_chunk_across_layers,
+             &call_next_chunk_compute,
+             &is_dispatchable,
+             time_chunk_sz](int layer_id, int stream_id, int chunk_to_dispatch)->bool {
+                if(!is_dispatchable(layer_id, chunk_to_dispatch))
+                    return false;
+
+                auto chunk_id = layer_upd_cur_time[layer_id] / time_chunk_sz;
+                auto& stream  = stream_pull[stream_id];
+
+                sync_next_chunk_across_time(stream, layer_id, chunk_id);
+                sync_next_chunk_across_layers(stream, layer_id, chunk_id);
+
+                call_next_chunk_compute(stream, layer_id, stream_id);
+                return true;
+            };
+
+        auto try_dispatch_hy_cy_printout =
+            [&layer_upd_cur_time, &call_hy_cy_update, seq_len](int layer_id,
+                                                                          int stream_id) {
+                if(layer_upd_cur_time[layer_id] < seq_len)
+                    return false;
+
+                call_hy_cy_update(layer_id, stream_id);
+                return true;
+        };
+
+        const auto stream_round = last_stream - first_stream + 1;
+        bool nothing_to_dispatch = false;
+        while(!nothing_to_dispatch)
+        {
+            update_last_state();
+            nothing_to_dispatch = true;
+            int stream_it       = 0;
+
+            for(int cur_layer = 0; cur_layer < nLayers; cur_layer++)
+            {
+                const auto dispatch_stream = first_stream + stream_it;
+                if(try_dispatch_next_chunk(cur_layer, dispatch_stream, 1))
+                {
+                    try_dispatch_hy_cy_printout(cur_layer, dispatch_stream);
+                    stream_it = (stream_it + 1) % stream_round;
+                    nothing_to_dispatch = false;
+                }
+            }
+        }
+    };
+
+    if(miopen::Value(ENV(MIOPEN_RNNFWD_MS_DISPATCH)) == 1)
     {
+        const auto first_stream = extra_stream_cnt > 0 ? 1 : 0;
+        const auto last_stream  = extra_stream_cnt > 0 ? extra_stream_cnt : 0;
 
-        const auto main_stream_id = 1;
-        handle.SetStreamFromPool(main_stream_id);
+        spiral_dispatch(first_stream, last_stream);
+    }
+    else
+    {
+        std::vector<int> layer_stream_id(nLayers, 2);
+        layer_stream_id[0] = 1;
 
-        // check for wich stream was assigned this layer. If it differs from current - set stream
-        // wait event
-        if(layer_stream_id[layer_id] != main_stream_id)
-        {
+        auto dispatch_next_chunk = [&layer_upd_cur_time,
+                                    &stream_pull,
+                                    sync_next_chunk_across_layers,
+                                    call_next_chunk_compute,
+                                    time_chunk_sz](int layer_id, int stream_id) {
+
             auto chunk_id = layer_upd_cur_time[layer_id] / time_chunk_sz;
-            if(chunk_id > 0)
-            {
-                hipStreamWaitEvent(stream_pull[main_stream_id],
-                                   layer_chunk_end_event[layer_id][chunk_id - 1].get(),
-                                   0);
-            }
+            auto & stream = stream_pull[stream_id];
 
-            layer_stream_id[layer_id] = main_stream_id;
-        }
 
-        const int start_chunk = layer_upd_cur_time[layer_id] / time_chunk_sz;
+            sync_next_chunk_across_layers(stream, layer_id, chunk_id);
 
-        const int extra_layer_max_chunks =
-            start_chunk +
-            ((layer_id + 1 < nLayers - 1) ? (chunks_cnt - start_chunk) / 2 : chunks_cnt);
+            call_next_chunk_compute(stream, layer_id, stream_id);
+        };
 
-        for(int chunk_id = start_chunk; chunk_id < chunks_cnt; chunk_id++)
+        for(int layer_id = 0; layer_id < nLayers; layer_id++)
         {
+            const auto main_stream_id = 1;
+            handle.SetStreamFromPool(main_stream_id);
 
-            call_next_chunk_compute(layer_id);
-
-            int extra_compute_layer = layer_id + 1;
-            for(; extra_compute_layer < nLayers; extra_compute_layer++)
+            // check for wich stream was assigned this layer. If it differs from current - set
+            // stream wait event
+            if(layer_stream_id[layer_id] != main_stream_id)
             {
-                auto extra_chunk_id = layer_upd_cur_time[extra_compute_layer] / time_chunk_sz;
-                if(extra_chunk_id < extra_layer_max_chunks && extra_chunk_id <= chunk_id)
-                    break;
+                auto chunk_id = layer_upd_cur_time[layer_id] / time_chunk_sz;
+                
+                sync_next_chunk_across_time(stream_pull[main_stream_id], layer_id, chunk_id);
+
+                layer_stream_id[layer_id] = main_stream_id;
             }
 
-            if(extra_compute_layer < nLayers)
-                call_next_chunk_compute(extra_compute_layer);
-        }
+            const int start_chunk = layer_upd_cur_time[layer_id] / time_chunk_sz;
 
-        handle.SetStreamFromPool(main_stream_id);
-        // update hy, cy
-        call_hy_cy_update(layer_id);
+            const int extra_layer_max_chunks =
+                start_chunk +
+                ((layer_id + 1 < nLayers - 1) ? (chunks_cnt - start_chunk) / 2 : chunks_cnt);
+
+            for(int chunk_id = start_chunk; chunk_id < chunks_cnt; chunk_id++)
+            {
+                dispatch_next_chunk(layer_id, layer_stream_id[layer_id]);
+
+                int extra_compute_layer = layer_id + 1;
+                for(; extra_compute_layer < nLayers; extra_compute_layer++)
+                {
+                    auto extra_chunk_id = layer_upd_cur_time[extra_compute_layer] / time_chunk_sz;
+                    if(extra_chunk_id < extra_layer_max_chunks && extra_chunk_id <= chunk_id)
+                        break;
+                }
+
+                if(extra_compute_layer < nLayers)
+                    dispatch_next_chunk(extra_compute_layer, layer_stream_id[extra_compute_layer]);
+            }
+
+            // update hy, cy
+            call_hy_cy_update(layer_id, main_stream_id);
+        }
     }
 
     handle.SetStreamFromPool(root_stream_id);
