@@ -184,24 +184,28 @@ protected:
 
         outputGrad = tensor<T>{out_dims}.generate(gen_value);
 
-        if (isInputGradRequired) {
+        if(isInputGradRequired)
+        {
             inputGrad = tensor<T>{in_dims};
             std::fill(inputGrad.begin(), inputGrad.end(), std::numeric_limits<T>::quiet_NaN());
 
             ref_inputGrad = tensor<T>{in_dims};
-            std::fill(ref_inputGrad.begin(), ref_inputGrad.end(), std::numeric_limits<T>::quiet_NaN());
+            std::fill(
+                ref_inputGrad.begin(), ref_inputGrad.end(), std::numeric_limits<T>::quiet_NaN());
 
-            inputGrad_dev  = handle.Write(inputGrad.data);
+            inputGrad_dev = handle.Write(inputGrad.data);
         }
 
-        if (isOtherGradRequired) {
+        if(isOtherGradRequired)
+        {
             otherGrad = tensor<T>{other_dims};
             std::fill(otherGrad.begin(), otherGrad.end(), std::numeric_limits<T>::quiet_NaN());
 
             ref_otherGrad = tensor<T>{other_dims};
-            std::fill(ref_otherGrad.begin(), ref_otherGrad.end(), std::numeric_limits<T>::quiet_NaN());
+            std::fill(
+                ref_otherGrad.begin(), ref_otherGrad.end(), std::numeric_limits<T>::quiet_NaN());
 
-            otherGrad_dev  = handle.Write(otherGrad.data);
+            otherGrad_dev = handle.Write(otherGrad.data);
         }
 
         cond_dev       = handle.Write(cond.data);
@@ -220,7 +224,7 @@ protected:
 
         auto inputGradMem = isInputGradRequired ? inputGrad_dev.get() : nullptr;
         auto otherGradMem = isOtherGradRequired ? otherGrad_dev.get() : nullptr;
-        status = miopen::WhereBackward(handle,
+        status            = miopen::WhereBackward(handle,
                                        outputGrad.desc,
                                        outputGrad_dev.get(),
                                        cond.desc,
@@ -232,10 +236,12 @@ protected:
 
         EXPECT_EQ(status, miopenStatusSuccess);
 
-        if (isInputGradRequired) {
+        if(isInputGradRequired)
+        {
             inputGrad.data = handle.Read<T>(inputGrad_dev, inputGrad.data.size());
         }
-        if (isOtherGradRequired) {
+        if(isOtherGradRequired)
+        {
             otherGrad.data = handle.Read<T>(otherGrad_dev, otherGrad.data.size());
         }
     }
@@ -258,10 +264,12 @@ protected:
         auto error1      = isInputGradRequired ? miopen::rms_range(ref_inputGrad, inputGrad) : 0;
         auto error2      = isOtherGradRequired ? miopen::rms_range(ref_otherGrad, otherGrad) : 0;
 
-        if (isInputGradRequired) {
+        if(isInputGradRequired)
+        {
             EXPECT_TRUE(miopen::range_distance(ref_inputGrad) == miopen::range_distance(inputGrad));
         }
-        if (isOtherGradRequired) {
+        if(isOtherGradRequired)
+        {
             EXPECT_TRUE(miopen::range_distance(ref_otherGrad) == miopen::range_distance(otherGrad));
         }
         EXPECT_TRUE(error1 < threshold * 10)

@@ -105,11 +105,13 @@ struct BackwardProblemDescription : ProblemDescriptionBase
 
     bool IsSameType() const
     {
-        if(!inputGradDesc.GetLengths().empty() && inputGradDesc.GetType() != outputGradDesc.GetType())
+        if(!inputGradDesc.GetLengths().empty() &&
+           inputGradDesc.GetType() != outputGradDesc.GetType())
         {
             return false;
         }
-        if(!otherGradDesc.GetLengths().empty() && otherGradDesc.GetType() != outputGradDesc.GetType())
+        if(!otherGradDesc.GetLengths().empty() &&
+           otherGradDesc.GetType() != outputGradDesc.GetType())
         {
             return false;
         }

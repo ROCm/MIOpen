@@ -41,7 +41,7 @@ void cpu_where_backward(tensor<T> outputGrad,
     auto outputGradSize = outputGrad.desc.GetElementSize();
     auto condSize       = cond.desc.GetElementSize();
     auto inputGradSize  = inputGrad.data.empty() ? 0 : inputGrad.desc.GetElementSize();
-    auto otherGradSize  = otherGrad.data.empty() ? 0 :otherGrad.desc.GetElementSize();
+    auto otherGradSize  = otherGrad.data.empty() ? 0 : otherGrad.desc.GetElementSize();
 
     par_ford(inputGradSize)(
         [&](size_t i) { inputGrad[i] = outputGrad[i % outputGradSize] * cond[i % condSize]; });

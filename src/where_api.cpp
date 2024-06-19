@@ -53,7 +53,7 @@ extern "C" miopenStatus_t miopenWhereBackward(miopenHandle_t handle,
                         otherGradDesc,
                         otherGrad);
     const miopen::TensorDescriptor dummyDesc;
-            
+
     return miopen::try_([&] {
         miopen::WhereBackward(miopen::deref(handle),
                               miopen::deref(outputGradDesc),

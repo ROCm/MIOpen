@@ -84,7 +84,8 @@ int32_t mloWhereBackwardRunHost(miopenTensorDescriptor_t outputGradDesc,
 
 #endif
 
-bool isDefined(std::vector<int>& len) {
+bool isDefined(std::vector<int>& len)
+{
     return std::all_of(len.begin(), len.end(), [](int i) { return i > 0; });
 }
 
@@ -180,10 +181,12 @@ int WhereDriver<Tgpu, Tref>::GetandSetData()
     isInputGradRequired = isDefined(in_len);
     isOtherGradRequired = isDefined(other_len);
 
-    if(isInputGradRequired) {
+    if(isInputGradRequired)
+    {
         SetTensorNd(inputTensorGrad, in_len, data_type);
     }
-    if(isOtherGradRequired) {
+    if(isOtherGradRequired)
+    {
         SetTensorNd(otherTensorGrad, other_len, data_type);
     }
     SetTensorNd(condTensor, cond_len, data_type);
@@ -304,19 +307,27 @@ int WhereDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
         // GPU allocation
         cond_dev      = std::unique_ptr<GPUMem>(new GPUMem(ctx, cond_sz, sizeof(Tgpu)));
-        inGrad_dev    = isInputGradRequired ? std::unique_ptr<GPUMem>(new GPUMem(ctx, inGrad_sz, sizeof(Tgpu))) : nullptr;
-        otherGrad_dev = isOtherGradRequired ? std::unique_ptr<GPUMem>(new GPUMem(ctx, otherGrad_sz, sizeof(Tgpu))) : nullptr;
+        inGrad_dev    = isInputGradRequired
+                            ? std::unique_ptr<GPUMem>(new GPUMem(ctx, inGrad_sz, sizeof(Tgpu)))
+                            : nullptr;
+        otherGrad_dev = isOtherGradRequired
+                            ? std::unique_ptr<GPUMem>(new GPUMem(ctx, otherGrad_sz, sizeof(Tgpu)))
+                            : nullptr;
         outGrad_dev   = std::unique_ptr<GPUMem>(new GPUMem(ctx, outGrad_sz, sizeof(Tgpu)));
 
         // GPU host allocation
         cond      = std::vector<Tgpu>(cond_sz, static_cast<Tgpu>(0));
-        inGrad    = isInputGradRequired ? std::vector<Tgpu>(inGrad_sz, static_cast<Tgpu>(0)) : std::vector<Tgpu>();
-        otherGrad = isOtherGradRequired ? std::vector<Tgpu>(otherGrad_sz, static_cast<Tgpu>(0)) : std::vector<Tgpu>();
+        inGrad    = isInputGradRequired ? std::vector<Tgpu>(inGrad_sz, static_cast<Tgpu>(0))
+                                        : std::vector<Tgpu>();
+        otherGrad = isOtherGradRequired ? std::vector<Tgpu>(otherGrad_sz, static_cast<Tgpu>(0))
+                                        : std::vector<Tgpu>();
         outGrad   = std::vector<Tgpu>(outGrad_sz, static_cast<Tgpu>(0));
 
         // CPU allocation
-        inGradhost    = isInputGradRequired ? std::vector<Tref>(inGrad_sz, static_cast<Tref>(0)) : std::vector<Tref>();
-        otherGradhost = isOtherGradRequired ? std::vector<Tref>(otherGrad_sz, static_cast<Tref>(0)) : std::vector<Tref>();
+        inGradhost    = isInputGradRequired ? std::vector<Tref>(inGrad_sz, static_cast<Tref>(0))
+                                            : std::vector<Tref>();
+        otherGradhost = isOtherGradRequired ? std::vector<Tref>(otherGrad_sz, static_cast<Tref>(0))
+                                            : std::vector<Tref>();
 
         for(int i = 0; i < cond_sz; i++)
         {
@@ -365,7 +376,7 @@ int WhereDriver<Tgpu, Tref>::RunBackwardGPU()
     START_TIME;
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
-        auto inGradMem = isInputGradRequired ? inGrad_dev->GetMem() : nullptr;
+        auto inGradMem    = isInputGradRequired ? inGrad_dev->GetMem() : nullptr;
         auto otherGradMem = isOtherGradRequired ? otherGrad_dev->GetMem() : nullptr;
         miopenWhereBackward(GetHandle(),
                             outputTensorGrad,
