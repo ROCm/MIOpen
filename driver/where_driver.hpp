@@ -216,15 +216,27 @@ int WhereDriver<Tgpu, Tref>::AddCmdLineArgs()
 {
     inflags.AddInputFlag("forw",
                          'F',
-                         "1",
-                         "Run only Forward (1) or Run both Forward and Backward (0) (Default=1)",
+                         "0",
+                         "Run only Forward (1) or Run both Forward and Backward (0) (Default=0)",
                          "int");
-    inflags.AddInputFlag(
-        "inputDims", 'I', "1,2,2,2,2", "The dimensional lengths of input tensor", "string");
-    inflags.AddInputFlag(
-        "otherDims", 'O', "0", "The dimensional lengths of other tensor", "string");
-    inflags.AddInputFlag(
-        "condDims", 'C', "4,2,2,2,2", "The dimensional lengths of condition tensor", "string");
+    inflags.AddInputFlag("inputDims",
+                         'I',
+                         "1,2,2,2,2",
+                         "The dimensional lengths of input tensor. Please specify the dimensions "
+                         "as a comma-separated list, e.g., \"1,2,2,2,2\"",
+                         "string");
+    inflags.AddInputFlag("otherDims",
+                         'O',
+                         "1,2,2,2,2",
+                         "The dimensional lengths of other tensor. Please specify the dimensions "
+                         "as a comma-separated list, e.g., \"1,2,2,2,2\"",
+                         "string");
+    inflags.AddInputFlag("condDims",
+                         'C',
+                         "4,2,2,2,2",
+                         "The dimensional lengths of the condition tensor. Please specify the "
+                         "dimensions as a comma-separated list, e.g., \"4,2,2,2,2\"",
+                         "string");
 
     inflags.AddInputFlag("iter", 'i', "10", "Number of Iterations (Default=10)", "int");
     inflags.AddInputFlag("verify", 'V', "1", "Verify Each Layer (Default=1)", "int");
