@@ -348,7 +348,6 @@ __device__ void t5layernormbwdweightcontiguousparallel(const TI* __restrict__ dy
     if(gid >= inner_size * parallel_size)
         return;
 
-    uint64_t nid = gid % inner_size;
     uint64_t pid = gid / inner_size;
 
     uint64_t input_idx = gid;

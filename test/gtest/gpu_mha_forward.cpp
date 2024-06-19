@@ -49,7 +49,7 @@ using namespace miopen;
 namespace {
 inline bool CheckFloatArg(std::string_view arg)
 {
-    const std::string& tmp = miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_TEST_FLOAT_ARG));
+    const std::string& tmp = env::value(MIOPEN_TEST_FLOAT_ARG);
     return tmp.empty() || tmp == arg;
 }
 
@@ -65,7 +65,7 @@ struct TensorStruct
 
     ~TensorStruct() = default;
 
-    std::variant<tensor<float>, tensor<float8>, tensor<int>> m_cpu_tensor;
+    std::variant<tensor<float>, tensor<float8>, tensor<int64_t>> m_cpu_tensor;
     Allocator::ManageDataPtr m_gpu_buffer;
 };
 
@@ -107,8 +107,7 @@ inline std::vector<TestCase> GetSmokeCases()
 
 inline std::vector<TestCase> GetFullTestCases()
 {
-    if(miopen::IsDisabled(MIOPEN_ENV(MIOPEN_TEST_ALL)) ||
-       !(CheckFloatArg("--float") || CheckFloatArg("--float8")))
+    if(env::disabled(MIOPEN_TEST_ALL) || !(CheckFloatArg("--float") || CheckFloatArg("--float8")))
     {
         return {};
     }
@@ -129,6 +128,8 @@ inline std::vector<TestCase> GetFullTestCases()
 template <typename T>
 class Test_Fwd_Mha : public testing::TestWithParam<TestCase>
 {
+    static_assert(std::is_same_v<T, float> || std::is_same_v<T, float8>);
+
 protected:
     void SetUp() override
     {
@@ -138,7 +139,7 @@ protected:
 
         if((drop > 0.0f) && (s % handle.GetWavefrontWidth() != 0))
         {
-            GTEST_SKIP() << "CPU Dropout currently supprorts only fully occupied warps";
+            GTEST_SKIP() << "CPU Dropout currently supports only fully occupied warps";
         }
 
         mha_descriptor.SetParams(1);
@@ -165,34 +166,14 @@ protected:
             tensors[id] = std::move(tmp);
         };
 
-        auto GenScaledTensor = [](auto... nhsd) {
-            float bias    = prng::gen_A_to_B(-3.0f, 3.0f);
-            auto val_full = tensor<float>{nhsd...}.generate(
-                [bias](auto...) { return prng::gen_A_to_B(-2.5f + bias, 2.5f + bias); });
-            auto val_scaled = tensor<T>{nhsd...};
-            float scale     = test::cpu::GetF8Scaling(test::cpu::AbsoluteMax(val_full));
-            float descale   = 1.f / scale;
-            test::cpu::ScaleMult(val_full, scale, val_scaled);
-            return std::tuple{val_scaled, scale, descale};
-        };
+        auto q = test::cpu::GenScaledTensor<T>(n, h, s, d);
+        InitTensor(miopenTensorMhaQ, std::move(q.mTensor));
 
-        float q_scale;
-        float q_descale;
-        tensor<T> q_val;
-        std::tie(q_val, q_scale, q_descale) = GenScaledTensor(n, h, s, d);
-        InitTensor(miopenTensorMhaQ, std::move(q_val));
+        auto k = test::cpu::GenScaledTensor<T>(n, h, s, d);
+        InitTensor(miopenTensorMhaK, std::move(k.mTensor));
 
-        float k_scale;
-        float k_descale;
-        tensor<T> k_val;
-        std::tie(k_val, k_scale, k_descale) = GenScaledTensor(n, h, s, d);
-        InitTensor(miopenTensorMhaK, std::move(k_val));
-
-        float v_scale;
-        float v_descale;
-        tensor<T> v_val;
-        std::tie(v_val, v_scale, v_descale) = GenScaledTensor(n, h, s, d);
-        InitTensor(miopenTensorMhaV, std::move(v_val));
+        auto v = test::cpu::GenScaledTensor<T>(n, h, s, d);
+        InitTensor(miopenTensorMhaV, std::move(v.mTensor));
 
         float s_scale = 1.f;
         // clang-tidy complains about the same expression on both sides of "/": 1.f / 1.f
@@ -202,11 +183,11 @@ protected:
         // clang-tidy complains about the same expression on both sides of "/": 1.f / 1.f
 
         InitTensor(miopenTensorMhaDescaleQ,
-                   tensor<float>{1, 1, 1, 1}.generate([=](auto...) { return q_descale; }));
+                   tensor<float>{1, 1, 1, 1}.generate([&q](auto...) { return q.mDescale; }));
         InitTensor(miopenTensorMhaDescaleK,
-                   tensor<float>{1, 1, 1, 1}.generate([=](auto...) { return k_descale; }));
+                   tensor<float>{1, 1, 1, 1}.generate([&k](auto...) { return k.mDescale; }));
         InitTensor(miopenTensorMhaDescaleV,
-                   tensor<float>{1, 1, 1, 1}.generate([=](auto...) { return v_descale; }));
+                   tensor<float>{1, 1, 1, 1}.generate([&v](auto...) { return v.mDescale; }));
         InitTensor(miopenTensorMhaDescaleS,
                    tensor<float>{1, 1, 1, 1}.generate([=](auto...) { return s_descale; }));
         InitTensor(miopenTensorMhaScaleS,
@@ -217,9 +198,9 @@ protected:
         InitTensor(miopenTensorMhaDropoutProbability,
                    tensor<float>{1, 1, 1, 1}.generate([rate = drop](auto...) { return rate; }));
         InitTensor(miopenTensorMhaDropoutSeed,
-                   tensor<int>{1, 1, 1, 2}.generate([](auto...) { return 0; }));
+                   tensor<int64_t>{1, 1, 1, 1}.generate([](auto...) { return 0xAAFFFFFFFFull; }));
         InitTensor(miopenTensorMhaDropoutOffset,
-                   tensor<int>{1, 1, 1, 2}.generate([](auto...) { return 0; }));
+                   tensor<int64_t>{1, 1, 1, 1}.generate([](auto...) { return 1; }));
 
         InitTensor(miopenTensorMhaO, tensor<T>{n, h, s, d});
         InitTensor(miopenTensorMhaAmaxO, tensor<float>{1, 1, 1, 1});
@@ -231,8 +212,6 @@ protected:
         {
             args[i].descriptor = &descVector[i];
         }
-
-        tensor<float> q_dot_k_transpose{n, h, s, s};
 
         softmax_ref  = tensor<float>{n, h, s, s};
         oDesc_ref    = tensor<T>{n, h, s, d};
@@ -246,15 +225,17 @@ protected:
             softmax_ref,
             mDesc_ref,
             zInvDesc_ref,
-            q_descale,
-            k_descale,
-            v_descale,
+            q.mDescale,
+            k.mDescale,
+            v.mDescale,
             s_descale,
             s_scale,
             o_scale,
             drop,
-            0,
-            0,
+            std::get<tensor<int64_t>>(tensors[miopenTensorMhaDropoutSeed]->m_cpu_tensor)
+                .data.front(),
+            std::get<tensor<int64_t>>(tensors[miopenTensorMhaDropoutOffset]->m_cpu_tensor)
+                .data.front(),
             amaxS_ref,
             amaxO_ref,
             oDesc_ref);
@@ -354,7 +335,6 @@ class Test_Fwd_Mha_F8 : public Test_Fwd_Mha<float8>
 {
     void SetUp() override
     {
-
         using e_mask = enabled<Gpu::gfx94X>;
         using d_mask = disabled<Gpu::gfx900, Gpu::gfx906, Gpu::gfx908, Gpu::gfx90A>;
         if(!IsTestSupportedForDevMask<d_mask, e_mask>() || MIOPEN_FP8_IEEE_EXPONENT_BIAS != 0)

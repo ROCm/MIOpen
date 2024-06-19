@@ -42,6 +42,8 @@ namespace miopen {
 
 namespace {
 
+#if MIOPEN_USE_ROCBLAS
+
 bool RNNForwardMSIsSupported([[maybe_unused]] const RNNDescriptor& desctiptor,
                              [[maybe_unused]] bool use_dropout)
 {
@@ -56,12 +58,12 @@ bool RNNForwardMSIsSupported([[maybe_unused]] const RNNDescriptor& desctiptor,
     return false;
 }
 
-bool RNNForwardMSIsFast(miopenDataType_t dataT, const int seqLen)
+bool RNNForwardMSIsFast(const int seqLen)
 {
-    if(miopen::IsEnabled(MIOPEN_ENV(MIOPEN_RNNFWD_exp)))
+    if(env::enabled(MIOPEN_RNNFWD_exp))
         return true;
 
-    if(dataT == miopenFloat && seqLen >= 32 && !(miopen::IsDisabled(MIOPEN_ENV(MIOPEN_RNNFWD_exp))))
+    if(seqLen >= 32 && !env::disabled(MIOPEN_RNNFWD_exp))
         return true;
     return false;
 }
@@ -242,6 +244,8 @@ miopenStatus_t ReducAddBias(miopen::Handle& handle,
 
     return miopenStatusSuccess;
 }
+
+#endif // MIOPEN_USE_ROCBLAS
 
 } // namespace
 
@@ -1078,8 +1082,6 @@ void RNNDescriptor::RNNForwardMS(Handle& handle,
     (void)y;
     (void)hy;
     (void)cy;
-    (void)reserveSpace;
-    (void)reserveSpaceSize;
 
     MIOPEN_THROW("GEMM is not supported");
 #endif
@@ -1310,7 +1312,7 @@ void RNNDescriptor::RNNForwardInferencePacked(Handle& handle,
     }
     // input check end
 
-    if(RNNForwardMSIsSupported(*this, false) && RNNForwardMSIsFast(xDesc[0].GetType(), seqLen))
+    if(RNNForwardMSIsSupported(*this, false) && RNNForwardMSIsFast(seqLen))
     {
         return RNNForwardMS(handle,
                             in_n,
@@ -2704,7 +2706,7 @@ void RNNDescriptor::RNNForwardTrainingPackedTensors(
     // input check end
     bool use_dropout = !float_equal(miopen::deref(dropoutDesc).dropout, 0);
 
-    if(RNNForwardMSIsSupported(*this, false) && RNNForwardMSIsFast(xDesc[0].GetType(), seqLen))
+    if(RNNForwardMSIsSupported(*this, false) && RNNForwardMSIsFast(seqLen))
     {
         return RNNForwardMS(handle,
                             in_n,

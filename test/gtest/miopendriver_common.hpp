@@ -27,7 +27,7 @@
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
-#include <gtest/gtest_common.hpp>
+#include <gtest/gtest_env_check_common.hpp>
 
 #include <miopen/process.hpp>
 #include <miopen/filesystem.hpp>
@@ -38,6 +38,33 @@
 
 using ::testing::HasSubstr;
 using ::testing::Not;
+
+MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_WITH_MIOPENDRIVER)
+
+namespace miopendriver::basearg {
+namespace conv {
+static const std::string Float    = "conv";
+static const std::string Half     = "convfp16";
+static const std::string BFloat16 = "convbfp16";
+static const std::string Int8     = "convint8";
+} // namespace conv
+
+namespace pool {
+static const std::string Float = "pool";
+static const std::string Half  = "poolfp16";
+} // namespace pool
+
+namespace gemm {
+static const std::string Float = "gemm";
+static const std::string Half  = "gemmfp16";
+} // namespace gemm
+
+namespace bn {
+static const std::string Float = "bnorm";
+static const std::string Half  = "bnormfp16";
+} // namespace bn
+} // namespace miopendriver::basearg
 
 // Note: Assuming that the MIOpenDriver executable will be beside the testing output location.
 static inline miopen::fs::path MIOpenDriverExePath()
@@ -78,4 +105,28 @@ RunMIOpenDriverTestCommand(const std::vector<std::string>& params,
             << testArguments;
         EXPECT_THAT(ss.str(), Not(HasSubstr("FAILED")));
     }
+}
+
+static inline bool CheckFloatCondition(std::string_view floatArg)
+{
+    return env::enabled(MIOPEN_TEST_WITH_MIOPENDRIVER) &&
+           env::value(MIOPEN_TEST_FLOAT_ARG) == floatArg;
+}
+
+static inline bool CheckFloatAndAllCondition(std::string_view floatArg)
+{
+    return env::enabled(MIOPEN_TEST_ALL) && CheckFloatCondition(floatArg);
+}
+
+template <typename disabled_mask, typename enabled_mask>
+static inline bool ShouldRunMIOpenDriverTest(const std::string& floatArg, bool skipUnlessAllEnabled)
+{
+    if(skipUnlessAllEnabled)
+    {
+        return ShouldRunTestCase<disabled_mask, enabled_mask>(
+            [&]() { return CheckFloatAndAllCondition(floatArg); });
+    }
+
+    return ShouldRunTestCase<disabled_mask, enabled_mask>(
+        [&]() { return CheckFloatCondition(floatArg); });
 }

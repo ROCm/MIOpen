@@ -5632,6 +5632,16 @@ MIOPEN_EXPORT miopenStatus_t miopenSetFindOptionPreallocatedTensor(miopenFindOpt
                                                                    miopenTensorArgumentId_t id,
                                                                    void* buffer);
 
+/*! @brief Forces library to attach kernel binaries to solutions for later saving. This allows zero
+ * lookup miopenRunSolution calls after miopenLoadSolution. Default value is 0.
+ *
+ * @param options    Options object to update
+ * @param attach     1 means attaching, 0 - skipping, any other value - reserved for future use
+ * @return           miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenSetFindOptionAttachBinaries(miopenFindOptions_t options,
+                                                               unsigned attach);
+
 /*! @brief The miopenSolution object describes a prepared solution.
  */
 MIOPEN_DECLARE_OBJECT(miopenSolution);
@@ -6094,7 +6104,7 @@ MIOPEN_EXPORT miopenStatus_t miopenT5LayerNormForward(miopenHandle_t handle,
  * @param sizeInBytes              Pointer to data to return the minimum workspace size
  * @return                         miopenStatus_t
  */
-extern "C" miopenStatus_t
+MIOPEN_EXPORT miopenStatus_t
 miopenGetT5LayerNormBackwardWorkspaceSize(miopenHandle_t handle,
                                           miopenNormMode_t mode,
                                           const miopenTensorDescriptor_t dyDesc,

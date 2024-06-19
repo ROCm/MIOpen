@@ -133,8 +133,15 @@ struct CKArgs
     CKArgs& operator=(const CKArgs&) = default;
 
     template <typename ConvPtr>
-    auto MakeArgPtr(const ConvPtr& conv_ptr, ConstData_t x, Data_t dw, ConstData_t dy) const
+    auto MakeArgPtr(const ConvPtr& conv_ptr,
+                    ConstData_t x,
+                    Data_t dw,
+                    ConstData_t dy,
+                    float alpha,
+                    float beta) const
     {
+        (void)alpha;
+        (void)beta;
         return conv_ptr->MakeArgumentPointer(x,
                                              dw,
                                              dy,
@@ -155,15 +162,21 @@ struct CKArgs
     }
 
     template <typename ConvPtr>
-    auto MakeArgPtr(const ConvPtr& conv_ptr, const ConvWrwTensors& tensors) const
+    auto MakeArgPtr(const ConvPtr& conv_ptr,
+                    const ConvWrwTensors& tensors,
+                    float alpha,
+                    float beta) const
     {
-        return MakeArgPtr(conv_ptr, tensors.x, tensors.dw, tensors.dy);
+        return MakeArgPtr(conv_ptr, tensors.x, tensors.dw, tensors.dy, alpha, beta);
     }
 
     template <typename ConvPtr>
     bool IsSupportedBy(const ConvPtr& conv_ptr) const
     {
-        auto arg_ptr = MakeArgPtr(conv_ptr, nullptr, nullptr, nullptr);
+        auto arg_ptr = MakeArgPtr(conv_ptr, nullptr, nullptr, nullptr, 1.0f, 0.0f);
+        // Creat dummy workspace to pass the ck IsSupportedArgument check.
+        int dummy_var = 1;
+        conv_ptr->SetWorkSpacePointer(arg_ptr.get(), &dummy_var);
         return conv_ptr->IsSupportedArgument(arg_ptr.get());
     }
 
@@ -318,7 +331,7 @@ bool PerformanceConfigHipImplicitGemmGroupWrwXdlops::IsModelApplicable(
         return false;
     if(problem.GetInDataType() != miopenFloat && problem.GetInDataType() != miopenHalf)
         return false;
-    if(miopen::IsDisabled(MIOPEN_ENV(MIOPEN_DEBUG_GROUP_CONV_IMPLICIT_GEMM_HIP_WRW_XDLOPS_AI_HEUR)))
+    if(env::disabled(MIOPEN_DEBUG_GROUP_CONV_IMPLICIT_GEMM_HIP_WRW_XDLOPS_AI_HEUR))
         return false;
     return true;
 }
@@ -459,9 +472,9 @@ bool ConvHipImplicitGemmGroupWrwXdlops::IsApplicable(
     [[maybe_unused]] const ProblemDescription& problem) const
 {
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
-    if(miopen::IsDisabled(MIOPEN_ENV(MIOPEN_DEBUG_GROUP_CONV_IMPLICIT_GEMM_HIP_WRW_XDLOPS)))
+    if(env::disabled(MIOPEN_DEBUG_GROUP_CONV_IMPLICIT_GEMM_HIP_WRW_XDLOPS))
         return false;
-    if(miopen::IsEnabled(MIOPEN_ENV(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC)))
+    if(env::enabled(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC))
         return false;
     if(problem.HasMixedDataTypes())
         return false;
