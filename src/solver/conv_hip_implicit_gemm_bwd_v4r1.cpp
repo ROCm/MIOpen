@@ -731,13 +731,13 @@ bool ConvHipImplicitGemmBwdDataV4R1::IsApplicable(const ExecutionContext& ctx,
                                                   const ProblemDescription& problem) const
 {
 #if WORKAROUND_SWDEV_229277_227616_229195
-    if(!miopen::IsEnabled(ENV(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1)))
+    if(!env::enabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1))
         return false;
 #endif
     if(ThisSolverIsDeprecatedStatic::IsDisabled(ctx))
         return false;
 
-    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1)))
+    if(env::disabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1))
         return false;
     if(problem.GetConv().attribute.deterministic)
         return false;

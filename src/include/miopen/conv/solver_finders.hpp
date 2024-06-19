@@ -41,6 +41,12 @@
 
 namespace miopen {
 
+namespace conv {
+struct ProblemDescription;
+} // namespace conv
+
+struct Solution;
+
 class DbRecord;
 
 // This can be used to pass some primitive-specific pre-computed data to finders.
@@ -152,16 +158,21 @@ const std::vector<std::unique_ptr<ISolversFinder>>& GetConvSolverFinders();
 
 } // namespace conv
 
-bool FindCore(const AnyInvokeParams& invoke_ctx,
-              DbRecord& record,
-              const ExecutionContext& ctx,
-              const ProblemDescriptionBase& problem,
-              const PrimitiveFindParameters& parameters,
-              const std::vector<std::unique_ptr<ISolversFinder>>& finders,
-              const std::optional<FindOptions>& options = std::nullopt);
+struct FindCoreResult
+{
+    std::vector<Solution> solutions;
+    bool is_optimal;
+};
+
+FindCoreResult FindCore(const AnyInvokeParams& invoke_ctx,
+                        const ExecutionContext& ctx,
+                        const ProblemDescriptionBase& problem,
+                        const PrimitiveFindParameters& parameters,
+                        const std::vector<std::unique_ptr<ISolversFinder>>& finders,
+                        const std::optional<FindOptions>& options = std::nullopt,
+                        bool force_attach_binary                  = false);
 
 namespace conv {
-
 bool IsAlgorithmDisabled(miopenConvAlgorithm_t algo);
 bool IsEnoughWorkspace(std::string_view where,
                        const miopen::solver::Id& solver_id,
