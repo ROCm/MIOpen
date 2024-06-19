@@ -116,18 +116,25 @@ std::vector<int> get_out_sizes(std::vector<int> dims,
 
 // void print_strides(std::vector<int>&)
 
-miopenConvolutionDescriptor_t init_convolution_descriptor(std::vector<int> pads,
-                                                          std::vector<int> strides,
-                                                          std::vector<int> dilations,
-                                                          int groupCount)
+miopenConvolutionDescriptor_t
+init_convolution_descriptor(std::vector<int> pads,
+                            std::vector<int> strides,
+                            std::vector<int> dilations,
+                            int groupCount,
+                            miopenConvolutionMode_t mode = miopenConvolution)
 {
     miopenConvolutionDescriptor_t desc;
 
     EXPECT_TRUE(miopenCreateConvolutionDescriptor(&desc) == miopenStatusSuccess);
-    EXPECT_TRUE(
-        miopenInitConvolutionNdDescriptor(
-            desc, pads.size(), pads.data(), strides.data(), dilations.data(), miopenConvolution) ==
-        miopenStatusSuccess);
+    // std::cout << pads.size() << " ";
+    // for (int i = 0; i < pads.size(); ++i)
+    // {
+    //     std::cout << pads[i] << " " << strides[i] << " " << dilations[i] << " | " ;
+    // }
+    // std::cout << std::endl;
+    EXPECT_TRUE(miopenInitConvolutionNdDescriptor(
+                    desc, pads.size(), pads.data(), strides.data(), dilations.data(), mode) ==
+                miopenStatusSuccess);
     EXPECT_TRUE(miopenSetConvolutionGroupCount(desc, groupCount) == miopenStatusSuccess);
 
     return desc;
@@ -358,16 +365,13 @@ struct layout_data
 {
     layout_data(int _n, std::vector<int> _dims, int _c, miopenTensorLayout_t _tensor_layout)
     {
-        lens = get_layout_lengths(_n, _c, _dims);
-        strides = get_strides(lens, _dims.size(), _tensor_layout);
-        host = tensor<T>{lens, strides}.generate(gen_value<T>);
+        lens       = get_layout_lengths(_n, _c, _dims);
+        strides    = get_strides(lens, _dims.size(), _tensor_layout);
+        host       = tensor<T>{lens, strides}.generate(gen_value<T>);
         descriptor = init_tensor_descriptor(miopen_type<T>{}, lens, strides);
     }
 
-    ~layout_data()
-    {
-        miopenDestroyTensorDescriptor(descriptor);
-    }
+    ~layout_data() { miopenDestroyTensorDescriptor(descriptor); }
 
     std::vector<int> lens;
     std::vector<int> strides;
@@ -388,6 +392,98 @@ struct TypeDefs
     static constexpr miopenTensorLayout_t Layout       = tensor_layout;
 };
 
+template <typename Tin,
+          typename Twei,
+          typename Tout,
+          typename Range,
+          typename Tacc = double,
+          typename FI   = PassThru<Tin>,
+          typename FW   = PassThru<Twei>>
+void cpu_convolution_forward(std::size_t spatial_dim,
+                             tensor<Tin>& in,
+                             tensor<Twei>& wei,
+                             tensor<Tout>& out,
+                             const Range& pads,
+                             const Range& strides,
+                             const Range& dilations,
+                             std::size_t group_count,
+                             miopenConvolutionMode_t mode,
+                             FI fi = {},
+                             FW fw = {})
+{
+    if(mode == miopenTranspose)
+    {
+        return cpu_convolution_backward_data(
+            spatial_dim, wei, in, out, pads, strides, dilations, group_count);
+    }
+    else
+    {
+        return cpu_convolution_forward(
+            spatial_dim, in, wei, out, pads, strides, dilations, group_count);
+    }
+}
+template <typename Tin,
+          typename Twei,
+          typename Tout,
+          typename Range,
+          typename Tacc = double,
+          typename FW   = PassThru<Twei>,
+          typename FO   = PassThru<Tout>>
+void cpu_convolution_backward_data(std::size_t spatial_dim,
+                                   tensor<Tin>& in,
+                                   tensor<Twei>& wei,
+                                   tensor<Tout>& out,
+                                   const Range& pads,
+                                   const Range& strides,
+                                   const Range& dilations,
+                                   std::size_t group_count,
+                                   miopenConvolutionMode_t mode,
+                                   FW fw = {},
+                                   FO fo = {})
+{
+    if(mode == miopenTranspose)
+    {
+        return cpu_convolution_forward(
+            spatial_dim, in, wei, out, pads, strides, dilations, group_count);
+    }
+    else
+    {
+        return cpu_convolution_backward_data(
+            spatial_dim, in, wei, out, pads, strides, dilations, group_count);
+    }
+}
+
+template <typename Tin,
+          typename Twei,
+          typename Tout,
+          typename Range,
+          typename Tacc = double,
+          typename FI   = PassThru<Tin>,
+          typename FO   = PassThru<Tout>>
+void cpu_convolution_backward_weight(std::size_t spatial_dim,
+                                     tensor<Tin>& in,
+                                     tensor<Twei>& wei,
+                                     tensor<Tout>& out,
+                                     const Range& pads,
+                                     const Range& strides,
+                                     const Range& dilations,
+                                     std::size_t group_count,
+                                     miopenConvolutionMode_t mode,
+                                     FI fi = {},
+                                     FO fo = {})
+{
+    if(mode == miopenTranspose)
+    {
+        return cpu_convolution_backward_weight(
+            spatial_dim, out, wei, in, pads, strides, dilations, group_count);
+    }
+    else
+    {
+        return cpu_convolution_backward_weight(
+            spatial_dim, in, wei, out, pads, strides, dilations, group_count);
+    }
+}
+
 template <class Types>
 class ReferenceConv2d : public ReferenceConvBase
 {
@@ -399,7 +495,7 @@ protected:
         using TOut                          = typename Types::TOut;
         static constexpr auto tensor_layout = Types::Layout;
 
-        auto run_conv_2d = [&](int n,
+        auto run_conv_nd = [&](int n,
                                std::vector<int> dims,
                                int c,
                                int k,
@@ -413,12 +509,10 @@ protected:
             auto in = layout_data<TRef>(n, dims, c, tensor_layout);
 
             int c_per_group = c / g;
-            auto wei = layout_data<TRef>(k, filters, c_per_group, tensor_layout);
+            auto wei        = layout_data<TRef>(k, filters, c_per_group, tensor_layout);
 
-            auto out_sizes  = get_out_sizes(dims, pads, dilations, filters, strides);
-            auto out = layout_data<TOut>(n, out_sizes, k, tensor_layout);
-
-            auto convDesc = init_convolution_descriptor(pads, strides, dilations, g);
+            auto out_sizes = get_out_sizes(dims, pads, dilations, filters, strides);
+            auto out       = layout_data<TOut>(n, out_sizes, k, tensor_layout);
 
             bool valid_result = false;
 
@@ -435,104 +529,127 @@ protected:
             ///
             auto out_dev = handle.Write(out.host.data);
 
-            const auto& desc = miopen::deref(convDesc);
-
-            if(direction == miopen::conv::Direction::Forward)
+            std::vector<miopenConvolutionMode_t> modes{miopenConvolution};
+            if(std::is_same<TRef, TOut>::value)
             {
-                cpu_convolution_forward(desc.GetSpatialDimension(),
-                                        in.host,
-                                        wei.host,
-                                        out.host,
-                                        desc.GetConvPads(),
-                                        desc.GetConvStrides(),
-                                        desc.GetConvDilations(),
-                                        desc.GetGroupCount());
-
-                EXPECT_TRUE(miopenConvolutionForwardImmediate(
-                                &handle,
-                                wei.descriptor,
-                                wei_dev.get(),
-                                in.descriptor,
-                                in_dev.get(),
-                                convDesc,
-                                out.descriptor,
-                                out_dev.get(),
-                                nullptr,
-                                0,
-                                miopen::solver::Id("ConvDirectNaiveConvFwd").Value()) ==
-                            miopenStatusSuccess);
-
-                out.check = tensor<TOut>{out.lens, out.strides};
-                out.check.data = handle.Read<TOut>(out_dev, out.check.data.size());
-
-                // we expect exact match, since use integer
-                valid_result = verify_tensor(out.check, out.host);
-            }
-            else if(direction == miopen::conv::Direction::BackwardData)
-            {
-                cpu_convolution_backward_data(desc.GetSpatialDimension(),
-                                              in.host,
-                                              wei.host,
-                                              out.host,
-                                              desc.GetConvPads(),
-                                              desc.GetConvStrides(),
-                                              desc.GetConvDilations(),
-                                              desc.GetGroupCount());
-
-                EXPECT_TRUE(miopenConvolutionBackwardDataImmediate(
-                                &handle,
-                                out.descriptor,
-                                out_dev.get(),
-                                wei.descriptor,
-                                wei_dev.get(),
-                                convDesc,
-                                in.descriptor,
-                                in_dev.get(),
-                                nullptr,
-                                0,
-                                miopen::solver::Id("ConvDirectNaiveConvBwd").Value()) ==
-                            miopenStatusSuccess);
-
-                in.check = tensor<TRef>{in.lens, in.strides};
-                in.check.data = handle.Read<TRef>(in_dev, in.check.data.size());
-
-                // we expect exact match, since use integer
-                valid_result = verify_tensor(in.check, in.host);
-            }
-            else if(direction == miopen::conv::Direction::BackwardWeights)
-            {
-                cpu_convolution_backward_weight(desc.GetSpatialDimension(),
-                                                in.host,
-                                                wei.host,
-                                                out.host,
-                                                desc.GetConvPads(),
-                                                desc.GetConvStrides(),
-                                                desc.GetConvDilations(),
-                                                desc.GetGroupCount());
-
-                EXPECT_TRUE(miopenConvolutionBackwardWeightsImmediate(
-                                &handle,
-                                out.descriptor,
-                                out_dev.get(),
-                                in.descriptor,
-                                in_dev.get(),
-                                convDesc,
-                                wei.descriptor,
-                                wei_dev.get(),
-                                nullptr,
-                                0,
-                                miopen::solver::Id("ConvDirectNaiveConvWrw").Value()) ==
-                            miopenStatusSuccess);
-
-                wei.check = tensor<TRef>{wei.lens, wei.strides};
-                wei.check.data = handle.Read<TRef>(wei_dev, wei.check.data.size());
-
-                // we expect exact match, since use integer
-                valid_result = verify_tensor(wei.check, wei.host);
+                modes.push_back(miopenTranspose);
             }
 
-            EXPECT_TRUE(valid_result == true);
+            auto convDesc = init_convolution_descriptor(pads, strides, dilations, g);
+            auto& desc    = miopen::deref(convDesc);
 
+            for(auto mode : modes)
+            {
+                if(direction == miopen::conv::Direction::Forward)
+                {
+                    cpu_convolution_forward(desc.GetSpatialDimension(),
+                                            in.host,
+                                            wei.host,
+                                            out.host,
+                                            desc.GetConvPads(),
+                                            desc.GetConvStrides(),
+                                            desc.GetConvDilations(),
+                                            desc.GetGroupCount(),
+                                            mode);
+
+                    EXPECT_TRUE(miopenConvolutionForwardImmediate(
+                                    &handle,
+                                    wei.descriptor,
+                                    wei_dev.get(),
+                                    in.descriptor,
+                                    in_dev.get(),
+                                    convDesc,
+                                    out.descriptor,
+                                    out_dev.get(),
+                                    nullptr,
+                                    0,
+                                    miopen::solver::Id("ConvDirectNaiveConvFwd").Value()) ==
+                                miopenStatusSuccess);
+
+                    out.check      = tensor<TOut>{out.lens, out.strides};
+                    out.check.data = handle.Read<TOut>(out_dev, out.check.data.size());
+
+                    // we expect exact match, since use integer
+                    valid_result = verify_tensor(out.check, out.host);
+                }
+                else if(direction == miopen::conv::Direction::BackwardData)
+                {
+                    cpu_convolution_backward_data(desc.GetSpatialDimension(),
+                                                  in.host,
+                                                  wei.host,
+                                                  out.host,
+                                                  desc.GetConvPads(),
+                                                  desc.GetConvStrides(),
+                                                  desc.GetConvDilations(),
+                                                  desc.GetGroupCount(),
+                                                  mode);
+                    if(transpose)
+                    {
+                        std::cout << "BackwardData CPU " << transpose << " done." << std::endl;
+                    }
+                    EXPECT_TRUE(miopenConvolutionBackwardDataImmediate(
+                                    &handle,
+                                    out.descriptor,
+                                    out_dev.get(),
+                                    wei.descriptor,
+                                    wei_dev.get(),
+                                    convDesc,
+                                    in.descriptor,
+                                    in_dev.get(),
+                                    nullptr,
+                                    0,
+                                    miopen::solver::Id("ConvDirectNaiveConvBwd").Value()) ==
+                                miopenStatusSuccess);
+
+                    if(transpose)
+                    {
+                        std::cout << "BackwardData " << transpose << " done." << std::endl;
+                    }
+                    in.check      = tensor<TRef>{in.lens, in.strides};
+                    in.check.data = handle.Read<TRef>(in_dev, in.check.data.size());
+
+                    // we expect exact match, since use integer
+                    valid_result = verify_tensor(in.check, in.host);
+                    {
+                        std::cout << "BackwardData " << transpose << " finished testing."
+                                  << std::endl;
+                        continue;
+                    }
+                }
+                else if(direction == miopen::conv::Direction::BackwardWeights)
+                {
+                    cpu_convolution_backward_weight(desc.GetSpatialDimension(),
+                                                    in.host,
+                                                    wei.host,
+                                                    out.host,
+                                                    desc.GetConvPads(),
+                                                    desc.GetConvStrides(),
+                                                    desc.GetConvDilations(),
+                                                    desc.GetGroupCount());
+
+                    EXPECT_TRUE(miopenConvolutionBackwardWeightsImmediate(
+                                    &handle,
+                                    out.descriptor,
+                                    out_dev.get(),
+                                    in.descriptor,
+                                    in_dev.get(),
+                                    convDesc,
+                                    wei.descriptor,
+                                    wei_dev.get(),
+                                    nullptr,
+                                    0,
+                                    miopen::solver::Id("ConvDirectNaiveConvWrw").Value()) ==
+                                miopenStatusSuccess);
+
+                    wei.check      = tensor<TRef>{wei.lens, wei.strides};
+                    wei.check.data = handle.Read<TRef>(wei_dev, wei.check.data.size());
+
+                    // we expect exact match, since use integer
+                    valid_result = verify_tensor(wei.check, wei.host);
+                }
+                EXPECT_TRUE(valid_result == true);
+                // miopenDestroyConvolutionDescriptor(cpuDesc);
+            }
             miopenDestroyConvolutionDescriptor(convDesc);
         };
 
@@ -564,172 +681,168 @@ TYPED_TEST_CASE(ReferenceConv2d, Implementations2d);
 
 TYPED_TEST(ReferenceConv2d, Test) { this->run(); }
 
-// template <class Types>
-// struct ReferenceConv3d : ReferenceConvBase
-// {
-//     void run()
-//     {
-//         static constexpr auto direction     = Types::Direction;
-//         using TRef                          = typename Types::TRef;
-//         using TOut                          = typename Types::TOut;
-//         static constexpr auto tensor_layout = Types::Layout;
+template <class Types>
+struct ReferenceConv3d : ReferenceConvBase
+{
+    void run()
+    {
+        static constexpr auto direction     = Types::Direction;
+        using TRef                          = typename Types::TRef;
+        using TOut                          = typename Types::TOut;
+        static constexpr auto tensor_layout = Types::Layout;
 
-//         auto run_conv_3d = [&](int n,
-//                                std::vector<int> dims,
-//                                int c,
-//                                int k,
-//                                std::vector<int> filters,
-//                                std::vector<int> pads,
-//                                std::vector<int> strides,
-//                                std::vector<int> dilations,
-//                                int g) {
-//             auto&& handle = get_handle();
+        auto run_conv_3d = [&](int n,
+                               std::vector<int> dims,
+                               int c,
+                               int k,
+                               std::vector<int> filters,
+                               std::vector<int> pads,
+                               std::vector<int> strides,
+                               std::vector<int> dilations,
+                               int g) {
+            auto&& handle = get_handle();
 
-//             auto out_sizes  = get_out_sizes(dims, pads, dilations, filters, strides);
-//             int c_per_group = c / g;
+            auto out_sizes  = get_out_sizes(dims, pads, dilations, filters, strides);
+            int c_per_group = c / g;
 
-//             auto in_len  = get_layout_lengths(n, c, dims);
-//             auto wei_len = get_layout_lengths(k, c_per_group, filters);
-//             auto out_len = get_layout_lengths(n, k, out_sizes);
+            auto in_len  = get_layout_lengths(n, c, dims);
+            auto wei_len = get_layout_lengths(k, c_per_group, filters);
+            auto out_len = get_layout_lengths(n, k, out_sizes);
 
-//             auto in_strides  = get_strides(in_len, dims.size(), tensor_layout);
-//             auto wei_strides = get_strides(wei_len, dims.size(), tensor_layout);
-//             auto out_strides = get_strides(out_len, dims.size(), tensor_layout);
+            auto in_strides  = get_strides(in_len, dims.size(), tensor_layout);
+            auto wei_strides = get_strides(wei_len, dims.size(), tensor_layout);
+            auto out_strides = get_strides(out_len, dims.size(), tensor_layout);
 
-//             auto in  = tensor<TRef>{in_len, in_strides}.generate(gen_value<TRef>);
-//             auto wei = tensor<TRef>{wei_len, wei_strides}.generate(gen_value<TRef>);
-//             auto out = tensor<TOut>{out_len, out_strides}.generate(gen_value<TOut>);
+            auto in  = tensor<TRef>{in_len, in_strides}.generate(gen_value<TRef>);
+            auto wei = tensor<TRef>{wei_len, wei_strides}.generate(gen_value<TRef>);
+            auto out = tensor<TOut>{out_len, out_strides}.generate(gen_value<TOut>);
 
-//             auto convDesc = init_convolution_descriptor(pads, strides, dilations, g);
-//             auto inDesc   = init_tensor_descriptor(miopen_type<TRef>{}, in_len, in_strides);
-//             auto weiDesc  = init_tensor_descriptor(miopen_type<TRef>{}, wei_len, wei_strides);
-//             auto outDesc  = init_tensor_descriptor(miopen_type<TOut>{}, out_len, out_strides);
+            auto convDesc =
+                init_convolution_descriptor(pads, strides, dilations, g, miopenConvolution);
+            auto inDesc  = init_tensor_descriptor(miopen_type<TRef>{}, in_len, in_strides);
+            auto weiDesc = init_tensor_descriptor(miopen_type<TRef>{}, wei_len, wei_strides);
+            auto outDesc = init_tensor_descriptor(miopen_type<TOut>{}, out_len, out_strides);
 
-//             bool valid_result = false;
+            bool valid_result = false;
 
-//             auto in_dev = handle.Write(in.data);
-//             /// \ref copy_non_packed_output_before_convolution
-//             auto out_dev = handle.Write(out.data);
-//             auto wei_dev = handle.Write(wei.data);
+            auto in_dev = handle.Write(in.data);
+            /// \ref copy_non_packed_output_before_convolution
+            auto out_dev = handle.Write(out.data);
+            auto wei_dev = handle.Write(wei.data);
 
-//             const auto& desc = miopen::deref(convDesc);
+            const auto& desc = miopen::deref(convDesc);
 
-//             if(direction == miopen::conv::Direction::Forward)
-//             {
-//                 cpu_convolution_forward(desc.GetSpatialDimension(),
-//                                         in,
-//                                         wei,
-//                                         out,
-//                                         desc.GetConvPads(),
-//                                         desc.GetConvStrides(),
-//                                         desc.GetConvDilations(),
-//                                         desc.GetGroupCount());
+            if(direction == miopen::conv::Direction::Forward)
+            {
+                cpu_convolution_forward(desc.GetSpatialDimension(),
+                                        in,
+                                        wei,
+                                        out,
+                                        desc.GetConvPads(),
+                                        desc.GetConvStrides(),
+                                        desc.GetConvDilations(),
+                                        desc.GetGroupCount());
 
-//                 EXPECT_TRUE(miopenConvolutionForwardImmediate(
-//                                 &handle,
-//                                 weiDesc,
-//                                 wei_dev.get(),
-//                                 inDesc,
-//                                 in_dev.get(),
-//                                 convDesc,
-//                                 outDesc,
-//                                 out_dev.get(),
-//                                 nullptr,
-//                                 0,
-//                                 miopen::solver::Id("ConvDirectNaiveConvFwd").Value()) ==
-//                             miopenStatusSuccess);
+                EXPECT_TRUE(miopenConvolutionForwardImmediate(
+                                &handle,
+                                weiDesc,
+                                wei_dev.get(),
+                                inDesc,
+                                in_dev.get(),
+                                convDesc,
+                                outDesc,
+                                out_dev.get(),
+                                nullptr,
+                                0,
+                                miopen::solver::Id("ConvDirectNaiveConvFwd").Value()) ==
+                            miopenStatusSuccess);
 
-//                 auto out_host = tensor<TOut>{out_len, out_strides};
-//                 out_host.data = handle.Read<TOut>(out_dev, out_host.data.size());
+                auto out_host = tensor<TOut>{out_len, out_strides};
+                out_host.data = handle.Read<TOut>(out_dev, out_host.data.size());
 
-//                 // we expect exact match, since use integer
-//                 valid_result = verify_tensor(out_host, out);
-//             }
-//             else if(direction == miopen::conv::Direction::BackwardData)
-//             {
-//                 cpu_convolution_backward_data(desc.GetSpatialDimension(),
-//                                               in,
-//                                               wei,
-//                                               out,
-//                                               desc.GetConvPads(),
-//                                               desc.GetConvStrides(),
-//                                               desc.GetConvDilations(),
-//                                               desc.GetGroupCount());
+                // we expect exact match, since use integer
+                valid_result = verify_tensor(out_host, out);
+            }
+            else if(direction == miopen::conv::Direction::BackwardData)
+            {
+                cpu_convolution_backward_data(desc.GetSpatialDimension(),
+                                              in,
+                                              wei,
+                                              out,
+                                              desc.GetConvPads(),
+                                              desc.GetConvStrides(),
+                                              desc.GetConvDilations(),
+                                              desc.GetGroupCount());
 
-//                 EXPECT_TRUE(miopenConvolutionBackwardDataImmediate(
-//                                 &handle,
-//                                 outDesc,
-//                                 out_dev.get(),
-//                                 weiDesc,
-//                                 wei_dev.get(),
-//                                 convDesc,
-//                                 inDesc,
-//                                 in_dev.get(),
-//                                 nullptr,
-//                                 0,
-//                                 miopen::solver::Id("ConvDirectNaiveConvBwd").Value()) ==
-//                             miopenStatusSuccess);
+                EXPECT_TRUE(miopenConvolutionBackwardDataImmediate(
+                                &handle,
+                                outDesc,
+                                out_dev.get(),
+                                weiDesc,
+                                wei_dev.get(),
+                                convDesc,
+                                inDesc,
+                                in_dev.get(),
+                                nullptr,
+                                0,
+                                miopen::solver::Id("ConvDirectNaiveConvBwd").Value()) ==
+                            miopenStatusSuccess);
 
-//                 auto in_host = tensor<TRef>{in_len, in_strides};
-//                 in_host.data = handle.Read<TRef>(in_dev, in_host.data.size());
+                auto in_host = tensor<TRef>{in_len, in_strides};
+                in_host.data = handle.Read<TRef>(in_dev, in_host.data.size());
 
-//                 // we expect exact match, since use integer
-//                 valid_result = verify_tensor(in_host, in);
-//             }
-//             else if(direction == miopen::conv::Direction::BackwardWeights)
-//             {
-//                 // rand_tensor_integer(in, 3, -2);
-//                 // rand_tensor_integer(out, 3, -2);
-//                 // /// \ref copy_non_packed_output_before_convolution
-//                 // rand_tensor_integer(wei);
+                // we expect exact match, since use integer
+                valid_result = verify_tensor(in_host, in);
+            }
+            else if(direction == miopen::conv::Direction::BackwardWeights)
+            {
+                cpu_convolution_backward_weight(desc.GetSpatialDimension(),
+                                                in,
+                                                wei,
+                                                out,
+                                                desc.GetConvPads(),
+                                                desc.GetConvStrides(),
+                                                desc.GetConvDilations(),
+                                                desc.GetGroupCount());
 
-//                 cpu_convolution_backward_weight(desc.GetSpatialDimension(),
-//                                                 in,
-//                                                 wei,
-//                                                 out,
-//                                                 desc.GetConvPads(),
-//                                                 desc.GetConvStrides(),
-//                                                 desc.GetConvDilations(),
-//                                                 desc.GetGroupCount());
+                EXPECT_TRUE(miopenConvolutionBackwardWeightsImmediate(
+                                &handle,
+                                outDesc,
+                                out_dev.get(),
+                                inDesc,
+                                in_dev.get(),
+                                convDesc,
+                                weiDesc,
+                                wei_dev.get(),
+                                nullptr,
+                                0,
+                                miopen::solver::Id("ConvDirectNaiveConvWrw").Value()) ==
+                            miopenStatusSuccess);
 
-//                 EXPECT_TRUE(miopenConvolutionBackwardWeightsImmediate(
-//                                 &handle,
-//                                 outDesc,
-//                                 out_dev.get(),
-//                                 inDesc,
-//                                 in_dev.get(),
-//                                 convDesc,
-//                                 weiDesc,
-//                                 wei_dev.get(),
-//                                 nullptr,
-//                                 0,
-//                                 miopen::solver::Id("ConvDirectNaiveConvWrw").Value()) ==
-//                             miopenStatusSuccess);
+                auto wei_host = tensor<TRef>{wei_len, wei_strides};
+                wei_host.data = handle.Read<TRef>(wei_dev, wei_host.data.size());
 
-//                 auto wei_host = tensor<TRef>{wei_len, wei_strides};
-//                 wei_host.data = handle.Read<TRef>(wei_dev, wei_host.data.size());
+                // we expect exact match, since use integer
+                valid_result = verify_tensor(wei_host, wei, 8.0); // max possible int
+                                                                  // 2*14*14*10*(2*2) = 15680, hence
+                                                                  // int interval might be 8
+            }
 
-//                 // we expect exact match, since use integer
-//                 valid_result = verify_tensor(wei_host, wei, 8.0); // max possible int
-//                                                                   // 2*14*14*10*(2*2) = 15680, hence
-//                                                                   // int interval might be 8
-//             }
+            EXPECT_TRUE(valid_result == true);
 
-//             EXPECT_TRUE(valid_result == true);
+            miopenDestroyConvolutionDescriptor(convDesc);
+            miopenDestroyTensorDescriptor(inDesc);
+            miopenDestroyTensorDescriptor(weiDesc);
+            miopenDestroyTensorDescriptor(outDesc);
+        };
 
-//             miopenDestroyConvolutionDescriptor(convDesc);
-//             miopenDestroyTensorDescriptor(inDesc);
-//             miopenDestroyTensorDescriptor(weiDesc);
-//             miopenDestroyTensorDescriptor(outDesc);
-//         };
+        this->iterate_conv_3d(run_conv_3d);
+    }
+};
 
-//         this->iterate_conv_3d(run_conv_3d);
-//     }
-// };
+using Implementations3d =
+    ::testing::Types<MakeTypeDefs(miopenTensorNCDHW), MakeTypeDefs(miopenTensorNDHWC)>;
 
-// using Implementations3d =
-//     ::testing::Types<MakeTypeDefs(miopenTensorNCDHW), MakeTypeDefs(miopenTensorNDHWC)>;
+TYPED_TEST_CASE(ReferenceConv3d, Implementations3d);
 
-// TYPED_TEST_CASE(ReferenceConv3d, Implementations3d);
-
-// TYPED_TEST(ReferenceConv3d, Test) { this->run(); }
+TYPED_TEST(ReferenceConv3d, Test) { this->run(); }
