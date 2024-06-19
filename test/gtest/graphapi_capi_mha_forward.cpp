@@ -146,24 +146,24 @@ protected:
     virtual void MakeVirtualTensorsAndNodes() override
     {
         // virtual tensors
-        auto tMM0 = MakeGapiTensorDesc(true, m_testN, m_testH, m_testS, m_testS);
-        auto pwS0 = MakeGapiTensorDesc(true, m_testN, m_testH, m_testS, m_testS);
-        auto pwS1 = MakeGapiTensorDesc(true, m_testN, m_testH, m_testS, m_testS);
-        auto pwS2 = MakeGapiTensorDesc(true, m_testN, m_testH, m_testS, m_testS);
+        auto tMM0 = MakeGapiVirtualTensorDesc(m_testN, m_testH, m_testS, m_testS);
+        auto pwS0 = MakeGapiVirtualTensorDesc(m_testN, m_testH, m_testS, m_testS);
+        auto pwS1 = MakeGapiVirtualTensorDesc(m_testN, m_testH, m_testS, m_testS);
+        auto pwS2 = MakeGapiVirtualTensorDesc(m_testN, m_testH, m_testS, m_testS);
 
-        auto tSub   = MakeGapiTensorDesc(true, m_testN, m_testH, m_testS, m_testS);
-        auto tExp   = MakeGapiTensorDesc(true, m_testN, m_testH, m_testS, m_testS);
-        auto tSum   = MakeGapiTensorDesc(true, m_testN, m_testH, m_testS, 1);
-        auto tMult0 = MakeGapiTensorDesc(true, m_testN, m_testH, m_testS, m_testS);
-        auto tRnd   = MakeGapiTensorDesc(true, m_testN, m_testH, m_testS, m_testS);
-        auto tMult1 = MakeGapiTensorDesc(true, m_testN, m_testH, m_testS, m_testS);
-        auto pwS3   = MakeGapiTensorDesc(true, m_testN, m_testH, m_testS, m_testS);
-        auto pwS4   = MakeGapiTensorDesc(
-            true, m_testN, m_testH, m_testS, m_testS, GetMainType<T>());
+        auto tSub   = MakeGapiVirtualTensorDesc(m_testN, m_testH, m_testS, m_testS);
+        auto tExp   = MakeGapiVirtualTensorDesc(m_testN, m_testH, m_testS, m_testS);
+        auto tSum   = MakeGapiVirtualTensorDesc(m_testN, m_testH, m_testS, 1);
+        auto tMult0 = MakeGapiVirtualTensorDesc(m_testN, m_testH, m_testS, m_testS);
+        auto tRnd   = MakeGapiVirtualTensorDesc(m_testN, m_testH, m_testS, m_testS);
+        auto tMult1 = MakeGapiVirtualTensorDesc(m_testN, m_testH, m_testS, m_testS);
+        auto pwS3   = MakeGapiVirtualTensorDesc(m_testN, m_testH, m_testS, m_testS);
+        auto pwS4   = MakeGapiVirtualTensorDesc(
+            m_testN, m_testH, m_testS, m_testS, GetMainType<T>());
 
-        auto tMM1 = MakeGapiTensorDesc(true, m_testN, m_testH, m_testS, m_testD);
-        auto pwS5 = MakeGapiTensorDesc(true, m_testN, m_testH, m_testS, m_testD);
-        auto pwS6 = MakeGapiTensorDesc(true, m_testN, m_testH, m_testS, m_testD);
+        auto tMM1 = MakeGapiVirtualTensorDesc(m_testN, m_testH, m_testS, m_testD);
+        auto pwS5 = MakeGapiVirtualTensorDesc(m_testN, m_testH, m_testS, m_testD);
+        auto pwS6 = MakeGapiVirtualTensorDesc(m_testN, m_testH, m_testS, m_testD);
 
         // Node creation
         MakeMatmul(m_realTensorMap[miopenTensorMhaQ]->m_gapiDesc,

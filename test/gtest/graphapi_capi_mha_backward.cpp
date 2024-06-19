@@ -154,7 +154,7 @@ protected:
         ////////////// Left part (column) of the Mha backward graph ///////////////
         ///////////////////////////////////////////////////////////////////////////
 
-        auto mm0 = MakeGapiTensorDesc(true, m_testN, m_testH, m_testS, m_testS);
+        auto mm0 = MakeGapiVirtualTensorDesc(m_testN, m_testH, m_testS, m_testS);
 
         MakeMatmul(m_realTensorMap[miopenTensorMhaQ]->m_gapiDesc,
                    m_realTensorMap[miopenTensorMhaK]->m_gapiDesc,
@@ -179,7 +179,7 @@ protected:
         MakePointwise(MIOPEN_POINTWISE_EXP, sub0, DescriptorWrapperPtr(), exp0);
         MakePointwise(MIOPEN_POINTWISE_MUL, exp0, m_realTensorMap[miopenTensorMhaZInv]->m_gapiDesc, mult0);
 
-        auto rnd   = MakeGapiTensorDesc(true, m_testN, m_testH, m_testS, m_testS);
+        auto rnd   = MakeGapiVirtualTensorDesc(m_testN, m_testH, m_testS, m_testS);
         MakeRNG(m_bernulliProbability,
                 m_realTensorMap[miopenTensorMhaDropoutSeed]->m_gapiDesc,
                 m_realTensorMap[miopenTensorMhaDropoutOffset]->m_gapiDesc,
@@ -193,7 +193,7 @@ protected:
 
         //////reshape transpose on a scheme here////////
 
-        auto mm1 = MakeGapiTensorDesc(true, m_testN, m_testH, m_testS, m_testD);
+        auto mm1 = MakeGapiVirtualTensorDesc(m_testN, m_testH, m_testS, m_testD);
         MakeMatmul(pwS4, m_realTensorMap[miopenTensorMhaDO]->m_gapiDesc, mm1);
         DescriptorWrapperPtr pwS5, pwS6;
         MakePointwise(MIOPEN_POINTWISE_MUL, mm1, m_realTensorMap[miopenTensorMhaDescaleS]->m_gapiDesc, pwS5);
@@ -204,6 +204,11 @@ protected:
                       pwS6,
                       m_realTensorMap[miopenTensorMhaScaleDV]->m_gapiDesc,
                       m_realTensorMap[miopenTensorMhaDV]->m_gapiDesc);
+
+        ////////////////// Viddle-top, right-top //////////////////////////////////
+        ///////////////////////////////////////////////////////////////////////////
+
+        
     }
 
     virtual void RunCPUverify(miopen::Handle& handle) override {}
