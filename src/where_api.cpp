@@ -24,11 +24,14 @@
  *
  *******************************************************************************/
 
+#include "miopen/tensor.hpp"
 #include <miopen/where.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/tensor_ops.hpp>
+
+#define CHECK_DESC_EXIST(desc) (((desc) != nullptr) ? miopen::deref(desc) : dummyDesc)
 
 extern "C" miopenStatus_t miopenWhereBackward(miopenHandle_t handle,
                                               const miopenTensorDescriptor_t outputGradDesc,
@@ -49,15 +52,17 @@ extern "C" miopenStatus_t miopenWhereBackward(miopenHandle_t handle,
                         inputGrad,
                         otherGradDesc,
                         otherGrad);
+    const miopen::TensorDescriptor dummyDesc;
+            
     return miopen::try_([&] {
         miopen::WhereBackward(miopen::deref(handle),
                               miopen::deref(outputGradDesc),
                               DataCast(outputGrad),
                               miopen::deref(conditionDesc),
                               DataCast(condition),
-                              miopen::deref(inputGradDesc),
+                              CHECK_DESC_EXIST(inputGradDesc),
                               DataCast(inputGrad),
-                              miopen::deref(otherGradDesc),
+                              CHECK_DESC_EXIST(otherGradDesc),
                               DataCast(otherGrad));
     });
 }

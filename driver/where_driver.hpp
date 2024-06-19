@@ -84,6 +84,10 @@ int32_t mloWhereBackwardRunHost(miopenTensorDescriptor_t outputGradDesc,
 
 #endif
 
+bool isDefined(std::vector<int>& len) {
+    return std::all_of(len.begin(), len.end(), [](int i) { return i > 0; });
+}
+
 template <typename Tgpu, typename Tref>
 class WhereDriver : public Driver
 {
@@ -130,6 +134,8 @@ private:
     InputFlags inflags;
 
     int forw;
+    bool isInputGradRequired;
+    bool isOtherGradRequired;
 
     // Backwards
     miopenTensorDescriptor_t condTensor       = nullptr;
@@ -171,8 +177,15 @@ int WhereDriver<Tgpu, Tref>::GetandSetData()
     std::vector<int> other_len = GetTensorLengthsFromCmdLine("otherDims");
     std::vector<int> cond_len  = GetTensorLengthsFromCmdLine("condDims");
 
-    SetTensorNd(inputTensorGrad, in_len, data_type);
-    SetTensorNd(otherTensorGrad, other_len, data_type);
+    isInputGradRequired = isDefined(in_len);
+    isOtherGradRequired = isDefined(other_len);
+
+    if(isInputGradRequired) {
+        SetTensorNd(inputTensorGrad, in_len, data_type);
+    }
+    if(isOtherGradRequired) {
+        SetTensorNd(otherTensorGrad, other_len, data_type);
+    }
     SetTensorNd(condTensor, cond_len, data_type);
 
     int in_sz    = in_len.size();
@@ -206,7 +219,7 @@ int WhereDriver<Tgpu, Tref>::AddCmdLineArgs()
     inflags.AddInputFlag(
         "inputDims", 'I', "1,2,2,2,2", "The dimensional lengths of input tensor", "string");
     inflags.AddInputFlag(
-        "otherDims", 'O', "1,2,2", "The dimensional lengths of other tensor", "string");
+        "otherDims", 'O', "0", "The dimensional lengths of other tensor", "string");
     inflags.AddInputFlag(
         "condDims", 'C', "4,2,2,2,2", "The dimensional lengths of condition tensor", "string");
 
@@ -285,25 +298,25 @@ int WhereDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
     if(forw == 0)
     {
-        size_t inGrad_sz    = (inputTensorGrad != nullptr) ? GetTensorSpace(inputTensorGrad) : 0;
-        size_t otherGrad_sz = GetTensorSpace(otherTensorGrad);
+        size_t inGrad_sz    = isInputGradRequired ? GetTensorSpace(inputTensorGrad) : 0;
+        size_t otherGrad_sz = isOtherGradRequired ? GetTensorSpace(otherTensorGrad) : 0;
         size_t outGrad_sz   = GetTensorSpace(outputTensorGrad);
 
         // GPU allocation
         cond_dev      = std::unique_ptr<GPUMem>(new GPUMem(ctx, cond_sz, sizeof(Tgpu)));
-        inGrad_dev    = std::unique_ptr<GPUMem>(new GPUMem(ctx, inGrad_sz, sizeof(Tgpu)));
-        otherGrad_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, otherGrad_sz, sizeof(Tgpu)));
+        inGrad_dev    = isInputGradRequired ? std::unique_ptr<GPUMem>(new GPUMem(ctx, inGrad_sz, sizeof(Tgpu))) : nullptr;
+        otherGrad_dev = isOtherGradRequired ? std::unique_ptr<GPUMem>(new GPUMem(ctx, otherGrad_sz, sizeof(Tgpu))) : nullptr;
         outGrad_dev   = std::unique_ptr<GPUMem>(new GPUMem(ctx, outGrad_sz, sizeof(Tgpu)));
 
         // GPU host allocation
         cond      = std::vector<Tgpu>(cond_sz, static_cast<Tgpu>(0));
-        inGrad    = std::vector<Tgpu>(inGrad_sz, static_cast<Tgpu>(0));
-        otherGrad = std::vector<Tgpu>(otherGrad_sz, static_cast<Tgpu>(0));
+        inGrad    = isInputGradRequired ? std::vector<Tgpu>(inGrad_sz, static_cast<Tgpu>(0)) : std::vector<Tgpu>();
+        otherGrad = isOtherGradRequired ? std::vector<Tgpu>(otherGrad_sz, static_cast<Tgpu>(0)) : std::vector<Tgpu>();
         outGrad   = std::vector<Tgpu>(outGrad_sz, static_cast<Tgpu>(0));
 
         // CPU allocation
-        inGradhost    = std::vector<Tref>(inGrad_sz, static_cast<Tref>(0));
-        otherGradhost = std::vector<Tref>(otherGrad_sz, static_cast<Tref>(0));
+        inGradhost    = isInputGradRequired ? std::vector<Tref>(inGrad_sz, static_cast<Tref>(0)) : std::vector<Tref>();
+        otherGradhost = isOtherGradRequired ? std::vector<Tref>(otherGrad_sz, static_cast<Tref>(0)) : std::vector<Tref>();
 
         for(int i = 0; i < cond_sz; i++)
         {
@@ -320,10 +333,10 @@ int WhereDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         if(outGrad_dev->ToGPU(GetStream(), outGrad.data()) != 0)
             std::cerr << "Error copying (output gradient) to GPU, size: " << outGrad_dev->GetSize()
                       << std::endl;
-        if(inGrad_dev->ToGPU(GetStream(), inGrad.data()) != 0)
+        if(isInputGradRequired && inGrad_dev->ToGPU(GetStream(), inGrad.data()) != 0)
             std::cerr << "Error copying (input gradient) to GPU, size: " << inGrad_dev->GetSize()
                       << std::endl;
-        if(otherGrad_dev->ToGPU(GetStream(), otherGrad.data()) != 0)
+        if(isOtherGradRequired && otherGrad_dev->ToGPU(GetStream(), otherGrad.data()) != 0)
             std::cerr << "Error copying (other gradient) to GPU, size: " << otherGrad_dev->GetSize()
                       << std::endl;
     }
@@ -352,15 +365,17 @@ int WhereDriver<Tgpu, Tref>::RunBackwardGPU()
     START_TIME;
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
+        auto inGradMem = isInputGradRequired ? inGrad_dev->GetMem() : nullptr;
+        auto otherGradMem = isOtherGradRequired ? otherGrad_dev->GetMem() : nullptr;
         miopenWhereBackward(GetHandle(),
                             outputTensorGrad,
                             outGrad_dev->GetMem(),
                             condTensor,
                             cond_dev->GetMem(),
                             inputTensorGrad,
-                            inGrad_dev->GetMem(),
+                            inGradMem,
                             otherTensorGrad,
-                            otherGrad_dev->GetMem());
+                            otherGradMem);
         float time = 0.0;
         miopenGetKernelTime(GetHandle(), &time);
         kernel_total_time += time;
@@ -380,10 +395,10 @@ int WhereDriver<Tgpu, Tref>::RunBackwardGPU()
         std::cout << "GPU Kernel Time Backward Where Elapsed: " << kernel_average_time << " ms\n";
     }
 
-    if(inGrad_dev->FromGPU(GetStream(), inGrad.data()) != 0)
+    if(isInputGradRequired && inGrad_dev->FromGPU(GetStream(), inGrad.data()) != 0)
         std::cerr << "Error copying (inGrad_dev) from GPU, size: " << inGrad_dev->GetSize()
                   << std::endl;
-    if(otherGrad_dev->FromGPU(GetStream(), otherGrad.data()) != 0)
+    if(isOtherGradRequired && otherGrad_dev->FromGPU(GetStream(), otherGrad.data()) != 0)
         std::cerr << "Error copying (otherGrad_dev) from GPU, size: " << otherGrad_dev->GetSize()
                   << std::endl;
 
@@ -429,8 +444,8 @@ int WhereDriver<Tgpu, Tref>::VerifyBackward()
 {
     RunBackwardCPU();
     const Tref tolerance = GetTolerance();
-    auto error1          = miopen::rms_range(inGradhost, inGrad);
-    auto error2          = miopen::rms_range(otherGradhost, otherGrad);
+    auto error1          = isInputGradRequired ? miopen::rms_range(inGradhost, inGrad) : 0;
+    auto error2          = isOtherGradRequired ? miopen::rms_range(otherGradhost, otherGrad) : 0;
 
     if(!std::isfinite(error1) || error1 > tolerance || !std::isfinite(error2) || error2 > tolerance)
     {

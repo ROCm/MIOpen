@@ -28,6 +28,7 @@
 #include "cpu_where.hpp"
 #include "get_handle.hpp"
 #include "miopen/allocator.hpp"
+#include "miopen/tensor.hpp"
 #include "random.hpp"
 #include "tensor_holder.hpp"
 #include "verify.hpp"
@@ -129,7 +130,11 @@ std::vector<WhereTestCase> WhereTestConfigs()
         {std::vector<size_t>{6, 2, 2, 2, 2}, std::vector<size_t>{1, 2, 2, 2, 2}, std::vector<size_t>{1, 2, 2, 2, 2}},
         {std::vector<size_t>{1, 2, 2, 2, 2}, std::vector<size_t>{1, 2, 2, 2, 2}, std::vector<size_t>{4, 2, 2, 2, 2}},
         {std::vector<size_t>{ 2, 2, 2, 2}, std::vector<size_t>{1, 2, 2, 2}, std::vector<size_t>{1, 2, 2, 2, 1}},
-        {std::vector<size_t>{1, 2, 1, 1, 1}, std::vector<size_t>{6, 2, 1, 1, 1}, std::vector<size_t>{6, 2}}
+        {std::vector<size_t>{1, 2, 1, 1, 1}, std::vector<size_t>{6, 2, 1, 1, 1}, std::vector<size_t>{6, 2}},
+        {std::vector<size_t>{6, 2, 2, 2, 2}, std::vector<size_t>{0}, std::vector<size_t>{1, 2, 2, 2, 2}},
+        {std::vector<size_t>{0}, std::vector<size_t>{1, 2, 2, 2, 2}, std::vector<size_t>{4, 2, 2, 2, 2}},
+        {std::vector<size_t>{ 2, 2, 2, 2}, std::vector<size_t>{0}, std::vector<size_t>{1, 2, 2, 2, 1}},
+        {std::vector<size_t>{1, 2, 1, 1, 1}, std::vector<size_t>{0}, std::vector<size_t>{6, 2}}
     };
     // clang-format on
 }
@@ -147,6 +152,9 @@ protected:
         auto in_dims    = where_config.GetInputDim();
         auto other_dims = where_config.GetOtherDim();
         auto cond_dims  = where_config.GetCondDim();
+
+        isInputGradRequired = !in_dims.empty();
+        isOtherGradRequired = !other_dims.empty();
 
         cond = tensor<T>{cond_dims}.generate(gen_value);
         for(auto i = 0; i < cond.GetSize(); i++)
@@ -176,20 +184,26 @@ protected:
 
         outputGrad = tensor<T>{out_dims}.generate(gen_value);
 
-        inputGrad = tensor<T>{in_dims};
-        std::fill(inputGrad.begin(), inputGrad.end(), std::numeric_limits<T>::quiet_NaN());
+        if (isInputGradRequired) {
+            inputGrad = tensor<T>{in_dims};
+            std::fill(inputGrad.begin(), inputGrad.end(), std::numeric_limits<T>::quiet_NaN());
 
-        ref_inputGrad = tensor<T>{in_dims};
-        std::fill(ref_inputGrad.begin(), ref_inputGrad.end(), std::numeric_limits<T>::quiet_NaN());
+            ref_inputGrad = tensor<T>{in_dims};
+            std::fill(ref_inputGrad.begin(), ref_inputGrad.end(), std::numeric_limits<T>::quiet_NaN());
 
-        otherGrad = tensor<T>{other_dims};
-        std::fill(otherGrad.begin(), otherGrad.end(), std::numeric_limits<T>::quiet_NaN());
+            inputGrad_dev  = handle.Write(inputGrad.data);
+        }
 
-        ref_otherGrad = tensor<T>{other_dims};
-        std::fill(ref_otherGrad.begin(), ref_otherGrad.end(), std::numeric_limits<T>::quiet_NaN());
+        if (isOtherGradRequired) {
+            otherGrad = tensor<T>{other_dims};
+            std::fill(otherGrad.begin(), otherGrad.end(), std::numeric_limits<T>::quiet_NaN());
 
-        inputGrad_dev  = handle.Write(inputGrad.data);
-        otherGrad_dev  = handle.Write(otherGrad.data);
+            ref_otherGrad = tensor<T>{other_dims};
+            std::fill(ref_otherGrad.begin(), ref_otherGrad.end(), std::numeric_limits<T>::quiet_NaN());
+
+            otherGrad_dev  = handle.Write(otherGrad.data);
+        }
+
         cond_dev       = handle.Write(cond.data);
         outputGrad_dev = handle.Write(outputGrad.data);
     }
@@ -198,23 +212,32 @@ protected:
     {
         auto&& handle = get_handle();
 
-        cpu_where_backward<T>(outputGrad, cond, ref_inputGrad, ref_otherGrad);
+        tensor<T> dummy;
+        tensor<T>& refInput = isInputGradRequired ? ref_inputGrad : dummy;
+        tensor<T>& refOther = isOtherGradRequired ? ref_otherGrad : dummy;
+        cpu_where_backward<T>(outputGrad, cond, refInput, refOther);
         miopenStatus_t status;
 
+        auto inputGradMem = isInputGradRequired ? inputGrad_dev.get() : nullptr;
+        auto otherGradMem = isOtherGradRequired ? otherGrad_dev.get() : nullptr;
         status = miopen::WhereBackward(handle,
                                        outputGrad.desc,
                                        outputGrad_dev.get(),
                                        cond.desc,
                                        cond_dev.get(),
                                        inputGrad.desc,
-                                       inputGrad_dev.get(),
+                                       inputGradMem,
                                        otherGrad.desc,
-                                       otherGrad_dev.get());
+                                       otherGradMem);
 
         EXPECT_EQ(status, miopenStatusSuccess);
 
-        inputGrad.data = handle.Read<T>(inputGrad_dev, inputGrad.data.size());
-        otherGrad.data = handle.Read<T>(otherGrad_dev, otherGrad.data.size());
+        if (isInputGradRequired) {
+            inputGrad.data = handle.Read<T>(inputGrad_dev, inputGrad.data.size());
+        }
+        if (isOtherGradRequired) {
+            otherGrad.data = handle.Read<T>(otherGrad_dev, otherGrad.data.size());
+        }
     }
 
     double GetTolerance()
@@ -232,11 +255,15 @@ protected:
     void Verify()
     {
         double threshold = GetTolerance();
-        auto error1      = miopen::rms_range(ref_inputGrad, inputGrad);
-        auto error2      = miopen::rms_range(ref_otherGrad, otherGrad);
+        auto error1      = isInputGradRequired ? miopen::rms_range(ref_inputGrad, inputGrad) : 0;
+        auto error2      = isOtherGradRequired ? miopen::rms_range(ref_otherGrad, otherGrad) : 0;
 
-        EXPECT_TRUE(miopen::range_distance(ref_inputGrad) == miopen::range_distance(inputGrad));
-        EXPECT_TRUE(miopen::range_distance(ref_otherGrad) == miopen::range_distance(otherGrad));
+        if (isInputGradRequired) {
+            EXPECT_TRUE(miopen::range_distance(ref_inputGrad) == miopen::range_distance(inputGrad));
+        }
+        if (isOtherGradRequired) {
+            EXPECT_TRUE(miopen::range_distance(ref_otherGrad) == miopen::range_distance(otherGrad));
+        }
         EXPECT_TRUE(error1 < threshold * 10)
             << "Error output (input grad) beyond tolerance Error:" << error1
             << ",  Thresholdx10: " << threshold * 10 << std::endl;
@@ -246,6 +273,8 @@ protected:
             << ",  Thresholdx10: " << threshold * 10 << std::endl;
     }
     WhereTestCase where_config;
+    bool isInputGradRequired;
+    bool isOtherGradRequired;
 
     tensor<T> inputGrad;
     tensor<T> otherGrad;

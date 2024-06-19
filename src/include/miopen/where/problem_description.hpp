@@ -67,7 +67,7 @@ struct BackwardProblemDescription : ProblemDescriptionBase
           inputGradDesc(inputGradDesc_),
           otherGradDesc(otherGradDesc_)
     {
-        if(!isBroadcastable(inputGradDesc, outputGradDesc))
+        if(!inputGradDesc.GetLengths().empty() && !isBroadcastable(inputGradDesc, outputGradDesc))
         {
             MIOPEN_THROW(miopenStatusBadParm,
                          "WHERE::ProblemDescription: Dimensions of input gradient and output "
@@ -75,7 +75,7 @@ struct BackwardProblemDescription : ProblemDescriptionBase
                          "broadcastable.");
         }
 
-        if(!isBroadcastable(otherGradDesc, outputGradDesc))
+        if(!otherGradDesc.GetLengths().empty() && !isBroadcastable(otherGradDesc, outputGradDesc))
         {
             MIOPEN_THROW(miopenStatusBadParm,
                          "WHERE::ProblemDescription: Dimensions of other gradient and output "
@@ -105,11 +105,11 @@ struct BackwardProblemDescription : ProblemDescriptionBase
 
     bool IsSameType() const
     {
-        if(inputGradDesc.GetType() != outputGradDesc.GetType())
+        if(!inputGradDesc.GetLengths().empty() && inputGradDesc.GetType() != outputGradDesc.GetType())
         {
             return false;
         }
-        if(otherGradDesc.GetType() != outputGradDesc.GetType())
+        if(!otherGradDesc.GetLengths().empty() && otherGradDesc.GetType() != outputGradDesc.GetType())
         {
             return false;
         }
