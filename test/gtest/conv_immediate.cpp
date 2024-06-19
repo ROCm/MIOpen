@@ -208,12 +208,10 @@ void cpu_convolution_forward(std::size_t spatial_dim,
     {
         MIOPEN_LOG_E("mode " << mode << " starting. " << std::setw(6) << in.data.size() << " "
                              << std::setw(6) << wei.data.size() << " " << std::setw(6)
-                             << out.data.size() << " "
-                             << pads[0] << " " << pads[1] << " " << pads[2] << " "
-                             << strides[0] << " " << strides[1] << " " << strides[2] << " "
-                             << dilations[0] << " " << dilations[1] << " " << dilations[2] << " "
-                             << group_count
-                    );
+                             << out.data.size() << " " << pads[0] << " " << pads[1] << " "
+                             << pads[2] << " " << strides[0] << " " << strides[1] << " "
+                             << strides[2] << " " << dilations[0] << " " << dilations[1] << " "
+                             << dilations[2] << " " << group_count);
     }
     if(mode == miopenTranspose)
     {
@@ -225,7 +223,7 @@ void cpu_convolution_forward(std::size_t spatial_dim,
         cpu_convolution_forward(spatial_dim, in, wei, out, pads, strides, dilations, group_count);
     }
 
-    if(spatial_dim == 3&& mode == miopenTranspose)
+    if(spatial_dim == 3 && mode == miopenTranspose)
     {
         MIOPEN_LOG_E("mode " << mode << " done");
     }
@@ -252,8 +250,9 @@ void cpu_convolution_backward_data(std::size_t spatial_dim,
 {
     if(spatial_dim == 3 && mode == miopenTranspose)
     {
-        MIOPEN_LOG_E("mode " << mode << " starting. "<< std::setw(9) << in.data.size() << " " << std::setw(9)<< wei.data.size()
-                             << " " << std::setw(9)<< out.data.size()<< std::setw(11)
+        MIOPEN_LOG_E("mode " << mode << " starting. " << std::setw(9) << in.data.size() << " "
+                             << std::setw(9) << wei.data.size() << " " << std::setw(9)
+                             << out.data.size() << std::setw(11)
                              << in.data.size() * out.data.size());
     }
     if(mode == miopenTranspose)
@@ -293,8 +292,9 @@ void cpu_convolution_backward_weight(std::size_t spatial_dim,
 {
     if(spatial_dim == 3 && mode == miopenTranspose)
     {
-        MIOPEN_LOG_E("mode " << mode << " starting. " << std::setw(9)<< in.data.size() << " " << std::setw(9)<< wei.data.size()
-                             << " " << std::setw(9)<< out.data.size()<< std::setw(11)
+        MIOPEN_LOG_E("mode " << mode << " starting. " << std::setw(9) << in.data.size() << " "
+                             << std::setw(9) << wei.data.size() << " " << std::setw(9)
+                             << out.data.size() << std::setw(11)
                              << in.data.size() * out.data.size());
     }
     if(mode == miopenTranspose)
@@ -308,7 +308,7 @@ void cpu_convolution_backward_weight(std::size_t spatial_dim,
             spatial_dim, in, wei, out, pads, strides, dilations, group_count);
     }
 
-    if(spatial_dim == 3&& mode == miopenTranspose)
+    if(spatial_dim == 3 && mode == miopenTranspose)
     {
         MIOPEN_LOG_E("mode " << mode << " done");
     }
@@ -635,7 +635,6 @@ protected:
 
             miopenDestroyConvolutionDescriptor(convDesc);
         }
-
     };
 };
 
@@ -702,8 +701,7 @@ protected:
     TypeDefs<miopen::conv::Direction::Forward,          float16,    float16,    layout>,    \
     TypeDefs<miopen::conv::Direction::Forward,          bfloat16,   bfloat16,   layout>,    \
     TypeDefs<miopen::conv::Direction::Forward,          int8_t,     int32_t,    layout>,    \
-    TypeDefs<miopen::conv::Direction::Forward,          int8_t,     float,      layout>     \
-                                                                                            \
+    TypeDefs<miopen::conv::Direction::Forward,          int8_t,     float,      layout>
 
 // clang-format on
 

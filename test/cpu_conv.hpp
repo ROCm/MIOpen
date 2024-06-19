@@ -149,8 +149,8 @@ void cpu_convolution_forward_impl(const tensor<Tin>& in,
                 bool out_of_bound = false;
                 for(std::size_t i = 0; i < ConvDim; ++i)
                 {
-                    out_of_bound = out_of_bound or
-                                   (in_spatial_id[i] < 0) or (in_spatial_id[i] >= in_spatial_len[i]);
+                    out_of_bound = out_of_bound or (in_spatial_id[i] < 0) or
+                                   (in_spatial_id[i] >= in_spatial_len[i]);
                 }
                 if(!out_of_bound)
                 {
