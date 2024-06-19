@@ -108,6 +108,8 @@ set( MIOpen_Source
     convolution_api.cpp
     ctc.cpp
     ctc_api.cpp
+    cumulative_reduction/problem_description.cpp
+    cumulative_reduction_api.cpp
     db.cpp
     db_record.cpp
     driver_arguments.cpp
@@ -255,6 +257,8 @@ set( MIOpen_Source
     solver/conv_wino_fury_RxS.cpp
     solver/conv_winoRxS.cpp
     solver/conv_winoRxS_fused.cpp
+    solver/cumulative_reduction/forward_cumulative_reduction.cpp
+    solver/cumulative_reduction/utils.cpp
     solver/fft.cpp
     solver/gemm.cpp
     solver/gemm_bwd.cpp
@@ -405,6 +409,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/Conv_Winograd_v30_3_1_gfx11_fp32_f3x2_stride1.inc
         kernels/Conv_Winograd_v30_3_1_gfx11_fp32_f3x2_stride2.inc
         kernels/Conv_Winograd_v30_3_1_metadata.inc
+        kernels/MIOpenCumulativeReduction.hpp
         kernels/bfloat16_dev.hpp
         kernels/conv_common.inc
         kernels/conv_sizes.inc
@@ -421,6 +426,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/neuron.inc
         kernels/rocm_version.inc
         kernels/stride_array.hpp
+        kernels/tensor_view.hpp
         kernels/utilities.inc
         kernels/workaround_issue_1431.hpp
         kernels/xform_bidirect_winograd_code.inc
@@ -454,6 +460,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenConvDirUni.cl
         kernels/MIOpenConvDirBatchNormActiv.cl
         kernels/MIOpenConvDirGenFwd.cl
+        kernels/MIOpenCumulativeReduction.cpp
         kernels/MIOpenGroupNorm.cpp
         kernels/MIOpenLayerNorm.cpp
         kernels/MIOpenLRNBwd.cl
@@ -578,6 +585,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         activ.cpp
         argmax.cpp
         cat.cpp
+        cumulative_reduction.cpp
         groupnorm.cpp
         kernel_cache.cpp
         layer_norm.cpp

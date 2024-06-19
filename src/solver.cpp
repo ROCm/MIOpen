@@ -35,6 +35,7 @@
 #include <miopen/reduce/solvers.hpp>
 #include <miopen/mha/solvers.hpp>
 #include <miopen/softmax/solvers.hpp>
+#include <miopen/cumulative_reduction/solvers.hpp>
 
 #include <miopen/conv_algo_name.hpp>
 #include <miopen/db.hpp>
@@ -648,6 +649,10 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
     Register(registry, ++id, Primitive::Mha, mha::Mha{}.SolverDbId());
     Register(registry, ++id, Primitive::Softmax, softmax::Softmax{}.SolverDbId());
     Register(registry, ++id, Primitive::Softmax, softmax::AttnSoftmax{}.SolverDbId());
+    Register(registry,
+             ++id,
+             Primitive::CumulativeReduction,
+             cumulative_reduction::Forward{}.SolverDbId());
 
     // IMPORTANT: New solvers should be added to the end of the function!
 }
