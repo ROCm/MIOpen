@@ -149,7 +149,8 @@ public:
 
         dims.resize(4);
         int64_t count = 0;
-        GetAttribute(MIOPEN_ATTR_TENSOR_DIMENSIONS, MIOPEN_TYPE_INT64, dims.size(), &count, dims.data());
+        GetAttribute(
+            MIOPEN_ATTR_TENSOR_DIMENSIONS, MIOPEN_TYPE_INT64, dims.size(), &count, dims.data());
     }
 
 private:
@@ -469,7 +470,7 @@ protected:
         return matmulOperation;
     }
 
-    // if output is nullptr, let's automatically create virtual tensor with size of input tensor   
+    // if output is nullptr, let's automatically create virtual tensor with size of input tensor
     DescriptorWrapperPtr MakePointwise(miopenPointwiseMode_t mode,
                                        DescriptorWrapperPtr tensor1,
                                        DescriptorWrapperPtr tensor2,
@@ -495,7 +496,7 @@ protected:
             tensor2Desc = tensor2->GetDescriptor();
         }
 
-        if (output == nullptr)
+        if(output == nullptr)
         {
             std::vector<size_t> dims;
             tensor1->GetTensorDims(dims);
@@ -621,13 +622,12 @@ protected:
         return rngOperation;
     }
 
-
     DescriptorWrapperPtr MakeGapiVirtualTensorDesc(size_t n               = 1,
-                                                    size_t h               = 1,
-                                                    size_t s               = 1,
-                                                    size_t d               = 1,
-                                                    miopenDataType_t dtype = miopenFloat,
-                                                    bool transpose         = false)
+                                                   size_t h               = 1,
+                                                   size_t s               = 1,
+                                                   size_t d               = 1,
+                                                   miopenDataType_t dtype = miopenFloat,
+                                                   bool transpose         = false)
     {
         return MakeGapiTensorDesc(GetNextId(), true, n, h, s, d, dtype, transpose);
     }
@@ -643,7 +643,8 @@ protected:
     {
         DescriptorWrapperPtr descWrapperPtr = MakeDescriptor(MIOPEN_BACKEND_TENSOR_DESCRIPTOR);
 
-        descWrapperPtr->SetAttribute(MIOPEN_ATTR_TENSOR_DATA_TYPE, MIOPEN_TYPE_DATA_TYPE, 1, &dtype);
+        descWrapperPtr->SetAttribute(
+            MIOPEN_ATTR_TENSOR_DATA_TYPE, MIOPEN_TYPE_DATA_TYPE, 1, &dtype);
 
         std::vector<int64_t> dims = {n, h, s, d};
 
@@ -662,21 +663,23 @@ protected:
         // commented this out as Not Implemented
         // int64_t alignment = 4;
 
-        descWrapperPtr->SetAttribute(MIOPEN_ATTR_TENSOR_DIMENSIONS, MIOPEN_TYPE_INT64, 4, dims.data());
+        descWrapperPtr->SetAttribute(
+            MIOPEN_ATTR_TENSOR_DIMENSIONS, MIOPEN_TYPE_INT64, 4, dims.data());
 
-        descWrapperPtr->SetAttribute(MIOPEN_ATTR_TENSOR_STRIDES, MIOPEN_TYPE_INT64, 4, strides.data());
+        descWrapperPtr->SetAttribute(
+            MIOPEN_ATTR_TENSOR_STRIDES, MIOPEN_TYPE_INT64, 4, strides.data());
         descWrapperPtr->SetAttribute(MIOPEN_ATTR_TENSOR_UNIQUE_ID, MIOPEN_TYPE_INT64, 1, &uniqueId);
 
         // commented this out as Not Implemented
         // descWrapperPtr->SetAttribute(
         //    MIOPEN_ATTR_TENSOR_BYTE_ALIGNMENT, MIOPEN_TYPE_INT64, 1, &alignment);
 
-        descWrapperPtr->SetAttribute(MIOPEN_ATTR_TENSOR_IS_VIRTUAL, MIOPEN_TYPE_BOOLEAN, 1, &isVirtual);
+        descWrapperPtr->SetAttribute(
+            MIOPEN_ATTR_TENSOR_IS_VIRTUAL, MIOPEN_TYPE_BOOLEAN, 1, &isVirtual);
         descWrapperPtr->Finalize();
 
         return descWrapperPtr;
     }
-
 
 protected:
     size_t m_testN = 0;

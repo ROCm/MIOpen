@@ -158,8 +158,7 @@ protected:
         auto tRnd   = MakeGapiVirtualTensorDesc(m_testN, m_testH, m_testS, m_testS);
         auto tMult1 = MakeGapiVirtualTensorDesc(m_testN, m_testH, m_testS, m_testS);
         auto pwS3   = MakeGapiVirtualTensorDesc(m_testN, m_testH, m_testS, m_testS);
-        auto pwS4   = MakeGapiVirtualTensorDesc(
-            m_testN, m_testH, m_testS, m_testS, GetMainType<T>());
+        auto pwS4 = MakeGapiVirtualTensorDesc(m_testN, m_testH, m_testS, m_testS, GetMainType<T>());
 
         auto tMM1 = MakeGapiVirtualTensorDesc(m_testN, m_testH, m_testS, m_testD);
         auto pwS5 = MakeGapiVirtualTensorDesc(m_testN, m_testH, m_testS, m_testD);
