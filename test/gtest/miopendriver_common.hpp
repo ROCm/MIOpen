@@ -32,7 +32,10 @@
 #include <miopen/process.hpp>
 #include <miopen/filesystem.hpp>
 
-#ifdef __linux__
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+#else
 #include <dlfcn.h>
 #endif
 
@@ -69,23 +72,40 @@ static const std::string Half  = "bnormfp16";
 // Note: Assuming that the MIOpenDriver executable will be beside the testing output location.
 static inline miopen::fs::path MIOpenDriverExePath()
 {
-    static const std::string MIOpenDriverExeName = "MIOpenDriver";
-
-#ifdef __linux__
-    miopen::fs::path path = {""};
+#ifndef _WIN32
+    miopen::fs::path path{};
     Dl_info info;
-
     if(dladdr(reinterpret_cast<void*>(miopenCreate), &info) != 0)
-    {
         path = miopen::fs::canonical(miopen::fs::path{info.dli_fname});
-        if(path.empty())
-            return path;
-
+    if(path.has_parent_path())
         path = path.parent_path();
-    }
-    return path /= MIOpenDriverExeName;
+    return path / "MIOpenDriver";
 #else
-    return {MIOpenDriverExeName};
+    HMODULE module = nullptr;
+    if(GetModuleHandleEx(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS |
+                             GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+                         reinterpret_cast<LPCSTR>(miopenCreate),
+                         &module) == 0)
+    {
+        throw std::runtime_error{"unable to obtain module handle (" +
+                                 std::to_string(GetLastError()) + ")"};
+    }
+    constexpr std::size_t PATH_MAX = 32767;
+    TCHAR buffer[PATH_MAX];
+    if(GetModuleFileName(module, buffer, sizeof(buffer)) == 0)
+    {
+        throw std::runtime_error{"unable to read module file path (" +
+                                 std::to_string(GetLastError()) + ")"};
+    }
+    if(GetLastError() == ERROR_INSUFFICIENT_BUFFER)
+    {
+        throw std::runtime_error{"buffer too small, (" + std::to_string(PATH_MAX) +
+                                 ") to hold the path"};
+    }
+    miopen::fs::path path{buffer};
+    if(path.has_parent_path())
+        path = path.parent_path();
+    return path / "MIOpenDriver.exe";
 #endif
 }
 
