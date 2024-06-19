@@ -210,7 +210,7 @@ int MultilabelSoftMarginLossDriver<Tgpu, Tref>::AddCmdLineArgs()
                          'S',
                          "-1",
                          "Stride of input tensor. Tensor is contiguous or not depend on this "
-                         "flag. Example: -D 41,4 -S 41,2. If not specify this flag, "
+                         "flag. Example: -D 41,4 -S 10,2. If not specify this flag, "
                          "stride will be auto calculated based on flag C. (Default=-1) ",
                          "string");
     inflags.AddInputFlag(
@@ -254,7 +254,7 @@ template <typename Tgpu, typename Tref>
 int MultilabelSoftMarginLossDriver<Tgpu, Tref>::GetandSetData()
 {
     // Set input tensor description
-    // Right now only input tensor is supported for uncontigiuous or unpacked tensor
+    // Only input tensor is supported for uncontigiuous or unpacked tensor
     std::vector<int> in_len = ParseInputList(inflags.GetValueStr("dim"));
     int N = in_len[0], C = in_len[1];
     if(inflags.GetValueStr("stride") != "-1")

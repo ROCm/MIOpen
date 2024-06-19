@@ -77,7 +77,7 @@ struct ForwardProblemDescription : ProblemDescriptionBase
             if(oDesc.GetSize() != 1 || oDesc.GetLengths()[0] != iDesc.GetLengths()[0])
             {
                 MIOPEN_THROW(miopenStatusBadParm,
-                             "MultilabelSoftMarginLossUnreducedForward: Output tensor need to be "
+                             "MultilabelSoftMarginLoss: Output tensor need to be "
                              "1D tensor. If input "
                              "tensor has shape (N, C) then output tensor must have shape (N)");
             }
@@ -87,9 +87,8 @@ struct ForwardProblemDescription : ProblemDescriptionBase
             // reduction case
             if(oDesc.GetSize() != 1 || oDesc.GetLengths()[0] != 1)
             {
-                MIOPEN_THROW(
-                    miopenStatusBadParm,
-                    "MultilabelSoftMarginLossUnreducedForward: Output tensor need to be a scalar.");
+                MIOPEN_THROW(miopenStatusBadParm,
+                             "MultilabelSoftMarginLoss: Output tensor need to be a scalar.");
             }
         }
     }

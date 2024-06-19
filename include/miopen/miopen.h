@@ -512,7 +512,7 @@ typedef enum
     miopenActivationABS      = 5, /*!< Absolute value \f$abs(x)\f$ */
     miopenActivationPOWER = 6, /*!< Scaled and shifted power \f$(\alpha + \beta * x)^{gamma}\f$ */
     miopenActivationCLIPPEDRELU =
-        7, /*!< Clipped Rectified Linear Unit \f$ min(\alpha, max(0,x)) \f$ */
+        7,                     /*!< Clipped Rectified Linear Unit \f$ min(\alpha, max(0,x)) \f$ */
     miopenActivationLEAKYRELU =
         8, /*!< Leaky Rectified Linear Unit \f$ \alpha * x | x <= 0; x | x > 0 \f$ */
     miopenActivationELU =
@@ -6612,7 +6612,8 @@ size and C is the number of classes
 the input tensor
  * @param [in]  weightDesc          Tensor descriptor for weight tensor. It is a manual rescaling
 weight given to each class. It has to be a Tensor of size C
- * @param [in]  outputDesc          Tensor descriptor for output tensor
+ * @param [in]  outputDesc          Tensor descriptor for output tensor. If reduction is 'none,
+then it must have shape (N). Otherwise, it is a scalar.
 *  @param [in]  reduction           Reduction mode (sum, mean). For none reduction we don't need to
 use this function
  * @param [out] sizeInBytes         Pointer to data to return the minimum workspace size

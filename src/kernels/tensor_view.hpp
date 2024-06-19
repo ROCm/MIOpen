@@ -33,18 +33,6 @@ struct tensor_layout_t;
 template <int N>
 struct tensor_view_t
 {
-    // Get index in tensor view at tensor layout
-    // constexpr uint64_t get_tensor_view_idx(const tensor_layout_t<N>& tensor_layout)
-    // {
-    //     static_assert(N > 0);
-    //     uint64_t idx = 0;
-    //     for(auto i = 0; i < N; ++i)
-    //     {
-    //         idx += stride[i] * tensor_layout.layout[i];
-    //     }
-    //     return idx;
-    // }
-
     constexpr uint64_t get_tensor_view_idx(const uint64_t (&layout)[N])
     {
         static_assert(N > 0);
@@ -68,16 +56,6 @@ struct tensor_view_t
 template <int N>
 struct tensor_layout_t
 {
-    // Constructor to initialize the layout array using an initializer list
-    // constexpr tensor_layout_t(std::initializer_list<uint64_t> init_list)
-    // {
-    //     int i = 0;
-    //     for(auto val : init_list)
-    //     {
-    //         layout[i++] = val;
-    //     }
-    // }
-
     // Make tensor layout at index using tensor view
     constexpr tensor_layout_t(const tensor_view_t<N>& tensor_view, uint64_t idx)
     {
