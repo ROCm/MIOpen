@@ -286,7 +286,7 @@ struct MIOPEN_INTERNALS_EXPORT ConvWinoFuryRxSFused final : FusionSolverBase
     }
 
     bool IsApplicable(const FusionContext&, const FusionDescription&) const override;
-    bool IsDynamic() const override { return true; }
+    MIOPEN_INTERNALS_EXPORT bool IsDynamic() const override { return true; }
     float GetWti(const FusionContext&, const FusionDescription&) const override;
     size_t GetWorkspaceSize(const FusionContext&, const FusionDescription&) const override;
     bool MayNeedWorkspace() const override { return true; }
