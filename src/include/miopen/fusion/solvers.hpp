@@ -280,18 +280,18 @@ struct ConvBinWinogradRxSf2x3g1Fused final : FusionSolverBase
 template <uint32_t Winodata, uint32_t Winofilter>
 struct MIOPEN_INTERNALS_EXPORT ConvWinoFuryRxSFused final : FusionSolverBase
 {
-    const std::string& SolverDbId() const override
+    MIOPEN_INTERNALS_EXPORT const std::string& SolverDbId() const override
     {
         return GetSolverDbId<ConvWinoFuryRxSFused<Winodata, Winofilter>>();
     }
 
-    bool IsApplicable(const FusionContext&, const FusionDescription&) const override;
+    MIOPEN_INTERNALS_EXPORT bool IsApplicable(const FusionContext&, const FusionDescription&) const override;
     MIOPEN_INTERNALS_EXPORT bool IsDynamic() const override { return true; }
-    float GetWti(const FusionContext&, const FusionDescription&) const override;
-    size_t GetWorkspaceSize(const FusionContext&, const FusionDescription&) const override;
-    bool MayNeedWorkspace() const override { return true; }
+    MIOPEN_INTERNALS_EXPORT float GetWti(const FusionContext&, const FusionDescription&) const override;
+    MIOPEN_INTERNALS_EXPORT size_t GetWorkspaceSize(const FusionContext&, const FusionDescription&) const override;
+    MIOPEN_INTERNALS_EXPORT bool MayNeedWorkspace() const override { return true; }
 
-    ConvSolution GetSolution(const FusionContext&, const FusionDescription&) const override;
+    MIOPEN_INTERNALS_EXPORT ConvSolution GetSolution(const FusionContext&, const FusionDescription&) const override;
 };
 
 // Suppress misleading clang warnings
