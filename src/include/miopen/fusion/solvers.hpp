@@ -278,7 +278,7 @@ struct ConvBinWinogradRxSf2x3g1Fused final : FusionSolverBase
 };
 
 template <uint32_t Winodata, uint32_t Winofilter>
-struct MIOPEN_INTERNALS_EXPORT ConvWinoFuryRxSFused final : FusionSolverBase
+struct ConvWinoFuryRxSFused final : FusionSolverBase
 {
     MIOPEN_INTERNALS_EXPORT const std::string& SolverDbId() const override
     {
