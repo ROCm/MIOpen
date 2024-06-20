@@ -285,13 +285,17 @@ struct MIOPEN_INTERNALS_EXPORT ConvWinoFuryRxSFused final : FusionSolverBase
         return GetSolverDbId<ConvWinoFuryRxSFused<Winodata, Winofilter>>();
     }
 
-    MIOPEN_INTERNALS_EXPORT bool IsApplicable(const FusionContext&, const FusionDescription&) const override;
+    MIOPEN_INTERNALS_EXPORT bool IsApplicable(const FusionContext&,
+                                              const FusionDescription&) const override;
     MIOPEN_INTERNALS_EXPORT bool IsDynamic() const override { return true; }
-    MIOPEN_INTERNALS_EXPORT float GetWti(const FusionContext&, const FusionDescription&) const override;
-    MIOPEN_INTERNALS_EXPORT size_t GetWorkspaceSize(const FusionContext&, const FusionDescription&) const override;
+    MIOPEN_INTERNALS_EXPORT float GetWti(const FusionContext&,
+                                         const FusionDescription&) const override;
+    MIOPEN_INTERNALS_EXPORT size_t GetWorkspaceSize(const FusionContext&,
+                                                    const FusionDescription&) const override;
     MIOPEN_INTERNALS_EXPORT bool MayNeedWorkspace() const override { return true; }
 
-    MIOPEN_INTERNALS_EXPORT ConvSolution GetSolution(const FusionContext&, const FusionDescription&) const override;
+    MIOPEN_INTERNALS_EXPORT ConvSolution GetSolution(const FusionContext&,
+                                                     const FusionDescription&) const override;
 };
 
 // Suppress misleading clang warnings
