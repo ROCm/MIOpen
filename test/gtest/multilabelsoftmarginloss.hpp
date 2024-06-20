@@ -193,16 +193,11 @@ protected:
         ref_output = tensor<T>{std::vector<size_t>{1}};
         std::fill(ref_output.begin(), ref_output.end(), 0);
 
-        // Mean reduction. To test with sum reduction, change divisor to 1
-        divisor = input.desc.GetLengths()[0];
+        // Change this to MIOPEN_LOSS_REDUCTION_SUM to test sum reduction
+        reduction_mode = MIOPEN_LOSS_REDUCTION_MEAN;
 
         ws_sizeInBytes = miopen::GetMultilabelSoftMarginLossForwardWorkspaceSize(
-            handle,
-            input.desc,
-            target.desc,
-            weight.desc,
-            output.desc,
-            divisor == 1 ? MIOPEN_LOSS_REDUCTION_SUM : MIOPEN_LOSS_REDUCTION_MEAN);
+            handle, input.desc, target.desc, weight.desc, output.desc, reduction_mode);
         if(ws_sizeInBytes == static_cast<size_t>(-1))
             GTEST_SKIP();
 
@@ -223,7 +218,12 @@ protected:
     {
         auto&& handle = get_handle();
 
-        cpu_multilabelsoftmarginloss_reduced_forward<T>(input, target, weight, ref_output, divisor);
+        cpu_multilabelsoftmarginloss_reduced_forward<T>(
+            input,
+            target,
+            weight,
+            ref_output,
+            (reduction_mode == MIOPEN_LOSS_REDUCTION_MEAN) ? input.desc.GetLengths()[0] : 1);
 
         miopenStatus_t status;
         status = miopen::MultilabelSoftMarginLossForward(handle,
@@ -237,8 +237,7 @@ protected:
                                                          weight_dev.get(),
                                                          output.desc,
                                                          output_dev.get(),
-                                                         divisor == 1 ? MIOPEN_LOSS_REDUCTION_SUM
-                                                                      : MIOPEN_LOSS_REDUCTION_MEAN);
+                                                         reduction_mode);
         EXPECT_EQ(status, miopenStatusSuccess);
 
         // Write from GPU to CPU
@@ -271,6 +270,6 @@ protected:
     miopen::Allocator::ManageDataPtr output_dev;
     miopen::Allocator::ManageDataPtr workspace_dev;
 
-    float divisor;
+    miopenLossReductionMode_t reduction_mode;
     size_t ws_sizeInBytes;
 };

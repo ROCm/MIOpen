@@ -32,7 +32,7 @@
 #include "warp_shuffle.hpp"
 
 template <typename DTYPE>
-__device__ void LossSum(const DTYPE* input, DTYPE* output, size_t N)
+__device__ void LossSum(const DTYPE* __restrict__ input, DTYPE* __restrict__ output, size_t N)
 {
     auto gid = blockIdx.x * blockDim.x + threadIdx.x;
 

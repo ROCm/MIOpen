@@ -197,7 +197,7 @@ private:
     std::vector<Tref> Ohost;
     std::vector<Tgpu> workspace;
 
-    float divisor;
+    miopenLossReductionMode_t reduction_mode;
     size_t ws_sizeInBytes;
 };
 
@@ -288,14 +288,14 @@ int MultilabelSoftMarginLossDriver<Tgpu, Tref>::GetandSetData()
     std::vector<int> w_lens = {C};
     SetTensorNd(wDesc, w_lens, data_type);
 
-    // Set divisor
+    // Set reduction_mode
     auto reduction = inflags.GetValueStr("reduce");
     if(reduction == "none")
-        divisor = 0;
+        reduction_mode = MIOPEN_LOSS_REDUCTION_NONE;
     else if(reduction == "mean")
-        divisor = N;
+        reduction_mode = MIOPEN_LOSS_REDUCTION_MEAN;
     else if(reduction == "sum")
-        divisor = 1;
+        reduction_mode = MIOPEN_LOSS_REDUCTION_SUM;
 
     // Set output tensor description (forw = 1 or = 0)
     if(forw == 0 || forw == 1)
@@ -384,16 +384,10 @@ int MultilabelSoftMarginLossDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     if(forw == 0 || forw == 1)
     {
         size_t o_sz = GetTensorSpace(oDesc);
-        if(divisor != 0)
+        if(reduction_mode != MIOPEN_LOSS_REDUCTION_NONE)
         {
             miopenGetMultilabelSoftMarginLossForwardWorkspaceSize(
-                GetHandle(),
-                iDesc,
-                tDesc,
-                wDesc,
-                oDesc,
-                divisor == 1 ? MIOPEN_LOSS_REDUCTION_SUM : MIOPEN_LOSS_REDUCTION_MEAN,
-                &ws_sizeInBytes);
+                GetHandle(), iDesc, tDesc, wDesc, oDesc, reduction_mode, &ws_sizeInBytes);
             if(ws_sizeInBytes == static_cast<size_t>(-1))
             {
                 return miopenStatusAllocFailed;
@@ -401,17 +395,20 @@ int MultilabelSoftMarginLossDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         }
         else
             ws_sizeInBytes = 0;
-        size_t ws_sz  = ws_sizeInBytes / sizeof(Tgpu);
-        o_dev         = std::unique_ptr<GPUMem>(new GPUMem(ctx, o_sz, sizeof(Tgpu)));
-        workspace_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, ws_sz, sizeof(Tgpu)));
-        O             = std::vector<Tgpu>(o_sz);
-        workspace     = std::vector<Tgpu>(ws_sz);
-        Ohost         = std::vector<Tref>(o_sz);
+
+        o_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, o_sz, sizeof(Tgpu)));
+        O     = std::vector<Tgpu>(o_sz);
+        Ohost = std::vector<Tref>(o_sz);
         std::fill(O.begin(), O.end(), 0);
-        std::fill(workspace.begin(), workspace.end(), 0);
         std::fill(Ohost.begin(), Ohost.end(), 0);
         if(o_dev->ToGPU(GetStream(), O.data()) != 0)
             std::cerr << "Error copying (out) to GPU, size: " << o_dev->GetSize() << std::endl;
+
+        size_t ws_sz  = ws_sizeInBytes / sizeof(Tgpu);
+        workspace_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, ws_sz, sizeof(Tgpu)));
+        workspace     = std::vector<Tgpu>(ws_sz);
+        std::fill(workspace.begin(), workspace.end(), 0);
+
         if(workspace_dev->ToGPU(GetStream(), workspace.data()) != 0)
             std::cerr << "Error copying (workspace) to GPU, size: " << workspace_dev->GetSize()
                       << std::endl;
@@ -431,37 +428,19 @@ int MultilabelSoftMarginLossDriver<Tgpu, Tref>::RunForwardGPU()
 
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
-        if(divisor == 0)
-        {
-            miopenMultilabelSoftMarginLossForward(GetHandle(),
-                                                  iDesc,
-                                                  i_dev->GetMem(),
-                                                  tDesc,
-                                                  t_dev->GetMem(),
-                                                  wDesc,
-                                                  w_dev->GetMem(),
-                                                  oDesc,
-                                                  o_dev->GetMem(),
-                                                  MIOPEN_LOSS_REDUCTION_NONE,
-                                                  nullptr,
-                                                  0);
-        }
-        else
-        {
-            miopenMultilabelSoftMarginLossForward(GetHandle(),
-                                                  iDesc,
-                                                  i_dev->GetMem(),
-                                                  tDesc,
-                                                  t_dev->GetMem(),
-                                                  wDesc,
-                                                  w_dev->GetMem(),
-                                                  oDesc,
-                                                  o_dev->GetMem(),
-                                                  (divisor == 1) ? MIOPEN_LOSS_REDUCTION_SUM
-                                                                 : MIOPEN_LOSS_REDUCTION_MEAN,
-                                                  workspace_dev->GetMem(),
-                                                  ws_sizeInBytes);
-        }
+        miopenMultilabelSoftMarginLossForward(
+            GetHandle(),
+            iDesc,
+            i_dev->GetMem(),
+            tDesc,
+            t_dev->GetMem(),
+            wDesc,
+            w_dev->GetMem(),
+            oDesc,
+            o_dev->GetMem(),
+            reduction_mode,
+            (reduction_mode == MIOPEN_LOSS_REDUCTION_NONE) ? nullptr : workspace_dev->GetMem(),
+            ws_sizeInBytes);
 
         float time = 0.0;
         miopenGetKernelTime(GetHandle(), &time);
@@ -496,13 +475,16 @@ int MultilabelSoftMarginLossDriver<Tgpu, Tref>::RunForwardGPU()
 template <typename Tgpu, typename Tref>
 int MultilabelSoftMarginLossDriver<Tgpu, Tref>::RunForwardCPU()
 {
-    if(divisor == 0)
+    if(reduction_mode == MIOPEN_LOSS_REDUCTION_NONE)
     {
         mloMultilabelSoftMarginLossUnreducedForwardRunHost(
             iDesc, tDesc, wDesc, oDesc, I.data(), T.data(), W.data(), Ohost.data());
     }
     else
     {
+        float divisor = (reduction_mode == MIOPEN_LOSS_REDUCTION_MEAN)
+                            ? miopen::deref(iDesc).GetLengths()[0]
+                            : 1;
         mloMultilabelSoftMarginLossReducedForwardRunHost(
             iDesc, tDesc, wDesc, divisor, I.data(), T.data(), W.data(), Ohost.data());
     }
