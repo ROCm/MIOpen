@@ -278,7 +278,7 @@ struct ConvBinWinogradRxSf2x3g1Fused final : FusionSolverBase
 };
 
 template <uint32_t Winodata, uint32_t Winofilter>
-struct MIOPEN_INTERNALS_EXPORT ConvWinoFuryRxSFused final : FusionSolverBase
+struct ConvWinoFuryRxSFused final : FusionSolverBase
 {
     const std::string& SolverDbId() const override
     {
@@ -295,20 +295,8 @@ struct MIOPEN_INTERNALS_EXPORT ConvWinoFuryRxSFused final : FusionSolverBase
 };
 
 #ifndef CONV_WINO_FURY_RXS_CPP
-
-// Suppress misleading clang warnings
-//#if defined(__clang__)
-//#pragma clang diagnostic push
-//#pragma clang diagnostic ignored "-Wweak-template-vtables"
-//#endif
-
 extern template struct ConvWinoFuryRxSFused<2, 3>;
 // extern template struct ConvWinoFuryRxSFused<3, 2>;
-
-//#if defined(__clang__)
-//#pragma clang diagnostic pop
-//#endif
-
 #endif
 
 struct BnFwdInferActivationFused final : FusionSolverBase
