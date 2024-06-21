@@ -24,6 +24,8 @@
  *
  *******************************************************************************/
 
+#define CONV_WINO_FURY_RXS_CPP
+
 #include <miopen/solver.hpp>
 #include <miopen/fusion/solvers.hpp>
 
