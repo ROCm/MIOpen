@@ -42,33 +42,16 @@ std::string GetFloatArg()
     return tmp;
 }
 
-struct MultilabelSoftMarginLossUnreducedForwardTestFloat
-    : MultilabelSoftMarginLossUnreducedForwardTest<float>
+struct MultilabelSoftMarginLossForwardTestFloat : MultilabelSoftMarginLossForwardTest<float>
 {
 };
 
-struct MultilabelSoftMarginLossUnreducedForwardTestHalf
-    : MultilabelSoftMarginLossUnreducedForwardTest<half_float::half>
+struct MultilabelSoftMarginLossForwardTestHalf
+    : MultilabelSoftMarginLossForwardTest<half_float::half>
 {
 };
 
-struct MultilabelSoftMarginLossUnreducedForwardTestBFloat16
-    : MultilabelSoftMarginLossUnreducedForwardTest<bfloat16>
-{
-};
-
-struct MultilabelSoftMarginLossReducedForwardTestFloat
-    : MultilabelSoftMarginLossReducedForwardTest<float>
-{
-};
-
-struct MultilabelSoftMarginLossReducedForwardTestHalf
-    : MultilabelSoftMarginLossReducedForwardTest<half_float::half>
-{
-};
-
-struct MultilabelSoftMarginLossReducedForwardTestBFloat16
-    : MultilabelSoftMarginLossReducedForwardTest<bfloat16>
+struct MultilabelSoftMarginLossForwardTestBFloat16 : MultilabelSoftMarginLossForwardTest<bfloat16>
 {
 };
 
@@ -76,7 +59,7 @@ struct MultilabelSoftMarginLossReducedForwardTestBFloat16
 
 using namespace multilabelsoftmarginloss;
 
-TEST_P(MultilabelSoftMarginLossUnreducedForwardTestFloat, )
+TEST_P(MultilabelSoftMarginLossForwardTestFloat, )
 {
     if(miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
        (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float")))
@@ -90,7 +73,7 @@ TEST_P(MultilabelSoftMarginLossUnreducedForwardTestFloat, )
     }
 };
 
-TEST_P(MultilabelSoftMarginLossUnreducedForwardTestHalf, )
+TEST_P(MultilabelSoftMarginLossForwardTestHalf, )
 {
     if(miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
        (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--half")))
@@ -104,7 +87,7 @@ TEST_P(MultilabelSoftMarginLossUnreducedForwardTestHalf, )
     }
 };
 
-TEST_P(MultilabelSoftMarginLossUnreducedForwardTestBFloat16, )
+TEST_P(MultilabelSoftMarginLossForwardTestBFloat16, )
 {
     if(miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
        (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--bfloat16")))
@@ -118,62 +101,11 @@ TEST_P(MultilabelSoftMarginLossUnreducedForwardTestBFloat16, )
     }
 };
 INSTANTIATE_TEST_SUITE_P(MultilabelSoftMarginLossTestSet,
-                         MultilabelSoftMarginLossUnreducedForwardTestFloat,
+                         MultilabelSoftMarginLossForwardTestFloat,
                          testing::ValuesIn(MultilabelSoftMarginLossTestConfigs()));
 INSTANTIATE_TEST_SUITE_P(MultilabelSoftMarginLossTestSet,
-                         MultilabelSoftMarginLossUnreducedForwardTestHalf,
+                         MultilabelSoftMarginLossForwardTestHalf,
                          testing::ValuesIn(MultilabelSoftMarginLossTestConfigs()));
 INSTANTIATE_TEST_SUITE_P(MultilabelSoftMarginLossTestSet,
-                         MultilabelSoftMarginLossUnreducedForwardTestBFloat16,
-                         testing::ValuesIn(MultilabelSoftMarginLossTestConfigs()));
-
-TEST_P(MultilabelSoftMarginLossReducedForwardTestFloat, )
-{
-    if(miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
-       (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float")))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
-};
-
-TEST_P(MultilabelSoftMarginLossReducedForwardTestHalf, )
-{
-    if(miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
-       (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--half")))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
-};
-
-TEST_P(MultilabelSoftMarginLossReducedForwardTestBFloat16, )
-{
-    if(miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
-       (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--bfloat16")))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
-};
-INSTANTIATE_TEST_SUITE_P(MultilabelSoftMarginLossTestSet,
-                         MultilabelSoftMarginLossReducedForwardTestFloat,
-                         testing::ValuesIn(MultilabelSoftMarginLossTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(MultilabelSoftMarginLossTestSet,
-                         MultilabelSoftMarginLossReducedForwardTestHalf,
-                         testing::ValuesIn(MultilabelSoftMarginLossTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(MultilabelSoftMarginLossTestSet,
-                         MultilabelSoftMarginLossReducedForwardTestBFloat16,
+                         MultilabelSoftMarginLossForwardTestBFloat16,
                          testing::ValuesIn(MultilabelSoftMarginLossTestConfigs()));
