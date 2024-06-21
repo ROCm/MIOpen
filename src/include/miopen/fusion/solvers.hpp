@@ -294,7 +294,7 @@ struct MIOPEN_INTERNALS_EXPORT ConvWinoFuryRxSFused final : FusionSolverBase
     ConvSolution GetSolution(const FusionContext&, const FusionDescription&) const override;
 };
 
-#ifndef _WIN32
+//#ifndef _WIN32
 
 // Suppress misleading clang warnings
 #if defined(__clang__)
@@ -309,7 +309,7 @@ extern template struct ConvWinoFuryRxSFused<2, 3>;
 #pragma clang diagnostic pop
 #endif
 
-#endif
+//#endif
 
 struct BnFwdInferActivationFused final : FusionSolverBase
 {
