@@ -389,12 +389,12 @@ static void miopen_hipblasLt_gemm(const miopen::Handle& handle,
     if(gemm_desc.transB)
     {
         check_hipblas_status(hipblasLtMatrixLayoutCreate(
-        &hipBLASLtHandles.matB, hip_type_AB, gemm_desc.n, gemm_desc.k, gemm_desc.ldb));
+            &hipBLASLtHandles.matB, hip_type_AB, gemm_desc.n, gemm_desc.k, gemm_desc.ldb));
     }
     else
     {
         check_hipblas_status(hipblasLtMatrixLayoutCreate(
-        &hipBLASLtHandles.matB, hip_type_AB, gemm_desc.k, gemm_desc.n, gemm_desc.ldb));
+            &hipBLASLtHandles.matB, hip_type_AB, gemm_desc.k, gemm_desc.n, gemm_desc.ldb));
     }
 
     check_hipblas_status(hipblasLtMatrixLayoutCreate(
