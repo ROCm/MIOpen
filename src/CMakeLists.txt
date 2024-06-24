@@ -134,6 +134,8 @@ set( MIOpen_Source
     invoker_cache.cpp
     kernel_build_params.cpp
     kernel_warnings.cpp
+    kthvalue/problem_description.cpp
+    kthvalue_api.cpp
     layernorm_api.cpp
     layernorm/problem_description.cpp
     load_file.cpp
@@ -260,6 +262,7 @@ set( MIOpen_Source
     solver/gemm_bwd.cpp
     solver/gemm_wrw.cpp
     solver/groupnorm/forward_groupnorm.cpp
+    solver/kthvalue/forward_kthvalue.cpp
     solver/layernorm/forward_layernorm.cpp
     solver/layernorm/forward_layernorm2d_ck.cpp
     solver/layernorm/forward_layernorm4d_ck.cpp
@@ -419,8 +422,10 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/miopen_type_traits.hpp
         kernels/miopen_utility.hpp
         kernels/neuron.inc
+        kernels/radix.hpp
         kernels/rocm_version.inc
         kernels/stride_array.hpp
+        kernels/tensor_view.hpp
         kernels/utilities.inc
         kernels/workaround_issue_1431.hpp
         kernels/xform_bidirect_winograd_code.inc
@@ -455,6 +460,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenConvDirBatchNormActiv.cl
         kernels/MIOpenConvDirGenFwd.cl
         kernels/MIOpenGroupNorm.cpp
+        kernels/MIOpenKthvalue.cpp
         kernels/MIOpenLayerNorm.cpp
         kernels/MIOpenLRNBwd.cl
         kernels/MIOpenLRNFwd.cl
@@ -602,6 +608,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         hip/general_tensor_reorder_sol.cpp
         pooling.cpp
         ocl/fusionopconvocl.cpp
+        kthvalue.cpp
         ocl/fusionopbiasbnactivocl.cpp
         sum.cpp
         ${PROJECT_BINARY_DIR}/db_path.cpp
