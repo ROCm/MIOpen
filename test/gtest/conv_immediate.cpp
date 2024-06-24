@@ -101,15 +101,13 @@ init_convolution_descriptor(std::vector<int> pads,
 template <miopen::conv::Direction direction,
           typename TREF,
           typename TOUT,
-          miopenTensorLayout_t tensor_layout,
-          miopenConvolutionMode_t conv_mode>
+          miopenTensorLayout_t tensor_layout>
 struct TypeDefs
 {
     static constexpr miopen::conv::Direction Direction = direction;
     using TRef                                         = TREF;
     using TOut                                         = TOUT;
     static constexpr miopenTensorLayout_t Layout       = tensor_layout;
-    static constexpr miopenConvolutionMode_t ConvMode  = conv_mode;
 };
 
 template <typename T>
@@ -179,97 +177,6 @@ struct layout_data
     tensor<T> host;
     miopen::TensorDescriptor descriptor;
 };
-
-template <typename Tin,
-          typename Twei,
-          typename Tout,
-          typename Range,
-          typename Tacc = double,
-          typename FI   = PassThru<Tin>,
-          typename FW   = PassThru<Twei>>
-void cpu_convolution_forward(std::size_t spatial_dim,
-                             tensor<Tin>& in,
-                             tensor<Twei>& wei,
-                             tensor<Tout>& out,
-                             const Range& pads,
-                             const Range& strides,
-                             const Range& dilations,
-                             std::size_t group_count,
-                             miopenConvolutionMode_t mode,
-                             FI fi = {},
-                             FW fw = {})
-{
-    if(mode == miopenTranspose)
-    {
-        cpu_convolution_backward_data(
-            spatial_dim, wei, in, out, pads, strides, dilations, group_count);
-    }
-    else
-    {
-        cpu_convolution_forward(spatial_dim, in, wei, out, pads, strides, dilations, group_count);
-    }
-}
-
-template <typename Tin,
-          typename Twei,
-          typename Tout,
-          typename Range,
-          typename Tacc = double,
-          typename FW   = PassThru<Twei>,
-          typename FO   = PassThru<Tout>>
-void cpu_convolution_backward_data(std::size_t spatial_dim,
-                                   tensor<Tin>& in,
-                                   tensor<Twei>& wei,
-                                   tensor<Tout>& out,
-                                   const Range& pads,
-                                   const Range& strides,
-                                   const Range& dilations,
-                                   std::size_t group_count,
-                                   miopenConvolutionMode_t mode,
-                                   FW fw = {},
-                                   FO fo = {})
-{
-    if(mode == miopenTranspose)
-    {
-        cpu_convolution_forward(spatial_dim, in, wei, out, pads, strides, dilations, group_count);
-    }
-    else
-    {
-        cpu_convolution_backward_data(
-            spatial_dim, in, wei, out, pads, strides, dilations, group_count);
-    }
-}
-
-template <typename Tin,
-          typename Twei,
-          typename Tout,
-          typename Range,
-          typename Tacc = double,
-          typename FI   = PassThru<Tin>,
-          typename FO   = PassThru<Tout>>
-void cpu_convolution_backward_weight(std::size_t spatial_dim,
-                                     tensor<Tin>& in,
-                                     tensor<Twei>& wei,
-                                     tensor<Tout>& out,
-                                     const Range& pads,
-                                     const Range& strides,
-                                     const Range& dilations,
-                                     std::size_t group_count,
-                                     miopenConvolutionMode_t mode,
-                                     FI fi = {},
-                                     FO fo = {})
-{
-    if(mode == miopenTranspose)
-    {
-        cpu_convolution_backward_weight(
-            spatial_dim, out, wei, in, pads, strides, dilations, group_count);
-    }
-    else
-    {
-        cpu_convolution_backward_weight(
-            spatial_dim, in, wei, out, pads, strides, dilations, group_count);
-    }
-}
 
 template <typename T>
 bool verify_tensor(tensor<T>& t_gpu,
@@ -439,7 +346,6 @@ protected:
     using TRef                          = typename Types::TRef;
     using TOut                          = typename Types::TOut;
     static constexpr auto tensor_layout = Types::Layout;
-    static constexpr auto conv_mode     = Types::ConvMode;
 
     inline static int run_count = 0;
 
@@ -490,8 +396,7 @@ protected:
                                     desc.GetConvPads(),
                                     desc.GetConvStrides(),
                                     desc.GetConvDilations(),
-                                    desc.GetGroupCount(),
-                                    conv_mode);
+                                    desc.GetGroupCount());
 
             EXPECT_TRUE(miopenConvolutionForwardImmediate(
                             &handle,
@@ -521,8 +426,7 @@ protected:
                                           desc.GetConvPads(),
                                           desc.GetConvStrides(),
                                           desc.GetConvDilations(),
-                                          desc.GetGroupCount(),
-                                          conv_mode);
+                                          desc.GetGroupCount());
 
             EXPECT_TRUE(miopenConvolutionBackwardDataImmediate(
                             &handle,
@@ -552,8 +456,7 @@ protected:
                                             desc.GetConvPads(),
                                             desc.GetConvStrides(),
                                             desc.GetConvDilations(),
-                                            desc.GetGroupCount(),
-                                            conv_mode);
+                                            desc.GetGroupCount());
 
             EXPECT_TRUE(miopenConvolutionBackwardWeightsImmediate(
                             &handle,
@@ -591,20 +494,20 @@ protected:
 };
 
 // clang-format off
-#define MakeTypeDefs(layout)                                                                                    \
-    TypeDefs<miopen::conv::Direction::Forward,          float,      float,      layout, miopenConvolution>,     \
-    TypeDefs<miopen::conv::Direction::Forward,          float16,    float16,    layout, miopenConvolution>,     \
-    TypeDefs<miopen::conv::Direction::Forward,          bfloat16,   bfloat16,   layout, miopenConvolution>,     \
-    TypeDefs<miopen::conv::Direction::Forward,          int8_t,     int32_t,    layout, miopenConvolution>,     \
-    TypeDefs<miopen::conv::Direction::Forward,          int8_t,     float,      layout, miopenConvolution>,     \
-                                                                                                                \
-    TypeDefs<miopen::conv::Direction::BackwardData,     float,      float,      layout, miopenConvolution>,     \
-    TypeDefs<miopen::conv::Direction::BackwardData,     float16,    float16,    layout, miopenConvolution>,     \
-    TypeDefs<miopen::conv::Direction::BackwardData,     bfloat16,   bfloat16,   layout, miopenConvolution>,     \
-                                                                                                                \
-    TypeDefs<miopen::conv::Direction::BackwardWeights,  float,      float,      layout, miopenConvolution>,     \
-    TypeDefs<miopen::conv::Direction::BackwardWeights,  float16,    float16,    layout, miopenConvolution>,     \
-    TypeDefs<miopen::conv::Direction::BackwardWeights,  bfloat16,   bfloat16,   layout, miopenConvolution>
+#define MakeTypeDefs(layout)                                                                \
+    TypeDefs<miopen::conv::Direction::Forward,          float,      float,      layout>,    \
+    TypeDefs<miopen::conv::Direction::Forward,          float16,    float16,    layout>,    \
+    TypeDefs<miopen::conv::Direction::Forward,          bfloat16,   bfloat16,   layout>,    \
+    TypeDefs<miopen::conv::Direction::Forward,          int8_t,     int32_t,    layout>,    \
+    TypeDefs<miopen::conv::Direction::Forward,          int8_t,     float,      layout>,    \
+                                                                                            \
+    TypeDefs<miopen::conv::Direction::BackwardData,     float,      float,      layout>,    \
+    TypeDefs<miopen::conv::Direction::BackwardData,     float16,    float16,    layout>,    \
+    TypeDefs<miopen::conv::Direction::BackwardData,     bfloat16,   bfloat16,   layout>,    \
+                                                                                            \
+    TypeDefs<miopen::conv::Direction::BackwardWeights,  float,      float,      layout>,    \
+    TypeDefs<miopen::conv::Direction::BackwardWeights,  float16,    float16,    layout>,    \
+    TypeDefs<miopen::conv::Direction::BackwardWeights,  bfloat16,   bfloat16,   layout>
 
 // clang-format on
 
