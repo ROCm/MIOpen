@@ -79,6 +79,7 @@ miopen::HipEventPtr make_hip_fast_event()
 bool MhaBackward::IsApplicable([[maybe_unused]] const ExecutionContext& context,
                                const miopen::mha::ProblemDescription& problem) const
 {
+#if MIOPEN_USE_GEMM
     // It's important to have this check before problem.GetDescsBackward() call
     if(problem.IsForward())
     {
@@ -103,6 +104,9 @@ bool MhaBackward::IsApplicable([[maybe_unused]] const ExecutionContext& context,
            && descsBackward.dqDesc.IsPacked()                           //
            && descsBackward.dvDesc.IsPacked()                           //
            && MIOPEN_USE_GEMM;
+#else
+    return false;
+#endif
 }
 
 std::size_t MhaBackward::GetWorkspaceSize([[maybe_unused]] const ExecutionContext& context,
