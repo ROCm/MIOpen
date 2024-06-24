@@ -44,8 +44,8 @@ __device__ void LossSum(const DTYPE* __restrict__ input, DTYPE* __restrict__ out
 }
 
 extern "C" __global__ void
-ReduceSumLoss(const INPUT_TYPE* __restrict__ input, INPUT_TYPE* __restrict__ output, size_t N)
+ReduceSumLoss(const FLOAT* __restrict__ input, FLOAT* __restrict__ output, size_t N)
 {
     // instantiate the kernel
-    LossSum<INPUT_TYPE>(input, output, N);
+    LossSum<FLOAT>(input, output, N);
 }

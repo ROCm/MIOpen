@@ -77,10 +77,6 @@ ConvSolution MultilabelSoftMarginLossForward::GetSolution(
             {"MIOPEN_USE_FP16", static_cast<int32_t>(dtype == miopenHalf)},
             {"MIOPEN_USE_FP32", static_cast<int32_t>(dtype == miopenFloat)},
             {"MIOPEN_USE_BFP16", static_cast<int32_t>(dtype == miopenBFloat16)},
-            {"INPUT_TYPE",
-             (dtype == miopenBFloat16) ? "ushort"
-             : (dtype == miopenHalf)   ? "_Float16"
-                                       : "float"},
         };
 
         kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
@@ -104,10 +100,6 @@ ConvSolution MultilabelSoftMarginLossForward::GetSolution(
             {"MIOPEN_USE_FP16", static_cast<int32_t>(dtype == miopenHalf)},
             {"MIOPEN_USE_FP32", static_cast<int32_t>(dtype == miopenFloat)},
             {"MIOPEN_USE_BFP16", static_cast<int32_t>(dtype == miopenBFloat16)},
-            {"INPUT_TYPE",
-             (dtype == miopenBFloat16) ? "ushort"
-             : (dtype == miopenHalf)   ? "_Float16"
-                                       : "float"},
             {"REDUCE_SIZE", LOCAL_SIZE_REDUCE},
         };
         do

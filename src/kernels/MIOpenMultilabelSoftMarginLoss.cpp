@@ -70,18 +70,17 @@ __device__ void multilabelsoftmarginlossunreducedforward2d(const DTYPE* __restri
     O[O_tv.get_tensor_view_idx({n})] = CVT_ACCUM2FLOAT(loss / C);
 }
 
-extern "C" __global__ void
-MultilabelSoftMarginLossUnreducedForward2d(const INPUT_TYPE* __restrict__ I,
-                                           const INPUT_TYPE* __restrict__ T,
-                                           const INPUT_TYPE* __restrict__ W,
-                                           INPUT_TYPE* __restrict__ O,
-                                           tensor_view_t<2> I_tv,
-                                           tensor_view_t<2> T_tv,
-                                           tensor_view_t<1> W_tv,
-                                           tensor_view_t<1> O_tv)
+extern "C" __global__ void MultilabelSoftMarginLossUnreducedForward2d(const FLOAT* __restrict__ I,
+                                                                      const FLOAT* __restrict__ T,
+                                                                      const FLOAT* __restrict__ W,
+                                                                      FLOAT* __restrict__ O,
+                                                                      tensor_view_t<2> I_tv,
+                                                                      tensor_view_t<2> T_tv,
+                                                                      tensor_view_t<1> W_tv,
+                                                                      tensor_view_t<1> O_tv)
 {
     // instantiate the kernel
-    multilabelsoftmarginlossunreducedforward2d<INPUT_TYPE>(I, T, W, O, I_tv, T_tv, W_tv, O_tv);
+    multilabelsoftmarginlossunreducedforward2d<FLOAT>(I, T, W, O, I_tv, T_tv, W_tv, O_tv);
 }
 
 template <typename DTYPE>
@@ -116,15 +115,15 @@ __device__ void multilabelsoftmarginlossforward2d(const DTYPE* __restrict__ I,
     lsum[n] = CVT_ACCUM2FLOAT(loss / C / divisor);
 }
 
-extern "C" __global__ void MultilabelSoftMarginLossForward2d(const INPUT_TYPE* __restrict__ I,
-                                                             const INPUT_TYPE* __restrict__ T,
-                                                             const INPUT_TYPE* __restrict__ W,
-                                                             INPUT_TYPE* __restrict__ lsum,
+extern "C" __global__ void MultilabelSoftMarginLossForward2d(const FLOAT* __restrict__ I,
+                                                             const FLOAT* __restrict__ T,
+                                                             const FLOAT* __restrict__ W,
+                                                             FLOAT* __restrict__ lsum,
                                                              const float divisor,
                                                              tensor_view_t<2> I_tv,
                                                              tensor_view_t<2> T_tv,
                                                              tensor_view_t<1> W_tv)
 {
     // instantiate the kernel
-    multilabelsoftmarginlossforward2d<INPUT_TYPE>(I, T, W, lsum, divisor, I_tv, T_tv, W_tv);
+    multilabelsoftmarginlossforward2d<FLOAT>(I, T, W, lsum, divisor, I_tv, T_tv, W_tv);
 }
