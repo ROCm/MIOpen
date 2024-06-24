@@ -31,14 +31,15 @@
 #include <miopen/mlo_internal.hpp>
 #include <miopen/perf_field.hpp>
 #include <miopen/conv/problem_description.hpp>
-
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_DEVICE_ARCH)
+#include <miopen/solution.hpp>
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_GEMM)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_DIRECT)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_WINOGRAD)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_FFT)
+MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_DEVICE_ARCH)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_COMPILE_ONLY)
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_FIND_CONV_INSUFFICIENT_WORKSPACE_ALLOW_FINDDB_UPDATE)
 
@@ -60,7 +61,7 @@ protected:
                    const ProblemDescription& /*problem*/,
                    const ConvFindParameters& parameters) const override
     {
-        return !parameters.use_winograd_only && !IsDisabled(ENV(MIOPEN_DEBUG_CONV_DIRECT));
+        return !parameters.use_winograd_only && !env::disabled(MIOPEN_DEBUG_CONV_DIRECT);
     }
 
     std::vector<solver::ConvSolution> FindImpl(const ExecutionContext& ctx,
@@ -89,7 +90,7 @@ protected:
                    const ProblemDescription& /*problem*/,
                    const ConvFindParameters& parameters) const override
     {
-        return !parameters.use_winograd_only && !IsDisabled(ENV(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM));
+        return !parameters.use_winograd_only && !env::disabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM);
     }
 
     std::vector<solver::ConvSolution> FindImpl(const ExecutionContext& ctx,
@@ -120,7 +121,7 @@ protected:
     {
         return !parameters.use_winograd_only &&
                problem.GetDirection() != conv::Direction::BackwardWeights &&
-               !IsDisabled(ENV(MIOPEN_DEBUG_CONV_FFT));
+               !env::disabled(MIOPEN_DEBUG_CONV_FFT);
     }
 
     std::vector<solver::ConvSolution> FindImpl(const ExecutionContext& ctx,
@@ -147,7 +148,7 @@ protected:
                    const ProblemDescription& /*problem*/,
                    const ConvFindParameters& parameters) const override
     {
-        return !parameters.use_winograd_only && !IsDisabled(ENV(MIOPEN_DEBUG_CONV_GEMM));
+        return !parameters.use_winograd_only && !env::disabled(MIOPEN_DEBUG_CONV_GEMM);
     }
 
     std::vector<solver::ConvSolution> FindImpl(const ExecutionContext& ctx,
@@ -174,7 +175,7 @@ protected:
                    const ProblemDescription& /*problem*/,
                    const ConvFindParameters& /*parameters*/) const override
     {
-        return !IsDisabled(ENV(MIOPEN_DEBUG_CONV_WINOGRAD));
+        return !env::disabled(MIOPEN_DEBUG_CONV_WINOGRAD);
     }
 
     std::vector<solver::ConvSolution> FindImpl(const ExecutionContext& ctx,
@@ -213,22 +214,22 @@ const std::vector<std::unique_ptr<ISolversFinder>>& GetConvSolverFinders()
 } // namespace conv
 
 /// Register invoker only for the best solution within algorithm.
-/// Add all solutions to the find-db record.
-static void EvaluateInvokers(Handle& handle,
-                             const std::vector<solver::ConvSolution>& solutions,
-                             const AlgorithmName& algorithm_name,
-                             const NetworkConfig& network_config,
-                             const AnyInvokeParams& invoke_ctx,
-                             DbRecord& record,
-                             bool& is_result_optimal)
+static std::vector<Solution> EvaluateInvokers(Handle& handle,
+                                              const std::vector<solver::ConvSolution>& solutions,
+                                              const AlgorithmName& algorithm_name,
+                                              const NetworkConfig& network_config,
+                                              const AnyInvokeParams& invoke_ctx,
+                                              bool& is_result_optimal,
+                                              bool force_attach_binary)
 {
-    const auto& arch = miopen::GetStringEnv(ENV(MIOPEN_DEVICE_ARCH));
+    const auto arch = env::value(MIOPEN_DEVICE_ARCH);
     if(!arch.empty())
-        return;
+        return {};
 
     auto selected     = miopen::solver::ConvSolution{miopenStatusUnknownError};
     auto best         = std::numeric_limits<float>::max();
     auto best_invoker = Invoker{};
+    auto ret          = std::vector<Solution>{};
 
     for(const auto& sol : solutions)
     {
@@ -245,7 +246,7 @@ static void EvaluateInvokers(Handle& handle,
             //
             // That is why we do not write sub-optimal results into persistent find-db (on disk)
             // unless this is explicitly enabled via environment setting.
-            if(!IsEnabled(ENV(MIOPEN_FIND_CONV_INSUFFICIENT_WORKSPACE_ALLOW_FINDDB_UPDATE)))
+            if(!env::enabled(MIOPEN_FIND_CONV_INSUFFICIENT_WORKSPACE_ALLOW_FINDDB_UPDATE))
                 is_result_optimal = false;
             continue;
         }
@@ -253,7 +254,11 @@ static void EvaluateInvokers(Handle& handle,
         if(!sol.invoker_factory)
             MIOPEN_THROW("Invoker is not provided by solver " + sol.solver_id);
 
-        const auto invoker = handle.PrepareInvoker(*sol.invoker_factory, sol.construction_params);
+        std::vector<Program> programs;
+        const auto invoker = handle.PrepareInvoker(*sol.invoker_factory,
+                                                   sol.construction_params,
+                                                   force_attach_binary ? &programs : nullptr);
+
         try
         {
             invoker(handle, invoke_ctx); // Dry-run once to warm-up.
@@ -268,8 +273,6 @@ static void EvaluateInvokers(Handle& handle,
             }
             elapsed /= static_cast<elapsed_t>(N_RUNS);
 
-            record.SetValues(sol.solver_id, FindDbData{elapsed, sol.workspace_sz, algorithm_name});
-
             MIOPEN_LOG_I(sol << ": " << elapsed << (elapsed < best ? " < " : " >= ") << best);
             if(elapsed < best)
             {
@@ -277,6 +280,13 @@ static void EvaluateInvokers(Handle& handle,
                 selected     = sol;
                 best_invoker = invoker;
             }
+
+            auto solution = Solution{solver::Id{selected.solver_id}, best, selected.workspace_sz};
+            if(force_attach_binary)
+                solution.SetInvoker(invoker, programs, selected.construction_params);
+            else
+                solution.SetInvoker(invoker, {}, {});
+            ret.emplace_back(std::move(solution));
         }
         catch(const miopen::Exception& ex)
         {
@@ -284,30 +294,23 @@ static void EvaluateInvokers(Handle& handle,
         }
     }
 
-    if(selected.Succeeded())
-    {
-        handle.RegisterInvoker(best_invoker, network_config, selected.solver_id, algorithm_name);
-        MIOPEN_LOG_I("Selected: " << selected << ": " << best
-                                  << ", workspace_sz = " << selected.workspace_sz);
-    }
+    if(!selected.Succeeded())
+        return {};
+
+    handle.RegisterInvoker(best_invoker, network_config, selected.solver_id, algorithm_name);
+    MIOPEN_LOG_I("Selected: " << selected << ": " << best
+                              << ", workspace_sz = " << selected.workspace_sz);
+
+    return ret;
 }
 
-static inline void AppendPointersToElements(const std::vector<miopen::solver::ConvSolution>& from,
-                                            std::vector<const miopen::solver::ConvSolution*>& to)
-{
-    std::transform(from.begin(),
-                   from.end(),
-                   std::back_inserter(to),
-                   [](const miopen::solver::ConvSolution& s) { return &s; });
-}
-
-bool FindCore(const AnyInvokeParams& invoke_ctx,
-              DbRecord& record,
-              const ExecutionContext& ctx,
-              const ProblemDescriptionBase& problem,
-              const PrimitiveFindParameters& parameters,
-              const std::vector<std::unique_ptr<ISolversFinder>>& finders,
-              const std::optional<FindOptions>& options)
+FindCoreResult FindCore(const AnyInvokeParams& invoke_ctx,
+                        const ExecutionContext& ctx,
+                        const ProblemDescriptionBase& problem,
+                        const PrimitiveFindParameters& parameters,
+                        const std::vector<std::unique_ptr<ISolversFinder>>& finders,
+                        const std::optional<FindOptions>& options,
+                        bool force_attach_binary)
 {
     auto& handle = ctx.GetStream();
 
@@ -319,30 +322,61 @@ bool FindCore(const AnyInvokeParams& invoke_ctx,
                                   f->Find(ctx, problem, invoke_ctx, parameters, options));
         });
 
+    std::size_t total = 0;
+
+    for(auto it = solutions.begin(); it != solutions.end();)
+    {
+        if(it->second.empty())
+        {
+            it = solutions.erase(it);
+            continue;
+        }
+
+        total += it->second.size();
+        ++it;
+    }
+
     // Precompile
     {
         auto all = std::vector<const miopen::solver::ConvSolution*>{};
-        all.reserve(
-            std::accumulate(solutions.begin(), solutions.end(), 0, [](auto&& before, auto&& ss) {
-                return before + ss.second.size();
-            }));
+        all.reserve(total);
         for(const auto& ss : solutions)
-            AppendPointersToElements(ss.second, all);
-        PrecompileSolutions(handle, all);
+            std::transform(ss.second.begin(),
+                           ss.second.end(),
+                           std::back_inserter(all),
+                           [](auto&& s) { return &s; });
+        PrecompileSolutions(handle, all, force_attach_binary);
     }
+
+    if(env::enabled((MIOPEN_DEBUG_COMPILE_ONLY)))
+        MIOPEN_THROW(
+            miopenStatusGpuOperationsSkipped,
+            "MIOPEN_DEBUG_COMPILE_ONLY is enabled, escaping forward convolution. Search skipped.");
 
     // Evaluate Invokers
     AutoEnableProfiling enableProfiling{handle};
     const auto network_config = problem.MakeNetworkConfig();
-    auto is_result_optimal    = true;
+    auto ret                  = FindCoreResult();
+    ret.is_optimal            = true;
+
+    ret.solutions.reserve(total);
 
     for(const auto& ss : solutions)
     {
-        if(!ss.second.empty())
-            EvaluateInvokers(
-                handle, ss.second, ss.first, network_config, invoke_ctx, record, is_result_optimal);
+        auto evaluated = EvaluateInvokers(handle,
+                                          ss.second,
+                                          ss.first,
+                                          network_config,
+                                          invoke_ctx,
+                                          ret.is_optimal,
+                                          force_attach_binary);
+
+        ret.solutions.insert(ret.solutions.end(),
+                             std::make_move_iterator(evaluated.begin()),
+                             std::make_move_iterator(evaluated.end()));
     }
-    return is_result_optimal;
+
+    return ret;
 }
 
 namespace conv {
@@ -353,16 +387,16 @@ bool IsAlgorithmDisabled(miopenConvAlgorithm_t algo)
     { // clang-format off
 #if MIOPEN_USE_GEMM
     case miopenConvolutionAlgoGEMM:
-        return miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_GEMM));
+        return env::disabled(MIOPEN_DEBUG_CONV_GEMM);
 #endif
     case miopenConvolutionAlgoDirect:
-        return miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_DIRECT));
+        return env::disabled(MIOPEN_DEBUG_CONV_DIRECT);
     case miopenConvolutionAlgoFFT:
-        return miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_FFT));
+        return env::disabled(MIOPEN_DEBUG_CONV_FFT);
     case miopenConvolutionAlgoWinograd:
-        return miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_WINOGRAD));
+        return env::disabled(MIOPEN_DEBUG_CONV_WINOGRAD);
     case miopenConvolutionAlgoImplicitGEMM:
-        return miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM));
+        return env::disabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM);
     default: // Disable future algos by default to enforce explicit handling:
         return true;
     } // clang-format on
