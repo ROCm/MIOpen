@@ -115,7 +115,7 @@ MIOPEN_EXPORT miopenStatus_t miopenGetConvolutionFindMode(
  * @param  size_t output tensor length
  * @param  size_t buffer_size for CK Backward weights work space
  */
-extern "C" miopenStatus_t
+MIOPEN_EXPORT miopenStatus_t
 miopenConvolutionCKBackwardWeightsGetWorkSpaceSize(const miopenAlphaBetaCase_t ab_case,
                                                    miopenDataType_t data_type,
                                                    size_t C,

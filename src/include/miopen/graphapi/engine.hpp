@@ -60,7 +60,7 @@ public:
 
 class OpGraph;
 
-class EngineBuilder
+class MIOPEN_INTERNALS_EXPORT EngineBuilder
 {
 private:
     const OpGraph* mOpGraph = nullptr;
@@ -75,7 +75,7 @@ public:
     Engine build();
 };
 
-class BackendEngineDescriptor : public BackendDescriptor
+class MIOPEN_INTERNALS_EXPORT BackendEngineDescriptor : public BackendDescriptor
 {
 private:
     EngineBuilder mBuilder;
