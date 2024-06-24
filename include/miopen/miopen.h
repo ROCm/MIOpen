@@ -68,6 +68,7 @@
  * @defgroup argmax
  * @defgroup groupnorm
  * @defgroup cat
+ * @defgroup interpolate
  *
  */
 
@@ -6577,6 +6578,81 @@ MIOPEN_EXPORT miopenStatus_t miopenBackendDestroyDescriptor(miopenBackendDescrip
 MIOPEN_EXPORT miopenStatus_t miopenBackendInitialize(miopenBackendDescriptor_t descriptor,
                                                      miopenBackendDescriptorType_t descriptorType,
                                                      size_t sizeInBytes);
+
+#ifdef MIOPEN_BETA_API
+
+/*! @ingroup interpolate
+ * @enum miopenInterpolateMode_t
+ * Modes for Interpolate
+ */
+
+typedef enum
+{
+    MIOPEN_INTERPOLATE_MODE_NEAREST   = 0,
+    MIOPEN_INTERPOLATE_MODE_LINEAR    = 1,
+    MIOPEN_INTERPOLATE_MODE_BILINEAR  = 2,
+    MIOPEN_INTERPOLATE_MODE_BICUBIC   = 3,
+    MIOPEN_INTERPOLATE_MODE_TRILINEAR = 4,
+    MIOPEN_INTERPOLATE_MODE_AREA      = 5,
+} miopenInterpolateMode_t;
+
+// Interpolate APIs
+/** @addtogroup interpolate
+ *
+ *  @{
+ */
+
+/*! @brief Execute a interpolate forward layer
+ *
+ * @param handle                MIOpen handle (input)
+ * @param inputDesc             Tensor descriptor for input tensor (input)
+ * @param input                 Data tensor input  (input)
+ * @param outputDesc            Tensor descriptor for output tensor (input)
+ * @param output                Data tensor output (output)
+ * @param scaleFactorsDesc      Tensor descriptor for scale factors tensor (input)
+ * @param scale_factors         Data tensor scale factors (input)
+ * @param mode                  Interpolation mode (input)
+ * @param align_corners         Align corners (input)
+ * @return                      miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenInterpolateForward(miopenHandle_t handle,
+                         const miopenTensorDescriptor_t inputDesc,
+                         const void* input,
+                         const miopenTensorDescriptor_t outputDesc,
+                         void* output,
+                         const miopenTensorDescriptor_t scaleFactorsDesc,
+                         const void* scale_factors,
+                         const miopenInterpolateMode_t mode,
+                         const bool align_corners);
+
+/*! @brief Execute a interpolate backward layer
+ *
+ * @param handle                MIOpen handle (input)
+ * @param inputGradDesc         Tensor descriptor for input grad tensor (input)
+ * @param input_grad            Data tensor input grad (output)
+ * @param outputGradDesc        Tensor descriptor for output grad tensor (input)
+ * @param output_grad           Data tensor output grad (input)
+ * @param scaleFactorsDesc      Tensor descriptor for scale factors tensor (input)
+ * @param scale_factors         Data tensor scale factors (input)
+ * @param mode                  Interpolation mode (input)
+ * @param align_corners         Align corners (input)
+ * @return                      miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenInterpolateBackward(miopenHandle_t handle,
+                          const miopenTensorDescriptor_t inputGradDesc,
+                          void* input_grad,
+                          const miopenTensorDescriptor_t outputGradDesc,
+                          const void* output_grad,
+                          const miopenTensorDescriptor_t scaleFactorsDesc,
+                          const void* scale_factors,
+                          const miopenInterpolateMode_t mode,
+                          const bool align_corners);
+
+/** @} */
+// CLOSEOUT Interpolate DOXYGEN GROUP
+#endif // MIOPEN_BETA_API
 
 /** @} */
 // CLOSEOUT BackendAPI DOXYGEN GROUP

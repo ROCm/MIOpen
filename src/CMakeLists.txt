@@ -132,6 +132,8 @@ set( MIOpen_Source
     groupnorm/problem_description.cpp
     handle_api.cpp
     invoker_cache.cpp
+    interpolate_api.cpp
+    interpolate/problem_description.cpp
     kernel_build_params.cpp
     kernel_warnings.cpp
     layernorm_api.cpp
@@ -260,6 +262,18 @@ set( MIOpen_Source
     solver/gemm_bwd.cpp
     solver/gemm_wrw.cpp
     solver/groupnorm/forward_groupnorm.cpp
+    solver/interpolate/fwd_area_interpolate.cpp
+    solver/interpolate/fwd_nearest_interpolate.cpp
+    solver/interpolate/fwd_linear_interpolate.cpp
+    solver/interpolate/fwd_bilinear_interpolate.cpp
+    solver/interpolate/fwd_trilinear_interpolate.cpp
+    solver/interpolate/fwd_bicubic_interpolate.cpp
+    solver/interpolate/bwd_area_interpolate.cpp
+    solver/interpolate/bwd_nearest_interpolate.cpp
+    solver/interpolate/bwd_linear_interpolate.cpp
+    solver/interpolate/bwd_bilinear_interpolate.cpp
+    solver/interpolate/bwd_trilinear_interpolate.cpp
+    solver/interpolate/bwd_bicubic_interpolate.cpp
     solver/layernorm/forward_layernorm.cpp
     solver/layernorm/forward_layernorm2d_ck.cpp
     solver/layernorm/forward_layernorm4d_ck.cpp
@@ -421,6 +435,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/neuron.inc
         kernels/rocm_version.inc
         kernels/stride_array.hpp
+        kernels/tensor_view.hpp
         kernels/utilities.inc
         kernels/workaround_issue_1431.hpp
         kernels/xform_bidirect_winograd_code.inc
@@ -579,6 +594,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         argmax.cpp
         cat.cpp
         groupnorm.cpp
+        interpolate.cpp
         kernel_cache.cpp
         layer_norm.cpp
         lrn.cpp
