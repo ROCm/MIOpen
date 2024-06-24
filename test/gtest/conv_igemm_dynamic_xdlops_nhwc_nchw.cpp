@@ -34,26 +34,27 @@ MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_FIND_MODE)
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_DEBUG_FIND_ONLY_SOLVER)
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
 
+namespace env = miopen::env;
+
 namespace conv_igemm_dynamic_xdlops_nhwc_nchw {
 
 static bool SkipTest(const std::string& float_arg)
 {
-    if(miopen::IsUnset(MIOPEN_ENV(MIOPEN_TEST_ALL)))
+    if(!MIOPEN_TEST_ALL)
         return false;
-    if(miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_ALL)))
-        if(miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_TEST_FLOAT_ARG)) == float_arg)
+    if(env::enabled(MIOPEN_TEST_ALL))
+        if(env::value(MIOPEN_TEST_FLOAT_ARG) == float_arg)
             return false;
     return true;
 }
 
-void SetupEnvVar(void)
+void SetupEnvVar()
 {
-    miopen::UpdateEnvVar(MIOPEN_ENV(MIOPEN_FIND_MODE), std::string("normal"));
-    miopen::UpdateEnvVar(
-        MIOPEN_ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER),
-        std::string(
-            "ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC;ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC;"
-            "ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC"));
+    env::update(MIOPEN_FIND_MODE, "normal");
+    env::update(MIOPEN_DEBUG_FIND_ONLY_SOLVER,
+                "ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC;"
+                "ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC;"
+                "ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC");
 }
 
 void GetArgs(const std::string& param, std::vector<std::string>& tokens)

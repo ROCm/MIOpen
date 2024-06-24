@@ -157,11 +157,11 @@ static fs::path HipBuildImpl(const TmpDir& tmp_dir,
     params += MIOPEN_STRINGIZE(HIP_COMPILER_FLAGS);
 
 #if MIOPEN_BUILD_DEV
-    if(miopen::IsEnabled(MIOPEN_ENV(MIOPEN_DEBUG_HIP_VERBOSE)))
+    if(env::enabled(MIOPEN_DEBUG_HIP_VERBOSE))
     {
         params += " -v";
     }
-    if(miopen::IsEnabled(MIOPEN_ENV(MIOPEN_DEBUG_HIP_DUMP)))
+    if(env::enabled(MIOPEN_DEBUG_HIP_DUMP))
     {
         params += " -gline-tables-only";
         params += " -save-temps";

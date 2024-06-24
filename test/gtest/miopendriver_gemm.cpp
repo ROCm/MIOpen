@@ -41,7 +41,7 @@ namespace miopendriver_gemm {
 
 std::vector<std::string> GetTestCases()
 {
-    const std::string& modeGemmnArg = miopen::GetStringEnv(MIOPEN_ENV(MIOPENDRIVER_MODE_GEMM));
+    const std::string& modeGemmnArg = env::value(MIOPENDRIVER_MODE_GEMM);
 
     // clang-format off
     return std::vector<std::string>{
@@ -66,10 +66,9 @@ bool IsTestSupportedForDevice()
 
 void RunMIOpenDriver()
 {
-    bool runTestSuite = miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_WITH_MIOPENDRIVER)) &&
-                        IsTestSupportedForDevice() &&
-                        (miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_TEST_FLOAT_ARG)) == "--float" ||
-                         miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_TEST_FLOAT_ARG)) == "--half");
+    bool runTestSuite = env::enabled(MIOPEN_TEST_WITH_MIOPENDRIVER) && IsTestSupportedForDevice() &&
+                        (env::value(MIOPEN_TEST_FLOAT_ARG) == "--float" ||
+                         env::value(MIOPEN_TEST_FLOAT_ARG) == "--half");
 
     if(!runTestSuite)
     {
