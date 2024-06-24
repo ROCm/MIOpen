@@ -54,6 +54,18 @@ struct PoolingForward2d final : PoolingSolver
                                  const miopen::pooling::ProblemDescription& problem) const override;
 };
 
+struct PoolingForwardCk final : PoolingSolver
+{
+    const std::string& SolverDbId() const override { return GetSolverDbId<PoolingForwardCk>(); }
+
+    bool IsApplicable(const ExecutionContext& context,
+                      const miopen::pooling::ProblemDescription& problem) const override;
+    ConvSolution GetSolution(const ExecutionContext& context,
+                             const miopen::pooling::ProblemDescription& problem) const override;
+    std::size_t GetWorkspaceSize(const ExecutionContext& context,
+                                 const miopen::pooling::ProblemDescription& problem) const override;
+};
+
 struct PoolingForwardNd final : PoolingSolver
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<PoolingForwardNd>(); }
