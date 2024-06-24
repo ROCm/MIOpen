@@ -270,13 +270,11 @@ int MultilabelSoftMarginLossDriver<Tgpu, Tref>::GetandSetData()
         }
         else
         {
-            std::vector<int> lengths(in_len);
-            std::swap(lengths.front(), lengths.back());
-            std::vector<int> strides(lengths.size());
+            std::vector<int> strides(in_len.size());
             strides.back() = 1;
-            for(int i = lengths.size() - 2; i >= 0; --i)
-                strides[i] = strides[i + 1] * lengths[i + 1];
-            std::swap(strides.front(), strides.back());
+            for(int i = in_len.size() - 2; i >= 0; --i)
+                strides[i] = strides[i + 1] * in_len[i + 1];
+            strides[0] *= 2;
             SetTensorNd(iDesc, in_len, strides, data_type);
         }
     }
