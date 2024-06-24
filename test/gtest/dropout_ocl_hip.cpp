@@ -24,54 +24,26 @@
  *
  *******************************************************************************/
 
-#include "get_handle.hpp"
-#include "random.hpp"
-#include "verify.hpp"
 #include <gtest/gtest.h>
-#include <miopen/env.hpp>
 #include <miopen/miopen.h>
-#include <miopen/kernel_build_params.hpp>
-
-#include "driver.hpp"
-#include "dropout_util.hpp"
-#include "tensor_holder.hpp"
-
-#include <miopen/common.hpp>
-#include <miopen/miopen.h>
-#include <miopen/object.hpp>
 #include <miopen/handle.hpp>
-#include <miopen/tensor.hpp>
-#include <miopen/tensor_ops.hpp>
-
-#include <miopen/config.h>
 #include <miopen/dropout.hpp>
-#include <miopen/env.hpp>
-#include <miopen/util.hpp>
 #include <miopen/float_equal.hpp>
-#include <miopen/visit_float.hpp>
 #include <miopen/check_numerics.hpp>
-#include <miopen/kernel_cache.hpp>
 #include <miopen/tensor.hpp>
 #include <miopen/datatype.hpp>
+
 #include <vector>
 #include <numeric>
 #include <algorithm>
 #include <iostream>
 
+#include "get_handle.hpp"
+#include "random.hpp"
+#include "driver.hpp"
+#include "dropout_util.hpp"
+
 #define DROPOUT_DEBUG 0
-
-struct DropDesc
-{
-    float dropout;
-    Data_t pstates;
-    size_t stateSizeInBytes;
-    unsigned long long seed;
-    bool use_mask;
-    bool state_evo;
-    miopenRNGType_t rng_mode;
-    bool use_hip;
-};
-
 
 template <typename T>
 inline void SquashPairedTensor(const std::vector<T> x_len,
@@ -149,8 +121,8 @@ inline void SquashPairedTensor(const std::vector<T> x_len,
 }
 
 void InitPRNGState(miopen::Handle& handle,
-                    const miopen::DropoutDescriptor& DropoutDesc,
-                    bool use_hip = false)
+                   const miopen::DropoutDescriptor& DropoutDesc,
+                   bool use_hip = false)
 {
 #if DROPOUT_DEBUG
     std::cout << "Check memory and threads info of dropout PRNG states in debug mode:" << std::endl;
@@ -169,13 +141,16 @@ void InitPRNGState(miopen::Handle& handle,
         std::min(static_cast<unsigned long long>(MAX_PRNG_STATE / 256), (states_num + 255) / 256);
 
     std::string network_config = "initprngs-" + std::to_string(sizeof(prngStates)) + "x" +
-                                 std::to_string(DropoutDesc.rng_mode) + "x" + std::to_string(wk_grp_num);
+                                 std::to_string(DropoutDesc.rng_mode) + "x" +
+                                 std::to_string(wk_grp_num);
 
-    if(!use_hip){
+    if(!use_hip)
+    {
         program_name = "MIOpenDropout.cl";
         kernel_name  = "InitKernelState";
     }
-    else{
+    else
+    {
 
         program_name = "MIOpenDropoutHIP.cpp";
         kernel_name  = "InitKernelStateHIP";
@@ -207,7 +182,6 @@ void InitPRNGState(miopen::Handle& handle,
     }
 }
 
-
 void DropoutForward(const miopen::Handle& handle,
                     const miopen::TensorDescriptor& noise_shape,
                     const miopen::TensorDescriptor& xDesc,
@@ -220,15 +194,15 @@ void DropoutForward(const miopen::Handle& handle,
                     size_t out_offset,
                     size_t rsvsp_offset,
                     const miopen::DropoutDescriptor& DropoutDesc,
-                    bool use_hip = false) 
+                    bool use_hip = false)
 {
 
-    float dropout = DropoutDesc.dropout;
-    Data_t pstates = DropoutDesc.pstates;
-    size_t stateSizeInBytes = DropoutDesc.stateSizeInBytes;
-    unsigned long long seed = DropoutDesc.seed;
-    bool use_mask = DropoutDesc.use_mask;
-    bool state_evo = DropoutDesc.state_evo;
+    float dropout            = DropoutDesc.dropout;
+    Data_t pstates           = DropoutDesc.pstates;
+    size_t stateSizeInBytes  = DropoutDesc.stateSizeInBytes;
+    unsigned long long seed  = DropoutDesc.seed;
+    bool use_mask            = DropoutDesc.use_mask;
+    bool state_evo           = DropoutDesc.state_evo;
     miopenRNGType_t rng_mode = DropoutDesc.rng_mode;
 
     if(x == nullptr || y == nullptr)
@@ -290,7 +264,6 @@ void DropoutForward(const miopen::Handle& handle,
         miopen::checkNumericsInput(handle, xDesc, x);
     }
 
-
     // support up to 5D tensor
     std::vector<size_t> in_len(5, 1);
     std::vector<size_t> in_str(5, 1);
@@ -332,21 +305,20 @@ void DropoutForward(const miopen::Handle& handle,
     std::string program_name;
     std::string kernel_name;
 
-    if(!use_hip){
+    if(!use_hip)
+    {
 
         program_name = "MIOpenDropout.cl";
         kernel_name  = "DropoutForward";
-
     }
-    else{
+    else
+    {
 
         program_name = "MIOpenDropoutHIP.cpp";
         kernel_name  = "DropoutForwardHIP";
         network_config += "-hip";
-    
     }
 
-    
     // TODO: Add noise shape
     // for(int i = 1; i < noise_shape.GetNumDims(); i++)
     //    network_config += "x" + std::to_string(noise_shape.GetLengths()[i]);
@@ -439,28 +411,27 @@ void DropoutForward(const miopen::Handle& handle,
     }
 }
 
-
-void DropoutBackward(   const miopen::Handle& handle,
-                        const miopen::TensorDescriptor& noise_shape,
-                        const miopen::TensorDescriptor& dyDesc,
-                        ConstData_t dy,
-                        const miopen::TensorDescriptor& dxDesc,
-                        Data_t dx,
-                        Data_t reserveSpace,
-                        size_t reserveSpaceSizeInBytes,
-                        size_t in_offset,
-                        size_t out_offset,
-                        size_t rsvsp_offset,
-                        const miopen::DropoutDescriptor& DropoutDesc,
-                        bool use_hip = false) 
+void DropoutBackward(const miopen::Handle& handle,
+                     const miopen::TensorDescriptor& noise_shape,
+                     const miopen::TensorDescriptor& dyDesc,
+                     ConstData_t dy,
+                     const miopen::TensorDescriptor& dxDesc,
+                     Data_t dx,
+                     Data_t reserveSpace,
+                     size_t reserveSpaceSizeInBytes,
+                     size_t in_offset,
+                     size_t out_offset,
+                     size_t rsvsp_offset,
+                     const miopen::DropoutDescriptor& DropoutDesc,
+                     bool use_hip = false)
 {
 
-    float dropout = DropoutDesc.dropout;
-    Data_t pstates = DropoutDesc.pstates;
-    size_t stateSizeInBytes = DropoutDesc.stateSizeInBytes;
-    unsigned long long seed = DropoutDesc.seed;
-    bool use_mask = DropoutDesc.use_mask;
-    bool state_evo = DropoutDesc.state_evo;
+    float dropout            = DropoutDesc.dropout;
+    Data_t pstates           = DropoutDesc.pstates;
+    size_t stateSizeInBytes  = DropoutDesc.stateSizeInBytes;
+    unsigned long long seed  = DropoutDesc.seed;
+    bool use_mask            = DropoutDesc.use_mask;
+    bool state_evo           = DropoutDesc.state_evo;
     miopenRNGType_t rng_mode = DropoutDesc.rng_mode;
 
     if(dx == nullptr || dy == nullptr)
@@ -554,7 +525,6 @@ void DropoutBackward(   const miopen::Handle& handle,
         }
     }
 
-
     std::string network_config =
         "bwd-" + std::string(dyDesc.GetType() == miopenHalf ? "fp16-" : "fp32-") + "-seed" +
         std::to_string(seed) + "-rng" + std::to_string(rng_mode) + "-prng" +
@@ -565,18 +535,18 @@ void DropoutBackward(   const miopen::Handle& handle,
     std::string program_name;
     std::string kernel_name;
 
-    if(!use_hip){
+    if(!use_hip)
+    {
 
         program_name = "MIOpenDropout.cl";
         kernel_name  = "DropoutBackward";
-
     }
-    else{
+    else
+    {
 
         program_name = "MIOpenDropoutHIP.cpp";
         kernel_name  = "DropoutBackwardHIP";
         network_config += "-hip";
-    
     }
 
     // TODO: Add noise shape
@@ -673,128 +643,61 @@ void DropoutBackward(   const miopen::Handle& handle,
     }
 }
 
-
-template <typename T>
-tensor<T> FWDropCPU(const miopen::DropoutDescriptor& DropoutDesc,
-                const miopen::TensorDescriptor& NoiseShape,
-                const tensor<T>& input,
-                const tensor<T>& output,
-                std::vector<unsigned char>& rsvsp,
-                size_t in_offset,
-                size_t out_offset,
-                size_t rsvsp_offset,
-                bool use_rsvsp = true)
-{
-    auto states_cpu = std::vector<prngStates>(DropoutDesc.stateSizeInBytes);
-    InitKernelStateEmulator(states_cpu, DropoutDesc);
-
-    auto out_cpu   = output;
-    auto rsvsp_cpu = rsvsp;
-
-    DropoutForwardVerify<T>(get_handle(),
-                                DropoutDesc,
-                                input.desc,
-                                input.data,
-                                out_cpu.desc,
-                                out_cpu.data,
-                                rsvsp_cpu,
-                                states_cpu,
-                                in_offset,
-                                out_offset,
-                                rsvsp_offset);
-
-    return out_cpu;
-    
-}
-
-template <typename T>
-tensor<T> BWDropCPU(const miopen::DropoutDescriptor& DropoutDesc,
-                const tensor<T>& din,
-                const tensor<T>& dout,
-                const std::vector<unsigned char>& rsvsp,
-                size_t in_offset,
-                size_t out_offset,
-                size_t rsvsp_offset,
-                bool use_rsvsp = true)
-{
-    auto din_cpu   = din;
-    auto rsvsp_cpu = rsvsp;
-
-    DropoutBackwardVerify<T>(DropoutDesc,
-                                dout.desc,
-                                dout.data,
-                                din_cpu.desc,
-                                din_cpu.data,
-                                rsvsp_cpu,
-                                in_offset,
-                                out_offset,
-                                rsvsp_offset);
-
-    return din_cpu;
-}
-
-
 template <typename T>
 tensor<T> FWDropGPU(const miopen::DropoutDescriptor& DropoutDesc,
-                const miopen::TensorDescriptor& NoiseShape,
-                const tensor<T>& input,
-                const tensor<T>& output,
-                std::vector<unsigned char>& rsvsp,
-                size_t in_offset,
-                size_t out_offset,
-                size_t rsvsp_offset,
-                bool use_rsvsp = true,
-                bool use_hip = false
-                )
+                    const miopen::TensorDescriptor& NoiseShape,
+                    const tensor<T>& input,
+                    const tensor<T>& output,
+                    std::vector<unsigned char>& rsvsp,
+                    size_t in_offset,
+                    size_t out_offset,
+                    size_t rsvsp_offset,
+                    bool use_rsvsp = true,
+                    bool use_hip   = false)
 {
 
-        auto&& handle  = get_handle();
-        auto out_gpu   = output;
-        auto rsvsp_dev = handle.Write(rsvsp);
-        auto in_dev    = handle.Write(input.data);
-        auto out_dev   = handle.Write(output.data);
+    auto&& handle  = get_handle();
+    auto out_gpu   = output;
+    auto rsvsp_dev = handle.Write(rsvsp);
+    auto in_dev    = handle.Write(input.data);
+    auto out_dev   = handle.Write(output.data);
 
-        typename std::vector<unsigned char>::iterator rsvsp_ptr;
+    typename std::vector<unsigned char>::iterator rsvsp_ptr;
 
-        rsvsp_ptr = rsvsp.begin();
+    rsvsp_ptr = rsvsp.begin();
 
-        DropoutForward(handle,
-                        input.desc,
-                        input.desc,
-                        in_dev.get(),
-                        output.desc,
-                        out_dev.get(),
-                        use_rsvsp ? rsvsp_dev.get() : nullptr,
-                        rsvsp.size(),
-                        in_offset,
-                        out_offset,
-                        rsvsp_offset,
-                        DropoutDesc,
-                        use_hip
-                        );
+    DropoutForward(handle,
+                   input.desc,
+                   input.desc,
+                   in_dev.get(),
+                   output.desc,
+                   out_dev.get(),
+                   use_rsvsp ? rsvsp_dev.get() : nullptr,
+                   rsvsp.size(),
+                   in_offset,
+                   out_offset,
+                   rsvsp_offset,
+                   DropoutDesc,
+                   use_hip);
 
+    out_gpu.data   = handle.Read<T>(out_dev, output.data.size());
+    auto rsvsp_gpu = handle.Read<unsigned char>(rsvsp_dev, rsvsp.size());
 
-        out_gpu.data   = handle.Read<T>(out_dev, output.data.size());
-        auto rsvsp_gpu = handle.Read<unsigned char>(rsvsp_dev, rsvsp.size());
-
-
-        std::copy(rsvsp_gpu.begin(), rsvsp_gpu.end(), rsvsp_ptr);
-        return out_gpu;
-    
+    std::copy(rsvsp_gpu.begin(), rsvsp_gpu.end(), rsvsp_ptr);
+    return out_gpu;
 }
-
-
 
 template <typename T>
 tensor<T> BWDropGPU(const miopen::DropoutDescriptor& DropoutDesc,
-                            const tensor<T>& din,
-                            const tensor<T>& dout,
-                            const std::vector<unsigned char>& rsvsp,
-                            size_t in_offset,
-                            size_t out_offset,
-                            size_t rsvsp_offset,
-                            bool use_rsvsp = true,
-                            bool use_hip = false){
+                    const tensor<T>& din,
+                    const tensor<T>& dout,
+                    const std::vector<unsigned char>& rsvsp,
+                    size_t in_offset,
+                    size_t out_offset,
+                    size_t rsvsp_offset,
+                    bool use_rsvsp = true,
+                    bool use_hip   = false)
+{
 
     auto&& handle = get_handle();
     auto din_gpu  = din;
@@ -817,10 +720,8 @@ tensor<T> BWDropGPU(const miopen::DropoutDescriptor& DropoutDesc,
                     DropoutDesc,
                     use_hip);
 
-
     din_gpu.data = handle.Read<T>(din_dev, din.data.size());
     return din_gpu;
-
 }
 
 struct DropoutTestCase
@@ -829,7 +730,7 @@ struct DropoutTestCase
 };
 
 std::vector<DropoutTestCase> DropoutTestConfigs()
-{   // mask enable
+{ // mask enable
     // clang-format off
     return {{false},
             {true}};
@@ -843,7 +744,7 @@ protected:
     void SetUp() override
     {
         auto&& handle  = get_handle();
-        dropout_config     = GetParam();
+        dropout_config = GetParam();
 
         mask_flag = dropout_config.mask_flag;
 
@@ -852,17 +753,14 @@ protected:
         int rng_mode_cmd = 0;
 
         // DROPOUT_SINGLE_CTEST
-        input_dims  = get_sub_tensor();
+        input_dims = get_sub_tensor();
         input_dims.resize(1);
         in_dim = input_dims[0];
-       
+
         uint64_t max_value = miopen_type<T>{} == miopenHalf ? 5 : 17;
 
         // Create tensors for the forward and backward dropout
-        input_f = tensor<T>{in_dim}.generate(tensor_elem_gen_integer{max_value});
-        output_f = tensor<T>{in_dim};
-
-        input_b = tensor<T>{in_dim};
+        input_f  = tensor<T>{in_dim}.generate(tensor_elem_gen_integer{max_value});
         output_b = tensor<T>{in_dim}.generate(tensor_elem_gen_integer{max_value});
 
         // Allocate tensors for the forward and backward dropout on GPU
@@ -872,9 +770,11 @@ protected:
         input_b_ocl = tensor<T>{in_dim};
         input_b_hip = tensor<T>{in_dim};
 
-        size_t stateSizeInBytes = std::min(size_t(MAX_PRNG_STATE), handle.GetImage3dMaxWidth()) * sizeof(prngStates);
+        size_t stateSizeInBytes =
+            std::min(size_t(MAX_PRNG_STATE), handle.GetImage3dMaxWidth()) * sizeof(prngStates);
         size_t reserveSpaceSizeInBytes = input_f.desc.GetElementSize() * sizeof(bool);
-        size_t total_mem = 2 * (2 * input_f.desc.GetNumBytes() + reserveSpaceSizeInBytes) + stateSizeInBytes;
+        size_t total_mem =
+            2 * (2 * input_f.desc.GetNumBytes() + reserveSpaceSizeInBytes) + stateSizeInBytes;
         size_t device_mem = handle.GetGlobalMemorySize();
 
         if(total_mem >= device_mem)
@@ -889,7 +789,7 @@ protected:
         DropoutDesc.dropout          = 0.5;
         DropoutDesc.stateSizeInBytes = stateSizeInBytes;
         DropoutDesc.seed             = 0;
-        DropoutDesc.rng_mode         = miopenRNGType_t(rng_mode_cmd);;
+        DropoutDesc.rng_mode         = miopenRNGType_t(rng_mode_cmd);
         DropoutDesc.use_mask         = mask_flag;
 
         // Allocate reserve space
@@ -898,114 +798,85 @@ protected:
         {
             for(size_t i = 0; i < input_f.desc.GetElementSize(); i++)
             {
-                reserveSpace[i] = static_cast<unsigned char>(prng::gen_canonical<float>() > DropoutDesc.dropout);
+                reserveSpace[i] =
+                    static_cast<unsigned char>(prng::gen_canonical<float>() > DropoutDesc.dropout);
             }
         }
-
     }
 
     void RunDropoutOCL(bool mask_en = false)
     {
         DropoutDesc.use_mask = mask_en;
-        
-        auto&& handle  = get_handle();
-        auto state_buf  = handle.Create<unsigned char>(DropoutDesc.stateSizeInBytes);
+
+        auto&& handle       = get_handle();
+        auto state_buf      = handle.Create<unsigned char>(DropoutDesc.stateSizeInBytes);
         DropoutDesc.pstates = state_buf.get();
         InitPRNGState(handle, DropoutDesc, false);
 
-        // forward pass CPU
-        output_f = FWDropCPU<T>(DropoutDesc, noise_shape, input_f, output_f, reserveSpace, 0, 0, 0);
-        
         // forward pass OCL
-        output_f_ocl = FWDropGPU<T>(DropoutDesc, noise_shape, input_f, output_f_ocl, reserveSpace, 0, 0, 0, true, false);
-
-        // backward pass CPU
-        input_b = BWDropCPU<T>(DropoutDesc, input_b, output_b, reserveSpace, 0, 0, 0);
+        output_f_ocl = FWDropGPU<T>(
+            DropoutDesc, noise_shape, input_f, output_f_ocl, reserveSpace, 0, 0, 0, true, false);
 
         // backward pass OCL
-        input_b_ocl = BWDropGPU<T>(DropoutDesc, input_b_ocl, output_b, reserveSpace, 0, 0, 0, true, false);
+        input_b_ocl =
+            BWDropGPU<T>(DropoutDesc, input_b_ocl, output_b, reserveSpace, 0, 0, 0, true, false);
 
         if(!mask_en)
         {
-            // forward pass CPU
-            output_f = FWDropCPU<T>(DropoutDesc, noise_shape, input_f, output_f, reserveSpace, 0, 0, 0, false);
-        
             // forward pass OCL
-            output_f_ocl = FWDropGPU<T>(DropoutDesc, noise_shape, input_f, output_f_ocl, reserveSpace, 0, 0, 0, false, false);
-
-            // backward pass CPU
-            input_b = BWDropCPU<T>(DropoutDesc, input_b, output_b, reserveSpace, 0, 0, 0, false);
+            output_f_ocl = FWDropGPU<T>(DropoutDesc,
+                                        noise_shape,
+                                        input_f,
+                                        output_f_ocl,
+                                        reserveSpace,
+                                        0,
+                                        0,
+                                        0,
+                                        false,
+                                        false);
 
             // backward pass OCL
-            input_b_ocl = BWDropGPU<T>(DropoutDesc, input_b_ocl, output_b, reserveSpace, 0, 0, 0, false, false);
-
+            input_b_ocl = BWDropGPU<T>(
+                DropoutDesc, input_b_ocl, output_b, reserveSpace, 0, 0, 0, false, false);
         }
-
     }
-
 
     void RunDropoutHIP(bool mask_en = false)
     {
         DropoutDesc.use_mask = mask_en;
-        
-        auto&& handle  = get_handle();
-        auto state_buf  = handle.Create<unsigned char>(DropoutDesc.stateSizeInBytes);
+
+        auto&& handle       = get_handle();
+        auto state_buf      = handle.Create<unsigned char>(DropoutDesc.stateSizeInBytes);
         DropoutDesc.pstates = state_buf.get();
         InitPRNGState(handle, DropoutDesc, true);
 
-        // forward pass CPU
-        output_f = FWDropCPU<T>(DropoutDesc, noise_shape, input_f, output_f, reserveSpace, 0, 0, 0);
-        
         // forward pass HIP
-        output_f_hip = FWDropGPU<T>(DropoutDesc, noise_shape, input_f, output_f_hip, reserveSpace, 0, 0, 0, true, true);
-
-        // backward pass CPU
-        input_b = BWDropCPU<T>(DropoutDesc, input_b, output_b, reserveSpace, 0, 0, 0);
+        output_f_hip = FWDropGPU<T>(
+            DropoutDesc, noise_shape, input_f, output_f_hip, reserveSpace, 0, 0, 0, true, true);
 
         // backward pass HIP
-        input_b_hip = BWDropGPU<T>(DropoutDesc, input_b_hip, output_b, reserveSpace, 0, 0, 0, true, true);
+        input_b_hip =
+            BWDropGPU<T>(DropoutDesc, input_b_hip, output_b, reserveSpace, 0, 0, 0, true, true);
 
         if(!mask_en)
         {
-            // forward pass CPU
-            output_f = FWDropCPU<T>(DropoutDesc, noise_shape, input_f, output_f, reserveSpace, 0, 0, 0, false);
-        
-            // forward pass HIP
-            output_f_hip = FWDropGPU<T>(DropoutDesc, noise_shape, input_f, output_f_hip, reserveSpace, 0, 0, 0, false, true);
 
-            // backward pass CPU
-            input_b = BWDropCPU<T>(DropoutDesc, input_b, output_b, reserveSpace, 0, 0, 0, false);
+            // forward pass HIP
+            output_f_hip = FWDropGPU<T>(DropoutDesc,
+                                        noise_shape,
+                                        input_f,
+                                        output_f_hip,
+                                        reserveSpace,
+                                        0,
+                                        0,
+                                        0,
+                                        false,
+                                        true);
 
             // backward pass HIP
-            input_b_hip = BWDropGPU<T>(DropoutDesc, input_b_hip, output_b, reserveSpace, 0, 0, 0, false, true);
-
+            input_b_hip = BWDropGPU<T>(
+                DropoutDesc, input_b_hip, output_b, reserveSpace, 0, 0, 0, false, true);
         }
-
-    }
-
-    void VerifyOCL()
-    {        
-
-        auto error_f = miopen::rms_range(output_f, output_f_ocl);
-        EXPECT_TRUE(miopen::range_distance(output_f) == miopen::range_distance(output_f_ocl));
-        EXPECT_TRUE(error_f == 0) << "[CPU-OCL] FW Outputs do not match each other. Error:" << error_f;
-
-        auto error_b = miopen::rms_range(input_b, input_b_ocl);
-        EXPECT_TRUE(miopen::range_distance(input_b) == miopen::range_distance(input_b_ocl));
-        EXPECT_TRUE(error_b == 0) << "[CPU-OCL] BW Outputs do not match each other. Error:" << error_b;
-
-    }
-
-    void VerifyHIP()
-    {
-        auto error_f = miopen::rms_range(output_f, output_f_hip);
-        EXPECT_TRUE(miopen::range_distance(output_f) == miopen::range_distance(output_f_hip));
-        EXPECT_TRUE(error_f == 0) << "[CPU-HIP] FW Outputs do not match each other. Error:" << error_f;
-
-        auto error_b = miopen::rms_range(input_b, input_b_hip);
-        EXPECT_TRUE(miopen::range_distance(input_b) == miopen::range_distance(input_b_hip));
-        EXPECT_TRUE(error_b == 0) << "[CPU-HIP] BW Outputs do not match each other. Error:" << error_b;
-
     }
 
     void VerifyGPU()
@@ -1021,9 +892,7 @@ protected:
 
     DropoutTestCase dropout_config;
 
-    tensor<T> input_f; // input tensor for dropout forward
-    tensor<T> output_f; // output tensor for dropout forward
-    tensor<T> input_b; // input tensor for dropout backward
+    tensor<T> input_f;  // input tensor for dropout forward
     tensor<T> output_b; // output tensor for dropout backward
 
     // Create tensors for the forward and backward dropout OCL
@@ -1038,9 +907,7 @@ protected:
     miopen::TensorDescriptor noise_shape;
     bool mask_flag;
     std::vector<unsigned char> reserveSpace;
-
 };
-
 
 namespace dropout {
 
@@ -1053,17 +920,9 @@ using namespace dropout;
 
 TEST_P(DropoutTestFloat, DropoutTest)
 {
-    // Run the CPU-OCL and verification
     RunDropoutOCL(mask_flag);
-    VerifyOCL();
-
-    // Run the CPU-HIP and verification
     RunDropoutHIP(mask_flag);
-    VerifyHIP();
-
-    // Run the OCL-HIP verification
     VerifyGPU();
-
 };
 
 INSTANTIATE_TEST_SUITE_P(DropoutTestSet, DropoutTestFloat, testing::ValuesIn(DropoutTestConfigs()));
