@@ -161,19 +161,23 @@ struct layout_data
 
     layout_data(int _n, std::vector<int> _dims, int _c, miopenTensorLayout_t _tensor_layout)
     {
-        lens       = get_layout_lengths(_n, _c, _dims);
-        strides    = get_strides(lens, _dims.size(), _tensor_layout);
-        host       = tensor<T>{lens, strides}.generate(gen_value<T>);
-        descriptor = init_tensor_descriptor(miopen_type<T>{}, lens, strides);
+        auto lens    = get_layout_lengths(_n, _c, _dims);
+        auto strides = get_strides(lens, _dims.size(), _tensor_layout);
+        descriptor   = miopen::TensorDescriptor{miopen_type<T>{}, lens, strides};
+        host         = tensor<T>{lens, strides}.generate(gen_value<T>);
     }
 
-    ~layout_data() { miopenDestroyTensorDescriptor(descriptor); }
+    ~layout_data() {}
 
-    std::vector<int> lens;
-    std::vector<int> strides;
+    void read_gpu_data(miopen::Handle& handle, const miopen::Allocator::ManageDataPtr& ddata)
+    {
+        check      = tensor<T>{descriptor.GetLengths(), descriptor.GetStrides()};
+        check.data = handle.Read<T>(ddata, check.data.size());
+    }
+
     tensor<T> check{};
     tensor<T> host;
-    miopenTensorDescriptor_t descriptor;
+    miopen::TensorDescriptor descriptor;
 };
 
 template <typename Tin,
@@ -491,20 +495,19 @@ protected:
 
             EXPECT_TRUE(miopenConvolutionForwardImmediate(
                             &handle,
-                            wei.descriptor,
+                            &wei.descriptor,
                             wei_dev.get(),
-                            in.descriptor,
+                            &in.descriptor,
                             in_dev.get(),
                             convDesc,
-                            out.descriptor,
+                            &out.descriptor,
                             out_dev.get(),
                             nullptr,
                             0,
                             miopen::solver::Id("ConvDirectNaiveConvFwd").Value()) ==
                         miopenStatusSuccess);
 
-            out.check      = tensor<TOut>{out.lens, out.strides};
-            out.check.data = handle.Read<TOut>(out_dev, out.check.data.size());
+            out.read_gpu_data(handle, out_dev);
 
             // we expect exact match, since use integer
             valid_result = verify_tensor(out.check, out.host);
@@ -523,20 +526,19 @@ protected:
 
             EXPECT_TRUE(miopenConvolutionBackwardDataImmediate(
                             &handle,
-                            out.descriptor,
+                            &out.descriptor,
                             out_dev.get(),
-                            wei.descriptor,
+                            &wei.descriptor,
                             wei_dev.get(),
                             convDesc,
-                            in.descriptor,
+                            &in.descriptor,
                             in_dev.get(),
                             nullptr,
                             0,
                             miopen::solver::Id("ConvDirectNaiveConvBwd").Value()) ==
                         miopenStatusSuccess);
 
-            in.check      = tensor<TRef>{in.lens, in.strides};
-            in.check.data = handle.Read<TRef>(in_dev, in.check.data.size());
+            in.read_gpu_data(handle, in_dev);
 
             // we expect exact match, since use integer
             valid_result = verify_tensor(in.check, in.host);
@@ -555,20 +557,19 @@ protected:
 
             EXPECT_TRUE(miopenConvolutionBackwardWeightsImmediate(
                             &handle,
-                            out.descriptor,
+                            &out.descriptor,
                             out_dev.get(),
-                            in.descriptor,
+                            &in.descriptor,
                             in_dev.get(),
                             convDesc,
-                            wei.descriptor,
+                            &wei.descriptor,
                             wei_dev.get(),
                             nullptr,
                             0,
                             miopen::solver::Id("ConvDirectNaiveConvWrw").Value()) ==
                         miopenStatusSuccess);
 
-            wei.check      = tensor<TRef>{wei.lens, wei.strides};
-            wei.check.data = handle.Read<TRef>(wei_dev, wei.check.data.size());
+            wei.read_gpu_data(handle, wei_dev);
 
             // we expect exact match, since use integer
             valid_result = verify_tensor(wei.check, wei.host);
