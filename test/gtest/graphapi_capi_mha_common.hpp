@@ -143,7 +143,7 @@ public:
     miopenBackendDescriptorType_t GetDescriptorType() const { return m_descriptorType; }
 
     // helper for tensor
-    void GetTensorDims(std::vector<size_t> dims) const
+    void GetTensorDims(std::vector<size_t>& dims) const
     {
         assert(m_descriptorType == MIOPEN_BACKEND_TENSOR_DESCRIPTOR);
 
@@ -384,50 +384,6 @@ protected:
 
     virtual void RunCPUverify(miopen::Handle& handle) = 0;
 
-    // For real tensors we use values from enum miopenTensorArgumentId_t (miopen.h) jsut to have
-    // some unique and named values. For virtual tensors we use identifiers starting from "max id
-    // from real tensors" + 1
-    TensorData& MakeAndAddRealTensorDescriptor(int64_t tensorId,
-                                               bool isVirtual         = false,
-                                               size_t n               = 1,
-                                               size_t h               = 1,
-                                               size_t s               = 1,
-                                               size_t d               = 1,
-                                               miopenDataType_t dtype = miopenFloat,
-                                               bool transpose         = false)
-    {
-        DescriptorWrapperPtr realTensorGapiDesc =
-            MakeGapiTensorDesc(tensorId, isVirtual, n, h, s, d, dtype, transpose);
-
-        TensorDataPtr tensorDataPtr = std::make_shared<TensorData>();
-        tensorDataPtr->m_gapiDesc   = realTensorGapiDesc;
-
-        if(dtype == miopenFloat)
-        {
-            tensorDataPtr->m_tensorVariant = tensor<float>{n, h, s, d};
-        }
-        else if(dtype == miopenInt64)
-        {
-            tensorDataPtr->m_tensorVariant = tensor<int64_t>{n, h, s, d};
-        }
-        else if(dtype == miopenFloat8)
-        {
-            tensorDataPtr->m_tensorVariant = tensor<float8>{n, h, s, d};
-        }
-        else
-        {
-            assert(false);
-        }
-
-        m_realTensorMap[tensorId] = tensorDataPtr;
-
-        // Here we memorize maximum id from real tensors set -to start from this value + 1 for
-        // virtual tensors set.
-        m_nextTensorId = std::max(m_nextTensorId, tensorId);
-
-        return *tensorDataPtr;
-    }
-
     // just a simple id generator, might be redone if necessary
     int64_t GetNextId() { return m_nextTensorId++; }
 
@@ -630,6 +586,49 @@ protected:
                                                    bool transpose         = false)
     {
         return MakeGapiTensorDesc(GetNextId(), true, n, h, s, d, dtype, transpose);
+    }
+
+    // For real tensors we use values from enum miopenTensorArgumentId_t (miopen.h) jsut to have
+    // some unique and named values. For virtual tensors we use identifiers starting from "max id
+    // from real tensors" + 1
+    TensorData& MakeAndAddRealTensorDescriptor(int64_t tensorId,
+                                               size_t n               = 1,
+                                               size_t h               = 1,
+                                               size_t s               = 1,
+                                               size_t d               = 1,
+                                               miopenDataType_t dtype = miopenFloat,
+                                               bool transpose         = false)
+    {
+        DescriptorWrapperPtr realTensorGapiDesc =
+            MakeGapiTensorDesc(tensorId, false, n, h, s, d, dtype, transpose);
+
+        TensorDataPtr tensorDataPtr = std::make_shared<TensorData>();
+        tensorDataPtr->m_gapiDesc   = realTensorGapiDesc;
+
+        if(dtype == miopenFloat)
+        {
+            tensorDataPtr->m_tensorVariant = tensor<float>{n, h, s, d};
+        }
+        else if(dtype == miopenInt64)
+        {
+            tensorDataPtr->m_tensorVariant = tensor<int64_t>{n, h, s, d};
+        }
+        else if(dtype == miopenFloat8)
+        {
+            tensorDataPtr->m_tensorVariant = tensor<float8>{n, h, s, d};
+        }
+        else
+        {
+            assert(false);
+        }
+
+        m_realTensorMap[tensorId] = tensorDataPtr;
+
+        // Here we memorize maximum id from real tensors set -to start from this value + 1 for
+        // virtual tensors set.
+        m_nextTensorId = std::max(m_nextTensorId, tensorId);
+
+        return *tensorDataPtr;
     }
 
     DescriptorWrapperPtr MakeGapiTensorDesc(int64_t uniqueId,

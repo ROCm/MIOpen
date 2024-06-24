@@ -36,9 +36,8 @@ protected:
     {
         // We use identifiers from Find 2.0 enum to have sopmething unique for the test purposes
         MakeAndAddRealTensorDescriptor(
-            miopenTensorMhaQ, false, m_testN, m_testH, m_testS, m_testD, GetMainType<T>());
+            miopenTensorMhaQ, m_testN, m_testH, m_testS, m_testD, GetMainType<T>());
         MakeAndAddRealTensorDescriptor(miopenTensorMhaK,
-                                       false,
                                        m_testN,
                                        m_testH,
                                        m_testS,
@@ -47,7 +46,7 @@ protected:
                                        false); // no transpose for now
 
         MakeAndAddRealTensorDescriptor(
-            miopenTensorMhaV, false, m_testN, m_testH, m_testS, m_testD, GetMainType<T>());
+            miopenTensorMhaV, m_testN, m_testH, m_testS, m_testD, GetMainType<T>());
         MakeAndAddRealTensorDescriptor(miopenTensorMhaDescaleK);
         MakeAndAddRealTensorDescriptor(miopenTensorMhaDescaleQ);
         MakeAndAddRealTensorDescriptor(miopenTensorMhaDescaleV);
@@ -56,18 +55,17 @@ protected:
         MakeAndAddRealTensorDescriptor(miopenTensorMhaScaleO);
 
         MakeAndAddRealTensorDescriptor(miopenTensorMhaDropoutProbability);
+        MakeAndAddRealTensorDescriptor(miopenTensorMhaDropoutSeed, 1, 1, 1, 1, miopenInt64, false);
         MakeAndAddRealTensorDescriptor(
-            miopenTensorMhaDropoutSeed, false, 1, 1, 1, 1, miopenInt64, false);
-        MakeAndAddRealTensorDescriptor(
-            miopenTensorMhaDropoutOffset, false, 1, 1, 1, 1, miopenInt64, false);
+            miopenTensorMhaDropoutOffset, 1, 1, 1, 1, miopenInt64, false);
 
         // output real tensors
         MakeAndAddRealTensorDescriptor(
-            miopenTensorMhaO, false, m_testN, m_testH, m_testS, m_testD, GetMainType<T>());
+            miopenTensorMhaO, m_testN, m_testH, m_testS, m_testD, GetMainType<T>());
         MakeAndAddRealTensorDescriptor(miopenTensorMhaAmaxO);
         MakeAndAddRealTensorDescriptor(miopenTensorMhaAmaxS);
-        MakeAndAddRealTensorDescriptor(miopenTensorMhaM, false, m_testN, m_testH, m_testS, 1);
-        MakeAndAddRealTensorDescriptor(miopenTensorMhaZInv, false, m_testN, m_testH, m_testS, 1);
+        MakeAndAddRealTensorDescriptor(miopenTensorMhaM, m_testN, m_testH, m_testS, 1);
+        MakeAndAddRealTensorDescriptor(miopenTensorMhaZInv, m_testN, m_testH, m_testS, 1);
 
         InitTensorValues(handle);
 

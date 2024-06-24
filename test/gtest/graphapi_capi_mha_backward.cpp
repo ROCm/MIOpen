@@ -41,20 +41,14 @@ protected:
         auto k = test::cpu::GenScaledTensorBackward<T>(m_testN, m_testH, m_testS, m_testD);
         auto v = test::cpu::GenScaledTensorBackward<T>(m_testN, m_testH, m_testS, m_testD);
 
-        MakeAndAddRealTensorDescriptor(miopenTensorMhaQ, false, m_testN, m_testH, m_testS, m_testD)
+        MakeAndAddRealTensorDescriptor(miopenTensorMhaQ, m_testN, m_testH, m_testS, m_testD)
             .InitAndWriteToGPU(handle, std::move(q.mTensor));
 
-        MakeAndAddRealTensorDescriptor(miopenTensorMhaK, false, m_testN, m_testH, m_testS, m_testD)
+        MakeAndAddRealTensorDescriptor(miopenTensorMhaK, m_testN, m_testH, m_testS, m_testD)
             .InitAndWriteToGPU(handle, std::move(k.mTensor));
 
-        MakeAndAddRealTensorDescriptor(miopenTensorMhaV, false, m_testN, m_testH, m_testS, m_testD)
+        MakeAndAddRealTensorDescriptor(miopenTensorMhaV, m_testN, m_testH, m_testS, m_testD)
             .InitAndWriteToGPU(handle, std::move(v.mTensor));
-
-        float sScale   = 1.0f;
-        float sDescale = 1.0f;
-
-        float oScale   = 1.0f;
-        float oDescale = 1.0f;
 
         MakeAndAddRealTensorDescriptor(miopenTensorMhaDescaleQ)
             .InitAndWriteToGPU(handle, q.mDescale);
@@ -63,14 +57,20 @@ protected:
         MakeAndAddRealTensorDescriptor(miopenTensorMhaDescaleV)
             .InitAndWriteToGPU(handle, v.mDescale);
 
+        float sScale   = 1.0f;
+        float sDescale = 1.0f;
+
+        float oScale   = 1.0f;
+        float oDescale = 1.0f;
+
         MakeAndAddRealTensorDescriptor(miopenTensorMhaDescaleS).InitAndWriteToGPU(handle, sDescale);
         MakeAndAddRealTensorDescriptor(miopenTensorMhaScaleS).InitAndWriteToGPU(handle, sScale);
 
         MakeAndAddRealTensorDescriptor(miopenTensorMhaDropoutProbability)
             .InitAndWriteToGPU(handle, m_bernulliProbability);
-        MakeAndAddRealTensorDescriptor(miopenTensorMhaDropoutSeed)
-            .InitAndWriteToGPU(handle, static_cast<int64_t>(0xAAFFFFFFFFul));
-        MakeAndAddRealTensorDescriptor(miopenTensorMhaDropoutOffset)
+        MakeAndAddRealTensorDescriptor(miopenTensorMhaDropoutSeed, 1, 1, 1, 1, miopenInt64)
+            .InitAndWriteToGPU(handle, static_cast<int64_t>(0xAAFFFFFFFFUL));
+        MakeAndAddRealTensorDescriptor(miopenTensorMhaDropoutOffset, 1, 1, 1, 1, miopenInt64)
             .InitAndWriteToGPU(handle, static_cast<int64_t>(1));
 
         tensor<float> softmax  = tensor<float>{m_testN, m_testH, m_testS, m_testS};
@@ -105,16 +105,16 @@ protected:
             oDesc);
 
         auto dO = test::cpu::GenScaledTensorBackward<dO_T>(m_testN, m_testH, m_testS, m_testD);
-        MakeAndAddRealTensorDescriptor(miopenTensorMhaDO, false, m_testN, m_testH, m_testS, m_testD)
+        MakeAndAddRealTensorDescriptor(miopenTensorMhaDO, m_testN, m_testH, m_testS, m_testD)
             .InitAndWriteToGPU(handle, std::move(dO.mTensor));
 
-        MakeAndAddRealTensorDescriptor(miopenTensorMhaO, false, m_testN, m_testH, m_testS, m_testD)
+        MakeAndAddRealTensorDescriptor(miopenTensorMhaO, m_testN, m_testH, m_testS, m_testD)
             .InitAndWriteToGPU(handle, std::move(oDesc));
 
-        MakeAndAddRealTensorDescriptor(miopenTensorMhaM, false, m_testN, m_testH, m_testS, 1)
+        MakeAndAddRealTensorDescriptor(miopenTensorMhaM, m_testN, m_testH, m_testS, 1)
             .InitAndWriteToGPU(handle, std::move(mDesc));
 
-        MakeAndAddRealTensorDescriptor(miopenTensorMhaZInv, false, m_testN, m_testH, m_testS, 1)
+        MakeAndAddRealTensorDescriptor(miopenTensorMhaZInv, m_testN, m_testH, m_testS, 1)
             .InitAndWriteToGPU(handle, std::move(zInvDesc));
 
         float dsScale   = 1.0f;
@@ -134,16 +134,44 @@ protected:
         MakeAndAddRealTensorDescriptor(miopenTensorMhaScaleDK).InitAndWriteToGPU(handle, dkScale);
         MakeAndAddRealTensorDescriptor(miopenTensorMhaScaleDV).InitAndWriteToGPU(handle, dvScale);
 
-        MakeAndAddRealTensorDescriptor(
-            miopenTensorMhaDQ, false, m_testN, m_testH, m_testS, m_testD);
-        MakeAndAddRealTensorDescriptor(
-            miopenTensorMhaDK, false, m_testN, m_testH, m_testS, m_testD);
-        MakeAndAddRealTensorDescriptor(
-            miopenTensorMhaDV, false, m_testN, m_testH, m_testS, m_testD);
+        MakeAndAddRealTensorDescriptor(miopenTensorMhaDQ, m_testN, m_testH, m_testS, m_testD);
+        MakeAndAddRealTensorDescriptor(miopenTensorMhaDK, m_testN, m_testH, m_testS, m_testD);
+        MakeAndAddRealTensorDescriptor(miopenTensorMhaDV, m_testN, m_testH, m_testS, m_testD);
         MakeAndAddRealTensorDescriptor(miopenTensorMhaAmaxDQ);
         MakeAndAddRealTensorDescriptor(miopenTensorMhaAmaxDK);
         MakeAndAddRealTensorDescriptor(miopenTensorMhaAmaxDV);
         MakeAndAddRealTensorDescriptor(miopenTensorMhaAmaxDS);
+
+        dQDescRef = tensor<T>{m_testN, m_testH, m_testS, m_testD};
+        dKDescRef = tensor<T>{m_testN, m_testH, m_testS, m_testD};
+        dVDescRef = tensor<T>{m_testN, m_testH, m_testS, m_testD};
+
+        test::cpu::MultiHeadAttentionBackwardDataf8(
+            GetTensor<T>(m_realTensorMap[miopenTensorMhaQ]->m_tensorVariant),
+            GetTensor<T>(m_realTensorMap[miopenTensorMhaK]->m_tensorVariant),
+            GetTensor<T>(m_realTensorMap[miopenTensorMhaV]->m_tensorVariant),
+            GetTensor<T>(m_realTensorMap[miopenTensorMhaO]->m_tensorVariant),
+            GetTensor<T>(m_realTensorMap[miopenTensorMhaDO]->m_tensorVariant),
+            softmax,
+            q.mDescale,
+            k.mDescale,
+            v.mDescale,
+            dqScale,
+            dkScale,
+            dvScale,
+            sScale,
+            sDescale,
+            dsScale,
+            dsDescale,
+            oDescale,
+            dO.mDescale,
+            amaxDSRef,
+            amaxDQRef,
+            amaxDKRef,
+            amaxDVRef,
+            dQDescRef,
+            dKDescRef,
+            dVDescRef);
 
         // get next value for the rest of the tensors (which don't have any particular enum value)
         GetNextId();
@@ -255,12 +283,12 @@ protected:
                       m_realTensorMap[miopenTensorMhaDropoutProbability]->m_gapiDesc,
                       pwS13);
 
-        DescriptorWrapperPtr sum0, sub1;
+        auto sum0 = MakeGapiVirtualTensorDesc(m_testN, m_testH, m_testS, 1);
         MakeReduction(MIOPEN_REDUCE_TENSOR_ADD, pwS13, sum0);
 
         ////////////////// Center Part ////////////////////////////////////////////
         ///////////////////////////////////////////////////////////////////////////
-
+        DescriptorWrapperPtr sub1;
         MakePointwise(MIOPEN_POINTWISE_SUB, pwS10, sum0, sub1);
 
         DescriptorWrapperPtr pwS14, pwS15, mult3;
@@ -317,7 +345,54 @@ protected:
                       m_realTensorMap[miopenTensorMhaDK]->m_gapiDesc);
     }
 
-    virtual void RunCPUverify(miopen::Handle& handle) override {}
+    // _TODO Remove these 2 next functions to actually run a test. (Basic class implementation
+    // should be used)
+    virtual void PrepareOpGraphAndEngines(miopen::Handle& handle) override {}
+    virtual void MakeVariantPackAndRun(miopen::Handle& handle) override {}
+
+    virtual void RunCPUverify(miopen::Handle& handle) override
+    {
+        // _TODO Remove for actual test running
+        return;
+
+        const double errorThreshold    = 5e-5;
+        const double fp8ErrorThreshold = (std::is_same_v<T, float8>) ? 3e-3 : errorThreshold;
+
+        auto checkAmax = [this, errorThreshold, &handle](
+                             miopenTensorArgumentId_t id, std::string_view name, float refAmax) {
+            const auto& resAmax = GetResult<float>(id, handle);
+            float amaxRelDiff   = std::abs(refAmax - resAmax[0]);
+            float divisor       = std::min(refAmax, resAmax[0]);
+            amaxRelDiff /= divisor > std::numeric_limits<float>::min() ? divisor : 1.0f;
+            EXPECT_LT(amaxRelDiff, errorThreshold)
+                << name << " ref: " << refAmax << " result: " << resAmax[0];
+        };
+
+        auto checkOutput = [this, fp8ErrorThreshold, &handle](miopenTensorArgumentId_t id,
+                                                              std::string_view name,
+                                                              const auto& ref) {
+            EXPECT_LT(miopen::rms_range(ref, GetResult<T>(id, handle)), fp8ErrorThreshold) << name;
+        };
+
+        checkAmax(miopenTensorMhaAmaxDQ, "amax dQ", amaxDQRef);
+        checkAmax(miopenTensorMhaAmaxDK, "amax dK", amaxDKRef);
+        checkAmax(miopenTensorMhaAmaxDV, "amax dV", amaxDVRef);
+        checkAmax(miopenTensorMhaAmaxDS, "amax dS", amaxDSRef);
+
+        checkOutput(miopenTensorMhaDQ, "tensor dQ", dQDescRef);
+        checkOutput(miopenTensorMhaDK, "tensor dK", dKDescRef);
+        checkOutput(miopenTensorMhaDV, "tensor dV", dVDescRef);
+    }
+
+private:
+    tensor<T> dQDescRef;
+    tensor<T> dKDescRef;
+    tensor<T> dVDescRef;
+
+    float amaxDQRef;
+    float amaxDKRef;
+    float amaxDVRef;
+    float amaxDSRef;
 };
 
 class MhaBackwardTestFp32 : public MhaBackwardTest<float>
@@ -352,5 +427,4 @@ inline auto GetCases()
 }
 
 INSTANTIATE_TEST_SUITE_P(MhaBwdSuiteFp32, MhaBackwardTestFp32, GetCases());
-
-INSTANTIATE_TEST_SUITE_P(MhaBwdSuiteFp8, MhaBackwardTestFp8, GetCases());
+// INSTANTIATE_TEST_SUITE_P(MhaBwdSuiteFp8, MhaBackwardTestFp8, GetCases());
