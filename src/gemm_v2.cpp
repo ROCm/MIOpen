@@ -454,9 +454,10 @@ static void miopen_hipblasLt_gemm(const miopen::Handle& handle,
     check_hipblas_status(hipblasLtMatmulDescSetAttribute(
         hipBLASLtHandles.matmul, HIPBLASLT_MATMUL_DESC_EPILOGUE, &epilogue, sizeof(epilogue)));
 
-    /// \todo Need to request additional workspace for optimal gemm performance, and pass down workspace size & pointer. --BrianHarrisonAMD June 2024
-    size_t max_workspace_size = 0; 
-    void* workspace = nullptr;
+    /// \todo Need to request additional workspace for optimal gemm performance, and pass down
+    /// workspace size & pointer. --BrianHarrisonAMD June 2024
+    size_t max_workspace_size = 0;
+    void* workspace           = nullptr;
     check_hipblas_status(hipblasLtMatmulPreferenceCreate(&hipBLASLtHandles.pref));
     check_hipblas_status(
         hipblasLtMatmulPreferenceSetAttribute(hipBLASLtHandles.pref,
