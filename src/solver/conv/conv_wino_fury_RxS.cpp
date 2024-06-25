@@ -24,6 +24,8 @@
  *
  *******************************************************************************/
 
+#define CONV_WINO_FURY_RXS_CPP
+
 #include <miopen/solver.hpp>
 #include <miopen/fusion/solvers.hpp>
 
@@ -557,8 +559,8 @@ ConvWinoFuryRxSFused<Winodata, Winofilter>::GetSolution(const FusionContext& ctx
         ctx, conv_problem, true, do_bias, activ_mode);
 }
 
-template struct ConvWinoFuryRxSFused<2, 3>;
-// template struct ConvWinoFuryRxSFused<3, 2>;
+template struct MIOPEN_INTERNALS_EXPORT ConvWinoFuryRxSFused<2, 3>;
+// template struct MIOPEN_INTERNALS_EXPORT ConvWinoFuryRxSFused<3, 2>;
 
 } // namespace fusion
 
