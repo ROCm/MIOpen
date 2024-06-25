@@ -129,12 +129,12 @@ std::string ConvDirectNaiveConvKernelName(const ProblemDescription& problem)
 #ifndef NDEBUG // enable in debug mode only
     if(env::enabled(MIOPEN_DEBUG_CONV_DIRECT_NAIVE_USE_PACKED_KERNELS))
     {
-        kernel_name << "naive_conv_packed_";
+        kernel_name << "naive_conv_ab_packed_";
     }
     else
 #endif
     {
-        kernel_name << "naive_conv_nonpacked_";
+        kernel_name << "naive_conv_ab_nonpacked_";
     }
 
     // NOLINTBEGIN(*-braces-around-statements)
