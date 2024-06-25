@@ -238,10 +238,7 @@ static void RemoveOptionsUnwanted(OptionList& list)
 namespace hip {
 
 #if PCH_IS_SUPPORTED
-static bool IsPchEnabled()
-{
-    static bool IsPchEnabled() { return !env::disabled(MIOPEN_DEBUG_COMGR_HIP_PCH_ENFORCE); }
-}
+static bool IsPchEnabled() { return !env::disabled(MIOPEN_DEBUG_COMGR_HIP_PCH_ENFORCE); }
 #endif
 
 static std::string GetPchEnableStatus()
