@@ -48,8 +48,9 @@ typedef std::shared_ptr<DescriptorWrapper> DescriptorWrapperPtr;
 class Helpers
 {
 public:
-    static miopenStatus_t
-    CheckStatusAndThrow(miopenStatus_t status, const std::string& msg, bool addStatusToMessage = true)
+    static miopenStatus_t CheckStatusAndThrow(miopenStatus_t status,
+                                              const std::string& msg,
+                                              bool addStatusToMessage = true)
     {
         if(status == miopenStatusSuccess)
         {
@@ -83,8 +84,8 @@ public:
         : m_descriptorType(descriptorType), m_descriptor(nullptr)
     {
         Helpers::CheckStatusAndThrow(miopenBackendCreateDescriptor(descriptorType, &m_descriptor),
-                            "miopenBackendCreateDescriptor failed: type=" +
-                                std::to_string(descriptorType));
+                                     "miopenBackendCreateDescriptor failed: type=" +
+                                         std::to_string(descriptorType));
     }
 
     ~DescriptorWrapper()
@@ -107,10 +108,10 @@ public:
             m_descriptor, attributeName, attributeType, elementCount, arrayOfElements);
 
         Helpers::CheckStatusAndThrow(status,
-                            "miopenBackendSetAttribute failed: descriptorType = " +
-                                std::to_string(m_descriptorType) +
-                                ", attributeName=" + std::to_string(attributeName) +
-                                ", attributeType=" + std::to_string(attributeType));
+                                     "miopenBackendSetAttribute failed: descriptorType = " +
+                                         std::to_string(m_descriptorType) +
+                                         ", attributeName=" + std::to_string(attributeName) +
+                                         ", attributeType=" + std::to_string(attributeType));
     }
 
     void GetAttribute(miopenBackendAttributeName_t attributeName,
@@ -126,19 +127,19 @@ public:
                                                           elementCount,
                                                           arrayOfElements);
 
-        Helpers::CheckStatusAndThrow(status,
-                            "miopenBackendGetAttribute failed: descriptorType = " +
-                                std::to_string(m_descriptorType) +
-                                ", attributeName=" + std::to_string(attributeName) +
-                                ", attributeType=" + std::to_string(attributeType) +
-                                ", requestedElementCount=" + std::to_string(requestedElementCount));
+        Helpers::CheckStatusAndThrow(
+            status,
+            "miopenBackendGetAttribute failed: descriptorType = " +
+                std::to_string(m_descriptorType) + ", attributeName=" +
+                std::to_string(attributeName) + ", attributeType=" + std::to_string(attributeType) +
+                ", requestedElementCount=" + std::to_string(requestedElementCount));
     }
 
     void Finalize()
     {
         Helpers::CheckStatusAndThrow(miopenBackendFinalize(m_descriptor),
-                            "miopenBackendFinalize failed: descriptorType = " +
-                                std::to_string(m_descriptorType));
+                                     "miopenBackendFinalize failed: descriptorType = " +
+                                         std::to_string(m_descriptorType));
     }
 
     void AddRef(DescriptorWrapperPtr refToKeep) { m_refsToKeep.push_back(refToKeep); }
