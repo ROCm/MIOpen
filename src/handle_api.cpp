@@ -73,7 +73,7 @@ extern "C" miopenStatus_t miopenCreate(miopenHandle_t* handle)
 {
     return miopen::try_([&] {
         auto& h  = miopen::deref(handle);
-        auto ptr = std::unique_ptr<miopen::Handle>();
+        auto ptr = std::make_unique<miopen::Handle>();
         h        = ptr.release();
     });
 }
