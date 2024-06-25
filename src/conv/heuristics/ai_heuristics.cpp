@@ -634,7 +634,7 @@ bool ModelSetParams(const std::string& arch,
     std::size_t num_tuning_params = 1;
     do
     {
-        if(i == 0 && !model->metadata.predict_type)
+        if(i == 0 && (model->metadata.predict_type != 0u))
             num_tuning_params = model->metadata.num_tuning_params[dir];
 
         fdeep::tensors decoder_output = model->Decode(decoder_input, context);
