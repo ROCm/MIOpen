@@ -28,7 +28,7 @@
 .if (.amdgcn.gfx_generation_number == 9)
     KERNEL_PROLOG fp16_dot2_edc_f3x2_stride1
 
-.if (.amdgcn.gfx_generation_minor == 4)
+.if (.amdgcn.gfx_generation_minor == 4 || .amdgcn.gfx_generation_minor == 5)
     .include "Conv_Winograd_v30_3_1_gfx94x_fp16_dot2_edc_f3x2_stride1.inc"
 .else
     .include "Conv_Winograd_v30_3_1_gfx9_fp16_dot2_edc_f3x2_stride1.inc"
