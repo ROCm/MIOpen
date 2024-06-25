@@ -59,6 +59,9 @@ auto GetDbPreloadStates() -> DbPreloadStates&;
 template <class Db>
 inline auto GetPreloadedDb(const fs::path& path) -> std::unique_ptr<Db>
 {
+    if(path.empty())
+        return nullptr;
+
     auto& states = GetDbPreloadStates();
 
     std::unique_lock<std::mutex> lock{states.mutex};
