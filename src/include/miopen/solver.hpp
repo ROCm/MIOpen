@@ -5078,7 +5078,10 @@ private:
     bool RunParameterPredictionModel(const ExecutionContext& ctx,
                                      const miopen::conv::ProblemDescription& problem);
     void InitHeuristicKernelIDs(const std::string& type);
-    bool ModelApplyToken(int idx, std::string value, const std::string& arch, const miopen::conv::ProblemDescription& problem);
+    bool ModelApplyToken(int idx,
+                         std::string value,
+                         const std::string& arch,
+                         const miopen::conv::ProblemDescription& problem);
 #endif
     template <typename DataType>
     void Init(const miopen::conv::ProblemDescription&);

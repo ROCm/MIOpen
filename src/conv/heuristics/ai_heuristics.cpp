@@ -629,10 +629,11 @@ bool ModelSetParams(const std::string& arch,
     case miopen::conv::Direction::BackwardWeights: dir = "wrw"; break;
     default: return false;
     }
-    
-    std::size_t i = 0;
+
+    std::size_t i                 = 0;
     std::size_t num_tuning_params = 1;
-    do {
+    do
+    {
         if(i == 0 && !model->metadata.predict_type)
             num_tuning_params = model->metadata.num_tuning_params[dir];
 
@@ -669,7 +670,7 @@ bool ModelSetParams(const std::string& arch,
         decoder_input = float(output_token_index);
         context       = {decoder_output.begin() + 1, decoder_output.end()};
         i++;
-    }while(i < num_tuning_params);
+    } while(i < num_tuning_params);
 
     auto stop     = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
