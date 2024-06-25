@@ -128,7 +128,6 @@ struct MIOPEN_INTERNALS_EXPORT RNNDescriptor : miopenRNNDescriptor
     static miopenRNNBaseLayout_t getBaseLayoutFromDataTensor(const SeqTensorDescriptor& desc);
     static std::tuple<std::vector<unsigned int>, bool>
     convertRNNBaseLayout(miopenRNNBaseLayout_t layout);
-    size_t GetGemmWorkspaceSize(const Handle& handle) const;
 
     size_t GetMainSolWorkspaceSize(size_t batchLenSum,
                                    miopenRNNFWDMode_t fwdMode,
@@ -479,8 +478,6 @@ private:
                                          Data_t hy,
                                          const TensorDescriptor& cyDesc,
                                          Data_t cy,
-                                         Data_t workSpace,
-                                         size_t workSpaceSize,
                                          Data_t reserveSpace,
                                          size_t reserveSpaceSize) const;
 
