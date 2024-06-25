@@ -64,10 +64,10 @@ public:
 
     RamDb(DbKinds db_kind_, const fs::path& path, bool is_system = false);
 
-    RamDb(const RamDb&)            = delete;
-    RamDb(RamDb&&)                 = delete;
+    RamDb(const RamDb&) = delete;
+    RamDb(RamDb&&)      = delete;
     RamDb& operator=(const RamDb&) = delete;
-    RamDb& operator=(RamDb&&)      = delete;
+    RamDb& operator=(RamDb&&) = delete;
 
     static fs::path GetTimeFilePath(const fs::path& path);
     static RamDb& GetCached(DbKinds db_kind_, const fs::path& path, bool is_system);

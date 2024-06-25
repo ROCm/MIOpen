@@ -47,11 +47,11 @@ struct DbPreloadStates
     std::unordered_map<fs::path, std::future<PreloadedDb>> futures;
     bool started_loading;
 
-    DbPreloadStates()                                          = default;
-    DbPreloadStates(const DbPreloadStates&)                    = delete;
+    DbPreloadStates()                       = default;
+    DbPreloadStates(const DbPreloadStates&) = delete;
     auto operator=(const DbPreloadStates&) -> DbPreloadStates& = delete;
     DbPreloadStates(DbPreloadStates&&)                         = delete;
-    auto operator=(DbPreloadStates&&) -> DbPreloadStates&      = delete;
+    auto operator=(DbPreloadStates&&) -> DbPreloadStates& = delete;
 };
 
 auto GetDbPreloadStates() -> DbPreloadStates&;
