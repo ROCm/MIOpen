@@ -42,35 +42,39 @@
 
 namespace capi_test_mha_common {
 
-miopenStatus_t
-CheckStatusAndThrow(miopenStatus_t status, const std::string& msg, bool addStatusToMessage = true)
-{
-    if(status == miopenStatusSuccess)
-    {
-        return status;
-    }
-
-    std::string newMsg = msg;
-
-    if(addStatusToMessage)
-    {
-        newMsg = "StatusCode=" + std::to_string(status) + ". " + newMsg;
-    }
-
-    if(status == miopenStatusNotImplemented)
-    {
-        std::cerr << "Not Implemented: " << newMsg << std::endl;
-    }
-    else if(status != miopenStatusSuccess)
-    {
-        MIOPEN_THROW(status, newMsg);
-    }
-
-    return status;
-}
-
 class DescriptorWrapper;
 typedef std::shared_ptr<DescriptorWrapper> DescriptorWrapperPtr;
+
+class Helpers
+{
+public:
+    static miopenStatus_t
+    CheckStatusAndThrow(miopenStatus_t status, const std::string& msg, bool addStatusToMessage = true)
+    {
+        if(status == miopenStatusSuccess)
+        {
+            return status;
+        }
+
+        std::string newMsg = msg;
+
+        if(addStatusToMessage)
+        {
+            newMsg = "StatusCode=" + std::to_string(status) + ". " + newMsg;
+        }
+
+        if(status == miopenStatusNotImplemented)
+        {
+            std::cerr << "Not Implemented: " << newMsg << std::endl;
+        }
+        else if(status != miopenStatusSuccess)
+        {
+            MIOPEN_THROW(status, newMsg);
+        }
+
+        return status;
+    }
+};
 
 class DescriptorWrapper
 {
@@ -78,7 +82,7 @@ public:
     DescriptorWrapper(miopenBackendDescriptorType_t descriptorType)
         : m_descriptorType(descriptorType), m_descriptor(nullptr)
     {
-        CheckStatusAndThrow(miopenBackendCreateDescriptor(descriptorType, &m_descriptor),
+        Helpers::CheckStatusAndThrow(miopenBackendCreateDescriptor(descriptorType, &m_descriptor),
                             "miopenBackendCreateDescriptor failed: type=" +
                                 std::to_string(descriptorType));
     }
@@ -102,7 +106,7 @@ public:
         miopenStatus_t status = miopenBackendSetAttribute(
             m_descriptor, attributeName, attributeType, elementCount, arrayOfElements);
 
-        CheckStatusAndThrow(status,
+        Helpers::CheckStatusAndThrow(status,
                             "miopenBackendSetAttribute failed: descriptorType = " +
                                 std::to_string(m_descriptorType) +
                                 ", attributeName=" + std::to_string(attributeName) +
@@ -122,7 +126,7 @@ public:
                                                           elementCount,
                                                           arrayOfElements);
 
-        CheckStatusAndThrow(status,
+        Helpers::CheckStatusAndThrow(status,
                             "miopenBackendGetAttribute failed: descriptorType = " +
                                 std::to_string(m_descriptorType) +
                                 ", attributeName=" + std::to_string(attributeName) +
@@ -132,7 +136,7 @@ public:
 
     void Finalize()
     {
-        CheckStatusAndThrow(miopenBackendFinalize(m_descriptor),
+        Helpers::CheckStatusAndThrow(miopenBackendFinalize(m_descriptor),
                             "miopenBackendFinalize failed: descriptorType = " +
                                 std::to_string(m_descriptorType));
     }
@@ -190,11 +194,6 @@ struct TensorData
 };
 
 typedef std::shared_ptr<TensorData> TensorDataPtr;
-
-DescriptorWrapperPtr MakeDescriptor(miopenBackendDescriptorType_t descriptorType)
-{
-    return std::make_shared<DescriptorWrapper>(descriptorType);
-}
 
 template <typename T>
 miopenDataType_t GetMainType()
@@ -366,7 +365,7 @@ protected:
         // Execute the plan with a variant pack.
         miopenStatus_t status = miopenBackendExecute(
             rawHandle, m_executionPlan->GetDescriptor(), varpack->GetDescriptor());
-        CheckStatusAndThrow(status, "miopenBackendExecute failed!");
+        Helpers::CheckStatusAndThrow(status, "miopenBackendExecute failed!");
     }
 
     template <typename ResultT>
@@ -386,6 +385,11 @@ protected:
 
     // just a simple id generator, might be redone if necessary
     int64_t GetNextId() { return m_nextTensorId++; }
+
+    static DescriptorWrapperPtr MakeDescriptor(miopenBackendDescriptorType_t descriptorType)
+    {
+        return std::make_shared<DescriptorWrapper>(descriptorType);
+    }
 
     DescriptorWrapperPtr MakeMatmul(DescriptorWrapperPtr tensor1,
                                     DescriptorWrapperPtr tensor2,
