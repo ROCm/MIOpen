@@ -304,7 +304,8 @@ set( MIOpen_Source
     tensor.cpp
     tensor_api.cpp
     seq_tensor.cpp
-)
+    handle_common.cpp
+    db_preload.cpp)
 
 if(MIOPEN_ENABLE_AI_KERNEL_TUNING OR MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK)
     list(APPEND MIOpen_Source conv/heuristics/ai_heuristics.cpp)

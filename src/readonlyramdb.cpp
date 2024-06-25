@@ -25,6 +25,8 @@
  *******************************************************************************/
 
 #include <miopen/readonlyramdb.hpp>
+
+#include <miopen/db_preload.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/filesystem.hpp>
@@ -71,11 +73,18 @@ ReadonlyRamDb::GetCached(DbKinds db_kind_, const fs::path& path, bool warn_if_un
     // footprint in heap is very small. That is why we can omit deletion of
     // these objects thus avoiding bothering with MP/MT syncronization.
     // These will be destroyed altogether with heap.
-    // NOLINTNEXTLINE (cppcoreguidelines-owning-memory)
-    auto instance = new ReadonlyRamDb{db_kind_, path};
-    instances.emplace(path, instance);
-    instance->Prefetch(warn_if_unreadable);
-    return *instance;
+    if(auto preloaded = GetPreloadedDb<ReadonlyRamDb>(path))
+    {
+        return *instances.emplace(path, preloaded.release()).first->second;
+    }
+    else
+    {
+        // NOLINTNEXTLINE (cppcoreguidelines-owning-memory)
+        auto instance = new ReadonlyRamDb{db_kind_, path};
+        instances.emplace(path, instance);
+        instance->Prefetch(warn_if_unreadable);
+        return *instance;
+    }
 }
 
 template <class TFunc>

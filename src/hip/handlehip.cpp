@@ -286,6 +286,9 @@ Handle::Handle(miopenAcceleratorQueue_t stream) : impl(std::make_unique<HandleIm
     this->impl->rhandle_ = CreateRocblasHandle(stream);
 #endif
     this->impl->target_properties.Init(this);
+
+    TryStartPreloadingDbs();
+
     MIOPEN_LOG_NQI(*this);
 }
 
@@ -310,6 +313,9 @@ Handle::Handle() : impl(std::make_unique<HandleImpl>())
     this->impl->rhandle_ = CreateRocblasHandle(root_stream);
 #endif
     this->impl->target_properties.Init(this);
+
+    TryStartPreloadingDbs();
+
     MIOPEN_LOG_NQI(*this);
 }
 

@@ -26,6 +26,7 @@
 
 #include <miopen/ramdb.hpp>
 
+#include <miopen/db_preload.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/lock_file.hpp>
 #include <miopen/logger.hpp>
@@ -35,6 +36,7 @@
 #include <chrono>
 #include <ctime>
 #include <fstream>
+#include <future>
 #include <limits>
 #include <map>
 #include <mutex>
@@ -82,8 +84,6 @@ static void UpdateDbModificationTime(const fs::path& path)
             MIOPEN_THROW("Db lock has failed to lock."); \
     } while(false)
 
-static std::chrono::seconds GetLockTimeout() { return std::chrono::seconds{60}; }
-
 using exclusive_lock = std::unique_lock<LockFile>;
 
 RamDb::RamDb(DbKinds db_kind_, const fs::path& path, bool is_system)
@@ -105,20 +105,29 @@ RamDb& RamDb::GetCached(DbKinds db_kind_, const fs::path& path, bool is_system)
     if(it != instances.end())
         return *it->second;
 
-    auto& instance =
-        *instances.emplace(path, std::make_unique<RamDb>(db_kind_, path, is_system)).first->second;
-    if constexpr(!DisableUserDbFileIO)
+    if(auto preloaded = GetPreloadedDb<RamDb>(path))
     {
-        const auto prefetch_lock = exclusive_lock(instance.GetLockFile(), GetLockTimeout());
-        MIOPEN_VALIDATE_LOCK(prefetch_lock);
-        instance.Prefetch();
+        return *instances.emplace(path, std::move(preloaded)).first->second;
     }
-    return instance;
+    else
+    {
+        auto& instance =
+            *instances.emplace(path, std::make_unique<RamDb>(db_kind_, path, is_system))
+                 .first->second;
+        if constexpr(!DisableUserDbFileIO)
+        {
+            const auto prefetch_lock = exclusive_lock(instance.GetLockFile(), GetDbLockTimeout());
+            MIOPEN_VALIDATE_LOCK(prefetch_lock);
+            instance.Prefetch();
+        }
+
+        return instance;
+    }
 }
 
 boost::optional<DbRecord> RamDb::FindRecord(const std::string& problem)
 {
-    const auto lock = exclusive_lock(GetLockFile(), GetLockTimeout());
+    const auto lock = exclusive_lock(GetLockFile(), GetDbLockTimeout());
     MIOPEN_VALIDATE_LOCK(lock);
 
     if(!ValidateUnsafe())
@@ -135,7 +144,7 @@ bool RamDb::StoreRecord(const DbRecord& record)
     const auto& key = record.GetKey();
     MIOPEN_LOG_I2("Trying to store record at key " << key << " in cache for file "
                                                    << GetFileName());
-    const auto lock = exclusive_lock(GetLockFile(), GetLockTimeout());
+    const auto lock = exclusive_lock(GetLockFile(), GetDbLockTimeout());
     MIOPEN_VALIDATE_LOCK(lock);
 
     if constexpr(!DisableUserDbFileIO)
@@ -158,7 +167,7 @@ bool RamDb::UpdateRecord(DbRecord& record)
     const auto& key = record.GetKey();
     MIOPEN_LOG_I2("Trying to update record at key " << key << " in cache for file "
                                                     << GetFileName());
-    const auto lock = exclusive_lock(GetLockFile(), GetLockTimeout());
+    const auto lock = exclusive_lock(GetLockFile(), GetDbLockTimeout());
     MIOPEN_VALIDATE_LOCK(lock);
 
     if constexpr(!DisableUserDbFileIO)
@@ -180,7 +189,7 @@ bool RamDb::RemoveRecord(const std::string& key)
 {
     MIOPEN_LOG_I2("Trying to remove record at key " << key << " from cache for file "
                                                     << GetFileName());
-    const auto lock = exclusive_lock(GetLockFile(), GetLockTimeout());
+    const auto lock = exclusive_lock(GetLockFile(), GetDbLockTimeout());
     MIOPEN_VALIDATE_LOCK(lock);
 
 #if MIOPEN_DB_CACHE_WRITE_THROUGH
@@ -211,7 +220,7 @@ bool RamDb::Remove(const std::string& key, const std::string& id)
 {
     MIOPEN_LOG_I2("Trying to remove value at key " << key << " and id " << id
                                                    << " from cache for file " << GetFileName());
-    const auto lock = exclusive_lock(GetLockFile(), GetLockTimeout());
+    const auto lock = exclusive_lock(GetLockFile(), GetDbLockTimeout());
     MIOPEN_VALIDATE_LOCK(lock);
 
 #if MIOPEN_DB_CACHE_WRITE_THROUGH

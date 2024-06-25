@@ -97,6 +97,8 @@ public:
 
     const std::unordered_map<std::string, CacheItem>& GetCacheMap() const { return cache; }
 
+    void Prefetch(bool warn_if_unreadable = true);
+
 private:
     DbKinds db_kind;
     fs::path db_path;
@@ -107,7 +109,6 @@ private:
     ReadonlyRamDb& operator=(const ReadonlyRamDb&) = default;
     ReadonlyRamDb& operator=(ReadonlyRamDb&&) = default;
 
-    void Prefetch(bool warn_if_unreadable);
     void ParseAndLoadDb(std::istream& input_stream, bool warn_if_unreadable);
 };
 

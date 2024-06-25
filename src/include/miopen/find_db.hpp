@@ -86,6 +86,8 @@ private:
     using is_immediate_t = std::enable_if_t<std::is_same<TTestDb, FindDb>::value, int>;
 
 public:
+    friend struct Handle;
+
     FindDbRecord_t(const FindDbRecord_t&) = delete;
     FindDbRecord_t& operator=(const FindDbRecord_t&) = delete;
 

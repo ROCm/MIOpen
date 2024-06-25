@@ -31,7 +31,10 @@
 #include <boost/optional.hpp>
 
 #include <chrono>
+#include <future>
 #include <map>
+#include <memory>
+#include <mutex>
 #include <string>
 #include <sstream>
 
@@ -44,6 +47,8 @@ namespace miopen {
 using ramdb_clock = std::chrono::steady_clock;
 
 class LockFile;
+
+constexpr std::chrono::seconds GetDbLockTimeout() { return std::chrono::seconds{60}; }
 
 class MIOPEN_INTERNALS_EXPORT RamDb : protected PlainTextDb
 {
@@ -59,10 +64,10 @@ public:
 
     RamDb(DbKinds db_kind_, const fs::path& path, bool is_system = false);
 
-    RamDb(const RamDb&) = delete;
-    RamDb(RamDb&&)      = delete;
+    RamDb(const RamDb&)            = delete;
+    RamDb(RamDb&&)                 = delete;
     RamDb& operator=(const RamDb&) = delete;
-    RamDb& operator=(RamDb&&) = delete;
+    RamDb& operator=(RamDb&&)      = delete;
 
     static fs::path GetTimeFilePath(const fs::path& path);
     static RamDb& GetCached(DbKinds db_kind_, const fs::path& path, bool is_system);
@@ -126,6 +131,9 @@ public:
             return boost::none;
     }
 
+    using PlainTextDb::GetLockFile;
+    void Prefetch();
+
 private:
     struct CacheItem
     {
@@ -139,7 +147,6 @@ private:
     boost::optional<miopen::DbRecord> FindRecordUnsafe(const std::string& problem);
 
     bool ValidateUnsafe();
-    void Prefetch();
 
 #if MIOPEN_DB_CACHE_WRITE_THROUGH
     void UpdateCacheEntryUnsafe(const DbRecord& record);
