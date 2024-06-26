@@ -103,10 +103,11 @@ set(MIOPEN_ENABLE_SQLITE_BACKOFF On CACHE BOOL "")
 
 option( BUILD_DEV "Build for development only" OFF)
 option(MIOPEN_ENABLE_FIN "Enable the fin driver for MIOpen"  OFF)
+option(MIOPEN_STRIP_SYMBOLS "Strip symbols in release mode" ON)
 
 
 # Strip symbols for release
-if(NOT WIN32 AND NOT APPLE)
+if(MIOPEN_STRIP_SYMBOLS AND NOT WIN32 AND NOT APPLE)
     set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -s")
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -s")
 endif()
@@ -607,8 +608,8 @@ function(install_kdb FILE_NAME COMPONENT_NAME)
 endfunction()
 
 # Both the lists below should be in sync always
-set(KDB_BZ2_FILES gfx942.kdb.bz2 gfx90a.kdb.bz2 gfx1030.kdb.bz2 gfx908.kdb.bz2 gfx906.kdb.bz2 gfx900.kdb.bz2)
-set(COMPONENT_LST gfx942kdb gfx90akdb gfx1030kdb gfx908kdb gfx906kdb gfx900kdb)
+set(KDB_BZ2_FILES gfx90a.kdb.bz2 gfx1030.kdb.bz2 gfx908.kdb.bz2 gfx906.kdb.bz2 gfx900.kdb.bz2)
+set(COMPONENT_LST gfx90akdb gfx1030kdb gfx908kdb gfx906kdb gfx900kdb)
 
 if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.17)
     foreach(__file __component IN ZIP_LISTS KDB_BZ2_FILES COMPONENT_LST)
@@ -641,7 +642,7 @@ endif()
 
 rocm_create_package(
     NAME MIOpen-${MIOPEN_BACKEND}
-    DESCRIPTION "AMD's DNN Library"
+    DESCRIPTION "AMD DNN Library"
     MAINTAINER "MIOpen Maintainer <miopen-lib.support@amd.com>"
     LDCONFIG
     # DEPENDS rocm-opencl hip-rocclr tinygemm

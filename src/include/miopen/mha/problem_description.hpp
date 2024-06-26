@@ -36,7 +36,7 @@ struct NetworkConfig;
 
 namespace mha {
 
-struct ProblemDescription : ProblemDescriptionBase
+struct MIOPEN_INTERNALS_EXPORT ProblemDescription : ProblemDescriptionBase
 {
     // softmax forward constructor
     ProblemDescription(const MhaInputDescsForward& descs)

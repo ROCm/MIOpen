@@ -43,7 +43,7 @@ namespace miopen {
 
 struct ExecutionContext;
 
-std::string
+MIOPEN_INTERNALS_EXPORT std::string
 EncodeDataTypesForKey(miopenDataType_t in, miopenDataType_t weights, miopenDataType_t out);
 
 template <class TElement>
@@ -133,12 +133,13 @@ constexpr TElement GetW5(unsigned spatial_dims, const std::vector<TElement>& dat
 
 namespace conv {
 
-miopenAlphaBetaCase_t ClassifyAlphaBeta(const Scalar& alpha, const Scalar& beta);
+MIOPEN_INTERNALS_EXPORT miopenAlphaBetaCase_t ClassifyAlphaBeta(const Scalar& alpha,
+                                                                const Scalar& beta);
 
-struct ProblemDescription : ProblemDescriptionBase
+struct MIOPEN_INTERNALS_EXPORT ProblemDescription : ProblemDescriptionBase
 #if MIOPEN_ENABLE_SQLITE
     ,
-                            SQLiteSerializable<ProblemDescription>
+                                                    SQLiteSerializable<ProblemDescription>
 #endif
 {
     ProblemDescription() = default;

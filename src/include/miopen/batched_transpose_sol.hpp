@@ -61,7 +61,7 @@ struct BatchedTransposeParam
     int ediv_y{0};
 };
 
-struct BatchedTransposeSolution
+struct MIOPEN_INTERNALS_EXPORT BatchedTransposeSolution
 {
     BatchedTransposeSolution(const ExecutionContext& ctx_,
                              miopenDataType_t data_type_,

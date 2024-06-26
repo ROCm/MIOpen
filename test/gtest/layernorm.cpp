@@ -30,11 +30,13 @@
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 
+namespace env = miopen::env;
+
 namespace layernorm {
 
 std::string GetFloatArg()
 {
-    const auto& tmp = miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_TEST_FLOAT_ARG));
+    const auto tmp = env::value(MIOPEN_TEST_FLOAT_ARG);
     if(tmp.empty())
     {
         return "";
@@ -59,12 +61,12 @@ using namespace layernorm;
 
 TEST_P(LayerNormTestFloat, LayerNormTestFw)
 {
-    auto TypeArg       = miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_TEST_FLOAT_ARG));
+    auto TypeArg       = env::value(MIOPEN_TEST_FLOAT_ARG);
     const auto& handle = get_handle();
     if((miopen::StartsWith(handle.GetDeviceName(), "gfx908") ||
         miopen::StartsWith(handle.GetDeviceName(), "gfx90a") ||
         miopen::StartsWith(handle.GetDeviceName(), "gfx94")) &&
-       miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float"))
+       env::enabled(MIOPEN_TEST_ALL) && (GetFloatArg() == "--float"))
     {
         RunTest();
         Verify();
@@ -77,12 +79,12 @@ TEST_P(LayerNormTestFloat, LayerNormTestFw)
 
 TEST_P(LayerNormTestHalf, LayerNormTestFw)
 {
-    auto TypeArg       = miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_TEST_FLOAT_ARG));
+    auto TypeArg       = env::value(MIOPEN_TEST_FLOAT_ARG);
     const auto& handle = get_handle();
     if((miopen::StartsWith(handle.GetDeviceName(), "gfx908") ||
         miopen::StartsWith(handle.GetDeviceName(), "gfx90a") ||
         miopen::StartsWith(handle.GetDeviceName(), "gfx94")) &&
-       miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--half"))
+       env::enabled(MIOPEN_TEST_ALL) && GetFloatArg() == "--half")
     {
         RunTest();
         Verify();
@@ -95,12 +97,12 @@ TEST_P(LayerNormTestHalf, LayerNormTestFw)
 
 TEST_P(LayerNormTestBFloat16, LayerNormTestFw)
 {
-    auto TypeArg       = miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_TEST_FLOAT_ARG));
+    auto TypeArg       = env::value(MIOPEN_TEST_FLOAT_ARG);
     const auto& handle = get_handle();
     if((miopen::StartsWith(handle.GetDeviceName(), "gfx908") ||
         miopen::StartsWith(handle.GetDeviceName(), "gfx90a") ||
         miopen::StartsWith(handle.GetDeviceName(), "gfx94")) &&
-       miopen::IsEnabled(MIOPEN_ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--bfloat16"))
+       env::enabled(MIOPEN_TEST_ALL) && GetFloatArg() == "--bfloat16")
     {
         RunTest();
         Verify();
