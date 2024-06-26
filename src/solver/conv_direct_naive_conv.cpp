@@ -127,14 +127,14 @@ std::string ConvDirectNaiveConvKernelName(const ProblemDescription& problem)
 
     /// \todo remove packed reference convolution kernels --amberhassaan
 #ifndef NDEBUG // enable in debug mode only
-    if(miopen::IsEnabled(ENV(MIOPEN_DEBUG_CONV_DIRECT_NAIVE_USE_PACKED_KERNELS)))
+    if(env::enabled(MIOPEN_DEBUG_CONV_DIRECT_NAIVE_USE_PACKED_KERNELS))
     {
-        kernel_name << "naive_conv_packed_";
+        kernel_name << "naive_conv_ab_packed_";
     }
     else
 #endif
     {
-        kernel_name << "naive_conv_nonpacked_";
+        kernel_name << "naive_conv_ab_nonpacked_";
     }
 
     // NOLINTBEGIN(*-braces-around-statements)
@@ -240,8 +240,8 @@ std::string ConvDirectNaiveConvKernelFile(const ExecutionContext& ctx,
 std::string ConvDirectNaiveConvCompileOption(const ExecutionContext& ctx,
                                              const ProblemDescription& problem)
 {
-    std::string filename = ConvDirectNaiveConvKernelFile(ctx, problem);
-    if(miopen::EndsWith(filename, ".s"))
+    fs::path filename = ConvDirectNaiveConvKernelFile(ctx, problem);
+    if(filename.extension() == ".s")
     {
         std::ostringstream options;
         GenerateClangDefsym(options, "ROCM_METADATA_VERSION", 5);
@@ -434,8 +434,8 @@ GetConv2DFWDSolution(const ExecutionContext& ctx, const ::miopen::conv::ProblemD
             }
             else
             {
-                auto alpha_val = problem.GetAlpha().GetAsDouble();
-                auto beta_val  = problem.GetBeta().GetAsDouble();
+                double alpha_val = data_ctx.alpha.GetAsDouble();
+                double beta_val  = data_ctx.beta.GetAsDouble();
                 handle.Run(kern)(tensors.in,
                                  tensors.w,
                                  alpha_val,
@@ -550,8 +550,9 @@ GetConv3DFWDSolution(const ExecutionContext& ctx, const ::miopen::conv::ProblemD
                 MakeStrideArray<6>(SplitWeiStrideKtoGK(k_per_group, tensors.wDesc.GetStrides()));
             auto out_strides = MakeStrideArray<6>(
                 SplitStrideCtoGC(group, tensors.outDesc.GetStrides(), G_stride_idx));
-            auto alpha_val = problem.GetAlpha().GetAsDouble();
-            auto beta_val  = problem.GetBeta().GetAsDouble();
+
+            double alpha_val = data_ctx.alpha.GetAsDouble();
+            double beta_val  = data_ctx.beta.GetAsDouble();
             handle.Run(kern)(tensors.in,
                              tensors.w,
                              alpha_val,
@@ -686,8 +687,8 @@ GetConv2DWRWSolution(const ExecutionContext& ctx, const ::miopen::conv::ProblemD
             }
             else
             {
-                auto alpha_val = problem.GetAlpha().GetAsDouble();
-                auto beta_val  = problem.GetBeta().GetAsDouble();
+                double alpha_val = data_ctx.alpha.GetAsDouble();
+                double beta_val  = data_ctx.beta.GetAsDouble();
                 handle.Run(kern)(tensors.x,
                                  tensors.dw,
                                  alpha_val,
@@ -792,8 +793,8 @@ GetConv3DWRWSolution(const ExecutionContext& ctx, const ::miopen::conv::ProblemD
             auto out_strides = MakeStrideArray<6>(
                 SplitStrideCtoGC(group, tensors.dyDesc.GetStrides(), G_stride_idx));
 
-            auto alpha_val = problem.GetAlpha().GetAsDouble();
-            auto beta_val  = problem.GetBeta().GetAsDouble();
+            double alpha_val = data_ctx.alpha.GetAsDouble();
+            double beta_val  = data_ctx.beta.GetAsDouble();
             handle.Run(kern)(tensors.x,
                              tensors.dw,
                              alpha_val,
@@ -941,8 +942,8 @@ GetConv2DBWDSolution(const ExecutionContext& ctx, const ::miopen::conv::ProblemD
             }
             else
             {
-                auto alpha_val = problem.GetAlpha().GetAsDouble();
-                auto beta_val  = problem.GetBeta().GetAsDouble();
+                double alpha_val = data_ctx.alpha.GetAsDouble();
+                double beta_val  = data_ctx.beta.GetAsDouble();
                 handle.Run(kern)(tensors.out,
                                  tensors.w,
                                  alpha_val,
@@ -1063,8 +1064,8 @@ GetConv3DBWDSolution(const ExecutionContext& ctx, const ::miopen::conv::ProblemD
             /// out pointers in ConvTensors for backward pass, so now I have to
             /// pass out in place of in, out_strides in place of in_strides and
             /// vice-versa --amberhassaan
-            auto alpha_val = problem.GetAlpha().GetAsDouble();
-            auto beta_val  = problem.GetBeta().GetAsDouble();
+            double alpha_val = data_ctx.alpha.GetAsDouble();
+            double beta_val  = data_ctx.beta.GetAsDouble();
             handle.Run(kern)(tensors.out,
                              tensors.w,
                              alpha_val,

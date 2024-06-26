@@ -67,6 +67,7 @@ MultiBufferWorkspaceTraits SplitBufferToWorkspace(const std::vector<size_t>& len
 bool MhaForward::IsApplicable([[maybe_unused]] const ExecutionContext& context,
                               const miopen::mha::ProblemDescription& problem) const
 {
+#if MIOPEN_USE_GEMM
     // It's important to have this check before problem.GetDescsForward() call
     if(!problem.IsForward())
     {
@@ -77,8 +78,7 @@ bool MhaForward::IsApplicable([[maybe_unused]] const ExecutionContext& context,
 
     auto [N, H, S, D] = miopen::tien<4>(descsFwd.kDesc.GetLengths());
 
-    return MIOPEN_USE_GEMM                                          //
-           && !miopen::IsDisabled(ENV(MIOPEN_DEBUG_ATTN_NAIVE_FWD)) //
+    return !env::disabled(MIOPEN_DEBUG_ATTN_NAIVE_FWD)              //
            && S <= std::numeric_limits<uint32_t>::max()             //
            && descsFwd.kDesc.IsPacked()                             //
            && descsFwd.qDesc.IsPacked()                             //
@@ -95,6 +95,9 @@ bool MhaForward::IsApplicable([[maybe_unused]] const ExecutionContext& context,
                || (USE_ROCBLAS_EX3                                  //
                    && (MIOPEN_FP8_IEEE_EXPONENT_BIAS == 0)          //
                    && (descsFwd.kDesc.GetType() == miopenFloat8))); //
+#else
+    return false;
+#endif
 }
 
 std::size_t MhaForward::GetWorkspaceSize([[maybe_unused]] const ExecutionContext& context,
@@ -198,6 +201,7 @@ ConvSolution MhaForward::GetSolution(const ExecutionContext& context,
                  scale,
                  ABType,
                  dataFwd.qData,
+                 ABType,
                  dataFwd.kData,
                  fp32_ws,
                  true);
@@ -233,6 +237,7 @@ ConvSolution MhaForward::GetSolution(const ExecutionContext& context,
                  1.0f,
                  ABType,
                  fp8_ws,
+                 ABType,
                  dataFwd.vData,
                  fp32_ws,
                  true);

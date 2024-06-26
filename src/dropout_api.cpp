@@ -34,7 +34,10 @@ extern "C" miopenStatus_t miopenCreateDropoutDescriptor(miopenDropoutDescriptor_
 {
 
     MIOPEN_LOG_FUNCTION(dropoutDesc);
-    return miopen::try_([&] { miopen::deref(dropoutDesc) = new miopen::DropoutDescriptor(); });
+    return miopen::try_([&] {
+        auto& desc = miopen::deref(dropoutDesc);
+        desc       = new miopen::DropoutDescriptor();
+    });
 }
 
 extern "C" miopenStatus_t miopenDestroyDropoutDescriptor(miopenDropoutDescriptor_t dropoutDesc)

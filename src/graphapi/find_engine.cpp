@@ -113,9 +113,9 @@ class MHA_Fwd_F8_Pattern : public GraphPatternMatcher
                     // this is the first matmul node
                     add_mapping(miopenTensorMhaQ, matmul->getA());
                     add_mapping(miopenTensorMhaK, matmul->getB());
-                    // TODO: dim check on Q and K
+                    /// \todo dim check on Q and K --amberhassaan May, 2024
 
-                    // TODO(Amber): old code assuming attn_scale applies to pw_mult
+                    /// \note  old code assuming attn_scale applies to pw_mult
                     // auto* pw_0 = dynamic_cast<OperationPointwise*>(
                     // graph.findOutNeighByName(matmul, "OP_POINTWISE:MUL"));
                     auto* pw_0 = dynamic_cast<OperationPointwise*>(
@@ -124,7 +124,7 @@ class MHA_Fwd_F8_Pattern : public GraphPatternMatcher
 
                     float alpha1 = std::get<float>(pw_0->getAlpha1());
                     *attn_scale  = alpha1;
-                    // TODO(Amber): old code assuming attn_scale applies to pw_mult
+                    /// \note old code assuming attn_scale applies to pw_mult
                     // auto* attn_scl = pw_0->getB();
                     // assert(attn_scl->getDimensions() == all1s);
                     // add_mapping(miopenTensorMhaAttnScale, attn_scl);
@@ -327,7 +327,7 @@ std::vector<Engine> findEngines(OpGraph* graph)
     {
         if(p->matches(graph))
         {
-            MIOPEN_LOG_I("Matched against pattern: " << p->name());
+            MIOPEN_LOG_I2("Matched against pattern: " << p->name());
             return p->getEngines(graph);
         }
     }

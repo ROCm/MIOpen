@@ -54,8 +54,8 @@ struct Exception : std::exception
     const char* what() const noexcept override { return message.c_str(); }
 };
 
-std::string OpenCLErrorMessage(int error, const std::string& msg = "");
-std::string HIPErrorMessage(int error, const std::string& msg = "");
+MIOPEN_EXPORT std::string OpenCLErrorMessage(int error, const std::string& msg = "");
+MIOPEN_EXPORT std::string HIPErrorMessage(int error, const std::string& msg = "");
 
 template <class... Params>
 [[noreturn]] void MIOpenThrow(const std::string& file, int line, Params&&... args)

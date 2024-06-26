@@ -30,14 +30,16 @@
 #include <miopen/env.hpp>
 #include "get_handle.hpp"
 
+namespace env = miopen::env;
+
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
 
 namespace regression_half_vega {
-void SetupEnvVar(void)
+void SetupEnvVar()
 {
-    miopen::UpdateEnvVar(ENV(MIOPEN_FIND_MODE), std::string("normal"));
-    miopen::UpdateEnvVar(ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER), std::string("GemmBwdRest"));
+    env::update(MIOPEN_FIND_MODE, "normal");
+    env::update(MIOPEN_DEBUG_FIND_ONLY_SOLVER, "GemmBwdRest");
 }
 
 std::vector<std::string> GetArgs(const std::string& param)
@@ -48,10 +50,10 @@ std::vector<std::string> GetArgs(const std::string& param)
     return {begin, end};
 }
 
-std::vector<std::string> GetTestCases(void)
+std::vector<std::string> GetTestCases()
 {
     const std::string& cmd       = "test_conv3d ";
-    const std::string& float_arg = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
+    const std::string& float_arg = env::value(MIOPEN_TEST_FLOAT_ARG);
     const std::string& conv_verbose_b =
         float_arg + " --verbose --disable-forward --disable-backward-weights";
 
@@ -75,12 +77,12 @@ bool IsTestSupportedForDevice()
     return ::IsTestSupportedForDevMask<d_mask, e_mask>();
 }
 
-void Run2dDriver(void)
+void Run2dDriver()
 {
-    if(!(IsTestSupportedForDevice()                      //
-         && (miopen::IsUnset(ENV(MIOPEN_TEST_ALL))       // standalone run
-             || (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) // or --float full tests enabled
-                 && miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG)) == "--half"))))
+    if(!(IsTestSupportedForDevice()            //
+         && (!MIOPEN_TEST_ALL                  // standalone run
+             || (env::enabled(MIOPEN_TEST_ALL) // or --float full tests enabled
+                 && env::value(MIOPEN_TEST_FLOAT_ARG) == "--half"))))
     {
         GTEST_SKIP();
     }

@@ -27,6 +27,7 @@
 #define MIOPEN_GUARD_MLOPEN_READONLYRAMDB_HPP
 
 #include <miopen/db_record.hpp>
+#include <miopen/filesystem.hpp>
 
 #include <boost/optional.hpp>
 
@@ -37,16 +38,16 @@
 namespace miopen {
 
 namespace debug {
-extern bool& rordb_embed_fs_override();
+MIOPEN_INTERNALS_EXPORT bool& rordb_embed_fs_override();
 } // namespace debug
 
-class ReadonlyRamDb
+class MIOPEN_INTERNALS_EXPORT ReadonlyRamDb
 {
 public:
-    ReadonlyRamDb(DbKinds db_kind_, const std::string& path) : db_kind(db_kind_), db_path(path) {}
+    ReadonlyRamDb(DbKinds db_kind_, const fs::path& path) : db_kind(db_kind_), db_path(path) {}
 
     static ReadonlyRamDb&
-    GetCached(DbKinds db_kind_, const std::string& path, bool warn_if_unreadable);
+    GetCached(DbKinds db_kind_, const fs::path& path, bool warn_if_unreadable);
 
     boost::optional<DbRecord> FindRecord(const std::string& problem) const
     {
@@ -98,7 +99,7 @@ public:
 
 private:
     DbKinds db_kind;
-    std::string db_path;
+    fs::path db_path;
     std::unordered_map<std::string, CacheItem> cache;
 
     ReadonlyRamDb(const ReadonlyRamDb&) = default;

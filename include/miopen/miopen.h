@@ -5632,6 +5632,16 @@ MIOPEN_EXPORT miopenStatus_t miopenSetFindOptionPreallocatedTensor(miopenFindOpt
                                                                    miopenTensorArgumentId_t id,
                                                                    void* buffer);
 
+/*! @brief Forces library to attach kernel binaries to solutions for later saving. This allows zero
+ * lookup miopenRunSolution calls after miopenLoadSolution. Default value is 0.
+ *
+ * @param options    Options object to update
+ * @param attach     1 means attaching, 0 - skipping, any other value - reserved for future use
+ * @return           miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenSetFindOptionAttachBinaries(miopenFindOptions_t options,
+                                                               unsigned attach);
+
 /*! @brief The miopenSolution object describes a prepared solution.
  */
 MIOPEN_DECLARE_OBJECT(miopenSolution);
@@ -6094,7 +6104,7 @@ MIOPEN_EXPORT miopenStatus_t miopenT5LayerNormForward(miopenHandle_t handle,
  * @param sizeInBytes              Pointer to data to return the minimum workspace size
  * @return                         miopenStatus_t
  */
-extern "C" miopenStatus_t
+MIOPEN_EXPORT miopenStatus_t
 miopenGetT5LayerNormBackwardWorkspaceSize(miopenHandle_t handle,
                                           miopenNormMode_t mode,
                                           const miopenTensorDescriptor_t dyDesc,
@@ -6906,6 +6916,14 @@ MIOPEN_EXPORT miopenStatus_t miopenBackendInitialize(miopenBackendDescriptor_t d
  * gradients. Fused Adam optimization efficiently combines multiple operations into a single kernel,
  * reducing memory access overhead and improving performance.
  *
+ * Additionally, Fused Adam can be utilized in both adam w and Automatic Mixed Precision (AMP),
+ * enabling accelerated model training and reduced memory consumption. AMP supports FP16
+ * computation, optimizing model calculations using a mixture of FP32 and FP16 precision to enhance
+ * training speed. When utilizing AMP, FoundInf, ScaleGrad, and step tensors should be employed. In
+ * AMP mode, the execution of Adam is determined based on the FoundInf value. State Step accepts
+ * both int values and int tensors. If a Step tensor is employed, the step received as an int is
+ * disregarded, and if Adam is executed, the step tensor is incremented by 1.
+ *
  * @code
  * // Execute Adam
  * miopenFusedAdam(handle,
@@ -6930,6 +6948,34 @@ MIOPEN_EXPORT miopenStatus_t miopenBackendInitialize(miopenBackendDescriptor_t d
  *                 false,    // amsgrad
  *                 false,    // maximize
  *                 false,    // adamw
+ *                 NULL,     // Unused gradScale Tensor because not amp
+ *                 NULL,
+ *                 NULL,     // Unused foundInf Tensor because not amp
+ *                 NULL);
+ *
+ * // Execute AdamW
+ * miopenFusedAdam(handle,
+ *                 paramDesc,
+ *                 param,
+ *                 gradDesc,
+ *                 grad,
+ *                 expAvgDesc,
+ *                 expAvg,
+ *                 expAvgSqDesc,
+ *                 expAvgSq,
+ *                 NULL,     // Unused maxExpAvgSqDesc because amsgrad is false
+ *                 NULL,
+ *                 NULL,     // Unused stateStep Tensor because use step integer argument
+ *                 NULL,
+ *                 step,
+ *                 lr,
+ *                 beta1,
+ *                 beta2,
+ *                 weight_decay,
+ *                 eps,
+ *                 false,    // amsgrad
+ *                 false,    // maximize
+ *                 true,     // adamw
  *                 NULL,     // Unused gradScale Tensor because not amp
  *                 NULL,
  *                 NULL,     // Unused foundInf Tensor because not amp
@@ -6992,7 +7038,7 @@ MIOPEN_EXPORT miopenStatus_t miopenBackendInitialize(miopenBackendDescriptor_t d
  * @param amsgrad             Flag indicating whether to use the AMSGrad variant of Adam (input)
  * @param maximize            Flag indicating whether to maximize the objective with respect to the
  *                            parameters (input)
- * @param adamw               If true, the operation becomes AdamW (input) (not supported)
+ * @param adamw               If true, the operation becomes AdamW (input)
  * @param gradScaleDesc       Tensor descriptor for the input grad scale tensor (input, optional)
  * @param gradScale           Input grad scale tensor (input, optional)
  * @param foundInfDesc        Tensor descriptor for the input found inf tensor (input, optional)
@@ -7159,7 +7205,7 @@ MIOPEN_EXPORT miopenStatus_t miopenFusedAdam(miopenHandle_t handle,
  * @param amsgrad             Flag indicating whether to use the AMSGrad variant of Adam (input)
  * @param maximize            Flag indicating whether to maximize the objective with respect to the
  *                            parameters (input)
- * @param adamw               If it is true, the operation becomes AdamW (input) (not supported)
+ * @param adamw               If it is true, the operation becomes AdamW (input)
  * @param gradScaleDesc       Tensor descriptor for the input grad scale tensor (input, optional)
  * @param gradScale           Input grad scale tensor (input, optional)
  * @param foundInfDesc        Tensor descriptor for the input found inf tensor (input, optional)

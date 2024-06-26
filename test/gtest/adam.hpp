@@ -44,11 +44,13 @@ struct AdamTestCase
     float eps;
     bool amsgrad;
     bool maximize;
+    bool adamw;
     bool use_step_tensor;
 
     friend std::ostream& operator<<(std::ostream& os, const AdamTestCase& tc)
     {
-        os << " input:" << tc.input[0];
+        os << (tc.adamw ? "adam_w " : "adam ");
+        os << "input:" << tc.input[0];
         for(int i = 1; i < tc.input.size(); i++)
         {
             os << "x" << tc.input[i];
@@ -65,27 +67,27 @@ std::vector<AdamTestCase> AdamTestConfigs()
 { // dim, dims
     // clang-format off
     std::vector<AdamTestCase> base_shape{
-        {{1}, 0.001, 0.9, 0.999, 0, 0.000001, false, false, false},
-        {{2}, 0.001, 0.9, 0.999, 0, 0.000001, false, false, false},
-        {{255}, 0.001, 0.9, 0.999, 0.0005, 0.000001, false, false, false},
-        {{1024}, 0.001, 0.9, 0.999, 1e-08, 0.000001, false, false, false},
-        {{32317}, 0.001, 0.9, 0.999, 0, 0.000001, false, false, false},
-        {{50000}, 0.001, 0.9, 0.999, 0, 0.000001, false, false, false},
-        {{29,1024}, 0.001, 0.9, 0.999, 0, 0.000001, false, false, false},
-        {{80,1536}, 0.001, 0.9, 0.999, 0, 0.000001, false, false, false},
-        {{128,1024}, 0.001, 0.9, 0.999, 0, 0.000001, false, false, false},
-        {{3706,32}, 0.001, 0.9, 0.999, 0, 0.000001, false, false, false},
-        {{32,1,41,11}, 0.001, 0.9, 0.999, 0, 0.000001, false, false, false},
-        {{32,64,3,3}, 0.001, 0.9, 0.999, 0.005, 0.000001, false, false, false},
-        {{64,256,3,3}, 0.001, 0.9, 0.999, 0.005, 0.000001, false, false, false},
-        {{128,192,1,1}, 0.001, 0.9, 0.999, 0.0005, 0.000001, false, false, false},
-        {{128,1024,1,1}, 0.001, 0.9, 0.999, 0.005, 0.000001, false, false, false},
-        {{192,192,3,3}, 0.001, 0.9, 0.999, 0.0005, 0.000001, false, false, false},
-        {{255,640,1,1}, 0.001, 0.9, 0.999, 0.0005, 0.000001, false, false, false},
-        {{256,512,3,3}, 0.001, 0.9, 0.999, 0.005, 0.000001, false, false, false}};
+        {{1}, 0.001, 0.9, 0.999, 0, 0.000001, false, false, false, false},
+        {{2}, 0.001, 0.9, 0.999, 0, 0.000001, false, false, false, false},
+        {{255}, 0.001, 0.9, 0.999, 0.0005, 0.000001, false, false, false, false},
+        {{1024}, 0.001, 0.9, 0.999, 1e-08, 0.000001, false, false, false, false},
+        {{32317}, 0.001, 0.9, 0.999, 0, 0.000001, false, false, false, false},
+        {{50000}, 0.001, 0.9, 0.999, 0, 0.000001, false, false, false, false},
+        {{29,1024}, 0.001, 0.9, 0.999, 0, 0.000001, false, false, false, false},
+        {{80,1536}, 0.001, 0.9, 0.999, 0, 0.000001, false, false, false, false},
+        {{128,1024}, 0.001, 0.9, 0.999, 0, 0.000001, false, false, false, false},
+        {{3706,32}, 0.001, 0.9, 0.999, 0, 0.000001, false, false, false, false},
+        {{32,1,41,11}, 0.001, 0.9, 0.999, 0, 0.000001, false, false, false, false},
+        {{32,64,3,3}, 0.001, 0.9, 0.999, 0.005, 0.000001, false, false, false, false},
+        {{64,256,3,3}, 0.001, 0.9, 0.999, 0.005, 0.000001, false, false, false, false},
+        {{128,192,1,1}, 0.001, 0.9, 0.999, 0.0005, 0.000001, false, false, false, false},
+        {{128,1024,1,1}, 0.001, 0.9, 0.999, 0.005, 0.000001, false, false, false, false},
+        {{192,192,3,3}, 0.001, 0.9, 0.999, 0.0005, 0.000001, false, false, false, false},
+        {{255,640,1,1}, 0.001, 0.9, 0.999, 0.0005, 0.000001, false, false, false, false},
+        {{256,512,3,3}, 0.001, 0.9, 0.999, 0.005, 0.000001, false, false, false, false}};
     // clang-format on
     std::vector<AdamTestCase> result;
-    result.reserve(base_shape.size() * 8);
+    result.reserve(base_shape.size() * 16);
 
     for(auto& item : base_shape)
     {
@@ -95,10 +97,14 @@ std::vector<AdamTestCase> AdamTestConfigs()
             {
                 for(int k = 0; k <= 1; ++k)
                 {
-                    item.use_step_tensor = static_cast<bool>(i);
-                    item.amsgrad         = static_cast<bool>(j);
-                    item.maximize        = static_cast<bool>(k);
-                    result.push_back(item);
+                    for(int l = 0; l <= 1; ++l)
+                    {
+                        item.adamw           = static_cast<bool>(i);
+                        item.use_step_tensor = static_cast<bool>(j);
+                        item.amsgrad         = static_cast<bool>(k);
+                        item.maximize        = static_cast<bool>(l);
+                        result.push_back(item);
+                    }
                 }
             }
         }
@@ -106,7 +112,7 @@ std::vector<AdamTestCase> AdamTestConfigs()
     return result;
 }
 
-template <typename Tp = float, typename Tg = float, bool is_amp = false>
+template <typename Tp = float, typename Tg = float>
 struct AdamTest : public ::testing::TestWithParam<AdamTestCase>
 {
 protected:
@@ -125,7 +131,9 @@ protected:
         eps             = adam_config.eps;
         amsgrad         = adam_config.amsgrad;
         maximize        = adam_config.maximize;
+        adamw           = adam_config.adamw;
         use_step_tensor = adam_config.use_step_tensor;
+        is_amp          = !std::is_same<Tp, Tg>::value;
 
         param      = tensor<Tp>{dims}.generate(gen_value);
         grad       = tensor<Tg>{dims}.generate(gen_value);
@@ -188,6 +196,7 @@ protected:
                          eps,
                          amsgrad,
                          maximize,
+                         adamw,
                          is_amp,
                          grad_scale[0],
                          found_inf[0],
@@ -232,7 +241,7 @@ protected:
                                        eps,
                                        amsgrad,
                                        maximize,
-                                       false, // adamw
+                                       adamw,
                                        is_amp);
 
             EXPECT_EQ(status, miopenStatusSuccess);
@@ -284,6 +293,8 @@ protected:
     float eps            = 0.0f;
     bool amsgrad         = false;
     bool maximize        = false;
+    bool adamw           = false;
     bool use_step_tensor = false;
+    bool is_amp          = false;
     int32_t step_count   = 5;
 };

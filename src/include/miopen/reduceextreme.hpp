@@ -33,23 +33,25 @@ namespace miopen {
 struct Handle;
 struct TensorDescriptor;
 
-miopenStatus_t ReduceExtremeForward(Handle& handle,
-                                    const TensorDescriptor& xDesc,
-                                    ConstData_t x,
-                                    const TensorDescriptor& indiceDesc,
-                                    Data_t indice,
-                                    int32_t dim,
-                                    miopenReduceExtremeOp_t reduceExtremeOp);
+MIOPEN_INTERNALS_EXPORT miopenStatus_t
+ReduceExtremeForward(Handle& handle,
+                     const TensorDescriptor& xDesc,
+                     ConstData_t x,
+                     const TensorDescriptor& indiceDesc,
+                     Data_t indice,
+                     int32_t dim,
+                     miopenReduceExtremeOp_t reduceExtremeOp);
 
-miopenStatus_t ReduceExtremeForward(Handle& handle,
-                                    const TensorDescriptor& xDesc,
-                                    ConstData_t x,
-                                    const TensorDescriptor& yDesc,
-                                    Data_t y,
-                                    const TensorDescriptor& indiceDesc,
-                                    Data_t indice,
-                                    int32_t dim,
-                                    miopenReduceExtremeOp_t reduceExtremeOp);
+MIOPEN_INTERNALS_EXPORT miopenStatus_t
+ReduceExtremeForward(Handle& handle,
+                     const TensorDescriptor& xDesc,
+                     ConstData_t x,
+                     const TensorDescriptor& yDesc,
+                     Data_t y,
+                     const TensorDescriptor& indiceDesc,
+                     Data_t indice,
+                     int32_t dim,
+                     miopenReduceExtremeOp_t reduceExtremeOp);
 
 } // namespace miopen
 #endif // MIOPEN_REDUCEEXTREME_HPP_

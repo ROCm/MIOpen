@@ -105,8 +105,8 @@ void Dot_3D_3D_T(const tensor<T>& A_mat, const tensor<T>& B_mat, tensor<T>& C_ma
     });
 }
 
-template <typename T1, typename T2>
-void Dot_4D_4D_T(const tensor<T1>& A_mat, const tensor<T1>& B_mat, tensor<T2>& C_mat)
+template <typename T1, typename T2, typename T3 = T1>
+void Dot_4D_4D_T(const tensor<T1>& A_mat, const tensor<T3>& B_mat, tensor<T2>& C_mat)
 {
     size_t k_val = A_mat.desc.GetLengths()[3];
     assert(k_val == B_mat.desc.GetLengths()[3]); // since transpose
@@ -122,8 +122,8 @@ void Dot_4D_4D_T(const tensor<T1>& A_mat, const tensor<T1>& B_mat, tensor<T2>& C
     });
 }
 
-template <typename T1, typename T2>
-void Dot_4D_T_4D(const tensor<T1>& A_mat, const tensor<T1>& B_mat, tensor<T2>& C_mat)
+template <typename T1, typename T2, typename T3 = T1>
+void Dot_4D_T_4D(const tensor<T1>& A_mat, const tensor<T3>& B_mat, tensor<T2>& C_mat)
 {
     size_t k_val = A_mat.desc.GetLengths()[3];
     assert(k_val == B_mat.desc.GetLengths()[2]); // since transpose
@@ -483,12 +483,12 @@ void MultiHeadAttentionBackwardDataf32(const tensor<T>& q_val,
     Dot_4D_T_4D(bwd_intermediate, q_val, dK_val);
 }
 
-template <typename T = float8>
+template <typename T = float8, typename U = T>
 void MultiHeadAttentionBackwardDataf8(const tensor<T>& q_val,
                                       const tensor<T>& k_val,
                                       const tensor<T>& v_val,
                                       const tensor<T>& O_val, // attention (O)
-                                      const tensor<T>& dO_val,
+                                      const tensor<U>& dO_val,
                                       const tensor<float>& softmax_fp32,
                                       float q_descale,
                                       float k_descale,
@@ -513,8 +513,8 @@ void MultiHeadAttentionBackwardDataf8(const tensor<T>& q_val,
 
     // Calculate dV_val = softmax_T x dO
 
-    tensor<T> softmax_fp8(softmax_fp32.desc.GetLengths());
-    tensor<T> softmax_dot_dO_fp8(dV_val.desc.GetLengths());
+    tensor<float> softmax_fp8(softmax_fp32.desc.GetLengths());
+    tensor<float> softmax_dot_dO_fp8(dV_val.desc.GetLengths());
     ScaleMult(softmax_fp32, s_scale, softmax_fp8);
     // fp8 matrix multiplication
     Dot_4D_T_4D(softmax_fp8, dO_val, softmax_dot_dO_fp8);
@@ -531,7 +531,7 @@ void MultiHeadAttentionBackwardDataf8(const tensor<T>& q_val,
 
     // Calculate dQ_val and dK_val
     // dO x V
-    tensor<T> dO_dot_V_tranpose_val(inputLengths);
+    tensor<float> dO_dot_V_tranpose_val(inputLengths);
     tensor<float> dO_dot_V_tranpose_val_fp32(inputLengths);
     // fp8 matrix multiplication
     Dot_4D_4D_T(dO_val, v_val, dO_dot_V_tranpose_val);
@@ -567,16 +567,16 @@ void MultiHeadAttentionBackwardDataf8(const tensor<T>& q_val,
     // s_scale to convert to fp8
     ScaleMult(bias_sub_fp32_pm_softmax, ds_scale, bias_sub_fp8_pm_softmax);
 
-    // fp8 matrix multiplication
-    Dot_4D_4D(bias_sub_fp8_pm_softmax, k_val, dQ_val);
-    // fp8 matrix multiplication
-    Dot_4D_T_4D(bias_sub_fp8_pm_softmax, q_val, dK_val);
-
     tensor<float> dQ_val_fp32(dQ_val.desc.GetLengths());
     tensor<float> dK_val_fp32(dK_val.desc.GetLengths());
+    // fp8 matrix multiplication
+    Dot_4D_4D(bias_sub_fp8_pm_softmax, k_val, dQ_val_fp32);
+    // fp8 matrix multiplication
+    Dot_4D_T_4D(bias_sub_fp8_pm_softmax, q_val, dK_val_fp32);
+
     // bring it back to fp32
-    ScaleMult(dQ_val, ds_descale * k_descale, dQ_val_fp32);
-    ScaleMult(dK_val, ds_descale * q_descale, dK_val_fp32);
+    ScaleMult(dQ_val_fp32, ds_descale * k_descale, dQ_val_fp32);
+    ScaleMult(dK_val_fp32, ds_descale * q_descale, dK_val_fp32);
 
     aMax_dQ = AbsoluteMax(dQ_val_fp32);
     aMax_dK = AbsoluteMax(dK_val_fp32);
@@ -635,6 +635,20 @@ ScaledTensor<T> GenScaledTensor(Dims... nhsd)
     ScaleMult(val_full, scale, val_scaled);
     return {val_scaled, scale, descale};
 }
+
+template <typename T, typename... Dims>
+ScaledTensor<T> GenScaledTensorBackward(Dims... nhsd)
+{
+    auto val_full = tensor<T>{nhsd...};
+    val_full.for_each([&](auto... id) {
+        // backward pass is very sensitive to input data due to possible subtraction of
+        // similar values and later significant error amplification
+        val_full(id...) = prng::gen_descreet_uniform_sign<T>(4, 60);
+    });
+    float scale   = 0.5f;
+    float descale = 1.0f / scale;
+    return {val_full, scale, descale};
+};
 
 } // namespace cpu
 } // namespace test

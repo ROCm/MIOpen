@@ -135,8 +135,15 @@ struct CKArgs
     CKArgs& operator=(const CKArgs&) = default;
 
     template <typename ConvPtr>
-    auto MakeArgPtr(const ConvPtr& conv_ptr, Data_t in, ConstData_t w, ConstData_t out) const
+    auto MakeArgPtr(const ConvPtr& conv_ptr,
+                    Data_t in,
+                    ConstData_t w,
+                    ConstData_t out,
+                    float alpha,
+                    float beta) const
     {
+        (void)alpha;
+        (void)beta;
         return conv_ptr->MakeArgumentPointer(out,
                                              w,
                                              {},
@@ -159,15 +166,18 @@ struct CKArgs
     }
 
     template <typename ConvPtr>
-    auto MakeArgPtr(const ConvPtr& conv_ptr, const ConvDataTensors& tensors) const
+    auto MakeArgPtr(const ConvPtr& conv_ptr,
+                    const ConvDataTensors& tensors,
+                    float alpha,
+                    float beta) const
     {
-        return MakeArgPtr(conv_ptr, tensors.out, tensors.w, tensors.in);
+        return MakeArgPtr(conv_ptr, tensors.out, tensors.w, tensors.in, alpha, beta);
     }
 
     template <typename ConvPtr>
     bool IsSupportedBy(const ConvPtr& conv_ptr) const
     {
-        auto arg_ptr = MakeArgPtr(conv_ptr, nullptr, nullptr, nullptr);
+        auto arg_ptr = MakeArgPtr(conv_ptr, nullptr, nullptr, nullptr, 1.0f, 0.0f);
         return conv_ptr->IsSupportedArgument(arg_ptr.get());
     }
 
@@ -322,7 +332,7 @@ bool PerformanceConfigHipImplicitGemmGroupBwdXdlops::IsModelApplicable(
         return false;
     if(problem.GetInDataType() != miopenFloat && problem.GetInDataType() != miopenHalf)
         return false;
-    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_GROUP_CONV_IMPLICIT_GEMM_HIP_BWD_XDLOPS_AI_HEUR)))
+    if(env::disabled(MIOPEN_DEBUG_GROUP_CONV_IMPLICIT_GEMM_HIP_BWD_XDLOPS_AI_HEUR))
         return false;
     return true;
 }
@@ -463,9 +473,9 @@ bool ConvHipImplicitGemmGroupBwdXdlops::IsApplicable(
     [[maybe_unused]] const ProblemDescription& problem) const
 {
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
-    if(miopen::IsEnabled(ENV(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_GROUP_BWD_XDLOPS)))
+    if(env::enabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_GROUP_BWD_XDLOPS))
         return false;
-    if(miopen::IsEnabled(ENV(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC)))
+    if(env::enabled(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC))
         return false;
     if(problem.HasMixedDataTypes())
         return false;

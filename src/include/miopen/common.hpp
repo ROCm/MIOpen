@@ -28,6 +28,7 @@
 
 #include <miopen/manage_ptr.hpp>
 #include <miopen/miopen.h>
+#include <miopen/config.hpp>
 
 #if MIOPEN_BACKEND_OPENCL
 
