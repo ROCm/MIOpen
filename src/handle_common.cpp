@@ -45,7 +45,7 @@ StartPreloadingDb(DbPreloadStates& states, DbKinds db_kind_, fs::path&& path, bo
         return;
 
     auto task = [=]() {
-        if constexpr (std::is_same_v<Db, RamDb>)
+        if constexpr(std::is_same_v<Db, RamDb>)
         {
             auto db   = std::make_unique<RamDb>(db_kind_, path, is_system);
             auto lock = std::unique_lock<LockFile>(db->GetLockFile(), GetDbLockTimeout());
