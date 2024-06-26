@@ -919,7 +919,7 @@ void RNNDescriptor::RNNForwardMS(Handle& handle,
         }
     };
 
-    auto call_sync_all_stream_pull_to_root_stream = [&ms_controller]() {
+    auto call_sync_all_stream_pool_to_root_stream = [&ms_controller]() {
         const miopen::HipEventPtr main_event = make_hip_fast_event();
 
         ms_controller.RecordEvent(main_event.get(), root_stream_id);
@@ -931,7 +931,7 @@ void RNNDescriptor::RNNForwardMS(Handle& handle,
         }
     };
 
-    auto sync_root_to_all_stream_pull = [&ms_controller]() {
+    auto sync_root_to_all_stream_pool = [&ms_controller]() {
         for(size_t i = 0; i < ms_controller.size(); i++)
         {
             if(i != root_stream_id)
@@ -1043,7 +1043,7 @@ void RNNDescriptor::RNNForwardMS(Handle& handle,
     // stage 0 bias and input preload
     // stage 0.2 first chunk compute and preload
     {
-        call_sync_all_stream_pull_to_root_stream();
+        call_sync_all_stream_pool_to_root_stream();
         const auto first_layer_id  = 0;
         const auto stream_id       = 1; // 1
         const auto extra_stream_id = 2;
@@ -1236,7 +1236,7 @@ void RNNDescriptor::RNNForwardMS(Handle& handle,
             handle, src_desc, extra_space, y_dst_desc, y, RBuff.ht_offset(nLayers - 1, 0), 0);
     }
 
-    sync_root_to_all_stream_pull();
+    sync_root_to_all_stream_pool();
 #else
     (void)handle;
     (void)seq_array;
