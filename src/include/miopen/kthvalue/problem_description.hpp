@@ -27,6 +27,7 @@
 
 #include "miopen/errors.hpp"
 #include "miopen/miopen.h"
+#include <cstddef>
 #include <miopen/problem_description_base.hpp>
 #include <miopen/tensor.hpp>
 
@@ -43,20 +44,40 @@ struct KthvalueFwdProblemDescription : ProblemDescriptionBase
 {
     KthvalueFwdProblemDescription(const TensorDescriptor& inputDesc_,
                                   const TensorDescriptor& outputDesc_,
-                                  int32_t dim_)
-        : inputDesc(inputDesc_), outputDesc(outputDesc_), dim(dim_)
+                                  const TensorDescriptor& indicesDesc_,
+                                  int32_t dim_,
+                                  size_t k_)
+        : inputDesc(inputDesc_),
+          outputDesc(outputDesc_),
+          indicesDesc(indicesDesc_),
+          dim(dim_),
+          k(k_)
     {
+        if(k > inputDesc.GetLengths()[dim])
+        {
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "Kthvalue: k must be less than the size of the dimension");
+        }
+        int num_dim = inputDesc.GetSize();
+        if(dim < -num_dim || dim >= num_dim)
+        {
+            MIOPEN_THROW(miopenStatusBadParm, "Kthvalue: dim doesn't not exist");
+        }
     }
 
     const TensorDescriptor& GetInputDesc() const { return inputDesc; }
     const TensorDescriptor& GetOutputDesc() const { return outputDesc; }
+    const TensorDescriptor& GetIndicesDesc() const { return indicesDesc; }
     int32_t GetDim() const { return dim; }
+    size_t GetK() const { return k; }
     NetworkConfig MakeNetworkConfig() const override;
 
 public:
     TensorDescriptor inputDesc;
     TensorDescriptor outputDesc;
+    TensorDescriptor indicesDesc;
     int32_t dim;
+    size_t k;
 };
 
 } // namespace kthvalue

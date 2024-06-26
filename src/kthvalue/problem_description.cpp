@@ -37,13 +37,11 @@ NetworkConfig KthvalueFwdProblemDescription::MakeNetworkConfig() const
 {
     auto input_dtype = inputDesc.GetType();
     auto size        = inputDesc.GetElementSize();
-    auto dim_num     = inputDesc.GetSize();
 
     std::ostringstream ss;
 
     ss << "kthvalue_fwd";
     ss << "i_dtype" << input_dtype;
-    ss << "dim_num" << dim_num;
     ss << "size" << size;
 
     return NetworkConfig{ss.str()};

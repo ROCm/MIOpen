@@ -43,43 +43,38 @@ miopenStatus_t KthvalueForward(Handle& handle,
                                ConstData_t input,
                                const TensorDescriptor& outputDesc,
                                Data_t output,
+                               const TensorDescriptor& indicesDesc,
                                size_t* indices,
                                size_t k,
                                int32_t dim)
 {
-    // const auto problem =
-    //     kthvalue::KthvalueFwdProblemDescription{inputDesc, targetDesc, outputDesc, reduction};
+    const auto problem =
+        kthvalue::KthvalueFwdProblemDescription{inputDesc, outputDesc, indicesDesc, dim, k};
 
-    // const auto invoke_params = [&]() {
-    //     auto tmp           = kthvalue::FwdInvokeParams{};
-    //     tmp.inputDesc      = &inputDesc;
-    //     tmp.targetDesc     = &targetDesc;
-    //     tmp.outputDesc     = &outputDesc;
-    //     tmp.input          = input;
-    //     tmp.target         = target;
-    //     tmp.output         = output;
-    //     tmp.workspace      = workspace;
-    //     tmp.workspace_size = workspaceSizeInBytes;
-    //     tmp.alpha          = alpha;
-    //     tmp.gamma          = gamma;
-    //     tmp.reduction      = reduction;
-    //     return tmp;
-    // }();
+    if(dim < 0)
+    {
+        dim += indicesDesc.GetSize();
+    }
 
-    // if(reduction == MIOPEN_LOSS_REDUCTION_NONE)
-    // {
-    //     const auto algo    = AlgorithmName{"KthvalueUnreducedFwd"};
-    //     const auto solvers = solver::SolverContainer<solver::kthvalue::KthvalueUnreducedFwd>{};
+    const auto invoke_params = [&]() {
+        auto tmp           = kthvalue::FwdInvokeParams{};
+        tmp.inputDesc      = &inputDesc;
+        tmp.outputDesc     = &outputDesc;
+        tmp.indicesDesc    = &indicesDesc;
+        tmp.input          = input;
+        tmp.indices        = indices;
+        tmp.output         = output;
+        tmp.workspace      = workspace;
+        tmp.workspace_size = workspaceSizeInBytes;
+        tmp.k              = k;
+        tmp.dim            = dim;
+        return tmp;
+    }();
 
-    //     solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
-    // }
-    // else
-    // {
-    //     const auto algo    = AlgorithmName{"KthvalueFwd"};
-    //     const auto solvers = solver::SolverContainer<solver::kthvalue::KthvalueFwd>{};
+    const auto algo    = AlgorithmName{"KthvalueFwd"};
+    const auto solvers = solver::SolverContainer<solver::kthvalue::KthvalueFwd>{};
 
-    //     solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
-    // }
+    solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
 
     return miopenStatusSuccess;
 }
