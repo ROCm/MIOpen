@@ -45,8 +45,8 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
     ss << kernel;
     if(IsAdamW())
         ss << "w";
-    if(IsAllPacked())
-        ss << "packed";
+    if(IsAllContiguous())
+        ss << "cont";
     ss << "step" << step_ind;
     ss << "dtype" << dtype;
     if(IsAmp())
