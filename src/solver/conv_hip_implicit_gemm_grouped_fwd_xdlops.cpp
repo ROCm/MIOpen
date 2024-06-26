@@ -223,8 +223,7 @@ void PerformanceConfigHipImplicitGemmGroupFwdXdlops::InitHeuristicKernelIDs(cons
 {
     for(int i = 0; i < valid_kernels.size(); i++)
     {
-        if(valid_kernels[i].find(type) !=
-           std::string::npos)
+        if(valid_kernels[i].find(type) != std::string::npos)
         {
             heuristic_indexes.push_back(i);
             heuristic_kernels[i] = GetKernelAsTokens(valid_kernels[i]);
@@ -294,8 +293,8 @@ GetFeatures(const ProblemDescription& problem, std::size_t num_cu, const std::st
     }
     std::size_t n = 17;
     std::vector<float> features(n * n, 0.0f);
-    features[0]       = problem.GetInChannels();
-    features[n + 1]   = problem.GetInHeight();
+    features[0]           = problem.GetInChannels();
+    features[n + 1]       = problem.GetInHeight();
     features[2 * n + 2]   = problem.GetInWidth();
     features[3 * n + 3]   = problem.GetOutChannels();
     features[4 * n + 4]   = problem.GetOutHeight();
@@ -303,7 +302,7 @@ GetFeatures(const ProblemDescription& problem, std::size_t num_cu, const std::st
     features[6 * n + 6]   = problem.GetWeightsHeight();
     features[7 * n + 7]   = problem.GetWeightsWidth();
     features[8 * n + 8]   = problem.GetPadH();
-    features[9 * n + 9] = problem.GetPadW();
+    features[9 * n + 9]   = problem.GetPadW();
     features[10 * n + 10] = problem.GetKernelStrideH();
     features[11 * n + 11] = problem.GetKernelStrideW();
     features[12 * n + 12] = problem.GetDilationH();
