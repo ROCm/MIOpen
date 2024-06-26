@@ -285,30 +285,18 @@ struct ConvWinoFuryRxSFused final : FusionSolverBase
         return GetSolverDbId<ConvWinoFuryRxSFused<Winodata, Winofilter>>();
     }
 
-    MIOPEN_INTERNALS_EXPORT bool IsApplicable(const FusionContext&,
-                                              const FusionDescription&) const override;
+    bool IsApplicable(const FusionContext&, const FusionDescription&) const override;
     bool IsDynamic() const override { return true; }
-    MIOPEN_INTERNALS_EXPORT float GetWti(const FusionContext&,
-                                         const FusionDescription&) const override;
-    MIOPEN_INTERNALS_EXPORT size_t GetWorkspaceSize(const FusionContext&,
-                                                    const FusionDescription&) const override;
+    float GetWti(const FusionContext&, const FusionDescription&) const override;
+    size_t GetWorkspaceSize(const FusionContext&, const FusionDescription&) const override;
     bool MayNeedWorkspace() const override { return true; }
 
-    MIOPEN_INTERNALS_EXPORT ConvSolution GetSolution(const FusionContext&,
-                                                     const FusionDescription&) const override;
+    ConvSolution GetSolution(const FusionContext&, const FusionDescription&) const override;
 };
 
-// Suppress misleading clang warnings
-#if defined(__clang__)
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wweak-template-vtables"
-#endif
-
+#ifndef CONV_WINO_FURY_RXS_CPP
 extern template struct ConvWinoFuryRxSFused<2, 3>;
 // extern template struct ConvWinoFuryRxSFused<3, 2>;
-
-#if defined(__clang__)
-#pragma clang diagnostic pop
 #endif
 
 struct BnFwdInferActivationFused final : FusionSolverBase
