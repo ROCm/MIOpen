@@ -59,9 +59,6 @@ auto GetDbPreloadStates() -> DbPreloadStates&;
 template <class Db>
 inline auto GetPreloadedDb(const fs::path& path) -> std::unique_ptr<Db>
 {
-    if(path.empty())
-        return nullptr;
-
     auto& states = GetDbPreloadStates();
 
     std::unique_lock<std::mutex> lock{states.mutex};
@@ -78,7 +75,7 @@ inline auto GetPreloadedDb(const fs::path& path) -> std::unique_ptr<Db>
     lock.unlock();
 
     const auto start = std::chrono::high_resolution_clock::now();
-    auto ret         = it->second.get();
+    auto ret         = future.get();
     const auto end   = std::chrono::high_resolution_clock::now();
     MIOPEN_LOG_I2("GetPreloadedDb time waiting for the db: " << (end - start).count() * .000001f
                                                              << " ms");

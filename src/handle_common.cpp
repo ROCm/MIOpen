@@ -41,32 +41,32 @@ template <class Db>
 static void
 StartPreloadingDb(DbPreloadStates& states, DbKinds db_kind_, fs::path&& path, bool is_system)
 {
-    auto future = std::async(std::launch::async, [=, path = std::move(path)]() {
-        auto db = [&]() {
-            if constexpr(std::is_same_v<Db, RamDb>)
-                return std::make_unique<Db>(db_kind_, path, is_system);
-            else
-                return std::make_unique<Db>(db_kind_, path);
-        }();
+    if(path.empty())
+        return;
 
-        [[maybe_unused]] const auto prefetch_lock = [&]() {
-            if constexpr(std::is_same_v<Db, RamDb>)
-            {
-                auto lock = std::unique_lock<LockFile>(db->GetLockFile(), GetDbLockTimeout());
-                if(!lock)
-                    MIOPEN_THROW("Db lock has failed to lock.");
-                return lock;
-            }
-            else
-                return 0; // No lock required
-        }();
+    auto task = [=]() {
+        if constexpr (std::is_same_v<Db, RamDb>)
+        {
+            auto db   = std::make_unique<RamDb>(db_kind_, path, is_system);
+            auto lock = std::unique_lock<LockFile>(db->GetLockFile(), GetDbLockTimeout());
 
-        db->Prefetch();
+            if(!lock)
+                MIOPEN_THROW("Db lock has failed to lock.");
+            db->Prefetch();
 
-        return PreloadedDb(std::move(db));
-    });
+            return PreloadedDb(std::move(db));
+        }
+        else
+        {
+            auto db = std::make_unique<Db>(db_kind_, path);
+            db->Prefetch();
+            return PreloadedDb(std::move(db));
+        }
+    };
 
-    states.futures.emplace(path, std::move(future));
+    auto future = std::async(std::launch::async, std::move(task));
+
+    states.futures.emplace(std::move(path), std::move(future));
 }
 
 void Handle::TryStartPreloadingDbs()
