@@ -6610,9 +6610,10 @@ MIOPEN_EXPORT miopenStatus_t miopenKthvalueForward(miopenHandle_t handle,
                                                    const void* input,
                                                    miopenTensorDescriptor_t outputDesc,
                                                    void* output,
+                                                   miopenTensorDescriptor_t indicesDesc,
                                                    size_t* indices,
                                                    size_t k,
-                                                   int32_t dim);
+                                                   int32_t dim = -1);
 
 /** @} */
 // CLOSEOUT kthvalue DOXYGEN GROUP

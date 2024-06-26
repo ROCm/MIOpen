@@ -23,46 +23,19 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#pragma once
 
-#include "miopen/common.hpp"
-#include "miopen/miopen.h"
-#include <miopen/invoke_params.hpp>
-#include <miopen/tensor.hpp>
+#include "registry_driver_maker.hpp"
+#include "kthvalue_driver.hpp"
 
-#include <limits>
-
-namespace miopen {
-
-namespace kthvalue {
-
-struct KthvalueInvokeParams : public miopen::InvokeParams
+static Driver* makeDriver(const std::string& base_arg)
 {
-    KthvalueInvokeParams() = default;
+    if(base_arg == "kthvalue")
+        return new KthvalueDriver<float>();
+    else if(base_arg == "kthvaluefp16")
+        return new KthvalueDriver<float16>();
+    else if(base_arg == "kthvaluebfp16")
+        return new KthvalueDriver<bfloat16>();
+    return nullptr;
+}
 
-    const TensorDescriptor* inputDesc = nullptr;
-
-    Data_t workspace           = nullptr;
-    std::size_t workspace_size = 0;
-    ConstData_t input          = nullptr;
-
-    size_t k    = 1;
-    int32_t dim = 0;
-
-    std::size_t GetWorkspaceSize() const { return workspace_size; }
-    Data_t GetWorkspace() const { return workspace; }
-};
-
-struct FwdInvokeParams : KthvalueInvokeParams
-{
-    FwdInvokeParams() = default;
-
-    const TensorDescriptor* outputDesc  = nullptr;
-    Data_t output                       = nullptr;
-    const TensorDescriptor* indicesDesc = nullptr;
-    size_t* indices                     = nullptr;
-};
-
-} // namespace kthvalue
-
-} // namespace miopen
+REGISTER_DRIVER_MAKER(makeDriver);

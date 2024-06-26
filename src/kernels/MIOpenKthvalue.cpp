@@ -24,16 +24,17 @@
  *
  *******************************************************************************/
 
-#include <cstddef>
-#include <cstdint>
-// #ifndef MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS
+// #include <cstddef>
+#include <cstdio>
+#ifndef MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS
 #include <hip/hip_fp16.h>
 #include <hip/hip_runtime.h>
-// #endif
+#endif
 
 #include "float_types.h"
 #include "radix.hpp"
 #include "tensor_view.hpp"
+#include "warp_shuffle.hpp"
 
 #ifndef IN_OUT_TYPE
 #define IN_OUT_TYPE float
@@ -70,7 +71,9 @@ __device__ void kthvalueFwd(const DTYPE* input,
                             size_t k,
                             size_t dim_size,
                             size_t dim_stride,
-                            tensor_view_t<4> input_tv)
+                            tensor_view_t<4> input_tv,
+                            tensor_view_t<4> output_tv,
+                            tensor_view_t<4> indices_tv)
 {
     /*
      * Example)
@@ -81,9 +84,10 @@ __device__ void kthvalueFwd(const DTYPE* input,
      */
 
     size_t lid = threadIdx.x;
-    size_t gid = blockIdx.y * blockDim.y + threadIdx.y;
+    size_t gid = blockIdx.x;
 
     __shared__ size_t lsum[LOCAL_SIZE][RADIX_SIZE];
+    __shared__ size_t smem_count[RADIX_SIZE];
     __shared__ DTYPE lval;
     __shared__ long lidx;
     size_t counts[RADIX_SIZE];
@@ -115,7 +119,6 @@ __device__ void kthvalueFwd(const DTYPE* input,
             lsum[lid][i] = counts[i];
         }
         __syncthreads();
-        // warp shuffle
         for(size_t i = LOCAL_SIZE >> 1; i > 0; i >>= 1)
         {
             if(lid < i)
@@ -127,12 +130,24 @@ __device__ void kthvalueFwd(const DTYPE* input,
             }
             __syncthreads();
         }
-        // remove use share mem
         for(size_t i = 0; i < RADIX_SIZE; ++i)
         {
             counts[i] = lsum[0][i];
         }
         __syncthreads();
+
+        //         __syncthreads();
+        // #pragma unroll
+        //         for(size_t i = 0; i < RADIX_SIZE; ++i)
+        //         {
+        //             counts[i] = block_reduce_sum<size_t>(counts[i]);
+        //             if(lid == 0)
+        //             {
+        //                 smem_count[i] = counts[i];
+        //             }
+        //             __syncthreads();
+        //             counts[i] = smem_count[i];
+        //         }
 
         bool found = false;
         // Process in ascending order
@@ -176,18 +191,23 @@ __device__ void kthvalueFwd(const DTYPE* input,
     __syncthreads();
     if(lid == 0)
     {
-        output[gid]  = lval;
-        indices[gid] = lidx;
+        auto output_layout                                   = tensor_layout_t<4>(output_tv, gid);
+        auto indices_layout                                  = tensor_layout_t<4>(indices_tv, gid);
+        output[output_tv.get_tensor_view_idx(output_layout)] = lval;
+        indices[indices_tv.get_tensor_view_idx(indices_layout)] = lidx;
     }
 }
 
-extern "C" __global__ void KthvalueUnreducedFwd(const IN_OUT_TYPE* input,
-                                                IN_OUT_TYPE* output,
-                                                size_t* indices,
-                                                size_t k,
-                                                size_t dim_size,
-                                                size_t dim_stride,
-                                                tensor_view_t<4> input_tv)
+extern "C" __global__ void KthvalueFwd(const IN_OUT_TYPE* input,
+                                       IN_OUT_TYPE* output,
+                                       size_t* indices,
+                                       size_t k,
+                                       size_t dim_size,
+                                       size_t dim_stride,
+                                       tensor_view_t<4> input_tv,
+                                       tensor_view_t<4> output_tv,
+                                       tensor_view_t<4> indices_tv)
 {
-    kthvalueFwd<IN_OUT_TYPE>(input, output, indices, k, dim_size, dim_stride, input_tv);
+    kthvalueFwd<IN_OUT_TYPE>(
+        input, output, indices, k, dim_size, dim_stride, input_tv, output_tv, indices_tv);
 }

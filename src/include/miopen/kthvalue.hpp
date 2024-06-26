@@ -40,6 +40,7 @@ miopenStatus_t KthvalueForward(Handle& handle,
                                ConstData_t input,
                                const TensorDescriptor& outputDesc,
                                Data_t output,
+                               const TensorDescriptor& indicesDesc,
                                size_t* indices,
                                size_t k,
                                int32_t dim);

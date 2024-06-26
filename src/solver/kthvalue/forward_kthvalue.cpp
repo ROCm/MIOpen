@@ -65,7 +65,7 @@ KthvalueFwd::GetSolution(const ExecutionContext& context,
     auto dim_size   = input_desc.GetLengths()[problem.GetDim()];
 
     size_t xlocalsize = LOCAL_SIZE;
-    size_t xgridsize  = AlignUp(size / dim_size, xlocalsize);
+    size_t xgridsize  = size / dim_size * xlocalsize;
     size_t ylocalsize = 1;
     size_t ygridsize  = 1;
     size_t zlocalsize = 1;
@@ -74,7 +74,7 @@ KthvalueFwd::GetSolution(const ExecutionContext& context,
     auto kernel = KernelInfo{};
 
     kernel.kernel_file = "MIOpenKthvalue.cpp";
-    kernel.kernel_name = "KthvalueForward";
+    kernel.kernel_name = "KthvalueFwd";
 
     const auto build_params = KernelBuildParameters{
         {"MIOPEN_USE_FP16", static_cast<int>(dtype == miopenHalf)},
@@ -103,8 +103,10 @@ KthvalueFwd::GetSolution(const ExecutionContext& context,
             size_t dimSize        = params.inputDesc->GetLengths()[params.dim];
             size_t dimStride      = params.inputDesc->GetStrides()[params.dim];
 
-            auto input_tv                     = get_inner_expanded_tv<5>(deref(params.inputDesc));
-            auto input_tv_without_reduced_dim = get_tv_without_dim<5, 4>(input_tv, params.dim);
+            auto input_tv   = get_inner_expanded_tv<5>(deref(params.inputDesc));
+            auto output_tv  = get_inner_expanded_tv<4>(deref(params.outputDesc));
+            auto indices_tv = get_inner_expanded_tv<4>(deref(params.indicesDesc));
+            auto input_tv_without_selected_dim = get_tv_without_dim<5, 4>(input_tv, params.dim);
 
             kernel(params.input,
                    params.output,
@@ -112,7 +114,9 @@ KthvalueFwd::GetSolution(const ExecutionContext& context,
                    params.k,
                    dimSize,
                    dimStride,
-                   input_tv_without_reduced_dim);
+                   input_tv_without_selected_dim,
+                   output_tv,
+                   indices_tv);
         };
     };
 
