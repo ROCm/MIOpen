@@ -33,14 +33,14 @@ namespace miopen {
 struct Handle;
 struct TensorDescriptor;
 
-miopenStatus_t InterpolateNearestAreaForward(Handle& handle,
-                                             const TensorDescriptor& inputDesc,
-                                             ConstData_t input,
-                                             const TensorDescriptor& outputDesc,
-                                             Data_t output,
-                                             const TensorDescriptor& scaleFactorsDesc,
-                                             ConstData_t scale_factors,
-                                             const miopenInterpolateMode_t mode);
+miopenStatus_t InterpolateNearestForward(Handle& handle,
+                                         const TensorDescriptor& inputDesc,
+                                         ConstData_t input,
+                                         const TensorDescriptor& outputDesc,
+                                         Data_t output,
+                                         const TensorDescriptor& scaleFactorsDesc,
+                                         ConstData_t scale_factors,
+                                         const miopenInterpolateMode_t mode);
 
 miopenStatus_t InterpolateLinearCubicForward(Handle& handle,
                                              const TensorDescriptor& inputDesc,
@@ -52,14 +52,14 @@ miopenStatus_t InterpolateLinearCubicForward(Handle& handle,
                                              const miopenInterpolateMode_t mode,
                                              const bool align_corners);
 
-miopenStatus_t InterpolateNearestAreaBackward(Handle& handle,
-                                              const TensorDescriptor& inputGradDesc,
-                                              Data_t input_grad,
-                                              const TensorDescriptor& outputGradDesc,
-                                              ConstData_t output_grad,
-                                              const TensorDescriptor& scaleFactorsDesc,
-                                              ConstData_t scale_factors,
-                                              const miopenInterpolateMode_t mode);
+miopenStatus_t InterpolateNearestBackward(Handle& handle,
+                                          const TensorDescriptor& inputGradDesc,
+                                          Data_t input_grad,
+                                          const TensorDescriptor& outputGradDesc,
+                                          ConstData_t output_grad,
+                                          const TensorDescriptor& scaleFactorsDesc,
+                                          ConstData_t scale_factors,
+                                          const miopenInterpolateMode_t mode);
 
 miopenStatus_t InterpolateLinearCubicBackward(Handle& handle,
                                               const TensorDescriptor& inputGradDesc,

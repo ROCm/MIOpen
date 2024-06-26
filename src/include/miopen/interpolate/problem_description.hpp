@@ -120,7 +120,7 @@ struct FwdProblemDescription : ProblemDescription
                          "Interpolate: Input tensor size < 3 or > 5 is not valid.");
         }
 
-        if(outputDesc.GetSize() < 1 || outputDesc.GetSize() > 3)
+        if(outputDesc.GetSize() < 3 || outputDesc.GetSize() > 5)
         {
             MIOPEN_THROW(miopenStatusBadParm,
                          "Interpolate: Output tensor size < 1 or > 3 is not valid.");
@@ -169,13 +169,13 @@ struct BwdProblemDescription : ProblemDescription
                          "Interpolate: Input grad tensor size < 3 or > 5 is not valid.");
         }
 
-        if(outputGradDesc.GetSize() < 1 || outputGradDesc.GetSize() > 3)
+        if(outputGradDesc.GetSize() < 3 || outputGradDesc.GetSize() > 5)
         {
             MIOPEN_THROW(miopenStatusBadParm,
-                         "Interpolate: Output grad tensor size < 1 or > 3 is not valid.");
+                         "Interpolate: Output grad tensor size < 3 or > 5 is not valid.");
         }
 
-        if(outputGradDesc.GetSize() != scaleFactorsDesc.GetElementSize())
+        if((outputGradDesc.GetSize() - 2) != scaleFactorsDesc.GetElementSize())
         {
             MIOPEN_THROW(
                 miopenStatusBadParm,

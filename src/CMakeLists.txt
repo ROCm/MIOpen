@@ -262,13 +262,11 @@ set( MIOpen_Source
     solver/gemm_bwd.cpp
     solver/gemm_wrw.cpp
     solver/groupnorm/forward_groupnorm.cpp
-    solver/interpolate/fwd_area_interpolate.cpp
     solver/interpolate/fwd_nearest_interpolate.cpp
     solver/interpolate/fwd_linear_interpolate.cpp
     solver/interpolate/fwd_bilinear_interpolate.cpp
     solver/interpolate/fwd_trilinear_interpolate.cpp
     solver/interpolate/fwd_bicubic_interpolate.cpp
-    solver/interpolate/bwd_area_interpolate.cpp
     solver/interpolate/bwd_nearest_interpolate.cpp
     solver/interpolate/bwd_linear_interpolate.cpp
     solver/interpolate/bwd_bilinear_interpolate.cpp

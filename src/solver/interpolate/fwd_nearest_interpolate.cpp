@@ -75,7 +75,6 @@ ConvSolution InterpolateNearestForward::GetSolution(
             {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
             {"INPUT_TYPE", input_dtype == "bfloat16" ? "ushort" : input_dtype},
             {"OUTPUT_TYPE", output_dtype == "bfloat16" ? "ushort" : output_dtype},
-            {"LOCAL_SIZE", LOCAL_SIZE_FWD_NEAREST},
         };
 
         result.construction_params.push_back(make_hip_kernel({LOCAL_SIZE_FWD_NEAREST},
@@ -94,7 +93,7 @@ ConvSolution InterpolateNearestForward::GetSolution(
             auto output_tv = get_inner_expanded_tv<5>(deref(params.outputDesc));
             size_t nelems  = params.outputDesc->GetElementSize();
 
-            kernel(input_tv, output_tv, params.input, params.output, params.scale_factors, nelems);
+            kernel(params.input, params.output, input_tv, output_tv, nelems, params.scale_factors);
         };
     };
 

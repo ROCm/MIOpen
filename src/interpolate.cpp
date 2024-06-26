@@ -35,14 +35,14 @@
 
 namespace miopen {
 
-miopenStatus_t InterpolateNearestAreaForward(Handle& handle,
-                                             const TensorDescriptor& inputDesc,
-                                             ConstData_t input,
-                                             const TensorDescriptor& outputDesc,
-                                             Data_t output,
-                                             const TensorDescriptor& scaleFactorsDesc,
-                                             ConstData_t scale_factors,
-                                             const miopenInterpolateMode_t mode)
+miopenStatus_t InterpolateNearestForward(Handle& handle,
+                                         const TensorDescriptor& inputDesc,
+                                         ConstData_t input,
+                                         const TensorDescriptor& outputDesc,
+                                         Data_t output,
+                                         const TensorDescriptor& scaleFactorsDesc,
+                                         ConstData_t scale_factors,
+                                         const miopenInterpolateMode_t mode)
 {
     const auto problem =
         interpolate::FwdProblemDescription{inputDesc, outputDesc, scaleFactorsDesc, mode, false};
@@ -62,8 +62,7 @@ miopenStatus_t InterpolateNearestAreaForward(Handle& handle,
         return tmp;
     }();
     const auto algo    = AlgorithmName{"InterpolateForward"};
-    const auto solvers = solver::SolverContainer<solver::interpolate::InterpolateNearestForward,
-                                                 solver::interpolate::InterpolateAreaForward>{};
+    const auto solvers = solver::SolverContainer<solver::interpolate::InterpolateNearestForward>{};
 
     solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
 
@@ -109,14 +108,14 @@ miopenStatus_t InterpolateLinearCubicForward(Handle& handle,
     return miopenStatusSuccess;
 }
 
-miopenStatus_t InterpolateNearestAreaBackward(Handle& handle,
-                                              const TensorDescriptor& inputGradDesc,
-                                              Data_t input_grad,
-                                              const TensorDescriptor& outputGradDesc,
-                                              ConstData_t output_grad,
-                                              const TensorDescriptor& scaleFactorsDesc,
-                                              ConstData_t scale_factors,
-                                              const miopenInterpolateMode_t mode)
+miopenStatus_t InterpolateNearestBackward(Handle& handle,
+                                          const TensorDescriptor& inputGradDesc,
+                                          Data_t input_grad,
+                                          const TensorDescriptor& outputGradDesc,
+                                          ConstData_t output_grad,
+                                          const TensorDescriptor& scaleFactorsDesc,
+                                          ConstData_t scale_factors,
+                                          const miopenInterpolateMode_t mode)
 {
     const auto problem = interpolate::BwdProblemDescription{
         inputGradDesc, outputGradDesc, scaleFactorsDesc, mode, false};
@@ -136,8 +135,7 @@ miopenStatus_t InterpolateNearestAreaBackward(Handle& handle,
         return tmp;
     }();
     const auto algo    = AlgorithmName{"InterpolateBackward"};
-    const auto solvers = solver::SolverContainer<solver::interpolate::InterpolateNearestBackward,
-                                                 solver::interpolate::InterpolateAreaBackward>{};
+    const auto solvers = solver::SolverContainer<solver::interpolate::InterpolateNearestBackward>{};
 
     solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
 

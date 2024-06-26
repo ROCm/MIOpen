@@ -76,22 +76,6 @@ struct InterpolateNearestForward final : InterpolateFwdSolver
                 const miopen::interpolate::FwdProblemDescription& problem) const override;
 };
 
-// FORWARD AREA
-struct InterpolateAreaForward final : InterpolateFwdSolver
-{
-    const std::string& SolverDbId() const override
-    {
-        return GetSolverDbId<InterpolateAreaForward>();
-    }
-
-    bool IsApplicable(const ExecutionContext& context,
-                      const miopen::interpolate::FwdProblemDescription& problem) const override;
-
-    ConvSolution
-    GetSolution(const ExecutionContext& context,
-                const miopen::interpolate::FwdProblemDescription& problem) const override;
-};
-
 // FORWARD LINEAR
 struct InterpolateLinearForward final : InterpolateFwdSolver
 {
@@ -162,22 +146,6 @@ struct InterpolateNearestBackward final : InterpolateBwdSolver
     const std::string& SolverDbId() const override
     {
         return GetSolverDbId<InterpolateNearestBackward>();
-    }
-
-    bool IsApplicable(const ExecutionContext& context,
-                      const miopen::interpolate::BwdProblemDescription& problem) const override;
-
-    ConvSolution
-    GetSolution(const ExecutionContext& context,
-                const miopen::interpolate::BwdProblemDescription& problem) const override;
-};
-
-// BACKWARD AREA
-struct InterpolateAreaBackward final : InterpolateBwdSolver
-{
-    const std::string& SolverDbId() const override
-    {
-        return GetSolverDbId<InterpolateAreaBackward>();
     }
 
     bool IsApplicable(const ExecutionContext& context,

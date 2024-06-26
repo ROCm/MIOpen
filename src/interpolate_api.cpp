@@ -102,14 +102,14 @@ extern "C" miopenStatus_t miopenInterpolateForward(miopenHandle_t handle,
     if(mode == MIOPEN_INTERPOLATE_MODE_NEAREST || mode == MIOPEN_INTERPOLATE_MODE_AREA)
     {
         return miopen::try_([&] {
-            miopen::InterpolateNearestAreaForward(miopen::deref(handle),
-                                                  miopen::deref(inputDesc),
-                                                  DataCast(input),
-                                                  miopen::deref(outputDesc),
-                                                  DataCast(output),
-                                                  miopen::deref(scaleFactorsDesc),
-                                                  DataCast(scale_factors),
-                                                  mode);
+            miopen::InterpolateNearestForward(miopen::deref(handle),
+                                              miopen::deref(inputDesc),
+                                              DataCast(input),
+                                              miopen::deref(outputDesc),
+                                              DataCast(output),
+                                              miopen::deref(scaleFactorsDesc),
+                                              DataCast(scale_factors),
+                                              mode);
         });
     }
     return miopen::try_([&] {
@@ -149,14 +149,14 @@ extern "C" miopenStatus_t miopenInterpolateBackward(miopenHandle_t handle,
     if(mode == MIOPEN_INTERPOLATE_MODE_NEAREST || mode == MIOPEN_INTERPOLATE_MODE_AREA)
     {
         return miopen::try_([&] {
-            miopen::InterpolateNearestAreaBackward(miopen::deref(handle),
-                                                   miopen::deref(inputGradDesc),
-                                                   DataCast(input_grad),
-                                                   miopen::deref(outputGradDesc),
-                                                   DataCast(output_grad),
-                                                   miopen::deref(scaleFactorsDesc),
-                                                   DataCast(scale_factors),
-                                                   mode);
+            miopen::InterpolateNearestBackward(miopen::deref(handle),
+                                               miopen::deref(inputGradDesc),
+                                               DataCast(input_grad),
+                                               miopen::deref(outputGradDesc),
+                                               DataCast(output_grad),
+                                               miopen::deref(scaleFactorsDesc),
+                                               DataCast(scale_factors),
+                                               mode);
         });
     }
     return miopen::try_([&] {

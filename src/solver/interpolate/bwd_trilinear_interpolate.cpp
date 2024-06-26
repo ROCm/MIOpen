@@ -35,7 +35,7 @@
 #include <miopen/interpolate.hpp>
 #include <miopen/target_properties.hpp>
 
-#define LOCAL_SIZE_FWD_TRILINEAR 256
+#define LOCAL_SIZE_BWD_TRILINEAR 256
 
 namespace miopen {
 
@@ -43,28 +43,28 @@ namespace solver {
 
 namespace interpolate {
 
-bool InterpolateTrilinearForward::IsApplicable(
-    const ExecutionContext&, const miopen::interpolate::FwdProblemDescription& problem) const
+bool InterpolateTrilinearBackward::IsApplicable(
+    const ExecutionContext&, const miopen::interpolate::BwdProblemDescription& problem) const
 {
-    if(problem.GetMode() != miopenInterpolateMode_t::MIOPEN_INTERPOLATE_MODE_LINEAR)
+    if(problem.GetMode() != miopenInterpolateMode_t::MIOPEN_INTERPOLATE_MODE_TRILINEAR)
         return false;
 
     return true;
 }
 
-ConvSolution InterpolateTrilinearForward::GetSolution(
+ConvSolution InterpolateTrilinearBackward::GetSolution(
     const ExecutionContext& context,
-    const miopen::interpolate::FwdProblemDescription& problem) const
+    const miopen::interpolate::BwdProblemDescription& problem) const
 {
     std::ignore = context;
 
     auto result       = ConvSolution{miopenStatusSuccess};
-    auto input_dtype  = miopen::GetDataType(problem.GetInputDesc().GetType());
-    auto output_dtype = miopen::GetDataType(problem.GetOutputDesc().GetType());
+    auto input_dtype  = miopen::GetDataType(problem.GetOutputGradDesc().GetType());
+    auto output_dtype = miopen::GetDataType(problem.GetInputGradDesc().GetType());
 
     {
-        auto dtype     = problem.GetOutputDesc().GetType();
-        size_t N_total = problem.GetBatchSize() * LOCAL_SIZE_FWD_TRILINEAR;
+        auto dtype     = problem.GetInputGradDesc().GetType();
+        size_t N_total = problem.GetOutputGradDesc().GetElementSize();
 
         auto kernel = KernelInfo{};
 
@@ -75,32 +75,31 @@ ConvSolution InterpolateTrilinearForward::GetSolution(
             {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
             {"INPUT_TYPE", input_dtype == "bfloat16" ? "ushort" : input_dtype},
             {"OUTPUT_TYPE", output_dtype == "bfloat16" ? "ushort" : output_dtype},
-            {"LOCAL_SIZE", LOCAL_SIZE_FWD_TRILINEAR},
         };
 
-        result.construction_params.push_back(make_hip_kernel({LOCAL_SIZE_FWD_TRILINEAR},
+        result.construction_params.push_back(make_hip_kernel({LOCAL_SIZE_BWD_TRILINEAR},
                                                              {N_total},
                                                              "MIOpenInterpolate.cpp",
-                                                             "InterpolateTrilinearForward",
+                                                             "InterpolateTrilinearBackward",
                                                              build_params));
     }
 
     result.invoker_factory = [](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
             decltype(auto) kernel = handle_.Run(kernels.front());
-            decltype(auto) params = raw_params.CastTo<miopen::interpolate::FwdInvokeParams>();
+            decltype(auto) params = raw_params.CastTo<miopen::interpolate::BwdInvokeParams>();
 
-            auto input_tv  = get_inner_expanded_tv<5>(deref(params.inputDesc));
-            auto output_tv = get_inner_expanded_tv<5>(deref(params.outputDesc));
-            size_t nelems  = N_total;
+            auto input_grad_tv  = get_inner_expanded_tv<5>(deref(params.inputGradDesc));
+            auto output_grad_tv = get_inner_expanded_tv<5>(deref(params.outputGradDesc));
+            size_t nelems       = params.outputGradDesc->GetElementSize();
 
-            kernel(input_tv,
-                   output_tv,
-                   params.input,
-                   params.output,
+            kernel(params.input_grad,
+                   params.output_grad,
+                   input_grad_tv,
+                   output_grad_tv,
+                   nelems,
                    params.scale_factors,
-                   params.align_corners,
-                   nelems);
+                   params.align_corners);
         };
     };
 
