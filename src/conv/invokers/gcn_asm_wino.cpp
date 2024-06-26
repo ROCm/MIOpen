@@ -29,41 +29,82 @@
 #include <miopen/conv_algo_name.hpp>
 #include <miopen/conv/data_invoke_params.hpp>
 #include <miopen/conv/wrw_invoke_params.hpp>
+#include <miopen/fusion/fusion_invoke_params.hpp>
 #include <miopen/handle.hpp>
 
 namespace miopen {
-namespace conv {
 
 InvokerFactory MakeGcnAsmWinoV2InvokerFactory(const WinoShaderArgsV2& args,
-                                              Direction direction,
-                                              std::size_t sync_buffer_size)
+                                              conv::Direction direction,
+                                              std::size_t sync_buffer_size,
+                                              bool fused)
 {
-    const bool is_backWrW  = (direction == Direction::BackwardWeights);
+    const bool is_backWrW  = (direction == conv::Direction::BackwardWeights);
     const bool coop_launch = (args.sync_period != 0);
+    const bool do_bias =
+        ((args.flags64 & WinoShaderFlagsV2::F_BIAS) != static_cast<WinoShaderFlagsV2>(0));
+
+    if(fused && (direction != conv::Direction::Forward))
+    {
+        MIOPEN_THROW(miopenStatusInternalError);
+    }
 
     return [=](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
             const auto k = handle.Run(kernels[0], coop_launch);
 
-            ConstData_t data_addr   = !is_backWrW
-                                          ? primitive_params.CastTo<DataInvokeParams>().tensors.in
-                                          : primitive_params.CastTo<WrWInvokeParams>().tensors.x;
-            ConstData_t filter_addr = !is_backWrW
-                                          ? primitive_params.CastTo<DataInvokeParams>().tensors.w
-                                          : primitive_params.CastTo<WrWInvokeParams>().tensors.dy;
-            Data_t output_addr      = !is_backWrW
-                                          ? primitive_params.CastTo<DataInvokeParams>().tensors.out
-                                          : primitive_params.CastTo<WrWInvokeParams>().tensors.dw;
-            Data_t sync_addr        = nullptr;
-            if(coop_launch)
+            // pointers
+            ConstData_t data_addr;
+            ConstData_t filter_addr;
+            Data_t output_addr;
+            ConstData_t bias_addr = nullptr;
+            Data_t acc_addr       = nullptr;
+            Data_t sync_addr      = nullptr;
+
+            if(fused)
             {
-                sync_addr = !is_backWrW ? primitive_params.CastTo<DataInvokeParams>().workSpace
-                                        : primitive_params.CastTo<WrWInvokeParams>().workSpace;
+                const auto& invoke_ctx = primitive_params.CastTo<fusion::FusionInvokeParams>();
+                const auto& conv_params =
+                    dynamic_cast<fusion::ConvolutionOpInvokeParam&>(*invoke_ctx.op_args.params[0]);
+
+                data_addr   = invoke_ctx.in;
+                filter_addr = conv_params.weights;
+                output_addr = invoke_ctx.out;
+
+                if(do_bias)
+                {
+                    const auto& bias_params =
+                        dynamic_cast<fusion::BiasOpInvokeParam&>(*invoke_ctx.op_args.params[1]);
+                    bias_addr = bias_params.bdata;
+                }
+
+                if(coop_launch)
+                    sync_addr = invoke_ctx.GetWorkspace();
+            }
+            else if(!is_backWrW)
+            {
+                const auto& invoke_ctx = primitive_params.CastTo<conv::DataInvokeParams>();
+
+                data_addr   = invoke_ctx.tensors.in;
+                filter_addr = invoke_ctx.tensors.w;
+                output_addr = invoke_ctx.tensors.out;
+
+                if(coop_launch)
+                    sync_addr = invoke_ctx.GetWorkspace();
+            }
+            else
+            {
+                const auto& invoke_ctx = primitive_params.CastTo<conv::WrWInvokeParams>();
+
+                data_addr   = invoke_ctx.tensors.x;
+                filter_addr = invoke_ctx.tensors.dy;
+                output_addr = invoke_ctx.tensors.dw;
+
+                if(coop_launch)
+                    sync_addr = invoke_ctx.GetWorkspace();
             }
 
-            uint64_t bias_addr = 0;
-            uint64_t acc_addr  = 0;
-
+            // offsets
             uint64_t d_offset = 0;
             uint64_t f_offset = 0;
             uint64_t o_offset = 0;
@@ -71,13 +112,36 @@ InvokerFactory MakeGcnAsmWinoV2InvokerFactory(const WinoShaderArgsV2& args,
             uint64_t b_offset = 0;
             uint64_t a_offset = 0;
 
+            // activation parameters
+            float alpha = 0.0f;
+            float beta  = 0.0f;
+
+            if(fused && (args.activation_mode != WinoShaderActivationModeV2_t::IDENTITY))
+            {
+                const auto& invoke_ctx = primitive_params.CastTo<fusion::FusionInvokeParams>();
+                const int idx          = do_bias ? 2 : 1;
+                const auto& activ_args =
+                    dynamic_cast<fusion::ActivationOpInvokeParam&>(*invoke_ctx.op_args.params[idx]);
+                if(args.activation_mode == WinoShaderActivationModeV2_t::SCALED_TANH)
+                {
+                    // The kernel uses a different expression in which alpha and beta are swapped
+                    alpha = activ_args.activBeta;
+                    beta  = activ_args.activAlpha;
+                }
+                else
+                {
+                    alpha = activ_args.activAlpha;
+                    beta  = activ_args.activBeta;
+                }
+            }
+
             // clang-format off
             MIOPEN_LOG_I2(" N=" << args.N << " C=" << args.C << " H=" << args.H << " W=" << args.W
                 << " K=" << args.K << " R=" << args.R << " S=" << args.S
                 << " pad_H=" << args.pad_h << " pad_W=" << args.pad_w
                 << " out_H=" << args.out_h << " out_W=" << args.out_w
                 << " G=" << args.G
-                << " alpha=" << args.alpha << " beta=" << args.beta << " act_mode=" << args.activation_mode
+                << " alpha=" << alpha << " beta=" << beta << " act_mode=" << args.activation_mode
                 << " d_offset=" << d_offset << " f_offset=" << f_offset
                 << " o_offset=" << o_offset << " b_offset=" << b_offset
                 << " d_N_stride=" << args.d_N_stride << " d_C_stride=" << args.d_C_stride
@@ -123,8 +187,8 @@ InvokerFactory MakeGcnAsmWinoV2InvokerFactory(const WinoShaderArgsV2& args,
                 args.out_h,               // uint32_t,    output height
                 args.out_w,               // uint32_t,    output width
                 bias_addr,                // uint64_t,    address of bias buffer
-                args.alpha,               // fp32,        activation parameter alpha
-                args.beta,                // fp32,        activation parameter beta
+                alpha,                    // fp32,        activation parameter alpha
+                beta,                     // fp32,        activation parameter beta
                 d_offset,                 // uint64_t,    byte offset for buffer referenced by data_addr
                 f_offset,                 // uint64_t,    byte offset for buffer referenced by filter_addr
                 o_offset,                 // uint64_t,    byte offset for buffer referenced by output_addr
@@ -158,5 +222,4 @@ InvokerFactory MakeGcnAsmWinoV2InvokerFactory(const WinoShaderArgsV2& args,
     };
 }
 
-} // namespace conv
 } // namespace miopen
