@@ -39,15 +39,15 @@
 namespace miopen {
 template <class Db>
 static void
-StartPreloadingDb(DbPreloadStates& states, DbKinds db_kind_, fs::path&& path, bool is_system)
+StartPreloadingDb(DbPreloadStates& states, DbKinds db_kind, const fs::path& path, bool is_system)
 {
     if(path.empty())
         return;
 
-    auto task = [=]() {
+    auto task = [](DbKinds db_kind, const fs::path& path, bool is_system) {
         if constexpr(std::is_same_v<Db, RamDb>)
         {
-            auto db   = std::make_unique<RamDb>(db_kind_, path, is_system);
+            auto db   = std::make_unique<RamDb>(db_kind, path, is_system);
             auto lock = std::unique_lock<LockFile>(db->GetLockFile(), GetDbLockTimeout());
 
             if(!lock)
@@ -58,15 +58,15 @@ StartPreloadingDb(DbPreloadStates& states, DbKinds db_kind_, fs::path&& path, bo
         }
         else
         {
-            auto db = std::make_unique<Db>(db_kind_, path);
+            auto db = std::make_unique<Db>(db_kind, path);
             db->Prefetch();
             return PreloadedDb(std::move(db));
         }
     };
 
-    auto future = std::async(std::launch::async, std::move(task));
+    auto future = std::async(std::launch::async, std::move(task), db_kind, path, is_system);
 
-    states.futures.emplace(std::move(path), std::move(future));
+    states.futures.emplace(path, std::move(future));
 }
 
 void Handle::TryStartPreloadingDbs()
