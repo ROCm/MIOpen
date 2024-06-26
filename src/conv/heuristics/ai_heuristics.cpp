@@ -662,7 +662,7 @@ bool ModelSetParams(const std::string& arch,
             {
                 output_token_index =
                     token; // index with largest value that is valid = predicted index
-                if(i == 0 && model->metadata.predict_type)
+                if(i == 0 && model->metadata.predict_type != 0u)
                     num_tuning_params = model->metadata.num_tuning_params[value];
                 break;
             }

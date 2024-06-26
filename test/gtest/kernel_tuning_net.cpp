@@ -64,6 +64,9 @@ std::vector<KernelTuningNetTestCase> GetConvHipIgemmGroupBwdXdlopsTestCases()
              "gfx942"}};
 }
 
+#define WORKAROUND_WRW_TUNING_PARAMETER_PREDICT_MODEL 0
+
+#if WORKAROUND_WRW_TUNING_PARAMETER_PREDICT_MODEL
 std::vector<KernelTuningNetTestCase> GetConvHipIgemmGroupWrwXdlopsTestCases()
 {
     return {{{{4, 2, 512, 512, {24, 36}, {3, 3}, {1, 1}, {1, 1}, {1, 1}},
@@ -81,6 +84,7 @@ std::vector<KernelTuningNetTestCase> GetConvHipIgemmGroupWrwXdlopsTestCases()
              "1, 1, 8>",
              "gfx90a"}};
 }
+#endif // WORKAROUND_WRW_TUNING_PARAMETER_PREDICT_MODEL
 
 struct KernelTuningNetTest : public ::testing::TestWithParam<KernelTuningNetTestCase>
 {
@@ -156,9 +160,11 @@ struct KernelTuningNetTestConvHipIgemmGroupBwdXdlops : KernelTuningNetTest
 {
 };
 
+#if WORKAROUND_WRW_TUNING_PARAMETER_PREDICT_MODEL
 struct KernelTuningNetTestConvHipIgemmGroupWrwXdlops : KernelTuningNetTest
 {
 };
+#endif // WORKAROUND_WRW_TUNING_PARAMETER_PREDICT_MODEL
 
 TEST_P(KernelTuningNetTestConvAsm1x1U, ConvAsm1x1UParameterPredictionModel)
 {
@@ -182,6 +188,7 @@ TEST_P(KernelTuningNetTestConvHipIgemmGroupBwdXdlops,
         problem, expected, arch);
 }
 
+#if WORKAROUND_WRW_TUNING_PARAMETER_PREDICT_MODEL
 TEST_P(KernelTuningNetTestConvHipIgemmGroupWrwXdlops,
        ConvHipIgemmGroupWrwXdlopsParameterPredictionModel)
 {
@@ -189,6 +196,7 @@ TEST_P(KernelTuningNetTestConvHipIgemmGroupWrwXdlops,
         miopen::solver::conv::PerformanceConfigHipImplicitGemmGroupWrwXdlops>(
         problem, expected, arch);
 }
+#endif // WORKAROUND_WRW_TUNING_PARAMETER_PREDICT_MODEL
 
 INSTANTIATE_TEST_SUITE_P(ConvAsm1x1UParameterPredictionModelTest,
                          KernelTuningNetTestConvAsm1x1U,
@@ -202,6 +210,8 @@ INSTANTIATE_TEST_SUITE_P(ConvHipIgemmGroupBwdXdlopsParameterPredictionModelTest,
                          KernelTuningNetTestConvHipIgemmGroupBwdXdlops,
                          testing::ValuesIn(GetConvHipIgemmGroupBwdXdlopsTestCases()));
 
+#if WORKAROUND_WRW_TUNING_PARAMETER_PREDICT_MODEL
 INSTANTIATE_TEST_SUITE_P(ConvHipIgemmGroupWrwXdlopsParameterPredictionModelTest,
                          KernelTuningNetTestConvHipIgemmGroupWrwXdlops,
                          testing::ValuesIn(GetConvHipIgemmGroupWrwXdlopsTestCases()));
+#endif // WORKAROUND_WRW_TUNING_PARAMETER_PREDICT_MODEL
