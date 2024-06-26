@@ -330,7 +330,7 @@ bool PerformanceConfigHipImplicitGemmGroupWrwXdlops::ModelApplyToken(
         if(idx == 0)
         {
             InitHeuristicKernelIDs(value);
-            if(valid_kernels.size() != 0u)
+            if(!valid_kernels.empty())
                 return true;
             return false;
         }
