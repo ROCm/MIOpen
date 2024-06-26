@@ -389,10 +389,10 @@ private:
     tensor<T> dKDescRef;
     tensor<T> dVDescRef;
 
-    float amaxDQRef;
-    float amaxDKRef;
-    float amaxDVRef;
-    float amaxDSRef;
+    float amaxDQRef = 0.0f; // values will be set later. Initializetion is reqired for tidy-checks
+    float amaxDKRef = 0.0f;
+    float amaxDVRef = 0.0f;
+    float amaxDSRef = 0.0f;
 };
 
 class MhaBackwardTestFp32 : public MhaBackwardTest<float>
