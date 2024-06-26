@@ -281,9 +281,7 @@ void RNNDescriptor::RNNForwardMS(Handle& handle,
 
     std::tie(std::ignore, max_batch, hidden_size) = miopen::tien<3>(hxDesc.GetLengths());
 
-    const int extra_stream_cnt = [](const int forced_extra_stream_cnt) {
-        return forced_extra_stream_cnt == 0 ? 4 : forced_extra_stream_cnt;
-    }(miopen::Value(ENV(MIOPEN_RNN_MS_STREAM_CNT)));
+    const int extra_stream_cnt = env::value_or(MIOPEN_RNN_MS_STREAM_CNT, 4);
 
     class MultiStreamController
     {
@@ -320,9 +318,8 @@ void RNNDescriptor::RNNForwardMS(Handle& handle,
             std::vector<int> ids;
             ids.reserve(extra_stream_cnt + 1);
 
-            bool ms_wa_fix_active =
-                extra_stream_cnt > 2 && !miopen::IsDisabled(ENV(MIOPEN_MS_WA_FIX));
-            int wa_steams = ms_wa_fix_active ? 2 : 0;
+            bool ms_wa_fix_active = extra_stream_cnt > 2 && !env::disabled(MIOPEN_MS_WA_FIX);
+            int wa_steams         = ms_wa_fix_active ? 2 : 0;
 
             handle.ReserveExtraStreamsInPool(extra_stream_cnt + wa_steams);
 
@@ -1146,9 +1143,9 @@ void RNNDescriptor::RNNForwardMS(Handle& handle,
         OldMasterSlave = 0,
         Spiral         = 1,
     } dispatch_strategy =
-        miopen::IsUnset(ENV(MIOPEN_RNNFWD_MS_DISPATCH))
-            ? DispatchStrategy::Spiral
-            : static_cast<DispatchStrategy>(miopen::Value(ENV(MIOPEN_RNNFWD_MS_DISPATCH)));
+        static_cast<DispatchStrategy>(env::value_or(
+            MIOPEN_RNNFWD_MS_DISPATCH,
+            static_cast<unsigned long long>(DispatchStrategy::Spiral))); // what am I doing wrong?
 
     if(dispatch_strategy == DispatchStrategy::Spiral)
     {
