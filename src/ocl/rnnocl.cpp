@@ -278,7 +278,7 @@ void RNNDescriptor::RNNForwardMS(Handle& handle,
     std::tie(std::ignore, max_batch, hidden_size) = miopen::tien<3>(hxDesc.GetLengths());
 
     const int extra_stream_cnt = [](const int forced_extra_stream_cnt) {
-        return forced_extra_stream_cnt == 0 ? 2 : forced_extra_stream_cnt;
+        return forced_extra_stream_cnt == 0 ? 4 : forced_extra_stream_cnt;
     }(miopen::Value(ENV(MIOPEN_RNN_MS_STREAM_CNT)));
 
     class MultiStreamController
@@ -918,7 +918,7 @@ void RNNDescriptor::RNNForwardMS(Handle& handle,
         }
     };
 
-    auto call_sync_all_stream_pull_to_root_stream = [&ms_controller, root_stream_id]() {
+    auto call_sync_all_stream_pull_to_root_stream = [&ms_controller]() {
         const miopen::HipEventPtr main_event = make_hip_fast_event();
 
         ms_controller.RecordEvent(main_event.get(), root_stream_id);
@@ -930,7 +930,7 @@ void RNNDescriptor::RNNForwardMS(Handle& handle,
         }
     };
 
-    auto sync_root_to_all_stream_pull = [&ms_controller, root_stream_id]() {
+    auto sync_root_to_all_stream_pull = [&ms_controller]() {
         for(size_t i = 0; i < ms_controller.size(); i++)
         {
             if(i != root_stream_id)
@@ -989,8 +989,7 @@ void RNNDescriptor::RNNForwardMS(Handle& handle,
         }
     };
 
-    auto call_next_chunk_compute = [&handle,
-                                    &call_next_hidden_state_update,
+    auto call_next_chunk_compute = [&call_next_hidden_state_update,
                                     &call_hx_next_gemm,
                                     &call_inx_next_chunk_preload,
                                     &layer_upd_cur_time,
@@ -1138,7 +1137,16 @@ void RNNDescriptor::RNNForwardMS(Handle& handle,
         }
     };
 
-    if(miopen::Value(ENV(MIOPEN_RNNFWD_MS_DISPATCH)) == 1)
+    enum class DispatchStrategy
+    {
+        OldMasterSlave = 0,
+        Spiral         = 1,
+    } dispatch_strategy =
+        miopen::IsUnset(ENV(MIOPEN_RNNFWD_MS_DISPATCH))
+            ? DispatchStrategy::Spiral
+            : static_cast<DispatchStrategy>(miopen::Value(ENV(MIOPEN_RNNFWD_MS_DISPATCH)));
+
+    if(dispatch_strategy == DispatchStrategy::Spiral)
     {
         const auto first_stream = extra_stream_cnt > 0 ? 1 : 0;
         const auto last_stream  = extra_stream_cnt > 0 ? extra_stream_cnt : 0;
