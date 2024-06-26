@@ -206,19 +206,7 @@ int MultilabelSoftMarginLossDriver<Tgpu, Tref>::AddCmdLineArgs()
 {
     inflags.AddInputFlag("forw", 'F', "1", "Run only Forward Take (Default=1)", "int");
     inflags.AddInputFlag("dim", 'D', "41,4", "Dim of input tensor (Default=41,4)", "string");
-    inflags.AddInputFlag("stride",
-                         'S',
-                         "-1",
-                         "Stride of input tensor. Tensor is contiguous or not depend on this "
-                         "flag. Example: -D 41,4 -S 10,2. If not specify this flag, "
-                         "stride will be auto calculated based on flag C. (Default=-1) ",
-                         "string");
-    inflags.AddInputFlag(
-        "contiguous",
-        'C',
-        "1",
-        "Tensor is contiguous or not. This flag will be ignored if flag S != -1 (Default=1)",
-        "int");
+    inflags.AddInputFlag("contiguous", 'C', "1", "Tensor is contiguous or not", "int");
     inflags.AddInputFlag("iter", 'i', "1", "Number of Iterations (Default=1)", "int");
     inflags.AddInputFlag("verify", 'V', "1", "Verify Each Layer (Default=1)", "int");
     inflags.AddInputFlag("time", 't', "0", "Time Each Layer (Default=0)", "int");
@@ -257,34 +245,31 @@ int MultilabelSoftMarginLossDriver<Tgpu, Tref>::GetandSetData()
     // Only input tensor is supported for uncontigiuous or unpacked tensor
     std::vector<int> in_len = ParseInputList(inflags.GetValueStr("dim"));
     int N = in_len[0], C = in_len[1];
-    if(inflags.GetValueStr("stride") != "-1")
+
+    if(inflags.GetValueInt("contiguous") == 1)
     {
-        std::vector<int> in_stride = ParseInputList(inflags.GetValueStr("stride"));
-        SetTensorNd(iDesc, in_len, in_stride, data_type);
+        SetTensorNd(iDesc, in_len, data_type);
+
+        SetTensorNd(tDesc, in_len, data_type);
+
+        std::vector<int> w_lens = {C};
+        SetTensorNd(wDesc, w_lens, data_type);
     }
     else
     {
-        if(inflags.GetValueInt("contiguous") == 1)
-        {
-            SetTensorNd(iDesc, in_len, data_type);
-        }
-        else
-        {
-            std::vector<int> strides(in_len.size());
-            strides.back() = 1;
-            for(int i = in_len.size() - 2; i >= 0; --i)
-                strides[i] = strides[i + 1] * in_len[i + 1];
-            strides[0] *= 2;
-            SetTensorNd(iDesc, in_len, strides, data_type);
-        }
+        std::vector<int> in_strides(in_len.size());
+        in_strides.back() = 1;
+        for(int i = in_len.size() - 2; i >= 0; --i)
+            in_strides[i] = in_strides[i + 1] * in_len[i + 1];
+        in_strides[0] *= 2;
+        SetTensorNd(iDesc, in_len, in_strides, data_type);
+
+        SetTensorNd(tDesc, in_len, in_strides, data_type);
+
+        std::vector<int> w_lens    = {C};
+        std::vector<int> w_strides = {2};
+        SetTensorNd(wDesc, w_lens, w_strides, data_type);
     }
-
-    // Set target tensor description
-    SetTensorNd(tDesc, in_len, data_type);
-
-    // Set weight tensor description
-    std::vector<int> w_lens = {C};
-    SetTensorNd(wDesc, w_lens, data_type);
 
     // Set reduction_mode
     auto reduction = inflags.GetValueStr("reduce");
