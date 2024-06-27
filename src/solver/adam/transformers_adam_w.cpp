@@ -38,16 +38,16 @@ namespace solver {
 
 namespace adam {
 
-bool Adam::IsApplicable([[maybe_unused]] const ExecutionContext& context,
-                        const miopen::adam::ProblemDescription& problem) const
+bool TransformersAdamW::IsApplicable([[maybe_unused]] const ExecutionContext& context,
+                                     const miopen::adam::ProblemDescription& problem) const
 {
     if(!problem.IsAllContiguous())
         return false;
     return true;
 }
 
-ConvSolution Adam::GetSolution(const ExecutionContext& context,
-                               const miopen::adam::ProblemDescription& problem) const
+ConvSolution TransformersAdamW::GetSolution(const ExecutionContext& context,
+                                            const miopen::adam::ProblemDescription& problem) const
 {
     auto result = ConvSolution{miopenStatusSuccess};
 
@@ -81,11 +81,12 @@ ConvSolution Adam::GetSolution(const ExecutionContext& context,
         kernel.kernel_file = "MIOpenAdam.cpp";
         if(problem.ExistStepTensor())
         {
-            kernel.kernel_name = "AmpAdamContiguousWithStep";
+            kernel.kernel_name = "TransformersAmpAdamWContiguousWithStep";
         }
         else
         {
-            kernel.kernel_name = problem.IsAmp() ? "AmpAdamContiguous" : "AdamContiguous";
+            kernel.kernel_name =
+                problem.IsAmp() ? "TransformersAmpAdamWContiguous" : "TransformersAdamWContiguous";
         }
 
         result.construction_params.push_back(kernel);
@@ -105,9 +106,11 @@ ConvSolution Adam::GetSolution(const ExecutionContext& context,
             return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
                 decltype(auto) kernel_adam = handle_.Run(kernels[0]);
                 decltype(auto) kernel_step = handle_.Run(kernels[1]);
-                decltype(auto) params      = raw_params.CastTo<miopen::adam::AdamInvokeParams>();
-                decltype(auto) numel       = params.paramDesc->GetElementSize();
-                auto elapsed               = 0.f;
+                decltype(auto) params =
+                    raw_params.CastTo<miopen::adam::TransformersAdamWInvokeParams>();
+                decltype(auto) numel  = params.paramDesc->GetElementSize();
+                float lr_weight_decay = params.lr * params.weight_decay;
+                auto elapsed          = 0.f;
 
                 kernel_adam(params.paramIn,
                             params.paramOut,
@@ -117,19 +120,16 @@ ConvSolution Adam::GetSolution(const ExecutionContext& context,
                             params.expAvgOut,
                             params.expAvgSqIn,
                             params.expAvgSqOut,
-                            params.maxExpAvgSqIn,
-                            params.maxExpAvgSqOut,
                             params.gradScale,
                             params.foundInf,
                             params.stepIn,
                             params.lr,
                             params.beta1,
                             params.beta2,
-                            params.weight_decay,
                             params.eps,
-                            params.amsgrad,
-                            params.maximize,
-                            params.adamw,
+                            lr_weight_decay,
+                            params.step_size,
+                            params.correct_bias,
                             numel);
 
                 if(handle_.IsProfilingEnabled())
@@ -153,8 +153,25 @@ ConvSolution Adam::GetSolution(const ExecutionContext& context,
             result.invoker_factory = [](const std::vector<Kernel>& kernels) {
                 return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
                     decltype(auto) kernel = handle_.Run(kernels.front());
-                    decltype(auto) params = raw_params.CastTo<miopen::adam::AdamInvokeParams>();
+                    decltype(auto) params =
+                        raw_params.CastTo<miopen::adam::TransformersAdamWInvokeParams>();
                     decltype(auto) numel  = params.paramDesc->GetElementSize();
+                    float lr_weight_decay = params.lr * params.weight_decay;
+                    auto step_size        = params.step_size;
+
+                    if(step_size < 0)
+                    {
+                        if(params.correct_bias)
+                        {
+                            float bias_correction1 = 1 - pow(params.beta1, params.step);
+                            float bias_correction2 = 1 - pow(params.beta2, params.step);
+                            step_size = params.lr * sqrt(bias_correction2) / bias_correction1;
+                        }
+                        else
+                        {
+                            step_size = params.lr;
+                        }
+                    }
 
                     kernel(params.paramIn,
                            params.paramOut,
@@ -164,19 +181,13 @@ ConvSolution Adam::GetSolution(const ExecutionContext& context,
                            params.expAvgOut,
                            params.expAvgSqIn,
                            params.expAvgSqOut,
-                           params.maxExpAvgSqIn,
-                           params.maxExpAvgSqOut,
                            params.gradScale,
                            params.foundInf,
-                           params.step,
-                           params.lr,
                            params.beta1,
                            params.beta2,
-                           params.weight_decay,
                            params.eps,
-                           params.amsgrad,
-                           params.maximize,
-                           params.adamw,
+                           lr_weight_decay,
+                           step_size,
                            numel);
                 };
             };
@@ -186,8 +197,25 @@ ConvSolution Adam::GetSolution(const ExecutionContext& context,
             result.invoker_factory = [](const std::vector<Kernel>& kernels) {
                 return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
                     decltype(auto) kernel = handle_.Run(kernels.front());
-                    decltype(auto) params = raw_params.CastTo<miopen::adam::AdamInvokeParams>();
+                    decltype(auto) params =
+                        raw_params.CastTo<miopen::adam::TransformersAdamWInvokeParams>();
                     decltype(auto) numel  = params.paramDesc->GetElementSize();
+                    float lr_weight_decay = params.lr * params.weight_decay;
+                    auto step_size        = params.step_size;
+
+                    if(step_size < 0)
+                    {
+                        if(params.correct_bias)
+                        {
+                            float bias_correction1 = 1 - pow(params.beta1, params.step);
+                            float bias_correction2 = 1 - pow(params.beta2, params.step);
+                            step_size = params.lr * sqrt(bias_correction2) / bias_correction1;
+                        }
+                        else
+                        {
+                            step_size = params.lr;
+                        }
+                    }
 
                     kernel(params.paramIn,
                            params.paramOut,
@@ -196,17 +224,11 @@ ConvSolution Adam::GetSolution(const ExecutionContext& context,
                            params.expAvgOut,
                            params.expAvgSqIn,
                            params.expAvgSqOut,
-                           params.maxExpAvgSqIn,
-                           params.maxExpAvgSqOut,
-                           params.lr,
                            params.beta1,
                            params.beta2,
-                           params.weight_decay,
                            params.eps,
-                           params.step,
-                           params.amsgrad,
-                           params.maximize,
-                           params.adamw,
+                           lr_weight_decay,
+                           step_size,
                            numel);
                 };
             };
