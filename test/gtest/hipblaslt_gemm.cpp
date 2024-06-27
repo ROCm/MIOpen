@@ -159,6 +159,22 @@ class HipBLASLtGEMMTestBFloat8 : public testing::TestWithParam<TestCase>
 {
 };
 
+class HipBLASLtGEMMTestInt64 : public testing::Test
+{
+};
+
+class HipBLASLtGEMMTestInt : public testing::Test
+{
+};
+
+class HipBLASLtGEMMTestInt8 : public testing::Test
+{
+};
+
+class HipBLASLtGEMMTestDouble : public testing::Test
+{
+};
+
 static GemmDescriptor GetGemmDescriptor(const TestCase& testCase, miopenDataType_t dataType)
 {
     int lda = 0;
@@ -298,9 +314,55 @@ static void RunGemmDescriptors(const TestCase& testCase, miopenDataType_t dataTy
     }
 }
 
+template <typename T>
+static void CheckExceptions(miopenDataType_t dataType)
+{
+    GemmDescriptor desc = GetGemmDescriptor({false, 256, 512, 1024, false, false, 1.0f, 0.0, 1}, dataType);
+
+        size_t aSize = desc.batch_count * desc.strideA;
+        size_t bSize = desc.batch_count * desc.strideB;
+        size_t cSize = desc.batch_count * desc.strideC;
+
+        Workspace workspaceA_device(aSize * sizeof(T));
+        Workspace workspaceB_device(bSize * sizeof(T));
+        Workspace workspaceC_device(cSize * sizeof(T));
+
+        Handle& handle = get_handle();
+
+            EXPECT_THROW(CallGemm(handle,
+                                    desc,
+                                    workspaceA_device.ptr(),
+                                    0,
+                                    workspaceB_device.ptr(),
+                                    0,
+                                    workspaceC_device.ptr(),
+                                    0,
+                                    GemmBackend_t::hipblaslt),
+                        miopen::Exception);
+}
+
+template <typename T, typename disabled_mask, typename enabled_mask>
+static void CheckExceptionsWithSkip(miopenDataType_t dataType)
+{
+    if(!IsTestSupportedForDevMask<disabled_mask, enabled_mask>())
+    {
+        CheckExceptions<T>(dataType);
+    }
+    else
+    {
+        GTEST_SKIP();
+    }
+}
+
 } // namespace hipblaslt_gemm
 using namespace hipblaslt_gemm;
 
+TEST_F(HipBLASLtGEMMTestFloat, CheckHipBLASLtGEMMException)
+{
+    using e_mask = enabled<Gpu::gfx94X, Gpu::gfx90A, Gpu::gfx110X>;
+    using d_mask = disabled<Gpu::gfx103X, Gpu::gfx900, Gpu::gfx906, Gpu::gfx908>;
+    CheckExceptionsWithSkip<float, d_mask, e_mask>(miopenDataType_t::miopenFloat);
+};
 TEST_P(HipBLASLtGEMMTestFloat, RunHipBLASLtGEMM)
 {
     using e_mask = enabled<Gpu::gfx94X, Gpu::gfx90A, Gpu::gfx110X>;
@@ -311,6 +373,12 @@ INSTANTIATE_TEST_SUITE_P(HipBLASLtGEMMTestSet,
                          HipBLASLtGEMMTestFloat,
                          testing::ValuesIn(GetTestCases()));
 
+TEST_F(HipBLASLtGEMMTestHalf, CheckHipBLASLtGEMMException)
+{
+    using e_mask = enabled<Gpu::gfx94X, Gpu::gfx90A, Gpu::gfx110X>;
+    using d_mask = disabled<Gpu::gfx103X, Gpu::gfx900, Gpu::gfx906, Gpu::gfx908>;
+    CheckExceptionsWithSkip<float16, d_mask, e_mask>(miopenDataType_t::miopenHalf);
+};
 TEST_P(HipBLASLtGEMMTestHalf, RunHipBLASLtGEMM)
 {
     using e_mask = enabled<Gpu::gfx94X, Gpu::gfx90A, Gpu::gfx110X>;
@@ -321,6 +389,12 @@ INSTANTIATE_TEST_SUITE_P(HipBLASLtGEMMTestSet,
                          HipBLASLtGEMMTestHalf,
                          testing::ValuesIn(GetTestCases()));
 
+TEST_F(HipBLASLtGEMMTestBFloat16, CheckHipBLASLtGEMMException)
+{
+    using e_mask = enabled<Gpu::gfx94X, Gpu::gfx90A, Gpu::gfx110X>;
+    using d_mask = disabled<Gpu::gfx103X, Gpu::gfx900, Gpu::gfx906, Gpu::gfx908>;
+    CheckExceptionsWithSkip<bfloat16, d_mask, e_mask>(miopenDataType_t::miopenBFloat16);
+};
 TEST_P(HipBLASLtGEMMTestBFloat16, RunHipBLASLtGEMM)
 {
     using e_mask = enabled<Gpu::gfx94X, Gpu::gfx90A, Gpu::gfx110X>;
@@ -331,26 +405,60 @@ INSTANTIATE_TEST_SUITE_P(HipBLASLtGEMMTestSet,
                          HipBLASLtGEMMTestBFloat16,
                          testing::ValuesIn(GetTestCases()));
 
+TEST_F(HipBLASLtGEMMTestFloat8, CheckHipBLASLtGEMMException)
+{
+    using e_mask = enabled<Gpu::gfx94X>;
+    using d_mask =
+        disabled<Gpu::gfx103X, Gpu::gfx900, Gpu::gfx906, Gpu::gfx908, Gpu::gfx90A, Gpu::gfx110X>;
+    CheckExceptionsWithSkip<float8, d_mask, e_mask>(miopenDataType_t::miopenFloat8);
+};
 TEST_P(HipBLASLtGEMMTestFloat8, RunHipBLASLtGEMM)
 {
     using e_mask = enabled<Gpu::gfx94X>;
     using d_mask =
         disabled<Gpu::gfx103X, Gpu::gfx900, Gpu::gfx906, Gpu::gfx908, Gpu::gfx90A, Gpu::gfx110X>;
-    RunGemmDescriptors<bfloat16, d_mask, e_mask>(GetParam(), miopenDataType_t::miopenFloat8);
+    RunGemmDescriptors<float8, d_mask, e_mask>(GetParam(), miopenDataType_t::miopenFloat8);
 };
 INSTANTIATE_TEST_SUITE_P(HipBLASLtGEMMTestSet,
                          HipBLASLtGEMMTestFloat8,
                          testing::ValuesIn(GetTestCases()));
 
+TEST_F(HipBLASLtGEMMTestBFloat8, CheckHipBLASLtGEMMException)
+{
+    using e_mask = enabled<Gpu::gfx94X>;
+    using d_mask =
+        disabled<Gpu::gfx103X, Gpu::gfx900, Gpu::gfx906, Gpu::gfx908, Gpu::gfx90A, Gpu::gfx110X>;
+    CheckExceptionsWithSkip<bfloat8, d_mask, e_mask>(miopenDataType_t::miopenBFloat8);
+};
 TEST_P(HipBLASLtGEMMTestBFloat8, RunHipBLASLtGEMM)
 {
     using e_mask = enabled<Gpu::gfx94X>;
     using d_mask =
         disabled<Gpu::gfx103X, Gpu::gfx900, Gpu::gfx906, Gpu::gfx908, Gpu::gfx90A, Gpu::gfx110X>;
-    RunGemmDescriptors<bfloat16, d_mask, e_mask>(GetParam(), miopenDataType_t::miopenBFloat8);
+    RunGemmDescriptors<bfloat8, d_mask, e_mask>(GetParam(), miopenDataType_t::miopenBFloat8);
 };
 INSTANTIATE_TEST_SUITE_P(HipBLASLtGEMMTestSet,
                          HipBLASLtGEMMTestBFloat8,
                          testing::ValuesIn(GetTestCases()));
+
+TEST_F(HipBLASLtGEMMTestInt64, CheckHipBLASLtGEMMException)
+{
+    CheckExceptions<int64_t>(miopenDataType_t::miopenInt64);
+};
+
+TEST_F(HipBLASLtGEMMTestInt, CheckHipBLASLtGEMMException)
+{
+    CheckExceptions<int>(miopenDataType_t::miopenInt32);
+};
+
+TEST_F(HipBLASLtGEMMTestInt8, CheckHipBLASLtGEMMException)
+{
+    CheckExceptions<int8_t>(miopenDataType_t::miopenInt8);
+};
+
+TEST_F(HipBLASLtGEMMTestDouble, CheckHipBLASLtGEMMException)
+{
+    CheckExceptions<double>(miopenDataType_t::miopenDouble);
+};
 
 #endif
