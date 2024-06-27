@@ -24,11 +24,7 @@
  *
  *******************************************************************************/
 
-#if __cplusplus >= 201703L && __has_include(<filesystem>)
-#include <filesystem>
-#else
-#include <experimental/filesystem>
-#endif
+#include <miopen/filesystem.hpp>
 #include <miopen/execution_context.hpp>
 #include <miopen/find_solution.hpp>
 #include <miopen/invoker.hpp>
