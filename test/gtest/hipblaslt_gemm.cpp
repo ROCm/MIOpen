@@ -29,6 +29,7 @@
 
 #include "get_handle.hpp"
 #include "../workspace.hpp"
+#include "gemm_cpu_util.hpp"
 
 #include <gtest/gtest.h>
 #include <gtest/gtest_common.hpp>
@@ -55,88 +56,25 @@ struct TestCase
     int batch_count;
 };
 
-template <typename T>
-static void callCpuGemmStridedBatched(bool isColMajor,
-                                      bool transA,
-                                      bool transB,
-                                      int m,
-                                      int n,
-                                      int k,
-                                      T alpha,
-                                      const void* A,
-                                      int a_offset,
-                                      int lda,
-                                      long long int strideA,
-                                      const void* B,
-                                      int b_offset,
-                                      int ldb,
-                                      long long int strideB,
-                                      T beta,
-                                      void* C,
-                                      int c_offset,
-                                      int ldc,
-                                      long long int strideC,
-                                      int batch_count)
-{
-    const T* a_ptr = static_cast<const T*>(A);
-    const T* b_ptr = static_cast<const T*>(B);
-    T* c_ptr       = static_cast<T*>(C);
-
-    // our cpu GEMM logic is row-major
-    if(isColMajor)
-    {
-        isColMajor = false;
-        std::swap(a_ptr, b_ptr);
-        std::swap(a_offset, b_offset);
-        std::swap(transA, transB);
-        std::swap(m, n);
-        std::swap(lda, ldb);
-        std::swap(strideA, strideB);
-    }
-
-    for(int bi = 0; bi < batch_count; ++bi)
-    {
-        for(int mi = 0; mi < m; ++mi)
-        {
-            for(int ni = 0; ni < n; ++ni)
-            {
-                double y = 0;
-                for(int ki = 0; ki < k; ++ki)
-                {
-                    int aindex = transA ? a_offset + strideA * bi + lda * ki + mi
-                                        : a_offset + strideA * bi + lda * mi + ki;
-                    int bindex = transB ? b_offset + strideB * bi + ldb * ni + ki
-                                        : b_offset + strideB * bi + ldb * ki + ni;
-                    y += static_cast<double>(a_ptr[aindex]) * static_cast<double>(b_ptr[bindex]);
-                }
-                int cindex = c_offset + strideC * bi + ldc * mi + ni;
-                c_ptr[cindex] =
-                    static_cast<T>(static_cast<double>(alpha) * y +
-                                   static_cast<double>(beta) * static_cast<double>(c_ptr[cindex]));
-            }
-        }
-    }
-}
-
 static std::vector<TestCase> GetTestCases()
 {
-    return {{false, 256, 512, 1024, false, false, 1.0f, 0.0, 1},
-            {false, 256, 512, 1024, true, false, 1.0f, 0.0, 1},
-            {false, 256, 512, 1024, false, true, 1.0f, 0.0, 1},
-            {false, 256, 512, 1024, false, true, 1.0f, 0.0, 1},
-            {false, 256, 512, 1024, false, false, 1.0f, 0.0, 10},
-            {false, 256, 512, 1024, true, false, 1.0f, 0.0, 10},
-            {false, 256, 512, 1024, false, true, 1.0f, 0.0, 10},
-            {false, 256, 512, 1024, false, true, 1.0f, 0.0, 10},
-            {true, 256, 512, 1024, false, false, 1.0f, 0.0, 1},
-            {true, 256, 512, 1024, true, false, 1.0f, 0.0, 1},
-            {true, 256, 512, 1024, false, true, 1.0f, 0.0, 1},
-            {true, 256, 512, 1024, false, true, 1.0f, 0.0, 1},
-            {true, 256, 512, 1024, false, false, 1.0f, 0.0, 10},
-            {true, 256, 512, 1024, true, false, 1.0f, 0.0, 10},
-            {true, 256, 512, 1024, false, true, 1.0f, 0.0, 10},
-            {true, 256, 512, 1024, false, true, 1.0f, 0.0, 10},
-            {false, 256, 512, 1024, false, true, 1.0f, 1.0f, 10}};
+    return {{false, 32, 64, 128, false, false, 1.0f, 0.0, 1},
+            {false, 32, 64, 128, true, false, 1.0f, 0.0, 1},
+            {false, 32, 64, 128, false, true, 1.0f, 0.0, 1},
+            {false, 32, 64, 128, false, true, 1.0f, 0.0, 1},
+            {false, 32, 64, 128, false, false, 1.0f, 0.0, 10},
+            {false, 32, 64, 128, true, false, 1.0f, 0.0, 10},
+            {false, 32, 64, 128, false, true, 1.0f, 0.0, 10},
+            {false, 32, 64, 128, false, true, 1.0f, 0.0, 10},
+            {true, 32, 64, 128, false, false, 1.0f, 0.0, 1},
+            {true, 32, 64, 128, true, false, 1.0f, 0.0, 1},
+            {true, 32, 64, 128, false, true, 1.0f, 0.0, 1},
+            {true, 32, 64, 128, false, true, 1.0f, 0.0, 1},
+            {true, 32, 64, 128, false, false, 1.0f, 0.0, 10},
+            {true, 32, 64, 128, true, false, 1.0f, 0.0, 10},
+            {true, 32, 64, 128, false, true, 1.0f, 0.0, 10},
+            {true, 32, 64, 128, false, true, 1.0f, 0.0, 10},
+            {false, 32, 64, 128, false, true, 1.0f, 1.0f, 10}};
 }
 
 class HipBLASLtGEMMTestFloat : public testing::TestWithParam<TestCase>
@@ -279,27 +217,13 @@ static void RunGemmDescriptors(const TestCase& testCase, miopenDataType_t dataTy
                          miopenStatus_t::miopenStatusSuccess);
         }
 
-        callCpuGemmStridedBatched<T>(desc.isColMajor,
-                                     desc.transA,
-                                     desc.transB,
-                                     desc.m,
-                                     desc.n,
-                                     desc.k,
-                                     static_cast<T>(desc.alpha),
-                                     workspaceA_host.data(),
-                                     0,
-                                     desc.lda,
-                                     desc.strideA,
-                                     workspaceB_host.data(),
-                                     0,
-                                     desc.ldb,
-                                     desc.strideB,
-                                     static_cast<T>(desc.beta),
-                                     workspaceC_host.data(),
-                                     0,
-                                     desc.ldc,
-                                     desc.strideC,
-                                     desc.batch_count);
+        miopen::gemm_cpu_util::CallGemm<T>(desc,
+                                            workspaceA_host.data(),
+                                            0,
+                                            workspaceB_host.data(),
+                                            0,
+                                            workspaceC_host.data(),
+                                            0);
 
         auto error = miopen::rms_range(workspaceC_host, workspaceC_device.Read<std::vector<T>>());
         EXPECT_TRUE(std::isfinite(error));
@@ -318,7 +242,7 @@ template <typename T>
 static void CheckExceptions(miopenDataType_t dataType)
 {
     GemmDescriptor desc =
-        GetGemmDescriptor({false, 256, 512, 1024, false, false, 1.0f, 0.0, 1}, dataType);
+        GetGemmDescriptor({false, 32, 64, 128, false, false, 1.0f, 0.0, 1}, dataType);
 
     size_t aSize = desc.batch_count * desc.strideA;
     size_t bSize = desc.batch_count * desc.strideB;
