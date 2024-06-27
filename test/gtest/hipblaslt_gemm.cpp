@@ -317,28 +317,29 @@ static void RunGemmDescriptors(const TestCase& testCase, miopenDataType_t dataTy
 template <typename T>
 static void CheckExceptions(miopenDataType_t dataType)
 {
-    GemmDescriptor desc = GetGemmDescriptor({false, 256, 512, 1024, false, false, 1.0f, 0.0, 1}, dataType);
+    GemmDescriptor desc =
+        GetGemmDescriptor({false, 256, 512, 1024, false, false, 1.0f, 0.0, 1}, dataType);
 
-        size_t aSize = desc.batch_count * desc.strideA;
-        size_t bSize = desc.batch_count * desc.strideB;
-        size_t cSize = desc.batch_count * desc.strideC;
+    size_t aSize = desc.batch_count * desc.strideA;
+    size_t bSize = desc.batch_count * desc.strideB;
+    size_t cSize = desc.batch_count * desc.strideC;
 
-        Workspace workspaceA_device(aSize * sizeof(T));
-        Workspace workspaceB_device(bSize * sizeof(T));
-        Workspace workspaceC_device(cSize * sizeof(T));
+    Workspace workspaceA_device(aSize * sizeof(T));
+    Workspace workspaceB_device(bSize * sizeof(T));
+    Workspace workspaceC_device(cSize * sizeof(T));
 
-        Handle& handle = get_handle();
+    Handle& handle = get_handle();
 
-            EXPECT_THROW(CallGemm(handle,
-                                    desc,
-                                    workspaceA_device.ptr(),
-                                    0,
-                                    workspaceB_device.ptr(),
-                                    0,
-                                    workspaceC_device.ptr(),
-                                    0,
-                                    GemmBackend_t::hipblaslt),
-                        miopen::Exception);
+    EXPECT_THROW(CallGemm(handle,
+                          desc,
+                          workspaceA_device.ptr(),
+                          0,
+                          workspaceB_device.ptr(),
+                          0,
+                          workspaceC_device.ptr(),
+                          0,
+                          GemmBackend_t::hipblaslt),
+                 miopen::Exception);
 }
 
 template <typename T, typename disabled_mask, typename enabled_mask>
