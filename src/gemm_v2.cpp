@@ -194,7 +194,7 @@ rocblas_status miopen_rocblas_gemm_ex3(const miopen::Handle& handle,
     std::ignore      = C;
     std::ignore      = c_offset;
 #endif
-    MIOPEN_THROW(miopenStatusBadParm, "An appropriate version of rocBLAS is required for this op");
+    MIOPEN_THROW(miopenStatusInternalError, "An appropriate version of rocBLAS is required for this op");
     std::ignore = handle;
     std::ignore = gemm_desc;
     return rb_status;
@@ -691,7 +691,7 @@ miopenStatus_t CallGemm(const Handle& handle,
     case GemmBackend_t::nogemmbackend: return miopenStatusNotImplemented;
     case GemmBackend_t::rocblas: {
 #if MIOPEN_USE_ROCBLAS
-        MIOPEN_LOG_FUNCTION("rocBLAS");
+        MIOPEN_LOG_I2("rocBLAS");
 
         HipEventPtr start = nullptr;
         HipEventPtr stop  = nullptr;
@@ -770,7 +770,7 @@ miopenStatus_t CallGemm(const Handle& handle,
                 }
                 else
                 {
-                    MIOPEN_THROW(miopenStatusBadParm,
+                    MIOPEN_THROW(miopenStatusInternalError,
                                  "8-bit floating types are only supported on gfx94x");
                 }
             }
@@ -885,19 +885,19 @@ miopenStatus_t CallGemm(const Handle& handle,
             }
             else
             {
-                MIOPEN_THROW(miopenStatusBadParm,
+                MIOPEN_THROW(miopenStatusInternalError,
                              "8-bit floating types are only supported on gfx94x");
             }
         };
         break;
 
         case miopenDouble: {
-            MIOPEN_THROW(miopenStatusBadParm, "miopenDouble data type not supported by rocBLAS.");
+            MIOPEN_THROW(miopenStatusInternalError, "miopenDouble data type not supported by rocBLAS.");
         };
         break;
 
         case miopenInt64: {
-            MIOPEN_THROW(miopenStatusBadParm, "miopenInt64 is not currently supported.");
+            MIOPEN_THROW(miopenStatusInternalError, "miopenInt64 is not currently supported.");
         }
         break;
         }
@@ -959,7 +959,7 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
     case GemmBackend_t::nogemmbackend: return miopenStatusNotImplemented;
     case GemmBackend_t::rocblas: {
 #if MIOPEN_USE_ROCBLAS
-        MIOPEN_LOG_FUNCTION("rocBLAS");
+        MIOPEN_LOG_I2("rocBLAS");
 
         HipEventPtr start = nullptr;
         HipEventPtr stop  = nullptr;
@@ -1043,7 +1043,7 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
                 }
                 else
                 {
-                    MIOPEN_THROW(miopenStatusBadParm,
+                    MIOPEN_THROW(miopenStatusInternalError,
                                  "8-bit floating types are only supported on gfx94x");
                 }
             }
@@ -1171,7 +1171,7 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
             }
             else
             {
-                MIOPEN_THROW(miopenStatusBadParm,
+                MIOPEN_THROW(miopenStatusInternalError,
                              "8-bit floating types are only supported on gfx94x");
             }
 
@@ -1179,11 +1179,11 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
         }
 
         case miopenDouble: {
-            MIOPEN_THROW(miopenStatusBadParm, "miopenDouble data type not supported by rocBLAS.");
+            MIOPEN_THROW(miopenStatusInternalError, "miopenDouble data type not supported by rocBLAS.");
         }
         break;
         case miopenInt64: {
-            MIOPEN_THROW(miopenStatusBadParm, "miopenInt64 is not currently supported.");
+            MIOPEN_THROW(miopenStatusInternalError, "miopenInt64 is not currently supported.");
         }
         break;
         }
@@ -1246,7 +1246,7 @@ miopenStatus_t CallGemmStridedBatchedSequential(const Handle& handle,
     case GemmBackend_t::nogemmbackend: return miopenStatusNotImplemented;
     case GemmBackend_t::rocblas: {
 #if MIOPEN_USE_ROCBLAS
-        MIOPEN_LOG_FUNCTION("rocBLAS");
+        MIOPEN_LOG_I2("rocBLAS");
 
         HipEventPtr start = nullptr;
         HipEventPtr stop  = nullptr;
@@ -1330,7 +1330,7 @@ miopenStatus_t CallGemmStridedBatchedSequential(const Handle& handle,
                 }
                 else
                 {
-                    MIOPEN_THROW(miopenStatusBadParm,
+                    MIOPEN_THROW(miopenStatusInternalError,
                                  "8-bit floating types are only supported on gfx94x");
                 }
             }
@@ -1455,7 +1455,7 @@ miopenStatus_t CallGemmStridedBatchedSequential(const Handle& handle,
             }
             else
             {
-                MIOPEN_THROW(miopenStatusBadParm,
+                MIOPEN_THROW(miopenStatusInternalError,
                              "8-bit floating types are only supported on gfx94x");
             }
 
@@ -1463,12 +1463,12 @@ miopenStatus_t CallGemmStridedBatchedSequential(const Handle& handle,
         }
 
         case miopenDouble: {
-            MIOPEN_THROW(miopenStatusBadParm, "miopenDouble data type not supported by rocBLAS.");
+            MIOPEN_THROW(miopenStatusInternalError, "miopenDouble data type not supported by rocBLAS.");
         }
         break;
 
         case miopenInt64: {
-            MIOPEN_THROW(miopenStatusBadParm, "miopenInt64 is not currently supported.");
+            MIOPEN_THROW(miopenStatusInternalError, "miopenInt64 is not currently supported.");
         }
         break;
         }
