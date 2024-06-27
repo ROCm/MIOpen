@@ -57,26 +57,26 @@ struct TestCase
 
 template <typename T>
 static void callCpuGemmStridedBatched(bool isColMajor,
-                               bool transA,
-                               bool transB,
-                               int m,
-                               int n,
-                               int k,
-                               T alpha,
-                               const void* A,
-                               int a_offset,
-                               int lda,
-                               long long int strideA,
-                               const void* B,
-                               int b_offset,
-                               int ldb,
-                               long long int strideB,
-                               T beta,
-                               void* C,
-                               int c_offset,
-                               int ldc,
-                               long long int strideC,
-                               int batch_count)
+                                      bool transA,
+                                      bool transB,
+                                      int m,
+                                      int n,
+                                      int k,
+                                      T alpha,
+                                      const void* A,
+                                      int a_offset,
+                                      int lda,
+                                      long long int strideA,
+                                      const void* B,
+                                      int b_offset,
+                                      int ldb,
+                                      long long int strideB,
+                                      T beta,
+                                      void* C,
+                                      int c_offset,
+                                      int ldc,
+                                      long long int strideC,
+                                      int batch_count)
 {
     const T* a_ptr = static_cast<const T*>(A);
     const T* b_ptr = static_cast<const T*>(B);
@@ -136,19 +136,28 @@ static std::vector<TestCase> GetTestCases()
             {true, 256, 512, 1024, true, false, 1.0f, 0.0, 10},
             {true, 256, 512, 1024, false, true, 1.0f, 0.0, 10},
             {true, 256, 512, 1024, false, true, 1.0f, 0.0, 10},
-            {false, 256, 512, 1024, false, true, 1.0f, 1.0f, 10}
-            };
+            {false, 256, 512, 1024, false, true, 1.0f, 1.0f, 10}};
 }
 
-class HipBLASLtGEMMTestFloat : public testing::TestWithParam<TestCase>{};
+class HipBLASLtGEMMTestFloat : public testing::TestWithParam<TestCase>
+{
+};
 
-class HipBLASLtGEMMTestHalf : public testing::TestWithParam<TestCase>{};
+class HipBLASLtGEMMTestHalf : public testing::TestWithParam<TestCase>
+{
+};
 
-class HipBLASLtGEMMTestBFloat16 : public testing::TestWithParam<TestCase>{};
+class HipBLASLtGEMMTestBFloat16 : public testing::TestWithParam<TestCase>
+{
+};
 
-class HipBLASLtGEMMTestFloat8 : public testing::TestWithParam<TestCase>{};
+class HipBLASLtGEMMTestFloat8 : public testing::TestWithParam<TestCase>
+{
+};
 
-class HipBLASLtGEMMTestBFloat8 : public testing::TestWithParam<TestCase>{};
+class HipBLASLtGEMMTestBFloat8 : public testing::TestWithParam<TestCase>
+{
+};
 
 static GemmDescriptor GetGemmDescriptor(const TestCase& testCase, miopenDataType_t dataType)
 {
@@ -173,7 +182,23 @@ static GemmDescriptor GetGemmDescriptor(const TestCase& testCase, miopenDataType
     size_t strideB = testCase.k * testCase.n;
     size_t strideC = testCase.m * testCase.n;
 
-    return {testCase.isColMajor, testCase.transA, testCase.transB, testCase.m, testCase.n, testCase.k, lda, ldb, ldc, testCase.batch_count, strideA, strideB, strideC, testCase.alpha, testCase.beta, dataType, false};
+    return {testCase.isColMajor,
+            testCase.transA,
+            testCase.transB,
+            testCase.m,
+            testCase.n,
+            testCase.k,
+            lda,
+            ldb,
+            ldc,
+            testCase.batch_count,
+            strideA,
+            strideB,
+            strideC,
+            testCase.alpha,
+            testCase.beta,
+            dataType,
+            false};
 }
 
 template <typename T, typename disabled_mask, typename enabled_mask>
@@ -213,39 +238,58 @@ static void RunGemmDescriptors(const TestCase& testCase, miopenDataType_t dataTy
 
         if(desc.batch_count == 1)
         {
-            EXPECT_EQUAL(CallGemm(handle, desc, workspaceA_device.ptr(), 0, workspaceB_device.ptr(), 0, workspaceC_device.ptr(), 0, GemmBackend_t::hipblaslt), miopenStatus_t::miopenStatusSuccess);
+            EXPECT_EQUAL(CallGemm(handle,
+                                  desc,
+                                  workspaceA_device.ptr(),
+                                  0,
+                                  workspaceB_device.ptr(),
+                                  0,
+                                  workspaceC_device.ptr(),
+                                  0,
+                                  GemmBackend_t::hipblaslt),
+                         miopenStatus_t::miopenStatusSuccess);
         }
         else
         {
-            EXPECT_EQUAL(CallGemmStridedBatched(handle, desc, workspaceA_device.ptr(), 0, workspaceB_device.ptr(), 0, workspaceC_device.ptr(), 0, GemmBackend_t::hipblaslt), miopenStatus_t::miopenStatusSuccess);
+            EXPECT_EQUAL(CallGemmStridedBatched(handle,
+                                                desc,
+                                                workspaceA_device.ptr(),
+                                                0,
+                                                workspaceB_device.ptr(),
+                                                0,
+                                                workspaceC_device.ptr(),
+                                                0,
+                                                GemmBackend_t::hipblaslt),
+                         miopenStatus_t::miopenStatusSuccess);
         }
 
         callCpuGemmStridedBatched<T>(desc.isColMajor,
-                                    desc.transA,
-                                    desc.transB,
-                                    desc.m,
-                                    desc.n,
-                                    desc.k,
-                                    static_cast<T>(desc.alpha),
-                                    workspaceA_host.data(),
-                                    0,
-                                    desc.lda,
-                                    desc.strideA,
-                                    workspaceB_host.data(),
-                                    0,
-                                    desc.ldb,
-                                    desc.strideB,
-                                    static_cast<T>(desc.beta),
-                                    workspaceC_host.data(),
-                                    0,
-                                    desc.ldc,
-                                    desc.strideC,
-                                    desc.batch_count);
+                                     desc.transA,
+                                     desc.transB,
+                                     desc.m,
+                                     desc.n,
+                                     desc.k,
+                                     static_cast<T>(desc.alpha),
+                                     workspaceA_host.data(),
+                                     0,
+                                     desc.lda,
+                                     desc.strideA,
+                                     workspaceB_host.data(),
+                                     0,
+                                     desc.ldb,
+                                     desc.strideB,
+                                     static_cast<T>(desc.beta),
+                                     workspaceC_host.data(),
+                                     0,
+                                     desc.ldc,
+                                     desc.strideC,
+                                     desc.batch_count);
 
         auto error = miopen::rms_range(workspaceC_host, workspaceC_device.Read<std::vector<T>>());
         EXPECT_TRUE(std::isfinite(error));
 
-        const double tolerance = ((sizeof(T) == 4) ? static_cast<double>(1e-6) : static_cast<double>(7e-2));
+        const double tolerance =
+            ((sizeof(T) == 4) ? static_cast<double>(1e-6) : static_cast<double>(7e-2));
         EXPECT_LT(error, tolerance);
     }
     else
@@ -254,47 +298,59 @@ static void RunGemmDescriptors(const TestCase& testCase, miopenDataType_t dataTy
     }
 }
 
-}
-using namespace hipblaslt_gemm; 
+} // namespace hipblaslt_gemm
+using namespace hipblaslt_gemm;
 
 TEST_P(HipBLASLtGEMMTestFloat, RunHipBLASLtGEMM)
 {
     using e_mask = enabled<Gpu::gfx94X, Gpu::gfx90A, Gpu::gfx110X>;
-    using d_mask = disabled<Gpu::gfx103X,Gpu::gfx900, Gpu::gfx906, Gpu::gfx908>;
+    using d_mask = disabled<Gpu::gfx103X, Gpu::gfx900, Gpu::gfx906, Gpu::gfx908>;
     RunGemmDescriptors<float, d_mask, e_mask>(GetParam(), miopenDataType_t::miopenFloat);
 };
-INSTANTIATE_TEST_SUITE_P(HipBLASLtGEMMTestSet, HipBLASLtGEMMTestFloat, testing::ValuesIn(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(HipBLASLtGEMMTestSet,
+                         HipBLASLtGEMMTestFloat,
+                         testing::ValuesIn(GetTestCases()));
 
 TEST_P(HipBLASLtGEMMTestHalf, RunHipBLASLtGEMM)
-{ 
+{
     using e_mask = enabled<Gpu::gfx94X, Gpu::gfx90A, Gpu::gfx110X>;
-    using d_mask = disabled<Gpu::gfx103X,Gpu::gfx900, Gpu::gfx906, Gpu::gfx908>;
+    using d_mask = disabled<Gpu::gfx103X, Gpu::gfx900, Gpu::gfx906, Gpu::gfx908>;
     RunGemmDescriptors<float16, d_mask, e_mask>(GetParam(), miopenDataType_t::miopenHalf);
 };
-INSTANTIATE_TEST_SUITE_P(HipBLASLtGEMMTestSet, HipBLASLtGEMMTestHalf, testing::ValuesIn(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(HipBLASLtGEMMTestSet,
+                         HipBLASLtGEMMTestHalf,
+                         testing::ValuesIn(GetTestCases()));
 
 TEST_P(HipBLASLtGEMMTestBFloat16, RunHipBLASLtGEMM)
 {
     using e_mask = enabled<Gpu::gfx94X, Gpu::gfx90A, Gpu::gfx110X>;
-    using d_mask = disabled<Gpu::gfx103X,Gpu::gfx900, Gpu::gfx906, Gpu::gfx908>;
+    using d_mask = disabled<Gpu::gfx103X, Gpu::gfx900, Gpu::gfx906, Gpu::gfx908>;
     RunGemmDescriptors<bfloat16, d_mask, e_mask>(GetParam(), miopenDataType_t::miopenBFloat16);
 };
-INSTANTIATE_TEST_SUITE_P(HipBLASLtGEMMTestSet, HipBLASLtGEMMTestBFloat16, testing::ValuesIn(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(HipBLASLtGEMMTestSet,
+                         HipBLASLtGEMMTestBFloat16,
+                         testing::ValuesIn(GetTestCases()));
 
 TEST_P(HipBLASLtGEMMTestFloat8, RunHipBLASLtGEMM)
 {
     using e_mask = enabled<Gpu::gfx94X>;
-    using d_mask = disabled<Gpu::gfx103X,Gpu::gfx900, Gpu::gfx906, Gpu::gfx908, Gpu::gfx90A, Gpu::gfx110X>;
+    using d_mask =
+        disabled<Gpu::gfx103X, Gpu::gfx900, Gpu::gfx906, Gpu::gfx908, Gpu::gfx90A, Gpu::gfx110X>;
     RunGemmDescriptors<bfloat16, d_mask, e_mask>(GetParam(), miopenDataType_t::miopenFloat8);
 };
-INSTANTIATE_TEST_SUITE_P(HipBLASLtGEMMTestSet, HipBLASLtGEMMTestFloat8, testing::ValuesIn(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(HipBLASLtGEMMTestSet,
+                         HipBLASLtGEMMTestFloat8,
+                         testing::ValuesIn(GetTestCases()));
 
 TEST_P(HipBLASLtGEMMTestBFloat8, RunHipBLASLtGEMM)
 {
     using e_mask = enabled<Gpu::gfx94X>;
-    using d_mask = disabled<Gpu::gfx103X,Gpu::gfx900, Gpu::gfx906, Gpu::gfx908, Gpu::gfx90A, Gpu::gfx110X>;
+    using d_mask =
+        disabled<Gpu::gfx103X, Gpu::gfx900, Gpu::gfx906, Gpu::gfx908, Gpu::gfx90A, Gpu::gfx110X>;
     RunGemmDescriptors<bfloat16, d_mask, e_mask>(GetParam(), miopenDataType_t::miopenBFloat8);
 };
-INSTANTIATE_TEST_SUITE_P(HipBLASLtGEMMTestSet, HipBLASLtGEMMTestBFloat8, testing::ValuesIn(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(HipBLASLtGEMMTestSet,
+                         HipBLASLtGEMMTestBFloat8,
+                         testing::ValuesIn(GetTestCases()));
 
 #endif
