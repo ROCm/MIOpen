@@ -194,7 +194,8 @@ rocblas_status miopen_rocblas_gemm_ex3(const miopen::Handle& handle,
     std::ignore      = C;
     std::ignore      = c_offset;
 #endif
-    MIOPEN_THROW(miopenStatusInternalError, "An appropriate version of rocBLAS is required for this op");
+    MIOPEN_THROW(miopenStatusInternalError,
+                 "An appropriate version of rocBLAS is required for this op");
     std::ignore = handle;
     std::ignore = gemm_desc;
     return rb_status;
@@ -892,7 +893,8 @@ miopenStatus_t CallGemm(const Handle& handle,
         break;
 
         case miopenDouble: {
-            MIOPEN_THROW(miopenStatusInternalError, "miopenDouble data type not supported by rocBLAS.");
+            MIOPEN_THROW(miopenStatusInternalError,
+                         "miopenDouble data type not supported by rocBLAS.");
         };
         break;
 
@@ -1179,7 +1181,8 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
         }
 
         case miopenDouble: {
-            MIOPEN_THROW(miopenStatusInternalError, "miopenDouble data type not supported by rocBLAS.");
+            MIOPEN_THROW(miopenStatusInternalError,
+                         "miopenDouble data type not supported by rocBLAS.");
         }
         break;
         case miopenInt64: {
@@ -1463,7 +1466,8 @@ miopenStatus_t CallGemmStridedBatchedSequential(const Handle& handle,
         }
 
         case miopenDouble: {
-            MIOPEN_THROW(miopenStatusInternalError, "miopenDouble data type not supported by rocBLAS.");
+            MIOPEN_THROW(miopenStatusInternalError,
+                         "miopenDouble data type not supported by rocBLAS.");
         }
         break;
 
