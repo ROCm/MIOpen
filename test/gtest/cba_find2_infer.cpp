@@ -128,6 +128,11 @@ TEST_P(ConvBiasActivFind2InferTestFloat, ConvBinWinogradRxSf2x3g1Find2Fused)
     RunSolver<miopen::solver::fusion::ConvBinWinogradRxSf2x3g1Fused>(
         fused_problem, invoke_params, conv_config, test_skipped);
 }
+TEST_P(ConvBiasActivFind2InferTestFloat, ConvWinoFuryRxSf2x3Find2Fused)
+{
+    RunSolver<miopen::solver::fusion::ConvWinoFuryRxSFused<2, 3>>(
+        fused_problem, invoke_params, conv_config, test_skipped);
+}
 
 TEST_P(ConvBiasActivFind2InferTestHalf, ConvCKIgemmFwdBiasActivFind2Fused)
 {
