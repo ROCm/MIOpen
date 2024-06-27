@@ -498,6 +498,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenConv1x1J1_stride.cl
         kernels/MIOpenReduceExtreme.cpp
         kernels/MIOpenSoftmax.cl
+        kernels/MIOpenSoftmaxHIP.cpp
         kernels/MIOpenSoftmaxAttn.cpp
         kernels/MIOpenSum.cpp
         kernels/MIOpenUtilKernels3.cl
