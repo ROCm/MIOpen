@@ -40,13 +40,13 @@ struct NetworkConfig;
 
 namespace kthvalue {
 
-struct KthvalueFwdProblemDescription : ProblemDescriptionBase
+struct FwdProblemDescription : ProblemDescriptionBase
 {
-    KthvalueFwdProblemDescription(const TensorDescriptor& inputDesc_,
-                                  const TensorDescriptor& outputDesc_,
-                                  const TensorDescriptor& indicesDesc_,
-                                  int32_t dim_,
-                                  size_t k_)
+    FwdProblemDescription(const TensorDescriptor& inputDesc_,
+                          const TensorDescriptor& outputDesc_,
+                          const TensorDescriptor& indicesDesc_,
+                          int32_t dim_,
+                          size_t k_)
         : inputDesc(inputDesc_),
           outputDesc(outputDesc_),
           indicesDesc(indicesDesc_),

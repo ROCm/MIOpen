@@ -2,12 +2,10 @@
 #include <hip/hip_fp16.h>
 #include <hip/hip_runtime.h>
 
-// #include "backend/modnn/core/op/device/hip/utils/hip_atomic.h"
-
-#define ENCODE encode<DTYPE>
-#define RADIX_TYPE typename RadixType<DTYPE>::type
-#define GetBitField(x, pos, bits) GetBitFieldImpl<RADIX_TYPE>(x, pos, bits)
-#define SetBitField(x, a, pos, bits) SetBitFieldImpl<RADIX_TYPE>(x, a, pos, bits)
+// #define ENCODE encode<DTYPE>
+// #define RADIX_TYPE typename RadixType<DTYPE>::type
+// #define GetBitField(x, pos, bits) GetBitFieldImpl<RADIX_TYPE>(x, pos, bits)
+// #define SetBitField(x, a, pos, bits) SetBitFieldImpl<RADIX_TYPE>(x, a, pos, bits)
 
 #define DEFINE_RADIX_TYPE(DTYPE, cpp_type) \
     template <>                            \
@@ -21,13 +19,9 @@ struct RadixType
 {
 };
 
-// DEFINE_RADIX_TYPE(uint8_t, uint32_t)
-// DEFINE_RADIX_TYPE(int8_t, uint32_t)
-// DEFINE_RADIX_TYPE(int16_t, uint32_t)
 DEFINE_RADIX_TYPE(int32_t, uint32_t)
 DEFINE_RADIX_TYPE(int64_t, uint64_t)
 DEFINE_RADIX_TYPE(bool, bool)
-// DEFINE_RADIX_TYPE(_Float16, uint16_t)
 DEFINE_RADIX_TYPE(float, uint32_t)
 DEFINE_RADIX_TYPE(double, uint64_t)
 
@@ -38,18 +32,6 @@ __device__ inline Radix encode(DTYPE v)
     {
         return v;
     }
-    // else if constexpr(std::is_same<uint8_t, DTYPE>::value)
-    // {
-    //     return v;
-    // }
-    // else if constexpr(std::is_same<int8_t, DTYPE>::value)
-    // {
-    //     return 128u + v;
-    // }
-    // else if constexpr(std::is_same<int16_t, DTYPE>::value)
-    // {
-    //     return 32768u + v;
-    // }
     else if constexpr(std::is_same<int32_t, DTYPE>::value)
     {
         return 2147483648u + v;
@@ -85,18 +67,6 @@ __device__ inline DTYPE decode(Radix v)
     {
         return v;
     }
-    // else if constexpr(std::is_same<uint8_t, DTYPE>::value)
-    // {
-    //     return v;
-    // }
-    // else if constexpr(std::is_same<int8_t, DTYPE>::value)
-    // {
-    //     return v - 128u;
-    // }
-    // else if constexpr(std::is_same<int16_t, DTYPE>::value)
-    // {
-    //     return v - 32768u;
-    // }
     else if constexpr(std::is_same<int32_t, DTYPE>::value)
     {
         return v - 2147483648u;

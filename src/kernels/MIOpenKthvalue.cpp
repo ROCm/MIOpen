@@ -18,23 +18,21 @@
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACDTYPEN OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECDTYPEN WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  *
  *******************************************************************************/
 
-// #include <cstddef>
-#include <cstdio>
 #ifndef MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS
 #include <hip/hip_fp16.h>
 #include <hip/hip_runtime.h>
 #endif
 
 #include "float_types.h"
-#include "radix.hpp"
 #include "tensor_view.hpp"
 #include "warp_shuffle.hpp"
+#include "radix.hpp"
 
 #ifndef IN_OUT_TYPE
 #define IN_OUT_TYPE float
@@ -64,9 +62,11 @@
 #define RADIX_MASK (RADIX_SIZE - 1)
 #endif
 
-template <typename DTYPE>
-__device__ void kthvalueFwd(const DTYPE* input,
-                            DTYPE* output,
+#define RADIX_TYPE RadixType<FLOAT_ACCUM>::type
+
+template <typename TIO>
+__device__ void kthvalueFwd(const TIO* input,
+                            TIO* output,
                             size_t* indices,
                             size_t k,
                             size_t dim_size,
@@ -87,8 +87,7 @@ __device__ void kthvalueFwd(const DTYPE* input,
     size_t gid = blockIdx.x;
 
     __shared__ size_t lsum[LOCAL_SIZE][RADIX_SIZE];
-    __shared__ size_t smem_count[RADIX_SIZE];
-    __shared__ DTYPE lval;
+    __shared__ FLOAT_ACCUM lval;
     __shared__ long lidx;
     size_t counts[RADIX_SIZE];
     RADIX_TYPE desired_mask = 0;
@@ -107,10 +106,10 @@ __device__ void kthvalueFwd(const DTYPE* input,
         for(size_t i = lid; i < dim_size; i += LOCAL_SIZE)
         {
             size_t input_idx = idx + i * dim_stride;
-            RADIX_TYPE val   = ENCODE(input[input_idx]);
+            RADIX_TYPE val   = encode<FLOAT_ACCUM>(CVT_FLOAT2ACCUM(input[input_idx]));
             if((val & desired_mask) == desired)
             {
-                ++counts[GetBitField(val, pos, RADIX_BITS)];
+                ++counts[GetBitFieldImpl<RADIX_TYPE>(val, pos, RADIX_BITS)];
             }
         }
 
@@ -164,11 +163,11 @@ __device__ void kthvalueFwd(const DTYPE* input,
                     // There are multiple answers so we return any of them
                     for(size_t i = lid; i < dim_size; i += LOCAL_SIZE)
                     {
-                        size_t input_idx = idx + i * dim_stride;
-                        DTYPE val_ori    = input[input_idx];
-                        RADIX_TYPE val   = ENCODE(val_ori);
+                        size_t input_idx    = idx + i * dim_stride;
+                        FLOAT_ACCUM val_ori = CVT_FLOAT2ACCUM(input[input_idx]);
+                        RADIX_TYPE val      = encode<FLOAT_ACCUM>(val_ori);
                         if((val & desired_mask) == desired &&
-                           GetBitField(val, pos, RADIX_BITS) == j)
+                           GetBitFieldImpl<RADIX_TYPE>(val, pos, RADIX_BITS) == j)
                         {
                             // For case 2, this will be non-deterministic.
                             lval = val_ori;
@@ -178,8 +177,9 @@ __device__ void kthvalueFwd(const DTYPE* input,
                     found = true;
                     break;
                 }
-                desired      = SetBitField(desired, j, pos, RADIX_BITS);
-                desired_mask = SetBitField(desired_mask, RADIX_MASK, pos, RADIX_BITS);
+                desired = SetBitFieldImpl<RADIX_TYPE>(desired, j, pos, RADIX_BITS);
+                desired_mask =
+                    SetBitFieldImpl<RADIX_TYPE>(desired_mask, RADIX_MASK, pos, RADIX_BITS);
                 break;
             }
             k -= counts[j];
@@ -193,7 +193,7 @@ __device__ void kthvalueFwd(const DTYPE* input,
     {
         auto output_layout                                   = tensor_layout_t<4>(output_tv, gid);
         auto indices_layout                                  = tensor_layout_t<4>(indices_tv, gid);
-        output[output_tv.get_tensor_view_idx(output_layout)] = lval;
+        output[output_tv.get_tensor_view_idx(output_layout)] = CVT_ACCUM2FLOAT(lval);
         indices[indices_tv.get_tensor_view_idx(indices_layout)] = lidx;
     }
 }

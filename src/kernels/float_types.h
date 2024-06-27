@@ -106,7 +106,7 @@
 #define _FLOAT_ACCUM double
 #endif // __HIP_PLATFORM_AMD__
 #define MAX_VAL_ACCUM DBL_MAX
-#else // MIOPEN_USE_DOUBLE_ACCUM
+#else  // MIOPEN_USE_DOUBLE_ACCUM
 #ifdef __HIP_PLATFORM_AMD__
 #define FLOAT_ACCUM float
 #else
