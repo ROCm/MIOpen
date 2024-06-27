@@ -197,7 +197,7 @@ private:
     void LogDriverCommand(const BatchnormDescriptor& descriptor) const;
 };
 
-struct FusedProblem
+struct MIOPEN_INTERNALS_EXPORT FusedProblem
 {
     std::vector<Problem> problems;
 

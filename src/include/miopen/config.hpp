@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2017 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,23 +23,16 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#ifndef GUARD_MIOPEN_CONFIG_HPP
+#define GUARD_MIOPEN_CONFIG_HPP
 
-#pragma once
-#include <miopen/env.hpp>
 #include <miopen/config.h>
-#include <chrono>
-#include <limits>
+#include <miopen/export.h>
 
-MIOPEN_DECLARE_ENV_VAR_UINT64(MIOPEN_DEBUG_TUNING_ITERATIONS_MAX,
-                              std::numeric_limits<std::size_t>::max())
-MIOPEN_DECLARE_ENV_VAR_UINT64(
-    MIOPEN_TUNING_TIME_MS_MAX,
-    std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::hours{2}).count())
-
-#if MIOPEN_USE_COMGR
-MIOPEN_DECLARE_ENV_VAR_UINT64(MIOPEN_COMPILE_PARALLEL_LEVEL, 1) // COMGR is not parallelizable
+#ifdef MIOPEN_BUILD_TESTING
+#include <miopen/export_internals.h>
 #else
-MIOPEN_DECLARE_ENV_VAR_UINT64(MIOPEN_COMPILE_PARALLEL_LEVEL,
-                              std::thread::hardware_concurrency() / 2)
+#define MIOPEN_INTERNALS_EXPORT
 #endif
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_COMPILE_ONLY)
+
+#endif // GUARD_MIOPEN_CONFIG_HPP

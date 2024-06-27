@@ -71,13 +71,13 @@ const std::vector<Kernel>& KernelCache::GetKernels(const std::string& algorithm,
     return empty;
 }
 
-bool KernelCache::HasProgram(const std::string& name, const std::string& params) const
+bool KernelCache::HasProgram(const fs::path& name, const std::string& params) const
 {
     const auto key = std::make_pair(name, params);
     return program_map.count(key) > 0;
 }
 
-void KernelCache::ClearProgram(const std::string& name, const std::string& params)
+void KernelCache::ClearProgram(const fs::path& name, const std::string& params)
 {
     if(HasProgram(name, params))
     {
@@ -86,7 +86,7 @@ void KernelCache::ClearProgram(const std::string& name, const std::string& param
     }
 }
 
-void KernelCache::AddProgram(Program prog, const std::string& program_name, std::string params)
+void KernelCache::AddProgram(Program prog, const fs::path& program_name, std::string params)
 {
     program_map[std::make_pair(program_name, params)] = prog;
 }
@@ -94,7 +94,7 @@ void KernelCache::AddProgram(Program prog, const std::string& program_name, std:
 Kernel KernelCache::AddKernel(const Handle& h,
                               const std::string& algorithm,
                               const std::string& network_config,
-                              const std::string& program_name,
+                              const fs::path& program_name,
                               const std::string& kernel_name,
                               const std::vector<size_t>& vld,
                               const std::vector<size_t>& vgd,
@@ -120,7 +120,7 @@ Kernel KernelCache::AddKernel(const Handle& h,
     }
 
     Kernel kernel{};
-    const auto& arch = miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_DEVICE_ARCH));
+    const auto& arch = env::value(MIOPEN_DEVICE_ARCH);
     if(!arch.empty())
     {
         kernel = Kernel{program, kernel_name};

@@ -127,7 +127,7 @@ std::string ConvDirectNaiveConvKernelName(const ProblemDescription& problem)
 
     /// \todo remove packed reference convolution kernels --amberhassaan
 #ifndef NDEBUG // enable in debug mode only
-    if(miopen::IsEnabled(MIOPEN_ENV(MIOPEN_DEBUG_CONV_DIRECT_NAIVE_USE_PACKED_KERNELS)))
+    if(env::enabled(MIOPEN_DEBUG_CONV_DIRECT_NAIVE_USE_PACKED_KERNELS))
     {
         kernel_name << "naive_conv_packed_";
     }
@@ -240,8 +240,8 @@ std::string ConvDirectNaiveConvKernelFile(const ExecutionContext& ctx,
 std::string ConvDirectNaiveConvCompileOption(const ExecutionContext& ctx,
                                              const ProblemDescription& problem)
 {
-    std::string filename = ConvDirectNaiveConvKernelFile(ctx, problem);
-    if(miopen::EndsWith(filename, ".s"))
+    fs::path filename = ConvDirectNaiveConvKernelFile(ctx, problem);
+    if(filename.extension() == ".s")
     {
         std::ostringstream options;
         GenerateClangDefsym(options, "ROCM_METADATA_VERSION", 5);

@@ -422,7 +422,7 @@ void Handle::Copy(ConstData_t src, Data_t dest, std::size_t size) const
 
 KernelInvoke Handle::AddKernel(const std::string& algorithm,
                                const std::string& network_config,
-                               const std::string& program_name,
+                               const fs::path& program_name,
                                const std::string& kernel_name,
                                const std::vector<size_t>& vld,
                                const std::vector<size_t>& vgd,
@@ -484,7 +484,7 @@ KernelInvoke Handle::Run(Kernel k, bool coop_launch) const
     return k.Invoke(this->GetStream(), callback, coop_launch);
 }
 
-Program Handle::LoadProgram(const std::string& program_name,
+Program Handle::LoadProgram(const fs::path& program_name,
                             std::string params,
                             const std::string& kernel_src) const
 {
@@ -494,13 +494,13 @@ Program Handle::LoadProgram(const std::string& program_name,
     std::string orig_params = params; // make a copy for target ID fallback
 
 #if WORKAROUND_ISSUE_3001
-    if(!miopen::EndsWith(program_name, ".mlir"))
+    if(program_name.extension() != ".mlir")
         params = params + " -mcpu=" + this->GetTargetProperties().Name();
 #else
-    if(miopen::EndsWith(program_name, ".mlir"))
+    if(program_name.extension() == ".mlir")
     { // no -mcpu
     }
-    else if(miopen::EndsWith(program_name, ".s"))
+    else if(program_name.extension() == ".s")
     {
         params += " -mcpu=" + LcOptionTargetStrings{this->GetTargetProperties()}.targetId;
     }
@@ -531,8 +531,9 @@ Program Handle::LoadProgram(const std::string& program_name,
     if(hsaco.empty())
     {
         CompileTimer ct;
-        auto p = HIPOCProgram{program_name, params, this->GetTargetProperties(), kernel_src};
-        ct.Log("Kernel", program_name);
+        auto p =
+            HIPOCProgram{program_name.string(), params, this->GetTargetProperties(), kernel_src};
+        ct.Log("Kernel", program_name.string());
 
 // Save to cache
 #if MIOPEN_ENABLE_SQLITE_KERN_CACHE
@@ -559,19 +560,17 @@ Program Handle::LoadProgram(const std::string& program_name,
     }
 }
 
-bool Handle::HasProgram(const std::string& program_name, const std::string& params) const
+bool Handle::HasProgram(const fs::path& program_name, const std::string& params) const
 {
     return this->impl->cache.HasProgram(program_name, params);
 }
 
-void Handle::AddProgram(Program prog,
-                        const std::string& program_name,
-                        const std::string& params) const
+void Handle::AddProgram(Program prog, const fs::path& program_name, const std::string& params) const
 {
     this->impl->cache.AddProgram(prog, program_name, params);
 }
 
-void Handle::ClearProgram(const std::string& program_name, const std::string& params) const
+void Handle::ClearProgram(const fs::path& program_name, const std::string& params) const
 {
     this->impl->cache.ClearProgram(program_name, params);
 }
@@ -632,7 +631,7 @@ std::size_t Handle::GetGlobalMemorySize() const
 
 std::size_t Handle::GetMaxComputeUnits() const
 {
-    const std::size_t num_cu = Value(MIOPEN_ENV(MIOPEN_DEVICE_CU));
+    const std::size_t num_cu = env::value(MIOPEN_DEVICE_CU);
     if(num_cu > 0)
         return num_cu;
 

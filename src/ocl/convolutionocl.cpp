@@ -216,7 +216,7 @@ static inline std::vector<PerfField> FindConvolution(const ExecutionContext& ctx
         auto sols     = conv.GetSolutions(ctx, problem, 1, &fallback, &invoke_ctx);
         // override the normal find with immed mode with env var
         if(!sols.empty() && (!(findMode.IsHybrid(ctx) && fallback) ||
-                             miopen::IsEnabled(MIOPEN_ENV(MIOPEN_DEBUG_FORCE_IMMED_MODE_FALLBACK))))
+                             env::enabled(MIOPEN_DEBUG_FORCE_IMMED_MODE_FALLBACK)))
             sol = sols.front();
         // In Hybrid Find mode, we use Normal Find instead of Immediate fallback kernels.
     }
@@ -246,7 +246,7 @@ static inline std::vector<PerfField> FindConvolution(const ExecutionContext& ctx
         });
     }
 
-    if(IsEnabled(MIOPEN_ENV(MIOPEN_DEBUG_COMPILE_ONLY)))
+    if(env::enabled(MIOPEN_DEBUG_COMPILE_ONLY))
     {
         MIOPEN_THROW(
             miopenStatusGpuOperationsSkipped,
@@ -340,7 +340,7 @@ void ValidateAlphaBeta(const conv::ProblemDescription& problem)
 void DumpTensorToFileFromDevice(const miopen::Handle& handle,
                                 const miopen::TensorDescriptor& tDesc,
                                 ConstData_t dData,
-                                const std::string& filename)
+                                const fs::path& filename)
 {
     if(dData == nullptr)
     {
@@ -348,25 +348,19 @@ void DumpTensorToFileFromDevice(const miopen::Handle& handle,
         return;
     }
 
-    fs::path file_name_with_path(filename);
-    fs::path path = file_name_with_path.parent_path();
+    fs::path path = filename.has_parent_path() ? filename : fs::current_path() / filename;
 
-    // dump to current folder if full path not provided.
-    if(path.empty())
-    {
-        path                = fs::current_path();
-        file_name_with_path = path / file_name_with_path; // append paths
-    }
-    if(!fs::exists(path))
+    if(!fs::is_directory(path.parent_path()))
     {
         MIOPEN_LOG_E("Directory does not exists : " << path);
         return;
     }
 
-    std::ofstream file_stream{file_name_with_path};
+    std::ofstream file_stream{path, std::ios::binary};
+
     if(!file_stream.is_open())
     {
-        MIOPEN_LOG_E("Cannot write to file : " << file_name_with_path);
+        MIOPEN_LOG_E("Cannot write to file : " << path);
         return;
     }
 
@@ -377,10 +371,9 @@ void DumpTensorToFileFromDevice(const miopen::Handle& handle,
     handle.ReadTo(hdata.data(), dData, num_bytes);
     MIOPEN_LOG_I2("Done bringing tensor from device to host");
     // write tensor data to file
-    const char* pointer = hdata.data();
-    file_stream.write(pointer, num_bytes);
+    file_stream.write(hdata.data(), num_bytes);
     file_stream.close();
-    MIOPEN_LOG_I("Dumping tensor to file : " << file_name_with_path);
+    MIOPEN_LOG_I("Dumping tensor to file : " << path);
 }
 
 static void ConvForwardCheckNumerics(const Handle& handle,
@@ -402,7 +395,7 @@ static void ConvForwardCheckNumerics(const Handle& handle,
 
     flag |= miopen::checkNumericsOutput(handle, tensors.yDesc, tensors.y);
 
-    const auto& file_name = miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_DUMP_TENSOR_PATH));
+    const auto& file_name = env::value(MIOPEN_DUMP_TENSOR_PATH);
     if(flag && !file_name.empty())
     {
         DumpTensorToFileFromDevice(handle, tensors.xDesc, tensors.x, file_name + "_x.bin");
@@ -633,7 +626,7 @@ ConvolutionDescriptor::GetSolutionsFallback(const ExecutionContext& ctx,
                                             const size_t maxSolutionCount,
                                             const AnyInvokeParams* const invokeParams) const
 {
-    if(miopen::IsDisabled(MIOPEN_ENV(MIOPEN_DEBUG_CONV_IMMED_FALLBACK)))
+    if(env::disabled(MIOPEN_DEBUG_CONV_IMMED_FALLBACK))
     {
         MIOPEN_LOG_I("Disabled via environment");
         return {};
@@ -651,7 +644,7 @@ ConvolutionDescriptor::GetSolutionsFallback(const ExecutionContext& ctx,
 
     // TunaNet Fallback
 #if MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK
-    if(!miopen::IsDisabled(MIOPEN_ENV(MIOPEN_DEBUG_ENABLE_AI_IMMED_MODE_FALLBACK)))
+    if(!env::disabled(MIOPEN_DEBUG_ENABLE_AI_IMMED_MODE_FALLBACK))
     {
         const static std::string arch = ctx.GetStream().GetDeviceName();
         auto solvers                  = ai::immed_mode::PredictSolver(problem, ctx, arch);
@@ -989,7 +982,7 @@ static void ConvBwdCheckNumerics(const Handle& handle,
 
     flag |= miopen::checkNumericsOutput(handle, tensors.dxDesc, tensors.dx);
 
-    const auto& file_name = miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_DUMP_TENSOR_PATH));
+    const auto& file_name = env::value(MIOPEN_DUMP_TENSOR_PATH);
     if(flag && !file_name.empty())
     {
         DumpTensorToFileFromDevice(handle, tensors.dyDesc, tensors.dy, file_name + "_dy.bin");
@@ -1204,7 +1197,7 @@ static void ConvWrwCheckNumerics(const Handle& handle,
 
     flag |= miopen::checkNumericsOutput(handle, tensors.dwDesc, tensors.dw);
 
-    const auto& file_name = miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_DUMP_TENSOR_PATH));
+    const auto& file_name = env::value(MIOPEN_DUMP_TENSOR_PATH);
     if(flag && !file_name.empty())
     {
         DumpTensorToFileFromDevice(handle, tensors.dyDesc, tensors.dy, file_name + "_dy.bin");

@@ -67,6 +67,7 @@ MultiBufferWorkspaceTraits SplitBufferToWorkspace(const std::vector<size_t>& len
 bool MhaForward::IsApplicable([[maybe_unused]] const ExecutionContext& context,
                               const miopen::mha::ProblemDescription& problem) const
 {
+#if MIOPEN_USE_GEMM
     // It's important to have this check before problem.GetDescsForward() call
     if(!problem.IsForward())
     {
@@ -77,24 +78,26 @@ bool MhaForward::IsApplicable([[maybe_unused]] const ExecutionContext& context,
 
     auto [N, H, S, D] = miopen::tien<4>(descsFwd.kDesc.GetLengths());
 
-    return MIOPEN_USE_GEMM                                                 //
-           && !miopen::IsDisabled(MIOPEN_ENV(MIOPEN_DEBUG_ATTN_NAIVE_FWD)) //
-           && S <= std::numeric_limits<uint32_t>::max()                    //
-           && descsFwd.kDesc.IsPacked()                                    //
-           && descsFwd.qDesc.IsPacked()                                    //
-           && descsFwd.vDesc.IsPacked()                                    //
-           && descsFwd.oDesc.IsPacked()                                    //
-           && descsFwd.mDesc.IsPacked()                                    //
-           && descsFwd.zInvDesc.IsPacked()                                 //
-           && descsFwd.mDesc.GetType() == miopenFloat                      //
-           && descsFwd.zInvDesc.GetType() == miopenFloat                   //
-           && descsFwd.kDesc.GetType() == descsFwd.qDesc.GetType()         //
-           && descsFwd.kDesc.GetType() == descsFwd.vDesc.GetType()         //
-           && descsFwd.kDesc.GetType() == descsFwd.oDesc.GetType()         //
-           && ((descsFwd.kDesc.GetType() == miopenFloat)                   //
-               || (USE_ROCBLAS_EX3                                         //
-                   && (MIOPEN_FP8_IEEE_EXPONENT_BIAS == 0)                 //
-                   && (descsFwd.kDesc.GetType() == miopenFloat8)));        //
+    return !env::disabled(MIOPEN_DEBUG_ATTN_NAIVE_FWD)              //
+           && S <= std::numeric_limits<uint32_t>::max()             //
+           && descsFwd.kDesc.IsPacked()                             //
+           && descsFwd.qDesc.IsPacked()                             //
+           && descsFwd.vDesc.IsPacked()                             //
+           && descsFwd.oDesc.IsPacked()                             //
+           && descsFwd.mDesc.IsPacked()                             //
+           && descsFwd.zInvDesc.IsPacked()                          //
+           && descsFwd.mDesc.GetType() == miopenFloat               //
+           && descsFwd.zInvDesc.GetType() == miopenFloat            //
+           && descsFwd.kDesc.GetType() == descsFwd.qDesc.GetType()  //
+           && descsFwd.kDesc.GetType() == descsFwd.vDesc.GetType()  //
+           && descsFwd.kDesc.GetType() == descsFwd.oDesc.GetType()  //
+           && ((descsFwd.kDesc.GetType() == miopenFloat)            //
+               || (USE_ROCBLAS_EX3                                  //
+                   && (MIOPEN_FP8_IEEE_EXPONENT_BIAS == 0)          //
+                   && (descsFwd.kDesc.GetType() == miopenFloat8))); //
+#else
+    return false;
+#endif
 }
 
 std::size_t MhaForward::GetWorkspaceSize([[maybe_unused]] const ExecutionContext& context,
