@@ -27,6 +27,7 @@
 #include "miopen/errors.hpp"
 #include "miopen/kthvalue/problem_description.hpp"
 #include "miopen/miopen.h"
+#include "miopen/tensor.hpp"
 #include "miopen/tensor_view_utils.hpp"
 #include <miopen/datatype.hpp>
 #include <miopen/kernel_build_params.hpp>
@@ -43,17 +44,26 @@ namespace solver {
 
 namespace kthvalue {
 
+bool IsImprovementOverROCm(const miopen::kthvalue::FwdProblemDescription& problem)
+{
+    TensorDescriptor inputDesc = problem.GetInputDesc();
+    size_t dimSize             = inputDesc.GetLengths()[problem.GetDim()];
+
+    return dimSize >= 300;
+}
+
 bool KthvalueFwd::IsApplicable(const ExecutionContext& /*context*/,
-                               const miopen::kthvalue::KthvalueFwdProblemDescription& problem) const
+                               const miopen::kthvalue::FwdProblemDescription& problem) const
 {
     if(problem.GetInputDesc().GetSize() > 5)
+        return false;
+    if(!IsImprovementOverROCm(problem))
         return false;
     return true;
 }
 
-ConvSolution
-KthvalueFwd::GetSolution(const ExecutionContext& context,
-                         const miopen::kthvalue::KthvalueFwdProblemDescription& problem) const
+ConvSolution KthvalueFwd::GetSolution(const ExecutionContext& context,
+                                      const miopen::kthvalue::FwdProblemDescription& problem) const
 {
     std::ignore = context;
     auto result = ConvSolution{miopenStatusSuccess};
@@ -121,13 +131,6 @@ KthvalueFwd::GetSolution(const ExecutionContext& context,
     };
 
     return result;
-}
-
-std::size_t KthvalueFwd::GetWorkspaceSize(
-    const ExecutionContext& /*context*/,
-    const miopen::kthvalue::KthvalueFwdProblemDescription& /*problem*/) const
-{
-    return 0;
 }
 
 } // namespace kthvalue

@@ -48,6 +48,7 @@ void mloKthvalueFwdRunHost(TIO* input,
                            TIO* outputHost,
                            miopenTensorDescriptor_t outputDesc,
                            size_t* indices,
+                           miopenTensorDescriptor_t indicesDesc,
                            size_t k,
                            int dim)
 {
@@ -57,7 +58,8 @@ void mloKthvalueFwdRunHost(TIO* input,
     size_t dimStride       = inputDesc.GetStrides()[dim];
     auto inputTv           = miopen::get_inner_expanded_tv<5>(miopen::deref(pInputDesc));
     auto inputTvWithoutDim = miopen::get_tv_without_dim<5, 4>(inputTv, dim);
-    // auto outputTv          = miopen::get_inner_expanded_tv<5>(miopen::deref(outputDesc));
+    auto outputTv          = miopen::get_inner_expanded_tv<4>(miopen::deref(outputDesc));
+    auto indicesTv         = miopen::get_inner_expanded_tv<4>(miopen::deref(indicesDesc));
 
     size_t numSlice = inputSize / dimSize;
 
@@ -82,8 +84,10 @@ void mloKthvalueFwdRunHost(TIO* input,
         std::sort(ids.begin(), ids.end(), [=](size_t x, size_t y) -> bool {
             return elements[x] < elements[y];
         });
-        outputHost[slideID] = elements[ids[k - 1]];
-        indices[slideID]    = ids[k - 1];
+        auto output_layout  = tensor_layout_t<4>(outputTv, slideID);
+        auto indices_layout = tensor_layout_t<4>(indicesTv, slideID);
+        outputHost[outputTv.get_tensor_view_idx(output_layout)] = elements[ids[k - 1]];
+        indices[indicesTv.get_tensor_view_idx(indices_layout)]  = ids[k - 1];
     }
 }
 
@@ -361,8 +365,14 @@ int KthvalueDriver<TIO>::RunForwardGPU()
 template <typename TIO>
 int KthvalueDriver<TIO>::RunForwardCPU()
 {
-    mloKthvalueFwdRunHost<TIO>(
-        input.data(), inputDesc, outputHost.data(), outputDesc, indicesHost.data(), k, dim);
+    mloKthvalueFwdRunHost<TIO>(input.data(),
+                               inputDesc,
+                               outputHost.data(),
+                               outputDesc,
+                               indicesHost.data(),
+                               indicesDesc,
+                               k,
+                               dim);
 
     return miopenStatusSuccess;
 }

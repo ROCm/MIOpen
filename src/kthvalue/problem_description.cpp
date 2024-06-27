@@ -33,7 +33,7 @@ namespace miopen {
 
 namespace kthvalue {
 
-NetworkConfig KthvalueFwdProblemDescription::MakeNetworkConfig() const
+NetworkConfig FwdProblemDescription::MakeNetworkConfig() const
 {
     auto input_dtype = inputDesc.GetType();
     auto size        = inputDesc.GetElementSize();

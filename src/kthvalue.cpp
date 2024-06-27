@@ -49,7 +49,7 @@ miopenStatus_t KthvalueForward(Handle& handle,
                                int32_t dim)
 {
     const auto problem =
-        kthvalue::KthvalueFwdProblemDescription{inputDesc, outputDesc, indicesDesc, dim, k};
+        kthvalue::FwdProblemDescription{inputDesc, outputDesc, indicesDesc, dim, k};
 
     if(dim < 0)
     {

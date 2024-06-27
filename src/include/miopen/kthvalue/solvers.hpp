@@ -37,25 +37,17 @@ namespace solver {
 namespace kthvalue {
 
 using KthvalueFwdSolverBase =
-    NonTunableSolverBase<ExecutionContext, miopen::kthvalue::KthvalueFwdProblemDescription>;
+    NonTunableSolverBase<ExecutionContext, miopen::kthvalue::FwdProblemDescription>;
 
 struct KthvalueFwd final : KthvalueFwdSolverBase
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<KthvalueFwd>(); }
 
-    bool
-    IsApplicable(const ExecutionContext& context,
-                 const miopen::kthvalue::KthvalueFwdProblemDescription& problem) const override;
+    bool IsApplicable(const ExecutionContext& context,
+                      const miopen::kthvalue::FwdProblemDescription& problem) const override;
 
-    ConvSolution
-    GetSolution(const ExecutionContext& context,
-                const miopen::kthvalue::KthvalueFwdProblemDescription& problem) const override;
-
-    std::size_t
-    GetWorkspaceSize(const ExecutionContext& context,
-                     const miopen::kthvalue::KthvalueFwdProblemDescription& problem) const override;
-
-    bool MayNeedWorkspace() const override { return true; }
+    ConvSolution GetSolution(const ExecutionContext& context,
+                             const miopen::kthvalue::FwdProblemDescription& problem) const override;
 };
 
 } // namespace kthvalue
