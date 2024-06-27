@@ -245,7 +245,7 @@ bool PerformanceConfigHipImplicitGemmGroupFwdXdlops::ModelApplyToken(int idx,
     if(idx == 0 && arch == "gfx942")
     {
         InitHeuristicKernelIDs(value);
-        if(heuristic_indexes.size())
+        if(!heuristic_indexes.empty())
             return true;
         return false;
     }
