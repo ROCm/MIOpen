@@ -216,6 +216,7 @@ struct MIOPEN_INTERNALS_EXPORT TensorDescriptor : miopenTensorDescriptor
     }
 
     bool IsPacked() const;
+    bool IsContiguous() const;
     /// Checks all lengths and strides.
     bool AllDimsFitIntoInt() const;
     /// Checks only lengths.

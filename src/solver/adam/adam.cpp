@@ -41,9 +41,7 @@ namespace adam {
 bool Adam::IsApplicable([[maybe_unused]] const ExecutionContext& context,
                         const miopen::adam::ProblemDescription& problem) const
 {
-    if(!problem.IsAllPacked())
-        return false;
-    if(problem.IsAdamW())
+    if(!problem.IsAllContiguous())
         return false;
     return true;
 }
@@ -83,11 +81,11 @@ ConvSolution Adam::GetSolution(const ExecutionContext& context,
         kernel.kernel_file = "MIOpenAdam.cpp";
         if(problem.ExistStepTensor())
         {
-            kernel.kernel_name = "AmpAdamPackedWithStep";
+            kernel.kernel_name = "AmpAdamContiguousWithStep";
         }
         else
         {
-            kernel.kernel_name = problem.IsAmp() ? "AmpAdamPacked" : "AdamPacked";
+            kernel.kernel_name = problem.IsAmp() ? "AmpAdamContiguous" : "AdamContiguous";
         }
 
         result.construction_params.push_back(kernel);
@@ -131,6 +129,7 @@ ConvSolution Adam::GetSolution(const ExecutionContext& context,
                             params.eps,
                             params.amsgrad,
                             params.maximize,
+                            params.adamw,
                             numel);
 
                 if(handle_.IsProfilingEnabled())
@@ -177,6 +176,7 @@ ConvSolution Adam::GetSolution(const ExecutionContext& context,
                            params.eps,
                            params.amsgrad,
                            params.maximize,
+                           params.adamw,
                            numel);
                 };
             };
@@ -206,6 +206,7 @@ ConvSolution Adam::GetSolution(const ExecutionContext& context,
                            params.step,
                            params.amsgrad,
                            params.maximize,
+                           params.adamw,
                            numel);
                 };
             };
