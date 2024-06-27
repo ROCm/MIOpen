@@ -184,7 +184,11 @@ bool BnCKFwdInference::IsApplicable(
         return false;
     if(!bn_problem.IsLayoutNHWC())
         return false;
-    if(!ck_utility::is_ck_whitelist(context.GetStream()))
+    if(!ck_utility::is_ck_supported_hardware(context.GetStream()))
+        return false;
+    if(!bn_problem.Is2D())
+        return false;
+    if(bn_problem.GetDirection() != miopen::batchnorm::Direction::ForwardInference)
         return false;
 
     switch(bn_problem.GetXDesc().GetType())

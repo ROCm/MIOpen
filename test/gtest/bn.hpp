@@ -107,11 +107,6 @@ protected:
         bn_bwd_test_data.SetUpImpl(bn_config, tensor_layout);
 
         auto&& handle = get_handle();
-        if(!miopen::solver::ck_utility::is_ck_whitelist(handle.GetStream()))
-        {
-            test_skipped = true;
-            GTEST_SKIP() << "Not Applicable on " << handle.GetDeviceName() << " Architecture";
-        }
         miopenBatchNormalizationBackward(&handle,
                                          bn_config.mode,
                                          &bn_bwd_test_data.alphaDataDiff,
@@ -182,7 +177,7 @@ template <typename XDataType,
           typename YDataType,
           typename ScaleDataType,
           typename BiasDataType,
-          typename MeanVarDataType>
+          typename AccDataType>
 struct BNFwdTrainTest
     : public ::testing::TestWithParam<std::tuple<BNTestCase, miopenTensorLayout_t>>
 {
@@ -193,11 +188,8 @@ protected:
         bn_fwd_train_test_data.SetUpImpl(bn_config, tensor_layout);
 
         auto&& handle = get_handle();
-        if(!miopen::solver::ck_utility::is_ck_whitelist(handle.GetStream()))
-        {
-            test_skipped = true;
-            GTEST_SKIP() << "Not Applicable on " << handle.GetDeviceName() << " Architecture";
-        }
+        auto ctx      = miopen::ExecutionContext{};
+
         miopenBatchNormalizationForwardTraining(&handle,
                                                 bn_config.mode,
                                                 &bn_fwd_train_test_data.alpha,
@@ -237,39 +229,34 @@ protected:
         bn_fwd_train_test_data.output.data = handle.Read<YDataType>(
             bn_fwd_train_test_data.out_dev, bn_fwd_train_test_data.output.data.size());
 
-        bn_fwd_train_test_data.saveMean.data = handle.Read<MeanVarDataType>(
+        bn_fwd_train_test_data.saveMean.data = handle.Read<AccDataType>(
             bn_fwd_train_test_data.saveMean_dev, bn_fwd_train_test_data.saveMean.data.size());
         bn_fwd_train_test_data.saveVariance.data =
-            handle.Read<MeanVarDataType>(bn_fwd_train_test_data.saveVariance_dev,
-                                         bn_fwd_train_test_data.saveVariance_ref.data.size());
-        bn_fwd_train_test_data.runMean.data = handle.Read<MeanVarDataType>(
+            handle.Read<AccDataType>(bn_fwd_train_test_data.saveVariance_dev,
+                                     bn_fwd_train_test_data.saveVariance_ref.data.size());
+        bn_fwd_train_test_data.runMean.data = handle.Read<AccDataType>(
             bn_fwd_train_test_data.runMean_dev, bn_fwd_train_test_data.runMean_ref.data.size());
         bn_fwd_train_test_data.runVariance.data =
-            handle.Read<MeanVarDataType>(bn_fwd_train_test_data.runVariance_dev,
-                                         bn_fwd_train_test_data.runVariance_ref.data.size());
+            handle.Read<AccDataType>(bn_fwd_train_test_data.runVariance_dev,
+                                     bn_fwd_train_test_data.runVariance_ref.data.size());
         test::ComputeCPUBNFwdTrain(bn_fwd_train_test_data);
 
         // 4e-3 is tolerance used by CK kernel.
         test::CompareTensor<YDataType>(
             bn_fwd_train_test_data.output, bn_fwd_train_test_data.ref_out, 4e-3);
-        test::CompareTensor<MeanVarDataType>(
+        test::CompareTensor<AccDataType>(
             bn_fwd_train_test_data.saveMean, bn_fwd_train_test_data.saveMean_ref, 4e-3);
-        test::CompareTensor<MeanVarDataType>(
+        test::CompareTensor<AccDataType>(
             bn_fwd_train_test_data.saveVariance, bn_fwd_train_test_data.saveVariance_ref, 4e-3);
-        test::CompareTensor<MeanVarDataType>(
+        test::CompareTensor<AccDataType>(
             bn_fwd_train_test_data.runMean, bn_fwd_train_test_data.runMean_ref, 4e-3);
-        test::CompareTensor<MeanVarDataType>(
+        test::CompareTensor<AccDataType>(
             bn_fwd_train_test_data.runVariance, bn_fwd_train_test_data.runVariance_ref, 4e-3);
     }
 
     BNTestCase bn_config;
     bool test_skipped = false;
-    BNFwdTrainTestData<XDataType,
-                       YDataType,
-                       ScaleDataType,
-                       BiasDataType,
-                       MeanVarDataType,
-                       BNTestCase>
+    BNFwdTrainTestData<XDataType, YDataType, ScaleDataType, BiasDataType, AccDataType, BNTestCase>
         bn_fwd_train_test_data;
     miopenTensorLayout_t tensor_layout;
 };

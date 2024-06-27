@@ -28,7 +28,7 @@
 #include "driver.hpp"
 #include "get_handle.hpp"
 #include "workspace.hpp"
-#include "env_utils.hpp"
+#include <miopen/env.hpp>
 
 #include <miopen/miopen.h>
 
@@ -367,6 +367,6 @@ private:
 
 int main(int argc, const char* argv[])
 {
-    setEnvironmentVariable("MIOPEN_LOG_LEVEL", "6");
+    miopen::env::setEnvironmentVariable("MIOPEN_LOG_LEVEL", "6");
     test_drive<miopen::Find2Test>(argc, argv);
 }

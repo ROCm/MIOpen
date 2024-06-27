@@ -47,10 +47,8 @@ TEST_P(BNBwdTestTestHalf, BnBwdCKHalf) {}
 
 TEST_P(BNBwdTestFloat, BnBwdCKFloat) {}
 
-// Currently disabled since miopen::batchnorm::MakeForwardTrainingNetworkConfig
-// only supports half and float
-TEST_P(BNBwdTestBFloat16, DISABLED_BnBwdCKBFloat16) {}
-TEST_P(BNBwdTestDouble, DISABLED_BnBwdCKDouble) {}
+TEST_P(BNBwdTestBFloat16, BnBwdCKBFloat16) {}
+TEST_P(BNBwdTestDouble, BnBwdCKDouble) {}
 
 INSTANTIATE_TEST_SUITE_P(BNBwdTestTestHalfNHWCSuite,
                          BNBwdTestTestHalf,
