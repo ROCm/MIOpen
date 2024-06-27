@@ -32,9 +32,9 @@
 namespace miopen {
 namespace adam {
 
-struct InvokeParams : public miopen::InvokeParams
+struct AdamInvokeParams : public miopen::InvokeParams
 {
-    InvokeParams() = default;
+    AdamInvokeParams() = default;
 
     const TensorDescriptor* paramDesc = nullptr;
     const TensorDescriptor* gradDesc  = nullptr;
@@ -63,6 +63,39 @@ struct InvokeParams : public miopen::InvokeParams
     bool amsgrad       = false;
     bool maximize      = false;
     bool adamw         = false;
+
+    std::size_t GetWorkspaceSize() const { return 0; }
+    Data_t GetWorkspace() const { return nullptr; }
+};
+
+struct TransformersAdamWInvokeParams : public miopen::InvokeParams
+{
+    TransformersAdamWInvokeParams() = default;
+
+    const TensorDescriptor* paramDesc = nullptr;
+    const TensorDescriptor* gradDesc  = nullptr;
+
+    ConstData_t paramIn    = nullptr;
+    Data_t paramOut        = nullptr;
+    Data_t paramOutFloat16 = nullptr;
+    ConstData_t gradIn     = nullptr;
+    ConstData_t expAvgIn   = nullptr;
+    Data_t expAvgOut       = nullptr;
+    ConstData_t expAvgSqIn = nullptr;
+    Data_t expAvgSqOut     = nullptr;
+    ConstData_t gradScale  = nullptr;
+    ConstData_t foundInf   = nullptr;
+    ConstData_t stepIn     = nullptr;
+    Data_t stepOut         = nullptr;
+
+    uint32_t step      = 0;
+    float lr           = 0.0;
+    float beta1        = 0.0;
+    float beta2        = 0.0;
+    float eps          = 0.0;
+    float weight_decay = 0.0;
+    float step_size    = 0.0;
+    bool correct_bias  = true;
 
     std::size_t GetWorkspaceSize() const { return 0; }
     Data_t GetWorkspace() const { return nullptr; }
