@@ -48,6 +48,7 @@ inline __device__ void AdamInternal(T1* param_in,
                                     uint32_t step,
                                     bool amsgrad,
                                     bool maximize,
+                                    bool adamw,
                                     size_t gid)
 {
     T2 param      = static_cast<T2>(param_in[gid]);
@@ -62,9 +63,24 @@ inline __device__ void AdamInternal(T1* param_in,
     T2 bias_correction2 = 1 - pow(beta2, step);
 
     if(maximize)
-        grad *= -1;
+        grad = -grad;
+
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wfloat-equal"
+#endif
+
     if(weight_decay != 0)
-        grad += param * weight_decay;
+    {
+        if(adamw)
+            param -= lr * weight_decay * param;
+        else
+            grad += param * weight_decay;
+    }
+
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 
     exp_avg    = exp_avg * beta1 + grad * (1 - beta1);
     exp_avg_sq = exp_avg_sq * beta2 + grad * grad * (1 - beta2);
@@ -91,24 +107,25 @@ inline __device__ void AdamInternal(T1* param_in,
     exp_avg_sq_out[gid] = static_cast<T1>(exp_avg_sq);
 }
 
-extern "C" __global__ void AdamPacked(PTYPE* param_in,
-                                      PTYPE* param_out,
-                                      PTYPE* grad_in,
-                                      PTYPE* exp_avg_in,
-                                      PTYPE* exp_avg_out,
-                                      PTYPE* exp_avg_sq_in,
-                                      PTYPE* exp_avg_sq_out,
-                                      PTYPE* max_exp_avg_sq_in,
-                                      PTYPE* max_exp_avg_sq_out,
-                                      float lr,
-                                      float beta1,
-                                      float beta2,
-                                      float weight_decay,
-                                      float eps,
-                                      uint32_t step,
-                                      bool amsgrad,
-                                      bool maximize,
-                                      size_t input_size)
+extern "C" __global__ void AdamContiguous(PTYPE* param_in,
+                                          PTYPE* param_out,
+                                          PTYPE* grad_in,
+                                          PTYPE* exp_avg_in,
+                                          PTYPE* exp_avg_out,
+                                          PTYPE* exp_avg_sq_in,
+                                          PTYPE* exp_avg_sq_out,
+                                          PTYPE* max_exp_avg_sq_in,
+                                          PTYPE* max_exp_avg_sq_out,
+                                          float lr,
+                                          float beta1,
+                                          float beta2,
+                                          float weight_decay,
+                                          float eps,
+                                          uint32_t step,
+                                          bool amsgrad,
+                                          bool maximize,
+                                          bool adamw,
+                                          size_t input_size)
 {
     size_t gid = blockIdx.x * blockDim.x + threadIdx.x;
     size_t gsz = gridDim.x * blockDim.x;
@@ -134,6 +151,7 @@ extern "C" __global__ void AdamPacked(PTYPE* param_in,
                                    step,
                                    amsgrad,
                                    maximize,
+                                   adamw,
                                    gid);
     }
 }
@@ -158,6 +176,7 @@ inline __device__ void AmpAdamInternal(T1* param_in,
                                        uint32_t step,
                                        bool amsgrad,
                                        bool maximize,
+                                       bool adamw,
                                        size_t input_size)
 {
     size_t gid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -188,6 +207,7 @@ inline __device__ void AmpAdamInternal(T1* param_in,
                              step,
                              amsgrad,
                              maximize,
+                             adamw,
                              gid);
 
         if(param_out_fp16)
@@ -226,27 +246,28 @@ inline __device__ void AmpAdamSetOutputFromInput(T1* param_in,
     }
 }
 
-extern "C" __global__ void AmpAdamPackedWithStep(PTYPE* param_in,
-                                                 PTYPE* param_out,
-                                                 half* param_out_fp16,
-                                                 GTYPE* grad_in,
-                                                 PTYPE* exp_avg_in,
-                                                 PTYPE* exp_avg_out,
-                                                 PTYPE* exp_avg_sq_in,
-                                                 PTYPE* exp_avg_sq_out,
-                                                 PTYPE* max_exp_avg_sq_in,
-                                                 PTYPE* max_exp_avg_sq_out,
-                                                 int32_t* grad_scale,
-                                                 bool* found_inf,
-                                                 int* step,
-                                                 float lr,
-                                                 float beta1,
-                                                 float beta2,
-                                                 float weight_decay,
-                                                 float eps,
-                                                 bool amsgrad,
-                                                 bool maximize,
-                                                 size_t input_size)
+extern "C" __global__ void AmpAdamContiguousWithStep(PTYPE* param_in,
+                                                     PTYPE* param_out,
+                                                     half* param_out_fp16,
+                                                     GTYPE* grad_in,
+                                                     PTYPE* exp_avg_in,
+                                                     PTYPE* exp_avg_out,
+                                                     PTYPE* exp_avg_sq_in,
+                                                     PTYPE* exp_avg_sq_out,
+                                                     PTYPE* max_exp_avg_sq_in,
+                                                     PTYPE* max_exp_avg_sq_out,
+                                                     int32_t* grad_scale,
+                                                     bool* found_inf,
+                                                     int* step,
+                                                     float lr,
+                                                     float beta1,
+                                                     float beta2,
+                                                     float weight_decay,
+                                                     float eps,
+                                                     bool amsgrad,
+                                                     bool maximize,
+                                                     bool adamw,
+                                                     size_t input_size)
 {
     size_t gid = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -276,6 +297,7 @@ extern "C" __global__ void AmpAdamPackedWithStep(PTYPE* param_in,
                                              step_val,
                                              amsgrad,
                                              maximize,
+                                             adamw,
                                              input_size);
     }
     else
@@ -294,27 +316,28 @@ extern "C" __global__ void AmpAdamPackedWithStep(PTYPE* param_in,
     }
 }
 
-extern "C" __global__ void AmpAdamPacked(PTYPE* param_in,
-                                         PTYPE* param_out,
-                                         half* param_out_fp16,
-                                         GTYPE* grad_in,
-                                         PTYPE* exp_avg_in,
-                                         PTYPE* exp_avg_out,
-                                         PTYPE* exp_avg_sq_in,
-                                         PTYPE* exp_avg_sq_out,
-                                         PTYPE* max_exp_avg_sq_in,
-                                         PTYPE* max_exp_avg_sq_out,
-                                         int32_t* grad_scale,
-                                         bool* found_inf,
-                                         int step,
-                                         float lr,
-                                         float beta1,
-                                         float beta2,
-                                         float weight_decay,
-                                         float eps,
-                                         bool amsgrad,
-                                         bool maximize,
-                                         size_t input_size)
+extern "C" __global__ void AmpAdamContiguous(PTYPE* param_in,
+                                             PTYPE* param_out,
+                                             half* param_out_fp16,
+                                             GTYPE* grad_in,
+                                             PTYPE* exp_avg_in,
+                                             PTYPE* exp_avg_out,
+                                             PTYPE* exp_avg_sq_in,
+                                             PTYPE* exp_avg_sq_out,
+                                             PTYPE* max_exp_avg_sq_in,
+                                             PTYPE* max_exp_avg_sq_out,
+                                             int32_t* grad_scale,
+                                             bool* found_inf,
+                                             int step,
+                                             float lr,
+                                             float beta1,
+                                             float beta2,
+                                             float weight_decay,
+                                             float eps,
+                                             bool amsgrad,
+                                             bool maximize,
+                                             bool adamw,
+                                             size_t input_size)
 {
     size_t gid = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -342,6 +365,7 @@ extern "C" __global__ void AmpAdamPacked(PTYPE* param_in,
                                              step,
                                              amsgrad,
                                              maximize,
+                                             adamw,
                                              input_size);
     }
     else

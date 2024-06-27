@@ -104,7 +104,8 @@ inline std::size_t GetTypeSize(miopenDataType_t d)
     case miopenInt8:
     case miopenFloat8:
     case miopenBFloat8: return 1;
-    case miopenDouble: return 8;
+    case miopenDouble:
+    case miopenInt64: return 8;
     }
     MIOPEN_THROW("Unknown or unsupported data type");
 }
@@ -123,7 +124,7 @@ std::ptrdiff_t integer_division_ceil(X x, Y y)
     return (tx + ty - 1) / ty;
 }
 
-struct MIOPEN_EXPORT TensorDescriptor : miopenTensorDescriptor
+struct MIOPEN_INTERNALS_EXPORT TensorDescriptor : miopenTensorDescriptor
 {
     TensorDescriptor();
 
@@ -193,6 +194,7 @@ struct MIOPEN_EXPORT TensorDescriptor : miopenTensorDescriptor
 
     miopenDataType_t GetType() const;
     miopenTensorLayout_t GetLayout_t() const;
+    static std::string GetLayoutStr(miopenTensorLayout_t layout);
     std::string GetLayout_str() const;
 
     std::size_t GetVectorLength() const;
@@ -214,6 +216,7 @@ struct MIOPEN_EXPORT TensorDescriptor : miopenTensorDescriptor
     }
 
     bool IsPacked() const;
+    bool IsContiguous() const;
     /// Checks all lengths and strides.
     bool AllDimsFitIntoInt() const;
     /// Checks only lengths.
@@ -271,7 +274,8 @@ struct MIOPEN_EXPORT TensorDescriptor : miopenTensorDescriptor
         }
     }
 
-    friend std::ostream& operator<<(std::ostream& stream, const TensorDescriptor& t);
+    friend MIOPEN_INTERNALS_EXPORT std::ostream& operator<<(std::ostream& stream,
+                                                            const TensorDescriptor& t);
 
     friend void to_json(nlohmann::json& j, const TensorDescriptor& descriptor);
     friend void from_json(const nlohmann::json& j, TensorDescriptor& descriptor);

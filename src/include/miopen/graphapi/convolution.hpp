@@ -97,7 +97,7 @@ private:
     friend class ConvolutionBuilder;
 };
 
-class ConvolutionBuilder
+class MIOPEN_INTERNALS_EXPORT ConvolutionBuilder
 {
 private:
     Convolution mConvolution;
@@ -174,7 +174,7 @@ private:
     bool validate() const;
 };
 
-class BackendConvolutionDescriptor : public BackendDescriptor
+class MIOPEN_INTERNALS_EXPORT BackendConvolutionDescriptor : public BackendDescriptor
 {
 private:
     ConvolutionBuilder mBuilder;
@@ -395,7 +395,7 @@ public:
     }
 };
 
-class BackendOperationConvolutionDescriptor : public BackendDescriptor
+class MIOPEN_INTERNALS_EXPORT BackendOperationConvolutionDescriptor : public BackendDescriptor
 {
 protected:
     miopenBackendDescriptor_t mConvolutionDescriptor = nullptr;
@@ -447,7 +447,8 @@ protected:
                  void* arrayOfElements);
 };
 
-class BackendOperationConvolutionForwardDescriptor : public BackendOperationConvolutionDescriptor
+class MIOPEN_INTERNALS_EXPORT BackendOperationConvolutionForwardDescriptor
+    : public BackendOperationConvolutionDescriptor
 {
 private:
     OperationConvolutionForwardBuilder mBuilder;
@@ -538,7 +539,7 @@ public:
     }
 };
 
-class BackendOperationConvolutionBackwardDataDescriptor
+class MIOPEN_INTERNALS_EXPORT BackendOperationConvolutionBackwardDataDescriptor
     : public BackendOperationConvolutionDescriptor
 {
 private:
@@ -630,7 +631,7 @@ public:
     }
 };
 
-class BackendOperationConvolutionBackwardFilterDescriptor
+class MIOPEN_INTERNALS_EXPORT BackendOperationConvolutionBackwardFilterDescriptor
     : public BackendOperationConvolutionDescriptor
 {
 private:

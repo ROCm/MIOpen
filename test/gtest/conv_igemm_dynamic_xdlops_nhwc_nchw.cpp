@@ -34,26 +34,27 @@ MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_FIND_MODE)
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_DEBUG_FIND_ONLY_SOLVER)
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
 
+namespace env = miopen::env;
+
 namespace conv_igemm_dynamic_xdlops_nhwc_nchw {
 
 static bool SkipTest(const std::string& float_arg)
 {
-    if(miopen::IsUnset(ENV(MIOPEN_TEST_ALL)))
+    if(!MIOPEN_TEST_ALL)
         return false;
-    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)))
-        if(miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG)) == float_arg)
+    if(env::enabled(MIOPEN_TEST_ALL))
+        if(env::value(MIOPEN_TEST_FLOAT_ARG) == float_arg)
             return false;
     return true;
 }
 
-void SetupEnvVar(void)
+void SetupEnvVar()
 {
-    miopen::UpdateEnvVar(ENV(MIOPEN_FIND_MODE), std::string("normal"));
-    miopen::UpdateEnvVar(
-        ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER),
-        std::string(
-            "ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC;ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC;"
-            "ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC"));
+    env::update(MIOPEN_FIND_MODE, "normal");
+    env::update(MIOPEN_DEBUG_FIND_ONLY_SOLVER,
+                "ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC;"
+                "ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC;"
+                "ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC");
 }
 
 void GetArgs(const std::string& param, std::vector<std::string>& tokens)
@@ -86,6 +87,7 @@ void Run2dDriver(miopenDataType_t prec)
     case miopenInt8:
     case miopenBFloat16:
     case miopenInt32:
+    case miopenInt64:
     case miopenDouble:
     case miopenFloat8:
     case miopenBFloat8:
@@ -163,7 +165,7 @@ std::vector<std::string> GetTestCases(const std::string& precision)
     {flags + "  --input 2048  1 512 1024 --weights 1  1 1 1 --pads_strides_dilations 0 0 1 1 1 1" + dis_bk_data + dis_bk_wei + in_nhwc + fil_nhwc + out_nhwc},
     // ho=wo=1 stride=2
     {flags + "  --input  256 2048 2 2 --weights 1024  2048  1 1 --pads_strides_dilations 0 0 2 2 1 1" + dis_bk_data + dis_bk_wei + in_nhwc + fil_nhwc + out_nhwc},
-    
+
     //nhwc_fwd_nchw
     {flags + "  --input  64 256   7   7 --weights 128 256 1 1 --pads_strides_dilations 0 0 1 1 1 1" + dis_bk_data + dis_bk_wei},
     {flags + "  --input  32 160  73  73 --weights  64 160 1 1 --pads_strides_dilations 0 0 1 1 1 1" + dis_bk_data + dis_bk_wei},
