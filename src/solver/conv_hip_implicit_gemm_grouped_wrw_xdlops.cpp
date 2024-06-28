@@ -47,7 +47,6 @@ using ProblemDescription = miopen::conv::ProblemDescription;
 
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 
-
 template <typename DataType>
 using DeviceOpGWrwPtrs =
     ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<DeviceOpGWrw<DataType>>;
@@ -590,8 +589,8 @@ ConvSolution ConvHipImplicitGemmGroupWrwXdlops::GetSolution(
         [&](auto data_type_val) {
             using T = decltype(data_type_val);
             return InitInvokerFactoryNHWC<DeviceOpGWrwPtrs<T>,
-                                                CKArgs,
-                                                miopen::conv::WrWInvokeParams>(
+                                          CKArgs,
+                                          miopen::conv::WrWInvokeParams>(
                 ctx, problem, config.kernel_id);
         });
 
