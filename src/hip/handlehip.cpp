@@ -258,14 +258,14 @@ struct HandleImpl
         }
 #elif MIOPEN_USE_ROCBLAS
         RocblasHandlePtrPool rhandle_pool;
-        void add_stream(StreamPtr s_ptr, rocblas_handle_ptr r_ptr)
+        void add_resours(StreamPtr s_ptr, rocblas_handle_ptr r_ptr)
         {
             stream_pool.push_back(s_ptr);
             rhandle_pool.push_back(std::move(r_ptr));
         }
 #elif MIOPEN_USE_HIPBLASLT
         HipblasLtHandlePtrPool hhandle_pool;
-        void add_stream(StreamPtr s_ptr, hipblasLt_handle_ptr h_ptr)
+        void add_resours(StreamPtr s_ptr, hipblasLt_handle_ptr h_ptr)
         {
             stream_pool.push_back(s_ptr);
             hhandle_pool.push_back(std::move(h_ptr));
@@ -381,10 +381,10 @@ void Handle::ReserveExtraStreamsInPool(int cnt) const
                 std::move(new_stream), std::move(new_rhandle), std::move(new_hhandle));
 #elif MIOPEN_USE_ROCBLAS
             auto new_rhandle = CreateRocblasHandle(new_stream.get());
-            this->impl->ms_resourse_ptr->add_stream(std::move(new_stream), std::move(new_rhandle));
+            this->impl->ms_resourse_ptr->add_resours(std::move(new_stream), std::move(new_rhandle));
 #elif MIOPEN_USE_HIPBLASLT
             auto new_hhandle = CreateHipblasLtHandle();
-            this->impl->ms_resourse_ptr->add_stream(std::move(new_stream), std::move(new_hhandle));
+            this->impl->ms_resourse_ptr->add_resours(std::move(new_stream), std::move(new_hhandle));
 #else
             this->impl->ms_resourse_ptr->add_stream(std::move(new_stream));
 #endif
