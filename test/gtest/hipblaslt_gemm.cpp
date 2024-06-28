@@ -62,19 +62,19 @@ static std::vector<TestCase> GetTestCases()
             {false, 32, 64, 128, true, false, 1.0f, 0.0, 1},
             {false, 32, 64, 128, false, true, 1.0f, 0.0, 1},
             {false, 32, 64, 128, false, true, 1.0f, 0.0, 1},
-            {false, 32, 64, 128, false, false, 1.0f, 0.0, 10},
-            {false, 32, 64, 128, true, false, 1.0f, 0.0, 10},
-            {false, 32, 64, 128, false, true, 1.0f, 0.0, 10},
-            {false, 32, 64, 128, false, true, 1.0f, 0.0, 10},
+            {false, 8, 16, 32, false, false, 1.0f, 0.0, 10},
+            {false, 8, 16, 32, true, false, 1.0f, 0.0, 10},
+            {false, 8, 16, 32, false, true, 1.0f, 0.0, 10},
+            {false, 8, 16, 32, false, true, 1.0f, 0.0, 10},
             {true, 32, 64, 128, false, false, 1.0f, 0.0, 1},
             {true, 32, 64, 128, true, false, 1.0f, 0.0, 1},
             {true, 32, 64, 128, false, true, 1.0f, 0.0, 1},
             {true, 32, 64, 128, false, true, 1.0f, 0.0, 1},
-            {true, 32, 64, 128, false, false, 1.0f, 0.0, 10},
-            {true, 32, 64, 128, true, false, 1.0f, 0.0, 10},
-            {true, 32, 64, 128, false, true, 1.0f, 0.0, 10},
-            {true, 32, 64, 128, false, true, 1.0f, 0.0, 10},
-            {false, 32, 64, 128, false, true, 1.0f, 1.0f, 10}};
+            {true, 8, 16, 32, false, false, 1.0f, 0.0, 10},
+            {true, 8, 16, 32, true, false, 1.0f, 0.0, 10},
+            {true, 8, 16, 32, false, true, 1.0f, 0.0, 10},
+            {true, 8, 16, 32, false, true, 1.0f, 0.0, 10},
+            {false, 8, 16, 32, false, true, 1.0f, 1.0f, 10}};
 }
 
 class HipBLASLtGEMMTestFloat : public testing::TestWithParam<TestCase>
@@ -217,13 +217,8 @@ static void RunGemmDescriptors(const TestCase& testCase, miopenDataType_t dataTy
                          miopenStatus_t::miopenStatusSuccess);
         }
 
-        miopen::gemm_cpu_util::CallGemm<T>(desc,
-                                            workspaceA_host.data(),
-                                            0,
-                                            workspaceB_host.data(),
-                                            0,
-                                            workspaceC_host.data(),
-                                            0);
+        miopen::gemm_cpu_util::CallGemm<T>(
+            desc, workspaceA_host.data(), 0, workspaceB_host.data(), 0, workspaceC_host.data(), 0);
 
         auto error = miopen::rms_range(workspaceC_host, workspaceC_device.Read<std::vector<T>>());
         EXPECT_TRUE(std::isfinite(error));

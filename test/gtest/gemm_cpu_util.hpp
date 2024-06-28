@@ -26,58 +26,60 @@
 #pragma once
 
 #include <miopen/gemm_v2.hpp>
-
-namespace miopen
+#include "../rnn_util.hpp"
+namespace miopen {
+namespace gemm_cpu_util {
+template <typename T>
+void CallGemm(miopen::GemmDescriptor gemm_desc,
+              Data_t A,
+              std::size_t a_offset,
+              Data_t B,
+              std::size_t b_offset,
+              Data_t C,
+              std::size_t c_offset)
 {
-    namespace gemm_cpu_util
+    const T* a_ptr = static_cast<const T*>(A) + a_offset;
+    const T* b_ptr = static_cast<const T*>(B) + b_offset;
+    T* c_ptr       = static_cast<T*>(C) + c_offset;
+
+    if(gemm_desc.isColMajor)
     {
-        template <typename T>
-        void CallGemm(miopen::GemmDescriptor gemm_desc,
-                      Data_t A,
-                      std::size_t a_offset,
-                      Data_t B,
-                      std::size_t b_offset,
-                      Data_t C,
-                      std::size_t c_offset)
-        {
-            const T* a_ptr = static_cast<const T*>(A);
-            const T* b_ptr = static_cast<const T*>(B);
-            T* c_ptr       = static_cast<T*>(C);
-
-             // our cpu GEMM logic is row-major
-            if(gemm_desc.isColMajor)
-            {
-                gemm_desc.isColMajor = false;
-                std::swap(a_ptr, b_ptr);
-                std::swap(a_offset, b_offset);
-                std::swap(gemm_desc.transA, gemm_desc.transB);
-                std::swap(gemm_desc.m, gemm_desc.n);
-                std::swap(gemm_desc.lda, gemm_desc.ldb);
-                std::swap(gemm_desc.strideA, gemm_desc.strideB);
-            }
-
-            for(int bi = 0; bi < gemm_desc.batch_count; ++bi)
-            {
-                for(int mi = 0; mi < gemm_desc.m; ++mi)
-                {
-                    for(int ni = 0; ni < gemm_desc.n; ++ni)
-                    {
-                        double y = 0;
-                        for(int ki = 0; ki < gemm_desc.k; ++ki)
-                        {
-                            int aindex = gemm_desc.transA ? a_offset + gemm_desc.strideA * bi + gemm_desc.lda * ki + mi
-                                                          : a_offset + gemm_desc.strideA * bi + gemm_desc.lda * mi + ki;
-                            int bindex = gemm_desc.transB ? b_offset + gemm_desc.strideB * bi + gemm_desc.ldb * ni + ki
-                                                          : b_offset + gemm_desc.strideB * bi + gemm_desc.ldb * ki + ni;
-                            y += static_cast<double>(a_ptr[aindex]) * static_cast<double>(b_ptr[bindex]);
-                        }
-                        int cindex = c_offset + gemm_desc.strideC * bi + gemm_desc.ldc * mi + ni;
-                        c_ptr[cindex] =
-                            static_cast<T>(static_cast<double>(gemm_desc.alpha) * y +
-                                        static_cast<double>(gemm_desc.beta) * static_cast<double>(c_ptr[cindex]));
-                    }
-                }
-            }
-        }
+        gemm_desc.isColMajor = false;
+        std::swap(a_ptr, b_ptr);
+        std::swap(a_offset, b_offset);
+        std::swap(gemm_desc.transA, gemm_desc.transB);
+        std::swap(gemm_desc.m, gemm_desc.n);
+        std::swap(gemm_desc.lda, gemm_desc.ldb);
+        std::swap(gemm_desc.strideA, gemm_desc.strideB);
     }
+
+    size_t a_col = gemm_desc.transA ? gemm_desc.m : gemm_desc.k;
+    size_t a_row = gemm_desc.transA ? gemm_desc.k : gemm_desc.m;
+
+    size_t b_col = gemm_desc.transB ? gemm_desc.k : gemm_desc.n;
+    size_t b_row = gemm_desc.transB ? gemm_desc.n : gemm_desc.k;
+
+    RNN_mm_cpu_batched<T>(a_ptr,
+                          a_col,
+                          a_row,
+                          gemm_desc.lda,
+                          gemm_desc.strideA,
+                          gemm_desc.transA,
+                          b_ptr,
+                          b_col,
+                          b_row,
+                          gemm_desc.ldb,
+                          gemm_desc.strideB,
+                          gemm_desc.transB,
+                          c_ptr,
+                          gemm_desc.n,
+                          gemm_desc.m,
+                          gemm_desc.ldc,
+                          gemm_desc.strideC,
+                          0,
+                          gemm_desc.batch_count,
+                          gemm_desc.alpha,
+                          gemm_desc.beta);
 }
+} // namespace gemm_cpu_util
+} // namespace miopen
