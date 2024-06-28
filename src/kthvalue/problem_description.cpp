@@ -37,12 +37,14 @@ NetworkConfig FwdProblemDescription::MakeNetworkConfig() const
 {
     auto input_dtype = inputDesc.GetType();
     auto size        = inputDesc.GetElementSize();
+    auto dim_size    = inputDesc.GetLengths()[dim];
+    auto output_size = size / dim_size;
 
     std::ostringstream ss;
 
     ss << "kthvalue_fwd";
     ss << "i_dtype" << input_dtype;
-    ss << "size" << size;
+    ss << "output_size" << output_size;
 
     return NetworkConfig{ss.str()};
 }

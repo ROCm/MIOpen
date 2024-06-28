@@ -42,15 +42,13 @@ struct KthvalueInvokeParams : public miopen::InvokeParams
 
     const TensorDescriptor* inputDesc = nullptr;
 
-    Data_t workspace           = nullptr;
-    std::size_t workspace_size = 0;
-    ConstData_t input          = nullptr;
+    ConstData_t input = nullptr;
 
-    size_t k    = 1;
-    int32_t dim = 0;
-
-    std::size_t GetWorkspaceSize() const { return workspace_size; }
-    Data_t GetWorkspace() const { return workspace; }
+    size_t k     = 1;
+    int32_t dim  = 0;
+    bool keepDim = false;
+    std::size_t GetWorkspaceSize() const { return 0; }
+    Data_t GetWorkspace() const { return nullptr; }
 };
 
 struct FwdInvokeParams : KthvalueInvokeParams

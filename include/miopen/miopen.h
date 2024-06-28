@@ -524,7 +524,7 @@ typedef enum
     miopenActivationABS      = 5, /*!< Absolute value \f$abs(x)\f$ */
     miopenActivationPOWER = 6, /*!< Scaled and shifted power \f$(\alpha + \beta * x)^{gamma}\f$ */
     miopenActivationCLIPPEDRELU =
-        7, /*!< Clipped Rectified Linear Unit \f$ min(\alpha, max(0,x)) \f$ */
+        7,                     /*!< Clipped Rectified Linear Unit \f$ min(\alpha, max(0,x)) \f$ */
     miopenActivationLEAKYRELU =
         8, /*!< Leaky Rectified Linear Unit \f$ \alpha * x | x <= 0; x | x > 0 \f$ */
     miopenActivationELU =
@@ -7684,8 +7684,6 @@ MIOPEN_EXPORT miopenStatus_t miopenRoPEBackward(miopenHandle_t handle,
 /*! @brief Execute a Kthvalue forward layer
  *
  * @param handle                   MIOpen handle (input)
- * @param workspace                Address of the allocated workspace data (input)
- * @param workspaceSizeInBytes     Size in bytes of the allocated workspace data (input)
  * @param inputDesc                Tensor descriptor for input tensor (input)
  * @param input                    Data tensor input (input)
  * @param outputDesc               Tensor descriptor for output tensor (input)
@@ -7693,11 +7691,10 @@ MIOPEN_EXPORT miopenStatus_t miopenRoPEBackward(miopenHandle_t handle,
  * @param indices                  Data tensor index (output)
  * @param k                        The k-th smallest element(input)
  * @param dim                      The dimension to find the kth value along(input)
+ * @param keepDim                  Whether the output tensor has dim retained or not(input)
  * @return                         miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t miopenKthvalueForward(miopenHandle_t handle,
-                                                   void* workspace,
-                                                   size_t workspaceSizeInBytes,
                                                    miopenTensorDescriptor_t inputDesc,
                                                    const void* input,
                                                    miopenTensorDescriptor_t outputDesc,
@@ -7705,7 +7702,8 @@ MIOPEN_EXPORT miopenStatus_t miopenKthvalueForward(miopenHandle_t handle,
                                                    miopenTensorDescriptor_t indicesDesc,
                                                    size_t* indices,
                                                    size_t k,
-                                                   int32_t dim = -1);
+                                                   int32_t dim  = -1,
+                                                   bool keepDim = false);
 
 /** @} */
 // CLOSEOUT kthvalue DOXYGEN GROUP

@@ -34,8 +34,6 @@ struct Handle;
 struct TensorDescriptor;
 
 miopenStatus_t KthvalueForward(Handle& handle,
-                               Data_t workspace,
-                               size_t workspaceSizeInBytes,
                                const TensorDescriptor& inputDesc,
                                ConstData_t input,
                                const TensorDescriptor& outputDesc,
@@ -43,7 +41,8 @@ miopenStatus_t KthvalueForward(Handle& handle,
                                const TensorDescriptor& indicesDesc,
                                size_t* indices,
                                size_t k,
-                               int32_t dim);
+                               int32_t dim,
+                               bool keepDim);
 
 } // namespace miopen
 #endif // MIOPEN_KTHVALUE_HPP_
