@@ -97,7 +97,7 @@ struct ProblemDescription : ProblemDescriptionBase
 
     bool IsRightDim() const
     {
-        if((dim < 0) || (dim > xDesc.GetLengths().size()))
+        if((dim < 0) || (dim >= xDesc.GetLengths().size()))
         {
 #if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
             MIOPEN_THROW(

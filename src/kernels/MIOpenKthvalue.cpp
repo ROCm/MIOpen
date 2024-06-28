@@ -72,8 +72,8 @@ __device__ void kthvalueFwd(const TIO* input,
                             size_t dim_size,
                             size_t dim_stride,
                             tensor_view_t<4> input_tv,
-                            tensor_view_t<4> output_tv,
-                            tensor_view_t<4> indices_tv)
+                            tensor_view_t<5> output_tv,
+                            tensor_view_t<5> indices_tv)
 {
     /*
      * Example)
@@ -191,8 +191,8 @@ __device__ void kthvalueFwd(const TIO* input,
     __syncthreads();
     if(lid == 0)
     {
-        auto output_layout                                   = tensor_layout_t<4>(output_tv, gid);
-        auto indices_layout                                  = tensor_layout_t<4>(indices_tv, gid);
+        auto output_layout                                   = tensor_layout_t<5>(output_tv, gid);
+        auto indices_layout                                  = tensor_layout_t<5>(indices_tv, gid);
         output[output_tv.get_tensor_view_idx(output_layout)] = CVT_ACCUM2FLOAT(lval);
         indices[indices_tv.get_tensor_view_idx(indices_layout)] = lidx;
     }
@@ -205,8 +205,8 @@ extern "C" __global__ void KthvalueFwd(const IN_OUT_TYPE* input,
                                        size_t dim_size,
                                        size_t dim_stride,
                                        tensor_view_t<4> input_tv,
-                                       tensor_view_t<4> output_tv,
-                                       tensor_view_t<4> indices_tv)
+                                       tensor_view_t<5> output_tv,
+                                       tensor_view_t<5> indices_tv)
 {
     kthvalueFwd<IN_OUT_TYPE>(
         input, output, indices, k, dim_size, dim_stride, input_tv, output_tv, indices_tv);

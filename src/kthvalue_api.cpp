@@ -74,8 +74,6 @@ static void LogCmdKthvalue(const miopenTensorDescriptor_t inputDesc, bool is_fwd
 }
 
 extern "C" miopenStatus_t miopenKthvalueForward(miopenHandle_t handle,
-                                                void* workspace,
-                                                size_t workspaceSizeInBytes,
                                                 miopenTensorDescriptor_t inputDesc,
                                                 const void* input,
                                                 miopenTensorDescriptor_t outputDesc,
@@ -83,26 +81,16 @@ extern "C" miopenStatus_t miopenKthvalueForward(miopenHandle_t handle,
                                                 miopenTensorDescriptor_t indicesDesc,
                                                 size_t* indices,
                                                 size_t k,
-                                                int32_t dim)
+                                                int32_t dim,
+                                                bool keepDim)
 {
-    MIOPEN_LOG_FUNCTION(handle,
-                        workspace,
-                        workspaceSizeInBytes,
-                        inputDesc,
-                        input,
-                        outputDesc,
-                        output,
-                        indicesDesc,
-                        indices,
-                        k,
-                        dim);
+    MIOPEN_LOG_FUNCTION(
+        handle, inputDesc, input, outputDesc, output, indicesDesc, indices, k, dim, keepDim);
 
     LogCmdKthvalue(inputDesc, true);
 
     return miopen::try_([&] {
         miopen::KthvalueForward(miopen::deref(handle),
-                                DataCast(workspace),
-                                workspaceSizeInBytes,
                                 miopen::deref(inputDesc),
                                 DataCast(input),
                                 miopen::deref(outputDesc),
@@ -110,6 +98,7 @@ extern "C" miopenStatus_t miopenKthvalueForward(miopenHandle_t handle,
                                 miopen::deref(indicesDesc),
                                 indices,
                                 k,
-                                dim);
+                                dim,
+                                keepDim);
     });
 }

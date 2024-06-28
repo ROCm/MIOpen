@@ -58,11 +58,57 @@ struct FwdProblemDescription : ProblemDescriptionBase
             MIOPEN_THROW(miopenStatusBadParm,
                          "Kthvalue: k must be less than the size of the dimension");
         }
-        int num_dim = inputDesc.GetSize();
-        if(dim < -num_dim || dim >= num_dim)
+        if(dim < 0 || dim >= inputDesc.GetSize())
         {
             MIOPEN_THROW(miopenStatusBadParm, "Kthvalue: dim doesn't not exist");
         }
+        if(inputDesc.GetType() != outputDesc.GetType())
+        {
+            MIOPEN_THROW(miopenStatusBadParm, "Reduce: Input, output tensor types do not match.");
+        }
+        if(!IsRightLength())
+        {
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "Reduce: Input and output tensor dimension lengths do not match.");
+        }
+        if(!IsSameLength())
+        {
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "Reduce: Output and indices tensor dimension lengths do not match.");
+        }
+    }
+
+    bool IsRightLength() const
+    {
+        if(inputDesc.GetLengths().size() == 1)
+            return true;
+
+        int32_t posOut = 0;
+        for(int32_t i = 0; i < inputDesc.GetLengths().size(); i++)
+        {
+            if(i == dim)
+                continue;
+
+            if(inputDesc.GetLengths()[i] != outputDesc.GetLengths()[posOut])
+            {
+                return false;
+            }
+
+            posOut++;
+        }
+        return true;
+    }
+
+    bool IsSameLength() const
+    {
+        for(int32_t i = 0; i < outputDesc.GetLengths().size(); i++)
+        {
+            if(outputDesc.GetLengths()[i] != indicesDesc.GetLengths()[i])
+            {
+                return false;
+            }
+        }
+        return true;
     }
 
     const TensorDescriptor& GetInputDesc() const { return inputDesc; }

@@ -58,12 +58,12 @@ void mloKthvalueFwdRunHost(TIO* input,
     size_t dimStride       = inputDesc.GetStrides()[dim];
     auto inputTv           = miopen::get_inner_expanded_tv<5>(miopen::deref(pInputDesc));
     auto inputTvWithoutDim = miopen::get_tv_without_dim<5, 4>(inputTv, dim);
-    auto outputTv          = miopen::get_inner_expanded_tv<4>(miopen::deref(outputDesc));
-    auto indicesTv         = miopen::get_inner_expanded_tv<4>(miopen::deref(indicesDesc));
+    auto outputTv          = miopen::get_inner_expanded_tv<5>(miopen::deref(outputDesc));
+    auto indicesTv         = miopen::get_inner_expanded_tv<5>(miopen::deref(indicesDesc));
 
     size_t numSlice = inputSize / dimSize;
 
-    std::vector<TIO> elements;
+    std::vector<float> elements;
     std::vector<size_t> ids(dimSize);
     for(int i = 0; i < dimSize; ++i)
     {
@@ -78,16 +78,17 @@ void mloKthvalueFwdRunHost(TIO* input,
 
         for(int j = 0; j < dimSize; ++j)
         {
-            elements.push_back(input[idx + j * dimStride]);
+            elements.push_back(static_cast<float>(input[idx + j * dimStride]));
         }
 
         std::sort(ids.begin(), ids.end(), [=](size_t x, size_t y) -> bool {
             return elements[x] < elements[y];
         });
-        auto output_layout  = tensor_layout_t<4>(outputTv, slideID);
-        auto indices_layout = tensor_layout_t<4>(indicesTv, slideID);
-        outputHost[outputTv.get_tensor_view_idx(output_layout)] = elements[ids[k - 1]];
-        indices[indicesTv.get_tensor_view_idx(indices_layout)]  = ids[k - 1];
+        auto output_layout  = tensor_layout_t<5>(outputTv, slideID);
+        auto indices_layout = tensor_layout_t<5>(indicesTv, slideID);
+        outputHost[outputTv.get_tensor_view_idx(output_layout)] =
+            static_cast<TIO>(elements[ids[k - 1]]);
+        indices[indicesTv.get_tensor_view_idx(indices_layout)] = ids[k - 1];
     }
 }
 
@@ -146,7 +147,6 @@ private:
     std::unique_ptr<GPUMem> output_dev;
     std::unique_ptr<GPUMem> doutput_dev;
     std::unique_ptr<GPUMem> dinput_dev;
-    std::unique_ptr<GPUMem> workspace_dev;
 
     std::vector<TIO> input;
     std::vector<size_t> indices;
@@ -156,13 +156,11 @@ private:
     std::vector<TIO> doutput;
     std::vector<TIO> dinput;
     std::vector<TIO> dinputHost;
-    std::vector<TIO> workspace;
 
     bool isContiguous;
     int dim;
     size_t k;
-
-    size_t workSpaceSizeInBytes;
+    bool keepDim;
 };
 
 template <typename TIO>
@@ -172,6 +170,7 @@ int KthvalueDriver<TIO>::ParseCmdLineArgs(int argc, char* argv[])
     isContiguous = inflags.GetValueInt("is-contiguous") == 1 ? true : false;
     k            = inflags.GetValueInt("k");
     dim          = inflags.GetValueInt("dim");
+    keepDim      = inflags.GetValueInt("keep-dim") == 1 ? true : false;
     auto inDims  = inflags.GetValueTensor("dim-lengths").lengths;
     int num_dim  = inDims.size();
     if(dim < -num_dim || dim >= num_dim)
@@ -197,13 +196,22 @@ int KthvalueDriver<TIO>::GetandSetData()
     {
         dim += inDims.size();
     }
-    outDims.erase(outDims.begin() + dim);
+    if(!keepDim)
+    {
+        outDims.erase(outDims.begin() + dim);
+        if(outDims.empty())
+            outDims.push_back(1);
+    }
+    else
+    {
+        outDims[dim] = 1;
+    }
 
     SetTensorNd(inputDesc, inDims, inStride, data_type);
     SetTensorNd(doutputDesc, outDims, data_type);
     SetTensorNd(dinputDesc, inDims, data_type);
     SetTensorNd(outputDesc, outDims, data_type);
-    // miopenDataType_t doesn't support size_t tensor, I use double instead (both types use 64 bits)
+    // miopenDataType_t doesn't support size_t, I use double instead (both types use 64 bits)
     SetTensorNd(indicesDesc, outDims, miopen_type<double>{});
 
     return 0;
@@ -232,6 +240,11 @@ int KthvalueDriver<TIO>::AddCmdLineArgs()
         "dim-lengths", 'D', "256x4x2", "The dimensional lengths of the input tensor");
     inflags.AddInputFlag("k", 'k', "1", "dim (Default=1)", "int");
     inflags.AddInputFlag("dim", 'd', "-1", "dim (Default=-1)", "int");
+    inflags.AddInputFlag("keep-dim",
+                         'K',
+                         "0",
+                         "Whether the output tensor has dim retained or not (Default=0)",
+                         "int");
     inflags.AddInputFlag("is-contiguous", 'c', "1", "is-contiguous (Default=1)", "int");
     inflags.AddInputFlag("iter", 'i', "10", "Number of Iterations (Default=10)", "int");
     inflags.AddInputFlag("verify", 'V', "1", "Verify Each Layer (Default=1)", "int");
@@ -259,11 +272,6 @@ int KthvalueDriver<TIO>::AllocateBuffersAndCopy()
     doutput_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, dO_sz, sizeof(TIO)));
     dinput_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, dI_sz, sizeof(TIO)));
 
-    // miopenGetKthvalueForwardWorkspaceSize(handle, inputDesc, outputDesc, &workSpaceSizeInBytes);
-    workSpaceSizeInBytes = 0;
-    workspace_dev =
-        std::unique_ptr<GPUMem>(new GPUMem(ctx, workSpaceSizeInBytes / sizeof(TIO), sizeof(TIO)));
-
     input       = std::vector<TIO>(in_sz, static_cast<TIO>(0));
     indices     = std::vector<size_t>(idx_sz, 0);
     indicesHost = std::vector<size_t>(idx_sz, 0);
@@ -272,7 +280,6 @@ int KthvalueDriver<TIO>::AllocateBuffersAndCopy()
     doutput     = std::vector<TIO>(dO_sz, static_cast<TIO>(0));
     dinput      = std::vector<TIO>(dI_sz, static_cast<TIO>(0));
     dinputHost  = std::vector<TIO>(dI_sz, static_cast<TIO>(0));
-    workspace   = std::vector<TIO>(workSpaceSizeInBytes / sizeof(TIO), static_cast<TIO>(0));
 
     for(int i = 0; i < in_sz; i++)
     {
@@ -302,9 +309,6 @@ int KthvalueDriver<TIO>::AllocateBuffersAndCopy()
     if(dinput_dev->ToGPU(GetStream(), dinput.data()) != 0)
         std::cerr << "Error copying (dI) to GPU, size: " << dinput_dev->GetSize() << std::endl;
 
-    if(workspace_dev->ToGPU(GetStream(), workspace.data()) != 0)
-        std::cerr << "Error copying (dI) to GPU, size: " << workspace_dev->GetSize() << std::endl;
-
     return miopenStatusSuccess;
 }
 
@@ -320,8 +324,6 @@ int KthvalueDriver<TIO>::RunForwardGPU()
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
         miopenKthvalueForward(GetHandle(),
-                              workspace_dev->GetMem(),
-                              workSpaceSizeInBytes,
                               inputDesc,
                               input_dev->GetMem(),
                               outputDesc,

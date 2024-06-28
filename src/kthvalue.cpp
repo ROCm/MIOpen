@@ -37,8 +37,6 @@
 namespace miopen {
 
 miopenStatus_t KthvalueForward(Handle& handle,
-                               Data_t workspace,
-                               size_t workspaceSizeInBytes,
                                const TensorDescriptor& inputDesc,
                                ConstData_t input,
                                const TensorDescriptor& outputDesc,
@@ -46,28 +44,28 @@ miopenStatus_t KthvalueForward(Handle& handle,
                                const TensorDescriptor& indicesDesc,
                                size_t* indices,
                                size_t k,
-                               int32_t dim)
+                               int32_t dim,
+                               bool keepDim)
 {
-    const auto problem =
-        kthvalue::FwdProblemDescription{inputDesc, outputDesc, indicesDesc, dim, k};
-
     if(dim < 0)
     {
         dim += indicesDesc.GetSize();
     }
 
+    const auto problem =
+        kthvalue::FwdProblemDescription{inputDesc, outputDesc, indicesDesc, dim, k};
+
     const auto invoke_params = [&]() {
-        auto tmp           = kthvalue::FwdInvokeParams{};
-        tmp.inputDesc      = &inputDesc;
-        tmp.outputDesc     = &outputDesc;
-        tmp.indicesDesc    = &indicesDesc;
-        tmp.input          = input;
-        tmp.indices        = indices;
-        tmp.output         = output;
-        tmp.workspace      = workspace;
-        tmp.workspace_size = workspaceSizeInBytes;
-        tmp.k              = k;
-        tmp.dim            = dim;
+        auto tmp        = kthvalue::FwdInvokeParams{};
+        tmp.inputDesc   = &inputDesc;
+        tmp.outputDesc  = &outputDesc;
+        tmp.indicesDesc = &indicesDesc;
+        tmp.input       = input;
+        tmp.indices     = indices;
+        tmp.output      = output;
+        tmp.k           = k;
+        tmp.dim         = dim;
+        tmp.keepDim     = keepDim;
         return tmp;
     }();
 
