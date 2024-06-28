@@ -98,15 +98,16 @@ bool IsCKArgsSupported(const ProblemDescriptionType& problem, const std::string&
     if(!kernel_id.empty())
     {
         auto conv_ptrs = DeviceOpType::GetInstances();
-
         auto pos        = kernel_id.find_last_of('+');
-        auto splitk_str = kernel_id.substr(pos + 1);
-        assert(pos != std::string::npos);
-        int split_k   = std::stoi(splitk_str);
-        auto ptr_iter = FindConvPtrByID(conv_ptrs, kernel_id.substr(0, pos));
-
-        return (ptr_iter != conv_ptrs.end()) &&
-               CKArgsType{problem}.IsSupportedBySplitK(*ptr_iter, split_k);
+        if(pos != std::string::npos){
+            int split_k   = std::stoi(kernel_id.substr(pos + 1)); 
+            auto ptr_iter = FindConvPtrByID(conv_ptrs, kernel_id.substr(0, pos));
+            return (ptr_iter != conv_ptrs.end()) &&
+                CKArgsType{problem}.IsSupportedBySplitK(*ptr_iter, split_k);
+        } else {
+            auto ptr_iter  = FindConvPtrByID(conv_ptrs, kernel_id);
+            return (ptr_iter != conv_ptrs.end()) && CKArgsType{problem}.IsSupportedBy(*ptr_iter);
+        }
     }
     return false;
 }
@@ -572,7 +573,7 @@ inline size_t GetCKAlphaBetaWorkspace(const miopen::conv::ProblemDescription& pr
 inline bool CKWrwRequireWorkspace(
     size_t G, size_t C, size_t K, miopenDataType_t data_type, miopenAlphaBetaCase_t alpha_beta_case)
 {
-    auto is_odd        = [](int num) { return num % 2 != 0; };
+    auto is_odd        = [](size_t num) { return num % 2 != 0; };
     size_t C_per_group = C / G;
     size_t K_per_group = K / G;
 
@@ -630,9 +631,13 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
 
     auto conv_ptrs = DeviceOpType::GetInstances();
 
+    std::optional<int> split_k = std::nullopt;
+    std::string id_string = kernel_id;
     auto pos = kernel_id.find_last_of('+');
-    assert(pos != std::string::npos);
-    int split_k = std::stoi(kernel_id.substr(pos + 1));
+    if(pos != std::string::npos){
+        split_k = std::stoi(kernel_id.substr(pos + 1));
+        id_string = kernel_id.substr(0, pos);
+    }
 
     std::optional<CKBWDWeightBufferDescriptor> _ck_buff_des;
 
@@ -641,7 +646,7 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
         _ck_buff_des.emplace(GetCKAlphaBetaWorkspace(problem), 0);
     }
 
-    auto ptr_iter = FindConvPtrByID(conv_ptrs, kernel_id.substr(0, pos));
+    auto ptr_iter = FindConvPtrByID(conv_ptrs, id_string);
     if(ptr_iter == conv_ptrs.end())
     {
         MIOPEN_LOG_E("PerformanceConfig kernel '" + kernel_id + "' does not exist.");
@@ -718,13 +723,24 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
             });
 
             auto invoker_ptr  = sh_conv_ptr->MakeInvokerPointer();
-            auto argument_ptr = ck_args.MakeArgPtr(sh_conv_ptr,
-                                                   tr_ptrs[0]->GetBufferPtr(),
-                                                   tr_ptrs[1]->GetBufferPtr(),
-                                                   tr_ptrs[2]->GetBufferPtr(),
-                                                   data_ctx.alpha.GetAsFloat(),
-                                                   data_ctx.beta.GetAsFloat(),
-                                                   split_k);
+            std::unique_ptr<ck::tensor_operation::device::BaseArgument> argument_ptr;
+            if(split_k.has_value()){
+                argument_ptr = ck_args.MakeArgPtr(sh_conv_ptr,
+                                                    tr_ptrs[0]->GetBufferPtr(),
+                                                    tr_ptrs[1]->GetBufferPtr(),
+                                                    tr_ptrs[2]->GetBufferPtr(),
+                                                    data_ctx.alpha.GetAsFloat(),
+                                                    data_ctx.beta.GetAsFloat(),
+                                                    split_k.value());
+            } 
+            /*else {
+                argument_ptr = ck_args.MakeArgPtr(sh_conv_ptr,
+                                                    tr_ptrs[0]->GetBufferPtr(),
+                                                    tr_ptrs[1]->GetBufferPtr(),
+                                                    tr_ptrs[2]->GetBufferPtr(),
+                                                    data_ctx.alpha.GetAsFloat(),
+                                                    data_ctx.beta.GetAsFloat());
+            } */
 
             if(ck_buff_des.has_value() && ck_buff_des->ck_size)
             {
@@ -752,11 +768,16 @@ ConvSolution SplitKInitInvokerFactoryNHWC(const ExecutionContext&,
                                           const std::string& kernel_id)
 {
     auto conv_ptrs = DeviceOpType::GetInstances();
-    auto pos       = kernel_id.find_last_of('+');
-    assert(pos != std::string::npos);
-    int split_k = std::stoi(kernel_id.substr(pos + 1));
 
-    auto ptr_iter = FindConvPtrByID(conv_ptrs, kernel_id.substr(0, pos));
+    std::optional<int> split_k = std::nullopt;
+    std::string id_string = kernel_id;
+    auto pos = kernel_id.find_last_of('+');
+    if(pos != std::string::npos){
+        split_k = std::stoi(kernel_id.substr(pos + 1));
+        id_string = kernel_id.substr(0, pos);
+    }
+
+    auto ptr_iter = FindConvPtrByID(conv_ptrs, id_string);
 
     if(ptr_iter == conv_ptrs.end())
     {
@@ -786,16 +807,26 @@ ConvSolution SplitKInitInvokerFactoryNHWC(const ExecutionContext&,
                     spatial_dim                 = spatial_dim,
                     sh_conv_ptr                 = std::move(sh_conv_ptr)](
                        const Handle& handle, const AnyInvokeParams& primitive_parameters) {
-                (void)spatial_dim; // -warn
 
                 const auto& data_ctx = primitive_parameters.CastTo<CastType>();
-                auto argument_ptr =
-                    ck_args.MakeArgPtr(sh_conv_ptr,
-                                       data_ctx.tensors,
-                                       data_ctx.alpha.GetAsFloat(),
-                                       data_ctx.beta.GetAsFloat(),
-                                       split_k); // pass split_k value will cause core dump but
-                                                 // constant value works fine
+                std::unique_ptr<ck::tensor_operation::device::BaseArgument> argument_ptr;
+                if(spatial_dim == 2){
+                    argument_ptr =
+                        ck_args.MakeArgPtr(sh_conv_ptr,
+                                        data_ctx.tensors,
+                                        data_ctx.alpha.GetAsFloat(),
+                                        data_ctx.beta.GetAsFloat(),
+                                        split_k.value());
+                }
+                /*else
+                {
+                    argument_ptr =
+                        ck_args.MakeArgPtr(sh_conv_ptr,
+                                        data_ctx.tensors,
+                                        data_ctx.alpha.GetAsFloat(),
+                                        data_ctx.beta.GetAsFloat());
+                }*/
+
                 auto invoker_ptr = sh_conv_ptr->MakeInvokerPointer();
                 HipEventProfiler pfr(handle);
 
