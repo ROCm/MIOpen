@@ -28,6 +28,12 @@
 #include <hip/hip_runtime.h>
 #endif
 
+#include <hip/hip_runtime.h>
+#include <rocrand/rocrand.h>
+#include <rocrand/rocrand_kernel.h>
+// #include <rocrand/rocrand_xorwow.h>
+
+
 /*
 HIP does not like it if #defines are not used and throws an error becasue of the -Werror flag? 
 These are unused in the OpenCL code, but did not throw an error.
