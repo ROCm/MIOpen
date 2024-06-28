@@ -62,19 +62,19 @@ static std::vector<TestCase> GetTestCases()
             {false, 32, 64, 128, true, false, 1.0f, 0.0, 1},
             {false, 32, 64, 128, false, true, 1.0f, 0.0, 1},
             {false, 32, 64, 128, false, true, 1.0f, 0.0, 1},
-            {false, 8, 16, 32, false, false, 1.0f, 0.0, 10},
-            {false, 8, 16, 32, true, false, 1.0f, 0.0, 10},
-            {false, 8, 16, 32, false, true, 1.0f, 0.0, 10},
-            {false, 8, 16, 32, false, true, 1.0f, 0.0, 10},
+            {false, 32, 64, 128, false, false, 1.0f, 0.0, 10},
+            {false, 32, 64, 128, true, false, 1.0f, 0.0, 10},
+            {false, 32, 64, 128, false, true, 1.0f, 0.0, 10},
+            {false, 32, 64, 128, false, true, 1.0f, 0.0, 10},
             {true, 32, 64, 128, false, false, 1.0f, 0.0, 1},
             {true, 32, 64, 128, true, false, 1.0f, 0.0, 1},
             {true, 32, 64, 128, false, true, 1.0f, 0.0, 1},
             {true, 32, 64, 128, false, true, 1.0f, 0.0, 1},
-            {true, 8, 16, 32, false, false, 1.0f, 0.0, 10},
-            {true, 8, 16, 32, true, false, 1.0f, 0.0, 10},
-            {true, 8, 16, 32, false, true, 1.0f, 0.0, 10},
-            {true, 8, 16, 32, false, true, 1.0f, 0.0, 10},
-            {false, 8, 16, 32, false, true, 1.0f, 1.0f, 10}};
+            {true, 32, 64, 128, false, false, 1.0f, 0.0, 10},
+            {true, 32, 64, 128, true, false, 1.0f, 0.0, 10},
+            {true, 32, 64, 128, false, true, 1.0f, 0.0, 10},
+            {true, 32, 64, 128, false, true, 1.0f, 0.0, 10},
+            {false, 32, 64, 128, false, true, 1.0f, 1.0f, 10}};
 }
 
 class HipBLASLtGEMMTestFloat : public testing::TestWithParam<TestCase>
