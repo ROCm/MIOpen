@@ -36,11 +36,12 @@ std::vector<KernelTuningNetTestCase> GetConvHipIgemmGroupFwdXdlopsTestCases()
          "DeviceGroupedConvFwdMultipleABD_Xdl_CShuffle<256, 128, 128, 16, Default, 32, 32, 2, 2, "
          "4, 4, 4, 1, 1>",
          "gfx90a"},
-        {{{48, 32, 48, 48, {14, 14}, {3, 3}, {1, 1}, {1, 1}, {1, 1}},
+        {{{16, 256, 2016, 192, {7, 7}, {1, 1}, {0, 0}, {1, 1}, {1, 1}},
           miopen::conv::Direction::Forward,
           miopenHalf,
           miopenTensorNHWC},
-         "DeviceGroupedConvFwdMultipleABD_Xdl_CShuffle<64, 64, 64, 32, Default, 32, 32, 2, 2, 1, "
+         "DeviceGroupedConvFwdMultipleABD_Xdl_CShuffle<64, 64, 64, 32, Filter1x1Stride1Pad0, 32, "
+         "32, 2, 2, 1, "
          "1, 1, 1, 1>",
          "gfx942"},
     };
@@ -64,27 +65,31 @@ std::vector<KernelTuningNetTestCase> GetConvHipIgemmGroupBwdXdlopsTestCases()
              "gfx942"}};
 }
 
-#define WORKAROUND_WRW_TUNING_PARAMETER_PREDICT_MODEL 0
-
-#if WORKAROUND_WRW_TUNING_PARAMETER_PREDICT_MODEL
 std::vector<KernelTuningNetTestCase> GetConvHipIgemmGroupWrwXdlopsTestCases()
 {
-    return {{{{4, 2, 512, 512, {24, 36}, {3, 3}, {1, 1}, {1, 1}, {1, 1}},
-              miopen::conv::Direction::BackwardWeights,
-              miopenFloat,
-              miopenTensorNHWC},
-             "DeviceGroupedConvBwdWeight_Xdl_CShuffle<128, 128, 32, 4, Default, 4, 2, 1, 4, 4, 4, "
-             "1, 1, 1, 4>",
-             "gfx942"},
-            {{{1, 16, 128, 256, {27, 27}, {3, 3}, {0, 0}, {1, 2}, {1, 1}},
-              miopen::conv::Direction::BackwardWeights,
-              miopenHalf,
-              miopenTensorNHWC},
-             "DeviceGroupedConvBwdWeight_Xdl_CShuffle<64, 64, 32, 4, Default, 8, 2, 1, 8, 4, 8, 2, "
-             "1, 1, 8>",
-             "gfx90a"}};
+    return {
+        {{{1, 512, 3, 64, {219, 219}, {11, 11}, {2, 2}, {4, 4}, {1, 1}},
+          miopen::conv::Direction::BackwardWeights,
+          miopenFloat,
+          miopenTensorNHWC},
+         "DeviceGroupedConvBwdWeight_Xdl_CShuffle<128, 128, 32, 4, Default, 4, 2, 1, 4, 4, 1, 1, "
+         "1, 1, 1>+128",
+         "gfx942"},
+        {{{32, 1024, 480, 64, {14, 14}, {1, 1}, {0, 0}, {1, 1}, {1, 1}},
+          miopen::conv::Direction::BackwardWeights,
+          miopenHalf,
+          miopenTensorNHWC},
+         "DeviceGroupedConvBwdWeightTwoStage_Xdl_CShuffle<64, 16, 16, 32, Default, 8, 1, 1, 1, 4, "
+         "1, 4, 1, 1, 1, BlkGemmPipelineScheduler: Intrawave, BlkGemmPipelineVersion: v5, 1>+128",
+         "gfx942"},
+        {{{1, 16, 128, 256, {27, 27}, {3, 3}, {0, 0}, {1, 2}, {1, 1}},
+          miopen::conv::Direction::BackwardWeights,
+          miopenHalf,
+          miopenTensorNHWC},
+         "DeviceGroupedConvBwdWeight_Xdl_CShuffle<64, 64, 32, 4, Default, 8, 2, 1, 8, 4, 8, 2, "
+         "1, 1, 8>+1",
+         "gfx90a"}};
 }
-#endif // WORKAROUND_WRW_TUNING_PARAMETER_PREDICT_MODEL
 
 struct KernelTuningNetTest : public ::testing::TestWithParam<KernelTuningNetTestCase>
 {
@@ -160,11 +165,9 @@ struct KernelTuningNetTestConvHipIgemmGroupBwdXdlops : KernelTuningNetTest
 {
 };
 
-#if WORKAROUND_WRW_TUNING_PARAMETER_PREDICT_MODEL
 struct KernelTuningNetTestConvHipIgemmGroupWrwXdlops : KernelTuningNetTest
 {
 };
-#endif // WORKAROUND_WRW_TUNING_PARAMETER_PREDICT_MODEL
 
 TEST_P(KernelTuningNetTestConvAsm1x1U, ConvAsm1x1UParameterPredictionModel)
 {
@@ -188,7 +191,6 @@ TEST_P(KernelTuningNetTestConvHipIgemmGroupBwdXdlops,
         problem, expected, arch);
 }
 
-#if WORKAROUND_WRW_TUNING_PARAMETER_PREDICT_MODEL
 TEST_P(KernelTuningNetTestConvHipIgemmGroupWrwXdlops,
        ConvHipIgemmGroupWrwXdlopsParameterPredictionModel)
 {
@@ -196,7 +198,6 @@ TEST_P(KernelTuningNetTestConvHipIgemmGroupWrwXdlops,
         miopen::solver::conv::PerformanceConfigHipImplicitGemmGroupWrwXdlops>(
         problem, expected, arch);
 }
-#endif // WORKAROUND_WRW_TUNING_PARAMETER_PREDICT_MODEL
 
 INSTANTIATE_TEST_SUITE_P(ConvAsm1x1UParameterPredictionModelTest,
                          KernelTuningNetTestConvAsm1x1U,
@@ -210,8 +211,6 @@ INSTANTIATE_TEST_SUITE_P(ConvHipIgemmGroupBwdXdlopsParameterPredictionModelTest,
                          KernelTuningNetTestConvHipIgemmGroupBwdXdlops,
                          testing::ValuesIn(GetConvHipIgemmGroupBwdXdlopsTestCases()));
 
-#if WORKAROUND_WRW_TUNING_PARAMETER_PREDICT_MODEL
 INSTANTIATE_TEST_SUITE_P(ConvHipIgemmGroupWrwXdlopsParameterPredictionModelTest,
                          KernelTuningNetTestConvHipIgemmGroupWrwXdlops,
                          testing::ValuesIn(GetConvHipIgemmGroupWrwXdlopsTestCases()));
-#endif // WORKAROUND_WRW_TUNING_PARAMETER_PREDICT_MODEL
