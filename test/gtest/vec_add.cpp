@@ -33,7 +33,7 @@
 #include <miopen/kernel_build_params.hpp>
 
 template <class T>
-void cpu_vec_add(const tensor<T>& srcA, const tensor<T>& srcB, tensor<T>& dstC, uint vec_size)
+void cpu_vec_add(const tensor<T>& srcA, const tensor<T>& srcB, tensor<T>& dstC, size_t vec_size)
 {
 
     for(size_t i = 0; i < vec_size; i++)
@@ -114,7 +114,7 @@ protected:
 
         std::string params = options.GenerateFor(miopen::kbp::OpenCL{});
 
-        uint totalElements  = vec_size;
+        size_t totalElements  = vec_size;
         int threadsPerBlock = threads_per_block;
         int blocksPerGrid   = (totalElements + threadsPerBlock - 1) / threadsPerBlock;
 
@@ -123,7 +123,7 @@ protected:
 
         handle.AddKernel(
             "vector_add_ocl", network_config, program_name, kernel_name, vld, vgd, params)(
-            inputA_dev.get(), inputB_dev.get(), outputC_dev.get(), totalElements);
+            inputA_dev.get(), inputB_dev.get(), outputC_dev.get(), static_cast<unsigned long>(totalElements)); // OpenCL expects the totalElements as unsigned long
 
         // Read the device output tensor
         outputC_ocl.data = handle.Read<T>(outputC_dev, outputC_ocl.data.size());
@@ -147,7 +147,7 @@ protected:
 
         std::string params = options.GenerateFor(miopen::kbp::HIP{});
 
-        uint totalElements  = vec_size;
+        size_t totalElements  = vec_size;
         int threadsPerBlock = threads_per_block;
         int blocksPerGrid   = (totalElements + threadsPerBlock - 1) / threadsPerBlock;
 
