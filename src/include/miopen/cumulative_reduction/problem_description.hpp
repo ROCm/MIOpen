@@ -37,10 +37,15 @@ namespace cumulative_reduction {
 struct ForwardProblemDescription : ProblemDescriptionBase
 {
 
+    ForwardProblemDescription(const TensorDescriptor& inputDesc_, const int& dim_)
+        : inputDesc(inputDesc_), dim(dim_)
+    {
+    }
+
     ForwardProblemDescription(const TensorDescriptor& inputDesc_,
                               const TensorDescriptor& outputDesc_,
                               const TensorDescriptor& indicesDesc_,
-                              const uint64_t& dim_,
+                              const int& dim_,
                               const miopenCumOp_t& cumOp_)
         : inputDesc(inputDesc_),
           outputDesc(outputDesc_),
@@ -48,12 +53,14 @@ struct ForwardProblemDescription : ProblemDescriptionBase
           dim(dim_),
           cumOp(cumOp_)
     {
+        const auto ndims = inputDesc.GetSize();
+        dim              = ((dim % ndims) + ndims) % ndims;
     }
 
     const TensorDescriptor& GetInputDesc() const { return inputDesc; }
     const TensorDescriptor& GetOuputDesc() const { return outputDesc; }
     const TensorDescriptor& GetIndicesDesc() const { return indicesDesc; }
-    const uint64_t& GetDim() const { return dim; }
+    const int& GetDim() const { return dim; }
     const miopenCumOp_t& GetCumOp() const { return cumOp; }
 
     NetworkConfig MakeNetworkConfig() const override;
@@ -62,7 +69,7 @@ private:
     TensorDescriptor inputDesc;
     TensorDescriptor outputDesc;
     TensorDescriptor indicesDesc;
-    uint64_t dim;
+    int dim;
     miopenCumOp_t cumOp;
 
     NetworkConfig MakeForwardNetworkConfig() const;

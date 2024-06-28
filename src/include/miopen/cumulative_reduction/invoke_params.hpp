@@ -46,7 +46,7 @@ struct InvokeParams : public miopen::InvokeParams
     Data_t workspace           = nullptr;
     std::size_t workspace_size = 0;
 
-    size_t dim     = 0;
+    int dim        = 0;
     bool exclusive = false;
     bool reverse   = false;
 

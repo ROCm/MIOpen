@@ -32,14 +32,30 @@
 
 namespace miopen {
 
+size_t GetCumulativeReductionForwardWorkspaceSize(Handle& handle,
+                                                  const TensorDescriptor& inputDesc,
+                                                  const int dim)
+{
+    auto ctx           = ExecutionContext{&handle};
+    const auto problem = cumulative_reduction::ForwardProblemDescription{inputDesc, dim};
+
+    const auto solvers = solver::SolverContainer<solver::cumulative_reduction::Forward>{};
+
+    auto pair_size_vector = solvers.GetWorkspaceSizes(ctx, problem);
+
+    return pair_size_vector.empty() ? static_cast<size_t>(-1) : pair_size_vector.front().second;
+}
+
 miopenStatus_t CumulativeReductionForward(Handle& handle,
+                                          Data_t workspace,
+                                          size_t workspaceSizeInBytes,
                                           const TensorDescriptor& inputDesc,
                                           ConstData_t input,
                                           const TensorDescriptor& outputDesc,
                                           Data_t output,
                                           const TensorDescriptor& indicesDesc,
                                           Data_t indices,
-                                          const size_t dim,
+                                          const int dim,
                                           const bool exclusive,
                                           const bool reverse,
                                           const miopenCumOp_t cumOp)
@@ -56,9 +72,14 @@ miopenStatus_t CumulativeReductionForward(Handle& handle,
         tmp.input       = input;
         tmp.output      = output;
         tmp.indices     = indices;
-        tmp.dim         = dim;
-        tmp.exclusive   = exclusive;
-        tmp.reverse     = reverse;
+
+        tmp.workspace      = workspace;
+        tmp.workspace_size = workspaceSizeInBytes;
+
+        tmp.dim       = dim;
+        tmp.exclusive = exclusive;
+        tmp.reverse   = reverse;
+
         return tmp;
     }();
 

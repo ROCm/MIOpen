@@ -32,14 +32,20 @@ namespace miopen {
 struct Handle;
 struct TensorDescriptor;
 
+size_t GetCumulativeReductionForwardWorkspaceSize(Handle& handle,
+                                                  const TensorDescriptor& inputDesc,
+                                                  int dim);
+
 miopenStatus_t CumulativeReductionForward(Handle& handle,
+                                          Data_t workspace,
+                                          size_t workspaceSizeInBytes,
                                           const TensorDescriptor& inputDesc,
                                           ConstData_t input,
                                           const TensorDescriptor& outputDesc,
                                           Data_t output,
                                           const TensorDescriptor& indicesDesc,
                                           Data_t indices,
-                                          size_t dim,
+                                          int dim,
                                           bool exclusive,
                                           bool reverse,
                                           miopenCumOp_t cumOp);

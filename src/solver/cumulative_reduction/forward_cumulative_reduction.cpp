@@ -32,7 +32,7 @@
 
 #define VIEW_DIMS 5
 
-#define LOCAL_SIZE 256
+#define LOCAL_SIZE 64
 
 namespace miopen {
 
@@ -70,37 +70,162 @@ Forward::GetSolution(const ExecutionContext& /*context*/,
         {"REDUCE_SIZE", LOCAL_SIZE},
     };
 
-    auto size       = problem.GetInputDesc().GetElementSize();
-    auto inner_size = problem.GetInputDesc().GetLengths()[problem.GetDim()];
-    auto outer_size = size / inner_size;
-    result.construction_params.push_back(make_hip_kernel({1, LOCAL_SIZE},
-                                                         {outer_size, inner_size},
-                                                         "MIOpenCumulativeReduction.cpp",
-                                                         "CumulativeReductionNaiveFwdNd",
-                                                         build_params));
+    if(problem.GetIndicesDesc().GetLengths()[problem.GetDim()] > LOCAL_SIZE)
+    {
+        auto size             = problem.GetInputDesc().GetElementSize();
+        auto inner_size       = problem.GetInputDesc().GetLengths()[problem.GetDim()];
+        auto local_inner_size = AlignUp(inner_size, LOCAL_SIZE) / LOCAL_SIZE;
+        auto local_size       = size / inner_size * local_inner_size;
+        result.construction_params.push_back(make_hip_kernel({1, LOCAL_SIZE},
+                                                             {local_size, LOCAL_SIZE},
+                                                             "MIOpenCumulativeReduction.cpp",
+                                                             "LocalCumulativeReduction",
+                                                             build_params));
+    }
+
+    if(problem.GetIndicesDesc().GetLengths()[problem.GetDim()] > LOCAL_SIZE)
+    {
+        auto size       = problem.GetInputDesc().GetElementSize();
+        auto inner_size = problem.GetInputDesc().GetLengths()[problem.GetDim()];
+        auto outer_size = size / inner_size;
+        result.construction_params.push_back(make_hip_kernel({1, LOCAL_SIZE},
+                                                             {outer_size, LOCAL_SIZE},
+                                                             "MIOpenCumulativeReduction.cpp",
+                                                             "CumulativeReductionNaiveForward",
+                                                             build_params));
+    }
+
+    {
+        auto size       = problem.GetInputDesc().GetElementSize();
+        auto inner_size = problem.GetInputDesc().GetLengths()[problem.GetDim()];
+        auto outer_size = size / inner_size;
+        result.construction_params.push_back(make_hip_kernel({1, LOCAL_SIZE},
+                                                             {outer_size, inner_size},
+                                                             "MIOpenCumulativeReduction.cpp",
+                                                             "CumulativeReductionForward",
+                                                             build_params));
+    }
 
     result.invoker_factory = [](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
             auto params = raw_params.CastTo<miopen::cumulative_reduction::InvokeParams>();
-            auto kernel = handle_.Run(kernels.front());
 
-            auto input_tv   = get_inner_expanded_tv<VIEW_DIMS>(deref(params.inputDesc));
-            auto output_tv  = get_inner_expanded_tv<VIEW_DIMS>(deref(params.outputDesc));
-            auto indices_tv = get_inner_expanded_tv<VIEW_DIMS>(deref(params.indicesDesc));
+            auto elapsed = 0.f;
+            HipEventPtr start;
+            HipEventPtr stop;
 
-            kernel(params.input,
-                   params.output,
-                   params.indices,
-                   params.dim,
-                   params.exclusive,
-                   params.reverse,
-                   input_tv,
-                   output_tv,
-                   indices_tv);
+            bool reset_profiling_state = false;
+            if(handle_.IsProfilingEnabled())
+            {
+                reset_profiling_state = true;
+                handle_.EnableProfiling(false);
+                hipStreamSynchronize(handle_.GetStream());
+                start = miopen::make_hip_event();
+                stop  = miopen::make_hip_event();
+                hipEventRecord(start.get(), handle_.GetStream());
+            }
+
+            int kernelCnt = 0;
+
+            const auto ndims            = deref(params.inputDesc).GetSize();
+            const unsigned int true_dim = ((params.dim % ndims) + ndims) % ndims;
+
+            Data_t local_output, local_indices;
+            if(deref(params.inputDesc).GetLengths()[true_dim] > LOCAL_SIZE)
+            {
+                local_indices = params.workspace;
+                local_output  = static_cast<Data_t>(
+                    static_cast<char*>(local_indices) +
+                    deref(params.inputDesc).GetElementSize() /
+                        deref(params.inputDesc).GetLengths()[true_dim] *
+                        AlignUp(deref(params.inputDesc).GetLengths()[true_dim], LOCAL_SIZE) /
+                        LOCAL_SIZE * sizeof(int));
+            }
+            else
+                local_output = local_indices = nullptr;
+
+            std::cout << "local_output: " << local_output << std::endl;
+            std::cout << "local_indices: " << local_indices << std::endl;
+
+            if(deref(params.inputDesc).GetLengths()[true_dim] > LOCAL_SIZE)
+            {
+                auto input_tv = get_inner_expanded_tv<VIEW_DIMS>(deref(params.inputDesc));
+                auto kernel   = handle_.Run(kernels[kernelCnt++]);
+                kernel(params.input,
+                       local_output,
+                       local_indices,
+                       true_dim,
+                       params.exclusive,
+                       params.reverse,
+                       input_tv);
+            }
+
+            if(deref(params.inputDesc).GetLengths()[true_dim] > LOCAL_SIZE)
+            {
+                auto reduce_size =
+                    AlignUp(deref(params.inputDesc).GetLengths()[true_dim], LOCAL_SIZE) /
+                    LOCAL_SIZE;
+                auto kernel = handle_.Run(kernels[kernelCnt++]);
+                size_t inner_size =
+                    std::accumulate(deref(params.inputDesc).GetLengths().begin() + true_dim + 1,
+                                    deref(params.inputDesc).GetLengths().end(),
+                                    1ULL,
+                                    std::multiplies<uint64_t>{});
+                kernel(local_output,
+                       local_output,
+                       local_indices,
+                       reduce_size,
+                       inner_size,
+                       params.reverse);
+            }
+
+            {
+                auto input_tv   = get_inner_expanded_tv<VIEW_DIMS>(deref(params.inputDesc));
+                auto output_tv  = get_inner_expanded_tv<VIEW_DIMS>(deref(params.outputDesc));
+                auto indices_tv = get_inner_expanded_tv<VIEW_DIMS>(deref(params.indicesDesc));
+                auto kernel     = handle_.Run(kernels[kernelCnt++]);
+                kernel(params.input,
+                       params.output,
+                       params.indices,
+                       local_output,
+                       local_indices,
+                       true_dim,
+                       params.exclusive,
+                       params.reverse,
+                       input_tv,
+                       output_tv,
+                       indices_tv);
+            }
+
+            if(reset_profiling_state)
+                handle_.EnableProfiling(true);
+            if(handle_.IsProfilingEnabled())
+            {
+                hipEventRecord(stop.get(), handle_.GetStream());
+                hipEventSynchronize(stop.get());
+                hipEventElapsedTime(&elapsed, start.get(), stop.get());
+
+                // Clean up
+                hipEventDestroy(start.get());
+                hipEventDestroy(stop.get());
+                handle_.ResetKernelTime();
+                handle_.AccumKernelTime(elapsed);
+            };
         };
     };
 
     return result;
+}
+
+std::size_t Forward::GetWorkspaceSize(
+    const ExecutionContext& /*context*/,
+    const miopen::cumulative_reduction::ForwardProblemDescription& problem) const
+{
+    std::cout << "problem.GetInputDesc().GetElementSize(): "
+              << problem.GetInputDesc().GetElementSize() << std::endl;
+    std::cout << "problem.GetIndicesDesc().GetElementSize(): "
+              << problem.GetIndicesDesc().GetElementSize() << std::endl;
+    return problem.GetInputDesc().GetElementSize() * (sizeof(float) + sizeof(uint64_t));
 }
 
 } // namespace cumulative_reduction

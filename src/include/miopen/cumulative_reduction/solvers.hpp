@@ -47,7 +47,10 @@ struct Forward final : ForwardSolverBase
     ConvSolution GetSolution(
         const ExecutionContext& context,
         const miopen::cumulative_reduction::ForwardProblemDescription& problem) const override;
-    bool MayNeedWorkspace() const override { return false; }
+    bool MayNeedWorkspace() const override { return true; }
+    std::size_t GetWorkspaceSize(
+        const ExecutionContext& context,
+        const miopen::cumulative_reduction::ForwardProblemDescription& problem) const override;
 };
 
 } // namespace cumulative_reduction

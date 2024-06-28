@@ -6589,12 +6589,12 @@ MIOPEN_EXPORT miopenStatus_t miopenBackendInitialize(miopenBackendDescriptor_t d
  * Cumulative Reduction operation types
  */
 using miopenCumOp_t = enum {
-    MIOPEN_CUM_MAX = 1, /*!< the operation is getting the maximun value and index of the reduced
-                       elements */
-    MIOPEN_CUM_MIN,     /*!< the operation is getting the minimum value and index of the reduced
-                           elements */
-    MIOPEN_CUM_SUM,     /*!< the operation is getting the sum of the reduced elements */
-    MIOPEN_CUM_PROD,    /*!< the operation is getting the product of the reduced elements */
+    MIOPEN_CUM_MAX = 1,  /*!< the operation is getting the maximun value and index of the reduced
+                        elements */
+    MIOPEN_CUM_MIN = 2,  /*!< the operation is getting the minimum value and index of the reduced
+                        elements */
+    MIOPEN_CUM_SUM  = 3, /*!< the operation is getting the sum of the reduced elements */
+    MIOPEN_CUM_PROD = 4, /*!< the operation is getting the product of the reduced elements */
 };
 
 /** @addtogroup Cumulative Reduction
@@ -6602,9 +6602,23 @@ using miopenCumOp_t = enum {
  *  @{
  */
 
+/*! @brief Helper function to query the minimum workspace size required by the Cumulative Reduction
+ * forward call
+ *
+ * @param handle                   MIOpen Handle (input)
+ * @param inputDesc                Tensor descriptor for input tensor (input)
+ * @param dim                      The dimension to do the operation over (input)
+ * @param sizeInBytes              Pointer to data to return the minimum workspace size
+ * @return                         miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenGetCumulativeReductionForwardWorkspaceSize(
+    miopenHandle_t handle, miopenTensorDescriptor_t inputDesc, int dim, size_t* sizeInBytes);
+
 /*! @brief Execute a Cumulative Reduction forward layer
  *
  * @param handle                   MIOpen handle (input)
+ * @param workspace                Address of the allocated workspace data (input)
+ * @param workspaceSizeInBytes     Size in bytes of the allocated workspace data (input)
  * @param inputDesc                Tensor descriptor for input tensor (input)
  * @param input                    Data tensor input (input)
  * @param outputDesc               Tensor descriptor for output tensor (input)
@@ -6618,13 +6632,15 @@ using miopenCumOp_t = enum {
  * (input)
  */
 MIOPEN_EXPORT miopenStatus_t miopenCumulativeReductionForward(miopenHandle_t handle,
+                                                              void* workspace,
+                                                              size_t workspaceSizeInBytes,
                                                               miopenTensorDescriptor_t inputDesc,
                                                               const void* input,
                                                               miopenTensorDescriptor_t outputDesc,
                                                               void* output,
                                                               miopenTensorDescriptor_t indicesDesc,
                                                               void* indices,
-                                                              size_t dim,
+                                                              int dim,
                                                               bool exclusive,
                                                               bool reverse,
                                                               miopenCumOp_t cumOp);

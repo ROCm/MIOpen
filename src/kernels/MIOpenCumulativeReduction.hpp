@@ -30,10 +30,10 @@
 
 enum class CumulativeReductionOp_t
 {
-    Max = 1,
-    Min,
-    Sum,
-    Prod,
+    Max  = 1,
+    Min  = 2,
+    Sum  = 3,
+    Prod = 4,
 };
 
 #ifndef __HIP_DEVICE_COMPILE__
@@ -43,54 +43,69 @@ static_assert(MIOPEN_CUM_SUM == static_cast<int>(CumulativeReductionOp_t::Sum));
 static_assert(MIOPEN_CUM_PROD == static_cast<int>(CumulativeReductionOp_t::Prod));
 #endif
 
-template <CumulativeReductionOp_t op, typename T1, typename... T2>
-struct reduce_func
-{
-    const FLOAT_ACCUM START_VAL;
+__device__ inline constexpr void update() {}
 
-    inline constexpr bool isbetter(const T1& /*a*/, const T1& /*b*/) const { return true; }
-    inline constexpr void combine(T1& a, T1 b) const { a = b; }
-    inline constexpr void update(T1& a, T1 b, T2&... ext) const
+template <typename T, typename... Ts>
+__device__ inline constexpr void update(T& a, T b, Ts&... c, Ts... d)
+{
+    a = b;
+    update(c..., d...);
+}
+
+__device__ inline constexpr bool greater() { return true; }
+
+template <typename T, typename... Ts>
+__device__ inline constexpr bool greater(T& a, T b, Ts&... c, Ts... d)
+{
+    if(a != b)
+        return a > b;
+    return greater(c..., d...);
+}
+
+template <typename T, typename... Ts>
+struct reduce_func_base
+{
+    __device__ virtual inline bool isbetter(const T& /*a*/, const T& /*b*/) const { return true; }
+    __device__ virtual inline void combine(T& a, T b) const { a = b; }
+    __device__ inline constexpr void calculate(T& a, T b, Ts&... c, Ts... d) const
     {
-        a = b;
-        update(ext...);
-    }
-    inline constexpr void calculate(T1& a, T1 b, T2&... ext) const
-    {
-        if(isbetter(b, a))
+        if(isbetter(b, a) || (isbetter(a, b) == isbetter(b, a) && greater(c..., d...)))
         {
             combine(a, b);
-            update(ext...);
+            update(c..., d...);
         }
     }
 };
 
-template <typename T>
-struct reduce_func<CumulativeReductionOp_t::Max, T>
+template <CumulativeReductionOp_t OP, typename T, typename... Ts>
+struct reduce_func;
+
+template <typename T, typename... Ts>
+struct reduce_func<CumulativeReductionOp_t::Max, T, Ts...> : reduce_func_base<T, Ts...>
 {
     const FLOAT_ACCUM START_VAL = -MAX_VAL_ACCUM;
-    inline constexpr bool isbetter(const T& a, const T& b) const { return a > b; }
+    __device__ inline bool isbetter(const T& a, const T& b) const { return a > b; }
 };
 
-template <typename T>
-struct reduce_func<CumulativeReductionOp_t::Min, T>
+template <typename T, typename... Ts>
+struct reduce_func<CumulativeReductionOp_t::Min, T, Ts...> : reduce_func_base<T, Ts...>
 {
     const FLOAT_ACCUM START_VAL = MAX_VAL_ACCUM;
-    inline constexpr bool isbetter(const T& a, const T& b) const { return a < b; }
+    __device__ inline bool isbetter(const T& a, const T& b) const { return a < b; }
 };
 
-template <typename T>
-struct reduce_func<CumulativeReductionOp_t::Sum, T>
+template <typename T, typename... Ts>
+struct reduce_func<CumulativeReductionOp_t::Sum, T, Ts...> : reduce_func_base<T, Ts...>
 {
     const FLOAT_ACCUM START_VAL = CVT_FP32_2ACCUM(0.0f);
-    inline constexpr void combine(T& a, T b) const { a += b; }
+    __device__ inline void combine(T& a, T b) const { a += b; }
 };
 
-template <typename T>
-struct reduce_func<CumulativeReductionOp_t::Prod, T>
+template <typename T, typename... Ts>
+struct reduce_func<CumulativeReductionOp_t::Prod, T, Ts...> : reduce_func_base<T, Ts...>
 {
     const FLOAT_ACCUM START_VAL = CVT_FP32_2ACCUM(1.0f);
-    inline constexpr void combine(T& a, T b) const { a *= b; }
+    __device__ inline void combine(T& a, T b) const { a *= b; }
 };
 
 #endif // GUARD_GUARD_KERNELS_MIOPEN_CUMULATIVE_REDUCTIONS_HPP
