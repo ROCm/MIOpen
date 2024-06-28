@@ -630,13 +630,11 @@ bool ModelSetParams(const std::string& arch,
     default: return false;
     }
 
-    std::size_t i                 = 0;
-    std::size_t num_tuning_params = 1;
-    do
+    for(size_t i = 0, num_tuning_params = 1; i < num_tuning_params; ++i)
     {
-        if(i == 0 && (model->metadata.predict_type != 0u))
-            num_tuning_params = model->metadata.num_tuning_params[dir];
 
+        if(i == 0 && (model->metadata.predict_type == 0u))
+            num_tuning_params = model->metadata.num_tuning_params[dir];
         fdeep::tensors decoder_output = model->Decode(decoder_input, context);
 
         auto token_scores = decoder_output[0].to_vector();
@@ -669,8 +667,7 @@ bool ModelSetParams(const std::string& arch,
         }
         decoder_input = float(output_token_index);
         context       = {decoder_output.begin() + 1, decoder_output.end()};
-        i++;
-    } while(i < num_tuning_params);
+    }
 
     auto stop     = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);

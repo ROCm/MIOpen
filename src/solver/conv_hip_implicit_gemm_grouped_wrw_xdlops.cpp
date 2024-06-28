@@ -308,6 +308,9 @@ static std::vector<std::string> GetKernelAsTokens(const std::string& kernel)
     return tokens;
 }
 
+/**
+ * @param type is the kernel type predicted by the parameter prediction model
+ */
 void PerformanceConfigHipImplicitGemmGroupWrwXdlops::InitHeuristicKernelIDs(const std::string& type)
 {
     for(int i = 0; i < valid_kernels.size(); i++)
@@ -338,11 +341,10 @@ bool PerformanceConfigHipImplicitGemmGroupWrwXdlops::ModelApplyToken(
             idx--;
         if(idx >= 12)
             idx += 2;
-        if(((idx == 15 && (valid_kernels[heuristic_indexes[0]].find(
-                               "DeviceGroupedConvBwdWeight_Xdl_CShuffle") != std::string::npos)) ||
-            idx == 18))
+        if(((idx == 15 && (heuristic_kernels[heuristic_indexes[0]].size() == 15)) || idx == 18))
         {
             kernel_id          = valid_kernels[heuristic_indexes[0]] + "+" + value;
+            index              = heuristic_indexes[0];
             bool valid_split_k = false;
             switch(problem.GetInDataType())
             {
@@ -361,6 +363,7 @@ bool PerformanceConfigHipImplicitGemmGroupWrwXdlops::ModelApplyToken(
             else
             {
                 kernel_id = "";
+                index     = 0;
                 return false;
             }
         }
@@ -383,7 +386,7 @@ static std::vector<float> GetFeatures(const ProblemDescription& problem, const s
 {
     if(arch == "gfx90a")
     {
-        std::size_t n = 18;
+        std::size_t n = 18; // takes 18 convolution parameters as inputs
         std::vector<float> features(n * n, 0.0f);
         features[0]           = 1.0;
         features[n + 1]       = problem.GetOutChannels();
@@ -405,7 +408,7 @@ static std::vector<float> GetFeatures(const ProblemDescription& problem, const s
         features[17 * n + 17] = problem.GetGroupCount();
         return features;
     }
-    std::size_t n = 17;
+    std::size_t n = 17; // takes 17 convolution parameters as inputs
     std::vector<float> features(n * n, 0.0f);
     features[0]           = problem.GetOutChannels();
     features[n + 1]       = problem.GetOutHeight();
@@ -444,9 +447,11 @@ bool PerformanceConfigHipImplicitGemmGroupWrwXdlops::RunParameterPredictionModel
                return this->ModelApplyToken(idx, value, arch, problem);
            }))
     {
-        index = heuristic_indexes[0];
         if(arch == "gfx90a") // if gfx942 this is already set in ModelApplyToken
-            kernel_id = valid_kernels[index];
+        {
+            index     = heuristic_indexes[0];
+            kernel_id = valid_kernels[index] + "+1";
+        }
         MIOPEN_LOG_I("Params set by AI: " << ToString());
         return true;
     }
