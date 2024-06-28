@@ -27,8 +27,6 @@
 #ifndef GUARD_TENSOR_VIEW_H
 #define GUARD_TENSOR_VIEW_H
 
-#include <cstdint>
-
 template <int N>
 struct tensor_layout_t;
 

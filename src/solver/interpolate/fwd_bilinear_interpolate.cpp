@@ -46,7 +46,7 @@ namespace interpolate {
 bool InterpolateBilinearForward::IsApplicable(
     const ExecutionContext&, const miopen::interpolate::FwdProblemDescription& problem) const
 {
-    if(problem.GetMode() != miopenInterpolateMode_t::MIOPEN_INTERPOLATE_MODE_LINEAR)
+    if(problem.GetMode() != miopenInterpolateMode_t::MIOPEN_INTERPOLATE_MODE_BILINEAR)
         return false;
 
     return true;

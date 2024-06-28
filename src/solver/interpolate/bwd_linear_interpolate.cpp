@@ -91,7 +91,7 @@ ConvSolution InterpolateLinearBackward::GetSolution(
 
             auto input_grad_tv  = get_inner_expanded_tv<3>(deref(params.inputGradDesc));
             auto output_grad_tv = get_inner_expanded_tv<3>(deref(params.outputGradDesc));
-            size_t nelems       = params.outputGradDesc->GetElementSize();
+            size_t nelems       = params.inputGradDesc->GetElementSize();
 
             kernel(params.input_grad,
                    params.output_grad,

@@ -650,8 +650,6 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
     Register(registry, ++id, Primitive::Softmax, softmax::Softmax{}.SolverDbId());
     Register(registry, ++id, Primitive::Softmax, softmax::AttnSoftmax{}.SolverDbId());
 
-    Register(
-        registry, ++id, Primitive::Interpolate, interpolate::InterpolateAreaForward{}.SolverDbId());
     Register(registry,
              ++id,
              Primitive::Interpolate,
@@ -672,10 +670,6 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
              ++id,
              Primitive::Interpolate,
              interpolate::InterpolateBicubicForward{}.SolverDbId());
-    Register(registry,
-             ++id,
-             Primitive::Interpolate,
-             interpolate::InterpolateAreaBackward{}.SolverDbId());
     Register(registry,
              ++id,
              Primitive::Interpolate,

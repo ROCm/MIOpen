@@ -468,6 +468,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenConvDirBatchNormActiv.cl
         kernels/MIOpenConvDirGenFwd.cl
         kernels/MIOpenGroupNorm.cpp
+        kernels/MIOpenInterpolate.cpp
         kernels/MIOpenLayerNorm.cpp
         kernels/MIOpenLRNBwd.cl
         kernels/MIOpenLRNFwd.cl

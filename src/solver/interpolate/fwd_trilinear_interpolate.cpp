@@ -46,7 +46,7 @@ namespace interpolate {
 bool InterpolateTrilinearForward::IsApplicable(
     const ExecutionContext&, const miopen::interpolate::FwdProblemDescription& problem) const
 {
-    if(problem.GetMode() != miopenInterpolateMode_t::MIOPEN_INTERPOLATE_MODE_LINEAR)
+    if(problem.GetMode() != miopenInterpolateMode_t::MIOPEN_INTERPOLATE_MODE_TRILINEAR)
         return false;
 
     return true;
