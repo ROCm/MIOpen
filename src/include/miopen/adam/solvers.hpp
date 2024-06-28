@@ -56,6 +56,23 @@ struct Adam final : AdamSolver
     bool MayNeedWorkspace() const override { return false; }
 };
 
+struct TransformersAdamW final : AdamSolver
+{
+    const std::string& SolverDbId() const override { return GetSolverDbId<TransformersAdamW>(); }
+
+    bool IsApplicable(const ExecutionContext& context,
+                      const miopen::adam::ProblemDescription& problem) const override;
+    ConvSolution GetSolution(const ExecutionContext& context,
+                             const miopen::adam::ProblemDescription& problem) const override;
+    std::size_t GetWorkspaceSize(
+        [[maybe_unused]] const ExecutionContext& context,
+        [[maybe_unused]] const miopen::adam::ProblemDescription& problem) const override
+    {
+        return 0;
+    }
+    bool MayNeedWorkspace() const override { return false; }
+};
+
 } // namespace adam
 
 } // namespace solver

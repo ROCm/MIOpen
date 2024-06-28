@@ -184,6 +184,7 @@ set( MIOpen_Source
     solver/activ/fwd_0.cpp
     solver/activ/fwd_1.cpp
     solver/adam/adam.cpp
+    solver/adam/transformers_adam_w.cpp
     solver/batchnorm/backward_ck.cpp
     solver/batchnorm/backward_per_activation.cpp
     solver/batchnorm/backward_per_activation_fused.cpp
@@ -307,6 +308,7 @@ set( MIOpen_Source
     temp_file.cpp
     tensor.cpp
     tensor_api.cpp
+    transformers_adam_w_api.cpp
     seq_tensor.cpp
 )
 
@@ -644,6 +646,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         reduceextreme.cpp
         rope.cpp
         sum.cpp
+        transformers_adam_w.cpp
         ${PROJECT_BINARY_DIR}/db_path.cpp
         )
 
