@@ -114,16 +114,20 @@ protected:
 
         std::string params = options.GenerateFor(miopen::kbp::OpenCL{});
 
-        size_t totalElements  = vec_size;
-        int threadsPerBlock = threads_per_block;
-        int blocksPerGrid   = (totalElements + threadsPerBlock - 1) / threadsPerBlock;
+        size_t totalElements = vec_size;
+        int threadsPerBlock  = threads_per_block;
+        int blocksPerGrid    = (totalElements + threadsPerBlock - 1) / threadsPerBlock;
 
         const std::vector<size_t> vgd{blocksPerGrid * threadsPerBlock, 1, 1};
         const std::vector<size_t> vld{threadsPerBlock, 1, 1};
 
         handle.AddKernel(
             "vector_add_ocl", network_config, program_name, kernel_name, vld, vgd, params)(
-            inputA_dev.get(), inputB_dev.get(), outputC_dev.get(), static_cast<unsigned long>(totalElements)); // OpenCL expects the totalElements as unsigned long
+            inputA_dev.get(),
+            inputB_dev.get(),
+            outputC_dev.get(),
+            static_cast<unsigned long>(
+                totalElements)); // OpenCL expects the totalElements as unsigned long
 
         // Read the device output tensor
         outputC_ocl.data = handle.Read<T>(outputC_dev, outputC_ocl.data.size());
@@ -147,9 +151,9 @@ protected:
 
         std::string params = options.GenerateFor(miopen::kbp::HIP{});
 
-        size_t totalElements  = vec_size;
-        int threadsPerBlock = threads_per_block;
-        int blocksPerGrid   = (totalElements + threadsPerBlock - 1) / threadsPerBlock;
+        size_t totalElements = vec_size;
+        int threadsPerBlock  = threads_per_block;
+        int blocksPerGrid    = (totalElements + threadsPerBlock - 1) / threadsPerBlock;
 
         const std::vector<size_t> vgd{blocksPerGrid * threadsPerBlock, 1, 1};
         const std::vector<size_t> vld{threadsPerBlock, 1, 1};
