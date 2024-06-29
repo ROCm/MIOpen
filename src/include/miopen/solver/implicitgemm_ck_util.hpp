@@ -64,6 +64,24 @@ using DeviceOpGWrwPtrs =
 } // namespace conv
 #endif
 
+inline bool IsLinear(int L, int H, const int v)
+{
+    assert(L <= H);
+    return L <= v && v <= H;
+}
+
+inline bool NextLinear(int L, int H, int& v)
+{
+    assert((IsLinear(L, H, v)));
+    if(H == v)
+    {
+        v = L;
+        return true;
+    }
+    ++v;
+    return false;
+}
+
 struct ConvSolution;
 
 struct CKBWDWeightBufferDescriptor
