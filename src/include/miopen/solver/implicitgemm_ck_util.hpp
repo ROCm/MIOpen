@@ -44,6 +44,7 @@ struct ProblemDescription;
 } // namespace conv
 
 namespace solver {
+#if MIOPEN_USE_COMPOSABLEKERNEL
 namespace conv {
 template <typename DataType>
 using DeviceOpGWrw = ck::tensor_operation::device::DeviceGroupedConvBwdWeight<
@@ -61,6 +62,7 @@ template <typename DataType>
 using DeviceOpGWrwPtrs =
     ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<DeviceOpGWrw<DataType>>;
 } // namespace conv
+#endif
 
 struct ConvSolution;
 
@@ -109,6 +111,7 @@ template <typename DeviceOpType,
           typename ProblemDescriptionType = miopen::conv::ProblemDescription>
 bool IsCKArgsSupported(const ProblemDescriptionType& problem, const std::string& kernel_id)
 {
+    #if MIOPEN_USE_COMPOSABLEKERNEL
     if(!kernel_id.empty())
     {
         auto conv_ptrs = DeviceOpType::GetInstances();
@@ -129,6 +132,7 @@ bool IsCKArgsSupported(const ProblemDescriptionType& problem, const std::string&
             return (ptr_iter != conv_ptrs.end()) && CKArgsType{problem}.IsSupportedBy(*ptr_iter);
         }
     }
+    #endif
     return false;
 }
 
@@ -643,10 +647,10 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
                                     const Input2TposeOp& input2_op,
                                     const OutputTposeOp& output_op)
 {
-
     assert(problem.IsLayoutDefault());
 
     ConvSolution result;
+#if MIOPEN_USE_COMPOSABLEKERNEL
     auto ck_args = CKArgsType{problem};
 
     auto conv_ptrs = DeviceOpType::GetInstances();
@@ -785,7 +789,7 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
     };
 
     result.workspace_sz = GetWorkspaceSizeLayoutTransformConv(problem);
-
+#endif
     return result;
 }
 
@@ -818,11 +822,12 @@ ConvSolution InitInvokerFactoryNHWC(const ExecutionContext&,
 
     if constexpr(std::is_same_v<CastType, miopen::conv::WrWInvokeParams>)
     {
+        ConvSolution result;
+        #if MIOPEN_USE_COMPOSABLEKERNEL
         miopenAlphaBetaCase_t alpha_beta_case = problem.GetAlphaBetaCase();
         [[maybe_unused]] bool should_allocated_wrw_buffer =
             ShouldAllocateWorkSpaceBufferForWRW(problem);
 
-        ConvSolution result;
         result.invoker_factory = [split_k                     = split_k,
                                   ck_args                     = CKArgsType{problem},
                                   alpha_beta_case             = alpha_beta_case,
@@ -879,6 +884,7 @@ ConvSolution InitInvokerFactoryNHWC(const ExecutionContext&,
             };
         };
         result.workspace_sz = GetWorkspaceSizeLayoutTransformConv(problem);
+        #endif
         return result;
     }
     else
