@@ -61,6 +61,12 @@ struct CKBWDWeightBufferDescriptor
     }
 };
 
+auto is_number = [](const std::string& s) {
+    auto it = s.begin();
+    while (it != s.end() && std::isdigit(*it)) ++it;
+    return !s.empty() && it == s.end();
+};
+
 template <typename ConvPtrsType>
 typename ConvPtrsType::iterator FindConvPtrByID(ConvPtrsType& conv_ptrs,
                                                 const std::string& kernel_id)
@@ -101,6 +107,8 @@ bool IsCKArgsSupported(const ProblemDescriptionType& problem, const std::string&
 
         auto pos        = kernel_id.find_last_of('+');
         auto splitk_str = kernel_id.substr(pos + 1);
+        if(!is_number(splitk_str))
+            return false;
         assert(pos != std::string::npos);
         int split_k   = std::stoi(splitk_str);
         auto ptr_iter = FindConvPtrByID(conv_ptrs, kernel_id.substr(0, pos));
@@ -632,7 +640,10 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
 
     auto pos = kernel_id.find_last_of('+');
     assert(pos != std::string::npos);
-    int split_k = std::stoi(kernel_id.substr(pos + 1));
+    auto splitk_str = kernel_id.substr(pos + 1);
+    if(!is_number(splitk_str))
+        return {miopenStatusInvalidValue};
+    int split_k = std::stoi(splitk_str);
 
     std::optional<CKBWDWeightBufferDescriptor> _ck_buff_des;
 
@@ -754,7 +765,10 @@ ConvSolution SplitKInitInvokerFactoryNHWC(const ExecutionContext&,
     auto conv_ptrs = DeviceOpType::GetInstances();
     auto pos       = kernel_id.find_last_of('+');
     assert(pos != std::string::npos);
-    int split_k = std::stoi(kernel_id.substr(pos + 1));
+    auto splitk_str = kernel_id.substr(pos + 1);
+    if(!is_number(splitk_str))
+        return {miopenStatusInvalidValue};
+    int split_k = std::stoi(splitk_str);
 
     auto ptr_iter = FindConvPtrByID(conv_ptrs, kernel_id.substr(0, pos));
 
