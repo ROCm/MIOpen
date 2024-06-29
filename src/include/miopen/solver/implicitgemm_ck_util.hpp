@@ -32,7 +32,7 @@
 #include <miopen/tensor_ops.hpp>
 #include <miopen/miopen_internal.h>
 
-#if MIOPEN_USE_COMPOSABLEKERNEL
+#if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 #include <ck/utility/data_type.hpp>
 #include <ck/library/tensor_operation_instance/gpu/grouped_convolution_backward_weight.hpp>
 #endif // MIOPEN_USE_COMPOSABLEKERNEL
@@ -44,7 +44,7 @@ struct ProblemDescription;
 } // namespace conv
 
 namespace solver {
-#if MIOPEN_USE_COMPOSABLEKERNEL
+#if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 namespace conv {
 template <typename DataType>
 using DeviceOpGWrw = ck::tensor_operation::device::DeviceGroupedConvBwdWeight<
@@ -111,7 +111,7 @@ template <typename DeviceOpType,
           typename ProblemDescriptionType = miopen::conv::ProblemDescription>
 bool IsCKArgsSupported(const ProblemDescriptionType& problem, const std::string& kernel_id)
 {
-    #if MIOPEN_USE_COMPOSABLEKERNEL
+#if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
     if(!kernel_id.empty())
     {
         auto conv_ptrs = DeviceOpType::GetInstances();
@@ -132,7 +132,7 @@ bool IsCKArgsSupported(const ProblemDescriptionType& problem, const std::string&
             return (ptr_iter != conv_ptrs.end()) && CKArgsType{problem}.IsSupportedBy(*ptr_iter);
         }
     }
-    #endif
+#endif
     return false;
 }
 
@@ -650,7 +650,7 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
     assert(problem.IsLayoutDefault());
 
     ConvSolution result;
-#if MIOPEN_USE_COMPOSABLEKERNEL
+#if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
     auto ck_args = CKArgsType{problem};
 
     auto conv_ptrs = DeviceOpType::GetInstances();
@@ -823,7 +823,7 @@ ConvSolution InitInvokerFactoryNHWC(const ExecutionContext&,
     if constexpr(std::is_same_v<CastType, miopen::conv::WrWInvokeParams>)
     {
         ConvSolution result;
-        #if MIOPEN_USE_COMPOSABLEKERNEL
+#if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
         miopenAlphaBetaCase_t alpha_beta_case = problem.GetAlphaBetaCase();
         [[maybe_unused]] bool should_allocated_wrw_buffer =
             ShouldAllocateWorkSpaceBufferForWRW(problem);
@@ -884,7 +884,7 @@ ConvSolution InitInvokerFactoryNHWC(const ExecutionContext&,
             };
         };
         result.workspace_sz = GetWorkspaceSizeLayoutTransformConv(problem);
-        #endif
+#endif
         return result;
     }
     else
@@ -963,7 +963,7 @@ MakeSolutionGroupConvImplicitGemmXdlops(const miopen::conv::ProblemDescription& 
                                         InvokerFactoryMakerNHWC&& invoker_factory_maker_ndhwc)
 {
 
-#if MIOPEN_USE_COMPOSABLEKERNEL
+#if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
     if(problem.IsLayoutDefault())
     {
         switch(problem.GetInDataType())
