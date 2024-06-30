@@ -315,7 +315,8 @@ void DropoutForward(const miopen::Handle& handle,
     {
 
         program_name = "MIOpenDropoutHIP.cpp";
-        kernel_name  = "DropoutForwardHIP";
+        kernel_name  = "DropoutFW";
+        //kernel_name  = "DropoutForward";
         network_config += "-hip";
     }
 
@@ -545,7 +546,8 @@ void DropoutBackward(const miopen::Handle& handle,
     {
 
         program_name = "MIOpenDropoutHIP.cpp";
-        kernel_name  = "DropoutBackwardHIP";
+        // kernel_name  = "DropoutBackward";
+        kernel_name  = "DropoutBW";
         network_config += "-hip";
     }
 
@@ -750,7 +752,7 @@ protected:
 
         std::vector<std::vector<int>> input_dims;
         std::vector<int> in_dim;
-        int rng_mode_cmd = 0;
+        int rng_mode_cmd = 1;
 
         // DROPOUT_SINGLE_CTEST
         input_dims = get_sub_tensor();

@@ -28,12 +28,6 @@
 #include <hip/hip_runtime.h>
 #endif
 
-#include <hip/hip_runtime.h>
-#include <rocrand/rocrand.h>
-#include <rocrand/rocrand_kernel.h>
-// #include <rocrand/rocrand_xorwow.h>
-
-
 /*
 HIP does not like it if #defines are not used and throws an error becasue of the -Werror flag? 
 These are unused in the OpenCL code, but did not throw an error.
@@ -431,6 +425,579 @@ DropoutBackwardHIP(
             x + in_offset + x_idx
 #endif
             )) = *(reinterpret_cast<READ_DAT_TYPE*>(dat_blk));
+    }
+    (void)dropout; // This avoids the unused variable warning(MIOpen error) when unused.
+}
+#endif
+
+
+#if !RUN_FORWARD && !RUN_INIT_PRNG
+extern "C" __global__ void
+DropoutBW(
+#if !USE_PRNG
+    __attribute__((unused))
+#endif
+    const prngStates* state,
+    const float dropout,
+    const float scale,
+    const int dim1,
+    const int dim2,
+    const int dim3,
+    const int dim4,
+    const  _FLOAT* y,
+    const int out_str0,
+    const int out_str1,
+    const int out_str2,
+    const int out_str3,
+    _FLOAT* x,
+    const int in_str0,
+    const int in_str1,
+    const int in_str2,
+    const int in_str3,
+#if (USE_PRNG)
+    __attribute__((unused))
+#endif
+    uchar* reserveSpace,
+    const uint total_work,
+    const uint in_offset,
+    const uint out_offset,
+#if (USE_PRNG)
+    __attribute__((unused))
+#endif
+    const uint rsvsp_offset
+)
+{
+    _FLOAT dat_blk[RD_BLCK];
+    uchar is_kept[RD_BLCK];
+
+#if (USE_PRNG)
+    uint sid = threadIdx.x + blockIdx.x * blockDim.x;
+    prngStates cur_state;
+    cur_state = state[sid];
+#endif
+
+    for(uint gid = threadIdx.x + blockIdx.x * blockDim.x; gid < total_work; gid += blockDim.x * gridDim.x)
+    {
+        uint i0    = gid / (dim1 * dim2 * dim3 * dim4);
+        uint i1    = (gid / (dim2 * dim3 * dim4)) % dim1;
+        uint i2    = (gid / (dim3 * dim4)) % dim2;
+        uint i3    = (gid / dim4) % dim3;
+        uint i4    = gid % dim4;
+        uint i4_rd = i4 / RD_BLCK;
+
+        uint x_idx = i0 * in_str0 + i1 * in_str1 + i2 * in_str2 + i3 * in_str3 + i4_rd * RD_BLCK;
+        uint y_idx = i0 * out_str0 + i1 * out_str1 + i2 * out_str2 + i3 * out_str3 + i4_rd * RD_BLCK;
+
+        // Assuming READ_DAT_TYPE and _FLOAT are the same, and similarly for READ_BOOL_TYPE and uchar.
+        // Adjust as necessary for your specific types.
+        *(reinterpret_cast<READ_DAT_TYPE*>(dat_blk)) = *(reinterpret_cast<const READ_DAT_TYPE*>(
+            y + out_offset + y_idx
+            ));
+#if (USE_PRNG) 
+        for(int i = 0; i < RD_BLCK; ++i)
+        {
+            is_kept[i] = static_cast<uchar>(uniform_distribution(xorwow_lite_next(&cur_state)) > dropout);
+        }
+#else
+        *(reinterpret_cast<READ_BOOL_TYPE*>(is_kept)) = *(reinterpret_cast<const READ_BOOL_TYPE*>(reserveSpace + rsvsp_offset + gid - i4 + i4_rd * RD_BLCK));
+#endif
+        for(int i = 0; i < RD_BLCK; ++i)
+        {
+            dat_blk[i] = static_cast<bool>(is_kept[i]) ? dat_blk[i] * (_FLOAT)scale : (_FLOAT)0;
+        }
+
+        *(reinterpret_cast<READ_DAT_TYPE*>(
+            x + in_offset + x_idx
+            )) = *(reinterpret_cast<READ_DAT_TYPE*>(dat_blk));
+    }
+    (void)dropout; // This avoids the unused variable warning(MIOpen error) when unused.
+}
+
+
+template <typename T, typename B, bool PRNG=false>
+__forceinline__ __device__ void dropoutbw(
+    const prngStates* state,
+    float dropout,
+    float scale,
+    int dim1,
+    int dim2,
+    int dim3,
+    int dim4,
+    const T* y,
+    int out_str0,
+    int out_str1,
+    int out_str2,
+    int out_str3,
+    T* x,
+    int in_str0,
+    int in_str1,
+    int in_str2,
+    int in_str3,
+    uchar* reserveSpace,
+    uint total_work,
+    uint in_offset,
+    uint out_offset,
+    uint rsvsp_offset)
+{
+    T dat_blk[RD_BLCK];
+    uchar is_kept[RD_BLCK];
+
+    uint sid = threadIdx.x + blockIdx.x * blockDim.x;
+    prngStates cur_state;
+    cur_state = state[sid];
+
+    for(uint gid = threadIdx.x + blockIdx.x * blockDim.x; gid < total_work; gid += blockDim.x * gridDim.x)
+    {
+        uint i0    = gid / (dim1 * dim2 * dim3 * dim4);
+        uint i1    = (gid / (dim2 * dim3 * dim4)) % dim1;
+        uint i2    = (gid / (dim3 * dim4)) % dim2;
+        uint i3    = (gid / dim4) % dim3;
+        uint i4    = gid % dim4;
+        uint i4_rd = i4 / RD_BLCK;
+
+        uint x_idx = i0 * in_str0 + i1 * in_str1 + i2 * in_str2 + i3 * in_str3 + i4_rd * RD_BLCK;
+        uint y_idx = i0 * out_str0 + i1 * out_str1 + i2 * out_str2 + i3 * out_str3 + i4_rd * RD_BLCK;
+
+        dat_blk[0] = y[out_offset + y_idx];
+
+        if constexpr (PRNG)
+        {
+            for(int i = 0; i < RD_BLCK; ++i)
+            {
+                is_kept[i] = static_cast<uchar>(uniform_distribution(xorwow_lite_next(&cur_state)) > dropout);
+            }
+
+        } else {
+            is_kept[0] = reserveSpace[rsvsp_offset + gid - i4 + i4_rd * RD_BLCK];
+        }
+
+        for(int i = 0; i < RD_BLCK; ++i)
+        {
+            dat_blk[i] = is_kept[i] ? dat_blk[i] * (T)scale : (T)0;
+        }
+
+        x[in_offset + x_idx] = dat_blk[0];
+    }
+
+}
+
+// Repalce the READ_DAT_TYPE with INPUT_TYPE and OUTPUT_TYPE
+
+extern "C" __global__ void DropoutBWHIP(
+    const prngStates* state,
+    float dropout,
+    float scale,
+    int dim1,
+    int dim2,
+    int dim3,
+    int dim4,
+    const READ_DAT_TYPE* y,
+    int out_str0,
+    int out_str1,
+    int out_str2,
+    int out_str3,
+    READ_DAT_TYPE* x,
+    int in_str0,
+    int in_str1,
+    int in_str2,
+    int in_str3,
+    uchar* reserveSpace,
+    uint total_work,
+    uint in_offset,
+    uint out_offset,
+    uint rsvsp_offset
+)
+{
+
+    dropoutbw<READ_DAT_TYPE, READ_BOOL_TYPE, USE_PRNG>(
+        state,
+        dropout,
+        scale,
+        dim1,
+        dim2,
+        dim3,
+        dim4,
+        y,
+        out_str0,
+        out_str1,
+        out_str2,
+        out_str3,
+        x,
+        in_str0,
+        in_str1,
+        in_str2,
+        in_str3,
+        reserveSpace,
+        total_work,
+        in_offset,
+        out_offset,
+        rsvsp_offset);
+
+}
+
+#endif
+
+
+
+
+#if RUN_FORWARD
+
+// template <typename T, typename B, bool MASK=false, bool RSVSP=false>
+// __device__ void dropoutkernel(
+// // #if USE_MASK
+// //     __attribute__((unused))
+// // #endif
+//     const prngStates* state,
+//     float dropout,
+//     float scale,
+//     int dim1,
+//     int dim2,
+//     int dim3,
+//     int dim4,
+//     T* y,
+//     int out_str0,
+//     int out_str1,
+//     int out_str2,
+//     int out_str3,
+//     const T* x,
+//     int in_str0,
+//     int in_str1,
+//     int in_str2,
+//     int in_str3,
+// // #if(!USE_RSVSP && !USE_MASK)
+// //     __attribute__((unused))
+// // #endif
+//     uchar* reserveSpace,
+//     uint total_work,
+//     uint in_offset,
+//     uint out_offset,
+// // #if(!USE_RSVSP && !USE_MASK)
+// //     __attribute__((unused))
+// // #endif
+//     uint rsvsp_offset)
+// {
+//     T dat_blk[RD_BLCK];
+//     uchar is_kept[RD_BLCK];
+
+//     if constexpr (!MASK)
+//     {
+//         uint sid = threadIdx.x + blockIdx.x * blockDim.x;
+//         prngStates cur_state;
+//         cur_state = state[sid];
+
+//         for(uint gid = threadIdx.x + blockIdx.x * blockDim.x; gid < total_work; gid += blockDim.x * gridDim.x)
+//             {
+//                 uint i0    = gid / (dim1 * dim2 * dim3 * dim4);
+//                 uint i1    = (gid / (dim2 * dim3 * dim4)) % dim1;
+//                 uint i2    = (gid / (dim3 * dim4)) % dim2;
+//                 uint i3    = (gid / dim4) % dim3;
+//                 uint i4    = gid % dim4;
+//                 uint i4_rd = i4 / RD_BLCK;
+
+//                 uint x_idx = i0 * in_str0 + i1 * in_str1 + i2 * in_str2 + i3 * in_str3 + i4_rd * RD_BLCK;
+//                 uint y_idx = i0 * out_str0 + i1 * out_str1 + i2 * out_str2 + i3 * out_str3 + i4_rd * RD_BLCK;
+
+//                 // Assuming READ_DAT_TYPE and _FLOAT are the same, and similarly for READ_BOOL_TYPE and uchar.
+//                 // Adjust as necessary for your specific types.
+//                 *(reinterpret_cast<T*>(dat_blk)) = *(reinterpret_cast<const T*>(x + in_offset + x_idx));
+//                 for(int i = 0; i < RD_BLCK; ++i)
+//                 {
+//                     is_kept[i] = static_cast<uchar>(uniform_distribution(xorwow_lite_next(&cur_state)) > dropout);
+//                 }
+
+//                 if constexpr (RSVSP)
+//                 {
+//                     *(reinterpret_cast<B*>(reserveSpace + rsvsp_offset + gid - i4 + i4_rd * RD_BLCK)) =
+//                         *(reinterpret_cast<B*>(is_kept));
+//                 }
+
+//                 for(int i = 0; i < RD_BLCK; ++i)
+//                 {
+//                     dat_blk[i] = static_cast<bool>(is_kept[i]) ? dat_blk[i] * (_FLOAT)scale : (_FLOAT)0;
+//                 }
+
+//                 *(reinterpret_cast<T*>(y + out_offset + y_idx)) = *(reinterpret_cast<T*>(dat_blk));
+//             }
+
+//     } else {
+        
+//         for(uint gid = threadIdx.x + blockIdx.x * blockDim.x; gid < total_work; gid += blockDim.x * gridDim.x)
+//         {
+//             uint i0    = gid / (dim1 * dim2 * dim3 * dim4);
+//             uint i1    = (gid / (dim2 * dim3 * dim4)) % dim1;
+//             uint i2    = (gid / (dim3 * dim4)) % dim2;
+//             uint i3    = (gid / dim4) % dim3;
+//             uint i4    = gid % dim4;
+//             uint i4_rd = i4 / RD_BLCK;
+
+//             uint x_idx = i0 * in_str0 + i1 * in_str1 + i2 * in_str2 + i3 * in_str3 + i4_rd * RD_BLCK;
+//             uint y_idx = i0 * out_str0 + i1 * out_str1 + i2 * out_str2 + i3 * out_str3 + i4_rd * RD_BLCK;
+
+//             // Assuming READ_DAT_TYPE and _FLOAT are the same, and similarly for READ_BOOL_TYPE and uchar.
+//             // Adjust as necessary for your specific types.
+//             *(reinterpret_cast<T*>(dat_blk)) = *(reinterpret_cast<const T*>(x + in_offset + x_idx));
+//             *(reinterpret_cast<B*>(is_kept)) = *(reinterpret_cast<const B*>(reserveSpace + rsvsp_offset + gid - i4 + i4_rd * RD_BLCK));
+//             for(int i = 0; i < RD_BLCK; ++i)
+//             {
+//                 dat_blk[i] = static_cast<bool>(is_kept[i]) ? dat_blk[i] * (_FLOAT)scale : (_FLOAT)0;
+//             }
+
+//             *(reinterpret_cast<T*>(y + out_offset + y_idx)) = *(reinterpret_cast<T*>(dat_blk));
+//         }
+
+//         (void)dropout; // This avoids the unused variable warning(MIOpen error) when unused.
+//     }
+
+
+
+// // #if (!USE_MASK)
+// //     uint sid = threadIdx.x + blockIdx.x * blockDim.x;
+// //     prngStates cur_state;
+// //     cur_state = state[sid];
+// // #endif
+
+// //     for(uint gid = threadIdx.x + blockIdx.x * blockDim.x; gid < total_work; gid += blockDim.x * gridDim.x)
+// //     {
+// //         uint i0    = gid / (dim1 * dim2 * dim3 * dim4);
+// //         uint i1    = (gid / (dim2 * dim3 * dim4)) % dim1;
+// //         uint i2    = (gid / (dim3 * dim4)) % dim2;
+// //         uint i3    = (gid / dim4) % dim3;
+// //         uint i4    = gid % dim4;
+// //         uint i4_rd = i4 / RD_BLCK;
+
+// //         uint x_idx = i0 * in_str0 + i1 * in_str1 + i2 * in_str2 + i3 * in_str3 + i4_rd * RD_BLCK;
+// //         uint y_idx = i0 * out_str0 + i1 * out_str1 + i2 * out_str2 + i3 * out_str3 + i4_rd * RD_BLCK;
+
+// //         // Assuming READ_DAT_TYPE and _FLOAT are the same, and similarly for READ_BOOL_TYPE and uchar.
+// //         // Adjust as necessary for your specific types.
+// //         *(reinterpret_cast<T*>(dat_blk)) = *(reinterpret_cast<const T*>(x + in_offset + x_idx));
+// // #if (!USE_MASK)
+// //         for(int i = 0; i < RD_BLCK; ++i)
+// //         {
+// //             is_kept[i] = static_cast<uchar>(uniform_distribution(xorwow_lite_next(&cur_state)) > dropout);
+// //         }
+// // #if USE_RSVSP
+// //         *(reinterpret_cast<B*>(reserveSpace + rsvsp_offset + gid - i4 + i4_rd * RD_BLCK)) =
+// //             *(reinterpret_cast<B*>(is_kept));
+// // #endif
+// // #else
+// //         *(reinterpret_cast<B*>(is_kept)) = *(reinterpret_cast<const B*>(reserveSpace + rsvsp_offset + gid - i4 + i4_rd * RD_BLCK));
+// // #endif
+// //         for(int i = 0; i < RD_BLCK; ++i)
+// //         {
+// //             dat_blk[i] = static_cast<bool>(is_kept[i]) ? dat_blk[i] * (_FLOAT)scale : (_FLOAT)0;
+// //         }
+
+// //         *(reinterpret_cast<T*>(y + out_offset + y_idx)) = *(reinterpret_cast<T*>(dat_blk));
+// //     }
+// //     (void)dropout; // This avoids the unused variable warning(MIOpen error) when unused.
+// }
+
+
+
+template <typename T, typename B, bool MASK=false, bool RSVSP=false>
+__forceinline__ __device__ void dropoutfw(
+    const prngStates* state,
+    float dropout,
+    float scale,
+    int dim1,
+    int dim2,
+    int dim3,
+    int dim4,
+    T* y,
+    int out_str0,
+    int out_str1,
+    int out_str2,
+    int out_str3,
+    const T* x,
+    int in_str0,
+    int in_str1,
+    int in_str2,
+    int in_str3,
+    uchar* reserveSpace,
+    uint total_work,
+    uint in_offset,
+    uint out_offset,
+    uint rsvsp_offset)
+{
+    T dat_blk[RD_BLCK];
+    uchar is_kept[RD_BLCK];
+
+    uint sid = threadIdx.x + blockIdx.x * blockDim.x;
+    prngStates cur_state;
+    cur_state = state[sid];
+
+    for(uint gid = threadIdx.x + blockIdx.x * blockDim.x; gid < total_work; gid += blockDim.x * gridDim.x)
+    {
+        uint i0    = gid / (dim1 * dim2 * dim3 * dim4);
+        uint i1    = (gid / (dim2 * dim3 * dim4)) % dim1;
+        uint i2    = (gid / (dim3 * dim4)) % dim2;
+        uint i3    = (gid / dim4) % dim3;
+        uint i4    = gid % dim4;
+        uint i4_rd = i4 / RD_BLCK;
+
+        uint x_idx = i0 * in_str0 + i1 * in_str1 + i2 * in_str2 + i3 * in_str3 + i4_rd * RD_BLCK;
+        uint y_idx = i0 * out_str0 + i1 * out_str1 + i2 * out_str2 + i3 * out_str3 + i4_rd * RD_BLCK;
+
+        dat_blk[0] = x[in_offset + x_idx];
+
+        if constexpr (!MASK)
+        {
+            for(int i = 0; i < RD_BLCK; ++i)
+            {
+                is_kept[i] = static_cast<uchar>(uniform_distribution(xorwow_lite_next(&cur_state)) > dropout);
+            }
+
+            if constexpr (RSVSP)
+            {
+                reserveSpace[rsvsp_offset + gid - i4 + i4_rd * RD_BLCK] = is_kept[0];
+            }
+        } else {
+            is_kept[0] = reserveSpace[rsvsp_offset + gid - i4 + i4_rd * RD_BLCK];
+        }
+
+        for(int i = 0; i < RD_BLCK; ++i)
+        {
+            dat_blk[i] = is_kept[i] ? dat_blk[i] * (T)scale : (T)0;
+        }
+
+        y[out_offset + y_idx] = dat_blk[0];
+    }
+
+}
+
+// Repalce the READ_DAT_TYPE with INPUT_TYPE and OUTPUT_TYPE
+
+extern "C" __global__ void DropoutFW(
+    const prngStates* state,
+    float dropout,
+    float scale,
+    int dim1,
+    int dim2,
+    int dim3,
+    int dim4,
+    READ_DAT_TYPE* y,
+    int out_str0,
+    int out_str1,
+    int out_str2,
+    int out_str3,
+    const READ_DAT_TYPE* x,
+    int in_str0,
+    int in_str1,
+    int in_str2,
+    int in_str3,
+    uchar* reserveSpace,
+    uint total_work,
+    uint in_offset,
+    uint out_offset,
+    uint rsvsp_offset
+)
+{
+
+    dropoutfw<READ_DAT_TYPE, READ_BOOL_TYPE, USE_MASK, USE_RSVSP>(
+        state,
+        dropout,
+        scale,
+        dim1,
+        dim2,
+        dim3,
+        dim4,
+        y,
+        out_str0,
+        out_str1,
+        out_str2,
+        out_str3,
+        x,
+        in_str0,
+        in_str1,
+        in_str2,
+        in_str3,
+        reserveSpace,
+        total_work,
+        in_offset,
+        out_offset,
+        rsvsp_offset);
+
+}
+
+
+
+extern "C" __global__ void
+DropoutForwardNewHIP(
+#if USE_MASK
+    __attribute__((unused))
+#endif
+    const prngStates* state,
+    const float dropout,
+    const float scale,
+    const int dim1,
+    const int dim2,
+    const int dim3,
+    const int dim4,
+    _FLOAT* y,
+    const int out_str0,
+    const int out_str1,
+    const int out_str2,
+    const int out_str3,
+    const _FLOAT* x,
+    const int in_str0,
+    const int in_str1,
+    const int in_str2,
+    const int in_str3,
+#if (!USE_RSVSP && !USE_MASK)
+    __attribute__((unused))
+#endif
+    uchar* reserveSpace,
+    const uint total_work,
+    const uint in_offset,
+    const uint out_offset,
+#if (!USE_RSVSP && !USE_MASK)
+    __attribute__((unused))
+#endif
+    const uint rsvsp_offset
+)
+{
+    _FLOAT dat_blk[RD_BLCK];
+    uchar is_kept[RD_BLCK];
+#if (!USE_MASK)
+    uint sid = threadIdx.x + blockIdx.x * blockDim.x;
+    prngStates cur_state;
+    cur_state = state[sid];
+#endif
+
+    for(uint gid = threadIdx.x + blockIdx.x * blockDim.x; gid < total_work; gid += blockDim.x * gridDim.x)
+    {
+        uint i0    = gid / (dim1 * dim2 * dim3 * dim4);
+        uint i1    = (gid / (dim2 * dim3 * dim4)) % dim1;
+        uint i2    = (gid / (dim3 * dim4)) % dim2;
+        uint i3    = (gid / dim4) % dim3;
+        uint i4    = gid % dim4;
+        uint i4_rd = i4 / RD_BLCK;
+
+        uint x_idx = i0 * in_str0 + i1 * in_str1 + i2 * in_str2 + i3 * in_str3 + i4_rd * RD_BLCK;
+        uint y_idx = i0 * out_str0 + i1 * out_str1 + i2 * out_str2 + i3 * out_str3 + i4_rd * RD_BLCK;
+
+        // Assuming READ_DAT_TYPE and _FLOAT are the same, and similarly for READ_BOOL_TYPE and uchar.
+        // Adjust as necessary for your specific types.
+        *(reinterpret_cast<READ_DAT_TYPE*>(dat_blk)) = *(reinterpret_cast<const READ_DAT_TYPE*>(x + in_offset + x_idx));
+#if (!USE_MASK)
+        for(int i = 0; i < RD_BLCK; ++i)
+        {
+            is_kept[i] = static_cast<uchar>(uniform_distribution(xorwow_lite_next(&cur_state)) > dropout);
+        }
+#if USE_RSVSP
+        *(reinterpret_cast<READ_BOOL_TYPE*>(reserveSpace + rsvsp_offset + gid - i4 + i4_rd * RD_BLCK)) =
+            *(reinterpret_cast<READ_BOOL_TYPE*>(is_kept));
+#endif
+#else
+        *(reinterpret_cast<READ_BOOL_TYPE*>(is_kept)) = *(reinterpret_cast<const READ_BOOL_TYPE*>(reserveSpace + rsvsp_offset + gid - i4 + i4_rd * RD_BLCK));
+#endif
+        for(int i = 0; i < RD_BLCK; ++i)
+        {
+            dat_blk[i] = static_cast<bool>(is_kept[i]) ? dat_blk[i] * (_FLOAT)scale : (_FLOAT)0;
+        }
+
+        *(reinterpret_cast<READ_DAT_TYPE*>(y + out_offset + y_idx)) = *(reinterpret_cast<READ_DAT_TYPE*>(dat_blk));
     }
     (void)dropout; // This avoids the unused variable warning(MIOpen error) when unused.
 }
