@@ -33,10 +33,10 @@
 #include <miopen/solver/problem_description_interpreter.hpp>
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 #include <miopen/solver/ck_utility_common.hpp>
-#include <ck/library/tensor_operation_instance/gpu/grouped_convolution_backward_weight.hpp>
 #include <miopen/conv/heuristics/ai_heuristics.hpp>
 #endif
 #include <miopen/solver/implicitgemm_ck_util.hpp>
+#include <miopen/solver/implicitgemm_util.hpp>
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_GROUP_CONV_IMPLICIT_GEMM_HIP_WRW_XDLOPS)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_GROUP_CONV_IMPLICIT_GEMM_HIP_WRW_XDLOPS_AI_HEUR)
 
@@ -47,18 +47,6 @@ namespace conv {
 using ProblemDescription = miopen::conv::ProblemDescription;
 
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
-template <typename DataType>
-using DeviceOpGWrw = ck::tensor_operation::device::DeviceGroupedConvBwdWeight<
-    2,
-    ck::tensor_layout::convolution::NHWGC,
-    ck::tensor_layout::convolution::GKYXC,
-    ck::tensor_layout::convolution::NHWGK,
-    DataType,
-    DataType,
-    DataType,
-    ck::tensor_operation::element_wise::PassThrough,
-    ck::tensor_operation::element_wise::PassThrough,
-    ck::tensor_operation::element_wise::PassThrough>;
 
 template <typename DataType>
 using DeviceOpGWrwPtrs =
@@ -139,7 +127,8 @@ struct CKArgs
                     Data_t dw,
                     ConstData_t dy,
                     float alpha,
-                    float beta) const
+                    float beta,
+                    int split_k) const
     {
         (void)alpha;
         (void)beta;
@@ -166,16 +155,30 @@ struct CKArgs
     auto MakeArgPtr(const ConvPtr& conv_ptr,
                     const ConvWrwTensors& tensors,
                     float alpha,
-                    float beta) const
+                    float beta,
+                    int split_k) const
     {
-        return MakeArgPtr(conv_ptr, tensors.x, tensors.dw, tensors.dy, alpha, beta);
+        return MakeArgPtr(conv_ptr, tensors.x, tensors.dw, tensors.dy, alpha, beta, split_k);
     }
 
     template <typename ConvPtr>
     bool IsSupportedBy(const ConvPtr& conv_ptr) const
     {
-        auto arg_ptr = MakeArgPtr(conv_ptr, nullptr, nullptr, nullptr, 1.0f, 0.0f);
-        if(CKWrwRequireWorkspace(G, C, K, data_type, alpha_beta_case))
+        auto arg_ptr = MakeArgPtr(conv_ptr, nullptr, nullptr, nullptr, 1.0f, 0.0f, 1);
+        // Creat dummy workspace to pass the ck IsSupportedArgument check.
+
+        int dummy_var = 1;
+        conv_ptr->SetWorkSpacePointer(arg_ptr.get(), &dummy_var);
+
+        return conv_ptr->IsSupportedArgument(arg_ptr.get());
+    }
+
+    template <typename ConvPtr>
+    bool IsSupportedBySplitK(const ConvPtr& conv_ptr, int split_k) const
+    {
+        auto arg_ptr = MakeArgPtr(conv_ptr, nullptr, nullptr, nullptr, 1.0f, 0.0f, split_k);
+
+        if(CKWrwRequireWorkspace(G, C1, K1, data_type, alpha_beta_case))
         {
             // Creat dummy workspace to pass the ck IsSupportedArgument check.
             int dummy_var = 1;
@@ -196,7 +199,7 @@ struct CKArgs
     int Wo;
     int Y;
     int X;
-    ck::index_t split_k = 1;
+    // ck::index_t split_k = 1;
     miopenDataType_t data_type;
     miopenAlphaBetaCase_t alpha_beta_case;
     std::array<ck::index_t, 5> input;
@@ -217,7 +220,8 @@ void PerformanceConfigHipImplicitGemmGroupWrwXdlops::Init(const ProblemDescripti
 {
     valid_kernels = FillValidKernelsIDs<DeviceOpGWrwPtrs<DataType>, CKArgs>(problem);
     index         = 0;
-    kernel_id     = valid_kernels[index];
+    split_k       = 1;
+    kernel_id     = valid_kernels[index] + "+" + std::to_string(split_k);
 }
 
 template <typename DataType>
@@ -250,22 +254,66 @@ static std::vector<std::string> GetKernelAsTokens(const std::string& kernel)
     return tokens;
 }
 
-void PerformanceConfigHipImplicitGemmGroupWrwXdlops::InitHeuristicKernelIDs()
+/**
+ * @param type is the kernel type predicted by the parameter prediction model
+ */
+void PerformanceConfigHipImplicitGemmGroupWrwXdlops::InitHeuristicKernelIDs(const std::string& type)
 {
     for(int i = 0; i < valid_kernels.size(); i++)
     {
-        if(valid_kernels[i].find("DeviceGroupedConvBwdWeight_Xdl_CShuffle") != std::string::npos)
+        if(valid_kernels[i].find(type) != std::string::npos)
         {
             heuristic_indexes.push_back(i);
-            heuristic_kernels.push_back(GetKernelAsTokens(valid_kernels[i]));
+            heuristic_kernels[i] = GetKernelAsTokens(valid_kernels[i]);
         }
     }
 }
 
-bool PerformanceConfigHipImplicitGemmGroupWrwXdlops::ModelApplyToken(int idx, std::string value)
+bool PerformanceConfigHipImplicitGemmGroupWrwXdlops::ModelApplyToken(
+    int idx, std::string value, const std::string& arch, const ProblemDescription& problem)
 {
-    if(idx == 13)
+    if(idx == 13 && arch == "gfx90a")
         idx += 1; // skip
+    if(arch == "gfx942")
+    {
+        if(idx == 0)
+        {
+            InitHeuristicKernelIDs(value);
+            if(!valid_kernels.empty())
+                return true;
+            return false;
+        }
+        if(idx > 0)
+            idx--;
+        if(idx >= 12)
+            idx += 2;
+        if(((idx == 15 && (heuristic_kernels[heuristic_indexes[0]].size() == 15)) || idx == 18))
+        {
+            kernel_id          = valid_kernels[heuristic_indexes[0]] + "+" + value;
+            index              = heuristic_indexes[0];
+            bool valid_split_k = false;
+            switch(problem.GetInDataType())
+            {
+            case miopenHalf: valid_split_k = CheckIsSupportCKArgs<ck::half_t>(problem); break;
+            case miopenFloat: valid_split_k = CheckIsSupportCKArgs<float>(problem); break;
+            case miopenInt8:
+            case miopenBFloat16:
+            case miopenInt64:
+            case miopenInt32:
+            case miopenFloat8:
+            case miopenBFloat8:
+            case miopenDouble: break;
+            }
+            if(valid_split_k)
+                return true;
+            else
+            {
+                kernel_id = "";
+                index     = 0;
+                return false;
+            }
+        }
+    }
 
     auto eraseBegin = std::remove_if(
         heuristic_indexes.begin(), heuristic_indexes.end(), [&](int heuristic_index) {
@@ -280,28 +328,51 @@ bool PerformanceConfigHipImplicitGemmGroupWrwXdlops::ModelApplyToken(int idx, st
     return false;
 }
 
-static std::vector<float> GetFeatures(const ProblemDescription& problem)
+static std::vector<float> GetFeatures(const ProblemDescription& problem, const std::string& arch)
 {
-    std::size_t n = 18;
+    if(arch == "gfx90a")
+    {
+        std::size_t n = 18; // takes 18 convolution parameters as inputs
+        std::vector<float> features(n * n, 0.0f);
+        features[0]           = 1.0;
+        features[n + 1]       = problem.GetOutChannels();
+        features[2 * n + 2]   = problem.GetOutHeight();
+        features[3 * n + 3]   = problem.GetOutWidth();
+        features[4 * n + 4]   = problem.GetInChannels();
+        features[5 * n + 5]   = problem.GetInHeight();
+        features[6 * n + 6]   = problem.GetInWidth();
+        features[7 * n + 7]   = problem.GetWeightsHeight();
+        features[8 * n + 8]   = problem.GetWeightsWidth();
+        features[9 * n + 9]   = problem.GetPadH();
+        features[10 * n + 10] = problem.GetPadW();
+        features[11 * n + 11] = problem.GetKernelStrideH();
+        features[12 * n + 12] = problem.GetKernelStrideW();
+        features[13 * n + 13] = problem.GetDilationH();
+        features[14 * n + 14] = problem.GetDilationW();
+        features[15 * n + 15] = problem.GetBatchSize();
+        features[16 * n + 16] = problem.GetInDataType() == miopenFloat ? 2.0 : 1.0;
+        features[17 * n + 17] = problem.GetGroupCount();
+        return features;
+    }
+    std::size_t n = 17; // takes 17 convolution parameters as inputs
     std::vector<float> features(n * n, 0.0f);
-    features[0]           = 1.0;
-    features[n + 1]       = problem.GetOutChannels();
-    features[2 * n + 2]   = problem.GetOutHeight();
-    features[3 * n + 3]   = problem.GetOutWidth();
-    features[4 * n + 4]   = problem.GetInChannels();
-    features[5 * n + 5]   = problem.GetInHeight();
-    features[6 * n + 6]   = problem.GetInWidth();
-    features[7 * n + 7]   = problem.GetWeightsHeight();
-    features[8 * n + 8]   = problem.GetWeightsWidth();
-    features[9 * n + 9]   = problem.GetPadH();
-    features[10 * n + 10] = problem.GetPadW();
-    features[11 * n + 11] = problem.GetKernelStrideH();
-    features[12 * n + 12] = problem.GetKernelStrideW();
-    features[13 * n + 13] = problem.GetDilationH();
-    features[14 * n + 14] = problem.GetDilationW();
-    features[15 * n + 15] = problem.GetBatchSize();
-    features[16 * n + 16] = problem.GetInDataType() == miopenFloat ? 2.0 : 1.0;
-    features[17 * n + 17] = problem.GetGroupCount();
+    features[0]           = problem.GetOutChannels();
+    features[n + 1]       = problem.GetOutHeight();
+    features[2 * n + 2]   = problem.GetOutWidth();
+    features[3 * n + 3]   = problem.GetInChannels();
+    features[4 * n + 4]   = problem.GetInHeight();
+    features[5 * n + 5]   = problem.GetInWidth();
+    features[6 * n + 6]   = problem.GetWeightsHeight();
+    features[7 * n + 7]   = problem.GetWeightsWidth();
+    features[8 * n + 8]   = problem.GetPadH();
+    features[9 * n + 9]   = problem.GetPadW();
+    features[10 * n + 10] = problem.GetKernelStrideH();
+    features[11 * n + 11] = problem.GetKernelStrideW();
+    features[12 * n + 12] = problem.GetDilationH();
+    features[13 * n + 13] = problem.GetDilationW();
+    features[14 * n + 14] = problem.GetBatchSize();
+    features[15 * n + 15] = problem.GetInDataType() == miopenFloat ? 2.0 : 1.0;
+    features[16 * n + 16] = problem.GetGroupCount();
     return features;
 }
 
@@ -311,17 +382,22 @@ bool PerformanceConfigHipImplicitGemmGroupWrwXdlops::RunParameterPredictionModel
 {
     valid_kernels = FillValidKernelsIDs<DeviceOpGWrwPtrs<DataType>, CKArgs>(
         problem); // filter valid_kernel ID's
-    InitHeuristicKernelIDs();
-    static const std::string& arch  = ctx.GetStream().GetDeviceName();
-    static const std::string solver = "ConvHipIgemmGroupXdlops";
-    std::vector<float> features     = GetFeatures(problem);
+    static const std::string& arch = ctx.GetStream().GetDeviceName();
+    if(arch == "gfx90a")
+        InitHeuristicKernelIDs("DeviceGroupedConvBwdWeight_Xdl_CShuffle");
+    static const std::string solver =
+        (arch == "gfx90a") ? "ConvHipIgemmGroupXdlops" : "ConvHipIgemmGroupWrwXdlops";
+    std::vector<float> features = GetFeatures(problem, arch);
     if(ai::tuning::ModelSetParams(
            arch, solver, problem.GetDirection(), features, true, [&](int idx, std::string value) {
-               return this->ModelApplyToken(idx, value);
+               return this->ModelApplyToken(idx, value, arch, problem);
            }))
     {
-        index     = heuristic_indexes[0];
-        kernel_id = valid_kernels[index];
+        if(arch == "gfx90a") // if gfx942 this is already set in ModelApplyToken
+        {
+            index     = heuristic_indexes[0];
+            kernel_id = valid_kernels[index] + "+1";
+        }
         MIOPEN_LOG_I("Params set by AI: " << ToString());
         return true;
     }
@@ -347,6 +423,7 @@ void PerformanceConfigHipImplicitGemmGroupWrwXdlops::HeuristicInit(
     [[maybe_unused]] const ProblemDescription& problem)
 {
     // these seem redundant
+    split_k   = 1;
     index     = 0;
     kernel_id = "";
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
@@ -400,15 +477,26 @@ bool PerformanceConfigHipImplicitGemmGroupWrwXdlops::SetNextValue(const ProblemD
         assert(!valid_kernels.empty());
         return true;
     }
-    if((index + 1) < valid_kernels.size())
+    do
     {
-        ++index;
-        kernel_id = valid_kernels[index];
-        return true;
-    }
-    else
-#endif
+        bool flag = NextTwoPower<1, 128>(split_k);
+        if(!flag)
+        {
+            kernel_id = valid_kernels[index] + "+" + std::to_string(split_k);
+            break;
+        }
+
+        if(!NextLinear(0, valid_kernels.size() - 1, index))
+        {
+            kernel_id = valid_kernels[index] + "+" + std::to_string(split_k);
+            break;
+        }
+        // All split_k and index values were iterated
         return false;
+    } while(false);
+
+#endif
+    return true;
 }
 
 bool PerformanceConfigHipImplicitGemmGroupWrwXdlops::IsValidValue() const
