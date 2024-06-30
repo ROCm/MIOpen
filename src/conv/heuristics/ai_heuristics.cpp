@@ -535,6 +535,7 @@ Metadata::Metadata(const std::string& arch, const std::string& solver)
 {
     const nlohmann::json metadata =
         common::LoadJSON(GetSystemDbPath() / (arch + "_" + solver + "_metadata.ktn.model"));
+    predict_type = metadata["predict_type"].get<std::size_t>();
     num_tuning_params =
         metadata["num_tuning_params"].get<std::unordered_map<std::string, std::size_t>>();
     tuning_decodings =
@@ -628,9 +629,12 @@ bool ModelSetParams(const std::string& arch,
     case miopen::conv::Direction::BackwardWeights: dir = "wrw"; break;
     default: return false;
     }
-    std::size_t num_tuning_params = model->metadata.num_tuning_params[dir];
-    for(std::size_t i = 0; i < num_tuning_params; ++i)
+
+    for(size_t i = 0, num_tuning_params = 1; i < num_tuning_params; ++i)
     {
+
+        if(i == 0 && (model->metadata.predict_type == 0u))
+            num_tuning_params = model->metadata.num_tuning_params[dir];
         fdeep::tensors decoder_output = model->Decode(decoder_input, context);
 
         auto token_scores = decoder_output[0].to_vector();
@@ -656,12 +660,15 @@ bool ModelSetParams(const std::string& arch,
             {
                 output_token_index =
                     token; // index with largest value that is valid = predicted index
+                if(i == 0 && model->metadata.predict_type != 0u)
+                    num_tuning_params = model->metadata.num_tuning_params[value];
                 break;
             }
         }
         decoder_input = float(output_token_index);
         context       = {decoder_output.begin() + 1, decoder_output.end()};
     }
+
     auto stop     = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
     MIOPEN_LOG_I2("Model ran for " << duration.count() << " micro-seconds");
