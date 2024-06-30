@@ -36,11 +36,12 @@ std::vector<KernelTuningNetTestCase> GetConvHipIgemmGroupFwdXdlopsTestCases()
          "DeviceGroupedConvFwdMultipleABD_Xdl_CShuffle<256, 128, 128, 16, Default, 32, 32, 2, 2, "
          "4, 4, 4, 1, 1>",
          "gfx90a"},
-        {{{48, 32, 48, 48, {14, 14}, {3, 3}, {1, 1}, {1, 1}, {1, 1}},
+        {{{16, 256, 2016, 192, {7, 7}, {1, 1}, {0, 0}, {1, 1}, {1, 1}},
           miopen::conv::Direction::Forward,
           miopenHalf,
           miopenTensorNHWC},
-         "DeviceGroupedConvFwdMultipleABD_Xdl_CShuffle<64, 64, 64, 32, Default, 32, 32, 2, 2, 1, "
+         "DeviceGroupedConvFwdMultipleABD_Xdl_CShuffle<64, 64, 64, 32, Filter1x1Stride1Pad0, 32, "
+         "32, 2, 2, 1, "
          "1, 1, 1, 1>",
          "gfx942"},
     };
@@ -66,20 +67,28 @@ std::vector<KernelTuningNetTestCase> GetConvHipIgemmGroupBwdXdlopsTestCases()
 
 std::vector<KernelTuningNetTestCase> GetConvHipIgemmGroupWrwXdlopsTestCases()
 {
-    return {{{{4, 2, 512, 512, {24, 36}, {3, 3}, {1, 1}, {1, 1}, {1, 1}},
-              miopen::conv::Direction::BackwardWeights,
-              miopenFloat,
-              miopenTensorNHWC},
-             "DeviceGroupedConvBwdWeight_Xdl_CShuffle<128, 128, 32, 4, Default, 4, 2, 1, 4, 4, 4, "
-             "1, 1, 1, 4>",
-             "gfx942"},
-            {{{1, 16, 128, 256, {27, 27}, {3, 3}, {0, 0}, {1, 2}, {1, 1}},
-              miopen::conv::Direction::BackwardWeights,
-              miopenHalf,
-              miopenTensorNHWC},
-             "DeviceGroupedConvBwdWeight_Xdl_CShuffle<64, 64, 32, 4, Default, 8, 2, 1, 8, 4, 8, 2, "
-             "1, 1, 8>",
-             "gfx90a"}};
+    return {
+        {{{1, 512, 3, 64, {219, 219}, {11, 11}, {2, 2}, {4, 4}, {1, 1}},
+          miopen::conv::Direction::BackwardWeights,
+          miopenFloat,
+          miopenTensorNHWC},
+         "DeviceGroupedConvBwdWeight_Xdl_CShuffle<128, 128, 32, 4, Default, 4, 2, 1, 4, 4, 1, 1, "
+         "1, 1, 1>+128",
+         "gfx942"},
+        {{{32, 1024, 480, 64, {14, 14}, {1, 1}, {0, 0}, {1, 1}, {1, 1}},
+          miopen::conv::Direction::BackwardWeights,
+          miopenHalf,
+          miopenTensorNHWC},
+         "DeviceGroupedConvBwdWeightTwoStage_Xdl_CShuffle<64, 16, 16, 32, Default, 8, 1, 1, 1, 4, "
+         "1, 4, 1, 1, 1, BlkGemmPipelineScheduler: Intrawave, BlkGemmPipelineVersion: v5, 1>+128",
+         "gfx942"},
+        {{{1, 16, 128, 256, {27, 27}, {3, 3}, {0, 0}, {1, 2}, {1, 1}},
+          miopen::conv::Direction::BackwardWeights,
+          miopenHalf,
+          miopenTensorNHWC},
+         "DeviceGroupedConvBwdWeight_Xdl_CShuffle<64, 64, 32, 4, Default, 8, 2, 1, 8, 4, 8, 2, "
+         "1, 1, 8>+1",
+         "gfx90a"}};
 }
 
 struct KernelTuningNetTest : public ::testing::TestWithParam<KernelTuningNetTestCase>
