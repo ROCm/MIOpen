@@ -33,6 +33,7 @@
 #include <miopen/target_properties.hpp>
 
 #include "ck_tile/ops/fmha.hpp"
+#include "ck_tile/ops/fmha_fwd.hpp"
 #include "ck_tile/ops/epilogue.hpp"
 #include "ck/stream_config.hpp"
 
@@ -47,90 +48,6 @@ namespace miopen {
 namespace solver {
 
 namespace mha {
-
-enum class mask_enum
-{
-    no_mask = 0,
-    mask_top_left,
-    mask_bottom_right,
-    window_generic,
-};
-
-// keep sync with BlockAttentionBiasEnum
-enum class bias_enum
-{
-    no_bias          = 0,
-    elementwise_bias = 1,
-    alibi            = 2,
-};
-
-struct fmha_fwd_args
-{
-    const void* q_ptr;
-    const void* k_ptr;
-    const void* v_ptr;
-    const void* bias_ptr; // bias or alibi_slope pointer
-    void* lse_ptr;
-    void* o_ptr;
-    const void* seqstart_q_ptr;
-    const void* seqstart_k_ptr;
-    const void* seqlen_k_ptr;
-    ck_tile::index_t seqlen_q;
-    ck_tile::index_t seqlen_k;
-    ck_tile::index_t batch;
-    ck_tile::index_t max_seqlen_q;
-    ck_tile::index_t hdim_q;
-    ck_tile::index_t hdim_v;
-    ck_tile::index_t nhead_q;
-    ck_tile::index_t nhead_k;
-    float scale_s;
-    float scale_p;
-    float scale_o;
-    ck_tile::index_t stride_q;
-    ck_tile::index_t stride_k;
-    ck_tile::index_t stride_v;
-    ck_tile::index_t stride_bias; // if alibi, b*h need set this to h, 1*h need set this to 0
-    ck_tile::index_t stride_o;
-    ck_tile::index_t nhead_stride_q;
-    ck_tile::index_t nhead_stride_k;
-    ck_tile::index_t nhead_stride_v;
-    ck_tile::index_t nhead_stride_bias;
-    ck_tile::index_t nhead_stride_lse;
-    ck_tile::index_t nhead_stride_o;
-    ck_tile::index_t batch_stride_q;
-    ck_tile::index_t batch_stride_k;
-    ck_tile::index_t batch_stride_v;
-    ck_tile::index_t batch_stride_bias;
-    ck_tile::index_t batch_stride_lse;
-    ck_tile::index_t batch_stride_o;
-    ck_tile::index_t window_size_left;
-    ck_tile::index_t window_size_right;
-    ck_tile::index_t mask_type;
-};
-
-struct stream_config
-{
-    hipStream_t stream_id_ = nullptr;
-    bool time_kernel_      = false;
-    int log_level_         = 0;
-    int cold_niters_       = 3;
-    int nrepeat_           = 10;
-};
-
-struct fmha_fwd_traits
-{
-    int hdim_q;
-    int hdim_v;
-    std::string data_type;
-    bool is_group_mode;
-    bool is_v_rowmajor;
-    mask_enum mask_type;
-    bias_enum bias_type; // 0:no bias, 1:elementwise bias, 2:alibi. sync with BlockAttentionBiasEnum
-    bool has_lse;
-    bool do_fp8_static_quant;
-    // TODO: padding check is inside this api
-};
-float fmha_fwd(fmha_fwd_traits, fmha_fwd_args, const stream_config&);
 
 bool MhaCKForward::IsApplicable([[maybe_unused]] const ExecutionContext& context,
                                 const miopen::mha::ProblemDescription& problem) const
@@ -217,6 +134,7 @@ ConvSolution MhaCKForward::GetSolution(const ExecutionContext& context,
                                                is_v_rowmajor,
                                                mask_enum::no_mask, // no mask for now
                                                bias_enum::no_bias, // no bias
+                                               false,
                                                store_loss,
                                                squant};
 
@@ -255,15 +173,18 @@ ConvSolution MhaCKForward::GetSolution(const ExecutionContext& context,
                 const ck_tile::index_t batch_stride_lse = (nhead * shape_seqlen_q * 1);
                 const ck_tile::index_t batch_stride_o   = (nhead * shape_seqlen_q * hdim_v);
 
-                return fmha_fwd_args{dataFwd.qData,
-                                     dataFwd.kData,
-                                     dataFwd.vData,
-                                     nullptr, // bias will revisit lattter
-                                     nullptr, // loss store buffer will revisit latter
-                                     dataFwd.oData,
-                                     nullptr, // seqstart_q nullptr wrl
-                                     nullptr, // seqstart_k nullptr wrl
-                                     nullptr,
+                return fmha_fwd_args{dataFwd.qData, // q_ptr
+                                     dataFwd.kData, // k_ptr
+                                     dataFwd.vData, // v_ptr
+                                     nullptr, //       bias_ptr    bias will revisit lattter
+                                     nullptr, //       rand_val_pr loss store buffer will revisit latter
+                                     dataFwd.oData,//  lse_acc_ptr
+                                     nullptr, //       o_acc_ptr        
+                                     nullptr, //       lse_ptr
+                                     nullptr,//        o_ptr
+                                     nullptr,//        seqstart_q_ptr
+                                     nullptr,//        seqstart_k_ptr
+                                     nullptr,//        seqlen_k_ptr
                                      shape_seqlen_q,
                                      shape_seqlen_k,
                                      batch,
@@ -305,7 +226,7 @@ ConvSolution MhaCKForward::GetSolution(const ExecutionContext& context,
             int stream_repeat = 20;   // number of iterations to benchmark the kernel
             bool kname        = true; // print kernel name
 
-            stream_config stream_config_tmp{
+            ck_tile::stream_config stream_config_tmp{
                 nullptr, true, /* log_level = */ (kname ? 1 : 0), stream_warmup, stream_repeat};
 
             // arg 3
