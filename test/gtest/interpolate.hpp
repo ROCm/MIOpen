@@ -70,18 +70,17 @@ struct InterpolateTestCase
 inline std::vector<InterpolateTestCase> InterpolateTestConfigs()
 {
     return {
-        // {{16, 256, 1, 1, 1}, {32, 32, 32}, {32, 32, 32}, MIOPEN_INTERPOLATE_MODE_TRILINEAR,
-        // false},
-        // {{16, 256, 1, 1, 1}, {32, 32, 32}, {0, 0, 0}, MIOPEN_INTERPOLATE_MODE_TRILINEAR, true},
+        {{16, 256, 1, 1, 1}, {32, 32, 32}, {32, 32, 32}, MIOPEN_INTERPOLATE_MODE_TRILINEAR, false},
+        {{16, 256, 1, 1, 1}, {32, 32, 32}, {0, 0, 0}, MIOPEN_INTERPOLATE_MODE_TRILINEAR, true},
         {{16, 256, 1, 1, 1}, {32, 32, 32}, {0, 0, 0}, MIOPEN_INTERPOLATE_MODE_NEAREST, false},
         {{16, 256, 1, 1}, {32, 32}, {0, 0}, MIOPEN_INTERPOLATE_MODE_NEAREST, false},
-        // {{16, 256, 1, 1}, {32, 32}, {0, 0}, MIOPEN_INTERPOLATE_MODE_BILINEAR, false},
-        // {{16, 256, 1, 1}, {32, 32}, {0, 0}, MIOPEN_INTERPOLATE_MODE_BILINEAR, true},
-        // {{16, 256, 1, 1}, {32, 32}, {0, 0}, MIOPEN_INTERPOLATE_MODE_BICUBIC, false},
-        // {{16, 256, 1, 1}, {32, 32}, {0, 0}, MIOPEN_INTERPOLATE_MODE_BICUBIC, true},
+        {{16, 256, 1, 1}, {32, 32}, {0, 0}, MIOPEN_INTERPOLATE_MODE_BILINEAR, false},
+        {{16, 256, 1, 1}, {32, 32}, {0, 0}, MIOPEN_INTERPOLATE_MODE_BILINEAR, true},
+        {{16, 256, 1, 1}, {32, 32}, {0, 0}, MIOPEN_INTERPOLATE_MODE_BICUBIC, false},
+        {{16, 256, 1, 1}, {32, 32}, {0, 0}, MIOPEN_INTERPOLATE_MODE_BICUBIC, true},
         {{16, 256, 1}, {32}, {0}, MIOPEN_INTERPOLATE_MODE_NEAREST, false},
-        // {{16, 256, 1}, {32}, {0}, MIOPEN_INTERPOLATE_MODE_LINEAR, false},
-        // {{16, 256, 1}, {32}, {0}, MIOPEN_INTERPOLATE_MODE_LINEAR, true},
+        {{16, 256, 1}, {32}, {0}, MIOPEN_INTERPOLATE_MODE_LINEAR, false},
+        {{16, 256, 1}, {32}, {0}, MIOPEN_INTERPOLATE_MODE_LINEAR, true},
     };
 }
 
@@ -236,9 +235,20 @@ protected:
         mode             = interpolate_config.mode;
         align_corners    = interpolate_config.align_corners;
 
-        scale_factors = tensor<float>{size.size()};
-        for(int i = 0; i < size.size(); i++)
-            scale_factors[i] = interpolate_config.scale_factors[i];
+        if(mode != MIOPEN_INTERPOLATE_MODE_NEAREST)
+        {
+            scale_factors = tensor<float>{size.size()};
+            for(int i = 0; i < size.size(); i++)
+                scale_factors[i] = interpolate_config.scale_factors[i];
+        }
+        else
+        {
+            scale_factors = tensor<float>{3};
+            for(int i = 0; i < size.size(); i++)
+                scale_factors[i] = interpolate_config.scale_factors[i];
+            for(int i = size.size(); i < 3; i++)
+                scale_factors[i] = 0;
+        }
 
         auto out_grad_dim = std::vector<size_t>({in_dim[0], in_dim[1]});
         for(int i = 0; i < size.size(); i++)
@@ -313,11 +323,11 @@ protected:
     {
         double threshold = std::numeric_limits<T>::epsilon();
 
-        auto error1 = miopen::rms_range(ref_input_grad, input_grad);
+        auto error = miopen::rms_range(ref_input_grad, input_grad);
 
         EXPECT_TRUE(miopen::range_distance(ref_input_grad) == miopen::range_distance(input_grad));
-        EXPECT_TRUE(error1 < threshold * 10) << "Error input grad beyond tolerance Error:" << error1
-                                             << ",  Thresholdx10: " << threshold * 10;
+        EXPECT_TRUE(error < threshold * 10) << "Error input grad beyond tolerance Error:" << error
+                                            << ",  Thresholdx10: " << threshold * 10;
     }
     InterpolateTestCase interpolate_config;
 

@@ -49,7 +49,7 @@ bool InterpolateBicubicBackward::IsApplicable(
     if(problem.GetMode() != miopenInterpolateMode_t::MIOPEN_INTERPOLATE_MODE_BICUBIC)
         return false;
 
-    return false;
+    return true;
 }
 
 ConvSolution InterpolateBicubicBackward::GetSolution(
@@ -64,7 +64,7 @@ ConvSolution InterpolateBicubicBackward::GetSolution(
 
     {
         auto dtype     = problem.GetInputGradDesc().GetType();
-        size_t N_total = problem.GetOutputGradDesc().GetElementSize();
+        size_t N_total = problem.GetInputGradDesc().GetElementSize();
 
         auto kernel = KernelInfo{};
 

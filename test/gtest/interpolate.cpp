@@ -53,17 +53,17 @@ struct InterpolateTestBFloat16 : InterpolateTest<bfloat16>
 {
 };
 
-// struct InterpolateTestFloatBwd : InterpolateTestBwd<float>
-// {
-// };
+struct InterpolateTestFloatBwd : InterpolateTestBwd<float>
+{
+};
 
-// struct InterpolateTestHalfBwd : InterpolateTestBwd<half>
-// {
-// };
+struct InterpolateTestHalfBwd : InterpolateTestBwd<half>
+{
+};
 
-// struct InterpolateTestBFloat16Bwd : InterpolateTestBwd<bfloat16>
-// {
-// };
+struct InterpolateTestBFloat16Bwd : InterpolateTestBwd<bfloat16>
+{
+};
 
 } // namespace interpolate
 using namespace interpolate;
@@ -121,55 +121,55 @@ INSTANTIATE_TEST_SUITE_P(InterpolateTestSet,
                          InterpolateTestBFloat16,
                          testing::ValuesIn(InterpolateTestConfigs()));
 
-// // BACKWARD TEST
-// TEST_P(InterpolateTestFloatBwd, InterpolateTestBwd)
-// {
-//     if((miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && GetFloatArg() == "--float") ||
-//        miopen::IsUnset(ENV(MIOPEN_TEST_ALL)))
-//     {
-//         RunTest();
-//         Verify();
-//     }
-//     else
-//     {
-//         GTEST_SKIP();
-//     }
-// };
+// BACKWARD TEST
+TEST_P(InterpolateTestFloatBwd, InterpolateTestBwd)
+{
+    if((miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && GetFloatArg() == "--float") ||
+       miopen::IsUnset(ENV(MIOPEN_TEST_ALL)))
+    {
+        RunTest();
+        Verify();
+    }
+    else
+    {
+        GTEST_SKIP();
+    }
+};
 
-// TEST_P(InterpolateTestHalfBwd, InterpolateTestBwd)
-// {
-//     if((miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && GetFloatArg() == "--half") ||
-//        miopen::IsUnset(ENV(MIOPEN_TEST_ALL)))
-//     {
-//         RunTest();
-//         Verify();
-//     }
-//     else
-//     {
-//         GTEST_SKIP();
-//     }
-// };
+TEST_P(InterpolateTestHalfBwd, InterpolateTestBwd)
+{
+    if((miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && GetFloatArg() == "--half") ||
+       miopen::IsUnset(ENV(MIOPEN_TEST_ALL)))
+    {
+        RunTest();
+        Verify();
+    }
+    else
+    {
+        GTEST_SKIP();
+    }
+};
 
-// TEST_P(InterpolateTestBFloat16Bwd, InterpolateTestBwd)
-// {
-//     if((miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && GetFloatArg() == "--bfloat16") ||
-//        miopen::IsUnset(ENV(MIOPEN_TEST_ALL)))
-//     {
-//         RunTest();
-//         Verify();
-//     }
-//     else
-//     {
-//         GTEST_SKIP();
-//     }
-// };
+TEST_P(InterpolateTestBFloat16Bwd, InterpolateTestBwd)
+{
+    if((miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && GetFloatArg() == "--bfloat16") ||
+       miopen::IsUnset(ENV(MIOPEN_TEST_ALL)))
+    {
+        RunTest();
+        Verify();
+    }
+    else
+    {
+        GTEST_SKIP();
+    }
+};
 
-// INSTANTIATE_TEST_SUITE_P(InterpolateTestSet,
-//                          InterpolateTestFloatBwd,
-//                          testing::ValuesIn(InterpolateTestConfigs()));
-// INSTANTIATE_TEST_SUITE_P(InterpolateTestSet,
-//                          InterpolateTestHalfBwd,
-//                          testing::ValuesIn(InterpolateTestConfigs()));
-// INSTANTIATE_TEST_SUITE_P(InterpolateTestSet,
-//                          InterpolateTestBFloat16Bwd,
-//                          testing::ValuesIn(InterpolateTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(InterpolateTestSet,
+                         InterpolateTestFloatBwd,
+                         testing::ValuesIn(InterpolateTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(InterpolateTestSet,
+                         InterpolateTestHalfBwd,
+                         testing::ValuesIn(InterpolateTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(InterpolateTestSet,
+                         InterpolateTestBFloat16Bwd,
+                         testing::ValuesIn(InterpolateTestConfigs()));

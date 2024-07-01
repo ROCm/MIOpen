@@ -23,11 +23,13 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef GUARD_CPU_INTERPOLATE_HPP
-#define GUARD_CPU_INTERPOLATE_HPP
+#ifndef MLO_INTERPOLATE_H_
+#define MLO_INTERPOLATE_H_
 
-#include "miopen/miopen.h"
-#include "tensor_holder.hpp"
+#pragma once
+
+#include <cmath>
+#include <miopen/tensor.hpp>
 #include <miopen/interpolate/utils.hpp>
 
 inline float compute_linear_scale_factor(float scale_factor,
@@ -149,15 +151,18 @@ inline float compute_back_lambda(
     return get_back_lambda(src, index0, index1, lambda0, lambda1);
 }
 
-template <class T>
-void cpu_interpolate_linear_forward(const tensor<T> input,
-                                    tensor<T>& output,
-                                    const size_t nelems,
-                                    const tensor<float> scale_factors,
-                                    const bool align_corners)
+template <typename Tgpu, typename Tcheck>
+int32_t mlo_interpolate_linear_forward(const miopenTensorDescriptor_t inputDesc,
+                                       const miopenTensorDescriptor_t outputDesc,
+                                       const Tgpu* input,
+                                       Tcheck* output,
+                                       const size_t nelems,
+                                       const float* scale_factors,
+                                       const bool align_corners)
 {
-    auto input_tv  = miopen::solver::interpolate::get_inner_expanded_tv<3>(input.desc);
-    auto output_tv = miopen::solver::interpolate::get_inner_expanded_tv<3>(output.desc);
+    auto input_tv = miopen::solver::interpolate::get_inner_expanded_tv<3>(miopen::deref(inputDesc));
+    auto output_tv =
+        miopen::solver::interpolate::get_inner_expanded_tv<3>(miopen::deref(outputDesc));
 
     for(unsigned long gid = 0; gid < nelems; ++gid)
     {
@@ -206,19 +211,25 @@ void cpu_interpolate_linear_forward(const tensor<T> input,
         float input1 = input[input_tv.get_tensor_view_idx(input_layout1)];
 
         output[output_tv.get_tensor_view_idx(tensor_layout)] =
-            static_cast<T>(input0 * lambda0 + input1 * lambda1);
+            static_cast<Tcheck>(input0 * lambda0 + input1 * lambda1);
     }
+
+    return 0;
 }
 
-template <class T>
-void cpu_interpolate_linear_backward(tensor<T>& input_grad,
-                                     const tensor<T> output_grad,
-                                     const size_t nelems,
-                                     const tensor<float> scale_factors,
-                                     const bool align_corners)
+template <typename Tgpu, typename Tcheck>
+int32_t mlo_interpolate_linear_backward(const miopenTensorDescriptor_t inputGradDesc,
+                                        const miopenTensorDescriptor_t outputGradDesc,
+                                        Tcheck* input_grad,
+                                        const Tgpu* output_grad,
+                                        const size_t nelems,
+                                        const float* scale_factors,
+                                        const bool align_corners)
 {
-    auto output_grad_tv = miopen::solver::interpolate::get_inner_expanded_tv<3>(output_grad.desc);
-    auto input_grad_tv  = miopen::solver::interpolate::get_inner_expanded_tv<3>(input_grad.desc);
+    auto output_grad_tv =
+        miopen::solver::interpolate::get_inner_expanded_tv<3>(miopen::deref(outputGradDesc));
+    auto input_grad_tv =
+        miopen::solver::interpolate::get_inner_expanded_tv<3>(miopen::deref(inputGradDesc));
 
     for(unsigned long gid = 0; gid < nelems; ++gid)
     {
@@ -254,19 +265,24 @@ void cpu_interpolate_linear_backward(tensor<T>& input_grad,
                 static_cast<float>(output_grad[output_grad_tv.get_tensor_view_idx(output_layout)]) *
                 compute_back_lambda(i, h, scale_factor, Hin, Hout, align_corners);
         }
-        input_grad[input_grad_tv.get_tensor_view_idx(tensor_layout)] = static_cast<T>(output);
+        input_grad[input_grad_tv.get_tensor_view_idx(tensor_layout)] = static_cast<Tcheck>(output);
     }
+
+    return 0;
 }
 
-template <class T>
-void cpu_interpolate_bilinear_forward(const tensor<T> input,
-                                      tensor<T>& output,
-                                      const size_t nelems,
-                                      const tensor<float> scale_factors,
-                                      const bool align_corners)
+template <typename Tgpu, typename Tcheck>
+int32_t mlo_interpolate_bilinear_forward(const miopenTensorDescriptor_t inputDesc,
+                                         const miopenTensorDescriptor_t outputDesc,
+                                         const Tgpu* input,
+                                         Tcheck* output,
+                                         const size_t nelems,
+                                         const float* scale_factors,
+                                         const bool align_corners)
 {
-    auto input_tv  = miopen::solver::interpolate::get_inner_expanded_tv<4>(input.desc);
-    auto output_tv = miopen::solver::interpolate::get_inner_expanded_tv<4>(output.desc);
+    auto input_tv = miopen::solver::interpolate::get_inner_expanded_tv<4>(miopen::deref(inputDesc));
+    auto output_tv =
+        miopen::solver::interpolate::get_inner_expanded_tv<4>(miopen::deref(outputDesc));
 
     for(unsigned long gid = 0; gid < nelems; ++gid)
     {
@@ -352,7 +368,7 @@ void cpu_interpolate_bilinear_forward(const tensor<T> input,
         input_layout11.layout[2] = hin_index1;
         input_layout11.layout[3] = win_index1;
 
-        output[output_tv.get_tensor_view_idx(tensor_layout)] = static_cast<T>(
+        output[output_tv.get_tensor_view_idx(tensor_layout)] = static_cast<Tcheck>(
             (static_cast<float>(input[input_tv.get_tensor_view_idx(input_layout00)]) * wlambda0 +
              static_cast<float>(input[input_tv.get_tensor_view_idx(input_layout01)]) * wlambda1) *
                 hlambda0 +
@@ -360,17 +376,23 @@ void cpu_interpolate_bilinear_forward(const tensor<T> input,
              static_cast<float>(input[input_tv.get_tensor_view_idx(input_layout11)]) * wlambda1) *
                 hlambda1);
     }
+
+    return 0;
 }
 
-template <class T>
-void cpu_interpolate_bilinear_backward(tensor<T>& input_grad,
-                                       const tensor<T> output_grad,
-                                       const size_t nelems,
-                                       const tensor<float> scale_factors,
-                                       const bool align_corners)
+template <typename Tgpu, typename Tcheck>
+int32_t mlo_interpolate_bilinear_backward(const miopenTensorDescriptor_t inputGradDesc,
+                                          const miopenTensorDescriptor_t outputGradDesc,
+                                          Tcheck* input_grad,
+                                          const Tgpu* output_grad,
+                                          const size_t nelems,
+                                          const float* scale_factors,
+                                          const bool align_corners)
 {
-    auto output_grad_tv = miopen::solver::interpolate::get_inner_expanded_tv<4>(output_grad.desc);
-    auto input_grad_tv  = miopen::solver::interpolate::get_inner_expanded_tv<4>(input_grad.desc);
+    auto output_grad_tv =
+        miopen::solver::interpolate::get_inner_expanded_tv<4>(miopen::deref(outputGradDesc));
+    auto input_grad_tv =
+        miopen::solver::interpolate::get_inner_expanded_tv<4>(miopen::deref(inputGradDesc));
 
     for(unsigned long gid = 0; gid < nelems; ++gid)
     {
@@ -438,19 +460,24 @@ void cpu_interpolate_bilinear_backward(tensor<T>& input_grad,
                           h_lambda * w_lambda;
             }
         }
-        input_grad[input_grad_tv.get_tensor_view_idx(tensor_layout)] = static_cast<T>(output);
+        input_grad[input_grad_tv.get_tensor_view_idx(tensor_layout)] = static_cast<Tcheck>(output);
     }
+
+    return 0;
 }
 
-template <class T>
-void cpu_interpolate_trilinear_forward(const tensor<T> input,
-                                       tensor<T>& output,
-                                       const size_t nelems,
-                                       const tensor<float> scale_factors,
-                                       const bool align_corners)
+template <typename Tgpu, typename Tcheck>
+int32_t mlo_interpolate_trilinear_forward(const miopenTensorDescriptor_t inputDesc,
+                                          const miopenTensorDescriptor_t outputDesc,
+                                          const Tgpu* input,
+                                          Tcheck* output,
+                                          const size_t nelems,
+                                          const float* scale_factors,
+                                          const bool align_corners)
 {
-    auto input_tv  = miopen::solver::interpolate::get_inner_expanded_tv<5>(input.desc);
-    auto output_tv = miopen::solver::interpolate::get_inner_expanded_tv<5>(output.desc);
+    auto input_tv = miopen::solver::interpolate::get_inner_expanded_tv<5>(miopen::deref(inputDesc));
+    auto output_tv =
+        miopen::solver::interpolate::get_inner_expanded_tv<5>(miopen::deref(outputDesc));
 
     for(unsigned long gid = 0; gid < nelems; ++gid)
     {
@@ -591,7 +618,7 @@ void cpu_interpolate_trilinear_forward(const tensor<T> input,
         input_layout111.layout[3] = hin_index1;
         input_layout111.layout[4] = win_index1;
 
-        output[output_tv.get_tensor_view_idx(tensor_layout)] = static_cast<T>(
+        output[output_tv.get_tensor_view_idx(tensor_layout)] = static_cast<Tcheck>(
             (static_cast<float>(input[input_tv.get_tensor_view_idx(input_layout000)]) * wlambda0 +
              static_cast<float>(input[input_tv.get_tensor_view_idx(input_layout001)]) * wlambda1) *
                 hlambda0 +
@@ -605,16 +632,22 @@ void cpu_interpolate_trilinear_forward(const tensor<T> input,
              static_cast<float>(input[input_tv.get_tensor_view_idx(input_layout111)]) * wlambda1) *
                 dlambda1);
     }
+
+    return 0;
 }
-template <class T>
-void cpu_interpolate_trilinear_backward(tensor<T>& input_grad,
-                                        const tensor<T> output_grad,
-                                        const size_t nelems,
-                                        const tensor<float> scale_factors,
-                                        const bool align_corners)
+template <typename Tgpu, typename Tcheck>
+int32_t mlo_interpolate_trilinear_backward(const miopenTensorDescriptor_t inputGradDesc,
+                                           const miopenTensorDescriptor_t outputGradDesc,
+                                           Tcheck* input_grad,
+                                           const Tgpu* output_grad,
+                                           const size_t nelems,
+                                           const float* scale_factors,
+                                           const bool align_corners)
 {
-    auto output_grad_tv = miopen::solver::interpolate::get_inner_expanded_tv<5>(output_grad.desc);
-    auto input_grad_tv  = miopen::solver::interpolate::get_inner_expanded_tv<5>(input_grad.desc);
+    auto output_grad_tv =
+        miopen::solver::interpolate::get_inner_expanded_tv<5>(miopen::deref(outputGradDesc));
+    auto input_grad_tv =
+        miopen::solver::interpolate::get_inner_expanded_tv<5>(miopen::deref(inputGradDesc));
 
     for(unsigned long gid = 0; gid < nelems; ++gid)
     {
@@ -678,6 +711,8 @@ void cpu_interpolate_trilinear_backward(tensor<T>& input_grad,
         }
         input_grad[input_grad_tv.get_tensor_view_idx(tensor_layout)] = output;
     }
+
+    return 0;
 }
 
 inline float compute_scales_value(float scale, long input_size, long output_size)
@@ -702,14 +737,17 @@ inline long nearest_idx(long output_index, long input_size, long output_size, fl
     }
 }
 
-template <class T>
-void cpu_nearest_forward(const tensor<T> input,
-                         tensor<T>& output,
-                         const size_t nelems,
-                         const tensor<float> scale_factors)
+template <typename Tgpu, typename Tcheck>
+int32_t mlo_nearest_forward(const miopenTensorDescriptor_t inputDesc,
+                            const miopenTensorDescriptor_t outputDesc,
+                            const Tgpu* input,
+                            Tcheck* output,
+                            const size_t nelems,
+                            const float* scale_factors)
 {
-    auto input_tv  = miopen::solver::interpolate::get_inner_expanded_tv<5>(input.desc);
-    auto output_tv = miopen::solver::interpolate::get_inner_expanded_tv<5>(output.desc);
+    auto input_tv = miopen::solver::interpolate::get_inner_expanded_tv<5>(miopen::deref(inputDesc));
+    auto output_tv =
+        miopen::solver::interpolate::get_inner_expanded_tv<5>(miopen::deref(outputDesc));
 
     for(unsigned long gid = 0; gid < nelems; ++gid)
     {
@@ -741,6 +779,8 @@ void cpu_nearest_forward(const tensor<T> input,
         output[output_tv.get_tensor_view_idx(tensor_layout)] =
             input[input_tv.get_tensor_view_idx(input_layout)];
     }
+
+    return 0;
 }
 
 inline long nearest_idx_back(long input_index, long input_size, long output_size, float scales)
@@ -760,14 +800,18 @@ inline long nearest_idx_back(long input_index, long input_size, long output_size
     }
 }
 
-template <class T>
-void cpu_nearest_backward(tensor<T>& input_grad,
-                          const tensor<T> output_grad,
-                          const size_t nelems,
-                          const tensor<float> scale_factors)
+template <typename Tgpu, typename Tcheck>
+int32_t mlo_nearest_backward(const miopenTensorDescriptor_t inputGradDesc,
+                             const miopenTensorDescriptor_t outputGradDesc,
+                             Tcheck* input_grad,
+                             const Tgpu* output_grad,
+                             const size_t nelems,
+                             const float* scale_factors)
 {
-    auto input_grad_tv  = miopen::solver::interpolate::get_inner_expanded_tv<5>(input_grad.desc);
-    auto output_grad_tv = miopen::solver::interpolate::get_inner_expanded_tv<5>(output_grad.desc);
+    auto output_grad_tv =
+        miopen::solver::interpolate::get_inner_expanded_tv<5>(miopen::deref(outputGradDesc));
+    auto input_grad_tv =
+        miopen::solver::interpolate::get_inner_expanded_tv<5>(miopen::deref(inputGradDesc));
 
     for(unsigned long gid = 0; gid < nelems; ++gid)
     {
@@ -815,8 +859,10 @@ void cpu_nearest_backward(tensor<T>& input_grad,
                 }
             }
         }
-        input_grad[input_grad_tv.get_tensor_view_idx(tensor_layout)] = static_cast<T>(grad);
+        input_grad[input_grad_tv.get_tensor_view_idx(tensor_layout)] = static_cast<Tcheck>(grad);
     }
+
+    return 0;
 }
 
 inline float
@@ -863,15 +909,18 @@ inline float cubic_interp1d(float x0, float x1, float x2, float x3, float t)
 
 inline long bound(long p, long max_size) { return std::max(std::min(p, max_size - 1), 0L); }
 
-template <class T>
-void cpu_bicubic_forward(const tensor<T> input,
-                         tensor<T>& output,
-                         const size_t nelems,
-                         const tensor<float> scale_factors,
-                         const bool align_corners)
+template <typename Tgpu, typename Tcheck>
+int32_t mlo_bicubic_forward(const miopenTensorDescriptor_t inputDesc,
+                            const miopenTensorDescriptor_t outputDesc,
+                            const Tgpu* input,
+                            Tcheck* output,
+                            const size_t nelems,
+                            const float* scale_factors,
+                            const bool align_corners)
 {
-    auto input_tv  = miopen::solver::interpolate::get_inner_expanded_tv<4>(input.desc);
-    auto output_tv = miopen::solver::interpolate::get_inner_expanded_tv<4>(output.desc);
+    auto input_tv = miopen::solver::interpolate::get_inner_expanded_tv<4>(miopen::deref(inputDesc));
+    auto output_tv =
+        miopen::solver::interpolate::get_inner_expanded_tv<4>(miopen::deref(outputDesc));
 
     for(unsigned long gid = 0; gid < nelems; ++gid)
     {
@@ -942,81 +991,194 @@ void cpu_bicubic_forward(const tensor<T> input,
                 static_cast<float>(input[input_tv.get_tensor_view_idx(input_layout3)]),
                 t_x);
         }
-        output[output_tv.get_tensor_view_idx(tensor_layout)] = static_cast<T>(cubic_interp1d(
+        output[output_tv.get_tensor_view_idx(tensor_layout)] = static_cast<Tcheck>(cubic_interp1d(
             coefficients[0], coefficients[1], coefficients[2], coefficients[3], t_y));
     }
+
+    return 0;
 }
 
-template <class T>
-void cpu_bicubic_backward(tensor<T>& input_grad,
-                          const tensor<T> output_grad,
-                          const size_t nelems,
-                          const tensor<float> scale_factors,
-                          const bool align_corners)
-{
-}
-
-template <class T>
-void cpu_interpolate_forward(const tensor<T> input,
-                             tensor<T>& output,
+template <typename Tgpu, typename Tcheck>
+int32_t mlo_bicubic_backward(const miopenTensorDescriptor_t inputGradDesc,
+                             const miopenTensorDescriptor_t outputGradDesc,
+                             Tcheck* input_grad,
+                             const Tgpu* output_grad,
                              const size_t nelems,
-                             const tensor<float> scale_factors,
-                             const bool align_corners,
-                             const miopenInterpolateMode_t mode)
+                             const float* scale_factors,
+                             const bool align_corners)
+{
+    auto output_grad_tv =
+        miopen::solver::interpolate::get_inner_expanded_tv<4>(miopen::deref(outputGradDesc));
+    auto input_grad_tv =
+        miopen::solver::interpolate::get_inner_expanded_tv<4>(miopen::deref(inputGradDesc));
+
+    float workspace[nelems];
+
+    uint64_t Hin  = input_grad_tv.size[2];
+    uint64_t Hout = output_grad_tv.size[2];
+    uint64_t Win  = input_grad_tv.size[3];
+    uint64_t Wout = output_grad_tv.size[3];
+
+    for(uint64_t gid = 0; gid < nelems; ++gid)
+    {
+        auto tensor_layout = tensor_layout_t<4>(output_grad_tv, gid);
+        uint64_t n         = tensor_layout.layout[0];
+        uint64_t c         = tensor_layout.layout[1];
+        uint64_t h         = tensor_layout.layout[2];
+        uint64_t w         = tensor_layout.layout[3];
+
+        if(Hin == Hout && Win == Wout)
+        {
+            input_grad[input_grad_tv.get_tensor_view_idx(tensor_layout)] =
+                output_grad[output_grad_tv.get_tensor_view_idx(tensor_layout)];
+            continue;
+        }
+
+        float scale_factor_h = scale_factors[0];
+        float scale_factor_h_ =
+            compute_linear_scale_factor(scale_factor_h, Hin, Hout, align_corners);
+        float real_y  = bicubic_idx(h, Hout, scale_factor_h_, align_corners);
+        uint64_t in_y = static_cast<uint64_t>(std::floor(real_y));
+        float t_y     = real_y - in_y;
+
+        float scale_factor_w = scale_factors[1];
+        float scale_factor_w_ =
+            compute_linear_scale_factor(scale_factor_w, Win, Wout, align_corners);
+        float real_x  = bicubic_idx(w, Wout, scale_factor_w_, align_corners);
+        uint64_t in_x = static_cast<uint64_t>(std::floor(real_x));
+        float t_x     = real_x - in_x;
+
+        float y_coeffs[4];
+        float x_coeffs[4];
+        get_cubic_upsampling_coefficients(y_coeffs, t_y);
+        get_cubic_upsampling_coefficients(x_coeffs, t_x);
+        float out_value =
+            static_cast<float>(output_grad[output_grad_tv.get_tensor_view_idx(tensor_layout)]);
+
+        for(int i = 0; i < 4; i++)
+        {
+            uint64_t input_h = bound(in_y - 1 + i, Hin);
+            for(int j = 0; j < 4; j++)
+            {
+                uint64_t input_w = bound(in_x - 1 + j, Win);
+                tensor_layout_t<4> in_grad_layout;
+                in_grad_layout.layout[0] = n;
+                in_grad_layout.layout[1] = c;
+                in_grad_layout.layout[2] = input_h;
+                in_grad_layout.layout[3] = input_w;
+
+                workspace[input_grad_tv.get_tensor_view_idx(in_grad_layout)] +=
+                    out_value * y_coeffs[i] * x_coeffs[j];
+            }
+        }
+    }
+
+    if(!(Hin == Hout && Win == Wout))
+    {
+        for(uint64_t gid = 0; gid < nelems; ++gid)
+        {
+            input_grad[gid] = static_cast<Tcheck>(workspace[gid]);
+        }
+    }
+
+    return 0;
+}
+
+template <typename Tgpu, typename Tcheck>
+int32_t mlo_interpolate_forward(const miopenTensorDescriptor_t inputDesc,
+                                const miopenTensorDescriptor_t outputDesc,
+                                const Tgpu* input,
+                                Tcheck* output,
+                                const size_t nelems,
+                                const float* scale_factors,
+                                const bool align_corners,
+                                const miopenInterpolateMode_t mode)
 {
     if(mode == MIOPEN_INTERPOLATE_MODE_NEAREST)
     {
-        cpu_nearest_forward(input, output, nelems, scale_factors);
+        return mlo_nearest_forward(inputDesc, outputDesc, input, output, nelems, scale_factors);
     }
     else if(mode == MIOPEN_INTERPOLATE_MODE_LINEAR)
     {
-        cpu_interpolate_linear_forward(input, output, nelems, scale_factors, align_corners);
+        return mlo_interpolate_linear_forward(
+            inputDesc, outputDesc, input, output, nelems, scale_factors, align_corners);
     }
     else if(mode == MIOPEN_INTERPOLATE_MODE_BILINEAR)
     {
-        cpu_interpolate_bilinear_forward(input, output, nelems, scale_factors, align_corners);
+        return mlo_interpolate_bilinear_forward(
+            inputDesc, outputDesc, input, output, nelems, scale_factors, align_corners);
     }
     else if(mode == MIOPEN_INTERPOLATE_MODE_TRILINEAR)
     {
-        cpu_interpolate_trilinear_forward(input, output, nelems, scale_factors, align_corners);
+        return mlo_interpolate_trilinear_forward(
+            inputDesc, outputDesc, input, output, nelems, scale_factors, align_corners);
     }
     else if(mode == MIOPEN_INTERPOLATE_MODE_BICUBIC)
     {
-        cpu_bicubic_forward(input, output, nelems, scale_factors, align_corners);
+        return mlo_bicubic_forward(
+            inputDesc, outputDesc, input, output, nelems, scale_factors, align_corners);
     }
+
+    return 0;
 }
 
-template <class T>
-void cpu_interpolate_backward(tensor<T>& input_grad,
-                              const tensor<T> output_grad,
-                              const size_t nelems,
-                              const tensor<float> scale_factors,
-                              const bool align_corners,
-                              const miopenInterpolateMode_t mode)
+template <typename Tgpu, typename Tcheck>
+int32_t mlo_interpolate_backward(const miopenTensorDescriptor_t inputGradDesc,
+                                 const miopenTensorDescriptor_t outputGradDesc,
+                                 Tcheck* input_grad,
+                                 const Tgpu* output_grad,
+                                 const size_t nelems,
+                                 const float* scale_factors,
+                                 const bool align_corners,
+                                 const miopenInterpolateMode_t mode)
 {
     if(mode == MIOPEN_INTERPOLATE_MODE_NEAREST)
     {
-        cpu_nearest_backward(input_grad, output_grad, nelems, scale_factors);
+        return mlo_nearest_backward(
+            inputGradDesc, outputGradDesc, input_grad, output_grad, nelems, scale_factors);
     }
     else if(mode == MIOPEN_INTERPOLATE_MODE_LINEAR)
     {
-        cpu_interpolate_linear_backward(
-            input_grad, output_grad, nelems, scale_factors, align_corners);
+        return mlo_interpolate_linear_backward(inputGradDesc,
+                                               outputGradDesc,
+                                               input_grad,
+                                               output_grad,
+                                               nelems,
+                                               scale_factors,
+                                               align_corners);
     }
     else if(mode == MIOPEN_INTERPOLATE_MODE_BILINEAR)
     {
-        cpu_interpolate_bilinear_backward(
-            input_grad, output_grad, nelems, scale_factors, align_corners);
+        return mlo_interpolate_bilinear_backward(inputGradDesc,
+                                                 outputGradDesc,
+                                                 input_grad,
+                                                 output_grad,
+                                                 nelems,
+                                                 scale_factors,
+                                                 align_corners);
     }
     else if(mode == MIOPEN_INTERPOLATE_MODE_TRILINEAR)
     {
-        cpu_interpolate_trilinear_backward(
-            input_grad, output_grad, nelems, scale_factors, align_corners);
+        return mlo_interpolate_trilinear_backward(inputGradDesc,
+                                                  outputGradDesc,
+                                                  input_grad,
+                                                  output_grad,
+                                                  nelems,
+                                                  scale_factors,
+                                                  align_corners);
     }
     else if(mode == MIOPEN_INTERPOLATE_MODE_BICUBIC)
     {
-        cpu_bicubic_backward(input_grad, output_grad, nelems, scale_factors, align_corners);
+        return mlo_bicubic_backward(inputGradDesc,
+                                    outputGradDesc,
+                                    input_grad,
+                                    output_grad,
+                                    nelems,
+                                    scale_factors,
+                                    align_corners);
     }
+
+    return 0;
 }
 
-#endif // GUARD_CPU_INTERPOLATE_HPP
+#endif // MLO_INTERPOLATE_H_

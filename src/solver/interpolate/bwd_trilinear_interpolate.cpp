@@ -64,7 +64,7 @@ ConvSolution InterpolateTrilinearBackward::GetSolution(
 
     {
         auto dtype     = problem.GetInputGradDesc().GetType();
-        size_t N_total = problem.GetOutputGradDesc().GetElementSize();
+        size_t N_total = problem.GetInputGradDesc().GetElementSize();
 
         auto kernel = KernelInfo{};
 

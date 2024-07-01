@@ -222,9 +222,11 @@ struct BwdProblemDescription : ProblemDescription
 
         if((outputGradDesc.GetSize() - 2) != scaleFactorsDesc.GetElementSize())
         {
-            MIOPEN_THROW(
-                miopenStatusBadParm,
-                "Interpolate: Output grad tensor size and scale factors length do not match.");
+            if(mode != MIOPEN_INTERPOLATE_MODE_NEAREST)
+            {
+                MIOPEN_THROW(miopenStatusBadParm,
+                             "Interpolate: Tensor size and scale factors length do not match.");
+            }
         }
         return true;
     }
