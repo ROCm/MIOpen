@@ -546,7 +546,6 @@ void DropoutBackward(const miopen::Handle& handle,
     {
 
         program_name = "MIOpenDropoutHIP.cpp";
-        // kernel_name  = "DropoutBackward";
         kernel_name  = "DropoutBW";
         network_config += "-hip";
     }
