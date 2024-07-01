@@ -469,7 +469,7 @@ bool TensorDescriptor::IsContiguous() const
         {
             return false;
         }
-        plane_size *= static_cast<int64_t>(lens[index]);
+        plane_size *= lens[index];
     }
     return true;
 }
