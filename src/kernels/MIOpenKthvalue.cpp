@@ -191,10 +191,12 @@ __device__ void kthvalueFwd(const TIO* input,
     __syncthreads();
     if(lid == 0)
     {
-        auto output_layout                                   = tensor_layout_t<5>(output_tv, gid);
-        auto indices_layout                                  = tensor_layout_t<5>(indices_tv, gid);
-        output[output_tv.get_tensor_view_idx(output_layout)] = CVT_ACCUM2FLOAT(lval);
-        indices[indices_tv.get_tensor_view_idx(indices_layout)] = lidx;
+        // auto output_layout                                   = tensor_layout_t<5>(output_tv,
+        // gid); auto indices_layout                                  =
+        // tensor_layout_t<5>(indices_tv, gid); output[output_tv.get_tensor_view_idx(output_layout)]
+        // = CVT_ACCUM2FLOAT(lval); indices[indices_tv.get_tensor_view_idx(indices_layout)] = lidx;
+        output[gid]  = CVT_ACCUM2FLOAT(lval);
+        indices[gid] = lidx;
     }
 }
 

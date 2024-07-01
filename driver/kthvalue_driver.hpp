@@ -331,7 +331,8 @@ int KthvalueDriver<TIO>::RunForwardGPU()
                               indicesDesc,
                               (size_t*)indices_dev->GetMem(),
                               k,
-                              dim);
+                              dim,
+                              keepDim);
         float time = 0.0;
         miopenGetKernelTime(GetHandle(), &time);
         kernel_total_time += time;

@@ -46,12 +46,14 @@ struct FwdProblemDescription : ProblemDescriptionBase
                           const TensorDescriptor& outputDesc_,
                           const TensorDescriptor& indicesDesc_,
                           int32_t dim_,
-                          size_t k_)
+                          size_t k_,
+                          bool keepDim_)
         : inputDesc(inputDesc_),
           outputDesc(outputDesc_),
           indicesDesc(indicesDesc_),
           dim(dim_),
-          k(k_)
+          k(k_),
+          keepDim(keepDim_)
     {
         if(k > inputDesc.GetLengths()[dim])
         {
@@ -76,6 +78,7 @@ struct FwdProblemDescription : ProblemDescriptionBase
             MIOPEN_THROW(miopenStatusBadParm,
                          "Reduce: Output and indices tensor dimension lengths do not match.");
         }
+        isInputContiguous = checkContiguous(inputDesc);
     }
 
     bool IsRightLength() const
@@ -87,9 +90,13 @@ struct FwdProblemDescription : ProblemDescriptionBase
         for(int32_t i = 0; i < inputDesc.GetLengths().size(); i++)
         {
             if(i == dim)
-                continue;
-
-            if(inputDesc.GetLengths()[i] != outputDesc.GetLengths()[posOut])
+            {
+                if(!keepDim)
+                    continue;
+                if(outputDesc.GetLengths()[posOut] != 1)
+                    return false;
+            }
+            else if(inputDesc.GetLengths()[i] != outputDesc.GetLengths()[posOut])
             {
                 return false;
             }
@@ -111,6 +118,18 @@ struct FwdProblemDescription : ProblemDescriptionBase
         return true;
     }
 
+    bool checkContiguous(const TensorDescriptor& tensorDesc)
+    {
+        size_t stride = 1;
+        for(int i = tensorDesc.GetSize() - 1; i >= 0; --i)
+        {
+            if(stride != tensorDesc.GetStrides()[i])
+                return false;
+            stride *= tensorDesc.GetLengths()[i];
+        }
+        return true;
+    }
+
     const TensorDescriptor& GetInputDesc() const { return inputDesc; }
     const TensorDescriptor& GetOutputDesc() const { return outputDesc; }
     const TensorDescriptor& GetIndicesDesc() const { return indicesDesc; }
@@ -124,6 +143,8 @@ public:
     TensorDescriptor indicesDesc;
     int32_t dim;
     size_t k;
+    bool isInputContiguous;
+    bool keepDim;
 };
 
 } // namespace kthvalue
