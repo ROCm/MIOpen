@@ -27,6 +27,8 @@
 #include <miopen/errors.hpp>
 #include <miopen/graphapi/reshape.hpp>
 
+#include <algorithm>
+
 namespace miopen {
 
 namespace graphapi {
@@ -55,15 +57,39 @@ OperationReshapeBuilder& OperationReshapeBuilder::setY(Tensor* y)
 
 OperationReshape OperationReshapeBuilder::build()
 {
-    if(mOperationReshape.mX != nullptr && mOperationReshape.mY != nullptr &&
-       mOperationReshape.mX->getDimensions().size() == mOperationReshape.mY->getDimensions().size())
+    const bool valid = mOperationReshape.mX != nullptr && mOperationReshape.mY != nullptr;
+
+    if(!valid)
+        MIOPEN_THROW(miopenStatusBadParm);
+
+    const auto& inputDims     = mOperationReshape.mX->getDimensions();
+    const auto& inputStrides  = mOperationReshape.mX->getStrides();
+    const auto& outputDims    = mOperationReshape.mY->getDimensions();
+    const auto& outputStrides = mOperationReshape.mY->getStrides();
+    const auto size           = inputDims.size();
+
+    /* Detect a case of transpose operation for the last 2 dimensions:
+     * [b, h, s, d] -> [b, h, d, s]
+     * which is important for MHA graphs
+     */
+    const bool transpose =
+        outputDims.size() == size && size >= 2 && inputDims[size - 1] == outputDims[size - 2] &&
+        inputStrides[size - 1] == outputStrides[size - 2] &&
+        inputDims[size - 2] == outputDims[size - 1] &&
+        inputStrides[size - 2] == outputStrides[size - 1] &&
+        std::equal(inputDims.cbegin(), inputDims.cbegin() + size - 2, outputDims.cbegin()) &&
+        std::equal(inputStrides.cbegin(), inputStrides.cbegin() + size - 2, outputStrides.cbegin());
+
+    if(transpose)
     {
-        return mOperationReshape;
+        mOperationReshape.mOpKind = OperationReshape::OpKind::TRANSPOSE;
     }
     else
     {
-        MIOPEN_THROW(miopenStatusBadParm);
+        mOperationReshape.mOpKind = OperationReshape::OpKind::GENERIC;
     }
+
+    return mOperationReshape;
 }
 
 void BackendOperationReshapeDescriptor::setAttribute(miopenBackendAttributeName_t attributeName,

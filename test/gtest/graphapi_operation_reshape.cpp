@@ -42,24 +42,31 @@ class GraphApiOperationReshape : public testing::Test
 {
 protected:
     Tensor mX{miopenFloat, {8, 64, 128}, {64 * 128, 128, 1}, 1, false};
-    Tensor mGoodY{miopenFloat, {8, 128, 64}, {64 * 128, 64, 1}, 1, false};
-    Tensor mBadY{miopenFloat, {8, 64}, {64, 1}, 1, false};
+    Tensor mY{miopenFloat, {8, 128, 64}, {64 * 128, 1, 128}, 1, false};
 };
 
 TEST_F(GraphApiOperationReshape, Builder)
 {
-    EXPECT_NO_THROW({ OperationReshapeBuilder().setX(&mX).setY(&mGoodY).build(); })
+    EXPECT_NO_THROW({ OperationReshapeBuilder().setX(&mX).setY(&mY).build(); })
         << "Builder failed on valid attributes";
-    EXPECT_ANY_THROW({ OperationReshapeBuilder().setX(&mX).setY(&mBadY).build(); })
-        << "Builder failed on invalid attributes";
     EXPECT_ANY_THROW({ OperationReshapeBuilder().setX(nullptr); })
         << "OperationReshapeBuilder::setX failed on an invalid attribute";
     EXPECT_ANY_THROW({ OperationReshapeBuilder().setY(nullptr); })
         << "OperationReshapeBuilder::setY failed on an invalid attribute";
-    EXPECT_ANY_THROW({ OperationReshapeBuilder().setY(&mGoodY).build(); })
+    EXPECT_ANY_THROW({ OperationReshapeBuilder().setY(&mY).build(); })
         << "Builder failed on missing setX call";
     EXPECT_ANY_THROW({ OperationReshapeBuilder().setX(&mX).build(); })
         << "Builder failed on missing setY call";
+}
+
+TEST_F(GraphApiOperationReshape, Transpose)
+{
+    auto reshape = OperationReshapeBuilder().setX(&mX).setY(&mY).build();
+    EXPECT_EQ(reshape.getOpKind(), OperationReshape::OpKind::TRANSPOSE)
+        << "False negative detection for reshape transpose";
+    auto notReshape = OperationReshapeBuilder().setX(&mX).setY(&mX).build();
+    EXPECT_NE(notReshape.getOpKind(), OperationReshape::OpKind::TRANSPOSE)
+        << "False positive detection for reshape transpose";
 }
 
 namespace {
@@ -142,7 +149,7 @@ using miopen::graphapi::GTestGraphApiExecute;
 TEST_F(GraphApiOperationReshape, CFunctions)
 {
     XAttribute x{&mX};
-    YAttribute y{&mGoodY};
+    YAttribute y{&mY};
 
     GTestGraphApiExecute<GTestDescriptorAttribute*> execute{
         {"MIOPEN_BACKEND_OPERATION_RESHAPE_DESCRIPTOR",
@@ -150,10 +157,5 @@ TEST_F(GraphApiOperationReshape, CFunctions)
          true,
          {&x, &y}}};
 
-    execute();
-
-    YAttribute badY{&mBadY};
-    execute.descriptor.attributes = {&x, &badY};
-    execute.descriptor.attrsValid = false;
     execute();
 }

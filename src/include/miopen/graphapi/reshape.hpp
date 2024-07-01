@@ -35,9 +35,17 @@ namespace graphapi {
 
 class MIOPEN_INTERNALS_EXPORT OperationReshape : public OpNode
 {
+public:
+    enum class OpKind
+    {
+        GENERIC,
+        TRANSPOSE
+    };
+
 private:
-    Tensor* mX = nullptr;
-    Tensor* mY = nullptr;
+    Tensor* mX     = nullptr;
+    Tensor* mY     = nullptr;
+    OpKind mOpKind = OpKind::GENERIC;
 
     friend class OperationReshapeBuilder;
 
@@ -47,6 +55,7 @@ public:
 
     Tensor* getX() const noexcept { return mX; }
     Tensor* getY() const noexcept { return mY; }
+    OpKind getOpKind() const noexcept { return mOpKind; }
 
     const std::string& signName() const override;
     std::vector<Tensor*> getInTensors() const override;
@@ -86,8 +95,8 @@ public:
                       void* arrayOfElements) override;
     OpNode* getOperation() override;
 
-    const OperationReshape* getOperationReduction() const { return &mOperationReshape; }
-    OperationReshape* getOperationReduction() { return &mOperationReshape; }
+    const OperationReshape* getOperationReshape() const { return &mOperationReshape; }
+    OperationReshape* getOperationReshape() { return &mOperationReshape; }
 };
 
 } // namespace graphapi
