@@ -59,6 +59,8 @@ bool KthvalueFwd::IsApplicable(const ExecutionContext& /*context*/,
         return false;
     if(!IsImprovementOverROCm(problem))
         return false;
+    if(!problem.isInputContiguous)
+        return false;
     return true;
 }
 

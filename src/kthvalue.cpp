@@ -53,7 +53,7 @@ miopenStatus_t KthvalueForward(Handle& handle,
     }
 
     const auto problem =
-        kthvalue::FwdProblemDescription{inputDesc, outputDesc, indicesDesc, dim, k};
+        kthvalue::FwdProblemDescription{inputDesc, outputDesc, indicesDesc, dim, k, keepDim};
 
     const auto invoke_params = [&]() {
         auto tmp        = kthvalue::FwdInvokeParams{};

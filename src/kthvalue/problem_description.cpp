@@ -35,16 +35,18 @@ namespace kthvalue {
 
 NetworkConfig FwdProblemDescription::MakeNetworkConfig() const
 {
-    auto input_dtype = inputDesc.GetType();
-    auto size        = inputDesc.GetElementSize();
-    auto dim_size    = inputDesc.GetLengths()[dim];
-    auto output_size = size / dim_size;
+    auto input_dtype      = inputDesc.GetType();
+    auto size             = inputDesc.GetElementSize();
+    auto dim_size         = inputDesc.GetLengths()[dim];
+    auto output_size      = size / dim_size;
+    auto input_contiguous = isInputContiguous;
 
     std::ostringstream ss;
 
     ss << "kthvalue_fwd";
     ss << "i_dtype" << input_dtype;
     ss << "output_size" << output_size;
+    ss << "input_contigious" << input_contiguous;
 
     return NetworkConfig{ss.str()};
 }

@@ -24,6 +24,7 @@ DEFINE_RADIX_TYPE(int64_t, uint64_t)
 DEFINE_RADIX_TYPE(bool, bool)
 DEFINE_RADIX_TYPE(float, uint32_t)
 DEFINE_RADIX_TYPE(double, uint64_t)
+DEFINE_RADIX_TYPE(_Float16, uint16_t)
 
 template <typename DTYPE, typename Radix = typename RadixType<DTYPE>::type>
 __device__ inline Radix encode(DTYPE v)

@@ -60,9 +60,9 @@ struct KthvalueTestCase
 
     KthvalueTestCase(std::vector<size_t> dims_,
                      size_t k_,
-                     bool isContiguous_ = true,
                      int32_t dim_       = -1,
-                     bool keepDim_      = false)
+                     bool keepDim_      = false,
+                     bool isContiguous_ = true)
         : dims(dims_), isContiguous(isContiguous_), dim(dim_), k(k_), keepDim(keepDim_)
     {
     }
@@ -84,15 +84,15 @@ struct KthvalueTestCase
 inline std::vector<KthvalueTestCase> KthvalueTestConfigs()
 {
     return {
-        KthvalueTestCase({4000}, 3),                        // 1D cont
-        KthvalueTestCase({100, 500}, 10),                   // 2D cont
-        KthvalueTestCase({100, 500}, 10, false),            // 2D non-cont
-        KthvalueTestCase({10, 20, 300}, 100, false),        // 3D cont
-        KthvalueTestCase({10, 20, 300}, 1, false),          // 3D non-cont
-        KthvalueTestCase({8, 3, 2000, 10}, 2000, true, 2),  // 4D cont
-        KthvalueTestCase({8, 3, 2000, 10}, 2000, false, 2), // 4D non-cont
-        KthvalueTestCase({2, 2, 3000, 4, 10}, 1, true, 2),  // 5D cont
-        KthvalueTestCase({2, 2, 3000, 4, 10}, 1, false, 2), // 5D cont
+        KthvalueTestCase({4000}, 3),                 // 1D cont
+        KthvalueTestCase({100, 500}, 10),            // 2D cont
+        KthvalueTestCase({100, 500}, 10),            // 2D non-cont
+        KthvalueTestCase({10, 20, 300}, 100),        // 3D cont
+        KthvalueTestCase({10, 20, 300}, 1),          // 3D non-cont
+        KthvalueTestCase({8, 3, 2000, 10}, 2000, 2), // 4D cont
+        KthvalueTestCase({8, 3, 2000, 10}, 2000, 2), // 4D non-cont
+        KthvalueTestCase({2, 2, 3000, 4, 10}, 1, 2), // 5D cont
+        KthvalueTestCase({2, 2, 3000, 4, 10}, 1, 2), // 5D cont
     };
 }
 
