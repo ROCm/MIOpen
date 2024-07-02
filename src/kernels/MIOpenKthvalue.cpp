@@ -31,7 +31,6 @@
 
 #include "float_types.h"
 #include "tensor_view.hpp"
-#include "warp_shuffle.hpp"
 #include "radix.hpp"
 
 #ifndef IN_OUT_TYPE
@@ -96,10 +95,8 @@ __device__ void kthvalueFwd(const DTYPE* input,
     RADIX_TYPE desired_mask = 0;
     RADIX_TYPE desired      = 0;
 
-    // tensor_layout_t<4> layout(input_tv, gid);
-    // auto idx = input_tv.get_tensor_view_idx(layout);
-    size_t idx = gid * dim_size;
-    dim_stride = 1;
+    tensor_layout_t<4> layout(input_tv, gid);
+    auto idx = input_tv.get_tensor_view_idx(layout);
 
     for(size_t pos = sizeof(RADIX_TYPE) * 8 - RADIX_BITS; pos >= 0; pos -= RADIX_BITS)
     {
@@ -183,12 +180,12 @@ __device__ void kthvalueFwd(const DTYPE* input,
     __syncthreads();
     if(lid == 0)
     {
-        // auto output_layout                                   = tensor_layout_t<5>(output_tv,
-        // gid); auto indices_layout                                  =
-        // tensor_layout_t<5>(indices_tv, gid); output[output_tv.get_tensor_view_idx(output_layout)]
-        // = lval; indices[indices_tv.get_tensor_view_idx(indices_layout)] = lidx;
-        output[gid]  = lval;
-        indices[gid] = lidx;
+        auto output_layout                                   = tensor_layout_t<5>(output_tv, gid);
+        auto indices_layout                                  = tensor_layout_t<5>(indices_tv, gid);
+        output[output_tv.get_tensor_view_idx(output_layout)] = lval;
+        indices[indices_tv.get_tensor_view_idx(indices_layout)] = lidx;
+        // output[gid]  = lval;
+        // indices[gid] = lidx;
     }
 }
 
