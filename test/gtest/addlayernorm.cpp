@@ -59,8 +59,8 @@ using namespace addlayernorm;
 
 TEST_P(AddLayerNormTestFloat, AddLayerNormTestFw)
 {
-    auto TypeArg = env::value(MIOPEN_TEST_FLOAT_ARG);
-    if(env::enabled(MIOPEN_TEST_ALL) && GetFloatArg() == "--float")
+    if(!MIOPEN_TEST_ALL ||
+       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--float"))
     {
         RunTest();
         Verify();
@@ -73,8 +73,8 @@ TEST_P(AddLayerNormTestFloat, AddLayerNormTestFw)
 
 TEST_P(AddLayerNormTestHalf, AddLayerNormTestFw)
 {
-    auto TypeArg = env::value(MIOPEN_TEST_FLOAT_ARG);
-    if(env::enabled(MIOPEN_TEST_ALL) && GetFloatArg() == "--half")
+    if(!MIOPEN_TEST_ALL ||
+       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--half"))
     {
         RunTest();
         Verify();
@@ -87,8 +87,8 @@ TEST_P(AddLayerNormTestHalf, AddLayerNormTestFw)
 
 TEST_P(AddLayerNormTestBFloat16, AddLayerNormTestFw)
 {
-    auto TypeArg = env::value(MIOPEN_TEST_FLOAT_ARG);
-    if(env::enabled(MIOPEN_TEST_ALL) && GetFloatArg() == "--bfloat16")
+    if(!MIOPEN_TEST_ALL ||
+       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--bfloat16"))
     {
         RunTest();
         Verify();
