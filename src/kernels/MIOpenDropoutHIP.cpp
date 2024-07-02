@@ -143,9 +143,9 @@ __forceinline__ __device__ void dropoutfw(const rocrand_state_xorwow* state,
         size_t i4_rd = i4 / RD_BLCK;
 
         size_t x_idx = i0 * in_str0 + i1 * in_str1 + i2 * in_str2 + i3 * in_str3 +
-                     i4_rd * RD_BLCK; // Calculate the index of the input tensor
+                       i4_rd * RD_BLCK; // Calculate the index of the input tensor
         size_t y_idx = i0 * out_str0 + i1 * out_str1 + i2 * out_str2 + i3 * out_str3 +
-                     i4_rd * RD_BLCK; // Calculate the index of the output tensor
+                       i4_rd * RD_BLCK; // Calculate the index of the output tensor
 
         *(reinterpret_cast<T*>(dat_blk)) = *(reinterpret_cast<const T*>(
             x + in_offset + x_idx)); // Read RD_BLCK number of _FLOAT data from the input tensor
@@ -287,9 +287,9 @@ __forceinline__ __device__ void dropoutbw(const rocrand_state_xorwow* state,
         size_t i4_rd = i4 / RD_BLCK;
 
         size_t x_idx = i0 * in_str0 + i1 * in_str1 + i2 * in_str2 + i3 * in_str3 +
-                     i4_rd * RD_BLCK; // Calculate the index of the output tensor
+                       i4_rd * RD_BLCK; // Calculate the index of the output tensor
         size_t y_idx = i0 * out_str0 + i1 * out_str1 + i2 * out_str2 + i3 * out_str3 +
-                     i4_rd * RD_BLCK; // Calculate the index of the input tensor
+                       i4_rd * RD_BLCK; // Calculate the index of the input tensor
 
         // Read RD_BLCK number of _FLOAT data from y and store it in dat_blk
         *(reinterpret_cast<T*>(dat_blk)) = *(reinterpret_cast<const T*>(y + out_offset + y_idx));
