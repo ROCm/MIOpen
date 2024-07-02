@@ -78,7 +78,8 @@ struct FwdProblemDescription : ProblemDescriptionBase
             MIOPEN_THROW(miopenStatusBadParm,
                          "Reduce: Output and indices tensor dimension lengths do not match.");
         }
-        isInputContiguous = checkContiguous(inputDesc);
+        isContiguous = checkContiguous(inputDesc) && checkContiguous(outputDesc) &&
+                       checkContiguous(indicesDesc);
     }
 
     bool IsRightLength() const
@@ -143,7 +144,7 @@ public:
     TensorDescriptor indicesDesc;
     int32_t dim;
     size_t k;
-    bool isInputContiguous;
+    bool isContiguous;
     bool keepDim;
 };
 

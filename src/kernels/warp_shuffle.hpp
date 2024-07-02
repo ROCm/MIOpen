@@ -68,8 +68,6 @@ __device__ __forceinline__ DTYPE block_reduce_sum(DTYPE val)
 
     val = threadIdx.x < REDUCE_SIZE / warpSize ? shared[lane] : 0;
     if(wid == 0)
-        // val = (threadIdx.x % warpSize) < REDUCE_SIZE / warpSize ? shared[lane] : 0;
-        // if(lane == 0)
         val = warp_reduce_sum(val);
 
     return val;

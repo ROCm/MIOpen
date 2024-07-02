@@ -3,7 +3,7 @@
 #include <hip/hip_runtime.h>
 
 // #define ENCODE encode<DTYPE>
-// #define RADIX_TYPE typename RadixType<DTYPE>::type
+#define RADIX_TYPE typename RadixType<DTYPE>::type
 // #define GetBitField(x, pos, bits) GetBitFieldImpl<RADIX_TYPE>(x, pos, bits)
 // #define SetBitField(x, a, pos, bits) SetBitFieldImpl<RADIX_TYPE>(x, a, pos, bits)
 
@@ -24,7 +24,7 @@ DEFINE_RADIX_TYPE(int64_t, uint64_t)
 DEFINE_RADIX_TYPE(bool, bool)
 DEFINE_RADIX_TYPE(float, uint32_t)
 DEFINE_RADIX_TYPE(double, uint64_t)
-DEFINE_RADIX_TYPE(_Float16, uint16_t)
+DEFINE_RADIX_TYPE(__half, ushort)
 
 template <typename DTYPE, typename Radix = typename RadixType<DTYPE>::type>
 __device__ inline Radix encode(DTYPE v)
@@ -41,7 +41,7 @@ __device__ inline Radix encode(DTYPE v)
     {
         return 9223372036854775808ull + v;
     }
-    else if constexpr(std::is_same<_Float16, DTYPE>::value)
+    else if constexpr(std::is_same<__half, DTYPE>::value)
     {
         Radix x    = __half_as_ushort(v);
         Radix mask = (x & 0x8000) ? 0xffff : 0x8000;
@@ -76,7 +76,7 @@ __device__ inline DTYPE decode(Radix v)
     {
         return v - 9223372036854775808ull;
     }
-    else if constexpr(std::is_same<_Float16, DTYPE>::value)
+    else if constexpr(std::is_same<__half, DTYPE>::value)
     {
         Radix mask = (v & 0x8000) ? 0x8000 : 0xffff;
         return __ushort_as_half((ushort)(v ^ mask));

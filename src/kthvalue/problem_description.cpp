@@ -39,7 +39,7 @@ NetworkConfig FwdProblemDescription::MakeNetworkConfig() const
     auto size             = inputDesc.GetElementSize();
     auto dim_size         = inputDesc.GetLengths()[dim];
     auto output_size      = size / dim_size;
-    auto input_contiguous = isInputContiguous;
+    auto input_contiguous = isContiguous;
 
     std::ostringstream ss;
 

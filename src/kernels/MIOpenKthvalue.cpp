@@ -62,15 +62,14 @@
 #define RADIX_MASK (RADIX_SIZE - 1)
 #endif
 
-#define RADIX_TYPE RadixType<FLOAT_ACCUM>::type
-
-template <typename TIO>
-__device__ void kthvalueFwd(const TIO* input,
-                            TIO* output,
+template <typename DTYPE>
+__device__ void kthvalueFwd(const DTYPE* input,
+                            DTYPE* output,
                             size_t* indices,
                             size_t k,
                             size_t dim_size,
                             size_t dim_stride,
+                            size_t output_size,
                             tensor_view_t<4> input_tv,
                             tensor_view_t<5> output_tv,
                             tensor_view_t<5> indices_tv)
@@ -85,28 +84,34 @@ __device__ void kthvalueFwd(const TIO* input,
 
     size_t lid = threadIdx.x;
     size_t gid = blockIdx.x;
+    if(gid >= output_size)
+    {
+        return;
+    }
 
     __shared__ size_t lsum[LOCAL_SIZE][RADIX_SIZE];
-    __shared__ FLOAT_ACCUM lval;
+    __shared__ DTYPE lval;
     __shared__ long lidx;
     size_t counts[RADIX_SIZE];
     RADIX_TYPE desired_mask = 0;
     RADIX_TYPE desired      = 0;
 
-    tensor_layout_t<4> layout(input_tv, gid);
-    auto idx = input_tv.get_tensor_view_idx(layout);
+    // tensor_layout_t<4> layout(input_tv, gid);
+    // auto idx = input_tv.get_tensor_view_idx(layout);
+    size_t idx = gid * dim_size;
+    dim_stride = 1;
 
     for(size_t pos = sizeof(RADIX_TYPE) * 8 - RADIX_BITS; pos >= 0; pos -= RADIX_BITS)
     {
-        for(size_t i = 0; i < RADIX_SIZE; ++i)
+        for(unsigned long& count : counts)
         {
-            counts[i] = 0;
+            count = 0;
         }
 
         for(size_t i = lid; i < dim_size; i += LOCAL_SIZE)
         {
             size_t input_idx = idx + i * dim_stride;
-            RADIX_TYPE val   = encode<FLOAT_ACCUM>(CVT_FLOAT2ACCUM(input[input_idx]));
+            RADIX_TYPE val   = encode<DTYPE>(input[input_idx]);
             if((val & desired_mask) == desired)
             {
                 ++counts[GetBitFieldImpl<RADIX_TYPE>(val, pos, RADIX_BITS)];
@@ -135,19 +140,6 @@ __device__ void kthvalueFwd(const TIO* input,
         }
         __syncthreads();
 
-        //         __syncthreads();
-        // #pragma unroll
-        //         for(size_t i = 0; i < RADIX_SIZE; ++i)
-        //         {
-        //             counts[i] = block_reduce_sum<size_t>(counts[i]);
-        //             if(lid == 0)
-        //             {
-        //                 smem_count[i] = counts[i];
-        //             }
-        //             __syncthreads();
-        //             counts[i] = smem_count[i];
-        //         }
-
         bool found = false;
         // Process in ascending order
         for(size_t j = 0; j < RADIX_SIZE; ++j)
@@ -163,9 +155,9 @@ __device__ void kthvalueFwd(const TIO* input,
                     // There are multiple answers so we return any of them
                     for(size_t i = lid; i < dim_size; i += LOCAL_SIZE)
                     {
-                        size_t input_idx    = idx + i * dim_stride;
-                        FLOAT_ACCUM val_ori = CVT_FLOAT2ACCUM(input[input_idx]);
-                        RADIX_TYPE val      = encode<FLOAT_ACCUM>(val_ori);
+                        size_t input_idx = idx + i * dim_stride;
+                        DTYPE val_ori    = input[input_idx];
+                        RADIX_TYPE val   = encode<DTYPE>(val_ori);
                         if((val & desired_mask) == desired &&
                            GetBitFieldImpl<RADIX_TYPE>(val, pos, RADIX_BITS) == j)
                         {
@@ -194,8 +186,8 @@ __device__ void kthvalueFwd(const TIO* input,
         // auto output_layout                                   = tensor_layout_t<5>(output_tv,
         // gid); auto indices_layout                                  =
         // tensor_layout_t<5>(indices_tv, gid); output[output_tv.get_tensor_view_idx(output_layout)]
-        // = CVT_ACCUM2FLOAT(lval); indices[indices_tv.get_tensor_view_idx(indices_layout)] = lidx;
-        output[gid]  = CVT_ACCUM2FLOAT(lval);
+        // = lval; indices[indices_tv.get_tensor_view_idx(indices_layout)] = lidx;
+        output[gid]  = lval;
         indices[gid] = lidx;
     }
 }
@@ -206,10 +198,19 @@ extern "C" __global__ void KthvalueFwd(const IN_OUT_TYPE* input,
                                        size_t k,
                                        size_t dim_size,
                                        size_t dim_stride,
+                                       size_t output_size,
                                        tensor_view_t<4> input_tv,
                                        tensor_view_t<5> output_tv,
                                        tensor_view_t<5> indices_tv)
 {
-    kthvalueFwd<IN_OUT_TYPE>(
-        input, output, indices, k, dim_size, dim_stride, input_tv, output_tv, indices_tv);
+    kthvalueFwd<IN_OUT_TYPE>(input,
+                             output,
+                             indices,
+                             k,
+                             dim_size,
+                             dim_stride,
+                             output_size,
+                             input_tv,
+                             output_tv,
+                             indices_tv);
 }
