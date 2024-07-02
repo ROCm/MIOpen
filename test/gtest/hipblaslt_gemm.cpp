@@ -27,6 +27,11 @@
 
 #if MIOPEN_USE_HIPBLASLT
 
+// Only enable BF8 support if hipBLASLt is 0.8 or above
+#if MIOPEN_HIPBLASLT_VERSION_FLAT >= 8000
+#define ENABLE_HIPBLASLT_BF8
+#endif
+
 #include "get_handle.hpp"
 #include "../workspace.hpp"
 #include "gemm_cpu_util.hpp"
@@ -345,17 +350,26 @@ INSTANTIATE_TEST_SUITE_P(HipBLASLtGEMMTestSet,
 
 TEST_F(HipBLASLtGEMMTestBFloat8, CheckHipBLASLtGEMMException)
 {
+    #ifdef ENABLE_HIPBLASLT_BF8
     using e_mask = enabled<Gpu::gfx94X>;
     using d_mask =
         disabled<Gpu::gfx103X, Gpu::gfx900, Gpu::gfx906, Gpu::gfx908, Gpu::gfx90A, Gpu::gfx110X>;
     CheckExceptionsWithSkip<bfloat8, d_mask, e_mask>(miopenDataType_t::miopenBFloat8);
+    #else
+    CheckExceptions<bfloat8>(miopenDataType_t::miopenInt64);
+    #endif
 };
 TEST_P(HipBLASLtGEMMTestBFloat8, RunHipBLASLtGEMM)
 {
+    #ifdef ENABLE_HIPBLASLT_BF8
     using e_mask = enabled<Gpu::gfx94X>;
     using d_mask =
         disabled<Gpu::gfx103X, Gpu::gfx900, Gpu::gfx906, Gpu::gfx908, Gpu::gfx90A, Gpu::gfx110X>;
     RunGemmDescriptors<bfloat8, d_mask, e_mask>(GetParam(), miopenDataType_t::miopenBFloat8);
+    #else
+    GTEST_SKIP();
+    #endif
+
 };
 INSTANTIATE_TEST_SUITE_P(HipBLASLtGEMMTestSet,
                          HipBLASLtGEMMTestBFloat8,

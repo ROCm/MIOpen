@@ -34,6 +34,10 @@
 
 #if MIOPEN_USE_HIPBLASLT
 #include <hipblaslt/hipblaslt.h>
+// Only enable BF8 support if hipBLASLt is 0.8 or above
+#if MIOPEN_HIPBLASLT_VERSION_FLAT >= 8000
+#define ENABLE_HIPBLASLT_BF8
+#endif
 #endif
 
 #if MIOPEN_USE_ROCBLAS
@@ -603,6 +607,7 @@ static void call_miopen_hipblasLt_gemm(const miopen::Handle& handle,
         const auto is_gfx94x = miopen::StartsWith(handle.GetDeviceName(), "gfx94");
         if(is_gfx94x)
         {
+            #ifdef ENABLE_HIPBLASLT_BF8
             miopen_hipblasLt_gemm<hipblaslt_bf8_fnuz, hipblaslt_bf8_fnuz>(handle,
                                                                           gemm_desc,
                                                                           A,
@@ -614,11 +619,15 @@ static void call_miopen_hipblasLt_gemm(const miopen::Handle& handle,
                                                                           c_offset,
                                                                           HIP_R_8F_E5M2_FNUZ,
                                                                           skip_batches);
+            #else
+                MIOPEN_THROW(miopenStatusInternalError,
+                         "miopenBFloat8 is not supported for this version of hipBlasLt on gfx94x");
+            #endif
         }
         else
         {
             MIOPEN_THROW(miopenStatusInternalError,
-                         "miopenFloat8 is only supported for hipBlasLt on gfx94x");
+                         "miopenBFloat8 is only supported for hipBlasLt on gfx94x");
         }
     }
     break;
