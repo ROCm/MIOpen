@@ -96,7 +96,7 @@ private:
     friend class PointwiseBuilder;
 };
 
-class PointwiseBuilder
+class MIOPEN_INTERNALS_EXPORT PointwiseBuilder
 {
 private:
     Pointwise mPointwise;
@@ -160,7 +160,7 @@ public:
     Pointwise build();
 };
 
-class BackendPointwiseDescriptor : public BackendDescriptor
+class MIOPEN_INTERNALS_EXPORT BackendPointwiseDescriptor : public BackendDescriptor
 {
 private:
     PointwiseBuilder mBuilder;
@@ -182,7 +182,7 @@ public:
     Pointwise* getPointwise() { return &mPointwise; }
 };
 
-class OperationPointwise : public OpNode
+class MIOPEN_INTERNALS_EXPORT OperationPointwise : public OpNode
 {
 public:
     using Alpha = std::variant<float, half_float::half>;
@@ -254,7 +254,7 @@ public:
     std::vector<Tensor*> getOutTensors() const override;
 };
 
-class OperationPointwiseBuilder
+class MIOPEN_INTERNALS_EXPORT OperationPointwiseBuilder
 {
 private:
     OperationPointwise mOperationPointwise;
@@ -274,7 +274,7 @@ public:
     OperationPointwise build();
 };
 
-class BackendOperationPointwiseDescriptor : public BackendDescriptor
+class MIOPEN_INTERNALS_EXPORT BackendOperationPointwiseDescriptor : public BackendDescriptor
 {
 private:
     OperationPointwiseBuilder mBuilder;

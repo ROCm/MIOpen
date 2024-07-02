@@ -67,17 +67,9 @@ NetworkConfig ProblemDescription::MakeForwardTrainingNetworkConfig() const
     size_t ygridsize = 1;
 
     bool bfpmixparm = false;
-    bool bfp16parm  = false;
-    bool bfp32parm  = true;
-    if(xDesc.GetType() == miopenHalf && GetBnScaleBiasMeanVarDesc().GetType() == miopenHalf)
-    {
-        bfp16parm = true;
-        bfp32parm = false;
-    }
-    else if(xDesc.GetType() == miopenHalf && GetBnScaleBiasMeanVarDesc().GetType() == miopenFloat)
+    if(xDesc.GetType() == miopenHalf && GetBnScaleBiasMeanVarDesc().GetType() == miopenFloat)
     {
         bfpmixparm = true;
-        bfp32parm  = false;
     }
 
     if(bn_mode == miopenBNSpatial)
@@ -123,7 +115,7 @@ NetworkConfig ProblemDescription::MakeForwardTrainingNetworkConfig() const
         }
         // clang-format on
 
-        if((n > 768) && (in_cstride > 150) && bfp32parm)
+        if((n > 768) && (in_cstride > 150) && IsFp32())
         {
             variant            = 2;
             xlocalsize         = 1;
@@ -142,8 +134,10 @@ NetworkConfig ProblemDescription::MakeForwardTrainingNetworkConfig() const
         {
             ss << "rs" << static_cast<int>(resultsave);
             ss << "rr" << static_cast<int>(resultrunning);
-            ss << "fp16" << static_cast<int>(bfp16parm);
-            ss << "fp32" << static_cast<int>(bfp32parm);
+            ss << "fp16" << static_cast<int>(IsFp16());
+            ss << "fp32" << static_cast<int>(IsFp32());
+            ss << "fp64" << static_cast<int>(IsFp64());
+            ss << "fbf16" << static_cast<int>(IsBfp16());
             ss << "c" << c;
         }
         else
@@ -156,8 +150,10 @@ NetworkConfig ProblemDescription::MakeForwardTrainingNetworkConfig() const
             ss << "ldsgcn" << ldsgcn;
             ss << "rs" << static_cast<int>(resultsave);
             ss << "rr" << static_cast<int>(resultrunning);
-            ss << "fp16" << static_cast<int>(bfp16parm);
-            ss << "fp32" << static_cast<int>(bfp32parm);
+            ss << "fp16" << static_cast<int>(IsFp16());
+            ss << "fp32" << static_cast<int>(IsFp32());
+            ss << "fp64" << static_cast<int>(IsFp64());
+            ss << "fbf16" << static_cast<int>(IsBfp16());
             ss << "single" << static_cast<int>(single);
             ss << "n" << n;
             ss << "c" << c;
@@ -172,8 +168,10 @@ NetworkConfig ProblemDescription::MakeForwardTrainingNetworkConfig() const
         xgridsize                 = c;
         ygridsize                 = segment * ylocalsize;
 
-        ss << "fp16" << static_cast<int>(bfp16parm);
-        ss << "fp32" << static_cast<int>(bfp32parm);
+        ss << "fp16" << static_cast<int>(IsFp16());
+        ss << "fp32" << static_cast<int>(IsFp32());
+        ss << "fp64" << static_cast<int>(IsFp64());
+        ss << "fbf16" << static_cast<int>(IsBfp16());
         ss << "gx" << xgridsize;
         ss << "gy" << ygridsize;
         ss << "lx" << xlocalsize;
@@ -185,6 +183,7 @@ NetworkConfig ProblemDescription::MakeForwardTrainingNetworkConfig() const
         ss << "c" << c;
         ss << "hw" << in_cstride;
     }
+    ss << "layout" << xDesc.GetLayout_str();
 
     return NetworkConfig{ss.str()};
 }
@@ -193,28 +192,19 @@ NetworkConfig ProblemDescription::MakeForwardInferenceNetworkConfig() const
 {
     std::ostringstream ss;
 
-    bool bfp16parm = false;
-    bool bfp32parm = true;
-    if(xDesc.GetType() == miopenHalf && GetBnScaleBiasMeanVarDesc().GetType() == miopenHalf)
-    {
-        bfp16parm = true;
-        bfp32parm = false;
-    }
-    else if(xDesc.GetType() == miopenHalf && GetBnScaleBiasMeanVarDesc().GetType() == miopenFloat)
-    {
-        bfp32parm = false;
-    }
-
     int n, c, h, w;
     std::tie(n, c, h, w) = tien<4>(xDesc.GetLengths());
 
     const unsigned int in_cstride = h * w;
 
-    ss << "fp16" << static_cast<int>(bfp16parm);
-    ss << "fp32" << static_cast<int>(bfp32parm);
+    ss << "fp16" << static_cast<int>(IsFp16());
+    ss << "fp32" << static_cast<int>(IsFp32());
+    ss << "fp64" << static_cast<int>(IsFp64());
+    ss << "fbf16" << static_cast<int>(IsBfp16());
     ss << "mode" << bn_mode;
     ss << "HWdims" << in_cstride;
     ss << "C" << c;
+    ss << "layout" << xDesc.GetLayout_str();
 
     return NetworkConfig{ss.str()};
 }
@@ -224,17 +214,9 @@ NetworkConfig ProblemDescription::MakeBackwardNetworkConfig() const
     std::ostringstream ss;
 
     bool bfpmixparm = false;
-    bool bfp16parm  = false;
-    bool bfp32parm  = true;
-    if(xDesc.GetType() == miopenHalf && GetScaleBiasDiffDesc().GetType() == miopenHalf)
-    {
-        bfp16parm = true;
-        bfp32parm = false;
-    }
-    else if(xDesc.GetType() == miopenHalf && GetScaleBiasDiffDesc().GetType() == miopenFloat)
+    if(xDesc.GetType() == miopenHalf && GetScaleBiasDiffDesc().GetType() == miopenFloat)
     {
         bfpmixparm = true;
-        bfp32parm  = false;
     }
 
     int n, c, h, w;
@@ -282,7 +264,7 @@ NetworkConfig ProblemDescription::MakeBackwardNetworkConfig() const
             else
             {
                 variant = 0;
-                if(bfp32parm)
+                if(IsFp32())
                 {
                     xlocalsize = 1024;
                     xgridsize  = 1024 * static_cast<size_t>(c);
@@ -322,8 +304,10 @@ NetworkConfig ProblemDescription::MakeBackwardNetworkConfig() const
         ss << "lx" << xlocalsize;
         ss << "ly" << ylocalsize;
         ss << "us" << static_cast<int>(useSaved);
-        ss << "fp16" << static_cast<int>(bfp16parm);
-        ss << "fp32" << static_cast<int>(bfp32parm);
+        ss << "fp16" << static_cast<int>(IsFp16());
+        ss << "fp32" << static_cast<int>(IsFp32());
+        ss << "fp64" << static_cast<int>(IsFp64());
+        ss << "fbf16" << static_cast<int>(IsBfp16());
         ss << "single" << static_cast<int>(single);
         ss << "gcn" << ldsgcn;
     }
@@ -342,10 +326,13 @@ NetworkConfig ProblemDescription::MakeBackwardNetworkConfig() const
         ss << "c" << c;
         ss << "hw" << in_cstride;
         ss << "u" << static_cast<int>(useSaved);
-        ss << "fp16" << static_cast<int>(bfp16parm);
-        ss << "fp32" << static_cast<int>(bfp32parm);
+        ss << "fp16" << static_cast<int>(IsFp16());
+        ss << "fp32" << static_cast<int>(IsFp32());
+        ss << "fp64" << static_cast<int>(IsFp64());
+        ss << "fbf16" << static_cast<int>(IsBfp16());
         ss << "nhw" << in_nhw;
     }
+    ss << "layout" << xDesc.GetLayout_str();
 
     return NetworkConfig{ss.str()};
 }

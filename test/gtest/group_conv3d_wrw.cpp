@@ -30,8 +30,7 @@
 using namespace group_conv;
 
 DEFINE_GROUP_CONV3D_TEST(float, BackwardWeights);
-/// \todo Debug issues: some tests skipped due to IsApplicable returning false.
-/// One test has ref output with NaNs
-// DEFINE_GROUP_CONV3D_TEST(half, BackwardWeights);
-/// \todo int8_t tests don't work. Need debugging
-// DEFINE_GROUP_CONV3D_TEST(int8_t, BackwardWeights);
+DEFINE_GROUP_CONV3D_TEST(half, BackwardWeights);
+// /// \todo int8_t tests don't work. Need debugging
+// // DEFINE_GROUP_CONV3D_TEST(int8_t, BackwardWeights);
+DEFINE_GROUP_CONV3D_TEST(bfloat16, BackwardWeights);

@@ -140,7 +140,7 @@ protected:
             conv_desc.GetForwardOutputTensor(input.desc, weights.desc, miopen_type<T>{});
 
         output = tensor<T>{tensor_layout, output_desc.GetLengths()};
-        std::fill(output.begin(), output.end(), std::numeric_limits<T>::quiet_NaN());
+        std::fill(output.begin(), output.end(), T(0));
 
         auto&& handle = get_handle();
         in_dev        = handle.Write(input.data);

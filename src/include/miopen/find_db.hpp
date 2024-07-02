@@ -35,6 +35,8 @@
 #include <miopen/perf_field.hpp>
 #include <miopen/ramdb.hpp>
 #include <miopen/readonlyramdb.hpp>
+#include <miopen/solution.hpp>
+#include <miopen/conv/solver_finders.hpp>
 
 #include <boost/optional.hpp>
 
@@ -68,7 +70,7 @@ namespace debug {
 // For unit tests.
 MIOPEN_EXPORT extern bool
     testing_find_db_enabled; // NOLINT (cppcoreguidelines-avoid-non-const-global-variables)
-MIOPEN_EXPORT extern boost::optional<std::string>&
+MIOPEN_EXPORT extern boost::optional<fs::path>&
 testing_find_db_path_override(); /// \todo Remove when #1723 is resolved.
 
 } // namespace debug
@@ -98,7 +100,7 @@ public:
                              ? *debug::testing_find_db_path_override()
                              : GetInstalledPath(handle, path_suffix)),
           db(boost::make_optional<DbTimer<TDb>>(
-              debug::testing_find_db_enabled && !IsEnabled(ENV(MIOPEN_DEBUG_DISABLE_FIND_DB)),
+              debug::testing_find_db_enabled && !env::enabled(MIOPEN_DEBUG_DISABLE_FIND_DB),
               DbTimer<TDb>{DbKinds::FindDb, installed_path, path}))
     {
         if(!db.is_initialized())
@@ -119,7 +121,7 @@ public:
           db(boost::optional<DbTimer<TDb>>{DbKinds::FindDb})
 #else
           db(boost::make_optional<DbTimer<TDb>>(debug::testing_find_db_enabled &&
-                                                    !IsEnabled(ENV(MIOPEN_DEBUG_DISABLE_FIND_DB)),
+                                                    !env::enabled(MIOPEN_DEBUG_DISABLE_FIND_DB),
                                                 DbTimer<TDb>{DbKinds::FindDb, path, false}))
 #endif
     {
@@ -132,7 +134,7 @@ public:
 
     ~FindDbRecord_t()
     {
-        if(!db.is_initialized() || !content.is_initialized() || in_sync)
+        if(dont_store || !db.is_initialized() || !content.is_initialized() || in_sync)
             return;
         if(!db->StoreRecord(content.get()))
             MIOPEN_LOG_E("Failed to store record to find-db at <" << path << ">");
@@ -145,47 +147,59 @@ public:
     bool empty() const { return !content.is_initialized(); }
 
     template <class TProblemDescription>
-    static std::vector<PerfField> TryLoad(Handle& handle,
-                                          const TProblemDescription& problem,
-                                          const std::function<void(DbRecord&)>& regenerator,
-                                          const std::string& path_suffix = "")
+    static std::vector<Solution> TryLoad(Handle& handle,
+                                         const TProblemDescription& problem,
+                                         const std::function<FindCoreResult()>& regenerator,
+                                         const std::string& path_suffix = "")
     {
-        auto ret = std::vector<PerfField>{};
         FindDbRecord_t<TDb> record{handle, problem, path_suffix};
 
         const auto network_config = problem.MakeNetworkConfig();
 
         if(record.in_sync && !record.Validate(handle, network_config))
         {
-            record.CopyTo(ret);
-            return ret;
+            auto solutions = std::vector<Solution>{};
+            record.CopyTo(solutions);
+            return solutions;
         }
 
         MIOPEN_LOG_I("Find-db regenerating.");
-        ret.clear();
         record.in_sync = false;
         record.content.emplace(DbKinds::FindDb, problem);
-        regenerator(*record.content);
-        record.CopyTo(ret);
 
-        return ret;
+        const auto result = regenerator();
+        record.dont_store = !result.is_optimal;
+
+        if(record.dont_store)
+            return result.solutions;
+
+        for(const auto& solution : result.solutions)
+        {
+            const auto algo = solution.GetSolver().GetAlgo(problem.GetDirection());
+            record.content->SetValues(
+                solution.GetSolver().ToString(),
+                FindDbData{solution.GetTime(), solution.GetWorkspaceSize(), algo});
+        }
+
+        return result.solutions;
     }
 
 private:
-    std::string path;
-    std::string installed_path;
+    fs::path path;
+    fs::path installed_path;
     boost::optional<DbTimer<TDb>> db;
     boost::optional<DbRecord> content{boost::none};
-    bool in_sync = false;
+    bool in_sync    = false;
+    bool dont_store = false; // E.g. to skip writing sub-optimal find-db records to disk.
 
-    static std::string GetInstalledPath(Handle& handle, const std::string& path_suffix);
-    static std::string GetInstalledPathEmbed(Handle& handle, const std::string& path_suffix);
-    static std::string GetInstalledPathFile(Handle& handle, const std::string& path_suffix);
-    static std::string GetUserPath(Handle& handle, const std::string& path_suffix);
+    static fs::path GetInstalledPath(Handle& handle, const std::string& path_suffix);
+    static fs::path GetInstalledPathEmbed(Handle& handle, const std::string& path_suffix);
+    static fs::path GetInstalledPathFile(Handle& handle, const std::string& path_suffix);
+    static fs::path GetUserPath(Handle& handle, const std::string& path_suffix);
 
     // Returns true if rebuild is required
     bool Validate(Handle& handle, const NetworkConfig& config) const;
-    void CopyTo(std::vector<PerfField>& to) const;
+    void CopyTo(std::vector<Solution>& to) const;
 
     void LogFindDbItem(const std::pair<std::string, FindDbData>& item) const;
 };

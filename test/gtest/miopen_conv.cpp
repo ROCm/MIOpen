@@ -33,7 +33,7 @@ MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_CONV)
 
 namespace miopen_conv {
 
-bool SkipTest() { return miopen::IsDisabled(ENV(MIOPEN_TEST_CONV)); }
+bool SkipTest() { return env::disabled(MIOPEN_TEST_CONV); }
 
 void GetArgs(const std::string& param, std::vector<std::string>& tokens)
 {
@@ -60,6 +60,7 @@ void Run2dDriver(miopenDataType_t prec)
     case miopenHalf:
     case miopenBFloat16:
     case miopenInt32:
+    case miopenInt64:
     case miopenDouble:
         FAIL() << "miopenInt8, miopenBFloat8, miopenFloat8, miopenHalf, miopenBFloat16, "
                   "miopenInt32, "

@@ -40,14 +40,13 @@ auto GetTestCases()
     // FP32 tests because of WORKAROUND_ISSUE_2038, which disables validation of FP16 and BF16
     // datatypes in this test, see
     // https://github.com/ROCm/MIOpen/pull/2043#issuecomment-1482657160
-    const auto env_fwd = std::tuple{
-        std::pair{ENV(MIOPEN_FIND_ENFORCE), std::string_view("SEARCH_DB_UPDATE")},
-        std::pair{ENV(MIOPEN_DEBUG_TUNING_ITERATIONS_MAX), std::string_view("5")},
-        std::pair{ENV(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1), std::string_view("1")},
-        std::pair{ENV(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL), std::string_view("0")},
-        std::pair{ENV(MIOPEN_FIND_MODE), std::string_view("normal")},
-        std::pair{ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER),
-                  std::string_view("ConvHipImplicitGemmV4R1Fwd")}};
+    const auto env_fwd =
+        std::tuple{std::pair{MIOPEN_FIND_ENFORCE, "SEARCH_DB_UPDATE"},
+                   std::pair{MIOPEN_DEBUG_TUNING_ITERATIONS_MAX, 5},
+                   std::pair{MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1, true},
+                   std::pair{MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL, 0},
+                   std::pair{MIOPEN_FIND_MODE, "normal"},
+                   std::pair{MIOPEN_DEBUG_FIND_ONLY_SOLVER, "ConvHipImplicitGemmV4R1Fwd"}};
 
     const std::string vf = " --verbose --disable-backward-data --disable-backward-weights";
 

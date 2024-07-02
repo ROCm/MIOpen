@@ -32,6 +32,8 @@
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 
+namespace env = miopen::env;
+
 namespace conv_trans {
 
 void GetArgs(const std::string& param, std::vector<std::string>& tokens)
@@ -60,6 +62,7 @@ void Run2dDriver(miopenDataType_t prec)
     case miopenInt8:
     case miopenBFloat16:
     case miopenInt32:
+    case miopenInt64:
     case miopenDouble:
         FAIL() << "miopenHalf, miopenInt8, miopenBFloat16, miopenInt32, miopenDouble "
                   "data type not supported by "
@@ -145,7 +148,7 @@ using namespace conv_trans;
 TEST_P(ConfigWithFloat_conv_trans, FloatTest_conv_trans)
 {
     const auto& handle = get_handle();
-    if(IsTestSupportedForDevice(handle) && miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)))
+    if(IsTestSupportedForDevice(handle) && env::enabled(MIOPEN_TEST_ALL))
     {
         Run2dDriver(miopenFloat);
     }

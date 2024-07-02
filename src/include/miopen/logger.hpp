@@ -36,8 +36,7 @@
 
 #include <miopen/each_args.hpp>
 #include <miopen/object.hpp>
-#include <miopen/config.h>
-#include <miopen/export.h>
+#include <miopen/config.hpp>
 
 #if MIOPEN_USE_ROCTRACER
 #include <roctracer/roctx.h>
@@ -218,12 +217,14 @@ MIOPEN_EXPORT extern bool
 
 } // namespace debug
 
-MIOPEN_EXPORT const char* LoggingLevelToCString(LoggingLevel level);
-MIOPEN_EXPORT std::string LoggingPrefix();
+MIOPEN_INTERNALS_EXPORT std::string LoggingLevelToCustomString(LoggingLevel level,
+                                                               const char* custom);
+MIOPEN_INTERNALS_EXPORT const char* LoggingLevelToCString(LoggingLevel level);
+MIOPEN_INTERNALS_EXPORT std::string LoggingPrefix();
 
 /// \return true if level is enabled.
 /// \param level - one of the values defined in LoggingLevel.
-MIOPEN_EXPORT bool IsLogging(LoggingLevel level, bool disableQuieting = false);
+MIOPEN_INTERNALS_EXPORT bool IsLogging(LoggingLevel level, bool disableQuieting = false);
 bool IsLoggingCmd();
 bool IsLoggingFunctionCalls();
 #if MIOPEN_USE_ROCTRACER
@@ -378,8 +379,12 @@ constexpr std::string_view LoggingParseFunction(const std::string_view func,
 #define MIOPEN_LOG_XQ_(level, disableQuieting, fn_name, ...) \
     MIOPEN_LOG_XQ_CUSTOM(level, disableQuieting, LoggingLevelToCString(level), fn_name, __VA_ARGS__)
 
-#define MIOPEN_LOG_CUSTOM(level, category, ...) \
-    MIOPEN_LOG_XQ_CUSTOM(level, false, category, MIOPEN_GET_FN_NAME, __VA_ARGS__)
+#define MIOPEN_LOG_CUSTOM(level, category, ...)                       \
+    MIOPEN_LOG_XQ_CUSTOM(level,                                       \
+                         false,                                       \
+                         LoggingLevelToCustomString(level, category), \
+                         MIOPEN_GET_FN_NAME,                          \
+                         __VA_ARGS__)
 #define MIOPEN_LOG(level, ...) MIOPEN_LOG_XQ_(level, false, MIOPEN_GET_FN_NAME, __VA_ARGS__)
 #define MIOPEN_LOG_NQ_(level, ...) MIOPEN_LOG_XQ_(level, true, MIOPEN_GET_FN_NAME, __VA_ARGS__)
 

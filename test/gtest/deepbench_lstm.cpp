@@ -33,6 +33,8 @@
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_DEEPBENCH)
 
+namespace env = miopen::env;
+
 namespace deepbench_lstm {
 
 void GetArgs(const std::string& param, std::vector<std::string>& tokens)
@@ -109,7 +111,7 @@ using namespace deepbench_lstm;
 
 TEST_P(ConfigWithFloat_deepbench_lstm, FloatTest_deepbench_lstm)
 {
-    if(!miopen::IsEnabled(ENV(MIOPEN_TEST_DEEPBENCH)))
+    if(!env::enabled(MIOPEN_TEST_DEEPBENCH))
     {
         GTEST_SKIP();
     }

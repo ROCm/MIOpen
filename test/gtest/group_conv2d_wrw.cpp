@@ -35,3 +35,4 @@ DEFINE_GROUP_CONV2D_TEST(float, BackwardWeights);
 // DEFINE_GROUP_CONV2D_TEST(half, BackwardWeights);
 /// \todo int8_t tests don't work. Need debugging
 // DEFINE_GROUP_CONV2D_TEST(int8_t, BackwardWeights);
+DEFINE_GROUP_CONV2D_TEST(bfloat16, BackwardWeights);

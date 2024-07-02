@@ -24,7 +24,10 @@
  *
  *******************************************************************************/
 
+#define CONV_WINO_FURY_RXS_CPP
+
 #include <miopen/solver.hpp>
+#include <miopen/fusion/solvers.hpp>
 
 #include <miopen/conv/invokers/gcn_asm_wino.hpp>
 #include <miopen/conv/kernel_interface/winograd_kernel_interface.hpp>
@@ -33,6 +36,7 @@
 #include <miopen/kernel_build_params.hpp>
 #endif
 #include <miopen/stringutils.hpp>
+#include <miopen/fusion/utils.hpp>
 
 #define WORKAROUND_SWDEV_453577 1
 
@@ -44,12 +48,11 @@ MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_AMD_WINOGRAD_FURY_RXS_F3X2)
 
 namespace miopen {
 namespace solver {
-namespace conv {
 
 using ProblemDescription           = miopen::conv::ProblemDescription;
-using WinoShaderArgsV2             = miopen::conv::WinoShaderArgsV2;
-using WinoShaderActivationModeV2_t = miopen::conv::WinoShaderActivationModeV2_t;
-using WinoShaderFlagsV2            = miopen::conv::WinoShaderFlagsV2;
+using WinoShaderArgsV2             = miopen::WinoShaderArgsV2;
+using WinoShaderActivationModeV2_t = miopen::WinoShaderActivationModeV2_t;
+using WinoShaderFlagsV2            = miopen::WinoShaderFlagsV2;
 
 namespace {
 
@@ -212,20 +215,31 @@ private:
     }
 };
 
-} // namespace
+template <uint32_t Winodata, uint32_t Winofilter>
+struct ConvWinoFuryRxSCommon
+{
+    static bool IsApplicable(const ExecutionContext&, const ProblemDescription&);
+    static float GetWti(const ExecutionContext&, const ProblemDescription&);
+    static size_t GetWorkspaceSize(const ExecutionContext&, bool fused = false);
+    static ConvSolution GetSolution(const ExecutionContext&,
+                                    const ProblemDescription&,
+                                    bool fused                        = false,
+                                    bool do_bias                      = false,
+                                    miopenActivationMode_t activ_mode = miopenActivationPASTHRU);
+};
 
 template <uint32_t Winodata, uint32_t Winofilter>
-bool ConvWinoFuryRxS<Winodata, Winofilter>::IsApplicable(const ExecutionContext& ctx,
-                                                         const ProblemDescription& problem) const
+bool ConvWinoFuryRxSCommon<Winodata, Winofilter>::IsApplicable(const ExecutionContext& ctx,
+                                                               const ProblemDescription& problem)
 {
     if constexpr(IS2X3)
     {
-        if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_AMD_WINOGRAD_FURY_RXS_F2X3)))
+        if(env::disabled(MIOPEN_DEBUG_AMD_WINOGRAD_FURY_RXS_F2X3))
             return false;
     }
     if constexpr(IS3X2)
     {
-        if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_AMD_WINOGRAD_FURY_RXS_F3X2)))
+        if(env::disabled(MIOPEN_DEBUG_AMD_WINOGRAD_FURY_RXS_F3X2))
             return false;
     }
 
@@ -259,8 +273,8 @@ bool ConvWinoFuryRxS<Winodata, Winofilter>::IsApplicable(const ExecutionContext&
 }
 
 template <uint32_t Winodata, uint32_t Winofilter>
-float ConvWinoFuryRxS<Winodata, Winofilter>::GetWti(const ExecutionContext& ctx,
-                                                    const ProblemDescription& problem) const
+float ConvWinoFuryRxSCommon<Winodata, Winofilter>::GetWti(const ExecutionContext& ctx,
+                                                          const ProblemDescription& problem)
 {
     std::ignore = ctx;
     std::ignore = problem;
@@ -269,11 +283,12 @@ float ConvWinoFuryRxS<Winodata, Winofilter>::GetWti(const ExecutionContext& ctx,
 }
 
 template <uint32_t Winodata, uint32_t Winofilter>
-size_t
-ConvWinoFuryRxS<Winodata, Winofilter>::GetWorkspaceSize(const ExecutionContext& ctx,
-                                                        const ProblemDescription& problem) const
+size_t ConvWinoFuryRxSCommon<Winodata, Winofilter>::GetWorkspaceSize(const ExecutionContext& ctx,
+                                                                     bool fused)
 {
-    std::ignore = problem;
+    // fusions do not support workspace
+    if(fused)
+        return 0;
 
     const bool coop_launch = ctx.GetStream().CooperativeLaunchSupported();
     return coop_launch ? sync_buffer_size : 0; // 2KB buffer for global sync
@@ -281,8 +296,11 @@ ConvWinoFuryRxS<Winodata, Winofilter>::GetWorkspaceSize(const ExecutionContext& 
 
 template <uint32_t Winodata, uint32_t Winofilter>
 ConvSolution
-ConvWinoFuryRxS<Winodata, Winofilter>::GetSolution(const ExecutionContext& ctx,
-                                                   const ProblemDescription& problem) const
+ConvWinoFuryRxSCommon<Winodata, Winofilter>::GetSolution(const ExecutionContext& ctx,
+                                                         const ProblemDescription& problem,
+                                                         bool fused,
+                                                         bool do_bias,
+                                                         miopenActivationMode_t activ_mode)
 {
     const auto dev_name         = ctx.GetStream().GetDeviceName();
     const auto cu_count         = ctx.GetStream().GetMaxHardwareComputeUnits();
@@ -291,7 +309,8 @@ ConvWinoFuryRxS<Winodata, Winofilter>::GetSolution(const ExecutionContext& ctx,
 #if WORKAROUND_SWDEV_453577
     const bool coop_launch = false;
 #else
-    const bool coop_launch = ctx.GetStream().CooperativeLaunchSupported();
+    // fusions do not support workspace
+    const bool coop_launch = !fused && ctx.GetStream().CooperativeLaunchSupported();
 #endif
 
     constexpr size_t wg_size = 384;
@@ -313,7 +332,7 @@ ConvWinoFuryRxS<Winodata, Winofilter>::GetSolution(const ExecutionContext& ctx,
     {
         if(cu_count != n_groups)
         {
-            MIOPEN_LOG_WE(SolverDbId()
+            MIOPEN_LOG_WE("ConvWinoFuryRxSCommon"
                           << ": GPU has " << cu_count << " CUs, but this solver supports max "
                           << n_groups << " and thus may show sub-optimal performance.");
         }
@@ -379,7 +398,7 @@ ConvWinoFuryRxS<Winodata, Winofilter>::GetSolution(const ExecutionContext& ctx,
     args.SetStrides(problem);
 
     // Fused activation parameters
-    args.SetActivParams(WinoShaderActivationModeV2_t::IDENTITY, 0.0f, 0.0f);
+    args.SetActivParams(activ_mode);
 
     // Other shader parameters
     auto flags = WinoShaderFlagsV2::F_NKCHR_STRIDES | WinoShaderFlagsV2::F_TENSOR_OFFSETS |
@@ -387,6 +406,8 @@ ConvWinoFuryRxS<Winodata, Winofilter>::GetSolution(const ExecutionContext& ctx,
                  WinoShaderFlagsV2::F_USE_EXTENDED_FLAGS_64;
     if(problem.IsDirectionBackwardData())
         flags |= WinoShaderFlagsV2::F_REVERSE_R | WinoShaderFlagsV2::F_REVERSE_S;
+    if(do_bias)
+        flags |= WinoShaderFlagsV2::F_BIAS;
 
     uint8_t sync_limit  = 0;
     uint8_t sync_period = 0;
@@ -400,16 +421,148 @@ ConvWinoFuryRxS<Winodata, Winofilter>::GetSolution(const ExecutionContext& ctx,
     // Solution
     ConvSolution result;
     result.construction_params.push_back(kernel);
-    result.invoker_factory = miopen::conv::MakeGcnAsmWinoV2InvokerFactory(
-        args, problem.GetDirection(), coop_launch ? sync_buffer_size : 0);
-    result.workspace_sz = GetWorkspaceSize(ctx, problem);
+    result.invoker_factory = miopen::MakeGcnAsmWinoV2InvokerFactory(
+        args, problem.GetDirection(), coop_launch ? sync_buffer_size : 0, fused);
+    result.workspace_sz = GetWorkspaceSize(ctx, fused);
 
     return result;
+}
+
+} // namespace
+
+namespace conv {
+
+template <uint32_t Winodata, uint32_t Winofilter>
+bool ConvWinoFuryRxS<Winodata, Winofilter>::IsApplicable(const ExecutionContext& ctx,
+                                                         const ProblemDescription& problem) const
+{
+    return ConvWinoFuryRxSCommon<Winodata, Winofilter>::IsApplicable(ctx, problem);
+}
+
+template <uint32_t Winodata, uint32_t Winofilter>
+float ConvWinoFuryRxS<Winodata, Winofilter>::GetWti(const ExecutionContext& ctx,
+                                                    const ProblemDescription& problem) const
+{
+    return ConvWinoFuryRxSCommon<Winodata, Winofilter>::GetWti(ctx, problem);
+}
+
+template <uint32_t Winodata, uint32_t Winofilter>
+size_t
+ConvWinoFuryRxS<Winodata, Winofilter>::GetWorkspaceSize(const ExecutionContext& ctx,
+                                                        const ProblemDescription& problem) const
+{
+    std::ignore = problem;
+
+    return ConvWinoFuryRxSCommon<Winodata, Winofilter>::GetWorkspaceSize(ctx);
+}
+
+template <uint32_t Winodata, uint32_t Winofilter>
+ConvSolution
+ConvWinoFuryRxS<Winodata, Winofilter>::GetSolution(const ExecutionContext& ctx,
+                                                   const ProblemDescription& problem) const
+{
+    return ConvWinoFuryRxSCommon<Winodata, Winofilter>::GetSolution(ctx, problem);
 }
 
 template struct ConvWinoFuryRxS<2, 3>;
 // template struct ConvWinoFuryRxS<3, 2>;
 
 } // namespace conv
+
+namespace fusion {
+
+template <uint32_t Winodata, uint32_t Winofilter>
+bool ConvWinoFuryRxSFused<Winodata, Winofilter>::IsApplicable(
+    const FusionContext& ctx, const FusionDescription& problem) const
+{
+    const auto& desc = *problem.fusion_plan_desc;
+
+    if(desc.op_map.empty())
+    {
+        MIOPEN_THROW(miopenStatusInternalError);
+    }
+
+    if(desc.op_map.size() > 3)
+        return false;
+    if(desc.op_map[0]->kind() != miopenFusionOpConvForward)
+        return false;
+    if(desc.op_map.size() == 2)
+    {
+        const auto prim = desc.op_map[1]->kind();
+        if(!(prim == miopenFusionOpBiasForward || prim == miopenFusionOpActivForward))
+            return false;
+    }
+    if(desc.op_map.size() == 3)
+    {
+        if(desc.op_map[1]->kind() != miopenFusionOpBiasForward)
+            return false;
+        if(desc.op_map[2]->kind() != miopenFusionOpActivForward)
+            return false;
+    }
+
+    const int activ_idx = GetOpIdx(desc.op_map, miopenFusionOpActivForward);
+    if(activ_idx != -1)
+    {
+        const auto& activ_op = dynamic_cast<ActivFwdFusionOpDescriptor&>(*desc.op_map[activ_idx]);
+        switch(activ_op.activMode)
+        {
+        case miopenActivationPASTHRU:
+        case miopenActivationLOGISTIC:
+        case miopenActivationTANH:
+        case miopenActivationLEAKYRELU: break;
+        default: return false;
+        }
+    }
+
+    const auto conv_problem = problem.GetConvProblem(0, miopen::conv::Direction::Forward);
+    return ConvWinoFuryRxSCommon<Winodata, Winofilter>::IsApplicable(ctx, conv_problem);
+}
+
+template <uint32_t Winodata, uint32_t Winofilter>
+float ConvWinoFuryRxSFused<Winodata, Winofilter>::GetWti(const FusionContext& ctx,
+                                                         const FusionDescription& problem) const
+{
+    const auto conv_problem = problem.GetConvProblem(0, miopen::conv::Direction::Forward);
+    return ConvWinoFuryRxSCommon<Winodata, Winofilter>::GetWti(ctx, conv_problem);
+}
+
+template <uint32_t Winodata, uint32_t Winofilter>
+size_t
+ConvWinoFuryRxSFused<Winodata, Winofilter>::GetWorkspaceSize(const FusionContext& ctx,
+                                                             const FusionDescription& problem) const
+{
+    std::ignore = problem;
+
+    return ConvWinoFuryRxSCommon<Winodata, Winofilter>::GetWorkspaceSize(ctx, true);
+}
+
+template <uint32_t Winodata, uint32_t Winofilter>
+ConvSolution
+ConvWinoFuryRxSFused<Winodata, Winofilter>::GetSolution(const FusionContext& ctx,
+                                                        const FusionDescription& problem) const
+{
+    const auto& desc    = *problem.fusion_plan_desc;
+    const int bias_idx  = GetOpIdx(desc.op_map, miopenFusionOpBiasForward);
+    const int activ_idx = GetOpIdx(desc.op_map, miopenFusionOpActivForward);
+
+    const auto conv_problem = problem.GetConvProblem(0, miopen::conv::Direction::Forward);
+
+    const bool do_bias = (bias_idx != -1);
+    auto activ_mode    = miopenActivationPASTHRU;
+    if(activ_idx != -1)
+    {
+        const auto& activ_op = dynamic_cast<ActivFwdFusionOpDescriptor&>(*desc.op_map[activ_idx]);
+        activ_mode           = activ_op.activMode;
+    }
+
+    return ConvWinoFuryRxSCommon<Winodata, Winofilter>::GetSolution(
+        ctx, conv_problem, true, do_bias, activ_mode);
+}
+
+template struct MIOPEN_INTERNALS_EXPORT ConvWinoFuryRxSFused<2, 3>;
+// template struct MIOPEN_INTERNALS_EXPORT ConvWinoFuryRxSFused<3, 2>;
+
+} // namespace fusion
+
 } // namespace solver
 } // namespace miopen

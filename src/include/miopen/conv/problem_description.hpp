@@ -29,6 +29,7 @@
 #include <boost/any.hpp>
 #include <miopen/conv_algo_name.hpp>
 #include <miopen/names.hpp>
+#include <miopen/scalar.hpp>
 
 #include <miopen/problem_description_base.hpp>
 #include <miopen/tensor.hpp>
@@ -42,7 +43,7 @@ namespace miopen {
 
 struct ExecutionContext;
 
-std::string
+MIOPEN_INTERNALS_EXPORT std::string
 EncodeDataTypesForKey(miopenDataType_t in, miopenDataType_t weights, miopenDataType_t out);
 
 template <class TElement>
@@ -132,10 +133,13 @@ constexpr TElement GetW5(unsigned spatial_dims, const std::vector<TElement>& dat
 
 namespace conv {
 
-struct ProblemDescription : ProblemDescriptionBase
+MIOPEN_INTERNALS_EXPORT miopenAlphaBetaCase_t ClassifyAlphaBeta(const Scalar& alpha,
+                                                                const Scalar& beta);
+
+struct MIOPEN_INTERNALS_EXPORT ProblemDescription : ProblemDescriptionBase
 #if MIOPEN_ENABLE_SQLITE
     ,
-                            SQLiteSerializable<ProblemDescription>
+                                                    SQLiteSerializable<ProblemDescription>
 #endif
 {
     ProblemDescription() = default;
@@ -146,7 +150,9 @@ struct ProblemDescription : ProblemDescriptionBase
                        const TensorDescriptor& out_, // y for Forward, x for Backward*
                        const ConvolutionDescriptor& conv_,
                        Direction direction_,
-                       int bias_ = 0)
+                       int bias_            = 0,
+                       const Scalar& alpha_ = Scalar(1.0),
+                       const Scalar& beta_  = Scalar(0.0))
         : in(in_),
           weights(weights_),
           out(out_),
@@ -155,7 +161,10 @@ struct ProblemDescription : ProblemDescriptionBase
           weights_layout(ComputeWeightsLayout()),
           out_layout(ComputeOutLayout()),
           direction(direction_),
-          bias(bias_)
+          bias(bias_),
+          alpha(alpha_),
+          beta(beta_),
+          alpha_beta_case(ClassifyAlphaBeta(alpha, beta))
     {
         HeuristicUpdateLayouts();
     }
@@ -246,6 +255,13 @@ struct ProblemDescription : ProblemDescriptionBase
     bool IsDirectionBackwardData() const { return direction == conv::Direction::BackwardData; }
     bool IsDirectionBackwardWrW() const { return direction == conv::Direction::BackwardWeights; }
     std::string GetDirectionStr() const;
+
+    const Scalar& GetAlpha() const { return alpha; }
+    const Scalar& GetBeta() const { return beta; }
+
+    miopenAlphaBetaCase_t GetAlphaBetaCase() const { return alpha_beta_case; }
+
+    std::string GetAlphaBetaCaseStr() const;
 
     int GetBias() const { return bias; }
 
@@ -470,8 +486,11 @@ private:
     std::string in_layout;
     std::string weights_layout;
     std::string out_layout;
-    Direction direction = Direction::Forward;
-    int bias            = 0;
+    Direction direction                   = Direction::Forward;
+    int bias                              = 0;
+    Scalar alpha                          = Scalar(1.0);
+    Scalar beta                           = Scalar(0.0);
+    miopenAlphaBetaCase_t alpha_beta_case = DEFAULT;
 };
 
 } // namespace conv

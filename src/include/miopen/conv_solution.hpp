@@ -89,7 +89,9 @@ struct ConvSolution
 
 std::ostream& operator<<(std::ostream& os, const ConvSolution& s);
 
-void PrecompileSolutions(const Handle& h, const std::vector<const ConvSolution*>& sols);
+void PrecompileSolutions(const Handle& h,
+                         const std::vector<const ConvSolution*>& sols,
+                         bool force_attach_binary = false);
 
 } // namespace solver
 } // namespace miopen

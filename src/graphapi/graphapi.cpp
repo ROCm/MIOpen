@@ -27,6 +27,7 @@
 #include <miopen/graphapi/convolution.hpp>
 #include <miopen/graphapi/engine.hpp>
 #include <miopen/graphapi/enginecfg.hpp>
+#include <miopen/graphapi/engineheur.hpp>
 #include <miopen/graphapi/execution_plan.hpp>
 #include <miopen/graphapi/graphapi.hpp>
 #include <miopen/graphapi/opgraph.hpp>
@@ -64,6 +65,9 @@ miopenBackendCreateDescriptor(miopenBackendDescriptorType_t descriptorType,
 
         case MIOPEN_BACKEND_ENGINECFG_DESCRIPTOR:
             outputDescriptor = new miopen::graphapi::BackendEngineCfgDescriptor(); break;
+
+        case MIOPEN_BACKEND_ENGINEHEUR_DESCRIPTOR:
+            outputDescriptor = new miopen::graphapi::BackendEngineHeurDescriptor(); break;
 
         case MIOPEN_BACKEND_EXECUTION_PLAN_DESCRIPTOR:
             outputDescriptor = new miopen::graphapi::BackendExecutionPlanDescriptor(); break;
@@ -218,10 +222,11 @@ extern "C" miopenStatus_t miopenBackendInitialize(miopenBackendDescriptor_t desc
     return miopen::try_([&] {
         switch(descriptorType)
         {
-        /* This part is a common place of changes of about 25 PRs and merge conflicts arise heavily
+        /** This part is a common place of changes of about 25 PRs and merge conflicts arise heavily
          * here. Turn off clang-format to keep each line unique to simplify resolving of conflicts.
          *
-         * TODO: Turn on clang-format when active phase of development is finished.
+         * \todo Turn on clang-format when active phase of development is finished.
+         * --Sergei Apr, 2024
          */
         // clang-format off
         case MIOPEN_BACKEND_CONVOLUTION_DESCRIPTOR:
@@ -232,6 +237,9 @@ extern "C" miopenStatus_t miopenBackendInitialize(miopenBackendDescriptor_t desc
 
         case MIOPEN_BACKEND_ENGINECFG_DESCRIPTOR:
             initializeBackendDescriptor<miopen::graphapi::BackendEngineCfgDescriptor>(descriptor, sizeInBytes); break;
+
+        case MIOPEN_BACKEND_ENGINEHEUR_DESCRIPTOR:
+            initializeBackendDescriptor<miopen::graphapi::BackendEngineHeurDescriptor>(descriptor, sizeInBytes); break;
 
         case MIOPEN_BACKEND_EXECUTION_PLAN_DESCRIPTOR:
             initializeBackendDescriptor<miopen::graphapi::BackendExecutionPlanDescriptor>(descriptor, sizeInBytes); break;

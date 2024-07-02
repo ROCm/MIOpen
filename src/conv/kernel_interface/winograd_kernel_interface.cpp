@@ -30,7 +30,6 @@
 #include <miopen/conv/problem_description.hpp>
 
 namespace miopen {
-namespace conv {
 
 namespace {
 
@@ -62,7 +61,7 @@ bool AssignAndCheck(Tdst& dst_v, Tsrc src_v) noexcept
 
 } // namespace
 
-bool WinoShaderArgsV2::SetConvParams(const ProblemDescription& problem)
+bool WinoShaderArgsV2::SetConvParams(const conv::ProblemDescription& problem)
 {
     if(!problem.Is2d())
         return false;
@@ -154,7 +153,7 @@ bool WinoShaderArgsV2::SetConvParams(const ProblemDescription& problem)
     return true;
 }
 
-void WinoShaderArgsV2::SetStrides(const ProblemDescription& problem)
+void WinoShaderArgsV2::SetStrides(const conv::ProblemDescription& problem)
 {
     MemLayout_t d_layout, o_layout, f_layout;
 
@@ -201,14 +200,28 @@ void WinoShaderArgsV2::SetStrides(const ProblemDescription& problem)
     o_G_stride = o_strides.g;
 }
 
-void WinoShaderArgsV2::SetActivParams(WinoShaderActivationModeV2_t mode,
-                                      float alpha_,
-                                      float beta_) noexcept
+void WinoShaderArgsV2::SetActivParams(miopenActivationMode_t mode)
 {
     // Fused activation parameters
-    activation_mode = mode;
-    alpha           = alpha_;
-    beta            = beta_;
+    // clang-format off
+    switch(mode)
+    {
+    case miopenActivationPASTHRU:
+        activation_mode = WinoShaderActivationModeV2_t::IDENTITY;
+        break;
+    case miopenActivationLOGISTIC:
+        activation_mode = WinoShaderActivationModeV2_t::SIGMOID;
+        break;
+    case miopenActivationTANH:
+        activation_mode = WinoShaderActivationModeV2_t::SCALED_TANH;
+        break;
+    case miopenActivationLEAKYRELU:
+        activation_mode = WinoShaderActivationModeV2_t::LEAKY_RELU;
+        break;
+    default:
+        MIOPEN_THROW(miopenStatusInternalError);
+    }
+    // clang-format on
 }
 
 void WinoShaderArgsV2::SetShaderParams(uint32_t n_groups_,
@@ -222,5 +235,4 @@ void WinoShaderArgsV2::SetShaderParams(uint32_t n_groups_,
     sync_period = sync_period_;
 }
 
-} // namespace conv
 } // namespace miopen

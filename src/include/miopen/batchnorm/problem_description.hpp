@@ -29,6 +29,7 @@
 #include <miopen/problem_description_base.hpp>
 #include <miopen/activ.hpp>
 #include <miopen/tensor.hpp>
+#include <miopen/mlo_internal.hpp>
 
 #include <cassert>
 #include <string>
@@ -36,6 +37,7 @@
 namespace miopen {
 
 struct NetworkConfig;
+struct ExecutionContext;
 
 namespace batchnorm {
 
@@ -46,9 +48,13 @@ enum class Direction
     Backward,
 };
 
-struct ProblemDescription : ProblemDescriptionBase
+struct ProblemDescriptionTag
 {
-    // Forward
+};
+
+struct MIOPEN_INTERNALS_EXPORT ProblemDescription : ProblemDescriptionBase, ProblemDescriptionTag
+{
+    // Forward Training
     ProblemDescription(miopenBatchNormMode_t bn_mode_,
                        const TensorDescriptor& xDesc_,
                        const TensorDescriptor& yDesc_,
@@ -176,7 +182,19 @@ struct ProblemDescription : ProblemDescriptionBase
                                               : ((in_layout == "NDHWC") && (out_layout == "NDHWC"));
     }
 
+    bool Is2D() const { return xDesc.GetLengths().size() == 4; }
+
+    bool IsFp64() const { return xDesc.GetType() == miopenDouble; }
+    bool IsFp32() const { return xDesc.GetType() == miopenFloat; }
+    bool IsFp16() const { return xDesc.GetType() == miopenHalf; }
+    bool IsBfp16() const { return xDesc.GetType() == miopenBFloat16; }
+
     NetworkConfig MakeNetworkConfig() const override;
+
+    // This declaration marks batchnorm as a primitive with tuning enabled.
+    // Any tunable solver would be able pick it and fetch a db instance in ExecutePrimitive.
+    // It has to be discoverable via ADL from problem description.
+    friend auto GetDb(const ExecutionContext& ctx, const ProblemDescriptionTag&) -> PerformanceDb;
 
 private:
     Direction direction;
