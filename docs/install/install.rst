@@ -113,7 +113,7 @@ minimum release using ``apt-get install rocblas``. To disable rocBLAS, set the c
 
 MIOpen's HIP backend can use :doc:`hipBLASLt <hipblaslt:index>`. You can install hipBLASLt's minimum
 release using ``apt-get install hipblaslt``. In addition to needing hipblaslt, you will also need to
-install hipBLAS. You can install hipBLAS's minimum release using ``apt-get install hipblas``.
+install :doc:`hipBLAS <hipblas:index>`. You can install hipBLAS's minimum release using ``apt-get install hipblas``.
 To disable hipBLASLt, set the configuration flag ``-DMIOPEN_USE_HIPBLASLT=Off``. 
 hipBLASLt is **not** available with OpenCL.
 
