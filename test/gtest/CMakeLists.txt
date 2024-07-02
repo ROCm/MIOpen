@@ -2,6 +2,7 @@ find_package(GTest REQUIRED)
 find_package(rocblas)
 
 if(MIOPEN_USE_HIPBLASLT)
+  find_package(hipblas REQUIRED PATHS /opt/rocm $ENV{HIP_PATH})
   find_package(hipblaslt REQUIRED PATHS /opt/rocm $ENV{HIP_PATH})
 endif()
 
