@@ -189,7 +189,7 @@ const char* getOffloadBundlerBinPath();
     MIOPEN_HIPBLASLT_VERSION_PATCH > 999
 #error "Too big HIPBLASLT version number(s)"
 #endif
-#define MIOPEN_HIPBLASLT_VERSION_FLAT                                                \
+#define MIOPEN_HIPBLASLT_VERSION_FLAT                                                  \
     ((MIOPEN_HIPBLASLT_VERSION_MAJOR * 1000 + MIOPEN_HIPBLASLT_VERSION_MINOR) * 1000 + \
      MIOPEN_HIPBLASLT_VERSION_PATCH)
 #endif // MIOPEN_USE_HIPBLASLT

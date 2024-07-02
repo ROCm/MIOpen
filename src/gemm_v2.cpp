@@ -607,7 +607,7 @@ static void call_miopen_hipblasLt_gemm(const miopen::Handle& handle,
         const auto is_gfx94x = miopen::StartsWith(handle.GetDeviceName(), "gfx94");
         if(is_gfx94x)
         {
-            #ifdef ENABLE_HIPBLASLT_BF8
+#ifdef ENABLE_HIPBLASLT_BF8
             miopen_hipblasLt_gemm<hipblaslt_bf8_fnuz, hipblaslt_bf8_fnuz>(handle,
                                                                           gemm_desc,
                                                                           A,
@@ -619,10 +619,10 @@ static void call_miopen_hipblasLt_gemm(const miopen::Handle& handle,
                                                                           c_offset,
                                                                           HIP_R_8F_E5M2_FNUZ,
                                                                           skip_batches);
-            #else
-                MIOPEN_THROW(miopenStatusInternalError,
+#else
+            MIOPEN_THROW(miopenStatusInternalError,
                          "miopenBFloat8 is not supported for this version of hipBlasLt on gfx94x");
-            #endif
+#endif
         }
         else
         {

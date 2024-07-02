@@ -350,26 +350,25 @@ INSTANTIATE_TEST_SUITE_P(HipBLASLtGEMMTestSet,
 
 TEST_F(HipBLASLtGEMMTestBFloat8, CheckHipBLASLtGEMMException)
 {
-    #ifdef ENABLE_HIPBLASLT_BF8
+#ifdef ENABLE_HIPBLASLT_BF8
     using e_mask = enabled<Gpu::gfx94X>;
     using d_mask =
         disabled<Gpu::gfx103X, Gpu::gfx900, Gpu::gfx906, Gpu::gfx908, Gpu::gfx90A, Gpu::gfx110X>;
     CheckExceptionsWithSkip<bfloat8, d_mask, e_mask>(miopenDataType_t::miopenBFloat8);
-    #else
+#else
     CheckExceptions<bfloat8>(miopenDataType_t::miopenInt64);
-    #endif
+#endif
 };
 TEST_P(HipBLASLtGEMMTestBFloat8, RunHipBLASLtGEMM)
 {
-    #ifdef ENABLE_HIPBLASLT_BF8
+#ifdef ENABLE_HIPBLASLT_BF8
     using e_mask = enabled<Gpu::gfx94X>;
     using d_mask =
         disabled<Gpu::gfx103X, Gpu::gfx900, Gpu::gfx906, Gpu::gfx908, Gpu::gfx90A, Gpu::gfx110X>;
     RunGemmDescriptors<bfloat8, d_mask, e_mask>(GetParam(), miopenDataType_t::miopenBFloat8);
-    #else
+#else
     GTEST_SKIP();
-    #endif
-
+#endif
 };
 INSTANTIATE_TEST_SUITE_P(HipBLASLtGEMMTestSet,
                          HipBLASLtGEMMTestBFloat8,
