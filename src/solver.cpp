@@ -665,6 +665,8 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
     Register(registry, ++id, Primitive::Adam, adam::Adam{}.SolverDbId());
     Register(registry, ++id, Primitive::Item, getitem::GetitemBackward{}.SolverDbId());
 
+    Register(registry, ++id, Primitive::Adam, adam::TransformersAdamW{}.SolverDbId());
+
     Register(registry,
              ++id,
              Primitive::Fusion,

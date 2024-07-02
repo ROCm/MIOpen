@@ -184,6 +184,7 @@ set( MIOpen_Source
     solver/activ/fwd_0.cpp
     solver/activ/fwd_1.cpp
     solver/adam/adam.cpp
+    solver/adam/transformers_adam_w.cpp
     solver/batchnorm/backward_ck.cpp
     solver/batchnorm/backward_per_activation.cpp
     solver/batchnorm/backward_per_activation_fused.cpp
@@ -306,6 +307,7 @@ set( MIOpen_Source
     temp_file.cpp
     tensor.cpp
     tensor_api.cpp
+    transformers_adam_w_api.cpp
     seq_tensor.cpp
 )
 
@@ -509,6 +511,8 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenUtilKernels3.cl
         kernels/MIOpenUtilKernels4.cl
         kernels/MIOpenUtilKernels5.cl
+        kernels/MIOpenVecAdd.cpp
+        kernels/MIOpenVecAddOCL.cl
         kernels/MIOpenIm2d2Col.cl
         kernels/MIOpenIm3d2Col.cl
         kernels/MIOpenCol2Im2d.cl
@@ -645,6 +649,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         ocl/fusionopbiasbnactivocl.cpp
         reduceextreme.cpp
         sum.cpp
+        transformers_adam_w.cpp
         ${PROJECT_BINARY_DIR}/db_path.cpp
         )
 

@@ -175,7 +175,8 @@ inline void PadBufferSize(size_t& sz, int datatype_sz)
            "tensorop[fp16], reduce[fp16|fp64], layernorm[bfp16|fp16], sum[bfp16|fp16], "
            "groupnorm[bfp16|fp16], cat[bfp16|fp16], addlayernorm[bfp16|fp16], "
            "t5layernorm[bfp16|fp16], adam[fp16], ampadam, reduceextreme[bfp16|fp16], "
-           "adamw[fp16], ampadamw, getitem[bfp16|fp16]\n");
+           "adamw[fp16], ampadamw, transformersadamw[fp16], transformersampadamw, "
+           "getitem[bfp16|fp16]\n");
     exit(0); // NOLINT (concurrency-mt-unsafe)
 }
 
@@ -204,8 +205,9 @@ inline std::string ParseBaseArg(int argc, char* argv[])
        arg != "t5layernorm" && arg != "t5layernormfp16" && arg != "t5layernormbfp16" &&
        arg != "adam" && arg != "adamfp16" && arg != "ampadam" && arg != "reduceextreme" &&
        arg != "reduceextremefp16" && arg != "reduceextremebfp16" && arg != "adamw" &&
-       arg != "adamwfp16" && arg != "ampadamw" && arg != "getitem" && arg != "getitemfp16" &&
-       arg != "getitembfp16" && arg != "--version")
+       arg != "adamwfp16" && arg != "ampadamw" && arg != "transformersadamw" &&
+       arg != "transformersadamwfp16" && arg != "transformersampadamw" && arg != "getitem" &&
+       arg != "getitemfp16" && arg != "getitembfp16" && arg != "--version")
     {
         printf("FAILED: Invalid Base Input Argument\n");
         Usage();
