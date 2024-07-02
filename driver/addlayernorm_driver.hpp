@@ -447,11 +447,16 @@ Tref AddLayerNormDriver<Tgpu, Tref>::GetTolerance()
 {
     // Computation error of fp16 is ~2^13 (=8192) bigger than
     // the one of fp32 because mantissa is shorter by 13 bits.
-    auto tolerance = std::is_same<Tgpu, float>::value ? 1.5e-6 : 8.2e-3;
+    // In the case of layernorm, there is a cumulative sum operation, and in the case of
+    // floating point operation, the result value can change if the order of the summed values
+    // is changed. So apply a threshold that is 10 times larger than other operations.
+    auto tolerance = std::is_same<Tgpu, float>::value ? 1.5e-5 : 8.2e-2;
 
     // bf16 mantissa has 7 bits, by 3 bits shorter than fp16.
+    // If there is an atomic operation on the GPU kernel, a large error occurs depending on the
+    // calculation order, so it is multiplied by 10 times.
     if(std::is_same<Tgpu, bfloat16>::value)
-        tolerance *= 8.0;
+        tolerance *= 80.0;
     return tolerance;
 }
 
