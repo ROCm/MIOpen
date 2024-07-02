@@ -47,9 +47,10 @@ namespace kthvalue {
 bool IsImprovementOverROCm(const miopen::kthvalue::FwdProblemDescription& problem)
 {
     TensorDescriptor inputDesc = problem.GetInputDesc();
+    int dimNum                 = inputDesc.GetSize();
     size_t dimSize             = inputDesc.GetLengths()[problem.GetDim()];
 
-    return dimSize >= 300;
+    return dimNum >= 2 && problem.GetDim() == dimNum - 1 && dimSize >= 256;
 }
 
 bool KthvalueFwd::IsApplicable(const ExecutionContext& /*context*/,
@@ -57,9 +58,9 @@ bool KthvalueFwd::IsApplicable(const ExecutionContext& /*context*/,
 {
     if(problem.GetInputDesc().GetSize() > 5)
         return false;
-    if(!IsImprovementOverROCm(problem))
+    if(!problem.isContiguous)
         return false;
-    if(!problem.isInputContiguous)
+    if(!IsImprovementOverROCm(problem))
         return false;
     return true;
 }
@@ -70,14 +71,16 @@ ConvSolution KthvalueFwd::GetSolution(const ExecutionContext& context,
     std::ignore = context;
     auto result = ConvSolution{miopenStatusSuccess};
 
-    auto input_desc = problem.GetInputDesc();
-    auto in_dtype   = miopen::GetDataType(input_desc.GetType());
-    auto dtype      = problem.GetOutputDesc().GetType();
-    auto size       = input_desc.GetElementSize();
-    auto dim_size   = input_desc.GetLengths()[problem.GetDim()];
+    auto input_desc    = problem.GetInputDesc();
+    auto in_dtype      = miopen::GetDataType(input_desc.GetType());
+    auto dtype         = problem.GetOutputDesc().GetType();
+    auto size          = input_desc.GetElementSize();
+    auto dim_size      = input_desc.GetLengths()[problem.GetDim()];
+    size_t output_size = size / dim_size;
 
-    size_t xlocalsize = LOCAL_SIZE;
-    size_t xgridsize  = size / dim_size * xlocalsize;
+    size_t xlocalsize;
+    xlocalsize        = LOCAL_SIZE;
+    size_t xgridsize  = output_size * xlocalsize;
     size_t ylocalsize = 1;
     size_t ygridsize  = 1;
     size_t zlocalsize = 1;
@@ -93,7 +96,7 @@ ConvSolution KthvalueFwd::GetSolution(const ExecutionContext& context,
         {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
         {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
         {"IN_OUT_TYPE", in_dtype == "bfloat16" ? "ushort" : in_dtype},
-        {"LOCAL_SIZE", LOCAL_SIZE},
+        {"LOCAL_SIZE", xlocalsize},
     };
 
     kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
@@ -112,8 +115,7 @@ ConvSolution KthvalueFwd::GetSolution(const ExecutionContext& context,
         return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
             decltype(auto) kernel = handle_.Run(kernels.front());
             decltype(auto) params = raw_params.CastTo<miopen::kthvalue::FwdInvokeParams>();
-            size_t dimSize        = params.inputDesc->GetLengths()[params.dim];
-            size_t dimStride      = params.inputDesc->GetStrides()[params.dim];
+            size_t dim_stride     = params.inputDesc->GetStrides()[params.dim];
 
             auto input_tv                      = get_inner_expanded_tv<5>(deref(params.inputDesc));
             auto input_tv_without_selected_dim = get_tv_without_dim<5, 4>(input_tv, params.dim);
@@ -125,8 +127,9 @@ ConvSolution KthvalueFwd::GetSolution(const ExecutionContext& context,
                    params.output,
                    params.indices,
                    params.k,
-                   dimSize,
-                   dimStride,
+                   dim_size,
+                   dim_stride,
+                   output_size,
                    input_tv_without_selected_dim,
                    output_tv,
                    indices_tv);

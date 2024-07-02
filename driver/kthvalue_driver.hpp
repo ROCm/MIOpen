@@ -383,108 +383,12 @@ int KthvalueDriver<TIO>::RunForwardCPU()
 template <typename TIO>
 int KthvalueDriver<TIO>::RunBackwardGPU()
 {
-    // float kernel_total_time = 0;
-    // float kernel_first_time = 0;
-
-    // Timer t;
-    // START_TIME
-
-    // for(int i = 0; i < inflags.GetValueInt("iter"); i++)
-    // {
-    //     void* p_dtarget = nullptr;
-    //     if(isTargetGradientComputed)
-    //     {
-    //         p_dtarget = dtarget_dev->GetMem();
-    //     }
-
-    //     miopenKthvalueBackward(GetHandle(),
-    //                            inputDesc,
-    //                            input_dev->GetMem(),
-    //                            targetDesc,
-    //                            target_dev->GetMem(),
-    //                            doutputDesc,
-    //                            doutput_dev->GetMem(),
-    //                            dinputDesc,
-    //                            dinput_dev->GetMem(),
-    //                            dtargetDesc,
-    //                            p_dtarget,
-    //                            alpha,
-    //                            gamma,
-    //                            reduction);
-
-    //     float time = 0.0;
-    //     miopenGetKernelTime(GetHandle(), &time);
-    //     kernel_total_time += time;
-    //     if(i == 0)
-    //         kernel_first_time = time;
-    // }
-
-    // if(inflags.GetValueInt("time") == 1)
-    // {
-    //     STOP_TIME
-    //     int iter = inflags.GetValueInt("iter");
-    //     if(WALL_CLOCK)
-    //         std::cout << "Wall-clock Time Sigmoid Focal Loss Bwd Elapsed: " << t.gettime_ms() /
-    //         iter
-    //                   << " ms" << std::endl;
-
-    //     float kernel_average_time =
-    //         iter > 1 ? (kernel_total_time - kernel_first_time) / (iter - 1) : kernel_first_time;
-    //     std::cout << "GPU Kernel Time Sigmoid Focal Loss Bwd Elapsed: " << kernel_average_time
-    //               << " ms" << std::endl;
-    // }
-
-    // if(dinput_dev->FromGPU(GetStream(), dinput.data()) != 0)
-    //     std::cerr << "Error copying (dI_dev) from GPU, size: " << dinput_dev->GetSize()
-    //               << std::endl;
-    // if(isTargetGradientComputed && dtarget_dev->FromGPU(GetStream(), dtarget.data()) != 0)
-    //     std::cerr << "Error copying (dT_dev) from GPU, size: " << dtarget_dev->GetSize()
-    //               << std::endl;
-
     return miopenStatusSuccess;
 }
 
 template <typename TIO>
 int KthvalueDriver<TIO>::RunBackwardCPU()
 {
-    // TIO* p_dtarget = nullptr;
-    // if(isTargetGradientComputed)
-    // {
-    //     p_dtarget = dtargetHost.data();
-    // }
-    // if(reduction == MIOPEN_LOSS_REDUCTION_NONE)
-    // {
-
-    //     mloKthvalueUnreducedBwdRunHost<TIO>(input.data(),
-    //                                         inputDesc,
-    //                                         target.data(),
-    //                                         targetDesc,
-    //                                         doutput.data(),
-    //                                         doutputDesc,
-    //                                         dinputHost.data(),
-    //                                         dinputDesc,
-    //                                         p_dtarget,
-    //                                         dtargetDesc,
-    //                                         alpha,
-    //                                         gamma);
-    // }
-    // else
-    // {
-    //     mloKthvalueBwdRunHost<TIO>(input.data(),
-    //                                inputDesc,
-    //                                target.data(),
-    //                                targetDesc,
-    //                                doutput.data(),
-    //                                doutputDesc,
-    //                                dinputHost.data(),
-    //                                dinputDesc,
-    //                                p_dtarget,
-    //                                dtargetDesc,
-    //                                alpha,
-    //                                gamma,
-    //                                divisor);
-    // }
-
     return miopenStatusSuccess;
 }
 
@@ -514,31 +418,5 @@ int KthvalueDriver<TIO>::VerifyForward()
 template <typename TIO>
 int KthvalueDriver<TIO>::VerifyBackward()
 {
-    // RunBackwardCPU();
-
-    // double tolerance  = std::numeric_limits<TIO>::epsilon() * 10;
-    // auto dinputError  = miopen::rms_range(dinputHost, dinput);
-    // auto dtargetError = miopen::rms_range(dtargetHost, dtarget);
-
-    // if(!std::isfinite(dinputError) || dinputError > tolerance)
-    // {
-    //     std::cout << "Backward " << reduction << " Sigmoid Focal Loss FAILED: " << dinputError
-    //               << " > " << tolerance << std::endl;
-    //     return EC_VerifyFwd;
-    // }
-    // else if(isTargetGradientComputed && (!std::isfinite(dtargetError) || dtargetError >
-    // tolerance))
-    // {
-    //     std::cout << "Backward " << reduction << " Sigmoid Focal Loss FAILED: " << dtargetError
-    //               << " > " << tolerance << std::endl;
-    //     return EC_VerifyFwd;
-    // }
-    // else
-    // {
-    //     std::cout << "Backward " << reduction
-    //               << " Sigmoid Focal Loss Verifies OK on CPU reference (dinput: " << dinputError
-    //               << ", dtarget: " << dtargetError << "< " << tolerance << ')' << std::endl;
-    // }
-
     return miopenStatusSuccess;
 }
