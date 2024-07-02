@@ -906,11 +906,11 @@ std::ostream& operator<<(std::ostream& os, const miopenConvSolution_t& s)
 }
 
 // Modified copy from convolutionocl.cpp
-std::vector<miopenConvSolution_t> GetSolutions(const ExecutionContext& ctx,
+std::vector<miopenConvSolution_t> GetSolutions(const FusionContext& ctx,
                                                const FusionDescription& problem,
                                                const size_t maxSolutionCount)
 {
-    const FindDbRecord fdb_record{ctx.GetStream(), problem};
+    const FindDbRecord fdb_record{ctx.GetStream(), problem, "fusion"};
 
     if(fdb_record.empty())
         return {};
@@ -988,7 +988,7 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
 
         if(findMode.IsFast(fusion_problem) || findMode.IsHybrid(fusion_problem))
         {
-            const auto ctx      = ExecutionContext{&handle};
+            const auto ctx      = FusionContext{handle};
             auto sols           = GetSolutions(ctx, fusion_problem, 1);
             const auto fallback = sols.empty();
 
@@ -998,7 +998,8 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
                 GetAllFusionSolvers().Foreach([&](auto solver) {
                     if(found || !solver.IsApplicable(ctx, fusion_problem))
                         return;
-                    sols.emplace_back({0, 0, solver_id.Value(), miopenConvolutionAlgoDirect});
+                    const auto id = solver::Id(solver.SolverDbId());
+                    sols.push_back({0, 0, id.Value(), miopenConvolutionAlgoDirect});
                 });
             }
 
@@ -1016,17 +1017,17 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
             const auto id = solver::Id{sol->solution_id};
 
             GetAllFusionSolvers().FindById(id, [&](auto solver) {
-                const auto ctx = ExecutionContext{&handle};
-                auto db        = GetDb(ctx);
-                const auto solution =
-                    solver.FindSolution(ctx, problem, db, {}); // auto tune is not expected here
+                const auto ctx      = FusionContext{handle};
+                auto db             = GetDb(ctx);
+                const auto solution = solver::FindSolution(
+                    solver, ctx, fusion_problem, db, {}); // auto tune is not expected here
                 auto invoker =
                     handle.PrepareInvoker(*solution.invoker_factory, solution.construction_params);
                 // We register the invoker below
 
-                auto sol = Solution{id, sol->time, solver.GetWorkspaceSize(ctx, problem)};
-                sol.SetInvoker(std::move(invoker));
-                find_results.push_back(std::move(sol));
+                auto ret = Solution{id, sol->time, solver.GetWorkspaceSize(ctx, fusion_problem)};
+                ret.SetInvoker(std::move(invoker));
+                find_results.push_back(std::move(ret));
             });
         }
         else
