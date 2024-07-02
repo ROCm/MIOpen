@@ -75,6 +75,7 @@ ConvSolution InterpolateBicubicBackward::GetSolution(
             {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
             {"INPUT_TYPE", input_dtype == "bfloat16" ? "ushort" : input_dtype},
             {"OUTPUT_TYPE", output_dtype == "bfloat16" ? "ushort" : output_dtype},
+            {"DTYPE", "float"},
         };
 
         result.construction_params.push_back(make_hip_kernel({LOCAL_SIZE_BWD_BICUBIC},
@@ -82,28 +83,74 @@ ConvSolution InterpolateBicubicBackward::GetSolution(
                                                              "MIOpenInterpolate.cpp",
                                                              "InterpolateBicubicBackward",
                                                              build_params));
+
+        result.construction_params.push_back(make_hip_kernel({LOCAL_SIZE_BWD_BICUBIC},
+                                                             {N_total},
+                                                             "MIOpenInterpolate.cpp",
+                                                             "InterpolateBicubicBackward_paste",
+                                                             build_params));
     }
 
     result.invoker_factory = [](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
-            decltype(auto) kernel = handle_.Run(kernels.front());
             decltype(auto) params = raw_params.CastTo<miopen::interpolate::BwdInvokeParams>();
 
             auto input_grad_tv  = get_inner_expanded_tv<4>(deref(params.inputGradDesc));
             auto output_grad_tv = get_inner_expanded_tv<4>(deref(params.outputGradDesc));
             size_t nelems       = params.inputGradDesc->GetElementSize();
 
-            kernel(params.input_grad,
+            int kernelCnt         = 0;
+            decltype(auto) kernel = handle_.Run(kernels[kernelCnt++]);
+
+            float elapsed = 0.0f;
+            HipEventPtr start;
+            HipEventPtr stop;
+
+            bool reset_profiling_state = false;
+            if(handle_.IsProfilingEnabled())
+            {
+                reset_profiling_state = true;
+                handle_.EnableProfiling(false);
+                start = miopen::make_hip_event();
+                stop  = miopen::make_hip_event();
+                hipEventRecord(start.get(), handle_.GetStream());
+            }
+
+            kernel(params.workspace,
                    params.output_grad,
                    input_grad_tv,
                    output_grad_tv,
                    nelems,
                    params.scale_factors,
                    params.align_corners);
+
+            kernel = handle_.Run(kernels[kernelCnt++]);
+            kernel(params.input_grad, params.workspace, input_grad_tv, nelems);
+
+            if(reset_profiling_state)
+            {
+                handle_.EnableProfiling(true);
+            }
+            if(handle_.IsProfilingEnabled())
+            {
+                hipEventRecord(stop.get(), handle_.GetStream());
+                hipEventSynchronize(stop.get());
+                hipEventElapsedTime(&elapsed, start.get(), stop.get());
+                hipEventDestroy(start.get());
+                hipEventDestroy(stop.get());
+                handle_.ResetKernelTime();
+                handle_.AccumKernelTime(elapsed);
+            };
         };
     };
 
     return result;
+}
+
+std::size_t InterpolateBicubicBackward::GetWorkspaceSize(
+    const ExecutionContext&, const miopen::interpolate::BwdProblemDescription& problem) const
+{
+    return problem.GetInputGradDesc().GetElementSize() * sizeof(float);
 }
 
 } // namespace interpolate

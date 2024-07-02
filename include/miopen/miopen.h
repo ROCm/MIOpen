@@ -6579,6 +6579,10 @@ MIOPEN_EXPORT miopenStatus_t miopenBackendInitialize(miopenBackendDescriptor_t d
                                                      miopenBackendDescriptorType_t descriptorType,
                                                      size_t sizeInBytes);
 
+/** @} */
+// CLOSEOUT BackendAPI DOXYGEN GROUP
+#endif // MIOPEN_BETA_API
+
 #ifdef MIOPEN_BETA_API
 
 /*! @ingroup interpolate
@@ -6593,7 +6597,6 @@ typedef enum
     MIOPEN_INTERPOLATE_MODE_BILINEAR  = 2,
     MIOPEN_INTERPOLATE_MODE_BICUBIC   = 3,
     MIOPEN_INTERPOLATE_MODE_TRILINEAR = 4,
-    MIOPEN_INTERPOLATE_MODE_AREA      = 5,
 } miopenInterpolateMode_t;
 
 // Interpolate APIs
@@ -6626,9 +6629,32 @@ miopenInterpolateForward(miopenHandle_t handle,
                          const miopenInterpolateMode_t mode,
                          const bool align_corners);
 
+/*! @brief Helper function to query the minimum workspace size required by the Interpolate Nearest
+ * Backward call
+ *
+ * @param handle                   MIOpen Handle (input)
+ * @param outputGradDesc           Tensor descriptor for output grad tensor (input)
+ * @param inputGradDesc            Tensor descriptor for input grad tensor (input)
+ * @param scaleFactorsDesc         Tensor descriptor for scale factors tensor (input)
+ * @param mode                     Interpolation mode (input)
+ * @param align_corners            Align corners (input)
+ * @param sizeInBytes              Pointer to data to return the minimum workspace size (output)
+ * @return                         miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenGetInterpolateBackwardWorkspaceSize(miopenHandle_t handle,
+                                          const miopenTensorDescriptor_t outputGradDesc,
+                                          const miopenTensorDescriptor_t inputGradDesc,
+                                          const miopenTensorDescriptor_t scaleFactorsDesc,
+                                          const miopenInterpolateMode_t mode,
+                                          const bool align_corners,
+                                          size_t* sizeInBytes);
+
 /*! @brief Execute a interpolate backward layer
  *
  * @param handle                MIOpen handle (input)
+ * @param workspace             Pointer to workspace (input)
+ * @param workspaceSizeInBytes  Size of workspace buffer (input)
  * @param inputGradDesc         Tensor descriptor for input grad tensor (input)
  * @param input_grad            Data tensor input grad (output)
  * @param outputGradDesc        Tensor descriptor for output grad tensor (input)
@@ -6641,6 +6667,8 @@ miopenInterpolateForward(miopenHandle_t handle,
  */
 MIOPEN_EXPORT miopenStatus_t
 miopenInterpolateBackward(miopenHandle_t handle,
+                          void* workspace,
+                          size_t workspaceSizeInBytes,
                           const miopenTensorDescriptor_t inputGradDesc,
                           void* input_grad,
                           const miopenTensorDescriptor_t outputGradDesc,
@@ -6652,10 +6680,6 @@ miopenInterpolateBackward(miopenHandle_t handle,
 
 /** @} */
 // CLOSEOUT Interpolate DOXYGEN GROUP
-#endif // MIOPEN_BETA_API
-
-/** @} */
-// CLOSEOUT BackendAPI DOXYGEN GROUP
 #endif // MIOPEN_BETA_API
 
 #ifdef __cplusplus

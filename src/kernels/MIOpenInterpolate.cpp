@@ -1147,7 +1147,7 @@ __device__ inline void interpolateBicubicBackward(TD* __restrict__ workspace,
     if(Hin == Hout && Win == Wout)
     {
         workspace[input_grad_tv.get_tensor_view_idx(tensor_layout)] =
-            CVT_FLOAT2FP32(output_grad[output_grad_tv.get_tensor_view_idx(tensor_layout)]);
+            CVT_FLOAT2ACCUM(output_grad[output_grad_tv.get_tensor_view_idx(tensor_layout)]);
         return;
     }
 
@@ -1155,15 +1155,15 @@ __device__ inline void interpolateBicubicBackward(TD* __restrict__ workspace,
     FLOAT_ACCUM scale_factor_h_ =
         compute_linear_scale_factor(scale_factor_h, Hin, Hout, align_corners);
     FLOAT_ACCUM real_y = bicubic_idx(h, Hout, scale_factor_h_, align_corners);
-    uint64_t in_y      = static_cast<uint64_t>(floor(real_y));
-    FLOAT_ACCUM t_y    = real_y - in_y;
+    int64_t in_y       = static_cast<int64_t>(floor(real_y));
+    FLOAT_ACCUM t_y    = real_y - static_cast<FLOAT_ACCUM>(in_y);
 
     FLOAT_ACCUM scale_factor_w = CVT_FP32_2ACCUM(scale_factors[1]);
     FLOAT_ACCUM scale_factor_w_ =
         compute_linear_scale_factor(scale_factor_w, Win, Wout, align_corners);
     FLOAT_ACCUM real_x = bicubic_idx(w, Wout, scale_factor_w_, align_corners);
-    uint64_t in_x      = static_cast<uint64_t>(floor(real_x));
-    FLOAT_ACCUM t_x    = real_x - in_x;
+    int64_t in_x       = static_cast<int64_t>(floor(real_x));
+    FLOAT_ACCUM t_x    = real_x - static_cast<FLOAT_ACCUM>(in_x);
 
     FLOAT_ACCUM y_coeffs[4];
     FLOAT_ACCUM x_coeffs[4];
@@ -1184,8 +1184,9 @@ __device__ inline void interpolateBicubicBackward(TD* __restrict__ workspace,
             in_grad_layout.layout[1] = c;
             in_grad_layout.layout[2] = input_h;
             in_grad_layout.layout[3] = input_w;
+
             atomicAdd(workspace + input_grad_tv.get_tensor_view_idx(in_grad_layout),
-                      static_cast<TD>(out_value * y_coeffs[i] * x_coeffs[j]));
+                      out_value * y_coeffs[i] * x_coeffs[j]);
         }
     }
 }
@@ -1202,7 +1203,7 @@ __device__ inline void interpolateBicubicBackward_paste(TO* __restrict__ input_g
 
     auto tensor_layout = tensor_layout_t<4>(input_grad_tv, gid);
     input_grad[input_grad_tv.get_tensor_view_idx(tensor_layout)] =
-        CVT_FP32_2FLOAT(workspace[input_grad_tv.get_tensor_view_idx(tensor_layout)]);
+        CVT_ACCUM2FLOAT(workspace[input_grad_tv.get_tensor_view_idx(tensor_layout)]);
 }
 
 extern "C" __global__ void InterpolateBicubicBackward(DTYPE* __restrict__ workspace,

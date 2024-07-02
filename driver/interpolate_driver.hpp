@@ -116,6 +116,7 @@ private:
     std::unique_ptr<GPUMem> out_grad_dev;
     std::unique_ptr<GPUMem> in_grad_dev;
     std::unique_ptr<GPUMem> scale_factors_dev;
+    std::unique_ptr<GPUMem> workspace_dev;
 
     std::vector<Tgpu> in;
     std::vector<Tgpu> out;
@@ -126,12 +127,14 @@ private:
     std::vector<Tgpu> out_grad;
     std::vector<Tgpu> in_grad;
     std::vector<Tref> in_grad_host;
+    std::vector<float> workspace;
 
     std::vector<int> in_len;
     std::vector<int> size;
     std::vector<float> config_scale_factors;
     miopenInterpolateMode_t mode;
     bool align_corners;
+    size_t ws_sizeInBytes = 0;
 };
 
 template <typename Tgpu, typename Tref>
@@ -288,6 +291,19 @@ int InterpolateDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     size_t out_grad_sz      = GetTensorSize(outputGradDesc);
     size_t in_grad_sz       = GetTensorSize(inputGradDesc);
 
+    if(mode == MIOPEN_INTERPOLATE_MODE_BICUBIC)
+    {
+        miopenGetInterpolateBackwardWorkspaceSize(GetHandle(),
+                                                  outputGradDesc,
+                                                  inputGradDesc,
+                                                  scaleFactorsDesc,
+                                                  mode,
+                                                  align_corners,
+                                                  &ws_sizeInBytes);
+        if(ws_sizeInBytes == static_cast<size_t>(-1))
+            return miopenStatusAllocFailed;
+    }
+
     uint32_t ctx = 0;
 
     in_dev            = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(Tgpu)));
@@ -295,6 +311,7 @@ int InterpolateDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     scale_factors_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, scale_factors_sz, sizeof(float)));
     out_grad_dev      = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_grad_sz, sizeof(Tgpu)));
     in_grad_dev       = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_grad_sz, sizeof(Tgpu)));
+    workspace_dev     = std::unique_ptr<GPUMem>(new GPUMem(ctx, ws_sizeInBytes, sizeof(std::byte)));
 
     in       = std::vector<Tgpu>(in_sz, static_cast<Tgpu>(0));
     out      = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
@@ -303,6 +320,7 @@ int InterpolateDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     out_grad     = std::vector<Tgpu>(out_grad_sz, static_cast<Tgpu>(0));
     in_grad      = std::vector<Tgpu>(in_grad_sz, static_cast<Tgpu>(0));
     in_grad_host = std::vector<Tref>(in_grad_sz, static_cast<Tref>(0));
+    workspace    = std::vector<float>(ws_sizeInBytes / sizeof(float), static_cast<float>(0));
 
     int status;
 
@@ -317,6 +335,8 @@ int InterpolateDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     status |= scale_factors_dev->ToGPU(q, scale_factors.data());
 
     status |= in_grad_dev->ToGPU(q, in_grad.data());
+
+    status |= workspace_dev->ToGPU(q, workspace.data());
 
     for(int i = 0; i < out_grad_sz; i++)
     {
@@ -403,6 +423,8 @@ int InterpolateDriver<Tgpu, Tref>::RunBackwardGPU()
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
         miopenInterpolateBackward(GetHandle(),
+                                  workspace_dev->GetMem(),
+                                  ws_sizeInBytes,
                                   inputGradDesc,
                                   in_grad_dev->GetMem(),
                                   outputGradDesc,
@@ -417,6 +439,7 @@ int InterpolateDriver<Tgpu, Tref>::RunBackwardGPU()
         kernel_total_time += time;
         if(i == 0)
             kernel_first_time = time;
+        workspace_dev->ToGPU(q, workspace.data());
     }
 
     if(inflags.GetValueInt("time") == 1)
@@ -477,6 +500,12 @@ int InterpolateDriver<Tgpu, Tref>::VerifyBackward()
     RunBackwardCPU();
     auto tolerance = std::numeric_limits<Tgpu>::epsilon() * 10;
     auto error     = miopen::rms_range(in_grad_host, in_grad);
+
+    for(int i = 0; i < 10; ++i)
+    {
+        std::cout << "CPU: " << in_grad_host[i] << " GPU: " << in_grad[i] << std::endl;
+    }
+
     if(!std::isfinite(error) || error > tolerance)
     {
         std::cout << "Backward Interpolate in Input Grad FAILED: " << error

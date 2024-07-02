@@ -268,11 +268,23 @@ protected:
 
         auto in_strides = GetStrides(in_grad_dim, true);
         input_grad      = tensor<T>{in_grad_dim, in_strides};
-        std::fill(input_grad.begin(), input_grad.end(), std::numeric_limits<T>::quiet_NaN());
+        std::fill(input_grad.begin(), input_grad.end(), static_cast<T>(0.f));
 
         ref_input_grad = tensor<T>{in_grad_dim, in_strides};
-        std::fill(
-            ref_input_grad.begin(), ref_input_grad.end(), std::numeric_limits<T>::quiet_NaN());
+        std::fill(ref_input_grad.begin(), ref_input_grad.end(), static_cast<T>(0.f));
+
+        if(mode == MIOPEN_INTERPOLATE_MODE_BICUBIC)
+        {
+            ws_sizeInBytes = miopen::GetInterpolateBicubicBackwardWorkspaceSize(
+                handle, output_grad.desc, input_grad.desc, scale_factors.desc, mode, align_corners);
+            if(ws_sizeInBytes == static_cast<size_t>(-1))
+                GTEST_SKIP();
+
+            workspace = tensor<float>{in_grad_dim, in_strides};
+            std::fill(workspace.begin(), workspace.end(), 0.f);
+
+            workspace_dev = handle.Write(workspace.data);
+        }
 
         output_grad_dev   = handle.Write(output_grad.data);
         input_grad_dev    = handle.Write(input_grad.data);
@@ -301,17 +313,31 @@ protected:
                                                         scale_factors_dev.get(),
                                                         mode);
         }
+        else if(mode == MIOPEN_INTERPOLATE_MODE_BICUBIC)
+        {
+            status = miopen::InterpolateBicubicBackward(handle,
+                                                        workspace_dev.get(),
+                                                        ws_sizeInBytes,
+                                                        input_grad.desc,
+                                                        input_grad_dev.get(),
+                                                        output_grad.desc,
+                                                        output_grad_dev.get(),
+                                                        scale_factors.desc,
+                                                        scale_factors_dev.get(),
+                                                        mode,
+                                                        align_corners);
+        }
         else
         {
-            status = miopen::InterpolateLinearCubicBackward(handle,
-                                                            input_grad.desc,
-                                                            input_grad_dev.get(),
-                                                            output_grad.desc,
-                                                            output_grad_dev.get(),
-                                                            scale_factors.desc,
-                                                            scale_factors_dev.get(),
-                                                            mode,
-                                                            align_corners);
+            status = miopen::InterpolateLinearBackward(handle,
+                                                       input_grad.desc,
+                                                       input_grad_dev.get(),
+                                                       output_grad.desc,
+                                                       output_grad_dev.get(),
+                                                       scale_factors.desc,
+                                                       scale_factors_dev.get(),
+                                                       mode,
+                                                       align_corners);
         }
         fflush(stdout);
         EXPECT_EQ(status, miopenStatusSuccess);
@@ -325,12 +351,19 @@ protected:
 
         auto error = miopen::rms_range(ref_input_grad, input_grad);
 
+        for(int i = 0; i < 10; ++i)
+        {
+            std::cout << "ref_input_grad[" << i << "] = " << ref_input_grad[i] << std::endl;
+            std::cout << "input_grad[" << i << "] = " << input_grad[i] << std::endl;
+        }
+
         EXPECT_TRUE(miopen::range_distance(ref_input_grad) == miopen::range_distance(input_grad));
         EXPECT_TRUE(error < threshold * 10) << "Error input grad beyond tolerance Error:" << error
                                             << ",  Thresholdx10: " << threshold * 10;
     }
     InterpolateTestCase interpolate_config;
 
+    tensor<float> workspace;
     tensor<T> input_grad;
     tensor<T> output_grad;
     tensor<T> ref_input_grad;
@@ -342,4 +375,7 @@ protected:
     miopen::Allocator::ManageDataPtr input_grad_dev;
     miopen::Allocator::ManageDataPtr output_grad_dev;
     miopen::Allocator::ManageDataPtr scale_factors_dev;
+    miopen::Allocator::ManageDataPtr workspace_dev;
+
+    size_t ws_sizeInBytes;
 };

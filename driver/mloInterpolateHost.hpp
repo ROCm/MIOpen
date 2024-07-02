@@ -26,6 +26,7 @@
 #ifndef MLO_INTERPOLATE_H_
 #define MLO_INTERPOLATE_H_
 
+#include "driver.hpp"
 #pragma once
 
 #include <cmath>
@@ -1012,7 +1013,8 @@ int32_t mlo_bicubic_backward(const miopenTensorDescriptor_t inputGradDesc,
     auto input_grad_tv =
         miopen::solver::interpolate::get_inner_expanded_tv<4>(miopen::deref(inputGradDesc));
 
-    float workspace[nelems];
+    std::vector<float> workspace;
+    workspace.resize(nelems, 0);
 
     uint64_t Hin  = input_grad_tv.size[2];
     uint64_t Hout = output_grad_tv.size[2];
@@ -1037,16 +1039,16 @@ int32_t mlo_bicubic_backward(const miopenTensorDescriptor_t inputGradDesc,
         float scale_factor_h = scale_factors[0];
         float scale_factor_h_ =
             compute_linear_scale_factor(scale_factor_h, Hin, Hout, align_corners);
-        float real_y  = bicubic_idx(h, Hout, scale_factor_h_, align_corners);
-        uint64_t in_y = static_cast<uint64_t>(std::floor(real_y));
-        float t_y     = real_y - in_y;
+        float real_y = bicubic_idx(h, Hout, scale_factor_h_, align_corners);
+        int64_t in_y = static_cast<int64_t>(std::floor(real_y));
+        float t_y    = real_y - static_cast<float>(in_y);
 
         float scale_factor_w = scale_factors[1];
         float scale_factor_w_ =
             compute_linear_scale_factor(scale_factor_w, Win, Wout, align_corners);
-        float real_x  = bicubic_idx(w, Wout, scale_factor_w_, align_corners);
-        uint64_t in_x = static_cast<uint64_t>(std::floor(real_x));
-        float t_x     = real_x - in_x;
+        float real_x = bicubic_idx(w, Wout, scale_factor_w_, align_corners);
+        int64_t in_x = static_cast<int64_t>(std::floor(real_x));
+        float t_x    = real_x - static_cast<float>(in_x);
 
         float y_coeffs[4];
         float x_coeffs[4];
@@ -1077,7 +1079,9 @@ int32_t mlo_bicubic_backward(const miopenTensorDescriptor_t inputGradDesc,
     {
         for(uint64_t gid = 0; gid < nelems; ++gid)
         {
-            input_grad[gid] = static_cast<Tcheck>(workspace[gid]);
+            auto tensor_layout = tensor_layout_t<4>(input_grad_tv, gid);
+            input_grad[input_grad_tv.get_tensor_view_idx(tensor_layout)] =
+                static_cast<Tcheck>(workspace[input_grad_tv.get_tensor_view_idx(tensor_layout)]);
         }
     }
 

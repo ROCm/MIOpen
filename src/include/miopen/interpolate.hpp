@@ -52,6 +52,25 @@ miopenStatus_t InterpolateLinearCubicForward(Handle& handle,
                                              const miopenInterpolateMode_t mode,
                                              const bool align_corners);
 
+size_t GetInterpolateBicubicBackwardWorkspaceSize(Handle& handle,
+                                                  const TensorDescriptor& outputGradDesc,
+                                                  const TensorDescriptor& inputGradDesc,
+                                                  const TensorDescriptor& scaleFactorsDesc,
+                                                  const miopenInterpolateMode_t mode,
+                                                  const bool align_corners);
+
+miopenStatus_t InterpolateBicubicBackward(Handle& handle,
+                                          Data_t workspace,
+                                          size_t workspaceSizeInBytes,
+                                          const TensorDescriptor& inputGradDesc,
+                                          Data_t input_grad,
+                                          const TensorDescriptor& outputGradDesc,
+                                          ConstData_t output_grad,
+                                          const TensorDescriptor& scaleFactorsDesc,
+                                          ConstData_t scale_factors,
+                                          const miopenInterpolateMode_t mode,
+                                          const bool align_corners);
+
 miopenStatus_t InterpolateNearestBackward(Handle& handle,
                                           const TensorDescriptor& inputGradDesc,
                                           Data_t input_grad,
@@ -61,15 +80,15 @@ miopenStatus_t InterpolateNearestBackward(Handle& handle,
                                           ConstData_t scale_factors,
                                           const miopenInterpolateMode_t mode);
 
-miopenStatus_t InterpolateLinearCubicBackward(Handle& handle,
-                                              const TensorDescriptor& inputGradDesc,
-                                              Data_t input_grad,
-                                              const TensorDescriptor& outputGradDesc,
-                                              ConstData_t output_grad,
-                                              const TensorDescriptor& scaleFactorsDesc,
-                                              ConstData_t scale_factors,
-                                              const miopenInterpolateMode_t mode,
-                                              const bool align_corners);
+miopenStatus_t InterpolateLinearBackward(Handle& handle,
+                                         const TensorDescriptor& inputGradDesc,
+                                         Data_t input_grad,
+                                         const TensorDescriptor& outputGradDesc,
+                                         ConstData_t output_grad,
+                                         const TensorDescriptor& scaleFactorsDesc,
+                                         ConstData_t scale_factors,
+                                         const miopenInterpolateMode_t mode,
+                                         const bool align_corners);
 
 } // namespace miopen
 #endif // _MIOPEN_INTERPOLATE_HPP_

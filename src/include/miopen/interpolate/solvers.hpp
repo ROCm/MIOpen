@@ -218,6 +218,12 @@ struct InterpolateBicubicBackward final : InterpolateBwdSolver
     ConvSolution
     GetSolution(const ExecutionContext& context,
                 const miopen::interpolate::BwdProblemDescription& problem) const override;
+
+    std::size_t
+    GetWorkspaceSize(const ExecutionContext& context,
+                     const miopen::interpolate::BwdProblemDescription& problem) const override;
+
+    bool MayNeedWorkspace() const override { return true; }
 };
 
 } // namespace interpolate

@@ -954,6 +954,80 @@ void cpu_bicubic_backward(tensor<T>& input_grad,
                           const tensor<float> scale_factors,
                           const bool align_corners)
 {
+    auto input_grad_tv  = miopen::solver::interpolate::get_inner_expanded_tv<4>(input_grad.desc);
+    auto output_grad_tv = miopen::solver::interpolate::get_inner_expanded_tv<4>(output_grad.desc);
+
+    std::vector<float> workspace;
+    workspace.resize(nelems, 0.f);
+
+    uint64_t Hin  = input_grad_tv.size[2];
+    uint64_t Hout = output_grad_tv.size[2];
+    uint64_t Win  = input_grad_tv.size[3];
+    uint64_t Wout = output_grad_tv.size[3];
+
+    for(uint64_t gid = 0; gid < nelems; ++gid)
+    {
+        auto tensor_layout = tensor_layout_t<4>(output_grad_tv, gid);
+        uint64_t n         = tensor_layout.layout[0];
+        uint64_t c         = tensor_layout.layout[1];
+        uint64_t h         = tensor_layout.layout[2];
+        uint64_t w         = tensor_layout.layout[3];
+
+        if(Hin == Hout && Win == Wout)
+        {
+            input_grad[input_grad_tv.get_tensor_view_idx(tensor_layout)] =
+                output_grad[output_grad_tv.get_tensor_view_idx(tensor_layout)];
+            continue;
+        }
+
+        float scale_factor_h = scale_factors[0];
+        float scale_factor_h_ =
+            compute_linear_scale_factor(scale_factor_h, Hin, Hout, align_corners);
+        float real_y = bicubic_idx(h, Hout, scale_factor_h_, align_corners);
+        int64_t in_y = static_cast<int64_t>(std::floor(real_y));
+        float t_y    = real_y - static_cast<float>(in_y);
+
+        float scale_factor_w = scale_factors[1];
+        float scale_factor_w_ =
+            compute_linear_scale_factor(scale_factor_w, Win, Wout, align_corners);
+        float real_x = bicubic_idx(w, Wout, scale_factor_w_, align_corners);
+        int64_t in_x = static_cast<int64_t>(std::floor(real_x));
+        float t_x    = real_x - static_cast<float>(in_x);
+
+        float y_coeffs[4];
+        float x_coeffs[4];
+        get_cubic_upsampling_coefficients(y_coeffs, t_y);
+        get_cubic_upsampling_coefficients(x_coeffs, t_x);
+        float out_value =
+            static_cast<float>(output_grad[output_grad_tv.get_tensor_view_idx(tensor_layout)]);
+
+        for(int i = 0; i < 4; i++)
+        {
+            uint64_t input_h = bound(in_y - 1 + i, Hin);
+            for(int j = 0; j < 4; j++)
+            {
+                uint64_t input_w = bound(in_x - 1 + j, Win);
+                tensor_layout_t<4> in_grad_layout;
+                in_grad_layout.layout[0] = n;
+                in_grad_layout.layout[1] = c;
+                in_grad_layout.layout[2] = input_h;
+                in_grad_layout.layout[3] = input_w;
+
+                workspace[input_grad_tv.get_tensor_view_idx(in_grad_layout)] +=
+                    out_value * y_coeffs[i] * x_coeffs[j];
+            }
+        }
+    }
+
+    if(!(Hin == Hout && Win == Wout))
+    {
+        for(uint64_t gid = 0; gid < nelems; ++gid)
+        {
+            auto tensor_layout = tensor_layout_t<4>(input_grad_tv, gid);
+            input_grad[input_grad_tv.get_tensor_view_idx(tensor_layout)] =
+                static_cast<T>(workspace[input_grad_tv.get_tensor_view_idx(tensor_layout)]);
+        }
+    }
 }
 
 template <class T>

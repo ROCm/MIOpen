@@ -99,7 +99,7 @@ extern "C" miopenStatus_t miopenInterpolateForward(miopenHandle_t handle,
                         align_corners);
 
     LogCmdInterpolate(inputDesc, outputDesc, true, mode);
-    if(mode == MIOPEN_INTERPOLATE_MODE_NEAREST || mode == MIOPEN_INTERPOLATE_MODE_AREA)
+    if(mode == MIOPEN_INTERPOLATE_MODE_NEAREST)
     {
         return miopen::try_([&] {
             miopen::InterpolateNearestForward(miopen::deref(handle),
@@ -125,7 +125,33 @@ extern "C" miopenStatus_t miopenInterpolateForward(miopenHandle_t handle,
     });
 }
 
+extern "C" miopenStatus_t
+miopenGetInterpolateBackwardWorkspaceSize(miopenHandle_t handle,
+                                          const miopenTensorDescriptor_t outputGradDesc,
+                                          const miopenTensorDescriptor_t inputGradDesc,
+                                          const miopenTensorDescriptor_t scaleFactorsDesc,
+                                          const miopenInterpolateMode_t mode,
+                                          const bool align_corners,
+                                          size_t* sizeInBytes)
+{
+
+    MIOPEN_LOG_FUNCTION(
+        handle, outputGradDesc, inputGradDesc, scaleFactorsDesc, mode, align_corners, sizeInBytes);
+
+    return miopen::try_([&] {
+        miopen::deref(sizeInBytes) =
+            miopen::GetInterpolateBicubicBackwardWorkspaceSize(miopen::deref(handle),
+                                                               miopen::deref(outputGradDesc),
+                                                               miopen::deref(inputGradDesc),
+                                                               miopen::deref(scaleFactorsDesc),
+                                                               mode,
+                                                               align_corners);
+    });
+}
+
 extern "C" miopenStatus_t miopenInterpolateBackward(miopenHandle_t handle,
+                                                    void* workspace,
+                                                    size_t workspaceSizeInBytes,
                                                     const miopenTensorDescriptor_t inputGradDesc,
                                                     void* input_grad,
                                                     const miopenTensorDescriptor_t outputGradDesc,
@@ -146,7 +172,7 @@ extern "C" miopenStatus_t miopenInterpolateBackward(miopenHandle_t handle,
                         align_corners);
 
     LogCmdInterpolate(inputGradDesc, outputGradDesc, false, mode);
-    if(mode == MIOPEN_INTERPOLATE_MODE_NEAREST || mode == MIOPEN_INTERPOLATE_MODE_AREA)
+    if(mode == MIOPEN_INTERPOLATE_MODE_NEAREST)
     {
         return miopen::try_([&] {
             miopen::InterpolateNearestBackward(miopen::deref(handle),
@@ -159,8 +185,12 @@ extern "C" miopenStatus_t miopenInterpolateBackward(miopenHandle_t handle,
                                                mode);
         });
     }
-    return miopen::try_([&] {
-        miopen::InterpolateLinearCubicBackward(miopen::deref(handle),
+    else if(mode == MIOPEN_INTERPOLATE_MODE_BICUBIC)
+    {
+        return miopen::try_([&] {
+            miopen::InterpolateBicubicBackward(miopen::deref(handle),
+                                               DataCast(workspace),
+                                               workspaceSizeInBytes,
                                                miopen::deref(inputGradDesc),
                                                DataCast(input_grad),
                                                miopen::deref(outputGradDesc),
@@ -169,5 +199,17 @@ extern "C" miopenStatus_t miopenInterpolateBackward(miopenHandle_t handle,
                                                DataCast(scale_factors),
                                                mode,
                                                align_corners);
+        });
+    }
+    return miopen::try_([&] {
+        miopen::InterpolateLinearBackward(miopen::deref(handle),
+                                          miopen::deref(inputGradDesc),
+                                          DataCast(input_grad),
+                                          miopen::deref(outputGradDesc),
+                                          DataCast(output_grad),
+                                          miopen::deref(scaleFactorsDesc),
+                                          DataCast(scale_factors),
+                                          mode,
+                                          align_corners);
     });
 }
