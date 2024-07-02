@@ -117,6 +117,8 @@ set( MIOpen_Source
     expanduser.cpp
     find_controls.cpp
     find_db.cpp
+    fold_api.cpp
+    fold/problem_description.cpp
     fused_api.cpp
     fusion.cpp
     fusion/problem_description.cpp
@@ -256,6 +258,7 @@ set( MIOpen_Source
     solver/conv_winoRxS.cpp
     solver/conv_winoRxS_fused.cpp
     solver/fft.cpp
+    solver/fold/unfold_forward.cpp
     solver/gemm.cpp
     solver/gemm_bwd.cpp
     solver/gemm_wrw.cpp
@@ -421,6 +424,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/neuron.inc
         kernels/rocm_version.inc
         kernels/stride_array.hpp
+        kernels/tensor_view.hpp
         kernels/utilities.inc
         kernels/workaround_issue_1431.hpp
         kernels/xform_bidirect_winograd_code.inc
@@ -499,6 +503,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/conv7x7c3h224w224k64u2v2p3q3f1.s
         kernels/xform_out.s
         kernels/gcnAsmBNBwdTrainSpatial.s
+        kernels/MIOpenUnfold.cpp
         kernels/MIOpenTensorKernels.cl
         kernels/MIOpenTensorKernelsHip.cpp
         kernels/MIOpenSubTensorOpWithScalarKernel.cl
@@ -578,6 +583,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         activ.cpp
         argmax.cpp
         cat.cpp
+        fold.cpp
         groupnorm.cpp
         kernel_cache.cpp
         layer_norm.cpp

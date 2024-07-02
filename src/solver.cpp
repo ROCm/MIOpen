@@ -28,6 +28,7 @@
 
 #include <miopen/activ/solvers.hpp>
 #include <miopen/batchnorm/solvers.hpp>
+#include <miopen/fold/solvers.hpp>
 #include <miopen/fusion/solvers.hpp>
 #include <miopen/groupnorm/solvers.hpp>
 #include <miopen/layernorm/solvers.hpp>
@@ -648,6 +649,8 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
     Register(registry, ++id, Primitive::Mha, mha::Mha{}.SolverDbId());
     Register(registry, ++id, Primitive::Softmax, softmax::Softmax{}.SolverDbId());
     Register(registry, ++id, Primitive::Softmax, softmax::AttnSoftmax{}.SolverDbId());
+    // Register(registry, ++id, Primitive::Fold, fold::FoldFwd{}.SolverDbId());
+    Register(registry, ++id, Primitive::Unfold, fold::UnfoldFwd{}.SolverDbId());
 
     // IMPORTANT: New solvers should be added to the end of the function!
 }
