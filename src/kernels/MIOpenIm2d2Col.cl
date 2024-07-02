@@ -113,7 +113,7 @@ typedef int index_t;
 
 kernel void Im2d2Col(const int data_size_off,
                      global data_t* im,
-                     const int im_offset,
+                     const unsigned long im_offset,
                      const int h,
                      const int w,
                      const int wei_h,

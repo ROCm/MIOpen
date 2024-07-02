@@ -47,10 +47,10 @@ __kernel void Col2Im2d(global _FLOAT* col,
                        const int height,
                        const int width,
                        global _FLOAT* im,
-                       const int im_offset)
+                       const unsigned long im_offset)
 {
     global _FLOAT* im_off = im + im_offset;
-    int gid               = (int)get_global_id(0);
+    unsigned long gid     = get_global_id(0);
 
     int im_ch  = gid / (width * height);
     int im_pix = gid % (width * height);

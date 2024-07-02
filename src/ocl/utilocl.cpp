@@ -40,7 +40,7 @@ namespace miopen {
 
 float Im2d2ColGPU(const Handle& handle,
                   ConstData_t im,
-                  const int im_offset,
+                  const size_t im_offset,
                   const int c,
                   const int in_h,
                   const int in_w,
@@ -81,7 +81,7 @@ float Im2d2ColGPU(const Handle& handle,
     int data_size_bound = c * in_h * in_w;
 
     int data_size_bound_pack = data_size_bound;
-    int im_offset_pack       = im_offset;
+    size_t im_offset_pack    = im_offset;
 
     if(!kernels.empty())
     {
@@ -282,7 +282,7 @@ float Im2d2ColGPU(const Handle& handle,
 
 float Im3d2ColGPU(const Handle& handle,
                   ConstData_t im,
-                  const int im_offset,
+                  const size_t im_offset,
                   const int im_c,
                   const int im_d,
                   const int im_h,
@@ -331,8 +331,8 @@ float Im3d2ColGPU(const Handle& handle,
 
     auto&& kernels = handle.GetKernels("miopenIm3d2Col", network_config);
 
-    int im_offset_pack = im_offset;
-    int im_c_pack      = im_c;
+    size_t im_offset_pack = im_offset;
+    int im_c_pack         = im_c;
 
     if(!kernels.empty())
     {
@@ -417,7 +417,7 @@ float Col2Im2dGPU(const Handle& handle,
                   const int in_h,
                   const int in_w,
                   Data_t im,
-                  int im_offset,
+                  size_t im_offset,
                   miopenDataType_t type)
 {
     std::string program_name = "MIOpenCol2Im2d.cl";

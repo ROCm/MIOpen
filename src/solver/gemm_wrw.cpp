@@ -342,13 +342,6 @@ bool GemmWrwUniversal::IsApplicable(const ExecutionContext& context,
                                     const ProblemDescription& problem) const
 {
 #if MIOPEN_USE_GEMM
-    const size_t two_gb_memory = 2ULL * 1024 * 1024 * 1024;
-    if((problem.GetInSize() >= two_gb_memory) || (problem.GetWeightsSize() >= two_gb_memory) ||
-       (problem.GetOutSize() >= two_gb_memory))
-    {
-        return false;
-    }
-
     if(!GemmWrwBase::IsApplicable(context, problem))
         return false;
 

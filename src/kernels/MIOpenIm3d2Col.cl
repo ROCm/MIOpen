@@ -58,7 +58,7 @@ typedef float data_t;
 #endif
 
 kernel void Im3d2Col(global data_t* const __restrict im,
-                     const unsigned im_offset,
+                     const unsigned long im_offset,
                      const unsigned im_c_size,
                      const unsigned im_d_size,
                      const unsigned im_h_size,
