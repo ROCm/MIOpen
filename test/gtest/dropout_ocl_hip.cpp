@@ -33,6 +33,8 @@
 #include <miopen/tensor.hpp>
 #include <miopen/datatype.hpp>
 
+#include <rocrand/rocrand_xorwow.h>
+
 #include <vector>
 #include <numeric>
 #include <algorithm>
@@ -136,11 +138,11 @@ void InitPRNGState(miopen::Handle& handle,
         MIOPEN_THROW("PRNG state size should not exceed system maximum memory allocation size.");
     }
 
-    unsigned long long states_num = DropoutDesc.stateSizeInBytes / sizeof(prngStates);
+    unsigned long long states_num = DropoutDesc.stateSizeInBytes / sizeof(rocrand_state_xorwow);
     size_t wk_grp_num =
         std::min(static_cast<unsigned long long>(MAX_PRNG_STATE / 256), (states_num + 255) / 256);
 
-    std::string network_config = "initprngs-" + std::to_string(sizeof(prngStates)) + "x" +
+    std::string network_config = "initprngs-" + std::to_string(sizeof(rocrand_state_xorwow)) + "x" +
                                  std::to_string(DropoutDesc.rng_mode) + "x" +
                                  std::to_string(wk_grp_num);
 
@@ -168,7 +170,7 @@ void InitPRNGState(miopen::Handle& handle,
         const std::vector<size_t> vgd{wk_grp_num * 256, 1, 1};
 
         std::string params;
-        // Add the RUN_FORWARD flag to fix HIP warnings
+
         params += "-DRUN_FORWARD=0 -DRUN_INIT_PRNG=1";
 #if DROPOUT_DEBUG
         std::cout << "Threads allocated for PRNG states: " << vgd[0] << std::endl;
@@ -279,7 +281,8 @@ void DropoutForward(const miopen::Handle& handle,
                        out_len,
                        out_str);
 
-    size_t RD_BLCK    = /* (in_len[4] % 4 == 0) ? 4 : */ (in_len[2] % 2 == 0) ? 2 : 1;
+    size_t RD_BLCK = /* (in_len[4] % 4 == 0) ? 4 : */ (in_len[2] % 2 == 0) ? 2 : 1;
+
     size_t total_work = (in_len[4] / RD_BLCK) * in_len[3] * in_len[2] * in_len[1] * in_len[0];
 
     size_t max_wk_grp = use_mask ? size_t(MAX_WORKITEM_NUM)
@@ -288,7 +291,7 @@ void DropoutForward(const miopen::Handle& handle,
         std::min(max_wk_grp / 256,
                  ((in_len[4] * in_len[3] * in_len[2] * in_len[1] * in_len[0] + 255) / 256));
 
-    size_t states_num = stateSizeInBytes / sizeof(prngStates);
+    size_t states_num = stateSizeInBytes / sizeof(rocrand_state_xorwow);
     if(states_num < wk_grp_num * 256 && !use_mask)
     {
         MIOPEN_THROW("Insufficient state size for parallel PRNG");
@@ -316,7 +319,6 @@ void DropoutForward(const miopen::Handle& handle,
 
         program_name = "MIOpenDropoutHIP.cpp";
         kernel_name  = "DropoutFW";
-        //kernel_name  = "DropoutForward";
         network_config += "-hip";
     }
 
@@ -519,7 +521,7 @@ void DropoutBackward(const miopen::Handle& handle,
 
     if(use_prng)
     {
-        size_t states_num = stateSizeInBytes / sizeof(prngStates);
+        size_t states_num = stateSizeInBytes / sizeof(rocrand_state_xorwow);
         if(states_num < wk_grp_num * 256)
         {
             MIOPEN_THROW("Insufficient state size for parallel PRNG");
@@ -728,13 +730,16 @@ tensor<T> BWDropGPU(const miopen::DropoutDescriptor& DropoutDesc,
 struct DropoutTestCase
 {
     bool mask_flag;
+    int rng_mode;
 };
 
 std::vector<DropoutTestCase> DropoutTestConfigs()
-{ // mask enable
+{ // mask enable, rng_mode
     // clang-format off
-    return {{false},
-            {true}};
+    return {{false, 1},
+            {true,  1},
+            {false, 0},
+            {true,  0}};
     // clang-format on
 }
 
@@ -747,15 +752,11 @@ protected:
         auto&& handle  = get_handle();
         dropout_config = GetParam();
 
-        mask_flag = dropout_config.mask_flag;
-
         std::vector<std::vector<int>> input_dims;
         std::vector<int> in_dim;
-        int rng_mode_cmd = 1;
 
-        // DROPOUT_SINGLE_CTEST
         input_dims = get_sub_tensor();
-        input_dims.resize(1);
+        input_dims.resize(1); // Run only one CTEST
         in_dim = input_dims[0];
 
         uint64_t max_value = miopen_type<T>{} == miopenHalf ? 5 : 17;
@@ -771,8 +772,8 @@ protected:
         input_b_ocl = tensor<T>{in_dim};
         input_b_hip = tensor<T>{in_dim};
 
-        size_t stateSizeInBytes =
-            std::min(size_t(MAX_PRNG_STATE), handle.GetImage3dMaxWidth()) * sizeof(prngStates);
+        size_t stateSizeInBytes = std::min(size_t(MAX_PRNG_STATE), handle.GetImage3dMaxWidth()) *
+                                  sizeof(rocrand_state_xorwow);
         size_t reserveSpaceSizeInBytes = input_f.desc.GetElementSize() * sizeof(bool);
         size_t total_mem =
             2 * (2 * input_f.desc.GetNumBytes() + reserveSpaceSizeInBytes) + stateSizeInBytes;
@@ -790,12 +791,12 @@ protected:
         DropoutDesc.dropout          = 0.5;
         DropoutDesc.stateSizeInBytes = stateSizeInBytes;
         DropoutDesc.seed             = 0;
-        DropoutDesc.rng_mode         = miopenRNGType_t(rng_mode_cmd);
-        DropoutDesc.use_mask         = mask_flag;
+        DropoutDesc.rng_mode         = miopenRNGType_t(dropout_config.rng_mode);
+        DropoutDesc.use_mask         = dropout_config.mask_flag;
 
         // Allocate reserve space
         reserveSpace = std::vector<unsigned char>(input_f.desc.GetElementSize());
-        if(mask_flag)
+        if(dropout_config.mask_flag)
         {
             for(size_t i = 0; i < input_f.desc.GetElementSize(); i++)
             {
@@ -805,14 +806,13 @@ protected:
         }
     }
 
-    void RunDropoutOCL(bool mask_en = false)
+    void RunDropoutOCL()
     {
-        DropoutDesc.use_mask = mask_en;
-
-        auto&& handle       = get_handle();
-        auto state_buf      = handle.Create<unsigned char>(DropoutDesc.stateSizeInBytes);
-        DropoutDesc.pstates = state_buf.get();
-        InitPRNGState(handle, DropoutDesc, false);
+        auto&& handle  = get_handle();
+        auto state_buf = handle.Create<unsigned char>(
+            DropoutDesc.stateSizeInBytes);         // Allocate GPU memory for PRNG states
+        DropoutDesc.pstates = state_buf.get();     // Store GPU memory pointer to PRNG states
+        InitPRNGState(handle, DropoutDesc, false); // Initialize PRNG states
 
         // forward pass OCL
         output_f_ocl = FWDropGPU<T>(
@@ -822,7 +822,7 @@ protected:
         input_b_ocl =
             BWDropGPU<T>(DropoutDesc, input_b_ocl, output_b, reserveSpace, 0, 0, 0, true, false);
 
-        if(!mask_en)
+        if(!DropoutDesc.use_mask)
         {
             // forward pass OCL
             output_f_ocl = FWDropGPU<T>(DropoutDesc,
@@ -842,13 +842,12 @@ protected:
         }
     }
 
-    void RunDropoutHIP(bool mask_en = false)
+    void RunDropoutHIP()
     {
-        DropoutDesc.use_mask = mask_en;
-
-        auto&& handle       = get_handle();
-        auto state_buf      = handle.Create<unsigned char>(DropoutDesc.stateSizeInBytes);
-        DropoutDesc.pstates = state_buf.get();
+        auto&& handle  = get_handle();
+        auto state_buf = handle.Create<unsigned char>(
+            DropoutDesc.stateSizeInBytes);     // Allocate GPU memory for PRNG states
+        DropoutDesc.pstates = state_buf.get(); // Store GPU memory pointer to PRNG states
         InitPRNGState(handle, DropoutDesc, true);
 
         // forward pass HIP
@@ -859,7 +858,7 @@ protected:
         input_b_hip =
             BWDropGPU<T>(DropoutDesc, input_b_hip, output_b, reserveSpace, 0, 0, 0, true, true);
 
-        if(!mask_en)
+        if(!dropout_config.mask_flag)
         {
 
             // forward pass HIP
@@ -882,6 +881,7 @@ protected:
 
     void VerifyGPU()
     {
+
         auto error_f = miopen::rms_range(output_f_ocl, output_f_hip);
         EXPECT_TRUE(miopen::range_distance(output_f_ocl) == miopen::range_distance(output_f_hip));
         EXPECT_TRUE(error_f == 0) << "GPU FW Outputs do not match each other. Error:" << error_f;
@@ -906,7 +906,6 @@ protected:
 
     miopen::DropoutDescriptor DropoutDesc;
     miopen::TensorDescriptor noise_shape;
-    bool mask_flag;
     std::vector<unsigned char> reserveSpace;
 };
 
@@ -921,8 +920,8 @@ using namespace dropout;
 
 TEST_P(DropoutTestFloat, DropoutTest)
 {
-    RunDropoutOCL(mask_flag);
-    RunDropoutHIP(mask_flag);
+    RunDropoutOCL();
+    RunDropoutHIP();
     VerifyGPU();
 };
 

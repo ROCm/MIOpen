@@ -456,8 +456,6 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/xform_data_filter.inc
         kernels/xform_kd_cov2.inc
         kernels/xform_metadata.inc
-        kernels/precalc_xorwow_skipahead_sequence_matrices_kernel_hip.hpp
-        kernels/precalc_xorwow_skipahead_matrices_kernel_hip.hpp
         )
 
     set(MIOPEN_KERNELS
