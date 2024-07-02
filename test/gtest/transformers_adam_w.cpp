@@ -24,14 +24,12 @@
  *
  *******************************************************************************/
 #include <miopen/env.hpp>
-#include "adam.hpp"
+#include "transformers_adam_w.hpp"
 
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 
-namespace env = miopen::env;
-
-namespace adam {
+namespace transformers_adam_w {
 
 bool CheckFloatArg(std::string arg)
 {
@@ -43,22 +41,22 @@ bool CheckFloatArg(std::string arg)
     return false;
 }
 
-struct AdamTestFloat : AdamTest<float, float>
+struct TransformersAdamWTestFloat : TransformersAdamWTest<float, float>
 {
 };
 
-struct AdamTestFloat16 : AdamTest<half_float::half, half_float::half>
+struct TransformersAdamWTestFloat16 : TransformersAdamWTest<half_float::half, half_float::half>
 {
 };
 
-struct AmpAdamTestFloat : AdamTest<float, half_float::half>
+struct TransformersAmpAdamWTestFloat : TransformersAdamWTest<float, half_float::half, true>
 {
 };
 
-} // namespace adam
-using namespace adam;
+} // namespace transformers_adam_w
+using namespace transformers_adam_w;
 
-TEST_P(AdamTestFloat, AdamFloatTestFw)
+TEST_P(TransformersAdamWTestFloat, TransformersAdamWFloatTest)
 {
     if(CheckFloatArg("--float"))
     {
@@ -71,7 +69,7 @@ TEST_P(AdamTestFloat, AdamFloatTestFw)
     }
 };
 
-TEST_P(AdamTestFloat16, AdamFloat16TestFw)
+TEST_P(TransformersAdamWTestFloat16, TransformersAdamWFloat16Test)
 {
     if(CheckFloatArg("--half"))
     {
@@ -84,7 +82,7 @@ TEST_P(AdamTestFloat16, AdamFloat16TestFw)
     }
 };
 
-TEST_P(AmpAdamTestFloat, AmpAdamTestFw)
+TEST_P(TransformersAmpAdamWTestFloat, TransformersAmpAdamWTest)
 {
     if(CheckFloatArg("--float"))
     {
@@ -97,6 +95,12 @@ TEST_P(AmpAdamTestFloat, AmpAdamTestFw)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(AdamTestSet, AdamTestFloat, testing::ValuesIn(AdamTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(AdamTestSet, AdamTestFloat16, testing::ValuesIn(AdamTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(AdamTestSet, AmpAdamTestFloat, testing::ValuesIn(AdamTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(TransformersAdamWTestSet,
+                         TransformersAdamWTestFloat,
+                         testing::ValuesIn(TransformersAdamWTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(TransformersAdamWTestSet,
+                         TransformersAdamWTestFloat16,
+                         testing::ValuesIn(TransformersAdamWTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(TransformersAdamWTestSet,
+                         TransformersAmpAdamWTestFloat,
+                         testing::ValuesIn(TransformersAdamWTestConfigs()));

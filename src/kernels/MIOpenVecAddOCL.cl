@@ -23,24 +23,15 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include "adam_driver.hpp"
-#include "registry_driver_maker.hpp"
-
-static Driver* makeDriver(const std::string& base_arg)
+__kernel void vector_add_ocl(__global const float* x,
+                             __global const float* y,
+                             __global float* restrict z,
+                             ulong vec_size)
 {
-    if(base_arg == "adam")
-        return new AdamDriver<float, float>();
-    else if(base_arg == "adamfp16")
-        return new AdamDriver<float16, float>();
-    else if(base_arg == "ampadam")
-        return new AdamDriver<float, float, float16>(false, true);
-    else if(base_arg == "adamw")
-        return new AdamDriver<float, float>(true);
-    else if(base_arg == "adamwfp16")
-        return new AdamDriver<float16, float>(true);
-    else if(base_arg == "ampadamw")
-        return new AdamDriver<float, float, float16>(true, true);
-    return nullptr;
-}
+    // get index of the work item
+    int index = get_global_id(0);
 
-REGISTER_DRIVER_MAKER(makeDriver);
+    // check if the index is within the vector size
+    if(index < vec_size)
+        z[index] = x[index] + y[index]; // add the vector elements
+}

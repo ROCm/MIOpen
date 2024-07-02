@@ -23,75 +23,60 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef GUARD_CPU_ADAM_HPP
-#define GUARD_CPU_ADAM_HPP
+#ifndef GUARD_CPU_TRANSFORMERS_ADAM_W_HPP
+#define GUARD_CPU_TRANSFORMERS_ADAM_W_HPP
 
 #include "tensor_holder.hpp"
 
 template <typename T1, typename T2>
-void cpu_adam(tensor<T1>& params,
-              tensor<T2>& grads,
-              tensor<T1>& exp_avgs,
-              tensor<T1>& exp_avg_sqs,
-              tensor<T1>& max_exp_avg_sqs,
-              float lr,
-              float beta1,
-              float beta2,
-              float weight_decay,
-              float eps,
-              bool amsgrad,
-              bool maximize,
-              bool adamw,
-              bool is_amp,
-              int32_t grad_scale,
-              bool found_inf,
-              int32_t step_count)
+void cpu_transformers_adam_w(tensor<T1>& params,
+                             tensor<T2>& grads,
+                             tensor<T1>& exp_avgs,
+                             tensor<T1>& exp_avg_sqs,
+                             float lr,
+                             float beta1,
+                             float beta2,
+                             float weight_decay,
+                             float eps,
+                             bool correct_bias,
+                             bool is_amp,
+                             int32_t grad_scale,
+                             bool found_inf,
+                             int32_t step_count)
 {
     if(is_amp && found_inf)
         return;
 
     par_ford(params.GetSize())([&](int32_t i) {
-        T1 param          = params[i];
-        T1 exp_avg        = exp_avgs[i];
-        T1 exp_avg_sq     = exp_avg_sqs[i];
-        T1 max_exp_avg_sq = amsgrad ? max_exp_avg_sqs[i] : static_cast<T1>(0);
+        T1 param      = params[i];
+        T1 exp_avg    = exp_avgs[i];
+        T1 exp_avg_sq = exp_avg_sqs[i];
 
         for(int step = 1; step <= step_count; step++)
         {
             T1 grad = grads[i];
-            if(maximize)
-                grad = -grad;
             if(is_amp)
                 grad /= grad_scale;
-
-            float bias_correction1 = 1 - pow(beta1, step);
-            float bias_correction2 = 1 - pow(beta2, step);
-
-            if(weight_decay != 0)
-            {
-                if(adamw)
-                    param -= lr * weight_decay * param;
-                else
-                    grad += param * weight_decay;
-            }
 
             exp_avg    = exp_avg * beta1 + grad * (1 - beta1);
             exp_avg_sq = exp_avg_sq * beta2 + grad * grad * (1 - beta2);
 
-            float denom = 0;
-            if(amsgrad)
-            {
-                if(exp_avg_sq > max_exp_avg_sq)
-                    max_exp_avg_sq = exp_avg_sq;
+            float denorm    = sqrt(exp_avg_sq) + eps;
+            float step_size = lr;
 
-                denom = sqrt(max_exp_avg_sq) / sqrt(bias_correction2) + eps;
-            }
-            else
+            if(correct_bias)
             {
-                denom = sqrt(exp_avg_sq) / sqrt(bias_correction2) + eps;
+                float bias_correction1 = 1 - pow(beta1, step);
+                float bias_correction2 = 1 - pow(beta2, step);
+                step_size              = step_size * sqrt(bias_correction2) / bias_correction1;
             }
 
-            param = param - (lr / bias_correction1) * exp_avg / denom;
+            param = param + exp_avg / denorm * -step_size;
+
+            if(weight_decay > 0.0)
+            {
+                param = param - param * (lr * weight_decay);
+            }
         }
 
         params[i] = param;

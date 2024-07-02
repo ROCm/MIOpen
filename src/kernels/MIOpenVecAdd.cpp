@@ -23,24 +23,19 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include "adam_driver.hpp"
-#include "registry_driver_maker.hpp"
+#ifndef MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS
+#include <hip/hip_fp16.h>
+#include <hip/hip_runtime.h>
+#endif
 
-static Driver* makeDriver(const std::string& base_arg)
+extern "C" __global__ void vector_add_hip(const float* a, const float* b, float* c, size_t vec_size)
 {
-    if(base_arg == "adam")
-        return new AdamDriver<float, float>();
-    else if(base_arg == "adamfp16")
-        return new AdamDriver<float16, float>();
-    else if(base_arg == "ampadam")
-        return new AdamDriver<float, float, float16>(false, true);
-    else if(base_arg == "adamw")
-        return new AdamDriver<float, float>(true);
-    else if(base_arg == "adamwfp16")
-        return new AdamDriver<float16, float>(true);
-    else if(base_arg == "ampadamw")
-        return new AdamDriver<float, float, float16>(true, true);
-    return nullptr;
-}
+    // Get the index of the current element
+    size_t index = blockIdx.x * blockDim.x + threadIdx.x;
 
-REGISTER_DRIVER_MAKER(makeDriver);
+    // Check if the index is within the range of the vector size
+    if(index < vec_size)
+    {
+        c[index] = a[index] + b[index]; // Add the two elements
+    }
+}
