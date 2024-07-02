@@ -318,7 +318,7 @@ int T5LayerNormDriver<Tgpu, Tref>::GetandSetData()
 template <typename Tgpu, typename Tref>
 int T5LayerNormDriver<Tgpu, Tref>::AddCmdLineArgs()
 {
-    inflags.AddInputFlag("forw", 'F', "1", "Run only Forward T5LayerNorm (Default=1)", "int");
+    inflags.AddInputFlag("forw", 'F', "0", "Run only Forward T5LayerNorm (Default=1)", "int");
     inflags.AddTensorFlag("input", 'X', "100x3x32x32", "input tensor descriptor");
 
     inflags.AddInputFlag("eps", 'e', "0.00001", "Alpha (Default=0.00001)", "double");
