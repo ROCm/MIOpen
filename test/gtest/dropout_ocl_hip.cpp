@@ -45,8 +45,6 @@
 #include "driver.hpp"
 #include "dropout_util.hpp"
 
-#define DROPOUT_DEBUG 0
-
 template <typename T>
 inline void SquashPairedTensor(const std::vector<T> x_len,
                                const std::vector<T> x_str,
@@ -126,10 +124,6 @@ void InitPRNGState(miopen::Handle& handle,
                    const miopen::DropoutDescriptor& DropoutDesc,
                    bool use_hip = false)
 {
-#if DROPOUT_DEBUG
-    std::cout << "Check memory and threads info of dropout PRNG states in debug mode:" << std::endl;
-#endif
-
     std::string program_name;
     std::string kernel_name;
 
@@ -172,15 +166,9 @@ void InitPRNGState(miopen::Handle& handle,
         std::string params;
 
         params += "-DRUN_FORWARD=0 -DRUN_INIT_PRNG=1";
-#if DROPOUT_DEBUG
-        std::cout << "Threads allocated for PRNG states: " << vgd[0] << std::endl;
-        std::cout << "Memory allocated for PRNG states: " << stateSizeInBytes << std::endl;
-#endif
+
         handle.AddKernel(kernel_name, network_config, program_name, kernel_name, vld, vgd, params)(
             DropoutDesc.pstates, DropoutDesc.seed, states_num);
-#if DROPOUT_DEBUG
-        std::cout << "Succeeded in launching InitPRNGState()." << stateSizeInBytes << std::endl;
-#endif
     }
 }
 
@@ -257,13 +245,6 @@ void DropoutForward(const miopen::Handle& handle,
        handle.GetGlobalMemorySize())
     {
         MIOPEN_THROW("Memory required by dropout forward configs exceeds GPU memory range.");
-    }
-
-    if(miopen::CheckNumericsEnabled())
-    {
-        std::cout << "Dropout forward input numerics check at dropout rate " << dropout
-                  << std::endl;
-        miopen::checkNumericsInput(handle, xDesc, x);
     }
 
     // support up to 5D tensor
@@ -405,13 +386,6 @@ void DropoutForward(const miopen::Handle& handle,
             static_cast<unsigned>(out_offset),
             static_cast<unsigned>(rsvsp_offset));
     }
-
-    if(miopen::CheckNumericsEnabled())
-    {
-        std::cout << "Dropout forward output numerics check at dropout rate " << dropout
-                  << std::endl;
-        miopen::checkNumericsOutput(handle, yDesc, y);
-    }
 }
 
 void DropoutBackward(const miopen::Handle& handle,
@@ -486,13 +460,6 @@ void DropoutBackward(const miopen::Handle& handle,
        handle.GetGlobalMemorySize())
     {
         MIOPEN_THROW("Memory required by dropout backward configs exceeds GPU memory range.");
-    }
-
-    if(miopen::CheckNumericsEnabled())
-    {
-        std::cout << "Dropout backward input numerics check at dropout rate " << dropout
-                  << std::endl;
-        miopen::checkNumericsInput(handle, dyDesc, dy);
     }
 
     // support up to 5D tensor
@@ -636,13 +603,6 @@ void DropoutBackward(const miopen::Handle& handle,
             static_cast<unsigned>(in_offset),
             static_cast<unsigned>(out_offset),
             static_cast<unsigned>(rsvsp_offset));
-    }
-
-    if(miopen::CheckNumericsEnabled())
-    {
-        std::cout << "Dropout backward output numerics check at dropout rate " << dropout
-                  << std::endl;
-        miopen::checkNumericsOutput(handle, dxDesc, dx);
     }
 }
 

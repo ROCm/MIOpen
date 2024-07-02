@@ -92,49 +92,14 @@ InitKernelStateHIP(rocrand_state_xorwow* state, ulong prng_seed, ulong states_nu
 #ifndef USE_RSVSP
 #define USE_RSVSP 0
 #endif
-#endif
 
-#if !RUN_FORWARD
-#ifndef USE_PRNG
-#define USE_PRNG 0
-#endif
-#endif
-
-#if RUN_FORWARD // Dropout Forward
+// Dropout Forward
 /**
  * @brief Data is loaded into registers from the input.
  * The mask is either generated and saved in the reserved space, or an existing mask is loaded into
  * registers from the reserved space. The loaded mask is applied to the data in the registers. The
  * processed data is then written to the output. Reading and writing of input data can be performed
  * as vectorized operations, with the extent of vectorization determined by `#RD_BLOCK`.
- *
- * @tparam F The data type of the input and output tensors.
- * @tparam T The data type of the vectorized tensor.
- * @tparam B The data type of the vectorized mask tensor.
- * @tparam MASK A boolean flag indicating whether the mask should be generated.
- * @tparam RSVSP A boolean flag indicating whether the reserveSpace is available.
- * @param state The state of the random number generator.
- * @param dropout The dropout probability.
- * @param scale The scaling factor applied to the output tensor.
- * @param dim1 The size of the first dimension of the input and output tensors.
- * @param dim2 The size of the second dimension of the input and output tensors.
- * @param dim3 The size of the third dimension of the input and output tensors.
- * @param dim4 The size of the fourth dimension of the input and output tensors.
- * @param y The output tensor.
- * @param out_str0 The stride of the first dimension of the output tensor.
- * @param out_str1 The stride of the second dimension of the output tensor.
- * @param out_str2 The stride of the third dimension of the output tensor.
- * @param out_str3 The stride of the fourth dimension of the output tensor.
- * @param x The input tensor.
- * @param in_str0 The stride of the first dimension of the input tensor.
- * @param in_str1 The stride of the second dimension of the input tensor.
- * @param in_str2 The stride of the third dimension of the input tensor.
- * @param in_str3 The stride of the fourth dimension of the input tensor.
- * @param reserveSpace The reserve space for storing the mask.
- * @param total_work The total number of elements to process.
- * @param in_offset The offset of the input tensor.
- * @param out_offset The offset of the output tensor.
- * @param rsvsp_offset The offset of the reserve space.
  */
 template <typename F, typename T, typename B, bool MASK = false, bool RSVSP = false>
 __forceinline__ __device__ void dropoutfw(const rocrand_state_xorwow* state,
@@ -267,41 +232,18 @@ extern "C" __global__ void DropoutFW(const rocrand_state_xorwow* state,
 #endif
 
 // Dropout Backward
-#if !RUN_FORWARD && !RUN_INIT_PRNG
+#if !RUN_FORWARD
+
+#ifndef USE_PRNG
+#define USE_PRNG 0
+#endif
+
 /**
  * @brief Applies dropout backward operation to the input data.
  * The mask is either generated or an existing mask is loaded into
  * registers from the reserveSpace. The loaded mask is applied to the data in the registers. The
  * processed data is then written to the output. Reading and writing of input data can be performed
  * as vectorized operations, with the extent of vectorization determined by #RD_BLOCK.
- *
- * @tparam F The data type of the input and output tensors.
- * @tparam T The data type of the input tensor.
- * @tparam B The data type of the mask tensor.
- * @tparam PRNG Flag indicating whether random numbers should be generated or read from the
- * reserveSpace
- * @param state Pointer to the PRNG state.
- * @param dropout Dropout probability.
- * @param scale Scale factor to be applied to the retained elements.
- * @param dim1 Size of the first dimension of the input and output tensors.
- * @param dim2 Size of the second dimension of the input and output tensors.
- * @param dim3 Size of the third dimension of the input and output tensors.
- * @param dim4 Size of the fourth dimension of the input and output tensors.
- * @param y Pointer to the input tensor.
- * @param out_str0 Stride of the first dimension of the output tensor.
- * @param out_str1 Stride of the second dimension of the output tensor.
- * @param out_str2 Stride of the third dimension of the output tensor.
- * @param out_str3 Stride of the fourth dimension of the output tensor.
- * @param x Pointer to the output tensor.
- * @param in_str0 Stride of the first dimension of the input tensor.
- * @param in_str1 Stride of the second dimension of the input tensor.
- * @param in_str2 Stride of the third dimension of the input tensor.
- * @param in_str3 Stride of the fourth dimension of the input tensor.
- * @param reserveSpace Pointer to the reserve space for loading the mask.
- * @param total_work Total number of elements to process.
- * @param in_offset Offset for the input tensor.
- * @param out_offset Offset for the output tensor.
- * @param rsvsp_offset Offset for the reserve space.
  */
 template <typename F, typename T, typename B, bool PRNG = false>
 __forceinline__ __device__ void dropoutbw(const rocrand_state_xorwow* state,
@@ -429,5 +371,4 @@ extern "C" __global__ void DropoutBW(const rocrand_state_xorwow* state,
                                                                rsvsp_offset);
 }
 #endif
-
 #endif
