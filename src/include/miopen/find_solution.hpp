@@ -486,8 +486,8 @@ struct SolverContainer
 
         if(slns.empty())
             MIOPEN_THROW(miopenStatusNotImplemented, "No solver found.");
-        const auto& sln = slns.front();
 
+        const auto& sln = slns.front();
         if(!sln.invoker_factory)
             MIOPEN_THROW(miopenStatusInternalError, "Invoker missing in solver " + sln.solver_id);
         const auto invoker =
