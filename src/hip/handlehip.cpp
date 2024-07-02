@@ -57,7 +57,9 @@
 #include <mutex>
 #include <shared_mutex>
 
+#if MIOPEN_USE_HIPBLASLT
 #include <hipblaslt/hipblaslt.h>
+#endif
 
 /// hipMemGetInfo constantly fails on gfx906/900 and Navi21.
 /// Brute-force W/A: return fixed values.
