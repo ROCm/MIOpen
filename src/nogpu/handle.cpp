@@ -55,7 +55,9 @@
 #include <thread>
 #include <miopen/nogpu/handle_impl.hpp>
 
+#if MIOPEN_USE_HIPBLASLT
 #include <hipblaslt/hipblaslt.h>
+#endif
 
 namespace miopen {
 
