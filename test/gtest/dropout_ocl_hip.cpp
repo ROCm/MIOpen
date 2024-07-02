@@ -330,10 +330,10 @@ void DropoutForward(const miopen::Handle& handle,
                         static_cast<int>(in_str[2]),
                         static_cast<int>(in_str[3]),
                         reserveSpace,
-                        static_cast<unsigned>(total_work),
-                        static_cast<unsigned>(in_offset),
-                        static_cast<unsigned>(out_offset),
-                        static_cast<unsigned>(rsvsp_offset));
+                        static_cast<size_t>(total_work),
+                        static_cast<size_t>(in_offset),
+                        static_cast<size_t>(out_offset),
+                        static_cast<size_t>(rsvsp_offset));
     }
     else
     {
@@ -381,10 +381,10 @@ void DropoutForward(const miopen::Handle& handle,
             static_cast<int>(in_str[2]),
             static_cast<int>(in_str[3]),
             reserveSpace,
-            static_cast<unsigned>(total_work),
-            static_cast<unsigned>(in_offset),
-            static_cast<unsigned>(out_offset),
-            static_cast<unsigned>(rsvsp_offset));
+            static_cast<size_t>(total_work),
+            static_cast<size_t>(in_offset),
+            static_cast<size_t>(out_offset),
+            static_cast<size_t>(rsvsp_offset));
     }
 }
 
@@ -546,10 +546,10 @@ void DropoutBackward(const miopen::Handle& handle,
                         static_cast<int>(in_str[2]),
                         static_cast<int>(in_str[3]),
                         reserveSpace,
-                        static_cast<unsigned>(total_work),
-                        static_cast<unsigned>(in_offset),
-                        static_cast<unsigned>(out_offset),
-                        static_cast<unsigned>(rsvsp_offset));
+                        static_cast<size_t>(total_work),
+                        static_cast<size_t>(in_offset),
+                        static_cast<size_t>(out_offset),
+                        static_cast<size_t>(rsvsp_offset));
     }
     else
     {
@@ -599,10 +599,10 @@ void DropoutBackward(const miopen::Handle& handle,
             static_cast<int>(in_str[2]),
             static_cast<int>(in_str[3]),
             reserveSpace,
-            static_cast<unsigned>(total_work),
-            static_cast<unsigned>(in_offset),
-            static_cast<unsigned>(out_offset),
-            static_cast<unsigned>(rsvsp_offset));
+            static_cast<size_t>(total_work),
+            static_cast<size_t>(in_offset),
+            static_cast<size_t>(out_offset),
+            static_cast<size_t>(rsvsp_offset));
     }
 }
 
