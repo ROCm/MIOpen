@@ -36,8 +36,6 @@
 #include <miopen/kthvalue.hpp>
 #include <miopen/target_properties.hpp>
 
-#define LOCAL_SIZE 256
-
 namespace miopen {
 
 namespace solver {
@@ -50,17 +48,17 @@ bool IsImprovementOverROCm(const miopen::kthvalue::FwdProblemDescription& proble
     int dimNum                 = inputDesc.GetSize();
     size_t dimSize             = inputDesc.GetLengths()[problem.GetDim()];
 
-    return dimNum >= 2 && problem.GetDim() == dimNum - 1 && dimSize >= 256;
+    return dimNum >= 2 && problem.GetDim() == dimNum - 1 && dimSize >= 300;
 }
 
 bool KthvalueFwd::IsApplicable(const ExecutionContext& /*context*/,
                                const miopen::kthvalue::FwdProblemDescription& problem) const
 {
+    if(!IsImprovementOverROCm(problem))
+        return false;
     if(problem.GetInputDesc().GetSize() > 5)
         return false;
     if(!problem.isContiguous)
-        return false;
-    if(!IsImprovementOverROCm(problem))
         return false;
     return true;
 }
@@ -78,8 +76,11 @@ ConvSolution KthvalueFwd::GetSolution(const ExecutionContext& context,
     auto dim_size      = input_desc.GetLengths()[problem.GetDim()];
     size_t output_size = size / dim_size;
 
-    size_t xlocalsize;
-    xlocalsize        = LOCAL_SIZE;
+    size_t xlocalsize = 256;
+    if(dim_size >= 8192)
+    {
+        xlocalsize = 512;
+    }
     size_t xgridsize  = output_size * xlocalsize;
     size_t ylocalsize = 1;
     size_t ygridsize  = 1;

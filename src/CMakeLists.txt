@@ -427,7 +427,6 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/stride_array.hpp
         kernels/tensor_view.hpp
         kernels/utilities.inc
-        kernels/warp_shuffle.hpp
         kernels/workaround_issue_1431.hpp
         kernels/xform_bidirect_winograd_code.inc
         kernels/xform_data_filter.inc
