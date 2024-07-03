@@ -33,7 +33,7 @@
 #include <miopen/kernel_build_params.hpp>
 
 template <class T>
-void cpu_vec_add(const tensor<T>& srcA, const tensor<T>& srcB, tensor<T>& dstC, uint vec_size)
+void cpu_vec_add(const tensor<T>& srcA, const tensor<T>& srcB, tensor<T>& dstC, size_t vec_size)
 {
 
     for(size_t i = 0; i < vec_size; i++)
@@ -72,18 +72,14 @@ protected:
         vecadd_config  = GetParam();
         auto gen_value = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1e-2, 100); };
 
-        // Get the vector size and threads per block
-        vec_size          = vecadd_config.vec_size;
-        threads_per_block = vecadd_config.threads_per_block;
-
         // Allocate and initialize input tensors
-        inputA = tensor<T>{vec_size}.generate(gen_value);
-        inputB = tensor<T>{vec_size}.generate(gen_value);
+        inputA = tensor<T>{vecadd_config.vec_size}.generate(gen_value);
+        inputB = tensor<T>{vecadd_config.vec_size}.generate(gen_value);
 
         // Allocate output tensors
-        outputC_ocl = tensor<T>{vec_size};
-        outputC_hip = tensor<T>{vec_size};
-        ref_outputC = tensor<T>{vec_size};
+        outputC_ocl = tensor<T>{vecadd_config.vec_size};
+        outputC_hip = tensor<T>{vecadd_config.vec_size};
+        ref_outputC = tensor<T>{vecadd_config.vec_size};
 
         // Write the device input tensors
         inputA_dev = handle.Write(inputA.data);
@@ -93,7 +89,7 @@ protected:
         std::fill(ref_outputC.begin(), ref_outputC.end(), std::numeric_limits<T>::quiet_NaN());
 
         // Run the CPU implementation
-        cpu_vec_add(inputA, inputB, ref_outputC, vec_size);
+        cpu_vec_add(inputA, inputB, ref_outputC, vecadd_config.vec_size);
     }
 
     void RunTestOCL()
@@ -114,16 +110,20 @@ protected:
 
         std::string params = options.GenerateFor(miopen::kbp::OpenCL{});
 
-        uint totalElements  = vec_size;
-        int threadsPerBlock = threads_per_block;
-        int blocksPerGrid   = (totalElements + threadsPerBlock - 1) / threadsPerBlock;
+        size_t totalElements   = vecadd_config.vec_size;
+        size_t threadsPerBlock = vecadd_config.threads_per_block;
+        size_t blocksPerGrid   = (totalElements + threadsPerBlock - 1) / threadsPerBlock;
 
         const std::vector<size_t> vgd{blocksPerGrid * threadsPerBlock, 1, 1};
         const std::vector<size_t> vld{threadsPerBlock, 1, 1};
 
         handle.AddKernel(
             "vector_add_ocl", network_config, program_name, kernel_name, vld, vgd, params)(
-            inputA_dev.get(), inputB_dev.get(), outputC_dev.get(), totalElements);
+            inputA_dev.get(),
+            inputB_dev.get(),
+            outputC_dev.get(),
+            static_cast<unsigned long>(
+                totalElements)); // OpenCL expects the totalElements as unsigned long
 
         // Read the device output tensor
         outputC_ocl.data = handle.Read<T>(outputC_dev, outputC_ocl.data.size());
@@ -147,9 +147,9 @@ protected:
 
         std::string params = options.GenerateFor(miopen::kbp::HIP{});
 
-        uint totalElements  = vec_size;
-        int threadsPerBlock = threads_per_block;
-        int blocksPerGrid   = (totalElements + threadsPerBlock - 1) / threadsPerBlock;
+        size_t totalElements   = vecadd_config.vec_size;
+        size_t threadsPerBlock = vecadd_config.threads_per_block;
+        size_t blocksPerGrid   = (totalElements + threadsPerBlock - 1) / threadsPerBlock;
 
         const std::vector<size_t> vgd{blocksPerGrid * threadsPerBlock, 1, 1};
         const std::vector<size_t> vld{threadsPerBlock, 1, 1};
@@ -197,9 +197,6 @@ protected:
     miopen::Allocator::ManageDataPtr inputB_dev; // input tensor B device
 
     miopen::Allocator::ManageDataPtr outputC_dev; // output tensor C device
-
-    size_t vec_size;
-    size_t threads_per_block;
 };
 
 namespace vecadd {
