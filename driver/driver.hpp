@@ -172,7 +172,7 @@ inline void PadBufferSize(size_t& sz, int datatype_sz)
     printf("Supported Base Arguments: conv[fp16|int8|bfp16], CBAInfer[fp16], "
            "pool[fp16], lrn[fp16], "
            "activ[fp16], softmax[fp16], bnorm[fp16], rnn[fp16], gemm[fp16], ctc, dropout[fp16], "
-           "tensorop[fp16], reduce[fp16|fp64], layernorm[bfp16|fp16], sum[bfp16|fp16], "
+           "tensorop, reduce[fp16|fp64], layernorm[bfp16|fp16], sum[bfp16|fp16], "
            "groupnorm[bfp16|fp16], cat[bfp16|fp16], addlayernorm[bfp16|fp16], "
            "t5layernorm[bfp16|fp16], adam[fp16], ampadam, reduceextreme[bfp16|fp16], "
            "adamw[fp16], ampadamw, transformersadamw[fp16], transformersampadamw, "
@@ -196,8 +196,8 @@ inline std::string ParseBaseArg(int argc, char* argv[])
        arg != "softmax" && arg != "softmaxfp16" && arg != "bnorm" && arg != "bnormfp16" &&
        arg != "rnn" && arg != "rnnfp16" && arg != "rnn_seq" && arg != "rnn_seqfp16" &&
        arg != "gemm" && arg != "gemmfp16" && arg != "ctc" && arg != "dropout" &&
-       arg != "dropoutfp16" && arg != "tensorop" && arg != "tensoropfp16" && arg != "reduce" &&
-       arg != "reducefp16" && arg != "reducefp64" && arg != "layernorm" && arg != "layernormfp16" &&
+       arg != "dropoutfp16" && arg != "tensorop" && arg != "reduce" && arg != "reducefp16" &&
+       arg != "reducefp64" && arg != "layernorm" && arg != "layernormfp16" &&
        arg != "layernormbfp16" && arg != "sum" && arg != "sumfp16" && arg != "sumbfp16" &&
        arg != "groupnorm" && arg != "groupnormfp16" && arg != "groupnormbfp16" && arg != "cat" &&
        arg != "catfp16" && arg != "catbfp16" && arg != "addlayernorm" &&
