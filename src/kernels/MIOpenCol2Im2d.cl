@@ -33,6 +33,16 @@
 #define ACCUMULATOR_NEEDS_CONVERSION 0
 #endif
 
+#ifndef MIOPEN_USE_64BIT_INDEX
+#error "MIOPEN_USE_64BIT_INDEX must be defined"
+#endif
+
+#if MIOPEN_USE_64BIT_INDEX
+typedef ulong index_t;
+#else
+typedef uint index_t;
+#endif
+
 __kernel void Col2Im2dU(global _FLOAT* col,
                         const uint col_h,
                         const uint col_w,
@@ -66,7 +76,7 @@ __kernel void Col2Im2dU(global _FLOAT* col,
                        : (im_w - (dilation_w * (wei_w - 1) + 1)) / stride_w + 1;
     uint end_w   = min(col_w, im_w / stride_w + 1);
 
-    uint ch_offset = im_ch * col_w * col_h * wei_w * wei_h;
+    index_t ch_offset = (index_t)(im_ch * col_w * col_h) * (index_t)(wei_w * wei_h);
     col += ch_offset;
 
     _FLOAT_ACCUM tmp = (_FLOAT_ACCUM)0;
@@ -76,8 +86,8 @@ __kernel void Col2Im2dU(global _FLOAT* col,
         {
             if((im_h - cy * stride_h) % dilation_h == 0 && (im_w - cx * stride_w) % dilation_w == 0)
             {
-                uint col_off_y = cy + (((im_h - cy * stride_h) / dilation_h) * wei_w * col_h);
-                uint col_off_x = cx + (((im_w - cx * stride_w) / dilation_w) * col_w * col_h);
+                index_t col_off_y = cy + (((im_h - cy * stride_h) / dilation_h) * wei_w * col_h);
+                index_t col_off_x = cx + (((im_w - cx * stride_w) / dilation_w) * col_w * col_h);
 
                 tmp += CVT_FLOAT2ACCUM(col[col_off_y * col_w + col_off_x]);
             }

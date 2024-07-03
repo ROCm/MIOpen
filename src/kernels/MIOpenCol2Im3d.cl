@@ -33,6 +33,10 @@
 #define ACCUMULATOR_NEEDS_CONVERSION 0
 #endif
 
+#ifndef MIOPEN_USE_64BIT_INDEX
+#error "MIOPEN_USE_64BIT_INDEX must be defined"
+#endif
+
 __kernel void Col2Im3dU(global _FLOAT* col,
                         const uint col_d,
                         const uint col_h,

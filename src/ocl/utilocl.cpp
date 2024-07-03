@@ -470,6 +470,17 @@ float Col2Im2dGPU(const Handle& handle,
         const std::vector<size_t> vgd{global_threads, 1, 1};
         const std::vector<size_t> vld{std::min(WG_SIZE, global_threads), 1, 1};
 
+        auto Is64BitIndexRequired = [&]() -> int {
+            const auto im_ch_max     = static_cast<size_t>(global_threads) / (in_w * in_h);
+            const auto ch_offset_max = im_ch_max * out_w * out_h * wei_w * wei_h;
+            MIOPEN_LOG_T("global_threads, out_h, out_w, wei_h, wei_w = "
+                         << '{' << global_threads << ',' << out_h << ',' << out_w << ',' << wei_h
+                         << ',' << wei_w << '}' << " ch_offset_max = " << ch_offset_max);
+            return (ch_offset_max > 0xffffffffULL) ? 1 : 0;
+        };
+
+        params += " -DMIOPEN_USE_64BIT_INDEX=" + std::to_string(Is64BitIndexRequired());
+
         handle.AddKernel(
             "miopenCol2Im2d", network_config, program_name, kernel_name, vld, vgd, params)(
             col,
