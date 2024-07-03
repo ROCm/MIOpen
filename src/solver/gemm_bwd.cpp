@@ -589,51 +589,8 @@ bool GemmBwdRest::IsApplicable(const ExecutionContext& context,
     if(!GemmBwdBase::IsApplicable(context, problem))
         return false;
 
-    const auto IsCom2ImApplicable = [&]() -> bool {
-        const auto& dyDesc = problem.GetIn();
-        const auto& dxDesc = problem.GetOut();
-        const auto& wDesc  = problem.GetWeights();
-        const auto& conv   = problem.GetConv();
-
-        const auto spatial_dim  = conv.GetSpatialDimension();
-        const auto in_spatial_  = boost::adaptors::slice(dxDesc.GetLengths(), 2, 2 + spatial_dim);
-        const auto wei_spatial_ = boost::adaptors::slice(wDesc.GetLengths(), 2, 2 + spatial_dim);
-        const auto out_spatial_ = boost::adaptors::slice(dyDesc.GetLengths(), 2, 2 + spatial_dim);
-        const auto in_spatial   = std::vector<std::size_t>(in_spatial_.begin(), in_spatial_.end());
-        const auto wei_spatial = std::vector<std::size_t>(wei_spatial_.begin(), wei_spatial_.end());
-        const auto out_spatial = std::vector<std::size_t>(out_spatial_.begin(), out_spatial_.end());
-
-        const auto spatial_dims = conv.GetSpatialDimension();
-        const auto pads         = conv.GetConvPads();
-        const auto strides      = conv.GetConvStrides();
-        const auto dilations    = conv.GetConvDilations();
-
-        const auto in_n = dxDesc.GetLengths()[0];
-        const auto in_c = dxDesc.GetLengths()[1];
-
-        const auto in_spatial_size = std::accumulate(
-            in_spatial.begin(), in_spatial.end(), std::size_t(1), std::multiplies<std::size_t>());
-
-        const std::size_t in_offset_max = (in_n - 1) * in_c * in_spatial_size;
-
-        return Col2ImGPU(context.GetStream(),
-                         spatial_dims,
-                         nullptr,
-                         out_spatial,
-                         wei_spatial,
-                         pads,
-                         strides,
-                         dilations,
-                         in_c,
-                         in_spatial,
-                         nullptr,
-                         in_offset_max,
-                         dyDesc.GetType(),
-                         true) > 0.f;
-    };
-
     return !GemmBwd1x1_stride2{}.IsApplicable(context, problem) &&
-           !GemmBwd1x1_stride1{}.IsApplicable(context, problem) && IsCom2ImApplicable() &&
+           !GemmBwd1x1_stride1{}.IsApplicable(context, problem) &&
            GetWorkspaceSize(context, problem) > 0;
 #else
     std::ignore = context;

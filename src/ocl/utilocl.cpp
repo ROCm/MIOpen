@@ -420,8 +420,7 @@ float Col2Im2dGPU(const Handle& handle,
                   const uint32_t in_w,
                   Data_t im,
                   uint32_t im_offset,
-                  miopenDataType_t type,
-                  const bool dry_run)
+                  miopenDataType_t type)
 {
     std::string program_name = "MIOpenCol2Im2d.cl";
     std::string kernel_name  = "Col2Im2dU";
@@ -471,24 +470,6 @@ float Col2Im2dGPU(const Handle& handle,
         const std::vector<size_t> vgd{global_threads, 1, 1};
         const std::vector<size_t> vld{std::min(WG_SIZE, global_threads), 1, 1};
 
-        if(dry_run)
-        {
-            // Synonyms that match identifiers in the kernel.
-            const auto& gid_max      = global_threads;
-            const auto& col_h        = out_h;
-            const auto& col_w        = out_w;
-            const auto& height       = in_h;
-            const auto& width        = in_w;
-            const auto im_ch_max     = static_cast<size_t>(gid_max) / (width * height);
-            const auto ch_offset_max = im_ch_max * col_w * col_h * wei_w * wei_h;
-            MIOPEN_LOG_T("gid_max, out_h, out_w, wei_h, wei_w = "
-                         << '{' << gid_max << ',' << out_h << ',' << out_w << ',' << wei_h << ','
-                         << wei_w << '}' << " ch_offset_max = " << ch_offset_max);
-            if(ch_offset_max > 0x7fffffffULL)
-                return -1.f;
-            return 1.f;
-        }
-
         handle.AddKernel(
             "miopenCol2Im2d", network_config, program_name, kernel_name, vld, vgd, params)(
             col,
@@ -533,8 +514,7 @@ float Col2Im3dGPU(const Handle& handle,
                   const uint32_t in_w,
                   Data_t im,
                   std::size_t im_offset,
-                  miopenDataType_t type,
-                  const bool dry_run)
+                  miopenDataType_t type)
 {
     std::string program_name = "MIOpenCol2Im3d.cl";
     std::string kernel_name  = "Col2Im3dU";
@@ -589,11 +569,6 @@ float Col2Im3dGPU(const Handle& handle,
     }
     else
     {
-        if(dry_run)
-            return 1.f;
-
-        /// \todo [Performance] Remove "* sizeof(ConstData_t)", see point 1 at
-        /// https://github.com/ROCm/MIOpen/pull/1966/files#r1106928625
         std::size_t index_size = static_cast<size_t>(in_c) * out_d * out_h * out_w * wei_d * wei_w *
                                  wei_h * sizeof(ConstData_t);
 
@@ -716,8 +691,7 @@ float Col2ImGPU(
     const decltype(boost::adaptors::slice(std::vector<std::size_t>(), 0, 1))& in_spatial,
     Data_t im,
     std::size_t im_offset,
-    miopenDataType_t type,
-    const bool dry_run)
+    miopenDataType_t type)
 {
     switch(spatial_dim)
     {
@@ -739,8 +713,7 @@ float Col2ImGPU(
                            in_spatial[1],
                            im,
                            im_offset,
-                           type,
-                           dry_run);
+                           type);
     }
     case 3: {
         return Col2Im3dGPU(handle,
@@ -766,8 +739,7 @@ float Col2ImGPU(
                            in_spatial[2],
                            im,
                            im_offset,
-                           type,
-                           dry_run);
+                           type);
     }
     default: {
         MIOPEN_THROW("unsupported convolution dimension");
