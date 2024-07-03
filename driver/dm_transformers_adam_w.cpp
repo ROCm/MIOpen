@@ -23,23 +23,17 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include "adam_driver.hpp"
+#include "transformers_adam_w_driver.hpp"
 #include "registry_driver_maker.hpp"
 
 static Driver* makeDriver(const std::string& base_arg)
 {
-    if(base_arg == "adam")
-        return new AdamDriver<float, float>();
-    else if(base_arg == "adamfp16")
-        return new AdamDriver<float16, float>();
-    else if(base_arg == "ampadam")
-        return new AdamDriver<float, float, float16>(false, true);
-    else if(base_arg == "adamw")
-        return new AdamDriver<float, float>(true);
-    else if(base_arg == "adamwfp16")
-        return new AdamDriver<float16, float>(true);
-    else if(base_arg == "ampadamw")
-        return new AdamDriver<float, float, float16>(true, true);
+    if(base_arg == "transformersadamw")
+        return new TransformersAdamWDriver<float, float>();
+    else if(base_arg == "transformersadamwfp16")
+        return new TransformersAdamWDriver<float16, float>();
+    else if(base_arg == "transformersampadamw")
+        return new TransformersAdamWDriver<float, float, float16>(true);
     return nullptr;
 }
 
