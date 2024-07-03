@@ -191,7 +191,7 @@ protected:
         // MakePointwise function will automatically create a tensor for output,
         // if output is nullptr
         DescriptorWrapperPtr pwS0;
-        MakePointwise(MIOPEN_POINTWISE_IDENTITY, mm0, nullptr, pwS0, false, m_attentionScale);
+        MakePointwise(MIOPEN_POINTWISE_IDENTITY, mm0, nullptr, pwS0, true, m_attentionScale);
 
         DescriptorWrapperPtr pwS1;
         DescriptorWrapperPtr pwS2;
@@ -292,7 +292,7 @@ protected:
         MakePointwise(MIOPEN_POINTWISE_SUB, pwS10, sum0, sub1);
 
         DescriptorWrapperPtr pwS14, pwS15, mult3;
-        MakePointwise(MIOPEN_POINTWISE_IDENTITY, sub1, nullptr, pwS14, false, m_attentionScale);
+        MakePointwise(MIOPEN_POINTWISE_IDENTITY, sub1, nullptr, pwS14, true, m_attentionScale);
         MakePointwise(MIOPEN_POINTWISE_MUL, pwS14, pwS3 /*output from left column*/, mult3);
         MakeReduction(
             MIOPEN_REDUCE_TENSOR_MAX, mult3, m_realTensorMap[miopenTensorMhaAmaxDS]->m_gapiDesc);
