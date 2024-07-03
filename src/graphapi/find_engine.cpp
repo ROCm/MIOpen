@@ -306,6 +306,161 @@ public:
     }
 };
 
+class MHA_Bwd_F8_Pattern : public GraphPatternMatcher
+{
+    static const OpGraph& getPatternGraph()
+    {
+        static auto graph_gen = PatternGraphGenerator::Make({
+            {"OP_RESHAPE", {"K"}, {"KT"}},
+            {"OP_MATMUL", {"Q", "KT"}, {"MM0"}},
+            {"OP_POINTWISE:IDENTITY", {"MM0"}, {"PWS0"}},
+            // {"OP_POINTWISE:MUL", {"MM0", "ATTN_S"}, {"PWS0"}},
+            // replacing the MUL node above with IDENTITY node below for now
+            // because Find 2.0 mha descriptor expects attention scale as a scalar
+            // parameter on host side
+            {"OP_POINTWISE:MUL", {"PWS0", "DSCL_Q"}, {"PWS1"}},
+            {"OP_POINTWISE:MUL", {"PWS1", "DSCL_K"}, {"PWS2"}},
+            {"OP_POINTWISE:SUB", {"PWS2", "M"}, {"SUB0"}},
+            {"OP_POINTWISE:EXP", {"SUB0"}, {"EXP0"}},
+            {"OP_POINTWISE:MUL", {"EXP0", "ZINV"}, {"MULT0"}},
+            {"OP_RNG", {"SEED", "OFFSET"}, {"RND"}},
+            {"OP_POINTWISE:MUL", {"MULT0", "RND"}, {"MULT1"}},
+            {"OP_POINTWISE:MUL", {"MULT1", "I_PROB"}, {"PWS3"}},
+            {"OP_POINTWISE:MUL", {"PWS3", "SCL_S"}, {"PWS4"}},
+            {"OP_RESHAPE", {"PWS4"}, {"PWS4T"}},
+            {"OP_MATMUL", {"PWS4T", "DO"}, {"MM1"}},
+            {"OP_POINTWISE:MUL", {"MM1", "DSCL_S"}, {"PWS5"}},
+            {"OP_POINTWISE:MUL", {"PWS5", "DSCL_DO"}, {"PWS6"}},
+            {"OP_REDUCTION:MAX", {"PWS6"}, {"AMAX_DV"}},
+            {"OP_POINTWISE:MUL", {"PWS6", "SCL_DV"}, {"DV"}},
+
+            {"OP_RESHAPE", {"V"}, {"VT"}},
+            {"OP_MATMUL", {"DO", "VT"}, {"MM2"}},
+            {"OP_POINTWISE:MUL", {"MM2", "DSCL_DO"}, {"PWS7"}},
+            {"OP_POINTWISE:MUL", {"PWS7", "DSCL_V"}, {"PWS8"}},
+            {"OP_POINTWISE:MUL", {"PWS8", "RND"}, {"PWS9"}},
+            {"OP_POINTWISE:MUL", {"PWS9", "PROB"}, {"PWS10"}},
+
+            {"OP_POINTWISE:MUL", {"DO", "DSCL_DO"}, {"PWS11"}},
+            {"OP_POINTWISE:MUL", {"O", "DSCL_O"}, {"PWS12"}},
+            {"OP_POINTWISE:MUL", {"PWS11", "PWS12"}, {"MULT2"}},
+            {"OP_POINTWISE:MUL", {"MULT2", "PROB"}, {"PWS13"}},
+            {"OP_REDUCTION:ADD", {"PWS13"}, {"SUM0"}},
+
+            {"OP_POINTWISE:SUB", {"PWS10", "SUM0"}, {"SUB1"}},
+            {"OP_POINTWISE:IDENTITY", {"SUB1"}, {"PWS14"}},
+            // {"OP_POINTWISE:MUL", {"SUB1", "ATTN_S"}, {"PWS0"}},
+            // replacing the MUL node above with IDENTITY node below for now
+            // because Find 2.0 mha descriptor expects attention scale as a scalar
+            // parameter on host side
+            {"OP_POINTWISE:MUL", {"PWS14", "PWS3"}, {"MULT3"}},
+            {"OP_REDUCTION:MAX", {"MULT3"}, {"AMAX_DS"}},
+            {"OP_POINTWISE:MUL", {"MULT3", "SCL_DS"}, {"PWS15"}},
+
+            {"OP_MATMUL", {"PWS15", "K"}, {"MM3"}},
+            {"OP_POINTWISE:MUL", {"MM3", "DSCL_DS"}, {"PWS16"}},
+            {"OP_POINTWISE:MUL", {"PWS16", "DSCL_K"}, {"PWS17"}},
+            {"OP_REDUCTION:MAX", {"PWS17"}, {"AMAX_DQ"}},
+            {"OP_POINTWISE:MUL", {"PWS17", "SCL_DQ"}, {"DQ"}},
+
+            {"OP_RESHAPE", {"PWS15"}, {"PWS15T"}},
+            {"OP_MATMUL", {"PWS15T", "Q"}, {"MM4"}},
+            {"OP_POINTWISE:MUL", {"MM4", "DSCL_DS"}, {"PWS18"}},
+            {"OP_POINTWISE:MUL", {"PWS18", "DSCL_Q"}, {"PWS19"}},
+            {"OP_REDUCTION:MAX", {"PWS19"}, {"AMAX_DK"}},
+            {"OP_POINTWISE:MUL", {"PWS19", "SCL_DK"}, {"DK"}},
+
+        });
+
+        return graph_gen->graph();
+    }
+
+    std::shared_ptr<TensorInfoMap> extractFind20Tensors(const OpGraph& graph,
+                                                        float* attnScale) const
+    {
+        assert(attnScale);
+
+        auto tensorMap = std::make_shared<TensorInfoMap>();
+
+        return tensorMap;
+    }
+
+public:
+    static std::unique_ptr<GraphPatternMatcher> Make()
+    {
+        return std::make_unique<MHA_Bwd_F8_Pattern>();
+    }
+
+    std::string_view name() const final
+    {
+        static const char* n = "mha_bwd_f8";
+        return n;
+    }
+
+    bool matches(const OpGraph* graph_ptr) const final
+    {
+        assert(graph_ptr);
+        return isIsomorphic(*graph_ptr, getPatternGraph());
+    }
+
+    std::vector<Engine> getEngines(OpGraph* graphPtr) const override
+    {
+        assert(graphPtr);
+        assert(matches(graphPtr));
+        auto& graph = *graphPtr;
+
+        MhaDescriptor mhaDesc;
+
+        float attnScale                          = std::numeric_limits<float>::quiet_NaN();
+        std::shared_ptr<TensorInfoMap> tensorMap = extractFind20Tensors(graph, &attnScale);
+        assert(attnScale != std::numeric_limits<float>::quiet_NaN());
+
+        mhaDesc.SetParams(attnScale);
+
+        miopenProblem_t mhaProblem;
+
+        auto s = miopenCreateMhaProblem(&mhaProblem, &mhaDesc, miopenProblemDirectionBackward);
+        MIOPEN_THROW_IF(s != miopenStatusSuccess, "failed while creating problem for mha bwd");
+
+        // Ensure miopenDestroyProblem() will be called even if an exception occurs
+        std::unique_ptr<miopenProblem_t, std::function<void(miopenProblem_t*)>>
+            exceptionSafeProblemStore(&mhaProblem,
+                                      [](miopenProblem_t* p) { miopenDestroyProblem(*p); });
+
+        for(auto& [k, v] : *tensorMap)
+        {
+            s = miopenSetProblemTensorDescriptor(mhaProblem, v.mEnumId, v.mGraphTensor);
+            MIOPEN_THROW_IF(s != miopenStatusSuccess,
+                            "failed while setting tensor descriptor for mha bwd");
+        }
+
+        std::vector<miopenSolution_t> solutions(10);
+        size_t numFound = 0;
+        s               = miopenFindSolutions(
+            graph.getHandle(), mhaProblem, nullptr, solutions.data(), &numFound, solutions.size());
+        MIOPEN_THROW_IF(s != miopenStatusSuccess, "failed while finding solutions for mha bwd");
+
+        solutions.resize(numFound);
+
+        std::vector<Engine> engines;
+        engines.reserve(numFound);
+
+        size_t i = 0;
+        std::transform(solutions.cbegin(),
+                       solutions.cend(),
+                       std::back_inserter(engines),
+                       [&i, tensorMap, graphPtr](miopenSolution_t sol) -> Engine {
+                           return EngineBuilder()
+                               .setGraph(graphPtr)
+                               .setExecutor(GraphExecutorFind20::make(sol, tensorMap))
+                               .setGlobalIndex(i++)
+                               .build();
+                       });
+
+        return engines;
+    }
+};
+
 /*
 class FwdConvResAddBiasActPattern : public GraphPattern
 {
@@ -323,6 +478,7 @@ std::vector<Engine> findEngines(OpGraph* graph)
 
     std::vector<std::unique_ptr<GraphPatternMatcher>> patterns;
     patterns.emplace_back(MHA_Fwd_F8_Pattern::Make());
+    patterns.emplace_back(MHA_Bwd_F8_Pattern::Make());
 
     for(const auto& p : patterns)
     {
