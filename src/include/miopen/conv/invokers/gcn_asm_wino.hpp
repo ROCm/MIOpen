@@ -30,13 +30,14 @@
 #include <miopen/invoker.hpp>
 
 namespace miopen {
-namespace conv {
 
+namespace conv {
 enum class Direction;
+} // namespace conv
 
 InvokerFactory MakeGcnAsmWinoV2InvokerFactory(const WinoShaderArgsV2& args,
-                                              Direction direction,
-                                              std::size_t sync_buffer_size);
+                                              conv::Direction direction,
+                                              std::size_t sync_buffer_size,
+                                              bool fused);
 
-} // namespace conv
 } // namespace miopen

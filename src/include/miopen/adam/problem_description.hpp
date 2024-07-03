@@ -53,14 +53,8 @@ struct MIOPEN_INTERNALS_EXPORT ProblemDescription : ProblemDescriptionBase
                        const TensorDescriptor& foundInfDesc_,
                        const TensorDescriptor& stepInDesc_,
                        const TensorDescriptor& stepOutDesc_,
-                       uint32_t step_,
-                       double lr_,
-                       double beta1_,
-                       double beta2_,
-                       double weight_decay_,
-                       double eps_,
                        bool amsgrad_,
-                       bool maximize_,
+                       bool correct_bias_,
                        bool adamw_,
                        bool is_amp_)
         : paramInDesc(paramInDesc_),
@@ -77,14 +71,8 @@ struct MIOPEN_INTERNALS_EXPORT ProblemDescription : ProblemDescriptionBase
           foundInfDesc(foundInfDesc_),
           stepInDesc(stepInDesc_),
           stepOutDesc(stepOutDesc_),
-          step(step_),
-          lr(lr_),
-          beta1(beta1_),
-          beta2(beta2_),
-          weight_decay(weight_decay_),
-          eps(eps_),
           amsgrad(amsgrad_),
-          maximize(maximize_),
+          correct_bias(correct_bias_),
           adamw(adamw_),
           is_amp(is_amp_)
     {
@@ -138,10 +126,11 @@ struct MIOPEN_INTERNALS_EXPORT ProblemDescription : ProblemDescriptionBase
     bool ExistStepTensor() const { return !stepInDesc.GetLengths().empty(); }
     bool IsAmp() const { return is_amp; }
     bool IsAdamW() const { return adamw; }
-    bool IsAllPacked() const
+    bool IsCorrectBias() const { return correct_bias; }
+    bool IsAllContiguous() const
     {
-        if(!(paramInDesc.IsPacked() && gradInDesc.IsPacked() && expAvgInDesc.IsPacked() &&
-             expAvgSqInDesc.IsPacked()))
+        if(!(paramInDesc.IsContiguous() && gradInDesc.IsContiguous() &&
+             expAvgInDesc.IsContiguous() && expAvgSqInDesc.IsContiguous()))
             return false;
         return true;
     }
@@ -164,16 +153,10 @@ private:
     TensorDescriptor stepInDesc;
     TensorDescriptor stepOutDesc;
 
-    uint32_t step       = 0;
-    double lr           = 0.0;
-    double beta1        = 0.0;
-    double beta2        = 0.0;
-    double weight_decay = 0.0;
-    double eps          = 0.0;
-    bool amsgrad        = false;
-    bool maximize       = false;
-    bool adamw          = false;
-    bool is_amp         = false;
+    bool amsgrad      = false;
+    bool correct_bias = true;
+    bool adamw        = false;
+    bool is_amp       = false;
 
     NetworkConfig MakeForwardNetworkConfig() const;
 };

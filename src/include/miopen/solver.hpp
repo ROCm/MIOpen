@@ -180,6 +180,10 @@ struct NonTunableSolverBase : SolverMixin<Context, Problem>
     /// Takes problem config, optimization parameters and other info
     /// and computes information required to build and run the kernel(s).
     virtual ConvSolution GetSolution(const Context&, const Problem&) const = 0;
+    virtual InvokerFactory GetInvokerFactory(const Context& ctx, const Problem& problem) const
+    {
+        return *GetSolution(ctx, problem).invoker_factory;
+    }
 };
 
 struct TunableSolverTrait
@@ -221,6 +225,11 @@ struct TunableSolverBase : SolverMixin<Context, Problem>, TunableSolverTrait
     /// Tunable solvers provide a GetSolution that takes a Context and PerformanceConfig
     virtual ConvSolution
     GetSolution(const Context& ctx, const Problem& problem, const PerfConfig& config) const = 0;
+    virtual InvokerFactory
+    GetInvokerFactory(const Context& ctx, const Problem& problem, const PerfConfig& config) const
+    {
+        return *GetSolution(ctx, problem, config).invoker_factory;
+    }
 };
 
 template <class Context, class Problem, class PerformanceConfig>
@@ -2141,11 +2150,11 @@ struct ConvMPBidirectWinograd final : ConvSolver
     GetSolution(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
 
     // kernel_file_name for solver identification
-    static std::string GetSolverFileNames(int id)
+    static fs::path GetSolverFileNames(int id)
     {
-        static const std::string names[3] = {"xform_bidirect_winograd_data.s",
-                                             "xform_bidirect_winograd_filter.s",
-                                             "xform_bidirect_winograd_out.s"};
+        static const fs::path names[3] = {"xform_bidirect_winograd_data.s",
+                                          "xform_bidirect_winograd_filter.s",
+                                          "xform_bidirect_winograd_out.s"};
         return names[id];
     }
 
@@ -2254,7 +2263,7 @@ private:
     GetTransformedProblem(const miopen::conv::ProblemDescription& problem) const;
 
     // kernel_file_name for solver identification
-    static std::string GetSolverFileNames(int id)
+    static fs::path GetSolverFileNames(int id)
     {
         return ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>::
             GetSolverFileNames(id);
@@ -2314,9 +2323,9 @@ struct ConvWinograd3x3MultipassWrW final : ConvSolver
     GetSolution(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
 
     // kernel_file_name for solver identification
-    static std::string GetSolverFileNames(int id)
+    static fs::path GetSolverFileNames(int id)
     {
-        static const std::string names[3] = {"xform_data.s", "xform_filter.s", "xform_out.s"};
+        static const fs::path names[3] = {"xform_data.s", "xform_filter.s", "xform_out.s"};
         return names[id];
     }
 
@@ -2728,12 +2737,18 @@ struct ConvOclBwdWrW2NonTunable final : ConvOclBwdWrW2<1>
     IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
     MIOPEN_INTERNALS_EXPORT ConvSolution GetSolution(const ExecutionContext&,
                                                      const miopen::conv::ProblemDescription&) const;
+    InvokerFactory GetInvokerFactory(const ExecutionContext& ctx,
+                                     const miopen::conv::ProblemDescription& problem) const
+    {
+        return *GetSolution(ctx, problem).invoker_factory;
+    }
 
 private:
     // This function dervied from ConvOclBwdWrW2 is declared private
     // so that this solver is not marked searchable/tunable.
     using ConvOclBwdWrW2<1>::GetDefaultPerformanceConfig;
     using ConvOclBwdWrW2<1>::GetSolution;
+    using ConvOclBwdWrW2<1>::GetInvokerFactory;
 };
 
 struct ConvOclBwdWrW53 final : ConvSolver
@@ -4645,11 +4660,11 @@ struct PerformanceConfigHipImplicitGemmGroupFwdXdlops
 private:
 #if MIOPEN_ENABLE_AI_KERNEL_TUNING
     std::vector<int> heuristic_indexes;
-    std::vector<std::vector<std::string>> heuristic_kernels;
+    std::unordered_map<int, std::vector<std::string>> heuristic_kernels;
     template <typename DataType>
     bool RunParameterPredictionModel(const ExecutionContext& ctx,
                                      const miopen::conv::ProblemDescription& problem);
-    void InitHeuristicKernelIDs();
+    void InitHeuristicKernelIDs(const std::string& type);
     bool ModelApplyToken(int idx, std::string value, const std::string& arch);
 #endif
     template <typename DataType>
@@ -4967,7 +4982,7 @@ struct PerformanceConfigHipImplicitGemmGroupBwdXdlops
 private:
 #if MIOPEN_ENABLE_AI_KERNEL_TUNING
     std::vector<int> heuristic_indexes;
-    std::vector<std::vector<std::string>> heuristic_kernels;
+    std::unordered_map<int, std::vector<std::string>> heuristic_kernels;
     template <typename DataType>
     bool RunParameterPredictionModel(const ExecutionContext& ctx,
                                      const miopen::conv::ProblemDescription& problem);
@@ -5025,6 +5040,7 @@ struct PerformanceConfigHipImplicitGemmGroupWrwXdlops
     : PerfConfigBaseCK<PerformanceConfigHipImplicitGemmGroupWrwXdlops>
 {
     int index;
+    int split_k;
     std::string kernel_id;
     std::vector<std::string> valid_kernels;
     PerformanceConfigHipImplicitGemmGroupWrwXdlops(int idx, std::string kernl_id)
@@ -5057,12 +5073,15 @@ struct PerformanceConfigHipImplicitGemmGroupWrwXdlops
 private:
 #if MIOPEN_ENABLE_AI_KERNEL_TUNING
     std::vector<int> heuristic_indexes;
-    std::vector<std::vector<std::string>> heuristic_kernels;
+    std::unordered_map<int, std::vector<std::string>> heuristic_kernels;
     template <typename DataType>
     bool RunParameterPredictionModel(const ExecutionContext& ctx,
                                      const miopen::conv::ProblemDescription& problem);
-    void InitHeuristicKernelIDs();
-    bool ModelApplyToken(int idx, std::string value);
+    void InitHeuristicKernelIDs(const std::string& type);
+    bool ModelApplyToken(int idx,
+                         std::string value,
+                         const std::string& arch,
+                         const miopen::conv::ProblemDescription& problem);
 #endif
     template <typename DataType>
     void Init(const miopen::conv::ProblemDescription&);

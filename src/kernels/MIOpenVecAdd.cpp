@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2017 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,40 +23,19 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-
-#ifndef GUARD_MIOPEN_ENV_UTILS_HPP
-#define GUARD_MIOPEN_ENV_UTILS_HPP
-
-#ifdef _WIN32
-#define WIN32_LEAN_AND_MEAN
-#include <Windows.h>
+#ifndef MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS
+#include <hip/hip_fp16.h>
+#include <hip/hip_runtime.h>
 #endif
 
-#include "test.hpp"
-#include <string_view>
-
-inline void setEnvironmentVariable(std::string_view name, std::string_view value)
+extern "C" __global__ void vector_add_hip(const float* a, const float* b, float* c, size_t vec_size)
 {
-#ifdef _WIN32
-    BOOL ret = SetEnvironmentVariable(name.data(), value.data());
-    EXPECT_EQUAL(ret, TRUE);
-#else
-    // NOLINTNEXTLINE(concurrency-mt-unsafe)
-    int ret = setenv(name.data(), value.data(), 1);
-    EXPECT_EQUAL(ret, 0);
-#endif
-}
+    // Get the index of the current element
+    size_t index = blockIdx.x * blockDim.x + threadIdx.x;
 
-inline void unsetEnvironmentVariable(std::string_view name)
-{
-#ifdef _WIN32
-    BOOL ret = SetEnvironmentVariable(name.data(), nullptr);
-    EXPECT_EQUAL(ret, TRUE);
-#else
-    // NOLINTNEXTLINE(concurrency-mt-unsafe)
-    int ret = unsetenv(name.data());
-    EXPECT_EQUAL(ret, 0);
-#endif
+    // Check if the index is within the range of the vector size
+    if(index < vec_size)
+    {
+        c[index] = a[index] + b[index]; // Add the two elements
+    }
 }
-
-#endif // GUARD_MIOPEN_ENV_UTILS_HPP
