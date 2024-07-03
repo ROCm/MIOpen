@@ -61,11 +61,17 @@ TEST_F(GraphApiOperationReshape, Builder)
 
 TEST_F(GraphApiOperationReshape, Transpose)
 {
-    auto reshape = OperationReshapeBuilder().setX(&mX).setY(&mY).build();
-    EXPECT_EQ(reshape.getOpKind(), OperationReshape::OpKind::TRANSPOSE)
+    OperationReshape transpose, notTranspose;
+
+    ASSERT_NO_THROW({
+        transpose    = OperationReshapeBuilder().setX(&mX).setY(&mY).build();
+        notTranspose = OperationReshapeBuilder().setX(&mX).setY(&mX).build();
+    }) << "OperationReshapeBuilder failed on valid attributes";
+
+    EXPECT_EQ(transpose.getOpKind(), OperationReshape::OpKind::TRANSPOSE)
         << "False negative detection for reshape transpose";
-    auto notReshape = OperationReshapeBuilder().setX(&mX).setY(&mX).build();
-    EXPECT_NE(notReshape.getOpKind(), OperationReshape::OpKind::TRANSPOSE)
+
+    EXPECT_NE(notTranspose.getOpKind(), OperationReshape::OpKind::TRANSPOSE)
         << "False positive detection for reshape transpose";
 }
 
