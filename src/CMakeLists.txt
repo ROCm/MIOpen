@@ -138,6 +138,7 @@ set( MIOpen_Source
     graphapi/opgraph.cpp
     graphapi/pointwise.cpp
     graphapi/reduction.cpp
+    graphapi/reshape.cpp
     graphapi/rng.cpp
     graphapi/tensor.cpp
     graphapi/variant_pack.cpp
