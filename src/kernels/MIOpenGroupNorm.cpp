@@ -30,17 +30,18 @@
 
 #include "float_types.h"
 
-extern "C" __global__ void GroupNormFwdContiguous(const FLOAT* __restrict__ x,
-                                                  FLOAT* __restrict__ y,
-                                                  const FLOAT* __restrict__ weight,
-                                                  const FLOAT* __restrict__ bias,
-                                                  FLOAT_ACCUM* __restrict__ mean,
-                                                  FLOAT_ACCUM* __restrict__ rstd,
-                                                  float eps,
-                                                  uint64_t num_groups,
-                                                  uint64_t num_channels,
-                                                  uint64_t numel_per_channel,
-                                                  bool mode)
+template <typename TI, typename TO>
+__device__ void groupnormfwdcontiguous(const TI* __restrict__ x,
+                                       const TI* __restrict__ weight,
+                                       const TI* __restrict__ bias,
+                                       TO* __restrict__ y,
+                                       TO* __restrict__ mean,
+                                       TO* __restrict__ rstd,
+                                       float eps,
+                                       uint64_t num_groups,
+                                       uint64_t num_channels,
+                                       uint64_t numel_per_channel,
+                                       bool mode)
 {
     /*
      * Each group works on a single channel.
@@ -98,9 +99,9 @@ extern "C" __global__ void GroupNormFwdContiguous(const FLOAT* __restrict__ x,
     if(lid == 0)
     {
         if(mean)
-            mean[gid] = pmean;
+            mean[gid] = CVT_ACCUM2FLOAT(pmean);
         if(rstd)
-            rstd[gid] = prstd;
+            rstd[gid] = CVT_ACCUM2FLOAT(prstd);
     }
 
     // forward calculation
@@ -118,4 +119,21 @@ extern "C" __global__ void GroupNormFwdContiguous(const FLOAT* __restrict__ x,
         FLOAT_ACCUM val = (CVT_FLOAT2ACCUM(x[idx]) - pmean) * prstd * pweight + pbias;
         y[idx]          = CVT_ACCUM2FLOAT(val);
     }
+}
+
+extern "C" __global__ void GroupNormFwdContiguous(const INPUT_TYPE* __restrict__ x,
+                                                  const INPUT_TYPE* __restrict__ weight,
+                                                  const INPUT_TYPE* __restrict__ bias,
+                                                  OUTPUT_TYPE* __restrict__ y,
+                                                  OUTPUT_TYPE* __restrict__ mean,
+                                                  OUTPUT_TYPE* __restrict__ rstd,
+                                                  float eps,
+                                                  uint64_t num_groups,
+                                                  uint64_t num_channels,
+                                                  uint64_t numel_per_channel,
+                                                  bool mode)
+{
+    // instantiate the kernel
+    groupnormfwdcontiguous<INPUT_TYPE, OUTPUT_TYPE>(
+        x, weight, bias, y, mean, rstd, eps, num_groups, num_channels, numel_per_channel, mode);
 }

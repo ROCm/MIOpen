@@ -96,9 +96,9 @@ __device__ void layernormfwdcontiguous(const TI* __restrict__ x,
     if(lid == 0)
     {
         if(mean)
-            mean[gid] = pmean;
+            mean[gid] = CVT_ACCUM2FLOAT(pmean);
         if(rstd)
-            rstd[gid] = prstd;
+            rstd[gid] = CVT_ACCUM2FLOAT(prstd);
     }
 
     // forward calculation
@@ -168,9 +168,9 @@ __device__ void addlayernormfwdcontiguous(const TI* __restrict__ x,
     if(lid == 0)
     {
         if(mean)
-            mean[gid] = pmean;
+            mean[gid] = CVT_ACCUM2FLOAT(pmean);
         if(rstd)
-            rstd[gid] = prstd;
+            rstd[gid] = CVT_ACCUM2FLOAT(prstd);
     }
 
     // forward calculation
@@ -232,7 +232,7 @@ __device__ void t5layernormfwdcontiguous(const TI* __restrict__ x,
     if(lid == 0)
     {
         if(rstd)
-            rstd[gid] = prstd;
+            rstd[gid] = CVT_ACCUM2FLOAT(prstd);
     }
 
     // forward calculation
