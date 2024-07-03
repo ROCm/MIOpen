@@ -2,10 +2,7 @@
 #include <hip/hip_fp16.h>
 #include <hip/hip_runtime.h>
 
-// #define ENCODE encode<DTYPE>
 #define RADIX_TYPE typename RadixType<DTYPE>::type
-// #define GetBitField(x, pos, bits) GetBitFieldImpl<RADIX_TYPE>(x, pos, bits)
-// #define SetBitField(x, a, pos, bits) SetBitFieldImpl<RADIX_TYPE>(x, a, pos, bits)
 
 #define DEFINE_RADIX_TYPE(DTYPE, cpp_type) \
     template <>                            \

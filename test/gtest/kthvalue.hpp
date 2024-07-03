@@ -88,7 +88,7 @@ inline std::vector<KthvalueTestCase> KthvalueTestConfigs()
         KthvalueTestCase({10, 20, 300}, 1),
         KthvalueTestCase({8, 3, 10, 2000}, 2000),
         KthvalueTestCase({2, 2, 4, 10, 3000}, 1),
-        KthvalueTestCase({2, 2, 4, 10, 3000}, 1, -1, false),
+        KthvalueTestCase({2, 2, 4, 10, 3000}, 1, -1, true, true),
     };
 }
 

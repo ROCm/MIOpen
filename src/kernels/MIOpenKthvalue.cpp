@@ -78,7 +78,7 @@ __device__ void kthvalueFwd(const DTYPE* input,
      * input : {A, B, C, D, E}
      * output/indices : {A, B, 1, D, E} or {A, B, D, E}
      * dim = 2 (C)
-     * => gws = {LOCAL_SIZE, A * B * D * E}, lws = {LOCAL_SIZE, 1}
+     * => grid = {A * B * D * E, 1}, block = {LOCAL_SIZE, 1}
      */
 
     size_t lid = threadIdx.x;
@@ -141,37 +141,37 @@ __device__ void kthvalueFwd(const DTYPE* input,
         // Process in ascending order
         for(size_t j = 0; j < RADIX_SIZE; ++j)
         {
-            if(counts[j] >= k)
+            if(counts[j] < k)
             {
-                // Answer is inside this count
-                if(counts[j] == 1 || pos == 0)
+                k -= counts[j];
+                continue;
+            }
+            // Answer is inside this count
+            if(counts[j] == 1 || pos == 0)
+            {
+                // 1. counts[j] == 1
+                // We found an unique answer.
+                // 2. pos == 0
+                // There are multiple answers so we return any of them
+                for(size_t i = lid; i < dim_size; i += LOCAL_SIZE)
                 {
-                    // 1. counts[j] == 1
-                    // We found an unique answer.
-                    // 2. pos == 0
-                    // There are multiple answers so we return any of them
-                    for(size_t i = lid; i < dim_size; i += LOCAL_SIZE)
+                    size_t input_idx = idx + i * dim_stride;
+                    DTYPE val_ori    = input[input_idx];
+                    RADIX_TYPE val   = encode<DTYPE>(val_ori);
+                    if((val & desired_mask) == desired &&
+                       GetBitFieldImpl<RADIX_TYPE>(val, pos, RADIX_BITS) == j)
                     {
-                        size_t input_idx = idx + i * dim_stride;
-                        DTYPE val_ori    = input[input_idx];
-                        RADIX_TYPE val   = encode<DTYPE>(val_ori);
-                        if((val & desired_mask) == desired &&
-                           GetBitFieldImpl<RADIX_TYPE>(val, pos, RADIX_BITS) == j)
-                        {
-                            // For case 2, this will be non-deterministic.
-                            lval = val_ori;
-                            lidx = i;
-                        }
+                        // For case 2, this will be non-deterministic.
+                        lval = val_ori;
+                        lidx = i;
                     }
-                    found = true;
-                    break;
                 }
-                desired = SetBitFieldImpl<RADIX_TYPE>(desired, j, pos, RADIX_BITS);
-                desired_mask =
-                    SetBitFieldImpl<RADIX_TYPE>(desired_mask, RADIX_MASK, pos, RADIX_BITS);
+                found = true;
                 break;
             }
-            k -= counts[j];
+            desired      = SetBitFieldImpl<RADIX_TYPE>(desired, j, pos, RADIX_BITS);
+            desired_mask = SetBitFieldImpl<RADIX_TYPE>(desired_mask, RADIX_MASK, pos, RADIX_BITS);
+            break;
         }
         if(found)
             break;
