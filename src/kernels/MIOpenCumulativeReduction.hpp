@@ -52,27 +52,30 @@ __device__ inline constexpr void update(T& a, T b, Ts&... c, Ts... d)
     update(c..., d...);
 }
 
-__device__ inline constexpr bool greater() { return true; }
+__device__ inline constexpr bool isgreater() { return false; }
 
 template <typename T, typename... Ts>
-__device__ inline constexpr bool greater(T& a, T b, Ts&... c, Ts... d)
+__device__ inline constexpr bool isgreater(T& a, T b, Ts&... c, Ts... d)
 {
     if(a != b)
         return a > b;
-    return greater(c..., d...);
+    return isgreater(c..., d...);
 }
 
 template <typename T, typename... Ts>
 struct reduce_func_base
 {
-    __device__ virtual inline bool isbetter(const T& /*a*/, const T& /*b*/) const { return true; }
+    __device__ virtual inline bool isbetter(const T& /*a*/, const T& /*b*/) const { return false; }
     __device__ virtual inline void combine(T& a, T b) const { a = b; }
-    __device__ inline constexpr void calculate(T& a, T b, Ts&... c, Ts... d) const
+    __device__ inline constexpr void
+    calculate(const bool keep_greater, T& a, T b, Ts&... c, Ts... d) const
     {
-        if(isbetter(b, a) || (isbetter(a, b) == isbetter(b, a) && greater(c..., d...)))
+        if(!isbetter(a, b))
         {
+            if((isbetter(a, b) != isbetter(b, a)) ||
+               (isbetter(a, b) == isbetter(b, a) && isgreater(c..., d...) != keep_greater))
+                update(c..., d...);
             combine(a, b);
-            update(c..., d...);
         }
     }
 };

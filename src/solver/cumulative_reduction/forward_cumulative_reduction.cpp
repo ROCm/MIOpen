@@ -30,6 +30,7 @@
 #include <miopen/cumulative_reduction/solvers.hpp>
 #include <miopen/cumulative_reduction/utils.hpp>
 
+#define FLOAT_ACCUM float
 #define VIEW_DIMS 5
 
 #define LOCAL_SIZE 64
@@ -42,8 +43,10 @@ namespace cumulative_reduction {
 
 bool Forward::IsApplicable(
     const ExecutionContext& /*context*/,
-    const miopen::cumulative_reduction::ForwardProblemDescription& /*problem*/) const
+    const miopen::cumulative_reduction::ForwardProblemDescription& problem) const
 {
+    if(problem.GetInputDesc().GetSize() > VIEW_DIMS)
+        return false;
     return true;
 }
 
@@ -144,9 +147,6 @@ Forward::GetSolution(const ExecutionContext& /*context*/,
             else
                 local_output = local_indices = nullptr;
 
-            std::cout << "local_output: " << local_output << std::endl;
-            std::cout << "local_indices: " << local_indices << std::endl;
-
             if(deref(params.inputDesc).GetLengths()[true_dim] > LOCAL_SIZE)
             {
                 auto input_tv = get_inner_expanded_tv<VIEW_DIMS>(deref(params.inputDesc));
@@ -166,17 +166,8 @@ Forward::GetSolution(const ExecutionContext& /*context*/,
                     AlignUp(deref(params.inputDesc).GetLengths()[true_dim], LOCAL_SIZE) /
                     LOCAL_SIZE;
                 auto kernel = handle_.Run(kernels[kernelCnt++]);
-                size_t inner_size =
-                    std::accumulate(deref(params.inputDesc).GetLengths().begin() + true_dim + 1,
-                                    deref(params.inputDesc).GetLengths().end(),
-                                    1ULL,
-                                    std::multiplies<uint64_t>{});
-                kernel(local_output,
-                       local_output,
-                       local_indices,
-                       reduce_size,
-                       inner_size,
-                       params.reverse);
+                kernel(
+                    local_output, local_output, local_indices, (size_t)reduce_size, params.reverse);
             }
 
             {
@@ -221,11 +212,10 @@ std::size_t Forward::GetWorkspaceSize(
     const ExecutionContext& /*context*/,
     const miopen::cumulative_reduction::ForwardProblemDescription& problem) const
 {
-    std::cout << "problem.GetInputDesc().GetElementSize(): "
-              << problem.GetInputDesc().GetElementSize() << std::endl;
-    std::cout << "problem.GetIndicesDesc().GetElementSize(): "
-              << problem.GetIndicesDesc().GetElementSize() << std::endl;
-    return problem.GetInputDesc().GetElementSize() * (sizeof(float) + sizeof(uint64_t));
+    if(problem.GetInputDesc().GetLengths()[problem.GetDim()] > LOCAL_SIZE)
+        return problem.GetInputDesc().GetElementSize() * (sizeof(FLOAT_ACCUM) + sizeof(int));
+    else
+        return 0;
 }
 
 } // namespace cumulative_reduction

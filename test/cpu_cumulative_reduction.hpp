@@ -41,26 +41,16 @@ inline constexpr void update(T& a, T b, Ts&... c, Ts... d)
     update(c..., d...);
 }
 
-inline constexpr bool greater() { return true; }
-
-template <typename T, typename... Ts>
-inline constexpr bool greater(T& a, T b, Ts&... c, Ts... d)
-{
-    if(a != b)
-        return a > b;
-    return greater(c..., d...);
-}
-
 template <typename T, typename... Ts>
 struct reduce_func_base
 {
     reduce_func_base(){};
     virtual ~reduce_func_base(){};
-    virtual inline bool isbetter(const T& /*a*/, const T& /*b*/) const { return true; }
+    virtual inline bool isbetter(const T& /*a*/, const T& /*b*/) const { return false; }
     virtual inline void combine(T& a, T b) const { a = b; }
     inline constexpr void calculate(T& a, T b, Ts&... c, Ts... d) const
     {
-        if(isbetter(b, a) || (isbetter(a, b) == isbetter(b, a) && greater(c..., d...)))
+        if(!isbetter(a, b))
         {
             combine(a, b);
             update(c..., d...);
@@ -115,8 +105,6 @@ void cpu_cumulative_reduction_forward(const tensor<T> input,
     const auto ndims    = input.desc.GetSize();
     const auto true_dim = ((dim % ndims) + ndims) % ndims;
 
-    std::cout << "True dim:" << true_dim << std::endl;
-
     auto input_tv = miopen::solver::cumulative_reduction::get_inner_expanded_tv<5>(input.desc);
     auto output_tv =
         miopen::solver::cumulative_reduction::get_inner_expanded_tv<5>(ref_output.desc);
@@ -130,25 +118,30 @@ void cpu_cumulative_reduction_forward(const tensor<T> input,
     auto op_worker = reduce_func<OP, float, int>{};
 
     tensor_view_t<5> ignore_dim_input_tv = input_tv;
-    ignore_dim_input_tv.size[dim]        = 1;
+    ignore_dim_input_tv.size[true_dim]   = 1;
 
     par_ford(outer_size)([&](int gid) {
         auto tensor_layout = tensor_layout_t<5>(ignore_dim_input_tv, gid);
-        float tmp_val      = op_worker.START_VAL;
-        int tmp_idx;
+        float cum_val      = op_worker.START_VAL;
+        int cum_idx        = (reverse ? input_tv.size[true_dim] - 1 : 0);
 
         ford(inner_size)([&](int idx) {
+            int tmp_idx =
+                (reverse ? input_tv.size[true_dim] - (idx - exclusive) - 1 : (idx - exclusive));
+            float tmp_val = op_worker.START_VAL;
+            if(0 <= tmp_idx && tmp_idx < inner_size)
+            {
+                tensor_layout.layout[true_dim] = tmp_idx;
+                tmp_val = static_cast<float>(input[input_tv.get_tensor_view_idx(tensor_layout)]);
+            }
+
+            op_worker.calculate(cum_val, tmp_val, cum_idx, tmp_idx);
+
             tensor_layout.layout[true_dim] = (reverse ? input_tv.size[true_dim] - idx - 1 : idx);
-            float val = static_cast<float>(input[input_tv.get_tensor_view_idx(tensor_layout)]);
-
-            op_worker.calculate(tmp_val, val, tmp_idx, idx);
-
             if(has_output)
-                ref_output[output_tv.get_tensor_view_idx(tensor_layout)] = static_cast<T>(tmp_val);
+                ref_output[output_tv.get_tensor_view_idx(tensor_layout)] = static_cast<T>(cum_val);
             if(has_indices)
-                ref_indices[indices_tv.get_tensor_view_idx(tensor_layout)] = tmp_idx;
+                ref_indices[indices_tv.get_tensor_view_idx(tensor_layout)] = cum_idx;
         });
     });
-
-    std::cout << "CPU Finish" << std::endl;
 }

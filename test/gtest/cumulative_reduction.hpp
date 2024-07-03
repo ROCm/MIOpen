@@ -26,6 +26,7 @@
 
 #include "cpu_cumulative_reduction.hpp"
 #include "get_handle.hpp"
+#include "random.hpp"
 #include "tensor_holder.hpp"
 #include "verify.hpp"
 
@@ -70,17 +71,12 @@ inline std::vector<CumulativeReductionTestCase> CumulativeReductionTestConfigs()
 {
     std::vector<CumulativeReductionTestCase> tcs;
 
-    // std::vector<miopenCumOp_t> ops = {
-    //     MIOPEN_CUM_MAX, MIOPEN_CUM_MIN, MIOPEN_CUM_SUM, MIOPEN_CUM_PROD};
-    std::vector<miopenCumOp_t> ops = {MIOPEN_CUM_MAX};
-    std::vector<size_t> dims       = {1, 2, 3, 0};
-    // std::vector<size_t> dims = {0};
-    // std::vector<bool> exclusives   = {false, true};
-    std::vector<bool> exclusives = {false};
-    // std::vector<bool> reverses     = {false, true};
-    std::vector<bool> reverses = {false};
-    // std::vector<bool> contiguouss = {true, false};
-    std::vector<bool> contiguouss = {true};
+    std::vector<miopenCumOp_t> ops = {
+        MIOPEN_CUM_MAX, MIOPEN_CUM_MIN, MIOPEN_CUM_SUM, MIOPEN_CUM_PROD};
+    std::vector<size_t> dims      = {-3, -2, -1, 0, 1, 2, 3};
+    std::vector<bool> exclusives  = {false, true};
+    std::vector<bool> reverses    = {false, true};
+    std::vector<bool> contiguouss = {true, false};
 
     for(auto op : ops)
     {
@@ -88,31 +84,36 @@ inline std::vector<CumulativeReductionTestCase> CumulativeReductionTestConfigs()
         {
             for(auto exclusive : exclusives)
             {
+                if(exclusive && (op == MIOPEN_CUM_MAX || op == MIOPEN_CUM_MIN))
+                    continue;
                 for(auto reverse : reverses)
                 {
                     for(auto contiguous : contiguouss)
                     {
+                        tcs.push_back({{10}, op, dim, exclusive, reverse, contiguous});
+                        tcs.push_back({{10, 100}, op, dim, exclusive, reverse, contiguous});
+                        tcs.push_back({{65, 100}, op, dim, exclusive, reverse, contiguous});
                         tcs.push_back({{65}, op, dim, exclusive, reverse, contiguous});
                         tcs.push_back({{65, 2, 1}, op, dim, exclusive, reverse, contiguous});
-                        tcs.push_back({{70, 100}, op, dim, exclusive, reverse, contiguous});
-                        tcs.push_back(
-                            {{512, 64, 112, 112}, op, dim, exclusive, reverse, contiguous});
-                        tcs.push_back({{512, 64, 56, 56}, op, dim, exclusive, reverse, contiguous});
-                        tcs.push_back(
-                            {{512, 128, 56, 56}, op, dim, exclusive, reverse, contiguous});
-                        tcs.push_back(
-                            {{512, 128, 28, 28}, op, dim, exclusive, reverse, contiguous});
-                        tcs.push_back(
-                            {{512, 256, 28, 28}, op, dim, exclusive, reverse, contiguous});
-                        tcs.push_back(
-                            {{512, 64, 112, 112}, op, dim, exclusive, reverse, contiguous});
-                        tcs.push_back({{512, 64, 56, 56}, op, dim, exclusive, reverse, contiguous});
-                        tcs.push_back(
-                            {{512, 128, 56, 56}, op, dim, exclusive, reverse, contiguous});
-                        tcs.push_back(
-                            {{512, 128, 28, 28}, op, dim, exclusive, reverse, contiguous});
-                        tcs.push_back(
-                            {{512, 256, 28, 28}, op, dim, exclusive, reverse, contiguous});
+                        tcs.push_back({{70, 10}, op, dim, exclusive, reverse, contiguous});
+                        // tcs.push_back(
+                        //     {{512, 64, 112, 112}, op, dim, exclusive, reverse, contiguous});
+                        // tcs.push_back({{512, 64, 56, 56}, op, dim, exclusive, reverse,
+                        // contiguous}); tcs.push_back(
+                        //     {{512, 128, 56, 56}, op, dim, exclusive, reverse, contiguous});
+                        // tcs.push_back(
+                        //     {{512, 128, 28, 28}, op, dim, exclusive, reverse, contiguous});
+                        // tcs.push_back(
+                        //     {{512, 256, 28, 28}, op, dim, exclusive, reverse, contiguous});
+                        // tcs.push_back(
+                        //     {{512, 64, 112, 112}, op, dim, exclusive, reverse, contiguous});
+                        // tcs.push_back({{512, 64, 56, 56}, op, dim, exclusive, reverse,
+                        // contiguous}); tcs.push_back(
+                        //     {{512, 128, 56, 56}, op, dim, exclusive, reverse, contiguous});
+                        // tcs.push_back(
+                        //     {{512, 128, 28, 28}, op, dim, exclusive, reverse, contiguous});
+                        // tcs.push_back(
+                        //     {{512, 256, 28, 28}, op, dim, exclusive, reverse, contiguous});
                     }
                 }
             }
@@ -143,14 +144,12 @@ protected:
     {
         auto&& handle               = get_handle();
         cumulative_reduction_config = GetParam();
-        // auto gen_value = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1e-6, 100); };
-        auto gen_value = [](auto...) { return 0; };
+        auto gen_value = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1e-2, 100); };
 
         auto lengths = cumulative_reduction_config.lengths;
 
         auto input_strides = GetStrides(lengths, true);
         input              = tensor<T>{lengths, input_strides}.generate(gen_value);
-        input[0]           = 10;
 
         auto out_strides = GetStrides(lengths, true);
         output           = tensor<T>{lengths, out_strides};
@@ -248,13 +247,6 @@ protected:
         // bf16 mantissa has 7 bits, by 3 bits shorter than fp16.
         if(std::is_same<T, bfloat16>::value)
             tolerance *= 8.0;
-
-        // for(int i = 0; i < output.data.size(); ++i)
-        //     // for(int i = 0; i < output.data.size() && i < 100; ++i)
-        //     if(ref_output[i] != output[i])
-        //         std::cout << "OUTPUT: " << i << ' ' << ref_output[i] << ' ' << ref_indices[i] <<
-        //         ' '
-        //                   << output[i] << ' ' << indices[i] << std::endl;
 
         auto error_output  = miopen::rms_range(ref_output, output);
         auto error_indices = miopen::rms_range(ref_indices, indices);

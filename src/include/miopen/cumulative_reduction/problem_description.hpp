@@ -40,6 +40,8 @@ struct ForwardProblemDescription : ProblemDescriptionBase
     ForwardProblemDescription(const TensorDescriptor& inputDesc_, const int& dim_)
         : inputDesc(inputDesc_), dim(dim_)
     {
+        const auto ndims = inputDesc.GetSize();
+        dim              = ((dim % ndims) + ndims) % ndims;
     }
 
     ForwardProblemDescription(const TensorDescriptor& inputDesc_,

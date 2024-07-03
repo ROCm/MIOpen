@@ -32,9 +32,11 @@
 #include "tensor_view.hpp"
 #include "MIOpenCumulativeReduction.hpp"
 
-template <CumulativeReductionOp_t OP, uint64_t LOCAL_SIZE, typename T1, typename... T2>
-__device__ inline void
-CumulativeReductionScan(const int& lid, T1* __restrict__ a, T2* __restrict__... b)
+template <CumulativeReductionOp_t OP, uint64_t LOCAL_SIZE, typename... Ts>
+__device__ inline void CumulativeReductionScan(const bool& reverse,
+                                               const int& lid,
+                                               FLOAT_ACCUM* __restrict__ a,
+                                               Ts* __restrict__... b)
 {
     // reduction
     int stride = 1;
@@ -42,8 +44,8 @@ CumulativeReductionScan(const int& lid, T1* __restrict__ a, T2* __restrict__... 
     {
         int idx = (lid + 1) * stride * 2 - 1;
         if(idx < LOCAL_SIZE)
-            reduce_func<OP, T1, T2...>{}.calculate(
-                a[idx], a[idx - stride], b[idx]..., b[idx - stride]...);
+            reduce_func<OP, FLOAT_ACCUM, Ts...>{}.calculate(
+                !reverse, a[idx], a[idx - stride], b[idx]..., b[idx - stride]...);
         stride *= 2;
         __syncthreads();
     }
@@ -54,20 +56,20 @@ CumulativeReductionScan(const int& lid, T1* __restrict__ a, T2* __restrict__... 
     {
         int idx = (lid + 1) * stride * 2 - 1;
         if((idx + stride) < LOCAL_SIZE)
-            reduce_func<OP, T1, T2...>{}.calculate(
-                a[idx + stride], a[idx], b[idx + stride]..., b[idx]...);
-        stride = stride / 2;
+            reduce_func<OP, FLOAT_ACCUM, Ts...>{}.calculate(
+                !reverse, a[idx + stride], a[idx], b[idx + stride]..., b[idx]...);
+        stride /= 2;
         __syncthreads();
     }
 }
 
-template <typename TI, typename TO, CumulativeReductionOp_t OP, int NDIMS, uint64_t LOCAL_SIZE>
+template <typename TI, CumulativeReductionOp_t OP, int NDIMS, uint64_t LOCAL_SIZE>
 __device__ void LocalCumulativeReduction(const TI* __restrict__ input,
-                                         TO* __restrict__ local_output,
+                                         FLOAT_ACCUM* __restrict__ local_output,
                                          int* __restrict__ local_indices,
-                                         const unsigned int dim,
-                                         const bool exclusive,
-                                         const bool reverse,
+                                         const unsigned int& dim,
+                                         const bool& exclusive,
+                                         const bool& reverse,
                                          tensor_view_t<NDIMS> input_tv)
 {
     static __shared__ FLOAT_ACCUM otmp[LOCAL_SIZE];
@@ -93,7 +95,7 @@ __device__ void LocalCumulativeReduction(const TI* __restrict__ input,
         }
 
         auto local_inner_size    = (input_tv.size[dim] + LOCAL_SIZE - 1) / LOCAL_SIZE;
-        idx                      = lid + _gid % local_inner_size * LOCAL_SIZE;
+        idx                      = lid + _gid % local_inner_size * LOCAL_SIZE - exclusive;
         input_layout.layout[dim] = (reverse ? input_tv.size[dim] - idx - 1 : idx);
         _gid /= local_inner_size;
 
@@ -104,23 +106,30 @@ __device__ void LocalCumulativeReduction(const TI* __restrict__ input,
         }
     }
 
-    if(idx < input_tv.size[dim])
+    if(0 <= idx && idx < input_tv.size[dim] - exclusive && idx < input_tv.size[dim])
     {
         otmp[lid] = CVT_FLOAT2ACCUM(input[input_tv.get_tensor_view_idx(input_layout)]);
-        itmp[lid] = input_layout.layout[dim];
+        if(local_indices)
+            itmp[lid] = input_layout.layout[dim];
     }
     else
     {
         otmp[lid] = reduce_func<OP, FLOAT_ACCUM>{}.START_VAL;
-        itmp[lid] = 0;
+        if(local_indices)
+            itmp[lid] = (reverse ? input_tv.size[dim] - idx - 1 : idx);
     }
     __syncthreads();
 
     for(size_t i = LOCAL_SIZE / 2; i > 0; i >>= 1)
     {
         if(lid < i)
-            reduce_func<OP, FLOAT_ACCUM, int>{}.calculate(
-                otmp[lid], otmp[lid + i], itmp[lid], itmp[lid + i]);
+        {
+            if(local_indices)
+                reduce_func<OP, FLOAT_ACCUM, int>{}.calculate(
+                    !reverse, otmp[lid], otmp[lid + i], itmp[lid], itmp[lid + i]);
+            else
+                reduce_func<OP, FLOAT_ACCUM>{}.calculate(!reverse, otmp[lid], otmp[lid + i]);
+        }
         __syncthreads();
     }
 
@@ -138,19 +147,13 @@ __device__ void LocalCumulativeReduction(const TI* __restrict__ input,
         _gid /= reduce_size;
         local_idx += _gid * reduce_size * inner_size;
 
-        local_output[local_idx]  = CVT_ACCUM2FLOAT(otmp[0]);
+        local_output[local_idx]  = otmp[0];
         local_indices[local_idx] = itmp[0];
-        // printf("LocalCumulativeReduction: %d %d %d %f %d\n",
-        //        gid,
-        //        idx,
-        //        local_idx,
-        //        local_output[local_idx],
-        //        local_indices[local_idx]);
     }
 }
 
 extern "C" __global__ void LocalCumulativeReduction(const INPUT_TYPE* __restrict__ input,
-                                                    OUTPUT_TYPE* __restrict__ local_output,
+                                                    FLOAT_ACCUM* __restrict__ local_output,
                                                     int* __restrict__ local_indices,
                                                     const unsigned int dim,
                                                     const bool exclusive,
@@ -158,21 +161,16 @@ extern "C" __global__ void LocalCumulativeReduction(const INPUT_TYPE* __restrict
                                                     tensor_view_t<VIEW_DIMS> input_tv)
 {
     // instantiate the kernel
-    LocalCumulativeReduction<INPUT_TYPE,
-                             OUTPUT_TYPE,
-                             (CumulativeReductionOp_t)OP_TYPE,
-                             VIEW_DIMS,
-                             REDUCE_SIZE>(
+    LocalCumulativeReduction<INPUT_TYPE, (CumulativeReductionOp_t)OP_TYPE, VIEW_DIMS, REDUCE_SIZE>(
         input, local_output, local_indices, dim, exclusive, reverse, input_tv);
 }
 
-template <typename TI, typename TO, CumulativeReductionOp_t OP, uint64_t LOCAL_SIZE>
-__device__ void CumulativeReductionNaiveForward(const TI* local_input,
-                                                TO* local_output,
+template <CumulativeReductionOp_t OP, uint64_t LOCAL_SIZE>
+__device__ void CumulativeReductionNaiveForward(const FLOAT_ACCUM* local_input,
+                                                FLOAT_ACCUM* local_output,
                                                 int* __restrict__ local_indices,
-                                                const size_t reduce_size,
-                                                const size_t inner_size,
-                                                const bool reverse)
+                                                const size_t& reduce_size,
+                                                const bool& reverse)
 {
     static __shared__ FLOAT_ACCUM otmp[LOCAL_SIZE];
     int* itmp = nullptr;
@@ -190,83 +188,64 @@ __device__ void CumulativeReductionNaiveForward(const TI* local_input,
 
     for(int i = lid; i / LOCAL_SIZE <= (reduce_size - 1) / LOCAL_SIZE; i += LOCAL_SIZE)
     {
-        // int idx = gid % inner_size + gid / inner_size * reduce_size * inner_size +
-        //           (reverse ? reduce_size - i - 1 : i) * inner_size;
-        int idx = gid * reduce_size + (reverse ? reduce_size - i - 1 : i);
+        int idx = gid * reduce_size + i;
 
         if(i < reduce_size)
         {
-            otmp[lid] = CVT_FLOAT2ACCUM(local_input[idx]);
+            otmp[lid] = local_input[idx];
             if(local_indices)
                 itmp[lid] = local_indices[idx];
-            // printf("CumulativeReductionNaiveForward: %d %d %f %d\n",
-            //        gid,
-            //        idx,
-            //        local_input[idx],
-            //        local_indices[idx]);
         }
         else
         {
             otmp[lid] = reduce_func<OP, FLOAT_ACCUM>{}.START_VAL;
-            if(local_indices)
-                itmp[lid] = 0;
         }
         __syncthreads();
 
         if(local_indices)
-            CumulativeReductionScan<OP, LOCAL_SIZE, FLOAT_ACCUM, int>(lid, otmp, itmp);
+            CumulativeReductionScan<OP, LOCAL_SIZE, int>(reverse, lid, otmp, itmp);
         else
-            CumulativeReductionScan<OP, LOCAL_SIZE, FLOAT_ACCUM>(lid, otmp);
+            CumulativeReductionScan<OP, LOCAL_SIZE>(reverse, lid, otmp);
 
         if(i < reduce_size)
         {
             if(local_indices)
                 reduce_func<OP, FLOAT_ACCUM, int>{}.calculate(
-                    otmp[lid], tmp_val, itmp[lid], tmp_idx);
+                    reverse, otmp[lid], tmp_val, itmp[lid], tmp_idx);
             else
-                reduce_func<OP, FLOAT_ACCUM>{}.calculate(otmp[lid], tmp_val);
+                reduce_func<OP, FLOAT_ACCUM>{}.calculate(reverse, otmp[lid], tmp_val);
             if(local_output)
-                local_output[idx] = CVT_ACCUM2FLOAT(otmp[lid]);
+                local_output[idx] = otmp[lid];
             if(local_indices)
                 local_indices[idx] = itmp[lid];
-            // printf("CumulativeReductionNaiveForward: %d %d %f %d\n",
-            //        gid,
-            //        idx,
-            //        local_output[idx],
-            //        local_indices[idx]);
         }
+        tmp_val = otmp[LOCAL_SIZE - 1];
         if(local_indices)
-            update<FLOAT_ACCUM, int>(tmp_val, otmp[LOCAL_SIZE - 1], tmp_idx, itmp[LOCAL_SIZE - 1]);
-        else
-            update<FLOAT_ACCUM>(tmp_val, otmp[LOCAL_SIZE - 1]);
+            tmp_idx = itmp[LOCAL_SIZE - 1];
         __syncthreads();
     }
 }
 
-extern "C" __global__ void CumulativeReductionNaiveForward(const INPUT_TYPE* local_input,
-                                                           OUTPUT_TYPE* local_output,
+extern "C" __global__ void CumulativeReductionNaiveForward(const FLOAT_ACCUM* local_input,
+                                                           FLOAT_ACCUM* local_output,
                                                            int* __restrict__ local_indices,
                                                            const size_t reduce_size,
-                                                           const size_t inner_size,
                                                            const bool reverse)
 {
     // instantiate the kernel
-    CumulativeReductionNaiveForward<INPUT_TYPE,
-                                    OUTPUT_TYPE,
-                                    (CumulativeReductionOp_t)OP_TYPE,
-                                    REDUCE_SIZE>(
-        local_input, local_output, local_indices, reduce_size, inner_size, reverse);
+    CumulativeReductionNaiveForward<(CumulativeReductionOp_t)OP_TYPE, REDUCE_SIZE>(
+        local_input, local_output, local_indices, reduce_size, reverse);
 }
 
 template <typename TI, typename TO, CumulativeReductionOp_t OP, int NDIMS, uint64_t LOCAL_SIZE>
 __device__ void CumulativeReductionForward(const TI* __restrict__ input,
                                            TO* __restrict__ output,
                                            int* __restrict__ indices,
-                                           const TO* __restrict__ local_output,
+                                           const FLOAT_ACCUM* __restrict__ local_output,
                                            const int* __restrict__ local_indices,
-                                           const unsigned int dim,
-                                           const bool exclusive,
-                                           const bool reverse,
+                                           const unsigned int& dim,
+                                           const bool& exclusive,
+                                           const bool& reverse,
                                            tensor_view_t<NDIMS> input_tv,
                                            tensor_view_t<NDIMS> output_tv,
                                            tensor_view_t<NDIMS> indices_tv)
@@ -295,7 +274,8 @@ __device__ void CumulativeReductionForward(const TI* __restrict__ input,
     input_tv.size[dim] = reduce_size;
     int idx            = blockIdx.y * blockDim.y + threadIdx.y;
 
-    if(idx < reduce_size)
+    idx -= exclusive;
+    if(0 <= idx && idx < reduce_size - exclusive && idx < reduce_size)
     {
         tensor_layout.layout[dim] = (reverse ? reduce_size - idx - 1 : idx);
         otmp[lid] = CVT_FLOAT2ACCUM(input[input_tv.get_tensor_view_idx(tensor_layout)]);
@@ -306,15 +286,16 @@ __device__ void CumulativeReductionForward(const TI* __restrict__ input,
     {
         otmp[lid] = reduce_func<OP, FLOAT_ACCUM>{}.START_VAL;
         if(indices)
-            itmp[lid] = 0;
+            itmp[lid] = (reverse ? reduce_size - idx - 1 : idx);
     }
     __syncthreads();
 
     if(indices)
-        CumulativeReductionScan<OP, LOCAL_SIZE, FLOAT_ACCUM, int>(lid, otmp, itmp);
+        CumulativeReductionScan<OP, LOCAL_SIZE, int>(reverse, lid, otmp, itmp);
     else
-        CumulativeReductionScan<OP, LOCAL_SIZE, FLOAT_ACCUM>(lid, otmp);
+        CumulativeReductionScan<OP, LOCAL_SIZE>(reverse, lid, otmp);
 
+    idx += exclusive;
     if(idx < reduce_size)
     {
         FLOAT_ACCUM tmp_val = otmp[lid];
@@ -330,35 +311,23 @@ __device__ void CumulativeReductionForward(const TI* __restrict__ input,
                 {
                     int local_idx =
                         gid * ((reduce_size + LOCAL_SIZE - 1) / LOCAL_SIZE) + blockIdx.y - 1;
-                    FLOAT_ACCUM olocal = CVT_FLOAT2ACCUM(local_output[local_idx]);
+                    FLOAT_ACCUM olocal = local_output[local_idx];
                     int ilocal         = local_indices[local_idx];
-                    reduce_func<OP, FLOAT_ACCUM, int>{}.calculate(tmp_val, olocal, tmp_idx, ilocal);
-                    // printf("%p %p %d %d %f %d %f %d\n",
-                    //        local_output,
-                    //        local_indices,
-                    //        gid,
-                    //        local_idx,
-                    //        olocal,
-                    //        ilocal,
-                    //        tmp_val,
-                    //        tmp_idx);
+                    reduce_func<OP, FLOAT_ACCUM, int>{}.calculate(
+                        !reverse, tmp_val, olocal, tmp_idx, ilocal);
                 }
                 else
                 {
                     reduce_func<OP, FLOAT_ACCUM>{}.calculate(
+                        !reverse,
                         tmp_val,
-                        CVT_FLOAT2ACCUM(
-                            local_output[gid * ((reduce_size + LOCAL_SIZE - 1) / LOCAL_SIZE) +
-                                         blockIdx.y - 1]));
+                        local_output[gid * ((reduce_size + LOCAL_SIZE - 1) / LOCAL_SIZE) +
+                                     blockIdx.y - 1]);
                 }
             }
         }
 
-        if(indices)
-            reduce_func<OP, FLOAT_ACCUM, int>{}.calculate(otmp[lid], tmp_val, itmp[lid], tmp_idx);
-        else
-            reduce_func<OP, FLOAT_ACCUM>{}.calculate(otmp[lid], tmp_val);
-
+        tensor_layout.layout[dim] = (reverse ? reduce_size - idx - 1 : idx);
         if(output)
             output[output_tv.get_tensor_view_idx(tensor_layout)] = CVT_ACCUM2FLOAT(tmp_val);
         if(indices)
@@ -369,7 +338,7 @@ __device__ void CumulativeReductionForward(const TI* __restrict__ input,
 extern "C" __global__ void CumulativeReductionForward(const INPUT_TYPE* __restrict__ input,
                                                       OUTPUT_TYPE* __restrict__ output,
                                                       int* __restrict__ indices,
-                                                      const OUTPUT_TYPE* __restrict__ local_output,
+                                                      const FLOAT_ACCUM* __restrict__ local_output,
                                                       const int* __restrict__ local_indices,
                                                       const unsigned int dim,
                                                       const bool exclusive,
