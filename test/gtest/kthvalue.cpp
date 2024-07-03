@@ -52,10 +52,6 @@ struct KthvalueForwardTestFloat16 : KthvalueFwdTest<half>
 {
 };
 
-struct KthvalueForwardTestBFloat16 : KthvalueFwdTest<bfloat16>
-{
-};
-
 using namespace kthvalue;
 
 TEST_P(KthvalueForwardTestFloat32, KthvalueForwardTest)
@@ -72,43 +68,25 @@ TEST_P(KthvalueForwardTestFloat32, KthvalueForwardTest)
     }
 };
 
-// TEST_P(KthvalueForwardTestFloat16, KthvalueForwardTest)
-// {
-//     if(miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
-//        (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--half")))
-//     {
-//         RunTest();
-//         Verify();
-//     }
-//     else
-//     {
-//         GTEST_SKIP();
-//     }
-// };
-
-// TEST_P(KthvalueForwardTestBFloat16, KthvalueForwardTest)
-// {
-//     if(miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
-//        (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--bfloat16")))
-//     {
-//         RunTest();
-//         Verify();
-//     }
-//     else
-//     {
-//         GTEST_SKIP();
-//     }
-// };
+TEST_P(KthvalueForwardTestFloat16, KthvalueForwardTest)
+{
+    if(miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
+       (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--half")))
+    {
+        RunTest();
+        Verify();
+    }
+    else
+    {
+        GTEST_SKIP();
+    }
+};
 
 INSTANTIATE_TEST_SUITE_P(KthvalueForwardTestSet,
                          KthvalueForwardTestFloat32,
                          testing::ValuesIn(KthvalueTestConfigs()));
 
-// INSTANTIATE_TEST_SUITE_P(KthvalueForwardTestSet,
-//                          KthvalueForwardTestFloat16,
-//                          testing::ValuesIn(KthvalueTestConfigs()));
-
-// INSTANTIATE_TEST_SUITE_P(KthvalueForwardTestSet,
-//                          KthvalueForwardTestBFloat16,
-//                          testing::ValuesIn(KthvalueTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(KthvalueForwardTestSet,
+                         KthvalueForwardTestFloat16,
+                         testing::ValuesIn(KthvalueTestConfigs()));
 } // namespace kthvalue

@@ -38,6 +38,8 @@ NetworkConfig FwdProblemDescription::MakeNetworkConfig() const
     auto input_dtype = inputDesc.GetType();
     auto size        = inputDesc.GetElementSize();
     auto dim_size    = inputDesc.GetLengths()[dim];
+    int dim_num      = inputDesc.GetSize();
+    bool is_last_dim = (dim == dim_num - 1);
     auto output_size = size / dim_size;
 
     std::ostringstream ss;
@@ -45,8 +47,10 @@ NetworkConfig FwdProblemDescription::MakeNetworkConfig() const
     ss << "kthvalue_fwd";
     ss << "i_dtype" << input_dtype;
     ss << "dim_size" << dim_size;
+    ss << "dim_num" << dim_num;
+    ss << "is_last_dim" << is_last_dim;
     ss << "output_size" << output_size;
-    ss << "contiguous" << isContiguous;
+    ss << "input_contiguous" << isInputContiguous;
 
     return NetworkConfig{ss.str()};
 }

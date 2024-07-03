@@ -36,29 +36,22 @@ namespace miopen {
 
 namespace kthvalue {
 
-struct KthvalueInvokeParams : public miopen::InvokeParams
+struct FwdInvokeParams : public miopen::InvokeParams
 {
-    KthvalueInvokeParams() = default;
+    FwdInvokeParams() = default;
 
-    const TensorDescriptor* inputDesc = nullptr;
-
-    ConstData_t input = nullptr;
+    const TensorDescriptor* inputDesc   = nullptr;
+    ConstData_t input                   = nullptr;
+    const TensorDescriptor* outputDesc  = nullptr;
+    Data_t output                       = nullptr;
+    const TensorDescriptor* indicesDesc = nullptr;
+    size_t* indices                     = nullptr;
 
     size_t k     = 1;
     int32_t dim  = 0;
     bool keepDim = false;
     std::size_t GetWorkspaceSize() const { return 0; }
     Data_t GetWorkspace() const { return nullptr; }
-};
-
-struct FwdInvokeParams : KthvalueInvokeParams
-{
-    FwdInvokeParams() = default;
-
-    const TensorDescriptor* outputDesc  = nullptr;
-    Data_t output                       = nullptr;
-    const TensorDescriptor* indicesDesc = nullptr;
-    size_t* indices                     = nullptr;
 };
 
 } // namespace kthvalue

@@ -58,7 +58,7 @@ bool KthvalueFwd::IsApplicable(const ExecutionContext& /*context*/,
         return false;
     if(problem.GetInputDesc().GetSize() > 5)
         return false;
-    if(!problem.isContiguous)
+    if(!problem.isInputContiguous)
         return false;
     return true;
 }

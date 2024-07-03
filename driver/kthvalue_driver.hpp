@@ -101,8 +101,6 @@ public:
         miopenCreateTensorDescriptor(&inputDesc);
         miopenCreateTensorDescriptor(&indicesDesc);
         miopenCreateTensorDescriptor(&outputDesc);
-        miopenCreateTensorDescriptor(&doutputDesc);
-        miopenCreateTensorDescriptor(&dinputDesc);
 
         data_type = miopen_type<TIO>{};
     }
@@ -129,8 +127,6 @@ public:
         miopenDestroyTensorDescriptor(inputDesc);
         miopenDestroyTensorDescriptor(indicesDesc);
         miopenDestroyTensorDescriptor(outputDesc);
-        miopenDestroyTensorDescriptor(doutputDesc);
-        miopenDestroyTensorDescriptor(dinputDesc);
     }
 
 private:
@@ -139,23 +135,16 @@ private:
     miopenTensorDescriptor_t inputDesc;
     miopenTensorDescriptor_t indicesDesc;
     miopenTensorDescriptor_t outputDesc;
-    miopenTensorDescriptor_t doutputDesc;
-    miopenTensorDescriptor_t dinputDesc;
 
     std::unique_ptr<GPUMem> input_dev;
     std::unique_ptr<GPUMem> indices_dev;
     std::unique_ptr<GPUMem> output_dev;
-    std::unique_ptr<GPUMem> doutput_dev;
-    std::unique_ptr<GPUMem> dinput_dev;
 
     std::vector<TIO> input;
     std::vector<size_t> indices;
     std::vector<size_t> indicesHost;
     std::vector<TIO> output;
     std::vector<TIO> outputHost;
-    std::vector<TIO> doutput;
-    std::vector<TIO> dinput;
-    std::vector<TIO> dinputHost;
 
     bool isContiguous;
     int dim;
@@ -208,8 +197,6 @@ int KthvalueDriver<TIO>::GetandSetData()
     }
 
     SetTensorNd(inputDesc, inDims, inStride, data_type);
-    SetTensorNd(doutputDesc, outDims, data_type);
-    SetTensorNd(dinputDesc, inDims, data_type);
     SetTensorNd(outputDesc, outDims, data_type);
     // miopenDataType_t doesn't support size_t, I use double instead (both types use 64 bits)
     SetTensorNd(indicesDesc, outDims, miopen_type<double>{});
@@ -261,38 +248,26 @@ int KthvalueDriver<TIO>::AllocateBuffersAndCopy()
     size_t in_sz  = miopen::deref(inputDesc).GetElementSize();
     size_t idx_sz = miopen::deref(indicesDesc).GetElementSize();
     size_t out_sz = miopen::deref(outputDesc).GetElementSize();
-    size_t dO_sz  = miopen::deref(doutputDesc).GetElementSize();
-    size_t dI_sz  = miopen::deref(dinputDesc).GetElementSize();
 
     uint32_t ctx = 0;
 
     input_dev   = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(TIO)));
     indices_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, idx_sz, sizeof(size_t)));
     output_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(TIO)));
-    doutput_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, dO_sz, sizeof(TIO)));
-    dinput_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, dI_sz, sizeof(TIO)));
 
     input       = std::vector<TIO>(in_sz, static_cast<TIO>(0));
     indices     = std::vector<size_t>(idx_sz, 0);
     indicesHost = std::vector<size_t>(idx_sz, 0);
     output      = std::vector<TIO>(out_sz, static_cast<TIO>(0));
     outputHost  = std::vector<TIO>(out_sz, static_cast<TIO>(0));
-    doutput     = std::vector<TIO>(dO_sz, static_cast<TIO>(0));
-    dinput      = std::vector<TIO>(dI_sz, static_cast<TIO>(0));
-    dinputHost  = std::vector<TIO>(dI_sz, static_cast<TIO>(0));
 
     for(int i = 0; i < in_sz; i++)
     {
         input[i] = prng::gen_A_to_B<TIO>(static_cast<TIO>(-10), static_cast<TIO>(10));
     }
-    for(int i = 0; i < dO_sz; ++i)
-    {
-        doutput[i] = prng::gen_A_to_B<TIO>(static_cast<TIO>(-2), static_cast<TIO>(2));
-    }
 
     fill(output.begin(), output.end(), static_cast<TIO>(0));
     fill(indices.begin(), indices.end(), static_cast<size_t>(0));
-    fill(dinput.begin(), dinput.end(), static_cast<TIO>(0));
 
     if(input_dev->ToGPU(GetStream(), input.data()) != 0)
         std::cerr << "Error copying (in) to GPU, size: " << input_dev->GetSize() << std::endl;
@@ -302,12 +277,6 @@ int KthvalueDriver<TIO>::AllocateBuffersAndCopy()
 
     if(output_dev->ToGPU(GetStream(), output.data()) != 0)
         std::cerr << "Error copying (out) to GPU, size: " << output_dev->GetSize() << std::endl;
-
-    if(doutput_dev->ToGPU(GetStream(), doutput.data()) != 0)
-        std::cerr << "Error copying (dO) to GPU, size: " << doutput_dev->GetSize() << std::endl;
-
-    if(dinput_dev->ToGPU(GetStream(), dinput.data()) != 0)
-        std::cerr << "Error copying (dI) to GPU, size: " << dinput_dev->GetSize() << std::endl;
 
     return miopenStatusSuccess;
 }

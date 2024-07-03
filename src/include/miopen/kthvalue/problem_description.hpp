@@ -73,13 +73,12 @@ struct FwdProblemDescription : ProblemDescriptionBase
             MIOPEN_THROW(miopenStatusBadParm,
                          "Reduce: Input and output tensor dimension lengths do not match.");
         }
-        if(!IsSameLength())
+        if(!outputDesc.IsSameLength(indicesDesc))
         {
             MIOPEN_THROW(miopenStatusBadParm,
                          "Reduce: Output and indices tensor dimension lengths do not match.");
         }
-        isContiguous = checkContiguous(inputDesc) && checkContiguous(outputDesc) &&
-                       checkContiguous(indicesDesc);
+        isInputContiguous = inputDesc.IsContiguous();
     }
 
     bool IsRightLength() const
@@ -107,30 +106,6 @@ struct FwdProblemDescription : ProblemDescriptionBase
         return true;
     }
 
-    bool IsSameLength() const
-    {
-        for(int32_t i = 0; i < outputDesc.GetLengths().size(); i++)
-        {
-            if(outputDesc.GetLengths()[i] != indicesDesc.GetLengths()[i])
-            {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    bool checkContiguous(const TensorDescriptor& tensorDesc)
-    {
-        size_t stride = 1;
-        for(int i = tensorDesc.GetSize() - 1; i >= 0; --i)
-        {
-            if(stride != tensorDesc.GetStrides()[i])
-                return false;
-            stride *= tensorDesc.GetLengths()[i];
-        }
-        return true;
-    }
-
     const TensorDescriptor& GetInputDesc() const { return inputDesc; }
     const TensorDescriptor& GetOutputDesc() const { return outputDesc; }
     const TensorDescriptor& GetIndicesDesc() const { return indicesDesc; }
@@ -144,7 +119,7 @@ public:
     TensorDescriptor indicesDesc;
     int32_t dim;
     size_t k;
-    bool isContiguous;
+    bool isInputContiguous;
     bool keepDim;
 };
 

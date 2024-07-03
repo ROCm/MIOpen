@@ -98,7 +98,7 @@ __device__ void kthvalueFwd(const DTYPE* input,
     tensor_layout_t<4> layout(input_tv, gid);
     auto idx = input_tv.get_tensor_view_idx(layout);
 
-    for(size_t pos = sizeof(RADIX_TYPE) * 8 - RADIX_BITS; pos >= 0; pos -= RADIX_BITS)
+    for(int pos = sizeof(RADIX_TYPE) * 8 - RADIX_BITS; pos >= 0; pos -= RADIX_BITS)
     {
         for(unsigned long& count : counts)
         {
@@ -184,8 +184,6 @@ __device__ void kthvalueFwd(const DTYPE* input,
         auto indices_layout                                  = tensor_layout_t<5>(indices_tv, gid);
         output[output_tv.get_tensor_view_idx(output_layout)] = lval;
         indices[indices_tv.get_tensor_view_idx(indices_layout)] = lidx;
-        // output[gid]  = lval;
-        // indices[gid] = lidx;
     }
 }
 
