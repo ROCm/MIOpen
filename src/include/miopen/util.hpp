@@ -50,6 +50,11 @@ Im2ColGPU(const Handle& handle,
           Data_t col,
           miopenDataType_t type);
 
+/// \return In normal mode, kernel execution time (ms). In dry-run mode,
+/// returns indicator of applicability. A positive value means
+/// that kernel is applicable, a negative value means that Col2Im
+/// is unable to perform the necessary function (likely due to
+/// implementation limits).
 MIOPEN_INTERNALS_EXPORT float
 Col2ImGPU(const Handle& handle,
           std::size_t spatial_dim,
@@ -63,7 +68,8 @@ Col2ImGPU(const Handle& handle,
           const decltype(boost::adaptors::slice(std::vector<std::size_t>(), 0, 1))& in_spatial,
           Data_t im,
           std::size_t im_offset,
-          miopenDataType_t type);
+          miopenDataType_t type,
+          bool dry_run = false);
 
 MIOPEN_INTERNALS_EXPORT float transpose_NCHW2CNHW(const Handle& handle,
                                                   int n,
