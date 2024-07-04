@@ -134,13 +134,13 @@ int UnfoldDriver<Tgpu, Tref>::GetandSetData()
 {
     std::vector<int> input_length = GetTensorLengthsFromCmdLine();
 
-    kernel_size = GetVectorInt32tFromCmdLine("kernelSize");
-    stride      = GetVectorInt32tFromCmdLine("stride");
-    padding     = GetVectorInt32tFromCmdLine("padding");
-    dilation    = GetVectorInt32tFromCmdLine("dilation");
+    kernel_size          = GetVectorInt32tFromCmdLine("kernelSize");
+    stride               = GetVectorInt32tFromCmdLine("stride");
+    padding              = GetVectorInt32tFromCmdLine("padding");
+    dilation             = GetVectorInt32tFromCmdLine("dilation");
     int spatial_dim_size = input_length.size() - 2;
-    const int N = input_length[0];
-    const int C = input_length[1];
+    const int N          = input_length[0];
+    const int C          = input_length[1];
 
     int P = 1, L = 1;
     std::vector<int> ls;
