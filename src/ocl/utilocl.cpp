@@ -42,7 +42,7 @@ namespace miopen {
 
 float Im2d2ColGPU(const Handle& handle,
                   ConstData_t im,
-                  const int im_offset,
+                  const size_t im_offset,
                   const int c,
                   const int in_h,
                   const int in_w,
@@ -60,7 +60,7 @@ float Im2d2ColGPU(const Handle& handle,
                   miopenDataType_t type)
 {
     std::string program_name = "MIOpenIm2d2Col.cl";
-    std::string kernel_name  = "Im2d2Col";
+    std::string kernel_name  = "Im2d2Col_v2";
 
     // clang-format off
     std::string network_config =
@@ -80,17 +80,14 @@ float Im2d2ColGPU(const Handle& handle,
 
     auto&& kernels = handle.GetKernels("miopenIm2d2Col", network_config);
 
-    int data_size_bound = c * in_h * in_w;
-
-    int data_size_bound_pack = data_size_bound;
-    int im_offset_pack       = im_offset;
+    const int data_size_bound = c * in_h * in_w;
 
     if(!kernels.empty())
     {
         auto kernel = kernels.front();
-        kernel(data_size_bound_pack,
+        kernel(data_size_bound,
                im,
-               im_offset_pack,
+               im_offset,
                in_h,
                in_w,
                wei_h,
@@ -256,9 +253,9 @@ float Im2d2ColGPU(const Handle& handle,
 
         handle.AddKernel(
             "miopenIm2Col", network_config, program_name, kernel_name, vld, vgd, params)(
-            data_size_bound_pack,
+            data_size_bound,
             im,
-            im_offset_pack,
+            im_offset,
             in_h,
             in_w,
             wei_h,
