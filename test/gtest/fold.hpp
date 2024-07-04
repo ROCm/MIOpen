@@ -51,15 +51,19 @@ struct UnfoldTestCase
     bool isContiguous = true;
     friend std::ostream& operator<<(std::ostream& os, const UnfoldTestCase& tc)
     {
-        os << "N:" << tc.N << " C:" << tc.C << " D:" << tc.D << " H:" << tc.H
-           << " W:" << tc.W << " kernel_size:";
-        for (const auto& ks : tc.kernelSize) os << ks << " ";
+        os << "N:" << tc.N << " C:" << tc.C << " D:" << tc.D << " H:" << tc.H << " W:" << tc.W
+           << " kernel_size:";
+        for(const auto& ks : tc.kernelSize)
+            os << ks << " ";
         os << "stride:";
-        for (const auto& s : tc.stride) os << s << " ";
+        for(const auto& s : tc.stride)
+            os << s << " ";
         os << "padding:";
-        for (const auto& p : tc.padding) os << p << " ";
+        for(const auto& p : tc.padding)
+            os << p << " ";
         os << "dilation:";
-        for (const auto& d : tc.dilation) os << d << " ";
+        for(const auto& d : tc.dilation)
+            os << d << " ";
         os << "isContiguous:" << std::boolalpha << tc.isContiguous;
         return os;
     }
@@ -128,8 +132,8 @@ protected:
         auto&& handle = get_handle();
         config        = GetParam();
 
-        std::vector<size_t> in_dims          = config.GetInput();
-        std::vector<size_t> in_strides       = config.ComputeStrides(in_dims);
+        std::vector<size_t> in_dims    = config.GetInput();
+        std::vector<size_t> in_strides = config.ComputeStrides(in_dims);
 
         auto gen_value = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1e-2, 100); };
         auto gen_one   = [&](auto...) { return 1; };
@@ -137,29 +141,29 @@ protected:
         input          = tensor<T>{in_dims, in_strides}.generate(gen_value);
 
         int spatial_dim_size = in_dims.size() - 2;
-        const int32_t N = static_cast<int32_t>(in_dims[0]);
-        const int32_t C = static_cast<int32_t>(in_dims[1]);
+        const int32_t N      = static_cast<int32_t>(in_dims[0]);
+        const int32_t C      = static_cast<int32_t>(in_dims[1]);
         int32_t P = 1, L = 1;
         std::vector<int32_t> ls;
-        for (int i = 0; i < spatial_dim_size; ++i) {
+        for(int i = 0; i < spatial_dim_size; ++i)
+        {
             P *= config.kernelSize[i];
             int32_t l = (static_cast<int32_t>(in_dims[i + 2]) + 2 * config.padding[i] -
-                        config.dilation[i] * (config.kernelSize[i] - 1) - 1) /
+                         config.dilation[i] * (config.kernelSize[i] - 1) - 1) /
                             config.stride[i] +
                         1;
             L *= l;
             ls.push_back(l);
         }
 
-        std::vector<size_t> out_dims{static_cast<size_t>(N),
-                                    static_cast<size_t>(C * P),
-                                    static_cast<size_t>(L)};
+        std::vector<size_t> out_dims{
+            static_cast<size_t>(N), static_cast<size_t>(C * P), static_cast<size_t>(L)};
 
         output     = tensor<T>{out_dims}.generate(gen_zero);
         outputHost = tensor<T>{out_dims}.generate(gen_zero);
 
-        input_dev   = handle.Write(input.data);
-        output_dev  = handle.Write(output.data);
+        input_dev  = handle.Write(input.data);
+        output_dev = handle.Write(output.data);
     }
 
     void RunTest()
@@ -168,25 +172,21 @@ protected:
         miopenStatus_t status;
 
         status = miopen::UnfoldForward(handle,
-                                input.desc,
-                                input_dev.get(),
-                                output.desc,
-                                output_dev.get(),
-                                config.kernelSize.data(),
-                                static_cast<int>(config.kernelSize.size()),
-                                config.stride.data(),
-                                static_cast<int>(config.stride.size()),
-                                config.padding.data(),
-                                static_cast<int>(config.padding.size()),
-                                config.dilation.data(),
-                                static_cast<int>(config.dilation.size()));
-                                
-        cpu_unfold_fwd_4d<T>(input,
-                            outputHost,
-                            config.kernelSize,
-                            config.stride,
-                            config.padding,
-                            config.dilation);
+                                       input.desc,
+                                       input_dev.get(),
+                                       output.desc,
+                                       output_dev.get(),
+                                       config.kernelSize.data(),
+                                       static_cast<int>(config.kernelSize.size()),
+                                       config.stride.data(),
+                                       static_cast<int>(config.stride.size()),
+                                       config.padding.data(),
+                                       static_cast<int>(config.padding.size()),
+                                       config.dilation.data(),
+                                       static_cast<int>(config.dilation.size()));
+
+        cpu_unfold_fwd_4d<T>(
+            input, outputHost, config.kernelSize, config.stride, config.padding, config.dilation);
 
         EXPECT_EQ(status, miopenStatusSuccess);
         output.data = handle.Read<T>(output_dev, output.data.size());
@@ -201,10 +201,9 @@ protected:
         // bf16 mantissa has 7 bits, by 3 bits shorter than fp16.
         if(std::is_same<T, bfloat16>::value)
             tolerance *= 8.0;
-        auto error_output   = miopen::rms_range(outputHost, output);
-        EXPECT_TRUE(error_output < tolerance)
-            << "Error forward output beyond tolerance Error: {" << error_output
-            << "},  Tolerance: " << tolerance;
+        auto error_output = miopen::rms_range(outputHost, output);
+        EXPECT_TRUE(error_output < tolerance) << "Error forward output beyond tolerance Error: {"
+                                              << error_output << "},  Tolerance: " << tolerance;
     }
     UnfoldTestCase config;
 

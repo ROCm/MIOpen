@@ -59,13 +59,12 @@ struct UnfoldFwd final : UnfoldFwdSolverBase
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<UnfoldFwd>(); }
 
-    bool IsApplicable(
-        const ExecutionContext& context,
-        const miopen::fold::UnfoldFwdProblemDescription& problem) const override;
+    bool IsApplicable(const ExecutionContext& context,
+                      const miopen::fold::UnfoldFwdProblemDescription& problem) const override;
 
-    ConvSolution GetSolution(
-        const ExecutionContext& context,
-        const miopen::fold::UnfoldFwdProblemDescription& problem) const override;
+    ConvSolution
+    GetSolution(const ExecutionContext& context,
+                const miopen::fold::UnfoldFwdProblemDescription& problem) const override;
 };
 
 } // namespace fold

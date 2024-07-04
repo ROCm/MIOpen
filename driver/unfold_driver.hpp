@@ -135,37 +135,27 @@ int UnfoldDriver<Tgpu, Tref>::GetandSetData()
     std::vector<int> input_length = GetTensorLengthsFromCmdLine();
 
     kernel_size = GetVectorInt32tFromCmdLine("kernelSize");
-    stride = GetVectorInt32tFromCmdLine("stride");
-    padding = GetVectorInt32tFromCmdLine("padding");
-    dilation = GetVectorInt32tFromCmdLine("dilation");
-    std::cout << "asdasdkernel_size " << kernel_size.size() << std::endl; 
-    std::cout << "stride " << stride.size() << std::endl; 
-    std::cout << "padding " << padding.size() << std::endl; 
-    std::cout << "dilation " << dilation.size() << std::endl; 
-
+    stride      = GetVectorInt32tFromCmdLine("stride");
+    padding     = GetVectorInt32tFromCmdLine("padding");
+    dilation    = GetVectorInt32tFromCmdLine("dilation");
     int spatial_dim_size = input_length.size() - 2;
-    std::cout << "spatial_dim_size " << spatial_dim_size << std::endl; 
-
     const int N = input_length[0];
     const int C = input_length[1];
 
     int P = 1, L = 1;
     std::vector<int> ls;
-    for (int i = 0; i < spatial_dim_size; ++i) {
+    for(int i = 0; i < spatial_dim_size; ++i)
+    {
         P *= kernel_size[i];
-        int l = (input_length[i + 2] + 2 * padding[i] -
-                    dilation[i] * (kernel_size[i] - 1) - 1) /
-                        stride[i] + 1;
+        int l = (input_length[i + 2] + 2 * padding[i] - dilation[i] * (kernel_size[i] - 1) - 1) /
+                    stride[i] +
+                1;
         L *= l;
         ls.push_back(l);
     }
-    std::cout << "input-asdasd " << input_length.size() << std::endl; 
-
-    std::vector<int> output_length = {N, (C*P), L};
-    std::cout << "output_length " << output_length.size() << std::endl; 
+    std::vector<int> output_length = {N, (C * P), L};
     SetTensorNd(inputDesc, input_length, data_type);
     SetTensorNd(outputDesc, output_length, data_type);
-
     SetTensorNd(doutputDesc, output_length, data_type);
     SetTensorNd(dinputDesc, input_length, data_type);
 
@@ -175,12 +165,10 @@ int UnfoldDriver<Tgpu, Tref>::GetandSetData()
 template <typename Tgpu, typename Tref>
 int UnfoldDriver<Tgpu, Tref>::AddCmdLineArgs()
 {
-    inflags.AddInputFlag("forw", 'F', "1", "Run Unfold Forward (Default=1) or both Forward and Backward (0)", "int");
-    inflags.AddInputFlag("DimLengths",
-                         'D',
-                         "2,5,3,4",
-                         "The dimensional lengths of the input tensor",
-                         "string");
+    inflags.AddInputFlag(
+        "forw", 'F', "1", "Run Unfold Forward (Default=1) or both Forward and Backward (0)", "int");
+    inflags.AddInputFlag(
+        "DimLengths", 'D', "2,5,3,4", "The dimensional lengths of the input tensor", "string");
     inflags.AddInputFlag("kernelSize", 'k', "2,3", "Kernel Size (Default=2,3)", "str");
     inflags.AddInputFlag("stride", 's', "1,1", "Stride (Default=1,1)", "str");
     inflags.AddInputFlag("padding", 'p', "0,0", "Stride (Default=0,0)", "str");
@@ -257,27 +245,27 @@ std::vector<int32_t> UnfoldDriver<Tgpu, Tref>::GetVectorInt32tFromCmdLine(std::s
 template <typename Tgpu, typename Tref>
 int UnfoldDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 {
-    size_t input_sz   = GetTensorSize(inputDesc);
-    size_t output_sz  = GetTensorSize(outputDesc);
+    size_t input_sz  = GetTensorSize(inputDesc);
+    size_t output_sz = GetTensorSize(outputDesc);
 
     size_t doutput_sz = GetTensorSize(doutputDesc);
     size_t dinput_sz  = GetTensorSize(dinputDesc);
 
     uint32_t ctx = 0;
 
-    input_dev   = std::unique_ptr<GPUMem>(new GPUMem(ctx, input_sz, sizeof(Tgpu)));
-    output_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, output_sz, sizeof(Tgpu)));
+    input_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, input_sz, sizeof(Tgpu)));
+    output_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, output_sz, sizeof(Tgpu)));
 
     doutput_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, doutput_sz, sizeof(Tgpu)));
     dinput_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, dinput_sz, sizeof(Tgpu)));
 
-    input   = std::vector<Tgpu>(input_sz, static_cast<Tgpu>(0.0f));
-    output  = std::vector<Tgpu>(output_sz, static_cast<Tgpu>(0.0f));
+    input  = std::vector<Tgpu>(input_sz, static_cast<Tgpu>(0.0f));
+    output = std::vector<Tgpu>(output_sz, static_cast<Tgpu>(0.0f));
 
     doutput = std::vector<Tgpu>(doutput_sz, static_cast<Tgpu>(1.0f));
     dinput  = std::vector<Tgpu>(dinput_sz, static_cast<Tgpu>(0.0f));
 
-    output_host  = std::vector<Tref>(output_sz, static_cast<Tref>(0.0f));
+    output_host = std::vector<Tref>(output_sz, static_cast<Tref>(0.0f));
 
     doutput_host = std::vector<Tref>(doutput_sz, static_cast<Tref>(0.0f));
 
@@ -312,18 +300,18 @@ int UnfoldDriver<Tgpu, Tref>::RunForwardGPU()
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
         miopenUnfoldForward(GetHandle(),
-                                  inputDesc,
-                                  input_dev->GetMem(),
-                                  outputDesc,
-                                  output_dev->GetMem(),
-                                  kernel_size.data(),
-                                  kernel_size.size(),
-                                  stride.data(),
-                                  stride.size(),
-                                  padding.data(),
-                                  padding.size(),
-                                  dilation.data(),
-                                  dilation.size());
+                            inputDesc,
+                            input_dev->GetMem(),
+                            outputDesc,
+                            output_dev->GetMem(),
+                            kernel_size.data(),
+                            kernel_size.size(),
+                            stride.data(),
+                            stride.size(),
+                            padding.data(),
+                            padding.size(),
+                            dilation.data(),
+                            dilation.size());
 
         float time = 0.0;
         miopenGetKernelTime(GetHandle(), &time);
@@ -342,8 +330,8 @@ int UnfoldDriver<Tgpu, Tref>::RunForwardGPU()
 
         float kernel_average_time =
             iter > 1 ? (kernel_total_time - kernel_first_time) / (iter - 1) : kernel_first_time;
-        std::cout << "GPU Kernel Time Unfold Forward Elapsed: " << kernel_average_time
-                  << " ms" << std::endl;
+        std::cout << "GPU Kernel Time Unfold Forward Elapsed: " << kernel_average_time << " ms"
+                  << std::endl;
     }
 
     if(output_dev->FromGPU(GetStream(), output.data()) != 0)
@@ -357,14 +345,13 @@ template <typename Tgpu, typename Tref>
 int UnfoldDriver<Tgpu, Tref>::RunForwardCPU()
 {
     mloUnFoldFwd4DRunHost(input.data(),
-                        inputDesc,
-                        output_host.data(),
-                        outputDesc,
-                        kernel_size,
-                        stride,
-                        padding,
-                        dilation);
-
+                          inputDesc,
+                          output_host.data(),
+                          outputDesc,
+                          kernel_size,
+                          stride,
+                          padding,
+                          dilation);
     return miopenStatusSuccess;
 }
 
@@ -402,13 +389,13 @@ int UnfoldDriver<Tgpu, Tref>::VerifyForward()
 
     if(!std::isfinite(error_output) || error_output > tolerance)
     {
-        std::cout << "Forward Unfold FAILED: {" << error_output << "} > " << tolerance
-                    << std::endl;
+        std::cout << "Forward Unfold FAILED: {" << error_output << "} > " << tolerance << std::endl;
         return EC_VerifyFwd;
     }
     else
     {
-        std::cout << "Forward Unfold Verifies OK on CPU reference ({" << error_output << "} < " << tolerance << ')' << std::endl;
+        std::cout << "Forward Unfold Verifies OK on CPU reference ({" << error_output << "} < "
+                  << tolerance << ')' << std::endl;
     }
     return miopenStatusSuccess;
 }

@@ -39,20 +39,20 @@ struct InvokeParams : public miopen::InvokeParams
 {
     InvokeParams() = default;
 
-    const TensorDescriptor* inputDesc   = nullptr;
-    const TensorDescriptor* outputDesc  = nullptr;
+    const TensorDescriptor* inputDesc  = nullptr;
+    const TensorDescriptor* outputDesc = nullptr;
 
-    ConstData_t input  = nullptr;
-    Data_t output      = nullptr;
+    ConstData_t input = nullptr;
+    Data_t output     = nullptr;
 
     const int32_t* kernel_size = nullptr;
-    const int32_t* stride = nullptr;
-    const int32_t* padding = nullptr;
-    const int32_t* dilation = nullptr;
-    int kernel_size_size = 0;
-    int stride_size = 0;
-    int padding_size = 0;
-    int dilation_size = 0;
+    const int32_t* stride      = nullptr;
+    const int32_t* padding     = nullptr;
+    const int32_t* dilation    = nullptr;
+    int kernel_size_size       = 0;
+    int stride_size            = 0;
+    int padding_size           = 0;
+    int dilation_size          = 0;
 
     std::size_t GetWorkspaceSize() const { return 0; }
     Data_t GetWorkspace() const { return nullptr; }

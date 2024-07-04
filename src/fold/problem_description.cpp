@@ -51,10 +51,10 @@ namespace fold {
 
 NetworkConfig UnfoldFwdProblemDescription::MakeNetworkConfig() const
 {
-    auto input_dtype   = inputDesc.GetType();
-    auto output_dtype  = outputDesc.GetType();
-    auto size          = inputDesc.GetElementSize();
-    auto in_dims = inputDesc.GetLengths();
+    auto input_dtype  = inputDesc.GetType();
+    auto output_dtype = outputDesc.GetType();
+    auto size         = inputDesc.GetElementSize();
+    auto in_dims      = inputDesc.GetLengths();
 
     std::ostringstream ss;
 
@@ -62,14 +62,15 @@ NetworkConfig UnfoldFwdProblemDescription::MakeNetworkConfig() const
     ss << "i_dtype" << input_dtype;
     ss << "o_dtype" << output_dtype;
     ss << "size" << size;
-    ss << "in_dims" ;
-    for (auto val : in_dims) {
+    ss << "in_dims";
+    for(auto val : in_dims)
+    {
         ss << "_" << val;
     }
-    ss << "kernel_size_" << kernel_size[0] << "_" << kernel_size[1]; 
-    ss << "stride_" << stride[0] << "_" << stride[1]; 
-    ss << "padding_" << padding[0] << "_" << padding[1]; 
-    ss << "dilation_" << dilation[0] << "_" << dilation[1]; 
+    ss << "kernel_size_" << kernel_size[0] << "_" << kernel_size[1];
+    ss << "stride_" << stride[0] << "_" << stride[1];
+    ss << "padding_" << padding[0] << "_" << padding[1];
+    ss << "dilation_" << dilation[0] << "_" << dilation[1];
 
     return NetworkConfig{ss.str()};
 }

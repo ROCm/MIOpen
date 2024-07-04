@@ -42,29 +42,27 @@ namespace solver {
 
 namespace fold {
 
-bool FoldFwd::IsApplicable(
-    [[maybe_unused]] const ExecutionContext& /*context*/,
-    const miopen::fold::FoldFwdProblemDescription& problem) const
+bool FoldFwd::IsApplicable([[maybe_unused]] const ExecutionContext& /*context*/,
+                           const miopen::fold::FoldFwdProblemDescription& problem) const
 {
     return true;
 }
 
-ConvSolution FoldFwd::GetSolution(
-    [[maybe_unused]] const ExecutionContext& context,
-    const miopen::fold::FoldFwdProblemDescription& problem) const
+ConvSolution FoldFwd::GetSolution([[maybe_unused]] const ExecutionContext& context,
+                                  const miopen::fold::FoldFwdProblemDescription& problem) const
 {
     std::ignore = context;
     auto result = ConvSolution{miopenStatusSuccess};
 
-    auto in_dtype    = miopen::GetDataType(problem.GetInputDesc().GetType());
-    auto dtype       = problem.GetOutputDesc().GetType();
-    auto input_dims  = problem.GetInputDesc().GetLengths();
+    auto in_dtype   = miopen::GetDataType(problem.GetInputDesc().GetType());
+    auto dtype      = problem.GetOutputDesc().GetType();
+    auto input_dims = problem.GetInputDesc().GetLengths();
 
     auto output_dims = problem.GetOutputDesc().GetLengths();
-    const int32_t N = static_cast<int32_t>(output_dims[0]);
-    const int32_t C = static_cast<int32_t>(output_dims[1]);
-    int32_t H = static_cast<int32_t>(output_dims[2]);
-    int32_t W = static_cast<int32_t>(output_dims[3]);
+    const int32_t N  = static_cast<int32_t>(output_dims[0]);
+    const int32_t C  = static_cast<int32_t>(output_dims[1]);
+    int32_t H        = static_cast<int32_t>(output_dims[2]);
+    int32_t W        = static_cast<int32_t>(output_dims[3]);
 
     {
         auto kernel        = KernelInfo{};
@@ -102,20 +100,21 @@ ConvSolution FoldFwd::GetSolution(
             decltype(auto) kernel = handle_.Run(kernels.front());
             decltype(auto) params = raw_params.CastTo<miopen::fold::InvokeParams>();
 
-            auto input_tv                = get_inner_expanded_tv<3>(deref(params.inputDesc));
-            auto output_tv                = get_inner_expanded_tv<4>(deref(params.outputDesc));
-            auto input_dims          = deref(params.inputDesc).GetLengths();
-            auto output_dims          = deref(params.outputDesc).GetLengths();
+            auto input_tv    = get_inner_expanded_tv<3>(deref(params.inputDesc));
+            auto output_tv   = get_inner_expanded_tv<4>(deref(params.outputDesc));
+            auto input_dims  = deref(params.inputDesc).GetLengths();
+            auto output_dims = deref(params.outputDesc).GetLengths();
 
             int spatial_dim_size = output_dims.size() - 2;
-            const int32_t N = static_cast<int32_t>(output_dims[0]);
-            const int32_t C = static_cast<int32_t>(output_dims[1]);
+            const int32_t N      = static_cast<int32_t>(output_dims[0]);
+            const int32_t C      = static_cast<int32_t>(output_dims[1]);
             int32_t P = 1, L = 1;
             std::vector<int32_t> ls;
-            for (int i = 0; i < spatial_dim_size; ++i) {
+            for(int i = 0; i < spatial_dim_size; ++i)
+            {
                 P *= params.kernel_size[i];
                 int32_t l = (output_dims[i + 2] + 2 * params.padding[i] -
-                            params.dilation[i] * (params.kernel_size[i] - 1) - 1) /
+                             params.dilation[i] * (params.kernel_size[i] - 1) - 1) /
                                 params.stride[i] +
                             0;
                 L *= l;
@@ -124,37 +123,37 @@ ConvSolution FoldFwd::GetSolution(
 
             int32_t kernel_size_h = params.kernel_size[0];
             int32_t kernel_size_w = params.kernel_size[1];
-            int32_t stride_h = params.stride[0];
-            int32_t stride_w = params.stride[1];
-            int32_t padding_h = params.padding[0];
-            int32_t padding_w = params.padding[1];
-            int32_t dilation_h = params.dilation[0];
-            int32_t dilation_w = params.dilation[1];
-            int32_t LH = ls[0];
-            int32_t LW = ls[1];
-            int32_t H = static_cast<int32_t>(output_dims[2]);
-            int32_t W = static_cast<int32_t>(output_dims[3]);
+            int32_t stride_h      = params.stride[0];
+            int32_t stride_w      = params.stride[1];
+            int32_t padding_h     = params.padding[0];
+            int32_t padding_w     = params.padding[1];
+            int32_t dilation_h    = params.dilation[0];
+            int32_t dilation_w    = params.dilation[1];
+            int32_t LH            = ls[0];
+            int32_t LW            = ls[1];
+            int32_t H             = static_cast<int32_t>(output_dims[2]);
+            int32_t W             = static_cast<int32_t>(output_dims[3]);
 
             kernel(params.input,
-                    params.output,
-                    N,
-                    C,
-                    H,
-                    W,
-                    P,
-                    L,
-                    LH,
-                    LW,
-                    kernel_size_h,
-                    kernel_size_w,
-                    stride_h,
-                    stride_w,
-                    padding_h,
-                    padding_w,
-                    dilation_h,
-                    dilation_w,
-                    input_tv,
-                    output_tv);
+                   params.output,
+                   N,
+                   C,
+                   H,
+                   W,
+                   P,
+                   L,
+                   LH,
+                   LW,
+                   kernel_size_h,
+                   kernel_size_w,
+                   stride_h,
+                   stride_w,
+                   padding_h,
+                   padding_w,
+                   dilation_h,
+                   dilation_w,
+                   input_tv,
+                   output_tv);
         };
     };
 

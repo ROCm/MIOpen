@@ -34,17 +34,17 @@ struct Handle;
 struct TensorDescriptor;
 
 miopenStatus_t UnfoldForward(Handle& handle,
-                                   const TensorDescriptor& inputDesc,
-                                   ConstData_t input,
-                                   const TensorDescriptor& outputDesc,
-                                   Data_t output,
-                                   const int32_t* kernel_size,
-                                   const int kernel_size_size,
-                                   const int32_t* stride,
-                                   const int stride_size,
-                                   const int32_t* padding,
-                                   const int padding_size,
-                                   const int32_t* dilation,
-                                   const int dilation_size);
+                             const TensorDescriptor& inputDesc,
+                             ConstData_t input,
+                             const TensorDescriptor& outputDesc,
+                             Data_t output,
+                             const int32_t* kernel_size,
+                             const int kernel_size_size,
+                             const int32_t* stride,
+                             const int stride_size,
+                             const int32_t* padding,
+                             const int padding_size,
+                             const int32_t* dilation,
+                             const int dilation_size);
 } // namespace miopen
 #endif // MIOPEN_INSTANCE_NORM_HPP_

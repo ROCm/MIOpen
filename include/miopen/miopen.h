@@ -6601,23 +6601,24 @@ MIOPEN_EXPORT miopenStatus_t miopenBackendInitialize(miopenBackendDescriptor_t d
  * @param stride_size         Size of the stride array (input)
  * @param padding             Padding array to be added on input (input)
  * @param padding_size        Size of the padding array (input)
- * @param dilation            Dilation array control the stride of the elements within the neighborhood (input)
+ * @param dilation            Dilation array control the stride of the elements within the
+ * neighborhood (input)
  * @param dilation_size       Size of the dilation array (input)
  * @return               miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t miopenUnfoldForward(miopenHandle_t handle,
-                                                    const miopenTensorDescriptor_t inputDesc,
-                                                    const void* input,
-                                                    const miopenTensorDescriptor_t outputDesc,
-                                                    void* output,
-                                                    const int32_t* kernel_size,
-                                                    const int kernel_size_size,
-                                                    const int32_t* stride,
-                                                    const int stride_size,
-                                                    const int32_t* padding,
-                                                    const int padding_size,
-                                                    const int32_t* dilation,
-                                                    const int dilation_size);
+                                                 const miopenTensorDescriptor_t inputDesc,
+                                                 const void* input,
+                                                 const miopenTensorDescriptor_t outputDesc,
+                                                 void* output,
+                                                 const int32_t* kernel_size,
+                                                 const int kernel_size_size,
+                                                 const int32_t* stride,
+                                                 const int stride_size,
+                                                 const int32_t* padding,
+                                                 const int padding_size,
+                                                 const int32_t* dilation,
+                                                 const int dilation_size);
 
 // /*! @brief Execute an unfold forward layer
 //  *
@@ -6632,7 +6633,8 @@ MIOPEN_EXPORT miopenStatus_t miopenUnfoldForward(miopenHandle_t handle,
 //  * @param stride_size         Size of the stride array (input)
 //  * @param padding             Padding array to be added on input (input)
 //  * @param padding_size        Size of the padding array (input)
-//  * @param dilation            Dilation array control the stride of the elements within the neighborhood (input)
+//  * @param dilation            Dilation array control the stride of the elements within the
+//  neighborhood (input)
 //  * @param dilation_size       Size of the dilation array (input)
 //  * @return               miopenStatus_t
 //  */
@@ -6650,7 +6652,7 @@ MIOPEN_EXPORT miopenStatus_t miopenUnfoldForward(miopenHandle_t handle,
 //                                                     const int32_t* dilation,
 //                                                     const int dilation_size);
 
- /** @} */
+/** @} */
 // CLOSEOUT FOLD DOXYGEN GROUP
 #endif
 

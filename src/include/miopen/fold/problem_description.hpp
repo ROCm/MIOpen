@@ -74,7 +74,8 @@ bool checkSameLength(const TensorDescriptor& x, const TensorDescriptor& y);
 // //         {
 // // #if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
 // //             MIOPEN_THROW(miopenStatusBadParm,
-// //                          "Instance Norm: The input tensor dimension should be in range [2, 5].");
+// //                          "Instance Norm: The input tensor dimension should be in range [2,
+// 5].");
 // // #else
 // //             return false;
 // // #endif
@@ -114,31 +115,32 @@ struct UnfoldFwdProblemDescription : ProblemDescriptionBase
                                 const int dilation_size_)
         : inputDesc(inputDesc_),
           outputDesc(outputDesc_),
-            kernel_size(kernel_size_),
-            kernel_size_size(kernel_size_size_),
-            stride(stride_),
-            stride_size(stride_size_),
-            padding(padding_),
-            padding_size(padding_size_),
-            dilation(dilation_),
-            dilation_size(dilation_size_)
+          kernel_size(kernel_size_),
+          kernel_size_size(kernel_size_size_),
+          stride(stride_),
+          stride_size(stride_size_),
+          padding(padding_),
+          padding_size(padding_size_),
+          dilation(dilation_),
+          dilation_size(dilation_size_)
     {
         // IsValidSize();
     }
 
-//     bool IsValidSize() const
-//     {
-//         if(inputDesc.GetSize() < 2 || inputDesc.GetSize() > 5)
-//         {
-// #if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
-//             MIOPEN_THROW(miopenStatusBadParm,
-//                          "Instance Norm: The input tensor dimension should be in range [2, 5].");
-// #else
-//             return false;
-// #endif
-//         }
-//         return true;
-//     }
+    //     bool IsValidSize() const
+    //     {
+    //         if(inputDesc.GetSize() < 2 || inputDesc.GetSize() > 5)
+    //         {
+    // #if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
+    //             MIOPEN_THROW(miopenStatusBadParm,
+    //                          "Instance Norm: The input tensor dimension should be in range [2,
+    //                          5].");
+    // #else
+    //             return false;
+    // #endif
+    //         }
+    //         return true;
+    //     }
 
     const TensorDescriptor& GetInputDesc() const { return inputDesc; }
     const TensorDescriptor& GetOutputDesc() const { return outputDesc; }

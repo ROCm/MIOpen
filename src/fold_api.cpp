@@ -32,32 +32,32 @@
 #include <miopen/tensor_ops.hpp>
 
 extern "C" miopenStatus_t miopenUnfoldForward(miopenHandle_t handle,
-                                                    const miopenTensorDescriptor_t inputDesc,
-                                                    const void* input,
-                                                    const miopenTensorDescriptor_t outputDesc,
-                                                    void* output,
-                                                    const int32_t* kernel_size,
-                                                    const int kernel_size_size,
-                                                    const int32_t* stride,
-                                                    const int stride_size,
-                                                    const int32_t* padding,
-                                                    const int padding_size,
-                                                    const int32_t* dilation,
-                                                    const int dilation_size)
+                                              const miopenTensorDescriptor_t inputDesc,
+                                              const void* input,
+                                              const miopenTensorDescriptor_t outputDesc,
+                                              void* output,
+                                              const int32_t* kernel_size,
+                                              const int kernel_size_size,
+                                              const int32_t* stride,
+                                              const int stride_size,
+                                              const int32_t* padding,
+                                              const int padding_size,
+                                              const int32_t* dilation,
+                                              const int dilation_size)
 {
     return miopen::try_([&] {
         miopen::UnfoldForward(miopen::deref(handle),
-                                    miopen::deref(inputDesc),
-                                    DataCast(input),
-                                    miopen::deref(outputDesc),
-                                    DataCast(output),
-                                    kernel_size,
-                                    kernel_size_size,
-                                    stride,
-                                    stride_size,
-                                    padding,
-                                    padding_size,
-                                    dilation,
-                                    dilation_size);
+                              miopen::deref(inputDesc),
+                              DataCast(input),
+                              miopen::deref(outputDesc),
+                              DataCast(output),
+                              kernel_size,
+                              kernel_size_size,
+                              stride,
+                              stride_size,
+                              padding,
+                              padding_size,
+                              dilation,
+                              dilation_size);
     });
 }
