@@ -118,12 +118,12 @@ int32_t mloUnFoldBwd4DRunHost(Tcheck* ref_dinput,
     auto input_grad_tv   = miopen::get_inner_expanded_tv<4>(miopen::deref(dinputDesc));
     auto output_grad_tv  = miopen::get_inner_expanded_tv<3>(miopen::deref(doutputDesc));
     auto input_grad_dims = miopen::deref(dinputDesc).GetLengths();
-    auto input_size = miopen::deref(dinputDesc).GetSize();
+    auto input_size      = miopen::deref(dinputDesc).GetSize();
 
-    const int LOCAL_SIZE = 256;
-    int spatial_dim_size = input_size - 2;
-    const int32_t N      = static_cast<int32_t>(input_grad_dims[0]);
-    const int32_t C      = static_cast<int32_t>(input_grad_dims[1]);
+    const int LOCAL_SIZE       = 256;
+    int spatial_dim_size       = input_size - 2;
+    const int32_t N            = static_cast<int32_t>(input_grad_dims[0]);
+    const int32_t C            = static_cast<int32_t>(input_grad_dims[1]);
     [[maybe_unused]] int32_t P = 1, L = 1;
     std::vector<int32_t> ls;
     for(int i = 0; i < spatial_dim_size; ++i)
@@ -136,19 +136,19 @@ int32_t mloUnFoldBwd4DRunHost(Tcheck* ref_dinput,
         L *= l;
         ls.push_back(l);
     }
-    int32_t kernel_size_h                  = kernel_size[0];
-    int32_t kernel_size_w                  = kernel_size[1];
-    int32_t stride_h                       = stride[0];
-    int32_t stride_w                       = stride[1];
-    int32_t padding_h                      = padding[0];
-    int32_t padding_w                      = padding[1];
-    int32_t dilation_h                     = dilation[0];
-    int32_t dilation_w                     = dilation[1];
-    int32_t LH                             = ls[0];
-    int32_t LW                             = ls[1];
-    int32_t H                              = static_cast<int32_t>(input_grad_dims[2]);
-    int32_t W                              = static_cast<int32_t>(input_grad_dims[3]);
-    int work_size = (((N * C * H * W) + LOCAL_SIZE - 1) / LOCAL_SIZE) * LOCAL_SIZE;
+    int32_t kernel_size_h = kernel_size[0];
+    int32_t kernel_size_w = kernel_size[1];
+    int32_t stride_h      = stride[0];
+    int32_t stride_w      = stride[1];
+    int32_t padding_h     = padding[0];
+    int32_t padding_w     = padding[1];
+    int32_t dilation_h    = dilation[0];
+    int32_t dilation_w    = dilation[1];
+    int32_t LH            = ls[0];
+    int32_t LW            = ls[1];
+    int32_t H             = static_cast<int32_t>(input_grad_dims[2]);
+    int32_t W             = static_cast<int32_t>(input_grad_dims[3]);
+    int work_size         = (((N * C * H * W) + LOCAL_SIZE - 1) / LOCAL_SIZE) * LOCAL_SIZE;
     par_ford(work_size)([&](int gid) {
         int nch = gid / W, w = gid % W;
         int nc = nch / H, h = nch % H;
@@ -174,15 +174,16 @@ int32_t mloUnFoldBwd4DRunHost(Tcheck* ref_dinput,
                     continue;
                 if(lw < 0 || LW <= lw)
                     continue;
-                long output_grad_idx = output_grad_tv.stride[2] * (lh * LW + lw) +
-                                    output_grad_tv.stride[1] * (c * P + (ph * kernel_size_w + pw)) +
-                                    output_grad_tv.stride[0] * n;
+                long output_grad_idx =
+                    output_grad_tv.stride[2] * (lh * LW + lw) +
+                    output_grad_tv.stride[1] * (c * P + (ph * kernel_size_w + pw)) +
+                    output_grad_tv.stride[0] * n;
                 sum += static_cast<float>(doutput[output_grad_idx]);
             }
         }
 
         long input_grad_idx = input_grad_tv.stride[3] * w + input_grad_tv.stride[2] * h +
-                          input_grad_tv.stride[1] * c + input_grad_tv.stride[0] * n;
+                              input_grad_tv.stride[1] * c + input_grad_tv.stride[0] * n;
         ref_dinput[input_grad_idx] = static_cast<Tcheck>(sum);
     });
 

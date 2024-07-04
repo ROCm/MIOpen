@@ -117,7 +117,7 @@ void cpu_unfold_bwd_4d(tensor<T>& ref_dinput_tensor,
 {
     auto input_grad_tv   = miopen::get_inner_expanded_tv<4>(ref_dinput_tensor.desc);
     auto output_grad_tv  = miopen::get_inner_expanded_tv<3>(doutput_tensor.desc);
-    auto input_size = ref_dinput_tensor.desc.GetSize();
+    auto input_size      = ref_dinput_tensor.desc.GetSize();
     auto input_grad_dims = ref_dinput_tensor.desc.GetLengths();
 
     auto input_grad  = ref_dinput_tensor.data.data();
@@ -180,15 +180,16 @@ void cpu_unfold_bwd_4d(tensor<T>& ref_dinput_tensor,
                     continue;
                 if(lw < 0 || LW <= lw)
                     continue;
-                long output_grad_idx = output_grad_tv.stride[2] * (lh * LW + lw) +
-                                    output_grad_tv.stride[1] * (c * P + (ph * kernel_size_w + pw)) +
-                                    output_grad_tv.stride[0] * n;
+                long output_grad_idx =
+                    output_grad_tv.stride[2] * (lh * LW + lw) +
+                    output_grad_tv.stride[1] * (c * P + (ph * kernel_size_w + pw)) +
+                    output_grad_tv.stride[0] * n;
                 sum += static_cast<float>(output_grad[output_grad_idx]);
             }
         }
 
         long input_grad_idx = input_grad_tv.stride[3] * w + input_grad_tv.stride[2] * h +
-                          input_grad_tv.stride[1] * c + input_grad_tv.stride[0] * n;
+                              input_grad_tv.stride[1] * c + input_grad_tv.stride[0] * n;
         input_grad[input_grad_idx] = static_cast<T>(sum);
     });
 }

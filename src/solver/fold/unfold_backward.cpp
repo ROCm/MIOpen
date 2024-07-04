@@ -54,15 +54,15 @@ ConvSolution UnfoldBwd::GetSolution([[maybe_unused]] const ExecutionContext& con
     std::ignore = context;
     auto result = ConvSolution{miopenStatusSuccess};
 
-    auto in_dtype   = miopen::GetDataType(problem.GetDinputDesc().GetType());
-    auto dtype      = problem.GetDoutputDesc().GetType();
-    auto input_grad_dims = problem.GetDinputDesc().GetLengths();
+    auto in_dtype         = miopen::GetDataType(problem.GetDinputDesc().GetType());
+    auto dtype            = problem.GetDoutputDesc().GetType();
+    auto input_grad_dims  = problem.GetDinputDesc().GetLengths();
     auto output_grad_dims = problem.GetDoutputDesc().GetLengths();
 
-    const int32_t N      = static_cast<int32_t>(input_grad_dims[0]);
-    const int32_t C      = static_cast<int32_t>(input_grad_dims[1]);
-    int32_t H = static_cast<int32_t>(input_grad_dims[2]);
-    int32_t W = static_cast<int32_t>(input_grad_dims[3]);
+    const int32_t N = static_cast<int32_t>(input_grad_dims[0]);
+    const int32_t C = static_cast<int32_t>(input_grad_dims[1]);
+    int32_t H       = static_cast<int32_t>(input_grad_dims[2]);
+    int32_t W       = static_cast<int32_t>(input_grad_dims[3]);
 
     {
         auto kernel        = KernelInfo{};

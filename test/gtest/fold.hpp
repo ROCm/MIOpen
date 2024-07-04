@@ -216,7 +216,6 @@ protected:
     miopen::Allocator::ManageDataPtr output_dev;
 };
 
-
 template <typename T>
 struct UnfoldBwdTest : public ::testing::TestWithParam<UnfoldTestCase>
 {
@@ -232,8 +231,8 @@ protected:
         auto gen_value = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1e-2, 100); };
         auto gen_one   = [&](auto...) { return 1; };
         auto gen_zero  = [&](auto...) { return 0; };
-        dinput          = tensor<T>{in_dims, in_strides}.generate(gen_zero);
-        dinputHost = tensor<T>{in_dims, in_strides}.generate(gen_zero);
+        dinput         = tensor<T>{in_dims, in_strides}.generate(gen_zero);
+        dinputHost     = tensor<T>{in_dims, in_strides}.generate(gen_zero);
 
         int spatial_dim_size = in_dims.size() - 2;
         const int32_t N      = static_cast<int32_t>(in_dims[0]);
@@ -254,7 +253,7 @@ protected:
         std::vector<size_t> out_dims{
             static_cast<size_t>(N), static_cast<size_t>(C * P), static_cast<size_t>(L)};
 
-        doutput     = tensor<T>{out_dims}.generate(gen_value);
+        doutput = tensor<T>{out_dims}.generate(gen_value);
 
         dinput_dev  = handle.Write(dinput.data);
         doutput_dev = handle.Write(doutput.data);
@@ -266,18 +265,18 @@ protected:
         miopenStatus_t status;
 
         status = miopen::UnfoldBackward(handle,
-                                       dinput.desc,
-                                       dinput_dev.get(),
-                                       doutput.desc,
-                                       doutput_dev.get(),
-                                       config.kernelSize.data(),
-                                       static_cast<int>(config.kernelSize.size()),
-                                       config.stride.data(),
-                                       static_cast<int>(config.stride.size()),
-                                       config.padding.data(),
-                                       static_cast<int>(config.padding.size()),
-                                       config.dilation.data(),
-                                       static_cast<int>(config.dilation.size()));
+                                        dinput.desc,
+                                        dinput_dev.get(),
+                                        doutput.desc,
+                                        doutput_dev.get(),
+                                        config.kernelSize.data(),
+                                        static_cast<int>(config.kernelSize.size()),
+                                        config.stride.data(),
+                                        static_cast<int>(config.stride.size()),
+                                        config.padding.data(),
+                                        static_cast<int>(config.padding.size()),
+                                        config.dilation.data(),
+                                        static_cast<int>(config.dilation.size()));
 
         cpu_unfold_bwd_4d<T>(
             dinputHost, doutput, config.kernelSize, config.stride, config.padding, config.dilation);
@@ -296,8 +295,9 @@ protected:
         if(std::is_same<T, bfloat16>::value)
             tolerance *= 8.0;
         auto error_dinput = miopen::rms_range(dinputHost, dinput);
-        EXPECT_TRUE(error_dinput < tolerance) << "Error backward input_grad beyond tolerance Error: {"
-                                              << error_dinput << "},  Tolerance: " << tolerance;
+        EXPECT_TRUE(error_dinput < tolerance)
+            << "Error backward input_grad beyond tolerance Error: {" << error_dinput
+            << "},  Tolerance: " << tolerance;
     }
     UnfoldTestCase config;
 

@@ -88,18 +88,18 @@ miopenStatus_t UnfoldForward(Handle& handle,
 }
 
 miopenStatus_t UnfoldBackward(Handle& handle,
-                             const TensorDescriptor& dinputDesc,
-                             Data_t dinput,
-                             const TensorDescriptor& doutputDesc,
-                             ConstData_t doutput,
-                             const int32_t* kernel_size,
-                             const int kernel_size_size,
-                             const int32_t* stride,
-                             const int stride_size,
-                             const int32_t* padding,
-                             const int padding_size,
-                             const int32_t* dilation,
-                             const int dilation_size)
+                              const TensorDescriptor& dinputDesc,
+                              Data_t dinput,
+                              const TensorDescriptor& doutputDesc,
+                              ConstData_t doutput,
+                              const int32_t* kernel_size,
+                              const int kernel_size_size,
+                              const int32_t* stride,
+                              const int stride_size,
+                              const int32_t* padding,
+                              const int padding_size,
+                              const int32_t* dilation,
+                              const int dilation_size)
 {
     const auto problem = fold::UnfoldBwdProblemDescription{dinputDesc,
                                                            doutputDesc,
@@ -115,10 +115,10 @@ miopenStatus_t UnfoldBackward(Handle& handle,
     const auto invoke_params = [&]() {
         auto tmp             = fold::InvokeParams{};
         tmp.type             = InvokeType::Run;
-        tmp.dinputDesc        = &dinputDesc;
-        tmp.doutputDesc       = &doutputDesc;
-        tmp.dinput            = dinput;
-        tmp.doutput           = doutput;
+        tmp.dinputDesc       = &dinputDesc;
+        tmp.doutputDesc      = &doutputDesc;
+        tmp.dinput           = dinput;
+        tmp.doutput          = doutput;
         tmp.kernel_size      = kernel_size;
         tmp.stride           = stride;
         tmp.padding          = padding;

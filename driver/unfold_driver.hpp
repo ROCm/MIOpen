@@ -367,18 +367,18 @@ int UnfoldDriver<Tgpu, Tref>::RunBackwardGPU()
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
         miopenUnfoldBackward(GetHandle(),
-                            dinputDesc,
-                            dinput_dev->GetMem(),
-                            doutputDesc,
-                            doutput_dev->GetMem(),
-                            kernel_size.data(),
-                            kernel_size.size(),
-                            stride.data(),
-                            stride.size(),
-                            padding.data(),
-                            padding.size(),
-                            dilation.data(),
-                            dilation.size());
+                             dinputDesc,
+                             dinput_dev->GetMem(),
+                             doutputDesc,
+                             doutput_dev->GetMem(),
+                             kernel_size.data(),
+                             kernel_size.size(),
+                             stride.data(),
+                             stride.size(),
+                             padding.data(),
+                             padding.size(),
+                             dilation.data(),
+                             dilation.size());
 
         float time = 0.0;
         miopenGetKernelTime(GetHandle(), &time);
@@ -412,13 +412,13 @@ template <typename Tgpu, typename Tref>
 int UnfoldDriver<Tgpu, Tref>::RunBackwardCPU()
 {
     mloUnFoldBwd4DRunHost(dinput_host.data(),
-                        inputDesc,
-                        doutput.data(),
-                        doutputDesc,
-                        kernel_size,
-                        stride,
-                        padding,
-                        dilation);
+                          inputDesc,
+                          doutput.data(),
+                          doutputDesc,
+                          kernel_size,
+                          stride,
+                          padding,
+                          dilation);
     return miopenStatusSuccess;
 }
 
@@ -464,7 +464,8 @@ int UnfoldDriver<Tgpu, Tref>::VerifyBackward()
 
     if(!std::isfinite(error_dinput) || error_dinput > tolerance)
     {
-        std::cout << "Backward Unfold FAILED: {" << error_dinput << "} > " << tolerance << std::endl;
+        std::cout << "Backward Unfold FAILED: {" << error_dinput << "} > " << tolerance
+                  << std::endl;
         return EC_VerifyFwd;
     }
     else

@@ -6639,18 +6639,18 @@ MIOPEN_EXPORT miopenStatus_t miopenUnfoldForward(miopenHandle_t handle,
  * @return               miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t miopenUnfoldBackward(miopenHandle_t handle,
-                                                    const miopenTensorDescriptor_t dinputDesc,
-                                                    void* dinput,
-                                                    const miopenTensorDescriptor_t doutputDesc,
-                                                    const void* doutput,
-                                                    const int32_t* kernel_size,
-                                                    const int kernel_size_size,
-                                                    const int32_t* stride,
-                                                    const int stride_size,
-                                                    const int32_t* padding,
-                                                    const int padding_size,
-                                                    const int32_t* dilation,
-                                                    const int dilation_size);
+                                                  const miopenTensorDescriptor_t dinputDesc,
+                                                  void* dinput,
+                                                  const miopenTensorDescriptor_t doutputDesc,
+                                                  const void* doutput,
+                                                  const int32_t* kernel_size,
+                                                  const int kernel_size_size,
+                                                  const int32_t* stride,
+                                                  const int stride_size,
+                                                  const int32_t* padding,
+                                                  const int padding_size,
+                                                  const int32_t* dilation,
+                                                  const int dilation_size);
 
 /** @} */
 // CLOSEOUT FOLD DOXYGEN GROUP
