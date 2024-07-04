@@ -106,4 +106,90 @@ void cpu_unfold_fwd_4d(tensor<T> input_tensor,
         output[output_idx] = x;
     });
 }
+
+template <class T>
+void cpu_unfold_bwd_4d(tensor<T>& ref_dinput_tensor,
+                       tensor<T> doutput_tensor,
+                       const std::vector<int32_t> kernel_size,
+                       const std::vector<int32_t> stride,
+                       const std::vector<int32_t> padding,
+                       const std::vector<int32_t> dilation)
+{
+    auto input_grad_tv   = miopen::get_inner_expanded_tv<4>(ref_dinput_tensor.desc);
+    auto output_grad_tv  = miopen::get_inner_expanded_tv<3>(doutput_tensor.desc);
+    auto input_size = ref_dinput_tensor.desc.GetSize();
+    auto input_grad_dims = ref_dinput_tensor.desc.GetLengths();
+
+    auto input_grad  = ref_dinput_tensor.data.data();
+    auto output_grad = doutput_tensor.data.data();
+
+    const int LOCAL_SIZE = 256;
+    int spatial_dim_size = input_size - 2;
+
+    const int32_t N = static_cast<int32_t>(input_grad_dims[0]);
+    const int32_t C = static_cast<int32_t>(input_grad_dims[1]);
+
+    int32_t P = 1, L = 1;
+    std::vector<int32_t> ls;
+    for(int i = 0; i < spatial_dim_size; ++i)
+    {
+        P *= kernel_size[i];
+        int32_t l = (static_cast<int32_t>(input_grad_dims[i + 2]) + 2 * padding[i] -
+                     dilation[i] * (kernel_size[i] - 1) - 1) /
+                        stride[i] +
+                    1;
+        L *= l;
+        ls.push_back(l);
+    }
+
+    int32_t kernel_size_h = kernel_size[0];
+    int32_t kernel_size_w = kernel_size[1];
+    int32_t stride_h      = stride[0];
+    int32_t stride_w      = stride[1];
+    int32_t padding_h     = padding[0];
+    int32_t padding_w     = padding[1];
+    int32_t dilation_h    = dilation[0];
+    int32_t dilation_w    = dilation[1];
+    int32_t LH            = ls[0];
+    int32_t LW            = ls[1];
+    int32_t H             = static_cast<int32_t>(input_grad_dims[2]);
+    int32_t W             = static_cast<int32_t>(input_grad_dims[3]);
+    int work_size         = (((N * C * H * W) + LOCAL_SIZE - 1) / LOCAL_SIZE) * LOCAL_SIZE;
+    par_ford(work_size)([&](int gid) {
+        int nch = gid / W, w = gid % W;
+        int nc = nch / H, h = nch % H;
+        int n = nc / C, c = nc % C;
+        if(n >= N)
+            return;
+
+        float sum = 0.0f;
+
+        for(int ph = 0; ph < kernel_size_h; ++ph)
+        {
+            for(int pw = 0; pw < kernel_size_w; ++pw)
+            {
+                int lhsh = h - ph * dilation_h + padding_h;
+                int lwsw = w - pw * dilation_w + padding_w;
+                if(lhsh % stride_h != 0)
+                    continue;
+                if(lwsw % stride_w != 0)
+                    continue;
+                int lh = lhsh / stride_h;
+                int lw = lwsw / stride_w;
+                if(lh < 0 || LH <= lh)
+                    continue;
+                if(lw < 0 || LW <= lw)
+                    continue;
+                long output_grad_idx = output_grad_tv.stride[2] * (lh * LW + lw) +
+                                    output_grad_tv.stride[1] * (c * P + (ph * kernel_size_w + pw)) +
+                                    output_grad_tv.stride[0] * n;
+                sum += static_cast<float>(output_grad[output_grad_idx]);
+            }
+        }
+
+        long input_grad_idx = input_grad_tv.stride[3] * w + input_grad_tv.stride[2] * h +
+                          input_grad_tv.stride[1] * c + input_grad_tv.stride[0] * n;
+        input_grad[input_grad_idx] = static_cast<T>(sum);
+    });
+}
 #endif

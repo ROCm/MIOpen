@@ -75,6 +75,32 @@ NetworkConfig UnfoldFwdProblemDescription::MakeNetworkConfig() const
     return NetworkConfig{ss.str()};
 }
 
+NetworkConfig UnfoldBwdProblemDescription::MakeNetworkConfig() const
+{
+    auto input_dtype  = dinputDesc.GetType();
+    auto output_dtype = doutputDesc.GetType();
+    auto size         = dinputDesc.GetElementSize();
+    auto in_dims      = dinputDesc.GetLengths();
+
+    std::ostringstream ss;
+
+    ss << "Unfold_bwd";
+    ss << "i_dtype" << input_dtype;
+    ss << "o_dtype" << output_dtype;
+    ss << "size" << size;
+    ss << "in_grad_dims";
+    for(auto val : in_dims)
+    {
+        ss << "_" << val;
+    }
+    ss << "kernel_size_" << kernel_size[0] << "_" << kernel_size[1];
+    ss << "stride_" << stride[0] << "_" << stride[1];
+    ss << "padding_" << padding[0] << "_" << padding[1];
+    ss << "dilation_" << dilation[0] << "_" << dilation[1];
+
+    return NetworkConfig{ss.str()};
+}
+
 } // namespace fold
 
 } // namespace miopen

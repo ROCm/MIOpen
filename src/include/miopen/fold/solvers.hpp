@@ -67,6 +67,21 @@ struct UnfoldFwd final : UnfoldFwdSolverBase
                 const miopen::fold::UnfoldFwdProblemDescription& problem) const override;
 };
 
+using UnfoldBwdSolverBase =
+    NonTunableSolverBase<ExecutionContext, miopen::fold::UnfoldBwdProblemDescription>;
+
+struct UnfoldBwd final : UnfoldBwdSolverBase
+{
+    const std::string& SolverDbId() const override { return GetSolverDbId<UnfoldBwd>(); }
+
+    bool IsApplicable(const ExecutionContext& context,
+                      const miopen::fold::UnfoldBwdProblemDescription& problem) const override;
+
+    ConvSolution
+    GetSolution(const ExecutionContext& context,
+                const miopen::fold::UnfoldBwdProblemDescription& problem) const override;
+};
+
 } // namespace fold
 
 } // namespace solver

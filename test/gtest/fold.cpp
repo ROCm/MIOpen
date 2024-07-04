@@ -43,6 +43,18 @@ struct UnfoldForwardTestFloat16 : UnfoldFwdTest<half>
 struct UnfoldForwardTestBFloat16 : UnfoldFwdTest<bfloat16>
 {
 };
+
+struct UnfoldBackwardTestFloat32 : UnfoldBwdTest<float>
+{
+};
+
+struct UnfoldBackwardTestFloat16 : UnfoldBwdTest<half>
+{
+};
+
+struct UnfoldBackwardTestBFloat16 : UnfoldBwdTest<bfloat16>
+{
+};
 }; // namespace fold
 using namespace fold;
 TEST_P(UnfoldForwardTestFloat32, UnfoldForwardTest)
@@ -94,4 +106,55 @@ TEST_P(UnfoldForwardTestBFloat16, UnfoldForwardTest)
 
 INSTANTIATE_TEST_SUITE_P(UnfoldForwardTestSet,
                          UnfoldForwardTestBFloat16,
+                         testing::ValuesIn(UnfoldTestConfigs()));
+
+TEST_P(UnfoldBackwardTestFloat32, UnfoldBackwardTest)
+{
+    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)))
+    {
+        RunTest();
+        Verify();
+    }
+    else
+    {
+        GTEST_SKIP();
+    }
+};
+
+INSTANTIATE_TEST_SUITE_P(UnfoldBackwardTestSet,
+                         UnfoldBackwardTestFloat32,
+                         testing::ValuesIn(UnfoldTestConfigs()));
+
+TEST_P(UnfoldBackwardTestFloat16, UnfoldBackwardTest)
+{
+    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)))
+    {
+        RunTest();
+        Verify();
+    }
+    else
+    {
+        GTEST_SKIP();
+    }
+};
+
+INSTANTIATE_TEST_SUITE_P(UnfoldBackwardTestSet,
+                         UnfoldBackwardTestFloat16,
+                         testing::ValuesIn(UnfoldTestConfigs()));
+
+TEST_P(UnfoldBackwardTestBFloat16, UnfoldBackwardTest)
+{
+    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)))
+    {
+        RunTest();
+        Verify();
+    }
+    else
+    {
+        GTEST_SKIP();
+    }
+};
+
+INSTANTIATE_TEST_SUITE_P(UnfoldBackwardTestSet,
+                         UnfoldBackwardTestBFloat16,
                          testing::ValuesIn(UnfoldTestConfigs()));

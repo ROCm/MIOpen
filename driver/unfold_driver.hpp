@@ -109,7 +109,7 @@ private:
 
     std::vector<Tref> output_host;
 
-    std::vector<Tref> doutput_host;
+    std::vector<Tref> dinput_host;
 
     std::vector<int32_t> kernel_size;
     std::vector<int32_t> stride;
@@ -156,8 +156,8 @@ int UnfoldDriver<Tgpu, Tref>::GetandSetData()
     std::vector<int> output_length = {N, (C * P), L};
     SetTensorNd(inputDesc, input_length, data_type);
     SetTensorNd(outputDesc, output_length, data_type);
-    SetTensorNd(doutputDesc, output_length, data_type);
     SetTensorNd(dinputDesc, input_length, data_type);
+    SetTensorNd(doutputDesc, output_length, data_type);
 
     return miopenStatusSuccess;
 }
@@ -267,7 +267,7 @@ int UnfoldDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
     output_host = std::vector<Tref>(output_sz, static_cast<Tref>(0.0f));
 
-    doutput_host = std::vector<Tref>(doutput_sz, static_cast<Tref>(0.0f));
+    dinput_host = std::vector<Tref>(dinput_sz, static_cast<Tref>(0.0f));
 
     int status;
 
@@ -358,12 +358,67 @@ int UnfoldDriver<Tgpu, Tref>::RunForwardCPU()
 template <typename Tgpu, typename Tref>
 int UnfoldDriver<Tgpu, Tref>::RunBackwardGPU()
 {
+    float kernel_total_time = 0;
+    float kernel_first_time = 0;
+
+    Timer t;
+    START_TIME
+
+    for(int i = 0; i < inflags.GetValueInt("iter"); i++)
+    {
+        miopenUnfoldBackward(GetHandle(),
+                            dinputDesc,
+                            dinput_dev->GetMem(),
+                            doutputDesc,
+                            doutput_dev->GetMem(),
+                            kernel_size.data(),
+                            kernel_size.size(),
+                            stride.data(),
+                            stride.size(),
+                            padding.data(),
+                            padding.size(),
+                            dilation.data(),
+                            dilation.size());
+
+        float time = 0.0;
+        miopenGetKernelTime(GetHandle(), &time);
+        kernel_total_time += time;
+        if(i == 0)
+            kernel_first_time = time;
+    }
+
+    if(inflags.GetValueInt("time") == 1)
+    {
+        STOP_TIME
+        int iter = inflags.GetValueInt("iter");
+        if(WALL_CLOCK)
+            std::cout << "Wall-clock Time Unfold Backward Elapsed: " << t.gettime_ms() / iter
+                      << " ms" << std::endl;
+
+        float kernel_average_time =
+            iter > 1 ? (kernel_total_time - kernel_first_time) / (iter - 1) : kernel_first_time;
+        std::cout << "GPU Kernel Time Unfold Backward Elapsed: " << kernel_average_time << " ms"
+                  << std::endl;
+    }
+
+    if(dinput_dev->FromGPU(GetStream(), dinput.data()) != 0)
+        std::cerr << "Error copying (dinput_dev) from GPU, size: " << dinput_dev->GetSize()
+                  << std::endl;
+
     return miopenStatusSuccess;
 }
 
 template <typename Tgpu, typename Tref>
 int UnfoldDriver<Tgpu, Tref>::RunBackwardCPU()
 {
+    mloUnFoldBwd4DRunHost(dinput_host.data(),
+                        inputDesc,
+                        doutput.data(),
+                        doutputDesc,
+                        kernel_size,
+                        stride,
+                        padding,
+                        dilation);
     return miopenStatusSuccess;
 }
 
@@ -403,6 +458,20 @@ int UnfoldDriver<Tgpu, Tref>::VerifyForward()
 template <typename Tgpu, typename Tref>
 int UnfoldDriver<Tgpu, Tref>::VerifyBackward()
 {
+    RunBackwardCPU();
+    const Tref tolerance = GetTolerance();
+    auto error_dinput    = miopen::rms_range(dinput_host, dinput);
+
+    if(!std::isfinite(error_dinput) || error_dinput > tolerance)
+    {
+        std::cout << "Backward Unfold FAILED: {" << error_dinput << "} > " << tolerance << std::endl;
+        return EC_VerifyFwd;
+    }
+    else
+    {
+        std::cout << "Backward Unfold Verifies OK on CPU reference ({" << error_dinput << "} < "
+                  << tolerance << ')' << std::endl;
+    }
     return miopenStatusSuccess;
 }
 

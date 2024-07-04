@@ -215,3 +215,97 @@ protected:
     miopen::Allocator::ManageDataPtr input_dev;
     miopen::Allocator::ManageDataPtr output_dev;
 };
+
+
+template <typename T>
+struct UnfoldBwdTest : public ::testing::TestWithParam<UnfoldTestCase>
+{
+protected:
+    void SetUp() override
+    {
+        auto&& handle = get_handle();
+        config        = GetParam();
+
+        std::vector<size_t> in_dims    = config.GetInput();
+        std::vector<size_t> in_strides = config.ComputeStrides(in_dims);
+
+        auto gen_value = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1e-2, 100); };
+        auto gen_one   = [&](auto...) { return 1; };
+        auto gen_zero  = [&](auto...) { return 0; };
+        dinput          = tensor<T>{in_dims, in_strides}.generate(gen_zero);
+        dinputHost = tensor<T>{in_dims, in_strides}.generate(gen_zero);
+
+        int spatial_dim_size = in_dims.size() - 2;
+        const int32_t N      = static_cast<int32_t>(in_dims[0]);
+        const int32_t C      = static_cast<int32_t>(in_dims[1]);
+        int32_t P = 1, L = 1;
+        std::vector<int32_t> ls;
+        for(int i = 0; i < spatial_dim_size; ++i)
+        {
+            P *= config.kernelSize[i];
+            int32_t l = (static_cast<int32_t>(in_dims[i + 2]) + 2 * config.padding[i] -
+                         config.dilation[i] * (config.kernelSize[i] - 1) - 1) /
+                            config.stride[i] +
+                        1;
+            L *= l;
+            ls.push_back(l);
+        }
+
+        std::vector<size_t> out_dims{
+            static_cast<size_t>(N), static_cast<size_t>(C * P), static_cast<size_t>(L)};
+
+        doutput     = tensor<T>{out_dims}.generate(gen_value);
+
+        dinput_dev  = handle.Write(dinput.data);
+        doutput_dev = handle.Write(doutput.data);
+    }
+
+    void RunTest()
+    {
+        auto&& handle = get_handle();
+        miopenStatus_t status;
+
+        status = miopen::UnfoldBackward(handle,
+                                       dinput.desc,
+                                       dinput_dev.get(),
+                                       doutput.desc,
+                                       doutput_dev.get(),
+                                       config.kernelSize.data(),
+                                       static_cast<int>(config.kernelSize.size()),
+                                       config.stride.data(),
+                                       static_cast<int>(config.stride.size()),
+                                       config.padding.data(),
+                                       static_cast<int>(config.padding.size()),
+                                       config.dilation.data(),
+                                       static_cast<int>(config.dilation.size()));
+
+        cpu_unfold_bwd_4d<T>(
+            dinputHost, doutput, config.kernelSize, config.stride, config.padding, config.dilation);
+
+        EXPECT_EQ(status, miopenStatusSuccess);
+        dinput.data = handle.Read<T>(dinput_dev, dinput.data.size());
+    }
+
+    void Verify()
+    {
+        // Computation error of fp16 is ~2^13 (=8192) bigger than
+        // the one of fp32 because mantissa is shorter by 13 bits.
+        double tolerance = std::is_same<T, float>::value ? 1.5e-6 : 8.2e-3;
+
+        // bf16 mantissa has 7 bits, by 3 bits shorter than fp16.
+        if(std::is_same<T, bfloat16>::value)
+            tolerance *= 8.0;
+        auto error_dinput = miopen::rms_range(dinputHost, dinput);
+        EXPECT_TRUE(error_dinput < tolerance) << "Error backward input_grad beyond tolerance Error: {"
+                                              << error_dinput << "},  Tolerance: " << tolerance;
+    }
+    UnfoldTestCase config;
+
+    tensor<T> dinput;
+    tensor<T> doutput;
+
+    tensor<T> dinputHost;
+
+    miopen::Allocator::ManageDataPtr dinput_dev;
+    miopen::Allocator::ManageDataPtr doutput_dev;
+};

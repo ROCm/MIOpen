@@ -87,4 +87,54 @@ miopenStatus_t UnfoldForward(Handle& handle,
     return miopenStatusSuccess;
 }
 
+miopenStatus_t UnfoldBackward(Handle& handle,
+                             const TensorDescriptor& dinputDesc,
+                             Data_t dinput,
+                             const TensorDescriptor& doutputDesc,
+                             ConstData_t doutput,
+                             const int32_t* kernel_size,
+                             const int kernel_size_size,
+                             const int32_t* stride,
+                             const int stride_size,
+                             const int32_t* padding,
+                             const int padding_size,
+                             const int32_t* dilation,
+                             const int dilation_size)
+{
+    const auto problem = fold::UnfoldBwdProblemDescription{dinputDesc,
+                                                           doutputDesc,
+                                                           kernel_size,
+                                                           kernel_size_size,
+                                                           stride,
+                                                           stride_size,
+                                                           padding,
+                                                           padding_size,
+                                                           dilation,
+                                                           dilation_size};
+
+    const auto invoke_params = [&]() {
+        auto tmp             = fold::InvokeParams{};
+        tmp.type             = InvokeType::Run;
+        tmp.dinputDesc        = &dinputDesc;
+        tmp.doutputDesc       = &doutputDesc;
+        tmp.dinput            = dinput;
+        tmp.doutput           = doutput;
+        tmp.kernel_size      = kernel_size;
+        tmp.stride           = stride;
+        tmp.padding          = padding;
+        tmp.dilation         = dilation;
+        tmp.kernel_size_size = kernel_size_size;
+        tmp.stride_size      = stride_size;
+        tmp.padding_size     = padding_size;
+        tmp.dilation_size    = dilation_size;
+        return tmp;
+    }();
+
+    const auto algo    = AlgorithmName{"UnfoldBwd"};
+    const auto solvers = solver::SolverContainer<solver::fold::UnfoldBwd>{};
+    solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
+
+    return miopenStatusSuccess;
+}
+
 } // namespace miopen

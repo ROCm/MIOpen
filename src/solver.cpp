@@ -651,6 +651,7 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
     Register(registry, ++id, Primitive::Softmax, softmax::AttnSoftmax{}.SolverDbId());
     // Register(registry, ++id, Primitive::Fold, fold::FoldFwd{}.SolverDbId());
     Register(registry, ++id, Primitive::Unfold, fold::UnfoldFwd{}.SolverDbId());
+    Register(registry, ++id, Primitive::Unfold, fold::UnfoldBwd{}.SolverDbId());
 
     // IMPORTANT: New solvers should be added to the end of the function!
 }
