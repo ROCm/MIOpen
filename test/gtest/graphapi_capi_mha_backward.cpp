@@ -184,9 +184,10 @@ protected:
 
         auto mm0 = MakeGapiVirtualTensorDesc(m_testN, m_testH, m_testS, m_testS);
 
-        MakeMatmul(m_realTensorMap[miopenTensorMhaQ]->m_gapiDesc,
-                   m_realTensorMap[miopenTensorMhaK]->m_gapiDesc,
-                   mm0);
+        auto kT = MakeGapiVirtualTensorDesc(m_testN, m_testH, m_testD, m_testS);
+        MakeReshapeTranspose(m_realTensorMap[miopenTensorMhaK]->m_gapiDesc, kT);
+
+        MakeMatmul(m_realTensorMap[miopenTensorMhaQ]->m_gapiDesc, kT, mm0);
 
         // MakePointwise function will automatically create a tensor for output,
         // if output is nullptr
@@ -227,10 +228,11 @@ protected:
         MakePointwise(
             MIOPEN_POINTWISE_MUL, pwS3, m_realTensorMap[miopenTensorMhaScaleS]->m_gapiDesc, pwS4);
 
-        //////reshape transpose on a scheme is here! ////////
+        auto pwS4T = MakeGapiVirtualTensorDesc(m_testN, m_testH, m_testS, m_testS);
+        MakeReshapeTranspose(pwS4, pwS4T);
 
         auto mm1 = MakeGapiVirtualTensorDesc(m_testN, m_testH, m_testS, m_testD);
-        MakeMatmul(pwS4, m_realTensorMap[miopenTensorMhaDO]->m_gapiDesc, mm1);
+        MakeMatmul(pwS4T, m_realTensorMap[miopenTensorMhaDO]->m_gapiDesc, mm1);
         DescriptorWrapperPtr pwS5, pwS6;
         MakePointwise(
             MIOPEN_POINTWISE_MUL, mm1, m_realTensorMap[miopenTensorMhaDescaleS]->m_gapiDesc, pwS5);
@@ -248,9 +250,13 @@ protected:
 
         ////////////////// Center-top, Right-top //////////////////////////////////
         ///////////////////////////////////////////////////////////////////////////
+
+        auto vT = MakeGapiVirtualTensorDesc(m_testN, m_testH, m_testD, m_testS);
+        MakeReshapeTranspose(m_realTensorMap[miopenTensorMhaV]->m_gapiDesc, vT);
+
         auto mm2 = MakeGapiVirtualTensorDesc(m_testN, m_testH, m_testS, m_testS);
         MakeMatmul(m_realTensorMap[miopenTensorMhaDO]->m_gapiDesc,
-                   m_realTensorMap[miopenTensorMhaV]->m_gapiDesc,
+                   vT,
                    mm2);
 
         DescriptorWrapperPtr pwS7, pwS8, pwS9, pwS10;
@@ -324,8 +330,13 @@ protected:
 
         ///////////////////
         auto mm4 = MakeGapiVirtualTensorDesc(m_testN, m_testH, m_testS, m_testD);
+
+
         // Reshape transpose happens here for pwS15
-        MakeMatmul(pwS15, m_realTensorMap[miopenTensorMhaQ]->m_gapiDesc, mm4);
+        auto pwS15T = MakeGapiVirtualTensorDesc(m_testN, m_testH, m_testS, m_testS);
+        MakeReshapeTranspose(pwS15, pwS15T);        
+
+        MakeMatmul(pwS15T, m_realTensorMap[miopenTensorMhaQ]->m_gapiDesc, mm4);
 
         DescriptorWrapperPtr pwS18, pwS19;
         MakePointwise(MIOPEN_POINTWISE_MUL,
@@ -415,7 +426,7 @@ class MhaBackwardTestFp8 : public MhaBackwardTest<float8>
 };
 
 TEST_P(MhaBackwardTestFp32, TestFloat) { Run(); }
-// TEST_P(MhaBackwardTestFp8, TestFloat) { Run(); }
+TEST_P(MhaBackwardTestFp8, TestFloat) { Run(); }
 
 inline auto GetCases()
 {
@@ -427,4 +438,4 @@ inline auto GetCases()
 }
 
 INSTANTIATE_TEST_SUITE_P(MhaBwdSuiteFp32, MhaBackwardTestFp32, GetCases());
-// INSTANTIATE_TEST_SUITE_P(MhaBwdSuiteFp8, MhaBackwardTestFp8, GetCases());
+INSTANTIATE_TEST_SUITE_P(MhaBwdSuiteFp8, MhaBackwardTestFp8, GetCases());
