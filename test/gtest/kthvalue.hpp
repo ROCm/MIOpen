@@ -84,11 +84,15 @@ struct KthvalueTestCase
 inline std::vector<KthvalueTestCase> KthvalueTestConfigs()
 {
     return {
-        KthvalueTestCase({100, 500}, 10),
-        KthvalueTestCase({10, 20, 300}, 1),
-        KthvalueTestCase({8, 3, 10, 2000}, 2000),
-        KthvalueTestCase({2, 2, 4, 10, 3000}, 1),
-        KthvalueTestCase({2, 2, 4, 10, 3000}, 1, -1, true, true),
+        KthvalueTestCase({100, 500}, 10, 1, true, true),     // test keep dim
+        KthvalueTestCase({100, 500}, 10),                    // 2D cont
+        KthvalueTestCase({400, 10}, 10, 0, false),           // 2D non-cont
+        KthvalueTestCase({10, 20, 300}, 1),                  // 3D cont
+        KthvalueTestCase({350, 10, 20}, 5, 0, false),        // 3D non-cont
+        KthvalueTestCase({8, 3, 10, 2000}, 2000),            // 4D cont
+        KthvalueTestCase({1000, 3, 10, 15}, 1000, 0, false), // 4D non-cont
+        KthvalueTestCase({2, 2, 4, 10, 3000}, 120),          // 5D cont
+        KthvalueTestCase({3000, 8, 2, 4, 20}, 9, 0, false),  // 5D non-cont
     };
 }
 

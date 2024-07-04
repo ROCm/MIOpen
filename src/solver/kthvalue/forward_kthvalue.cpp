@@ -45,10 +45,11 @@ namespace kthvalue {
 bool IsImprovementOverROCm(const miopen::kthvalue::FwdProblemDescription& problem)
 {
     TensorDescriptor inputDesc = problem.GetInputDesc();
-    int dimNum                 = inputDesc.GetSize();
     size_t dimSize             = inputDesc.GetLengths()[problem.GetDim()];
+    size_t dimStride           = inputDesc.GetStrides()[problem.GetDim()];
+    size_t dimNum              = inputDesc.GetLengths().size();
 
-    return dimNum >= 2 && problem.GetDim() == dimNum - 1 && dimSize >= 300;
+    return dimNum >= 2 && dimStride == 1 && dimSize >= 300;
 }
 
 bool KthvalueFwd::IsApplicable(const ExecutionContext& /*context*/,
@@ -57,8 +58,6 @@ bool KthvalueFwd::IsApplicable(const ExecutionContext& /*context*/,
     if(!IsImprovementOverROCm(problem))
         return false;
     if(problem.GetInputDesc().GetSize() > 5)
-        return false;
-    if(!problem.isInputContiguous)
         return false;
     return true;
 }
