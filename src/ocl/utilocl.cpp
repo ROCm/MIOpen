@@ -471,7 +471,7 @@ float Col2Im2dGPU(const Handle& handle,
         const std::vector<size_t> vld{std::min(WG_SIZE, global_threads), 1, 1};
 
         auto Is64BitIndexRequired = [&]() -> int {
-            const auto im_ch_max     = static_cast<size_t>(global_threads) / (in_w * in_h);
+            const auto im_ch_max     = global_threads / static_cast<size_t>(in_w * in_h);
             const auto ch_offset_max = im_ch_max * out_w * out_h * wei_w * wei_h;
             MIOPEN_LOG_T("global_threads, out_h, out_w, wei_h, wei_w = "
                          << '{' << global_threads << ',' << out_h << ',' << out_w << ',' << wei_h
