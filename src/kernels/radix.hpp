@@ -28,7 +28,6 @@
 #define GUARD_RADIX_H
 
 #include <hip/hip_fp16.h>
-// #include <hip/hip_bf16.h>
 #include <hip/hip_runtime.h>
 
 #define RADIX_TYPE typename RadixType<DTYPE>::type
@@ -50,11 +49,12 @@ DEFINE_RADIX_TYPE(int64_t, uint64_t)
 DEFINE_RADIX_TYPE(bool, bool)
 DEFINE_RADIX_TYPE(float, uint32_t)
 DEFINE_RADIX_TYPE(__half, ushort)
-// DEFINE_RADIX_TYPE(__hip_bfloat16, ushort)
+DEFINE_RADIX_TYPE(ushort, ushort) // bfloat16
 
 template <typename DTYPE, typename Radix = typename RadixType<DTYPE>::type>
 __device__ inline Radix encode(DTYPE v)
 {
+    // convert negative number to positive representation in Radix type.
     if constexpr(std::is_same<bool, DTYPE>::value)
     {
         return v;
@@ -67,12 +67,13 @@ __device__ inline Radix encode(DTYPE v)
     {
         return 9223372036854775808ull + v;
     }
-    // else if constexpr(std::is_same<__hip_bfloat16, DTYPE>::value)
-    // {
-    //     Radix x    = __bfloat16_as_ushort(v);
-    //     Radix mask = (x & 0x8000) ? 0xffff : 0x8000;
-    //     return (v == v) ? (x ^ mask) : 0xffff;
-    // }
+    // bfloat16 is passed as ushort in kernel
+    else if constexpr(std::is_same<ushort, DTYPE>::value)
+    {
+        Radix x    = v;
+        Radix mask = (x & 0x8000) ? 0xffff : 0x8000;
+        return (v == v) ? (x ^ mask) : 0xffff;
+    }
     else if constexpr(std::is_same<__half, DTYPE>::value)
     {
         Radix x    = __half_as_ushort(v);
@@ -96,7 +97,7 @@ __device__ inline Radix GetBitFieldImpl(Radix x, int pos, int bits)
 
 // x[pos+bits:pos] = a
 template <typename Radix>
-__device__ inline Radix SetBitFieldImpl(Radix x, Radix a, int pos, int bits)
+__device__ inline Radix SetBitFieldImpl(Radix x, Radix a, int pos)
 {
     return x | (a << pos);
 }

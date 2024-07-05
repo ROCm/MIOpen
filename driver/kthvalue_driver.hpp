@@ -222,7 +222,7 @@ int KthvalueDriver<TIO>::AddCmdLineArgs()
     inflags.AddInputFlag("forw", 'F', "1", "Run only Forward (Default=1)", "int");
     inflags.AddTensorFlag(
         "dim-lengths", 'D', "256x4x2", "The dimensional lengths of the input tensor");
-    inflags.AddInputFlag("k", 'k', "1", "dim (Default=1)", "int");
+    inflags.AddInputFlag("k", 'k', "1", "k (Default=1)", "int");
     inflags.AddInputFlag("dim", 'd', "-1", "dim (Default=-1)", "int");
     inflags.AddInputFlag("keep-dim",
                          'K',

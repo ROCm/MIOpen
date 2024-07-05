@@ -26,6 +26,7 @@
 
 #ifndef MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS
 #include <hip/hip_fp16.h>
+#include <hip/hip_bfloat16.h>
 #include <hip/hip_runtime.h>
 #endif
 
@@ -101,6 +102,7 @@ __device__ void kthvalueFwd(const DTYPE* input,
         {
             size_t input_idx = idx + i * dim_stride;
             RADIX_TYPE val   = encode<DTYPE>(input[input_idx]);
+            // printf("%u\n", val);
             if((val & desired_mask) == desired)
             {
                 ++counts[GetBitFieldImpl<RADIX_TYPE>(val, pos, RADIX_BITS)];
@@ -161,8 +163,8 @@ __device__ void kthvalueFwd(const DTYPE* input,
                 found = true;
                 break;
             }
-            desired      = SetBitFieldImpl<RADIX_TYPE>(desired, j, pos, RADIX_BITS);
-            desired_mask = SetBitFieldImpl<RADIX_TYPE>(desired_mask, RADIX_MASK, pos, RADIX_BITS);
+            desired      = SetBitFieldImpl<RADIX_TYPE>(desired, j, pos);
+            desired_mask = SetBitFieldImpl<RADIX_TYPE>(desired_mask, RADIX_MASK, pos);
             break;
         }
         if(found)

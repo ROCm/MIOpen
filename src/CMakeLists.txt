@@ -643,6 +643,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         groupnorm.cpp
         getitem.cpp
         kernel_cache.cpp
+        kthvalue.cpp
         layernorm.cpp
         lrn.cpp
         mlo_dir_conv.cpp
@@ -666,7 +667,6 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         pooling.cpp
         t5layernorm.cpp
         ocl/fusionopconvocl.cpp
-        kthvalue.cpp
         ocl/fusionopbiasbnactivocl.cpp
         reducecalculation.cpp
         reduceextreme.cpp

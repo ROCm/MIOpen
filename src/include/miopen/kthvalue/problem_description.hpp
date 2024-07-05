@@ -49,10 +49,10 @@ struct FwdProblemDescription : ProblemDescriptionBase
           k(k_),
           keepDim(keepDim_)
     {
-        if(k > inputDesc.GetLengths()[dim])
+        if(k < 1 || k > inputDesc.GetLengths()[dim])
         {
             MIOPEN_THROW(miopenStatusBadParm,
-                         "Kthvalue: k must be less than the size of the dimension");
+                         "Kthvalue: selected number k out of range for dimension");
         }
         if(dim < 0 || dim >= inputDesc.GetSize())
         {
@@ -67,7 +67,7 @@ struct FwdProblemDescription : ProblemDescriptionBase
             MIOPEN_THROW(miopenStatusBadParm,
                          "Reduce: Input and output tensor dimension lengths do not match.");
         }
-        if(!outputDesc.IsSameLength(indicesDesc))
+        if(outputDesc.GetLengths() != indicesDesc.GetLengths())
         {
             MIOPEN_THROW(miopenStatusBadParm,
                          "Reduce: Output and indices tensor dimension lengths do not match.");
@@ -78,6 +78,15 @@ struct FwdProblemDescription : ProblemDescriptionBase
     {
         if(inputDesc.GetLengths().size() == 1)
             return true;
+
+        if(keepDim && inputDesc.GetSize() != outputDesc.GetSize())
+        {
+            return false;
+        }
+        if(!keepDim && inputDesc.GetSize() != outputDesc.GetSize() + 1)
+        {
+            return false;
+        }
 
         int32_t posOut = 0;
         for(int32_t i = 0; i < inputDesc.GetLengths().size(); i++)
