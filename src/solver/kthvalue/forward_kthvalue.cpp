@@ -24,17 +24,14 @@
  *
  *******************************************************************************/
 
-#include "miopen/errors.hpp"
-#include "miopen/kthvalue/problem_description.hpp"
-#include "miopen/miopen.h"
-#include "miopen/tensor.hpp"
-#include "miopen/tensor_view_utils.hpp"
+#include <miopen/kthvalue/problem_description.hpp>
+#include <miopen/tensor.hpp>
+#include <miopen/tensor_view_utils.hpp>
 #include <miopen/datatype.hpp>
 #include <miopen/kernel_build_params.hpp>
 #include <miopen/kthvalue/invoke_params.hpp>
 #include <miopen/kthvalue/solvers.hpp>
 #include <miopen/kthvalue.hpp>
-#include <miopen/target_properties.hpp>
 
 namespace miopen {
 

@@ -24,15 +24,14 @@
  *
  *******************************************************************************/
 
-#include "miopen/miopen.h"
 #include "miopen/kthvalue/invoke_params.hpp"
 #include "miopen/kthvalue/problem_description.hpp"
 #include "miopen/kthvalue/solvers.hpp"
-#include <miopen/datatype.hpp>
+
+#include <miopen/miopen.h>
 #include <miopen/find_solution.hpp>
-#include <miopen/float_equal.hpp>
-#include <miopen/kernel_cache.hpp>
 #include <miopen/tensor.hpp>
+#include <miopen/kthvalue.hpp>
 
 namespace miopen {
 

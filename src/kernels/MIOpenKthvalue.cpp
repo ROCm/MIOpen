@@ -37,14 +37,6 @@
 #define IN_OUT_TYPE float
 #endif
 
-#ifndef CVT_ACCUM2FLOAT
-#define CVT_ACCUM2FLOAT(x) (float_to_bfloat16(x))
-#endif
-
-#ifndef CVT_FLOAT2ACCUM
-#define CVT_FLOAT2ACCUM(x) (bfloat16_to_float(x))
-#endif
-
 #ifndef LOCAL_SIZE
 #define LOCAL_SIZE 256
 #endif

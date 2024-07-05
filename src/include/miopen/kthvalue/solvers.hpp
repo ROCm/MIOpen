@@ -28,8 +28,6 @@
 #include <miopen/kthvalue/problem_description.hpp>
 #include <miopen/solver.hpp>
 
-#include <utility>
-
 namespace miopen {
 
 namespace solver {

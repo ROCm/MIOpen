@@ -25,7 +25,6 @@
  *******************************************************************************/
 
 #include <miopen/kthvalue/problem_description.hpp>
-#include <miopen/names.hpp>
 
 #include <sstream>
 

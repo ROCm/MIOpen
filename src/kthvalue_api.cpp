@@ -24,11 +24,8 @@
  *
  *******************************************************************************/
 
-#include "miopen/miopen.h"
 #include <miopen/kthvalue.hpp>
-#include <miopen/errors.hpp>
 #include <miopen/handle.hpp>
-#include <miopen/logger.hpp>
 #include <miopen/tensor_ops.hpp>
 
 inline std::ostream& operator<<(std::ostream& os, const std::vector<size_t>& v)

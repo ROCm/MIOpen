@@ -23,23 +23,20 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-
 #pragma once
 #include "InputFlags.hpp"
 #include "driver.hpp"
-#include "miopen/errors.hpp"
-#include <algorithm>
-#include <cstddef>
-#include <miopen/tensor_view_utils.hpp>
-#include "miopen/miopen.h"
 #include "tensor_driver.hpp"
 #include "timer.hpp"
 #include "random.hpp"
+
 #include <../test/tensor_holder.hpp>
 #include <../test/verify.hpp>
-#include <cmath>
-#include <iostream>
-#include <sys/types.h>
+
+#include <miopen/tensor_view_utils.hpp>
+#include <miopen/miopen.h>
+#include <miopen/errors.hpp>
+
 #include <vector>
 
 template <typename TIO>
