@@ -584,9 +584,10 @@ protected:
     }
 
     DescriptorWrapperPtr MakeReshapeTranspose(DescriptorWrapperPtr tensor1,
-                                                DescriptorWrapperPtr output)
+                                              DescriptorWrapperPtr output)
     {
-        DescriptorWrapperPtr reshapeOperation = MakeDescriptor(MIOPEN_BACKEND_OPERATION_RESHAPE_DESCRIPTOR);
+        DescriptorWrapperPtr reshapeOperation =
+            MakeDescriptor(MIOPEN_BACKEND_OPERATION_RESHAPE_DESCRIPTOR);
 
         miopenBackendDescriptor_t tensor1Desc = tensor1->GetDescriptor();
         miopenBackendDescriptor_t outputDesc  = output->GetDescriptor();
@@ -603,7 +604,7 @@ protected:
 
         AddGraphNode(reshapeOperation);
 
-        return reshapeOperation;        
+        return reshapeOperation;
     }
 
     DescriptorWrapperPtr MakeGapiVirtualTensorDesc(size_t n               = 1,

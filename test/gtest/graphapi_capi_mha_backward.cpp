@@ -255,9 +255,7 @@ protected:
         MakeReshapeTranspose(m_realTensorMap[miopenTensorMhaV]->m_gapiDesc, vT);
 
         auto mm2 = MakeGapiVirtualTensorDesc(m_testN, m_testH, m_testS, m_testS);
-        MakeMatmul(m_realTensorMap[miopenTensorMhaDO]->m_gapiDesc,
-                   vT,
-                   mm2);
+        MakeMatmul(m_realTensorMap[miopenTensorMhaDO]->m_gapiDesc, vT, mm2);
 
         DescriptorWrapperPtr pwS7, pwS8, pwS9, pwS10;
         MakePointwise(
@@ -331,10 +329,9 @@ protected:
         ///////////////////
         auto mm4 = MakeGapiVirtualTensorDesc(m_testN, m_testH, m_testS, m_testD);
 
-
         // Reshape transpose happens here for pwS15
         auto pwS15T = MakeGapiVirtualTensorDesc(m_testN, m_testH, m_testS, m_testS);
-        MakeReshapeTranspose(pwS15, pwS15T);        
+        MakeReshapeTranspose(pwS15, pwS15T);
 
         MakeMatmul(pwS15T, m_realTensorMap[miopenTensorMhaQ]->m_gapiDesc, mm4);
 
@@ -356,16 +353,8 @@ protected:
                       m_realTensorMap[miopenTensorMhaDK]->m_gapiDesc);
     }
 
-    // _TODO Remove these 2 next functions to actually run a test. (Basic class implementation
-    // should be used)
-    virtual void PrepareOpGraphAndEngines(miopen::Handle& handle) override {}
-    virtual void MakeVariantPackAndRun(miopen::Handle& handle) override {}
-
     virtual void RunCPUverify(miopen::Handle& handle) override
     {
-        // _TODO Remove for actual test running
-        return;
-
         const double errorThreshold    = 5e-5;
         const double fp8ErrorThreshold = (std::is_same_v<T, float8>) ? 3e-3 : errorThreshold;
 
