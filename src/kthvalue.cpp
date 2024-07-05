@@ -48,7 +48,7 @@ miopenStatus_t KthvalueForward(Handle& handle,
 {
     if(dim < 0)
     {
-        dim += indicesDesc.GetSize();
+        dim += inputDesc.GetSize();
     }
 
     const auto problem =
