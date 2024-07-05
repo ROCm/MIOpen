@@ -54,7 +54,7 @@ void mloKthvalueFwdRunHost(TIO* input,
     size_t dimSize         = inputDesc.GetLengths()[dim];
     size_t dimStride       = inputDesc.GetStrides()[dim];
     auto inputTv           = miopen::get_inner_expanded_tv<5>(miopen::deref(pInputDesc));
-    auto inputTvWithoutDim = miopen::get_tv_without_dim<5, 4>(inputTv, dim);
+    auto inputTvWithoutDim = miopen::get_tv_without_dim<5>(inputTv, dim);
     auto outputTv          = miopen::get_inner_expanded_tv<5>(miopen::deref(outputDesc));
     auto indicesTv         = miopen::get_inner_expanded_tv<5>(miopen::deref(indicesDesc));
 

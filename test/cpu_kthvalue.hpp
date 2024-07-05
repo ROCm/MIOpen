@@ -45,7 +45,7 @@ void cpu_kthvalue(tensor<TIO> input,
     size_t dimSize         = input.desc.GetLengths()[dim];
     size_t dimStride       = input.desc.GetStrides()[dim];
     auto inputTv           = miopen::get_inner_expanded_tv<5>(input.desc);
-    auto inputTvWithoutDim = miopen::get_tv_without_dim<5, 4>(inputTv, dim);
+    auto inputTvWithoutDim = miopen::get_tv_without_dim<5>(inputTv, dim);
     auto outputTv          = miopen::get_inner_expanded_tv<5>(outputHost.desc);
     auto indicesTv         = miopen::get_inner_expanded_tv<5>(indiceDesc);
 

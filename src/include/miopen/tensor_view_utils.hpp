@@ -81,7 +81,7 @@ inline void slice_tv(tensor_view_t<N>& tensor_view, int32_t sliceCount, const in
 }
 
 template <int N>
-inline tensor_view_t<N-1> get_tv_without_dim(const tensor_view_t<N>& origin_tv, int selected_dim)
+inline tensor_view_t<N - 1> get_tv_without_dim(const tensor_view_t<N>& origin_tv, int selected_dim)
 {
     tensor_view_t<N - 1> res;
     for(int i = 0; i < N; ++i)

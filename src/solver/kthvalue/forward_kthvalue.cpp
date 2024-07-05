@@ -115,7 +115,7 @@ ConvSolution KthvalueFwd::GetSolution(const ExecutionContext& context,
             size_t dim_stride     = params.inputDesc->GetStrides()[params.dim];
 
             auto input_tv                      = get_inner_expanded_tv<5>(deref(params.inputDesc));
-            auto input_tv_without_selected_dim = get_tv_without_dim<5, 4>(input_tv, params.dim);
+            auto input_tv_without_selected_dim = get_tv_without_dim<5>(input_tv, params.dim);
 
             auto output_tv  = get_inner_expanded_tv<5>(deref(params.outputDesc));
             auto indices_tv = get_inner_expanded_tv<5>(deref(params.indicesDesc));
