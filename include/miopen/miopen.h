@@ -6607,12 +6607,17 @@ using miopenCumOp_t = enum {
  *
  * @param handle                   MIOpen Handle (input)
  * @param inputDesc                Tensor descriptor for input tensor (input)
+ * @param indicesDesc              Tensor descriptor for indices tensor (input)
  * @param dim                      The dimension to do the operation over (input)
  * @param sizeInBytes              Pointer to data to return the minimum workspace size
  * @return                         miopenStatus_t
  */
-MIOPEN_EXPORT miopenStatus_t miopenGetCumulativeReductionForwardWorkspaceSize(
-    miopenHandle_t handle, miopenTensorDescriptor_t inputDesc, int dim, size_t* sizeInBytes);
+MIOPEN_EXPORT miopenStatus_t
+miopenGetCumulativeReductionForwardWorkspaceSize(miopenHandle_t handle,
+                                                 miopenTensorDescriptor_t inputDesc,
+                                                 miopenTensorDescriptor_t indicesDesc,
+                                                 int dim,
+                                                 size_t* sizeInBytes);
 
 /*! @brief Execute a Cumulative Reduction forward layer
  *

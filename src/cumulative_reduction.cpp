@@ -34,10 +34,12 @@ namespace miopen {
 
 size_t GetCumulativeReductionForwardWorkspaceSize(Handle& handle,
                                                   const TensorDescriptor& inputDesc,
+                                                  const TensorDescriptor& indicesDesc,
                                                   const int dim)
 {
     auto ctx           = ExecutionContext{&handle};
-    const auto problem = cumulative_reduction::ForwardProblemDescription{inputDesc, dim};
+    const auto problem = cumulative_reduction::ForwardProblemDescription{
+        inputDesc, inputDesc, indicesDesc, dim, MIOPEN_CUM_MAX};
 
     const auto solvers = solver::SolverContainer<solver::cumulative_reduction::Forward>{};
 

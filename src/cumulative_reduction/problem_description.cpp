@@ -33,6 +33,18 @@ namespace miopen {
 
 namespace cumulative_reduction {
 
+bool checkSameLength(const TensorDescriptor& x, const TensorDescriptor& y)
+{
+    if(x.GetSize() != y.GetSize())
+        return false;
+    for(int i = 0; i < x.GetSize(); ++i)
+    {
+        if(x.GetLengths()[i] != y.GetLengths()[i])
+            return false;
+    }
+    return true;
+}
+
 NetworkConfig ForwardProblemDescription::MakeNetworkConfig() const
 {
     auto input_dtype  = inputDesc.GetType();

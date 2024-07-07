@@ -34,16 +34,10 @@ struct NetworkConfig;
 
 namespace cumulative_reduction {
 
+bool checkSameLength(const TensorDescriptor& x, const TensorDescriptor& y);
+
 struct ForwardProblemDescription : ProblemDescriptionBase
 {
-
-    ForwardProblemDescription(const TensorDescriptor& inputDesc_, const int& dim_)
-        : inputDesc(inputDesc_), dim(dim_)
-    {
-        const auto ndims = inputDesc.GetSize();
-        dim              = ((dim % ndims) + ndims) % ndims;
-    }
-
     ForwardProblemDescription(const TensorDescriptor& inputDesc_,
                               const TensorDescriptor& outputDesc_,
                               const TensorDescriptor& indicesDesc_,
@@ -57,10 +51,20 @@ struct ForwardProblemDescription : ProblemDescriptionBase
     {
         const auto ndims = inputDesc.GetSize();
         dim              = ((dim % ndims) + ndims) % ndims;
+
+        if(outputDesc.GetElementSize() > 0 && !checkSameLength(inputDesc, outputDesc))
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "Cumulative Reduction: Input and Output tensor sizes do not match.");
+        if(indicesDesc.GetElementSize() > 0 && indicesDesc.GetType() != miopenInt32)
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "Cumulative Reduction: Indices tensor type must be int32.");
+        if(indicesDesc.GetElementSize() > 0 && !checkSameLength(inputDesc, indicesDesc))
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "Cumulative Reduction: Input and Indices tensor sizes do not match.");
     }
 
     const TensorDescriptor& GetInputDesc() const { return inputDesc; }
-    const TensorDescriptor& GetOuputDesc() const { return outputDesc; }
+    const TensorDescriptor& GetOutputDesc() const { return outputDesc; }
     const TensorDescriptor& GetIndicesDesc() const { return indicesDesc; }
     const int& GetDim() const { return dim; }
     const miopenCumOp_t& GetCumOp() const { return cumOp; }

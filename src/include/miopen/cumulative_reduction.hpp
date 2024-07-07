@@ -34,6 +34,7 @@ struct TensorDescriptor;
 
 size_t GetCumulativeReductionForwardWorkspaceSize(Handle& handle,
                                                   const TensorDescriptor& inputDesc,
+                                                  const TensorDescriptor& indicesDesc,
                                                   int dim);
 
 miopenStatus_t CumulativeReductionForward(Handle& handle,

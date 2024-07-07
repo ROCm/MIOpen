@@ -160,7 +160,7 @@ protected:
         ref_indices          = tensor<int>{lengths, indices_strides};
 
         ws_sizeInBytes = miopen::GetCumulativeReductionForwardWorkspaceSize(
-            handle, input.desc, cumulative_reduction_config.dim);
+            handle, input.desc, indices.desc, cumulative_reduction_config.dim);
         if(ws_sizeInBytes == static_cast<size_t>(-1))
             GTEST_SKIP();
 

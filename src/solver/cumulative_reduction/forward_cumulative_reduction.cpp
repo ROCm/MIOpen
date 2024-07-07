@@ -58,7 +58,7 @@ Forward::GetSolution(const ExecutionContext& /*context*/,
 
     auto dtype        = problem.GetInputDesc().GetType();
     auto input_dtype  = miopen::GetDataType(problem.GetInputDesc().GetType());
-    auto output_dtype = miopen::GetDataType(problem.GetOuputDesc().GetType());
+    auto output_dtype = miopen::GetDataType(problem.GetOutputDesc().GetType());
     auto cum_op       = problem.GetCumOp();
 
     auto build_params = KernelBuildParameters{
@@ -133,19 +133,21 @@ Forward::GetSolution(const ExecutionContext& /*context*/,
             const auto ndims            = deref(params.inputDesc).GetSize();
             const unsigned int true_dim = ((params.dim % ndims) + ndims) % ndims;
 
-            Data_t local_output, local_indices;
+            Data_t local_output  = nullptr;
+            Data_t local_indices = nullptr;
             if(deref(params.inputDesc).GetLengths()[true_dim] > LOCAL_SIZE)
             {
-                local_indices = params.workspace;
-                local_output  = static_cast<Data_t>(
-                    static_cast<char*>(local_indices) +
-                    deref(params.inputDesc).GetElementSize() /
-                        deref(params.inputDesc).GetLengths()[true_dim] *
-                        AlignUp(deref(params.inputDesc).GetLengths()[true_dim], LOCAL_SIZE) /
-                        LOCAL_SIZE * sizeof(int));
+                local_output = params.workspace;
+                if(params.indices != nullptr)
+                {
+                    local_indices = static_cast<Data_t>(
+                        static_cast<char*>(local_output) +
+                        deref(params.indicesDesc).GetElementSize() /
+                            deref(params.indicesDesc).GetLengths()[true_dim] *
+                            AlignUp(deref(params.indicesDesc).GetLengths()[true_dim], LOCAL_SIZE) /
+                            LOCAL_SIZE * sizeof(FLOAT_ACCUM));
+                }
             }
-            else
-                local_output = local_indices = nullptr;
 
             if(deref(params.inputDesc).GetLengths()[true_dim] > LOCAL_SIZE)
             {
@@ -213,7 +215,12 @@ std::size_t Forward::GetWorkspaceSize(
     const miopen::cumulative_reduction::ForwardProblemDescription& problem) const
 {
     if(problem.GetInputDesc().GetLengths()[problem.GetDim()] > LOCAL_SIZE)
-        return problem.GetInputDesc().GetElementSize() * (sizeof(FLOAT_ACCUM) + sizeof(int));
+    {
+        size_t size = 0;
+        size += problem.GetInputDesc().GetElementSize() * sizeof(FLOAT_ACCUM);
+        size += problem.GetIndicesDesc().GetElementSize() * sizeof(int);
+        return size;
+    }
     else
         return 0;
 }

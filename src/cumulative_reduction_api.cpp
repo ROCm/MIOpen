@@ -82,6 +82,7 @@ static void LogCmdCumulativeReduction(const miopenTensorDescriptor_t inputDesc,
 extern "C" miopenStatus_t
 miopenGetCumulativeReductionForwardWorkspaceSize(miopenHandle_t handle,
                                                  const miopenTensorDescriptor_t inputDesc,
+                                                 const miopenTensorDescriptor_t indicesDesc,
                                                  const int dim,
                                                  size_t* sizeInBytes)
 {
@@ -90,7 +91,7 @@ miopenGetCumulativeReductionForwardWorkspaceSize(miopenHandle_t handle,
 
     return miopen::try_([&] {
         miopen::deref(sizeInBytes) = miopen::GetCumulativeReductionForwardWorkspaceSize(
-            miopen::deref(handle), miopen::deref(inputDesc), dim);
+            miopen::deref(handle), miopen::deref(inputDesc), miopen::deref(indicesDesc), dim);
     });
 }
 
