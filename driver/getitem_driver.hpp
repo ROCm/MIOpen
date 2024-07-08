@@ -444,12 +444,12 @@ int GetitemDriver<Tgpu, Tref>::RunBackwardGPU()
         STOP_TIME
         int32_t iter = inflags.GetValueInt("iter");
         if(WALL_CLOCK)
-            std::cout << "Wall-clock Time Forward Getitem Elapsed: " << t.gettime_ms() / iter
+            std::cout << "Wall-clock Time Backward Getitem Elapsed: " << t.gettime_ms() / iter
                       << " ms" << std::endl;
 
         float kernel_average_time =
             iter > 1 ? (kernel_total_time - kernel_first_time) / (iter - 1) : kernel_first_time;
-        std::cout << "GPU Kernel Time Forward Getitem Elapsed: " << kernel_average_time << " ms"
+        std::cout << "GPU Kernel Time Backward Getitem Elapsed: " << kernel_average_time << " ms"
                   << std::endl;
     }
 
