@@ -111,27 +111,27 @@ typedef long index_t;
 typedef int index_t;
 #endif
 
-kernel void Im2d2Col(const int data_size_off,
-                     global data_t* im,
-                     const int im_offset,
-                     const int h,
-                     const int w,
-                     const int wei_h,
-                     const int wei_w,
-                     const int out_h,
-                     const int out_w,
-                     const int pad_h,
-                     const int pad_w,
-                     const int stride_h,
-                     const int stride_w,
-                     const int dilation_h,
-                     const int dilation_w,
-                     global data_t* col,
-                     const int num_ch_per_wg,
-                     const int num_im_blks_x,
-                     const int num_im_blks,
-                     const int tile_sz_x,
-                     const int tile_sz_y)
+kernel void Im2d2Col_v2(const int data_size_off,
+                        global data_t* im,
+                        const ulong im_offset,
+                        const int h,
+                        const int w,
+                        const int wei_h,
+                        const int wei_w,
+                        const int out_h,
+                        const int out_w,
+                        const int pad_h,
+                        const int pad_w,
+                        const int stride_h,
+                        const int stride_w,
+                        const int dilation_h,
+                        const int dilation_w,
+                        global data_t* col,
+                        const int num_ch_per_wg,
+                        const int num_im_blks_x,
+                        const int num_im_blks,
+                        const int tile_sz_x,
+                        const int tile_sz_y)
 {
     /// NUM_CH_PER_WG {1;4}
     /// THREADS_PER_CH {256; 64}
