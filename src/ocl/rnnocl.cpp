@@ -87,20 +87,6 @@ void checkGemmStatusAndLog(miopenStatus_t gemm_status)
     }
 }
 
-GemmBackend_t GetGemmBackend(const miopen::Handle& handle, miopenDataType_t dataType)
-{
-#if MIOPEN_USE_HIPBLASLT
-    // Only use the hipblaslt backend when device is MI300, and the datatype is half.
-    // Otherwise, default to rocblas.
-    // Note: environment variable can be used to force a specific backend.
-    return handle.GetDeviceName() == "gfx942" && dataType == miopenDataType_t::miopenHalf
-               ? GemmBackend_t::hipblaslt
-               : GemmBackend_t::rocblas;
-#else
-    return GemmBackend_t::rocblas;
-#endif
-}
-
 miopenStatus_t ReducAddBias(miopen::Handle& handle,
                             Data_t dw,
                             const Data_t workSpace,
@@ -182,9 +168,8 @@ miopenStatus_t ReducAddBias(miopen::Handle& handle,
         break;
         case 2:
         case 3: {
-            float alpha1      = 1.;
-            auto red_type     = ws_desc.GetType();
-            auto gemm_backend = GetGemmBackend(handle, red_type);
+            float alpha1  = 1.;
+            auto red_type = ws_desc.GetType();
             int m = 1, n = ws_desc.GetLengths()[2], k = ws_desc.GetLengths()[1];
             int lda = k, ldb = ws_desc.GetStrides()[1], ldc = n;
 
@@ -222,7 +207,7 @@ miopenStatus_t ReducAddBias(miopen::Handle& handle,
                                                       ws_bias_offset,
                                                       dw,
                                                       dw_bias_offset,
-                                                      gemm_backend);
+                                                      GemmBackend_t::rocblas);
                 checkGemmStatusAndLog(gemm_status);
             }
             else
@@ -620,9 +605,6 @@ void RNNDescriptor::RNNForwardMS(Handle& handle,
         const int lda = layer > 0 ? RBuff.gemm_write_stride() : InBuff_strides.batch, ldb = k,
                   ldc = RBuff.gemm_write_stride();
 
-        auto gemm_data_type = xDesc.GetType();
-        auto gemm_backend   = GetGemmBackend(handle, gemm_data_type);
-
         const miopen::GemmDescriptor gemm_desc = GemmDescriptor{false,
                                                                 false,
                                                                 true,
@@ -638,7 +620,7 @@ void RNNDescriptor::RNNForwardMS(Handle& handle,
                                                                 0,      // Stride C
                                                                 1,      // alpha
                                                                 beta_t, // beta
-                                                                gemm_data_type,
+                                                                xDesc.GetType(),
                                                                 false};
 
         const auto wx_off     = WeiBuf.get_matrix_x_off(layer);
@@ -656,7 +638,7 @@ void RNNDescriptor::RNNForwardMS(Handle& handle,
                                                     wx_off,
                                                     extra_space,
                                                     out_offset,
-                                                    gemm_backend);
+                                                    GemmBackend_t::rocblas);
         if(gemm_status != miopenStatusSuccess)
             MIOPEN_THROW("GEMM execution failure");
     };
@@ -740,9 +722,6 @@ void RNNDescriptor::RNNForwardMS(Handle& handle,
                 return;
         }
 
-        auto gemm_data_type = xDesc.GetType();
-        auto gemm_backend   = GetGemmBackend(handle, gemm_data_type);
-
         const miopen::GemmDescriptor gemm_desc_hx = GemmDescriptor{false,
                                                                    false,
                                                                    true,
@@ -758,7 +737,7 @@ void RNNDescriptor::RNNForwardMS(Handle& handle,
                                                                    0, // Stride C
                                                                    1, // alpha
                                                                    1, // beta
-                                                                   gemm_data_type,
+                                                                   xDesc.GetType(),
                                                                    false};
 
         const auto RB_layer_save_points_off =
@@ -774,7 +753,7 @@ void RNNDescriptor::RNNForwardMS(Handle& handle,
                                                     WeiBuf.get_matrix_h_off(layer),
                                                     extra_space,
                                                     RB_layer_save_points_off,
-                                                    gemm_backend);
+                                                    GemmBackend_t::rocblas);
 
         if(gemm_status != miopenStatusSuccess)
             MIOPEN_THROW("GEMM execution failure");
@@ -1612,9 +1591,6 @@ void RNNDescriptor::RNNForwardInferencePacked(Handle& handle,
         activDesc = {miopenActivationTANH, 1, 1, 1};
     }
 
-    auto gemm_data_type = xDesc[0].GetType();
-    auto gemm_backend   = GetGemmBackend(handle, gemm_data_type);
-
     for(int li = 0; li < nLayers; li++)
     {
         int hid_shift           = li * batch_n * hy_stride;
@@ -1642,26 +1618,27 @@ void RNNDescriptor::RNNForwardInferencePacked(Handle& handle,
             }
             else
             {
-                miopen::GemmDescriptor gemm_desc = GemmDescriptor{false,
-                                                                  false,
-                                                                  true,
-                                                                  batch_n,
-                                                                  wei_len * bi,
-                                                                  in_h,
-                                                                  in_stride,
-                                                                  in_stride,
-                                                                  hy_stride,
-                                                                  1, // batch count
-                                                                  0, // Stride A
-                                                                  0, // Stride B
-                                                                  0, // Stride C
-                                                                  1, // alpha
-                                                                  1, // beta
-                                                                  gemm_data_type,
-                                                                  false};
+                miopen::GemmDescriptor gemm_desc =
+                    GemmDescriptor{false,
+                                   false,
+                                   true,
+                                   batch_n,
+                                   wei_len * bi,
+                                   in_h,
+                                   in_stride,
+                                   in_stride,
+                                   hy_stride,
+                                   1, // batch count
+                                   0, // Stride A
+                                   0, // Stride B
+                                   0, // Stride C
+                                   1, // alpha
+                                   1, // beta
+                                   xDesc[0].GetType(),
+                                   false}; // RNN does not support determinism
 
-                miopenStatus_t gemm_status =
-                    CallGemm(handle, gemm_desc, x, 0, w, 0, workSpace, hid_shift, gemm_backend);
+                miopenStatus_t gemm_status = CallGemm(
+                    handle, gemm_desc, x, 0, w, 0, workSpace, hid_shift, GemmBackend_t::rocblas);
 
                 if(gemm_status != miopenStatusSuccess)
                 {
@@ -1698,7 +1675,7 @@ void RNNDescriptor::RNNForwardInferencePacked(Handle& handle,
                                                               0, // Stride C
                                                               1, // alpha
                                                               1, // beta
-                                                              gemm_data_type,
+                                                              xDesc[0].GetType(),
                                                               false};
             miopenStatus_t gemm_status       = CallGemm(handle,
                                                   gemm_desc,
@@ -1708,7 +1685,7 @@ void RNNDescriptor::RNNForwardInferencePacked(Handle& handle,
                                                   wei_shift,
                                                   workSpace,
                                                   hid_shift,
-                                                  gemm_backend);
+                                                  GemmBackend_t::rocblas);
 
             if(gemm_status != miopenStatusSuccess)
             {
@@ -1962,7 +1939,7 @@ void RNNDescriptor::RNNForwardInferencePacked(Handle& handle,
                                                                               0, // Stride C
                                                                               1, // alpha
                                                                               1, // beta
-                                                                              gemm_data_type,
+                                                                              xDesc[0].GetType(),
                                                                               false};
 
                             miopenStatus_t gemm_status =
@@ -1974,7 +1951,7 @@ void RNNDescriptor::RNNForwardInferencePacked(Handle& handle,
                                          wei_shift + ri * wei_len * uni_stride,
                                          workSpace,
                                          static_cast<int>(offset) + ri * wei_len,
-                                         gemm_backend);
+                                         GemmBackend_t::rocblas);
 
                             if(gemm_status != miopenStatusSuccess)
                             {
@@ -2011,7 +1988,7 @@ void RNNDescriptor::RNNForwardInferencePacked(Handle& handle,
                                                0, // Stride C
                                                1, // alpha
                                                1, // beta
-                                               gemm_data_type,
+                                               xDesc[0].GetType(),
                                                false};
                             miopenStatus_t gemm_status =
                                 CallGemm(handle,
@@ -2023,7 +2000,7 @@ void RNNDescriptor::RNNForwardInferencePacked(Handle& handle,
                                          workSpace,
                                          static_cast<int>(offset) + ri * wei_len +
                                              in_n.at(use_time) * hy_stride,
-                                         gemm_backend);
+                                         GemmBackend_t::rocblas);
 
                             if(gemm_status != miopenStatusSuccess)
                             {
@@ -2057,7 +2034,7 @@ void RNNDescriptor::RNNForwardInferencePacked(Handle& handle,
                                                                               0, // Stride C
                                                                               1, // alpha
                                                                               1, // beta
-                                                                              gemm_data_type,
+                                                                              xDesc[0].GetType(),
                                                                               false};
 
                             miopenStatus_t gemm_status =
@@ -2069,7 +2046,7 @@ void RNNDescriptor::RNNForwardInferencePacked(Handle& handle,
                                          wei_shift + ri * wei_len * uni_stride,
                                          workSpace,
                                          static_cast<int>(offset) + ri * wei_len,
-                                         gemm_backend);
+                                         GemmBackend_t::rocblas);
 
                             if(gemm_status != miopenStatusSuccess)
                             {
@@ -3008,9 +2985,6 @@ void RNNDescriptor::RNNForwardTrainingPackedTensors(
         activDesc = {miopenActivationTANH, 1, 1, 1};
     }
 
-    auto gemm_data_type = xDesc[0].GetType();
-    auto gemm_backend   = GetGemmBackend(handle, gemm_data_type);
-
     for(int li = 0; li < nLayers; li++)
     {
         int hid_shift           = li * batch_n * hy_stride;
@@ -3053,11 +3027,11 @@ void RNNDescriptor::RNNForwardTrainingPackedTensors(
                                                                   0, // Stride C
                                                                   1, // alpha
                                                                   1, // beta
-                                                                  gemm_data_type,
+                                                                  xDesc[0].GetType(),
                                                                   false};
 
-                miopenStatus_t gemm_status =
-                    CallGemm(handle, gemm_desc, x, 0, w, 0, reserveSpace, hid_shift, gemm_backend);
+                miopenStatus_t gemm_status = CallGemm(
+                    handle, gemm_desc, x, 0, w, 0, reserveSpace, hid_shift, GemmBackend_t::rocblas);
 
                 if(gemm_status != miopenStatusSuccess)
                 {
@@ -3137,7 +3111,7 @@ void RNNDescriptor::RNNForwardTrainingPackedTensors(
                                                               0, // Stride C
                                                               1, // alpha
                                                               1, // beta
-                                                              gemm_data_type,
+                                                              xDesc[0].GetType(),
                                                               false};
 
             miopenStatus_t gemm_status = CallGemm(handle,
@@ -3148,7 +3122,7 @@ void RNNDescriptor::RNNForwardTrainingPackedTensors(
                                                   wei_shift,
                                                   reserveSpace,
                                                   hid_shift,
-                                                  gemm_backend);
+                                                  GemmBackend_t::rocblas);
 
             if(gemm_status != miopenStatusSuccess)
             {
@@ -3403,7 +3377,7 @@ void RNNDescriptor::RNNForwardTrainingPackedTensors(
                                                                               0, // Stride C
                                                                               1, // alpha
                                                                               1, // beta
-                                                                              gemm_data_type,
+                                                                              xDesc[0].GetType(),
                                                                               false};
 
                             miopenStatus_t gemm_status =
@@ -3415,7 +3389,7 @@ void RNNDescriptor::RNNForwardTrainingPackedTensors(
                                          wei_shift + ri * wei_len * uni_stride,
                                          reserveSpace,
                                          static_cast<int>(offset) + ri * wei_len,
-                                         gemm_backend);
+                                         GemmBackend_t::rocblas);
 
                             if(gemm_status != miopenStatusSuccess)
                             {
@@ -3452,7 +3426,7 @@ void RNNDescriptor::RNNForwardTrainingPackedTensors(
                                                0, // Stride C
                                                1, // alpha
                                                1, // beta
-                                               gemm_data_type,
+                                               xDesc[0].GetType(),
                                                false};
 
                             miopenStatus_t gemm_status =
@@ -3465,7 +3439,7 @@ void RNNDescriptor::RNNForwardTrainingPackedTensors(
                                          reserveSpace,
                                          static_cast<int>(offset) + ri * wei_len +
                                              in_n.at(use_time) * hy_stride,
-                                         gemm_backend);
+                                         GemmBackend_t::rocblas);
 
                             if(gemm_status != miopenStatusSuccess)
                             {
@@ -3499,7 +3473,7 @@ void RNNDescriptor::RNNForwardTrainingPackedTensors(
                                                                               0, // Stride C
                                                                               1, // alpha
                                                                               1, // beta
-                                                                              gemm_data_type,
+                                                                              xDesc[0].GetType(),
                                                                               false};
 
                             miopenStatus_t gemm_status =
@@ -3511,7 +3485,7 @@ void RNNDescriptor::RNNForwardTrainingPackedTensors(
                                          wei_shift + ri * wei_len * uni_stride,
                                          reserveSpace,
                                          static_cast<int>(offset) + ri * wei_len,
-                                         gemm_backend);
+                                         GemmBackend_t::rocblas);
 
                             if(gemm_status != miopenStatusSuccess)
                             {
@@ -4333,7 +4307,6 @@ void RNNDescriptor::RNNBackwardDataPackedTensors(
     }
 
     auto rnn_data_type = dhxDesc.GetType();
-    auto gemm_backend  = GetGemmBackend(handle, rnn_data_type);
 
     std::vector<int> in_n;
     int in_h  = dxDesc[0].GetLengths()[1];
@@ -4539,7 +4512,7 @@ void RNNDescriptor::RNNBackwardDataPackedTensors(
                                                   wei_shift,
                                                   workSpace,
                                                   hid_shift + dhd_off,
-                                                  gemm_backend);
+                                                  GemmBackend_t::rocblas);
 
             if(gemm_status != miopenStatusSuccess)
             {
@@ -4767,7 +4740,7 @@ void RNNDescriptor::RNNBackwardDataPackedTensors(
                                          weitime_shift + ri * wei_len * uni_stride,
                                          workSpace,
                                          static_cast<int>(offset) + dhd_off + ri * hy_h,
-                                         gemm_backend);
+                                         GemmBackend_t::rocblas);
 
                             if(gemm_status != miopenStatusSuccess)
                             {
@@ -5605,7 +5578,7 @@ void RNNDescriptor::RNNBackwardDataPackedTensors(
                                         ri * wei_len * uni_stride,
                                     dhx,
                                     hx_shift + ri * hy_n * hy_h + use_batch * hy_h,
-                                    gemm_backend);
+                                    GemmBackend_t::rocblas);
 
                                 if(gemm_status != miopenStatusSuccess)
                                 {
@@ -5671,7 +5644,7 @@ void RNNDescriptor::RNNBackwardDataPackedTensors(
                                          weitime_shift + ri * wei_len * uni_stride,
                                          dhx,
                                          hx_shift + ri * hy_n * hy_h + use_batch * hy_h,
-                                         gemm_backend);
+                                         GemmBackend_t::rocblas);
 
                             if(gemm_status != miopenStatusSuccess)
                             {
@@ -5794,7 +5767,7 @@ void RNNDescriptor::RNNBackwardDataPackedTensors(
                                                           rnn_data_type,
                                                           false};
         miopenStatus_t gemm_status =
-            CallGemm(handle, gemm_desc, workSpace, 0, w, 0, dx, 0, gemm_backend);
+            CallGemm(handle, gemm_desc, workSpace, 0, w, 0, dx, 0, GemmBackend_t::rocblas);
         if(gemm_status != miopenStatusSuccess)
         {
             if(gemm_status == miopenStatusNotImplemented)
@@ -5984,7 +5957,6 @@ void RNNDescriptor::RNNBackwardWeightsPackedTensors(
     int out_h = dyDesc[0].GetLengths()[1];
 
     miopenDataType_t rnn_data_t = hxDesc.GetType();
-    auto gemm_backend           = GetGemmBackend(handle, rnn_data_t);
 
     if(in_h <= 0 || hy_h <= 0 || hy_n <= 0 || hy_d <= 0 || out_h <= 0 || seqLen <= 0)
     {
@@ -6122,7 +6094,7 @@ void RNNDescriptor::RNNBackwardWeightsPackedTensors(
                                                                   false};
 
                 miopenStatus_t gemm_status =
-                    CallGemm(handle, gemm_desc, workSpace, 0, x, 0, dw, 0, gemm_backend);
+                    CallGemm(handle, gemm_desc, workSpace, 0, x, 0, dw, 0, GemmBackend_t::rocblas);
 
                 checkGemmStatusAndLog(gemm_status);
                 // Update time
@@ -6165,7 +6137,7 @@ void RNNDescriptor::RNNBackwardWeightsPackedTensors(
                                                   prelayer_shift,
                                                   dw,
                                                   wei_shift,
-                                                  gemm_backend);
+                                                  GemmBackend_t::rocblas);
 
             checkGemmStatusAndLog(gemm_status);
             // Update time
@@ -6406,7 +6378,7 @@ void RNNDescriptor::RNNBackwardWeightsPackedTensors(
                                                           hx_shift + ri * hy_n * hy_h,
                                                           dw,
                                                           wei_shift + ri * wei_len * uni_stride,
-                                                          gemm_backend);
+                                                          GemmBackend_t::rocblas);
 
                     checkGemmStatusAndLog(gemm_status);
 
@@ -6450,7 +6422,7 @@ void RNNDescriptor::RNNBackwardWeightsPackedTensors(
                                      hx_shift + ri * hy_n * hy_h + in_n.at(seqLen - 1) * hy_h,
                                      dw,
                                      wei_shift + ri * wei_len * uni_stride,
-                                     gemm_backend);
+                                     GemmBackend_t::rocblas);
 
                         checkGemmStatusAndLog(gemm_status);
 
@@ -6491,7 +6463,7 @@ void RNNDescriptor::RNNBackwardWeightsPackedTensors(
                                                           pretime_shift + ri * hy_h,
                                                           dw,
                                                           wei_shift + ri * wei_len * uni_stride,
-                                                          gemm_backend);
+                                                          GemmBackend_t::rocblas);
 
                     checkGemmStatusAndLog(gemm_status);
 
@@ -6559,7 +6531,7 @@ void RNNDescriptor::RNNBackwardWeightsPackedTensors(
                                              hx_shift + ri * hy_n * hy_h,
                                              dw,
                                              wei_shift + ri * wei_len * uni_stride,
-                                             gemm_backend);
+                                             GemmBackend_t::rocblas);
 
                                 checkGemmStatusAndLog(gemm_status);
                                 // Update time
@@ -6601,7 +6573,7 @@ void RNNDescriptor::RNNBackwardWeightsPackedTensors(
                                     hx_shift + ri * hy_n * hy_h + in_n.at(use_time) * hy_h,
                                     dw,
                                     wei_shift + ri * wei_len * uni_stride,
-                                    gemm_backend);
+                                    GemmBackend_t::rocblas);
 
                                 checkGemmStatusAndLog(gemm_status);
                                 // Update time
@@ -6640,7 +6612,7 @@ void RNNDescriptor::RNNBackwardWeightsPackedTensors(
                                              pretime_shift + ri * hy_h,
                                              dw,
                                              wei_shift + ri * wei_len * uni_stride,
-                                             gemm_backend);
+                                             GemmBackend_t::rocblas);
 
                                 checkGemmStatusAndLog(gemm_status);
                                 // Update time
@@ -6675,4 +6647,5 @@ void RNNDescriptor::RNNBackwardWeightsPackedTensors(
     MIOPEN_THROW("GEMM is not supported");
 #endif
 };
+
 } // namespace miopen
