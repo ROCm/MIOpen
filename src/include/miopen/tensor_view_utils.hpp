@@ -104,4 +104,4 @@ inline tensor_view_t<N - 1> get_tv_without_dim(const tensor_view_t<N>& origin_tv
 
 } // namespace miopen
 
-#endif // MIOPEN_TENSOR_REORDER_UTIL_HPP_
+#endif // MIOPEN_TENSOR_VIEW_UTIL_HPP_

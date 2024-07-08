@@ -102,7 +102,6 @@ __device__ void kthvalueFwd(const DTYPE* input,
         {
             size_t input_idx = idx + i * dim_stride;
             RADIX_TYPE val   = encode<DTYPE>(input[input_idx]);
-            // printf("%u\n", val);
             if((val & desired_mask) == desired)
             {
                 ++counts[GetBitFieldImpl<RADIX_TYPE>(val, pos, RADIX_BITS)];
