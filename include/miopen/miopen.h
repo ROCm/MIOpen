@@ -7260,6 +7260,8 @@ miopenFusedAdamWithOutput(miopenHandle_t handle,
 /** @} */
 // CLOSEOUT SGD DOXYGEN GROUP
 #endif // MIOPEN_BETA_API
+
+#ifdef MIOPEN_BETA_API
 // TransformersAdamW APIs
 /** @addtogroup SGD
  *
@@ -7537,6 +7539,7 @@ miopenTransformersAdamWWithOutput(miopenHandle_t handle,
 
 /** @} */
 // CLOSEOUT SGD DOXYGEN GROUP
+#endif // MIOPEN_BETA_API
 
 #ifdef MIOPEN_BETA_API
 // GetItem APIs
