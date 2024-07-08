@@ -33,88 +33,92 @@
 #define ACCUMULATOR_NEEDS_CONVERSION 0
 #endif
 
-__kernel void Col2Im3d(global _FLOAT* col,
-                       const int col_d,
-                       const int col_h,
-                       const int col_w,
-                       const int wei_d,
-                       const int wei_h,
-                       const int wei_w,
-                       const int pad_d,
-                       const int pad_h,
-                       const int pad_w,
-                       const int stride_d,
-                       const int stride_h,
-                       const int stride_w,
-                       const int dilation_d,
-                       const int dilation_h,
-                       const int dilation_w,
-                       const int depth,
-                       const int height,
-                       const int width,
-                       global _FLOAT* im,
-                       const unsigned long im_offset)
+#ifndef MIOPEN_USE_64BIT_INDEX
+#error "MIOPEN_USE_64BIT_INDEX must be defined"
+#endif
+
+__kernel void Col2Im3dU(global _FLOAT* col,
+                        const uint col_d,
+                        const uint col_h,
+                        const uint col_w,
+                        const uint wei_d,
+                        const uint wei_h,
+                        const uint wei_w,
+                        const uint pad_d,
+                        const uint pad_h,
+                        const uint pad_w,
+                        const uint stride_d,
+                        const uint stride_h,
+                        const uint stride_w,
+                        const uint dilation_d,
+                        const uint dilation_h,
+                        const uint dilation_w,
+                        const uint depth,
+                        const uint height,
+                        const uint width,
+                        global _FLOAT* im,
+                        const unsigned long im_offset)
 {
     global _FLOAT* im_off = im + im_offset;
-    int gid               = (int)get_global_id(0);
+    uint gid              = (uint)get_global_id(0);
 
-    int im_ch = gid / (width * height * depth);
-    int itmp  = gid % (width * height * depth);
-    int im_d  = itmp / (width * height);
-    itmp      = itmp % (width * height);
-    int im_h  = itmp / width;
-    int im_w  = itmp % width;
+    uint im_ch = gid / (width * height * depth);
+    uint itmp  = gid % (width * height * depth);
+    uint im_d  = itmp / (width * height);
+    itmp       = itmp % (width * height);
+    uint im_h  = itmp / width;
+    uint im_w  = itmp % width;
 
     im_d += pad_d;
     im_h += pad_h;
     im_w += pad_w;
 
-    int start_d = (im_d < dilation_d * (wei_d - 1) + 1)
-                      ? 0
-                      : (im_d - (dilation_d * (wei_d - 1) + 1)) / stride_d + 1;
-    int end_d   = min(col_d, im_d / stride_d + 1);
+    uint start_d = (im_d < dilation_d * (wei_d - 1) + 1)
+                       ? 0
+                       : (im_d - (dilation_d * (wei_d - 1) + 1)) / stride_d + 1;
+    uint end_d   = min(col_d, im_d / stride_d + 1);
 
-    int start_h = (im_h < dilation_h * (wei_h - 1) + 1)
-                      ? 0
-                      : (im_h - (dilation_h * (wei_h - 1) + 1)) / stride_h + 1;
-    int end_h   = min(col_h, im_h / stride_h + 1);
+    uint start_h = (im_h < dilation_h * (wei_h - 1) + 1)
+                       ? 0
+                       : (im_h - (dilation_h * (wei_h - 1) + 1)) / stride_h + 1;
+    uint end_h   = min(col_h, im_h / stride_h + 1);
 
-    int start_w = (im_w < dilation_w * (wei_w - 1) + 1)
-                      ? 0
-                      : (im_w - (dilation_w * (wei_w - 1) + 1)) / stride_w + 1;
-    int end_w   = min(col_w, im_w / stride_w + 1);
+    uint start_w = (im_w < dilation_w * (wei_w - 1) + 1)
+                       ? 0
+                       : (im_w - (dilation_w * (wei_w - 1) + 1)) / stride_w + 1;
+    uint end_w   = min(col_w, im_w / stride_w + 1);
 
 #if MIOPEN_USE_64BIT_INDEX
-    long ch_offset = (long)im_ch * col_d * col_w * col_h * wei_d * wei_w * wei_h;
+    ulong ch_offset = (ulong)im_ch * col_d * col_w * col_h * wei_d * wei_w * wei_h;
 #else
-    int ch_offset = im_ch * col_d * col_w * col_h * wei_d * wei_w * wei_h;
+    uint ch_offset = im_ch * col_d * col_w * col_h * wei_d * wei_w * wei_h;
 #endif
 
     col += ch_offset;
 
     _FLOAT_ACCUM tmp = (_FLOAT_ACCUM)0;
 
-    for(int cz = start_d; cz < end_d; cz++)
+    for(uint cz = start_d; cz < end_d; cz++)
     {
-        for(int cy = start_h; cy < end_h; cy++)
+        for(uint cy = start_h; cy < end_h; cy++)
         {
-            for(int cx = start_w; cx < end_w; cx++)
+            for(uint cx = start_w; cx < end_w; cx++)
             {
                 if((im_d - cz * stride_d) % dilation_d == 0 &&
                    (im_h - cy * stride_h) % dilation_h == 0 &&
                    (im_w - cx * stride_w) % dilation_w == 0)
                 {
-                    int z = (im_d - cz * stride_d) / dilation_d;
-                    int y = (im_h - cy * stride_h) / dilation_h;
-                    int x = (im_w - cx * stride_w) / dilation_w;
+                    uint z = (im_d - cz * stride_d) / dilation_d;
+                    uint y = (im_h - cy * stride_h) / dilation_h;
+                    uint x = (im_w - cx * stride_w) / dilation_w;
 
 #if MIOPEN_USE_64BIT_INDEX
-                    long col_off =
-                        ((((((long)z * wei_h) + y) * wei_w + x) * col_d + cz) * col_h + cy) *
+                    ulong col_off =
+                        ((((((ulong)z * wei_h) + y) * wei_w + x) * col_d + cz) * col_h + cy) *
                             col_w +
                         cx;
 #else
-                    int col_off =
+                    uint col_off =
                         (((((z * wei_h) + y) * wei_w + x) * col_d + cz) * col_h + cy) * col_w + cx;
 #endif
 
