@@ -137,6 +137,7 @@ set( MIOpen_Source
     graphapi/opgraph.cpp
     graphapi/pointwise.cpp
     graphapi/reduction.cpp
+    graphapi/reshape.cpp
     graphapi/rng.cpp
     graphapi/tensor.cpp
     graphapi/variant_pack.cpp
@@ -182,6 +183,7 @@ set( MIOpen_Source
     solver/activ/fwd_0.cpp
     solver/activ/fwd_1.cpp
     solver/adam/adam.cpp
+    solver/adam/transformers_adam_w.cpp
     solver/batchnorm/backward_ck.cpp
     solver/batchnorm/backward_per_activation.cpp
     solver/batchnorm/backward_per_activation_fused.cpp
@@ -303,6 +305,7 @@ set( MIOpen_Source
     temp_file.cpp
     tensor.cpp
     tensor_api.cpp
+    transformers_adam_w_api.cpp
     seq_tensor.cpp
 )
 
@@ -503,6 +506,8 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenUtilKernels3.cl
         kernels/MIOpenUtilKernels4.cl
         kernels/MIOpenUtilKernels5.cl
+        kernels/MIOpenVecAdd.cpp
+        kernels/MIOpenVecAddOCL.cl
         kernels/MIOpenIm2d2Col.cl
         kernels/MIOpenIm3d2Col.cl
         kernels/MIOpenCol2Im2d.cl
@@ -638,6 +643,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         ocl/fusionopbiasbnactivocl.cpp
         reduceextreme.cpp
         sum.cpp
+        transformers_adam_w.cpp
         ${PROJECT_BINARY_DIR}/db_path.cpp
         )
 
@@ -647,7 +653,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         )
 endif()
 
-if(MIOPEN_USE_ROCBLAS)
+if(MIOPEN_USE_ROCBLAS OR MIOPEN_USE_HIPBLASLT)
     list(APPEND MIOpen_Source
         gemm_v2.cpp
     )
@@ -858,6 +864,10 @@ if(rocblas_FOUND)
     target_link_libraries( MIOpen INTERFACE $<BUILD_INTERFACE:roc::rocblas> )
     target_link_libraries( MIOpen PRIVATE roc::rocblas )
     list(APPEND PACKAGE_STATIC_DEPENDS PACKAGE rocblas)
+endif()
+
+if(hipblaslt_FOUND)
+    target_link_libraries( MIOpen PRIVATE roc::hipblaslt )
 endif()
 
 # For backward compatibility with ROCm 5.3

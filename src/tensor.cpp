@@ -458,6 +458,22 @@ std::size_t TensorDescriptor::GetNumBytes() const
 
 bool TensorDescriptor::IsPacked() const { return this->packed; }
 
+bool TensorDescriptor::IsContiguous() const
+{
+    size_t plane_size    = 1;
+    size_t dims_of_shape = lens.size();
+
+    for(int index = dims_of_shape - 1; index >= 0; --index)
+    {
+        if((lens[index] != 1) && (strides[index] != plane_size))
+        {
+            return false;
+        }
+        plane_size *= lens[index];
+    }
+    return true;
+}
+
 bool TensorDescriptor::AllLengthsFitIntoInt() const
 {
     if(std::any_of(lens.cbegin(), lens.cend(), [](std::size_t x) {
