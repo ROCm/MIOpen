@@ -373,6 +373,9 @@ ConvWinoFuryRxSCommon<Winodata, Winofilter>::GetSolution(const ExecutionContext&
     // KernelInfo
     KernelInfo kernel;
 
+    /// Kernel doesn't need ROCM_METADATA_VERSION, but AmdgcnAssemble()
+    /// uses it to find out required CO version (hack).
+    /// \todo Delete when COv2 support is removed.
     KernelBuildParameters options{
         {"ROCM_METADATA_VERSION", 5},
     };
