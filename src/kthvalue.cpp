@@ -24,10 +24,9 @@
  *
  *******************************************************************************/
 
-#include "miopen/kthvalue/invoke_params.hpp"
-#include "miopen/kthvalue/problem_description.hpp"
-#include "miopen/kthvalue/solvers.hpp"
-
+#include <miopen/kthvalue/invoke_params.hpp>
+#include <miopen/kthvalue/problem_description.hpp>
+#include <miopen/kthvalue/solvers.hpp>
 #include <miopen/miopen.h>
 #include <miopen/find_solution.hpp>
 #include <miopen/tensor.hpp>
