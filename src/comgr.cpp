@@ -94,6 +94,10 @@ MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_OPENCL_WAVE64_NOWGP)
     ((MIOPEN_AMD_COMGR_VERSION_MAJOR * 1000 + MIOPEN_AMD_COMGR_VERSION_MINOR) * 1000 + \
      MIOPEN_AMD_COMGR_VERSION_PATCH)
 
+#if COMGR_VERSION < 1007000
+#error "AMD COMgr older than 1.7.0 is not supported"
+#endif
+
 #define COMGR_SUPPORTS_PCH (COMGR_VERSION >= 1008000)
 
 #if COMGR_SUPPORTS_PCH
@@ -170,8 +174,6 @@ static void RemoveOptionsUnwanted(OptionList& list)
 } // namespace gcnasm
 
 namespace ocl {
-
-#define OCL_COMPILE_SOURCE_WITH_DEVICE_LIBS (COMGR_VERSION >= 1007000)
 
 #define OCL_EARLY_INLINE 1
 
@@ -252,6 +254,14 @@ static inline auto to_string(const std::size_t& v) { return std::to_string(v); }
 static std::string to_string(const amd_comgr_language_t val)
 {
     std::ostringstream oss;
+#if COMGR_VERSION >= 3000000
+    MIOPEN_LOG_ENUM(oss,
+                    val,
+                    AMD_COMGR_LANGUAGE_NONE,
+                    AMD_COMGR_LANGUAGE_OPENCL_1_2,
+                    AMD_COMGR_LANGUAGE_OPENCL_2_0,
+                    AMD_COMGR_LANGUAGE_HIP);
+#else
     MIOPEN_LOG_ENUM(oss,
                     val,
                     AMD_COMGR_LANGUAGE_NONE,
@@ -259,6 +269,7 @@ static std::string to_string(const amd_comgr_language_t val)
                     AMD_COMGR_LANGUAGE_OPENCL_2_0,
                     AMD_COMGR_LANGUAGE_HC,
                     AMD_COMGR_LANGUAGE_HIP);
+#endif
     return oss.str();
 }
 
@@ -284,15 +295,13 @@ static std::string to_string(const amd_comgr_data_kind_t val)
 static std::string to_string(const amd_comgr_action_kind_t val)
 {
     std::ostringstream oss;
-#if COMGR_VERSION >= 1007000
+#if COMGR_VERSION >= 3000000
     MIOPEN_LOG_ENUM(oss,
                     val,
                     AMD_COMGR_ACTION_SOURCE_TO_PREPROCESSOR,
                     AMD_COMGR_ACTION_ADD_PRECOMPILED_HEADERS,
                     AMD_COMGR_ACTION_COMPILE_SOURCE_TO_BC,
-                    AMD_COMGR_ACTION_ADD_DEVICE_LIBRARIES,
                     AMD_COMGR_ACTION_LINK_BC_TO_BC,
-                    AMD_COMGR_ACTION_OPTIMIZE_BC_TO_BC,
                     AMD_COMGR_ACTION_CODEGEN_BC_TO_RELOCATABLE,
                     AMD_COMGR_ACTION_CODEGEN_BC_TO_ASSEMBLY,
                     AMD_COMGR_ACTION_LINK_RELOCATABLE_TO_RELOCATABLE,
@@ -301,7 +310,6 @@ static std::string to_string(const amd_comgr_action_kind_t val)
                     AMD_COMGR_ACTION_DISASSEMBLE_RELOCATABLE_TO_SOURCE,
                     AMD_COMGR_ACTION_DISASSEMBLE_EXECUTABLE_TO_SOURCE,
                     AMD_COMGR_ACTION_DISASSEMBLE_BYTES_TO_SOURCE,
-                    AMD_COMGR_ACTION_COMPILE_SOURCE_TO_FATBIN,
                     AMD_COMGR_ACTION_COMPILE_SOURCE_WITH_DEVICE_LIBS_TO_BC);
 #else
     MIOPEN_LOG_ENUM(oss,
@@ -320,7 +328,8 @@ static std::string to_string(const amd_comgr_action_kind_t val)
                     AMD_COMGR_ACTION_DISASSEMBLE_RELOCATABLE_TO_SOURCE,
                     AMD_COMGR_ACTION_DISASSEMBLE_EXECUTABLE_TO_SOURCE,
                     AMD_COMGR_ACTION_DISASSEMBLE_BYTES_TO_SOURCE,
-                    AMD_COMGR_ACTION_COMPILE_SOURCE_TO_FATBIN);
+                    AMD_COMGR_ACTION_COMPILE_SOURCE_TO_FATBIN,
+                    AMD_COMGR_ACTION_COMPILE_SOURCE_WITH_DEVICE_LIBS_TO_BC);
 #endif
     return oss.str();
 }
@@ -649,41 +658,8 @@ void BuildOcl(const std::string& name,
 
         const Dataset addedPch;
         action.Do(AMD_COMGR_ACTION_ADD_PRECOMPILED_HEADERS, inputs, addedPch);
-#if OCL_COMPILE_SOURCE_WITH_DEVICE_LIBS
         const Dataset linkedBc;
         action.Do(AMD_COMGR_ACTION_COMPILE_SOURCE_WITH_DEVICE_LIBS_TO_BC, addedPch, linkedBc);
-#else
-        const Dataset compiledBc;
-        action.Do(AMD_COMGR_ACTION_COMPILE_SOURCE_TO_BC, addedPch, compiledBc);
-
-        OptionList optLink;
-        // Use device libs for wavefrontsize64 for non-gfx10 targets
-        // or when enforced via option.
-        if(!(StartsWith(target.Name(), "gfx10") || StartsWith(target.Name(), "gfx11")) ||
-           IsWave64Enforced(optCompile))
-        {
-            optLink.push_back("wavefrontsize64");
-        }
-        for(const auto& opt : optCompile)
-        {
-            if(opt == "-cl-fp32-correctly-rounded-divide-sqrt")
-                optLink.push_back("correctly_rounded_sqrt");
-            else if(opt == "-cl-denorms-are-zero")
-                optLink.push_back("daz_opt");
-            else if(opt == "-cl-finite-math-only" || opt == "-cl-fast-relaxed-math")
-                optLink.push_back("finite_only");
-            else if(opt == "-cl-unsafe-math-optimizations" || opt == "-cl-fast-relaxed-math")
-                optLink.push_back("unsafe_math");
-            else
-            {
-            } // nop
-        }
-        action.SetOptionList(optLink);
-        const Dataset addedDevLibs;
-        action.Do(AMD_COMGR_ACTION_ADD_DEVICE_LIBRARIES, compiledBc, addedDevLibs);
-        const Dataset linkedBc;
-        action.Do(AMD_COMGR_ACTION_LINK_BC_TO_BC, addedDevLibs, linkedBc);
-#endif
 
         action.SetOptionList(optCompile);
         const Dataset relocatable;
