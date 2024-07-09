@@ -41,6 +41,8 @@ struct FusionDescription : ProblemDescriptionBase
 #endif
 {
     const miopen::FusionPlanDescriptor* fusion_plan_desc;
+    bool disable_search_enforce = false;
+
     FusionDescription(const miopen::FusionPlanDescriptor* ptr_desc) : fusion_plan_desc(ptr_desc) {}
 
     [[nodiscard]] NetworkConfig MakeNetworkConfig() const override
