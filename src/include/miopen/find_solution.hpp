@@ -263,6 +263,13 @@ struct SolverContainer
             Solvers{}...);
     }
 
+    ///\todo: remove when AnySolver would be able to work with non-conv solvers
+    template <class Functor>
+    void Foreach(Functor&& receiver)
+    {
+        miopen::each_args([&](auto solver) { receiver(solver); }, Solvers{}...);
+    }
+
     // Search for all applicable solutions among many solvers
     template <class Context, class Problem, class Db, class Solution = miopen::solver::ConvSolution>
     std::vector<Solution>
