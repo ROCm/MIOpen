@@ -47,6 +47,16 @@ inline HipEventPtr make_hip_event()
     return HipEventPtr{result};
 }
 
+struct HipEventProfiler
+{
+    const Handle& handle;
+    HipEventPtr start;
+    HipEventPtr stop;
+
+    HipEventProfiler(const Handle& handle_);
+    ~HipEventProfiler();
+};
+
 #if 1 // Keep around other storage techinques -- @pfultz2 27.03.2017
 
 template <class T, class U>

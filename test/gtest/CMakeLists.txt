@@ -1,6 +1,11 @@
 find_package(GTest REQUIRED)
 find_package(rocblas)
 
+if(MIOPEN_USE_HIPBLASLT)
+  find_package(hipblas REQUIRED PATHS /opt/rocm $ENV{HIP_PATH})
+  find_package(hipblaslt REQUIRED PATHS /opt/rocm $ENV{HIP_PATH})
+endif()
+
 set(SOURCES
     log.cpp
     platform.cpp
@@ -17,12 +22,17 @@ function(add_gtest TEST_NAME TEST_CPP)
   if(WIN32)
     target_compile_definitions(${TEST_NAME} PRIVATE NOMINMAX)
   endif()
+
+  
   add_dependencies(tests ${TEST_NAME})
   add_dependencies(check ${TEST_NAME})
   target_compile_options(${TEST_NAME} PRIVATE -Wno-global-constructors -Wno-undef)
   target_include_directories(${TEST_NAME} PRIVATE ../ ../../src/kernels)
   if(MIOPEN_ENABLE_AI_KERNEL_TUNING)
     target_link_libraries(${TEST_NAME} frugally-deep::fdeep Eigen3::Eigen)
+  endif()
+  if(hipblaslt_FOUND)
+    target_link_libraries( ${TEST_NAME} roc::hipblaslt )
   endif()
   # Workaround : change in rocm-cmake was causing linking error so had to add ${CMAKE_DL_LIBS} 
   #               We can remove ${CMAKE_DL_LIBS} once root cause is identified.

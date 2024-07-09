@@ -63,12 +63,23 @@
 #endif
 #endif
 
+#if MIOPEN_USE_HIPBLASLT
+#include <hipblas/hipblas.h>
+
+using hipblasLtHandle_t = void*;
+extern "C" hipblasStatus_t hipblasLtDestroy(hipblasLtHandle_t handle);
+#endif
+
 namespace miopen {
 
 struct HandleImpl;
 
 #if MIOPEN_USE_ROCBLAS
 using rocblas_handle_ptr = MIOPEN_MANAGE_PTR(rocblas_handle, rocblas_destroy_handle);
+#endif
+
+#if MIOPEN_USE_HIPBLASLT
+using hipblasLt_handle_ptr = MIOPEN_MANAGE_PTR(hipblasLtHandle_t, hipblasLtDestroy);
 #endif
 
 struct MIOPEN_EXPORT Handle : miopenHandle
@@ -275,12 +286,19 @@ public:
 
 #if MIOPEN_USE_ROCBLAS
     const rocblas_handle_ptr& rhandle() const;
+#endif
+#if MIOPEN_USE_HIPBLASLT
+    const hipblasLt_handle_ptr& HipblasLtHandle() const;
+#endif
 
 private:
+#if MIOPEN_USE_ROCBLAS
     rocblas_handle_ptr CreateRocblasHandle(miopenAcceleratorQueue_t streamID) const;
-#else
-private:
 #endif
+#if MIOPEN_USE_HIPBLASLT
+    hipblasLt_handle_ptr CreateHipblasLtHandle() const;
+#endif
+
     InvokerCache invokers;
 };
 
