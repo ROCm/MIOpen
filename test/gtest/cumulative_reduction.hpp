@@ -96,24 +96,16 @@ inline std::vector<CumulativeReductionTestCase> CumulativeReductionTestConfigs()
                         tcs.push_back({{65}, op, dim, exclusive, reverse, contiguous});
                         tcs.push_back({{65, 2, 1}, op, dim, exclusive, reverse, contiguous});
                         tcs.push_back({{70, 10}, op, dim, exclusive, reverse, contiguous});
-                        // tcs.push_back(
-                        //     {{512, 64, 112, 112}, op, dim, exclusive, reverse, contiguous});
-                        // tcs.push_back({{512, 64, 56, 56}, op, dim, exclusive, reverse,
-                        // contiguous}); tcs.push_back(
-                        //     {{512, 128, 56, 56}, op, dim, exclusive, reverse, contiguous});
-                        // tcs.push_back(
-                        //     {{512, 128, 28, 28}, op, dim, exclusive, reverse, contiguous});
-                        // tcs.push_back(
-                        //     {{512, 256, 28, 28}, op, dim, exclusive, reverse, contiguous});
-                        // tcs.push_back(
-                        //     {{512, 64, 112, 112}, op, dim, exclusive, reverse, contiguous});
-                        // tcs.push_back({{512, 64, 56, 56}, op, dim, exclusive, reverse,
-                        // contiguous}); tcs.push_back(
-                        //     {{512, 128, 56, 56}, op, dim, exclusive, reverse, contiguous});
-                        // tcs.push_back(
-                        //     {{512, 128, 28, 28}, op, dim, exclusive, reverse, contiguous});
-                        // tcs.push_back(
-                        //     {{512, 256, 28, 28}, op, dim, exclusive, reverse, contiguous});
+
+                        tcs.push_back(
+                            {{512, 64, 112, 112}, op, dim, exclusive, reverse, contiguous});
+                        tcs.push_back({{512, 64, 56, 56}, op, dim, exclusive, reverse, contiguous});
+                        tcs.push_back(
+                            {{512, 128, 56, 56}, op, dim, exclusive, reverse, contiguous});
+                        tcs.push_back(
+                            {{512, 128, 28, 28}, op, dim, exclusive, reverse, contiguous});
+                        tcs.push_back(
+                            {{512, 256, 28, 28}, op, dim, exclusive, reverse, contiguous});
                     }
                 }
             }

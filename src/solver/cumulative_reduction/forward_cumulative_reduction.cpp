@@ -33,7 +33,7 @@
 #define FLOAT_ACCUM float
 #define VIEW_DIMS 5
 
-#define LOCAL_SIZE 64
+#define LOCAL_SIZE 128
 
 namespace miopen {
 
@@ -41,10 +41,22 @@ namespace solver {
 
 namespace cumulative_reduction {
 
+bool IsImprovementOverROCm(const ExecutionContext& /*context*/,
+                           const miopen::cumulative_reduction::ForwardProblemDescription& problem)
+{
+    // if(problem.GetDim() != problem.GetInputDesc().GetSize() - 1)
+    //     return false;
+    // if(problem.GetInputDesc().GetLengths()[problem.GetDim()] > LOCAL_SIZE)
+    //     return false;
+    return true;
+}
+
 bool Forward::IsApplicable(
-    const ExecutionContext& /*context*/,
+    const ExecutionContext& context,
     const miopen::cumulative_reduction::ForwardProblemDescription& problem) const
 {
+    if(!IsImprovementOverROCm(context, problem))
+        return false;
     if(problem.GetInputDesc().GetSize() > VIEW_DIMS)
         return false;
     return true;

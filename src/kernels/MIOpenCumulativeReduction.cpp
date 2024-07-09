@@ -148,7 +148,8 @@ __device__ void LocalCumulativeReduction(const TI* __restrict__ input,
         local_idx += _gid * reduce_size * inner_size;
 
         local_output[local_idx]  = otmp[0];
-        local_indices[local_idx] = itmp[0];
+        if(local_indices)
+            local_indices[local_idx] = itmp[0];
     }
 }
 
@@ -250,11 +251,11 @@ __device__ void CumulativeReductionForward(const TI* __restrict__ input,
                                            tensor_view_t<NDIMS> output_tv,
                                            tensor_view_t<NDIMS> indices_tv)
 {
-    static __shared__ FLOAT_ACCUM otmp[LOCAL_SIZE];
+    __shared__ FLOAT_ACCUM otmp[LOCAL_SIZE];
     int* itmp = nullptr;
     if(indices)
     {
-        static __shared__ int _itmp[LOCAL_SIZE];
+        __shared__ int _itmp[LOCAL_SIZE];
         itmp = _itmp;
     }
 
