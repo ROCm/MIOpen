@@ -30,6 +30,7 @@
 #cmakedefine01 MIOPEN_BACKEND_HIP
 #cmakedefine01 MIOPEN_MODE_NOGPU
 #cmakedefine01 MIOPEN_USE_ROCBLAS
+#cmakedefine01 MIOPEN_USE_HIPBLASLT
 #cmakedefine01 MIOPEN_USE_ROCTRACER
 #cmakedefine01 MIOPEN_BUILD_DEV
 #cmakedefine01 MIOPEN_GPU_SYNC
@@ -108,7 +109,7 @@ const char* getOffloadBundlerBinPath();
 
 #cmakedefine01 MIOPEN_USE_SQLITE_PERFDB
 
-#define MIOPEN_USE_GEMM (MIOPEN_USE_ROCBLAS)
+#define MIOPEN_USE_GEMM (MIOPEN_USE_ROCBLAS || MIOPEN_USE_HIPBLASLT)
 
 // Usage of "defined" operator within macro expansion is undefined behavior,
 // so "defined(NDEBUG)" cannot be used there... unlike the following macro:
@@ -167,6 +168,31 @@ const char* getOffloadBundlerBinPath();
     ((MIOPEN_ROCBLAS_VERSION_MAJOR * 1000 + MIOPEN_ROCBLAS_VERSION_MINOR) * 1000 + \
      MIOPEN_ROCBLAS_VERSION_PATCH)
 #endif // MIOPEN_USE_ROCBLAS
+
+#if MIOPEN_USE_HIPBLASLT
+// clang-format off
+#define MIOPEN_HIPBLASLT_VERSION_MAJOR @hipblaslt_VERSION_MAJOR@
+#define MIOPEN_HIPBLASLT_VERSION_MINOR @hipblaslt_VERSION_MINOR@
+#define MIOPEN_HIPBLASLT_VERSION_PATCH @hipblaslt_VERSION_PATCH@
+// clang-format on
+#ifndef MIOPEN_HIPBLASLT_VERSION_MAJOR
+#define MIOPEN_HIPBLASLT_VERSION_MAJOR 0
+#endif
+#ifndef MIOPEN_HIPBLASLT_VERSION_MINOR
+#define MIOPEN_HIPBLASLT_VERSION_MINOR 0
+#endif
+#ifndef MIOPEN_HIPBLASLT_VERSION_PATCH
+#define MIOPEN_HIPBLASLT_VERSION_PATCH 0
+#endif
+// 3 decimal digits for each number; max fits into 32 bits.
+#if MIOPEN_HIPBLASLT_VERSION_MAJOR > 999 || MIOPEN_HIPBLASLT_VERSION_MAJOR > 999 || \
+    MIOPEN_HIPBLASLT_VERSION_PATCH > 999
+#error "Too big HIPBLASLT version number(s)"
+#endif
+#define MIOPEN_HIPBLASLT_VERSION_FLAT                                                  \
+    ((MIOPEN_HIPBLASLT_VERSION_MAJOR * 1000 + MIOPEN_HIPBLASLT_VERSION_MINOR) * 1000 + \
+     MIOPEN_HIPBLASLT_VERSION_PATCH)
+#endif // MIOPEN_USE_HIPBLASLT
 
 /// WORKAROUND_BOOST_ISSUE_392
 /// Workaround for https://github.com/boostorg/config/issues/392#issuecomment-1109889533
