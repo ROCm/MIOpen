@@ -76,9 +76,8 @@ struct FoldFwd final : FoldFwdSolverBase
     bool IsApplicable(const ExecutionContext& context,
                       const miopen::fold::FoldFwdProblemDescription& problem) const override;
 
-    ConvSolution
-    GetSolution(const ExecutionContext& context,
-                const miopen::fold::FoldFwdProblemDescription& problem) const override;
+    ConvSolution GetSolution(const ExecutionContext& context,
+                             const miopen::fold::FoldFwdProblemDescription& problem) const override;
 };
 
 using FoldBwdSolverBase =
@@ -91,9 +90,8 @@ struct FoldBwd final : FoldBwdSolverBase
     bool IsApplicable(const ExecutionContext& context,
                       const miopen::fold::FoldBwdProblemDescription& problem) const override;
 
-    ConvSolution
-    GetSolution(const ExecutionContext& context,
-                const miopen::fold::FoldBwdProblemDescription& problem) const override;
+    ConvSolution GetSolution(const ExecutionContext& context,
+                             const miopen::fold::FoldBwdProblemDescription& problem) const override;
 };
 
 } // namespace fold

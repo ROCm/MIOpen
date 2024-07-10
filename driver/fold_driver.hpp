@@ -135,14 +135,14 @@ int FoldDriver<Tgpu, Tref>::GetandSetData()
 {
     std::vector<int> input_length = GetTensorLengthsFromCmdLine();
 
-    output_size          = GetVectorInt32tFromCmdLine("outputSize");
-    kernel_size          = GetVectorInt32tFromCmdLine("kernelSize");
-    stride               = GetVectorInt32tFromCmdLine("stride");
-    padding              = GetVectorInt32tFromCmdLine("padding");
-    dilation             = GetVectorInt32tFromCmdLine("dilation");
-    const int N          = input_length[0];
-    int C          = input_length[1];
-    for (int32_t i : kernel_size)
+    output_size = GetVectorInt32tFromCmdLine("outputSize");
+    kernel_size = GetVectorInt32tFromCmdLine("kernelSize");
+    stride      = GetVectorInt32tFromCmdLine("stride");
+    padding     = GetVectorInt32tFromCmdLine("padding");
+    dilation    = GetVectorInt32tFromCmdLine("dilation");
+    const int N = input_length[0];
+    int C       = input_length[1];
+    for(int32_t i : kernel_size)
     {
         C = C / i;
     }
@@ -295,18 +295,18 @@ int FoldDriver<Tgpu, Tref>::RunForwardGPU()
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
         miopenFoldForward(GetHandle(),
-                            inputDesc,
-                            input_dev->GetMem(),
-                            outputDesc,
-                            output_dev->GetMem(),
-                            kernel_size.data(),
-                            kernel_size.size(),
-                            stride.data(),
-                            stride.size(),
-                            padding.data(),
-                            padding.size(),
-                            dilation.data(),
-                            dilation.size());
+                          inputDesc,
+                          input_dev->GetMem(),
+                          outputDesc,
+                          output_dev->GetMem(),
+                          kernel_size.data(),
+                          kernel_size.size(),
+                          stride.data(),
+                          stride.size(),
+                          padding.data(),
+                          padding.size(),
+                          dilation.data(),
+                          dilation.size());
 
         float time = 0.0;
         miopenGetKernelTime(GetHandle(), &time);
@@ -320,8 +320,8 @@ int FoldDriver<Tgpu, Tref>::RunForwardGPU()
         STOP_TIME
         int iter = inflags.GetValueInt("iter");
         if(WALL_CLOCK)
-            std::cout << "Wall-clock Time Fold Forward Elapsed: " << t.gettime_ms() / iter
-                      << " ms" << std::endl;
+            std::cout << "Wall-clock Time Fold Forward Elapsed: " << t.gettime_ms() / iter << " ms"
+                      << std::endl;
 
         float kernel_average_time =
             iter > 1 ? (kernel_total_time - kernel_first_time) / (iter - 1) : kernel_first_time;
@@ -362,18 +362,18 @@ int FoldDriver<Tgpu, Tref>::RunBackwardGPU()
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
         miopenFoldBackward(GetHandle(),
-                             dinputDesc,
-                             dinput_dev->GetMem(),
-                             doutputDesc,
-                             doutput_dev->GetMem(),
-                             kernel_size.data(),
-                             kernel_size.size(),
-                             stride.data(),
-                             stride.size(),
-                             padding.data(),
-                             padding.size(),
-                             dilation.data(),
-                             dilation.size());
+                           dinputDesc,
+                           dinput_dev->GetMem(),
+                           doutputDesc,
+                           doutput_dev->GetMem(),
+                           kernel_size.data(),
+                           kernel_size.size(),
+                           stride.data(),
+                           stride.size(),
+                           padding.data(),
+                           padding.size(),
+                           dilation.data(),
+                           dilation.size());
 
         float time = 0.0;
         miopenGetKernelTime(GetHandle(), &time);
@@ -387,8 +387,8 @@ int FoldDriver<Tgpu, Tref>::RunBackwardGPU()
         STOP_TIME
         int iter = inflags.GetValueInt("iter");
         if(WALL_CLOCK)
-            std::cout << "Wall-clock Time Fold Backward Elapsed: " << t.gettime_ms() / iter
-                      << " ms" << std::endl;
+            std::cout << "Wall-clock Time Fold Backward Elapsed: " << t.gettime_ms() / iter << " ms"
+                      << std::endl;
 
         float kernel_average_time =
             iter > 1 ? (kernel_total_time - kernel_first_time) / (iter - 1) : kernel_first_time;
@@ -459,8 +459,7 @@ int FoldDriver<Tgpu, Tref>::VerifyBackward()
 
     if(!std::isfinite(error_dinput) || error_dinput > tolerance)
     {
-        std::cout << "Backward Fold FAILED: {" << error_dinput << "} > " << tolerance
-                  << std::endl;
+        std::cout << "Backward Fold FAILED: {" << error_dinput << "} > " << tolerance << std::endl;
         return EC_VerifyFwd;
     }
     else

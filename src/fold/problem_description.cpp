@@ -91,7 +91,7 @@ NetworkConfig FoldFwdProblemDescription::MakeNetworkConfig() const
     auto output_dtype = outputDesc.GetType();
     auto size         = inputDesc.GetElementSize();
     auto in_dims      = inputDesc.GetLengths();
-    auto out_dims      = outputDesc.GetLengths();
+    auto out_dims     = outputDesc.GetLengths();
 
     std::ostringstream ss;
 
@@ -105,7 +105,7 @@ NetworkConfig FoldFwdProblemDescription::MakeNetworkConfig() const
         ss << "_" << val;
     }
     ss << "out_dims";
-    for (auto val: out_dims)
+    for(auto val : out_dims)
     {
         ss << "_" << val;
     }
@@ -123,7 +123,7 @@ NetworkConfig FoldBwdProblemDescription::MakeNetworkConfig() const
     auto output_dtype = doutputDesc.GetType();
     auto size         = dinputDesc.GetElementSize();
     auto in_dims      = dinputDesc.GetLengths();
-    auto out_dims      = doutputDesc.GetLengths();
+    auto out_dims     = doutputDesc.GetLengths();
 
     std::ostringstream ss;
 
@@ -137,7 +137,7 @@ NetworkConfig FoldBwdProblemDescription::MakeNetworkConfig() const
         ss << "_" << val;
     }
     ss << "out_grad_dims";
-    for (auto val: out_dims)
+    for(auto val : out_dims)
     {
         ss << "_" << val;
     }

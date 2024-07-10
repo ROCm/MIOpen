@@ -43,13 +43,13 @@ namespace solver {
 namespace fold {
 
 bool FoldBwd::IsApplicable([[maybe_unused]] const ExecutionContext& /*context*/,
-                             const miopen::fold::FoldBwdProblemDescription& problem) const
+                           const miopen::fold::FoldBwdProblemDescription& problem) const
 {
     return true;
 }
 
 ConvSolution FoldBwd::GetSolution([[maybe_unused]] const ExecutionContext& context,
-                                    const miopen::fold::FoldBwdProblemDescription& problem) const
+                                  const miopen::fold::FoldBwdProblemDescription& problem) const
 {
     std::ignore = context;
     auto result = ConvSolution{miopenStatusSuccess};
@@ -59,8 +59,8 @@ ConvSolution FoldBwd::GetSolution([[maybe_unused]] const ExecutionContext& conte
     auto input_grad_dims  = problem.GetDinputDesc().GetLengths();
     auto output_grad_dims = problem.GetDoutputDesc().GetLengths();
 
-    const int32_t N = static_cast<int32_t>(output_grad_dims[0]);
-    const int32_t C = static_cast<int32_t>(output_grad_dims[1]);
+    const int32_t N      = static_cast<int32_t>(output_grad_dims[0]);
+    const int32_t C      = static_cast<int32_t>(output_grad_dims[1]);
     int spatial_dim_size = output_grad_dims.size() - 2;
     int32_t P = 1, L = 1;
     std::vector<int32_t> ls;
@@ -68,7 +68,7 @@ ConvSolution FoldBwd::GetSolution([[maybe_unused]] const ExecutionContext& conte
     {
         P *= problem.kernel_size[i];
         int32_t l = (static_cast<int32_t>(output_grad_dims[i + 2]) + 2 * problem.padding[i] -
-                    problem.dilation[i] * (problem.kernel_size[i] - 1) - 1) /
+                     problem.dilation[i] * (problem.kernel_size[i] - 1) - 1) /
                         problem.stride[i] +
                     1;
         L *= l;

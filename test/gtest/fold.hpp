@@ -141,18 +141,20 @@ protected:
         std::vector<size_t> in_strides = config.ComputeStrides(in_dims);
 
         auto gen_value = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1e-2, 100); };
-        [[maybe_unused]] auto gen_one   = [&](auto...) { return 1; };
-        auto gen_zero  = [&](auto...) { return 0; };
-        input          = tensor<T>{in_dims, in_strides}.generate(gen_value);
-        const int32_t N      = static_cast<int32_t>(in_dims[0]);
-        int32_t C      = static_cast<int32_t>(in_dims[1]);
-        for (int32_t i : config.kernelSize)
+        [[maybe_unused]] auto gen_one = [&](auto...) { return 1; };
+        auto gen_zero                 = [&](auto...) { return 0; };
+        input                         = tensor<T>{in_dims, in_strides}.generate(gen_value);
+        const int32_t N               = static_cast<int32_t>(in_dims[0]);
+        int32_t C                     = static_cast<int32_t>(in_dims[1]);
+        for(int32_t i : config.kernelSize)
         {
             C = C / i;
         }
 
-        std::vector<size_t> out_dims{
-            static_cast<size_t>(N), static_cast<size_t>(C), static_cast<size_t>(config.outputSize[0]), static_cast<size_t>(config.outputSize[1])};
+        std::vector<size_t> out_dims{static_cast<size_t>(N),
+                                     static_cast<size_t>(C),
+                                     static_cast<size_t>(config.outputSize[0]),
+                                     static_cast<size_t>(config.outputSize[1])};
 
         output     = tensor<T>{out_dims}.generate(gen_zero);
         outputHost = tensor<T>{out_dims}.generate(gen_zero);
@@ -167,18 +169,18 @@ protected:
         miopenStatus_t status;
 
         status = miopen::FoldForward(handle,
-                                       input.desc,
-                                       input_dev.get(),
-                                       output.desc,
-                                       output_dev.get(),
-                                       config.kernelSize.data(),
-                                       static_cast<int>(config.kernelSize.size()),
-                                       config.stride.data(),
-                                       static_cast<int>(config.stride.size()),
-                                       config.padding.data(),
-                                       static_cast<int>(config.padding.size()),
-                                       config.dilation.data(),
-                                       static_cast<int>(config.dilation.size()));
+                                     input.desc,
+                                     input_dev.get(),
+                                     output.desc,
+                                     output_dev.get(),
+                                     config.kernelSize.data(),
+                                     static_cast<int>(config.kernelSize.size()),
+                                     config.stride.data(),
+                                     static_cast<int>(config.stride.size()),
+                                     config.padding.data(),
+                                     static_cast<int>(config.padding.size()),
+                                     config.dilation.data(),
+                                     static_cast<int>(config.dilation.size()));
 
         cpu_unfold_bwd_4d<T>(
             outputHost, input, config.kernelSize, config.stride, config.padding, config.dilation);
@@ -196,9 +198,10 @@ protected:
         // bf16 mantissa has 7 bits, by 3 bits shorter than fp16.
         if(std::is_same<T, bfloat16>::value)
             tolerance *= 8.0;
-        for (int i = 0; i < 10; ++i)
+        for(int i = 0; i < 10; ++i)
         {
-            std::cout << "output[" << i << "]: " << output[i] << " ~ " << outputHost[i] << std::endl;
+            std::cout << "output[" << i << "]: " << output[i] << " ~ " << outputHost[i]
+                      << std::endl;
         }
         auto error_output = miopen::rms_range(outputHost, output);
         EXPECT_TRUE(error_output < tolerance) << "Error forward output beyond tolerance Error: {"
@@ -228,20 +231,22 @@ protected:
         std::vector<size_t> in_strides = config.ComputeStrides(in_dims);
 
         auto gen_value = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1e-2, 100); };
-        [[maybe_unused]] auto gen_one   = [&](auto...) { return 1; };
-        auto gen_zero  = [&](auto...) { return 0; };
-        dinput         = tensor<T>{in_dims, in_strides}.generate(gen_zero);
-        dinputHost     = tensor<T>{in_dims, in_strides}.generate(gen_zero);
+        [[maybe_unused]] auto gen_one = [&](auto...) { return 1; };
+        auto gen_zero                 = [&](auto...) { return 0; };
+        dinput                        = tensor<T>{in_dims, in_strides}.generate(gen_zero);
+        dinputHost                    = tensor<T>{in_dims, in_strides}.generate(gen_zero);
 
-        const int32_t N      = static_cast<int32_t>(in_dims[0]);
-        int32_t C      = static_cast<int32_t>(in_dims[1]);
-        for (int32_t i : config.kernelSize)
+        const int32_t N = static_cast<int32_t>(in_dims[0]);
+        int32_t C       = static_cast<int32_t>(in_dims[1]);
+        for(int32_t i : config.kernelSize)
         {
             C = C / i;
         }
 
-        std::vector<size_t> out_dims{
-            static_cast<size_t>(N), static_cast<size_t>(C), static_cast<size_t>(config.outputSize[0]), static_cast<size_t>(config.outputSize[1])};
+        std::vector<size_t> out_dims{static_cast<size_t>(N),
+                                     static_cast<size_t>(C),
+                                     static_cast<size_t>(config.outputSize[0]),
+                                     static_cast<size_t>(config.outputSize[1])};
 
         doutput = tensor<T>{out_dims}.generate(gen_value);
 
@@ -255,18 +260,18 @@ protected:
         miopenStatus_t status;
 
         status = miopen::FoldBackward(handle,
-                                        dinput.desc,
-                                        dinput_dev.get(),
-                                        doutput.desc,
-                                        doutput_dev.get(),
-                                        config.kernelSize.data(),
-                                        static_cast<int>(config.kernelSize.size()),
-                                        config.stride.data(),
-                                        static_cast<int>(config.stride.size()),
-                                        config.padding.data(),
-                                        static_cast<int>(config.padding.size()),
-                                        config.dilation.data(),
-                                        static_cast<int>(config.dilation.size()));
+                                      dinput.desc,
+                                      dinput_dev.get(),
+                                      doutput.desc,
+                                      doutput_dev.get(),
+                                      config.kernelSize.data(),
+                                      static_cast<int>(config.kernelSize.size()),
+                                      config.stride.data(),
+                                      static_cast<int>(config.stride.size()),
+                                      config.padding.data(),
+                                      static_cast<int>(config.padding.size()),
+                                      config.dilation.data(),
+                                      static_cast<int>(config.dilation.size()));
 
         cpu_unfold_fwd_4d<T>(
             doutput, dinputHost, config.kernelSize, config.stride, config.padding, config.dilation);

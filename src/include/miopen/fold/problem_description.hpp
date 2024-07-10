@@ -74,21 +74,17 @@ struct UnfoldFwdProblemDescription : ProblemDescriptionBase
         if(inputDesc.GetSize() != 4)
         {
 #if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
-            MIOPEN_THROW(miopenStatusBadParm,
-                         "Unfold: The input tensor should be 4D.");
+            MIOPEN_THROW(miopenStatusBadParm, "Unfold: The input tensor should be 4D.");
 #else
             return false;
 #endif
         }
         int spatial_dim_size = inputDesc.GetSize() - 2;
-        if (kernel_size_size != spatial_dim_size ||
-        stride_size != spatial_dim_size ||
-        padding_size != spatial_dim_size ||
-        dilation_size != spatial_dim_size)
+        if(kernel_size_size != spatial_dim_size || stride_size != spatial_dim_size ||
+           padding_size != spatial_dim_size || dilation_size != spatial_dim_size)
         {
 #if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
-            MIOPEN_THROW(miopenStatusBadParm,
-                         "Unfold: Argument length should be 2D");
+            MIOPEN_THROW(miopenStatusBadParm, "Unfold: Argument length should be 2D");
 #else
             return false;
 #endif
@@ -98,24 +94,23 @@ struct UnfoldFwdProblemDescription : ProblemDescriptionBase
         const int32_t C = static_cast<int32_t>(input_dims[1]);
         int32_t P = 1, L = 1;
         std::vector<int32_t> ls;
-        for (int i = 0; i < spatial_dim_size; ++i) {
+        for(int i = 0; i < spatial_dim_size; ++i)
+        {
             P *= kernel_size[i];
             int32_t l = (static_cast<int32_t>(input_dims[i + 2]) + 2 * padding[i] -
-                        dilation[i] * (kernel_size[i] - 1) - 1) /
+                         dilation[i] * (kernel_size[i] - 1) - 1) /
                             stride[i] +
                         1;
             L *= l;
             ls.push_back(l);
         }
-        std::vector<size_t> output_dims_desired{static_cast<size_t>(N),
-                                        static_cast<size_t>(C * P),
-                                        static_cast<size_t>(L)};
+        std::vector<size_t> output_dims_desired{
+            static_cast<size_t>(N), static_cast<size_t>(C * P), static_cast<size_t>(L)};
         auto output_dims = outputDesc.GetLengths();
-        if (output_dims != output_dims_desired)
+        if(output_dims != output_dims_desired)
         {
 #if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
-            MIOPEN_THROW(miopenStatusBadParm,
-                         "Unfold: Invalid output dimension");
+            MIOPEN_THROW(miopenStatusBadParm, "Unfold: Invalid output dimension");
 #else
             return false;
 #endif
@@ -125,7 +120,7 @@ struct UnfoldFwdProblemDescription : ProblemDescriptionBase
 
     bool IsValidType() const
     {
-        if (inputDesc.GetType() != outputDesc.GetType())
+        if(inputDesc.GetType() != outputDesc.GetType())
         {
 #if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
             MIOPEN_THROW(miopenStatusBadParm,
@@ -187,21 +182,17 @@ struct UnfoldBwdProblemDescription : ProblemDescriptionBase
         if(dinputDesc.GetSize() != 4)
         {
 #if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
-            MIOPEN_THROW(miopenStatusBadParm,
-                         "Unfold: The input gradient tensor should be 4D.");
+            MIOPEN_THROW(miopenStatusBadParm, "Unfold: The input gradient tensor should be 4D.");
 #else
             return false;
 #endif
         }
         int spatial_dim_size = dinputDesc.GetSize() - 2;
-        if (kernel_size_size != spatial_dim_size ||
-        stride_size != spatial_dim_size ||
-        padding_size != spatial_dim_size ||
-        dilation_size != spatial_dim_size)
+        if(kernel_size_size != spatial_dim_size || stride_size != spatial_dim_size ||
+           padding_size != spatial_dim_size || dilation_size != spatial_dim_size)
         {
 #if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
-            MIOPEN_THROW(miopenStatusBadParm,
-                         "Unfold: Argument length should be 2D");
+            MIOPEN_THROW(miopenStatusBadParm, "Unfold: Argument length should be 2D");
 #else
             return false;
 #endif
@@ -211,24 +202,23 @@ struct UnfoldBwdProblemDescription : ProblemDescriptionBase
         const int32_t C = static_cast<int32_t>(input_dims[1]);
         int32_t P = 1, L = 1;
         std::vector<int32_t> ls;
-        for (int i = 0; i < spatial_dim_size; ++i) {
+        for(int i = 0; i < spatial_dim_size; ++i)
+        {
             P *= kernel_size[i];
             int32_t l = (static_cast<int32_t>(input_dims[i + 2]) + 2 * padding[i] -
-                        dilation[i] * (kernel_size[i] - 1) - 1) /
+                         dilation[i] * (kernel_size[i] - 1) - 1) /
                             stride[i] +
                         1;
             L *= l;
             ls.push_back(l);
         }
-        std::vector<size_t> output_dims_desired{static_cast<size_t>(N),
-                                        static_cast<size_t>(C * P),
-                                        static_cast<size_t>(L)};
+        std::vector<size_t> output_dims_desired{
+            static_cast<size_t>(N), static_cast<size_t>(C * P), static_cast<size_t>(L)};
         auto output_dims = doutputDesc.GetLengths();
-        if (output_dims != output_dims_desired)
+        if(output_dims != output_dims_desired)
         {
 #if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
-            MIOPEN_THROW(miopenStatusBadParm,
-                         "Unfold: Invalid output gradient dimension");
+            MIOPEN_THROW(miopenStatusBadParm, "Unfold: Invalid output gradient dimension");
 #else
             return false;
 #endif
@@ -238,11 +228,12 @@ struct UnfoldBwdProblemDescription : ProblemDescriptionBase
 
     bool IsValidType() const
     {
-        if (dinputDesc.GetType() != doutputDesc.GetType())
+        if(dinputDesc.GetType() != doutputDesc.GetType())
         {
 #if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
-            MIOPEN_THROW(miopenStatusBadParm,
-                         "Unfold: The input gradient tensor and output gradient tensor has mismatch type.");
+            MIOPEN_THROW(
+                miopenStatusBadParm,
+                "Unfold: The input gradient tensor and output gradient tensor has mismatch type.");
 #else
             return false;
 #endif
@@ -271,15 +262,15 @@ public:
 struct FoldFwdProblemDescription : ProblemDescriptionBase
 {
     FoldFwdProblemDescription(const TensorDescriptor& inputDesc_,
-                                const TensorDescriptor& outputDesc_,
-                                const int32_t* kernel_size_,
-                                const int kernel_size_size_,
-                                const int32_t* stride_,
-                                const int stride_size_,
-                                const int32_t* padding_,
-                                const int padding_size_,
-                                const int32_t* dilation_,
-                                const int dilation_size_)
+                              const TensorDescriptor& outputDesc_,
+                              const int32_t* kernel_size_,
+                              const int kernel_size_size_,
+                              const int32_t* stride_,
+                              const int stride_size_,
+                              const int32_t* padding_,
+                              const int padding_size_,
+                              const int32_t* dilation_,
+                              const int dilation_size_)
         : inputDesc(inputDesc_),
           outputDesc(outputDesc_),
           kernel_size(kernel_size_),
@@ -300,48 +291,43 @@ struct FoldFwdProblemDescription : ProblemDescriptionBase
         if(outputDesc.GetSize() != 4)
         {
 #if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
-            MIOPEN_THROW(miopenStatusBadParm,
-                         "Fold: The output tensor should be 4D.");
+            MIOPEN_THROW(miopenStatusBadParm, "Fold: The output tensor should be 4D.");
 #else
             return false;
 #endif
         }
         int spatial_dim_size = outputDesc.GetSize() - 2;
-        if (kernel_size_size != spatial_dim_size ||
-        stride_size != spatial_dim_size ||
-        padding_size != spatial_dim_size ||
-        dilation_size != spatial_dim_size)
+        if(kernel_size_size != spatial_dim_size || stride_size != spatial_dim_size ||
+           padding_size != spatial_dim_size || dilation_size != spatial_dim_size)
         {
 #if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
-            MIOPEN_THROW(miopenStatusBadParm,
-                         "Fold: Argument length should be 2D");
+            MIOPEN_THROW(miopenStatusBadParm, "Fold: Argument length should be 2D");
 #else
             return false;
 #endif
         }
-        auto input_dims = inputDesc.GetLengths();
+        auto input_dims  = inputDesc.GetLengths();
         auto output_dims = outputDesc.GetLengths();
-        const int32_t N = static_cast<int32_t>(output_dims[0]);
-        const int32_t C = static_cast<int32_t>(output_dims[1]);
+        const int32_t N  = static_cast<int32_t>(output_dims[0]);
+        const int32_t C  = static_cast<int32_t>(output_dims[1]);
         int32_t P = 1, L = 1;
         std::vector<int32_t> ls;
-        for (int i = 0; i < spatial_dim_size; ++i) {
+        for(int i = 0; i < spatial_dim_size; ++i)
+        {
             P *= kernel_size[i];
             int32_t l = (static_cast<int32_t>(output_dims[i + 2]) + 2 * padding[i] -
-                        dilation[i] * (kernel_size[i] - 1) - 1) /
+                         dilation[i] * (kernel_size[i] - 1) - 1) /
                             stride[i] +
                         1;
             L *= l;
             ls.push_back(l);
         }
-        std::vector<size_t> input_dims_desired{static_cast<size_t>(N),
-                                        static_cast<size_t>(C * P),
-                                        static_cast<size_t>(L)};
-        if (input_dims != input_dims_desired)
+        std::vector<size_t> input_dims_desired{
+            static_cast<size_t>(N), static_cast<size_t>(C * P), static_cast<size_t>(L)};
+        if(input_dims != input_dims_desired)
         {
 #if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
-            MIOPEN_THROW(miopenStatusBadParm,
-                         "Fold: Invalid input dimension");
+            MIOPEN_THROW(miopenStatusBadParm, "Fold: Invalid input dimension");
 #else
             return false;
 #endif
@@ -351,7 +337,7 @@ struct FoldFwdProblemDescription : ProblemDescriptionBase
 
     bool IsValidType() const
     {
-        if (inputDesc.GetType() != outputDesc.GetType())
+        if(inputDesc.GetType() != outputDesc.GetType())
         {
 #if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
             MIOPEN_THROW(miopenStatusBadParm,
@@ -384,15 +370,15 @@ public:
 struct FoldBwdProblemDescription : ProblemDescriptionBase
 {
     FoldBwdProblemDescription(const TensorDescriptor& dinputDesc_,
-                                const TensorDescriptor& doutputDesc_,
-                                const int32_t* kernel_size_,
-                                const int kernel_size_size_,
-                                const int32_t* stride_,
-                                const int stride_size_,
-                                const int32_t* padding_,
-                                const int padding_size_,
-                                const int32_t* dilation_,
-                                const int dilation_size_)
+                              const TensorDescriptor& doutputDesc_,
+                              const int32_t* kernel_size_,
+                              const int kernel_size_size_,
+                              const int32_t* stride_,
+                              const int stride_size_,
+                              const int32_t* padding_,
+                              const int padding_size_,
+                              const int32_t* dilation_,
+                              const int dilation_size_)
         : dinputDesc(dinputDesc_),
           doutputDesc(doutputDesc_),
           kernel_size(kernel_size_),
@@ -413,48 +399,43 @@ struct FoldBwdProblemDescription : ProblemDescriptionBase
         if(doutputDesc.GetSize() != 4)
         {
 #if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
-            MIOPEN_THROW(miopenStatusBadParm,
-                         "Fold: The output gradient tensor should be 4D.");
+            MIOPEN_THROW(miopenStatusBadParm, "Fold: The output gradient tensor should be 4D.");
 #else
             return false;
 #endif
         }
         int spatial_dim_size = doutputDesc.GetSize() - 2;
-        if (kernel_size_size != spatial_dim_size ||
-        stride_size != spatial_dim_size ||
-        padding_size != spatial_dim_size ||
-        dilation_size != spatial_dim_size)
+        if(kernel_size_size != spatial_dim_size || stride_size != spatial_dim_size ||
+           padding_size != spatial_dim_size || dilation_size != spatial_dim_size)
         {
 #if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
-            MIOPEN_THROW(miopenStatusBadParm,
-                         "Fold: Argument length should be 2D");
+            MIOPEN_THROW(miopenStatusBadParm, "Fold: Argument length should be 2D");
 #else
             return false;
 #endif
         }
-        auto input_dims = dinputDesc.GetLengths();
+        auto input_dims  = dinputDesc.GetLengths();
         auto output_dims = doutputDesc.GetLengths();
-        const int32_t N = static_cast<int32_t>(output_dims[0]);
-        const int32_t C = static_cast<int32_t>(output_dims[1]);
+        const int32_t N  = static_cast<int32_t>(output_dims[0]);
+        const int32_t C  = static_cast<int32_t>(output_dims[1]);
         int32_t P = 1, L = 1;
         std::vector<int32_t> ls;
-        for (int i = 0; i < spatial_dim_size; ++i) {
+        for(int i = 0; i < spatial_dim_size; ++i)
+        {
             P *= kernel_size[i];
             int32_t l = (static_cast<int32_t>(output_dims[i + 2]) + 2 * padding[i] -
-                        dilation[i] * (kernel_size[i] - 1) - 1) /
+                         dilation[i] * (kernel_size[i] - 1) - 1) /
                             stride[i] +
                         1;
             L *= l;
             ls.push_back(l);
         }
-        std::vector<size_t> input_dims_desired{static_cast<size_t>(N),
-                                        static_cast<size_t>(C * P),
-                                        static_cast<size_t>(L)};
-        if (input_dims != input_dims_desired)
+        std::vector<size_t> input_dims_desired{
+            static_cast<size_t>(N), static_cast<size_t>(C * P), static_cast<size_t>(L)};
+        if(input_dims != input_dims_desired)
         {
 #if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
-            MIOPEN_THROW(miopenStatusBadParm,
-                         "Fold: Invalid input gradient dimension");
+            MIOPEN_THROW(miopenStatusBadParm, "Fold: Invalid input gradient dimension");
 #else
             return false;
 #endif
@@ -464,18 +445,18 @@ struct FoldBwdProblemDescription : ProblemDescriptionBase
 
     bool IsValidType() const
     {
-        if (dinputDesc.GetType() != doutputDesc.GetType())
+        if(dinputDesc.GetType() != doutputDesc.GetType())
         {
 #if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
-            MIOPEN_THROW(miopenStatusBadParm,
-                         "Fold: The input gradient tensor and output gradient tensor has mismatch type.");
+            MIOPEN_THROW(
+                miopenStatusBadParm,
+                "Fold: The input gradient tensor and output gradient tensor has mismatch type.");
 #else
             return false;
 #endif
         }
         return true;
     }
-
 
     const TensorDescriptor& GetDinputDesc() const { return dinputDesc; }
     const TensorDescriptor& GetDoutputDesc() const { return doutputDesc; }

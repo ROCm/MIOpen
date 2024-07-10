@@ -69,18 +69,18 @@ void cpu_unfold_fwd_4d(tensor<T> input_tensor,
     }
 
     [[maybe_unused]] int32_t kernel_size_h = kernel_size[0];
-    int32_t kernel_size_w = kernel_size[1];
-    int32_t stride_h      = stride[0];
-    int32_t stride_w      = stride[1];
-    int32_t padding_h     = padding[0];
-    int32_t padding_w     = padding[1];
-    int32_t dilation_h    = dilation[0];
-    int32_t dilation_w    = dilation[1];
+    int32_t kernel_size_w                  = kernel_size[1];
+    int32_t stride_h                       = stride[0];
+    int32_t stride_w                       = stride[1];
+    int32_t padding_h                      = padding[0];
+    int32_t padding_w                      = padding[1];
+    int32_t dilation_h                     = dilation[0];
+    int32_t dilation_w                     = dilation[1];
     [[maybe_unused]] int32_t LH            = ls[0];
-    int32_t LW            = ls[1];
-    int32_t H             = static_cast<int32_t>(input_dims[2]);
-    int32_t W             = static_cast<int32_t>(input_dims[3]);
-    int work_size         = (((N * C * P * L) + LOCAL_SIZE - 1) / LOCAL_SIZE) * LOCAL_SIZE;
+    int32_t LW                             = ls[1];
+    int32_t H                              = static_cast<int32_t>(input_dims[2]);
+    int32_t W                              = static_cast<int32_t>(input_dims[3]);
+    int work_size = (((N * C * P * L) + LOCAL_SIZE - 1) / LOCAL_SIZE) * LOCAL_SIZE;
     par_ford(work_size)([&](int gid) {
         int ncp = gid / L, l = gid % L;
         int nc = ncp / P, p = ncp % P;
