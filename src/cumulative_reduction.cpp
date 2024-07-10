@@ -41,7 +41,8 @@ size_t GetCumulativeReductionForwardWorkspaceSize(Handle& handle,
     const auto problem = cumulative_reduction::ForwardProblemDescription{
         inputDesc, inputDesc, indicesDesc, dim, MIOPEN_CUM_MAX};
 
-    const auto solvers = solver::SolverContainer<solver::cumulative_reduction::Forward>{};
+    const auto solvers =
+        solver::SolverContainer<solver::cumulative_reduction::ForwardContiguousLastDim>{};
 
     auto pair_size_vector = solvers.GetWorkspaceSizes(ctx, problem);
 
@@ -85,8 +86,9 @@ miopenStatus_t CumulativeReductionForward(Handle& handle,
         return tmp;
     }();
 
-    const auto algo    = AlgorithmName{"CumulativeReductionForward"};
-    const auto solvers = solver::SolverContainer<solver::cumulative_reduction::Forward>{};
+    const auto algo = AlgorithmName{"CumulativeReductionForward"};
+    const auto solvers =
+        solver::SolverContainer<solver::cumulative_reduction::ForwardContiguousLastDim>{};
 
     solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
 

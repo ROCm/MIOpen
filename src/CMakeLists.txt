@@ -257,7 +257,7 @@ set( MIOpen_Source
     solver/conv_wino_fury_RxS.cpp
     solver/conv_winoRxS.cpp
     solver/conv_winoRxS_fused.cpp
-    solver/cumulative_reduction/forward_cumulative_reduction.cpp
+    solver/cumulative_reduction/forward_cumulative_reduction_contiguous_lastdim.cpp
     solver/cumulative_reduction/utils.cpp
     solver/fft.cpp
     solver/gemm.cpp

@@ -236,7 +236,10 @@ int CumulativeReductionDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         GetHandle(), inputDesc, indicesDesc, dim, &ws_sizeInBytes);
 
     if(ws_sizeInBytes == static_cast<size_t>(-1))
+    {
+        // std::cout << -1 << std::endl;
         return miopenStatusAllocFailed;
+    }
 
     uint32_t ctx = 0;
 
@@ -306,12 +309,12 @@ int CumulativeReductionDriver<Tgpu, Tref>::RunForwardGPU()
         STOP_TIME
         int iter = inflags.GetValueInt("iter");
         if(WALL_CLOCK)
-            std::cout << "Wall-clock Time Forward CumulativeReduction Elapsed: "
+            std::cout << "Wall-clock Time Forward Cumulative Reduction Elapsed: "
                       << t.gettime_ms() / iter << " ms" << std::endl;
 
         float kernel_average_time =
             iter > 1 ? (kernel_total_time - kernel_first_time) / (iter - 1) : kernel_first_time;
-        std::cout << "GPU Kernel Time Forward CumulativeReduction Elapsed: " << kernel_average_time
+        std::cout << "GPU Kernel Time Forward Cumulative Reduction Elapsed: " << kernel_average_time
                   << " ms" << std::endl;
     }
 

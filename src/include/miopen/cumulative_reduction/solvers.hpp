@@ -37,9 +37,12 @@ namespace cumulative_reduction {
 using ForwardSolverBase =
     NonTunableSolverBase<ExecutionContext, miopen::cumulative_reduction::ForwardProblemDescription>;
 
-struct Forward final : ForwardSolverBase
+struct ForwardContiguousLastDim final : ForwardSolverBase
 {
-    const std::string& SolverDbId() const override { return GetSolverDbId<Forward>(); }
+    const std::string& SolverDbId() const override
+    {
+        return GetSolverDbId<ForwardContiguousLastDim>();
+    }
 
     bool IsApplicable(
         const ExecutionContext& context,

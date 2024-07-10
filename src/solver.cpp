@@ -652,7 +652,7 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
     Register(registry,
              ++id,
              Primitive::CumulativeReduction,
-             cumulative_reduction::Forward{}.SolverDbId());
+             cumulative_reduction::ForwardContiguousLastDim{}.SolverDbId());
 
     // IMPORTANT: New solvers should be added to the end of the function!
 }

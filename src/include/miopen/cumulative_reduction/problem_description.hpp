@@ -69,6 +69,14 @@ struct ForwardProblemDescription : ProblemDescriptionBase
     const int& GetDim() const { return dim; }
     const miopenCumOp_t& GetCumOp() const { return cumOp; }
 
+    bool IsAllPacked() const
+    {
+        if(!inputDesc.IsPacked() || !outputDesc.IsPacked() || !indicesDesc.IsPacked())
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "Cumulative Reduction: Input, Output and Indices tensor must be packed.");
+        return true;
+    }
+
     NetworkConfig MakeNetworkConfig() const override;
 
 private:
