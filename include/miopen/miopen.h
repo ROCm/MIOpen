@@ -7221,6 +7221,102 @@ miopenFusedAdamWithOutput(miopenHandle_t handle,
 // CLOSEOUT SGD DOXYGEN GROUP
 #endif // MIOPEN_BETA_API
 
+#ifdef MIOPEN_BETA_API
+
+/*! @ingroup LossFunction
+ * @enum miopenLossReductionMode_t
+ * Reduction mode for loss function
+ */
+typedef enum
+{
+    MIOPEN_LOSS_REDUCTION_NONE = 0, /*!< output tensor elements are not reduced */
+    MIOPEN_LOSS_REDUCTION_SUM  = 1, /*!< output tensor elements are summed up */
+    MIOPEN_LOSS_REDUCTION_MEAN = 2, /*!< output tensor elements are summed up and divided with total
+                                       number of elements to get mean value */
+} miopenLossReductionMode_t;
+
+// MultiMarginLoss APIs
+/** @addtogroup LossFunction
+ *
+ *  @{
+ */
+
+/*! @brief Helper function to query the minimum workspace size required by the
+MultiMarginLossForward call
+ *
+ * @param [in]  handle              MIOpen Handle
+ * @param [in]  inputDesc           Tensor descriptor for input tensor (N, C) where N is the batch
+size and C is the number of classes
+ * @param [in]  targetDesc          Tensor descriptor for target tensor, must have shape (N). Each
+value is between 0 and C - 1
+ * @param [in]  weightDesc          Tensor descriptor for weight tensor. It is a manual rescaling
+weight given to each class. It has to be a Tensor of size C
+ * @param [in]  outputDesc          Tensor descriptor for output tensor. If reduction is 'none,
+then it must have shape (N). Otherwise, it is a scalar
+ * @param [in]  p                   Has a default value of 1. The only supported values are 1 and 2
+ * @param [in]  margin              Has a default value of 1
+ * @param [in]  reduction           Reduction mode (sum, mean). For none reduction we don't need to
+use this function
+ * @param [out] sizeInBytes         Pointer to data to return the minimum workspace size
+ * @return                          miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenGetMultiMarginLossForwardWorkspaceSize(miopenHandle_t handle,
+                                             miopenTensorDescriptor_t inputDesc,
+                                             miopenTensorDescriptor_t targetDesc,
+                                             miopenTensorDescriptor_t weightDesc,
+                                             miopenTensorDescriptor_t outputDesc,
+                                             long p,
+                                             float margin,
+                                             miopenLossReductionMode_t reduction,
+                                             size_t* sizeInBytes);
+
+/*! @brief Execute a MultiMarginLoss forward layer
+ *
+ * @param [in]  handle                  MIOpen handle
+ * @param [in]  inputDesc               Tensor descriptor for input tensor (N, C) where N is the
+batch size and C is the number of classes.
+ * @param [in]  input                   Data tensor input
+ * @param [in]  targetDesc              Tensor descriptor for target tensor, must have shape (N).
+Each value is between 0 and C - 1
+ * @param [in]  target                  Data tensor target
+ * @param [in]  weightDesc              Tensor descriptor for weight tensor. It is a manual
+rescaling weight given to each class. It has to be a Tensor of size C
+ * @param [in]  weight                  Data tensor weight
+ * @param [in]  outputDesc              Tensor descriptor for output tensor. If reduction is 'none,
+then it must have shape (N). Otherwise, it is a scalar.
+ * @param [out] output                  Data tensor output
+ * @param [in]  p                       Has a default value of 1. The only supported values are 1
+and 2
+ * @param [in]  margin                  Has a default value of 1
+ * @param [in]  reduction               Reduction mode. If reduction mode is mean or sum, you must
+ * provide param workspace and workspaceSizeInBytes. Call
+ * miopenGetMultiMarginLossForwardWorkspaceSize to get workspaceSizeInBytes
+ * @param [in]  workspace               Address of the allocated workspace data. Set = nullptr if
+reduction = 'none'
+ * @param [in]  workspaceSizeInBytes    Size in bytes of the allocated workspace data. Set = 0 if
+reduction = 'none
+ * @return                              miopenStatus_t
+ */
+miopenStatus_t miopenMultiMarginLossForward(miopenHandle_t handle,
+                                            miopenTensorDescriptor_t inputDesc,
+                                            const void* input,
+                                            miopenTensorDescriptor_t targetDesc,
+                                            const void* target,
+                                            miopenTensorDescriptor_t weightDesc,
+                                            const void* weight,
+                                            miopenTensorDescriptor_t outputDesc,
+                                            void* output,
+                                            long p,
+                                            float margin,
+                                            miopenLossReductionMode_t reduction,
+                                            void* workspace,
+                                            size_t workspaceSizeInBytes);
+
+/** @} */
+// CLOSEOUT LossFunction DOXYGEN GROUP
+#endif
+
 #ifdef __cplusplus
 }
 #endif
