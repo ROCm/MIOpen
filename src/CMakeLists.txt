@@ -655,7 +655,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         )
 endif()
 
-if(MIOPEN_USE_ROCBLAS)
+if(MIOPEN_USE_ROCBLAS OR MIOPEN_USE_HIPBLASLT)
     list(APPEND MIOpen_Source
         gemm_v2.cpp
     )
@@ -866,6 +866,10 @@ if(rocblas_FOUND)
     target_link_libraries( MIOpen INTERFACE $<BUILD_INTERFACE:roc::rocblas> )
     target_link_libraries( MIOpen PRIVATE roc::rocblas )
     list(APPEND PACKAGE_STATIC_DEPENDS PACKAGE rocblas)
+endif()
+
+if(hipblaslt_FOUND)
+    target_link_libraries( MIOpen PRIVATE roc::hipblaslt )
 endif()
 
 # For backward compatibility with ROCm 5.3
