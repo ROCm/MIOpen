@@ -137,6 +137,11 @@ struct miopen_type<uint16_t> : std::integral_constant<miopenDataType_t, miopenHa
 {
 };
 
+template <>
+struct miopen_type<uint64_t> : std::integral_constant<miopenDataType_t, miopenInt64>
+{
+};
+
 template <class T>
 struct tensor
 {

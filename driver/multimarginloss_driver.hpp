@@ -49,10 +49,10 @@ int32_t mloMultiMarginLossUnreducedForwardRunHost(miopenTensorDescriptor_t iDesc
                                                   miopenTensorDescriptor_t oDesc,
                                                   long p,
                                                   float margin,
-                                                  Tgpu* I,
-                                                  const uint64_t* T,
-                                                  Tgpu* W,
-                                                  Tcheck* Ohost)
+                                                  Tgpu* input,
+                                                  const uint64_t* target,
+                                                  Tgpu* weight,
+                                                  Tcheck* ref_output)
 {
     auto I_tv = miopen::get_inner_expanded_tv<2>(miopen::deref(iDesc));
     auto T_tv = miopen::get_inner_expanded_tv<1>(miopen::deref(tDesc));
@@ -65,24 +65,24 @@ int32_t mloMultiMarginLossUnreducedForwardRunHost(miopenTensorDescriptor_t iDesc
     for(size_t n = 0; n < N; n++)
     {
         Tcheck loss = 0;
-        uint64_t y  = T[T_tv.get_tensor_view_idx({n})];
+        uint64_t y  = target[T_tv.get_tensor_view_idx({n})];
         if(y >= C)
             continue;
         for(size_t c = 0; c < C; c++)
         {
             if(y == c)
                 continue;
-            Tcheck t = margin - static_cast<Tcheck>(I[I_tv.get_tensor_view_idx({n, y})]) +
-                       static_cast<Tcheck>(I[I_tv.get_tensor_view_idx({n, c})]);
+            Tcheck t = margin - static_cast<Tcheck>(input[I_tv.get_tensor_view_idx({n, y})]) +
+                       static_cast<Tcheck>(input[I_tv.get_tensor_view_idx({n, c})]);
 
             if(t < 0)
                 continue;
             if(p == 2)
                 t = t * t;
-            t = W[W_tv.get_tensor_view_idx({y})] * t;
+            t = weight[W_tv.get_tensor_view_idx({y})] * t;
             loss += t / static_cast<Tcheck>(C);
         }
-        Ohost[O_tv.get_tensor_view_idx({n})] = loss;
+        ref_output[O_tv.get_tensor_view_idx({n})] = loss;
     }
     return ret;
 }
@@ -94,10 +94,10 @@ int32_t mloMultiMarginLossReducedForwardRunHost(miopenTensorDescriptor_t iDesc,
                                                 long p,
                                                 float margin,
                                                 const float divisor,
-                                                Tgpu* I,
-                                                const uint64_t* T,
-                                                Tgpu* W,
-                                                Tcheck* Ohost)
+                                                Tgpu* input,
+                                                const uint64_t* target,
+                                                Tgpu* weight,
+                                                Tcheck* ref_output)
 {
     auto I_tv = miopen::get_inner_expanded_tv<2>(miopen::deref(iDesc));
     auto T_tv = miopen::get_inner_expanded_tv<1>(miopen::deref(tDesc));
@@ -109,25 +109,25 @@ int32_t mloMultiMarginLossReducedForwardRunHost(miopenTensorDescriptor_t iDesc,
     for(size_t n = 0; n < N; n++)
     {
         Tcheck loss = 0;
-        uint64_t y  = T[T_tv.get_tensor_view_idx({n})];
+        uint64_t y  = target[T_tv.get_tensor_view_idx({n})];
         if(y >= C)
             continue;
         for(size_t c = 0; c < C; c++)
         {
             if(y == c)
                 continue;
-            Tcheck t = margin - static_cast<Tcheck>(I[I_tv.get_tensor_view_idx({n, y})]) +
-                       static_cast<Tcheck>(I[I_tv.get_tensor_view_idx({n, c})]);
+            Tcheck t = margin - static_cast<Tcheck>(input[I_tv.get_tensor_view_idx({n, y})]) +
+                       static_cast<Tcheck>(input[I_tv.get_tensor_view_idx({n, c})]);
             if(t < 0)
                 continue;
             if(p == 2)
                 t = t * t;
-            t = W[W_tv.get_tensor_view_idx({y})] * t;
+            t = weight[W_tv.get_tensor_view_idx({y})] * t;
             loss += t / static_cast<Tcheck>(C);
         }
-        Ohost[0] += loss;
+        ref_output[0] += loss;
     }
-    Ohost[0] /= divisor;
+    ref_output[0] /= divisor;
 
     return ret;
 };
@@ -242,7 +242,7 @@ int MultiMarginLossDriver<Tgpu, Tref>::GetandSetData()
 {
     // Set tensor description
     std::vector<int> in_len = inflags.GetValueTensor("dim").lengths;
-    int N = in_len[0], C = in_len[1];
+    size_t N = in_len[0], C = in_len[1];
     if(inflags.GetValueInt("contiguous") == 1)
     {
         SetTensorNd(iDesc, in_len, data_type);
