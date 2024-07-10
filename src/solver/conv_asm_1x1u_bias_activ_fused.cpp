@@ -209,7 +209,7 @@ ConvBiasActivAsm1x1U::GetSolution(const FusionContext& context,
 
 float ConvBiasActivAsm1x1U::GetWti(const FusionContext&, const FusionDescription&) const
 {
-    return 50.0f;
+    return 50.0f / 100.f;
 }
 
 bool ConvBiasActivAsm1x1U::IsApplicable(const FusionContext& context,

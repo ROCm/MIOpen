@@ -483,7 +483,8 @@ ConvSolution ConvCKIgemmFwdBiasResAddActivFused::GetSolution(
 #endif
 }
 
-float ConvCKIgemmFwdBiasResAddActivFused::GetWti(const FusionContext&, const FusionDescription&) const
+float ConvCKIgemmFwdBiasResAddActivFused::GetWti(const FusionContext&,
+                                                 const FusionDescription&) const
 {
     return -2;
 }

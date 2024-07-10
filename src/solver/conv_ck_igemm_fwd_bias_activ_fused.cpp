@@ -75,13 +75,13 @@ struct CKArgs
         K        = ProblemInterpreter::GetOutputChannelK(problem);
         C        = ProblemInterpreter::GetInputChannelC(problem);
         input    = {ProblemInterpreter::GetInputHeightHi(problem),
-                    ProblemInterpreter::GetInputWidthWi(problem)};
+                 ProblemInterpreter::GetInputWidthWi(problem)};
         output   = {ProblemInterpreter::GetOutputHeightHo(problem),
-                    ProblemInterpreter::GetOutputWidthWo(problem)};
+                  ProblemInterpreter::GetOutputWidthWo(problem)};
         filter   = {ProblemInterpreter::GetFilterHeightY(problem),
-                    ProblemInterpreter::GetFilterWidthX(problem)};
+                  ProblemInterpreter::GetFilterWidthX(problem)};
         strides  = {ProblemInterpreter::GetAdjustedConvolutionStrideH(problem),
-                    ProblemInterpreter::GetAdjustedConvolutionStrideW(problem)};
+                   ProblemInterpreter::GetAdjustedConvolutionStrideW(problem)};
         dilation = {ProblemInterpreter::GetAdjustedConvolutionDilationH(problem),
                     ProblemInterpreter::GetAdjustedConvolutionDilationW(problem)};
         lPadding = {ProblemInterpreter::GetInputLeftPadH(problem),

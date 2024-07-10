@@ -417,9 +417,9 @@ float ConvBinWinogradRxSf2x3g1Fused::GetWti(const FusionContext&,
     const auto y            = conv_problem.GetWeightsHeight();
 
     if(x == 3 && y == 3)
-        return 100;
+        return 100.f / 100.f;
     else
-        return 5;
+        return 5.f / 100.f;
 }
 } // namespace fusion
 } // namespace solver
