@@ -33,22 +33,6 @@ namespace miopen {
 
 namespace fold {
 
-// NetworkConfig FoldFwdProblemDescription::MakeNetworkConfig() const
-// {
-//     auto input_dtype   = inputDesc.GetType();
-//     auto output_dtype  = outputDesc.GetType();
-//     auto size          = inputDesc.GetElementSize();
-
-//     std::ostringstream ss;
-
-//     ss << "fold_fwd";
-//     ss << "i_dtype" << input_dtype;
-//     ss << "o_dtype" << output_dtype;
-//     ss << "size" << size;
-
-//     return NetworkConfig{ss.str()};
-// }
-
 NetworkConfig UnfoldFwdProblemDescription::MakeNetworkConfig() const
 {
     auto input_dtype  = inputDesc.GetType();
@@ -90,6 +74,70 @@ NetworkConfig UnfoldBwdProblemDescription::MakeNetworkConfig() const
     ss << "size" << size;
     ss << "in_grad_dims";
     for(auto val : in_dims)
+    {
+        ss << "_" << val;
+    }
+    ss << "kernel_size_" << kernel_size[0] << "_" << kernel_size[1];
+    ss << "stride_" << stride[0] << "_" << stride[1];
+    ss << "padding_" << padding[0] << "_" << padding[1];
+    ss << "dilation_" << dilation[0] << "_" << dilation[1];
+
+    return NetworkConfig{ss.str()};
+}
+
+NetworkConfig FoldFwdProblemDescription::MakeNetworkConfig() const
+{
+    auto input_dtype  = inputDesc.GetType();
+    auto output_dtype = outputDesc.GetType();
+    auto size         = inputDesc.GetElementSize();
+    auto in_dims      = inputDesc.GetLengths();
+    auto out_dims      = outputDesc.GetLengths();
+
+    std::ostringstream ss;
+
+    ss << "Fold_fwd";
+    ss << "i_dtype" << input_dtype;
+    ss << "o_dtype" << output_dtype;
+    ss << "size" << size;
+    ss << "in_dims";
+    for(auto val : in_dims)
+    {
+        ss << "_" << val;
+    }
+    ss << "out_dims";
+    for (auto val: out_dims)
+    {
+        ss << "_" << val;
+    }
+    ss << "kernel_size_" << kernel_size[0] << "_" << kernel_size[1];
+    ss << "stride_" << stride[0] << "_" << stride[1];
+    ss << "padding_" << padding[0] << "_" << padding[1];
+    ss << "dilation_" << dilation[0] << "_" << dilation[1];
+
+    return NetworkConfig{ss.str()};
+}
+
+NetworkConfig FoldBwdProblemDescription::MakeNetworkConfig() const
+{
+    auto input_dtype  = dinputDesc.GetType();
+    auto output_dtype = doutputDesc.GetType();
+    auto size         = dinputDesc.GetElementSize();
+    auto in_dims      = dinputDesc.GetLengths();
+    auto out_dims      = doutputDesc.GetLengths();
+
+    std::ostringstream ss;
+
+    ss << "Fold_bwd";
+    ss << "i_dtype" << input_dtype;
+    ss << "o_dtype" << output_dtype;
+    ss << "size" << size;
+    ss << "in_grad_dims";
+    for(auto val : in_dims)
+    {
+        ss << "_" << val;
+    }
+    ss << "out_grad_dims";
+    for (auto val: out_dims)
     {
         ss << "_" << val;
     }

@@ -137,4 +137,104 @@ miopenStatus_t UnfoldBackward(Handle& handle,
     return miopenStatusSuccess;
 }
 
+miopenStatus_t FoldForward(Handle& handle,
+                             const TensorDescriptor& inputDesc,
+                             ConstData_t input,
+                             const TensorDescriptor& outputDesc,
+                             Data_t output,
+                             const int32_t* kernel_size,
+                             const int kernel_size_size,
+                             const int32_t* stride,
+                             const int stride_size,
+                             const int32_t* padding,
+                             const int padding_size,
+                             const int32_t* dilation,
+                             const int dilation_size)
+{
+    const auto problem = fold::FoldFwdProblemDescription{inputDesc,
+                                                           outputDesc,
+                                                           kernel_size,
+                                                           kernel_size_size,
+                                                           stride,
+                                                           stride_size,
+                                                           padding,
+                                                           padding_size,
+                                                           dilation,
+                                                           dilation_size};
+
+    const auto invoke_params = [&]() {
+        auto tmp             = fold::InvokeParams{};
+        tmp.type             = InvokeType::Run;
+        tmp.inputDesc        = &inputDesc;
+        tmp.outputDesc       = &outputDesc;
+        tmp.input            = input;
+        tmp.output           = output;
+        tmp.kernel_size      = kernel_size;
+        tmp.stride           = stride;
+        tmp.padding          = padding;
+        tmp.dilation         = dilation;
+        tmp.kernel_size_size = kernel_size_size;
+        tmp.stride_size      = stride_size;
+        tmp.padding_size     = padding_size;
+        tmp.dilation_size    = dilation_size;
+        return tmp;
+    }();
+
+    const auto algo    = AlgorithmName{"FoldFwd"};
+    const auto solvers = solver::SolverContainer<solver::fold::FoldFwd>{};
+    solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
+
+    return miopenStatusSuccess;
+}
+
+miopenStatus_t FoldBackward(Handle& handle,
+                              const TensorDescriptor& dinputDesc,
+                              Data_t dinput,
+                              const TensorDescriptor& doutputDesc,
+                              ConstData_t doutput,
+                              const int32_t* kernel_size,
+                              const int kernel_size_size,
+                              const int32_t* stride,
+                              const int stride_size,
+                              const int32_t* padding,
+                              const int padding_size,
+                              const int32_t* dilation,
+                              const int dilation_size)
+{
+    const auto problem = fold::FoldBwdProblemDescription{dinputDesc,
+                                                           doutputDesc,
+                                                           kernel_size,
+                                                           kernel_size_size,
+                                                           stride,
+                                                           stride_size,
+                                                           padding,
+                                                           padding_size,
+                                                           dilation,
+                                                           dilation_size};
+
+    const auto invoke_params = [&]() {
+        auto tmp             = fold::InvokeParams{};
+        tmp.type             = InvokeType::Run;
+        tmp.dinputDesc       = &dinputDesc;
+        tmp.doutputDesc      = &doutputDesc;
+        tmp.dinput           = dinput;
+        tmp.doutput          = doutput;
+        tmp.kernel_size      = kernel_size;
+        tmp.stride           = stride;
+        tmp.padding          = padding;
+        tmp.dilation         = dilation;
+        tmp.kernel_size_size = kernel_size_size;
+        tmp.stride_size      = stride_size;
+        tmp.padding_size     = padding_size;
+        tmp.dilation_size    = dilation_size;
+        return tmp;
+    }();
+
+    const auto algo    = AlgorithmName{"FoldBwd"};
+    const auto solvers = solver::SolverContainer<solver::fold::FoldBwd>{};
+    solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
+
+    return miopenStatusSuccess;
+}
+
 } // namespace miopen

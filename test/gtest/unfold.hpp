@@ -37,26 +37,22 @@
 #include <miopen/miopen.h>
 #include <miopen/fold.hpp>
 
-struct FoldTestCase
+struct UnfoldTestCase
 {
     size_t N;
     size_t C;
     size_t D;
     size_t H;
     size_t W;
-    std::vector<int32_t> outputSize;
     std::vector<int32_t> kernelSize;
     std::vector<int32_t> stride;
     std::vector<int32_t> padding;
     std::vector<int32_t> dilation;
     bool isContiguous = true;
-    friend std::ostream& operator<<(std::ostream& os, const FoldTestCase& tc)
+    friend std::ostream& operator<<(std::ostream& os, const UnfoldTestCase& tc)
     {
-        os << "N:" << tc.N << " C:" << tc.C << " D:" << tc.D << " H:" << tc.H << " W:" << tc.W;
-        os << " output_size:";
-        for(const auto& outs : tc.outputSize)
-            os << outs << " ";
-        os << " kernel_size:";
+        os << "N:" << tc.N << " C:" << tc.C << " D:" << tc.D << " H:" << tc.H << " W:" << tc.W
+           << " kernel_size:";
         for(const auto& ks : tc.kernelSize)
             os << ks << " ";
         os << "stride:";
@@ -115,21 +111,20 @@ struct FoldTestCase
     }
 };
 
-std::vector<FoldTestCase> FoldTestConfigs()
+std::vector<UnfoldTestCase> UnfoldTestConfigs()
 { // n c d h w padding
     return {
-        {3, 3 * 2 * 2, 0, 0, 3 * 4, {4, 5}, {2, 2}, {1, 1}, {0, 0}, {1, 1}, true},
-        {3, 3 * 2 * 2, 0, 0, 3 * 4, {6, 11}, {2, 2}, {2, 3}, {0, 0}, {1, 1}, true},
-        {3, 3 * 2 * 2, 0, 0, 3 * 4, {7, 12}, {2, 2}, {2, 3}, {0, 0}, {1, 1}, true},
-        {3, 3 * 2 * 2, 0, 0, 3 * 4, {7, 13}, {2, 2}, {2, 3}, {0, 0}, {1, 1}, true},
-        {3, 3 * 3 * 4, 0, 0, 3 * 4, {5, 7}, {3, 4}, {1, 1}, {0, 0}, {1, 1}, true},
-        {3, 3 * 2 * 2, 0, 0, 3 * 4, {2, 3}, {2, 2}, {1, 1}, {1, 1}, {1, 1}, true},
-        {3, 3 * 2 * 2, 0, 0, 3 * 4, {5, 7}, {2, 2}, {1, 1}, {0, 0}, {2, 3}, true},
+        {2, 5, 0, 3, 4, {2, 3}, {1, 1}, {0, 0}, {1, 1}, true},
+        {1, 3, 0, 10, 12, {4, 5}, {1, 1}, {0, 0}, {1, 1}, true},
+        {11, 13, 0, 17, 19, {3, 3}, {3, 2}, {0, 0}, {1, 1}, true},
+        {11, 13, 0, 17, 19, {3, 3}, {1, 1}, {3, 2}, {1, 1}, true},
+        {11, 13, 0, 17, 19, {3, 3}, {1, 1}, {0, 0}, {3, 2}, true},
+        {11, 13, 0, 33, 37, {4, 3}, {2, 3}, {5, 2}, {3, 5}, true},
     };
 }
 
 template <typename T>
-struct FoldFwdTest : public ::testing::TestWithParam<FoldTestCase>
+struct UnfoldFwdTest : public ::testing::TestWithParam<UnfoldTestCase>
 {
 protected:
     void SetUp() override
@@ -144,15 +139,25 @@ protected:
         [[maybe_unused]] auto gen_one   = [&](auto...) { return 1; };
         auto gen_zero  = [&](auto...) { return 0; };
         input          = tensor<T>{in_dims, in_strides}.generate(gen_value);
+
+        int spatial_dim_size = in_dims.size() - 2;
         const int32_t N      = static_cast<int32_t>(in_dims[0]);
-        int32_t C      = static_cast<int32_t>(in_dims[1]);
-        for (int32_t i : config.kernelSize)
+        const int32_t C      = static_cast<int32_t>(in_dims[1]);
+        int32_t P = 1, L = 1;
+        std::vector<int32_t> ls;
+        for(int i = 0; i < spatial_dim_size; ++i)
         {
-            C = C / i;
+            P *= config.kernelSize[i];
+            int32_t l = (static_cast<int32_t>(in_dims[i + 2]) + 2 * config.padding[i] -
+                         config.dilation[i] * (config.kernelSize[i] - 1) - 1) /
+                            config.stride[i] +
+                        1;
+            L *= l;
+            ls.push_back(l);
         }
 
         std::vector<size_t> out_dims{
-            static_cast<size_t>(N), static_cast<size_t>(C), static_cast<size_t>(config.outputSize[0]), static_cast<size_t>(config.outputSize[1])};
+            static_cast<size_t>(N), static_cast<size_t>(C * P), static_cast<size_t>(L)};
 
         output     = tensor<T>{out_dims}.generate(gen_zero);
         outputHost = tensor<T>{out_dims}.generate(gen_zero);
@@ -166,7 +171,7 @@ protected:
         auto&& handle = get_handle();
         miopenStatus_t status;
 
-        status = miopen::FoldForward(handle,
+        status = miopen::UnfoldForward(handle,
                                        input.desc,
                                        input_dev.get(),
                                        output.desc,
@@ -180,8 +185,8 @@ protected:
                                        config.dilation.data(),
                                        static_cast<int>(config.dilation.size()));
 
-        cpu_unfold_bwd_4d<T>(
-            outputHost, input, config.kernelSize, config.stride, config.padding, config.dilation);
+        cpu_unfold_fwd_4d<T>(
+            input, outputHost, config.kernelSize, config.stride, config.padding, config.dilation);
 
         EXPECT_EQ(status, miopenStatusSuccess);
         output.data = handle.Read<T>(output_dev, output.data.size());
@@ -196,15 +201,11 @@ protected:
         // bf16 mantissa has 7 bits, by 3 bits shorter than fp16.
         if(std::is_same<T, bfloat16>::value)
             tolerance *= 8.0;
-        for (int i = 0; i < 10; ++i)
-        {
-            std::cout << "output[" << i << "]: " << output[i] << " ~ " << outputHost[i] << std::endl;
-        }
         auto error_output = miopen::rms_range(outputHost, output);
         EXPECT_TRUE(error_output < tolerance) << "Error forward output beyond tolerance Error: {"
                                               << error_output << "},  Tolerance: " << tolerance;
     }
-    FoldTestCase config;
+    UnfoldTestCase config;
 
     tensor<T> input;
     tensor<T> output;
@@ -216,7 +217,7 @@ protected:
 };
 
 template <typename T>
-struct FoldBwdTest : public ::testing::TestWithParam<FoldTestCase>
+struct UnfoldBwdTest : public ::testing::TestWithParam<UnfoldTestCase>
 {
 protected:
     void SetUp() override
@@ -233,15 +234,24 @@ protected:
         dinput         = tensor<T>{in_dims, in_strides}.generate(gen_zero);
         dinputHost     = tensor<T>{in_dims, in_strides}.generate(gen_zero);
 
+        int spatial_dim_size = in_dims.size() - 2;
         const int32_t N      = static_cast<int32_t>(in_dims[0]);
-        int32_t C      = static_cast<int32_t>(in_dims[1]);
-        for (int32_t i : config.kernelSize)
+        const int32_t C      = static_cast<int32_t>(in_dims[1]);
+        int32_t P = 1, L = 1;
+        std::vector<int32_t> ls;
+        for(int i = 0; i < spatial_dim_size; ++i)
         {
-            C = C / i;
+            P *= config.kernelSize[i];
+            int32_t l = (static_cast<int32_t>(in_dims[i + 2]) + 2 * config.padding[i] -
+                         config.dilation[i] * (config.kernelSize[i] - 1) - 1) /
+                            config.stride[i] +
+                        1;
+            L *= l;
+            ls.push_back(l);
         }
 
         std::vector<size_t> out_dims{
-            static_cast<size_t>(N), static_cast<size_t>(C), static_cast<size_t>(config.outputSize[0]), static_cast<size_t>(config.outputSize[1])};
+            static_cast<size_t>(N), static_cast<size_t>(C * P), static_cast<size_t>(L)};
 
         doutput = tensor<T>{out_dims}.generate(gen_value);
 
@@ -254,7 +264,7 @@ protected:
         auto&& handle = get_handle();
         miopenStatus_t status;
 
-        status = miopen::FoldBackward(handle,
+        status = miopen::UnfoldBackward(handle,
                                         dinput.desc,
                                         dinput_dev.get(),
                                         doutput.desc,
@@ -268,8 +278,8 @@ protected:
                                         config.dilation.data(),
                                         static_cast<int>(config.dilation.size()));
 
-        cpu_unfold_fwd_4d<T>(
-            doutput, dinputHost, config.kernelSize, config.stride, config.padding, config.dilation);
+        cpu_unfold_bwd_4d<T>(
+            dinputHost, doutput, config.kernelSize, config.stride, config.padding, config.dilation);
 
         EXPECT_EQ(status, miopenStatusSuccess);
         dinput.data = handle.Read<T>(dinput_dev, dinput.data.size());
@@ -289,7 +299,7 @@ protected:
             << "Error backward input_grad beyond tolerance Error: {" << error_dinput
             << "},  Tolerance: " << tolerance;
     }
-    FoldTestCase config;
+    UnfoldTestCase config;
 
     tensor<T> dinput;
     tensor<T> doutput;

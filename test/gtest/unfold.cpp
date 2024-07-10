@@ -24,57 +24,40 @@
  *
  *******************************************************************************/
 
-#include "fold.hpp"
+#include "unfold.hpp"
 #include "miopen/bfloat16.hpp"
 #include "tensor_holder.hpp"
 #include <miopen/env.hpp>
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 
-namespace fold {
-struct FoldForwardTestFloat32 : FoldFwdTest<float>
+namespace unfold {
+struct UnfoldForwardTestFloat32 : UnfoldFwdTest<float>
 {
 };
 
-struct FoldForwardTestFloat16 : FoldFwdTest<half>
+struct UnfoldForwardTestFloat16 : UnfoldFwdTest<half>
 {
 };
 
-struct FoldForwardTestBFloat16 : FoldFwdTest<bfloat16>
+struct UnfoldForwardTestBFloat16 : UnfoldFwdTest<bfloat16>
 {
 };
 
-struct FoldBackwardTestFloat32 : FoldBwdTest<float>
+struct UnfoldBackwardTestFloat32 : UnfoldBwdTest<float>
 {
 };
 
-struct FoldBackwardTestFloat16 : FoldBwdTest<half>
+struct UnfoldBackwardTestFloat16 : UnfoldBwdTest<half>
 {
 };
 
-struct FoldBackwardTestBFloat16 : FoldBwdTest<bfloat16>
+struct UnfoldBackwardTestBFloat16 : UnfoldBwdTest<bfloat16>
 {
 };
-}; // namespace fold
-using namespace fold;
-TEST_P(FoldForwardTestFloat32, FoldForwardTest)
-{
-    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
-};
-
-INSTANTIATE_TEST_SUITE_P(FoldForwardTestSet,
-                         FoldForwardTestFloat32,
-                         testing::ValuesIn(FoldTestConfigs()));
-
-TEST_P(FoldForwardTestFloat16, FoldForwardTest)
+}; // namespace unfold
+using namespace unfold;
+TEST_P(UnfoldForwardTestFloat32, UnfoldForwardTest)
 {
     if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)))
     {
@@ -87,11 +70,11 @@ TEST_P(FoldForwardTestFloat16, FoldForwardTest)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(FoldForwardTestSet,
-                         FoldForwardTestFloat16,
-                         testing::ValuesIn(FoldTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(UnfoldForwardTestSet,
+                         UnfoldForwardTestFloat32,
+                         testing::ValuesIn(UnfoldTestConfigs()));
 
-TEST_P(FoldForwardTestBFloat16, FoldForwardTest)
+TEST_P(UnfoldForwardTestFloat16, UnfoldForwardTest)
 {
     if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)))
     {
@@ -104,11 +87,11 @@ TEST_P(FoldForwardTestBFloat16, FoldForwardTest)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(FoldForwardTestSet,
-                         FoldForwardTestBFloat16,
-                         testing::ValuesIn(FoldTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(UnfoldForwardTestSet,
+                         UnfoldForwardTestFloat16,
+                         testing::ValuesIn(UnfoldTestConfigs()));
 
-TEST_P(FoldBackwardTestFloat32, FoldBackwardTest)
+TEST_P(UnfoldForwardTestBFloat16, UnfoldForwardTest)
 {
     if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)))
     {
@@ -121,11 +104,11 @@ TEST_P(FoldBackwardTestFloat32, FoldBackwardTest)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(FoldBackwardTestSet,
-                         FoldBackwardTestFloat32,
-                         testing::ValuesIn(FoldTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(UnfoldForwardTestSet,
+                         UnfoldForwardTestBFloat16,
+                         testing::ValuesIn(UnfoldTestConfigs()));
 
-TEST_P(FoldBackwardTestFloat16, FoldBackwardTest)
+TEST_P(UnfoldBackwardTestFloat32, UnfoldBackwardTest)
 {
     if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)))
     {
@@ -138,11 +121,11 @@ TEST_P(FoldBackwardTestFloat16, FoldBackwardTest)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(FoldBackwardTestSet,
-                         FoldBackwardTestFloat16,
-                         testing::ValuesIn(FoldTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(UnfoldBackwardTestSet,
+                         UnfoldBackwardTestFloat32,
+                         testing::ValuesIn(UnfoldTestConfigs()));
 
-TEST_P(FoldBackwardTestBFloat16, FoldBackwardTest)
+TEST_P(UnfoldBackwardTestFloat16, UnfoldBackwardTest)
 {
     if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)))
     {
@@ -155,6 +138,23 @@ TEST_P(FoldBackwardTestBFloat16, FoldBackwardTest)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(FoldBackwardTestSet,
-                         FoldBackwardTestBFloat16,
-                         testing::ValuesIn(FoldTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(UnfoldBackwardTestSet,
+                         UnfoldBackwardTestFloat16,
+                         testing::ValuesIn(UnfoldTestConfigs()));
+
+TEST_P(UnfoldBackwardTestBFloat16, UnfoldBackwardTest)
+{
+    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)))
+    {
+        RunTest();
+        Verify();
+    }
+    else
+    {
+        GTEST_SKIP();
+    }
+};
+
+INSTANTIATE_TEST_SUITE_P(UnfoldBackwardTestSet,
+                         UnfoldBackwardTestBFloat16,
+                         testing::ValuesIn(UnfoldTestConfigs()));

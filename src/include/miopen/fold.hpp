@@ -60,5 +60,33 @@ miopenStatus_t UnfoldBackward(Handle& handle,
                               const int padding_size,
                               const int32_t* dilation,
                               const int dilation_size);
+
+miopenStatus_t FoldForward(Handle& handle,
+                             const TensorDescriptor& inputDesc,
+                             ConstData_t input,
+                             const TensorDescriptor& outputDesc,
+                             Data_t output,
+                             const int32_t* kernel_size,
+                             const int kernel_size_size,
+                             const int32_t* stride,
+                             const int stride_size,
+                             const int32_t* padding,
+                             const int padding_size,
+                             const int32_t* dilation,
+                             const int dilation_size);
+
+miopenStatus_t FoldBackward(Handle& handle,
+                              const TensorDescriptor& dinputDesc,
+                              Data_t dinput,
+                              const TensorDescriptor& doutputDesc,
+                              ConstData_t doutput,
+                              const int32_t* kernel_size,
+                              const int kernel_size_size,
+                              const int32_t* stride,
+                              const int stride_size,
+                              const int32_t* padding,
+                              const int padding_size,
+                              const int32_t* dilation,
+                              const int dilation_size);
 } // namespace miopen
 #endif // MIOPEN_INSTANCE_NORM_HPP_

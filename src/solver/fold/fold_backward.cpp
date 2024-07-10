@@ -42,32 +42,43 @@ namespace solver {
 
 namespace fold {
 
-bool FoldFwd::IsApplicable([[maybe_unused]] const ExecutionContext& /*context*/,
-                           const miopen::fold::FoldFwdProblemDescription& problem) const
+bool FoldBwd::IsApplicable([[maybe_unused]] const ExecutionContext& /*context*/,
+                             const miopen::fold::FoldBwdProblemDescription& problem) const
 {
     return true;
 }
 
-ConvSolution FoldFwd::GetSolution([[maybe_unused]] const ExecutionContext& context,
-                                  const miopen::fold::FoldFwdProblemDescription& problem) const
+ConvSolution FoldBwd::GetSolution([[maybe_unused]] const ExecutionContext& context,
+                                    const miopen::fold::FoldBwdProblemDescription& problem) const
 {
     std::ignore = context;
     auto result = ConvSolution{miopenStatusSuccess};
 
-    auto in_dtype   = miopen::GetDataType(problem.GetInputDesc().GetType());
-    auto dtype      = problem.GetOutputDesc().GetType();
-    auto input_dims = problem.GetInputDesc().GetLengths();
+    auto in_dtype         = miopen::GetDataType(problem.GetDinputDesc().GetType());
+    auto dtype            = problem.GetDoutputDesc().GetType();
+    auto input_grad_dims  = problem.GetDinputDesc().GetLengths();
+    auto output_grad_dims = problem.GetDoutputDesc().GetLengths();
 
-    auto output_dims = problem.GetOutputDesc().GetLengths();
-    const int32_t N  = static_cast<int32_t>(output_dims[0]);
-    const int32_t C  = static_cast<int32_t>(output_dims[1]);
-    int32_t H        = static_cast<int32_t>(output_dims[2]);
-    int32_t W        = static_cast<int32_t>(output_dims[3]);
+    const int32_t N = static_cast<int32_t>(output_grad_dims[0]);
+    const int32_t C = static_cast<int32_t>(output_grad_dims[1]);
+    int spatial_dim_size = output_grad_dims.size() - 2;
+    int32_t P = 1, L = 1;
+    std::vector<int32_t> ls;
+    for(int i = 0; i < spatial_dim_size; ++i)
+    {
+        P *= problem.kernel_size[i];
+        int32_t l = (static_cast<int32_t>(output_grad_dims[i + 2]) + 2 * problem.padding[i] -
+                    problem.dilation[i] * (problem.kernel_size[i] - 1) - 1) /
+                        problem.stride[i] +
+                    1;
+        L *= l;
+        ls.push_back(l);
+    }
 
     {
         auto kernel        = KernelInfo{};
         kernel.kernel_file = "MIOpenUnfold.cpp";
-        kernel.kernel_name = "UnfoldBackward4D";
+        kernel.kernel_name = "UnfoldForward4D";
 
         const auto build_params = KernelBuildParameters{
             {"MIOPEN_USE_FP16", static_cast<int>(dtype == miopenHalf)},
@@ -79,7 +90,7 @@ ConvSolution FoldFwd::GetSolution([[maybe_unused]] const ExecutionContext& conte
         kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
 
         size_t xlocalsize = LOCAL_SIZE;
-        size_t xgridsize  = AlignUp(N * C * H * W, LOCAL_SIZE);
+        size_t xgridsize  = AlignUp(N * C * P * L, LOCAL_SIZE);
         size_t ylocalsize = 1;
         size_t ygridsize  = 1;
         size_t zlocalsize = 1;
@@ -100,20 +111,20 @@ ConvSolution FoldFwd::GetSolution([[maybe_unused]] const ExecutionContext& conte
             decltype(auto) kernel = handle_.Run(kernels.front());
             decltype(auto) params = raw_params.CastTo<miopen::fold::InvokeParams>();
 
-            auto input_tv    = get_inner_expanded_tv<3>(deref(params.inputDesc));
-            auto output_tv   = get_inner_expanded_tv<4>(deref(params.outputDesc));
-            auto input_dims  = deref(params.inputDesc).GetLengths();
-            auto output_dims = deref(params.outputDesc).GetLengths();
+            auto input_grad_tv    = get_inner_expanded_tv<3>(deref(params.dinputDesc));
+            auto output_grad_tv   = get_inner_expanded_tv<4>(deref(params.doutputDesc));
+            auto input_grad_dims  = deref(params.dinputDesc).GetLengths();
+            auto output_grad_dims = deref(params.doutputDesc).GetLengths();
 
-            int spatial_dim_size = output_dims.size() - 2;
-            const int32_t N      = static_cast<int32_t>(output_dims[0]);
-            const int32_t C      = static_cast<int32_t>(output_dims[1]);
+            int spatial_dim_size = output_grad_dims.size() - 2;
+            const int32_t N      = static_cast<int32_t>(output_grad_dims[0]);
+            const int32_t C      = static_cast<int32_t>(output_grad_dims[1]);
             int32_t P = 1, L = 1;
             std::vector<int32_t> ls;
             for(int i = 0; i < spatial_dim_size; ++i)
             {
                 P *= params.kernel_size[i];
-                int32_t l = (static_cast<int32_t>(output_dims[i + 2]) + 2 * params.padding[i] -
+                int32_t l = (static_cast<int32_t>(output_grad_dims[i + 2]) + 2 * params.padding[i] -
                              params.dilation[i] * (params.kernel_size[i] - 1) - 1) /
                                 params.stride[i] +
                             1;
@@ -131,11 +142,11 @@ ConvSolution FoldFwd::GetSolution([[maybe_unused]] const ExecutionContext& conte
             int32_t dilation_w    = params.dilation[1];
             int32_t LH            = ls[0];
             int32_t LW            = ls[1];
-            int32_t H             = static_cast<int32_t>(output_dims[2]);
-            int32_t W             = static_cast<int32_t>(output_dims[3]);
+            int32_t H             = static_cast<int32_t>(output_grad_dims[2]);
+            int32_t W             = static_cast<int32_t>(output_grad_dims[3]);
 
-            kernel(params.input,
-                   params.output,
+            kernel(params.doutput,
+                   params.dinput,
                    N,
                    C,
                    H,
@@ -152,8 +163,8 @@ ConvSolution FoldFwd::GetSolution([[maybe_unused]] const ExecutionContext& conte
                    padding_w,
                    dilation_h,
                    dilation_w,
-                   input_tv,
-                   output_tv);
+                   output_grad_tv,
+                   input_grad_tv);
         };
     };
 

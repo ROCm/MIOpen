@@ -6606,6 +6606,70 @@ MIOPEN_EXPORT miopenStatus_t miopenBackendInitialize(miopenBackendDescriptor_t d
  * @param dilation_size       Size of the dilation array (input)
  * @return               miopenStatus_t
  */
+MIOPEN_EXPORT miopenStatus_t miopenFoldForward(miopenHandle_t handle,
+                                                 const miopenTensorDescriptor_t inputDesc,
+                                                 const void* input,
+                                                 const miopenTensorDescriptor_t outputDesc,
+                                                 void* output,
+                                                 const int32_t* kernel_size,
+                                                 const int kernel_size_size,
+                                                 const int32_t* stride,
+                                                 const int stride_size,
+                                                 const int32_t* padding,
+                                                 const int padding_size,
+                                                 const int32_t* dilation,
+                                                 const int dilation_size);
+
+ /*! @brief Execute an unfold backward layer
+ *
+ * @param handle              MIOpen handle (input)
+ * @param dinputDesc          Tensor descriptor for data input grad tensor (output)
+ * @param dinput              Data tensor input grad (output)
+ * @param doutputDesc         Tensor descriptor for data output grad tensor (input)
+ * @param doutput             Data tensor output grad (input)
+ * @param kernel_size         Size of the sliding box array (input)
+ * @param kernel_size_size    Size of the kernel_size array (input)
+ * @param stride              Stride array of the sliding box (input)
+ * @param stride_size         Size of the stride array (input)
+ * @param padding             Padding array to be added on input (input)
+ * @param padding_size        Size of the padding array (input)
+ * @param dilation            Dilation array control the stride of the elements within the
+ neighborhood (input)
+ * @param dilation_size       Size of the dilation array (input)
+ * @return               miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenFoldBackward(miopenHandle_t handle,
+                                                  const miopenTensorDescriptor_t dinputDesc,
+                                                  void* dinput,
+                                                  const miopenTensorDescriptor_t doutputDesc,
+                                                  const void* doutput,
+                                                  const int32_t* kernel_size,
+                                                  const int kernel_size_size,
+                                                  const int32_t* stride,
+                                                  const int stride_size,
+                                                  const int32_t* padding,
+                                                  const int padding_size,
+                                                  const int32_t* dilation,
+                                                  const int dilation_size);
+
+/*! @brief Execute an unfold forward layer
+ *
+ * @param handle              MIOpen handle (input)
+ * @param inputDesc           Tensor descriptor for data input tensor input (input)
+ * @param input               Data tensor input (input)
+ * @param outputDesc          Tensor descriptor for data output tensor output (output)
+ * @param output              Data tensor output (output)
+ * @param kernel_size         Size of the sliding box array (input)
+ * @param kernel_size_size    Size of the kernel_size array (input)
+ * @param stride              Stride array of the sliding box (input)
+ * @param stride_size         Size of the stride array (input)
+ * @param padding             Padding array to be added on input (input)
+ * @param padding_size        Size of the padding array (input)
+ * @param dilation            Dilation array control the stride of the elements within the
+ * neighborhood (input)
+ * @param dilation_size       Size of the dilation array (input)
+ * @return               miopenStatus_t
+ */
 MIOPEN_EXPORT miopenStatus_t miopenUnfoldForward(miopenHandle_t handle,
                                                  const miopenTensorDescriptor_t inputDesc,
                                                  const void* input,

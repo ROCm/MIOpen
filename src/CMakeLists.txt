@@ -260,6 +260,8 @@ set( MIOpen_Source
     solver/fft.cpp
     solver/fold/unfold_forward.cpp
     solver/fold/unfold_backward.cpp
+    solver/fold/fold_forward.cpp
+    solver/fold/fold_backward.cpp
     solver/gemm.cpp
     solver/gemm_bwd.cpp
     solver/gemm_wrw.cpp

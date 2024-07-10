@@ -36,22 +36,6 @@ namespace solver {
 
 namespace fold {
 
-// using FoldFwdSolverBase =
-//     NonTunableSolverBase<ExecutionContext, miopen::fold::FoldFwdProblemDescription>;
-
-// struct FoldFwd final : FoldFwdSolverBase
-// {
-//     const std::string& SolverDbId() const override { return GetSolverDbId<FoldFwd>(); }
-
-//     bool IsApplicable(
-//         const ExecutionContext& context,
-//         const miopen::fold::FoldFwdProblemDescription& problem) const override;
-
-//     ConvSolution GetSolution(
-//         const ExecutionContext& context,
-//         const miopen::fold::FoldFwdProblemDescription& problem) const override;
-// };
-
 using UnfoldFwdSolverBase =
     NonTunableSolverBase<ExecutionContext, miopen::fold::UnfoldFwdProblemDescription>;
 
@@ -80,6 +64,36 @@ struct UnfoldBwd final : UnfoldBwdSolverBase
     ConvSolution
     GetSolution(const ExecutionContext& context,
                 const miopen::fold::UnfoldBwdProblemDescription& problem) const override;
+};
+
+using FoldFwdSolverBase =
+    NonTunableSolverBase<ExecutionContext, miopen::fold::FoldFwdProblemDescription>;
+
+struct FoldFwd final : FoldFwdSolverBase
+{
+    const std::string& SolverDbId() const override { return GetSolverDbId<FoldFwd>(); }
+
+    bool IsApplicable(const ExecutionContext& context,
+                      const miopen::fold::FoldFwdProblemDescription& problem) const override;
+
+    ConvSolution
+    GetSolution(const ExecutionContext& context,
+                const miopen::fold::FoldFwdProblemDescription& problem) const override;
+};
+
+using FoldBwdSolverBase =
+    NonTunableSolverBase<ExecutionContext, miopen::fold::FoldBwdProblemDescription>;
+
+struct FoldBwd final : FoldBwdSolverBase
+{
+    const std::string& SolverDbId() const override { return GetSolverDbId<FoldBwd>(); }
+
+    bool IsApplicable(const ExecutionContext& context,
+                      const miopen::fold::FoldBwdProblemDescription& problem) const override;
+
+    ConvSolution
+    GetSolution(const ExecutionContext& context,
+                const miopen::fold::FoldBwdProblemDescription& problem) const override;
 };
 
 } // namespace fold
