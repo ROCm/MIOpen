@@ -197,8 +197,6 @@ protected:
         std::tie(bn_config, tensor_layout) = GetParam();
         bn_infer_test_data.SetUpImpl(bn_config, tensor_layout);
 
-        output_hip = tensor<YDataType>{tensor_layout, bn_config.GetInput()};
-        output_ocl = tensor<YDataType>{tensor_layout, bn_config.GetInput()};
     }
 
     void RunTestGPU(bool hip_en = false)
@@ -222,26 +220,26 @@ protected:
                                     bn_infer_test_data.epsilon,
                                     hip_en);
 
-        std::fill(bn_infer_test_data.output.begin(),
-                  bn_infer_test_data.output.end(),
+        auto& output_ref = hip_en ? bn_infer_test_data.output.data : bn_infer_test_data.ref_out.data;
+        
+        std::fill(output_ref.begin(),
+                  output_ref.end(),
                   std::numeric_limits<YDataType>::quiet_NaN());
 
-        auto& output_ref = hip_en ? output_hip.data : output_ocl.data;
+
         output_ref       = handle.Read<YDataType>(bn_infer_test_data.out_dev,
                                             bn_infer_test_data.output.data.size());
     }
 
     void ComputeCPU() { test::ComputeCPUBNInference(bn_infer_test_data); }
 
-    void VerifyOCL() { BNTensorCompare<YDataType>(output_ocl, bn_infer_test_data.ref_out, 4e-3); }
+    void Verify() { BNTensorCompare<YDataType>(bn_infer_test_data.output, bn_infer_test_data.ref_out, 4e-3); }
+
 
     BNTestCase bn_config;
     bool test_skipped = false;
     BNInferTestData<XDataType, YDataType, ScaleDataType, BiasDataType, MeanVarDataType, BNTestCase>
         bn_infer_test_data;
-
-    tensor<YDataType> output_hip; // Tensor to store the HIP kernel output
-    tensor<YDataType> output_ocl; // Tensor to store the OCL kernel output
 
     miopenTensorLayout_t tensor_layout;
 };
@@ -257,9 +255,17 @@ using namespace BatchNormFwdInfer;
 
 TEST_P(BatchNormFwdInferTestFloat, BatchNormFwdInferTestFw)
 {
+    // Run the OpenCL reference
     RunTestGPU(false);
-    ComputeCPU();
-    VerifyOCL();
+
+    // Optionally use the CPU output as reference 
+    // ComputeCPU();
+
+    // Run the HIP kernel
+    RunTestGPU(true);
+
+    // Compare the outputs.
+    Verify();
 };
 
 INSTANTIATE_TEST_SUITE_P(BatchNormFwdInferTestSet,
