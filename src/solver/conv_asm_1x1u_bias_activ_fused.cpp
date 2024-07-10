@@ -136,7 +136,6 @@ ConvBiasActivAsm1x1U::GetSolution(const FusionContext& context,
     kernel_info.comp_options += cba_options.str();
 
     const auto out_data_type = conv_problem.GetOutDataType();
-    sol.weight               = 50.0f;
 
     sol.invoker_factory = [=](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
@@ -206,6 +205,11 @@ ConvBiasActivAsm1x1U::GetSolution(const FusionContext& context,
         };
     };
     return sol;
+}
+
+float ConvBiasActivAsm1x1U::GetWti(const FusionContext&, const FusionDescription&) const
+{
+    return 50.0f;
 }
 
 bool ConvBiasActivAsm1x1U::IsApplicable(const FusionContext& context,

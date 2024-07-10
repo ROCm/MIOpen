@@ -170,6 +170,11 @@ ConvSolution BnFwdInferActivationFused::GetSolution(const FusionContext& /*conte
     return result;
 }
 
+float BnFwdInferActivationFused::GetWti(const FusionContext&, const FusionDescription&) const
+{
+    return -2;
+}
+
 } // namespace fusion
 
 } // namespace solver

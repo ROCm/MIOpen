@@ -171,11 +171,6 @@ ConvOclDirectFwdFused::GetSolution(const FusionContext& context,
     }
     kernel_info.comp_options += " " + build_params.GenerateFor(kbp::OpenCL{});
 
-    if(bn_idx != -1)
-        result.weight = 0.0f;
-    else
-        result.weight = 10.0f;
-
     result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
             const auto& kernel = handle.Run(kernels[0]);
@@ -226,6 +221,16 @@ ConvOclDirectFwdFused::GetSolution(const FusionContext& context,
     };
 
     return result;
+}
+
+float ConvOclDirectFwdFused::GetWti(const FusionContext&, const FusionDescription& problem) const
+{
+    const auto& desc = *problem.fusion_plan_desc;
+    const int bn_idx = GetOpIdx(desc.op_map, miopenFusionOpBatchNormInference);
+    if(bn_idx != -1)
+        return 0.001f;
+    else
+        return 10.0f;
 }
 
 PerformanceConfigConvOclDirectFwdFused
