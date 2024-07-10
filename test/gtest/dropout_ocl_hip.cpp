@@ -144,6 +144,7 @@ void InitPRNGState(miopen::Handle& handle,
     {
         program_name = "MIOpenDropout.cl";
         kernel_name  = "InitKernelState";
+        network_config += "-ocl";
     }
     else
     {
@@ -153,23 +154,15 @@ void InitPRNGState(miopen::Handle& handle,
         network_config += "-hip";
     }
 
-    auto&& kernels = handle.GetKernels(kernel_name, network_config);
-    if(!kernels.empty())
-    {
-        kernels.front()(DropoutDesc.pstates, DropoutDesc.seed, states_num);
-    }
-    else
-    {
-        const std::vector<size_t> vld{256, 1, 1};
-        const std::vector<size_t> vgd{wk_grp_num * 256, 1, 1};
+    const std::vector<size_t> vld{256, 1, 1};
+    const std::vector<size_t> vgd{wk_grp_num * 256, 1, 1};
 
-        std::string params;
+    std::string params;
 
-        params += "-DRUN_FORWARD=0 -DRUN_INIT_PRNG=1";
+    params += "-DRUN_FORWARD=0 -DRUN_INIT_PRNG=1";
 
-        handle.AddKernel(kernel_name, network_config, program_name, kernel_name, vld, vgd, params)(
-            DropoutDesc.pstates, DropoutDesc.seed, states_num);
-    }
+    handle.AddKernel(kernel_name, network_config, program_name, kernel_name, vld, vgd, params)(
+        DropoutDesc.pstates, DropoutDesc.seed, states_num);
 }
 
 void DropoutForward(const miopen::Handle& handle,
@@ -294,6 +287,7 @@ void DropoutForward(const miopen::Handle& handle,
 
         program_name = "MIOpenDropout.cl";
         kernel_name  = "DropoutForward";
+        network_config += "-ocl";
     }
     else
     {
@@ -307,85 +301,56 @@ void DropoutForward(const miopen::Handle& handle,
     // for(int i = 1; i < noise_shape.GetNumDims(); i++)
     //    network_config += "x" + std::to_string(noise_shape.GetLengths()[i]);
 
-    auto&& kernels = handle.GetKernels(kernel_name, network_config);
-
     float amp_scale = miopen::float_equal(dropout, 1.0) ? 0 : 1 / (1 - dropout);
-    if(!kernels.empty())
-    {
-        kernels.front()(pstates,
-                        dropout,
-                        amp_scale,
-                        static_cast<int>(in_len[1]),
-                        static_cast<int>(in_len[2]),
-                        static_cast<int>(in_len[3]),
-                        static_cast<int>(in_len[4]),
-                        y,
-                        static_cast<int>(out_str[0]),
-                        static_cast<int>(out_str[1]),
-                        static_cast<int>(out_str[2]),
-                        static_cast<int>(out_str[3]),
-                        x,
-                        static_cast<int>(in_str[0]),
-                        static_cast<int>(in_str[1]),
-                        static_cast<int>(in_str[2]),
-                        static_cast<int>(in_str[3]),
-                        reserveSpace,
-                        static_cast<size_t>(total_work),
-                        static_cast<size_t>(in_offset),
-                        static_cast<size_t>(out_offset),
-                        static_cast<size_t>(rsvsp_offset));
-    }
+
+    std::string params;
+
+    const std::string data_type = miopen::GetDataType(xDesc.GetType());
+    const std::string READ_DAT_TYPE =
+        RD_BLCK == 1 ? data_type : data_type + std::to_string(RD_BLCK);
+
+    params += " -DRD_BLCK=" + std::to_string(RD_BLCK) + " -DREAD_DAT_TYPE=" + READ_DAT_TYPE +
+              " -DREAD_BOOL_TYPE=" +
+              std::string(RD_BLCK == 4   ? "uint"
+                          : RD_BLCK == 2 ? "ushort"
+                                         : "uchar");
+
+    if(xDesc.GetType() == miopenHalf)
+        params += " -DMIOPEN_USE_FP16=1";
     else
-    {
-        std::string params;
+        params += " -DMIOPEN_USE_FP32=1";
 
-        const std::string data_type = miopen::GetDataType(xDesc.GetType());
-        const std::string READ_DAT_TYPE =
-            RD_BLCK == 1 ? data_type : data_type + std::to_string(RD_BLCK);
+    params += " -DRUN_FORWARD=1";
 
-        params += " -DRD_BLCK=" + std::to_string(RD_BLCK) + " -DREAD_DAT_TYPE=" + READ_DAT_TYPE +
-                  " -DREAD_BOOL_TYPE=" +
-                  std::string(RD_BLCK == 4   ? "uint"
-                              : RD_BLCK == 2 ? "ushort"
-                                             : "uchar");
+    params += " -DUSE_RSVSP=" + std::to_string(static_cast<size_t>(use_rsvsp));
+    params += " -DUSE_MASK=" + std::to_string(static_cast<size_t>(use_mask));
 
-        if(xDesc.GetType() == miopenHalf)
-            params += " -DMIOPEN_USE_FP16=1";
-        else
-            params += " -DMIOPEN_USE_FP32=1";
+    const std::vector<size_t> vld{256, 1, 1};
+    const std::vector<size_t> vgd{wk_grp_num * 256, 1, 1};
 
-        params += " -DRUN_FORWARD=1";
-
-        params += " -DUSE_RSVSP=" + std::to_string(static_cast<size_t>(use_rsvsp));
-        params += " -DUSE_MASK=" + std::to_string(static_cast<size_t>(use_mask));
-
-        const std::vector<size_t> vld{256, 1, 1};
-        const std::vector<size_t> vgd{wk_grp_num * 256, 1, 1};
-
-        handle.AddKernel(kernel_name, network_config, program_name, kernel_name, vld, vgd, params)(
-            pstates,
-            dropout,
-            amp_scale,
-            static_cast<int>(in_len[1]),
-            static_cast<int>(in_len[2]),
-            static_cast<int>(in_len[3]),
-            static_cast<int>(in_len[4]),
-            y,
-            static_cast<int>(out_str[0]),
-            static_cast<int>(out_str[1]),
-            static_cast<int>(out_str[2]),
-            static_cast<int>(out_str[3]),
-            x,
-            static_cast<int>(in_str[0]),
-            static_cast<int>(in_str[1]),
-            static_cast<int>(in_str[2]),
-            static_cast<int>(in_str[3]),
-            reserveSpace,
-            static_cast<size_t>(total_work),
-            static_cast<size_t>(in_offset),
-            static_cast<size_t>(out_offset),
-            static_cast<size_t>(rsvsp_offset));
-    }
+    handle.AddKernel(kernel_name, network_config, program_name, kernel_name, vld, vgd, params)(
+        pstates,
+        dropout,
+        amp_scale,
+        static_cast<int>(in_len[1]),
+        static_cast<int>(in_len[2]),
+        static_cast<int>(in_len[3]),
+        static_cast<int>(in_len[4]),
+        y,
+        static_cast<int>(out_str[0]),
+        static_cast<int>(out_str[1]),
+        static_cast<int>(out_str[2]),
+        static_cast<int>(out_str[3]),
+        x,
+        static_cast<int>(in_str[0]),
+        static_cast<int>(in_str[1]),
+        static_cast<int>(in_str[2]),
+        static_cast<int>(in_str[3]),
+        reserveSpace,
+        static_cast<size_t>(total_work),
+        static_cast<size_t>(in_offset),
+        static_cast<size_t>(out_offset),
+        static_cast<size_t>(rsvsp_offset));
 }
 
 void DropoutBackward(const miopen::Handle& handle,
@@ -510,6 +475,7 @@ void DropoutBackward(const miopen::Handle& handle,
 
         program_name = "MIOpenDropout.cl";
         kernel_name  = "DropoutBackward";
+        network_config += "-ocl";
     }
     else
     {
@@ -523,87 +489,58 @@ void DropoutBackward(const miopen::Handle& handle,
     // for(int i = 1; i < noise_shape.GetNumDims(); i++)
     //    network_config += "x" + std::to_string(noise_shape.GetLengths()[i]);
 
-    auto&& kernels = handle.GetKernels(kernel_name, network_config);
-
     float amp_scale = miopen::float_equal(dropout, 1.0) ? 0 : 1 / (1 - dropout);
-    if(!kernels.empty())
+
+    std::string params;
+
+    const std::string data_type = miopen::GetDataType(dyDesc.GetType());
+    const std::string READ_DAT_TYPE =
+        RD_BLCK == 1 ? data_type : data_type + std::to_string(RD_BLCK);
+
+    params += " -DRD_BLCK=" + std::to_string(RD_BLCK) + " -DREAD_DAT_TYPE=" + READ_DAT_TYPE +
+              " -DREAD_BOOL_TYPE=" +
+              std::string(RD_BLCK == 4   ? "uint"
+                          : RD_BLCK == 2 ? "ushort"
+                                         : "uchar");
+
+    if(use_prng)
     {
-        kernels.front()(pstates,
-                        dropout,
-                        amp_scale,
-                        static_cast<int>(in_len[1]),
-                        static_cast<int>(in_len[2]),
-                        static_cast<int>(in_len[3]),
-                        static_cast<int>(in_len[4]),
-                        dy,
-                        static_cast<int>(out_str[0]),
-                        static_cast<int>(out_str[1]),
-                        static_cast<int>(out_str[2]),
-                        static_cast<int>(out_str[3]),
-                        dx,
-                        static_cast<int>(in_str[0]),
-                        static_cast<int>(in_str[1]),
-                        static_cast<int>(in_str[2]),
-                        static_cast<int>(in_str[3]),
-                        reserveSpace,
-                        static_cast<size_t>(total_work),
-                        static_cast<size_t>(in_offset),
-                        static_cast<size_t>(out_offset),
-                        static_cast<size_t>(rsvsp_offset));
+        params += " -DUSE_PRNG=1";
     }
+
+    if(dyDesc.GetType() == miopenHalf)
+        params += " -DMIOPEN_USE_FP16=1";
     else
-    {
-        std::string params;
+        params += " -DMIOPEN_USE_FP32=1";
 
-        const std::string data_type = miopen::GetDataType(dyDesc.GetType());
-        const std::string READ_DAT_TYPE =
-            RD_BLCK == 1 ? data_type : data_type + std::to_string(RD_BLCK);
+    params += " -DRUN_FORWARD=0";
 
-        params += " -DRD_BLCK=" + std::to_string(RD_BLCK) + " -DREAD_DAT_TYPE=" + READ_DAT_TYPE +
-                  " -DREAD_BOOL_TYPE=" +
-                  std::string(RD_BLCK == 4   ? "uint"
-                              : RD_BLCK == 2 ? "ushort"
-                                             : "uchar");
+    const std::vector<size_t> vld{256, 1, 1};
+    const std::vector<size_t> vgd{wk_grp_num * 256, 1, 1};
 
-        if(use_prng)
-        {
-            params += " -DUSE_PRNG=1";
-        }
-
-        if(dyDesc.GetType() == miopenHalf)
-            params += " -DMIOPEN_USE_FP16=1";
-        else
-            params += " -DMIOPEN_USE_FP32=1";
-
-        params += " -DRUN_FORWARD=0";
-
-        const std::vector<size_t> vld{256, 1, 1};
-        const std::vector<size_t> vgd{wk_grp_num * 256, 1, 1};
-
-        handle.AddKernel(kernel_name, network_config, program_name, kernel_name, vld, vgd, params)(
-            pstates,
-            dropout,
-            amp_scale,
-            static_cast<int>(in_len[1]),
-            static_cast<int>(in_len[2]),
-            static_cast<int>(in_len[3]),
-            static_cast<int>(in_len[4]),
-            dy,
-            static_cast<int>(out_str[0]),
-            static_cast<int>(out_str[1]),
-            static_cast<int>(out_str[2]),
-            static_cast<int>(out_str[3]),
-            dx,
-            static_cast<int>(in_str[0]),
-            static_cast<int>(in_str[1]),
-            static_cast<int>(in_str[2]),
-            static_cast<int>(in_str[3]),
-            reserveSpace,
-            static_cast<size_t>(total_work),
-            static_cast<size_t>(in_offset),
-            static_cast<size_t>(out_offset),
-            static_cast<size_t>(rsvsp_offset));
-    }
+    handle.AddKernel(kernel_name, network_config, program_name, kernel_name, vld, vgd, params)(
+        pstates,
+        dropout,
+        amp_scale,
+        static_cast<int>(in_len[1]),
+        static_cast<int>(in_len[2]),
+        static_cast<int>(in_len[3]),
+        static_cast<int>(in_len[4]),
+        dy,
+        static_cast<int>(out_str[0]),
+        static_cast<int>(out_str[1]),
+        static_cast<int>(out_str[2]),
+        static_cast<int>(out_str[3]),
+        dx,
+        static_cast<int>(in_str[0]),
+        static_cast<int>(in_str[1]),
+        static_cast<int>(in_str[2]),
+        static_cast<int>(in_str[3]),
+        reserveSpace,
+        static_cast<size_t>(total_work),
+        static_cast<size_t>(in_offset),
+        static_cast<size_t>(out_offset),
+        static_cast<size_t>(rsvsp_offset));
 }
 
 template <typename T>
