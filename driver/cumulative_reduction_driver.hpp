@@ -236,10 +236,7 @@ int CumulativeReductionDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         GetHandle(), inputDesc, indicesDesc, dim, &ws_sizeInBytes);
 
     if(ws_sizeInBytes == static_cast<size_t>(-1))
-    {
-        // std::cout << -1 << std::endl;
         return miopenStatusAllocFailed;
-    }
 
     uint32_t ctx = 0;
 
