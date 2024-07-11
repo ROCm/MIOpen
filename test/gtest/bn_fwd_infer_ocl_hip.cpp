@@ -34,179 +34,6 @@
 #include "bn_test_data.hpp"
 #include "test_operations.hpp"
 
-template <typename T>
-std::vector<T> Network2();
-
-template <>
-inline std::vector<BNTestCase> Network2()
-{
-    // pyt_mlperf_resnet50v1.5
-    return {
-        {192, 1, 8, 8, miopenBNPerActivation, miopen::batchnorm::Direction::Backward, 1, 0},
-        {16,
-         8,
-         128,
-         256,
-         miopenBNPerActivation,
-         miopen::batchnorm::Direction::ForwardTraining,
-         1,
-         0},
-        {16,
-         8,
-         128,
-         256,
-         miopenBNPerActivation,
-         miopen::batchnorm::Direction::ForwardInference,
-         1,
-         0},
-        {64, 2048, 7, 7, miopenBNPerActivation, miopen::batchnorm::Direction::Backward, 0, 1},
-        {64,
-         2048,
-         7,
-         7,
-         miopenBNPerActivation,
-         miopen::batchnorm::Direction::ForwardTraining,
-         1,
-         1},
-        {64,
-         2048,
-         7,
-         7,
-         miopenBNPerActivation,
-         miopen::batchnorm::Direction::ForwardInference,
-         1,
-         0},
-        {64, 256, 14, 14, miopenBNPerActivation, miopen::batchnorm::Direction::Backward, 0, 1},
-        {64,
-         256,
-         14,
-         14,
-         miopenBNPerActivation,
-         miopen::batchnorm::Direction::ForwardTraining,
-         1,
-         1},
-        {64,
-         256,
-         14,
-         14,
-         miopenBNPerActivation,
-         miopen::batchnorm::Direction::ForwardInference,
-         1,
-         0},
-        {64, 256, 28, 28, miopenBNPerActivation, miopen::batchnorm::Direction::Backward, 0, 1},
-        {64,
-         256,
-         28,
-         28,
-         miopenBNPerActivation,
-         miopen::batchnorm::Direction::ForwardTraining,
-         1,
-         1},
-        {64,
-         256,
-         28,
-         28,
-         miopenBNPerActivation,
-         miopen::batchnorm::Direction::ForwardInference,
-         1,
-         0},
-        {64, 256, 56, 56, miopenBNPerActivation, miopen::batchnorm::Direction::Backward, 0, 1},
-        {64,
-         256,
-         56,
-         56,
-         miopenBNPerActivation,
-         miopen::batchnorm::Direction::ForwardTraining,
-         1,
-         1},
-        {64,
-         256,
-         56,
-         56,
-         miopenBNPerActivation,
-         miopen::batchnorm::Direction::ForwardInference,
-         1,
-         0},
-        {64, 512, 14, 14, miopenBNPerActivation, miopen::batchnorm::Direction::Backward, 0, 1},
-        {64,
-         512,
-         14,
-         14,
-         miopenBNPerActivation,
-         miopen::batchnorm::Direction::ForwardTraining,
-         1,
-         1},
-        {64,
-         512,
-         14,
-         14,
-         miopenBNPerActivation,
-         miopen::batchnorm::Direction::ForwardInference,
-         1,
-         0},
-        {64, 512, 28, 28, miopenBNPerActivation, miopen::batchnorm::Direction::Backward, 0, 1},
-        {64,
-         512,
-         28,
-         28,
-         miopenBNPerActivation,
-         miopen::batchnorm::Direction::ForwardTraining,
-         1,
-         1},
-        {64,
-         512,
-         28,
-         28,
-         miopenBNPerActivation,
-         miopen::batchnorm::Direction::ForwardInference,
-         1,
-         0},
-        {64, 512, 7, 7, miopenBNPerActivation, miopen::batchnorm::Direction::Backward, 0, 1},
-        {64, 512, 7, 7, miopenBNPerActivation, miopen::batchnorm::Direction::ForwardTraining, 1, 1},
-        {64,
-         512,
-         7,
-         7,
-         miopenBNPerActivation,
-         miopen::batchnorm::Direction::ForwardInference,
-         1,
-         0},
-        {64, 64, 112, 112, miopenBNPerActivation, miopen::batchnorm::Direction::Backward, 0, 1},
-        {64,
-         64,
-         112,
-         112,
-         miopenBNPerActivation,
-         miopen::batchnorm::Direction::ForwardTraining,
-         1,
-         1},
-        {64,
-         64,
-         112,
-         112,
-         miopenBNPerActivation,
-         miopen::batchnorm::Direction::ForwardInference,
-         1,
-         0},
-        {64, 64, 56, 56, miopenBNPerActivation, miopen::batchnorm::Direction::Backward, 0, 1},
-        {64,
-         64,
-         56,
-         56,
-         miopenBNPerActivation,
-         miopen::batchnorm::Direction::ForwardTraining,
-         1,
-         1},
-        {64,
-         64,
-         56,
-         56,
-         miopenBNPerActivation,
-         miopen::batchnorm::Direction::ForwardInference,
-         1,
-         0}};
-}
-
 void BatchNormForwardInferencGPU(miopen::Handle& handle,
                                  miopenBatchNormMode_t bn_mode,
                                  const void* alpha,
@@ -329,7 +156,6 @@ void BNTensorCompare(const tensor<T>& output,
     auto error = miopen::rms_range(ref_out, output);
     EXPECT_FALSE(miopen::find_idx(ref_out, miopen::not_finite) >= 0)
         << "Non finite number found in the OCL data";
-
     EXPECT_LT(error, threshold) << "Error beyond tolerance Error:" << error
                                 << ",  Threshold: " << threshold;
 }
@@ -346,6 +172,11 @@ protected:
     void SetUp() override
     {
         std::tie(bn_config, tensor_layout) = GetParam();
+    }
+
+    void DataSetup(miopenBatchNormMode_t mode)
+    {
+        if(mode == miopenBNPerActivation){bn_config.mode = miopenBNPerActivation;} //Override the mode to test per activation
         bn_infer_test_data.SetUpImpl(bn_config, tensor_layout);
     }
 
@@ -417,6 +248,8 @@ using namespace BatchNormFwdInfer;
 
 TEST_P(BatchNormFwdInferTestFloat, BatchNormFwdInferTestFw)
 {
+    // Generate data and copy to GPU
+    DataSetup(miopenBNSpatial);
     // Run the OpenCL reference
     RunTestGPU(false);
     // Optionally use the CPU output as reference
@@ -429,6 +262,8 @@ TEST_P(BatchNormFwdInferTestFloat, BatchNormFwdInferTestFw)
 
 TEST_P(BatchNormFwdInferTestHalf, BatchNormFwdInferTestFw)
 {
+    // Generate data and copy to GPU
+    DataSetup(miopenBNSpatial);
     // Run the OpenCL reference
     RunTestGPU(false);
     // Optionally use the CPU output as reference
@@ -441,9 +276,11 @@ TEST_P(BatchNormFwdInferTestHalf, BatchNormFwdInferTestFw)
 
 TEST_P(BatchNormFwdInferPerActTestFloat, BatchNormFwdInferTestFw)
 {
+    // Generate data and copy to GPU
+    DataSetup(miopenBNPerActivation);
     // Run the OpenCL reference
     RunTestGPU(false);
-    // Optionally use the CPU output as reference
+    // Optionally use the CPU output as reference instead of OpenCL
     // ComputeCPU();
     // Run the HIP kernel
     RunTestGPU(true);
@@ -453,9 +290,11 @@ TEST_P(BatchNormFwdInferPerActTestFloat, BatchNormFwdInferTestFw)
 
 TEST_P(BatchNormFwdInferPerActTestHalf, BatchNormFwdInferTestFw)
 {
+    // Generate data and copy to GPU
+    DataSetup(miopenBNPerActivation);
     // Run the OpenCL reference
     RunTestGPU(false);
-    // Optionally use the CPU output as reference
+    // Optionally use the CPU output as reference instead of OpenCL
     // ComputeCPU();
     // Run the HIP kernel
     RunTestGPU(true);
@@ -475,10 +314,10 @@ INSTANTIATE_TEST_SUITE_P(BatchNormFwdInferTestSet,
 
 INSTANTIATE_TEST_SUITE_P(BatchNormFwdInferTestSet,
                          BatchNormFwdInferPerActTestFloat,
-                         testing::Combine(testing::ValuesIn(Network2<BNTestCase>()),
+                         testing::Combine(testing::ValuesIn(Network1<BNTestCase>()),
                                           testing::Values(miopenTensorNCHW)));
 
 INSTANTIATE_TEST_SUITE_P(BatchNormFwdInferTestSet,
                          BatchNormFwdInferPerActTestHalf,
-                         testing::Combine(testing::ValuesIn(Network2<BNTestCase>()),
+                         testing::Combine(testing::ValuesIn(Network1<BNTestCase>()),
                                           testing::Values(miopenTensorNCHW)));

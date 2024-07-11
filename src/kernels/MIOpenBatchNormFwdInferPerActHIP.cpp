@@ -62,14 +62,13 @@ bn_fwd_infer_per_activation(const TIO* __restrict in, /* x input */
         const TPREC mean        = estimatedMean[adjIndex];
         const TPREC variance    = estimatedVariance[adjIndex];
         const TPREC invVariance = static_cast<TPREC>(rsqrt(fabs(variance + epsilon)));
-        const TPREC pvt_scale   = *(scale + adjIndex);
-        const TPREC pvt_bias    = *(bias + adjIndex);
+        const TPREC pvt_scale   = scale[adjIndex];
+        const TPREC pvt_bias    = bias[adjIndex];
 
         for(size_t n = 0; n < batchSize; n++)
         {
             size_t index        = (batchStride * n) + adjIndex;
-            const TPREC elemStd = static_cast<TPREC>(*(in + index)) - mean;
-            const TPREC inhat   = elemStd * invVariance;
+            const TPREC inhat   = (static_cast<TPREC>(in[index]) - mean) * invVariance;
             out[index]          = static_cast<TIO>(fma(pvt_scale, inhat, pvt_bias));
         }
     }
@@ -82,7 +81,7 @@ extern "C" __global__ void __launch_bounds__(MIO_BN_GRP0* MIO_BN_GRP1* MIO_BN_GR
                                                const _FLOAT_PREC* __restrict estimatedVariance,
                                                const _FLOAT_PREC* __restrict scale,
                                                const _FLOAT_PREC* __restrict bias,
-                                               double epsilon,
+                                               double epsilon,                                               
                                                unsigned int batchSize,
                                                unsigned int imageDims,
                                                unsigned int batchStride)
