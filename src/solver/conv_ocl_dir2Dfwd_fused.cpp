@@ -225,12 +225,17 @@ ConvOclDirectFwdFused::GetSolution(const FusionContext& context,
 
 float ConvOclDirectFwdFused::GetWti(const FusionContext&, const FusionDescription& problem) const
 {
+    // Negative values mean rough estimation of time
+    // Solvers with positive values are considered first priority
+    // If none found solvers with negative are used, -2.0f meaning a completely unknown value
+    // So lower absolute values mean higher priority
+
     const auto& desc = *problem.fusion_plan_desc;
     const int bn_idx = GetOpIdx(desc.op_map, miopenFusionOpBatchNormInference);
     if(bn_idx != -1)
-        return wti_cant_be_computed;
+        return wti_unknown;
     else
-        return 10.0f / 100.f;
+        return -.9f;
 }
 
 PerformanceConfigConvOclDirectFwdFused

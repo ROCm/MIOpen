@@ -108,7 +108,7 @@ struct SolverBase
     /// run-time parameters.
     virtual bool IsDynamic() const { return false; }
 
-    static constexpr float wti_cant_be_computed = -2;
+    static constexpr float wti_unknown = -2;
 
     /// [Informative as of Sep 2020] Returns an approximated value of the expected
     /// WTI or -2.0 when this value can't be computed. Tips:
@@ -154,7 +154,7 @@ struct SolverMixin : SolverBase
                   "Context must be derived of ExecutionContext");
 
     virtual bool IsApplicable(const Context&, const Problem&) const = 0;
-    virtual float GetWti(const Context&, const Problem&) const { return wti_cant_be_computed; };
+    virtual float GetWti(const Context&, const Problem&) const { return wti_unknown; };
     virtual size_t GetWorkspaceSize(const Context&, const Problem&) const { return 0; };
 
     bool IsApplicable(const ExecutionContext& ctx, const boost::any& problem) const final

@@ -209,7 +209,11 @@ ConvBiasActivAsm1x1U::GetSolution(const FusionContext& context,
 
 float ConvBiasActivAsm1x1U::GetWti(const FusionContext&, const FusionDescription&) const
 {
-    return 50.0f / 100.f;
+    // Negative values mean rough estimation of time
+    // Solvers with positive values are considered first priority
+    // If none found solvers with negative are used, -2.0f meaning a completely unknown value
+    // So lower absolute values mean higher priority
+    return -.5f;
 }
 
 bool ConvBiasActivAsm1x1U::IsApplicable(const FusionContext& context,

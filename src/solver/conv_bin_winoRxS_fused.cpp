@@ -271,13 +271,18 @@ ConvSolution ConvBinWinogradRxSFused::GetSolution(const FusionContext& context,
 }
 float ConvBinWinogradRxSFused::GetWti(const FusionContext&, const FusionDescription& problem) const
 {
+    // Negative values mean rough estimation of time
+    // Solvers with positive values are considered first priority
+    // If none found solvers with negative are used, -2.0f meaning a completely unknown value
+    // So lower absolute values mean higher priority
+
     const auto conv_problem = problem.GetConvProblem(0, miopen::conv::Direction::Forward);
     const auto x            = conv_problem.GetWeightsWidth();
     const auto y            = conv_problem.GetWeightsHeight();
     if(x == 3 && y == 3)
-        return 1.f;
+        return -.01f;
     else
-        return 5.f / 100.f;
+        return -.95f;
 }
 } // namespace fusion
 } // namespace solver

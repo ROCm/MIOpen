@@ -409,17 +409,11 @@ ConvSolution ConvBinWinogradRxSf2x3g1Fused::GetSolution(const FusionContext& con
     };
     return result;
 }
-float ConvBinWinogradRxSf2x3g1Fused::GetWti(const FusionContext&,
+float ConvBinWinogradRxSf2x3g1Fused::GetWti(const FusionContext& ctx,
                                             const FusionDescription& problem) const
 {
     const auto conv_problem = problem.GetConvProblem(0, miopen::conv::Direction::Forward);
-    const auto x            = conv_problem.GetWeightsWidth();
-    const auto y            = conv_problem.GetWeightsHeight();
-
-    if(x == 3 && y == 3)
-        return 1.f;
-    else
-        return 5.f / 100.f;
+    return conv::ConvBinWinogradRxSf2x3g1().GetWti(ctx, conv_problem);
 }
 } // namespace fusion
 } // namespace solver
