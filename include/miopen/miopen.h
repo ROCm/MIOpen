@@ -6584,8 +6584,12 @@ MIOPEN_EXPORT miopenStatus_t miopenBackendInitialize(miopenBackendDescriptor_t d
 
 #ifdef MIOPEN_BETA_API
 
-/*! @ingroup Cumulative Reduction
- * @enum miopenCumOp_t
+/** @addtogroup Cumulative Reduction
+ *
+ *  @{
+ */
+
+/*! @enum miopenCumOp_t
  * Cumulative Reduction operation types
  */
 using miopenCumOp_t = enum {
@@ -6596,11 +6600,6 @@ using miopenCumOp_t = enum {
     MIOPEN_CUM_SUM  = 3, /*!< the operation is getting the sum of the reduced elements */
     MIOPEN_CUM_PROD = 4, /*!< the operation is getting the product of the reduced elements */
 };
-
-/** @addtogroup Cumulative Reduction
- *
- *  @{
- */
 
 /*! @brief Helper function to query the minimum workspace size required by the Cumulative Reduction
  * forward call
