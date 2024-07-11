@@ -355,6 +355,18 @@ if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_B
     else()
         message(STATUS "Build without rocblas")
     endif()
+
+    # hipblaslt
+    set_var_to_condition(MIOPEN_USE_HIPBLASLT_DEFAULT NOT WIN32)
+    option(MIOPEN_USE_HIPBLASLT "Use hipBlasLt" ${MIOPEN_USE_HIPBLASLT_DEFAULT})
+    if(MIOPEN_USE_HIPBLASLT)
+        find_package(hipblas REQUIRED PATHS /opt/rocm $ENV{HIP_PATH})
+        message(STATUS "Build with hipbBLAS ${hipblas_VERSION} ${hipblas_DIR}")
+        find_package(hipblaslt REQUIRED PATHS /opt/rocm $ENV{HIP_PATH})
+        message(STATUS "Build with hipbBLASLt ${hipblaslt_VERSION} ${hipblaslt_DIR}")
+    else()
+        message(STATUS "Build without hipbBLASLt")
+    endif()
 else()
     #CK is only enabled when HIP backend is selected   
     set(MIOPEN_USE_COMPOSABLEKERNEL Off)
@@ -526,6 +538,10 @@ endif()
 
 if(MIOPEN_USE_ROCBLAS)
     set(MIOPEN_PACKAGE_REQS "${MIOPEN_PACKAGE_REQS}, rocblas")
+endif()
+
+if(MIOPEN_USE_HIPBLASLT)
+    set(MIOPEN_PACKAGE_REQS "${MIOPEN_PACKAGE_REQS}, hipblaslt")
 endif()
 
 if(MIOPEN_OFFLINE_COMPILER_PATHS_V2)
