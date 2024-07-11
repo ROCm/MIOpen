@@ -250,26 +250,22 @@ static inline std::string to_string(const std::string& v) { return {v}; }
 static inline std::string to_string(const bool& v) { return v ? "true" : "false"; }
 static inline auto to_string(const std::size_t& v) { return std::to_string(v); }
 
+/// Convert amd_comgr enum members to strings.
+///
+/// \note We need support only for the enum members used in this file.
+/// Let's skip unused members in order to simplify maintenance
+/// of code between different COMgr versions.
+///
 /// \todo Request comgr to expose this stuff via API.
 static std::string to_string(const amd_comgr_language_t val)
 {
     std::ostringstream oss;
-#if COMGR_VERSION >= 3000000
     MIOPEN_LOG_ENUM(oss,
                     val,
                     AMD_COMGR_LANGUAGE_NONE,
                     AMD_COMGR_LANGUAGE_OPENCL_1_2,
                     AMD_COMGR_LANGUAGE_OPENCL_2_0,
                     AMD_COMGR_LANGUAGE_HIP);
-#else
-    MIOPEN_LOG_ENUM(oss,
-                    val,
-                    AMD_COMGR_LANGUAGE_NONE,
-                    AMD_COMGR_LANGUAGE_OPENCL_1_2,
-                    AMD_COMGR_LANGUAGE_OPENCL_2_0,
-                    AMD_COMGR_LANGUAGE_HC,
-                    AMD_COMGR_LANGUAGE_HIP);
-#endif
     return oss.str();
 }
 
@@ -281,56 +277,21 @@ static std::string to_string(const amd_comgr_data_kind_t val)
                     AMD_COMGR_DATA_KIND_UNDEF,
                     AMD_COMGR_DATA_KIND_SOURCE,
                     AMD_COMGR_DATA_KIND_INCLUDE,
-                    AMD_COMGR_DATA_KIND_PRECOMPILED_HEADER,
-                    AMD_COMGR_DATA_KIND_DIAGNOSTIC,
                     AMD_COMGR_DATA_KIND_LOG,
-                    AMD_COMGR_DATA_KIND_BC,
-                    AMD_COMGR_DATA_KIND_RELOCATABLE,
-                    AMD_COMGR_DATA_KIND_EXECUTABLE,
-                    AMD_COMGR_DATA_KIND_BYTES,
-                    AMD_COMGR_DATA_KIND_FATBIN);
+                    AMD_COMGR_DATA_KIND_EXECUTABLE);
     return oss.str();
 }
 
 static std::string to_string(const amd_comgr_action_kind_t val)
 {
     std::ostringstream oss;
-#if COMGR_VERSION >= 3000000
     MIOPEN_LOG_ENUM(oss,
                     val,
-                    AMD_COMGR_ACTION_SOURCE_TO_PREPROCESSOR,
                     AMD_COMGR_ACTION_ADD_PRECOMPILED_HEADERS,
-                    AMD_COMGR_ACTION_COMPILE_SOURCE_TO_BC,
-                    AMD_COMGR_ACTION_LINK_BC_TO_BC,
                     AMD_COMGR_ACTION_CODEGEN_BC_TO_RELOCATABLE,
-                    AMD_COMGR_ACTION_CODEGEN_BC_TO_ASSEMBLY,
-                    AMD_COMGR_ACTION_LINK_RELOCATABLE_TO_RELOCATABLE,
                     AMD_COMGR_ACTION_LINK_RELOCATABLE_TO_EXECUTABLE,
                     AMD_COMGR_ACTION_ASSEMBLE_SOURCE_TO_RELOCATABLE,
-                    AMD_COMGR_ACTION_DISASSEMBLE_RELOCATABLE_TO_SOURCE,
-                    AMD_COMGR_ACTION_DISASSEMBLE_EXECUTABLE_TO_SOURCE,
-                    AMD_COMGR_ACTION_DISASSEMBLE_BYTES_TO_SOURCE,
                     AMD_COMGR_ACTION_COMPILE_SOURCE_WITH_DEVICE_LIBS_TO_BC);
-#else
-    MIOPEN_LOG_ENUM(oss,
-                    val,
-                    AMD_COMGR_ACTION_SOURCE_TO_PREPROCESSOR,
-                    AMD_COMGR_ACTION_ADD_PRECOMPILED_HEADERS,
-                    AMD_COMGR_ACTION_COMPILE_SOURCE_TO_BC,
-                    AMD_COMGR_ACTION_ADD_DEVICE_LIBRARIES,
-                    AMD_COMGR_ACTION_LINK_BC_TO_BC,
-                    AMD_COMGR_ACTION_OPTIMIZE_BC_TO_BC,
-                    AMD_COMGR_ACTION_CODEGEN_BC_TO_RELOCATABLE,
-                    AMD_COMGR_ACTION_CODEGEN_BC_TO_ASSEMBLY,
-                    AMD_COMGR_ACTION_LINK_RELOCATABLE_TO_RELOCATABLE,
-                    AMD_COMGR_ACTION_LINK_RELOCATABLE_TO_EXECUTABLE,
-                    AMD_COMGR_ACTION_ASSEMBLE_SOURCE_TO_RELOCATABLE,
-                    AMD_COMGR_ACTION_DISASSEMBLE_RELOCATABLE_TO_SOURCE,
-                    AMD_COMGR_ACTION_DISASSEMBLE_EXECUTABLE_TO_SOURCE,
-                    AMD_COMGR_ACTION_DISASSEMBLE_BYTES_TO_SOURCE,
-                    AMD_COMGR_ACTION_COMPILE_SOURCE_TO_FATBIN,
-                    AMD_COMGR_ACTION_COMPILE_SOURCE_WITH_DEVICE_LIBS_TO_BC);
-#endif
     return oss.str();
 }
 
