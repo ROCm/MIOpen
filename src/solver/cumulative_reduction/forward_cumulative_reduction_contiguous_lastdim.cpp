@@ -32,7 +32,8 @@
 
 #define FLOAT_ACCUM float
 
-#define LOCAL_SIZE 256
+#define LOCAL_SIZE_MAX 256
+#define LOCAL_SIZE_MIN 64
 
 namespace miopen {
 
@@ -43,7 +44,7 @@ namespace cumulative_reduction {
 bool IsImprovementOverROCm(const ExecutionContext& /*context*/,
                            const miopen::cumulative_reduction::ForwardProblemDescription& problem)
 {
-    if(problem.GetInputDesc().GetLengths()[problem.GetDim()] > LOCAL_SIZE)
+    if(problem.GetInputDesc().GetLengths()[problem.GetDim()] > LOCAL_SIZE_MAX)
         return false;
     return true;
 }
@@ -78,6 +79,14 @@ ConvSolution ForwardContiguousLastDim::GetSolution(
     auto output_dtype = miopen::GetDataType(problem.GetOutputDesc().GetType());
     auto cum_op       = problem.GetCumOp();
 
+    auto size       = problem.GetInputDesc().GetElementSize();
+    auto inner_size = problem.GetInputDesc().GetLengths()[problem.GetDim()];
+    auto outer_size = size / inner_size;
+
+    auto local_size = LOCAL_SIZE_MIN;
+    while(local_size < inner_size)
+        local_size *= 2;
+
     auto build_params = KernelBuildParameters{
         {"MIOPEN_USE_FP16", static_cast<int>(dtype == miopenHalf)},
         {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
@@ -86,15 +95,12 @@ ConvSolution ForwardContiguousLastDim::GetSolution(
         {"INPUT_TYPE", input_dtype == "bfloat16" ? "ushort" : input_dtype},
         {"OUTPUT_TYPE", output_dtype == "bfloat16" ? "ushort" : output_dtype},
         {"OP_TYPE", cum_op},
-        {"REDUCE_SIZE", LOCAL_SIZE},
+        {"REDUCE_SIZE", local_size},
     };
 
     {
-        auto size       = problem.GetInputDesc().GetElementSize();
-        auto inner_size = problem.GetInputDesc().GetLengths()[problem.GetDim()];
-        auto outer_size = size / inner_size;
         result.construction_params.push_back(
-            make_hip_kernel({1, LOCAL_SIZE},
+            make_hip_kernel({1, local_size},
                             {outer_size, inner_size},
                             "MIOpenCumulativeReduction.cpp",
                             "CumulativeReductionForwardContiguousLastDim",
@@ -124,7 +130,7 @@ std::size_t ForwardContiguousLastDim::GetWorkspaceSize(
     const ExecutionContext& /*context*/,
     const miopen::cumulative_reduction::ForwardProblemDescription& problem) const
 {
-    if(problem.GetInputDesc().GetLengths()[problem.GetDim()] > LOCAL_SIZE)
+    if(problem.GetInputDesc().GetLengths()[problem.GetDim()] > LOCAL_SIZE_MAX)
     {
         size_t size = 0;
         size += problem.GetInputDesc().GetElementSize() * sizeof(FLOAT_ACCUM);

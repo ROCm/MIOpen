@@ -66,7 +66,7 @@ template <typename TI, typename TO, CumulativeReductionOp_t OP, uint64_t LOCAL_S
 __device__ void CumulativeReductionForwardContiguousLastDim(const TI* __restrict__ input,
                                                             TO* __restrict__ output,
                                                             int* __restrict__ indices,
-                                                            const unsigned int reduce_size,
+                                                            const uint64_t reduce_size,
                                                             const bool exclusive,
                                                             const bool reverse)
 {
@@ -115,13 +115,12 @@ __device__ void CumulativeReductionForwardContiguousLastDim(const TI* __restrict
     }
 }
 
-extern "C" __global__ void
-CumulativeReductionForwardContiguousLastDim(const INPUT_TYPE* input,
-                                            OUTPUT_TYPE* output,
-                                            int* indices,
-                                            const unsigned int reduce_size,
-                                            const bool exclusive,
-                                            const bool reverse)
+extern "C" __global__ void CumulativeReductionForwardContiguousLastDim(const INPUT_TYPE* input,
+                                                                       OUTPUT_TYPE* output,
+                                                                       int* indices,
+                                                                       const uint64_t reduce_size,
+                                                                       const bool exclusive,
+                                                                       const bool reverse)
 {
     // instantiate the kernel
     CumulativeReductionForwardContiguousLastDim<INPUT_TYPE,
