@@ -145,8 +145,10 @@ class GPU_ConvBiasResAddActivation_fwd
                                miopenDataType_t dataType,
                                const miopen::TensorDescriptor& tensorDesc)
         {
-            auto ptr = mAlloc.allocate(gr::makeTensor<isVirtual>(
-                name, dataType, Convert(tensorDesc.GetLengths()), Convert(tensorDesc.GetStrides())));
+            auto ptr = mAlloc.allocate(gr::makeTensor<isVirtual>(name,
+                                                                 dataType,
+                                                                 Convert(tensorDesc.GetLengths()),
+                                                                 Convert(tensorDesc.GetStrides())));
             if constexpr(!isVirtual)
             {
                 mFilledTensors.emplace(std::string(name), TensorData(ptr, tensorDesc));
@@ -376,8 +378,7 @@ public:
     }
 };
 
-struct GPU_ConvBiasResAddActivation_fwd_FP16
-    : GPU_ConvBiasResAddActivation_fwd<half_float::half>
+struct GPU_ConvBiasResAddActivation_fwd_FP16 : GPU_ConvBiasResAddActivation_fwd<half_float::half>
 {
 };
 
