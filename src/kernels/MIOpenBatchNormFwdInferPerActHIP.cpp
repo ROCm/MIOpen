@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2017 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -67,9 +67,9 @@ bn_fwd_infer_per_activation(const TIO* __restrict in, /* x input */
 
         for(size_t n = 0; n < batchSize; n++)
         {
-            size_t index        = (batchStride * n) + adjIndex;
-            const TPREC inhat   = (static_cast<TPREC>(in[index]) - mean) * invVariance;
-            out[index]          = static_cast<TIO>(fma(pvt_scale, inhat, pvt_bias));
+            size_t index      = (batchStride * n) + adjIndex;
+            const TPREC inhat = (static_cast<TPREC>(in[index]) - mean) * invVariance;
+            out[index]        = static_cast<TIO>(fma(pvt_scale, inhat, pvt_bias));
         }
     }
 }
@@ -81,7 +81,7 @@ extern "C" __global__ void __launch_bounds__(MIO_BN_GRP0* MIO_BN_GRP1* MIO_BN_GR
                                                const _FLOAT_PREC* __restrict estimatedVariance,
                                                const _FLOAT_PREC* __restrict scale,
                                                const _FLOAT_PREC* __restrict bias,
-                                               double epsilon,                                               
+                                               double epsilon,
                                                unsigned int batchSize,
                                                unsigned int imageDims,
                                                unsigned int batchStride)

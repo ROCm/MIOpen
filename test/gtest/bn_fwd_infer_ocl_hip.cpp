@@ -169,14 +169,14 @@ struct BatchNormFwdInferTest
     : public ::testing::TestWithParam<std::tuple<BNTestCase, miopenTensorLayout_t>>
 {
 protected:
-    void SetUp() override
-    {
-        std::tie(bn_config, tensor_layout) = GetParam();
-    }
+    void SetUp() override { std::tie(bn_config, tensor_layout) = GetParam(); }
 
     void DataSetup(miopenBatchNormMode_t mode)
     {
-        if(mode == miopenBNPerActivation){bn_config.mode = miopenBNPerActivation;} //Override the mode to test per activation
+        if(mode == miopenBNPerActivation)
+        {
+            bn_config.mode = miopenBNPerActivation;
+        } // Override the mode to test per activation
         bn_infer_test_data.SetUpImpl(bn_config, tensor_layout);
     }
 
@@ -225,20 +225,20 @@ protected:
 
 namespace BatchNormFwdInfer {
 
-struct BatchNormFwdInferTestFloat : BatchNormFwdInferTest<float, float, float, float, float>
+struct GPU_bn_fwd_infer_spatial_FP32 : BatchNormFwdInferTest<float, float, float, float, float>
 {
 };
 
-struct BatchNormFwdInferPerActTestFloat : BatchNormFwdInferTest<float, float, float, float, float>
+struct GPU_bn_fwd_infer_per_act_FP32 : BatchNormFwdInferTest<float, float, float, float, float>
 {
 };
 
-struct BatchNormFwdInferTestHalf
+struct GPU_bn_fwd_infer_spatial_FP16
     : BatchNormFwdInferTest<half_float::half, half_float::half, float, float, float>
 {
 };
 
-struct BatchNormFwdInferPerActTestHalf
+struct GPU_bn_fwd_infer_per_act_FP16
     : BatchNormFwdInferTest<half_float::half, half_float::half, float, float, float>
 {
 };
@@ -246,7 +246,7 @@ struct BatchNormFwdInferPerActTestHalf
 } // namespace BatchNormFwdInfer
 using namespace BatchNormFwdInfer;
 
-TEST_P(BatchNormFwdInferTestFloat, BatchNormFwdInferTestFw)
+TEST_P(GPU_bn_fwd_infer_spatial_FP16, PortTest)
 {
     // Generate data and copy to GPU
     DataSetup(miopenBNSpatial);
@@ -260,7 +260,7 @@ TEST_P(BatchNormFwdInferTestFloat, BatchNormFwdInferTestFw)
     Verify();
 };
 
-TEST_P(BatchNormFwdInferTestHalf, BatchNormFwdInferTestFw)
+TEST_P(GPU_bn_fwd_infer_spatial_FP32, PortTest)
 {
     // Generate data and copy to GPU
     DataSetup(miopenBNSpatial);
@@ -274,7 +274,7 @@ TEST_P(BatchNormFwdInferTestHalf, BatchNormFwdInferTestFw)
     Verify();
 };
 
-TEST_P(BatchNormFwdInferPerActTestFloat, BatchNormFwdInferTestFw)
+TEST_P(GPU_bn_fwd_infer_per_act_FP16, PortTest)
 {
     // Generate data and copy to GPU
     DataSetup(miopenBNPerActivation);
@@ -288,7 +288,7 @@ TEST_P(BatchNormFwdInferPerActTestFloat, BatchNormFwdInferTestFw)
     Verify();
 };
 
-TEST_P(BatchNormFwdInferPerActTestHalf, BatchNormFwdInferTestFw)
+TEST_P(GPU_bn_fwd_infer_per_act_FP32, PortTest)
 {
     // Generate data and copy to GPU
     DataSetup(miopenBNPerActivation);
@@ -302,22 +302,21 @@ TEST_P(BatchNormFwdInferPerActTestHalf, BatchNormFwdInferTestFw)
     Verify();
 };
 
-INSTANTIATE_TEST_SUITE_P(BatchNormFwdInferTestSet,
-                         BatchNormFwdInferTestHalf,
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_bn_fwd_infer_spatial_FP16,
                          testing::Combine(testing::ValuesIn(Network1<BNTestCase>()),
                                           testing::Values(miopenTensorNCHW)));
 
-INSTANTIATE_TEST_SUITE_P(BatchNormFwdInferTestSet,
-                         BatchNormFwdInferTestFloat,
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_bn_fwd_infer_spatial_FP32,
+                         testing::Combine(testing::ValuesIn(Network1<BNTestCase>()),
+                                          testing::Values(miopenTensorNCHW)));
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_bn_fwd_infer_per_act_FP16,
                          testing::Combine(testing::ValuesIn(Network1<BNTestCase>()),
                                           testing::Values(miopenTensorNCHW)));
 
-INSTANTIATE_TEST_SUITE_P(BatchNormFwdInferTestSet,
-                         BatchNormFwdInferPerActTestFloat,
-                         testing::Combine(testing::ValuesIn(Network1<BNTestCase>()),
-                                          testing::Values(miopenTensorNCHW)));
-
-INSTANTIATE_TEST_SUITE_P(BatchNormFwdInferTestSet,
-                         BatchNormFwdInferPerActTestHalf,
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_bn_fwd_infer_per_act_FP32,
                          testing::Combine(testing::ValuesIn(Network1<BNTestCase>()),
                                           testing::Values(miopenTensorNCHW)));
