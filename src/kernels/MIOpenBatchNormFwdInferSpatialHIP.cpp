@@ -27,7 +27,7 @@
 
 #if MIOPEN_USE_FP16 == 1
 #define _FLOAT half
-#define _FLOAT_PREC half
+#define _FLOAT_PREC float
 #endif
 
 #if MIOPEN_USE_FP32 == 1
@@ -41,48 +41,59 @@
 #define _FLOAT_PREC float
 #endif
 
-
-template <typename T>
-T __device__ __forceinline__ mad(T a, T b, T c)
-{
-    return a * b + c;
-}
-
-extern "C"  __global__ void __launch_bounds__(MIO_BN_GRP0 * MIO_BN_GRP1 * MIO_BN_GRP2)
-MIOpenBatchNormFwdInferSpatialEstHIP(const  _FLOAT* __restrict in, /* x input */
-                                   _FLOAT* __restrict out,      /* y output */
-                                  const  _FLOAT_PREC* __restrict estimatedMean,
-                                  const  _FLOAT_PREC* __restrict estimatedVariance,
-                                  const  _FLOAT_PREC* __restrict scale,
-                                  const  _FLOAT_PREC* __restrict bias,
-                                  double epsilon,
-                                  unsigned int batchSize,
-                                  unsigned int imageDims,
-                                  unsigned int batchStride)
+template <typename TIO, typename TPREC>
+__forceinline__ __device__ void bn_fwd_infer_sparial(const TIO* __restrict in, /* x input */
+                                                     TIO* __restrict out,      /* y output */
+                                                     const TPREC* __restrict estimatedMean,
+                                                     const TPREC* __restrict estimatedVariance,
+                                                     const TPREC* __restrict scale,
+                                                     const TPREC* __restrict bias,
+                                                     double epsilon,
+                                                     unsigned int batchSize,
+                                                     unsigned int imageDims,
+                                                     unsigned int batchStride)
 {
 
-    int xgid = blockIdx.x * blockDim.x + threadIdx.x;
-    int ygid = blockIdx.y * blockDim.y + threadIdx.y;
+    size_t xidx = blockIdx.x * blockDim.x + threadIdx.x;
+    size_t yidx = blockIdx.y * blockDim.y + threadIdx.y;
 
-    unsigned int index;
+    const TPREC mean        = estimatedMean[xidx];
+    const TPREC variance    = estimatedVariance[xidx];
+    const TPREC pscale      = scale[xidx];
+    const TPREC pbias       = bias[xidx];
+    const TPREC invVariance = static_cast<TPREC>(rsqrt(fabs(variance + epsilon)));
 
-    _FLOAT_PREC mean, variance, invVariance;
-    _FLOAT_PREC inhat;
-    _FLOAT_PREC pscale, pbias;
-
-    mean        = *(estimatedMean + xgid);
-    variance    = *(estimatedVariance + xgid);
-    pscale      = *(scale + xgid);
-    pbias       = *(bias + xgid);
-    invVariance = rsqrt(fabs(variance + epsilon));
-
-    for(unsigned int idx = ygid; idx < imageDims; idx += gridDim.y * blockDim.y)
+    for(size_t idx = yidx; idx < imageDims; idx += gridDim.y * blockDim.y)
     {
-        for(unsigned int n = 0; n < batchSize; n++)
+        for(size_t n = 0; n < batchSize; n++)
         {
-            index      = (n * batchStride) + (xgid * imageDims) + idx;
-            inhat      = ((_FLOAT_PREC)(*(in + index)) - mean) * invVariance;
-            out[index] = mad<_FLOAT>(pscale, inhat, pbias);
+            size_t index = (n * batchStride) + (xidx * imageDims) + idx;
+            TPREC inhat  = (static_cast<TPREC>(in[index]) - mean) * invVariance;
+            out[index]   = static_cast<TIO>(fma(pscale, inhat, pbias));
         }
     }
-} 
+}
+
+extern "C" __global__ void __launch_bounds__(MIO_BN_GRP0* MIO_BN_GRP1* MIO_BN_GRP2)
+    MIOpenBatchNormFwdInferSpatialEstHIP(const _FLOAT* __restrict in, /* x input */
+                                         _FLOAT* __restrict out,      /* y output */
+                                         const _FLOAT_PREC* __restrict estimatedMean,
+                                         const _FLOAT_PREC* __restrict estimatedVariance,
+                                         const _FLOAT_PREC* __restrict scale,
+                                         const _FLOAT_PREC* __restrict bias,
+                                         double epsilon,
+                                         unsigned int batchSize,
+                                         unsigned int imageDims,
+                                         unsigned int batchStride)
+{
+    bn_fwd_infer_sparial<_FLOAT, _FLOAT_PREC>(in,
+                                              out,
+                                              estimatedMean,
+                                              estimatedVariance,
+                                              scale,
+                                              bias,
+                                              epsilon,
+                                              batchSize,
+                                              imageDims,
+                                              batchStride);
+}
