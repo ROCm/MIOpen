@@ -178,8 +178,6 @@ struct ConvCKIgemmFwdBiasActivFused final
     GetSolution(const FusionContext& ctx,
                 const FusionDescription& fdesc_problem,
                 const PerformanceConfigConvCKIgemmFwdBiasActivFused& config) const override;
-    MIOPEN_INTERNALS_EXPORT float GetWti(const FusionContext&,
-                                         const FusionDescription&) const override;
 
 private:
     template <typename DataType>
@@ -250,8 +248,6 @@ struct ConvCKIgemmFwdBiasResAddActivFused final
     GetSolution(const FusionContext& ctx,
                 const FusionDescription& fdesc_problem,
                 const PerfConfigConvCKIgemmFwdBiasResAddActivFused& config) const override;
-    MIOPEN_INTERNALS_EXPORT float GetWti(const FusionContext&,
-                                         const FusionDescription&) const override;
 
 private:
     template <typename DataType, typename AccumDataType = DataType>
@@ -322,8 +318,6 @@ struct BnFwdInferActivationFused final : FusionSolverBase
                                               const FusionDescription& problem) const override;
     MIOPEN_INTERNALS_EXPORT ConvSolution
     GetSolution(const FusionContext& context, const FusionDescription& problem) const override;
-    MIOPEN_INTERNALS_EXPORT float GetWti(const FusionContext&,
-                                         const FusionDescription&) const override;
 };
 
 struct BnFwdTrgActivationFused final : FusionSolverBase
@@ -337,8 +331,6 @@ struct BnFwdTrgActivationFused final : FusionSolverBase
                                               const FusionDescription& problem) const override;
     MIOPEN_INTERNALS_EXPORT ConvSolution
     GetSolution(const FusionContext& context, const FusionDescription& problem) const override;
-    MIOPEN_INTERNALS_EXPORT float GetWti(const FusionContext&,
-                                         const FusionDescription&) const override;
 };
 
 struct BnBwdTrgActivationFused final : FusionSolverBase
@@ -352,8 +344,6 @@ struct BnBwdTrgActivationFused final : FusionSolverBase
                                               const FusionDescription& problem) const override;
     MIOPEN_INTERNALS_EXPORT ConvSolution
     GetSolution(const FusionContext& context, const FusionDescription& problem) const override;
-    MIOPEN_INTERNALS_EXPORT float GetWti(const FusionContext&,
-                                         const FusionDescription&) const override;
 };
 
 } // namespace fusion

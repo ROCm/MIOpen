@@ -233,11 +233,6 @@ ConvSolution BnBwdTrgActivationFused::GetSolution(const FusionContext& context,
     return result;
 }
 
-float BnBwdTrgActivationFused::GetWti(const FusionContext&, const FusionDescription&) const
-{
-    return -2;
-}
-
 } // namespace fusion
 
 } // namespace solver

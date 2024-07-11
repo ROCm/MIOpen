@@ -494,11 +494,6 @@ ConvSolution ConvCKIgemmFwdBiasActivFused::GetSolution(
 #endif
 }
 
-float ConvCKIgemmFwdBiasActivFused::GetWti(const FusionContext&, const FusionDescription&) const
-{
-    return -2;
-}
-
 } // namespace fusion
 } // namespace solver
 } // namespace miopen
