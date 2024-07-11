@@ -34,6 +34,7 @@
 #include <../test/ford.hpp>
 #include <../test/verify.hpp>
 
+#include <cassert>
 #include <miopen/miopen.h>
 
 inline std::vector<int> GetStrides(std::vector<int> lengths, int contiguous)
@@ -69,7 +70,6 @@ public:
     InputFlags& GetInputFlags() override { return inflags; }
 
     int GetandSetData() override;
-    std::vector<int> GetTensorLengthsFromCmdLine();
 
     int AllocateBuffersAndCopy() override;
 
@@ -139,8 +139,11 @@ int CumulativeReductionDriver<Tgpu, Tref>::GetandSetData()
     reverse   = (inflags.GetValueInt("reverse") != 0);
     cumOp     = (miopenCumOp_t)inflags.GetValueInt("CumulativeOperation");
 
-    auto lengths = GetTensorLengthsFromCmdLine();
-    if(lengths.size() == 0)
+    auto vec_lengths = inflags.GetValueTensor("DimLengths");
+    assert(1 <= vec_lengths.lengths.size() && vec_lengths.lengths.size() <= 5);
+
+    auto lengths = vec_lengths.lengths;
+    if(lengths.empty())
     {
         std::cout << "Tensor must not be empty";
         return miopenStatusInvalidValue;
@@ -158,11 +161,8 @@ int CumulativeReductionDriver<Tgpu, Tref>::AddCmdLineArgs()
 {
     inflags.AddInputFlag(
         "forw", 'F', "1", "Run only Forward CumulativeReduction (Default=1)", "int");
-    inflags.AddInputFlag("DimLengths",
-                         'D',
-                         "256,4,1,1,8723",
-                         "The dimensional lengths of the input tensor",
-                         "string");
+    inflags.AddTensorFlag(
+        "DimLengths", 'D', "256x4x256", "The dimensional lengths of the input tensor");
     inflags.AddInputFlag(
         "dim", 'd', "0", "The dimension to do the operation over (Default=0)", "int");
     inflags.AddInputFlag("exclusive",
@@ -193,36 +193,6 @@ int CumulativeReductionDriver<Tgpu, Tref>::AddCmdLineArgs()
         "wall", 'w', "0", "Wall-clock Time Each Layer, Requires time == 1 (Default=0)", "int");
 
     return miopenStatusSuccess;
-}
-
-template <typename Tgpu, typename Tref>
-std::vector<int> CumulativeReductionDriver<Tgpu, Tref>::GetTensorLengthsFromCmdLine()
-{
-    std::string lengthsStr = inflags.GetValueStr("DimLengths");
-
-    std::vector<int> lengths;
-    std::size_t pos = 0;
-    std::size_t new_pos;
-
-    new_pos = lengthsStr.find(',', pos);
-    while(new_pos != std::string::npos)
-    {
-        std::string sliceStr = lengthsStr.substr(pos, new_pos - pos);
-
-        int len = std::stoi(sliceStr);
-
-        lengths.push_back(len);
-
-        pos     = new_pos + 1;
-        new_pos = lengthsStr.find(',', pos);
-    };
-
-    std::string sliceStr = lengthsStr.substr(pos);
-    int len              = std::stoi(sliceStr);
-
-    lengths.push_back(len);
-
-    return (lengths);
 }
 
 template <typename Tgpu, typename Tref>
