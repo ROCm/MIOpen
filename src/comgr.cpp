@@ -586,11 +586,13 @@ static void SetIsaName(const ActionInfo& action,
     action.SetIsaName(isaName);
 }
 
+#if WORKAROUND_ISSUE_1431
 static inline bool IsWave64Enforced(const OptionList& opts)
 {
     return std::any_of(
         opts.begin(), opts.end(), [](const std::string& s) { return s == "-mwavefrontsize64"; });
 }
+#endif
 
 void BuildOcl(const std::string& name,
               std::string_view text,
