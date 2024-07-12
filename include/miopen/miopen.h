@@ -6588,12 +6588,12 @@ MIOPEN_EXPORT miopenStatus_t miopenBackendInitialize(miopenBackendDescriptor_t d
  *
  *  @{
  */
-/*! @brief Execute an unfold forward layer
+/*! @brief Execute an fold forward layer
  *
  * @param handle              MIOpen handle (input)
  * @param inputDesc           Tensor descriptor for data input tensor input (input)
  * @param input               Data tensor input (input)
- * @param outputDesc          Tensor descriptor for data output tensor output (output)
+ * @param outputDesc          Tensor descriptor for data output tensor output (input)
  * @param output              Data tensor output (output)
  * @param kernel_size         Size of the sliding box array (input)
  * @param kernel_size_size    Size of the kernel_size array (input)
@@ -6620,10 +6620,10 @@ MIOPEN_EXPORT miopenStatus_t miopenFoldForward(miopenHandle_t handle,
                                                const int32_t* dilation,
                                                const int dilation_size);
 
-/*! @brief Execute an unfold backward layer
+/*! @brief Execute an fold backward layer
 *
 * @param handle              MIOpen handle (input)
-* @param dinputDesc          Tensor descriptor for data input grad tensor (output)
+* @param dinputDesc          Tensor descriptor for data input grad tensor (input)
 * @param dinput              Data tensor input grad (output)
 * @param doutputDesc         Tensor descriptor for data output grad tensor (input)
 * @param doutput             Data tensor output grad (input)
@@ -6657,7 +6657,7 @@ MIOPEN_EXPORT miopenStatus_t miopenFoldBackward(miopenHandle_t handle,
  * @param handle              MIOpen handle (input)
  * @param inputDesc           Tensor descriptor for data input tensor input (input)
  * @param input               Data tensor input (input)
- * @param outputDesc          Tensor descriptor for data output tensor output (output)
+ * @param outputDesc          Tensor descriptor for data output tensor output (input)
  * @param output              Data tensor output (output)
  * @param kernel_size         Size of the sliding box array (input)
  * @param kernel_size_size    Size of the kernel_size array (input)
@@ -6687,7 +6687,7 @@ MIOPEN_EXPORT miopenStatus_t miopenUnfoldForward(miopenHandle_t handle,
 /*! @brief Execute an unfold backward layer
  *
  * @param handle              MIOpen handle (input)
- * @param dinputDesc          Tensor descriptor for data input grad tensor (output)
+ * @param dinputDesc          Tensor descriptor for data input grad tensor (input)
  * @param dinput              Data tensor input grad (output)
  * @param doutputDesc         Tensor descriptor for data output grad tensor (input)
  * @param doutput             Data tensor output grad (input)
