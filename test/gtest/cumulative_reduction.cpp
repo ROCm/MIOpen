@@ -59,7 +59,8 @@ using namespace cumulative_reduction;
 
 TEST_P(CumulativeReductionTestFloat, CumulativeReductionTest)
 {
-    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) || (GetFloatArg() == "--float"))
+    if(miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
+       (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float")))
     {
         RunTest();
         Verify();
@@ -72,7 +73,8 @@ TEST_P(CumulativeReductionTestFloat, CumulativeReductionTest)
 
 TEST_P(CumulativeReductionTestHalf, CumulativeReductionTest)
 {
-    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) || (GetFloatArg() == "--half"))
+    if(miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
+       (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--half")))
     {
         RunTest();
         Verify();
@@ -85,7 +87,8 @@ TEST_P(CumulativeReductionTestHalf, CumulativeReductionTest)
 
 TEST_P(CumulativeReductionTestBfloat16, CumulativeReductionTest)
 {
-    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) || (GetFloatArg() == "--bfloat16"))
+    if(miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
+       (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--bfloat16")))
     {
         RunTest();
         Verify();
