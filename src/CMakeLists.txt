@@ -219,12 +219,43 @@ set( MIOpen_Source
     solver/conv/conv_asm_implicit_gemm_wrw_v4r1_dynamic.cpp
     solver/conv/conv_bin_wino3x3U.cpp
     solver/conv/conv_bin_winoRxS.cpp
+    solver/conv/conv_ck_igemm_fwd_v6r1_dlops_nchw.cpp
+    solver/conv/conv_direct_naive_conv.cpp
+    solver/conv/conv_direct_naive_conv_bwd.cpp
+    solver/conv/conv_direct_naive_conv_fwd.cpp
+    solver/conv/conv_direct_naive_conv_wrw.cpp
+    solver/conv/conv_hip_implicit_gemm_bwd_data_xdlops.cpp
+    solver/conv/conv_hip_implicit_gemm_bwd_v1r1.cpp
+    solver/conv/conv_hip_implicit_gemm_bwd_v1r1_xdlops.cpp
+    solver/conv/conv_hip_implicit_gemm_bwd_v4r1.cpp
+    solver/conv/conv_hip_implicit_gemm_bwd_v4r1_xdlops.cpp
+    solver/conv/conv_hip_implicit_gemm_fwd_v4r1.cpp
+    solver/conv/conv_hip_implicit_gemm_fwd_v4r4.cpp
+    solver/conv/conv_hip_implicit_gemm_fwd_v4r4_xdlops.cpp
+    solver/conv/conv_hip_implicit_gemm_fwd_v4r4_xdlops_padded_gemm.cpp
+    solver/conv/conv_hip_implicit_gemm_fwd_v4r5_xdlops.cpp
+    solver/conv/conv_hip_implicit_gemm_fwd_xdlops.cpp
+    solver/conv/conv_hip_implicit_gemm_grouped_fwd_xdlops.cpp
+    solver/conv/conv_hip_implicit_gemm_grouped_bwd_xdlops.cpp
+    solver/conv/conv_hip_implicit_gemm_grouped_wrw_xdlops.cpp
+    solver/conv/conv_hip_implicit_gemm_3d_grouped_fwd_xdlops.cpp
+    solver/conv/conv_hip_implicit_gemm_3d_grouped_wrw_xdlops.cpp
+    solver/conv/conv_hip_implicit_gemm_3d_grouped_bwd_xdlops.cpp
+    solver/conv/conv_hip_implicit_gemm_f16f8f16_fwd_xdlops.cpp
+    solver/conv/conv_hip_implicit_gemm_f16f8f16_bwd_xdlops.cpp
+    solver/conv/conv_hip_implicit_gemm_f16f8f16_wrw_xdlops.cpp
+    solver/conv/conv_hip_implicit_gemm_nonxdlops_common.cpp
+    solver/conv/conv_hip_implicit_gemm_wrw_v4r4.cpp
+    solver/conv/conv_hip_implicit_gemm_wrw_v4r4_xdlops.cpp
+    solver/conv/conv_hip_implicit_gemm_wrw_v4r4_xdlops_padded_gemm.cpp
+    solver/conv/conv_MP_bidirectional_winograd.cpp
     solver/conv/conv_mlir_igemm_bwd.cpp
     solver/conv/conv_mlir_igemm_bwd_xdlops.cpp
     solver/conv/conv_mlir_igemm_fwd.cpp
     solver/conv/conv_mlir_igemm_fwd_xdlops.cpp
     solver/conv/conv_mlir_igemm_wrw.cpp
     solver/conv/conv_mlir_igemm_wrw_xdlops.cpp
+    solver/conv/conv_multipass_wino3x3WrW.cpp
     solver/conv/conv_ocl_dir2D_bwdWrW_1x1.cpp
     solver/conv/conv_ocl_dir2D_bwdWrW_2.cpp
     solver/conv/conv_ocl_dir2D_bwdWrW_53.cpp
@@ -236,47 +267,16 @@ set( MIOpen_Source
     solver/conv/conv_wino_fury_RxS.cpp
     solver/conv/conv_winoRxS.cpp
     solver/conv/fft.cpp
+    solver/conv/gemm.cpp
+    solver/conv/gemm_bwd.cpp
+    solver/conv/gemm_common.cpp
+    solver/conv/gemm_wrw.cpp
     solver/conv_asm_1x1u_bias_activ_fused.cpp
     solver/conv_bin_winoRxS_fused.cpp
-    solver/conv_ck_igemm_fwd_v6r1_dlops_nchw.cpp
     solver/conv_ck_igemm_fwd_bias_activ_fused.cpp
     solver/conv_ck_igemm_fwd_bias_res_add_activ_fused.cpp
-    solver/conv_direct_naive_conv.cpp
-    solver/conv_direct_naive_conv_bwd.cpp
-    solver/conv_direct_naive_conv_fwd.cpp
-    solver/conv_direct_naive_conv_wrw.cpp
-    solver/conv_hip_implicit_gemm_bwd_data_xdlops.cpp
-    solver/conv_hip_implicit_gemm_bwd_v1r1.cpp
-    solver/conv_hip_implicit_gemm_bwd_v1r1_xdlops.cpp
-    solver/conv_hip_implicit_gemm_bwd_v4r1.cpp
-    solver/conv_hip_implicit_gemm_bwd_v4r1_xdlops.cpp
-    solver/conv_hip_implicit_gemm_fwd_v4r1.cpp
-    solver/conv_hip_implicit_gemm_fwd_v4r4.cpp
-    solver/conv_hip_implicit_gemm_fwd_v4r4_xdlops.cpp
-    solver/conv_hip_implicit_gemm_fwd_v4r4_xdlops_padded_gemm.cpp
-    solver/conv_hip_implicit_gemm_fwd_v4r5_xdlops.cpp
-    solver/conv_hip_implicit_gemm_fwd_xdlops.cpp
-    solver/conv_hip_implicit_gemm_grouped_fwd_xdlops.cpp
-    solver/conv_hip_implicit_gemm_grouped_bwd_xdlops.cpp
-    solver/conv_hip_implicit_gemm_grouped_wrw_xdlops.cpp
-    solver/conv_hip_implicit_gemm_3d_grouped_fwd_xdlops.cpp
-    solver/conv_hip_implicit_gemm_3d_grouped_wrw_xdlops.cpp
-    solver/conv_hip_implicit_gemm_3d_grouped_bwd_xdlops.cpp
-    solver/conv_hip_implicit_gemm_f16f8f16_fwd_xdlops.cpp
-    solver/conv_hip_implicit_gemm_f16f8f16_bwd_xdlops.cpp
-    solver/conv_hip_implicit_gemm_f16f8f16_wrw_xdlops.cpp
-    solver/conv_hip_implicit_gemm_nonxdlops_common.cpp
-    solver/conv_hip_implicit_gemm_wrw_v4r4.cpp
-    solver/conv_hip_implicit_gemm_wrw_v4r4_xdlops.cpp
-    solver/conv_hip_implicit_gemm_wrw_v4r4_xdlops_padded_gemm.cpp
-    solver/conv_MP_bidirectional_winograd.cpp
-    solver/conv_multipass_wino3x3WrW.cpp
     solver/conv_ocl_dir2Dfwd_fused.cpp
     solver/conv_winoRxS_fused.cpp
-    solver/gemm.cpp
-    solver/gemm_bwd.cpp
-    solver/gemm_common.cpp
-    solver/gemm_wrw.cpp
     solver/groupnorm/forward_groupnorm.cpp
     solver/layernorm/backward_t5layernorm.cpp
     solver/layernorm/forward_addlayernorm.cpp
