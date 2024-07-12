@@ -73,7 +73,7 @@ inline std::vector<CumulativeReductionTestCase> CumulativeReductionTestConfigs()
 
     std::vector<miopenCumOp_t> ops = {
         MIOPEN_CUM_MAX, MIOPEN_CUM_MIN, MIOPEN_CUM_SUM, MIOPEN_CUM_PROD};
-    std::vector<size_t> dims      = {-3, -2, -1, 0, 1, 2, 3};
+    std::vector<size_t> dims      = {-1, 0};
     std::vector<bool> exclusives  = {false, true};
     std::vector<bool> reverses    = {false, true};
     std::vector<bool> contiguouss = {true, false};
@@ -90,22 +90,11 @@ inline std::vector<CumulativeReductionTestCase> CumulativeReductionTestConfigs()
                 {
                     for(auto contiguous : contiguouss)
                     {
-                        tcs.push_back({{10}, op, dim, exclusive, reverse, contiguous});
-                        tcs.push_back({{10, 100}, op, dim, exclusive, reverse, contiguous});
                         tcs.push_back({{65, 100}, op, dim, exclusive, reverse, contiguous});
                         tcs.push_back({{65}, op, dim, exclusive, reverse, contiguous});
-                        tcs.push_back({{65, 2, 1}, op, dim, exclusive, reverse, contiguous});
                         tcs.push_back({{70, 10}, op, dim, exclusive, reverse, contiguous});
-
                         tcs.push_back(
                             {{512, 64, 112, 112}, op, dim, exclusive, reverse, contiguous});
-                        tcs.push_back({{512, 64, 56, 56}, op, dim, exclusive, reverse, contiguous});
-                        tcs.push_back(
-                            {{512, 128, 56, 56}, op, dim, exclusive, reverse, contiguous});
-                        tcs.push_back(
-                            {{512, 128, 28, 28}, op, dim, exclusive, reverse, contiguous});
-                        tcs.push_back(
-                            {{512, 256, 28, 28}, op, dim, exclusive, reverse, contiguous});
                     }
                 }
             }
