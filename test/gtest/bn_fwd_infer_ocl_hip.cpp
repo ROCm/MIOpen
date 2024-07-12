@@ -145,19 +145,16 @@ void BatchNormForwardInferencGPU(miopen::Handle& handle,
 }
 
 template <typename T>
-void BNTensorCompare(const tensor<T>& output,
-                     const tensor<T>& ref_out,
-                     const double threshold = std::numeric_limits<T>::epsilon())
+void BNTensorCompare(const tensor<T>& output, const tensor<T>& ref_out, const double threshold)
 {
     EXPECT_FALSE(miopen::range_zero(ref_out)) << "OCL data is all zeros";
     EXPECT_FALSE(miopen::range_zero(output)) << "HIP data is all zeros";
     EXPECT_FALSE(miopen::find_idx(output, miopen::not_finite) >= 0)
         << "Non finite number found in the HIP data";
-    auto error = miopen::rms_range(ref_out, output);
+    auto error = miopen::max_diff(ref_out, output);
     EXPECT_FALSE(miopen::find_idx(ref_out, miopen::not_finite) >= 0)
         << "Non finite number found in the OCL data";
-    EXPECT_LT(error, threshold) << "Error beyond tolerance Error:" << error
-                                << ",  Threshold: " << threshold;
+    EXPECT_LE(error, threshold);
 }
 
 template <typename XDataType,
@@ -213,7 +210,7 @@ protected:
 
     void Verify()
     {
-        BNTensorCompare<YDataType>(bn_infer_test_data.output, bn_infer_test_data.ref_out, 4e-3);
+        BNTensorCompare<YDataType>(bn_infer_test_data.output, bn_infer_test_data.ref_out, 0.0);
     }
 
     BNTestCase bn_config;

@@ -23,6 +23,10 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#ifndef MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS
+#include <hip/hip_fp16.h>
+#include <hip/hip_runtime.h>
+#endif
 
 #if MIOPEN_USE_FP16 == 1
 #define _FLOAT half
@@ -41,7 +45,7 @@
 #endif
 
 template <typename TIO, typename TPREC>
-__forceinline__ __device__ void bn_fwd_infer_sparial(const TIO* __restrict in, /* x input */
+__forceinline__ __device__ void bn_fwd_infer_spatial(const TIO* __restrict in, /* x input */
                                                      TIO* __restrict out,      /* y output */
                                                      const TPREC* __restrict estimatedMean,
                                                      const TPREC* __restrict estimatedVariance,
@@ -85,7 +89,7 @@ extern "C" __global__ void __launch_bounds__(MIO_BN_GRP0* MIO_BN_GRP1* MIO_BN_GR
                                          unsigned int imageDims,
                                          unsigned int batchStride)
 {
-    bn_fwd_infer_sparial<_FLOAT, _FLOAT_PREC>(in,
+    bn_fwd_infer_spatial<_FLOAT, _FLOAT_PREC>(in,
                                               out,
                                               estimatedMean,
                                               estimatedVariance,
