@@ -70,6 +70,10 @@ else()
 endif()
 
 set(EXTRA_CHECKS)
+# There is a bug in tidy that hangs it in some cases when it encounters optional access
+# It can spend 3.5h+ and timeout the CI
+# It is fixed in 18.0.0 or worked around by disabling this check: bugprone-unchecked-optional-access
+# https://github.com/llvm/llvm-project/issues/59492
 if (CLANG_TIDY_VERSION VERSION_LESS "18.0.0")
     list(APPEND EXTRA_CHECKS -bugprone-unchecked-optional-access)
 endif()
