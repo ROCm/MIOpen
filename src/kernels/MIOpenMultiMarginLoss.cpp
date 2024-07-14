@@ -31,6 +31,7 @@
 #include "float_types.h"
 #include "tensor_view.hpp"
 
+// TODO: try to pass margin as DTYPE to optimize memory access
 template <typename DTYPE>
 __device__ void multimarginlossunreducedforward2d(const DTYPE* __restrict__ I,
                                                   const uint64_t* __restrict__ T,

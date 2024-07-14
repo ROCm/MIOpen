@@ -45,9 +45,12 @@ bool MultiMarginLossUnreducedForward::IsApplicable(
     const ExecutionContext& /*context*/,
     const miopen::multimarginloss::ForwardProblemDescription& problem) const
 {
-    // TODO: edit later
-    // if(problem.GetiDesc().GetLengths()[1] > 24)
-    //     return false;
+    if((problem.GetiDesc().GetType() == miopenHalf ||
+        problem.GetiDesc().GetType() == miopenBFloat16) &&
+       problem.GetiDesc().IsContiguous() && problem.GetiDesc().GetLengths()[1] > 40)
+        return false;
+    if(problem.GetiDesc().GetLengths()[1] > 30)
+        return false;
     return true;
 }
 
