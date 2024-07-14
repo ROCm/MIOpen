@@ -33,6 +33,9 @@
 #include <miopen/kernel_build_params.hpp>
 #include "bn_test_data.hpp"
 #include "test_operations.hpp"
+#include "perf_helper.hpp"
+
+#define PERF_ENABLE 1
 
 void BatchNormForwardInferencGPU(miopen::Handle& handle,
                                  miopenBatchNormMode_t bn_mode,
@@ -48,6 +51,7 @@ void BatchNormForwardInferencGPU(miopen::Handle& handle,
                                  ConstData_t estimatedMean,
                                  ConstData_t estimatedVariance,
                                  double epsilon,
+                                 const std::string& perfTestFilename,
                                  bool use_hip)
 {
 
@@ -142,6 +146,25 @@ void BatchNormForwardInferencGPU(miopen::Handle& handle,
         n,
         in_cstride,
         in_nstride);
+
+    if constexpr(PERF_ENABLE)
+    {
+        PerfHelper::perfTest(handle,
+                             kernel_name,
+                             network_config,
+                             perfTestFilename,
+                             use_hip,
+                             x,
+                             y,
+                             estimatedMean,
+                             estimatedVariance,
+                             bnScale,
+                             bnBias,
+                             epsilon,
+                             n,
+                             in_cstride,
+                             in_nstride);
+    }
 }
 
 template <typename T>
@@ -166,6 +189,16 @@ struct BatchNormFwdInferTest
     : public ::testing::TestWithParam<std::tuple<BNTestCase, miopenTensorLayout_t>>
 {
 protected:
+    static const std::string sPerfTestFilename;
+
+    static void SetUpTestSuite()
+    {
+        if constexpr(PERF_ENABLE)
+        {
+            PerfHelper::writeHeaderToCSV(sPerfTestFilename);
+        }
+    }
+
     void SetUp() override { std::tie(bn_config, tensor_layout) = GetParam(); }
 
     void DataSetup(miopenBatchNormMode_t mode)
@@ -194,6 +227,7 @@ protected:
                                     bn_infer_test_data.estMean_dev.get(),
                                     bn_infer_test_data.estVariance_dev.get(),
                                     bn_infer_test_data.epsilon,
+                                    sPerfTestFilename,
                                     hip_en);
 
         auto& output_ref =
@@ -216,9 +250,17 @@ protected:
     BNTestCase bn_config;
     BNInferTestData<XDataType, YDataType, ScaleDataType, BiasDataType, MeanVarDataType, BNTestCase>
         bn_infer_test_data;
-
     miopenTensorLayout_t tensor_layout;
 };
+
+template <typename XDataType,
+          typename YDataType,
+          typename ScaleDataType,
+          typename BiasDataType,
+          typename MeanVarDataType>
+const std::string
+    BatchNormFwdInferTest<XDataType, YDataType, ScaleDataType, BiasDataType, MeanVarDataType>::
+        sPerfTestFilename = "BatchNormFwdInferPerfTest.csv";
 
 namespace BatchNormFwdInfer {
 
