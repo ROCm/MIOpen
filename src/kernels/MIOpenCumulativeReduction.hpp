@@ -72,8 +72,7 @@ struct reduce_func_base
     {
         if(!isbetter(a, b))
         {
-            if((isbetter(a, b) != isbetter(b, a)) ||
-               (isbetter(a, b) == isbetter(b, a) && isgreater(c..., d...) != keep_greater))
+            if(isbetter(a, b) != isbetter(b, a) || isgreater(c..., d...) != keep_greater)
                 update(c..., d...);
             combine(a, b);
         }
@@ -87,28 +86,28 @@ template <typename T, typename... Ts>
 struct reduce_func<CumulativeReductionOp_t::Max, T, Ts...> : reduce_func_base<T, Ts...>
 {
     const FLOAT_ACCUM START_VAL = -MAX_VAL_ACCUM;
-    __device__ inline bool isbetter(const T& a, const T& b) const { return a > b; }
+    __device__ inline bool isbetter(const T& a, const T& b) const override { return a > b; }
 };
 
 template <typename T, typename... Ts>
 struct reduce_func<CumulativeReductionOp_t::Min, T, Ts...> : reduce_func_base<T, Ts...>
 {
     const FLOAT_ACCUM START_VAL = MAX_VAL_ACCUM;
-    __device__ inline bool isbetter(const T& a, const T& b) const { return a < b; }
+    __device__ inline bool isbetter(const T& a, const T& b) const override { return a < b; }
 };
 
 template <typename T, typename... Ts>
 struct reduce_func<CumulativeReductionOp_t::Sum, T, Ts...> : reduce_func_base<T, Ts...>
 {
     const FLOAT_ACCUM START_VAL = CVT_FP32_2ACCUM(0.0f);
-    __device__ inline void combine(T& a, T b) const { a += b; }
+    __device__ inline void combine(T& a, T b) const override { a += b; }
 };
 
 template <typename T, typename... Ts>
 struct reduce_func<CumulativeReductionOp_t::Prod, T, Ts...> : reduce_func_base<T, Ts...>
 {
     const FLOAT_ACCUM START_VAL = CVT_FP32_2ACCUM(1.0f);
-    __device__ inline void combine(T& a, T b) const { a *= b; }
+    __device__ inline void combine(T& a, T b) const override { a *= b; }
 };
 
 #endif // GUARD_GUARD_KERNELS_MIOPEN_CUMULATIVE_REDUCTIONS_HPP

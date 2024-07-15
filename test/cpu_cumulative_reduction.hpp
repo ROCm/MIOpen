@@ -68,28 +68,28 @@ template <typename T, typename... Ts>
 struct reduce_func<MIOPEN_CUM_MAX, T, Ts...> : reduce_func_base<T, Ts...>
 {
     const float START_VAL = -std::numeric_limits<float>::max();
-    inline bool isbetter(const T& a, const T& b) const { return a > b; }
+    inline bool isbetter(const T& a, const T& b) const override { return a > b; }
 };
 
 template <typename T, typename... Ts>
 struct reduce_func<MIOPEN_CUM_MIN, T, Ts...> : reduce_func_base<T, Ts...>
 {
     const float START_VAL = std::numeric_limits<float>::max();
-    inline bool isbetter(const T& a, const T& b) const { return a < b; }
+    inline bool isbetter(const T& a, const T& b) const override { return a < b; }
 };
 
 template <typename T, typename... Ts>
 struct reduce_func<MIOPEN_CUM_SUM, T, Ts...> : reduce_func_base<T, Ts...>
 {
     const float START_VAL = 0.0f;
-    inline void combine(T& a, T b) const { a += b; }
+    inline void combine(T& a, T b) const override { a += b; }
 };
 
 template <typename T, typename... Ts>
 struct reduce_func<MIOPEN_CUM_PROD, T, Ts...> : reduce_func_base<T, Ts...>
 {
     const float START_VAL = 1.0f;
-    inline void combine(T& a, T b) const { a *= b; }
+    inline void combine(T& a, T b) const override { a *= b; }
 };
 
 template <miopenCumOp_t OP, class T>
