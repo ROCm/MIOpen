@@ -57,10 +57,10 @@ bool ForwardContiguousLastDim::IsApplicable(
         return false;
     if(problem.GetInputDesc().GetStrides()[problem.GetDim()] != 1)
         return false;
-    if(problem.GetInputDesc().GetSize() == problem.GetOutputDesc().GetSize() &&
+    if(problem.GetOutputDesc().GetElementSize() > 0 &&
        problem.GetOutputDesc().GetStrides()[problem.GetDim()] != 1)
         return false;
-    if(problem.GetInputDesc().GetSize() == problem.GetIndicesDesc().GetSize() &&
+    if(problem.GetIndicesDesc().GetElementSize() > 0 &&
        problem.GetIndicesDesc().GetStrides()[problem.GetDim()] != 1)
         return false;
     return true;
