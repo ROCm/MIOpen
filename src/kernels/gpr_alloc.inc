@@ -39,11 +39,7 @@
 	.set .LDS_NEXT_FREE, 0
 	.set .AUTO_VGPR_COUNT, 0
 	.set .AUTO_SGPR_COUNT, 0
-	.set .AUTO_LDS_BYTE_SIZE, 0
-.if ROCM_METADATA_VERSION == 4	
-	.set .AUTO_VGPR_GRANULATED_COUNT, 0
-	.set .AUTO_SGPR_GRANULATED_COUNT, 0
-.endif	
+	.set .AUTO_LDS_BYTE_SIZE, 0	
 	.set __sgpr_reserve_vcc, 0
 	.set __sgpr_reserve_xnack, 0
 	.set __sgpr_reserve_flatscr, 0
@@ -149,13 +145,7 @@
 	.if .AUTO_SGPR_COUNT < (.SGPR_NEXT_FREE + __sgpr_additional_count)
 	    .AUTO_SGPR_COUNT = (.SGPR_NEXT_FREE + __sgpr_additional_count)
 	.endif
-.if ROCM_METADATA_VERSION == 4
-	.AUTO_VGPR_GRANULATED_COUNT = (.AUTO_VGPR_COUNT - 1)/4
-	.AUTO_SGPR_GRANULATED_COUNT = (.AUTO_SGPR_COUNT - 1)/8
-.endif	
-.if ROCM_METADATA_VERSION == 5
      __amdhsa_next_free_sgpr = .AUTO_SGPR_COUNT - (2 * (__sgpr_reserve_flatscr + __sgpr_reserve_xnack + __sgpr_reserve_vcc))
-.endif	
 	.AUTO_LDS_BYTE_SIZE = .LDS_NEXT_FREE
     __auto_gpr_count_guard = 2
 .endm

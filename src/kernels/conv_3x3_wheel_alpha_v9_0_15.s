@@ -23,11 +23,11 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-.include "rocm_version.inc"
+
 .include "conv_3x3_wheel_alpha_v9_0_15_prologue.inc"
-.if (.option.machine_version_major == 8)
+.if (.amdgcn.gfx_generation_number == 8)
     .include "conv_3x3_wheel_alpha_v9_0_15_gfx8.inc"
-.elseif (.option.machine_version_major == 9)
+.elseif (.amdgcn.gfx_generation_number == 9)
     .include "conv_3x3_wheel_alpha_v9_0_15_gfx9.inc"
 .endif
 .include "conv_3x3_wheel_alpha_v9_0_15_epilogue.inc"

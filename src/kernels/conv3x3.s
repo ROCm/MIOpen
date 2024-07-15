@@ -24,21 +24,11 @@
  *
  *******************************************************************************/
 
-.if ROCM_METADATA_VERSION == 4
-.hsa_code_object_version 2,1
-.hsa_code_object_isa
-.endif
-
 .text
 .globl miopenGcnAsmConv3x3U
 .p2align 8
 .type miopenGcnAsmConv3x3U,@function
 
-.if ROCM_METADATA_VERSION == 4
-.amdgpu_hsa_kernel miopenGcnAsmConv3x3U
-.endif
-
-.include "rocm_version.inc"
 .include "gpr_alloc.inc"
 .include "utilities.inc"
 .include "conv_common.inc"
@@ -572,25 +562,6 @@ __sgprs_allocated_after_filters = .SGPR_NEXT_FREE - __sgprs_ptr
 //.p2align 8
 miopenGcnAsmConv3x3U:
 
-.if ROCM_METADATA_VERSION == 4
-  .amd_kernel_code_t
-     enable_sgpr_kernarg_segment_ptr = 1
-     compute_pgm_rsrc2_tgid_x_en = 1
-     compute_pgm_rsrc2_tgid_y_en = 1
-     compute_pgm_rsrc2_tgid_z_en = 1
-     is_ptr64 = 1
-     compute_pgm_rsrc1_vgprs = .AUTO_VGPR_GRANULATED_COUNT
-     compute_pgm_rsrc1_sgprs = .AUTO_SGPR_GRANULATED_COUNT
-     compute_pgm_rsrc2_tidig_comp_cnt = 1
-     compute_pgm_rsrc2_user_sgpr = 2
-     kernarg_segment_byte_size = 56
-     wavefront_sgpr_count = .AUTO_SGPR_COUNT
-     workitem_vgpr_count = .AUTO_VGPR_COUNT
-     float_mode = 192
-     workgroup_group_segment_byte_size = 0
-  .end_amd_kernel_code_t
-.endif
-
 .if accums < linesA || accums < linesB || linesA == linesB
     .error "Error: check vgpr allocation"
     // in case of back transformation data will be moved to
@@ -993,7 +964,6 @@ loop_end:
 .Lfunc_end0:
     .size miopenGcnAsmConv3x3U, .Lfunc_end0 - miopenGcnAsmConv3x3U
 
-.if ROCM_METADATA_VERSION == 5
 .rodata
 .p2align 6
 .if (.amdgcn.gfx_generation_number == 9 && .amdgcn.gfx_generation_stepping == 10)
@@ -1078,39 +1048,3 @@ amdhsa.kernels:
 .endm // METADATA
 
 METADATA %.AUTO_SGPR_COUNT, %.AUTO_VGPR_COUNT, %workgroup_size_x
-
-.elseif ROCM_METADATA_VERSION == 4
-.macro METADATA wg_x
-    .amd_amdgpu_hsa_metadata
-    { Version: [ 1, 0 ],
-        Kernels:
-        - { Name: miopenGcnAsmConv3x3U, SymbolName: 'miopenGcnAsmConv3x3U@kd', Language: OpenCL C, LanguageVersion: [ 1, 2 ],
-            Attrs:
-              { ReqdWorkGroupSize: [ \wg_x, 1, 1 ] }
-            CodeProps:
-              { KernargSegmentSize: 56, GroupSegmentFixedSize: 0, PrivateSegmentFixedSize: 0, KernargSegmentAlign: 8, WavefrontSize: 64, MaxFlatWorkGroupSize: \wg_x }
-            Args:
-            - { Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', Name: in,          AddrSpaceQual: Global, AccQual: Default, IsConst: true }
-            - { Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', Name: weights,     AddrSpaceQual: Global, AccQual: Default, IsConst: true }
-            - { Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', Name: out,         AddrSpaceQual: Global, AccQual: Default }
-            - { Size: 4, Align: 4, ValueKind: ByValue,      ValueType: F32, TypeName:  float,   Name: padding_val,                        AccQual: Default }
-            - { Size: 8, Align: 8, ValueKind: HiddenGlobalOffsetX, ValueType: I64 }
-            - { Size: 8, Align: 8, ValueKind: HiddenGlobalOffsetY, ValueType: I64 }
-            - { Size: 8, Align: 8, ValueKind: HiddenGlobalOffsetZ, ValueType: I64 }
-          }
-    }
-    .end_amd_amdgpu_hsa_metadata
-.endm // METADATA
-
-.altmacro
-.macro METADATA_WRAPPER wg_x
-    METADATA %\wg_x
-.endm
-
-.ifnotdef workgroup_size_x
-    .error "workgroup_size_x must be defined"
-    .end
-.endif
-
-METADATA_WRAPPER workgroup_size_x
-.endif

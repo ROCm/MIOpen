@@ -23,7 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-.include "rocm_version.inc"
+
 .include "conv_3x3_wheel_alpha_v9_2_7_prologue.inc"
 .include "conv_3x3_wheel_alpha_v9_2_7_gfx8.inc"
 .include "conv_3x3_wheel_alpha_v9_2_7_epilogue.inc"

@@ -23,21 +23,12 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-.if ROCM_METADATA_VERSION == 4
-.hsa_code_object_version 2,1
-.hsa_code_object_isa
-.endif
 
 .text
 .globl miopenGcnAsmConv1x1U
 .p2align 8
 .type miopenGcnAsmConv1x1U,@function
 
-.if ROCM_METADATA_VERSION == 4
-.amdgpu_hsa_kernel miopenGcnAsmConv1x1U
-.endif
-
-.include "rocm_version.inc"
 .include "gpr_alloc.inc"
 .include "utilities.inc"
 .include "conv_common.inc"
@@ -146,13 +137,13 @@ hi_output_channels = (output_channels + vec_k_out - 1) / vec_k_out
 
 s_pack_instructions_available = 0
 dot_instructions_available = 0
-.if (.option.machine_version_major == 9) && (.option.machine_version_minor == 0) && (.option.machine_version_stepping >= 6)
+.if (.amdgcn.gfx_generation_number == 9) && (.amdgcn.gfx_generation_minor == 0) && (.amdgcn.gfx_generation_stepping >= 6)
     dot_instructions_available = 1
 .endif
 madmix_instructions_available = 0
 fmamix_instructions_available = 0
-.if (.option.machine_version_major == 9)
-    .if(.option.machine_version_stepping > 2)
+.if (.amdgcn.gfx_generation_number == 9)
+    .if(.amdgcn.gfx_generation_stepping > 2)
         fmamix_instructions_available = 1
     .else
         madmix_instructions_available = 1
@@ -344,24 +335,6 @@ static_assert( max_waves_per_CU >= waves_c_in_group * waves_k_in_group)
 .endm
 
 miopenGcnAsmConv1x1U:
-.if ROCM_METADATA_VERSION == 4
-    .amd_kernel_code_t
-     enable_sgpr_kernarg_segment_ptr = 1
-     enable_sgpr_workgroup_id_x = 1
-     enable_sgpr_workgroup_id_y = 1
-     enable_sgpr_workgroup_id_z = 1
-     is_ptr64 = 1
-     granulated_workitem_vgpr_count = .AUTO_VGPR_GRANULATED_COUNT
-     granulated_wavefront_sgpr_count = .AUTO_SGPR_GRANULATED_COUNT
-     enable_vgpr_workitem_id = 1
-     user_sgpr_count = 2
-     kernarg_segment_byte_size = KERNEL_ARGUMENTS_SIZE
-     wavefront_sgpr_count = .AUTO_SGPR_COUNT
-     workitem_vgpr_count = .AUTO_VGPR_COUNT
-     float_mode = 192
-     workgroup_group_segment_byte_size = .AUTO_LDS_BYTE_SIZE
-    .end_amd_kernel_code_t
-.endif
 
     s_load_dwordx2 s[desc_in:desc_in+1], s[kernarg:kernarg+1], 0x0 + in_ptr_off
     s_load_dwordx2 s[desc_wei:desc_wei+1], s[kernarg:kernarg+1], 0x0 + wei_ptr_off
@@ -372,7 +345,7 @@ miopenGcnAsmConv1x1U:
     s_mov_b32 exec_hi, active_mask_hi
 
     // fill format and size fields of buffer descriptors
-    static_assert ((.option.machine_version_major == 8) || (.option.machine_version_major == 9))
+    static_assert ((.amdgcn.gfx_generation_number == 8) || (.amdgcn.gfx_generation_number == 9))
     s_mov_b32 s[desc_in+2], input_buffer_size
     s_mov_b32 s[desc_in+3], 0x00027000
     s_mov_b32 s[desc_wei+2], filter_buffer_size
@@ -1006,7 +979,6 @@ s_endpgm
 waves_in_group = waves_c_in_group * waves_k_in_group
 workgroup_size_x = waves_in_group * 64
 
-.if ROCM_METADATA_VERSION == 5
 .rodata
 .p2align 6
 .if (.amdgcn.gfx_generation_number == 9 && .amdgcn.gfx_generation_stepping == 10)
@@ -1093,40 +1065,3 @@ amdhsa.kernels:
 .endm // METADATA
 
 METADATA %.AUTO_SGPR_COUNT, %.AUTO_VGPR_COUNT, %workgroup_size_x, %.AUTO_LDS_BYTE_SIZE, %KERNEL_ARGUMENTS_SIZE
-
-.elseif ROCM_METADATA_VERSION == 4
-.macro METADATA wg_x, lds_size, kernarg_size
-    .amd_amdgpu_hsa_metadata
-    { Version: [ 1, 0 ],
-        Kernels:
-        - { Name: miopenGcnAsmConv1x1U, SymbolName: 'miopenGcnAsmConv1x1U@kd', Language: OpenCL C, LanguageVersion: [ 1, 2 ],
-            Attrs:
-              { ReqdWorkGroupSize: [ \wg_x, 1, 1 ] }
-            CodeProps:
-              { KernargSegmentSize: \kernarg_size, GroupSegmentFixedSize: \lds_size, PrivateSegmentFixedSize: 0, KernargSegmentAlign: 8, WavefrontSize: 64, MaxFlatWorkGroupSize: \wg_x }
-            Args:
-            - { Name: N       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-            - { Name: C       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-            - { Name: H       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-            - { Name: W       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-            - { Name: K       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-            - { Name: n_groups, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-            - { Name: unused_0, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-            - { Name: unused_1, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-            - { Name: x       , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default, IsConst: true }
-            - { Name: w       , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default, IsConst: true }
-            - { Name: y       , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default }
-            - { Name: ret_addr, Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: I32, TypeName: 'int*'  , AddrSpaceQual: Global, AccQual: Default }
-          }
-    }
-    .end_amd_amdgpu_hsa_metadata
-.endm
-
-.altmacro
-.macro METADATA_WRAPPER wg_x, lds_size, kernarg_size
-    METADATA %\wg_x, %\lds_size, %\kernarg_size
-.endm
-
-METADATA_WRAPPER workgroup_size_x, .AUTO_LDS_BYTE_SIZE, KERNEL_ARGUMENTS_SIZE
-.endif
-

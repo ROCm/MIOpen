@@ -73,9 +73,9 @@ TYPE_INT4  = 8
     .endr
 .endm
 
-.if (.option.machine_version_major == 8)
+.if (.amdgcn.gfx_generation_number == 8)
     .set max_hw_vctn, 15
-.elseif (.option.machine_version_major == 9)
+.elseif (.amdgcn.gfx_generation_number == 9)
     .set max_hw_vctn, 63
 .endif
 max_hw_lcnt = 15

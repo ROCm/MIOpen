@@ -29,7 +29,7 @@
 // Also these allow for unifying source text when different
 // ISA versions require different assembler syntax (mostly mnemonics).
 
-.if ((.option.machine_version_major == 8) || (.option.machine_version_major == 9))
+.if ((.amdgcn.gfx_generation_number == 8) || (.amdgcn.gfx_generation_number == 9))
 .else
     .error "Only Gfx8 and Gfx9 ISA is supported"
     .end
@@ -42,7 +42,7 @@
 // Let's use Gfx10-like naming conventions for wrapper macros.
 // ADD_NC
 .macro _v_add_nc_u32 dst, src0, src1, dpp=
-    .if (.option.machine_version_major == 8)
+    .if (.amdgcn.gfx_generation_number == 8)
         // None No-Carry instruction in Gfx8, modifies VCC.
         v_add_u32 \dst, vcc, \src0, \src1 \dpp
     .else
@@ -52,7 +52,7 @@
 
 // SUB_NC
 .macro _v_sub_nc_u32 dst, src0, src1, dpp=
-    .if (.option.machine_version_major == 8)
+    .if (.amdgcn.gfx_generation_number == 8)
         // None No-Carry instruction in Gfx8, modifies VCC.
         v_sub_u32 \dst, vcc, \src0, \src1 \dpp
     .else
@@ -62,7 +62,7 @@
 
 // ADD_CO (gfx8 add)
 .macro _v_add_co_u32 dst, co, src0, src1, dpp=
-    .if ((.option.machine_version_major == 8) || ((.option.machine_version_major == 9) && (WORKAROUND_BUG_34765 == 1)))
+    .if ((.amdgcn.gfx_generation_number == 8) || ((.amdgcn.gfx_generation_number == 9) && (WORKAROUND_BUG_34765 == 1)))
         v_add_u32 \dst, \co, \src0, \src1 \dpp
     .else
         v_add_co_u32 \dst, \co, \src0, \src1 \dpp
@@ -71,7 +71,7 @@
 
 // ADD_CO_CI (gfx8 addc)
 .macro _v_add_co_ci_u32 dst, co, src0, src1, ci, dpp=
-    .if ((.option.machine_version_major == 8) || ((.option.machine_version_major == 9) && (WORKAROUND_BUG_34765 == 1)))
+    .if ((.amdgcn.gfx_generation_number == 8) || ((.amdgcn.gfx_generation_number == 9) && (WORKAROUND_BUG_34765 == 1)))
 		v_addc_u32 \dst, \co, \src0, \src1, \ci \dpp
     .else
 		v_addc_co_u32 \dst, \co, \src0, \src1, \ci \dpp
@@ -80,7 +80,7 @@
 
 // SUB_CO (gfx8 sub)
 .macro _v_sub_co_u32 dst, co, src0, src1, dpp=
-    .if ((.option.machine_version_major == 8) || ((.option.machine_version_major == 9) && (WORKAROUND_BUG_34765 == 1)))
+    .if ((.amdgcn.gfx_generation_number == 8) || ((.amdgcn.gfx_generation_number == 9) && (WORKAROUND_BUG_34765 == 1)))
         v_sub_u32 \dst, \co, \src0, \src1 \dpp
     .else
         v_sub_co_u32 \dst, \co, \src0, \src1 \dpp
@@ -89,7 +89,7 @@
 
 // SUBREV_CO (gfx8 subrev)
 .macro _v_subrev_co_u32 dst, co, src0, src1, dpp=
-    .if ((.option.machine_version_major == 8) || ((.option.machine_version_major == 9) && (WORKAROUND_BUG_34765 == 1)))
+    .if ((.amdgcn.gfx_generation_number == 8) || ((.amdgcn.gfx_generation_number == 9) && (WORKAROUND_BUG_34765 == 1)))
         v_subrev_u32 \dst, \co, \src0, \src1 \dpp
     .else
         v_subrev_co_u32 \dst, \co, \src0, \src1 \dpp
@@ -97,9 +97,9 @@
 .endm
 
 .macro v_dot2 acc, in, out
-    .if (.option.machine_version_major == 9) && (.option.machine_version_minor == 0) && (.option.machine_version_stepping >= 6)
+    .if (.amdgcn.gfx_generation_number == 9) && (.amdgcn.gfx_generation_minor == 0) && (.amdgcn.gfx_generation_stepping >= 6)
         v_dot2_f32_f16 v[\acc], v[\in], v[\out], v[\acc]
-    .elseif (.option.machine_version_major == 9) && (.option.machine_version_stepping > 2)
+    .elseif (.amdgcn.gfx_generation_number == 9) && (.amdgcn.gfx_generation_stepping > 2)
         v_fma_mix_f32 v[\acc], v[\in], v[\out], v[\acc] op_sel:[0,0,0] op_sel_hi:[1,1,0]
         v_fma_mix_f32 v[\acc], v[\in], v[\out], v[\acc] op_sel:[1,1,0] op_sel_hi:[1,1,0]
     .else

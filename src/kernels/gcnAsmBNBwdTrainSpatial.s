@@ -23,7 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-.include "rocm_version.inc"
+
 .include "inst_wrappers.inc"
 .include "utilities.inc"
 .include "gpr_alloc.inc"
@@ -61,8 +61,8 @@ error_ifnotdef KERNARG_SIZE
 
 madmix_instructions_available = 0
 fmamix_instructions_available = 0
-.if (.option.machine_version_major == 9)
-    .if(.option.machine_version_stepping > 2)
+.if (.amdgcn.gfx_generation_number == 9)
+    .if(.amdgcn.gfx_generation_stepping > 2)
         fmamix_instructions_available = 1
     .else
         madmix_instructions_available = 1
@@ -100,44 +100,13 @@ fmamix_instructions_available = 0
     .LDS_ALLOC UNUSED_accums_lds, 212
 .GPR_ALLOC_END
 
-.if ROCM_METADATA_VERSION == 4
-.hsa_code_object_version 2,1
-.hsa_code_object_isa
-.endif
-
 .text
 .globl miopenGcnAsmBNBwdTrainSpatial
 .type miopenGcnAsmBNBwdTrainSpatial,@function
 .p2align 8
 
-.if ROCM_METADATA_VERSION == 4
-.amdgpu_hsa_kernel miopenGcnAsmBNBwdTrainSpatial
-.endif
-
-
 miopenGcnAsmBNBwdTrainSpatial:
-.if ROCM_METADATA_VERSION == 4
-	.amd_kernel_code_t
-		kernel_code_entry_byte_offset = 256
-		granulated_workitem_vgpr_count = .AUTO_VGPR_GRANULATED_COUNT
-		granulated_wavefront_sgpr_count = .AUTO_SGPR_GRANULATED_COUNT
-		//float_mode = 240
-		float_mode = 192
-		user_sgpr_count = 6
-		enable_sgpr_workgroup_id_x = 1
-		enable_sgpr_private_segment_buffer = 1
-		enable_sgpr_kernarg_segment_ptr = 1
-		private_element_size = 1
-		is_ptr64 = 1
-		workgroup_group_segment_byte_size = .AUTO_LDS_BYTE_SIZE
-		kernarg_segment_byte_size = KERNARG_SIZE
-		wavefront_sgpr_count = .AUTO_SGPR_COUNT
-		workitem_vgpr_count = .AUTO_VGPR_COUNT
-		kernarg_segment_alignment = 8
-		group_segment_alignment = 4
-		private_segment_alignment = 4
-	.end_amd_kernel_code_t
-.endif
+
   // s[kernarg:kernarg+1] - kernel arg base address...
   // V0 - work item id...
   // s8: group ID
@@ -405,8 +374,6 @@ skip_normalization:
 
 static_assert(MIO_BN_GRP1 == 1 && MIO_BN_GRP2 == 1) // Required workgroup size and max flat workgroup size depend on this
 
-.if ROCM_METADATA_VERSION == 5
-
 .rodata
 .p2align 6
 .amdhsa_kernel miopenGcnAsmBNBwdTrainSpatial
@@ -464,57 +431,6 @@ amdhsa.kernels:
 .end_amdgpu_metadata
 .endif
 .endm // METADATA
-
-.elseif ROCM_METADATA_VERSION == 4
-
-.macro METADATA sc, vc, wg_x, lds_size, kernarg_size
-    .if (MIO_BN_USESAVED == 0)
-        .amd_amdgpu_hsa_metadata
-        { Version: [ 1, 0 ],
-           Kernels:
-           -  { Name: miopenGcnAsmBNBwdTrainSpatial, SymbolName: 'miopenGcnAsmBNBwdTrainSpatial@kd', Language: OpenCL C, LanguageVersion: [ 1, 2 ],
-               Attrs:
-                 { ReqdWorkGroupSize: [ \wg_x, 1, 1 ] }
-                 CodeProps:
-                 { KernargSegmentSize: \kernarg_size, GroupSegmentFixedSize: \lds_size, PrivateSegmentFixedSize: 132, KernargSegmentAlign: 8, WavefrontSize: 64, NumSGPRs: \sc, NumVGPRs: \vc, MaxFlatWorkGroupSize: \wg_x}
-                 Args:
-                 - { Name: x_in    , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F16, TypeName: 'half*', AddrSpaceQual: Global, AccQual: ReadOnly, IsConst: true, IsRestrict: true}
-                 - { Name: dy_in   , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F16, TypeName: 'half*', AddrSpaceQual: Global, AccQual: Default, IsRestrict: true}
-                 - { Name: dx_out   , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F16, TypeName: 'half*', AddrSpaceQual: Global, AccQual: Default, IsRestrict: true}
-                 - { Name: bnScale   , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default, IsConst: true}
-                 - { Name: dscale    , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default, IsRestrict: true }
-                 - { Name: dbias    , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default, IsRestrict: true }
-                 - { Name: epsilon, Size: 8, Align: 8, ValueKind: ByValue, ValueType: F64, TypeName: 'double', AccQual: Default }
-                 - { Name: INHW    , Size: 4, Align: 4, ValueKind: ByValue, ValueType: F32, TypeName: 'float', AccQual: Default }
-               }
-        }
-        .end_amd_amdgpu_hsa_metadata
-    .elseif (MIO_BN_USESAVED == 1)
-        .amd_amdgpu_hsa_metadata
-        { Version: [ 1, 0 ],
-           Kernels:
-           -  { Name: miopenGcnAsmBNBwdTrainSpatial, SymbolName: 'miopenGcnAsmBNBwdTrainSpatial@kd', Language: OpenCL C, LanguageVersion: [ 1, 2 ],
-               Attrs:
-                 { ReqdWorkGroupSize: [ \wg_x, 1, 1 ] }
-                 CodeProps:
-                 { KernargSegmentSize: \kernarg_size, GroupSegmentFixedSize: \lds_size, PrivateSegmentFixedSize: 132, KernargSegmentAlign: 8, WavefrontSize: 64, NumSGPRs: \sc, NumVGPRs: \vc, MaxFlatWorkGroupSize: \wg_x}
-                 Args:
-                 - { Name: x_in    , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F16, TypeName: 'half*', AddrSpaceQual: Global, AccQual: ReadOnly, IsConst: true, IsRestrict: true}
-                 - { Name: dy_in   , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F16, TypeName: 'half*', AddrSpaceQual: Global, AccQual: Default, IsRestrict: true}
-                 - { Name: dx_out   , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F16, TypeName: 'half*', AddrSpaceQual: Global, AccQual: Default, IsRestrict: true}
-                 - { Name: bnScale   , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default, IsConst: true}
-                 - { Name: dscale    , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default, IsRestrict: true }
-                 - { Name: dbias    , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default, IsRestrict: true }
-                 - { Name: savedMean    , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default, IsConst: true }
-                 - { Name: savedInvVariance    , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default, IsConst: true }
-                 - { Name: INHW    , Size: 4, Align: 4, ValueKind: ByValue, ValueType: F32, TypeName: 'float', AccQual: Default }
-               }
-        }
-        .end_amd_amdgpu_hsa_metadata
-    .endif
-.endm // METADATA
-
-.endif // ROCM_METADATA_VERSION
 
 .altmacro
 METADATA %.AUTO_SGPR_COUNT, %.AUTO_VGPR_COUNT, %MIO_BN_GRP0, %.AUTO_LDS_BYTE_SIZE, %KERNARG_SIZE

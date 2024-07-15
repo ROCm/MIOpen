@@ -23,44 +23,10 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-.ifnotdef ROCM_METADATA_VERSION
-.error "Undefined ROCM_METADATA_VERSION"
-.end
-.endif
-
-.if ROCM_METADATA_VERSION == 4
-.hsa_code_object_version 2, 1
-.hsa_code_object_isa
-.endif
-
+ 
 .text
 .globl miopenSp3AsmConv3x3F
 .p2align 8
 .type miopenSp3AsmConv3x3F,@function
 
-.if ROCM_METADATA_VERSION == 4
-.amdgpu_hsa_kernel miopenSp3AsmConv3x3F
-.endif
-
 miopenSp3AsmConv3x3F:
-.if ROCM_METADATA_VERSION == 4
-.amd_kernel_code_t
-    is_ptr64 = 1
-    enable_vgpr_workitem_id = 1
-    float_mode = 192
-    enable_sgpr_private_segment_buffer = 1
-    enable_sgpr_dispatch_ptr = 1
-    enable_sgpr_kernarg_segment_ptr = 1
-    granulated_wavefront_sgpr_count = 11
-    granulated_workitem_vgpr_count = 31 // (workitem_vgpr_count-1)/4.
-    compute_pgm_rsrc2_lds_size = 0
-    compute_pgm_rsrc2_user_sgpr = 8
-    compute_pgm_rsrc2_tidig_comp_cnt = 0
-    compute_pgm_rsrc2_tgid_x_en = 1
-    kernarg_segment_byte_size = 112 // From metadata provided after compilation of stub.
-    workgroup_group_segment_byte_size = 32768
-    wavefront_sgpr_count =  96 // 92 + 4 (vcc, xnack)
-    workitem_vgpr_count = 128 // Max, as per shader doc.
-    granulated_lds_size = 0
-.end_amd_kernel_code_t
-.endif

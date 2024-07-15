@@ -23,7 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-.include "rocm_version.inc"
+
 .include "gpr_alloc.inc"
 .include "inst_wrappers.inc"
 .include "utilities.inc"

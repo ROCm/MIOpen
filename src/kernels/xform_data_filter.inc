@@ -23,7 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-.include "rocm_version.inc"
+
 .include "gpr_alloc.inc"
 .include "inst_wrappers.inc"
 .include "utilities.inc"
@@ -259,25 +259,15 @@ lds_buf_size = xformy_d_size * lds_hstride
     .if xform_filter
         .globl miopenGcnAsmWinogradXformFilter_\y_o_size\()_\x_o_size\()_\y_f_size\()_\x_f_size
         .type miopenGcnAsmWinogradXformFilter_\y_o_size\()_\x_o_size\()_\y_f_size\()_\x_f_size,@function
-        .if ROCM_METADATA_VERSION == 4
-            .amdgpu_hsa_kernel miopenGcnAsmWinogradXformFilter_\y_o_size\()_\x_o_size\()_\y_f_size\()_\x_f_size
-        .endif
         miopenGcnAsmWinogradXformFilter_\y_o_size\()_\x_o_size\()_\y_f_size\()_\x_f_size:
     .else
         .globl miopenGcnAsmWinogradXformData_\y_o_size\()_\x_o_size\()_\y_f_size\()_\x_f_size
         .type miopenGcnAsmWinogradXformData_\y_o_size\()_\x_o_size\()_\y_f_size\()_\x_f_size,@function
-        .if ROCM_METADATA_VERSION == 4
-            .amdgpu_hsa_kernel miopenGcnAsmWinogradXformData_\y_o_size\()_\x_o_size\()_\y_f_size\()_\x_f_size
-        .endif
         miopenGcnAsmWinogradXformData_\y_o_size\()_\x_o_size\()_\y_f_size\()_\x_f_size:
     .endif
 .endm
 
 kernel_begin  %xformx_o_size, %xformy_o_size, %xformx_f_size, %xformy_f_size
-
-.if ROCM_METADATA_VERSION == 4
-.include "xform_kd_cov2.inc"
-.endif
 
     s_load_dwordx16 s[N:dbg_addr+1], s[kernarg:kernarg+1], 0x0
     s_load_dwordx16 s[R:f_H_stride], s[kernarg:kernarg+1], 0x4 * 16

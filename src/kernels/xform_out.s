@@ -23,15 +23,10 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-.if ROCM_METADATA_VERSION == 4
-.hsa_code_object_version 2,1
-.hsa_code_object_isa
-.endif
 
 .text
 .p2align 8
 
-.include "rocm_version.inc"
 .include "inst_wrappers.inc"
 .include "gpr_alloc.inc"
 .include "utilities.inc"
@@ -182,17 +177,10 @@ accums_cnt = read_size * xformx_d_size * xformy_d_size
 .macro kernel_begin  x_o_size, y_o_size, x_f_size, y_f_size
     .globl miopenGcnAsmWinogradXformOut_\y_o_size\()_\x_o_size\()_\y_f_size\()_\x_f_size
     .type miopenGcnAsmWinogradXformOut_\y_o_size\()_\x_o_size\()_\y_f_size\()_\x_f_size,@function
-    .if ROCM_METADATA_VERSION == 4
-        .amdgpu_hsa_kernel miopenGcnAsmWinogradXformOut_\y_o_size\()_\x_o_size\()_\y_f_size\()_\x_f_size
-    .endif
     miopenGcnAsmWinogradXformOut_\y_o_size\()_\x_o_size\()_\y_f_size\()_\x_f_size:
 .endm
 
 kernel_begin  %xformx_o_size, %xformy_o_size, %xformx_f_size, %xformy_f_size
-
-.if ROCM_METADATA_VERSION == 4
-.include "xform_kd_cov2.inc"
-.endif
 
     s_load_dwordx16 s[N:dbg_addr+1], s[kernarg:kernarg+1], 0x0
     s_load_dwordx16 s[R:f_R_stride], s[kernarg:kernarg+1], 0x4 * 16

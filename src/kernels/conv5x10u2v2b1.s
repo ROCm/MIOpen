@@ -23,15 +23,10 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-.include "rocm_version.inc"
+
 .include "inst_wrappers.inc"
 
-.if ROCM_METADATA_VERSION == 4
-.hsa_code_object_version 2,1
-.hsa_code_object_isa
-.endif
-
-.if (.option.machine_version_major != 8) && (.option.machine_version_major != 9)
+.if (.amdgcn.gfx_generation_number != 8) && (.amdgcn.gfx_generation_number != 9)
 .error "ERROR: specified target machine not supported"
 .endif
 
@@ -81,11 +76,7 @@
 .set pad_h       ,   0
 
 .set LDS_SIZE, 3072
-.if ROCM_METADATA_VERSION == 4
-    .set SGPR_COUNT,108
-.else
-    .set SGPR_COUNT, 104 // max + VCC
-.endif
+.set SGPR_COUNT, 104 // max + VCC
 .set VGPR_COUNT, 40
 
 // ******* derived constants
@@ -114,34 +105,7 @@
 .global miopenConv5x10u2v2b1
 .type miopenConv5x10u2v2b1, @function
 
-.if ROCM_METADATA_VERSION == 4
-.amdgpu_hsa_kernel miopenConv5x10u2v2b1
-.endif
-
 miopenConv5x10u2v2b1:
-
-.if ROCM_METADATA_VERSION == 4
-   .amd_kernel_code_t
-      amd_machine_version_major = .option.machine_version_major
-      amd_machine_version_minor = .option.machine_version_minor
-      amd_machine_version_stepping = .option.machine_version_stepping
-      is_ptr64 = 1
-      float_mode = 0
-      user_sgpr_count = 2
-      is_xnack_enabled = 0
-      enable_sgpr_workgroup_id_x = 1
-      enable_sgpr_workgroup_id_y = 1
-      enable_sgpr_workgroup_id_z = 1
-      enable_vgpr_workitem_id = 1
-      enable_sgpr_kernarg_segment_ptr = 1
-      workitem_vgpr_count = VGPR_COUNT
-      wavefront_sgpr_count = SGPR_COUNT
-      workgroup_group_segment_byte_size = LDS_SIZE
-      kernarg_segment_byte_size = 56
-      granulated_workitem_vgpr_count = (VGPR_COUNT-1)/4
-      granulated_wavefront_sgpr_count = (SGPR_COUNT-1)/8
-  .end_amd_kernel_code_t
-.endif
 
   s_mov_b32 m0, LDS_SIZE
   s_load_dwordx2 s[16:17], s[0:1], 0
@@ -842,7 +806,6 @@ loop_channel:
 skip_write:
   s_endpgm
 
-.if ROCM_METADATA_VERSION == 5
 .rodata
 .p2align 6
 
@@ -903,28 +866,3 @@ amdhsa.kernels:
 .endm // METADATA
 
 METADATA %SGPR_COUNT, %VGPR_COUNT, %LDS_SIZE
-
-.elseif ROCM_METADATA_VERSION == 4
-///////////////////////////////////////////////////
-// ******* meta-data section of the kernels
-///////////////////////////////////////////////////
-.amd_amdgpu_hsa_metadata
-{ Version: [ 1, 0 ],
-    Kernels:
-    - { Name: miopenConv5x10u2v2b1, SymbolName: 'miopenConv5x10u2v2b1@kd', Language: OpenCL C, LanguageVersion: [ 1, 2 ],
-        Attrs:
-          { ReqdWorkGroupSize: [ 64, 8, 1 ] }
-        CodeProps:
-          { KernargSegmentSize: 56, GroupSegmentFixedSize: 3072, PrivateSegmentFixedSize: 0, KernargSegmentAlign: 8, WavefrontSize: 64, MaxFlatWorkGroupSize: 512 }
-        Args:
-        - { Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', Name: in,          AddrSpaceQual: Global, AccQual: Default, IsConst: true }
-        - { Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', Name: weights,     AddrSpaceQual: Global, AccQual: Default, IsConst: true }
-        - { Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', Name: out,         AddrSpaceQual: Global, AccQual: Default }
-        - { Size: 4, Align: 4, ValueKind: ByValue,      ValueType: F32, TypeName:  float,   Name: padding_val,                        AccQual: Default }
-        - { Size: 8, Align: 8, ValueKind: HiddenGlobalOffsetX, ValueType: I64 }
-        - { Size: 8, Align: 8, ValueKind: HiddenGlobalOffsetY, ValueType: I64 }
-        - { Size: 8, Align: 8, ValueKind: HiddenGlobalOffsetZ, ValueType: I64 }
-      }
-}
-.end_amd_amdgpu_hsa_metadata
-.endif
