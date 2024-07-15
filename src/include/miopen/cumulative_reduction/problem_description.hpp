@@ -50,7 +50,17 @@ struct ForwardProblemDescription : ProblemDescriptionBase
           cumOp(cumOp_)
     {
         const auto ndims = inputDesc.GetSize();
-        dim              = ((dim % ndims) + ndims) % ndims;
+        if(dim < -ndims || ndims - 1 < dim)
+        {
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "Cumulative Reduction: Operating dim value must be in range [",
+                         -ndims,
+                         ",",
+                         ndims - 1,
+                         "].");
+        }
+        else
+            dim = (dim < 0 ? dim + ndims : dim);
 
         if(outputDesc.GetElementSize() > 0 && !checkSameLength(inputDesc, outputDesc))
             MIOPEN_THROW(miopenStatusBadParm,

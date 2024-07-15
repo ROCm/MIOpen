@@ -201,9 +201,9 @@ int CumulativeReductionDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
     uint32_t ctx = 0;
 
-    input_dev     = std::unique_ptr<GPUMem>(new GPUMem(ctx, input_sz, sizeof(Tgpu)));
-    output_dev    = std::unique_ptr<GPUMem>(new GPUMem(ctx, output_sz, sizeof(Tgpu)));
-    indices_dev   = std::unique_ptr<GPUMem>(new GPUMem(ctx, indices_sz, sizeof(int)));
+    input_dev   = std::unique_ptr<GPUMem>(new GPUMem(ctx, input_sz, sizeof(Tgpu)));
+    output_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, output_sz, sizeof(Tgpu)));
+    indices_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, indices_sz, sizeof(int)));
 
     input   = std::vector<Tgpu>(input_sz);
     output  = std::vector<Tgpu>(output_sz, static_cast<Tgpu>(0.0f));
