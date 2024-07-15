@@ -166,8 +166,8 @@ int FoldDriver<Tgpu, Tref>::AddCmdLineArgs()
     inflags.AddInputFlag("outputSize", 'o', "4,5", "Output Size (Default=2,3)", "str");
     inflags.AddInputFlag("kernelSize", 'k', "2,2", "Kernel Size (Default=2,3)", "str");
     inflags.AddInputFlag("stride", 's', "1,1", "Stride (Default=1,1)", "str");
-    inflags.AddInputFlag("padding", 'p', "0,0", "Stride (Default=0,0)", "str");
-    inflags.AddInputFlag("dilation", 'd', "1,1", "Stride (Default=1,1)", "str");
+    inflags.AddInputFlag("padding", 'p', "0,0", "Padding (Default=0,0)", "str");
+    inflags.AddInputFlag("dilation", 'd', "1,1", "Dilation (Default=1,1)", "str");
     inflags.AddInputFlag("iter", 'i', "10", "Number of Iterations (Default=10)", "int");
     inflags.AddInputFlag("verify", 'V', "0", "Verify Each Layer (Default=0)", "int");
     inflags.AddInputFlag("time", 't', "0", "Time Each Layer (Default=0)", "int");
