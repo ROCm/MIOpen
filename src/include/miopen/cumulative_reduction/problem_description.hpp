@@ -28,6 +28,8 @@
 #include <miopen/problem_description_base.hpp>
 #include <miopen/tensor.hpp>
 
+#include <sstream>
+
 namespace miopen {
 
 struct NetworkConfig;
@@ -53,11 +55,10 @@ struct ForwardProblemDescription : ProblemDescriptionBase
         if(dim < -ndims || ndims - 1 < dim)
         {
             MIOPEN_THROW(miopenStatusBadParm,
-                         "Cumulative Reduction: Operating dim value must be in range [",
-                         -ndims,
-                         ",",
-                         ndims - 1,
-                         "].");
+                         (std::stringstream()
+                          << "Cumulative Reduction: Operating dim value must be in range ["
+                          << -ndims << "," << ndims - 1 << "].")
+                             .str());
         }
         else
             dim = (dim < 0 ? dim + ndims : dim);
