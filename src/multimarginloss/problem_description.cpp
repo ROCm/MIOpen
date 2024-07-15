@@ -34,7 +34,6 @@ namespace multimarginloss {
 
 NetworkConfig ForwardProblemDescription::MakeNetworkConfig() const
 {
-    // TODO: edit after finish solver
     std::ostringstream ss;
     ss << "multilmarginloss_fwd";
     ss << "itype" << iDesc.GetType();

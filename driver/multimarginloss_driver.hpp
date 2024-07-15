@@ -312,9 +312,9 @@ int MultiMarginLossDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     size_t i_sz = GetTensorSpace(iDesc);
     size_t t_sz = GetTensorSpace(tDesc);
     size_t w_sz = GetTensorSpace(wDesc);
-    i_dev       = std::unique_ptr<GPUMem>(new GPUMem(ctx, i_sz, sizeof(Tgpu)));
-    t_dev       = std::unique_ptr<GPUMem>(new GPUMem(ctx, t_sz, sizeof(uint64_t)));
-    w_dev       = std::unique_ptr<GPUMem>(new GPUMem(ctx, w_sz, sizeof(Tgpu)));
+    i_dev       = std::make_unique<GPUMem>(ctx, i_sz, sizeof(Tgpu));
+    t_dev       = std::make_unique<GPUMem>(ctx, t_sz, sizeof(uint64_t));
+    w_dev       = std::make_unique<GPUMem>(ctx, w_sz, sizeof(Tgpu));
     I           = std::vector<Tgpu>(i_sz);
     T           = std::vector<uint64_t>(t_sz);
     W           = std::vector<Tgpu>(w_sz);
@@ -364,7 +364,7 @@ int MultiMarginLossDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         else
             ws_sizeInBytes = 0;
 
-        o_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, o_sz, sizeof(Tgpu)));
+        o_dev = std::make_unique<GPUMem>(ctx, o_sz, sizeof(Tgpu));
         O     = std::vector<Tgpu>(o_sz);
         Ohost = std::vector<Tref>(o_sz);
         std::fill(O.begin(), O.end(), 0);
@@ -373,7 +373,7 @@ int MultiMarginLossDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
             std::cerr << "Error copying (out) to GPU, size: " << o_dev->GetSize() << std::endl;
 
         size_t ws_sz  = ws_sizeInBytes / sizeof(Tgpu);
-        workspace_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, ws_sz, sizeof(Tgpu)));
+        workspace_dev = std::make_unique<GPUMem>(ctx, ws_sz, sizeof(Tgpu));
         workspace     = std::vector<Tgpu>(ws_sz);
         std::fill(workspace.begin(), workspace.end(), 0);
 

@@ -56,7 +56,9 @@ struct MultiMarginLossForwardTestBFloat16 : MultiMarginLossForwardTest<bfloat16>
 
 } // namespace multimarginloss
 
-using namespace multimarginloss;
+using multimarginloss::MultiMarginLossForwardTestBFloat16;
+using multimarginloss::MultiMarginLossForwardTestFloat;
+using multimarginloss::MultiMarginLossForwardTestHalf;
 
 TEST_P(MultiMarginLossForwardTestFloat, )
 {
@@ -99,6 +101,27 @@ TEST_P(MultiMarginLossForwardTestBFloat16, )
         GTEST_SKIP();
     }
 };
+
+std::vector<MultiMarginLossTestCase> MultiMarginLossTestConfigs()
+{
+    // clang-format off
+    return {
+    {{22, 12}, true, MIOPEN_LOSS_REDUCTION_MEAN, 1}, 
+    {{22, 12}, false, MIOPEN_LOSS_REDUCTION_SUM, 1}, 
+    {{22, 12}, true, MIOPEN_LOSS_REDUCTION_NONE, 1}, 
+    {{9456, 13}, false, MIOPEN_LOSS_REDUCTION_MEAN, 2 }, 
+    {{9456, 13}, true, MIOPEN_LOSS_REDUCTION_SUM, 2 }, 
+    {{9456, 13}, false, MIOPEN_LOSS_REDUCTION_NONE, 2 }, 
+    {{543210, 7}, true, MIOPEN_LOSS_REDUCTION_MEAN, 2 }, 
+    {{543210, 7}, false, MIOPEN_LOSS_REDUCTION_SUM, 2 }, 
+    {{543210, 7}, true, MIOPEN_LOSS_REDUCTION_NONE, 2 }, 
+    {{3995776, 6}, true, MIOPEN_LOSS_REDUCTION_MEAN, 1 }, 
+    {{3995776, 6}, true, MIOPEN_LOSS_REDUCTION_SUM, 1 }, 
+    {{3995776, 6}, true, MIOPEN_LOSS_REDUCTION_NONE, 1 }, 
+    };
+    // clang-format on
+}
+
 INSTANTIATE_TEST_SUITE_P(MultiMarginLossTestSet,
                          MultiMarginLossForwardTestFloat,
                          testing::ValuesIn(MultiMarginLossTestConfigs()));

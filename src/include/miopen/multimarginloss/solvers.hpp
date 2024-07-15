@@ -27,7 +27,6 @@
 
 #include <miopen/multimarginloss/problem_description.hpp>
 #include <miopen/solver.hpp>
-#include <utility>
 
 namespace miopen {
 
