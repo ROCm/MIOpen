@@ -230,9 +230,9 @@ float ConvOclDirectFwdFused::GetWti(const FusionContext&, const FusionDescriptio
     const auto& desc = *problem.fusion_plan_desc;
     const int bn_idx = GetOpIdx(desc.op_map, miopenFusionOpBatchNormInference);
     if(bn_idx != -1)
-        return wti_unknown;
+        return wti_approximate_worst;
     else
-        return -.9f;
+        return wti_approximate_worst * .45f;
 }
 
 PerformanceConfigConvOclDirectFwdFused

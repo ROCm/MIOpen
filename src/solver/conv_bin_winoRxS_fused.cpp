@@ -277,9 +277,9 @@ float ConvBinWinogradRxSFused::GetWti(const FusionContext&, const FusionDescript
     const auto x            = conv_problem.GetWeightsWidth();
     const auto y            = conv_problem.GetWeightsHeight();
     if(x == 3 && y == 3)
-        return -.01f;
+        return wti_approximate_worst  * .005f;
     else
-        return -.95f;
+        return wti_approximate_worst  * .475f;
 }
 } // namespace fusion
 } // namespace solver
