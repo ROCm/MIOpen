@@ -43,15 +43,13 @@ struct InvokeParams : public miopen::InvokeParams
     ConstData_t input          = nullptr;
     Data_t output              = nullptr;
     Data_t indices             = nullptr;
-    Data_t workspace           = nullptr;
-    std::size_t workspace_size = 0;
 
     int dim        = 0;
     bool exclusive = false;
     bool reverse   = false;
 
-    std::size_t GetWorkspaceSize() const { return workspace_size; }
-    Data_t GetWorkspace() const { return workspace; }
+    std::size_t GetWorkspaceSize() const { return 0; }
+    Data_t GetWorkspace() const { return nullptr; }
 };
 
 } // namespace cumulative_reduction

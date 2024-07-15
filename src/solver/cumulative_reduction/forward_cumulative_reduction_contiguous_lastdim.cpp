@@ -30,8 +30,6 @@
 #include <miopen/cumulative_reduction/solvers.hpp>
 #include <miopen/cumulative_reduction/utils.hpp>
 
-#define FLOAT_ACCUM float
-
 #define LOCAL_SIZE_MAX 256
 #define LOCAL_SIZE_MIN 64
 
@@ -124,21 +122,6 @@ ConvSolution ForwardContiguousLastDim::GetSolution(
     };
 
     return result;
-}
-
-std::size_t ForwardContiguousLastDim::GetWorkspaceSize(
-    const ExecutionContext& /*context*/,
-    const miopen::cumulative_reduction::ForwardProblemDescription& problem) const
-{
-    if(problem.GetInputDesc().GetLengths()[problem.GetDim()] > LOCAL_SIZE_MAX)
-    {
-        size_t size = 0;
-        size += problem.GetInputDesc().GetElementSize() * sizeof(FLOAT_ACCUM);
-        size += problem.GetIndicesDesc().GetElementSize() * sizeof(int);
-        return size;
-    }
-    else
-        return 0;
 }
 
 } // namespace cumulative_reduction

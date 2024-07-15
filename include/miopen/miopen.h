@@ -6601,28 +6601,9 @@ using miopenCumOp_t = enum {
     MIOPEN_CUM_PROD = 4, /*!< the operation is getting the product of the reduced elements */
 };
 
-/*! @brief Helper function to query the minimum workspace size required by the Cumulative Reduction
- * forward call
- *
- * @param handle                   MIOpen Handle (input)
- * @param inputDesc                Tensor descriptor for input tensor (input)
- * @param indicesDesc              Tensor descriptor for indices tensor (input)
- * @param dim                      The dimension to do the operation over (input)
- * @param sizeInBytes              Pointer to data to return the minimum workspace size
- * @return                         miopenStatus_t
- */
-MIOPEN_EXPORT miopenStatus_t
-miopenGetCumulativeReductionForwardWorkspaceSize(miopenHandle_t handle,
-                                                 miopenTensorDescriptor_t inputDesc,
-                                                 miopenTensorDescriptor_t indicesDesc,
-                                                 int dim,
-                                                 size_t* sizeInBytes);
-
 /*! @brief Execute a Cumulative Reduction forward layer
  *
  * @param handle                   MIOpen handle (input)
- * @param workspace                Address of the allocated workspace data (input)
- * @param workspaceSizeInBytes     Size in bytes of the allocated workspace data (input)
  * @param inputDesc                Tensor descriptor for input tensor (input)
  * @param input                    Data tensor input (input)
  * @param outputDesc               Tensor descriptor for output tensor (input)
@@ -6636,8 +6617,6 @@ miopenGetCumulativeReductionForwardWorkspaceSize(miopenHandle_t handle,
  * (input)
  */
 MIOPEN_EXPORT miopenStatus_t miopenCumulativeReductionForward(miopenHandle_t handle,
-                                                              void* workspace,
-                                                              size_t workspaceSizeInBytes,
                                                               miopenTensorDescriptor_t inputDesc,
                                                               const void* input,
                                                               miopenTensorDescriptor_t outputDesc,

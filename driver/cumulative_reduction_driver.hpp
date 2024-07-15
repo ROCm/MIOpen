@@ -101,7 +101,6 @@ private:
     std::unique_ptr<GPUMem> input_dev;
     std::unique_ptr<GPUMem> output_dev;
     std::unique_ptr<GPUMem> indices_dev;
-    std::unique_ptr<GPUMem> workspace_dev;
 
     std::vector<Tgpu> input;
     std::vector<Tgpu> output;
@@ -109,8 +108,6 @@ private:
 
     std::vector<Tref> output_host;
     std::vector<int> indices_host;
-
-    size_t ws_sizeInBytes;
 
     int dim;
     bool exclusive;
@@ -202,18 +199,11 @@ int CumulativeReductionDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     size_t output_sz  = miopen::deref(outputDesc).GetElementSpace();
     size_t indices_sz = miopen::deref(indicesDesc).GetElementSpace();
 
-    miopenGetCumulativeReductionForwardWorkspaceSize(
-        GetHandle(), inputDesc, indicesDesc, dim, &ws_sizeInBytes);
-
-    if(ws_sizeInBytes == static_cast<size_t>(-1))
-        return miopenStatusAllocFailed;
-
     uint32_t ctx = 0;
 
     input_dev     = std::unique_ptr<GPUMem>(new GPUMem(ctx, input_sz, sizeof(Tgpu)));
     output_dev    = std::unique_ptr<GPUMem>(new GPUMem(ctx, output_sz, sizeof(Tgpu)));
     indices_dev   = std::unique_ptr<GPUMem>(new GPUMem(ctx, indices_sz, sizeof(int)));
-    workspace_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, ws_sizeInBytes, sizeof(std::byte)));
 
     input   = std::vector<Tgpu>(input_sz);
     output  = std::vector<Tgpu>(output_sz, static_cast<Tgpu>(0.0f));
@@ -251,8 +241,6 @@ int CumulativeReductionDriver<Tgpu, Tref>::RunForwardGPU()
     {
         miopenCumulativeReductionForward(
             GetHandle(),
-            workspace_dev->GetMem(),
-            ws_sizeInBytes,
             inputDesc,
             input_dev->GetMem(),
             outputDesc,

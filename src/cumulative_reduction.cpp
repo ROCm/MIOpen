@@ -32,26 +32,7 @@
 
 namespace miopen {
 
-size_t GetCumulativeReductionForwardWorkspaceSize(Handle& handle,
-                                                  const TensorDescriptor& inputDesc,
-                                                  const TensorDescriptor& indicesDesc,
-                                                  const int dim)
-{
-    auto ctx           = ExecutionContext{&handle};
-    const auto problem = cumulative_reduction::ForwardProblemDescription{
-        inputDesc, inputDesc, indicesDesc, dim, MIOPEN_CUM_MAX};
-
-    const auto solvers =
-        solver::SolverContainer<solver::cumulative_reduction::ForwardContiguousLastDim>{};
-
-    auto pair_size_vector = solvers.GetWorkspaceSizes(ctx, problem);
-
-    return pair_size_vector.empty() ? static_cast<size_t>(-1) : pair_size_vector.front().second;
-}
-
 miopenStatus_t CumulativeReductionForward(Handle& handle,
-                                          Data_t workspace,
-                                          size_t workspaceSizeInBytes,
                                           const TensorDescriptor& inputDesc,
                                           ConstData_t input,
                                           const TensorDescriptor& outputDesc,
@@ -75,9 +56,6 @@ miopenStatus_t CumulativeReductionForward(Handle& handle,
         tmp.input       = input;
         tmp.output      = output;
         tmp.indices     = indices;
-
-        tmp.workspace      = workspace;
-        tmp.workspace_size = workspaceSizeInBytes;
 
         tmp.dim       = dim;
         tmp.exclusive = exclusive;

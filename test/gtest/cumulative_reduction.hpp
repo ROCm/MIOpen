@@ -33,6 +33,7 @@
 #include <gtest/gtest.h>
 #include <miopen/miopen.h>
 #include <miopen/cumulative_reduction.hpp>
+#include <miopen/cumulative_reduction/solvers.hpp>
 
 #define FLOAT_ACCUM float
 
@@ -134,22 +135,22 @@ protected:
 
         auto out_strides = GetStrides(lengths, true);
         output           = tensor<T>{lengths, out_strides};
-        ref_output       = tensor<T>{lengths, out_strides};
 
         auto indices_strides = GetStrides(lengths, true);
         indices              = tensor<int>{lengths, indices_strides};
-        ref_indices          = tensor<int>{lengths, indices_strides};
 
-        ws_sizeInBytes = miopen::GetCumulativeReductionForwardWorkspaceSize(
-            handle, input.desc, indices.desc, cumulative_reduction_config.dim);
-        if(ws_sizeInBytes == static_cast<size_t>(-1))
+        if(!miopen::solver::cumulative_reduction::ForwardContiguousLastDim().IsApplicable(
+               miopen::ExecutionContext(&handle),
+               miopen::cumulative_reduction::ForwardProblemDescription(
+                   input.desc,
+                   output.desc,
+                   indices.desc,
+                   cumulative_reduction_config.dim,
+                   cumulative_reduction_config.op)))
             GTEST_SKIP();
 
-        if(ws_sizeInBytes != 0)
-        {
-            workspace     = tensor<int>{ws_sizeInBytes};
-            workspace_dev = handle.Write(workspace.data);
-        }
+        ref_output  = tensor<T>{lengths, out_strides};
+        ref_indices = tensor<int>{lengths, indices_strides};
 
         input_dev   = handle.Write(input.data);
         output_dev  = handle.Write(output.data);
@@ -202,8 +203,6 @@ protected:
         miopenStatus_t status;
 
         status = miopen::CumulativeReductionForward(handle,
-                                                    workspace_dev.get(),
-                                                    ws_sizeInBytes,
                                                     input.desc,
                                                     input_dev.get(),
                                                     output.desc,
@@ -243,7 +242,6 @@ protected:
     tensor<T> input;
     tensor<T> output;
     tensor<int> indices;
-    tensor<int> workspace;
 
     tensor<T> ref_output;
     tensor<int> ref_indices;
@@ -251,7 +249,4 @@ protected:
     miopen::Allocator::ManageDataPtr input_dev;
     miopen::Allocator::ManageDataPtr output_dev;
     miopen::Allocator::ManageDataPtr indices_dev;
-    miopen::Allocator::ManageDataPtr workspace_dev;
-
-    size_t ws_sizeInBytes;
 };
