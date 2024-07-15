@@ -32,9 +32,9 @@
 #include "float_types.h"
 #include "tensor_view.hpp"
 
-template <typename TIO>
-__device__ void unfoldForward4D(const TIO* input,
-                                TIO* output,
+template <typename DTYPE>
+__device__ void unfoldForward4D(const DTYPE* __restrict__ input,
+                                DTYPE* __restrict__ output,
                                 int N,
                                 int C,
                                 int H,
@@ -73,7 +73,7 @@ __device__ void unfoldForward4D(const TIO* input,
     int h = lh * stride_h - padding_h + ph * dilation_h;
     int w = lw * stride_w - padding_w + pw * dilation_w;
 
-    TIO x = 0;
+    DTYPE x = 0;
     if(0 <= h && h < H && 0 <= w && w < W)
     {
         long input_idx = input_tv.stride[3] * w + input_tv.stride[2] * h + input_tv.stride[1] * c +
@@ -86,8 +86,8 @@ __device__ void unfoldForward4D(const TIO* input,
     output[output_idx] = x;
 }
 
-extern "C" __global__ void UnfoldForward4D(const FLOAT* input,
-                                           FLOAT* output,
+extern "C" __global__ void UnfoldForward4D(const FLOAT* __restrict__ input,
+                                           FLOAT* __restrict__ output,
                                            int N,
                                            int C,
                                            int H,
@@ -108,30 +108,30 @@ extern "C" __global__ void UnfoldForward4D(const FLOAT* input,
                                            tensor_view_t<3> output_tv)
 {
     unfoldForward4D<FLOAT>(input,
-                                 output,
-                                 N,
-                                 C,
-                                 H,
-                                 W,
-                                 P,
-                                 L,
-                                 LH,
-                                 LW,
-                                 kernel_size_h,
-                                 kernel_size_w,
-                                 stride_h,
-                                 stride_w,
-                                 padding_h,
-                                 padding_w,
-                                 dilation_h,
-                                 dilation_w,
-                                 input_tv,
-                                 output_tv);
+                           output,
+                           N,
+                           C,
+                           H,
+                           W,
+                           P,
+                           L,
+                           LH,
+                           LW,
+                           kernel_size_h,
+                           kernel_size_w,
+                           stride_h,
+                           stride_w,
+                           padding_h,
+                           padding_w,
+                           dilation_h,
+                           dilation_w,
+                           input_tv,
+                           output_tv);
 }
 
-template <typename TIO>
-__device__ void unfoldBackward4D(const TIO* output_grad,
-                                 TIO* input_grad,
+template <typename DTYPE>
+__device__ void unfoldBackward4D(const DTYPE* __restrict__ output_grad,
+                                 DTYPE* __restrict__ input_grad,
                                  int N,
                                  int C,
                                  int H,
@@ -194,8 +194,8 @@ __device__ void unfoldBackward4D(const TIO* output_grad,
     input_grad[input_grad_idx] = CVT_ACCUM2FLOAT(sum);
 }
 
-extern "C" __global__ void UnfoldBackward4D(const FLOAT* output_grad,
-                                            FLOAT* input_grad,
+extern "C" __global__ void UnfoldBackward4D(const FLOAT* __restrict__ output_grad,
+                                            FLOAT* __restrict__ input_grad,
                                             int N,
                                             int C,
                                             int H,
@@ -216,23 +216,23 @@ extern "C" __global__ void UnfoldBackward4D(const FLOAT* output_grad,
                                             tensor_view_t<4> input_grad_tv)
 {
     unfoldBackward4D<FLOAT>(output_grad,
-                                  input_grad,
-                                  N,
-                                  C,
-                                  H,
-                                  W,
-                                  P,
-                                  L,
-                                  LH,
-                                  LW,
-                                  kernel_size_h,
-                                  kernel_size_w,
-                                  stride_h,
-                                  stride_w,
-                                  padding_h,
-                                  padding_w,
-                                  dilation_h,
-                                  dilation_w,
-                                  output_grad_tv,
-                                  input_grad_tv);
+                            input_grad,
+                            N,
+                            C,
+                            H,
+                            W,
+                            P,
+                            L,
+                            LH,
+                            LW,
+                            kernel_size_h,
+                            kernel_size_w,
+                            stride_h,
+                            stride_w,
+                            padding_h,
+                            padding_w,
+                            dilation_h,
+                            dilation_w,
+                            output_grad_tv,
+                            input_grad_tv);
 }
