@@ -626,35 +626,90 @@ tensor<T> BWDropGPU(const miopen::DropoutDescriptor& DropoutDesc,
 
 struct DropoutTestCase
 {
-    bool mask_flag;
-    int rng_mode;
+    size_t dim0;
+    size_t dim1;
+    size_t dim2;
+    size_t dim3;
+    size_t dim4;
+
+    friend std::ostream& operator<<(std::ostream& os, const DropoutTestCase& tc)
+    {
+        return os << " dim0:" << tc.dim0 << " dim1:" << tc.dim1 << " dim2:" << tc.dim2 << " dim3:" << tc.dim3 << " dim4:" << tc.dim4;
+    }
+
+    std::vector<size_t> GetInput()
+    {
+        // check if the tensor is 1D, 2D, 3D, 4D or 5D
+        if(dim4 > 1)
+            return {dim0, dim1, dim2, dim3, dim4};
+        else if(dim3 > 1)
+            return {dim0, dim1, dim2, dim3};
+        else if(dim2 > 1)
+            return {dim0, dim1, dim2};
+        else if(dim1 > 1)
+            return {dim0, dim1};
+        else
+            return {dim0};
+    }
+
 };
 
 std::vector<DropoutTestCase> DropoutTestConfigs()
-{ // mask enable, rng_mode
+{ // mask enable
+    // // clang-format off
+    //  return {
+    //     {16, 4, 8, 1, 4},
+    //     {2, 4, 8, 8, 4},
+    //     {16, 4, 8, 4},
+    //     {13, 8, 4, 8},
+    //     {3, 8, 7},
+    //     {16, 4, 10},
+    //     {3, 8},
+    //     {16, 4},
+    //     {4}};
+    // // clang-format on
+    std::vector<DropoutTestCase> configs;
+    
+    size_t maxTotalSize = 128;
+
+    for (size_t N = 1; N <= maxTotalSize; N *= 2) {
+        for (size_t C = 1; C <= maxTotalSize / N; C *= 2) {
+            for (size_t H = 1; H <= maxTotalSize / (N * C); H *= 2) {
+                for (size_t W = 1; W <= maxTotalSize / (N * C * H); W *= 2) {
+                    size_t totalSize = N * C * H * W;
+                    // Ensure the total size does not exceed the maximum limit
+                    if (totalSize <= maxTotalSize) {
+                        configs.push_back({ N, C, H, W, 0});
+                    }
+                }
+            }
+        }
+    }
+    
+    return configs;
+}
+
+
+std::vector<bool> DropoutTestMask()
+{ // mask enable
     // clang-format off
-    return {{false, 1},
-            {true,  1},
-            {false, 0},
-            {true,  0}};
+     return {
+        true,
+        false};
     // clang-format on
 }
 
-template <typename T = float>
-struct DropoutTest : public ::testing::TestWithParam<DropoutTestCase>
+template <typename T>
+struct DropoutTest : public ::testing::TestWithParam<std::tuple<DropoutTestCase, bool>>
 {
 protected:
     void SetUp() override
     {
         auto&& handle  = get_handle();
-        dropout_config = GetParam();
 
-        std::vector<std::vector<int>> input_dims;
-        std::vector<int> in_dim;
+        std::tie(dropout_config, DropoutDesc.use_mask) = GetParam();
 
-        input_dims = get_sub_tensor();
-        input_dims.resize(1); // Run only one CTEST
-        in_dim = input_dims[0];
+        std::vector<size_t> in_dim = dropout_config.GetInput();
 
         uint64_t max_value = miopen_type<T>{} == miopenHalf ? 5 : 17;
 
@@ -688,12 +743,11 @@ protected:
         DropoutDesc.dropout          = 0.5;
         DropoutDesc.stateSizeInBytes = stateSizeInBytes;
         DropoutDesc.seed             = 0;
-        DropoutDesc.rng_mode         = miopenRNGType_t(dropout_config.rng_mode);
-        DropoutDesc.use_mask         = dropout_config.mask_flag;
+        DropoutDesc.rng_mode         = MIOPEN_RNG_PSEUDO_XORWOW;
 
         // Allocate reserve space
         reserveSpace = std::vector<unsigned char>(input_f.desc.GetElementSize());
-        if(dropout_config.mask_flag)
+        if(DropoutDesc.use_mask)
         {
             for(size_t i = 0; i < input_f.desc.GetElementSize(); i++)
             {
@@ -755,7 +809,7 @@ protected:
         input_b_hip =
             BWDropGPU<T>(DropoutDesc, input_b_hip, output_b, reserveSpace, 0, 0, 0, true, true);
 
-        if(!dropout_config.mask_flag)
+        if(!DropoutDesc.use_mask)
         {
 
             // forward pass HIP
@@ -812,6 +866,10 @@ struct DropoutTestFloat : DropoutTest<float>
 {
 };
 
+struct DropoutTestHalf : DropoutTest<half_float::half>
+{
+};
+
 } // namespace dropout
 using namespace dropout;
 
@@ -822,4 +880,15 @@ TEST_P(DropoutTestFloat, DropoutTest)
     VerifyGPU();
 };
 
-INSTANTIATE_TEST_SUITE_P(DropoutTestSet, DropoutTestFloat, testing::ValuesIn(DropoutTestConfigs()));
+TEST_P(DropoutTestHalf, DropoutTest)
+{
+    RunDropoutOCL();
+    RunDropoutHIP();
+    VerifyGPU();
+};
+
+INSTANTIATE_TEST_SUITE_P(DropoutTestSet, DropoutTestFloat, testing::Combine(testing::ValuesIn(DropoutTestConfigs()),
+                                          testing::Values(true, false)));
+
+INSTANTIATE_TEST_SUITE_P(DropoutTestSet, DropoutTestHalf, testing::Combine(testing::ValuesIn(DropoutTestConfigs()),
+                                          testing::Values(true, false)));
