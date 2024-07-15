@@ -60,6 +60,8 @@ NetworkConfig ForwardProblemDescription::MakeNetworkConfig() const
     ss << "outer" << outer_size;
     ss << "inner" << inner_size;
     ss << "op" << cumOp;
+    ss << "packed" << IsAllPacked();
+    ss << "dimstride1" << IsAllDimStride1();
 
     return NetworkConfig{ss.str()};
 }

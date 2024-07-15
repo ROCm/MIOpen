@@ -55,13 +55,7 @@ bool ForwardContiguousLastDim::IsApplicable(
         return false;
     if(!problem.IsAllPacked())
         return false;
-    if(problem.GetInputDesc().GetStrides()[problem.GetDim()] != 1)
-        return false;
-    if(problem.GetOutputDesc().GetElementSize() > 0 &&
-       problem.GetOutputDesc().GetStrides()[problem.GetDim()] != 1)
-        return false;
-    if(problem.GetIndicesDesc().GetElementSize() > 0 &&
-       problem.GetIndicesDesc().GetStrides()[problem.GetDim()] != 1)
+    if(!problem.IsAllDimStride1())
         return false;
     return true;
 }

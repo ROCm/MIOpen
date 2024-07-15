@@ -88,6 +88,17 @@ struct ForwardProblemDescription : ProblemDescriptionBase
         return true;
     }
 
+    bool IsAllDimStride1() const
+    {
+        if(inputDesc.GetStrides()[dim] != 1)
+            return false;
+        if(outputDesc.GetElementSize() > 0 && outputDesc.GetStrides()[dim] != 1)
+            return false;
+        if(indicesDesc.GetElementSize() > 0 && indicesDesc.GetStrides()[dim] != 1)
+            return false;
+        return true;
+    }
+
     NetworkConfig MakeNetworkConfig() const override;
 
 private:
