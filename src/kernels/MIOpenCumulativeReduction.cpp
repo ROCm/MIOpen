@@ -84,7 +84,7 @@ __device__ void CumulativeReductionForwardContiguousLastDim(const TI* __restrict
     auto yid = blockIdx.y * blockDim.y + threadIdx.y;
 
     int idx = yid - exclusive;
-    if(0 <= idx && idx < reduce_size - exclusive && idx < reduce_size)
+    if(0 <= idx && idx < reduce_size - exclusive)
     {
         idx       = (reverse ? reduce_size - idx - 1 : idx);
         otmp[lid] = CVT_FLOAT2ACCUM(input[xid * reduce_size + idx]);
