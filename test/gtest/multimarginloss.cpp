@@ -60,7 +60,7 @@ using multimarginloss::MultiMarginLossForwardTestBFloat16;
 using multimarginloss::MultiMarginLossForwardTestFloat;
 using multimarginloss::MultiMarginLossForwardTestHalf;
 
-TEST_P(MultiMarginLossForwardTestFloat, )
+TEST_P(MultiMarginLossForwardTestFloat, MMLFwdTest)
 {
     if(!MIOPEN_TEST_ALL ||
        (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--float"))
@@ -74,7 +74,7 @@ TEST_P(MultiMarginLossForwardTestFloat, )
     }
 };
 
-TEST_P(MultiMarginLossForwardTestHalf, )
+TEST_P(MultiMarginLossForwardTestHalf, MMLFwdTest)
 {
     if(!MIOPEN_TEST_ALL ||
        (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--half"))
@@ -88,7 +88,7 @@ TEST_P(MultiMarginLossForwardTestHalf, )
     }
 };
 
-TEST_P(MultiMarginLossForwardTestBFloat16, )
+TEST_P(MultiMarginLossForwardTestBFloat16, MMLFwdTest)
 {
     if(!MIOPEN_TEST_ALL ||
        (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--bfloat16"))
