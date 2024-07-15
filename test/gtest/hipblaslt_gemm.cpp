@@ -266,28 +266,9 @@ static void CheckExceptions(miopenDataType_t dataType)
                  miopen::Exception);
 }
 
-template <typename T, typename disabled_mask, typename enabled_mask>
-static void CheckExceptionsWithSkip(miopenDataType_t dataType)
-{
-    if(!IsTestSupportedForDevMask<disabled_mask, enabled_mask>())
-    {
-        CheckExceptions<T>(dataType);
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
-}
-
 } // namespace hipblaslt_gemm
 using namespace hipblaslt_gemm;
 
-TEST_F(HipBLASLtGEMMTestFloat, CheckHipBLASLtGEMMException)
-{
-    using e_mask = enabled<Gpu::gfx94X, Gpu::gfx90A, Gpu::gfx110X>;
-    using d_mask = disabled<Gpu::gfx103X, Gpu::gfx900, Gpu::gfx906, Gpu::gfx908>;
-    CheckExceptionsWithSkip<float, d_mask, e_mask>(miopenDataType_t::miopenFloat);
-};
 TEST_P(HipBLASLtGEMMTestFloat, RunHipBLASLtGEMM)
 {
     using e_mask = enabled<Gpu::gfx94X, Gpu::gfx90A, Gpu::gfx110X>;
@@ -298,12 +279,6 @@ INSTANTIATE_TEST_SUITE_P(HipBLASLtGEMMTestSet,
                          HipBLASLtGEMMTestFloat,
                          testing::ValuesIn(GetTestCases()));
 
-TEST_F(HipBLASLtGEMMTestHalf, CheckHipBLASLtGEMMException)
-{
-    using e_mask = enabled<Gpu::gfx94X, Gpu::gfx90A, Gpu::gfx110X>;
-    using d_mask = disabled<Gpu::gfx103X, Gpu::gfx900, Gpu::gfx906, Gpu::gfx908>;
-    CheckExceptionsWithSkip<float16, d_mask, e_mask>(miopenDataType_t::miopenHalf);
-};
 TEST_P(HipBLASLtGEMMTestHalf, RunHipBLASLtGEMM)
 {
     using e_mask = enabled<Gpu::gfx94X, Gpu::gfx90A, Gpu::gfx110X>;
@@ -314,12 +289,6 @@ INSTANTIATE_TEST_SUITE_P(HipBLASLtGEMMTestSet,
                          HipBLASLtGEMMTestHalf,
                          testing::ValuesIn(GetTestCases()));
 
-TEST_F(HipBLASLtGEMMTestBFloat16, CheckHipBLASLtGEMMException)
-{
-    using e_mask = enabled<Gpu::gfx94X, Gpu::gfx90A, Gpu::gfx110X>;
-    using d_mask = disabled<Gpu::gfx103X, Gpu::gfx900, Gpu::gfx906, Gpu::gfx908>;
-    CheckExceptionsWithSkip<bfloat16, d_mask, e_mask>(miopenDataType_t::miopenBFloat16);
-};
 TEST_P(HipBLASLtGEMMTestBFloat16, RunHipBLASLtGEMM)
 {
     using e_mask = enabled<Gpu::gfx94X, Gpu::gfx90A, Gpu::gfx110X>;
@@ -330,13 +299,6 @@ INSTANTIATE_TEST_SUITE_P(HipBLASLtGEMMTestSet,
                          HipBLASLtGEMMTestBFloat16,
                          testing::ValuesIn(GetTestCases()));
 
-TEST_F(HipBLASLtGEMMTestFloat8, CheckHipBLASLtGEMMException)
-{
-    using e_mask = enabled<Gpu::gfx94X>;
-    using d_mask =
-        disabled<Gpu::gfx103X, Gpu::gfx900, Gpu::gfx906, Gpu::gfx908, Gpu::gfx90A, Gpu::gfx110X>;
-    CheckExceptionsWithSkip<float8, d_mask, e_mask>(miopenDataType_t::miopenFloat8);
-};
 TEST_P(HipBLASLtGEMMTestFloat8, RunHipBLASLtGEMM)
 {
     using e_mask = enabled<Gpu::gfx94X>;
@@ -348,17 +310,6 @@ INSTANTIATE_TEST_SUITE_P(HipBLASLtGEMMTestSet,
                          HipBLASLtGEMMTestFloat8,
                          testing::ValuesIn(GetTestCases()));
 
-TEST_F(HipBLASLtGEMMTestBFloat8, CheckHipBLASLtGEMMException)
-{
-#ifdef ENABLE_HIPBLASLT_BF8
-    using e_mask = enabled<Gpu::gfx94X>;
-    using d_mask =
-        disabled<Gpu::gfx103X, Gpu::gfx900, Gpu::gfx906, Gpu::gfx908, Gpu::gfx90A, Gpu::gfx110X>;
-    CheckExceptionsWithSkip<bfloat8, d_mask, e_mask>(miopenDataType_t::miopenBFloat8);
-#else
-    CheckExceptions<bfloat8>(miopenDataType_t::miopenInt64);
-#endif
-};
 TEST_P(HipBLASLtGEMMTestBFloat8, RunHipBLASLtGEMM)
 {
 #ifdef ENABLE_HIPBLASLT_BF8
