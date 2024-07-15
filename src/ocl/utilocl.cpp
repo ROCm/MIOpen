@@ -23,14 +23,16 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <cmath>
-#include <miopen/kernel_cache.hpp>
-#include <miopen/util.hpp>
-#include <miopen/logger.hpp>
-#include <miopen/float_equal.hpp>
 #include <miopen/datatype.hpp>
+#include <miopen/float_equal.hpp>
+#include <miopen/kernel_cache.hpp>
+#include <miopen/logger.hpp>
+#include <miopen/util.hpp>
 
 #include <boost/range/adaptors.hpp>
+
+#include <cmath>
+#include <cstdint>
 
 #define WG_SIZE (static_cast<size_t>(256))
 #define MAX_ACTIVE_THREADS (64 * 4 * 64)
@@ -40,7 +42,7 @@ namespace miopen {
 
 float Im2d2ColGPU(const Handle& handle,
                   ConstData_t im,
-                  const int im_offset,
+                  const size_t im_offset,
                   const int c,
                   const int in_h,
                   const int in_w,
@@ -58,7 +60,7 @@ float Im2d2ColGPU(const Handle& handle,
                   miopenDataType_t type)
 {
     std::string program_name = "MIOpenIm2d2Col.cl";
-    std::string kernel_name  = "Im2d2Col";
+    std::string kernel_name  = "Im2d2Col_v2";
 
     // clang-format off
     std::string network_config =
@@ -78,17 +80,14 @@ float Im2d2ColGPU(const Handle& handle,
 
     auto&& kernels = handle.GetKernels("miopenIm2d2Col", network_config);
 
-    int data_size_bound = c * in_h * in_w;
-
-    int data_size_bound_pack = data_size_bound;
-    int im_offset_pack       = im_offset;
+    const int data_size_bound = c * in_h * in_w;
 
     if(!kernels.empty())
     {
         auto kernel = kernels.front();
-        kernel(data_size_bound_pack,
+        kernel(data_size_bound,
                im,
-               im_offset_pack,
+               im_offset,
                in_h,
                in_w,
                wei_h,
@@ -254,9 +253,9 @@ float Im2d2ColGPU(const Handle& handle,
 
         handle.AddKernel(
             "miopenIm2Col", network_config, program_name, kernel_name, vld, vgd, params)(
-            data_size_bound_pack,
+            data_size_bound,
             im,
-            im_offset_pack,
+            im_offset,
             in_h,
             in_w,
             wei_h,
@@ -403,25 +402,25 @@ float Im3d2ColGPU(const Handle& handle,
 
 float Col2Im2dGPU(const Handle& handle,
                   ConstData_t col,
-                  const int out_h,
-                  const int out_w,
-                  const int wei_h,
-                  const int wei_w,
-                  const int pad_h,
-                  const int pad_w,
-                  const int stride_h,
-                  const int stride_w,
-                  const int dilation_h,
-                  const int dilation_w,
-                  const int in_c,
-                  const int in_h,
-                  const int in_w,
+                  const uint32_t out_h,
+                  const uint32_t out_w,
+                  const uint32_t wei_h,
+                  const uint32_t wei_w,
+                  const uint32_t pad_h,
+                  const uint32_t pad_w,
+                  const uint32_t stride_h,
+                  const uint32_t stride_w,
+                  const uint32_t dilation_h,
+                  const uint32_t dilation_w,
+                  const uint32_t in_c,
+                  const uint32_t in_h,
+                  const uint32_t in_w,
                   Data_t im,
-                  int im_offset,
+                  uint32_t im_offset,
                   miopenDataType_t type)
 {
     std::string program_name = "MIOpenCol2Im2d.cl";
-    std::string kernel_name  = "Col2Im2d";
+    std::string kernel_name  = "Col2Im2dU";
 
     // clang-format off
     std::string network_config =
@@ -468,6 +467,17 @@ float Col2Im2dGPU(const Handle& handle,
         const std::vector<size_t> vgd{global_threads, 1, 1};
         const std::vector<size_t> vld{std::min(WG_SIZE, global_threads), 1, 1};
 
+        auto Is64BitIndexRequired = [&]() -> int {
+            const auto im_ch_max     = global_threads / static_cast<size_t>(in_w * in_h);
+            const auto ch_offset_max = im_ch_max * out_w * out_h * wei_w * wei_h;
+            MIOPEN_LOG_T("global_threads, out_h, out_w, wei_h, wei_w = "
+                         << '{' << global_threads << ',' << out_h << ',' << out_w << ',' << wei_h
+                         << ',' << wei_w << '}' << " ch_offset_max = " << ch_offset_max);
+            return (ch_offset_max > 0xffffffffULL) ? 1 : 0;
+        };
+
+        params += " -DMIOPEN_USE_64BIT_INDEX=" + std::to_string(Is64BitIndexRequired());
+
         handle.AddKernel(
             "miopenCol2Im2d", network_config, program_name, kernel_name, vld, vgd, params)(
             col,
@@ -491,31 +501,31 @@ float Col2Im2dGPU(const Handle& handle,
 
 float Col2Im3dGPU(const Handle& handle,
                   ConstData_t col,
-                  const int out_d,
-                  const int out_h,
-                  const int out_w,
-                  const int wei_d,
-                  const int wei_h,
-                  const int wei_w,
-                  const int pad_d,
-                  const int pad_h,
-                  const int pad_w,
-                  const int stride_d,
-                  const int stride_h,
-                  const int stride_w,
-                  const int dilation_d,
-                  const int dilation_h,
-                  const int dilation_w,
-                  const int in_c,
-                  const int in_d,
-                  const int in_h,
-                  const int in_w,
+                  const uint32_t out_d,
+                  const uint32_t out_h,
+                  const uint32_t out_w,
+                  const uint32_t wei_d,
+                  const uint32_t wei_h,
+                  const uint32_t wei_w,
+                  const uint32_t pad_d,
+                  const uint32_t pad_h,
+                  const uint32_t pad_w,
+                  const uint32_t stride_d,
+                  const uint32_t stride_h,
+                  const uint32_t stride_w,
+                  const uint32_t dilation_d,
+                  const uint32_t dilation_h,
+                  const uint32_t dilation_w,
+                  const uint32_t in_c,
+                  const uint32_t in_d,
+                  const uint32_t in_h,
+                  const uint32_t in_w,
                   Data_t im,
                   std::size_t im_offset,
                   miopenDataType_t type)
 {
     std::string program_name = "MIOpenCol2Im3d.cl";
-    std::string kernel_name  = "Col2Im3d";
+    std::string kernel_name  = "Col2Im3dU";
 
     // clang-format off
     std::string network_config =
@@ -700,12 +710,12 @@ float Col2ImGPU(
                            out_spatial[1],
                            wei_spatial[0],
                            wei_spatial[1],
-                           pad_spatial[0],
-                           pad_spatial[1],
-                           stride_spatial[0],
-                           stride_spatial[1],
-                           dilation_spatial[0],
-                           dilation_spatial[1],
+                           static_cast<uint32_t>(pad_spatial[0]),
+                           static_cast<uint32_t>(pad_spatial[1]),
+                           static_cast<uint32_t>(stride_spatial[0]),
+                           static_cast<uint32_t>(stride_spatial[1]),
+                           static_cast<uint32_t>(dilation_spatial[0]),
+                           static_cast<uint32_t>(dilation_spatial[1]),
                            in_c,
                            in_spatial[0],
                            in_spatial[1],
@@ -722,15 +732,15 @@ float Col2ImGPU(
                            wei_spatial[0],
                            wei_spatial[1],
                            wei_spatial[2],
-                           pad_spatial[0],
-                           pad_spatial[1],
-                           pad_spatial[2],
-                           stride_spatial[0],
-                           stride_spatial[1],
-                           stride_spatial[2],
-                           dilation_spatial[0],
-                           dilation_spatial[1],
-                           dilation_spatial[2],
+                           static_cast<uint32_t>(pad_spatial[0]),
+                           static_cast<uint32_t>(pad_spatial[1]),
+                           static_cast<uint32_t>(pad_spatial[2]),
+                           static_cast<uint32_t>(stride_spatial[0]),
+                           static_cast<uint32_t>(stride_spatial[1]),
+                           static_cast<uint32_t>(stride_spatial[2]),
+                           static_cast<uint32_t>(dilation_spatial[0]),
+                           static_cast<uint32_t>(dilation_spatial[1]),
+                           static_cast<uint32_t>(dilation_spatial[2]),
                            in_c,
                            in_spatial[0],
                            in_spatial[1],
