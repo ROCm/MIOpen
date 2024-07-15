@@ -136,10 +136,7 @@ int CumulativeReductionDriver<Tgpu, Tref>::GetandSetData()
     reverse   = (inflags.GetValueInt("reverse") != 0);
     cumOp     = (miopenCumOp_t)inflags.GetValueInt("CumulativeOperation");
 
-    auto vec_lengths = inflags.GetValueTensor("DimLengths");
-    assert(1 <= vec_lengths.lengths.size() && vec_lengths.lengths.size() <= 5);
-
-    auto lengths = vec_lengths.lengths;
+    auto lengths = inflags.GetValueTensor("DimLengths").lengths;
     if(lengths.empty())
     {
         std::cout << "Tensor must not be empty";
