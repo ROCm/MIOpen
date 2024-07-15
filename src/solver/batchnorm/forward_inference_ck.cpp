@@ -33,6 +33,7 @@
 #include <ck/library/tensor_operation_instance/gpu/batchnorm_infer.hpp>
 #endif
 #include <miopen/solver/implicitgemm_ck_util.hpp>
+#include "../../test/workspace.hpp"
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_CK_BN_INFER)
 
 namespace miopen {
@@ -206,15 +207,19 @@ static void RunCKSolutionNCHW(const ExecutionContext& ctx,
     // NCHW, update number of return?
     ConvSolution result;
     Solver solv{};
-    auto [input1_tr_inst, input2_tr_inst, output_tr_inst, output_init_tr_inst] =
-        internal::MakeTaggedTransposeInstances<CKArgsBNormFwd>(result /*ConvSolution result*/,
-                                                               ctx,
-                                                               problem,
-                                                               args,
-                                                               input_op,
-                                                               nullptr,
-                                                               output_op,
-                                                               nullptr);
+    // Todo move upper level
+    Workspace wspace{};
+
+    auto [input_tr_inst, output_tr_inst, output_init_tr_inst] =
+        internal::MakeTaggedTransposeInstancesBN<miopen::batchnorm::ProblemDescription,
+                                                 CKArgsBNormFwd>(result /*ConvSolution result*/,
+                                                                 ctx,
+                                                                 problem,
+                                                                 args,
+                                                                 input_op,
+                                                                 nullptr,
+                                                                 output_op,
+                                                                 nullptr);
 
     int kernel_index = CheckCKApplicability<XDataType,
                                             YDataType,
@@ -223,25 +228,25 @@ static void RunCKSolutionNCHW(const ExecutionContext& ctx,
                                             BiasDataType,
                                             MeanVarDataType>(problem);
     assert(kernel_index >= 0 && kernel_index < bn_fwd_ptrs.size());
-    auto& bn_ptr       = bn_fwd_ptrs.at(kernel_index);
-    const auto& params = primitive_parameters.CastTo<miopen::batchnorm::InfInvokeParams>();
-    // Todo: workSpaceSize will be populated in upper level
-    params.workSpaceSize = solv.getWorkspaceSize();
+    auto& bn_ptr = bn_fwd_ptrs.at(kernel_index);
+    auto& params = primitive_parameters.CastTo<miopen::batchnorm::InfInvokeParams /*CastType*/>();
+    // Todo: move this call to upper stack
+    wspace.resize(solv.GetWorkspaceSize(ctx, problem));
 
     if(!params.workSpace)
     {
         MIOPEN_THROW(miopenStatusInvalidValue, "workspace pointer is null");
     }
 
-    input1_tr_inst.AssignBuffer(handle, params.workSpace);
+    input_tr_inst.AssignBuffer(handle, wspace.ptr() /*workSpaceSize*/ /*params.workSpace*/);
     // input2_tr_inst.AssignBuffer(handle, ctx.workSpace); //or solv.workSpace?
-    output_tr_inst.AssignBuffer(handle, params.workSpace);
-    output_init_tr_inst.AssignBuffer(handle, params.workSpace);
+    output_tr_inst.AssignBuffer(handle, wspace.ptr() /*workSpaceSize*/ /*params.workSpace*/);
+    output_init_tr_inst.AssignBuffer(handle, wspace.ptr() /*workSpaceSize*/ /*params.workSpace*/);
 
     // conversion operator applied here to convert to ConvTensors
-    // auto conv_tensors = input1_tr_inst(ctx.tensors);
+    // auto conv_tensors = input_tr_inst(ctx.tensors);
 
-    input1_tr_inst.ConvertFrom(handle, kernels, params.x);
+    input_tr_inst.ConvertFrom(handle, kernels, params.x);
     // input2_tr_inst.ConvertFrom(handle, kernels, conv_tensors);
     output_init_tr_inst.ConvertFrom(handle, kernels, params.x);
 
@@ -255,7 +260,7 @@ static void RunCKSolutionNCHW(const ExecutionContext& ctx,
                                                      args.aligned_scaleBiasMeanVarStrides,
                                                      args.aligned_scaleBiasMeanVarStrides},
                                                     {args.xyStrides},
-                                                    {input1_tr_inst.GetBufferPtr(),
+                                                    {input_tr_inst.GetBufferPtr(),
                                                      params.estimatedMean,
                                                      params.estimatedVariance,
                                                      params.bnScale,
@@ -284,6 +289,7 @@ template <typename XDataType,
           typename MeanVarDataType>
 static void RunCKSolutionFwdNCHW(const ExecutionContext& ctx,
                                  const Handle& handle,
+                                 const std::vector<Kernel>& kernels,
                                  const AnyInvokeParams& primitive_parameters,
                                  const miopen::batchnorm::ProblemDescription& problem)
 {
@@ -293,13 +299,14 @@ static void RunCKSolutionFwdNCHW(const ExecutionContext& ctx,
     using Input  = internal::CKTransposeInputOp<2, internal::ConvOperandTag::Input>;
     using Output = internal::CKTransposeOutputOp<2, internal::ConvOperandTag::Output>;
 
-    RunCKSolutionNCHW<XDataType,
+    RunCKSolutionNCHW<miopen::solver::batchnorm::BnCKFwdInference,
+                      XDataType,
                       YDataType,
                       AccDataType,
                       ScaleDataType,
                       BiasDataType,
                       MeanVarDataType>(
-        ctx, handle, primitive_parameters, problem, Input{}, Output{});
+        ctx, handle, kernels, primitive_parameters, problem, Input{}, Output{});
 }
 #endif
 
