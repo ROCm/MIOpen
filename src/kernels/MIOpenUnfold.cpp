@@ -86,8 +86,8 @@ __device__ void unfoldForward4D(const TIO* input,
     output[output_idx] = x;
 }
 
-extern "C" __global__ void UnfoldForward4D(const IN_OUT_TYPE* input,
-                                           IN_OUT_TYPE* output,
+extern "C" __global__ void UnfoldForward4D(const FLOAT* input,
+                                           FLOAT* output,
                                            int N,
                                            int C,
                                            int H,
@@ -107,7 +107,7 @@ extern "C" __global__ void UnfoldForward4D(const IN_OUT_TYPE* input,
                                            tensor_view_t<4> input_tv,
                                            tensor_view_t<3> output_tv)
 {
-    unfoldForward4D<IN_OUT_TYPE>(input,
+    unfoldForward4D<FLOAT>(input,
                                  output,
                                  N,
                                  C,
@@ -194,8 +194,8 @@ __device__ void unfoldBackward4D(const TIO* output_grad,
     input_grad[input_grad_idx] = CVT_ACCUM2FLOAT(sum);
 }
 
-extern "C" __global__ void UnfoldBackward4D(const IN_OUT_TYPE* output_grad,
-                                            IN_OUT_TYPE* input_grad,
+extern "C" __global__ void UnfoldBackward4D(const FLOAT* output_grad,
+                                            FLOAT* input_grad,
                                             int N,
                                             int C,
                                             int H,
@@ -215,7 +215,7 @@ extern "C" __global__ void UnfoldBackward4D(const IN_OUT_TYPE* output_grad,
                                             tensor_view_t<3> output_grad_tv,
                                             tensor_view_t<4> input_grad_tv)
 {
-    unfoldBackward4D<IN_OUT_TYPE>(output_grad,
+    unfoldBackward4D<FLOAT>(output_grad,
                                   input_grad,
                                   N,
                                   C,

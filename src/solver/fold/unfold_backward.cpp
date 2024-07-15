@@ -74,7 +74,6 @@ ConvSolution UnfoldBwd::GetSolution([[maybe_unused]] const ExecutionContext& con
             {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
             {"MIOPEN_USE_FP64", static_cast<int>(dtype == miopenDouble)},
             {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
-            {"IN_OUT_TYPE", in_dtype == "bfloat16" ? "ushort" : in_dtype},
         };
         kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
 
