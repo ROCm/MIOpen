@@ -101,6 +101,11 @@ struct ForwardProblemDescription : ProblemDescriptionBase
                              "MultiMarginLoss: Output tensor need to be a scalar.");
             }
         }
+        // Check p value
+        if(p != 1 && p != 2)
+        {
+            MIOPEN_THROW(miopenStatusBadParm, "MultiMarginLoss: p need to be equal 1 or 2.");
+        }
     }
 
     const TensorDescriptor& GetiDesc() const { return iDesc; }
