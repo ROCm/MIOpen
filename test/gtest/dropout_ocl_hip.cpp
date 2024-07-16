@@ -156,7 +156,6 @@ void InitPRNGState(miopen::Handle& handle,
     }
     else
     {
-
         program_name = "MIOpenDropoutHIP.cpp";
         kernel_name  = "InitKernelStateHIP";
         network_config += "-hip";
@@ -175,7 +174,6 @@ void InitPRNGState(miopen::Handle& handle,
     if constexpr(PERF_ENABLE)
     {
         perf_helper.perfTest(handle,
-                             kernel_name + "_" + std::to_string(states_num),
                              kernel_name,
                              network_config,
                              use_hip,
@@ -193,9 +191,9 @@ void DropoutForward(miopen::Handle& handle,
                     Data_t y,
                     Data_t reserveSpace,
                     size_t reserveSpaceSizeInBytes,
-                    size_t in_offset,
-                    size_t out_offset,
-                    size_t rsvsp_offset,
+                    unsigned in_offset,
+                    unsigned out_offset,
+                    unsigned rsvsp_offset,
                     const miopen::DropoutDescriptor& DropoutDesc,
                     PerfHelper<float>& perf_helper,
                     bool use_hip)
@@ -278,7 +276,7 @@ void DropoutForward(miopen::Handle& handle,
 
     size_t RD_BLCK = /* (in_len[4] % 4 == 0) ? 4 : */ (in_len[2] % 2 == 0) ? 2 : 1;
 
-    size_t total_work = (in_len[4] / RD_BLCK) * in_len[3] * in_len[2] * in_len[1] * in_len[0];
+    unsigned int total_work = (in_len[4] / RD_BLCK) * in_len[3] * in_len[2] * in_len[1] * in_len[0];
 
     size_t max_wk_grp = use_mask ? size_t(MAX_WORKITEM_NUM)
                                  : std::min(size_t(MAX_PRNG_STATE), handle.GetImage3dMaxWidth());
@@ -305,14 +303,12 @@ void DropoutForward(miopen::Handle& handle,
 
     if(!use_hip)
     {
-
         program_name = "MIOpenDropout.cl";
         kernel_name  = "DropoutForward";
         network_config += "-ocl";
     }
     else
     {
-
         program_name = "MIOpenDropoutHIP.cpp";
         kernel_name  = "DropoutFW";
         network_config += "-hip";
@@ -368,16 +364,14 @@ void DropoutForward(miopen::Handle& handle,
         static_cast<int>(in_str[2]),
         static_cast<int>(in_str[3]),
         reserveSpace,
-        static_cast<size_t>(total_work),
-        static_cast<size_t>(in_offset),
-        static_cast<size_t>(out_offset),
-        static_cast<size_t>(rsvsp_offset));
+        static_cast<unsigned>(total_work),
+        static_cast<unsigned>(in_offset),
+        static_cast<unsigned>(out_offset),
+        static_cast<unsigned>(rsvsp_offset));
 
     if constexpr(PERF_ENABLE)
     {
-
         perf_helper.perfTest(handle,
-                             kernel_name + "_" + std::to_string(total_work),
                              kernel_name,
                              network_config,
                              use_hip,
@@ -399,10 +393,10 @@ void DropoutForward(miopen::Handle& handle,
                              static_cast<int>(in_str[2]),
                              static_cast<int>(in_str[3]),
                              reserveSpace,
-                             static_cast<size_t>(total_work),
-                             static_cast<size_t>(in_offset),
-                             static_cast<size_t>(out_offset),
-                             static_cast<size_t>(rsvsp_offset));
+                             static_cast<unsigned>(total_work),
+                             static_cast<unsigned>(in_offset),
+                             static_cast<unsigned>(out_offset),
+                             static_cast<unsigned>(rsvsp_offset));
     }
 }
 
@@ -414,9 +408,9 @@ void DropoutBackward(miopen::Handle& handle,
                      Data_t dx,
                      Data_t reserveSpace,
                      size_t reserveSpaceSizeInBytes,
-                     size_t in_offset,
-                     size_t out_offset,
-                     size_t rsvsp_offset,
+                     unsigned in_offset,
+                     unsigned out_offset,
+                     unsigned rsvsp_offset,
                      const miopen::DropoutDescriptor& DropoutDesc,
                      PerfHelper<float>& perf_helper,
                      bool use_hip)
@@ -496,8 +490,8 @@ void DropoutBackward(miopen::Handle& handle,
                        out_len,
                        out_str);
 
-    size_t RD_BLCK    = /* (in_len[4] % 4 == 0) ? 4 : */ (in_len[2] % 2 == 0) ? 2 : 1;
-    size_t total_work = (in_len[4] / RD_BLCK) * in_len[3] * in_len[2] * in_len[1] * in_len[0];
+    size_t RD_BLCK          = /* (in_len[4] % 4 == 0) ? 4 : */ (in_len[2] % 2 == 0) ? 2 : 1;
+    unsigned int total_work = (in_len[4] / RD_BLCK) * in_len[3] * in_len[2] * in_len[1] * in_len[0];
 
     size_t max_wk_grp = use_prng ? std::min(size_t(MAX_PRNG_STATE), handle.GetImage3dMaxWidth())
                                  : size_t(MAX_WORKITEM_NUM);
@@ -526,14 +520,12 @@ void DropoutBackward(miopen::Handle& handle,
 
     if(!use_hip)
     {
-
         program_name = "MIOpenDropout.cl";
         kernel_name  = "DropoutBackward";
         network_config += "-ocl";
     }
     else
     {
-
         program_name = "MIOpenDropoutHIP.cpp";
         kernel_name  = "DropoutBW";
         network_config += "-hip";
@@ -591,10 +583,40 @@ void DropoutBackward(miopen::Handle& handle,
         static_cast<int>(in_str[2]),
         static_cast<int>(in_str[3]),
         reserveSpace,
-        static_cast<size_t>(total_work),
-        static_cast<size_t>(in_offset),
-        static_cast<size_t>(out_offset),
-        static_cast<size_t>(rsvsp_offset));
+        static_cast<unsigned>(total_work),
+        static_cast<unsigned>(in_offset),
+        static_cast<unsigned>(out_offset),
+        static_cast<unsigned>(rsvsp_offset));
+
+    if constexpr(PERF_ENABLE)
+    {
+        perf_helper.perfTest(handle,
+                             kernel_name,
+                             network_config,
+                             use_hip,
+                             pstates,
+                             dropout,
+                             amp_scale,
+                             static_cast<int>(in_len[1]),
+                             static_cast<int>(in_len[2]),
+                             static_cast<int>(in_len[3]),
+                             static_cast<int>(in_len[4]),
+                             dy,
+                             static_cast<int>(out_str[0]),
+                             static_cast<int>(out_str[1]),
+                             static_cast<int>(out_str[2]),
+                             static_cast<int>(out_str[3]),
+                             dx,
+                             static_cast<int>(in_str[0]),
+                             static_cast<int>(in_str[1]),
+                             static_cast<int>(in_str[2]),
+                             static_cast<int>(in_str[3]),
+                             reserveSpace,
+                             static_cast<unsigned>(total_work),
+                             static_cast<unsigned>(in_offset),
+                             static_cast<unsigned>(out_offset),
+                             static_cast<unsigned>(rsvsp_offset));
+    }
 }
 
 template <typename T>
@@ -603,9 +625,9 @@ tensor<T> FWDropGPU(const miopen::DropoutDescriptor& DropoutDesc,
                     const tensor<T>& input,
                     const tensor<T>& output,
                     std::vector<unsigned char>& rsvsp,
-                    size_t in_offset,
-                    size_t out_offset,
-                    size_t rsvsp_offset,
+                    unsigned in_offset,
+                    unsigned out_offset,
+                    unsigned rsvsp_offset,
                     bool use_rsvsp,
                     PerfHelper<float>& perf_helper,
                     bool use_hip)
@@ -648,9 +670,9 @@ tensor<T> BWDropGPU(const miopen::DropoutDescriptor& DropoutDesc,
                     const tensor<T>& din,
                     const tensor<T>& dout,
                     const std::vector<unsigned char>& rsvsp,
-                    size_t in_offset,
-                    size_t out_offset,
-                    size_t rsvsp_offset,
+                    unsigned in_offset,
+                    unsigned out_offset,
+                    unsigned rsvsp_offset,
                     bool use_rsvsp,
                     PerfHelper<float>& perf_helper,
                     bool use_hip)
@@ -719,9 +741,7 @@ std::vector<DropoutTestCase> DropoutTestConfigs()
     {
 
         std::vector<DropoutTestCase> configs;
-
         const auto& handle = get_handle();
-
         size_t maxTotalSize;
 
         // Generate all NCHW tensors that are limited by L3 cache size
@@ -771,20 +791,22 @@ std::vector<DropoutTestCase> DropoutTestConfigs()
                 }
             }
         }
-
+        
         return configs;
     }
     else
     {
-        return {{16, 4, 8, 1, 4},
-                {2, 4, 8, 8, 4},
-                {16, 4, 8, 4, 0},
-                {13, 8, 4, 8, 0},
-                {3, 8, 7, 0, 0},
+        // clang-format off
+        return {{16, 4,  8, 1, 4},
+                { 2, 4,  8, 8, 4},
+                {16, 4,  8, 4, 0},
+                {13, 8,  4, 8, 0},
+                { 3, 8,  7, 0, 0},
                 {16, 4, 10, 0, 0},
-                {3, 8, 0, 0, 0},
-                {16, 4, 0, 0, 0},
-                {4, 0, 0, 0, 0}};
+                { 3, 8,  0, 0, 0},
+                {16, 4,  0, 0, 0},
+                { 4, 0,  0, 0, 0}};
+        // clang-format on
     }
 }
 
@@ -957,7 +979,6 @@ protected:
 
     void VerifyGPU()
     {
-
         auto error_f = miopen::rms_range(output_f_ocl, output_f_hip);
         EXPECT_TRUE(miopen::range_distance(output_f_ocl) == miopen::range_distance(output_f_hip));
         EXPECT_TRUE(error_f == 0) << "GPU FW Outputs do not match each other. Error:" << error_f;
@@ -971,7 +992,14 @@ protected:
     {
         if constexpr(PERF_ENABLE)
         {
-            perf_helper.writeStatsToCSV(sPerfTestFilename);
+            // get the input tensor size and store in a string with x in between
+            std::string input_dims_str = std::to_string(dropout_config.dim0) + "x" +
+                                          std::to_string(dropout_config.dim1) + "x" +
+                                          std::to_string(dropout_config.dim2) + "x" +
+                                          std::to_string(dropout_config.dim3) + "x" +
+                                          std::to_string(dropout_config.dim4);
+            
+            perf_helper.writeStatsToCSV(sPerfTestFilename, "_"+input_dims_str+"_"+ ( input_f.desc.GetType() == miopenHalf ? "FP16" : "FP32" ) );
         }
     }
 
@@ -1029,13 +1057,11 @@ TEST_P(DropoutTestHalf, DropoutTest)
 INSTANTIATE_TEST_SUITE_P(DropoutTestSet,
                          DropoutTestFloat,
                          testing::Combine(testing::ValuesIn(DropoutTestConfigs()),
-                                        //   testing::Values(0, 0.25, 0.5, 0.75, 1),
-                                        testing::Values(0.5),
-                                          testing::Values(true)));
+                                          testing::Values(0, 0.25, 0.5, 0.75, 1),
+                                          testing::Values(true, false)));
 
 INSTANTIATE_TEST_SUITE_P(DropoutTestSet,
                          DropoutTestHalf,
                          testing::Combine(testing::ValuesIn(DropoutTestConfigs()),
-                                        //   testing::Values(0, 0.25, 0.5, 0.75, 1),
-                                          testing::Values(0.5),
-                                          testing::Values(true)));
+                                          testing::Values(0, 0.25, 0.5, 0.75, 1),
+                                          testing::Values(true, false)));

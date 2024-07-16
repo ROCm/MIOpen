@@ -120,39 +120,40 @@ __forceinline__ __device__ void dropoutfw(const rocrand_state_xorwow* state,
                                           int in_str2,
                                           int in_str3,
                                           uchar* reserveSpace,
-                                          size_t total_work,
-                                          size_t in_offset,
-                                          size_t out_offset,
-                                          size_t rsvsp_offset)
+                                          unsigned int total_work,
+                                          unsigned int in_offset,
+                                          unsigned int out_offset,
+                                          unsigned int rsvsp_offset)
 {
     F dat_blk[RD_BLCK];     // Register space to read the input data
     uchar is_kept[RD_BLCK]; // Register space to store the mask for the dropout
 
-    size_t sid = threadIdx.x + blockIdx.x * blockDim.x;
+    uint sid = threadIdx.x + blockIdx.x * blockDim.x;
     rocrand_state_xorwow cur_state; // Read the state of the current thread
     cur_state = state[sid];
 
-    for(size_t gid = threadIdx.x + blockIdx.x * blockDim.x; gid < total_work;
+    for(uint gid = threadIdx.x + blockIdx.x * blockDim.x; gid < total_work;
         gid += blockDim.x * gridDim.x)
     {
-        size_t i0    = gid / (dim1 * dim2 * dim3 * dim4);
-        size_t i1    = (gid / (dim2 * dim3 * dim4)) % dim1;
-        size_t i2    = (gid / (dim3 * dim4)) % dim2;
-        size_t i3    = (gid / dim4) % dim3;
-        size_t i4    = gid % dim4;
-        size_t i4_rd = i4 / RD_BLCK;
+        uint i0    = gid / (dim1 * dim2 * dim3 * dim4);
+        uint i1    = (gid / (dim2 * dim3 * dim4)) % dim1;
+        uint i2    = (gid / (dim3 * dim4)) % dim2;
+        uint i3    = (gid / dim4) % dim3;
+        uint i4    = gid % dim4;
+        uint i4_rd = i4 / RD_BLCK;
 
-        size_t x_idx = i0 * in_str0 + i1 * in_str1 + i2 * in_str2 + i3 * in_str3 +
-                       i4_rd * RD_BLCK; // Calculate the index of the input tensor
-        size_t y_idx = i0 * out_str0 + i1 * out_str1 + i2 * out_str2 + i3 * out_str3 +
-                       i4_rd * RD_BLCK; // Calculate the index of the output tensor
+        uint x_idx = i0 * in_str0 + i1 * in_str1 + i2 * in_str2 + i3 * in_str3 +
+                     i4_rd * RD_BLCK; // Calculate the index of the input tensor
+        uint y_idx = i0 * out_str0 + i1 * out_str1 + i2 * out_str2 + i3 * out_str3 +
+                     i4_rd * RD_BLCK; // Calculate the index of the output tensor
 
         *(reinterpret_cast<T*>(dat_blk)) = *(reinterpret_cast<const T*>(
             x + in_offset + x_idx)); // Read RD_BLCK number of _FLOAT data from the input tensor
 
         if constexpr(!MASK) // If MASK is not enabled then generate the mask for dropout
         {
-            for(size_t i = 0; i < RD_BLCK; ++i)
+#pragma unroll
+            for(uint i = 0; i < RD_BLCK; ++i)
             {
                 is_kept[i] =
                     static_cast<uchar>(prng::xorwow_uniform(&cur_state) >
@@ -172,8 +173,9 @@ __forceinline__ __device__ void dropoutfw(const rocrand_state_xorwow* state,
             *(reinterpret_cast<B*>(is_kept)) = *(reinterpret_cast<const B*>(
                 reserveSpace + rsvsp_offset + gid - i4 + i4_rd * RD_BLCK));
         }
-        // Apply the mask to the data and scale it with the scale factor.
-        for(size_t i = 0; i < RD_BLCK; ++i)
+// Apply the mask to the data and scale it with the scale factor.
+#pragma unroll
+        for(uint i = 0; i < RD_BLCK; ++i)
         {
             dat_blk[i] = static_cast<bool>(is_kept[i]) ? dat_blk[i] * (F)scale : (F)0;
         }
@@ -200,10 +202,10 @@ extern "C" __global__ void DropoutFW(const rocrand_state_xorwow* state,
                                      int in_str2,
                                      int in_str3,
                                      uchar* reserveSpace,
-                                     size_t total_work,
-                                     size_t in_offset,
-                                     size_t out_offset,
-                                     size_t rsvsp_offset)
+                                     unsigned int total_work,
+                                     unsigned int in_offset,
+                                     unsigned int out_offset,
+                                     unsigned int rsvsp_offset)
 {
 
     dropoutfw<_FLOAT, READ_DAT_TYPE, READ_BOOL_TYPE, USE_MASK, USE_RSVSP>(state,
@@ -264,32 +266,32 @@ __forceinline__ __device__ void dropoutbw(const rocrand_state_xorwow* state,
                                           int in_str2,
                                           int in_str3,
                                           uchar* reserveSpace,
-                                          size_t total_work,
-                                          size_t in_offset,
-                                          size_t out_offset,
-                                          size_t rsvsp_offset)
+                                          unsigned int total_work,
+                                          unsigned int in_offset,
+                                          unsigned int out_offset,
+                                          unsigned int rsvsp_offset)
 {
     F dat_blk[RD_BLCK];     // Read in the input data into the register space
     uchar is_kept[RD_BLCK]; // is_kept holds the mask for the dropout
 
-    size_t sid = threadIdx.x + blockIdx.x * blockDim.x;
+    uint sid = threadIdx.x + blockIdx.x * blockDim.x;
     rocrand_state_xorwow cur_state;
     cur_state = state[sid];
 
-    for(size_t gid = threadIdx.x + blockIdx.x * blockDim.x; gid < total_work;
+    for(uint gid = threadIdx.x + blockIdx.x * blockDim.x; gid < total_work;
         gid += blockDim.x * gridDim.x)
     {
-        size_t i0    = gid / (dim1 * dim2 * dim3 * dim4);
-        size_t i1    = (gid / (dim2 * dim3 * dim4)) % dim1;
-        size_t i2    = (gid / (dim3 * dim4)) % dim2;
-        size_t i3    = (gid / dim4) % dim3;
-        size_t i4    = gid % dim4;
-        size_t i4_rd = i4 / RD_BLCK;
+        uint i0    = gid / (dim1 * dim2 * dim3 * dim4);
+        uint i1    = (gid / (dim2 * dim3 * dim4)) % dim1;
+        uint i2    = (gid / (dim3 * dim4)) % dim2;
+        uint i3    = (gid / dim4) % dim3;
+        uint i4    = gid % dim4;
+        uint i4_rd = i4 / RD_BLCK;
 
-        size_t x_idx = i0 * in_str0 + i1 * in_str1 + i2 * in_str2 + i3 * in_str3 +
-                       i4_rd * RD_BLCK; // Calculate the index of the output tensor
-        size_t y_idx = i0 * out_str0 + i1 * out_str1 + i2 * out_str2 + i3 * out_str3 +
-                       i4_rd * RD_BLCK; // Calculate the index of the input tensor
+        uint x_idx = i0 * in_str0 + i1 * in_str1 + i2 * in_str2 + i3 * in_str3 +
+                     i4_rd * RD_BLCK; // Calculate the index of the output tensor
+        uint y_idx = i0 * out_str0 + i1 * out_str1 + i2 * out_str2 + i3 * out_str3 +
+                     i4_rd * RD_BLCK; // Calculate the index of the input tensor
 
         // Read RD_BLCK number of _FLOAT data from y and store it in dat_blk
         *(reinterpret_cast<T*>(dat_blk)) = *(reinterpret_cast<const T*>(y + out_offset + y_idx));
@@ -297,8 +299,9 @@ __forceinline__ __device__ void dropoutbw(const rocrand_state_xorwow* state,
         // If PRNG is enabled then generate the mask for the dropout
         if constexpr(PRNG)
         {
-            // Generate mask for RD_BLCK number of elements when it is a vectorized read.
-            for(size_t i = 0; i < RD_BLCK; ++i)
+// Generate mask for RD_BLCK number of elements when it is a vectorized read.
+#pragma unroll
+            for(uint i = 0; i < RD_BLCK; ++i)
             {
 
                 is_kept[i] = static_cast<uchar>(prng::xorwow_uniform(&cur_state) > dropout);
@@ -311,8 +314,9 @@ __forceinline__ __device__ void dropoutbw(const rocrand_state_xorwow* state,
                 reserveSpace + rsvsp_offset + gid - i4 + i4_rd * RD_BLCK));
         }
 
-        // Iterate over the RD_BLCK number of elements and apply the mask to the data
-        for(size_t i = 0; i < RD_BLCK; ++i)
+// Iterate over the RD_BLCK number of elements and apply the mask to the data
+#pragma unroll
+        for(uint i = 0; i < RD_BLCK; ++i)
         {
             // If the element is retained then scale it with the scale factor
             dat_blk[i] = static_cast<bool>(is_kept[i]) ? dat_blk[i] * (F)scale : (F)0;
@@ -341,12 +345,11 @@ extern "C" __global__ void DropoutBW(const rocrand_state_xorwow* state,
                                      int in_str2,
                                      int in_str3,
                                      uchar* reserveSpace,
-                                     size_t total_work,
-                                     size_t in_offset,
-                                     size_t out_offset,
-                                     size_t rsvsp_offset)
+                                     unsigned int total_work,
+                                     unsigned int in_offset,
+                                     unsigned int out_offset,
+                                     unsigned int rsvsp_offset)
 {
-
     dropoutbw<_FLOAT, READ_DAT_TYPE, READ_BOOL_TYPE, USE_PRNG>(state,
                                                                dropout,
                                                                scale,

@@ -25,21 +25,18 @@
  *******************************************************************************/
 
 #pragma once
-#include "get_handle.hpp"
 
-#define NUM_PERF_RUNS 20
+#define NUM_PERF_RUNS 5
+#define NUM_RUNS_IGNORE 0
 
 template <typename T>
 struct PerfHelper
 {
+    std::vector<std::tuple<std::string, T, T, double, double, double>> kernelTestStats;
 
-    // std::vector<std::string> kernelTestArgs;
-
-    std::vector<std::tuple<std::string, double, double, double, double, double>> kernelTestStats;
-
-    // These vectors will hold the min, max, mean, median, and standard deviation 
+    // hold the min, max, mean, median, and standard deviation
     std::tuple<T, T, double, double, double> gpuStats;
-    
+
     static T perf_min(const std::vector<T>& data)
     {
         if(data.empty())
@@ -99,7 +96,7 @@ struct PerfHelper
         return {min_val, max_val, mean_val, median_val, sd_val};
     }
 
-    void writeStatsToCSV(const std::string& filename)
+    void writeStatsToCSV(const std::string& filename, std::string test_info)
     {
         std::ofstream file;
 
@@ -107,13 +104,15 @@ struct PerfHelper
         file.open(filename, std::ios::app);
 
         // Check if the file is open, throw an exception if not.
-        if (!file.is_open()) {
+        if(!file.is_open())
+        {
             throw std::runtime_error("Failed to open file");
         }
 
         // If the file was just created (i.e., its size is 0), write the header.
-        if (std::filesystem::file_size(filename) == 0) {
-            file << "KernelAndTestInfo,Min_Gain,Max_gain,Mean_Gain,Median_Gain,SD_ocl,SD_hip\n";
+        if(std::filesystem::file_size(filename) == 0)
+        {
+            file << "KernelAndTestInfo,min_exec_time_ratio,max_exec_time_ratio,mean_exec_time_ratio,median_exec_time_ratio,SD_ocl,SD_hip\n";
         }
 
         // if the number of entries in the kernelTestStats vector is odd, throw an exception
@@ -124,35 +123,38 @@ struct PerfHelper
 
         // Calculate the half size of the kernelTestStats vector
         size_t halfSize = kernelTestStats.size() / 2;
-        
+
         // Iterate over the first half of the kernelTestStats vector
-        for(size_t i = 0; i < halfSize; ++i) {
-            // Access the i-th element from the first half and (i + halfSize)-th element from the second half
-            auto& firstHalfElement = kernelTestStats[i];
+        for(size_t i = 0; i < halfSize; ++i)
+        {
+            // Access the i-th element from the first half and (i + halfSize)-th element from the
+            // second half
+            auto& firstHalfElement  = kernelTestStats[i];
             auto& secondHalfElement = kernelTestStats[i + halfSize];
 
             // Write the perf data to the file
-            file << std::get<0>(firstHalfElement) << ","
-                << std::get<1>(firstHalfElement) / std::get<1>(secondHalfElement) << ","
-                << std::get<2>(firstHalfElement) / std::get<2>(secondHalfElement) << ","
-                << std::get<3>(firstHalfElement) / std::get<3>(secondHalfElement) << ","
-                << std::get<4>(firstHalfElement) / std::get<4>(secondHalfElement) << ","
-                << std::get<5>(firstHalfElement) << ","
-                << std::get<5>(secondHalfElement) << "\n";
-
+            file << std::get<0>(firstHalfElement) + test_info << "," // KernelAndTestInfo
+                 << std::get<1>(firstHalfElement) / std::get<1>(secondHalfElement)
+                 << "," // min_exec_time_ratio
+                 << std::get<2>(firstHalfElement) / std::get<2>(secondHalfElement)
+                 << "," // max_exec_time_ratio
+                 << std::get<3>(firstHalfElement) / std::get<3>(secondHalfElement)
+                 << "," // mean_exec_time_ratio
+                 << std::get<4>(firstHalfElement) / std::get<4>(secondHalfElement)
+                 << "," // median_exec_time_ratio
+                 << std::get<5>(firstHalfElement) << "," << std::get<5>(secondHalfElement)
+                 << "\n"; // SD_ocl, SD_hip
         }
 
         file.close();
-
     }
 
     template <typename... Args>
     void perfTest(miopen::Handle& handle,
-                         const std::string kernel_test_name,
-                         const std::string& kernel_name,
-                         const std::string& network_config,
-                         bool append,
-                         Args&&... args)
+                  const std::string& kernel_name,
+                  const std::string& network_config,
+                  bool append,
+                  Args&&... args)
     {
         // Get kernels matching the kernel_name and network_config from the cache
         auto&& kernels = handle.GetKernels(kernel_name, network_config);
@@ -161,23 +163,34 @@ struct PerfHelper
         // Vector to hold the execution times
         std::vector<T> elapsedTime_ms;
 
-        if(handle.IsProfilingEnabled()){
+        if(handle.IsProfilingEnabled())
+        { // If profiling was enabled elsewhere, reset the kernel time
             handle.ResetKernelTime();
-        }else{
-            handle.EnableProfiling();
         }
-
-        for(size_t i = 0; i < NUM_PERF_RUNS; i++)
+        else
+        {
+            handle.EnableProfiling(); // Enable profiling
+            handle.ResetKernelTime(); // for good measure?
+        }
+        // Optionally ignore the first few runs to allow for warm-up
+        for(size_t i = 0; i < NUM_PERF_RUNS + NUM_RUNS_IGNORE; i++)
         {
             // Execute the kernel
             kernels.front()(std::forward<Args>(args)...);
             // Append the elapsed time to the vector
-            elapsedTime_ms.push_back(handle.GetKernelTime());
+            if(i >= NUM_RUNS_IGNORE)
+                elapsedTime_ms.push_back(handle.GetKernelTime());
             handle.ResetKernelTime();
         }
 
-        gpuStats = calcStats(elapsedTime_ms);
-        kernelTestStats.push_back({kernel_test_name, std::get<0>(gpuStats), std::get<1>(gpuStats), std::get<2>(gpuStats), std::get<3>(gpuStats), std::get<4>(gpuStats)});
+        handle.EnableProfiling(false); // Disable profiling
 
+        gpuStats = calcStats(elapsedTime_ms);
+        kernelTestStats.push_back({kernel_name,
+                                   std::get<0>(gpuStats),
+                                   std::get<1>(gpuStats),
+                                   std::get<2>(gpuStats),
+                                   std::get<3>(gpuStats),
+                                   std::get<4>(gpuStats)});
     }
 };
