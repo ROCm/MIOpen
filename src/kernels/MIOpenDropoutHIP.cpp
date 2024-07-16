@@ -177,7 +177,8 @@ __forceinline__ __device__ void dropoutfw(const rocrand_state_xorwow* state,
 #pragma unroll
         for(uint i = 0; i < RD_BLCK; ++i)
         {
-            dat_blk[i] = static_cast<bool>(is_kept[i]) ? dat_blk[i] * (F)scale : (F)0;
+            dat_blk[i] = static_cast<bool>(is_kept[i]) ? dat_blk[i] * static_cast<F>(scale)
+                                                       : static_cast<F>(0);
         }
         // Write RD_BLCK number of _FLOAT data to the output tensor
         *(reinterpret_cast<T*>(y + out_offset + y_idx)) = *(reinterpret_cast<T*>(dat_blk));
@@ -207,7 +208,6 @@ extern "C" __global__ void DropoutFW(const rocrand_state_xorwow* state,
                                      unsigned int out_offset,
                                      unsigned int rsvsp_offset)
 {
-
     dropoutfw<_FLOAT, READ_DAT_TYPE, READ_BOOL_TYPE, USE_MASK, USE_RSVSP>(state,
                                                                           dropout,
                                                                           scale,
@@ -319,9 +319,9 @@ __forceinline__ __device__ void dropoutbw(const rocrand_state_xorwow* state,
         for(uint i = 0; i < RD_BLCK; ++i)
         {
             // If the element is retained then scale it with the scale factor
-            dat_blk[i] = static_cast<bool>(is_kept[i]) ? dat_blk[i] * (F)scale : (F)0;
+            dat_blk[i] = static_cast<bool>(is_kept[i]) ? dat_blk[i] * static_cast<F>(scale)
+                                                       : static_cast<F>(0);
         }
-
         // Write RD_BLCK number of _FLOAT elements to the output in case of a vectorized write
         *(reinterpret_cast<T*>(x + in_offset + x_idx)) = *(reinterpret_cast<T*>(dat_blk));
     }
