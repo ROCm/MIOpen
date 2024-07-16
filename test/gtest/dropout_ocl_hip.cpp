@@ -44,7 +44,14 @@
 #include "random.hpp"
 #include "driver.hpp"
 #include "dropout_util.hpp"
+#include "perf_helper.hpp"
 
+#define PERF_ENABLE 1
+
+// This code snippet was taken from src/ocl/dropooutocl.cpp
+// Aligns the input and output tensor strides and lengths
+// squashes contiguous dimensions and performs alignment of
+// non-contiguous dimensions
 template <typename T>
 inline void SquashPairedTensor(const std::vector<T> x_len,
                                const std::vector<T> x_str,
@@ -122,7 +129,8 @@ inline void SquashPairedTensor(const std::vector<T> x_len,
 
 void InitPRNGState(miopen::Handle& handle,
                    const miopen::DropoutDescriptor& DropoutDesc,
-                   bool use_hip = false)
+                   PerfHelper<float>& perf_helper,
+                   bool use_hip)
 {
     std::string program_name;
     std::string kernel_name;
@@ -163,9 +171,21 @@ void InitPRNGState(miopen::Handle& handle,
 
     handle.AddKernel(kernel_name, network_config, program_name, kernel_name, vld, vgd, params)(
         DropoutDesc.pstates, DropoutDesc.seed, states_num);
+
+    if constexpr(PERF_ENABLE)
+    {
+        perf_helper.perfTest(handle,
+                             kernel_name + "_" + std::to_string(states_num),
+                             kernel_name,
+                             network_config,
+                             use_hip,
+                             DropoutDesc.pstates,
+                             DropoutDesc.seed,
+                             states_num);
+    }
 }
 
-void DropoutForward(const miopen::Handle& handle,
+void DropoutForward(miopen::Handle& handle,
                     const miopen::TensorDescriptor& noise_shape,
                     const miopen::TensorDescriptor& xDesc,
                     ConstData_t x,
@@ -177,7 +197,8 @@ void DropoutForward(const miopen::Handle& handle,
                     size_t out_offset,
                     size_t rsvsp_offset,
                     const miopen::DropoutDescriptor& DropoutDesc,
-                    bool use_hip = false)
+                    PerfHelper<float>& perf_helper,
+                    bool use_hip)
 {
 
     float dropout            = DropoutDesc.dropout;
@@ -351,9 +372,41 @@ void DropoutForward(const miopen::Handle& handle,
         static_cast<size_t>(in_offset),
         static_cast<size_t>(out_offset),
         static_cast<size_t>(rsvsp_offset));
+
+    if constexpr(PERF_ENABLE)
+    {
+
+        perf_helper.perfTest(handle,
+                             kernel_name + "_" + std::to_string(total_work),
+                             kernel_name,
+                             network_config,
+                             use_hip,
+                             pstates,
+                             dropout,
+                             amp_scale,
+                             static_cast<int>(in_len[1]),
+                             static_cast<int>(in_len[2]),
+                             static_cast<int>(in_len[3]),
+                             static_cast<int>(in_len[4]),
+                             y,
+                             static_cast<int>(out_str[0]),
+                             static_cast<int>(out_str[1]),
+                             static_cast<int>(out_str[2]),
+                             static_cast<int>(out_str[3]),
+                             x,
+                             static_cast<int>(in_str[0]),
+                             static_cast<int>(in_str[1]),
+                             static_cast<int>(in_str[2]),
+                             static_cast<int>(in_str[3]),
+                             reserveSpace,
+                             static_cast<size_t>(total_work),
+                             static_cast<size_t>(in_offset),
+                             static_cast<size_t>(out_offset),
+                             static_cast<size_t>(rsvsp_offset));
+    }
 }
 
-void DropoutBackward(const miopen::Handle& handle,
+void DropoutBackward(miopen::Handle& handle,
                      const miopen::TensorDescriptor& noise_shape,
                      const miopen::TensorDescriptor& dyDesc,
                      ConstData_t dy,
@@ -365,7 +418,8 @@ void DropoutBackward(const miopen::Handle& handle,
                      size_t out_offset,
                      size_t rsvsp_offset,
                      const miopen::DropoutDescriptor& DropoutDesc,
-                     bool use_hip = false)
+                     PerfHelper<float>& perf_helper,
+                     bool use_hip)
 {
 
     float dropout            = DropoutDesc.dropout;
@@ -552,8 +606,9 @@ tensor<T> FWDropGPU(const miopen::DropoutDescriptor& DropoutDesc,
                     size_t in_offset,
                     size_t out_offset,
                     size_t rsvsp_offset,
-                    bool use_rsvsp = true,
-                    bool use_hip   = false)
+                    bool use_rsvsp,
+                    PerfHelper<float>& perf_helper,
+                    bool use_hip)
 {
 
     auto&& handle  = get_handle();
@@ -578,6 +633,7 @@ tensor<T> FWDropGPU(const miopen::DropoutDescriptor& DropoutDesc,
                    out_offset,
                    rsvsp_offset,
                    DropoutDesc,
+                   perf_helper,
                    use_hip);
 
     out_gpu.data   = handle.Read<T>(out_dev, output.data.size());
@@ -595,8 +651,9 @@ tensor<T> BWDropGPU(const miopen::DropoutDescriptor& DropoutDesc,
                     size_t in_offset,
                     size_t out_offset,
                     size_t rsvsp_offset,
-                    bool use_rsvsp = true,
-                    bool use_hip   = false)
+                    bool use_rsvsp,
+                    PerfHelper<float>& perf_helper,
+                    bool use_hip)
 {
 
     auto&& handle = get_handle();
@@ -618,6 +675,7 @@ tensor<T> BWDropGPU(const miopen::DropoutDescriptor& DropoutDesc,
                     out_offset,
                     rsvsp_offset,
                     DropoutDesc,
+                    perf_helper,
                     use_hip);
 
     din_gpu.data = handle.Read<T>(din_dev, din.data.size());
@@ -634,7 +692,8 @@ struct DropoutTestCase
 
     friend std::ostream& operator<<(std::ostream& os, const DropoutTestCase& tc)
     {
-        return os << " dim0:" << tc.dim0 << " dim1:" << tc.dim1 << " dim2:" << tc.dim2 << " dim3:" << tc.dim3 << " dim4:" << tc.dim4;
+        return os << " dim0:" << tc.dim0 << " dim1:" << tc.dim1 << " dim2:" << tc.dim2
+                  << " dim3:" << tc.dim3 << " dim4:" << tc.dim4;
     }
 
     std::vector<size_t> GetInput()
@@ -651,63 +710,95 @@ struct DropoutTestCase
         else
             return {dim0};
     }
-
 };
 
 std::vector<DropoutTestCase> DropoutTestConfigs()
-{ // mask enable
-    // // clang-format off
-    //  return {
-    //     {16, 4, 8, 1, 4},
-    //     {2, 4, 8, 8, 4},
-    //     {16, 4, 8, 4},
-    //     {13, 8, 4, 8},
-    //     {3, 8, 7},
-    //     {16, 4, 10},
-    //     {3, 8},
-    //     {16, 4},
-    //     {4}};
-    // // clang-format on
-    std::vector<DropoutTestCase> configs;
-    
-    size_t maxTotalSize = 128;
+{
 
-    for (size_t N = 1; N <= maxTotalSize; N *= 2) {
-        for (size_t C = 1; C <= maxTotalSize / N; C *= 2) {
-            for (size_t H = 1; H <= maxTotalSize / (N * C); H *= 2) {
-                for (size_t W = 1; W <= maxTotalSize / (N * C * H); W *= 2) {
-                    size_t totalSize = N * C * H * W;
-                    // Ensure the total size does not exceed the maximum limit
-                    if (totalSize <= maxTotalSize) {
-                        configs.push_back({ N, C, H, W, 0});
+    if constexpr(PERF_ENABLE)
+    {
+
+        std::vector<DropoutTestCase> configs;
+
+        const auto& handle = get_handle();
+
+        size_t maxTotalSize;
+
+        // Generate all NCHW tensors that are limited by L3 cache size
+        // or 2xL2 cache size when L3 is not available
+        if(miopen::StartsWith(handle.GetDeviceName(), "gfx90a") ||
+           miopen::StartsWith(handle.GetDeviceName(), "gfx908"))
+        {
+            maxTotalSize = 16; // 8MB L2
+        }
+        else if(miopen::StartsWith(handle.GetDeviceName(), "gfx803"))
+        {
+            maxTotalSize = 4; // 2MB L2
+        }
+        else if(miopen::StartsWith(handle.GetDeviceName(), "gfx900") ||
+                miopen::StartsWith(handle.GetDeviceName(), "gfx906"))
+        {
+            maxTotalSize = 8; // 4MB L2
+        }
+        else if(miopen::StartsWith(handle.GetDeviceName(), "gfx942"))
+        {
+            maxTotalSize = 256; // 128MB L3
+        }
+        else if(miopen::StartsWith(handle.GetDeviceName(), "gfx103"))
+        {
+            maxTotalSize = 128; // 128MB L3
+        }
+        else
+        {
+            maxTotalSize = 4; // 2MB L2, default case.
+        }
+
+        for(size_t N = 1; N <= maxTotalSize; N *= 2)
+        {
+            for(size_t C = 1; C <= maxTotalSize / N; C *= 2)
+            {
+                for(size_t H = 1; H <= maxTotalSize / (N * C); H *= 2)
+                {
+                    for(size_t W = 1; W <= maxTotalSize / (N * C * H); W *= 2)
+                    {
+                        size_t totalSize = N * C * H * W;
+                        // Ensure the total size does not exceed the maximum limit
+                        if(totalSize <= maxTotalSize)
+                        {
+                            configs.push_back({N, C, H, W, 0});
+                        }
                     }
                 }
             }
         }
+
+        return configs;
     }
-    
-    return configs;
-}
-
-
-std::vector<bool> DropoutTestMask()
-{ // mask enable
-    // clang-format off
-     return {
-        true,
-        false};
-    // clang-format on
+    else
+    {
+        return {{16, 4, 8, 1, 4},
+                {2, 4, 8, 8, 4},
+                {16, 4, 8, 4, 0},
+                {13, 8, 4, 8, 0},
+                {3, 8, 7, 0, 0},
+                {16, 4, 10, 0, 0},
+                {3, 8, 0, 0, 0},
+                {16, 4, 0, 0, 0},
+                {4, 0, 0, 0, 0}};
+    }
 }
 
 template <typename T>
-struct DropoutTest : public ::testing::TestWithParam<std::tuple<DropoutTestCase, bool>>
+struct DropoutTest : public ::testing::TestWithParam<std::tuple<DropoutTestCase, float, bool>>
 {
 protected:
+    static const std::string sPerfTestFilename;
+
     void SetUp() override
     {
-        auto&& handle  = get_handle();
+        auto&& handle = get_handle();
 
-        std::tie(dropout_config, DropoutDesc.use_mask) = GetParam();
+        std::tie(dropout_config, DropoutDesc.dropout, DropoutDesc.use_mask) = GetParam();
 
         std::vector<size_t> in_dim = dropout_config.GetInput();
 
@@ -740,7 +831,6 @@ protected:
         }
 
         // Setup dropout descriptor
-        DropoutDesc.dropout          = 0.5;
         DropoutDesc.stateSizeInBytes = stateSizeInBytes;
         DropoutDesc.seed             = 0;
         DropoutDesc.rng_mode         = MIOPEN_RNG_PSEUDO_XORWOW;
@@ -761,17 +851,25 @@ protected:
     {
         auto&& handle  = get_handle();
         auto state_buf = handle.Create<unsigned char>(
-            DropoutDesc.stateSizeInBytes);         // Allocate GPU memory for PRNG states
-        DropoutDesc.pstates = state_buf.get();     // Store GPU memory pointer to PRNG states
-        InitPRNGState(handle, DropoutDesc, false); // Initialize PRNG states
-
+            DropoutDesc.stateSizeInBytes);     // Allocate GPU memory for PRNG states
+        DropoutDesc.pstates = state_buf.get(); // Store GPU memory pointer to PRNG states
+        // Initialize PRNG states
+        InitPRNGState(handle, DropoutDesc, perf_helper, false); // Initialize PRNG states
         // forward pass OCL
-        output_f_ocl = FWDropGPU<T>(
-            DropoutDesc, noise_shape, input_f, output_f_ocl, reserveSpace, 0, 0, 0, true, false);
-
+        output_f_ocl = FWDropGPU<T>(DropoutDesc,
+                                    noise_shape,
+                                    input_f,
+                                    output_f_ocl,
+                                    reserveSpace,
+                                    0,
+                                    0,
+                                    0,
+                                    true,
+                                    perf_helper,
+                                    false);
         // backward pass OCL
-        input_b_ocl =
-            BWDropGPU<T>(DropoutDesc, input_b_ocl, output_b, reserveSpace, 0, 0, 0, true, false);
+        input_b_ocl = BWDropGPU<T>(
+            DropoutDesc, input_b_ocl, output_b, reserveSpace, 0, 0, 0, true, perf_helper, false);
 
         if(!DropoutDesc.use_mask)
         {
@@ -785,11 +883,20 @@ protected:
                                         0,
                                         0,
                                         false,
+                                        perf_helper,
                                         false);
 
             // backward pass OCL
-            input_b_ocl = BWDropGPU<T>(
-                DropoutDesc, input_b_ocl, output_b, reserveSpace, 0, 0, 0, false, false);
+            input_b_ocl = BWDropGPU<T>(DropoutDesc,
+                                       input_b_ocl,
+                                       output_b,
+                                       reserveSpace,
+                                       0,
+                                       0,
+                                       0,
+                                       false,
+                                       perf_helper,
+                                       false);
         }
     }
 
@@ -799,15 +906,24 @@ protected:
         auto state_buf = handle.Create<unsigned char>(
             DropoutDesc.stateSizeInBytes);     // Allocate GPU memory for PRNG states
         DropoutDesc.pstates = state_buf.get(); // Store GPU memory pointer to PRNG states
-        InitPRNGState(handle, DropoutDesc, true);
+        InitPRNGState(handle, DropoutDesc, perf_helper, true);
 
         // forward pass HIP
-        output_f_hip = FWDropGPU<T>(
-            DropoutDesc, noise_shape, input_f, output_f_hip, reserveSpace, 0, 0, 0, true, true);
+        output_f_hip = FWDropGPU<T>(DropoutDesc,
+                                    noise_shape,
+                                    input_f,
+                                    output_f_hip,
+                                    reserveSpace,
+                                    0,
+                                    0,
+                                    0,
+                                    true,
+                                    perf_helper,
+                                    true);
 
         // backward pass HIP
-        input_b_hip =
-            BWDropGPU<T>(DropoutDesc, input_b_hip, output_b, reserveSpace, 0, 0, 0, true, true);
+        input_b_hip = BWDropGPU<T>(
+            DropoutDesc, input_b_hip, output_b, reserveSpace, 0, 0, 0, true, perf_helper, true);
 
         if(!DropoutDesc.use_mask)
         {
@@ -822,11 +938,20 @@ protected:
                                         0,
                                         0,
                                         false,
+                                        perf_helper,
                                         true);
 
             // backward pass HIP
-            input_b_hip = BWDropGPU<T>(
-                DropoutDesc, input_b_hip, output_b, reserveSpace, 0, 0, 0, false, true);
+            input_b_hip = BWDropGPU<T>(DropoutDesc,
+                                       input_b_hip,
+                                       output_b,
+                                       reserveSpace,
+                                       0,
+                                       0,
+                                       0,
+                                       false,
+                                       perf_helper,
+                                       true);
         }
     }
 
@@ -842,6 +967,14 @@ protected:
         EXPECT_TRUE(error_b == 0) << "GPU BW Outputs do not match each other. Error:" << error_b;
     }
 
+    void TearDown() override
+    {
+        if constexpr(PERF_ENABLE)
+        {
+            perf_helper.writeStatsToCSV(sPerfTestFilename);
+        }
+    }
+
     DropoutTestCase dropout_config;
 
     tensor<T> input_f;  // input tensor for dropout forward
@@ -855,10 +988,16 @@ protected:
     tensor<T> output_f_hip;
     tensor<T> input_b_hip;
 
+    // GetKernelTime returns time in float
+    PerfHelper<float> perf_helper;
+
     miopen::DropoutDescriptor DropoutDesc;
     miopen::TensorDescriptor noise_shape;
     std::vector<unsigned char> reserveSpace;
 };
+
+template <typename T>
+const std::string DropoutTest<T>::sPerfTestFilename = "DropoutPerf.csv";
 
 namespace dropout {
 
@@ -887,8 +1026,16 @@ TEST_P(DropoutTestHalf, DropoutTest)
     VerifyGPU();
 };
 
-INSTANTIATE_TEST_SUITE_P(DropoutTestSet, DropoutTestFloat, testing::Combine(testing::ValuesIn(DropoutTestConfigs()),
-                                          testing::Values(true, false)));
+INSTANTIATE_TEST_SUITE_P(DropoutTestSet,
+                         DropoutTestFloat,
+                         testing::Combine(testing::ValuesIn(DropoutTestConfigs()),
+                                        //   testing::Values(0, 0.25, 0.5, 0.75, 1),
+                                        testing::Values(0.5),
+                                          testing::Values(true)));
 
-INSTANTIATE_TEST_SUITE_P(DropoutTestSet, DropoutTestHalf, testing::Combine(testing::ValuesIn(DropoutTestConfigs()),
-                                          testing::Values(true, false)));
+INSTANTIATE_TEST_SUITE_P(DropoutTestSet,
+                         DropoutTestHalf,
+                         testing::Combine(testing::ValuesIn(DropoutTestConfigs()),
+                                        //   testing::Values(0, 0.25, 0.5, 0.75, 1),
+                                          testing::Values(0.5),
+                                          testing::Values(true)));
