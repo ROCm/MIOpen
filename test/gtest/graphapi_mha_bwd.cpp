@@ -24,14 +24,17 @@
  *
  *******************************************************************************/
 
-
+#include "graphapi_mha_cpp_common.hpp"
 
 namespace mha_graph_test {
 
-class MhaFwdGraphTest : public MhaGraphTestBase
+class MhaBwdGraphTest : public MhaGraphTestBase
 {
 
-    void createMhaGraph(int64_t n, int64_t h, int64_t s, int64_t d)
+    tensor<float> mSoftMax;
+
+public:
+    void createMhaGraph(size_t n, size_t h, size_t s, size_t d) override
     {
         mGraphBuilder = std::make_unique<gr::OpGraphBuilder>();
 
@@ -42,7 +45,9 @@ class MhaFwdGraphTest : public MhaGraphTestBase
 
         MAKE_TENSOR_F(Q, nhsd, false);
         MAKE_TENSOR_F(K, nhsd, false);
+        MAKE_TENSOR_F(V, nhsd, false);
         MAKE_TENSOR_F(dO, nhsd, false);
+        MAKE_TENSOR_F(O, nhsd, false);
 
         MAKE_TENSOR_F(T_MM_0, nhss, true);
         addNode("OP_MATMUL", {Q, K}, {T_MM_0});
@@ -75,6 +80,7 @@ class MhaFwdGraphTest : public MhaGraphTestBase
         addNode("OP_POINTWISE:EXP", {T_SUB_0}, {T_EXP});
 
         MAKE_TENSOR_F(Z_INV, nhs1, false);
+        MAKE_TENSOR_F(T_MUL_0, nhss, true);
         addNode("OP_POINTWISE:MUL", {T_EXP, Z_INV}, {T_MUL_0});
 
         MAKE_TENSOR_I(RND_SD, all1s, false);
@@ -85,7 +91,7 @@ class MhaFwdGraphTest : public MhaGraphTestBase
 
         MAKE_TENSOR_F(T_MUL_1, nhss, true);
         addNode("OP_POINTWISE:MUL", {T_MUL_0, T_RND}, {T_MUL_1});
-        
+
         MAKE_TENSOR_F(RND_PRB, all1s, false); // TODO(Amber): revisit
         MAKE_TENSOR_F(T_SCL_3, nhss, true);
         // T_SCL_3 feeds into the middle column of the graph
@@ -119,23 +125,24 @@ class MhaFwdGraphTest : public MhaGraphTestBase
         MAKE_TENSOR_F(T_MM_2, nhss, true);
         addNode("OP_MATMUL", {dO, V}, {T_MM_2});
 
-        MAKE_TENSOR_F(T_SCL_7, nhsd, true);
+        MAKE_TENSOR_F(T_SCL_7, nhss, true);
         addNode("OP_POINTWISE:MUL", {T_MM_2, DSCL_dO}, {T_SCL_7});
-        
-        MAKE_TENSOR_F(T_SCL_8, nhsd, true);
+
+        MAKE_TENSOR_F(T_SCL_8, nhss, true);
         MAKE_TENSOR_F(DSCL_V, all1s, false);
         addNode("OP_POINTWISE:MUL", {T_SCL_7, DSCL_V}, {T_SCL_8});
 
-        MAKE_TENSOR_F(T_SCL_9, nhsd, true);
+        MAKE_TENSOR_F(T_SCL_9, nhss, true);
         addNode("OP_POINTWISE:MUL", {T_SCL_8, T_RND}, {T_SCL_9});
 
-        MAKE_TENSOR_F(T_SCL_10, nhsd, true);
+        MAKE_TENSOR_F(T_SCL_10, nhss, true);
         addNode("OP_POINTWISE:MUL", {T_SCL_9, RND_PRB}, {T_SCL_10});
 
         ////////////////// Right-top //////////////////////////////////
         MAKE_TENSOR_F(T_SCL_11, nhsd, true);
         addNode("OP_POINTWISE:MUL", {dO, DSCL_dO}, {T_SCL_11});
 
+        MAKE_TENSOR_F(DSCL_O, all1s, false);
         MAKE_TENSOR_F(T_SCL_12, nhsd, true);
         addNode("OP_POINTWISE:MUL", {O, DSCL_O}, {T_SCL_12});
 
@@ -145,21 +152,20 @@ class MhaFwdGraphTest : public MhaGraphTestBase
         MAKE_TENSOR_F(T_SCL_13, nhsd, true);
         addNode("OP_POINTWISE:MUL", {T_MUL_2, RND_PRB}, {T_SCL_13});
 
-        MAKE_TENSOR_F(T_SUM_0, nhsd, true);
+        MAKE_TENSOR_F(T_SUM_0, nhs1, true);
         addNode("OP_REDUCTION:ADD", {T_SCL_13}, {T_SUM_0});
 
-        
         ////////////////// Center Part //////////////////////////////////
-        MAKE_TENSOR_F(T_SUB_1, nhsd, true);
+        MAKE_TENSOR_F(T_SUB_1, nhss, true);
         addNode("OP_POINTWISE:SUB", {T_SCL_10, T_SUM_0}, {T_SUB_1});
-        
-        MAKE_TENSOR_F(T_SCL_14, nhsd, true);
+
+        MAKE_TENSOR_F(T_SCL_14, nhss, true);
         addUnaryPointwiseNode(pw_id, {T_SUB_1}, {T_SCL_14}, mAttentionScale);
 
-        MAKE_TENSOR_F(T_MUL_3, nhsd, true);
+        MAKE_TENSOR_F(T_MUL_3, nhss, true);
         addNode("OP_POINTWISE:MUL", {T_SCL_14, T_SCL_3}, {T_MUL_3});
 
-        MAKE_TENSOR_F(T_SCL_15, nhsd, true);
+        MAKE_TENSOR_F(T_SCL_15, nhss, true);
         MAKE_TENSOR_F(SCL_dS, all1s, false);
         addNode("OP_POINTWISE:MUL", {T_MUL_3, SCL_dS}, {T_SCL_15});
 
@@ -186,7 +192,7 @@ class MhaFwdGraphTest : public MhaGraphTestBase
         addNode("OP_REDUCTION:MAX", {T_SCL_17}, {AMax_dQ});
         ////////////////// Right Bottom //////////////////////////////////
 
-        //XXX(Amber): Reshape transpose node goes here
+        // XXX(Amber): Reshape transpose node goes here
         MAKE_TENSOR_F(T_MM_4, nhsd, true);
         addNode("OP_MATMUL", {T_SCL_15, Q}, {T_MM_4});
 
@@ -196,14 +202,170 @@ class MhaFwdGraphTest : public MhaGraphTestBase
         MAKE_TENSOR_F(T_SCL_19, nhsd, true);
         addNode("OP_POINTWISE:MUL", {T_SCL_18, DSCL_Q}, {T_SCL_19});
 
-        MAKE_TENSOR_F(dQ, nhsd, false);
+        MAKE_TENSOR_F(dK, nhsd, false);
         MAKE_TENSOR_F(SCL_dK, all1s, false);
         addNode("OP_POINTWISE:MUL", {T_SCL_19, SCL_dK}, {dK});
 
         MAKE_TENSOR_F(AMax_dK, all1s, false);
         addNode("OP_REDUCTION:MAX", {T_SCL_19}, {AMax_dK});
+
+        // create tensor SCL_O for running cpu fwd mha
+        MAKE_TENSOR_F(SCL_O, all1s, false);
+        std::ignore = SCL_O;
     }
 
+    void initInputs(size_t n, size_t h, size_t s, size_t d) override
+    {
+        using namespace test::cpu;
+
+        auto Q  = GenScaledTensorBackward<float>(n, h, s, d);
+        auto K  = GenScaledTensorBackward<float>(n, h, s, d);
+        auto V  = GenScaledTensorBackward<float>(n, h, s, d);
+        auto dO = GenScaledTensorBackward<float>(n, h, s, d);
+
+        for(auto& [k, v] : mFilledTensors)
+        {
+            if(k == "Q")
+            {
+                v.init(std::move(Q.mTensor));
+            }
+            else if(k == "DSCL_Q")
+            {
+                v.init(Q.mDescale);
+            }
+            else if(k == "K")
+            {
+                v.init(std::move(K.mTensor));
+            }
+            else if(k == "DSCL_K")
+            {
+                v.init(K.mDescale);
+            }
+            else if(k == "V")
+            {
+                v.init(std::move(V.mTensor));
+            }
+            else if(k == "DSCL_V")
+            {
+                v.init(V.mDescale);
+            }
+            else if(k == "dO")
+            {
+                v.init(std::move(dO.mTensor));
+            }
+            else if(k == "DSCL_dO")
+            {
+                v.init(dO.mDescale);
+            }
+            else if(k == "SCL_O" || k == "SCL_S" || k == "DSCL_O" || k == "DSCL_S" ||
+                    k == "DSCL_S" || k == "ATN_SCL" || k == "SCL_dS" || k == "DSCL_dS" ||
+                    k == "SCL_dV" || k == "SCL_dQ" || k == "SCL_dK")
+            {
+                v.init(1.0f);
+            }
+            else if(k == "RND_PRB")
+            {
+                v.init(mProbDropout);
+            }
+            else if(k == "RND_SD" || k == "RND_OFF")
+            {
+                v.init(0ll);
+            }
+            else if(k == "dV" || k == "dQ" || k == "dK" || k == "AMax_dV" || k == "AMax_dQ" ||
+                    k == "AMax_dK" || k == "AMax_dS")
+            {
+                // these are outputs
+                v.init(0.0f);
+            }
+            else if(k == "M" || k == "Z_INV" || k == "O")
+            {
+                // init later below
+            }
+            else
+            {
+                FAIL() << "Uninitialized input or output: " << k;
+            }
+        }
+
+        CpuMhaFwdOut out = runCpuMhaFWd(n, h, s, d);
+
+        lookup("M").init(std::move(out.mM));
+        lookup("Z_INV").init(std::move(out.mZinv));
+        lookup("O").init(std::move(out.mO));
+
+        // softmax needed for calling cpu backward mha
+        mSoftMax = std::move(out.mSoftMax);
+    }
+
+    void runCpuVerify(size_t n, size_t h, size_t s, size_t d) override
+    {
+        /// \todo remove virtual once backward mha is ready to execute
+        static constexpr bool disable_verification = true; // TODO
+
+        auto dQ_ref = tensor<float>{n, h, s, d};
+        auto dK_ref = tensor<float>{n, h, s, d};
+        auto dV_ref = tensor<float>{n, h, s, d};
+
+        float amax_dS_ref = 0;
+        float amax_dQ_ref = 0;
+        float amax_dK_ref = 0;
+        float amax_dV_ref = 0;
+
+        test::cpu::MultiHeadAttentionBackwardDataf8(lookup_f("Q"),
+                                                    lookup_f("K"),
+                                                    lookup_f("V"),
+                                                    lookup_f("O"),
+                                                    lookup_f("dO"),
+                                                    mSoftMax,
+                                                    lookup_f("DSCL_Q")[0],
+                                                    lookup_f("DSCL_K")[0],
+                                                    lookup_f("DSCL_V")[0],
+                                                    lookup_f("SCL_dQ")[0],
+                                                    lookup_f("SCL_dK")[0],
+                                                    lookup_f("SCL_dV")[0],
+                                                    lookup_f("SCL_S")[0],
+                                                    lookup_f("DSCL_S")[0],
+                                                    lookup_f("SCL_dS")[0],
+                                                    lookup_f("DSCL_dS")[0],
+                                                    lookup_f("DSCL_O")[0],
+                                                    lookup_f("DSCL_dO")[0],
+                                                    amax_dS_ref,
+                                                    amax_dQ_ref,
+                                                    amax_dK_ref,
+                                                    amax_dV_ref,
+                                                    dQ_ref,
+                                                    dK_ref,
+                                                    dV_ref);
+
+        /// \todo remove once backward mha is ready to execute
+        if(disable_verification)
+            return;
+
+        checkAmax("AMax_dS", amax_dS_ref);
+        checkAmax("AMax_dQ", amax_dQ_ref);
+        checkAmax("AMax_dK", amax_dK_ref);
+        checkAmax("AMax_dV", amax_dV_ref);
+
+        checkTensor("dQ", dQ_ref);
+        checkTensor("dK", dK_ref);
+        checkTensor("dV", dV_ref);
+    }
+
+    /// \todo remove once backward mha is ready to execute
+    void executeMhaGraph() override {}
 };
 
-}// end namespace mha_graph_test
+} // end namespace mha_graph_test
+  //
+using namespace mha_graph_test;
+
+TEST_P(MhaBwdGraphTest, MhaBwdGraph) { Run(); }
+
+INSTANTIATE_TEST_SUITE_P(MhaGraphBwdSuite,
+                         MhaBwdGraphTest,
+                         testing::Combine(testing::ValuesIn({2}),         // n
+                                          testing::ValuesIn({8}),         // h
+                                          testing::ValuesIn({4, 64}),     // s
+                                          testing::ValuesIn({16}),        // d
+                                          testing::ValuesIn({0.0f, 0.5f}) // mProbDropout
+                                          ));

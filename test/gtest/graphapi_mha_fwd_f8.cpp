@@ -24,14 +24,15 @@
  *
  *******************************************************************************/
 
-
+#include "graphapi_mha_cpp_common.hpp"
 
 namespace mha_graph_test {
 
 class MhaFwdGraphTest : public MhaGraphTestBase
 {
 
-    void createMhaGraph(int64_t n, int64_t h, int64_t s, int64_t d)
+protected:
+    void createMhaGraph(size_t n, size_t h, size_t s, size_t d) override
     {
 
         mGraphBuilder = std::make_unique<gr::OpGraphBuilder>();
@@ -123,12 +124,9 @@ class MhaFwdGraphTest : public MhaGraphTestBase
 
         MAKE_TENSOR_F(AMAX_O, all1s, false);
         addNode("OP_REDUCTION:MAX", {T_SCL_6}, {AMAX_O});
-
-
     }
 
-
-    void initInputs(size_t n, size_t h, size_t s, size_t d)
+    void initInputs(size_t n, size_t h, size_t s, size_t d) override
     {
         using namespace test::cpu;
 
@@ -186,95 +184,17 @@ class MhaFwdGraphTest : public MhaGraphTestBase
         }
     }
 
-    void runCPUverify(size_t n, size_t h, size_t s, size_t d)
+    void runCpuVerify(size_t n, size_t h, size_t s, size_t d) override
     {
 
-        auto softmax_ref  = tensor<float>{n, h, s, s};
-        auto oDesc_ref    = tensor<float>{n, h, s, d};
-        auto mDesc_ref    = tensor<float>{n, h, s, 1};
-        auto zInvDesc_ref = tensor<float>{n, h, s, 1};
-        float amaxS_ref   = 0;
-        float amaxO_ref   = 0;
+        CpuMhaFwdOut out = runCpuMhaFWd(n, h, s, d);
 
-        auto lookup = [this](const std::string& k) -> TensorData& {
-            auto it = mFilledTensors.find(k);
-            assert(it != mFilledTensors.cend());
-            return it->second;
-        };
-        auto lookup_f = [&](const std::string& k) {
-            return std::get<TensorData::TensFlt>(lookup(k).mCpuTensor);
-        };
+        checkAmax("AMAX_S", out.mAmaxS);
+        checkAmax("AMAX_O", out.mAmaxO);
 
-        auto lookup_i = [&](const std::string& k) {
-            return std::get<TensorData::TensI64>(lookup(k).mCpuTensor);
-        };
-
-        test::cpu::MultiHeadAttentionfp8(lookup_f("Q"),
-                                         lookup_f("K"),
-                                         lookup_f("V"),
-                                         softmax_ref,
-                                         mDesc_ref,
-                                         zInvDesc_ref,
-                                         lookup_f("DSCL_Q")[0],
-                                         lookup_f("DSCL_K")[0],
-                                         lookup_f("DSCL_V")[0],
-                                         lookup_f("DSCL_S")[0],
-                                         lookup_f("SCL_S")[0],
-                                         lookup_f("SCL_O")[0],
-                                         lookup_f("RND_PRB")[0],
-                                         lookup_i("RND_SD")[0],
-                                         lookup_i("RND_OFF")[0],
-                                         amaxS_ref,
-                                         amaxO_ref,
-                                         oDesc_ref);
-
-        auto GetResult = [&](const std::string& t_name) {
-            auto it = mFilledTensors.find(t_name);
-            assert(it != mFilledTensors.cend());
-            auto& v = it->second;
-            v.copyBack();
-            return std::get<TensorData::TensFlt>(v.mCpuTensor);
-        };
-
-        const double error_threshold = 5e-6;
-
-        const auto& resAmaxS = GetResult("AMAX_S");
-        auto amaxS_abs_diff  = std::abs(amaxS_ref - resAmaxS[0]);
-        EXPECT_LT(amaxS_abs_diff, error_threshold)
-            << " ref: " << amaxS_ref << " result: " << resAmaxS[0];
-
-        const auto& resAmaxO = GetResult("AMAX_O");
-        auto amaxO_abs_diff  = std::abs(amaxO_ref - resAmaxO[0]);
-        EXPECT_LT(amaxO_abs_diff, error_threshold)
-            << " ref: " << amaxO_ref << " result: " << resAmaxO[0];
-
-        double M_error = miopen::rms_range(mDesc_ref, GetResult("M"));
-        EXPECT_LT(M_error, error_threshold);
-
-        double ZInv_error = miopen::rms_range(zInvDesc_ref, GetResult("Z_INV"));
-        EXPECT_LT(ZInv_error, error_threshold);
-
-        double O_error = miopen::rms_range(oDesc_ref, GetResult("O"));
-        EXPECT_LT(O_error, error_threshold);
-    }
-
-public:
-    void Run()
-    {
-        auto [n, h, s, d, p] = GetParam();
-        std::cout << "n:" << n << ", h:" << h << ", s:" << s << ", d:" << d << ", p:" << p
-                  << std::endl;
-        mProbDropout = p;
-
-        auto& handle = get_handle();
-        if((p > 0.0f) && (s % handle.GetWavefrontWidth() != 0))
-        {
-            GTEST_SKIP() << "CPU Dropout currently supprorts only fully occupied warps";
-        }
-        createMhaGraph(n, h, s, d);
-        initInputs(n, h, s, d);
-        executeMhaGraph();
-        runCPUverify(n, h, s, d);
+        checkTensor("M", out.mM);
+        checkTensor("Z_INV", out.mZinv);
+        checkTensor("O", out.mO);
     }
 };
 

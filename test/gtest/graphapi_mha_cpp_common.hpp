@@ -53,6 +53,7 @@ namespace mha_graph_test {
 class MhaGraphTestBase : public testing::TestWithParam<std::tuple<int, int, int, int, float>>
 {
 
+protected:
     struct TensorData
     {
         using TensFlt = tensor<float>;
@@ -123,6 +124,13 @@ class MhaGraphTestBase : public testing::TestWithParam<std::tuple<int, int, int,
     std::unordered_map<std::string, TensorData> mFilledTensors;
     float mAttentionScale = 1.0f;
     float mProbDropout    = 0.0f;
+    double mErrorThresh   = 5e-5;
+
+    virtual void createMhaGraph(size_t n, size_t h, size_t s, size_t d) = 0;
+    virtual void initInputs(size_t n, size_t h, size_t s, size_t d)     = 0;
+    virtual void runCpuVerify(size_t n, size_t h, size_t s, size_t d)   = 0;
+
+    virtual ~MhaGraphTestBase() = default;
 
     auto* makePointWiseDesc(miopenPointwiseMode_t mode)
     {
@@ -276,9 +284,10 @@ class MhaGraphTestBase : public testing::TestWithParam<std::tuple<int, int, int,
         if constexpr(!IsVirt)
         {
             auto [it, inserted] = mFilledTensors.try_emplace(std::string(name), TensorData(ptr));
-            if (!inserted) {
-              std::cerr << "Duplicate tensor name" << std::endl;
-              std::abort();
+            if(!inserted)
+            {
+                std::cerr << "Duplicate tensor name" << std::endl;
+                std::abort();
             }
         }
         return ptr;
@@ -307,7 +316,8 @@ class MhaGraphTestBase : public testing::TestWithParam<std::tuple<int, int, int,
             .build();
     }
 
-    void executeMhaGraph()
+    /// \todo remove virtual once backward mha is ready to execute
+    virtual void executeMhaGraph()
     {
         auto& handle = get_handle();
         mGraphBuilder->setHandle(static_cast<miopenHandle_t>(&handle));
@@ -319,9 +329,8 @@ class MhaGraphTestBase : public testing::TestWithParam<std::tuple<int, int, int,
 
         auto engine_cfg = gr::EngineCfgBuilder().setEngine(engines[0]).build();
 
-        auto& handle = get_handle();
-        auto h       = static_cast<miopenHandle_t>(&handle);
-        auto plan    = gr::ExecutionPlanBuilder().setEngineCfg(engine_cfg).setHandle(h).build();
+        auto h    = static_cast<miopenHandle_t>(&handle);
+        auto plan = gr::ExecutionPlanBuilder().setEngineCfg(engine_cfg).setHandle(h).build();
 
         Workspace ws(plan.getWorkspaceSize());
 
@@ -329,6 +338,111 @@ class MhaGraphTestBase : public testing::TestWithParam<std::tuple<int, int, int,
 
         plan.execute(h, variant_pack);
     }
+
+    struct CpuMhaFwdOut
+    {
+        tensor<float> mSoftMax;
+        tensor<float> mO;
+        tensor<float> mM;
+        tensor<float> mZinv;
+        float mAmaxS = 0;
+        float mAmaxO = 0;
+
+        CpuMhaFwdOut(size_t n, size_t h, size_t s, size_t d)
+            : mSoftMax(n, h, s, s), mO(n, h, s, d), mM(n, h, s, 1), mZinv(n, h, s, 1)
+        {
+        }
+    };
+
+    TensorData& lookup(const std::string& k)
+    {
+        auto it = mFilledTensors.find(k);
+        assert(it != mFilledTensors.cend());
+        return it->second;
+    }
+    auto lookup_f(const std::string& k)
+    {
+        return std::get<TensorData::TensFlt>(lookup(k).mCpuTensor);
+    };
+
+    auto lookup_i(const std::string& k)
+    {
+        return std::get<TensorData::TensI64>(lookup(k).mCpuTensor);
+    };
+
+    CpuMhaFwdOut runCpuMhaFWd(size_t n, size_t h, size_t s, size_t d)
+    {
+
+        CpuMhaFwdOut out(n, h, s, d);
+
+        test::cpu::MultiHeadAttentionfp8(lookup_f("Q"),
+                                         lookup_f("K"),
+                                         lookup_f("V"),
+                                         out.mSoftMax,
+                                         out.mM,
+                                         out.mZinv,
+                                         lookup_f("DSCL_Q")[0],
+                                         lookup_f("DSCL_K")[0],
+                                         lookup_f("DSCL_V")[0],
+                                         lookup_f("DSCL_S")[0],
+                                         lookup_f("SCL_S")[0],
+                                         lookup_f("SCL_O")[0],
+                                         lookup_f("RND_PRB")[0],
+                                         lookup_i("RND_SD")[0],
+                                         lookup_i("RND_OFF")[0],
+                                         out.mAmaxS,
+                                         out.mAmaxO,
+                                         out.mO);
+
+        return out;
+    }
+
+    decltype(auto) GetResult(const std::string& t_name)
+    {
+        auto it = mFilledTensors.find(t_name);
+        if(it == mFilledTensors.cend())
+        {
+            MIOPEN_LOG_E("Tensor not found in the map: " << t_name);
+            std::abort();
+            TensorData::TensFlt* t{};
+            return *t;
+        }
+        auto& v = it->second;
+        v.copyBack();
+        return std::get<TensorData::TensFlt>(v.mCpuTensor);
+    }
+
+    void checkAmax(const std::string& t_name, const float refAmax)
+    {
+        const auto& resAmax = GetResult(t_name);
+        auto abs_diff       = std::abs(refAmax - resAmax[0]);
+        ASSERT_LT(abs_diff, mErrorThresh) << " ref: " << refAmax << " result: " << resAmax[0];
+    }
+
+    void checkTensor(const std::string& t_name, const tensor<float>& ref_tens)
+    {
+        double rms = miopen::rms_range(ref_tens, GetResult(t_name));
+        ASSERT_LT(rms, mErrorThresh);
+    }
+
+public:
+    void Run()
+    {
+        auto [n, h, s, d, p] = GetParam();
+        std::cout << "n:" << n << ", h:" << h << ", s:" << s << ", d:" << d << ", p:" << p
+                  << std::endl;
+        mProbDropout = p;
+
+        auto& handle = get_handle();
+        if((p > 0.0f) && (s % handle.GetWavefrontWidth() != 0))
+        {
+            GTEST_SKIP() << "CPU Dropout currently supprorts only fully occupied warps";
+        }
+        createMhaGraph(n, h, s, d);
+        initInputs(n, h, s, d);
+        executeMhaGraph();
+        runCpuVerify(n, h, s, d);
+    }
 };
 
-}// end namespace mha_graph_test
+} // end namespace mha_graph_test
