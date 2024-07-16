@@ -107,7 +107,7 @@ class GPU_ConvBiasResAddActivation_fwd
             : mTensPtr(tensorPtr), mCpuTensor(tensor<T>(desc))
         {
             assert(mTensPtr);
-            assert(mTensPtr->getDataType() == miopen_type<T>());
+            assert(mTensPtr->GetType() == miopen_type<T>());
         }
 
         template <typename G>
@@ -147,8 +147,8 @@ class GPU_ConvBiasResAddActivation_fwd
         {
             auto ptr = mAlloc.allocate(gr::makeTensor<isVirtual>(name,
                                                                  dataType,
-                                                                 Convert(tensorDesc.GetLengths()),
-                                                                 Convert(tensorDesc.GetStrides())));
+                                                                tensorDesc.GetLengths(),
+                                                                tensorDesc.GetStrides()));
             if constexpr(!isVirtual)
             {
                 mFilledTensors.emplace(std::string(name), TensorData(ptr, tensorDesc));
