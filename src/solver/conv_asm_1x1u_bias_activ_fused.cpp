@@ -271,7 +271,6 @@ bool ConvBiasActivAsm1x1U::IsApplicable(const FusionContext& context,
     // Check if the conovlution part is applicable
     return sol.IsApplicable(conv_ctx, conv_problem);
 }
-
 } // namespace fusion
 } // namespace solver
 } // namespace miopen

@@ -33,6 +33,7 @@
 #include <miopen/visit_float.hpp>
 #include <miopen/stringutils.hpp>
 #include <miopen/solver_id.hpp>
+#include <miopen/solution.hpp>
 #include <miopen/fusion/solvers.hpp>
 #include <miopen/fusion/fusion_invoke_params.hpp>
 #include <miopen/fusion/utils.hpp>
@@ -973,16 +974,22 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
     miopen::OperatorArgs params;
 
     const auto& fusion_problem = FusionDescription{this};
-    std::vector<Solution> find_results;
 
     const auto network_config = fusion_problem.MakeNetworkConfig();
-    auto invoker = handle.GetInvoker(network_config, std::nullopt, AlgorithmName{"fusion"});
+    auto invoker = handle.GetInvoker(network_config, boost::none, AlgorithmName{"fusion"});
 
     if(invoker)
     {
         invokers.push_back(*invoker);
         return miopenStatusSuccess;
     }
+
+    std::vector<PerfField> find_results;
+    const auto hasConv = [](solver::Id id) {
+        bool ret = true;
+        GetFusedNonConvSolvers().FindById(id, [&](auto solver) { ret = false; });
+        return ret;
+    };
 
     {
         FindMode findMode;
@@ -1005,7 +1012,9 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
                     // Assume WTI == 1.0 (100%) is 10 ms.
                     // Return negative values as is, avoid DIV/0.
                     const auto time = wti <= 0.0f ? wti : (10.f / wti);
-                    sols.push_back({time, 0, id.Value(), miopenConvolutionAlgoDirect});
+
+                    const auto algo = hasConv(id) ? id.GetAlgo() : miopenConvolutionAlgoDirect;
+                    sols.push_back(miopenConvSolution_t{time, 0, id.Value(), algo});
                 });
             }
 
@@ -1034,9 +1043,12 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
                     handle.PrepareInvoker(*solution.invoker_factory, solution.construction_params);
                 // We register the invoker below
 
-                auto ret = Solution{id, sol->time, solver.GetWorkspaceSize(ctx, fusion_problem)};
-                ret.SetInvoker(std::move(invoker));
-                find_results.push_back(std::move(ret));
+                auto algo =
+                    hasConv(id)
+                        ? ConvolutionAlgoToDirectionalString(id.GetAlgo(), conv::Direction::Forward)
+                        : "fusion";
+
+                find_results.push_back(PerfField{std::move(algo), id.ToString(), .0f, 0});
             });
         }
         else
@@ -1050,15 +1062,13 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
 
     for(const auto& result : find_results)
     {
-        if(conv_fwd_algo && result.algorithm != "fusion" &&
+        const auto id = solver::Id(result.solver_id);
+
+        if(conv_fwd_algo && hasConv(id) &&
            miopen::StringToConvolutionFwdAlgo(result.algorithm) != *conv_fwd_algo)
             continue;
 
-        const auto id = result.GetSolver();
-        invoker       = result.GetInvoker();
-
-        if(!invoker)
-            invoker = handle.GetInvoker(network_config, id);
+        invoker = handle.GetInvoker(network_config, id);
 
         if(!invoker)
         {
@@ -1068,7 +1078,7 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
 
         handle.RegisterInvoker(*invoker, network_config, id.ToString(), AlgorithmName{"fusion"});
         invokers.push_back(std::move(*invoker));
-        MIOPEN_LOG_I2(miopen::ConvolutionAlgoToString(algorithm));
+        MIOPEN_LOG_I2(result.algorithm);
     }
 
     if(invokers.empty())

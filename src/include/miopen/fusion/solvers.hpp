@@ -182,6 +182,9 @@ struct ConvOclDirectFwdFused final : FusionTunableSolver<LegacyPerformanceConfig
            const FusionDescription&,
            const AnyInvokeParams& invoke_params) const override;
     float GetWti(const FusionContext&, const FusionDescription& problem) const override;
+    bool IsValidPerformanceConfig(const FusionContext&,
+                                  const FusionDescription&,
+                                  const LegacyPerformanceConfig&) const override;
 };
 
 struct PerformanceConfigConvCKIgemmFwdBiasActivFused
@@ -327,6 +330,10 @@ struct ConvBinWinogradRxSFused final : FusionSolverBase
     }
 
     float GetWti(const FusionContext&, const FusionDescription&) const override;
+    bool IsApplicable(const FusionContext& context,
+                      const FusionDescription& problem) const override;
+    ConvSolution GetSolution(const FusionContext& context,
+                             const FusionDescription& problem) const override;
 };
 
 struct ConvBinWinogradRxSf2x3g1Fused final : FusionSolverBase
@@ -337,6 +344,10 @@ struct ConvBinWinogradRxSf2x3g1Fused final : FusionSolverBase
     }
 
     float GetWti(const FusionContext&, const FusionDescription&) const override;
+    bool IsApplicable(const FusionContext& context,
+                      const FusionDescription& problem) const override;
+    ConvSolution GetSolution(const FusionContext& context,
+                             const FusionDescription& problem) const override;
 };
 
 struct BnFwdInferActivationFused final : FusionSolverBase

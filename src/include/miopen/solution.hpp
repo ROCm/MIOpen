@@ -98,35 +98,6 @@ struct Solution : miopenSolution
     friend void to_json(nlohmann::json& json, const Solution& solution);
     friend void from_json(const nlohmann::json& json, Solution& solution);
 
-    void SetInvoker(Invoker invoker_,
-                    const std::vector<Program>& programs            = {},
-                    const std::vector<solver::KernelInfo>& kernels_ = {})
-    {
-#if MIOPEN_BACKEND_HIP
-        invoker = std::move(invoker_);
-
-        kernels.reserve(programs.size());
-
-        for(int i = 0; i < programs.size(); ++i)
-        {
-            auto kernel             = KernelInfo{};
-            kernel.program          = programs[i];
-            kernel.kernel_name      = kernels_[i].kernel_name;
-            kernel.program_name     = kernels_[i].kernel_file;
-            kernel.global_work_dims = kernels_[i].g_wk;
-            kernel.local_work_dims  = kernels_[i].l_wk;
-            kernels.emplace_back(std::move(kernel));
-        }
-#else
-        std::ignore = invoker_;
-        std::ignore = programs;
-        std::ignore = kernels_;
-#endif
-    }
-
-    const std::optional<Invoker>& GetInvoker() const { return invoker; }
-    const std::vector<KernelInfo>& GetKernels() const { return kernels; }
-
 private:
     float time                     = 0;
     std::size_t workspace_required = 0;
