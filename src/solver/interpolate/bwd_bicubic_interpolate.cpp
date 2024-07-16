@@ -27,6 +27,7 @@
 #include "miopen/conv_solution.hpp"
 #include "miopen/execution_context.hpp"
 #include "miopen/invoke_params.hpp"
+#include "miopen/miopen.h"
 #include <miopen/interpolate/solvers.hpp>
 #include <miopen/interpolate/utils.hpp>
 
@@ -43,10 +44,37 @@ namespace solver {
 
 namespace interpolate {
 
+bool IsOverRocmBicubicBwd(const miopen::interpolate::BwdProblemDescription& problem)
+{
+    TensorDescriptor output_grad_desc = problem.GetOutputGradDesc();
+    TensorDescriptor input_grad_desc  = problem.GetInputGradDesc();
+    auto dtype                        = input_grad_desc.GetType();
+
+    float scale_h =
+        static_cast<float>(output_grad_desc.GetLengths()[2]) / input_grad_desc.GetLengths()[2];
+    float scale_w =
+        static_cast<float>(output_grad_desc.GetLengths()[3]) / input_grad_desc.GetLengths()[3];
+
+    if(dtype == miopenHalf || dtype == miopenBFloat16)
+    {
+        if(scale_h * scale_w < 16 && scale_h * scale_w > 0.5)
+            return true;
+    }
+    else
+    {
+        return true;
+    }
+
+    return true;
+    // return false;
+}
+
 bool InterpolateBicubicBackward::IsApplicable(
     const ExecutionContext&, const miopen::interpolate::BwdProblemDescription& problem) const
 {
     if(problem.GetMode() != miopenInterpolateMode_t::MIOPEN_INTERPOLATE_MODE_BICUBIC)
+        return false;
+    if(!IsOverRocmBicubicBwd(problem))
         return false;
 
     return true;
@@ -63,8 +91,9 @@ ConvSolution InterpolateBicubicBackward::GetSolution(
     auto output_dtype = miopen::GetDataType(problem.GetInputGradDesc().GetType());
 
     {
-        auto dtype     = problem.GetInputGradDesc().GetType();
-        size_t N_total = problem.GetInputGradDesc().GetElementSize();
+        auto dtype           = problem.GetInputGradDesc().GetType();
+        size_t N_total       = problem.GetOutputGradDesc().GetElementSize();
+        size_t N_total_paste = problem.GetInputGradDesc().GetElementSize();
 
         auto kernel = KernelInfo{};
 
@@ -84,11 +113,14 @@ ConvSolution InterpolateBicubicBackward::GetSolution(
                                                              "InterpolateBicubicBackward",
                                                              build_params));
 
-        result.construction_params.push_back(make_hip_kernel({LOCAL_SIZE_BWD_BICUBIC},
-                                                             {N_total},
-                                                             "MIOpenInterpolate.cpp",
-                                                             "InterpolateBicubicBackward_paste",
-                                                             build_params));
+        if(dtype != miopenFloat)
+        {
+            result.construction_params.push_back(make_hip_kernel({LOCAL_SIZE_BWD_BICUBIC},
+                                                                 {N_total_paste},
+                                                                 "MIOpenInterpolate.cpp",
+                                                                 "InterpolateBicubicBackward_paste",
+                                                                 build_params));
+        }
     }
 
     result.invoker_factory = [](const std::vector<Kernel>& kernels) {
@@ -97,7 +129,8 @@ ConvSolution InterpolateBicubicBackward::GetSolution(
 
             auto input_grad_tv  = get_inner_expanded_tv<4>(deref(params.inputGradDesc));
             auto output_grad_tv = get_inner_expanded_tv<4>(deref(params.outputGradDesc));
-            size_t nelems       = params.inputGradDesc->GetElementSize();
+            auto dtype          = deref(params.inputGradDesc).GetType();
+            size_t nelems       = params.outputGradDesc->GetElementSize();
 
             int kernelCnt         = 0;
             decltype(auto) kernel = handle_.Run(kernels[kernelCnt++]);
@@ -116,16 +149,30 @@ ConvSolution InterpolateBicubicBackward::GetSolution(
                 hipEventRecord(start.get(), handle_.GetStream());
             }
 
-            kernel(params.workspace,
-                   params.output_grad,
-                   input_grad_tv,
-                   output_grad_tv,
-                   nelems,
-                   params.scale_factors,
-                   params.align_corners);
+            if(dtype == miopenFloat)
+            {
+                kernel(params.input_grad,
+                       params.output_grad,
+                       input_grad_tv,
+                       output_grad_tv,
+                       nelems,
+                       params.scale_factors,
+                       params.align_corners);
+            }
+            else
+            {
+                kernel(params.workspace,
+                       params.output_grad,
+                       input_grad_tv,
+                       output_grad_tv,
+                       nelems,
+                       params.scale_factors,
+                       params.align_corners);
 
-            kernel = handle_.Run(kernels[kernelCnt++]);
-            kernel(params.input_grad, params.workspace, input_grad_tv, nelems);
+                nelems = params.inputGradDesc->GetElementSize();
+                kernel = handle_.Run(kernels[kernelCnt++]);
+                kernel(params.input_grad, params.workspace, input_grad_tv, nelems);
+            }
 
             if(reset_profiling_state)
             {

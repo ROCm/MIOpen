@@ -24,6 +24,7 @@
  *
  *******************************************************************************/
 
+#include "miopen/activ.hpp"
 #include "miopen/conv_solution.hpp"
 #include "miopen/execution_context.hpp"
 #include "miopen/invoke_params.hpp"
@@ -43,12 +44,50 @@ namespace solver {
 
 namespace interpolate {
 
+bool IsOverRocmNearestBwd(const miopen::interpolate::BwdProblemDescription& problem)
+{
+    TensorDescriptor input_grad_desc = problem.GetInputGradDesc();
+    if(input_grad_desc.GetLengths().size() == 3)
+    {
+        if(input_grad_desc.GetElementSize() < 8000 || input_grad_desc.GetLengths()[0] < 10)
+            return false;
+    }
+    else if(input_grad_desc.GetLengths().size() == 4)
+    {
+        TensorDescriptor output_grad_desc = problem.GetOutputGradDesc();
+        float scale_h =
+            static_cast<float>(output_grad_desc.GetLengths()[2]) / input_grad_desc.GetLengths()[2];
+        float scale_w =
+            static_cast<float>(output_grad_desc.GetLengths()[3]) / input_grad_desc.GetLengths()[3];
+
+        if(input_grad_desc.GetLengths()[0] * input_grad_desc.GetLengths()[1] < 9 ||
+           (scale_h + scale_w <= 4))
+            return false;
+    }
+    else if(input_grad_desc.GetLengths().size() == 5)
+    {
+        TensorDescriptor output_grad_desc = problem.GetOutputGradDesc();
+        float scale_h =
+            static_cast<float>(output_grad_desc.GetLengths()[2]) / input_grad_desc.GetLengths()[2];
+        float scale_w =
+            static_cast<float>(output_grad_desc.GetLengths()[3]) / input_grad_desc.GetLengths()[3];
+        float scale_d =
+            static_cast<float>(output_grad_desc.GetLengths()[4]) / input_grad_desc.GetLengths()[4];
+
+        if(scale_h + scale_w + scale_d < 6)
+            return false;
+    }
+
+    return true;
+}
+
 bool InterpolateNearestBackward::IsApplicable(
     const ExecutionContext&, const miopen::interpolate::BwdProblemDescription& problem) const
 {
     if(problem.GetMode() != miopenInterpolateMode_t::MIOPEN_INTERPOLATE_MODE_NEAREST)
         return false;
-
+    if(!IsOverRocmNearestBwd(problem))
+        return false;
     return true;
 }
 

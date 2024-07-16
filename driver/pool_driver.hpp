@@ -271,6 +271,7 @@ int PoolDriver_impl<Tgpu, Tref, Index>::SetPoolDescriptorFromCmdLineArgs()
     }
     else
     {
+        std::cout << inflags.GetValueStr("pad_mode") << std::endl;
         printf("Incorrect Padding Mode\n");
         exit(0); // NOLINT (concurrency-mt-unsafe)
     }

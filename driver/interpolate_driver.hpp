@@ -262,7 +262,7 @@ int InterpolateDriver<Tgpu, Tref>::AddCmdLineArgs()
                          "'bicubic' | 'trilinear'. Default: 0 - 'nearest'",
                          "int");
     inflags.AddInputFlag("align_corners",
-                         'a',
+                         'A',
                          "0",
                          "This only has an effect when mode is 'linear', 'bilinear', 'bicubic' or "
                          "'trilinear'. Default: False",
@@ -500,11 +500,6 @@ int InterpolateDriver<Tgpu, Tref>::VerifyBackward()
     RunBackwardCPU();
     auto tolerance = std::numeric_limits<Tgpu>::epsilon() * 10;
     auto error     = miopen::rms_range(in_grad_host, in_grad);
-
-    for(int i = 0; i < 10; ++i)
-    {
-        std::cout << "CPU: " << in_grad_host[i] << " GPU: " << in_grad[i] << std::endl;
-    }
 
     if(!std::isfinite(error) || error > tolerance)
     {

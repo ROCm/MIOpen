@@ -43,10 +43,22 @@ namespace solver {
 
 namespace interpolate {
 
+bool IsOverRocmBilinearFwd(const miopen::interpolate::FwdProblemDescription& problem)
+{
+    TensorDescriptor output_desc = problem.GetOutputDesc();
+
+    if(output_desc.GetLengths()[2] + output_desc.GetLengths()[3] > 256)
+        return false;
+
+    return true;
+}
+
 bool InterpolateBilinearForward::IsApplicable(
     const ExecutionContext&, const miopen::interpolate::FwdProblemDescription& problem) const
 {
     if(problem.GetMode() != miopenInterpolateMode_t::MIOPEN_INTERPOLATE_MODE_BILINEAR)
+        return false;
+    if(!IsOverRocmBilinearFwd(problem))
         return false;
 
     return true;

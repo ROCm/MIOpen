@@ -1021,7 +1021,8 @@ int32_t mlo_bicubic_backward(const miopenTensorDescriptor_t inputGradDesc,
     uint64_t Win  = input_grad_tv.size[3];
     uint64_t Wout = output_grad_tv.size[3];
 
-    for(uint64_t gid = 0; gid < nelems; ++gid)
+    size_t out_elems = miopen::deref(outputGradDesc).GetElementSize();
+    for(uint64_t gid = 0; gid < out_elems; ++gid)
     {
         auto tensor_layout = tensor_layout_t<4>(output_grad_tv, gid);
         uint64_t n         = tensor_layout.layout[0];
@@ -1059,10 +1060,10 @@ int32_t mlo_bicubic_backward(const miopenTensorDescriptor_t inputGradDesc,
 
         for(int i = 0; i < 4; i++)
         {
-            uint64_t input_h = bound(in_y - 1 + i, Hin);
+            int64_t input_h = bound(in_y - 1 + i, Hin);
             for(int j = 0; j < 4; j++)
             {
-                uint64_t input_w = bound(in_x - 1 + j, Win);
+                int64_t input_w = bound(in_x - 1 + j, Win);
                 tensor_layout_t<4> in_grad_layout;
                 in_grad_layout.layout[0] = n;
                 in_grad_layout.layout[1] = c;

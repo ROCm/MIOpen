@@ -35,7 +35,7 @@
 #include <miopen/interpolate.hpp>
 #include <miopen/target_properties.hpp>
 
-#define LOCAL_SIZE_FWD_TRILINEAR 256
+#define LOCAL_SIZE_FWD_TRILINEAR 128
 
 namespace miopen {
 
@@ -49,7 +49,7 @@ bool InterpolateTrilinearForward::IsApplicable(
     if(problem.GetMode() != miopenInterpolateMode_t::MIOPEN_INTERPOLATE_MODE_TRILINEAR)
         return false;
 
-    return true;
+    return false;
 }
 
 ConvSolution InterpolateTrilinearForward::GetSolution(

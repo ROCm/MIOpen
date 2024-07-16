@@ -31,8 +31,8 @@
 #include <miopen/interpolate/utils.hpp>
 
 inline float compute_linear_scale_factor(float scale_factor,
-                                         long input_size,
-                                         long output_size,
+                                         int64_t input_size,
+                                         int64_t output_size,
                                          bool align_corners)
 {
     if(align_corners)
@@ -53,7 +53,7 @@ inline float compute_linear_scale_factor(float scale_factor,
     }
 }
 
-inline float get_src_index(long dest_index, float scale_factor, bool align_corners)
+inline float get_src_index(int64_t dest_index, float scale_factor, bool align_corners)
 {
     if(align_corners)
     {
@@ -65,18 +65,18 @@ inline float get_src_index(long dest_index, float scale_factor, bool align_corne
     }
 }
 
-inline long linear_back_index(long src, float scale_factor, bool align_corners)
+inline int64_t linear_back_index(int64_t src, float scale_factor, bool align_corners)
 {
-    return static_cast<long>(std::ceil(get_src_index(src, 1.f / scale_factor, align_corners)));
+    return static_cast<int64_t>(std::ceil(get_src_index(src, 1.f / scale_factor, align_corners)));
 }
 
-inline void compute_linear_back_index_from_to(long src,
-                                              long input_isze,
-                                              long output_size,
+inline void compute_linear_back_index_from_to(int64_t src,
+                                              int64_t input_isze,
+                                              int64_t output_size,
                                               float scale_factor,
                                               bool align_corners,
-                                              long* from,
-                                              long* to)
+                                              int64_t* from,
+                                              int64_t* to)
 {
     if(src - 1 < 1)
     {
@@ -96,25 +96,25 @@ inline void compute_linear_back_index_from_to(long src,
     }
 }
 
-inline void compute_source_index_and_lambda(long h,
+inline void compute_source_index_and_lambda(int64_t h,
                                             float scale_factor,
-                                            long Hin,
-                                            long Hout,
+                                            int64_t Hin,
+                                            int64_t Hout,
                                             bool align_corners,
-                                            long* hin_index0,
-                                            long* hin_index1,
+                                            int64_t* hin_index0,
+                                            int64_t* hin_index1,
                                             float* lambda0,
                                             float* lambda1)
 {
     float hin_index_actual = static_cast<float>(
         std::max(static_cast<float>(0.), get_src_index(h, scale_factor, align_corners)));
-    *hin_index0 = static_cast<long>(hin_index_actual);
+    *hin_index0 = static_cast<int64_t>(hin_index_actual);
     *hin_index1 = std::min(*hin_index0 + 1, Hin - 1);
     *lambda1    = hin_index_actual - *hin_index0;
     *lambda0    = 1.f - *lambda1;
 }
 
-inline float get_back_lambda(long src, long src0, long src1, float lambda0, float lambda1)
+inline float get_back_lambda(int64_t src, int64_t src0, int64_t src1, float lambda0, float lambda1)
 {
     if(src == src0)
     {
@@ -134,14 +134,14 @@ inline float get_back_lambda(long src, long src0, long src1, float lambda0, floa
 }
 
 inline float compute_back_lambda(
-    long dest, long src, float scale_factor, long Hin, long Hout, bool align_corners)
+    int64_t dest, int64_t src, float scale_factor, int64_t Hin, int64_t Hout, bool align_corners)
 {
     if(Hin == Hout)
     {
         return 1;
     }
-    long index0;
-    long index1;
+    int64_t index0;
+    int64_t index1;
     float lambda0;
     float lambda1;
     compute_source_index_and_lambda(
@@ -159,15 +159,15 @@ void cpu_interpolate_linear_forward(const tensor<T> input,
     auto input_tv  = miopen::solver::interpolate::get_inner_expanded_tv<3>(input.desc);
     auto output_tv = miopen::solver::interpolate::get_inner_expanded_tv<3>(output.desc);
 
-    for(unsigned long gid = 0; gid < nelems; ++gid)
+    for(int64_t gid = 0; gid < nelems; ++gid)
     {
         auto tensor_layout = tensor_layout_t<3>(output_tv, gid);
-        long n             = tensor_layout.layout[0];
-        long c             = tensor_layout.layout[1];
-        long h             = tensor_layout.layout[2];
+        int64_t n          = tensor_layout.layout[0];
+        int64_t c          = tensor_layout.layout[1];
+        int64_t h          = tensor_layout.layout[2];
 
-        long Hin  = input_tv.size[2];
-        long Hout = output_tv.size[2];
+        int64_t Hin  = input_tv.size[2];
+        int64_t Hout = output_tv.size[2];
         if(Hin == Hout || Hout == 1)
         {
             output[output_tv.get_tensor_view_idx(tensor_layout)] =
@@ -178,8 +178,8 @@ void cpu_interpolate_linear_forward(const tensor<T> input,
         float scale_factor_h = scale_factors[0];
         scale_factor_h = compute_linear_scale_factor(scale_factor_h, Hin, Hout, align_corners);
 
-        long hin_index0;
-        long hin_index1;
+        int64_t hin_index0;
+        int64_t hin_index1;
         float lambda1;
         float lambda0;
         compute_source_index_and_lambda(h,
@@ -220,15 +220,15 @@ void cpu_interpolate_linear_backward(tensor<T>& input_grad,
     auto output_grad_tv = miopen::solver::interpolate::get_inner_expanded_tv<3>(output_grad.desc);
     auto input_grad_tv  = miopen::solver::interpolate::get_inner_expanded_tv<3>(input_grad.desc);
 
-    for(unsigned long gid = 0; gid < nelems; ++gid)
+    for(int64_t gid = 0; gid < nelems; ++gid)
     {
         auto tensor_layout = tensor_layout_t<3>(input_grad_tv, gid);
-        long n             = tensor_layout.layout[0];
-        long c             = tensor_layout.layout[1];
-        long h             = tensor_layout.layout[2];
+        int64_t n          = tensor_layout.layout[0];
+        int64_t c          = tensor_layout.layout[1];
+        int64_t h          = tensor_layout.layout[2];
 
-        long Hin  = input_grad_tv.size[2];
-        long Hout = output_grad_tv.size[2];
+        int64_t Hin  = input_grad_tv.size[2];
+        int64_t Hout = output_grad_tv.size[2];
 
         if(Hin == Hout)
         {
@@ -240,11 +240,11 @@ void cpu_interpolate_linear_backward(tensor<T>& input_grad,
         float scale_factor_h = scale_factors[0];
         float scale_factor = compute_linear_scale_factor(scale_factor_h, Hin, Hout, align_corners);
 
-        long from, to;
+        int64_t from, to;
         compute_linear_back_index_from_to(h, Hin, Hout, scale_factor, align_corners, &from, &to);
 
         float output = 0;
-        for(long i = from; i < to; i++)
+        for(int64_t i = from; i < to; i++)
         {
             tensor_layout_t<3> output_layout;
             output_layout.layout[0] = n;
@@ -268,18 +268,18 @@ void cpu_interpolate_bilinear_forward(const tensor<T> input,
     auto input_tv  = miopen::solver::interpolate::get_inner_expanded_tv<4>(input.desc);
     auto output_tv = miopen::solver::interpolate::get_inner_expanded_tv<4>(output.desc);
 
-    for(unsigned long gid = 0; gid < nelems; ++gid)
+    for(int64_t gid = 0; gid < nelems; ++gid)
     {
         auto tensor_layout = tensor_layout_t<4>(output_tv, gid);
-        long n             = tensor_layout.layout[0];
-        long c             = tensor_layout.layout[1];
-        long h             = tensor_layout.layout[2];
-        long w             = tensor_layout.layout[3];
+        int64_t n          = tensor_layout.layout[0];
+        int64_t c          = tensor_layout.layout[1];
+        int64_t h          = tensor_layout.layout[2];
+        int64_t w          = tensor_layout.layout[3];
 
-        long Hin  = input_tv.size[2];
-        long Hout = output_tv.size[2];
-        long Win  = input_tv.size[3];
-        long Wout = output_tv.size[3];
+        int64_t Hin  = input_tv.size[2];
+        int64_t Hout = output_tv.size[2];
+        int64_t Win  = input_tv.size[3];
+        int64_t Wout = output_tv.size[3];
 
         if(Hin == Hout && Win == Wout)
         {
@@ -288,10 +288,10 @@ void cpu_interpolate_bilinear_forward(const tensor<T> input,
             continue;
         }
 
-        long hin_index0 = h;
-        long hin_index1 = h;
-        float hlambda0  = 1;
-        float hlambda1  = 0;
+        int64_t hin_index0 = h;
+        int64_t hin_index1 = h;
+        float hlambda0     = 1;
+        float hlambda1     = 0;
         if(Hin != Hout && Hout != 1)
         {
             float scale_factor_h = scale_factors[0];
@@ -308,10 +308,10 @@ void cpu_interpolate_bilinear_forward(const tensor<T> input,
                                             &hlambda1);
         }
 
-        long win_index0 = w;
-        long win_index1 = w;
-        float wlambda0  = 1;
-        float wlambda1  = 0;
+        int64_t win_index0 = w;
+        int64_t win_index1 = w;
+        float wlambda0     = 1;
+        float wlambda1     = 0;
         if(Win != Wout && Wout != 1)
         {
             float scale_factor_w = scale_factors[1];
@@ -372,18 +372,18 @@ void cpu_interpolate_bilinear_backward(tensor<T>& input_grad,
     auto output_grad_tv = miopen::solver::interpolate::get_inner_expanded_tv<4>(output_grad.desc);
     auto input_grad_tv  = miopen::solver::interpolate::get_inner_expanded_tv<4>(input_grad.desc);
 
-    for(unsigned long gid = 0; gid < nelems; ++gid)
+    for(int64_t gid = 0; gid < nelems; ++gid)
     {
         auto tensor_layout = tensor_layout_t<4>(input_grad_tv, gid);
-        long n             = tensor_layout.layout[0];
-        long c             = tensor_layout.layout[1];
-        long h             = tensor_layout.layout[2];
-        long w             = tensor_layout.layout[3];
+        int64_t n          = tensor_layout.layout[0];
+        int64_t c          = tensor_layout.layout[1];
+        int64_t h          = tensor_layout.layout[2];
+        int64_t w          = tensor_layout.layout[3];
 
-        long Hin  = input_grad_tv.size[2];
-        long Hout = output_grad_tv.size[2];
-        long Win  = input_grad_tv.size[3];
-        long Wout = output_grad_tv.size[3];
+        int64_t Hin  = input_grad_tv.size[2];
+        int64_t Hout = output_grad_tv.size[2];
+        int64_t Win  = input_grad_tv.size[3];
+        int64_t Wout = output_grad_tv.size[3];
 
         float scale_factor_h = scale_factors[0];
         float scale_factor_h_ =
@@ -393,7 +393,7 @@ void cpu_interpolate_bilinear_backward(tensor<T>& input_grad,
         float scale_factor_w_ =
             compute_linear_scale_factor(scale_factor_w, Win, Wout, align_corners);
 
-        long h_from, h_to;
+        int64_t h_from, h_to;
         if(Hin == Hout)
         {
             h_from = h;
@@ -404,7 +404,7 @@ void cpu_interpolate_bilinear_backward(tensor<T>& input_grad,
             compute_linear_back_index_from_to(
                 h, Hin, Hout, scale_factor_h_, align_corners, &h_from, &h_to);
         }
-        long w_from, w_to;
+        int64_t w_from, w_to;
         if(Win == Wout)
         {
             w_from = w;
@@ -417,12 +417,12 @@ void cpu_interpolate_bilinear_backward(tensor<T>& input_grad,
         }
 
         float output = 0;
-        for(long i = h_from; i < h_to; i++)
+        for(int64_t i = h_from; i < h_to; i++)
         {
             float h_lambda = compute_back_lambda(i, h, scale_factor_h_, Hin, Hout, align_corners);
             if(h_lambda == 0.)
                 continue;
-            for(long j = w_from; j < w_to; j++)
+            for(int64_t j = w_from; j < w_to; j++)
             {
                 float w_lambda =
                     compute_back_lambda(j, w, scale_factor_w_, Win, Wout, align_corners);
@@ -452,21 +452,21 @@ void cpu_interpolate_trilinear_forward(const tensor<T> input,
     auto input_tv  = miopen::solver::interpolate::get_inner_expanded_tv<5>(input.desc);
     auto output_tv = miopen::solver::interpolate::get_inner_expanded_tv<5>(output.desc);
 
-    for(unsigned long gid = 0; gid < nelems; ++gid)
+    for(int64_t gid = 0; gid < nelems; ++gid)
     {
         auto tensor_layout = tensor_layout_t<5>(output_tv, gid);
-        long n             = tensor_layout.layout[0];
-        long c             = tensor_layout.layout[1];
-        long d             = tensor_layout.layout[2];
-        long h             = tensor_layout.layout[3];
-        long w             = tensor_layout.layout[4];
+        int64_t n          = tensor_layout.layout[0];
+        int64_t c          = tensor_layout.layout[1];
+        int64_t d          = tensor_layout.layout[2];
+        int64_t h          = tensor_layout.layout[3];
+        int64_t w          = tensor_layout.layout[4];
 
-        long Din  = input_tv.size[2];
-        long Dout = output_tv.size[2];
-        long Hin  = input_tv.size[3];
-        long Hout = output_tv.size[3];
-        long Win  = input_tv.size[4];
-        long Wout = output_tv.size[4];
+        int64_t Din  = input_tv.size[2];
+        int64_t Dout = output_tv.size[2];
+        int64_t Hin  = input_tv.size[3];
+        int64_t Hout = output_tv.size[3];
+        int64_t Win  = input_tv.size[4];
+        int64_t Wout = output_tv.size[4];
 
         if(Hin == Hout && Win == Wout && Din == Dout)
         {
@@ -475,10 +475,10 @@ void cpu_interpolate_trilinear_forward(const tensor<T> input,
             continue;
         }
 
-        long din_index0 = d;
-        long din_index1 = d;
-        float dlambda0  = 1;
-        float dlambda1  = 0;
+        int64_t din_index0 = d;
+        int64_t din_index1 = d;
+        float dlambda0     = 1;
+        float dlambda1     = 0;
         if(Din != Dout && Dout != 1)
         {
             float scale_factor_d = scale_factors[0];
@@ -495,10 +495,10 @@ void cpu_interpolate_trilinear_forward(const tensor<T> input,
                                             &dlambda1);
         }
 
-        long hin_index0 = h;
-        long hin_index1 = h;
-        float hlambda0  = 1;
-        float hlambda1  = 0;
+        int64_t hin_index0 = h;
+        int64_t hin_index1 = h;
+        float hlambda0     = 1;
+        float hlambda1     = 0;
         if(Hin != Hout && Hout != 1)
         {
             float scale_factor_h = scale_factors[1];
@@ -515,10 +515,10 @@ void cpu_interpolate_trilinear_forward(const tensor<T> input,
                                             &hlambda1);
         }
 
-        long win_index0 = w;
-        long win_index1 = w;
-        float wlambda0  = 1;
-        float wlambda1  = 0;
+        int64_t win_index0 = w;
+        int64_t win_index1 = w;
+        float wlambda0     = 1;
+        float wlambda1     = 0;
         if(Win != Wout && Wout != 1)
         {
             float scale_factor_w = scale_factors[2];
@@ -616,21 +616,21 @@ void cpu_interpolate_trilinear_backward(tensor<T>& input_grad,
     auto output_grad_tv = miopen::solver::interpolate::get_inner_expanded_tv<5>(output_grad.desc);
     auto input_grad_tv  = miopen::solver::interpolate::get_inner_expanded_tv<5>(input_grad.desc);
 
-    for(unsigned long gid = 0; gid < nelems; ++gid)
+    for(int64_t gid = 0; gid < nelems; ++gid)
     {
         auto tensor_layout = tensor_layout_t<5>(input_grad_tv, gid);
-        long n             = tensor_layout.layout[0];
-        long c             = tensor_layout.layout[1];
-        long d             = tensor_layout.layout[2];
-        long h             = tensor_layout.layout[3];
-        long w             = tensor_layout.layout[4];
+        int64_t n          = tensor_layout.layout[0];
+        int64_t c          = tensor_layout.layout[1];
+        int64_t d          = tensor_layout.layout[2];
+        int64_t h          = tensor_layout.layout[3];
+        int64_t w          = tensor_layout.layout[4];
 
-        long Din  = input_grad_tv.size[2];
-        long Dout = output_grad_tv.size[2];
-        long Hin  = input_grad_tv.size[3];
-        long Hout = output_grad_tv.size[3];
-        long Win  = input_grad_tv.size[4];
-        long Wout = output_grad_tv.size[4];
+        int64_t Din  = input_grad_tv.size[2];
+        int64_t Dout = output_grad_tv.size[2];
+        int64_t Hin  = input_grad_tv.size[3];
+        int64_t Hout = output_grad_tv.size[3];
+        int64_t Win  = input_grad_tv.size[4];
+        int64_t Wout = output_grad_tv.size[4];
 
         float scale_factor_d = scale_factors[0];
         float scale_factor_d_ =
@@ -644,7 +644,7 @@ void cpu_interpolate_trilinear_backward(tensor<T>& input_grad,
         float scale_factor_w_ =
             compute_linear_scale_factor(scale_factor_w, Win, Wout, align_corners);
 
-        long d_from, d_to, h_from, h_to, w_from, w_to;
+        int64_t d_from, d_to, h_from, h_to, w_from, w_to;
         compute_linear_back_index_from_to(
             d, Din, Dout, scale_factor_d_, align_corners, &d_from, &d_to);
         compute_linear_back_index_from_to(
@@ -653,14 +653,14 @@ void cpu_interpolate_trilinear_backward(tensor<T>& input_grad,
             w, Win, Wout, scale_factor_w_, align_corners, &w_from, &w_to);
 
         float output = 0;
-        for(long i = d_from; i < d_to; i++)
+        for(int64_t i = d_from; i < d_to; i++)
         {
             float d_lambda = compute_back_lambda(i, d, scale_factor_d_, Din, Dout, align_corners);
-            for(long j = h_from; j < h_to; j++)
+            for(int64_t j = h_from; j < h_to; j++)
             {
                 float h_lambda =
                     compute_back_lambda(j, h, scale_factor_h_, Hin, Hout, align_corners);
-                for(long k = w_from; k < w_to; k++)
+                for(int64_t k = w_from; k < w_to; k++)
                 {
                     float w_lambda =
                         compute_back_lambda(k, w, scale_factor_w_, Win, Wout, align_corners);
@@ -680,12 +680,13 @@ void cpu_interpolate_trilinear_backward(tensor<T>& input_grad,
     }
 }
 
-inline float compute_scales_value(float scale, long input_size, long output_size)
+inline float compute_scales_value(float scale, int64_t input_size, int64_t output_size)
 {
     return (scale == 0.f) ? (static_cast<float>(input_size) / output_size) : (1.0f / scale);
 }
 
-inline long nearest_idx(long output_index, long input_size, long output_size, float scales)
+inline int64_t
+nearest_idx(int64_t output_index, int64_t input_size, int64_t output_size, float scales)
 {
     if(output_size == input_size)
     {
@@ -698,7 +699,7 @@ inline long nearest_idx(long output_index, long input_size, long output_size, fl
     else
     {
         float scale = compute_scales_value(scales, input_size, output_size);
-        return std::min(static_cast<long>((output_index * scale)), input_size);
+        return std::min(static_cast<int64_t>((output_index * scale)), input_size);
     }
 }
 
@@ -711,25 +712,25 @@ void cpu_nearest_forward(const tensor<T> input,
     auto input_tv  = miopen::solver::interpolate::get_inner_expanded_tv<5>(input.desc);
     auto output_tv = miopen::solver::interpolate::get_inner_expanded_tv<5>(output.desc);
 
-    for(unsigned long gid = 0; gid < nelems; ++gid)
+    for(int64_t gid = 0; gid < nelems; ++gid)
     {
         auto tensor_layout = tensor_layout_t<5>(output_tv, gid);
-        long n             = tensor_layout.layout[0];
-        long c             = tensor_layout.layout[1];
-        long d             = tensor_layout.layout[2];
-        long h             = tensor_layout.layout[3];
-        long w             = tensor_layout.layout[4];
+        int64_t n          = tensor_layout.layout[0];
+        int64_t c          = tensor_layout.layout[1];
+        int64_t d          = tensor_layout.layout[2];
+        int64_t h          = tensor_layout.layout[3];
+        int64_t w          = tensor_layout.layout[4];
 
-        long Dout = output_tv.size[2];
-        long Hout = output_tv.size[3];
-        long Wout = output_tv.size[4];
-        long Din  = input_tv.size[2];
-        long Hin  = input_tv.size[3];
-        long Win  = input_tv.size[4];
+        int64_t Dout = output_tv.size[2];
+        int64_t Hout = output_tv.size[3];
+        int64_t Wout = output_tv.size[4];
+        int64_t Din  = input_tv.size[2];
+        int64_t Hin  = input_tv.size[3];
+        int64_t Win  = input_tv.size[4];
 
-        long x = nearest_idx(d, Din, Dout, scale_factors[0]);
-        long y = nearest_idx(h, Hin, Hout, scale_factors[1]);
-        long z = nearest_idx(w, Win, Wout, scale_factors[2]);
+        int64_t x = nearest_idx(d, Din, Dout, scale_factors[0]);
+        int64_t y = nearest_idx(h, Hin, Hout, scale_factors[1]);
+        int64_t z = nearest_idx(w, Win, Wout, scale_factors[2]);
 
         tensor_layout_t<5> input_layout;
         input_layout.layout[0] = n;
@@ -743,7 +744,8 @@ void cpu_nearest_forward(const tensor<T> input,
     }
 }
 
-inline long nearest_idx_back(long input_index, long input_size, long output_size, float scales)
+inline int64_t
+nearest_idx_back(int64_t input_index, int64_t input_size, int64_t output_size, float scales)
 {
     if(output_size == input_size)
     {
@@ -756,7 +758,7 @@ inline long nearest_idx_back(long input_index, long input_size, long output_size
     else
     {
         float scale = compute_scales_value(scales, input_size, output_size);
-        return std::min(static_cast<long>(std::ceil(input_index / scale)), output_size);
+        return std::min(static_cast<int64_t>(std::ceil(input_index / scale)), output_size);
     }
 }
 
@@ -769,39 +771,39 @@ void cpu_nearest_backward(tensor<T>& input_grad,
     auto input_grad_tv  = miopen::solver::interpolate::get_inner_expanded_tv<5>(input_grad.desc);
     auto output_grad_tv = miopen::solver::interpolate::get_inner_expanded_tv<5>(output_grad.desc);
 
-    for(unsigned long gid = 0; gid < nelems; ++gid)
+    for(int64_t gid = 0; gid < nelems; ++gid)
     {
         auto tensor_layout = tensor_layout_t<5>(input_grad_tv, gid);
-        long n             = tensor_layout.layout[0];
-        long c             = tensor_layout.layout[1];
-        long x             = tensor_layout.layout[2];
-        long y             = tensor_layout.layout[3];
-        long z             = tensor_layout.layout[4];
+        int64_t n          = tensor_layout.layout[0];
+        int64_t c          = tensor_layout.layout[1];
+        int64_t x          = tensor_layout.layout[2];
+        int64_t y          = tensor_layout.layout[3];
+        int64_t z          = tensor_layout.layout[4];
 
-        long Dout = output_grad_tv.size[2];
-        long Hout = output_grad_tv.size[3];
-        long Wout = output_grad_tv.size[4];
-        long Din  = input_grad_tv.size[2];
-        long Hin  = input_grad_tv.size[3];
-        long Win  = input_grad_tv.size[4];
+        int64_t Dout = output_grad_tv.size[2];
+        int64_t Hout = output_grad_tv.size[3];
+        int64_t Wout = output_grad_tv.size[4];
+        int64_t Din  = input_grad_tv.size[2];
+        int64_t Hin  = input_grad_tv.size[3];
+        int64_t Win  = input_grad_tv.size[4];
 
         float scale_factor_d = scale_factors[0];
         float scale_factor_h = scale_factors[1];
         float scale_factor_w = scale_factors[2];
 
-        long dstart = nearest_idx_back(x, Din, Dout, scale_factor_d);
-        long dlimit = nearest_idx_back(x + 1, Din, Dout, scale_factor_d);
-        long hstart = nearest_idx_back(y, Hin, Hout, scale_factor_h);
-        long hlimit = nearest_idx_back(y + 1, Hin, Hout, scale_factor_h);
-        long wstart = nearest_idx_back(z, Win, Wout, scale_factor_w);
-        long wlimit = nearest_idx_back(z + 1, Win, Wout, scale_factor_w);
+        int64_t dstart = nearest_idx_back(x, Din, Dout, scale_factor_d);
+        int64_t dlimit = nearest_idx_back(x + 1, Din, Dout, scale_factor_d);
+        int64_t hstart = nearest_idx_back(y, Hin, Hout, scale_factor_h);
+        int64_t hlimit = nearest_idx_back(y + 1, Hin, Hout, scale_factor_h);
+        int64_t wstart = nearest_idx_back(z, Win, Wout, scale_factor_w);
+        int64_t wlimit = nearest_idx_back(z + 1, Win, Wout, scale_factor_w);
 
         float grad = 0.f;
-        for(long d = dstart; d < dlimit; d++)
+        for(int64_t d = dstart; d < dlimit; d++)
         {
-            for(long h = hstart; h < hlimit; h++)
+            for(int64_t h = hstart; h < hlimit; h++)
             {
-                for(long w = wstart; w < wlimit; w++)
+                for(int64_t w = wstart; w < wlimit; w++)
                 {
                     tensor_layout_t<5> output_grad_layout;
                     output_grad_layout.layout[0] = n;
@@ -820,7 +822,7 @@ void cpu_nearest_backward(tensor<T>& input_grad,
 }
 
 inline float
-bicubic_idx(long output_index, long output_size, float scale_factor, bool align_corners)
+bicubic_idx(int64_t output_index, int64_t output_size, float scale_factor, bool align_corners)
 {
     if(output_size == 1)
     {
@@ -861,7 +863,10 @@ inline float cubic_interp1d(float x0, float x1, float x2, float x3, float t)
     return x0 * coeffs[0] + x1 * coeffs[1] + x2 * coeffs[2] + x3 * coeffs[3];
 }
 
-inline long bound(long p, long max_size) { return std::max(std::min(p, max_size - 1), 0L); }
+inline int64_t bound(int64_t p, int64_t max_size)
+{
+    return std::max(std::min(p, max_size - 1), 0L);
+}
 
 template <class T>
 void cpu_bicubic_forward(const tensor<T> input,
@@ -873,18 +878,18 @@ void cpu_bicubic_forward(const tensor<T> input,
     auto input_tv  = miopen::solver::interpolate::get_inner_expanded_tv<4>(input.desc);
     auto output_tv = miopen::solver::interpolate::get_inner_expanded_tv<4>(output.desc);
 
-    for(unsigned long gid = 0; gid < nelems; ++gid)
+    for(int64_t gid = 0; gid < nelems; ++gid)
     {
         auto tensor_layout = tensor_layout_t<4>(output_tv, gid);
-        long n             = tensor_layout.layout[0];
-        long c             = tensor_layout.layout[1];
-        long h             = tensor_layout.layout[2];
-        long w             = tensor_layout.layout[3];
+        int64_t n          = tensor_layout.layout[0];
+        int64_t c          = tensor_layout.layout[1];
+        int64_t h          = tensor_layout.layout[2];
+        int64_t w          = tensor_layout.layout[3];
 
-        long Hin  = input_tv.size[2];
-        long Win  = input_tv.size[3];
-        long Hout = output_tv.size[2];
-        long Wout = output_tv.size[3];
+        int64_t Hin  = input_tv.size[2];
+        int64_t Win  = input_tv.size[3];
+        int64_t Hout = output_tv.size[2];
+        int64_t Wout = output_tv.size[3];
         if(Hin == Hout && Win == Wout)
         {
             output[output_tv.get_tensor_view_idx(tensor_layout)] =
@@ -896,21 +901,21 @@ void cpu_bicubic_forward(const tensor<T> input,
         float scale_factor_h_ =
             compute_linear_scale_factor(scale_factor_h, Hin, Hout, align_corners);
         float real_y = bicubic_idx(h, Hout, scale_factor_h_, align_corners);
-        long in_y    = static_cast<long>(std::floor(real_y));
+        int64_t in_y = static_cast<int64_t>(std::floor(real_y));
         float t_y    = real_y - in_y;
 
         float scale_factor_w = scale_factors[1];
         float scale_factor_w_ =
             compute_linear_scale_factor(scale_factor_w, Win, Wout, align_corners);
         float real_x = bicubic_idx(w, Wout, scale_factor_w_, align_corners);
-        long in_x    = static_cast<long>(std::floor(real_x));
+        int64_t in_x = static_cast<int64_t>(std::floor(real_x));
         float t_x    = real_x - in_x;
 
         float coefficients[4];
 #pragma unroll
         for(int k = 0; k < 4; k++)
         {
-            long y = bound(in_y - 1 + k, Hin);
+            int64_t y = bound(in_y - 1 + k, Hin);
             tensor_layout_t<4> input_layout0;
             input_layout0.layout[0] = n;
             input_layout0.layout[1] = c;
@@ -960,18 +965,20 @@ void cpu_bicubic_backward(tensor<T>& input_grad,
     std::vector<float> workspace;
     workspace.resize(nelems, 0.f);
 
-    uint64_t Hin  = input_grad_tv.size[2];
-    uint64_t Hout = output_grad_tv.size[2];
-    uint64_t Win  = input_grad_tv.size[3];
-    uint64_t Wout = output_grad_tv.size[3];
+    int64_t Hin  = input_grad_tv.size[2];
+    int64_t Hout = output_grad_tv.size[2];
+    int64_t Win  = input_grad_tv.size[3];
+    int64_t Wout = output_grad_tv.size[3];
 
-    for(uint64_t gid = 0; gid < nelems; ++gid)
+    size_t out_elems = output_grad.desc.GetElementSize();
+
+    for(int64_t gid = 0; gid < out_elems; ++gid)
     {
         auto tensor_layout = tensor_layout_t<4>(output_grad_tv, gid);
-        uint64_t n         = tensor_layout.layout[0];
-        uint64_t c         = tensor_layout.layout[1];
-        uint64_t h         = tensor_layout.layout[2];
-        uint64_t w         = tensor_layout.layout[3];
+        int64_t n          = tensor_layout.layout[0];
+        int64_t c          = tensor_layout.layout[1];
+        int64_t h          = tensor_layout.layout[2];
+        int64_t w          = tensor_layout.layout[3];
 
         if(Hin == Hout && Win == Wout)
         {
@@ -1003,10 +1010,10 @@ void cpu_bicubic_backward(tensor<T>& input_grad,
 
         for(int i = 0; i < 4; i++)
         {
-            uint64_t input_h = bound(in_y - 1 + i, Hin);
+            int64_t input_h = bound(in_y - 1 + i, Hin);
             for(int j = 0; j < 4; j++)
             {
-                uint64_t input_w = bound(in_x - 1 + j, Win);
+                int64_t input_w = bound(in_x - 1 + j, Win);
                 tensor_layout_t<4> in_grad_layout;
                 in_grad_layout.layout[0] = n;
                 in_grad_layout.layout[1] = c;
@@ -1021,7 +1028,7 @@ void cpu_bicubic_backward(tensor<T>& input_grad,
 
     if(!(Hin == Hout && Win == Wout))
     {
-        for(uint64_t gid = 0; gid < nelems; ++gid)
+        for(int64_t gid = 0; gid < nelems; ++gid)
         {
             auto tensor_layout = tensor_layout_t<4>(input_grad_tv, gid);
             input_grad[input_grad_tv.get_tensor_view_idx(tensor_layout)] =

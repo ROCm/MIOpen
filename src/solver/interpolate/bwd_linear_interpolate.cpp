@@ -43,12 +43,32 @@ namespace solver {
 
 namespace interpolate {
 
+bool IsOverRocmLinearBwd(const miopen::interpolate::BwdProblemDescription& problem)
+{
+    TensorDescriptor input_grad_desc = problem.GetInputGradDesc();
+    auto dtype                       = input_grad_desc.GetType();
+
+    if(dtype == miopenFloat)
+    {
+        if(input_grad_desc.GetElementSize() < 4000)
+            return false;
+    }
+    else if(dtype == miopenHalf || dtype == miopenBFloat16)
+    {
+        if(input_grad_desc.GetElementSize() < 960)
+            return false;
+    }
+
+    return true;
+}
+
 bool InterpolateLinearBackward::IsApplicable(
     const ExecutionContext&, const miopen::interpolate::BwdProblemDescription& problem) const
 {
     if(problem.GetMode() != miopenInterpolateMode_t::MIOPEN_INTERPOLATE_MODE_LINEAR)
         return false;
-
+    if(!IsOverRocmLinearBwd(problem))
+        return false;
     return true;
 }
 

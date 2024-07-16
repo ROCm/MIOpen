@@ -27,6 +27,7 @@
 #include "miopen/conv_solution.hpp"
 #include "miopen/execution_context.hpp"
 #include "miopen/invoke_params.hpp"
+#include "miopen/miopen.h"
 #include <miopen/interpolate/solvers.hpp>
 #include <miopen/interpolate/utils.hpp>
 
@@ -43,10 +44,37 @@ namespace solver {
 
 namespace interpolate {
 
+bool IsOverRocmBilinearBwd(const miopen::interpolate::BwdProblemDescription& problem)
+{
+    TensorDescriptor input_grad_desc  = problem.GetInputGradDesc();
+    TensorDescriptor output_grad_desc = problem.GetOutputGradDesc();
+    auto dtype                        = input_grad_desc.GetType();
+
+    float scale_h =
+        static_cast<float>(output_grad_desc.GetLengths()[2]) / input_grad_desc.GetLengths()[2];
+    float scale_w =
+        static_cast<float>(output_grad_desc.GetLengths()[3]) / input_grad_desc.GetLengths()[3];
+
+    if(dtype == miopenHalf || dtype == miopenBFloat16)
+    {
+        if(scale_h + scale_w < 2)
+            return false;
+    }
+    else if(dtype == miopenFloat)
+    {
+        if(scale_h + scale_w < 14)
+            return false;
+    }
+
+    return true;
+}
+
 bool InterpolateBilinearBackward::IsApplicable(
     const ExecutionContext&, const miopen::interpolate::BwdProblemDescription& problem) const
 {
     if(problem.GetMode() != miopenInterpolateMode_t::MIOPEN_INTERPOLATE_MODE_BILINEAR)
+        return false;
+    if(!IsOverRocmBilinearBwd(problem))
         return false;
 
     return true;
