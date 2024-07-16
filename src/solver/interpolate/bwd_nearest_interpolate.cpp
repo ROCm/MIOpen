@@ -60,8 +60,7 @@ bool IsOverRocmNearestBwd(const miopen::interpolate::BwdProblemDescription& prob
         float scale_w =
             static_cast<float>(output_grad_desc.GetLengths()[3]) / input_grad_desc.GetLengths()[3];
 
-        if(input_grad_desc.GetLengths()[0] * input_grad_desc.GetLengths()[1] < 9 ||
-           (scale_h + scale_w <= 4))
+        if(input_grad_desc.GetLengths()[0] < 10 || (scale_h + scale_w <= 4))
             return false;
     }
     else if(input_grad_desc.GetLengths().size() == 5)

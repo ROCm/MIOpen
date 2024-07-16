@@ -59,14 +59,14 @@ bool IsOverRocmBicubicBwd(const miopen::interpolate::BwdProblemDescription& prob
     {
         if(scale_h * scale_w < 16 && scale_h * scale_w > 0.5)
             return true;
+        else
+            return false;
     }
     else
     {
+        // need constrains
         return true;
     }
-
-    return true;
-    // return false;
 }
 
 bool InterpolateBicubicBackward::IsApplicable(
@@ -74,8 +74,8 @@ bool InterpolateBicubicBackward::IsApplicable(
 {
     if(problem.GetMode() != miopenInterpolateMode_t::MIOPEN_INTERPOLATE_MODE_BICUBIC)
         return false;
-    if(!IsOverRocmBicubicBwd(problem))
-        return false;
+    // if(!IsOverRocmBicubicBwd(problem))
+    //     return false;
 
     return true;
 }

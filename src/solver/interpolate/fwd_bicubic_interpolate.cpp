@@ -45,15 +45,15 @@ namespace interpolate {
 
 bool IsOverRocmBicubicFwd(const miopen::interpolate::FwdProblemDescription& problem)
 {
-    // TensorDescriptor output_desc = problem.GetOutputDesc();
-    // TensorDescriptor input_desc  = problem.GetInputDesc();
+    TensorDescriptor output_desc = problem.GetOutputDesc();
+    TensorDescriptor input_desc  = problem.GetInputDesc();
 
-    // float scale_h = static_cast<float>(output_desc.GetLengths()[2]) / input_desc.GetLengths()[2];
-    // float scale_w = static_cast<float>(output_desc.GetLengths()[3]) / input_desc.GetLengths()[3];
+    float scale_h = static_cast<float>(output_desc.GetLengths()[2]) / input_desc.GetLengths()[2];
+    float scale_w = static_cast<float>(output_desc.GetLengths()[3]) / input_desc.GetLengths()[3];
 
-    // if((output_desc.GetLengths()[2] + output_desc.GetLengths()[3] > 256) &&
-    //    (scale_h + scale_w >= 2))
-    //     return false;
+    if((output_desc.GetLengths()[2] + output_desc.GetLengths()[3] > 256) &&
+       (scale_h + scale_w >= 2))
+        return false;
 
     return true;
 }
@@ -63,8 +63,8 @@ bool InterpolateBicubicForward::IsApplicable(
 {
     if(problem.GetMode() != miopenInterpolateMode_t::MIOPEN_INTERPOLATE_MODE_BICUBIC)
         return false;
-    if(!IsOverRocmBicubicFwd(problem))
-        return false;
+    // if(!IsOverRocmBicubicFwd(problem))
+    //     return false;
 
     return true;
 }
