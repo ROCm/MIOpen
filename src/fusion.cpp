@@ -1077,10 +1077,10 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
             continue;
         }
 
-        handle.RegisterInvoker(
-            *invoker, network_config, id.ToString(), AlgorithmName{result.algorithm});
         invokers.push_back(std::move(*invoker));
         MIOPEN_LOG_I2(result.algorithm);
+        break;
+        // We never use any invoker after the first anyway.
     }
 
     if(invokers.empty())
@@ -1089,6 +1089,9 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
         return miopenStatusUnsupportedOp;
     }
 
+    handle.SetAsFound1_0(network_config,
+                         AlgorithmName{"fusion"},
+                         solver::Id(find_results.front().solver_id).ToString());
     return miopenStatusSuccess;
 }
 
