@@ -200,10 +200,9 @@ std::ostream& operator<<(std::ostream& os, const FindMode::Values& v)
 }
 
 template <class Variable>
-std::optional<FindMode::Values> GetFindModeValueImpl2(const Variable& variable,
-                                                      std::string_view variable_name)
+std::optional<FindMode::Values> GetFindModeValueImpl2(Variable)
 {
-    auto str = miopen::GetStringEnv(ENV(MIOPEN_FIND_MODE));
+    auto str = miopen::GetStringEnv(Variable{});
     if(str.empty())
         return std::nullopt;
     for(auto& c : str)
@@ -230,18 +229,16 @@ std::optional<FindMode::Values> GetFindModeValueImpl2(const Variable& variable,
     const auto val = static_cast<FindMode::Values>(stoul(str));
     if(FindMode::Values::Begin_ <= val && val < FindMode::Values::End_)
         return val;
-    MIOPEN_LOG_NQE("Wrong " << variable_name << ", using default.");
+    MIOPEN_LOG_NQE("Wrong " << Variable::GetName() << ", using default.");
     return std::nullopt;
 }
 
 template <class Variable>
-FindMode::Values GetFindModeValue(const Variable& variable,
-                                  std::string_view variable_name,
-                                  FindMode::Values defaultValue)
+FindMode::Values GetFindModeValue(Variable, FindMode::Values defaultValue)
 {
     static const FindMode::Values val = [&]() {
-        auto rv = GetFindModeValueImpl2(variable, variable_name).value_or(defaultValue);
-        MIOPEN_LOG_NQI(variable_name << " = " << rv);
+        auto rv = GetFindModeValueImpl2(Variable{}).value_or(defaultValue);
+        MIOPEN_LOG_NQI(Variable::GetName() << " = " << rv);
         return rv;
     }();
     return val;
@@ -249,23 +246,14 @@ FindMode::Values GetFindModeValue(const Variable& variable,
 
 } // namespace
 
-#if defined(MIOPEN_FIND_MODE_VAR_AND_NAME)
-#error macro MIOPEN_FIND_MODE_VAR_AND_NAME redefined
-#endif
-#define MIOPEN_FIND_MODE_VAR_AND_NAME(VARIABLE) VARIABLE, #VARIABLE
-
 FindMode::FindMode(solver::Primitive primitive)
 {
     switch(primitive)
     {
     case solver::Primitive::Fusion:
-        value = GetFindModeValue(MIOPEN_FIND_MODE_VAR_AND_NAME(MIOPEN_FIND_MODE_FUSION),
-                                 FindMode::Values::Fast);
+        value = GetFindModeValue(ENV(MIOPEN_FIND_MODE_FUSION), FindMode::Values::Fast);
         break;
-    default:
-        value = GetFindModeValue(MIOPEN_FIND_MODE_VAR_AND_NAME(MIOPEN_FIND_MODE),
-                                 FindMode::Values::Default_);
-        break;
+    default: value = GetFindModeValue(ENV(MIOPEN_FIND_MODE), FindMode::Values::Default_); break;
     }
 }
 
