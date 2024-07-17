@@ -276,7 +276,7 @@ public:
 
         for(auto& [k, v] : *tensor_map)
         {
-            s = miopenSetProblemTensorDescriptor(mha_prob, v.mEnumId, &(v.mTensDesc));
+            s = miopenSetProblemTensorDescriptor(mha_prob, v.mEnumId, v.mGraphTensor);
             MIOPEN_THROW_IF(s != miopenStatusSuccess,
                             "failed while setting tensor descriptor for mha fwd");
         }
