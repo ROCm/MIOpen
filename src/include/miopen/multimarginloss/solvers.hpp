@@ -44,6 +44,9 @@ struct MultiMarginLossUnreducedForward final : ForwardMultiMarginLossSolver
         return GetSolverDbId<MultiMarginLossUnreducedForward>();
     }
     bool
+    IsImprovementOverROCm(const ExecutionContext& context,
+                          const miopen::multimarginloss::ForwardProblemDescription& problem) const;
+    bool
     IsApplicable(const ExecutionContext& context,
                  const miopen::multimarginloss::ForwardProblemDescription& problem) const override;
     ConvSolution
@@ -57,6 +60,9 @@ struct MultiMarginLossForward final : ForwardMultiMarginLossSolver
     {
         return GetSolverDbId<MultiMarginLossForward>();
     }
+    bool
+    IsImprovementOverROCm(const ExecutionContext& context,
+                          const miopen::multimarginloss::ForwardProblemDescription& problem) const;
     bool
     IsApplicable(const ExecutionContext& context,
                  const miopen::multimarginloss::ForwardProblemDescription& problem) const override;

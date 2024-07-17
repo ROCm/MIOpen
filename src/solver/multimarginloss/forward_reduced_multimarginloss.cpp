@@ -42,6 +42,19 @@ namespace solver {
 
 namespace multimarginloss {
 
+bool MultiMarginLossForward::IsImprovementOverROCm(
+    const ExecutionContext& context,
+    const miopen::multimarginloss::ForwardProblemDescription& problem) const
+{
+    if((problem.GetiDesc().GetType() == miopenHalf ||
+        problem.GetiDesc().GetType() == miopenBFloat16) &&
+       problem.GetiDesc().IsContiguous() && problem.GetiDesc().GetLengths()[1] > 40)
+        return false;
+    if(problem.GetiDesc().GetLengths()[1] > 30)
+        return false;
+    return true;
+}
+
 bool MultiMarginLossForward::IsApplicable(
     const ExecutionContext& /*context*/,
     const miopen::multimarginloss::ForwardProblemDescription& problem) const
@@ -80,6 +93,7 @@ ConvSolution MultiMarginLossForward::GetSolution(
         const auto build_params = KernelBuildParameters{
             {"MIOPEN_USE_FP16", static_cast<int32_t>(dtype == miopenHalf)},
             {"MIOPEN_USE_FP32", static_cast<int32_t>(dtype == miopenFloat)},
+            {"MIOPEN_USE_FP64", static_cast<int32_t>(dtype == miopenDouble)},
             {"MIOPEN_USE_BFP16", static_cast<int32_t>(dtype == miopenBFloat16)},
         };
 
@@ -102,6 +116,7 @@ ConvSolution MultiMarginLossForward::GetSolution(
         const auto build_params = KernelBuildParameters{
             {"MIOPEN_USE_FP16", static_cast<int32_t>(dtype == miopenHalf)},
             {"MIOPEN_USE_FP32", static_cast<int32_t>(dtype == miopenFloat)},
+            {"MIOPEN_USE_FP64", static_cast<int32_t>(dtype == miopenDouble)},
             {"MIOPEN_USE_BFP16", static_cast<int32_t>(dtype == miopenBFloat16)},
             {"REDUCE_SIZE", LOCAL_SIZE_REDUCE},
         };

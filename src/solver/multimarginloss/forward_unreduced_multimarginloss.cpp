@@ -41,8 +41,8 @@ namespace solver {
 
 namespace multimarginloss {
 
-bool MultiMarginLossUnreducedForward::IsApplicable(
-    const ExecutionContext& /*context*/,
+bool MultiMarginLossUnreducedForward::IsImprovementOverROCm(
+    const ExecutionContext& context,
     const miopen::multimarginloss::ForwardProblemDescription& problem) const
 {
     if((problem.GetiDesc().GetType() == miopenHalf ||
@@ -50,6 +50,15 @@ bool MultiMarginLossUnreducedForward::IsApplicable(
        problem.GetiDesc().IsContiguous() && problem.GetiDesc().GetLengths()[1] > 40)
         return false;
     if(problem.GetiDesc().GetLengths()[1] > 30)
+        return false;
+    return true;
+}
+
+bool MultiMarginLossUnreducedForward::IsApplicable(
+    const ExecutionContext& context,
+    const miopen::multimarginloss::ForwardProblemDescription& problem) const
+{
+    if(!IsImprovementOverROCm(context, problem))
         return false;
     return true;
 }
@@ -78,6 +87,7 @@ ConvSolution MultiMarginLossUnreducedForward::GetSolution(
         const auto build_params = KernelBuildParameters{
             {"MIOPEN_USE_FP16", static_cast<int32_t>(dtype == miopenHalf)},
             {"MIOPEN_USE_FP32", static_cast<int32_t>(dtype == miopenFloat)},
+            {"MIOPEN_USE_FP64", static_cast<int32_t>(dtype == miopenDouble)},
             {"MIOPEN_USE_BFP16", static_cast<int32_t>(dtype == miopenBFloat16)},
         };
 

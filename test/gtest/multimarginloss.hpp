@@ -38,7 +38,37 @@ struct MultiMarginLossTestCase
     bool cont;
     miopenLossReductionMode_t reduction_mode;
     long p;
+
+    friend std::ostream& operator<<(std::ostream& os, const MultiMarginLossTestCase& tc)
+    {
+        os << " dims:";
+        os << tc.dims[0];
+        for(int i = 1; i < tc.dims.size(); i++)
+            os << "x" << tc.dims[i];
+        os << " cont:" << tc.cont << " reduction_mode:" << tc.reduction_mode << " p:" << tc.p;
+        return os;
+    }
 };
+
+inline std::vector<MultiMarginLossTestCase> MultiMarginLossTestConfigs()
+{
+    // clang-format off
+    return {
+    {{22, 12}, true, MIOPEN_LOSS_REDUCTION_MEAN, 1}, 
+    {{22, 12}, false, MIOPEN_LOSS_REDUCTION_SUM, 1}, 
+    {{22, 12}, true, MIOPEN_LOSS_REDUCTION_NONE, 1}, 
+    {{9456, 13}, false, MIOPEN_LOSS_REDUCTION_MEAN, 2 }, 
+    {{9456, 13}, true, MIOPEN_LOSS_REDUCTION_SUM, 2 }, 
+    {{9456, 13}, false, MIOPEN_LOSS_REDUCTION_NONE, 2 }, 
+    {{543210, 7}, true, MIOPEN_LOSS_REDUCTION_MEAN, 2 }, 
+    {{543210, 7}, false, MIOPEN_LOSS_REDUCTION_SUM, 2 }, 
+    {{543210, 7}, true, MIOPEN_LOSS_REDUCTION_NONE, 2 }, 
+    {{3995776, 6}, true, MIOPEN_LOSS_REDUCTION_MEAN, 1 }, 
+    {{3995776, 6}, true, MIOPEN_LOSS_REDUCTION_SUM, 1 }, 
+    {{3995776, 6}, true, MIOPEN_LOSS_REDUCTION_NONE, 1 }, 
+    };
+    // clang-format on
+}
 
 template <typename T = float>
 struct MultiMarginLossForwardTest : public ::testing::TestWithParam<MultiMarginLossTestCase>

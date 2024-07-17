@@ -27,6 +27,7 @@
 #define GUARD_TENSOR_HOLDER_HPP
 
 #include "ford.hpp"
+#include "network_data.hpp"
 #include <miopen/tensor.hpp>
 #include <miopen/functional.hpp>
 #include <miopen/type_name.hpp>
@@ -42,6 +43,9 @@ using hip_bfloat16 = bfloat16;
 #include <hip_float8.hpp>
 using float8  = miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>;
 using bfloat8 = miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>;
+
+#include <iomanip>
+#include <fstream>
 
 template <class F>
 void visit_tensor_size(std::size_t n, F f)

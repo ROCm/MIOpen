@@ -24,6 +24,9 @@
  *
  *******************************************************************************/
 
+#ifndef GUARD_WARP_SHUFFLE_HPP
+#define GUARD_WARP_SHUFFLE_HPP
+
 #ifndef MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS
 #include <hip/hip_fp16.h>
 #include <hip/hip_runtime.h>
@@ -66,3 +69,5 @@ __device__ FLOAT_ACCUM block_reduce_sum(FLOAT_ACCUM val)
 
     return val;
 }
+
+#endif // GUARD_WARP_SHUFFLE_HPP

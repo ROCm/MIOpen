@@ -618,12 +618,12 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         adam.cpp
         addlayernorm.cpp
         cat.cpp
+        exec_utils.cpp
         groupnorm.cpp
         kernel_cache.cpp
         layernorm.cpp
         lrn.cpp
         mlo_dir_conv.cpp
-        exec_utils.cpp
         multimarginloss.cpp
         ocl/activ_ocl.cpp
         ocl/batchnormocl.cpp
