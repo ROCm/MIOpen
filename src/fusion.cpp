@@ -30,6 +30,7 @@
 #include <miopen/fusion_plan.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/handle.hpp>
+#include <miopen/names.hpp>
 #include <miopen/visit_float.hpp>
 #include <miopen/stringutils.hpp>
 #include <miopen/solver_id.hpp>
@@ -1019,7 +1020,7 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
             }
 
             // override the normal find with immed mode with env var
-            if(!sols.empty() && (!(findMode.IsHybrid(fusion_problem) && fallback)))
+            if(!sols.empty() /*&& (!(findMode.IsHybrid(fusion_problem) && fallback))*/)
             // || env::enabled(MIOPEN_DEBUG_FORCE_IMMED_MODE_FALLBACK)
             {
                 std::sort(sols.begin(), sols.end(), SolutionTimeComparator());
@@ -1041,13 +1042,13 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
                     solver, ctx, fusion_problem, db, {}); // auto tune is not expected here
                 auto invoker =
                     handle.PrepareInvoker(*solution.invoker_factory, solution.construction_params);
-                // We register the invoker below
 
                 auto algo =
                     hasConv(id)
                         ? ConvolutionAlgoToDirectionalString(id.GetAlgo(), conv::Direction::Forward)
                         : "fusion";
 
+                handle.RegisterInvoker(invoker, network_config, id.ToString());
                 find_results.push_back(PerfField{std::move(algo), id.ToString(), .0f, 0});
             });
         }
@@ -1076,7 +1077,8 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
             continue;
         }
 
-        handle.RegisterInvoker(*invoker, network_config, id.ToString(), AlgorithmName{"fusion"});
+        handle.RegisterInvoker(
+            *invoker, network_config, id.ToString(), AlgorithmName{result.algorithm});
         invokers.push_back(std::move(*invoker));
         MIOPEN_LOG_I2(result.algorithm);
     }
