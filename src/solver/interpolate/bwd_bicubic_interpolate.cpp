@@ -57,15 +57,18 @@ bool IsOverRocmBicubicBwd(const miopen::interpolate::BwdProblemDescription& prob
 
     if(dtype == miopenHalf || dtype == miopenBFloat16)
     {
-        if(scale_h * scale_w < 16 && scale_h * scale_w > 0.5)
+        if(scale_h + scale_w < 8 && scale_h + scale_w > 1.4)
             return true;
         else
             return false;
     }
     else
     {
-        // need constrains
-        return true;
+        if(output_grad_desc.GetLengths()[2] + output_grad_desc.GetLengths()[3] <= 256 &&
+           (input_grad_desc.GetElementSize() >= 10000))
+            return true;
+        else
+            return false;
     }
 }
 
@@ -74,8 +77,8 @@ bool InterpolateBicubicBackward::IsApplicable(
 {
     if(problem.GetMode() != miopenInterpolateMode_t::MIOPEN_INTERPOLATE_MODE_BICUBIC)
         return false;
-    // if(!IsOverRocmBicubicBwd(problem))
-    //     return false;
+    if(!IsOverRocmBicubicBwd(problem))
+        return false;
 
     return true;
 }
@@ -140,7 +143,7 @@ ConvSolution InterpolateBicubicBackward::GetSolution(
             HipEventPtr stop;
 
             bool reset_profiling_state = false;
-            if(handle_.IsProfilingEnabled())
+            if(kernels.size() > 1 && handle_.IsProfilingEnabled())
             {
                 reset_profiling_state = true;
                 handle_.EnableProfiling(false);
@@ -178,7 +181,7 @@ ConvSolution InterpolateBicubicBackward::GetSolution(
             {
                 handle_.EnableProfiling(true);
             }
-            if(handle_.IsProfilingEnabled())
+            if(kernels.size() > 1 && handle_.IsProfilingEnabled())
             {
                 hipEventRecord(stop.get(), handle_.GetStream());
                 hipEventSynchronize(stop.get());

@@ -502,183 +502,6 @@ extern "C" __global__ void InterpolateBilinearBackward(OUTPUT_TYPE* __restrict__
 }
 
 template <typename TI, typename TO>
-__device__ inline void interpolateTrilinearForward(const TI* __restrict__ input,
-                                                   TO* __restrict__ output,
-                                                   const tensor_view_t<5> input_tv,
-                                                   const tensor_view_t<5> output_tv,
-                                                   const size_t nelems,
-                                                   const float* scale_factors,
-                                                   const bool align_corners)
-{
-    uint64_t gid = blockIdx.x * blockDim.x + threadIdx.x;
-    if(gid >= nelems)
-        return;
-
-    auto tensor_layout = tensor_layout_t<5>(output_tv, gid);
-    uint64_t n         = tensor_layout.layout[0];
-    uint64_t c         = tensor_layout.layout[1];
-    uint64_t d         = tensor_layout.layout[2];
-    uint64_t h         = tensor_layout.layout[3];
-    uint64_t w         = tensor_layout.layout[4];
-
-    uint64_t Din  = input_tv.size[2];
-    uint64_t Dout = output_tv.size[2];
-    uint64_t Hin  = input_tv.size[3];
-    uint64_t Hout = output_tv.size[3];
-    uint64_t Win  = input_tv.size[4];
-    uint64_t Wout = output_tv.size[4];
-
-    if(Hin == Hout && Win == Wout && Din == Dout)
-    {
-        output[output_tv.get_tensor_view_idx(tensor_layout)] =
-            input[input_tv.get_tensor_view_idx(tensor_layout)];
-        return;
-    }
-
-    uint64_t din_index0  = d;
-    uint64_t din_index1  = d;
-    FLOAT_ACCUM dlambda0 = 1;
-    FLOAT_ACCUM dlambda1 = 0;
-    if(Din != Dout && Dout != 1)
-    {
-        FLOAT_ACCUM scale_factor_d = CVT_FP32_2ACCUM(scale_factors[0]);
-        FLOAT_ACCUM scale_factor_d_ =
-            compute_linear_scale_factor(scale_factor_d, Din, Dout, align_corners);
-        compute_source_index_and_lambda(d,
-                                        scale_factor_d_,
-                                        Din,
-                                        Dout,
-                                        align_corners,
-                                        &din_index0,
-                                        &din_index1,
-                                        &dlambda0,
-                                        &dlambda1);
-    }
-
-    uint64_t hin_index0  = h;
-    uint64_t hin_index1  = h;
-    FLOAT_ACCUM hlambda0 = 1;
-    FLOAT_ACCUM hlambda1 = 0;
-    if(Hin != Hout && Hout != 1)
-    {
-        FLOAT_ACCUM scale_factor_h = CVT_FP32_2ACCUM(scale_factors[1]);
-        FLOAT_ACCUM scale_factor_h_ =
-            compute_linear_scale_factor(scale_factor_h, Hin, Hout, align_corners);
-        compute_source_index_and_lambda(h,
-                                        scale_factor_h_,
-                                        Hin,
-                                        Hout,
-                                        align_corners,
-                                        &hin_index0,
-                                        &hin_index1,
-                                        &hlambda0,
-                                        &hlambda1);
-    }
-
-    uint64_t win_index0  = w;
-    uint64_t win_index1  = w;
-    FLOAT_ACCUM wlambda0 = 1;
-    FLOAT_ACCUM wlambda1 = 0;
-    if(Win != Wout && Wout != 1)
-    {
-        FLOAT_ACCUM scale_factor_w = CVT_FP32_2ACCUM(scale_factors[2]);
-        FLOAT_ACCUM scale_factor_w_ =
-            compute_linear_scale_factor(scale_factor_w, Win, Wout, align_corners);
-        compute_source_index_and_lambda(w,
-                                        scale_factor_w_,
-                                        Win,
-                                        Wout,
-                                        align_corners,
-                                        &win_index0,
-                                        &win_index1,
-                                        &wlambda0,
-                                        &wlambda1);
-    }
-
-    tensor_layout_t<5> input_layout000;
-    input_layout000.layout[0] = n;
-    input_layout000.layout[1] = c;
-    input_layout000.layout[2] = din_index0;
-    input_layout000.layout[3] = hin_index0;
-    input_layout000.layout[4] = win_index0;
-
-    tensor_layout_t<5> input_layout001;
-    input_layout001.layout[0] = n;
-    input_layout001.layout[1] = c;
-    input_layout001.layout[2] = din_index0;
-    input_layout001.layout[3] = hin_index0;
-    input_layout001.layout[4] = win_index1;
-
-    tensor_layout_t<5> input_layout010;
-    input_layout010.layout[0] = n;
-    input_layout010.layout[1] = c;
-    input_layout010.layout[2] = din_index0;
-    input_layout010.layout[3] = hin_index1;
-    input_layout010.layout[4] = win_index0;
-
-    tensor_layout_t<5> input_layout011;
-    input_layout011.layout[0] = n;
-    input_layout011.layout[1] = c;
-    input_layout011.layout[2] = din_index0;
-    input_layout011.layout[3] = hin_index1;
-    input_layout011.layout[4] = win_index1;
-
-    tensor_layout_t<5> input_layout100;
-    input_layout100.layout[0] = n;
-    input_layout100.layout[1] = c;
-    input_layout100.layout[2] = din_index1;
-    input_layout100.layout[3] = hin_index0;
-    input_layout100.layout[4] = win_index0;
-
-    tensor_layout_t<5> input_layout101;
-    input_layout101.layout[0] = n;
-    input_layout101.layout[1] = c;
-    input_layout101.layout[2] = din_index1;
-    input_layout101.layout[3] = hin_index0;
-    input_layout101.layout[4] = win_index1;
-
-    tensor_layout_t<5> input_layout110;
-    input_layout110.layout[0] = n;
-    input_layout110.layout[1] = c;
-    input_layout110.layout[2] = din_index1;
-    input_layout110.layout[3] = hin_index1;
-    input_layout110.layout[4] = win_index0;
-
-    tensor_layout_t<5> input_layout111;
-    input_layout111.layout[0] = n;
-    input_layout111.layout[1] = c;
-    input_layout111.layout[2] = din_index1;
-    input_layout111.layout[3] = hin_index1;
-    input_layout111.layout[4] = win_index1;
-
-    output[output_tv.get_tensor_view_idx(tensor_layout)] = CVT_ACCUM2FLOAT(
-        (CVT_FLOAT2ACCUM(input[input_tv.get_tensor_view_idx(input_layout000)]) * wlambda0 +
-         CVT_FLOAT2ACCUM(input[input_tv.get_tensor_view_idx(input_layout001)]) * wlambda1) *
-            hlambda0 +
-        (CVT_FLOAT2ACCUM(input[input_tv.get_tensor_view_idx(input_layout010)]) * wlambda0 +
-         CVT_FLOAT2ACCUM(input[input_tv.get_tensor_view_idx(input_layout011)]) * wlambda1) *
-            hlambda1 +
-        (CVT_FLOAT2ACCUM(input[input_tv.get_tensor_view_idx(input_layout100)]) * wlambda0 +
-         CVT_FLOAT2ACCUM(input[input_tv.get_tensor_view_idx(input_layout101)]) * wlambda1) *
-            dlambda0 +
-        (CVT_FLOAT2ACCUM(input[input_tv.get_tensor_view_idx(input_layout110)]) * wlambda0 +
-         CVT_FLOAT2ACCUM(input[input_tv.get_tensor_view_idx(input_layout111)]) * wlambda1) *
-            dlambda1);
-}
-
-extern "C" __global__ void InterpolateTrilinearForward(const INPUT_TYPE* __restrict__ input,
-                                                       OUTPUT_TYPE* __restrict__ output,
-                                                       const tensor_view_t<5> input_tv,
-                                                       const tensor_view_t<5> output_tv,
-                                                       const size_t nelems,
-                                                       const float* scale_factors,
-                                                       const bool align_corners)
-{
-    interpolateTrilinearForward<INPUT_TYPE, OUTPUT_TYPE>(
-        input, output, input_tv, output_tv, nelems, scale_factors, align_corners);
-}
-
-template <typename TI, typename TO>
 __device__ inline void interpolateTrilinearBackward(TO* __restrict__ input_grad,
                                                     const TI* __restrict__ output_grad,
                                                     const tensor_view_t<5> input_grad_tv,
@@ -1018,7 +841,7 @@ cubic_interp1d(FLOAT_ACCUM x0, FLOAT_ACCUM x1, FLOAT_ACCUM x2, FLOAT_ACCUM x3, F
     return x0 * coeffs[0] + x1 * coeffs[1] + x2 * coeffs[2] + x3 * coeffs[3];
 }
 
-__device__ inline uint64_t bound(uint64_t p, uint64_t max_size)
+__device__ inline int64_t bound(int64_t p, int64_t max_size)
 {
     return max(min(p, max_size - 1), 0l);
 }
@@ -1169,16 +992,17 @@ __device__ inline void interpolateBicubicBackward(TD* __restrict__ workspace,
     FLOAT_ACCUM x_coeffs[4];
     get_cubic_upsampling_coefficients(y_coeffs, t_y);
     get_cubic_upsampling_coefficients(x_coeffs, t_x);
+
     FLOAT_ACCUM out_value =
         CVT_FLOAT2ACCUM(output_grad[output_grad_tv.get_tensor_view_idx(tensor_layout)]);
 #pragma unroll
     for(int i = 0; i < 4; i++)
     {
-        uint64_t input_h = bound(in_y - 1 + i, Hin);
+        int64_t input_h = bound(in_y - 1 + i, Hin);
 #pragma unroll
         for(int j = 0; j < 4; j++)
         {
-            uint64_t input_w = bound(in_x - 1 + j, Win);
+            int64_t input_w = bound(in_x - 1 + j, Win);
             tensor_layout_t<4> in_grad_layout;
             in_grad_layout.layout[0] = n;
             in_grad_layout.layout[1] = c;

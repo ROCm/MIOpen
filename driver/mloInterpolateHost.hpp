@@ -27,6 +27,7 @@
 #define MLO_INTERPOLATE_H_
 
 #include "driver.hpp"
+#include <cstdio>
 #pragma once
 
 #include <cmath>

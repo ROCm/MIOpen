@@ -108,22 +108,6 @@ struct InterpolateBilinearForward final : InterpolateFwdSolver
                 const miopen::interpolate::FwdProblemDescription& problem) const override;
 };
 
-// FORWARD TRILINEAR
-struct InterpolateTrilinearForward final : InterpolateFwdSolver
-{
-    const std::string& SolverDbId() const override
-    {
-        return GetSolverDbId<InterpolateTrilinearForward>();
-    }
-
-    bool IsApplicable(const ExecutionContext& context,
-                      const miopen::interpolate::FwdProblemDescription& problem) const override;
-
-    ConvSolution
-    GetSolution(const ExecutionContext& context,
-                const miopen::interpolate::FwdProblemDescription& problem) const override;
-};
-
 // FORWARD BICUBIC
 struct InterpolateBicubicForward final : InterpolateFwdSolver
 {

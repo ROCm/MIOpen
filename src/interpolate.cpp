@@ -100,7 +100,6 @@ miopenStatus_t InterpolateLinearCubicForward(Handle& handle,
     const auto algo    = AlgorithmName{"InterpolateForward"};
     const auto solvers = solver::SolverContainer<solver::interpolate::InterpolateLinearForward,
                                                  solver::interpolate::InterpolateBilinearForward,
-                                                 solver::interpolate::InterpolateTrilinearForward,
                                                  solver::interpolate::InterpolateBicubicForward>{};
 
     solvers.ExecutePrimitive(handle, problem, algo, invoke_params);

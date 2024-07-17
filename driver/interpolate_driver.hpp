@@ -214,7 +214,10 @@ int InterpolateDriver<Tgpu, Tref>::GetandSetData()
         if(scale_factors[i] != 0)
             out_len.push_back(ceil(static_cast<int>(in_len[i + 2] * scale_factors[i])));
         else
+        {
+            scale_factors[i] = static_cast<float>(size[i]) / in_len[i + 2];
             out_len.push_back(size[i]);
+        }
     }
 
     auto in_strides     = GetStrides(in_len, inflags.GetValueInt("contiguous"));
@@ -422,6 +425,8 @@ int InterpolateDriver<Tgpu, Tref>::RunBackwardGPU()
 
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
+        in_grad_dev->ToGPU(q, in_grad.data());
+        workspace_dev->ToGPU(q, workspace.data());
         miopenInterpolateBackward(GetHandle(),
                                   workspace_dev->GetMem(),
                                   ws_sizeInBytes,
@@ -439,7 +444,6 @@ int InterpolateDriver<Tgpu, Tref>::RunBackwardGPU()
         kernel_total_time += time;
         if(i == 0)
             kernel_first_time = time;
-        workspace_dev->ToGPU(q, workspace.data());
     }
 
     if(inflags.GetValueInt("time") == 1)

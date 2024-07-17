@@ -265,7 +265,6 @@ set( MIOpen_Source
     solver/interpolate/fwd_nearest_interpolate.cpp
     solver/interpolate/fwd_linear_interpolate.cpp
     solver/interpolate/fwd_bilinear_interpolate.cpp
-    solver/interpolate/fwd_trilinear_interpolate.cpp
     solver/interpolate/fwd_bicubic_interpolate.cpp
     solver/interpolate/bwd_nearest_interpolate.cpp
     solver/interpolate/bwd_linear_interpolate.cpp

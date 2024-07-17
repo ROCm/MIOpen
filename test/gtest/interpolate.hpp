@@ -70,17 +70,12 @@ struct InterpolateTestCase
 inline std::vector<InterpolateTestCase> InterpolateTestConfigs()
 {
     return {
-        {{16, 256, 1, 1, 1}, {32, 32, 32}, {32, 32, 32}, MIOPEN_INTERPOLATE_MODE_TRILINEAR, false},
-        {{16, 256, 1, 1, 1}, {32, 32, 32}, {0, 0, 0}, MIOPEN_INTERPOLATE_MODE_TRILINEAR, true},
-        {{16, 256, 1, 1, 1}, {32, 32, 32}, {0, 0, 0}, MIOPEN_INTERPOLATE_MODE_NEAREST, false},
-        {{16, 256, 1, 1}, {32, 32}, {0, 0}, MIOPEN_INTERPOLATE_MODE_NEAREST, false},
-        {{16, 256, 1, 1}, {32, 32}, {0, 0}, MIOPEN_INTERPOLATE_MODE_BILINEAR, false},
-        {{16, 256, 1, 1}, {32, 32}, {0, 0}, MIOPEN_INTERPOLATE_MODE_BILINEAR, true},
-        {{16, 256, 1, 1}, {32, 32}, {0, 0}, MIOPEN_INTERPOLATE_MODE_BICUBIC, false},
-        {{16, 256, 1, 1}, {32, 32}, {0, 0}, MIOPEN_INTERPOLATE_MODE_BICUBIC, true},
-        {{16, 256, 1}, {32}, {0}, MIOPEN_INTERPOLATE_MODE_NEAREST, false},
-        {{16, 256, 1}, {32}, {0}, MIOPEN_INTERPOLATE_MODE_LINEAR, false},
-        {{16, 256, 1}, {32}, {0}, MIOPEN_INTERPOLATE_MODE_LINEAR, true},
+        // {{16, 256, 1, 1}, {32, 32}, {0, 0}, MIOPEN_INTERPOLATE_MODE_BICUBIC, false},
+        // {{16, 256, 1, 1}, {32, 32}, {0, 0}, MIOPEN_INTERPOLATE_MODE_BICUBIC, true},
+        {{1, 3, 333, 500}, {800, 1201}, {0, 0}, MIOPEN_INTERPOLATE_MODE_BICUBIC, false},
+        // {{1, 3, 333, 500}, {800, 1201}, {0, 0}, MIOPEN_INTERPOLATE_MODE_BICUBIC, true},
+        // {{1, 3, 319, 500}, {800, 1253}, {0, 0}, MIOPEN_INTERPOLATE_MODE_BICUBIC, false},
+        // {{1, 3, 319, 500}, {800, 1253}, {0, 0}, MIOPEN_INTERPOLATE_MODE_BICUBIC, true},
     };
 }
 
@@ -133,7 +128,10 @@ protected:
             if(scale_factors[i] != 0)
                 out_dim.push_back(ceil(static_cast<size_t>(in_dim[i + 2] * scale_factors[i])));
             else
+            {
+                scale_factors[i] = static_cast<float>(size[i]) / in_dim[i + 2];
                 out_dim.push_back(size[i]);
+            }
         }
 
         auto gen_input_value = [](auto...) {

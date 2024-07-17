@@ -63,8 +63,8 @@ bool InterpolateBicubicForward::IsApplicable(
 {
     if(problem.GetMode() != miopenInterpolateMode_t::MIOPEN_INTERPOLATE_MODE_BICUBIC)
         return false;
-    // if(!IsOverRocmBicubicFwd(problem))
-    //     return false;
+    if(!IsOverRocmBicubicFwd(problem))
+        return false;
 
     return true;
 }

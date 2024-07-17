@@ -1005,12 +1005,15 @@ void cpu_bicubic_backward(tensor<T>& input_grad,
         float x_coeffs[4];
         get_cubic_upsampling_coefficients(y_coeffs, t_y);
         get_cubic_upsampling_coefficients(x_coeffs, t_x);
+
         float out_value =
             static_cast<float>(output_grad[output_grad_tv.get_tensor_view_idx(tensor_layout)]);
 
+#pragma unroll
         for(int i = 0; i < 4; i++)
         {
             int64_t input_h = bound(in_y - 1 + i, Hin);
+#pragma unroll
             for(int j = 0; j < 4; j++)
             {
                 int64_t input_w = bound(in_x - 1 + j, Win);

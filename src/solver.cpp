@@ -665,10 +665,6 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
     Register(registry,
              ++id,
              Primitive::Interpolate,
-             interpolate::InterpolateTrilinearForward{}.SolverDbId());
-    Register(registry,
-             ++id,
-             Primitive::Interpolate,
              interpolate::InterpolateBicubicForward{}.SolverDbId());
     Register(registry,
              ++id,
