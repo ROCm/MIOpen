@@ -59,8 +59,8 @@ ConvSolution FoldBwd::GetSolution([[maybe_unused]] const ExecutionContext& conte
     auto input_grad_dims  = problem.GetDinputDesc().GetLengths();
     auto output_grad_dims = problem.GetDoutputDesc().GetLengths();
 
-    const int32_t N      = static_cast<int32_t>(output_grad_dims[0]);
-    const int32_t C      = static_cast<int32_t>(output_grad_dims[1]);
+    const int32_t N          = static_cast<int32_t>(output_grad_dims[0]);
+    const int32_t C          = static_cast<int32_t>(output_grad_dims[1]);
     int32_t spatial_dim_size = output_grad_dims.size() - 2;
     int32_t P = 1, L = 1;
     std::vector<int32_t> ls;
