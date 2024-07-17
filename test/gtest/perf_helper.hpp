@@ -112,7 +112,8 @@ struct PerfHelper
         // If the file was just created (i.e., its size is 0), write the header.
         if(std::filesystem::file_size(filename) == 0)
         {
-            file << "KernelAndTestInfo,min_exec_time_ratio,max_exec_time_ratio,mean_exec_time_ratio,median_exec_time_ratio,SD_ocl,SD_hip\n";
+            file << "KernelAndTestInfo,min_exec_time_ratio,max_exec_time_ratio,mean_exec_time_"
+                    "ratio,median_exec_time_ratio,SD_ocl,SD_hip\n";
         }
 
         // if the number of entries in the kernelTestStats vector is odd, throw an exception
