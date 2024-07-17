@@ -1020,7 +1020,7 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
             }
 
             // override the normal find with immed mode with env var
-            if(!sols.empty() /*&& (!(findMode.IsHybrid(fusion_problem) && fallback))*/)
+            if(!sols.empty() && (!(findMode.IsHybrid(fusion_problem) && fallback)))
             // || env::enabled(MIOPEN_DEBUG_FORCE_IMMED_MODE_FALLBACK)
             {
                 std::sort(sols.begin(), sols.end(), SolutionTimeComparator());
