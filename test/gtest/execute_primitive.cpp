@@ -24,7 +24,7 @@
  *
  *******************************************************************************/
 
-#include <filesystem>
+#include <miopen/filesystem.hpp>
 #include <miopen/execution_context.hpp>
 #include <miopen/find_solution.hpp>
 #include <miopen/invoker.hpp>
