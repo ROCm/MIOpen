@@ -1071,7 +1071,8 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
         return miopenStatusUnsupportedOp;
     }
 
-    handle.SetAsFound1_0(network_config, AlgorithmName{"fusion"}, find_results.front().GetSolver().ToString());
+    handle.SetAsFound1_0(
+        network_config, AlgorithmName{"fusion"}, find_results.front().GetSolver().ToString());
     return miopenStatusSuccess;
 }
 
