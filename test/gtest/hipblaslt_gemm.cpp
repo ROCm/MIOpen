@@ -50,6 +50,9 @@ using bfloat8 = miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>;
 
 using namespace miopen;
 
+// On newer versions of hipBLASLt calling API on unsupported hardware results in segfault exceptions
+#define WORKAROUND_SWDEV_473387 1
+
 namespace hipblaslt_gemm {
 
 struct TestCase
@@ -269,6 +272,9 @@ static void CheckExceptions(miopenDataType_t dataType)
 template <typename T, typename disabled_mask, typename enabled_mask>
 static void CheckExceptionsWithSkip(miopenDataType_t dataType)
 {
+#ifdef WORKAROUND_SWDEV_473387
+    GTEST_SKIP();
+#else
     if(!IsTestSupportedForDevMask<disabled_mask, enabled_mask>())
     {
         CheckExceptions<T>(dataType);
@@ -277,6 +283,7 @@ static void CheckExceptionsWithSkip(miopenDataType_t dataType)
     {
         GTEST_SKIP();
     }
+#endif
 }
 
 } // namespace hipblaslt_gemm
