@@ -38,8 +38,8 @@ namespace graphapi {
 class Tensor : public TensorDescriptor
 {
 private:
-    int64_t mId                = 0;
-    bool mVirtual              = false;
+    int64_t mId   = 0;
+    bool mVirtual = false;
 
 public:
     Tensor() noexcept         = default;
@@ -47,20 +47,12 @@ public:
     Tensor(Tensor&&) noexcept = default;
     Tensor& operator=(const Tensor&) = default;
     Tensor& operator=(Tensor&&) noexcept = default;
-    Tensor(const TensorDescriptor& other,
-            int64_t id,
-            bool isVirtual)
-            : TensorDescriptor(other),
-            mId(id),
-            mVirtual(isVirtual)
+    Tensor(const TensorDescriptor& other, int64_t id, bool isVirtual)
+        : TensorDescriptor(other), mId(id), mVirtual(isVirtual)
     {
     }
-    Tensor(TensorDescriptor&& other,
-            int64_t id,
-            bool isVirtual)
-            : TensorDescriptor(std::move(other)),
-            mId(id),
-            mVirtual(isVirtual)
+    Tensor(TensorDescriptor&& other, int64_t id, bool isVirtual)
+        : TensorDescriptor(std::move(other)), mId(id), mVirtual(isVirtual)
     {
     }
     Tensor(miopenDataType_t dataType,
@@ -78,7 +70,7 @@ public:
            std::vector<std::size_t>&& strides,
            int64_t id,
            bool isVirtual) noexcept
-        : TensorDescriptor(dataType, getLayout(strides), std::move(dimensions),  std::move(strides)),
+        : TensorDescriptor(dataType, getLayout(strides), std::move(dimensions), std::move(strides)),
           mId(id),
           mVirtual(isVirtual)
     {
@@ -94,15 +86,19 @@ private:
         {
             int stride_c = strides[1];
 
-            // If channels have the smallest stride, or are tied for smallest stride, then we are assuming NHWC format.
-            // Otherwise, assume NCHW format.
-            if(std::all_of(strides.cbegin(), strides.cend(), [stride_c](std::size_t x) { return x >= stride_c; }))
+            // If channels have the smallest stride, or are tied for smallest stride, then we are
+            // assuming NHWC format. Otherwise, assume NCHW format.
+            if(std::all_of(strides.cbegin(), strides.cend(), [stride_c](std::size_t x) {
+                   return x >= stride_c;
+               }))
             {
-               return strides.size() == 4 ? miopenTensorLayout_t::miopenTensorNHWC : miopenTensorLayout_t::miopenTensorNDHWC;
+                return strides.size() == 4 ? miopenTensorLayout_t::miopenTensorNHWC
+                                           : miopenTensorLayout_t::miopenTensorNDHWC;
             }
             else
             {
-               return strides.size() == 4 ? miopenTensorLayout_t::miopenTensorNCHW : miopenTensorLayout_t::miopenTensorNCDHW;
+                return strides.size() == 4 ? miopenTensorLayout_t::miopenTensorNCHW
+                                           : miopenTensorLayout_t::miopenTensorNCDHW;
             }
         }
 

@@ -163,7 +163,7 @@ void BackendTensorDescriptor::setAttribute(miopenBackendAttributeName_t attribut
         {
             mBuilder.setDim(
                 std::vector<std::size_t>(static_cast<int64_t*>(arrayOfElements),
-                                     static_cast<int64_t*>(arrayOfElements) + elementCount));
+                                         static_cast<int64_t*>(arrayOfElements) + elementCount));
             return;
         }
         else
@@ -176,7 +176,7 @@ void BackendTensorDescriptor::setAttribute(miopenBackendAttributeName_t attribut
         {
             mBuilder.setStride(
                 std::vector<std::size_t>(static_cast<int64_t*>(arrayOfElements),
-                                     static_cast<int64_t*>(arrayOfElements) + elementCount));
+                                         static_cast<int64_t*>(arrayOfElements) + elementCount));
             return;
         }
         else

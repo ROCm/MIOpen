@@ -177,9 +177,9 @@ struct MIOPEN_INTERNALS_EXPORT TensorDescriptor : miopenTensorDescriptor
                      const std::vector<std::size_t>& lens_in,
                      const std::vector<std::size_t>& strides_in);
     TensorDescriptor(miopenDataType_t t,
-                    miopenTensorLayout_t layout_in,
-                    std::vector<std::size_t>&& lens_in,
-                    std::vector<std::size_t>&& strides_in);
+                     miopenTensorLayout_t layout_in,
+                     std::vector<std::size_t>&& lens_in,
+                     std::vector<std::size_t>&& strides_in);
 
     // Use only for external API
     static TensorDescriptor MakeDescriptor(miopenDataType_t t, const int* plens, int size);
@@ -302,16 +302,16 @@ private:
                      bool use_strides);
 
     TensorDescriptor(miopenDataType_t t,
-                    miopenTensorLayout_t layout_in,
-                    std::vector<std::size_t>&& lens_in,
-                    std::vector<std::size_t>&& strides_in,
-                    bool use_strides);
+                     miopenTensorLayout_t layout_in,
+                     std::vector<std::size_t>&& lens_in,
+                     std::vector<std::size_t>&& strides_in,
+                     bool use_strides);
 
     static void CheckArguments(miopenDataType_t t,
-                     miopenTensorLayout_t layout_in,
-                     const std::vector<std::size_t>& lens_in,
-                     const std::vector<std::size_t>& strides_in,
-                     bool use_strides);
+                               miopenTensorLayout_t layout_in,
+                               const std::vector<std::size_t>& lens_in,
+                               const std::vector<std::size_t>& strides_in,
+                               bool use_strides);
 
     void SetStrideNd(const std::string& layout);
     void LensReorder(const std::string& layout);

@@ -414,11 +414,11 @@ public:
         setAttribute(MIOPEN_ATTR_TENSOR_DATA_TYPE, MIOPEN_TYPE_DATA_TYPE, 1, &dataType);
 
         auto& d = testCaseTensor.GetLengths();
-        std::vector<int64_t> dims {d.cbegin(), d.cend()};
+        std::vector<int64_t> dims{d.cbegin(), d.cend()};
         setAttribute(MIOPEN_ATTR_TENSOR_DIMENSIONS, MIOPEN_TYPE_INT64, dims.size(), dims.data());
 
         auto& s = testCaseTensor.GetStrides();
-        std::vector<int64_t> strides {s.cbegin(), s.cend()};
+        std::vector<int64_t> strides{s.cbegin(), s.cend()};
         setAttribute(MIOPEN_ATTR_TENSOR_STRIDES, MIOPEN_TYPE_INT64, strides.size(), strides.data());
 
         auto id = testCaseTensor.getId();

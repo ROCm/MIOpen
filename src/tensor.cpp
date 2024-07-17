@@ -262,12 +262,11 @@ TensorDescriptor::TensorDescriptor(miopenDataType_t t,
     }
 }
 
-
 void TensorDescriptor::CheckArguments(miopenDataType_t t,
-                                   miopenTensorLayout_t layout_in,
-                                   const std::vector<std::size_t>& lens_in,
-                                   const std::vector<std::size_t>& strides_in,
-                                   bool use_strides)
+                                      miopenTensorLayout_t layout_in,
+                                      const std::vector<std::size_t>& lens_in,
+                                      const std::vector<std::size_t>& strides_in,
+                                      bool use_strides)
 {
     if(!IsDataTypeSupported(t))
         MIOPEN_THROW(miopenStatusBadParm, "Unsupported data type");
@@ -280,7 +279,7 @@ void TensorDescriptor::CheckArguments(miopenDataType_t t,
 
     if(!CheckLengths(lens_in, static_cast<std::size_t>(std::numeric_limits<int64_t>::max())))
         MIOPEN_THROW(miopenStatusBadParm, "Lengths must be > 0 and <= INT64_MAX");
-    
+
     if(use_strides)
     {
         if(lens_in.size() != strides_in.size())

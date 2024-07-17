@@ -234,53 +234,54 @@ namespace gr = miopen::graphapi;
 
 namespace graph_api_tensor_test {
 
-    static bool TestIsApplicable() { return true; }
+static bool TestIsApplicable() { return true; }
 
-    using TestCase = std::tuple<std::vector<size_t>, std::vector<size_t>, miopenDataType_t, miopenTensorLayout_t>;
-    static std::vector<TestCase> TestConfigs()
+using TestCase =
+    std::tuple<std::vector<size_t>, std::vector<size_t>, miopenDataType_t, miopenTensorLayout_t>;
+static std::vector<TestCase> TestConfigs()
+{
+    return {{{1, 4, 14, 11, 1}, {616, 1, 44, 4, 4}, miopenFloat, miopenTensorNDHWC},
+            {{1, 4, 14, 11, 1}, {616, 154, 11, 1, 1}, miopenFloat, miopenTensorNCDHW},
+            {{1, 4, 11, 1}, {44, 1, 4, 4}, miopenFloat, miopenTensorNHWC},
+            {{1, 4, 11, 1}, {44, 11, 1, 1}, miopenFloat, miopenTensorNCHW},
+            {{1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, miopenFloat, miopenTensorNDHWC},
+            {{1, 1, 1, 1}, {1, 1, 1, 1}, miopenFloat, miopenTensorNHWC},
+            {{3, 5, 6}, {30, 6, 1}, miopenFloat, miopenTensorNCHW}};
+}
+
+class CPU_GraphTensor_NONE : public ::testing::TestWithParam<TestCase>
+{
+public:
+    void SetUp() override
     {
-        return {{{1,4,14,11,1}, {616,1,44,4,4}, miopenFloat, miopenTensorNDHWC},
-                {{1,4,14,11,1}, {616,154,11,1,1}, miopenFloat, miopenTensorNCDHW},
-                {{1,4,11,1}, {44,1,4,4}, miopenFloat, miopenTensorNHWC},
-                {{1,4,11,1}, {44,11,1,1}, miopenFloat, miopenTensorNCHW},
-                {{1,1,1,1,1}, {1,1,1,1,1}, miopenFloat, miopenTensorNDHWC},
-                {{1,1,1,1}, {1,1,1,1}, miopenFloat, miopenTensorNHWC},
-                {{3,5,6}, {30,6,1}, miopenFloat, miopenTensorNCHW}};
+        if(!TestIsApplicable())
+        {
+            GTEST_SKIP();
+        }
     }
 
-    class CPU_GraphTensor_NONE : public ::testing::TestWithParam<TestCase>
+    void Run()
     {
-        public:
-            void SetUp() override
-            {
-                if(!TestIsApplicable())
-                {
-                    GTEST_SKIP();
-                }
-            }
+        std::vector<std::size_t> dimensions;
+        std::vector<std::size_t> strides;
+        miopenDataType_t dataType;
+        miopenTensorLayout_t layout;
 
-            void Run()
-            {
-                std::vector<std::size_t> dimensions;
-                std::vector<std::size_t> strides;
-                miopenDataType_t dataType;
-                miopenTensorLayout_t layout;
+        std::tie(dimensions, strides, dataType, layout) = GetParam();
 
-                std::tie(dimensions, strides, dataType, layout) = GetParam();
+        miopen::TensorDescriptor descriptor(dataType, layout, dimensions, strides);
 
-                miopen::TensorDescriptor descriptor(dataType, layout, dimensions, strides);
+        gr::Tensor graphTensorFromDescription(descriptor, 0, false);
+        EXPECT_EQ(graphTensorFromDescription, descriptor);
+        EXPECT_EQ(graphTensorFromDescription.GetLayout_t(), descriptor.GetLayout_t());
 
-                gr::Tensor graphTensorFromDescription(descriptor, 0, false);
-                EXPECT_EQ(graphTensorFromDescription, descriptor);
-                EXPECT_EQ(graphTensorFromDescription.GetLayout_t(), descriptor.GetLayout_t());
+        gr::Tensor graphTensorFromParams(dataType, dimensions, strides, 0, false);
+        EXPECT_EQ(graphTensorFromParams, descriptor);
+        EXPECT_EQ(graphTensorFromParams.GetLayout_t(), descriptor.GetLayout_t());
+    }
+};
 
-                gr::Tensor graphTensorFromParams(dataType, dimensions, strides, 0, false);
-                EXPECT_EQ(graphTensorFromParams, descriptor);
-                EXPECT_EQ(graphTensorFromParams.GetLayout_t(), descriptor.GetLayout_t());
-            }
-    };
-
-}
+} // namespace graph_api_tensor_test
 using namespace graph_api_tensor_test;
 
 TEST_P(CPU_GraphTensor_NONE, Test) { Run(); }
