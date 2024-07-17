@@ -29,19 +29,19 @@
 #endif
 
 #if MIOPEN_USE_FP16 == 1
-#define _FLOAT half
-#define _FLOAT_PREC float
+#define FP_TYPE half
+#define FP_PREC float
 #endif
 
 #if MIOPEN_USE_FP32 == 1
-#define _FLOAT float
-#define _FLOAT_PREC float
+#define FP_TYPE float
+#define FP_PREC float
 #endif
 
 // if MIOPEN_USE_FP16 is not defined, default is fp32
-#ifndef _FLOAT
-#define _FLOAT float
-#define _FLOAT_PREC float
+#ifndef FP_TYPE
+#define FP_TYPE float
+#define FP_PREC float
 #endif
 
 template <typename TIO, typename TPREC>
@@ -57,47 +57,48 @@ bn_fwd_infer_per_activation(const TIO* __restrict in, /* x input */
                             unsigned int imageDims,
                             unsigned int batchStride)
 {
-    size_t yidx  = blockIdx.y * blockDim.y + threadIdx.y;
-    size_t grpid = blockIdx.x;
+    unsigned int yidx  = blockIdx.y * blockDim.y + threadIdx.y;
+    unsigned int grpid = blockIdx.x;
 
-    for(size_t img_offset = yidx; img_offset < imageDims; img_offset += gridDim.y * blockDim.y)
+    for(unsigned int img_offset = yidx; img_offset < imageDims;
+        img_offset += gridDim.y * blockDim.y)
     {
-        size_t adjIndex         = (grpid * imageDims) + img_offset;
+        unsigned int adjIndex   = (grpid * imageDims) + img_offset;
         const TPREC mean        = estimatedMean[adjIndex];
         const TPREC variance    = estimatedVariance[adjIndex];
         const TPREC invVariance = static_cast<TPREC>(rsqrt(fabs(variance + epsilon)));
         const TPREC pvt_scale   = scale[adjIndex];
         const TPREC pvt_bias    = bias[adjIndex];
 
-        for(size_t n = 0; n < batchSize; n++)
+        for(unsigned int n = 0; n < batchSize; n++)
         {
-            size_t index      = (batchStride * n) + adjIndex;
-            const TPREC inhat = (static_cast<TPREC>(in[index]) - mean) * invVariance;
-            out[index]        = static_cast<TIO>(fma(pvt_scale, inhat, pvt_bias));
+            unsigned int index = (batchStride * n) + adjIndex;
+            const TPREC inhat  = (static_cast<TPREC>(in[index]) - mean) * invVariance;
+            out[index]         = static_cast<TIO>(fma(pvt_scale, inhat, pvt_bias));
         }
     }
 }
 
 extern "C" __global__ void __launch_bounds__(MIO_BN_GRP0* MIO_BN_GRP1* MIO_BN_GRP2)
-    MIOpenBatchNormFwdInferPerActivationEstHIP(const _FLOAT* __restrict in,
-                                               _FLOAT* __restrict out,
-                                               const _FLOAT_PREC* __restrict estimatedMean,
-                                               const _FLOAT_PREC* __restrict estimatedVariance,
-                                               const _FLOAT_PREC* __restrict scale,
-                                               const _FLOAT_PREC* __restrict bias,
+    MIOpenBatchNormFwdInferPerActivationEstHIP(const FP_TYPE* __restrict in,
+                                               FP_TYPE* __restrict out,
+                                               const FP_PREC* __restrict estimatedMean,
+                                               const FP_PREC* __restrict estimatedVariance,
+                                               const FP_PREC* __restrict scale,
+                                               const FP_PREC* __restrict bias,
                                                double epsilon,
                                                unsigned int batchSize,
                                                unsigned int imageDims,
                                                unsigned int batchStride)
 {
-    bn_fwd_infer_per_activation<_FLOAT, _FLOAT_PREC>(in,
-                                                     out,
-                                                     estimatedMean,
-                                                     estimatedVariance,
-                                                     scale,
-                                                     bias,
-                                                     epsilon,
-                                                     batchSize,
-                                                     imageDims,
-                                                     batchStride);
+    bn_fwd_infer_per_activation<FP_TYPE, FP_PREC>(in,
+                                                  out,
+                                                  estimatedMean,
+                                                  estimatedVariance,
+                                                  scale,
+                                                  bias,
+                                                  epsilon,
+                                                  batchSize,
+                                                  imageDims,
+                                                  batchStride);
 }

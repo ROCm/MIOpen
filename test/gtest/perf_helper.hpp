@@ -25,14 +25,17 @@
  *******************************************************************************/
 
 #pragma once
-#include "get_handle.hpp"
 
-#define NUM_PERF_RUNS 5
+#define NUM_PERF_RUNS 20
 
+template <typename T>
 struct PerfHelper
 {
+    std::vector<std::tuple<std::string, T, T, double, double, double>> kernelTestStats;
 
-    template <typename T>
+    // hold the min, max, mean, median, and standard deviation
+    std::tuple<T, T, double, double, double> gpuStats;
+
     static T perf_min(const std::vector<T>& data)
     {
         if(data.empty())
@@ -40,7 +43,6 @@ struct PerfHelper
         return *std::min_element(data.begin(), data.end());
     }
 
-    template <typename T>
     static T perf_max(const std::vector<T>& data)
     {
         if(data.empty())
@@ -48,7 +50,6 @@ struct PerfHelper
         return *std::max_element(data.begin(), data.end());
     }
 
-    template <typename T>
     static double perf_mean(const std::vector<T>& data)
     {
         if(data.empty())
@@ -56,7 +57,6 @@ struct PerfHelper
         return std::accumulate(data.begin(), data.end(), 0.0) / data.size();
     }
 
-    template <typename T>
     static double perf_median(std::vector<T> data)
     {
         if(data.empty())
@@ -73,7 +73,6 @@ struct PerfHelper
         }
     }
 
-    template <typename T>
     static double perf_standardDeviation(const std::vector<T>& data)
     {
         if(data.empty())
@@ -86,7 +85,6 @@ struct PerfHelper
         return std::sqrt(sq_sum / data.size());
     }
 
-    template <typename T>
     static std::tuple<T, T, double, double, double> calcStats(const std::vector<T>& data)
     {
         T min_val         = perf_min(data);
@@ -97,73 +95,101 @@ struct PerfHelper
         return {min_val, max_val, mean_val, median_val, sd_val};
     }
 
-    template <typename T>
-    static void
-    writeStatsToCSV(const std::string& filename, const std::vector<T>& data, bool append)
+    void writeStatsToCSV(const std::string& filename, std::string test_info)
     {
         std::ofstream file;
+
+        // Open the file in append mode. Create it if it doesn't exist.
         file.open(filename, std::ios::app);
 
+        // Check if the file is open, throw an exception if not.
         if(!file.is_open())
         {
             throw std::runtime_error("Failed to open file");
         }
 
-        std::tuple<T, T, double, double, double> stats = calcStats(data);
-        file << (append ? "" : ",") << std::get<0>(stats) << "," << std::get<1>(stats) << ","
-             << std::get<2>(stats) << "," << std::get<3>(stats) << "," << std::get<4>(stats)
-             << (append ? "" : "\n");
+        // If the file was just created (i.e., its size is 0), write the header.
+        if(std::filesystem::file_size(filename) == 0)
+        {
+            file << "KernelAndTestInfo,min_exec_time_ratio,max_exec_time_ratio,mean_exec_time_"
+                    "ratio,median_exec_time_ratio,SD_ocl,SD_hip\n";
+        }
+
+        // if the number of entries in the kernelTestStats vector is odd, throw an exception
+        if(kernelTestStats.size() % 2 != 0)
+        {
+            throw std::runtime_error("The number of entries in the kernelTestStats vector is odd");
+        }
+
+        // Calculate the half size of the kernelTestStats vector
+        size_t halfSize = kernelTestStats.size() / 2;
+
+        // Iterate over the first half of the kernelTestStats vector
+        for(size_t i = 0; i < halfSize; ++i)
+        {
+            // Access the i-th element from the first half and (i + halfSize)-th element from the
+            // second half
+            auto& firstHalfElement  = kernelTestStats[i];
+            auto& secondHalfElement = kernelTestStats[i + halfSize];
+
+            // Write the perf data to the file
+            file << std::get<0>(firstHalfElement) + test_info << "," // KernelAndTestInfo
+                 << std::get<1>(firstHalfElement) / std::get<1>(secondHalfElement)
+                 << "," // min_exec_time_ratio
+                 << std::get<2>(firstHalfElement) / std::get<2>(secondHalfElement)
+                 << "," // max_exec_time_ratio
+                 << std::get<3>(firstHalfElement) / std::get<3>(secondHalfElement)
+                 << "," // mean_exec_time_ratio
+                 << std::get<4>(firstHalfElement) / std::get<4>(secondHalfElement)
+                 << "," // median_exec_time_ratio
+                 << std::get<5>(firstHalfElement) << "," << std::get<5>(secondHalfElement)
+                 << "\n"; // SD_ocl, SD_hip
+        }
 
         file.close();
     }
 
-    static void writeHeaderToCSV(const std::string& filename)
-    {
-        std::ofstream file;
-
-        // If the file already exists, do not write the header
-        if(!std::filesystem::exists(filename))
-        {
-            file.open(filename, std::ios::app);
-            if(!file.is_open())
-            {
-                throw std::runtime_error("Failed to open file");
-            }
-            file
-                << "OCL_Min,OCL_Max,OCL_Mean,OCL_Median,OCL_SD,HIP_Min,HIP_Max,HIP_Mean,HIP_Median,"
-                   "HIP_SD\n";
-            file.close();
-        }
-    }
-
     template <typename... Args>
-    static void perfTest(miopen::Handle& handle,
-                         const std::string& kernel_name,
-                         const std::string& network_config,
-                         const std::string& perf_filename_csv,
-                         bool append,
-                         Args&&... args)
+    void perfTest(miopen::Handle& handle,
+                  const std::string& kernel_name,
+                  const std::string& network_config,
+                  bool append,
+                  Args&&... args)
     {
         // Get kernels matching the kernel_name and network_config from the cache
         auto&& kernels = handle.GetKernels(kernel_name, network_config);
         // Ensure we have at least one kernel
         assert(!kernels.empty());
-        // Get the type of the elapsed time
-        using elapsed_t = decltype(handle.GetKernelTime());
-        // Vector to store elapsed times
-        std::vector<elapsed_t> elapsedTime_ms;
-        // Enable profiling
-        handle.EnableProfiling();
+        // Vector to hold the execution times
+        std::vector<T> elapsedTime_ms;
 
+        if(handle.IsProfilingEnabled())
+        { // If profiling was enabled elsewhere, reset the kernel time
+            handle.ResetKernelTime();
+        }
+        else
+        {
+            handle.EnableProfiling(); // Enable profiling
+            handle.ResetKernelTime(); // for good measure?
+        }
+        // Optionally ignore the first few runs to allow for warm-up
         for(size_t i = 0; i < NUM_PERF_RUNS; i++)
         {
             // Execute the kernel
             kernels.front()(std::forward<Args>(args)...);
             // Append the elapsed time to the vector
             elapsedTime_ms.push_back(handle.GetKernelTime());
+            handle.ResetKernelTime();
         }
 
-        // Write the stats to the CSV file
-        writeStatsToCSV(perf_filename_csv, elapsedTime_ms, !append);
+        handle.EnableProfiling(false); // Disable profiling
+
+        gpuStats = calcStats(elapsedTime_ms);
+        kernelTestStats.push_back({kernel_name,
+                                   std::get<0>(gpuStats),
+                                   std::get<1>(gpuStats),
+                                   std::get<2>(gpuStats),
+                                   std::get<3>(gpuStats),
+                                   std::get<4>(gpuStats)});
     }
 };

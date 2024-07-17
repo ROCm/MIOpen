@@ -51,7 +51,7 @@ void BatchNormForwardInferencGPU(miopen::Handle& handle,
                                  ConstData_t estimatedMean,
                                  ConstData_t estimatedVariance,
                                  double epsilon,
-                                 const std::string& perfTestFilename,
+                                 PerfHelper<float>& perf_helper,
                                  bool use_hip)
 {
 
@@ -149,10 +149,9 @@ void BatchNormForwardInferencGPU(miopen::Handle& handle,
 
     if constexpr(PERF_ENABLE)
     {
-        PerfHelper::perfTest(handle,
+        perf_helper.perfTest(handle,
                              kernel_name,
                              network_config,
-                             perfTestFilename,
                              use_hip,
                              x,
                              y,
@@ -191,14 +190,6 @@ struct BatchNormFwdInferTest
 protected:
     static const std::string sPerfTestFilename;
 
-    static void SetUpTestSuite()
-    {
-        if constexpr(PERF_ENABLE)
-        {
-            PerfHelper::writeHeaderToCSV(sPerfTestFilename);
-        }
-    }
-
     void SetUp() override { std::tie(bn_config, tensor_layout) = GetParam(); }
 
     void DataSetup(miopenBatchNormMode_t mode)
@@ -227,7 +218,7 @@ protected:
                                     bn_infer_test_data.estMean_dev.get(),
                                     bn_infer_test_data.estVariance_dev.get(),
                                     bn_infer_test_data.epsilon,
-                                    sPerfTestFilename,
+                                    perf_helper,
                                     hip_en);
 
         auto& output_ref =
@@ -247,10 +238,28 @@ protected:
         BNTensorCompare<YDataType>(bn_infer_test_data.output, bn_infer_test_data.ref_out, 0.0);
     }
 
+    void TearDown() override
+    {
+        if constexpr(PERF_ENABLE)
+        {
+            // get the input tensor size and store in a string with x in between
+            std::vector<size_t> in_dims = bn_config.GetInput();
+            std::string input_dims_str =
+                std::to_string(in_dims[0]) + "x" + std::to_string(in_dims[1]) + "x" +
+                std::to_string(in_dims[2]) + "x" + std::to_string(in_dims[3]);
+            perf_helper.writeStatsToCSV(
+                sPerfTestFilename,
+                "_" + input_dims_str + "_" +
+                    (bn_infer_test_data.input.desc.GetType() == miopenHalf ? "FP16" : "FP32"));
+        }
+    }
+
     BNTestCase bn_config;
     BNInferTestData<XDataType, YDataType, ScaleDataType, BiasDataType, MeanVarDataType, BNTestCase>
         bn_infer_test_data;
     miopenTensorLayout_t tensor_layout;
+    // GetKernelTime returns time in float
+    PerfHelper<float> perf_helper;
 };
 
 template <typename XDataType,
@@ -260,7 +269,7 @@ template <typename XDataType,
           typename MeanVarDataType>
 const std::string
     BatchNormFwdInferTest<XDataType, YDataType, ScaleDataType, BiasDataType, MeanVarDataType>::
-        sPerfTestFilename = "BatchNormFwdInferPerfTest.csv";
+        sPerfTestFilename = "BatchNormFwdInferPerf.csv";
 
 namespace BatchNormFwdInfer {
 

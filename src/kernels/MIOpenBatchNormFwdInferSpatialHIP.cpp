@@ -29,19 +29,19 @@
 #endif
 
 #if MIOPEN_USE_FP16 == 1
-#define _FLOAT half
-#define _FLOAT_PREC float
+#define FP_TYPE half
+#define FP_PREC float
 #endif
 
 #if MIOPEN_USE_FP32 == 1
-#define _FLOAT float
-#define _FLOAT_PREC float
+#define FP_TYPE float
+#define FP_PREC float
 #endif
 
 // if MIOPEN_USE_FP16 is not defined, default is fp32
-#ifndef _FLOAT
-#define _FLOAT float
-#define _FLOAT_PREC float
+#ifndef FP_TYPE
+#define FP_TYPE float
+#define FP_PREC float
 #endif
 
 template <typename TIO, typename TPREC>
@@ -57,8 +57,8 @@ __forceinline__ __device__ void bn_fwd_infer_spatial(const TIO* __restrict in, /
                                                      unsigned int batchStride)
 {
 
-    size_t xidx = blockIdx.x * blockDim.x + threadIdx.x;
-    size_t yidx = blockIdx.y * blockDim.y + threadIdx.y;
+    unsigned int xidx = blockIdx.x * blockDim.x + threadIdx.x;
+    unsigned int yidx = blockIdx.y * blockDim.y + threadIdx.y;
 
     const TPREC mean        = estimatedMean[xidx];
     const TPREC variance    = estimatedVariance[xidx];
@@ -66,37 +66,37 @@ __forceinline__ __device__ void bn_fwd_infer_spatial(const TIO* __restrict in, /
     const TPREC pbias       = bias[xidx];
     const TPREC invVariance = static_cast<TPREC>(rsqrt(fabs(variance + epsilon)));
 
-    for(size_t idx = yidx; idx < imageDims; idx += gridDim.y * blockDim.y)
+    for(unsigned int idx = yidx; idx < imageDims; idx += gridDim.y * blockDim.y)
     {
-        for(size_t n = 0; n < batchSize; n++)
+        for(unsigned int n = 0; n < batchSize; n++)
         {
-            size_t index = (n * batchStride) + (xidx * imageDims) + idx;
-            TPREC inhat  = (static_cast<TPREC>(in[index]) - mean) * invVariance;
-            out[index]   = static_cast<TIO>(fma(pscale, inhat, pbias));
+            unsigned int index = (n * batchStride) + (xidx * imageDims) + idx;
+            TPREC inhat        = (static_cast<TPREC>(in[index]) - mean) * invVariance;
+            out[index]         = static_cast<TIO>(fma(pscale, inhat, pbias));
         }
     }
 }
 
 extern "C" __global__ void __launch_bounds__(MIO_BN_GRP0* MIO_BN_GRP1* MIO_BN_GRP2)
-    MIOpenBatchNormFwdInferSpatialEstHIP(const _FLOAT* __restrict in, /* x input */
-                                         _FLOAT* __restrict out,      /* y output */
-                                         const _FLOAT_PREC* __restrict estimatedMean,
-                                         const _FLOAT_PREC* __restrict estimatedVariance,
-                                         const _FLOAT_PREC* __restrict scale,
-                                         const _FLOAT_PREC* __restrict bias,
+    MIOpenBatchNormFwdInferSpatialEstHIP(const FP_TYPE* __restrict in, /* x input */
+                                         FP_TYPE* __restrict out,      /* y output */
+                                         const FP_PREC* __restrict estimatedMean,
+                                         const FP_PREC* __restrict estimatedVariance,
+                                         const FP_PREC* __restrict scale,
+                                         const FP_PREC* __restrict bias,
                                          double epsilon,
                                          unsigned int batchSize,
                                          unsigned int imageDims,
                                          unsigned int batchStride)
 {
-    bn_fwd_infer_spatial<_FLOAT, _FLOAT_PREC>(in,
-                                              out,
-                                              estimatedMean,
-                                              estimatedVariance,
-                                              scale,
-                                              bias,
-                                              epsilon,
-                                              batchSize,
-                                              imageDims,
-                                              batchStride);
+    bn_fwd_infer_spatial<FP_TYPE, FP_PREC>(in,
+                                           out,
+                                           estimatedMean,
+                                           estimatedVariance,
+                                           scale,
+                                           bias,
+                                           epsilon,
+                                           batchSize,
+                                           imageDims,
+                                           batchStride);
 }
