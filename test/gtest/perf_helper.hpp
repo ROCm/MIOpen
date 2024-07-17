@@ -27,7 +27,6 @@
 #pragma once
 
 #define NUM_PERF_RUNS 5
-#define NUM_RUNS_IGNORE 0
 
 template <typename T>
 struct PerfHelper
@@ -179,8 +178,7 @@ struct PerfHelper
             // Execute the kernel
             kernels.front()(std::forward<Args>(args)...);
             // Append the elapsed time to the vector
-            if(i >= NUM_RUNS_IGNORE)
-                elapsedTime_ms.push_back(handle.GetKernelTime());
+            elapsedTime_ms.push_back(handle.GetKernelTime());
             handle.ResetKernelTime();
         }
 
