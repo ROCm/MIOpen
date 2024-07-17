@@ -307,11 +307,7 @@ private:
                      std::vector<std::size_t>&& strides_in,
                      bool use_strides);
 
-    static void CheckArguments(miopenDataType_t t,
-                               miopenTensorLayout_t layout_in,
-                               const std::vector<std::size_t>& lens_in,
-                               const std::vector<std::size_t>& strides_in,
-                               bool use_strides);
+    void CheckArgsAndInit(bool use_strides);
 
     void SetStrideNd(const std::string& layout);
     void LensReorder(const std::string& layout);

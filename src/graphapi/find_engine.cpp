@@ -81,7 +81,8 @@ class MHA_Fwd_F8_Pattern : public GraphPatternMatcher
     {
 
         assert(attn_scale);
-        std::vector<std::size_t> all1s = {1LL, 1LL, 1LL, 1LL};
+        std::vector<std::size_t> all1s = {
+            std::size_t{1}, std::size_t{1}, std::size_t{1}, std::size_t{1}};
 
         auto tensor_map = std::make_shared<TensorInfoMap>();
 

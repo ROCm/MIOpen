@@ -226,23 +226,12 @@ TensorDescriptor::TensorDescriptor(miopenDataType_t t,
                                    const std::vector<std::size_t>& lens_in,
                                    const std::vector<std::size_t>& strides_in,
                                    bool use_strides)
-    : lens(lens_in), type(t), tensorLayout(layout_in)
+    : lens(lens_in),
+      strides(use_strides ? strides_in : std::vector<std::size_t>()),
+      type(t),
+      tensorLayout(layout_in)
 {
-    CheckArguments(t, layout_in, lens, strides_in, use_strides);
-
-    this->CalculateVectorLength();
-
-    if(use_strides)
-    {
-        strides = strides_in;
-        packed  = (this->GetElementSize() == this->GetElementSpace());
-    }
-    else
-    {
-        packed = true;
-        // Since strides is not passed it is computed based on tensorLayout.
-        SetStrideNd(GetLayout_str());
-    }
+    CheckArgsAndInit(use_strides);
 }
 
 TensorDescriptor::TensorDescriptor(miopenDataType_t t,
@@ -250,50 +239,45 @@ TensorDescriptor::TensorDescriptor(miopenDataType_t t,
                                    std::vector<std::size_t>&& lens_in,
                                    std::vector<std::size_t>&& strides_in,
                                    bool use_strides)
-    : lens(std::move(lens_in)), type(t), tensorLayout(layout_in)
+    : lens(std::move(lens_in)),
+      strides(use_strides ? std::move(strides_in) : std::vector<std::size_t>()),
+      type(t),
+      tensorLayout(layout_in)
 {
-    CheckArguments(t, layout_in, lens, strides_in, use_strides);
+    CheckArgsAndInit(use_strides);
+}
+
+void TensorDescriptor::CheckArgsAndInit(bool use_strides)
+{
+    if(!IsDataTypeSupported(type))
+        MIOPEN_THROW(miopenStatusBadParm, "Unsupported data type");
+
+    if(!IsLayoutSupported(tensorLayout))
+        MIOPEN_THROW(miopenStatusBadParm, "Unsupported layout");
+
+    if(lens.empty())
+        MIOPEN_THROW(miopenStatusBadParm, "Number of dimensions must be > 1");
+
+    if(!CheckLengths(lens, static_cast<std::size_t>(std::numeric_limits<int64_t>::max())))
+        MIOPEN_THROW(miopenStatusBadParm, "Lengths must be > 0 and <= INT64_MAX");
 
     this->CalculateVectorLength();
 
     if(use_strides)
     {
-        strides = std::move(strides_in);
-        packed  = (this->GetElementSize() == this->GetElementSpace());
+        if(lens.size() != strides.size())
+            MIOPEN_THROW(miopenStatusBadParm, "Lengths and strides dimensions must be equal");
+
+        if(!CheckLengths(strides, static_cast<std::size_t>(std::numeric_limits<int64_t>::max())))
+            MIOPEN_THROW(miopenStatusBadParm, "Strides must be > 0 and <= INT64_MAX");
+
+        packed = (this->GetElementSize() == this->GetElementSpace());
     }
     else
     {
         packed = true;
         // Since strides is not passed it is computed based on tensorLayout.
         SetStrideNd(GetLayout_str());
-    }
-}
-
-void TensorDescriptor::CheckArguments(miopenDataType_t t,
-                                      miopenTensorLayout_t layout_in,
-                                      const std::vector<std::size_t>& lens_in,
-                                      const std::vector<std::size_t>& strides_in,
-                                      bool use_strides)
-{
-    if(!IsDataTypeSupported(t))
-        MIOPEN_THROW(miopenStatusBadParm, "Unsupported data type");
-
-    if(!IsLayoutSupported(layout_in))
-        MIOPEN_THROW(miopenStatusBadParm, "Unsupported layout");
-
-    if(lens_in.empty())
-        MIOPEN_THROW(miopenStatusBadParm, "Number of dimensions must be > 1");
-
-    if(!CheckLengths(lens_in, static_cast<std::size_t>(std::numeric_limits<int64_t>::max())))
-        MIOPEN_THROW(miopenStatusBadParm, "Lengths must be > 0 and <= INT64_MAX");
-
-    if(use_strides)
-    {
-        if(lens_in.size() != strides_in.size())
-            MIOPEN_THROW(miopenStatusBadParm, "Lengths and strides dimensions must be equal");
-
-        if(!CheckLengths(strides_in, static_cast<std::size_t>(std::numeric_limits<int64_t>::max())))
-            MIOPEN_THROW(miopenStatusBadParm, "Strides must be > 0 and <= INT64_MAX");
     }
 }
 
