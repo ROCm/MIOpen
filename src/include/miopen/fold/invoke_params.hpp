@@ -25,7 +25,7 @@
  *******************************************************************************/
 #pragma once
 
-#include "miopen/miopen.h"
+#include <miopen/miopen.h>
 #include <miopen/invoke_params.hpp>
 #include <miopen/tensor.hpp>
 

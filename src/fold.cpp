@@ -24,8 +24,8 @@
  *
  *******************************************************************************/
 
-#include "miopen/miopen.h"
-#include "miopen/fold/problem_description.hpp"
+#include <miopen/miopen.h>
+#include <miopen/fold/problem_description.hpp>
 #include <miopen/datatype.hpp>
 #include <miopen/find_solution.hpp>
 #include <miopen/float_equal.hpp>

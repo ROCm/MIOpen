@@ -24,7 +24,7 @@
  *
  *******************************************************************************/
 
-#include "miopen/miopen.h"
+#include <miopen/miopen.h>
 #include <miopen/fold.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/handle.hpp>

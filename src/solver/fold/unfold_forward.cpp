@@ -24,8 +24,8 @@
  *
  *******************************************************************************/
 
-#include "miopen/fold/problem_description.hpp"
-#include "miopen/miopen.h"
+#include <miopen/fold/problem_description.hpp>
+#include <miopen/miopen.h>
 #include <miopen/datatype.hpp>
 #include <miopen/kernel_build_params.hpp>
 #include <miopen/fold/invoke_params.hpp>
