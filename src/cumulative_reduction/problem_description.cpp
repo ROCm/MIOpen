@@ -55,6 +55,7 @@ NetworkConfig ForwardProblemDescription::MakeNetworkConfig() const
 
     std::ostringstream ss;
 
+    ss << "cum_reduc_fwd";
     ss << "idtype" << input_dtype;
     ss << "odtype" << output_dtype;
     ss << "outer" << outer_size;
