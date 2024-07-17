@@ -47,13 +47,13 @@ struct UnfoldFwdProblemDescription : ProblemDescriptionBase
     UnfoldFwdProblemDescription(const TensorDescriptor& inputDesc_,
                                 const TensorDescriptor& outputDesc_,
                                 const int32_t* kernel_size_,
-                                const int kernel_size_size_,
+                                const int32_t kernel_size_size_,
                                 const int32_t* stride_,
-                                const int stride_size_,
+                                const int32_t stride_size_,
                                 const int32_t* padding_,
-                                const int padding_size_,
+                                const int32_t padding_size_,
                                 const int32_t* dilation_,
-                                const int dilation_size_)
+                                const int32_t dilation_size_)
         : inputDesc(inputDesc_),
           outputDesc(outputDesc_),
           kernel_size(kernel_size_),
@@ -79,7 +79,7 @@ struct UnfoldFwdProblemDescription : ProblemDescriptionBase
             return false;
 #endif
         }
-        int spatial_dim_size = inputDesc.GetSize() - 2;
+        int32_t spatial_dim_size = inputDesc.GetSize() - 2;
         if(kernel_size_size != spatial_dim_size || stride_size != spatial_dim_size ||
            padding_size != spatial_dim_size || dilation_size != spatial_dim_size)
         {
@@ -141,13 +141,13 @@ public:
     TensorDescriptor inputDesc;
     TensorDescriptor outputDesc;
     const int32_t* kernel_size;
-    const int kernel_size_size;
+    const int32_t kernel_size_size;
     const int32_t* stride;
-    const int stride_size;
+    const int32_t stride_size;
     const int32_t* padding;
-    const int padding_size;
+    const int32_t padding_size;
     const int32_t* dilation;
-    const int dilation_size;
+    const int32_t dilation_size;
 };
 
 struct UnfoldBwdProblemDescription : ProblemDescriptionBase
@@ -155,13 +155,13 @@ struct UnfoldBwdProblemDescription : ProblemDescriptionBase
     UnfoldBwdProblemDescription(const TensorDescriptor& dinputDesc_,
                                 const TensorDescriptor& doutputDesc_,
                                 const int32_t* kernel_size_,
-                                const int kernel_size_size_,
+                                const int32_t kernel_size_size_,
                                 const int32_t* stride_,
-                                const int stride_size_,
+                                const int32_t stride_size_,
                                 const int32_t* padding_,
-                                const int padding_size_,
+                                const int32_t padding_size_,
                                 const int32_t* dilation_,
-                                const int dilation_size_)
+                                const int32_t dilation_size_)
         : dinputDesc(dinputDesc_),
           doutputDesc(doutputDesc_),
           kernel_size(kernel_size_),
@@ -187,7 +187,7 @@ struct UnfoldBwdProblemDescription : ProblemDescriptionBase
             return false;
 #endif
         }
-        int spatial_dim_size = dinputDesc.GetSize() - 2;
+        int32_t spatial_dim_size = dinputDesc.GetSize() - 2;
         if(kernel_size_size != spatial_dim_size || stride_size != spatial_dim_size ||
            padding_size != spatial_dim_size || dilation_size != spatial_dim_size)
         {
@@ -250,13 +250,13 @@ public:
     TensorDescriptor dinputDesc;
     TensorDescriptor doutputDesc;
     const int32_t* kernel_size;
-    const int kernel_size_size;
+    const int32_t kernel_size_size;
     const int32_t* stride;
-    const int stride_size;
+    const int32_t stride_size;
     const int32_t* padding;
-    const int padding_size;
+    const int32_t padding_size;
     const int32_t* dilation;
-    const int dilation_size;
+    const int32_t dilation_size;
 };
 
 struct FoldFwdProblemDescription : ProblemDescriptionBase
@@ -264,13 +264,13 @@ struct FoldFwdProblemDescription : ProblemDescriptionBase
     FoldFwdProblemDescription(const TensorDescriptor& inputDesc_,
                               const TensorDescriptor& outputDesc_,
                               const int32_t* kernel_size_,
-                              const int kernel_size_size_,
+                              const int32_t kernel_size_size_,
                               const int32_t* stride_,
-                              const int stride_size_,
+                              const int32_t stride_size_,
                               const int32_t* padding_,
-                              const int padding_size_,
+                              const int32_t padding_size_,
                               const int32_t* dilation_,
-                              const int dilation_size_)
+                              const int32_t dilation_size_)
         : inputDesc(inputDesc_),
           outputDesc(outputDesc_),
           kernel_size(kernel_size_),
@@ -296,7 +296,7 @@ struct FoldFwdProblemDescription : ProblemDescriptionBase
             return false;
 #endif
         }
-        int spatial_dim_size = outputDesc.GetSize() - 2;
+        int32_t spatial_dim_size = outputDesc.GetSize() - 2;
         if(kernel_size_size != spatial_dim_size || stride_size != spatial_dim_size ||
            padding_size != spatial_dim_size || dilation_size != spatial_dim_size)
         {
@@ -358,13 +358,13 @@ public:
     TensorDescriptor inputDesc;
     TensorDescriptor outputDesc;
     const int32_t* kernel_size;
-    const int kernel_size_size;
+    const int32_t kernel_size_size;
     const int32_t* stride;
-    const int stride_size;
+    const int32_t stride_size;
     const int32_t* padding;
-    const int padding_size;
+    const int32_t padding_size;
     const int32_t* dilation;
-    const int dilation_size;
+    const int32_t dilation_size;
 };
 
 struct FoldBwdProblemDescription : ProblemDescriptionBase
@@ -372,13 +372,13 @@ struct FoldBwdProblemDescription : ProblemDescriptionBase
     FoldBwdProblemDescription(const TensorDescriptor& dinputDesc_,
                               const TensorDescriptor& doutputDesc_,
                               const int32_t* kernel_size_,
-                              const int kernel_size_size_,
+                              const int32_t kernel_size_size_,
                               const int32_t* stride_,
-                              const int stride_size_,
+                              const int32_t stride_size_,
                               const int32_t* padding_,
-                              const int padding_size_,
+                              const int32_t padding_size_,
                               const int32_t* dilation_,
-                              const int dilation_size_)
+                              const int32_t dilation_size_)
         : dinputDesc(dinputDesc_),
           doutputDesc(doutputDesc_),
           kernel_size(kernel_size_),
@@ -404,7 +404,7 @@ struct FoldBwdProblemDescription : ProblemDescriptionBase
             return false;
 #endif
         }
-        int spatial_dim_size = doutputDesc.GetSize() - 2;
+        int32_t spatial_dim_size = doutputDesc.GetSize() - 2;
         if(kernel_size_size != spatial_dim_size || stride_size != spatial_dim_size ||
            padding_size != spatial_dim_size || dilation_size != spatial_dim_size)
         {
@@ -467,13 +467,13 @@ public:
     TensorDescriptor dinputDesc;
     TensorDescriptor doutputDesc;
     const int32_t* kernel_size;
-    const int kernel_size_size;
+    const int32_t kernel_size_size;
     const int32_t* stride;
-    const int stride_size;
+    const int32_t stride_size;
     const int32_t* padding;
-    const int padding_size;
+    const int32_t padding_size;
     const int32_t* dilation;
-    const int dilation_size;
+    const int32_t dilation_size;
 };
 
 } // namespace fold

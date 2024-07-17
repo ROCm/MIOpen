@@ -37,13 +37,13 @@ extern "C" miopenStatus_t miopenUnfoldForward(miopenHandle_t handle,
                                               const miopenTensorDescriptor_t outputDesc,
                                               void* output,
                                               const int32_t* kernel_size,
-                                              const int kernel_size_size,
+                                              const int32_t kernel_size_size,
                                               const int32_t* stride,
-                                              const int stride_size,
+                                              const int32_t stride_size,
                                               const int32_t* padding,
-                                              const int padding_size,
+                                              const int32_t padding_size,
                                               const int32_t* dilation,
-                                              const int dilation_size)
+                                              const int32_t dilation_size)
 {
     return miopen::try_([&] {
         miopen::UnfoldForward(miopen::deref(handle),
@@ -68,13 +68,13 @@ extern "C" miopenStatus_t miopenUnfoldBackward(miopenHandle_t handle,
                                                const miopenTensorDescriptor_t doutputDesc,
                                                const void* doutput,
                                                const int32_t* kernel_size,
-                                               const int kernel_size_size,
+                                               const int32_t kernel_size_size,
                                                const int32_t* stride,
-                                               const int stride_size,
+                                               const int32_t stride_size,
                                                const int32_t* padding,
-                                               const int padding_size,
+                                               const int32_t padding_size,
                                                const int32_t* dilation,
-                                               const int dilation_size)
+                                               const int32_t dilation_size)
 {
     return miopen::try_([&] {
         miopen::UnfoldBackward(miopen::deref(handle),
@@ -99,13 +99,13 @@ extern "C" miopenStatus_t miopenFoldForward(miopenHandle_t handle,
                                             const miopenTensorDescriptor_t outputDesc,
                                             void* output,
                                             const int32_t* kernel_size,
-                                            const int kernel_size_size,
+                                            const int32_t kernel_size_size,
                                             const int32_t* stride,
-                                            const int stride_size,
+                                            const int32_t stride_size,
                                             const int32_t* padding,
-                                            const int padding_size,
+                                            const int32_t padding_size,
                                             const int32_t* dilation,
-                                            const int dilation_size)
+                                            const int32_t dilation_size)
 {
     return miopen::try_([&] {
         miopen::FoldForward(miopen::deref(handle),
@@ -130,13 +130,13 @@ extern "C" miopenStatus_t miopenFoldBackward(miopenHandle_t handle,
                                              const miopenTensorDescriptor_t doutputDesc,
                                              const void* doutput,
                                              const int32_t* kernel_size,
-                                             const int kernel_size_size,
+                                             const int32_t kernel_size_size,
                                              const int32_t* stride,
-                                             const int stride_size,
+                                             const int32_t stride_size,
                                              const int32_t* padding,
-                                             const int padding_size,
+                                             const int32_t padding_size,
                                              const int32_t* dilation,
-                                             const int dilation_size)
+                                             const int32_t dilation_size)
 {
     return miopen::try_([&] {
         miopen::FoldBackward(miopen::deref(handle),

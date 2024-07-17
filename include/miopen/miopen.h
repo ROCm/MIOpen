@@ -6612,13 +6612,13 @@ MIOPEN_EXPORT miopenStatus_t miopenFoldForward(miopenHandle_t handle,
                                                const miopenTensorDescriptor_t outputDesc,
                                                void* output,
                                                const int32_t* kernel_size,
-                                               const int kernel_size_size,
+                                               const int32_t kernel_size_size,
                                                const int32_t* stride,
-                                               const int stride_size,
+                                               const int32_t stride_size,
                                                const int32_t* padding,
-                                               const int padding_size,
+                                               const int32_t padding_size,
                                                const int32_t* dilation,
-                                               const int dilation_size);
+                                               const int32_t dilation_size);
 
 /*! @brief Execute an fold backward layer
 *
@@ -6644,13 +6644,13 @@ MIOPEN_EXPORT miopenStatus_t miopenFoldBackward(miopenHandle_t handle,
                                                 const miopenTensorDescriptor_t doutputDesc,
                                                 const void* doutput,
                                                 const int32_t* kernel_size,
-                                                const int kernel_size_size,
+                                                const int32_t kernel_size_size,
                                                 const int32_t* stride,
-                                                const int stride_size,
+                                                const int32_t stride_size,
                                                 const int32_t* padding,
-                                                const int padding_size,
+                                                const int32_t padding_size,
                                                 const int32_t* dilation,
-                                                const int dilation_size);
+                                                const int32_t dilation_size);
 
 /*! @brief Execute an unfold forward layer
  *
@@ -6676,13 +6676,13 @@ MIOPEN_EXPORT miopenStatus_t miopenUnfoldForward(miopenHandle_t handle,
                                                  const miopenTensorDescriptor_t outputDesc,
                                                  void* output,
                                                  const int32_t* kernel_size,
-                                                 const int kernel_size_size,
+                                                 const int32_t kernel_size_size,
                                                  const int32_t* stride,
-                                                 const int stride_size,
+                                                 const int32_t stride_size,
                                                  const int32_t* padding,
-                                                 const int padding_size,
+                                                 const int32_t padding_size,
                                                  const int32_t* dilation,
-                                                 const int dilation_size);
+                                                 const int32_t dilation_size);
 
 /*! @brief Execute an unfold backward layer
  *
@@ -6708,13 +6708,13 @@ MIOPEN_EXPORT miopenStatus_t miopenUnfoldBackward(miopenHandle_t handle,
                                                   const miopenTensorDescriptor_t doutputDesc,
                                                   const void* doutput,
                                                   const int32_t* kernel_size,
-                                                  const int kernel_size_size,
+                                                  const int32_t kernel_size_size,
                                                   const int32_t* stride,
-                                                  const int stride_size,
+                                                  const int32_t stride_size,
                                                   const int32_t* padding,
-                                                  const int padding_size,
+                                                  const int32_t padding_size,
                                                   const int32_t* dilation,
-                                                  const int dilation_size);
+                                                  const int32_t dilation_size);
 
 /** @} */
 // CLOSEOUT FOLD DOXYGEN GROUP

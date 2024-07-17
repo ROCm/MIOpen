@@ -94,7 +94,7 @@ ConvSolution UnfoldBwd::GetSolution([[maybe_unused]] const ExecutionContext& con
         result.construction_params.push_back(kernel);
     }
 
-    result.invoker_factory = [](const std::vector<Kernel>& kernels) {
+    result.invoker_factory = [N, C, H, W](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
             decltype(auto) kernel = handle_.Run(kernels.front());
             decltype(auto) params = raw_params.CastTo<miopen::fold::InvokeParams>();
@@ -105,8 +105,6 @@ ConvSolution UnfoldBwd::GetSolution([[maybe_unused]] const ExecutionContext& con
             auto output_grad_dims = deref(params.doutputDesc).GetLengths();
 
             int spatial_dim_size = input_grad_dims.size() - 2;
-            const int32_t N      = static_cast<int32_t>(input_grad_dims[0]);
-            const int32_t C      = static_cast<int32_t>(input_grad_dims[1]);
             int32_t P = 1, L = 1;
             std::vector<int32_t> ls;
             for(int i = 0; i < spatial_dim_size; ++i)
@@ -130,8 +128,6 @@ ConvSolution UnfoldBwd::GetSolution([[maybe_unused]] const ExecutionContext& con
             int32_t dilation_w    = params.dilation[1];
             int32_t LH            = ls[0];
             int32_t LW            = ls[1];
-            int32_t H             = static_cast<int32_t>(input_grad_dims[2]);
-            int32_t W             = static_cast<int32_t>(input_grad_dims[3]);
 
             kernel(params.doutput,
                    params.dinput,

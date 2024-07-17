@@ -24,6 +24,7 @@
  *
  *******************************************************************************/
 
+#include <cstdint>
 #include <miopen/fold/problem_description.hpp>
 #include <miopen/miopen.h>
 #include <miopen/datatype.hpp>
@@ -94,7 +95,7 @@ ConvSolution FoldFwd::GetSolution([[maybe_unused]] const ExecutionContext& conte
         result.construction_params.push_back(kernel);
     }
 
-    result.invoker_factory = [](const std::vector<Kernel>& kernels) {
+    result.invoker_factory = [N, C](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
             decltype(auto) kernel = handle_.Run(kernels.front());
             decltype(auto) params = raw_params.CastTo<miopen::fold::InvokeParams>();
@@ -104,9 +105,7 @@ ConvSolution FoldFwd::GetSolution([[maybe_unused]] const ExecutionContext& conte
             auto input_dims  = deref(params.inputDesc).GetLengths();
             auto output_dims = deref(params.outputDesc).GetLengths();
 
-            int spatial_dim_size = output_dims.size() - 2;
-            const int32_t N      = static_cast<int32_t>(output_dims[0]);
-            const int32_t C      = static_cast<int32_t>(output_dims[1]);
+            int32_t spatial_dim_size = output_dims.size() - 2;
             int32_t P = 1, L = 1;
             std::vector<int32_t> ls;
             for(int i = 0; i < spatial_dim_size; ++i)

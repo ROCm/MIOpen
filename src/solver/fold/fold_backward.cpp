@@ -61,7 +61,7 @@ ConvSolution FoldBwd::GetSolution([[maybe_unused]] const ExecutionContext& conte
 
     const int32_t N      = static_cast<int32_t>(output_grad_dims[0]);
     const int32_t C      = static_cast<int32_t>(output_grad_dims[1]);
-    int spatial_dim_size = output_grad_dims.size() - 2;
+    int32_t spatial_dim_size = output_grad_dims.size() - 2;
     int32_t P = 1, L = 1;
     std::vector<int32_t> ls;
     for(int i = 0; i < spatial_dim_size; ++i)
@@ -105,7 +105,7 @@ ConvSolution FoldBwd::GetSolution([[maybe_unused]] const ExecutionContext& conte
         result.construction_params.push_back(kernel);
     }
 
-    result.invoker_factory = [](const std::vector<Kernel>& kernels) {
+    result.invoker_factory = [N, C, P, L, ls](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
             decltype(auto) kernel = handle_.Run(kernels.front());
             decltype(auto) params = raw_params.CastTo<miopen::fold::InvokeParams>();
@@ -114,22 +114,6 @@ ConvSolution FoldBwd::GetSolution([[maybe_unused]] const ExecutionContext& conte
             auto output_grad_tv   = get_inner_expanded_tv<4>(deref(params.doutputDesc));
             auto input_grad_dims  = deref(params.dinputDesc).GetLengths();
             auto output_grad_dims = deref(params.doutputDesc).GetLengths();
-
-            int spatial_dim_size = output_grad_dims.size() - 2;
-            const int32_t N      = static_cast<int32_t>(output_grad_dims[0]);
-            const int32_t C      = static_cast<int32_t>(output_grad_dims[1]);
-            int32_t P = 1, L = 1;
-            std::vector<int32_t> ls;
-            for(int i = 0; i < spatial_dim_size; ++i)
-            {
-                P *= params.kernel_size[i];
-                int32_t l = (static_cast<int32_t>(output_grad_dims[i + 2]) + 2 * params.padding[i] -
-                             params.dilation[i] * (params.kernel_size[i] - 1) - 1) /
-                                params.stride[i] +
-                            1;
-                L *= l;
-                ls.push_back(l);
-            }
 
             int32_t kernel_size_h = params.kernel_size[0];
             int32_t kernel_size_w = params.kernel_size[1];
