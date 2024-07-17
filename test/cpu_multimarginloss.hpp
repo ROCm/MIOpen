@@ -46,23 +46,23 @@ void cpu_multimarginloss_unreduced_forward(tensor<T> input,
 
     for(size_t n = 0; n < N; n++)
     {
-        float loss = 0;
-        uint64_t y = target[T_tv.get_tensor_view_idx({n})];
+        double loss = 0;
+        uint64_t y  = target[T_tv.get_tensor_view_idx({n})];
         if(y >= C)
             continue;
         for(size_t c = 0; c < C; c++)
         {
             if(y == c)
                 continue;
-            float t = margin - static_cast<float>(input[I_tv.get_tensor_view_idx({n, y})]) +
-                      static_cast<float>(input[I_tv.get_tensor_view_idx({n, c})]);
+            double t = margin - static_cast<double>(input[I_tv.get_tensor_view_idx({n, y})]) +
+                       static_cast<double>(input[I_tv.get_tensor_view_idx({n, c})]);
 
             if(t < 0)
                 continue;
             if(p == 2)
                 t = t * t;
-            t = weight[W_tv.get_tensor_view_idx({y})] * t;
-            loss += t / static_cast<float>(C);
+            t = static_cast<double>(weight[W_tv.get_tensor_view_idx({y})]) * t;
+            loss += t / C;
         }
         ref_output[O_tv.get_tensor_view_idx({n})] = loss;
     }
@@ -82,26 +82,26 @@ void cpu_multimarginloss_reduced_forward(tensor<T> input,
     auto W_tv = miopen::get_inner_expanded_tv<1>(weight.desc);
     auto N = I_tv.size[0], C = I_tv.size[1];
 
-    float sum = 0;
+    double sum = 0;
     for(size_t n = 0; n < N; n++)
     {
-        float loss = 0;
-        uint64_t y = target[T_tv.get_tensor_view_idx({n})];
+        double loss = 0;
+        uint64_t y  = target[T_tv.get_tensor_view_idx({n})];
         if(y >= C)
             continue;
         for(size_t c = 0; c < C; c++)
         {
             if(y == c)
                 continue;
-            float t = margin - static_cast<float>(input[I_tv.get_tensor_view_idx({n, y})]) +
-                      static_cast<float>(input[I_tv.get_tensor_view_idx({n, c})]);
+            double t = margin - static_cast<double>(input[I_tv.get_tensor_view_idx({n, y})]) +
+                       static_cast<double>(input[I_tv.get_tensor_view_idx({n, c})]);
 
             if(t < 0)
                 continue;
             if(p == 2)
                 t = t * t;
-            t = weight[W_tv.get_tensor_view_idx({y})] * t;
-            loss += t / static_cast<float>(C);
+            t = static_cast<double>(weight[W_tv.get_tensor_view_idx({y})]) * t;
+            loss += t / C;
         }
         sum += loss;
     }

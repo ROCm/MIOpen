@@ -107,7 +107,7 @@ INSTANTIATE_TEST_SUITE_P(MultiMarginLossTestSet,
                          testing::ValuesIn(MultiMarginLossTestConfigs()));
 INSTANTIATE_TEST_SUITE_P(MultiMarginLossTestSet,
                          MultiMarginLossForwardTestHalf,
-                         testing::ValuesIn(MultiMarginLossTestConfigs()));
+                         testing::ValuesIn(MultiMarginLossFp16TestConfigs()));
 INSTANTIATE_TEST_SUITE_P(MultiMarginLossTestSet,
                          MultiMarginLossForwardTestBFloat16,
                          testing::ValuesIn(MultiMarginLossTestConfigs()));

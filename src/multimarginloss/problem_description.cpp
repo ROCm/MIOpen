@@ -41,6 +41,7 @@ NetworkConfig ForwardProblemDescription::MakeNetworkConfig() const
     auto ilen = iDesc.GetLengths();
     for(unsigned long i : ilen)
         ss << i << "_";
+    ss << "cont" << iDesc.IsContiguous();
     ss << "divisor" << divisor;
     return NetworkConfig{ss.str()};
 }

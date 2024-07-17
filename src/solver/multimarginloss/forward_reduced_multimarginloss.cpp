@@ -43,16 +43,16 @@ namespace solver {
 namespace multimarginloss {
 
 bool MultiMarginLossForward::IsImprovementOverROCm(
-    const ExecutionContext& context,
+    const ExecutionContext& /*context*/,
     const miopen::multimarginloss::ForwardProblemDescription& problem) const
 {
+    if(problem.GetiDesc().GetLengths()[1] <= 30)
+        return true;
     if((problem.GetiDesc().GetType() == miopenHalf ||
         problem.GetiDesc().GetType() == miopenBFloat16) &&
-       problem.GetiDesc().IsContiguous() && problem.GetiDesc().GetLengths()[1] > 40)
-        return false;
-    if(problem.GetiDesc().GetLengths()[1] > 30)
-        return false;
-    return true;
+       problem.GetiDesc().IsContiguous() && problem.GetiDesc().GetLengths()[1] <= 40)
+        return true;
+    return false;
 }
 
 bool MultiMarginLossForward::IsApplicable(

@@ -54,18 +54,35 @@ inline std::vector<MultiMarginLossTestCase> MultiMarginLossTestConfigs()
 {
     // clang-format off
     return {
-    {{22, 12}, true, MIOPEN_LOSS_REDUCTION_MEAN, 1}, 
-    {{22, 12}, false, MIOPEN_LOSS_REDUCTION_SUM, 1}, 
-    {{22, 12}, true, MIOPEN_LOSS_REDUCTION_NONE, 1}, 
-    {{9456, 13}, false, MIOPEN_LOSS_REDUCTION_MEAN, 2 }, 
-    {{9456, 13}, true, MIOPEN_LOSS_REDUCTION_SUM, 2 }, 
-    {{9456, 13}, false, MIOPEN_LOSS_REDUCTION_NONE, 2 }, 
-    {{543210, 7}, true, MIOPEN_LOSS_REDUCTION_MEAN, 2 }, 
-    {{543210, 7}, false, MIOPEN_LOSS_REDUCTION_SUM, 2 }, 
-    {{543210, 7}, true, MIOPEN_LOSS_REDUCTION_NONE, 2 }, 
-    {{3995776, 6}, true, MIOPEN_LOSS_REDUCTION_MEAN, 1 }, 
-    {{3995776, 6}, true, MIOPEN_LOSS_REDUCTION_SUM, 1 }, 
-    {{3995776, 6}, true, MIOPEN_LOSS_REDUCTION_NONE, 1 }, 
+        {{22, 12}, true, MIOPEN_LOSS_REDUCTION_MEAN, 1}, 
+        {{22, 12}, false, MIOPEN_LOSS_REDUCTION_SUM, 1}, 
+        {{22, 12}, true, MIOPEN_LOSS_REDUCTION_NONE, 1}, 
+        {{9456, 13}, false, MIOPEN_LOSS_REDUCTION_MEAN, 2 }, 
+        {{9456, 13}, true, MIOPEN_LOSS_REDUCTION_SUM, 2 }, 
+        {{9456, 13}, false, MIOPEN_LOSS_REDUCTION_NONE, 2 }, 
+        {{543210, 7}, true, MIOPEN_LOSS_REDUCTION_MEAN, 2 }, 
+        {{543210, 7}, false, MIOPEN_LOSS_REDUCTION_SUM, 2 }, 
+        {{543210, 7}, true, MIOPEN_LOSS_REDUCTION_NONE, 2 }, 
+        {{3995776, 6}, true, MIOPEN_LOSS_REDUCTION_MEAN, 1 }, 
+        {{3995776, 6}, true, MIOPEN_LOSS_REDUCTION_SUM, 1 }, 
+        {{3995776, 6}, true, MIOPEN_LOSS_REDUCTION_NONE, 1 }, 
+    };
+    // clang-format on
+}
+
+// Remove big tests with reduction from FP16 test because the result will be overflow/ underflow
+inline std::vector<MultiMarginLossTestCase> MultiMarginLossFp16TestConfigs()
+{
+    // clang-format off
+    return {
+        {{22, 12}, true, MIOPEN_LOSS_REDUCTION_MEAN, 1}, 
+        {{22, 12}, false, MIOPEN_LOSS_REDUCTION_SUM, 1}, 
+        {{22, 12}, true, MIOPEN_LOSS_REDUCTION_NONE, 1}, 
+        {{9456, 13}, false, MIOPEN_LOSS_REDUCTION_MEAN, 2 }, 
+        {{9456, 13}, true, MIOPEN_LOSS_REDUCTION_SUM, 2 }, 
+        {{9456, 13}, false, MIOPEN_LOSS_REDUCTION_NONE, 2 }, 
+        {{543210, 7}, true, MIOPEN_LOSS_REDUCTION_NONE, 2 }, 
+        {{3995776, 6}, true, MIOPEN_LOSS_REDUCTION_NONE, 1 }, 
     };
     // clang-format on
 }
@@ -84,17 +101,6 @@ protected:
         p              = config.p;
         margin         = prng::gen_A_to_B<float>(0.5, 1.5);
         size_t N = in_dims[0], C = in_dims[1];
-
-        if(std::is_same<T, half_float::half>::value &&
-           reduction_mode != MIOPEN_LOSS_REDUCTION_NONE && N >= 100000)
-        {
-            std::cerr << "For fp16 forward reduction test, too many elements in input tensor can "
-                         "lead to fp16 "
-                         "overflow or underflow. If reduction mean, divisor is very big lead to "
-                         "underflow. If reduction sum, result is too big lead to overflow."
-                      << std::endl;
-            GTEST_SKIP();
-        }
 
         if(config.cont)
         {
@@ -167,7 +173,7 @@ protected:
                                                                             margin,
                                                                             reduction_mode);
             if(ws_sizeInBytes == static_cast<size_t>(-1))
-                GTEST_SKIP();
+                GTEST_SKIP() << "Call GetMultiMarginLossForwardWorkspaceSize failed!";
             workspace = tensor<T>{std::vector<size_t>{ws_sizeInBytes / sizeof(T)}};
             std::fill(workspace.begin(), workspace.end(), 0);
             workspace_dev = handle.Write(workspace.data);
@@ -229,19 +235,15 @@ protected:
     {
         // Computation error of fp16 is ~2^13 (=8192) bigger than
         // the one of fp32 because mantissa is shorter by 13 bits.
-        auto threshold = std::is_same<T, float>::value ? 1.5e-6 : 8.2e-3;
-
+        auto tolerance = std::is_same<T, float>::value ? 1.5e-6 : 8.2e-3;
         // bf16 mantissa has 7 bits, by 3 bits shorter than fp16.
         if(std::is_same<T, bfloat16>::value)
-            threshold *= 8.0;
+            tolerance *= 8.0;
 
         auto error = miopen::rms_range(ref_output, output);
         EXPECT_TRUE(miopen::range_distance(ref_output) == miopen::range_distance(output));
-        // When doing reduction with big test, floating point precision error is high. I raise
-        // threshold from *10 to *30 to pass big test
-        EXPECT_TRUE(error < threshold * 30) << "Error output beyond tolerance "
-                                               "Error:"
-                                            << error << ",  Threshold x 30: " << threshold * 10;
+        EXPECT_TRUE(error < tolerance) << "Error output beyond tolerance. Error:" << error
+                                       << ",  Tolerance: " << tolerance * 10;
     }
     MultiMarginLossTestCase config;
 
