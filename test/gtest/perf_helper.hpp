@@ -173,7 +173,7 @@ struct PerfHelper
             handle.ResetKernelTime(); // for good measure?
         }
         // Optionally ignore the first few runs to allow for warm-up
-        for(size_t i = 0; i < NUM_PERF_RUNS + NUM_RUNS_IGNORE; i++)
+        for(size_t i = 0; i < NUM_PERF_RUNS; i++)
         {
             // Execute the kernel
             kernels.front()(std::forward<Args>(args)...);
