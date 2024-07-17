@@ -39,6 +39,8 @@
 #include <ostream>
 #include <cstdlib>
 #include <cstring>
+#include <string_view>
+#include <optional>
 
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_FIND_ENFORCE)
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_DEBUG_FIND_ONLY_SOLVER)
@@ -196,11 +198,13 @@ std::ostream& operator<<(std::ostream& os, const FindMode::Values& v)
     return os << ToCString(v) << "(" << static_cast<int>(v) << ')';
 }
 
-FindMode::Values GetFindModeValueImpl2()
+template <class Variable>
+std::optional<FindMode::Values> GetFindModeValueImpl2(const Variable& variable,
+                                                      std::string_view variable_name)
 {
     auto str = env::value(MIOPEN_FIND_MODE);
     if(str.empty())
-        return FindMode::Values::Default_;
+        return std::nullopt;
     for(auto& c : str)
         c = toupper(static_cast<unsigned char>(c));
     if(str == "NORMAL")
@@ -225,21 +229,39 @@ FindMode::Values GetFindModeValueImpl2()
     const auto val = static_cast<FindMode::Values>(stoul(str));
     if(FindMode::Values::Begin_ <= val && val < FindMode::Values::End_)
         return val;
-    MIOPEN_LOG_NQE("Wrong MIOPEN_FIND_MODE, using default.");
-    return FindMode::Values::Default_;
+    MIOPEN_LOG_NQE("Wrong " << variable_name << ", using default.");
+    return std::nullopt;
 }
 
-FindMode::Values GetFindModeValueImpl()
+template <class Variable>
+FindMode::Values GetFindModeValue(const Variable& variable,
+                                  std::string_view variable_name,
+                                  FindMode::Values defaultValue)
 {
-    auto rv = GetFindModeValueImpl2();
-    MIOPEN_LOG_NQI("MIOPEN_FIND_MODE = " << rv);
+    static const FindMode::Values val = [&]() {
+        auto rv = GetFindModeValueImpl2(variable, variable_name).value_or(defaultValue);
+        MIOPEN_LOG_NQI(variable_name << " = " << rv);
     return rv;
+    }();
+    return val;
 }
 
-FindMode::Values GetFindModeValue()
+} // namespace
+
+#if defined(MIOPEN_FIND_MODE_VAR_AND_NAME)
+#error macro MIOPEN_FIND_MODE_VAR_AND_NAME redefined
+#endif
+#define MIOPEN_FIND_MODE_VAR_AND_NAME(VARIABLE) VARIABLE, #VARIABLE
+
+FindMode::FindMode(solver::Primitive primitive)
 {
-    static const FindMode::Values val = GetFindModeValueImpl();
-    return val;
+    switch(primitive)
+    {
+    default:
+        value = GetFindModeValue(MIOPEN_FIND_MODE_VAR_AND_NAME(MIOPEN_FIND_MODE),
+                                 FindMode::Values::Default_);
+        break;
+    }
 }
 
 } // namespace
