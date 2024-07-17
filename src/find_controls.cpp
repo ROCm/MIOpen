@@ -45,6 +45,7 @@
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_FIND_ENFORCE)
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_DEBUG_FIND_ONLY_SOLVER)
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_FIND_MODE)
+MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_FIND_MODE_FUSION)
 
 namespace miopen {
 
@@ -241,7 +242,7 @@ FindMode::Values GetFindModeValue(const Variable& variable,
     static const FindMode::Values val = [&]() {
         auto rv = GetFindModeValueImpl2(variable, variable_name).value_or(defaultValue);
         MIOPEN_LOG_NQI(variable_name << " = " << rv);
-    return rv;
+        return rv;
     }();
     return val;
 }
@@ -257,6 +258,10 @@ FindMode::FindMode(solver::Primitive primitive)
 {
     switch(primitive)
     {
+    case solver::Primitive::Fusion:
+        value = GetFindModeValue(MIOPEN_FIND_MODE_VAR_AND_NAME(MIOPEN_FIND_MODE_FUSION),
+                                 FindMode::Values::Fast);
+        break;
     default:
         value = GetFindModeValue(MIOPEN_FIND_MODE_VAR_AND_NAME(MIOPEN_FIND_MODE),
                                  FindMode::Values::Default_);
@@ -264,9 +269,6 @@ FindMode::FindMode(solver::Primitive primitive)
     }
 }
 
-} // namespace
-
-FindMode::FindMode() { value = GetFindModeValue(); }
 std::ostream& operator<<(std::ostream& os, const FindMode& obj) { return os << obj.value; }
 
 static_assert(miopenConvolutionFindModeNormal ==

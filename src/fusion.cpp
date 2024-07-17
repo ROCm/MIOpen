@@ -983,7 +983,7 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
     }
 
     {
-        FindMode findMode;
+        FindMode findMode(solver::Primitive::Fusion);
         auto sol = boost::optional<miopenConvSolution_t>{};
 
         if(findMode.IsFast(fusion_problem) || findMode.IsHybrid(fusion_problem))
