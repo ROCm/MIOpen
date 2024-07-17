@@ -46,17 +46,17 @@
 #include "dropout_util.hpp"
 #include "perf_helper.hpp"
 
-#define PERF_ENABLE 1
+#define PERF_ENABLE 0
 
 // This code snippet was taken from src/ocl/dropooutocl.cpp
 // Aligns the input and output tensor strides and lengths
 // squashes contiguous dimensions and performs alignment of
 // non-contiguous dimensions
 template <typename T>
-inline void SquashPairedTensor(const std::vector<T> x_len,
-                               const std::vector<T> x_str,
-                               const std::vector<T> y_len,
-                               const std::vector<T> y_str,
+inline void SquashPairedTensor(const std::vector<T>& x_len,
+                               const std::vector<T>& x_str,
+                               const std::vector<T>& y_len,
+                               const std::vector<T>& y_str,
                                std::vector<T>& in_len,
                                std::vector<T>& in_str,
                                std::vector<T>& out_len,
