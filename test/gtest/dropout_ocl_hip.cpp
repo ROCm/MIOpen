@@ -791,7 +791,7 @@ std::vector<DropoutTestCase> DropoutTestConfigs()
                 }
             }
         }
-        
+
         return configs;
     }
     else
@@ -949,7 +949,6 @@ protected:
 
         if(!DropoutDesc.use_mask)
         {
-
             // forward pass HIP
             output_f_hip = FWDropGPU<T>(DropoutDesc,
                                         noise_shape,
@@ -993,13 +992,15 @@ protected:
         if constexpr(PERF_ENABLE)
         {
             // get the input tensor size and store in a string with x in between
-            std::string input_dims_str = std::to_string(dropout_config.dim0) + "x" +
-                                          std::to_string(dropout_config.dim1) + "x" +
-                                          std::to_string(dropout_config.dim2) + "x" +
-                                          std::to_string(dropout_config.dim3) + "x" +
-                                          std::to_string(dropout_config.dim4);
-            
-            perf_helper.writeStatsToCSV(sPerfTestFilename, "_"+input_dims_str+"_"+ ( input_f.desc.GetType() == miopenHalf ? "FP16" : "FP32" ) );
+            std::string input_dims_str =
+                std::to_string(dropout_config.dim0) + "x" + std::to_string(dropout_config.dim1) +
+                "x" + std::to_string(dropout_config.dim2) + "x" +
+                std::to_string(dropout_config.dim3) + "x" + std::to_string(dropout_config.dim4);
+
+            perf_helper.writeStatsToCSV(
+                sPerfTestFilename,
+                "_" + input_dims_str + "_" +
+                    (input_f.desc.GetType() == miopenHalf ? "FP16" : "FP32"));
         }
     }
 
@@ -1027,41 +1028,41 @@ protected:
 template <typename T>
 const std::string DropoutTest<T>::sPerfTestFilename = "DropoutPerf.csv";
 
-namespace dropout {
+namespace DropoutPort {
 
-struct DropoutTestFloat : DropoutTest<float>
+struct GPU_dropout_FP32 : DropoutTest<float>
 {
 };
 
-struct DropoutTestHalf : DropoutTest<half_float::half>
+struct GPU_dropout_FP16 : DropoutTest<half_float::half>
 {
 };
 
-} // namespace dropout
-using namespace dropout;
+} // namespace DropoutPort
+using namespace DropoutPort;
 
-TEST_P(DropoutTestFloat, DropoutTest)
-{
-    RunDropoutOCL();
-    RunDropoutHIP();
-    VerifyGPU();
-};
-
-TEST_P(DropoutTestHalf, DropoutTest)
+TEST_P(GPU_dropout_FP32, PortTest)
 {
     RunDropoutOCL();
     RunDropoutHIP();
     VerifyGPU();
 };
 
-INSTANTIATE_TEST_SUITE_P(DropoutTestSet,
-                         DropoutTestFloat,
+TEST_P(GPU_dropout_FP16, PortTest)
+{
+    RunDropoutOCL();
+    RunDropoutHIP();
+    VerifyGPU();
+};
+
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_dropout_FP32,
                          testing::Combine(testing::ValuesIn(DropoutTestConfigs()),
                                           testing::Values(0, 0.25, 0.5, 0.75, 1),
                                           testing::Values(true, false)));
 
-INSTANTIATE_TEST_SUITE_P(DropoutTestSet,
-                         DropoutTestHalf,
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_dropout_FP16,
                          testing::Combine(testing::ValuesIn(DropoutTestConfigs()),
                                           testing::Values(0, 0.25, 0.5, 0.75, 1),
                                           testing::Values(true, false)));
