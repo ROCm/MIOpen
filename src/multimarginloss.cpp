@@ -24,6 +24,7 @@
  *
  *******************************************************************************/
 
+#include "miopen/miopen.h"
 #include <miopen/datatype.hpp>
 #include <miopen/find_solution.hpp>
 #include <miopen/float_equal.hpp>
@@ -84,6 +85,10 @@ std::size_t GetMultiMarginLossForwardWorkspaceSize(Handle& handle,
                                                    const float margin,
                                                    miopenLossReductionMode_t reduction)
 {
+    if(reduction == MIOPEN_LOSS_REDUCTION_NONE)
+    {
+        return static_cast<size_t>(0);
+    }
     auto ctx            = ExecutionContext{&handle};
     const float divisor = (reduction == MIOPEN_LOSS_REDUCTION_MEAN) ? iDesc.GetLengths()[0] : 1;
     const auto problem =

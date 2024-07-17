@@ -44,26 +44,17 @@ miopenGetMultiMarginLossForwardWorkspaceSize(miopenHandle_t handle,
     MIOPEN_LOG_FUNCTION(
         handle, inputDesc, targetDesc, weightDesc, outputDesc, p, margin, reduction);
 
-    if(reduction != MIOPEN_LOSS_REDUCTION_SUM && reduction != MIOPEN_LOSS_REDUCTION_MEAN)
-    {
-        MIOPEN_THROW(miopenStatusBadParm,
-                     "miopenGetMultiMarginLossForwardWorkspaceSize: reduction should be "
-                     "MIOPEN_LOSS_REDUCTION_SUM or MIOPEN_LOSS_REDUCTION_MEAN.");
-    }
-    else
-    {
-        return miopen::try_([&] {
-            miopen::deref(sizeInBytes) =
-                miopen::GetMultiMarginLossForwardWorkspaceSize(miopen::deref(handle),
-                                                               miopen::deref(inputDesc),
-                                                               miopen::deref(targetDesc),
-                                                               miopen::deref(weightDesc),
-                                                               miopen::deref(outputDesc),
-                                                               p,
-                                                               margin,
-                                                               reduction);
-        });
-    }
+    return miopen::try_([&] {
+        miopen::deref(sizeInBytes) =
+            miopen::GetMultiMarginLossForwardWorkspaceSize(miopen::deref(handle),
+                                                           miopen::deref(inputDesc),
+                                                           miopen::deref(targetDesc),
+                                                           miopen::deref(weightDesc),
+                                                           miopen::deref(outputDesc),
+                                                           p,
+                                                           margin,
+                                                           reduction);
+    });
 }
 
 miopenStatus_t miopenMultiMarginLossForward(miopenHandle_t handle,

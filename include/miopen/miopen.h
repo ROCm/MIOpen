@@ -7255,8 +7255,7 @@ weight given to each class. It has to be a Tensor of size C
 then it must have shape (N). Otherwise, it is a scalar
  * @param [in]  p                   Has a default value of 1. The only supported values are 1 and 2
  * @param [in]  margin              Has a default value of 1
- * @param [in]  reduction           Reduction mode (sum, mean). For none reduction we don't need to
-use this function
+ * @param [in]  reduction           Reduction mode (sum, mean)
  * @param [out] sizeInBytes         Pointer to data to return the minimum workspace size
  * @return                          miopenStatus_t
  */

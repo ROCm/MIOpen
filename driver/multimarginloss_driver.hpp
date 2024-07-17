@@ -345,24 +345,13 @@ int MultiMarginLossDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     if(forw == 0 || forw == 1)
     {
         size_t o_sz = GetTensorSpace(oDesc);
-        if(reduction_mode != MIOPEN_LOSS_REDUCTION_NONE)
+
+        miopenGetMultiMarginLossForwardWorkspaceSize(
+            GetHandle(), iDesc, tDesc, wDesc, oDesc, p, margin, reduction_mode, &ws_sizeInBytes);
+        if(ws_sizeInBytes == static_cast<size_t>(-1))
         {
-            miopenGetMultiMarginLossForwardWorkspaceSize(GetHandle(),
-                                                         iDesc,
-                                                         tDesc,
-                                                         wDesc,
-                                                         oDesc,
-                                                         p,
-                                                         margin,
-                                                         reduction_mode,
-                                                         &ws_sizeInBytes);
-            if(ws_sizeInBytes == static_cast<size_t>(-1))
-            {
-                return miopenStatusAllocFailed;
-            }
+            return miopenStatusAllocFailed;
         }
-        else
-            ws_sizeInBytes = 0;
 
         o_dev = std::make_unique<GPUMem>(ctx, o_sz, sizeof(Tgpu));
         O     = std::vector<Tgpu>(o_sz);
@@ -396,21 +385,20 @@ int MultiMarginLossDriver<Tgpu, Tref>::RunForwardGPU()
 
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
-        miopenMultiMarginLossForward(
-            GetHandle(),
-            iDesc,
-            i_dev->GetMem(),
-            tDesc,
-            t_dev->GetMem(),
-            wDesc,
-            w_dev->GetMem(),
-            oDesc,
-            o_dev->GetMem(),
-            p,
-            margin,
-            reduction_mode,
-            (reduction_mode == MIOPEN_LOSS_REDUCTION_NONE) ? nullptr : workspace_dev->GetMem(),
-            ws_sizeInBytes);
+        miopenMultiMarginLossForward(GetHandle(),
+                                     iDesc,
+                                     i_dev->GetMem(),
+                                     tDesc,
+                                     t_dev->GetMem(),
+                                     wDesc,
+                                     w_dev->GetMem(),
+                                     oDesc,
+                                     o_dev->GetMem(),
+                                     p,
+                                     margin,
+                                     reduction_mode,
+                                     workspace_dev->GetMem(),
+                                     ws_sizeInBytes);
 
         float time = 0.0;
         miopenGetKernelTime(GetHandle(), &time);
