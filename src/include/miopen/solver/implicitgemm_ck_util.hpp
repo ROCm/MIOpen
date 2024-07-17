@@ -31,10 +31,15 @@
 #include <miopen/batched_transpose_sol.hpp>
 #include <miopen/tensor_ops.hpp>
 #include <miopen/miopen_internal.h>
+#include <miopen/batchnorm/solvers.hpp>
+#include <miopen/batchnorm/invoke_params.hpp>
 
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 #include <ck/utility/data_type.hpp>
 #include <ck/library/tensor_operation_instance/gpu/grouped_convolution_backward_weight.hpp>
+#include <miopen/solver/ck_utility_common.hpp>
+#include <ck/library/tensor_operation_instance/gpu/batchnorm_backward.hpp>
+#include <ck/library/tensor_operation_instance/gpu/batchnorm_infer.hpp>
 #endif // MIOPEN_USE_COMPOSABLEKERNEL
 
 namespace miopen {
@@ -45,6 +50,142 @@ struct ProblemDescription;
 
 namespace solver {
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
+namespace batchnorm {
+using index_t                           = int32_t;
+constexpr index_t Rank                  = 4;
+constexpr index_t NumBatchNormReduceDim = 3;
+using Normalize                         = ck::tensor_operation::element_wise::NormalizeInInfer;
+
+using F16  = ck::half_t;
+using F32  = float;
+using F64  = double;
+using BF16 = ushort;
+
+struct CKArgsBNormFwd
+{
+    CKArgsBNormFwd(const miopen::batchnorm::ProblemDescription& problem)
+    {
+        std::copy(problem.GetXDesc().GetLengths().begin(),
+                  problem.GetXDesc().GetLengths().end(),
+                  xyLengths.begin());
+
+        std::copy(problem.GetXDesc().GetStrides().begin(),
+                  problem.GetXDesc().GetStrides().end(),
+                  xyStrides.begin());
+        // prep for CK
+        std::sort(xyStrides.begin(), xyStrides.end(), std::greater<>());
+        std::rotate(xyLengths.begin() + 1, xyLengths.begin() + 2, xyLengths.end());
+
+        aligned_scaleBiasMeanVarStrides[0] = 0;
+        aligned_scaleBiasMeanVarStrides[1] = 0;
+        aligned_scaleBiasMeanVarStrides[2] = 0;
+        aligned_scaleBiasMeanVarStrides[3] = 1;
+    }
+
+    std::array<ck::index_t, Rank> xyLengths;
+    std::array<ck::index_t, Rank> xyStrides;
+    std::vector<int> invariantDims;
+
+    std::array<index_t, Rank> aligned_scaleBiasMeanVarStrides{3};
+
+    std::array<int, NumBatchNormReduceDim> reduceDims{0, 1, 2};
+};
+
+template <typename XDataType,
+          typename YDataType,
+          typename AccDataType,
+          typename ScaleDataType,
+          typename BiasDataType,
+          typename MeanVarDataType>
+static int CheckBnCKFwdApplicability(const miopen::batchnorm::ProblemDescription& problem)
+{
+    const auto& args = CKArgsBNormFwd{problem};
+    using DeviceOp   = ck::tensor_operation::device::DeviceElementwise<
+        ck::Tuple<XDataType, MeanVarDataType, MeanVarDataType, ScaleDataType, BiasDataType>,
+        ck::Tuple<YDataType>,
+        Normalize,
+        Rank>;
+    const auto bn_fwd_ptrs = ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
+        DeviceOp>::GetInstances();
+    assert(!bn_fwd_ptrs.empty());
+    int count = 0;
+    for(const auto& it : bn_fwd_ptrs)
+    {
+        auto argument_ptr = it->MakeArgumentPointer(args.xyLengths,
+                                                    {args.xyStrides,
+                                                     args.aligned_scaleBiasMeanVarStrides,
+                                                     args.aligned_scaleBiasMeanVarStrides,
+                                                     args.aligned_scaleBiasMeanVarStrides,
+                                                     args.aligned_scaleBiasMeanVarStrides},
+                                                    {args.xyStrides},
+                                                    {nullptr, nullptr, nullptr, nullptr, nullptr},
+                                                    {nullptr},
+                                                    Normalize{0.0});
+        if(it->IsSupportedArgument(argument_ptr.get()))
+        {
+            return count;
+        }
+        count++;
+    }
+    return -1;
+}
+
+template <typename XDataType,
+          typename YDataType,
+          typename AccDataType,
+          typename ScaleDataType,
+          typename BiasDataType,
+          typename MeanVarDataType>
+void InitInvokerFactoryBnCKFwdInferenceNHWC(const Handle& handle,
+                                            const AnyInvokeParams& primitive_parameters,
+                                            const miopen::batchnorm::ProblemDescription& problem)
+{
+    const auto& args = CKArgsBNormFwd{problem};
+
+    using DeviceOp = ck::tensor_operation::device::DeviceElementwise<
+        ck::Tuple<XDataType, MeanVarDataType, MeanVarDataType, ScaleDataType, BiasDataType>,
+        ck::Tuple<YDataType>,
+        Normalize,
+        Rank>;
+    const auto bn_fwd_ptrs = ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
+        DeviceOp>::GetInstances();
+
+    int kernel_index = CheckBnCKFwdApplicability<XDataType,
+                                                 YDataType,
+                                                 AccDataType,
+                                                 ScaleDataType,
+                                                 BiasDataType,
+                                                 MeanVarDataType>(problem);
+    assert(kernel_index >= 0 && kernel_index < bn_fwd_ptrs.size());
+    auto& bn_ptr       = bn_fwd_ptrs.at(kernel_index);
+    const auto& params = primitive_parameters.CastTo<miopen::batchnorm::InfInvokeParams>();
+
+    auto argument_ptr = bn_ptr->MakeArgumentPointer(
+        args.xyLengths,
+        {args.xyStrides,
+         args.aligned_scaleBiasMeanVarStrides,
+         args.aligned_scaleBiasMeanVarStrides,
+         args.aligned_scaleBiasMeanVarStrides,
+         args.aligned_scaleBiasMeanVarStrides},
+        {args.xyStrides},
+        {params.x, params.estimatedMean, params.estimatedVariance, params.bnScale, params.bnBias},
+        {params.y},
+        Normalize{params.epsilon});
+
+    auto invoker_ptr            = bn_ptr->MakeInvokerPointer();
+    const auto enable_profiling = handle.IsProfilingEnabled();
+
+    float elapsed_time =
+        invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), enable_profiling});
+    if(enable_profiling)
+    {
+        handle.ResetKernelTime();
+        handle.AccumKernelTime(elapsed_time);
+    }
+}
+
+} // namespace batchnorm
+
 namespace conv {
 template <typename DataType>
 using DeviceOpGWrw = ck::tensor_operation::device::DeviceGroupedConvBwdWeight<
