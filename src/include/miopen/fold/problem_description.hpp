@@ -83,11 +83,7 @@ struct UnfoldFwdProblemDescription : ProblemDescriptionBase
         if(kernel_size_size != spatial_dim_size || stride_size != spatial_dim_size ||
            padding_size != spatial_dim_size || dilation_size != spatial_dim_size)
         {
-#if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
             MIOPEN_THROW(miopenStatusBadParm, "Unfold: Argument length should be 2D");
-#else
-            return false;
-#endif
         }
         auto input_dims = inputDesc.GetLengths();
         const int32_t N = static_cast<int32_t>(input_dims[0]);
@@ -109,11 +105,7 @@ struct UnfoldFwdProblemDescription : ProblemDescriptionBase
         auto output_dims = outputDesc.GetLengths();
         if(output_dims != output_dims_desired)
         {
-#if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
             MIOPEN_THROW(miopenStatusBadParm, "Unfold: Invalid output dimension");
-#else
-            return false;
-#endif
         }
         return true;
     }
@@ -122,12 +114,8 @@ struct UnfoldFwdProblemDescription : ProblemDescriptionBase
     {
         if(inputDesc.GetType() != outputDesc.GetType())
         {
-#if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
             MIOPEN_THROW(miopenStatusBadParm,
                          "Unfold: The input tensor and output tensor has mismatch type.");
-#else
-            return false;
-#endif
         }
         return true;
     }
@@ -181,21 +169,13 @@ struct UnfoldBwdProblemDescription : ProblemDescriptionBase
     {
         if(dinputDesc.GetSize() != 4)
         {
-#if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
             MIOPEN_THROW(miopenStatusBadParm, "Unfold: The input gradient tensor should be 4D.");
-#else
-            return false;
-#endif
         }
         int32_t spatial_dim_size = dinputDesc.GetSize() - 2;
         if(kernel_size_size != spatial_dim_size || stride_size != spatial_dim_size ||
            padding_size != spatial_dim_size || dilation_size != spatial_dim_size)
         {
-#if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
             MIOPEN_THROW(miopenStatusBadParm, "Unfold: Argument length should be 2D");
-#else
-            return false;
-#endif
         }
         auto input_dims = dinputDesc.GetLengths();
         const int32_t N = static_cast<int32_t>(input_dims[0]);
@@ -217,11 +197,7 @@ struct UnfoldBwdProblemDescription : ProblemDescriptionBase
         auto output_dims = doutputDesc.GetLengths();
         if(output_dims != output_dims_desired)
         {
-#if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
             MIOPEN_THROW(miopenStatusBadParm, "Unfold: Invalid output gradient dimension");
-#else
-            return false;
-#endif
         }
         return true;
     }
@@ -230,13 +206,9 @@ struct UnfoldBwdProblemDescription : ProblemDescriptionBase
     {
         if(dinputDesc.GetType() != doutputDesc.GetType())
         {
-#if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
             MIOPEN_THROW(
                 miopenStatusBadParm,
                 "Unfold: The input gradient tensor and output gradient tensor has mismatch type.");
-#else
-            return false;
-#endif
         }
         return true;
     }
@@ -290,21 +262,13 @@ struct FoldFwdProblemDescription : ProblemDescriptionBase
     {
         if(outputDesc.GetSize() != 4)
         {
-#if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
             MIOPEN_THROW(miopenStatusBadParm, "Fold: The output tensor should be 4D.");
-#else
-            return false;
-#endif
         }
         int32_t spatial_dim_size = outputDesc.GetSize() - 2;
         if(kernel_size_size != spatial_dim_size || stride_size != spatial_dim_size ||
            padding_size != spatial_dim_size || dilation_size != spatial_dim_size)
         {
-#if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
             MIOPEN_THROW(miopenStatusBadParm, "Fold: Argument length should be 2D");
-#else
-            return false;
-#endif
         }
         auto input_dims  = inputDesc.GetLengths();
         auto output_dims = outputDesc.GetLengths();
@@ -326,11 +290,7 @@ struct FoldFwdProblemDescription : ProblemDescriptionBase
             static_cast<size_t>(N), static_cast<size_t>(C * P), static_cast<size_t>(L)};
         if(input_dims != input_dims_desired)
         {
-#if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
             MIOPEN_THROW(miopenStatusBadParm, "Fold: Invalid input dimension");
-#else
-            return false;
-#endif
         }
         return true;
     }
@@ -339,12 +299,8 @@ struct FoldFwdProblemDescription : ProblemDescriptionBase
     {
         if(inputDesc.GetType() != outputDesc.GetType())
         {
-#if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
             MIOPEN_THROW(miopenStatusBadParm,
                          "Fold: The input tensor and output tensor has mismatch type.");
-#else
-            return false;
-#endif
         }
         return true;
     }
@@ -398,21 +354,13 @@ struct FoldBwdProblemDescription : ProblemDescriptionBase
     {
         if(doutputDesc.GetSize() != 4)
         {
-#if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
             MIOPEN_THROW(miopenStatusBadParm, "Fold: The output gradient tensor should be 4D.");
-#else
-            return false;
-#endif
         }
         int32_t spatial_dim_size = doutputDesc.GetSize() - 2;
         if(kernel_size_size != spatial_dim_size || stride_size != spatial_dim_size ||
            padding_size != spatial_dim_size || dilation_size != spatial_dim_size)
         {
-#if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
             MIOPEN_THROW(miopenStatusBadParm, "Fold: Argument length should be 2D");
-#else
-            return false;
-#endif
         }
         auto input_dims  = dinputDesc.GetLengths();
         auto output_dims = doutputDesc.GetLengths();
@@ -434,11 +382,7 @@ struct FoldBwdProblemDescription : ProblemDescriptionBase
             static_cast<size_t>(N), static_cast<size_t>(C * P), static_cast<size_t>(L)};
         if(input_dims != input_dims_desired)
         {
-#if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
             MIOPEN_THROW(miopenStatusBadParm, "Fold: Invalid input gradient dimension");
-#else
-            return false;
-#endif
         }
         return true;
     }
@@ -447,13 +391,9 @@ struct FoldBwdProblemDescription : ProblemDescriptionBase
     {
         if(dinputDesc.GetType() != doutputDesc.GetType())
         {
-#if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
             MIOPEN_THROW(
                 miopenStatusBadParm,
                 "Fold: The input gradient tensor and output gradient tensor has mismatch type.");
-#else
-            return false;
-#endif
         }
         return true;
     }
