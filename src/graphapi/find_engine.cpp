@@ -32,6 +32,7 @@
 #include <miopen/graphapi/opgraph.hpp>
 #include <miopen/graphapi/pointwise.hpp>
 #include <miopen/graphapi/reduction.hpp>
+#include <miopen/graphapi/reshape.hpp>
 #include <miopen/graphapi/rng.hpp>
 #include <miopen/graphapi/util.hpp>
 #include <miopen/graphapi/variant_pack.hpp>
@@ -381,6 +382,407 @@ class MHA_Bwd_F8_Pattern : public GraphPatternMatcher
         assert(attnScale);
 
         auto tensorMap = std::make_shared<TensorInfoMap>();
+
+        auto addMapping = [&](miopenTensorArgumentId_t enumId, Tensor* tensPtr) {
+            assert(tensPtr);
+            assert(enumId != miopenTensorArgumentIdInvalid);
+            tensorMap->try_emplace(tensPtr->getId(), TensorInfo(enumId, tensPtr));
+        };
+
+        const auto& starts = graph.getOutEdges(graph.getSourceNode());
+
+        // Find top left and center parts by `transpose` nodes
+
+        auto isTranspose = [](const OpNode::Edge& edge) -> bool {
+            auto [node, tensor] = edge;
+
+            // Not sure we should check OpKind because
+            // pattern matcher doesn't do that
+            return node->signName() == "OP_RESHAPE" &&
+                   dynamic_cast<OperationReshape&>(*node).getOpKind() ==
+                       OperationReshape::OpKind::TRANSPOSE;
+        };
+
+        auto leftOrCenterStartIt1 = std::find_if(starts.cbegin(), starts.cend(), isTranspose);
+        assert(leftOrCenterStartIt1 != starts.cend());
+        auto leftOrCenterStartIt2 =
+            std::find_if(leftOrCenterStartIt1 + 1, starts.cend(), isTranspose);
+        assert(leftOrCenterStartIt2 != starts.cend());
+
+        // Tell left part from center one by `identity` node
+
+        auto* leftOrCenterMatmulPtr =
+            graph.findOutNeighByName(leftOrCenterStartIt1->first, "OP_MATMUL");
+        assert(leftOrCenterMatmulPtr);
+
+        auto* leftIdentityPtr =
+            graph.findOutNeighByName(leftOrCenterMatmulPtr, "OP_POINTWISE:IDENTITY");
+
+        OpNode* leftHead   = nullptr;
+        OpNode* centerHead = nullptr;
+
+        if(leftIdentityPtr != nullptr)
+        {
+            leftHead   = leftOrCenterStartIt1->first;
+            centerHead = leftOrCenterStartIt2->first;
+        }
+        else
+        {
+            leftHead   = leftOrCenterStartIt2->first;
+            centerHead = leftOrCenterStartIt1->first;
+        }
+
+        // Walk the left part
+
+        OpNode* currentNode = leftHead;
+        auto& leftReshape   = dynamic_cast<OperationReshape&>(*currentNode);
+        addMapping(miopenTensorMhaK, leftReshape.getX());
+        Tensor* prevOutputTensor = leftReshape.getY();
+
+        currentNode = graph.findOutNeighByName(currentNode, "OP_MATMUL");
+        assert(currentNode);
+        auto& leftMatmul0 = dynamic_cast<OperationMatmul&>(*currentNode);
+        if(leftMatmul0.getA() != prevOutputTensor)
+        {
+            addMapping(miopenTensorMhaQ, leftMatmul0.getA());
+        }
+        else
+        {
+            addMapping(miopenTensorMhaQ, leftMatmul0.getB());
+        }
+
+        currentNode = graph.findOutNeighByName(currentNode, "OP_POINTWISE:IDENTITY");
+        assert(currentNode);
+        auto& leftIdentity = dynamic_cast<OperationPointwise&>(*currentNode);
+        *attnScale         = std::get<float>(leftIdentity.getAlpha1());
+        prevOutputTensor   = leftIdentity.getY();
+
+        currentNode = graph.findOutNeighByName(currentNode, "OP_POINTWISE:MUL");
+        assert(currentNode);
+        auto& leftMul0 = dynamic_cast<OperationPointwise&>(*currentNode);
+        if(leftMul0.getX() != prevOutputTensor)
+        {
+            addMapping(miopenTensorMhaDescaleQ, leftMul0.getX());
+        }
+        else
+        {
+            addMapping(miopenTensorMhaDescaleQ, leftMul0.getB());
+        }
+        prevOutputTensor = leftMul0.getY();
+
+        currentNode = graph.findOutNeighByName(currentNode, "OP_POINTWISE:MUL");
+        assert(currentNode);
+        auto& leftMul1 = dynamic_cast<OperationPointwise&>(*currentNode);
+        if(leftMul1.getX() != prevOutputTensor)
+        {
+            addMapping(miopenTensorMhaDescaleK, leftMul1.getX());
+        }
+        else
+        {
+            addMapping(miopenTensorMhaDescaleK, leftMul1.getB());
+        }
+
+        currentNode = graph.findOutNeighByName(currentNode, "OP_POINTWISE:SUB");
+        assert(currentNode);
+        addMapping(miopenTensorMhaM, dynamic_cast<OperationPointwise&>(*currentNode).getB());
+
+        currentNode = graph.findOutNeighByName(currentNode, "OP_POINTWISE:EXP");
+        assert(currentNode);
+        prevOutputTensor = dynamic_cast<OperationPointwise&>(*currentNode).getY();
+
+        currentNode = graph.findOutNeighByName(currentNode, "OP_POINTWISE:MUL");
+        assert(currentNode);
+        auto& leftMul2 = dynamic_cast<OperationPointwise&>(*currentNode);
+        if(leftMul2.getX() != prevOutputTensor)
+        {
+            addMapping(miopenTensorMhaZInv, leftMul2.getX());
+        }
+        else
+        {
+            addMapping(miopenTensorMhaZInv, leftMul2.getB());
+        }
+
+        currentNode = graph.findOutNeighByName(currentNode, "OP_POINTWISE:MUL");
+        assert(currentNode);
+
+        // Stop at diversion point and remember it
+
+        OpNode* leftDiversionPoint0 = graph.findOutNeighByName(currentNode, "OP_POINTWISE:MUL");
+        assert(leftDiversionPoint0);
+
+        // Take a look at RNG node
+
+        currentNode = graph.findInNeighByName(currentNode, "OP_RNG");
+        assert(currentNode);
+        auto& rng = dynamic_cast<OperationRng&>(*currentNode);
+        addMapping(miopenTensorMhaDropoutSeed, std::get<Tensor*>(rng.getSeed()));
+        addMapping(miopenTensorMhaDropoutOffset, rng.getOffset());
+
+        // Walk the center part
+
+        currentNode         = centerHead;
+        auto& centerReshape = dynamic_cast<OperationReshape&>(*currentNode);
+        addMapping(miopenTensorMhaV, centerReshape.getX());
+        prevOutputTensor = centerReshape.getY();
+
+        currentNode = graph.findOutNeighByName(currentNode, "OP_MATMUL");
+        assert(currentNode);
+        auto& centerMatmul0 = dynamic_cast<OperationMatmul&>(*currentNode);
+        int64_t doId        = 0; // save id of DO tensor
+        if(centerMatmul0.getA() != prevOutputTensor)
+        {
+            addMapping(miopenTensorMhaDO, centerMatmul0.getA());
+            doId = centerMatmul0.getA()->getId();
+        }
+        else
+        {
+            addMapping(miopenTensorMhaDO, centerMatmul0.getB());
+            doId = centerMatmul0.getB()->getId();
+        }
+        prevOutputTensor = centerMatmul0.getC();
+
+        currentNode = graph.findOutNeighByName(currentNode, "OP_POINTWISE:MUL");
+        assert(currentNode);
+        auto& centerMul0    = dynamic_cast<OperationPointwise&>(*currentNode);
+        int64_t descaleDoId = 0; // save id of DescaleDO tensor
+        if(centerMul0.getX() != prevOutputTensor)
+        {
+            addMapping(miopenTensorMhaDescaleDO, centerMul0.getX());
+            descaleDoId = centerMul0.getX()->getId();
+        }
+        else
+        {
+            addMapping(miopenTensorMhaDescaleDO, centerMul0.getB());
+            descaleDoId = centerMul0.getB()->getId();
+        }
+        prevOutputTensor = centerMul0.getY();
+
+        currentNode = graph.findOutNeighByName(currentNode, "OP_POINTWISE:MUL");
+        assert(currentNode);
+        auto& centerMul1 = dynamic_cast<OperationPointwise&>(*currentNode);
+        if(centerMul1.getX() != prevOutputTensor)
+        {
+            addMapping(miopenTensorMhaDescaleV, centerMul1.getX());
+        }
+        else
+        {
+            addMapping(miopenTensorMhaDescaleV, centerMul1.getB());
+        }
+
+        currentNode = graph.findOutNeighByName(currentNode, "OP_POINTWISE:MUL");
+        assert(currentNode);
+        prevOutputTensor = dynamic_cast<OperationPointwise&>(*currentNode).getY();
+
+        currentNode = graph.findOutNeighByName(currentNode, "OP_POINTWISE:MUL");
+        assert(currentNode);
+        auto& centerMul3 = dynamic_cast<OperationPointwise&>(*currentNode);
+        if(centerMul3.getX() != prevOutputTensor)
+        {
+            addMapping(miopenTensorMhaDropoutProbability, centerMul3.getX());
+        }
+        else
+        {
+            addMapping(miopenTensorMhaDropoutProbability, centerMul3.getB());
+        }
+
+        currentNode = graph.findOutNeighByName(currentNode, "OP_POINTWISE:SUB");
+        assert(currentNode);
+
+        // save the tail of the right part
+        OpNode* rightTail = graph.findInNeighByName(currentNode, "OP_REDUCTION:ADD");
+        assert(rightTail);
+
+        currentNode = graph.findOutNeighByName(currentNode, "OP_POINTWISE:IDENTITY");
+        assert(currentNode);
+
+        // save the neighbor of the left part's diversion point
+        // it also happened to be the first diversion point of the center part
+        OpNode* centerDiversionPoint0 = graph.findOutNeighByName(currentNode, "OP_POINTWISE:MUL");
+        assert(centerDiversionPoint0);
+
+        currentNode = graph.findOutNeighByName(centerDiversionPoint0, "OP_REDUCTION:MAX");
+        assert(currentNode);
+        addMapping(miopenTensorMhaAmaxDS, dynamic_cast<OperationReduction&>(*currentNode).getY());
+
+        currentNode = graph.findOutNeighByName(centerDiversionPoint0, "OP_POINTWISE:MUL");
+        assert(currentNode);
+        auto& centerMul5 = dynamic_cast<OperationPointwise&>(*currentNode);
+        if(centerMul5.getX() != dynamic_cast<OperationPointwise&>(*centerDiversionPoint0).getY())
+        {
+            addMapping(miopenTensorMhaScaleDS, centerMul5.getX());
+        }
+        else
+        {
+            addMapping(miopenTensorMhaScaleDS, centerMul5.getB());
+        }
+
+        // save the head of the right bottom part
+        OpNode* rightBottomHead = graph.findOutNeighByName(currentNode, "OP_RESHAPE");
+        assert(rightBottomHead);
+
+        currentNode = graph.findOutNeighByName(currentNode, "OP_MATMUL");
+        assert(currentNode);
+        prevOutputTensor = dynamic_cast<OperationMatmul&>(*currentNode).getC();
+
+        currentNode = graph.findOutNeighByName(currentNode, "OP_POINTWISE:MUL");
+        assert(currentNode);
+        auto& centerMul6 = dynamic_cast<OperationPointwise&>(*currentNode);
+        if(centerMul6.getX() != prevOutputTensor)
+        {
+            addMapping(miopenTensorMhaDescaleDS, centerMul6.getX());
+        }
+        else
+        {
+            addMapping(miopenTensorMhaDescaleDS, centerMul6.getB());
+        }
+
+        // save the second center part's diversion point
+        OpNode* centerDiversionPoint1 = graph.findOutNeighByName(currentNode, "OP_POINTWISE:MUL");
+        assert(centerDiversionPoint1);
+
+        currentNode = graph.findOutNeighByName(centerDiversionPoint1, "OP_REDUCTION:MAX");
+        assert(currentNode);
+        addMapping(miopenTensorMhaAmaxDQ, dynamic_cast<OperationReduction&>(*currentNode).getY());
+
+        currentNode = graph.findOutNeighByName(centerDiversionPoint1, "OP_POINTWISE:MUL");
+        assert(currentNode);
+        auto& centerMul8 = dynamic_cast<OperationPointwise&>(*currentNode);
+        if(centerMul8.getX() != dynamic_cast<OperationPointwise&>(*centerDiversionPoint1).getY())
+        {
+            addMapping(miopenTensorMhaScaleDQ, centerMul8.getX());
+        }
+        else
+        {
+            addMapping(miopenTensorMhaScaleDQ, centerMul8.getB());
+        }
+        addMapping(miopenTensorMhaDQ, centerMul8.getY());
+
+        // Walk the right bottom part
+
+        currentNode = graph.findOutNeighByName(rightBottomHead, "OP_MATMUL");
+        assert(currentNode);
+
+        currentNode = graph.findOutNeighByName(currentNode, "OP_POINTWISE:MUL");
+        assert(currentNode);
+
+        // save right bottom part's diversion point
+        OpNode* rightBottomDiversionPoint =
+            graph.findOutNeighByName(currentNode, "OP_POINTWISE:MUL");
+        assert(rightBottomDiversionPoint);
+
+        currentNode = graph.findOutNeighByName(rightBottomDiversionPoint, "OP_REDUCTION:MAX");
+        assert(currentNode);
+        addMapping(miopenTensorMhaAmaxDK, dynamic_cast<OperationReduction&>(*currentNode).getY());
+
+        currentNode = graph.findOutNeighByName(rightBottomDiversionPoint, "OP_POINTWISE:MUL");
+        assert(currentNode);
+        auto& rightBottomMul2 = dynamic_cast<OperationPointwise&>(*currentNode);
+        if(rightBottomMul2.getX() !=
+           dynamic_cast<OperationPointwise&>(*rightBottomDiversionPoint).getY())
+        {
+            addMapping(miopenTensorMhaScaleDK, rightBottomMul2.getX());
+        }
+        else
+        {
+            addMapping(miopenTensorMhaScaleDK, rightBottomMul2.getB());
+        }
+        addMapping(miopenTensorMhaDK, rightBottomMul2.getY());
+
+        // Walk the right part backwards
+
+        currentNode = graph.findInNeighByName(rightTail, "OP_POINTWISE:MUL");
+        assert(currentNode);
+
+        currentNode = graph.findInNeighByName(currentNode, "OP_POINTWISE:MUL");
+        assert(currentNode);
+
+        // tell right part's heads from each other by ids of
+        // DO and DescaleDO tensors which were saved above
+        const auto& rightHeads = graph.getInEdges(currentNode);
+        auto headWithO         = std::find_if(
+            rightHeads.cbegin(), rightHeads.cend(), [=](const OpNode::Edge& edge) -> bool {
+                if(edge.first->signName() == "OP_POINTWISE:MUL")
+                {
+                    auto& operation = dynamic_cast<OperationPointwise&>(*edge.first);
+                    auto xId        = operation.getX()->getId();
+                    auto bId        = operation.getB()->getId();
+                    return xId != doId && xId != descaleDoId && bId != doId && bId != descaleDoId;
+                }
+                else
+                {
+                    return false;
+                }
+            });
+        assert(headWithO != rightHeads.cend());
+        auto& rightMulWithO = dynamic_cast<OperationPointwise&>(*headWithO->first);
+
+        // we cannot distinguish O from DescaleO but it doesn't matter
+        addMapping(miopenTensorMhaO, rightMulWithO.getX());
+        addMapping(miopenTensorMhaDescaleO, rightMulWithO.getB());
+
+        // Continue walking the remaining left part after the first diversion point
+
+        // Tell between pointwise:mul descendants
+        const auto& leftDivPointOutEdges = graph.getOutEdges(leftDiversionPoint0);
+        auto remLeftPtHeadIt             = std::find_if(leftDivPointOutEdges.cbegin(),
+                                            leftDivPointOutEdges.cend(),
+                                            [=](const OpNode::Edge& edge) -> bool {
+                                                return edge.first != centerDiversionPoint0 &&
+                                                       edge.first->signName() == "OP_POINTWISE:MUL";
+                                            });
+        assert(remLeftPtHeadIt != leftDivPointOutEdges.cend());
+
+        currentNode      = remLeftPtHeadIt->first;
+        prevOutputTensor = dynamic_cast<OperationPointwise&>(*leftDiversionPoint0).getY();
+        auto& leftMul5   = dynamic_cast<OperationPointwise&>(*currentNode);
+        if(leftMul5.getX() != prevOutputTensor)
+        {
+            addMapping(miopenTensorMhaScaleS, leftMul5.getX());
+        }
+        else
+        {
+            addMapping(miopenTensorMhaScaleS, leftMul5.getB());
+        }
+
+        currentNode = graph.findOutNeighByName(currentNode, "OP_RESHAPE");
+        assert(currentNode);
+
+        currentNode = graph.findOutNeighByName(currentNode, "OP_MATMUL");
+        assert(currentNode);
+        prevOutputTensor = dynamic_cast<OperationMatmul&>(*currentNode).getC();
+
+        currentNode = graph.findOutNeighByName(currentNode, "OP_POINTWISE:MUL");
+        assert(currentNode);
+        auto& leftMul6 = dynamic_cast<OperationPointwise&>(*currentNode);
+        if(leftMul6.getX() != prevOutputTensor)
+        {
+            addMapping(miopenTensorMhaDescaleS, leftMul6.getX());
+        }
+        else
+        {
+            addMapping(miopenTensorMhaDescaleS, leftMul6.getB());
+        }
+
+        OpNode* leftDiversionPoint1 = graph.findOutNeighByName(currentNode, "OP_POINTWISE:MUL");
+        assert(leftDiversionPoint1);
+        prevOutputTensor = dynamic_cast<OperationPointwise&>(*leftDiversionPoint1).getY();
+
+        currentNode = graph.findOutNeighByName(leftDiversionPoint1, "OP_REDUCTION:MAX");
+        assert(currentNode);
+        addMapping(miopenTensorMhaAmaxDV, dynamic_cast<OperationReduction&>(*currentNode).getY());
+
+        currentNode = graph.findOutNeighByName(leftDiversionPoint1, "OP_POINTWISE:MUL");
+        assert(currentNode);
+        auto& leftMul7 = dynamic_cast<OperationPointwise&>(*currentNode);
+        if(leftMul7.getX() != prevOutputTensor)
+        {
+            addMapping(miopenTensorMhaScaleDV, leftMul7.getX());
+        }
+        else
+        {
+            addMapping(miopenTensorMhaScaleDV, leftMul7.getB());
+        }
+        addMapping(miopenTensorMhaDV, leftMul7.getY());
 
         return tensorMap;
     }
