@@ -76,14 +76,11 @@ __device__ void unfoldForward4D(const DTYPE* __restrict__ input,
     DTYPE x = 0;
     if(0 <= h && h < H && 0 <= w && w < W)
     {
-        long input_idx = input_tv.stride[3] * w + input_tv.stride[2] * h + input_tv.stride[1] * c +
-                         input_tv.stride[0] * n;
-        x = input[input_idx];
+        tensor_layout_t<4> input_layout(input_tv, n, c, h, w);
+        x = input[input_tv.get_tensor_view_idx(input_layout)];
     }
-
-    long output_idx =
-        output_tv.stride[2] * l + output_tv.stride[1] * (c * P + p) + output_tv.stride[0] * n;
-    output[output_idx] = x;
+    tensor_layout_t<3> output_layout(output_tv, n, c * P + p, l);
+    output[output_tv.get_tensor_view_idx(output_layout)] = x;
 }
 
 extern "C" __global__ void UnfoldForward4D(const FLOAT* __restrict__ input,
@@ -182,16 +179,12 @@ __device__ void unfoldBackward4D(const DTYPE* __restrict__ output_grad,
                 continue;
             if(lw < 0 || LW <= lw)
                 continue;
-            long output_grad_idx = output_grad_tv.stride[2] * (lh * LW + lw) +
-                                   output_grad_tv.stride[1] * (c * P + (ph * kernel_size_w + pw)) +
-                                   output_grad_tv.stride[0] * n;
-            sum += CVT_FLOAT2ACCUM(output_grad[output_grad_idx]);
+            tensor_layout_t<3> output_grad_layout(output_grad_tv, n, c * P + (ph * kernel_size_w + pw), lh * LW + lw);
+            sum += CVT_FLOAT2ACCUM(output_grad[output_grad_tv.get_tensor_view_idx(output_grad_layout)]);
         }
     }
-
-    long input_grad_idx = input_grad_tv.stride[3] * w + input_grad_tv.stride[2] * h +
-                          input_grad_tv.stride[1] * c + input_grad_tv.stride[0] * n;
-    input_grad[input_grad_idx] = CVT_ACCUM2FLOAT(sum);
+    tensor_layout_t<4> input_grad_layout(input_grad_tv, n, c, h , w);
+    input_grad[input_grad_tv.get_tensor_view_idx(input_grad_layout)] = CVT_ACCUM2FLOAT(sum);
 }
 
 extern "C" __global__ void UnfoldBackward4D(const FLOAT* __restrict__ output_grad,
