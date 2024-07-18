@@ -199,7 +199,7 @@ void ScaleMult(const tensor<T1>& tensor_val,
                tensor<T3>& tensor_scale_factor)
 {
     tensor_scale_factor.par_for_each(
-        [&](auto... id) { tensor_scale_factor(id...) = T3(tensor_val(id...) * scale_factor); });
+        [&](auto... id) { tensor_scale_factor(id...) = T3(tensor_val(id...) * scale_factor);});
 }
 
 template <class T>
@@ -351,8 +351,38 @@ void SoftMax(const tensor<T>& q_dot_k_transpose,
     BroadCastMul(exp_q_dot_k_transpose_sub_attn_max, z_sum, softmax);
 }
 
+template <typename T>
+void MultiHeadAttentionForwardf32(const tensor<T>& q_val,
+                           const tensor<T>& k_val,
+                           const tensor<T>& v_val,
+                           tensor<T>& q_dot_k_transpose,
+                           tensor<T>& softmax,
+                           tensor<T>& attn_max,
+                           tensor<T>& Z_sum,
+                           float& aMax_S,
+                           float& aMax_O,
+                           tensor<T>& multi_head_attention)
+{
+    // Q.K^T
+    Dot_4D_4D_T(q_val, k_val, q_dot_k_transpose);
+    // softmax(Q.K^T)
+    SoftMax(q_dot_k_transpose, softmax, attn_max, Z_sum);
+    aMax_S = AbsoluteMax(softmax);
+
+    // // drop out
+    // // DropOut(softmax, cpu_mha_test_case.drop_out_rate);
+
+    // // // drop out scalse
+    // // double drop_out_scale = 1.0 / (1.0 - cpu_mha_test_case.drop_out_rate);
+    // // Scale(softmax, drop_out_scale);
+
+    // O = (Q.dot(Kt)).dot(V)
+    Dot_4D_4D(softmax, v_val, multi_head_attention);
+    aMax_O = AbsoluteMax(multi_head_attention);
+}
+
 template <typename T = float8>
-void MultiHeadAttentionfp8(const tensor<T>& q_val,
+void MultiHeadAttentionForwardfp8(const tensor<T>& q_val,
                            const tensor<T>& k_val,
                            const tensor<T>& v_val,
                            tensor<float>& softmax,
@@ -360,10 +390,11 @@ void MultiHeadAttentionfp8(const tensor<T>& q_val,
                            tensor<float>& Z_sum,
                            float q_descale,
                            float k_descale,
-                           float v_descale,
-                           float s_descale,
-                           float s_scale,
-                           float o_scale,
+                           float v_descale,  // descale fp8 attention to fp32 (descale) 
+                           float s_descale, // 1.0  
+                           float s_scale,   // 1.0  
+                           float p_scale,   // used to scale fp32 softmax to fp8 softmax
+                           float o_scale,   // 1.0
                            float dropout_rate,
                            uint64_t seed,
                            uint64_t offset,
@@ -395,11 +426,12 @@ void MultiHeadAttentionfp8(const tensor<T>& q_val,
 
     tensor<T> softmax_fp8(softmax.desc.GetLengths());
     // get fp8 version of Softmax(Q.dot(K_transpose)) and V
-    ScaleMult(softmax, s_scale, softmax_fp8);
+    ScaleMult(softmax, p_scale, softmax_fp8);
+    // ScaleMult(softmax, s_scale, softmax_fp8);
 
     tensor<float> atten_heads_fp32(multi_head_attention_fp8.desc.GetLengths());
-    // 2) fp8 matrix multiplication
-    Dot_4D_4D(softmax_fp8, v_val, atten_heads_fp32);
+    // 2) fp8 matrix multiplication (atten_heads_fp32 still holds fp8 results)
+    Dot_4D_4D_T(softmax_fp8, v_val, atten_heads_fp32);
 
     // bring it back to fp32
     ScaleMult(atten_heads_fp32, s_descale * v_descale, atten_heads_fp32);
@@ -407,36 +439,13 @@ void MultiHeadAttentionfp8(const tensor<T>& q_val,
 
     // scale to fp8 version
     ScaleMult(atten_heads_fp32, o_scale, multi_head_attention_fp8);
-}
 
-template <typename T>
-void MultiHeadAttentionf32(const tensor<T>& q_val,
-                           const tensor<T>& k_val,
-                           const tensor<T>& v_val,
-                           tensor<T>& q_dot_k_transpose,
-                           tensor<T>& softmax,
-                           tensor<T>& attn_max,
-                           tensor<T>& Z_sum,
-                           float& aMax_S,
-                           float& aMax_O,
-                           tensor<T>& multi_head_attention)
-{
-
-    Dot_4D_4D_T(q_val, k_val, q_dot_k_transpose);
-
-    SoftMax(q_dot_k_transpose, softmax, attn_max, Z_sum);
-    aMax_S = AbsoluteMax(softmax);
-
-    // // drop out
-    // // DropOut(softmax, cpu_mha_test_case.drop_out_rate);
-
-    // // // drop out scalse
-    // // double drop_out_scale = 1.0 / (1.0 - cpu_mha_test_case.drop_out_rate);
-    // // Scale(softmax, drop_out_scale);
-
-    // O = (Q.dot(Kt)).dot(V)
-    Dot_4D_4D(softmax, v_val, multi_head_attention);
-    aMax_O = AbsoluteMax(multi_head_attention);
+    std::cout << "\n\n\n atten_heads_fp8 \n\n\n";
+    for(size_t i = 0; i < 10; ++i)
+    {
+        std::cout << static_cast<float>(multi_head_attention_fp8.data[i]) << " : ";
+    }
+    std::cout << "\n=====-00000000000000000000000=--==========\n";
 }
 
 template <typename T>
@@ -618,21 +627,143 @@ tensor<float> ExtractGoldenDataFromJson(std::string_view json_attention_data,
 template <typename T>
 struct ScaledTensor
 {
+    ScaledTensor(tensor<T> arg_tensor, 
+                 float arg_scale, 
+                 float arg_descale):mTensor(arg_tensor), 
+                                    mScale(arg_scale),
+                                    mDescale(arg_descale){}
+
+
     tensor<T> mTensor;
     float mScale;
     float mDescale;
 };
 
+//////////////////////////////////////
+
+// template <typename Y,
+//           typename X,
+//           std::enable_if_t<!(std::is_const_v<Y> || std::is_const_v<X>), bool> = false>
+// inline constexpr Y type_convert(X x)
+// {
+//     static_assert(!std::is_reference_v<Y> && !std::is_reference_v<X>);
+//     return static_cast<Y>(x);
+// }
+template <typename T>
+struct FillUniformDistribution
+{
+    float a_{-5.f};
+    float b_{5.f};
+    std::optional<uint32_t> seed_{11939};
+
+    template <typename ForwardIter>
+    void operator()(ForwardIter first, ForwardIter last) const
+    {
+        std::mt19937 gen(seed_.has_value() ? *seed_ : std::random_device{}());
+        std::uniform_real_distribution<float> dis(a_, b_);
+        std::generate(first, last, [&dis, &gen]() { return static_cast<T>(dis(gen)); });
+    }
+
+    template <typename ForwardRange>
+    auto operator()(ForwardRange&& range) const
+        -> std::void_t<decltype(std::declval<const FillUniformDistribution&>()(
+            std::begin(std::forward<ForwardRange>(range)),
+            std::end(std::forward<ForwardRange>(range))))>
+    {
+        (*this)(std::begin(std::forward<ForwardRange>(range)),
+                std::end(std::forward<ForwardRange>(range)));
+    }
+};
+
+//////////////////////////////////////
+
 template <typename T, typename... Dims>
 ScaledTensor<T> GenScaledTensor(Dims... nhsd)
 {
+    std::cout << "Q Type: " << typeid(T).name() << std::endl;
     auto val_scaled = tensor<T>{nhsd...};
-    float bias      = prng::gen_A_to_B(-3.0f, 3.0f);
-    auto val_full   = tensor<float>{nhsd...}.generate(
-        [bias](auto...) { return prng::gen_A_to_B(-2.5f + bias, 2.5f + bias); });
-    float scale   = GetF8Scaling(AbsoluteMax(val_full));
+    auto val_fp32_tmp = tensor<float>{nhsd...};
+    // float bias      = prng::gen_A_to_B(.0f, .01f);
+    // float low_range = 0.0f + bias;
+    // float hig_range = 1.0f + bias;
+    // std::cout << "bias = " << bias << std::endl;
+    // auto val_full   = tensor<float>{nhsd...}.generate(
+    //     [&](auto...) { return prng::gen_A_to_B(low_range, hig_range); });
+    //     // [](auto...) { return prng::gen_A_to_B(0.0f, 1.0f); });
+    
+    uint32_t seed_q = 11939;
+    FillUniformDistribution<float>{0.f, 1.f, seed_q}(val_fp32_tmp);
+
+
+
+
+    float scale   = GetF8Scaling(AbsoluteMax(val_fp32_tmp));
     float descale = 1.f / scale;
-    ScaleMult(val_full, scale, val_scaled);
+    
+    std::cout << " ** GenScaledTensor ** " << std::endl;
+    std::cout << "scale = " << scale << std::endl;
+    std::cout << "descale = " << descale << std::endl;
+
+    // fp32 to fp8
+    ScaleMult(val_fp32_tmp, scale, val_scaled);
+
+    std::cout << "\n\n\n float q(val_fp32_tmp) \n\n\n";
+    for(size_t i = 0; i < 20; ++i)
+    {
+        std::cout << std::fixed << std::setprecision(10) << static_cast<float>(val_fp32_tmp.data[i]) << " : ";
+    }
+
+    std::cout << "\n\n\n float q \n\n\n";
+    for(size_t i = 0; i < 20; ++i)
+    {
+        std::cout << std::fixed << std::setprecision(10) << static_cast<float>(val_scaled.data[i]) << " : ";
+    }
+    // exit(1);
+
+    return {val_scaled, scale, descale};
+}
+
+template <typename T, typename... Dims>
+ScaledTensor<T> GenScaledTensor_k(Dims... nhsd)
+{
+    std::cout << "K Type: " << typeid(T).name() << std::endl;
+    auto val_scaled = tensor<T>{nhsd...};
+    auto val_fp32_tmp = tensor<float>{nhsd...};
+  
+    uint32_t seed_k = 11900;
+    FillUniformDistribution<float>{0.f, 1.f, seed_k}(val_fp32_tmp);
+
+    float scale   = GetF8Scaling(AbsoluteMax(val_fp32_tmp));
+    float descale = 1.f / scale;
+    
+    std::cout << " ** GenScaledTensor_k ** " << std::endl;
+    std::cout << "scale = " << scale << std::endl;
+    std::cout << "descale = " << descale << std::endl;
+
+    ScaleMult(val_fp32_tmp, scale, val_scaled);
+
+    return {val_scaled, scale, descale};
+}
+
+template <typename T, typename... Dims>
+ScaledTensor<T> GenScaledTensor_v(Dims... nhsd)
+{
+    std::cout << "V Type: " << typeid(T).name() << std::endl;
+    auto val_scaled = tensor<T>{nhsd...};
+    auto val_fp32_tmp = tensor<float>{nhsd...};
+   
+    uint32_t seed_v = 11920;
+    FillUniformDistribution<float>{0.f, 1.f, seed_v}(val_fp32_tmp);
+
+    float scale   = GetF8Scaling(AbsoluteMax(val_fp32_tmp));
+    float descale = 1.f / scale;
+    
+    std::cout << " ** GenScaledTensor_v ** " << std::endl;
+    std::cout << "scale = " << scale << std::endl;
+    std::cout << "descale = " << descale << std::endl;
+
+    ScaleMult(val_fp32_tmp, scale, val_scaled);
+
     return {val_scaled, scale, descale};
 }
 
