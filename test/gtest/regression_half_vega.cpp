@@ -53,7 +53,9 @@ std::vector<std::string> GetArgs(const std::string& param)
 std::vector<std::string> GetTestCases()
 {
     const std::string& cmd       = "test_conv3d ";
-    const std::string& float_arg = env::value(MIOPEN_TEST_FLOAT_ARG);
+    std::string float_arg = env::value(MIOPEN_TEST_FLOAT_ARG);
+    if(float_arg.empty())
+        float_arg = "--half";
     const std::string& conv_verbose_b =
         float_arg + " --verbose --disable-forward --disable-backward-weights";
 
