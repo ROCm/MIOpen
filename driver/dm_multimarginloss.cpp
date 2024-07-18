@@ -29,11 +29,11 @@
 static Driver* makeDriver(const std::string& base_arg)
 {
     if(base_arg == "multimarginloss")
-        return new MultiMarginLossDriver<float, double>();
+        return new MultiMarginLossDriver<float, float>();
     if(base_arg == "multimarginlossfp16")
-        return new MultiMarginLossDriver<float16, double>();
+        return new MultiMarginLossDriver<float16, float>();
     if(base_arg == "multimarginlossbfp16")
-        return new MultiMarginLossDriver<bfloat16, double>();
+        return new MultiMarginLossDriver<bfloat16, float>();
     return nullptr;
 }
 

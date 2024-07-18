@@ -64,7 +64,7 @@ int32_t mloMultiMarginLossUnreducedForwardRunHost(miopenTensorDescriptor_t iDesc
 
     for(size_t n = 0; n < N; n++)
     {
-        Tcheck loss = 0;
+        double loss = 0;
         uint64_t y  = target[T_tv.get_tensor_view_idx({n})];
         if(y >= C)
             continue;
@@ -72,17 +72,17 @@ int32_t mloMultiMarginLossUnreducedForwardRunHost(miopenTensorDescriptor_t iDesc
         {
             if(y == c)
                 continue;
-            Tcheck t = margin - static_cast<Tcheck>(input[I_tv.get_tensor_view_idx({n, y})]) +
-                       static_cast<Tcheck>(input[I_tv.get_tensor_view_idx({n, c})]);
+            double t = margin - static_cast<double>(input[I_tv.get_tensor_view_idx({n, y})]) +
+                       static_cast<double>(input[I_tv.get_tensor_view_idx({n, c})]);
 
             if(t < 0)
                 continue;
             if(p == 2)
                 t = t * t;
             t = weight[W_tv.get_tensor_view_idx({y})] * t;
-            loss += t / static_cast<Tcheck>(C);
+            loss += t / C;
         }
-        ref_output[O_tv.get_tensor_view_idx({n})] = loss;
+        ref_output[O_tv.get_tensor_view_idx({n})] = static_cast<Tcheck>(loss);
     }
     return ret;
 }
@@ -106,9 +106,10 @@ int32_t mloMultiMarginLossReducedForwardRunHost(miopenTensorDescriptor_t iDesc,
 
     int32_t ret = 0;
 
+    double sum_loss = 0;
     for(size_t n = 0; n < N; n++)
     {
-        Tcheck loss = 0;
+        double loss = 0;
         uint64_t y  = target[T_tv.get_tensor_view_idx({n})];
         if(y >= C)
             continue;
@@ -116,18 +117,18 @@ int32_t mloMultiMarginLossReducedForwardRunHost(miopenTensorDescriptor_t iDesc,
         {
             if(y == c)
                 continue;
-            Tcheck t = margin - static_cast<Tcheck>(input[I_tv.get_tensor_view_idx({n, y})]) +
-                       static_cast<Tcheck>(input[I_tv.get_tensor_view_idx({n, c})]);
+            double t = margin - static_cast<double>(input[I_tv.get_tensor_view_idx({n, y})]) +
+                       static_cast<double>(input[I_tv.get_tensor_view_idx({n, c})]);
             if(t < 0)
                 continue;
             if(p == 2)
                 t = t * t;
             t = weight[W_tv.get_tensor_view_idx({y})] * t;
-            loss += t / static_cast<Tcheck>(C);
+            loss += t / C;
         }
-        ref_output[0] += loss;
+        sum_loss += loss;
     }
-    ref_output[0] /= divisor;
+    ref_output[0] = static_cast<Tcheck>(sum_loss / divisor);
 
     return ret;
 };
