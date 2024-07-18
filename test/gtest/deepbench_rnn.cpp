@@ -115,4 +115,6 @@ TEST_P(DeepBenchRNNConfigWithFloat, FloatTest_deepbench_rnn)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(ConvTrans, DeepBenchRNNConfigWithFloat, testing::Values(GetTestCases("--float")));
+INSTANTIATE_TEST_SUITE_P(ConvTrans,
+                         DeepBenchRNNConfigWithFloat,
+                         testing::Values(GetTestCases("--float")));

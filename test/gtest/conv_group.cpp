@@ -152,4 +152,6 @@ using namespace conv_group;
 
 TEST_P(ConfigWithFloat_conv_group, FloatTest_conv_group) { Run2dDriver(); };
 
-INSTANTIATE_TEST_SUITE_P(ConvGroup, ConfigWithFloat_conv_group, testing::Values(GetTestCases("--float")));
+INSTANTIATE_TEST_SUITE_P(ConvGroup,
+                         ConfigWithFloat_conv_group,
+                         testing::Values(GetTestCases("--float")));

@@ -119,4 +119,6 @@ TEST_P(DeepBenchGRUConfigWithFloat, FloatTest_deepbench_gru)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(ConvTrans, DeepBenchGRUConfigWithFloat, testing::Values(GetTestCases("--float")));
+INSTANTIATE_TEST_SUITE_P(ConvTrans,
+                         DeepBenchGRUConfigWithFloat,
+                         testing::Values(GetTestCases("--float")));

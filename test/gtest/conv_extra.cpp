@@ -48,10 +48,10 @@ void GetArgs(const std::string& param, std::vector<std::string>& tokens)
 
 std::vector<std::string> GetTestCases(void)
 {
-    const std::string cmd       = "test_conv2d";
-    const std::string cmd_v     = cmd + " --verbose";
+    const std::string cmd               = "test_conv2d";
+    const std::string cmd_v             = cmd + " --verbose";
     const std::string default_float_arg = " --float";
-    const std::string cmd_v_float = cmd_v + default_float_arg;
+    const std::string cmd_v_float       = cmd_v + default_float_arg;
 
     std::string float_arg = env::value(MIOPEN_TEST_FLOAT_ARG);
     if(float_arg.empty())
@@ -59,7 +59,7 @@ std::vector<std::string> GetTestCases(void)
     else
         float_arg = " " + float_arg;
 
-    std::string flag_arg  = env::value(MIOPEN_TEST_FLAGS_ARGS);
+    std::string flag_arg = env::value(MIOPEN_TEST_FLAGS_ARGS);
 
     // clang-format off
     return std::vector<std::string>{

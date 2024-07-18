@@ -52,8 +52,8 @@ std::vector<std::string> GetArgs(const std::string& param)
 
 std::vector<std::string> GetTestCases()
 {
-    const std::string& cmd       = "test_conv3d ";
-    std::string float_arg = env::value(MIOPEN_TEST_FLOAT_ARG);
+    const std::string& cmd = "test_conv3d ";
+    std::string float_arg  = env::value(MIOPEN_TEST_FLOAT_ARG);
     if(float_arg.empty())
         float_arg = "--half";
     const std::string& conv_verbose_b =

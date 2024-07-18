@@ -158,4 +158,6 @@ TEST_P(ConfigWithFloat_conv_trans, FloatTest_conv_trans)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(ConvTrans, ConfigWithFloat_conv_trans, testing::Values(GetTestCases("--float")));
+INSTANTIATE_TEST_SUITE_P(ConvTrans,
+                         ConfigWithFloat_conv_trans,
+                         testing::Values(GetTestCases("--float")));
