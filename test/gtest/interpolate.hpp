@@ -70,12 +70,17 @@ struct InterpolateTestCase
 inline std::vector<InterpolateTestCase> InterpolateTestConfigs()
 {
     return {
-        // {{16, 256, 1, 1}, {32, 32}, {0, 0}, MIOPEN_INTERPOLATE_MODE_BICUBIC, false},
-        // {{16, 256, 1, 1}, {32, 32}, {0, 0}, MIOPEN_INTERPOLATE_MODE_BICUBIC, true},
-        {{1, 3, 333, 500}, {800, 1201}, {0, 0}, MIOPEN_INTERPOLATE_MODE_BICUBIC, false},
-        // {{1, 3, 333, 500}, {800, 1201}, {0, 0}, MIOPEN_INTERPOLATE_MODE_BICUBIC, true},
-        // {{1, 3, 319, 500}, {800, 1253}, {0, 0}, MIOPEN_INTERPOLATE_MODE_BICUBIC, false},
-        // {{1, 3, 319, 500}, {800, 1253}, {0, 0}, MIOPEN_INTERPOLATE_MODE_BICUBIC, true},
+        {{16, 256, 1, 1, 1}, {32, 32, 32}, {32, 32, 32}, MIOPEN_INTERPOLATE_MODE_TRILINEAR, false},
+        {{16, 256, 1, 1, 1}, {32, 32, 32}, {0, 0, 0}, MIOPEN_INTERPOLATE_MODE_TRILINEAR, true},
+        {{16, 256, 1, 1, 1}, {32, 32, 32}, {0, 0, 0}, MIOPEN_INTERPOLATE_MODE_NEAREST, false},
+        {{16, 256, 1, 1}, {32, 32}, {0, 0}, MIOPEN_INTERPOLATE_MODE_NEAREST, false},
+        {{16, 256, 1, 1}, {32, 32}, {0, 0}, MIOPEN_INTERPOLATE_MODE_BILINEAR, false},
+        {{16, 256, 1, 1}, {32, 32}, {0, 0}, MIOPEN_INTERPOLATE_MODE_BILINEAR, true},
+        {{16, 256, 1, 1}, {32, 32}, {0, 0}, MIOPEN_INTERPOLATE_MODE_BICUBIC, false},
+        {{16, 256, 1, 1}, {32, 32}, {0, 0}, MIOPEN_INTERPOLATE_MODE_BICUBIC, true},
+        {{16, 256, 1}, {32}, {0}, MIOPEN_INTERPOLATE_MODE_NEAREST, false},
+        {{16, 256, 1}, {32}, {0}, MIOPEN_INTERPOLATE_MODE_LINEAR, false},
+        {{16, 256, 1}, {32}, {0}, MIOPEN_INTERPOLATE_MODE_LINEAR, true},
     };
 }
 
