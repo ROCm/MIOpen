@@ -42,7 +42,7 @@
 #include <tuple>
 #include <iostream>
 
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_ATTN_NAIVE_CK_FWD)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_ATTN_CK_FWD)
 
 namespace miopen {
 
@@ -71,7 +71,7 @@ ConvSolution MhaCKForward::GetSolution(const ExecutionContext& context,
     const miopen::mha::MhaInputDescsForward& descsFwd = problem.GetDescsForward();
 
     uint64_t N, H, S, D;
-    std::tie(N, H, S, D) = miopen::tien<4>(descsFwd.kDesc.GetLengths());
+    auto(N, H, S, D) = miopen::tien<4>(descsFwd.kDesc.GetLengths());
 
     descsFwd.kDesc.GetType();
 
