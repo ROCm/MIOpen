@@ -88,6 +88,9 @@ ConvSolution MhaCKForward::GetSolution(const ExecutionContext& context,
     bool store_loss    = false;
     bool is_v_rowmajor = false;
 
+    // currenly ck's fp8 only supports batch mode
+    bool is_group_mode = false;
+
     // input permute
     bool i_perm = true; // if true, will be batch * nhead * seqlen * hdim
     // output permute
@@ -128,29 +131,30 @@ ConvSolution MhaCKForward::GetSolution(const ExecutionContext& context,
             const auto& dataFwd   = params.GetDataForward();
 
             // arg 1
-            auto fmha_traits = fmha_fwd_traits{hdim_q,
-                                               hdim_v,
-                                               "fp8", // data_type in string
-                                               false, // mode == mode_enum::group, // is_group_mode
-                                               is_v_rowmajor,
-                                               mask_enum::no_mask, // no mask for now
-                                               bias_enum::no_bias, // no bias
-                                               false,
-                                               store_loss,
-                                               squant};
+            auto fmha_traits = fmha_fwd_traits{
+                hdim_q,
+                hdim_v,
+                "fp8", // data_type in string (todo: change this based on problem description)
+                is_group_mode, // mode == mode_enum::group,
+                is_v_rowmajor,
+                mask_enum::no_mask, // no mask for now
+                bias_enum::no_bias, // no bias
+                false,
+                store_loss,
+                squant};
 
             // arg 2
             auto fmha_args = [&]() {
                 const ck_tile::index_t stride_q = (i_perm ? hdim_q : nhead * hdim_q);
                 const ck_tile::index_t stride_k = (i_perm ? hdim_q : nhead_k * hdim_q);
-                
+
                 const ck_tile::index_t stride_v = [&]() {
                     if(is_v_rowmajor)
                         return i_perm ? hdim_v : nhead_k * hdim_v;
                     else
                         return i_perm ? shape_seqlen_k : nhead_k * shape_seqlen_k;
                 }();
-                const ck_tile::index_t stride_o = (o_perm ? hdim_v : nhead * hdim_v);
+                const ck_tile::index_t stride_o       = (o_perm ? hdim_v : nhead * hdim_v);
                 const ck_tile::index_t nhead_stride_q = (i_perm ? shape_seqlen_q * hdim_q : hdim_q);
                 const ck_tile::index_t nhead_stride_k = (i_perm ? shape_seqlen_k * hdim_q : hdim_q);
                 const ck_tile::index_t nhead_stride_v = [&]() {
@@ -168,28 +172,29 @@ ConvSolution MhaCKForward::GetSolution(const ExecutionContext& context,
                 const ck_tile::index_t batch_stride_v = (nhead_k * hdim_v * shape_seqlen_k);
                 const ck_tile::index_t batch_stride_bias =
                     (0 * nhead * shape_seqlen_q * shape_seqlen_k);
-                float p_drop = 0.0f;
-                bool s_randval = false;
-                uint64_t drop_seed = 1; // seed for random number generator
+                float p_drop         = 0.0f;
+                bool s_randval       = false;
+                uint64_t drop_seed   = 1; // seed for random number generator
                 uint64_t drop_offset = 0; // offset for random number generator
                 // This is tuning parameter
                 int num_splits = 1;
 
-                const ck_tile::index_t stride_randval = (max_seqlen_k);
-                const ck_tile::index_t stride_o_acc   = hdim_v;
+                const ck_tile::index_t stride_randval       = (max_seqlen_k);
+                const ck_tile::index_t stride_o_acc         = hdim_v;
                 const ck_tile::index_t nhead_stride_randval = (shape_seqlen_q * max_seqlen_k);
                 const ck_tile::index_t nhead_stride_lse_acc = max_seqlen_q;
                 const ck_tile::index_t nhead_stride_o_acc   = (max_seqlen_q * hdim_v);
-                const ck_tile::index_t nhead_stride_o       = (o_perm ? shape_seqlen_q * hdim_v : hdim_v);
+                const ck_tile::index_t nhead_stride_o = (o_perm ? shape_seqlen_q * hdim_v : hdim_v);
 
-                const ck_tile::index_t batch_stride_randval = (nhead * shape_seqlen_q * max_seqlen_k);
+                const ck_tile::index_t batch_stride_randval =
+                    (nhead * shape_seqlen_q * max_seqlen_k);
                 const ck_tile::index_t batch_stride_lse     = (nhead * max_seqlen_q);
                 const ck_tile::index_t batch_stride_lse_acc = (nhead * max_seqlen_q);
                 const ck_tile::index_t batch_stride_o_acc   = (nhead * max_seqlen_q * hdim_v);
                 const ck_tile::index_t batch_stride_o       = (nhead * shape_seqlen_q * hdim_v);
 
                 const ck_tile::index_t split_stride_lse_acc = (batch * nhead * max_seqlen_q);
-                const ck_tile::index_t split_stride_o_acc   = (batch * nhead * max_seqlen_q * hdim_v);
+                const ck_tile::index_t split_stride_o_acc = (batch * nhead * max_seqlen_q * hdim_v);
 
                 // if num_splits = 1
                 float o_acc = 0.0;
@@ -201,13 +206,13 @@ ConvSolution MhaCKForward::GetSolution(const ExecutionContext& context,
                                      dataFwd.vData, // v_ptr
                                      nullptr, //       bias_ptr  (no bias for now)
                                      nullptr, //       rand_val_pr loss store (no loss for now)
-                                     nullptr,//        lse_acc_ptr (no loss for now)
-                                     &o_acc, //       o_acc_ptr        
+                                     nullptr, //        lse_acc_ptr (no loss for now)
+                                     &o_acc,  //       o_acc_ptr
                                      nullptr, //       lse_ptr (no loss for now)
-                                     dataFwd.oData,//        o_ptr
-                                     nullptr,//        seqstart_q_ptr
-                                     nullptr,//        seqstart_k_ptr
-                                     nullptr,//        seqlen_k_ptr (null is ok)
+                                     dataFwd.oData, //        o_ptr
+                                     nullptr,       //        seqstart_q_ptr
+                                     nullptr,       //        seqstart_k_ptr
+                                     nullptr, //        seqlen_k_ptr (null is ok)
                                      shape_seqlen_q,
                                      shape_seqlen_k,
                                      batch,
@@ -216,8 +221,8 @@ ConvSolution MhaCKForward::GetSolution(const ExecutionContext& context,
                                      hdim_v,
                                      nhead,
                                      nhead_k,
-                                     num_splits, // 
-                                     scale_s, //0.0000173579,
+                                     num_splits,
+                                     scale_s,
                                      scale_p,
                                      scale_o,
                                      stride_q,
@@ -250,17 +255,20 @@ ConvSolution MhaCKForward::GetSolution(const ExecutionContext& context,
                                      0, // mask.left (no mask for now)
                                      0, // mask.right (no mask for now)
                                      static_cast<ck_tile::index_t>(mask_enum::no_mask),
-                                     p_drop, // float value
+                                     p_drop,    // float value
                                      s_randval, // bool flag
                                      {drop_seed, drop_offset}};
             }();
 
             int stream_warmup = 1; // number of iterations before benchmark the kernel
-            int stream_repeat = 0;   // number of iterations to benchmark the kernel
+            int stream_repeat = 0; // number of iterations to benchmark the kernel
             bool kname        = false; // print kernel name
- 
-            ck_tile::stream_config stream_config_tmp{
-                nullptr/*stream_id*/, true/*time_kernel*/, /* log_level = */ (kname ? 1 : 0), stream_warmup, stream_repeat};
+
+            ck_tile::stream_config stream_config_tmp{nullptr /*stream_id*/,
+                                                     true /*time_kernel*/,
+                                                     /* log_level = */ (kname ? 1 : 0),
+                                                     stream_warmup,
+                                                     stream_repeat};
 
             fmha_fwd(fmha_traits, fmha_args, stream_config_tmp);
         };

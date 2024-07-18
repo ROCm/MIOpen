@@ -199,7 +199,7 @@ void ScaleMult(const tensor<T1>& tensor_val,
                tensor<T3>& tensor_scale_factor)
 {
     tensor_scale_factor.par_for_each(
-        [&](auto... id) { tensor_scale_factor(id...) = T3(tensor_val(id...) * scale_factor);});
+        [&](auto... id) { tensor_scale_factor(id...) = T3(tensor_val(id...) * scale_factor); });
 }
 
 template <class T>
@@ -353,15 +353,15 @@ void SoftMax(const tensor<T>& q_dot_k_transpose,
 
 template <typename T>
 void MultiHeadAttentionForwardf32(const tensor<T>& q_val,
-                           const tensor<T>& k_val,
-                           const tensor<T>& v_val,
-                           tensor<T>& q_dot_k_transpose,
-                           tensor<T>& softmax,
-                           tensor<T>& attn_max,
-                           tensor<T>& Z_sum,
-                           float& aMax_S,
-                           float& aMax_O,
-                           tensor<T>& multi_head_attention)
+                                  const tensor<T>& k_val,
+                                  const tensor<T>& v_val,
+                                  tensor<T>& q_dot_k_transpose,
+                                  tensor<T>& softmax,
+                                  tensor<T>& attn_max,
+                                  tensor<T>& Z_sum,
+                                  float& aMax_S,
+                                  float& aMax_O,
+                                  tensor<T>& multi_head_attention)
 {
     // Q.K^T
     Dot_4D_4D_T(q_val, k_val, q_dot_k_transpose);
@@ -383,24 +383,24 @@ void MultiHeadAttentionForwardf32(const tensor<T>& q_val,
 
 template <typename T = float8>
 void MultiHeadAttentionForwardfp8(const tensor<T>& q_val,
-                           const tensor<T>& k_val,
-                           const tensor<T>& v_val,
-                           tensor<float>& softmax,
-                           tensor<float>& attn_max,
-                           tensor<float>& Z_sum,
-                           float q_descale,
-                           float k_descale,
-                           float v_descale,  // descale fp8 attention to fp32 (descale) 
-                           float s_descale, // 1.0  
-                           float s_scale,   // 1.0  
-                           float p_scale,   // used to scale fp32 softmax to fp8 softmax
-                           float o_scale,   // 1.0
-                           float dropout_rate,
-                           uint64_t seed,
-                           uint64_t offset,
-                           float& aMax_S,
-                           float& aMax_O,
-                           tensor<T>& multi_head_attention_fp8)
+                                  const tensor<T>& k_val,
+                                  const tensor<T>& v_val,
+                                  tensor<float>& softmax,
+                                  tensor<float>& attn_max,
+                                  tensor<float>& Z_sum,
+                                  float q_descale,
+                                  float k_descale,
+                                  float v_descale, // descale fp8 attention to fp32 (descale)
+                                  float s_descale, // 1.0
+                                  float s_scale,   // 1.0
+                                  float p_scale,   // used to scale fp32 softmax to fp8 softmax
+                                  float o_scale,   // 1.0
+                                  float dropout_rate,
+                                  uint64_t seed,
+                                  uint64_t offset,
+                                  float& aMax_S,
+                                  float& aMax_O,
+                                  tensor<T>& multi_head_attention_fp8)
 {
     auto inputLengths = q_val.desc.GetLengths();
     inputLengths[3]   = inputLengths[2]; // NHSD converting to NHSS
@@ -439,13 +439,6 @@ void MultiHeadAttentionForwardfp8(const tensor<T>& q_val,
 
     // scale to fp8 version
     ScaleMult(atten_heads_fp32, o_scale, multi_head_attention_fp8);
-
-    std::cout << "\n\n\n atten_heads_fp8 \n\n\n";
-    for(size_t i = 0; i < 10; ++i)
-    {
-        std::cout << static_cast<float>(multi_head_attention_fp8.data[i]) << " : ";
-    }
-    std::cout << "\n=====-00000000000000000000000=--==========\n";
 }
 
 template <typename T>
@@ -627,12 +620,10 @@ tensor<float> ExtractGoldenDataFromJson(std::string_view json_attention_data,
 template <typename T>
 struct ScaledTensor
 {
-    ScaledTensor(tensor<T> arg_tensor, 
-                 float arg_scale, 
-                 float arg_descale):mTensor(arg_tensor), 
-                                    mScale(arg_scale),
-                                    mDescale(arg_descale){}
-
+    ScaledTensor(tensor<T> arg_tensor, float arg_scale, float arg_descale)
+        : mTensor(arg_tensor), mScale(arg_scale), mDescale(arg_descale)
+    {
+    }
 
     tensor<T> mTensor;
     float mScale;
@@ -680,8 +671,7 @@ struct FillUniformDistribution
 template <typename T, typename... Dims>
 ScaledTensor<T> GenScaledTensor(Dims... nhsd)
 {
-    std::cout << "Q Type: " << typeid(T).name() << std::endl;
-    auto val_scaled = tensor<T>{nhsd...};
+    auto val_scaled   = tensor<T>{nhsd...};
     auto val_fp32_tmp = tensor<float>{nhsd...};
     // float bias      = prng::gen_A_to_B(.0f, .01f);
     // float low_range = 0.0f + bias;
@@ -690,35 +680,15 @@ ScaledTensor<T> GenScaledTensor(Dims... nhsd)
     // auto val_full   = tensor<float>{nhsd...}.generate(
     //     [&](auto...) { return prng::gen_A_to_B(low_range, hig_range); });
     //     // [](auto...) { return prng::gen_A_to_B(0.0f, 1.0f); });
-    
+
     uint32_t seed_q = 11939;
     FillUniformDistribution<float>{0.f, 1.f, seed_q}(val_fp32_tmp);
 
-
-
-
     float scale   = GetF8Scaling(AbsoluteMax(val_fp32_tmp));
     float descale = 1.f / scale;
-    
-    std::cout << " ** GenScaledTensor ** " << std::endl;
-    std::cout << "scale = " << scale << std::endl;
-    std::cout << "descale = " << descale << std::endl;
 
     // fp32 to fp8
     ScaleMult(val_fp32_tmp, scale, val_scaled);
-
-    std::cout << "\n\n\n float q(val_fp32_tmp) \n\n\n";
-    for(size_t i = 0; i < 20; ++i)
-    {
-        std::cout << std::fixed << std::setprecision(10) << static_cast<float>(val_fp32_tmp.data[i]) << " : ";
-    }
-
-    std::cout << "\n\n\n float q \n\n\n";
-    for(size_t i = 0; i < 20; ++i)
-    {
-        std::cout << std::fixed << std::setprecision(10) << static_cast<float>(val_scaled.data[i]) << " : ";
-    }
-    // exit(1);
 
     return {val_scaled, scale, descale};
 }
@@ -726,19 +696,14 @@ ScaledTensor<T> GenScaledTensor(Dims... nhsd)
 template <typename T, typename... Dims>
 ScaledTensor<T> GenScaledTensor_k(Dims... nhsd)
 {
-    std::cout << "K Type: " << typeid(T).name() << std::endl;
-    auto val_scaled = tensor<T>{nhsd...};
+    auto val_scaled   = tensor<T>{nhsd...};
     auto val_fp32_tmp = tensor<float>{nhsd...};
-  
+
     uint32_t seed_k = 11900;
     FillUniformDistribution<float>{0.f, 1.f, seed_k}(val_fp32_tmp);
 
     float scale   = GetF8Scaling(AbsoluteMax(val_fp32_tmp));
     float descale = 1.f / scale;
-    
-    std::cout << " ** GenScaledTensor_k ** " << std::endl;
-    std::cout << "scale = " << scale << std::endl;
-    std::cout << "descale = " << descale << std::endl;
 
     ScaleMult(val_fp32_tmp, scale, val_scaled);
 
@@ -748,19 +713,14 @@ ScaledTensor<T> GenScaledTensor_k(Dims... nhsd)
 template <typename T, typename... Dims>
 ScaledTensor<T> GenScaledTensor_v(Dims... nhsd)
 {
-    std::cout << "V Type: " << typeid(T).name() << std::endl;
-    auto val_scaled = tensor<T>{nhsd...};
+    auto val_scaled   = tensor<T>{nhsd...};
     auto val_fp32_tmp = tensor<float>{nhsd...};
-   
+
     uint32_t seed_v = 11920;
     FillUniformDistribution<float>{0.f, 1.f, seed_v}(val_fp32_tmp);
 
     float scale   = GetF8Scaling(AbsoluteMax(val_fp32_tmp));
     float descale = 1.f / scale;
-    
-    std::cout << " ** GenScaledTensor_v ** " << std::endl;
-    std::cout << "scale = " << scale << std::endl;
-    std::cout << "descale = " << descale << std::endl;
 
     ScaleMult(val_fp32_tmp, scale, val_scaled);
 

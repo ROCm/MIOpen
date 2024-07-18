@@ -79,7 +79,40 @@ struct TestCase
     float dropout;
 };
 
+struct TestCaseCK
+{
+    size_t n;
+    size_t h;
+    size_t s;
+    size_t d;
+    float dropout;
 
+    bool is_ck_fp8 = false;
+};
+
+// CK's MHA currently :
+// only supports seq_length % 128 == 0
+// only supports dim        % 64 == 0
+// row major V
+// dropout : 0
+// bias : no bias
+// mask : no mask
+// is_group_mode : flase (only support batch mode)
+inline std::vector<TestCaseCK> GetCKCases(bool is_ck)
+{
+    if(!(CheckFloatArg("--float16") || CheckFloatArg("--float8")))
+    {
+        return {};
+    }
+
+    return {
+        // batch, head, seq length, dim, dropout
+        {1, 1, 128, 64, 0.0f, is_ck},
+        {2, 15, 16384, 246, 0.0f, is_ck},
+        {2, 96, 4096, 12288, 0.0f, is_ck}, // gpt3 seq length is 4096, dim is 12288
+        {2, 96, 8192, 12288, 0.0f, is_ck}, // gpt4 seq length is 8192, dim is 12288
+    };
+}
 
 inline std::vector<TestCase> GetSmokeCases()
 {
@@ -87,60 +120,80 @@ inline std::vector<TestCase> GetSmokeCases()
     {
         return {};
     }
- 
+
     return {
         // batch, num of head, S len, problem dim
         // ./bin/tile_example_fmha_fwd
         //  -b=1 -h=2 -s=128 -d=64 -prec=fp8 -vlayout=c
-        // {9, 8, 8, 8, 0.0f},
+        {9, 8, 8, 8, 0.0f},
         {2, 2, 128, 64, 0.0f},
-        // {2, 1, 5, 4, 0.0f},
-        // {4, 2, 1, 3, 0.0f},
-        // {5, 3, 4, 1, 0.0f},
-        // {1, 2, 65, 5, 0.0f},
-        // {2, 1, 67, 4, 0.0f},
-        // {8, 7, 68, 1, 0.0f},
-        // {1, 2, 257, 5, 0.0f},
-        // {2, 1, 259, 4, 0.0f},
-        // {8, 7, 270, 1, 0.0f},
-        // {1, 1, 1, 1, 0.0f},
-        // {3, 5, 32, 7, 0.8f},
-        // {2, 2, 64, 128, 0.8f},
-        // {2, 1, 128, 4, 0.8f},
-        // {2, 7, 256, 31, 0.8f},
+        {2, 1, 5, 4, 0.0f},
+        {4, 2, 1, 3, 0.0f},
+        {5, 3, 4, 1, 0.0f},
+        {1, 2, 65, 5, 0.0f},
+        {2, 1, 67, 4, 0.0f},
+        {8, 7, 68, 1, 0.0f},
+        {1, 2, 257, 5, 0.0f},
+        {2, 1, 259, 4, 0.0f},
+        {8, 7, 270, 1, 0.0f},
+        {1, 1, 1, 1, 0.0f},
+        {3, 5, 32, 7, 0.8f},
+        {2, 2, 64, 128, 0.8f},
+        {2, 1, 128, 4, 0.8f},
+        {2, 7, 256, 31, 0.8f},
     };
 }
 
-// inline std::vector<TestCase> GetFullTestCases()
-// {
-//     if(miopen::IsDisabled(MIOPEN_ENV(MIOPEN_TEST_ALL)) ||
-//        !(CheckFloatArg("--float") || CheckFloatArg("--float8")))
-//     {
-//         return {};
-//     }
+inline std::vector<TestCase> GetFullTestCases()
+{
+    if(miopen::IsDisabled(MIOPEN_ENV(MIOPEN_TEST_ALL)) ||
+       !(CheckFloatArg("--float") || CheckFloatArg("--float8")))
+    {
+        return {};
+    }
 
-//     return {
-//         {3, 15, 2047, 15, 0.0f},
-//         {2049, 17, 7, 7, 0.0f},
-//         {3, 3, 257, 91, 0.0f},
-//         {11, 150, 255, 31, 0.0f},
-//         {9, 3, 129, 1023, 0.0f},
-//         {3, 15, 31, 2047, 0.0f},
-//         {2049, 17, 32, 7, 0.2f},
-//         {11, 150, 256, 31, 0.4f},
-//     };
-// }
+    return {
+        {3, 15, 2047, 15, 0.0f},
+        {2049, 17, 7, 7, 0.0f},
+        {3, 3, 257, 91, 0.0f},
+        {11, 150, 255, 31, 0.0f},
+        {9, 3, 129, 1023, 0.0f},
+        {3, 15, 31, 2047, 0.0f},
+        {2049, 17, 32, 7, 0.2f},
+        {11, 150, 256, 31, 0.4f},
+    };
+}
 } // namespace
 
-template <typename T>
-class Test_Fwd_Mha : public testing::TestWithParam<TestCase>
+template <typename T, typename TCase = TestCase>
+class Test_Fwd_Mha : public testing::TestWithParam<TCase>
 {
 protected:
     void SetUp() override
     {
         prng::reset_seed();
-        auto [n, h, s, d, drop] = GetParam();
-        Handle& handle          = get_handle();
+        size_t n, h, s, d;
+        float drop;
+        auto test_case = this->GetParam();
+        if constexpr(std::is_same<TCase, TestCaseCK>::value)
+        {
+            n            = test_case.h;
+            h            = test_case.h;
+            s            = test_case.s;
+            d            = test_case.d;
+            drop         = test_case.dropout;
+            is_ck_solver = test_case.is_ck_fp8;
+        }
+        else
+        {
+            n    = test_case.h;
+            h    = test_case.h;
+            s    = test_case.s;
+            d    = test_case.d;
+            drop = test_case.dropout;
+        }
+
+        Handle& handle = get_handle();
 
         if((drop > 0.0f) && (s % handle.GetWavefrontWidth() != 0))
         {
@@ -162,14 +215,14 @@ protected:
                     descVector.push_back(&(cpu_tensor.desc));
                 },
                 tmp->m_cpu_tensor);
- 
+
             args.emplace_back();
             args.back().id = id;
             // args.back().descriptor will be filled later
             args.back().buffer = tmp->m_gpu_buffer.get();
 
             tensors[id] = std::move(tmp);
-        };  
+        };
 
         using ScaledTensor = test::cpu::ScaledTensor<T>;
 
@@ -181,7 +234,6 @@ protected:
 
         ScaledTensor v = test::cpu::GenScaledTensor_v<T>(n, h, d, s);
 
-        
         InitTensor(miopenTensorMhaV, std::move(v.mTensor));
 
         float s_scale = 1.f;
@@ -288,50 +340,59 @@ protected:
                 return cpu_tensor;
             };
 
-            const double error_threshold     = 5e-6;
-            const double fp8_error_threshold = (std::is_same_v<T, float8>) ? 2e-4 : error_threshold;
-            
-            // Need to work on this
-            // const auto& resAmaxS = GetResult(miopenTensorMhaAmaxS, float{});
-            // auto amaxS_abs_diff  = std::abs(amaxS_ref - resAmaxS[0]);
-            // EXPECT_LT(amaxS_abs_diff, error_threshold)
-            //     << " ref: " << amaxS_ref << " result: " << resAmaxS[0];
+            const double error_threshold = 5e-6;
 
-            // const auto& resAmaxO = GetResult(miopenTensorMhaAmaxO, float{});
-            // auto amaxO_abs_diff  = std::abs(amaxO_ref - resAmaxO[0]);
-            // EXPECT_LT(amaxO_abs_diff, error_threshold)
-            //     << " ref: " << amaxO_ref << " result: " << resAmaxO[0];
+            if(!is_ck_solver)
+            {
+                const auto& resAmaxS = GetResult(miopenTensorMhaAmaxS, float{});
+                auto amaxS_abs_diff  = std::abs(amaxS_ref - resAmaxS[0]);
+                EXPECT_LT(amaxS_abs_diff, error_threshold)
+                    << " ref: " << amaxS_ref << " result: " << resAmaxS[0];
 
-            // double M_error = miopen::rms_range(mDesc_ref, GetResult(miopenTensorMhaM, float{}));
-            // EXPECT_LT(M_error, error_threshold);
+                const auto& resAmaxO = GetResult(miopenTensorMhaAmaxO, float{});
+                auto amaxO_abs_diff  = std::abs(amaxO_ref - resAmaxO[0]);
+                EXPECT_LT(amaxO_abs_diff, error_threshold)
+                    << " ref: " << amaxO_ref << " result: " << resAmaxO[0];
 
-            // double ZInv_error =
-            //     miopen::rms_range(zInvDesc_ref, GetResult(miopenTensorMhaZInv, float{}));
-            // EXPECT_LT(ZInv_error, error_threshold);
+                double M_error = miopen::rms_range(mDesc_ref, GetResult(miopenTensorMhaM, float{}));
+                EXPECT_LT(M_error, error_threshold);
 
-           
+                double ZInv_error =
+                    miopen::rms_range(zInvDesc_ref, GetResult(miopenTensorMhaZInv, float{}));
+                EXPECT_LT(ZInv_error, error_threshold);
+            }
 
             std::cout << "\ncpu data \n";
             int count = 0;
             for(auto it : oDesc_ref.data)
             {
                 std::cout << std::fixed << std::setprecision(10) << static_cast<float>(it) << " : ";
-                if(count++ == 100) break;
+                if(count++ == 100)
+                    break;
             }
 
             auto gpu_tensor = GetResult(miopenTensorMhaO, T{});
-            count = 0;
+            count           = 0;
             std::cout << "\ngpu data \n";
             for(auto& it : gpu_tensor.data)
             {
                 std::cout << std::fixed << std::setprecision(10) << static_cast<float>(it) << " : ";
-                if(count++ == 100) break;
-
+                if(count++ == 100)
+                    break;
             }
             std::cout << "\n";
 
             double O_error = miopen::rms_range(oDesc_ref, gpu_tensor);
-            EXPECT_LT(O_error, fp8_error_threshold);
+            if(!is_ck_solver)
+            {
+
+                EXPECT_LT(O_error, error_threshold);
+            }
+            else
+            {
+                // ck fp8 solver and low threshold
+                EXPECT_LT(O_error, ck_fp8_solver_threshold);
+            }
         }
     }
 
@@ -355,15 +416,18 @@ protected:
     float amaxS_ref;
     float amaxO_ref;
 
+    bool is_ck_solver             = false;
+    float ck_fp8_solver_threshold = 0.015;
+
     MhaDescriptor mha_descriptor;
     miopenProblem_t problem = nullptr;
 };
 
-// class Test_Fwd_Mha_F32 : public Test_Fwd_Mha<float>
-// {
-// };
-
-class Test_Fwd_Mha_F8 : public Test_Fwd_Mha<float8>
+class Test_Fwd_Mha_F32 : public Test_Fwd_Mha<float, TestCase>
+{
+};
+template <typename TCase>
+class Test_Fwd_Mha_F8 : public Test_Fwd_Mha<float8, TCase>
 {
     void SetUp() override
     {
@@ -375,18 +439,32 @@ class Test_Fwd_Mha_F8 : public Test_Fwd_Mha<float8>
             GTEST_SKIP() << "FP8 is unsupported on this HW";
         }
 
-        Test_Fwd_Mha<float8>::SetUp();
+        Test_Fwd_Mha<float8, TCase>::SetUp();
     }
 };
 
-// TEST_P(Test_Fwd_Mha_F32, Test_float) { return Test_Fwd_Mha<float>::TestBody(); };
+class Test_Fwd_Mha_F8_CK : public Test_Fwd_Mha_F8<TestCaseCK>
+{
+};
 
-// INSTANTIATE_TEST_SUITE_P(Fwd_Mha_Smoke_F32, Test_Fwd_Mha_F32, testing::ValuesIn(GetSmokeCases()));
-// INSTANTIATE_TEST_SUITE_P(Fwd_Mha_Full_F32, Test_Fwd_Mha_F32, testing::ValuesIn(GetFullTestCases()));
-// GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(Test_Fwd_Mha_F32);
+class Test_Fwd_Mha_F8_MIOpen : public Test_Fwd_Mha_F8<TestCase>
+{
+};
 
-TEST_P(Test_Fwd_Mha_F8, Test_float) { return Test_Fwd_Mha<float8>::TestBody(); };
+TEST_P(Test_Fwd_Mha_F32, Test_float) { return Test_Fwd_Mha<float, TestCase>::TestBody(); };
 
-INSTANTIATE_TEST_SUITE_P(Fwd_Mha_Smoke_F8, Test_Fwd_Mha_F8, testing::ValuesIn(GetSmokeCases()));
-// INSTANTIATE_TEST_SUITE_P(Fwd_Mha_Full_F8, Test_Fwd_Mha_F8, testing::ValuesIn(GetFullTestCases()));
-GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(Test_Fwd_Mha_F8);
+INSTANTIATE_TEST_SUITE_P(Fwd_Mha_Smoke_F32, Test_Fwd_Mha_F32, testing::ValuesIn(GetSmokeCases()));
+INSTANTIATE_TEST_SUITE_P(Fwd_Mha_Full_F32, Test_Fwd_Mha_F32, testing::ValuesIn(GetFullTestCases()));
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(Test_Fwd_Mha_F32);
+
+TEST_P(Test_Fwd_Mha_F8_CK, Test_float) { return Test_Fwd_Mha<float8, TestCaseCK>::TestBody(); };
+
+INSTANTIATE_TEST_SUITE_P(Fwd_Mha_Smoke_F8, Test_Fwd_Mha_F8_CK, testing::ValuesIn(GetCKCases(true)));
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(Test_Fwd_Mha_F8_CK);
+
+TEST_P(Test_Fwd_Mha_F8_MIOpen, Test_float) { return Test_Fwd_Mha<float8, TestCase>::TestBody(); };
+
+INSTANTIATE_TEST_SUITE_P(Fwd_Mha_Smoke_F8,
+                         Test_Fwd_Mha_F8_MIOpen,
+                         testing::ValuesIn(GetSmokeCases()));
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(Test_Fwd_Mha_F8_MIOpen);
