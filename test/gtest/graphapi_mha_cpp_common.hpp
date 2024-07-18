@@ -25,6 +25,7 @@
  *******************************************************************************/
 
 #include "mha_helper.hpp"
+#include "gtest_common.hpp"
 #include "../verify.hpp"
 #include "../get_handle.hpp"
 #include "../tensor_holder.hpp"
@@ -78,7 +79,7 @@ protected:
             }
             else
             {
-                std::abort();
+                MIOPEN_LOG_FATAL("Unsupported data type for tensor" << dt);
             }
         }
 
@@ -271,8 +272,7 @@ protected:
         }
         else
         {
-            std::cerr << "Unknown graph node type" << std::endl;
-            std::abort();
+            MIOPEN_LOG_FATAL("Unknown graph node type: " << name);
         }
     }
 
@@ -286,8 +286,7 @@ protected:
             auto [it, inserted] = mFilledTensors.try_emplace(std::string(name), TensorData(ptr));
             if(!inserted)
             {
-                std::cerr << "Duplicate tensor name" << std::endl;
-                std::abort();
+                MIOPEN_LOG_FATAL("Duplicate tensor name");
             }
         }
         return ptr;
@@ -397,15 +396,12 @@ protected:
         return out;
     }
 
-    decltype(auto) GetResult(const std::string& t_name)
+    TensorData::TensFlt& GetResult(const std::string& t_name)
     {
         auto it = mFilledTensors.find(t_name);
         if(it == mFilledTensors.cend())
         {
-            MIOPEN_LOG_E("Tensor not found in the map: " << t_name);
-            std::abort();
-            TensorData::TensFlt* t{};
-            return *t;
+            MIOPEN_LOG_FATAL("Tensor not found in the map: " << t_name);
         }
         auto& v = it->second;
         v.copyBack();
