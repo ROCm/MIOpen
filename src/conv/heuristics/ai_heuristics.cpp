@@ -113,11 +113,11 @@ size_t Metadata::EncodeLayout(const std::string& layout) const
 }
 
 /** `Model` encapuslates the machinery required to run inference on a TunaNet model
- * 
+ *
  * The `Model` class encapuslates all the machinery needed to run inference on a
  * TunaNet model, including loading the TunaNet model, formatting a problem so that it
  * can be fed into TunaNet for inference, and getting TunaNet's predictions etc.
- * 
+ *
  * @param arch Architecture
  */
 class Model
@@ -131,28 +131,28 @@ public:
           offset(metadata.num_outputs - metadata.num_solvers)
     {
     }
-    virtual ~Model()                                                   = default;
+    virtual ~Model() = default;
     /** Is given problem supported by TunaNet?
-     * 
-     * A TunaNet model can only work with problems "similar" to the problems it was trained on. 
+     *
+     * A TunaNet model can only work with problems "similar" to the problems it was trained on.
      * Since our training data has changed over time, a TunaNet model trained for an earlier
      * GPU might not support the same set of problems as a TunaNet model trained for a later
      * GPU might. Thus, each subclass of `Model`, specializing `Model` to a specific GPU, must
      * implement its own `IsProblemSupported` function.
-     * 
+     *
      * @param problem Problem
      * @param ctx Execution context
      */
     virtual bool IsProblemSupported(const conv::ProblemDescription& problem,
                                     const ExecutionContext& ctx) const = 0;
     /** Forward (i.e., run inference on) problem through TunaNet
-     * 
+     *
      * This function takes in a problem, converts it to a numeric vector and feeds it TunaNet
      * for inference. Its output is a numeric vector that represents a probability distribution.
      * Each index in this vector represents a solver (as given in metadata.solver_map) and the
      * value at each index represents the probability that that solver is the fastest for given
      * convolution problem.
-     * 
+     *
      * @param problem Problem
      */
     std::vector<float> Forward(const conv::ProblemDescription& problem) const
@@ -165,16 +165,16 @@ public:
     }
 
 protected:
-    const fdeep::model model; // TunaNet model
+    const fdeep::model model;              // TunaNet model
     const fdeep::tensor_shape input_shape; // Shape of input tensor required by TunaNet
     const size_t offset; // Some TunaNet models output some "fluff" before they output kernel
                          // probabilites. This offset tells how many indexes of fluff need to
                          // be skipped in order to get to kernel probabilities.
     /** Path to model file for given GPU
-     * 
+     *
      * The model files for each GPU are identified by the GPU architecture. This function takes
      * in a GPU architecture and returns the path to its TunaNet model.
-     * 
+     *
      * @param arch Architecture
      */
     static std::string ModelPath(const std::string& arch)
@@ -185,12 +185,12 @@ protected:
         return file_path.string();
     }
     /** Convert given problem to a numeric vector
-     * 
+     *
      * TunaNet takes in a numeric vector representing the given problem. The exact details
-     * of this vector vary from one TunaNet model to another, and thus this function, which 
+     * of this vector vary from one TunaNet model to another, and thus this function, which
      * converts a problem into a numeric vector that can be fed to TunaNet, must be implemented
      * by each sub-class of `Model` on its own.
-     * 
+     *
      * @param problem Problem
      */
     virtual std::vector<float> ToFeatures(const conv::ProblemDescription& problem) const = 0;
@@ -603,7 +603,7 @@ public:
     virtual ~Model() = default;
     /**
      * Encode the input features into a "context" tensor
-     * 
+     *
      * @param features Input features
      * @param dim Dimension (must be equal to len(features) if transform
      *            is True and sqrt(len(features)) otherwise)
@@ -621,13 +621,13 @@ public:
     }
     /**
      * Decode the next token based on the previous token and the encoded context.
-     * 
+     *
      * Decoder predicts the next token based on the previous token and the context predicted
      * by the Encoder. A token is a representation of a kernel parameter, i.e., each unique
      * token maps to a unique kernel parameter, with the only exception being the token '-1'
      * which signals the end of the decoding process (i.e., all kernel parameters have been
      * obtained).
-     * 
+     *
      * @param prev_token Previous token
      * @param context Context vector obtained from encoder
      */
@@ -662,12 +662,12 @@ private:
 
 /**
  * Return the KernelTuningNet model for given architecture and solver
- * 
+ *
  * KernelTuningNet models are specific to each solver and are fine-tuned for each
  * GPU skew. This function constructs the KernelTuningNet model for the given
  * architecture and solver and stores it in a static map, so that the next time
  * the same model is required it doesn't have to be constructed anew.
- * 
+ *
  * @param arch GPU Architecture
  * @param solver Solver
  */
@@ -689,7 +689,7 @@ std::shared_ptr<Model> GetModel(const std::string& arch, const std::string& solv
 
 /**
  * Set kernel parameters for given solver
- * 
+ *
  * @param arch GPU Architecture
  * @param solver Solver
  * @param direction Convolution Direction
@@ -709,7 +709,7 @@ bool ModelSetParams(const std::string& arch,
     auto model = GetModel(arch, solver);
 
     // get context
-    int dim    = 0;
+    int dim = 0;
     if(transform_features)
         dim = std::sqrt(features.size());
     else
@@ -736,8 +736,8 @@ bool ModelSetParams(const std::string& arch,
             num_tuning_params = model->metadata.num_tuning_params[dir];
 
         fdeep::tensors decoder_output = model->Decode(decoder_input, context);
-        auto token_scores = decoder_output[0].to_vector(); // token_scores[k] gives the
-                                                           // score of the k-th token
+        auto token_scores             = decoder_output[0].to_vector(); // token_scores[k] gives the
+                                                                       // score of the k-th token
         // order tokens according to their scores
         std::priority_queue<std::pair<float, int>> pq;
         for(int j = 0; j < token_scores.size(); j++)
@@ -748,7 +748,7 @@ bool ModelSetParams(const std::string& arch,
         while(!pq.empty())
         {
             // get the token with the highest score and look up its value
-            int token = pq.top().second;
+            int token         = pq.top().second;
             std::string value = model->metadata.tuning_decodings[std::to_string(token)];
             pq.pop();
 
