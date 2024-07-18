@@ -72,7 +72,12 @@ struct tensor_layout_t
         }
     }
 
-    constexpr tensor_layout_t(const tensor_view_t<N>& tensor_view, uint64_t n, uint64_t c, uint64_t d, uint64_t h, uint64_t w)
+    constexpr tensor_layout_t(const tensor_view_t<N>& tensor_view,
+                              uint64_t n,
+                              uint64_t c,
+                              uint64_t d,
+                              uint64_t h,
+                              uint64_t w)
     {
         static_assert(N == 5);
         layout[0] = n;
@@ -82,7 +87,8 @@ struct tensor_layout_t
         layout[4] = w;
     }
 
-    constexpr tensor_layout_t(const tensor_view_t<N>& tensor_view, uint64_t n, uint64_t c, uint64_t h, uint64_t w)
+    constexpr tensor_layout_t(
+        const tensor_view_t<N>& tensor_view, uint64_t n, uint64_t c, uint64_t h, uint64_t w)
     {
         static_assert(N == 4);
         layout[0] = n;
@@ -91,14 +97,17 @@ struct tensor_layout_t
         layout[3] = w;
     }
 
-    constexpr tensor_layout_t(const tensor_view_t<N>& tensor_view, uint64_t n, uint64_t h, uint64_t w)
+    constexpr tensor_layout_t(const tensor_view_t<N>& tensor_view,
+                              uint64_t n,
+                              uint64_t h,
+                              uint64_t w)
     {
         static_assert(N == 3);
         layout[0] = n;
         layout[1] = h;
         layout[2] = w;
     }
-    
+
     constexpr tensor_layout_t(const tensor_view_t<N>& tensor_view, uint64_t n, uint64_t w)
     {
         static_assert(N == 2);

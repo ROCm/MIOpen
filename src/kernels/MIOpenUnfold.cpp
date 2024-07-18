@@ -179,11 +179,13 @@ __device__ void unfoldBackward4D(const DTYPE* __restrict__ output_grad,
                 continue;
             if(lw < 0 || LW <= lw)
                 continue;
-            tensor_layout_t<3> output_grad_layout(output_grad_tv, n, c * P + (ph * kernel_size_w + pw), lh * LW + lw);
-            sum += CVT_FLOAT2ACCUM(output_grad[output_grad_tv.get_tensor_view_idx(output_grad_layout)]);
+            tensor_layout_t<3> output_grad_layout(
+                output_grad_tv, n, c * P + (ph * kernel_size_w + pw), lh * LW + lw);
+            sum += CVT_FLOAT2ACCUM(
+                output_grad[output_grad_tv.get_tensor_view_idx(output_grad_layout)]);
         }
     }
-    tensor_layout_t<4> input_grad_layout(input_grad_tv, n, c, h , w);
+    tensor_layout_t<4> input_grad_layout(input_grad_tv, n, c, h, w);
     input_grad[input_grad_tv.get_tensor_view_idx(input_grad_layout)] = CVT_ACCUM2FLOAT(sum);
 }
 
