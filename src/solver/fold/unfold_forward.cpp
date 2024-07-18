@@ -75,35 +75,33 @@ ConvSolution UnfoldFwd::GetSolution([[maybe_unused]] const ExecutionContext& con
         ls.push_back(l);
     }
 
-    {
-        auto kernel        = KernelInfo{};
-        kernel.kernel_file = "MIOpenUnfold.cpp";
-        kernel.kernel_name = "UnfoldForward4D";
+    auto kernel        = KernelInfo{};
+    kernel.kernel_file = "MIOpenUnfold.cpp";
+    kernel.kernel_name = "UnfoldForward4D";
 
-        const auto build_params = KernelBuildParameters{
-            {"MIOPEN_USE_FP16", static_cast<int>(dtype == miopenHalf)},
-            {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
-            {"MIOPEN_USE_FP64", static_cast<int>(dtype == miopenDouble)},
-            {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
-        };
-        kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
+    const auto build_params = KernelBuildParameters{
+        {"MIOPEN_USE_FP16", static_cast<int>(dtype == miopenHalf)},
+        {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
+        {"MIOPEN_USE_FP64", static_cast<int>(dtype == miopenDouble)},
+        {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
+    };
+    kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
 
-        size_t xlocalsize = LOCAL_SIZE;
-        size_t xgridsize  = AlignUp(N * C * P * L, LOCAL_SIZE);
-        size_t ylocalsize = 1;
-        size_t ygridsize  = 1;
-        size_t zlocalsize = 1;
-        size_t zgridsize  = 1;
-        kernel.l_wk.push_back(xlocalsize);
-        kernel.l_wk.push_back(ylocalsize);
-        kernel.l_wk.push_back(zlocalsize);
+    size_t xlocalsize = LOCAL_SIZE;
+    size_t xgridsize  = AlignUp(N * C * P * L, LOCAL_SIZE);
+    size_t ylocalsize = 1;
+    size_t ygridsize  = 1;
+    size_t zlocalsize = 1;
+    size_t zgridsize  = 1;
+    kernel.l_wk.push_back(xlocalsize);
+    kernel.l_wk.push_back(ylocalsize);
+    kernel.l_wk.push_back(zlocalsize);
 
-        kernel.g_wk.push_back(xgridsize);
-        kernel.g_wk.push_back(ygridsize);
-        kernel.g_wk.push_back(zgridsize);
+    kernel.g_wk.push_back(xgridsize);
+    kernel.g_wk.push_back(ygridsize);
+    kernel.g_wk.push_back(zgridsize);
 
-        result.construction_params.push_back(kernel);
-    }
+    result.construction_params.push_back(kernel);
 
     result.invoker_factory = [N, C, P, L, ls](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
