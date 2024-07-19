@@ -103,10 +103,11 @@ set(MIOPEN_ENABLE_SQLITE_BACKOFF On CACHE BOOL "")
 
 option( BUILD_DEV "Build for development only" OFF)
 option(MIOPEN_ENABLE_FIN "Enable the fin driver for MIOpen"  OFF)
+option(MIOPEN_STRIP_SYMBOLS "Strip symbols in release mode" ON)
 
 
 # Strip symbols for release
-if(NOT WIN32 AND NOT APPLE)
+if(MIOPEN_STRIP_SYMBOLS AND NOT WIN32 AND NOT APPLE)
     set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -s")
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -s")
 endif()
@@ -302,7 +303,7 @@ add_compile_definitions($<$<COMPILE_LANGUAGE:CXX>:HIP_COMPILER_FLAGS=${HIP_COMPI
 # HIP
 if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIPNOGPU")
     if(MIOPEN_USE_COMPOSABLEKERNEL)
-        find_package(composable_kernel 1.0.0 COMPONENTS device_mha_operations device_other_operations device_gemm_operations device_conv_operations device_contraction_operations device_reduction_operations)
+        find_package(composable_kernel 1.0.0 COMPONENTS device_other_operations device_gemm_operations device_conv_operations device_reduction_operations device_mha_operations)
     endif()
     if( MIOPEN_BACKEND STREQUAL "HIPNOGPU")
         set(MIOPEN_MODE_NOGPU 1)
@@ -335,6 +336,18 @@ if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_B
         message(STATUS "Build with rocblas ${rocblas_VERSION}")
     else()
         message(STATUS "Build without rocblas")
+    endif()
+
+    # hipblaslt
+    set_var_to_condition(MIOPEN_USE_HIPBLASLT_DEFAULT NOT WIN32)
+    option(MIOPEN_USE_HIPBLASLT "Use hipBlasLt" ${MIOPEN_USE_HIPBLASLT_DEFAULT})
+    if(MIOPEN_USE_HIPBLASLT)
+        find_package(hipblas REQUIRED PATHS /opt/rocm $ENV{HIP_PATH})
+        message(STATUS "Build with hipbBLAS ${hipblas_VERSION} ${hipblas_DIR}")
+        find_package(hipblaslt REQUIRED PATHS /opt/rocm $ENV{HIP_PATH})
+        message(STATUS "Build with hipbBLASLt ${hipblaslt_VERSION} ${hipblaslt_DIR}")
+    else()
+        message(STATUS "Build without hipbBLASLt")
     endif()
 else()
     #CK is only enabled when HIP backend is selected   
@@ -509,6 +522,10 @@ if(MIOPEN_USE_ROCBLAS)
     set(MIOPEN_PACKAGE_REQS "${MIOPEN_PACKAGE_REQS}, rocblas")
 endif()
 
+if(MIOPEN_USE_HIPBLASLT)
+    set(MIOPEN_PACKAGE_REQS "${MIOPEN_PACKAGE_REQS}, hipblaslt")
+endif()
+
 if(MIOPEN_OFFLINE_COMPILER_PATHS_V2)
     set(MIOPEN_PACKAGE_REQS "${MIOPEN_PACKAGE_REQS}, rocm-core")
 endif()
@@ -607,8 +624,8 @@ function(install_kdb FILE_NAME COMPONENT_NAME)
 endfunction()
 
 # Both the lists below should be in sync always
-set(KDB_BZ2_FILES gfx942.kdb.bz2 gfx90a.kdb.bz2 gfx1030.kdb.bz2 gfx908.kdb.bz2 gfx906.kdb.bz2 gfx900.kdb.bz2)
-set(COMPONENT_LST gfx942kdb gfx90akdb gfx1030kdb gfx908kdb gfx906kdb gfx900kdb)
+set(KDB_BZ2_FILES gfx90a.kdb.bz2 gfx1030.kdb.bz2 gfx908.kdb.bz2 gfx906.kdb.bz2 gfx900.kdb.bz2)
+set(COMPONENT_LST gfx90akdb gfx1030kdb gfx908kdb gfx906kdb gfx900kdb)
 
 if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.17)
     foreach(__file __component IN ZIP_LISTS KDB_BZ2_FILES COMPONENT_LST)
@@ -641,7 +658,7 @@ endif()
 
 rocm_create_package(
     NAME MIOpen-${MIOPEN_BACKEND}
-    DESCRIPTION "AMD's DNN Library"
+    DESCRIPTION "AMD DNN Library"
     MAINTAINER "MIOpen Maintainer <miopen-lib.support@amd.com>"
     LDCONFIG
     # DEPENDS rocm-opencl hip-rocclr tinygemm

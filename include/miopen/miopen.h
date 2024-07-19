@@ -5632,6 +5632,16 @@ MIOPEN_EXPORT miopenStatus_t miopenSetFindOptionPreallocatedTensor(miopenFindOpt
                                                                    miopenTensorArgumentId_t id,
                                                                    void* buffer);
 
+/*! @brief Forces library to attach kernel binaries to solutions for later saving. This allows zero
+ * lookup miopenRunSolution calls after miopenLoadSolution. Default value is 0.
+ *
+ * @param options    Options object to update
+ * @param attach     1 means attaching, 0 - skipping, any other value - reserved for future use
+ * @return           miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenSetFindOptionAttachBinaries(miopenFindOptions_t options,
+                                                               unsigned attach);
+
 /*! @brief The miopenSolution object describes a prepared solution.
  */
 MIOPEN_DECLARE_OBJECT(miopenSolution);
@@ -6094,7 +6104,7 @@ MIOPEN_EXPORT miopenStatus_t miopenT5LayerNormForward(miopenHandle_t handle,
  * @param sizeInBytes              Pointer to data to return the minimum workspace size
  * @return                         miopenStatus_t
  */
-extern "C" miopenStatus_t
+MIOPEN_EXPORT miopenStatus_t
 miopenGetT5LayerNormBackwardWorkspaceSize(miopenHandle_t handle,
                                           miopenNormMode_t mode,
                                           const miopenTensorDescriptor_t dyDesc,
@@ -6182,6 +6192,7 @@ typedef enum
     MIOPEN_BACKEND_OPERATION_REDUCTION_DESCRIPTOR,
     MIOPEN_BACKEND_OPERATION_RESAMPLE_BWD_DESCRIPTOR,
     MIOPEN_BACKEND_OPERATION_RESAMPLE_FWD_DESCRIPTOR,
+    MIOPEN_BACKEND_OPERATION_RESHAPE_DESCRIPTOR,
     MIOPEN_BACKEND_OPERATION_RNG_DESCRIPTOR,
     MIOPEN_BACKEND_OPERATION_SIGNAL_DESCRIPTOR,
     MIOPEN_BACKEND_OPERATIONGRAPH_DESCRIPTOR,
@@ -6906,6 +6917,14 @@ MIOPEN_EXPORT miopenStatus_t miopenBackendInitialize(miopenBackendDescriptor_t d
  * gradients. Fused Adam optimization efficiently combines multiple operations into a single kernel,
  * reducing memory access overhead and improving performance.
  *
+ * Additionally, Fused Adam can be utilized in both adam w and Automatic Mixed Precision (AMP),
+ * enabling accelerated model training and reduced memory consumption. AMP supports FP16
+ * computation, optimizing model calculations using a mixture of FP32 and FP16 precision to enhance
+ * training speed. When utilizing AMP, FoundInf, ScaleGrad, and step tensors should be employed. In
+ * AMP mode, the execution of Adam is determined based on the FoundInf value. State Step accepts
+ * both int values and int tensors. If a Step tensor is employed, the step received as an int is
+ * disregarded, and if Adam is executed, the step tensor is incremented by 1.
+ *
  * @code
  * // Execute Adam
  * miopenFusedAdam(handle,
@@ -6930,6 +6949,34 @@ MIOPEN_EXPORT miopenStatus_t miopenBackendInitialize(miopenBackendDescriptor_t d
  *                 false,    // amsgrad
  *                 false,    // maximize
  *                 false,    // adamw
+ *                 NULL,     // Unused gradScale Tensor because not amp
+ *                 NULL,
+ *                 NULL,     // Unused foundInf Tensor because not amp
+ *                 NULL);
+ *
+ * // Execute AdamW
+ * miopenFusedAdam(handle,
+ *                 paramDesc,
+ *                 param,
+ *                 gradDesc,
+ *                 grad,
+ *                 expAvgDesc,
+ *                 expAvg,
+ *                 expAvgSqDesc,
+ *                 expAvgSq,
+ *                 NULL,     // Unused maxExpAvgSqDesc because amsgrad is false
+ *                 NULL,
+ *                 NULL,     // Unused stateStep Tensor because use step integer argument
+ *                 NULL,
+ *                 step,
+ *                 lr,
+ *                 beta1,
+ *                 beta2,
+ *                 weight_decay,
+ *                 eps,
+ *                 false,    // amsgrad
+ *                 false,    // maximize
+ *                 true,     // adamw
  *                 NULL,     // Unused gradScale Tensor because not amp
  *                 NULL,
  *                 NULL,     // Unused foundInf Tensor because not amp
@@ -6992,7 +7039,7 @@ MIOPEN_EXPORT miopenStatus_t miopenBackendInitialize(miopenBackendDescriptor_t d
  * @param amsgrad             Flag indicating whether to use the AMSGrad variant of Adam (input)
  * @param maximize            Flag indicating whether to maximize the objective with respect to the
  *                            parameters (input)
- * @param adamw               If true, the operation becomes AdamW (input) (not supported)
+ * @param adamw               If true, the operation becomes AdamW (input)
  * @param gradScaleDesc       Tensor descriptor for the input grad scale tensor (input, optional)
  * @param gradScale           Input grad scale tensor (input, optional)
  * @param foundInfDesc        Tensor descriptor for the input found inf tensor (input, optional)
@@ -7159,7 +7206,7 @@ MIOPEN_EXPORT miopenStatus_t miopenFusedAdam(miopenHandle_t handle,
  * @param amsgrad             Flag indicating whether to use the AMSGrad variant of Adam (input)
  * @param maximize            Flag indicating whether to maximize the objective with respect to the
  *                            parameters (input)
- * @param adamw               If it is true, the operation becomes AdamW (input) (not supported)
+ * @param adamw               If it is true, the operation becomes AdamW (input)
  * @param gradScaleDesc       Tensor descriptor for the input grad scale tensor (input, optional)
  * @param gradScale           Input grad scale tensor (input, optional)
  * @param foundInfDesc        Tensor descriptor for the input found inf tensor (input, optional)
@@ -7206,6 +7253,286 @@ miopenFusedAdamWithOutput(miopenHandle_t handle,
                           const void* gradScale,
                           const miopenTensorDescriptor_t foundInfDesc,
                           const void* foundInf);
+
+/** @} */
+// CLOSEOUT SGD DOXYGEN GROUP
+#endif // MIOPEN_BETA_API
+
+#ifdef MIOPEN_BETA_API
+// TransformersAdamW APIs
+/** @addtogroup SGD
+ *
+ *  @{
+ */
+/*! @brief Implements Adam algorithm with weight decay fix as introduced in
+ * <a href="https://arxiv.org/abs/1711.05101">Decoupled Weight Decay Regularization</a>.
+ * This is the fused kernel version of AdamW included in the Hugging Face Transformers module.
+ *
+ * @see miopenFusedAdam
+ *
+ * @code
+ * // Execute Adam
+ * miopenTransformersAdamW(handle,
+ *                         paramDesc,
+ *                         param,
+ *                         gradDesc,
+ *                         grad,
+ *                         expAvgDesc,
+ *                         expAvg,
+ *                         expAvgSqDesc,
+ *                         expAvgSq,
+ *                         NULL,     // Unused stateStep Tensor because use step integer argument
+ *                         NULL,
+ *                         step,
+ *                         lr,
+ *                         beta1,
+ *                         beta2,
+ *                         weight_decay,
+ *                         eps,
+ *                         true,     // correct_bias
+ *                         NULL,     // Unused gradScale Tensor because not amp
+ *                         NULL,
+ *                         NULL,     // Unused foundInf Tensor because not amp
+ *                         NULL);
+ *
+ * // Execute AMP Adam
+ * miopenTransformersAdamW(handle,
+ *                         paramDesc,
+ *                         param,
+ *                         gradDesc,
+ *                         grad,
+ *                         expAvgDesc,
+ *                         expAvg,
+ *                         expAvgSqDesc,
+ *                         expAvgSq,
+ *                         stateStepDesc,
+ *                         stateStep,
+ *                         -1,       // Ignore step value because stateStep Tensor is used
+ *                         lr,
+ *                         beta1,
+ *                         beta2,
+ *                         weight_decay,
+ *                         eps,
+ *                         true,     // correct_bias
+ *                         gradScaleDesc,
+ *                         gradScale,
+ *                         foundInfDesc,
+ *                         foundInf);
+ * @endcode
+ *
+ * @param handle              MIOpen handle (input)
+ * @param paramDesc           Tensor descriptor for the input parameter tensor (input)
+ * @param param               Input parameter tensor (input)
+ * @param gradDesc            Tensor descriptor for the input gradient tensor (input)
+ * @param grad                Input gradient tensor (input)
+ * @param expAvgDesc          Tensor descriptor for the input exponential moving average tensor
+ *                            (input)
+ * @param expAvg              Input exponential moving average tensor (input)
+ * @param expAvgSqDesc        Tensor descriptor for the input exponential moving average squared
+ *                            tensor (input)
+ * @param expAvgSq            Input exponential moving average squared tensor (input)
+ * @param stateStepDesc       Tensor descriptor for the input state step tensor (input)
+ * @param stateStep           Input state step tensor (input)
+ * @param state_step          Input state step. used when the step tensor is null (input)
+ * @param lr                  Learning rate (input)
+ * @param beta1               Coefficient used for computing the first moment running average of
+ *                            gradient (input)
+ * @param beta2               Coefficient used for computing the second moment running average of
+ *                            gradient (input)
+ * @param weight_decay        Weight decay (input)
+ * @param eps                 Term added to the denominator to improve numerical stability (input)
+ * @param correct_bias        Whether or not to correct bias in Adam (for instance, in Bert TF
+ *                            repository they use False).
+ * @param gradScaleDesc       Tensor descriptor for the input grad scale tensor (input, optional)
+ * @param gradScale           Input grad scale tensor (input, optional)
+ * @param foundInfDesc        Tensor descriptor for the input found inf tensor (input, optional)
+ * @param foundInf            Tensor indicating the presence of inf or NaN in gradients. If true,
+ *                            skips operation and step update (input, optional)
+ * @return                    miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenTransformersAdamW(miopenHandle_t handle,
+                                                     const miopenTensorDescriptor_t paramDesc,
+                                                     void* param,
+                                                     const miopenTensorDescriptor_t gradDesc,
+                                                     const void* grad,
+                                                     const miopenTensorDescriptor_t expAvgDesc,
+                                                     void* expAvg,
+                                                     const miopenTensorDescriptor_t expAvgSqDesc,
+                                                     void* expAvgSq,
+                                                     const miopenTensorDescriptor_t stateStepDesc,
+                                                     void* stateStep,
+                                                     const unsigned int state_step,
+                                                     const float lr,
+                                                     const float beta1,
+                                                     const float beta2,
+                                                     const float weight_decay,
+                                                     const float eps,
+                                                     const bool correct_bias,
+                                                     const miopenTensorDescriptor_t gradScaleDesc,
+                                                     const void* gradScale,
+                                                     const miopenTensorDescriptor_t foundInfDesc,
+                                                     const void* foundInf);
+
+/*! @brief Execute single tensor Adam optimization and receive the result in a separate output
+ * tensor.
+ *
+ * This function is equivalent to miopenTransformersAdam but receives the result in a separate
+ * output tensor.
+ * @see miopenTransformersAdamW
+ * @see miopenFusedAdamWithOutput
+ *
+ * @code
+ * // Execute Adam
+ * miopenTransformersAdamWWithOutput(handle,
+ *                                   paramInDesc,
+ *                                   paramIn,
+ *                                   paramOutDesc,
+ *                                   paramOut,
+ *                                   NULL,   // Unused paramOutFloat16 tensor because is not amp
+ *                                   NULL,
+ *                                   gradInDesc,
+ *                                   gradIn,
+ *                                   expAvgInDesc,
+ *                                   expAvgIn,
+ *                                   expAvgOutDesc,
+ *                                   expAvgOut,
+ *                                   expAvgInSqDesc,
+ *                                   expAvgSqIn,
+ *                                   expAvgSqOutDesc,
+ *                                   expAvgSqOut,
+ *                                   NULL,   // Unused stateStepIn tensor because use step int
+ *                                   NULL,
+ *                                   NULL,   // Unused stateStepOut tensor because use step int
+ *                                   NULL,
+ *                                   step,
+ *                                   lr,
+ *                                   beta1,
+ *                                   beta2,
+ *                                   weight_decay,
+ *                                   eps,
+ *                                   -1,     // step_size
+ *                                   true,   // correct_bias
+ *                                   NULL,   // Unused gradScale Tensor because not amp
+ *                                   NULL,
+ *                                   NULL,   // Unused foundInf Tensor because not amp
+ *                                   NULL);
+ *
+ * // Execute Amp Adam
+ * miopenTransformersAdamWWithOutput(handle,
+ *                                   paramInDesc,
+ *                                   paramIn,
+ *                                   paramOutDesc,
+ *                                   paramOut,
+ *                                   paramOutFloat16Desc,  // optional in amp
+ *                                   paramOutFloat16,
+ *                                   gradInDesc,
+ *                                   gradIn,
+ *                                   expAvgInDesc,
+ *                                   expAvgIn,
+ *                                   expAvgOutDesc,
+ *                                   expAvgOut,
+ *                                   expAvgInSqDesc,
+ *                                   expAvgSqIn,
+ *                                   expAvgSqIn,
+ *                                   expAvgSqOutDesc,
+ *                                   expAvgSqOut,
+ *                                   stateStepInDesc,
+ *                                   stateStepIn,
+ *                                   stateStepOutDesc,
+ *                                   stateStepOut
+ *                                   -1,   // Ignore step value because stateStep Tensor is used
+ *                                   lr,
+ *                                   beta1,
+ *                                   beta2,
+ *                                   weight_decay,
+ *                                   eps,
+ *                                   -1,   // step_size
+ *                                   true, // correct_bias
+ *                                   NULL, // Unused gradScale Tensor because not amp
+ *                                   NULL,
+ *                                   NULL, // Unused foundInf Tensor because not amp
+ *                                   NULL);
+ * @endcode
+ *
+ * @param handle              MIOpen handle (input)
+ * @param paramInDesc         Tensor descriptor for the input parameter tensor (input)
+ * @param paramIn             Input parameter tensor (input)
+ * @param paramOutDesc        Tensor descriptor for the output parameter tensor (input)
+ * @param paramOut            Output parameter tensor (output)
+ * @param paramOutFloat16Desc Tensor descriptor for the output parameter tensor float16 (input,
+ *                            optional)
+ * @param paramOutFloat16     Output parameter tensor (output, optional)
+ * @param gradInDesc          Tensor descriptor for the input gradient tensor (input)
+ * @param gradIn              Input gradient tensor (input)
+ * @param expAvgInDesc        Tensor descriptor for the input exponential moving average tensor
+ *                            (input)
+ * @param expAvgIn            Input exponential moving average tensor (input)
+ * @param expAvgOutDesc       Tensor descriptor for the output exponential moving average tensor
+ *                            (input)
+ * @param expAvgOut           Output exponential moving average tensor (output)
+ * @param expAvgSqInDesc      Tensor descriptor for the input exponential moving average squared
+ *                            tensor (input)
+ * @param expAvgSqIn          Input exponential moving average squared tensor (input)
+ * @param expAvgSqOutDesc     Tensor descriptor for the output exponential moving average squared
+ *                            tensor (input)
+ * @param expAvgSqOut         Output exponential moving average squared tensor (output)
+ * @param stateStepInDesc     Tensor descriptor for the input state step tensor (input, optional)
+ * @param stateStepIn         Input state step tensor (input, optional)
+ * @param stateStepOutDesc    Tensor descriptor for the output state step tensor (input, optional)
+ * @param stateStepOut        Output state step tensor that stores the updated step value. (output,
+ *                            optional)
+ * @param state_step          Input state step, It is used when the step tensor is null. (input)
+ * @param lr                  Learning rate (input)
+ * @param beta1               Coefficient used for computing the first moment running average of
+ *                            gradient (input)
+ * @param beta2               Coefficient used for computing the second moment running average of
+ *                            gradient (input)
+ * @param weight_decay        Weight decay (input)
+ * @param eps                 Term added to the denominator to improve numerical stability (input)
+ * @param step_size           Pre-calculated step_size, used for performance enhancement (input)
+ * @param correct_bias        Whether or not to correct bias in Adam (for instance, in Bert TF
+ *                            repository they use False) (input)
+ * @param gradScaleDesc       Tensor descriptor for the input grad scale tensor (input, optional)
+ * @param gradScale           Input grad scale tensor (input, optional)
+ * @param foundInfDesc        Tensor descriptor for the input found inf tensor (input, optional)
+ * @param foundInf            Tensor indicating presence of inf or nan in gradients. If true, skips
+ *                            operation and step update. (input, optional)
+ * @return                    miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenTransformersAdamWWithOutput(miopenHandle_t handle,
+                                  const miopenTensorDescriptor_t paramInDesc,
+                                  void* paramIn,
+                                  const miopenTensorDescriptor_t paramOutDesc,
+                                  void* paramOut,
+                                  const miopenTensorDescriptor_t paramOutFloat16Desc,
+                                  void* paramOutFloat16,
+                                  const miopenTensorDescriptor_t gradInDesc,
+                                  const void* gradIn,
+                                  const miopenTensorDescriptor_t expAvgInDesc,
+                                  void* expAvgIn,
+                                  const miopenTensorDescriptor_t expAvgOutDesc,
+                                  void* expAvgOut,
+                                  const miopenTensorDescriptor_t expAvgSqInDesc,
+                                  void* expAvgSqIn,
+                                  const miopenTensorDescriptor_t expAvgSqOutDesc,
+                                  void* expAvgSqOut,
+                                  const miopenTensorDescriptor_t stateStepInDesc,
+                                  void* stateStepIn,
+                                  const miopenTensorDescriptor_t stateStepOutDesc,
+                                  void* stateStepOut,
+                                  const unsigned int state_step,
+                                  const float lr,
+                                  const float beta1,
+                                  const float beta2,
+                                  const float weight_decay,
+                                  const float eps,
+                                  const float step_size,
+                                  const bool correct_bias,
+                                  const miopenTensorDescriptor_t gradScaleDesc,
+                                  const void* gradScale,
+                                  const miopenTensorDescriptor_t foundInfDesc,
+                                  const void* foundInf);
 
 /** @} */
 // CLOSEOUT SGD DOXYGEN GROUP

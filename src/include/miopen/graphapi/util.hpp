@@ -64,12 +64,8 @@ Tensor makeTensor(std::string_view name, miopenDataType_t dt, const Vec& dims, c
 template <bool isVirtual, typename Vec>
 Tensor makeTensor(std::string_view name, miopenDataType_t dt, const Vec& dims)
 {
-
-    Vec strides(dims);
-    using T = typename Vec::value_type;
-    std::exclusive_scan(dims.begin(), dims.end(), strides.begin(), T{1LL}, std::multiplies<T>{});
-
-    return makeTensor<isVirtual>(name, dt, dims, strides);
+    TensorDescriptor desc{dt, dims};
+    return makeTensor<isVirtual>(name, dt, desc.GetLengths(), desc.GetStrides());
 }
 
 /// An RAII style class that captures a pointer to an object on heap and frees it
@@ -77,9 +73,8 @@ Tensor makeTensor(std::string_view name, miopenDataType_t dt, const Vec& dims)
 /// capturing multiple types of pointers
 struct HeapPtrDeleter
 {
-    using Fn         = std::function<void()>;
-    const Fn emptyFn = []() {};
-    Fn mFn           = emptyFn;
+    using Fn = std::function<void()>;
+    Fn mFn   = {};
 
     template <typename T>
     explicit HeapPtrDeleter(T* ptr)
@@ -90,20 +85,29 @@ struct HeapPtrDeleter
     HeapPtrDeleter(const HeapPtrDeleter&) = delete;
     HeapPtrDeleter& operator=(const HeapPtrDeleter&) = delete;
 
-    HeapPtrDeleter(HeapPtrDeleter&& that) noexcept : mFn(std::move(that.mFn))
+    friend void swap(HeapPtrDeleter& left, HeapPtrDeleter& right) noexcept
     {
-        that.mFn = emptyFn;
+        std::swap(left.mFn, right.mFn);
     }
+
+    HeapPtrDeleter(HeapPtrDeleter&& that) noexcept : mFn(std::move(that.mFn)) { that.mFn = {}; }
 
     HeapPtrDeleter& operator=(HeapPtrDeleter&& that) noexcept
     {
-        this->mFn(); // destruct self.
-        this->mFn = std::move(that.mFn);
-        that.mFn  = emptyFn;
+        if(this != &that)
+        {
+            HeapPtrDeleter tmp{std::move(that)};
+            swap(*this, tmp);
+        }
         return *this;
     }
 
-    ~HeapPtrDeleter() { mFn(); }
+    ~HeapPtrDeleter()
+    {
+        // default initialized std::function cannot be invoked
+        if(mFn)
+            mFn();
+    }
 };
 
 /// an automatically deleting allocator that frees the allocated objects upon
@@ -162,7 +166,7 @@ struct PatternGraphGenerator
     inline Tensor* makeDummyTensor(std::string_view name)
     {
 
-        return mAlloc.allocate(makeTensor<true>(name, miopenFloat, std::vector<int64_t>({1})));
+        return mAlloc.allocate(makeTensor<true>(name, miopenFloat, std::vector<size_t>({1})));
     }
 
 private:
@@ -215,8 +219,9 @@ public:
     const auto& graph() const { return mGraph; }
 };
 
-// TODO(Amber): move this function out so that other find 2.0 code can use it
-inline std::string tensorEnumIdToStr(miopenTensorArgumentId_t id)
+/// \todo move this function out so that other find 2.0 code can use it
+/// --amberhassaan May, 2024
+inline std::string_view tensorEnumIdToStr(miopenTensorArgumentId_t id)
 {
 
 #define ENUM_CASE(k) \

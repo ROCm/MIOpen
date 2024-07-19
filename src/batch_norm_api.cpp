@@ -102,13 +102,6 @@ miopenBatchNormalizationForwardInference(miopenHandle_t handle,
                         estimatedVariance,
                         epsilon);
 
-    // bfloat16 not supported for batchnorm operation
-    if(miopen::deref(yDesc).GetType() == miopenBFloat16 ||
-       miopen::deref(xDesc).GetType() == miopenBFloat16)
-    {
-        return miopenStatusNotImplemented;
-    }
-
     miopen::debug::LogCmdBNorm(xDesc,
                                bn_mode,
                                estimatedMean,
@@ -177,14 +170,6 @@ miopenBatchNormalizationForwardTraining(miopenHandle_t handle,
                         epsilon,
                         resultSaveMean,
                         resultSaveInvVariance);
-
-    // bfloat16 not supported for batchnorm operation
-    if(miopen::deref(xDesc).GetType() == miopenBFloat16 ||
-       miopen::deref(yDesc).GetType() == miopenBFloat16 ||
-       miopen::deref(bnScaleBiasMeanVarDesc).GetType() == miopenBFloat16)
-    {
-        return miopenStatusNotImplemented;
-    }
 
     miopen::debug::LogCmdBNorm(xDesc,
                                bn_mode,

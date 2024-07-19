@@ -24,7 +24,7 @@
  *
  *******************************************************************************/
 
-#include <filesystem>
+#include <miopen/filesystem.hpp>
 #include <miopen/execution_context.hpp>
 #include <miopen/find_solution.hpp>
 #include <miopen/invoker.hpp>
@@ -33,6 +33,8 @@
 #include <miopen/problem_description_base.hpp>
 #include <miopen/solver.hpp>
 #include <miopen/temp_file.hpp>
+
+namespace fs = miopen::fs;
 
 #if MIOPEN_ENABLE_SQLITE && MIOPEN_USE_SQLITE_PERFDB
 #include <miopen/sqlite_db.hpp>
@@ -59,8 +61,8 @@ struct TestResults
 struct TestProblemDescriptionTag
 {
     // In real code this type should not have any data
-    std::string pdb_path;
-    std::string updb_path;
+    fs::path pdb_path;
+    fs::path updb_path;
 };
 
 struct TestProblemDescription : miopen::ProblemDescriptionBase,

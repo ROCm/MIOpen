@@ -50,7 +50,7 @@ using namespace miopen;
 namespace {
 inline bool CheckFloatArg(std::string_view arg)
 {
-    const std::string& tmp = miopen::GetStringEnv(MIOPEN_ENV(MIOPEN_TEST_FLOAT_ARG));
+    const std::string& tmp = env::value(MIOPEN_TEST_FLOAT_ARG);
     return tmp.empty() || tmp == arg;
 }
 
@@ -66,7 +66,7 @@ struct TensorStruct
 
     ~TensorStruct() = default;
 
-    std::variant<tensor<float>, tensor<float8>, tensor<int>> m_cpu_tensor;
+    std::variant<tensor<float>, tensor<float8>, tensor<int64_t>> m_cpu_tensor;
     Allocator::ManageDataPtr m_gpu_buffer;
 };
 
@@ -142,8 +142,7 @@ inline std::vector<TestCase> GetSmokeCases()
 
 inline std::vector<TestCase> GetFullTestCases()
 {
-    if(miopen::IsDisabled(MIOPEN_ENV(MIOPEN_TEST_ALL)) ||
-       !(CheckFloatArg("--float") || CheckFloatArg("--float8")))
+    if(env::disabled(MIOPEN_TEST_ALL) || !(CheckFloatArg("--float") || CheckFloatArg("--float8")))
     {
         return {};
     }
@@ -165,6 +164,8 @@ inline std::vector<TestCase> GetFullTestCases()
 template <typename T, typename TCase = TestCase>
 class Test_Fwd_Mha : public testing::TestWithParam<TCase>
 {
+    static_assert(std::is_same_v<T, float> || std::is_same_v<T, float8>);
+
 protected:
     void SetUp() override
     {
@@ -194,7 +195,7 @@ protected:
 
         if((drop > 0.0f) && (s % handle.GetWavefrontWidth() != 0))
         {
-            GTEST_SKIP() << "CPU Dropout currently supprorts only fully occupied warps";
+            GTEST_SKIP() << "CPU Dropout currently supports only fully occupied warps";
         }
 
         mha_descriptor.SetParams(1);
@@ -221,16 +222,13 @@ protected:
             tensors[id] = std::move(tmp);
         };
 
-        using ScaledTensor = test::cpu::ScaledTensor<T>;
-
-        ScaledTensor q = test::cpu::GenScaledTensor<T>(n, h, s, d);
+        auto q = test::cpu::GenScaledTensor<T>(n, h, s, d);
         InitTensor(miopenTensorMhaQ, std::move(q.mTensor));
 
-        ScaledTensor k = test::cpu::GenScaledTensor_k<T>(n, h, s, d);
+        auto k = test::cpu::GenScaledTensor<T>(n, h, s, d);
         InitTensor(miopenTensorMhaK, std::move(k.mTensor));
 
-        ScaledTensor v = test::cpu::GenScaledTensor_v<T>(n, h, d, s);
-
+        auto v = test::cpu::GenScaledTensor<T>(n, h, s, d);
         InitTensor(miopenTensorMhaV, std::move(v.mTensor));
 
         float s_scale = 1.f;
@@ -241,11 +239,11 @@ protected:
         // clang-tidy complains about the same expression on both sides of "/": 1.f / 1.f
 
         InitTensor(miopenTensorMhaDescaleQ,
-                   tensor<float>{1, 1, 1, 1}.generate([=](auto...) { return q.mDescale; }));
+                   tensor<float>{1, 1, 1, 1}.generate([&q](auto...) { return q.mDescale; }));
         InitTensor(miopenTensorMhaDescaleK,
-                   tensor<float>{1, 1, 1, 1}.generate([=](auto...) { return k.mDescale; }));
+                   tensor<float>{1, 1, 1, 1}.generate([&k](auto...) { return k.mDescale; }));
         InitTensor(miopenTensorMhaDescaleV,
-                   tensor<float>{1, 1, 1, 1}.generate([=](auto...) { return v.mDescale; }));
+                   tensor<float>{1, 1, 1, 1}.generate([&v](auto...) { return v.mDescale; }));
         InitTensor(miopenTensorMhaDescaleS,
                    tensor<float>{1, 1, 1, 1}.generate([=](auto...) { return s_descale; }));
         InitTensor(miopenTensorMhaScaleS,
@@ -256,9 +254,9 @@ protected:
         InitTensor(miopenTensorMhaDropoutProbability,
                    tensor<float>{1, 1, 1, 1}.generate([rate = drop](auto...) { return rate; }));
         InitTensor(miopenTensorMhaDropoutSeed,
-                   tensor<int>{1, 1, 1, 2}.generate([](auto...) { return 0; }));
+                   tensor<int64_t>{1, 1, 1, 1}.generate([](auto...) { return 0xAAFFFFFFFFull; }));
         InitTensor(miopenTensorMhaDropoutOffset,
-                   tensor<int>{1, 1, 1, 2}.generate([](auto...) { return 0; }));
+                   tensor<int64_t>{1, 1, 1, 1}.generate([](auto...) { return 1; }));
 
         InitTensor(miopenTensorMhaO, tensor<T>{n, h, s, d});
         InitTensor(miopenTensorMhaAmaxO, tensor<float>{1, 1, 1, 1});
@@ -270,8 +268,6 @@ protected:
         {
             args[i].descriptor = &descVector[i];
         }
-
-        tensor<float> q_dot_k_transpose{n, h, s, s};
 
         softmax_ref  = tensor<float>{n, h, s, s};
         oDesc_ref    = tensor<T>{n, h, s, d};
@@ -293,8 +289,10 @@ protected:
             test::cpu::GetF8Scaling(1.0 /*since fp32 softmax's max value will always be 1.0*/),
             o_scale,
             drop,
-            0,
-            0,
+            std::get<tensor<int64_t>>(tensors[miopenTensorMhaDropoutSeed]->m_cpu_tensor)
+                .data.front(),
+            std::get<tensor<int64_t>>(tensors[miopenTensorMhaDropoutOffset]->m_cpu_tensor)
+                .data.front(),
             amaxS_ref,
             amaxO_ref,
             oDesc_ref);
@@ -428,7 +426,6 @@ class Test_Fwd_Mha_F8 : public Test_Fwd_Mha<float8, TCase>
 {
     void SetUp() override
     {
-
         using e_mask = enabled<Gpu::gfx94X>;
         using d_mask = disabled<Gpu::gfx900, Gpu::gfx906, Gpu::gfx908, Gpu::gfx90A>;
         if(!IsTestSupportedForDevMask<d_mask, e_mask>() || MIOPEN_FP8_IEEE_EXPONENT_BIAS != 0)
@@ -450,8 +447,9 @@ class Test_Fwd_Mha_F8_MIOpen : public Test_Fwd_Mha_F8<TestCase>
 
 // TEST_P(Test_Fwd_Mha_F32, Test_float) { return Test_Fwd_Mha<float, TestCase>::TestBody(); };
 
-// INSTANTIATE_TEST_SUITE_P(Fwd_Mha_Smoke_F32, Test_Fwd_Mha_F32, testing::ValuesIn(GetSmokeCases()));
-// INSTANTIATE_TEST_SUITE_P(Fwd_Mha_Full_F32, Test_Fwd_Mha_F32, testing::ValuesIn(GetFullTestCases()));
+// INSTANTIATE_TEST_SUITE_P(Fwd_Mha_Smoke_F32, Test_Fwd_Mha_F32,
+// testing::ValuesIn(GetSmokeCases())); INSTANTIATE_TEST_SUITE_P(Fwd_Mha_Full_F32, Test_Fwd_Mha_F32,
+// testing::ValuesIn(GetFullTestCases()));
 // GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(Test_Fwd_Mha_F32);
 
 TEST_P(Test_Fwd_Mha_F8_CK, Test_float) { return Test_Fwd_Mha<float8, TestCaseCK>::TestBody(); };
@@ -459,7 +457,8 @@ TEST_P(Test_Fwd_Mha_F8_CK, Test_float) { return Test_Fwd_Mha<float8, TestCaseCK>
 INSTANTIATE_TEST_SUITE_P(Fwd_Mha_Smoke_F8, Test_Fwd_Mha_F8_CK, testing::ValuesIn(GetCKCases(true)));
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(Test_Fwd_Mha_F8_CK);
 
-// TEST_P(Test_Fwd_Mha_F8_MIOpen, Test_float) { return Test_Fwd_Mha<float8, TestCase>::TestBody(); };
+// TEST_P(Test_Fwd_Mha_F8_MIOpen, Test_float) { return Test_Fwd_Mha<float8, TestCase>::TestBody();
+// };
 
 // INSTANTIATE_TEST_SUITE_P(Fwd_Mha_Smoke_F8,
 //                          Test_Fwd_Mha_F8_MIOpen,

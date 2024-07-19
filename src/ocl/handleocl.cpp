@@ -334,8 +334,11 @@ KernelInvoke Handle::AddKernel(const std::string& algorithm,
 }
 
 Invoker Handle::PrepareInvoker(const InvokerFactory& factory,
-                               const std::vector<solver::KernelInfo>& kernels) const
+                               const std::vector<solver::KernelInfo>& kernels,
+                               std::vector<Program>* programs_out) const
 {
+    std::ignore = programs_out;
+
     std::vector<Kernel> built;
     for(auto& k : kernels)
     {
@@ -387,8 +390,12 @@ KernelInvoke Handle::Run(Kernel k, bool coop_launch) const
 
 Program Handle::LoadProgram(const std::string& program_name,
                             std::string params,
-                            const std::string& kernel_src) const
+                            const std::string& kernel_src,
+                            bool force_attach_binary) const
 {
+    // Binary serialization is not supported on OpenCL anyway
+    std::ignore = force_attach_binary;
+
     auto hsaco = miopen::LoadBinary(
         this->GetTargetProperties(), this->GetMaxComputeUnits(), program_name, params);
     if(hsaco.empty())
@@ -411,7 +418,7 @@ Program Handle::LoadProgram(const std::string& program_name,
 #else
         auto path = miopen::GetCachePath(false) / boost::filesystem::unique_path().string();
         miopen::SaveProgramBinary(p, path.string());
-        miopen::SaveBinary(path.string(), this->GetTargetProperties(), program_name, params);
+        miopen::SaveBinary(path, this->GetTargetProperties(), program_name, params);
 #endif
         return p;
     }

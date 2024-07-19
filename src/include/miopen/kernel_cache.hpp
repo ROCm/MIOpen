@@ -48,6 +48,7 @@
 #include <miopen/miopen.h>
 #include <string>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 namespace miopen {
@@ -60,20 +61,21 @@ class KernelCache
 {
 
 public:
-    using Key        = std::pair<std::string, std::string>;
+    using Key        = std::pair<fs::path, std::string>;
     using KernelMap  = std::unordered_map<Key, std::vector<Kernel>, SimpleHash>;
     using ProgramMap = std::unordered_map<Key, Program, SimpleHash>;
 
     Kernel AddKernel(const Handle& h,
                      const std::string& algorithm,
                      const std::string& network_config,
-                     const std::string& program_name,
+                     const fs::path& program_name,
                      const std::string& kernel_name,
                      const std::vector<size_t>& vld,
                      const std::vector<size_t>& vgd,
                      std::string params            = "",
                      std::size_t cache_index       = 0,
-                     const std::string& kernel_src = "");
+                     const std::string& kernel_src = "",
+                     Program* program_out          = nullptr);
 
     void AddKernel(Key key, Kernel k, std::size_t cache_index);
 
@@ -82,10 +84,10 @@ public:
     const std::vector<Kernel>& GetKernels(const std::string& algorithm,
                                           const std::string& network_config);
 
-    bool HasProgram(const std::string& name, const std::string& params) const;
-    void ClearProgram(const std::string& name, const std::string& params);
+    bool HasProgram(const fs::path& name, const std::string& params) const;
+    void ClearProgram(const fs::path& name, const std::string& params);
 
-    void AddProgram(Program prog, const std::string& program_name, std::string params);
+    void AddProgram(Program prog, const fs::path& program_name, std::string params);
 
     KernelCache();
 
