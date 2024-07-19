@@ -1004,7 +1004,9 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
 
             if(fallback)
             {
-                bool found = false;
+                auto fallback_failed = true;
+                bool found           = false;
+
                 GetAllFusionSolvers().Foreach([&](auto solver) {
                     if(found || !solver.IsApplicable(ctx, fusion_problem))
                         return;
@@ -1016,7 +1018,14 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
 
                     const auto algo = hasConv(id) ? id.GetAlgo() : miopenConvolutionAlgoDirect;
                     sols.push_back(miopenConvSolution_t{time, 0, id.Value(), algo});
+                    fallback_failed = false;
                 });
+
+                if(fallback_failed)
+                {
+                    MIOPEN_LOG_I("No supported fusion solvers found");
+                    return miopenStatusUnsupportedOp;
+                }
             }
 
             // override the normal find with immed mode with env var
