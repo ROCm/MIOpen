@@ -83,8 +83,7 @@ struct ForwardProblemDescription : ProblemDescriptionBase
     bool IsAllPacked() const
     {
         if(!inputDesc.IsPacked() || !outputDesc.IsPacked() || !indicesDesc.IsPacked())
-            MIOPEN_THROW(miopenStatusBadParm,
-                         "Cumulative Reduction: Input, Output and Indices tensor must be packed.");
+            return false;
         return true;
     }
 
