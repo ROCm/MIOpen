@@ -28,19 +28,6 @@
 #include <miopen/tensor_ops.hpp>
 #include <miopen/cumulative_reduction.hpp>
 
-inline std::ostream& operator<<(std::ostream& os, const std::vector<size_t>& v)
-{
-    os << '{';
-    for(int i = 0; i < v.size(); ++i)
-    {
-        if(i != 0)
-            os << ',';
-        os << v[i];
-    }
-    os << '}';
-    return os;
-}
-
 static void LogCmdCumulativeReduction(const miopenTensorDescriptor_t inputDesc,
                                       const miopenTensorDescriptor_t outputDesc,
                                       const miopenTensorDescriptor_t indicesDesc,
