@@ -44,8 +44,6 @@
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_ATTN_CK_FWD)
 
-
-
 int numSplitsHeuristic(int batch_nhead_mblocks, int num_SMs, int num_n_blocks, int max_splits)
 {
     // If we have enough to almost fill the SMs, then just use 1 split
@@ -99,7 +97,6 @@ int numSplitsHeuristic(int batch_nhead_mblocks, int num_SMs, int num_n_blocks, i
     return 1;
 }
 
-
 int determineNumSplits(
     int batch, int nhead, int max_seqlen_q, int hdim_v, float p_drop, int num_splits)
 {
@@ -133,7 +130,6 @@ int determineNumSplits(
     return num_splits;
 }
 
-
 namespace miopen {
 
 namespace solver {
@@ -144,9 +140,10 @@ bool MhaCKForward::IsApplicable([[maybe_unused]] const ExecutionContext& context
                                 const miopen::mha::ProblemDescription& problem) const
 {
     ::miopen::mha::MhaInputDescsForward mha_des = problem.GetDescsForward();
-    const auto& lens = mha_des.qDesc.GetLengths();
-    auto[ N, H, S, D] = std::tie(lens[0], lens[1], lens[2], lens[3]);
-    if(D <=256 && S%128 == 0 && D%64 ==0) return true;
+    const auto& lens                            = mha_des.qDesc.GetLengths();
+    auto [N, H, S, D]                           = std::tie(lens[0], lens[1], lens[2], lens[3]);
+    if(D <= 256 && S % 128 == 0 && D % 64 == 0)
+        return true;
     return false;
 }
 
@@ -156,23 +153,22 @@ std::size_t MhaCKForward::GetWorkspaceSize([[maybe_unused]] const ExecutionConte
 {
     ::miopen::mha::MhaInputDescsForward mha_des = problem.GetDescsForward();
     // VDesc since its Values dim that is required
-    const auto& lens = mha_des.vDesc.GetLengths();
-    auto[ N, H, S, D] = std::tie(lens[0], lens[1], lens[2], lens[3]);
+    const auto& lens  = mha_des.vDesc.GetLengths();
+    auto [N, H, S, D] = std::tie(lens[0], lens[1], lens[2], lens[3]);
 
-    int num_splits = determineNumSplits(N, H, S, D, 0.0, 1/*default num splits*/);
-    
+    int num_splits = determineNumSplits(N, H, S, D, 0.0, 1 /*default num splits*/);
+
     int byte_size_of_float = sizeof(float);
 
     if(num_splits == 1)
     {
         return byte_size_of_float;
     }
-    else 
+    else
     {
         return num_splits * N * H * S * D * byte_size_of_float;
     }
 }
-
 
 ConvSolution MhaCKForward::GetSolution(const ExecutionContext& context,
                                        const miopen::mha::ProblemDescription& problem) const
@@ -180,12 +176,10 @@ ConvSolution MhaCKForward::GetSolution(const ExecutionContext& context,
     auto result         = ConvSolution{miopenStatusSuccess};
     result.workspace_sz = 0;
     // heuristics find optimum num_splits for given problem
-    
-    
 
     const miopen::mha::MhaInputDescsForward& descsFwd = problem.GetDescsForward();
 
-    auto[N, H, S, D] = miopen::tien<4>(descsFwd.kDesc.GetLengths());
+    auto [N, H, S, D] = miopen::tien<4>(descsFwd.kDesc.GetLengths());
 
     descsFwd.kDesc.GetType();
 
@@ -243,7 +237,7 @@ ConvSolution MhaCKForward::GetSolution(const ExecutionContext& context,
         return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
             decltype(auto) params = raw_params.CastTo<miopen::mha::InvokeParams>();
             const auto& dataFwd   = params.GetDataForward();
-            auto workSpace       = params.GetWorkspace();
+            auto workSpace        = params.GetWorkspace();
 
             // arg 1
             auto fmha_traits = fmha_fwd_traits{
@@ -317,8 +311,8 @@ ConvSolution MhaCKForward::GetSolution(const ExecutionContext& context,
                                      nullptr, //       bias_ptr  (no bias for now)
                                      nullptr, //       rand_val_pr loss store (no loss for now)
                                      nullptr, //        lse_acc_ptr (no loss for now)
-                                     workSpace,  //       o_acc_ptr
-                                     nullptr, //       lse_ptr (no loss for now)
+                                     workSpace, //       o_acc_ptr
+                                     nullptr,   //       lse_ptr (no loss for now)
                                      dataFwd.oData, //        o_ptr
                                      nullptr,       //        seqstart_q_ptr
                                      nullptr,       //        seqstart_k_ptr

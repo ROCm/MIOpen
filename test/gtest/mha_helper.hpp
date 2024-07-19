@@ -630,42 +630,6 @@ struct ScaledTensor
     float mDescale;
 };
 
-//////////////////////////////////////
-
-// template <typename Y,
-//           typename X,
-//           std::enable_if_t<!(std::is_const_v<Y> || std::is_const_v<X>), bool> = false>
-// inline constexpr Y type_convert(X x)
-// {
-//     static_assert(!std::is_reference_v<Y> && !std::is_reference_v<X>);
-//     return static_cast<Y>(x);
-// }
-template <typename T>
-struct FillUniformDistribution
-{
-    float a_{-5.f};
-    float b_{5.f};
-    std::optional<uint32_t> seed_{11939};
-
-    template <typename ForwardIter>
-    void operator()(ForwardIter first, ForwardIter last) const
-    {
-        std::mt19937 gen(seed_.has_value() ? *seed_ : std::random_device{}());
-        std::uniform_real_distribution<float> dis(a_, b_);
-        std::generate(first, last, [&dis, &gen]() { return static_cast<T>(dis(gen)); });
-    }
-
-    template <typename ForwardRange>
-    auto operator()(ForwardRange&& range) const
-        -> std::void_t<decltype(std::declval<const FillUniformDistribution&>()(
-            std::begin(std::forward<ForwardRange>(range)),
-            std::end(std::forward<ForwardRange>(range))))>
-    {
-        (*this)(std::begin(std::forward<ForwardRange>(range)),
-                std::end(std::forward<ForwardRange>(range)));
-    }
-};
-
 template <typename T, typename... Dims>
 ScaledTensor<T> GenScaledTensor(Dims... nhsd)
 {
