@@ -376,29 +376,12 @@ void Solution::RunImpl(Handle& handle,
         }
     }();
 
-    const auto net_cfg       = problem_description.MakeNetworkConfig();
-    const auto found_invoker = handle.GetInvoker(net_cfg, GetSolver());
+    const auto algo = AlgorithmName{"MHA"};
+    const auto solvers = solver::SolverContainer<solver::mha::MhaCKForward,
+                                                 solver::mha::MhaForward, 
+                                                 solver::mha::MhaBackward>{};
 
-    if(found_invoker)
-    {
-        (*found_invoker)(handle, invoke_ctx);
-    }
-    else
-    {
-        auto ctx = ExecutionContext{&handle};
-
-        static solver::mha::MhaCKForward mhaForward;
-        static solver::mha::MhaBackward mhaBackward;
-
-        const auto mha_solution = GetSolver().ToString() == mhaForward.SolverDbId()
-                                      ? mhaForward.GetSolution(ctx, problem_description)
-                                      : mhaBackward.GetSolution(ctx, problem_description);
-
-        decltype(auto) invoker =
-            handle.PrepareInvoker(*mha_solution.invoker_factory, mha_solution.construction_params);
-        handle.RegisterInvoker(invoker, net_cfg, GetSolver().ToString());
-        invoker(handle, invoke_ctx);
-    }
+    solvers.ExecutePrimitive(handle, problem_description, algo, invoke_ctx);
 }
 
 void Solution::RunImpl(Handle& handle,

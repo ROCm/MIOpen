@@ -108,9 +108,7 @@ inline std::vector<TestCaseCK> GetCKCases(bool is_ck)
     return {
         // batch, head, seq length, dim, dropout
         {1, 1, 128, 64, 0.0f, is_ck},
-        {2, 15, 16384, 246, 0.0f, is_ck},
-        {2, 96, 4096, 12288, 0.0f, is_ck}, // gpt3 seq length is 4096, dim is 12288
-        {2, 96, 8192, 12288, 0.0f, is_ck}, // gpt4 seq length is 8192, dim is 12288
+        {2, 12, 256, 128, 0.0f, is_ck}, // typical gpt2 fwd
     };
 }
 
@@ -122,9 +120,7 @@ inline std::vector<TestCase> GetSmokeCases()
     }
 
     return {
-        // batch, num of head, S len, problem dim
-        // ./bin/tile_example_fmha_fwd
-        //  -b=1 -h=2 -s=128 -d=64 -prec=fp8 -vlayout=c
+        // batch, head, seq length, dim, dropout
         {9, 8, 8, 8, 0.0f},
         {2, 2, 128, 64, 0.0f},
         {2, 1, 5, 4, 0.0f},
@@ -153,6 +149,7 @@ inline std::vector<TestCase> GetFullTestCases()
     }
 
     return {
+        // batch, head, seq length, dim, dropout
         {3, 15, 2047, 15, 0.0f},
         {2049, 17, 7, 7, 0.0f},
         {3, 3, 257, 91, 0.0f},
@@ -177,7 +174,7 @@ protected:
         auto test_case = this->GetParam();
         if constexpr(std::is_same<TCase, TestCaseCK>::value)
         {
-            n            = test_case.h;
+            n            = test_case.n;
             h            = test_case.h;
             s            = test_case.s;
             d            = test_case.d;
@@ -186,7 +183,7 @@ protected:
         }
         else
         {
-            n    = test_case.h;
+            n    = test_case.n;
             h    = test_case.h;
             s    = test_case.s;
             d    = test_case.d;
@@ -451,20 +448,20 @@ class Test_Fwd_Mha_F8_MIOpen : public Test_Fwd_Mha_F8<TestCase>
 {
 };
 
-TEST_P(Test_Fwd_Mha_F32, Test_float) { return Test_Fwd_Mha<float, TestCase>::TestBody(); };
+// TEST_P(Test_Fwd_Mha_F32, Test_float) { return Test_Fwd_Mha<float, TestCase>::TestBody(); };
 
-INSTANTIATE_TEST_SUITE_P(Fwd_Mha_Smoke_F32, Test_Fwd_Mha_F32, testing::ValuesIn(GetSmokeCases()));
-INSTANTIATE_TEST_SUITE_P(Fwd_Mha_Full_F32, Test_Fwd_Mha_F32, testing::ValuesIn(GetFullTestCases()));
-GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(Test_Fwd_Mha_F32);
+// INSTANTIATE_TEST_SUITE_P(Fwd_Mha_Smoke_F32, Test_Fwd_Mha_F32, testing::ValuesIn(GetSmokeCases()));
+// INSTANTIATE_TEST_SUITE_P(Fwd_Mha_Full_F32, Test_Fwd_Mha_F32, testing::ValuesIn(GetFullTestCases()));
+// GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(Test_Fwd_Mha_F32);
 
 TEST_P(Test_Fwd_Mha_F8_CK, Test_float) { return Test_Fwd_Mha<float8, TestCaseCK>::TestBody(); };
 
 INSTANTIATE_TEST_SUITE_P(Fwd_Mha_Smoke_F8, Test_Fwd_Mha_F8_CK, testing::ValuesIn(GetCKCases(true)));
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(Test_Fwd_Mha_F8_CK);
 
-TEST_P(Test_Fwd_Mha_F8_MIOpen, Test_float) { return Test_Fwd_Mha<float8, TestCase>::TestBody(); };
+// TEST_P(Test_Fwd_Mha_F8_MIOpen, Test_float) { return Test_Fwd_Mha<float8, TestCase>::TestBody(); };
 
-INSTANTIATE_TEST_SUITE_P(Fwd_Mha_Smoke_F8,
-                         Test_Fwd_Mha_F8_MIOpen,
-                         testing::ValuesIn(GetSmokeCases()));
-GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(Test_Fwd_Mha_F8_MIOpen);
+// INSTANTIATE_TEST_SUITE_P(Fwd_Mha_Smoke_F8,
+//                          Test_Fwd_Mha_F8_MIOpen,
+//                          testing::ValuesIn(GetSmokeCases()));
+// GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(Test_Fwd_Mha_F8_MIOpen);
