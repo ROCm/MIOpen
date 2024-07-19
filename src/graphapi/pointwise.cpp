@@ -745,9 +745,9 @@ OperationPointwise OperationPointwiseBuilder::build()
         if(mOperationPointwise.mX == nullptr || mOperationPointwise.mB == nullptr ||
            mOperationPointwise.mY == nullptr || mOperationPointwise.mT != nullptr ||
            mOperationPointwise.mDx != nullptr || mOperationPointwise.mDy != nullptr ||
-           !checkDimsWithPossibleBroadcasting(mOperationPointwise.mX->getDimensions(),
-                                              mOperationPointwise.mB->getDimensions(),
-                                              mOperationPointwise.mY->getDimensions()))
+           !checkDimsWithPossibleBroadcasting(mOperationPointwise.mX->GetLengths(),
+                                              mOperationPointwise.mB->GetLengths(),
+                                              mOperationPointwise.mY->GetLengths()))
         {
             MIOPEN_THROW(miopenStatusBadParm);
         }
@@ -782,10 +782,10 @@ OperationPointwise OperationPointwiseBuilder::build()
         if(mOperationPointwise.mX == nullptr || mOperationPointwise.mY == nullptr ||
            mOperationPointwise.mB != nullptr || mOperationPointwise.mT != nullptr ||
            mOperationPointwise.mDx != nullptr || mOperationPointwise.mDy != nullptr || mAlpha2Set ||
-           !std::equal(mOperationPointwise.mX->getDimensions().cbegin(),
-                       mOperationPointwise.mX->getDimensions().cend(),
-                       mOperationPointwise.mY->getDimensions().cbegin(),
-                       mOperationPointwise.mY->getDimensions().cend()))
+           !std::equal(mOperationPointwise.mX->GetLengths().cbegin(),
+                       mOperationPointwise.mX->GetLengths().cend(),
+                       mOperationPointwise.mY->GetLengths().cbegin(),
+                       mOperationPointwise.mY->GetLengths().cend()))
         {
             MIOPEN_THROW(miopenStatusBadParm);
         }
@@ -801,18 +801,18 @@ OperationPointwise OperationPointwiseBuilder::build()
         if(mOperationPointwise.mX == nullptr || mOperationPointwise.mB == nullptr ||
            mOperationPointwise.mT == nullptr || mOperationPointwise.mY == nullptr ||
            mOperationPointwise.mDx != nullptr || mOperationPointwise.mDy != nullptr ||
-           !std::equal(mOperationPointwise.mX->getDimensions().cbegin(),
-                       mOperationPointwise.mX->getDimensions().cend(),
-                       mOperationPointwise.mB->getDimensions().cbegin(),
-                       mOperationPointwise.mB->getDimensions().cend()) ||
-           !std::equal(mOperationPointwise.mX->getDimensions().cbegin(),
-                       mOperationPointwise.mX->getDimensions().cend(),
-                       mOperationPointwise.mT->getDimensions().cbegin(),
-                       mOperationPointwise.mT->getDimensions().cend()) ||
-           !std::equal(mOperationPointwise.mX->getDimensions().cbegin(),
-                       mOperationPointwise.mX->getDimensions().cend(),
-                       mOperationPointwise.mY->getDimensions().cbegin(),
-                       mOperationPointwise.mY->getDimensions().cend()))
+           !std::equal(mOperationPointwise.mX->GetLengths().cbegin(),
+                       mOperationPointwise.mX->GetLengths().cend(),
+                       mOperationPointwise.mB->GetLengths().cbegin(),
+                       mOperationPointwise.mB->GetLengths().cend()) ||
+           !std::equal(mOperationPointwise.mX->GetLengths().cbegin(),
+                       mOperationPointwise.mX->GetLengths().cend(),
+                       mOperationPointwise.mT->GetLengths().cbegin(),
+                       mOperationPointwise.mT->GetLengths().cend()) ||
+           !std::equal(mOperationPointwise.mX->GetLengths().cbegin(),
+                       mOperationPointwise.mX->GetLengths().cend(),
+                       mOperationPointwise.mY->GetLengths().cbegin(),
+                       mOperationPointwise.mY->GetLengths().cend()))
         {
             MIOPEN_THROW(miopenStatusBadParm);
         }
@@ -834,9 +834,9 @@ OperationPointwise OperationPointwiseBuilder::build()
         if(mOperationPointwise.mY == nullptr || mOperationPointwise.mDy == nullptr ||
            mOperationPointwise.mDx == nullptr || mOperationPointwise.mX != nullptr ||
            mOperationPointwise.mB != nullptr || mOperationPointwise.mT != nullptr ||
-           !checkDimsWithPossibleBroadcasting(mOperationPointwise.mY->getDimensions(),
-                                              mOperationPointwise.mDy->getDimensions(),
-                                              mOperationPointwise.mDx->getDimensions()))
+           !checkDimsWithPossibleBroadcasting(mOperationPointwise.mY->GetLengths(),
+                                              mOperationPointwise.mDy->GetLengths(),
+                                              mOperationPointwise.mDx->GetLengths()))
         {
             MIOPEN_THROW(miopenStatusBadParm);
         }
