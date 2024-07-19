@@ -68,7 +68,6 @@ static void LogCmdCumulativeReduction(const miopenTensorDescriptor_t inputDesc,
         }
 
         MIOPEN_LOG_FUNCTION(inputDesc, outputDesc, indicesDesc);
-        ss << " --input " << miopen::deref(inputDesc).GetLengths();
         ss << " -d " << dim;
         ss << " --excl " << exclusive;
         ss << " --rev " << reverse;
