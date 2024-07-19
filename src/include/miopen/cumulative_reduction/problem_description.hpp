@@ -51,6 +51,20 @@ struct ForwardProblemDescription : ProblemDescriptionBase
           dim(dim_),
           cumOp(cumOp_)
     {
+        if(IsValidDim())
+            dim = (dim < 0 ? dim + inputDesc.GetSize() : dim);
+        IsValidIndicesType();
+        IsSameLength();
+    }
+
+    const TensorDescriptor& GetInputDesc() const { return inputDesc; }
+    const TensorDescriptor& GetOutputDesc() const { return outputDesc; }
+    const TensorDescriptor& GetIndicesDesc() const { return indicesDesc; }
+    const int& GetDim() const { return dim; }
+    const miopenCumOp_t& GetCumOp() const { return cumOp; }
+
+    bool IsValidDim() const
+    {
         const auto ndims = inputDesc.GetSize();
         if(dim < -ndims || ndims - 1 < dim)
         {
@@ -60,25 +74,27 @@ struct ForwardProblemDescription : ProblemDescriptionBase
                           << -ndims << "," << ndims - 1 << "].")
                              .str());
         }
-        else
-            dim = (dim < 0 ? dim + ndims : dim);
+        return true;
+    }
 
-        if(outputDesc.GetElementSize() > 0 && !checkSameLength(inputDesc, outputDesc))
-            MIOPEN_THROW(miopenStatusBadParm,
-                         "Cumulative Reduction: Input and Output tensor sizes do not match.");
+    bool IsValidIndicesType() const
+    {
         if(indicesDesc.GetElementSize() > 0 && indicesDesc.GetType() != miopenInt32)
             MIOPEN_THROW(miopenStatusBadParm,
                          "Cumulative Reduction: Indices tensor type must be int32.");
+        return true;
+    }
+
+    bool IsSameLength() const
+    {
+        if(outputDesc.GetElementSize() > 0 && !checkSameLength(inputDesc, outputDesc))
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "Cumulative Reduction: Input and Output tensor sizes do not match.");
         if(indicesDesc.GetElementSize() > 0 && !checkSameLength(inputDesc, indicesDesc))
             MIOPEN_THROW(miopenStatusBadParm,
                          "Cumulative Reduction: Input and Indices tensor sizes do not match.");
+        return true;
     }
-
-    const TensorDescriptor& GetInputDesc() const { return inputDesc; }
-    const TensorDescriptor& GetOutputDesc() const { return outputDesc; }
-    const TensorDescriptor& GetIndicesDesc() const { return indicesDesc; }
-    const int& GetDim() const { return dim; }
-    const miopenCumOp_t& GetCumOp() const { return cumOp; }
 
     bool IsAllPacked() const
     {
