@@ -43,6 +43,9 @@ namespace batchnorm {
 using PassThrough = ck::tensor_operation::element_wise::PassThrough;
 using index_t     = int32_t;
 
+constexpr index_t Rank                  = 4;
+constexpr index_t NumBatchNormReduceDim = 3;
+
 using F16  = ck::half_t;
 using F32  = float;
 using F64  = double;

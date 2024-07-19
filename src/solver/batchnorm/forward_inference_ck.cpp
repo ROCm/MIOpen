@@ -31,7 +31,6 @@
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 #include <miopen/solver/ck_utility_common.hpp>
 #include <ck/library/tensor_operation_instance/gpu/batchnorm_infer.hpp>
-#include <miopen/solver/implicitgemm_ck_util.hpp>
 #endif
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_CK_BN_INFER)
 
@@ -41,12 +40,148 @@ namespace batchnorm {
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 
 using PassThrough = ck::tensor_operation::element_wise::PassThrough;
+using index_t     = int32_t;
+using Normalize   = ck::tensor_operation::element_wise::NormalizeInInfer;
+
+constexpr index_t Rank                  = 4;
+constexpr index_t NumBatchNormReduceDim = 3;
 
 using F16  = ck::half_t;
 using F32  = float;
 using F64  = double;
 using BF16 = ushort;
 
+struct CKArgsBNormFwd
+{
+    CKArgsBNormFwd(const miopen::batchnorm::ProblemDescription& problem)
+    {
+        std::copy(problem.GetXDesc().GetLengths().begin(),
+                  problem.GetXDesc().GetLengths().end(),
+                  xyLengths.begin());
+
+        std::copy(problem.GetXDesc().GetStrides().begin(),
+                  problem.GetXDesc().GetStrides().end(),
+                  xyStrides.begin());
+        // prep for CK
+        std::sort(xyStrides.begin(), xyStrides.end(), std::greater<>());
+        std::rotate(xyLengths.begin() + 1, xyLengths.begin() + 2, xyLengths.end());
+
+        aligned_scaleBiasMeanVarStrides[0] = 0;
+        aligned_scaleBiasMeanVarStrides[1] = 0;
+        aligned_scaleBiasMeanVarStrides[2] = 0;
+        aligned_scaleBiasMeanVarStrides[3] = 1;
+    }
+
+    std::array<ck::index_t, Rank> xyLengths;
+    std::array<ck::index_t, Rank> xyStrides;
+    std::vector<int> invariantDims;
+
+    std::array<index_t, Rank> aligned_scaleBiasMeanVarStrides{3};
+
+    std::array<int, NumBatchNormReduceDim> reduceDims{0, 1, 2};
+};
+
+template <typename XDataType,
+          typename YDataType,
+          typename AccDataType,
+          typename ScaleDataType,
+          typename BiasDataType,
+          typename MeanVarDataType>
+static int CheckCKApplicability(const miopen::batchnorm::ProblemDescription& problem)
+{
+    const auto& args = CKArgsBNormFwd{problem};
+    using DeviceOp   = ck::tensor_operation::device::DeviceElementwise<
+        ck::Tuple<XDataType, MeanVarDataType, MeanVarDataType, ScaleDataType, BiasDataType>,
+        ck::Tuple<YDataType>,
+        Normalize,
+        Rank>;
+    const auto bn_fwd_ptrs = ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
+        DeviceOp>::GetInstances();
+    assert(!bn_fwd_ptrs.empty());
+    int count = 0;
+    for(const auto& it : bn_fwd_ptrs)
+    {
+        auto argument_ptr = it->MakeArgumentPointer(args.xyLengths,
+                                                    {args.xyStrides,
+                                                     args.aligned_scaleBiasMeanVarStrides,
+                                                     args.aligned_scaleBiasMeanVarStrides,
+                                                     args.aligned_scaleBiasMeanVarStrides,
+                                                     args.aligned_scaleBiasMeanVarStrides},
+                                                    {args.xyStrides},
+                                                    {nullptr, nullptr, nullptr, nullptr, nullptr},
+                                                    {nullptr},
+                                                    Normalize{0.0});
+        if(it->IsSupportedArgument(argument_ptr.get()))
+        {
+            return count;
+        }
+        count++;
+    }
+    return -1;
+}
+
+template <typename XDataType,
+          typename YDataType,
+          typename AccDataType,
+          typename ScaleDataType,
+          typename BiasDataType,
+          typename MeanVarDataType>
+ConvSolution InvokerFactoryMakerNHWC(const miopen::batchnorm::ProblemDescription& bn_problem)
+{
+    ConvSolution result;
+    result.invoker_factory = [bn_problem](const std::vector<Kernel>& kernels) {
+        std::ignore = kernels;
+        return [&](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
+            const auto& args = CKArgsBNormFwd{bn_problem};
+
+            using DeviceOp = ck::tensor_operation::device::DeviceElementwise<
+                ck::Tuple<XDataType, MeanVarDataType, MeanVarDataType, ScaleDataType, BiasDataType>,
+                ck::Tuple<YDataType>,
+                Normalize,
+                Rank>;
+            const auto bn_fwd_ptrs =
+                ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
+                    DeviceOp>::GetInstances();
+
+            int kernel_index = CheckCKApplicability<XDataType,
+                                                    YDataType,
+                                                    AccDataType,
+                                                    ScaleDataType,
+                                                    BiasDataType,
+                                                    MeanVarDataType>(bn_problem);
+            assert(kernel_index >= 0 && kernel_index < bn_fwd_ptrs.size());
+            auto& bn_ptr       = bn_fwd_ptrs.at(kernel_index);
+            const auto& params = primitive_parameters.CastTo<miopen::batchnorm::InfInvokeParams>();
+
+            auto argument_ptr = bn_ptr->MakeArgumentPointer(args.xyLengths,
+                                                            {args.xyStrides,
+                                                             args.aligned_scaleBiasMeanVarStrides,
+                                                             args.aligned_scaleBiasMeanVarStrides,
+                                                             args.aligned_scaleBiasMeanVarStrides,
+                                                             args.aligned_scaleBiasMeanVarStrides},
+                                                            {args.xyStrides},
+                                                            {params.x,
+                                                             params.estimatedMean,
+                                                             params.estimatedVariance,
+                                                             params.bnScale,
+                                                             params.bnBias},
+                                                            {params.y},
+                                                            Normalize{params.epsilon});
+
+            auto invoker_ptr            = bn_ptr->MakeInvokerPointer();
+            const auto enable_profiling = handle.IsProfilingEnabled();
+
+            float elapsed_time =
+                invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), enable_profiling});
+            if(enable_profiling)
+            {
+                handle.ResetKernelTime();
+                handle.AccumKernelTime(elapsed_time);
+            }
+        };
+    };
+    return result;
+}
 #endif
 
 bool BnCKFwdInference::IsApplicable(
@@ -67,14 +202,12 @@ bool BnCKFwdInference::IsApplicable(
 
     switch(bn_problem.GetXDesc().GetType())
     {
-    case miopenHalf:
-        return (CheckBnCKFwdApplicability<F16, F16, F32, F16, F16, F32>(bn_problem) != -1);
-    case miopenFloat:
-        return (CheckBnCKFwdApplicability<F32, F32, F32, F32, F32, F32>(bn_problem) != -1);
+    case miopenHalf: return (CheckCKApplicability<F16, F16, F32, F16, F16, F32>(bn_problem) != -1);
+    case miopenFloat: return (CheckCKApplicability<F32, F32, F32, F32, F32, F32>(bn_problem) != -1);
     case miopenDouble:
-        return (CheckBnCKFwdApplicability<F64, F64, F64, F64, F64, F64>(bn_problem) != -1);
+        return (CheckCKApplicability<F64, F64, F64, F64, F64, F64>(bn_problem) != -1);
     case miopenBFloat16:
-        return (CheckBnCKFwdApplicability<BF16, BF16, F32, BF16, BF16, F32>(bn_problem) != -1);
+        return (CheckCKApplicability<BF16, BF16, F32, BF16, BF16, F32>(bn_problem) != -1);
     case miopenInt64:
     case miopenInt32:
     case miopenInt8:
@@ -85,43 +218,63 @@ bool BnCKFwdInference::IsApplicable(
     return false;
 }
 
+template <typename InvokerFactoryMakerNHWC>
+ConvSolution MakeAnyInvokerFactory(const miopen::batchnorm::ProblemDescription& problem,
+                                   InvokerFactoryMakerNHWC&& invoker_factory_maker_nhwc)
+{
+#if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
+    if(problem.IsLayoutNHWC())
+    {
+        switch(problem.GetXDesc().GetType())
+        {
+        case miopenFloat: return invoker_factory_maker_nhwc(F32{});
+        case miopenDouble: return invoker_factory_maker_nhwc(F64{});
+        case miopenHalf: return invoker_factory_maker_nhwc(F16{});
+        case miopenBFloat16: return invoker_factory_maker_nhwc(BF16{});
+        default:
+            MIOPEN_THROW(miopenStatusInternalError,
+                         "BnCKFwdInference operation does not support this data type");
+        }
+    }
+    // Todo: problem.IsLayoutDefault()
+    else
+    {
+        MIOPEN_THROW(miopenStatusInternalError,
+                     "BnCKFwdInference operation does not support this data layout");
+    }
+#else
+    return {};
+#endif
+}
+
 ConvSolution BnCKFwdInference::GetSolution(
     [[maybe_unused]] const ExecutionContext& context,
     [[maybe_unused]] const miopen::batchnorm::ProblemDescription& bn_problem) const
 {
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
-    ConvSolution result;
-    result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
-        std::ignore = kernels;
-        return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
-            switch(bn_problem.GetXDesc().GetType())
+    return MakeAnyInvokerFactory(
+        bn_problem,
+        [&](auto data_type_val) {
+            using T = decltype(data_type_val);
+            if constexpr(std::is_same_v<T, F16>)
             {
-            case miopenHalf:
-                InitInvokerFactoryBnCKFwdInferenceNHWC<F16, F16, F32, F16, F16, F32>(
-                    handle, primitive_parameters, bn_problem);
-                break;
-            case miopenFloat:
-                InitInvokerFactoryBnCKFwdInferenceNHWC<F32, F32, F32, F32, F32, F32>(
-                    handle, primitive_parameters, bn_problem);
-                break;
-            case miopenDouble:
-                InitInvokerFactoryBnCKFwdInferenceNHWC<F64, F64, F64, F64, F64, F64>(
-                    handle, primitive_parameters, bn_problem);
-                break;
-            case miopenBFloat16:
-                InitInvokerFactoryBnCKFwdInferenceNHWC<BF16, BF16, F32, BF16, BF16, F32>(
-                    handle, primitive_parameters, bn_problem);
-                break;
-            case miopenInt8:
-            case miopenInt32:
-            case miopenInt64:
-            case miopenFloat8:
-            case miopenBFloat8:
-            default: MIOPEN_THROW("Unsupported datatype");
+                return InvokerFactoryMakerNHWC<F16, F16, F32, F16, F16, F32>(bn_problem);
             }
-        };
-    };
-    return result;
+            else if constexpr(std::is_same_v<T, F32>)
+            {
+                return InvokerFactoryMakerNHWC<F32, F32, F32, F32, F32, F32>(bn_problem);
+            }
+            else if constexpr(std::is_same_v<T, F64>)
+            {
+                return InvokerFactoryMakerNHWC<F64, F64, F64, F64, F64, F64>(bn_problem);
+            }
+            else if constexpr(std::is_same_v<T, BF16>)
+            {
+                return InvokerFactoryMakerNHWC<BF16, BF16, F32, BF16, BF16, F32>(bn_problem);
+            }
+        }
+        // Todo: InvokerFactoryMakerNCHW
+    );
 #else
     return {};
 #endif
