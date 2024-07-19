@@ -445,22 +445,20 @@ class Test_Fwd_Mha_F8_MIOpen : public Test_Fwd_Mha_F8<TestCase>
 {
 };
 
-// TEST_P(Test_Fwd_Mha_F32, Test_float) { return Test_Fwd_Mha<float, TestCase>::TestBody(); };
+TEST_P(Test_Fwd_Mha_F32, Test_float) { return Test_Fwd_Mha<float, TestCase>::TestBody(); };
 
-// INSTANTIATE_TEST_SUITE_P(Fwd_Mha_Smoke_F32, Test_Fwd_Mha_F32,
-// testing::ValuesIn(GetSmokeCases())); INSTANTIATE_TEST_SUITE_P(Fwd_Mha_Full_F32, Test_Fwd_Mha_F32,
-// testing::ValuesIn(GetFullTestCases()));
-// GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(Test_Fwd_Mha_F32);
+INSTANTIATE_TEST_SUITE_P(Fwd_Mha_Smoke_F32, Test_Fwd_Mha_F32, testing::ValuesIn(GetSmokeCases()));
+INSTANTIATE_TEST_SUITE_P(Fwd_Mha_Full_F32, Test_Fwd_Mha_F32, testing::ValuesIn(GetFullTestCases()));
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(Test_Fwd_Mha_F32);
 
 TEST_P(Test_Fwd_Mha_F8_CK, Test_float) { return Test_Fwd_Mha<float8, TestCaseCK>::TestBody(); };
 
 INSTANTIATE_TEST_SUITE_P(Fwd_Mha_Smoke_F8, Test_Fwd_Mha_F8_CK, testing::ValuesIn(GetCKCases(true)));
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(Test_Fwd_Mha_F8_CK);
 
-// TEST_P(Test_Fwd_Mha_F8_MIOpen, Test_float) { return Test_Fwd_Mha<float8, TestCase>::TestBody();
-// };
+TEST_P(Test_Fwd_Mha_F8_MIOpen, Test_float) { return Test_Fwd_Mha<float8, TestCase>::TestBody(); };
 
-// INSTANTIATE_TEST_SUITE_P(Fwd_Mha_Smoke_F8,
-//                          Test_Fwd_Mha_F8_MIOpen,
-//                          testing::ValuesIn(GetSmokeCases()));
-// GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(Test_Fwd_Mha_F8_MIOpen);
+INSTANTIATE_TEST_SUITE_P(Fwd_Mha_Smoke_F8,
+                         Test_Fwd_Mha_F8_MIOpen,
+                         testing::ValuesIn(GetSmokeCases()));
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(Test_Fwd_Mha_F8_MIOpen);
