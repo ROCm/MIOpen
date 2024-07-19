@@ -42,22 +42,22 @@ std::string GetFloatArg()
     return tmp;
 }
 
-struct AddLayerNormTestFloat : AddLayerNormTest<float>
+struct GPU_AddLayerNorm_FP32 : AddLayerNormTest<float>
 {
 };
 
-struct AddLayerNormTestHalf : AddLayerNormTest<half_float::half>
+struct GPU_AddLayerNorm_FP16 : AddLayerNormTest<half_float::half>
 {
 };
 
-struct AddLayerNormTestBFloat16 : AddLayerNormTest<bfloat16>
+struct GPU_AddLayerNorm_BFP16 : AddLayerNormTest<bfloat16>
 {
 };
 
 } // namespace addlayernorm
 using namespace addlayernorm;
 
-TEST_P(AddLayerNormTestFloat, AddLayerNormTestFw)
+TEST_P(GPU_AddLayerNorm_FP32, AddLayerNormTestFw)
 {
     auto TypeArg = env::value(MIOPEN_TEST_FLOAT_ARG);
     if(env::enabled(MIOPEN_TEST_ALL) && GetFloatArg() == "--float")
@@ -71,7 +71,7 @@ TEST_P(AddLayerNormTestFloat, AddLayerNormTestFw)
     }
 };
 
-TEST_P(AddLayerNormTestHalf, AddLayerNormTestFw)
+TEST_P(GPU_AddLayerNorm_FP16, AddLayerNormTestFw)
 {
     auto TypeArg = env::value(MIOPEN_TEST_FLOAT_ARG);
     if(env::enabled(MIOPEN_TEST_ALL) && GetFloatArg() == "--half")
@@ -85,7 +85,7 @@ TEST_P(AddLayerNormTestHalf, AddLayerNormTestFw)
     }
 };
 
-TEST_P(AddLayerNormTestBFloat16, AddLayerNormTestFw)
+TEST_P(GPU_AddLayerNorm_BFP16, AddLayerNormTestFw)
 {
     auto TypeArg = env::value(MIOPEN_TEST_FLOAT_ARG);
     if(env::enabled(MIOPEN_TEST_ALL) && GetFloatArg() == "--bfloat16")
@@ -99,12 +99,8 @@ TEST_P(AddLayerNormTestBFloat16, AddLayerNormTestFw)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(AddLayerNormTestSet,
-                         AddLayerNormTestFloat,
-                         testing::ValuesIn(AddLayerNormTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(AddLayerNormTestSet,
-                         AddLayerNormTestHalf,
-                         testing::ValuesIn(AddLayerNormTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(AddLayerNormTestSet,
-                         AddLayerNormTestBFloat16,
+INSTANTIATE_TEST_SUITE_P(Full, GPU_AddLayerNorm_FP32, testing::ValuesIn(AddLayerNormTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_AddLayerNorm_FP16, testing::ValuesIn(AddLayerNormTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_AddLayerNorm_BFP16,
                          testing::ValuesIn(AddLayerNormTestConfigs()));
