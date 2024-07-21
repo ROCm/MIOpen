@@ -55,12 +55,14 @@ void BatchNormForwardInferencGPU(miopen::Handle& handle,
                                  double epsilon,
                                  bool use_hip)
 {
-
     int n, c, h, w;
     std::tie(n, c, h, w) = miopen::tien<4>(xDesc.GetLengths());
 
     size_t read_unit = 1;
     size_t read_len  = (bn_mode == miopenBNSpatial) ? h * w : c * h * w;
+
+    // print the read_len, h, and w
+    std::cout << "read_len: " << read_len << " chw: " << c * h * w << " w: " << w << std::endl;
 
     if(bn_mode == miopenBNSpatial && xDesc.GetType() != miopenHalf)
     {
@@ -80,9 +82,9 @@ void BatchNormForwardInferencGPU(miopen::Handle& handle,
     const std::vector<size_t> vld{xlocalsize, ylocalsize, zlocalsize};
 
     const auto build_params = miopen::KernelBuildParameters{
-        {"MIO_BN_CHW", static_cast<int>(c * h * w)},
-        {"MIO_BN_HW", static_cast<int>(h * w)},
-        {"MIO_BN_N", static_cast<int>(n)},
+        {"MIO_BN_CHW", static_cast<unsigned>(c * h * w)},
+        {"MIO_BN_HW", static_cast<unsigned>(h * w)},
+        {"MIO_BN_N", static_cast<unsigned>(n)},
         {"MIO_BN_GRP0", xlocalsize},
         {"MIO_BN_GRP1", ylocalsize},
         {"MIO_BN_GRP2", zlocalsize},
@@ -94,13 +96,15 @@ void BatchNormForwardInferencGPU(miopen::Handle& handle,
         {"MIOPEN_USE_FP32", static_cast<int>(xDesc.GetType() == miopenFloat)}
     };
 
-    std::string kernel_file = "MIOpenBatchNormActivInfer.cl";
+    std::string kernel_file = (use_hip ? "MIOpenBatchNormActivInferHIP.cpp" : "MIOpenBatchNormActivInfer.cl");
     std::string kernel_name = "MIOpenBatchNormActivInfer";
 
     std::string params = use_hip ? build_params.GenerateFor(miopen::kbp::OpenCL{})
                                  : build_params.GenerateFor(miopen::kbp::HIP{});
 
     if(xDesc.GetType() == miopenHalf){ params += " -DMIOPEN_USE_FPMIX=1"; }
+
+    params = "-g " + params;
 
     if(bn_mode == miopenBNSpatial)
     {
@@ -145,7 +149,7 @@ template <typename XDataType,
           typename ScaleDataType,
           typename BiasDataType,
           typename MeanVarDataType>
-struct BatchNormFwdInferFusedTest
+struct BatchNormInferFusedTest
     : public ::testing::TestWithParam<std::tuple<miopenActivationMode_t, BNTestCase>>
 {
 protected:
@@ -155,6 +159,7 @@ protected:
         bn_mode                         = bn_config.mode;
         input                           = tensor<XDataType>{bn_config.GetInput()};
         output        = tensor<YDataType>{bn_config.GetInput()};
+        ref_out = tensor<YDataType>{bn_config.GetInput()};
         auto derivedBnDesc              = miopen::TensorDescriptor{};
         miopen::DeriveBNTensorDescriptor(derivedBnDesc, input.desc, bn_mode);
         scale       = tensor<ScaleDataType>{derivedBnDesc.GetLengths()};
@@ -178,9 +183,7 @@ protected:
             return static_cast<MeanVarDataType>(1e-2 * (prng::gen_0_to_B(100) + 1));
         };
         estVariance.generate(gen_var);
-        
-        activ_desc    = {activ_mode, activ_alpha, activ_beta, activ_gamma};
-        
+                
         auto&& handle = get_handle();
         std::fill(output.begin(), output.end(), std::numeric_limits<YDataType>::quiet_NaN());
         in_dev          = handle.Write(input.data);
@@ -189,10 +192,24 @@ protected:
         estMean_dev     = handle.Write(estMean.data);
         estVariance_dev = handle.Write(estVariance.data);
         out_dev         = handle.Write(output.data);
+        out_dev2         = handle.Write(output.data);
     }
 
     void RunTestGPU(bool hip_en)
     {
+        // // fill output with NaNs
+        // if(hip_en){
+        //     std::fill(output.begin(), output.end(), std::numeric_limits<YDataType>::quiet_NaN());
+        //     // Write the output to the GPU
+        //     out_dev = handle.Write(output.data);  
+        // }
+        // else{
+        //     std::fill(ref_out.begin(), ref_out.end(), std::numeric_limits<YDataType>::quiet_NaN());
+        //     // Write the output to the GPU
+        //     out_dev = handle.Write(ref_out.data);
+        // }
+
+
 
         auto&& handle = get_handle();
         BatchNormForwardInferencGPU(handle,
@@ -206,7 +223,7 @@ protected:
                                     input.desc,
                                     in_dev.get(),
                                     output.desc,
-                                    out_dev.get(),
+                                    (hip_en ? out_dev.get(): out_dev2.get()),
                                     scale.desc,
                                     scale_dev.get(),
                                     shift_dev.get(),
@@ -214,11 +231,19 @@ protected:
                                     estVariance_dev.get(),
                                     epsilon,
                                     hip_en);
+
+        // if use_hip is true read data into the output.data else read output into ref_out.data
+        if(hip_en)
+            output.data = handle.Read<YDataType>(out_dev, output.data.size());
+        else
+            ref_out.data = handle.Read<YDataType>(out_dev2, ref_out.data.size());
+
+        // output.data   = handle.Read<YDataType>(out_dev, output.data.size());
+
     }
 
-    void TearDown() override
+    void RunTestCPU()
     {
-        ref_out = tensor<YDataType>{bn_config.GetInput()};
         if(bn_mode == miopenBNPerActivation)
         {
             batchNormPerActivHostInference(
@@ -231,12 +256,28 @@ protected:
         }
         activationHostInfer(
             activ_mode, activ_gamma, activ_beta, activ_alpha, ref_out.data, ref_out.data);
-        auto&& handle = get_handle();
-        output.data   = handle.Read<YDataType>(out_dev, output.data.size());
+    }
+
+    void Verify() 
+    {
         EXPECT_FALSE(miopen::range_zero(ref_out)) << "CPU data is all zeros";
         EXPECT_FALSE(miopen::range_zero(output)) << "GPU data is all zeros";
         EXPECT_FALSE(miopen::find_idx(output, miopen::not_finite) >= 0)
             << "Non finite number found in the GPU data";
+        // print output[3072] and ref_out[3072]
+        // std::cout << "output[3072]: " << output[3072] << " ref_out[3072]: " << ref_out[3072] << std::endl;
+        
+        // print total tensor size
+        // std::cout << "output size: " << output.data.size() << " ref_out size: " << ref_out.data.size() << std::endl;
+
+        // print the first 3072 elements of output and ref_out
+        // for(int i = 3071; i < 3200; i++){
+        //     std::cout << "output[" << i << "]: " << output[i] << " ref_out[" << i << "]: " << ref_out[i] << std::endl;
+        // }
+        
+        
+
+
         EXPECT_TRUE(miopen::range_distance(ref_out) == miopen::range_distance(output));
         const double tolerance = 80;
         double threshold       = std::numeric_limits<YDataType>::epsilon() * tolerance;
@@ -248,8 +289,6 @@ protected:
     }
 
     BNTestCase bn_config;
-    miopen::TensorDescriptor bn_desc;
-    miopen::ActivationDescriptor activ_desc;
     miopenBatchNormMode_t bn_mode;
     tensor<XDataType> input;
     tensor<YDataType> output;
@@ -260,13 +299,14 @@ protected:
     tensor<MeanVarDataType> estVariance;
     miopen::Allocator::ManageDataPtr in_dev;
     miopen::Allocator::ManageDataPtr out_dev;
+    miopen::Allocator::ManageDataPtr out_dev2;
+
+
     miopen::Allocator::ManageDataPtr scale_dev;
     miopen::Allocator::ManageDataPtr shift_dev;
     miopen::Allocator::ManageDataPtr estMean_dev;
     miopen::Allocator::ManageDataPtr estVariance_dev;
     miopenActivationMode_t activ_mode;
-    miopen::FusionPlanDescriptor fusePlanDesc;
-    miopen::OperatorArgs params;
     const float alpha       = static_cast<float>(1.0f);
     const float beta        = static_cast<float>(0);
     const float activ_alpha = static_cast<double>(0.5f);
@@ -275,100 +315,82 @@ protected:
     double epsilon          = 1.0e-5;
 };
 
-namespace BatchNormFwdInferFused {
+namespace BatchNormInferFused {
 
-struct GPU_bn_fwd_infer_fused_spatial_FP32
-    : BatchNormFwdInferFusedTest<float, float, float, float, float>
+struct GPU_bn_infer_fused_spatial_FP32
+    : BatchNormInferFusedTest<float, float, float, float, float>
 {
 };
 
-struct GPU_bn_fwd_infer_fused_per_act_FP32
-    : BatchNormFwdInferFusedTest<float, float, float, float, float>
+struct GPU_bn_infer_fused_per_act_FP32
+    : BatchNormInferFusedTest<float, float, float, float, float>
 {
 };
 
-struct GPU_bn_fwd_infer_fused_spatial_FP16
-    : BatchNormFwdInferFusedTest<half_float::half, half_float::half, float, float, float>
+struct GPU_bn_infer_fused_spatial_FP16
+    : BatchNormInferFusedTest<half_float::half, half_float::half, float, float, float>
 {
 };
 
-struct GPU_bn_fwd_infer_fused_per_act_FP16
-    : BatchNormFwdInferFusedTest<half_float::half, half_float::half, float, float, float>
+struct GPU_bn_infer_fused_per_act_FP16
+    : BatchNormInferFusedTest<half_float::half, half_float::half, float, float, float>
 {
 };
 
-} // namespace BatchNormFwdInferFused
-using namespace BatchNormFwdInferFused;
+} // namespace BatchNormInferFused
+using namespace BatchNormInferFused;
 
-// TEST_P(GPU_bn_fwd_infer_fused_spatial_FP16, PortTest)
-// {
-//     // Generate data and copy to GPU
-//     DataSetup(miopenBNSpatial);
+
+TEST_P(GPU_bn_infer_fused_spatial_FP32, PortTest){
+    RunTestGPU(false);
+    // Run the OpenCL reference
+    RunTestGPU(true);
+    // Optionally use the CPU output as reference
+    // RunTestCPU();
+    // Compare the outputs.
+    Verify();
+};
+
+// TEST_P(GPU_bn_infer_fused_per_act_FP32, PortTest){
+//     // Run the OpenCL reference
+//     RunTestGPU(true);
+//     // Optionally use the CPU output as reference
+//     RunTestCPU();
+//     // Compare the outputs.
+//     Verify();
+// };
+
+// TEST_P(GPU_bn_infer_fused_spatial_FP16, PortTest){
 //     // Run the OpenCL reference
 //     RunTestGPU(false);
 //     // Optionally use the CPU output as reference
-//     // ComputeCPU();
-//     // Run the HIP kernel
-//     RunTestGPU(true);
+//     RunTestCPU();
 //     // Compare the outputs.
 //     Verify();
 // };
 
-TEST_P(GPU_bn_fwd_infer_fused_spatial_FP32, PortTest){
-    // // Generate data and copy to GPU
-    // DataSetup(miopenBNSpatial);
-    // // Run the OpenCL reference
-    RunTestGPU(false);
-    // // Optionally use the CPU output as reference
-    // // ComputeCPU();
-    // // Run the HIP kernel
-    // RunTestGPU(true);
-    // // Compare the outputs.
-    // Verify();
-};
-
-// TEST_P(GPU_bn_fwd_infer_fused_per_act_FP16, PortTest)
-// {
-//     // Generate data and copy to GPU
-//     DataSetup(miopenBNPerActivation);
+// TEST_P(GPU_bn_infer_fused_per_act_FP16, PortTest){
 //     // Run the OpenCL reference
 //     RunTestGPU(false);
-//     // Optionally use the CPU output as reference instead of OpenCL
-//     // ComputeCPU();
-//     // Run the HIP kernel
-//     RunTestGPU(true);
+//     // Optionally use the CPU output as reference
+//     RunTestCPU();
 //     // Compare the outputs.
 //     Verify();
 // };
 
-TEST_P(GPU_bn_fwd_infer_fused_per_act_FP32, PortTest){
-    // // Generate data and copy to GPU
-    // DataSetup(miopenBNPerActivation);
-    // // Run the OpenCL reference
-    RunTestGPU(false);
-    // // Optionally use the CPU output as reference instead of OpenCL
-    // // ComputeCPU();
-    // // Run the HIP kernel
-    // RunTestGPU(true);
-    // // Compare the outputs.
-    // Verify();
-};
-
 // INSTANTIATE_TEST_SUITE_P(Smoke,
-//                          GPU_bn_fwd_infer_fused_spatial_FP16,
-//                          testing::Combine(testing::ValuesIn(Network1<BNTestCase>()),
-//                                           testing::Values(miopenTensorNCHW)));
-
+//                          GPU_bn_infer_fused_spatial_FP16,
+//                          testing::Combine(testing::Values(miopenActivationRELU),
+//                                           testing::ValuesIn(Networkna1())));
+// INSTANTIATE_TEST_SUITE_P(Smoke,
+//                          GPU_bn_infer_fused_per_act_FP16,
+//                          testing::Combine(testing::Values(miopenActivationRELU),
+//                                           testing::ValuesIn(Networkna1())));
 INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_bn_fwd_infer_fused_spatial_FP32,
+                         GPU_bn_infer_fused_spatial_FP32,
                          testing::Combine(testing::Values(miopenActivationRELU),
                                           testing::ValuesIn(Networkna1())));
 // INSTANTIATE_TEST_SUITE_P(Smoke,
-//                          GPU_bn_fwd_infer_fused_per_act_FP16,
-//                          testing::Combine(testing::ValuesIn(Network1<BNTestCase>()),
-//                                           testing::Values(miopenTensorNCHW)));
-
-INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_bn_fwd_infer_fused_per_act_FP32,
-                         testing::Combine(testing::Values(miopenActivationRELU),
-                                          testing::ValuesIn(Networkna1())));
+//                          GPU_bn_infer_fused_per_act_FP32,
+//                          testing::Combine(testing::Values(miopenActivationRELU),
+//                                           testing::ValuesIn(Networkna1())));
