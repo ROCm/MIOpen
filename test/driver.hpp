@@ -1363,7 +1363,6 @@ void test_drive(int argc, const char* argv[], const char* program_name = nullptr
 template <template <class...> class Driver>
 void test_drive(int argc, const char* argv[], const char* program_name = nullptr)
 {
-    bool unknown_datatype = true;
     std::string name(program_name ? program_name : argv[0]);
     std::vector<std::string> as(argv + (program_name ? 0 : 1), argv + argc);
 
@@ -1371,38 +1370,33 @@ void test_drive(int argc, const char* argv[], const char* program_name = nullptr
     {
         if(arg == "--half")
         {
-            unknown_datatype = false;
             test_drive_impl<Driver<half_float::half>>(name, std::move(as));
-            break;
+            return;
         }
         if(arg == "--int8")
         {
-            unknown_datatype = false;
             test_drive_impl<Driver<int8_t>>(name, std::move(as));
-            break;
+            return;
         }
         if(arg == "--float")
         {
-            unknown_datatype = false;
             test_drive_impl<Driver<float>>(name, std::move(as));
-            break;
+            return;
         }
         if(arg == "--bfloat16")
         {
-            unknown_datatype = false;
             test_drive_impl<Driver<bfloat16>>(name, std::move(as));
-            break;
+            return;
         }
         if(arg == "--double")
         {
-            unknown_datatype = false;
             test_drive_impl<Driver<double>>(name, std::move(as));
-            break;
+            return;
         }
     }
 
-    if(unknown_datatype)
-        throw std::runtime_error("test_drive: unknown datatype");
+    // default datatype
+    test_drive_impl<Driver<float>>(name, std::move(as));
 }
 
 #endif // GUARD_MIOPEN_TEST_DRIVER_HPP
