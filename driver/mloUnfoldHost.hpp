@@ -65,18 +65,18 @@ int32_t mloUnFoldFwd4DRunHost(Tgpu* input,
         ls.push_back(l);
     }
     int32_t kernel_size_h = kernel_size[0];
-    int32_t kernel_size_w                  = kernel_size[1];
-    int32_t stride_h                       = stride[0];
-    int32_t stride_w                       = stride[1];
-    int32_t padding_h                      = padding[0];
-    int32_t padding_w                      = padding[1];
-    int32_t dilation_h                     = dilation[0];
-    int32_t dilation_w                     = dilation[1];
+    int32_t kernel_size_w = kernel_size[1];
+    int32_t stride_h      = stride[0];
+    int32_t stride_w      = stride[1];
+    int32_t padding_h     = padding[0];
+    int32_t padding_w     = padding[1];
+    int32_t dilation_h    = dilation[0];
+    int32_t dilation_w    = dilation[1];
     int32_t LH            = ls[0];
-    int32_t LW                             = ls[1];
-    int32_t H                              = static_cast<int32_t>(input_dims[2]);
-    int32_t W                              = static_cast<int32_t>(input_dims[3]);
-    int work_size = (((N * C * P * L) + LOCAL_SIZE - 1) / LOCAL_SIZE) * LOCAL_SIZE;
+    int32_t LW            = ls[1];
+    int32_t H             = static_cast<int32_t>(input_dims[2]);
+    int32_t W             = static_cast<int32_t>(input_dims[3]);
+    int work_size         = (((N * C * P * L) + LOCAL_SIZE - 1) / LOCAL_SIZE) * LOCAL_SIZE;
     par_ford(work_size)([&](int gid) {
         int ncp = gid / L, l = gid % L;
         int nc = ncp / P, p = ncp % P;
@@ -120,10 +120,10 @@ int32_t mloUnFoldBwd4DRunHost(Tcheck* ref_dinput,
     auto input_grad_dims = miopen::deref(dinputDesc).GetLengths();
     auto input_size      = miopen::deref(dinputDesc).GetSize();
 
-    const int LOCAL_SIZE       = 256;
-    int spatial_dim_size       = input_size - 2;
-    const int32_t N            = static_cast<int32_t>(input_grad_dims[0]);
-    const int32_t C            = static_cast<int32_t>(input_grad_dims[1]);
+    const int LOCAL_SIZE = 256;
+    int spatial_dim_size = input_size - 2;
+    const int32_t N      = static_cast<int32_t>(input_grad_dims[0]);
+    const int32_t C      = static_cast<int32_t>(input_grad_dims[1]);
     int32_t P = 1, L = 1;
     std::vector<int32_t> ls;
     for(int i = 0; i < spatial_dim_size; ++i)
