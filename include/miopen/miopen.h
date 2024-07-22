@@ -6629,7 +6629,7 @@ miopenInterpolateForward(miopenHandle_t handle,
                          const miopenInterpolateMode_t mode,
                          const bool align_corners);
 
-/*! @brief Helper function to query the minimum workspace size required by the Interpolate Nearest
+/*! @brief Helper function to query the minimum workspace size required by the Interpolate Bicubic
  * Backward call
  *
  * @param handle                   MIOpen Handle (input)

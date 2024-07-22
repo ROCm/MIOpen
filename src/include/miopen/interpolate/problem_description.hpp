@@ -128,7 +128,7 @@ struct FwdProblemDescription : ProblemDescription
         if(outputDesc.GetSize() < 3 || outputDesc.GetSize() > 5)
         {
             MIOPEN_THROW(miopenStatusBadParm,
-                         "Interpolate: Output tensor size < 1 or > 3 is not valid.");
+                         "Interpolate: Output tensor size < 3 or > 5 is not valid.");
         }
 
         if((outputDesc.GetSize() - 2) != scaleFactorsDesc.GetElementSize())
