@@ -57,13 +57,10 @@ struct TensorInfo
 {
     miopenTensorArgumentId_t mEnumId = miopenTensorArgumentIdInvalid;
     Tensor* mGraphTensor             = nullptr;
-    TensorDescriptor mTensDesc{};
-    Data_t mDevBuf = nullptr;
+    Data_t mDevBuf                   = nullptr;
 
     TensorInfo(miopenTensorArgumentId_t enum_id, Tensor* tens_ptr)
-        : mEnumId(enum_id),
-          mGraphTensor(tens_ptr),
-          mTensDesc(static_cast<TensorDescriptor>(*tens_ptr))
+        : mEnumId(enum_id), mGraphTensor(tens_ptr)
     {
         assert(tens_ptr);
         assert(mEnumId != miopenTensorArgumentIdInvalid);
@@ -74,8 +71,6 @@ struct TensorInfo
         assert(ptr);
         mDevBuf = ptr;
     }
-
-    const TensorDescriptor* tensDescPtr() const { return &mTensDesc; }
 };
 
 // int64_t is the graph tensor id
