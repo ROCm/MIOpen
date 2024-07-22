@@ -236,8 +236,8 @@ OperationRngBuilder& OperationRngBuilder::setSeed(Tensor* seed)
 {
     bool valid = seed != nullptr;
 
-    valid = valid && miopen::all_of(seed->getDimensions(), [](auto v) { return v == 1; }) &&
-            miopen::all_of(seed->getStrides(), [](auto v) { return v == 1; });
+    valid = valid && miopen::all_of(seed->GetLengths(), [](auto v) { return v == 1; }) &&
+            miopen::all_of(seed->GetStrides(), [](auto v) { return v == 1; });
 
     if(valid)
     {
@@ -254,8 +254,8 @@ OperationRngBuilder& OperationRngBuilder::setOffset(Tensor* offset)
 {
     bool valid = offset != nullptr;
 
-    valid = valid && miopen::all_of(offset->getDimensions(), [](auto v) { return v == 1; }) &&
-            miopen::all_of(offset->getStrides(), [](auto v) { return v == 1; });
+    valid = valid && miopen::all_of(offset->GetLengths(), [](auto v) { return v == 1; }) &&
+            miopen::all_of(offset->GetStrides(), [](auto v) { return v == 1; });
 
     if(valid)
     {

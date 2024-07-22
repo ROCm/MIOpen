@@ -62,10 +62,10 @@ OperationReshape OperationReshapeBuilder::build()
     if(!valid)
         MIOPEN_THROW(miopenStatusBadParm);
 
-    const auto& inputDims     = mOperationReshape.mX->getDimensions();
-    const auto& inputStrides  = mOperationReshape.mX->getStrides();
-    const auto& outputDims    = mOperationReshape.mY->getDimensions();
-    const auto& outputStrides = mOperationReshape.mY->getStrides();
+    const auto& inputDims     = mOperationReshape.mX->GetLengths();
+    const auto& inputStrides  = mOperationReshape.mX->GetStrides();
+    const auto& outputDims    = mOperationReshape.mY->GetLengths();
+    const auto& outputStrides = mOperationReshape.mY->GetStrides();
     const auto size           = inputDims.size();
 
     /* Detect a case of transpose operation for the last 2 dimensions:
