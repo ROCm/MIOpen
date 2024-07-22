@@ -35,9 +35,9 @@ namespace fold {
 
 NetworkConfig UnfoldFwdProblemDescription::MakeNetworkConfig() const
 {
-    auto input_dtype  = inputDesc.GetType();
-    auto size         = inputDesc.GetElementSize();
-    auto in_dims      = inputDesc.GetLengths();
+    auto input_dtype = inputDesc.GetType();
+    auto size        = inputDesc.GetElementSize();
+    auto in_dims     = inputDesc.GetLengths();
 
     std::ostringstream ss;
 
@@ -59,9 +59,9 @@ NetworkConfig UnfoldFwdProblemDescription::MakeNetworkConfig() const
 
 NetworkConfig UnfoldBwdProblemDescription::MakeNetworkConfig() const
 {
-    auto input_dtype  = dinputDesc.GetType();
-    auto size         = dinputDesc.GetElementSize();
-    auto in_dims      = dinputDesc.GetLengths();
+    auto input_dtype = dinputDesc.GetType();
+    auto size        = dinputDesc.GetElementSize();
+    auto in_dims     = dinputDesc.GetLengths();
 
     std::ostringstream ss;
 
@@ -83,10 +83,10 @@ NetworkConfig UnfoldBwdProblemDescription::MakeNetworkConfig() const
 
 NetworkConfig FoldFwdProblemDescription::MakeNetworkConfig() const
 {
-    auto input_dtype  = inputDesc.GetType();
-    auto size         = inputDesc.GetElementSize();
-    auto in_dims      = inputDesc.GetLengths();
-    auto out_dims     = outputDesc.GetLengths();
+    auto input_dtype = inputDesc.GetType();
+    auto size        = inputDesc.GetElementSize();
+    auto in_dims     = inputDesc.GetLengths();
+    auto out_dims    = outputDesc.GetLengths();
 
     std::ostringstream ss;
 
@@ -113,10 +113,10 @@ NetworkConfig FoldFwdProblemDescription::MakeNetworkConfig() const
 
 NetworkConfig FoldBwdProblemDescription::MakeNetworkConfig() const
 {
-    auto input_dtype  = dinputDesc.GetType();
-    auto size         = dinputDesc.GetElementSize();
-    auto in_dims      = dinputDesc.GetLengths();
-    auto out_dims     = doutputDesc.GetLengths();
+    auto input_dtype = dinputDesc.GetType();
+    auto size        = dinputDesc.GetElementSize();
+    auto in_dims     = dinputDesc.GetLengths();
+    auto out_dims    = doutputDesc.GetLengths();
 
     std::ostringstream ss;
 
