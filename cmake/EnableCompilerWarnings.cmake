@@ -108,7 +108,6 @@ set(__clang_cxx_compile_options
     -Wno-tautological-constant-out-of-range-compare)
 if(WIN32)
     list(APPEND __clang_cxx_compile_options
-        -fdelayed-template-parsing
         -fms-extensions
         -fms-compatibility)
 endif()
