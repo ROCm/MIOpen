@@ -774,6 +774,10 @@ rocm_set_soversion(MIOpen ${MIOpen_SOVERSION})
 
 clang_tidy_check(MIOpen)
 
+if(HAS_LIB_STD_FILESYSTEM)
+    target_link_libraries(MIOpen PRIVATE stdc++fs)
+endif()
+
 find_package(zstd)
 if(zstd_FOUND)
     target_link_libraries(MIOpen PRIVATE $<IF:$<TARGET_EXISTS:zstd::libzstd_shared>,zstd::libzstd_shared,zstd::libzstd_static>)
