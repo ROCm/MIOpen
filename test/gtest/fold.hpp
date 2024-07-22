@@ -113,7 +113,8 @@ struct FoldTestCase
 };
 
 std::vector<FoldTestCase> FoldTestConfigs()
-{ // n c d h w padding
+{
+    // clang-format: off
     return {
         {3, 3 * 2 * 2, 0, 0, 3 * 4, {4, 5}, {2, 2}, {1, 1}, {0, 0}, {1, 1}, true},
         {3, 3 * 2 * 2, 0, 0, 3 * 4, {6, 11}, {2, 2}, {2, 3}, {0, 0}, {1, 1}, true},
@@ -123,6 +124,7 @@ std::vector<FoldTestCase> FoldTestConfigs()
         {3, 3 * 2 * 2, 0, 0, 3 * 4, {2, 3}, {2, 2}, {1, 1}, {1, 1}, {1, 1}, true},
         {3, 3 * 2 * 2, 0, 0, 3 * 4, {5, 7}, {2, 2}, {1, 1}, {0, 0}, {2, 3}, true},
     };
+    // clang-format: on
 }
 
 template <typename T>

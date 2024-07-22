@@ -112,7 +112,8 @@ struct UnfoldTestCase
 };
 
 std::vector<UnfoldTestCase> UnfoldTestConfigs()
-{ // n c d h w padding
+{
+    // clang-format: off
     return {
         {2, 5, 0, 3, 4, {2, 3}, {1, 1}, {0, 0}, {1, 1}, true},
         {1, 3, 0, 10, 12, {4, 5}, {1, 1}, {0, 0}, {1, 1}, true},
@@ -121,6 +122,7 @@ std::vector<UnfoldTestCase> UnfoldTestConfigs()
         {11, 13, 0, 17, 19, {3, 3}, {1, 1}, {0, 0}, {3, 2}, true},
         {11, 13, 0, 33, 37, {4, 3}, {2, 3}, {5, 2}, {3, 5}, true},
     };
+    // clang-format: on
 }
 
 template <typename T>
