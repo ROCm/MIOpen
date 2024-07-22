@@ -24,7 +24,7 @@
  *
  *******************************************************************************/
 #include "../driver/tensor_driver.hpp"
-#include "cpu_fold.hpp"
+#include "cpu_unfold.hpp"
 #include "get_handle.hpp"
 #include "miopen/allocator.hpp"
 #include "random.hpp"
