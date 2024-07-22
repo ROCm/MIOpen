@@ -133,7 +133,7 @@ int FoldDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
 template <typename Tgpu, typename Tref>
 int FoldDriver<Tgpu, Tref>::GetandSetData()
 {
-    std::vector<int> input_length = GetTensorLengthsFromCmdLine();
+    std::vector<int> input_length = inflags.GetValueTensor("DimLengths").lengths;
 
     output_size = GetVectorInt32tFromCmdLine("outputSize");
     kernel_size = GetVectorInt32tFromCmdLine("kernelSize");
@@ -161,8 +161,8 @@ int FoldDriver<Tgpu, Tref>::AddCmdLineArgs()
 {
     inflags.AddInputFlag(
         "forw", 'F', "1", "Run Fold Forward (Default=1) or both Forward and Backward (0)", "int");
-    inflags.AddInputFlag(
-        "DimLengths", 'D', "3,12,12", "The dimensional lengths of the input tensor", "string");
+    inflags.AddTensorFlag(
+        "DimLengths", 'D', "3x12x12", "The dimensional lengths of the input tensor");
     inflags.AddInputFlag("outputSize", 'o', "4,5", "Output Size (Default=2,3)", "str");
     inflags.AddInputFlag("kernelSize", 'k', "2,2", "Kernel Size (Default=2,3)", "str");
     inflags.AddInputFlag("stride", 's', "1,1", "Stride (Default=1,1)", "str");

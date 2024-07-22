@@ -36,7 +36,6 @@ namespace fold {
 NetworkConfig UnfoldFwdProblemDescription::MakeNetworkConfig() const
 {
     auto input_dtype  = inputDesc.GetType();
-    auto output_dtype = outputDesc.GetType();
     auto size         = inputDesc.GetElementSize();
     auto in_dims      = inputDesc.GetLengths();
 
@@ -44,7 +43,6 @@ NetworkConfig UnfoldFwdProblemDescription::MakeNetworkConfig() const
 
     ss << "Unfold_fwd";
     ss << "i_dtype" << input_dtype;
-    ss << "o_dtype" << output_dtype;
     ss << "size" << size;
     ss << "in_dims";
     for(auto val : in_dims)
@@ -62,7 +60,6 @@ NetworkConfig UnfoldFwdProblemDescription::MakeNetworkConfig() const
 NetworkConfig UnfoldBwdProblemDescription::MakeNetworkConfig() const
 {
     auto input_dtype  = dinputDesc.GetType();
-    auto output_dtype = doutputDesc.GetType();
     auto size         = dinputDesc.GetElementSize();
     auto in_dims      = dinputDesc.GetLengths();
 
@@ -70,7 +67,6 @@ NetworkConfig UnfoldBwdProblemDescription::MakeNetworkConfig() const
 
     ss << "Unfold_bwd";
     ss << "i_dtype" << input_dtype;
-    ss << "o_dtype" << output_dtype;
     ss << "size" << size;
     ss << "in_grad_dims";
     for(auto val : in_dims)
@@ -88,7 +84,6 @@ NetworkConfig UnfoldBwdProblemDescription::MakeNetworkConfig() const
 NetworkConfig FoldFwdProblemDescription::MakeNetworkConfig() const
 {
     auto input_dtype  = inputDesc.GetType();
-    auto output_dtype = outputDesc.GetType();
     auto size         = inputDesc.GetElementSize();
     auto in_dims      = inputDesc.GetLengths();
     auto out_dims     = outputDesc.GetLengths();
@@ -97,7 +92,6 @@ NetworkConfig FoldFwdProblemDescription::MakeNetworkConfig() const
 
     ss << "Fold_fwd";
     ss << "i_dtype" << input_dtype;
-    ss << "o_dtype" << output_dtype;
     ss << "size" << size;
     ss << "in_dims";
     for(auto val : in_dims)
@@ -120,7 +114,6 @@ NetworkConfig FoldFwdProblemDescription::MakeNetworkConfig() const
 NetworkConfig FoldBwdProblemDescription::MakeNetworkConfig() const
 {
     auto input_dtype  = dinputDesc.GetType();
-    auto output_dtype = doutputDesc.GetType();
     auto size         = dinputDesc.GetElementSize();
     auto in_dims      = dinputDesc.GetLengths();
     auto out_dims     = doutputDesc.GetLengths();
@@ -129,7 +122,6 @@ NetworkConfig FoldBwdProblemDescription::MakeNetworkConfig() const
 
     ss << "Fold_bwd";
     ss << "i_dtype" << input_dtype;
-    ss << "o_dtype" << output_dtype;
     ss << "size" << size;
     ss << "in_grad_dims";
     for(auto val : in_dims)

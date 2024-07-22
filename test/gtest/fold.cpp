@@ -29,9 +29,21 @@
 #include "tensor_holder.hpp"
 #include <miopen/env.hpp>
 
+MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 
 namespace fold {
+    
+std::string GetFloatArg()
+{
+    const auto& tmp = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
+    if(tmp.empty())
+    {
+        return "";
+    }
+    return tmp;
+}
+
 struct FoldForwardTestFloat32 : FoldFwdTest<float>
 {
 };
@@ -56,10 +68,13 @@ struct FoldBackwardTestBFloat16 : FoldBwdTest<bfloat16>
 {
 };
 }; // namespace fold
+
 using namespace fold;
+
 TEST_P(FoldForwardTestFloat32, FoldForwardTest)
 {
-    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)))
+    if(miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
+       (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float")))
     {
         RunTest();
         Verify();
@@ -76,7 +91,8 @@ INSTANTIATE_TEST_SUITE_P(FoldForwardTestSet,
 
 TEST_P(FoldForwardTestFloat16, FoldForwardTest)
 {
-    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)))
+    if(miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
+       (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float")))
     {
         RunTest();
         Verify();
@@ -93,7 +109,8 @@ INSTANTIATE_TEST_SUITE_P(FoldForwardTestSet,
 
 TEST_P(FoldForwardTestBFloat16, FoldForwardTest)
 {
-    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)))
+    if(miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
+       (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float")))
     {
         RunTest();
         Verify();
@@ -110,7 +127,8 @@ INSTANTIATE_TEST_SUITE_P(FoldForwardTestSet,
 
 TEST_P(FoldBackwardTestFloat32, FoldBackwardTest)
 {
-    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)))
+    if(miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
+       (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float")))
     {
         RunTest();
         Verify();
@@ -127,7 +145,8 @@ INSTANTIATE_TEST_SUITE_P(FoldBackwardTestSet,
 
 TEST_P(FoldBackwardTestFloat16, FoldBackwardTest)
 {
-    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)))
+    if(miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
+       (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float")))
     {
         RunTest();
         Verify();
@@ -144,7 +163,8 @@ INSTANTIATE_TEST_SUITE_P(FoldBackwardTestSet,
 
 TEST_P(FoldBackwardTestBFloat16, FoldBackwardTest)
 {
-    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)))
+    if(miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
+       (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float")))
     {
         RunTest();
         Verify();

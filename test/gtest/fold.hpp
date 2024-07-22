@@ -30,9 +30,6 @@
 #include "random.hpp"
 #include "tensor_holder.hpp"
 #include "verify.hpp"
-#include <cstddef>
-#include <cstdlib>
-#include <random>
 #include <gtest/gtest.h>
 #include <miopen/miopen.h>
 #include <miopen/fold.hpp>

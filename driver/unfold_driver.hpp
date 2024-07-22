@@ -132,7 +132,7 @@ int UnfoldDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
 template <typename Tgpu, typename Tref>
 int UnfoldDriver<Tgpu, Tref>::GetandSetData()
 {
-    std::vector<int> input_length = GetTensorLengthsFromCmdLine();
+    std::vector<int> input_length = inflags.GetValueTensor("DimLengths").lengths;
 
     kernel_size          = GetVectorInt32tFromCmdLine("kernelSize");
     stride               = GetVectorInt32tFromCmdLine("stride");
@@ -167,8 +167,8 @@ int UnfoldDriver<Tgpu, Tref>::AddCmdLineArgs()
 {
     inflags.AddInputFlag(
         "forw", 'F', "1", "Run Unfold Forward (Default=1) or both Forward and Backward (0)", "int");
-    inflags.AddInputFlag(
-        "DimLengths", 'D', "2,5,3,4", "The dimensional lengths of the input tensor", "string");
+    inflags.AddTensorFlag(
+        "DimLengths", 'D', "2x5x3x4", "The dimensional lengths of the input tensor");
     inflags.AddInputFlag("kernelSize", 'k', "2,3", "Kernel Size (Default=2,3)", "str");
     inflags.AddInputFlag("stride", 's', "1,1", "Stride (Default=1,1)", "str");
     inflags.AddInputFlag("padding", 'p', "0,0", "Padding (Default=0,0)", "str");
