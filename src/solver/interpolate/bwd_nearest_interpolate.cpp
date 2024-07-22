@@ -46,15 +46,15 @@ namespace interpolate {
 
 bool IsOverRocmNearestBwd(const miopen::interpolate::BwdProblemDescription& problem)
 {
-    TensorDescriptor input_grad_desc = problem.GetInputGradDesc();
+    TensorDescriptor input_grad_desc  = problem.GetInputGradDesc();
+    TensorDescriptor output_grad_desc = problem.GetOutputGradDesc();
     if(input_grad_desc.GetLengths().size() == 3)
     {
-        if(input_grad_desc.GetElementSize() < 8000 || input_grad_desc.GetLengths()[0] < 10)
+        if(output_grad_desc.GetElementSize() < 8000 || input_grad_desc.GetLengths()[0] < 10)
             return false;
     }
     else if(input_grad_desc.GetLengths().size() == 4)
     {
-        TensorDescriptor output_grad_desc = problem.GetOutputGradDesc();
         float scale_h =
             static_cast<float>(output_grad_desc.GetLengths()[2]) / input_grad_desc.GetLengths()[2];
         float scale_w =
@@ -65,7 +65,6 @@ bool IsOverRocmNearestBwd(const miopen::interpolate::BwdProblemDescription& prob
     }
     else if(input_grad_desc.GetLengths().size() == 5)
     {
-        TensorDescriptor output_grad_desc = problem.GetOutputGradDesc();
         float scale_h =
             static_cast<float>(output_grad_desc.GetLengths()[2]) / input_grad_desc.GetLengths()[2];
         float scale_w =
