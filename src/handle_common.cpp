@@ -58,7 +58,7 @@ StartPreloadingDb(DbPreloadStates& states, DbKinds db_kind, const fs::path& path
         }
         else
         {
-            auto db = std::make_unique<Db>(db_kind, path);
+            auto db     = std::make_unique<Db>(db_kind, path);
             std::ignore = is_system;
             db->Prefetch();
             return PreloadedDb(std::move(db));
