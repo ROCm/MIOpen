@@ -26,6 +26,7 @@
 #pragma once
 
 #include <miopen/miopen.h>
+#include <miopen/config.hpp>
 #include <miopen/object.hpp>
 
 #include <cstdint>
@@ -34,9 +35,17 @@ namespace miopen {
 
 namespace graphapi {
 
+#ifdef _WIN32
+// WORKAROUND: building on Windows is failing due to conflicting definitions of std::min()
+// between the MSVC standard library and HIP Clang wrappers for int64_t data type.
+constexpr std::int64_t minimum(std::int64_t a, std::int64_t b) { return a < b ? a : b; }
+#else
+#define minimum std::min
+#endif
+
 class OpNode;
 
-class BackendDescriptor : public miopenBackendDescriptor
+class MIOPEN_INTERNALS_EXPORT BackendDescriptor : public miopenBackendDescriptor
 {
 public:
     virtual ~BackendDescriptor();
@@ -58,9 +67,7 @@ public:
 protected:
     bool mFinalized = false;
 };
-
 } // namespace graphapi
-
 } // namespace miopen
 
 MIOPEN_DEFINE_OBJECT(miopenBackendDescriptor, miopen::graphapi::BackendDescriptor)

@@ -38,21 +38,19 @@ namespace conv_igemm_dynamic_xdlops_half {
 
 static bool SkipTest(const std::string& float_arg)
 {
-    if(miopen::IsUnset(ENV(MIOPEN_TEST_ALL)))
+    if(!MIOPEN_TEST_ALL)
         return false;
-    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)))
-        if(miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG)) == float_arg)
+    if(env::enabled(MIOPEN_TEST_ALL))
+        if(env::value(MIOPEN_TEST_FLOAT_ARG) == float_arg)
             return false;
     return true;
 }
 
-void SetupEnvVar(void)
+void SetupEnvVar()
 {
-    miopen::UpdateEnvVar(ENV(MIOPEN_FIND_MODE), std::string("normal"));
-    miopen::UpdateEnvVar(
-        ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER),
-        std::string(
-            "ConvAsmImplicitGemmGTCDynamicFwdXdlops;ConvAsmImplicitGemmGTCDynamicWrwXdlops"));
+    env::update(MIOPEN_FIND_MODE, "normal");
+    env::update(MIOPEN_DEBUG_FIND_ONLY_SOLVER,
+                "ConvAsmImplicitGemmGTCDynamicFwdXdlops;ConvAsmImplicitGemmGTCDynamicWrwXdlops");
 }
 
 void GetArgs(const std::string& param, std::vector<std::string>& tokens)
@@ -80,6 +78,7 @@ void Run2dDriver(miopenDataType_t prec)
     case miopenInt8:
     case miopenBFloat16:
     case miopenInt32:
+    case miopenInt64:
     case miopenDouble:
     case miopenFloat8:
     case miopenBFloat8:

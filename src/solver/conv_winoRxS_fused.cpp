@@ -152,7 +152,7 @@ namespace fusion {
 bool ConvBinWinogradRxSf2x3g1Fused::IsApplicable(const FusionContext& context,
                                                  const FusionDescription& problem) const
 {
-    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_G1)))
+    if(env::disabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_G1))
         return false;
     if(!WinoCommonIsApplicable(context, problem))
         return false;

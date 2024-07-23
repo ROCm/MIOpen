@@ -81,6 +81,12 @@ MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DRIVER_PAD_BUFFERS_2M)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DRIVER_USE_GPU_REFERENCE)
 MIOPEN_DECLARE_ENV_VAR_UINT64(MIOPEN_DRIVER_SUBNORM_PERCENTAGE)
 
+// 0 - Allocate WS size as reported by the library (default)
+// 1 - Do not allocate workspace.
+// 2...16 - Allocate smaller WS. Size = default/value.
+// Other - The driver allocates workspace size equal to the value of the variable (in bytes).
+MIOPEN_DECLARE_ENV_VAR_UINT64(MIOPEN_DRIVER_CONV_WORKSPACE_SIZE_ADJUST)
+
 // Support in the library discontinued, but left in the driver
 // for reference in the future.
 #define miopenInt8x4 (static_cast<miopenDataType_t>(4))
@@ -136,6 +142,23 @@ private:
     bool naive_prev;
     bool quiet_prev;
 };
+
+static inline void AdjustWorkspacesizeVariableFromEnv(std::size_t& sz)
+{
+    auto adj = env::value(MIOPEN_DRIVER_CONV_WORKSPACE_SIZE_ADJUST);
+    if(adj == 0ULL)
+        return; // nop
+    auto sz_save = sz;
+    if(adj == 1ULL)
+        sz = 0ULL;
+    else if(1 <= adj && adj <= 16)
+        sz /= adj;
+    else
+        sz = adj;
+    MIOPEN_LOG_CUSTOM(
+        miopen::LoggingLevel::Info2, "MIOpenDriver", "From " << sz_save << " to " << sz);
+    return;
+}
 
 static inline miopenDataType_t DataTypeFromShortString(const std::string& type)
 {
@@ -205,7 +228,7 @@ public:
             return;
         }
 
-        for(int i = 0; i < sz; ++i)
+        for(size_t i = 0; i < sz; ++i)
         {
             /// \anchor move_rand
             /// Generate random value, even if buffer is unused. This provides the same
@@ -524,6 +547,13 @@ private:
     Timer2 wrw_auxiliary_gwss;
     Timer2 warmup_wall_total; // Counts also auxiliary time.
 
+    float ComputeAverageTime(const float total_time, const float first_time) const
+    {
+        if(num_iterations > 1)
+            return (total_time - first_time) / (num_iterations - 1);
+        return total_time;
+    }
+
     void PrintForwardTime(float kernel_total_time, float kernel_first_time) const;
     int RunForwardGpuImmed(bool is_transform);
     int RunForwardGpuFind(bool is_transform);
@@ -566,11 +596,21 @@ private:
                                   Tref* data) const;
     void TrySaveVerificationCache(const Direction& direction, std::vector<Tref>& data) const;
 
+    void DebugPrintWorkspaceDev() const
+    {
+        MIOPEN_LOG_CUSTOM(miopen::LoggingLevel::Info2,
+                          "MIOpenDriver",
+                          "ptr=" << (workspace_dev != nullptr ? workspace_dev->GetMem() : nullptr)
+                                 << " size="
+                                 << (workspace_dev != nullptr ? workspace_dev->GetSize() : 0ULL));
+    }
+
     void ResizeWorkspaceDev(context_t ctx, std::size_t size)
     {
         workspace_dev.reset();
         if(size > 0)
             workspace_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, size, 1));
+        DebugPrintWorkspaceDev();
     }
 
     // Helper functions, can be moved out of class.
@@ -942,7 +982,7 @@ int ConvDriver<Tgpu, Tref>::GetandSetData()
             static_cast<int>(miopenConvolutionFindModeNormal)); // Repeat via hidden API.
         miopenSetConvolutionGroupCount(warmupConvDesc, group_count);
 
-        int warmup_out_len_size = miopen::deref(warmupInputTensor).GetSize();
+        int warmup_out_len_size = miopen::deref(warmupInputTensor).GetNumDims();
         std::vector<int> warmup_out_len(warmup_out_len_size);
         miopenGetConvolutionNdForwardOutputDim(warmupConvDesc,
                                                warmupInputTensor,
@@ -1297,7 +1337,7 @@ int ConvDriver<Tgpu, Tref>::SetConvDescriptorFromCmdLineArgs()
 template <typename Tgpu, typename Tref>
 std::vector<int> ConvDriver<Tgpu, Tref>::GetOutputTensorLengths()
 {
-    int ndim = miopen::deref(inputTensor).GetSize();
+    int ndim = miopen::deref(inputTensor).GetNumDims();
 
     std::vector<int> out_lens(ndim);
 
@@ -1358,12 +1398,12 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     size_t in_sz  = GetTensorSize(inputTensor);
     size_t wei_sz = GetTensorSize(weightTensor);
     size_t out_sz = GetTensorSize(outputTensor);
-    auto subnorm_percentage = miopen::Value(ENV(MIOPEN_DRIVER_SUBNORM_PERCENTAGE));
+    auto subnorm_percentage = env::value(MIOPEN_DRIVER_SUBNORM_PERCENTAGE);
     if(subnorm_percentage != 0)
         std::cout << "MIOPEN_DRIVER_SUBNORM_PERCENTAGE = " << subnorm_percentage << std::endl;
 
     // Workaround: Pad buffers allocations to be a multiple of 2M
-    if(miopen::IsEnabled(ENV(MIOPEN_DRIVER_PAD_BUFFERS_2M)))
+    if(env::enabled(MIOPEN_DRIVER_PAD_BUFFERS_2M))
     {
         // PadBufferSize(in_sz, sizeof(Tgpu));
         PadBufferSize(wei_sz, sizeof(Tgpu));
@@ -1386,7 +1426,7 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
             size_t warmup_in_sz  = GetTensorSize(warmupInputTensor);
             size_t warmup_wei_sz = GetTensorSize(warmupWeightTensor);
             size_t warmup_out_sz = GetTensorSize(warmupOutputTensor);
-            if(miopen::IsEnabled(ENV(MIOPEN_DRIVER_PAD_BUFFERS_2M)))
+            if(env::enabled(MIOPEN_DRIVER_PAD_BUFFERS_2M))
             {
                 PadBufferSize(warmup_wei_sz, sizeof(warmup_Tgpu));
                 PadBufferSize(warmup_out_sz, sizeof(warmup_Tgpu));
@@ -1459,6 +1499,7 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
                                                                   &ws_sizeof_find_wrw);
             wrw_auxiliary_gwss.pause(wall_enabled);
             wrw_auxiliary.pause(wall_enabled);
+            AdjustWorkspacesizeVariableFromEnv(ws_sizeof_find_wrw);
         }
         if(is_bwd && rc == miopenStatusSuccess)
         {
@@ -1472,6 +1513,7 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
                                                                &ws_sizeof_find_bwd);
             bwd_auxiliary_gwss.pause(wall_enabled);
             bwd_auxiliary.pause(wall_enabled);
+            AdjustWorkspacesizeVariableFromEnv(ws_sizeof_find_bwd);
         }
         if(is_fwd && rc == miopenStatusSuccess)
         {
@@ -1486,6 +1528,7 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
                 &ws_sizeof_find_fwd);
             fwd_auxiliary_gwss.pause(wall_enabled);
             fwd_auxiliary.pause(wall_enabled);
+            AdjustWorkspacesizeVariableFromEnv(ws_sizeof_find_fwd);
         }
         if(rc != miopenStatusSuccess)
         {
@@ -1559,7 +1602,7 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
                 if(!biasFileName.empty())
                     read = readBufferFromFile<float>(b_int8.data(), b_sz, biasFileName.c_str());
                 if(!read)
-                    for(int i = 0; i < b_sz; i++)
+                    for(size_t i = 0; i < b_sz; ++i)
                         b_int8[i] = static_cast<float>(i % 8) + prng::gen_canonical<float>();
             }
             std::ignore = b.AllocOnDeviceAndInit(q, ctx, b_sz, b_int8);
@@ -1602,15 +1645,20 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
             if(!is_gpualloc)
             {
-                for(int i = 0; i < b_sz; i++)
+                for(size_t i = 0; i < b_sz; ++i)
                 {
                     if(!b_read)
                     {
-                        b.GetVector()[i] = static_cast<Tgpu>(i % 8)                         //
+                        /// (i % 8) can't be converted to F8 type as there is no suitable
+                        /// conversion, but we have conversions from int and from uint8_t.
+                        /// int is not good as it would produce negative results
+                        /// after truncation of size_t, while we want positive values.
+                        /// uint8_t is fine because (i % 8) fits into 3 bits.
+                        b.GetVector()[i] = static_cast<Tgpu>(static_cast<uint8_t>(i) % 8)   //
                                            + (is_fp8 ? prng::gen_A_to_B(Data_min, Data_max) //
                                                      : prng::gen_canonical<Tgpu>());
                     }
-                    db.GetVector()[i] = static_cast<Tgpu>(i % 8)                         //
+                    db.GetVector()[i] = static_cast<Tgpu>(static_cast<uint8_t>(i) % 8)   //
                                         + (is_fp8 ? prng::gen_A_to_B(Data_min, Data_max) //
                                                   : prng::gen_canonical<Tgpu>());
                 }
@@ -1698,7 +1746,7 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 template <typename Tgpu, typename Tref>
 bool ConvDriver<Tgpu, Tref>::UseGPUReference()
 {
-    if(!miopen::IsDisabled(ENV(MIOPEN_DRIVER_USE_GPU_REFERENCE)))
+    if(!env::disabled(MIOPEN_DRIVER_USE_GPU_REFERENCE))
     {
         if((miopen_type<Tref>{} == miopenFloat &&
             (miopen_type<Tgpu>{} == miopenFloat || miopen_type<Tgpu>{} == miopenHalf ||
@@ -1745,12 +1793,10 @@ template <typename Tgpu, typename Tref>
 void ConvDriver<Tgpu, Tref>::PrintForwardTime(const float kernel_total_time,
                                               const float kernel_first_time) const
 {
-    float kernel_average_time = num_iterations > 1
-                                    ? (kernel_total_time - kernel_first_time) / (num_iterations - 1)
-                                    : kernel_first_time;
+    float kernel_average_time = ComputeAverageTime(kernel_total_time, kernel_first_time);
     printf("GPU Kernel Time Forward Conv. Elapsed: %f ms (average)\n", kernel_average_time);
 
-    const auto num_dim = miopen::deref(inputTensor).GetSize() - 2;
+    const auto num_dim = miopen::deref(inputTensor).GetNumDims() - 2;
     if(num_dim != 2 && num_dim != 3)
     {
         printf("stats: <not implemented> for conv%dd\n", num_dim);
@@ -2108,20 +2154,29 @@ int ConvDriver<Tgpu, Tref>::RunForwardGpuFind(const bool is_transform)
 
     float alpha = static_cast<float>(1), beta = static_cast<float>(0);
 
-    float kernel_total_time = 0.0;
-    float kernel_first_time = 0.0;
+    float kernel_total_time = 0.f;
+    float kernel_first_time = 0.f;
+    float wall_first_time   = 0.f;
 
     const auto algo    = perf_results[0].fwd_algo; // use the fastest algo
     const auto ws_size = perf_results[0].memory;
     is_fwd_igemm       = (algo == miopenConvolutionFwdAlgoImplicitGEMM);
 
-    ResizeWorkspaceDev(ctx, ws_size);
-    wall.start(wall_enabled);
-
     auto in_tens  = (is_transform ? inputTensor_vect4 : inputTensor);
     auto in_buff  = (is_transform ? in_vect4_dev->GetMem() : in.GetDevicePtr());
     auto wei_tens = (is_transform ? weightTensor_vect4 : weightTensor);
     auto wei_buff = (is_transform ? wei_vect4_dev->GetMem() : wei.GetDevicePtr());
+
+    if(ws_size > ws_sizeof_find_fwd)
+    {
+        MIOPEN_LOG_CUSTOM(miopen::LoggingLevel::Error,
+                          "MIOpenDriver",
+                          "Find returns bigger workspace than provided " << ws_sizeof_find_fwd
+                                                                         << " < " << ws_size);
+        return miopenStatusInternalError;
+    }
+    ResizeWorkspaceDev(ctx, ws_size);
+    wall.start(wall_enabled);
 
     for(int i = 0; i < num_iterations; i++)
     {
@@ -2141,6 +2196,9 @@ int ConvDriver<Tgpu, Tref>::RunForwardGpuFind(const bool is_transform)
         if(rc != miopenStatusSuccess)
             return rc;
 
+        if(wall_enabled && i == 0)
+            wall_first_time = wall.interim_time_ms();
+
         if(time_enabled)
         {
             float time = 0.0;
@@ -2157,7 +2215,7 @@ int ConvDriver<Tgpu, Tref>::RunForwardGpuFind(const bool is_transform)
         fwd_auxiliary.stop();
         fwd_auxiliary_gwss.stop();
         std::cout << "Wall-clock Time Forward Conv. Elapsed: "
-                  << (wall.gettime_ms() / num_iterations) << " ms"
+                  << ComputeAverageTime(wall.gettime_ms(), wall_first_time) << " ms"
                   << ", Auxiliary API calls: " << fwd_auxiliary.gettime_ms() << " ms"
                   << " (GWSS: " << fwd_auxiliary_gwss.gettime_ms() << ')' << std::endl;
     }
@@ -2269,8 +2327,9 @@ int ConvDriver<Tgpu, Tref>::RunForwardGpuImmed(const bool is_transform)
     if(rc != miopenStatusSuccess)
         return rc;
 
-    float kernel_total_time = 0.0;
-    float kernel_first_time = 0.0;
+    float kernel_total_time = 0.f;
+    float kernel_first_time = 0.f;
+    float wall_first_time   = 0.f;
 
     wall.start(wall_enabled);
 
@@ -2291,17 +2350,16 @@ int ConvDriver<Tgpu, Tref>::RunForwardGpuImmed(const bool is_transform)
         if(rc != miopenStatusSuccess)
             return rc;
 
+        if(wall_enabled && i == 0)
+            wall_first_time = wall.interim_time_ms();
+
         if(time_enabled)
         {
             float time = 0.0;
             miopenGetKernelTime(GetHandle(), &time);
             kernel_total_time += time;
             if(i == 0)
-            {
                 kernel_first_time = time;
-                if(wall_enabled && num_iterations > 1)
-                    wall.start(); // The 1st is warm-up. Disregard it in wall time.
-            }
         }
     }
 
@@ -2310,9 +2368,8 @@ int ConvDriver<Tgpu, Tref>::RunForwardGpuImmed(const bool is_transform)
         wall.stop();
         fwd_auxiliary.stop();
         fwd_auxiliary_gwss.stop();
-        const auto wall_iterations = (num_iterations > 1 ? num_iterations - 1 : 1);
         std::cout << "Wall-clock Time Forward Conv. Elapsed: "
-                  << (wall.gettime_ms() / wall_iterations) << " ms"
+                  << ComputeAverageTime(wall.gettime_ms(), wall_first_time) << " ms"
                   << ", Auxiliary API calls: " << fwd_auxiliary.gettime_ms() << " ms"
                   << " (GWSS: " << fwd_auxiliary_gwss.gettime_ms() << ')' << std::endl;
     }
@@ -2415,7 +2472,7 @@ int ConvDriver<Tgpu, Tref>::RunForwardGPUReference()
         {
             auto out_tmp = tensor<Tgpu>(miopen::deref(outputTensor));
             out.CopyFromDeviceToHost(GetStream(), out_tmp);
-            for(int i = 0; i < out_tmp.data.size(); i++)
+            for(size_t i = 0; i < out_tmp.data.size(); ++i)
             {
                 outhost.data[i] = static_cast<Tref>(out_tmp.data[i]);
             }
@@ -2571,14 +2628,23 @@ int ConvDriver<Tgpu, Tref>::RunBackwardDataGpuFind()
     if(ret_algo_count == 0)
         throw std::runtime_error("Find Backward Data Conv. ret_algo_count == 0");
 
-    float kernel_total_time = 0.0;
-    float kernel_first_time = 0.0;
+    float kernel_total_time = 0.f;
+    float kernel_first_time = 0.f;
+    float wall_first_time   = 0.f;
     float alpha = static_cast<float>(1), beta = static_cast<float>(0);
 
     const auto algo    = perf_results_data[0].bwd_data_algo;
     const auto ws_size = perf_results_data[0].memory;
     is_bwd_igemm       = (algo == miopenConvolutionBwdDataAlgoImplicitGEMM);
 
+    if(ws_size > ws_sizeof_find_bwd)
+    {
+        MIOPEN_LOG_CUSTOM(miopen::LoggingLevel::Error,
+                          "MIOpenDriver",
+                          "Find returns bigger workspace than provided " << ws_sizeof_find_bwd
+                                                                         << " < " << ws_size);
+        return miopenStatusInternalError;
+    }
     ResizeWorkspaceDev(ctx, ws_size);
     wall.start(wall_enabled);
 
@@ -2601,6 +2667,9 @@ int ConvDriver<Tgpu, Tref>::RunBackwardDataGpuFind()
         if(rc != miopenStatusSuccess)
             return rc;
 
+        if(wall_enabled && i == 0)
+            wall_first_time = wall.interim_time_ms();
+
         if(time_enabled)
         {
             float time = 0.0;
@@ -2617,7 +2686,7 @@ int ConvDriver<Tgpu, Tref>::RunBackwardDataGpuFind()
         bwd_auxiliary.stop();
         bwd_auxiliary_gwss.stop();
         std::cout << "Wall-clock Time Backward Data Conv. Elapsed: "
-                  << (wall.gettime_ms() / num_iterations) << " ms"
+                  << ComputeAverageTime(wall.gettime_ms(), wall_first_time) << " ms"
                   << ", Auxiliary API calls: " << bwd_auxiliary.gettime_ms() << " ms"
                   << " (GWSS: " << bwd_auxiliary_gwss.gettime_ms() << ')' << std::endl;
     }
@@ -2642,13 +2711,10 @@ int ConvDriver<Tgpu, Tref>::RunBackwardDataGpuFind()
 template <typename Tgpu, typename Tref>
 void ConvDriver<Tgpu, Tref>::PrintBackwardDataTime(float kernel_total_time, float kernel_first_time)
 {
-    float kernel_average_time = num_iterations > 1
-                                    ? (kernel_total_time - kernel_first_time) / (num_iterations - 1)
-                                    : kernel_first_time;
-
+    float kernel_average_time = ComputeAverageTime(kernel_total_time, kernel_first_time);
     printf("GPU Kernel Time Backward Data Conv. Elapsed: %f ms (average)\n", kernel_average_time);
 
-    const auto num_dim = miopen::deref(inputTensor).GetSize() - 2;
+    const auto num_dim = miopen::deref(inputTensor).GetNumDims() - 2;
     if(num_dim != 2 && num_dim != 3)
     {
         printf("stats: <not implemented> for conv%dd\n", num_dim);
@@ -2757,8 +2823,9 @@ int ConvDriver<Tgpu, Tref>::RunBackwardWrwGpuFind()
     int ret_algo_count;
     int request_algo_count = 2;
 
-    float kernel_total_time = 0.0;
-    float kernel_first_time = 0.0;
+    float kernel_total_time = 0.f;
+    float kernel_first_time = 0.f;
+    float wall_first_time   = 0.f;
 
     float alpha = static_cast<float>(1), beta = static_cast<float>(0);
     std::vector<miopenConvAlgoPerf_t> perf_results_weights(request_algo_count);
@@ -2775,14 +2842,19 @@ int ConvDriver<Tgpu, Tref>::RunBackwardWrwGpuFind()
     if(ret_algo_count == 0)
         throw std::runtime_error("Find Backward Weights Conv. ret_algo_count == 0");
 
-    kernel_total_time = 0.0;
-    kernel_first_time = 0.0;
-
     const auto algo    = perf_results_weights[0].bwd_weights_algo;
     const auto ws_size = perf_results_weights[0].memory;
     is_wrw_winograd    = (algo == miopenConvolutionBwdWeightsAlgoWinograd);
     is_wrw_igemm       = (algo == miopenConvolutionBwdWeightsAlgoImplicitGEMM);
 
+    if(ws_size > ws_sizeof_find_wrw)
+    {
+        MIOPEN_LOG_CUSTOM(miopen::LoggingLevel::Error,
+                          "MIOpenDriver",
+                          "Find returns bigger workspace than provided " << ws_sizeof_find_wrw
+                                                                         << " < " << ws_size);
+        return miopenStatusInternalError;
+    }
     ResizeWorkspaceDev(ctx, ws_size);
     wall.start(wall_enabled);
 
@@ -2805,6 +2877,9 @@ int ConvDriver<Tgpu, Tref>::RunBackwardWrwGpuFind()
         if(rc != miopenStatusSuccess)
             return rc;
 
+        if(wall_enabled && i == 0)
+            wall_first_time = wall.interim_time_ms();
+
         if(time_enabled)
         {
             float time = 0.0;
@@ -2821,7 +2896,7 @@ int ConvDriver<Tgpu, Tref>::RunBackwardWrwGpuFind()
         wrw_auxiliary.stop();
         wrw_auxiliary_gwss.stop();
         std::cout << "Wall-clock Time Backward Weights Conv. Elapsed: "
-                  << (wall.gettime_ms() / num_iterations) << " ms"
+                  << ComputeAverageTime(wall.gettime_ms(), wall_first_time) << " ms"
                   << ", Auxiliary API calls: " << wrw_auxiliary.gettime_ms() << " ms"
                   << " (GWSS: " << wrw_auxiliary_gwss.gettime_ms() << ')' << std::endl;
     }
@@ -2846,17 +2921,11 @@ int ConvDriver<Tgpu, Tref>::RunBackwardWrwGpuFind()
 template <typename Tgpu, typename Tref>
 void ConvDriver<Tgpu, Tref>::PrintBackwardWrwTime(float kernel_total_time, float kernel_first_time)
 {
-    float time = 0.0;
-    miopenGetKernelTime(GetHandle(), &time);
-
-    float kernel_average_time = num_iterations > 1
-                                    ? (kernel_total_time - kernel_first_time) / (num_iterations - 1)
-                                    : kernel_first_time;
-
+    float kernel_average_time = ComputeAverageTime(kernel_total_time, kernel_first_time);
     printf("GPU Kernel Time Backward Weights Conv. Elapsed: %f ms (average)\n",
            kernel_average_time);
 
-    const auto num_dim = miopen::deref(inputTensor).GetSize() - 2;
+    const auto num_dim = miopen::deref(inputTensor).GetNumDims() - 2;
     if(num_dim != 2 && num_dim != 3)
     {
         printf("stats: <not implemented> for conv%dd\n", num_dim);
@@ -2923,7 +2992,7 @@ void ConvDriver<Tgpu, Tref>::PrintBackwardWrwTime(float kernel_total_time, float
             "stats: name, n, c, do, ho, wo, z, x, y, k, flopCnt, bytesRead, bytesWritten, GFLOPs, "
             "GB/s, timeMs\n");
         printf("stats: %s%dx%dx%du%d, %u, %u, %u, %u, %u, %u, %u, %u, %u,  %zu, %zu, %zu, %.0f, "
-               "%.0f, %f\n ",
+               "%.0f, %f\n",
                "bwdw-conv",
                wei_d,
                wei_h,
@@ -3020,8 +3089,9 @@ int ConvDriver<Tgpu, Tref>::RunBackwardDataGpuImmed()
         handle, outputTensor, weightTensor, convDesc, inputTensor, selected->solution_id);
     bwd_auxiliary.pause(wall_enabled);
 
-    float kernel_total_time = 0.0;
-    float kernel_first_time = 0.0;
+    float kernel_total_time = 0.f;
+    float kernel_first_time = 0.f;
+    float wall_first_time   = 0.f;
 
     wall.start(wall_enabled);
 
@@ -3041,17 +3111,16 @@ int ConvDriver<Tgpu, Tref>::RunBackwardDataGpuImmed()
         if(rc != miopenStatusSuccess)
             return rc;
 
+        if(wall_enabled && i == 0)
+            wall_first_time = wall.interim_time_ms();
+
         if(time_enabled)
         {
             float time = 0.0;
             miopenGetKernelTime(GetHandle(), &time);
             kernel_total_time += time;
             if(i == 0)
-            {
                 kernel_first_time = time;
-                if(wall_enabled && num_iterations > 1)
-                    wall.start();
-            }
         }
     }
 
@@ -3060,9 +3129,8 @@ int ConvDriver<Tgpu, Tref>::RunBackwardDataGpuImmed()
         wall.stop();
         bwd_auxiliary.stop();
         bwd_auxiliary_gwss.stop();
-        const auto wall_iterations = (num_iterations > 1 ? num_iterations - 1 : 1);
         std::cout << "Wall-clock Time Backward Data Conv. Elapsed: "
-                  << (wall.gettime_ms() / wall_iterations) << " ms"
+                  << ComputeAverageTime(wall.gettime_ms(), wall_first_time) << " ms"
                   << ", Auxiliary API calls: " << bwd_auxiliary.gettime_ms() << " ms"
                   << " (GWSS: " << bwd_auxiliary_gwss.gettime_ms() << ')' << std::endl;
     }
@@ -3150,8 +3218,9 @@ int ConvDriver<Tgpu, Tref>::RunBackwardWrwGpuImmed()
         handle, outputTensor, inputTensor, convDesc, weightTensor, selected->solution_id);
     wrw_auxiliary.pause(wall_enabled);
 
-    float kernel_total_time = 0.0;
-    float kernel_first_time = 0.0;
+    float kernel_total_time = 0.f;
+    float kernel_first_time = 0.f;
+    float wall_first_time   = 0.f;
 
     wall.start(wall_enabled);
 
@@ -3171,17 +3240,16 @@ int ConvDriver<Tgpu, Tref>::RunBackwardWrwGpuImmed()
         if(rc != miopenStatusSuccess)
             return rc;
 
+        if(wall_enabled && i == 0)
+            wall_first_time = wall.interim_time_ms();
+
         if(time_enabled)
         {
             float time = 0.0;
             miopenGetKernelTime(GetHandle(), &time);
             kernel_total_time += time;
             if(i == 0)
-            {
                 kernel_first_time = time;
-                if(wall_enabled && num_iterations > 1)
-                    wall.start();
-            }
         }
     }
 
@@ -3190,9 +3258,8 @@ int ConvDriver<Tgpu, Tref>::RunBackwardWrwGpuImmed()
         wall.stop();
         wrw_auxiliary.stop();
         wrw_auxiliary_gwss.stop();
-        const auto wall_iterations = (num_iterations > 1 ? num_iterations - 1 : 1);
         std::cout << "Wall-clock Time Backward Weights Conv. Elapsed: "
-                  << (wall.gettime_ms() / wall_iterations) << " ms"
+                  << ComputeAverageTime(wall.gettime_ms(), wall_first_time) << " ms"
                   << ", Auxiliary API calls: " << wrw_auxiliary.gettime_ms() << " ms"
                   << " (GWSS: " << wrw_auxiliary_gwss.gettime_ms() << ')' << std::endl;
     }
@@ -3326,7 +3393,7 @@ int ConvDriver<Tgpu, Tref>::RunBackwardWeightsGPUReference()
         {
             auto dwei_tmp = tensor<Tgpu>(miopen::deref(weightTensor));
             dwei.CopyFromDeviceToHost(GetStream(), dwei_tmp);
-            for(int i = 0; i < dwei_tmp.data.size(); i++)
+            for(size_t i = 0; i < dwei_tmp.data.size(); ++i)
             {
                 dwei_host.data[i] = static_cast<Tref>(dwei_tmp.data[i]);
             }
@@ -3377,7 +3444,7 @@ int ConvDriver<Tgpu, Tref>::RunBackwardDataGPUReference()
         {
             auto din_tmp = tensor<Tgpu>(miopen::deref(inputTensor));
             din.CopyFromDeviceToHost(GetStream(), din_tmp);
-            for(int i = 0; i < din_tmp.data.size(); i++)
+            for(size_t i = 0; i < din_tmp.data.size(); ++i)
             {
                 din_host.data[i] = static_cast<Tref>(din_tmp.data[i]);
             }
@@ -3432,6 +3499,10 @@ std::string ConvDriver<Tgpu, Tref>::GetVerificationCacheFileName(
         if(std::is_same<decltype(type), int8_t>::value)
         {
             return "int8";
+        }
+        if(std::is_same<decltype(type), int32_t>::value)
+        {
+            return "int32";
         }
         else if(std::is_same<decltype(type), float16>::value)
         {

@@ -149,7 +149,7 @@ public:
     {
         assert(!gdims.empty() && gdims.size() <= 3);
         assert(!ldims.empty() && ldims.size() <= 3);
-        if(std::accumulate(ldims.begin(), ldims.end(), 1, std::multiplies<size_t>{}) >
+        if(std::accumulate(ldims.begin(), ldims.end(), 1ULL, std::multiplies<size_t>{}) >
            256) // FIXME: get ldims limit from runtime
         {
             std::fill(ldims.begin(), ldims.end(), 0);

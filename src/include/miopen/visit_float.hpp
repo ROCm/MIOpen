@@ -28,11 +28,7 @@
 #define GUARD_MLOPEN_VISIT_FLOAT_HPP
 
 #include <miopen/miopen.h>
-#if !defined(_WIN32)
 #include <half/half.hpp>
-#else
-#include <half.hpp>
-#endif
 #include <miopen/bfloat16.hpp>
 
 namespace miopen {
@@ -89,6 +85,10 @@ void visit_float(miopenDataType_t t, F f)
     }
     case miopenDouble: {
         f(as_float<double>{});
+        break;
+    }
+    case miopenInt64: {
+        f(as_float<int64_t>{});
         break;
     }
     }

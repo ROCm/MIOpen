@@ -45,6 +45,7 @@
 #include <mutex>
 #include <limits>
 #include <random>
+#include <shared_mutex>
 #include <string>
 #include <thread>
 #include <vector>
@@ -72,14 +73,14 @@ static fs::path& exe_path()
     return exe_path;
 }
 
-static boost::optional<std::string>& thread_logs_root()
+static boost::optional<fs::path>& thread_logs_root()
 {
     // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
     static std::mutex mutex;
     std::lock_guard<std::mutex> lock(mutex);
 
     // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
-    static boost::optional<std::string> path(boost::none);
+    static boost::optional<fs::path> path(boost::none);
     return path;
 }
 
@@ -284,7 +285,7 @@ protected:
     }
 
     template <class TKey, class TValue, size_t count>
-    static void RawWrite(const std::string& db_path,
+    static void RawWrite(const fs::path& db_path,
                          const TKey& key,
                          const std::array<std::pair<const std::string, TValue>, count> values)
     {
@@ -370,7 +371,7 @@ public:
         }
 
         std::string read;
-        EXPECT(std::getline(std::ifstream(temp_file), read).good());
+        EXPECT(std::getline(std::ifstream(temp_file.Path()), read).good());
 
         TDb db{DbKinds::PerfDb, temp_file};
         ValidateSingleEntry(key(), common_data(), db);
@@ -498,7 +499,7 @@ public:
         }
 
         std::string read;
-        EXPECT(std::getline(std::ifstream(temp_file), read).good());
+        EXPECT(std::getline(std::ifstream(temp_file.Path()), read).good());
 
         TDb db{DbKinds::PerfDb, temp_file};
         ValidateSingleEntry(key(), common_data(), db);
@@ -711,9 +712,9 @@ private:
         if(thread_logs_root())
         {
             const auto out_path =
-                *thread_logs_root() + "/thread-" + std::to_string(id) + "_" + log_postfix + ".log";
-            const auto err_path = *thread_logs_root() + "/thread-" + std::to_string(id) + "_" +
-                                  log_postfix + "-err.log";
+                *thread_logs_root() / ("thread-" + std::to_string(id) + "_" + log_postfix + ".log");
+            const auto err_path = *thread_logs_root() /
+                                  ("thread-" + std::to_string(id) + "_" + log_postfix + "-err.log");
 
             fs::remove(out_path);
             fs::remove(err_path);
@@ -881,7 +882,7 @@ public:
                           "Testing " << ArgsHelper::db_class::Get<TDb>()
                                      << " for multithreaded write access...");
 
-        std::mutex mutex;
+        std::shared_mutex mutex;
         std::vector<std::thread> threads;
 
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Initializing test data...");
@@ -889,16 +890,16 @@ public:
 
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Launching test threads...");
         threads.reserve(DBMultiThreadedTestWork::threads_count);
-        const std::string p = temp_file;
-        const auto c        = [&p]() MIOPEN_RETURNS(GetDbInstance<TDb>(DbKinds::PerfDb, p, false));
+        const auto c = [this]()
+            MIOPEN_RETURNS(GetDbInstance<TDb>(DbKinds::PerfDb, temp_file, false));
 
         {
-            std::unique_lock<std::mutex> lock(mutex);
+            std::unique_lock<std::shared_mutex> lock(mutex);
 
             for(auto i = 0u; i < DBMultiThreadedTestWork::threads_count; i++)
             {
                 auto thread_body = [c, &mutex, i]() {
-                    (void)std::unique_lock<std::mutex>(mutex);
+                    std::shared_lock<std::shared_mutex> lock(mutex);
                     DBMultiThreadedTestWork::WorkItem(i, c, "mt");
                 };
 
@@ -929,24 +930,24 @@ public:
                           "Testing " << ArgsHelper::db_class::Get<TDb>()
                                      << " for multithreaded read access...");
 
-        std::mutex mutex;
+        std::shared_mutex mutex;
         std::vector<std::thread> threads;
 
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Initializing test data...");
-        const std::string p = temp_file;
-        const auto c        = [&p]() MIOPEN_RETURNS(GetDbInstance<TDb>(DbKinds::PerfDb, p, false));
+        const auto c = [this]()
+            MIOPEN_RETURNS(GetDbInstance<TDb>(DbKinds::PerfDb, temp_file, false));
         DBMultiThreadedTestWork::FillForReading(c);
 
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Launching test threads...");
         threads.reserve(DBMultiThreadedTestWork::threads_count);
 
         {
-            std::unique_lock<std::mutex> lock(mutex);
+            std::unique_lock<std::shared_mutex> lock(mutex);
 
             for(auto i = 0u; i < DBMultiThreadedTestWork::threads_count; i++)
             {
                 threads.emplace_back([c, &mutex, i]() {
-                    (void)std::unique_lock<std::mutex>(mutex);
+                    std::shared_lock<std::shared_mutex> lock(mutex);
                     DBMultiThreadedTestWork::ReadWorkItem(i, c, "mt");
                 });
             }
@@ -979,7 +980,7 @@ public:
 
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Launching test processes...");
         {
-            auto& file_lock = LockFile::Get(lock_file_path.c_str());
+            auto& file_lock = LockFile::Get(lock_file_path);
             std::shared_lock<LockFile> lock(file_lock);
 
             auto id = 0;
@@ -1014,18 +1015,18 @@ public:
 
         fs::remove(lock_file_path);
 
-        const std::string p = temp_file;
-        const auto c        = [&p]() MIOPEN_RETURNS(GetDbInstance<TDb>(DbKinds::PerfDb, p, false));
+        const auto c = [this]()
+            MIOPEN_RETURNS(GetDbInstance<TDb>(DbKinds::PerfDb, temp_file, false));
 
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Validating results...");
         DBMultiThreadedTestWork::ValidateCommonPart(c);
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Validation passed...");
     }
 
-    static void WorkItem(unsigned int id, const std::string& db_path, bool write)
+    static void WorkItem(unsigned int id, const fs::path& db_path, bool write)
     {
         {
-            auto& file_lock = LockFile::Get(LockFilePath(db_path).c_str());
+            auto& file_lock = LockFile::Get(LockFilePath(db_path));
             std::lock_guard<LockFile> lock(file_lock);
         }
 
@@ -1039,7 +1040,7 @@ public:
     }
 
 private:
-    static std::string LockFilePath(const std::string& db_path) { return db_path + ".test.lock"; }
+    static fs::path LockFilePath(const fs::path& db_path) { return db_path + ".test.lock"; }
 };
 
 template <class TDb>
@@ -1059,13 +1060,13 @@ public:
         const auto lock_file_path = LockFilePath(temp_file);
 
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Initializing test data...");
-        std::string p = temp_file;
-        const auto c  = [&p]() MIOPEN_RETURNS(GetDbInstance<TDb>(DbKinds::PerfDb, p, false));
+        const auto c = [this]()
+            MIOPEN_RETURNS(GetDbInstance<TDb>(DbKinds::PerfDb, temp_file, false));
         DBMultiThreadedTestWork::FillForReading(c);
 
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Launching test processes...");
         {
-            auto& file_lock = LockFile::Get(lock_file_path.c_str());
+            auto& file_lock = LockFile::Get(lock_file_path);
             std::shared_lock<LockFile> lock(file_lock);
 
             auto id = 0;
@@ -1075,7 +1076,7 @@ public:
             {
                 auto args =
                     std::string{"--"} + ArgsHelper::id_arg + " " + std::to_string(id++) +
-                               " --" + ArgsHelper::path_arg + " " + p +
+                               " --" + ArgsHelper::path_arg + " " + temp_file +
                                " --" + ArgsHelper::db_class_arg + " " + ArgsHelper::db_class::Get<TDb>();
 
                 if(thread_logs_root())
@@ -1101,10 +1102,10 @@ public:
         fs::remove(lock_file_path);
     }
 
-    static void WorkItem(unsigned int id, const std::string& db_path)
+    static void WorkItem(unsigned int id, const fs::path& db_path)
     {
         {
-            auto& file_lock = LockFile::Get(LockFilePath(db_path).c_str());
+            auto& file_lock = LockFile::Get(LockFilePath(db_path));
             std::lock_guard<LockFile> lock(file_lock);
         }
 
@@ -1114,7 +1115,7 @@ public:
     }
 
 private:
-    static std::string LockFilePath(const std::string& db_path) { return db_path + ".test.lock"; }
+    static fs::path LockFilePath(const fs::path& db_path) { return db_path + ".test.lock"; }
 };
 
 class DbMultiFileTest : public DbTest
@@ -1122,7 +1123,7 @@ class DbMultiFileTest : public DbTest
 protected:
     DbMultiFileTest(TempFile& temp_file_) : DbTest(temp_file_) {}
 
-    std::string user_db_path = temp_file.Path() + ".user";
+    fs::path user_db_path = temp_file.Path() + ".user";
 
     void ResetDb()
     {
@@ -1235,7 +1236,7 @@ public:
         }
 
         std::string read;
-        EXPECT(!std::getline(std::ifstream(temp_file), read).good());
+        EXPECT(!std::getline(std::ifstream(temp_file.Path()), read).good());
         EXPECT(std::getline(std::ifstream(user_db_path), read).good());
 
         auto db = MultiFileDb<ReadonlyRamDb, RamDb, true>{DbKinds::PerfDb, temp_file, user_db_path};
@@ -1345,14 +1346,13 @@ public:
         MIOPEN_LOG_CUSTOM(
             LoggingLevel::Default, "Test", "Testing db for multifile multithreaded read access...");
 
-        std::mutex mutex;
+        std::shared_mutex mutex;
         std::vector<std::thread> threads;
 
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Initializing test data...");
-        const std::string p = temp_file;
-        const auto& up      = user_db_path;
-        const auto c        = [&p, up]() {
-            return MultiFileDb<ReadonlyRamDb, RamDb, true>(DbKinds::PerfDb, p, up);
+        const auto c = [this]() {
+            return MultiFileDb<ReadonlyRamDb, RamDb, true>(
+                DbKinds::PerfDb, temp_file, user_db_path);
         };
         ResetDb();
         DBMultiThreadedTestWork::FillForReading(c);
@@ -1361,12 +1361,12 @@ public:
         threads.reserve(DBMultiThreadedTestWork::threads_count);
 
         {
-            std::unique_lock<std::mutex> lock(mutex);
+            std::unique_lock<std::shared_mutex> lock(mutex);
 
             for(auto i = 0u; i < DBMultiThreadedTestWork::threads_count; i++)
             {
                 threads.emplace_back([c, &mutex, i]() {
-                    (void)std::unique_lock<std::mutex>(mutex);
+                    std::shared_lock<std::shared_mutex> lock(mutex);
                     DBMultiThreadedTestWork::ReadWorkItem(i, c, "mt");
                 });
             }
@@ -1391,7 +1391,7 @@ public:
                           "Test",
                           "Testing db for multifile multithreaded write access...");
 
-        std::mutex mutex;
+        std::shared_mutex mutex;
         std::vector<std::thread> threads;
 
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Initializing test data...");
@@ -1399,19 +1399,18 @@ public:
 
         MIOPEN_LOG_CUSTOM(LoggingLevel::Default, "Test", "Launching test threads...");
         threads.reserve(DBMultiThreadedTestWork::threads_count);
-        const std::string p = temp_file;
-        const auto up       = user_db_path;
-        const auto c        = [&p, &up]() {
-            return MultiFileDb<ReadonlyRamDb, RamDb, true>(DbKinds::PerfDb, p, up);
+        const auto c = [this]() {
+            return MultiFileDb<ReadonlyRamDb, RamDb, true>(
+                DbKinds::PerfDb, temp_file, user_db_path);
         };
 
         {
-            std::unique_lock<std::mutex> lock(mutex);
+            std::unique_lock<std::shared_mutex> lock(mutex);
 
             for(auto i = 0u; i < DBMultiThreadedTestWork::threads_count; i++)
             {
                 threads.emplace_back([c, &mutex, i]() {
-                    (void)std::unique_lock<std::mutex>(mutex);
+                    std::shared_lock<std::shared_mutex> lock(mutex);
                     DBMultiThreadedTestWork::WorkItem(i, c, "mt");
                 });
             }
@@ -1483,7 +1482,7 @@ private:
     std::string logs_root;
 
     int mt_child_id = -1;
-    std::string mt_child_db_path;
+    fs::path mt_child_db_path;
     std::string mt_child_db_class;
 
     template <class TDb>

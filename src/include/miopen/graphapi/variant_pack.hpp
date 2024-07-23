@@ -83,6 +83,9 @@ public:
     {
     }
 
+    const auto& getTensorIds() const noexcept { return mTensorIds; }
+    const auto& getDataPtrs() const noexcept { return mDataPointers; }
+
     void* getDataPointer(int64_t tensorId) const
     {
         assert(mTensorIds.size() == mDataPointers.size());
@@ -225,6 +228,7 @@ public:
                               int64_t* elementCount,
                               void* arrayOfElements) override;
 
+    /// \todo return const ref and ref --amberhassaan May, 2024
     const VariantPack* getVariantPack() const { return &mVariantPack; }
     VariantPack* getVariantPack() { return &mVariantPack; }
 };

@@ -68,6 +68,40 @@ struct Layernorm4DCKForward final : NormalizationSolver
                              const miopen::layernorm::ProblemDescription& problem) const override;
 };
 
+struct AddLayernormForward final : NormalizationSolver
+{
+    const std::string& SolverDbId() const override { return GetSolverDbId<AddLayernormForward>(); }
+
+    bool IsApplicable(const ExecutionContext& context,
+                      const miopen::layernorm::ProblemDescription& problem) const override;
+    ConvSolution GetSolution(const ExecutionContext& context,
+                             const miopen::layernorm::ProblemDescription& problem) const override;
+};
+
+struct T5LayernormForward final : NormalizationSolver
+{
+    const std::string& SolverDbId() const override { return GetSolverDbId<T5LayernormForward>(); }
+
+    bool IsApplicable(const ExecutionContext& context,
+                      const miopen::layernorm::ProblemDescription& problem) const override;
+    ConvSolution GetSolution(const ExecutionContext& context,
+                             const miopen::layernorm::ProblemDescription& problem) const override;
+};
+
+struct T5LayernormBackward final : NormalizationSolver
+{
+    const std::string& SolverDbId() const override { return GetSolverDbId<T5LayernormBackward>(); }
+
+    bool IsApplicable(const ExecutionContext& context,
+                      const miopen::layernorm::ProblemDescription& problem) const override;
+    ConvSolution GetSolution(const ExecutionContext& context,
+                             const miopen::layernorm::ProblemDescription& problem) const override;
+    std::size_t
+    GetWorkspaceSize(const ExecutionContext& context,
+                     const miopen::layernorm::ProblemDescription& problem) const override;
+    bool MayNeedWorkspace() const override { return true; }
+};
+
 } // namespace layernorm
 
 } // namespace solver

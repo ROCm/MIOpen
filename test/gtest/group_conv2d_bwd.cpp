@@ -31,5 +31,6 @@ using namespace group_conv;
 
 DEFINE_GROUP_CONV2D_TEST(float, BackwardData);
 DEFINE_GROUP_CONV2D_TEST(half, BackwardData);
+DEFINE_GROUP_CONV2D_TEST(bfloat16, BackwardData);
 /// \todo int8_t tests don't work. Need debugging
 // DEFINE_GROUP_CONV2D_TEST(int8_t, BackwardData);

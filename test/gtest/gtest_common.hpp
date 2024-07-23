@@ -103,7 +103,7 @@ bool IsTestSupportedForDevMask()
     if constexpr(test(Gpu::gfx908))
         res = res || (dev == "gfx908");
     if constexpr(test(Gpu::gfx90A))
-        res = res || (dev == "gfx90A");
+        res = res || (dev == "gfx90a");
     if constexpr(test(Gpu::gfx94X))
         res = res || (miopen::StartsWith(dev, "gfx94"));
     if constexpr(test(Gpu::gfx103X))
@@ -142,9 +142,7 @@ template <typename Case>
 std::vector<std::string> get_args(const Case& param)
 {
     const auto& [env_tuple, cmd] = param;
-    std::apply(
-        [](const auto&... env) { (miopen::UpdateEnvVar(std::get<0>(env), std::get<1>(env)), ...); },
-        env_tuple);
+    std::apply([](const auto&... env) { (env::update(env.first, env.second), ...); }, env_tuple);
 
     std::stringstream ss(cmd);
     std::istream_iterator<std::string> begin(ss);

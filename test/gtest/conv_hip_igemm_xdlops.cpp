@@ -64,6 +64,7 @@ void Run2dDriver(miopenDataType_t prec)
     case miopenBFloat16:
     case miopenFloat:
     case miopenInt32:
+    case miopenInt64:
     case miopenDouble:
         FAIL() << "miopenHalf, miopenBFloat16, miopenFloat, miopenInt32, "
                   "miopenDouble data "
@@ -151,8 +152,8 @@ TEST_P(ConvHipIgemmXdlopsConfigInt8, Int8Test)
 
 #else // MIOPEN_BACKEND_HIP, OCL_DISABLED
     const auto& handle = get_handle();
-    if(IsTestSupportedForDevice(handle) && miopen::IsEnabled(ENV(MIOPEN_TEST_COMPOSABLEKERNEL)) &&
-       miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && IsTestRunWith("--int8"))
+    if(IsTestSupportedForDevice(handle) && env::enabled(MIOPEN_TEST_COMPOSABLEKERNEL) &&
+       env::enabled(MIOPEN_TEST_ALL) && IsTestRunWith("--int8"))
     {
         Run2dDriver(miopenInt8);
     }

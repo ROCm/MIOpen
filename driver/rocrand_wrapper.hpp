@@ -34,11 +34,7 @@
 // definitions are different.
 
 #include <boost/core/demangle.hpp>
-#if !defined(_WIN32)
 #include <half/half.hpp>
-#else
-#include <half.hpp>
-#endif
 
 #include <iostream>
 #include <typeinfo>

@@ -38,15 +38,9 @@
 #include <miopen/fusion/solvers.hpp>
 #include <miopen/fusion/fusion_invoke_params.hpp>
 
-#if !defined(_WIN32)
 #include <half/half.hpp>
-#else
-#include <half.hpp>
-#endif
 
 using half_float::half;
-
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_GCN_ASM_KERNELS)
 
 namespace miopen {
 namespace solver {
@@ -222,7 +216,7 @@ bool ConvBiasActivAsm1x1U::IsApplicable(const FusionContext& context,
     {
         MIOPEN_THROW("");
     }
-    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_GCN_ASM_KERNELS)))
+    if(!context.use_asm_kernels)
         return false;
     // check the sequence of prims
     if(desc.op_map.size() > 3)
