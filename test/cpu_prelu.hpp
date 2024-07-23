@@ -27,7 +27,7 @@
 #pragma once
 
 #include "tensor_holder.hpp"
-#include <miopen/prelu/utils.hpp>
+#include <miopen/tensor_view_utils.hpp>
 
 template <class T>
 void cpu_prelu_backward(const tensor<T> input,
@@ -39,9 +39,9 @@ void cpu_prelu_backward(const tensor<T> input,
                         const bool has_dweight = true)
 {
     auto N              = input.desc.GetElementSize();
-    auto input_tv       = miopen::solver::prelu::get_inner_expanded_tv<5>(input.desc);
-    auto output_grad_tv = miopen::solver::prelu::get_inner_expanded_tv<5>(output_grad.desc);
-    auto input_grad_tv  = miopen::solver::prelu::get_inner_expanded_tv<5>(ref_input_grad.desc);
+    auto input_tv       = miopen::get_inner_expanded_tv<5>(input.desc);
+    auto output_grad_tv = miopen::get_inner_expanded_tv<5>(output_grad.desc);
+    auto input_grad_tv  = miopen::get_inner_expanded_tv<5>(ref_input_grad.desc);
 
     auto weight_grad_collector = std::vector<float>(N);
 

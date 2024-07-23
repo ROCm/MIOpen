@@ -23,31 +23,59 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#pragma once
 
-#include <miopen/kernel_build_params.hpp>
-#include <miopen/problem_description_base.hpp>
+#ifndef MIOPEN_TENSOR_VIEW_UTIL_HPP_
+#define MIOPEN_TENSOR_VIEW_UTIL_HPP_
+
+#include <miopen/common.hpp>
 #include <miopen/tensor.hpp>
-#include <miopen/solver.hpp>
+#include "../../kernels/tensor_view.hpp"
 
 namespace miopen {
-namespace solver {
-namespace prelu {
 
-KernelInfo make_hip_kernel(std::vector<size_t> localsize,
-                           std::vector<size_t> gridsize,
-                           std::string kernel_file,
-                           std::string kernel_name,
-                           KernelBuildParameters build_params);
+template <int N>
+inline tensor_view_t<N> get_inner_expanded_tv(const TensorDescriptor Desc)
+{
+    auto dims    = Desc.GetLengths();
+    auto strides = Desc.GetStrides();
 
-size_t get_reqd_work_item_cnt(const ExecutionContext& context, size_t local_size);
+    tensor_view_t<N> tensor_view;
+    for(size_t i = 0; i < N; ++i)
+    {
+        if(i < dims.size())
+        {
+            tensor_view.stride[i] = strides[i];
+            tensor_view.size[i]   = dims[i];
+        }
+        else
+        {
+            tensor_view.stride[i] = (i == 0 ? 1 : strides[i - 1]);
+            tensor_view.size[i]   = 1;
+        }
+    }
+    return tensor_view;
+}
 
-size_t get_reqd_work_item_cnt(const Handle& handle, size_t local_size);
+template <int N>
+inline void slice_tv(tensor_view_t<N>& tensor_view, int32_t sliceCount, const int32_t* slices)
+{
+    for(int32_t i = 0; i < sliceCount; i++)
+    {
+        int32_t dim   = slices[4 * i + 0];
+        int32_t start = slices[4 * i + 1];
+        int32_t end   = slices[4 * i + 2];
+        int32_t step  = slices[4 * i + 3];
 
-size_t get_parallelism_size(size_t reqd_work_item_cnt, size_t output_numel, size_t reduce_size);
+        if(end > static_cast<int32_t>(tensor_view.size[dim]))
+            end = tensor_view.size[dim];
 
-bool is_parallelism(size_t reqd_work_item_cnt, size_t output_numel, size_t reduce_size);
+        auto len = end - start;
 
-} // namespace prelu
-} // namespace solver
+        tensor_view.size[dim] = (len + step - 1) / step;
+        tensor_view.stride[dim] *= step;
+    }
+}
+
 } // namespace miopen
+
+#endif // MIOPEN_TENSOR_REORDER_UTIL_HPP_

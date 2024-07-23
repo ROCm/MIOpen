@@ -26,6 +26,7 @@
 
 #include <miopen/datatype.hpp>
 #include <miopen/kernel_build_params.hpp>
+#include <miopen/tensor_view_utils.hpp>
 #include <miopen/prelu/invoke_params.hpp>
 #include <miopen/prelu/solvers.hpp>
 #include <miopen/prelu/utils.hpp>
