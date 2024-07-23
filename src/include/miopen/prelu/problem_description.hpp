@@ -79,16 +79,17 @@ struct BackwardProblemDescription : ProblemDescriptionBase
 
     bool IsRightLength() const
     {
-        if(inputDesc.GetSize() > 5)
+        if(inputDesc.GetNumDims() > 5)
             MIOPEN_THROW(miopenStatusBadParm, "PReLU: Input tensor max number of dimensions is 5.");
         if(!checkSameLength(inputDesc, doutputDesc) || !checkSameLength(inputDesc, dinputDesc))
             MIOPEN_THROW(
                 miopenStatusBadParm,
                 "PReLU: Input and Output Gradient tensors sizes must match with Input tensor.");
-        if(weightDesc.GetSize() != 1)
+        if(weightDesc.GetNumDims() != 1)
             MIOPEN_THROW(miopenStatusBadParm, "PReLU: Weight tensor must have 1 dimension.");
         if(weightDesc.GetElementSize() != 1 &&
-           (inputDesc.GetSize() == 1 || weightDesc.GetElementSize() != inputDesc.GetLengths()[1]))
+           (inputDesc.GetNumDims() == 1 ||
+            weightDesc.GetElementSize() != inputDesc.GetLengths()[1]))
             MIOPEN_THROW(
                 miopenStatusBadParm,
                 "PReLU: Weight size must be 1 or equal to the second dim of Input tensor.");

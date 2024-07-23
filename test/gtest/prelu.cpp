@@ -30,16 +30,18 @@
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 
+namespace env = miopen::env;
+
 namespace prelu {
 
-std::string GetFloatArg()
+bool CheckFloatArg(std::string arg)
 {
-    const auto& tmp = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
-    if(tmp.empty())
+    if(!MIOPEN_TEST_ALL ||
+       (env::enabled(MIOPEN_TEST_ALL) && (env::value(MIOPEN_TEST_FLOAT_ARG) == arg)))
     {
-        return "";
+        return true;
     }
-    return tmp;
+    return false;
 }
 
 struct PReLUTestFloat : PReLUTest<float>
@@ -59,7 +61,7 @@ using namespace prelu;
 
 TEST_P(PReLUTestFloat, PReLUTest)
 {
-    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) || (GetFloatArg() == "--float"))
+    if(CheckFloatArg("--float"))
     {
         RunTest();
         Verify();
@@ -72,7 +74,7 @@ TEST_P(PReLUTestFloat, PReLUTest)
 
 TEST_P(PReLUTestHalf, PReLUTest)
 {
-    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) || (GetFloatArg() == "--half"))
+    if(CheckFloatArg("--half"))
     {
         RunTest();
         Verify();
@@ -85,7 +87,7 @@ TEST_P(PReLUTestHalf, PReLUTest)
 
 TEST_P(PReLUTestBfloat16, PReLUTest)
 {
-    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) || (GetFloatArg() == "--bfloat16"))
+    if(CheckFloatArg("--bfloat16"))
     {
         RunTest();
         Verify();
