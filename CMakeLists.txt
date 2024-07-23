@@ -37,6 +37,19 @@ macro(set_var_to_condition var)
     endif()
 endmacro()
 
+macro(set_if_bools_are_different var in1 in2)
+    set(${var} FALSE)
+    if(${in1})
+        if(NOT ${in2})
+           set(${var} TRUE)
+        endif()
+    else()
+        if(${in2})
+           set(${var} TRUE)
+        endif()
+    endif()
+endmacro()
+
 get_property(MIOPEN_GENERATOR_IS_MULTI_CONFIG GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
 
 # This has to be initialized before the project() command appears
@@ -252,8 +265,13 @@ set(MIOPEN_hip_VERSION ${MIOPEN_hip_VERSION_MAJOR}.${MIOPEN_hip_VERSION_MINOR}.$
 
 # Do not enable HIPRTC by default for older ROCm versions in order to avoid
 # build time errors, because HIPRTC is a relatively new component.
-set_var_to_condition(MIOPEN_USE_HIPRTC_DEFAULT (MIOPEN_USE_COMGR AND (MIOPEN_hip_VERSION VERSION_GREATER_EQUAL 5)))
+set_var_to_condition(MIOPEN_USE_HIPRTC_DEFAULT MIOPEN_USE_COMGR)
 option(MIOPEN_USE_HIPRTC "Use HIPRTC to build HIP kernels instead of COMGR" ${MIOPEN_USE_HIPRTC_DEFAULT})
+
+set_if_bools_are_different(MIOPEN_CONFIGURATION_ERROR_COMGR_HIPRTC MIOPEN_USE_COMGR MIOPEN_USE_HIPRTC)
+if(MIOPEN_CONFIGURATION_ERROR_COMGR_HIPRTC)
+   message(FATAL_ERROR "MIOPEN_USE_COMGR (${MIOPEN_USE_COMGR}) and MIOPEN_USE_HIPRTC (${MIOPEN_USE_HIPRTC}) should be set to the same value")
+endif()
 
 # Do not append system include directories to HIP compiler flags when HIPRTC is used
 set_var_to_condition(MIOPEN_HIP_COMPILER_USE_SYSTEM_INCLUDE_DIRECTORIES_DEFAULT
@@ -336,6 +354,18 @@ if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_B
         message(STATUS "Build with rocblas ${rocblas_VERSION}")
     else()
         message(STATUS "Build without rocblas")
+    endif()
+
+    # hipblaslt
+    set_var_to_condition(MIOPEN_USE_HIPBLASLT_DEFAULT NOT WIN32)
+    option(MIOPEN_USE_HIPBLASLT "Use hipBlasLt" ${MIOPEN_USE_HIPBLASLT_DEFAULT})
+    if(MIOPEN_USE_HIPBLASLT)
+        find_package(hipblas REQUIRED PATHS /opt/rocm $ENV{HIP_PATH})
+        message(STATUS "Build with hipbBLAS ${hipblas_VERSION} ${hipblas_DIR}")
+        find_package(hipblaslt REQUIRED PATHS /opt/rocm $ENV{HIP_PATH})
+        message(STATUS "Build with hipbBLASLt ${hipblaslt_VERSION} ${hipblaslt_DIR}")
+    else()
+        message(STATUS "Build without hipbBLASLt")
     endif()
 else()
     #CK is only enabled when HIP backend is selected   
@@ -508,6 +538,10 @@ endif()
 
 if(MIOPEN_USE_ROCBLAS)
     set(MIOPEN_PACKAGE_REQS "${MIOPEN_PACKAGE_REQS}, rocblas")
+endif()
+
+if(MIOPEN_USE_HIPBLASLT)
+    set(MIOPEN_PACKAGE_REQS "${MIOPEN_PACKAGE_REQS}, hipblaslt")
 endif()
 
 if(MIOPEN_OFFLINE_COMPILER_PATHS_V2)
