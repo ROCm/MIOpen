@@ -351,56 +351,25 @@ void SoftMax(const tensor<T>& q_dot_k_transpose,
     BroadCastMul(exp_q_dot_k_transpose_sub_attn_max, z_sum, softmax);
 }
 
-template <typename T>
-void MultiHeadAttentionForwardf32(const tensor<T>& q_val,
-                                  const tensor<T>& k_val,
-                                  const tensor<T>& v_val,
-                                  tensor<T>& q_dot_k_transpose,
-                                  tensor<T>& softmax,
-                                  tensor<T>& attn_max,
-                                  tensor<T>& Z_sum,
-                                  float& aMax_S,
-                                  float& aMax_O,
-                                  tensor<T>& multi_head_attention)
-{
-    // Q.K^T
-    Dot_4D_4D_T(q_val, k_val, q_dot_k_transpose);
-    // softmax(Q.K^T)
-    SoftMax(q_dot_k_transpose, softmax, attn_max, Z_sum);
-    aMax_S = AbsoluteMax(softmax);
-
-    // // drop out
-    // // DropOut(softmax, cpu_mha_test_case.drop_out_rate);
-
-    // // // drop out scalse
-    // // double drop_out_scale = 1.0 / (1.0 - cpu_mha_test_case.drop_out_rate);
-    // // Scale(softmax, drop_out_scale);
-
-    // O = (Q.dot(Kt)).dot(V)
-    Dot_4D_4D(softmax, v_val, multi_head_attention);
-    aMax_O = AbsoluteMax(multi_head_attention);
-}
-
 template <typename T = float8>
-void MultiHeadAttentionForwardfp8(const tensor<T>& q_val,
-                                  const tensor<T>& k_val,
-                                  const tensor<T>& v_val,
-                                  tensor<float>& softmax,
-                                  tensor<float>& attn_max,
-                                  tensor<float>& Z_sum,
-                                  float q_descale,
-                                  float k_descale,
-                                  float v_descale, // descale fp8 attention to fp32 (descale)
-                                  float s_descale, // 1.0
-                                  float s_scale,   // 1.0
-                                  float p_scale,   // used to scale fp32 softmax to fp8 softmax
-                                  float o_scale,   // 1.0
-                                  float dropout_rate,
-                                  uint64_t seed,
-                                  uint64_t offset,
-                                  float& aMax_S,
-                                  float& aMax_O,
-                                  tensor<T>& multi_head_attention_fp8)
+void MultiHeadAttentionfp8(const tensor<T>& q_val,
+                           const tensor<T>& k_val,
+                           const tensor<T>& v_val,
+                           tensor<float>& softmax,
+                           tensor<float>& attn_max,
+                           tensor<float>& Z_sum,
+                           float q_descale,
+                           float k_descale,
+                           float v_descale,
+                           float s_descale,
+                           float s_scale,
+                           float o_scale,
+                           float dropout_rate,
+                           uint64_t seed,
+                           uint64_t offset,
+                           float& aMax_S,
+                           float& aMax_O,
+                           tensor<T>& multi_head_attention_fp8)
 {
     auto inputLengths = q_val.desc.GetLengths();
     inputLengths[3]   = inputLengths[2]; // NHSD converting to NHSS
@@ -426,19 +395,66 @@ void MultiHeadAttentionForwardfp8(const tensor<T>& q_val,
 
     tensor<T> softmax_fp8(softmax.desc.GetLengths());
     // get fp8 version of Softmax(Q.dot(K_transpose)) and V
-    ScaleMult(softmax, p_scale, softmax_fp8);
-    // ScaleMult(softmax, s_scale, softmax_fp8);
+    ScaleMult(softmax, s_scale, softmax_fp8);
 
     tensor<float> atten_heads_fp32(multi_head_attention_fp8.desc.GetLengths());
-    // 2) fp8 matrix multiplication (atten_heads_fp32 still holds fp8 results)
-    Dot_4D_4D_T(softmax_fp8, v_val, atten_heads_fp32);
+    // 2) fp8 matrix multiplication
+    // check if q[N, H, S, D] and v[N, H, S, D]
+    //       or q[N, H, S, D] and v[N, H, D, S]
+    auto q_lens = q_val.desc.GetLengths();
+    auto v_lens = v_val.desc.GetLengths();
+    if(q_lens[2] == v_lens[2])
+    {
+        Dot_4D_4D(softmax_fp8, v_val, atten_heads_fp32);
+    }
+    else
+    {
+        Dot_4D_4D_T(softmax_fp8, v_val, atten_heads_fp32);
+    }
 
     // bring it back to fp32
     ScaleMult(atten_heads_fp32, s_descale * v_descale, atten_heads_fp32);
     aMax_O = AbsoluteMax(atten_heads_fp32);
 
     // scale to fp8 version
-    ScaleMult(atten_heads_fp32, o_scale, multi_head_attention_fp8);
+    if(q_lens[2] == v_lens[2])
+    {
+        ScaleMult(atten_heads_fp32, o_scale, multi_head_attention_fp8);
+    }
+    {
+        // ck solver
+        ScaleMult(atten_heads_fp32, GetF8Scaling(aMax_O), multi_head_attention_fp8);
+    }
+}
+
+template <typename T>
+void MultiHeadAttentionf32(const tensor<T>& q_val,
+                           const tensor<T>& k_val,
+                           const tensor<T>& v_val,
+                           tensor<T>& q_dot_k_transpose,
+                           tensor<T>& softmax,
+                           tensor<T>& attn_max,
+                           tensor<T>& Z_sum,
+                           float& aMax_S,
+                           float& aMax_O,
+                           tensor<T>& multi_head_attention)
+{
+
+    Dot_4D_4D_T(q_val, k_val, q_dot_k_transpose);
+
+    SoftMax(q_dot_k_transpose, softmax, attn_max, Z_sum);
+    aMax_S = AbsoluteMax(softmax);
+
+    // // drop out
+    // // DropOut(softmax, cpu_mha_test_case.drop_out_rate);
+
+    // // // drop out scalse
+    // // double drop_out_scale = 1.0 / (1.0 - cpu_mha_test_case.drop_out_rate);
+    // // Scale(softmax, drop_out_scale);
+
+    // O = (Q.dot(Kt)).dot(V)
+    Dot_4D_4D(softmax, v_val, multi_head_attention);
+    aMax_O = AbsoluteMax(multi_head_attention);
 }
 
 template <typename T>
@@ -620,11 +636,6 @@ tensor<float> ExtractGoldenDataFromJson(std::string_view json_attention_data,
 template <typename T>
 struct ScaledTensor
 {
-    ScaledTensor(tensor<T> arg_tensor, float arg_scale, float arg_descale)
-        : mTensor(arg_tensor), mScale(arg_scale), mDescale(arg_descale)
-    {
-    }
-
     tensor<T> mTensor;
     float mScale;
     float mDescale;
@@ -655,7 +666,7 @@ ScaledTensor<T> GenScaledTensorBackward(Dims... nhsd)
     float scale   = 0.5f;
     float descale = 1.0f / scale;
     return {val_full, scale, descale};
-}
+};
 
 } // namespace cpu
 } // namespace test

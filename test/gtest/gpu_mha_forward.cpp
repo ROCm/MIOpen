@@ -34,7 +34,6 @@
 
 #include <miopen/miopen.h>
 #include <miopen/solution.hpp>
-//  #include <ck_tile/core/numeric/float8.hpp>
 
 #include <gtest/gtest.h>
 
@@ -79,39 +78,6 @@ struct TestCase
     float dropout;
 };
 
-struct TestCaseCK
-{
-    size_t n;
-    size_t h;
-    size_t s;
-    size_t d;
-    float dropout;
-
-    bool is_ck_fp8 = false;
-};
-
-// CK's MHA currently :
-// only supports seq_length % 128 == 0
-// only supports dim        % 64 == 0
-// row major V
-// dropout : 0
-// bias : no bias
-// mask : no mask
-// is_group_mode : flase (only support batch mode)
-inline std::vector<TestCaseCK> GetCKCases(bool is_ck)
-{
-    if(!(CheckFloatArg("--float16") || CheckFloatArg("--float8")))
-    {
-        return {};
-    }
-
-    return {
-        // batch, head, seq length, dim, dropout
-        {1, 1, 128, 64, 0.0f, is_ck},
-        {2, 12, 256, 128, 0.0f, is_ck}, // typical gpt2 fwd
-    };
-}
-
 inline std::vector<TestCase> GetSmokeCases()
 {
     if(!(CheckFloatArg("--float") || CheckFloatArg("--float8")))
@@ -120,9 +86,8 @@ inline std::vector<TestCase> GetSmokeCases()
     }
 
     return {
-        // batch, head, seq length, dim, dropout
         {9, 8, 8, 8, 0.0f},
-        {2, 2, 128, 64, 0.0f},
+        {1, 2, 4, 5, 0.0f},
         {2, 1, 5, 4, 0.0f},
         {4, 2, 1, 3, 0.0f},
         {5, 3, 4, 1, 0.0f},
@@ -148,7 +113,6 @@ inline std::vector<TestCase> GetFullTestCases()
     }
 
     return {
-        // batch, head, seq length, dim, dropout
         {3, 15, 2047, 15, 0.0f},
         {2049, 17, 7, 7, 0.0f},
         {3, 3, 257, 91, 0.0f},
@@ -161,8 +125,8 @@ inline std::vector<TestCase> GetFullTestCases()
 }
 } // namespace
 
-template <typename T, typename TCase = TestCase>
-class Test_Fwd_Mha : public testing::TestWithParam<TCase>
+template <typename T>
+class Test_Fwd_Mha : public testing::TestWithParam<TestCase>
 {
     static_assert(std::is_same_v<T, float> || std::is_same_v<T, float8>);
 
@@ -170,28 +134,8 @@ protected:
     void SetUp() override
     {
         prng::reset_seed();
-        size_t n, h, s, d;
-        float drop;
-        auto test_case = this->GetParam();
-        if constexpr(std::is_same<TCase, TestCaseCK>::value)
-        {
-            n            = test_case.n;
-            h            = test_case.h;
-            s            = test_case.s;
-            d            = test_case.d;
-            drop         = test_case.dropout;
-            is_ck_solver = test_case.is_ck_fp8;
-        }
-        else
-        {
-            n    = test_case.n;
-            h    = test_case.h;
-            s    = test_case.s;
-            d    = test_case.d;
-            drop = test_case.dropout;
-        }
-
-        Handle& handle = get_handle();
+        auto [n, h, s, d, drop] = GetParam();
+        Handle& handle          = get_handle();
 
         if((drop > 0.0f) && (s % handle.GetWavefrontWidth() != 0))
         {
@@ -274,7 +218,7 @@ protected:
         mDesc_ref    = tensor<float>{n, h, s, 1};
         zInvDesc_ref = tensor<float>{n, h, s, 1};
 
-        test::cpu::MultiHeadAttentionForwardfp8(
+        test::cpu::MultiHeadAttentionfp8(
             std::get<tensor<T>>(tensors[miopenTensorMhaQ]->m_cpu_tensor),
             std::get<tensor<T>>(tensors[miopenTensorMhaK]->m_cpu_tensor),
             std::get<tensor<T>>(tensors[miopenTensorMhaV]->m_cpu_tensor),
@@ -286,7 +230,6 @@ protected:
             v.mDescale,
             s_descale,
             s_scale,
-            test::cpu::GetF8Scaling(1.0 /*since fp32 softmax's max value will always be 1.0*/),
             o_scale,
             drop,
             std::get<tensor<int64_t>>(tensors[miopenTensorMhaDropoutSeed]->m_cpu_tensor)
@@ -335,59 +278,28 @@ protected:
                 return cpu_tensor;
             };
 
-            const double error_threshold = 5e-6;
+            const double error_threshold     = 5e-6;
+            const double fp8_error_threshold = (std::is_same_v<T, float8>) ? 2e-4 : error_threshold;
 
-            if(!is_ck_solver)
-            {
-                const auto& resAmaxS = GetResult(miopenTensorMhaAmaxS, float{});
-                auto amaxS_abs_diff  = std::abs(amaxS_ref - resAmaxS[0]);
-                EXPECT_LT(amaxS_abs_diff, error_threshold)
-                    << " ref: " << amaxS_ref << " result: " << resAmaxS[0];
+            const auto& resAmaxS = GetResult(miopenTensorMhaAmaxS, float{});
+            auto amaxS_abs_diff  = std::abs(amaxS_ref - resAmaxS[0]);
+            EXPECT_LT(amaxS_abs_diff, error_threshold)
+                << " ref: " << amaxS_ref << " result: " << resAmaxS[0];
 
-                const auto& resAmaxO = GetResult(miopenTensorMhaAmaxO, float{});
-                auto amaxO_abs_diff  = std::abs(amaxO_ref - resAmaxO[0]);
-                EXPECT_LT(amaxO_abs_diff, error_threshold)
-                    << " ref: " << amaxO_ref << " result: " << resAmaxO[0];
+            const auto& resAmaxO = GetResult(miopenTensorMhaAmaxO, float{});
+            auto amaxO_abs_diff  = std::abs(amaxO_ref - resAmaxO[0]);
+            EXPECT_LT(amaxO_abs_diff, error_threshold)
+                << " ref: " << amaxO_ref << " result: " << resAmaxO[0];
 
-                double M_error = miopen::rms_range(mDesc_ref, GetResult(miopenTensorMhaM, float{}));
-                EXPECT_LT(M_error, error_threshold);
+            double M_error = miopen::rms_range(mDesc_ref, GetResult(miopenTensorMhaM, float{}));
+            EXPECT_LT(M_error, error_threshold);
 
-                double ZInv_error =
-                    miopen::rms_range(zInvDesc_ref, GetResult(miopenTensorMhaZInv, float{}));
-                EXPECT_LT(ZInv_error, error_threshold);
-            }
+            double ZInv_error =
+                miopen::rms_range(zInvDesc_ref, GetResult(miopenTensorMhaZInv, float{}));
+            EXPECT_LT(ZInv_error, error_threshold);
 
-            std::cout << "\ncpu data \n";
-            int count = 0;
-            for(auto it : oDesc_ref.data)
-            {
-                std::cout << std::fixed << std::setprecision(10) << static_cast<float>(it) << " : ";
-                if(count++ == 100)
-                    break;
-            }
-
-            auto gpu_tensor = GetResult(miopenTensorMhaO, T{});
-            count           = 0;
-            std::cout << "\ngpu data \n";
-            for(auto& it : gpu_tensor.data)
-            {
-                std::cout << std::fixed << std::setprecision(10) << static_cast<float>(it) << " : ";
-                if(count++ == 100)
-                    break;
-            }
-            std::cout << "\n";
-
-            double O_error = miopen::rms_range(oDesc_ref, gpu_tensor);
-            if(!is_ck_solver)
-            {
-
-                EXPECT_LT(O_error, error_threshold);
-            }
-            else
-            {
-                // ck fp8 solver and low threshold
-                EXPECT_LT(O_error, ck_fp8_solver_threshold);
-            }
+            double O_error = miopen::rms_range(oDesc_ref, GetResult(miopenTensorMhaO, T{}));
+            EXPECT_LT(O_error, fp8_error_threshold);
         }
     }
 
@@ -411,18 +323,15 @@ protected:
     float amaxS_ref;
     float amaxO_ref;
 
-    bool is_ck_solver             = false;
-    float ck_fp8_solver_threshold = 0.015;
-
     MhaDescriptor mha_descriptor;
     miopenProblem_t problem = nullptr;
 };
 
-class Test_Fwd_Mha_F32 : public Test_Fwd_Mha<float, TestCase>
+class Test_Fwd_Mha_F32 : public Test_Fwd_Mha<float>
 {
 };
-template <typename TCase>
-class Test_Fwd_Mha_F8 : public Test_Fwd_Mha<float8, TCase>
+
+class Test_Fwd_Mha_F8 : public Test_Fwd_Mha<float8>
 {
     void SetUp() override
     {
@@ -433,32 +342,18 @@ class Test_Fwd_Mha_F8 : public Test_Fwd_Mha<float8, TCase>
             GTEST_SKIP() << "FP8 is unsupported on this HW";
         }
 
-        Test_Fwd_Mha<float8, TCase>::SetUp();
+        Test_Fwd_Mha<float8>::SetUp();
     }
 };
 
-class Test_Fwd_Mha_F8_CK : public Test_Fwd_Mha_F8<TestCaseCK>
-{
-};
-
-class Test_Fwd_Mha_F8_MIOpen : public Test_Fwd_Mha_F8<TestCase>
-{
-};
-
-TEST_P(Test_Fwd_Mha_F32, Test_float) { return Test_Fwd_Mha<float, TestCase>::TestBody(); };
+TEST_P(Test_Fwd_Mha_F32, Test_float) { return Test_Fwd_Mha<float>::TestBody(); };
 
 INSTANTIATE_TEST_SUITE_P(Fwd_Mha_Smoke_F32, Test_Fwd_Mha_F32, testing::ValuesIn(GetSmokeCases()));
 INSTANTIATE_TEST_SUITE_P(Fwd_Mha_Full_F32, Test_Fwd_Mha_F32, testing::ValuesIn(GetFullTestCases()));
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(Test_Fwd_Mha_F32);
 
-TEST_P(Test_Fwd_Mha_F8_CK, Test_float) { return Test_Fwd_Mha<float8, TestCaseCK>::TestBody(); };
+TEST_P(Test_Fwd_Mha_F8, Test_float) { return Test_Fwd_Mha<float8>::TestBody(); };
 
-INSTANTIATE_TEST_SUITE_P(Fwd_Mha_Smoke_F8, Test_Fwd_Mha_F8_CK, testing::ValuesIn(GetCKCases(true)));
-GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(Test_Fwd_Mha_F8_CK);
-
-TEST_P(Test_Fwd_Mha_F8_MIOpen, Test_float) { return Test_Fwd_Mha<float8, TestCase>::TestBody(); };
-
-INSTANTIATE_TEST_SUITE_P(Fwd_Mha_Smoke_F8,
-                         Test_Fwd_Mha_F8_MIOpen,
-                         testing::ValuesIn(GetSmokeCases()));
-GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(Test_Fwd_Mha_F8_MIOpen);
+INSTANTIATE_TEST_SUITE_P(Fwd_Mha_Smoke_F8, Test_Fwd_Mha_F8, testing::ValuesIn(GetSmokeCases()));
+INSTANTIATE_TEST_SUITE_P(Fwd_Mha_Full_F8, Test_Fwd_Mha_F8, testing::ValuesIn(GetFullTestCases()));
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(Test_Fwd_Mha_F8);
