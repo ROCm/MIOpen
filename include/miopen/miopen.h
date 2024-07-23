@@ -6613,9 +6613,14 @@ typedef enum
  * @param outputDesc            Tensor descriptor for output tensor (input)
  * @param output                Data tensor output (output)
  * @param scaleFactorsDesc      Tensor descriptor for scale factors tensor (input)
- * @param scale_factors         Data tensor scale factors (input)
+ * @param scale_factors         Data tensor scale factors - multiplier for spatial size (input)
  * @param mode                  Interpolation mode (input)
- * @param align_corners         Align corners (input)
+ * @param align_corners         If set to True, the input and output tensors are aligned by the
+ * center points of their corner pixels, preserving the values at the corner pixels. If set to
+ * False, the input and output tensors are aligned by the corner points of their corner pixels, and
+ * the interpolation uses edge value padding for out-of-boundary values, making this operation
+ * independent of input size when scale_factor is kept the same. This only has an effect when mode
+ * is 'linear', 'bilinear', 'bicubic' or 'trilinear'. Default: False
  * @return                      miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t
@@ -6637,7 +6642,12 @@ miopenInterpolateForward(miopenHandle_t handle,
  * @param inputGradDesc            Tensor descriptor for input grad tensor (input)
  * @param scaleFactorsDesc         Tensor descriptor for scale factors tensor (input)
  * @param mode                     Interpolation mode (input)
- * @param align_corners            Align corners (input)
+ * @param align_corners            If set to True, the input and output tensors are aligned by the
+ * center points of their corner pixels, preserving the values at the corner pixels. If set to
+ * False, the input and output tensors are aligned by the corner points of their corner pixels, and
+ * the interpolation uses edge value padding for out-of-boundary values, making this operation
+ * independent of input size when scale_factor is kept the same. This only has an effect when mode
+ * is 'linear', 'bilinear', 'bicubic' or 'trilinear'. Default: False
  * @param sizeInBytes              Pointer to data to return the minimum workspace size (output)
  * @return                         miopenStatus_t
  */
@@ -6660,9 +6670,14 @@ miopenGetInterpolateBackwardWorkspaceSize(miopenHandle_t handle,
  * @param outputGradDesc        Tensor descriptor for output grad tensor (input)
  * @param output_grad           Data tensor output grad (input)
  * @param scaleFactorsDesc      Tensor descriptor for scale factors tensor (input)
- * @param scale_factors         Data tensor scale factors (input)
+ * @param scale_factors         Data tensor scale factors - multiplier for spatial size (input)
  * @param mode                  Interpolation mode (input)
- * @param align_corners         Align corners (input)
+ * @param align_corners         If set to True, the input and output tensors are aligned by the
+ * center points of their corner pixels, preserving the values at the corner pixels. If set to
+ * False, the input and output tensors are aligned by the corner points of their corner pixels, and
+ * the interpolation uses edge value padding for out-of-boundary values, making this operation
+ * independent of input size when scale_factor is kept the same. This only has an effect when mode
+ * is 'linear', 'bilinear', 'bicubic' or 'trilinear'. Default: False
  * @return                      miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t
