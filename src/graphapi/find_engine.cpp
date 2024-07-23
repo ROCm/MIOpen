@@ -395,12 +395,7 @@ class MHA_Bwd_F8_Pattern : public GraphPatternMatcher
 
         auto isTranspose = [](const OpNode::Edge& edge) -> bool {
             auto [node, tensor] = edge;
-
-            // Not sure we should check OpKind because
-            // pattern matcher doesn't do that
-            return node->signName() == "OP_RESHAPE" &&
-                   dynamic_cast<OperationReshape&>(*node).getOpKind() ==
-                       OperationReshape::OpKind::TRANSPOSE;
+            return node->signName() == "OP_RESHAPE";
         };
 
         auto leftOrCenterStartIt1 = std::find_if(starts.cbegin(), starts.cend(), isTranspose);
