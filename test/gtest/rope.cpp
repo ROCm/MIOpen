@@ -113,7 +113,8 @@ TEST_P(RoPEFwdTestBFloat16, RoPEFwdTest)
 
 TEST_P(RoPEBwdTestFloat, RoPEBwdTest)
 {
-    if(env::enabled(MIOPEN_TEST_ALL) && GetFloatArg() == "--float")
+    if(!MIOPEN_TEST_ALL ||
+       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--float"))
     {
         RunTest();
         Verify();
@@ -126,7 +127,8 @@ TEST_P(RoPEBwdTestFloat, RoPEBwdTest)
 
 TEST_P(RoPEBwdTestHalf, RoPEBwdTest)
 {
-    if(env::enabled(MIOPEN_TEST_ALL) && GetFloatArg() == "--half")
+    if(!MIOPEN_TEST_ALL ||
+       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--half"))
     {
         RunTest();
         Verify();
@@ -139,7 +141,8 @@ TEST_P(RoPEBwdTestHalf, RoPEBwdTest)
 
 TEST_P(RoPEBwdTestBFloat16, RoPEBwdTest)
 {
-    if(env::enabled(MIOPEN_TEST_ALL) && GetFloatArg() == "--bfloat16")
+    if(!MIOPEN_TEST_ALL ||
+       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--bfloat16"))
     {
         RunTest();
         Verify();
