@@ -24,132 +24,161 @@
  *
  *******************************************************************************/
 
+#ifndef MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS
+#include <hip/hip_fp16.h>
+#include <hip/hip_runtime.h>
+#endif
+
 #include "activation_functions.hpp"
 
-__device__ __forceinline__ void BatchNormFunctionSpatial(const unsigned int n,
-                              _FLOAT_PREC* out,
-                              const _FLOAT* in,
-                              const _FLOAT_PREC mean,
-                              const _FLOAT_PREC invVariance,
-                              const _FLOAT_PREC scale,
-                              const _FLOAT_PREC bias)
+extern "C" __global__ void __launch_bounds__(MIO_BN_GRP0* MIO_BN_GRP1* MIO_BN_GRP2)
+    MIOpenBatchNormActivInferSpatialEstHIP(const FP_TYPE_PREC alpha,
+                                           const FP_TYPE_PREC beta,
+                                           const FP_TYPE_PREC gamma,
+                                           double epsilon,
+                                           const FP_TYPE* __restrict in,
+                                           FP_TYPE* __restrict out,
+                                           const FP_TYPE_PREC* bias,
+                                           const FP_TYPE_PREC* scale,
+                                           const FP_TYPE_PREC* estimatedMean,
+                                           const float* estimatedVariance)
 {
-    for(unsigned int i = 0; i < n; ++i)
-    {
-        out[i] = fma(scale, ((_FLOAT_PREC)in[i] - mean) * invVariance, bias);
-    }
-}
+    unsigned int tidx = blockIdx.x * blockDim.x + threadIdx.x;
+    unsigned int tidy = blockIdx.y * blockDim.y + threadIdx.y;
+    // HIP runtime does not support launching non-uniform blocks
+    // So extra threads are launched to handle this.
+    if(tidx >= MIOPEN_SBN_BOUNDS)
+        return;
 
-extern "C" __global__ __launch_bounds__(MIO_BN_GRP0 * MIO_BN_GRP1 * MIO_BN_GRP2) void
-MIOpenBatchNormActivInferSpatialEstHIP(const _FLOAT alpha,
-                                    const _FLOAT beta,
-                                    const _FLOAT gamma,
-                                    double epsilon,
-                                    const  _FLOAT* __restrict in,
-                                     _FLOAT* __restrict out,
-                                    const  _FLOAT_PREC* __restrict bias,
-                                    const  _FLOAT_PREC* __restrict scale,
-                                    const  _FLOAT_PREC* __restrict estimatedMean,
-                                    const  float* __restrict estimatedVariance)
-{
-    size_t tidx = blockIdx.x * blockDim.x + threadIdx.x;
-    size_t tidy = blockIdx.y * blockDim.y + threadIdx.y;
-
-    if(blockDim.x != 256){
-        printf("gridDim.x = %d, gridDim.y = %d, gridDim.z = %d, blockDim.x = %d, blockDim.y = %d, blockDim.z = %d\n", gridDim.x, gridDim.y, gridDim.z, blockDim.x, blockDim.y, blockDim.z);    
-    }
-
-    __shared__ _FLOAT_PREC lmean;
-    __shared__ _FLOAT_PREC lvar;
-    __shared__ _FLOAT_PREC lscale;
-    __shared__ _FLOAT_PREC lbias;
-
-    int c_i  = tidy;
-    int hw_i = tidx;
-
+    int c_i               = tidy;
+    int hw_i              = tidx;
     unsigned int c_offset = c_i * MIO_BN_HW;
 
-    if(threadIdx.x == 0)
-    {
-        lmean  = *(estimatedMean + c_i);
-        lvar   = *(estimatedVariance + c_i);
-        lscale = *(scale + c_i);
-        lbias  = *(bias + c_i);
-    }
-    __syncthreads();
+    // Load the mean, variance, scale, and bias that is broadcast across the block
+    const FP_TYPE_PREC pmean  = estimatedMean[c_i];
+    const FP_TYPE_PREC pvar   = estimatedVariance[c_i];
+    const FP_TYPE_PREC pscale = scale[c_i];
+    const FP_TYPE_PREC pbias  = bias[c_i];
 
-    _FLOAT_PREC pmean  = lmean;
-    _FLOAT_PREC pvar   = lvar;
-    _FLOAT_PREC pscale = lscale;
-    _FLOAT_PREC pbias  = lbias;
-
-    _FLOAT data[MIOPEN_READ_UNIT];
-    _FLOAT_PREC invVariance = rsqrt(pvar + epsilon);
-
-     for(unsigned int n_i = 0; n_i < MIO_BN_N; n_i++)
-    {
-        unsigned int index = n_i * MIO_BN_CHW + c_offset + hw_i * MIOPEN_READ_UNIT;
-        *(reinterpret_cast<MIOPEN_READ_TYPE*>(data)) = *(reinterpret_cast<const MIOPEN_READ_TYPE*>(in + index));
-        _FLOAT_PREC bnRes[MIOPEN_READ_UNIT];
-        _FLOAT_PREC actRes[MIOPEN_READ_UNIT];
-        BatchNormFunctionSpatial(MIOPEN_READ_UNIT, bnRes, data, pmean, invVariance, pscale, pbias);
-        ActivationFunction(MIOPEN_READ_UNIT, actRes, bnRes, gamma, beta, alpha);
-        *(reinterpret_cast<MIOPEN_READ_TYPE*>(out + index)) = *(reinterpret_cast<const MIOPEN_READ_TYPE*>(actRes));
-
-    }
-}
-
-extern "C" __global__ void
-MIOpenBatchNormActivInferPerActEstHIP(const _FLOAT alpha,
-                                   const _FLOAT beta,
-                                   const _FLOAT gamma,
-                                   double epsilon,
-                                   const  _FLOAT* in,
-                                    _FLOAT* __restrict out,
-                                    const  _FLOAT_PREC* __restrict bias,
-                                    const  _FLOAT_PREC* __restrict scale,
-                                    const  _FLOAT_PREC* __restrict estimatedMean,
-                                    const  _FLOAT_PREC* __restrict estimatedVariance)
-{
-    unsigned int tidx  = blockIdx.x * blockDim.x + threadIdx.x;
-    unsigned int chw_i = tidx * MIOPEN_READ_UNIT;
-
-    _FLOAT_PREC pmean[MIOPEN_READ_UNIT];
-    _FLOAT_PREC pvar[MIOPEN_READ_UNIT];
-    _FLOAT_PREC pscale[MIOPEN_READ_UNIT];
-    _FLOAT_PREC pbias[MIOPEN_READ_UNIT];
-
-    // Perform a vectorized load of the mean, variance, scale, and bias
-    *(reinterpret_cast<MIOPEN_READ_TYPE*>(pmean)) = *(reinterpret_cast<const MIOPEN_READ_TYPE*>(estimatedMean + chw_i));
-    *(reinterpret_cast<MIOPEN_READ_TYPE*>(pvar)) = *(reinterpret_cast<const MIOPEN_READ_TYPE*>(estimatedVariance + chw_i));
-    *(reinterpret_cast<MIOPEN_READ_TYPE*>(pscale)) = *(reinterpret_cast<const MIOPEN_READ_TYPE*>(scale + chw_i));
-    *(reinterpret_cast<MIOPEN_READ_TYPE*>(pbias)) = *(reinterpret_cast<const MIOPEN_READ_TYPE*>(bias + chw_i));
-
-    _FLOAT data[MIOPEN_READ_UNIT];
-    _FLOAT_PREC invVariance[MIOPEN_READ_UNIT];
-
-#pragma unroll
-    for(unsigned int i = 0; i < MIOPEN_READ_UNIT; i++)
-        invVariance[i] = rsqrt((_FLOAT_PREC)pvar[i] + epsilon);
+    FP_TYPE data[MIOPEN_READ_UNIT];
+    const FP_TYPE_PREC invVariance = rsqrt(pvar + epsilon);
 
 #pragma unroll 2
     for(unsigned int n_i = 0; n_i < MIO_BN_N; n_i++)
     {
-        int index                  = n_i * MIO_BN_CHW + chw_i;
+        const unsigned int index = n_i * MIO_BN_CHW + c_offset + hw_i * MIOPEN_READ_UNIT;
         // Perform a vectorized load of the input data
-        *(reinterpret_cast<MIOPEN_READ_TYPE*>(data)) = *(reinterpret_cast<const MIOPEN_READ_TYPE*>(in + index));
-        _FLOAT_PREC bnRes[MIOPEN_READ_UNIT];
-        _FLOAT_PREC actRes[MIOPEN_READ_UNIT];
-
+        *(reinterpret_cast<MIOPEN_READ_TYPE*>(data)) =
+            *(reinterpret_cast<const MIOPEN_READ_TYPE*>(in + index));
+        FP_TYPE_PREC bnRes[MIOPEN_READ_UNIT];
+        FP_TYPE_PREC actRes[MIOPEN_READ_UNIT];
 #pragma unroll
         for(unsigned int i = 0; i < MIOPEN_READ_UNIT; ++i)
         {
-            bnRes[i] = fmaf(pscale[i], ((_FLOAT_PREC)data[i] - pmean[i]) * invVariance[i], pbias[i]);
+            bnRes[i] =
+                fmaf(pscale, (static_cast<FP_TYPE_PREC>(data[i]) - pmean) * invVariance, pbias);
+        }
+        ActivationFunction(MIOPEN_READ_UNIT, actRes, bnRes, gamma, beta, alpha);
+        if constexpr(MIOPEN_USE_FP16)
+        {
+#pragma unroll
+            for(unsigned int i = 0; i < MIOPEN_READ_UNIT; i++)
+            {
+                out[index + i] = static_cast<FP_TYPE>(actRes[i]);
+            }
+        }
+        else
+        {
+            // perform a vectorized store of the output data as FP_TYPE and PF_TYPE_PREC are same
+            // for FP32
+            *(reinterpret_cast<MIOPEN_READ_TYPE*>(out + index)) =
+                *(reinterpret_cast<const MIOPEN_READ_TYPE*>(actRes));
+        }
+    }
+}
+
+extern "C" __global__ void __launch_bounds__(MIO_BN_GRP0* MIO_BN_GRP1* MIO_BN_GRP2)
+    MIOpenBatchNormActivInferPerActEstHIP(const FP_TYPE_PREC alpha,
+                                          const FP_TYPE_PREC beta,
+                                          const FP_TYPE_PREC gamma,
+                                          double epsilon,
+                                          const FP_TYPE* __restrict in,
+                                          FP_TYPE* __restrict out,
+                                          const FP_TYPE_PREC* __restrict bias,
+                                          const FP_TYPE_PREC* __restrict scale,
+                                          const FP_TYPE_PREC* __restrict estimatedMean,
+                                          const FP_TYPE_PREC* __restrict estimatedVariance)
+{
+    unsigned int tidx  = blockIdx.x * blockDim.x + threadIdx.x;
+    unsigned int chw_i = tidx * MIOPEN_READ_UNIT;
+
+    FP_TYPE_PREC pmean[MIOPEN_READ_UNIT];
+    FP_TYPE_PREC pvar[MIOPEN_READ_UNIT];
+    FP_TYPE_PREC pscale[MIOPEN_READ_UNIT];
+    FP_TYPE_PREC pbias[MIOPEN_READ_UNIT];
+
+    if constexpr(MIOPEN_USE_FP16)
+    {
+#pragma unroll
+        for(unsigned int i = 0; i < MIOPEN_READ_UNIT; i++)
+        {
+            pmean[i]  = estimatedMean[chw_i + i];
+            pvar[i]   = estimatedVariance[chw_i + i];
+            pscale[i] = scale[chw_i + i];
+            pbias[i]  = bias[chw_i + i];
+        }
+    }
+    else
+    {
+        // Perform a vectorized load of the mean, variance, scale, and bias as FP_TYPE and
+        // FP_TYPE_PREC are same
+        *(reinterpret_cast<MIOPEN_READ_TYPE*>(pmean)) =
+            *(reinterpret_cast<const MIOPEN_READ_TYPE*>(estimatedMean + chw_i));
+        *(reinterpret_cast<MIOPEN_READ_TYPE*>(pvar)) =
+            *(reinterpret_cast<const MIOPEN_READ_TYPE*>(estimatedVariance + chw_i));
+        *(reinterpret_cast<MIOPEN_READ_TYPE*>(pscale)) =
+            *(reinterpret_cast<const MIOPEN_READ_TYPE*>(scale + chw_i));
+        *(reinterpret_cast<MIOPEN_READ_TYPE*>(pbias)) =
+            *(reinterpret_cast<const MIOPEN_READ_TYPE*>(bias + chw_i));
+    }
+
+    FP_TYPE data[MIOPEN_READ_UNIT];
+    FP_TYPE_PREC invVariance[MIOPEN_READ_UNIT];
+
+#pragma unroll
+    for(unsigned int i = 0; i < MIOPEN_READ_UNIT; i++)
+        invVariance[i] = rsqrt(pvar[i] + epsilon);
+#pragma unroll 2
+    for(unsigned int n_i = 0; n_i < MIO_BN_N; n_i++)
+    {
+        const unsigned int index = n_i * MIO_BN_CHW + chw_i;
+        // Perform a vectorized load of the input data
+        *(reinterpret_cast<MIOPEN_READ_TYPE*>(data)) =
+            *(reinterpret_cast<const MIOPEN_READ_TYPE*>(in + index));
+        FP_TYPE_PREC bnRes[MIOPEN_READ_UNIT];
+        FP_TYPE_PREC actRes[MIOPEN_READ_UNIT];
+#pragma unroll
+        for(unsigned int i = 0; i < MIOPEN_READ_UNIT; ++i)
+        {
+            bnRes[i] = fma(pscale[i],
+                           (static_cast<FP_TYPE_PREC>(data[i]) - pmean[i]) * invVariance[i],
+                           pbias[i]);
         }
 
         ActivationFunction(MIOPEN_READ_UNIT, actRes, bnRes, gamma, beta, alpha);
-
-         *(reinterpret_cast<MIOPEN_READ_TYPE*>(out + index)) = *(reinterpret_cast<const MIOPEN_READ_TYPE*>(actRes));
-
+        if constexpr(MIOPEN_USE_FP16)
+        {
+#pragma unroll
+            for(unsigned int i = 0; i < MIOPEN_READ_UNIT; i++)
+            {
+                out[index + i] = static_cast<FP_TYPE>(actRes[i]);
+            }
+        }
+        else
+        {
+            // perform a vectorized store of the output data as FP_TYPE and PF_TYPE_PREC are same
+            *(reinterpret_cast<MIOPEN_READ_TYPE*>(out + index)) =
+                *(reinterpret_cast<const MIOPEN_READ_TYPE*>(actRes));
+        }
     }
 }
