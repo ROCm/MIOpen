@@ -33,25 +33,25 @@ namespace miopen {
 struct Handle;
 struct TensorDescriptor;
 
-miopenStatus_t RoPEForward(Handle& handle,
-                           const TensorDescriptor& xDesc,
-                           ConstData_t x,
-                           const TensorDescriptor& cosDesc,
-                           ConstData_t cos,
-                           const TensorDescriptor& sinDesc,
-                           ConstData_t sin,
-                           const TensorDescriptor& yDesc,
-                           Data_t y);
+MIOPEN_INTERNALS_EXPORT miopenStatus_t RoPEForward(Handle& handle,
+                                                   const TensorDescriptor& xDesc,
+                                                   ConstData_t x,
+                                                   const TensorDescriptor& cosDesc,
+                                                   ConstData_t cos,
+                                                   const TensorDescriptor& sinDesc,
+                                                   ConstData_t sin,
+                                                   const TensorDescriptor& yDesc,
+                                                   Data_t y);
 
-miopenStatus_t RoPEBackward(Handle& handle,
-                            const TensorDescriptor& dyDesc,
-                            ConstData_t dy,
-                            const TensorDescriptor& cosDesc,
-                            ConstData_t cos,
-                            const TensorDescriptor& sinDesc,
-                            ConstData_t sin,
-                            const TensorDescriptor& dxDesc,
-                            Data_t dx);
+MIOPEN_INTERNALS_EXPORT miopenStatus_t RoPEBackward(Handle& handle,
+                                                    const TensorDescriptor& dyDesc,
+                                                    ConstData_t dy,
+                                                    const TensorDescriptor& cosDesc,
+                                                    ConstData_t cos,
+                                                    const TensorDescriptor& sinDesc,
+                                                    ConstData_t sin,
+                                                    const TensorDescriptor& dxDesc,
+                                                    Data_t dx);
 
 } // namespace miopen
 #endif // MIOPEN_ROPE_HPP_
