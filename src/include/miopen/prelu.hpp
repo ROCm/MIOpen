@@ -32,22 +32,22 @@ namespace miopen {
 struct Handle;
 struct TensorDescriptor;
 
-size_t GetPReLUBackwardWorkspaceSize(Handle& handle,
-                                     const TensorDescriptor& inputDesc,
-                                     const TensorDescriptor& weightDesc);
+MIOPEN_INTERNALS_EXPORT size_t GetPReLUBackwardWorkspaceSize(Handle& handle,
+                                                             const TensorDescriptor& inputDesc,
+                                                             const TensorDescriptor& weightDesc);
 
-miopenStatus_t PReLUBackward(Handle& handle,
-                             Data_t workspace,
-                             size_t workspaceSizeInBytes,
-                             const TensorDescriptor& inputDesc,
-                             ConstData_t input,
-                             const TensorDescriptor& weightDesc,
-                             ConstData_t weight,
-                             const TensorDescriptor& doutputDesc,
-                             ConstData_t doutput,
-                             const TensorDescriptor& dinputDesc,
-                             Data_t dinput,
-                             const TensorDescriptor& dweightDesc,
-                             Data_t dweight);
+MIOPEN_INTERNALS_EXPORT miopenStatus_t PReLUBackward(Handle& handle,
+                                                     Data_t workspace,
+                                                     size_t workspaceSizeInBytes,
+                                                     const TensorDescriptor& inputDesc,
+                                                     ConstData_t input,
+                                                     const TensorDescriptor& weightDesc,
+                                                     ConstData_t weight,
+                                                     const TensorDescriptor& doutputDesc,
+                                                     ConstData_t doutput,
+                                                     const TensorDescriptor& dinputDesc,
+                                                     Data_t dinput,
+                                                     const TensorDescriptor& dweightDesc,
+                                                     Data_t dweight);
 
 } // namespace miopen
