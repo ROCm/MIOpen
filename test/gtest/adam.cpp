@@ -67,6 +67,7 @@ TEST_P(GPU_Adam_FP32, AdamFloatTestFw)
     }
     else
 };
+
 TEST_P(GPU_Adam_FP16, AdamFloat16TestFw)
 {
     if(CheckFloatArg("--half"))
