@@ -230,7 +230,7 @@ endif()
 
 # HIP is always required
 find_package(hip REQUIRED PATHS /opt/rocm)
-message(STATUS "Build with HIP ${hip_VERSION}")
+message(STATUS "Build with HIP ${hip_VERSION} ${hip_DIR}")
 
 # Override HIP version in config.h, if necessary.
 # The variables set by find_package() can't be overwritten,
@@ -351,7 +351,7 @@ if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_B
     set(MIOPEN_USE_ROCBLAS ON CACHE BOOL "")
     if(MIOPEN_USE_ROCBLAS)
         find_package(rocblas REQUIRED PATHS /opt/rocm)
-        message(STATUS "Build with rocblas ${rocblas_VERSION}")
+        message(STATUS "Build with rocblas ${rocblas_VERSION} ${rocblas_DIR}")
     else()
         message(STATUS "Build without rocblas")
     endif()
@@ -420,7 +420,7 @@ if(MIOPEN_USE_MLIR)
             endif()
         endif()
     endif()
-    message(STATUS "Build with rocMLIR::rockCompiler ${rocMLIR_VERSION}")
+    message(STATUS "Build with rocMLIR::rockCompiler ${rocMLIR_VERSION} ${rocMLIR_DIR}")
 endif()
 
 # Update HIP Runtime Package Dependency
@@ -449,7 +449,7 @@ message(STATUS "AMDGCN assembler: ${MIOPEN_AMDGCN_ASSEMBLER}")
 
 if(MIOPEN_USE_COMGR)
     find_package(amd_comgr REQUIRED CONFIG)
-    message(STATUS "Build with comgr ${amd_comgr_VERSION}")
+    message(STATUS "Build with amd_comgr ${amd_comgr_VERSION} ${amd_comgr_DIR}")
     set(MIOPEN_PACKAGE_REQS "${MIOPEN_PACKAGE_REQS}, comgr")
 endif()
 
@@ -458,7 +458,7 @@ if(MIOPEN_USE_HIPRTC)
         message(FATAL_ERROR "HIPRTC can be used only together with COMGR")
     endif()
     find_package(hiprtc REQUIRED)
-    message(STATUS "Build with HIPRTC ${hiprtc_VERSION}")
+    message(STATUS "Build with hiprtc ${hiprtc_VERSION} ${hiprtc_DIR}")
 endif()
 
 option(Boost_USE_STATIC_LIBS "Use boost static libraries" ON)
@@ -489,7 +489,9 @@ endif()
 
 if(MIOPEN_ENABLE_AI_KERNEL_TUNING OR MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK)
     find_package(frugally-deep CONFIG REQUIRED)
+    message(STATUS "Build with frugally-deep ${frugally-deep_VERSION} ${frugally-deep_DIR}")
     find_package(Eigen3 REQUIRED)
+    message(STATUS "Build with Eigen3 ${Eigen3_VERSION} ${Eigen3_DIR}")
 endif()
 
 if(WIN32)
@@ -551,7 +553,7 @@ endif()
 if(MIOPEN_BUILD_DRIVER)
     # PR #2785 MIOpenDriver to use rocrand to init buffers
     find_package(rocrand REQUIRED)
-    message(STATUS "rocrand_VERSION=${rocrand_VERSION}")
+    message(STATUS "Build with rocrand ${rocrand_VERSION} ${rocrand_DIR}")
     set(MIOPEN_PACKAGE_REQS "${MIOPEN_PACKAGE_REQS}, rocrand")
 endif()
 
