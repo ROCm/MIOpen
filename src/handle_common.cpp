@@ -103,5 +103,22 @@ void Handle::TryStartPreloadingDbs()
 #if !MIOPEN_DISABLE_USERDB
     StartPreloadingDb<RamDb>(states, DbKinds::FindDb, FindDbRecord::GetUserPath(*this, ""), false);
 #endif
+
+    // conv perf-db
+#if !MIOPEN_DISABLE_SYSDB
+    StartPreloadingDb<ReadonlyRamDb>(states, DbKinds::PerfDb, ctx.GetPerfDbPath("fusion"), true);
+#endif
+#if !MIOPEN_DISABLE_USERDB
+    StartPreloadingDb<RamDb>(states, DbKinds::PerfDb, ctx.GetUserPerfDbPath("fusion"), false);
+#endif
+
+    // conv find-db
+#if !MIOPEN_DISABLE_SYSDB
+    StartPreloadingDb<ReadonlyRamDb>(
+        states, DbKinds::FindDb, FindDbRecord::GetInstalledPath(*this, "fusion"), true);
+#endif
+#if !MIOPEN_DISABLE_USERDB
+    StartPreloadingDb<RamDb>(states, DbKinds::FindDb, FindDbRecord::GetUserPath(*this, "fusion"), false);
+#endif
 }
 } // namespace miopen
