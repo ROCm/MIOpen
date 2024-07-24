@@ -1,5 +1,8 @@
 {
-    "num_tuning_params": 9,
+    "predict_type": 0,
+    "num_tuning_params": {
+        "fwd": 9        
+    },
     "decodings": {
         "tunings": {
             "0": "-1",

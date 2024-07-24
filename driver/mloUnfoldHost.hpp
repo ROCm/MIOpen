@@ -46,7 +46,7 @@ int32_t mloUnFoldFwd4DRunHost(Tgpu* input,
     auto input_tv   = miopen::get_inner_expanded_tv<4>(miopen::deref(inputDesc));
     auto output_tv  = miopen::get_inner_expanded_tv<3>(miopen::deref(ref_outputDesc));
     auto input_dims = miopen::deref(inputDesc).GetLengths();
-    auto input_size = miopen::deref(inputDesc).GetSize();
+    auto input_size = miopen::deref(inputDesc).GetNumDims();
 
     const int LOCAL_SIZE = 256;
     int spatial_dim_size = input_size - 2;
@@ -118,7 +118,7 @@ int32_t mloUnFoldBwd4DRunHost(Tcheck* ref_dinput,
     auto input_grad_tv   = miopen::get_inner_expanded_tv<4>(miopen::deref(dinputDesc));
     auto output_grad_tv  = miopen::get_inner_expanded_tv<3>(miopen::deref(doutputDesc));
     auto input_grad_dims = miopen::deref(dinputDesc).GetLengths();
-    auto input_size      = miopen::deref(dinputDesc).GetSize();
+    auto input_size      = miopen::deref(dinputDesc).GetNumDims();
 
     const int LOCAL_SIZE = 256;
     int spatial_dim_size = input_size - 2;

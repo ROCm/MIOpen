@@ -23,27 +23,51 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+
+// rocblas operates with non-ieee FP8
+#define MIOPEN_FP8_IEEE_EXPONENT_BIAS 0
+
+#ifndef MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS
+#include <hip/hip_fp16.h>
 #include <hip/hip_runtime.h>
-//#include <rocrand/rocrand_xorwow.h>
-//#include <rocrand/miopen::prng::xorwow_uniform.h>
+#include <hip/hip_bfloat16.h>
+#endif
 
-#include "miopen_limits.hpp"
 #include "miopen_cstdint.hpp"
-
+#include "miopen_limits.hpp"
 #include "miopen_rocrand.hpp"
+
+#define MIOPEN_ENABLE_F8_DEVICE_CODE 1
+#include <hip_float8.hpp>
+
+// Some versions of amd-clang treats MIOPEN_ENABLE_F8_DEVICE_CODE as unused despite the fact that
+// it's used in the subsequent include. Some other versions amd-clang failed to compile everything
+// without MIOPEN_ENABLE_F8_DEVICE_CODE explicitely defined.
+// Fake-using it.
+#ifndef MIOPEN_ENABLE_F8_DEVICE_CODE
+#message "MIOPEN_ENABLE_F8_DEVICE_CODE must be defined"
+#endif
 
 #ifndef THREADS
 #define THREADS 64
 #endif
 
-namespace {
-constexpr float max_op(float a, float b) { return a > b ? a : b; };
-constexpr float plus_op(float a, float b) { return a + b; };
+#ifndef OUT_TYPE
+#define OUT_TYPE float
+#endif
 
-/// atomically calcutates maximum of non-negative ordered values
-/// it produces wrong results for negatve values or nans
-/// but it is a final amax reducton step and we expect only non-negative ordered values
-__device__ float atomicMaxOfAbsolutValues(float* addr, float value)
+#ifndef dO_TYPE
+#define dO_TYPE float
+#endif
+
+namespace {
+constexpr float plus_op(float a, float b) { return a + b; };
+constexpr float fmaxf_op(float a, float b) { return fmaxf(a, b); };
+
+/// Atomically calculates maximum of non-negative ordered values.
+/// Produces wrong results for negatve values or nans,
+/// but it is a final amax reducton step and we expect only non-negative ordered values.
+__forceinline__ __device__ float atomicMaxOfNonNegative(float* addr, float value)
 {
     // ordered non-negatve and even infinity values can be compared as integers
     // NOLINTBEGIN
@@ -53,7 +77,7 @@ __device__ float atomicMaxOfAbsolutValues(float* addr, float value)
 }
 
 template <uint32_t WARP_SIZE, typename Op, uint32_t SWIZZLE_SIZE = WARP_SIZE>
-__device__ float reductionFullWarp(float reduced_val, uint32_t laneId, Op op)
+__forceinline__ __device__ float reductionFullWarp(float reduced_val, uint32_t laneId, Op op)
 {
     static_assert(WARP_SIZE != 0, "WARP_SIZEmust not be 0");
     static_assert((SWIZZLE_SIZE & (SWIZZLE_SIZE - 1)) == 0,
@@ -109,9 +133,11 @@ __device__ float reductionFullWarp(float reduced_val, uint32_t laneId, Op op)
 };
 
 template <uint32_t NumWarps, typename Op>
-__device__ float
+__forceinline__ __device__ float
 reductionBlock(float local_val, Op op, uint32_t lid, uint32_t laneId, uint32_t warpId)
 {
+    static_assert(NumWarps <= warpSize);
+    static_assert((NumWarps & (NumWarps - 1)) == 0, "NumWarps must be a power of 2");
     __shared__ float reduction_tmp[NumWarps];
 
     float reduced_val = reductionFullWarp<warpSize>(local_val, laneId, op);
@@ -133,14 +159,14 @@ reductionBlock(float local_val, Op op, uint32_t lid, uint32_t laneId, uint32_t w
 };
 
 template <uint32_t NumWarps, typename ReductionOp, typename ElementOp>
-__device__ float reductionCommon(const float* __restrict__ line,
-                                 const float init_value,
-                                 const uint32_t seq_len,
-                                 ReductionOp&& op,
-                                 ElementOp&& eop,
-                                 uint32_t lid,
-                                 uint32_t laneId,
-                                 uint32_t warpId)
+__forceinline__ __device__ float reductionCommon(const float* __restrict__ line,
+                                                 const float init_value,
+                                                 const uint32_t seq_len,
+                                                 ReductionOp&& op,
+                                                 ElementOp&& eop,
+                                                 uint32_t lid,
+                                                 uint32_t laneId,
+                                                 uint32_t warpId)
 {
     float reduced_val = (lid < seq_len) ? eop(line[lid]) : init_value;
 
@@ -149,44 +175,56 @@ __device__ float reductionCommon(const float* __restrict__ line,
 
     return reductionBlock<NumWarps>(reduced_val, op, lid, laneId, warpId);
 };
+
+__forceinline__ __device__ bool doDropout(float dropout, rocrand_device::xorwow_engine* state)
+{
+    return (dropout > 0.0f && prng::xorwow_uniform(state) < dropout);
+}
 } // namespace
 
-extern "C" __global__ void SoftMaxWarp(const float* in,
-                                       float* out,
-                                       float* __restrict__ M,
-                                       float* __restrict__ Z,
-                                       float* __restrict__ Amax,
-                                       const float* __restrict__ descale_Q,
-                                       const float* __restrict__ descale_K,
-                                       const float* __restrict__ scale_S,
-                                       miopen::prng::xorwow_state* __restrict__ rng_state,
-                                       const float* __restrict__ dropout_P,
-                                       uint32_t seq_len,
-                                       uint64_t nhs)
+extern "C" __global__ void __launch_bounds__(THREADS)
+    SoftMaxWarp(const float* in,
+                OUT_TYPE* out,
+                float* __restrict__ M,
+                float* __restrict__ Z,
+                float* __restrict__ Amax,
+                const float* __restrict__ descale_Q,
+                const float* __restrict__ descale_K,
+                const float* __restrict__ scale_S,
+                const uint64_t* __restrict__ seed,
+                const uint64_t* __restrict__ offset,
+                const float* __restrict__ dropout_P,
+                uint32_t seq_len,
+                uint64_t nhs)
 {
+    static_assert(THREADS % warpSize == 0);
     constexpr uint32_t NumWarps = THREADS / warpSize;
     const uint32_t lid          = threadIdx.x;
     const uint32_t laneId       = lid % warpSize;
     const uint32_t warpId       = lid / warpSize;
     const float descaler        = (descale_Q ? *descale_Q : 1.0f) * (descale_K ? *descale_K : 1.0f);
-    const float dropout         = (dropout_P && rng_state) ? (*dropout_P) : 0.0f;
-    const float scaler          = (scale_S ? *scale_S : 1.0f) * (1.0f - dropout);
-    const bool save_stats       = M && Z && laneId == 0;
-    miopen::prng::xorwow_state rng = dropout > 0.0f
-                                         ? rng_state[blockIdx.x * blockDim.x + threadIdx.x]
-                                         : miopen::prng::xorwow_state{};
+    const float dropout         = (dropout_P && seed && offset) ? (*dropout_P) : 0.0f;
+    const float scaler          = (scale_S ? *scale_S : 1.0f) / (1.0f - dropout);
+    const bool save_stats       = M && Z && (laneId == 0);
+
+    rocrand_state_xorwow rng;
+    if(dropout > 0.0f)
+    {
+        const uint64_t idx = blockIdx.x * blockDim.x + threadIdx.x;
+        rocrand_init(prng::hash(*seed + idx), 0, *offset, &rng);
+    }
 
     float r_Amax = 0;
 
     for(uint64_t gid = blockIdx.x * NumWarps + warpId; gid < nhs; gid += gridDim.x * NumWarps)
     {
         const float* line = in + gid * seq_len + laneId;
-        float* res        = out + gid * seq_len + laneId;
+        auto res          = out + gid * seq_len + laneId;
 
         float local_val =
             (laneId < seq_len) ? (*line) * descaler : std::numeric_limits<float>::lowest();
 
-        float r_max = reductionFullWarp<warpSize>(local_val, laneId, max_op);
+        float r_max = reductionFullWarp<warpSize>(local_val, laneId, fmaxf_op);
 
         local_val = (laneId < seq_len) ? expf(local_val - r_max) : 0;
 
@@ -194,16 +232,14 @@ extern "C" __global__ void SoftMaxWarp(const float* in,
 
         local_val *= r_sum;
 
-        // it is supposed to be maximum of absolut values
-        // but after the exponent it is already non-negative
-        // so just a maximum can be used
-        r_Amax = max_op(r_Amax, local_val);
+        // It is supposed to be maximum of absolute values,
+        // however we do not need abs() because expf() above produces
+        // non-negative value. Plain max() is enough.
+        r_Amax = fmaxf_op(r_Amax, local_val);
 
         if(laneId < seq_len)
         {
-            *res = (dropout > 0.0f && miopen::prng::xorwow_uniform(&rng) < dropout)
-                       ? 0.0f
-                       : local_val * scaler;
+            *res = static_cast<OUT_TYPE>(doDropout(dropout, &rng) ? 0.0f : local_val * scaler);
         }
 
         if(save_stats)
@@ -215,54 +251,56 @@ extern "C" __global__ void SoftMaxWarp(const float* in,
 
     if(Amax)
     {
-        r_Amax = reductionBlock<NumWarps>(r_Amax, max_op, lid, laneId, warpId);
+        r_Amax = reductionBlock<NumWarps>(r_Amax, fmaxf_op, lid, laneId, warpId);
         if(lid == 0)
         {
-            atomicMaxOfAbsolutValues(Amax, r_Amax);
+            atomicMaxOfNonNegative(Amax, r_Amax);
         }
-    }
-
-    if(dropout > 0.0f)
-    {
-        rng_state[blockIdx.x * blockDim.x + threadIdx.x] = rng;
     }
 }
 
-extern "C" __global__ void SoftMaxBlock(const float* in,
-                                        float* out,
-                                        float* __restrict__ M,
-                                        float* __restrict__ Z,
-                                        float* __restrict__ Amax,
-                                        const float* __restrict__ descale_Q,
-                                        const float* __restrict__ descale_K,
-                                        const float* __restrict__ scale_S,
-                                        miopen::prng::xorwow_state* __restrict__ rng_state,
-                                        const float* __restrict__ dropout_P,
-                                        uint32_t seq_len,
-                                        uint64_t nhs)
+extern "C" __global__ void __launch_bounds__(THREADS)
+    SoftMaxBlock(const float* in,
+                 OUT_TYPE* out,
+                 float* __restrict__ M,
+                 float* __restrict__ Z,
+                 float* __restrict__ Amax,
+                 const float* __restrict__ descale_Q,
+                 const float* __restrict__ descale_K,
+                 const float* __restrict__ scale_S,
+                 const uint64_t* __restrict__ seed,
+                 const uint64_t* __restrict__ offset,
+                 const float* __restrict__ dropout_P,
+                 uint32_t seq_len,
+                 uint64_t nhs)
 {
+    static_assert(THREADS % warpSize == 0);
     constexpr uint32_t NumWarps = THREADS / warpSize;
     const uint32_t lid          = threadIdx.x;
     const uint32_t laneId       = lid % warpSize;
     const uint32_t warpId       = lid / warpSize;
     const float descaler        = (descale_Q ? *descale_Q : 1.0f) * (descale_K ? *descale_K : 1.0f);
-    const float dropout         = (dropout_P && rng_state) ? (*dropout_P) : 0.0f;
-    const float scaler          = (scale_S ? *scale_S : 1.0f) * (1.0f - dropout);
-    const bool save_stats       = M && Z && lid == 0;
-    miopen::prng::xorwow_state rng = dropout > 0.0f
-                                         ? rng_state[blockIdx.x * blockDim.x + threadIdx.x]
-                                         : miopen::prng::xorwow_state{};
+    const float dropout         = (dropout_P && seed && offset) ? (*dropout_P) : 0.0f;
+    const float scaler          = (scale_S ? *scale_S : 1.0f) / (1.0f - dropout);
+    const bool save_stats       = M && Z && (lid == 0);
+
+    rocrand_state_xorwow rng;
+    if(dropout > 0.0f)
+    {
+        const uint64_t idx = blockIdx.x * blockDim.x + threadIdx.x;
+        rocrand_init(prng::hash(*seed + idx), 0, *offset, &rng);
+    }
 
     float r_Amax = 0;
 
     for(uint64_t gid = blockIdx.x; gid < nhs; gid += gridDim.x)
     {
         const float* line = in + gid * seq_len + lid;
-        float* res        = out + gid * seq_len + lid;
+        auto res          = out + gid * seq_len + lid;
 
         float local_val =
             (lid < seq_len) ? (*line) * descaler : std::numeric_limits<float>::lowest();
-        float r_max = reductionBlock<NumWarps>(local_val, max_op, lid, laneId, warpId);
+        float r_max = reductionBlock<NumWarps>(local_val, fmaxf_op, lid, laneId, warpId);
 
         local_val = (lid < seq_len) ? expf(local_val - r_max) : 0;
 
@@ -270,16 +308,14 @@ extern "C" __global__ void SoftMaxBlock(const float* in,
 
         local_val *= r_sum;
 
-        // it is supposed to be maximum of absolut values
-        // but after the exponent it is already non-negative
-        // so just a maximum can be used
-        r_Amax = max_op(r_Amax, local_val);
+        // It is supposed to be maximum of absolute values,
+        // however we do not need abs() because expf() above produces
+        // non-negative value. Plain max() is enough.
+        r_Amax = fmaxf_op(r_Amax, local_val);
 
         if(lid < seq_len)
         {
-            *res = (dropout > 0.0f && miopen::prng::xorwow_uniform(&rng) < dropout)
-                       ? 0.0f
-                       : local_val * scaler;
+            *res = static_cast<OUT_TYPE>(doDropout(dropout, &rng) ? 0.0f : local_val * scaler);
         }
 
         if(save_stats)
@@ -291,56 +327,58 @@ extern "C" __global__ void SoftMaxBlock(const float* in,
 
     if(Amax)
     {
-        r_Amax = reductionBlock<NumWarps>(r_Amax, max_op, lid, laneId, warpId);
+        r_Amax = reductionBlock<NumWarps>(r_Amax, fmaxf_op, lid, laneId, warpId);
         if(lid == 0)
         {
-            atomicMaxOfAbsolutValues(Amax, r_Amax);
+            atomicMaxOfNonNegative(Amax, r_Amax);
         }
-    }
-
-    if(dropout > 0.0f)
-    {
-        rng_state[blockIdx.x * blockDim.x + threadIdx.x] = rng;
     }
 }
 
-extern "C" __global__ void SoftMaxCommon(const float* in,
-                                         float* out,
-                                         float* __restrict__ M,
-                                         float* __restrict__ Z,
-                                         float* __restrict__ Amax,
-                                         const float* __restrict__ descale_Q,
-                                         const float* __restrict__ descale_K,
-                                         const float* __restrict__ scale_S,
-                                         miopen::prng::xorwow_state* __restrict__ rng_state,
-                                         const float* __restrict__ dropout_P,
-                                         uint32_t seq_len,
-                                         uint64_t nhs)
+extern "C" __global__ void __launch_bounds__(THREADS)
+    SoftMaxCommon(const float* in,
+                  OUT_TYPE* out,
+                  float* __restrict__ M,
+                  float* __restrict__ Z,
+                  float* __restrict__ Amax,
+                  const float* __restrict__ descale_Q,
+                  const float* __restrict__ descale_K,
+                  const float* __restrict__ scale_S,
+                  const uint64_t* __restrict__ seed,
+                  const uint64_t* __restrict__ offset,
+                  const float* __restrict__ dropout_P,
+                  uint32_t seq_len,
+                  uint64_t nhs)
 {
+    static_assert(THREADS % warpSize == 0);
     constexpr uint32_t NumWarps = THREADS / warpSize;
     const uint32_t lid          = threadIdx.x;
     const uint32_t laneId       = lid % warpSize;
     const uint32_t warpId       = lid / warpSize;
     const float descaler        = (descale_Q ? *descale_Q : 1.0f) * (descale_K ? *descale_K : 1.0f);
-    const float dropout         = (dropout_P && rng_state) ? (*dropout_P) : 0.0f;
-    const float scaler          = (scale_S ? *scale_S : 1.0f) * (1.0f - dropout);
-    const bool save_stats       = M && Z && lid == 0;
-    miopen::prng::xorwow_state rng = dropout > 0.0f
-                                         ? rng_state[blockIdx.x * blockDim.x + threadIdx.x]
-                                         : miopen::prng::xorwow_state{};
+    const float dropout         = (dropout_P && seed && offset) ? (*dropout_P) : 0.0f;
+    const float scaler          = (scale_S ? *scale_S : 1.0f) / (1.0f - dropout);
+    const bool save_stats       = M && Z && (lid == 0);
+
+    rocrand_state_xorwow rng;
+    if(dropout > 0.0f)
+    {
+        const uint64_t idx = blockIdx.x * blockDim.x + threadIdx.x;
+        rocrand_init(prng::hash(*seed + idx), 0, *offset, &rng);
+    }
 
     float r_Amax = 0;
 
     for(uint64_t gid = blockIdx.x; gid < nhs; gid += gridDim.x)
     {
         const float* line = in + gid * seq_len;
-        float* res        = out + gid * seq_len;
+        auto res          = out + gid * seq_len;
 
         float r_max = reductionCommon<NumWarps>(
             line,
             std::numeric_limits<float>::lowest(),
             seq_len,
-            max_op,
+            fmaxf_op,
             [descaler](float x) { return x * descaler; },
             lid,
             laneId,
@@ -360,14 +398,13 @@ extern "C" __global__ void SoftMaxCommon(const float* in,
         {
             float local_val = expf(line[loop_lid] * descaler - r_max) * r_sum;
 
-            // it is supposed to be maximum of absolut values
-            // but after the exponent it is already non-negative
-            // so just a maximum can be used
-            r_Amax = max_op(r_Amax, local_val);
+            // It is supposed to be maximum of absolute values,
+            // however we do not need abs() because expf() above produces
+            // non-negative value. Plain max() is enough.
+            r_Amax = fmaxf_op(r_Amax, local_val);
 
-            res[loop_lid] = (dropout > 0.0f && miopen::prng::xorwow_uniform(&rng) < dropout)
-                                ? 0.0f
-                                : local_val * scaler;
+            res[loop_lid] =
+                static_cast<OUT_TYPE>(doDropout(dropout, &rng) ? 0.0f : local_val * scaler);
         }
 
         if(save_stats)
@@ -379,26 +416,22 @@ extern "C" __global__ void SoftMaxCommon(const float* in,
 
     if(Amax)
     {
-        r_Amax = reductionBlock<NumWarps>(r_Amax, max_op, lid, laneId, warpId);
+        r_Amax = reductionBlock<NumWarps>(r_Amax, fmaxf_op, lid, laneId, warpId);
         if(lid == 0)
         {
-            atomicMaxOfAbsolutValues(Amax, r_Amax);
+            atomicMaxOfNonNegative(Amax, r_Amax);
         }
-    }
-
-    if(dropout > 0.0f)
-    {
-        rng_state[blockIdx.x * blockDim.x + threadIdx.x] = rng;
     }
 }
 
-extern "C" __global__ void ScaleReduce(const float* __restrict__ in,
-                                       float* __restrict__ out,
-                                       float* __restrict__ Amax,
-                                       const float* __restrict__ descale_S,
-                                       const float* __restrict__ descale_V,
-                                       const float* __restrict__ scale_O,
-                                       uint64_t nhsd)
+extern "C" __global__ void __launch_bounds__(THREADS)
+    ScaleReduce(const float* __restrict__ in,
+                OUT_TYPE* __restrict__ out,
+                float* __restrict__ Amax,
+                const float* __restrict__ descale_S,
+                const float* __restrict__ descale_V,
+                const float* __restrict__ scale_O,
+                uint64_t nhsd)
 {
     const float descaler = (*descale_S) * (*descale_V);
     const float scaler   = (*scale_O);
@@ -408,7 +441,7 @@ extern "C" __global__ void ScaleReduce(const float* __restrict__ in,
 
     auto in_ptr    = in + gid;
     auto out_ptr   = out + gid;
-    const auto end = in_ptr + nhsd;
+    const auto end = in + nhsd;
 
     float r_Amax = 0;
 
@@ -416,9 +449,9 @@ extern "C" __global__ void ScaleReduce(const float* __restrict__ in,
     {
         const auto res = *in_ptr * descaler;
 
-        r_Amax = max_op(r_Amax, fabsf(res));
+        r_Amax = fmaxf_op(r_Amax, fabsf(res));
 
-        *out_ptr = res * scaler;
+        *out_ptr = static_cast<OUT_TYPE>(res * scaler);
 
         in_ptr += step;
         out_ptr += step;
@@ -429,9 +462,352 @@ extern "C" __global__ void ScaleReduce(const float* __restrict__ in,
     const uint32_t laneId       = lid % warpSize;
     const uint32_t warpId       = lid / warpSize;
 
-    r_Amax = reductionBlock<NumWarps>(r_Amax, max_op, lid, laneId, warpId);
+    r_Amax = reductionBlock<NumWarps>(r_Amax, fmaxf_op, lid, laneId, warpId);
     if(lid == 0)
     {
-        atomicMaxOfAbsolutValues(Amax, r_Amax);
+        atomicMaxOfNonNegative(Amax, r_Amax);
+    }
+}
+
+extern "C" __global__ void __launch_bounds__(THREADS)
+    ScaleRowReduceWarp(const dO_TYPE* __restrict__ dO,
+                       const OUT_TYPE* __restrict__ O,
+                       float* __restrict__ out,
+                       const float* __restrict__ descale_dO,
+                       const float* __restrict__ descale_O,
+                       const float* __restrict__ dropout_P,
+                       uint32_t d,
+                       uint64_t nhs)
+{
+    static_assert(THREADS % warpSize == 0);
+    constexpr uint32_t NumWarps = THREADS / warpSize;
+    const uint32_t lid          = threadIdx.x;
+    const uint32_t laneId       = lid % warpSize;
+    const uint32_t warpId       = lid / warpSize;
+    const float scaler          = (*descale_dO) * (*descale_O) * (1.0f - (*dropout_P));
+
+    for(uint64_t gid = blockIdx.x * NumWarps + warpId; gid < nhs; gid += gridDim.x * NumWarps)
+    {
+        float local_val = 0.0f;
+        if(laneId < d)
+        {
+            const auto dO_ptr = dO + gid * d + laneId;
+            const auto O_ptr  = O + gid * d + laneId;
+
+            local_val = static_cast<float>(*dO_ptr) * static_cast<float>(*O_ptr) * scaler;
+        }
+
+        local_val = reductionFullWarp<warpSize>(local_val, laneId, plus_op);
+
+        if(laneId == 0)
+        {
+            out[gid] = local_val;
+        }
+    }
+}
+
+extern "C" __global__ void __launch_bounds__(THREADS)
+    ScaleRowReduceBlock(const dO_TYPE* __restrict__ dO,
+                        const OUT_TYPE* __restrict__ O,
+                        float* __restrict__ out,
+                        const float* __restrict__ descale_dO,
+                        const float* __restrict__ descale_O,
+                        const float* __restrict__ dropout_P,
+                        uint32_t d,
+                        uint64_t nhs)
+{
+    static_assert(THREADS % warpSize == 0);
+    constexpr uint32_t NumWarps = THREADS / warpSize;
+    const uint32_t lid          = threadIdx.x;
+    const uint32_t laneId       = lid % warpSize;
+    const uint32_t warpId       = lid / warpSize;
+    const float scaler          = (*descale_dO) * (*descale_O) * (1.0f - (*dropout_P));
+
+    for(uint64_t gid = blockIdx.x; gid < nhs; gid += gridDim.x)
+    {
+        const auto dO_ptr = dO + gid * d + lid;
+        const auto O_ptr  = O + gid * d + lid;
+
+        float local_val = 0.0f;
+        if(lid < d)
+        {
+            local_val = static_cast<float>(*dO_ptr) * static_cast<float>(*O_ptr) * scaler;
+        }
+
+        local_val = reductionBlock<NumWarps>(local_val, plus_op, lid, laneId, warpId);
+
+        if(lid == 0)
+        {
+            out[gid] = local_val;
+        }
+    }
+}
+
+extern "C" __global__ void __launch_bounds__(THREADS)
+    ScaleRowReduceCommon(const dO_TYPE* __restrict__ dO,
+                         const OUT_TYPE* __restrict__ O,
+                         float* __restrict__ out,
+                         const float* __restrict__ descale_dO,
+                         const float* __restrict__ descale_O,
+                         const float* __restrict__ dropout_P,
+                         uint32_t d,
+                         uint64_t nhs)
+{
+    static_assert(THREADS % warpSize == 0);
+    constexpr uint32_t NumWarps = THREADS / warpSize;
+    const uint32_t lid          = threadIdx.x;
+    const uint32_t laneId       = lid % warpSize;
+    const uint32_t warpId       = lid / warpSize;
+    const float scaler          = (*descale_dO) * (*descale_O) * (1.0f - (*dropout_P));
+
+    for(uint64_t gid = blockIdx.x; gid < nhs; gid += gridDim.x)
+    {
+        const auto dO_ptr = dO + gid * d;
+        const auto O_ptr  = O + gid * d;
+
+        float local_val =
+            (lid < d) ? static_cast<float>(dO_ptr[lid]) * static_cast<float>(O_ptr[lid]) * scaler
+                      : 0.0f;
+
+        for(uint32_t loop_lid = lid + blockDim.x; loop_lid < d; loop_lid += blockDim.x)
+            local_val +=
+                static_cast<float>(dO_ptr[loop_lid]) * static_cast<float>(O_ptr[loop_lid]) * scaler;
+
+        local_val = reductionBlock<NumWarps>(local_val, plus_op, lid, laneId, warpId);
+
+        if(lid == 0)
+        {
+            out[gid] = local_val;
+        }
+    }
+}
+
+extern "C" __global__ void __launch_bounds__(THREADS)
+    BwdAttentionWarp(float* __restrict__ QxK_S,
+                     const float* dOxV,
+                     OUT_TYPE* dS, // may overlap with dOxV
+                     const float* __restrict__ M,
+                     const float* __restrict__ Zinv,
+                     const float* __restrict__ dOxO,
+                     float* __restrict__ Amax,
+                     const float* __restrict__ descale_Q,
+                     const float* __restrict__ descale_K,
+                     const float* __restrict__ descale_dO,
+                     const float* __restrict__ descale_V,
+                     const float* __restrict__ scale_S,
+                     const float* __restrict__ scale_dS,
+                     const uint64_t* __restrict__ seed,
+                     const uint64_t* __restrict__ offset,
+                     const float* __restrict__ dropout_P,
+                     float scale,
+                     uint32_t seq_len,
+                     uint64_t nhs)
+{
+    static_assert(THREADS % warpSize == 0);
+    constexpr uint32_t NumWarps = THREADS / warpSize;
+    const uint32_t lid          = threadIdx.x;
+    const uint32_t laneId       = lid % warpSize;
+    const uint32_t warpId       = lid / warpSize;
+
+    const float dropout            = (dropout_P && seed && offset) ? (*dropout_P) : 0.0f;
+    const float scaler_dropout     = 1.0f - dropout;
+    const float scaler_inv_dropout = 1.0f / scaler_dropout;
+
+    const float descaler_QxK  = (*descale_Q) * (*descale_K);
+    const float descaler_dOxV = (*descale_dO) * (*descale_V) * scaler_dropout;
+
+    const float scaler_S  = (*scale_S);
+    const float scaler_dS = (*scale_dS);
+
+    rocrand_state_xorwow rng;
+    if(dropout > 0.0f)
+    {
+        const uint64_t idx = blockIdx.x * blockDim.x + threadIdx.x;
+        rocrand_init(prng::hash(*seed + idx), 0, *offset, &rng);
+    }
+
+    float r_Amax = 0;
+
+    for(uint64_t gid = blockIdx.x * NumWarps + warpId; gid < nhs && laneId < seq_len;
+        gid += gridDim.x * NumWarps)
+    {
+        const float M_val    = M[gid];
+        const float Zinv_val = Zinv[gid];
+        const float dOxO_val = dOxO[gid];
+
+        const size_t idx = gid * seq_len + laneId;
+
+        const float QxK_val = doDropout(dropout, &rng) ? 0.0f
+                                                       : expf(QxK_S[idx] * descaler_QxK - M_val) *
+                                                             Zinv_val * scaler_inv_dropout;
+
+        QxK_S[idx] = QxK_val * scaler_S;
+
+        const float dOxV_val = (dOxV[idx] * descaler_dOxV - dOxO_val) * scale * QxK_val;
+
+        dS[idx] = static_cast<OUT_TYPE>(dOxV_val * scaler_dS);
+
+        r_Amax = fmaxf_op(r_Amax, fabsf(dOxV_val));
+    }
+
+    r_Amax = reductionBlock<NumWarps>(r_Amax, fmaxf_op, lid, laneId, warpId);
+    if(lid == 0)
+    {
+        atomicMaxOfNonNegative(Amax, r_Amax);
+    }
+}
+
+extern "C" __global__ void __launch_bounds__(THREADS)
+    BwdAttentionBlock(float* __restrict__ QxK_S,
+                      const float* dOxV,
+                      OUT_TYPE* dS, // may overlap with dOxV
+                      const float* __restrict__ M,
+                      const float* __restrict__ Zinv,
+                      const float* __restrict__ dOxO,
+                      float* __restrict__ Amax,
+                      const float* __restrict__ descale_Q,
+                      const float* __restrict__ descale_K,
+                      const float* __restrict__ descale_dO,
+                      const float* __restrict__ descale_V,
+                      const float* __restrict__ scale_S,
+                      const float* __restrict__ scale_dS,
+                      const uint64_t* __restrict__ seed,
+                      const uint64_t* __restrict__ offset,
+                      const float* __restrict__ dropout_P,
+                      float scale,
+                      uint32_t seq_len,
+                      uint64_t nhs)
+{
+    static_assert(THREADS % warpSize == 0);
+    constexpr uint32_t NumWarps = THREADS / warpSize;
+    const uint32_t lid          = threadIdx.x;
+    const uint32_t laneId       = lid % warpSize;
+    const uint32_t warpId       = lid / warpSize;
+
+    const float dropout            = (dropout_P && seed && offset) ? (*dropout_P) : 0.0f;
+    const float scaler_dropout     = 1.0f - dropout;
+    const float scaler_inv_dropout = 1.0f / scaler_dropout;
+
+    const float descaler_QxK  = (*descale_Q) * (*descale_K);
+    const float descaler_dOxV = (*descale_dO) * (*descale_V) * scaler_dropout;
+
+    const float scaler_S  = (*scale_S);
+    const float scaler_dS = (*scale_dS);
+
+    rocrand_state_xorwow rng;
+    if(dropout > 0.0f)
+    {
+        const uint64_t idx = blockIdx.x * blockDim.x + threadIdx.x;
+        rocrand_init(prng::hash(*seed + idx), 0, *offset, &rng);
+    }
+
+    float r_Amax = 0;
+
+    for(uint64_t gid = blockIdx.x; gid < nhs && lid < seq_len; gid += gridDim.x)
+    {
+        const float M_val    = M[gid];
+        const float Zinv_val = Zinv[gid];
+        const float dOxO_val = dOxO[gid];
+
+        const size_t idx = gid * seq_len + lid;
+
+        const float QxK_val = doDropout(dropout, &rng) ? 0.0f
+                                                       : expf(QxK_S[idx] * descaler_QxK - M_val) *
+                                                             Zinv_val * scaler_inv_dropout;
+
+        QxK_S[idx] = QxK_val * scaler_S;
+
+        const float dOxV_val = (dOxV[idx] * descaler_dOxV - dOxO_val) * scale * QxK_val;
+
+        dS[idx] = static_cast<OUT_TYPE>(dOxV_val * scaler_dS);
+
+        r_Amax = fmaxf_op(r_Amax, fabsf(dOxV_val));
+    }
+
+    r_Amax = reductionBlock<NumWarps>(r_Amax, fmaxf_op, lid, laneId, warpId);
+    if(lid == 0)
+    {
+        atomicMaxOfNonNegative(Amax, r_Amax);
+    }
+}
+
+extern "C" __global__ void __launch_bounds__(THREADS)
+    BwdAttentionCommon(float* __restrict__ QxK_S,
+                       const float* dOxV,
+                       OUT_TYPE* dS, // may overlap with dOxV
+                       const float* __restrict__ M,
+                       const float* __restrict__ Zinv,
+                       const float* __restrict__ dOxO,
+                       float* __restrict__ Amax,
+                       const float* __restrict__ descale_Q,
+                       const float* __restrict__ descale_K,
+                       const float* __restrict__ descale_dO,
+                       const float* __restrict__ descale_V,
+                       const float* __restrict__ scale_S,
+                       const float* __restrict__ scale_dS,
+                       const uint64_t* __restrict__ seed,
+                       const uint64_t* __restrict__ offset,
+                       const float* __restrict__ dropout_P,
+                       float scale,
+                       uint32_t seq_len,
+                       uint64_t nhs)
+{
+    static_assert(THREADS % warpSize == 0);
+    constexpr uint32_t NumWarps = THREADS / warpSize;
+    const uint32_t lid          = threadIdx.x;
+    const uint32_t laneId       = lid % warpSize;
+    const uint32_t warpId       = lid / warpSize;
+
+    const float dropout            = (dropout_P && seed && offset) ? (*dropout_P) : 0.0f;
+    const float scaler_dropout     = 1.0f - dropout;
+    const float scaler_inv_dropout = 1.0f / scaler_dropout;
+
+    const float descaler_QxK  = (*descale_Q) * (*descale_K);
+    const float descaler_dOxV = (*descale_dO) * (*descale_V) * scaler_dropout;
+
+    const float scaler_S  = (*scale_S);
+    const float scaler_dS = (*scale_dS);
+
+    rocrand_state_xorwow rng;
+    if(dropout > 0.0f)
+    {
+        const uint64_t idx = blockIdx.x * blockDim.x + threadIdx.x;
+        rocrand_init(prng::hash(*seed + idx), 0, *offset, &rng);
+    }
+
+    float r_Amax = 0;
+
+    for(uint64_t gid = blockIdx.x; gid < nhs; gid += gridDim.x)
+    {
+        const float M_val    = M[gid];
+        const float Zinv_val = Zinv[gid];
+        const float dOxO_val = dOxO[gid];
+
+        float* QxK_S_ptr      = QxK_S + gid * seq_len;
+        const float* dOxV_ptr = dOxV + gid * seq_len;
+        OUT_TYPE* dS_ptr      = dS + gid * seq_len;
+
+        for(uint32_t loop_lid = lid; loop_lid < seq_len; loop_lid += blockDim.x)
+        {
+            const float QxK_val = doDropout(dropout, &rng)
+                                      ? 0.0f
+                                      : expf(QxK_S_ptr[loop_lid] * descaler_QxK - M_val) *
+                                            Zinv_val * scaler_inv_dropout;
+
+            QxK_S_ptr[loop_lid] = QxK_val * scaler_S;
+
+            const float dOxV_val =
+                (dOxV_ptr[loop_lid] * descaler_dOxV - dOxO_val) * scale * QxK_val;
+
+            dS_ptr[loop_lid] = static_cast<OUT_TYPE>(dOxV_val * scaler_dS);
+
+            r_Amax = fmaxf_op(r_Amax, fabsf(dOxV_val));
+        }
+    }
+
+    r_Amax = reductionBlock<NumWarps>(r_Amax, fmaxf_op, lid, laneId, warpId);
+    if(lid == 0)
+    {
+        atomicMaxOfNonNegative(Amax, r_Amax);
     }
 }

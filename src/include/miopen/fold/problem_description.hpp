@@ -71,7 +71,7 @@ struct UnfoldFwdProblemDescription : ProblemDescriptionBase
 
     bool IsValidSize() const
     {
-        if(inputDesc.GetSize() != 4)
+        if(inputDesc.GetNumDims() != 4)
         {
 #if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
             MIOPEN_THROW(miopenStatusBadParm, "Unfold: The input tensor should be 4D.");
@@ -79,7 +79,7 @@ struct UnfoldFwdProblemDescription : ProblemDescriptionBase
             return false;
 #endif
         }
-        int32_t spatial_dim_size = inputDesc.GetSize() - 2;
+        int32_t spatial_dim_size = inputDesc.GetNumDims() - 2;
         if(kernel_size_size != spatial_dim_size || stride_size != spatial_dim_size ||
            padding_size != spatial_dim_size || dilation_size != spatial_dim_size)
         {
@@ -167,11 +167,11 @@ struct UnfoldBwdProblemDescription : ProblemDescriptionBase
 
     bool IsValidSize() const
     {
-        if(dinputDesc.GetSize() != 4)
+        if(dinputDesc.GetNumDims() != 4)
         {
             MIOPEN_THROW(miopenStatusBadParm, "Unfold: The input gradient tensor should be 4D.");
         }
-        int32_t spatial_dim_size = dinputDesc.GetSize() - 2;
+        int32_t spatial_dim_size = dinputDesc.GetNumDims() - 2;
         if(kernel_size_size != spatial_dim_size || stride_size != spatial_dim_size ||
            padding_size != spatial_dim_size || dilation_size != spatial_dim_size)
         {
@@ -260,11 +260,11 @@ struct FoldFwdProblemDescription : ProblemDescriptionBase
 
     bool IsValidSize() const
     {
-        if(outputDesc.GetSize() != 4)
+        if(outputDesc.GetNumDims() != 4)
         {
             MIOPEN_THROW(miopenStatusBadParm, "Fold: The output tensor should be 4D.");
         }
-        int32_t spatial_dim_size = outputDesc.GetSize() - 2;
+        int32_t spatial_dim_size = outputDesc.GetNumDims() - 2;
         if(kernel_size_size != spatial_dim_size || stride_size != spatial_dim_size ||
            padding_size != spatial_dim_size || dilation_size != spatial_dim_size)
         {
@@ -352,11 +352,11 @@ struct FoldBwdProblemDescription : ProblemDescriptionBase
 
     bool IsValidSize() const
     {
-        if(doutputDesc.GetSize() != 4)
+        if(doutputDesc.GetNumDims() != 4)
         {
             MIOPEN_THROW(miopenStatusBadParm, "Fold: The output gradient tensor should be 4D.");
         }
-        int32_t spatial_dim_size = doutputDesc.GetSize() - 2;
+        int32_t spatial_dim_size = doutputDesc.GetNumDims() - 2;
         if(kernel_size_size != spatial_dim_size || stride_size != spatial_dim_size ||
            padding_size != spatial_dim_size || dilation_size != spatial_dim_size)
         {

@@ -37,14 +37,9 @@
 #include <miopen/solver/implicitgemm_util.hpp>
 #include <miopen/stringutils.hpp>
 
-#if !defined(_WIN32)
 #include <amd_comgr/amd_comgr.h>
-#else
-#include <amd_comgr.h>
-#endif
 #include <hip/hip_runtime_api.h>
 #if MIOPEN_USE_HIPRTC
-#include <miopen/manage_ptr.hpp>
 #include <hip/hiprtc.h>
 #endif
 
@@ -60,6 +55,9 @@
 /// More info at https://github.com/ROCm/MIOpen/issues/1257.
 #define WORKAROUND_ISSUE_1257 (HIP_PACKAGE_VERSION_FLAT >= 4003021331ULL)
 
+/// https://github.com/ROCm/ROCm-CompilerSupport/issues/67 about unused -nogpulib.
+#define WORKAROUND_ROCMCOMPILERSUPPORT_ISSUE_67 1
+
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_COMGR_LOG_CALLS)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_COMGR_LOG_SOURCE_NAMES)
 
@@ -71,11 +69,6 @@ MIOPEN_DECLARE_ENV_VAR_UINT64(MIOPEN_DEBUG_COMGR_LOG_OPTIONS)
 /// Integer, set to max number of first characters
 /// you would like to log onto console.
 MIOPEN_DECLARE_ENV_VAR_UINT64(MIOPEN_DEBUG_COMGR_LOG_SOURCE_TEXT)
-
-/// \todo Temporary for debugging:
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_DEBUG_COMGR_COMPILER_OPTIONS_INSERT)
-/// \todo Temporary for debugging:
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_COMGR_HIP_BUILD_FATBIN)
 
 /// \todo see issue #1222, PR #1316
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_SRAM_EDC_DISABLED)
@@ -101,16 +94,18 @@ MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_OPENCL_WAVE64_NOWGP)
     ((MIOPEN_AMD_COMGR_VERSION_MAJOR * 1000 + MIOPEN_AMD_COMGR_VERSION_MINOR) * 1000 + \
      MIOPEN_AMD_COMGR_VERSION_PATCH)
 
+#if COMGR_VERSION < 1007000
+#error "AMD COMgr older than 1.7.0 is not supported"
+#endif
+
 #define COMGR_SUPPORTS_PCH (COMGR_VERSION >= 1008000)
 
 #if COMGR_SUPPORTS_PCH
-
 #if defined(__HIP_HAS_GET_PCH) && __HIP_HAS_GET_PCH
 #define HIP_SUPPORTS_PCH 1
 #else
 #define HIP_SUPPORTS_PCH 0
 #endif
-
 #endif // COMGR_SUPPORTS_PCH
 
 #define PCH_IS_SUPPORTED (COMGR_SUPPORTS_PCH && HIP_SUPPORTS_PCH)
@@ -119,10 +114,6 @@ MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_OPENCL_WAVE64_NOWGP)
 /// This leads to issues in HIP kernels that use "warpSize" on devices that
 /// have wavesize != 64 (currently gfx10 with default build settings).
 #define WORKAROUND_ISSUE_1431 PCH_IS_SUPPORTED
-
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_COMGR_HIP_PCH_ENFORCE)
-
-#define COMPILER_LC 1
 
 #define EC_BASE(comgrcall, info, action)                                  \
     do                                                                    \
@@ -134,7 +125,7 @@ MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_COMGR_HIP_PCH_ENFORCE)
                                                << GetStatusText(status)); \
             (action);                                                     \
         }                                                                 \
-        else if(miopen::IsEnabled(ENV(MIOPEN_DEBUG_COMGR_LOG_CALLS)))     \
+        else if(env::enabled(MIOPEN_DEBUG_COMGR_LOG_CALLS))               \
             MIOPEN_LOG_I("Ok \'" #comgrcall "\' " << to_string(info));    \
     } while(false)
 
@@ -161,7 +152,6 @@ using OptionList = std::vector<std::string>;
 /// (minimal compiler abstraction layer).
 namespace compiler {
 
-#if COMPILER_LC
 namespace lc {
 
 static auto GetOptionsNoSplit()
@@ -184,8 +174,6 @@ static void RemoveOptionsUnwanted(OptionList& list)
 } // namespace gcnasm
 
 namespace ocl {
-
-#define OCL_COMPILE_SOURCE_WITH_DEVICE_LIBS (COMGR_VERSION >= 1007000)
 
 #define OCL_EARLY_INLINE 1
 
@@ -213,7 +201,7 @@ static void AddCompilerOptions(OptionList& list)
 #endif
     list.push_back("-mllvm");
     list.push_back("-amdgpu-prelink");
-    if(miopen::IsEnabled(ENV(MIOPEN_DEBUG_OPENCL_WAVE64_NOWGP)))
+    if(env::enabled(MIOPEN_DEBUG_OPENCL_WAVE64_NOWGP))
     {
         list.push_back("-mwavefrontsize64");
         list.push_back("-mcumode");
@@ -237,83 +225,6 @@ static void RemoveOptionsUnwanted(OptionList& list)
 
 } // namespace ocl
 
-namespace hip {
-
-#if PCH_IS_SUPPORTED
-static bool IsPchEnabled() { return !miopen::IsDisabled(ENV(MIOPEN_DEBUG_COMGR_HIP_PCH_ENFORCE)); }
-#endif
-
-static std::string GetPchEnableStatus()
-{
-#if PCH_IS_SUPPORTED
-    auto rv = std::string{IsPchEnabled() ? "1" : "0"};
-    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_COMGR_HIP_PCH_ENFORCE)))
-        return rv += " (enforced)";
-    return rv;
-#else
-    return "0 (not supported)";
-#endif
-}
-
-static bool IsLinkerOption(const std::string& option)
-{
-    return miopen::StartsWith(option, "-L") || miopen::StartsWith(option, "-Wl,") ||
-           option == "-ldl" || option == "-lm" || option == "--hip-link";
-}
-
-static void RemoveCommonOptionsUnwanted(OptionList& list)
-{
-    list.erase(
-        remove_if(
-            list.begin(),
-            list.end(),
-            [&](const auto& option) { // clang-format off
-                             return miopen::StartsWith(option, "-mcpu=")
-                                || (option == "-hc")
-                                || (option == "-x hip") || (option == "-xhip")
-                                || (option == "--hip-link")
-                                // The following matches current "-lclang_rt.builtins-x86_64" (4.5) as weel as
-                                // upcoming ".../libclang_rt.builtins-x86_64.a" and even future things like
-                                // "...x86_64.../libclang_rt.builtins.a" etc.
-                                || ((option.find("clang_rt.builtins") != std::string::npos)
-                                 && (option.find("x86_64") != std::string::npos))
-                                || miopen::StartsWith(option, "--hip-device-lib-path="); // clang-format on
-            }),
-        list.end());
-}
-
-static void AddCompilerOptions(const OptionList& list) // `const` is for clang-tidy.
-{
-    // Nothing to do here yet, but let's keep the placeholder for now.
-    std::ignore = list;
-}
-
-static void RemoveCompilerOptionsUnwanted(OptionList& list)
-{
-    RemoveCommonOptionsUnwanted(list);
-    list.erase(remove_if(list.begin(),
-                         list.end(),
-                         [&](const auto& option) { // clang-format off
-                             return (!miopen::IsEnabled(ENV(MIOPEN_DEBUG_COMGR_HIP_BUILD_FATBIN))
-                                    && (IsLinkerOption(option))); // clang-format on
-                         }),
-               list.end());
-}
-
-static void RemoveLinkOptionsUnwanted(OptionList& list)
-{
-    RemoveCommonOptionsUnwanted(list);
-    list.erase(remove_if(list.begin(),
-                         list.end(),
-                         [&](const auto& option) { // clang-format off
-                             return miopen::StartsWith(option, "-D")
-                                || miopen::StartsWith(option, "-isystem"); // clang-format on
-                         }),
-               list.end());
-}
-
-} // namespace hip
-
 /// \todo Get list of supported isa names from comgr and select.
 static std::string GetIsaName(const miopen::TargetProperties& target, const bool isHlcBuild)
 {
@@ -327,7 +238,6 @@ static std::string GetIsaName(const miopen::TargetProperties& target, const bool
 
 } // namespace lc
 #undef OCL_EARLY_INLINE
-#endif // COMPILER_LC
 
 } // namespace compiler
 
@@ -340,6 +250,12 @@ static inline std::string to_string(const std::string& v) { return {v}; }
 static inline std::string to_string(const bool& v) { return v ? "true" : "false"; }
 static inline auto to_string(const std::size_t& v) { return std::to_string(v); }
 
+/// Convert amd_comgr enum members to strings.
+///
+/// \note We need support only for the enum members used in this file.
+/// Let's skip unused members in order to simplify maintenance
+/// of code between different COMgr versions.
+///
 /// \todo Request comgr to expose this stuff via API.
 static std::string to_string(const amd_comgr_language_t val)
 {
@@ -349,7 +265,6 @@ static std::string to_string(const amd_comgr_language_t val)
                     AMD_COMGR_LANGUAGE_NONE,
                     AMD_COMGR_LANGUAGE_OPENCL_1_2,
                     AMD_COMGR_LANGUAGE_OPENCL_2_0,
-                    AMD_COMGR_LANGUAGE_HC,
                     AMD_COMGR_LANGUAGE_HIP);
     return oss.str();
 }
@@ -362,58 +277,21 @@ static std::string to_string(const amd_comgr_data_kind_t val)
                     AMD_COMGR_DATA_KIND_UNDEF,
                     AMD_COMGR_DATA_KIND_SOURCE,
                     AMD_COMGR_DATA_KIND_INCLUDE,
-                    AMD_COMGR_DATA_KIND_PRECOMPILED_HEADER,
-                    AMD_COMGR_DATA_KIND_DIAGNOSTIC,
                     AMD_COMGR_DATA_KIND_LOG,
-                    AMD_COMGR_DATA_KIND_BC,
-                    AMD_COMGR_DATA_KIND_RELOCATABLE,
-                    AMD_COMGR_DATA_KIND_EXECUTABLE,
-                    AMD_COMGR_DATA_KIND_BYTES,
-                    AMD_COMGR_DATA_KIND_FATBIN);
+                    AMD_COMGR_DATA_KIND_EXECUTABLE);
     return oss.str();
 }
 
 static std::string to_string(const amd_comgr_action_kind_t val)
 {
     std::ostringstream oss;
-#if COMGR_VERSION >= 1007000
     MIOPEN_LOG_ENUM(oss,
                     val,
-                    AMD_COMGR_ACTION_SOURCE_TO_PREPROCESSOR,
                     AMD_COMGR_ACTION_ADD_PRECOMPILED_HEADERS,
-                    AMD_COMGR_ACTION_COMPILE_SOURCE_TO_BC,
-                    AMD_COMGR_ACTION_ADD_DEVICE_LIBRARIES,
-                    AMD_COMGR_ACTION_LINK_BC_TO_BC,
-                    AMD_COMGR_ACTION_OPTIMIZE_BC_TO_BC,
                     AMD_COMGR_ACTION_CODEGEN_BC_TO_RELOCATABLE,
-                    AMD_COMGR_ACTION_CODEGEN_BC_TO_ASSEMBLY,
-                    AMD_COMGR_ACTION_LINK_RELOCATABLE_TO_RELOCATABLE,
                     AMD_COMGR_ACTION_LINK_RELOCATABLE_TO_EXECUTABLE,
                     AMD_COMGR_ACTION_ASSEMBLE_SOURCE_TO_RELOCATABLE,
-                    AMD_COMGR_ACTION_DISASSEMBLE_RELOCATABLE_TO_SOURCE,
-                    AMD_COMGR_ACTION_DISASSEMBLE_EXECUTABLE_TO_SOURCE,
-                    AMD_COMGR_ACTION_DISASSEMBLE_BYTES_TO_SOURCE,
-                    AMD_COMGR_ACTION_COMPILE_SOURCE_TO_FATBIN,
                     AMD_COMGR_ACTION_COMPILE_SOURCE_WITH_DEVICE_LIBS_TO_BC);
-#else
-    MIOPEN_LOG_ENUM(oss,
-                    val,
-                    AMD_COMGR_ACTION_SOURCE_TO_PREPROCESSOR,
-                    AMD_COMGR_ACTION_ADD_PRECOMPILED_HEADERS,
-                    AMD_COMGR_ACTION_COMPILE_SOURCE_TO_BC,
-                    AMD_COMGR_ACTION_ADD_DEVICE_LIBRARIES,
-                    AMD_COMGR_ACTION_LINK_BC_TO_BC,
-                    AMD_COMGR_ACTION_OPTIMIZE_BC_TO_BC,
-                    AMD_COMGR_ACTION_CODEGEN_BC_TO_RELOCATABLE,
-                    AMD_COMGR_ACTION_CODEGEN_BC_TO_ASSEMBLY,
-                    AMD_COMGR_ACTION_LINK_RELOCATABLE_TO_RELOCATABLE,
-                    AMD_COMGR_ACTION_LINK_RELOCATABLE_TO_EXECUTABLE,
-                    AMD_COMGR_ACTION_ASSEMBLE_SOURCE_TO_RELOCATABLE,
-                    AMD_COMGR_ACTION_DISASSEMBLE_RELOCATABLE_TO_SOURCE,
-                    AMD_COMGR_ACTION_DISASSEMBLE_EXECUTABLE_TO_SOURCE,
-                    AMD_COMGR_ACTION_DISASSEMBLE_BYTES_TO_SOURCE,
-                    AMD_COMGR_ACTION_COMPILE_SOURCE_TO_FATBIN);
-#endif
     return oss.str();
 }
 
@@ -422,8 +300,7 @@ static bool PrintVersionImpl()
     std::size_t major = 0;
     std::size_t minor = 0;
     (void)amd_comgr_get_version(&major, &minor);
-    MIOPEN_LOG_NQI("COMgr v." << major << '.' << minor << '.' << MIOPEN_AMD_COMGR_VERSION_PATCH
-                              << ", USE_HIP_PCH: " << compiler::lc::hip::GetPchEnableStatus());
+    MIOPEN_LOG_NQI("COMgr v." << major << '.' << minor << '.' << MIOPEN_AMD_COMGR_VERSION_PATCH);
     return true;
 }
 
@@ -443,7 +320,7 @@ static std::string GetStatusText(const amd_comgr_status_t status, const bool unk
 
 static void LogOptions(const char* options[], size_t count)
 {
-    static const auto control = miopen::Value(ENV(MIOPEN_DEBUG_COMGR_LOG_OPTIONS));
+    static const auto control = env::value(MIOPEN_DEBUG_COMGR_LOG_OPTIONS);
     if(!(control != 0 && miopen::IsLogging(miopen::LoggingLevel::Info)))
         return;
     if(control == 2)
@@ -536,16 +413,10 @@ public:
     {
         ECI_THROW(amd_comgr_set_data_name(handle, s.c_str()), s);
     }
-    void SetBytes(const std::string& bytes) const
+    void SetBytes(std::string_view bytes) const
     {
         ECI_THROW(amd_comgr_set_data(handle, bytes.size(), bytes.data()), bytes.size());
     }
-#if PCH_IS_SUPPORTED
-    void SetFromBuffer(const char* const buffer, const size_t size) const
-    {
-        ECI_THROW(amd_comgr_set_data(handle, size, buffer), size);
-    }
-#endif
 
 private:
     std::size_t GetSize() const
@@ -583,16 +454,16 @@ public:
     auto GetHandle() const { return handle; }
     void AddData(const Data& d) const { EC_THROW(amd_comgr_data_set_add(handle, d.GetHandle())); }
     void AddData(const std::string& name,
-                 const std::string& content,
+                 std::string_view content,
                  const amd_comgr_data_kind_t type) const
     {
         const Data d(type);
-        if(miopen::IsEnabled(ENV(MIOPEN_DEBUG_COMGR_LOG_SOURCE_NAMES)))
+        if(env::enabled(MIOPEN_DEBUG_COMGR_LOG_SOURCE_NAMES))
             MIOPEN_LOG_I(name << ' ' << content.size() << " bytes");
         d.SetName(name);
         d.SetBytes(content);
         AddData(d);
-        const auto show_first = miopen::Value(ENV(MIOPEN_DEBUG_COMGR_LOG_SOURCE_TEXT));
+        const auto show_first = env::value(MIOPEN_DEBUG_COMGR_LOG_SOURCE_TEXT);
         if(show_first > 0 && miopen::IsLogging(miopen::LoggingLevel::Info) &&
            (type == AMD_COMGR_DATA_KIND_SOURCE || type == AMD_COMGR_DATA_KIND_INCLUDE))
         {
@@ -601,21 +472,6 @@ public:
             MIOPEN_LOG_I(text);
         }
     }
-#if PCH_IS_SUPPORTED
-    void AddDataHipPch(const char* const content, const size_t size) const
-    {
-        const char name[] = "hip.pch";
-        const Data d(AMD_COMGR_DATA_KIND_PRECOMPILED_HEADER);
-        if(miopen::IsEnabled(ENV(MIOPEN_DEBUG_COMGR_LOG_SOURCE_NAMES)))
-        {
-            MIOPEN_LOG_I(name << ' ' << size
-                              << " bytes,  ptr = " << static_cast<const void*>(content));
-        }
-        d.SetName(name);
-        d.SetFromBuffer(content, size);
-        AddData(d);
-    }
-#endif
     size_t GetDataCount(const amd_comgr_data_kind_t kind) const
     {
         std::size_t count = 0;
@@ -730,146 +586,16 @@ static void SetIsaName(const ActionInfo& action,
     action.SetIsaName(isaName);
 }
 
-static std::string GetDebugCompilerOptionsInsert()
-{
-    const auto& p = miopen::GetStringEnv(ENV(MIOPEN_DEBUG_COMGR_COMPILER_OPTIONS_INSERT));
-    return {p};
-}
-
+#if WORKAROUND_ISSUE_1431
 static inline bool IsWave64Enforced(const OptionList& opts)
 {
     return std::any_of(
         opts.begin(), opts.end(), [](const std::string& s) { return s == "-mwavefrontsize64"; });
 }
-
-void BuildHip(const std::string& name,
-              const std::string& text,
-              const std::string& options,
-              const miopen::TargetProperties& target,
-              std::vector<char>& binary)
-{
-    PrintVersion();
-    try
-    {
-        const Dataset inputs;
-        inputs.AddData(name, text, AMD_COMGR_DATA_KIND_SOURCE);
-
-        // For OCL and ASM sources, we do insert contents of include
-        // files directly into the source text during library build phase by means
-        // of the addkernels tool. We don't do that for HIP sources, and, therefore
-        // have to export include files prior compilation.
-        // Note that we do not need any "subdirs" in the include "pathnames" so far.
-        const auto incNames = miopen::GetHipKernelIncList();
-        for(const auto& inc : incNames)
-            inputs.AddData(inc, miopen::GetKernelInc(inc), AMD_COMGR_DATA_KIND_INCLUDE);
-
-#if PCH_IS_SUPPORTED
-        if(compiler::lc::hip::IsPchEnabled())
-        {
-            const char* pch       = nullptr;
-            unsigned int pch_size = 0;
-            __hipGetPCH(&pch, &pch_size);
-            inputs.AddDataHipPch(pch, pch_size);
-        }
 #endif
-
-        const ActionInfo action;
-        action.SetLanguage(AMD_COMGR_LANGUAGE_HIP);
-        SetIsaName(action, target, true);
-        action.SetLogging(true);
-
-        const Dataset exe;
-        if(miopen::IsEnabled(ENV(MIOPEN_DEBUG_COMGR_HIP_BUILD_FATBIN)))
-        {
-            auto raw = options                                 //
-                       + " " + GetDebugCompilerOptionsInsert() //
-                       + " " + MIOPEN_STRINGIZE(HIP_COMPILER_FLAGS) +
-                       (" -DHIP_PACKAGE_VERSION_FLAT=") + std::to_string(HIP_PACKAGE_VERSION_FLAT);
-            if(miopen::solver::support_amd_buffer_atomic_fadd(target.Name()))
-                raw += " -DCK_AMD_BUFFER_ATOMIC_FADD_RETURNS_FLOAT=1";
-            auto optCompile = miopen::SplitSpaceSeparated(raw, compiler::lc::GetOptionsNoSplit());
-            compiler::lc::hip::RemoveCompilerOptionsUnwanted(optCompile);
-            action.SetOptionList(optCompile);
-            action.Do(AMD_COMGR_ACTION_COMPILE_SOURCE_TO_FATBIN, inputs, exe);
-        }
-        else
-        {
-            auto raw = std::string(" -O3 ")                    // Without this, fails in lld.
-                       + options                               //
-                       + " " + GetDebugCompilerOptionsInsert() //
-                       + " " + MIOPEN_STRINGIZE(HIP_COMPILER_FLAGS) +
-                       (" -DHIP_PACKAGE_VERSION_FLAT=") + std::to_string(HIP_PACKAGE_VERSION_FLAT);
-            if(miopen::solver::support_amd_buffer_atomic_fadd(target.Name()))
-                raw += " -DCK_AMD_BUFFER_ATOMIC_FADD_RETURNS_FLOAT=1";
-#if PCH_IS_SUPPORTED
-            if(compiler::lc::hip::IsPchEnabled())
-            {
-                raw += " -nogpuinc -DMIOPEN_DONT_USE_HIP_RUNTIME_HEADERS";
-            }
-#endif
-            auto optCompile = miopen::SplitSpaceSeparated(raw, compiler::lc::GetOptionsNoSplit());
-            auto optLink    = optCompile;
-            compiler::lc::hip::RemoveCompilerOptionsUnwanted(optCompile);
-            compiler::lc::hip::AddCompilerOptions(optCompile);
-#if WORKAROUND_ISSUE_1431
-            if(compiler::lc::hip::IsPchEnabled())
-            {
-                if((StartsWith(target.Name(), "gfx10") || StartsWith(target.Name(), "gfx11")) &&
-                   !IsWave64Enforced(optCompile))
-                    optCompile.emplace_back("-DWORKAROUND_ISSUE_1431=1");
-            }
-#endif
-            action.SetOptionList(optCompile);
-            const Dataset compiledBc;
-            action.Do(AMD_COMGR_ACTION_COMPILE_SOURCE_TO_BC, inputs, compiledBc);
-
-            OptionList addDevLibs;
-            // Use device libs for wavefrontsize64 for non-gfx10 targets
-            // or when enforced via option.
-            if(!(StartsWith(target.Name(), "gfx10") || StartsWith(target.Name(), "gfx11")) ||
-               IsWave64Enforced(optCompile))
-            {
-                addDevLibs.push_back("wavefrontsize64");
-            }
-            addDevLibs.push_back("daz_opt");     // Assume that it's ok to flush denormals to zero.
-            addDevLibs.push_back("finite_only"); // No need to handle INF correcly.
-            addDevLibs.push_back("unsafe_math"); // Prefer speed over correctness for FP math.
-            action.SetOptionList(addDevLibs);
-            const Dataset withDevLibs;
-            action.Do(AMD_COMGR_ACTION_ADD_DEVICE_LIBRARIES, compiledBc, withDevLibs);
-
-            compiler::lc::hip::RemoveLinkOptionsUnwanted(optLink);
-            action.SetOptionList(optLink);
-            const Dataset linkedBc;
-            action.Do(AMD_COMGR_ACTION_LINK_BC_TO_BC, withDevLibs, linkedBc);
-
-            OptionList codegenBcToRel;
-            codegenBcToRel.push_back("-O3"); // Nothing more is required at this step.
-            action.SetOptionList(codegenBcToRel);
-            const Dataset relocatable;
-            action.Do(AMD_COMGR_ACTION_CODEGEN_BC_TO_RELOCATABLE, linkedBc, relocatable);
-
-            action.SetOptionList(OptionList());
-            action.Do(AMD_COMGR_ACTION_LINK_RELOCATABLE_TO_EXECUTABLE, relocatable, exe);
-        }
-
-        if(exe.GetDataCount(AMD_COMGR_DATA_KIND_EXECUTABLE) < 1)
-            throw ComgrError{AMD_COMGR_STATUS_ERROR, true, "Executable binary not found"};
-        // Assume that the first exec data contains the binary we need.
-        const auto data = exe.GetData(AMD_COMGR_DATA_KIND_EXECUTABLE, 0);
-        data.GetBytes(binary);
-    }
-    catch(ComgrError& ex)
-    {
-        binary.resize(0); // Necessary when "get binary" fails.
-        MIOPEN_LOG_E("comgr status = " << GetStatusText(ex));
-        if(!ex.text.empty())
-            MIOPEN_LOG_W(ex.text);
-    }
-}
 
 void BuildOcl(const std::string& name,
-              const std::string& text,
+              std::string_view text,
               const std::string& options,
               const miopen::TargetProperties& target,
               std::vector<char>& binary)
@@ -895,41 +621,8 @@ void BuildOcl(const std::string& name,
 
         const Dataset addedPch;
         action.Do(AMD_COMGR_ACTION_ADD_PRECOMPILED_HEADERS, inputs, addedPch);
-#if OCL_COMPILE_SOURCE_WITH_DEVICE_LIBS
         const Dataset linkedBc;
         action.Do(AMD_COMGR_ACTION_COMPILE_SOURCE_WITH_DEVICE_LIBS_TO_BC, addedPch, linkedBc);
-#else
-        const Dataset compiledBc;
-        action.Do(AMD_COMGR_ACTION_COMPILE_SOURCE_TO_BC, addedPch, compiledBc);
-
-        OptionList optLink;
-        // Use device libs for wavefrontsize64 for non-gfx10 targets
-        // or when enforced via option.
-        if(!(StartsWith(target.Name(), "gfx10") || StartsWith(target.Name(), "gfx11")) ||
-           IsWave64Enforced(optCompile))
-        {
-            optLink.push_back("wavefrontsize64");
-        }
-        for(const auto& opt : optCompile)
-        {
-            if(opt == "-cl-fp32-correctly-rounded-divide-sqrt")
-                optLink.push_back("correctly_rounded_sqrt");
-            else if(opt == "-cl-denorms-are-zero")
-                optLink.push_back("daz_opt");
-            else if(opt == "-cl-finite-math-only" || opt == "-cl-fast-relaxed-math")
-                optLink.push_back("finite_only");
-            else if(opt == "-cl-unsafe-math-optimizations" || opt == "-cl-fast-relaxed-math")
-                optLink.push_back("unsafe_math");
-            else
-            {
-            } // nop
-        }
-        action.SetOptionList(optLink);
-        const Dataset addedDevLibs;
-        action.Do(AMD_COMGR_ACTION_ADD_DEVICE_LIBRARIES, compiledBc, addedDevLibs);
-        const Dataset linkedBc;
-        action.Do(AMD_COMGR_ACTION_LINK_BC_TO_BC, addedDevLibs, linkedBc);
-#endif
 
         action.SetOptionList(optCompile);
         const Dataset relocatable;
@@ -955,7 +648,7 @@ void BuildOcl(const std::string& name,
 }
 
 void BuildAsm(const std::string& name,
-              const std::string& text,
+              std::string_view text,
               const std::string& options,
               const miopen::TargetProperties& target,
               std::vector<char>& binary)
@@ -970,9 +663,14 @@ void BuildAsm(const std::string& name,
         SetIsaName(action, target);
         action.SetLogging(true);
         auto optAsm = miopen::SplitSpaceSeparated(options);
+#if WORKAROUND_ISSUE_3001
         if(target.Xnack() && !*target.Xnack())
             optAsm.emplace_back("-mno-xnack");
+#endif
         compiler::lc::gcnasm::RemoveOptionsUnwanted(optAsm);
+#if WORKAROUND_ROCMCOMPILERSUPPORT_ISSUE_67
+        optAsm.push_back("--rocm-path=.");
+#endif
         action.SetOptionList(optAsm);
 
         const Dataset relocatable;
@@ -1014,7 +712,6 @@ using OptionList = std::vector<std::string>;
 /// Compiler implementation-specific functionality
 namespace compiler {
 
-#if COMPILER_LC
 namespace lc {
 
 static inline void RemoveOptionsUnwanted(OptionList& list)
@@ -1026,7 +723,6 @@ static inline void RemoveOptionsUnwanted(OptionList& list)
 }
 
 } // namespace lc
-#endif // COMPILER_LC
 
 } // namespace compiler
 
@@ -1047,9 +743,9 @@ struct Error : std::exception
     throw Error{s, text};
 }
 
-static inline std::string to_string(const std::string& v) { return {v}; }
-static inline std::string to_string(const char* v) { return {v}; }
-static inline auto to_string(const std::size_t& v) { return std::to_string(v); }
+inline std::string_view to_string(std::string_view v) { return v; }
+inline std::string_view to_string(const char* v) { return v; }
+inline std::string to_string(const std::size_t& v) { return std::to_string(v); }
 
 static std::string GetStatusText(const hiprtcResult status)
 {
@@ -1066,7 +762,7 @@ static std::string GetStatusText(const hiprtcResult status)
             MIOPEN_LOG_E("\'" #call "\' " << to_string(info) << ": " << GetStatusText(status)); \
             (action);                                                                           \
         }                                                                                       \
-        else if(miopen::IsEnabled(ENV(MIOPEN_DEBUG_COMGR_LOG_CALLS)))                           \
+        else if(env::enabled(MIOPEN_DEBUG_COMGR_LOG_CALLS))                                     \
             MIOPEN_LOG_I("Ok \'" #call "\' " << to_string(info));                               \
     } while(false)
 
@@ -1096,8 +792,8 @@ static void PrintVersion()
 static void hiprtc_program_destroy(hiprtcProgram prog) { hiprtcDestroyProgram(&prog); }
 using hiprtc_program_ptr = MIOPEN_MANAGE_PTR(hiprtcProgram, hiprtc_program_destroy);
 
-static hiprtc_program_ptr CreateProgram(const char* src,
-                                        const char* name,
+static hiprtc_program_ptr CreateProgram(std::string_view src,
+                                        std::string_view name,
                                         int numHeaders,
                                         const char** headers,
                                         const char** includeNames)
@@ -1105,7 +801,8 @@ static hiprtc_program_ptr CreateProgram(const char* src,
     hiprtcProgram prog = nullptr;
     hiprtcResult status;
     HIPRTC_CALL_INFO_NOSTATUSDEF(
-        hiprtcCreateProgram(&prog, src, name, numHeaders, headers, includeNames), name);
+        hiprtcCreateProgram(&prog, src.data(), name.data(), numHeaders, headers, includeNames),
+        name);
     hiprtc_program_ptr p{prog}; // To destroy prog even if hiprtcCreateProgram() failed.
     if(status != HIPRTC_SUCCESS)
     {
@@ -1123,7 +820,7 @@ class HiprtcProgram
         string_ptr_array(const string_ptr_array&) = delete;
         std::size_t size() const { return c_strs.size(); }
         const char** data() { return c_strs.data(); }
-        void push_back(const std::string* s) { c_strs.push_back(s->c_str()); }
+        void push_back(std::string_view s) { c_strs.emplace_back(s.data()); }
     };
 
     struct string_array
@@ -1148,28 +845,30 @@ class HiprtcProgram
     string_ptr_array include_texts{}; // Copying of text is not necessary.
     string_array include_names{};
 
-    const std::string& src_name;
-    const std::string& src_text;
+    std::string_view src_name;
+    std::string_view src_text;
 
 public:
-    HiprtcProgram(const std::string& src_name_, const std::string& src_text_)
+    HiprtcProgram(std::string_view src_name_, std::string_view src_text_)
         : src_name(src_name_), src_text(src_text_)
     {
         LogInputFile(src_name, src_text);
-        const auto inc_names = miopen::GetHipKernelIncList();
+        // For OCL and ASM sources, we do insert contents of include
+        // files directly into the source text during library build phase by means
+        // of the addkernels tool. We don't do that for HIP sources, and, therefore
+        // have to export include files prior compilation.
+        // Note that we do not need any "subdirs" in the include "pathnames" so far.
+        const auto inc_names = miopen::GetKernelIncList();
         include_names.reserve(inc_names.size());
         for(const auto& inc_name : inc_names)
         {
-            const auto inc_text = miopen::GetKernelIncPtr(inc_name);
-            LogInputFile(inc_name, *inc_text);
-            include_names.push_back(inc_name);
+            const auto inc_text = GetKernelInc(inc_name);
+            LogInputFile(inc_name, inc_text);
+            include_names.push_back(inc_name.get().string());
             include_texts.push_back(inc_text);
         }
-        prog = CreateProgram(src_text.c_str(),
-                             src_name.c_str(),
-                             include_texts.size(),
-                             include_texts.data(),
-                             include_names.data());
+        prog = CreateProgram(
+            src_text, src_name, include_texts.size(), include_texts.data(), include_names.data());
     }
 
     void Compile(const std::vector<std::string>& options)
@@ -1199,13 +898,13 @@ public:
     }
 
 private:
-    void LogInputFile(const std::string& name, const std::string& content)
+    void LogInputFile(const fs::path& name, std::string_view content)
     {
-        if(miopen::IsEnabled(ENV(MIOPEN_DEBUG_COMGR_LOG_SOURCE_NAMES)))
+        if(env::enabled(MIOPEN_DEBUG_COMGR_LOG_SOURCE_NAMES))
             MIOPEN_LOG_I(name << ' ' << content.size() << " bytes");
         if(miopen::IsLogging(miopen::LoggingLevel::Info))
         {
-            const auto show_first = miopen::Value(ENV(MIOPEN_DEBUG_COMGR_LOG_SOURCE_TEXT));
+            const auto show_first = env::value(MIOPEN_DEBUG_COMGR_LOG_SOURCE_TEXT);
             if(show_first > 0)
             {
                 const auto text_length =
@@ -1241,7 +940,7 @@ private:
 };
 
 void BuildHip(const std::string& name,
-              const std::string& text,
+              std::string_view text,
               const std::string& options,
               const miopen::TargetProperties& target,
               std::vector<char>& binary)

@@ -127,8 +127,8 @@ struct tensor_scale_driver : test_driver
         super = tensor<T>{superLens}.generate(tensor_elem_gen_integer{max_value});
 
         std::vector<size_t> superStrides = super.desc.GetStrides();
-        std::vector<int> subStrides(superStrides.begin() + (super.desc.GetSize() - subLens.size()),
-                                    superStrides.end());
+        std::vector<int> subStrides(
+            superStrides.begin() + (super.desc.GetNumDims() - subLens.size()), superStrides.end());
 
         subDesc = miopen::TensorDescriptor(this->type, subLens, subStrides);
 

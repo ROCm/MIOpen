@@ -28,10 +28,26 @@
 
 #include <miopen/miopen.h>
 #include <miopen/errors.hpp>
+#include <miopen/invoke_params.hpp>
 #include <miopen/kernel_info.hpp>
 #include <miopen/op_kernel_args.hpp>
 #include <miopen/execution_context.hpp>
 #include <vector>
+
+struct transpose_invoke_param : public miopen::InvokeParams
+{
+    ConstData_t src = nullptr;
+    Data_t dst      = nullptr;
+
+    transpose_invoke_param(ConstData_t src_, Data_t dst_) : InvokeParams{}, src(src_), dst(dst_) {}
+    transpose_invoke_param(miopen::InvokeType type_, ConstData_t src_, Data_t dst_)
+        : InvokeParams{type_}, src(src_), dst(dst_)
+    {
+    }
+
+    Data_t GetWorkspace() const { return nullptr; }
+    std::size_t GetWorkspaceSize() const { return 0; }
+};
 
 namespace miopen {
 
@@ -45,7 +61,7 @@ struct BatchedTransposeParam
     int ediv_y{0};
 };
 
-struct BatchedTransposeSolution
+struct MIOPEN_INTERNALS_EXPORT BatchedTransposeSolution
 {
     BatchedTransposeSolution(const ExecutionContext& ctx_,
                              miopenDataType_t data_type_,
@@ -65,6 +81,8 @@ struct BatchedTransposeSolution
     int num_cu;
 
     BatchedTransposeParam kernel_param_heuristic;
+
+    InvokerFactory MakeBatchedTransposeInvokerFactory() const;
 };
 
 struct TransposeSolutionDefault2Nhwc : public BatchedTransposeSolution

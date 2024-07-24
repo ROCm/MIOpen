@@ -27,6 +27,7 @@
 #include <miopen/datatype.hpp>
 #include <miopen/kernel_build_params.hpp>
 #include <miopen/reduce/invoke_params.hpp>
+#include <miopen/reduce/utils.hpp>
 #include <miopen/reduce/solvers.hpp>
 #include <miopen/sum.hpp>
 #include <miopen/target_properties.hpp>
@@ -38,35 +39,6 @@ namespace miopen {
 namespace solver {
 
 namespace reduce {
-
-size_t get_reqd_work_item_cnt(const ExecutionContext& context)
-{
-    // At least 4 WGs per one CU
-    return static_cast<size_t>(LOCAL_SIZE * context.GetStream().GetMaxComputeUnits() * 4);
-}
-
-size_t get_reqd_work_item_cnt(const Handle& handle)
-{
-    // At least 4 WGs per one CU
-    return static_cast<size_t>(LOCAL_SIZE * handle.GetMaxComputeUnits() * 4);
-}
-
-size_t get_parallelism_size(size_t reqd_work_item_cnt, size_t output_numel, size_t reduce_size)
-{
-    size_t parallelism_size = 1ULL;
-    while(parallelism_size * output_numel < reqd_work_item_cnt &&
-          parallelism_size < std::sqrt(reduce_size))
-    {
-        parallelism_size *= 2ULL;
-    }
-    return parallelism_size;
-}
-
-bool is_parallelism(size_t reqd_work_item_cnt, size_t output_numel, size_t reduce_size)
-{
-    return !(output_numel > reqd_work_item_cnt) &&
-           (output_numel * reduce_size > reqd_work_item_cnt);
-}
 
 bool IsImprovementOverROCm(const ExecutionContext& context,
                            const miopen::reduce::ProblemDescription& problem)
@@ -101,9 +73,9 @@ bool SumForward::IsApplicable(const ExecutionContext& context,
 {
     if(!problem.IsSameType())
         return false;
-    if(!problem.IsRightDim())
+    if(!problem.IsValidDim())
         return false;
-    if(!problem.IsRightLength())
+    if(!problem.IsValidLength())
         return false;
     if(!problem.IsAllPacked())
         return false;

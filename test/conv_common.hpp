@@ -88,7 +88,6 @@ static inline bool is_direct_fwd_bwd_data_supported(miopen::Handle& handle,
                 : miopen::conv::ProblemDescription{yDesc, wDesc, xDesc, convDesc, dir};
         auto ctx                    = miopen::ExecutionContext{};
         ctx.do_search               = false;
-        ctx.save_srch_req           = false;
         ctx.disable_perfdb_access   = true;
         ctx.general_compile_options = "";
         ctx.SetStream(&handle);
@@ -113,7 +112,6 @@ static inline bool is_direct_bwd_wrw_supported(miopen::Handle& handle,
     auto ctx = miopen::ExecutionContext{};
 
     ctx.do_search               = false;
-    ctx.save_srch_req           = false;
     ctx.general_compile_options = "";
     ctx.disable_perfdb_access   = true;
     ctx.SetStream(&handle);
@@ -189,7 +187,7 @@ tensor<Tout> get_output_tensor(const miopen::ConvolutionDescriptor& filter,
 
     std::string yLayout =
         out_layout.empty()
-            ? input.desc.GetLayout(miopen::tensor_layout_get_default(input.desc.GetSize()))
+            ? input.desc.GetLayout(miopen::tensor_layout_get_default(input.desc.GetNumDims()))
             : out_layout;
     return tensor<Tout>{filter.GetForwardOutputTensorWithLayout(
         input.desc, weights.desc, yLayout, miopen_type<Tout>{})};
@@ -345,7 +343,9 @@ template <typename T, typename Tout = T>
 tensor<Tout> ref_conv_fwd(const tensor<T>& input,
                           const tensor<T>& weights,
                           const tensor<Tout>& out,
-                          const miopen::ConvolutionDescriptor& filter)
+                          const miopen::ConvolutionDescriptor& filter,
+                          const miopen::Scalar& alpha = miopen::Scalar(1.0),
+                          const miopen::Scalar& beta  = miopen::Scalar(0.0))
 {
     auto rout = out;
     if(filter.mode == miopenTranspose)
@@ -367,7 +367,7 @@ tensor<Tout> ref_conv_fwd(const tensor<T>& input,
     }
     else
     {
-        bool gpu_ref_used = gpu_ref_convolution_fwd(input, weights, rout, filter);
+        bool gpu_ref_used = gpu_ref_convolution_fwd(input, weights, rout, filter, alpha, beta);
 
         if(!gpu_ref_used)
         {
@@ -389,11 +389,13 @@ template <typename T, typename Twei, typename Tout>
 tensor<Twei> ref_conv_wrw(const tensor<T>& input,
                           const tensor<Twei>& weights,
                           const tensor<Tout>& out,
-                          const miopen::ConvolutionDescriptor& filter)
+                          const miopen::ConvolutionDescriptor& filter,
+                          const miopen::Scalar& alpha = miopen::Scalar(1.0),
+                          const miopen::Scalar& beta  = miopen::Scalar(0.0))
 {
     auto rwei = weights;
     std::fill(rwei.begin(), rwei.end(), 0);
-    bool gpu_ref_used = gpu_ref_convolution_wrw(input, rwei, out, filter);
+    bool gpu_ref_used = gpu_ref_convolution_wrw(input, rwei, out, filter, alpha, beta);
     if(!gpu_ref_used)
     {
         MIOPEN_LOG_W("GPU reference skipped");
@@ -413,7 +415,9 @@ template <typename T, typename Tout = T>
 tensor<Tout> ref_conv_bwd(const tensor<Tout>& input,
                           const tensor<T>& weights,
                           const tensor<T>& out,
-                          const miopen::ConvolutionDescriptor& filter)
+                          const miopen::ConvolutionDescriptor& filter,
+                          const miopen::Scalar& alpha = miopen::Scalar(1.0),
+                          const miopen::Scalar& beta  = miopen::Scalar(0.0))
 {
     auto rinput = input;
 
@@ -421,7 +425,7 @@ tensor<Tout> ref_conv_bwd(const tensor<Tout>& input,
 
     if(filter.mode == miopenTranspose)
     {
-        bool gpu_ref_used = gpu_ref_convolution_fwd(out, weights, rinput, filter);
+        bool gpu_ref_used = gpu_ref_convolution_fwd(out, weights, rinput, filter, alpha, beta);
         if(!gpu_ref_used)
         {
             MIOPEN_LOG_W("GPU reference not run");
@@ -437,7 +441,7 @@ tensor<Tout> ref_conv_bwd(const tensor<Tout>& input,
     }
     else
     {
-        bool gpu_ref_used = gpu_ref_convolution_bwd(rinput, weights, out, filter);
+        bool gpu_ref_used = gpu_ref_convolution_bwd(rinput, weights, out, filter, alpha, beta);
         if(!gpu_ref_used)
         {
             MIOPEN_LOG_W("GPU reference not run");
@@ -458,14 +462,16 @@ template <typename T, typename Tout = T>
 tensor<Tout> ref_conv_wrw(const tensor<T>& input,
                           const tensor<Tout>& weights,
                           const tensor<T>& out,
-                          const miopen::ConvolutionDescriptor& filter)
+                          const miopen::ConvolutionDescriptor& filter,
+                          const miopen::Scalar& alpha = miopen::Scalar(1.0),
+                          const miopen::Scalar& beta  = miopen::Scalar(0.0))
 {
     auto rweights = weights;
     std::fill(rweights.begin(), rweights.end(), 0);
 
     if(filter.mode == miopenTranspose)
     {
-        bool gpu_ref_used = gpu_ref_convolution_wrw(out, rweights, input, filter);
+        bool gpu_ref_used = gpu_ref_convolution_wrw(out, rweights, input, filter, alpha, beta);
         if(!gpu_ref_used)
         {
             MIOPEN_LOG_W("GPU reference not run");
@@ -481,7 +487,7 @@ tensor<Tout> ref_conv_wrw(const tensor<T>& input,
     }
     else
     {
-        bool gpu_ref_used = gpu_ref_convolution_wrw(input, rweights, out, filter);
+        bool gpu_ref_used = gpu_ref_convolution_wrw(input, rweights, out, filter, alpha, beta);
         if(!gpu_ref_used)
         {
             MIOPEN_LOG_W("GPU reference not run");
@@ -2062,12 +2068,13 @@ struct conv_driver : test_driver
                           .generate(tensor_elem_gen_integer{17});
         }
 
-        if(input.desc.GetSize() != in_layout.size() ||
-           weights.desc.GetSize() != fil_layout.size() || input.desc.GetSize() != out_layout.size())
+        if(input.desc.GetNumDims() != in_layout.size() ||
+           weights.desc.GetNumDims() != fil_layout.size() ||
+           input.desc.GetNumDims() != out_layout.size())
         {
-            std::cout << input.desc.GetSize() << "," << in_layout.size() << std::endl;
-            std::cout << weights.desc.GetSize() << "," << fil_layout.size() << std::endl;
-            std::cout << input.desc.GetSize() << "," << out_layout.size() << std::endl;
+            std::cout << input.desc.GetNumDims() << "," << in_layout.size() << std::endl;
+            std::cout << weights.desc.GetNumDims() << "," << fil_layout.size() << std::endl;
+            std::cout << input.desc.GetNumDims() << "," << out_layout.size() << std::endl;
             std::cerr << "FAILED: layout not match dimension size!" << std::endl;
             return;
         }
@@ -2082,7 +2089,7 @@ struct conv_driver : test_driver
             std::vector<std::size_t> dim_strides;
             miopen::tensor_layout_to_strides(
                 dim_lens,
-                miopen::tensor_layout_get_default(weights.desc.GetSize()),
+                miopen::tensor_layout_get_default(weights.desc.GetNumDims()),
                 in_layout,
                 vector_length,
                 dim_strides);
@@ -2094,14 +2101,15 @@ struct conv_driver : test_driver
             std::vector<std::size_t> dim_strides;
             miopen::tensor_layout_to_strides(
                 dim_lens,
-                miopen::tensor_layout_get_default(weights.desc.GetSize()),
+                miopen::tensor_layout_get_default(weights.desc.GetNumDims()),
                 fil_layout,
                 vector_length,
                 dim_strides);
             weights.desc = miopen::TensorDescriptor(miopen_type<T>{}, dim_lens, dim_strides);
         }
 
-        if(input.desc.GetSize() != 2 + spatial_dim || weights.desc.GetSize() != 2 + spatial_dim ||
+        if(input.desc.GetNumDims() != 2 + spatial_dim ||
+           weights.desc.GetNumDims() != 2 + spatial_dim ||
            pads_strides_dilations.size() != 3 * spatial_dim ||
            trans_output_pads.size() != spatial_dim)
         {
@@ -2150,9 +2158,12 @@ struct conv_driver : test_driver
         bool is_bfloat16 =
             (input.desc.GetType() == miopenBFloat16 && weights.desc.GetType() == miopenBFloat16);
 
-        // bfloat16 is not supported for conv3d
         if(is_bfloat16 && !(filter.spatialDim == 2))
+        {
+            show_command();
+            std::cout << "Skipped: bfloat16 is supported for 2D conv only" << std::endl;
             return;
+        }
 
         if(((filter.mode == miopenTranspose) &&
             ((filter.group_count == 1 && in_c_len == wei_k_len) ||
@@ -2169,6 +2180,8 @@ struct conv_driver : test_driver
                 {
                     if(miopen::any_of(filter.GetConvStrides(), [](auto v) { return v == 0; }))
                     {
+                        show_command();
+                        std::cout << "Skipped: stride[i] == 0" << std::endl;
                         return;
                     }
 
@@ -2196,13 +2209,19 @@ struct conv_driver : test_driver
 
                     if(miopen::any_of(out_spatial_len, [](auto v) { return v <= 0; }))
                     {
+                        show_command();
+                        std::cout << "Skipped: out_spatial_len[i] <= 0" << std::endl;
                         return;
                     }
                 }
                 else if(filter.paddingMode == miopenPaddingValid)
                 {
                     if(miopen::any_of(filter.GetConvStrides(), [](auto v) { return v == 0; }))
+                    {
+                        show_command();
+                        std::cout << "Skipped: stride[i] == 0" << std::endl;
                         return;
+                    }
 
                     std::vector<ptrdiff_t> out_spatial_len(spatial_dim);
 
@@ -2218,6 +2237,8 @@ struct conv_driver : test_driver
 
                     if(miopen::any_of(out_spatial_len, [](auto v) { return v <= 0; }))
                     {
+                        show_command();
+                        std::cout << "Skipped: out_spatial_len[i] <= 0" << std::endl;
                         return;
                     }
                 }
@@ -2290,16 +2311,6 @@ struct conv_driver : test_driver
                         get_handle(), filter, input.desc, weights.desc, output.desc);
                 }
 #endif
-
-                // bwd53 kernel (large images supported) doesnt support stride !=1 and dilation and
-                // pad.
-                if(filter.GetSpatialDimension() == 2 && in_spatial_len[1] >= 2048 &&
-                   ((filter.GetConvStrides()[0] != 1) || (filter.GetConvStrides()[1] != 1) ||
-                    (filter.GetConvDilations()[0] != 1) || (filter.GetConvDilations()[1] != 1) ||
-                    (filter.GetConvPads()[1] != 0) || (filter.GetConvPads()[0] != 0)))
-                {
-                    return;
-                }
 
                 input.generate(gen_positive_value);
                 output.generate(gen_positive_value);
@@ -2427,6 +2438,12 @@ struct conv_driver : test_driver
                                 search,
                                 int8_vectorize});
                         }
+                        else
+                        {
+                            show_command();
+                            std::cout << "FAILED: bad output_type: '" << output_type << '\''
+                                      << std::endl;
+                        }
                     }
                     else
                     {
@@ -2501,7 +2518,7 @@ struct conv_bias_driver : test_driver
     {
         for(int i = 2; i < 4; i++)
         {
-            if(output.desc.GetSize() == i + 2)
+            if(output.desc.GetNumDims() == i + 2)
                 return i;
         }
         return -1;

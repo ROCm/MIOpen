@@ -33,7 +33,7 @@ namespace miopen {
 namespace ai {
 namespace common {
 
-nlohmann::json LoadJSON(const std::string& path)
+nlohmann::json LoadJSON(const fs::path& path)
 {
     if(!fs::exists(path))
         MIOPEN_THROW(miopenStatusInternalError, "Unable to load file: " + path);
@@ -64,7 +64,7 @@ std::vector<V> LookupValues(const std::vector<U>& keys, const std::unordered_map
 #if MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK
 namespace immed_mode {
 Metadata::Metadata(const std::string& arch)
-    : json(common::LoadJSON(GetSystemDbPath() + "/" + arch + "_metadata.tn.model")),
+    : json(common::LoadJSON(GetSystemDbPath() / (arch + "_metadata.tn.model"))),
       direction_encodings(json["encodings"]["Direction"]),
       precision_encodings(json["encodings"]["Precision"]),
       layout_encodings(json["encodings"]["Layout"]),
@@ -141,10 +141,10 @@ protected:
     const size_t offset;
     static std::string ModelPath(const std::string& arch)
     {
-        const auto file_path = GetSystemDbPath() + "/" + arch + ".tn.model";
+        const auto file_path = GetSystemDbPath() / (arch + ".tn.model");
         if(!fs::exists(file_path))
             MIOPEN_THROW(miopenStatusInternalError, "Unable to load AI model file:" + file_path);
-        return file_path;
+        return file_path.string();
     }
     virtual std::vector<float> ToFeatures(const conv::ProblemDescription& problem) const = 0;
 };
@@ -433,6 +433,7 @@ protected:
             static_cast<float>(problem.GetDilationH()),
             static_cast<float>(problem.GetDilationW()),
             static_cast<float>(problem.GetOutBatchSize()),
+            static_cast<float>(metadata.EncodeLayout(problem.GetInLayout())),
             static_cast<float>(metadata.EncodePrecision(problem.GetInDataType())),
             static_cast<float>(metadata.EncodeDirection(problem.GetDirection())),
             static_cast<float>(problem.GetGroupCount())};
@@ -533,8 +534,10 @@ namespace tuning {
 Metadata::Metadata(const std::string& arch, const std::string& solver)
 {
     const nlohmann::json metadata =
-        common::LoadJSON(GetSystemDbPath() + "/" + arch + "_" + solver + "_metadata.ktn.model");
-    num_tuning_params = metadata["num_tuning_params"].get<std::size_t>();
+        common::LoadJSON(GetSystemDbPath() / (arch + "_" + solver + "_metadata.ktn.model"));
+    predict_type = metadata["predict_type"].get<std::size_t>();
+    num_tuning_params =
+        metadata["num_tuning_params"].get<std::unordered_map<std::string, std::size_t>>();
     tuning_decodings =
         metadata["decodings"]["tunings"].get<std::unordered_map<std::string, std::string>>();
 }
@@ -572,19 +575,17 @@ private:
     const fdeep::model decoder;
     static std::string EncoderPath(const std::string& arch, const std::string& solver)
     {
-        const std::string path =
-            GetSystemDbPath() + "/" + arch + "_" + solver + "_encoder.ktn.model";
+        const auto path = GetSystemDbPath() / (arch + "_" + solver + "_encoder.ktn.model");
         if(!fs::exists(path))
             MIOPEN_THROW(miopenStatusInternalError, "Unable to load file: " + path);
-        return path;
+        return path.string();
     }
     static std::string DecoderPath(const std::string& arch, const std::string& solver)
     {
-        const std::string path =
-            GetSystemDbPath() + "/" + arch + "_" + solver + "_decoder.ktn.model";
+        const auto path = GetSystemDbPath() / (arch + "_" + solver + "_decoder.ktn.model");
         if(!fs::exists(path))
             MIOPEN_THROW(miopenStatusInternalError, "Unable to load file: " + path);
-        return path;
+        return path.string();
     }
 };
 
@@ -606,6 +607,7 @@ std::shared_ptr<Model> GetModel(const std::string& arch, const std::string& solv
 
 bool ModelSetParams(const std::string& arch,
                     const std::string& solver,
+                    miopen::conv::Direction direction,
                     const std::vector<float>& features,
                     bool transform_features,
                     std::function<bool(std::size_t, std::string)> validator)
@@ -616,10 +618,23 @@ bool ModelSetParams(const std::string& arch,
         dim = std::sqrt(features.size());
     else
         dim = features.size();
+    auto start             = std::chrono::high_resolution_clock::now();
     fdeep::tensors context = model->Encode(features, dim, transform_features);
     float decoder_input    = 0.0;
-    for(std::size_t i = 0; i < model->metadata.num_tuning_params; ++i)
+    std::string dir;
+    switch(direction)
     {
+    case miopen::conv::Direction::Forward: dir = "fwd"; break;
+    case miopen::conv::Direction::BackwardData: dir = "bwd"; break;
+    case miopen::conv::Direction::BackwardWeights: dir = "wrw"; break;
+    default: return false;
+    }
+
+    for(size_t i = 0, num_tuning_params = 1; i < num_tuning_params; ++i)
+    {
+
+        if(i == 0 && (model->metadata.predict_type == 0u))
+            num_tuning_params = model->metadata.num_tuning_params[dir];
         fdeep::tensors decoder_output = model->Decode(decoder_input, context);
 
         auto token_scores = decoder_output[0].to_vector();
@@ -635,17 +650,28 @@ bool ModelSetParams(const std::string& arch,
             std::string value = model->metadata.tuning_decodings[std::to_string(token)];
             pq.pop();
             if(value == "-1")
+            {
+                auto stop     = std::chrono::high_resolution_clock::now();
+                auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+                MIOPEN_LOG_I2("Model ran for " << duration.count() << " micro-seconds");
                 return false;
+            }
             if(validator(i, value))
             {
                 output_token_index =
                     token; // index with largest value that is valid = predicted index
+                if(i == 0 && model->metadata.predict_type != 0u)
+                    num_tuning_params = model->metadata.num_tuning_params[value];
                 break;
             }
         }
         decoder_input = float(output_token_index);
         context       = {decoder_output.begin() + 1, decoder_output.end()};
     }
+
+    auto stop     = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+    MIOPEN_LOG_I2("Model ran for " << duration.count() << " micro-seconds");
     return true;
 }
 

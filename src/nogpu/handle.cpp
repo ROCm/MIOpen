@@ -55,6 +55,10 @@
 #include <thread>
 #include <miopen/nogpu/handle_impl.hpp>
 
+#if MIOPEN_USE_HIPBLASLT
+#include <hipblaslt/hipblaslt.h>
+#endif
+
 namespace miopen {
 
 Handle::Handle(miopenAcceleratorQueue_t /* stream */) : Handle::Handle() {}
@@ -104,7 +108,7 @@ void Handle::Copy(ConstData_t /* src */, Data_t /* dest */, std::size_t /* size 
 
 KernelInvoke Handle::AddKernel(const std::string& algorithm,
                                const std::string& network_config,
-                               const std::string& program_name,
+                               const fs::path& program_name,
                                const std::string& kernel_name,
                                const std::vector<size_t>& vld,
                                const std::vector<size_t>& vgd,
@@ -126,12 +130,21 @@ KernelInvoke Handle::AddKernel(const std::string& algorithm,
 }
 
 Invoker Handle::PrepareInvoker(const InvokerFactory& factory,
-                               const std::vector<solver::KernelInfo>& kernels) const
+                               const std::vector<solver::KernelInfo>& kernels,
+                               std::vector<Program>* programs_out) const
 {
     std::vector<Kernel> built;
-    for(auto& k : kernels)
+    built.reserve(kernels.size());
+    if(programs_out != nullptr)
+        programs_out->resize(kernels.size());
+
+    for(auto i = 0; i < kernels.size(); ++i)
     {
+        auto& k              = kernels[i];
+        Program* program_out = programs_out != nullptr ? &(*programs_out)[i] : nullptr;
+
         MIOPEN_LOG_I2("Preparing kernel: " << k.kernel_name);
+
         const auto kernel = this->impl->cache.AddKernel(*this,
                                                         "",
                                                         "",
@@ -140,7 +153,9 @@ Invoker Handle::PrepareInvoker(const InvokerFactory& factory,
                                                         k.l_wk,
                                                         k.g_wk,
                                                         k.comp_options,
-                                                        kernels.size());
+                                                        kernels.size(),
+                                                        "",
+                                                        program_out);
         built.push_back(kernel);
     }
     return factory(built);
@@ -150,7 +165,7 @@ void Handle::ClearKernels(const std::string& algorithm, const std::string& netwo
 {
     this->impl->cache.ClearKernels(algorithm, network_config);
 }
-void Handle::ClearProgram(const std::string& program_name, const std::string& params) const
+void Handle::ClearProgram(const fs::path& program_name, const std::string& params) const
 {
     this->impl->cache.ClearProgram(program_name, params);
 }
@@ -161,19 +176,22 @@ const std::vector<Kernel>& Handle::GetKernelsImpl(const std::string& algorithm,
     return this->impl->cache.GetKernels(algorithm, network_config);
 }
 
-KernelInvoke Handle::Run(Kernel /* k */) const { return {}; }
+KernelInvoke Handle::Run(Kernel /*k*/, bool /*coop_launch*/) const { return {}; }
 
-Program Handle::LoadProgram(const std::string& program_name,
+Program Handle::LoadProgram(const fs::path& program_name,
                             std::string params,
-                            const std::string& kernel_src) const
+                            const std::string& kernel_src,
+                            bool force_attach_binary) const
 {
-    if(!miopen::EndsWith(program_name, ".mlir"))
+    std::ignore = force_attach_binary;
+
+    if(program_name.extension() == ".mlir")
     {
         params += " -mcpu=" + this->GetTargetProperties().Name();
     }
 
-    auto hsaco = miopen::LoadBinary(
-        this->GetTargetProperties(), this->GetMaxComputeUnits(), program_name, params);
+    auto hsaco =
+        miopen::LoadBinary(GetTargetProperties(), GetMaxComputeUnits(), program_name, params);
     auto pgmImpl     = std::make_shared<HIPOCProgramImpl>();
     pgmImpl->program = program_name;
     pgmImpl->target  = this->GetTargetProperties();
@@ -199,7 +217,7 @@ Program Handle::LoadProgram(const std::string& program_name,
             miopen::WriteFile(p.GetCodeObjectBlob(), path);
         else
             fs::copy_file(p.GetCodeObjectPathname(), path);
-        miopen::SaveBinary(path, this->GetTargetProperties(), program_name, params);
+        miopen::SaveBinary(path, GetTargetProperties(), program_name, params);
 #endif
     }
     else
@@ -210,14 +228,12 @@ Program Handle::LoadProgram(const std::string& program_name,
     return p;
 }
 
-bool Handle::HasProgram(const std::string& program_name, const std::string& params) const
+bool Handle::HasProgram(const fs::path& program_name, const std::string& params) const
 {
     return this->impl->cache.HasProgram(program_name, params);
 }
 
-void Handle::AddProgram(Program prog,
-                        const std::string& program_name,
-                        const std::string& params) const
+void Handle::AddProgram(Program prog, const fs::path& program_name, const std::string& params) const
 {
     this->impl->cache.AddProgram(prog, program_name, params);
 }
@@ -249,6 +265,8 @@ std::size_t Handle::GetMaxMemoryAllocSize()
     else
         return this->impl->max_mem_alloc_size;
 }
+
+bool Handle::CooperativeLaunchSupported() const { return false; }
 
 const TargetProperties& Handle::GetTargetProperties() const
 {
@@ -286,6 +304,21 @@ rocblas_handle_ptr Handle::CreateRocblasHandle(miopenAcceleratorQueue_t) const
     rocblas_create_handle(&x);
     auto result = rocblas_handle_ptr{x};
     return result;
+}
+#endif
+
+#if MIOPEN_USE_HIPBLASLT
+const hipblasLt_handle_ptr& Handle::HipblasLtHandle() const { return impl->hip_blasLt_handle; }
+
+hipblasLt_handle_ptr Handle::CreateHipblasLtHandle() const
+{
+    hipblasLtHandle_t handle = nullptr;
+    auto status              = hipblasLtCreate(&handle);
+    if(status != HIPBLAS_STATUS_SUCCESS)
+    {
+        MIOPEN_THROW(miopenStatusInternalError, "hipBLASLt error encountered");
+    }
+    return hipblasLt_handle_ptr{handle};
 }
 #endif
 } // namespace miopen
