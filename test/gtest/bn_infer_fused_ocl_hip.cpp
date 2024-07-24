@@ -176,15 +176,10 @@ struct BatchNormInferFusedTest
 protected:
     static const std::string sPerfTestFilename;
 
-    void SetUp() override { std::tie(activ_mode, bn_config) = GetParam(); }
-
-    void DataSetup(miopenBatchNormMode_t mode)
+    void SetUp() override
     {
-        // Overwrite the mode
-        if(mode == miopenBNPerActivation)
-        {
-            bn_config.mode = miopenBNPerActivation;
-        }
+        std::tie(activ_mode, bn_config) = GetParam();
+
         // Create tensors
         input              = tensor<XDataType>{bn_config.GetInput()};
         output             = tensor<YDataType>{bn_config.GetInput()};
@@ -352,7 +347,7 @@ struct GPU_bn_infer_fused_per_act_FP16
 } // namespace BatchNormInferFused
 using namespace BatchNormInferFused;
 
-std::vector<miopenActivationMode_t> GetActivationsConfig()
+std::vector<miopenActivationMode_t> ActivationConfigs()
 {
     return {miopenActivationPASTHRU,
             miopenActivationLOGISTIC,
@@ -367,7 +362,7 @@ std::vector<miopenActivationMode_t> GetActivationsConfig()
 }
 
 template <typename T>
-std::vector<BNTestCase> BNFusedInferTestConfigs()
+std::vector<BNTestCase> BNFusedInferTestConfigs(miopenBatchNormMode_t mode)
 {
     if constexpr(PERF_ENABLE)
     {
@@ -422,7 +417,7 @@ std::vector<BNTestCase> BNFusedInferTestConfigs()
                                                C,
                                                H,
                                                W,
-                                               miopenBNSpatial,
+                                               mode,
                                                miopen::batchnorm::Direction::ForwardInference,
                                                0,
                                                0});
@@ -436,13 +431,24 @@ std::vector<BNTestCase> BNFusedInferTestConfigs()
     }
     else
     {
-        return Networkna1();
+        // clang-format off
+        return {
+            {64, 128, 56, 56, mode, miopen::batchnorm::Direction::ForwardInference, 1, 0},
+            {64, 2048, 7, 7, mode, miopen::batchnorm::Direction::ForwardInference, 1, 0},
+            {64, 256, 14, 14, mode, miopen::batchnorm::Direction::ForwardInference, 1, 0},
+            {64, 256, 28, 28, mode, miopen::batchnorm::Direction::ForwardInference, 1, 0},
+            {64, 256, 56, 56, mode, miopen::batchnorm::Direction::ForwardInference, 1, 0},
+            {64, 512, 14, 14, mode, miopen::batchnorm::Direction::ForwardInference, 1, 0},
+            {64, 512, 28, 28, mode, miopen::batchnorm::Direction::ForwardInference, 1, 0},
+            {64, 512, 7, 7, mode, miopen::batchnorm::Direction::ForwardInference, 1, 0},
+            {64, 64, 112, 112, mode, miopen::batchnorm::Direction::ForwardInference, 1, 0},
+            {64, 64, 56, 56, mode, miopen::batchnorm::Direction::ForwardInference, 1, 0}};
+        // clang-format on
     }
 }
 
 TEST_P(GPU_bn_infer_fused_spatial_FP32, PortTest)
 {
-    DataSetup(miopenBNSpatial);
     // Run the OpenCL reference
     RunTestGPU(false);
     // Optionally use the CPU output as reference, might have to tweak the tolerance
@@ -455,8 +461,6 @@ TEST_P(GPU_bn_infer_fused_spatial_FP32, PortTest)
 
 TEST_P(GPU_bn_infer_fused_per_act_FP32, PortTest)
 {
-    // Override the mode
-    DataSetup(miopenBNPerActivation);
     // Run the OpenCL reference
     RunTestGPU(false);
     // Optionally use the CPU output as reference, might have to tweak the tolerance
@@ -469,7 +473,6 @@ TEST_P(GPU_bn_infer_fused_per_act_FP32, PortTest)
 
 TEST_P(GPU_bn_infer_fused_spatial_FP16, PortTest)
 {
-    DataSetup(miopenBNSpatial);
     // Run the CPU reference FP16 is broken in OpenCL
     RunTestCPU();
     // Run the HIP implementation
@@ -480,8 +483,6 @@ TEST_P(GPU_bn_infer_fused_spatial_FP16, PortTest)
 
 TEST_P(GPU_bn_infer_fused_per_act_FP16, PortTest)
 {
-    // Override the mode
-    DataSetup(miopenBNPerActivation);
     // Run the CPU reference FP16 is broken in OpenCL
     RunTestCPU();
     // Run the HIP implementation
@@ -490,21 +491,25 @@ TEST_P(GPU_bn_infer_fused_per_act_FP16, PortTest)
     Verify();
 };
 
-INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_bn_infer_fused_spatial_FP32,
-                         testing::Combine(testing::ValuesIn(GetActivationsConfig()),
-                                          testing::ValuesIn(BNFusedInferTestConfigs<float>())));
-INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_bn_infer_fused_per_act_FP32,
-                         testing::Combine(testing::ValuesIn(GetActivationsConfig()),
-                                          testing::ValuesIn(BNFusedInferTestConfigs<float>())));
+INSTANTIATE_TEST_SUITE_P(
+    Smoke,
+    GPU_bn_infer_fused_spatial_FP32,
+    testing::Combine(testing::ValuesIn(ActivationConfigs()),
+                     testing::ValuesIn(BNFusedInferTestConfigs<float>(miopenBNSpatial))));
+INSTANTIATE_TEST_SUITE_P(
+    Smoke,
+    GPU_bn_infer_fused_per_act_FP32,
+    testing::Combine(testing::ValuesIn(ActivationConfigs()),
+                     testing::ValuesIn(BNFusedInferTestConfigs<float>(miopenBNPerActivation))));
 INSTANTIATE_TEST_SUITE_P(
     Smoke,
     GPU_bn_infer_fused_spatial_FP16,
-    testing::Combine(testing::ValuesIn(GetActivationsConfig()),
-                     testing::ValuesIn(BNFusedInferTestConfigs<half_float::half>())));
+    testing::Combine(
+        testing::ValuesIn(ActivationConfigs()),
+        testing::ValuesIn(BNFusedInferTestConfigs<half_float::half>(miopenBNSpatial))));
 INSTANTIATE_TEST_SUITE_P(
     Smoke,
     GPU_bn_infer_fused_per_act_FP16,
-    testing::Combine(testing::ValuesIn(GetActivationsConfig()),
-                     testing::ValuesIn(BNFusedInferTestConfigs<half_float::half>())));
+    testing::Combine(
+        testing::ValuesIn(ActivationConfigs()),
+        testing::ValuesIn(BNFusedInferTestConfigs<half_float::half>(miopenBNPerActivation))));
