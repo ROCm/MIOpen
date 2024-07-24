@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,45 +23,35 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <miopen/env.hpp>
-#include "cat.hpp"
+#pragma once
 
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
+#include <miopen/getitem/problem_description.hpp>
+#include <miopen/solver.hpp>
+#include <utility>
 
-namespace env = miopen::env;
+namespace miopen {
 
-namespace cat {
+namespace solver {
 
-std::string GetFloatArg()
+namespace getitem {
+
+using ItemSolver = NonTunableSolverBase<ExecutionContext, miopen::getitem::ProblemDescription>;
+
+struct GetitemBackward final : ItemSolver
 {
-    const auto tmp = env::value(MIOPEN_TEST_FLOAT_ARG);
-    if(tmp.empty())
-    {
-        return "";
-    }
-    return tmp;
-}
+    const std::string& SolverDbId() const override { return GetSolverDbId<GetitemBackward>(); }
 
-struct CatTestFloat : CatTest<float>
-{
+    bool IsApplicable(const ExecutionContext& context,
+                      const miopen::getitem::ProblemDescription& problem) const override;
+    ConvSolution GetSolution(const ExecutionContext& context,
+                             const miopen::getitem::ProblemDescription& problem) const override;
+    std::size_t GetWorkspaceSize(const ExecutionContext& context,
+                                 const miopen::getitem::ProblemDescription& problem) const override;
+    bool MayNeedWorkspace() const override { return true; }
 };
 
-} // namespace cat
-using namespace cat;
+} // namespace getitem
 
-TEST_P(CatTestFloat, CatTestFw)
-{
-    if(!MIOPEN_TEST_ALL ||
-       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--float"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
-};
+} // namespace solver
 
-INSTANTIATE_TEST_SUITE_P(CatTestSet, CatTestFloat, testing::ValuesIn(CatTestConfigs()));
+} // namespace miopen

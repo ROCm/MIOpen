@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,45 +23,18 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <miopen/env.hpp>
-#include "cat.hpp"
+#include "getitem_driver.hpp"
+#include "registry_driver_maker.hpp"
 
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
-
-namespace env = miopen::env;
-
-namespace cat {
-
-std::string GetFloatArg()
+static Driver* makeDriver(const std::string& base_arg)
 {
-    const auto tmp = env::value(MIOPEN_TEST_FLOAT_ARG);
-    if(tmp.empty())
-    {
-        return "";
-    }
-    return tmp;
+    if(base_arg == "getitem")
+        return new GetitemDriver<float, float>();
+    if(base_arg == "getitemfp16")
+        return new GetitemDriver<float16, float>();
+    if(base_arg == "getitembfp16")
+        return new GetitemDriver<bfloat16, float>();
+    return nullptr;
 }
 
-struct CatTestFloat : CatTest<float>
-{
-};
-
-} // namespace cat
-using namespace cat;
-
-TEST_P(CatTestFloat, CatTestFw)
-{
-    if(!MIOPEN_TEST_ALL ||
-       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--float"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
-};
-
-INSTANTIATE_TEST_SUITE_P(CatTestSet, CatTestFloat, testing::ValuesIn(CatTestConfigs()));
+REGISTER_DRIVER_MAKER(makeDriver);
