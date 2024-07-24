@@ -48,7 +48,7 @@ struct PReLUTestFloat : PReLUTest<float>
 {
 };
 
-struct PReLUTestHalf : PReLUTest<half>
+struct PReLUTestHalf : PReLUTest<half_float::half>
 {
 };
 
