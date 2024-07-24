@@ -30,35 +30,37 @@
 #include <string>
 #include <string_view>
 
+// clang-format off
 #if defined(CPPCHECK)
-#define MIOPEN_HAS_FILESYSTEM 1
-#define MIOPEN_HAS_FILESYSTEM_TS 1
+  #define MIOPEN_HAS_FILESYSTEM 1
+  #define MIOPEN_HAS_FILESYSTEM_TS 1
 #elif defined(_WIN32)
-#if _MSC_VER >= 1920
-#define MIOPEN_HAS_FILESYSTEM 1
-#define MIOPEN_HAS_FILESYSTEM_TS 0
-#elif _MSC_VER >= 1900
-#define MIOPEN_HAS_FILESYSTEM 0
-#define MIOPEN_HAS_FILESYSTEM_TS 1
-#else
-#define MIOPEN_HAS_FILESYSTEM 0
-#define MIOPEN_HAS_FILESYSTEM_TS 0
-#endif
+  #if _MSC_VER >= 1920
+    #define MIOPEN_HAS_FILESYSTEM 1
+    #define MIOPEN_HAS_FILESYSTEM_TS 0
+  #elif _MSC_VER >= 1900
+    #define MIOPEN_HAS_FILESYSTEM 0
+    #define MIOPEN_HAS_FILESYSTEM_TS 1
+  #else
+    #define MIOPEN_HAS_FILESYSTEM 0
+    #define MIOPEN_HAS_FILESYSTEM_TS 0
+  #endif
 #elif defined(__has_include)
-#if __has_include(<filesystem>) && __cplusplus >= 201703L
-#define MIOPEN_HAS_FILESYSTEM 1
+  #if __has_include(<filesystem>) && __cplusplus >= 201703L
+    #define MIOPEN_HAS_FILESYSTEM 1
+  #else
+    #define MIOPEN_HAS_FILESYSTEM 0
+  #endif
+  #if __has_include(<experimental/filesystem>) && __cplusplus >= 201103L
+    #define MIOPEN_HAS_FILESYSTEM_TS 1
+  #else
+    #define MIOPEN_HAS_FILESYSTEM_TS 0
+  #endif
 #else
-#define MIOPEN_HAS_FILESYSTEM 0
+  #define MIOPEN_HAS_FILESYSTEM 0
+  #define MIOPEN_HAS_FILESYSTEM_TS 0
 #endif
-#if __has_include(<experimental/filesystem>) && __cplusplus >= 201103L
-#define MIOPEN_HAS_FILESYSTEM_TS 1
-#else
-#define MIOPEN_HAS_FILESYSTEM_TS 0
-#endif
-#else
-#define MIOPEN_HAS_FILESYSTEM 0
-#define MIOPEN_HAS_FILESYSTEM_TS 0
-#endif
+// clang-format on
 
 #if MIOPEN_HAS_FILESYSTEM
 #include <filesystem>
