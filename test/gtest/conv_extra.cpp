@@ -48,27 +48,35 @@ void GetArgs(const std::string& param, std::vector<std::string>& tokens)
 
 std::vector<std::string> GetTestCases(void)
 {
-    std::string cmd       = "test_conv2d ";
-    std::string v         = " --verbose ";
+    const std::string cmd               = "test_conv2d";
+    const std::string cmd_v             = cmd + " --verbose";
+    const std::string default_float_arg = " --float";
+    const std::string cmd_v_float       = cmd_v + default_float_arg;
+
     std::string float_arg = env::value(MIOPEN_TEST_FLOAT_ARG);
-    std::string flag_arg  = env::value(MIOPEN_TEST_FLAGS_ARGS);
+    if(float_arg.empty())
+        float_arg = default_float_arg;
+    else
+        float_arg = " " + float_arg;
+
+    std::string flag_arg = env::value(MIOPEN_TEST_FLAGS_ARGS);
 
     // clang-format off
     return std::vector<std::string>{
-        // {cmd + v + " --input	1	1	1	1	--weights	1	1	2	2	--pads_strides_dilations	0	0	3	3	1	1"},
-        {cmd + v + " --input	4	1	161	700	--weights	4	1	5	20	--pads_strides_dilations	0	0	2	2	1	1"},
-        {cmd + v + " --input	4	1	161	700	--weights	4	1	5	20	--pads_strides_dilations	0	0	2	2	1	1"},
-        {cmd + v + " --input	4	32	79	341	--weights	4	32	5	10	--pads_strides_dilations	0	0	2	2	1	1"},
-        {cmd + v + " --input	4	32	79	341	--weights	4	32	5	10	--pads_strides_dilations	0	0	2	2	1	1"},
-        {cmd + v + " --input	4	3	227	227	--weights	4	3	11	11	--pads_strides_dilations	0	0	4	4	1	1"},
-        {cmd + v + " --input	4	3	224	224	--weights	4	3	11	11	--pads_strides_dilations	2	2	4	4	1	1"},
-        {cmd + v + " --input	16	1	48	480	--weights	16	1	3	3	--pads_strides_dilations	1	1	1	1	1	1"},
+        // {cmd_v_float + " --input	1	1	1	1	--weights	1	1	2	2	--pads_strides_dilations	0	0	3	3	1	1"},
+        {cmd_v_float + " --input	4	1	161	700	--weights	4	1	5	20	--pads_strides_dilations	0	0	2	2	1	1"},
+        {cmd_v_float + " --input	4	1	161	700	--weights	4	1	5	20	--pads_strides_dilations	0	0	2	2	1	1"},
+        {cmd_v_float + " --input	4	32	79	341	--weights	4	32	5	10	--pads_strides_dilations	0	0	2	2	1	1"},
+        {cmd_v_float + " --input	4	32	79	341	--weights	4	32	5	10	--pads_strides_dilations	0	0	2	2	1	1"},
+        {cmd_v_float + " --input	4	3	227	227	--weights	4	3	11	11	--pads_strides_dilations	0	0	4	4	1	1"},
+        {cmd_v_float + " --input	4	3	224	224	--weights	4	3	11	11	--pads_strides_dilations	2	2	4	4	1	1"},
+        {cmd_v_float + " --input	16	1	48	480	--weights	16	1	3	3	--pads_strides_dilations	1	1	1	1	1	1"},
         // Forward disabled since FFT fails verification for the forward direction
-        {cmd + v + " --input	32	64	27	27	--weights	192	64	5	5	--pads_strides_dilations	2	2	1	1	1	1 --disable-forward"},
-        // {cmd + v + " --input	4	64	14	14	--weights	24	64	5	5	--pads_strides_dilations	2	2	1	1	1	1"},
-        {cmd + v + " --input	4	96	14	14	--weights	32	96	5	5	--pads_strides_dilations	2	2	1	1	1	1"},
-        {cmd + v + " --input	4	16	14	14	--weights	4	16	5	5	--pads_strides_dilations	2	2	1	1	1	1"},
-        {cmd + v + " --input	4	32	14	14	--weights	4	32	5	5	--pads_strides_dilations	2	2	1	1	1	1"},
+        {cmd_v_float + " --input	32	64	27	27	--weights	192	64	5	5	--pads_strides_dilations	2	2	1	1	1	1 --disable-forward"},
+        // {cmd_v_float + " --input	4	64	14	14	--weights	24	64	5	5	--pads_strides_dilations	2	2	1	1	1	1"},
+        {cmd_v_float + " --input	4	96	14	14	--weights	32	96	5	5	--pads_strides_dilations	2	2	1	1	1	1"},
+        {cmd_v_float + " --input	4	16	14	14	--weights	4	16	5	5	--pads_strides_dilations	2	2	1	1	1	1"},
+        {cmd_v_float + " --input	4	32	14	14	--weights	4	32	5	5	--pads_strides_dilations	2	2	1	1	1	1"},
 
         {cmd + float_arg + " --input 16 3 64 128 --weights 96 3 11 11 --pads_strides_dilations 0 0 1 1 1 1 " + flag_arg},
         {cmd + float_arg + " --input 16 3 32 32 --weights 96 3 11 11 --pads_strides_dilations 0 0 2 2 1 1  " + flag_arg},
