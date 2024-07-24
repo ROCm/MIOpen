@@ -190,7 +190,8 @@ private:
     TensorDescriptor indiceDesc;
 
     int32_t dim;
-    miopenReduceExtremeOp_t reduceExtremeOp;
+
+    miopenReduceExtremeOp_t reduceExtremeOp = MIOPEN_REDUCE_CALCULATION_SUM;
 
     NetworkConfig MakeForwardNetworkConfig() const;
 };
