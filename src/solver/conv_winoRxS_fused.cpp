@@ -255,14 +255,6 @@ ConvSolution ConvBinWinogradRxSf2x3g1Fused::GetSolution(const FusionContext& con
     kernel.kernel_file += kernel_postfix + ".s";
     result.construction_params.push_back(kernel);
 
-    const auto x = conv_problem.GetWeightsWidth();
-    const auto y = conv_problem.GetWeightsHeight();
-
-    if(x == 3 && y == 3)
-        result.weight = 100;
-    else
-        result.weight = 5;
-
     const auto& desc    = *problem.fusion_plan_desc;
     const int bias_idx  = GetOpIdx(desc.op_map, miopenFusionOpBiasForward);
     const int activ_idx = GetOpIdx(desc.op_map, miopenFusionOpActivForward);
@@ -417,7 +409,12 @@ ConvSolution ConvBinWinogradRxSf2x3g1Fused::GetSolution(const FusionContext& con
     };
     return result;
 }
-
+float ConvBinWinogradRxSf2x3g1Fused::GetWti(const FusionContext& ctx,
+                                            const FusionDescription& problem) const
+{
+    const auto conv_problem = problem.GetConvProblem(0, miopen::conv::Direction::Forward);
+    return conv::ConvBinWinogradRxSf2x3g1().GetWti(ctx, conv_problem);
+}
 } // namespace fusion
 } // namespace solver
 } // namespace miopen
