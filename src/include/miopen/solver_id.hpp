@@ -59,7 +59,7 @@ enum class Primitive
     Mha,
     Softmax,
     Adam,
-    ReLU,
+    ReLU
 };
 
 struct MIOPEN_INTERNALS_EXPORT Id

@@ -29,6 +29,7 @@
 #include <../test/ford.hpp>
 
 #include <miopen/tensor.hpp>
+#include <miopen/tensor_view_utils.hpp>
 #include <miopen/prelu/utils.hpp>
 
 template <typename Tgpu, typename Tcheck>
@@ -42,9 +43,9 @@ int32_t mloPReLUBackwardRunHost(const miopenTensorDescriptor_t inputDesc,
                                 Tcheck* dinput_host,
                                 Tcheck* dweight_host)
 {
-    auto input_tv   = miopen::solver::prelu::get_inner_expanded_tv<5>(miopen::deref(inputDesc));
-    auto doutput_tv = miopen::solver::prelu::get_inner_expanded_tv<5>(miopen::deref(doutputDesc));
-    auto dinput_tv  = miopen::solver::prelu::get_inner_expanded_tv<5>(miopen::deref(dinputDesc));
+    auto input_tv   = miopen::get_inner_expanded_tv<5>(miopen::deref(inputDesc));
+    auto doutput_tv = miopen::get_inner_expanded_tv<5>(miopen::deref(doutputDesc));
+    auto dinput_tv  = miopen::get_inner_expanded_tv<5>(miopen::deref(dinputDesc));
 
     auto input_sz              = miopen::deref(inputDesc).GetElementSize();
     auto weight_sz             = miopen::deref(weightDesc).GetElementSize();

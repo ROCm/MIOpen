@@ -23,7 +23,6 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-
 #include "registry_driver_maker.hpp"
 #include "prelu_driver.hpp"
 
