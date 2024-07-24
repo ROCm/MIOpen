@@ -104,7 +104,7 @@ int32_t mloCumulativeReductionForwardRunHost(const miopenTensorDescriptor_t inpu
                                              const bool exclusive,
                                              const bool reverse)
 {
-    const auto ndims    = miopen::deref(inputDesc).GetSize();
+    const auto ndims    = miopen::deref(inputDesc).GetNumDims();
     const auto true_dim = ((dim % ndims) + ndims) % ndims;
 
     auto input_tv =

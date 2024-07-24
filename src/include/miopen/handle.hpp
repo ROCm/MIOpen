@@ -63,12 +63,23 @@
 #endif
 #endif
 
+#if MIOPEN_USE_HIPBLASLT
+#include <hipblas/hipblas.h>
+
+using hipblasLtHandle_t = void*;
+extern "C" hipblasStatus_t hipblasLtDestroy(hipblasLtHandle_t handle);
+#endif
+
 namespace miopen {
 
 struct HandleImpl;
 
 #if MIOPEN_USE_ROCBLAS
 using rocblas_handle_ptr = MIOPEN_MANAGE_PTR(rocblas_handle, rocblas_destroy_handle);
+#endif
+
+#if MIOPEN_USE_HIPBLASLT
+using hipblasLt_handle_ptr = MIOPEN_MANAGE_PTR(hipblasLtHandle_t, hipblasLtDestroy);
 #endif
 
 struct MIOPEN_EXPORT Handle : miopenHandle
@@ -99,7 +110,7 @@ struct MIOPEN_EXPORT Handle : miopenHandle
 
     KernelInvoke AddKernel(const std::string& algorithm,
                            const std::string& network_config,
-                           const std::string& program_name,
+                           const fs::path& program_name,
                            const std::string& kernel_name,
                            const std::vector<size_t>& vld,
                            const std::vector<size_t>& vgd,
@@ -125,17 +136,18 @@ struct MIOPEN_EXPORT Handle : miopenHandle
         return this->Run(ks.front());
     }
 
-    KernelInvoke Run(Kernel k) const;
+    KernelInvoke Run(Kernel k, bool coop_launch = false) const;
     const std::vector<Kernel>& GetKernelsImpl(const std::string& algorithm,
                                               const std::string& network_config) const;
 
-    Program LoadProgram(const std::string& program_name,
+    Program LoadProgram(const fs::path& program_name,
                         std::string params,
-                        const std::string& kernel_src) const;
+                        const std::string& kernel_src,
+                        bool force_attach_binary = false) const;
 
-    bool HasProgram(const std::string& program_name, const std::string& params) const;
-    void ClearProgram(const std::string& program_name, const std::string& params) const;
-    void AddProgram(Program prog, const std::string& program_name, const std::string& params) const;
+    bool HasProgram(const fs::path& program_name, const std::string& params) const;
+    void ClearProgram(const fs::path& program_name, const std::string& params) const;
+    void AddProgram(Program prog, const fs::path& program_name, const std::string& params) const;
 
     void Finish() const;
     void Flush() const;
@@ -154,6 +166,7 @@ struct MIOPEN_EXPORT Handle : miopenHandle
 
     std::size_t m_MaxMemoryAllocSizeCached = 0;
     std::size_t GetMaxMemoryAllocSize();
+    bool CooperativeLaunchSupported() const;
 
     std::string GetDeviceName() const;
     const TargetProperties& GetTargetProperties() const;
@@ -231,22 +244,22 @@ public:
     std::unordered_map<std::string, std::vector<miopenConvSolution_t>> find_map;
 
     Invoker PrepareInvoker(const InvokerFactory& factory,
-                           const std::vector<solver::KernelInfo>& kernels) const;
+                           const std::vector<solver::KernelInfo>& kernels,
+                           std::vector<Program>* programs_out = nullptr) const;
 
     void RegisterInvoker(const Invoker& invoker,
                          const NetworkConfig& config,
                          const std::string& solver,
-                         const boost::optional<AlgorithmName>& algo = boost::none)
+                         const std::optional<AlgorithmName>& algo = std::nullopt)
     {
         invokers.Register({config, solver}, invoker);
         if(algo.has_value())
             invokers.SetAsFound1_0(config, *algo, solver);
     }
 
-    boost::optional<const Invoker&>
-    GetInvoker(const NetworkConfig& config,
-               const boost::optional<solver::Id>& solver,
-               const boost::optional<AlgorithmName>& algo = boost::none) const
+    std::optional<Invoker> GetInvoker(const NetworkConfig& config,
+                                      const std::optional<solver::Id>& solver,
+                                      const std::optional<AlgorithmName>& algo = std::nullopt) const
     {
         assert(solver || algo);
         assert(!(solver && algo));
@@ -256,25 +269,36 @@ public:
                                                               << solver->ToString());
             return invokers[std::make_pair(config.ToString(), solver->ToString())];
         }
+
+        if(!algo)
+            MIOPEN_THROW(miopenStatusInternalError);
+
         MIOPEN_LOG_I2("Returning an invoker for problem " << config.ToString() << " and algorithm "
                                                           << algo->ToString());
         return invokers.GetFound1_0(config, *algo);
     }
 
-    boost::optional<const std::string&> GetFound1_0SolverId(const NetworkConfig& config,
-                                                            const AlgorithmName& algo) const
+    std::optional<std::string> GetFound1_0SolverId(const NetworkConfig& config,
+                                                   const AlgorithmName& algo) const
     {
         return invokers.GetFound1_0SolverId(config, algo);
     }
 
 #if MIOPEN_USE_ROCBLAS
     const rocblas_handle_ptr& rhandle() const;
+#endif
+#if MIOPEN_USE_HIPBLASLT
+    const hipblasLt_handle_ptr& HipblasLtHandle() const;
+#endif
 
 private:
+#if MIOPEN_USE_ROCBLAS
     rocblas_handle_ptr CreateRocblasHandle(miopenAcceleratorQueue_t streamID) const;
-#else
-private:
 #endif
+#if MIOPEN_USE_HIPBLASLT
+    hipblasLt_handle_ptr CreateHipblasLtHandle() const;
+#endif
+
     InvokerCache invokers;
 };
 

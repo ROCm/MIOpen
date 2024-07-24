@@ -32,14 +32,14 @@ MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 
 namespace cumulative_reduction {
 
-std::string GetFloatArg()
+bool CheckFloatArg(std::string arg)
 {
-    const auto& tmp = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
-    if(tmp.empty())
+    if(!MIOPEN_TEST_ALL ||
+       (env::enabled(MIOPEN_TEST_ALL) && (env::value(MIOPEN_TEST_FLOAT_ARG) == arg)))
     {
-        return "";
+        return true;
     }
-    return tmp;
+    return false;
 }
 
 struct CumulativeReductionTestFloat : CumulativeReductionTest<float>
@@ -59,8 +59,7 @@ using namespace cumulative_reduction;
 
 TEST_P(CumulativeReductionTestFloat, CumulativeReductionTest)
 {
-    if(miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
-       (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float")))
+    if(CheckFloatArg("--float"))
     {
         RunTest();
         Verify();
@@ -73,8 +72,7 @@ TEST_P(CumulativeReductionTestFloat, CumulativeReductionTest)
 
 TEST_P(CumulativeReductionTestHalf, CumulativeReductionTest)
 {
-    if(miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
-       (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--half")))
+    if(CheckFloatArg("--half"))
     {
         RunTest();
         Verify();
@@ -87,8 +85,7 @@ TEST_P(CumulativeReductionTestHalf, CumulativeReductionTest)
 
 TEST_P(CumulativeReductionTestBfloat16, CumulativeReductionTest)
 {
-    if(miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
-       (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--bfloat16")))
+    if(CheckFloatArg("--bfloat16"))
     {
         RunTest();
         Verify();

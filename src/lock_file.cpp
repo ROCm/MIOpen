@@ -28,6 +28,7 @@
 #include <miopen/lock_file.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/md5.hpp>
+#include <miopen/stringutils.hpp>
 
 namespace miopen {
 
@@ -40,7 +41,7 @@ inline void LogFsError(const fs::filesystem_error& ex, const std::string_view fr
     // clang-format on
 }
 
-std::string LockFilePath(const fs::path& filename_)
+fs::path LockFilePath(const fs::path& filename_)
 {
     try
     {
@@ -54,7 +55,7 @@ std::string LockFilePath(const fs::path& filename_)
         const auto hash = md5(filename_.parent_path().string());
         const auto file = directory / (hash + "_" + filename_.filename() + ".lock");
 
-        return file.string();
+        return file;
     }
     catch(const fs::filesystem_error& ex)
     {
@@ -63,17 +64,17 @@ std::string LockFilePath(const fs::path& filename_)
     }
 }
 
-LockFile::LockFile(const char* path_, PassKey) : path(path_)
+LockFile::LockFile(const fs::path& path_, PassKey) : path(path_)
 {
     try
     {
         if(!fs::exists(path))
         {
             if(!std::ofstream{path})
-                MIOPEN_THROW(std::string("Error creating file <") + path + "> for locking.");
+                MIOPEN_THROW("Error creating file <" + path + "> for locking.");
             fs::permissions(path, fs::perms::all);
         }
-        flock = path;
+        flock = path.string().c_str();
     }
     catch(const fs::filesystem_error& ex)
     {
@@ -87,8 +88,15 @@ LockFile::LockFile(const char* path_, PassKey) : path(path_)
     }
 }
 
-LockFile& LockFile::Get(const char* path)
+LockFile& LockFile::Get(const fs::path& file)
 {
+#ifdef _WIN32
+    // The character ':' is reserved on Windows and cannot be used for constructing
+    // a path except when it follows a drive letter.
+    fs::path path{ReplaceString(file.string(), ":memory:", "memory_")};
+#else
+#define path file
+#endif
     // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
     static std::mutex mutex;
     std::lock_guard<std::mutex> lock(mutex);

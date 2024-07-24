@@ -52,7 +52,7 @@ struct ForwardProblemDescription : ProblemDescriptionBase
           cumOp(cumOp_)
     {
         if(IsValidDim())
-            dim = (dim < 0 ? dim + inputDesc.GetSize() : dim);
+            dim = (dim < 0 ? dim + inputDesc.GetNumDims() : dim);
         IsValidIndicesType();
         IsSameLength();
     }
@@ -65,7 +65,7 @@ struct ForwardProblemDescription : ProblemDescriptionBase
 
     bool IsValidDim() const
     {
-        const auto ndims = inputDesc.GetSize();
+        const int ndims = inputDesc.GetNumDims();
         if(dim < -ndims || ndims - 1 < dim)
         {
             MIOPEN_THROW(miopenStatusBadParm,

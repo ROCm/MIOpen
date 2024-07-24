@@ -34,10 +34,7 @@
 #include <miopen/fusion/solvers.hpp>
 #include <miopen/fusion/utils.hpp>
 
-#include <boost/any.hpp>
-
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_AMD_FUSED_WINOGRAD)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_GCN_ASM_KERNELS)
 
 /// \return v rounded up (towards +inf) to the nearest multiple of m.
 /// Defined for positive values only.
@@ -58,9 +55,9 @@ namespace fusion {
 bool ConvBinWinogradRxSFused::IsApplicable(const FusionContext& context,
                                            const FusionDescription& problem) const
 {
-    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_AMD_FUSED_WINOGRAD)))
+    if(env::disabled(MIOPEN_DEBUG_AMD_FUSED_WINOGRAD))
         return false;
-    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_GCN_ASM_KERNELS)))
+    if(!context.use_asm_kernels)
         return false;
     if(!WinoCommonIsApplicable(context, problem))
         return false;

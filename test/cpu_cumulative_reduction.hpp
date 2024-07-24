@@ -102,7 +102,7 @@ void cpu_cumulative_reduction_forward(const tensor<T> input,
                                       const bool has_output  = true,
                                       const bool has_indices = true)
 {
-    const auto ndims    = input.desc.GetSize();
+    const auto ndims    = input.desc.GetNumDims();
     const auto true_dim = ((dim % ndims) + ndims) % ndims;
 
     auto input_tv = miopen::solver::cumulative_reduction::get_inner_expanded_tv<5>(input.desc);

@@ -63,12 +63,15 @@ option( MIOPEN_TEST_GFX900 "Test on Vega10 (gfx900)" OFF )
 option( MIOPEN_TEST_GFX906 "Test on Vega20 (gfx906)" OFF )
 option( MIOPEN_TEST_GFX103X "Test on Navi21/22 (gfx1030/31)" OFF )
 option( MIOPEN_TEST_GFX110X "Test on Navi31/32 (gfx1100/02)" OFF )
+option( MIOPEN_TEST_GFX120X "Test on gfx1200/01" OFF )
 option( MIOPEN_TEST_GPU_XNACK_ENABLED "Test as if XNACK mode is enabled" OFF )
 option( MIOPEN_TEST_CONV "" OFF)
 option( MIOPEN_TEST_DEEPBENCH "" OFF)
 option( MIOPEN_TEST_DRIVER_ITER_MODE "" OFF)
 option( MIOPEN_TEST_COMPOSABLEKERNEL "Test with composable_kernel library" ${MIOPEN_USE_COMPOSABLEKERNEL} )
 option( MIOPEN_TEST_DISCRETE "Build Discrete Test Binaries" ON)
+option( MIOPEN_TEST_DBSYNC "" OFF)
+option( CODECOV_TEST "" OFF)
 
 set_var_to_condition(MIOPEN_TEST_WITH_MIOPENDRIVER_DEFAULT MIOPEN_BUILD_DRIVER)
 option( MIOPEN_TEST_WITH_MIOPENDRIVER "Use MIOpenDriver in tests" ${MIOPEN_TEST_WITH_MIOPENDRIVER_DEFAULT})
@@ -96,7 +99,7 @@ endif()
 # Also we do not detect GPU when target GPU for testing is specified explicitly.
 set(MIOPEN_TEST_GPU_DETECTION_FAILED FALSE)
 set(MIOPEN_NO_GPU FALSE)
-if(NOT (MIOPEN_TEST_GFX900 OR MIOPEN_TEST_GFX906 OR MIOPEN_TEST_GFX908 OR MIOPEN_TEST_GFX90A OR MIOPEN_TEST_GFX94X OR MIOPEN_TEST_GFX103X OR MIOPEN_TEST_GFX110X OR MIOPEN_TEST_HIP_NOGPU))
+if(NOT (MIOPEN_TEST_GFX900 OR MIOPEN_TEST_GFX906 OR MIOPEN_TEST_GFX908 OR MIOPEN_TEST_GFX90A OR MIOPEN_TEST_GFX94X OR MIOPEN_TEST_GFX103X OR MIOPEN_TEST_GFX110X OR MIOPEN_TEST_GFX120X OR MIOPEN_TEST_HIP_NOGPU))
     find_program(ROCMINFO
         NAMES rocminfo
         PATHS
@@ -128,6 +131,10 @@ if(NOT (MIOPEN_TEST_GFX900 OR MIOPEN_TEST_GFX906 OR MIOPEN_TEST_GFX908 OR MIOPEN
             set(MIOPEN_TEST_GFX110X ON)
         elseif(ROCMINFO_OUTPUT MATCHES "gfx1102")
             set(MIOPEN_TEST_GFX110X ON)
+        elseif(ROCMINFO_OUTPUT MATCHES "gfx1200")
+            set(MIOPEN_TEST_GFX120X ON)
+        elseif(ROCMINFO_OUTPUT MATCHES "gfx1201")
+            set(MIOPEN_TEST_GFX120X ON)
         elseif(ROCMINFO_OUTPUT MATCHES "gfx900")
             set(MIOPEN_TEST_GFX900 ON)
         elseif(ROCMINFO_OUTPUT MATCHES "gfx906")
@@ -173,6 +180,7 @@ message(STATUS "MIOPEN_TEST_GFX90A ${MIOPEN_TEST_GFX90A}")
 message(STATUS "MIOPEN_TEST_GFX94X ${MIOPEN_TEST_GFX94X}")
 message(STATUS "MIOPEN_TEST_GFX103X ${MIOPEN_TEST_GFX103X}")
 message(STATUS "MIOPEN_TEST_GFX110X ${MIOPEN_TEST_GFX110X}")
+message(STATUS "MIOPEN_TEST_GFX120X ${MIOPEN_TEST_GFX120X}")
 message(STATUS "MIOPEN_TEST_GPU_XNACK_ENABLED ${MIOPEN_TEST_GPU_XNACK_ENABLED}")
 message(STATUS "MIOPEN_TEST_GPU_DETECTION_FAILED ${MIOPEN_TEST_GPU_DETECTION_FAILED}")
 message(STATUS "MIOPEN_TEST_WITH_MIOPENDRIVER ${MIOPEN_TEST_WITH_MIOPENDRIVER}")
@@ -181,6 +189,9 @@ message(STATUS "MIOPEN_TEST_CONV ${MIOPEN_TEST_CONV}")
 message(STATUS "MIOPEN_TEST_DEEPBENCH ${MIOPEN_TEST_DEEPBENCH}")
 message(STATUS "MIOPEN_TEST_DRIVER_ITER_MODE ${MIOPEN_TEST_DRIVER_ITER_MODE}")
 message(STATUS "MIOPEN_TEST_COMPOSABLEKERNEL ${MIOPEN_TEST_COMPOSABLEKERNEL}")
+message(STATUS "MIOPEN_TEST_DISCRETE ${MIOPEN_TEST_DISCRETE}")
+message(STATUS "MIOPEN_TEST_DBSYNC ${MIOPEN_TEST_DBSYNC}")
+message(STATUS "CODECOV_TEST ${CODECOV_TEST}")
 
 if(MIOPEN_TEST_DRIVER_ITER_MODE)
     add_definitions(-DMIOPEN_TEST_DRIVER_MODE=2)
@@ -306,7 +317,7 @@ function(add_test_command NAME EXE)
         add_test(NAME ${NAME} COMMAND echo skipped)
         set_tests_properties(${NAME} PROPERTIES DISABLED On)
     elseif(WIN32)
-        add_test(NAME ${NAME} COMMAND $<TARGET_FILE:${EXE}> ${ARGN})
+        add_test(NAME ${NAME} COMMAND $<TARGET_FILE:${EXE}> ${ARGN} WORKING_DIRECTORY "${PROJECT_BINARY_DIR}/${DATABASE_INSTALL_DIR}")
     else()
         if(MIOPEN_TEST_GDB)
             file(GENERATE OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/test_${NAME}.cmake"
@@ -680,85 +691,6 @@ function(add_custom_test NAME)
         set_tests_properties(${NAME} PROPERTIES DISABLED On)
     endif()
 endfunction()
-
-if(${MIOPEN_TEST_WITH_MIOPENDRIVER})
-    add_custom_test(test_miopendriver_regression_issue_1576 SKIP_UNLESS_ALL GFX94X_ENABLED GFX103X_ENABLED GFX110X_ENABLED FLOAT_DISABLED HALF_ENABLED
-        # Regression test for https://github.com/ROCm/MIOpen/issues/1576
-        ENVIRONMENT MIOPEN_FIND_MODE=1 MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvDirectNaiveConvBwd
-        COMMAND $<TARGET_FILE:MIOpenDriver> ${MIOPENDRIVER_MODE_CONV} --forw 2 --in_layout NCHW --out_layout NCHW --fil_layout NCHW -n 256 -c 1024 -H 14 -W 14 -k 256 -y 1 -x 1 -p 0 -q 0 -u 1 -v 1 -l 1 -j 1 -m conv -g 1 -t 1
-    )
-
-    add_custom_test(test_miopendriver_regression_half SKIP_UNLESS_ALL GFX94X_ENABLED GFX103X_ENABLED GFX110X_ENABLED FLOAT_DISABLED HALF_ENABLED
-        # WORKAROUND_ISSUE_2110_2: tests for 2110 and 2160 shall be added to "test_pooling3d --all" but this is
-        # impossible until backward pooling limitation (issue #2110 (2)) is fully fixed.
-        # Partial (3D only) regression test for https://github.com/ROCm/MIOpen/issues/2160.
-        COMMAND $<TARGET_FILE:MIOpenDriver> ${MIOPENDRIVER_MODE_POOL} -M 0 --input 1x64x41x40x70 -y 41 -x 40 -Z 70 -m avg -F 1 -t 1 -i 1
-        # Partial (3D only) regression test for https://github.com/ROCm/MIOpen/issues/2110 (1).
-        COMMAND $<TARGET_FILE:MIOpenDriver> ${MIOPENDRIVER_MODE_POOL} -M 0 --input 1x64x41x40x100 -y 4 -x 4 -Z 100 -m max -F 1 -t 1 -i 1
-    )
-
-    add_custom_test(test_miopendriver_regression_int8 SKIP_UNLESS_ALL GFX94X_ENABLED GFX103X_ENABLED GFX110X_ENABLED FLOAT_DISABLED INT8_ENABLED
-        ENVIRONMENT MIOPEN_FIND_MODE=1 MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvDirectNaiveConvFwd
-        COMMAND $<TARGET_FILE:MIOpenDriver> ${MIOPENDRIVER_MODE_CONV} --forw 1 --in_layout NCHW --out_layout NCHW --fil_layout NCHW -n 256 -c 1024 -H 14 -W 14 -k 256 -y 1 -x 1 -p 0 -q 0 -u 1 -v 1 -l 1 -j 1 -m conv -g 1 -t 1
-    )
-
-    add_custom_test(test_miopendriver_regression_float_half_gfx10 SKIP_UNLESS_ALL GFX900_DISABLED GFX906_DISABLED GFX908_DISABLED GFX90A_DISABLED GFX103X_ENABLED HALF_ENABLED
-        # Regression test for:
-        #   [Navi21] Fixing Batchnorm backward precision issues by adjusting workgroup size (SWDEV-292187, SWDEV-319919)
-        #   https://github.com/ROCm/MIOpen/pull/1386
-        COMMAND $<TARGET_FILE:MIOpenDriver> ${MIOPENDRIVER_MODE_BN} -n 256 -c 512 -H 18 -W 18 -m 1 --forw 0 -b 1 -r 1
-        COMMAND $<TARGET_FILE:MIOpenDriver> ${MIOPENDRIVER_MODE_BN} -n 256 -c 512 -H 28 -W 28 -m 1 --forw 0 -b 1 -r 1
-    )
-
-    # Disabled for gfx908 due to WORKAROUND_ISSUE_1787.
-    add_custom_test(test_miopendriver_regression_big_tensor GFX900_DISABLED GFX906_DISABLED GFX908_DISABLED SKIP_UNLESS_ALL GFX94X_ENABLED GFX103X_ENABLED
-        # Regression test for https://github.com/ROCm/MIOpen/issues/1661
-        # Issue #1697: this is large test which has to run in serial and not enabled on gfx900/gfx906
-        COMMAND $<TARGET_FILE:MIOpenDriver> ${MIOPENDRIVER_MODE_CONV} -W 5078 -H 4903 -c 24 -n 5 -k 1 --fil_w 3 --fil_h 3 --pad_w 6 --pad_h 4 -F 1
-    )
-    set_tests_properties(test_miopendriver_regression_big_tensor
-        PROPERTIES RUN_SERIAL On)
-    set_tests_properties(test_miopendriver_regression_big_tensor
-        PROPERTIES TIMEOUT 600)
-
-    add_custom_test(test_miopendriver_regression_half_gfx9 SKIP_UNLESS_ALL GFX900_DISABLED GFX906_DISABLED GFX908_DISABLED GFX94X_ENABLED GFX103X_DISABLED FLOAT_DISABLED HALF_ENABLED
-        # Regression test for:
-        #   [SWDEV-375617] Fix 3d convolution Host API bug
-        #   https://github.com/ROCm/MIOpen/pull/1935
-        COMMAND $<TARGET_FILE:MIOpenDriver> ${MIOPENDRIVER_MODE_CONV} -n 2 -c 64 --in_d 128 -H 128 -W 128 -k 32 --fil_d 3 -y 3 -x 3 --pad_d 1 -p 1 -q 1 --conv_stride_d 1 -u 1 -v 1 --dilation_d 1 -l 1 -j 1 --spatial_dim 3 -m conv -g 1 -F 1 -t 1
-    )
-
-    add_custom_test(test_miopendriver_conv2d_trans
-        SKIP_UNLESS_ALL
-        GFX900_DISABLED GFX94X_ENABLED GFX103X_ENABLED GFX110X_ENABLED
-        HALF_ENABLED BF16_ENABLED
-        # Why we have to use the driver:
-        #   The transposed convolutions are paritally implemented in the convolution_api layer,
-        #   but test apps (including test_conv*) were designed as unit tests and, therefore, do not use the public API.
-        # Also serves as a regression test for https://github.com/ROCm/MIOpen/issues/2459.
-        COMMAND $<TARGET_FILE:MIOpenDriver> ${MIOPENDRIVER_MODE_CONV} -m trans -x 1 -y 1 -W 112 -H 112 -c 64 -n 8 -k 32 -p 0 -q 0 -u 1 -v 1 -l 1 -j 1 -g 1 -F 0 -V 1
-        COMMAND $<TARGET_FILE:MIOpenDriver> ${MIOPENDRIVER_MODE_CONV} -m trans -x 1 -y 7 -W 17 -H 17 -c 32 -n 128 -k 16 -p 3 -q 0 -u 1 -v 1 -l 1 -j 1 -g 2 -F 0 -V 1
-        COMMAND $<TARGET_FILE:MIOpenDriver> ${MIOPENDRIVER_MODE_CONV} -m trans -x 10 -y 5 -W 341 -H 79 -c 32 -n 4 -k 8 -p 0 -q 0 -u 2 -v 2 -l 1 -j 1 -g 4 -F 0 -V 1
-        COMMAND $<TARGET_FILE:MIOpenDriver> ${MIOPENDRIVER_MODE_CONV} -m trans -x 20 -y 5 -W 700 -H 161 -c 1 -n 4 -k 32 -p 0 -q 0 -u 2 -v 2 -l 1 -j 1 -g 1 -F 0 -V 1
-        COMMAND $<TARGET_FILE:MIOpenDriver> ${MIOPENDRIVER_MODE_CONV} -m trans -x 3 -y 3 -W 108 -H 108 -c 3 -n 8 -k 64 -p 1 -q 1 -u 2 -v 2 -l 1 -j 1 -g 1 -F 0 -V 1
-        COMMAND $<TARGET_FILE:MIOpenDriver> ${MIOPENDRIVER_MODE_CONV} -m trans -x 5 -y 5 -W 175 -H 40 -c 128 -n 16 -k 256 -p 1 -q 1 -u 2 -v 2 -l 1 -j 1 -g 1 -F 0 -V 1
-        COMMAND $<TARGET_FILE:MIOpenDriver> ${MIOPENDRIVER_MODE_CONV} -m trans -x 5 -y 5 -W 700 -H 161 -c 1 -n 16 -k 64 -p 1 -q 1 -u 2 -v 2 -l 1 -j 1 -g 1 -F 0 -V 1
-        COMMAND $<TARGET_FILE:MIOpenDriver> ${MIOPENDRIVER_MODE_CONV} -m trans -x 7 -y 7 -W 224 -H 224 -c 3 -n 16 -k 64 -p 3 -q 3 -u 2 -v 2 -l 1 -j 1 -g 1 -F 0 -V 1
-    )
-
-    add_custom_test(test_miopendriver_regression_issue_2047 GFX94X_ENABLED GFX103X_ENABLED GFX110X_ENABLED HALF_ENABLED BF16_ENABLED INT8_ENABLED
-        # Regression test for: MIOpenIm3d2Col stuck with ROCm update, https://github.com/ROCm/MIOpen/issues/2047
-        ENVIRONMENT MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=GemmFwdRest
-        COMMAND $<TARGET_FILE:MIOpenDriver> ${MIOPENDRIVER_MODE_CONV}
-                -n 1 -c 1 --in_d 2 -H 1 -W 2 -k 2 --fil_d 2 -y 1 -x 2
-                --pad_d 0 -p 0 -q 0 --conv_stride_d 1 -u 1 -v 1 --dilation_d 1 -l 1 -j 1
-                --spatial_dim 3 -m conv -g 1 -F 1 -i 1 -t 1 -w 1
-    )
-
-    add_custom_test(smoke_miopendriver_gemm GFX94X_ENABLED GFX103X_ENABLED GFX110X_ENABLED HALF_ENABLED
-        COMMAND $<TARGET_FILE:MIOpenDriver> ${MIOPENDRIVER_MODE_GEMM} -m 256 -n 512 -k 1024 -i 1 -V 1
-    )
-endif()
 
 set(IMPLICITGEMM_MLIR_ENV_BASE MIOPEN_FIND_MODE=normal)
 set(IMPLICITGEMM_MLIR_ENV_F ${IMPLICITGEMM_MLIR_ENV_BASE} MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvMlirIgemmFwd)

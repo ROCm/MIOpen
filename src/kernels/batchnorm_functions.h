@@ -132,8 +132,9 @@
 // TODO: Spaghetti code!!!
 // MIOPEN_USE_AMDGCN may be defined before this header.
 #ifndef MIOPEN_USE_AMDGCN
-#if defined(__AMDGCN__) && \
-    !((defined(MIO_BN_GFX103X) && MIO_BN_GFX103X) || (defined(MIO_BN_GFX110X) && MIO_BN_GFX110X))
+#if defined(__AMDGCN__) &&                           \
+    !((defined(MIO_BN_GFX103X) && MIO_BN_GFX103X) || \
+      (defined(MIO_BN_GFX110X) && MIO_BN_GFX110X) || (defined(MIO_BN_GFX120X) && MIO_BN_GFX120X))
 #define MIOPEN_USE_AMDGCN 1
 #else
 #define MIOPEN_USE_AMDGCN 0
@@ -163,6 +164,10 @@
 
 #ifndef MIO_BN_GFX110X
 #define MIO_BN_GFX110X 0
+#endif
+
+#ifndef MIO_BN_GFX120X
+#define MIO_BN_GFX120X 0
 #endif
 
 #define UNUSED __attribute__((__unused__))
