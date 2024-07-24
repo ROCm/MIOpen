@@ -108,8 +108,10 @@ struct SolverBase
     /// run-time parameters.
     virtual bool IsDynamic() const { return false; }
 
+    static constexpr float wti_approximate_worst = -2;
+
     /// [Informative as of Sep 2020] Returns an approximated value of the expected
-    /// WTI or -2.0 when this value can't be computed. Tips:
+    /// WTI or wti_approximate_worst when this value can't be computed. Tips:
     /// * Value 1.0 corresponds to the 100% utilization of HW capabilities as
     ///   if Direct computational algorithm is used.
     /// * [Notice] WTI may exceed 1.0 for highly optimized algorithms like Winograd.
@@ -152,7 +154,7 @@ struct SolverMixin : SolverBase
                   "Context must be derived of ExecutionContext");
 
     virtual bool IsApplicable(const Context&, const Problem&) const = 0;
-    virtual float GetWti(const Context&, const Problem&) const { return -2.0f; };
+    virtual float GetWti(const Context&, const Problem&) const { return wti_approximate_worst; };
     virtual size_t GetWorkspaceSize(const Context&, const Problem&) const { return 0; };
 
     bool IsApplicable(const ExecutionContext& ctx, const boost::any& problem) const final
@@ -4660,11 +4662,11 @@ struct PerformanceConfigHipImplicitGemmGroupFwdXdlops
 private:
 #if MIOPEN_ENABLE_AI_KERNEL_TUNING
     std::vector<int> heuristic_indexes;
-    std::vector<std::vector<std::string>> heuristic_kernels;
+    std::unordered_map<int, std::vector<std::string>> heuristic_kernels;
     template <typename DataType>
     bool RunParameterPredictionModel(const ExecutionContext& ctx,
                                      const miopen::conv::ProblemDescription& problem);
-    void InitHeuristicKernelIDs();
+    void InitHeuristicKernelIDs(const std::string& type);
     bool ModelApplyToken(int idx, std::string value, const std::string& arch);
 #endif
     template <typename DataType>
@@ -4982,7 +4984,7 @@ struct PerformanceConfigHipImplicitGemmGroupBwdXdlops
 private:
 #if MIOPEN_ENABLE_AI_KERNEL_TUNING
     std::vector<int> heuristic_indexes;
-    std::vector<std::vector<std::string>> heuristic_kernels;
+    std::unordered_map<int, std::vector<std::string>> heuristic_kernels;
     template <typename DataType>
     bool RunParameterPredictionModel(const ExecutionContext& ctx,
                                      const miopen::conv::ProblemDescription& problem);
@@ -5040,6 +5042,7 @@ struct PerformanceConfigHipImplicitGemmGroupWrwXdlops
     : PerfConfigBaseCK<PerformanceConfigHipImplicitGemmGroupWrwXdlops>
 {
     int index;
+    int split_k;
     std::string kernel_id;
     std::vector<std::string> valid_kernels;
     PerformanceConfigHipImplicitGemmGroupWrwXdlops(int idx, std::string kernl_id)
@@ -5072,12 +5075,15 @@ struct PerformanceConfigHipImplicitGemmGroupWrwXdlops
 private:
 #if MIOPEN_ENABLE_AI_KERNEL_TUNING
     std::vector<int> heuristic_indexes;
-    std::vector<std::vector<std::string>> heuristic_kernels;
+    std::unordered_map<int, std::vector<std::string>> heuristic_kernels;
     template <typename DataType>
     bool RunParameterPredictionModel(const ExecutionContext& ctx,
                                      const miopen::conv::ProblemDescription& problem);
-    void InitHeuristicKernelIDs();
-    bool ModelApplyToken(int idx, std::string value);
+    void InitHeuristicKernelIDs(const std::string& type);
+    bool ModelApplyToken(int idx,
+                         std::string value,
+                         const std::string& arch,
+                         const miopen::conv::ProblemDescription& problem);
 #endif
     template <typename DataType>
     void Init(const miopen::conv::ProblemDescription&);
