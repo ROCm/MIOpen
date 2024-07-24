@@ -183,8 +183,8 @@ template <typename Tgpu, typename Tref>
 int CatDriver<Tgpu, Tref>::AddCmdLineArgs()
 {
     inflags.AddInputFlag("forw", 'F', "1", "Run only Forward Cat (Default=1)", "int");
-    inflags.AddTensorFlag("input1", '1', "", "input1 tensor descriptor");
-    inflags.AddTensorFlag("input2", '2', "", "input2 tensor descriptor");
+    inflags.AddTensorFlag("input1", '1', "2x32x128x128x128", "input1 tensor descriptor");
+    inflags.AddTensorFlag("input2", '2', "2x32x128x128x128", "input2 tensor descriptor");
     inflags.AddTensorFlag("input3", '3', "", "input3 tensor descriptor");
     inflags.AddTensorFlag("input4", '4', "", "input4 tensor descriptor");
     inflags.AddTensorFlag("input5", '5', "", "input5 tensor descriptor");

@@ -395,25 +395,25 @@ struct SolverContainer
     }
 
     template <class Context, class Problem>
-    std::vector<std::pair<std::string, size_t>>
-    GetWorkspaceSizes(const Context& ctx,
-                      const Problem& problem,
-                      std::size_t limit = std::numeric_limits<std::size_t>::max()) const
+    std::vector<std::pair<std::string, size_t>> GetWorkspaceSizes(
+        const Context& ctx, const Problem& problem, const bool simple_primitive = false) const
     {
         std::vector<std::pair<std::string, size_t>> res;
         const auto find_only = GetEnvFindOnlySolver();
-        std::size_t count    = 0;
         miopen::each_args(
             [&](auto solver) {
-                if(count >= limit)
-                    return;
-
                 if(find_only &&
                    (std::find(find_only->begin(), find_only->end(), Id{solver.SolverDbId()}) ==
                     find_only->end()))
                 { // Do nothing (and keep silence for the sake of Tuna), just skip.
                 }
-                else if(!solver.MayNeedWorkspace())
+                // The following optimization is required to avoid checks
+                // for solvers that have slow IsApplicable() and do not
+                // require workspace (like MLIR convolutions). However we
+                // do not want to use it for simple primitives, for example,
+                // the ones that ExecutePrimitive() which uses the first applicable
+                // solver:
+                else if(!simple_primitive && !solver.MayNeedWorkspace())
                 {
                     MIOPEN_LOG_I2(solver.SolverDbId() << ": Skipped (no workspace required)");
                 }
@@ -429,7 +429,6 @@ struct SolverContainer
                 }
                 else
                 {
-                    ++count;
                     auto sz = solver.GetWorkspaceSize(ctx, problem);
                     res.push_back(std::make_pair(solver.SolverDbId(), sz));
                     MIOPEN_LOG_I2(solver.SolverDbId() << ": " << sz);
