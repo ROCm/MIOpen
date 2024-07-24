@@ -48,7 +48,11 @@ bool IsOverRocmBilinearFwd(const miopen::interpolate::FwdProblemDescription& pro
     TensorDescriptor output_desc = problem.GetOutputDesc();
 
     if(output_desc.GetLengths()[2] + output_desc.GetLengths()[3] > 256)
+    {
+        std::cout << "2 last dims: " << output_desc.GetLengths()[2] << " "
+                  << output_desc.GetLengths()[3] << std::endl;
         return false;
+    }
 
     return true;
 }
