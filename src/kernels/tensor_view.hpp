@@ -24,8 +24,8 @@
  *
  *******************************************************************************/
 
-#ifndef GUARD_TENSOR_VIEW_H
-#define GUARD_TENSOR_VIEW_H
+#ifndef GUARD_TENSOR_VIEW_HPP
+#define GUARD_TENSOR_VIEW_HPP
 
 template <int N>
 struct tensor_layout_t;
@@ -51,8 +51,6 @@ struct tensor_view_t
 template <int N>
 struct tensor_layout_t
 {
-    constexpr tensor_layout_t() = default;
-
     // Make tensor layout at index using tensor view
     constexpr tensor_layout_t(const tensor_view_t<N>& tensor_view, uint64_t idx)
     {
@@ -77,4 +75,4 @@ struct tensor_layout_t
     uint64_t layout[N];
 };
 
-#endif // GUARD_TENSOR_VIEW_H
+#endif // GUARD_TENSOR_VIEW_HPP

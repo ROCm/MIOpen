@@ -29,6 +29,7 @@
 #include <../test/ford.hpp>
 
 #include <miopen/tensor.hpp>
+#include <miopen/tensor_view_utils.hpp>
 #include <miopen/cumulative_reduction/utils.hpp>
 
 #include <limits>
@@ -107,12 +108,9 @@ int32_t mloCumulativeReductionForwardRunHost(const miopenTensorDescriptor_t inpu
     const int ndims     = miopen::deref(inputDesc).GetNumDims();
     const auto true_dim = ((dim % ndims) + ndims) % ndims;
 
-    auto input_tv =
-        miopen::solver::cumulative_reduction::get_inner_expanded_tv<5>(miopen::deref(inputDesc));
-    auto output_tv =
-        miopen::solver::cumulative_reduction::get_inner_expanded_tv<5>(miopen::deref(outputDesc));
-    auto indices_tv =
-        miopen::solver::cumulative_reduction::get_inner_expanded_tv<5>(miopen::deref(indicesDesc));
+    auto input_tv   = miopen::get_inner_expanded_tv<5>(miopen::deref(inputDesc));
+    auto output_tv  = miopen::get_inner_expanded_tv<5>(miopen::deref(outputDesc));
+    auto indices_tv = miopen::get_inner_expanded_tv<5>(miopen::deref(indicesDesc));
 
     auto size       = miopen::deref(inputDesc).GetElementSize();
     auto inner_size = miopen::deref(inputDesc).GetLengths()[true_dim];

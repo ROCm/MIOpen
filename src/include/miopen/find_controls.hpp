@@ -137,7 +137,8 @@ private:
     }
 
 public:
-    FindMode();
+    // Todo: remove default value of primitive
+    FindMode(solver::Primitive primitive = solver::Primitive::Convolution);
     Values Get() const { return value; }
     void Set(Values const v) { value = v; }
 

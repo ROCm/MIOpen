@@ -27,7 +27,7 @@
 #pragma once
 
 #include "tensor_holder.hpp"
-#include "tensor_view.hpp"
+#include <miopen/tensor_view_utils.hpp>
 #include <miopen/cumulative_reduction/utils.hpp>
 
 #include <limits>
@@ -105,11 +105,11 @@ void cpu_cumulative_reduction_forward(const tensor<T> input,
     const int ndims     = input.desc.GetNumDims();
     const auto true_dim = ((dim % ndims) + ndims) % ndims;
 
-    auto input_tv = miopen::solver::cumulative_reduction::get_inner_expanded_tv<5>(input.desc);
+    auto input_tv = miopen::get_inner_expanded_tv<5>(input.desc);
     auto output_tv =
-        miopen::solver::cumulative_reduction::get_inner_expanded_tv<5>(ref_output.desc);
+        miopen::get_inner_expanded_tv<5>(ref_output.desc);
     auto indices_tv =
-        miopen::solver::cumulative_reduction::get_inner_expanded_tv<5>(ref_indices.desc);
+        miopen::get_inner_expanded_tv<5>(ref_indices.desc);
 
     auto size       = input.desc.GetElementSize();
     auto inner_size = input.desc.GetLengths()[true_dim];
