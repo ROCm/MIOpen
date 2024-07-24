@@ -7613,20 +7613,20 @@ reduction = 'none'
 reduction = 'none
  * @return                              miopenStatus_t
  */
-miopenStatus_t miopenMultiMarginLossForward(miopenHandle_t handle,
-                                            miopenTensorDescriptor_t inputDesc,
-                                            const void* input,
-                                            miopenTensorDescriptor_t targetDesc,
-                                            const void* target,
-                                            miopenTensorDescriptor_t weightDesc,
-                                            const void* weight,
-                                            miopenTensorDescriptor_t outputDesc,
-                                            void* output,
-                                            long p,
-                                            float margin,
-                                            miopenLossReductionMode_t reduction,
-                                            void* workspace,
-                                            size_t workspaceSizeInBytes);
+MIOPEN_EXPORT miopenStatus_t miopenMultiMarginLossForward(miopenHandle_t handle,
+                                                          miopenTensorDescriptor_t inputDesc,
+                                                          const void* input,
+                                                          miopenTensorDescriptor_t targetDesc,
+                                                          const void* target,
+                                                          miopenTensorDescriptor_t weightDesc,
+                                                          const void* weight,
+                                                          miopenTensorDescriptor_t outputDesc,
+                                                          void* output,
+                                                          long p,
+                                                          float margin,
+                                                          miopenLossReductionMode_t reduction,
+                                                          void* workspace,
+                                                          size_t workspaceSizeInBytes);
 
 /** @} */
 // CLOSEOUT LossFunction DOXYGEN GROUP
