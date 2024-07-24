@@ -292,6 +292,165 @@ TensorParameters InputFlags::GetValueTensor(const std::string& long_name) const
 
     MIOPEN_THROW("Too many tensor descriptor parameters.");
 }
+
+TensorParametersUint64 InputFlags::GetValueTensorUint64(const std::string& long_name) const
+{
+    const auto& input     = MapInputs.at(FindShortName(long_name));
+    const auto components = miopen::SplitDelim(input.value.c_str(), ',');
+
+    if(components.size() < 1)
+        return {};
+
+    auto parse = [](auto line) {
+        auto ret        = std::vector<uint64_t>{};
+        const auto strs = miopen::SplitDelim(line, 'x');
+        for(auto&& str : strs)
+        {
+            auto elem = uint64_t{};
+            auto ss   = std::istringstream{str};
+            ss >> elem;
+
+            if(ss.bad() || ss.fail())
+                MIOPEN_THROW("Invalid tensor component " + str + " in " + line + ".");
+
+            ret.push_back(elem);
+        }
+        return ret;
+    };
+
+    auto lens = parse(components[0]);
+
+    if(components.size() == 1)
+        return {lens};
+
+    auto layout  = std::string{};
+    auto strides = std::vector<uint64_t>{};
+
+    if(std::isdigit(components[1][0]))
+        strides = parse(components[1]);
+    else
+        layout = components[1];
+
+    if(components.size() == 2)
+        return {lens, strides, layout};
+
+    MIOPEN_THROW("Too many tensor descriptor parameters.");
+}
+
+std::vector<int32_t> InputFlags::GetValueVectorInt(const std::string& long_name) const
+{
+    const auto& input = MapInputs.at(FindShortName(long_name));
+
+    auto ret        = std::vector<int32_t>{};
+    const auto strs = miopen::SplitDelim(input.value.c_str(), ',');
+
+    for(auto&& str : strs)
+    {
+        auto elem = int32_t{};
+        auto ss   = std::istringstream{str};
+        ss >> elem;
+
+        if(ss.bad() || ss.fail())
+            MIOPEN_THROW("Invalid tensor component " + str + " in " + input.value.c_str() + ".");
+
+        ret.push_back(elem);
+    }
+
+    return ret;
+}
+
+std::vector<uint64_t> InputFlags::GetValueVectorUint64(const std::string& long_name) const
+{
+    const auto& input = MapInputs.at(FindShortName(long_name));
+
+    auto ret        = std::vector<uint64_t>{};
+    const auto strs = miopen::SplitDelim(input.value.c_str(), ',');
+
+    for(auto&& str : strs)
+    {
+        auto elem = uint64_t{};
+        auto ss   = std::istringstream{str};
+        ss >> elem;
+
+        if(ss.bad() || ss.fail())
+            MIOPEN_THROW("Invalid tensor component " + str + " in " + input.value.c_str() + ".");
+
+        ret.push_back(elem);
+    }
+
+    return ret;
+}
+
+std::vector<std::vector<int32_t>>
+InputFlags::GetValue2dVectorInt(const std::string& long_name) const
+{
+    const auto& input     = MapInputs.at(FindShortName(long_name));
+    const auto components = miopen::SplitDelim(input.value.c_str(), ',');
+    auto output           = std::vector<std::vector<int32_t>>{};
+
+    if(components.size() < 1)
+        return {};
+
+    auto parse = [](auto line) {
+        auto ret        = std::vector<int32_t>{};
+        const auto strs = miopen::SplitDelim(line, 'x');
+        for(auto&& str : strs)
+        {
+            auto elem = int32_t{};
+            auto ss   = std::istringstream{str};
+            ss >> elem;
+
+            if(ss.bad() || ss.fail())
+                MIOPEN_THROW("Invalid tensor component " + str + " in " + line + ".");
+
+            ret.push_back(elem);
+        }
+        return ret;
+    };
+
+    for(auto&& component : components)
+    {
+        output.push_back(parse(component));
+    }
+
+    return output;
+}
+
+std::vector<std::vector<uint64_t>>
+InputFlags::GetValue2dVectorUint64(const std::string& long_name) const
+{
+    const auto& input     = MapInputs.at(FindShortName(long_name));
+    const auto components = miopen::SplitDelim(input.value.c_str(), ',');
+    auto output           = std::vector<std::vector<uint64_t>>{};
+
+    if(components.size() < 1)
+        return {};
+
+    auto parse = [](auto line) {
+        auto ret        = std::vector<uint64_t>{};
+        const auto strs = miopen::SplitDelim(line, 'x');
+        for(auto&& str : strs)
+        {
+            auto elem = uint64_t{};
+            auto ss   = std::istringstream{str};
+            ss >> elem;
+
+            if(ss.bad() || ss.fail())
+                MIOPEN_THROW("Invalid tensor component " + str + " in " + line + ".");
+
+            ret.push_back(elem);
+        }
+        return ret;
+    };
+
+    for(auto&& component : components)
+    {
+        output.push_back(parse(component));
+    }
+
+    return output;
+}
+
 void InputFlags::SetValue(const std::string& long_name, const std::string& new_value)
 {
     char short_name                = FindShortName(long_name);

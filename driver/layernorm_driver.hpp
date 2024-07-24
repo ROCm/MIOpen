@@ -166,8 +166,8 @@ private:
     std::vector<Tgpu> weight;
     std::vector<Tgpu> bias;
     std::vector<Tgpu> out;
-    std::vector<Tref> mean;
-    std::vector<Tref> rstd;
+    std::vector<Tgpu> mean;
+    std::vector<Tgpu> rstd;
     std::vector<Tref> outhost;
     std::vector<Tref> meanhost;
     std::vector<Tref> rstdhost;
@@ -276,15 +276,15 @@ int LayerNormDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     weight_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, weight_sz, sizeof(Tgpu)));
     bias_dev   = std::unique_ptr<GPUMem>(new GPUMem(ctx, bias_sz, sizeof(Tgpu)));
     out_dev    = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(Tgpu)));
-    mean_dev   = std::unique_ptr<GPUMem>(new GPUMem(ctx, mean_sz, sizeof(Tref)));
-    rstd_dev   = std::unique_ptr<GPUMem>(new GPUMem(ctx, rstd_sz, sizeof(Tref)));
+    mean_dev   = std::unique_ptr<GPUMem>(new GPUMem(ctx, mean_sz, sizeof(Tgpu)));
+    rstd_dev   = std::unique_ptr<GPUMem>(new GPUMem(ctx, rstd_sz, sizeof(Tgpu)));
 
     in       = std::vector<Tgpu>(in_sz, Tgpu0val);
     weight   = std::vector<Tgpu>(weight_sz, Tgpu0val);
     bias     = std::vector<Tgpu>(bias_sz, Tgpu0val);
     out      = std::vector<Tgpu>(out_sz, Tgpu0val);
-    mean     = std::vector<Tref>(mean_sz, Tref0ref);
-    rstd     = std::vector<Tref>(rstd_sz, Tref0ref);
+    mean     = std::vector<Tgpu>(mean_sz, Tgpu0val);
+    rstd     = std::vector<Tgpu>(rstd_sz, Tgpu0val);
     outhost  = std::vector<Tref>(out_sz, Tref0ref);
     meanhost = std::vector<Tref>(mean_sz, Tref0ref);
     rstdhost = std::vector<Tref>(rstd_sz, Tref0ref);

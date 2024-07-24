@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,45 +23,47 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <miopen/env.hpp>
-#include "cat.hpp"
 
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
+#include <miopen/getitem/problem_description.hpp>
+#include <miopen/datatype.hpp>
+#include <miopen/names.hpp>
 
-namespace env = miopen::env;
+#include <sstream>
 
-namespace cat {
+namespace miopen {
 
-std::string GetFloatArg()
+namespace getitem {
+
+NetworkConfig ProblemDescription::MakeNetworkConfig() const
 {
-    const auto tmp = env::value(MIOPEN_TEST_FLOAT_ARG);
-    if(tmp.empty())
+    auto dy_dims     = dyDesc.GetLengths();
+    auto input_dtype = dyDesc.GetType();
+    auto error_dtype = errorDesc.GetType();
+
+    auto input_size =
+        std::accumulate(dy_dims.begin(), dy_dims.end(), 1ULL, std::multiplies<size_t>());
+
+    std::ostringstream ss;
+
+    ss << "getitembwd";
+    ss << "input_size" << input_size;
+    ss << "input_dtype" << input_dtype;
+    ss << "error_dtype" << error_dtype;
+    ss << "indexCount" << indexCount;
+
+    for(int i = 0; i < indexCount; ++i)
     {
-        return "";
+        if(i == 0)
+            ss << "indexs_size";
+        const auto& index_dims = (*indexDescs)[i].GetLengths();
+        auto index_size        = std::accumulate(
+            index_dims.begin(), index_dims.begin(), 1ULL, std::multiplies<size_t>());
+        ss << index_size << "_";
     }
-    return tmp;
+
+    return NetworkConfig{ss.str()};
 }
 
-struct CatTestFloat : CatTest<float>
-{
-};
+} // namespace getitem
 
-} // namespace cat
-using namespace cat;
-
-TEST_P(CatTestFloat, CatTestFw)
-{
-    if(!MIOPEN_TEST_ALL ||
-       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--float"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
-};
-
-INSTANTIATE_TEST_SUITE_P(CatTestSet, CatTestFloat, testing::ValuesIn(CatTestConfigs()));
+} // namespace miopen
