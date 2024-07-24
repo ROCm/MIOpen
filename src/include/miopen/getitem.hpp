@@ -33,27 +33,26 @@ namespace miopen {
 struct Handle;
 struct TensorDescriptor;
 
-std::size_t GetGetitemWorkspaceSize(Handle& handle,
-                                    uint32_t indexCount,
-                                    const TensorDescriptor* const* indexDescs);
+MIOPEN_INTERNALS_EXPORT std::size_t GetGetitemWorkspaceSize(
+    Handle& handle, uint32_t indexCount, const TensorDescriptor* const* indexDescs);
 
-miopenStatus_t GetitemBackward(Handle& handle,
-                               Data_t workspace,
-                               size_t workspaceSizeInBytes,
-                               const TensorDescriptor& dyDesc,
-                               ConstData_t dy,
-                               uint32_t indexCount,
-                               const TensorDescriptor* const* indexDescs,
-                               ConstData_t* indexs,
-                               const TensorDescriptor& dxDesc,
-                               Data_t dx,
-                               const TensorDescriptor& errorDesc,
-                               Data_t error,
-                               uint32_t dimCount,
-                               const int32_t* dims,
-                               uint32_t sliceCount,
-                               const int32_t* slices,
-                               uint32_t offset);
+MIOPEN_INTERNALS_EXPORT miopenStatus_t GetitemBackward(Handle& handle,
+                                                       Data_t workspace,
+                                                       size_t workspaceSizeInBytes,
+                                                       const TensorDescriptor& dyDesc,
+                                                       ConstData_t dy,
+                                                       uint32_t indexCount,
+                                                       const TensorDescriptor* const* indexDescs,
+                                                       ConstData_t* indexs,
+                                                       const TensorDescriptor& dxDesc,
+                                                       Data_t dx,
+                                                       const TensorDescriptor& errorDesc,
+                                                       Data_t error,
+                                                       uint32_t dimCount,
+                                                       const int32_t* dims,
+                                                       uint32_t sliceCount,
+                                                       const int32_t* slices,
+                                                       uint32_t offset);
 
 } // namespace miopen
 #endif // _MIOPEN_GETITEM_HPP_
