@@ -105,7 +105,7 @@ std::vector<std::string> GetTestCases(const std::string& precision)
 
     const std::vector<std::string> test_cases = {
         // clang-format off
-    {"test_pooling2d " + precision + " --all --dataset 1 --limit 0 "+flag_arg}
+    {"test_pooling2d " + precision + " --all --dataset 1 --limit 0 " + flag_arg}
         // clang-format on
     };
 

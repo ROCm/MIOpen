@@ -44,8 +44,10 @@ std::vector<std::string> GetArgs(const std::string& param)
 
 std::vector<std::string> GetTestCases(void)
 {
-    const std::string& cmd       = "test_reduce_test ";
-    const std::string& float_arg = env::value(MIOPEN_TEST_FLOAT_ARG);
+    const std::string& cmd = "test_reduce_test ";
+    std::string float_arg  = env::value(MIOPEN_TEST_FLOAT_ARG);
+    if(float_arg.empty())
+        float_arg = "--float";
 
     // clang-format off
     return std::vector<std::string>{

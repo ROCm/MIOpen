@@ -82,7 +82,7 @@ void Run2dDriver(miopenDataType_t prec)
         });
 
         testing::internal::CaptureStderr();
-        test_drive<conv2d_driver>(ptrs.size(), ptrs.data());
+        test_drive<conv2d_driver>(ptrs.size(), ptrs.data(), "test_conv2d");
         auto capture = testing::internal::GetCapturedStderr();
         std::cout << capture;
     }
@@ -99,9 +99,9 @@ bool IsTestSupportedForDevice(const miopen::Handle& handle)
         return false;
 }
 
-std::vector<std::string> GetTestCases(void)
+std::vector<std::string> GetTestCases(const std::string& precision)
 {
-    std::string flags = " --verbose ";
+    std::string flags = " --verbose " + precision + " ";
 
     std::string psd0 = " --pads_strides_dilations 0 0 1 1 1 1";
     std::string psd1 = " --pads_strides_dilations 0 0 2 2 1 1";
@@ -158,4 +158,6 @@ TEST_P(ConfigWithFloat_conv_trans, FloatTest_conv_trans)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(ConvTrans, ConfigWithFloat_conv_trans, testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(ConvTrans,
+                         ConfigWithFloat_conv_trans,
+                         testing::Values(GetTestCases("--float")));

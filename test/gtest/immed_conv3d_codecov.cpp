@@ -109,7 +109,7 @@ std::vector<std::string> GetTestCases(const std::string& precision)
 
     const std::vector<std::string> test_cases = {
         // clang-format off
-    {"test_immed_conv3d " + precision + " --input 1 4 4 4 4 --weights 2 4 3 3 3 --pads_strides_dilations 0 0 0 1 1 1 1 1 1 "+flag_arg}
+    {"test_immed_conv3d " + precision + " --input 1 4 4 4 4 --weights 2 4 3 3 3 --pads_strides_dilations 0 0 0 1 1 1 1 1 1 " + flag_arg}
         // clang-format on
     };
 
