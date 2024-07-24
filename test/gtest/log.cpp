@@ -58,7 +58,7 @@ const std::string logFusionConvBiasActiv =
     "-W 32 -k 64 -y 3 -x 3 -p 1 -q 1 -u 1 -v 1 -l 1 -j 1";
 
 const std::string logBnormActiv = "MIOpen(" BKEND "): Command [LogCmdFusion] " MDEXE
-                                  " CBAInfer -F 2 -n 64 -c 64 -H 56 -W 56 -M 1";
+                                  " CBAInfer -F 2 -n 64 -c 64 -H 56 -W 56 -m 1";
 
 // Captures the std::cerr buffer and store it to a string.
 struct CerrRedirect

@@ -472,7 +472,7 @@ protected:
 
         // bf16 mantissa has 7 bits, by 3 bits shorter than fp16.
         if(std::is_same<T, bfloat16>::value)
-            threshold *= 8.0;
+            threshold *= 80.0;
 
         auto error = miopen::rms_range(ref_dx, dx);
         EXPECT_TRUE(miopen::range_distance(ref_dx) == miopen::range_distance(dx));

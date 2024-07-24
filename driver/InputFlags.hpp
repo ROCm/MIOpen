@@ -110,6 +110,10 @@ public:
     double GetValueDouble(const std::string& _long_name) const;
     TensorParameters GetValueTensor(const std::string& long_name) const;
     TensorParametersUint64 GetValueTensorUint64(const std::string& long_name) const;
+    std::vector<int32_t> GetValueVectorInt(const std::string& long_name) const;
+    std::vector<uint64_t> GetValueVectorUint64(const std::string& long_name) const;
+    std::vector<std::vector<int32_t>> GetValue2dVectorInt(const std::string& long_name) const;
+    std::vector<std::vector<uint64_t>> GetValue2dVectorUint64(const std::string& long_name) const;
     void SetValue(const std::string& long_name, const std::string& new_value);
     void StoreOptionalFlagValue(char short_name, const std::string& input_value);
 
