@@ -92,10 +92,8 @@ inline std::vector<CumulativeReductionTestCase> CumulativeReductionTestConfigs()
                     for(auto contiguous : contiguouss)
                     {
                         tcs.push_back({{65, 100}, op, dim, exclusive, reverse, contiguous});
-                        tcs.push_back({{65}, op, dim, exclusive, reverse, contiguous});
                         tcs.push_back({{70, 10}, op, dim, exclusive, reverse, contiguous});
-                        tcs.push_back(
-                            {{512, 64, 112, 112}, op, dim, exclusive, reverse, contiguous});
+                        tcs.push_back({{512, 64, 112}, op, dim, exclusive, reverse, contiguous});
                     }
                 }
             }

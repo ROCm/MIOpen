@@ -103,7 +103,7 @@ ConvSolution ForwardContiguousLastDim::GetSolution(
         return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
             auto params = raw_params.CastTo<miopen::cumulative_reduction::InvokeParams>();
 
-            const auto ndims            = deref(params.inputDesc).GetNumDims();
+            const int ndims             = deref(params.inputDesc).GetNumDims();
             const unsigned int true_dim = ((params.dim % ndims) + ndims) % ndims;
             auto kernel                 = handle_.Run(kernels[0]);
             kernel(params.input,
