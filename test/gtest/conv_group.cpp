@@ -43,9 +43,9 @@ void GetArgs(const std::string& param, std::vector<std::string>& tokens)
         tokens.push_back(*begin++);
 }
 
-std::vector<std::string> GetTestCases(void)
+std::vector<std::string> GetTestCases(const std::string& precision)
 {
-    std::string cmd_v = "test_conv2d --verbose ";
+    std::string cmd_v = "test_conv2d --verbose " + precision;
 
     // clang-format off
     return std::vector<std::string>{
@@ -61,7 +61,7 @@ std::vector<std::string> GetTestCases(void)
         //
         // Workaround for "Memory access fault by GPU node" during "HIP Release All" - WrW disabled.
         {cmd_v + " --input	32	256	28	28	--weights	512	8	3	3	--pads_strides_dilations	1	1	1	1	1	1	--group-count	32 --disable-backward-weights"},
-        {cmd_v + " -input	32	512	28	28	--weights	1024	16	3	3	--pads_strides_dilations	1	1	2	2	1	1	--group-count	32"},
+        {cmd_v + " --input	32	512	28	28	--weights	1024	16	3	3	--pads_strides_dilations	1	1	2	2	1	1	--group-count	32"},
         {cmd_v + " --input	32	512	14	14	--weights	1024	16	3	3	--pads_strides_dilations	1	1	1	1	1	1	--group-count	32"},
         {cmd_v + " --input	32	1024	14	14	--weights	2048	32	3	3	--pads_strides_dilations	1	1	2	2	1	1	--group-count	32"},
         {cmd_v + " --input	32	1024	7	7	--weights	2048	32	3	3	--pads_strides_dilations	1	1	1	1	1	1	--group-count	32"},
@@ -106,7 +106,7 @@ std::vector<std::string> GetTestCases(void)
     // clang-format on
 }
 
-using TestCase = decltype(GetTestCases())::value_type;
+using TestCase = decltype(GetTestCases(std::string{}))::value_type;
 
 class ConfigWithFloat_conv_group : public testing::TestWithParam<std::vector<TestCase>>
 {
@@ -152,4 +152,6 @@ using namespace conv_group;
 
 TEST_P(ConfigWithFloat_conv_group, FloatTest_conv_group) { Run2dDriver(); };
 
-INSTANTIATE_TEST_SUITE_P(ConvGroup, ConfigWithFloat_conv_group, testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(ConvGroup,
+                         ConfigWithFloat_conv_group,
+                         testing::Values(GetTestCases("--float")));

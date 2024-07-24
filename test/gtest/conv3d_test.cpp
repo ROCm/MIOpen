@@ -87,7 +87,7 @@ void Run3dDriver(miopenDataType_t prec)
         });
 
         testing::internal::CaptureStderr();
-        test_drive<conv3d_driver>(ptrs.size(), ptrs.data());
+        test_drive<conv3d_driver>(ptrs.size(), ptrs.data(), "test_conv3d");
         auto capture = testing::internal::GetCapturedStderr();
         std::cout << capture;
     }

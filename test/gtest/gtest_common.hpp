@@ -166,7 +166,7 @@ void invoke_with_params(Check&& check)
         });
 
         testing::internal::CaptureStderr();
-        test_drive<Driver>(ptrs.size(), ptrs.data());
+        test_drive<Driver>(ptrs.size(), ptrs.data(), "unnamed");
         check(testing::internal::GetCapturedStderr());
     }
 }
