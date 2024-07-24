@@ -30,11 +30,11 @@
 static Driver* makeDriver(const std::string& base_arg)
 {
     if(base_arg == "sigmoidfocalloss")
-        return new SigmoidFocalLossDriver<float>();
+        return new SigmoidFocalLossDriver<float, float>();
     else if(base_arg == "sigmoidfocallossfp16")
-        return new SigmoidFocalLossDriver<float16>();
+        return new SigmoidFocalLossDriver<float16, float>();
     else if(base_arg == "sigmoidfocallossbfp16")
-        return new SigmoidFocalLossDriver<bfloat16>();
+        return new SigmoidFocalLossDriver<bfloat16, float>();
     return nullptr;
 }
 

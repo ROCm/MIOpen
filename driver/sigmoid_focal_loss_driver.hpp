@@ -32,19 +32,17 @@
 #include <miopen/miopen.h>
 #include "tensor_driver.hpp"
 #include "timer.hpp"
-#include "random.hpp"
 #include <../test/tensor_holder.hpp>
 #include <../test/verify.hpp>
 #include <cmath>
-#include <iostream>
 #include <vector>
 
-template <typename TIO>
-void mloSigmoidFocalLossUnreducedFwdRunHost(TIO* input,
+template <typename Tgpu, typename Tcheck>
+void mloSigmoidFocalLossUnreducedFwdRunHost(Tgpu* input,
                                             miopenTensorDescriptor_t inputDesc,
-                                            TIO* target,
+                                            Tgpu* target,
                                             miopenTensorDescriptor_t targetDesc,
-                                            TIO* outputHost,
+                                            Tcheck* outputHost,
                                             miopenTensorDescriptor_t outputDesc,
                                             float alpha = 0.25,
                                             float gamma = 2)
@@ -58,34 +56,34 @@ void mloSigmoidFocalLossUnreducedFwdRunHost(TIO* input,
     {
         tensor_layout_t<5> idx(input_tv, id);
 
-        float i = static_cast<float>(input[input_tv.get_tensor_view_idx(idx)]);
-        float t = static_cast<float>(target[target_tv.get_tensor_view_idx(idx)]);
+        Tcheck i = static_cast<Tcheck>(input[input_tv.get_tensor_view_idx(idx)]);
+        Tcheck t = static_cast<Tcheck>(target[target_tv.get_tensor_view_idx(idx)]);
 
-        float sig    = 1 / (1 + exp(-i));
-        float ceLoss = -(t * log(sig) + (1 - t) * log(1 - sig));
-        float sigT   = sig * t + (1 - sig) * (1 - t);
-        float loss   = ceLoss * pow(1 - sigT, gamma);
+        Tcheck sig    = 1 / (1 + exp(-i));
+        Tcheck ceLoss = -(t * log(sig) + (1 - t) * log(1 - sig));
+        Tcheck sigT   = sig * t + (1 - sig) * (1 - t);
+        Tcheck loss   = ceLoss * pow(1 - sigT, gamma);
 
         if(alpha >= 0)
         {
-            float alphaT = alpha * t + (1 - alpha) * (1 - t);
-            loss         = alphaT * loss;
+            Tcheck alphaT = alpha * t + (1 - alpha) * (1 - t);
+            loss          = alphaT * loss;
         }
 
-        outputHost[output_tv.get_tensor_view_idx(idx)] = static_cast<TIO>(loss);
+        outputHost[output_tv.get_tensor_view_idx(idx)] = static_cast<Tcheck>(loss);
     }
 }
 
-template <class TIO>
-void mloSigmoidFocalLossUnreducedBwdRunHost(TIO* input,
+template <typename Tgpu, typename Tcheck>
+void mloSigmoidFocalLossUnreducedBwdRunHost(Tgpu* input,
                                             miopenTensorDescriptor_t inputDesc,
-                                            TIO* target,
+                                            Tgpu* target,
                                             miopenTensorDescriptor_t targetDesc,
-                                            TIO* doutput,
+                                            Tgpu* doutput,
                                             miopenTensorDescriptor_t doutputDesc,
-                                            TIO* dinput,
+                                            Tcheck* dinput,
                                             miopenTensorDescriptor_t dinputDesc,
-                                            TIO* dtarget,
+                                            Tcheck* dtarget,
                                             miopenTensorDescriptor_t dtargetDesc,
                                             float alpha = 0.25,
                                             float gamma = 2)
@@ -101,58 +99,58 @@ void mloSigmoidFocalLossUnreducedBwdRunHost(TIO* input,
     {
         tensor_layout_t<5> idx(input_tv, id);
 
-        float i  = static_cast<float>(input[input_tv.get_tensor_view_idx(idx)]);
-        float t  = static_cast<float>(target[target_tv.get_tensor_view_idx(idx)]);
-        float dO = static_cast<float>(doutput[doutput_tv.get_tensor_view_idx(idx)]);
+        Tcheck i  = static_cast<Tcheck>(input[input_tv.get_tensor_view_idx(idx)]);
+        Tcheck t  = static_cast<Tcheck>(target[target_tv.get_tensor_view_idx(idx)]);
+        Tcheck dO = static_cast<Tcheck>(doutput[doutput_tv.get_tensor_view_idx(idx)]);
 
-        float p       = 1 / (1 + exp(-i));
-        float ceLoss  = -(t * log(p) + (1 - t) * log(1 - p));
-        float pT      = p * t + (1 - p) * (1 - t);
-        float powPt   = pow(1 - pT, gamma);
-        float alpha_t = alpha * t + (1 - alpha) * (1 - t);
+        Tcheck p       = 1 / (1 + exp(-i));
+        Tcheck ceLoss  = -(t * log(p) + (1 - t) * log(1 - p));
+        Tcheck pT      = p * t + (1 - p) * (1 - t);
+        Tcheck powPt   = pow(1 - pT, gamma);
+        Tcheck alpha_t = alpha * t + (1 - alpha) * (1 - t);
 
         if(dinput)
         {
-            float dpdi      = exp(-i) / pow(1 + exp(-i), 2);
-            float dcelossdi = (-t / p + (1 - t) / (1 - p)) * dpdi;
-            float dpowptdi  = gamma * pow(1 - pT, gamma - 1) * (1 - 2 * t) * dpdi;
+            Tcheck dpdi      = exp(-i) / pow(1 + exp(-i), 2);
+            Tcheck dcelossdi = (-t / p + (1 - t) / (1 - p)) * dpdi;
+            Tcheck dpowptdi  = gamma * pow(1 - pT, gamma - 1) * (1 - 2 * t) * dpdi;
 
             // L = ce_loss * pow_pt => dL/di = dceloss/di * pow_pt + ce_loss * dpowpt/di
-            float dLdi = dcelossdi * powPt + ceLoss * dpowptdi;
-            float grad = dO * dLdi;
+            Tcheck dLdi = dcelossdi * powPt + ceLoss * dpowptdi;
+            Tcheck grad = dO * dLdi;
 
             if(alpha >= 0)
             {
                 grad *= alpha_t;
             }
-            dinput[dinput_tv.get_tensor_view_idx(idx)] = static_cast<TIO>(grad);
+            dinput[dinput_tv.get_tensor_view_idx(idx)] = static_cast<Tcheck>(grad);
         }
 
         if(dtarget)
         {
-            float dcelossdt = -log(p) + log(1 - p);
-            float dpowptdt  = gamma * pow(1 - pT, gamma - 1) * (1 - 2 * p);
+            Tcheck dcelossdt = -log(p) + log(1 - p);
+            Tcheck dpowptdt  = gamma * pow(1 - pT, gamma - 1) * (1 - 2 * p);
             // L = ce_loss * pow_pt => dL/dt = dceloss/dt * pow_pt + ce_loss * dpowpt/dt
-            float dLdt       = dcelossdt * powPt + ceLoss * dpowptdt;
-            float gradTarget = dO * dLdt;
+            Tcheck dLdt       = dcelossdt * powPt + ceLoss * dpowptdt;
+            Tcheck gradTarget = dO * dLdt;
 
             if(alpha >= 0)
             {
                 // alpha_t * dL/dt + dalpha_t/dt * dL
                 gradTarget = alpha_t * dLdt + (2 * alpha - 1) * ceLoss * powPt;
             }
-            dtarget[dtarget_tv.get_tensor_view_idx(idx)] = static_cast<TIO>(gradTarget);
+            dtarget[dtarget_tv.get_tensor_view_idx(idx)] = static_cast<Tcheck>(gradTarget);
         }
     }
 }
 
-template <typename TIO>
-void mloSigmoidFocalLossFwdRunHost(TIO* input,
+template <typename Tgpu, typename Tcheck>
+void mloSigmoidFocalLossFwdRunHost(Tgpu* input,
                                    miopenTensorDescriptor_t inputDesc,
-                                   TIO* target,
+                                   Tgpu* target,
                                    miopenTensorDescriptor_t targetDesc,
-                                   TIO* workspace,
-                                   TIO* ref_output,
+                                   Tcheck* workspaceHost,
+                                   Tcheck* outputHost,
                                    float alpha   = 0.25,
                                    float gamma   = 2,
                                    float divisor = 1)
@@ -165,21 +163,21 @@ void mloSigmoidFocalLossFwdRunHost(TIO* input,
     {
         tensor_layout_t<5> idx(input_tv, id);
 
-        float i = static_cast<float>(input[input_tv.get_tensor_view_idx(idx)]);
-        float t = static_cast<float>(target[target_tv.get_tensor_view_idx(idx)]);
+        Tcheck i = static_cast<Tcheck>(input[input_tv.get_tensor_view_idx(idx)]);
+        Tcheck t = static_cast<Tcheck>(target[target_tv.get_tensor_view_idx(idx)]);
 
-        float sig    = 1 / (1 + exp(-i));
-        float ceLoss = -(t * log(sig) + (1 - t) * log(1 - sig));
-        float sigT   = sig * t + (1 - sig) * (1 - t);
-        float loss   = ceLoss * pow(1 - sigT, gamma);
+        Tcheck sig    = 1 / (1 + exp(-i));
+        Tcheck ceLoss = -(t * log(sig) + (1 - t) * log(1 - sig));
+        Tcheck sigT   = sig * t + (1 - sig) * (1 - t);
+        Tcheck loss   = ceLoss * pow(1 - sigT, gamma);
 
         if(alpha >= 0)
         {
-            float alphaT = alpha * t + (1 - alpha) * (1 - t);
-            loss         = alphaT * loss;
+            Tcheck alphaT = alpha * t + (1 - alpha) * (1 - t);
+            loss          = alphaT * loss;
         }
 
-        workspace[id] = static_cast<TIO>(loss / divisor);
+        workspaceHost[id] = static_cast<Tcheck>(loss / divisor);
     }
 
     // Reduce loss
@@ -191,32 +189,32 @@ void mloSigmoidFocalLossFwdRunHost(TIO* input,
     {
         for(int i = 0; i < _size; i += local_size)
         {
-            TIO shared[local_size];
+            Tcheck shared[local_size];
             for(int j = 0; j < local_size; ++j)
-                shared[j] = i + j < _size ? workspace[offset_a + i + j] : 0.0f;
+                shared[j] = i + j < _size ? workspaceHost[offset_a + i + j] : 0.0f;
             for(int offset = local_size / 2; offset > 0; offset >>= 1)
                 for(int j = 0; j < offset; ++j)
                     shared[j] += shared[j + offset];
             if(_size <= local_size)
-                ref_output[0] = shared[0];
+                outputHost[0] = shared[0];
             else
-                workspace[offset_b + i / local_size] = shared[0];
+                workspaceHost[offset_b + i / local_size] = shared[0];
         }
         std::swap(offset_a, offset_b);
         _size = (_size + local_size - 1) / local_size;
     } while(_size > 1);
 }
 
-template <class TIO>
-void mloSigmoidFocalLossBwdRunHost(TIO* input,
+template <typename Tgpu, typename Tcheck>
+void mloSigmoidFocalLossBwdRunHost(Tgpu* input,
                                    miopenTensorDescriptor_t inputDesc,
-                                   TIO* target,
+                                   Tgpu* target,
                                    miopenTensorDescriptor_t targetDesc,
-                                   TIO* doutput,
+                                   Tgpu* doutput,
                                    miopenTensorDescriptor_t doutputDesc,
-                                   TIO* dinput,
+                                   Tcheck* dinput,
                                    miopenTensorDescriptor_t dinputDesc,
-                                   TIO* dtarget,
+                                   Tcheck* dtarget,
                                    miopenTensorDescriptor_t dtargetDesc,
                                    float alpha   = 0.25,
                                    float gamma   = 2,
@@ -236,41 +234,41 @@ void mloSigmoidFocalLossBwdRunHost(TIO* input,
     {
         tensor_layout_t<5> idx(input_tv, id);
 
-        float i  = static_cast<float>(input[input_tv.get_tensor_view_idx(idx)]);
-        float t  = static_cast<float>(target[target_tv.get_tensor_view_idx(idx)]);
-        float dO = static_cast<float>(doutput[doutput_tv.get_tensor_view_idx(doIdx)]);
+        Tcheck i  = static_cast<Tcheck>(input[input_tv.get_tensor_view_idx(idx)]);
+        Tcheck t  = static_cast<Tcheck>(target[target_tv.get_tensor_view_idx(idx)]);
+        Tcheck dO = static_cast<Tcheck>(doutput[doutput_tv.get_tensor_view_idx(doIdx)]);
 
-        float p       = 1 / (1 + exp(-i));
-        float ceLoss  = -(t * log(p) + (1 - t) * log(1 - p));
-        float pT      = p * t + (1 - p) * (1 - t);
-        float powPt   = pow(1 - pT, gamma);
-        float alpha_t = alpha * t + (1 - alpha) * (1 - t);
+        Tcheck p       = 1 / (1 + exp(-i));
+        Tcheck ceLoss  = -(t * log(p) + (1 - t) * log(1 - p));
+        Tcheck pT      = p * t + (1 - p) * (1 - t);
+        Tcheck powPt   = pow(1 - pT, gamma);
+        Tcheck alpha_t = alpha * t + (1 - alpha) * (1 - t);
 
         if(dinput)
         {
-            float dpdi      = exp(-i) / pow(1 + exp(-i), 2);
-            float dcelossdi = (-t / p + (1 - t) / (1 - p)) * dpdi;
-            float dpowptdi  = gamma * pow(1 - pT, gamma - 1) * (1 - 2 * t) * dpdi;
+            Tcheck dpdi      = exp(-i) / pow(1 + exp(-i), 2);
+            Tcheck dcelossdi = (-t / p + (1 - t) / (1 - p)) * dpdi;
+            Tcheck dpowptdi  = gamma * pow(1 - pT, gamma - 1) * (1 - 2 * t) * dpdi;
 
             // L = ce_loss * pow_pt => dL/di = dceloss/di * pow_pt + ce_loss * dpowpt/di
-            float dLdi = dcelossdi * powPt + ceLoss * dpowptdi;
-            float grad = dO * dLdi;
+            Tcheck dLdi = dcelossdi * powPt + ceLoss * dpowptdi;
+            Tcheck grad = dO * dLdi;
 
             if(alpha >= 0)
             {
                 grad *= alpha_t;
             }
             grad /= divisor;
-            dinput[dinput_tv.get_tensor_view_idx(idx)] = static_cast<TIO>(grad);
+            dinput[dinput_tv.get_tensor_view_idx(idx)] = static_cast<Tcheck>(grad);
         }
 
         if(dtarget)
         {
-            float dcelossdt = -log(p) + log(1 - p);
-            float dpowptdt  = gamma * pow(1 - pT, gamma - 1) * (1 - 2 * p);
+            Tcheck dcelossdt = -log(p) + log(1 - p);
+            Tcheck dpowptdt  = gamma * pow(1 - pT, gamma - 1) * (1 - 2 * p);
             // L = ce_loss * pow_pt => dL/dt = dceloss/dt * pow_pt + ce_loss * dpowpt/dt
-            float dLdt       = dcelossdt * powPt + ceLoss * dpowptdt;
-            float gradTarget = dO * dLdt;
+            Tcheck dLdt       = dcelossdt * powPt + ceLoss * dpowptdt;
+            Tcheck gradTarget = dO * dLdt;
 
             if(alpha >= 0)
             {
@@ -278,12 +276,12 @@ void mloSigmoidFocalLossBwdRunHost(TIO* input,
                 gradTarget = alpha_t * dLdt + (2 * alpha - 1) * ceLoss * powPt;
             }
             gradTarget /= divisor;
-            dtarget[dtarget_tv.get_tensor_view_idx(idx)] = static_cast<TIO>(gradTarget);
+            dtarget[dtarget_tv.get_tensor_view_idx(idx)] = static_cast<Tcheck>(gradTarget);
         }
     }
 }
 
-template <typename TIO>
+template <typename Tgpu, typename Tcheck>
 class SigmoidFocalLossDriver : public Driver
 {
 public:
@@ -296,7 +294,7 @@ public:
         miopenCreateTensorDescriptor(&dinputDesc);
         miopenCreateTensorDescriptor(&dtargetDesc);
 
-        data_type = miopen_type<TIO>{};
+        data_type = miopen_type<Tgpu>{};
     }
 
     std::vector<int> ComputeStrides(std::vector<int> input);
@@ -314,6 +312,7 @@ public:
     int RunBackwardGPU() override;
     int RunBackwardCPU();
 
+    Tcheck GetTolerance();
     int VerifyBackward() override;
     int VerifyForward() override;
     ~SigmoidFocalLossDriver() override
@@ -344,16 +343,17 @@ private:
     std::unique_ptr<GPUMem> dtarget_dev;
     std::unique_ptr<GPUMem> workspace_dev;
 
-    std::vector<TIO> input;
-    std::vector<TIO> target;
-    std::vector<TIO> output;
-    std::vector<TIO> outputHost;
-    std::vector<TIO> doutput;
-    std::vector<TIO> dinput;
-    std::vector<TIO> dinputHost;
-    std::vector<TIO> dtarget;
-    std::vector<TIO> dtargetHost;
-    std::vector<TIO> workspace;
+    std::vector<Tgpu> input;
+    std::vector<Tgpu> target;
+    std::vector<Tgpu> output;
+    std::vector<Tcheck> outputHost;
+    std::vector<Tgpu> doutput;
+    std::vector<Tgpu> dinput;
+    std::vector<Tcheck> dinputHost;
+    std::vector<Tgpu> dtarget;
+    std::vector<Tcheck> dtargetHost;
+    std::vector<Tgpu> workspace;
+    std::vector<Tcheck> workspaceHost;
 
     float alpha;
     float gamma;
@@ -365,8 +365,8 @@ private:
     size_t workSpaceSizeInBytes;
 };
 
-template <typename TIO>
-int SigmoidFocalLossDriver<TIO>::ParseCmdLineArgs(int argc, char* argv[])
+template <typename Tgpu, typename Tcheck>
+int SigmoidFocalLossDriver<Tgpu, Tcheck>::ParseCmdLineArgs(int argc, char* argv[])
 {
     inflags.Parse(argc, argv);
 
@@ -377,8 +377,8 @@ int SigmoidFocalLossDriver<TIO>::ParseCmdLineArgs(int argc, char* argv[])
     return miopenStatusSuccess;
 }
 
-template <typename TIO>
-int SigmoidFocalLossDriver<TIO>::GetandSetData()
+template <typename Tgpu, typename Tcheck>
+int SigmoidFocalLossDriver<Tgpu, Tcheck>::GetandSetData()
 {
     auto inDims              = inflags.GetValueTensor("dim-lengths").lengths;
     alpha                    = inflags.GetValueDouble("alpha");
@@ -425,8 +425,8 @@ int SigmoidFocalLossDriver<TIO>::GetandSetData()
 }
 
 // Equivalent to: tensor.tranpose(0, -1).contiguous().tranpose(0, -1) incase contiguous = False
-template <typename TIO>
-std::vector<int> SigmoidFocalLossDriver<TIO>::ComputeStrides(std::vector<int> inputDim)
+template <typename Tgpu, typename Tcheck>
+std::vector<int> SigmoidFocalLossDriver<Tgpu, Tcheck>::ComputeStrides(std::vector<int> inputDim)
 {
     if(!isContiguous)
         std::swap(inputDim.front(), inputDim.back());
@@ -439,8 +439,8 @@ std::vector<int> SigmoidFocalLossDriver<TIO>::ComputeStrides(std::vector<int> in
     return strides;
 }
 
-template <typename TIO>
-int SigmoidFocalLossDriver<TIO>::AddCmdLineArgs()
+template <typename Tgpu, typename Tcheck>
+int SigmoidFocalLossDriver<Tgpu, Tcheck>::AddCmdLineArgs()
 {
     inflags.AddInputFlag("forw", 'F', "1", "Run only Forward (Default=1)", "int");
     inflags.AddTensorFlag(
@@ -461,8 +461,8 @@ int SigmoidFocalLossDriver<TIO>::AddCmdLineArgs()
     return miopenStatusSuccess;
 }
 
-template <typename TIO>
-int SigmoidFocalLossDriver<TIO>::AllocateBuffersAndCopy()
+template <typename Tgpu, typename Tcheck>
+int SigmoidFocalLossDriver<Tgpu, Tcheck>::AllocateBuffersAndCopy()
 {
     size_t in_sz     = miopen::deref(inputDesc).GetElementSize();
     size_t target_sz = miopen::deref(targetDesc).GetElementSize();
@@ -473,42 +473,44 @@ int SigmoidFocalLossDriver<TIO>::AllocateBuffersAndCopy()
 
     uint32_t ctx = 0;
 
-    input_dev   = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(TIO)));
-    target_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, target_sz, sizeof(TIO)));
-    output_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(TIO)));
-    doutput_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, dO_sz, sizeof(TIO)));
-    dinput_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, dI_sz, sizeof(TIO)));
-    dtarget_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, dT_sz, sizeof(TIO)));
+    input_dev   = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(Tgpu)));
+    target_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, target_sz, sizeof(Tgpu)));
+    output_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(Tgpu)));
+    doutput_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, dO_sz, sizeof(Tgpu)));
+    dinput_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, dI_sz, sizeof(Tgpu)));
+    dtarget_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, dT_sz, sizeof(Tgpu)));
 
     miopenGetSigmoidFocalLossForwardWorkspaceSize(
         handle, inputDesc, targetDesc, outputDesc, reduction, &workSpaceSizeInBytes);
     workspace_dev =
-        std::unique_ptr<GPUMem>(new GPUMem(ctx, workSpaceSizeInBytes / sizeof(TIO), sizeof(TIO)));
+        std::unique_ptr<GPUMem>(new GPUMem(ctx, workSpaceSizeInBytes / sizeof(Tgpu), sizeof(Tgpu)));
 
-    input       = std::vector<TIO>(in_sz, static_cast<TIO>(0));
-    target      = std::vector<TIO>(target_sz, static_cast<TIO>(0));
-    output      = std::vector<TIO>(out_sz, static_cast<TIO>(0));
-    outputHost  = std::vector<TIO>(out_sz, static_cast<TIO>(0));
-    doutput     = std::vector<TIO>(dO_sz, static_cast<TIO>(0));
-    dinput      = std::vector<TIO>(dI_sz, static_cast<TIO>(0));
-    dinputHost  = std::vector<TIO>(dI_sz, static_cast<TIO>(0));
-    dtarget     = std::vector<TIO>(dT_sz, static_cast<TIO>(0));
-    dtargetHost = std::vector<TIO>(dT_sz, static_cast<TIO>(0));
-    workspace   = std::vector<TIO>(workSpaceSizeInBytes / sizeof(TIO), static_cast<TIO>(0));
+    input                 = std::vector<Tgpu>(in_sz, static_cast<Tgpu>(0));
+    target                = std::vector<Tgpu>(target_sz, static_cast<Tgpu>(0));
+    output                = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
+    outputHost            = std::vector<Tcheck>(out_sz, static_cast<Tcheck>(0));
+    doutput               = std::vector<Tgpu>(dO_sz, static_cast<Tgpu>(0));
+    dinput                = std::vector<Tgpu>(dI_sz, static_cast<Tgpu>(0));
+    dinputHost            = std::vector<Tcheck>(dI_sz, static_cast<Tcheck>(0));
+    dtarget               = std::vector<Tgpu>(dT_sz, static_cast<Tgpu>(0));
+    dtargetHost           = std::vector<Tcheck>(dT_sz, static_cast<Tcheck>(0));
+    size_t workSpaceElems = workSpaceSizeInBytes / sizeof(Tgpu);
+    workspace             = std::vector<Tgpu>(workSpaceElems, static_cast<Tgpu>(0));
+    workspaceHost         = std::vector<Tcheck>(workSpaceElems, static_cast<Tcheck>(0));
 
     for(int i = 0; i < in_sz; i++)
     {
-        input[i]  = prng::gen_A_to_B<TIO>(static_cast<TIO>(-2), static_cast<TIO>(2));
-        target[i] = prng::gen_A_to_B<TIO>(static_cast<TIO>(-2), static_cast<TIO>(2));
+        input[i]  = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(-2), static_cast<Tgpu>(2));
+        target[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(-2), static_cast<Tgpu>(2));
     }
     for(int i = 0; i < dO_sz; ++i)
     {
-        doutput[i] = prng::gen_A_to_B<TIO>(static_cast<TIO>(-2), static_cast<TIO>(2));
+        doutput[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(-2), static_cast<Tgpu>(2));
     }
 
-    fill(output.begin(), output.end(), static_cast<TIO>(0));
-    fill(dinput.begin(), dinput.end(), static_cast<TIO>(0));
-    fill(dtarget.begin(), dtarget.end(), static_cast<TIO>(0));
+    fill(output.begin(), output.end(), static_cast<Tgpu>(0));
+    fill(dinput.begin(), dinput.end(), static_cast<Tgpu>(0));
+    fill(dtarget.begin(), dtarget.end(), static_cast<Tgpu>(0));
 
     if(input_dev->ToGPU(GetStream(), input.data()) != 0)
         std::cerr << "Error copying (in) to GPU, size: " << input_dev->GetSize() << std::endl;
@@ -534,8 +536,8 @@ int SigmoidFocalLossDriver<TIO>::AllocateBuffersAndCopy()
     return miopenStatusSuccess;
 }
 
-template <typename TIO>
-int SigmoidFocalLossDriver<TIO>::RunForwardGPU()
+template <typename Tgpu, typename Tcheck>
+int SigmoidFocalLossDriver<Tgpu, Tcheck>::RunForwardGPU()
 {
     float kernel_total_time = 0;
     float kernel_first_time = 0;
@@ -585,38 +587,38 @@ int SigmoidFocalLossDriver<TIO>::RunForwardGPU()
     return miopenStatusSuccess;
 }
 
-template <typename TIO>
-int SigmoidFocalLossDriver<TIO>::RunForwardCPU()
+template <typename Tgpu, typename Tcheck>
+int SigmoidFocalLossDriver<Tgpu, Tcheck>::RunForwardCPU()
 {
     if(reduction == MIOPEN_LOSS_REDUCTION_NONE)
     {
-        mloSigmoidFocalLossUnreducedFwdRunHost<TIO>(input.data(),
-                                                    inputDesc,
-                                                    target.data(),
-                                                    targetDesc,
-                                                    outputHost.data(),
-                                                    outputDesc,
-                                                    alpha,
-                                                    gamma);
+        mloSigmoidFocalLossUnreducedFwdRunHost<Tgpu, Tcheck>(input.data(),
+                                                             inputDesc,
+                                                             target.data(),
+                                                             targetDesc,
+                                                             outputHost.data(),
+                                                             outputDesc,
+                                                             alpha,
+                                                             gamma);
     }
     else
     {
-        mloSigmoidFocalLossFwdRunHost<TIO>(input.data(),
-                                           inputDesc,
-                                           target.data(),
-                                           targetDesc,
-                                           workspace.data(),
-                                           outputHost.data(),
-                                           alpha,
-                                           gamma,
-                                           divisor);
+        mloSigmoidFocalLossFwdRunHost<Tgpu, Tcheck>(input.data(),
+                                                    inputDesc,
+                                                    target.data(),
+                                                    targetDesc,
+                                                    workspaceHost.data(),
+                                                    outputHost.data(),
+                                                    alpha,
+                                                    gamma,
+                                                    divisor);
     }
 
     return miopenStatusSuccess;
 }
 
-template <typename TIO>
-int SigmoidFocalLossDriver<TIO>::RunBackwardGPU()
+template <typename Tgpu, typename Tcheck>
+int SigmoidFocalLossDriver<Tgpu, Tcheck>::RunBackwardGPU()
 {
     float kernel_total_time = 0;
     float kernel_first_time = 0;
@@ -678,10 +680,10 @@ int SigmoidFocalLossDriver<TIO>::RunBackwardGPU()
     return miopenStatusSuccess;
 }
 
-template <typename TIO>
-int SigmoidFocalLossDriver<TIO>::RunBackwardCPU()
+template <typename Tgpu, typename Tcheck>
+int SigmoidFocalLossDriver<Tgpu, Tcheck>::RunBackwardCPU()
 {
-    TIO* p_dtarget = nullptr;
+    Tcheck* p_dtarget = nullptr;
     if(isTargetGradientComputed)
     {
         p_dtarget = dtargetHost.data();
@@ -689,7 +691,22 @@ int SigmoidFocalLossDriver<TIO>::RunBackwardCPU()
     if(reduction == MIOPEN_LOSS_REDUCTION_NONE)
     {
 
-        mloSigmoidFocalLossUnreducedBwdRunHost<TIO>(input.data(),
+        mloSigmoidFocalLossUnreducedBwdRunHost<Tgpu, Tcheck>(input.data(),
+                                                             inputDesc,
+                                                             target.data(),
+                                                             targetDesc,
+                                                             doutput.data(),
+                                                             doutputDesc,
+                                                             dinputHost.data(),
+                                                             dinputDesc,
+                                                             p_dtarget,
+                                                             dtargetDesc,
+                                                             alpha,
+                                                             gamma);
+    }
+    else
+    {
+        mloSigmoidFocalLossBwdRunHost<Tgpu, Tcheck>(input.data(),
                                                     inputDesc,
                                                     target.data(),
                                                     targetDesc,
@@ -700,35 +717,33 @@ int SigmoidFocalLossDriver<TIO>::RunBackwardCPU()
                                                     p_dtarget,
                                                     dtargetDesc,
                                                     alpha,
-                                                    gamma);
-    }
-    else
-    {
-        mloSigmoidFocalLossBwdRunHost<TIO>(input.data(),
-                                           inputDesc,
-                                           target.data(),
-                                           targetDesc,
-                                           doutput.data(),
-                                           doutputDesc,
-                                           dinputHost.data(),
-                                           dinputDesc,
-                                           p_dtarget,
-                                           dtargetDesc,
-                                           alpha,
-                                           gamma,
-                                           divisor);
+                                                    gamma,
+                                                    divisor);
     }
 
     return miopenStatusSuccess;
 }
 
-template <typename TIO>
-int SigmoidFocalLossDriver<TIO>::VerifyForward()
+template <typename Tgpu, typename Tcheck>
+Tcheck SigmoidFocalLossDriver<Tgpu, Tcheck>::GetTolerance()
+{
+    // Computation error of fp16 is ~2^13 (=8192) bigger than
+    // the one of fp32 because mantissa is shorter by 13 bits.
+    auto tolerance = std::is_same<Tgpu, float>::value ? 1.5e-6 : 8.2e-3;
+
+    // bf16 mantissa has 7 bits, by 3 bits shorter than fp16.
+    if(std::is_same<Tgpu, bfloat16>::value)
+        tolerance *= 8.0;
+    return tolerance;
+}
+
+template <typename Tgpu, typename Tcheck>
+int SigmoidFocalLossDriver<Tgpu, Tcheck>::VerifyForward()
 {
     RunForwardCPU();
 
-    double tolerance = std::numeric_limits<TIO>::epsilon() * 10;
-    auto error       = miopen::rms_range(outputHost, output);
+    const Tcheck tolerance = GetTolerance();
+    auto error             = miopen::rms_range(outputHost, output);
 
     if(!std::isfinite(error) || error > tolerance)
     {
@@ -745,14 +760,14 @@ int SigmoidFocalLossDriver<TIO>::VerifyForward()
     return miopenStatusSuccess;
 }
 
-template <typename TIO>
-int SigmoidFocalLossDriver<TIO>::VerifyBackward()
+template <typename Tgpu, typename Tcheck>
+int SigmoidFocalLossDriver<Tgpu, Tcheck>::VerifyBackward()
 {
     RunBackwardCPU();
 
-    double tolerance  = std::numeric_limits<TIO>::epsilon() * 10;
-    auto dinputError  = miopen::rms_range(dinputHost, dinput);
-    auto dtargetError = miopen::rms_range(dtargetHost, dtarget);
+    const Tcheck tolerance = GetTolerance();
+    auto dinputError       = miopen::rms_range(dinputHost, dinput);
+    auto dtargetError      = miopen::rms_range(dtargetHost, dtarget);
 
     if(!std::isfinite(dinputError) || dinputError > tolerance)
     {
