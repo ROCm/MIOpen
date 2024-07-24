@@ -194,15 +194,9 @@ __device__ inline void interpolateLinearForward(const TI* __restrict__ input,
     compute_source_index_and_lambda(
         h, scale_factor_h, Hin, Hout, align_corners, &hin_index0, &hin_index1, &lambda0, &lambda1);
 
-    tensor_layout_t<3> input_layout0;
-    input_layout0.layout[0] = n;
-    input_layout0.layout[1] = c;
-    input_layout0.layout[2] = hin_index0;
+    tensor_layout_t<3> input_layout0(n, c, hin_index0);
 
-    tensor_layout_t<3> input_layout1;
-    input_layout1.layout[0] = n;
-    input_layout1.layout[1] = c;
-    input_layout1.layout[2] = hin_index1;
+    tensor_layout_t<3> input_layout1(n, c, hin_index1);
 
     FLOAT_ACCUM input0 = CVT_FLOAT2ACCUM(input[input_tv.get_tensor_view_idx(input_layout0)]);
     FLOAT_ACCUM input1 = CVT_FLOAT2ACCUM(input[input_tv.get_tensor_view_idx(input_layout1)]);
@@ -261,10 +255,7 @@ __device__ inline void interpolateLinearBackward(TO* __restrict__ input_grad,
     FLOAT_ACCUM output = 0;
     for(uint64_t i = from; i < to; i++)
     {
-        tensor_layout_t<3> output_layout;
-        output_layout.layout[0] = n;
-        output_layout.layout[1] = c;
-        output_layout.layout[2] = i;
+        tensor_layout_t<3> output_layout(n, c, i);
         output += CVT_FLOAT2ACCUM(output_grad[output_grad_tv.get_tensor_view_idx(output_layout)]) *
                   compute_back_lambda(i, h, scale_factor, Hin, Hout, align_corners);
     }
@@ -359,29 +350,10 @@ __device__ inline void interpolateBilinearForward(const TI* __restrict__ input,
                                         &wlambda1);
     }
 
-    tensor_layout_t<4> input_layout00;
-    input_layout00.layout[0] = n;
-    input_layout00.layout[1] = c;
-    input_layout00.layout[2] = hin_index0;
-    input_layout00.layout[3] = win_index0;
-
-    tensor_layout_t<4> input_layout01;
-    input_layout01.layout[0] = n;
-    input_layout01.layout[1] = c;
-    input_layout01.layout[2] = hin_index0;
-    input_layout01.layout[3] = win_index1;
-
-    tensor_layout_t<4> input_layout10;
-    input_layout10.layout[0] = n;
-    input_layout10.layout[1] = c;
-    input_layout10.layout[2] = hin_index1;
-    input_layout10.layout[3] = win_index0;
-
-    tensor_layout_t<4> input_layout11;
-    input_layout11.layout[0] = n;
-    input_layout11.layout[1] = c;
-    input_layout11.layout[2] = hin_index1;
-    input_layout11.layout[3] = win_index1;
+    tensor_layout_t<4> input_layout00(n, c, hin_index0, win_index0);
+    tensor_layout_t<4> input_layout01(n, c, hin_index0, win_index1);
+    tensor_layout_t<4> input_layout10(n, c, hin_index1, win_index0);
+    tensor_layout_t<4> input_layout11(n, c, hin_index1, win_index1);
 
     output[output_tv.get_tensor_view_idx(tensor_layout)] = CVT_ACCUM2FLOAT(
         (CVT_FLOAT2ACCUM(input[input_tv.get_tensor_view_idx(input_layout00)]) * wlambda0 +
@@ -470,11 +442,7 @@ __device__ inline void interpolateBilinearBackward(TO* __restrict__ input_grad,
             FLOAT_ACCUM w_lambda =
                 compute_back_lambda(j, w, scale_factor_w_, Win, Wout, align_corners);
 
-            tensor_layout_t<4> output_layout;
-            output_layout.layout[0] = n;
-            output_layout.layout[1] = c;
-            output_layout.layout[2] = i;
-            output_layout.layout[3] = j;
+            tensor_layout_t<4> output_layout(n, c, i, j);
 
             output +=
                 CVT_FLOAT2ACCUM(output_grad[output_grad_tv.get_tensor_view_idx(output_layout)]) *
@@ -590,12 +558,7 @@ __device__ inline void interpolateTrilinearBackward(TO* __restrict__ input_grad,
             {
                 FLOAT_ACCUM w_lambda =
                     compute_back_lambda(k, w, scale_factor_w_, Win, Wout, align_corners);
-                tensor_layout_t<5> output_layout;
-                output_layout.layout[0] = n;
-                output_layout.layout[1] = c;
-                output_layout.layout[2] = i;
-                output_layout.layout[3] = j;
-                output_layout.layout[4] = k;
+                tensor_layout_t<5> output_layout(n, c, i, j, k);
 
                 output += CVT_FLOAT2ACCUM(
                               output_grad[output_grad_tv.get_tensor_view_idx(output_layout)]) *
@@ -681,12 +644,7 @@ __device__ inline void interpolateNearestForward(const TI* __restrict__ input,
     uint64_t y = nearest_idx(h, Hin, Hout, scale_factor_h);
     uint64_t z = nearest_idx(w, Win, Wout, scale_factor_w);
 
-    tensor_layout_t<5> input_layout;
-    input_layout.layout[0] = n;
-    input_layout.layout[1] = c;
-    input_layout.layout[2] = x;
-    input_layout.layout[3] = y;
-    input_layout.layout[4] = z;
+    tensor_layout_t<5> input_layout(n, c, x, y, z);
 
     output[output_tv.get_tensor_view_idx(tensor_layout)] =
         input[input_tv.get_tensor_view_idx(input_layout)];
@@ -767,13 +725,7 @@ __device__ inline void interpolateNearestBackward(TO* __restrict__ input_grad,
         {
             for(uint64_t w = wstart; w < wlimit; w++)
             {
-                tensor_layout_t<5> output_grad_layout;
-                output_grad_layout.layout[0] = n;
-                output_grad_layout.layout[1] = c;
-                output_grad_layout.layout[2] = d;
-                output_grad_layout.layout[3] = h;
-                output_grad_layout.layout[4] = w;
-
+                tensor_layout_t<5> output_grad_layout(n, c, d, h, w);
                 grad += CVT_FLOAT2ACCUM(
                     output_grad[output_grad_tv.get_tensor_view_idx(output_grad_layout)]);
             }
@@ -895,29 +847,10 @@ __device__ inline void interpolateBicubicForward(const TI* __restrict__ input,
     for(int k = 0; k < 4; k++)
     {
         uint64_t y = bound(in_y - 1 + k, Hin);
-        tensor_layout_t<4> input_layout0;
-        input_layout0.layout[0] = n;
-        input_layout0.layout[1] = c;
-        input_layout0.layout[2] = y;
-        input_layout0.layout[3] = bound(in_x - 1, Win);
-
-        tensor_layout_t<4> input_layout1;
-        input_layout1.layout[0] = n;
-        input_layout1.layout[1] = c;
-        input_layout1.layout[2] = y;
-        input_layout1.layout[3] = bound(in_x - 0, Win);
-
-        tensor_layout_t<4> input_layout2;
-        input_layout2.layout[0] = n;
-        input_layout2.layout[1] = c;
-        input_layout2.layout[2] = y;
-        input_layout2.layout[3] = bound(in_x + 1, Win);
-
-        tensor_layout_t<4> input_layout3;
-        input_layout3.layout[0] = n;
-        input_layout3.layout[1] = c;
-        input_layout3.layout[2] = y;
-        input_layout3.layout[3] = bound(in_x + 2, Win);
+        tensor_layout_t<4> input_layout0(n, c, y, bound(in_x - 1, Win));
+        tensor_layout_t<4> input_layout1(n, c, y, bound(in_x, Win));
+        tensor_layout_t<4> input_layout2(n, c, y, bound(in_x + 1, Win));
+        tensor_layout_t<4> input_layout3(n, c, y, bound(in_x + 2, Win));
 
         coefficients[k] =
             cubic_interp1d(CVT_FLOAT2ACCUM(input[input_tv.get_tensor_view_idx(input_layout0)]),
@@ -1003,11 +936,7 @@ __device__ inline void interpolateBicubicBackward(TD* __restrict__ workspace,
         for(int j = 0; j < 4; j++)
         {
             int64_t input_w = bound(in_x - 1 + j, Win);
-            tensor_layout_t<4> in_grad_layout;
-            in_grad_layout.layout[0] = n;
-            in_grad_layout.layout[1] = c;
-            in_grad_layout.layout[2] = input_h;
-            in_grad_layout.layout[3] = input_w;
+            tensor_layout_t<4> in_grad_layout(n, c, input_h, input_w);
 
             atomicAdd(workspace + input_grad_tv.get_tensor_view_idx(in_grad_layout),
                       out_value * y_coeffs[i] * x_coeffs[j]);

@@ -199,15 +199,8 @@ int32_t mlo_interpolate_linear_forward(const miopenTensorDescriptor_t inputDesc,
                                         &lambda0,
                                         &lambda1);
 
-        tensor_layout_t<3> input_layout0;
-        input_layout0.layout[0] = n;
-        input_layout0.layout[1] = c;
-        input_layout0.layout[2] = hin_index0;
-
-        tensor_layout_t<3> input_layout1;
-        input_layout1.layout[0] = n;
-        input_layout1.layout[1] = c;
-        input_layout1.layout[2] = hin_index1;
+        tensor_layout_t<3> input_layout0(n, c, hin_index0);
+        tensor_layout_t<3> input_layout1(n, c, hin_index1);
 
         float input0 = input[input_tv.get_tensor_view_idx(input_layout0)];
         float input1 = input[input_tv.get_tensor_view_idx(input_layout1)];
@@ -259,10 +252,7 @@ int32_t mlo_interpolate_linear_backward(const miopenTensorDescriptor_t inputGrad
         float output = 0;
         for(long i = from; i < to; i++)
         {
-            tensor_layout_t<3> output_layout;
-            output_layout.layout[0] = n;
-            output_layout.layout[1] = c;
-            output_layout.layout[2] = i;
+            tensor_layout_t<3> output_layout(n, c, i);
             output +=
                 static_cast<float>(output_grad[output_grad_tv.get_tensor_view_idx(output_layout)]) *
                 compute_back_lambda(i, h, scale_factor, Hin, Hout, align_corners);
@@ -346,29 +336,10 @@ int32_t mlo_interpolate_bilinear_forward(const miopenTensorDescriptor_t inputDes
                                             &wlambda1);
         }
 
-        tensor_layout_t<4> input_layout00;
-        input_layout00.layout[0] = n;
-        input_layout00.layout[1] = c;
-        input_layout00.layout[2] = hin_index0;
-        input_layout00.layout[3] = win_index0;
-
-        tensor_layout_t<4> input_layout01;
-        input_layout01.layout[0] = n;
-        input_layout01.layout[1] = c;
-        input_layout01.layout[2] = hin_index0;
-        input_layout01.layout[3] = win_index1;
-
-        tensor_layout_t<4> input_layout10;
-        input_layout10.layout[0] = n;
-        input_layout10.layout[1] = c;
-        input_layout10.layout[2] = hin_index1;
-        input_layout10.layout[3] = win_index0;
-
-        tensor_layout_t<4> input_layout11;
-        input_layout11.layout[0] = n;
-        input_layout11.layout[1] = c;
-        input_layout11.layout[2] = hin_index1;
-        input_layout11.layout[3] = win_index1;
+        tensor_layout_t<4> input_layout00(n, c, hin_index0, win_index0);
+        tensor_layout_t<4> input_layout01(n, c, hin_index0, win_index1);
+        tensor_layout_t<4> input_layout10(n, c, hin_index1, win_index0);
+        tensor_layout_t<4> input_layout11(n, c, hin_index1, win_index1);
 
         output[output_tv.get_tensor_view_idx(tensor_layout)] = static_cast<Tcheck>(
             (static_cast<float>(input[input_tv.get_tensor_view_idx(input_layout00)]) * wlambda0 +
@@ -451,11 +422,7 @@ int32_t mlo_interpolate_bilinear_backward(const miopenTensorDescriptor_t inputGr
                 float w_lambda =
                     compute_back_lambda(j, w, scale_factor_w_, Win, Wout, align_corners);
 
-                tensor_layout_t<4> output_layout;
-                output_layout.layout[0] = n;
-                output_layout.layout[1] = c;
-                output_layout.layout[2] = i;
-                output_layout.layout[3] = j;
+                tensor_layout_t<4> output_layout(n, c, i, j);
 
                 output += static_cast<float>(
                               output_grad[output_grad_tv.get_tensor_view_idx(output_layout)]) *
@@ -564,61 +531,14 @@ int32_t mlo_interpolate_trilinear_forward(const miopenTensorDescriptor_t inputDe
                                             &wlambda1);
         }
 
-        tensor_layout_t<5> input_layout000;
-        input_layout000.layout[0] = n;
-        input_layout000.layout[1] = c;
-        input_layout000.layout[2] = din_index0;
-        input_layout000.layout[3] = hin_index0;
-        input_layout000.layout[4] = win_index0;
-
-        tensor_layout_t<5> input_layout001;
-        input_layout001.layout[0] = n;
-        input_layout001.layout[1] = c;
-        input_layout001.layout[2] = din_index0;
-        input_layout001.layout[3] = hin_index0;
-        input_layout001.layout[4] = win_index1;
-
-        tensor_layout_t<5> input_layout010;
-        input_layout010.layout[0] = n;
-        input_layout010.layout[1] = c;
-        input_layout010.layout[2] = din_index0;
-        input_layout010.layout[3] = hin_index1;
-        input_layout010.layout[4] = win_index0;
-
-        tensor_layout_t<5> input_layout011;
-        input_layout011.layout[0] = n;
-        input_layout011.layout[1] = c;
-        input_layout011.layout[2] = din_index0;
-        input_layout011.layout[3] = hin_index1;
-        input_layout011.layout[4] = win_index1;
-
-        tensor_layout_t<5> input_layout100;
-        input_layout100.layout[0] = n;
-        input_layout100.layout[1] = c;
-        input_layout100.layout[2] = din_index1;
-        input_layout100.layout[3] = hin_index0;
-        input_layout100.layout[4] = win_index0;
-
-        tensor_layout_t<5> input_layout101;
-        input_layout101.layout[0] = n;
-        input_layout101.layout[1] = c;
-        input_layout101.layout[2] = din_index1;
-        input_layout101.layout[3] = hin_index0;
-        input_layout101.layout[4] = win_index1;
-
-        tensor_layout_t<5> input_layout110;
-        input_layout110.layout[0] = n;
-        input_layout110.layout[1] = c;
-        input_layout110.layout[2] = din_index1;
-        input_layout110.layout[3] = hin_index1;
-        input_layout110.layout[4] = win_index0;
-
-        tensor_layout_t<5> input_layout111;
-        input_layout111.layout[0] = n;
-        input_layout111.layout[1] = c;
-        input_layout111.layout[2] = din_index1;
-        input_layout111.layout[3] = hin_index1;
-        input_layout111.layout[4] = win_index1;
+        tensor_layout_t<5> input_layout000(n, c, din_index0, hin_index0, win_index0);
+        tensor_layout_t<5> input_layout001(n, c, din_index0, hin_index0, win_index1);
+        tensor_layout_t<5> input_layout010(n, c, din_index0, hin_index1, win_index0);
+        tensor_layout_t<5> input_layout011(n, c, din_index0, hin_index1, win_index1);
+        tensor_layout_t<5> input_layout100(n, c, din_index1, hin_index0, win_index0);
+        tensor_layout_t<5> input_layout101(n, c, din_index1, hin_index0, win_index1);
+        tensor_layout_t<5> input_layout110(n, c, din_index1, hin_index1, win_index0);
+        tensor_layout_t<5> input_layout111(n, c, din_index1, hin_index1, win_index1);
 
         output[output_tv.get_tensor_view_idx(tensor_layout)] = static_cast<Tcheck>(
             (static_cast<float>(input[input_tv.get_tensor_view_idx(input_layout000)]) * wlambda0 +
@@ -699,12 +619,7 @@ int32_t mlo_interpolate_trilinear_backward(const miopenTensorDescriptor_t inputG
                 {
                     float w_lambda =
                         compute_back_lambda(k, w, scale_factor_w_, Win, Wout, align_corners);
-                    tensor_layout_t<5> output_layout;
-                    output_layout.layout[0] = n;
-                    output_layout.layout[1] = c;
-                    output_layout.layout[2] = i;
-                    output_layout.layout[3] = j;
-                    output_layout.layout[4] = k;
+                    tensor_layout_t<5> output_layout(n, c, i, j, k);
 
                     output += output_grad[output_grad_tv.get_tensor_view_idx(output_layout)] *
                               d_lambda * h_lambda * w_lambda;
@@ -771,12 +686,7 @@ int32_t mlo_nearest_forward(const miopenTensorDescriptor_t inputDesc,
         long y = nearest_idx(h, Hin, Hout, scale_factors[1]);
         long z = nearest_idx(w, Win, Wout, scale_factors[2]);
 
-        tensor_layout_t<5> input_layout;
-        input_layout.layout[0] = n;
-        input_layout.layout[1] = c;
-        input_layout.layout[2] = x;
-        input_layout.layout[3] = y;
-        input_layout.layout[4] = z;
+        tensor_layout_t<5> input_layout(n, c, x, y, z);
 
         output[output_tv.get_tensor_view_idx(tensor_layout)] =
             input[input_tv.get_tensor_view_idx(input_layout)];
@@ -849,13 +759,7 @@ int32_t mlo_nearest_backward(const miopenTensorDescriptor_t inputGradDesc,
             {
                 for(long w = wstart; w < wlimit; w++)
                 {
-                    tensor_layout_t<5> output_grad_layout;
-                    output_grad_layout.layout[0] = n;
-                    output_grad_layout.layout[1] = c;
-                    output_grad_layout.layout[2] = d;
-                    output_grad_layout.layout[3] = h;
-                    output_grad_layout.layout[4] = w;
-
+                    tensor_layout_t<5> output_grad_layout(n, c, d, h, w);
                     grad += static_cast<float>(
                         output_grad[output_grad_tv.get_tensor_view_idx(output_grad_layout)]);
                 }
@@ -962,29 +866,10 @@ int32_t mlo_bicubic_forward(const miopenTensorDescriptor_t inputDesc,
         for(int k = 0; k < 4; k++)
         {
             long y = bound(in_y - 1 + k, Hin);
-            tensor_layout_t<4> input_layout0;
-            input_layout0.layout[0] = n;
-            input_layout0.layout[1] = c;
-            input_layout0.layout[2] = y;
-            input_layout0.layout[3] = bound(in_x - 1, Win);
-
-            tensor_layout_t<4> input_layout1;
-            input_layout1.layout[0] = n;
-            input_layout1.layout[1] = c;
-            input_layout1.layout[2] = y;
-            input_layout1.layout[3] = bound(in_x - 0, Win);
-
-            tensor_layout_t<4> input_layout2;
-            input_layout2.layout[0] = n;
-            input_layout2.layout[1] = c;
-            input_layout2.layout[2] = y;
-            input_layout2.layout[3] = bound(in_x + 1, Win);
-
-            tensor_layout_t<4> input_layout3;
-            input_layout3.layout[0] = n;
-            input_layout3.layout[1] = c;
-            input_layout3.layout[2] = y;
-            input_layout3.layout[3] = bound(in_x + 2, Win);
+            tensor_layout_t<4> input_layout0(n, c, y, bound(in_x - 1, Win));
+            tensor_layout_t<4> input_layout1(n, c, y, bound(in_x, Win));
+            tensor_layout_t<4> input_layout2(n, c, y, bound(in_x + 1, Win));
+            tensor_layout_t<4> input_layout3(n, c, y, bound(in_x + 2, Win));
 
             coefficients[k] = cubic_interp1d(
                 static_cast<float>(input[input_tv.get_tensor_view_idx(input_layout0)]),
@@ -1065,11 +950,7 @@ int32_t mlo_bicubic_backward(const miopenTensorDescriptor_t inputGradDesc,
             for(int j = 0; j < 4; j++)
             {
                 int64_t input_w = bound(in_x - 1 + j, Win);
-                tensor_layout_t<4> in_grad_layout;
-                in_grad_layout.layout[0] = n;
-                in_grad_layout.layout[1] = c;
-                in_grad_layout.layout[2] = input_h;
-                in_grad_layout.layout[3] = input_w;
+                tensor_layout_t<4> in_grad_layout(n, c, input_h, input_w);
 
                 workspace[input_grad_tv.get_tensor_view_idx(in_grad_layout)] +=
                     out_value * y_coeffs[i] * x_coeffs[j];
