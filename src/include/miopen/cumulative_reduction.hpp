@@ -32,16 +32,17 @@ namespace miopen {
 struct Handle;
 struct TensorDescriptor;
 
-miopenStatus_t CumulativeReductionForward(Handle& handle,
-                                          const TensorDescriptor& inputDesc,
-                                          ConstData_t input,
-                                          const TensorDescriptor& outputDesc,
-                                          Data_t output,
-                                          const TensorDescriptor& indicesDesc,
-                                          Data_t indices,
-                                          int dim,
-                                          bool exclusive,
-                                          bool reverse,
-                                          miopenCumOp_t cumOp);
+MIOPEN_INTERNALS_EXPORT miopenStatus_t
+CumulativeReductionForward(Handle& handle,
+                           const TensorDescriptor& inputDesc,
+                           ConstData_t input,
+                           const TensorDescriptor& outputDesc,
+                           Data_t output,
+                           const TensorDescriptor& indicesDesc,
+                           Data_t indices,
+                           int dim,
+                           bool exclusive,
+                           bool reverse,
+                           miopenCumOp_t cumOp);
 
 } // namespace miopen
