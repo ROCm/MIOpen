@@ -69,7 +69,7 @@ TEST_P(GPU_AddLayerNorm_FP32, AddLayerNormTestFw)
     {
         GTEST_SKIP();
     }
-}
+};
 
 TEST_P(GPU_AddLayerNorm_FP16, AddLayerNormTestFw)
 {
