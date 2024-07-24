@@ -65,17 +65,17 @@ void Run2dDriverFloat(void)
         });
 
         testing::internal::CaptureStderr();
-        test_drive<gru_driver>(ptrs.size(), ptrs.data());
+        test_drive<gru_driver>(ptrs.size(), ptrs.data(), "gru_extra");
         auto capture = testing::internal::GetCapturedStderr();
         std::cout << capture;
     }
 };
 
-std::vector<std::string> GetTestCases(void)
+std::vector<std::string> GetTestCases(const std::string& precision)
 {
     std::string commonFlags =
-        " --verbose --batch-size 32 --seq-len 3 --batch-seq 32 32 32 --vector-len 128 "
-        "--hidden-size 128 --num-layers 1 --in-mode 0 --bias-mode 0";
+        precision + " --verbose --batch-size 32 --seq-len 3 --batch-seq 32 32 32 --vector-len 128 "
+                    "--hidden-size 128 --num-layers 1 --in-mode 0 --bias-mode 0";
     std::string dir0   = " -dir-mode 0";
     std::string dir1   = " -dir-mode 1";
     std::string rnn0   = " --rnn-mode 0";
@@ -123,4 +123,6 @@ TEST_P(GRUExtraConfigWithFloat, FloatTest_gru_extra)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(ConvTrans, GRUExtraConfigWithFloat, testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(ConvTrans,
+                         GRUExtraConfigWithFloat,
+                         testing::Values(GetTestCases("--float")));
