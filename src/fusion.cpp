@@ -998,15 +998,22 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
                 GetAllFusionSolvers().Foreach([&](auto solver) {
                     if(found || !solver.IsApplicable(ctx, fusion_problem))
                         return;
-                    const auto id = solver::Id(solver.SolverDbId());
-                    sols.push_back({0, 0, id.Value(), miopenConvolutionAlgoDirect});
+                    const auto id  = solver::Id(solver.SolverDbId());
+                    const auto wti = solver.GetWti(ctx, fusion_problem);
+                    // Assume WTI == 1.0 (100%) is 10 ms.
+                    // Return negative values as is, avoid DIV/0.
+                    const auto time = wti <= 0.0f ? wti : (10.f / wti);
+                    sols.push_back({time, 0, id.Value(), miopenConvolutionAlgoDirect});
                 });
             }
 
             // override the normal find with immed mode with env var
             if(!sols.empty() && (!(findMode.IsHybrid(fusion_problem) && fallback)))
-                // || env::enabled(MIOPEN_DEBUG_FORCE_IMMED_MODE_FALLBACK)
+            // || env::enabled(MIOPEN_DEBUG_FORCE_IMMED_MODE_FALLBACK)
+            {
+                std::sort(sols.begin(), sols.end(), SolutionTimeComparator());
                 sol = sols.front();
+            }
             // In Hybrid Find mode, we use Normal Find instead of Immediate fallback kernels.
         }
 

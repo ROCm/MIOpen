@@ -108,8 +108,10 @@ struct SolverBase
     /// run-time parameters.
     virtual bool IsDynamic() const { return false; }
 
+    static constexpr float wti_approximate_worst = -2;
+
     /// [Informative as of Sep 2020] Returns an approximated value of the expected
-    /// WTI or -2.0 when this value can't be computed. Tips:
+    /// WTI or wti_approximate_worst when this value can't be computed. Tips:
     /// * Value 1.0 corresponds to the 100% utilization of HW capabilities as
     ///   if Direct computational algorithm is used.
     /// * [Notice] WTI may exceed 1.0 for highly optimized algorithms like Winograd.
@@ -152,7 +154,7 @@ struct SolverMixin : SolverBase
                   "Context must be derived of ExecutionContext");
 
     virtual bool IsApplicable(const Context&, const Problem&) const = 0;
-    virtual float GetWti(const Context&, const Problem&) const { return -2.0f; };
+    virtual float GetWti(const Context&, const Problem&) const { return wti_approximate_worst; };
     virtual size_t GetWorkspaceSize(const Context&, const Problem&) const { return 0; };
 
     bool IsApplicable(const ExecutionContext& ctx, const boost::any& problem) const final
