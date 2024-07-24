@@ -57,7 +57,7 @@ struct PReLUTestCase
     friend std::ostream& operator<<(std::ostream& os, const PReLUTestCase& tc)
     {
         return os << " Lengths:" << tc.lengths
-                  << " Full num_params:" << (tc.full_params ? "True" : "False");
+                  << " Full_num_params:" << (tc.full_params ? "True" : "False");
     }
 };
 

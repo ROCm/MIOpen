@@ -61,8 +61,10 @@ NetworkConfig BackwardProblemDescription::MakeNetworkConfig() const
 
     std::ostringstream ss;
 
+    ss << "prelu_bwd";
     ss << "idtype" << input_dtype;
     ss << "odtype" << output_dtype;
+    ss << "ndim" << inputDesc.GetNumDims();
     ss << "size" << size;
     ss << "num_params" << num_params;
 
