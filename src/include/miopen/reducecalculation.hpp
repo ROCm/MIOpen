@@ -33,22 +33,24 @@ namespace miopen {
 struct Handle;
 struct TensorDescriptor;
 
-std::size_t GetReduceCalculationWorkspaceSize(Handle& handle,
-                                              const TensorDescriptor& xDesc,
-                                              const TensorDescriptor& yDesc,
-                                              int32_t dim,
-                                              miopenReduceCalculationOp_t reduceCalculationOp);
+MIOPEN_INTERNALS_EXPORT std::size_t
+GetReduceCalculationWorkspaceSize(Handle& handle,
+                                  const TensorDescriptor& xDesc,
+                                  const TensorDescriptor& yDesc,
+                                  int32_t dim,
+                                  miopenReduceCalculationOp_t reduceCalculationOp);
 
-miopenStatus_t ReduceCalculationForward(Handle& handle,
-                                        Data_t workspace,
-                                        size_t workspaceSizeInBytes,
-                                        const TensorDescriptor& xDesc,
-                                        ConstData_t x,
-                                        const TensorDescriptor& yDesc,
-                                        Data_t y,
-                                        miopenReduceCalculationNanPropagation_t nanPropagation,
-                                        int32_t dim,
-                                        miopenReduceCalculationOp_t reduceCalculationOp);
+MIOPEN_INTERNALS_EXPORT miopenStatus_t
+ReduceCalculationForward(Handle& handle,
+                         Data_t workspace,
+                         size_t workspaceSizeInBytes,
+                         const TensorDescriptor& xDesc,
+                         ConstData_t x,
+                         const TensorDescriptor& yDesc,
+                         Data_t y,
+                         miopenReduceCalculationNanPropagation_t nanPropagation,
+                         int32_t dim,
+                         miopenReduceCalculationOp_t reduceCalculationOp);
 
 } // namespace miopen
 #endif // _MIOPEN_REDUCE_CALCULATION_HPP_
