@@ -43,22 +43,22 @@ bool CheckFloatArg(std::string arg)
     return false;
 }
 
-struct AdamTestFloat : AdamTest<float, float>
+struct GPU_Adam_FP32 : AdamTest<float, float>
 {
 };
 
-struct AdamTestFloat16 : AdamTest<half_float::half, half_float::half>
+struct GPU_Adam_FP16 : AdamTest<half_float::half, half_float::half>
 {
 };
 
-struct AmpAdamTestFloat : AdamTest<float, half_float::half>
+struct GPU_AmpAdam_FP32 : AdamTest<float, half_float::half>
 {
 };
 
 } // namespace adam
 using namespace adam;
 
-TEST_P(AdamTestFloat, AdamFloatTestFw)
+TEST_P(GPU_Adam_FP32, AdamFloatTestFw)
 {
     if(CheckFloatArg("--float"))
     {
@@ -71,7 +71,7 @@ TEST_P(AdamTestFloat, AdamFloatTestFw)
     }
 };
 
-TEST_P(AdamTestFloat16, AdamFloat16TestFw)
+TEST_P(GPU_Adam_FP16, AdamFloat16TestFw)
 {
     if(CheckFloatArg("--half"))
     {
@@ -84,7 +84,7 @@ TEST_P(AdamTestFloat16, AdamFloat16TestFw)
     }
 };
 
-TEST_P(AmpAdamTestFloat, AmpAdamTestFw)
+TEST_P(GPU_AmpAdam_FP32, AmpAdamTestFw)
 {
     if(CheckFloatArg("--float"))
     {
@@ -97,6 +97,6 @@ TEST_P(AmpAdamTestFloat, AmpAdamTestFw)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(AdamTestSet, AdamTestFloat, testing::ValuesIn(AdamTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(AdamTestSet, AdamTestFloat16, testing::ValuesIn(AdamTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(AdamTestSet, AmpAdamTestFloat, testing::ValuesIn(AdamTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_Adam_FP32, testing::ValuesIn(AdamTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_Adam_FP16, testing::ValuesIn(AdamTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_AmpAdam_FP32, testing::ValuesIn(AdamTestConfigs()));

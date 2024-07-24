@@ -73,12 +73,12 @@ struct ConvTestCaseFusion
 const static ConvTestCaseFusion conv_config = {64, 64, 56, 56, 64, 3, 3, 1, 1, 1, 1, 1, 1};
 
 template <typename Solver, typename T>
-class TestFusionPlan
+class GPU_FusionPlan_FP16
 {
 
 public:
-    TestFusionPlan(const miopenTensorLayout_t& tensor_layout,
-                   const miopenActivationMode_t& activ_mode)
+    GPU_FusionPlan_FP16(const miopenTensorLayout_t& tensor_layout,
+                        const miopenActivationMode_t& activ_mode)
         : handle(get_handle())
     {
         input_des   = {miopen_type<T>{}, tensor_layout, conv_config.GetInput()};
@@ -157,9 +157,9 @@ private:
 } // namespace bad_fusion_plan
 using namespace bad_fusion_plan;
 
-TEST(TestFusionPlan, GoodFusionPlan)
+TEST(GPU_FusionPlan_FP16, GoodFusionPlan)
 {
-    TestFusionPlan<miopen::solver::fusion::ConvCKIgemmFwdBiasActivFused, half_float::half> obj(
+    GPU_FusionPlan_FP16<miopen::solver::fusion::ConvCKIgemmFwdBiasActivFused, half_float::half> obj(
         miopenTensorNHWC, miopenActivationRELU);
     if(obj.Skip())
         GTEST_SKIP();
@@ -169,9 +169,9 @@ TEST(TestFusionPlan, GoodFusionPlan)
     ASSERT_TRUE(obj.Applicability());
 }
 
-TEST(TestFusionPlan, BadOrderFusionPlan)
+TEST(GPU_FusionPlan_FP16, BadOrderFusionPlan)
 {
-    TestFusionPlan<miopen::solver::fusion::ConvCKIgemmFwdBiasActivFused, half_float::half> obj(
+    GPU_FusionPlan_FP16<miopen::solver::fusion::ConvCKIgemmFwdBiasActivFused, half_float::half> obj(
         miopenTensorNHWC, miopenActivationRELU);
     if(obj.Skip())
         GTEST_SKIP();
@@ -181,9 +181,9 @@ TEST(TestFusionPlan, BadOrderFusionPlan)
     ASSERT_FALSE(obj.Applicability());
 }
 
-TEST(TestFusionPlan, BadLayoutFusionPlan)
+TEST(GPU_FusionPlan_FP16, BadLayoutFusionPlan)
 {
-    TestFusionPlan<miopen::solver::fusion::ConvCKIgemmFwdBiasActivFused, half_float::half> obj(
+    GPU_FusionPlan_FP16<miopen::solver::fusion::ConvCKIgemmFwdBiasActivFused, half_float::half> obj(
         miopenTensorNCHW, miopenActivationRELU);
     if(obj.Skip())
         GTEST_SKIP();
@@ -193,9 +193,9 @@ TEST(TestFusionPlan, BadLayoutFusionPlan)
     ASSERT_FALSE(obj.Applicability());
 }
 
-TEST(TestFusionPlan, BadActivationFusionPlan)
+TEST(GPU_FusionPlan_FP16, BadActivationFusionPlan)
 {
-    TestFusionPlan<miopen::solver::fusion::ConvCKIgemmFwdBiasActivFused, half_float::half> obj(
+    GPU_FusionPlan_FP16<miopen::solver::fusion::ConvCKIgemmFwdBiasActivFused, half_float::half> obj(
         miopenTensorNHWC, miopenActivationELU);
     if(obj.Skip())
         GTEST_SKIP();
@@ -205,9 +205,9 @@ TEST(TestFusionPlan, BadActivationFusionPlan)
     ASSERT_FALSE(obj.Applicability());
 }
 
-TEST(TestFusionPlan, BadMissingBiasFusionPlan)
+TEST(GPU_FusionPlan_FP16, BadMissingBiasFusionPlan)
 {
-    TestFusionPlan<miopen::solver::fusion::ConvCKIgemmFwdBiasActivFused, half_float::half> obj(
+    GPU_FusionPlan_FP16<miopen::solver::fusion::ConvCKIgemmFwdBiasActivFused, half_float::half> obj(
         miopenTensorNHWC, miopenActivationRELU);
     if(obj.Skip())
         GTEST_SKIP();
@@ -216,9 +216,9 @@ TEST(TestFusionPlan, BadMissingBiasFusionPlan)
     ASSERT_FALSE(obj.Applicability());
 }
 
-TEST(TestFusionPlan, BadMissingActivBiasFusionPlan)
+TEST(GPU_FusionPlan_FP16, BadMissingActivBiasFusionPlan)
 {
-    TestFusionPlan<miopen::solver::fusion::ConvCKIgemmFwdBiasActivFused, half_float::half> obj(
+    GPU_FusionPlan_FP16<miopen::solver::fusion::ConvCKIgemmFwdBiasActivFused, half_float::half> obj(
         miopenTensorNHWC, miopenActivationRELU);
     if(obj.Skip())
         GTEST_SKIP();
@@ -226,19 +226,19 @@ TEST(TestFusionPlan, BadMissingActivBiasFusionPlan)
     ASSERT_FALSE(obj.Applicability());
 }
 
-TEST(TestFusionPlan, BadEmptyFusionPlan)
+TEST(GPU_FusionPlan_FP16, BadEmptyFusionPlan)
 {
-    TestFusionPlan<miopen::solver::fusion::ConvCKIgemmFwdBiasActivFused, half_float::half> obj(
+    GPU_FusionPlan_FP16<miopen::solver::fusion::ConvCKIgemmFwdBiasActivFused, half_float::half> obj(
         miopenTensorNHWC, miopenActivationRELU);
     if(obj.Skip())
         GTEST_SKIP();
     EXPECT_ANY_THROW(obj.Applicability());
 }
 
-TEST(TestFusionPlan, UnSupportedFusionPlanDuringSearchMode)
+TEST(GPU_FusionPlan_FP16, UnSupportedFusionPlanDuringSearchMode)
 {
     env::setEnvironmentVariable("MIOPEN_FIND_ENFORCE", "3");
-    TestFusionPlan<miopen::solver::fusion::ConvCKIgemmFwdBiasActivFused, half_float::half> obj(
+    GPU_FusionPlan_FP16<miopen::solver::fusion::ConvCKIgemmFwdBiasActivFused, half_float::half> obj(
         miopenTensorNHWC, miopenActivationRELU);
     if(obj.Skip())
         GTEST_SKIP();
