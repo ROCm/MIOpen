@@ -82,7 +82,7 @@ void Run2dDriver(miopenDataType_t prec)
         });
 
         testing::internal::CaptureStderr();
-        test_drive<conv2d_driver>(ptrs.size(), ptrs.data());
+        test_drive<conv2d_driver>(ptrs.size(), ptrs.data(), "miopen_conv");
         auto capture = testing::internal::GetCapturedStderr();
         std::cout << capture;
     }
@@ -101,7 +101,7 @@ bool IsTestSupportedForDevice(const miopen::Handle& handle)
 
 std::vector<std::string> GetTestCases(const std::string& precision)
 {
-    std::string v = " --verbose";
+    std::string v = " --verbose " + precision;
 
     std::vector<std::string> test_cases = {
         // clang-format off
