@@ -106,7 +106,7 @@ SingleWeightBackward::GetSolution(const ExecutionContext& /*context*/,
 
     result.invoker_factory = [](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
-            auto params = raw_params.CastTo<miopen::prelu::InvokeParams>();
+            decltype(auto) params = raw_params.CastTo<miopen::prelu::InvokeParams>();
 
             auto elapsed = 0.0f;
             HipEventPtr start;
@@ -131,16 +131,16 @@ SingleWeightBackward::GetSolution(const ExecutionContext& /*context*/,
 
             /* Phase 1: Calc gradient for each elements. */
             {
-                auto input_tv       = get_inner_expanded_tv<VIEW_DIMS>(deref(params.inputDesc));
-                auto output_grad_tv = get_inner_expanded_tv<VIEW_DIMS>(deref(params.doutputDesc));
-                auto input_grad_tv  = get_inner_expanded_tv<VIEW_DIMS>(deref(params.dinputDesc));
-                auto kernel         = handle_.Run(kernels[kernelCnt++]);
+                auto input_tv         = get_inner_expanded_tv<VIEW_DIMS>(deref(params.inputDesc));
+                auto output_grad_tv   = get_inner_expanded_tv<VIEW_DIMS>(deref(params.doutputDesc));
+                auto input_grad_tv    = get_inner_expanded_tv<VIEW_DIMS>(deref(params.dinputDesc));
+                decltype(auto) kernel = handle_.Run(kernels[kernelCnt++]);
                 kernel(params.input,
                        params.weight,
                        params.doutput,
                        params.dinput,
                        work_a,
-                       (uint64_t)deref(params.inputDesc).GetElementSize(),
+                       static_cast<uint64_t>(deref(params.inputDesc).GetElementSize()),
                        input_tv,
                        output_grad_tv,
                        input_grad_tv);

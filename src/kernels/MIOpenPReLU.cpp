@@ -31,7 +31,7 @@
 #include "float_types.h"
 #include "tensor_view.hpp"
 
-template <typename TI, typename TO, unsigned NDIMS>
+template <typename TI, typename TO, uint32_t NDIMS>
 __device__ void PReLUSWBackward(const TI* __restrict__ input,
                                 const TI* __restrict__ weight,
                                 const TO* __restrict__ output_grad,
@@ -42,7 +42,7 @@ __device__ void PReLUSWBackward(const TI* __restrict__ input,
                                 tensor_view_t<NDIMS> output_grad_tv,
                                 tensor_view_t<NDIMS> input_grad_tv)
 {
-    int gid = blockIdx.x * blockDim.x + threadIdx.x;
+    uint64_t gid = blockIdx.x * blockDim.x + threadIdx.x;
     if(gid >= N)
         return;
 
@@ -86,7 +86,7 @@ extern "C" __global__ void PReLUSWBackward(const INPUT_TYPE* __restrict__ input,
                                                         input_grad_tv);
 }
 
-template <typename TI, typename TO, unsigned NDIMS>
+template <typename TI, typename TO, uint32_t NDIMS>
 __device__ void PReLUMWBackward(const TI* __restrict__ input,
                                 const TI* __restrict__ weight,
                                 const TO* __restrict__ output_grad,
@@ -97,7 +97,7 @@ __device__ void PReLUMWBackward(const TI* __restrict__ input,
                                 tensor_view_t<NDIMS> output_grad_tv,
                                 tensor_view_t<NDIMS> input_grad_tv)
 {
-    int gid = blockIdx.x * blockDim.x + threadIdx.x;
+    uint64_t gid = blockIdx.x * blockDim.x + threadIdx.x;
     if(gid >= N)
         return;
 

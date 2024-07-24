@@ -50,8 +50,8 @@ __device__ FLOAT_ACCUM warp_reduce_sum(FLOAT_ACCUM val)
 __device__ FLOAT_ACCUM block_reduce_sum(FLOAT_ACCUM val)
 {
     static __shared__ FLOAT_ACCUM shared[REDUCE_SIZE / warpSize];
-    auto lane = threadIdx.x % warpSize;
-    auto wid  = threadIdx.x / warpSize;
+    uint64_t lane = threadIdx.x % warpSize;
+    uint64_t wid  = threadIdx.x / warpSize;
 
     val = warp_reduce_sum(val);
 
@@ -67,9 +67,9 @@ __device__ FLOAT_ACCUM block_reduce_sum(FLOAT_ACCUM val)
 }
 
 template <typename TO>
-__device__ void ReduceSum(const FLOAT_ACCUM* input, TO* output, size_t N)
+__device__ void ReduceSum(const FLOAT_ACCUM* input, TO* output, uint64_t N)
 {
-    auto gid = blockIdx.x * blockDim.x + threadIdx.x;
+    uint64_t gid = blockIdx.x * blockDim.x + threadIdx.x;
 
     FLOAT_ACCUM val = gid < N ? input[gid] : CVT_FP32_2ACCUM(0.0f);
     if(blockDim.x == warpSize)
@@ -82,7 +82,7 @@ __device__ void ReduceSum(const FLOAT_ACCUM* input, TO* output, size_t N)
 }
 
 extern "C" __global__ void
-ReduceSum(const FLOAT_ACCUM* __restrict__ input, OUTPUT_TYPE* __restrict__ output, size_t N)
+ReduceSum(const FLOAT_ACCUM* __restrict__ input, OUTPUT_TYPE* __restrict__ output, uint64_t N)
 {
     // instantiate the kernel
     ReduceSum<OUTPUT_TYPE>(input, output, N);
@@ -90,9 +90,9 @@ ReduceSum(const FLOAT_ACCUM* __restrict__ input, OUTPUT_TYPE* __restrict__ outpu
 
 extern "C" __global__ void ReduceSumFLOATACCUM(const FLOAT_ACCUM* __restrict__ input,
                                                FLOAT_ACCUM* __restrict__ output,
-                                               size_t N)
+                                               uint64_t N)
 {
-    auto gid = blockIdx.x * blockDim.x + threadIdx.x;
+    uint64_t gid = blockIdx.x * blockDim.x + threadIdx.x;
 
     FLOAT_ACCUM val = gid < N ? input[gid] : 0.0f;
     if(blockDim.x == warpSize)
@@ -107,16 +107,16 @@ extern "C" __global__ void ReduceSumFLOATACCUM(const FLOAT_ACCUM* __restrict__ i
 template <typename TO>
 __device__ void Reduce1dSum(const FLOAT_ACCUM* __restrict__ input,
                             TO* __restrict__ output,
-                            size_t output_numel,
-                            size_t inner_size,
-                            size_t outer_size)
+                            uint64_t output_numel,
+                            uint64_t inner_size,
+                            uint64_t outer_size)
 {
-    int tid  = threadIdx.x;
-    int oidx = blockIdx.x;
+    uint64_t tid  = threadIdx.x;
+    uint64_t oidx = blockIdx.x;
 
     // use double instead of FLOAT_ACCUM for better precision
     double sum_double = 0.0;
-    for(int i = tid; i < outer_size * inner_size; i += blockDim.x)
+    for(uint64_t i = tid; i < outer_size * inner_size; i += blockDim.x)
         sum_double += static_cast<double>(
             input[i / inner_size * output_numel * inner_size + oidx * inner_size + i % inner_size]);
 
@@ -132,9 +132,9 @@ __device__ void Reduce1dSum(const FLOAT_ACCUM* __restrict__ input,
 
 extern "C" __global__ void Reduce1dSum(const FLOAT_ACCUM* __restrict__ input,
                                        OUTPUT_TYPE* __restrict__ output,
-                                       size_t output_numel,
-                                       size_t inner_size,
-                                       size_t outer_size)
+                                       uint64_t output_numel,
+                                       uint64_t inner_size,
+                                       uint64_t outer_size)
 {
     // instantiate the kernel
     Reduce1dSum<OUTPUT_TYPE>(input, output, output_numel, inner_size, outer_size);
