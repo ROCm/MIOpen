@@ -118,6 +118,8 @@ option( BUILD_DEV "Build for development only" OFF)
 option(MIOPEN_ENABLE_FIN "Enable the fin driver for MIOpen"  OFF)
 option(MIOPEN_STRIP_SYMBOLS "Strip symbols in release mode" ON)
 
+option(MIOPEN_WORKAROUND_USE_BOOST_FILESYSTEM "Workaround: Use boost::filesystem instead of std::filesystem" OFF)
+message(STATUS "MIOPEN_WORKAROUND_USE_BOOST_FILESYSTEM ${MIOPEN_WORKAROUND_USE_BOOST_FILESYSTEM}")
 
 # Strip symbols for release
 if(MIOPEN_STRIP_SYMBOLS AND NOT WIN32 AND NOT APPLE)
@@ -147,7 +149,7 @@ else()
     set(MIOPEN_DEFAULT_BACKEND "OpenCL")
 endif()
 
-if(NOT WIN32)
+if(NOT WIN32 AND NOT MIOPEN_WORKAROUND_USE_BOOST_FILESYSTEM)
     include(CheckCXXLinkerFlag)
     check_cxx_linker_flag(stdc++fs HAS_LIB_STD_FILESYSTEM)
 endif()
