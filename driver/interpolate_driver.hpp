@@ -191,7 +191,11 @@ int InterpolateDriver<Tgpu, Tref>::GetandSetData()
 
     if(config_scale_factors[0] == -1 && size[0] == -1)
     {
-        MIOPEN_THROW(miopenStatusBadParm, "Error: Either size or scale_factors should be provided");
+        config_scale_factors[0] = 1;
+        for(int i = 1; i < in_len.size() - 2; i++)
+        {
+            config_scale_factors.push_back(1);
+        }
     }
 
     if(config_scale_factors[0] != -1)
