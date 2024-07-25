@@ -36,6 +36,16 @@ namespace env = miopen::env;
 
 namespace prelu {
 
+std::string GetFloatArg()
+{
+    const auto& tmp = env::value(MIOPEN_TEST_FLOAT_ARG);
+    if(tmp.empty())
+    {
+        return "";
+    }
+    return tmp;
+}
+
 struct PReLUTestFloat : PReLUTest<float>
 {
 };
