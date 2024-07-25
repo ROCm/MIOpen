@@ -27,6 +27,11 @@
 #ifndef GUARD_MIOPEN_FILESYSTEM_HPP_
 #define GUARD_MIOPEN_FILESYSTEM_HPP_
 
+// See CMakeLists.txt in addkernels
+#if !defined(MIOPEN_HACK_DO_NOT_INCLUDE_CONFIG_H)
+#include <miopen/config.h>
+#endif
+
 #include <string>
 #include <string_view>
 
@@ -62,10 +67,19 @@
 #endif
 // clang-format on
 
+#if MIOPEN_WORKAROUND_USE_BOOST_FILESYSTEM
+#undef MIOPEN_HAS_FILESYSTEM
+#undef MIOPEN_HAS_FILESYSTEM_TS
+#define MIOPEN_HAS_FILESYSTEM 0
+#define MIOPEN_HAS_FILESYSTEM_TS 0
+#endif
+
 #if MIOPEN_HAS_FILESYSTEM
 #include <filesystem>
 #elif MIOPEN_HAS_FILESYSTEM_TS
 #include <experimental/filesystem>
+#elif MIOPEN_WORKAROUND_USE_BOOST_FILESYSTEM
+#include <boost/filesystem.hpp>
 #else
 #error "No filesystem include available"
 #endif
@@ -76,18 +90,28 @@ namespace miopen {
 namespace fs = ::std::filesystem;
 #elif MIOPEN_HAS_FILESYSTEM_TS
 namespace fs = ::std::experimental::filesystem;
+#elif MIOPEN_WORKAROUND_USE_BOOST_FILESYSTEM
+namespace fs = ::boost::filesystem;
 #endif
 
 } // namespace miopen
 
 inline std::string operator+(const std::string_view s, const miopen::fs::path& path)
 {
+#if MIOPEN_WORKAROUND_USE_BOOST_FILESYSTEM
+    return std::string(path.native()).insert(0, s);
+#else
     return path.string().insert(0, s);
+#endif
 }
 
 inline std::string operator+(const miopen::fs::path& path, const std::string_view s)
 {
+#if MIOPEN_WORKAROUND_USE_BOOST_FILESYSTEM
+    return std::string(path.native()).append(s);
+#else
     return path.string().append(s);
+#endif
 }
 
 #if MIOPEN_HAS_FILESYSTEM_TS
