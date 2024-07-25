@@ -181,12 +181,12 @@ void DropoutDescriptor::DropoutForward(const Handle& handle,
         MIOPEN_THROW(miopenStatusBadParm);
     }
 
-    if(xDesc.GetSize() != yDesc.GetSize())
+    if(xDesc.GetNumDims() != yDesc.GetNumDims())
     {
         MIOPEN_THROW("Input/Output dimension does not match");
     }
 
-    if(xDesc.GetSize() > 5)
+    if(xDesc.GetNumDims() > 5)
     {
         MIOPEN_THROW("Only support 1D to 5D tensors");
     }
@@ -197,7 +197,7 @@ void DropoutDescriptor::DropoutForward(const Handle& handle,
     }
 
     if(xDesc.GetElementSize() != noise_shape.GetElementSize() ||
-       xDesc.GetSize() != noise_shape.GetSize())
+       xDesc.GetNumDims() != noise_shape.GetNumDims())
     {
         MIOPEN_THROW("Only support dropout with regular noise shape currently");
     }
@@ -277,7 +277,7 @@ void DropoutDescriptor::DropoutForward(const Handle& handle,
         std::to_string(wk_grp_num) /* + "-noise" + std::to_string(noise_shape.GetLengths()[0])*/;
 
     // TODO: Add noise shape
-    // for(int i = 1; i < noise_shape.GetSize(); i++)
+    // for(int i = 1; i < noise_shape.GetNumDims(); i++)
     //    network_config += "x" + std::to_string(noise_shape.GetLengths()[i]);
 
     auto&& kernels = handle.GetKernels(kernel_name, network_config);
@@ -385,12 +385,12 @@ void DropoutDescriptor::DropoutBackward(const Handle& handle,
         MIOPEN_THROW(miopenStatusBadParm);
     }
 
-    if(dxDesc.GetSize() != dyDesc.GetSize())
+    if(dxDesc.GetNumDims() != dyDesc.GetNumDims())
     {
         MIOPEN_THROW("Input/Output dimension does not match");
     }
 
-    if(dyDesc.GetSize() > 5)
+    if(dyDesc.GetNumDims() > 5)
     {
         MIOPEN_THROW("Only support 1D to 5D tensors");
     }
@@ -401,7 +401,7 @@ void DropoutDescriptor::DropoutBackward(const Handle& handle,
     }
 
     if(dxDesc.GetElementSize() != noise_shape.GetElementSize() ||
-       dxDesc.GetSize() != noise_shape.GetSize())
+       dxDesc.GetNumDims() != noise_shape.GetNumDims())
     {
         MIOPEN_THROW("Only support dropout with regular noise shape currently");
     }
@@ -482,7 +482,7 @@ void DropoutDescriptor::DropoutBackward(const Handle& handle,
         std::to_string(wk_grp_num) /* + "-noise" + std::to_string(noise_shape.GetLengths()[0]) */;
 
     // TODO: Add noise shape
-    // for(int i = 1; i < noise_shape.GetSize(); i++)
+    // for(int i = 1; i < noise_shape.GetNumDims(); i++)
     //    network_config += "x" + std::to_string(noise_shape.GetLengths()[i]);
 
     auto&& kernels = handle.GetKernels(kernel_name, network_config);

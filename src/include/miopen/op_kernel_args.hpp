@@ -3,11 +3,7 @@
 
 #include <type_traits>
 #include <cstdint>
-#if !defined(_WIN32)
 #include <half/half.hpp>
-#else
-#include <half.hpp>
-#endif
 #include <boost/container/small_vector.hpp>
 
 struct OpKernelArg

@@ -35,7 +35,7 @@ namespace glu {
 
 std::string GetFloatArg()
 {
-    const auto& tmp = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
+    const auto& tmp = env::value(MIOPEN_TEST_FLOAT_ARG);
     if(tmp.empty())
     {
         return "";
@@ -60,8 +60,8 @@ using namespace glu;
 
 TEST_P(GLUBwdTestFloat, GLUTestBwd)
 {
-    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) &&
-       (GetFloatArg() == "--float" || GetFloatArg() == "--all"))
+    if(!MIOPEN_TEST_ALL ||
+       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--float"))
     {
         RunTest();
         Verify();
@@ -74,8 +74,8 @@ TEST_P(GLUBwdTestFloat, GLUTestBwd)
 
 TEST_P(GLUBwdTestFP16, GLUTestBwd)
 {
-    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) &&
-       (GetFloatArg() == "--fp16" || GetFloatArg() == "--all"))
+    if(!MIOPEN_TEST_ALL ||
+       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--half"))
     {
         RunTest();
         Verify();
@@ -88,8 +88,8 @@ TEST_P(GLUBwdTestFP16, GLUTestBwd)
 
 TEST_P(GLUBwdTestBFP16, GLUTestBwd)
 {
-    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) &&
-       (GetFloatArg() == "--bfp16" || GetFloatArg() == "--all"))
+    if(!MIOPEN_TEST_ALL ||
+       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--bfloat16"))
     {
         RunTest();
         Verify();

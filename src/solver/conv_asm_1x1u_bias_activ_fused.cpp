@@ -38,15 +38,9 @@
 #include <miopen/fusion/solvers.hpp>
 #include <miopen/fusion/fusion_invoke_params.hpp>
 
-#if !defined(_WIN32)
 #include <half/half.hpp>
-#else
-#include <half.hpp>
-#endif
 
 using half_float::half;
-
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_GCN_ASM_KERNELS)
 
 namespace miopen {
 namespace solver {
@@ -142,7 +136,6 @@ ConvBiasActivAsm1x1U::GetSolution(const FusionContext& context,
     kernel_info.comp_options += cba_options.str();
 
     const auto out_data_type = conv_problem.GetOutDataType();
-    sol.weight               = 50.0f;
 
     sol.invoker_factory = [=](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
@@ -214,6 +207,16 @@ ConvBiasActivAsm1x1U::GetSolution(const FusionContext& context,
     return sol;
 }
 
+float ConvBiasActivAsm1x1U::GetWti(const FusionContext&, const FusionDescription&) const
+{
+    /// \anchor Negative WTI values
+    // Negative values mean rough estimation of time
+    // Solvers with positive values are considered first priority
+    // If none found solvers with negative are used, wti_approximate_worst meaning a completely
+    // unknown value. So lower absolute values mean higher priority
+    return wti_approximate_worst * .25f;
+}
+
 bool ConvBiasActivAsm1x1U::IsApplicable(const FusionContext& context,
                                         const FusionDescription& problem) const
 {
@@ -222,7 +225,7 @@ bool ConvBiasActivAsm1x1U::IsApplicable(const FusionContext& context,
     {
         MIOPEN_THROW("");
     }
-    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_GCN_ASM_KERNELS)))
+    if(!context.use_asm_kernels)
         return false;
     // check the sequence of prims
     if(desc.op_map.size() > 3)

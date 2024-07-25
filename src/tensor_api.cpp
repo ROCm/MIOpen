@@ -35,13 +35,19 @@
 extern "C" miopenStatus_t miopenCreateTensorDescriptor(miopenTensorDescriptor_t* tensorDesc)
 {
     MIOPEN_LOG_FUNCTION(tensorDesc);
-    return miopen::try_([&] { miopen::deref(tensorDesc) = new miopen::TensorDescriptor(); });
+    return miopen::try_([&] {
+        auto& desc = miopen::deref(tensorDesc);
+        desc       = new miopen::TensorDescriptor();
+    });
 }
 
 extern "C" miopenStatus_t miopenCreateSeqTensorDescriptor(miopenSeqTensorDescriptor_t* tensorDesc)
 {
     MIOPEN_LOG_FUNCTION(tensorDesc);
-    return miopen::try_([&] { miopen::deref(tensorDesc) = new miopen::SeqTensorDescriptor(); });
+    return miopen::try_([&] {
+        auto& desc = miopen::deref(tensorDesc);
+        desc       = new miopen::SeqTensorDescriptor();
+    });
 }
 
 extern "C" miopenStatus_t miopenSet4dTensorDescriptor(
@@ -199,6 +205,33 @@ extern "C" miopenStatus_t miopenSetTensorDescriptor(miopenTensorDescriptor_t ten
     });
 }
 
+extern "C" miopenStatus_t miopenSetTensorDescriptorV2(miopenTensorDescriptor_t tensorDesc,
+                                                      miopenDataType_t dataType,
+                                                      int nbDims,
+                                                      const size_t* dimsA,
+                                                      const size_t* stridesA)
+{
+    if(miopen::IsLoggingFunctionCalls())
+    {
+        const miopen::logger::CArray<size_t, int> dim(dimsA, nbDims);
+        const miopen::logger::CArray<size_t, int> stride(stridesA, nbDims);
+        MIOPEN_LOG_FUNCTION(tensorDesc, dataType, nbDims, dim.values, stride.values);
+    }
+
+    return miopen::try_([&] {
+        if(stridesA == nullptr)
+        {
+            miopen::deref(tensorDesc) =
+                miopen::TensorDescriptor::MakeDescriptor(dataType, dimsA, nbDims);
+        }
+        else
+        {
+            miopen::deref(tensorDesc) =
+                miopen::TensorDescriptor::MakeDescriptor(dataType, dimsA, stridesA, nbDims);
+        }
+    });
+}
+
 extern "C" miopenStatus_t miopenSetTensorCastType(miopenTensorDescriptor_t tensorDesc,
                                                   miopenDataType_t cast_type)
 {
@@ -248,7 +281,7 @@ extern "C" miopenStatus_t miopenGetTensorDescriptorSize(miopenTensorDescriptor_t
                                                         int* size)
 {
     MIOPEN_LOG_FUNCTION(tensorDesc);
-    return miopen::try_([&] { miopen::deref(size) = miopen::deref(tensorDesc).GetSize(); });
+    return miopen::try_([&] { miopen::deref(size) = miopen::deref(tensorDesc).GetNumDims(); });
 }
 
 extern "C" miopenStatus_t miopenGetTensorDescriptor(miopenTensorDescriptor_t tensorDesc,

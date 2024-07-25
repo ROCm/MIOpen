@@ -28,9 +28,11 @@
 #include "get_handle.hpp"
 
 #include <miopen/config.h>
+#include <miopen/env.hpp>
 #include <miopen/fusion_plan.hpp>
 #include "../random.hpp"
-#include "../env_utils.hpp"
+
+namespace env = miopen::env;
 
 #if MIOPEN_BACKEND_OPENCL
 #define BKEND "OpenCL"
@@ -38,24 +40,25 @@
 #define BKEND "HIP"
 #endif
 
+#ifdef _WIN32
+#define MDEXE "MIOpenDriver.exe"
+#else
+#define MDEXE "./bin/MIOpenDriver"
+#endif
+
 const std::string logConv =
-    "MIOpen(" BKEND
-    "): Command [LogCmdConvolution] ./bin/MIOpenDriver conv -n 128 -c 3 -H 32 -W 32 -k "
+    "MIOpen(" BKEND "): Command [LogCmdConvolution] " MDEXE " conv -n 128 -c 3 -H 32 -W 32 -k "
     "64 -y 3 -x 3 -p 1 -q 1 -u 1 -v 1 -l 1 -j 1 -m conv -g 1 -F 1 -t 1";
 const std::string logFindConv =
-    "MIOpen(" BKEND
-    "): Command [LogCmdFindConvolution] ./bin/MIOpenDriver conv -n 128 -c 3 -H 32 -W 32 "
+    "MIOpen(" BKEND "): Command [LogCmdFindConvolution] " MDEXE " conv -n 128 -c 3 -H 32 -W 32 "
     "-k 64 -y 3 -x 3 -p 1 -q 1 -u 1 -v 1 -l 1 -j 1 -m conv -g 1 -F 1 -t 1";
 
 const std::string logFusionConvBiasActiv =
-    "MIOpen(" BKEND "): Command [LogCmdFusion] ./bin/MIOpenDriver CBAInfer -F 4 -n 128 -c 3 -H 32 "
+    "MIOpen(" BKEND "): Command [LogCmdFusion] " MDEXE " CBAInfer -F 4 -n 128 -c 3 -H 32 "
     "-W 32 -k 64 -y 3 -x 3 -p 1 -q 1 -u 1 -v 1 -l 1 -j 1";
 
-const std::string logBnormActiv =
-    "MIOpen(" BKEND
-    "): Command [LogCmdFusion] ./bin/MIOpenDriver CBAInfer -F 2 -n 64 -c 64 -H 56 -W 56 -M 1";
-
-const std::string envConv = "MIOPEN_ENABLE_LOGGING_CMD";
+const std::string logBnormActiv = "MIOpen(" BKEND "): Command [LogCmdFusion] " MDEXE
+                                  " CBAInfer -F 2 -n 64 -c 64 -H 56 -W 56 -M 1";
 
 // Captures the std::cerr buffer and store it to a string.
 struct CerrRedirect
@@ -250,22 +253,23 @@ static bool isSubStr(const std::string& str, const std::string& sub_str)
     return str.find(sub_str) != std::string::npos;
 }
 
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_ENABLE_LOGGING_CMD)
+
 void TestLogFun(std::function<void(const miopenTensorDescriptor_t&,
                                    const miopenTensorDescriptor_t&,
                                    const miopenConvolutionDescriptor_t&,
                                    const miopenTensorDescriptor_t&,
                                    const miopen::debug::ConvDirection&,
                                    bool)> const& func,
-                std::string env_var,
                 std::string sub_str,
                 bool set_env)
 {
     CerrRedirect capture_cerr;
     Conv test_conv_log;
     if(set_env)
-        setEnvironmentVariable(env_var, "1");
+        env::update(MIOPEN_ENABLE_LOGGING_CMD, true);
     else
-        unsetEnvironmentVariable(env_var);
+        env::clear(MIOPEN_ENABLE_LOGGING_CMD);
 
     func(test_conv_log.input.desc,
          test_conv_log.weights.desc,
@@ -282,16 +286,15 @@ void TestLogFun(std::function<void(const miopenTensorDescriptor_t&,
 }
 
 void TestLogCmdCBAFusion(std::function<void(const miopenFusionPlanDescriptor_t)> const& func,
-                         std::string env_var,
                          std::string sub_str,
                          bool set_env)
 {
     CerrRedirect capture_cerr;
 
     if(set_env)
-        setEnvironmentVariable(env_var, "1");
+        env::update(MIOPEN_ENABLE_LOGGING_CMD, true);
     else
-        unsetEnvironmentVariable(env_var);
+        env::clear(MIOPEN_ENABLE_LOGGING_CMD);
 
     CreateCBAFusionPlan fp_cba_create;
     fp_cba_create.CBAPlan();
@@ -307,16 +310,15 @@ void TestLogCmdCBAFusion(std::function<void(const miopenFusionPlanDescriptor_t)>
 }
 
 void TestLogCmdBNormFusion(std::function<void(const miopenFusionPlanDescriptor_t)> const& func,
-                           std::string env_var,
                            std::string sub_str,
                            bool set_env)
 {
     CerrRedirect capture_cerr;
 
     if(set_env)
-        setEnvironmentVariable(env_var, "1");
+        env::update(MIOPEN_ENABLE_LOGGING_CMD, true);
     else
-        unsetEnvironmentVariable(env_var);
+        env::clear(MIOPEN_ENABLE_LOGGING_CMD);
 
     CreateBNormFusionPlan<float> fp_bnorm_create;
     fp_bnorm_create.BNormActivation();

@@ -152,7 +152,7 @@ namespace fusion {
 bool ConvBinWinogradRxSf2x3g1Fused::IsApplicable(const FusionContext& context,
                                                  const FusionDescription& problem) const
 {
-    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_G1)))
+    if(env::disabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_G1))
         return false;
     if(!WinoCommonIsApplicable(context, problem))
         return false;
@@ -254,14 +254,6 @@ ConvSolution ConvBinWinogradRxSf2x3g1Fused::GetSolution(const FusionContext& con
     kernel.kernel_name += kernel_postfix;
     kernel.kernel_file += kernel_postfix + ".s";
     result.construction_params.push_back(kernel);
-
-    const auto x = conv_problem.GetWeightsWidth();
-    const auto y = conv_problem.GetWeightsHeight();
-
-    if(x == 3 && y == 3)
-        result.weight = 100;
-    else
-        result.weight = 5;
 
     const auto& desc    = *problem.fusion_plan_desc;
     const int bias_idx  = GetOpIdx(desc.op_map, miopenFusionOpBiasForward);
@@ -417,7 +409,12 @@ ConvSolution ConvBinWinogradRxSf2x3g1Fused::GetSolution(const FusionContext& con
     };
     return result;
 }
-
+float ConvBinWinogradRxSf2x3g1Fused::GetWti(const FusionContext& ctx,
+                                            const FusionDescription& problem) const
+{
+    const auto conv_problem = problem.GetConvProblem(0, miopen::conv::Direction::Forward);
+    return conv::ConvBinWinogradRxSf2x3g1().GetWti(ctx, conv_problem);
+}
 } // namespace fusion
 } // namespace solver
 } // namespace miopen

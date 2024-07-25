@@ -174,7 +174,7 @@ bool PoolingBackward2d::IsApplicable(const ExecutionContext&,
            (problem.GetPooling().GetMode() == miopenPoolingMax ||
             problem.GetPooling().GetMode() == miopenPoolingAverage ||
             problem.GetPooling().GetMode() == miopenPoolingAverageInclusive) &&
-           problem.GetXDesc().GetSize() == 4 && problem.GetXDesc().GetLayout("NCHW") == "NCHW" &&
+           problem.GetXDesc().GetNumDims() == 4 && problem.GetXDesc().GetLayout("NCHW") == "NCHW" &&
            problem.GetYDesc().GetLayout("NCHW") == "NCHW" &&
            sizeof_local_memory(problem) <= TargetProperties::GetMaxLocalMemorySize();
 }

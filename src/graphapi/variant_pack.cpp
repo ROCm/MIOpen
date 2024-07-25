@@ -115,7 +115,7 @@ void BackendVariantPackDescriptor::getAttribute(miopenBackendAttributeName_t att
         {
             *elementCount = mVariantPack.mTensorIds.size();
             std::copy_n(mVariantPack.mTensorIds.cbegin(),
-                        std::min(*elementCount, requestedElementCount),
+                        minimum(*elementCount, requestedElementCount),
                         static_cast<int64_t*>(arrayOfElements));
         }
         else
@@ -129,7 +129,7 @@ void BackendVariantPackDescriptor::getAttribute(miopenBackendAttributeName_t att
         {
             *elementCount = mVariantPack.mDataPointers.size();
             std::copy_n(mVariantPack.mDataPointers.cbegin(),
-                        std::min(*elementCount, requestedElementCount),
+                        minimum(*elementCount, requestedElementCount),
                         static_cast<void**>(arrayOfElements));
         }
         else
