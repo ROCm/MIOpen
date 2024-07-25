@@ -25,6 +25,8 @@
  *******************************************************************************/
 
 #include "prelu.hpp"
+#include "miopen/bfloat16.hpp"
+#include "tensor_holder.hpp"
 #include <miopen/env.hpp>
 
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
