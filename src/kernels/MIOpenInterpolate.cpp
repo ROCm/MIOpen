@@ -75,7 +75,7 @@ linear_back_index(uint64_t src, FLOAT_ACCUM scale_factor, bool align_corners)
 }
 
 __device__ inline void compute_linear_back_index_from_to(uint64_t src,
-                                                         uint64_t input_isze,
+                                                         uint64_t input_size,
                                                          uint64_t output_size,
                                                          FLOAT_ACCUM scale_factor,
                                                          bool align_corners,
@@ -90,7 +90,7 @@ __device__ inline void compute_linear_back_index_from_to(uint64_t src,
     {
         *from = linear_back_index(src - 1, scale_factor, align_corners);
     }
-    if(src + 1 > input_isze)
+    if(src + 1 > input_size)
     {
         *to = output_size;
     }

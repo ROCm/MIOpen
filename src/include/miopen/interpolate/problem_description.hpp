@@ -69,26 +69,6 @@ struct ProblemDescription : ProblemDescriptionBase
         return true;
     }
 
-    bool IsValidStride(TensorDescriptor td) const
-    {
-        auto strides = td.GetStrides();
-        auto lengths = td.GetLengths();
-        std::vector<std::pair<size_t, size_t>> p;
-        p.reserve(td.GetSize());
-        std::transform(strides.begin(),
-                       strides.end(),
-                       lengths.begin(),
-                       std::back_inserter(p),
-                       [](size_t a, size_t b) { return std::make_pair(a, b); });
-        std::sort(p.begin(), p.end());
-        for(int i = 1; i < p.size(); ++i)
-        {
-            if(p[i].first != p[i - 1].first * p[i - 1].second)
-                MIOPEN_THROW(miopenStatusBadParm, "Interpolate: Tensor strides do not valid.");
-        }
-        return true;
-    }
-
 protected:
     TensorDescriptor scaleFactorsDesc;
     miopenInterpolateMode_t mode;
@@ -111,7 +91,6 @@ struct FwdProblemDescription : ProblemDescription
         outputDesc = outputDesc_;
         IsValidDims();
         IsValidLength();
-        IsAllValidStride();
     }
 
     const TensorDescriptor& GetInputDesc() const { return inputDesc; }
@@ -142,8 +121,6 @@ struct FwdProblemDescription : ProblemDescription
         }
         return true;
     }
-
-    bool IsAllValidStride() const { return IsValidStride(inputDesc) && IsValidStride(outputDesc); }
 
     bool IsValidDims() const
     {
@@ -201,7 +178,6 @@ struct BwdProblemDescription : ProblemDescription
         outputGradDesc = outputGradDesc_;
         IsValidDims();
         IsValidLength();
-        IsAllValidStride();
     }
     const TensorDescriptor& GetInputGradDesc() const { return inputGradDesc; }
     const TensorDescriptor& GetOutputGradDesc() const { return outputGradDesc; }
@@ -229,11 +205,6 @@ struct BwdProblemDescription : ProblemDescription
             }
         }
         return true;
-    }
-
-    bool IsAllValidStride() const
-    {
-        return IsValidStride(inputGradDesc) && IsValidStride(outputGradDesc);
     }
 
     bool IsValidDims() const
