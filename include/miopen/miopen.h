@@ -6620,7 +6620,7 @@ typedef enum
  * False, the input and output tensors are aligned by the corner points of their corner pixels, and
  * the interpolation uses edge value padding for out-of-boundary values, making this operation
  * independent of input size when scale_factor is kept the same. This only has an effect when mode
- * is 'linear', 'bilinear', 'bicubic' or 'trilinear'. Default: False
+ * is 'linear', 'bilinear', 'bicubic' or 'trilinear'. (input)
  * @return                      miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t
@@ -6647,7 +6647,7 @@ miopenInterpolateForward(miopenHandle_t handle,
  * False, the input and output tensors are aligned by the corner points of their corner pixels, and
  * the interpolation uses edge value padding for out-of-boundary values, making this operation
  * independent of input size when scale_factor is kept the same. This only has an effect when mode
- * is 'linear', 'bilinear', 'bicubic' or 'trilinear'. Default: False
+ * is 'linear', 'bilinear', 'bicubic' or 'trilinear'. (input)
  * @param sizeInBytes              Pointer to data to return the minimum workspace size (output)
  * @return                         miopenStatus_t
  */
@@ -6677,7 +6677,7 @@ miopenGetInterpolateBackwardWorkspaceSize(miopenHandle_t handle,
  * False, the input and output tensors are aligned by the corner points of their corner pixels, and
  * the interpolation uses edge value padding for out-of-boundary values, making this operation
  * independent of input size when scale_factor is kept the same. This only has an effect when mode
- * is 'linear', 'bilinear', 'bicubic' or 'trilinear'. Default: False
+ * is 'linear', 'bilinear', 'bicubic' or 'trilinear'. (input)
  * @return                      miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t
