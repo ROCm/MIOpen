@@ -239,7 +239,7 @@ int InterpolateDriver<Tgpu, Tref>::GetandSetData()
     }
     else
     {
-        for(int i = 0; i < scale_factors.size(); i++)
+        for(int i = 0; i < in_len.size() - 2; i++)
         {
             out_len.push_back(ceil(static_cast<int>(in_len[i + 2] * scale_factors[i])));
             scale_factors[i] = static_cast<float>(out_len[i + 2]) / in_len[i + 2];
