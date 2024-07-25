@@ -240,7 +240,7 @@ public:
                 if(!fs::create_directories(directory))
                     MIOPEN_LOG_W("Unable to create a directory: " << directory);
                 else
-                    fs::permissions(directory, fs::perms::all);
+                    fs::permissions(directory, FS_PERMS_ALL);
             }
         }
         sql = SQLite{filename_, is_system};
