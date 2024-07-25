@@ -25,8 +25,6 @@
  *******************************************************************************/
 
 #include "prelu.hpp"
-#include "miopen/bfloat16.hpp"
-#include "tensor_holder.hpp"
 #include <miopen/env.hpp>
 
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
@@ -35,6 +33,16 @@ MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 namespace env = miopen::env;
 
 namespace prelu {
+
+std::string GetFloatArg()
+{
+    const auto& tmp = env::value(MIOPEN_TEST_FLOAT_ARG);
+    if(tmp.empty())
+    {
+        return "";
+    }
+    return tmp;
+}
 
 struct PReLUTestFloat : PReLUTest<float>
 {
