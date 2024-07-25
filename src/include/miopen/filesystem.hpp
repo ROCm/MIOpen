@@ -116,9 +116,9 @@ inline std::string operator+(const miopen::fs::path& path, const std::string_vie
 
 // Hack to minimize changes for boost fs.
 #if MIOPEN_WORKAROUND_USE_BOOST_FILESYSTEM
-#define FS_PERMS_ALL fs::perms::all_all
+#define FS_ENUM_PERMS_ALL fs::perms::all_all
 #else
-#define FS_PERMS_ALL fs::perms::all
+#define FS_ENUM_PERMS_ALL fs::perms::all
 #endif
 
 #if MIOPEN_HAS_FILESYSTEM_TS
