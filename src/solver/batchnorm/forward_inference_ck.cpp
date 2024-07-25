@@ -129,11 +129,16 @@ template <typename XDataType,
 ConvSolution InvokerFactoryMakerNHWC(const miopen::batchnorm::ProblemDescription& bn_problem)
 {
     ConvSolution result;
-    result.invoker_factory = [bn_problem](const std::vector<Kernel>& kernels) {
+    result.invoker_factory = [args         = CKArgsBNormFwd{bn_problem},
+                              kernel_index = CheckCKApplicability<XDataType,
+                                                                  YDataType,
+                                                                  AccDataType,
+                                                                  ScaleDataType,
+                                                                  BiasDataType,
+                                                                  MeanVarDataType>(bn_problem)](
+                                 const std::vector<Kernel>& kernels) {
         std::ignore = kernels;
         return [&](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
-            const auto& args = CKArgsBNormFwd{bn_problem};
-
             using DeviceOp = ck::tensor_operation::device::DeviceElementwise<
                 ck::Tuple<XDataType, MeanVarDataType, MeanVarDataType, ScaleDataType, BiasDataType>,
                 ck::Tuple<YDataType>,
@@ -143,12 +148,6 @@ ConvSolution InvokerFactoryMakerNHWC(const miopen::batchnorm::ProblemDescription
                 ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
                     DeviceOp>::GetInstances();
 
-            int kernel_index = CheckCKApplicability<XDataType,
-                                                    YDataType,
-                                                    AccDataType,
-                                                    ScaleDataType,
-                                                    BiasDataType,
-                                                    MeanVarDataType>(bn_problem);
             assert(kernel_index >= 0 && kernel_index < bn_fwd_ptrs.size());
             auto& bn_ptr       = bn_fwd_ptrs.at(kernel_index);
             const auto& params = primitive_parameters.CastTo<miopen::batchnorm::InfInvokeParams>();
@@ -256,22 +255,11 @@ ConvSolution BnCKFwdInference::GetSolution(
         bn_problem,
         [&](auto data_type_val) {
             using T = decltype(data_type_val);
-            if constexpr(std::is_same_v<T, F16>)
-            {
-                return InvokerFactoryMakerNHWC<F16, F16, F32, F16, F16, F32>(bn_problem);
-            }
-            else if constexpr(std::is_same_v<T, F32>)
-            {
-                return InvokerFactoryMakerNHWC<F32, F32, F32, F32, F32, F32>(bn_problem);
-            }
-            else if constexpr(std::is_same_v<T, F64>)
-            {
-                return InvokerFactoryMakerNHWC<F64, F64, F64, F64, F64, F64>(bn_problem);
-            }
-            else if constexpr(std::is_same_v<T, BF16>)
-            {
-                return InvokerFactoryMakerNHWC<BF16, BF16, F32, BF16, BF16, F32>(bn_problem);
-            }
+
+            using AccTy = std::conditional_t<std::is_same_v<T, F64>,
+                                             T,    // T==F64
+                                             F32>; // T==F32
+            return InvokerFactoryMakerNHWC<T, T, AccTy, T, T, AccTy>(bn_problem);
         }
         // Todo: InvokerFactoryMakerNCHW
     );
