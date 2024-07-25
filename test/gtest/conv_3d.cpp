@@ -43,9 +43,9 @@ void GetArgs(const std::string& param, std::vector<std::string>& tokens)
         tokens.push_back(*begin++);
 }
 
-std::vector<std::string> GetTestCases(void)
+std::vector<std::string> GetTestCases(const std::string& precision)
 {
-    std::string cmd_v = "test_conv3d --verbose ";
+    std::string cmd_v = "test_conv3d --verbose " + precision + " ";
 
     // clang-format off
     return std::vector<std::string>{
@@ -70,7 +70,7 @@ std::vector<std::string> GetTestCases(void)
     // clang-format on
 }
 
-using TestCase = decltype(GetTestCases())::value_type;
+using TestCase = decltype(GetTestCases(std::string{}))::value_type;
 
 class GPU_conv3d_FP32 : public testing::TestWithParam<std::vector<TestCase>>
 {
@@ -116,4 +116,5 @@ using namespace conv_3d;
 
 TEST_P(GPU_conv3d_FP32, FloatTest_conv_3d) { Run2dDriver(); };
 
-INSTANTIATE_TEST_SUITE_P(Full, GPU_conv3d_FP32, testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_conv3d_FP32, testing::Values(GetTestCases("--float")));
+
