@@ -25,6 +25,8 @@
  *******************************************************************************/
 
 #include "prelu.hpp"
+#include "miopen/bfloat16.hpp"
+#include "tensor_holder.hpp"
 #include <miopen/env.hpp>
 
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
@@ -34,21 +36,21 @@ namespace env = miopen::env;
 
 namespace prelu {
 
-bool CheckFloatArg(std::string arg)
+std::string GetFloatArg()
 {
-    if(!MIOPEN_TEST_ALL ||
-       (env::enabled(MIOPEN_TEST_ALL) && (env::value(MIOPEN_TEST_FLOAT_ARG) == arg)))
+    const auto& tmp = env::value(MIOPEN_TEST_FLOAT_ARG);
+    if(tmp.empty())
     {
-        return true;
+        return "";
     }
-    return false;
+    return tmp;
 }
 
 struct PReLUTestFloat : PReLUTest<float>
 {
 };
 
-struct PReLUTestHalf : PReLUTest<half_float::half>
+struct PReLUTestHalf : PReLUTest<half>
 {
 };
 
@@ -61,7 +63,8 @@ using namespace prelu;
 
 TEST_P(PReLUTestFloat, PReLUTest)
 {
-    if(CheckFloatArg("--float"))
+    if(!MIOPEN_TEST_ALL ||
+       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--float"))
     {
         RunTest();
         Verify();
@@ -74,7 +77,8 @@ TEST_P(PReLUTestFloat, PReLUTest)
 
 TEST_P(PReLUTestHalf, PReLUTest)
 {
-    if(CheckFloatArg("--half"))
+    if(!MIOPEN_TEST_ALL ||
+       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--half"))
     {
         RunTest();
         Verify();
@@ -87,7 +91,8 @@ TEST_P(PReLUTestHalf, PReLUTest)
 
 TEST_P(PReLUTestBfloat16, PReLUTest)
 {
-    if(CheckFloatArg("--bfloat16"))
+    if(!MIOPEN_TEST_ALL ||
+       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--bfloat16"))
     {
         RunTest();
         Verify();
