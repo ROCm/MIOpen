@@ -152,7 +152,4 @@ using namespace conv_group;
 
 TEST_P(GPU_ConvGroup_FP32, FloatTest_conv_group) { Run2dDriver(); };
 
-
-INSTANTIATE_TEST_SUITE_P(Full,
-                         GPU_ConvGroup_FP32,
-                         testing::Values(GetTestCases("--float")));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_ConvGroup_FP32, testing::Values(GetTestCases("--float")));

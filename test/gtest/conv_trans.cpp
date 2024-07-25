@@ -158,7 +158,4 @@ TEST_P(GPU_conv_trans_FP32, FloatTest_conv_trans)
     }
 };
 
-
-INSTANTIATE_TEST_SUITE_P(Full,
-                         GPU_conv_trans_FP32,
-                         testing::Values(GetTestCases("--float")));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_conv_trans_FP32, testing::Values(GetTestCases("--float")));
