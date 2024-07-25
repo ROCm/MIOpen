@@ -58,7 +58,8 @@ enum class Primitive
     Mha,
     Softmax,
     Adam,
-    MultiMarginLoss,
+    Item,
+    MultiMarginLoss
 };
 
 struct MIOPEN_INTERNALS_EXPORT Id
