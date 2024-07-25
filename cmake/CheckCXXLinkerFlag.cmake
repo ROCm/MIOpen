@@ -54,7 +54,17 @@ set(check_cxx_linker_flag_patterns
 include (CheckCXXSourceCompiles)
 
 function(check_cxx_linker_flag _flag _var)
+    # TODO: Replace STATUS with CHECK_START/PASS/FAIL
+    # when cmake_minimum_required becomes >= 3.17
+    message(STATUS "Performing Test ${_var}")
     set (_source "int main() { return 0; }")
+    set(CMAKE_REQUIRED_QUIET TRUE)
     check_cxx_source_compiles("${_source}" _result ${check_cxx_linker_flag_patterns})
+    set(CMAKE_REQUIRED_QUIET FALSE)
     set(${_var} "${_result}" PARENT_SCOPE)
+    if(${_result})
+        message(STATUS "Performing Test ${_var} - Success")
+    else()
+        message(STATUS "Performing Test ${_var} - Failed")
+    endif()
 endfunction()
