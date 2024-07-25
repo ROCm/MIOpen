@@ -45,16 +45,16 @@ void GetArgs(const std::string& param, std::vector<std::string>& tokens)
         tokens.push_back(*begin++);
 }
 
-class ConvEmbedConfigHalf : public testing::TestWithParam<std::vector<std::string>>
+class CPU_ConvEmbedConfig_FP16 : public testing::TestWithParam<std::vector<std::string>>
 {
 };
-class ConvEmbedConfigInt8 : public testing::TestWithParam<std::vector<std::string>>
+class CPU_ConvEmbedConfig_I8 : public testing::TestWithParam<std::vector<std::string>>
 {
 };
-class ConvEmbedConfigBFloat16 : public testing::TestWithParam<std::vector<std::string>>
+class CPU_ConvEmbedConfig_BFP16 : public testing::TestWithParam<std::vector<std::string>>
 {
 };
-class ConvEmbedConfigFloat : public testing::TestWithParam<std::vector<std::string>>
+class CPU_ConvEmbedConfig_FP32 : public testing::TestWithParam<std::vector<std::string>>
 {
 };
 
@@ -64,10 +64,10 @@ void Run2dDriver(miopenDataType_t prec)
     std::vector<std::string> params;
     switch(prec)
     {
-    case miopenFloat: params = ConvEmbedConfigFloat::GetParam(); break;
-    case miopenHalf: params = ConvEmbedConfigHalf::GetParam(); break;
-    case miopenInt8: params = ConvEmbedConfigInt8::GetParam(); break;
-    case miopenBFloat16: params = ConvEmbedConfigBFloat16::GetParam(); break;
+    case miopenFloat: params = CPU_ConvEmbedConfig_FP32::GetParam(); break;
+    case miopenHalf: params = CPU_ConvEmbedConfig_FP16::GetParam(); break;
+    case miopenInt8: params = CPU_ConvEmbedConfig_I8::GetParam(); break;
+    case miopenBFloat16: params = CPU_ConvEmbedConfig_BFP16::GetParam(); break;
     case miopenInt64:
     case miopenInt32:
     case miopenFloat8:
@@ -76,7 +76,7 @@ void Run2dDriver(miopenDataType_t prec)
         FAIL() << "miopenInt32, miopenFloat8, miopenBFloat8, miopenDouble data type "
                   "not supported by conv_embed_db test";
 
-    default: params = ConvEmbedConfigFloat::GetParam();
+    default: params = CPU_ConvEmbedConfig_FP32::GetParam();
     }
 
     for(const auto& test_value : params)
@@ -145,7 +145,7 @@ std::vector<std::string> GetTestCases(const std::string& precision)
 } // namespace conv_embed_db
 using namespace conv_embed_db;
 
-TEST_P(ConvEmbedConfigFloat, FloatTest_conv_embed_db)
+TEST_P(CPU_ConvEmbedConfig_FP32, FloatTest_conv_embed_db)
 {
 #if MIOPEN_EMBED_DB
 
@@ -164,7 +164,7 @@ TEST_P(ConvEmbedConfigFloat, FloatTest_conv_embed_db)
 #endif
 };
 
-TEST_P(ConvEmbedConfigHalf, HalfTest_conv_embed_db)
+TEST_P(CPU_ConvEmbedConfig_FP16, HalfTest_conv_embed_db)
 {
 #if MIOPEN_EMBED_DB
 
@@ -183,7 +183,7 @@ TEST_P(ConvEmbedConfigHalf, HalfTest_conv_embed_db)
 #endif
 };
 
-TEST_P(ConvEmbedConfigInt8, Int8Test_conv_embed_db)
+TEST_P(CPU_ConvEmbedConfig_I8, Int8Test_conv_embed_db)
 {
 #if MIOPEN_EMBED_DB
 
@@ -202,7 +202,7 @@ TEST_P(ConvEmbedConfigInt8, Int8Test_conv_embed_db)
 #endif
 };
 
-TEST_P(ConvEmbedConfigBFloat16, BFloat16Test_conv_embed_db)
+TEST_P(CPU_ConvEmbedConfig_BFP16, BFloat16Test_conv_embed_db)
 {
 #if MIOPEN_EMBED_DB
 
@@ -222,10 +222,14 @@ TEST_P(ConvEmbedConfigBFloat16, BFloat16Test_conv_embed_db)
 };
 
 INSTANTIATE_TEST_SUITE_P(ConvEmbedDB,
-                         ConvEmbedConfigFloat,
+                         CPU_ConvEmbedConfig_FP32,
                          testing::Values(GetTestCases("--float")));
-INSTANTIATE_TEST_SUITE_P(ConvEmbedDB, ConvEmbedConfigHalf, testing::Values(GetTestCases("--half")));
-INSTANTIATE_TEST_SUITE_P(ConvEmbedDB, ConvEmbedConfigInt8, testing::Values(GetTestCases("--int8")));
 INSTANTIATE_TEST_SUITE_P(ConvEmbedDB,
-                         ConvEmbedConfigBFloat16,
+                         CPU_ConvEmbedConfig_FP16,
+                         testing::Values(GetTestCases("--half")));
+INSTANTIATE_TEST_SUITE_P(ConvEmbedDB,
+                         CPU_ConvEmbedConfig_I8,
+                         testing::Values(GetTestCases("--int8")));
+INSTANTIATE_TEST_SUITE_P(ConvEmbedDB,
+                         CPU_ConvEmbedConfig_BFP16,
                          testing::Values(GetTestCases("--bfloat16")));

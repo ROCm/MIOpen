@@ -76,7 +76,8 @@ auto GetTestCases()
 using TestCase = decltype(GetTestCases())::value_type;
 
 bool SkipTest() { return env::disabled(MIOPEN_TEST_ALL); }
-class GPU_Conv2d_conv_ck_igemm_fwd_v6r1_dlops_nchw_FP32 : public FloatTestCase<std::vector<TestCase>>
+class GPU_Conv2d_conv_ck_igemm_fwd_v6r1_dlops_nchw_FP32
+    : public FloatTestCase<std::vector<TestCase>>
 {
 };
 
