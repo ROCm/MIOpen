@@ -117,31 +117,44 @@ int PReLUDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
     {
         miopenEnableProfiling(GetHandle(), true);
     }
+
+    auto inTensorParam = inflags.GetValueTensor("input");
+    auto input_length  = inTensorParam.lengths;
+    if(input_length.empty())
+    {
+        std::cout << "Tensor must not be empty";
+        return miopenStatusBadParm;
+    }
+
+    std::vector<int> weight_length = {inflags.GetValueInt("NumParameters")};
+    if(weight_length[0] != 1 && (input_length.size() == 1 || weight_length[0] != input_length[1]))
+    {
+        std::cout << "NumParameters must be 1 or the second dim of DimLengths";
+        return miopenStatusBadParm;
+    }
+
     return miopenStatusSuccess;
 }
 
 template <typename Tgpu, typename Tref>
 int PReLUDriver<Tgpu, Tref>::GetandSetData()
 {
-    auto input_length = GetTensorLengthsFromCmdLine();
-    if(input_length.size() == 0)
-    {
-        std::cout << "Tensor must not be empty";
-        return miopenStatusInvalidValue;
-    }
-    SetTensorNd(inputDesc, input_length, data_type);
-    SetTensorNd(dinputDesc, input_length, data_type);
-
+    auto inTensorParam             = inflags.GetValueTensor("input");
+    auto input_length              = inTensorParam.lengths;
     std::vector<int> weight_length = {inflags.GetValueInt("NumParameters")};
-    if(weight_length[0] != 1 && (input_length.size() == 1 || weight_length[0] != input_length[1]))
-    {
-        std::cout << "NumParameters must be 1 or the second dim of DimLengths";
-        return miopenStatusInvalidValue;
-    }
-    SetTensorNd(weightDesc, weight_length, data_type);
-    SetTensorNd(dweightDesc, weight_length, data_type);
 
-    SetTensorNd(doutputDesc, input_length, data_type);
+    if(SetTensorNd(inputDesc, input_length, data_type) != miopenStatusSuccess)
+        MIOPEN_THROW("Error parsing input tensor: " + inflags.GetValueStr("input") + ".");
+    if(SetTensorNd(dinputDesc, input_length, data_type) != miopenStatusSuccess)
+        MIOPEN_THROW("Error parsing input gradient tensor");
+
+    if(SetTensorNd(weightDesc, weight_length, data_type) != miopenStatusSuccess)
+        MIOPEN_THROW("Error parsing weight tensor");
+    if(SetTensorNd(dweightDesc, weight_length, data_type) != miopenStatusSuccess)
+        MIOPEN_THROW("Error parsing weight gradient tensor");
+
+    if(SetTensorNd(doutputDesc, input_length, data_type) != miopenStatusSuccess)
+        MIOPEN_THROW("Error parsing output gradient tensor");
 
     return miopenStatusSuccess;
 }
@@ -150,11 +163,7 @@ template <typename Tgpu, typename Tref>
 int PReLUDriver<Tgpu, Tref>::AddCmdLineArgs()
 {
     inflags.AddInputFlag("forw", 'F', "1", "Run only Forward PReLU (Default=1)", "int");
-    inflags.AddInputFlag("DimLengths",
-                         'D',
-                         "256,4,1,1,8723",
-                         "The dimensional lengths of the input tensor",
-                         "string");
+    inflags.AddTensorFlag("input", 'D', "256x4x1x1x8723", "input tensor descriptor");
     inflags.AddInputFlag(
         "NumParameters",
         'P',
@@ -169,36 +178,6 @@ int PReLUDriver<Tgpu, Tref>::AddCmdLineArgs()
         "wall", 'w', "0", "Wall-clock Time Each Layer, Requires time == 1 (Default=0)", "int");
 
     return miopenStatusSuccess;
-}
-
-template <typename Tgpu, typename Tref>
-std::vector<int> PReLUDriver<Tgpu, Tref>::GetTensorLengthsFromCmdLine()
-{
-    std::string lengthsStr = inflags.GetValueStr("DimLengths");
-
-    std::vector<int> lengths;
-    std::size_t pos = 0;
-    std::size_t new_pos;
-
-    new_pos = lengthsStr.find(',', pos);
-    while(new_pos != std::string::npos)
-    {
-        std::string sliceStr = lengthsStr.substr(pos, new_pos - pos);
-
-        int len = std::stoi(sliceStr);
-
-        lengths.push_back(len);
-
-        pos     = new_pos + 1;
-        new_pos = lengthsStr.find(',', pos);
-    };
-
-    std::string sliceStr = lengthsStr.substr(pos);
-    int len              = std::stoi(sliceStr);
-
-    lengths.push_back(len);
-
-    return (lengths);
 }
 
 template <typename Tgpu, typename Tref>
@@ -237,22 +216,37 @@ int PReLUDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         weight[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(-1e-5), static_cast<Tgpu>(1e-6));
 
     if(input_dev->ToGPU(GetStream(), input.data()) != 0)
+    {
         std::cerr << "Error copying (input) to GPU, size: " << input_dev->GetSize() << std::endl;
+        return miopenStatusAllocFailed;
+    }
 
     if(weight_dev->ToGPU(GetStream(), weight.data()) != 0)
+    {
         std::cerr << "Error copying (weight) to GPU, size: " << weight_dev->GetSize() << std::endl;
+        return miopenStatusAllocFailed;
+    }
 
     if(doutput_dev->ToGPU(GetStream(), doutput.data()) != 0)
+    {
         std::cerr << "Error copying (out grad) to GPU, size: " << doutput_dev->GetSize()
                   << std::endl;
+        return miopenStatusAllocFailed;
+    }
 
     if(dinput_dev->ToGPU(GetStream(), dinput.data()) != 0)
+    {
         std::cerr << "Error copying (input grad) to GPU, size: " << dinput_dev->GetSize()
                   << std::endl;
+        return miopenStatusAllocFailed;
+    }
 
     if(dweight_dev->ToGPU(GetStream(), dweight.data()) != 0)
+    {
         std::cerr << "Error copying (weight grad) to GPU, size: " << dweight_dev->GetSize()
                   << std::endl;
+        return miopenStatusAllocFailed;
+    }
 
     return miopenStatusSuccess;
 }
@@ -316,11 +310,17 @@ int PReLUDriver<Tgpu, Tref>::RunBackwardGPU()
     }
 
     if(dinput_dev->FromGPU(GetStream(), dinput.data()) != 0)
+    {
         std::cerr << "Error copying (dinput_dev) from GPU, size: " << dinput_dev->GetSize()
                   << std::endl;
+        return miopenStatusInternalError;
+    }
     if(dweight_dev->FromGPU(GetStream(), dweight.data()) != 0)
+    {
         std::cerr << "Error copying (dweight_dev) from GPU, size: " << dweight_dev->GetSize()
                   << std::endl;
+        return miopenStatusInternalError;
+    }
 
     return miopenStatusSuccess;
 }
@@ -328,17 +328,15 @@ int PReLUDriver<Tgpu, Tref>::RunBackwardGPU()
 template <typename Tgpu, typename Tref>
 int PReLUDriver<Tgpu, Tref>::RunBackwardCPU()
 {
-    mloPReLUBackwardRunHost<Tgpu, Tref>(inputDesc,
-                                        weightDesc,
-                                        doutputDesc,
-                                        dinputDesc,
-                                        input.data(),
-                                        weight.data(),
-                                        doutput.data(),
-                                        dinput_host.data(),
-                                        dweight_host.data());
-
-    return miopenStatusSuccess;
+    return mloPReLUBackwardRunHost<Tgpu, Tref>(inputDesc,
+                                               weightDesc,
+                                               doutputDesc,
+                                               dinputDesc,
+                                               input.data(),
+                                               weight.data(),
+                                               doutput.data(),
+                                               dinput_host.data(),
+                                               dweight_host.data());
 }
 
 template <typename Tgpu, typename Tref>
@@ -368,17 +366,28 @@ int PReLUDriver<Tgpu, Tref>::VerifyBackward()
     auto error_dinput    = miopen::rms_range(dinput_host, dinput);
     auto error_dweight   = miopen::rms_range(dweight_host, dweight);
 
-    if(!std::isfinite(error_dinput) || error_dinput > tolerance || !std::isfinite(error_dweight) ||
-       error_dweight > tolerance)
+    if(!std::isfinite(error_dinput) || error_dinput > tolerance)
     {
-        std::cout << "Backward PReLU FAILED: {" << error_dinput << "," << error_dweight << "} > "
+        std::cout << "Backward PReLU Input Gradient FAILED: " << error_dinput << " > " << tolerance
+                  << std::endl;
+        return EC_VerifyFwd;
+    }
+    else
+    {
+        std::cout << "Backward PReLU Input Gradient Verifies OK on CPU reference (" << error_dinput
+                  << " < " << tolerance << ')' << std::endl;
+    }
+
+    if(!std::isfinite(error_dweight) || error_dweight > tolerance)
+    {
+        std::cout << "Backward PReLU Weight Gradient FAILED: " << error_dweight << " > "
                   << tolerance << std::endl;
         return EC_VerifyFwd;
     }
     else
     {
-        std::cout << "Backward PReLU Verifies OK on CPU reference ({" << error_dinput << ","
-                  << error_dweight << "} < " << tolerance << ')' << std::endl;
+        std::cout << "Backward PReLU Weight Gradient Verifies OK on CPU reference ("
+                  << error_dweight << " < " << tolerance << ')' << std::endl;
     }
 
     return miopenStatusSuccess;
