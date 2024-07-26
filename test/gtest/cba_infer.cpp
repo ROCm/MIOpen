@@ -161,7 +161,7 @@ TEST_P(GPU_ConvBiasActivInferFusionCompileStep_FP32, ConvBiasActivAsm1x1UFloat_t
 }
 
 INSTANTIATE_TEST_SUITE_P(
-    CBAInferSolverTest,
+    Smoke,
     GPU_ConvBiasActivInferFusionCompileStep_FP32,
     testing::Combine(testing::Values(miopenActivationRELU),
                      testing::ValuesIn(GetNetworkForFusionCompileStepTest<ConvTestCaseBase>()),
