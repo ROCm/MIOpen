@@ -734,6 +734,7 @@ struct DropoutTestCase
     }
 };
 
+template <typename T>
 std::vector<DropoutTestCase> DropoutTestConfigs()
 {
 
@@ -1059,12 +1060,12 @@ TEST_P(GPU_dropout_FP16, PortTest)
 
 INSTANTIATE_TEST_SUITE_P(Smoke,
                          GPU_dropout_FP32,
-                         testing::Combine(testing::ValuesIn(DropoutTestConfigs()),
+                         testing::Combine(testing::ValuesIn(DropoutTestConfigs<float>()),
                                           testing::Values(0, 0.25, 0.5, 0.75, 1),
                                           testing::Values(true, false)));
 
 INSTANTIATE_TEST_SUITE_P(Smoke,
                          GPU_dropout_FP16,
-                         testing::Combine(testing::ValuesIn(DropoutTestConfigs()),
+                         testing::Combine(testing::ValuesIn(DropoutTestConfigs<half_float::half>()),
                                           testing::Values(0, 0.25, 0.5, 0.75, 1),
                                           testing::Values(true, false)));
