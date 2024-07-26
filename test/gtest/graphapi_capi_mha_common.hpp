@@ -207,6 +207,10 @@ miopenDataType_t GetMainType()
     {
         return miopenFloat;
     }
+    else if(std::is_same_v<T, bfloat8>)
+    {
+        return miopenBFloat8;
+    }
 
     assert(false);
     return miopenFloat;
@@ -645,6 +649,10 @@ protected:
         else if(dtype == miopenFloat8)
         {
             tensorDataPtr->m_tensorVariant = tensor<float8>{n, h, s, d};
+        }
+        else if(dtype == miopenBFloat8)
+        {
+            tensorDataPtr->m_tensorVariant = tensor<bfloat8>{n, h, s, d};
         }
         else
         {
