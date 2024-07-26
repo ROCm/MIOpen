@@ -142,16 +142,16 @@ protected:
         MakeAndAddRealTensorDescriptor(miopenTensorMhaAmaxDV).InitAndWriteToGPU(handle, 0.0f);
         MakeAndAddRealTensorDescriptor(miopenTensorMhaAmaxDS).InitAndWriteToGPU(handle, 0.0f);
 
-        dQDescRef = tensor<T>{m_testN, m_testH, m_testS, m_testD};
-        dKDescRef = tensor<T>{m_testN, m_testH, m_testS, m_testD};
-        dVDescRef = tensor<T>{m_testN, m_testH, m_testS, m_testD};
+        m_dQDescRef = tensor<T>{m_testN, m_testH, m_testS, m_testD};
+        m_dKDescRef = tensor<T>{m_testN, m_testH, m_testS, m_testD};
+        m_dVDescRef = tensor<T>{m_testN, m_testH, m_testS, m_testD};
 
         test::cpu::MultiHeadAttentionBackwardDataf8(
             GetTensor<T>(m_realTensorMap[miopenTensorMhaQ]->m_tensorVariant),
             GetTensor<T>(m_realTensorMap[miopenTensorMhaK]->m_tensorVariant),
             GetTensor<T>(m_realTensorMap[miopenTensorMhaV]->m_tensorVariant),
             GetTensor<T>(m_realTensorMap[miopenTensorMhaO]->m_tensorVariant),
-            GetTensor<T>(m_realTensorMap[miopenTensorMhaDO]->m_tensorVariant),
+            GetTensor<dO_T>(m_realTensorMap[miopenTensorMhaDO]->m_tensorVariant),
             softmax,
             q.mDescale,
             k.mDescale,
@@ -165,13 +165,13 @@ protected:
             dsDescale,
             oDescale,
             dO.mDescale,
-            amaxDSRef,
-            amaxDQRef,
-            amaxDKRef,
-            amaxDVRef,
-            dQDescRef,
-            dKDescRef,
-            dVDescRef);
+            m_amaxDSRef,
+            m_amaxDQRef,
+            m_amaxDKRef,
+            m_amaxDVRef,
+            m_dQDescRef,
+            m_dKDescRef,
+            m_dVDescRef);
 
         // get next value for the rest of the tensors (which don't have any particular enum value)
         GetNextId();
@@ -374,25 +374,25 @@ protected:
             EXPECT_LT(miopen::rms_range(ref, GetResult<T>(id, handle)), fp8ErrorThreshold) << name;
         };
 
-        checkAmax(miopenTensorMhaAmaxDQ, "amax dQ", amaxDQRef);
-        checkAmax(miopenTensorMhaAmaxDK, "amax dK", amaxDKRef);
-        checkAmax(miopenTensorMhaAmaxDV, "amax dV", amaxDVRef);
-        checkAmax(miopenTensorMhaAmaxDS, "amax dS", amaxDSRef);
+        checkAmax(miopenTensorMhaAmaxDQ, "amax dQ", m_amaxDQRef);
+        checkAmax(miopenTensorMhaAmaxDK, "amax dK", m_amaxDKRef);
+        checkAmax(miopenTensorMhaAmaxDV, "amax dV", m_amaxDVRef);
+        checkAmax(miopenTensorMhaAmaxDS, "amax dS", m_amaxDSRef);
 
-        checkOutput(miopenTensorMhaDQ, "tensor dQ", dQDescRef);
-        checkOutput(miopenTensorMhaDK, "tensor dK", dKDescRef);
-        checkOutput(miopenTensorMhaDV, "tensor dV", dVDescRef);
+        checkOutput(miopenTensorMhaDQ, "tensor dQ", m_dQDescRef);
+        checkOutput(miopenTensorMhaDK, "tensor dK", m_dKDescRef);
+        checkOutput(miopenTensorMhaDV, "tensor dV", m_dVDescRef);
     }
 
 private:
-    tensor<T> dQDescRef;
-    tensor<T> dKDescRef;
-    tensor<T> dVDescRef;
+    tensor<T> m_dQDescRef;
+    tensor<T> m_dKDescRef;
+    tensor<T> m_dVDescRef;
 
-    float amaxDQRef = 0.0f; // values will be set later. Initializetion is reqired for tidy-checks
-    float amaxDKRef = 0.0f;
-    float amaxDVRef = 0.0f;
-    float amaxDSRef = 0.0f;
+    float m_amaxDQRef = 0.0f; // values will be set later. Initializetion is reqired for tidy-checks
+    float m_amaxDKRef = 0.0f;
+    float m_amaxDVRef = 0.0f;
+    float m_amaxDSRef = 0.0f;
 };
 
 class MhaBackwardTestFp32 : public MhaBackwardTest<float>
