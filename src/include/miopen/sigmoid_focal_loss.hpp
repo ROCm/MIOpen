@@ -33,39 +33,41 @@ namespace miopen {
 struct Handle;
 struct TensorDescriptor;
 
-size_t GetSigmoidFocalLossForwardWorkspaceSize(Handle& handle,
-                                               const TensorDescriptor& inputDesc,
-                                               const TensorDescriptor& targetDesc,
-                                               const TensorDescriptor& outputDesc,
-                                               miopenLossReductionMode_t reduction);
-
-miopenStatus_t SigmoidFocalLossForward(Handle& handle,
-                                       Data_t workspace,
-                                       size_t workspaceSizeInBytes,
-                                       const TensorDescriptor& inputDesc,
-                                       ConstData_t input,
-                                       const TensorDescriptor& targetDesc,
-                                       ConstData_t target,
-                                       const TensorDescriptor& outputDesc,
-                                       Data_t output,
-                                       float alpha,
-                                       float gamma,
-                                       miopenLossReductionMode_t reduction);
-
-miopenStatus_t SigmoidFocalLossBackward(Handle& handle,
+MIOPEN_INTERNALS_EXPORT size_t
+GetSigmoidFocalLossForwardWorkspaceSize(Handle& handle,
                                         const TensorDescriptor& inputDesc,
-                                        ConstData_t input,
                                         const TensorDescriptor& targetDesc,
-                                        ConstData_t target,
-                                        const TensorDescriptor& doutputDesc,
-                                        ConstData_t doutput,
-                                        const TensorDescriptor& dinputDesc,
-                                        Data_t dinput,
-                                        const TensorDescriptor& dtargetDesc,
-                                        Data_t dtarget,
-                                        float alpha,
-                                        float gamma,
+                                        const TensorDescriptor& outputDesc,
                                         miopenLossReductionMode_t reduction);
+
+MIOPEN_INTERNALS_EXPORT miopenStatus_t SigmoidFocalLossForward(Handle& handle,
+                                                               Data_t workspace,
+                                                               size_t workspaceSizeInBytes,
+                                                               const TensorDescriptor& inputDesc,
+                                                               ConstData_t input,
+                                                               const TensorDescriptor& targetDesc,
+                                                               ConstData_t target,
+                                                               const TensorDescriptor& outputDesc,
+                                                               Data_t output,
+                                                               float alpha,
+                                                               float gamma,
+                                                               miopenLossReductionMode_t reduction);
+
+MIOPEN_INTERNALS_EXPORT miopenStatus_t
+SigmoidFocalLossBackward(Handle& handle,
+                         const TensorDescriptor& inputDesc,
+                         ConstData_t input,
+                         const TensorDescriptor& targetDesc,
+                         ConstData_t target,
+                         const TensorDescriptor& doutputDesc,
+                         ConstData_t doutput,
+                         const TensorDescriptor& dinputDesc,
+                         Data_t dinput,
+                         const TensorDescriptor& dtargetDesc,
+                         Data_t dtarget,
+                         float alpha,
+                         float gamma,
+                         miopenLossReductionMode_t reduction);
 
 } // namespace miopen
 #endif // MIOPEN_SIGMOID_FOCAL_LOSS_HPP_
