@@ -35,11 +35,98 @@
 #include <miopen/graphapi/rng.hpp>
 #include <miopen/graphapi/util.hpp>
 #include <miopen/graphapi/variant_pack.hpp>
+#include <miopen/graphapi/convolution.hpp>
+#include <miopen/graphapi/conv_bias_res_add_activ_forward_executor.hpp>
 
 namespace miopen {
 namespace graphapi {
 
 GraphPatternMatcher::~GraphPatternMatcher() = default;
+
+class ConvBiasResAddActive_Fwd_Pattern : public GraphPatternMatcher
+{
+    static const OpGraph& getPatternGraph()
+    {
+        static auto graph_gen =
+            PatternGraphGenerator::Make({{"OP_CONVOLUTION_FORWARD", {"X", "W"}, {"T_C_0"}},
+                                         {"OP_POINTWISE:ADD", {"T_C_0", "Z"}, {"T_A_0"}},
+                                         {"OP_POINTWISE:ADD", {"T_A_0", "BIAS"}, {"T_A_1"}},
+                                         {"OP_POINTWISE:RELU_FWD", {"T_A_1"}, {"Y"}}});
+
+        return graph_gen->graph();
+    }
+
+    static bool IsBiasNode(OperationPointwise* addNode)
+    {
+        int notOneOrZeroCount = 0;
+        for(auto length : addNode->getX()->GetLengths())
+        {
+            if(length > size_t{1})
+            {
+                notOneOrZeroCount++;
+            }
+        }
+
+        // Assume bias node when at most one dimension is larger than 1.
+        return notOneOrZeroCount <= 1;
+    }
+
+public:
+    static std::unique_ptr<GraphPatternMatcher> Make()
+    {
+        return std::make_unique<ConvBiasResAddActive_Fwd_Pattern>();
+    }
+
+    std::string_view name() const final
+    {
+        static const char* n = "convbiasresaddactivation_fwd";
+        return n;
+    }
+
+    bool matches(const OpGraph* graph_ptr) const final
+    {
+        assert(graph_ptr);
+        return isIsomorphic(*graph_ptr, getPatternGraph());
+    }
+
+    std::vector<Engine> getEngines(OpGraph* graph_ptr) const override
+    {
+        assert(graph_ptr);
+        assert(matches(graph_ptr));
+        auto& graph = *graph_ptr;
+
+        auto* conv = dynamic_cast<OperationConvolutionForward*>(
+            graph.findOutNeighByName(graph.getSourceNode(), "OP_CONVOLUTION_FORWARD"));
+        assert(conv);
+
+        auto* add1 =
+            dynamic_cast<OperationPointwise*>(graph.findOutNeighByName(conv, "OP_POINTWISE:ADD"));
+        assert(add1);
+
+        auto* add2 =
+            dynamic_cast<OperationPointwise*>(graph.findOutNeighByName(add1, "OP_POINTWISE:ADD"));
+        assert(add2);
+
+        auto* activ = dynamic_cast<OperationPointwise*>(
+            graph.findOutNeighByName(add2, "OP_POINTWISE:RELU_FWD"));
+        assert(activ);
+
+        bool isBiasNode1 = IsBiasNode(add1);
+        bool isBiasNode2 = IsBiasNode(add2);
+
+        if(!isBiasNode1 && !isBiasNode2)
+        {
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "no bias node provided for graph matching ConvBiasResAddActive pattern");
+        }
+
+        auto [add, bias] = isBiasNode1 ? std::make_pair(add2, add1) : std::make_pair(add1, add2);
+
+        std::shared_ptr<GraphPatternExecutor> exec =
+            ConvBiasResAddActivForwardExecutor::make(conv, add, bias, activ);
+        return {EngineBuilder().setGraph(graph_ptr).setExecutor(exec).setGlobalIndex(0).build()};
+    }
+};
 
 class MHA_Fwd_F8_Pattern : public GraphPatternMatcher
 {
@@ -258,7 +345,6 @@ public:
 
     std::vector<Engine> getEngines(OpGraph* graph_ptr) const override
     {
-
         assert(graph_ptr);
         assert(matches(graph_ptr));
         auto& graph = *graph_ptr;
@@ -306,23 +392,13 @@ public:
     }
 };
 
-/*
-class FwdConvResAddBiasActPattern : public GraphPattern
-{
-public:
-    static std::unique_ptr<GraphPattern> Make()
-    {
-        return std::make_unique<FwdConvResAddBiasActPattern>();
-    }
-};
-*/
-
 std::vector<Engine> findEngines(OpGraph* graph)
 {
     assert(graph);
 
     std::vector<std::unique_ptr<GraphPatternMatcher>> patterns;
     patterns.emplace_back(MHA_Fwd_F8_Pattern::Make());
+    patterns.emplace_back(ConvBiasResAddActive_Fwd_Pattern::Make());
 
     for(const auto& p : patterns)
     {

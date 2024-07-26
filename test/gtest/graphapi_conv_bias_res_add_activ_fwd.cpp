@@ -45,9 +45,9 @@ namespace gr = miopen::graphapi;
 
 namespace conv_graph_api_test {
 
-bool TestIsApplicable() { return true; }
+static bool TestIsApplicable() { return true; }
 
-std::vector<Conv3DTestCase> ConvTestConfigs()
+static std::vector<Conv3DTestCase> ConvTestConfigs()
 { //         g, n, c, d,  h,  w, k,  z, y, x, pad_x pad_y pad_z stri_x stri_y stri_z dia_x dia_y
   //         dia_z
     return {{1, 1, 4, 14, 11, 1, 4, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
@@ -297,8 +297,9 @@ public:
                                                                  .setY(activationOutput)
                                                                  .build())));
 
-        auto& addTensorData  = graphTensorAllocator.LookupTensorData(addInputName);
-        auto& biasTensorData = graphTensorAllocator.LookupTensorData(biasInputName);
+        auto& addTensorData   = graphTensorAllocator.LookupTensorData(addInputName);
+        auto& biasTensorData  = graphTensorAllocator.LookupTensorData(biasInputName);
+        auto& activTensorData = graphTensorAllocator.LookupTensorData(activationOutputName);
 
         auto genValue = [](auto...) {
             return prng::gen_A_to_B(static_cast<T>(-3.0), static_cast<T>(3.0));
@@ -308,6 +309,7 @@ public:
         convWeightData.Init(genValue);
         addTensorData.Init(genValue);
         biasTensorData.Init(genValue);
+        activTensorData.Init([](auto...) { return 0; });
 
         auto& handle   = get_handle();
         auto handlePtr = static_cast<miopenHandle_t>(&handle);
@@ -316,78 +318,85 @@ public:
         ASSERT_NO_THROW(graph = std::move(graphBuilder).build());
         auto engines = gr::findEngines(&graph);
 
-        // No engines exist currently that can handle graphAPI fused convolution
-        EXPECT_EQUAL(engines.size(), 0);
+        ASSERT_GT(engines.size(), 0);
 
-        /// \todo uncomment below to execute plan, and run verification once engine implemented
-        /// --BrianHarrisonAMD July 2024
-        // ASSERT_GT(engines.size(), 0);
+        gr::EngineCfg engineConfig;
+        ASSERT_NO_THROW(engineConfig = gr::EngineCfgBuilder().setEngine(engines[0]).build());
 
-        // gr::EngineCfg engineConfig;
-        // ASSERT_NO_THROW(engineConfig = gr::EngineCfgBuilder().setEngine(engines[0]).build());
+        gr::ExecutionPlan plan;
+        ASSERT_NO_THROW(
+            plan =
+                gr::ExecutionPlanBuilder().setEngineCfg(engineConfig).setHandle(handlePtr).build());
 
-        // gr::ExecutionPlan plan;
-        // ASSERT_NO_THROW(plan =
-        // gr::ExecutionPlanBuilder().setEngineCfg(engineConfig).setHandle(handlePtr).build());
+        Workspace ws(plan.getWorkspaceSize());
 
-        // Workspace ws(plan.getWorkspaceSize());
+        gr::VariantPack variantPack;
+        ASSERT_NO_THROW(variantPack = graphTensorAllocator.MakeVariantPack(ws.ptr()));
 
-        // gr::VariantPack variantPack;
-        // ASSERT_NO_THROW(variantPack = graphTensorAllocator.MakeVariantPack(ws.ptr()));
+        ASSERT_NO_THROW(plan.execute(handlePtr, variantPack));
 
-        // ASSERT_NO_THROW(plan.execute(handlePtr, variantPack));
+        // Reference implementation for Y = activation(Conv(X,W) * alpha1 + Z * alpha2 + B)
+        auto referenceOutput = tensor<T>(convOutputDesc);
+        referenceOutput      = ref_conv_fwd(convInputData.mCpuTensor,
+                                       convWeightData.mCpuTensor,
+                                       referenceOutput,
+                                       convInputDescription);
 
-        // // Reference implementation for Y = activation(Conv(X,W) * alpha1 + Z * alpha2 + B)
-        // auto referenceOutput = tensor<T>(convOutputDesc);
-        // referenceOutput = ref_conv_fwd(convInputData.mCpuTensor, convWeightData.mCpuTensor,
-        // referenceOutput, convInputDescription);
+        auto& z    = addTensorData.mCpuTensor;
+        auto& bias = biasTensorData.mCpuTensor;
 
-        // auto& z = addTensorData.mCpuTensor;
-        // auto& bias = biasTensorData.mCpuTensor;
+        referenceOutput.par_for_each([&](auto n, auto k, auto... dhw) {
+            auto& o = referenceOutput(n, k, dhw...);
 
-        // referenceOutput.par_for_each([&](auto n, auto k, auto... dhw) {
-        //     auto& o = referenceOutput(n, k, dhw...);
+            o *= alpha1;
+            o += alpha2 * z(n, k, dhw...) + bias(0, k, 0, 0, 0);
+            o = (o > T{0}) ? o : T{0};
+        });
 
-        //     o *= alpha1;
-        //     o += alpha2 * z(n, k, dhw...) + bias(0, k, 0, 0, 0);
-        //     o = (o > T{0}) ? o : T{0};
-        // });
+        auto& activationOutputData = graphTensorAllocator.LookupTensorData(activationOutputName);
+        activationOutputData.CopyBack();
+        auto& output = activationOutputData.mCpuTensor;
 
-        // auto& activationOutputData = graphTensorAllocator.LookupTensorData(activationOutputName);
-        // activationOutputData.CopyBack();
-        // auto& output = activationOutputData.mCpuTensor;
+        EXPECT_FALSE(miopen::range_zero(referenceOutput)) << "Cpu data is all zeros";
+        EXPECT_FALSE(miopen::range_zero(output)) << "Gpu data is all zeros";
+        EXPECT_TRUE(miopen::range_distance(referenceOutput) == miopen::range_distance(output));
 
-        // EXPECT_FALSE(miopen::range_zero(referenceOutput)) << "Cpu data is all zeros";
-        // EXPECT_FALSE(miopen::range_zero(output)) << "Gpu data is all zeros";
-        // EXPECT_TRUE(miopen::range_distance(referenceOutput) == miopen::range_distance(output));
+        const double tolerance = 80;
+        double threshold       = std::numeric_limits<T>::epsilon() * tolerance;
+        auto error             = miopen::rms_range(referenceOutput, output);
 
-        // const double tolerance = 80;
-        // double threshold = std::numeric_limits<T>::epsilon() * tolerance;
-        // auto error = miopen::rms_range(referenceOutput, output);
+        EXPECT_FALSE(miopen::find_idx(referenceOutput, miopen::not_finite) >= 0)
+            << "Non finite number found in the CPU data";
 
-        // EXPECT_FALSE(miopen::find_idx(referenceOutput, miopen::not_finite) >= 0)
-        //     << "Non finite number found in the CPU data";
+        EXPECT_FALSE(miopen::find_idx(output, miopen::not_finite) >= 0)
+            << "Non finite number found in the GPU data";
 
-        // EXPECT_FALSE(miopen::find_idx(output, miopen::not_finite) >= 0)
-        //     << "Non finite number found in the GPU data";
-
-        // EXPECT_TRUE(error < threshold)
-        //     << "Error beyond tolerance Error:" << error << ",  Threshold: " << threshold;
+        EXPECT_TRUE(error < threshold)
+            << "Error beyond tolerance Error:" << error << ",  Threshold: " << threshold;
     }
-};
-
-struct GPU_ConvBiasResAddActivation_fwd_FP16 : GPU_ConvBiasResAddActivation_fwd<half_float::half>
-{
 };
 
 } // end namespace conv_graph_api_test
 using namespace conv_graph_api_test;
 
-TEST_P(GPU_ConvBiasResAddActivation_fwd_FP16, Test) { Run(); }
+#define DEFINE_GRAPH_API_CONV_BIAS_ACTIV_TEST(type, datatype, dir)                                      \
+    struct GPU_ConvBiasResAddActivation_##dir##_##type : GPU_ConvBiasResAddActivation_##dir<datatype>   \
+    {                                                                                                   \
+    };                                                                                                  \
+    TEST_P(GPU_ConvBiasResAddActivation_##dir##_##type, Test)                                           \
+    {                                                                                                   \
+        Run();                                                                                          \
+    }                                                                                                   \
+    INSTANTIATE_TEST_SUITE_P(                                                                           \
+        GPU_ConvBiasResAddActivation_##dir##_##type##_Suite,                                            \
+        GPU_ConvBiasResAddActivation_##dir##_##type,                                                    \
+        testing::Combine(                                                                               \
+            testing::ValuesIn(ConvTestConfigs()),                                                       \
+            testing::ValuesIn({1.0f, 2.5f}),                                                            \
+            testing::ValuesIn({1.0f, 2.0f}),                                                            \
+            testing::Values(miopenTensorNDHWC)));
 
-INSTANTIATE_TEST_SUITE_P(Full,
-                         GPU_ConvBiasResAddActivation_fwd_FP16,
-                         testing::Combine(testing::ValuesIn(ConvTestConfigs()),
-                                          testing::ValuesIn({1.0f, 2.5f}), // alpha1
-                                          testing::ValuesIn({1.0f, 2.0f}), // alpha2
-                                          testing::Values(miopenTensorNDHWC)));
+
+DEFINE_GRAPH_API_CONV_BIAS_ACTIV_TEST(FP16, half_float::half, fwd);
+DEFINE_GRAPH_API_CONV_BIAS_ACTIV_TEST(FP32, float, fwd);
+DEFINE_GRAPH_API_CONV_BIAS_ACTIV_TEST(BF16, bfloat16, fwd);

@@ -142,6 +142,7 @@ set( MIOpen_Source
     graphapi/rng.cpp
     graphapi/tensor.cpp
     graphapi/variant_pack.cpp
+    graphapi/conv_bias_res_add_activ_forward_executor.cpp
     groupnorm_api.cpp
     groupnorm/problem_description.cpp
     handle_api.cpp
