@@ -53,22 +53,22 @@ bool CheckFloatArg(std::string arg)
     return false;
 }
 
-struct PReLUTestFloat : PReLUTest<float>
+struct GPU_PReLU_bwd_FP32 : PReLUTest<float>
 {
 };
 
-struct PReLUTestHalf : PReLUTest<half>
+struct GPU_PReLU_bwd_FP16 : PReLUTest<half>
 {
 };
 
-struct PReLUTestBfloat16 : PReLUTest<bfloat16>
+struct GPU_PReLU_bwd_BFP16 : PReLUTest<bfloat16>
 {
 };
 
 } // namespace prelu
 using namespace prelu;
 
-TEST_P(PReLUTestFloat, PReLUTest)
+TEST_P(GPU_PReLU_bwd_FP32, Test)
 {
     if(CheckFloatArg("--float"))
     {
@@ -81,7 +81,7 @@ TEST_P(PReLUTestFloat, PReLUTest)
     }
 };
 
-TEST_P(PReLUTestHalf, PReLUTest)
+TEST_P(GPU_PReLU_bwd_FP16, Test)
 {
     if(CheckFloatArg("--half"))
     {
@@ -94,7 +94,7 @@ TEST_P(PReLUTestHalf, PReLUTest)
     }
 };
 
-TEST_P(PReLUTestBfloat16, PReLUTest)
+TEST_P(GPU_PReLU_bwd_BFP16, Test)
 {
     if(CheckFloatArg("--bfloat16"))
     {
@@ -107,6 +107,14 @@ TEST_P(PReLUTestBfloat16, PReLUTest)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(PReLUTestSet, PReLUTestFloat, testing::ValuesIn(PReLUTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(PReLUTestSet, PReLUTestHalf, testing::ValuesIn(PReLUTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(PReLUTestSet, PReLUTestBfloat16, testing::ValuesIn(PReLUTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_PReLU_bwd_FP32, testing::ValuesIn(PReLUSmokeTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_PReLU_bwd_FP16, testing::ValuesIn(PReLUSmokeTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_PReLU_bwd_BFP16, testing::ValuesIn(PReLUSmokeTestConfigs()));
+
+INSTANTIATE_TEST_SUITE_P(Full, GPU_PReLU_bwd_FP32, testing::ValuesIn(PReLUFullTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_PReLU_bwd_FP16, testing::ValuesIn(PReLUFullTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_PReLU_bwd_BFP16, testing::ValuesIn(PReLUFullTestConfigs()));
+
+INSTANTIATE_TEST_SUITE_P(Perf, GPU_PReLU_bwd_FP32, testing::ValuesIn(PReLUPerfTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Perf, GPU_PReLU_bwd_FP16, testing::ValuesIn(PReLUPerfTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Perf, GPU_PReLU_bwd_BFP16, testing::ValuesIn(PReLUPerfTestConfigs()));
