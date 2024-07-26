@@ -24,7 +24,7 @@
  *
  *******************************************************************************/
 
-#include "miopen/datatype.hpp"
+#include <miopen/datatype.hpp>
 #include <miopen/glu/problem_description.hpp>
 #include <miopen/names.hpp>
 
@@ -46,42 +46,30 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
 
 NetworkConfig ProblemDescription::MakeForwardNetworkConfig() const
 {
-    auto inputlength = inputDesc.GetLengths();
-
-    auto input_numel = std::accumulate(
-        inputlength.begin(), inputlength.end(), static_cast<size_t>(1), std::multiplies<size_t>());
-
-    auto input_dtype  = miopen::GetDataType(inputDesc.GetType());
-    auto output_dtype = miopen::GetDataType(outputDesc.GetType());
+    auto input_numel = inputDesc.GetElementSize();
+    auto io_dtype    = miopen::GetDataType(inputDesc.GetType());
 
     std::ostringstream ss;
 
-    ss << "input_dtype" << input_dtype;
-    ss << "output_dtype" << output_dtype;
+    ss << "io_dtype" << io_dtype;
     ss << "dim" << dim;
     ss << "input_numel" << input_numel;
-    ss << IsAllPacked();
+    ss << IsAllContiguous();
 
     return NetworkConfig{ss.str()};
 }
 
 NetworkConfig ProblemDescription::MakeBackwardNetworkConfig() const
 {
-    auto inputlength = inputDesc.GetLengths();
-
-    auto input_numel = std::accumulate(
-        inputlength.begin(), inputlength.end(), static_cast<size_t>(1), std::multiplies<size_t>());
-
-    auto input_dtype     = miopen::GetDataType(inputDesc.GetType());
-    auto inputGrad_dtype = miopen::GetDataType(inputGradDesc.GetType());
+    auto input_numel = inputDesc.GetElementSize();
+    auto io_dtype    = miopen::GetDataType(inputDesc.GetType());
 
     std::ostringstream ss;
 
-    ss << "input_dtype" << input_dtype;
-    ss << "inputGrad_dtype" << inputGrad_dtype;
+    ss << "input_dtype" << io_dtype;
     ss << "dim" << dim;
     ss << "input_numel" << input_numel;
-    ss << IsAllPacked();
+    ss << IsAllContiguous();
 
     return NetworkConfig{ss.str()};
 }

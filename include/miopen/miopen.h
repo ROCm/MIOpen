@@ -7549,40 +7549,40 @@ miopenTransformersAdamWWithOutput(miopenHandle_t handle,
 /*! @brief Execute a GLU forward layer
  *
  * @param handle                   MIOpen handle (input)
- * @param inputDesc                Tensor descriptor for data input tensor (input)
- * @param input                    Input data tensor (input)
+ * @param inputDesc                Tensor descriptor for input tensor (input)
+ * @param input                    Input tensor (input)
+ * @param outputDesc               Tensor descriptor for output tensor (input)
+ * @param output                   Output tensor (output)
  * @param dim                      Dimension to split the input (input)
- * @param outputDesc               Tensor descriptor for output data tensor (input)
- * @param output                   Output data tensor (output)
  * @return                         miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t miopenGLUForward(miopenHandle_t handle,
                                               const miopenTensorDescriptor_t inputDesc,
                                               void* input,
-                                              const int32_t dim,
                                               const miopenTensorDescriptor_t outputDesc,
-                                              void* output);
+                                              void* output,
+                                              const int64_t dim);
 
 /*! @brief Execute a GLU backward layer
  *
  * @param handle                   MIOpen handle (input)
- * @param inputDesc                Tensor descriptor for data input tensor (input)
- * @param input                    Input data tensor (input)
- * @param inputGradDesc            Tensor descriptor for delta input data tensor (input)
- * @param inputGrad                Delta input data tensor (output)
- * @param outputGradDesc           Tensor descriptor for delta output data tensor (input)
- * @param outputGrad               Delta output data tensor (input)
+ * @param inputDesc                Tensor descriptor for input tensor (input)
+ * @param input                    Input tensor (input)
+ * @param outputGradDesc           Tensor descriptor for delta output tensor (input)
+ * @param outputGrad               Delta output tensor (input)
+ * @param inputGradDesc            Tensor descriptor for delta input tensor (input)
+ * @param inputGrad                Delta input tensor (output)
  * @param dim                      Dimension to split the input (input)
  * @return                         miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t miopenGLUBackward(miopenHandle_t handle,
                                                const miopenTensorDescriptor_t inputDesc,
                                                void* input,
-                                               const miopenTensorDescriptor_t inputGradDesc,
-                                               void* inputGrad,
                                                const miopenTensorDescriptor_t outputGradDesc,
                                                void* outputGrad,
-                                               const int32_t dim);
+                                               const miopenTensorDescriptor_t inputGradDesc,
+                                               void* inputGrad,
+                                               const int64_t dim);
 
 /** @} */
 // CLOSEOUT BackendAPI DOXYGEN GROUP

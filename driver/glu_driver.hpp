@@ -28,19 +28,19 @@
 
 #include "InputFlags.hpp"
 #include "driver.hpp"
+#include "miopen/errors.hpp"
 #include "tensor_driver.hpp"
-#include <algorithm>
-#include <cstdint>
-#include <cstdlib>
-#include <cfloat>
-#include <memory>
-#include <miopen/miopen.h>
-#include <miopen/tensor.hpp>
-#include <numeric>
-#include <vector>
 #include "random.hpp"
 #include "timer.hpp"
 #include "../test/verify.hpp"
+
+#include <cstdint>
+#include <cstdlib>
+#include <memory>
+#include <vector>
+
+#include <miopen/miopen.h>
+#include <miopen/tensor.hpp>
 
 #ifndef MLO_GLUHOST_H_
 #define MLO_GLUHOST_H_
@@ -52,15 +52,10 @@ T sigmoid(T x)
 }
 
 template <typename Tgpu, typename Tcheck>
-int32_t mloGLUForwardContiguousRunHost(miopenTensorDescriptor_t inputDesc,
-                                       Tgpu* input,
-                                       miopenTensorDescriptor_t outputDesc,
-                                       Tcheck* outputHost)
+int32_t
+mloGLUForwardContiguousRunHost(Tgpu* input, miopenTensorDescriptor_t outputDesc, Tcheck* outputHost)
 {
-    auto output_dims = miopen::deref(outputDesc).GetLengths();
-
-    auto output_numel =
-        std::accumulate(output_dims.begin(), output_dims.end(), 1L, std::multiplies<int64_t>());
+    auto output_numel    = miopen::deref(outputDesc).GetElementSize();
     auto inputFirstHalf  = input;
     auto inputSecondHalf = input + output_numel;
 
@@ -78,17 +73,12 @@ int32_t mloGLUForwardContiguousRunHost(miopenTensorDescriptor_t inputDesc,
 }
 
 template <typename Tgpu, typename Tcheck>
-int32_t mloGLUBackwardCongiguousRunHost(miopenTensorDescriptor_t inputDesc,
-                                        Tgpu* input,
+int32_t mloGLUBackwardCongiguousRunHost(Tgpu* input,
                                         miopenTensorDescriptor_t outputGradDesc,
                                         Tgpu* outputGrad,
-                                        miopenTensorDescriptor_t inputGradDesc,
                                         Tcheck* inputGradHost)
 {
-    auto outputGrad_dims = miopen::deref(outputGradDesc).GetLengths();
-
-    auto outputGrad_numel = std::accumulate(
-        outputGrad_dims.begin(), outputGrad_dims.end(), 1L, std::multiplies<int64_t>());
+    auto outputGrad_numel     = miopen::deref(outputGradDesc).GetElementSize();
     auto inputFirstHalf       = input;
     auto inputSecondHalf      = input + outputGrad_numel;
     auto inputFistHalf_grad   = inputGradHost;
@@ -179,7 +169,7 @@ private:
     std::vector<Tgpu> outGrad;
     std::vector<Tref> inGradhost;
 
-    int dim;
+    int64_t dim;
 };
 
 template <typename Tgpu, typename Tref>
@@ -199,7 +189,7 @@ int GLUDriver<Tgpu, Tref>::GetandSetData()
 {
     SetBNParametersFromCmdLineArgs();
 
-    std::vector<int> in_len = GetInputTensorLengthsFromCmdLine();
+    std::vector<int> in_len = inflags.GetValueTensor("dim-lengths").lengths;
     dim                     = inflags.GetValueInt("DimToSplit");
 
     SetTensorNd(inputTensor, in_len, data_type);
@@ -238,12 +228,8 @@ int GLUDriver<Tgpu, Tref>::AddCmdLineArgs()
                          "1",
                          "Run only Forward (1) or Run both Forward and Backward (0) (Default=1)",
                          "int");
-    inflags.AddInputFlag("batchsize", 'n', "100", "Mini-batch size (Default=100)", "int");
-    inflags.AddInputFlag("in_channels", 'c', "3", "Number of Input Channels (Default=3)", "int");
-    inflags.AddInputFlag("in_d", 'D', "0", "Input Depth (Default=0)", "int");
-    inflags.AddInputFlag("in_h", 'H', "32", "Input Height (Default=32)", "int");
-    inflags.AddInputFlag("in_w", 'W', "32", "Input Width (Default=32)", "int");
-
+    inflags.AddTensorFlag(
+        "dim-lengths", 'D', "256x512", "The dimensional lengths of the input tensor");
     inflags.AddInputFlag(
         "DimToSplit", 'R', "0", "The indice of the dimensions to be split half(Default=0)", "int");
     inflags.AddInputFlag("iter", 'i', "10", "Number of Iterations (Default=10)", "int");
@@ -253,42 +239,6 @@ int GLUDriver<Tgpu, Tref>::AddCmdLineArgs()
         "wall", 'w', "0", "Wall-clock Time Each Layer, Requires time == 1 (Default=0)", "int");
 
     return miopenStatusSuccess;
-}
-
-template <typename Tgpu, typename Tref>
-std::vector<int> GLUDriver<Tgpu, Tref>::GetInputTensorLengthsFromCmdLine()
-{
-    int in_n = inflags.GetValueInt("batchsize");
-    int in_c = inflags.GetValueInt("in_channels");
-    int in_d = inflags.GetValueInt("in_d");
-    int in_h = inflags.GetValueInt("in_h");
-    int in_w = inflags.GetValueInt("in_w");
-
-    if((in_n != 0) && (in_c != 0) && (in_d != 0) && (in_h != 0) && (in_w != 0))
-    {
-        return std::vector<int>({in_n, in_c, in_d, in_h, in_w});
-    }
-    else if((in_n != 0) && (in_c != 0) && (in_h != 0) && (in_w != 0))
-    {
-        return std::vector<int>({in_n, in_c, in_h, in_w});
-    }
-    else if((in_n != 0) && (in_c != 0) && (in_w != 0))
-    {
-        return std::vector<int>({in_n, in_c, in_w});
-    }
-    else if((in_n != 0) && (in_w != 0))
-    {
-        return std::vector<int>({in_n, in_w});
-    }
-    else if(in_n != 0)
-    {
-        return std::vector<int>({in_n});
-    }
-    else
-    {
-        std::cerr << "Error Input Tensor Lengths\n" << std::endl;
-        return std::vector<int>({0});
-    }
 }
 
 template <typename Tgpu, typename Tref>
@@ -396,7 +346,7 @@ int GLUDriver<Tgpu, Tref>::RunForwardGPU()
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
         miopenGLUForward(
-            GetHandle(), inputTensor, in_dev->GetMem(), dim, outputTensor, out_dev->GetMem());
+            GetHandle(), inputTensor, in_dev->GetMem(), outputTensor, out_dev->GetMem(), dim);
 
         float time = 0.0;
         miopenGetKernelTime(GetHandle(), &time);
@@ -427,8 +377,7 @@ int GLUDriver<Tgpu, Tref>::RunForwardGPU()
 template <typename Tgpu, typename Tref>
 int GLUDriver<Tgpu, Tref>::RunForwardCPU()
 {
-    mloGLUForwardContiguousRunHost<Tgpu, Tref>(
-        inputTensor, in.data(), outputTensor, outhost.data());
+    mloGLUForwardContiguousRunHost<Tgpu, Tref>(in.data(), outputTensor, outhost.data());
 
     return miopenStatusSuccess;
 }
@@ -445,10 +394,10 @@ int GLUDriver<Tgpu, Tref>::RunBackwardGPU()
         miopenGLUBackward(GetHandle(),
                           inputTensor,
                           in_dev->GetMem(),
-                          inputTensorGrad,
-                          inGrad_dev->GetMem(),
                           outputTensorGrad,
                           outGrad_dev->GetMem(),
+                          inputTensorGrad,
+                          inGrad_dev->GetMem(),
                           dim);
         float time = 0.0;
         miopenGetKernelTime(GetHandle(), &time);
@@ -513,12 +462,8 @@ int GLUDriver<Tgpu, Tref>::VerifyForward()
 template <typename Tgpu, typename Tref>
 int GLUDriver<Tgpu, Tref>::RunBackwardCPU()
 {
-    mloGLUBackwardCongiguousRunHost<Tgpu, Tref>(inputTensor,
-                                                in.data(),
-                                                outputTensorGrad,
-                                                outGrad.data(),
-                                                inputTensorGrad,
-                                                inGradhost.data());
+    mloGLUBackwardCongiguousRunHost<Tgpu, Tref>(
+        in.data(), outputTensorGrad, outGrad.data(), inGradhost.data());
 
     return miopenStatusSuccess;
 }

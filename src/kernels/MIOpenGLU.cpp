@@ -32,12 +32,12 @@
 
 __device__ FLOAT_ACCUM sigmoid(FLOAT_ACCUM x) { return 1.0f / (1.0f + exp(-x)); }
 
-template <typename TI, typename TO>
-__device__ void GLUFwdContiguousKernel(const TI* input, TO* output, long N)
+template <typename TIO>
+__device__ void GLUFwdContiguousKernel(const TIO* input, TIO* output, long N)
 {
-    const TI* inputFirstHalf  = input;
-    const TI* inputSecondHalf = input + N;
-    const size_t gid          = blockIdx.x * blockDim.x + threadIdx.x;
+    const TIO* inputFirstHalf  = input;
+    const TIO* inputSecondHalf = input + N;
+    const size_t gid           = blockIdx.x * blockDim.x + threadIdx.x;
     if(gid >= N)
         return;
 
@@ -47,15 +47,15 @@ __device__ void GLUFwdContiguousKernel(const TI* input, TO* output, long N)
     output[gid]      = CVT_ACCUM2FLOAT(val);
 }
 
-template <typename TI, typename TO>
+template <typename TIO>
 __device__ void
-GLUBwdContiguousKernel(const TI* input, const TI* output_grad, TO* input_grad, long N)
+GLUBwdContiguousKernel(const TIO* input, const TIO* output_grad, TIO* input_grad, long N)
 {
-    const TI* inputFirstHalf  = input;
-    const TI* inputSecondHalf = input + N;
-    TO* inputFirstHalf_grad   = input_grad;
-    TO* inputSecondHalf_grad  = input_grad + N;
-    const size_t gid          = blockIdx.x * blockDim.x + threadIdx.x;
+    const TIO* inputFirstHalf  = input;
+    const TIO* inputSecondHalf = input + N;
+    TIO* inputFirstHalf_grad   = input_grad;
+    TIO* inputSecondHalf_grad  = input_grad + N;
+    const size_t gid           = blockIdx.x * blockDim.x + threadIdx.x;
     if(gid >= N)
         return;
 
@@ -68,15 +68,13 @@ GLUBwdContiguousKernel(const TI* input, const TI* output_grad, TO* input_grad, l
         CVT_ACCUM2FLOAT((1 - sigmoid_v) * sigmoid_v * grad_v * inputFirstHalf_v);
 }
 
-extern "C" __global__ void GLUFwdContiguous(const INPUT_TYPE* input, OUTPUT_TYPE* output, long N)
+extern "C" __global__ void GLUFwdContiguous(const IO_TYPE* input, IO_TYPE* output, long N)
 {
-    GLUFwdContiguousKernel<INPUT_TYPE, OUTPUT_TYPE>(input, output, N);
+    GLUFwdContiguousKernel<IO_TYPE>(input, output, N);
 }
 
-extern "C" __global__ void GLUBwdContiguous(const INPUT_TYPE* input,
-                                            const INPUT_TYPE* output_grad,
-                                            OUTPUT_TYPE* input_grad,
-                                            long N)
+extern "C" __global__ void
+GLUBwdContiguous(const IO_TYPE* input, const IO_TYPE* output_grad, IO_TYPE* input_grad, long N)
 {
-    GLUBwdContiguousKernel<INPUT_TYPE, OUTPUT_TYPE>(input, output_grad, input_grad, N);
+    GLUBwdContiguousKernel<IO_TYPE>(input, output_grad, input_grad, N);
 }

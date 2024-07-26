@@ -24,8 +24,8 @@
  *
  *******************************************************************************/
 
-#include "miopen/kernel_info.hpp"
-#include "miopen/mlo_internal.hpp"
+#include <miopen/kernel_info.hpp>
+#include <miopen/mlo_internal.hpp>
 #include <cstddef>
 #include <miopen/datatype.hpp>
 #include <miopen/kernel_build_params.hpp>
@@ -45,14 +45,9 @@ namespace glu {
 bool GLUForward::IsApplicable(const ExecutionContext& context,
                               const miopen::glu::ProblemDescription& problem) const
 {
-    std::ignore    = context;
-    auto inputDims = problem.GetInputDesc().GetLengths();
-    auto input_numel =
-        std::accumulate(inputDims.begin(), inputDims.end(), 1, std::multiplies<int32_t>());
-
-    if(!problem.IsSameType())
-        return false;
-    if(!problem.IsAllPacked())
+    std::ignore      = context;
+    auto input_numel = problem.GetInputDesc().GetElementSize();
+    if(!problem.IsAllContiguous())
         return false;
     if(!problem.IsFirstDim())
         return false;
@@ -70,11 +65,8 @@ ConvSolution GLUForward::GetSolution(const ExecutionContext& context,
 
     {
         auto dtype        = problem.GetInputDesc().GetType();
-        auto input_dtype  = miopen::GetDataType(problem.GetInputDesc().GetType());
-        auto output_dtype = miopen::GetDataType(problem.GetOutputDesc().GetType());
-        auto outputDims   = problem.GetOutputDesc().GetLengths();
-        auto output_numel =
-            std::accumulate(outputDims.begin(), outputDims.end(), 1ULL, std::multiplies<size_t>());
+        auto io_dtype     = miopen::GetDataType(problem.GetInputDesc().GetType());
+        auto output_numel = problem.GetOutputDesc().GetElementSize();
 
         size_t xlocalsize = LOCAL_SIZE;
         size_t xgridsize  = AlignUp(output_numel, xlocalsize);
@@ -88,13 +80,12 @@ ConvSolution GLUForward::GetSolution(const ExecutionContext& context,
         kernel.kernel_file = "MIOpenGLU.cpp";
         kernel.kernel_name = "GLUFwdContiguous";
 
-        const auto build_params = KernelBuildParameters{
-            {"MIOPEN_USE_FP16", static_cast<int>(dtype == miopenHalf)},
-            {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
-            {"MIOPEN_USE_FP64", static_cast<int>(dtype == miopenDouble)},
-            {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
-            {"INPUT_TYPE", input_dtype == "bfloat16" ? "ushort" : input_dtype},
-            {"OUTPUT_TYPE", output_dtype == "bfloat16" ? "ushort" : output_dtype}};
+        const auto build_params =
+            KernelBuildParameters{{"MIOPEN_USE_FP16", static_cast<int>(dtype == miopenHalf)},
+                                  {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
+                                  {"MIOPEN_USE_FP64", static_cast<int>(dtype == miopenDouble)},
+                                  {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
+                                  {"IO_TYPE", io_dtype == "bfloat16" ? "ushort" : io_dtype}};
 
         kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
 

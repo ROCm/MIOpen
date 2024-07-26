@@ -24,61 +24,40 @@
  *
  *******************************************************************************/
 
-#include "../driver/tensor_driver.hpp"
 #include "cpu_glu.hpp"
 #include "get_handle.hpp"
-#include "miopen/allocator.hpp"
 #include "random.hpp"
 #include "tensor_holder.hpp"
 #include "verify.hpp"
+
 #include <algorithm>
-#include <cmath>
 #include <gtest/gtest.h>
+
+#include <miopen/allocator.hpp>
 #include <miopen/miopen.h>
 #include <miopen/glu.hpp>
-#include <numeric>
+#include <vector>
 
 struct GLUTestCase
 {
-    size_t N;
-    size_t C;
-    size_t D;
-    size_t H;
-    size_t W;
-    int32_t dim;
+    std::vector<size_t> dimsLength;
+    int64_t dim;
     friend std::ostream& operator<<(std::ostream& os, const GLUTestCase& tc)
     {
-        return os << " N:" << tc.N << " C:" << tc.C << " D:" << tc.D << " H:" << tc.H
-                  << " W:" << tc.W << " dim:" << tc.dim;
+        os << "Dims Length: ";
+        for(auto len : tc.dimsLength)
+        {
+            os << len << " ";
+        }
+        return os << " dim:" << tc.dim;
     }
 
-    std::vector<size_t> GetInput()
+    std::vector<size_t> GetDimsLength() const { return dimsLength; }
+
+    GLUTestCase() {}
+
+    GLUTestCase(std::vector<size_t> dimsLength_, int64_t dim_) : dimsLength(dimsLength_), dim(dim_)
     {
-        if((N != 0) && (C != 0) && (D != 0) && (H != 0) && (W != 0))
-        {
-            return std::vector<size_t>({N, C, D, H, W});
-        }
-        else if((N != 0) && (C != 0) && (H != 0) && (W != 0))
-        {
-            return std::vector<size_t>({N, C, H, W});
-        }
-        else if((N != 0) && (C != 0) && (W != 0))
-        {
-            return std::vector<size_t>({N, C, W});
-        }
-        else if((N != 0) && (W != 0))
-        {
-            return std::vector<size_t>({N, W});
-        }
-        else if((N != 0))
-        {
-            return std::vector<size_t>({N});
-        }
-        else
-        {
-            std::cout << "Error Input Tensor Lengths\n" << std::endl;
-            return std::vector<size_t>({0});
-        }
     }
 };
 
@@ -86,13 +65,13 @@ std::vector<GLUTestCase> GLUTestConfigs()
 { // n c d h w dim
     // clang-format off
     return {
-        { 2,    320,   4,  4,   4,    0},
-        { 32,    64,   3,  3,    3,     0},
-        { 64,    3,  0,  11,    11,     0},
-        { 256,    256,  0,  1,    1,     0},
-        { 64,    64,  0,  7,    7,     0},
-        { 64,    32,  0,  7,    7,     0},
-        { 32,    32,  0,  7,    7,     0}
+        GLUTestCase({2, 320, 4, 4, 4}, 0),
+        GLUTestCase({32, 64, 3, 3, 3}, 0),
+        GLUTestCase({64, 3, 0, 11, 11}, 0),
+        GLUTestCase({256, 256, 0, 1, 1}, 0),
+        GLUTestCase({64, 64, 0, 7, 7}, 0),
+        GLUTestCase({64, 32, 0, 7, 7}, 0),
+        GLUTestCase({32, 32, 0, 7, 7}, 0)
       };
     // clang-format on
 }
@@ -110,7 +89,7 @@ protected:
 
         dim = glu_config.dim;
 
-        auto in_dims = glu_config.GetInput();
+        auto in_dims = glu_config.GetDimsLength();
 
         input = tensor<T>{in_dims}.generate(gen_value);
 
@@ -146,7 +125,7 @@ protected:
         miopenStatus_t status;
 
         status = miopen::GLUForward(
-            handle, input.desc, input_dev.get(), dim, output.desc, output_dev.get());
+            handle, input.desc, input_dev.get(), output.desc, output_dev.get(), dim);
 
         EXPECT_EQ(status, miopenStatusSuccess);
 
@@ -200,7 +179,7 @@ protected:
 
         dim = glu_config.dim;
 
-        auto in_dims = glu_config.GetInput();
+        auto in_dims = glu_config.GetDimsLength();
 
         input     = tensor<T>{in_dims}.generate(gen_value);
         inputGrad = tensor<T>{in_dims};
@@ -240,10 +219,10 @@ protected:
         status = miopen::GLUBackward(handle,
                                      input.desc,
                                      input_dev.get(),
-                                     inputGrad.desc,
-                                     inputGrad_dev.get(),
                                      outputGrad.desc,
                                      outputGrad_dev.get(),
+                                     inputGrad.desc,
+                                     inputGrad_dev.get(),
                                      dim);
 
         EXPECT_EQ(status, miopenStatusSuccess);
@@ -284,5 +263,5 @@ protected:
     miopen::Allocator::ManageDataPtr inputGrad_dev;
     miopen::Allocator::ManageDataPtr outputGrad_dev;
 
-    int32_t dim;
+    int64_t dim;
 };

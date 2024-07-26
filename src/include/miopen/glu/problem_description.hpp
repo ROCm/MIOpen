@@ -31,8 +31,6 @@
 #include <miopen/tensor.hpp>
 #include <miopen/activ.hpp>
 
-#include <string>
-
 namespace miopen {
 
 struct NetworkConfig;
@@ -50,14 +48,22 @@ struct ProblemDescription : ProblemDescriptionBase
     // Forward constructor
     ProblemDescription(const TensorDescriptor& inputDesc_,
                        const TensorDescriptor& outputDesc_,
-                       int32_t dim_)
+                       int64_t dim_)
         : direction(Direction::Forward), inputDesc(inputDesc_), outputDesc(outputDesc_), dim(dim_)
     {
-        if(inputDesc.GetLengths().size() != outputDesc.GetLengths().size())
+        if(inputDesc.GetNumDims() != outputDesc.GetNumDims())
         {
             MIOPEN_THROW(miopenStatusBadParm,
-                         "GLU::ProblemDescription: Number of tensor dimension do not match.");
+                         "GLU::ProblemDescription: Number of dimensions between input and output "
+                         "tensor do not match.");
         }
+
+        if(dim < 0 || dim >= inputDesc.GetNumDims())
+        {
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "GLU::ProblemDescription: Dimension is out of range.");
+        }
+
         if(inputDesc.GetLengths()[dim] % 2 != 0)
         {
             MIOPEN_THROW(miopenStatusBadParm,
@@ -65,7 +71,7 @@ struct ProblemDescription : ProblemDescriptionBase
                          "be divisible by 2.");
         }
 
-        for(int32_t i = 0; i < inputDesc.GetLengths().size(); i++)
+        for(int64_t i = 0; i < inputDesc.GetNumDims(); i++)
         {
             if(i == dim)
             {
@@ -86,24 +92,37 @@ struct ProblemDescription : ProblemDescriptionBase
                 }
             }
         }
+
+        if(!IsSameType())
+        {
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "GLU::ProblemDescription: Tensor types do not match.");
+        }
     }
 
     // Backward constructor
     ProblemDescription(const TensorDescriptor& inputDesc_,
-                       const TensorDescriptor& inputGradDesc_,
                        const TensorDescriptor& outputGradDesc_,
-                       int32_t dim_)
+                       const TensorDescriptor& inputGradDesc_,
+                       int64_t dim_)
         : direction(Direction::Backward),
           inputDesc(inputDesc_),
-          inputGradDesc(inputGradDesc_),
           outputGradDesc(outputGradDesc_),
+          inputGradDesc(inputGradDesc_),
           dim(dim_)
     {
-        if(inputDesc.GetLengths().size() != inputGradDesc.GetLengths().size() ||
-           inputDesc.GetLengths().size() != outputGradDesc.GetLengths().size())
+        if(inputDesc.GetNumDims() != inputGradDesc.GetNumDims() ||
+           inputDesc.GetNumDims() != outputGradDesc.GetNumDims())
         {
             MIOPEN_THROW(miopenStatusBadParm,
-                         "GLU::ProblemDescription: Number of tensor dimension do not match.");
+                         "GLU::ProblemDescription: Number of tensor dimensions between input and "
+                         "output tensor do not match.");
+        }
+
+        if(dim < 0 || dim >= inputDesc.GetNumDims())
+        {
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "GLU::ProblemDescription: Dimension is out of range.");
         }
 
         if(inputDesc.GetLengths()[dim] % 2 != 0)
@@ -113,7 +132,7 @@ struct ProblemDescription : ProblemDescriptionBase
                          "be divisible by 2.");
         }
 
-        for(int32_t i = 0; i < inputDesc.GetLengths().size(); i++)
+        for(int64_t i = 0; i < inputDesc.GetNumDims(); i++)
         {
             if(i == dim)
             {
@@ -143,7 +162,7 @@ struct ProblemDescription : ProblemDescriptionBase
     const TensorDescriptor& GetInputGradDesc() const { return inputGradDesc; }
     const TensorDescriptor& GetOutputDesc() const { return outputDesc; }
     const TensorDescriptor& GetOutputGradDesc() const { return outputGradDesc; }
-    int32_t GetDim() const { return dim; }
+    int64_t GetDim() const { return dim; }
 
     bool IsSameType() const
     {
@@ -166,18 +185,19 @@ struct ProblemDescription : ProblemDescriptionBase
         return true;
     }
 
-    bool IsAllPacked() const
+    bool IsAllContiguous() const
     {
         if(direction == Direction::Forward)
         {
-            if(!(inputDesc.IsPacked() && outputDesc.IsPacked()))
+            if(!(inputDesc.IsContiguous() && outputDesc.IsContiguous()))
             {
                 return false;
             }
         }
         else
         {
-            if(!(inputDesc.IsPacked() && inputGradDesc.IsPacked() && outputGradDesc.IsPacked()))
+            if(!(inputDesc.IsContiguous() && inputGradDesc.IsContiguous() &&
+                 outputGradDesc.IsContiguous()))
             {
                 return false;
             }
@@ -200,11 +220,11 @@ struct ProblemDescription : ProblemDescriptionBase
 private:
     Direction direction;
     TensorDescriptor inputDesc;
-    TensorDescriptor inputGradDesc;
     TensorDescriptor outputDesc;
     TensorDescriptor outputGradDesc;
+    TensorDescriptor inputGradDesc;
 
-    int32_t dim;
+    int64_t dim;
 
     NetworkConfig MakeForwardNetworkConfig() const;
     NetworkConfig MakeBackwardNetworkConfig() const;
