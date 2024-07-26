@@ -27,6 +27,7 @@
 #pragma once
 
 #define NUM_PERF_RUNS 5
+#define NUM_WARMUP_RUNS 3
 
 template <typename T>
 struct PerfHelper
@@ -173,12 +174,13 @@ struct PerfHelper
             handle.ResetKernelTime(); // for good measure?
         }
         // Optionally ignore the first few runs to allow for warm-up
-        for(size_t i = 0; i < NUM_PERF_RUNS; i++)
+        for(size_t i = 0; i < NUM_PERF_RUNS + NUM_WARMUP_RUNS; i++)
         {
             // Execute the kernel
             kernels.front()(std::forward<Args>(args)...);
             // Append the elapsed time to the vector
-            elapsedTime_ms.push_back(handle.GetKernelTime());
+            if(i >= NUM_WARMUP_RUNS)
+                elapsedTime_ms.push_back(handle.GetKernelTime());
             handle.ResetKernelTime();
         }
 

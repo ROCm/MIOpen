@@ -749,20 +749,20 @@ std::vector<DropoutTestCase> DropoutTestConfigs()
         if(miopen::StartsWith(handle.GetDeviceName(), "gfx90a") ||
            miopen::StartsWith(handle.GetDeviceName(), "gfx908"))
         {
-            maxTotalSize = 16; // 8MB L2
+            maxTotalSize = 16; // twice the 8MB L2
         }
         else if(miopen::StartsWith(handle.GetDeviceName(), "gfx803"))
         {
-            maxTotalSize = 4; // 2MB L2
+            maxTotalSize = 4; // twice the 2MB L2
         }
         else if(miopen::StartsWith(handle.GetDeviceName(), "gfx900") ||
                 miopen::StartsWith(handle.GetDeviceName(), "gfx906"))
         {
-            maxTotalSize = 8; // 4MB L2
+            maxTotalSize = 8; // twice the 4MB L2
         }
         else if(miopen::StartsWith(handle.GetDeviceName(), "gfx942"))
         {
-            maxTotalSize = 256; // 128MB L3
+            maxTotalSize = 256; // 256MB L3
         }
         else if(miopen::StartsWith(handle.GetDeviceName(), "gfx103"))
         {
@@ -770,8 +770,10 @@ std::vector<DropoutTestCase> DropoutTestConfigs()
         }
         else
         {
-            maxTotalSize = 4; // 2MB L2, default case.
+            maxTotalSize = 4; // twice the 2MB L2, default case.
         }
+
+        maxTotalSize = maxTotalSize * 1024ull * 1024ull / sizeof(T);
 
         for(size_t N = 1; N <= maxTotalSize; N *= 2)
         {
