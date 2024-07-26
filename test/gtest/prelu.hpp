@@ -185,11 +185,14 @@ protected:
 
         auto error_dinput  = miopen::rms_range(ref_dinput, dinput);
         auto error_dweight = miopen::rms_range(ref_dweight, dweight);
-        EXPECT_TRUE(miopen::range_distance(ref_dinput) == miopen::range_distance(dinput));
-        EXPECT_TRUE(miopen::range_distance(ref_dweight) == miopen::range_distance(dweight));
-        EXPECT_TRUE(error_dinput < tolerance && error_dweight < tolerance)
-            << "Error backward output beyond tolerance Error: {" << error_dinput << ","
-            << error_dweight << "},  Tolerance: " << tolerance;
+        ASSERT_EQ(miopen::range_distance(ref_dinput), miopen::range_distance(dinput));
+        ASSERT_EQ(miopen::range_distance(ref_dweight), miopen::range_distance(dweight));
+        EXPECT_LT(error_dinput, tolerance)
+            << "Error backward Input Gradient beyond tolerance Error: " << error_dinput
+            << ",  Tolerance: " << tolerance;
+        EXPECT_LT(error_dweight, tolerance)
+            << "Error backward Weight Gradient beyond tolerance Error: " << error_dweight
+            << ",  Tolerance: " << tolerance;
     }
 
     PReLUTestCase prelu_config;
