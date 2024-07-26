@@ -378,23 +378,18 @@ public:
 } // end namespace conv_graph_api_test
 using namespace conv_graph_api_test;
 
-#define DEFINE_GRAPH_API_CONV_BIAS_ACTIV_TEST(type, datatype, dir)                                      \
-    struct GPU_ConvBiasResAddActivation_##dir##_##type : GPU_ConvBiasResAddActivation_##dir<datatype>   \
-    {                                                                                                   \
-    };                                                                                                  \
-    TEST_P(GPU_ConvBiasResAddActivation_##dir##_##type, Test)                                           \
-    {                                                                                                   \
-        Run();                                                                                          \
-    }                                                                                                   \
-    INSTANTIATE_TEST_SUITE_P(                                                                           \
-        GPU_ConvBiasResAddActivation_##dir##_##type##_Suite,                                            \
-        GPU_ConvBiasResAddActivation_##dir##_##type,                                                    \
-        testing::Combine(                                                                               \
-            testing::ValuesIn(ConvTestConfigs()),                                                       \
-            testing::ValuesIn({1.0f, 2.5f}),                                                            \
-            testing::ValuesIn({1.0f, 2.0f}),                                                            \
-            testing::Values(miopenTensorNDHWC)));
-
+#define DEFINE_GRAPH_API_CONV_BIAS_ACTIV_TEST(type, datatype, dir)                  \
+    struct GPU_ConvBiasResAddActivation_##dir##_##type                              \
+        : GPU_ConvBiasResAddActivation_##dir<datatype>                              \
+    {                                                                               \
+    };                                                                              \
+    TEST_P(GPU_ConvBiasResAddActivation_##dir##_##type, Test) { Run(); }            \
+    INSTANTIATE_TEST_SUITE_P(GPU_ConvBiasResAddActivation_##dir##_##type##_Suite,   \
+                             GPU_ConvBiasResAddActivation_##dir##_##type,           \
+                             testing::Combine(testing::ValuesIn(ConvTestConfigs()), \
+                                              testing::ValuesIn({1.0f, 2.5f}),      \
+                                              testing::ValuesIn({1.0f, 2.0f}),      \
+                                              testing::Values(miopenTensorNDHWC)));
 
 DEFINE_GRAPH_API_CONV_BIAS_ACTIV_TEST(FP16, half_float::half, fwd);
 DEFINE_GRAPH_API_CONV_BIAS_ACTIV_TEST(FP32, float, fwd);
