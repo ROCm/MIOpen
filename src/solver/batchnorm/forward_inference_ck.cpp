@@ -136,9 +136,9 @@ ConvSolution InvokerFactoryMakerNHWC(const miopen::batchnorm::ProblemDescription
                                                                   ScaleDataType,
                                                                   BiasDataType,
                                                                   MeanVarDataType>(bn_problem)](
-                                 const std::vector<Kernel>& kernels) {
-        std::ignore = kernels;
-        return [&](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
+                                 const std::vector<Kernel>& /*kernels*/) {
+        return [=, args = std::move(args)](const Handle& handle,
+                                           const AnyInvokeParams& primitive_parameters) {
             using DeviceOp = ck::tensor_operation::device::DeviceElementwise<
                 ck::Tuple<XDataType, MeanVarDataType, MeanVarDataType, ScaleDataType, BiasDataType>,
                 ck::Tuple<YDataType>,
