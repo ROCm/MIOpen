@@ -134,13 +134,13 @@ protected:
         MakeAndAddRealTensorDescriptor(miopenTensorMhaScaleDK).InitAndWriteToGPU(handle, dkScale);
         MakeAndAddRealTensorDescriptor(miopenTensorMhaScaleDV).InitAndWriteToGPU(handle, dvScale);
 
-        MakeAndAddRealTensorDescriptor(miopenTensorMhaDQ, m_testN, m_testH, m_testS, m_testD);
-        MakeAndAddRealTensorDescriptor(miopenTensorMhaDK, m_testN, m_testH, m_testS, m_testD);
-        MakeAndAddRealTensorDescriptor(miopenTensorMhaDV, m_testN, m_testH, m_testS, m_testD);
-        MakeAndAddRealTensorDescriptor(miopenTensorMhaAmaxDQ);
-        MakeAndAddRealTensorDescriptor(miopenTensorMhaAmaxDK);
-        MakeAndAddRealTensorDescriptor(miopenTensorMhaAmaxDV);
-        MakeAndAddRealTensorDescriptor(miopenTensorMhaAmaxDS);
+        MakeAndAddRealTensorDescriptor(miopenTensorMhaDQ, m_testN, m_testH, m_testS, m_testD).InitAndWriteToGPU(handle, static_cast<T>(0.0f));
+        MakeAndAddRealTensorDescriptor(miopenTensorMhaDK, m_testN, m_testH, m_testS, m_testD).InitAndWriteToGPU(handle, static_cast<T>(0.0f));
+        MakeAndAddRealTensorDescriptor(miopenTensorMhaDV, m_testN, m_testH, m_testS, m_testD).InitAndWriteToGPU(handle, static_cast<T>(0.0f));
+        MakeAndAddRealTensorDescriptor(miopenTensorMhaAmaxDQ).InitAndWriteToGPU(handle, 0.0f);
+        MakeAndAddRealTensorDescriptor(miopenTensorMhaAmaxDK).InitAndWriteToGPU(handle, 0.0f);
+        MakeAndAddRealTensorDescriptor(miopenTensorMhaAmaxDV).InitAndWriteToGPU(handle, 0.0f);
+        MakeAndAddRealTensorDescriptor(miopenTensorMhaAmaxDS).InitAndWriteToGPU(handle, 0.0f);
 
         dQDescRef = tensor<T>{m_testN, m_testH, m_testS, m_testD};
         dKDescRef = tensor<T>{m_testN, m_testH, m_testS, m_testD};
