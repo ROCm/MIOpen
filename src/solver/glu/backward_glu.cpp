@@ -64,52 +64,47 @@ ConvSolution GLUBackward::GetSolution(const ExecutionContext& context,
 
     auto result = ConvSolution{miopenStatusSuccess};
 
-    {
-        auto dtype       = problem.GetInputDesc().GetType();
-        auto io_dtype    = miopen::GetDataType(problem.GetInputDesc().GetType());
-        auto input_numel = problem.GetInputDesc().GetElementSize();
+    auto dtype         = problem.GetInputDesc().GetType();
+    auto io_dtype      = miopen::GetDataType(problem.GetInputDesc().GetType());
+    auto outgrad_numel = problem.GetOutputGradDesc().GetElementSize();
 
-        size_t xlocalsize = LOCAL_SIZE;
-        size_t xgridsize  = AlignUp(input_numel / 2, xlocalsize);
-        size_t ylocalsize = 1;
-        size_t ygridsize  = 1;
-        size_t zlocalsize = 1;
-        size_t zgridsize  = 1;
+    size_t xlocalsize = LOCAL_SIZE;
+    size_t xgridsize  = AlignUp(outgrad_numel, xlocalsize);
+    size_t ylocalsize = 1;
+    size_t ygridsize  = 1;
+    size_t zlocalsize = 1;
+    size_t zgridsize  = 1;
 
-        auto kernel = KernelInfo{};
+    auto kernel = KernelInfo{};
 
-        kernel.kernel_file = "MIOpenGLU.cpp";
-        kernel.kernel_name = "GLUBwdContiguous";
+    kernel.kernel_file = "MIOpenGLU.cpp";
+    kernel.kernel_name = "GLUBwdContiguous";
 
-        const auto build_params =
-            KernelBuildParameters{{"MIOPEN_USE_FP16", static_cast<int>(dtype == miopenHalf)},
-                                  {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
-                                  {"MIOPEN_USE_FP64", static_cast<int>(dtype == miopenDouble)},
-                                  {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
-                                  {"IO_TYPE", io_dtype == "bfloat16" ? "ushort" : io_dtype}};
+    const auto build_params =
+        KernelBuildParameters{{"MIOPEN_USE_FP16", static_cast<int>(dtype == miopenHalf)},
+                              {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
+                              {"MIOPEN_USE_FP64", static_cast<int>(dtype == miopenDouble)},
+                              {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
+                              {"IO_TYPE", io_dtype == "bfloat16" ? "ushort" : io_dtype}};
 
-        kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
+    kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
 
-        kernel.l_wk.push_back(xlocalsize);
-        kernel.l_wk.push_back(ylocalsize);
-        kernel.l_wk.push_back(zlocalsize);
+    kernel.l_wk.push_back(xlocalsize);
+    kernel.l_wk.push_back(ylocalsize);
+    kernel.l_wk.push_back(zlocalsize);
 
-        kernel.g_wk.push_back(xgridsize);
-        kernel.g_wk.push_back(ygridsize);
-        kernel.g_wk.push_back(zgridsize);
+    kernel.g_wk.push_back(xgridsize);
+    kernel.g_wk.push_back(ygridsize);
+    kernel.g_wk.push_back(zgridsize);
 
-        result.construction_params.push_back(kernel);
-    }
+    result.construction_params.push_back(kernel);
 
-    result.invoker_factory = [](const std::vector<Kernel>& kernels) {
+    result.invoker_factory = [outgrad_numel](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
-            decltype(auto) kernel  = handle_.Run(kernels.front());
-            decltype(auto) params  = raw_params.CastTo<miopen::glu::BwdInvokeParams>();
-            auto outputGradDims    = params.outputGradDesc->GetLengths();
-            auto output_grad_numel = std::accumulate(
-                outputGradDims.begin(), outputGradDims.end(), 1ULL, std::multiplies<size_t>());
+            decltype(auto) kernel = handle_.Run(kernels.front());
+            decltype(auto) params = raw_params.CastTo<miopen::glu::BwdInvokeParams>();
 
-            kernel(params.input, params.outputGrad, params.inputGrad, output_grad_numel);
+            kernel(params.input, params.outputGrad, params.inputGrad, outgrad_numel);
         };
     };
 

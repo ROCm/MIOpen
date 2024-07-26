@@ -73,7 +73,7 @@ miopenStatus_t GLUBackward(Handle& handle,
                            Data_t inputGrad,
                            int64_t dim)
 {
-    const auto problem = glu::ProblemDescription{inputDesc, inputGradDesc, outputGradDesc, dim};
+    const auto problem = glu::ProblemDescription{inputDesc, outputGradDesc, inputGradDesc, dim};
 
     const auto invoke_params = [&]() {
         auto tmp           = glu::BwdInvokeParams{};
