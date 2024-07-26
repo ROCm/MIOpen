@@ -69,6 +69,7 @@
  * @defgroup groupnorm
  * @defgroup cat
  * @defgroup SGD
+ * @defgroup getitem
  * @defgroup GLU
  *
  */
@@ -5923,6 +5924,8 @@ typedef enum
         3, /*!< the operation is getting the minimum value and index of the reduced elements */
     MIOPEN_REDUCE_EXTREME_MAX =
         4, /*!< the operation is getting the maximum value and index of the reduced elements */
+    MIOPEN_REDUCE_CALCULATION_SUM =
+        5, /*!< the operation is multiplying the values of the reduced elements */
 } miopenReduceExtremeOp_t;
 
 // ReduceExtreme APIs
@@ -7537,6 +7540,72 @@ miopenTransformersAdamWWithOutput(miopenHandle_t handle,
 
 /** @} */
 // CLOSEOUT SGD DOXYGEN GROUP
+#endif // MIOPEN_BETA_API
+
+#ifdef MIOPEN_BETA_API
+// GetItem APIs
+/** @addtogroup getitem
+ *
+ *  @{
+ */
+/*! @brief Helper function to query the minimum workspace size required by the getitem call
+ *
+ * @param [in]   handle                  MIOpen Handle
+ * @param [in]   indexCount              Number of input tensor indexs
+ * @param [in]   indexDescs              Tensor descriptor of input tensor indexs
+ * @param [out]  sizeInBytes             Pointer to data to return the minimum workspace size
+ * @return                        miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenGetGetitemWorkspaceSize(miopenHandle_t handle,
+                              uint32_t indexCount,
+                              const miopenTensorDescriptor_t* indexDescs,
+                              size_t* sizeInBytes);
+
+/*! @brief Execute a getitem backward layer
+ *
+ * Backward of getitem for tensor indexing, slicing, masking.
+ *
+ * @param [in]   handle                  MIOpen handle
+ * @param [in]   workspace               Address of the allocated workspace data
+ * @param [in]   workspaceSizeInBytes    Size in bytes of the allocated workspace data
+ * @param [in]   dyDesc                  Tensor descriptor of input tensor dy
+ * @param [in]   dy                      Source data tensor dy
+ * @param [in]   indexCount              Number of input tensor indexs
+ * @param [in]   indexDescs              Tensor descriptor of input tensor indexs(All indexs same
+ * size)
+ * @param [in]   indexs                  Source data tensor indexs
+ * @param [in]   dxDesc                  Tensor descriptor of output tensor dx
+ * @param [out]  dx                      Data tensor dx(It must be initialized to 0)
+ * @param [in]   errorDesc               Tensor descriptor of output tensor error
+ * @param [out]  error                   Data tensor error(It must be initialized to 0)
+ * @param [in]   dimCount                Number of dimensions
+ * @param [in]   dims                    Dimensions
+ * @param [in]   sliceCount              Number of slices
+ * @param [in]   slices                  Slices
+ * @param [in]   offset                  Offset of output tensor dx
+ * @return                               miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenGetitemBackward(miopenHandle_t handle,
+                                                   void* workspace,
+                                                   size_t workspaceSizeInBytes,
+                                                   const miopenTensorDescriptor_t dyDesc,
+                                                   const void* dy,
+                                                   uint32_t indexCount,
+                                                   const miopenTensorDescriptor_t* indexDescs,
+                                                   const void* const* indexs,
+                                                   const miopenTensorDescriptor_t dxDesc,
+                                                   void* dx,
+                                                   const miopenTensorDescriptor_t errorDesc,
+                                                   void* error,
+                                                   uint32_t dimCount,
+                                                   const int32_t* dims,
+                                                   uint32_t sliceCount,
+                                                   const int32_t* slices,
+                                                   uint32_t offset);
+
+/** @} */
+// CLOSEOUT GETITEM DOXYGEN GROUP
 #endif // MIOPEN_BETA_API
 
 #ifdef MIOPEN_BETA_API

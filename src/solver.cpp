@@ -33,6 +33,7 @@
 #include <miopen/fusion/solvers.hpp>
 #include <miopen/glu/solvers.hpp>
 #include <miopen/groupnorm/solvers.hpp>
+#include <miopen/getitem/solvers.hpp>
 #include <miopen/layernorm/solvers.hpp>
 #include <miopen/pooling/solvers.hpp>
 #include <miopen/reduce/solvers.hpp>
@@ -663,6 +664,7 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
 
     Register(registry, ++id, Primitive::Cat, cat::CatForward{}.SolverDbId());
     Register(registry, ++id, Primitive::Adam, adam::Adam{}.SolverDbId());
+    Register(registry, ++id, Primitive::Item, getitem::GetitemBackward{}.SolverDbId());
 
     Register(registry, ++id, Primitive::Adam, adam::TransformersAdamW{}.SolverDbId());
 

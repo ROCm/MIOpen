@@ -169,14 +169,13 @@ inline void PadBufferSize(size_t& sz, int datatype_sz)
 [[noreturn]] inline void Usage()
 {
     printf("Usage: ./driver *base_arg* *other_args*\n");
-    printf(
-        "Supported Base Arguments: conv[fp16|int8|bfp16|fp8|bfp8], CBAInfer[fp16], "
-        "pool[fp16], lrn[fp16], "
-        "activ[fp16], softmax[fp16], bnorm[fp16], rnn[fp16], gemm[fp16], ctc, dropout[fp16], "
-        "tensorop[fp16], reduce[fp16|fp64], layernorm[bfp16|fp16], sum[bfp16|fp16], "
-        "groupnorm[bfp16|fp16], cat[bfp16|fp16], addlayernorm[bfp16|fp16], "
-        "t5layernorm[bfp16|fp16], adam[fp16], ampadam, reduceextreme[bfp16|fp16], "
-        "adamw[fp16], ampadamw, transformersadamw[fp16], transformersampadamw, glu[bfp16|fp16]\n");
+    printf("Supported Base Arguments: conv[fp16|int8|bfp16], pool[fp16], lrn[fp16], "
+           "activ[fp16], softmax[fp16], bnorm[fp16], rnn[fp16], gemm[fp16], ctc, dropout[fp16], "
+           "tensorop, reduce[fp16|fp64], layernorm[bfp16|fp16], sum[bfp16|fp16], "
+           "groupnorm[bfp16|fp16], cat[bfp16|fp16], addlayernorm[bfp16|fp16], "
+           "t5layernorm[bfp16|fp16], adam[fp16], ampadam, reduceextreme[bfp16|fp16], "
+           "adamw[fp16], ampadamw, transformersadamw[fp16], transformersampadamw, "
+           "getitem[bfp16|fp16], glu[bfp16|fp16]\n");
     exit(0); // NOLINT (concurrency-mt-unsafe)
 }
 
@@ -191,23 +190,23 @@ inline std::string ParseBaseArg(int argc, char* argv[])
     std::string arg = argv[1];
 
     if(arg != "conv" && arg != "convfp16" && arg != "convint8" && arg != "convbfp16" &&
-       arg != "convfp8" && arg != "convbfp8" && arg != "CBAInfer" && arg != "CBAInferfp16" &&
        arg != "pool" && arg != "poolfp16" && arg != "lrn" && arg != "lrnfp16" && arg != "activ" &&
        arg != "activfp16" && arg != "softmax" && arg != "softmaxfp16" && arg != "bnorm" &&
        arg != "bnormfp16" && arg != "rnn" && arg != "rnnfp16" && arg != "rnn_seq" &&
        arg != "rnn_seqfp16" && arg != "gemm" && arg != "gemmfp16" && arg != "ctc" &&
-       arg != "dropout" && arg != "dropoutfp16" && arg != "tensorop" && arg != "tensoropfp16" &&
-       arg != "reduce" && arg != "reducefp16" && arg != "reducefp64" && arg != "layernorm" &&
-       arg != "layernormfp16" && arg != "layernormbfp16" && arg != "sum" && arg != "sumfp16" &&
-       arg != "sumbfp16" && arg != "groupnorm" && arg != "groupnormfp16" &&
-       arg != "groupnormbfp16" && arg != "cat" && arg != "catfp16" && arg != "catbfp16" &&
-       arg != "addlayernorm" && arg != "addlayernormfp16" && arg != "addlayernormbfp16" &&
-       arg != "t5layernorm" && arg != "t5layernormfp16" && arg != "t5layernormbfp16" &&
-       arg != "adam" && arg != "adamfp16" && arg != "ampadam" && arg != "reduceextreme" &&
+       arg != "dropout" && arg != "dropoutfp16" && arg != "tensorop" && arg != "reduce" &&
+       arg != "reducefp16" && arg != "reducefp64" && arg != "layernorm" && arg != "layernormfp16" &&
+       arg != "layernormbfp16" && arg != "sum" && arg != "sumfp16" && arg != "sumbfp16" &&
+       arg != "groupnorm" && arg != "groupnormfp16" && arg != "groupnormbfp16" && arg != "cat" &&
+       arg != "catfp16" && arg != "catbfp16" && arg != "addlayernorm" &&
+       arg != "addlayernormfp16" && arg != "addlayernormbfp16" && arg != "t5layernorm" &&
+       arg != "t5layernormfp16" && arg != "t5layernormbfp16" && arg != "adam" &&
+       arg != "adamfp16" && arg != "ampadam" && arg != "reduceextreme" &&
        arg != "reduceextremefp16" && arg != "reduceextremebfp16" && arg != "adamw" &&
        arg != "adamwfp16" && arg != "ampadamw" && arg != "transformersadamw" &&
-       arg != "transformersadamwfp16" && arg != "transformersampadamw" && arg != "glu" &&
-       arg != "glufp16" && arg != "glubfp16" && arg != "--version")
+       arg != "transformersadamwfp16" && arg != "transformersampadamw" && arg != "getitem" &&
+       arg != "getitemfp16" && arg != "getitembfp16" && arg != "glu" && arg != "glufp16" &&
+       arg != "glubfp16" && arg != "--version")
     {
         printf("FAILED: Invalid Base Input Argument\n");
         Usage();

@@ -59,6 +59,7 @@ enum class Primitive
     Mha,
     Softmax,
     Adam,
+    Item,
     Glu
 };
 
