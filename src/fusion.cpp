@@ -865,9 +865,8 @@ FindFusion(const ExecutionContext& ctx,
             // fusion_ctx.use_dynamic_solutions_only = findMode.IsDynamicHybrid(fusion_ctx);
 
             // We need buffers for find, thus we lazily get them, possibly allocating.
-            auto fusion_ctx = FusionContext(ctx.GetStream());
             return FindCore(invoke_params(),
-                            fusion_ctx,
+                            ctx,
                             fusion_problem,
                             FusionFindParameters{},
                             GetFusionSolverFinders(),
@@ -1097,7 +1096,9 @@ FusionPlanDescriptor::Find(Handle& handle,
                            const std::function<fusion::FusionInvokeParams()>& invoke_params,
                            const std::optional<FindOptions>& options) const
 {
-    return FindFusion(&handle, this, invoke_params, options);
+    auto ctx      = ExecutionContext(&handle);
+    ctx.do_search = options->do_search;
+    return FindFusion(ctx, this, invoke_params, options);
 }
 
 miopenStatus_t FusionPlanDescriptor::Execute(const Handle& handle,
