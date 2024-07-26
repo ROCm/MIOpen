@@ -58,8 +58,9 @@ class ConvBiasResAddActive_Fwd_Pattern : public GraphPatternMatcher
 
     static bool IsBiasNode(OperationPointwise* addNode)
     {
+        auto& lengthsToCheck = addNode->getX()->isVirtual() ? addNode->getB()->GetLengths() : addNode->getX()->GetLengths();
         int notOneOrZeroCount = 0;
-        for(auto length : addNode->getX()->GetLengths())
+        for(auto& length : lengthsToCheck)
         {
             if(length > size_t{1})
             {
