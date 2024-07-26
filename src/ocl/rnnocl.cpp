@@ -516,8 +516,8 @@ void RNNDescriptor::RNNForwardMS(Handle& handle,
         {
             F  = 1,
             I  = 0,
-            G  = 2,
-            O  = 3,
+            G  = 3,
+            O  = 2,
             St = 4,
             Ht = 5
         };
@@ -4432,21 +4432,21 @@ void RNNDescriptor::RNNBackwardDataPackedTensors(
     case miopenRNNRELU:
     case miopenRNNTANH:
         // printf("run rnn gpu bwd data \n");
-        wei_len   = hy_h;
-        wei_len_t = hy_h;
-        dhd_off   = 0;
+        wei_len   = hy_h * nHiddenTensorsPerLayer;    // hy_h;
+        wei_len_t = hy_h * nHiddenTensorsPerLayer;    // hy_h;
+        dhd_off   = bi * hy_h * (workspaceScale - 1); // 0;
         break;
     case miopenLSTM:
         // printf("run lstm gpu bwd data \n");
-        wei_len   = hy_h * 4;
-        wei_len_t = hy_h * 4;
-        dhd_off   = bi * hy_h * 5;
+        wei_len   = hy_h * nHiddenTensorsPerLayer;    // hy_h * 4;
+        wei_len_t = hy_h * nHiddenTensorsPerLayer;    // hy_h * 4;
+        dhd_off   = bi * hy_h * (workspaceScale - 1); // bi* hy_h * 5;
         break;
     case miopenGRU:
         // printf("run gru gpu bwd data \n");
-        wei_len   = hy_h * 3;
-        wei_len_t = hy_h * 2;
-        dhd_off   = bi * hy_h * 3;
+        wei_len   = hy_h * nHiddenTensorsPerLayer;       // hy_h * 3;
+        wei_len_t = hy_h * (nHiddenTensorsPerLayer + 1); // hy_h * 2;
+        dhd_off   = bi * hy_h * (workspaceScale - 1);    // bi * hy_h * 3;
         break;
     }
 
