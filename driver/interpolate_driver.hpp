@@ -189,64 +189,34 @@ int InterpolateDriver<Tgpu, Tref>::GetandSetData()
     mode                 = static_cast<miopenInterpolateMode_t>(inflags.GetValueInt("mode"));
     align_corners        = static_cast<bool>(inflags.GetValueInt("align_corners"));
 
-    if(config_scale_factors[0] == -1 && size[0] == -1)
-    {
-        config_scale_factors[0] = 1;
-        for(int i = 1; i < in_len.size() - 2; i++)
-        {
-            config_scale_factors.push_back(1);
-        }
-    }
-
-    if(config_scale_factors[0] != -1)
-    {
-        if(mode != MIOPEN_INTERPOLATE_MODE_NEAREST)
-        {
-            for(int i = 0; i < in_len.size() - 2; i++)
-            {
-                scale_factors.push_back(config_scale_factors[i]);
-            }
-        }
-        else
-        {
-            for(int i = 0; i < in_len.size() - 2; i++)
-            {
-                scale_factors.push_back(config_scale_factors[i]);
-            }
-            for(int i = in_len.size() - 2; i < 3; i++)
-            {
-                scale_factors.push_back(0);
-            }
-        }
-    }
-
-    auto out_len = std::vector<int>({in_len[0], in_len[1]});
-    if(size[0] != -1)
+    if(mode != MIOPEN_INTERPOLATE_MODE_NEAREST)
     {
         for(int i = 0; i < size.size(); i++)
         {
-            if(size[i] == 0)
-                out_len.push_back(ceil(static_cast<int>(in_len[i + 2] * scale_factors[i])));
-            else
-            {
-                if(config_scale_factors[0] == -1)
-                {
-                    scale_factors.push_back(static_cast<float>(size[i]) / in_len[i + 2]);
-                }
-                else
-                {
-                    scale_factors[i] = static_cast<float>(size[i]) / in_len[i + 2];
-                }
-                out_len.push_back(size[i]);
-            }
+            scale_factors.push_back(config_scale_factors[i]);
         }
     }
     else
     {
-        for(int i = 0; i < in_len.size() - 2; i++)
+        for(int i = 0; i < size.size(); i++)
         {
+            scale_factors.push_back(config_scale_factors[i]);
+        }
+        for(int i = size.size(); i < 3; i++)
+        {
+            scale_factors.push_back(0);
+        }
+    }
+
+    auto out_len = std::vector<int>({in_len[0], in_len[1]});
+    for(int i = 0; i < size.size(); i++)
+    {
+        if(scale_factors[i] != 0)
             out_len.push_back(ceil(static_cast<int>(in_len[i + 2] * scale_factors[i])));
-            scale_factors[i] = static_cast<float>(out_len[i + 2]) / in_len[i + 2];
+        else
+        {
+            scale_factors[i] = static_cast<float>(size[i]) / in_len[i + 2];
+            out_len.push_back(size[i]);
         }
     }
 
@@ -278,15 +248,15 @@ int InterpolateDriver<Tgpu, Tref>::AddCmdLineArgs()
         "string");
     inflags.AddInputFlag("size",
                          'S',
-                         "-1",
+                         "32",
                          "Output Spatial Size: D,H,W. "
-                         "Default: -1 - Use scale factors instead",
+                         "Example: 32.",
                          "string");
     inflags.AddInputFlag("scale_factors",
                          's',
-                         "-1",
+                         "32",
                          "Multiplier for spatial size: factor_D,factor_H,factor_W. "
-                         "Default: -1 - Use size instead",
+                         "Example: 32",
                          "string");
     inflags.AddInputFlag("mode",
                          'm',
