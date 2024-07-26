@@ -216,15 +216,9 @@ TEST_P(CPU_ConvEmbedConfig_BFP16, BFloat16Test_conv_embed_db)
 #endif
 };
 
-INSTANTIATE_TEST_SUITE_P(Full,
-                         CPU_ConvEmbedConfig_FP32,
-                         testing::Values(GetTestCases("--float")));
-INSTANTIATE_TEST_SUITE_P(Full,
-                         CPU_ConvEmbedConfig_FP16,
-                         testing::Values(GetTestCases("--half")));
-INSTANTIATE_TEST_SUITE_P(Full,
-                         CPU_ConvEmbedConfig_I8,
-                         testing::Values(GetTestCases("--int8")));
+INSTANTIATE_TEST_SUITE_P(Full, CPU_ConvEmbedConfig_FP32, testing::Values(GetTestCases("--float")));
+INSTANTIATE_TEST_SUITE_P(Full, CPU_ConvEmbedConfig_FP16, testing::Values(GetTestCases("--half")));
+INSTANTIATE_TEST_SUITE_P(Full, CPU_ConvEmbedConfig_I8, testing::Values(GetTestCases("--int8")));
 INSTANTIATE_TEST_SUITE_P(Full,
                          CPU_ConvEmbedConfig_BFP16,
                          testing::Values(GetTestCases("--bfloat16")));
