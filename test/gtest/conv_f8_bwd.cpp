@@ -36,6 +36,7 @@ namespace conv_f8_bwd {
 
 std::vector<Conv3DTestCase> ConvTestConfigs()
 { // g   n   c   k   image   filter   pad   stride   dilation
+    // clang-format off
     return {{1, 16, 16, 16, {1, 14, 14}, {1, 3, 3}, {0, 1, 1}, {1, 1, 1}, {1, 1, 1}, miopenConvolution},
             {1, 128, 64, 64, {1, 28, 28}, {1, 3, 3}, {0, 1, 1}, {1, 1, 1}, {1, 1, 1}, miopenConvolution},
             {1, 64, 32, 32, {1, 28, 28}, {1, 3, 3}, {0, 1, 1}, {1, 1, 1}, {1, 1, 1}, miopenConvolution},
@@ -44,6 +45,7 @@ std::vector<Conv3DTestCase> ConvTestConfigs()
             {8, 128, 8, 8, {1, 28, 28}, {1, 3, 3}, {0, 1, 1}, {1, 1, 1}, {1, 1, 1}, miopenConvolution},
             {4, 128, 4, 4, {1, 28, 28}, {1, 3, 3}, {0, 1, 1}, {1, 1, 1}, {1, 1, 1}, miopenConvolution},
             {2, 128, 2, 2, {1, 28, 28}, {1, 3, 3}, {0, 1, 1}, {1, 1, 1}, {1, 1, 1}, miopenConvolution}};
+    // clang-format on
 }
 
 template <typename T = float>

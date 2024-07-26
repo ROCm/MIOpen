@@ -53,16 +53,16 @@ struct Conv3DTestCase
     Size3D stride;
     Size3D dilation;
     miopenConvolutionMode_t conv_mode;
-    
+
     friend std::ostream& operator<<(std::ostream& os, const Conv3DTestCase& tc)
     {
-         return os << " G:" << tc.G << " N:" << tc.N << " C:" << tc.C << " K:" << tc.K
+        return os << " G:" << tc.G << " N:" << tc.N << " C:" << tc.C << " K:" << tc.K
                   << " D:" << tc.img.z << " H:" << tc.img.y << " W:" << tc.img.x
                   << " Z:" << tc.filter.z << " Y:" << tc.filter.y << " X:" << tc.filter.x
                   << " pad.z:" << tc.pad.z << " pad.y:" << tc.pad.y << " pad.x:" << tc.pad.x
                   << " stride.z:" << tc.stride.z << " stride.y:" << tc.stride.y
                   << " stride.x:" << tc.stride.x << " dilation.z:" << tc.dilation.z
-                  << " dilation.y:" << tc.dilation.y << " dilation.x:" << tc.dilation.x 
+                  << " dilation.y:" << tc.dilation.y << " dilation.x:" << tc.dilation.x
                   << " conv_mode:" << tc.conv_mode;
     }
 

@@ -49,6 +49,7 @@ static bool TestIsApplicable() { return true; }
 
 static std::vector<Conv3DTestCase> ConvTestConfigs()
 { // g   n   c   k   image   filter   pad   stride   dilation
+    // clang-format off
     return {{1, 1, 4, 4, {14, 11, 1}, {3, 3, 3}, {1, 1, 1}, {1, 1, 1}, {1, 1, 1}, miopenConvolution},
             {1, 1, 1, 1, {1, 4, 4}, {2, 2, 2}, {1, 1, 1}, {1, 1, 1}, {1, 1, 1}, miopenConvolution},
             {1, 1, 1, 1, {8, 8, 8}, {2, 2, 2}, {0, 0, 0}, {1, 1, 1}, {1, 1, 1}, miopenConvolution},
@@ -59,6 +60,7 @@ static std::vector<Conv3DTestCase> ConvTestConfigs()
             {8, 8, 8, 8, {11, 11, 11}, {3, 3, 3}, {1, 1, 1}, {1, 1, 1}, {1, 1, 1}, miopenConvolution},
             {4, 8, 4, 8, {11, 11, 11}, {3, 4, 5}, {1, 1, 1}, {1, 1, 1}, {1, 1, 1}, miopenConvolution},
             {2, 8, 2, 2, {11, 11, 11}, {4, 4, 4}, {1, 1, 1}, {1, 1, 1}, {1, 1, 1}, miopenConvolution}};
+    // clang-format on
 }
 
 template <typename T>
