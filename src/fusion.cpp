@@ -988,7 +988,7 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
     std::vector<PerfField> find_results;
     const auto hasConv = [](solver::Id id) {
         bool ret = true;
-        GetFusedNonConvSolvers().FindById(id, [&](auto solver) { ret = false; });
+        GetFusedNonConvSolvers().FindById(id, [&](auto) { ret = false; });
         return ret;
     };
 
@@ -1086,7 +1086,7 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
             continue;
         }
 
-        invokers.push_back(std::move(*invoker));
+        invokers.push_back(*invoker);
         MIOPEN_LOG_I2(result.algorithm);
         break;
         // We never use any invoker after the first anyway.
