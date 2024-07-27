@@ -129,7 +129,8 @@ template <typename XDataType,
 ConvSolution InvokerFactoryMakerNHWC(const miopen::batchnorm::ProblemDescription& bn_problem)
 {
     ConvSolution result;
-    result.invoker_factory = [args         = CKArgsBNormFwd{bn_problem},
+    auto args              = CKArgsBNormFwd{bn_problem};
+    result.invoker_factory = [args         = std::move(args),
                               kernel_index = CheckCKApplicability<XDataType,
                                                                   YDataType,
                                                                   AccDataType,
