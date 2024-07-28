@@ -6,10 +6,40 @@ namespace miopen {
 
 namespace rnn_base {
 
+void RNNBackwardDataModularAlgo::PrepareWriteBuffers(const Handle& handle,
+                                                     Data_t dhx,
+                                                     Data_t dcx,
+                                                     Data_t workSpace) const
+{
+    float beta = 0.;
+
+    auto rnn_data_type = rnnDesc.dataType;
+    auto ws_size       = workspaceInfo.getBufferSize();
+    if(ws_size > 0)
+    {
+        miopen::TensorDescriptor ws_desk{rnn_data_type, {1, ws_size}, {ws_size, 1}};
+        SetTensor(handle, ws_desk, workSpace, &beta);
+    }
+
+    if(dhx != nullptr || (rnnDesc.rnnMode == miopenLSTM && dcx != nullptr))
+    {
+        auto cxhx_desc = BuildHxCxDesc3D(rnnDesc.nLayers, hiddenHxCxInfo.getMiniBatchSize());
+
+        if(dhx != nullptr)
+        {
+            SetTensor(handle, cxhx_desc, dhx, &beta);
+        }
+        if(rnnDesc.rnnMode == miopenLSTM && dcx != nullptr)
+        {
+            SetTensor(handle, cxhx_desc, dcx, &beta);
+        }
+    }
+}
+
 void RNNBackwardDataModularAlgo::PropDhy(const Handle& handle,
                                          ConstData_t dhy,
                                          Data_t workSpace,
-                                         const unsigned int layer,
+                                         unsigned int layer,
                                          const SequenceIterator& currentSeq,
                                          SequenceDirection direction) const
 {
@@ -67,7 +97,7 @@ void RNNBackwardDataModularAlgo::PropDhy(const Handle& handle,
              workspace_dy_offset);
 }
 
-void RNNBackwardDataModularAlgo::PropHiddenDht(Handle& handle,
+void RNNBackwardDataModularAlgo::PropHiddenDht(const Handle& handle,
                                                ConstData_t w,
                                                Data_t workSpace,
                                                int layer,
@@ -106,7 +136,7 @@ void RNNBackwardDataModularAlgo::PropHiddenDht(Handle& handle,
         ht_dest_dsc);
 }
 
-void RNNBackwardDataModularAlgo::UpdateHStatePerTimeSeq(Handle& handle,
+void RNNBackwardDataModularAlgo::UpdateHStatePerTimeSeq(const Handle& handle,
                                                         ConstData_t dcy,
                                                         ConstData_t cx,
                                                         Data_t,
@@ -239,7 +269,7 @@ void RNNBackwardDataModularAlgo::UpdateHStatePerTimeSeq(Handle& handle,
     }
 }
 
-void RNNBackwardDataModularAlgo::PropDhxDcx(Handle& handle,
+void RNNBackwardDataModularAlgo::PropDhxDcx(const Handle& handle,
                                             ConstData_t w,
                                             Data_t dhx,
                                             Data_t dcx,
@@ -338,7 +368,9 @@ void RNNBackwardDataModularAlgo::PropDhxDcx(Handle& handle,
     }
 }
 
-void RNNBackwardDataModularAlgo::PropDy(Handle& handle, ConstData_t dy, Data_t workSpace) const
+void RNNBackwardDataModularAlgo::PropDy(const Handle& handle,
+                                        ConstData_t dy,
+                                        Data_t workSpace) const
 {
     const auto rnn_data_type = rnnDesc.dataType;
     const auto last_layer_id = rnnDesc.nLayers - 1;
@@ -401,7 +433,7 @@ void RNNBackwardDataModularAlgo::PropDy(Handle& handle, ConstData_t dy, Data_t w
     }
 }
 
-void RNNBackwardDataModularAlgo::PropHiddenDy(Handle& handle,
+void RNNBackwardDataModularAlgo::PropHiddenDy(const Handle& handle,
                                               ConstData_t w,
                                               Data_t workSpace,
                                               Data_t reserveSpace,
@@ -491,7 +523,7 @@ void RNNBackwardDataModularAlgo::PropHiddenDy(Handle& handle,
     }
 }
 
-void RNNBackwardDataModularAlgo::PropDx(Handle& handle,
+void RNNBackwardDataModularAlgo::PropDx(const Handle& handle,
                                         ConstData_t w,
                                         ConstData_t workSpace,
                                         Data_t dx,

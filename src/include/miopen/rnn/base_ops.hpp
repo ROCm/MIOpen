@@ -58,7 +58,7 @@ class RnnBaseFunctions
     RnnBaseFunctions() {}
 
 public:
-    static miopenStatus_t BWD_GEMM_Hidden_Prop(Handle& handle,
+    static miopenStatus_t BWD_GEMM_Hidden_Prop(const Handle& handle,
                                                ConstData_t comb_gates_src_ptr,
                                                size_t comb_gates_src_offset,
                                                ConstData_t filter_src_ptr,
@@ -108,7 +108,7 @@ public:
                         GemmBackend_t::rocblas);
     }
 
-    static miopenStatus_t BWD_GEMM_Hidden_Prop(Handle& handle,
+    static miopenStatus_t BWD_GEMM_Hidden_Prop(const Handle& handle,
                                                ConstData_t comb_gates_src_ptr,
                                                size_t comb_gates_src_offset,
                                                const miopen::TensorDescriptor& tmp_gates_src_dsc,

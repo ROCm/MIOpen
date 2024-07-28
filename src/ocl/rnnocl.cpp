@@ -4356,7 +4356,10 @@ void RNNDescriptor::RNNBackwardDataPackedTensors(
         MIOPEN_THROW(miopenStatusBadParm, "Output size doesn't match hidden state size!");
     }
 
-    if(dirMode == 0 && inputMode == miopenRNNlinear && rnnMode == miopenLSTM)
+    bool use_dropout = !float_equal(miopen::deref(dropoutDesc).dropout, 0);
+
+    if(dirMode == 0 && inputMode == miopenRNNlinear && rnnMode == miopenLSTM && !use_dropout &&
+       algoMode == miopenRNNdefault)
     {
         SeqTensorDescriptor dx_seq =
             makeSeqTensorDescriptor(dxDesc, seqLen, miopenRNNDataSeqMajorNotPadded);
@@ -4473,7 +4476,7 @@ void RNNDescriptor::RNNBackwardDataPackedTensors(
     case miopenGRU:
         // printf("run gru gpu bwd data \n");
         wei_len   = hy_h * nHiddenTensorsPerLayer;       // hy_h * 3;
-        wei_len_t = hy_h * (nHiddenTensorsPerLayer + 1); // hy_h * 2;
+        wei_len_t = hy_h * (nHiddenTensorsPerLayer - 1); // hy_h * 2;
         dhd_off   = bi * hy_h * (workspaceScale - 1);    // bi * hy_h * 3;
         break;
     }
@@ -4556,7 +4559,7 @@ void RNNDescriptor::RNNBackwardDataPackedTensors(
             // Update time
             profileRNNkernels(handle, 1, ctime);
 
-            if(!float_equal(miopen::deref(dropoutDesc).dropout, 0))
+            if(use_dropout)
             {
                 std::vector<int> drop_size(2), drop_in_str(2, 1);
                 drop_size[0]   = batch_n;

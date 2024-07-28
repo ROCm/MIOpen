@@ -62,21 +62,23 @@ public:
                 batch_controller};
     }
 
+    void PrepareWriteBuffers(const Handle& handle, Data_t dhx, Data_t dcx, Data_t workSpace) const;
+
     void PropDhy(const Handle& handle,
                  ConstData_t dhy,
                  Data_t workSpace,
-                 const unsigned int layer,
+                 unsigned int layer,
                  const SequenceIterator& currentSeq,
                  SequenceDirection direction) const;
 
-    void PropHiddenDht(Handle& handle,
+    void PropHiddenDht(const Handle& handle,
                        ConstData_t w,
                        Data_t workSpace,
                        int layer,
                        const SequenceIterator& currentSeq,
                        SequenceDirection direction) const;
 
-    void UpdateHStatePerTimeSeq(Handle& handle,
+    void UpdateHStatePerTimeSeq(const Handle& handle,
                                 ConstData_t dcy,
                                 ConstData_t cx,
                                 Data_t,
@@ -86,7 +88,7 @@ public:
                                 const SequenceIterator& seq,
                                 SequenceDirection direction) const;
 
-    void PropDhxDcx(Handle& handle,
+    void PropDhxDcx(const Handle& handle,
                     ConstData_t w,
                     Data_t dhx,
                     Data_t dcx,
@@ -96,16 +98,16 @@ public:
                     const SequenceIterator& currentSeq,
                     SequenceDirection direction) const;
 
-    void PropDy(Handle& handle, ConstData_t dy, Data_t workSpace) const;
+    void PropDy(const Handle& handle, ConstData_t dy, Data_t workSpace) const;
 
-    void PropHiddenDy(Handle& handle,
+    void PropHiddenDy(const Handle& handle,
                       ConstData_t w,
                       Data_t workSpace,
                       Data_t reserveSpace,
                       size_t layer,
                       SequenceDirection direction) const;
 
-    void PropDx(Handle& handle,
+    void PropDx(const Handle& handle,
                 ConstData_t w,
                 ConstData_t workSpace,
                 Data_t dx,
