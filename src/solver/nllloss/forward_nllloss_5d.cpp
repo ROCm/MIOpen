@@ -33,7 +33,7 @@
 #include <miopen/datatype.hpp>
 #include <miopen/nllloss.hpp>
 #include <miopen/target_properties.hpp>
-#include <miopen/tensor_view.hpp>
+#include <miopen/nllloss/utils.hpp>
 
 #define LOCAL_SIZE_NON_CON_FWD 1024
 #define LOCAL_SIZE_REDUCE_FWD 256
@@ -98,9 +98,9 @@ NLLLossReduceForward5d::GetSolution(const ExecutionContext& context,
             {
                 decltype(auto) kernel = handle_.Run(kernels.front());
 
-                auto input_tv  = get_inner_expanded_tv_5d(deref(params.inputDesc));
-                auto target_tv = get_inner_expanded_tv_4d(deref(params.targetDesc));
-                auto weight_tv = get_inner_expanded_tv_1d(deref(params.weightDesc));
+                auto input_tv  = get_inner_expanded_tv<5>(deref(params.inputDesc));
+                auto target_tv = get_inner_expanded_tv<4>(deref(params.targetDesc));
+                auto weight_tv = get_inner_expanded_tv<1>(deref(params.weightDesc));
 
                 kernel(params.input,
                        params.target,

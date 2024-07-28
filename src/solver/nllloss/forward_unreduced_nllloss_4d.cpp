@@ -33,7 +33,7 @@
 #include <miopen/datatype.hpp>
 #include <miopen/nllloss.hpp>
 #include <miopen/target_properties.hpp>
-#include <miopen/tensor_view.hpp>
+#include <miopen/nllloss/utils.hpp>
 
 #define LOCAL_SIZE_NON_CON_FWD 1024
 
@@ -91,10 +91,10 @@ ConvSolution NLLLossUnreduceForward4d::GetSolution(
             decltype(auto) kernel = handle_.Run(kernels.front());
             decltype(auto) params = raw_params.CastTo<miopen::nllloss::FwdInvokeParams>();
 
-            auto input_tv  = get_inner_expanded_tv_4d(deref(params.inputDesc));
-            auto target_tv = get_inner_expanded_tv_3d(deref(params.targetDesc));
-            auto weight_tv = get_inner_expanded_tv_1d(deref(params.weightDesc));
-            auto output_tv = get_inner_expanded_tv_3d(deref(params.outputDesc));
+            auto input_tv  = get_inner_expanded_tv<4>(deref(params.inputDesc));
+            auto target_tv = get_inner_expanded_tv<3>(deref(params.targetDesc));
+            auto weight_tv = get_inner_expanded_tv<1>(deref(params.weightDesc));
+            auto output_tv = get_inner_expanded_tv<3>(deref(params.outputDesc));
 
             kernel(params.input,
                    params.target,

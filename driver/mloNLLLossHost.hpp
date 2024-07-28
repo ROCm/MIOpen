@@ -27,7 +27,7 @@
 #define MLO_NLLLOSSHOST_H_
 
 #include <miopen/tensor.hpp>
-#include <miopen/tensor_view.hpp>
+#include <miopen/nllloss/utils.hpp>
 
 template <typename Tgpu, typename Tcheck>
 int32_t mloNLLLossUnreduceForwardRunHost(const miopenTensorDescriptor_t inputDesc,
@@ -97,18 +97,27 @@ int32_t mloNLLLossReduceForward5dRunHost(const miopenTensorDescriptor_t inputDes
     auto numel = miopen::deref(targetDesc).GetElementSize();
     size_t C   = dims[1];
 
-    auto I_tv = get_inner_expanded_tv_5d(miopen::deref(inputDesc));
-    auto T_tv = get_inner_expanded_tv_4d(miopen::deref(targetDesc));
-    auto W_tv = get_inner_expanded_tv_1d(miopen::deref(weightDesc));
+    auto input_tv  = miopen::solver::nllloss::get_inner_expanded_tv<5>(miopen::deref(inputDesc));
+    auto target_tv = miopen::solver::nllloss::get_inner_expanded_tv<4>(miopen::deref(targetDesc));
+    auto weight_tv = miopen::solver::nllloss::get_inner_expanded_tv<1>(miopen::deref(weightDesc));
 
     for(size_t i = 0; i < numel; i++)
     {
+        auto tensor_layout = tensor_layout_t<4>(target_tv, i);
         uint64_t n[4];
-        GET_NCDH(n[0], n[1], n[2], n[3], i, T_tv);
-        size_t target_index = TV4D_IDX(T_tv, n[0], n[1], n[2], n[3]);
+        n[0] = tensor_layout.layout[0];
+        n[1] = tensor_layout.layout[1];
+        n[2] = tensor_layout.layout[2];
+        n[3] = tensor_layout.layout[3];
+
+        size_t target_index = target_tv.get_tensor_view_idx(tensor_layout);
         int32_t t           = target[target_index];
-        size_t input_index  = TV5D_IDX(I_tv, n[0], t, n[1], n[2], n[3]);
-        size_t weight_index = TV1D_IDX(W_tv, t);
+
+        tensor_layout_t<5> input_layout(n[0], t, n[1], n[2], n[3]);
+        size_t input_index = input_tv.get_tensor_view_idx(input_layout);
+
+        tensor_layout_t<1> weight_layout(t);
+        size_t weight_index = weight_tv.get_tensor_view_idx(weight_layout);
 
         if(t < 0 || t == ignore_index || t >= C)
         {
@@ -259,18 +268,24 @@ int32_t mloNLLLossUnreduceForwardRunHost2d(const miopenTensorDescriptor_t inputD
     auto numel = miopen::deref(targetDesc).GetElementSize();
     size_t C   = dims[1];
 
-    auto I_tv = get_inner_expanded_tv_4d(miopen::deref(inputDesc));
-    auto T_tv = get_inner_expanded_tv_1d(miopen::deref(targetDesc));
-    auto W_tv = get_inner_expanded_tv_1d(miopen::deref(weightDesc));
-    auto O_tv = get_inner_expanded_tv_1d(miopen::deref(outputDesc));
+    auto input_tv  = miopen::solver::nllloss::get_inner_expanded_tv<2>(miopen::deref(inputDesc));
+    auto target_tv = miopen::solver::nllloss::get_inner_expanded_tv<1>(miopen::deref(targetDesc));
+    auto weight_tv = miopen::solver::nllloss::get_inner_expanded_tv<1>(miopen::deref(weightDesc));
+    auto output_tv = miopen::solver::nllloss::get_inner_expanded_tv<1>(miopen::deref(outputDesc));
 
     for(size_t i = 0; i < numel; i++)
     {
-        size_t target_index = TV1D_IDX(T_tv, i);
+        tensor_layout_t<1> target_layout(i);
+        size_t target_index = target_tv.get_tensor_view_idx(target_layout);
         int32_t t           = target[target_index];
-        size_t input_index  = TV2D_IDX(I_tv, i, t);
-        size_t weight_index = TV1D_IDX(W_tv, t);
-        size_t output_index = TV1D_IDX(O_tv, i);
+
+        tensor_layout_t<2> input_layout(i, t);
+        size_t input_index = input_tv.get_tensor_view_idx(input_layout);
+
+        tensor_layout_t<1> weight_layout(t);
+        size_t weight_index = weight_tv.get_tensor_view_idx(weight_layout);
+
+        size_t output_index = output_tv.get_tensor_view_idx(target_layout);
 
         if(t < 0 || t == ignore_index || t >= C)
         {
@@ -303,20 +318,30 @@ int32_t mloNLLLossUnreduceForwardRunHost4d(const miopenTensorDescriptor_t inputD
     auto numel = miopen::deref(targetDesc).GetElementSize();
     size_t C   = dims[1];
 
-    auto I_tv = get_inner_expanded_tv_4d(miopen::deref(inputDesc));
-    auto T_tv = get_inner_expanded_tv_3d(miopen::deref(targetDesc));
-    auto W_tv = get_inner_expanded_tv_1d(miopen::deref(weightDesc));
-    auto O_tv = get_inner_expanded_tv_3d(miopen::deref(outputDesc));
+    auto input_tv  = miopen::solver::nllloss::get_inner_expanded_tv<4>(miopen::deref(inputDesc));
+    auto target_tv = miopen::solver::nllloss::get_inner_expanded_tv<3>(miopen::deref(targetDesc));
+    auto weight_tv = miopen::solver::nllloss::get_inner_expanded_tv<1>(miopen::deref(weightDesc));
+    auto output_tv = miopen::solver::nllloss::get_inner_expanded_tv<3>(miopen::deref(outputDesc));
 
     for(size_t i = 0; i < numel; i++)
     {
+        auto tensor_layout = tensor_layout_t<3>(output_tv, i);
         uint64_t n[3];
-        GET_NCD(n[0], n[1], n[2], i, O_tv);
-        size_t target_index = TV3D_IDX(T_tv, n[0], n[1], n[2]);
+        n[0] = tensor_layout.layout[0];
+        n[1] = tensor_layout.layout[1];
+        n[2] = tensor_layout.layout[2];
+        tensor_layout_t<3> target_layout(n[0], n[1], n[2]);
+        size_t target_index = target_tv.get_tensor_view_idx(target_layout);
         int32_t t           = target[target_index];
-        size_t input_index  = TV4D_IDX(I_tv, n[0], t, n[1], n[2]);
-        size_t weight_index = TV1D_IDX(W_tv, t);
-        size_t output_index = TV3D_IDX(O_tv, n[0], n[1], n[2]);
+
+        tensor_layout_t<4> input_layout(n[0], t, n[1], n[2]);
+        size_t input_index = input_tv.get_tensor_view_idx(input_layout);
+
+        tensor_layout_t<1> weight_layout(t);
+        size_t weight_index = weight_tv.get_tensor_view_idx(weight_layout);
+
+        tensor_layout_t<3> output_layout(n[0], n[1], n[2]);
+        size_t output_index = output_tv.get_tensor_view_idx(output_layout);
 
         if(t < 0 || t == ignore_index || t >= C)
         {
@@ -349,20 +374,31 @@ int32_t mloNLLLossUnreduceForwardRunHost5d(const miopenTensorDescriptor_t inputD
     auto numel = miopen::deref(targetDesc).GetElementSize();
     size_t C   = dims[1];
 
-    auto I_tv = get_inner_expanded_tv_5d(miopen::deref(inputDesc));
-    auto T_tv = get_inner_expanded_tv_4d(miopen::deref(targetDesc));
-    auto W_tv = get_inner_expanded_tv_1d(miopen::deref(weightDesc));
-    auto O_tv = get_inner_expanded_tv_4d(miopen::deref(outputDesc));
+    auto input_tv  = miopen::solver::nllloss::get_inner_expanded_tv<5>(miopen::deref(inputDesc));
+    auto target_tv = miopen::solver::nllloss::get_inner_expanded_tv<4>(miopen::deref(targetDesc));
+    auto weight_tv = miopen::solver::nllloss::get_inner_expanded_tv<1>(miopen::deref(weightDesc));
+    auto output_tv = miopen::solver::nllloss::get_inner_expanded_tv<4>(miopen::deref(outputDesc));
 
     for(size_t i = 0; i < numel; i++)
     {
+        auto tensor_layout = tensor_layout_t<4>(output_tv, i);
         uint64_t n[4];
-        GET_NCDH(n[0], n[1], n[2], n[3], i, O_tv);
-        size_t target_index = TV4D_IDX(T_tv, n[0], n[1], n[2], n[3]);
+        n[0] = tensor_layout.layout[0];
+        n[1] = tensor_layout.layout[1];
+        n[2] = tensor_layout.layout[2];
+        n[3] = tensor_layout.layout[3];
+
+        tensor_layout_t<4> target_layout(n[0], n[1], n[2], n[3]);
+        size_t target_index = target_tv.get_tensor_view_idx(target_layout);
         int32_t t           = target[target_index];
-        size_t input_index  = TV5D_IDX(I_tv, n[0], t, n[1], n[2], n[3]);
-        size_t weight_index = TV1D_IDX(W_tv, t);
-        size_t output_index = TV4D_IDX(O_tv, n[0], n[1], n[2], n[3]);
+
+        tensor_layout_t<5> input_layout(n[0], t, n[1], n[2], n[3]);
+        size_t input_index = input_tv.get_tensor_view_idx(input_layout);
+
+        tensor_layout_t<1> weight_layout(t);
+        size_t weight_index = weight_tv.get_tensor_view_idx(weight_layout);
+
+        size_t output_index = output_tv.get_tensor_view_idx(tensor_layout);
 
         if(t < 0 || t == ignore_index || t >= C)
         {
@@ -395,18 +431,26 @@ int32_t mloNLLLossUnreduceBackwardRunHost2d(const miopenTensorDescriptor_t input
     auto numel = miopen::deref(targetDesc).GetElementSize();
     size_t C   = dims[1];
 
-    auto I_tv = get_inner_expanded_tv_2d(miopen::deref(inputGradDesc));
-    auto T_tv = get_inner_expanded_tv_1d(miopen::deref(targetDesc));
-    auto W_tv = get_inner_expanded_tv_1d(miopen::deref(weightDesc));
-    auto O_tv = get_inner_expanded_tv_1d(miopen::deref(outputGradDesc));
+    auto input_grad_tv =
+        miopen::solver::nllloss::get_inner_expanded_tv<2>(miopen::deref(inputGradDesc));
+    auto target_tv = miopen::solver::nllloss::get_inner_expanded_tv<1>(miopen::deref(targetDesc));
+    auto weight_tv = miopen::solver::nllloss::get_inner_expanded_tv<1>(miopen::deref(weightDesc));
+    auto output_grad_tv =
+        miopen::solver::nllloss::get_inner_expanded_tv<1>(miopen::deref(outputGradDesc));
 
     for(size_t i = 0; i < numel; i++)
     {
-        size_t target_index      = TV1D_IDX(T_tv, i);
-        int32_t t                = target[target_index];
-        size_t input_grad_index  = TV2D_IDX(I_tv, i, t);
-        size_t weight_index      = TV1D_IDX(W_tv, t);
-        size_t output_grad_index = TV1D_IDX(O_tv, i);
+        auto tensor_layout  = tensor_layout_t<1>(target_tv, i);
+        size_t target_index = target_tv.get_tensor_view_idx(tensor_layout);
+        int32_t t           = target[target_index];
+
+        tensor_layout_t<2> input_grad_layout(i, t);
+        size_t input_grad_index = input_grad_tv.get_tensor_view_idx(input_grad_layout);
+
+        tensor_layout_t<1> weight_layout(t);
+        size_t weight_index = weight_tv.get_tensor_view_idx(weight_layout);
+
+        size_t output_grad_index = output_grad_tv.get_tensor_view_idx(tensor_layout);
 
         if(t < 0 || t == ignore_index || t >= C)
         {
@@ -440,20 +484,30 @@ int32_t mloNLLLossUnreduceBackwardRunHost4d(const miopenTensorDescriptor_t input
     auto numel = miopen::deref(targetDesc).GetElementSize();
     size_t C   = dims[1];
 
-    auto I_tv = get_inner_expanded_tv_4d(miopen::deref(inputGradDesc));
-    auto T_tv = get_inner_expanded_tv_3d(miopen::deref(targetDesc));
-    auto W_tv = get_inner_expanded_tv_1d(miopen::deref(weightDesc));
-    auto O_tv = get_inner_expanded_tv_3d(miopen::deref(outputGradDesc));
+    auto input_tv = miopen::solver::nllloss::get_inner_expanded_tv<4>(miopen::deref(inputGradDesc));
+    auto target_tv = miopen::solver::nllloss::get_inner_expanded_tv<3>(miopen::deref(targetDesc));
+    auto weight_tv = miopen::solver::nllloss::get_inner_expanded_tv<1>(miopen::deref(weightDesc));
+    auto output_grad_tv =
+        miopen::solver::nllloss::get_inner_expanded_tv<3>(miopen::deref(outputGradDesc));
 
     for(size_t i = 0; i < numel; i++)
     {
+        auto tensor_layout = tensor_layout_t<3>(output_grad_tv, i);
         uint64_t n[3];
-        GET_NCD(n[0], n[1], n[2], i, O_tv);
-        size_t target_index      = TV3D_IDX(T_tv, n[0], n[1], n[2]);
-        int32_t t                = target[target_index];
-        size_t input_grad_index  = TV4D_IDX(I_tv, n[0], t, n[1], n[2]);
-        size_t weight_index      = TV1D_IDX(W_tv, t);
-        size_t output_grad_index = TV3D_IDX(O_tv, n[0], n[1], n[2]);
+        n[0] = tensor_layout.layout[0];
+        n[1] = tensor_layout.layout[1];
+        n[2] = tensor_layout.layout[2];
+
+        size_t target_index = target_tv.get_tensor_view_idx(tensor_layout);
+        int32_t t           = target[target_index];
+
+        tensor_layout_t<4> input_grad_layout(n[0], t, n[1], n[2]);
+        size_t input_grad_index = input_tv.get_tensor_view_idx(input_grad_layout);
+
+        tensor_layout_t<1> weight_layout(t);
+        size_t weight_index = weight_tv.get_tensor_view_idx(weight_layout);
+
+        size_t output_grad_index = output_grad_tv.get_tensor_view_idx(tensor_layout);
 
         if(t < 0 || t == ignore_index || t >= C)
         {
@@ -487,20 +541,32 @@ int32_t mloNLLLossUnreduceBackwardRunHost5d(const miopenTensorDescriptor_t input
     auto numel = miopen::deref(targetDesc).GetElementSize();
     size_t C   = dims[1];
 
-    auto I_tv = get_inner_expanded_tv_5d(miopen::deref(inputGradDesc));
-    auto T_tv = get_inner_expanded_tv_4d(miopen::deref(targetDesc));
-    auto W_tv = get_inner_expanded_tv_1d(miopen::deref(weightDesc));
-    auto O_tv = get_inner_expanded_tv_4d(miopen::deref(outputGradDesc));
+    auto input_grad_tv =
+        miopen::solver::nllloss::get_inner_expanded_tv<5>(miopen::deref(inputGradDesc));
+    auto target_tv = miopen::solver::nllloss::get_inner_expanded_tv<4>(miopen::deref(targetDesc));
+    auto weight_tv = miopen::solver::nllloss::get_inner_expanded_tv<1>(miopen::deref(weightDesc));
+    auto output_grad_tv =
+        miopen::solver::nllloss::get_inner_expanded_tv<4>(miopen::deref(outputGradDesc));
 
     for(size_t i = 0; i < numel; i++)
     {
+        auto tensor_layout = tensor_layout_t<4>(output_grad_tv, i);
         uint64_t n[4];
-        GET_NCDH(n[0], n[1], n[2], n[3], i, O_tv);
-        size_t target_index      = TV4D_IDX(T_tv, n[0], n[1], n[2], n[3]);
-        int32_t t                = target[target_index];
-        size_t input_grad_index  = TV5D_IDX(I_tv, n[0], t, n[1], n[2], n[3]);
-        size_t weight_index      = TV1D_IDX(W_tv, t);
-        size_t output_grad_index = TV4D_IDX(O_tv, n[0], n[1], n[2], n[3]);
+        n[0] = tensor_layout.layout[0];
+        n[1] = tensor_layout.layout[1];
+        n[2] = tensor_layout.layout[2];
+        n[3] = tensor_layout.layout[3];
+
+        size_t target_index = target_tv.get_tensor_view_idx(tensor_layout);
+        int32_t t           = target[target_index];
+
+        tensor_layout_t<5> input_grad_layout(n[0], t, n[1], n[2], n[3]);
+        size_t input_grad_index = input_grad_tv.get_tensor_view_idx(input_grad_layout);
+
+        tensor_layout_t<1> weight_layout(t);
+        size_t weight_index = weight_tv.get_tensor_view_idx(weight_layout);
+
+        size_t output_grad_index = output_grad_tv.get_tensor_view_idx(tensor_layout);
 
         if(t < 0 || t == ignore_index || t >= C)
         {
@@ -534,16 +600,22 @@ int32_t mloNLLLossReduceBackwardRunHost2d(const miopenTensorDescriptor_t inputGr
     auto numel = miopen::deref(targetDesc).GetElementSize();
     size_t C   = dims[1];
 
-    auto I_tv = get_inner_expanded_tv_2d(miopen::deref(inputGradDesc));
-    auto T_tv = get_inner_expanded_tv_1d(miopen::deref(targetDesc));
-    auto W_tv = get_inner_expanded_tv_1d(miopen::deref(weightDesc));
+    auto input_grad_tv =
+        miopen::solver::nllloss::get_inner_expanded_tv<2>(miopen::deref(inputGradDesc));
+    auto target_tv = miopen::solver::nllloss::get_inner_expanded_tv<1>(miopen::deref(targetDesc));
+    auto weight_tv = miopen::solver::nllloss::get_inner_expanded_tv<1>(miopen::deref(weightDesc));
 
     for(size_t i = 0; i < numel; i++)
     {
-        size_t target_index     = TV1D_IDX(T_tv, i);
-        int32_t t               = target[target_index];
-        size_t input_grad_index = TV2D_IDX(I_tv, i, t);
-        size_t weight_index     = TV1D_IDX(W_tv, t);
+        tensor_layout_t<1> target_layout(i);
+        size_t target_index = target_tv.get_tensor_view_idx(target_layout);
+        int32_t t           = target[target_index];
+
+        tensor_layout_t<2> input_grad_layout(i, t);
+        size_t input_grad_index = input_grad_tv.get_tensor_view_idx(input_grad_layout);
+
+        tensor_layout_t<1> weight_layout(t);
+        size_t weight_index = weight_tv.get_tensor_view_idx(weight_layout);
 
         if(t < 0 || t == ignore_index || t >= C)
         {
@@ -577,18 +649,28 @@ int32_t mloNLLLossReduceBackwardRunHost5d(const miopenTensorDescriptor_t inputGr
     auto numel = miopen::deref(targetDesc).GetElementSize();
     size_t C   = dims[1];
 
-    auto I_tv = get_inner_expanded_tv_5d(miopen::deref(inputGradDesc));
-    auto T_tv = get_inner_expanded_tv_4d(miopen::deref(targetDesc));
-    auto W_tv = get_inner_expanded_tv_1d(miopen::deref(weightDesc));
+    auto input_grad_tv =
+        miopen::solver::nllloss::get_inner_expanded_tv<5>(miopen::deref(inputGradDesc));
+    auto target_tv = miopen::solver::nllloss::get_inner_expanded_tv<4>(miopen::deref(targetDesc));
+    auto weight_tv = miopen::solver::nllloss::get_inner_expanded_tv<1>(miopen::deref(weightDesc));
 
     for(size_t i = 0; i < numel; i++)
     {
+        auto tensor_layout = tensor_layout_t<4>(target_tv, i);
         uint64_t n[4];
-        GET_NCDH(n[0], n[1], n[2], n[3], i, T_tv);
-        size_t target_index     = TV4D_IDX(T_tv, n[0], n[1], n[2], n[3]);
-        int32_t t               = target[target_index];
-        size_t input_grad_index = TV5D_IDX(I_tv, n[0], t, n[1], n[2], n[3]);
-        size_t weight_index     = TV1D_IDX(W_tv, t);
+        n[0] = tensor_layout.layout[0];
+        n[1] = tensor_layout.layout[1];
+        n[2] = tensor_layout.layout[2];
+        n[3] = tensor_layout.layout[3];
+
+        size_t target_index = target_tv.get_tensor_view_idx(tensor_layout);
+        int32_t t           = target[target_index];
+
+        tensor_layout_t<5> input_grad_layout(n[0], t, n[1], n[2], n[3]);
+        size_t input_grad_index = input_grad_tv.get_tensor_view_idx(input_grad_layout);
+
+        tensor_layout_t<1> weight_layout(t);
+        size_t weight_index = weight_tv.get_tensor_view_idx(weight_layout);
 
         if(t < 0 || t == ignore_index || t >= C)
         {

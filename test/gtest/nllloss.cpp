@@ -73,7 +73,7 @@ using namespace nllloss;
 TEST_P(NLLLossTestFloat, NLLLossTest)
 {
     if((miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && GetFloatArg() == "--float") ||
-       GetFloatArg() == "--testall")
+       miopen::IsUnset(ENV(MIOPEN_TEST_ALL)))
     {
         RunTest();
         Verify();
@@ -87,7 +87,7 @@ TEST_P(NLLLossTestFloat, NLLLossTest)
 TEST_P(NLLLossTestHalf, NLLLossTest)
 {
     if((miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && GetFloatArg() == "--half") ||
-       GetFloatArg() == "--testall")
+       miopen::IsUnset(ENV(MIOPEN_TEST_ALL)))
     {
         RunTest();
         Verify();
@@ -101,7 +101,7 @@ TEST_P(NLLLossTestHalf, NLLLossTest)
 TEST_P(NLLLossTestBFloat16, NLLLossTest)
 {
     if((miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && GetFloatArg() == "--bfloat16") ||
-       GetFloatArg() == "--testall")
+       miopen::IsUnset(ENV(MIOPEN_TEST_ALL)))
     {
         RunTest();
         Verify();
@@ -122,7 +122,7 @@ INSTANTIATE_TEST_SUITE_P(NLLLossTestSet,
 TEST_P(NLLLossTestFloatBwd, NLLLossTestBwd)
 {
     if((miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && GetFloatArg() == "--float") ||
-       GetFloatArg() == "--testall")
+       miopen::IsUnset(ENV(MIOPEN_TEST_ALL)))
     {
         RunTest();
         Verify();
@@ -136,7 +136,7 @@ TEST_P(NLLLossTestFloatBwd, NLLLossTestBwd)
 TEST_P(NLLLossTestHalfBwd, NLLLossTestBwd)
 {
     if((miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && GetFloatArg() == "--half") ||
-       GetFloatArg() == "--testall")
+       miopen::IsUnset(ENV(MIOPEN_TEST_ALL)))
     {
         RunTest();
         Verify();
@@ -150,7 +150,7 @@ TEST_P(NLLLossTestHalfBwd, NLLLossTestBwd)
 TEST_P(NLLLossTestBFloat16Bwd, NLLLossTestBwd)
 {
     if((miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && GetFloatArg() == "--bfloat16") ||
-       GetFloatArg() == "--testall")
+       miopen::IsUnset(ENV(MIOPEN_TEST_ALL)))
     {
         RunTest();
         Verify();

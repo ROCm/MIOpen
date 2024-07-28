@@ -33,7 +33,7 @@
 #include <miopen/datatype.hpp>
 #include <miopen/nllloss.hpp>
 #include <miopen/target_properties.hpp>
-#include <miopen/tensor_view.hpp>
+#include <miopen/nllloss/utils.hpp>
 
 #define LOCAL_SIZE_CON_BWD 1024
 
@@ -92,10 +92,10 @@ ConvSolution NLLLossUnreduceBackwardContiguous4d::GetSolution(
             decltype(auto) kernel = handle_.Run(kernels.front());
             decltype(auto) params = raw_params.CastTo<miopen::nllloss::BwdInvokeParams>();
 
-            auto input_grad_tv  = get_inner_expanded_tv_4d(deref(params.inputGradDesc));
-            auto target_tv      = get_inner_expanded_tv_3d(deref(params.targetDesc));
-            auto weight_tv      = get_inner_expanded_tv_1d(deref(params.weightDesc));
-            auto output_grad_tv = get_inner_expanded_tv_3d(deref(params.outputGradDesc));
+            auto input_grad_tv  = get_inner_expanded_tv<4>(deref(params.inputGradDesc));
+            auto target_tv      = get_inner_expanded_tv<3>(deref(params.targetDesc));
+            auto weight_tv      = get_inner_expanded_tv<1>(deref(params.weightDesc));
+            auto output_grad_tv = get_inner_expanded_tv<3>(deref(params.outputGradDesc));
 
             kernel(params.input_grad,
                    params.target,
