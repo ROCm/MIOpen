@@ -4356,6 +4356,34 @@ void RNNDescriptor::RNNBackwardDataPackedTensors(
         MIOPEN_THROW(miopenStatusBadParm, "Output size doesn't match hidden state size!");
     }
 
+    if(dirMode == 0 && inputMode == miopenRNNlinear && rnnMode == miopenLSTM)
+    {
+        SeqTensorDescriptor dx_seq =
+            makeSeqTensorDescriptor(dxDesc, seqLen, miopenRNNDataSeqMajorNotPadded);
+
+        SeqTensorDescriptor dy_seq =
+            makeSeqTensorDescriptor(dyDesc, seqLen, miopenRNNDataSeqMajorNotPadded);
+
+        return this->ModularBackward(handle,
+                                     dy_seq,
+                                     dy,
+                                     dhxDesc,
+                                     hx,
+                                     dhy,
+                                     dhx,
+                                     dcxDesc,
+                                     cx,
+                                     dcy,
+                                     dcx,
+                                     dx_seq,
+                                     dx,
+                                     w,
+                                     workSpace,
+                                     workSpaceSize,
+                                     reserveSpace,
+                                     reserveSpaceSize);
+    }
+
     int in_stride  = in_h;
     int hy_stride  = hy_h * bi * static_cast<int>(workspaceScale);
     int out_stride = out_h;
