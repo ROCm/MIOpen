@@ -129,15 +129,14 @@ template <typename XDataType,
 ConvSolution InvokerFactoryMakerNHWC(const miopen::batchnorm::ProblemDescription& bn_problem)
 {
     ConvSolution result;
-    auto args              = CKArgsBNormFwd{bn_problem};
-    result.invoker_factory = [args         = std::move(args),
+    result.invoker_factory = [args         = CKArgsBNormFwd{bn_problem},
                               kernel_index = CheckCKApplicability<XDataType,
                                                                   YDataType,
                                                                   AccDataType,
                                                                   ScaleDataType,
                                                                   BiasDataType,
                                                                   MeanVarDataType>(bn_problem)](
-                                 const std::vector<Kernel>& /*kernels*/) {
+                                 const std::vector<Kernel>& /*kernels*/) mutable {
         return [=, args = std::move(args)](const Handle& handle,
                                            const AnyInvokeParams& primitive_parameters) {
             using DeviceOp = ck::tensor_operation::device::DeviceElementwise<
