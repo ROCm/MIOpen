@@ -72,9 +72,9 @@ public:
     size_t EncodeLayout(const std::string& layout) const;
 };
 class Model;
-std::vector<uint64_t> PredictSolver(const conv::ProblemDescription& problem,
-                                    const ExecutionContext& ctx,
-                                    const std::string& device);
+MIOPEN_INTERNALS_EXPORT std::vector<uint64_t> PredictSolver(const conv::ProblemDescription& problem,
+                                                            const ExecutionContext& ctx,
+                                                            const std::string& device);
 } // namespace immed_mode
 
 #endif // MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK
@@ -82,13 +82,15 @@ std::vector<uint64_t> PredictSolver(const conv::ProblemDescription& problem,
 namespace tuning {
 struct Metadata
 {
-    std::size_t num_tuning_params;
+    std::size_t predict_type;
+    std::unordered_map<std::string, std::size_t> num_tuning_params;
     std::unordered_map<std::string, std::string> tuning_decodings;
     Metadata(const std::string& arch, const std::string& solver);
 };
 
 bool ModelSetParams(const std::string& arch,
                     const std::string& solver,
+                    conv::Direction direction,
                     const std::vector<float>& features,
                     bool transform_features,
                     std::function<bool(std::size_t, std::string)> validator);

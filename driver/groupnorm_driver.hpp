@@ -110,8 +110,8 @@ private:
     std::vector<Tgpu> weight;
     std::vector<Tgpu> bias;
     std::vector<Tgpu> out;
-    std::vector<Tref> mean;
-    std::vector<Tref> rstd;
+    std::vector<Tgpu> mean;
+    std::vector<Tgpu> rstd;
     std::vector<Tref> outhost;
     std::vector<Tref> meanhost;
     std::vector<Tref> rstdhost;
@@ -158,14 +158,14 @@ template <typename Tgpu, typename Tref>
 int GroupNormDriver<Tgpu, Tref>::AddCmdLineArgs()
 {
     inflags.AddInputFlag("forw", 'F', "1", "Run only Forward GroupNorm (Default=1)", "int");
-    inflags.AddInputFlag("batchsize", 'n', "100", "Mini-batch size (Default=100)", "int");
-    inflags.AddInputFlag("in_channels", 'c', "6", "Number of Input Channels (Default=6)", "int");
-    inflags.AddInputFlag("in_d", 'D', "0", "Input Depth (Default=0)", "int");
-    inflags.AddInputFlag("in_h", 'H', "32", "Input Height (Default=32)", "int");
-    inflags.AddInputFlag("in_w", 'W', "32", "Input Width (Default=32)", "int");
+    inflags.AddInputFlag("batchsize", 'n', "32", "Mini-batch size (Default=100)", "int");
+    inflags.AddInputFlag("in_channels", 'c', "32", "Number of Input Channels (Default=6)", "int");
+    inflags.AddInputFlag("in_d", 'D', "14", "Input Depth (Default=0)", "int");
+    inflags.AddInputFlag("in_h", 'H', "14", "Input Height (Default=32)", "int");
+    inflags.AddInputFlag("in_w", 'W', "14", "Input Width (Default=32)", "int");
 
     inflags.AddInputFlag("eps", 'e', "0.00001", "Alpha (Default=0.00001)", "double");
-    inflags.AddInputFlag("num_groups", 'g', "3", "num_groups", "int");
+    inflags.AddInputFlag("num_groups", 'g', "4", "num_groups", "int");
     inflags.AddInputFlag(
         "mode", 'm', "0", "elemwise affine mode (0), weight and bias mode (1) (Default=0)", "int");
 
@@ -224,15 +224,15 @@ int GroupNormDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     weight_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, weight_sz, sizeof(Tgpu)));
     bias_dev   = std::unique_ptr<GPUMem>(new GPUMem(ctx, bias_sz, sizeof(Tgpu)));
     out_dev    = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(Tgpu)));
-    mean_dev   = std::unique_ptr<GPUMem>(new GPUMem(ctx, mean_sz, sizeof(Tref)));
-    rstd_dev   = std::unique_ptr<GPUMem>(new GPUMem(ctx, rstd_sz, sizeof(Tref)));
+    mean_dev   = std::unique_ptr<GPUMem>(new GPUMem(ctx, mean_sz, sizeof(Tgpu)));
+    rstd_dev   = std::unique_ptr<GPUMem>(new GPUMem(ctx, rstd_sz, sizeof(Tgpu)));
 
     in       = std::vector<Tgpu>(in_sz, static_cast<Tgpu>(0));
     weight   = std::vector<Tgpu>(weight_sz, static_cast<Tgpu>(0));
     bias     = std::vector<Tgpu>(bias_sz, static_cast<Tgpu>(0));
     out      = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
-    mean     = std::vector<Tref>(mean_sz, static_cast<Tref>(0));
-    rstd     = std::vector<Tref>(rstd_sz, static_cast<Tref>(0));
+    mean     = std::vector<Tgpu>(mean_sz, static_cast<Tgpu>(0));
+    rstd     = std::vector<Tgpu>(rstd_sz, static_cast<Tgpu>(0));
     outhost  = std::vector<Tref>(out_sz, static_cast<Tref>(0));
     meanhost = std::vector<Tref>(mean_sz, static_cast<Tref>(0));
     rstdhost = std::vector<Tref>(rstd_sz, static_cast<Tref>(0));
@@ -347,23 +347,14 @@ int GroupNormDriver<Tgpu, Tref>::RunBackwardGPU()
 template <typename Tgpu, typename Tref>
 Tref GroupNormDriver<Tgpu, Tref>::GetTolerance()
 {
-    if(data_type == miopenHalf)
-    {
-        return 1e-3;
-    }
-    else if(data_type == miopenFloat)
-    {
-        return 5e-5;
-    }
-    else if(data_type == miopenDouble)
-    {
-        return 1e-10;
-    }
-    else if(data_type == miopenBFloat16)
-    {
-        return 5e-3;
-    }
-    return 0;
+    // Computation error of fp16 is ~2^13 (=8192) bigger than
+    // the one of fp32 because mantissa is shorter by 13 bits.
+    auto tolerance = std::is_same<Tgpu, float>::value ? 1.5e-6 : 8.2e-3;
+
+    // bf16 mantissa has 7 bits, by 3 bits shorter than fp16.
+    if(std::is_same<Tgpu, bfloat16>::value)
+        tolerance *= 8.0;
+    return tolerance;
 }
 
 template <typename Tgpu, typename Tref>

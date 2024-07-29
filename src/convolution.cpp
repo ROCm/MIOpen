@@ -80,7 +80,7 @@ std::size_t GetWorkSpaceSizeGEMM(const miopen::ExecutionContext& ctx,
                                  const conv::ProblemDescription& problem)
 {
 #if MIOPEN_USE_GEMM
-    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_GEMM)) ||
+    if(env::disabled(MIOPEN_DEBUG_CONV_GEMM) ||
        miopen::any_of(problem.GetConv().GetConvDilations(), [](auto v) { return v > 1; }))
         return 0;
 
@@ -95,7 +95,7 @@ std::size_t GetWorkSpaceSizeGEMM(const miopen::ExecutionContext& ctx,
 std::size_t GetWorkSpaceSizeImplicitGemm(const miopen::ExecutionContext& ctx,
                                          const conv::ProblemDescription& problem)
 {
-    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM)))
+    if(env::disabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM))
         return 0;
     return GetMaxWorkSpaceSize(FindAllImplicitGemmWorkspaceSizes(ctx, problem));
 }
@@ -103,7 +103,7 @@ std::size_t GetWorkSpaceSizeImplicitGemm(const miopen::ExecutionContext& ctx,
 std::size_t GetWorkSpaceSizeDirect(const miopen::ExecutionContext& ctx,
                                    const conv::ProblemDescription& problem)
 {
-    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_DIRECT)))
+    if(env::disabled(MIOPEN_DEBUG_CONV_DIRECT))
         return 0;
     return GetMaxWorkSpaceSize(AllDirectForwardBackwardDataWorkspaceSize(ctx, problem));
 }
@@ -111,7 +111,7 @@ std::size_t GetWorkSpaceSizeDirect(const miopen::ExecutionContext& ctx,
 std::size_t GetWorkSpaceSizeFFT(const miopen::ExecutionContext& ctx,
                                 const conv::ProblemDescription& problem)
 {
-    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_FFT)))
+    if(env::disabled(MIOPEN_DEBUG_CONV_FFT))
         return 0;
     return GetMaxWorkSpaceSize(AllFFTForwardBackwardDataWorkspaceSize(ctx, problem));
 }
@@ -119,7 +119,7 @@ std::size_t GetWorkSpaceSizeFFT(const miopen::ExecutionContext& ctx,
 std::size_t GetWorkSpaceSizeWinograd(const miopen::ExecutionContext& ctx,
                                      const conv::ProblemDescription& problem)
 {
-    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_WINOGRAD)))
+    if(env::disabled(MIOPEN_DEBUG_CONV_WINOGRAD))
         return 0;
     return GetMaxWorkSpaceSize(FindAllWinogradWorkspaceSizes(ctx, problem));
 }
@@ -127,7 +127,7 @@ std::size_t GetWorkSpaceSizeWinograd(const miopen::ExecutionContext& ctx,
 std::size_t GetWorkSpaceSizeDirectWrW(const miopen::ExecutionContext& ctx,
                                       const conv::ProblemDescription& problem)
 {
-    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_DIRECT)))
+    if(env::disabled(MIOPEN_DEBUG_CONV_DIRECT))
         return 0;
     return GetMaxWorkSpaceSize(AllDirectBwdWrW2DWorkspaceSize(ctx, problem));
 }
@@ -135,7 +135,7 @@ std::size_t GetWorkSpaceSizeDirectWrW(const miopen::ExecutionContext& ctx,
 std::size_t GetWorkSpaceSizeWinogradWrW(const miopen::ExecutionContext& ctx,
                                         const conv::ProblemDescription& problem)
 {
-    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_WINOGRAD)))
+    if(env::disabled(MIOPEN_DEBUG_CONV_WINOGRAD))
         return 0;
     return GetMaxWorkSpaceSize(FindWinogradWrWWorkspaceSizes(ctx, problem));
 }
@@ -143,7 +143,7 @@ std::size_t GetWorkSpaceSizeWinogradWrW(const miopen::ExecutionContext& ctx,
 std::size_t GetWorkSpaceSizeImplicitGemmWrW(const miopen::ExecutionContext& ctx,
                                             const conv::ProblemDescription& problem)
 {
-    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM)))
+    if(env::disabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM))
         return 0;
     return GetMaxWorkSpaceSize(FindImplicitGemmWrWWorkspaceSizes(ctx, problem));
 }
@@ -355,7 +355,7 @@ ConvolutionDescriptor::GetForwardOutputTensorWithLayout(const TensorDescriptor& 
     out_lens[0] = in_n;
     out_lens[1] = out_c;
 
-    const std::string default_layout = tensor_layout_get_default(xDesc.GetSize());
+    const std::string default_layout = tensor_layout_get_default(xDesc.GetNumDims());
     std::vector<std::size_t> out_strides;
     tensor_layout_to_strides(
         out_lens, default_layout, yLayout, xDesc.GetVectorLength(), out_strides);
@@ -373,7 +373,7 @@ TensorDescriptor ConvolutionDescriptor::GetForwardOutputTensor(const TensorDescr
                                                                miopenDataType_t yType) const
 {
     // output layout same as input
-    const std::string default_layout = tensor_layout_get_default(xDesc.GetSize());
+    const std::string default_layout = tensor_layout_get_default(xDesc.GetNumDims());
     const std::string in_layout      = xDesc.GetLayout(default_layout);
     return GetForwardOutputTensorWithLayout(xDesc, wDesc, in_layout, yType);
 }
@@ -386,7 +386,7 @@ TensorDescriptor ConvolutionDescriptor::GetForwardOutputTensor(const TensorDescr
 bool ConvolutionDescriptor::IsWinograd3x3SupportedAndFast(
     const miopen::ExecutionContext& ctx, const conv::ProblemDescription& problem) const
 {
-    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_WINOGRAD)))
+    if(env::disabled(MIOPEN_DEBUG_CONV_WINOGRAD))
         return false;
 
     // Disable this performance optimization when we want to run some specific Solver.
@@ -425,7 +425,7 @@ std::size_t ConvolutionDescriptor::GetWorkSpaceSize(ExecutionContext ctx,
         auto fallback        = bool{};
         const auto solutions = GetSolutions(ctx, problem, 1, &fallback);
         if(solutions.empty() || ((findMode.IsHybrid(ctx) && fallback) &&
-                                 !miopen::IsEnabled(ENV(MIOPEN_DEBUG_FORCE_IMMED_MODE_FALLBACK))))
+                                 !env::enabled(MIOPEN_DEBUG_FORCE_IMMED_MODE_FALLBACK)))
         {
             ctx.use_dynamic_solutions_only = findMode.IsDynamicHybrid(ctx);
             break; // Fall down to Normal Find.

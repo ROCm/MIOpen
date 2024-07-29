@@ -2,6 +2,7 @@
 #ifndef MIOPEN_GUARD_MLOPEN_FUSION_PLAN_HPP
 #define MIOPEN_GUARD_MLOPEN_FUSION_PLAN_HPP
 
+#include <miopen/config.hpp>
 #include <miopen/miopen.h>
 #include <miopen/tensor.hpp>
 #include <miopen/fusion.hpp>
@@ -15,7 +16,7 @@ namespace solver {
 struct ConvSolution;
 } // namespace solver
 
-enum Exec_Arg_Type_t
+enum class Exec_Arg_Type_t
 {
     Scalar,
     Input_Ptr,
@@ -42,7 +43,7 @@ struct Exec_arg_t
 };
 
 struct FusionContext;
-struct FusionPlanDescriptor : miopenFusionPlanDescriptor
+struct MIOPEN_INTERNALS_EXPORT FusionPlanDescriptor : miopenFusionPlanDescriptor
 {
     FusionPlanDescriptor() {}
     FusionPlanDescriptor(miopenFusionDirection_t dir, const TensorDescriptor& inDesc);
@@ -58,10 +59,9 @@ struct FusionPlanDescriptor : miopenFusionPlanDescriptor
                            Data_t output,
                            const OperatorArgs& op_args);
     miopenStatus_t Compile(Handle& handle);
-    std::vector<struct PerfField>
-    Find(Handle& handle,
-         const std::function<fusion::FusionInvokeParams()>& invoke_params,
-         const std::optional<FindOptions>& options = std::nullopt) const;
+    std::vector<Solution> Find(Handle& handle,
+                               const std::function<fusion::FusionInvokeParams()>& invoke_params,
+                               const std::optional<FindOptions>& options = std::nullopt) const;
     friend std::ostream& operator<<(std::ostream& stream, const FusionPlanDescriptor& fpd);
 
     miopenStatus_t

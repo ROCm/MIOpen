@@ -68,6 +68,7 @@ void Run2dDriver(miopenDataType_t prec)
     case miopenHalf: params = ConvEmbedConfigHalf::GetParam(); break;
     case miopenInt8: params = ConvEmbedConfigInt8::GetParam(); break;
     case miopenBFloat16: params = ConvEmbedConfigBFloat16::GetParam(); break;
+    case miopenInt64:
     case miopenInt32:
     case miopenFloat8:
     case miopenBFloat8:
@@ -89,7 +90,7 @@ void Run2dDriver(miopenDataType_t prec)
         });
 
         testing::internal::CaptureStderr();
-        test_drive<conv2d_driver>(ptrs.size(), ptrs.data());
+        test_drive<conv2d_driver>(ptrs.size(), ptrs.data(), "test_conv_embed_db");
         auto capture = testing::internal::GetCapturedStderr();
         EXPECT_FALSE(capture.find("Perf Db: record not found") != std::string::npos);
     }
@@ -106,12 +107,7 @@ bool IsTestSupportedForDevice(const miopen::Handle& handle)
 
 std::vector<std::string> GetTestCases(const std::string& precision)
 {
-    std::string flags = " --disable-validation --verbose ";
-
-    // If precision env var is not set
-    if(!(IsTestRunWith("--float") || IsTestRunWith("--half") || IsTestRunWith("--int8") ||
-         IsTestRunWith("--bfloat16")))
-        flags.insert(0, precision);
+    std::string flags = precision + " --disable-validation --verbose ";
 
     const std::vector<std::string> test_cases = {
         // clang-format off

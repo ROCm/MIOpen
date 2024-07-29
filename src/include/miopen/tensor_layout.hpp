@@ -62,18 +62,21 @@ void tensor_layout_to_strides(const std::vector<T>& len,
                        }
                        return std::accumulate(layout.begin() + pos + 1,
                                               layout.end(),
-                                              1,
+                                              static_cast<T>(1),
                                               [&dim_to_len](T accumulator, char l) {
                                                   return accumulator * dim_to_len[l];
                                               });
                    });
 }
 
+/// \brief Version for vectorized layouts.
+///
+/// \todo Generalize with non-vectorized version, 90% of code is the same.
 template <typename T>
 void tensor_layout_to_strides(const std::vector<T>& len,
                               const std::string& len_layout,
                               const std::string& layout,
-                              const int vector,
+                              const std::size_t vector_size,
                               std::vector<T>& strides)
 {
     const std::string base_layout = layout.substr(0, len.size());
@@ -91,7 +94,7 @@ void tensor_layout_to_strides(const std::vector<T>& len,
         len_layout.begin(),
         len_layout.end(),
         std::back_inserter(strides),
-        [&base_layout, &vector, &dim_to_len](char cur_layout_char) {
+        [&base_layout, &vector_size, &dim_to_len](char cur_layout_char) {
             auto pos = base_layout.find(cur_layout_char);
             if(pos == std::string::npos)
             {
@@ -100,12 +103,12 @@ void tensor_layout_to_strides(const std::vector<T>& len,
             return std::accumulate(
                 base_layout.begin() + pos + 1,
                 base_layout.end(),
-                vector,
+                vector_size,
                 [&dim_to_len](T accumulator, char l) { return accumulator * dim_to_len[l]; });
         });
 }
 
-inline std::string tensor_layout_get_default(int size)
+inline std::string tensor_layout_get_default(unsigned size)
 {
     if(size == 4)
         return "NCHW";

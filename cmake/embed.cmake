@@ -1,19 +1,19 @@
 ################################################################################
-# 
+#
 # MIT License
-# 
+#
 # Copyright (c) 2020 Advanced Micro Devices, Inc.
-# 
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
 # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
-# 
+#
 # The above copyright notice and this permission notice shall be included in all
 # copies or substantial portions of the Software.
-# 
+#
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -21,7 +21,7 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-# 
+#
 ################################################################################
 
 find_program(EMBED_LD ld)
@@ -86,7 +86,8 @@ function(generate_embed_source EMBED_NAME)
 #include <string>
 #include <unordered_map>
 #include <utility>
-const std::unordered_map<std::string, std::pair<const char*,const char*>>& ${EMBED_NAME}();
+#include <miopen/filesystem.hpp>
+const std::unordered_map<miopen::fs::path, std::pair<const char*, const char*>, miopen::FsPathHash>& ${EMBED_NAME}();
 ")
 
     file(WRITE "${PARSE_SRC}" "
@@ -94,9 +95,9 @@ const std::unordered_map<std::string, std::pair<const char*,const char*>>& ${EMB
 #pragma clang diagnostic ignored \"-Wreserved-identifier\"
 #include <${EMBED_NAME}.hpp>
 ${EXTERNS}
-const std::unordered_map<std::string, std::pair<const char*,const char*>>& ${EMBED_NAME}()
+const std::unordered_map<miopen::fs::path, std::pair<const char*, const char*>, miopen::FsPathHash>& ${EMBED_NAME}()
 {
-    static const std::unordered_map<std::string, std::pair<const char*,const char*>> result = {${INIT_KERNELS}};
+    static const std::unordered_map<miopen::fs::path, std::pair<const char*, const char*>, miopen::FsPathHash> result = {${INIT_KERNELS}};
     return result;
 }
 #pragma clang diagnostic pop // \"-Wreserved-identifier\"
@@ -120,7 +121,7 @@ function(embed_file OUTPUT_FILE OUTPUT_SYMBOL FILE)
         message(TRACE "Converting ${REL_FILE} to ${REL_FILE}.o")
         add_custom_command(
             OUTPUT "${FILE}.o"
-            COMMAND ${EMBED_LD} -r -o "${FILE}.o" -z noexecstack --format=binary "${REL_FILE}" 
+            COMMAND ${EMBED_LD} -r -o "${FILE}.o" -z noexecstack --format=binary "${REL_FILE}"
             COMMAND ${EMBED_OBJCOPY} --rename-section .data=.rodata,alloc,load,readonly,data,contents "${FILE}.o"
             WORKING_DIRECTORY ${WORKING_DIRECTORY}
             DEPENDS ${FILE}
@@ -147,6 +148,6 @@ function(add_embed_library EMBED_NAME)
     message(STATUS "Generating embedding library ${EMBED_NAME}")
     generate_embed_source(${EMBED_NAME} SRC ${SRC_FILE} HEADER ${HEADER_FILE} OBJECTS ${OUTPUT_FILES} SYMBOLS ${SYMBOLS})
     add_library(${EMBED_NAME} STATIC ${OUTPUT_FILES} "${SRC_FILE}")
-    target_include_directories(${EMBED_NAME} PUBLIC "${EMBED_DIR}/include")
+    target_include_directories(${EMBED_NAME} PUBLIC "${EMBED_DIR}/include" $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src/include>)
     set_target_properties(${EMBED_NAME} PROPERTIES POSITION_INDEPENDENT_CODE On)
 endfunction()

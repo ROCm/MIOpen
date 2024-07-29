@@ -25,7 +25,7 @@
  *******************************************************************************/
 #pragma once
 
-#include <miopen/config.h>
+#include <miopen/config.hpp>
 
 #if !MIOPEN_ENABLE_SQLITE
 #error "MIOPEN_ENABLE_SQLITE = Off"
@@ -159,14 +159,14 @@ struct SQLiteSerializable
     }
 };
 
-class SQLite
+class MIOPEN_INTERNALS_EXPORT SQLite
 {
     class impl;
     // do we need propagate const
     std::unique_ptr<impl> pImpl;
 
 public:
-    class Statement
+    class MIOPEN_INTERNALS_EXPORT Statement
     {
         class impl;
         std::unique_ptr<impl> pImpl;
@@ -186,13 +186,14 @@ public:
         std::vector<char> ColumnBlob(int idx);
         int64_t ColumnInt64(int idx);
         int BindText(int idx, const std::string& txt);
+        int BindPath(int idx, const fs::path& path);
         int BindBlob(int idx, const std::vector<char>& blob);
         int BindInt64(int idx, int64_t);
     };
 
     using result_type = std::vector<std::unordered_map<std::string, std::string>>;
     SQLite();
-    SQLite(const std::string& filename_, bool is_system);
+    SQLite(const fs::path& filename_, bool is_system);
     ~SQLite();
     SQLite(SQLite&&) noexcept;
     SQLite& operator=(SQLite&&) noexcept;
@@ -201,7 +202,7 @@ public:
     result_type Exec(const std::string& query) const;
     int Changes() const;
     int Retry(std::function<int()>) const;
-    static int Retry(std::function<int()> f, std::string filename);
+    static int Retry(std::function<int()> f, fs::path filename);
     std::string ErrorMessage() const;
 };
 
@@ -210,7 +211,7 @@ class SQLiteBase
 {
 protected:
 public:
-    SQLiteBase(DbKinds, const std::string& filename_, bool is_system_)
+    SQLiteBase(DbKinds, const fs::path& filename_, bool is_system_)
         : filename(filename_), is_system(is_system_)
     {
         if(DisableUserDbFileIO && !is_system)
@@ -227,14 +228,13 @@ public:
         }
         else if(!is_system)
         {
-            auto file            = fs::path(filename_);
-            const auto directory = file.remove_filename();
-            if(directory.string().empty())
+            if(!filename_.has_parent_path())
             {
                 dbInvalid = true;
                 return;
             }
 
+            auto directory = filename_.parent_path();
             if(!fs::exists(directory))
             {
                 if(!fs::create_directories(directory))
@@ -246,7 +246,7 @@ public:
         sql = SQLite{filename_, is_system};
         if(!sql.Valid())
         {
-            bool isKDB = fs::path(filename).extension() == ".kdb";
+            bool isKDB = filename.extension() == ".kdb";
             dbInvalid  = true;
             filename   = "";
             if(!is_system)
@@ -281,7 +281,7 @@ public:
         else
         {
             dbInvalid = false;
-            if(!is_system && !miopen::IsEnabled(ENV(MIOPEN_DEBUG_DISABLE_SQL_WAL)))
+            if(!is_system && !env::enabled(MIOPEN_DEBUG_DISABLE_SQL_WAL))
             {
                 auto res = sql.Exec("PRAGMA journal_mode=WAL;");
                 if(res.empty() || res[0]["journal_mode"] != "wal")
@@ -292,7 +292,7 @@ public:
         }
     }
 
-    static Derived& GetCached(const std::string& path, bool is_system);
+    static Derived& GetCached(const fs::path& path, bool is_system);
     // TODO: Fix this for the overhead of having fields per record
 
     inline auto CheckTableColumns(const std::string& tableName,
@@ -311,9 +311,7 @@ public:
             if(std::find(cfg_fds.begin(), cfg_fds.end(), goldenName) == cfg_fds.end())
             {
                 AllFound = false;
-                std::ostringstream ss;
-                ss << "Field " << goldenName << " not found in table: " << tableName;
-                MIOPEN_LOG_I2(ss.str());
+                MIOPEN_LOG_I2("Field " << goldenName << " not found in table: " << tableName);
                 // break; Not breaking to enable logging of all missing fields.
             }
         }
@@ -369,21 +367,21 @@ public:
         return reinterpret_cast<Derived*>(this)->LoadUnsafe(args...);
     }
 
-    std::string filename;
+    fs::path filename;
     bool dbInvalid;
     SQLite sql;
     bool is_system;
 };
 
 template <typename Derived>
-Derived& SQLiteBase<Derived>::GetCached(const std::string& path, bool is_system)
+Derived& SQLiteBase<Derived>::GetCached(const fs::path& path, bool is_system)
 {
     // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
     static std::mutex mutex;
     const std::lock_guard<std::mutex> lock{mutex};
 
     // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
-    static auto instances = std::map<std::string, Derived>{};
+    static auto instances = std::map<fs::path, Derived>{};
     const auto it         = instances.find(path);
 
     if(it != instances.end())
@@ -397,7 +395,8 @@ class SQLitePerfDb : public SQLiteBase<SQLitePerfDb>
 {
 public:
     static constexpr char const* MIOPEN_PERFDB_SCHEMA_VER = "1.1.0";
-    SQLitePerfDb(DbKinds db_kind, const std::string& filename_, bool is_system);
+    MIOPEN_INTERNALS_EXPORT
+    SQLitePerfDb(DbKinds db_kind, const fs::path& filename_, bool is_system);
 
     template <class T>
     inline void InsertConfig(const T& prob_desc)
@@ -446,7 +445,7 @@ public:
         if(dbInvalid)
             return boost::none;
 
-        const auto& pdb_ovr = miopen::GetStringEnv(ENV(MIOPEN_DEBUG_PERFDB_OVERRIDE));
+        const auto& pdb_ovr = env::value(MIOPEN_DEBUG_PERFDB_OVERRIDE);
         if(!pdb_ovr.empty())
         {
             MIOPEN_LOG_I2("overriding tuning params with: " << pdb_ovr);

@@ -27,9 +27,12 @@
 #include <miopen/solver.hpp>
 
 #include <miopen/activ/solvers.hpp>
+#include <miopen/adam/solvers.hpp>
 #include <miopen/batchnorm/solvers.hpp>
+#include <miopen/cat/solvers.hpp>
 #include <miopen/fusion/solvers.hpp>
 #include <miopen/groupnorm/solvers.hpp>
+#include <miopen/getitem/solvers.hpp>
 #include <miopen/interpolate/solvers.hpp>
 #include <miopen/layernorm/solvers.hpp>
 #include <miopen/pooling/solvers.hpp>
@@ -65,7 +68,8 @@ std::ostream& operator<<(std::ostream& os, const KernelInfo& k)
     return os << "} '" << k.comp_options << '\'';
 }
 
-std::vector<Program> PrecompileKernels(const Handle& h, const std::vector<KernelInfo>& kernels)
+std::vector<Program>
+PrecompileKernels(const Handle& h, const std::vector<KernelInfo>& kernels, bool force_attach_binary)
 {
     CompileTimer ct;
     std::vector<Program> programs(kernels.size());
@@ -75,14 +79,16 @@ std::vector<Program> PrecompileKernels(const Handle& h, const std::vector<Kernel
                     max_threads{GetTuningThreadsMax()},
                     [&](auto i) {
                         const KernelInfo& k = kernels[i];
-                        programs[i]         = h.LoadProgram(k.kernel_file, k.comp_options, "");
+                        programs[i]         = h.LoadProgram(k.kernel_file, k.comp_options, "", force_attach_binary);
                     });
     // clang-format on
     ct.Log("PrecompileKernels");
     return programs;
 }
 
-void PrecompileSolutions(const Handle& h, const std::vector<const ConvSolution*>& sols)
+void PrecompileSolutions(const Handle& h,
+                         const std::vector<const ConvSolution*>& sols,
+                         bool force_attach_binary)
 {
     // Find all kernels that need to be compiled from the solutions
     std::vector<KernelInfo> kernels;
@@ -98,8 +104,8 @@ void PrecompileSolutions(const Handle& h, const std::vector<const ConvSolution*>
         }
     }
 
-    // Precompile the kernels in parallel, but dont add them to the cache
-    std::vector<Program> programs = PrecompileKernels(h, kernels);
+    // Precompile the kernels in parallel, but don't add them to the cache
+    std::vector<Program> programs = PrecompileKernels(h, kernels, force_attach_binary);
 
     // Add programs to the cache
     for(std::size_t i = 0; i < programs.size(); i++)
@@ -646,9 +652,27 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
                        conv::ConvHipImplicitGemmGroupWrwXdlops{},
                        miopenConvolutionAlgoImplicitGEMM);
 
-    Register(registry, ++id, Primitive::Mha, mha::Mha{}.SolverDbId());
     Register(registry, ++id, Primitive::Softmax, softmax::Softmax{}.SolverDbId());
     Register(registry, ++id, Primitive::Softmax, softmax::AttnSoftmax{}.SolverDbId());
+
+    Register(registry, ++id, Primitive::Reduce, reduce::ArgminForward{}.SolverDbId());
+    Register(registry, ++id, Primitive::Reduce, reduce::MaxForward{}.SolverDbId());
+    Register(registry, ++id, Primitive::Reduce, reduce::MinForward{}.SolverDbId());
+
+    Register(registry, ++id, Primitive::Mha, mha::MhaForward{}.SolverDbId());
+    Register(registry, ++id, Primitive::Mha, mha::MhaBackward{}.SolverDbId());
+
+    Register(registry, ++id, Primitive::Cat, cat::CatForward{}.SolverDbId());
+    Register(registry, ++id, Primitive::Adam, adam::Adam{}.SolverDbId());
+    Register(registry, ++id, Primitive::Item, getitem::GetitemBackward{}.SolverDbId());
+
+    Register(registry, ++id, Primitive::Adam, adam::TransformersAdamW{}.SolverDbId());
+
+    Register(registry,
+             ++id,
+             Primitive::Fusion,
+             fusion::ConvWinoFuryRxSFused<2, 3>{}.SolverDbId(),
+             miopenConvolutionAlgoWinograd);
 
     Register(registry,
              ++id,
@@ -693,7 +717,7 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
 bool ThisSolverIsDeprecatedStatic::IsDisabled(const ExecutionContext& ctx)
 {
     static const bool device_is_allowed = [&]() {
-        if(miopen::IsEnabled(ENV(MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS)))
+        if(env::enabled(MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS))
             return true;
         const auto device = ctx.GetStream().GetTargetProperties().Name();
         return device == "gfx803"                       // Fiji

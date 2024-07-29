@@ -111,6 +111,9 @@ std::string ConvArgsForMIOpenDriver(const miopen::TensorDescriptor& xDesc,
         case miopenProblemDirectionForward: return ConvDirection::Fwd;
         case miopenProblemDirectionBackward: return ConvDirection::Bwd;
         case miopenProblemDirectionBackwardWeights: return ConvDirection::WrW;
+        case miopenProblemDirectionInference:
+            MIOPEN_THROW(miopenStatusInternalError);
+            return ConvDirection::Fwd;
         }
     }();
 
@@ -236,7 +239,7 @@ std::string BnormArgsForMIOpenDriver(miopenTensorDescriptor_t xDesc,
             ss << " -H " << miopen::deref(xDesc).GetLengths()[2]
             << " -W " << miopen::deref(xDesc).GetLengths()[3];
         }
-            ss << " -M " << bn_mode; // clang-format on
+            ss << " -m " << bn_mode; // clang-format on
     if(print_for_bn_driver)
     {
         BnDriverInfo(ss,
