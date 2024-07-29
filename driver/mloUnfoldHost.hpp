@@ -121,7 +121,7 @@ int32_t mloUnFoldBwd4DRunHost(Tcheck* ref_dinput,
     int spatial_dim_size = input_size - 2;
     const int32_t N      = static_cast<int32_t>(input_grad_dims[0]);
     const int32_t C      = static_cast<int32_t>(input_grad_dims[1]);
-    int32_t P = 1;
+    int32_t P            = 1;
     std::vector<int32_t> ls;
     for(int i = 0; i < spatial_dim_size; ++i)
     {
