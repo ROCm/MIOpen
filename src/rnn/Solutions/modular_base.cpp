@@ -440,14 +440,56 @@ void RNNBackwardDataModularAlgo::PropHiddenDy(const Handle& handle,
                                               size_t layer,
                                               SequenceDirection direction) const
 {
+    if(layer == 0)
+        return;
+
+    const size_t gemm_batch_size = batchController.getTotalBatchSum();
+
+    const size_t gemm_batch_offset = 0;
+
+    return PropHiddenDy(
+        handle, w, workSpace, reserveSpace, layer, direction, gemm_batch_size, gemm_batch_offset);
+}
+
+void RNNBackwardDataModularAlgo::PropHiddenDy(const Handle& handle,
+                                              ConstData_t w,
+                                              Data_t workSpace,
+                                              Data_t reserveSpace,
+                                              size_t layer,
+                                              SequenceDirection direction,
+                                              const SequenceIterator& firstSeq,
+                                              const SequenceIterator& lastSeq) const
+{
+    if(layer == 0)
+        return;
+
+    auto start_phis_seq = std::min(firstSeq.getPhisVal(), lastSeq.getPhisVal());
+    auto end_phis_seq   = std::max(firstSeq.getPhisVal(), lastSeq.getPhisVal());
+
+    const size_t gemm_batch_size = batchController.getBatchSum(end_phis_seq) -
+                                   batchController.getBatchSum(start_phis_seq) +
+                                   batchController.getBatchSize(end_phis_seq);
+
+    const size_t gemm_batch_offset = batchController.getBatchSum(start_phis_seq);
+
+    return PropHiddenDy(
+        handle, w, workSpace, reserveSpace, layer, direction, gemm_batch_size, gemm_batch_offset);
+}
+
+void RNNBackwardDataModularAlgo::PropHiddenDy(const Handle& handle,
+                                              ConstData_t w,
+                                              Data_t workSpace,
+                                              Data_t reserveSpace,
+                                              size_t layer,
+                                              SequenceDirection direction,
+                                              size_t gemm_batch_size,
+                                              size_t gemm_batch_offset) const
+{
 
     if(layer == 0)
         return;
 
     const auto rnn_data_type = rnnDesc.dataType;
-
-    const size_t gemm_batch_size   = batchController.getTotalBatchSum();
-    const size_t gemm_batch_offset = 0;
 
     const auto ht_x_offset =
         workspaceInfo.getHiddenStateOffset(layer - 1, gemm_batch_offset, direction);
@@ -527,12 +569,44 @@ void RNNBackwardDataModularAlgo::PropDx(const Handle& handle,
                                         ConstData_t w,
                                         ConstData_t workSpace,
                                         Data_t dx,
+                                        SequenceDirection direction,
+                                        const SequenceIterator& firstSeq,
+                                        const SequenceIterator& lastSeq) const
+{
+
+    auto start_phis_seq = std::min(firstSeq.getPhisVal(), lastSeq.getPhisVal());
+    auto end_phis_seq   = std::max(firstSeq.getPhisVal(), lastSeq.getPhisVal());
+
+    const size_t gemm_batch_size = batchController.getBatchSum(end_phis_seq) -
+                                   batchController.getBatchSum(start_phis_seq) +
+                                   batchController.getBatchSize(end_phis_seq);
+
+    const size_t gemm_batch_offset = batchController.getBatchSum(start_phis_seq);
+
+    return PropDx(handle, w, workSpace, dx, direction, gemm_batch_offset, gemm_batch_size);
+}
+
+void RNNBackwardDataModularAlgo::PropDx(const Handle& handle,
+                                        ConstData_t w,
+                                        ConstData_t workSpace,
+                                        Data_t dx,
                                         SequenceDirection direction) const
 {
-    constexpr size_t gemm_batch_offset = 0;
-    constexpr size_t layer             = 0;
+    const size_t gemm_batch_offset = 0;
 
     const size_t gemm_batch_size = workspaceInfo.getGateBlockSize()[1];
+    return PropDx(handle, w, workSpace, dx, direction, gemm_batch_offset, gemm_batch_size);
+}
+
+void RNNBackwardDataModularAlgo::PropDx(const Handle& handle,
+                                        ConstData_t w,
+                                        ConstData_t workSpace,
+                                        Data_t dx,
+                                        SequenceDirection direction,
+                                        size_t gemm_batch_offset,
+                                        size_t gemm_batch_size) const
+{
+    constexpr size_t layer = 0;
 
     const auto tmp_block_offset =
         workspaceInfo.getGateBlockOffset(layer, gemm_batch_offset, direction);

@@ -18,6 +18,16 @@ MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_RNNBWDMS_exp)
 
 namespace miopen {
 
+bool RNNBwdMSIsFast(const int seqLen)
+{
+    if(env::enabled(MIOPEN_RNNBWDMS_exp))
+        return true;
+
+    if(seqLen >= 32 && !env::disabled(MIOPEN_RNNBWDMS_exp))
+        return true;
+    return false;
+}
+
 void RNNDescriptor::ModularBackward(Handle& handle,
                                     const SeqTensorDescriptor& yDesc,
                                     ConstData_t dy,
@@ -37,10 +47,17 @@ void RNNDescriptor::ModularBackward(Handle& handle,
                                     Data_t reserveSpace,
                                     size_t /*reserveSpaceSize*/) const
 {
-
-    rnn_base::RNNModularSingleStreamBWD single_stream{*this, xDesc, yDesc, hDesc};
-
-    single_stream.ComputeBWD(handle, dy, dhy, dhx, cx, dcy, dcx, dx, w, workSpace, reserveSpace);
+    if(RNNBwdMSIsFast(xDesc.GetMaxSequenceLength()))
+    {
+        rnn_base::RNNModularMultiStreamBWD multi_stream{*this, xDesc, yDesc, hDesc};
+        multi_stream.ComputeBWD(handle, dy, dhy, dhx, cx, dcy, dcx, dx, w, workSpace, reserveSpace);
+    }
+    else
+    {
+        rnn_base::RNNModularSingleStreamBWD single_stream{*this, xDesc, yDesc, hDesc};
+        single_stream.ComputeBWD(
+            handle, dy, dhy, dhx, cx, dcy, dcx, dx, w, workSpace, reserveSpace);
+    }
 }
 
 } // namespace miopen

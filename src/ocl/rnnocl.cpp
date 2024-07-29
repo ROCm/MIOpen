@@ -31,6 +31,7 @@
 #include <miopen/env.hpp>
 #include <miopen/gemm_v2.hpp>
 #include <miopen/logger.hpp>
+#include <miopen/rnn/multi_stream_utils.hpp>
 
 #include <vector>
 #include <numeric>
@@ -39,8 +40,6 @@
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_RNNFWD_exp)
 MIOPEN_DECLARE_ENV_VAR_UINT64(MIOPEN_RNNFWD_MS_DISPATCH)
 MIOPEN_DECLARE_ENV_VAR_UINT64(MIOPEN_RNN_MS_STREAM_CNT)
-
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_MS_WA_FIX)
 
 namespace miopen {
 
@@ -283,77 +282,9 @@ void RNNDescriptor::RNNForwardMS(Handle& handle,
 
     const int extra_stream_cnt = env::value_or(MIOPEN_RNN_MS_STREAM_CNT, 4);
 
-    class MultiStreamController
-    {
-    public:
-        MultiStreamController(Handle& handle, int extra_stream_cnt)
-            : streamPoolIdsMapping{init_stream_pool_ids(handle, extra_stream_cnt)},
-              streamPoolCache{init_stream_pool(handle, streamPoolIdsMapping)},
-              activeHandle{handle}
-        {
-        }
-
-        hipStream_t getStream(int stream_id) const { return streamPoolCache[stream_id]; }
-
-        void ChangeActiveStream(int stream_id) const
-        {
-            activeHandle.SetStreamFromPool(streamPoolIdsMapping[stream_id]);
-        }
-
-        hipError_t RecordEvent(const hipEvent_t event, int stream_id) const
-        {
-            return hipEventRecord(event, getStream(stream_id));
-        }
-
-        hipError_t SetWaitEvent(const hipEvent_t event, int stream_id) const
-        {
-            return hipStreamWaitEvent(getStream(stream_id), event, 0);
-        }
-
-        size_t size() const { return streamPoolIdsMapping.size(); }
-
-    private:
-        static std::vector<int> init_stream_pool_ids(const Handle& handle, int extra_stream_cnt)
-        {
-            std::vector<int> ids;
-            ids.reserve(extra_stream_cnt + 1);
-
-            bool ms_wa_fix_active = extra_stream_cnt > 2 && !env::disabled(MIOPEN_MS_WA_FIX);
-            int wa_steams         = ms_wa_fix_active ? 2 : 0;
-
-            handle.ReserveExtraStreamsInPool(extra_stream_cnt + wa_steams);
-
-            for(int i = 0; i <= extra_stream_cnt + wa_steams; i++)
-                if(!(ms_wa_fix_active && (i == 3 || i == 4)))
-                    ids.push_back(i);
-
-            return ids;
-        }
-
-        static std::vector<hipStream_t> init_stream_pool(const Handle& handle,
-                                                         const std::vector<int>& pool_ids)
-        {
-            std::vector<hipStream_t> pool;
-            pool.reserve(pool_ids.size());
-
-            for(auto id : pool_ids)
-            {
-                handle.SetStreamFromPool(id);
-                pool.push_back(handle.GetStream());
-            }
-            handle.SetStreamFromPool(0);
-
-            return pool;
-        }
-
-        const std::vector<int> streamPoolIdsMapping;
-        const std::vector<hipStream_t> streamPoolCache;
-        const Handle& activeHandle;
-    };
-
     MultiStreamController ms_controller{handle, extra_stream_cnt};
 
-    constexpr auto root_stream_id = 0;
+    constexpr auto root_stream_id = ms_controller.rootStreamId;
     ms_controller.ChangeActiveStream(root_stream_id);
 
     int total_batch_size = 0;
@@ -919,30 +850,6 @@ void RNNDescriptor::RNNForwardMS(Handle& handle,
         }
     };
 
-    auto call_sync_all_stream_pool_to_root_stream = [&ms_controller]() {
-        const miopen::HipEventPtr main_event = make_hip_fast_event();
-
-        ms_controller.RecordEvent(main_event.get(), root_stream_id);
-
-        for(size_t i = 0; i < ms_controller.size(); i++)
-        {
-            if(i != root_stream_id)
-                ms_controller.SetWaitEvent(main_event.get(), i);
-        }
-    };
-
-    auto sync_root_to_all_stream_pool = [&ms_controller]() {
-        for(size_t i = 0; i < ms_controller.size(); i++)
-        {
-            if(i != root_stream_id)
-            {
-                const miopen::HipEventPtr sync_event = make_hip_fast_event();
-                ms_controller.RecordEvent(sync_event.get(), i);
-                ms_controller.SetWaitEvent(sync_event.get(), root_stream_id);
-            }
-        }
-    };
-
     if(seq_len == 0)
         return;
 
@@ -1043,7 +950,7 @@ void RNNDescriptor::RNNForwardMS(Handle& handle,
     // stage 0 bias and input preload
     // stage 0.2 first chunk compute and preload
     {
-        call_sync_all_stream_pool_to_root_stream();
+        ms_controller.AllStreamsWaitRoot();
         const auto first_layer_id  = 0;
         const auto stream_id       = 1; // 1
         const auto extra_stream_id = 2;
@@ -1236,7 +1143,7 @@ void RNNDescriptor::RNNForwardMS(Handle& handle,
             handle, src_desc, extra_space, y_dst_desc, y, RBuff.ht_offset(nLayers - 1, 0), 0);
     }
 
-    sync_root_to_all_stream_pool();
+    ms_controller.RootWaitToAllStreams();
 #else
     (void)handle;
     (void)seq_array;

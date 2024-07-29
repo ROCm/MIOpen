@@ -107,11 +107,45 @@ public:
                       size_t layer,
                       SequenceDirection direction) const;
 
+    void PropHiddenDy(const Handle& handle,
+                      ConstData_t w,
+                      Data_t workSpace,
+                      Data_t reserveSpace,
+                      size_t layer,
+                      SequenceDirection direction,
+                      const SequenceIterator& firstSeq,
+                      const SequenceIterator& lastSeq) const;
+
+    void PropHiddenDy(const Handle& handle,
+                      ConstData_t w,
+                      Data_t workSpace,
+                      Data_t reserveSpace,
+                      size_t layer,
+                      SequenceDirection direction,
+                      size_t gemm_batch_size,
+                      size_t gemm_batch_offset) const;
+
+    void PropDx(const Handle& handle,
+                ConstData_t w,
+                ConstData_t workSpace,
+                Data_t dx,
+                SequenceDirection direction,
+                const SequenceIterator& firstSeq,
+                const SequenceIterator& lastSeq) const;
+
     void PropDx(const Handle& handle,
                 ConstData_t w,
                 ConstData_t workSpace,
                 Data_t dx,
                 SequenceDirection direction) const;
+
+    void PropDx(const Handle& handle,
+                ConstData_t w,
+                ConstData_t workSpace,
+                Data_t dx,
+                SequenceDirection direction,
+                size_t gemm_batch_offset,
+                size_t gemm_batch_size) const;
 
 private:
     RNNBackwardDataModularAlgo(GeneralLstmRedBuffer rb_layout,
@@ -265,6 +299,63 @@ public:
                     ConstData_t w,
                     Data_t workSpace,
                     Data_t reserveSpace) const;
+
+    const rnn_base::RNNBackwardDataModularAlgo rnnAlgoModules;
+    const RNNDescriptor& rnnDesc;
+    const size_t max_seq_len;
+};
+
+class RNNModularMultiStreamBWD
+{
+public:
+    RNNModularMultiStreamBWD(const RNNDescriptor& rnn,
+                             const SeqTensorDescriptor& xDesc,
+                             const SeqTensorDescriptor& yDesc,
+                             const TensorDescriptor& hDesc)
+        : rnnAlgoModules(RNNBackwardDataModularAlgo::create(rnn, xDesc, yDesc, hDesc)),
+          rnnDesc(rnn),
+          max_seq_len(xDesc.GetMaxSequenceLength())
+    {
+    }
+
+    bool isApplicable();
+
+    size_t GetWsSize();
+
+    struct runtimeArgsBwd
+    {
+        const Handle* handle;
+        ConstData_t dy;
+        ConstData_t dhy;
+        Data_t dhx;
+        ConstData_t cx;
+        ConstData_t dcy;
+        Data_t dcx;
+        Data_t dx;
+        ConstData_t w;
+        Data_t workSpace;
+        Data_t reserveSpace;
+    };
+
+    void ComputeBWD(Handle& handle,
+                    ConstData_t dy,
+                    ConstData_t dhy,
+                    Data_t dhx,
+                    ConstData_t cx,
+                    ConstData_t dcy,
+                    Data_t dcx,
+                    Data_t dx,
+                    ConstData_t w,
+                    Data_t workSpace,
+                    Data_t reserveSpace) const;
+
+    bool ChunkDispatch(const runtimeArgsBwd& args,
+                       size_t chunk_size,
+                       size_t chunk_time_offset,
+                       size_t chunk_layer_offset) const;
+
+private:
+    void PrologueDispatch(const runtimeArgsBwd& args) const;
 
     const rnn_base::RNNBackwardDataModularAlgo rnnAlgoModules;
     const RNNDescriptor& rnnDesc;

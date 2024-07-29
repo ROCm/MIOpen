@@ -177,6 +177,7 @@ set( MIOpen_Source
     rnn/Solutions/rnn_transformer.cpp
     rnn/Solutions/modular_base.cpp
     rnn/Solutions/bwd_s_stream.cpp
+    rnn/Solutions/bwd_multi_stream.cpp
     scalar.cpp
     softmax.cpp
     softmax_api.cpp
