@@ -35,6 +35,17 @@ class MhaBackwardTest : public MhaCommonTest
     using dO_T = std::conditional_t<std::is_same_v<T, float>, float, bfloat8>;
 
 protected:
+
+    void SetUp() override
+    {
+        MhaCommonTest::SetUp();
+
+        if((m_bernulliProbability > 0.0f))
+        {
+            GTEST_SKIP() << "CPU Dropout for backward pass currently is not supported";
+        }
+    }
+
     virtual void MakeRealTensorsAndFillData(miopen::Handle& handle) override
     {
         auto q = test::cpu::GenScaledTensorBackward<T>(m_testN, m_testH, m_testS, m_testD);

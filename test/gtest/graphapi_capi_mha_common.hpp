@@ -219,8 +219,9 @@ miopenDataType_t GetMainType()
 class MhaCommonTest : public testing::TestWithParam<std::tuple<int, int, int, int, float>>
 {
 public:
-    void Run()
+    void SetUp() override
     {
+        prng::reset_seed();
         auto [n, h, s, d, p] = GetParam();
 
         m_testN               = n;
@@ -236,6 +237,11 @@ public:
             GTEST_SKIP() << "CPU Dropout currently supprorts only fully occupied warps. n=" << n
                          << ", h=" << h << ", s=" << s << ", d=" << d << ", bernulli p=" << p;
         }
+    }
+
+    void Run()
+    {
+        miopen::Handle& handle = get_handle();        
 
         try
         {
