@@ -241,7 +241,7 @@ public:
 
     void Run()
     {
-        miopen::Handle& handle = get_handle();        
+        miopen::Handle& handle = get_handle();
 
         try
         {

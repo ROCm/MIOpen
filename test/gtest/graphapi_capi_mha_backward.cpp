@@ -35,7 +35,6 @@ class MhaBackwardTest : public MhaCommonTest
     using dO_T = std::conditional_t<std::is_same_v<T, float>, float, bfloat8>;
 
 protected:
-
     void SetUp() override
     {
         MhaCommonTest::SetUp();
