@@ -41,7 +41,7 @@ struct MultiMarginLossTestCase
 
     friend std::ostream& operator<<(std::ostream& os, const MultiMarginLossTestCase& tc)
     {
-        os << " dims:";
+        os << "dims:";
         os << tc.dims[0];
         for(int i = 1; i < tc.dims.size(); i++)
             os << "x" << tc.dims[i];
@@ -225,7 +225,7 @@ protected:
                                                     margin,
                                                     reduction_mode);
         }
-        EXPECT_EQ(status, miopenStatusSuccess);
+        ASSERT_EQ(status, miopenStatusSuccess);
 
         // Write from GPU to CPU
         output.data = handle.Read<T>(output_dev, output.data.size());
@@ -241,9 +241,8 @@ protected:
             tolerance *= 8.0;
 
         auto error = miopen::rms_range(ref_output, output);
-        EXPECT_TRUE(miopen::range_distance(ref_output) == miopen::range_distance(output));
-        EXPECT_TRUE(error < tolerance) << "Error output beyond tolerance. Error:" << error
-                                       << ",  Tolerance: " << tolerance * 10;
+        ASSERT_EQ(miopen::range_distance(ref_output), miopen::range_distance(output));
+        EXPECT_LT(error, tolerance);
     }
     MultiMarginLossTestCase config;
 

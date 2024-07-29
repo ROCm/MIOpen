@@ -42,25 +42,25 @@ std::string GetFloatArg()
     return tmp;
 }
 
-struct MultiMarginLossForwardTestFloat : MultiMarginLossForwardTest<float>
+struct GPU_MultiMarginLoss_FP32 : MultiMarginLossForwardTest<float>
 {
 };
 
-struct MultiMarginLossForwardTestHalf : MultiMarginLossForwardTest<half_float::half>
+struct GPU_MultiMarginLoss_FP16 : MultiMarginLossForwardTest<half_float::half>
 {
 };
 
-struct MultiMarginLossForwardTestBFloat16 : MultiMarginLossForwardTest<bfloat16>
+struct GPU_MultiMarginLoss_BFP16 : MultiMarginLossForwardTest<bfloat16>
 {
 };
 
 } // namespace multimarginloss
 
-using multimarginloss::MultiMarginLossForwardTestBFloat16;
-using multimarginloss::MultiMarginLossForwardTestFloat;
-using multimarginloss::MultiMarginLossForwardTestHalf;
+using multimarginloss::GPU_MultiMarginLoss_BFP16;
+using multimarginloss::GPU_MultiMarginLoss_FP16;
+using multimarginloss::GPU_MultiMarginLoss_FP32;
 
-TEST_P(MultiMarginLossForwardTestFloat, MMLFwdTest)
+TEST_P(GPU_MultiMarginLoss_FP32, Test)
 {
     if(!MIOPEN_TEST_ALL ||
        (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--float"))
@@ -74,7 +74,7 @@ TEST_P(MultiMarginLossForwardTestFloat, MMLFwdTest)
     }
 };
 
-TEST_P(MultiMarginLossForwardTestHalf, MMLFwdTest)
+TEST_P(GPU_MultiMarginLoss_FP16, Test)
 {
     if(!MIOPEN_TEST_ALL ||
        (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--half"))
@@ -88,7 +88,7 @@ TEST_P(MultiMarginLossForwardTestHalf, MMLFwdTest)
     }
 };
 
-TEST_P(MultiMarginLossForwardTestBFloat16, MMLFwdTest)
+TEST_P(GPU_MultiMarginLoss_BFP16, Test)
 {
     if(!MIOPEN_TEST_ALL ||
        (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--bfloat16"))
@@ -102,12 +102,12 @@ TEST_P(MultiMarginLossForwardTestBFloat16, MMLFwdTest)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(MultiMarginLossTestSet,
-                         MultiMarginLossForwardTestFloat,
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_MultiMarginLoss_FP32,
                          testing::ValuesIn(MultiMarginLossTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(MultiMarginLossTestSet,
-                         MultiMarginLossForwardTestHalf,
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_MultiMarginLoss_FP16,
                          testing::ValuesIn(MultiMarginLossFp16TestConfigs()));
-INSTANTIATE_TEST_SUITE_P(MultiMarginLossTestSet,
-                         MultiMarginLossForwardTestBFloat16,
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_MultiMarginLoss_BFP16,
                          testing::ValuesIn(MultiMarginLossTestConfigs()));
