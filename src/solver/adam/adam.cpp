@@ -41,9 +41,7 @@ namespace adam {
 bool Adam::IsApplicable([[maybe_unused]] const ExecutionContext& context,
                         const miopen::adam::ProblemDescription& problem) const
 {
-    if(!problem.IsAllPacked())
-        return false;
-    if(problem.IsAdamW())
+    if(!problem.IsAllContiguous())
         return false;
     return true;
 }
@@ -60,11 +58,13 @@ ConvSolution Adam::GetSolution(const ExecutionContext& context,
                                ? miopen::GetDataType(problem.GetGradDesc().GetType())
                                : "float";
 
-        const auto build_params = KernelBuildParameters{
-            {"PTYPE", param_dtype},
-            {"GTYPE", grad_dtype},
-            {"CTYPE", ptype_size > 4 ? "double" : "float"},
-        };
+        const auto build_params =
+            KernelBuildParameters{
+                {"PTYPE", param_dtype},
+                {"GTYPE", grad_dtype},
+                {"CTYPE", ptype_size > 4 ? "double" : "float"},
+            }
+            << GetDataTypeKBP(problem.GetParamDesc().GetType());
 
         constexpr size_t local_size = 256;
         auto& handle                = context.GetStream();
@@ -81,11 +81,11 @@ ConvSolution Adam::GetSolution(const ExecutionContext& context,
         kernel.kernel_file = "MIOpenAdam.cpp";
         if(problem.ExistStepTensor())
         {
-            kernel.kernel_name = "AmpAdamPackedWithStep";
+            kernel.kernel_name = "AmpAdamContiguousWithStep";
         }
         else
         {
-            kernel.kernel_name = problem.IsAmp() ? "AmpAdamPacked" : "AdamPacked";
+            kernel.kernel_name = problem.IsAmp() ? "AmpAdamContiguous" : "AdamContiguous";
         }
 
         result.construction_params.push_back(kernel);
@@ -105,7 +105,7 @@ ConvSolution Adam::GetSolution(const ExecutionContext& context,
             return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
                 decltype(auto) kernel_adam = handle_.Run(kernels[0]);
                 decltype(auto) kernel_step = handle_.Run(kernels[1]);
-                decltype(auto) params      = raw_params.CastTo<miopen::adam::InvokeParams>();
+                decltype(auto) params      = raw_params.CastTo<miopen::adam::AdamInvokeParams>();
                 decltype(auto) numel       = params.paramDesc->GetElementSize();
                 auto elapsed               = 0.f;
 
@@ -129,6 +129,7 @@ ConvSolution Adam::GetSolution(const ExecutionContext& context,
                             params.eps,
                             params.amsgrad,
                             params.maximize,
+                            params.adamw,
                             numel);
 
                 if(handle_.IsProfilingEnabled())
@@ -152,7 +153,7 @@ ConvSolution Adam::GetSolution(const ExecutionContext& context,
             result.invoker_factory = [](const std::vector<Kernel>& kernels) {
                 return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
                     decltype(auto) kernel = handle_.Run(kernels.front());
-                    decltype(auto) params = raw_params.CastTo<miopen::adam::InvokeParams>();
+                    decltype(auto) params = raw_params.CastTo<miopen::adam::AdamInvokeParams>();
                     decltype(auto) numel  = params.paramDesc->GetElementSize();
 
                     kernel(params.paramIn,
@@ -175,6 +176,7 @@ ConvSolution Adam::GetSolution(const ExecutionContext& context,
                            params.eps,
                            params.amsgrad,
                            params.maximize,
+                           params.adamw,
                            numel);
                 };
             };
@@ -184,7 +186,7 @@ ConvSolution Adam::GetSolution(const ExecutionContext& context,
             result.invoker_factory = [](const std::vector<Kernel>& kernels) {
                 return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
                     decltype(auto) kernel = handle_.Run(kernels.front());
-                    decltype(auto) params = raw_params.CastTo<miopen::adam::InvokeParams>();
+                    decltype(auto) params = raw_params.CastTo<miopen::adam::AdamInvokeParams>();
                     decltype(auto) numel  = params.paramDesc->GetElementSize();
 
                     kernel(params.paramIn,
@@ -204,6 +206,7 @@ ConvSolution Adam::GetSolution(const ExecutionContext& context,
                            params.step,
                            params.amsgrad,
                            params.maximize,
+                           params.adamw,
                            numel);
                 };
             };

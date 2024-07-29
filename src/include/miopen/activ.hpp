@@ -39,7 +39,7 @@ namespace miopen {
 struct Handle;
 struct TensorDescriptor;
 
-struct ActivationDescriptor : miopenActivationDescriptor
+struct MIOPEN_INTERNALS_EXPORT ActivationDescriptor : miopenActivationDescriptor
 {
     ActivationDescriptor();
     ActivationDescriptor(miopenActivationMode_t m, const double* pparms);

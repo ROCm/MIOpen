@@ -76,8 +76,9 @@ void cpu_layernorm_forward(tensor<T> input,
         ref_rstd[o] = static_cast<T>(rstd_v);
 
         ford(inner_size)([&](int32_t i) {
-            float weight_v                 = mode ? static_cast<float>(weight[i]) : 1;
-            float bias_v                   = mode ? static_cast<float>(bias[i]) : 0;
+            float weight_v =
+                (mode == MIOPEN_ELEMENTWISE_AFFINE) ? 1 : static_cast<float>(weight[i]);
+            float bias_v = (mode == MIOPEN_ELEMENTWISE_AFFINE) ? 0 : static_cast<float>(bias[i]);
             ref_output[o * inner_size + i] = static_cast<T>(
                 (static_cast<float>(input[o * inner_size + i]) - mean_v) * rstd_v * weight_v +
                 bias_v);

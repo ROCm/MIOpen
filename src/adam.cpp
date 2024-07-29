@@ -89,19 +89,13 @@ miopenStatus_t Adam(Handle& handle,
                                                   foundInfDesc,
                                                   stepInDesc,
                                                   stepOutDesc,
-                                                  step,
-                                                  lr,
-                                                  beta1,
-                                                  beta2,
-                                                  weight_decay,
-                                                  eps,
                                                   amsgrad,
-                                                  maximize,
+                                                  true,
                                                   adamw,
                                                   is_amp};
 
     const auto invoke_params = [&]() {
-        auto tmp = adam::InvokeParams{};
+        auto tmp = adam::AdamInvokeParams{};
         tmp.type = InvokeType::Run;
 
         tmp.paramDesc       = &paramInDesc;

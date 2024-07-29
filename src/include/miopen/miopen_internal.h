@@ -34,6 +34,8 @@
 #pragma clang diagnostic ignored "-Wextern-c-compat"
 #endif
 
+#include <stddef.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -103,6 +105,20 @@ MIOPEN_EXPORT miopenStatus_t miopenGetConvolutionFindMode(
     const miopenConvolutionDescriptor_t convDesc, miopenConvolutionFindMode_t* findMode);
 
 /* End of Find Mode API */
+
+/*! @brief Get extra workspace for backward weight kernel.
+ *
+ * @param  alpha_beta_case type of alpha beta case
+ * @param  inputTensorDesc Input data tensor descriptor (output)
+ * @param  outputTensorDesc Output data tensor descriptor (output)
+ * @param  buffer_size buffer size for CK Backward weights work space
+ */
+MIOPEN_EXPORT extern "C" miopenStatus_t
+miopenConvolutionABBackwardWeightsGetWorkSpaceSize(const miopenAlphaBetaCase_t alpha_beta_case,
+                                                   const miopenTensorDescriptor_t inputTensorDesc,
+                                                   const miopenTensorDescriptor_t outputTensorDesc,
+                                                   const miopenConvolutionDescriptor_t convDesc,
+                                                   size_t* buffer_size);
 
 #ifdef __cplusplus
 }

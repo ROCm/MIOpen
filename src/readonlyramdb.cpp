@@ -50,7 +50,7 @@ bool& rordb_embed_fs_override()
 } // namespace debug
 
 ReadonlyRamDb&
-ReadonlyRamDb::GetCached(DbKinds db_kind_, const std::string& path, bool warn_if_unreadable)
+ReadonlyRamDb::GetCached(DbKinds db_kind_, const fs::path& path, bool warn_if_unreadable)
 {
     // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
     static std::mutex mutex;
@@ -58,7 +58,7 @@ ReadonlyRamDb::GetCached(DbKinds db_kind_, const std::string& path, bool warn_if
 
     // We don't have to store kind to properly index as different dbs would have different paths
     // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
-    static auto instances = std::map<std::string, ReadonlyRamDb*>{};
+    static auto instances = std::map<fs::path, ReadonlyRamDb*>{};
     const auto it         = instances.find(path);
 
     if(it != instances.end())
@@ -138,8 +138,7 @@ void ReadonlyRamDb::Prefetch(bool warn_if_unreadable)
         {
 #if MIOPEN_EMBED_DB
             fs::path filepath(db_path);
-            const auto& it_p =
-                miopen_data().find(make_object_file_name(filepath.filename()).string());
+            const auto& it_p = miopen_data().find(make_object_file_name(filepath.filename()));
             if(it_p == miopen_data().end())
                 MIOPEN_THROW(miopenStatusInternalError,
                              "Unknown database: " + filepath.filename() +

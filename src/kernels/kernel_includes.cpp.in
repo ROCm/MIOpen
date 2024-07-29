@@ -24,9 +24,10 @@
  *
  *******************************************************************************/
 #include <algorithm>
-#include <map>
+#include <unordered_map>
+#include <string_view>
+#include <miopen/filesystem.hpp>
 #include <miopen/kernel.hpp>
-#include <miopen/stringutils.hpp>
 
 #ifndef MIOPEN_USE_CLANG_TIDY // Huge generated source
 // clang-format off
@@ -36,9 +37,9 @@ ${KERNELS_DECLS}
 
 namespace miopen {
 
-const std::map<std::string, std::string>& kernel_includes()
+const std::unordered_map<fs::path, std::string_view, FsPathHash>& kernel_includes()
 {
-    static const std::map<std::string, std::string> data{
+    static const std::unordered_map<fs::path, std::string_view, FsPathHash> data{
 #ifndef MIOPEN_USE_CLANG_TIDY // Huge generated source
         ${INIT_KERNELS}
 #endif
@@ -46,52 +47,26 @@ const std::map<std::string, std::string>& kernel_includes()
     return data;
 }
 
-std::string GetKernelInc(std::string key)
+std::string_view GetKernelInc(const fs::path& name)
 {
-    auto it = kernel_includes().find(key);
+    auto it = kernel_includes().find(name.filename());
     if(it == kernel_includes().end())
-        MIOPEN_THROW("Failed to load kernel source: " + key);
+        MIOPEN_THROW("Failed to load kernel source: " + name.filename());
 
     return it->second;
 }
 
-/// \todo [Optimization] Kernels are stored as strings in the static onstant object.
-/// Let's eliminate unnecessary copying: return pointer to the string.
-/// Get rid of GetKernelInc().
-
-const std::string* GetKernelIncPtr(std::string key)
+const std::vector<std::reference_wrapper<const fs::path>>& GetKernelIncList()
 {
-    auto it = kernel_includes().find(key);
-    if(it == kernel_includes().end())
-        MIOPEN_THROW("Failed to load kernel source: " + key);
-
-    return &(it->second);
-}
-
-/// \todo [Optimization] Kernel storage is constant.
-/// Collect lists in the static object during the first
-/// invocation and return that object on subsequent calls.
-
-std::vector<std::string> GetKernelIncList()
-{
-    std::vector<std::string> keys;
-    auto m = kernel_includes();
-    std::transform(m.begin(),
-                   m.end(),
-                   std::back_inserter(keys),
-                   [](decltype(m)::value_type const& pair) { return pair.first; });
-    return keys;
-}
-
-std::vector<std::string> GetHipKernelIncList()
-{
-    auto keys = GetKernelIncList();
-    keys.erase(std::remove_if(keys.begin(),
-                              keys.end(),
-                              [&](const auto& key) {
-                                  return !(EndsWith(key, ".hpp") || EndsWith(key, ".h"));
-                              }),
-               keys.end());
+    static const std::vector<std::reference_wrapper<const fs::path>> keys{[]() {
+        std::vector<std::reference_wrapper<const fs::path>> ref_keys;
+        for(const auto& m : kernel_includes())
+        {
+            if(m.first.extension() == ".hpp" || m.first.extension() == ".h")
+                ref_keys.emplace_back(std::cref(m.first));
+        }
+        return ref_keys;
+    }()};
     return keys;
 }
 

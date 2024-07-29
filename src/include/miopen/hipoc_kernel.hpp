@@ -26,6 +26,7 @@
 #ifndef GUARD_MIOPEN_HIPOC_KERNEL_HPP
 #define GUARD_MIOPEN_HIPOC_KERNEL_HPP
 
+#include <miopen/config.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/hipoc_program.hpp>
 #include <miopen/stringutils.hpp>
@@ -45,6 +46,16 @@ inline HipEventPtr make_hip_event()
     hipEventCreate(&result);
     return HipEventPtr{result};
 }
+
+struct HipEventProfiler
+{
+    const Handle& handle;
+    HipEventPtr start;
+    HipEventPtr stop;
+
+    HipEventProfiler(const Handle& handle_);
+    ~HipEventProfiler();
+};
 
 #if 1 // Keep around other storage techinques -- @pfultz2 27.03.2017
 
@@ -108,7 +119,7 @@ struct KernelArgs
     uint64_t hidden[6] = {};
 };
 
-struct HIPOCKernelInvoke
+struct MIOPEN_INTERNALS_EXPORT HIPOCKernelInvoke
 {
     HIPOCKernelInvoke() {}
     HIPOCKernelInvoke(hipStream_t pstream,
@@ -186,7 +197,7 @@ private:
     bool coop_launch;
 };
 
-struct HIPOCKernel
+struct MIOPEN_INTERNALS_EXPORT HIPOCKernel
 {
     HIPOCProgram program;
     std::string name;

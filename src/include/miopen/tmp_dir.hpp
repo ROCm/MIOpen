@@ -3,10 +3,11 @@
 
 #include <string_view>
 #include <miopen/filesystem.hpp>
+#include <miopen/config.hpp>
 
 namespace miopen {
 
-struct TmpDir
+struct MIOPEN_INTERNALS_EXPORT TmpDir
 {
     fs::path path;
     explicit TmpDir(std::string_view prefix = "");

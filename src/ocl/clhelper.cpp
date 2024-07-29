@@ -144,33 +144,30 @@ ClProgramPtr LoadProgram(cl_context ctx,
                          const std::string& kernel_src)
 {
     std::string source;
-    std::string program_name;
+    fs::path program_name{program};
 
-    program_name = program;
     // For mlir build, leave both source and kernel_src to be empty
-    if((kernel_src.empty()) && !(miopen::EndsWith(program_name, ".mlir")))
+    if((kernel_src.empty()) && program_name.extension() != ".mlir")
         source = miopen::GetKernelSrc(program_name);
     else
         source = kernel_src;
 
     bool load_binary = false;
-    if(miopen::EndsWith(program_name, ".s"))
+    if(program_name.extension() == ".s")
     {
         source      = ClAssemble(device, source, params, target); // Puts output binary into source.
         load_binary = true;
     }
 
-    if(load_binary || miopen::EndsWith(program_name, ".so"))
+    if(load_binary || program_name.extension() == dynamic_library_postfix)
         return LoadBinaryProgram(ctx, device, source);
 
-    if(miopen::EndsWith(program_name, ".cpp"))
+    if(program_name.extension() == ".cpp")
     {
         boost::optional<miopen::TmpDir> dir(program_name);
 #if MIOPEN_BUILD_DEV
         params += " -Werror";
-#ifdef __linux__
         params += HipKernelWarningsString();
-#endif
 #endif
         auto hsaco_file = HipBuild(dir, program_name, source, params, target);
         // load the hsaco file as a data stream and then load the binary
@@ -179,7 +176,7 @@ ClProgramPtr LoadProgram(cl_context ctx,
         return LoadBinaryProgram(ctx, device, buf);
     }
 #if MIOPEN_USE_MLIR
-    else if(miopen::EndsWith(program_name, ".mlir"))
+    else if(program_name.extension() == ".mlir")
     {
         std::vector<char> buffer;
         MiirGenBin(params, buffer);
@@ -189,13 +186,11 @@ ClProgramPtr LoadProgram(cl_context ctx,
     else // OpenCL programs.
     {
         ClProgramPtr result{CreateProgram(ctx, source.data(), source.size())};
-        if(miopen::IsEnabled(ENV(MIOPEN_DEBUG_OPENCL_WAVE64_NOWGP)))
+        if(env::enabled(MIOPEN_DEBUG_OPENCL_WAVE64_NOWGP))
             params += " -Wf,-mwavefrontsize64 -Wf,-mcumode";
 #if MIOPEN_BUILD_DEV
         params += " -Werror";
-#ifdef __linux__
         params += OclKernelWarningsString();
-#endif
 #endif
         params += " -cl-std=CL2.0";
         MIOPEN_LOG_I2("Building OpenCL program: '" << program_name << "', options: '" << params);

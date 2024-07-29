@@ -50,6 +50,8 @@
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/split.hpp>
 
+namespace env = miopen::env;
+
 template <class U, class T>
 constexpr std::is_same<T, U> is_same(const T&)
 {
@@ -147,7 +149,7 @@ struct test_driver
 
     static std::string compute_cache_path()
     {
-        auto s = miopen::GetStringEnv(ENV(MIOPEN_VERIFY_CACHE_PATH));
+        auto s = env::value(MIOPEN_VERIFY_CACHE_PATH);
         if(s.empty())
             return "~/.cache/miopen/tests";
         else
@@ -272,6 +274,7 @@ struct test_driver
         case miopenBFloat16: ss << "--bfloat16 "; break;
         case miopenInt8: ss << "--int8 "; break;
         case miopenInt32: ss << "--int32 "; break;
+        case miopenInt64: ss << "--int64 "; break;
         case miopenFloat: ss << "--float "; break;
         case miopenDouble: ss << "--double "; break;
         case miopenFloat8: ss << "--float8"; break;
@@ -300,6 +303,7 @@ struct test_driver
         case miopenBFloat16: ret.emplace_back("--bf16"); break;
         case miopenInt8: ret.emplace_back("--int8"); break;
         case miopenInt32: ret.emplace_back("--int32"); break;
+        case miopenInt64: ret.emplace_back("--int64"); break;
         case miopenFloat: ret.emplace_back("--float"); break;
         case miopenDouble: ret.emplace_back("--double"); break;
         case miopenFloat8: ret.emplace_back("--float8"); break;
@@ -1340,29 +1344,6 @@ void test_drive_impl_1(std::string program_name, std::vector<std::string> as)
 template <class Driver>
 void test_drive_impl(std::string program_name, std::vector<std::string> as)
 {
-    // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
-    static bool called = false;
-    if(called)
-    {
-        std::cout << "*****************************************************************************"
-                     "*******************************************"
-                  << std::endl;
-        std::cout << "*****************************************************************************"
-                     "*******************************************"
-                  << std::endl;
-        std::cout << "***** WARNING: test_drive was called more than once. This function "
-                     "should only be called once."
-                  << std::endl;
-        std::cout << "***** This may abort in the future. Please update the test driver. "
-                  << std::endl;
-        std::cout << "*****************************************************************************"
-                     "*******************************************"
-                  << std::endl;
-        std::cout << "*****************************************************************************"
-                     "*******************************************"
-                  << std::endl;
-    }
-    called = true;
 #if(MIOPEN_TEST_DRIVER_MODE == 2)
     std::cout << "MIOPEN_TEST_DRIVER_MODE 2." << std::endl;
     test_drive_impl_2<Driver>(program_name, as);
@@ -1372,45 +1353,50 @@ void test_drive_impl(std::string program_name, std::vector<std::string> as)
 }
 
 template <class Driver>
-void test_drive(int argc, const char* argv[])
+void test_drive(int argc, const char* argv[], const char* program_name = nullptr)
 {
-    std::vector<std::string> as(argv + 1, argv + argc);
-    test_drive_impl<Driver>(argv[0], std::move(as));
+    std::string name(program_name ? program_name : argv[0]);
+    std::vector<std::string> as(argv + (program_name ? 0 : 1), argv + argc);
+    test_drive_impl<Driver>(name, std::move(as));
 }
 
 template <template <class...> class Driver>
-void test_drive(int argc, const char* argv[])
+void test_drive(int argc, const char* argv[], const char* program_name = nullptr)
 {
-    std::vector<std::string> as(argv + 1, argv + argc);
-    // as.emplace_back("--float");
+    std::string name(program_name ? program_name : argv[0]);
+    std::vector<std::string> as(argv + (program_name ? 0 : 1), argv + argc);
+
     for(auto&& arg : as)
     {
         if(arg == "--half")
         {
-            test_drive_impl<Driver<half_float::half>>(argv[0], std::move(as));
-            break;
+            test_drive_impl<Driver<half_float::half>>(name, std::move(as));
+            return;
         }
         if(arg == "--int8")
         {
-            test_drive_impl<Driver<int8_t>>(argv[0], std::move(as));
-            break;
+            test_drive_impl<Driver<int8_t>>(name, std::move(as));
+            return;
         }
         if(arg == "--float")
         {
-            test_drive_impl<Driver<float>>(argv[0], std::move(as));
-            break;
+            test_drive_impl<Driver<float>>(name, std::move(as));
+            return;
         }
         if(arg == "--bfloat16")
         {
-            test_drive_impl<Driver<bfloat16>>(argv[0], std::move(as));
-            break;
+            test_drive_impl<Driver<bfloat16>>(name, std::move(as));
+            return;
         }
         if(arg == "--double")
         {
-            test_drive_impl<Driver<double>>(argv[0], std::move(as));
-            break;
+            test_drive_impl<Driver<double>>(name, std::move(as));
+            return;
         }
     }
+
+    // default datatype
+    test_drive_impl<Driver<float>>(name, std::move(as));
 }
 
 #endif // GUARD_MIOPEN_TEST_DRIVER_HPP

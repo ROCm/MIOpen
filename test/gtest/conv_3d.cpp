@@ -43,9 +43,9 @@ void GetArgs(const std::string& param, std::vector<std::string>& tokens)
         tokens.push_back(*begin++);
 }
 
-std::vector<std::string> GetTestCases(void)
+std::vector<std::string> GetTestCases(const std::string& precision)
 {
-    std::string cmd_v = "test_conv3d --verbose ";
+    std::string cmd_v = "test_conv3d --verbose " + precision + " ";
 
     // clang-format off
     return std::vector<std::string>{
@@ -70,7 +70,7 @@ std::vector<std::string> GetTestCases(void)
     // clang-format on
 }
 
-using TestCase = decltype(GetTestCases())::value_type;
+using TestCase = decltype(GetTestCases(std::string{}))::value_type;
 
 class ConfigWithFloat_conv_3d : public testing::TestWithParam<std::vector<TestCase>>
 {
@@ -84,12 +84,12 @@ bool IsTestSupportedForDevice()
     return ::IsTestSupportedForDevMask<d_mask, e_mask>();
 }
 
-void Run2dDriver(void)
+void Run2dDriver()
 {
-    if(!(IsTestSupportedForDevice()                      //
-         && (miopen::IsUnset(ENV(MIOPEN_TEST_ALL))       // standalone run
-             || (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) // or --float full tests enabled
-                 && miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG)) == "--float"))))
+    if(!(IsTestSupportedForDevice()            //
+         && (!MIOPEN_TEST_ALL                  // standalone run
+             || (env::enabled(MIOPEN_TEST_ALL) // or --float full tests enabled
+                 && env::value(MIOPEN_TEST_FLOAT_ARG) == "--float"))))
     {
         GTEST_SKIP();
     }
@@ -116,4 +116,4 @@ using namespace conv_3d;
 
 TEST_P(ConfigWithFloat_conv_3d, FloatTest_conv_3d) { Run2dDriver(); };
 
-INSTANTIATE_TEST_SUITE_P(Conv3d, ConfigWithFloat_conv_3d, testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(Conv3d, ConfigWithFloat_conv_3d, testing::Values(GetTestCases("--float")));

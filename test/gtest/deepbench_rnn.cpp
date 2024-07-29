@@ -32,8 +32,10 @@
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_DEEPBENCH)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 
+namespace env = miopen::env;
+
 namespace deepbench_rnn {
-static bool SkipTest(void) { return !miopen::IsEnabled(ENV(MIOPEN_TEST_DEEPBENCH)); }
+static bool SkipTest(void) { return !env::enabled(MIOPEN_TEST_DEEPBENCH); }
 
 void GetArgs(const std::string& param, std::vector<std::string>& tokens)
 {
@@ -64,15 +66,15 @@ void Run2dDriverFloat(void)
         });
 
         testing::internal::CaptureStderr();
-        test_drive<rnn_vanilla_driver>(ptrs.size(), ptrs.data());
+        test_drive<rnn_vanilla_driver>(ptrs.size(), ptrs.data(), "deepbench_rnn");
         auto capture = testing::internal::GetCapturedStderr();
         std::cout << capture;
     }
 };
 
-std::vector<std::string> GetTestCases(void)
+std::vector<std::string> GetTestCases(const std::string& precision)
 {
-    std::string flags = " --verbose";
+    std::string flags = "--verbose " + precision;
 
     std::string postFlags =
         "--num-layers 1 --in-mode 1 --bias-mode 0 -dir-mode 0 --rnn-mode 0 --flat-batch-fill";
@@ -113,4 +115,6 @@ TEST_P(DeepBenchRNNConfigWithFloat, FloatTest_deepbench_rnn)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(ConvTrans, DeepBenchRNNConfigWithFloat, testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(ConvTrans,
+                         DeepBenchRNNConfigWithFloat,
+                         testing::Values(GetTestCases("--float")));

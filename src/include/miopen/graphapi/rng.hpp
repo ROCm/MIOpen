@@ -75,7 +75,7 @@ private:
     friend class RngBuilder;
 };
 
-class RngBuilder
+class MIOPEN_INTERNALS_EXPORT RngBuilder
 {
 private:
     Rng mRng;
@@ -110,7 +110,7 @@ public:
     Rng build() const;
 };
 
-class BackendRngDescriptor : public BackendDescriptor
+class MIOPEN_INTERNALS_EXPORT BackendRngDescriptor : public BackendDescriptor
 {
 private:
     RngBuilder mBuilder;
@@ -132,7 +132,7 @@ public:
     Rng* getRng() noexcept { return &mRng; }
 };
 
-class OperationRng : public OpNode
+class MIOPEN_INTERNALS_EXPORT OperationRng : public OpNode
 {
 private:
     Rng* mRng                            = nullptr;
@@ -163,7 +163,7 @@ public:
     virtual std::vector<Tensor*> getOutTensors() const override;
 };
 
-class OperationRngBuilder
+class MIOPEN_INTERNALS_EXPORT OperationRngBuilder
 {
 private:
     OperationRng mOperationRng;
@@ -178,7 +178,7 @@ public:
     OperationRng build();
 };
 
-class BackendOperationRngDescriptor : public BackendDescriptor
+class MIOPEN_INTERNALS_EXPORT BackendOperationRngDescriptor : public BackendDescriptor
 {
 private:
     OperationRngBuilder mBuilder;

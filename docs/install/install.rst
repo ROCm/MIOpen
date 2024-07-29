@@ -111,6 +111,12 @@ MIOpen's HIP backend uses :doc:`rocBLAS <rocblas:index>` by default. You can ins
 minimum release using ``apt-get install rocblas``. To disable rocBLAS, set the configuration flag
 ``-DMIOPEN_USE_ROCBLAS=Off``. rocBLAS is **not** available with OpenCL.
 
+MIOpen's HIP backend can use :doc:`hipBLASLt <hipblaslt:index>`. You can install hipBLASLt's minimum
+release using ``apt-get install hipblaslt``. In addition to needing hipblaslt, you will also need to
+install :doc:`hipBLAS <hipblas:index>`. You can install hipBLAS's minimum release using ``apt-get install hipblas``.
+To disable hipBLASLt, set the configuration flag ``-DMIOPEN_USE_HIPBLASLT=Off``. 
+hipBLASLt is **not** available with OpenCL.
+
 Building MIOpen from source
 ================================================
 

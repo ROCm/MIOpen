@@ -103,7 +103,7 @@ TEST(TestCache, check_kern_db)
 
     {
         miopen::TempFile temp_file("tmp-kerndb");
-        miopen::KernDb clean_db(miopen::DbKinds::KernelDb, std::string(temp_file), false);
+        miopen::KernDb clean_db(miopen::DbKinds::KernelDb, temp_file, false);
 
         EXPECT_TRUE(clean_db.StoreRecordUnsafe(cfg0));
         auto readout = clean_db.FindRecordUnsafe(cfg0);
@@ -117,7 +117,7 @@ TEST(TestCache, check_kern_db)
         miopen::TempFile temp_file("tmp-kerndb");
         miopen::KernDb err_db(
             miopen::DbKinds::KernelDb,
-            std::string(temp_file),
+            temp_file,
             false,
             [](const std::vector<char>&, bool* success) {
                 *success = false;
@@ -138,5 +138,5 @@ TEST(TestCache, check_kern_db)
 TEST(TestCache, check_cache_file)
 {
     auto p = miopen::GetCacheFile("gfx", "base", "args");
-    EXPECT_TRUE(p.filename() == "base.o");
+    EXPECT_TRUE(p.filename() == miopen::make_object_file_name("base"));
 }

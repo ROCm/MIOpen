@@ -29,32 +29,38 @@
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 
+namespace env = miopen::env;
+
 namespace adam {
 
-std::string GetFloatArg()
+bool CheckFloatArg(std::string arg)
 {
-    const auto& tmp = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
-    if(tmp.empty())
+    if(!MIOPEN_TEST_ALL ||
+       (env::enabled(MIOPEN_TEST_ALL) && (env::value(MIOPEN_TEST_FLOAT_ARG) == arg)))
     {
-        return "";
+        return true;
     }
-    return tmp;
+    return false;
 }
 
-struct AdamTestFloat : AdamTest<float, float>
+struct GPU_Adam_FP32 : AdamTest<float, float>
 {
 };
 
-struct AmpAdamTestFloat : AdamTest<float, half_float::half, true>
+struct GPU_Adam_FP16 : AdamTest<half_float::half, half_float::half>
+{
+};
+
+struct GPU_AmpAdam_FP32 : AdamTest<float, half_float::half>
 {
 };
 
 } // namespace adam
 using namespace adam;
 
-TEST_P(AdamTestFloat, AdamTestFw)
+TEST_P(GPU_Adam_FP32, AdamFloatTestFw)
 {
-    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float"))
+    if(CheckFloatArg("--float"))
     {
         RunTest();
         Verify();
@@ -65,9 +71,9 @@ TEST_P(AdamTestFloat, AdamTestFw)
     }
 };
 
-TEST_P(AmpAdamTestFloat, AmpAdamTestFw)
+TEST_P(GPU_Adam_FP16, AdamFloat16TestFw)
 {
-    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float"))
+    if(CheckFloatArg("--half"))
     {
         RunTest();
         Verify();
@@ -78,5 +84,19 @@ TEST_P(AmpAdamTestFloat, AmpAdamTestFw)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(AdamTestSet, AdamTestFloat, testing::ValuesIn(AdamTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(AdamTestSet, AmpAdamTestFloat, testing::ValuesIn(AdamTestConfigs()));
+TEST_P(GPU_AmpAdam_FP32, AmpAdamTestFw)
+{
+    if(CheckFloatArg("--float"))
+    {
+        RunTest();
+        Verify();
+    }
+    else
+    {
+        GTEST_SKIP();
+    }
+};
+
+INSTANTIATE_TEST_SUITE_P(Full, GPU_Adam_FP32, testing::ValuesIn(AdamTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_Adam_FP16, testing::ValuesIn(AdamTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_AmpAdam_FP32, testing::ValuesIn(AdamTestConfigs()));

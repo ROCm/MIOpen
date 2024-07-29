@@ -64,8 +64,8 @@ struct CBATestCase
     }
 };
 
-GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(ConvBiasActivFwdTest);
-struct ConvBiasActivFwdTest
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(GPU_ConvBiasActivFwd_FP32);
+struct GPU_ConvBiasActivFwd_FP32
     : public ::testing::TestWithParam<std::tuple<miopenConvFwdAlgorithm_t, CBATestCase>>
 {
 protected:
@@ -149,7 +149,7 @@ protected:
     miopenConvFwdAlgorithm_t algo = miopenConvolutionFwdAlgoDirect;
 };
 
-TEST_P(ConvBiasActivFwdTest, DISABLED_DriveAPI)
+TEST_P(GPU_ConvBiasActivFwd_FP32, DISABLED_DriveAPI)
 {
     tensor<float> z{};
     const float alpha = 1.0f;
@@ -197,8 +197,8 @@ std::vector<CBATestCase> GetTestValues()
     GatherCBATestCases(cba_test_cases);
     return cba_test_cases;
 }
-INSTANTIATE_TEST_SUITE_P(CBAFwdAPITest,
-                         ConvBiasActivFwdTest,
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_ConvBiasActivFwd_FP32,
                          testing::Combine(testing::Values(miopenConvolutionFwdAlgoDirect,
                                                           miopenConvolutionFwdAlgoWinograd),
                                           testing::ValuesIn(GetTestValues())));

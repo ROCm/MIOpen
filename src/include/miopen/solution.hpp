@@ -28,7 +28,9 @@
 
 #include <miopen/miopen.h>
 
+#include <miopen/config.hpp>
 #include <miopen/errors.hpp>
+#include <miopen/kernel_info.hpp>
 #include <miopen/object.hpp>
 #include <miopen/problem.hpp>
 #include <miopen/solver_id.hpp>
@@ -45,11 +47,16 @@ namespace miopen {
 
 struct Handle;
 
-struct Solution : miopenSolution
+struct MIOPEN_INTERNALS_EXPORT Solution : miopenSolution
 {
     std::vector<std::uint8_t> serialization_cache;
 
-    Solution() = default;
+    Solution(solver::Id solver_, float time_, std::size_t workspace_required_)
+        : time(time_), workspace_required(workspace_required_), solver(solver_)
+    {
+    }
+
+    Solution() {}
 
     struct SerializationMetadata final
     {
@@ -78,6 +85,20 @@ struct Solution : miopenSolution
         inline RunInput(Data_t buffer_) : buffer(buffer_) {}
     };
 
+    struct KernelInfo
+    {
+        Program program;
+        std::vector<size_t> local_work_dims;
+        std::vector<size_t> global_work_dims;
+        std::string kernel_name;
+        fs::path program_name;
+
+        operator Kernel() const
+        {
+            return Kernel{program, kernel_name, local_work_dims, global_work_dims};
+        }
+    };
+
     float GetTime() const { return time; }
     void SetTime(float value) { time = value; }
     std::size_t GetWorkspaceSize() const { return workspace_required; }
@@ -98,12 +119,43 @@ struct Solution : miopenSolution
     friend void to_json(nlohmann::json& json, const Solution& solution);
     friend void from_json(const nlohmann::json& json, Solution& solution);
 
+    void SetInvoker(Invoker invoker_,
+                    const std::vector<Program>& programs            = {},
+                    const std::vector<solver::KernelInfo>& kernels_ = {})
+    {
+#if MIOPEN_BACKEND_HIP
+        invoker = std::move(invoker_);
+
+        kernels.reserve(programs.size());
+
+        for(int i = 0; i < programs.size(); ++i)
+        {
+            auto kernel             = KernelInfo{};
+            kernel.program          = programs[i];
+            kernel.kernel_name      = kernels_[i].kernel_name;
+            kernel.program_name     = kernels_[i].kernel_file;
+            kernel.global_work_dims = kernels_[i].g_wk;
+            kernel.local_work_dims  = kernels_[i].l_wk;
+            kernels.emplace_back(std::move(kernel));
+        }
+#else
+        std::ignore = invoker_;
+        std::ignore = programs;
+        std::ignore = kernels_;
+#endif
+    }
+
+    const std::optional<Invoker>& GetInvoker() const { return invoker; }
+    const std::vector<KernelInfo>& GetKernels() const { return kernels; }
+
 private:
     float time                     = 0;
     std::size_t workspace_required = 0;
     solver::Id solver;
     ProblemContainer problem;
     std::optional<std::string> perf_cfg = std::nullopt;
+    std::optional<Invoker> invoker;
+    std::vector<KernelInfo> kernels;
 
     void RunImpl(Handle& handle,
                  const std::unordered_map<miopenTensorArgumentId_t, RunInput>& inputs,
@@ -129,10 +181,19 @@ private:
                  std::size_t workspace_size,
                  const FusedProblem& problem_);
 
+    static AnyInvokeParams MakeInvokeParams(const Problem& problem_,
+                                            const ConvolutionDescriptor& conv_desc,
+                                            const RunInput& x,
+                                            const RunInput& w,
+                                            const RunInput& y,
+                                            Data_t workspace,
+                                            size_t workspace_size);
+
     static Problem Transpose(const Problem& problem, RunInput* x, const RunInput& w, RunInput* y);
 
     void LogDriverCommand(const ConvolutionDescriptor& desc) const;
     void LogDriverCommand(const ActivationDescriptor& desc) const;
+    void LogDriverCommand(const BatchnormDescriptor& desc) const;
 
     void LogDriverCommand(const Problem& problem_) const;
     void LogDriverCommand(const FusedProblem& problem_) const;

@@ -32,6 +32,8 @@
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 
+namespace env = miopen::env;
+
 namespace rnn_extra {
 
 void GetArgs(const std::string& param, std::vector<std::string>& tokens)
@@ -63,17 +65,17 @@ void Run2dDriverFloat(void)
         });
 
         testing::internal::CaptureStderr();
-        test_drive<rnn_vanilla_driver>(ptrs.size(), ptrs.data());
+        test_drive<rnn_vanilla_driver>(ptrs.size(), ptrs.data(), "rnn_extra");
         auto capture = testing::internal::GetCapturedStderr();
         std::cout << capture;
     }
 };
 
-std::vector<std::string> GetTestCases(void)
+std::vector<std::string> GetTestCases(const std::string& precision)
 {
     std::string commonFlags =
-        " --verbose --batch-size 32 --seq-len 3 --batch-seq 32 32 32 --vector-len 128 "
-        "--hidden-size 128 --num-layers 1 --in-mode 0 --bias-mode 0";
+        precision + " --verbose --batch-size 32 --seq-len 3 --batch-seq 32 32 32 --vector-len 128 "
+                    "--hidden-size 128 --num-layers 1 --in-mode 0 --bias-mode 0";
     std::string dir0   = " -dir-mode 0";
     std::string dir1   = " -dir-mode 1";
     std::string rnn0   = " --rnn-mode 0";
@@ -123,12 +125,17 @@ using namespace rnn_extra;
 
 TEST_P(RNNExtraConfigWithFloat, FloatTest_rnn_extra)
 {
-    if((miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
-        (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) &&
-         miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG)) == "--float")))
+    if(!MIOPEN_TEST_ALL ||
+       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--float"))
+    {
         Run2dDriverFloat();
+    }
     else
+    {
         GTEST_SKIP();
+    }
 };
 
-INSTANTIATE_TEST_SUITE_P(ConvTrans, RNNExtraConfigWithFloat, testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(ConvTrans,
+                         RNNExtraConfigWithFloat,
+                         testing::Values(GetTestCases("--float")));
