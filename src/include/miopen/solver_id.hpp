@@ -61,6 +61,7 @@ enum class Primitive
     Adam,
     Fold,
     Unfold,
+    Item
 };
 
 struct MIOPEN_INTERNALS_EXPORT Id

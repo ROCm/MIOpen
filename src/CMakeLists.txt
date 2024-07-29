@@ -128,6 +128,7 @@ set( MIOpen_Source
     fusion.cpp
     fusion/problem_description.cpp
     generic_search.cpp
+    getitem_api.cpp
     graphapi/convolution.cpp
     graphapi/engine.cpp
     graphapi/enginecfg.cpp
@@ -147,6 +148,7 @@ set( MIOpen_Source
     groupnorm/problem_description.cpp
     handle_api.cpp
     invoker_cache.cpp
+    getitem/problem_description.cpp
     kernel_build_params.cpp
     kernel_warnings.cpp
     layernorm_api.cpp
@@ -284,6 +286,7 @@ set( MIOpen_Source
     solver/fold/unfold_forward.cpp
     solver/fold/unfold_backward.cpp
     solver/groupnorm/forward_groupnorm.cpp
+    solver/getitem/backward_getitem.cpp
     solver/layernorm/backward_t5layernorm.cpp
     solver/layernorm/forward_addlayernorm.cpp
     solver/layernorm/forward_layernorm.cpp
@@ -444,6 +447,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/conv_sizes.inc
         kernels/float_types.h
         kernels/gpr_alloc.inc
+        kernels/hip_atomic.hpp
         kernels/hip_f8_impl.hpp
         kernels/hip_float8.hpp
         kernels/inst_wrappers.inc
@@ -494,6 +498,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenConvDirBatchNormActiv.cl
         kernels/MIOpenConvDirGenFwd.cl
         kernels/MIOpenGroupNorm.cpp
+        kernels/MIOpenGetitem.cpp
         kernels/MIOpenLayerNorm.cpp
         kernels/MIOpenLRNBwd.cl
         kernels/MIOpenLRNFwd.cl
@@ -625,6 +630,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         cat.cpp
         fold.cpp
         groupnorm.cpp
+        getitem.cpp
         kernel_cache.cpp
         layernorm.cpp
         lrn.cpp

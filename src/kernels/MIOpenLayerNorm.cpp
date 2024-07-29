@@ -40,7 +40,7 @@ __device__ void layernormfwdcontiguous(const TI* __restrict__ x,
                                        TO* __restrict__ rstd,
                                        float eps,
                                        uint64_t inner_size,
-                                       bool mode)
+                                       int32_t mode)
 {
     /*
      * Each group works on a single channel.
@@ -96,9 +96,9 @@ __device__ void layernormfwdcontiguous(const TI* __restrict__ x,
     if(lid == 0)
     {
         if(mean)
-            mean[gid] = pmean;
+            mean[gid] = CVT_ACCUM2FLOAT(pmean);
         if(rstd)
-            rstd[gid] = prstd;
+            rstd[gid] = CVT_ACCUM2FLOAT(prstd);
     }
 
     // forward calculation
@@ -129,7 +129,7 @@ __device__ void addlayernormfwdcontiguous(const TI* __restrict__ x,
                                           TO* __restrict__ rstd,
                                           float eps,
                                           uint64_t inner_size,
-                                          bool mode)
+                                          int32_t mode)
 {
     const uint64_t gid = blockIdx.x;
     const uint64_t lid = threadIdx.x;
@@ -168,9 +168,9 @@ __device__ void addlayernormfwdcontiguous(const TI* __restrict__ x,
     if(lid == 0)
     {
         if(mean)
-            mean[gid] = pmean;
+            mean[gid] = CVT_ACCUM2FLOAT(pmean);
         if(rstd)
-            rstd[gid] = prstd;
+            rstd[gid] = CVT_ACCUM2FLOAT(prstd);
     }
 
     // forward calculation
@@ -199,7 +199,7 @@ __device__ void t5layernormfwdcontiguous(const TI* __restrict__ x,
                                          TO* __restrict__ rstd,
                                          float eps,
                                          uint64_t inner_size,
-                                         bool mode)
+                                         int32_t mode)
 {
     const uint64_t gid = blockIdx.x;
     const uint64_t lid = threadIdx.x;
@@ -232,7 +232,7 @@ __device__ void t5layernormfwdcontiguous(const TI* __restrict__ x,
     if(lid == 0)
     {
         if(rstd)
-            rstd[gid] = prstd;
+            rstd[gid] = CVT_ACCUM2FLOAT(prstd);
     }
 
     // forward calculation
@@ -257,7 +257,7 @@ __device__ void t5layernormbwdcontiguous(const TI* __restrict__ dy,
                                          const TI* __restrict__ rstd,
                                          TO* __restrict__ dx,
                                          uint64_t inner_size,
-                                         bool mode)
+                                         int32_t mode)
 {
     const uint64_t gid = blockIdx.x;
     const uint64_t lid = threadIdx.x;
@@ -401,7 +401,7 @@ extern "C" __global__ void LayernormFwdContiguous(const INPUT_TYPE* __restrict__
                                                   OUTPUT_TYPE* __restrict__ rstd,
                                                   float eps,
                                                   uint64_t inner_size,
-                                                  bool mode)
+                                                  int32_t mode)
 {
     // instantiate the kernel
     layernormfwdcontiguous<INPUT_TYPE, OUTPUT_TYPE>(
@@ -417,7 +417,7 @@ extern "C" __global__ void AddLayernormFwdContiguous(const INPUT_TYPE* __restric
                                                      OUTPUT_TYPE* __restrict__ rstd,
                                                      float eps,
                                                      uint64_t inner_size,
-                                                     bool mode)
+                                                     int32_t mode)
 {
     // instantiate the kernel
     addlayernormfwdcontiguous<INPUT_TYPE, OUTPUT_TYPE>(
@@ -430,7 +430,7 @@ extern "C" __global__ void T5LayernormFwdContiguous(const INPUT_TYPE* __restrict
                                                     OUTPUT_TYPE* __restrict__ rstd,
                                                     float eps,
                                                     uint64_t inner_size,
-                                                    bool mode)
+                                                    int32_t mode)
 {
     // instantiate the kernel
     t5layernormfwdcontiguous<INPUT_TYPE, OUTPUT_TYPE>(x, weight, y, rstd, eps, inner_size, mode);
@@ -442,7 +442,7 @@ extern "C" __global__ void T5LayernormBwdContiguous(const INPUT_TYPE* __restrict
                                                     const INPUT_TYPE* __restrict__ rstd,
                                                     OUTPUT_TYPE* __restrict__ dx,
                                                     uint64_t inner_size,
-                                                    bool mode)
+                                                    int32_t mode)
 {
     // instantiate the kernel
     t5layernormbwdcontiguous<INPUT_TYPE, OUTPUT_TYPE>(dy, x, weight, rstd, dx, inner_size, mode);
