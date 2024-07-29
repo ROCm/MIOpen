@@ -40,7 +40,7 @@ int32_t mloNLLLossUnreduceForwardRunHost(const miopenTensorDescriptor_t inputDes
                                          Tcheck* output,
                                          const int32_t ignore_index)
 {
-    auto num_dims = miopen::deref(inputDesc).GetSize();
+    auto num_dims = miopen::deref(inputDesc).GetNumDims();
     if(num_dims == 2)
     {
         mloNLLLossUnreduceForwardRunHost2d(inputDesc,
@@ -172,7 +172,7 @@ int32_t mloNLLLossUnreduceBackwardRunHost(const miopenTensorDescriptor_t inputGr
                                           const Tgpu* output_grad,
                                           const int32_t ignore_index)
 {
-    auto num_dims = miopen::deref(inputGradDesc).GetSize();
+    auto num_dims = miopen::deref(inputGradDesc).GetNumDims();
     if(num_dims == 2)
     {
         mloNLLLossUnreduceBackwardRunHost2d(inputGradDesc,
@@ -224,7 +224,7 @@ int32_t mloNLLLossReduceBackwardRunHost(const miopenTensorDescriptor_t inputGrad
                                         const int32_t ignore_index,
                                         const float divisor)
 {
-    auto num_dims = miopen::deref(inputGradDesc).GetSize();
+    auto num_dims = miopen::deref(inputGradDesc).GetNumDims();
     if(num_dims == 2)
     {
         mloNLLLossReduceBackwardRunHost2d(inputGradDesc,

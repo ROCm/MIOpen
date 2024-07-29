@@ -47,7 +47,7 @@ bool NLLLossUnreduceForward2d::IsApplicable(
     const ExecutionContext& context,
     const miopen::nllloss::UnreduceProblemDescription& problem) const
 {
-    if(problem.GetInputDesc().GetSize() > 2)
+    if(problem.GetInputDesc().GetNumDims() > 2)
         return false;
     if(!NLLLossUnreduceSolver::IsApplicable(context, problem))
         return false;

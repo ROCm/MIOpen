@@ -47,7 +47,7 @@ bool NLLLossUnreduceForward5d::IsApplicable(
     const ExecutionContext& context,
     const miopen::nllloss::UnreduceProblemDescription& problem) const
 {
-    if(problem.GetInputDesc().GetSize() > 5)
+    if(problem.GetInputDesc().GetNumDims() > 5)
         return false;
     if(!NLLLossUnreduceSolver::IsApplicable(context, problem))
         return false;

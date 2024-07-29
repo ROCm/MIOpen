@@ -180,11 +180,15 @@ bool BnCKFwdInference::IsApplicable(
     [[maybe_unused]] const miopen::batchnorm::ProblemDescription& bn_problem) const
 {
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
-    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_CK_BN_INFER)))
+    if(env::disabled(MIOPEN_DEBUG_CONV_CK_BN_INFER))
         return false;
     if(!bn_problem.IsLayoutNHWC())
         return false;
-    if(!ck_utility::is_ck_whitelist(context.GetStream()))
+    if(!ck_utility::is_ck_supported_hardware(context.GetStream()))
+        return false;
+    if(!bn_problem.Is2D())
+        return false;
+    if(bn_problem.GetDirection() != miopen::batchnorm::Direction::ForwardInference)
         return false;
 
     switch(bn_problem.GetXDesc().GetType())
@@ -195,6 +199,7 @@ bool BnCKFwdInference::IsApplicable(
         return (CheckCKApplicability<F64, F64, F64, F64, F64, F64>(bn_problem) != -1);
     case miopenBFloat16:
         return (CheckCKApplicability<BF16, BF16, F32, BF16, BF16, F32>(bn_problem) != -1);
+    case miopenInt64:
     case miopenInt32:
     case miopenInt8:
     case miopenFloat8:
@@ -233,6 +238,7 @@ ConvSolution BnCKFwdInference::GetSolution(
                 break;
             case miopenInt8:
             case miopenInt32:
+            case miopenInt64:
             case miopenFloat8:
             case miopenBFloat8:
             default: MIOPEN_THROW("Unsupported datatype");

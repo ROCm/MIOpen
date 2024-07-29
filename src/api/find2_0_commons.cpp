@@ -44,11 +44,12 @@ static miopenStatus_t MakeProblem(miopenProblem_t* problem,
                                   miopenProblemDirection_t direction)
 {
     return miopen::try_([&] {
-        miopen::deref(problem) = new miopen::ProblemContainer();
+        auto& in_problem_deref = miopen::deref(problem);
+        in_problem_deref       = new miopen::ProblemContainer();
         auto& container_deref  = miopen::deref(*problem);
 
         container_deref.item = miopen::Problem();
-        auto& problem_deref  = boost::get<miopen::Problem>(container_deref.item);
+        auto& problem_deref  = std::get<miopen::Problem>(container_deref.item);
         auto& operator_deref = miopen::deref(operatorDesc);
 
         problem_deref.SetOperatorDescriptor(operator_deref);
@@ -78,11 +79,12 @@ miopenStatus_t miopenCreateBiasProblem(miopenProblem_t* problem, miopenProblemDi
     MIOPEN_LOG_FUNCTION(problem, direction);
 
     return miopen::try_([&] {
-        miopen::deref(problem) = new miopen::ProblemContainer();
-        auto& container_deref  = miopen::deref(*problem);
+        auto& container_ptr   = miopen::deref(problem);
+        container_ptr         = new miopen::ProblemContainer();
+        auto& container_deref = miopen::deref(*problem);
 
         container_deref.item = miopen::Problem();
-        auto& problem_deref  = boost::get<miopen::Problem>(container_deref.item);
+        auto& problem_deref  = std::get<miopen::Problem>(container_deref.item);
 
         problem_deref.SetOperatorDescriptor(miopen::BiasDescriptor{});
         problem_deref.SetDirection(direction);
@@ -105,6 +107,26 @@ miopenStatus_t miopenCreateSoftmaxProblem(miopenProblem_t* problem,
     return MakeProblem(problem, operatorDesc, direction);
 }
 
+miopenStatus_t miopenCreateBatchnormProblem(miopenProblem_t* problem,
+                                            miopenBatchNormMode_t mode,
+                                            bool runningMeanVariance,
+                                            miopenProblemDirection_t direction)
+{
+    MIOPEN_LOG_FUNCTION(problem, mode, direction);
+
+    return miopen::try_([&] {
+        auto& container_ptr   = miopen::deref(problem);
+        container_ptr         = new miopen::ProblemContainer();
+        auto& container_deref = miopen::deref(*problem);
+
+        container_deref.item = miopen::Problem();
+        auto& problem_deref  = std::get<miopen::Problem>(container_deref.item);
+
+        problem_deref.SetOperatorDescriptor(miopen::BatchnormDescriptor{mode, runningMeanVariance});
+        problem_deref.SetDirection(direction);
+    });
+}
+
 miopenStatus_t miopenFuseProblems(miopenProblem_t problem1, miopenProblem_t problem2)
 {
     MIOPEN_LOG_FUNCTION(problem1, problem2);
@@ -121,23 +143,23 @@ miopenStatus_t miopenFuseProblems(miopenProblem_t problem1, miopenProblem_t prob
                               std::back_inserter(problems));
                 });
 
-            boost::apply_visitor(impl2, miopen::deref(problem2).item);
+            std::visit(impl2, miopen::deref(problem2).item);
         };
 
-        boost::apply_visitor(boost::hof::match(
-                                 [&](miopen::Problem& problem1_inner) {
-                                     auto tmp = miopen::FusedProblem{};
-                                     tmp.problems.reserve(2);
-                                     tmp.problems.emplace_back(problem1_inner);
-                                     emplace_problem2(tmp.problems);
-                                     problem1_deref.item = std::move(tmp);
-                                 },
-                                 [&](miopen::FusedProblem& problem1_inner) {
-                                     emplace_problem2(problem1_inner.problems);
-                                 }),
-                             miopen::deref(problem1).item);
+        std::visit(boost::hof::match(
+                       [&](miopen::Problem& problem1_inner) {
+                           auto tmp = miopen::FusedProblem{};
+                           tmp.problems.reserve(2);
+                           tmp.problems.emplace_back(problem1_inner);
+                           emplace_problem2(tmp.problems);
+                           problem1_deref.item = std::move(tmp);
+                       },
+                       [&](miopen::FusedProblem& problem1_inner) {
+                           emplace_problem2(problem1_inner.problems);
+                       }),
+                   miopen::deref(problem1).item);
 
-        boost::get<miopen::FusedProblem&>(miopen::deref(problem1).item).PropagateDescriptors();
+        std::get<miopen::FusedProblem>(miopen::deref(problem1).item).PropagateDescriptors();
     });
 }
 
@@ -163,14 +185,17 @@ miopenStatus_t miopenSetProblemTensorDescriptor(miopenProblem_t problem,
                              "Attempt to set tensor descriptor of a fused problem");
             });
 
-        boost::apply_visitor(impl, miopen::deref(problem).item);
+        std::visit(impl, miopen::deref(problem).item);
     });
 }
 
 miopenStatus_t miopenCreateFindOptions(miopenFindOptions_t* options)
 {
     MIOPEN_LOG_FUNCTION(options);
-    return miopen::try_([&] { miopen::deref(options) = new miopen::FindOptions(); });
+    return miopen::try_([&] {
+        auto& options_ptr = miopen::deref(options);
+        options_ptr       = new miopen::FindOptions();
+    });
 }
 
 miopenStatus_t miopenDestroyFindOptions(miopenFindOptions_t options)
@@ -233,6 +258,16 @@ miopenStatus_t miopenSetFindOptionPreallocatedTensor(miopenFindOptions_t options
     });
 }
 
+miopenStatus_t miopenSetFindOptionAttachBinaries(miopenFindOptions_t options, unsigned attach)
+{
+    MIOPEN_LOG_FUNCTION(options, attach);
+
+    return miopen::try_([&] {
+        auto& options_deref           = miopen::deref(options);
+        options_deref.attach_binaries = (attach == 1);
+    });
+}
+
 miopenStatus_t miopenFindSolutions(miopenHandle_t handle,
                                    miopenProblem_t problem,
                                    miopenFindOptions_t options,
@@ -246,19 +281,22 @@ miopenStatus_t miopenFindSolutions(miopenHandle_t handle,
         auto& handle_deref        = miopen::deref(handle);
         const auto& problem_deref = miopen::deref(problem).item;
 
-        boost::apply_visitor([](auto&& problem) { problem.LogDriverCommand(); }, problem_deref);
+        std::visit([](auto&& problem) { problem.LogDriverCommand(); }, problem_deref);
 
         const auto& options_deref =
             options == nullptr ? miopen::FindOptions{} : miopen::deref(options);
 
-        auto solutions_deref = boost::apply_visitor(
+        auto solutions_deref = std::visit(
             [&](auto&& problem) {
                 return problem.FindSolutions(handle_deref, options_deref, maxSolutions);
             },
             problem_deref);
 
         for(auto i = 0; i < solutions_deref.size(); ++i)
-            miopen::deref(solutions + i) = new miopen::Solution{std::move(solutions_deref[i])};
+        {
+            auto& theSolution = miopen::deref(solutions + i);
+            theSolution       = new miopen::Solution{std::move(solutions_deref[i])};
+        }
 
         if(numSolutions != nullptr)
             *numSolutions = solutions_deref.size();
@@ -296,11 +334,46 @@ inline std::ostream& operator<<(std::ostream& stream, const miopenTensorArgument
     case miopenTensorMhaAmaxS: stream << "MhaAmaxS"; break;
     case miopenTensorMhaM: stream << "MhaM"; break;
     case miopenTensorMhaZInv: stream << "MhaZInv"; break;
+    case miopenTensorMhaDO: stream << "miopenTensorMhaDO"; break;
+    case miopenTensorMhaDescaleO: stream << "miopenTensorMhaDescaleO"; break;
+    case miopenTensorMhaDescaleDO: stream << "miopenTensorMhaDescaleDO"; break;
+    case miopenTensorMhaDescaleDS: stream << "miopenTensorMhaDescaleDS"; break;
+    case miopenTensorMhaScaleDS: stream << "miopenTensorMhaScaleDS"; break;
+    case miopenTensorMhaScaleDQ: stream << "miopenTensorMhaScaleDQ"; break;
+    case miopenTensorMhaScaleDK: stream << "miopenTensorMhaScaleDK"; break;
+    case miopenTensorMhaScaleDV: stream << "miopenTensorMhaScaleDV"; break;
+    case miopenTensorMhaDQ: stream << "miopenTensorMhaDQ"; break;
+    case miopenTensorMhaDK: stream << "miopenTensorMhaDK"; break;
+    case miopenTensorMhaDV: stream << "miopenTensorMhaDV"; break;
+    case miopenTensorMhaAmaxDQ: stream << "miopenTensorMhaAmaxDQ"; break;
+    case miopenTensorMhaAmaxDK: stream << "miopenTensorMhaAmaxDK"; break;
+    case miopenTensorMhaAmaxDV: stream << "miopenTensorMhaAmaxDV"; break;
+    case miopenTensorMhaAmaxDS: stream << "miopenTensorMhaAmaxDS"; break;
     case miopenTensorSoftmaxX: stream << "SoftmaxX"; break;
     case miopenTensorSoftmaxY: stream << "SoftmaxY"; break;
     case miopenTensorSoftmaxDX: stream << "SoftmaxDX"; break;
     case miopenTensorSoftmaxDY: stream << "SoftmaxDY"; break;
     case miopenTensorArgumentIsScalar: stream << "ScalarArgument"; break;
+    case miopenTensorBatchnormX: stream << "miopenTensorBatchnormX"; break;
+    case miopenTensorBatchnormY: stream << "miopenTensorBatchnormY"; break;
+    case miopenTensorBatchnormRunningMean: stream << "miopenTensorBatchnormRunningMean"; break;
+    case miopenTensorBatchnormRunningVariance:
+        stream << "miopenTensorBatchnormRunningVariance";
+        break;
+    case miopenTensorBatchnormSavedMean: stream << "miopenTensorBatchnormSavedMean"; break;
+    case miopenTensorBatchnormSavedVariance: stream << "miopenTensorBatchnormSavedVariance"; break;
+    case miopenTensorBatchnormScale: stream << "miopenTensorBatchnormScale"; break;
+    case miopenTensorBatchnormScaleDiff: stream << "miopenTensorBatchnormScaleDiff"; break;
+    case miopenTensorBatchnormEstimatedMean: stream << "miopenTensorBatchnormEstimatedMean"; break;
+    case miopenTensorBatchnormEstimatedVariance:
+        stream << "miopenTensorBatchnormEstimatedVariance";
+        break;
+    case miopenTensorBatchnormBias: stream << "miopenTensorBatchnormBias"; break;
+    case miopenTensorBatchnormBiasDiff: stream << "miopenTensorBatchnormBiasDiff"; break;
+    case miopenTensorBatchnormDX: stream << "miopenTensorBatchnormDX"; break;
+    case miopenTensorBatchnormDY: stream << "miopenTensorBatchnormDY"; break;
+    case miopenScalarBatchnormEpsilon: stream << "miopenScalarBatchnormEpsilon"; break;
+    case miopenScalarBatchnormExpAvgFactor: stream << "miopenScalarBatchnormExpAvgFactor"; break;
     case miopenTensorArgumentIdInvalid: stream << "Invalid"; break;
     }
 

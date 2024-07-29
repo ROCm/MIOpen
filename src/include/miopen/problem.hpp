@@ -40,7 +40,7 @@
 
 #include <nlohmann/json_fwd.hpp>
 
-#include <boost/variant.hpp>
+#include <variant>
 
 #include <cstring>
 #include <unordered_map>
@@ -70,12 +70,22 @@ struct BiasDescriptor
 {
 };
 
+struct BatchnormDescriptor
+{
+    miopenBatchNormMode_t mode;
+    bool runningMeanVariance;
+
+    friend void to_json(nlohmann::json& j, const BatchnormDescriptor& descriptor);
+    friend void from_json(const nlohmann::json& j, BatchnormDescriptor& descriptor);
+};
+
 // The order of types is important for deserialization and should be preserved between releases.
-using OperatorDescriptor = boost::variant<ConvolutionDescriptor,
-                                          ActivationDescriptor,
-                                          BiasDescriptor,
-                                          SoftmaxDescriptor,
-                                          MhaDescriptor>;
+using OperatorDescriptor = std::variant<ConvolutionDescriptor,
+                                        ActivationDescriptor,
+                                        BiasDescriptor,
+                                        SoftmaxDescriptor,
+                                        MhaDescriptor,
+                                        BatchnormDescriptor>;
 
 struct Problem
 {
@@ -145,6 +155,17 @@ struct Problem
 
     Problem MakeTransposed() const;
 
+    void TransposeImpl(const ConvolutionDescriptor& conv_desc);
+
+    AnyInvokeParams MakeConvInvokeParams(const TensorDescriptor& x_desc,
+                                         Data_t x,
+                                         const TensorDescriptor& w_desc,
+                                         Data_t w,
+                                         const TensorDescriptor& y_desc,
+                                         Data_t y,
+                                         Data_t workspace,
+                                         size_t workspace_size) const;
+
     static void ValidateGroupCount(const TensorDescriptor& xDesc,
                                    const TensorDescriptor& wDesc,
                                    const ConvolutionDescriptor& conv);
@@ -181,9 +202,13 @@ private:
 
     void LogDriverCommand(const ConvolutionDescriptor& conv_desc) const;
     void LogDriverCommand(const ActivationDescriptor& descriptor) const;
+    void LogDriverCommand(const BiasDescriptor& descriptor) const;
+    void LogDriverCommand(const MhaDescriptor& descriptor) const;
+    void LogDriverCommand(const SoftmaxDescriptor& descriptor) const;
+    void LogDriverCommand(const BatchnormDescriptor& descriptor) const;
 };
 
-struct FusedProblem
+struct MIOPEN_INTERNALS_EXPORT FusedProblem
 {
     std::vector<Problem> problems;
 
@@ -227,7 +252,7 @@ private:
 struct ProblemContainer : miopenProblem
 {
     // The order of types is important for deserialization and should be preserved between releases.
-    using Item = boost::variant<Problem, FusedProblem>;
+    using Item = std::variant<Problem, FusedProblem>;
 
     Item item;
 

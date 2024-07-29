@@ -213,7 +213,7 @@ bool Layernorm2DCKForward::IsApplicable(
     [[maybe_unused]] const miopen::layernorm::ProblemDescription& problem) const
 {
 #if MIOPEN_USE_COMPOSABLEKERNEL
-    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_LAYERNORM2DCKFORWARD_CONV_CK_LN)))
+    if(env::disabled(MIOPEN_DEBUG_LAYERNORM2DCKFORWARD_CONV_CK_LN))
         return false;
     if(!problem.IsSameType())
         return false;
@@ -236,6 +236,7 @@ bool Layernorm2DCKForward::IsApplicable(
         return CheckCKApplicability<DeviceOpLnFwdPtrs<F32, F32, F32, F32, F32>>(problem);
     case miopenBFloat16:
     case miopenDouble:
+    case miopenInt64:
     case miopenInt32:
     case miopenInt8:
     case miopenFloat8:
@@ -264,6 +265,7 @@ ConvSolution Layernorm2DCKForward::GetSolution(
     case miopenBFloat16:
     case miopenInt8:
     case miopenInt32:
+    case miopenInt64:
     case miopenFloat8:
     case miopenBFloat8:
     default:

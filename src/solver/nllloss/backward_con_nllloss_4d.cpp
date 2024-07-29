@@ -47,7 +47,7 @@ bool NLLLossUnreduceBackwardContiguous4d::IsApplicable(
     const ExecutionContext& context,
     const miopen::nllloss::UnreduceProblemDescription& problem) const
 {
-    if(problem.GetInputDesc().GetSize() > 4)
+    if(problem.GetInputDesc().GetNumDims() > 4)
         return false;
     if(!problem.IsAllContiguous())
         return false;

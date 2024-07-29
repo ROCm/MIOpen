@@ -37,7 +37,7 @@ void cpu_nllloss_unreduce_forward(tensor<T> input,
                                   tensor<T>& output,
                                   int32_t ignore_index)
 {
-    auto num_dims = input.desc.GetSize();
+    auto num_dims = input.desc.GetNumDims();
     if(num_dims == 2)
     {
         cpu_nllloss_unreduce_forward_2d(input, target, weight, output, ignore_index);
@@ -134,7 +134,7 @@ void cpu_nllloss_unreduce_backward(tensor<T>& input_grad,
                                    tensor<T> output_grad,
                                    int32_t ignore_index)
 {
-    auto num_dims = input_grad.desc.GetSize();
+    auto num_dims = input_grad.desc.GetNumDims();
     if(num_dims == 2)
     {
         cpu_nllloss_unreduce_backward_2d(input_grad, target, weight, output_grad, ignore_index);
@@ -157,7 +157,7 @@ void cpu_nllloss_reduce_backward(tensor<T>& input_grad,
                                  int32_t ignore_index,
                                  float divisor)
 {
-    auto num_dims = input_grad.desc.GetSize();
+    auto num_dims = input_grad.desc.GetNumDims();
     if(num_dims == 2)
     {
         cpu_nllloss_reduce_backward_2d(

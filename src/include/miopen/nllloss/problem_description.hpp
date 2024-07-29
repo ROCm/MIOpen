@@ -66,7 +66,7 @@ struct ProblemDescription : ProblemDescriptionBase
         if(targetDesc.GetLengths()[0] != inputDesc.GetLengths()[0])
             MIOPEN_THROW(miopenStatusBadParm, "NLLLoss: Tensor sizes do not match.");
 
-        for(int32_t i = 1; i < targetDesc.GetSize(); ++i)
+        for(int32_t i = 1; i < targetDesc.GetNumDims(); ++i)
         {
             if(targetDesc.GetLengths()[i] != inputDesc.GetLengths()[i + 1])
             {
@@ -90,7 +90,7 @@ struct ProblemDescription : ProblemDescriptionBase
             auto strides = td.GetStrides();
             auto lengths = td.GetLengths();
             std::vector<std::pair<size_t, size_t>> p;
-            p.reserve(td.GetSize());
+            p.reserve(td.GetNumDims());
             std::transform(strides.begin(),
                            strides.end(),
                            lengths.begin(),
@@ -122,7 +122,7 @@ struct ProblemDescription : ProblemDescriptionBase
     {
         auto isContiguous = [](TensorDescriptor td) {
             size_t s = 1;
-            for(int i = td.GetSize() - 1; i >= 0; --i)
+            for(int i = td.GetNumDims() - 1; i >= 0; --i)
             {
                 if(s != td.GetStrides()[i])
                 {
@@ -196,7 +196,7 @@ struct ReduceProblemDescription : ProblemDescription
 
     bool IsValidLength() const
     {
-        if(outputDesc.GetSize() != 1 || outputDesc.GetLengths()[0] != 1)
+        if(outputDesc.GetNumDims() != 1 || outputDesc.GetLengths()[0] != 1)
             MIOPEN_THROW(miopenStatusBadParm, "NLLLoss: Output Tensor size must be (1).");
         if(!ProblemDescription::IsValidLength())
             return false;

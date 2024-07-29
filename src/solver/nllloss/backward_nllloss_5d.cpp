@@ -46,7 +46,7 @@ namespace nllloss {
 bool NLLLossReduceBackward5d::IsApplicable(
     const ExecutionContext& context, const miopen::nllloss::ReduceProblemDescription& problem) const
 {
-    if(problem.GetInputDesc().GetSize() > 5)
+    if(problem.GetInputDesc().GetNumDims() > 5)
         return false;
     if(!NLLLossReduceSolver::IsApplicable(context, problem))
         return false;
