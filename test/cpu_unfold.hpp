@@ -43,7 +43,7 @@ void cpu_unfold_fwd_4d(tensor<T> input_tensor,
 {
     auto input_tv   = miopen::get_inner_expanded_tv<4>(input_tensor.desc);
     auto output_tv  = miopen::get_inner_expanded_tv<3>(ref_output_tensor.desc);
-    auto input_size = input_tensor.desc.GetSize();
+    auto input_size = input_tensor.desc.GetNumDims();
     auto input_dims = input_tensor.desc.GetLengths();
 
     auto input  = input_tensor.data.data();
@@ -68,7 +68,6 @@ void cpu_unfold_fwd_4d(tensor<T> input_tensor,
         ls.push_back(l);
     }
 
-    int32_t kernel_size_h = kernel_size[0];
     int32_t kernel_size_w = kernel_size[1];
     int32_t stride_h      = stride[0];
     int32_t stride_w      = stride[1];
@@ -76,7 +75,6 @@ void cpu_unfold_fwd_4d(tensor<T> input_tensor,
     int32_t padding_w     = padding[1];
     int32_t dilation_h    = dilation[0];
     int32_t dilation_w    = dilation[1];
-    int32_t LH            = ls[0];
     int32_t LW            = ls[1];
     int32_t H             = static_cast<int32_t>(input_dims[2]);
     int32_t W             = static_cast<int32_t>(input_dims[3]);
@@ -117,7 +115,7 @@ void cpu_unfold_bwd_4d(tensor<T>& ref_dinput_tensor,
 {
     auto input_grad_tv   = miopen::get_inner_expanded_tv<4>(ref_dinput_tensor.desc);
     auto output_grad_tv  = miopen::get_inner_expanded_tv<3>(doutput_tensor.desc);
-    auto input_size      = ref_dinput_tensor.desc.GetSize();
+    auto input_size      = ref_dinput_tensor.desc.GetNumDims();
     auto input_grad_dims = ref_dinput_tensor.desc.GetLengths();
 
     auto input_grad  = ref_dinput_tensor.data.data();
@@ -129,7 +127,7 @@ void cpu_unfold_bwd_4d(tensor<T>& ref_dinput_tensor,
     const int32_t N = static_cast<int32_t>(input_grad_dims[0]);
     const int32_t C = static_cast<int32_t>(input_grad_dims[1]);
 
-    int32_t P = 1, L = 1;
+    int32_t P = 1;
     std::vector<int32_t> ls;
     for(int i = 0; i < spatial_dim_size; ++i)
     {
@@ -138,7 +136,6 @@ void cpu_unfold_bwd_4d(tensor<T>& ref_dinput_tensor,
                      dilation[i] * (kernel_size[i] - 1) - 1) /
                         stride[i] +
                     1;
-        L *= l;
         ls.push_back(l);
     }
 
