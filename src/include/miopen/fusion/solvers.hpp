@@ -82,6 +82,8 @@ struct ConvBiasActivAsm1x1U : FusionTunableSolver<PerformanceConfigConvBiasActiv
     IsValidPerformanceConfig(const FusionContext&,
                              const FusionDescription&,
                              const PerformanceConfigConvBiasActivAsm1x1U&) const override;
+    MIOPEN_INTERNALS_EXPORT float GetWti(const FusionContext&,
+                                         const FusionDescription&) const override;
 };
 
 using PerformanceConfigConvOclDirectFwdFused = LegacyPerformanceConfig;
@@ -108,6 +110,8 @@ struct ConvOclDirectFwdFused final : FusionTunableSolver<LegacyPerformanceConfig
     IsValidPerformanceConfig(const FusionContext&,
                              const FusionDescription&,
                              const PerformanceConfigConvOclDirectFwdFused&) const override;
+    MIOPEN_INTERNALS_EXPORT float GetWti(const FusionContext&,
+                                         const FusionDescription& problem) const override;
 };
 
 struct PerformanceConfigConvCKIgemmFwdBiasActivFused
@@ -262,6 +266,8 @@ struct ConvBinWinogradRxSFused final : FusionSolverBase
                  const FusionDescription& fdesc_problem) const override;
     MIOPEN_INTERNALS_EXPORT ConvSolution GetSolution(
         const FusionContext& context, const FusionDescription& fdesc_problem) const override;
+    MIOPEN_INTERNALS_EXPORT float GetWti(const FusionContext&,
+                                         const FusionDescription&) const override;
 };
 
 struct ConvBinWinogradRxSf2x3g1Fused final : FusionSolverBase
@@ -275,6 +281,8 @@ struct ConvBinWinogradRxSf2x3g1Fused final : FusionSolverBase
                                               const FusionDescription& problem) const override;
     MIOPEN_INTERNALS_EXPORT ConvSolution
     GetSolution(const FusionContext& context, const FusionDescription& problem) const override;
+    MIOPEN_INTERNALS_EXPORT float GetWti(const FusionContext&,
+                                         const FusionDescription&) const override;
 };
 
 template <uint32_t Winodata, uint32_t Winofilter>
