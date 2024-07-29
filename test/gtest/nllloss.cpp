@@ -42,27 +42,27 @@ std::string GetFloatArg()
     return tmp;
 }
 
-struct NLLLossTestFloat : NLLLossTest<float>
+struct GPU_Nllloss_fwd_FP32 : NLLLossTestFwd<float>
 {
 };
 
-struct NLLLossTestHalf : NLLLossTest<half>
+struct GPU_Nllloss_fwd_FP16 : NLLLossTestFwd<half>
 {
 };
 
-struct NLLLossTestBFloat16 : NLLLossTest<bfloat16>
+struct GPU_Nllloss_fwd_BFP16 : NLLLossTestFwd<bfloat16>
 {
 };
 
-struct NLLLossTestFloatBwd : NLLLossTestBwd<float>
+struct GPU_Nllloss_bwd_FP32 : NLLLossTestBwd<float>
 {
 };
 
-struct NLLLossTestHalfBwd : NLLLossTestBwd<half>
+struct GPU_Nllloss_bwd_FP16 : NLLLossTestBwd<half>
 {
 };
 
-struct NLLLossTestBFloat16Bwd : NLLLossTestBwd<bfloat16>
+struct GPU_Nllloss_bwd_BFP16 : NLLLossTestBwd<bfloat16>
 {
 };
 
@@ -70,10 +70,11 @@ struct NLLLossTestBFloat16Bwd : NLLLossTestBwd<bfloat16>
 using namespace nllloss;
 
 // FORWARD TEST
-TEST_P(NLLLossTestFloat, NLLLossTest)
+TEST_P(GPU_Nllloss_fwd_FP32, NLLLossTestFwd)
 {
     if(!MIOPEN_TEST_ALL ||
-       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--float")) {
+       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--float"))
+    {
         RunTest();
         Verify();
     }
@@ -83,10 +84,11 @@ TEST_P(NLLLossTestFloat, NLLLossTest)
     }
 };
 
-TEST_P(NLLLossTestHalf, NLLLossTest)
+TEST_P(GPU_Nllloss_fwd_FP16, NLLLossTestFwd)
 {
     if(!MIOPEN_TEST_ALL ||
-       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--half")) {
+       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--half"))
+    {
         RunTest();
         Verify();
     }
@@ -96,10 +98,11 @@ TEST_P(NLLLossTestHalf, NLLLossTest)
     }
 };
 
-TEST_P(NLLLossTestBFloat16, NLLLossTest)
+TEST_P(GPU_Nllloss_fwd_BFP16, NLLLossTestFwd)
 {
     if(!MIOPEN_TEST_ALL ||
-       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--bfloat16")) {
+       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--bfloat16"))
+    {
         RunTest();
         Verify();
     }
@@ -109,17 +112,22 @@ TEST_P(NLLLossTestBFloat16, NLLLossTest)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(NLLLossTestSet, NLLLossTestFloat, testing::ValuesIn(NLLLossTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(NLLLossTestSet, NLLLossTestHalf, testing::ValuesIn(NLLLossTestConfigs()));
 INSTANTIATE_TEST_SUITE_P(NLLLossTestSet,
-                         NLLLossTestBFloat16,
+                         GPU_Nllloss_fwd_FP32,
+                         testing::ValuesIn(NLLLossTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(NLLLossTestSet,
+                         GPU_Nllloss_fwd_FP16,
+                         testing::ValuesIn(NLLLossTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(NLLLossTestSet,
+                         GPU_Nllloss_fwd_BFP16,
                          testing::ValuesIn(NLLLossTestConfigs()));
 
 // BACKWARD TEST
-TEST_P(NLLLossTestFloatBwd, NLLLossTestBwd)
+TEST_P(GPU_Nllloss_bwd_FP32, NLLLossTestBwd)
 {
     if(!MIOPEN_TEST_ALL ||
-       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--float")) {
+       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--float"))
+    {
         RunTest();
         Verify();
     }
@@ -129,10 +137,11 @@ TEST_P(NLLLossTestFloatBwd, NLLLossTestBwd)
     }
 };
 
-TEST_P(NLLLossTestHalfBwd, NLLLossTestBwd)
+TEST_P(GPU_Nllloss_bwd_FP16, NLLLossTestBwd)
 {
     if(!MIOPEN_TEST_ALL ||
-       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--half")) {
+       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--half"))
+    {
         RunTest();
         Verify();
     }
@@ -142,10 +151,11 @@ TEST_P(NLLLossTestHalfBwd, NLLLossTestBwd)
     }
 };
 
-TEST_P(NLLLossTestBFloat16Bwd, NLLLossTestBwd)
+TEST_P(GPU_Nllloss_bwd_BFP16, NLLLossTestBwd)
 {
     if(!MIOPEN_TEST_ALL ||
-       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--bfloat16")) {
+       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--bfloat16"))
+    {
         RunTest();
         Verify();
     }
@@ -156,11 +166,11 @@ TEST_P(NLLLossTestBFloat16Bwd, NLLLossTestBwd)
 };
 
 INSTANTIATE_TEST_SUITE_P(NLLLossTestSet,
-                         NLLLossTestFloatBwd,
+                         GPU_Nllloss_bwd_FP32,
                          testing::ValuesIn(NLLLossTestConfigs()));
 INSTANTIATE_TEST_SUITE_P(NLLLossTestSet,
-                         NLLLossTestHalfBwd,
+                         GPU_Nllloss_bwd_FP16,
                          testing::ValuesIn(NLLLossTestConfigs()));
 INSTANTIATE_TEST_SUITE_P(NLLLossTestSet,
-                         NLLLossTestBFloat16Bwd,
+                         GPU_Nllloss_bwd_BFP16,
                          testing::ValuesIn(NLLLossTestConfigs()));

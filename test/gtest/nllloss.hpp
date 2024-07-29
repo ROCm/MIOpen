@@ -98,7 +98,7 @@ inline std::vector<size_t> GetStrides(std::vector<size_t> input, bool contiguous
 
 // FORWARD TEST
 template <typename T = float>
-struct NLLLossTest : public ::testing::TestWithParam<NLLLossTestCase>
+struct NLLLossTestFwd : public ::testing::TestWithParam<NLLLossTestCase>
 {
 protected:
     void SetUp() override

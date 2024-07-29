@@ -93,29 +93,12 @@ NLLLossReduceForward5d::GetSolution(const ExecutionContext& context,
     result.invoker_factory = [](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
             decltype(auto) params = raw_params.CastTo<miopen::nllloss::FwdInvokeParams>();
-            auto elapsed          = 0.f;
 
-            {
-                decltype(auto) kernel = handle_.Run(kernels.front());
+            decltype(auto) kernel = handle_.Run(kernels.front());
 
-                auto input_tv  = get_inner_expanded_tv<5>(deref(params.inputDesc));
-                auto target_tv = get_inner_expanded_tv<4>(deref(params.targetDesc));
-                auto weight_tv = get_inner_expanded_tv<1>(deref(params.weightDesc));
-
-                kernel(params.input,
-                       params.target,
-                       params.weight,
-                       params.workspace,
-                       params.ignore_index,
-                       params.divisor,
-                       input_tv,
-                       target_tv,
-                       weight_tv);
-            }
-            if(handle_.IsProfilingEnabled())
-            {
-                elapsed = handle_.GetKernelTime();
-            }
+            auto input_tv  = get_inner_expanded_tv<5>(deref(params.inputDesc));
+            auto target_tv = get_inner_expanded_tv<4>(deref(params.targetDesc));
+            auto weight_tv = get_inner_expanded_tv<1>(deref(params.weightDesc));
 
             auto work_a = params.workspace;
             auto work_b =
@@ -124,9 +107,30 @@ NLLLossReduceForward5d::GetSolution(const ExecutionContext& context,
                                         get_data_size(deref(params.outputDesc).GetType()));
             auto size = deref(params.targetDesc).GetElementSize();
 
+            auto elapsed = 0.f;
+            HipEventPtr start, stop;
+            const bool profiling = handle_.IsProfilingEnabled();
+            if(profiling)
+            {
+                start = make_hip_event();
+                stop  = make_hip_event();
+                handle_.EnableProfiling(false);
+                hipEventRecord(start.get(), handle_.GetStream());
+            }
+
+            kernel(params.input,
+                   params.target,
+                   params.weight,
+                   params.workspace,
+                   params.ignore_index,
+                   params.divisor,
+                   input_tv,
+                   target_tv,
+                   weight_tv);
+
             for(int i = 1; i < kernels.size(); ++i)
             {
-                decltype(auto) kernel = handle_.Run(kernels[i]);
+                kernel = handle_.Run(kernels[i]);
                 if(i + 1 != kernels.size())
                 {
                     kernel(work_a, work_b, size);
@@ -135,15 +139,21 @@ NLLLossReduceForward5d::GetSolution(const ExecutionContext& context,
                 else
                     kernel(work_a, params.output, size);
 
-                if(handle_.IsProfilingEnabled())
-                    elapsed += handle_.GetKernelTime();
                 size = (size + LOCAL_SIZE_REDUCE_FWD - 1) / LOCAL_SIZE_REDUCE_FWD;
             }
-            if(handle_.IsProfilingEnabled())
+            if(profiling)
             {
+                hipEventRecord(stop.get(), handle_.GetStream());
+                hipEventSynchronize(stop.get());
+                hipEventElapsedTime(&elapsed, start.get(), stop.get());
+
+                // Clean up
+                hipEventDestroy(start.get());
+                hipEventDestroy(stop.get());
                 handle_.ResetKernelTime();
                 handle_.AccumKernelTime(elapsed);
-            };
+                handle_.EnableProfiling(true);
+            }
         };
     };
 
