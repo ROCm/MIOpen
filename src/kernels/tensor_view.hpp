@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,45 +23,56 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <miopen/env.hpp>
-#include "cat.hpp"
 
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
+#ifndef GUARD_TENSOR_VIEW_HPP
+#define GUARD_TENSOR_VIEW_HPP
 
-namespace env = miopen::env;
+template <int N>
+struct tensor_layout_t;
 
-namespace cat {
-
-std::string GetFloatArg()
+template <int N>
+struct tensor_view_t
 {
-    const auto tmp = env::value(MIOPEN_TEST_FLOAT_ARG);
-    if(tmp.empty())
+    // Get index in tensor view at tensor layout
+    constexpr uint64_t get_tensor_view_idx(const tensor_layout_t<N>& tensor_layout)
     {
-        return "";
+        static_assert(N > 0);
+        uint64_t idx = 0;
+        for(auto i = 0; i < N; ++i)
+        {
+            idx += stride[i] * tensor_layout.layout[i];
+        }
+        return idx;
     }
-    return tmp;
-}
-
-struct CatTestFloat : CatTest<float>
-{
+    uint64_t stride[N];
+    uint64_t size[N];
 };
 
-} // namespace cat
-using namespace cat;
-
-TEST_P(CatTestFloat, CatTestFw)
+template <int N>
+struct tensor_layout_t
 {
-    if(!MIOPEN_TEST_ALL ||
-       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--float"))
+    // Make tensor layout at index using tensor view
+    constexpr tensor_layout_t(const tensor_view_t<N>& tensor_view, uint64_t idx)
     {
-        RunTest();
-        Verify();
+        static_assert(N > 0);
+        uint64_t temp = idx;
+        if constexpr(N == 1)
+        {
+            layout[0] = idx;
+        }
+        else
+        {
+            for(auto i = N - 1; i > 1; --i)
+            {
+                layout[i] = temp % tensor_view.size[i];
+                temp      = temp / tensor_view.size[i];
+            }
+            layout[1] = temp % tensor_view.size[1];
+            layout[0] = temp / tensor_view.size[1];
+        }
     }
-    else
-    {
-        GTEST_SKIP();
-    }
+
+    uint64_t layout[N];
 };
 
-INSTANTIATE_TEST_SUITE_P(CatTestSet, CatTestFloat, testing::ValuesIn(CatTestConfigs()));
+#endif // GUARD_TENSOR_VIEW_HPP
