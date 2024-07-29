@@ -32,4 +32,6 @@ if(HAS_LIB_STD_FILESYSTEM)
     target_link_libraries(addkernels PRIVATE stdc++fs)
 endif()
 
-clang_tidy_check(addkernels)
+if(MIOPEN_USE_CLANG_TIDY)
+  clang_tidy_check(addkernels)
+endif()

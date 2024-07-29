@@ -773,7 +773,9 @@ endif()
 
 rocm_set_soversion(MIOpen ${MIOpen_SOVERSION})
 
-clang_tidy_check(MIOpen)
+if(MIOPEN_USE_CLANG_TIDY)
+    clang_tidy_check(MIOpen)
+endif()
 
 if(HAS_LIB_STD_FILESYSTEM)
     target_link_libraries(MIOpen PRIVATE stdc++fs)
