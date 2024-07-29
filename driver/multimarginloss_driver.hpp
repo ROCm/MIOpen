@@ -355,21 +355,14 @@ int MultiMarginLossDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         }
 
         o_dev = std::make_unique<GPUMem>(ctx, o_sz, sizeof(Tgpu));
-        O     = std::vector<Tgpu>(o_sz);
-        Ohost = std::vector<Tref>(o_sz);
-        std::fill(O.begin(), O.end(), 0);
-        std::fill(Ohost.begin(), Ohost.end(), 0);
+        O     = std::vector<Tgpu>(o_sz, static_cast<Tgpu>(0));
+        Ohost = std::vector<Tref>(o_sz, static_cast<Tref>(0));
         if(o_dev->ToGPU(GetStream(), O.data()) != 0)
             std::cerr << "Error copying (out) to GPU, size: " << o_dev->GetSize() << std::endl;
 
         size_t ws_sz  = ws_sizeInBytes / sizeof(Tgpu);
         workspace_dev = std::make_unique<GPUMem>(ctx, ws_sz, sizeof(Tgpu));
         workspace     = std::vector<Tgpu>(ws_sz);
-        std::fill(workspace.begin(), workspace.end(), 0);
-
-        if(workspace_dev->ToGPU(GetStream(), workspace.data()) != 0)
-            std::cerr << "Error copying (workspace) to GPU, size: " << workspace_dev->GetSize()
-                      << std::endl;
     }
 
     return miopenStatusSuccess;

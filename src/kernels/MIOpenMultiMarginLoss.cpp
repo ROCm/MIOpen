@@ -69,7 +69,7 @@ __device__ void multimarginlossunreducedforward2d(const DTYPE* __restrict__ I,
         if(p == 2)
             t = t * t;
         t = CVT_FLOAT2ACCUM(W[W_tv.get_tensor_view_idx({y})]) * t;
-        loss += t / (float)C;
+        loss += t / C;
     }
     O[O_tv.get_tensor_view_idx({n})] = CVT_ACCUM2FLOAT(loss);
 }
@@ -127,7 +127,7 @@ __device__ void multimarginlossforward2d(const DTYPE* __restrict__ I,
         if(p == 2)
             t = t * t;
         t = CVT_FLOAT2ACCUM(W[W_tv.get_tensor_view_idx({y})]) * t;
-        loss += t / (float)C;
+        loss += t / C;
     }
 
     lsum[n] = CVT_ACCUM2FLOAT(loss / divisor);

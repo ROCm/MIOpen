@@ -173,7 +173,7 @@ protected:
                                                                             margin,
                                                                             reduction_mode);
             if(ws_sizeInBytes == static_cast<size_t>(-1))
-                GTEST_SKIP() << "Call GetMultiMarginLossForwardWorkspaceSize failed!";
+                GTEST_FAIL() << "Call GetMultiMarginLossForwardWorkspaceSize failed!";
             workspace = tensor<T>{std::vector<size_t>{ws_sizeInBytes / sizeof(T)}};
             std::fill(workspace.begin(), workspace.end(), 0);
             workspace_dev = handle.Write(workspace.data);
