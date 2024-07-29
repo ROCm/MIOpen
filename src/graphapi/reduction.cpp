@@ -202,10 +202,10 @@ OperationReduction OperationReductionBuilder::build()
 {
     if(mOperationReduction.mReduction != nullptr && mOperationReduction.mX != nullptr &&
        mOperationReduction.mY != nullptr &&
-       std::equal(mOperationReduction.mX->getDimensions().cbegin(),
-                  mOperationReduction.mX->getDimensions().cend(),
-                  mOperationReduction.mY->getDimensions().cbegin(),
-                  mOperationReduction.mY->getDimensions().cend(),
+       std::equal(mOperationReduction.mX->GetLengths().cbegin(),
+                  mOperationReduction.mX->GetLengths().cend(),
+                  mOperationReduction.mY->GetLengths().cbegin(),
+                  mOperationReduction.mY->GetLengths().cend(),
                   [](auto inputDim, auto outputDim) {
                       return outputDim == 1 || outputDim == inputDim || outputDim % inputDim == 0;
                   }))

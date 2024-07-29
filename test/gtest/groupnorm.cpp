@@ -52,12 +52,8 @@ using namespace groupnorm;
 
 TEST_P(GroupNormTestFloat, GroupNormTestFw)
 {
-    const auto& handle = get_handle();
-
-    if((miopen::StartsWith(handle.GetDeviceName(), "gfx908") ||
-        miopen::StartsWith(handle.GetDeviceName(), "gfx90a") ||
-        miopen::StartsWith(handle.GetDeviceName(), "gfx94")) &&
-       env::enabled(MIOPEN_TEST_ALL) && (GetFloatArg() == "--float"))
+    if(!MIOPEN_TEST_ALL ||
+       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--float"))
     {
         RunTest();
         Verify();

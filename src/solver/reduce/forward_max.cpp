@@ -40,7 +40,7 @@ namespace reduce {
 
 size_t MaxForward::XGridSize(std::vector<size_t> ydims) const
 {
-    auto output_numel =
+    size_t output_numel =
         std::accumulate(ydims.begin(), ydims.end(), 1ULL, std::multiplies<size_t>());
     return AlignUp(output_numel, LOCAL_SIZE);
 }
