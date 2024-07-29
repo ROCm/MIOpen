@@ -28,7 +28,7 @@
 #define GUARD_MLOPEN_VISIT_FLOAT_HPP
 
 #include <miopen/miopen.h>
-#include <half/half.hpp>
+#include <half.hpp>
 #include <miopen/bfloat16.hpp>
 
 namespace miopen {

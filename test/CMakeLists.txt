@@ -383,7 +383,7 @@ function(add_test_executable TEST_NAME)
     else()       
         target_link_libraries(${TEST_NAME} MIOpen)
     endif()
-    target_include_directories(${TEST_NAME} PRIVATE ../src/kernels)
+    target_include_directories(${TEST_NAME} PRIVATE ../src/kernels ${HALF_INCLUDE_DIR})
     if(WIN32)
         # Refer to https://en.cppreference.com/w/cpp/language/types for details.
         target_compile_options(${TEST_NAME} PRIVATE $<BUILD_INTERFACE:$<$<CXX_COMPILER_ID:Clang>:-U__LP64__>>)

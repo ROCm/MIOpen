@@ -16,7 +16,7 @@ function(add_speedtest_executable TEST_NAME)
     endif()
     separate_arguments(MIOPEN_TEST_FLAGS_ARGS NATIVE_COMMAND ${MIOPEN_TEST_FLAGS})
     target_link_libraries(${TEST_NAME} MIOpen)
-    target_include_directories(${TEST_NAME} PRIVATE ../test ../src/kernels)
+    target_include_directories(${TEST_NAME} PRIVATE ../test ../src/kernels ${HALF_INCLUDE_DIR})
 endfunction(add_speedtest_executable)
 
 foreach(TEST ${TESTS})

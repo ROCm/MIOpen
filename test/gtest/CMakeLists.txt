@@ -29,7 +29,7 @@ function(add_gtest TEST_NAME TEST_CPP)
   add_dependencies(check ${TEST_NAME})
 
   target_compile_options(${TEST_NAME} PRIVATE -Wno-global-constructors -Wno-undef)
-  target_include_directories(${TEST_NAME} PRIVATE ../ ../../src/kernels)
+  target_include_directories(${TEST_NAME} PRIVATE ../ ../../src/kernels ${HALF_INCLUDE_DIR})
 
   target_link_libraries(${TEST_NAME} miopen_gtest_common)
   if(MIOPEN_ENABLE_AI_KERNEL_TUNING)
@@ -86,7 +86,7 @@ endforeach()
 # Common static library speeds up test assembly.
 # Otherwise, all files in ${SOURCES} are rebuilt for each test.
 add_library(miopen_gtest_common STATIC ${SOURCES})
-target_include_directories(miopen_gtest_common PRIVATE ../ ../../src/kernels)
+target_include_directories(miopen_gtest_common PRIVATE ../ ../../src/kernels ${HALF_INCLUDE_DIR})
 target_link_libraries(miopen_gtest_common PRIVATE GTest::gtest MIOpen)
 if(WIN32)
   # Refer to https://en.cppreference.com/w/cpp/language/types for details.

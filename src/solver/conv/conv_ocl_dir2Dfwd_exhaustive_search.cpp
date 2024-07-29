@@ -33,7 +33,7 @@
 #include <miopen/legacy_exhaustive_search.hpp>
 #include <miopen/bfloat16.hpp>
 #include <miopen/fusion/fusion_invoke_params.hpp>
-#include <half/half.hpp>
+#include <half.hpp>
 
 #ifdef max
 #undef max

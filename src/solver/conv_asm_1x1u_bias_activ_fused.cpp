@@ -38,7 +38,7 @@
 #include <miopen/fusion/solvers.hpp>
 #include <miopen/fusion/fusion_invoke_params.hpp>
 
-#include <half/half.hpp>
+#include <half.hpp>
 
 using half_float::half;
 
