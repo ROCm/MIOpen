@@ -59,8 +59,8 @@ using namespace addlayernorm;
 
 TEST_P(GPU_AddLayerNorm_FP32, AddLayerNormTestFw)
 {
-    auto TypeArg = env::value(MIOPEN_TEST_FLOAT_ARG);
-    if(env::enabled(MIOPEN_TEST_ALL) && GetFloatArg() == "--float")
+    if(!MIOPEN_TEST_ALL ||
+       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--float"))
     {
         RunTest();
         Verify();
@@ -73,8 +73,8 @@ TEST_P(GPU_AddLayerNorm_FP32, AddLayerNormTestFw)
 
 TEST_P(GPU_AddLayerNorm_FP16, AddLayerNormTestFw)
 {
-    auto TypeArg = env::value(MIOPEN_TEST_FLOAT_ARG);
-    if(env::enabled(MIOPEN_TEST_ALL) && GetFloatArg() == "--half")
+    if(!MIOPEN_TEST_ALL ||
+       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--half"))
     {
         RunTest();
         Verify();
@@ -87,8 +87,8 @@ TEST_P(GPU_AddLayerNorm_FP16, AddLayerNormTestFw)
 
 TEST_P(GPU_AddLayerNorm_BFP16, AddLayerNormTestFw)
 {
-    auto TypeArg = env::value(MIOPEN_TEST_FLOAT_ARG);
-    if(env::enabled(MIOPEN_TEST_ALL) && GetFloatArg() == "--bfloat16")
+    if(!MIOPEN_TEST_ALL ||
+       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--bfloat16"))
     {
         RunTest();
         Verify();
