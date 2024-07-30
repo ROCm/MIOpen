@@ -44,7 +44,7 @@ auto GetPreloadedDb(const fs::path& path) -> std::unique_ptr<Db>
 
     if(!states.started_loading.load(std::memory_order_relaxed))
         return nullptr;
-        
+
     std::unique_lock<std::mutex> lock{states.mutex};
 
     auto it = states.futures.find(path);
@@ -151,7 +151,8 @@ void Handle::TryStartPreloadingDbs()
         states, DbKinds::FindDb, FindDbRecord::GetInstalledPath(*this, "fusion"), true);
 #endif
 #if !MIOPEN_DISABLE_USERDB
-    StartPreloadingDb<RamDb>(states, DbKinds::FindDb, FindDbRecord::GetUserPath(*this, "fusion"), false);
+    StartPreloadingDb<RamDb>(
+        states, DbKinds::FindDb, FindDbRecord::GetUserPath(*this, "fusion"), false);
 #endif
 }
 } // namespace miopen
