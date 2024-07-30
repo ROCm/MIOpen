@@ -43,6 +43,14 @@ namespace solver {
 
 namespace prelu {
 
+MultiBufferWorkspaceTraits GetMultiBufferWorkspaceTraits(const TensorDescriptor& inputDesc)
+{
+    auto size = inputDesc.GetElementSize();
+    return MultiBufferWorkspaceTraits{size * sizeof(FLOAT_ACCUM),
+                                      AlignUp(size, LOCAL_SIZE_SW_REDUCE_BWD) /
+                                          LOCAL_SIZE_SW_REDUCE_BWD * sizeof(FLOAT_ACCUM)};
+}
+
 bool SingleWeightBackward::IsApplicable(
     const ExecutionContext& /*context*/,
     const miopen::prelu::BackwardProblemDescription& problem) const
@@ -123,11 +131,14 @@ SingleWeightBackward::GetSolution(const ExecutionContext& /*context*/,
                 hipEventRecord(start.get(), handle_.GetStream());
             }
 
+            auto getBuffPart = [ws = GetMultiBufferWorkspaceTraits(deref(params.inputDesc))](
+                                   void* buffer, size_t part_idx) {
+                return static_cast<void*>(static_cast<std::byte*>(buffer) + ws.GetOffset(part_idx));
+            };
+            auto work_a = getBuffPart(params.workspace, 0);
+            auto work_b = getBuffPart(params.workspace, 1);
+
             int kernelCnt = 0;
-            auto work_a   = params.workspace;
-            auto work_b =
-                static_cast<Data_t>(static_cast<char*>(params.workspace) +
-                                    deref(params.inputDesc).GetElementSize() * sizeof(FLOAT_ACCUM));
 
             /* Phase 1: Calc gradient for each elements. */
             {
@@ -183,11 +194,7 @@ std::size_t SingleWeightBackward::GetWorkspaceSize(
     const ExecutionContext& /*context*/,
     const miopen::prelu::BackwardProblemDescription& problem) const
 {
-    auto size = problem.GetdInputDesc().GetElementSize();
-    if(size > LOCAL_SIZE_SW_REDUCE_BWD)
-        size += (size + LOCAL_SIZE_SW_REDUCE_BWD - 1) / LOCAL_SIZE_SW_REDUCE_BWD;
-    size *= sizeof(FLOAT_ACCUM);
-    return size;
+    return GetMultiBufferWorkspaceTraits(problem.GetdInputDesc()).GetSize();
 }
 
 } // namespace prelu
