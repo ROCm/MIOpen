@@ -284,7 +284,7 @@ void RNNDescriptor::RNNForwardMS(Handle& handle,
 
     MultiStreamController ms_controller{handle, extra_stream_cnt};
 
-    constexpr auto root_stream_id = ms_controller.rootStreamId;
+    constexpr auto root_stream_id = MultiStreamController::rootStreamId;
     ms_controller.ChangeActiveStream(root_stream_id);
 
     int total_batch_size = 0;
@@ -4370,21 +4370,21 @@ void RNNDescriptor::RNNBackwardDataPackedTensors(
     case miopenRNNRELU:
     case miopenRNNTANH:
         // printf("run rnn gpu bwd data \n");
-        wei_len   = hy_h * nHiddenTensorsPerLayer;    // hy_h;
-        wei_len_t = hy_h * nHiddenTensorsPerLayer;    // hy_h;
-        dhd_off   = bi * hy_h * (workspaceScale - 1); // 0;
-        break;
+        // wei_len   = hy_h * nHiddenTensorsPerLayer;    // hy_h;
+        // wei_len_t = hy_h * nHiddenTensorsPerLayer;    // hy_h;
+        // dhd_off   = bi * hy_h * (workspaceScale - 1); // 0;
+        // break;
     case miopenLSTM:
         // printf("run lstm gpu bwd data \n");
-        wei_len   = hy_h * nHiddenTensorsPerLayer;    // hy_h * 4;
-        wei_len_t = hy_h * nHiddenTensorsPerLayer;    // hy_h * 4;
-        dhd_off   = bi * hy_h * (workspaceScale - 1); // bi* hy_h * 5;
+        wei_len   = hy_h * static_cast<int>(nHiddenTensorsPerLayer);  // hy_h * 4;
+        wei_len_t = hy_h * static_cast<int>(nHiddenTensorsPerLayer);  // hy_h * 4;
+        dhd_off   = bi * hy_h * static_cast<int>(workspaceScale - 1); // bi* hy_h * 5;
         break;
     case miopenGRU:
         // printf("run gru gpu bwd data \n");
-        wei_len   = hy_h * nHiddenTensorsPerLayer;       // hy_h * 3;
-        wei_len_t = hy_h * (nHiddenTensorsPerLayer - 1); // hy_h * 2;
-        dhd_off   = bi * hy_h * (workspaceScale - 1);    // bi * hy_h * 3;
+        wei_len   = hy_h * static_cast<int>(nHiddenTensorsPerLayer);     // hy_h * 3;
+        wei_len_t = hy_h * static_cast<int>(nHiddenTensorsPerLayer - 1); // hy_h * 2;
+        dhd_off   = bi * hy_h * static_cast<int>(workspaceScale - 1);    // bi * hy_h * 3;
         break;
     }
 
