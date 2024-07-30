@@ -50,77 +50,39 @@ static ConvolutionDescriptor Convert(const Convolution& conv, int groupCount)
             groupCount};
 }
 
-static float Convert(half_float::half value) { return static_cast<float>(value); }
-
-static float Convert(float value) { return value; }
-
 void ConvBiasResAddActivForwardExecutor::execute(miopenHandle_t handle, const VariantPack& vpk)
 {
-    MIOPEN_THROW_IF(mActivationOp->getPointwise()->getMode() !=
-                        miopenPointwiseMode_t::MIOPEN_POINTWISE_RELU_FWD,
-                    "invalid activation operation");
-
-    MIOPEN_THROW_IF(mAddOp->getPointwise()->getMode() !=
-                        miopenPointwiseMode_t::MIOPEN_POINTWISE_ADD,
-                    "invalid pointwise operation for add op");
-
-    MIOPEN_THROW_IF(mBiasOp->getPointwise()->getMode() !=
-                        miopenPointwiseMode_t::MIOPEN_POINTWISE_ADD,
-                    "invalid pointwise operation for bias op");
-
-    auto* xDesc = mConvOp->getX();
-    auto* xData = vpk.getDataPointer(xDesc->getId());
-
-    auto* wDesc = mConvOp->getW();
-    auto* wData = vpk.getDataPointer(wDesc->getId());
-
-    std::size_t in_c  = xDesc->GetLengths()[1];
-    std::size_t wei_c = wDesc->GetLengths()[1];
+    std::size_t in_c  = mXTensor->GetLengths()[1];
+    std::size_t wei_c = mWTensor->GetLengths()[1];
     int groupCount    = in_c / wei_c;
-    auto convDesc     = Convert(*mConvOp->getConvolution(), groupCount);
+    auto convDesc     = Convert(*mConvolution, groupCount);
 
-    bool xIsVirtual = mAddOp->getX()->isVirtual();
-    auto* zDesc     = xIsVirtual ? mAddOp->getB() : mAddOp->getX();
-    auto* zData     = vpk.getDataPointer(zDesc->getId());
+    ActivationDescriptor activDesc{miopenActivationRELU, mActivationAlpha, 1.0, 1.0};
 
-    auto biasDesc  = mBiasOp->getX()->isVirtual() ? mBiasOp->getB() : mBiasOp->getX();
-    auto* biasData = vpk.getDataPointer(biasDesc->getId());
-
-    auto yDesc  = mActivationOp->getY();
-    auto* yData = vpk.getDataPointer(yDesc->getId());
-
-    auto convertToFloat = [](auto&& arg) { return Convert(arg); };
-    // The virtual tensor for add is the result of the convolution, and combining the alpha1's allow
-    // users to specify it through the graphAPI properly.
-    float alpha1 =
-        mConvOp->getAlpha() * (xIsVirtual ? std::visit(convertToFloat, mAddOp->getAlpha1())
-                                          : std::visit(convertToFloat, mAddOp->getAlpha2()));
-
-    // The non-virtual tensor for add should be alpha 2.
-    float alpha2 =
-        xIsVirtual ? std::get<float>(mAddOp->getAlpha2()) : std::get<float>(mAddOp->getAlpha1());
-
-    ActivationDescriptor activDesc{
-        miopenActivationRELU, std::visit(convertToFloat, mActivationOp->getAlpha1()), 1.0, 1.0};
+    auto* xData    = vpk.getDataPointer(mXTensor->getId());
+    auto* wData    = vpk.getDataPointer(mWTensor->getId());
+    auto* zData    = vpk.getDataPointer(mZTensor->getId());
+    auto* biasData = vpk.getDataPointer(mBiasTensor->getId());
+    auto* yData    = vpk.getDataPointer(mYTensor->getId());
 
     auto status =
         ConvBiasActivFusion(miopen::deref(handle),
-                            &alpha1,
-                            *xDesc,
+                            &mAlpha1,
+                            *mXTensor,
                             xData,
-                            *wDesc,
+                            *mWTensor,
                             wData,
                             convDesc,
                             miopenConvFwdAlgorithm_t::miopenConvolutionFwdAlgoImplicitGEMM,
                             nullptr,
                             0,
-                            &alpha2,
-                            *zDesc,
+                            &mAlpha2,
+                            *mZTensor,
                             zData,
-                            *biasDesc,
+                            *mBiasTensor,
                             biasData,
                             activDesc,
-                            *yDesc,
+                            *mYTensor,
                             yData);
 
     MIOPEN_THROW_IF(status != miopenStatusSuccess, "execute failed");

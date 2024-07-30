@@ -29,7 +29,6 @@
 #include <miopen/graphapi/convolution.hpp>
 #include <miopen/graphapi/engine.hpp>
 #include <miopen/graphapi/graphapi.hpp>
-#include <miopen/graphapi/pointwise.hpp>
 #include <miopen/graphapi/variant_pack.hpp>
 
 #include <memory>
@@ -40,21 +39,36 @@ namespace graphapi {
 
 class ConvBiasResAddActivForwardExecutor : public GraphPatternExecutor
 {
-    OperationConvolutionForward* mConvOp;
-    OperationPointwise* mAddOp;
-    OperationPointwise* mBiasOp;
-    OperationPointwise* mActivationOp;
+    Tensor* mXTensor;
+    Tensor* mWTensor;
+    Convolution* mConvolution;
+    Tensor* mZTensor;
+    Tensor* mBiasTensor;
+    Tensor* mYTensor;
+    float mAlpha1;
+    float mAlpha2;
+    float mActivationAlpha;
 
 public:
-    ConvBiasResAddActivForwardExecutor(OperationConvolutionForward* convOp,
-                                       OperationPointwise* addOp,
-                                       OperationPointwise* biasOp,
-                                       OperationPointwise* activationOp)
+    ConvBiasResAddActivForwardExecutor(Tensor* xTensor,
+                                       Tensor* wTensor,
+                                       Convolution* convolution,
+                                       Tensor* zTensor,
+                                       Tensor* biasTensor,
+                                       Tensor* yTensor,
+                                       float alpha1,
+                                       float alpha2,
+                                       float activationAlpha)
         : GraphPatternExecutor(),
-          mConvOp(convOp),
-          mAddOp(addOp),
-          mBiasOp(biasOp),
-          mActivationOp(activationOp)
+          mXTensor(xTensor),
+          mWTensor(wTensor),
+          mConvolution(convolution),
+          mZTensor(zTensor),
+          mBiasTensor(biasTensor),
+          mYTensor(yTensor),
+          mAlpha1(alpha1),
+          mAlpha2(alpha2),
+          mActivationAlpha(activationAlpha)
     {
     }
 
@@ -62,13 +76,25 @@ public:
 
     size_t getWorkspaceSize() const final { return size_t{0}; }
 
-    static std::unique_ptr<GraphPatternExecutor> make(OperationConvolutionForward* convOp,
-                                                      OperationPointwise* addOp,
-                                                      OperationPointwise* biasOp,
-                                                      OperationPointwise* activationOp)
+    static std::unique_ptr<GraphPatternExecutor> make(Tensor* xTensor,
+                                                      Tensor* wTensor,
+                                                      Convolution* convolution,
+                                                      Tensor* zTensor,
+                                                      Tensor* biasTensor,
+                                                      Tensor* yTensor,
+                                                      float alpha1,
+                                                      float alpha2,
+                                                      float activationAlpha)
     {
-        GraphPatternExecutor* p =
-            new ConvBiasResAddActivForwardExecutor(convOp, addOp, biasOp, activationOp);
+        GraphPatternExecutor* p = new ConvBiasResAddActivForwardExecutor(xTensor,
+                                                                         wTensor,
+                                                                         convolution,
+                                                                         zTensor,
+                                                                         biasTensor,
+                                                                         yTensor,
+                                                                         alpha1,
+                                                                         alpha2,
+                                                                         activationAlpha);
         return std::unique_ptr<GraphPatternExecutor>(p);
     }
 };
