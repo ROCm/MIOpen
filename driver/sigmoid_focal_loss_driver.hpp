@@ -498,14 +498,23 @@ int SigmoidFocalLossDriver<Tgpu, Tcheck>::AllocateBuffersAndCopy()
     workspace             = std::vector<Tgpu>(workSpaceElems, static_cast<Tgpu>(0));
     workspaceHost         = std::vector<Tcheck>(workSpaceElems, static_cast<Tcheck>(0));
 
+    float randomBound = 2;
+    // For half, the random bound is smaller to avoid half overflow
+    if(data_type == miopenHalf && reduction != MIOPEN_LOSS_REDUCTION_NONE)
+    {
+        randomBound = 0.5;
+    }
     for(int i = 0; i < in_sz; i++)
     {
-        input[i]  = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(-2), static_cast<Tgpu>(2));
-        target[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(-2), static_cast<Tgpu>(2));
+        input[i] =
+            prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(-randomBound), static_cast<Tgpu>(randomBound));
+        target[i] =
+            prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(-randomBound), static_cast<Tgpu>(randomBound));
     }
     for(int i = 0; i < dO_sz; ++i)
     {
-        doutput[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(-2), static_cast<Tgpu>(2));
+        doutput[i] =
+            prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(-randomBound), static_cast<Tgpu>(randomBound));
     }
 
     if(input_dev->ToGPU(GetStream(), input.data()) != 0)

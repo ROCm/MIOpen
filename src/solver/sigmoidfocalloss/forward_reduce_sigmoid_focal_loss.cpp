@@ -96,11 +96,9 @@ ConvSolution SigmoidFocalLossFwd::GetSolution(
             HipEventPtr start;
             HipEventPtr stop;
 
-            bool resetProfilingState = false;
-            const bool profiling     = handle_.IsProfilingEnabled();
+            const bool profiling = handle_.IsProfilingEnabled();
             if(profiling)
             {
-                resetProfilingState = true;
                 handle_.EnableProfiling(false);
                 start = miopen::make_hip_event();
                 stop  = miopen::make_hip_event();
@@ -149,18 +147,18 @@ ConvSolution SigmoidFocalLossFwd::GetSolution(
                 size = AlignUp(size, LOCAL_SIZE_REDUCE_FWD) / LOCAL_SIZE_REDUCE_FWD;
             }
 
-            if(resetProfilingState)
-            {
-                handle_.EnableProfiling(true);
-            }
-
             if(profiling)
             {
                 hipEventRecord(stop.get(), handle_.GetStream());
                 hipEventSynchronize(stop.get());
                 hipEventElapsedTime(&elapsed, start.get(), stop.get());
+
+                hipEventDestroy(start.get());
+                hipEventDestroy(stop.get());
                 handle_.ResetKernelTime();
                 handle_.AccumKernelTime(elapsed);
+
+                handle_.EnableProfiling(true);
             };
         };
     };
