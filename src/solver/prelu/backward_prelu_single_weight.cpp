@@ -31,7 +31,6 @@
 #include <miopen/prelu/solvers.hpp>
 #include <miopen/prelu/utils.hpp>
 
-#define FLOAT_ACCUM float
 #define VIEW_DIMS 5
 
 #define LOCAL_SIZE_SW_BWD 256
@@ -46,9 +45,9 @@ namespace prelu {
 MultiBufferWorkspaceTraits GetMultiBufferWorkspaceTraits(const TensorDescriptor& inputDesc)
 {
     auto size = inputDesc.GetElementSize();
-    return MultiBufferWorkspaceTraits{size * sizeof(FLOAT_ACCUM),
+    return MultiBufferWorkspaceTraits{size * get_data_size(miopenFloat),
                                       AlignUp(size, LOCAL_SIZE_SW_REDUCE_BWD) /
-                                          LOCAL_SIZE_SW_REDUCE_BWD * sizeof(FLOAT_ACCUM)};
+                                          LOCAL_SIZE_SW_REDUCE_BWD * get_data_size(miopenFloat)};
 }
 
 bool SingleWeightBackward::IsApplicable(

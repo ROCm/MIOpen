@@ -31,7 +31,6 @@
 #include <miopen/prelu/solvers.hpp>
 #include <miopen/prelu/utils.hpp>
 
-#define FLOAT_ACCUM float
 #define VIEW_DIMS 5
 
 #define LOCAL_SIZE_MW_BWD 256
@@ -171,7 +170,7 @@ std::size_t MultiWeightsBackward::GetWorkspaceSize(
     const miopen::prelu::BackwardProblemDescription& problem) const
 {
     auto size = problem.GetdInputDesc().GetElementSize();
-    size *= sizeof(FLOAT_ACCUM);
+    size *= get_data_size(miopenFloat);
     return size;
 }
 
