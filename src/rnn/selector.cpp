@@ -14,16 +14,16 @@
 
 #include <miopen/rnn/tmp_buffer_utils.hpp>
 
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_RNNBWDMS_exp)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_RNNBWDMS_EXP)
 
 namespace miopen {
 
 bool RNNBwdMSIsFast(const int seqLen)
 {
-    if(env::enabled(MIOPEN_RNNBWDMS_exp))
+    if(env::enabled(MIOPEN_RNNBWDMS_EXP))
         return true;
 
-    if(seqLen >= 32 && !env::disabled(MIOPEN_RNNBWDMS_exp))
+    if(seqLen >= 32 && !env::disabled(MIOPEN_RNNBWDMS_EXP))
         return true;
     return false;
 }

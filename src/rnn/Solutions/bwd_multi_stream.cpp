@@ -2,7 +2,6 @@
 #include <miopen/rnn/multi_stream_utils.hpp>
 
 MIOPEN_DECLARE_ENV_VAR_UINT64(MIOPEN_RNN_MS_STREAM_CNT)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_RNNBWD_EXP)
 
 namespace miopen {
 

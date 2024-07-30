@@ -37,7 +37,7 @@
 #include <numeric>
 #include <algorithm>
 
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_RNNFWD_exp)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_RNNFWD_EXP)
 MIOPEN_DECLARE_ENV_VAR_UINT64(MIOPEN_RNNFWD_MS_DISPATCH)
 MIOPEN_DECLARE_ENV_VAR_UINT64(MIOPEN_RNN_MS_STREAM_CNT)
 
@@ -63,10 +63,10 @@ bool RNNForwardMSIsSupported([[maybe_unused]] const RNNDescriptor& desctiptor,
 
 bool RNNForwardMSIsFast(const int seqLen)
 {
-    if(env::enabled(MIOPEN_RNNFWD_exp))
+    if(env::enabled(MIOPEN_RNNFWD_EXP))
         return true;
 
-    if(seqLen >= 32 && !env::disabled(MIOPEN_RNNFWD_exp))
+    if(seqLen >= 32 && !env::disabled(MIOPEN_RNNFWD_EXP))
         return true;
     return false;
 }
