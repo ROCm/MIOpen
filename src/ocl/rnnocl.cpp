@@ -60,6 +60,8 @@ bool RNNForwardMSIsSupported([[maybe_unused]] const RNNDescriptor& desctiptor,
 
 bool RNNForwardMSIsFast(miopenDataType_t dataT, const int seqLen)
 {
+    std::ignore = dataT;
+
     if(env::enabled(MIOPEN_RNNFWD_exp))
         return true;
 
