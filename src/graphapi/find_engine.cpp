@@ -101,6 +101,20 @@ public:
             graph.findOutNeighByName(graph.getSourceNode(), "OP_CONVOLUTION_FORWARD"));
         assert(conv);
 
+        std::size_t in_c  = conv->getX()->GetLengths()[1];
+        std::size_t wei_c = conv->getW()->GetLengths()[1];
+
+        if(wei_c == std::size_t{0})
+        {
+            MIOPEN_THROW(miopenStatusBadParm, "invalid weight tensor provided for graph matching ConvBiasResAddActive pattern");
+        }
+        else if(in_c % wei_c != std::size_t{0})
+        {
+            MIOPEN_THROW(miopenStatusBadParm, "invalid group count from input and weight tensor for graph matching ConvBiasResAddActive pattern");
+        }
+
+        int groupCount = in_c / wei_c;
+
         auto* add1 =
             dynamic_cast<OperationPointwise*>(graph.findOutNeighByName(conv, "OP_POINTWISE:ADD"));
         assert(add1);
@@ -112,8 +126,10 @@ public:
         bool isBiasNode1 = IsBiasNode(add1);
         bool isBiasNode2 = IsBiasNode(add2);
 
-        MIOPEN_THROW_IF(!isBiasNode1 && !isBiasNode2,
-                        "no bias node provided for graph matching ConvBiasResAddActive pattern");
+        if(!isBiasNode1 && !isBiasNode2)
+        {
+            MIOPEN_THROW(miopenStatusBadParm, "no bias node provided for graph matching ConvBiasResAddActive pattern");
+        }
 
         auto* activ = dynamic_cast<OperationPointwise*>(
             graph.findOutNeighByName(add2, "OP_POINTWISE:RELU_FWD"));
@@ -145,6 +161,7 @@ public:
             conv->getX(),
             conv->getW(),
             conv->getConvolution(),
+            groupCount,
             zTensor,
             biasTensor,
             activ->getY(),
