@@ -52,21 +52,78 @@ __device__ FLOAT_ACCUM warp_reduce_sum(FLOAT_ACCUM val)
     return val;
 }
 
+template <uint32_t WARP_SIZE, uint32_t SWIZZLE_SIZE = WARP_SIZE>
+__forceinline__ __device__ float reductionFullWarp(float reduced_val, uint32_t laneId)
+{
+    static_assert(WARP_SIZE != 0, "WARP_SIZEmust not be 0");
+    static_assert((SWIZZLE_SIZE & (SWIZZLE_SIZE - 1)) == 0,
+                  "WARP_SIZE and SWIZZLE must be a power of 2");
+
+    if constexpr(SWIZZLE_SIZE == 1)
+        return reduced_val;
+
+    reduced_val = reductionFullWarp<WARP_SIZE, (SWIZZLE_SIZE >> 1)>(reduced_val, laneId);
+
+    constexpr uint32_t warp_msk = (WARP_SIZE - 1);
+
+    float tmp;
+    if constexpr(SWIZZLE_SIZE >= 64)
+    {
+        // swizzle can handle only 32 lanes, switching to bpermute
+        uint32_t idx = laneId ^ (SWIZZLE_SIZE >> 1);
+
+        idx = idx >= ((laneId + WARP_SIZE) & ~warp_msk) ? laneId : idx;
+        int itmp =
+            __builtin_amdgcn_ds_bpermute(static_cast<int>(idx << 2), __float_as_int(reduced_val));
+        tmp = __int_as_float(itmp);
+    }
+    else
+    {
+        // butterfly reduction based on __shfl_xor
+        // swizzle <xor_mask[14:10], or_mask[9:5], and_mask[4:0]>()
+        constexpr uint32_t xor_off = 10;
+        // constexpr uint32_t or_off  = 5;
+        constexpr uint32_t and_off = 0;
+
+        constexpr uint32_t field_msk = 0x1f;
+
+        constexpr uint32_t and_msk = warp_msk & field_msk;
+        // constexpr uint32_t or_msk  = 0;
+        constexpr uint32_t xor_msk = (SWIZZLE_SIZE >> 1) & field_msk;
+
+        // clang tidy does not like that (or_msk << or_off) is zero
+        // and cliams that it's redundant, but it's required for
+        // __hip_ds_swizzlef_N reference. Menawhile swizzle_op generation
+        // must be a part of hip intrinsics, because it depends on ISA
+        // like __hip_ds_swizzlef_N<xor_mask, or_mask, and_mask>
+        // For some reason NILINT doesn't work.
+        // NOLINTBEGIN
+        constexpr uint32_t swizzle_op =
+            (xor_msk << xor_off) /* | (or_msk << or_off) */ | (and_msk << and_off);
+        // NOLINTEND
+
+        tmp = __hip_ds_swizzlef_N<swizzle_op>(reduced_val);
+    }
+
+    return tmp + reduced_val;
+};
+
 __device__ FLOAT_ACCUM block_reduce_sum(FLOAT_ACCUM val)
 {
     static __shared__ FLOAT_ACCUM shared[REDUCE_SIZE / warpSize];
     auto lane = threadIdx.x % warpSize;
     auto wid  = threadIdx.x / warpSize;
 
-    val = warp_reduce_sum(val);
+    val = reductionFullWarp<warpSize>(val, lane);
 
     if(lane == 0)
         shared[wid] = val;
     __syncthreads();
 
     val = threadIdx.x < REDUCE_SIZE / warpSize ? shared[lane] : 0;
-    if(wid == 0)
-        val = warp_reduce_sum(val);
+    // if(wid == 0)
+    //     val = warp_reduce_sum(val);
+    val = reductionFullWarp<warpSize>(val, lane);
 
     return val;
 }
