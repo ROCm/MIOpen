@@ -508,10 +508,6 @@ int SigmoidFocalLossDriver<Tgpu, Tcheck>::AllocateBuffersAndCopy()
         doutput[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(-2), static_cast<Tgpu>(2));
     }
 
-    fill(output.begin(), output.end(), static_cast<Tgpu>(0));
-    fill(dinput.begin(), dinput.end(), static_cast<Tgpu>(0));
-    fill(dtarget.begin(), dtarget.end(), static_cast<Tgpu>(0));
-
     if(input_dev->ToGPU(GetStream(), input.data()) != 0)
         std::cerr << "Error copying (in) to GPU, size: " << input_dev->GetSize() << std::endl;
 

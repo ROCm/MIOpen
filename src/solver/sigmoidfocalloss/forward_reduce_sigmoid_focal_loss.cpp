@@ -97,7 +97,8 @@ ConvSolution SigmoidFocalLossFwd::GetSolution(
             HipEventPtr stop;
 
             bool resetProfilingState = false;
-            if(handle_.IsProfilingEnabled())
+            const bool profiling     = handle_.IsProfilingEnabled();
+            if(profiling)
             {
                 resetProfilingState = true;
                 handle_.EnableProfiling(false);
@@ -153,7 +154,7 @@ ConvSolution SigmoidFocalLossFwd::GetSolution(
                 handle_.EnableProfiling(true);
             }
 
-            if(handle_.IsProfilingEnabled())
+            if(profiling)
             {
                 hipEventRecord(stop.get(), handle_.GetStream());
                 hipEventSynchronize(stop.get());
