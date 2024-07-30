@@ -16,6 +16,28 @@
 
 namespace miopen {
 
+// https://github.com/ROCm/MIOpen/issues/3048
+namespace WA_RHEL {
+
+template <class InputIt, class OutputIt, class T, class BinaryOp>
+OutputIt exclusive_scan_wa(InputIt first, InputIt last, OutputIt d_first, T init, BinaryOp op)
+{
+    if(first == last)
+        return d_first;
+
+    auto acc = init;
+
+    for(; first != last; ++first)
+    {
+        *d_first++ = acc;
+        acc        = op(std::move(acc), *first); // std::move since C++11
+    }
+
+    return d_first;
+}
+
+} // namespace WA_RHEL
+
 namespace rnn_base {
 
 enum class SequenceDirection
@@ -246,13 +268,13 @@ public:
         std::array<size_t, LS_size> h_state_LS_strides{};
         std::array<size_t, LS_size> lstm_gate_LS_strides{};
 
-        std::exclusive_scan(h_state_sizes.crbegin(),
-                            std::next(h_state_sizes.crbegin(), h_state_LS_strides.size()),
-                            h_state_LS_strides.rbegin(),
-                            1LL,
-                            std::multiplies<size_t>{});
+        WA_RHEL::exclusive_scan_wa(h_state_sizes.crbegin(),
+                                   std::next(h_state_sizes.crbegin(), h_state_LS_strides.size()),
+                                   h_state_LS_strides.rbegin(),
+                                   1LL,
+                                   std::multiplies<size_t>{});
 
-        std::exclusive_scan(
+        WA_RHEL::exclusive_scan_wa(
             lstm_gates_block_sizes.crbegin(),
             std::next(lstm_gates_block_sizes.crbegin(), lstm_gate_LS_strides.size()),
             lstm_gate_LS_strides.rbegin(),
@@ -273,11 +295,11 @@ public:
         // MSStride{layer, comp_dim_per_layer}
         std::array<size_t, MS_len> block_MS_strides{};
 
-        std::exclusive_scan(block_MS_size.crbegin(),
-                            std::next(block_MS_size.crbegin(), block_MS_strides.size()),
-                            block_MS_strides.rbegin(),
-                            gas_block_stride,
-                            std::multiplies<size_t>{});
+        WA_RHEL::exclusive_scan_wa(block_MS_size.crbegin(),
+                                   std::next(block_MS_size.crbegin(), block_MS_strides.size()),
+                                   block_MS_strides.rbegin(),
+                                   gas_block_stride,
+                                   std::multiplies<size_t>{});
 
         const std::array<size_t, 4> h_state_strides = Concat(block_MS_strides, h_state_LS_strides);
         const std::array<size_t, 4> lstm_gate_strides =
@@ -410,11 +432,11 @@ public:
 
         std::array<size_t, 4> active_cells_strides = {};
 
-        std::exclusive_scan(active_cells_sizes.crbegin(),
-                            active_cells_sizes.crend(),
-                            active_cells_strides.rbegin(),
-                            1LL,
-                            std::multiplies<size_t>{});
+        WA_RHEL::exclusive_scan_wa(active_cells_sizes.crbegin(),
+                                   active_cells_sizes.crend(),
+                                   active_cells_strides.rbegin(),
+                                   1LL,
+                                   std::multiplies<size_t>{});
 
         auto active_cell_elements = active_cells_strides[0] * active_cells_sizes[0];
 
@@ -747,11 +769,11 @@ public:
         std::vector<size_t> packed_lens{xyDesc.GetTotalSequenceLen(), lens[2]};
         std::vector<size_t> packed_strides(2);
 
-        std::exclusive_scan(packed_lens.crbegin(),
-                            std::next(packed_lens.crbegin(), packed_strides.size()),
-                            packed_strides.rbegin(),
-                            1LL,
-                            std::multiplies<size_t>{});
+        WA_RHEL::exclusive_scan_wa(packed_lens.crbegin(),
+                                   std::next(packed_lens.crbegin(), packed_strides.size()),
+                                   packed_strides.rbegin(),
+                                   1LL,
+                                   std::multiplies<size_t>{});
 
         std::vector<size_t> seq_lens_per_sample = xyDesc.GetSequenceLengthsVector();
         return {(std::move(lens)),
