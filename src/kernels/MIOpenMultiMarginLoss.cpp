@@ -107,7 +107,6 @@ __device__ void multimarginlossforward2d(const DTYPE* __restrict__ I,
     size_t n = gid;
     if(n >= N)
         return;
-
     FLOAT_ACCUM loss = 0;
     uint64_t y       = T[T_tv.get_tensor_view_idx({n})];
     if(y >= C)
