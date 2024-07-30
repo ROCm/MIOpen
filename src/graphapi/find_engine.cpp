@@ -109,23 +109,34 @@ public:
             dynamic_cast<OperationPointwise*>(graph.findOutNeighByName(add1, "OP_POINTWISE:ADD"));
         assert(add2);
 
+        bool isBiasNode1 = IsBiasNode(add1);
+        bool isBiasNode2 = IsBiasNode(add2);
+
+        MIOPEN_THROW_IF(!isBiasNode1 && !isBiasNode2, "no bias node provided for graph matching ConvBiasResAddActive pattern");
+
         auto* activ = dynamic_cast<OperationPointwise*>(
             graph.findOutNeighByName(add2, "OP_POINTWISE:RELU_FWD"));
         assert(activ);
 
-        bool isBiasNode1 = IsBiasNode(add1);
-        bool isBiasNode2 = IsBiasNode(add2);
-
-        if(!isBiasNode1 && !isBiasNode2)
-        {
-            MIOPEN_THROW(miopenStatusBadParm,
-                         "no bias node provided for graph matching ConvBiasResAddActive pattern");
-        }
-
         auto [add, bias] = isBiasNode1 ? std::make_pair(add2, add1) : std::make_pair(add1, add2);
 
-        std::shared_ptr<GraphPatternExecutor> exec =
-            ConvBiasResAddActivForwardExecutor::make(conv, add, bias, activ);
+        bool addXIsVirtual = add->getX()->isVirtual();
+        assert(addXIsVirtual || add->getB()->isVirtual());
+
+        auto convertToFloat = [](auto&& arg) { return static_cast<float>(arg); };
+        // The virtual tensor for the add is the result of the convolution, and combining the alpha1's allow
+        // for users to specify the alpha on either, or both nodes, and have it be correct.
+        float alpha1 = conv->getAlpha() * (addXIsVirtual ? std::visit(convertToFloat, add->getAlpha1()) : std::visit(convertToFloat, add->getAlpha2()));
+        float alpha2 = addXIsVirtual ? std::visit(convertToFloat, add->getAlpha2()) : std::visit(convertToFloat, add->getAlpha1());
+
+        auto* zTensor = addXIsVirtual ? add->getB() : add->getX();
+
+        bool biasXIsVirtual = bias->getX()->isVirtual();
+        assert(biasXIsVirtual || bias->getB()->isVirtual());
+
+        auto* biasTensor = biasXIsVirtual ? bias->getB() : bias->getX();
+
+        std::shared_ptr<GraphPatternExecutor> exec = ConvBiasResAddActivForwardExecutor::make(conv->getX(), conv->getW(), conv->getConvolution(), zTensor, biasTensor, activ->getY(), alpha1, alpha2, std::visit(convertToFloat, activ->getAlpha1()));
         return {EngineBuilder().setGraph(graph_ptr).setExecutor(exec).setGlobalIndex(0).build()};
     }
 };
