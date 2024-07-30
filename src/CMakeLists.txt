@@ -808,6 +808,11 @@ target_include_directories(MIOpen SYSTEM PUBLIC $<BUILD_INTERFACE:${HALF_INCLUDE
 target_link_libraries(MIOpen PRIVATE ${CMAKE_DL_LIBS} Threads::Threads BZip2::BZip2 ${MIOPEN_CK_LINK_FLAGS})
 miopen_generate_export_header(MIOpen)
 
+if(WIN32)
+    # Temporary workaround on rocMLIR not exporting correctly libraries it depends on.
+    target_link_libraries(MIOpen PRIVATE ntdll)
+endif()
+
 if(BUILD_TESTING)
     # On Windows, export selected internal symbols only when tests are built. The officially released
     # binaries must not have internals exposed because doing so violates the threats model requirements.
