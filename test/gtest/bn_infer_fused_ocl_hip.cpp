@@ -77,8 +77,17 @@ void BatchNormFusedInferencGPU(miopen::Handle& handle,
     size_t xlocalsize = 256;
     size_t xgridsize  = read_len / read_unit;
     // HIP runtime does not support non-uniform blocks,
-    if(use_hip)
-        xgridsize = AlignUp(xgridsize, xlocalsize);
+    if(use_hip){
+        // check if xgridsize is less than xlocalsize
+        if(xgridsize < xlocalsize){
+            // round up the xlocalsize to the nearest wavefront size
+            xlocalsize = AlignUp(xgridsize, warpSize);
+            // Set xgridsize to the xlocalsize, to launch only one block
+            xgridsize = xlocalsize;
+        }else{
+            xgridsize = AlignUp(xgridsize, xlocalsize);
+        }
+    }
     size_t ylocalsize = 1;
     size_t ygridsize  = (bn_mode == miopenBNSpatial) ? size_t(c) : 1;
     size_t zlocalsize = 1;
@@ -126,8 +135,11 @@ void BatchNormFusedInferencGPU(miopen::Handle& handle,
     ss << "fp64" << static_cast<int>(xDesc.GetType() == miopenDouble);
     ss << "fbf16" << static_cast<int>(xDesc.GetType() == miopenBFloat16);
     ss << "mode" << bn_mode;
+    ss << "N" << n;
     ss << "C" << c;
-    ss << "layout" << xDesc.GetLayout_str();
+    ss << "H" << h;
+    ss << "W" << w;
+    ss << "activ" << activ_mode;
     std::string network_config = ss.str();
 
     handle.AddKernel(kernel_name, network_config, kernel_file, kernel_name, vld, vgd, params)(
@@ -283,11 +295,30 @@ protected:
         {
             // get the input tensor size and store in a string with x in between
             std::vector<size_t> in_dims = bn_config.GetInput();
-            std::string input_dims_str =
+            std::string kernel_info =
                 std::to_string(in_dims[0]) + "x" + std::to_string(in_dims[1]) + "x" +
                 std::to_string(in_dims[2]) + "x" + std::to_string(in_dims[3]);
+
+            std::unordered_map<miopenActivationMode_t, std::string> activation_map = {
+            {miopenActivationPASTHRU, "pasthru"},
+            {miopenActivationLOGISTIC, "logistic"},
+            {miopenActivationTANH, "tanh"},
+            {miopenActivationRELU, "relu"},
+            {miopenActivationSOFTRELU, "softrelu"},
+            {miopenActivationABS, "abs"},
+            {miopenActivationPOWER, "power"},
+            {miopenActivationCLIPPEDRELU, "clippedrelu"},
+            {miopenActivationLEAKYRELU, "leakyrelu"},
+            {miopenActivationELU, "elu"}
+            };
+            
+            auto it = activation_map.find(activ_mode);
+            if (it != activation_map.end()) {
+                kernel_info += "_" + it->second;
+            }
+
             perf_helper.writeStatsToCSV(sPerfTestFilename,
-                                        "_" + input_dims_str + "_" +
+                                        "_" + kernel_info + "_" +
                                             (input.desc.GetType() == miopenHalf ? "FP16" : "FP32"));
         }
     }
@@ -349,7 +380,8 @@ using namespace BatchNormInferFused;
 
 std::vector<miopenActivationMode_t> ActivationConfigs()
 {
-    return {miopenActivationPASTHRU,
+    return {
+            miopenActivationPASTHRU,
             miopenActivationLOGISTIC,
             miopenActivationTANH,
             miopenActivationRELU,
@@ -358,7 +390,8 @@ std::vector<miopenActivationMode_t> ActivationConfigs()
             miopenActivationPOWER,
             miopenActivationCLIPPEDRELU,
             miopenActivationLEAKYRELU,
-            miopenActivationELU};
+            miopenActivationELU
+        };
 }
 
 template <typename T>
@@ -375,28 +408,28 @@ std::vector<BNTestCase> BNFusedInferTestConfigs(miopenBatchNormMode_t mode)
         if(miopen::StartsWith(handle.GetDeviceName(), "gfx90a") ||
            miopen::StartsWith(handle.GetDeviceName(), "gfx908"))
         {
-            maxTotalSize = 16; // 8MB L2
+            maxTotalSize = 16; // twice the available L2 (8MB)
         }
         else if(miopen::StartsWith(handle.GetDeviceName(), "gfx803"))
         {
-            maxTotalSize = 4; // 2MB L2
+            maxTotalSize = 4; // twice the available L2 (2MB)
         }
         else if(miopen::StartsWith(handle.GetDeviceName(), "gfx900") ||
                 miopen::StartsWith(handle.GetDeviceName(), "gfx906"))
         {
-            maxTotalSize = 8; // 4MB L2
+            maxTotalSize = 8; // twice the available L2 (4MB)
         }
         else if(miopen::StartsWith(handle.GetDeviceName(), "gfx942"))
         {
-            maxTotalSize = 256; // 128MB L3
+            maxTotalSize = 256; // L3 size (256MB)
         }
         else if(miopen::StartsWith(handle.GetDeviceName(), "gfx103"))
         {
-            maxTotalSize = 128; // 128MB L3
+            maxTotalSize = 128; // L3 size (128MB)
         }
         else
         {
-            maxTotalSize = 4; // 2MB L2, default case.
+            maxTotalSize = 4; // twice the available L2 (2MB), default case.
         }
 
         maxTotalSize = maxTotalSize * 1024ull * 1024ull / sizeof(T);

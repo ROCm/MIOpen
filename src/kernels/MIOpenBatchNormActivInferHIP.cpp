@@ -44,12 +44,13 @@ extern "C" __global__ void __launch_bounds__(MIO_BN_GRP0* MIO_BN_GRP1* MIO_BN_GR
                                            const FP_TYPE_PREC* __restrict estimatedVariance)
 {
     unsigned int tidx = blockIdx.x * blockDim.x + threadIdx.x;
-    unsigned int tidy = blockIdx.y * blockDim.y + threadIdx.y;
     // HIP runtime does not support launching non-uniform blocks
     // So extra threads are launched to handle this.
     if(tidx >= MIOPEN_SBN_BOUNDS)
         return;
 
+    unsigned int tidy = blockIdx.y * blockDim.y + threadIdx.y;
+    
     unsigned int c_i      = tidy;
     unsigned int hw_i     = tidx;
     unsigned int c_offset = c_i * MIO_BN_HW;
@@ -110,8 +111,13 @@ extern "C" __global__ void __launch_bounds__(MIO_BN_GRP0* MIO_BN_GRP1* MIO_BN_GR
                                           const FP_TYPE_PREC* __restrict estimatedVariance)
 {
     unsigned int tidx  = blockIdx.x * blockDim.x + threadIdx.x;
-    unsigned int chw_i = tidx * MIOPEN_READ_UNIT;
+    // HIP runtime does not support launching non-uniform blocks
+    // So extra threads are launched to handle this.
+    if(tidx >= MIOPEN_SBN_BOUNDS)
+        return;
 
+    unsigned int chw_i = tidx * MIOPEN_READ_UNIT;
+    
     FP_TYPE_PREC pmean[MIOPEN_READ_UNIT];
     FP_TYPE_PREC pvar[MIOPEN_READ_UNIT];
     FP_TYPE_PREC pscale[MIOPEN_READ_UNIT];
