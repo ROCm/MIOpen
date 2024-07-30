@@ -25,9 +25,14 @@
  *******************************************************************************/
 
 #include "sigmoid_focal_loss.hpp"
+#include "miopen/bfloat16.hpp"
 #include "tensor_holder.hpp"
-#include <miopen/bfloat16.hpp>
 #include <miopen/env.hpp>
+
+#define TEST_FWD_REDUCED
+#define TEST_BWD_REDUCED
+#define TEST_FWD_UNREDUCED
+#define TEST_BWD_UNREDUCED
 
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
@@ -44,58 +49,59 @@ std::string GetFloatArg()
     return tmp;
 }
 
-struct GPU_SigmoidFocalLoss_fwd_FP32 : SigmoidFocalLossFwdTest<float>
+struct SigmoidFocalLossForwardTestFloat32 : SigmoidFocalLossFwdTest<float>
 {
 };
 
-struct GPU_SigmoidFocalLoss_fwd_FP16 : SigmoidFocalLossFwdTest<half>
+struct SigmoidFocalLossForwardTestFloat16 : SigmoidFocalLossFwdTest<half>
 {
 };
 
-struct GPU_SigmoidFocalLoss_fwd_BFP16 : SigmoidFocalLossFwdTest<bfloat16>
+struct SigmoidFocalLossForwardTestBFloat16 : SigmoidFocalLossFwdTest<bfloat16>
 {
 };
 
-struct GPU_SigmoidFocalLoss_bwd_FP32 : SigmoidFocalLossBwdTest<float>
+struct SigmoidFocalLossBackwardTestFloat32 : SigmoidFocalLossBwdTest<float>
 {
 };
 
-struct GPU_SigmoidFocalLoss_bwd_FP16 : SigmoidFocalLossBwdTest<half>
+struct SigmoidFocalLossBackwardTestFloat16 : SigmoidFocalLossBwdTest<half>
 {
 };
 
-struct GPU_SigmoidFocalLoss_bwd_BFP16 : SigmoidFocalLossBwdTest<bfloat16>
+struct SigmoidFocalLossBackwardTestBFloat16 : SigmoidFocalLossBwdTest<bfloat16>
 {
 };
 
-struct GPU_SigmoidFocalLossUnreduced_fwd_FP32 : SigmoidFocalLossUnreducedFwdTest<float>
+struct SigmoidFocalLossUnreducedForwardTestFloat32 : SigmoidFocalLossUnreducedFwdTest<float>
 {
 };
 
-struct GPU_SigmoidFocalLossUnreduced_fwd_FP16 : SigmoidFocalLossUnreducedFwdTest<half>
+struct SigmoidFocalLossUnreducedForwardTestFloat16 : SigmoidFocalLossUnreducedFwdTest<half>
 {
 };
 
-struct GPU_SigmoidFocalLossUnreduced_fwd_BFP16 : SigmoidFocalLossUnreducedFwdTest<bfloat16>
+struct SigmoidFocalLossUnreducedForwardTestBFloat16 : SigmoidFocalLossUnreducedFwdTest<bfloat16>
 {
 };
 
-struct GPU_SigmoidFocalLossUnreduced_bwd_FP32 : SigmoidFocalLossUnreducedBwdTest<float>
+struct SigmoidFocalLossUnreducedBackwardTestFloat32 : SigmoidFocalLossUnreducedBwdTest<float>
 {
 };
 
-struct GPU_SigmoidFocalLossUnreduced_bwd_FP16 : SigmoidFocalLossUnreducedBwdTest<half>
+struct SigmoidFocalLossUnreducedBackwardTestFloat16 : SigmoidFocalLossUnreducedBwdTest<half>
 {
 };
 
-struct GPU_SigmoidFocalLossUnreduced_bwd_BFP16 : SigmoidFocalLossUnreducedBwdTest<bfloat16>
+struct SigmoidFocalLossUnreducedBackwardTestBFloat16 : SigmoidFocalLossUnreducedBwdTest<bfloat16>
 {
 };
 }; // namespace sigmoidfocalloss
 
 using namespace sigmoidfocalloss;
 
-TEST_P(GPU_SigmoidFocalLoss_fwd_FP32, Test)
+#ifdef TEST_FWD_REDUCED
+TEST_P(SigmoidFocalLossForwardTestFloat32, SigmoidFocalLossForwardTest)
 {
     if(!MIOPEN_TEST_ALL ||
        (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--float"))
@@ -109,11 +115,11 @@ TEST_P(GPU_SigmoidFocalLoss_fwd_FP32, Test)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(Full,
-                         GPU_SigmoidFocalLoss_fwd_FP32,
+INSTANTIATE_TEST_SUITE_P(SigmoidFocalLossForwardTestSet,
+                         SigmoidFocalLossForwardTestFloat32,
                          testing::ValuesIn(SigmoidFocalLossTestConfigs()));
 
-TEST_P(GPU_SigmoidFocalLoss_fwd_FP16, Test)
+TEST_P(SigmoidFocalLossForwardTestFloat16, SigmoidFocalLossForwardTest)
 {
     if(!MIOPEN_TEST_ALL ||
        (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--half"))
@@ -127,11 +133,11 @@ TEST_P(GPU_SigmoidFocalLoss_fwd_FP16, Test)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(Full,
-                         GPU_SigmoidFocalLoss_fwd_FP16,
+INSTANTIATE_TEST_SUITE_P(SigmoidFocalLossForwardTestSet,
+                         SigmoidFocalLossForwardTestFloat16,
                          testing::ValuesIn(SigmoidFocalLossTestConfigs()));
 
-TEST_P(GPU_SigmoidFocalLoss_fwd_BFP16, Test)
+TEST_P(SigmoidFocalLossForwardTestBFloat16, SigmoidFocalLossForwardTest)
 {
     if(!MIOPEN_TEST_ALL ||
        (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--bfloat16"))
@@ -145,11 +151,13 @@ TEST_P(GPU_SigmoidFocalLoss_fwd_BFP16, Test)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(Full,
-                         GPU_SigmoidFocalLoss_fwd_BFP16,
+INSTANTIATE_TEST_SUITE_P(SigmoidFocalLossForwardTestSet,
+                         SigmoidFocalLossForwardTestBFloat16,
                          testing::ValuesIn(SigmoidFocalLossTestConfigs()));
+#endif
 
-TEST_P(GPU_SigmoidFocalLoss_bwd_FP32, Test)
+#ifdef TEST_BWD_REDUCED
+TEST_P(SigmoidFocalLossBackwardTestFloat32, SigmoidFocalLossBackwardTest)
 {
     if(!MIOPEN_TEST_ALL ||
        (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--float"))
@@ -163,11 +171,11 @@ TEST_P(GPU_SigmoidFocalLoss_bwd_FP32, Test)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(Full,
-                         GPU_SigmoidFocalLoss_bwd_FP32,
+INSTANTIATE_TEST_SUITE_P(SigmoidFocalLossBackwardTestSet,
+                         SigmoidFocalLossBackwardTestFloat32,
                          testing::ValuesIn(SigmoidFocalLossTestConfigs()));
 
-TEST_P(GPU_SigmoidFocalLoss_bwd_FP16, Test)
+TEST_P(SigmoidFocalLossBackwardTestFloat16, SigmoidFocalLossBackwardTest)
 {
     if(!MIOPEN_TEST_ALL ||
        (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--half"))
@@ -181,11 +189,11 @@ TEST_P(GPU_SigmoidFocalLoss_bwd_FP16, Test)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(Full,
-                         GPU_SigmoidFocalLoss_bwd_FP16,
+INSTANTIATE_TEST_SUITE_P(SigmoidFocalLossBackwardTestSet,
+                         SigmoidFocalLossBackwardTestFloat16,
                          testing::ValuesIn(SigmoidFocalLossTestConfigs()));
 
-TEST_P(GPU_SigmoidFocalLoss_bwd_BFP16, Test)
+TEST_P(SigmoidFocalLossBackwardTestBFloat16, SigmoidFocalLossBackwardTest)
 {
     if(!MIOPEN_TEST_ALL ||
        (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--bfloat16"))
@@ -199,11 +207,13 @@ TEST_P(GPU_SigmoidFocalLoss_bwd_BFP16, Test)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(Full,
-                         GPU_SigmoidFocalLoss_bwd_BFP16,
+INSTANTIATE_TEST_SUITE_P(SigmoidFocalLossBackwardTestSet,
+                         SigmoidFocalLossBackwardTestBFloat16,
                          testing::ValuesIn(SigmoidFocalLossTestConfigs()));
+#endif
 
-TEST_P(GPU_SigmoidFocalLossUnreduced_fwd_FP32, Test)
+#ifdef TEST_FWD_UNREDUCED
+TEST_P(SigmoidFocalLossUnreducedForwardTestFloat32, SigmoidFocalLossUnreducedForwardTest)
 {
     if(!MIOPEN_TEST_ALL ||
        (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--float"))
@@ -217,11 +227,11 @@ TEST_P(GPU_SigmoidFocalLossUnreduced_fwd_FP32, Test)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(Full,
-                         GPU_SigmoidFocalLossUnreduced_fwd_FP32,
+INSTANTIATE_TEST_SUITE_P(SigmoidFocalLossUnreducedForwardTestSet,
+                         SigmoidFocalLossUnreducedForwardTestFloat32,
                          testing::ValuesIn(SigmoidFocalLossTestConfigs()));
 
-TEST_P(GPU_SigmoidFocalLossUnreduced_fwd_FP16, Test)
+TEST_P(SigmoidFocalLossUnreducedForwardTestFloat16, SigmoidFocalLossUnreducedForwardTest)
 {
     if(!MIOPEN_TEST_ALL ||
        (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--half"))
@@ -235,11 +245,11 @@ TEST_P(GPU_SigmoidFocalLossUnreduced_fwd_FP16, Test)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(Full,
-                         GPU_SigmoidFocalLossUnreduced_fwd_FP16,
+INSTANTIATE_TEST_SUITE_P(SigmoidFocalLossUnreducedForwardTestSet,
+                         SigmoidFocalLossUnreducedForwardTestFloat16,
                          testing::ValuesIn(SigmoidFocalLossTestConfigs()));
 
-TEST_P(GPU_SigmoidFocalLossUnreduced_fwd_BFP16, Test)
+TEST_P(SigmoidFocalLossUnreducedForwardTestBFloat16, SigmoidFocalLossUnreducedForwardTest)
 {
     if(!MIOPEN_TEST_ALL ||
        (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--bfloat16"))
@@ -253,11 +263,13 @@ TEST_P(GPU_SigmoidFocalLossUnreduced_fwd_BFP16, Test)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(Full,
-                         GPU_SigmoidFocalLossUnreduced_fwd_BFP16,
+INSTANTIATE_TEST_SUITE_P(SigmoidFocalLossUnreducedForwardTestSet,
+                         SigmoidFocalLossUnreducedForwardTestBFloat16,
                          testing::ValuesIn(SigmoidFocalLossTestConfigs()));
+#endif
 
-TEST_P(GPU_SigmoidFocalLossUnreduced_bwd_FP32, Test)
+#ifdef TEST_BWD_UNREDUCED
+TEST_P(SigmoidFocalLossUnreducedBackwardTestFloat32, SigmoidFocalLossUnreducedBackwardTest)
 {
     if(!MIOPEN_TEST_ALL ||
        (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--float"))
@@ -271,11 +283,11 @@ TEST_P(GPU_SigmoidFocalLossUnreduced_bwd_FP32, Test)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(Full,
-                         GPU_SigmoidFocalLossUnreduced_bwd_FP32,
+INSTANTIATE_TEST_SUITE_P(SigmoidFocalLossUnreducedBackwardTestSet,
+                         SigmoidFocalLossUnreducedBackwardTestFloat32,
                          testing::ValuesIn(SigmoidFocalLossTestConfigs()));
 
-TEST_P(GPU_SigmoidFocalLossUnreduced_bwd_FP16, Test)
+TEST_P(SigmoidFocalLossUnreducedBackwardTestFloat16, SigmoidFocalLossUnreducedBackwardTest)
 {
     if(!MIOPEN_TEST_ALL ||
        (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--half"))
@@ -289,11 +301,11 @@ TEST_P(GPU_SigmoidFocalLossUnreduced_bwd_FP16, Test)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(Full,
-                         GPU_SigmoidFocalLossUnreduced_bwd_FP16,
+INSTANTIATE_TEST_SUITE_P(SigmoidFocalLossUnreducedBackwardTestSet,
+                         SigmoidFocalLossUnreducedBackwardTestFloat16,
                          testing::ValuesIn(SigmoidFocalLossTestConfigs()));
 
-TEST_P(GPU_SigmoidFocalLossUnreduced_bwd_BFP16, Test)
+TEST_P(SigmoidFocalLossUnreducedBackwardTestBFloat16, SigmoidFocalLossUnreducedBackwardTest)
 {
     if(!MIOPEN_TEST_ALL ||
        (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--bfloat16"))
@@ -307,6 +319,7 @@ TEST_P(GPU_SigmoidFocalLossUnreduced_bwd_BFP16, Test)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(Full,
-                         GPU_SigmoidFocalLossUnreduced_bwd_BFP16,
+INSTANTIATE_TEST_SUITE_P(SigmoidFocalLossUnreducedBackwardTestSet,
+                         SigmoidFocalLossUnreducedBackwardTestBFloat16,
                          testing::ValuesIn(SigmoidFocalLossTestConfigs()));
+#endif
