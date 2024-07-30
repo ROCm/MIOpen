@@ -57,13 +57,13 @@ void ConvBiasResAddActivForwardExecutor::execute(miopenHandle_t handle, const Va
     int groupCount    = in_c / wei_c;
     auto convDesc     = Convert(*mConvolution, groupCount);
 
-    ActivationDescriptor activDesc {miopenActivationRELU, mActivationAlpha, 1.0, 1.0};
+    ActivationDescriptor activDesc{miopenActivationRELU, mActivationAlpha, 1.0, 1.0};
 
-    auto* xData = vpk.getDataPointer(mXTensor->getId());
-    auto* wData = vpk.getDataPointer(mWTensor->getId());
-    auto* zData     = vpk.getDataPointer(mZTensor->getId());
+    auto* xData    = vpk.getDataPointer(mXTensor->getId());
+    auto* wData    = vpk.getDataPointer(mWTensor->getId());
+    auto* zData    = vpk.getDataPointer(mZTensor->getId());
     auto* biasData = vpk.getDataPointer(mBiasTensor->getId());
-    auto* yData = vpk.getDataPointer(mYTensor->getId());
+    auto* yData    = vpk.getDataPointer(mYTensor->getId());
 
     auto status =
         ConvBiasActivFusion(miopen::deref(handle),

@@ -86,8 +86,15 @@ public:
                                                       float alpha2,
                                                       float activationAlpha)
     {
-        GraphPatternExecutor* p =
-            new ConvBiasResAddActivForwardExecutor(xTensor, wTensor, convolution, zTensor, biasTensor, yTensor, alpha1, alpha2, activationAlpha);
+        GraphPatternExecutor* p = new ConvBiasResAddActivForwardExecutor(xTensor,
+                                                                         wTensor,
+                                                                         convolution,
+                                                                         zTensor,
+                                                                         biasTensor,
+                                                                         yTensor,
+                                                                         alpha1,
+                                                                         alpha2,
+                                                                         activationAlpha);
         return std::unique_ptr<GraphPatternExecutor>(p);
     }
 };
