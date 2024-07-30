@@ -45,7 +45,7 @@ struct DbPreloadStates
 {
     std::mutex mutex;
     std::unordered_map<fs::path, std::future<PreloadedDb>> futures;
-    bool started_loading;
+    std::atomic<bool> started_loading;
 
     DbPreloadStates()                       = default;
     DbPreloadStates(const DbPreloadStates&) = delete;
@@ -57,29 +57,10 @@ struct DbPreloadStates
 auto GetDbPreloadStates() -> DbPreloadStates&;
 
 template <class Db>
-inline auto GetPreloadedDb(const fs::path& path) -> std::unique_ptr<Db>
-{
-    auto& states = GetDbPreloadStates();
+auto GetPreloadedDb(const fs::path& path) -> std::unique_ptr<Db>;
 
-    std::unique_lock<std::mutex> lock{states.mutex};
-
-    if(!states.started_loading)
-        return nullptr;
-
-    auto it = states.futures.find(path);
-
-    if(it == states.futures.end())
-        return nullptr;
-
-    auto future = std::move(it->second);
-    lock.unlock();
-
-    const auto start = std::chrono::high_resolution_clock::now();
-    auto ret         = future.get();
-    const auto end   = std::chrono::high_resolution_clock::now();
-    MIOPEN_LOG_I2("GetPreloadedDb time waiting for the db: " << (end - start).count() * .000001f
-                                                             << " ms");
-    return std::get<std::unique_ptr<Db>>(std::move(ret));
-}
+extern template auto GetPreloadedDb<RamDb>(const fs::path& path) -> std::unique_ptr<RamDb>;
+extern template auto GetPreloadedDb<ReadonlyRamDb>(const fs::path& path)
+    -> std::unique_ptr<ReadonlyRamDb>;
 
 } // namespace miopen

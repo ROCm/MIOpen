@@ -38,8 +38,40 @@
 
 namespace miopen {
 template <class Db>
-static void
-StartPreloadingDb(DbPreloadStates& states, DbKinds db_kind, const fs::path& path, bool is_system)
+auto GetPreloadedDb(const fs::path& path) -> std::unique_ptr<Db>
+{
+    auto& states = GetDbPreloadStates();
+
+    if(!states.started_loading.load(std::memory_order_relaxed))
+        return nullptr;
+        
+    std::unique_lock<std::mutex> lock{states.mutex};
+
+    auto it = states.futures.find(path);
+
+    if(it == states.futures.end())
+        return nullptr;
+
+    auto future = std::move(it->second);
+    lock.unlock();
+
+    const auto start = std::chrono::high_resolution_clock::now();
+    auto ret         = future.get();
+    const auto end   = std::chrono::high_resolution_clock::now();
+    MIOPEN_LOG_I2("GetPreloadedDb time waiting for the db: " << (end - start).count() * .000001f
+                                                             << " ms");
+    return std::get<std::unique_ptr<Db>>(std::move(ret));
+}
+
+template auto GetPreloadedDb<RamDb>(const fs::path& path) -> std::unique_ptr<RamDb>;
+template auto GetPreloadedDb<ReadonlyRamDb>(const fs::path& path) -> std::unique_ptr<ReadonlyRamDb>;
+
+namespace {
+template <class Db>
+void StartPreloadingDb(DbPreloadStates& states,
+                       DbKinds db_kind,
+                       const fs::path& path,
+                       bool is_system)
 {
     if(path.empty())
         return;
@@ -69,6 +101,7 @@ StartPreloadingDb(DbPreloadStates& states, DbKinds db_kind, const fs::path& path
 
     states.futures.emplace(path, std::move(future));
 }
+} // namespace
 
 void Handle::TryStartPreloadingDbs()
 {
@@ -76,14 +109,14 @@ void Handle::TryStartPreloadingDbs()
 
     auto& states = GetDbPreloadStates();
 
-    if(states.started_loading)
+    if(states.started_loading.load(std::memory_order_acquire))
         return;
 
     std::unique_lock<std::mutex> lock(states.mutex, std::defer_lock);
 
-    if(!lock.try_lock() || states.started_loading)
+    if(!lock.try_lock() || states.started_loading.load(std::memory_order_acquire))
         return;
-    states.started_loading = true;
+    states.started_loading.store(true, std::memory_order_release);
 
     MIOPEN_LOG_I("Preloading dbs");
 
