@@ -118,6 +118,31 @@ option( BUILD_DEV "Build for development only" OFF)
 option(MIOPEN_ENABLE_FIN "Enable the fin driver for MIOpen"  OFF)
 option(MIOPEN_STRIP_SYMBOLS "Strip symbols in release mode" ON)
 
+#
+# Seperate linking jobs from compiling
+# Too many concurrent linking jobs can break the build
+# Copied from LLVM
+set(MIOPEN_PARALLEL_LINK_JOBS "" CACHE STRING
+    "Define the maximum number of concurrent link jobs (Ninja only).")
+if(CMAKE_GENERATOR MATCHES "Ninja")
+    if(MIOPEN_PARALLEL_LINK_JOBS)
+        set_property(GLOBAL APPEND PROPERTY JOB_POOLS link_job_pool=${MIOPEN_PARALLEL_LINK_JOBS})
+        set(CMAKE_JOB_POOL_LINK link_job_pool)
+    endif()
+elseif(MIOPEN_PARALLEL_LINK_JOBS)
+    message(WARNING "Job pooling is only available with Ninja generators.")
+endif()
+
+set(MIOPEN_PARALLEL_COMPILE_JOBS "" CACHE STRING
+    "Define the maximum number of concurrent compile jobs (Ninja only).")
+if(CMAKE_GENERATOR MATCHES "Ninja")
+    if(MIOPEN_PARALLEL_COMPILE_JOBS)
+        set_property(GLOBAL APPEND PROPERTY JOB_POOLS compile_job_pool=${MIOPEN_PARALLEL_COMPILE_JOBS})
+        set(CMAKE_JOB_POOL_COMPILE compile_job_pool)
+    endif()
+elseif(MIOPEN_PARALLEL_COMPILE_JOBS)
+    message(WARNING "Job pooling is only available with Ninja generators.")
+endif()
 
 # Strip symbols for release
 if(MIOPEN_STRIP_SYMBOLS AND NOT WIN32 AND NOT APPLE)
