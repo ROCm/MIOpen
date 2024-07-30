@@ -180,10 +180,12 @@ ConvSolution MultiMarginLossForward::GetSolution(
 
             /* Phase 2: Reduce */
             auto size      = deref(params.iDesc).GetLengths()[0];
+            auto data_size = get_data_size(deref(params.iDesc).GetType());
+            auto wt        = MultiBufferWorkspaceTraits{
+                size * data_size, (size + LOCAL_SIZE_REDUCE) / LOCAL_SIZE_REDUCE * data_size};
             auto reduce_in = params.workspace;
             auto reduce_out =
-                static_cast<Data_t>(static_cast<char*>(params.workspace) +
-                                    size * get_data_size(deref(params.oDesc).GetType()));
+                static_cast<Data_t>(static_cast<char*>(params.workspace) + wt.GetOffset(1));
 
             for(int i = 1; i < kernels.size(); ++i)
             {
@@ -224,9 +226,11 @@ std::size_t MultiMarginLossForward::GetWorkspaceSize(
     const ExecutionContext& /*context*/,
     const miopen::multimarginloss::ForwardProblemDescription& problem) const
 {
-    auto elem = problem.GetiDesc().GetLengths()[0];
-    return (elem + (elem + LOCAL_SIZE_REDUCE) / LOCAL_SIZE_REDUCE) *
-           get_data_size(problem.GetoDesc().GetType());
+    auto size      = problem.GetiDesc().GetLengths()[0];
+    auto data_size = get_data_size(problem.GetiDesc().GetType());
+    return MultiBufferWorkspaceTraits{size * data_size,
+                                      (size + LOCAL_SIZE_REDUCE) / LOCAL_SIZE_REDUCE * data_size}
+        .GetSize();
 }
 
 } // namespace multimarginloss
