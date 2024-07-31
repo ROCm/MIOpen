@@ -79,7 +79,7 @@ extern "C" __global__ void __launch_bounds__(MIO_BN_GRP0* MIO_BN_GRP1* MIO_BN_GR
             bnRes[i] =
                 fma(pscale, (static_cast<FP_TYPE_PREC>(data[i]) - pmean) * invVariance, pbias);
         }
-        ActivationFunction(MIOPEN_READ_UNIT, actRes, bnRes, gamma, beta, alpha);
+        ActivationFunction(actRes, bnRes, gamma, beta, alpha);
         if constexpr(MIOPEN_USE_FP16)
         {
 #pragma unroll
@@ -157,7 +157,7 @@ extern "C" __global__ void __launch_bounds__(MIO_BN_GRP0* MIO_BN_GRP1* MIO_BN_GR
                            pbias[i]);
         }
 
-        ActivationFunction(MIOPEN_READ_UNIT, actRes, bnRes, gamma, beta, alpha);
+        ActivationFunction(actRes, bnRes, gamma, beta, alpha);
         if constexpr(MIOPEN_USE_FP16)
         { // In this situation, FP_TYPE_PREC is FP32 whereas FP_TYPE is FP16
           // So, we cannot perform a vectorized store
