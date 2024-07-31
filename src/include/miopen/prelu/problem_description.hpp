@@ -114,8 +114,6 @@ private:
     TensorDescriptor doutputDesc;
     TensorDescriptor dinputDesc;
     TensorDescriptor dweightDesc;
-
-    NetworkConfig MakeForwardNetworkConfig() const;
 };
 
 } // namespace prelu
