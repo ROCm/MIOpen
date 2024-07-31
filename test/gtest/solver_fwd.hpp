@@ -28,16 +28,10 @@
 #include <gtest/gtest.h>
 #include "conv_common.hpp"
 #include "get_handle.hpp"
-#include "tensor_util.hpp"
-#include <fusionHost.hpp>
 #include <miopen/conv/data_invoke_params.hpp>
-
-#include <hip_float8.hpp>
-#include <miopen/type_name.hpp>
-#include <miopen/rank.hpp>
+#include <miopen/solver.hpp>
 
 #include "conv_test_base.hpp"
-#include "get_solver.hpp"
 #include "../workspace.hpp"
 
 template <typename T = float, typename Tref = float, bool use_cpu_ref = false>
@@ -46,8 +40,7 @@ struct ConvFwdSolverTest
           std::tuple<miopenConvFwdAlgorithm_t, ConvTestCaseBase, miopenTensorLayout_t>>,
       ConvFwdSolverTestBase<T, Tref, use_cpu_ref>
 {
-    template <typename Solver>
-    void SolverFwd(Solver solv)
+    void SolverFwd(const miopen::solver::conv::ConvSolverBase& solv)
     {
         auto&& handle = get_handle();
 
@@ -57,6 +50,7 @@ struct ConvFwdSolverTest
                                                     this->wei_dev.get(),
                                                     this->output.desc,
                                                     this->out_dev.get()};
+
         const auto problem                 = miopen::conv::ProblemDescription(this->input.desc,
                                                               this->weights.desc,
                                                               this->output.desc,
@@ -68,13 +62,11 @@ struct ConvFwdSolverTest
             return tmp;
         }();
 
-        // const auto network_config = problem.BuildConfKey();
-
         if(!solv.IsApplicable(ctx, problem))
         {
-            test_skipped = true;
-            GTEST_SKIP() << solv.SolverDbId() << ": Not Applicable for this problem" << conv_config;
+            GTEST_FAIL();
         }
+
         if(solv.MayNeedWorkspace())
         {
             const auto cur_sol_ws = solv.GetWorkspaceSize(ctx, problem);
@@ -84,22 +76,20 @@ struct ConvFwdSolverTest
         const auto invoke_params = miopen::conv::DataInvokeParams{
             tensors, wspace.ptr(), wspace.size(), this->conv_desc.attribute.gfx90aFp16alt.GetFwd()};
 
-        // auto sol = solv.GetSolution(ctx, problem);
-        // This is complicated due to the split between tunable and non-tunable solvers
-        // since the signature for solver.GetSolution needs a consutructed tuning params
-        // in the tunable case and not otherwise
-        const auto sol = GetSolution(solv, ctx, problem);
+        const auto sol = solv.GetDefaultSolution(ctx, problem);
         ASSERT_TRUE(sol.Succeeded());
         ASSERT_TRUE(sol.invoker_factory);
         const auto invoker = handle.PrepareInvoker(*sol.invoker_factory, sol.construction_params);
         (invoker)(handle, invoke_params);
         handle.Finish();
+
+        test_skipped = false;
     }
 
 protected:
     void SetUp() override
     {
-        test_skipped                               = false;
+        test_skipped                               = true;
         std::tie(algo, conv_config, tensor_layout) = GetParam();
         this->SetUpImpl(conv_config, tensor_layout);
     }
@@ -115,6 +105,6 @@ protected:
     ConvTestCaseBase conv_config;
     Workspace wspace{};
     miopenConvFwdAlgorithm_t algo = miopenConvolutionFwdAlgoDirect;
-    bool test_skipped             = false;
+    bool test_skipped;
     miopenTensorLayout_t tensor_layout;
 };

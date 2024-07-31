@@ -118,11 +118,11 @@ struct SolverBase
     /// * @see https://github.com/ROCm/MIOpen/issues/410
     virtual float GetWti(const ExecutionContext& ctx, const boost::any& problem) const = 0;
 
-    // Returns the workspace size required by the solver for a given ExecutionContext
+    /// Returns the workspace size required by the solver for a given ExecutionContext
     virtual size_t GetWorkspaceSize(const ExecutionContext& ctx,
                                     const boost::any& problem) const = 0;
 
-    // Must return true if a Solver has its own implementation of GetWorkspaceSize().
+    /// Must return true if a Solver has its own implementation of GetWorkspaceSize().
     virtual bool MayNeedWorkspace() const { return false; }
 
 protected:
@@ -157,6 +157,9 @@ struct SolverMixin : SolverBase
     virtual float GetWti(const Context&, const Problem&) const { return wti_approximate_worst; };
     virtual size_t GetWorkspaceSize(const Context&, const Problem&) const { return 0; };
 
+    /// Returns "default" solution
+    virtual ConvSolution GetDefaultSolution(const Context&, const Problem&) const = 0;
+
     bool IsApplicable(const ExecutionContext& ctx, const boost::any& problem) const final
     {
         return IsApplicable(dynamic_cast<const Context&>(ctx),
@@ -182,6 +185,12 @@ struct NonTunableSolverBase : SolverMixin<Context, Problem>
     /// Takes problem config, optimization parameters and other info
     /// and computes information required to build and run the kernel(s).
     virtual ConvSolution GetSolution(const Context&, const Problem&) const = 0;
+
+    ConvSolution GetDefaultSolution(const Context& ctx, const Problem& problem) const final
+    {
+        return GetSolution(ctx, problem);
+    }
+
     virtual InvokerFactory GetInvokerFactory(const Context& ctx, const Problem& problem) const
     {
         return *GetSolution(ctx, problem).invoker_factory;
@@ -227,6 +236,7 @@ struct TunableSolverBase : SolverMixin<Context, Problem>, TunableSolverTrait
     /// Tunable solvers provide a GetSolution that takes a Context and PerformanceConfig
     virtual ConvSolution
     GetSolution(const Context& ctx, const Problem& problem, const PerfConfig& config) const = 0;
+
     virtual InvokerFactory
     GetInvokerFactory(const Context& ctx, const Problem& problem, const PerfConfig& config) const
     {
@@ -247,6 +257,11 @@ struct TunableSolverMixin : TunableSolverBase<Context, Problem>
     Search(const Context&, const Problem&, const AnyInvokeParams&) const = 0;
     virtual ConvSolution
     GetSolution(const Context&, const Problem&, const PerformanceConfig&) const = 0;
+
+    ConvSolution GetDefaultSolution(const Context& ctx, const Problem& problem) const final
+    {
+        return GetSolution(ctx, problem, GetDefaultPerformanceConfig(ctx, problem));
+    }
 
     boost::any
     GetDefaultPerformanceConfig(const Context& ctx, const Problem& problem, int) const final
@@ -285,6 +300,9 @@ struct IsTunable : std::is_base_of<TunableSolverTrait, Solver>
 };
 
 namespace conv {
+
+/// Base class for convolution tunable and non-tunable solvers
+using ConvSolverBase = SolverMixin<ExecutionContext, miopen::conv::ProblemDescription>;
 
 /// Typedef for convolution non-tunable solvers
 using ConvSolver = NonTunableSolverBase<ExecutionContext, miopen::conv::ProblemDescription>;

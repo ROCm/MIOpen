@@ -28,32 +28,25 @@
 #include <gtest/gtest.h>
 #include "conv_common.hpp"
 #include "get_handle.hpp"
-#include "tensor_util.hpp"
-#include <fusionHost.hpp>
 #include <miopen/conv/data_invoke_params.hpp>
-
-#include <hip_float8.hpp>
-#include <miopen/type_name.hpp>
-#include <miopen/rank.hpp>
+#include <miopen/solver.hpp>
 
 #include "conv_test_base.hpp"
 #include "conv_tensor_gen.hpp"
 
-#include "get_solver.hpp"
 #include "../workspace.hpp"
 
 template <typename T = float, typename Tref = float, bool use_cpu_ref = false>
 struct ConvBwdSolverTest
     : public ::testing::TestWithParam<std::tuple<miopenConvFwdAlgorithm_t, ConvTestCaseBase>>
 {
-
-    template <typename Solver>
-    void SolverBwd(Solver solv)
+    void SolverBwd(const miopen::solver::conv::ConvSolverBase& solv)
     {
         auto&& handle = get_handle();
 
         const auto tensors = miopen::ConvBwdTensors{
             output.desc, out_dev.get(), weights.desc, wei_dev.get(), input.desc, in_dev.get()};
+
         const auto problem =
             miopen::conv::ProblemDescription(input.desc,
                                              weights.desc,
@@ -66,12 +59,9 @@ struct ConvBwdSolverTest
             return tmp;
         }();
 
-        // const auto network_config = problem.BuildConfKey();
-
         if(!solv.IsApplicable(ctx, problem))
         {
-            test_skipped = true;
-            GTEST_SKIP() << solv.SolverDbId() << ": Not Applicable for this problem" << conv_config;
+            GTEST_FAIL();
         }
 
         if(solv.MayNeedWorkspace())
@@ -83,21 +73,23 @@ struct ConvBwdSolverTest
         const auto invoke_params = miopen::conv::DataInvokeParams{
             tensors, wspace.ptr(), wspace.size(), conv_desc.attribute.gfx90aFp16alt.GetBwd()};
 
-        auto sol = GetSolution(solv, ctx, problem);
+        auto sol = solv.GetDefaultSolution(ctx, problem);
         ASSERT_TRUE(sol.Succeeded());
         ASSERT_TRUE(sol.invoker_factory);
         const auto invoker = handle.PrepareInvoker(*sol.invoker_factory, sol.construction_params);
         (invoker)(handle, invoke_params);
         handle.Finish();
+
+        test_skipped = false;
     }
 
 protected:
     void SetUp() override
     {
-        test_skipped                = false;
+        test_skipped                = true;
         std::tie(algo, conv_config) = GetParam();
-        input   = tensor<T>{conv_config.N, conv_config.C, conv_config.H, conv_config.W};
-        weights = tensor<T>{conv_config.k, conv_config.C, conv_config.y, conv_config.x};
+        input   = tensor<T>{conv_config.GetInput()};
+        weights = tensor<T>{conv_config.GetWeights()};
         weights.generate(GenWeights<T>{});
 
         conv_desc = conv_config.GetConv();
@@ -115,16 +107,13 @@ protected:
         wei_dev       = handle.Write(weights.data);
         out_dev       = handle.Write(output.data);
     }
+
     void TearDown() override
     {
         if(test_skipped)
             return;
 
-        auto&& handle = get_handle();
-
-        miopen::TensorDescriptor output_desc =
-            conv_desc.GetForwardOutputTensor(input.desc, weights.desc, miopen_type<T>{});
-        ref_in = tensor<Tref>{output_desc.GetLengths()};
+        ref_in = tensor<Tref>{input.desc.GetLengths()};
         if(use_cpu_ref)
         {
             cpu_convolution_backward_data(conv_desc.GetSpatialDimension(),
@@ -140,31 +129,25 @@ protected:
         {
             ref_in = ref_conv_bwd(ref_in, weights, output, conv_desc);
         }
-        input.data = handle.Read<T>(in_dev, input.data.size());
-#if defined(__clang__) || defined(__GNUG__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wfloat-equal"
-#endif
-        const auto zero_chk = [](T x) { return static_cast<T>(x) == static_cast<T>(0.0); };
-#if defined(__clang__) || defined(__GNUG__)
-#pragma GCC diagnostic pop
-#endif
 
-        EXPECT_FALSE(std::all_of(ref_in.begin(), ref_in.end(), [](float x) { return x == 0.0f; }))
-            << "Cpu data is all zeros";
-        EXPECT_FALSE(std::all_of(input.begin(), input.end(), zero_chk)) << "Gpu data is all zeros";
-        EXPECT_TRUE(miopen::range_distance(ref_in) == miopen::range_distance(input));
+        auto&& handle = get_handle();
+        input.data = handle.Read<T>(in_dev, input.data.size());
+
+        ASSERT_FALSE(miopen::range_zero(ref_in)) << "Cpu data is all zeros";
+        ASSERT_FALSE(miopen::range_zero(input)) << "Gpu data is all zeros";
+        ASSERT_TRUE(miopen::range_distance(ref_in) == miopen::range_distance(input));
 
         const double tolerance = 80;
-        double threshold       = static_cast<float>(std::numeric_limits<T>::epsilon()) * tolerance;
+        double threshold       = std::numeric_limits<T>::epsilon() * tolerance;
         auto error             = miopen::rms_range(ref_in, input);
 
-        EXPECT_FALSE(miopen::find_idx(ref_in, miopen::not_finite) >= 0)
+        ASSERT_FALSE(miopen::find_idx(ref_in, miopen::not_finite) >= 0)
             << "Non finite number found in the CPU data";
 
-        EXPECT_TRUE(error < threshold)
+        ASSERT_TRUE(error < threshold)
             << "Error beyond tolerance Error:" << error << ",  Threshold: " << threshold;
     }
+
     ConvTestCaseBase conv_config;
     miopen::ConvolutionDescriptor conv_desc;
     tensor<T> input;
@@ -176,5 +159,5 @@ protected:
     miopen::Allocator::ManageDataPtr out_dev;
     Workspace wspace{};
     miopenConvFwdAlgorithm_t algo = miopenConvolutionFwdAlgoDirect;
-    bool test_skipped             = false;
+    bool test_skipped;
 };

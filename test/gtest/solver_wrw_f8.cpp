@@ -24,7 +24,7 @@
  *
  *******************************************************************************/
 #include "solver_wrw.hpp"
-
+ 
 struct ConvWrwFp8Naive : ConvWrwSolverTest<float8, float, true>
 {
 };

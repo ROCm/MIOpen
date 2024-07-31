@@ -10,6 +10,7 @@ set(SOURCES
     log.cpp
     platform.cpp
     conv_common.cpp
+    unit_conv_solver.cpp
     )
 
 if(MIOPEN_BACKEND_OPENCL)
@@ -18,16 +19,18 @@ endif()
 
 function(add_gtest TEST_NAME TEST_CPP)
   message("Adding Test: " ${TEST_NAME} " : " ${TEST_CPP})
-  add_executable(${TEST_NAME} ${TEST_CPP}  ${SOURCES})
+  add_executable(${TEST_NAME} ${TEST_CPP})
   if(WIN32)
     target_compile_definitions(${TEST_NAME} PRIVATE NOMINMAX)
   endif()
 
-  
   add_dependencies(tests ${TEST_NAME})
   add_dependencies(check ${TEST_NAME})
+
   target_compile_options(${TEST_NAME} PRIVATE -Wno-global-constructors -Wno-undef)
   target_include_directories(${TEST_NAME} PRIVATE ../ ../../src/kernels)
+
+  target_link_libraries(${TEST_NAME} miopen_gtest_common)
   if(MIOPEN_ENABLE_AI_KERNEL_TUNING)
     target_link_libraries(${TEST_NAME} frugally-deep::fdeep Eigen3::Eigen)
   endif()
@@ -78,6 +81,12 @@ endforeach()
 foreach(SOURCE ${SKIP_TESTS})
     list(REMOVE_ITEM TESTS ${CMAKE_CURRENT_SOURCE_DIR}/${SOURCE})
 endforeach()
+
+# Common static library speeds up test assembly.
+# Otherwise, all files in ${SOURCES} are rebuilt for each test.
+add_library(miopen_gtest_common STATIC ${SOURCES})
+target_include_directories(miopen_gtest_common PRIVATE ../ ../../src/kernels)
+target_link_libraries(miopen_gtest_common PRIVATE GTest::gtest MIOpen)
 
 if( MIOPEN_TEST_DISCRETE )
   foreach(TEST ${TESTS})
