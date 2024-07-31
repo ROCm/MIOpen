@@ -38,6 +38,10 @@
 
 #define PERF_ENABLE 0
 
+#ifndef warpSize
+#define warpSize 32
+#endif
+
 void BatchNormFusedInferencGPU(miopen::Handle& handle,
                                miopenBatchNormMode_t bn_mode,
                                miopenActivationMode_t activ_mode,
