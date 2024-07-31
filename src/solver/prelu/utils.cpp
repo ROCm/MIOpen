@@ -48,35 +48,6 @@ KernelInfo make_hip_kernel(std::vector<size_t> localsize,
         build_params.GenerateFor(kbp::HIP{}), localsize, gridsize, kernel_file, kernel_name};
 }
 
-size_t get_reqd_work_item_cnt(const ExecutionContext& context, size_t local_size)
-{
-    // At least 4 WGs per one CU
-    return static_cast<size_t>(local_size * context.GetStream().GetMaxComputeUnits() * 4);
-}
-
-size_t get_reqd_work_item_cnt(const Handle& handle, size_t local_size)
-{
-    // At least 4 WGs per one CU
-    return static_cast<size_t>(local_size * handle.GetMaxComputeUnits() * 4);
-}
-
-size_t get_parallelism_size(size_t reqd_work_item_cnt, size_t output_numel, size_t reduce_size)
-{
-    size_t parallelism_size = 1ULL;
-    while(parallelism_size * output_numel < reqd_work_item_cnt &&
-          parallelism_size < std::sqrt(reduce_size))
-    {
-        parallelism_size *= 2ULL;
-    }
-    return parallelism_size;
-}
-
-bool is_parallelism(size_t reqd_work_item_cnt, size_t output_numel, size_t reduce_size)
-{
-    return !(output_numel > reqd_work_item_cnt) &&
-           (output_numel * reduce_size > reqd_work_item_cnt);
-}
-
 } // namespace prelu
 } // namespace solver
 } // namespace miopen
