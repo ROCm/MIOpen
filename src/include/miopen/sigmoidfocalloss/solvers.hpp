@@ -50,6 +50,9 @@ struct SigmoidFocalLossFwd final : SigmoidFocalLossFwdSolverBase
                              const miopen::sigmoidfocalloss::SigmoidFocalLossFwdProblemDescription&
                                  problem) const override;
 
+    MultiBufferWorkspaceTraits GetMultiBufferWorkspaceTraits(
+        const miopen::sigmoidfocalloss::SigmoidFocalLossFwdProblemDescription& problem) const;
+
     std::size_t
     GetWorkspaceSize(const ExecutionContext& context,
                      const miopen::sigmoidfocalloss::SigmoidFocalLossFwdProblemDescription& problem)
