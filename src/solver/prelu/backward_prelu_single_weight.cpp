@@ -42,6 +42,7 @@ namespace solver {
 
 namespace prelu {
 
+namespace {
 MultiBufferWorkspaceTraits GetMultiBufferWorkspaceTraits(const TensorDescriptor& inputDesc)
 {
     auto size = inputDesc.GetElementSize();
@@ -49,6 +50,7 @@ MultiBufferWorkspaceTraits GetMultiBufferWorkspaceTraits(const TensorDescriptor&
                                       AlignUp(size, LOCAL_SIZE_SW_REDUCE_BWD) /
                                           LOCAL_SIZE_SW_REDUCE_BWD * get_data_size(miopenFloat)};
 }
+} // namespace
 
 bool SingleWeightBackward::IsApplicable(
     const ExecutionContext& /*context*/,
@@ -111,7 +113,12 @@ SingleWeightBackward::GetSolution(const ExecutionContext& /*context*/,
             {LOCAL_SIZE_SW_REDUCE_BWD}, {size}, "MIOpenReduceSum.cpp", "ReduceSum", build_params));
     }
 
-    result.invoker_factory = [](const std::vector<Kernel>& kernels) {
+    auto getBuffPart = [ws = GetMultiBufferWorkspaceTraits(problem.GetdInputDesc())](
+                           void* buffer, size_t part_idx) {
+        return static_cast<void*>(static_cast<std::byte*>(buffer) + ws.GetOffset(part_idx));
+    };
+
+    result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
             decltype(auto) params = raw_params.CastTo<miopen::prelu::InvokeParams>();
 
@@ -130,12 +137,8 @@ SingleWeightBackward::GetSolution(const ExecutionContext& /*context*/,
                 hipEventRecord(start.get(), handle_.GetStream());
             }
 
-            auto getBuffPart = [ws = GetMultiBufferWorkspaceTraits(deref(params.inputDesc))](
-                                   void* buffer, size_t part_idx) {
-                return static_cast<void*>(static_cast<std::byte*>(buffer) + ws.GetOffset(part_idx));
-            };
-            auto work_a = getBuffPart(params.workspace, 0);
-            auto work_b = getBuffPart(params.workspace, 1);
+            auto work_a = getBuffPart(params.GetWorkspace(), 0);
+            auto work_b = getBuffPart(params.GetWorkspace(), 1);
 
             int kernelCnt = 0;
 
