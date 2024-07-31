@@ -35,7 +35,7 @@
 #include "test_operations.hpp"
 #include "perf_helper.hpp"
 
-#define PERF_ENABLE 1
+#define PERF_ENABLE 0
 
 void BatchNormForwardInferencGPU(miopen::Handle& handle,
                                  miopenBatchNormMode_t bn_mode,
@@ -190,14 +190,9 @@ struct BatchNormFwdInferTest
 protected:
     static const std::string sPerfTestFilename;
 
-    void SetUp() override { std::tie(bn_config, tensor_layout) = GetParam(); }
-
-    void DataSetup(miopenBatchNormMode_t mode)
+    void SetUp() override
     {
-        if(mode == miopenBNPerActivation)
-        {
-            bn_config.mode = miopenBNPerActivation;
-        } // Override the mode to test per activation
+        std::tie(bn_config, tensor_layout) = GetParam();
         bn_infer_test_data.SetUpImpl(bn_config, tensor_layout);
     }
 
@@ -294,10 +289,93 @@ struct GPU_bn_fwd_infer_per_act_FP16
 } // namespace BatchNormFwdInfer
 using namespace BatchNormFwdInfer;
 
-TEST_P(GPU_bn_fwd_infer_spatial_FP16, PortTest)
+template <typename T>
+std::vector<BNTestCase> BNFwdInferTestConfigs(miopenBatchNormMode_t mode)
 {
-    // Generate data and copy to GPU
-    DataSetup(miopenBNSpatial);
+    if constexpr(PERF_ENABLE)
+    {
+        std::vector<BNTestCase> configs;
+        const auto& handle = get_handle();
+        size_t maxTotalSize;
+
+        // Generate all NCHW tensors that are limited by L3 cache size
+        // or 2xL2 cache size when L3 is not available
+        if(miopen::StartsWith(handle.GetDeviceName(), "gfx90a") ||
+           miopen::StartsWith(handle.GetDeviceName(), "gfx908"))
+        {
+            maxTotalSize = 16; // twice the available L2 (8MB)
+        }
+        else if(miopen::StartsWith(handle.GetDeviceName(), "gfx803"))
+        {
+            maxTotalSize = 4; // twice the available L2 (2MB)
+        }
+        else if(miopen::StartsWith(handle.GetDeviceName(), "gfx900") ||
+                miopen::StartsWith(handle.GetDeviceName(), "gfx906"))
+        {
+            maxTotalSize = 8; // twice the available L2 (4MB)
+        }
+        else if(miopen::StartsWith(handle.GetDeviceName(), "gfx942"))
+        {
+            maxTotalSize = 256; // L3 size (256MB)
+        }
+        else if(miopen::StartsWith(handle.GetDeviceName(), "gfx103"))
+        {
+            maxTotalSize = 128; // L3 size (128MB)
+        }
+        else
+        {
+            maxTotalSize = 4; // twice the available L2 (2MB), default case.
+        }
+
+        maxTotalSize = maxTotalSize * 1024ull * 1024ull / sizeof(T);
+
+        for(size_t N = 1; N <= maxTotalSize; N *= 2)
+        {
+            for(size_t C = 1; C <= maxTotalSize / N; C *= 2)
+            {
+                for(size_t H = 1; H <= maxTotalSize / (N * C); H *= 2)
+                {
+                    for(size_t W = 1; W <= maxTotalSize / (N * C * H); W *= 2)
+                    {
+                        size_t totalSize = N * C * H * W;
+                        // Ensure the total size does not exceed the maximum limit
+                        if(totalSize <= maxTotalSize)
+                        {
+                            configs.push_back({N,
+                                               C,
+                                               H,
+                                               W,
+                                               mode,
+                                               miopen::batchnorm::Direction::ForwardInference,
+                                               0,
+                                               0});
+                        }
+                    }
+                }
+            }
+        }
+
+        return configs;
+    }
+    else
+    {
+        // clang-format off
+        return {{16, 8, 128, 256, mode, miopen::batchnorm::Direction::ForwardInference, 1, 0},
+                {64, 2048, 7, 7, mode, miopen::batchnorm::Direction::ForwardInference, 1, 0},
+                {64, 256, 14, 14, mode, miopen::batchnorm::Direction::ForwardInference, 1, 0},
+                {64, 256, 28, 28, mode, miopen::batchnorm::Direction::ForwardInference, 1, 0},
+                {64, 256, 56, 56, mode, miopen::batchnorm::Direction::ForwardInference, 1, 0},
+                {64, 512, 14, 14, mode, miopen::batchnorm::Direction::ForwardInference, 1, 0},
+                {64, 512, 28, 28, mode, miopen::batchnorm::Direction::ForwardInference, 1, 0},
+                {64, 512, 7, 7, mode, miopen::batchnorm::Direction::ForwardInference, 1, 0},
+                {64, 64, 112, 112, mode, miopen::batchnorm::Direction::ForwardInference, 1, 0},
+                {64, 64, 56, 56, mode, miopen::batchnorm::Direction::ForwardInference, 1, 0}};
+        // clang-format on
+    }
+}
+
+TEST_P(GPU_bn_fwd_infer_spatial_FP32, PortTest)
+{
     // Run the OpenCL reference
     RunTestGPU(false);
     // Optionally use the CPU output as reference
@@ -308,10 +386,20 @@ TEST_P(GPU_bn_fwd_infer_spatial_FP16, PortTest)
     Verify();
 };
 
-TEST_P(GPU_bn_fwd_infer_spatial_FP32, PortTest)
+TEST_P(GPU_bn_fwd_infer_per_act_FP32, PortTest)
 {
-    // Generate data and copy to GPU
-    DataSetup(miopenBNSpatial);
+    // Run the OpenCL reference
+    RunTestGPU(false);
+    // Optionally use the CPU output as reference instead of OpenCL
+    // ComputeCPU();
+    // Run the HIP kernel
+    RunTestGPU(true);
+    // Compare the outputs.
+    Verify();
+};
+
+TEST_P(GPU_bn_fwd_infer_spatial_FP16, PortTest)
+{
     // Run the OpenCL reference
     RunTestGPU(false);
     // Optionally use the CPU output as reference
@@ -324,8 +412,6 @@ TEST_P(GPU_bn_fwd_infer_spatial_FP32, PortTest)
 
 TEST_P(GPU_bn_fwd_infer_per_act_FP16, PortTest)
 {
-    // Generate data and copy to GPU
-    DataSetup(miopenBNPerActivation);
     // Run the OpenCL reference
     RunTestGPU(false);
     // Optionally use the CPU output as reference instead of OpenCL
@@ -336,35 +422,26 @@ TEST_P(GPU_bn_fwd_infer_per_act_FP16, PortTest)
     Verify();
 };
 
-TEST_P(GPU_bn_fwd_infer_per_act_FP32, PortTest)
-{
-    // Generate data and copy to GPU
-    DataSetup(miopenBNPerActivation);
-    // Run the OpenCL reference
-    RunTestGPU(false);
-    // Optionally use the CPU output as reference instead of OpenCL
-    // ComputeCPU();
-    // Run the HIP kernel
-    RunTestGPU(true);
-    // Compare the outputs.
-    Verify();
-};
+INSTANTIATE_TEST_SUITE_P(
+    Smoke,
+    GPU_bn_fwd_infer_spatial_FP32,
+    testing::Combine(testing::ValuesIn(BNFwdInferTestConfigs<float>(miopenBNSpatial)),
+                     testing::Values(miopenTensorNCHW)));
 
-INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_bn_fwd_infer_spatial_FP16,
-                         testing::Combine(testing::ValuesIn(Network1<BNTestCase>()),
-                                          testing::Values(miopenTensorNCHW)));
+INSTANTIATE_TEST_SUITE_P(
+    Smoke,
+    GPU_bn_fwd_infer_per_act_FP32,
+    testing::Combine(testing::ValuesIn(BNFwdInferTestConfigs<float>(miopenBNPerActivation)),
+                     testing::Values(miopenTensorNCHW)));
 
-INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_bn_fwd_infer_spatial_FP32,
-                         testing::Combine(testing::ValuesIn(Network1<BNTestCase>()),
-                                          testing::Values(miopenTensorNCHW)));
+INSTANTIATE_TEST_SUITE_P(
+    Smoke,
+    GPU_bn_fwd_infer_spatial_FP16,
+    testing::Combine(testing::ValuesIn(BNFwdInferTestConfigs<half_float::half>(miopenBNSpatial)),
+                     testing::Values(miopenTensorNCHW)));
+
 INSTANTIATE_TEST_SUITE_P(Smoke,
                          GPU_bn_fwd_infer_per_act_FP16,
-                         testing::Combine(testing::ValuesIn(Network1<BNTestCase>()),
-                                          testing::Values(miopenTensorNCHW)));
-
-INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_bn_fwd_infer_per_act_FP32,
-                         testing::Combine(testing::ValuesIn(Network1<BNTestCase>()),
+                         testing::Combine(testing::ValuesIn(BNFwdInferTestConfigs<half_float::half>(
+                                              miopenBNPerActivation)),
                                           testing::Values(miopenTensorNCHW)));
