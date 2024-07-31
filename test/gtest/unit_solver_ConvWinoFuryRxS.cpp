@@ -50,10 +50,7 @@ auto GetConvTestCasesWrw()
     };
 }
 
-Gpu GetSupportedDevices()
-{
-    return static_cast<Gpu>(enabled<Gpu::gfx110X>::val);
-}
+Gpu GetSupportedDevices() { return static_cast<Gpu>(enabled<Gpu::gfx110X>::val); }
 
 } // namespace
 

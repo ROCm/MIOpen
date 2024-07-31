@@ -88,8 +88,8 @@ protected:
     {
         test_skipped                = true;
         std::tie(algo, conv_config) = GetParam();
-        input   = tensor<T>{conv_config.GetInput()};
-        weights = tensor<T>{conv_config.GetWeights()};
+        input                       = tensor<T>{conv_config.GetInput()};
+        weights                     = tensor<T>{conv_config.GetWeights()};
         input.generate(GenData<T>{});
 
         conv_desc = conv_config.GetConv();
@@ -131,7 +131,7 @@ protected:
         }
 
         auto&& handle = get_handle();
-        weights.data = handle.Read<T>(wei_dev, weights.data.size());
+        weights.data  = handle.Read<T>(wei_dev, weights.data.size());
 
         ASSERT_FALSE(miopen::range_zero(ref_weights)) << "Cpu data is all zeros";
         ASSERT_FALSE(miopen::range_zero(weights)) << "Gpu data is all zeros";

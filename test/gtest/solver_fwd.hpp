@@ -44,7 +44,7 @@ struct ConvFwdSolverTest
     {
         auto&& handle = get_handle();
 
-        const auto tensors                 = miopen::ConvFwdTensors{this->input.desc,
+        const auto tensors = miopen::ConvFwdTensors{this->input.desc,
                                                     this->in_dev.get(),
                                                     this->weights.desc,
                                                     this->wei_dev.get(),

@@ -35,8 +35,10 @@
 class UnitTestConvSolver
 {
 public:
-    virtual ~UnitTestConvSolver() = default;
-    virtual void RunTest(const miopen::solver::conv::ConvSolverBase& solver, Gpu supported_gpus) = 0;
+    virtual ~UnitTestConvSolver()            = default;
+    virtual void RunTest(const miopen::solver::conv::ConvSolverBase& solver,
+                         Gpu supported_gpus) = 0;
+
 protected:
     static bool CheckTestSupportedForDevice(Gpu supported_gpus);
 };
