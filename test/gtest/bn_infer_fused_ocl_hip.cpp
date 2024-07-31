@@ -77,14 +77,18 @@ void BatchNormFusedInferencGPU(miopen::Handle& handle,
     size_t xlocalsize = 256;
     size_t xgridsize  = read_len / read_unit;
     // HIP runtime does not support non-uniform blocks,
-    if(use_hip){
+    if(use_hip)
+    {
         // check if xgridsize is less than xlocalsize
-        if(xgridsize < xlocalsize){
+        if(xgridsize < xlocalsize)
+        {
             // round up the xlocalsize to the nearest wavefront size
             xlocalsize = AlignUp(xgridsize, warpSize);
             // Set xgridsize to the xlocalsize, to launch only one block
             xgridsize = xlocalsize;
-        }else{
+        }
+        else
+        {
             xgridsize = AlignUp(xgridsize, xlocalsize);
         }
     }
@@ -295,25 +299,25 @@ protected:
         {
             // get the input tensor size and store in a string with x in between
             std::vector<size_t> in_dims = bn_config.GetInput();
-            std::string kernel_info =
-                std::to_string(in_dims[0]) + "x" + std::to_string(in_dims[1]) + "x" +
-                std::to_string(in_dims[2]) + "x" + std::to_string(in_dims[3]);
+            std::string kernel_info     = std::to_string(in_dims[0]) + "x" +
+                                      std::to_string(in_dims[1]) + "x" +
+                                      std::to_string(in_dims[2]) + "x" + std::to_string(in_dims[3]);
 
             std::unordered_map<miopenActivationMode_t, std::string> activation_map = {
-            {miopenActivationPASTHRU, "pasthru"},
-            {miopenActivationLOGISTIC, "logistic"},
-            {miopenActivationTANH, "tanh"},
-            {miopenActivationRELU, "relu"},
-            {miopenActivationSOFTRELU, "softrelu"},
-            {miopenActivationABS, "abs"},
-            {miopenActivationPOWER, "power"},
-            {miopenActivationCLIPPEDRELU, "clippedrelu"},
-            {miopenActivationLEAKYRELU, "leakyrelu"},
-            {miopenActivationELU, "elu"}
-            };
-            
+                {miopenActivationPASTHRU, "pasthru"},
+                {miopenActivationLOGISTIC, "logistic"},
+                {miopenActivationTANH, "tanh"},
+                {miopenActivationRELU, "relu"},
+                {miopenActivationSOFTRELU, "softrelu"},
+                {miopenActivationABS, "abs"},
+                {miopenActivationPOWER, "power"},
+                {miopenActivationCLIPPEDRELU, "clippedrelu"},
+                {miopenActivationLEAKYRELU, "leakyrelu"},
+                {miopenActivationELU, "elu"}};
+
             auto it = activation_map.find(activ_mode);
-            if (it != activation_map.end()) {
+            if(it != activation_map.end())
+            {
                 kernel_info += "_" + it->second;
             }
 
@@ -380,8 +384,7 @@ using namespace BatchNormInferFused;
 
 std::vector<miopenActivationMode_t> ActivationConfigs()
 {
-    return {
-            miopenActivationPASTHRU,
+    return {miopenActivationPASTHRU,
             miopenActivationLOGISTIC,
             miopenActivationTANH,
             miopenActivationRELU,
@@ -390,8 +393,7 @@ std::vector<miopenActivationMode_t> ActivationConfigs()
             miopenActivationPOWER,
             miopenActivationCLIPPEDRELU,
             miopenActivationLEAKYRELU,
-            miopenActivationELU
-        };
+            miopenActivationELU};
 }
 
 template <typename T>
