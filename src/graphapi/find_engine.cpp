@@ -106,11 +106,15 @@ public:
 
         if(wei_c == std::size_t{0})
         {
-            MIOPEN_THROW(miopenStatusBadParm, "invalid weight tensor provided for graph matching ConvBiasResAddActive pattern");
+            MIOPEN_THROW(
+                miopenStatusBadParm,
+                "invalid weight tensor provided for graph matching ConvBiasResAddActive pattern");
         }
         else if(in_c % wei_c != std::size_t{0})
         {
-            MIOPEN_THROW(miopenStatusBadParm, "invalid group count from input and weight tensor for graph matching ConvBiasResAddActive pattern");
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "invalid group count from input and weight tensor for graph matching "
+                         "ConvBiasResAddActive pattern");
         }
 
         int groupCount = in_c / wei_c;
@@ -128,7 +132,8 @@ public:
 
         if(!isBiasNode1 && !isBiasNode2)
         {
-            MIOPEN_THROW(miopenStatusBadParm, "no bias node provided for graph matching ConvBiasResAddActive pattern");
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "no bias node provided for graph matching ConvBiasResAddActive pattern");
         }
 
         auto* activ = dynamic_cast<OperationPointwise*>(

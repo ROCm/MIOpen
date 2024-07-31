@@ -52,7 +52,7 @@ static ConvolutionDescriptor Convert(const Convolution& conv, int groupCount)
 
 void ConvBiasResAddActivForwardExecutor::execute(miopenHandle_t handle, const VariantPack& vpk)
 {
-    auto convDesc     = Convert(*mConvolution, mGroupCount);
+    auto convDesc = Convert(*mConvolution, mGroupCount);
 
     ActivationDescriptor activDesc{miopenActivationRELU, mActivationAlpha, 1.0, 1.0};
 
