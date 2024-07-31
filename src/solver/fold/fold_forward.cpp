@@ -44,7 +44,7 @@ namespace solver {
 namespace fold {
 
 bool FoldFwd::IsApplicable([[maybe_unused]] const ExecutionContext& /*context*/,
-                           const miopen::fold::FoldFwdProblemDescription& problem) const
+                           [[maybe_unused]] const miopen::fold::FoldFwdProblemDescription& problem) const
 {
     return true;
 }
