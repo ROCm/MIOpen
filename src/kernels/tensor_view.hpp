@@ -72,11 +72,7 @@ struct tensor_layout_t
         }
     }
 
-    constexpr tensor_layout_t(uint64_t n,
-                              uint64_t c,
-                              uint64_t d,
-                              uint64_t h,
-                              uint64_t w)
+    constexpr tensor_layout_t(uint64_t n, uint64_t c, uint64_t d, uint64_t h, uint64_t w)
     {
         static_assert(N == 5);
         layout[0] = n;
@@ -95,9 +91,7 @@ struct tensor_layout_t
         layout[3] = w;
     }
 
-    constexpr tensor_layout_t(uint64_t n,
-                              uint64_t h,
-                              uint64_t w)
+    constexpr tensor_layout_t(uint64_t n, uint64_t h, uint64_t w)
     {
         static_assert(N == 3);
         layout[0] = n;
