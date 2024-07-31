@@ -191,7 +191,7 @@ private:
 
     int32_t dim;
 
-    miopenReduceExtremeOp_t reduceExtremeOp = MIOPEN_REDUCE_CALCULATION_SUM;
+    miopenReduceExtremeOp_t reduceExtremeOp;
 
     NetworkConfig MakeForwardNetworkConfig() const;
 };
