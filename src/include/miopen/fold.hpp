@@ -23,8 +23,8 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef MIOPEN_INSTANCE_NORM_HPP_
-#define MIOPEN_INSTANCE_NORM_HPP_
+#ifndef MIOPEN_FOLD_HPP_
+#define MIOPEN_FOLD_HPP_
 
 #include <miopen/common.hpp>
 
@@ -33,7 +33,7 @@ namespace miopen {
 struct Handle;
 struct TensorDescriptor;
 
-miopenStatus_t UnfoldForward(Handle& handle,
+MIOPEN_INTERNALS_EXPORT miopenStatus_t UnfoldForward(Handle& handle,
                              const TensorDescriptor& inputDesc,
                              ConstData_t input,
                              const TensorDescriptor& outputDesc,
@@ -47,7 +47,7 @@ miopenStatus_t UnfoldForward(Handle& handle,
                              const int32_t* dilation,
                              int32_t dilation_size);
 
-miopenStatus_t UnfoldBackward(Handle& handle,
+MIOPEN_INTERNALS_EXPORT miopenStatus_t UnfoldBackward(Handle& handle,
                               const TensorDescriptor& dinputDesc,
                               Data_t dinput,
                               const TensorDescriptor& doutputDesc,
@@ -61,7 +61,7 @@ miopenStatus_t UnfoldBackward(Handle& handle,
                               const int32_t* dilation,
                               int32_t dilation_size);
 
-miopenStatus_t FoldForward(Handle& handle,
+MIOPEN_INTERNALS_EXPORT miopenStatus_t FoldForward(Handle& handle,
                            const TensorDescriptor& inputDesc,
                            ConstData_t input,
                            const TensorDescriptor& outputDesc,
@@ -75,7 +75,7 @@ miopenStatus_t FoldForward(Handle& handle,
                            const int32_t* dilation,
                            int32_t dilation_size);
 
-miopenStatus_t FoldBackward(Handle& handle,
+MIOPEN_INTERNALS_EXPORT miopenStatus_t FoldBackward(Handle& handle,
                             const TensorDescriptor& dinputDesc,
                             Data_t dinput,
                             const TensorDescriptor& doutputDesc,
@@ -89,4 +89,4 @@ miopenStatus_t FoldBackward(Handle& handle,
                             const int32_t* dilation,
                             int32_t dilation_size);
 } // namespace miopen
-#endif // MIOPEN_INSTANCE_NORM_HPP_
+#endif // MIOPEN_FOLD_HPP_
