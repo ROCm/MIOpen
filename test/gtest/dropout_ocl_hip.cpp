@@ -740,7 +740,6 @@ std::vector<DropoutTestCase> DropoutTestConfigs()
 
     if constexpr(PERF_ENABLE)
     {
-
         std::vector<DropoutTestCase> configs;
         const auto& handle = get_handle();
         size_t maxTotalSize;
@@ -995,15 +994,21 @@ protected:
         if constexpr(PERF_ENABLE)
         {
             // get the input tensor size and store in a string with x in between
-            std::string input_dims_str =
+            std::string kernel_info =
                 std::to_string(dropout_config.dim0) + "x" + std::to_string(dropout_config.dim1) +
                 "x" + std::to_string(dropout_config.dim2) + "x" +
                 std::to_string(dropout_config.dim3) + "x" + std::to_string(dropout_config.dim4);
 
+            // Round off dropout rate to 2 decimal places
+            std::stringstream ss;
+            ss << std::fixed << std::setprecision(2) << DropoutDesc.dropout;
+            kernel_info += "_dropout" + ss.str();
+
+            kernel_info += "_mask" + std::to_string(DropoutDesc.use_mask);
+
             perf_helper.writeStatsToCSV(
                 sPerfTestFilename,
-                "_" + input_dims_str + "_" +
-                    (input_f.desc.GetType() == miopenHalf ? "FP16" : "FP32"));
+                "_" + kernel_info + "_" + (input_f.desc.GetType() == miopenHalf ? "FP16" : "FP32"));
         }
     }
 
