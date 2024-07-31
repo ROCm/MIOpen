@@ -81,7 +81,8 @@ class MHA_Fwd_F8_Pattern : public GraphPatternMatcher
     {
 
         assert(attn_scale);
-        std::vector<int64_t> all1s = {1LL, 1LL, 1LL, 1LL};
+        std::vector<std::size_t> all1s = {
+            std::size_t{1}, std::size_t{1}, std::size_t{1}, std::size_t{1}};
 
         auto tensor_map = std::make_shared<TensorInfoMap>();
 
@@ -126,28 +127,28 @@ class MHA_Fwd_F8_Pattern : public GraphPatternMatcher
                     *attn_scale  = alpha1;
                     /// \note old code assuming attn_scale applies to pw_mult
                     // auto* attn_scl = pw_0->getB();
-                    // assert(attn_scl->getDimensions() == all1s);
+                    // assert(attn_scl->GetLengths() == all1s);
                     // add_mapping(miopenTensorMhaAttnScale, attn_scl);
 
                     auto* pw_1 = dynamic_cast<OperationPointwise*>(
                         graph.findOutNeighByName(pw_0, "OP_POINTWISE:MUL"));
                     assert(pw_1);
                     auto dscl_q = pw_1->getB();
-                    assert(dscl_q->getDimensions() == all1s);
+                    assert(dscl_q->GetLengths() == all1s);
                     add_mapping(miopenTensorMhaDescaleQ, dscl_q);
 
                     auto* pw_2 = dynamic_cast<OperationPointwise*>(
                         graph.findOutNeighByName(pw_1, "OP_POINTWISE:MUL"));
                     assert(pw_2);
                     auto* dscl_k = pw_2->getB();
-                    assert(dscl_k->getDimensions() == all1s);
+                    assert(dscl_k->GetLengths() == all1s);
                     add_mapping(miopenTensorMhaDescaleK, dscl_k);
 
                     auto* red = dynamic_cast<OperationReduction*>(
                         graph.findOutNeighByName(pw_2, "OP_REDUCTION:MAX"));
                     assert(red);
                     auto* m = red->getY();
-                    assert(m->getDimensions()[3] == 1LL);
+                    assert(m->GetLengths()[3] == 1LL);
                     add_mapping(miopenTensorMhaM, m);
                 }
                 else
@@ -158,7 +159,7 @@ class MHA_Fwd_F8_Pattern : public GraphPatternMatcher
                     auto* pw_prev_cast = dynamic_cast<OperationPointwise*>(pw_prev);
                     assert(pw_prev_cast);
                     auto* scl_s = pw_prev_cast->getB();
-                    assert(scl_s->getDimensions() == all1s);
+                    assert(scl_s->GetLengths() == all1s);
                     add_mapping(miopenTensorMhaScaleS, scl_s);
 
                     auto* pw_0 = dynamic_cast<OperationPointwise*>(
@@ -166,28 +167,28 @@ class MHA_Fwd_F8_Pattern : public GraphPatternMatcher
                     assert(pw_0);
 
                     auto* dscl_s = pw_0->getB();
-                    assert(dscl_s->getDimensions() == all1s);
+                    assert(dscl_s->GetLengths() == all1s);
                     add_mapping(miopenTensorMhaDescaleS, dscl_s);
 
                     auto* pw_1 = dynamic_cast<OperationPointwise*>(
                         graph.findOutNeighByName(pw_0, "OP_POINTWISE:MUL"));
                     assert(pw_1);
                     auto* dscl_v = pw_1->getB();
-                    assert(dscl_v->getDimensions() == all1s);
+                    assert(dscl_v->GetLengths() == all1s);
                     add_mapping(miopenTensorMhaDescaleV, dscl_v);
 
                     auto* red = dynamic_cast<OperationReduction*>(
                         graph.findOutNeighByName(pw_1, "OP_REDUCTION:MAX"));
                     assert(red);
                     auto* amax_o = red->getY();
-                    assert(amax_o->getDimensions() == all1s);
+                    assert(amax_o->GetLengths() == all1s);
                     add_mapping(miopenTensorMhaAmaxO, amax_o);
 
                     auto* pw_2 = dynamic_cast<OperationPointwise*>(
                         graph.findOutNeighByName(pw_1, "OP_POINTWISE:MUL"));
                     assert(pw_2);
                     auto* scl_o = pw_2->getB();
-                    assert(scl_o->getDimensions() == all1s);
+                    assert(scl_o->GetLengths() == all1s);
                     add_mapping(miopenTensorMhaScaleO, scl_o);
 
                     auto* o = pw_2->getY();
@@ -276,7 +277,7 @@ public:
 
         for(auto& [k, v] : *tensor_map)
         {
-            s = miopenSetProblemTensorDescriptor(mha_prob, v.mEnumId, &(v.mTensDesc));
+            s = miopenSetProblemTensorDescriptor(mha_prob, v.mEnumId, v.mGraphTensor);
             MIOPEN_THROW_IF(s != miopenStatusSuccess,
                             "failed while setting tensor descriptor for mha fwd");
         }

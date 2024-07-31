@@ -64,24 +64,8 @@ Tensor makeTensor(std::string_view name, miopenDataType_t dt, const Vec& dims, c
 template <bool isVirtual, typename Vec>
 Tensor makeTensor(std::string_view name, miopenDataType_t dt, const Vec& dims)
 {
-
-    Vec strides(dims);
-    using T = typename Vec::value_type;
-    // former std::exclusive_scan(dims.begin(),
-    //                            dims.end(),
-    //                            strides.begin(),
-    //                            T{1LL}, std::multiplies<T>{});
-    // replaced by the loop due to std::exclusive_scan is not supported on gcc older that 11
-    if(!dims.empty())
-    {
-        strides[0] = static_cast<T>(1);
-        for(size_t i = 0; i < dims.size() - 1; ++i)
-        {
-            strides[i + 1] = dims[i] * strides[i];
-        }
-    }
-
-    return makeTensor<isVirtual>(name, dt, dims, strides);
+    TensorDescriptor desc{dt, dims};
+    return makeTensor<isVirtual>(name, dt, desc.GetLengths(), desc.GetStrides());
 }
 
 /// An RAII style class that captures a pointer to an object on heap and frees it
@@ -182,7 +166,7 @@ struct PatternGraphGenerator
     inline Tensor* makeDummyTensor(std::string_view name)
     {
 
-        return mAlloc.allocate(makeTensor<true>(name, miopenFloat, std::vector<int64_t>({1})));
+        return mAlloc.allocate(makeTensor<true>(name, miopenFloat, std::vector<size_t>({1})));
     }
 
 private:

@@ -126,6 +126,7 @@ set( MIOpen_Source
     fusion.cpp
     fusion/problem_description.cpp
     generic_search.cpp
+    getitem_api.cpp
     graphapi/convolution.cpp
     graphapi/engine.cpp
     graphapi/enginecfg.cpp
@@ -145,6 +146,7 @@ set( MIOpen_Source
     groupnorm/problem_description.cpp
     handle_api.cpp
     invoker_cache.cpp
+    getitem/problem_description.cpp
     kernel_build_params.cpp
     kernel_warnings.cpp
     layernorm_api.cpp
@@ -219,12 +221,43 @@ set( MIOpen_Source
     solver/conv/conv_asm_implicit_gemm_wrw_v4r1_dynamic.cpp
     solver/conv/conv_bin_wino3x3U.cpp
     solver/conv/conv_bin_winoRxS.cpp
+    solver/conv/conv_ck_igemm_fwd_v6r1_dlops_nchw.cpp
+    solver/conv/conv_direct_naive_conv.cpp
+    solver/conv/conv_direct_naive_conv_bwd.cpp
+    solver/conv/conv_direct_naive_conv_fwd.cpp
+    solver/conv/conv_direct_naive_conv_wrw.cpp
+    solver/conv/conv_hip_implicit_gemm_bwd_data_xdlops.cpp
+    solver/conv/conv_hip_implicit_gemm_bwd_v1r1.cpp
+    solver/conv/conv_hip_implicit_gemm_bwd_v1r1_xdlops.cpp
+    solver/conv/conv_hip_implicit_gemm_bwd_v4r1.cpp
+    solver/conv/conv_hip_implicit_gemm_bwd_v4r1_xdlops.cpp
+    solver/conv/conv_hip_implicit_gemm_fwd_v4r1.cpp
+    solver/conv/conv_hip_implicit_gemm_fwd_v4r4.cpp
+    solver/conv/conv_hip_implicit_gemm_fwd_v4r4_xdlops.cpp
+    solver/conv/conv_hip_implicit_gemm_fwd_v4r4_xdlops_padded_gemm.cpp
+    solver/conv/conv_hip_implicit_gemm_fwd_v4r5_xdlops.cpp
+    solver/conv/conv_hip_implicit_gemm_fwd_xdlops.cpp
+    solver/conv/conv_hip_implicit_gemm_grouped_fwd_xdlops.cpp
+    solver/conv/conv_hip_implicit_gemm_grouped_bwd_xdlops.cpp
+    solver/conv/conv_hip_implicit_gemm_grouped_wrw_xdlops.cpp
+    solver/conv/conv_hip_implicit_gemm_3d_grouped_fwd_xdlops.cpp
+    solver/conv/conv_hip_implicit_gemm_3d_grouped_wrw_xdlops.cpp
+    solver/conv/conv_hip_implicit_gemm_3d_grouped_bwd_xdlops.cpp
+    solver/conv/conv_hip_implicit_gemm_f16f8f16_fwd_xdlops.cpp
+    solver/conv/conv_hip_implicit_gemm_f16f8f16_bwd_xdlops.cpp
+    solver/conv/conv_hip_implicit_gemm_f16f8f16_wrw_xdlops.cpp
+    solver/conv/conv_hip_implicit_gemm_nonxdlops_common.cpp
+    solver/conv/conv_hip_implicit_gemm_wrw_v4r4.cpp
+    solver/conv/conv_hip_implicit_gemm_wrw_v4r4_xdlops.cpp
+    solver/conv/conv_hip_implicit_gemm_wrw_v4r4_xdlops_padded_gemm.cpp
+    solver/conv/conv_MP_bidirectional_winograd.cpp
     solver/conv/conv_mlir_igemm_bwd.cpp
     solver/conv/conv_mlir_igemm_bwd_xdlops.cpp
     solver/conv/conv_mlir_igemm_fwd.cpp
     solver/conv/conv_mlir_igemm_fwd_xdlops.cpp
     solver/conv/conv_mlir_igemm_wrw.cpp
     solver/conv/conv_mlir_igemm_wrw_xdlops.cpp
+    solver/conv/conv_multipass_wino3x3WrW.cpp
     solver/conv/conv_ocl_dir2D_bwdWrW_1x1.cpp
     solver/conv/conv_ocl_dir2D_bwdWrW_2.cpp
     solver/conv/conv_ocl_dir2D_bwdWrW_53.cpp
@@ -236,48 +269,18 @@ set( MIOpen_Source
     solver/conv/conv_wino_fury_RxS.cpp
     solver/conv/conv_winoRxS.cpp
     solver/conv/fft.cpp
+    solver/conv/gemm.cpp
+    solver/conv/gemm_bwd.cpp
+    solver/conv/gemm_common.cpp
+    solver/conv/gemm_wrw.cpp
     solver/conv_asm_1x1u_bias_activ_fused.cpp
     solver/conv_bin_winoRxS_fused.cpp
-    solver/conv_ck_igemm_fwd_v6r1_dlops_nchw.cpp
     solver/conv_ck_igemm_fwd_bias_activ_fused.cpp
     solver/conv_ck_igemm_fwd_bias_res_add_activ_fused.cpp
-    solver/conv_direct_naive_conv.cpp
-    solver/conv_direct_naive_conv_bwd.cpp
-    solver/conv_direct_naive_conv_fwd.cpp
-    solver/conv_direct_naive_conv_wrw.cpp
-    solver/conv_hip_implicit_gemm_bwd_data_xdlops.cpp
-    solver/conv_hip_implicit_gemm_bwd_v1r1.cpp
-    solver/conv_hip_implicit_gemm_bwd_v1r1_xdlops.cpp
-    solver/conv_hip_implicit_gemm_bwd_v4r1.cpp
-    solver/conv_hip_implicit_gemm_bwd_v4r1_xdlops.cpp
-    solver/conv_hip_implicit_gemm_fwd_v4r1.cpp
-    solver/conv_hip_implicit_gemm_fwd_v4r4.cpp
-    solver/conv_hip_implicit_gemm_fwd_v4r4_xdlops.cpp
-    solver/conv_hip_implicit_gemm_fwd_v4r4_xdlops_padded_gemm.cpp
-    solver/conv_hip_implicit_gemm_fwd_v4r5_xdlops.cpp
-    solver/conv_hip_implicit_gemm_fwd_xdlops.cpp
-    solver/conv_hip_implicit_gemm_grouped_fwd_xdlops.cpp
-    solver/conv_hip_implicit_gemm_grouped_bwd_xdlops.cpp
-    solver/conv_hip_implicit_gemm_grouped_wrw_xdlops.cpp
-    solver/conv_hip_implicit_gemm_3d_grouped_fwd_xdlops.cpp
-    solver/conv_hip_implicit_gemm_3d_grouped_wrw_xdlops.cpp
-    solver/conv_hip_implicit_gemm_3d_grouped_bwd_xdlops.cpp
-    solver/conv_hip_implicit_gemm_f16f8f16_fwd_xdlops.cpp
-    solver/conv_hip_implicit_gemm_f16f8f16_bwd_xdlops.cpp
-    solver/conv_hip_implicit_gemm_f16f8f16_wrw_xdlops.cpp
-    solver/conv_hip_implicit_gemm_nonxdlops_common.cpp
-    solver/conv_hip_implicit_gemm_wrw_v4r4.cpp
-    solver/conv_hip_implicit_gemm_wrw_v4r4_xdlops.cpp
-    solver/conv_hip_implicit_gemm_wrw_v4r4_xdlops_padded_gemm.cpp
-    solver/conv_MP_bidirectional_winograd.cpp
-    solver/conv_multipass_wino3x3WrW.cpp
     solver/conv_ocl_dir2Dfwd_fused.cpp
     solver/conv_winoRxS_fused.cpp
-    solver/gemm.cpp
-    solver/gemm_bwd.cpp
-    solver/gemm_common.cpp
-    solver/gemm_wrw.cpp
     solver/groupnorm/forward_groupnorm.cpp
+    solver/getitem/backward_getitem.cpp
     solver/layernorm/backward_t5layernorm.cpp
     solver/layernorm/forward_addlayernorm.cpp
     solver/layernorm/forward_layernorm.cpp
@@ -438,6 +441,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/conv_sizes.inc
         kernels/float_types.h
         kernels/gpr_alloc.inc
+        kernels/hip_atomic.hpp
         kernels/hip_f8_impl.hpp
         kernels/hip_float8.hpp
         kernels/inst_wrappers.inc
@@ -449,6 +453,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/neuron.inc
         kernels/rocm_version.inc
         kernels/stride_array.hpp
+        kernels/tensor_view.hpp
         kernels/utilities.inc
         kernels/winograd/Conv_Winograd_Fury_v2_4_1_gfx11_1536vgprs_fp16_fp16acc_f2x3_c16_stride1.inc
         kernels/winograd/Conv_Winograd_Fury_v2_4_1_gfx11_1536vgprs_fp16_fp16acc_f2x3_c32_stride1.inc
@@ -489,6 +494,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenConvDirBatchNormActiv.cl
         kernels/MIOpenConvDirGenFwd.cl
         kernels/MIOpenGroupNorm.cpp
+        kernels/MIOpenGetitem.cpp
         kernels/MIOpenLayerNorm.cpp
         kernels/MIOpenLRNBwd.cl
         kernels/MIOpenLRNFwd.cl
@@ -618,6 +624,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         addlayernorm.cpp
         cat.cpp
         groupnorm.cpp
+        getitem.cpp
         kernel_cache.cpp
         layernorm.cpp
         lrn.cpp
@@ -655,7 +662,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         )
 endif()
 
-if(MIOPEN_USE_ROCBLAS)
+if(MIOPEN_USE_ROCBLAS OR MIOPEN_USE_HIPBLASLT)
     list(APPEND MIOpen_Source
         gemm_v2.cpp
     )
@@ -770,6 +777,10 @@ rocm_set_soversion(MIOpen ${MIOpen_SOVERSION})
 
 clang_tidy_check(MIOpen)
 
+if(HAS_LIB_STD_FILESYSTEM)
+    target_link_libraries(MIOpen PRIVATE stdc++fs)
+endif()
+
 find_package(zstd)
 if(zstd_FOUND)
     target_link_libraries(MIOpen PRIVATE $<IF:$<TARGET_EXISTS:zstd::libzstd_shared>,zstd::libzstd_shared,zstd::libzstd_static>)
@@ -798,6 +809,11 @@ target_include_directories(MIOpen SYSTEM PUBLIC $<BUILD_INTERFACE:${HALF_INCLUDE
 #               We can remove ${CMAKE_DL_LIBS} once root cause is identified.
 target_link_libraries(MIOpen PRIVATE ${CMAKE_DL_LIBS} Threads::Threads BZip2::BZip2 ${MIOPEN_CK_LINK_FLAGS})
 miopen_generate_export_header(MIOpen)
+
+if(WIN32)
+    # Temporary workaround on rocMLIR not exporting correctly libraries it depends on.
+    target_link_libraries(MIOpen PRIVATE ntdll)
+endif()
 
 if(BUILD_TESTING)
     # On Windows, export selected internal symbols only when tests are built. The officially released
@@ -866,6 +882,10 @@ if(rocblas_FOUND)
     target_link_libraries( MIOpen INTERFACE $<BUILD_INTERFACE:roc::rocblas> )
     target_link_libraries( MIOpen PRIVATE roc::rocblas )
     list(APPEND PACKAGE_STATIC_DEPENDS PACKAGE rocblas)
+endif()
+
+if(hipblaslt_FOUND)
+    target_link_libraries( MIOpen PRIVATE roc::hipblaslt )
 endif()
 
 # For backward compatibility with ROCm 5.3

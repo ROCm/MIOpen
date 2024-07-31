@@ -170,6 +170,7 @@ private:
         }                                                                          \
         operator ::miopen::env::detail::EnvVar<_type>&() const { return ref(); }   \
         operator bool() const { return ref().exist(); }                            \
+        constexpr std::string_view GetName() const { return #_name; }              \
     } _name;
 
 #define MIOPEN_DECLARE_ENV_VAR_BOOL(name, ...) MIOPEN_DECLARE_ENV_VAR(name, bool, __VA_ARGS__)
