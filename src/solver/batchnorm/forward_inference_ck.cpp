@@ -79,6 +79,25 @@ struct CKArgsBNormFwd
     std::array<index_t, Rank> aligned_scaleBiasMeanVarStrides{3};
 
     std::array<int, NumBatchNormReduceDim> reduceDims{0, 1, 2};
+
+    template <typename InvokerPtr, typename InvokerParams>
+    auto MakeArgPtr(const InvokerPtr& invoker_ptr, const InvokerParams& data_ctx) const
+    {
+        return invoker_ptr->MakeArgumentPointer(xyLengths,
+                                                {xyStrides,
+                                                 aligned_scaleBiasMeanVarStrides,
+                                                 aligned_scaleBiasMeanVarStrides,
+                                                 aligned_scaleBiasMeanVarStrides,
+                                                 aligned_scaleBiasMeanVarStrides},
+                                                {xyStrides},
+                                                {data_ctx.x,
+                                                 data_ctx.estimatedMean,
+                                                 data_ctx.estimatedVariance,
+                                                 data_ctx.bnScale,
+                                                 data_ctx.bnBias},
+                                                {data_ctx.y},
+                                                Normalize{data_ctx.epsilon});
+    }
 };
 
 template <typename XDataType,
@@ -137,8 +156,8 @@ ConvSolution InvokerFactoryMakerNHWC(const miopen::batchnorm::ProblemDescription
                                                                   BiasDataType,
                                                                   MeanVarDataType>(bn_problem)](
                                  const std::vector<Kernel>& /*kernels*/) mutable {
-        return [=, args = std::move(args)](const Handle& handle,
-                                           const AnyInvokeParams& primitive_parameters) {
+        return [args = std::move(args), kernel_index = kernel_index](
+                   const Handle& handle, const AnyInvokeParams& primitive_parameters) {
             using DeviceOp = ck::tensor_operation::device::DeviceElementwise<
                 ck::Tuple<XDataType, MeanVarDataType, MeanVarDataType, ScaleDataType, BiasDataType>,
                 ck::Tuple<YDataType>,
@@ -152,20 +171,7 @@ ConvSolution InvokerFactoryMakerNHWC(const miopen::batchnorm::ProblemDescription
             auto& bn_ptr       = bn_fwd_ptrs.at(kernel_index);
             const auto& params = primitive_parameters.CastTo<miopen::batchnorm::InfInvokeParams>();
 
-            auto argument_ptr = bn_ptr->MakeArgumentPointer(args.xyLengths,
-                                                            {args.xyStrides,
-                                                             args.aligned_scaleBiasMeanVarStrides,
-                                                             args.aligned_scaleBiasMeanVarStrides,
-                                                             args.aligned_scaleBiasMeanVarStrides,
-                                                             args.aligned_scaleBiasMeanVarStrides},
-                                                            {args.xyStrides},
-                                                            {params.x,
-                                                             params.estimatedMean,
-                                                             params.estimatedVariance,
-                                                             params.bnScale,
-                                                             params.bnBias},
-                                                            {params.y},
-                                                            Normalize{params.epsilon});
+            auto argument_ptr = args.MakeArgPtr(bn_ptr, params);
 
             auto invoker_ptr            = bn_ptr->MakeInvokerPointer();
             const auto enable_profiling = handle.IsProfilingEnabled();
