@@ -285,6 +285,9 @@ protected:
 
     void Verify()
     { // Compare the outputs
+      // NOTE: Some small tensors during perf tests produce zero outputs which will result in
+      // non-fatal gtest failures. These can be safely ignored. In this situation both the referene
+      // and the gpu outputs will be zero. Observed them in relu, power and clippedrelu.
         EXPECT_FALSE(miopen::range_zero(ref_out)) << "CPU/GPU data is all zeros";
         EXPECT_FALSE(miopen::range_zero(output)) << "GPU data is all zeros";
         EXPECT_FALSE(miopen::find_idx(output, miopen::not_finite) >= 0)
