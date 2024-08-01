@@ -42,6 +42,26 @@ struct ConvWrwSolverTest
 {
     void SolverWrw(const miopen::solver::conv::ConvSolverBase& solv)
     {
+        // SetUpTest() and TearDownTest() are called in the SolverWrw() because the test can be skipped, and calling these functions takes some time, with a large number of test configs the wasted time can be significant.
+        this->SetUpTest();
+        this->RunSolver(solv);
+        this->TearDownTest();
+    }
+
+protected:
+    void SetUp() override
+    {
+        //this->SetUpTest();
+    }
+
+    void TearDown() override
+    {
+        //this->TearDownTest();
+    }
+
+private:
+    void RunSolver(const miopen::solver::conv::ConvSolverBase& solv)
+    {
         auto&& handle = get_handle();
 
         const auto tensors = miopen::ConvWrwTensors{
@@ -85,8 +105,7 @@ struct ConvWrwSolverTest
         test_skipped = false;
     }
 
-protected:
-    void SetUp() override
+    void SetUpTest()
     {
         test_skipped                = true;
         std::tie(algo, conv_config) = GetParam();
@@ -110,7 +129,7 @@ protected:
         out_dev       = handle.Write(output.data);
     }
 
-    void TearDown() override
+    void TearDownTest()
     {
         if(test_skipped)
             return;
