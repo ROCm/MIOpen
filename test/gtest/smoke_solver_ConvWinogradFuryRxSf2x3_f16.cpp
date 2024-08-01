@@ -34,24 +34,23 @@ namespace {
 
 auto GetTestCases()
 {
-    const auto env =
-        std::tuple{std::pair{MIOPEN_FIND_MODE, "normal"},
-                   std::pair{MIOPEN_DEBUG_FIND_ONLY_SOLVER, "\'ConvWinoFuryRxS<2-3>\'"}};
+    const auto env = std::tuple{std::pair{MIOPEN_FIND_MODE, "normal"},
+                                std::pair{MIOPEN_DEBUG_FIND_ONLY_SOLVER, "ConvWinoFuryRxS<2-3>"}};
 
     const std::string vf = " --verbose --disable-backward-data --disable-backward-weights";
     const std::string vb = " --verbose --disable-forward --disable-backward-weights";
 
     return std::vector{
         // clang-format off
-    std::pair{env, vf + " --input 1 16 16 16 --weights 16 16 3 3 --pads_strides_dilations 1 1 1 1 1 1 --trans_output_pads 1 1"},
-    std::pair{env, vb + " --input 1 16 16 16 --weights 16 16 3 3 --pads_strides_dilations 1 1 1 1 1 1 --trans_output_pads 1 1"}
+    std::pair{env, vf + " --input 1 16 16 16 --weights 16 16 3 3 --pads_strides_dilations 1 1 1 1 1 1"},
+    std::pair{env, vb + " --input 1 16 16 16 --weights 16 16 3 3 --pads_strides_dilations 1 1 1 1 1 1"}
         // clang-format on
     };
 }
 
 using TestCase = decltype(GetTestCases())::value_type;
 
-bool SkipTest() { return get_handle_xnack(); }
+bool SkipTest() { return false; }
 
 bool IsTestSupportedForDevice()
 {
@@ -66,7 +65,7 @@ class Conv2dDefaultHalf : public HalfTestCase<std::vector<TestCase>>
 {
 };
 
-TEST_P(Conv2dDefaultHalf, HalfTest_smoke_solver_ConvWinogradFuryRxSf2x3_f16)
+TEST_P(Conv2dDefaultHalf, HalfTest_smoke_solver_ConvWinoFuryRxSf2x3)
 {
     if(IsTestSupportedForDevice() && !SkipTest())
     {
@@ -78,6 +77,6 @@ TEST_P(Conv2dDefaultHalf, HalfTest_smoke_solver_ConvWinogradFuryRxSf2x3_f16)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(SmokeSolverConvBinWinogradRxSf2x3g13x2F16,
+INSTANTIATE_TEST_SUITE_P(SmokeSolverConvWinoFuryRxSf2x3,
                          Conv2dDefaultHalf,
                          testing::Values(GetTestCases()));

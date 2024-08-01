@@ -51,7 +51,8 @@ namespace gr = miopen::graphapi;
 
 namespace mha_graph_test {
 
-class MhaFwdGraphTest : public testing::TestWithParam<std::tuple<int, int, int, int, float>>
+class MhaFwdGraphTest : public testing::TestWithParam<
+                            std::tuple<std::size_t, std::size_t, std::size_t, std::size_t, float>>
 {
 
     struct TensorData
@@ -66,15 +67,13 @@ class MhaFwdGraphTest : public testing::TestWithParam<std::tuple<int, int, int, 
         explicit TensorData(gr::Tensor* tens_ptr) : mTensPtr(tens_ptr), mCpuTensor()
         {
             assert(mTensPtr);
-            const auto& d = mTensPtr->getDimensions();
-            std::vector<size_t> dims(d.begin(), d.end());
-            if(auto dt = mTensPtr->getDataType(); dt == miopenFloat)
+            if(auto dt = mTensPtr->GetType(); dt == miopenFloat)
             {
-                mCpuTensor = TensFlt{dims};
+                mCpuTensor = TensFlt{mTensPtr->GetLengths()};
             }
             else if(dt == miopenInt64)
             {
-                mCpuTensor = TensI64{dims};
+                mCpuTensor = TensI64{mTensPtr->GetLengths()};
             }
             else
             {
@@ -85,7 +84,7 @@ class MhaFwdGraphTest : public testing::TestWithParam<std::tuple<int, int, int, 
         void init(tensor<float>&& tens_val)
         {
             auto& handle = get_handle();
-            assert(mTensPtr->getDataType() == miopenFloat);
+            assert(mTensPtr->GetType() == miopenFloat);
             auto& ct = std::get<TensFlt>(mCpuTensor);
             ct       = std::move(tens_val);
             mGpuBuf  = handle.Write(ct.data);
@@ -271,7 +270,7 @@ class MhaFwdGraphTest : public testing::TestWithParam<std::tuple<int, int, int, 
 
     template <bool IsVirt>
     gr::Tensor*
-    makeTensor(std::string_view name, miopenDataType_t dt, const std::vector<int64_t>& dims)
+    makeTensor(std::string_view name, miopenDataType_t dt, const std::vector<size_t>& dims)
     {
         auto ptr = mAlloc.allocate(gr::makeTensor<IsVirt>(name, dt, dims));
         if constexpr(!IsVirt)
@@ -281,15 +280,15 @@ class MhaFwdGraphTest : public testing::TestWithParam<std::tuple<int, int, int, 
         return ptr;
     }
 
-    void createMhaGraph(int64_t n, int64_t h, int64_t s, int64_t d)
+    void createMhaGraph(size_t n, size_t h, size_t s, size_t d)
     {
 
         mGraphBuilder = std::make_unique<gr::OpGraphBuilder>();
 
-        std::vector<int64_t> nhsd  = {n, h, s, d};
-        std::vector<int64_t> nhss  = {n, h, s, s};
-        std::vector<int64_t> nhs1  = {n, h, s, 1};
-        std::vector<int64_t> all1s = {1, 1, 1, 1};
+        std::vector<size_t> nhsd  = {n, h, s, d};
+        std::vector<size_t> nhss  = {n, h, s, s};
+        std::vector<size_t> nhs1  = {n, h, s, 1};
+        std::vector<size_t> all1s = {1, 1, 1, 1};
 
 #define MAKE_TENSOR_F(name, dims, isVirt) auto* name = makeTensor<isVirt>(#name, miopenFloat, dims)
 #define MAKE_TENSOR_I(name, dims, isVirt) auto* name = makeTensor<isVirt>(#name, miopenInt64, dims)
@@ -582,9 +581,9 @@ TEST_P(MhaFwdGraphTest, MhaFwdGraph) { Run(); }
 
 INSTANTIATE_TEST_SUITE_P(MhaGraphFwdSuite,
                          MhaFwdGraphTest,
-                         testing::Combine(testing::ValuesIn({2}),         // n
-                                          testing::ValuesIn({8}),         // h
-                                          testing::ValuesIn({4, 64}),     // s
-                                          testing::ValuesIn({16}),        // d
+                         testing::Combine(testing::ValuesIn(std::vector<std::size_t>{2}),     // n
+                                          testing::ValuesIn(std::vector<std::size_t>{8}),     // h
+                                          testing::ValuesIn(std::vector<std::size_t>{4, 64}), // s
+                                          testing::ValuesIn(std::vector<std::size_t>{16}),    // d
                                           testing::ValuesIn({0.0f, 0.5f}) // mProbDropout
                                           ));

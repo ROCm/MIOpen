@@ -69,6 +69,15 @@ else()
     message( STATUS "Clang tidy found: ${CLANG_TIDY_VERSION}")
 endif()
 
+set(EXTRA_CHECKS)
+# There is a bug in tidy that hangs it in some cases when it encounters optional access
+# It can spend 3.5h+ and timeout the CI
+# It is fixed in 18.0.0 or worked around by disabling this check: bugprone-unchecked-optional-access
+# https://github.com/llvm/llvm-project/issues/59492
+if (CLANG_TIDY_VERSION VERSION_LESS "18.0.0")
+    list(APPEND EXTRA_CHECKS -bugprone-unchecked-optional-access)
+endif()
+
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 set(CLANG_TIDY_FIXIT_DIR ${CMAKE_BINARY_DIR}/fixits)
@@ -81,6 +90,7 @@ macro(enable_clang_tidy)
     set(multiValueArgs CHECKS ERRORS EXTRA_ARGS)
 
     cmake_parse_arguments(PARSE "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
+    list(APPEND PARSE_CHECKS ${EXTRA_CHECKS})
     string(REPLACE ";" "," CLANG_TIDY_CHECKS "${PARSE_CHECKS}")
     string(REPLACE ";" "," CLANG_TIDY_ERRORS "${PARSE_ERRORS}")
     set(CLANG_TIDY_EXTRA_ARGS)

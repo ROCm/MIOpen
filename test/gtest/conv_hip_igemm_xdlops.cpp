@@ -85,7 +85,7 @@ void Run2dDriver(miopenDataType_t prec)
         });
 
         testing::internal::CaptureStderr();
-        test_drive<conv2d_driver>(ptrs.size(), ptrs.data());
+        test_drive<conv2d_driver>(ptrs.size(), ptrs.data(), "test_conv2d");
         auto capture = testing::internal::GetCapturedStderr();
         std::cout << capture;
     }

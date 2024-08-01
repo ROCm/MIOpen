@@ -278,7 +278,7 @@ T5LayernormBackward::GetSolution(const ExecutionContext& context,
                        params.rstd,
                        params.dx,
                        inner_size,
-                       static_cast<bool>(params.mode % 2));
+                       static_cast<int32_t>(params.mode));
 
                 weight_parallel_kernel(params.dy,
                                        params.x,
@@ -333,7 +333,7 @@ T5LayernormBackward::GetSolution(const ExecutionContext& context,
                        params.rstd,
                        params.dx,
                        inner_size,
-                       static_cast<bool>(params.mode % 2));
+                       static_cast<int32_t>(params.mode));
 
                 weight_kernel(params.dy, params.x, params.rstd, params.dw, outer_size, inner_size);
 
