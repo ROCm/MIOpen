@@ -85,8 +85,12 @@ inline std::vector<PReLUTestCase> PReLUFullTestConfigs()
 
     auto smoke_test = PReLUSmokeTestConfigs();
     auto perf_test  = PReLUPerfTestConfigs();
-    tcs.assign(smoke_test.begin(), smoke_test.end());
-    tcs.assign(perf_test.begin(), perf_test.end());
+
+    tcs.reserve(smoke_test.size() + perf_test.size());
+    for(const auto& test : smoke_test)
+        tcs.push_back(test);
+    for(const auto& test : perf_test)
+        tcs.push_back(test);
 
     return tcs;
 }
