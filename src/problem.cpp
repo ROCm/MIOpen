@@ -647,24 +647,70 @@ Problem::FindSolutionsImpl(Handle& handle,
     return ret;
 }
 
-void Problem::ValidateGroupCount(const TensorDescriptor& xDesc,
-                                 const TensorDescriptor& wDesc,
+static inline bool IsValidFilterChannelNumber(const TensorDescriptor& x,
+                                              const TensorDescriptor& w,
+                                              const miopenTensorLayout_t layout,
+                                              const int groups)
+{
+    if(layout == miopenTensorNCHW      //
+       || layout == miopenTensorNCHWc4 //
+       || layout == miopenTensorNCHWc8)
+    {
+        return x.GetLengths()[1] / groups == w.GetLengths()[1];
+    }
+
+    if(layout == miopenTensorCHWNc4 //
+       || layout == miopenTensorCHWNc8)
+    {
+        return x.GetLengths()[1] / groups == w.GetLengths()[0];
+    }
+
+    return true;
+}
+
+static inline bool IsValidGroupCount(const TensorDescriptor& x,
+                                     const TensorDescriptor& w,
+                                     const miopenTensorLayout_t layout,
+                                     const int groups)
+{
+    if(groups > 1) // Optimize for speed
+    {
+        if(x.GetLengths()[1] % groups != 0)
+            return false;
+
+        if(layout == miopenTensorNCHW      //
+           || layout == miopenTensorNCHWc4 //
+           || layout == miopenTensorNCHWc8)
+            return w.GetLengths()[0] % groups == 0;
+
+        if(layout == miopenTensorCHWNc4 //
+           || layout == miopenTensorCHWNc8)
+            return w.GetLengths()[3] % groups == 0;
+    }
+    return true;
+}
+
+void Problem::ValidateGroupCount(const TensorDescriptor& x,
+                                 const TensorDescriptor& w,
                                  const ConvolutionDescriptor& conv)
 {
-    if(conv.group_count == 1)
-    {
-        if(xDesc.GetLengths()[1] != wDesc.GetLengths()[1])
-            MIOPEN_THROW(miopenStatusBadParm, "Invalid filter channel number");
-    }
-    if(conv.group_count > 1)
-    {
-        if(xDesc.GetLengths()[1] % conv.group_count != 0 ||
-           wDesc.GetLengths()[0] % conv.group_count != 0 ||
-           conv.group_count > xDesc.GetLengths()[1] || conv.group_count > wDesc.GetLengths()[0])
-            MIOPEN_THROW(miopenStatusBadParm, "Invalid group number");
-        if(xDesc.GetLengths()[1] / conv.group_count != wDesc.GetLengths()[1])
-            MIOPEN_THROW(miopenStatusBadParm, "Invalid filter channel number");
-    }
+    const auto layout = w.GetLayout_t();
+    const auto groups = conv.group_count;
+    assert(groups > 0);
+
+    const auto ok_c = IsValidFilterChannelNumber(x, w, layout, groups);
+    const auto ok_g = IsValidGroupCount(x, w, layout, groups);
+
+    if(ok_c && ok_g)
+        return;
+
+    MIOPEN_LOG_W(w.GetLayout_str() << "w {" << w.ToString() << "}, " //
+                                   << "x {" << x.ToString() << "}, " //
+                                   << "groups = " << conv.group_count);
+    if(!ok_c)
+        MIOPEN_THROW(miopenStatusBadParm, "Invalid filter channel number");
+    if(!ok_g)
+        MIOPEN_THROW(miopenStatusBadParm, "Invalid group number");
 }
 
 void Problem::LogDriverCommand() const
