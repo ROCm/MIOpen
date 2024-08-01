@@ -175,7 +175,11 @@ set( MIOpen_Source
     rnn.cpp
     rnn_api.cpp
     rnn/rnn_util.cpp
+    rnn/selector.cpp
     rnn/Solutions/rnn_transformer.cpp
+    rnn/Solutions/modular_base.cpp
+    rnn/Solutions/bwd_s_stream.cpp
+    rnn/Solutions/bwd_multi_stream.cpp
     scalar.cpp
     softmax.cpp
     softmax_api.cpp
@@ -815,6 +819,11 @@ target_include_directories(MIOpen SYSTEM PUBLIC $<BUILD_INTERFACE:${HALF_INCLUDE
 #               We can remove ${CMAKE_DL_LIBS} once root cause is identified.
 target_link_libraries(MIOpen PRIVATE ${CMAKE_DL_LIBS} Threads::Threads BZip2::BZip2 ${MIOPEN_CK_LINK_FLAGS})
 miopen_generate_export_header(MIOpen)
+
+if(WIN32)
+    # Temporary workaround on rocMLIR not exporting correctly libraries it depends on.
+    target_link_libraries(MIOpen PRIVATE ntdll)
+endif()
 
 if(BUILD_TESTING)
     # On Windows, export selected internal symbols only when tests are built. The officially released
