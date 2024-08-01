@@ -258,7 +258,7 @@ public:
                 v.init(dO.mDescale);
             }
             else if(k == "SCL_O" || k == "SCL_S" || k == "DSCL_O" || k == "DSCL_S" ||
-                    k == "DSCL_S" || k == "ATN_SCL" || k == "SCL_dS" || k == "DSCL_dS" ||
+                    k == "ATN_SCL" || k == "SCL_dS" || k == "DSCL_dS" ||
                     k == "SCL_dV" || k == "SCL_dQ" || k == "SCL_dK")
             {
                 v.init(1.0f);
