@@ -239,7 +239,13 @@ public:
     {
         invokers.Register({config, solver}, invoker);
         if(algo.has_value())
-            invokers.SetAsFound1_0(config, *algo, solver);
+            SetAsFound1_0(config, *algo, solver);
+    }
+
+    void
+    SetAsFound1_0(const NetworkConfig& config, const AlgorithmName& algo, const std::string& solver)
+    {
+        invokers.SetAsFound1_0(config, algo, solver);
     }
 
     boost::optional<const Invoker&>

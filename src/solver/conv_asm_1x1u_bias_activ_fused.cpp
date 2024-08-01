@@ -142,7 +142,6 @@ ConvBiasActivAsm1x1U::GetSolution(const FusionContext& context,
     kernel_info.comp_options += cba_options.str();
 
     const auto out_data_type = conv_problem.GetOutDataType();
-    sol.weight               = 50.0f;
 
     sol.invoker_factory = [=](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
@@ -214,6 +213,16 @@ ConvBiasActivAsm1x1U::GetSolution(const FusionContext& context,
     return sol;
 }
 
+float ConvBiasActivAsm1x1U::GetWti(const FusionContext&, const FusionDescription&) const
+{
+    /// \anchor Negative WTI values
+    // Negative values mean rough estimation of time
+    // Solvers with positive values are considered first priority
+    // If none found solvers with negative are used, wti_approximate_worst meaning a completely
+    // unknown value. So lower absolute values mean higher priority
+    return wti_approximate_worst * .25f;
+}
+
 bool ConvBiasActivAsm1x1U::IsApplicable(const FusionContext& context,
                                         const FusionDescription& problem) const
 {
@@ -262,7 +271,6 @@ bool ConvBiasActivAsm1x1U::IsApplicable(const FusionContext& context,
     // Check if the conovlution part is applicable
     return sol.IsApplicable(conv_ctx, conv_problem);
 }
-
 } // namespace fusion
 } // namespace solver
 } // namespace miopen

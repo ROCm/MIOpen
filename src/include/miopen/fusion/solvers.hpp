@@ -159,6 +159,7 @@ struct ConvBiasActivAsm1x1U : FusionTunableSolver<PerformanceConfigConvBiasActiv
     bool IsValidPerformanceConfig(const FusionContext&,
                                   const FusionDescription&,
                                   const PerformanceConfigConvBiasActivAsm1x1U&) const override;
+    float GetWti(const FusionContext&, const FusionDescription&) const override;
 };
 
 using PerformanceConfigConvOclDirectFwdFused = LegacyPerformanceConfig;
@@ -180,9 +181,10 @@ struct ConvOclDirectFwdFused final : FusionTunableSolver<LegacyPerformanceConfig
     Search(const FusionContext&,
            const FusionDescription&,
            const AnyInvokeParams& invoke_params) const override;
+    float GetWti(const FusionContext&, const FusionDescription& problem) const override;
     bool IsValidPerformanceConfig(const FusionContext&,
                                   const FusionDescription&,
-                                  const PerformanceConfigConvOclDirectFwdFused&) const override;
+                                  const LegacyPerformanceConfig&) const override;
 };
 
 struct PerformanceConfigConvCKIgemmFwdBiasActivFused
@@ -327,10 +329,11 @@ struct ConvBinWinogradRxSFused final : FusionSolverBase
         return GetSolverDbId<ConvBinWinogradRxSFused>();
     }
 
+    float GetWti(const FusionContext&, const FusionDescription&) const override;
     bool IsApplicable(const FusionContext& context,
-                      const FusionDescription& fdesc_problem) const override;
+                      const FusionDescription& problem) const override;
     ConvSolution GetSolution(const FusionContext& context,
-                             const FusionDescription& fdesc_problem) const override;
+                             const FusionDescription& problem) const override;
 };
 
 struct ConvBinWinogradRxSf2x3g1Fused final : FusionSolverBase
@@ -340,6 +343,7 @@ struct ConvBinWinogradRxSf2x3g1Fused final : FusionSolverBase
         return GetSolverDbId<ConvBinWinogradRxSf2x3g1Fused>();
     }
 
+    float GetWti(const FusionContext&, const FusionDescription&) const override;
     bool IsApplicable(const FusionContext& context,
                       const FusionDescription& problem) const override;
     ConvSolution GetSolution(const FusionContext& context,

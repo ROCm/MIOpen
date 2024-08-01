@@ -144,6 +144,7 @@ public:
             static miopen::internal::EnvVar<type> var{#name, default_val};         \
             return var;                                                            \
         }                                                                          \
+        static constexpr std::string_view GetName() { return #name; }              \
     };                                                                             \
     }
 
