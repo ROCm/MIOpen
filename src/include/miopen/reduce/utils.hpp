@@ -64,6 +64,34 @@ inline bool is_parallelism(size_t reqd_work_item_cnt, size_t output_numel, size_
            (output_numel * reduce_size > reqd_work_item_cnt);
 }
 
+inline bool IsImprovementOverROCm(const ExecutionContext& context,
+                                  const miopen::reduce::ProblemDescriptionCalculation& problem)
+{
+    auto xdims = problem.GetXDesc().GetLengths();
+    auto ydims = problem.GetYDesc().GetLengths();
+    auto dim   = problem.GetDim();
+
+    auto reduce_size = xdims[dim];
+    auto output_numel =
+        std::accumulate(ydims.begin(), ydims.end(), 1ULL, std::multiplies<size_t>());
+
+    auto reqd_work_item_cnt = get_reqd_work_item_cnt(context);
+
+    if(is_parallelism(reqd_work_item_cnt, output_numel, reduce_size))
+    {
+        // It's large enough to parallelization, but calling the kernel twice is overhead.
+        // For cases smaller than this, ROCm pytorch performed better.
+        bool is_improvement_ROCm = (output_numel * reduce_size < reqd_work_item_cnt * 64);
+        // But the reduce size is small, MIOpen HIP performed better.
+        bool is_reduce_large = (reduce_size > 64);
+
+        if(is_improvement_ROCm && is_reduce_large)
+            return false;
+    }
+
+    return true;
+}
+
 } // namespace reduce
 } // namespace solver
 } // namespace miopen
