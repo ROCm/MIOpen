@@ -42,7 +42,9 @@ struct ConvWrwSolverTest
 {
     void SolverWrw(const miopen::solver::conv::ConvSolverBase& solv)
     {
-        // SetUpTest() and TearDownTest() are called in the SolverWrw() because the test can be skipped, and calling these functions takes some time, with a large number of test configs the wasted time can be significant.
+        // SetUpTest() and TearDownTest() are called in the SolverWrw() because the test can be
+        // skipped, and calling these functions takes some time, with a large number of test configs
+        // the wasted time can be significant.
         this->SetUpTest();
         this->RunSolver(solv);
         this->TearDownTest();
@@ -51,12 +53,12 @@ struct ConvWrwSolverTest
 protected:
     void SetUp() override
     {
-        //this->SetUpTest();
+        // this->SetUpTest();
     }
 
     void TearDown() override
     {
-        //this->TearDownTest();
+        // this->TearDownTest();
     }
 
 private:
