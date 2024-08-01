@@ -692,21 +692,21 @@ static auto threeInputInvalid = testing::Combine(testing::Values(false),
                                                  testing::Values(&y, &y2, nullptr),
                                                  testing::Values(&t, nullptr));
 
-INSTANTIATE_TEST_SUITE_P(Full, CPU_GraphApiOperationPointwiseBuilderOneInput_NONE, oneInputValid);
-INSTANTIATE_TEST_SUITE_P(Full, GraphApiOperationPointwiseBuilderOneInput, oneInputInvalid);
+INSTANTIATE_TEST_SUITE_P(Unit, CPU_GraphApiOperationPointwiseBuilderOneInput_NONE, oneInputValid);
+INSTANTIATE_TEST_SUITE_P(Unit, CPU_GraphApiOperationPointwiseBuilderOneInput_NONE, oneInputInvalid);
 
-INSTANTIATE_TEST_SUITE_P(Full, CPU_GraphApiOperationPointwiseBuilderTwoInput_NONE, twoInputValid1);
-INSTANTIATE_TEST_SUITE_P(Full, CPU_GraphApiOperationPointwiseBuilderTwoInput_NONE, twoInputValid2);
-INSTANTIATE_TEST_SUITE_P(Full, CPU_GraphApiOperationPointwiseBuilderTwoInput_NONE, twoInputInvalid);
+INSTANTIATE_TEST_SUITE_P(Unit, CPU_GraphApiOperationPointwiseBuilderTwoInput_NONE, twoInputValid1);
+INSTANTIATE_TEST_SUITE_P(Unit, CPU_GraphApiOperationPointwiseBuilderTwoInput_NONE, twoInputValid2);
+INSTANTIATE_TEST_SUITE_P(Unit, CPU_GraphApiOperationPointwiseBuilderTwoInput_NONE, twoInputInvalid);
 
-INSTANTIATE_TEST_SUITE_P(Full, CPU_GraphApiOperationPointwiseBuilderBwd_NONE, twoInputValidBwd1);
-INSTANTIATE_TEST_SUITE_P(Full, CPU_GraphApiOperationPointwiseBuilderBwd_NONE, twoInputValidBwd2);
-INSTANTIATE_TEST_SUITE_P(Full, CPU_GraphApiOperationPointwiseBuilderBwd_NONE, twoInputInvalidBwd);
+INSTANTIATE_TEST_SUITE_P(Unit, CPU_GraphApiOperationPointwiseBuilderBwd_NONE, twoInputValidBwd1);
+INSTANTIATE_TEST_SUITE_P(Unit, CPU_GraphApiOperationPointwiseBuilderBwd_NONE, twoInputValidBwd2);
+INSTANTIATE_TEST_SUITE_P(Unit, CPU_GraphApiOperationPointwiseBuilderBwd_NONE, twoInputInvalidBwd);
 
-INSTANTIATE_TEST_SUITE_P(Full,
+INSTANTIATE_TEST_SUITE_P(Unit,
                          CPU_GraphApiOperationPointwiseBuilderThreeInput_NONE,
                          threeInputValid);
-INSTANTIATE_TEST_SUITE_P(Full,
+INSTANTIATE_TEST_SUITE_P(Unit,
                          CPU_GraphApiOperationPointwiseBuilderThreeInput_NONE,
                          threeInputInvalid);
 
@@ -715,16 +715,16 @@ TEST_P(CPU_GraphApiOperationPointwiseTwoInput_NONE, CFunctions) { mExecute(); }
 TEST_P(CPU_GraphApiOperationPointwiseBwd_NONE, CFunctions) { mExecute(); }
 TEST_P(CPU_GraphApiOperationPointwiseThreeInput_NONE, CFunctions) { mExecute(); }
 
-INSTANTIATE_TEST_SUITE_P(Full, CPU_GraphApiOperationPointwiseOneInput_NONE, oneInputValid);
-INSTANTIATE_TEST_SUITE_P(Full, CPU_GraphApiOperationPointwiseOneInput_NONE, oneInputInvalid);
+INSTANTIATE_TEST_SUITE_P(Unit, CPU_GraphApiOperationPointwiseOneInput_NONE, oneInputValid);
+INSTANTIATE_TEST_SUITE_P(Unit, CPU_GraphApiOperationPointwiseOneInput_NONE, oneInputInvalid);
 
-INSTANTIATE_TEST_SUITE_P(Full, CPU_GraphApiOperationPointwiseTwoInput_NONE, twoInputValid1);
-INSTANTIATE_TEST_SUITE_P(Full, CPU_GraphApiOperationPointwiseTwoInput_NONE, twoInputValid2);
-INSTANTIATE_TEST_SUITE_P(Full, CPU_GraphApiOperationPointwiseTwoInput_NONE, twoInputInvalid);
+INSTANTIATE_TEST_SUITE_P(Unit, CPU_GraphApiOperationPointwiseTwoInput_NONE, twoInputValid1);
+INSTANTIATE_TEST_SUITE_P(Unit, CPU_GraphApiOperationPointwiseTwoInput_NONE, twoInputValid2);
+INSTANTIATE_TEST_SUITE_P(Unit, CPU_GraphApiOperationPointwiseTwoInput_NONE, twoInputInvalid);
 
-INSTANTIATE_TEST_SUITE_P(Full, CPU_GraphApiOperationPointwiseBwd_NONE, twoInputValidBwd1);
-INSTANTIATE_TEST_SUITE_P(Full, CPU_GraphApiOperationPointwiseBwd_NONE, twoInputValidBwd2);
-INSTANTIATE_TEST_SUITE_P(Full, CPU_GraphApiOperationPointwiseBwd_NONE, twoInputInvalidBwd);
+INSTANTIATE_TEST_SUITE_P(Unit, CPU_GraphApiOperationPointwiseBwd_NONE, twoInputValidBwd1);
+INSTANTIATE_TEST_SUITE_P(Unit, CPU_GraphApiOperationPointwiseBwd_NONE, twoInputValidBwd2);
+INSTANTIATE_TEST_SUITE_P(Unit, CPU_GraphApiOperationPointwiseBwd_NONE, twoInputInvalidBwd);
 
-INSTANTIATE_TEST_SUITE_P(Full, CPU_GraphApiOperationPointwiseThreeInput_NONE, threeInputValid);
-INSTANTIATE_TEST_SUITE_P(Full, CPU_GraphApiOperationPointwiseThreeInput_NONE, threeInputInvalid);
+INSTANTIATE_TEST_SUITE_P(Unit, CPU_GraphApiOperationPointwiseThreeInput_NONE, threeInputValid);
+INSTANTIATE_TEST_SUITE_P(Unit, CPU_GraphApiOperationPointwiseThreeInput_NONE, threeInputInvalid);

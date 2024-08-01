@@ -1150,7 +1150,7 @@ TEST_P(CPU_GraphApiOperationConvolution_NONE, CFuntions)
 // TODO: Use testing::Combine to make
 //       this list concise
 INSTANTIATE_TEST_SUITE_P(
-    Full,
+    Unit,
     CPU_GraphApiOperationConvolution_NONE,
     testing::Values(
 

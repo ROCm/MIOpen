@@ -580,7 +580,7 @@ using namespace mha_graph_test;
 
 TEST_P(GPU_MhaFwdGraph_FP32, MhaFwdGraph) { Run(); }
 
-INSTANTIATE_TEST_SUITE_P(Smoke,
+INSTANTIATE_TEST_SUITE_P(Unit,
                          GPU_MhaFwdGraph_FP32,
                          testing::Combine(testing::ValuesIn(std::vector<std::size_t>{2}),     // n
                                           testing::ValuesIn(std::vector<std::size_t>{8}),     // h

@@ -297,7 +297,7 @@ class GPU_MhaForward_FP8 : public MhaForwardTest<float8>
 };
 
 TEST_P(GPU_MhaForward_FP32, TestFloat) { Run(); }
-TEST_P(GPU_MhaForward_FP8, TestFloat) { Run(); }
+TEST_P(GPU_MhaForward_FP8, TestFloat8) { Run(); }
 
 inline auto GetCases()
 {
