@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,30 +23,18 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef MIOPEN_SUM_HPP_
-#define MIOPEN_SUM_HPP_
+#include "reducecalculation_driver.hpp"
+#include "registry_driver_maker.hpp"
 
-#include <miopen/common.hpp>
+static Driver* makeDriver(const std::string& base_arg)
+{
+    if(base_arg == "reducecalculation")
+        return new ReduceCalculationDriver<float, float>();
+    if(base_arg == "reducecalculationfp16")
+        return new ReduceCalculationDriver<float16, float>();
+    if(base_arg == "reducecalculationbfp16")
+        return new ReduceCalculationDriver<bfloat16, float>();
+    return nullptr;
+}
 
-namespace miopen {
-
-struct Handle;
-struct TensorDescriptor;
-
-MIOPEN_INTERNALS_EXPORT std::size_t GetSumWorkspaceSize(Handle& handle,
-                                                        const TensorDescriptor& xDesc,
-                                                        const TensorDescriptor& yDesc,
-                                                        int32_t dim);
-
-MIOPEN_INTERNALS_EXPORT miopenStatus_t SumForward(Handle& handle,
-                                                  Data_t workspace,
-                                                  size_t workspaceSizeInBytes,
-                                                  const TensorDescriptor& xDesc,
-                                                  ConstData_t x,
-                                                  const TensorDescriptor& yDesc,
-                                                  Data_t y,
-                                                  miopenSumNanPropagation_t nanPropagation,
-                                                  int32_t dim);
-
-} // namespace miopen
-#endif // _MIOPEN_SUM_HPP_
+REGISTER_DRIVER_MAKER(makeDriver);
