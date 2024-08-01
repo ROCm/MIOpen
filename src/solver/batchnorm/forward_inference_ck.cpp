@@ -51,6 +51,18 @@ using F32  = float;
 using F64  = double;
 using BF16 = ushort;
 
+template <typename XDataType,
+          typename YDataType,
+          typename ScaleDataType,
+          typename BiasDataType,
+          typename MeanVarDataType>
+using DeviceOpBnFwdInfPtrs = ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
+    ck::tensor_operation::device::DeviceElementwise<
+        ck::Tuple<XDataType, MeanVarDataType, MeanVarDataType, ScaleDataType, BiasDataType>,
+        ck::Tuple<YDataType>,
+        Normalize,
+        Rank>>;
+
 struct CKArgsBNormFwd
 {
     CKArgsBNormFwd(const miopen::batchnorm::ProblemDescription& problem)
@@ -109,13 +121,9 @@ template <typename XDataType,
 static int CheckCKApplicability(const miopen::batchnorm::ProblemDescription& problem)
 {
     const auto& args = CKArgsBNormFwd{problem};
-    using DeviceOp   = ck::tensor_operation::device::DeviceElementwise<
-        ck::Tuple<XDataType, MeanVarDataType, MeanVarDataType, ScaleDataType, BiasDataType>,
-        ck::Tuple<YDataType>,
-        Normalize,
-        Rank>;
-    const auto bn_fwd_ptrs = ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
-        DeviceOp>::GetInstances();
+    const auto bn_fwd_ptrs =
+        DeviceOpBnFwdInfPtrs<XDataType, YDataType, ScaleDataType, BiasDataType, MeanVarDataType>::
+            GetInstances();
     assert(!bn_fwd_ptrs.empty());
     int count = 0;
     for(const auto& it : bn_fwd_ptrs)
@@ -148,32 +156,29 @@ template <typename XDataType,
 ConvSolution InvokerFactoryMakerNHWC(const miopen::batchnorm::ProblemDescription& bn_problem)
 {
     ConvSolution result;
-    result.invoker_factory = [args         = CKArgsBNormFwd{bn_problem},
-                              kernel_index = CheckCKApplicability<XDataType,
-                                                                  YDataType,
-                                                                  AccDataType,
-                                                                  ScaleDataType,
-                                                                  BiasDataType,
-                                                                  MeanVarDataType>(bn_problem)](
-                                 const std::vector<Kernel>& /*kernels*/) mutable {
-        return [args = std::move(args), kernel_index = kernel_index](
-                   const Handle& handle, const AnyInvokeParams& primitive_parameters) {
-            using DeviceOp = ck::tensor_operation::device::DeviceElementwise<
-                ck::Tuple<XDataType, MeanVarDataType, MeanVarDataType, ScaleDataType, BiasDataType>,
-                ck::Tuple<YDataType>,
-                Normalize,
-                Rank>;
-            const auto bn_fwd_ptrs =
-                ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
-                    DeviceOp>::GetInstances();
+    const auto kernel_index = CheckCKApplicability<XDataType,
+                                                   YDataType,
+                                                   AccDataType,
+                                                   ScaleDataType,
+                                                   BiasDataType,
+                                                   MeanVarDataType>(bn_problem);
+    auto bn_fwd_ptrs =
+        DeviceOpBnFwdInfPtrs<XDataType, YDataType, ScaleDataType, BiasDataType, MeanVarDataType>::
+            GetInstances();
 
-            assert(kernel_index >= 0 && kernel_index < bn_fwd_ptrs.size());
-            auto& bn_ptr       = bn_fwd_ptrs.at(kernel_index);
+    assert(kernel_index >= 0 && !bn_fwd_ptrs.empty() && kernel_index < bn_fwd_ptrs.size());
+    auto& bn_ptr = bn_fwd_ptrs.at(kernel_index);
+
+    result.invoker_factory = [args      = CKArgsBNormFwd{bn_problem},
+                              sh_bn_ptr = std::shared_ptr{std::move(bn_ptr)}](
+                                 const std::vector<Kernel>& /*kernels*/) mutable {
+        return [args = std::move(args), sh_bn_ptr = std::move(sh_bn_ptr)](
+                   const Handle& handle, const AnyInvokeParams& primitive_parameters) {
             const auto& params = primitive_parameters.CastTo<miopen::batchnorm::InfInvokeParams>();
 
-            auto argument_ptr = args.MakeArgPtr(bn_ptr, params);
+            auto argument_ptr = args.MakeArgPtr(sh_bn_ptr, params);
 
-            auto invoker_ptr            = bn_ptr->MakeInvokerPointer();
+            auto invoker_ptr            = sh_bn_ptr->MakeInvokerPointer();
             const auto enable_profiling = handle.IsProfilingEnabled();
 
             float elapsed_time =
