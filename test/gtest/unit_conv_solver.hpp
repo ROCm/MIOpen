@@ -85,14 +85,14 @@ public:
     }
 };
 
-class UnitTestConvSolverFwdHalf : public UnitTestConvSolverFwd<half_float::half>
+class GPU_UnitTestConvSolver_fwd_fp16 : public UnitTestConvSolverFwd<half_float::half>
 {
 };
 
-class UnitTestConvSolverBwdHalf : public UnitTestConvSolverBwd<half_float::half>
+class GPU_UnitTestConvSolver_bwd_fp16 : public UnitTestConvSolverBwd<half_float::half>
 {
 };
 
-class UnitTestConvSolverWrwHalf : public UnitTestConvSolverWrw<half_float::half>
+class GPU_UnitTestConvSolver_wrw_fp16 : public UnitTestConvSolverWrw<half_float::half>
 {
 };

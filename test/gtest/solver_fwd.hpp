@@ -64,6 +64,7 @@ struct ConvFwdSolverTest
 
         if(!solv.IsApplicable(ctx, problem))
         {
+            // Do not put GTEST_SKIP here! An inappropriate config should cause the test to fail, not skip. Otherwise, such testing is pointless.
             GTEST_FAIL();
         }
 

@@ -54,36 +54,36 @@ Gpu GetSupportedDevices() { return static_cast<Gpu>(enabled<Gpu::gfx110X>::val);
 
 } // namespace
 
-TEST_P(UnitTestConvSolverFwdHalf, Unit_ConvWinoFuryRxS_Fwd_Half)
+TEST_P(GPU_UnitTestConvSolver_fwd_fp16, ConvWinoFuryRxSf2x3)
 {
     auto solver = miopen::solver::conv::ConvWinoFuryRxS<2, 3>{};
     this->RunTest(solver, GetSupportedDevices());
 };
 
-TEST_P(UnitTestConvSolverBwdHalf, Unit_ConvWinoFuryRxS_Bwd_Half)
+TEST_P(GPU_UnitTestConvSolver_bwd_fp16, ConvWinoFuryRxSf2x3)
 {
     auto solver = miopen::solver::conv::ConvWinoFuryRxS<2, 3>{};
     this->RunTest(solver, GetSupportedDevices());
 };
 
-TEST_P(UnitTestConvSolverWrwHalf, Unit_ConvWinoFuryRxS_Wrw_Half)
+TEST_P(GPU_UnitTestConvSolver_wrw_fp16, ConvWinoFuryRxSf2x3)
 {
     auto solver = miopen::solver::conv::ConvWinoFuryRxS<2, 3>{};
     this->RunTest(solver, GetSupportedDevices());
 };
 
-INSTANTIATE_TEST_SUITE_P(UnitSolverConvWinoFuryRxS,
-                         UnitTestConvSolverFwdHalf,
+INSTANTIATE_TEST_SUITE_P(Unit,
+                         GPU_UnitTestConvSolver_fwd_fp16,
                          testing::Combine(testing::Values(miopenConvolutionFwdAlgoWinograd),
                                           testing::ValuesIn(GetConvTestCases()),
                                           testing::Values(miopenTensorNCHW)));
 
-INSTANTIATE_TEST_SUITE_P(UnitSolverConvWinoFuryRxS,
-                         UnitTestConvSolverBwdHalf,
+INSTANTIATE_TEST_SUITE_P(Unit,
+                         GPU_UnitTestConvSolver_bwd_fp16,
                          testing::Combine(testing::Values(miopenConvolutionFwdAlgoWinograd),
                                           testing::ValuesIn(GetConvTestCases())));
 
-INSTANTIATE_TEST_SUITE_P(UnitSolverConvWinoFuryRxS,
-                         UnitTestConvSolverWrwHalf,
+INSTANTIATE_TEST_SUITE_P(Unit,
+                         GPU_UnitTestConvSolver_wrw_fp16,
                          testing::Combine(testing::Values(miopenConvolutionFwdAlgoWinograd),
                                           testing::ValuesIn(GetConvTestCasesWrw())));
