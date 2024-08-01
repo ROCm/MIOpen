@@ -585,7 +585,7 @@ void CheckDynamicFDBEntry(size_t thread_index,
     }
 }
 
-TEST(DBSync, DISABLED_DynamicFDBSync)
+TEST(CPU_DBSync_None, DISABLED_DynamicFDBSync)
 {
     fs::path fdb_file_path, pdb_file_path, kdb_file_path;
     auto& handle = get_handle();
@@ -847,11 +847,11 @@ void StaticFDBSync(const std::string& arch, const size_t num_cu)
         << fdb_data.size();
 }
 
-struct DBSync : testing::TestWithParam<std::pair<std::string, size_t>>
+struct CPU_DBSync_None : testing::TestWithParam<std::pair<std::string, size_t>>
 {
 };
 
-TEST_P(DBSync, StaticFDBSync)
+TEST_P(CPU_DBSync_None, StaticFDBSync)
 {
     if(env::enabled(MIOPEN_TEST_DBSYNC))
     {
@@ -862,8 +862,8 @@ TEST_P(DBSync, StaticFDBSync)
     }
 }
 
-INSTANTIATE_TEST_SUITE_P(DBSyncSuite,
-                         DBSync,
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         CPU_DBSync_None,
                          testing::Values(std::make_pair("gfx90a", 104),
                                          std::make_pair("gfx1030", 36),
                                          std::make_pair("gfx90a", 110),
