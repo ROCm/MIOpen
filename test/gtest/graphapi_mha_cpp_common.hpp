@@ -79,7 +79,7 @@ protected:
             }
             else
             {
-                MIOPEN_LOG_FATAL("Unsupported data type for tensor" << dt);
+                FAIL() << "Unsupported data type for tensor" << dt;
             }
         }
 
