@@ -167,7 +167,7 @@ protected:
                    m_realTensorMap[miopenTensorMhaK]->m_gapiDesc,
                    tMM0);
 
-        MakePointwise(MIOPEN_POINTWISE_IDENTITY, tMM0, nullptr, pwS0, false, m_attentionScale);
+        MakePointwise(MIOPEN_POINTWISE_IDENTITY, tMM0, nullptr, pwS0, true, m_attentionScale);
         MakePointwise(
             MIOPEN_POINTWISE_MUL, pwS0, m_realTensorMap[miopenTensorMhaDescaleQ]->m_gapiDesc, pwS1);
         MakePointwise(
