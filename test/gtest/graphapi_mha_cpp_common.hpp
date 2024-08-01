@@ -51,7 +51,8 @@
 namespace gr = miopen::graphapi;
 
 namespace mha_graph_test {
-class MhaGraphTestBase : public testing::TestWithParam<std::tuple<size_t, size_t, size_t, size_t, float>>
+class MhaGraphTestBase
+    : public testing::TestWithParam<std::tuple<size_t, size_t, size_t, size_t, float>>
 {
 
 protected:
@@ -79,7 +80,7 @@ protected:
             }
             else
             {
-                FAIL() << "Unsupported data type for tensor" << dt;
+                MIOPEN_FRIENDLY_FAIL("Unsupported data type for tensor" << dt);
             }
         }
 
@@ -286,7 +287,7 @@ protected:
             auto [it, inserted] = mFilledTensors.try_emplace(std::string(name), TensorData(ptr));
             if(!inserted)
             {
-                MIOPEN_LOG_FATAL("Duplicate tensor name");
+                MIOPEN_FRIENDLY_FAIL("Duplicate tensor name");
             }
         }
         return ptr;
@@ -401,7 +402,7 @@ protected:
         auto it = mFilledTensors.find(t_name);
         if(it == mFilledTensors.cend())
         {
-            MIOPEN_LOG_FATAL("Tensor not found in the map: " << t_name);
+            MIOPEN_FRIENDLY_FAIL("Tensor not found in the map: " << t_name);
         }
         auto& v = it->second;
         v.copyBack();
