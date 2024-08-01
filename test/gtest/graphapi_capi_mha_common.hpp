@@ -207,6 +207,10 @@ miopenDataType_t GetMainType()
     {
         return miopenFloat;
     }
+    else if(std::is_same_v<T, bfloat8>)
+    {
+        return miopenBFloat8;
+    }
 
     assert(false);
     return miopenFloat;
@@ -215,8 +219,9 @@ miopenDataType_t GetMainType()
 class MhaCommonTest : public testing::TestWithParam<std::tuple<int, int, int, int, float>>
 {
 public:
-    void Run()
+    void SetUp() override
     {
+        prng::reset_seed();
         auto [n, h, s, d, p] = GetParam();
 
         m_testN               = n;
@@ -232,6 +237,11 @@ public:
             GTEST_SKIP() << "CPU Dropout currently supprorts only fully occupied warps. n=" << n
                          << ", h=" << h << ", s=" << s << ", d=" << d << ", bernulli p=" << p;
         }
+    }
+
+    void Run()
+    {
+        miopen::Handle& handle = get_handle();
 
         try
         {
@@ -583,6 +593,30 @@ protected:
         return rngOperation;
     }
 
+    DescriptorWrapperPtr MakeReshapeTranspose(DescriptorWrapperPtr tensor1,
+                                              DescriptorWrapperPtr output)
+    {
+        DescriptorWrapperPtr reshapeOperation =
+            MakeDescriptor(MIOPEN_BACKEND_OPERATION_RESHAPE_DESCRIPTOR);
+
+        miopenBackendDescriptor_t tensor1Desc = tensor1->GetDescriptor();
+        miopenBackendDescriptor_t outputDesc  = output->GetDescriptor();
+
+        reshapeOperation->SetAttribute(
+            MIOPEN_ATTR_OPERATION_RESHAPE_XDESC, MIOPEN_TYPE_BACKEND_DESCRIPTOR, 1, &tensor1Desc);
+        reshapeOperation->SetAttribute(
+            MIOPEN_ATTR_OPERATION_RESHAPE_YDESC, MIOPEN_TYPE_BACKEND_DESCRIPTOR, 1, &outputDesc);
+
+        reshapeOperation->AddRef(tensor1);
+        reshapeOperation->AddRef(output);
+
+        reshapeOperation->Finalize();
+
+        AddGraphNode(reshapeOperation);
+
+        return reshapeOperation;
+    }
+
     DescriptorWrapperPtr MakeGapiVirtualTensorDesc(size_t n               = 1,
                                                    size_t h               = 1,
                                                    size_t s               = 1,
@@ -621,6 +655,10 @@ protected:
         else if(dtype == miopenFloat8)
         {
             tensorDataPtr->m_tensorVariant = tensor<float8>{n, h, s, d};
+        }
+        else if(dtype == miopenBFloat8)
+        {
+            tensorDataPtr->m_tensorVariant = tensor<bfloat8>{n, h, s, d};
         }
         else
         {

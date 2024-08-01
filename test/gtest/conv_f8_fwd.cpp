@@ -131,7 +131,7 @@ protected:
     miopenTensorLayout_t tensor_layout;
 };
 
-struct ConvFwdSolverTestF8 : ConvFwdSolverTest<half_float::half>
+struct GPU_ConvFwdSolver_FP8 : ConvFwdSolverTest<half_float::half>
 {
 };
 
@@ -180,7 +180,7 @@ void SolverFwd(const miopen::TensorDescriptor& inputDesc,
 } // namespace conv_f8_fwd
 using namespace conv_f8_fwd;
 
-TEST_P(ConvFwdSolverTestF8, CKConvF8Fwd)
+TEST_P(GPU_ConvFwdSolver_FP8, CKConvF8Fwd)
 {
     SolverFwd<miopen::solver::conv::ConvHipImplicitGemmF16F8F16FwdXdlops>(input.desc,
                                                                           in_dev.get(),
@@ -193,8 +193,8 @@ TEST_P(ConvFwdSolverTestF8, CKConvF8Fwd)
                                                                           test_skipped);
 }
 
-INSTANTIATE_TEST_SUITE_P(ConvFwdTest,
-                         ConvFwdSolverTestF8,
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_ConvFwdSolver_FP8,
                          testing::Combine(testing::Values(miopenConvolutionFwdAlgoImplicitGEMM),
                                           testing::ValuesIn(ConvTestConfigs()),
                                           testing::Values(miopenTensorNDHWC)));

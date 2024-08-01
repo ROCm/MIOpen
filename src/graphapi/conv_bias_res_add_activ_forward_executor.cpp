@@ -52,10 +52,7 @@ static ConvolutionDescriptor Convert(const Convolution& conv, int groupCount)
 
 void ConvBiasResAddActivForwardExecutor::execute(miopenHandle_t handle, const VariantPack& vpk)
 {
-    std::size_t in_c  = mXTensor->GetLengths()[1];
-    std::size_t wei_c = mWTensor->GetLengths()[1];
-    int groupCount    = in_c / wei_c;
-    auto convDesc     = Convert(*mConvolution, groupCount);
+    auto convDesc = Convert(*mConvolution, mGroupCount);
 
     ActivationDescriptor activDesc{miopenActivationRELU, mActivationAlpha, 1.0, 1.0};
 

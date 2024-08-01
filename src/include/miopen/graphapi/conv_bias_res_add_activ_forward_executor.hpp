@@ -42,6 +42,7 @@ class ConvBiasResAddActivForwardExecutor : public GraphPatternExecutor
     Tensor* mXTensor;
     Tensor* mWTensor;
     Convolution* mConvolution;
+    int mGroupCount;
     Tensor* mZTensor;
     Tensor* mBiasTensor;
     Tensor* mYTensor;
@@ -53,6 +54,7 @@ public:
     ConvBiasResAddActivForwardExecutor(Tensor* xTensor,
                                        Tensor* wTensor,
                                        Convolution* convolution,
+                                       int groupCount,
                                        Tensor* zTensor,
                                        Tensor* biasTensor,
                                        Tensor* yTensor,
@@ -63,6 +65,7 @@ public:
           mXTensor(xTensor),
           mWTensor(wTensor),
           mConvolution(convolution),
+          mGroupCount(groupCount),
           mZTensor(zTensor),
           mBiasTensor(biasTensor),
           mYTensor(yTensor),
@@ -79,6 +82,7 @@ public:
     static std::unique_ptr<GraphPatternExecutor> make(Tensor* xTensor,
                                                       Tensor* wTensor,
                                                       Convolution* convolution,
+                                                      int groupCount,
                                                       Tensor* zTensor,
                                                       Tensor* biasTensor,
                                                       Tensor* yTensor,
@@ -89,6 +93,7 @@ public:
         GraphPatternExecutor* p = new ConvBiasResAddActivForwardExecutor(xTensor,
                                                                          wTensor,
                                                                          convolution,
+                                                                         groupCount,
                                                                          zTensor,
                                                                          biasTensor,
                                                                          yTensor,
