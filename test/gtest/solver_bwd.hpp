@@ -42,9 +42,8 @@ struct ConvBwdSolverTest
 {
     void SolverBwd(const miopen::solver::conv::ConvSolverBase& solv)
     {
-        // SetUpTest() and TearDownTest() are called in the SolverBwd() because the test can be
-        // skipped, and calling these functions takes some time, with a large number of test configs
-        // the wasted time can be significant.
+        // SetUpTest() and TearDownTest() are moved here so that if a test is skipped, time is not
+        // wasted.
         this->SetUpTest();
         this->RunSolver(solv);
         this->TearDownTest();
