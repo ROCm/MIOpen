@@ -30,7 +30,7 @@
 #if MIOPEN_USE_FP16 == 1
 #define FP_TYPE half
 #define FP_TYPE_PREC float
-#define EPSILON (FP_TYPE)0.0001
+#define EPSILON static_cast<FP_TYPE>(0.0001)
 #ifndef HALF_MAX
 #define MAX_VAL 65504 /* max value */
 #else
@@ -40,7 +40,7 @@
 #if MIOPEN_USE_FP32 == 1
 #define FP_TYPE float
 #define FP_TYPE_PREC float
-#define EPSILON (FP_TYPE)0.000001
+#define EPSILON static_cast<FP_TYPE>(0.000001)
 #ifndef FLT_MAX
 #define MAX_VAL 3.402823466e+38F /* max value */
 #else
@@ -73,7 +73,7 @@
 #define MIOPEN_NEURON_ELU 9          // alpha * (e^x - 1) | x <= 0; x | x > 0
 #define MIOPEN_NEURON_TOTAL 10
 
-#define kBNLL_THRESHOLD (FP_TYPE)50.0
+#define kBNLL_THRESHOLD static_cast<FP_TYPE>(50.0)
 
 template <typename T, size_t N>
 __forceinline__ __device__ void ActivationFunction_PassThru(T (&__restrict__ res)[N],
