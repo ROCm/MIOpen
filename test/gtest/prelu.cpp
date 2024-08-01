@@ -30,8 +30,6 @@
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 
-namespace env = miopen::env;
-
 namespace prelu {
 
 std::string GetFloatArg()
