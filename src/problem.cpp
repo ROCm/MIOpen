@@ -647,12 +647,11 @@ Problem::FindSolutionsImpl(Handle& handle,
     return ret;
 }
 
-namespace
-{
+namespace {
 inline bool IsValidFilterChannelNumber(const TensorDescriptor& x,
-                                              const TensorDescriptor& w,
-                                              const miopenTensorLayout_t layout,
-                                              const int groups)
+                                       const TensorDescriptor& w,
+                                       const miopenTensorLayout_t layout,
+                                       const int groups)
 {
     if(layout == miopenTensorNCHW      //
        || layout == miopenTensorNCHWc4 //
@@ -671,9 +670,9 @@ inline bool IsValidFilterChannelNumber(const TensorDescriptor& x,
 }
 
 inline bool IsValidGroupCount(const TensorDescriptor& x,
-                                     const TensorDescriptor& w,
-                                     const miopenTensorLayout_t layout,
-                                     const int groups)
+                              const TensorDescriptor& w,
+                              const miopenTensorLayout_t layout,
+                              const int groups)
 {
     if(groups > 1) // Optimize for speed
     {
