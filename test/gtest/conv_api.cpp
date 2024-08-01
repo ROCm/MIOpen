@@ -21,4 +21,4 @@ void testGetConvolutionSpatialDim(void)
     }
 }
 
-TEST(CONV_API_TEST, testGetConvolutionSpatialDim) { testGetConvolutionSpatialDim(); }
+TEST(CPU_ConvApi_NONE, testGetConvolutionSpatialDim) { testGetConvolutionSpatialDim(); }
