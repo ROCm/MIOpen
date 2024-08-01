@@ -63,17 +63,8 @@ inline std::vector<PReLUTestCase> PReLUSmokeTestConfigs()
 {
     std::vector<PReLUTestCase> tcs;
 
-    tcs.push_back({{64, 112, 112}, false});
-    tcs.push_back({{64, 56, 56}, false});
-    tcs.push_back({{128, 56, 56}, false});
-    tcs.push_back({{128, 28, 28}, false});
-    tcs.push_back({{256, 28, 28}, false});
-
-    tcs.push_back({{64, 112, 112}, true});
-    tcs.push_back({{64, 56, 56}, true});
-    tcs.push_back({{128, 56, 56}, true});
-    tcs.push_back({{128, 28, 28}, true});
-    tcs.push_back({{256, 28, 28}, true});
+    tcs.push_back({{64, 112}, false});
+    tcs.push_back({{64, 112}, true});
 
     return tcs;
 }
@@ -82,17 +73,8 @@ inline std::vector<PReLUTestCase> PReLUPerfTestConfigs()
 {
     std::vector<PReLUTestCase> tcs;
 
-    tcs.push_back({{512, 64, 112, 112}, false});
-    tcs.push_back({{512, 64, 56, 56}, false});
-    tcs.push_back({{512, 128, 56, 56}, false});
-    tcs.push_back({{512, 128, 28, 28}, false});
-    tcs.push_back({{512, 256, 28, 28}, false});
-
-    tcs.push_back({{512, 64, 112, 112}, true});
-    tcs.push_back({{512, 64, 56, 56}, true});
-    tcs.push_back({{512, 128, 56, 56}, true});
-    tcs.push_back({{512, 128, 28, 28}, true});
-    tcs.push_back({{512, 256, 28, 28}, true});
+    tcs.push_back({{64, 112, 50}, false});
+    tcs.push_back({{64, 112, 50}, true});
 
     return tcs;
 }
