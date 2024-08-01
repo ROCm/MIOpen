@@ -23,18 +23,34 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include "registry_driver_maker.hpp"
-#include "sum_driver.hpp"
+#ifndef MIOPEN_REDUCE_CALCULATION_HPP_
+#define MIOPEN_REDUCE_CALCULATION_HPP_
 
-static Driver* makeDriver(const std::string& base_arg)
-{
-    if(base_arg == "sum")
-        return new SumDriver<float, float>();
-    if(base_arg == "sumfp16")
-        return new SumDriver<float16, float>();
-    if(base_arg == "sumbfp16")
-        return new SumDriver<bfloat16, float>();
-    return nullptr;
-}
+#include <miopen/common.hpp>
 
-REGISTER_DRIVER_MAKER(makeDriver);
+namespace miopen {
+
+struct Handle;
+struct TensorDescriptor;
+
+MIOPEN_INTERNALS_EXPORT std::size_t
+GetReduceCalculationWorkspaceSize(Handle& handle,
+                                  const TensorDescriptor& xDesc,
+                                  const TensorDescriptor& yDesc,
+                                  int32_t dim,
+                                  miopenReduceCalculationOp_t reduceCalculationOp);
+
+MIOPEN_INTERNALS_EXPORT miopenStatus_t
+ReduceCalculationForward(Handle& handle,
+                         Data_t workspace,
+                         size_t workspaceSizeInBytes,
+                         const TensorDescriptor& xDesc,
+                         ConstData_t x,
+                         const TensorDescriptor& yDesc,
+                         Data_t y,
+                         miopenReduceCalculationNanPropagation_t nanPropagation,
+                         int32_t dim,
+                         miopenReduceCalculationOp_t reduceCalculationOp);
+
+} // namespace miopen
+#endif // _MIOPEN_REDUCE_CALCULATION_HPP_

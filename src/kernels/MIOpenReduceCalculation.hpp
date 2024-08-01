@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,45 +23,38 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef GUARD_CPU_SUM_HPP
-#define GUARD_CPU_SUM_HPP
+#ifndef GUARD_KERNELS_MIOPENREDUCECALCULATION_HPP
+#define GUARD_KERNELS_MIOPENREDUCECALCULATION_HPP
 
-#include "tensor_holder.hpp"
-
-template <class T>
-void cpu_sum_forward(tensor<T> input,
-                     tensor<T>& ref_output,
-                     int32_t dim,
-                     miopenSumNanPropagation_t nanPropagation)
+enum class ReduceCalculationOp_t
 {
-    auto input_dims  = input.desc.GetLengths();
-    auto output_dims = ref_output.desc.GetLengths();
+    Prod = 1,
+    Sum,
+    First_ = Prod,
+    Last_  = Sum,
+};
 
-    auto reduce_size = input_dims[dim];
-    auto output_numel =
-        std::accumulate(output_dims.begin(), output_dims.end(), 1LL, std::multiplies<int64_t>());
-
-    auto inner_size = 1ULL;
-    for(int32_t i = dim + 1; i < input_dims.size(); i++)
-    {
-        inner_size *= input_dims[i];
-    }
-
-    par_ford(output_numel)([&](size_t o) {
-        size_t input_idx = (o / inner_size) * inner_size * reduce_size + o % inner_size;
-        T sum            = 0.0f;
-
-        ford(reduce_size)([&](size_t) {
-            T val = input[input_idx];
-            if(nanPropagation && std::isnan(val))
-            {
-                val = 0.0f;
-            }
-            sum += val;
-            input_idx += inner_size;
-        });
-
-        ref_output[o] = sum;
-    });
-}
+#ifndef __HIP_DEVICE_COMPILE__
+static_assert(MIOPEN_REDUCE_CALCULATION_PROD == static_cast<int>(ReduceCalculationOp_t::Prod));
+static_assert(MIOPEN_REDUCE_CALCULATION_SUM == static_cast<int>(ReduceCalculationOp_t::Sum));
 #endif
+
+template <typename T, ReduceCalculationOp_t op>
+struct reduce_func
+{
+    inline constexpr void calculate(T& a, T b) const;
+};
+
+template <typename T>
+struct reduce_func<T, ReduceCalculationOp_t::Prod>
+{
+    inline constexpr void calculate(T& a, T b) const { a *= b; }
+};
+
+template <typename T>
+struct reduce_func<T, ReduceCalculationOp_t::Sum>
+{
+    inline constexpr void calculate(T& a, T b) const { a += b; }
+};
+
+#endif // GUARD_GUARD_KERNELS_MIOPENREDUCEEXTREME_HPP
