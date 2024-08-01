@@ -65,7 +65,6 @@ struct ConvSolution
     int n_out_pix_tiles; // # output pixel tiles per wk-item (ALU)
     int n_in_data_tiles; // # of blocks of different inputs in LDS
     int n_stacks;        // # of diff stacks (part of batch).
-    float weight = 0.0f;
 
     ConvSolution(miopenStatus_t status_ = miopenStatusSuccess)
         : status(status_),
