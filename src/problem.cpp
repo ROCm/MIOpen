@@ -647,7 +647,9 @@ Problem::FindSolutionsImpl(Handle& handle,
     return ret;
 }
 
-static inline bool IsValidFilterChannelNumber(const TensorDescriptor& x,
+namespace
+{
+inline bool IsValidFilterChannelNumber(const TensorDescriptor& x,
                                               const TensorDescriptor& w,
                                               const miopenTensorLayout_t layout,
                                               const int groups)
@@ -668,7 +670,7 @@ static inline bool IsValidFilterChannelNumber(const TensorDescriptor& x,
     return true;
 }
 
-static inline bool IsValidGroupCount(const TensorDescriptor& x,
+inline bool IsValidGroupCount(const TensorDescriptor& x,
                                      const TensorDescriptor& w,
                                      const miopenTensorLayout_t layout,
                                      const int groups)
@@ -689,6 +691,7 @@ static inline bool IsValidGroupCount(const TensorDescriptor& x,
     }
     return true;
 }
+} // namespace
 
 void Problem::ValidateGroupCount(const TensorDescriptor& x,
                                  const TensorDescriptor& w,
