@@ -167,7 +167,7 @@ ConvSolution InvokerFactoryMakerNHWC(const miopen::batchnorm::ProblemDescription
             GetInstances();
 
     assert(kernel_index >= 0 && !bn_fwd_ptrs.empty() && kernel_index < bn_fwd_ptrs.size());
-    auto& bn_ptr = bn_fwd_ptrs.at(kernel_index);
+    auto bn_ptr = std::move(bn_fwd_ptrs.at(kernel_index));
 
     result.invoker_factory = [args      = CKArgsBNormFwd{bn_problem},
                               sh_bn_ptr = std::shared_ptr{std::move(bn_ptr)}](
