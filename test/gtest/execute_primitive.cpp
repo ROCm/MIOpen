@@ -232,7 +232,7 @@ auto CallExecutePrimitive(const miopen::ExecutionContext& ctx) -> TestResults
     return test_results;
 }
 
-TEST(CPU_ExecutePrimitive_None, NoParams)
+TEST(CPU_ExecutePrimitive_NONE, NoParams)
 {
     auto ctx = miopen::ExecutionContext{&get_handle()};
 
@@ -246,7 +246,7 @@ TEST(CPU_ExecutePrimitive_None, NoParams)
     ASSERT_EQ(results.perf_cfg_value, TestPerfConfig::default_value);
 }
 
-TEST(CPU_ExecutePrimitiveSearchUpdate_None, SearchUpdate)
+TEST(CPU_ExecutePrimitiveSearchUpdate_NONE, SearchUpdate)
 {
     auto ctx      = miopen::ExecutionContext{&get_handle()};
     ctx.do_search = true;

@@ -277,11 +277,11 @@ protected:
     }
 };
 
-class MhaForwardTestFp32 : public MhaForwardTest<float>
+class GPU_MhaForward_FP32 : public MhaForwardTest<float>
 {
 };
 
-class MhaForwardTestFp8 : public MhaForwardTest<float8>
+class GPU_MhaForward_FP8 : public MhaForwardTest<float8>
 {
     void SetUp() override
     {
@@ -296,8 +296,8 @@ class MhaForwardTestFp8 : public MhaForwardTest<float8>
     }
 };
 
-TEST_P(MhaForwardTestFp32, TestFloat) { Run(); }
-TEST_P(MhaForwardTestFp8, TestFloat) { Run(); }
+TEST_P(GPU_MhaForward_FP32, TestFloat) { Run(); }
+TEST_P(GPU_MhaForward_FP8, TestFloat) { Run(); }
 
 inline auto GetCases()
 {
@@ -308,6 +308,6 @@ inline auto GetCases()
                             testing::ValuesIn({0.0f, 0.5f})); // bernulli probability
 }
 
-INSTANTIATE_TEST_SUITE_P(MhaFwdSuiteFp32, MhaForwardTestFp32, GetCases());
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_MhaForward_FP32, GetCases());
 
-INSTANTIATE_TEST_SUITE_P(MhaFwdSuiteFp8, MhaForwardTestFp8, GetCases());
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_MhaForward_FP8, GetCases());

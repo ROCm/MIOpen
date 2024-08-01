@@ -119,6 +119,4 @@ TEST_P(GPU_deepbench_lstm_FP32, FloatTest_deepbench_lstm)
     Run2dDriverFloat();
 };
 
-INSTANTIATE_TEST_SUITE_P(Full,
-                         GPU_deepbench_lstm_FP32,
-                         testing::Values(GetTestCases("--float")));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_deepbench_lstm_FP32, testing::Values(GetTestCases("--float")));

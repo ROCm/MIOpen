@@ -159,10 +159,7 @@ TEST(CPU_Dump_NAN_FP16, testDump)
     testDumpWithNan<half_float::half>(test_file_name_prefix + "nan_half_float.bin");
 }
 
-TEST(CPU_Dump_NAN_BFP16, testDump)
-{
-    testDump<bfloat16>(test_file_name_prefix + "bfloat16.bin");
-}
+TEST(CPU_Dump_NAN_BFP16, testDump) { testDump<bfloat16>(test_file_name_prefix + "bfloat16.bin"); }
 
 TEST(CPU_Dump_NAN_BFP16, testDump)
 {

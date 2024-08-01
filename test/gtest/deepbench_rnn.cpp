@@ -115,6 +115,4 @@ TEST_P(GPU_DeepBenchRNN_FP32, FloatTest_deepbench_rnn)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(Full,
-                         GPU_DeepBenchRNN_FP32,
-                         testing::Values(GetTestCases("--float")));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_DeepBenchRNN_FP32, testing::Values(GetTestCases("--float")));

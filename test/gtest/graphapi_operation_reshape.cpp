@@ -38,14 +38,14 @@ using miopen::graphapi::Tensor;
 
 } // namespace
 
-class GraphApiOperationReshape : public testing::Test
+class CPU_GraphApiOperationReshape_NONE : public testing::Test
 {
 protected:
     Tensor mX{miopenFloat, {8, 64, 128}, {64 * 128, 128, 1}, 1, false};
     Tensor mY{miopenFloat, {8, 128, 64}, {64 * 128, 1, 128}, 1, false};
 };
 
-TEST_F(GraphApiOperationReshape, Builder)
+TEST_F(CPU_GraphApiOperationReshape_NONE, Builder)
 {
     EXPECT_NO_THROW({ OperationReshapeBuilder().setX(&mX).setY(&mY).build(); })
         << "Builder failed on valid attributes";
@@ -59,7 +59,7 @@ TEST_F(GraphApiOperationReshape, Builder)
         << "Builder failed on missing setY call";
 }
 
-TEST_F(GraphApiOperationReshape, Transpose)
+TEST_F(CPU_GraphApiOperationReshape_NONE, Transpose)
 {
     OperationReshape transpose, notTranspose;
 
@@ -152,7 +152,7 @@ using miopen::graphapi::GTestGraphApiExecute;
 
 } // namespace
 
-TEST_F(GraphApiOperationReshape, CFunctions)
+TEST_F(CPU_GraphApiOperationReshape_NONE, CFunctions)
 {
     XAttribute x{&mX};
     YAttribute y{&mY};

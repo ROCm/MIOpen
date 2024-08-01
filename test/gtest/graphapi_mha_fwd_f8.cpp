@@ -51,8 +51,9 @@ namespace gr = miopen::graphapi;
 
 namespace mha_graph_test {
 
-class MhaFwdGraphTest : public testing::TestWithParam<
-                            std::tuple<std::size_t, std::size_t, std::size_t, std::size_t, float>>
+class GPU_MhaFwdGraph_FP32
+    : public testing::TestWithParam<
+          std::tuple<std::size_t, std::size_t, std::size_t, std::size_t, float>>
 {
 
     struct TensorData
@@ -577,10 +578,10 @@ public:
 
 using namespace mha_graph_test;
 
-TEST_P(MhaFwdGraphTest, MhaFwdGraph) { Run(); }
+TEST_P(GPU_MhaFwdGraph_FP32, MhaFwdGraph) { Run(); }
 
-INSTANTIATE_TEST_SUITE_P(MhaGraphFwdSuite,
-                         MhaFwdGraphTest,
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_MhaFwdGraph_FP32,
                          testing::Combine(testing::ValuesIn(std::vector<std::size_t>{2}),     // n
                                           testing::ValuesIn(std::vector<std::size_t>{8}),     // h
                                           testing::ValuesIn(std::vector<std::size_t>{4, 64}), // s
