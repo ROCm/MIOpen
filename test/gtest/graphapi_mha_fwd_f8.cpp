@@ -30,17 +30,16 @@ namespace mha_graph_test {
 
 class MhaFwdGraphTest : public MhaGraphTestBase
 {
-
 protected:
     void createMhaGraph(size_t n, size_t h, size_t s, size_t d) override
     {
 
         mGraphBuilder = std::make_unique<gr::OpGraphBuilder>();
 
-        std::vector<int64_t> nhsd  = {n, h, s, d};
-        std::vector<int64_t> nhss  = {n, h, s, s};
-        std::vector<int64_t> nhs1  = {n, h, s, 1};
-        std::vector<int64_t> all1s = {1, 1, 1, 1};
+        std::vector<size_t> nhsd  = {n, h, s, d};
+        std::vector<size_t> nhss  = {n, h, s, s};
+        std::vector<size_t> nhs1  = {n, h, s, 1};
+        std::vector<size_t> all1s = {1, 1, 1, 1};
 
         MAKE_TENSOR_F(Q, nhsd, false);
         MAKE_TENSOR_F(K, nhsd, false);
@@ -206,9 +205,9 @@ TEST_P(MhaFwdGraphTest, MhaFwdGraph) { Run(); }
 
 INSTANTIATE_TEST_SUITE_P(MhaGraphFwdSuite,
                          MhaFwdGraphTest,
-                         testing::Combine(testing::ValuesIn({2}),         // n
-                                          testing::ValuesIn({8}),         // h
-                                          testing::ValuesIn({4, 64}),     // s
-                                          testing::ValuesIn({16}),        // d
+                         testing::Combine(testing::ValuesIn(std::vector<std::size_t>{2}),     // n
+                                          testing::ValuesIn(std::vector<std::size_t>{8}),     // h
+                                          testing::ValuesIn(std::vector<std::size_t>{4, 64}), // s
+                                          testing::ValuesIn(std::vector<std::size_t>{16}),    // d
                                           testing::ValuesIn({0.0f, 0.5f}) // mProbDropout
                                           ));

@@ -40,14 +40,14 @@ namespace reduce {
 
 size_t ArgmaxForward::XGridSize(std::vector<size_t> indicedims) const
 {
-    auto indice_numel =
+    size_t indice_numel =
         std::accumulate(indicedims.begin(), indicedims.end(), 1ULL, std::multiplies<size_t>());
     return AlignUp(indice_numel, LOCAL_SIZE);
 }
 
 /// \todo https://github.com/ROCm/MIOpen/pull/2583#discussion_r1437054128
 bool ArgmaxForward::OverMaxGridSize(const ExecutionContext& context,
-                                    const miopen::reduce::ProblemDescription& problem) const
+                                    const miopen::reduce::ProblemDescriptionExtreme& problem) const
 {
     auto indicedims = problem.GetIndiceDesc().GetLengths();
     if(XGridSize(indicedims) > context.GetStream().GetImage3dMaxWidth())
@@ -56,7 +56,7 @@ bool ArgmaxForward::OverMaxGridSize(const ExecutionContext& context,
 }
 
 bool ArgmaxForward::IsApplicable(const ExecutionContext& context,
-                                 const miopen::reduce::ProblemDescription& problem) const
+                                 const miopen::reduce::ProblemDescriptionExtreme& problem) const
 {
     if(!problem.IsValidDim())
         return false;
@@ -64,7 +64,7 @@ bool ArgmaxForward::IsApplicable(const ExecutionContext& context,
         return false;
     if(!problem.IsValidInputNumel())
         return false;
-    if(!problem.IsAllPackedIndice())
+    if(!problem.IsAllContiguousIndice())
         return false;
     if(!problem.IsNotLastDim())
         return false;
@@ -73,8 +73,9 @@ bool ArgmaxForward::IsApplicable(const ExecutionContext& context,
     return true;
 }
 
-ConvSolution ArgmaxForward::GetSolution(const ExecutionContext&,
-                                        const miopen::reduce::ProblemDescription& problem) const
+ConvSolution
+ArgmaxForward::GetSolution(const ExecutionContext&,
+                           const miopen::reduce::ProblemDescriptionExtreme& problem) const
 {
     auto result = ConvSolution{miopenStatusSuccess};
 
@@ -128,7 +129,7 @@ ConvSolution ArgmaxForward::GetSolution(const ExecutionContext&,
     result.invoker_factory = [](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
             decltype(auto) kernel = handle_.Run(kernels.front());
-            decltype(auto) params = raw_params.CastTo<miopen::reduce::InvokeParams>();
+            decltype(auto) params = raw_params.CastTo<miopen::reduce::ExtremeInvokeParams>();
 
             auto xdims      = params.xDesc->GetLengths();
             auto indicedims = params.indiceDesc->GetLengths();

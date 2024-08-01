@@ -51,7 +51,7 @@
 namespace gr = miopen::graphapi;
 
 namespace mha_graph_test {
-class MhaGraphTestBase : public testing::TestWithParam<std::tuple<int, int, int, int, float>>
+class MhaGraphTestBase : public testing::TestWithParam<std::tuple<size_t, size_t, size_t, size_t, float>>
 {
 
 protected:
@@ -67,9 +67,9 @@ protected:
         explicit TensorData(gr::Tensor* tens_ptr) : mTensPtr(tens_ptr), mCpuTensor()
         {
             assert(mTensPtr);
-            const auto& d = mTensPtr->getDimensions();
+            const auto& d = mTensPtr->GetLengths();
             std::vector<size_t> dims(d.begin(), d.end());
-            if(auto dt = mTensPtr->getDataType(); dt == miopenFloat)
+            if(auto dt = mTensPtr->GetType(); dt == miopenFloat)
             {
                 mCpuTensor = TensFlt{dims};
             }
@@ -86,7 +86,7 @@ protected:
         void init(tensor<float>&& tens_val)
         {
             auto& handle = get_handle();
-            assert(mTensPtr->getDataType() == miopenFloat);
+            assert(mTensPtr->GetType() == miopenFloat);
             auto& ct = std::get<TensFlt>(mCpuTensor);
             ct       = std::move(tens_val);
             mGpuBuf  = handle.Write(ct.data);
@@ -278,7 +278,7 @@ protected:
 
     template <bool IsVirt>
     gr::Tensor*
-    makeTensor(std::string_view name, miopenDataType_t dt, const std::vector<int64_t>& dims)
+    makeTensor(std::string_view name, miopenDataType_t dt, const std::vector<size_t>& dims)
     {
         auto ptr = mAlloc.allocate(gr::makeTensor<IsVirt>(name, dt, dims));
         if constexpr(!IsVirt)
