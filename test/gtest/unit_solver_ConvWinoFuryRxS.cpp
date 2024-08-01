@@ -34,7 +34,8 @@ auto GetConvTestCases()
 
     return std::vector{
         // clang-format off
-        TestCase{1, 16, 16, 16, 16, 3, 3, 1, 1, 1, 1, 1, 1, miopenConvolution},
+        TestCase{1,  16, 16, 16,  16, 3, 3, 1, 1, 1, 1, 1, 1, miopenConvolution}, // c16 kernel
+        TestCase{1, 128, 16, 16, 128, 3, 3, 1, 1, 1, 1, 1, 1, miopenConvolution}, // c32 kernel
         // clang-format on
     };
 }
@@ -45,7 +46,8 @@ auto GetConvTestCasesWrw()
 
     return std::vector{
         // clang-format off
-        TestCase{1, 16, 5, 5, 16, 3, 3, 0, 0, 1, 1, 1, 1, miopenConvolution},
+        TestCase{ 1,  16, 5, 5, 16, 3, 3, 0, 0, 1, 1, 1, 1, miopenConvolution}, // c16 kernel
+        TestCase{64, 128, 7, 7, 64, 7, 7, 0, 0, 1, 1, 1, 1, miopenConvolution}, // c32 kernel
         // clang-format on
     };
 }
