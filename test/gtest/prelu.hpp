@@ -34,8 +34,6 @@
 #include <miopen/miopen.h>
 #include <miopen/prelu.hpp>
 
-#define FLOAT_ACCUM float
-
 inline std::ostream& operator<<(std::ostream& os, const std::vector<size_t>& v)
 {
     os << '{';
@@ -165,9 +163,9 @@ protected:
         if(ws_sizeInBytes != 0)
         {
             std::vector<size_t> workspace_dims;
-            workspace_dims.push_back(ws_sizeInBytes / sizeof(FLOAT_ACCUM));
+            workspace_dims.push_back(ws_sizeInBytes / sizeof(float));
 
-            workspace = tensor<FLOAT_ACCUM>{workspace_dims};
+            workspace = tensor<float>{workspace_dims};
             std::fill(workspace.begin(), workspace.end(), 0.0f);
 
             workspace_dev = handle.Write(workspace.data);
@@ -234,7 +232,7 @@ protected:
     tensor<T> doutput;
     tensor<T> dinput;
     tensor<T> dweight;
-    tensor<FLOAT_ACCUM> workspace;
+    tensor<float> workspace;
 
     tensor<T> ref_dinput;
     tensor<T> ref_dweight;
