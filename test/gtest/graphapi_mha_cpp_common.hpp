@@ -272,7 +272,7 @@ protected:
         }
         else
         {
-            MIOPEN_LOG_FATAL("Unknown graph node type: " << name);
+            FAIL() << "Unknown graph node type: " << name;
         }
     }
 
