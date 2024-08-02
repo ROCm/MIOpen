@@ -39,7 +39,7 @@ static std::vector<int> Convert(const std::vector<int64_t>& values)
     std::transform(values.begin(), values.end(), converted.begin(), 
     [](int64_t value)
     {
-        assert(value < std::numeric_limits<int>::max());
+        assert(value <= std::numeric_limits<int>::max() && value >= std::numeric_limits<int>::min());
         return static_cast<int>(value);
     });
 
