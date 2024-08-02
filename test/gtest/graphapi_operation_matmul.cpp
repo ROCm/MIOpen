@@ -450,16 +450,16 @@ static auto invalidAtLeastCtensors = testing::Combine(testing::Values(false),
                                                       testing::ValuesIn(validNOverridetensors),
                                                       testing::ValuesIn(validKOverridetensors));
 
-INSTANTIATE_TEST_SUITE_P(Full1, CPU_GraphApiOperationMatmulBuilder_NONE, validAttributes);
+INSTANTIATE_TEST_SUITE_P(UnitVA, CPU_GraphApiOperationMatmulBuilder_NONE, validAttributes);
 
-INSTANTIATE_TEST_SUITE_P(Full2, CPU_GraphApiOperationMatmulBuilder_NONE, invalidBroadcasts);
+INSTANTIATE_TEST_SUITE_P(UnitIBr, CPU_GraphApiOperationMatmulBuilder_NONE, invalidBroadcasts);
 
-INSTANTIATE_TEST_SUITE_P(Full3, CPU_GraphApiOperationMatmulBuilder_NONE, invalidAtLeastMatmuls);
-INSTANTIATE_TEST_SUITE_P(Full4, CPU_GraphApiOperationMatmulBuilder_NONE, invalidAtLeastAtensors);
-INSTANTIATE_TEST_SUITE_P(Full5, CPU_GraphApiOperationMatmulBuilder_NONE, invalidAtLeastBtensors);
-INSTANTIATE_TEST_SUITE_P(Full6, CPU_GraphApiOperationMatmulBuilder_NONE, invalidAtLeastCtensors);
+INSTANTIATE_TEST_SUITE_P(UnitIM, CPU_GraphApiOperationMatmulBuilder_NONE, invalidAtLeastMatmuls);
+INSTANTIATE_TEST_SUITE_P(UnitIA, CPU_GraphApiOperationMatmulBuilder_NONE, invalidAtLeastAtensors);
+INSTANTIATE_TEST_SUITE_P(UnitIB, CPU_GraphApiOperationMatmulBuilder_NONE, invalidAtLeastBtensors);
+INSTANTIATE_TEST_SUITE_P(UnitIC, CPU_GraphApiOperationMatmulBuilder_NONE, invalidAtLeastCtensors);
 
-INSTANTIATE_TEST_SUITE_P(Full7, CPU_GraphApiOperationMatmul_NONE, validAttributes);
-INSTANTIATE_TEST_SUITE_P(Full8, CPU_GraphApiOperationMatmul_NONE, invalidAtLeastMatmuls);
-INSTANTIATE_TEST_SUITE_P(Full9, CPU_GraphApiOperationMatmul_NONE, invalidAtLeastAtensors);
-INSTANTIATE_TEST_SUITE_P(Full0, CPU_GraphApiOperationMatmul_NONE, invalidAtLeastBtensors);
+INSTANTIATE_TEST_SUITE_P(UnitVA, CPU_GraphApiOperationMatmul_NONE, validAttributes);
+INSTANTIATE_TEST_SUITE_P(UnitIM, CPU_GraphApiOperationMatmul_NONE, invalidAtLeastMatmuls);
+INSTANTIATE_TEST_SUITE_P(UnitIA, CPU_GraphApiOperationMatmul_NONE, invalidAtLeastAtensors);
+INSTANTIATE_TEST_SUITE_P(UnitIB, CPU_GraphApiOperationMatmul_NONE, invalidAtLeastBtensors);

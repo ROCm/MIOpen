@@ -510,16 +510,16 @@ static auto invalidAtLeastOffsets = testing::Combine(testing::Values(false),
                                                      testing::ValuesIn(anySeeds),
                                                      testing::ValuesIn(invalidOffsets));
 
-INSTANTIATE_TEST_SUITE_P(Unit, CPU_GraphApiOperationRngBuilder_NONE, validAttributes);
-INSTANTIATE_TEST_SUITE_P(Unit, CPU_GraphApiOperationRngBuilder_NONE, invalidAtLeastRngs);
-INSTANTIATE_TEST_SUITE_P(Unit, CPU_GraphApiOperationRngBuilder_NONE, invalidAtLeastOutputs);
-INSTANTIATE_TEST_SUITE_P(Unit, CPU_GraphApiOperationRngBuilder_NONE, invalidAtLeastSeeds);
-INSTANTIATE_TEST_SUITE_P(Unit, CPU_GraphApiOperationRngBuilder_NONE, invalidAtLeastOffsets);
+INSTANTIATE_TEST_SUITE_P(UnitVA, CPU_GraphApiOperationRngBuilder_NONE, validAttributes);
+INSTANTIATE_TEST_SUITE_P(UnitIR, CPU_GraphApiOperationRngBuilder_NONE, invalidAtLeastRngs);
+INSTANTIATE_TEST_SUITE_P(UnitIO, CPU_GraphApiOperationRngBuilder_NONE, invalidAtLeastOutputs);
+INSTANTIATE_TEST_SUITE_P(UnitIS, CPU_GraphApiOperationRngBuilder_NONE, invalidAtLeastSeeds);
+INSTANTIATE_TEST_SUITE_P(UnitIOff, CPU_GraphApiOperationRngBuilder_NONE, invalidAtLeastOffsets);
 
-INSTANTIATE_TEST_SUITE_P(Unit, CPU_GraphApiOperationRng_NONE, validAttributes);
-INSTANTIATE_TEST_SUITE_P(Unit, CPU_GraphApiOperationRng_NONE, invalidAtLeastRngs);
-INSTANTIATE_TEST_SUITE_P(Unit, CPU_GraphApiOperationRng_NONE, invalidAtLeastOutputs);
-INSTANTIATE_TEST_SUITE_P(Unit, CPU_GraphApiOperationRng_NONE, invalidAtLeastOffsets);
+INSTANTIATE_TEST_SUITE_P(UnitVA, CPU_GraphApiOperationRng_NONE, validAttributes);
+INSTANTIATE_TEST_SUITE_P(UnitIR, CPU_GraphApiOperationRng_NONE, invalidAtLeastRngs);
+INSTANTIATE_TEST_SUITE_P(UnitIO, CPU_GraphApiOperationRng_NONE, invalidAtLeastOutputs);
+INSTANTIATE_TEST_SUITE_P(UnitIOff, CPU_GraphApiOperationRng_NONE, invalidAtLeastOffsets);
 
 /* This one won't work as intended because seed is an optional attribute with a default value
  * and Graph API allows to finalize() if other attributes are valid.

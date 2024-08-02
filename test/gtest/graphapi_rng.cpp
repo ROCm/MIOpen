@@ -274,20 +274,18 @@ static auto invalidAttributesBernoulli = testing::Combine(
     testing::Values(0.0, 1.0),
     testing::Values(ValidatedValue<double>{false, -0.5}, ValidatedValue<double>{false, 1.5}));
 
-INSTANTIATE_TEST_SUITE_P(Unit, CPU_GraphApiRngBuilder_NONE, validAttributesNormal);
-INSTANTIATE_TEST_SUITE_P(Unit, CPU_GraphApiRngBuilder_NONE, validAttributesUniform);
-INSTANTIATE_TEST_SUITE_P(Unit, CPU_GraphApiRngBuilder_NONE, validAttributesBernoulli);
+INSTANTIATE_TEST_SUITE_P(UnitVAN, CPU_GraphApiRngBuilder_NONE, validAttributesNormal);
+INSTANTIATE_TEST_SUITE_P(UnitVAU, CPU_GraphApiRngBuilder_NONE, validAttributesUniform);
+INSTANTIATE_TEST_SUITE_P(UnitVAB, CPU_GraphApiRngBuilder_NONE, validAttributesBernoulli);
 
-INSTANTIATE_TEST_SUITE_P(Unit, CPU_GraphApiRngBuilder_NONE, invalidAttributesNormal);
-INSTANTIATE_TEST_SUITE_P(Unit, CPU_GraphApiRngBuilder_NONE, invalidAttributesUniform);
-INSTANTIATE_TEST_SUITE_P(Unit,
-                         CPU_GraphApiRngBuilder_NONE,
-                         invalidAttributesBernoulli);
+INSTANTIATE_TEST_SUITE_P(UnitIAN, CPU_GraphApiRngBuilder_NONE, invalidAttributesNormal);
+INSTANTIATE_TEST_SUITE_P(UnitIAU, CPU_GraphApiRngBuilder_NONE, invalidAttributesUniform);
+INSTANTIATE_TEST_SUITE_P(UnitIAB, CPU_GraphApiRngBuilder_NONE, invalidAttributesBernoulli);
 
-INSTANTIATE_TEST_SUITE_P(Unit, CPU_GraphApiRng_NONE, validAttributesNormal);
-INSTANTIATE_TEST_SUITE_P(Unit, CPU_GraphApiRng_NONE, validAttributesUniform);
-INSTANTIATE_TEST_SUITE_P(Unit, CPU_GraphApiRng_NONE, validAttributesBernoulli);
+INSTANTIATE_TEST_SUITE_P(UnitVAN, CPU_GraphApiRng_NONE, validAttributesNormal);
+INSTANTIATE_TEST_SUITE_P(UnitVAU, CPU_GraphApiRng_NONE, validAttributesUniform);
+INSTANTIATE_TEST_SUITE_P(UnitVAB, CPU_GraphApiRng_NONE, validAttributesBernoulli);
 
-INSTANTIATE_TEST_SUITE_P(Unit, CPU_GraphApiRng_NONE, invalidAttributesNormal);
-INSTANTIATE_TEST_SUITE_P(Unit, CPU_GraphApiRng_NONE, invalidAttributesUniform);
-INSTANTIATE_TEST_SUITE_P(Unit, CPU_GraphApiRng_NONE, invalidAttributesBernoulli);
+INSTANTIATE_TEST_SUITE_P(UnitIAN, CPU_GraphApiRng_NONE, invalidAttributesNormal);
+INSTANTIATE_TEST_SUITE_P(UnitIAU, CPU_GraphApiRng_NONE, invalidAttributesUniform);
+INSTANTIATE_TEST_SUITE_P(UnitIAB, CPU_GraphApiRng_NONE, invalidAttributesBernoulli);
