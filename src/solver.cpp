@@ -654,7 +654,7 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
 
     Register(registry, ++id, Primitive::Softmax, softmax::Softmax{}.SolverDbId());
     Register(registry, ++id, Primitive::Softmax, softmax::AttnSoftmax{}.SolverDbId());
-    
+
     Register(registry, ++id, Primitive::Reduce, reduce::ArgminForward{}.SolverDbId());
     Register(registry, ++id, Primitive::Reduce, reduce::MaxForward{}.SolverDbId());
     Register(registry, ++id, Primitive::Reduce, reduce::MinForward{}.SolverDbId());
@@ -672,7 +672,7 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
              Primitive::Fusion,
              fusion::ConvWinoFuryRxSFused<2, 3>{}.SolverDbId(),
              miopenConvolutionAlgoWinograd);
-    
+
     Register(registry, ++id, Primitive::Unfold, fold::UnfoldFwd{}.SolverDbId());
     Register(registry, ++id, Primitive::Unfold, fold::UnfoldBwd{}.SolverDbId());
     Register(registry, ++id, Primitive::Fold, fold::FoldFwd{}.SolverDbId());
