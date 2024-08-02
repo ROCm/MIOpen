@@ -185,7 +185,7 @@ ConvSolution MultiMarginLossForward::GetSolution(
                 size * data_size, (size + LOCAL_SIZE_REDUCE) / LOCAL_SIZE_REDUCE * data_size};
             auto reduce_in = params.workspace;
             auto reduce_out =
-                static_cast<Data_t>(static_cast<char*>(params.workspace) + wt.GetOffset(1));
+                static_cast<Data_t>(static_cast<std::byte*>(params.workspace) + wt.GetOffset(1));
 
             for(int i = 1; i < kernels.size(); ++i)
             {
