@@ -35,7 +35,15 @@ namespace graphapi {
 
 static std::vector<int> Convert(const std::vector<int64_t>& values)
 {
-    return {values.begin(), values.end()};
+    std::vector<int> converted(values.size());
+    std::transform(values.begin(), values.end(), converted.begin(), 
+    [](int64_t value)
+    {
+        assert(value < std::numeric_limits<int>::max());
+        return static_cast<int>(value);
+    });
+
+    return converted;
 }
 
 static ConvolutionDescriptor Convert(const Convolution& conv, int groupCount)
