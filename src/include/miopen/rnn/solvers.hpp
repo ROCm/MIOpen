@@ -146,6 +146,14 @@ public:
                 SequenceDirection direction,
                 size_t gemm_batch_offset,
                 size_t gemm_batch_size) const;
+    static bool IsApplicable()
+    {
+#if MIOPEN_USE_GEMM && MIOPEN_BACKEND_HIP
+        return true;
+#else
+        return false;
+#endif // MIOPEN_USE_GEMM&& MIOPEN_BACKEND_HIP
+    }
 
 private:
     RNNBackwardDataModularAlgo(GeneralLstmRedBuffer rb_layout,
@@ -284,9 +292,17 @@ public:
     {
     }
 
-    bool isApplicable();
+    static bool IsApplicable()
+    {
+#if MIOPEN_USE_GEMM && MIOPEN_BACKEND_HIP
+        return true;
+#else
+        return false;
+#endif // MIOPEN_USE_GEMM&& MIOPEN_BACKEND_HIP
+    }
 
-    size_t GetWsSize();
+    // TODO
+    static size_t GetWsSize() { return 0; };
 
     void ComputeBWD(Handle& handle,
                     ConstData_t dy,
@@ -318,9 +334,17 @@ public:
     {
     }
 
-    bool isApplicable();
+    static bool IsApplicable()
+    {
+#if MIOPEN_USE_GEMM && MIOPEN_BACKEND_HIP
+        return true;
+#else
+        return false;
+#endif // MIOPEN_USE_GEMM&& MIOPEN_BACKEND_HIP
+    }
 
-    size_t GetWsSize();
+    // TODO
+    static size_t GetWsSize() { return 0; };
 
     struct runtimeArgsBwd
     {

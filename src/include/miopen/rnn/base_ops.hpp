@@ -55,7 +55,7 @@ inline miopen::GemmDescriptor GemmDescriptor64BitWraper(bool isColMajor_,
 
 class RnnBaseFunctions
 {
-    RnnBaseFunctions() {}
+    RnnBaseFunctions() = default;
 
 public:
     static miopenStatus_t BWD_GEMM_Hidden_Prop(const Handle& handle,
@@ -74,6 +74,7 @@ public:
                                                miopenDataType_t data_type,
                                                bool add_assign = true)
     {
+#if MIOPEN_USE_GEMM && MIOPEN_BACKEND_HIP
         // no gemm work
         if(gemm_batch_size == 0)
             return miopenStatusSuccess;
@@ -106,6 +107,9 @@ public:
                         ht_dst_ptr,
                         ht_dst_offset,
                         GemmBackend_t::rocblas);
+#else
+        return miopenStatusNotImplemented;
+#endif // MIOPEN_USE_GEMM&& MIOPEN_BACKEND_HIP
     }
 
     static miopenStatus_t BWD_GEMM_Hidden_Prop(const Handle& handle,
