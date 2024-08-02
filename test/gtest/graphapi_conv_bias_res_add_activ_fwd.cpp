@@ -189,6 +189,16 @@ class GPU_ConvBiasResAddActivation_fwd
         ~GraphTensorAllocator() = default;
     };
 
+    // Graph of Y = activation(Conv(X,W) * alpha1 + Z * alpha2 + B)
+    inline static const std::string convInputName        = "X";
+    inline static const std::string convWeightName       = "W";
+    inline static const std::string convOutputName       = "Tmp0";
+    inline static const std::string addInputName         = "Z";
+    inline static const std::string addOutputName        = "Tmp1";
+    inline static const std::string biasInputName        = "B";
+    inline static const std::string biasOutputName       = "Tmp2";
+    inline static const std::string activationOutputName = "Y";
+
 public:
     void SetUp() override
     {
@@ -213,16 +223,6 @@ public:
         gr::OpGraphBuilder graphBuilder;
         gr::AutoDeleteAllocator graphNodeAllocator;
         GraphTensorAllocator graphTensorAllocator;
-
-        // Graph of Y = activation(Conv(X,W) * alpha1 + Z * alpha2 + B)
-        const std::string convInputName        = "X";
-        const std::string convWeightName       = "W";
-        const std::string convOutputName       = "Tmp0";
-        const std::string addInputName         = "Z";
-        const std::string addOutputName        = "Tmp1";
-        const std::string biasInputName        = "B";
-        const std::string biasOutputName       = "Tmp2";
-        const std::string activationOutputName = "Y";
 
         auto convInput = graphTensorAllocator.template MakeTensor<false>(
             convInputName,
@@ -316,7 +316,8 @@ public:
         graphBuilder.setHandle(handlePtr);
         gr::OpGraph graph;
         ASSERT_NO_THROW(graph = std::move(graphBuilder).build());
-        auto engines = gr::findEngines(&graph);
+        std::vector<gr::Engine> engines;
+        ASSERT_NO_THROW(engines = gr::findEngines(&graph));
 
         ASSERT_GT(engines.size(), 0);
 
@@ -374,6 +375,98 @@ public:
         EXPECT_TRUE(error < threshold)
             << "Error beyond tolerance Error:" << error << ",  Threshold: " << threshold;
     }
+
+    // Test that finding engine fails due to invalid Convolution tensor layout (input_c % wei_c !=
+    // 0)
+    void RunExceptionCheck()
+    {
+        float alpha1                      = 1.0f;
+        float alpha2                      = 1.0f;
+        miopenTensorLayout_t tensorLayout = miopenTensorNDHWC;
+        auto dataType                     = miopen_type<T>();
+
+        gr::OpGraphBuilder graphBuilder;
+        gr::AutoDeleteAllocator allocator;
+
+        miopen::TensorDescriptor convInputTensorDesc{dataType, tensorLayout, {1, 4, 14, 11, 1}};
+        auto convInput =
+            allocator.allocate(gr::makeTensor<false>(convInputName,
+                                                     dataType,
+                                                     convInputTensorDesc.GetLengths(),
+                                                     convInputTensorDesc.GetStrides()));
+
+        miopen::TensorDescriptor convInvalidCWeightTensorDesc{
+            dataType, tensorLayout, {1, 3, 4, 3, 3}};
+        auto convWeight =
+            allocator.allocate(gr::makeTensor<false>(convWeightName,
+                                                     dataType,
+                                                     convInvalidCWeightTensorDesc.GetLengths(),
+                                                     convInvalidCWeightTensorDesc.GetStrides()));
+
+        std::vector<size_t> allOnes{size_t{1}, size_t{1}, size_t{1}, size_t{1}, size_t{1}};
+        auto convOutput =
+            allocator.allocate(gr::makeTensor<true>(convOutputName, dataType, allOnes, allOnes));
+
+        gr::Convolution* convolution = nullptr;
+        ASSERT_NO_THROW(convolution = allocator.allocate(gr::ConvolutionBuilder{}
+                                                             .setCompType(dataType)
+                                                             .setMode(miopenConvolution)
+                                                             .setSpatialDims(3)
+                                                             .setDilations({1, 1, 1})
+                                                             .setFilterStrides({1, 1, 1})
+                                                             .setPrePaddings({1, 1, 1})
+                                                             .setPostPaddings({1, 1, 1})
+                                                             .build()));
+
+        ASSERT_NO_THROW(
+            graphBuilder.addNode(allocator.allocate(gr::OperationConvolutionForwardBuilder()
+                                                        .setConvolution(convolution)
+                                                        .setX(convInput)
+                                                        .setY(convOutput)
+                                                        .setW(convWeight)
+                                                        .setAlpha(1.0)
+                                                        .setBeta(0)
+                                                        .build())));
+
+        auto addInput =
+            allocator.allocate(gr::makeTensor<false>(addInputName, dataType, allOnes, allOnes));
+        auto addOutput =
+            allocator.allocate(gr::makeTensor<true>(addOutputName, dataType, allOnes, allOnes));
+
+        ASSERT_NO_THROW(graphBuilder.addNode(
+            MakeAddNode(allocator, dataType, convOutput, addInput, addOutput, alpha1, alpha2)));
+
+        miopen::TensorDescriptor biasInputTensorDesc{dataType, tensorLayout, allOnes};
+        auto biasInput =
+            allocator.allocate(gr::makeTensor<false>(biasInputName, dataType, allOnes, allOnes));
+        auto biasOutput =
+            allocator.allocate(gr::makeTensor<true>(biasOutputName, dataType, allOnes, allOnes));
+
+        ASSERT_NO_THROW(graphBuilder.addNode(
+            MakeAddNode(allocator, dataType, addOutput, biasInput, biasOutput)));
+
+        auto activationOutput = allocator.allocate(
+            gr::makeTensor<false>(activationOutputName, dataType, allOnes, allOnes));
+
+        gr::Pointwise* activation = nullptr;
+        ASSERT_NO_THROW(activation = allocator.allocate(gr::PointwiseBuilder{}
+                                                            .setMode(MIOPEN_POINTWISE_RELU_FWD)
+                                                            .setMathPrecision(dataType)
+                                                            .build()));
+        ASSERT_NO_THROW(graphBuilder.addNode(allocator.allocate(gr::OperationPointwiseBuilder{}
+                                                                    .setPointwise(activation)
+                                                                    .setX(biasOutput)
+                                                                    .setY(activationOutput)
+                                                                    .build())));
+
+        auto& handle   = get_handle();
+        auto handlePtr = static_cast<miopenHandle_t>(&handle);
+        graphBuilder.setHandle(handlePtr);
+        gr::OpGraph graph;
+        ASSERT_NO_THROW(graph = std::move(graphBuilder).build());
+        std::vector<gr::Engine> engines;
+        ASSERT_THROW(engines = gr::findEngines(&graph), miopen::Exception);
+    }
 };
 
 } // end namespace conv_graph_api_test
@@ -390,7 +483,8 @@ using namespace conv_graph_api_test;
                              testing::Combine(testing::ValuesIn(ConvTestConfigs()), \
                                               testing::ValuesIn({1.0f, 2.5f}),      \
                                               testing::ValuesIn({1.0f, 2.0f}),      \
-                                              testing::Values(miopenTensorNDHWC)));
+                                              testing::Values(miopenTensorNDHWC))); \
+    TEST_F(GPU_ConvBiasResAddActivation_##dir##_##type, TestExceptions) { RunExceptionCheck(); }
 
 DEFINE_GRAPH_API_CONV_BIAS_ACTIV_TEST(FP16, half_float::half, fwd);
 DEFINE_GRAPH_API_CONV_BIAS_ACTIV_TEST(FP32, float, fwd);
