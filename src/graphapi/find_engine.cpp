@@ -57,7 +57,7 @@ class ConvBiasResAddActive_Fwd_Pattern : public GraphPatternMatcher
         return graph_gen->graph();
     }
 
-    static bool IsBiasNode(OperationPointwise* addNode)
+    static bool isBiasNode(OperationPointwise* addNode)
     {
         auto& lengthsToCheck  = addNode->getX()->isVirtual() ? addNode->getB()->GetLengths()
                                                              : addNode->getX()->GetLengths();
@@ -72,6 +72,23 @@ class ConvBiasResAddActive_Fwd_Pattern : public GraphPatternMatcher
 
         // Assume bias node when at most one dimension is larger than 1.
         return notOneOrZeroCount <= 1;
+    }
+
+    static bool hasBiasNode(const OpGraph& graph)
+    {
+        auto* conv = dynamic_cast<OperationConvolutionForward*>(
+            graph.findOutNeighByName(graph.getSourceNode(), "OP_CONVOLUTION_FORWARD"));
+        assert(conv);
+
+        auto* add1 =
+            dynamic_cast<OperationPointwise*>(graph.findOutNeighByName(conv, "OP_POINTWISE:ADD"));
+        assert(add1);
+
+        auto* add2 =
+            dynamic_cast<OperationPointwise*>(graph.findOutNeighByName(add1, "OP_POINTWISE:ADD"));
+        assert(add2);
+
+        return isBiasNode(add1) || isBiasNode(add2);
     }
 
 public:
@@ -89,7 +106,13 @@ public:
     bool matches(const OpGraph* graph_ptr) const final
     {
         assert(graph_ptr);
-        return isIsomorphic(*graph_ptr, getPatternGraph());
+
+        if(!isIsomorphic(*graph_ptr, getPatternGraph()))
+        {
+            return false;
+        }
+
+        return hasBiasNode(*graph_ptr);
     }
 
     std::vector<Engine> getEngines(OpGraph* graph_ptr) const override
@@ -128,20 +151,12 @@ public:
             dynamic_cast<OperationPointwise*>(graph.findOutNeighByName(add1, "OP_POINTWISE:ADD"));
         assert(add2);
 
-        bool isBiasNode1 = IsBiasNode(add1);
-        bool isBiasNode2 = IsBiasNode(add2);
-
-        if(!isBiasNode1 && !isBiasNode2)
-        {
-            MIOPEN_THROW(miopenStatusBadParm,
-                         "no bias node provided for graph matching ConvBiasResAddActive pattern");
-        }
-
         auto* activ = dynamic_cast<OperationPointwise*>(
             graph.findOutNeighByName(add2, "OP_POINTWISE:RELU_FWD"));
         assert(activ);
 
-        auto [add, bias] = isBiasNode1 ? std::make_pair(add2, add1) : std::make_pair(add1, add2);
+        auto [add, bias] =
+            isBiasNode(add1) ? std::make_pair(add2, add1) : std::make_pair(add1, add2);
 
         bool addXIsVirtual = add->getX()->isVirtual();
         assert(addXIsVirtual || add->getB()->isVirtual());
