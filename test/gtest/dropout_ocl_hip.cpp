@@ -787,7 +787,7 @@ std::vector<DropoutTestCase> DropoutTestConfigs()
                         // Ensure the total size does not exceed the maximum limit
                         if(totalSize <= maxTotalSize)
                         {
-                            configs.push_back({N, C, H, W, 0});
+                            configs.push_back({N, C, H, W, 1});
                         }
                     }
                 }
