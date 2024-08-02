@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -40,8 +40,8 @@ namespace solver {
 
 namespace reduce {
 
-bool SumForward::IsApplicable(const ExecutionContext& context,
-                              const miopen::reduce::ProblemDescriptionCalculation& problem) const
+bool ProdForward::IsApplicable(const ExecutionContext& context,
+                               const miopen::reduce::ProblemDescriptionCalculation& problem) const
 {
     if(!problem.IsSameType())
         return false;
@@ -59,8 +59,8 @@ bool SumForward::IsApplicable(const ExecutionContext& context,
 }
 
 ConvSolution
-SumForward::GetSolution(const ExecutionContext& context,
-                        const miopen::reduce::ProblemDescriptionCalculation& problem) const
+ProdForward::GetSolution(const ExecutionContext& context,
+                         const miopen::reduce::ProblemDescriptionCalculation& problem) const
 {
     auto result = ConvSolution{miopenStatusSuccess};
 
@@ -99,7 +99,7 @@ SumForward::GetSolution(const ExecutionContext& context,
             {"MIOPEN_USE_BFP16", static_cast<int32_t>(dtype == miopenBFloat16)},
             {"INPUT_TYPE", input_dtype == "bfloat16" ? "ushort" : input_dtype},
             {"OUTPUT_TYPE", output_dtype == "bfloat16" ? "ushort" : output_dtype},
-            {"OP_TYPE", "ReduceCalculationOp_t::Sum"},
+            {"OP_TYPE", "ReduceCalculationOp_t::Prod"},
             {"MIOPEN_REDUCE_CALCULATION_PROD", MIOPEN_REDUCE_CALCULATION_PROD},
             {"MIOPEN_REDUCE_CALCULATION_SUM", MIOPEN_REDUCE_CALCULATION_SUM}};
 
@@ -135,7 +135,7 @@ SumForward::GetSolution(const ExecutionContext& context,
             {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
             {"INPUT_TYPE", input_dtype == "bfloat16" ? "ushort" : input_dtype},
             {"OUTPUT_TYPE", output_dtype == "bfloat16" ? "ushort" : output_dtype},
-            {"OP_TYPE", "ReduceCalculationOp_t::Sum"},
+            {"OP_TYPE", "ReduceCalculationOp_t::Prod"},
             {"MIOPEN_REDUCE_CALCULATION_PROD", MIOPEN_REDUCE_CALCULATION_PROD},
             {"MIOPEN_REDUCE_CALCULATION_SUM", MIOPEN_REDUCE_CALCULATION_SUM}};
 
@@ -251,8 +251,8 @@ SumForward::GetSolution(const ExecutionContext& context,
 }
 
 std::size_t
-SumForward::GetWorkspaceSize(const ExecutionContext& context,
-                             const miopen::reduce::ProblemDescriptionCalculation& problem) const
+ProdForward::GetWorkspaceSize(const ExecutionContext& context,
+                              const miopen::reduce::ProblemDescriptionCalculation& problem) const
 {
     auto xdims = problem.GetXDesc().GetLengths();
     auto ydims = problem.GetYDesc().GetLengths();
