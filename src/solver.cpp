@@ -654,47 +654,29 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
 
     Register(registry, ++id, Primitive::Softmax, softmax::Softmax{}.SolverDbId());
     Register(registry, ++id, Primitive::Softmax, softmax::AttnSoftmax{}.SolverDbId());
+    
+    Register(registry, ++id, Primitive::Reduce, reduce::ArgminForward{}.SolverDbId());
+    Register(registry, ++id, Primitive::Reduce, reduce::MaxForward{}.SolverDbId());
+    Register(registry, ++id, Primitive::Reduce, reduce::MinForward{}.SolverDbId());
+
+    Register(registry, ++id, Primitive::Mha, mha::MhaForward{}.SolverDbId());
+    Register(registry, ++id, Primitive::Mha, mha::MhaBackward{}.SolverDbId());
+
+    Register(registry, ++id, Primitive::Cat, cat::CatForward{}.SolverDbId());
+    Register(registry, ++id, Primitive::Adam, adam::Adam{}.SolverDbId());
+
+    Register(registry, ++id, Primitive::Adam, adam::TransformersAdamW{}.SolverDbId());
+
+    Register(registry,
+             ++id,
+             Primitive::Fusion,
+             fusion::ConvWinoFuryRxSFused<2, 3>{}.SolverDbId(),
+             miopenConvolutionAlgoWinograd);
+    
     Register(registry, ++id, Primitive::Unfold, fold::UnfoldFwd{}.SolverDbId());
     Register(registry, ++id, Primitive::Unfold, fold::UnfoldBwd{}.SolverDbId());
     Register(registry, ++id, Primitive::Fold, fold::FoldFwd{}.SolverDbId());
     Register(registry, ++id, Primitive::Fold, fold::FoldBwd{}.SolverDbId());
-
-    Register(registry, ++id, Primitive::Reduce, reduce::ArgminForward{}.SolverDbId());
-    Register(registry, ++id, Primitive::Reduce, reduce::MaxForward{}.SolverDbId());
-    Register(registry, ++id, Primitive::Reduce, reduce::MinForward{}.SolverDbId());
-
-    Register(registry, ++id, Primitive::Mha, mha::MhaForward{}.SolverDbId());
-    Register(registry, ++id, Primitive::Mha, mha::MhaBackward{}.SolverDbId());
-
-    Register(registry, ++id, Primitive::Cat, cat::CatForward{}.SolverDbId());
-    Register(registry, ++id, Primitive::Adam, adam::Adam{}.SolverDbId());
-
-    Register(registry, ++id, Primitive::Adam, adam::TransformersAdamW{}.SolverDbId());
-
-    Register(registry,
-             ++id,
-             Primitive::Fusion,
-             fusion::ConvWinoFuryRxSFused<2, 3>{}.SolverDbId(),
-             miopenConvolutionAlgoWinograd);
-
-    Register(registry, ++id, Primitive::Reduce, reduce::ArgminForward{}.SolverDbId());
-    Register(registry, ++id, Primitive::Reduce, reduce::MaxForward{}.SolverDbId());
-    Register(registry, ++id, Primitive::Reduce, reduce::MinForward{}.SolverDbId());
-
-    Register(registry, ++id, Primitive::Mha, mha::MhaForward{}.SolverDbId());
-    Register(registry, ++id, Primitive::Mha, mha::MhaBackward{}.SolverDbId());
-
-    Register(registry, ++id, Primitive::Cat, cat::CatForward{}.SolverDbId());
-    Register(registry, ++id, Primitive::Adam, adam::Adam{}.SolverDbId());
-    Register(registry, ++id, Primitive::Item, getitem::GetitemBackward{}.SolverDbId());
-
-    Register(registry, ++id, Primitive::Adam, adam::TransformersAdamW{}.SolverDbId());
-
-    Register(registry,
-             ++id,
-             Primitive::Fusion,
-             fusion::ConvWinoFuryRxSFused<2, 3>{}.SolverDbId(),
-             miopenConvolutionAlgoWinograd);
 
     // IMPORTANT: New solvers should be added to the end of the function!
 }
