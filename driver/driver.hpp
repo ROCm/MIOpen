@@ -175,7 +175,8 @@ inline void PadBufferSize(size_t& sz, int datatype_sz)
            "groupnorm[bfp16|fp16], cat[bfp16|fp16], addlayernorm[bfp16|fp16], "
            "t5layernorm[bfp16|fp16], adam[fp16], ampadam, reduceextreme[bfp16|fp16], "
            "adamw[fp16], ampadamw, transformersadamw[fp16], transformersampadamw, "
-           "getitem[bfp16|fp16], reducecalculation[bfp16|fp16], unfold[bfp16|fp16], fold[bfp16|fp16]\n");
+           "getitem[bfp16|fp16], reducecalculation[bfp16|fp16], unfold[bfp16|fp16], "
+           "fold[bfp16|fp16]\n");
     exit(0); // NOLINT (concurrency-mt-unsafe)
 }
 
