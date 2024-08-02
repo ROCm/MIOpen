@@ -472,8 +472,6 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
         GetTensorDescriptorChecked(miopenTensorConvolutionW, "miopenTensorConvolutionW");
     auto y_desc = GetTensorDescriptorChecked(miopenTensorConvolutionY, "miopenTensorConvolutionY");
 
-    ValidateGroupCount(x_desc, w_desc, conv_desc);
-
     auto x        = buffers.at(miopenTensorConvolutionX);
     const auto& w = buffers.at(miopenTensorConvolutionW);
     auto y        = buffers.at(miopenTensorConvolutionY);
@@ -490,6 +488,8 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
         std::swap(x, y);
         std::swap(x_desc, y_desc);
     }
+
+    ValidateGroupCount(x_desc, w_desc, conv_desc);
 
     if(options.preallocated_workspace)
     {
