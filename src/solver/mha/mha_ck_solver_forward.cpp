@@ -139,7 +139,7 @@ namespace mha {
 bool MhaCKForward::IsApplicable([[maybe_unused]] const ExecutionContext& context,
                                 const miopen::mha::ProblemDescription& problem) const
 {
-    const std::string name = ctx.GetStream().GetDeviceName();
+    const std::string name = context.GetStream().GetDeviceName();
     if(!(name == "gfx940" || name == "gfx941" || name == "gfx942"))
         return false;
     ::miopen::mha::MhaInputDescsForward mha_des = problem.GetDescsForward();
