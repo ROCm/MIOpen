@@ -80,7 +80,7 @@ class ConvBiasResAddActive_Fwd_Pattern : public GraphPatternMatcher
             graph.findOutNeighByName(graph.getSourceNode(), "OP_CONVOLUTION_FORWARD"));
         assert(conv);
 
-         auto* add1 =
+        auto* add1 =
             dynamic_cast<OperationPointwise*>(graph.findOutNeighByName(conv, "OP_POINTWISE:ADD"));
         assert(add1);
 
@@ -112,7 +112,7 @@ public:
             return false;
         }
 
-       return hasBiasNode(*graph_ptr);
+        return hasBiasNode(*graph_ptr);
     }
 
     std::vector<Engine> getEngines(OpGraph* graph_ptr) const override
@@ -155,7 +155,8 @@ public:
             graph.findOutNeighByName(add2, "OP_POINTWISE:RELU_FWD"));
         assert(activ);
 
-        auto [add, bias] = isBiasNode(add1) ? std::make_pair(add2, add1) : std::make_pair(add1, add2);
+        auto [add, bias] =
+            isBiasNode(add1) ? std::make_pair(add2, add1) : std::make_pair(add1, add2);
 
         bool addXIsVirtual = add->getX()->isVirtual();
         assert(addXIsVirtual || add->getB()->isVirtual());
