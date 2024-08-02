@@ -34,7 +34,7 @@
 #define VIEW_DIMS 5
 
 #define LOCAL_SIZE_MW_BWD 256
-#define LOCAL_SIZE_MW_REDUCE_BWD warpSize
+#define LOCAL_SIZE_MW_REDUCE_BWD 64
 
 namespace miopen {
 
