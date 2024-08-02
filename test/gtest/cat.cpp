@@ -43,14 +43,14 @@ std::string GetFloatArg()
     return tmp;
 }
 
-struct CatTestFloat : CatTest<float>
+struct GPU_Cat_FP32 : CatTest<float>
 {
 };
 
 } // namespace cat
 using namespace cat;
 
-TEST_P(CatTestFloat, CatTestFw)
+TEST_P(GPU_Cat_FP32, CatTestFw)
 {
     if(!MIOPEN_TEST_ALL ||
        (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--float"))
@@ -64,4 +64,4 @@ TEST_P(CatTestFloat, CatTestFw)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(CatTestSet, CatTestFloat, testing::ValuesIn(CatTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_Cat_FP32, testing::ValuesIn(CatTestConfigs()));
