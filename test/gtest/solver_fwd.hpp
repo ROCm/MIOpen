@@ -111,7 +111,9 @@ private:
 
     void SetUpTest()
     {
-        test_skipped                               = true;
+        test_skipped = true;
+
+        ConvTestCaseBase conv_config;
         std::tie(algo, conv_config, tensor_layout) = GetParam();
         this->SetUpImpl(conv_config, tensor_layout);
     }
@@ -124,7 +126,6 @@ private:
         this->ThresholdChecks();
     }
 
-    ConvTestCaseBase conv_config;
     Workspace wspace{};
     miopenConvFwdAlgorithm_t algo = miopenConvolutionFwdAlgoDirect;
     bool test_skipped;

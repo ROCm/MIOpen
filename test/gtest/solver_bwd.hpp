@@ -108,7 +108,9 @@ private:
 
     void SetUpTest()
     {
-        test_skipped                = true;
+        test_skipped = true;
+
+        ConvTestCaseBase conv_config;
         std::tie(algo, conv_config) = GetParam();
         input                       = tensor<T>{conv_config.GetInput()};
         weights                     = tensor<T>{conv_config.GetWeights()};
@@ -170,7 +172,6 @@ private:
             << "Error beyond tolerance Error:" << error << ",  Threshold: " << threshold;
     }
 
-    ConvTestCaseBase conv_config;
     miopen::ConvolutionDescriptor conv_desc;
     tensor<T> input;
     tensor<T> weights;
