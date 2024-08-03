@@ -372,15 +372,21 @@ ConvSolution MhaCKForward::GetSolution([[maybe_unused]] const ExecutionContext& 
 
             int stream_warmup = 1; // number of iterations before benchmark the kernel
             int stream_repeat = 0; // number of iterations to benchmark the kernel
-            bool kname        = false; // print kernel name
 
             ck_tile::stream_config stream_config_tmp{nullptr /*stream_id*/,
                                                      true /*time_kernel*/,
-                                                     /* log_level = */ (kname ? 1 : 0),
+                                                     /* log_level = */ 0,
                                                      stream_warmup,
                                                      stream_repeat};
 
-            fmha_fwd(fmha_traits, fmha_args, stream_config_tmp);
+            const auto enable_profiling = handle_.IsProfilingEnabled();
+            float elapsed_time          = fmha_fwd(fmha_traits, fmha_args, stream_config_tmp);
+
+            if(enable_profiling)
+            {
+                handle_.ResetKernelTime();
+                handle_.AccumKernelTime(elapsed_time);
+            }
         };
     };
     return result;
