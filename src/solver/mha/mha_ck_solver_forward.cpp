@@ -177,7 +177,7 @@ std::size_t MhaCKForward::GetWorkspaceSize([[maybe_unused]] const ExecutionConte
     }
 }
 
-ConvSolution MhaCKForward::GetSolution(const ExecutionContext& context,
+ConvSolution MhaCKForward::GetSolution([[maybe_unused]] const ExecutionContext& context,
                                        const miopen::mha::ProblemDescription& problem) const
 {
     auto result         = ConvSolution{miopenStatusSuccess};
