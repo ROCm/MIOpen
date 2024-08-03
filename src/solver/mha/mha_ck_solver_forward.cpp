@@ -240,7 +240,7 @@ ConvSolution MhaCKForward::GetSolution([[maybe_unused]] const ExecutionContext& 
     const ck_tile::index_t shape_seqlen_k = seqlen_k;
     const ck_tile::index_t max_seqlen_q   = seqlen_k;
     const ck_tile::index_t max_seqlen_k   = seqlen_k;
-    result.invoker_factory                = [=](const std::vector<Kernel>& kernels) {
+    result.invoker_factory                = [=](const std::vector<Kernel>&) {
         return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
             decltype(auto) params = raw_params.CastTo<miopen::mha::InvokeParams>();
             const auto& dataFwd   = params.GetDataForward();
