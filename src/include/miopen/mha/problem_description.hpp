@@ -51,6 +51,18 @@ struct MIOPEN_INTERNALS_EXPORT ProblemDescription : ProblemDescriptionBase
     }
 
     bool IsForward() const { return isForward; }
+    bool IsFFp8() const
+    {
+        const auto& fptr = GetDescsForward();
+        if(fptr.oDesc.GetType() == miopenFloat8)
+        {
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
     const MhaInputDescsForward& GetDescsForward() const
     {
         assert(mhaInputDescsForwardPtr && isForward);

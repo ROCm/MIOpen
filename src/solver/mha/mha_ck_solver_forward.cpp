@@ -142,6 +142,10 @@ bool MhaCKForward::IsApplicable([[maybe_unused]] const ExecutionContext& context
     const std::string name = context.GetStream().GetDeviceName();
     if(!(name == "gfx940" || name == "gfx941" || name == "gfx942"))
         return false;
+    if(!problem.IsForward())
+        return false;
+    if(!problem.IsFFp8()) // forward mha fp8
+        return false;
     ::miopen::mha::MhaInputDescsForward mha_des = problem.GetDescsForward();
     const auto& lens                            = mha_des.qDesc.GetLengths();
     auto [N, H, S, D]                           = std::tie(lens[0], lens[1], lens[2], lens[3]);
@@ -275,9 +279,8 @@ ConvSolution MhaCKForward::GetSolution(const ExecutionContext& context,
                     else
                         return i_perm ? hdim_v * shape_seqlen_k : shape_seqlen_k;
                 }();
-                const ck_tile::index_t nhead_stride_bias =
-                    (i_perm ? 0 * shape_seqlen_q * shape_seqlen_k : 0 * shape_seqlen_k);
-                const ck_tile::index_t nhead_stride_lse = (shape_seqlen_q * 1);
+                const ck_tile::index_t nhead_stride_bias = 0; // no bias for now
+                const ck_tile::index_t nhead_stride_lse  = (shape_seqlen_q * 1);
                 // setup batch_stride_* arguments
                 const ck_tile::index_t batch_stride_q = (nhead * shape_seqlen_q * hdim_q);
                 const ck_tile::index_t batch_stride_k = (nhead_k * shape_seqlen_k * hdim_q);

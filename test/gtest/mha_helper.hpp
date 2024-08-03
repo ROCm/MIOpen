@@ -421,6 +421,7 @@ void MultiHeadAttentionfp8(const tensor<T>& q_val,
     {
         ScaleMult(atten_heads_fp32, o_scale, multi_head_attention_fp8);
     }
+    else
     {
         // ck solver
         ScaleMult(atten_heads_fp32, GetF8Scaling(aMax_O), multi_head_attention_fp8);
