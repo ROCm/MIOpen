@@ -59,7 +59,7 @@
 class RNNCombTimeLoger
 {
 public:
-    RNNCombTimeLoger(hipStream_t main_stream, size_t size, int  mode)
+    RNNCombTimeLoger(hipStream_t main_stream, size_t size, int mode)
         : stream(main_stream), clockMode(static_cast<ClockMode>(mode))
     {
         if(clockMode != ClockMode::Disabled)
@@ -120,7 +120,6 @@ public:
                 std::chrono::duration_cast<std::chrono::duration<float, std::milli>>(end - st)
                     .count());
         }
-
     }
 
     void Print() const
@@ -134,7 +133,7 @@ public:
         float gpu_time;
 
         if(clockMode == ClockMode::SeparateClocksNotSynced)
-            hipEventSynchronize(endEvent[n_iter-1].get());
+            hipEventSynchronize(endEvent[n_iter - 1].get());
 
         for(auto i = 0ll; i < n_iter; ++i)
         {
@@ -1217,7 +1216,6 @@ int RNNDriver<Tgpu, Tref>::RunBackwardGPU()
 
     RNNCombTimeLoger t(GetStream(), inflags.GetValueInt("iter"), inflags.GetValueInt("wall"));
 
-
     if((inflags.GetValueInt("forw") & 2) || (inflags.GetValueInt("forw") == 0))
     {
 
@@ -1271,7 +1269,6 @@ int RNNDriver<Tgpu, Tref>::RunBackwardGPU()
     if((inflags.GetValueInt("forw") & 4) || (inflags.GetValueInt("forw") == 0))
     {
         RNNCombTimeLoger t(GetStream(), inflags.GetValueInt("iter"), inflags.GetValueInt("wall"));
-
 
         for(int i = 0; i < inflags.GetValueInt("iter"); i++)
         {
