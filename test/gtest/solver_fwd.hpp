@@ -37,7 +37,7 @@
 template <typename T = float, typename Tref = float, bool use_cpu_ref = false>
 struct ConvFwdSolverTest
     : public ::testing::TestWithParam<
-          std::tuple<miopenConvFwdAlgorithm_t, ConvTestCaseBase, miopenTensorLayout_t>>,
+          std::tuple<miopenConvAlgorithm_t, ConvTestCaseBase, miopenTensorLayout_t>>,
       ConvFwdSolverTestBase<T, Tref, use_cpu_ref>
 {
     void SolverFwd(const miopen::solver::conv::ConvSolverBase& solv)
@@ -127,7 +127,7 @@ private:
     }
 
     Workspace wspace{};
-    miopenConvFwdAlgorithm_t algo      = miopenConvolutionFwdAlgoDirect;
+    miopenConvAlgorithm_t algo         = miopenConvolutionAlgoDirect;
     bool test_skipped                  = false;
     miopenTensorLayout_t tensor_layout = miopenTensorNCHW;
 };

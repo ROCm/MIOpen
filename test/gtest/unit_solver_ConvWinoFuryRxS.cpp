@@ -76,16 +76,16 @@ TEST_P(GPU_UnitTestConvSolver_wrw_fp16, ConvWinoFuryRxSf2x3)
 
 INSTANTIATE_TEST_SUITE_P(Unit,
                          GPU_UnitTestConvSolver_fwd_fp16,
-                         testing::Combine(testing::Values(miopenConvolutionFwdAlgoWinograd),
+                         testing::Combine(testing::Values(miopenConvolutionAlgoWinograd),
                                           testing::ValuesIn(GetConvTestCases()),
                                           testing::Values(miopenTensorNCHW)));
 
 INSTANTIATE_TEST_SUITE_P(Unit,
                          GPU_UnitTestConvSolver_bwd_fp16,
-                         testing::Combine(testing::Values(miopenConvolutionFwdAlgoWinograd),
+                         testing::Combine(testing::Values(miopenConvolutionAlgoWinograd),
                                           testing::ValuesIn(GetConvTestCases())));
 
 INSTANTIATE_TEST_SUITE_P(Unit,
                          GPU_UnitTestConvSolver_wrw_fp16,
-                         testing::Combine(testing::Values(miopenConvolutionFwdAlgoWinograd),
+                         testing::Combine(testing::Values(miopenConvolutionAlgoWinograd),
                                           testing::ValuesIn(GetConvTestCasesWrw())));
