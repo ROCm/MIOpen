@@ -33,8 +33,9 @@
 
 #define VIEW_DIMS 5
 
+#define warpSizeCTX (context.GetStream().GetWavefrontWidth())
 #define LOCAL_SIZE_MW_BWD 256
-#define LOCAL_SIZE_MW_REDUCE_BWD 64
+#define LOCAL_SIZE_MW_REDUCE_BWD warpSizeCTX
 
 namespace miopen {
 
@@ -54,7 +55,7 @@ bool MultiWeightsBackward::IsApplicable(
 }
 
 ConvSolution
-MultiWeightsBackward::GetSolution(const ExecutionContext& /*context*/,
+MultiWeightsBackward::GetSolution(const ExecutionContext& context,
                                   const miopen::prelu::BackwardProblemDescription& problem) const
 {
     auto result = ConvSolution{miopenStatusSuccess};
