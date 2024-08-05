@@ -56,6 +56,132 @@
 #include <sstream>
 #include <vector>
 
+class RNNCombTimeLoger
+{
+public:
+    RNNCombTimeLoger(hipStream_t main_stream, size_t size, int  mode)
+        : stream(main_stream), clockMode(static_cast<ClockMode>(mode))
+    {
+        if(clockMode != ClockMode::Disabled)
+        {
+            hostTimePerLaunch.reserve(size);
+
+            startEvent.reserve(size);
+            endEvent.reserve(size);
+            for(auto i = size; i > 0; --i)
+            {
+                startEvent.push_back(miopen::make_hip_event());
+                endEvent.push_back(miopen::make_hip_event());
+            }
+        }
+    }
+
+    void Start()
+    {
+        if(clockMode == ClockMode::Disabled)
+            return;
+
+        auto launchCont = hostTimePerLaunch.size();
+        hipEventRecord(startEvent[launchCont].get(), stream);
+        st = std::chrono::steady_clock::now();
+    }
+    void StopAndPush()
+    {
+        if(clockMode == ClockMode::Disabled)
+            return;
+
+        std::chrono::time_point<std::chrono::steady_clock> end = std::chrono::steady_clock::now();
+        auto launchCont                                        = hostTimePerLaunch.size();
+
+        hipEventRecord(endEvent[launchCont].get(), stream);
+
+        if(clockMode == ClockMode::OldWallClock)
+        {
+            std::chrono::time_point<std::chrono::steady_clock> st2 =
+                std::chrono::steady_clock::now();
+
+            hipEventSynchronize(endEvent[launchCont].get());
+
+            std::chrono::time_point<std::chrono::steady_clock> end2 =
+                std::chrono::steady_clock::now();
+
+            hostTimePerLaunch.push_back(
+                std::chrono::duration_cast<std::chrono::duration<float, std::milli>>(end - st)
+                    .count() +
+                std::chrono::duration_cast<std::chrono::duration<float, std::milli>>(end2 - st2)
+                    .count());
+        }
+        else
+        {
+            if(clockMode == ClockMode::SeparateClocksSynced)
+                hipEventSynchronize(endEvent[launchCont].get());
+
+            hostTimePerLaunch.push_back(
+                std::chrono::duration_cast<std::chrono::duration<float, std::milli>>(end - st)
+                    .count());
+        }
+
+    }
+
+    void Print() const
+    {
+        if(clockMode == ClockMode::Disabled)
+            return;
+
+        float gpu_avg  = 0.;
+        float host_avg = 0.;
+        auto n_iter    = hostTimePerLaunch.size();
+        float gpu_time;
+
+        if(clockMode == ClockMode::SeparateClocksNotSynced)
+            hipEventSynchronize(endEvent[n_iter-1].get());
+
+        for(auto i = 0ll; i < n_iter; ++i)
+        {
+            hipEventElapsedTime(&gpu_time, startEvent[i].get(), endEvent[i].get());
+
+            if(clockMode != ClockMode::OldWallClock)
+            {
+                printf("launch# %lld , host_time= %f , gpu_time= %f \n",
+                       i,
+                       hostTimePerLaunch[i],
+                       gpu_time);
+            }
+
+            if(i > 0)
+            {
+                gpu_avg += gpu_time;
+                host_avg += hostTimePerLaunch[i];
+            }
+        }
+
+        if(n_iter == 1)
+            hipEventElapsedTime(&gpu_time, startEvent[0].get(), endEvent[0].get());
+
+        printf("GPU Kernel Time Elapsed: %f ms\n", n_iter > 1 ? gpu_avg / (n_iter - 1) : gpu_time);
+        printf("Wall-clock Time Elapsed: %f ms\n",
+               n_iter > 1 ? host_avg / (n_iter - 1) : hostTimePerLaunch[0]);
+    }
+
+    enum class ClockMode
+    {
+        Disabled                = 0,
+        OldWallClock            = 1,
+        SeparateClocksSynced    = 2,
+        SeparateClocksNotSynced = 3
+    };
+
+    std::vector<float> hostTimePerLaunch;
+
+    std::vector<miopen::HipEventPtr> startEvent;
+    std::vector<miopen::HipEventPtr> endEvent;
+
+    hipStream_t stream;
+    std::chrono::time_point<std::chrono::steady_clock> st;
+
+    ClockMode clockMode;
+};
+
 template <typename Tgpu, typename Tref>
 class RNNDriver : public Driver
 {
@@ -784,9 +910,7 @@ int RNNDriver<Tgpu, Tref>::RunForwardGPU()
     if(inflags.GetValueInt("forw") != 0 && !(inflags.GetValueInt("forw") & 1))
         return miopenStatusSuccess;
 
-    Timer t;
-    float wl_time_forward = 0.0;
-    float kl_time_forward = 0.0;
+    RNNCombTimeLoger t(GetStream(), inflags.GetValueInt("iter"), inflags.GetValueInt("wall"));
 
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
@@ -801,8 +925,7 @@ int RNNDriver<Tgpu, Tref>::RunForwardGPU()
             workspace_dev->ToGPU(q, workspace.data());
             reservespace_dev->ToGPU(q, reservespace.data());
         }
-
-        START_TIME
+        t.Start();
         if(inflags.GetValueInt("fwdtype") == 0)
         {
             miopenRNNForwardTraining(GetHandle(),
@@ -854,31 +977,14 @@ int RNNDriver<Tgpu, Tref>::RunForwardGPU()
                                       workspace_dev->GetMem(),
                                       workspace_dev->GetSize());
         }
-        miopen::deref(GetHandle()).Finish();
-        STOP_TIME
 
-        if(i > 0 || inflags.GetValueInt("iter") == 1)
-        {
-            float time = 0.0;
-            miopenGetKernelTime(GetHandle(), &time);
-            // printf("wall time: %f\n", t.gettime_ms());
-            wl_time_forward += t.gettime_ms();
-            kl_time_forward += time;
-        }
+        t.StopAndPush();
     }
-
-    if(inflags.GetValueInt("time") == 1)
-    {
-        int n_iter = inflags.GetValueInt("iter") > 1 ? inflags.GetValueInt("iter") - 1
-                                                     : inflags.GetValueInt("iter");
-        printf("GPU Kernel Time Forward RNN Elapsed: %f ms\n", kl_time_forward / n_iter);
-    }
-
+    miopen::deref(GetHandle()).Finish();
     if(WALL_CLOCK)
     {
-        int n_iter = inflags.GetValueInt("iter") > 1 ? inflags.GetValueInt("iter") - 1
-                                                     : inflags.GetValueInt("iter");
-        printf("Wall-clock Time Forward RNN Elapsed: %f ms\n", wl_time_forward / n_iter);
+        printf("Forward RNN time results:\n");
+        t.Print();
     }
 
     out_dev->FromGPU(GetStream(), out.data());
@@ -1109,17 +1215,17 @@ int RNNDriver<Tgpu, Tref>::RunBackwardGPU()
     if(inflags.GetValueInt("forw") == 1)
         return ret; // forward only
 
+    RNNCombTimeLoger t(GetStream(), inflags.GetValueInt("iter"), inflags.GetValueInt("wall"));
+
+
     if((inflags.GetValueInt("forw") & 2) || (inflags.GetValueInt("forw") == 0))
     {
-        Timer t;
-        float wl_time_backward_data = 0.0;
-        float kl_time_backward_data = 0.0;
 
         workspace_dev->ToGPU(q, workspace.data());
 
         for(int i = 0; i < inflags.GetValueInt("iter"); i++)
         {
-            START_TIME
+            t.Start();
             ret = miopenRNNBackwardData(GetHandle(),
                                         rnnDesc,
                                         adjustedSeqLen,
@@ -1147,31 +1253,13 @@ int RNNDriver<Tgpu, Tref>::RunBackwardGPU()
                                         workspace_dev->GetSize(),
                                         reservespace_dev->GetMem(),
                                         reservespace_dev->GetSize());
-            miopen::deref(GetHandle()).Finish();
-            STOP_TIME
-            if(i > 0 || inflags.GetValueInt("iter") == 1)
-            {
-                float time = 0.0;
-                miopenGetKernelTime(GetHandle(), &time);
-                wl_time_backward_data += t.gettime_ms();
-                kl_time_backward_data += time;
-            }
+            t.StopAndPush();
         }
-
-        if(inflags.GetValueInt("time") == 1)
-        {
-            int n_iter = inflags.GetValueInt("iter") > 1 ? inflags.GetValueInt("iter") - 1
-                                                         : inflags.GetValueInt("iter");
-            printf("GPU Kernel Time Backward Data RNN Elapsed: %f ms\n",
-                   kl_time_backward_data / n_iter);
-        }
-
+        miopen::deref(GetHandle()).Finish();
         if(WALL_CLOCK)
         {
-            int n_iter = inflags.GetValueInt("iter") > 1 ? inflags.GetValueInt("iter") - 1
-                                                         : inflags.GetValueInt("iter");
-            printf("Wall-clock Time Backward Data RNN Elapsed: %f ms\n",
-                   wl_time_backward_data / n_iter);
+            printf("Backward Data RNN time results:\n");
+            t.Print();
         }
 
         din_dev->FromGPU(GetStream(), din.data());
@@ -1182,13 +1270,12 @@ int RNNDriver<Tgpu, Tref>::RunBackwardGPU()
 
     if((inflags.GetValueInt("forw") & 4) || (inflags.GetValueInt("forw") == 0))
     {
-        Timer t;
-        float wl_time_backward_weight = 0.0;
-        float kl_time_backward_weight = 0.0;
+        RNNCombTimeLoger t(GetStream(), inflags.GetValueInt("iter"), inflags.GetValueInt("wall"));
+
 
         for(int i = 0; i < inflags.GetValueInt("iter"); i++)
         {
-            START_TIME
+            t.Start();
             ret = miopenRNNBackwardWeights(GetHandle(),
                                            rnnDesc,
                                            adjustedSeqLen,
@@ -1204,31 +1291,14 @@ int RNNDriver<Tgpu, Tref>::RunBackwardGPU()
                                            workspace_dev->GetSize(),
                                            reservespace_dev->GetMem(),
                                            reservespace_dev->GetSize());
-            miopen::deref(GetHandle()).Finish();
-            STOP_TIME
-            if(i > 0 || inflags.GetValueInt("iter") == 1)
-            {
-                float time = 0.0;
-                miopenGetKernelTime(GetHandle(), &time);
-                wl_time_backward_weight += t.gettime_ms();
-                kl_time_backward_weight += time;
-            }
+            t.StopAndPush();
         }
-
-        if(inflags.GetValueInt("time") == 1)
-        {
-            int n_iter = inflags.GetValueInt("iter") > 1 ? inflags.GetValueInt("iter") - 1
-                                                         : inflags.GetValueInt("iter");
-            printf("GPU Kernel Time Backward Weights RNN Elapsed: %f ms\n",
-                   kl_time_backward_weight / n_iter);
-        }
+        miopen::deref(GetHandle()).Finish();
 
         if(WALL_CLOCK)
         {
-            int n_iter = inflags.GetValueInt("iter") > 1 ? inflags.GetValueInt("iter") - 1
-                                                         : inflags.GetValueInt("iter");
-            printf("Wall-clock Time Backward Weights RNN Elapsed: %f ms\n",
-                   wl_time_backward_weight / n_iter);
+            printf("Backward Weights RNN time results:\n");
+            t.Print();
         }
 
         dwei_dev->FromGPU(GetStream(), dwei.data());
