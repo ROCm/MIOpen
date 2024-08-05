@@ -253,9 +253,9 @@ struct TransposeOperand
                                               miopen::TransposeSolutionDefault2Nhwc,
                                               miopen::TransposeSolutionDefault2Ndhwc>>;
 
-    template <typename CKArgsType>
+    template <typename CKArgsType, typename ProblemType>
     SolverType MakeTransposeSolver(const miopen::ExecutionContext& ctx,
-                                   const miopen::conv::ProblemDescription& problem,
+                                   const ProblemType& problem,
                                    const CKArgsType& ck_args) const
     {
 
@@ -465,10 +465,34 @@ private:
 };
 
 template <typename CKArgsType,
+          typename InputTposeOp,
+          typename OutputTposeOp>
+auto MakeTaggedTransposeInstancesBN(ConvSolution& result,
+                                  const ExecutionContext& ctx,
+                                  const miopen::batchnorm::ProblemDescription& problem
+                                  const CKArgsType& ck_args,
+                                  const InputTposeOp& input_op,
+                                  const OutputTposeOp& output_op)
+{
+    auto input_solver = input_op.MakeTransposeSolver(ctx, problem, ck_args);
+    auto output_solver = output_op.MakeTransposeSolver(ctx, problem, ck_args);
+
+    result.construction_params.insert(result.construction_params.end(),
+                                      {input_solver.GetKernelInfo(),
+                                       output_solver.GetKernelInfo()});
+
+    MultiBufferWorkspaceTraits wt({input_solver.GetOutputTensorSize(),
+                                   output_solver.GetOutputTensorSize()});
+    return std::make_tuple(
+        TransposeInstanceTagged{input_solver, 0, wt, 0, Input1TposeOp::CONV_OP_TAG},
+        TransposeInstanceTagged{output_solver, 1, wt, 1, OutputTposeOp::CONV_OP_TAG});
+}
+
+template <typename CKArgsType,
           typename Input1TposeOp,
           typename Input2TposeOp,
           typename OutputTposeOp>
-auto MakeTaggedTransposeInstances(ConvSolution& result,
+auto MakeTaggedTransposeInstancesConv(ConvSolution& result,
                                   const ExecutionContext& ctx,
                                   const miopen::conv::ProblemDescription& problem,
                                   const CKArgsType& ck_args,
@@ -677,7 +701,7 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
     }
 
     auto [_input1_tr_inst, _input2_tr_inst, _output_tr_inst, _output_init_tr_inst] =
-        internal::MakeTaggedTransposeInstances<CKArgsType>(
+        internal::MakeTaggedTransposeInstancesConv<CKArgsType>(
             result, ctx, problem, ck_args, input1_op, input2_op, output_op, _ck_buff_des);
 
     result.invoker_factory = [split_k             = split_k,

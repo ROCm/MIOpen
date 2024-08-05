@@ -140,6 +140,9 @@ struct BnCKFwdInference final : BatchnormSolver
                       const miopen::batchnorm::ProblemDescription& problem) const override;
     ConvSolution GetSolution(const ExecutionContext& context,
                              const miopen::batchnorm::ProblemDescription& problem) const override;
+
+    size_t GetWorkspaceSize(const ExecutionContext& context,
+                            const miopen::batchnorm::ProblemDescription& problem) const override;
 };
 
 struct BnCKBwdBackward final : BatchnormSolver

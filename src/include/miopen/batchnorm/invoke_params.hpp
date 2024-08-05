@@ -73,6 +73,9 @@ struct InfInvokeParams : public miopen::InvokeParams
 {
     InfInvokeParams() = default;
 
+    // ConvDataTensors tensors;
+    Data_t workSpace              = nullptr;
+    std::size_t workSpaceSize     = 0;
     const TensorDescriptor* xDesc = nullptr;
 
     ConstData_t x                 = nullptr;
@@ -83,8 +86,8 @@ struct InfInvokeParams : public miopen::InvokeParams
     ConstData_t estimatedVariance = nullptr;
     double epsilon                = 0;
 
-    std::size_t GetWorkspaceSize() const { return 0; }
-    Data_t GetWorkspace() const { return nullptr; }
+    std::size_t GetWorkspaceSize() const { return workSpaceSize; }
+    Data_t GetWorkspace() const { return workSpace; }
 };
 
 } // namespace batchnorm

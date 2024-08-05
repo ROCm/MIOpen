@@ -168,6 +168,20 @@ struct MIOPEN_INTERNALS_EXPORT ProblemDescription : ProblemDescriptionBase, Prob
         return useSaved;
     }
 
+    bool IsLayoutDefault() const
+    {
+        if(direction == Direction::Backward)
+        {
+            return xDesc.GetLengths().size() == 4
+                       ? ((in_layout == "NCHW") && (out_layout == "NCHW") && (din_layout == "NCHW"))
+                       : ((in_layout == "NCDHW") && (out_layout == "NCDHW") &&
+                          (din_layout == "NCDHW"));
+        }
+
+        return xDesc.GetLengths().size() == 4 ? ((in_layout == "NCHW") && (out_layout == "NCHW"))
+                                              : ((in_layout == "NCDHW") && (out_layout == "NCDHW"));
+    }
+
     bool IsLayoutNHWC() const
     {
         if(direction == Direction::Backward)
