@@ -320,10 +320,6 @@ int RNNDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
 {
     inflags.Parse(argc, argv);
 
-    if(inflags.GetValueInt("time") == 1)
-    {
-        miopenEnableProfiling(GetHandle(), true);
-    }
     return miopenStatusSuccess;
 }
 
@@ -384,9 +380,16 @@ int RNNDriver<Tgpu, Tref>::AddCmdLineArgs()
                          "Use specified directory to cache verification data. Off by default.",
                          "string");
     */
-    inflags.AddInputFlag("time", 't', "0", "Time Each Layer (Default=0)", "int");
     inflags.AddInputFlag(
-        "wall", 'w', "0", "Wall-clock Time Each Layer, Requires time == 1 (Default=0)", "int");
+        "wall",
+        'w',
+        "0",
+        "Wall-clock, for host and gpu, Time Each Layer,       Disabled                = 0,\
+        OldWallClock            = 1,\
+        SeparateClocksSynced    = 2,\
+        SeparateClocksNotSynced = 3 \
+        (Default = 0) ",
+        "int");
     inflags.AddInputFlag("dump_output", 'o', "0", "Dumps the output buffers (Default=0)", "int");
     /*  // DL: These have not been implemented. Removing them for now.
         inflags.AddInputFlag("in_data", 'd', "", "Input data filename (Default=)", "string");
