@@ -108,7 +108,7 @@ std::vector<std::string> GetTestCases(const std::string& precision)
 
 using TestCase = decltype(GetTestCases(std::string{}))::value_type;
 
-class ConfigWithFloat_conv_group : public testing::TestWithParam<std::vector<TestCase>>
+class GPU_ConvGroup_FP32 : public testing::TestWithParam<std::vector<TestCase>>
 {
 };
 
@@ -129,7 +129,7 @@ void Run2dDriver(void)
     {
         GTEST_SKIP();
     }
-    std::vector<std::string> params = ConfigWithFloat_conv_group::GetParam();
+    std::vector<std::string> params = GPU_ConvGroup_FP32::GetParam();
 
     for(const auto& test_value : params)
     {
@@ -150,8 +150,6 @@ void Run2dDriver(void)
 } // namespace conv_group
 using namespace conv_group;
 
-TEST_P(ConfigWithFloat_conv_group, FloatTest_conv_group) { Run2dDriver(); };
+TEST_P(GPU_ConvGroup_FP32, FloatTest_conv_group) { Run2dDriver(); };
 
-INSTANTIATE_TEST_SUITE_P(ConvGroup,
-                         ConfigWithFloat_conv_group,
-                         testing::Values(GetTestCases("--float")));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_ConvGroup_FP32, testing::Values(GetTestCases("--float")));
