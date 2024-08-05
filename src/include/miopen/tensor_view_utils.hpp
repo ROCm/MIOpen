@@ -27,8 +27,8 @@
 #ifndef MIOPEN_TENSOR_VIEW_UTIL_HPP_
 #define MIOPEN_TENSOR_VIEW_UTIL_HPP_
 
-#include <miopen/common.hpp>
 #include "../../kernels/tensor_view.hpp"
+#include "miopen/tensor.hpp"
 
 namespace miopen {
 
@@ -38,10 +38,15 @@ inline tensor_view_t<N> get_inner_expanded_tv(const TensorDescriptor Desc)
     auto dims    = Desc.GetLengths();
     auto strides = Desc.GetStrides();
 
-    tensor_view_t<N> tensor_view;
+    tensor_view_t<N> tensor_view{};
     for(size_t i = 0; i < N; ++i)
     {
-        if(i < dims.size())
+        if(dims.empty())
+        {
+            tensor_view.stride[i] = 0;
+            tensor_view.size[i]   = 0;
+        }
+        else if(i < dims.size())
         {
             tensor_view.stride[i] = strides[i];
             tensor_view.size[i]   = dims[i];
