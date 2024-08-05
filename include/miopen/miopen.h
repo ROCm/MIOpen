@@ -7672,7 +7672,7 @@ MIOPEN_EXPORT miopenStatus_t miopenPReLUBackward(miopenHandle_t handle,
                                                  void* dweight);
 
 /** @} */
-// CLOSEOUT ReLU DOXYGEN GROUP
+// CLOSEOUT RELU DOXYGEN GROUP
 #endif // MIOPEN_BETA_API
 
 #ifdef __cplusplus
