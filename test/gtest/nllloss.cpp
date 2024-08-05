@@ -23,7 +23,6 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include "miopen/bfloat16.hpp"
 #include <miopen/env.hpp>
 #include "nllloss.hpp"
 
@@ -112,15 +111,9 @@ TEST_P(GPU_Nllloss_fwd_BFP16, NLLLossTestFwd)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(NLLLossTestSet,
-                         GPU_Nllloss_fwd_FP32,
-                         testing::ValuesIn(NLLLossTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(NLLLossTestSet,
-                         GPU_Nllloss_fwd_FP16,
-                         testing::ValuesIn(NLLLossTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(NLLLossTestSet,
-                         GPU_Nllloss_fwd_BFP16,
-                         testing::ValuesIn(NLLLossTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Nllloss_fwd_FP32, testing::ValuesIn(NLLLossTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Nllloss_fwd_FP16, testing::ValuesIn(NLLLossTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Nllloss_fwd_BFP16, testing::ValuesIn(NLLLossTestConfigs()));
 
 // BACKWARD TEST
 TEST_P(GPU_Nllloss_bwd_FP32, NLLLossTestBwd)
@@ -165,12 +158,6 @@ TEST_P(GPU_Nllloss_bwd_BFP16, NLLLossTestBwd)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(NLLLossTestSet,
-                         GPU_Nllloss_bwd_FP32,
-                         testing::ValuesIn(NLLLossTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(NLLLossTestSet,
-                         GPU_Nllloss_bwd_FP16,
-                         testing::ValuesIn(NLLLossTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(NLLLossTestSet,
-                         GPU_Nllloss_bwd_BFP16,
-                         testing::ValuesIn(NLLLossTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Nllloss_bwd_FP32, testing::ValuesIn(NLLLossTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Nllloss_bwd_FP16, testing::ValuesIn(NLLLossTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Nllloss_bwd_BFP16, testing::ValuesIn(NLLLossTestConfigs()));
