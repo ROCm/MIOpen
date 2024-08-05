@@ -206,8 +206,7 @@ inline std::string ParseBaseArg(int argc, char* argv[])
        arg != "reduceextremefp16" && arg != "reduceextremebfp16" && arg != "adamw" &&
        arg != "adamwfp16" && arg != "ampadamw" && arg != "transformersadamw" &&
        arg != "transformersadamwfp16" && arg != "transformersampadamw" && arg != "getitem" &&
-       arg != "getitemfp16" && arg != "getitembfp16" && arg != "transformersadamwfp16" &&
-       arg != "transformersampadamw" && arg != "reducecalculation" &&
+       arg != "getitemfp16" && arg != "getitembfp16" && arg != "reducecalculation" &&
        arg != "reducecalculationfp16" && arg != "reducecalculationbfp16" &&
        arg != "sigmoidfocalloss" && arg != "sigmoidfocallossfp16" &&
        arg != "sigmoidfocallossbfp16" && arg != "--version")
