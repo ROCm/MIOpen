@@ -74,7 +74,6 @@ int numSplitsHeuristic(int batch_nhead_mblocks, int num_SMs, int num_n_blocks, i
         {
             float n_waves = float(batch_nhead_mblocks * num_splits) / num_SMs;
             float eff     = n_waves / ceil(n_waves);
-            // printf("num_splits = %d, eff = %f\n", num_splits, eff);
             if(eff > max_efficiency)
             {
                 max_efficiency = eff;
@@ -90,7 +89,6 @@ int numSplitsHeuristic(int batch_nhead_mblocks, int num_SMs, int num_n_blocks, i
         }
         if(efficiency[num_splits - 1] >= 0.85 * max_efficiency)
         {
-            // printf("num_splits chosen = %d\n", num_splits);
             return num_splits;
         }
     }
@@ -142,8 +140,6 @@ bool MhaCKForward::IsApplicable([[maybe_unused]] const ExecutionContext& context
     const std::string name = context.GetStream().GetDeviceName();
     if(!(name == "gfx940" || name == "gfx941" || name == "gfx942"))
         return false;
-    if(!problem.IsForward())
-        return false;
     if(!problem.IsFFp8()) // forward mha fp8
         return false;
     ::miopen::mha::MhaInputDescsForward mha_des = problem.GetDescsForward();
@@ -182,14 +178,11 @@ ConvSolution MhaCKForward::GetSolution([[maybe_unused]] const ExecutionContext& 
 {
     auto result         = ConvSolution{miopenStatusSuccess};
     result.workspace_sz = 0;
-    // heuristics find optimum num_splits for given problem
 
     const miopen::mha::MhaInputDescsForward& descsFwd = problem.GetDescsForward();
-
     auto [N, H, S, D] = miopen::tien<4>(descsFwd.kDesc.GetLengths());
 
-    descsFwd.kDesc.GetType();
-
+    ck_tile::index_t batch    = N;
     ck_tile::index_t seqlen_q = S;
     ck_tile::index_t seqlen_k = S;
     ck_tile::index_t hdim_q   = D;
@@ -197,25 +190,16 @@ ConvSolution MhaCKForward::GetSolution([[maybe_unused]] const ExecutionContext& 
     ck_tile::index_t nhead    = H;
     ck_tile::index_t nhead_k  = H;
 
-    // currently we assume both sqlen_q and seqlen_k as S
-    // no mask for now
-    // fp8 currenly only supports fp8
+    // This is tuning parameter
+    int num_splits = determineNumSplits(N, H, S, D, 0.0, 1 /*default num splits*/);
+
     bool store_loss    = false;
     bool is_v_rowmajor = false;
-
     // currenly ck's fp8 only supports batch mode
     bool is_group_mode = false;
+    bool o_perm = true, i_perm = true; // if true, will be batch * nhead * seqlen * hdim
+    bool squant = true;                // fp8 quantization
 
-    // input permute
-    bool i_perm = true; // if true, will be batch * nhead * seqlen * hdim
-    // output permute
-    bool o_perm = true; // if false, will be batch * seqlen * nhead * hdim
-
-    // mode_enum::batch or mode_enum::group
-    // auto mode         = mode_enum::batch;
-    ck_tile::index_t batch = N;
-
-    bool squant   = true; // fp8 quantization
     float range_q = 1;
     float range_k = 1;
     float range_v = 1;
@@ -235,10 +219,9 @@ ConvSolution MhaCKForward::GetSolution([[maybe_unused]] const ExecutionContext& 
         scale_o = range_p * range_v / range_o / dtype_max;
     }
 
-    // if mode is mode_enum::batch
     const ck_tile::index_t shape_seqlen_q = seqlen_q;
     const ck_tile::index_t shape_seqlen_k = seqlen_k;
-    const ck_tile::index_t max_seqlen_q   = seqlen_k;
+    const ck_tile::index_t max_seqlen_q   = seqlen_q;
     const ck_tile::index_t max_seqlen_k   = seqlen_k;
     result.invoker_factory                = [=](const std::vector<Kernel>&) {
         return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
@@ -247,17 +230,16 @@ ConvSolution MhaCKForward::GetSolution([[maybe_unused]] const ExecutionContext& 
             auto workSpace        = params.GetWorkspace();
 
             // arg 1
-            auto fmha_traits = fmha_fwd_traits{
-                hdim_q,
-                hdim_v,
-                "fp8", // data_type in string (todo: change this based on problem description)
-                is_group_mode, // mode == mode_enum::group,
-                is_v_rowmajor,
-                mask_enum::no_mask, // no mask for now
-                bias_enum::no_bias, // no bias
-                false,
-                store_loss,
-                squant};
+            auto fmha_traits = fmha_fwd_traits{hdim_q,
+                                               hdim_v,
+                                               "fp8",         // data_type in string
+                                               is_group_mode, // mode == mode_enum::group,
+                                               is_v_rowmajor,
+                                               mask_enum::no_mask, // no mask for now
+                                               bias_enum::no_bias, // no bias
+                                               false,
+                                               store_loss,
+                                               squant};
 
             // arg 2
             auto fmha_args = [&]() {
@@ -281,18 +263,15 @@ ConvSolution MhaCKForward::GetSolution([[maybe_unused]] const ExecutionContext& 
                 }();
                 const ck_tile::index_t nhead_stride_bias = 0; // no bias for now
                 const ck_tile::index_t nhead_stride_lse  = (shape_seqlen_q * 1);
-                // setup batch_stride_* arguments
-                const ck_tile::index_t batch_stride_q = (nhead * shape_seqlen_q * hdim_q);
-                const ck_tile::index_t batch_stride_k = (nhead_k * shape_seqlen_k * hdim_q);
-                const ck_tile::index_t batch_stride_v = (nhead_k * hdim_v * shape_seqlen_k);
+                const ck_tile::index_t batch_stride_q    = (nhead * shape_seqlen_q * hdim_q);
+                const ck_tile::index_t batch_stride_k    = (nhead_k * shape_seqlen_k * hdim_q);
+                const ck_tile::index_t batch_stride_v    = (nhead_k * hdim_v * shape_seqlen_k);
                 const ck_tile::index_t batch_stride_bias =
                     (0 * nhead * shape_seqlen_q * shape_seqlen_k);
                 float p_drop         = 0.0f;
                 bool s_randval       = false;
                 uint64_t drop_seed   = 1; // seed for random number generator
                 uint64_t drop_offset = 0; // offset for random number generator
-                // This is tuning parameter
-                int num_splits = 1;
 
                 const ck_tile::index_t stride_randval       = (max_seqlen_k);
                 const ck_tile::index_t stride_o_acc         = hdim_v;
@@ -314,19 +293,19 @@ ConvSolution MhaCKForward::GetSolution([[maybe_unused]] const ExecutionContext& 
                 return fmha_fwd_args{dataFwd.qData, // q_ptr
                                      dataFwd.kData, // k_ptr
                                      dataFwd.vData, // v_ptr
-                                     nullptr, //       bias_ptr  (no bias for now)
-                                     nullptr, //       rand_val_pr loss store (no loss for now)
-                                     nullptr, //        lse_acc_ptr (no loss for now)
-                                     workSpace, //       o_acc_ptr
-                                     nullptr,   //       lse_ptr (no loss for now)
-                                     dataFwd.oData, //        o_ptr
-                                     nullptr,       //        seqstart_q_ptr
-                                     nullptr,       //        seqstart_k_ptr
-                                     nullptr, //        seqlen_k_ptr (null is ok)
+                                     nullptr,       // bias_ptr  (no bias for now)
+                                     nullptr, // rand_val_pr loss store (no loss for now)
+                                     nullptr,       // lse_acc_ptr (no loss for now)
+                                     workSpace,     // o_acc_ptr
+                                     nullptr,       // lse_ptr (no loss for now)
+                                     dataFwd.oData, // o_ptr
+                                     nullptr,
+                                     nullptr,
+                                     nullptr,
                                      shape_seqlen_q,
                                      shape_seqlen_k,
                                      batch,
-                                     max_seqlen_q, // need to replace with max_seqlen_q
+                                     max_seqlen_q,
                                      hdim_q,
                                      hdim_v,
                                      nhead,
