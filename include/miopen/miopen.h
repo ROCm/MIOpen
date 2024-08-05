@@ -70,6 +70,7 @@
  * @defgroup SGD
  * @defgroup getitem
  * @defgroup ReduceCalculation
+ * @defgroup avgpool
  *
  */
 
@@ -7619,6 +7620,82 @@ MIOPEN_EXPORT miopenStatus_t miopenGetitemBackward(miopenHandle_t handle,
 
 /** @} */
 // CLOSEOUT GETITEM DOXYGEN GROUP
+#endif // MIOPEN_BETA_API
+
+#ifdef MIOPEN_BETA_API
+// avgpool APIs
+/** @addtogroup avgpool
+ *
+ *  @{
+ */
+
+/*! @brief Execute an avgpool forward layer
+ *
+ * @param handle                   MIOpen handle (input)
+ * @param inputDesc                Tensor descriptor for input tensor (input)
+ * @param input                    Data tensor input (input)
+ * @param outputDesc               Tensor descriptor for output tensor (input)
+ * @param output                   Data tensor output (output)
+ * @param strideDesc               Tensor descriptor for stride tensor (input)
+ * @param stride                   Data tensor stride (output)
+ * @param paddingDesc              Tensor descriptor for padding tensor (input)
+ * @param padding                  Data tensor padding (output)
+ * @param kinforDesc               Tensor descriptor for kinfor tensor (input)
+ * @param kinfor                   Data tensor kinfor (output)
+ * @param count_include_pad        When True, will include the zero-padding in the averaging
+ * calculation (input)
+ * @param divisor_override         If non-zero, will use this value as the divisor, otherwise will
+ * use the number of elements in the pooling window (input)
+ * @return                         miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenAvgPoolForward(miopenHandle_t handle,
+                                                  const miopenTensorDescriptor_t inputDesc,
+                                                  const void* input,
+                                                  const miopenTensorDescriptor_t outputDesc,
+                                                  void* output,
+                                                  const miopenTensorDescriptor_t strideDesc,
+                                                  const void* stride,
+                                                  const miopenTensorDescriptor_t paddingDesc,
+                                                  const void* padding,
+                                                  const miopenTensorDescriptor_t kinforDesc,
+                                                  const void* kinfor,
+                                                  const bool count_include_pad,
+                                                  const int32_t divisor_override);
+
+/*! @brief Execute an avgpool backward layer
+ *
+ * @param handle                   MIOpen handle (input)
+ * @param outputGradDesc           Tensor descriptor for output grad tensor (input)
+ * @param output_grad              Data tensor output grad (input)
+ * @param inputGradDesc            Tensor descriptor for input grad tensor (input)
+ * @param input_grad               Data tensor input grad (output)
+ * @param strideDesc               Tensor descriptor for stride tensor (input)
+ * @param stride                   Data tensor stride (output)
+ * @param paddingDesc              Tensor descriptor for padding tensor (input)
+ * @param padding                  Data tensor padding (output)
+ * @param kinforDesc               Tensor descriptor for kinfor tensor (input)
+ * @param kinfor                   Data tensor kinfor (output)
+ * @param count_include_pad        When True, will include the zero-padding in the averaging
+ * calculation (input)
+ * @param divisor_override         If non-zero, will use this value as the divisor, otherwise will
+ * use the number of elements in the pooling window (input)
+ * @return                         miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenAvgPoolBackward(miopenHandle_t handle,
+                                                   const miopenTensorDescriptor_t outputGradDesc,
+                                                   const void* output_grad,
+                                                   const miopenTensorDescriptor_t inputGradDesc,
+                                                   void* input_grad,
+                                                   const miopenTensorDescriptor_t strideDesc,
+                                                   const void* stride,
+                                                   const miopenTensorDescriptor_t paddingDesc,
+                                                   const void* padding,
+                                                   const miopenTensorDescriptor_t kinforDesc,
+                                                   const void* kinfor,
+                                                   const bool count_include_pad,
+                                                   const int32_t divisor_override);
+/** @} */
+// CLOSEOUT avgpool DOXYGEN GROUP
 #endif // MIOPEN_BETA_API
 
 #ifdef __cplusplus
