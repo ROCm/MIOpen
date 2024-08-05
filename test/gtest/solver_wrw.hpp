@@ -182,5 +182,5 @@ private:
     miopen::Allocator::ManageDataPtr out_dev;
     Workspace wspace{};
     miopenConvFwdAlgorithm_t algo = miopenConvolutionFwdAlgoDirect;
-    bool test_skipped;
+    bool test_skipped             = false;
 };

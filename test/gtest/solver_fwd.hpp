@@ -127,7 +127,7 @@ private:
     }
 
     Workspace wspace{};
-    miopenConvFwdAlgorithm_t algo = miopenConvolutionFwdAlgoDirect;
-    bool test_skipped;
-    miopenTensorLayout_t tensor_layout;
+    miopenConvFwdAlgorithm_t algo      = miopenConvolutionFwdAlgoDirect;
+    bool test_skipped                  = false;
+    miopenTensorLayout_t tensor_layout = miopenTensorNCHW;
 };
