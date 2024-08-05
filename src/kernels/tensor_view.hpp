@@ -74,7 +74,6 @@ struct tensor_layout_t
         }
     }
 
-
     constexpr tensor_layout_t(std::initializer_list<uint64_t> layout_)
     {
         static_assert(N > 0);
