@@ -64,12 +64,12 @@
  * @defgroup LossFunction
  * @defgroup TensorReduce
  * @defgroup find2
- * @defgroup sum
  * @defgroup ReduceExtreme
  * @defgroup groupnorm
  * @defgroup cat
  * @defgroup SGD
  * @defgroup getitem
+ * @defgroup ReduceCalculation
  * @defgroup RotaryPositionalEmbeddings
  *
  */
@@ -5850,63 +5850,79 @@ MIOPEN_EXPORT miopenStatus_t miopenCreateSoftmaxProblem(miopenProblem_t* problem
 
 #ifdef MIOPEN_BETA_API
 
-/*! @ingroup sum
- * @enum miopenSumNanPropagation_t
- * Nan numbers propagation modes for sum
+/*! @ingroup ReduceCalculation
+ * @enum miopenReduceCalculationNanPropagation_t
+ * Nan numbers propagation modes for reduce calculation
  */
 typedef enum
 {
-    MIOPEN_SUM_NOT_PROPAGATE_NAN = 0, /*!< does not propagate Nan number */
-    MIOPEN_SUM_PROPAGATE_NAN     = 1, /*!< propagate the Nan number by the Reduction operation */
-} miopenSumNanPropagation_t;
+    MIOPEN_REDUCE_CALCULATION_NOT_PROPAGATE_NAN = 0, /*!< does not propagate Nan number */
+    MIOPEN_REDUCE_CALCULATION_PROPAGATE_NAN =
+        1, /*!< propagate the Nan number by the Reduction operation */
+} miopenReduceCalculationNanPropagation_t;
 
-// Sum APIs
-/** @addtogroup sum
+// ReduceCalculation APIs
+/** @addtogroup reducecalculation
  *
  *  @{
  */
 
+/*! @enum miopenReduceCalculationOp_t
+ * Reduction Calculation operation types
+ */
+typedef enum
+{
+    MIOPEN_REDUCE_CALCULATION_PROD =
+        1, /*!< the operation is multiplying the values of the reduced elements */
+    MIOPEN_REDUCE_CALCULATION_SUM =
+        2, /*!< the operation is adding the values of the reduced elements */
+} miopenReduceCalculationOp_t;
+
 /*! @brief Helper function to query the minimum workspace size required by the ReduceTensor call
  *
- * @param handle                   MIOpen Handle (input)
- * @param xDesc                    Tensor descriptor for data input tensor x (input)
- * @param dim                      Dimension to sum. (input)
- * @param yDesc                    Tensor descriptor for output data tensor y (input)
- * @param sizeInBytes              Pointer to data to return the minimum workspace size
- * @return                         miopenStatus_t
+ * @param [in]   handle                   MIOpen Handle
+ * @param [in]   xDesc                    Tensor descriptor for data input tensor x
+ * @param [in]   dim                      Dimension to calculation.
+ * @param [in]   yDesc                    Tensor descriptor for output data tensor y
+ * @param [out]  sizeInBytes              Pointer to data to return the minimum workspace size
+ * @return                                miopenStatus_t
  */
-MIOPEN_EXPORT miopenStatus_t miopenGetSumWorkspaceSize(miopenHandle_t handle,
-                                                       const miopenTensorDescriptor_t xDesc,
-                                                       const int32_t dim,
-                                                       const miopenTensorDescriptor_t yDesc,
-                                                       size_t* sizeInBytes);
+MIOPEN_EXPORT miopenStatus_t
+miopenGetReduceCalculationWorkspaceSize(miopenHandle_t handle,
+                                        const miopenTensorDescriptor_t xDesc,
+                                        const int32_t dim,
+                                        const miopenReduceCalculationOp_t reduceCalculationOp,
+                                        const miopenTensorDescriptor_t reduceDesc,
+                                        size_t* sizeInBytes);
 
-/*! @brief Execute a sum forward layer
+/*! @brief Execute a reducecalculation forward layer
  *
- * @param handle                   MIOpen handle (input)
- * @param nanPropagation           Nan number propagation mode (input)
- * @param workspace                Address of the allocated workspace data (input)
- * @param workspaceSizeInBytes     Size in bytes of the allocated workspace data (input)
- * @param xDesc                    Tensor descriptor for data input tensor x (input)
- * @param x                        Data tensor x (input)
- * @param dim                      Dimension to sum. (input)
- * @param yDesc                    Tensor descriptor for output data tensor y (input)
- * @param y                        Data tensor y (output)
- * @return                         miopenStatus_t
+ * @param [in]   handle                   MIOpen handle
+ * @param [in]   nanPropagation           Nan number propagation mode
+ * @param [in]   workspace                Address of the allocated workspace data
+ * @param [in]   workspaceSizeInBytes     Size in bytes of the allocated workspace data
+ * @param [in]   xDesc                    Tensor descriptor for data input tensor x
+ * @param [in]   x                        Data tensor x
+ * @param [in]   dim                      Dimension to calculation.
+ * @param [in]   yDesc                    Tensor descriptor for output data tensor y
+ * @param [out]  y                        Data tensor y
+ * @return                                miopenStatus_t
  */
-MIOPEN_EXPORT miopenStatus_t miopenSumForward(miopenHandle_t handle,
-                                              miopenSumNanPropagation_t nanPropagation,
-                                              void* workspace,
-                                              size_t workspaceSizeInBytes,
-                                              const miopenTensorDescriptor_t xDesc,
-                                              const void* x,
-                                              const int32_t dim,
-                                              const miopenTensorDescriptor_t yDesc,
-                                              void* y);
+MIOPEN_EXPORT miopenStatus_t
+miopenReduceCalculationForward(miopenHandle_t handle,
+                               miopenReduceCalculationNanPropagation_t nanPropagation,
+                               void* workspace,
+                               size_t workspaceSizeInBytes,
+                               const miopenTensorDescriptor_t xDesc,
+                               const void* x,
+                               const int32_t dim,
+                               const miopenReduceCalculationOp_t reduceCalculationOp,
+                               const miopenTensorDescriptor_t reduceDesc,
+                               void* y);
 
 /** @} */
-// CLOSEOUT SUM DOXYGEN GROUP
-#endif
+// CLOSEOUT REDUCE CALCULATION DOXYGEN GROUP
+#endif // MIOPEN_BETA_API
 
 #ifdef MIOPEN_BETA_API
 
@@ -5924,8 +5940,6 @@ typedef enum
         3, /*!< the operation is getting the minimum value and index of the reduced elements */
     MIOPEN_REDUCE_EXTREME_MAX =
         4, /*!< the operation is getting the maximum value and index of the reduced elements */
-    MIOPEN_REDUCE_CALCULATION_SUM =
-        5, /*!< the operation is multiplying the values of the reduced elements */
 } miopenReduceExtremeOp_t;
 
 // ReduceExtreme APIs
@@ -5961,7 +5975,7 @@ miopenReduceExtremeForward(miopenHandle_t handle,
 
 /** @} */
 // CLOSEOUT REDUCEEXTREME DOXYGEN GROUP
-#endif
+#endif // MIOPEN_BETA_API
 
 #ifdef MIOPEN_BETA_API
 // GroupNorm APIs
@@ -6008,7 +6022,7 @@ MIOPEN_EXPORT miopenStatus_t miopenGroupNormForward(miopenHandle_t handle,
 
 /** @} */
 // CLOSEOUT groupnorm DOXYGEN GROUP
-#endif
+#endif // MIOPEN_BETA_API
 
 #ifdef MIOPEN_BETA_API
 // LayerNorm APIs
@@ -6059,7 +6073,7 @@ MIOPEN_EXPORT miopenStatus_t miopenAddLayerNormForward(miopenHandle_t handle,
 
 /** @} */
 // CLOSEOUT LAYERNORM DOXYGEN GROUP
-#endif
+#endif // MIOPEN_BETA_API
 
 #ifdef MIOPEN_BETA_API
 // LayerNorm APIs
@@ -6157,7 +6171,7 @@ MIOPEN_EXPORT miopenStatus_t miopenT5LayerNormBackward(miopenHandle_t handle,
                                                        void* dw);
 /** @} */
 // CLOSEOUT LAYERNORM DOXYGEN GROUP
-#endif
+#endif // MIOPEN_BETA_API
 
 #ifdef MIOPEN_BETA_API
 // Graph API

@@ -166,6 +166,7 @@ set( MIOpen_Source
     process.cpp
     ramdb.cpp
     readonlyramdb.cpp
+    reducecalculation_api.cpp
     reduceextreme_api.cpp
     reducetensor.cpp
     reducetensor_api.cpp
@@ -173,7 +174,11 @@ set( MIOpen_Source
     rnn.cpp
     rnn_api.cpp
     rnn/rnn_util.cpp
+    rnn/selector.cpp
     rnn/Solutions/rnn_transformer.cpp
+    rnn/Solutions/modular_base.cpp
+    rnn/Solutions/bwd_s_stream.cpp
+    rnn/Solutions/bwd_multi_stream.cpp
     rope_api.cpp
     rope/problem_description.cpp
     scalar.cpp
@@ -300,13 +305,13 @@ set( MIOpen_Source
     solver/reduce/forward_argmin.cpp
     solver/reduce/forward_max.cpp
     solver/reduce/forward_min.cpp
+    solver/reduce/forward_prod.cpp
     solver/reduce/forward_sum.cpp
     solver/rope/backward_rope.cpp
     solver/rope/forward_rope.cpp
     solver/softmax/attn_softmax.cpp
     solver/softmax/softmax.cpp
     subbuffers.cpp
-    sum_api.cpp
     t5layernorm_api.cpp
     target_properties.cpp
     temp_file.cpp
@@ -439,6 +444,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/Conv_Winograd_v30_3_1_gfx11_fp32_f3x2_stride1.inc
         kernels/Conv_Winograd_v30_3_1_gfx11_fp32_f3x2_stride2.inc
         kernels/Conv_Winograd_v30_3_1_metadata.inc
+        kernels/MIOpenReduceCalculation.hpp
         kernels/MIOpenReduceExtreme.hpp
         kernels/bfloat16_dev.hpp
         kernels/conv_common.inc
@@ -509,11 +515,11 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenConv1x1S.cl
         kernels/MIOpenConv1x1J1.cl
         kernels/MIOpenConv1x1J1_stride.cl
+        kernels/MIOpenReduceCalculation.cpp
         kernels/MIOpenReduceExtreme.cpp
         kernels/MIOpenRoPE.cpp
         kernels/MIOpenSoftmax.cl
         kernels/MIOpenSoftmaxAttn.cpp
-        kernels/MIOpenSum.cpp
         kernels/MIOpenUtilKernels3.cl
         kernels/MIOpenUtilKernels4.cl
         kernels/MIOpenUtilKernels5.cl
@@ -653,9 +659,9 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         t5layernorm.cpp
         ocl/fusionopconvocl.cpp
         ocl/fusionopbiasbnactivocl.cpp
+        reducecalculation.cpp
         reduceextreme.cpp
         rope.cpp
-        sum.cpp
         transformers_adam_w.cpp
         ${PROJECT_BINARY_DIR}/db_path.cpp
         )
