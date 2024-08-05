@@ -7643,7 +7643,7 @@ MIOPEN_EXPORT miopenStatus_t miopenGetitemBackward(miopenHandle_t handle,
  * @param dilation            Dilation array control the stride of the elements within the
  * neighborhood (input)
  * @param dilation_size       Size of the dilation array (input)
- * @return               miopenStatus_t
+ * @return                    miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t miopenFoldForward(miopenHandle_t handle,
                                                const miopenTensorDescriptor_t inputDesc,
@@ -7675,7 +7675,7 @@ MIOPEN_EXPORT miopenStatus_t miopenFoldForward(miopenHandle_t handle,
 * @param dilation            Dilation array control the stride of the elements within the
 neighborhood (input)
 * @param dilation_size       Size of the dilation array (input)
-* @return               miopenStatus_t
+* @return                    miopenStatus_t
 */
 MIOPEN_EXPORT miopenStatus_t miopenFoldBackward(miopenHandle_t handle,
                                                 const miopenTensorDescriptor_t dinputDesc,
@@ -7707,7 +7707,7 @@ MIOPEN_EXPORT miopenStatus_t miopenFoldBackward(miopenHandle_t handle,
  * @param dilation            Dilation array control the stride of the elements within the
  * neighborhood (input)
  * @param dilation_size       Size of the dilation array (input)
- * @return               miopenStatus_t
+ * @return                    miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t miopenUnfoldForward(miopenHandle_t handle,
                                                  const miopenTensorDescriptor_t inputDesc,
@@ -7739,7 +7739,7 @@ MIOPEN_EXPORT miopenStatus_t miopenUnfoldForward(miopenHandle_t handle,
  * @param dilation            Dilation array control the stride of the elements within the
  neighborhood (input)
  * @param dilation_size       Size of the dilation array (input)
- * @return               miopenStatus_t
+ * @return                    miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t miopenUnfoldBackward(miopenHandle_t handle,
                                                   const miopenTensorDescriptor_t dinputDesc,
