@@ -685,24 +685,27 @@ rocm_create_package(
 )
 
 include(EnableCompilerWarnings)
-set(MIOPEN_TIDY_ERRORS ERRORS * -readability-inconsistent-declaration-parameter-name)
-if(CMAKE_CXX_COMPILER MATCHES ".*clang\\+\\+")
-    set(MIOPEN_TIDY_CHECKS -modernize-use-override -readability-non-const-parameter)
-# Enable tidy on hip
-elseif(MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPNOGPU")
-    set(MIOPEN_TIDY_ERRORS ALL)
-endif()
+option(MIOPEN_USE_CLANG_TIDY "Use clang tidy to find problems" ON)
+if(MIOPEN_USE_CLANG_TIDY)
+    set(MIOPEN_TIDY_ERRORS ERRORS * -readability-inconsistent-declaration-parameter-name)
+    if(CMAKE_CXX_COMPILER MATCHES ".*clang\\+\\+")
+        set(MIOPEN_TIDY_CHECKS -modernize-use-override -readability-non-const-parameter)
+    # Enable tidy on hip
+    elseif(MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPNOGPU")
+        set(MIOPEN_TIDY_ERRORS ALL)
+    endif()
 
-include(ClangTidy)
-enable_clang_tidy(
-    CHECKS
-        ${MIOPEN_TIDY_CHECKS}
-    ${MIOPEN_TIDY_ERRORS}
-    HEADER_FILTER
-        "\.hpp$"
-    EXTRA_ARGS
-        -DMIOPEN_USE_CLANG_TIDY
-)
+    include(ClangTidy)
+    enable_clang_tidy(
+      CHECKS
+      ${MIOPEN_TIDY_CHECKS}
+      ${MIOPEN_TIDY_ERRORS}
+      HEADER_FILTER
+      "\.hpp$"
+      EXTRA_ARGS
+      -DMIOPEN_USE_CLANG_TIDY
+    )
+endif()
 
 include(CppCheck)
 enable_cppcheck(
