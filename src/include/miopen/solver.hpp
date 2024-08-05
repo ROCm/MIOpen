@@ -4791,6 +4791,26 @@ private:
     bool CheckCKApplicability(const miopen::conv::ProblemDescription&) const;
 };
 
+struct ConvHipImplicitGemmGroupFwdXdlopsCodegen final : ConvSolver
+{
+    // TODO: update this fcn
+    const std::string& SolverDbId() const override
+    {
+        return GetSolverDbId<ConvHipImplicitGemmGroupFwdXdlopsCodegen>();
+    }
+
+    MIOPEN_INTERNALS_EXPORT size_t GetWorkspaceSize(
+        const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+
+    bool MayNeedWorkspace() const override { return true; }
+
+    MIOPEN_INTERNALS_EXPORT bool
+    IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+
+    MIOPEN_INTERNALS_EXPORT ConvSolution
+    GetSolution(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+};
+
 struct PerformanceConfigHipImplicitGemm3DGroupWrwXdlops
     : PerfConfigBaseCK<PerformanceConfigHipImplicitGemm3DGroupWrwXdlops>
 {

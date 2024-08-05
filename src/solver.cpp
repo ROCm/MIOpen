@@ -671,6 +671,11 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
              fusion::ConvWinoFuryRxSFused<2, 3>{}.SolverDbId(),
              miopenConvolutionAlgoWinograd);
 
+    RegisterWithSolver(registry,
+                       ++id,
+                       conv::ConvHipImplicitGemmGroupFwdXdlopsCodegen{},
+                       miopenConvolutionAlgoImplicitGEMM);
+
     // IMPORTANT: New solvers should be added to the end of the function!
 }
 

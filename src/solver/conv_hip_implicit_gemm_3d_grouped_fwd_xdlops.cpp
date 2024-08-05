@@ -36,8 +36,6 @@
 #include <ck/library/tensor_operation_instance/gpu/grouped_convolution_forward_bilinear.hpp>
 #include <ck/library/tensor_operation_instance/gpu/grouped_convolution_forward_scale.hpp>
 #include "ck/library/tensor_operation_instance/gpu/grouped_convolution_forward.hpp"
-#include "ck/tensor_operation/gpu/device/matrix_padder.hpp"
-#include "ck/tensor_operation/gpu/device/helper.hpp"
 #endif
 #include <miopen/solver/implicitgemm_ck_util.hpp>
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_3D_CONV_IMPLICIT_GEMM_HIP_FWD_XDLOPS)
@@ -344,6 +342,46 @@ struct CKArgs
 } // namespace
 
 template <typename DataType>
+void PerformanceConfigHipImplicitGemm3DGroupFwdXdlops::Init(const ProblemDescription& problem)
+{
+    switch(problem.GetAlphaBetaCase())
+    {
+    case BILINEAR:
+        valid_kernels =
+            FillValidKernelsIDs<DeviceOpGFwdBilinearPtrs<DataType>, CKArgs<DataType>>(problem);
+        break;
+    case SCALE:
+        valid_kernels =
+            FillValidKernelsIDs<DeviceOpGFwdScalePtrs<DataType>, CKArgs<DataType>>(problem);
+        break;
+    default:
+        valid_kernels =
+            FillValidKernelsIDs<DeviceOpGFwdDefaultPtrs<DataType>, CKArgs<DataType>>(problem);
+        break;
+    }
+    index     = 0;
+    kernel_id = valid_kernels[index];
+}
+
+template <typename DataType>
+bool PerformanceConfigHipImplicitGemm3DGroupFwdXdlops::CheckIsSupportCKArgs(
+    const ProblemDescription& problem) const
+{
+    switch(problem.GetAlphaBetaCase())
+    {
+    case BILINEAR:
+        return IsCKArgsSupported<DeviceOpGFwdBilinearPtrs<DataType>, CKArgs<DataType>>(problem,
+                                                                                       kernel_id);
+    case SCALE:
+        return IsCKArgsSupported<DeviceOpGFwdScalePtrs<DataType>, CKArgs<DataType>>(problem,
+                                                                                    kernel_id);
+    default:
+        return IsCKArgsSupported<DeviceOpGFwdDefaultPtrs<DataType>, CKArgs<DataType>>(problem,
+                                                                                      kernel_id);
+    }
+}
+
+template <typename DataType>
 bool ConvHipImplicitGemm3DGroupFwdXdlops::CheckCKApplicability(
     const ProblemDescription& problem) const
 {
@@ -357,6 +395,72 @@ bool ConvHipImplicitGemm3DGroupFwdXdlops::CheckCKApplicability(
 }
 #endif
 
+void PerformanceConfigHipImplicitGemm3DGroupFwdXdlops::HeuristicInit(
+    [[maybe_unused]] const ProblemDescription& problem)
+{
+    index     = 0;
+    kernel_id = "";
+
+#if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
+    switch(problem.GetInDataType())
+    {
+    case miopenHalf: Init<ck::half_t>(problem); break;
+    case miopenFloat: Init<float>(problem); break;
+    case miopenInt8: Init<int8_t>(problem); break;
+    case miopenBFloat16: Init<ck::bhalf_t>(problem); break;
+    case miopenInt64:
+    case miopenInt32:
+    case miopenFloat8:
+    case miopenBFloat8:
+    case miopenDouble: break;
+    }
+#endif
+}
+
+bool PerformanceConfigHipImplicitGemm3DGroupFwdXdlops::SetNextValue(
+    const ProblemDescription& problem)
+{
+    if(valid_kernels.empty())
+    {
+        HeuristicInit(problem);
+        assert(!valid_kernels.empty());
+        return true;
+    }
+    if((index + 1) < valid_kernels.size())
+    {
+        ++index;
+        kernel_id = valid_kernels[index];
+        return true;
+    }
+    else
+        return false;
+}
+
+bool PerformanceConfigHipImplicitGemm3DGroupFwdXdlops::IsValidValue() const
+{
+    return index < valid_kernels.size();
+}
+
+bool PerformanceConfigHipImplicitGemm3DGroupFwdXdlops::IsValid(
+    [[maybe_unused]] const ProblemDescription& problem) const
+{
+#if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
+    switch(problem.GetInDataType())
+    {
+    case miopenHalf: return CheckIsSupportCKArgs<ck::half_t>(problem);
+    case miopenFloat: return CheckIsSupportCKArgs<float>(problem);
+    case miopenInt8: return CheckIsSupportCKArgs<int8_t>(problem);
+    case miopenBFloat16: return CheckIsSupportCKArgs<ck::bhalf_t>(problem);
+    case miopenInt64:
+    case miopenInt32:
+    case miopenFloat8:
+    case miopenBFloat8:
+    case miopenDouble: break;
+    }
+#endif
+    return false;
+}
+
 bool PerformanceConfigHipImplicitGemm3DGroupFwdXdlops::operator==(
     const PerformanceConfigHipImplicitGemm3DGroupFwdXdlops& other) const
 {
@@ -368,7 +472,7 @@ ConvHipImplicitGemm3DGroupFwdXdlops::GetDefaultPerformanceConfig(
     const ExecutionContext&, const ProblemDescription& problem) const
 {
     PerformanceConfigHipImplicitGemm3DGroupFwdXdlops pp;
-    // pp.HeuristicInit(problem);
+    pp.HeuristicInit(problem);
     return pp;
 }
 
@@ -377,7 +481,7 @@ bool ConvHipImplicitGemm3DGroupFwdXdlops::IsValidPerformanceConfig(
     const ProblemDescription& problem,
     const PerformanceConfigHipImplicitGemm3DGroupFwdXdlops& config) const
 {
-    // return config.IsValid(problem);
+    return config.IsValid(problem);
 }
 
 size_t
