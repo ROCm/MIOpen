@@ -23,91 +23,150 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+
 #include <miopen/avgpool.hpp>
-#include <miopen/kernel_cache.hpp>
-#include <miopen/float_equal.hpp>
-#include <miopen/tensor.hpp>
-#include <miopen/avgpool/invoke_params.hpp>
-#include <miopen/avgpool/solvers.hpp>
-#include <miopen/find_solution.hpp>
+#include <miopen/errors.hpp>
+#include <miopen/handle.hpp>
+#include <miopen/logger.hpp>
+#include <miopen/tensor_ops.hpp>
 
-namespace miopen {
-
-miopenStatus_t AvgPoolForward(Handle& handle,
-                              const TensorDescriptor& inputDesc,
-                              ConstData_t input,
-                              const TensorDescriptor& outputDesc,
-                              Data_t output,
-                              const TensorDescriptor& strideDesc,
-                              ConstData_t stride,
-                              bool log_target)
+inline std::ostream& operator<<(std::ostream& os, const std::vector<size_t>& v)
 {
-    const auto problem = avgpool::UnreducedProblemDescription{
-        inputDesc, targetDesc, outputGradDesc, log_target, false};
-
-    const auto invoke_params = [&]() {
-        auto tmp           = avgpool::BwdInvokeParams{};
-        tmp.inputDesc      = &inputDesc;
-        tmp.targetDesc     = &targetDesc;
-        tmp.outputGradDesc = &outputGradDesc;
-        tmp.inputGradDesc  = &inputGradDesc;
-        tmp.targetGradDesc = &targetGradDesc;
-
-        tmp.input       = input;
-        tmp.target      = target;
-        tmp.output_grad = output_grad;
-        tmp.input_grad  = input_grad;
-        tmp.target_grad = target_grad;
-
-        tmp.log_target = log_target;
-
-        return tmp;
-    }();
-    const auto algo    = AlgorithmName{"AvgPoolForward"};
-    const auto solvers = solver::SolverContainer<solver::avgpool::AvgPoolForward5d>{};
-
-    solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
-
-    return miopenStatusSuccess;
+    os << '{';
+    for(int i = 0; i < v.size(); ++i)
+    {
+        if(i != 0)
+            os << ',';
+        os << v[i];
+    }
+    os << '}';
+    return os;
 }
 
-miopenStatus_t AvgPoolBackward(Handle& handle,
-                               const TensorDescriptor& outputGradDesc,
-                               ConstData_t output_grad,
-                               const TensorDescriptor& inputGradDesc,
-                               Data_t input_grad,
-                               const TensorDescriptor& windowInforDesc,
-                               ConstData_t window_infor,
-                               bool log_target)
+static void LogCmdAvgPool(const miopenTensorDescriptor_t xDesc,
+                          const miopenTensorDescriptor_t oDesc,
+                          const bool count_include_pad,
+                          const int32_t divisor_override,
+                          const bool is_fwd)
 {
-    const auto problem = avgpool::ReducedProblemDescription{
-        inputDesc, targetDesc, outputGradDesc, divisor, log_target, false};
+    if(miopen::IsLoggingCmd())
+    {
+        std::stringstream ss;
+        auto dtype = miopen::deref(xDesc).GetType();
+        if(dtype == miopenHalf)
+        {
+            ss << "avgpoolfp16";
+        }
+        else if(dtype == miopenFloat)
+        {
+            ss << "avgpoolfp32";
+        }
+        else if(dtype == miopenBFloat16)
+        {
+            ss << "avgpoolbfp16";
+        }
 
-    const auto invoke_params = [&]() {
-        auto tmp           = avgpool::BwdInvokeParams{};
-        tmp.inputDesc      = &inputDesc;
-        tmp.targetDesc     = &targetDesc;
-        tmp.outputGradDesc = &outputGradDesc;
-        tmp.inputGradDesc  = &inputGradDesc;
-        tmp.targetGradDesc = &targetGradDesc;
+        MIOPEN_LOG_FUNCTION(xDesc, oDesc, count_include_pad, divisor_override);
+        ss << " -Is " << miopen::deref(xDesc).GetLengths();
+        ss << " -Os " << miopen::deref(oDesc).GetLengths();
+        ss << " -Si " << miopen::deref(xDesc).GetStrides();
+        ss << " -So " << miopen::deref(oDesc).GetStrides();
+        ss << " -Cp " << count_include_pad;
+        ss << " -Do " << divisor_override;
+        ss << " -F " << ((is_fwd) ? "1" : "2");
 
-        tmp.input       = input;
-        tmp.target      = target;
-        tmp.output_grad = output_grad;
-        tmp.input_grad  = input_grad;
-        tmp.target_grad = target_grad;
-
-        tmp.divisor    = divisor;
-        tmp.log_target = log_target;
-
-        return tmp;
-    }();
-    const auto algo    = AlgorithmName{"AvgPoolBackward"};
-    const auto solvers = solver::SolverContainer<solver::avgpool::AvgPoolBackward5d>{};
-
-    solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
-
-    return miopenStatusSuccess;
+        MIOPEN_LOG_DRIVER_CMD(ss.str());
+    }
 }
 
-} // namespace miopen
+extern "C" miopenStatus_t miopenAvgPoolForward(miopenHandle_t handle,
+                                               const miopenTensorDescriptor_t inputDesc,
+                                               const void* input,
+                                               const miopenTensorDescriptor_t outputDesc,
+                                               void* output,
+                                               const miopenTensorDescriptor_t strideDesc,
+                                               const void* stride,
+                                               const miopenTensorDescriptor_t paddingDesc,
+                                               const void* padding,
+                                               const miopenTensorDescriptor_t kinforDesc,
+                                               const void* kinfor,
+                                               const bool count_include_pad,
+                                               const int32_t divisor_override)
+{
+    MIOPEN_LOG_FUNCTION(handle,
+                        inputDesc,
+                        input,
+                        outputDesc,
+                        output,
+                        strideDesc,
+                        stride,
+                        paddingDesc,
+                        padding,
+                        kinforDesc,
+                        kinfor,
+                        count_include_pad,
+                        divisor_override);
+
+    LogCmdAvgPool(inputDesc, outputDesc, count_include_pad, divisor_override, true);
+    return miopen::try_([&] {
+        miopen::AvgPoolForward(miopen::deref(handle),
+                               miopen::deref(inputDesc),
+                               DataCast(input),
+                               miopen::deref(outputDesc),
+                               DataCast(output),
+                               miopen::deref(strideDesc),
+                               DataCast(stride),
+                               miopen::deref(paddingDesc),
+                               DataCast(padding),
+                               miopen::deref(kinforDesc),
+                               DataCast(kinfor),
+                               count_include_pad,
+                               divisor_override);
+    });
+}
+
+extern "C" miopenStatus_t miopenAvgPoolBackward(miopenHandle_t handle,
+                                                const miopenTensorDescriptor_t outputGradDesc,
+                                                const void* output_grad,
+                                                const miopenTensorDescriptor_t inputGradDesc,
+                                                void* input_grad,
+                                                const miopenTensorDescriptor_t strideDesc,
+                                                const void* stride,
+                                                const miopenTensorDescriptor_t paddingDesc,
+                                                const void* padding,
+                                                const miopenTensorDescriptor_t kinforDesc,
+                                                const void* kinfor,
+                                                const bool count_include_pad,
+                                                const int32_t divisor_override)
+{
+    MIOPEN_LOG_FUNCTION(handle,
+                        outputGradDesc,
+                        output_grad,
+                        inputGradDesc,
+                        input_grad,
+                        strideDesc,
+                        stride,
+                        paddingDesc,
+                        padding,
+                        kinforDesc,
+                        kinfor,
+                        count_include_pad,
+                        divisor_override);
+
+    LogCmdAvgPool(inputGradDesc, outputGradDesc, count_include_pad, divisor_override, false);
+    return miopen::try_([&] {
+        miopen::AvgPoolBackward(miopen::deref(handle),
+                                miopen::deref(outputGradDesc),
+                                DataCast(output_grad),
+                                miopen::deref(inputGradDesc),
+                                DataCast(input_grad),
+                                miopen::deref(strideDesc),
+                                DataCast(stride),
+                                miopen::deref(paddingDesc),
+                                DataCast(padding),
+                                miopen::deref(kinforDesc),
+                                DataCast(kinfor),
+                                count_include_pad,
+                                divisor_override);
+    });
+}

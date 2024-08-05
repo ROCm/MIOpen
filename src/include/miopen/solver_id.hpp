@@ -59,7 +59,8 @@ enum class Primitive
     Mha,
     Softmax,
     Adam,
-    Item
+    Item,
+    AvgPool
 };
 
 struct MIOPEN_INTERNALS_EXPORT Id
