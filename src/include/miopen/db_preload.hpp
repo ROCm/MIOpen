@@ -44,7 +44,7 @@ struct DbPreloadStates
 {
     std::mutex mutex;
     std::unordered_map<fs::path, std::future<PreloadedDb>> futures;
-    std::atomic<bool> started_loading;
+    bool started_loading;
 
     DbPreloadStates()                       = default;
     DbPreloadStates(const DbPreloadStates&) = delete;

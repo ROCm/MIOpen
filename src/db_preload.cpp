@@ -39,10 +39,10 @@ auto GetPreloadedDb(const fs::path& path) -> std::unique_ptr<Db>
 {
     auto& states = GetDbPreloadStates();
 
-    if(!states.started_loading.load(std::memory_order_relaxed))
-        return nullptr;
-
     std::unique_lock<std::mutex> lock{states.mutex};
+
+    if(!states.started_loading)
+        return nullptr;
 
     auto it = states.futures.find(path);
 
