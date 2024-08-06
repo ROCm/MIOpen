@@ -33,7 +33,7 @@
 
 #define MIOPEN_CHECK_RET(val) ASSERT_EQ(val, miopenStatusSuccess)
 
-class ConvStridedTensors : public ::testing::Test
+class GPU_ConvStridedTensors_FP32 : public ::testing::Test
 {
 protected:
     void SetUp() override
@@ -142,7 +142,7 @@ protected:
     std::vector<float> h_output;
 };
 
-TEST_F(ConvStridedTensors, ConvStridedTensorsNotImplemented)
+TEST_F(GPU_ConvStridedTensors_FP32, ConvStridedTensorsNotImplemented)
 {
     auto device = Device(handle);
 

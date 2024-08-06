@@ -23,18 +23,47 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include "registry_driver_maker.hpp"
-#include "sum_driver.hpp"
 
-static Driver* makeDriver(const std::string& base_arg)
+#include <miopen/getitem/problem_description.hpp>
+#include <miopen/datatype.hpp>
+#include <miopen/names.hpp>
+
+#include <sstream>
+
+namespace miopen {
+
+namespace getitem {
+
+NetworkConfig ProblemDescription::MakeNetworkConfig() const
 {
-    if(base_arg == "sum")
-        return new SumDriver<float, float>();
-    if(base_arg == "sumfp16")
-        return new SumDriver<float16, float>();
-    if(base_arg == "sumbfp16")
-        return new SumDriver<bfloat16, float>();
-    return nullptr;
+    auto dy_dims     = dyDesc.GetLengths();
+    auto input_dtype = dyDesc.GetType();
+    auto error_dtype = errorDesc.GetType();
+
+    auto input_size =
+        std::accumulate(dy_dims.begin(), dy_dims.end(), 1ULL, std::multiplies<size_t>());
+
+    std::ostringstream ss;
+
+    ss << "getitembwd";
+    ss << "input_size" << input_size;
+    ss << "input_dtype" << input_dtype;
+    ss << "error_dtype" << error_dtype;
+    ss << "indexCount" << indexCount;
+
+    for(int i = 0; i < indexCount; ++i)
+    {
+        if(i == 0)
+            ss << "indexs_size";
+        const auto& index_dims = (*indexDescs)[i].GetLengths();
+        auto index_size        = std::accumulate(
+            index_dims.begin(), index_dims.begin(), 1ULL, std::multiplies<size_t>());
+        ss << index_size << "_";
+    }
+
+    return NetworkConfig{ss.str()};
 }
 
-REGISTER_DRIVER_MAKER(makeDriver);
+} // namespace getitem
+
+} // namespace miopen

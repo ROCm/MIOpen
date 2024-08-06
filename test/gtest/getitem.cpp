@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,19 +24,17 @@
  *
  *******************************************************************************/
 
-#include "sum.hpp"
+#include "getitem.hpp"
 #include <miopen/env.hpp>
 
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 
-namespace env = miopen::env;
-
-namespace sum {
+namespace getitem {
 
 std::string GetFloatArg()
 {
-    const auto tmp = env::value(MIOPEN_TEST_FLOAT_ARG);
+    const auto& tmp = env::value(MIOPEN_TEST_FLOAT_ARG);
     if(tmp.empty())
     {
         return "";
@@ -44,16 +42,25 @@ std::string GetFloatArg()
     return tmp;
 }
 
-struct SumTestFloat : SumTest<float>
+struct GetitemBwdTestFloat : GetitemBwdTest<float>
 {
 };
 
-} // namespace sum
-using namespace sum;
-
-TEST_P(SumTestFloat, SumTestFw)
+struct GetitemBwdTestHalf : GetitemBwdTest<half_float::half>
 {
-    if(env::enabled(MIOPEN_TEST_ALL) && (GetFloatArg() == "--float"))
+};
+
+struct GetitemBwdTestBFloat16 : GetitemBwdTest<bfloat16>
+{
+};
+
+} // namespace getitem
+using namespace getitem;
+
+TEST_P(GetitemBwdTestFloat, GetitemBwdTest)
+{
+    if(!MIOPEN_TEST_ALL ||
+       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--float"))
     {
         RunTest();
         Verify();
@@ -64,4 +71,40 @@ TEST_P(SumTestFloat, SumTestFw)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(SumTestSet, SumTestFloat, testing::ValuesIn(SumTestConfigs()));
+TEST_P(GetitemBwdTestHalf, GetitemBwdTest)
+{
+    if(!MIOPEN_TEST_ALL ||
+       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--half"))
+    {
+        RunTest();
+        Verify();
+    }
+    else
+    {
+        GTEST_SKIP();
+    }
+};
+
+TEST_P(GetitemBwdTestBFloat16, GetitemBwdTest)
+{
+    if(!MIOPEN_TEST_ALL ||
+       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--bfloat16"))
+    {
+        RunTest();
+        Verify();
+    }
+    else
+    {
+        GTEST_SKIP();
+    }
+};
+
+INSTANTIATE_TEST_SUITE_P(GetitemTestSet,
+                         GetitemBwdTestFloat,
+                         testing::ValuesIn(GetitemTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(GetitemTestSet,
+                         GetitemBwdTestHalf,
+                         testing::ValuesIn(GetitemTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(GetitemTestSet,
+                         GetitemBwdTestBFloat16,
+                         testing::ValuesIn(GetitemTestConfigs()));

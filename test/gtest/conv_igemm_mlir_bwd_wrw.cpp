@@ -85,18 +85,18 @@ bool IsTestSupportedForDevice()
 
 } // namespace
 
-class Conv2dDefaultFloat : public FloatTestCase<std::vector<TestCase>>
+class GPU_Conv2dDefault_FP32 : public FloatTestCase<std::vector<TestCase>>
 {
 };
-class Conv2dDefaultHalf : public HalfTestCase<std::vector<TestCase>>
+class GPU_Conv2dDefault_FP16 : public HalfTestCase<std::vector<TestCase>>
 {
 };
 
-TEST_P(Conv2dDefaultFloat, FloatTest_conv_igemm_mlir_bwd_wrw)
+TEST_P(GPU_Conv2dDefault_FP32, FloatTest_conv_igemm_mlir_bwd_wrw)
 {
     if(IsTestSupportedForDevice() && !SkipTest())
     {
-        invoke_with_params<conv2d_driver, Conv2dDefaultFloat>(db_check);
+        invoke_with_params<conv2d_driver, GPU_Conv2dDefault_FP32>(db_check);
     }
     else
     {
@@ -104,11 +104,11 @@ TEST_P(Conv2dDefaultFloat, FloatTest_conv_igemm_mlir_bwd_wrw)
     }
 };
 
-TEST_P(Conv2dDefaultHalf, HalfTest_conv_igemm_mlir_bwd_wrw)
+TEST_P(GPU_Conv2dDefault_FP16, HalfTest_conv_igemm_mlir_bwd_wrw)
 {
     if(IsTestSupportedForDevice() && !SkipTest())
     {
-        invoke_with_params<conv2d_driver, Conv2dDefaultHalf>(db_check);
+        invoke_with_params<conv2d_driver, GPU_Conv2dDefault_FP16>(db_check);
     }
     else
     {
@@ -117,6 +117,6 @@ TEST_P(Conv2dDefaultHalf, HalfTest_conv_igemm_mlir_bwd_wrw)
 };
 
 // Float for FWD, BWD, WRW
-INSTANTIATE_TEST_SUITE_P(ConvIgemmMlir, Conv2dDefaultFloat, testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_Conv2dDefault_FP32, testing::Values(GetTestCases()));
 // Half for FWD, BWD, WRW
-INSTANTIATE_TEST_SUITE_P(ConvIgemmMlir, Conv2dDefaultHalf, testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_Conv2dDefault_FP16, testing::Values(GetTestCases()));
