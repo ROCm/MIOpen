@@ -55,14 +55,17 @@ inline void db_check(const std::string& err)
 
 enum class Gpu : int
 {
-    Default = 0,
+    Default = 0, // \todo remove
+    None    = 0,
     gfx900  = 1 << 0,
     gfx906  = 1 << 1,
     gfx908  = 1 << 2,
     gfx90A  = 1 << 3,
     gfx94X  = 1 << 4,
     gfx103X = 1 << 5,
-    gfx110X = 1 << 6
+    gfx110X = 1 << 6,
+    gfx115X = 1 << 7,
+    All     = -1
 };
 
 inline Gpu operator|(Gpu lhs, Gpu rhs)
@@ -80,14 +83,16 @@ inline Gpu operator&(Gpu lhs, Gpu rhs)
 template <Gpu... bits>
 struct enabled
 {
-    static constexpr int val       = (static_cast<int>(bits) | ...);
+    using T                        = std::underlying_type_t<Gpu>;
+    static constexpr T val         = (static_cast<T>(bits) | ...);
     static constexpr bool enabling = true;
 };
 
 template <Gpu... bits>
 struct disabled
 {
-    static constexpr int val       = ~((static_cast<int>(bits) | ...));
+    using T                        = std::underlying_type_t<Gpu>;
+    static constexpr T val         = ~((static_cast<T>(bits) | ...));
     static constexpr bool enabling = false;
 };
 

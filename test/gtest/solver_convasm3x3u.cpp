@@ -23,6 +23,8 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+
+#include "gtest_common.hpp"
 #include "solver_fwd.hpp"
 
 struct ConvFwdSolverTestFloat : ConvFwdSolverTest<float>
@@ -37,5 +39,6 @@ TEST_P(ConvFwdSolverTestFloat, ConvASM3x3UFwd)
 
 INSTANTIATE_TEST_SUITE_P(ConvFwdTest,
                          ConvFwdSolverTestFloat,
-                         testing::Combine(testing::Values(miopenConvolutionAlgoDirect),
+                         testing::Combine(testing::Values(Gpu::All),
+                                          testing::Values(miopenConvolutionAlgoDirect),
                                           testing::ValuesIn(ConvTestConfigs<ConvTestCaseBase>())));

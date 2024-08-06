@@ -25,7 +25,7 @@
  *******************************************************************************/
 #pragma once
 
-#include <gtest/gtest.h>
+#include "gtest_common.hpp"
 #include "conv_common.hpp"
 #include "get_handle.hpp"
 #include <miopen/conv/data_invoke_params.hpp>
@@ -38,30 +38,9 @@
 
 template <typename T = float, typename Tref = float, bool use_cpu_ref = false>
 struct ConvBwdSolverTest
-    : public ::testing::TestWithParam<std::tuple<miopenConvAlgorithm_t, ConvTestCaseBase>>
+    : public ::testing::TestWithParam<std::tuple<Gpu, miopenConvAlgorithm_t, ConvTestCaseBase>>
 {
     void SolverBwd(const miopen::solver::conv::ConvSolverBase& solv)
-    {
-        // SetUpTest() and TearDownTest() are moved here so that if a test is skipped, time is not
-        // wasted.
-        this->SetUpTest();
-        this->RunSolver(solv);
-        this->TearDownTest();
-    }
-
-protected:
-    void SetUp() override
-    {
-        // this->SetUpTest();
-    }
-
-    void TearDown() override
-    {
-        // this->TearDownTest();
-    }
-
-private:
-    void RunSolver(const miopen::solver::conv::ConvSolverBase& solv)
     {
         auto&& handle = get_handle();
 
@@ -103,17 +82,23 @@ private:
         (invoker)(handle, invoke_params);
         handle.Finish();
 
-        test_skipped = false;
+        this->Verify();
     }
 
-    void SetUpTest()
+protected:
+    void SetUp() override
     {
-        test_skipped = true;
-
+        Gpu supported_gpus;
         ConvTestCaseBase conv_config;
-        std::tie(algo, conv_config) = GetParam();
-        input                       = tensor<T>{conv_config.GetInput()};
-        weights                     = tensor<T>{conv_config.GetWeights()};
+        std::tie(supported_gpus, algo, conv_config) = GetParam();
+
+        if(!IsTestSupportedByDevice(supported_gpus))
+        {
+            GTEST_SKIP();
+        }
+
+        input   = tensor<T>{conv_config.GetInput()};
+        weights = tensor<T>{conv_config.GetWeights()};
         weights.generate(GenWeights<T>{});
 
         conv_desc = conv_config.GetConv();
@@ -132,11 +117,9 @@ private:
         out_dev       = handle.Write(output.data);
     }
 
-    void TearDownTest()
+private:
+    void Verify()
     {
-        if(test_skipped)
-            return;
-
         ref_in = tensor<Tref>{input.desc.GetLengths()};
         if(use_cpu_ref)
         {
@@ -182,5 +165,4 @@ private:
     miopen::Allocator::ManageDataPtr out_dev;
     Workspace wspace{};
     miopenConvAlgorithm_t algo = miopenConvolutionAlgoDirect;
-    bool test_skipped          = false;
 };

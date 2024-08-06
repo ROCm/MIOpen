@@ -23,6 +23,8 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+
+#include "gtest_common.hpp"
 #include "solver_wrw.hpp"
 
 struct ConvWrwFp8Naive : ConvWrwSolverTest<float8, float, true>
@@ -39,5 +41,6 @@ TEST_P(ConvWrwFp8Naive, DISABLED_Wrw)
 // of test cases we instantiate
 INSTANTIATE_TEST_SUITE_P(ConvWrwTest,
                          ConvWrwFp8Naive,
-                         testing::Combine(testing::Values(miopenConvolutionAlgoGEMM),
+                         testing::Combine(testing::Values(Gpu::All),
+                                          testing::Values(miopenConvolutionAlgoGEMM),
                                           testing::ValuesIn(ConvTestConfigs<ConvTestCaseBase>())));

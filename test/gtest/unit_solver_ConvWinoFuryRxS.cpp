@@ -52,39 +52,39 @@ auto GetConvTestCasesWrw()
     };
 }
 
-Gpu GetSupportedDevices() { return Gpu::gfx110X; }
+Gpu GetSupportedDevices() { return Gpu::gfx110X | Gpu::gfx115X; }
 
 } // namespace
 
 TEST_P(GPU_UnitTestConvSolver_fwd_fp16, ConvWinoFuryRxSf2x3)
 {
-    auto solver = miopen::solver::conv::ConvWinoFuryRxS<2, 3>{};
-    this->RunTest(solver, GetSupportedDevices());
+    this->RunTest(miopen::solver::conv::ConvWinoFuryRxS<2, 3>{});
 };
 
 TEST_P(GPU_UnitTestConvSolver_bwd_fp16, ConvWinoFuryRxSf2x3)
 {
-    auto solver = miopen::solver::conv::ConvWinoFuryRxS<2, 3>{};
-    this->RunTest(solver, GetSupportedDevices());
+    this->RunTest(miopen::solver::conv::ConvWinoFuryRxS<2, 3>{});
 };
 
 TEST_P(GPU_UnitTestConvSolver_wrw_fp16, ConvWinoFuryRxSf2x3)
 {
-    auto solver = miopen::solver::conv::ConvWinoFuryRxS<2, 3>{};
-    this->RunTest(solver, GetSupportedDevices());
+    this->RunTest(miopen::solver::conv::ConvWinoFuryRxS<2, 3>{});
 };
 
 INSTANTIATE_TEST_SUITE_P(Unit,
                          GPU_UnitTestConvSolver_fwd_fp16,
-                         testing::Combine(testing::Values(miopenConvolutionAlgoWinograd),
+                         testing::Combine(testing::Values(GetSupportedDevices()),
+                                          testing::Values(miopenConvolutionAlgoWinograd),
                                           testing::ValuesIn(GetConvTestCases())));
 
 INSTANTIATE_TEST_SUITE_P(Unit,
                          GPU_UnitTestConvSolver_bwd_fp16,
-                         testing::Combine(testing::Values(miopenConvolutionAlgoWinograd),
+                         testing::Combine(testing::Values(GetSupportedDevices()),
+                                          testing::Values(miopenConvolutionAlgoWinograd),
                                           testing::ValuesIn(GetConvTestCases())));
 
 INSTANTIATE_TEST_SUITE_P(Unit,
                          GPU_UnitTestConvSolver_wrw_fp16,
-                         testing::Combine(testing::Values(miopenConvolutionAlgoWinograd),
+                         testing::Combine(testing::Values(GetSupportedDevices()),
+                                          testing::Values(miopenConvolutionAlgoWinograd),
                                           testing::ValuesIn(GetConvTestCasesWrw())));
