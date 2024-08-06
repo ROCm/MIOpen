@@ -42,34 +42,34 @@ std::string GetFloatArg()
     return tmp;
 }
 
-struct FoldForwardTestFloat32 : FoldFwdTest<float>
+struct GPU_Fold_fwd_FP32 : FoldFwdTest<float>
 {
 };
 
-struct FoldForwardTestFloat16 : FoldFwdTest<half>
+struct GPU_Fold_fwd_FP16 : FoldFwdTest<half>
 {
 };
 
-struct FoldForwardTestBFloat16 : FoldFwdTest<bfloat16>
+struct GPU_Fold_fwd_BFP16 : FoldFwdTest<bfloat16>
 {
 };
 
-struct FoldBackwardTestFloat32 : FoldBwdTest<float>
+struct GPU_Fold_bwd_FP32 : FoldBwdTest<float>
 {
 };
 
-struct FoldBackwardTestFloat16 : FoldBwdTest<half>
+struct GPU_Fold_bwd_FP16 : FoldBwdTest<half>
 {
 };
 
-struct FoldBackwardTestBFloat16 : FoldBwdTest<bfloat16>
+struct GPU_Fold_bwd_BFP16 : FoldBwdTest<bfloat16>
 {
 };
 }; // namespace fold
 
 using namespace fold;
 
-TEST_P(FoldForwardTestFloat32, FoldForwardTest)
+TEST_P(GPU_Fold_fwd_FP32, Test)
 {
     if(!MIOPEN_TEST_ALL ||
        (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--float"))
@@ -83,11 +83,11 @@ TEST_P(FoldForwardTestFloat32, FoldForwardTest)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(FoldForwardTestSet,
-                         FoldForwardTestFloat32,
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_Fold_fwd_FP32,
                          testing::ValuesIn(FoldTestConfigs()));
 
-TEST_P(FoldForwardTestFloat16, FoldForwardTest)
+TEST_P(GPU_Fold_fwd_FP16, Test)
 {
     if(!MIOPEN_TEST_ALL ||
        (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--half"))
@@ -101,11 +101,11 @@ TEST_P(FoldForwardTestFloat16, FoldForwardTest)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(FoldForwardTestSet,
-                         FoldForwardTestFloat16,
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_Fold_fwd_FP16,
                          testing::ValuesIn(FoldTestConfigs()));
 
-TEST_P(FoldForwardTestBFloat16, FoldForwardTest)
+TEST_P(GPU_Fold_fwd_BFP16, Test)
 {
     if(!MIOPEN_TEST_ALL ||
        (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--bfloat16"))
@@ -119,11 +119,11 @@ TEST_P(FoldForwardTestBFloat16, FoldForwardTest)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(FoldForwardTestSet,
-                         FoldForwardTestBFloat16,
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_Fold_fwd_BFP16,
                          testing::ValuesIn(FoldTestConfigs()));
 
-TEST_P(FoldBackwardTestFloat32, FoldBackwardTest)
+TEST_P(GPU_Fold_bwd_FP32, Test)
 {
     if(!MIOPEN_TEST_ALL ||
        (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--float"))
@@ -137,11 +137,11 @@ TEST_P(FoldBackwardTestFloat32, FoldBackwardTest)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(FoldBackwardTestSet,
-                         FoldBackwardTestFloat32,
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_Fold_bwd_FP32,
                          testing::ValuesIn(FoldTestConfigs()));
 
-TEST_P(FoldBackwardTestFloat16, FoldBackwardTest)
+TEST_P(GPU_Fold_bwd_FP16, Test)
 {
     if(!MIOPEN_TEST_ALL ||
        (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--half"))
@@ -155,11 +155,11 @@ TEST_P(FoldBackwardTestFloat16, FoldBackwardTest)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(FoldBackwardTestSet,
-                         FoldBackwardTestFloat16,
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_Fold_bwd_FP16,
                          testing::ValuesIn(FoldTestConfigs()));
 
-TEST_P(FoldBackwardTestBFloat16, FoldBackwardTest)
+TEST_P(GPU_Fold_bwd_BFP16, Test)
 {
     if(!MIOPEN_TEST_ALL ||
        (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--bfloat16"))
@@ -173,6 +173,6 @@ TEST_P(FoldBackwardTestBFloat16, FoldBackwardTest)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(FoldBackwardTestSet,
-                         FoldBackwardTestBFloat16,
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_Fold_bwd_BFP16,
                          testing::ValuesIn(FoldTestConfigs()));

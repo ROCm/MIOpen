@@ -42,32 +42,34 @@ std::string GetFloatArg()
     return tmp;
 }
 
-struct UnfoldForwardTestFloat32 : UnfoldFwdTest<float>
+struct GPU_Unfold_fwd_FP32 : UnfoldFwdTest<float>
 {
 };
 
-struct UnfoldForwardTestFloat16 : UnfoldFwdTest<half>
+struct GPU_Unfold_fwd_FP16 : UnfoldFwdTest<half>
 {
 };
 
-struct UnfoldForwardTestBFloat16 : UnfoldFwdTest<bfloat16>
+struct GPU_Unfold_fwd_BFP16 : UnfoldFwdTest<bfloat16>
 {
 };
 
-struct UnfoldBackwardTestFloat32 : UnfoldBwdTest<float>
+struct GPU_Unfold_bwd_FP32 : UnfoldBwdTest<float>
 {
 };
 
-struct UnfoldBackwardTestFloat16 : UnfoldBwdTest<half>
+struct GPU_Unfold_bwd_FP16 : UnfoldBwdTest<half>
 {
 };
 
-struct UnfoldBackwardTestBFloat16 : UnfoldBwdTest<bfloat16>
+struct GPU_Unfold_bwd_BFP16 : UnfoldBwdTest<bfloat16>
 {
 };
 }; // namespace unfold
+
 using namespace unfold;
-TEST_P(UnfoldForwardTestFloat32, UnfoldForwardTest)
+
+TEST_P(GPU_Unfold_fwd_FP32, Test)
 {
     if(!MIOPEN_TEST_ALL ||
        (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--float"))
@@ -81,11 +83,11 @@ TEST_P(UnfoldForwardTestFloat32, UnfoldForwardTest)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(UnfoldForwardTestSet,
-                         UnfoldForwardTestFloat32,
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_Unfold_fwd_FP32,
                          testing::ValuesIn(UnfoldTestConfigs()));
 
-TEST_P(UnfoldForwardTestFloat16, UnfoldForwardTest)
+TEST_P(GPU_Unfold_fwd_FP16, Test)
 {
     if(!MIOPEN_TEST_ALL ||
        (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--half"))
@@ -99,11 +101,11 @@ TEST_P(UnfoldForwardTestFloat16, UnfoldForwardTest)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(UnfoldForwardTestSet,
-                         UnfoldForwardTestFloat16,
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_Unfold_fwd_FP16,
                          testing::ValuesIn(UnfoldTestConfigs()));
 
-TEST_P(UnfoldForwardTestBFloat16, UnfoldForwardTest)
+TEST_P(GPU_Unfold_fwd_BFP16, Test)
 {
     if(!MIOPEN_TEST_ALL ||
        (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--bfloat16"))
@@ -117,11 +119,11 @@ TEST_P(UnfoldForwardTestBFloat16, UnfoldForwardTest)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(UnfoldForwardTestSet,
-                         UnfoldForwardTestBFloat16,
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_Unfold_fwd_BFP16,
                          testing::ValuesIn(UnfoldTestConfigs()));
 
-TEST_P(UnfoldBackwardTestFloat32, UnfoldBackwardTest)
+TEST_P(GPU_Unfold_bwd_FP32, Test)
 {
     if(!MIOPEN_TEST_ALL ||
        (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--float"))
@@ -135,11 +137,11 @@ TEST_P(UnfoldBackwardTestFloat32, UnfoldBackwardTest)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(UnfoldBackwardTestSet,
-                         UnfoldBackwardTestFloat32,
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_Unfold_bwd_FP32,
                          testing::ValuesIn(UnfoldTestConfigs()));
 
-TEST_P(UnfoldBackwardTestFloat16, UnfoldBackwardTest)
+TEST_P(GPU_Unfold_bwd_FP16, Test)
 {
     if(!MIOPEN_TEST_ALL ||
        (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--half"))
@@ -153,11 +155,11 @@ TEST_P(UnfoldBackwardTestFloat16, UnfoldBackwardTest)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(UnfoldBackwardTestSet,
-                         UnfoldBackwardTestFloat16,
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_Unfold_bwd_FP16,
                          testing::ValuesIn(UnfoldTestConfigs()));
 
-TEST_P(UnfoldBackwardTestBFloat16, UnfoldBackwardTest)
+TEST_P(GPU_Unfold_bwd_BFP16, Test)
 {
     if(!MIOPEN_TEST_ALL ||
        (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--bfloat16"))
@@ -171,6 +173,6 @@ TEST_P(UnfoldBackwardTestBFloat16, UnfoldBackwardTest)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(UnfoldBackwardTestSet,
-                         UnfoldBackwardTestBFloat16,
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_Unfold_bwd_BFP16,
                          testing::ValuesIn(UnfoldTestConfigs()));
