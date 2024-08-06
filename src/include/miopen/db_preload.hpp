@@ -30,7 +30,6 @@
 #include <miopen/ramdb.hpp>
 #include <miopen/readonlyramdb.hpp>
 
-#include <chrono>
 #include <future>
 #include <memory>
 #include <mutex>
