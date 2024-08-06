@@ -30,9 +30,13 @@
 
 namespace miopen {
 
+namespace {
 // static variable inside of a function is not thread-safe
-static DbPreloadStates states; // NOLINT
-auto GetDbPreloadStates() -> DbPreloadStates& { return states; }
+// NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
+DbPreloadStates db_preload_states;
+} // namespace
+
+auto GetDbPreloadStates() -> DbPreloadStates& { return db_preload_states; }
 
 template <class Db>
 auto GetPreloadedDb(const fs::path& path) -> std::unique_ptr<Db>
