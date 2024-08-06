@@ -32,32 +32,41 @@ MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 
 namespace cumulative_reduction {
 
+std::string GetFloatArg()
+{
+    const auto& tmp = env::value(MIOPEN_TEST_FLOAT_ARG);
+    if(tmp.empty())
+    {
+        return "";
+    }
+    return tmp;
+}
+
 bool CheckFloatArg(std::string arg)
 {
-    if(!MIOPEN_TEST_ALL ||
-       (env::enabled(MIOPEN_TEST_ALL) && (env::value(MIOPEN_TEST_FLOAT_ARG) == arg)))
+    if(!MIOPEN_TEST_ALL || (env::enabled(MIOPEN_TEST_ALL) && GetFloatArg() == arg))
     {
         return true;
     }
     return false;
 }
 
-struct CumulativeReductionTestFloat : CumulativeReductionTest<float>
+struct GPU_CumulativeReduction_fwd_FP32 : CumulativeReductionTest<float>
 {
 };
 
-struct CumulativeReductionTestHalf : CumulativeReductionTest<half>
+struct GPU_CumulativeReduction_fwd_FP16 : CumulativeReductionTest<half>
 {
 };
 
-struct CumulativeReductionTestBfloat16 : CumulativeReductionTest<bfloat16>
+struct GPU_CumulativeReduction_fwd_BPF16 : CumulativeReductionTest<bfloat16>
 {
 };
 
 } // namespace cumulative_reduction
 using namespace cumulative_reduction;
 
-TEST_P(CumulativeReductionTestFloat, CumulativeReductionTest)
+TEST_P(GPU_CumulativeReduction_fwd_FP32, Test)
 {
     if(CheckFloatArg("--float"))
     {
@@ -70,7 +79,7 @@ TEST_P(CumulativeReductionTestFloat, CumulativeReductionTest)
     }
 };
 
-TEST_P(CumulativeReductionTestHalf, CumulativeReductionTest)
+TEST_P(GPU_CumulativeReduction_fwd_FP16, Test)
 {
     if(CheckFloatArg("--half"))
     {
@@ -83,7 +92,7 @@ TEST_P(CumulativeReductionTestHalf, CumulativeReductionTest)
     }
 };
 
-TEST_P(CumulativeReductionTestBfloat16, CumulativeReductionTest)
+TEST_P(GPU_CumulativeReduction_fwd_BPF16, Test)
 {
     if(CheckFloatArg("--bfloat16"))
     {
@@ -96,12 +105,32 @@ TEST_P(CumulativeReductionTestBfloat16, CumulativeReductionTest)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(CumulativeReductionTestSet,
-                         CumulativeReductionTestFloat,
-                         testing::ValuesIn(CumulativeReductionTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(CumulativeReductionTestSet,
-                         CumulativeReductionTestHalf,
-                         testing::ValuesIn(CumulativeReductionTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(CumulativeReductionTestSet,
-                         CumulativeReductionTestBfloat16,
-                         testing::ValuesIn(CumulativeReductionTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_CumulativeReduction_fwd_FP32,
+                         testing::ValuesIn(CumulativeReductionSmokeTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_CumulativeReduction_fwd_FP16,
+                         testing::ValuesIn(CumulativeReductionSmokeTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_CumulativeReduction_fwd_BPF16,
+                         testing::ValuesIn(CumulativeReductionSmokeTestConfigs()));
+
+INSTANTIATE_TEST_SUITE_P(Perf,
+                         GPU_CumulativeReduction_fwd_FP32,
+                         testing::ValuesIn(CumulativeReductionPerfTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Perf,
+                         GPU_CumulativeReduction_fwd_FP16,
+                         testing::ValuesIn(CumulativeReductionPerfTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Perf,
+                         GPU_CumulativeReduction_fwd_BPF16,
+                         testing::ValuesIn(CumulativeReductionPerfTestConfigs()));
+
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_CumulativeReduction_fwd_FP32,
+                         testing::ValuesIn(CumulativeReductionFullTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_CumulativeReduction_fwd_FP16,
+                         testing::ValuesIn(CumulativeReductionFullTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_CumulativeReduction_fwd_BPF16,
+                         testing::ValuesIn(CumulativeReductionFullTestConfigs()));

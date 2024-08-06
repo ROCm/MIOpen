@@ -68,41 +68,6 @@ struct CumulativeReductionTestCase
     }
 };
 
-inline std::vector<CumulativeReductionTestCase> CumulativeReductionTestConfigs()
-{
-    std::vector<CumulativeReductionTestCase> tcs;
-
-    std::vector<miopenCumOp_t> ops = {
-        MIOPEN_CUM_MAX, MIOPEN_CUM_MIN, MIOPEN_CUM_SUM, MIOPEN_CUM_PROD};
-    std::vector<size_t> dims      = {-1, 0};
-    std::vector<bool> exclusives  = {false, true};
-    std::vector<bool> reverses    = {false, true};
-    std::vector<bool> contiguouss = {true, false};
-
-    for(auto op : ops)
-    {
-        for(auto dim : dims)
-        {
-            for(auto exclusive : exclusives)
-            {
-                if(exclusive && (op == MIOPEN_CUM_MAX || op == MIOPEN_CUM_MIN))
-                    continue;
-                for(auto reverse : reverses)
-                {
-                    for(auto contiguous : contiguouss)
-                    {
-                        tcs.push_back({{65, 100}, op, dim, exclusive, reverse, contiguous});
-                        tcs.push_back({{70, 10}, op, dim, exclusive, reverse, contiguous});
-                        tcs.push_back({{512, 64, 112}, op, dim, exclusive, reverse, contiguous});
-                    }
-                }
-            }
-        }
-    }
-
-    return tcs;
-}
-
 inline std::vector<size_t> GetStrides(std::vector<size_t> lengths, bool contiguous)
 {
     if(!contiguous)
@@ -114,6 +79,101 @@ inline std::vector<size_t> GetStrides(std::vector<size_t> lengths, bool contiguo
     if(!contiguous)
         std::swap(strides.front(), strides.back());
     return strides;
+}
+
+inline std::vector<CumulativeReductionTestCase>
+CumulativeReductionTestConfigs(const std::vector<std::vector<size_t>>& SizeList)
+{
+    std::vector<CumulativeReductionTestCase> tcs;
+
+    std::vector<miopenCumOp_t> ops = {
+        MIOPEN_CUM_MAX, MIOPEN_CUM_MIN, MIOPEN_CUM_SUM, MIOPEN_CUM_PROD};
+    std::vector<size_t> dims      = {-1, 0};
+    std::vector<bool> exclusives  = {false, true};
+    std::vector<bool> reverses    = {false, true};
+    std::vector<bool> contiguouss = {true, false};
+
+    auto&& handle = get_handle();
+    for(const auto& lengths : SizeList)
+    {
+        auto out_strides     = GetStrides(lengths, true);
+        auto indices_strides = GetStrides(lengths, true);
+        for(auto contiguous : contiguouss)
+        {
+            auto input_strides = GetStrides(lengths, contiguous);
+            for(auto op : ops)
+            {
+                for(auto dim : dims)
+                {
+                    for(auto exclusive : exclusives)
+                    {
+                        if(exclusive && (op == MIOPEN_CUM_MAX || op == MIOPEN_CUM_MIN))
+                            continue;
+                        for(auto reverse : reverses)
+                        {
+                            if(miopen::solver::cumulative_reduction::ForwardContiguousLastDim()
+                                   .IsApplicable(
+                                       miopen::ExecutionContext(&handle),
+                                       miopen::cumulative_reduction::ForwardProblemDescription(
+                                           miopen::TensorDescriptor(
+                                               miopen_type<float>{}, lengths, input_strides),
+                                           miopen::TensorDescriptor(
+                                               miopen_type<float>{}, lengths, out_strides),
+                                           miopen::TensorDescriptor(
+                                               miopen_type<int>{}, lengths, indices_strides),
+                                           dim,
+                                           op)))
+                                tcs.push_back({lengths, op, dim, exclusive, reverse, contiguous});
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    return tcs;
+}
+
+inline std::vector<std::vector<size_t>> GetSmokeTestSize()
+{
+    return {
+        {65, 100},
+        {65},
+        {70, 10},
+    };
+}
+
+inline std::vector<std::vector<size_t>> GetSmokePerfSize()
+{
+    return {
+        {512, 64, 112},
+    };
+}
+
+inline std::vector<CumulativeReductionTestCase> CumulativeReductionSmokeTestConfigs()
+{
+    return CumulativeReductionTestConfigs(GetSmokeTestSize());
+}
+
+inline std::vector<CumulativeReductionTestCase> CumulativeReductionPerfTestConfigs()
+{
+    return CumulativeReductionTestConfigs(GetSmokePerfSize());
+}
+
+inline std::vector<CumulativeReductionTestCase> CumulativeReductionFullTestConfigs()
+{
+    std::vector<CumulativeReductionTestCase> tcs;
+
+    auto smoke_test = CumulativeReductionSmokeTestConfigs();
+    auto perf_test  = CumulativeReductionPerfTestConfigs();
+
+    tcs.reserve(smoke_test.size() + perf_test.size());
+    for(const auto& test : smoke_test)
+        tcs.push_back(test);
+    for(const auto& test : perf_test)
+        tcs.push_back(test);
+
+    return tcs;
 }
 
 template <typename T>
@@ -128,7 +188,7 @@ protected:
 
         auto lengths = cumulative_reduction_config.lengths;
 
-        auto input_strides = GetStrides(lengths, true);
+        auto input_strides = GetStrides(lengths, cumulative_reduction_config.contiguous);
         input              = tensor<T>{lengths, input_strides}.generate(gen_value);
 
         auto out_strides = GetStrides(lengths, true);
@@ -136,16 +196,6 @@ protected:
 
         auto indices_strides = GetStrides(lengths, true);
         indices              = tensor<int>{lengths, indices_strides};
-
-        if(!miopen::solver::cumulative_reduction::ForwardContiguousLastDim().IsApplicable(
-               miopen::ExecutionContext(&handle),
-               miopen::cumulative_reduction::ForwardProblemDescription(
-                   input.desc,
-                   output.desc,
-                   indices.desc,
-                   cumulative_reduction_config.dim,
-                   cumulative_reduction_config.op)))
-            GTEST_SKIP();
 
         ref_output  = tensor<T>{lengths, out_strides};
         ref_indices = tensor<int>{lengths, indices_strides};
@@ -228,11 +278,14 @@ protected:
 
         auto error_output  = miopen::rms_range(ref_output, output);
         auto error_indices = miopen::rms_range(ref_indices, indices);
-        EXPECT_TRUE(miopen::range_distance(ref_output) == miopen::range_distance(output));
-        EXPECT_TRUE(miopen::range_distance(ref_indices) == miopen::range_distance(indices));
-        EXPECT_TRUE(error_output < tolerance && error_indices < tolerance)
-            << "Error backward output beyond tolerance Error: {" << error_output << ","
-            << error_indices << "},  Tolerance: " << tolerance;
+        ASSERT_EQ(miopen::range_distance(ref_output), miopen::range_distance(output));
+        ASSERT_EQ(miopen::range_distance(ref_indices), miopen::range_distance(indices));
+        EXPECT_LT(error_output, tolerance)
+            << "Error forward Output beyond tolerance Error: " << error_output
+            << " Tolerance: " << tolerance;
+        EXPECT_LT(error_indices, tolerance)
+            << "Error forward Indices beyond tolerance Error: " << error_indices
+            << " Tolerance: " << tolerance;
     }
 
     CumulativeReductionTestCase cumulative_reduction_config;
