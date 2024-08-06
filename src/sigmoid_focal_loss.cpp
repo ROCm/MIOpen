@@ -25,6 +25,7 @@
  *******************************************************************************/
 
 #include <miopen/miopen.h>
+#include <miopen/sigmoid_focal_loss.hpp>
 #include <miopen/sigmoidfocalloss/invoke_params.hpp>
 #include <miopen/sigmoidfocalloss/problem_description.hpp>
 #include <miopen/sigmoidfocalloss/solvers.hpp>

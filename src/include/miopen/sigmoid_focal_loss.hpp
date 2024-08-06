@@ -26,6 +26,7 @@
 #ifndef MIOPEN_SIGMOID_FOCAL_LOSS_HPP_
 #define MIOPEN_SIGMOID_FOCAL_LOSS_HPP_
 
+#include <miopen/miopen.h>
 #include <miopen/common.hpp>
 
 namespace miopen {
