@@ -33,28 +33,31 @@ namespace miopen {
 
 namespace graphapi {
 
-static std::vector<int> Convert(const std::vector<int64_t>& values)
+namespace
 {
-    std::vector<int> converted(values.size());
-    std::transform(values.begin(), values.end(), converted.begin(), [](int64_t value) {
-        assert(value <= std::numeric_limits<int>::max() &&
-               value >= std::numeric_limits<int>::min());
-        return static_cast<int>(value);
-    });
+    std::vector<int> Convert(const std::vector<int64_t>& values)
+    {
+        std::vector<int> converted(values.size());
+        std::transform(values.begin(), values.end(), converted.begin(), [](int64_t value) {
+            assert(value <= std::numeric_limits<int>::max() &&
+                value >= std::numeric_limits<int>::min());
+            return static_cast<int>(value);
+        });
 
-    return converted;
-}
+        return converted;
+    }
 
-static ConvolutionDescriptor Convert(const Convolution& conv, int groupCount)
-{
-    return {conv.getSpatialDims(),
-            conv.getMode(),
-            miopenPaddingMode_t::miopenPaddingDefault,
-            Convert(conv.getPrePaddings()),
-            Convert(conv.getFilterStrides()),
-            Convert(conv.getDilations()),
-            Convert(conv.getPostPaddings()),
-            groupCount};
+    ConvolutionDescriptor Convert(const Convolution& conv, int groupCount)
+    {
+        return {conv.getSpatialDims(),
+                conv.getMode(),
+                miopenPaddingMode_t::miopenPaddingDefault,
+                Convert(conv.getPrePaddings()),
+                Convert(conv.getFilterStrides()),
+                Convert(conv.getDilations()),
+                Convert(conv.getPostPaddings()),
+                groupCount};
+    }
 }
 
 void ConvBiasResAddActivForwardExecutor::execute(miopenHandle_t handle, const VariantPack& vpk)
