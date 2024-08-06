@@ -70,6 +70,7 @@
  * @defgroup SGD
  * @defgroup getitem
  * @defgroup ReduceCalculation
+ * @defgroup ReLU
  *
  */
 
