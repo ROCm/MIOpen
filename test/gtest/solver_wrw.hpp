@@ -82,8 +82,8 @@ private:
 
         if(!solv.IsApplicable(ctx, problem))
         {
-            // Do not put GTEST_SKIP here! An inappropriate config should cause the test to fail,
-            // not skip. Otherwise, such testing is pointless.
+            // Do not put GTEST_SKIP here.
+            // The usage of non-applicable config should be considered as a bug in the test.
             GTEST_FAIL();
         }
 
@@ -159,16 +159,16 @@ private:
 
         ASSERT_FALSE(miopen::range_zero(ref_weights)) << "Cpu data is all zeros";
         ASSERT_FALSE(miopen::range_zero(weights)) << "Gpu data is all zeros";
-        ASSERT_TRUE(miopen::range_distance(ref_weights) == miopen::range_distance(weights));
+        ASSERT_EQ(miopen::range_distance(ref_weights), miopen::range_distance(weights));
 
         const double tolerance = 80;
         double threshold       = std::numeric_limits<T>::epsilon() * tolerance;
         auto error             = miopen::rms_range(ref_weights, weights);
 
-        ASSERT_FALSE(miopen::find_idx(ref_weights, miopen::not_finite) >= 0)
+        ASSERT_LT(miopen::find_idx(ref_weights, miopen::not_finite), 0)
             << "Non finite number found in the CPU data";
 
-        ASSERT_TRUE(error < threshold)
+        ASSERT_LT(error, threshold)
             << "Error beyond tolerance Error:" << error << ",  Threshold: " << threshold;
     }
 

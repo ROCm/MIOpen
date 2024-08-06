@@ -175,16 +175,16 @@ protected:
 
         ASSERT_FALSE(miopen::range_zero(ref_out)) << "Cpu data is all zeros";
         ASSERT_FALSE(miopen::range_zero(output)) << "Gpu data is all zeros";
-        ASSERT_TRUE(miopen::range_distance(ref_out) == miopen::range_distance(output));
+        ASSERT_EQ(miopen::range_distance(ref_out), miopen::range_distance(output));
 
         const double tolerance = 80;
         double threshold       = std::numeric_limits<T>::epsilon() * tolerance;
         auto error             = miopen::rms_range(ref_out, output);
 
-        ASSERT_FALSE(miopen::find_idx(ref_out, miopen::not_finite) >= 0)
+        ASSERT_LT(miopen::find_idx(ref_out, miopen::not_finite), 0)
             << "Non finite number found in the CPU data";
 
-        ASSERT_TRUE(error < threshold)
+        ASSERT_LT(error, threshold)
             << "Error beyond tolerance Error:" << error << ",  Threshold: " << threshold;
     }
 

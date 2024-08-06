@@ -7,6 +7,7 @@ if(MIOPEN_USE_HIPBLASLT)
 endif()
 
 set(SOURCES
+    gtest_common.cpp
     log.cpp
     platform.cpp
     conv_common.cpp

@@ -38,9 +38,6 @@ public:
     virtual ~UnitTestConvSolver()            = default;
     virtual void RunTest(const miopen::solver::conv::ConvSolverBase& solver,
                          Gpu supported_gpus) = 0;
-
-protected:
-    static bool CheckTestSupportedForDevice(Gpu supported_gpus);
 };
 
 template <typename T>
@@ -49,7 +46,7 @@ class UnitTestConvSolverFwd : public ConvFwdSolverTest<T, T>, UnitTestConvSolver
 public:
     void RunTest(const miopen::solver::conv::ConvSolverBase& solver, Gpu supported_gpus) final
     {
-        if(!this->CheckTestSupportedForDevice(supported_gpus))
+        if(!IsTestSupportedByDevice(supported_gpus))
         {
             GTEST_SKIP();
         }
@@ -63,7 +60,7 @@ class UnitTestConvSolverBwd : public ConvBwdSolverTest<T, T>, UnitTestConvSolver
 public:
     void RunTest(const miopen::solver::conv::ConvSolverBase& solver, Gpu supported_gpus) final
     {
-        if(!this->CheckTestSupportedForDevice(supported_gpus))
+        if(!IsTestSupportedByDevice(supported_gpus))
         {
             GTEST_SKIP();
         }
@@ -77,7 +74,7 @@ class UnitTestConvSolverWrw : public ConvWrwSolverTest<T, T>, UnitTestConvSolver
 public:
     void RunTest(const miopen::solver::conv::ConvSolverBase& solver, Gpu supported_gpus) final
     {
-        if(!this->CheckTestSupportedForDevice(supported_gpus))
+        if(!IsTestSupportedByDevice(supported_gpus))
         {
             GTEST_SKIP();
         }

@@ -36,8 +36,7 @@
 
 template <typename T = float, typename Tref = float, bool use_cpu_ref = false>
 struct ConvFwdSolverTest
-    : public ::testing::TestWithParam<
-          std::tuple<miopenConvAlgorithm_t, ConvTestCaseBase, miopenTensorLayout_t>>,
+    : public ::testing::TestWithParam<std::tuple<miopenConvAlgorithm_t, ConvTestCaseBase>>,
       ConvFwdSolverTestBase<T, Tref, use_cpu_ref>
 {
     void SolverFwd(const miopen::solver::conv::ConvSolverBase& solv)
@@ -85,8 +84,8 @@ private:
 
         if(!solv.IsApplicable(ctx, problem))
         {
-            // Do not put GTEST_SKIP here! An inappropriate config should cause the test to fail,
-            // not skip. Otherwise, such testing is pointless.
+            // Do not put GTEST_SKIP here.
+            // The usage of non-applicable config should be considered as a bug in the test.
             GTEST_FAIL();
         }
 
@@ -114,8 +113,8 @@ private:
         test_skipped = true;
 
         ConvTestCaseBase conv_config;
-        std::tie(algo, conv_config, tensor_layout) = GetParam();
-        this->SetUpImpl(conv_config, tensor_layout);
+        std::tie(algo, conv_config) = GetParam();
+        this->SetUpImpl(conv_config, miopenTensorNCHW);
     }
 
     void TearDownTest()
@@ -127,7 +126,6 @@ private:
     }
 
     Workspace wspace{};
-    miopenConvAlgorithm_t algo         = miopenConvolutionAlgoDirect;
-    bool test_skipped                  = false;
-    miopenTensorLayout_t tensor_layout = miopenTensorNCHW;
+    miopenConvAlgorithm_t algo = miopenConvolutionAlgoDirect;
+    bool test_skipped          = false;
 };
