@@ -84,7 +84,7 @@ ADD dev-requirements.txt /dev-requirements.txt
 # Install dependencies
 # TODO: Add --std=c++14
 ARG GPU_ARCH=";"
-ARG PREFIX=/usr/local
+ARG PREFIX=/opt/rocm
 ARG USE_FIN="OFF"
 ARG CCACHE_SECONDARY_STORAGE=""
 ARG CCACHE_DIR="/tmp"
@@ -98,11 +98,6 @@ RUN tar zxvf /tmp/ccache.tar.gz -C /tmp/ && mkdir /tmp/ccache-${CCACHE_COMMIT}/b
     cmake -DZSTD_FROM_INTERNET=ON -DHIREDIS_FROM_INTERNET=ON .. && make -j install && rm -rf /tmp/*
 RUN ccache -s 
 
-# purge existing composable kernel installed with ROCm
-# hence cannot use autoremove since it will remove more components
-RUN apt-get update && \
-DEBIAN_FRONTEND=noninteractive apt-get purge -y --allow-unauthenticated \
-    composablekernel-dev
 ARG COMPILER_LAUNCHER=""
 # rbuild is used to trigger build of requirements.txt, dev-requirements.txt
 RUN if [ "$USE_FIN" = "ON" ]; then \
