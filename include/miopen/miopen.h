@@ -69,7 +69,7 @@
  * @defgroup cat
  * @defgroup SGD
  * @defgroup getitem
- * @defgroup ReduceCalculation
+ * @defgroup CumulativeReduction
  *
  */
 
@@ -7623,7 +7623,7 @@ MIOPEN_EXPORT miopenStatus_t miopenGetitemBackward(miopenHandle_t handle,
 
 #ifdef MIOPEN_BETA_API
 
-/** @addtogroup Cumulative Reduction
+/** @addtogroup CumulativeReduction
  *
  *  @{
  */
