@@ -34,7 +34,7 @@ namespace pad_reflection {
 
 std::string GetFloatArg()
 {
-    const auto& tmp = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
+    const auto& tmp = env::value(MIOPEN_TEST_FLOAT_ARG);
     if(tmp.empty())
     {
         return "";
@@ -46,7 +46,7 @@ struct PadReflectionTestFloat : PadReflectionTest<float>
 {
 };
 
-struct PadReflectionTestHalf : PadReflectionTest<half_float::half>
+struct PadReflectionTestHalf : PadReflectionTest<half>
 {
 };
 
@@ -55,11 +55,13 @@ struct PadReflectionTestBF16 : PadReflectionTest<bfloat16>
 };
 
 } // namespace pad_reflection
+
 using namespace pad_reflection;
 
 TEST_P(PadReflectionTestFloat, PadReflectionFw)
 {
-    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float"))
+    if(!MIOPEN_TEST_ALL ||
+       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--float"))
     {
         RunTest();
         Verify();
@@ -72,7 +74,8 @@ TEST_P(PadReflectionTestFloat, PadReflectionFw)
 
 TEST_P(PadReflectionTestHalf, PadReflectionFw)
 {
-    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--half"))
+    if(!MIOPEN_TEST_ALL ||
+       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--half"))
     {
         RunTest();
         Verify();
@@ -85,7 +88,8 @@ TEST_P(PadReflectionTestHalf, PadReflectionFw)
 
 TEST_P(PadReflectionTestBF16, PadReflectionFw)
 {
-    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--bfloat16"))
+    if(!MIOPEN_TEST_ALL ||
+       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--bfloat16"))
     {
         RunTest();
         Verify();

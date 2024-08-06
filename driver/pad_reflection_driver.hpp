@@ -31,8 +31,6 @@
 #include "tensor_driver.hpp"
 #include "timer.hpp"
 #include "random.hpp"
-#include <algorithm>
-#include <cfloat>
 #include <cstdlib>
 #include <memory>
 #include <miopen/miopen.h>
@@ -128,7 +126,6 @@ public:
     InputFlags& GetInputFlags() override { return inflags; }
 
     int GetandSetData() override;
-    std::vector<int> GetInputTensorLengthsFromCmdLine();
 
     int AllocateBuffersAndCopy() override;
 
@@ -192,7 +189,7 @@ int PadReflectionDriver<Tgpu, Tref>::GetandSetData()
         std::cerr << "Error Padding Lengths\n" << std::endl;
     }
 
-    std::vector<int> in_len = GetInputTensorLengthsFromCmdLine();
+    std::vector<int> in_len = inflags.GetValueTensor("DimLengths").lengths;
 
     SetTensorNd(inputDesc, in_len, data_type);
 
@@ -227,11 +224,8 @@ template <typename Tgpu, typename Tref>
 int PadReflectionDriver<Tgpu, Tref>::AddCmdLineArgs()
 {
     inflags.AddInputFlag("forw", 'F', "1", "Run only Forward Pad Reflection (Default=1)", "int");
-    inflags.AddInputFlag("batchsize", 'n', "256", "Mini-batch size (Default=100)", "int");
-    inflags.AddInputFlag("in_channels", 'c', "4", "Number of Input Channels (Default=3)", "int");
-    inflags.AddInputFlag("in_d", 'D', "0", "Input Depth (Default=0)", "int");
-    inflags.AddInputFlag("in_h", 'H', "32", "Input Height (Default=32)", "int");
-    inflags.AddInputFlag("in_w", 'W', "32", "Input Width (Default=32)", "int");
+    inflags.AddTensorFlag(
+        "DimLengths", 'D', "256x4x32x32", "The dimensional lengths of the input tensor");
 
     inflags.AddInputFlag("padding", 'P', "1,1,1,1", "Padding array (Default=1 or 1,1,1,1)", "str");
 
@@ -242,42 +236,6 @@ int PadReflectionDriver<Tgpu, Tref>::AddCmdLineArgs()
         "wall", 'w', "0", "Wall-clock Time Each Layer, Requires time == 1 (Default=0)", "int");
 
     return miopenStatusSuccess;
-}
-
-template <typename Tgpu, typename Tref>
-std::vector<int> PadReflectionDriver<Tgpu, Tref>::GetInputTensorLengthsFromCmdLine()
-{
-    int in_n = inflags.GetValueInt("batchsize");
-    int in_c = inflags.GetValueInt("in_channels");
-    int in_w = inflags.GetValueInt("in_w");
-    int in_h = inflags.GetValueInt("in_h");
-    int in_d = inflags.GetValueInt("in_d");
-
-    if((in_n != 0) && (in_c != 0) && (in_d != 0) && (in_h != 0) && (in_w != 0))
-    {
-        return std::vector<int>({in_n, in_c, in_d, in_h, in_w});
-    }
-    else if((in_n != 0) && (in_c != 0) && (in_h != 0) && (in_w != 0))
-    {
-        return std::vector<int>({in_n, in_c, in_h, in_w});
-    }
-    else if((in_n != 0) && (in_c != 0) && (in_w != 0))
-    {
-        return std::vector<int>({in_n, in_c, in_w});
-    }
-    else if((in_n != 0) && (in_w != 0))
-    {
-        return std::vector<int>({in_n, in_w});
-    }
-    else if(in_n != 0)
-    {
-        return std::vector<int>({in_n});
-    }
-    else
-    {
-        std::cerr << "Error Input Tensor Lengths\n" << std::endl;
-        return std::vector<int>({0});
-    }
 }
 
 template <typename Tgpu, typename Tref>
