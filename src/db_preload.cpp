@@ -26,28 +26,39 @@
 
 #include <miopen/db_preload.hpp>
 
+#include <chrono>
+
 namespace miopen {
 
-auto GetDbPreloadStates() -> DbPreloadStates&
-{
-    static DbPreloadStates states;
-    return states;
-}
+// static variable inside of a function is not thread-safe
+static DbPreloadStates states; // NOLINT
+auto GetDbPreloadStates() -> DbPreloadStates& { return states; }
 
 template <class Db>
 auto GetPreloadedDb(const fs::path& path) -> std::unique_ptr<Db>
 {
     auto& states = GetDbPreloadStates();
 
-    std::unique_lock<std::mutex> lock{states.mutex};
+    std::unique_lock<std::mutex> lock{states.mutex, std::defer_lock};
 
-    if(!states.started_loading)
+    // Mutex is need to ensure states.futures is not updated while we work
+    // so we skip locking if it no more writes can happen
+    if(!states.finished_loading.load(std::memory_order_acquire))
+        lock.lock();
+
+    // If we somehow skipped preload entirely we should just return nullptr
+    if(!states.started_loading.load(std::memory_order_relaxed))
         return nullptr;
 
     auto it = states.futures.find(path);
 
     if(it == states.futures.end())
         return nullptr;
+
+    const auto loaded = 1 + states.dbs_loaded.fetch_add(1, std::memory_order_relaxed);
+
+    if(loaded == DbPreloadStates::GetNumberOfDbsToLoad())
+        states.finished_loading.store(true, std::memory_order_release);
 
     auto future = std::move(it->second);
     lock.unlock();
