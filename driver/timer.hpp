@@ -164,8 +164,15 @@ public:
         if(clockMode == ClockMode::Disabled)
             return;
 
-        auto launchCont = hostTimePerLaunch.size();
-        hipEventRecord(startEvent[launchCont].get(), stream);
+        auto launchCount = hostTimePerLaunch.size();
+        
+        if (launchCount >= startEvent.size())
+        {
+            printf("Executed more iterations than planned\n");
+            return;
+        }
+        
+        hipEventRecord(startEvent[launchCount].get(), stream);
         st = std::chrono::steady_clock::now();
     }
     void StopAndPush()
@@ -173,9 +180,14 @@ public:
         if(clockMode == ClockMode::Disabled)
             return;
 
-        std::chrono::time_point<std::chrono::steady_clock> end = std::chrono::steady_clock::now();
-        auto launchCont                                        = hostTimePerLaunch.size();
+        auto end         = std::chrono::steady_clock::now();
+        auto launchCount = hostTimePerLaunch.size();
 
+        if (launchCount >= endEvent.size())
+        {
+            printf("Executed more iterations than planned\n");
+            return;
+        }
         hipEventRecord(endEvent[launchCont].get(), stream);
 
         if(clockMode == ClockMode::OldWallClock)
@@ -211,14 +223,14 @@ public:
         if(clockMode == ClockMode::Disabled || n_iter == 0)
             return;
 
-        float gpu_avg  = 0.;
-        float host_avg = 0.;
-        float gpu_time = 0;
+        float gpu_avg  = 0.0f;
+        float host_avg = 0.0f;
+        float gpu_time = 0.0f;
 
         if(clockMode == ClockMode::SeparateClocksNotSynced)
             hipEventSynchronize(endEvent[n_iter - 1].get());
 
-        for(auto i = 0ll; i < n_iter; ++i)
+        for(auto i = 0ull; i < n_iter; ++i)
         {
             hipEventElapsedTime(&gpu_time, startEvent[i].get(), endEvent[i].get());
 
