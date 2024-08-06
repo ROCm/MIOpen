@@ -83,9 +83,7 @@ TEST_P(GPU_Fold_fwd_FP32, Test)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(Full,
-                         GPU_Fold_fwd_FP32,
-                         testing::ValuesIn(FoldTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_Fold_fwd_FP32, testing::ValuesIn(FoldTestConfigs()));
 
 TEST_P(GPU_Fold_fwd_FP16, Test)
 {
@@ -101,9 +99,7 @@ TEST_P(GPU_Fold_fwd_FP16, Test)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(Full,
-                         GPU_Fold_fwd_FP16,
-                         testing::ValuesIn(FoldTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_Fold_fwd_FP16, testing::ValuesIn(FoldTestConfigs()));
 
 TEST_P(GPU_Fold_fwd_BFP16, Test)
 {
@@ -119,9 +115,7 @@ TEST_P(GPU_Fold_fwd_BFP16, Test)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(Full,
-                         GPU_Fold_fwd_BFP16,
-                         testing::ValuesIn(FoldTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_Fold_fwd_BFP16, testing::ValuesIn(FoldTestConfigs()));
 
 TEST_P(GPU_Fold_bwd_FP32, Test)
 {
@@ -137,9 +131,7 @@ TEST_P(GPU_Fold_bwd_FP32, Test)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(Full,
-                         GPU_Fold_bwd_FP32,
-                         testing::ValuesIn(FoldTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_Fold_bwd_FP32, testing::ValuesIn(FoldTestConfigs()));
 
 TEST_P(GPU_Fold_bwd_FP16, Test)
 {
@@ -155,9 +147,7 @@ TEST_P(GPU_Fold_bwd_FP16, Test)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(Full,
-                         GPU_Fold_bwd_FP16,
-                         testing::ValuesIn(FoldTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_Fold_bwd_FP16, testing::ValuesIn(FoldTestConfigs()));
 
 TEST_P(GPU_Fold_bwd_BFP16, Test)
 {
@@ -173,6 +163,4 @@ TEST_P(GPU_Fold_bwd_BFP16, Test)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(Full,
-                         GPU_Fold_bwd_BFP16,
-                         testing::ValuesIn(FoldTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_Fold_bwd_BFP16, testing::ValuesIn(FoldTestConfigs()));
