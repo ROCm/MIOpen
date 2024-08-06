@@ -157,9 +157,6 @@ struct SolverMixin : SolverBase
     virtual float GetWti(const Context&, const Problem&) const { return wti_approximate_worst; };
     virtual size_t GetWorkspaceSize(const Context&, const Problem&) const { return 0; };
 
-    /// Returns "default" solution
-    virtual ConvSolution GetDefaultSolution(const Context&, const Problem&) const = 0;
-
     bool IsApplicable(const ExecutionContext& ctx, const boost::any& problem) const final
     {
         return IsApplicable(dynamic_cast<const Context&>(ctx),
@@ -185,11 +182,6 @@ struct NonTunableSolverBase : SolverMixin<Context, Problem>
     /// Takes problem config, optimization parameters and other info
     /// and computes information required to build and run the kernel(s).
     virtual ConvSolution GetSolution(const Context&, const Problem&) const = 0;
-
-    ConvSolution GetDefaultSolution(const Context& ctx, const Problem& problem) const final
-    {
-        return GetSolution(ctx, problem);
-    }
 
     virtual InvokerFactory GetInvokerFactory(const Context& ctx, const Problem& problem) const
     {
@@ -257,11 +249,6 @@ struct TunableSolverMixin : TunableSolverBase<Context, Problem>
     Search(const Context&, const Problem&, const AnyInvokeParams&) const = 0;
     virtual ConvSolution
     GetSolution(const Context&, const Problem&, const PerformanceConfig&) const = 0;
-
-    ConvSolution GetDefaultSolution(const Context& ctx, const Problem& problem) const final
-    {
-        return GetSolution(ctx, problem, GetDefaultPerformanceConfig(ctx, problem));
-    }
 
     boost::any
     GetDefaultPerformanceConfig(const Context& ctx, const Problem& problem, int) const final

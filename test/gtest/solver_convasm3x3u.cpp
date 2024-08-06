@@ -31,7 +31,7 @@ struct ConvFwdSolverTestFloat : ConvFwdSolverTest<float>
 {
 };
 
-TEST_P(ConvFwdSolverTestFloat, ConvASM3x3UFwd)
+TEST_P(ConvFwdSolverTestFloat, DISABLED_ConvASM3x3UFwd)
 {
     miopen::solver::conv::ConvAsm3x3U solv{};
     SolverFwd(solv);

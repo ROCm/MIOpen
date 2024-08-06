@@ -75,7 +75,10 @@ struct ConvWrwSolverTest
         const auto invoke_params = miopen::conv::WrWInvokeParams{
             tensors, wspace.ptr(), wspace.size(), conv_desc.attribute.gfx90aFp16alt.GetWrW()};
 
-        auto sol = solv.GetDefaultSolution(ctx, problem);
+        // \todo add path for tunable solvers
+        const auto& conv_solv = dynamic_cast<const miopen::solver::conv::ConvSolver&>(solv);
+
+        const auto sol = conv_solv.GetSolution(ctx, problem);
         ASSERT_TRUE(sol.Succeeded());
         ASSERT_TRUE(sol.invoker_factory);
         const auto invoker = handle.PrepareInvoker(*sol.invoker_factory, sol.construction_params);
