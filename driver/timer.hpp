@@ -165,13 +165,13 @@ public:
             return;
 
         auto launchCount = hostTimePerLaunch.size();
-        
-        if (launchCount >= startEvent.size())
+
+        if(launchCount >= startEvent.size())
         {
             printf("Executed more iterations than planned\n");
             return;
         }
-        
+
         hipEventRecord(startEvent[launchCount].get(), stream);
         st = std::chrono::steady_clock::now();
     }
@@ -183,19 +183,19 @@ public:
         auto end         = std::chrono::steady_clock::now();
         auto launchCount = hostTimePerLaunch.size();
 
-        if (launchCount >= endEvent.size())
+        if(launchCount >= endEvent.size())
         {
             printf("Executed more iterations than planned\n");
             return;
         }
-        hipEventRecord(endEvent[launchCont].get(), stream);
+        hipEventRecord(endEvent[launchCount].get(), stream);
 
         if(clockMode == ClockMode::OldWallClock)
         {
             std::chrono::time_point<std::chrono::steady_clock> st2 =
                 std::chrono::steady_clock::now();
 
-            hipEventSynchronize(endEvent[launchCont].get());
+            hipEventSynchronize(endEvent[launchCount].get());
 
             std::chrono::time_point<std::chrono::steady_clock> end2 =
                 std::chrono::steady_clock::now();
@@ -209,7 +209,7 @@ public:
         else
         {
             if(clockMode == ClockMode::SeparateClocksSynced)
-                hipEventSynchronize(endEvent[launchCont].get());
+                hipEventSynchronize(endEvent[launchCount].get());
 
             hostTimePerLaunch.push_back(
                 std::chrono::duration_cast<std::chrono::duration<float, std::milli>>(end - st)
@@ -236,7 +236,7 @@ public:
 
             if(clockMode != ClockMode::OldWallClock)
             {
-                printf("launch# %lld , host_time= %f , gpu_time= %f \n",
+                printf("launch#%llu, host_time= %f ms, gpu_time= %f ms\n",
                        i,
                        hostTimePerLaunch[i],
                        gpu_time);
@@ -265,6 +265,7 @@ public:
         SeparateClocksNotSynced = 3
     };
 
+private:
     std::vector<float> hostTimePerLaunch;
 
     std::vector<miopen::HipEventPtr> startEvent;
