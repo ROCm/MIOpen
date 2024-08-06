@@ -24,58 +24,68 @@
  *
  *******************************************************************************/
 
-#include <cstddef>
 #include <miopen/avgpool/problem_description.hpp>
 #include <miopen/names.hpp>
-
-#include <sstream>
 
 namespace miopen {
 
 namespace avgpool {
 
+inline std::ostream& operator<<(std::ostream& os, const std::vector<size_t>& v)
+{
+    os << '{';
+    for(int i = 0; i < v.size(); ++i)
+    {
+        if(i != 0)
+            os << ',';
+        os << v[i];
+    }
+    os << '}';
+    return os;
+}
+
 NetworkConfig FwdProblemDescription::MakeNetworkConfig() const
 {
-    size_t numel       = GetNtotal();
-    size_t num_batches = inputDesc.GetLengths()[0];
-    size_t num_classes = GetC();
-    size_t num_dims    = inputDesc.GetNumDims();
+    auto input_size    = inputDesc.GetLengths();
+    auto output_size   = outputDesc.GetLengths();
+    auto input_stride  = inputDesc.GetStrides();
+    auto output_stride = outputDesc.GetStrides();
 
     auto input_dtype = inputDesc.GetType();
 
     std::ostringstream ss;
 
-    ss << "avgpool_unreduce";
-    ss << "is_fwd" << is_fwd;
-    ss << "contiguous" << contiguous;
-    ss << "input_dtype" << input_dtype;
-    ss << "numel" << numel;
-    ss << "num_dims" << num_dims;
-    ss << "num_batches" << num_batches;
-    ss << "num_classes" << num_classes;
+    ss << "avgpool_fwd";
+    ss << "-input_dtype" << input_dtype;
+    ss << "-Is" << input_size;
+    ss << "-Os" << output_size;
+    ss << "-Si" << input_stride;
+    ss << "-So" << output_stride;
+    ss << "-Cp " << count_include_pad;
+    ss << "-Do " << divisor_override;
 
     return NetworkConfig{ss.str()};
 }
 
 NetworkConfig BwdProblemDescription::MakeNetworkConfig() const
 {
-    size_t numel       = GetNtotal();
-    size_t num_batches = inputDesc.GetLengths()[0];
-    size_t num_classes = GetC();
-    size_t num_dims    = inputDesc.GetNumDims();
+    auto input_grad_size    = inputGradDesc.GetLengths();
+    auto output_grad_size   = outputGradDesc.GetLengths();
+    auto input_grad_stride  = inputGradDesc.GetStrides();
+    auto output_grad_stride = outputGradDesc.GetStrides();
 
-    auto input_dtype = inputDesc.GetType();
+    auto input_dtype = inputGradDesc.GetType();
 
     std::ostringstream ss;
 
-    ss << "avgpool_reduce";
-    ss << "is_fwd" << is_fwd;
-    ss << "input_dtype" << input_dtype;
-    ss << "divisor" << divisor;
-    ss << "numel" << numel;
-    ss << "num_dims" << num_dims;
-    ss << "num_batches" << num_batches;
-    ss << "num_classes" << num_classes;
+    ss << "avgpool_bwd";
+    ss << "-input_dtype" << input_dtype;
+    ss << "-dIs" << input_grad_size;
+    ss << "-dOs" << output_grad_size;
+    ss << "-dSi" << input_grad_stride;
+    ss << "-dSo" << output_grad_stride;
+    ss << "-Cp " << count_include_pad;
+    ss << "-Do " << divisor_override;
 
     return NetworkConfig{ss.str()};
 }

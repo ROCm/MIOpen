@@ -33,8 +33,6 @@
 #include "miopen/kernel_build_params.hpp"
 #include "miopen/kernel_info.hpp"
 
-#include <utility>
-
 namespace miopen {
 
 namespace solver {
@@ -56,222 +54,56 @@ const auto make_hip_kernel = [](std::vector<size_t> localsize,
 
 namespace avgpool {
 
-using NLLLossUnreduce =
-    NonTunableSolverBase<ExecutionContext, miopen::avgpool::UnreduceProblemDescription>;
+using AvgPoolForward =
+    NonTunableSolverBase<ExecutionContext, miopen::avgpool::FwdProblemDescription>;
 
-using NLLLossReduce =
-    NonTunableSolverBase<ExecutionContext, miopen::avgpool::ReduceProblemDescription>;
+using AvgPoolBackward =
+    NonTunableSolverBase<ExecutionContext, miopen::avgpool::BwdProblemDescription>;
 
-struct NLLLossUnreduceSolver : NLLLossUnreduce
+// FORWARD
+struct AvgPoolForward2d final : AvgPoolForward
 {
+    const std::string& SolverDbId() const override { return GetSolverDbId<AvgPoolForward2d>(); }
+
     bool IsApplicable(const ExecutionContext& context,
-                      const miopen::avgpool::UnreduceProblemDescription& problem) const override;
+                      const miopen::avgpool::FwdProblemDescription& problem) const override;
+
+    ConvSolution GetSolution(const ExecutionContext& context,
+                             const miopen::avgpool::FwdProblemDescription& problem) const override;
 };
 
-struct NLLLossReduceSolver : NLLLossReduce
+struct AvgPoolForward3d final : AvgPoolForward
 {
+    const std::string& SolverDbId() const override { return GetSolverDbId<AvgPoolForward3d>(); }
+
     bool IsApplicable(const ExecutionContext& context,
-                      const miopen::avgpool::ReduceProblemDescription& problem) const override;
+                      const miopen::avgpool::FwdProblemDescription& problem) const override;
+
+    ConvSolution GetSolution(const ExecutionContext& context,
+                             const miopen::avgpool::FwdProblemDescription& problem) const override;
 };
 
-// FORWARD UNREDUCE
-struct NLLLossUnreduceForwardContiguous4d final : NLLLossUnreduceSolver
+// BACKWARD
+struct AvgPoolBackward2d final : AvgPoolBackward
 {
-    const std::string& SolverDbId() const override
-    {
-        return GetSolverDbId<NLLLossUnreduceForwardContiguous4d>();
-    }
+    const std::string& SolverDbId() const override { return GetSolverDbId<AvgPoolBackward2d>(); }
 
     bool IsApplicable(const ExecutionContext& context,
-                      const miopen::avgpool::UnreduceProblemDescription& problem) const override;
+                      const miopen::avgpool::BwdProblemDescription& problem) const override;
 
-    ConvSolution
-    GetSolution(const ExecutionContext& context,
-                const miopen::avgpool::UnreduceProblemDescription& problem) const override;
+    ConvSolution GetSolution(const ExecutionContext& context,
+                             const miopen::avgpool::BwdProblemDescription& problem) const override;
 };
 
-struct NLLLossUnreduceForwardContiguous2d final : NLLLossUnreduceSolver
+struct AvgPoolBackward3d final : AvgPoolBackward
 {
-    const std::string& SolverDbId() const override
-    {
-        return GetSolverDbId<NLLLossUnreduceForwardContiguous2d>();
-    }
+    const std::string& SolverDbId() const override { return GetSolverDbId<AvgPoolBackward3d>(); }
 
     bool IsApplicable(const ExecutionContext& context,
-                      const miopen::avgpool::UnreduceProblemDescription& problem) const override;
+                      const miopen::avgpool::BwdProblemDescription& problem) const override;
 
-    ConvSolution
-    GetSolution(const ExecutionContext& context,
-                const miopen::avgpool::UnreduceProblemDescription& problem) const override;
-};
-
-struct NLLLossUnreduceForward4d final : NLLLossUnreduceSolver
-{
-    const std::string& SolverDbId() const override
-    {
-        return GetSolverDbId<NLLLossUnreduceForward4d>();
-    }
-
-    bool IsApplicable(const ExecutionContext& context,
-                      const miopen::avgpool::UnreduceProblemDescription& problem) const override;
-
-    ConvSolution
-    GetSolution(const ExecutionContext& context,
-                const miopen::avgpool::UnreduceProblemDescription& problem) const override;
-};
-
-struct NLLLossUnreduceForward2d final : NLLLossUnreduceSolver
-{
-    const std::string& SolverDbId() const override
-    {
-        return GetSolverDbId<NLLLossUnreduceForward2d>();
-    }
-
-    bool IsApplicable(const ExecutionContext& context,
-                      const miopen::avgpool::UnreduceProblemDescription& problem) const override;
-
-    ConvSolution
-    GetSolution(const ExecutionContext& context,
-                const miopen::avgpool::UnreduceProblemDescription& problem) const override;
-};
-
-struct NLLLossUnreduceForward5d final : NLLLossUnreduceSolver
-{
-    const std::string& SolverDbId() const override
-    {
-        return GetSolverDbId<NLLLossUnreduceForward5d>();
-    }
-
-    bool IsApplicable(const ExecutionContext& context,
-                      const miopen::avgpool::UnreduceProblemDescription& problem) const override;
-
-    ConvSolution
-    GetSolution(const ExecutionContext& context,
-                const miopen::avgpool::UnreduceProblemDescription& problem) const override;
-};
-
-// FORWARD REDUCE
-struct NLLLossReduceForward5d final : NLLLossReduceSolver
-{
-    const std::string& SolverDbId() const override
-    {
-        return GetSolverDbId<NLLLossReduceForward5d>();
-    }
-
-    bool IsApplicable(const ExecutionContext& context,
-                      const miopen::avgpool::ReduceProblemDescription& problem) const override;
-    ConvSolution
-    GetSolution(const ExecutionContext& context,
-                const miopen::avgpool::ReduceProblemDescription& problem) const override;
-    std::size_t
-    GetWorkspaceSize(const ExecutionContext& context,
-                     const miopen::avgpool::ReduceProblemDescription& problem) const override;
-    bool MayNeedWorkspace() const override { return true; }
-};
-
-// BACKWARD UNREDUCE
-struct NLLLossUnreduceBackwardContiguous2d final : NLLLossUnreduceSolver
-{
-    const std::string& SolverDbId() const override
-    {
-        return GetSolverDbId<NLLLossUnreduceBackwardContiguous2d>();
-    }
-
-    bool IsApplicable(const ExecutionContext& context,
-                      const miopen::avgpool::UnreduceProblemDescription& problem) const override;
-
-    ConvSolution
-    GetSolution(const ExecutionContext& context,
-                const miopen::avgpool::UnreduceProblemDescription& problem) const override;
-};
-
-struct NLLLossUnreduceBackwardContiguous4d final : NLLLossUnreduceSolver
-{
-    const std::string& SolverDbId() const override
-    {
-        return GetSolverDbId<NLLLossUnreduceBackwardContiguous4d>();
-    }
-
-    bool IsApplicable(const ExecutionContext& context,
-                      const miopen::avgpool::UnreduceProblemDescription& problem) const override;
-
-    ConvSolution
-    GetSolution(const ExecutionContext& context,
-                const miopen::avgpool::UnreduceProblemDescription& problem) const override;
-};
-
-struct NLLLossUnreduceBackward4d final : NLLLossUnreduceSolver
-{
-    const std::string& SolverDbId() const override
-    {
-        return GetSolverDbId<NLLLossUnreduceBackward4d>();
-    }
-
-    bool IsApplicable(const ExecutionContext& context,
-                      const miopen::avgpool::UnreduceProblemDescription& problem) const override;
-
-    ConvSolution
-    GetSolution(const ExecutionContext& context,
-                const miopen::avgpool::UnreduceProblemDescription& problem) const override;
-};
-
-struct NLLLossUnreduceBackward2d final : NLLLossUnreduceSolver
-{
-    const std::string& SolverDbId() const override
-    {
-        return GetSolverDbId<NLLLossUnreduceBackward2d>();
-    }
-
-    bool IsApplicable(const ExecutionContext& context,
-                      const miopen::avgpool::UnreduceProblemDescription& problem) const override;
-
-    ConvSolution
-    GetSolution(const ExecutionContext& context,
-                const miopen::avgpool::UnreduceProblemDescription& problem) const override;
-};
-
-struct NLLLossUnreduceBackward5d final : NLLLossUnreduceSolver
-{
-    const std::string& SolverDbId() const override
-    {
-        return GetSolverDbId<NLLLossUnreduceBackward5d>();
-    }
-
-    bool IsApplicable(const ExecutionContext& context,
-                      const miopen::avgpool::UnreduceProblemDescription& problem) const override;
-
-    ConvSolution
-    GetSolution(const ExecutionContext& context,
-                const miopen::avgpool::UnreduceProblemDescription& problem) const override;
-};
-
-// BACKWARD REDUCE
-struct NLLLossReduceBackward2d final : NLLLossReduceSolver
-{
-    const std::string& SolverDbId() const override
-    {
-        return GetSolverDbId<NLLLossReduceBackward2d>();
-    }
-
-    bool IsApplicable(const ExecutionContext& context,
-                      const miopen::avgpool::ReduceProblemDescription& problem) const override;
-    ConvSolution
-    GetSolution(const ExecutionContext& context,
-                const miopen::avgpool::ReduceProblemDescription& problem) const override;
-};
-
-struct NLLLossReduceBackward5d final : NLLLossReduceSolver
-{
-    const std::string& SolverDbId() const override
-    {
-        return GetSolverDbId<NLLLossReduceBackward5d>();
-    }
-
-    bool IsApplicable(const ExecutionContext& context,
-                      const miopen::avgpool::ReduceProblemDescription& problem) const override;
-    ConvSolution
-    GetSolution(const ExecutionContext& context,
-                const miopen::avgpool::ReduceProblemDescription& problem) const override;
+    ConvSolution GetSolution(const ExecutionContext& context,
+                             const miopen::avgpool::BwdProblemDescription& problem) const override;
 };
 
 } // namespace avgpool

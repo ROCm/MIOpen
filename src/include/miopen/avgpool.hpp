@@ -50,7 +50,7 @@ MIOPEN_INTERNALS_EXPORT miopenStatus_t AvgPoolForward(Handle& handle,
 
 MIOPEN_INTERNALS_EXPORT miopenStatus_t AvgPoolBackward(Handle& handle,
                                                        const TensorDescriptor& outputGradDesc,
-                                                       Data_t output_grad,
+                                                       ConstData_t output_grad,
                                                        const TensorDescriptor& inputGradDesc,
                                                        Data_t input_grad,
                                                        const TensorDescriptor& strideDesc,

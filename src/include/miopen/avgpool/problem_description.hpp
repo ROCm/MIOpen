@@ -29,8 +29,6 @@
 #include <miopen/problem_description_base.hpp>
 #include <miopen/activ.hpp>
 #include <miopen/tensor.hpp>
-#include <cassert>
-#include <string>
 
 namespace miopen {
 
@@ -40,174 +38,122 @@ namespace avgpool {
 
 struct ProblemDescription : ProblemDescriptionBase
 {
-    ProblemDescription(const TensorDescriptor& inputDesc_,
-                       const TensorDescriptor& targetDesc_,
-                       const TensorDescriptor& weightDesc_,
-                       const TensorDescriptor& outputDesc_,
-                       int32_t ignore_index_,
-                       bool is_fwd_)
-        : inputDesc(inputDesc_),
-          targetDesc(targetDesc_),
-          weightDesc(weightDesc_),
-          outputDesc(outputDesc_),
-          ignore_index(ignore_index_),
-          is_fwd(is_fwd_)
+    ProblemDescription(const TensorDescriptor& strideDesc_,
+                       const TensorDescriptor& paddingDesc_,
+                       const TensorDescriptor& kinforDesc_,
+                       const bool count_include_pad_,
+                       const int32_t divisor_override_)
+        : strideDesc(strideDesc_),
+          paddingDesc(paddingDesc_),
+          kinforDesc(kinforDesc_),
+          count_include_pad(count_include_pad_),
+          divisor_override(divisor_override_)
     {
-    }
-
-    const TensorDescriptor& GetInputDesc() const { return inputDesc; }
-    const TensorDescriptor& GetTargetDesc() const { return targetDesc; }
-    const TensorDescriptor& GetWeightDesc() const { return weightDesc; }
-    const TensorDescriptor& GetOutputDesc() const { return outputDesc; }
-    int32_t GetIgnoreIndex() const { return ignore_index; }
-
-    bool IsValidLength() const
-    {
-        if(targetDesc.GetLengths()[0] != inputDesc.GetLengths()[0])
-            MIOPEN_THROW(miopenStatusBadParm, "NLLLoss: Tensor sizes do not match.");
-
-        for(int32_t i = 1; i < targetDesc.GetNumDims(); ++i)
+        if(divisor_override < 0)
         {
-            if(targetDesc.GetLengths()[i] != inputDesc.GetLengths()[i + 1])
-            {
-                MIOPEN_THROW(miopenStatusBadParm, "NLLLoss: Tensor sizes do not match.");
-            }
+            MIOPEN_THROW(miopenStatusBadParm, "AvgPool: divisor_override must be non-negative.");
         }
-        if(weightDesc.GetLengths()[0] != inputDesc.GetLengths()[1])
-        {
-            MIOPEN_THROW(miopenStatusBadParm, "NLLLoss: Tensor sizes do not match.");
-        }
-        if(inputDesc.GetLengths().size() > 5)
-        {
-            MIOPEN_THROW(miopenStatusBadParm, "NLLLoss: Do not support Input Tensor dims > 5.");
-        }
-        return true;
-    }
-
-    bool IsValidStride() const
-    {
-        auto isRightStride = [](TensorDescriptor td) {
-            auto strides = td.GetStrides();
-            auto lengths = td.GetLengths();
-            std::vector<std::pair<size_t, size_t>> p;
-            p.reserve(td.GetNumDims());
-            std::transform(strides.begin(),
-                           strides.end(),
-                           lengths.begin(),
-                           std::back_inserter(p),
-                           [](size_t a, size_t b) { return std::make_pair(a, b); });
-            std::sort(p.begin(), p.end());
-            for(int i = 1; i < p.size(); ++i)
-            {
-                if(p[i].first != p[i - 1].first * p[i - 1].second)
-                    MIOPEN_THROW(miopenStatusBadParm, "NLLLoss: Tensor strides do not valid.");
-            }
-            return true;
-        };
-        return isRightStride(inputDesc) && isRightStride(targetDesc) && isRightStride(outputDesc) &&
-               isRightStride(weightDesc);
-    }
-
-    bool IsSameType() const
-    {
-        if(inputDesc.GetType() != weightDesc.GetType())
-        {
-            MIOPEN_THROW(miopenStatusBadParm,
-                         "NLLLoss: Input and Weight tensors types do not match.");
-        }
-        return true;
-    }
-
-    bool IsAllContiguous() const
-    {
-        auto isContiguous = [](TensorDescriptor td) {
-            size_t s = 1;
-            for(int i = td.GetNumDims() - 1; i >= 0; --i)
-            {
-                if(s != td.GetStrides()[i])
-                {
-                    return false;
-                }
-                s *= td.GetLengths()[i];
-            }
-            return true;
-        };
-        return isContiguous(inputDesc) && isContiguous(targetDesc) && isContiguous(weightDesc) &&
-               isContiguous(outputDesc);
     }
 
 protected:
-    TensorDescriptor inputDesc;
-    TensorDescriptor targetDesc;
-    TensorDescriptor weightDesc;
-    TensorDescriptor outputDesc;
+    TensorDescriptor strideDesc;
+    TensorDescriptor paddingDesc;
+    TensorDescriptor kinforDesc;
 
-    int32_t ignore_index;
-    bool is_fwd;
-
-    NetworkConfig MakeForwardNetworkConfig() const;
+    bool count_include_pad;
+    int32_t divisor_override;
 };
 
-struct UnreduceProblemDescription : ProblemDescription
+struct FwdProblemDescription : ProblemDescription
 {
-    UnreduceProblemDescription(const TensorDescriptor& inputDesc_,
-                               const TensorDescriptor& targetDesc_,
-                               const TensorDescriptor& weightDesc_,
-                               const TensorDescriptor& outputDesc_,
-                               int32_t ignore_index_,
-                               bool is_fwd_)
+    FwdProblemDescription(const TensorDescriptor& inputDesc_,
+                          const TensorDescriptor& outputDesc_,
+                          const TensorDescriptor& strideDesc_,
+                          const TensorDescriptor& paddingDesc_,
+                          const TensorDescriptor& kinforDesc_,
+                          const bool count_include_pad_,
+                          const int32_t divisor_override_)
         : ProblemDescription(
-              inputDesc_, targetDesc_, weightDesc_, outputDesc_, ignore_index_, is_fwd_)
+              strideDesc_, paddingDesc_, kinforDesc_, count_include_pad_, divisor_override_),
+          inputDesc(inputDesc_),
+          outputDesc(outputDesc_)
     {
-        IsSameType();
         IsValidLength();
-        IsValidStride();
     }
 
-    size_t GetNtotal() const { return outputDesc.GetElementSize(); }
-    size_t GetC() const { return weightDesc.GetElementSize(); }
-
-    NetworkConfig MakeNetworkConfig() const override;
-
-private:
-    NetworkConfig MakeForwardNetworkConfig() const;
-};
-
-struct ReduceProblemDescription : ProblemDescription
-{
-    ReduceProblemDescription(const TensorDescriptor& inputDesc_,
-                             const TensorDescriptor& targetDesc_,
-                             const TensorDescriptor& weightDesc_,
-                             const TensorDescriptor& outputDesc_,
-                             int32_t ignore_index_,
-                             float divisor_,
-                             bool is_fwd_)
-        : ProblemDescription(
-              inputDesc_, targetDesc_, weightDesc_, outputDesc_, ignore_index_, is_fwd_)
-    {
-        divisor = divisor_;
-        IsSameType();
-        IsValidLength();
-        IsValidStride();
-    }
-
-    size_t GetNtotal() const { return targetDesc.GetElementSize(); }
-    size_t GetC() const { return weightDesc.GetElementSize(); }
+    auto GetInputDesc() const { return inputDesc; }
+    auto GetOutputDesc() const { return outputDesc; }
+    auto GetNtotal() const { return outputDesc.GetElementSize(); }
 
     bool IsValidLength() const
     {
-        if(outputDesc.GetNumDims() != 1 || outputDesc.GetLengths()[0] != 1)
-            MIOPEN_THROW(miopenStatusBadParm, "NLLLoss: Output Tensor size must be (1).");
-        if(!ProblemDescription::IsValidLength())
-            return false;
+        auto input_dims = inputDesc.GetLengths().size();
+        if(outputDesc.GetLengths()[0] != inputDesc.GetLengths()[0] ||
+           outputDesc.GetLengths()[1] != inputDesc.GetLengths()[1] ||
+           outputDesc.GetLengths().size() != input_dims)
+        {
+            MIOPEN_THROW(miopenStatusBadParm, "AvgPool: Tensor sizes do not match.");
+        }
+        if(input_dims != strideDesc.GetElementSize() ||
+           input_dims != paddingDesc.GetElementSize() || input_dims != kinforDesc.GetElementSize())
+        {
+            MIOPEN_THROW(miopenStatusBadParm, "AvgPool: Tensor sizes do not match.");
+        }
+
         return true;
     }
 
     NetworkConfig MakeNetworkConfig() const override;
 
-private:
-    float divisor;
-    NetworkConfig MakeForwardNetworkConfig() const;
+protected:
+    TensorDescriptor inputDesc;
+    TensorDescriptor outputDesc;
+};
+
+struct BwdProblemDescription : ProblemDescription
+{
+    BwdProblemDescription(const TensorDescriptor& outputGradDesc_,
+                          const TensorDescriptor& inputGradDesc_,
+                          const TensorDescriptor& strideDesc_,
+                          const TensorDescriptor& paddingDesc_,
+                          const TensorDescriptor& kinforDesc_,
+                          const bool count_include_pad_,
+                          const int32_t divisor_override_)
+        : ProblemDescription(
+              strideDesc_, paddingDesc_, kinforDesc_, count_include_pad_, divisor_override_),
+          outputGradDesc(outputGradDesc_),
+          inputGradDesc(inputGradDesc_)
+    {
+        IsValidLength();
+    }
+
+    auto GetOutputGradDesc() const { return outputGradDesc; }
+    auto GetInputGradDesc() const { return inputGradDesc; }
+    auto GetNtotal() const { return inputGradDesc.GetElementSize(); }
+
+    bool IsValidLength() const
+    {
+        auto input_dims = inputGradDesc.GetLengths().size();
+        if(outputGradDesc.GetLengths()[0] != inputGradDesc.GetLengths()[0] ||
+           outputGradDesc.GetLengths()[1] != inputGradDesc.GetLengths()[1] ||
+           outputGradDesc.GetLengths().size() != input_dims)
+        {
+            MIOPEN_THROW(miopenStatusBadParm, "AvgPool: Tensor sizes do not match.");
+        }
+        if(input_dims != strideDesc.GetElementSize() ||
+           input_dims != paddingDesc.GetElementSize() || input_dims != kinforDesc.GetElementSize())
+        {
+            MIOPEN_THROW(miopenStatusBadParm, "AvgPool: Tensor sizes do not match.");
+        }
+
+        return true;
+    }
+
+    NetworkConfig MakeNetworkConfig() const override;
+
+protected:
+    TensorDescriptor outputGradDesc;
+    TensorDescriptor inputGradDesc;
 };
 
 } // namespace avgpool

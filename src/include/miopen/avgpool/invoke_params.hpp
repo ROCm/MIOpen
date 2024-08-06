@@ -42,16 +42,16 @@ struct FwdInvokeParams : public miopen::InvokeParams
     const TensorDescriptor* outputDesc  = nullptr;
     const TensorDescriptor* strideDesc  = nullptr;
     const TensorDescriptor* paddingDesc = nullptr;
-    const TensorDescriptor* kinfor      = nullptr;
+    const TensorDescriptor* kinforDesc  = nullptr;
 
     ConstData_t input   = nullptr;
     Data_t output       = nullptr;
     ConstData_t stride  = nullptr;
     ConstData_t padding = nullptr;
-    ConstData_t kinfo   = nullptr;
+    ConstData_t kinfor  = nullptr;
 
-    const bool count_include_pad   = false;
-    const int32_t divisor_override = 0;
+    bool count_include_pad   = false;
+    int32_t divisor_override = 0;
 
     std::size_t GetWorkspaceSize() const { return 0; }
     Data_t GetWorkspace() const { return nullptr; }
@@ -66,16 +66,16 @@ struct BwdInvokeParams : public miopen::InvokeParams
     const TensorDescriptor* inputGradDesc  = nullptr;
     const TensorDescriptor* strideDesc     = nullptr;
     const TensorDescriptor* paddingDesc    = nullptr;
-    const TensorDescriptor* kinfor         = nullptr;
+    const TensorDescriptor* kinforDesc     = nullptr;
 
     ConstData_t output_grad = nullptr;
     Data_t input_grad       = nullptr;
     ConstData_t stride      = nullptr;
     ConstData_t padding     = nullptr;
-    ConstData_t kinfo       = nullptr;
+    ConstData_t kinfor      = nullptr;
 
-    const bool count_include_pad   = false;
-    const int32_t divisor_override = 0;
+    bool count_include_pad   = false;
+    int32_t divisor_override = 0;
 
     std::size_t GetWorkspaceSize() const { return 0; }
     Data_t GetWorkspace() const { return nullptr; }
