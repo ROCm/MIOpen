@@ -59,18 +59,18 @@ class ConvBiasResAddActive_Fwd_Pattern : public GraphPatternMatcher
             if(pointwise->getX()->isVirtual())
             {
                 virtualTensor = pointwise->getX();
-                virtualAlpha = std::visit(convertToFloat, pointwise->getAlpha1());
+                virtualAlpha  = std::visit(convertToFloat, pointwise->getAlpha1());
 
                 concreteTensor = pointwise->getB();
-                concreteAlpha = std::visit(convertToFloat, pointwise->getAlpha2());
+                concreteAlpha  = std::visit(convertToFloat, pointwise->getAlpha2());
             }
             else
             {
                 concreteTensor = pointwise->getX();
-                concreteAlpha = std::visit(convertToFloat, pointwise->getAlpha1());
+                concreteAlpha  = std::visit(convertToFloat, pointwise->getAlpha1());
 
                 virtualTensor = pointwise->getB();
-                virtualAlpha = std::visit(convertToFloat, pointwise->getAlpha2());
+                virtualAlpha  = std::visit(convertToFloat, pointwise->getAlpha2());
             }
         }
     };
@@ -90,9 +90,11 @@ class ConvBiasResAddActive_Fwd_Pattern : public GraphPatternMatcher
     {
         OperationPointwiseWithOneVirtualInput add(addNode);
 
-        auto& lengthsToCheck  = add.concreteTensor->GetLengths();
+        auto& lengthsToCheck = add.concreteTensor->GetLengths();
 
-        return std::count_if(lengthsToCheck.cbegin(), lengthsToCheck.cend(), [](std::size_t value) { return value > size_t{1};}) <= 1;
+        return std::count_if(lengthsToCheck.cbegin(), lengthsToCheck.cend(), [](std::size_t value) {
+                   return value > size_t{1};
+               }) <= 1;
     }
 
     static bool hasBiasNode(const OpGraph& graph)
