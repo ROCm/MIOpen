@@ -30,8 +30,9 @@
 #include <miopen/cumulative_reduction/solvers.hpp>
 #include <miopen/cumulative_reduction/utils.hpp>
 
+#define warpSizeCTX (context.GetStream().GetWavefrontWidth())
 #define LOCAL_SIZE_MAX 256
-#define LOCAL_SIZE_MIN 64
+#define LOCAL_SIZE_MIN warpSizeCTX
 
 namespace miopen {
 
@@ -61,7 +62,7 @@ bool ForwardContiguousLastDim::IsApplicable(
 }
 
 ConvSolution ForwardContiguousLastDim::GetSolution(
-    const ExecutionContext& /*context*/,
+    const ExecutionContext& context,
     const miopen::cumulative_reduction::ForwardProblemDescription& problem) const
 {
     auto result = ConvSolution{miopenStatusSuccess};
