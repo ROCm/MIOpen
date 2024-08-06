@@ -1,6 +1,11 @@
 find_package(GTest REQUIRED)
 find_package(rocblas)
 
+if(MIOPEN_USE_HIPBLASLT)
+  find_package(hipblas REQUIRED PATHS /opt/rocm $ENV{HIP_PATH})
+  find_package(hipblaslt REQUIRED PATHS /opt/rocm $ENV{HIP_PATH})
+endif()
+
 set(SOURCES
     log.cpp
     platform.cpp
@@ -17,6 +22,8 @@ function(add_gtest TEST_NAME TEST_CPP)
   if(WIN32)
     target_compile_definitions(${TEST_NAME} PRIVATE NOMINMAX)
   endif()
+
+  
   add_dependencies(tests ${TEST_NAME})
   add_dependencies(check ${TEST_NAME})
   target_compile_options(${TEST_NAME} PRIVATE -Wno-global-constructors -Wno-undef)
@@ -24,15 +31,35 @@ function(add_gtest TEST_NAME TEST_CPP)
   if(MIOPEN_ENABLE_AI_KERNEL_TUNING)
     target_link_libraries(${TEST_NAME} frugally-deep::fdeep Eigen3::Eigen)
   endif()
-  target_link_libraries(${TEST_NAME} GTest::gtest GTest::gtest_main MIOpen ${Boost_LIBRARIES} hip::host $<BUILD_INTERFACE:roc::rocblas>)
+  if(hipblaslt_FOUND)
+    target_link_libraries( ${TEST_NAME} roc::hipblaslt )
+  endif()
+  # Workaround : change in rocm-cmake was causing linking error so had to add ${CMAKE_DL_LIBS} 
+  #               We can remove ${CMAKE_DL_LIBS} once root cause is identified.
+  target_link_libraries(${TEST_NAME} ${CMAKE_DL_LIBS} GTest::gtest GTest::gtest_main MIOpen ${Boost_LIBRARIES} hip::host $<BUILD_INTERFACE:roc::rocblas> )
   if(NOT MIOPEN_EMBED_DB STREQUAL "")
       target_link_libraries(${TEST_NAME} $<BUILD_INTERFACE:miopen_data>)
   endif()
-  if(NOT WIN32) # TODO: cannot run on Windows due to missing DLL dependencies
+  if(MIOPEN_TEST_DISCRETE)
+    string(CONCAT TEST_ENVIRONMENT_VARIABLES
+    "ENVIRONMENT;MIOPEN_USER_DB_PATH=${CMAKE_CURRENT_BINARY_DIR};"
+    "ENVIRONMENT;MIOPEN_TEST_FLOAT_ARG=${MIOPEN_TEST_FLOAT_ARG};"
+    "ENVIRONMENT;MIOPEN_TEST_ALL=${MIOPEN_TEST_ALL};"
+    "ENVIRONMENT;MIOPEN_TEST_MLIR=${MIOPEN_TEST_MLIR};"
+    "ENVIRONMENT;MIOPEN_TEST_COMPOSABLEKERNEL=${MIOPEN_TEST_COMPOSABLEKERNEL};"
+    "ENVIRONMENT;CODECOV_TEST=${CODECOV_TEST};"
+    "ENVIRONMENT;MIOPEN_TEST_DBSYNC=${MIOPEN_TEST_DBSYNC};"
+    "ENVIRONMENT;MIOPEN_TEST_CONV=${MIOPEN_TEST_CONV};"
+    "ENVIRONMENT;MIOPEN_TEST_DEEPBENCH=${MIOPEN_TEST_DEEPBENCH};"
+    "ENVIRONMENT;MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=${MIOPEN_DEBUG_TUNING_ITERATIONS_MAX};"
+    "ENVIRONMENT;MIOPEN_TEST_WITH_MIOPENDRIVER=${MIOPEN_TEST_WITH_MIOPENDRIVER};")
+
     # Enable CMake to discover the test binary
-    gtest_discover_tests(${TEST_NAME} DISCOVERY_TIMEOUT 300 PROPERTIES ENVIRONMENT "MIOPEN_USER_DB_PATH=${CMAKE_CURRENT_BINARY_DIR};MIOPEN_TEST_FLOAT_ARG=${MIOPEN_TEST_FLOAT_ARG};MIOPEN_TEST_ALL=${MIOPEN_TEST_ALL};MIOPEN_TEST_MLIR=${MIOPEN_TEST_MLIR};MIOPEN_TEST_COMPOSABLEKERNEL=${MIOPEN_TEST_COMPOSABLEKERNEL};CODECOV_TEST=${CODECOV_TEST};MIOPEN_TEST_DBSYNC=${MIOPEN_TEST_DBSYNC};MIOPEN_TEST_CONV=${MIOPEN_TEST_CONV};MIOPEN_TEST_DEEPBENCH=${MIOPEN_TEST_DEEPBENCH};MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=${MIOPEN_DEBUG_TUNING_ITERATIONS_MAX}")
+    # Note: Due to the following cmake issue with gtest_discover_tests https://gitlab.kitware.com/cmake/cmake/-/issues/17812 you cannot pass PROPERTIES as a list.
+    #       To work around this limitation, we are passing the environment variables in the format ENVIRONMENT;value1=${value1};ENVIRONMENT;value2=${value2}.
+    gtest_discover_tests(${TEST_NAME} DISCOVERY_TIMEOUT 300 DISCOVERY_MODE PRE_TEST WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/${DATABASE_INSTALL_DIR} PROPERTIES ${TEST_ENVIRONMENT_VARIABLES})
   endif()
-    target_link_libraries(${TEST_NAME} BZip2::BZip2)
+  target_link_libraries(${TEST_NAME} BZip2::BZip2)
   if(WIN32)
     # Refer to https://en.cppreference.com/w/cpp/language/types for details.
     target_compile_options(${TEST_NAME} PRIVATE $<BUILD_INTERFACE:$<$<CXX_COMPILER_ID:Clang>:-U__LP64__>>)

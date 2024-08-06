@@ -39,7 +39,7 @@ endif()
 #     remain in the future)  perform final conversion (and rounding) of FP32
 #     to BF16 results. This affects the main functionality of the library.
 option( MIOPEN_USE_RNE_BFLOAT16 "Sets rounding scheme for bfloat16 type" ON )
-option( MIOPEN_FP8_IEEE_EXPONENT_BIAS "Sets the FP8 exponent bias to IEEE" ON)
+option( MIOPEN_FP8_IEEE_EXPONENT_BIAS "Sets the FP8 exponent bias to IEEE" OFF)
 option( MIOPEN_FP8_CLIPPING "Sets the FP8 clipping" ON)
 set ( MIOPEN_DEFAULT_FIND_MODE "DynamicHybrid" CACHE STRING "Sets the default find mode")
 set_property(CACHE MIOPEN_DEFAULT_FIND_MODE PROPERTY STRINGS
@@ -75,8 +75,8 @@ function(add_kernels FILE_NAME VAR_PREFIX VAR_SUFFIX KERNEL_FILES)
         string(TOUPPER "${BASE_NAME}" KEY_NAME)
         string(MAKE_C_IDENTIFIER "${KEY_NAME}" VAR_NAME)
         string(APPEND KERNELS_DECLS "extern const size_t ${VAR_PREFIX}${VAR_NAME}${VAR_SUFFIX}_SIZE;\n")
-        string(APPEND KERNELS_DECLS "extern const unsigned char ${VAR_PREFIX}${VAR_NAME}${VAR_SUFFIX}[];\n")
-        list(APPEND INIT_KERNELS_LIST "    { \"${KERNEL_FILENAME}\", std::string(reinterpret_cast<const char*>(${VAR_PREFIX}${VAR_NAME}${VAR_SUFFIX}), ${VAR_PREFIX}${VAR_NAME}${VAR_SUFFIX}_SIZE) }")
+        string(APPEND KERNELS_DECLS "extern const char ${VAR_PREFIX}${VAR_NAME}${VAR_SUFFIX}[];\n")
+        list(APPEND INIT_KERNELS_LIST "    { \"${KERNEL_FILENAME}\", { ${VAR_PREFIX}${VAR_NAME}${VAR_SUFFIX}, ${VAR_PREFIX}${VAR_NAME}${VAR_SUFFIX}_SIZE } }")
     endforeach()
     string(REPLACE ";" ",\n" INIT_KERNELS "${INIT_KERNELS_LIST}")
     configure_file(kernels/${FILE_NAME}.in ${PROJECT_BINARY_DIR}/${FILE_NAME})
@@ -85,8 +85,10 @@ endfunction()
 set( MIOpen_Source
     activ/problem_description.cpp
     activ_api.cpp
+    adam/problem_description.cpp
+    adam_api.cpp
+    addlayernorm_api.cpp
     api/find2_0_commons.cpp
-    argmax_api.cpp
     batch_norm.cpp
     batch_norm_api.cpp
     batchnorm/problem_description.cpp
@@ -97,10 +99,12 @@ set( MIOpen_Source
     conv/invokers/gcn_asm_1x1u.cpp
     conv/invokers/gcn_asm_1x1u_ss.cpp
     conv/invokers/gcn_asm_1x1u_us.cpp
+    conv/invokers/gcn_asm_wino.cpp
     conv/invokers/gen_x_w_y_pad.cpp
     conv/invokers/impl_gemm.cpp
     conv/invokers/impl_gemm_dynamic.cpp
     conv/invokers/ocl_wrw_rdc.cpp
+    conv/kernel_interface/winograd_kernel_interface.cpp
     conv/problem_description.cpp
     conv/solver_finders.cpp
     conv_algo_name.cpp
@@ -113,6 +117,7 @@ set( MIOpen_Source
     driver_arguments.cpp
     dropout.cpp
     dropout_api.cpp
+    env.cpp
     execution_context.cpp
     expanduser.cpp
     find_controls.cpp
@@ -121,10 +126,19 @@ set( MIOpen_Source
     fusion.cpp
     fusion/problem_description.cpp
     generic_search.cpp
+    getitem_api.cpp
     graphapi/convolution.cpp
+    graphapi/engine.cpp
+    graphapi/enginecfg.cpp
+    graphapi/engineheur.cpp
+    graphapi/execution_plan.cpp
+    graphapi/find_engine.cpp
     graphapi/graphapi.cpp
+    graphapi/matmul.cpp
+    graphapi/opgraph.cpp
     graphapi/pointwise.cpp
     graphapi/reduction.cpp
+    graphapi/reshape.cpp
     graphapi/rng.cpp
     graphapi/tensor.cpp
     graphapi/variant_pack.cpp
@@ -132,6 +146,7 @@ set( MIOpen_Source
     groupnorm/problem_description.cpp
     handle_api.cpp
     invoker_cache.cpp
+    getitem/problem_description.cpp
     kernel_build_params.cpp
     kernel_warnings.cpp
     layernorm_api.cpp
@@ -153,13 +168,20 @@ set( MIOpen_Source
     process.cpp
     ramdb.cpp
     readonlyramdb.cpp
+    reducecalculation_api.cpp
+    reduceextreme_api.cpp
     reducetensor.cpp
     reducetensor_api.cpp
     reduce/problem_description.cpp
     rnn.cpp
     rnn_api.cpp
     rnn/rnn_util.cpp
+    rnn/selector.cpp
     rnn/Solutions/rnn_transformer.cpp
+    rnn/Solutions/modular_base.cpp
+    rnn/Solutions/bwd_s_stream.cpp
+    rnn/Solutions/bwd_multi_stream.cpp
+    scalar.cpp
     softmax.cpp
     softmax_api.cpp
     softmax/problem_description.cpp
@@ -169,6 +191,8 @@ set( MIOpen_Source
     solver/activ/bwd_1.cpp
     solver/activ/fwd_0.cpp
     solver/activ/fwd_1.cpp
+    solver/adam/adam.cpp
+    solver/adam/transformers_adam_w.cpp
     solver/batchnorm/backward_ck.cpp
     solver/batchnorm/backward_per_activation.cpp
     solver/batchnorm/backward_per_activation_fused.cpp
@@ -183,89 +207,95 @@ set( MIOpen_Source
     solver/batchnorm/forward_spatial_single.cpp
     solver/batchnorm/forward_training_ck.cpp
     solver/cat/forward_cat.cpp
-    solver/conv_asm_1x1u.cpp
+    solver/conv/conv_asm_1x1u.cpp
+    solver/conv/conv_asm_1x1u_stride2.cpp
+    solver/conv/conv_asm_3x3u.cpp
+    solver/conv/conv_asm_5x10u2v2b1.cpp
+    solver/conv/conv_asm_5x10u2v2f1.cpp
+    solver/conv/conv_asm_7x7c3h224w224k64u2v2p3q3f1.cpp
+    solver/conv/conv_asm_dir_BwdWrW1x1.cpp
+    solver/conv/conv_asm_dir_BwdWrW3x3.cpp
+    solver/conv/conv_asm_implicit_gemm_bwd_v4r1_dynamic.cpp
+    solver/conv/conv_asm_implicit_gemm_gtc_bwd.cpp
+    solver/conv/conv_asm_implicit_gemm_gtc_bwd_nhwc.cpp
+    solver/conv/conv_asm_implicit_gemm_gtc_fwd.cpp
+    solver/conv/conv_asm_implicit_gemm_gtc_fwd_nhwc.cpp
+    solver/conv/conv_asm_implicit_gemm_gtc_fwd_nchwc.cpp
+    solver/conv/conv_asm_implicit_gemm_gtc_perf_config.cpp
+    solver/conv/conv_asm_implicit_gemm_gtc_wrw_nhwc.cpp
+    solver/conv/conv_asm_implicit_gemm_v4r1_dynamic.cpp
+    solver/conv/conv_asm_implicit_gemm_wrw_gtc_dynamic_xdlops.cpp
+    solver/conv/conv_asm_implicit_gemm_wrw_v4r1_dynamic.cpp
+    solver/conv/conv_bin_wino3x3U.cpp
+    solver/conv/conv_bin_winoRxS.cpp
+    solver/conv/conv_ck_igemm_fwd_v6r1_dlops_nchw.cpp
+    solver/conv/conv_direct_naive_conv.cpp
+    solver/conv/conv_direct_naive_conv_bwd.cpp
+    solver/conv/conv_direct_naive_conv_fwd.cpp
+    solver/conv/conv_direct_naive_conv_wrw.cpp
+    solver/conv/conv_hip_implicit_gemm_bwd_data_xdlops.cpp
+    solver/conv/conv_hip_implicit_gemm_bwd_v1r1.cpp
+    solver/conv/conv_hip_implicit_gemm_bwd_v1r1_xdlops.cpp
+    solver/conv/conv_hip_implicit_gemm_bwd_v4r1.cpp
+    solver/conv/conv_hip_implicit_gemm_bwd_v4r1_xdlops.cpp
+    solver/conv/conv_hip_implicit_gemm_fwd_v4r1.cpp
+    solver/conv/conv_hip_implicit_gemm_fwd_v4r4.cpp
+    solver/conv/conv_hip_implicit_gemm_fwd_v4r4_xdlops.cpp
+    solver/conv/conv_hip_implicit_gemm_fwd_v4r4_xdlops_padded_gemm.cpp
+    solver/conv/conv_hip_implicit_gemm_fwd_v4r5_xdlops.cpp
+    solver/conv/conv_hip_implicit_gemm_fwd_xdlops.cpp
+    solver/conv/conv_hip_implicit_gemm_grouped_fwd_xdlops.cpp
+    solver/conv/conv_hip_implicit_gemm_grouped_bwd_xdlops.cpp
+    solver/conv/conv_hip_implicit_gemm_grouped_wrw_xdlops.cpp
+    solver/conv/conv_hip_implicit_gemm_3d_grouped_fwd_xdlops.cpp
+    solver/conv/conv_hip_implicit_gemm_3d_grouped_wrw_xdlops.cpp
+    solver/conv/conv_hip_implicit_gemm_3d_grouped_bwd_xdlops.cpp
+    solver/conv/conv_hip_implicit_gemm_f16f8f16_fwd_xdlops.cpp
+    solver/conv/conv_hip_implicit_gemm_f16f8f16_bwd_xdlops.cpp
+    solver/conv/conv_hip_implicit_gemm_f16f8f16_wrw_xdlops.cpp
+    solver/conv/conv_hip_implicit_gemm_nonxdlops_common.cpp
+    solver/conv/conv_hip_implicit_gemm_wrw_v4r4.cpp
+    solver/conv/conv_hip_implicit_gemm_wrw_v4r4_xdlops.cpp
+    solver/conv/conv_hip_implicit_gemm_wrw_v4r4_xdlops_padded_gemm.cpp
+    solver/conv/conv_MP_bidirectional_winograd.cpp
+    solver/conv/conv_mlir_igemm_bwd.cpp
+    solver/conv/conv_mlir_igemm_bwd_xdlops.cpp
+    solver/conv/conv_mlir_igemm_fwd.cpp
+    solver/conv/conv_mlir_igemm_fwd_xdlops.cpp
+    solver/conv/conv_mlir_igemm_wrw.cpp
+    solver/conv/conv_mlir_igemm_wrw_xdlops.cpp
+    solver/conv/conv_multipass_wino3x3WrW.cpp
+    solver/conv/conv_ocl_dir2D_bwdWrW_1x1.cpp
+    solver/conv/conv_ocl_dir2D_bwdWrW_2.cpp
+    solver/conv/conv_ocl_dir2D_bwdWrW_53.cpp
+    solver/conv/conv_ocl_dir2D11x11.cpp
+    solver/conv/conv_ocl_dir2Dfwd.cpp
+    solver/conv/conv_ocl_dir2Dfwd_exhaustive_search.cpp
+    solver/conv/conv_ocl_dir2Dfwd1x1.cpp
+    solver/conv/conv_ocl_dir2Dfwdgen.cpp
+    solver/conv/conv_wino_fury_RxS.cpp
+    solver/conv/conv_winoRxS.cpp
+    solver/conv/fft.cpp
+    solver/conv/gemm.cpp
+    solver/conv/gemm_bwd.cpp
+    solver/conv/gemm_common.cpp
+    solver/conv/gemm_wrw.cpp
     solver/conv_asm_1x1u_bias_activ_fused.cpp
-    solver/conv_asm_1x1u_stride2.cpp
-    solver/conv_asm_3x3u.cpp
-    solver/conv_asm_5x10u2v2b1.cpp
-    solver/conv_asm_5x10u2v2f1.cpp
-    solver/conv_asm_7x7c3h224w224k64u2v2p3q3f1.cpp
-    solver/conv_asm_dir_BwdWrW1x1.cpp
-    solver/conv_asm_dir_BwdWrW3x3.cpp
-    solver/conv_asm_implicit_gemm_bwd_v4r1_dynamic.cpp
-    solver/conv_asm_implicit_gemm_gtc_bwd.cpp
-    solver/conv_asm_implicit_gemm_gtc_bwd_nhwc.cpp
-    solver/conv_asm_implicit_gemm_gtc_fwd.cpp
-    solver/conv_asm_implicit_gemm_gtc_fwd_nhwc.cpp
-    solver/conv_asm_implicit_gemm_gtc_fwd_nchwc.cpp
-    solver/conv_asm_implicit_gemm_gtc_perf_config.cpp
-    solver/conv_asm_implicit_gemm_gtc_wrw_nhwc.cpp
-    solver/conv_asm_implicit_gemm_v4r1_dynamic.cpp
-    solver/conv_asm_implicit_gemm_wrw_gtc_dynamic_xdlops.cpp
-    solver/conv_asm_implicit_gemm_wrw_v4r1_dynamic.cpp
-    solver/conv_bin_wino3x3U.cpp
-    solver/conv_bin_winoRxS.cpp
     solver/conv_bin_winoRxS_fused.cpp
-    solver/conv_ck_igemm_fwd_v6r1_dlops_nchw.cpp
     solver/conv_ck_igemm_fwd_bias_activ_fused.cpp
     solver/conv_ck_igemm_fwd_bias_res_add_activ_fused.cpp
-    solver/conv_direct_naive_conv.cpp
-    solver/conv_direct_naive_conv_bwd.cpp
-    solver/conv_direct_naive_conv_fwd.cpp
-    solver/conv_direct_naive_conv_wrw.cpp
-    solver/conv_hip_implicit_gemm_bwd_data_xdlops.cpp
-    solver/conv_hip_implicit_gemm_bwd_v1r1.cpp
-    solver/conv_hip_implicit_gemm_bwd_v1r1_xdlops.cpp
-    solver/conv_hip_implicit_gemm_bwd_v4r1.cpp
-    solver/conv_hip_implicit_gemm_bwd_v4r1_xdlops.cpp
-    solver/conv_hip_implicit_gemm_fwd_v4r1.cpp
-    solver/conv_hip_implicit_gemm_fwd_v4r4.cpp
-    solver/conv_hip_implicit_gemm_fwd_v4r4_xdlops.cpp
-    solver/conv_hip_implicit_gemm_fwd_v4r4_xdlops_padded_gemm.cpp
-    solver/conv_hip_implicit_gemm_fwd_v4r5_xdlops.cpp
-    solver/conv_hip_implicit_gemm_fwd_xdlops.cpp
-    solver/conv_hip_implicit_gemm_grouped_fwd_xdlops.cpp
-    solver/conv_hip_implicit_gemm_grouped_bwd_xdlops.cpp
-    solver/conv_hip_implicit_gemm_grouped_wrw_xdlops.cpp
-    solver/conv_hip_implicit_gemm_3d_grouped_fwd_xdlops.cpp
-    solver/conv_hip_implicit_gemm_3d_grouped_wrw_xdlops.cpp
-    solver/conv_hip_implicit_gemm_3d_grouped_bwd_xdlops.cpp
-    solver/conv_hip_implicit_gemm_f16f8f16_fwd_xdlops.cpp
-    solver/conv_hip_implicit_gemm_f16f8f16_bwd_xdlops.cpp
-    solver/conv_hip_implicit_gemm_f16f8f16_wrw_xdlops.cpp
-    solver/conv_hip_implicit_gemm_nonxdlops_common.cpp
-    solver/conv_hip_implicit_gemm_wrw_v4r4.cpp
-    solver/conv_hip_implicit_gemm_wrw_v4r4_xdlops.cpp
-    solver/conv_hip_implicit_gemm_wrw_v4r4_xdlops_padded_gemm.cpp
-    solver/conv_mlir_igemm_bwd.cpp
-    solver/conv_mlir_igemm_bwd_xdlops.cpp
-    solver/conv_mlir_igemm_fwd.cpp
-    solver/conv_mlir_igemm_fwd_xdlops.cpp
-    solver/conv_mlir_igemm_wrw.cpp
-    solver/conv_mlir_igemm_wrw_xdlops.cpp
-    solver/conv_MP_bidirectional_winograd.cpp
-    solver/conv_multipass_wino3x3WrW.cpp
-    solver/conv_ocl_dir2D_bwdWrW_1x1.cpp
-    solver/conv_ocl_dir2D_bwdWrW_2.cpp
-    solver/conv_ocl_dir2D_bwdWrW_53.cpp
-    solver/conv_ocl_dir2D11x11.cpp
-    solver/conv_ocl_dir2Dfwd.cpp
     solver/conv_ocl_dir2Dfwd_fused.cpp
-    solver/conv_ocl_dir2Dfwd_exhaustive_search.cpp
-    solver/conv_ocl_dir2Dfwd1x1.cpp
-    solver/conv_ocl_dir2Dfwdgen.cpp
-    solver/conv_wino_fury_RxS.cpp
-    solver/conv_winoRxS.cpp
     solver/conv_winoRxS_fused.cpp
-    solver/fft.cpp
-    solver/gemm.cpp
-    solver/gemm_bwd.cpp
-    solver/gemm_wrw.cpp
     solver/groupnorm/forward_groupnorm.cpp
+    solver/getitem/backward_getitem.cpp
+    solver/layernorm/backward_t5layernorm.cpp
+    solver/layernorm/forward_addlayernorm.cpp
     solver/layernorm/forward_layernorm.cpp
     solver/layernorm/forward_layernorm2d_ck.cpp
     solver/layernorm/forward_layernorm4d_ck.cpp
-    solver/mha/mha_solver.cpp
+    solver/layernorm/forward_t5layernorm.cpp
+    solver/mha/mha_solver_backward.cpp
+    solver/mha/mha_solver_forward.cpp
     solver/pad_reflection/pad_reflection.cpp
     solver/pooling/forward2d.cpp
     solver/pooling/forwardNaive.cpp
@@ -273,15 +303,20 @@ set( MIOpen_Source
     solver/pooling/backward2d.cpp
     solver/pooling/backwardNd.cpp
     solver/reduce/forward_argmax.cpp
+    solver/reduce/forward_argmin.cpp
+    solver/reduce/forward_max.cpp
+    solver/reduce/forward_min.cpp
+    solver/reduce/forward_prod.cpp
     solver/reduce/forward_sum.cpp
     solver/softmax/attn_softmax.cpp
     solver/softmax/softmax.cpp
     subbuffers.cpp
-    sum_api.cpp
+    t5layernorm_api.cpp
     target_properties.cpp
     temp_file.cpp
     tensor.cpp
     tensor_api.cpp
+    transformers_adam_w_api.cpp
     seq_tensor.cpp
 )
 
@@ -408,11 +443,14 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/Conv_Winograd_v30_3_1_gfx11_fp32_f3x2_stride1.inc
         kernels/Conv_Winograd_v30_3_1_gfx11_fp32_f3x2_stride2.inc
         kernels/Conv_Winograd_v30_3_1_metadata.inc
+        kernels/MIOpenReduceCalculation.hpp
+        kernels/MIOpenReduceExtreme.hpp
         kernels/bfloat16_dev.hpp
         kernels/conv_common.inc
         kernels/conv_sizes.inc
         kernels/float_types.h
         kernels/gpr_alloc.inc
+        kernels/hip_atomic.hpp
         kernels/hip_f8_impl.hpp
         kernels/hip_float8.hpp
         kernels/inst_wrappers.inc
@@ -424,7 +462,12 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/neuron.inc
         kernels/rocm_version.inc
         kernels/stride_array.hpp
+        kernels/tensor_view.hpp
         kernels/utilities.inc
+        kernels/winograd/Conv_Winograd_Fury_v2_4_1_gfx11_1536vgprs_fp16_fp16acc_f2x3_c16_stride1.inc
+        kernels/winograd/Conv_Winograd_Fury_v2_4_1_gfx11_1536vgprs_fp16_fp16acc_f2x3_c32_stride1.inc
+        kernels/winograd/Conv_Winograd_Fury_v2_4_1_gfx11_1024vgprs_fp16_fp16acc_f2x3_c16_stride1.inc
+        kernels/winograd/Conv_Winograd_Fury_v2_4_1_metadata.inc
         kernels/workaround_issue_1431.hpp
         kernels/xform_bidirect_winograd_code.inc
         kernels/xform_data_filter.inc
@@ -441,7 +484,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         ${GPU_REFERENCE_KERNEL_ASM}
         ${GPU_BATCHED_TRANSPOSE_KERNEL_HIP}
         ${GPU_GENERAL_TENSOR_REORDER_KERNEL_HIP_SOURCE}
-        kernels/MIOpenArgmax.cpp
+        kernels/MIOpenAdam.cpp
         kernels/MIOpenCat.cpp
         kernels/MIOpenCheckNumerics.cpp
         kernels/MIOpenBatchNormActivBwdPerAct.cl
@@ -458,10 +501,12 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenConvDirBatchNormActiv.cl
         kernels/MIOpenConvDirGenFwd.cl
         kernels/MIOpenGroupNorm.cpp
+        kernels/MIOpenGetitem.cpp
         kernels/MIOpenLayerNorm.cpp
         kernels/MIOpenLRNBwd.cl
         kernels/MIOpenLRNFwd.cl
         kernels/MIOpenNeuron.cl
+        kernels/MIOpenPadReflection.cpp
         kernels/MIOpenPooling.cl
         kernels/MIOpenPoolingBwd.cl
         kernels/MIOpenPoolingBwdND.cl
@@ -470,13 +515,15 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenConv1x1S.cl
         kernels/MIOpenConv1x1J1.cl
         kernels/MIOpenConv1x1J1_stride.cl
+        kernels/MIOpenReduceCalculation.cpp
+        kernels/MIOpenReduceExtreme.cpp
         kernels/MIOpenSoftmax.cl
         kernels/MIOpenSoftmaxAttn.cpp
-        kernels/MIOpenSum.cpp
-        kernels/MIOpenPadReflection.cpp
         kernels/MIOpenUtilKernels3.cl
         kernels/MIOpenUtilKernels4.cl
         kernels/MIOpenUtilKernels5.cl
+        kernels/MIOpenVecAdd.cpp
+        kernels/MIOpenVecAddOCL.cl
         kernels/MIOpenIm2d2Col.cl
         kernels/MIOpenIm3d2Col.cl
         kernels/MIOpenCol2Im2d.cl
@@ -543,11 +590,12 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/Conv_Winograd_v30_3_1_fp32_f3x2_dilation2.s
         kernels/Conv_Winograd_v30_3_1_fp32_f3x2_stride1.s
         kernels/Conv_Winograd_v30_3_1_fp32_f3x2_stride2.s
-        kernels/Conv_Winograd_Fury_v1_1_1_fp16_fp16acc_f2x3_stride1.s
         kernels/MIOpenConvBwdBias.cl
         kernels/MIOpenBatchNormActivInfer.cl
         kernels/MIOpenCTCLoss.cl
         kernels/MIOpenDropout.cl
+        kernels/winograd/Conv_Winograd_Fury_v2_4_1_fp16_fp16acc_f2x3_c16_stride1.s
+        kernels/winograd/Conv_Winograd_Fury_v2_4_1_fp16_fp16acc_f2x3_c32_stride1.s
         kernels/xform_data.s
         kernels/xform_filter.s
         kernels/xform_bidirect_winograd_data.s
@@ -580,11 +628,13 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
     configure_file(db_path.cpp.in ${PROJECT_BINARY_DIR}/db_path.cpp)
     list(APPEND MIOpen_Source
         activ.cpp
-        argmax.cpp
+        adam.cpp
+        addlayernorm.cpp
         cat.cpp
         groupnorm.cpp
+        getitem.cpp
         kernel_cache.cpp
-        layer_norm.cpp
+        layernorm.cpp
         lrn.cpp
         mlo_dir_conv.cpp
         exec_utils.cpp
@@ -606,9 +656,12 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         hip/general_tensor_reorder_sol.cpp
         pad_reflection.cpp
         pooling.cpp
+        t5layernorm.cpp
         ocl/fusionopconvocl.cpp
         ocl/fusionopbiasbnactivocl.cpp
-        sum.cpp
+        reducecalculation.cpp
+        reduceextreme.cpp
+        transformers_adam_w.cpp
         ${PROJECT_BINARY_DIR}/db_path.cpp
         )
 
@@ -618,7 +671,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         )
 endif()
 
-if(MIOPEN_USE_ROCBLAS)
+if(MIOPEN_USE_ROCBLAS OR MIOPEN_USE_HIPBLASLT)
     list(APPEND MIOpen_Source
         gemm_v2.cpp
     )
@@ -711,9 +764,9 @@ endif()
 
 if(MIOPEN_USE_MLIR)
     list(APPEND MIOpen_Source
-        mlir_build.cpp
-        solver/mlir_common.cpp
         conv/invokers/mlir_impl_gemm.cpp
+        mlir_build.cpp
+        solver/conv/mlir_common.cpp
         )
 endif()
 
@@ -733,6 +786,10 @@ rocm_set_soversion(MIOpen ${MIOpen_SOVERSION})
 
 clang_tidy_check(MIOpen)
 
+if(HAS_LIB_STD_FILESYSTEM)
+    target_link_libraries(MIOpen PRIVATE stdc++fs)
+endif()
+
 find_package(zstd)
 if(zstd_FOUND)
     target_link_libraries(MIOpen PRIVATE $<IF:$<TARGET_EXISTS:zstd::libzstd_shared>,zstd::libzstd_shared,zstd::libzstd_static>)
@@ -748,7 +805,7 @@ target_include_directories(MIOpen PUBLIC
 )
 
 if(MIOPEN_USE_COMPOSABLEKERNEL)
-set(MIOPEN_CK_LINK_FLAGS composable_kernel::device_other_operations composable_kernel::device_gemm_operations composable_kernel::device_conv_operations composable_kernel::device_contraction_operations composable_kernel::device_reduction_operations hip::host)
+set(MIOPEN_CK_LINK_FLAGS composable_kernel::device_other_operations composable_kernel::device_gemm_operations composable_kernel::device_conv_operations composable_kernel::device_reduction_operations hip::host)
 endif()
 
 if(WIN32)
@@ -762,13 +819,19 @@ target_include_directories(MIOpen SYSTEM PUBLIC $<BUILD_INTERFACE:${HALF_INCLUDE
 target_link_libraries(MIOpen PRIVATE ${CMAKE_DL_LIBS} Threads::Threads BZip2::BZip2 ${MIOPEN_CK_LINK_FLAGS})
 miopen_generate_export_header(MIOpen)
 
+if(WIN32)
+    # Temporary workaround on rocMLIR not exporting correctly libraries it depends on.
+    target_link_libraries(MIOpen PRIVATE ntdll)
+endif()
+
 if(BUILD_TESTING)
-    # On Windows, export all symbols only when tests are built, too.
-    # The officially released binaries must not have internals exposed
-    # because it violates threat model requirements.
-    # The property applies only to MS-compatible tools on Windows, and
-    # is ignored for the rest.
-    set_target_properties(MIOpen PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
+    # On Windows, export selected internal symbols only when tests are built. The officially released
+    # binaries must not have internals exposed because doing so violates the threats model requirements.
+    # We cannot use the CMake property CMAKE_EXPORT_ALL_SYMBOLS here because the number of automatically
+    # exported symbols exceeds the maximum allowed number in a DLL library (64K).
+    # See details here: https://learn.microsoft.com/en-us/cpp/build/exporting-from-a-dll?view=msvc-170
+    generate_export_header(MIOpen BASE_NAME MIOPEN_INTERNALS EXPORT_FILE_NAME ${CMAKE_BINARY_DIR}/include/miopen/export_internals.h)
+    target_compile_definitions(MIOpen PUBLIC $<BUILD_INTERFACE:MIOPEN_BUILD_TESTING>)
 endif()
 
 if(MIOPEN_ENABLE_AI_KERNEL_TUNING OR MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK)
@@ -784,7 +847,7 @@ if(MIOPEN_ENABLE_AI_KERNEL_TUNING OR MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK)
     endif()
     foreach(MODEL_FILE ${MODEL_FILES})
         get_filename_component(MODEL_FILE_FILENAME "${MODEL_FILE}" NAME)
-    configure_file("${MODEL_FILE}" "${PROJECT_BINARY_DIR}/${DATABASE_INSTALL_DIR}/${MODEL_FILE_FILENAME}" COPYONLY)
+        configure_file("${MODEL_FILE}" "${PROJECT_BINARY_DIR}/${DATABASE_INSTALL_DIR}/${MODEL_FILE_FILENAME}" COPYONLY)
     endforeach()
 endif()
 
@@ -828,6 +891,10 @@ if(rocblas_FOUND)
     target_link_libraries( MIOpen INTERFACE $<BUILD_INTERFACE:roc::rocblas> )
     target_link_libraries( MIOpen PRIVATE roc::rocblas )
     list(APPEND PACKAGE_STATIC_DEPENDS PACKAGE rocblas)
+endif()
+
+if(hipblaslt_FOUND)
+    target_link_libraries( MIOpen PRIVATE roc::hipblaslt )
 endif()
 
 # For backward compatibility with ROCm 5.3

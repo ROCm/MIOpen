@@ -29,6 +29,9 @@
 #include <miopen/activ/problem_description.hpp>
 #include <miopen/any_solver.hpp>
 #include <miopen/conv/problem_description.hpp>
+#include <miopen/conv/solver_finders.hpp>
+#include <miopen/conv/data_invoke_params.hpp>
+#include <miopen/conv/wrw_invoke_params.hpp>
 #include <miopen/convolution.hpp>
 #include <miopen/mha/problem_description.hpp>
 #include <miopen/mha/solvers.hpp>
@@ -47,7 +50,6 @@
 
 #include <nlohmann/json.hpp>
 
-#include <boost/variant/apply_visitor.hpp>
 #include <boost/hof/match.hpp>
 
 namespace miopen::debug {
@@ -100,7 +102,7 @@ template <template <class Type> class Visitor, class... VariantArgs>
 struct VisitType;
 
 template <template <class Type> class Visitor, class... VariantArgs>
-struct VisitType<Visitor, boost::variant<VariantArgs...>>
+struct VisitType<Visitor, std::variant<VariantArgs...>>
 {
     template <class... Args>
     void operator()(int id, Args... args)
@@ -162,8 +164,8 @@ std::vector<Solution>
 Problem::FindSolutions(Handle& handle, const FindOptions& options, std::size_t max_solutions) const
 {
     auto owned_buffers = std::vector<Allocator::ManageDataPtr>{};
-    auto buffers       = std::unordered_map<miopenTensorArgumentId_t, Data_t>{};
     auto owned_scalars = std::vector<std::uint64_t>{};
+    auto buffers       = std::unordered_map<miopenTensorArgumentId_t, Data_t>{};
 
     const auto allocate = [&](auto id, auto&& descriptor) {
         auto buffer = AllocateTensor(handle, options, owned_buffers, owned_scalars, id, descriptor);
@@ -174,7 +176,7 @@ Problem::FindSolutions(Handle& handle, const FindOptions& options, std::size_t m
     for(const auto& pair : tensor_descriptors)
         allocate(pair.first, pair.second);
 
-    auto ret = boost::apply_visitor(
+    auto ret = std::visit(
         boost::hof::match(
             [&](const ConvolutionDescriptor& op_desc) {
                 return FindSolutionsImpl(handle, options, max_solutions, buffers, op_desc);
@@ -189,6 +191,9 @@ Problem::FindSolutions(Handle& handle, const FindOptions& options, std::size_t m
                 return FindSolutionsImpl(handle, options, max_solutions, buffers, op_desc);
             },
             [&](const BiasDescriptor& /*op_desc*/) -> std::vector<Solution> {
+                MIOPEN_THROW(miopenStatusNotImplemented);
+            },
+            [&](const BatchnormDescriptor& /*op_desc*/) -> std::vector<Solution> {
                 MIOPEN_THROW(miopenStatusNotImplemented);
             }),
         operator_descriptor);
@@ -243,15 +248,56 @@ Problem Problem::MakeTransposed() const
     for(const auto& descriptor : tensor_descriptors)
         transposed.tensor_descriptors.emplace(descriptor.first, descriptor.second);
 
-    std::swap(transposed.tensor_descriptors.at(GetInputId()),
-              transposed.tensor_descriptors.at(GetOutputId()));
+    const auto transpose_tensors = boost::hof::match(
+        [&](const ConvolutionDescriptor& op_desc) { return transposed.TransposeImpl(op_desc); },
+        [](auto&&) { MIOPEN_THROW(miopenStatusNotImplemented); });
+
+    std::visit(transpose_tensors, operator_descriptor);
 
     return transposed;
 }
 
+void Problem::TransposeImpl(const ConvolutionDescriptor& /*conv_desc*/)
+{
+    std::swap(tensor_descriptors.at(miopenTensorConvolutionX),
+              tensor_descriptors.at(miopenTensorConvolutionY));
+}
+
+AnyInvokeParams Problem::MakeConvInvokeParams(const TensorDescriptor& x_desc,
+                                              Data_t x,
+                                              const TensorDescriptor& w_desc,
+                                              Data_t w,
+                                              const TensorDescriptor& y_desc,
+                                              Data_t y,
+                                              Data_t workspace,
+                                              size_t workspace_size) const
+{
+    const auto& conv_desc = std::get<ConvolutionDescriptor>(operator_descriptor);
+
+    switch(GetDirection())
+    {
+    case miopenProblemDirectionForward:
+        return conv::DataInvokeParams({x_desc, x, w_desc, w, y_desc, y},
+                                      workspace,
+                                      workspace_size,
+                                      conv_desc.attribute.gfx90aFp16alt.GetFwd());
+    case miopenProblemDirectionBackward:
+        return conv::DataInvokeParams({y_desc, y, w_desc, w, x_desc, x},
+                                      workspace,
+                                      workspace_size,
+                                      conv_desc.attribute.gfx90aFp16alt.GetBwd());
+    case miopenProblemDirectionBackwardWeights:
+        return conv::WrWInvokeParams{{y_desc, y, x_desc, x, w_desc, w},
+                                     workspace,
+                                     workspace_size,
+                                     conv_desc.attribute.gfx90aFp16alt.GetWrW()};
+    default: MIOPEN_THROW(miopenStatusNotImplemented);
+    }
+}
+
 conv::ProblemDescription Problem::AsConvolution() const
 {
-    const auto& conv_desc = boost::get<ConvolutionDescriptor>(operator_descriptor);
+    const auto& conv_desc = std::get<ConvolutionDescriptor>(operator_descriptor);
 
     const auto& x_desc =
         GetTensorDescriptorChecked(miopenTensorConvolutionX, "miopenTensorConvolutionX");
@@ -268,7 +314,7 @@ conv::ProblemDescription Problem::AsConvolution() const
 
 activ::ProblemDescription Problem::AsActivation() const
 {
-    const auto& activ_desc = boost::get<ActivationDescriptor>(operator_descriptor);
+    const auto& activ_desc = std::get<ActivationDescriptor>(operator_descriptor);
 
     const auto& x_desc =
         GetTensorDescriptorChecked(miopenTensorActivationX, "miopenTensorActivationX");
@@ -289,43 +335,102 @@ activ::ProblemDescription Problem::AsActivation() const
 
 mha::ProblemDescription Problem::AsMha() const
 {
-    const auto& mha_desc = boost::get<MhaDescriptor>(operator_descriptor);
+    const auto& mha_desc = std::get<MhaDescriptor>(operator_descriptor);
 
-    if(GetDirection() == miopenProblemDirectionBackward)
+    float scale = mha_desc.GetScale();
+
+    const auto& kDesc = GetTensorDescriptorChecked(miopenTensorMhaK, "miopenTensorMhaK");
+    const auto& qDesc = GetTensorDescriptorChecked(miopenTensorMhaQ, "miopenTensorMhaQ");
+    const auto& vDesc = GetTensorDescriptorChecked(miopenTensorMhaV, "miopenTensorMhaV");
+
+    const auto& descaleKDesc =
+        GetTensorDescriptorChecked(miopenTensorMhaDescaleK, "miopenTensorMhaDescaleK");
+    const auto& descaleQDesc =
+        GetTensorDescriptorChecked(miopenTensorMhaDescaleQ, "miopenTensorMhaDescaleQ");
+    const auto& descaleVDesc =
+        GetTensorDescriptorChecked(miopenTensorMhaDescaleV, "miopenTensorMhaDescaleV");
+    const auto& descaleSDesc =
+        GetTensorDescriptorChecked(miopenTensorMhaDescaleS, "miopenTensorMhaDescaleS");
+
+    const auto& scaleSDesc =
+        GetTensorDescriptorChecked(miopenTensorMhaScaleS, "miopenTensorMhaScaleS");
+
+    const auto& dpDesc = GetTensorDescriptorChecked(miopenTensorMhaDropoutProbability,
+                                                    "miopenTensorMhaDropoutProbability");
+    const auto& dsDesc =
+        GetTensorDescriptorChecked(miopenTensorMhaDropoutSeed, "miopenTensorMhaDropoutSeed");
+    const auto& doffDesc =
+        GetTensorDescriptorChecked(miopenTensorMhaDropoutOffset, "miopenTensorMhaDropoutOffset");
+
+    const auto& oDesc    = GetTensorDescriptorChecked(miopenTensorMhaO, "miopenTensorMhaO");
+    const auto& mDesc    = GetTensorDescriptorChecked(miopenTensorMhaM, "miopenTensorMhaM");
+    const auto& zInvDesc = GetTensorDescriptorChecked(miopenTensorMhaZInv, "miopenTensorMhaZInv");
+
+    if(GetDirection() == miopenProblemDirectionForward)
     {
-        MIOPEN_THROW(miopenStatusNotImplemented, "Mha Backward is not currently implemented!");
+        mha::MhaInputDescsForward mhaInputDescsForward = {
+            kDesc,
+            qDesc,
+            vDesc,
+            descaleKDesc,
+            descaleQDesc,
+            descaleVDesc,
+            descaleSDesc,
+            scaleSDesc,
+            GetTensorDescriptorChecked(miopenTensorMhaScaleO, "miopenTensorMhaScaleO"),
+            scale,
+            dpDesc,
+            dsDesc,
+            doffDesc,
+            oDesc,
+            GetTensorDescriptorChecked(miopenTensorMhaAmaxO, "miopenTensorMhaAmaxO"),
+            GetTensorDescriptorChecked(miopenTensorMhaAmaxS, "miopenTensorMhaAmaxS"),
+            mDesc,
+            zInvDesc};
+
+        return {mhaInputDescsForward};
     }
+    else
+    {
+        mha::MhaInputDescsBackward mhaInputDescsBackward = {
+            kDesc,
+            qDesc,
+            vDesc,
+            oDesc,
+            GetTensorDescriptorChecked(miopenTensorMhaDO, "miopenTensorMhaDO"),
+            mDesc,
+            zInvDesc,
+            descaleKDesc,
+            descaleQDesc,
+            descaleVDesc,
+            descaleSDesc,
+            GetTensorDescriptorChecked(miopenTensorMhaDescaleO, "miopenTensorMhaDescaleO"),
+            GetTensorDescriptorChecked(miopenTensorMhaDescaleDO, "miopenTensorMhaDescaleDO"),
+            GetTensorDescriptorChecked(miopenTensorMhaDescaleDS, "miopenTensorMhaDescaleDS"),
+            scaleSDesc,
+            GetTensorDescriptorChecked(miopenTensorMhaScaleDS, "miopenTensorMhaScaleDS"),
+            GetTensorDescriptorChecked(miopenTensorMhaScaleDQ, "miopenTensorMhaScaleDQ"),
+            GetTensorDescriptorChecked(miopenTensorMhaScaleDK, "miopenTensorMhaScaleDK"),
+            GetTensorDescriptorChecked(miopenTensorMhaScaleDV, "miopenTensorMhaScaleDV"),
+            scale,
+            dpDesc,
+            dsDesc,
+            doffDesc,
+            GetTensorDescriptorChecked(miopenTensorMhaDQ, "miopenTensorMhaDQ"),
+            GetTensorDescriptorChecked(miopenTensorMhaDK, "miopenTensorMhaDK"),
+            GetTensorDescriptorChecked(miopenTensorMhaDV, "miopenTensorMhaDV"),
+            GetTensorDescriptorChecked(miopenTensorMhaAmaxDQ, "miopenTensorMhaAmaxDQ"),
+            GetTensorDescriptorChecked(miopenTensorMhaAmaxDK, "miopenTensorMhaAmaxDK"),
+            GetTensorDescriptorChecked(miopenTensorMhaAmaxDV, "miopenTensorMhaAmaxDV"),
+            GetTensorDescriptorChecked(miopenTensorMhaAmaxDS, "miopenTensorMhaAmaxDS")};
 
-    mha::MhaInputDescsForward mhaInputDescsForward = {
-        GetTensorDescriptorChecked(miopenTensorMhaK, "miopenTensorMhaK"),
-        GetTensorDescriptorChecked(miopenTensorMhaQ, "miopenTensorMhaQ"),
-        GetTensorDescriptorChecked(miopenTensorMhaV, "miopenTensorMhaV"),
-        GetTensorDescriptorChecked(miopenTensorMhaDescaleK, "miopenTensorMhaDescaleK"),
-        GetTensorDescriptorChecked(miopenTensorMhaDescaleQ, "miopenTensorMhaDescaleQ"),
-        GetTensorDescriptorChecked(miopenTensorMhaDescaleV, "miopenTensorMhaDescaleV"),
-        GetTensorDescriptorChecked(miopenTensorMhaDescaleS, "miopenTensorMhaDescaleS"),
-        GetTensorDescriptorChecked(miopenTensorMhaScaleS, "miopenTensorMhaScaleS"),
-        GetTensorDescriptorChecked(miopenTensorMhaScaleO, "miopenTensorMhaScaleO"),
-
-        mha_desc.GetScale(),
-        GetTensorDescriptorChecked(miopenTensorMhaDropoutProbability,
-                                   "miopenTensorMhaDropoutProbability"),
-        GetTensorDescriptorChecked(miopenTensorMhaDropoutSeed, "miopenTensorMhaDropoutSeed"),
-        GetTensorDescriptorChecked(miopenTensorMhaDropoutOffset, "miopenTensorMhaDropoutOffset"),
-
-        GetTensorDescriptorChecked(miopenTensorMhaO, "miopenTensorMhaO"),
-        GetTensorDescriptorChecked(miopenTensorMhaAmaxO, "miopenTensorMhaAmaxO"),
-        GetTensorDescriptorChecked(miopenTensorMhaAmaxS, "miopenTensorMhaAmaxS"),
-        GetTensorDescriptorChecked(miopenTensorMhaM, "miopenTensorMhaM"),
-        GetTensorDescriptorChecked(miopenTensorMhaZInv, "miopenTensorMhaZInv"),
-    };
-
-    return {mhaInputDescsForward};
+        return {mhaInputDescsBackward};
+    }
 }
 
 softmax::ProblemDescription Problem::AsSoftmax() const
 {
-    const auto& softmax_desc = boost::get<SoftmaxDescriptor>(operator_descriptor);
+    const auto& softmax_desc = std::get<SoftmaxDescriptor>(operator_descriptor);
 
     float alpha = softmax_desc.GetAlpha();
     float beta  = softmax_desc.GetBeta();
@@ -356,25 +461,22 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
                                                  const Buffers& buffers,
                                                  const ConvolutionDescriptor& conv_desc) const
 {
-    auto ret = std::vector<Solution>{};
-
     if(tensor_descriptors.size() != 3)
     {
         MIOPEN_THROW(miopenStatusInvalidValue,
                      "Convolution problem should have exactly three tensor descriptors.");
     }
 
-    // These are not swapped for now to preserve argument order in calls
-    const auto& x_desc =
-        GetTensorDescriptorChecked(miopenTensorConvolutionX, "miopenTensorConvolutionX");
+    auto x_desc = GetTensorDescriptorChecked(miopenTensorConvolutionX, "miopenTensorConvolutionX");
     const auto& w_desc =
         GetTensorDescriptorChecked(miopenTensorConvolutionW, "miopenTensorConvolutionW");
-    const auto& y_desc =
-        GetTensorDescriptorChecked(miopenTensorConvolutionY, "miopenTensorConvolutionY");
+    auto y_desc = GetTensorDescriptorChecked(miopenTensorConvolutionY, "miopenTensorConvolutionY");
 
-    const auto& x = buffers.at(miopenTensorConvolutionX);
+    ValidateGroupCount(x_desc, w_desc, conv_desc);
+
+    auto x        = buffers.at(miopenTensorConvolutionX);
     const auto& w = buffers.at(miopenTensorConvolutionW);
-    const auto& y = buffers.at(miopenTensorConvolutionY);
+    auto y        = buffers.at(miopenTensorConvolutionY);
 
     const auto conv_problem =
         conv_desc.mode == miopenTranspose ? MakeTransposed().AsConvolution() : AsConvolution();
@@ -382,6 +484,12 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
     std::size_t workspace_size;
     Allocator::ManageDataPtr owned_workspace;
     Data_t workspace;
+
+    if(conv_desc.mode == miopenTranspose)
+    {
+        std::swap(x, y);
+        std::swap(x_desc, y_desc);
+    }
 
     if(options.preallocated_workspace)
     {
@@ -397,111 +505,38 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
         workspace                = owned_workspace.get();
     }
 
-    auto find1_solutions = std::vector<miopenConvAlgoPerf_t>{};
-    find1_solutions.resize(max_solutions);
-    int found;
+    auto ctx = ExecutionContext{&handle};
+    conv_problem.SetupFloats(ctx);
+    ctx.do_search = options.exhaustive_search;
 
-    switch(direction)
+    const auto invoke_ctx =
+        MakeConvInvokeParams(x_desc, x, w_desc, w, y_desc, y, workspace, workspace_size);
+
+    auto results =
+        FindConvolution(ctx, conv_problem, invoke_ctx, max_solutions, options.attach_binaries);
+
+    for(auto& result : results)
     {
-    case miopenProblemDirectionForward: {
-        const auto method = conv_desc.mode == miopenTranspose
-                                ? &ConvolutionDescriptor::FindConvBwdDataAlgorithm
-                                : &ConvolutionDescriptor::FindConvFwdAlgorithm;
+        result.SetProblem({*this});
 
-        (conv_desc.*method)(handle,
-                            x_desc,
-                            x,
-                            w_desc,
-                            w,
-                            y_desc,
-                            y,
-                            max_solutions,
-                            &found,
-                            find1_solutions.data(),
-                            workspace,
-                            workspace_size,
-                            options.exhaustive_search);
-        break;
+        if(result.GetKernels().empty())
+        {
+            // If find-db was used binaries and invoker have not been set.
+            // This would make binaries not serialized and invoker not cached.
+            // So we prepare them here.
+
+            auto db = GetDb(ctx);
+            const auto conv_solution =
+                result.GetSolver().GetSolver().FindSolution(ctx, conv_problem, db, invoke_ctx);
+
+            std::vector<Program> programs;
+            auto invoker = handle.PrepareInvoker(*conv_solution.invoker_factory,
+                                                 conv_solution.construction_params,
+                                                 options.attach_binaries ? &programs : nullptr);
+            result.SetInvoker(std::move(invoker), programs, conv_solution.construction_params);
+        }
     }
-    case miopenProblemDirectionBackward: {
-        const auto method = conv_desc.mode == miopenTranspose
-                                ? &ConvolutionDescriptor::FindConvFwdAlgorithm
-                                : &ConvolutionDescriptor::FindConvBwdDataAlgorithm;
-
-        (conv_desc.*method)(handle,
-                            y_desc,
-                            y,
-                            w_desc,
-                            w,
-                            x_desc,
-                            x,
-                            max_solutions,
-                            &found,
-                            find1_solutions.data(),
-                            workspace,
-                            workspace_size,
-                            options.exhaustive_search);
-        break;
-    }
-    case miopenProblemDirectionBackwardWeights: {
-        decltype(auto) x_desc_ = conv_desc.mode == miopenTranspose ? y_desc : x_desc;
-        decltype(auto) x_      = conv_desc.mode == miopenTranspose ? y : x;
-        decltype(auto) y_desc_ = conv_desc.mode == miopenTranspose ? x_desc : y_desc;
-        decltype(auto) y_      = conv_desc.mode == miopenTranspose ? x : y;
-
-        conv_desc.FindConvBwdWeightsAlgorithm(handle,
-                                              y_desc_,
-                                              y_,
-                                              x_desc_,
-                                              x_,
-                                              w_desc,
-                                              w,
-                                              max_solutions,
-                                              &found,
-                                              find1_solutions.data(),
-                                              workspace,
-                                              workspace_size,
-                                              options.exhaustive_search);
-        break;
-    }
-    }
-
-    ret.reserve(found);
-
-    const auto conv_dir = ([&]() {
-        const auto dir = static_cast<conv::Direction>(direction);
-        if(dir == conv::Direction::BackwardWeights || conv_desc.mode != miopenTranspose)
-            return dir;
-        return dir == conv::Direction::Forward ? conv::Direction::BackwardData
-                                               : conv::Direction::Forward;
-    })();
-
-    const auto netcfg = conv_problem.MakeNetworkConfig();
-    auto conv_ctx     = ExecutionContext{&handle};
-    conv_problem.SetupFloats(conv_ctx);
-
-    decltype(auto) db = GetDb(conv_ctx);
-
-    for(auto i = 0; i < found; ++i)
-    {
-        const auto algo = ConvolutionAlgoToDirectionalString(
-            static_cast<miopenConvAlgorithm_t>(find1_solutions[i].fwd_algo), conv_dir);
-
-        auto solution = Solution{};
-        solution.SetTime(find1_solutions[i].time);
-        solution.SetWorkspaceSize(find1_solutions[i].memory);
-        solution.SetSolver(handle.GetFound1_0SolverId(netcfg, AlgorithmName{algo}).value());
-        solution.SetPerfConfig(
-            solution.GetSolver().GetSolver().GetPerfCfgParams(conv_ctx, conv_problem, db));
-        solution.SetProblem({*this});
-        MIOPEN_LOG_I("Found solution: " << solution.GetSolver().ToString() << " , "
-                                        << solution.GetWorkspaceSize() << ", "
-                                        << solution.GetTime());
-
-        ret.emplace_back(std::move(solution));
-    }
-
-    return ret;
+    return results;
 }
 
 std::vector<Solution>
@@ -574,11 +609,10 @@ Problem::FindSolutionsImpl(Handle& handle,
 
     const auto algo = AlgorithmName{"Mha"};
 
-    static solver::mha::Mha mhaSolver;
+    static solver::mha::MhaForward mhaForwardSolver;
+    static solver::mha::MhaBackward mhaBackwardSolver;
 
-    std::vector<solver::mha::MhaSolver*> solvers;
-
-    solvers.push_back(&mhaSolver);
+    std::vector<solver::mha::MhaSolver*> solvers = {&mhaForwardSolver, &mhaBackwardSolver};
 
     for(auto solver : solvers)
     {
@@ -635,14 +669,7 @@ void Problem::ValidateGroupCount(const TensorDescriptor& xDesc,
 
 void Problem::LogDriverCommand() const
 {
-    const auto log_function =
-        boost::hof::match([&](const ConvolutionDescriptor& op_desc) { LogDriverCommand(op_desc); },
-                          [&](const ActivationDescriptor& op_desc) { LogDriverCommand(op_desc); },
-                          [&](const BiasDescriptor&) {},
-                          [&](const MhaDescriptor&) {},
-                          [&](const SoftmaxDescriptor&) {});
-
-    boost::apply_visitor(log_function, operator_descriptor);
+    std::visit([&](const auto& op_desc) { LogDriverCommand(op_desc); }, operator_descriptor);
 }
 
 void Problem::LogDriverCommand(const ConvolutionDescriptor& conv_desc) const
@@ -663,20 +690,58 @@ void Problem::LogDriverCommand(const ActivationDescriptor& descriptor) const
     miopen::debug::LogCmdActivation(x_desc, descriptor, direction == miopenProblemDirectionForward);
 }
 
+void Problem::LogDriverCommand(const BiasDescriptor& descriptor) const
+{
+    /// \todo: log actual driver command
+    std::ignore = descriptor;
+}
+
+void Problem::LogDriverCommand(const BatchnormDescriptor& descriptor) const
+{
+    /// \todo: log actual driver command
+    std::ignore = descriptor;
+}
+
+void Problem::LogDriverCommand(const MhaDescriptor& descriptor) const
+{
+    /// \todo: log actual driver command
+    std::ignore = descriptor;
+}
+
+void Problem::LogDriverCommand(const SoftmaxDescriptor& descriptor) const
+{
+    /// \todo: log actual driver command
+    std::ignore = descriptor;
+}
+
 void to_json(nlohmann::json& json, const BiasDescriptor&) { json = nlohmann::json{}; }
 
 void from_json(const nlohmann::json&, BiasDescriptor&) {}
+
+void to_json(nlohmann::json& j, const BatchnormDescriptor& descriptor)
+{
+    j = nlohmann::json{
+        {"mode", descriptor.mode},
+        {"runningMeanVariance", descriptor.runningMeanVariance},
+    };
+}
+
+void from_json(const nlohmann::json& j, BatchnormDescriptor& descriptor)
+{
+    j.at("mode").get_to(descriptor.mode);
+    j.at("runningMeanVariance").get_to(descriptor.runningMeanVariance);
+}
 
 void to_json(nlohmann::json& json, const Problem& problem)
 {
     json = nlohmann::json{
         {"direction", problem.direction},
         {"tensors", problem.tensor_descriptors},
-        {"primitive", problem.operator_descriptor.which()},
+        {"primitive", problem.operator_descriptor.index()},
     };
 
     auto operator_serialization = [&](auto&& op) { json["operator"] = op; };
-    boost::apply_visitor(operator_serialization, problem.operator_descriptor);
+    std::visit(operator_serialization, problem.operator_descriptor);
 }
 
 namespace detail {
@@ -686,7 +751,7 @@ struct OperatorDescriptorDeserializer
     const nlohmann::json* json;
     OperatorDescriptor* descriptor;
 
-    void operator()() const { *descriptor = json->get<Descriptor>(); }
+    inline void operator()() const { *descriptor = json->get<Descriptor>(); }
 };
 } // namespace detail
 
@@ -717,11 +782,11 @@ void from_json(const nlohmann::json& json, FusedProblem& problem)
 void to_json(nlohmann::json& json, const ProblemContainer& problem)
 {
     json = nlohmann::json{
-        {"problem_type", problem.item.which()},
+        {"problem_type", problem.item.index()},
     };
 
     auto operator_serialization = [&](auto&& op) { json["value"] = op; };
-    boost::apply_visitor(operator_serialization, problem.item);
+    std::visit(operator_serialization, problem.item);
 }
 
 namespace detail {
@@ -748,7 +813,7 @@ void Problem::CalculateOutput()
     if(!HasInput())
         return;
 
-    boost::apply_visitor(
+    std::visit(
         boost::hof::match(
             [&](const ConvolutionDescriptor& conv) {
                 const auto& in = GetInput();
@@ -763,30 +828,65 @@ void Problem::CalculateOutput()
 
             [&](const MhaDescriptor&) { RegisterTensorDescriptor(GetOutputId(), GetInput()); },
             [&](const SoftmaxDescriptor&) { RegisterTensorDescriptor(GetOutputId(), GetInput()); },
-            [&](const BiasDescriptor&) { RegisterTensorDescriptor(GetOutputId(), GetInput()); }),
+            [&](const BiasDescriptor&) { RegisterTensorDescriptor(GetOutputId(), GetInput()); },
+            [&](const BatchnormDescriptor&) {
+                RegisterTensorDescriptor(GetOutputId(), GetInput());
+            }),
         operator_descriptor);
 }
 
 miopenTensorArgumentId_t Problem::GetInputId() const
 {
-    return boost::apply_visitor(
-        boost::hof::match([](const ConvolutionDescriptor&) { return miopenTensorConvolutionX; },
-                          [](const ActivationDescriptor&) { return miopenTensorActivationX; },
-                          [](const BiasDescriptor&) { return miopenTensorBiasX; },
+    return std::visit(boost::hof::match(
+                          [&](const ConvolutionDescriptor&) {
+                              return direction == miopenProblemDirectionForward
+                                         ? miopenTensorConvolutionX
+                                         : miopenTensorConvolutionY;
+                          },
+                          [&](const ActivationDescriptor&) {
+                              return direction == miopenProblemDirectionForward
+                                         ? miopenTensorActivationX
+                                         : miopenTensorActivationDY;
+                          },
+                          [&](const BiasDescriptor&) {
+                              return direction == miopenProblemDirectionForward ? miopenTensorBiasX
+                                                                                : miopenTensorBiasY;
+                          },
+                          [&](const BatchnormDescriptor&) {
+                              return direction == miopenProblemDirectionBackward
+                                         ? miopenTensorBatchnormDY
+                                         : miopenTensorBatchnormX;
+                          },
                           [](const MhaDescriptor&) { return miopenTensorMhaK; },
                           [](const SoftmaxDescriptor&) { return miopenTensorSoftmaxX; }),
-        operator_descriptor);
+                      operator_descriptor);
 }
 
 miopenTensorArgumentId_t Problem::GetOutputId() const
 {
-    return boost::apply_visitor(
-        boost::hof::match([](const ConvolutionDescriptor&) { return miopenTensorConvolutionY; },
-                          [](const ActivationDescriptor&) { return miopenTensorActivationY; },
-                          [](const BiasDescriptor&) { return miopenTensorBiasY; },
+    return std::visit(boost::hof::match(
+                          [&](const ConvolutionDescriptor&) {
+                              return direction == miopenProblemDirectionForward
+                                         ? miopenTensorConvolutionY
+                                         : miopenTensorConvolutionX;
+                          },
+                          [&](const ActivationDescriptor&) {
+                              return direction == miopenProblemDirectionForward
+                                         ? miopenTensorActivationY
+                                         : miopenTensorActivationDX;
+                          },
+                          [&](const BiasDescriptor&) {
+                              return direction == miopenProblemDirectionForward ? miopenTensorBiasY
+                                                                                : miopenTensorBiasX;
+                          },
+                          [&](const BatchnormDescriptor&) {
+                              return direction == miopenProblemDirectionBackward
+                                         ? miopenTensorBatchnormDX
+                                         : miopenTensorBatchnormY;
+                          },
                           [](const MhaDescriptor&) { return miopenTensorMhaO; },
                           [](const SoftmaxDescriptor&) { return miopenTensorSoftmaxY; }),
-        operator_descriptor);
+                      operator_descriptor);
 }
 
 void FusedProblem::PropagateDescriptors()
@@ -811,7 +911,7 @@ std::vector<Solution> FusedProblem::FindSolutions(Handle& handle,
                                                   const FindOptions& options,
                                                   std::size_t max_solutions) const
 {
-    const auto find1_solutions = [&]() {
+    auto solutions = [&]() {
         OperatorArgs params;
         auto owned_buffers = std::vector<Allocator::ManageDataPtr>{};
         auto owned_scalars = std::vector<std::uint64_t>{};
@@ -827,34 +927,22 @@ std::vector<Solution> FusedProblem::FindSolutions(Handle& handle,
         return AsFusionPlan().Find(handle, make_invoke_params, options);
     }();
 
-    auto ret = std::vector<Solution>{};
-    ret.reserve(find1_solutions.size());
-    // decltype(auto) db = GetDb(ExecutionContext{&handle});
-
-    for(const auto& find1_solution : find1_solutions)
+    for(auto& solution : solutions)
     {
-        auto solution = Solution{};
-        solution.SetTime(find1_solution.time);
-        solution.SetWorkspaceSize(find1_solution.workspace);
-        solution.SetSolver(find1_solution.solver_id);
         solution.SetProblem({*this});
-        // solution.SetPerfConfig(solution.GetSolver().GetSolver().GetPerfCfgParams(conv_ctx,
-        // legacy_problem, db));
         MIOPEN_LOG_I("Found solution: " << solution.GetSolver().ToString() << " , "
                                         << solution.GetWorkspaceSize() << ", "
                                         << solution.GetTime());
-
-        ret.emplace_back(std::move(solution));
     }
 
-    SortFindResults(options, ret);
-    ret.resize(std::min(ret.size(), max_solutions));
-    return ret;
+    SortFindResults(options, solutions);
+    solutions.resize(std::min(solutions.size(), max_solutions));
+    return solutions;
 }
 
 void FusedProblem::AddProblemToPlan(FusionPlanDescriptor& plan, const Problem& problem)
 {
-    boost::apply_visitor(
+    std::visit(
         boost::hof::match(
             [&](const ConvolutionDescriptor& conv_desc) {
                 plan.AddOp(std::make_shared<ConvForwardOpDescriptor>(
@@ -882,6 +970,29 @@ void FusedProblem::AddProblemToPlan(FusionPlanDescriptor& plan, const Problem& p
                 assert(false);
                 MIOPEN_THROW(miopenStatusNotImplemented,
                              "Softmax is not implemented for FusedProblem");
+            },
+            [&](const BatchnormDescriptor& descriptor) {
+                switch(problem.GetDirection())
+                {
+                case miopenProblemDirectionForward:
+                    plan.AddOp(std::make_shared<BatchNormFwdTrainFusionOpDescriptor>(
+                        descriptor.mode, descriptor.runningMeanVariance));
+                    break;
+                case miopenProblemDirectionBackward:
+                    plan.AddOp(
+                        std::make_shared<BatchNormBwdTrainFusionOpDescriptor>(descriptor.mode));
+                    break;
+                case miopenProblemDirectionInference: {
+                    auto smv = problem.GetTensorDescriptorChecked(
+                        miopenTensorBatchnormEstimatedMean, "miopenTensorBatchnormEstimatedMean");
+                    plan.AddOp(std::make_shared<BatchNormInferenceFusionOpDescriptor>(
+                        descriptor.mode, smv));
+                    break;
+                }
+                default:
+                    MIOPEN_THROW(miopenStatusBadParm,
+                                 "Batchnorm only has forward, backward and inference directions");
+                }
             }),
 
         problem.operator_descriptor);
@@ -911,8 +1022,6 @@ fusion::FusionInvokeParams FusedProblem::MakeInvokeParams(
             get_buffer(id, TensorDescriptor()));
     };
 
-    std::ignore = get_scalar;
-
     bool gfx90aaltimpl = false;
     auto in            = get_buffer(GetInputId(), in_desc);
     auto out           = get_buffer(GetOutputId(), out_desc);
@@ -923,7 +1032,7 @@ fusion::FusionInvokeParams FusedProblem::MakeInvokeParams(
             if(pair.first != problem.GetInputId() && pair.first != problem.GetOutputId())
                 get_buffer(pair.first, pair.second);
 
-        boost::apply_visitor(
+        std::visit(
             boost::hof::match(
                 [&](const ConvolutionDescriptor& conv_desc) {
                     gfx90aaltimpl = conv_desc.attribute.gfx90aFp16alt.GetFwd();
@@ -970,8 +1079,50 @@ fusion::FusionInvokeParams FusedProblem::MakeInvokeParams(
                     assert(false);
                     MIOPEN_THROW(miopenStatusNotImplemented,
                                  "Softmax is not implemented for FusedProblem");
+                },
+                [&](const BatchnormDescriptor& /*descriptor*/) {
+                    /// \todo: fix this to pass actual values
+                    switch(problem.GetDirection())
+                    {
+                    case miopenProblemDirectionForward:
+                        operator_args.params.emplace_back(
+                            std::make_unique<miopen::fusion::BatchNormFwdTrainingOpInvokeParam>(
+                                buffers.at(miopenTensorBatchnormRunningMean),
+                                buffers.at(miopenTensorBatchnormRunningVariance),
+                                buffers.at(miopenTensorBatchnormSavedMean),
+                                buffers.at(miopenTensorBatchnormSavedVariance),
+                                buffers.at(miopenTensorBatchnormScale),
+                                buffers.at(miopenTensorBatchnormBias),
+                                get_scalar(miopenScalarBatchnormExpAvgFactor, double{}),
+                                get_scalar(miopenScalarBatchnormEpsilon, double{})));
+                        break;
+                    case miopenProblemDirectionBackward:
+                        operator_args.params.emplace_back(
+                            std::make_unique<miopen::fusion::BatchNormBwdTrainingOpInvokeParam>(
+                                buffers.at(miopenTensorBatchnormX),
+                                buffers.at(miopenTensorBatchnormScale),
+                                buffers.at(miopenTensorBatchnormBias),
+                                buffers.at(miopenTensorBatchnormScaleDiff),
+                                buffers.at(miopenTensorBatchnormBiasDiff),
+                                buffers.at(miopenTensorBatchnormSavedMean),
+                                buffers.at(miopenTensorBatchnormSavedVariance)));
+                        break;
+                    case miopenProblemDirectionInference: {
+                        operator_args.params.emplace_back(
+                            std::make_unique<miopen::fusion::BatchNormInferenceOpInvokeParam>(
+                                buffers.at(miopenTensorBatchnormScale),
+                                buffers.at(miopenTensorBatchnormBias),
+                                buffers.at(miopenTensorBatchnormEstimatedMean),
+                                buffers.at(miopenTensorBatchnormEstimatedVariance),
+                                get_scalar(miopenScalarBatchnormEpsilon, double{})));
+                        break;
+                    }
+                    default:
+                        MIOPEN_THROW(
+                            miopenStatusBadParm,
+                            "Batchnorm only has forward, backward and inference directions");
+                    }
                 }),
-
             problem.operator_descriptor);
     }
 

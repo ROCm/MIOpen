@@ -58,15 +58,21 @@ public:
     {
         if(!enabled)
             return;
-        et = std::chrono::steady_clock::now();
+        capture();
     }
     float gettime_ms()
     {
         return std::chrono::duration_cast<std::chrono::duration<float, std::milli>>(et - st)
             .count();
     }
+    float interim_time_ms()
+    {
+        capture();
+        return gettime_ms();
+    }
 
 private:
+    void capture() { et = std::chrono::steady_clock::now(); }
     std::chrono::time_point<std::chrono::steady_clock> st;
     std::chrono::time_point<std::chrono::steady_clock> et;
 };

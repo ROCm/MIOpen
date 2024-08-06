@@ -191,13 +191,15 @@ bool BnCKBwdBackward::IsApplicable(
     [[maybe_unused]] const miopen::batchnorm::ProblemDescription& bn_problem) const
 {
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
-    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_CK_BN_BACK)))
+    if(env::disabled(MIOPEN_DEBUG_CONV_CK_BN_BACK))
         return false;
     if(!bn_problem.IsLayoutNHWC())
         return false;
     if(!ck_utility::is_ck_supported_hardware(context.GetStream()))
         return false;
     if(bn_problem.GetXDesc().GetType() != bn_problem.GetScaleBiasDiffDesc().GetType())
+        return false;
+    if(bn_problem.GetDirection() != miopen::batchnorm::Direction::Backward)
         return false;
 
     switch(bn_problem.GetXDesc().GetType())
@@ -207,6 +209,7 @@ bool BnCKBwdBackward::IsApplicable(
     case miopenHalf: return CheckCKApplicability<F16, F32, F32, F32, F16, F32, F32>(bn_problem);
     case miopenBFloat16:
         return CheckCKApplicability<BF16, F32, F32, F32, BF16, F32, F32>(bn_problem);
+    case miopenInt64:
     case miopenInt32:
     case miopenInt8:
     case miopenBFloat8:
@@ -231,6 +234,7 @@ ConvSolution BnCKBwdBackward::GetSolution(
         return MakeAnyInvokerFactory<BF16, F32, F32, F32, BF16, F32, F32>(bn_problem);
     case miopenInt8:
     case miopenInt32:
+    case miopenInt64:
     case miopenBFloat8:
     case miopenFloat8:
     default:

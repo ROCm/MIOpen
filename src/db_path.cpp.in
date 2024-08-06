@@ -44,14 +44,14 @@ namespace miopen {
 #ifdef __linux__
 fs::path GetLibPath()
 {
-    fs::path path = {""};
+    fs::path path;
     Dl_info info;
 
     if(dladdr(reinterpret_cast<void*>(miopenCreate), &info) != 0)
     {
         path = fs::canonical(fs::path{info.dli_fname});
         MIOPEN_LOG_I2("Lib Path: " << path);
-        if(path.empty())
+        if(!path.has_parent_path())
             return path;
 
         path = path.parent_path();
@@ -60,9 +60,9 @@ fs::path GetLibPath()
 }
 #endif
 
-std::string GetSystemDbPath()
+fs::path GetSystemDbPath()
 {
-    auto p = GetStringEnv(ENV(MIOPEN_SYSTEM_DB_PATH));
+    auto p = env::value(MIOPEN_SYSTEM_DB_PATH);
     if(p.empty())
 #if MIOPEN_BUILD_DEV || defined(_WIN32)
     {
@@ -73,7 +73,7 @@ std::string GetSystemDbPath()
 #else
     {
         // Get the module path and construct the db path
-        static const auto lib_path = (GetLibPath().parent_path() / "share/miopen/db/").string();
+        static const auto lib_path = GetLibPath().parent_path() / "share/miopen/db";
         return lib_path;
     }
 #endif
@@ -88,7 +88,7 @@ fs::path PrepareUserDbPath()
 {
     /// If MIOPEN_USER_DB_PATH is set in the environment, then assume that the user wants
     /// the library to use exactly that path.
-    const auto p = GetStringEnv(ENV(MIOPEN_USER_DB_PATH));
+    const auto p = env::value(MIOPEN_USER_DB_PATH);
     if(!p.empty())
         return ExpandUser(p);
     /// \anchor nfs-detection

@@ -33,22 +33,22 @@ namespace miopen {
 struct Handle;
 struct TensorDescriptor;
 
-miopenStatus_t LayerNormForward(Handle& handle,
-                                const TensorDescriptor& xDesc,
-                                ConstData_t x,
-                                const TensorDescriptor& weightDesc,
-                                ConstData_t weight,
-                                const TensorDescriptor& biasDesc,
-                                ConstData_t bias,
-                                const TensorDescriptor& yDesc,
-                                Data_t y,
-                                const TensorDescriptor& meanDesc,
-                                Data_t mean,
-                                const TensorDescriptor& rstdDesc,
-                                Data_t rstd,
-                                miopenNormMode_t mode,
-                                float epsilon,
-                                int32_t normalized_dim);
+MIOPEN_INTERNALS_EXPORT miopenStatus_t LayerNormForward(Handle& handle,
+                                                        const TensorDescriptor& xDesc,
+                                                        ConstData_t x,
+                                                        const TensorDescriptor& weightDesc,
+                                                        ConstData_t weight,
+                                                        const TensorDescriptor& biasDesc,
+                                                        ConstData_t bias,
+                                                        const TensorDescriptor& yDesc,
+                                                        Data_t y,
+                                                        const TensorDescriptor& meanDesc,
+                                                        Data_t mean,
+                                                        const TensorDescriptor& rstdDesc,
+                                                        Data_t rstd,
+                                                        miopenNormMode_t mode,
+                                                        float epsilon,
+                                                        int32_t normalized_dim);
 
 } // namespace miopen
-#endif // _MIOPEN_LAYERNORM_HPP_
+#endif // MIOPEN_LAYERNORM_HPP_
