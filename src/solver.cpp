@@ -674,7 +674,8 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
              fusion::ConvWinoFuryRxSFused<2, 3>{}.SolverDbId(),
              miopenConvolutionAlgoWinograd);
 
-    Register(registry, ++id, Primitive::PadReflection, pad_reflection::PadReflection{}.SolverDbId());
+    Register(
+        registry, ++id, Primitive::PadReflection, pad_reflection::PadReflection{}.SolverDbId());
 
     // IMPORTANT: New solvers should be added to the end of the function!
 }
