@@ -35,24 +35,15 @@ std::string_view GpuTypeToStr(Gpu dev)
 {
     switch(dev)
     {
-    case Gpu::gfx900:
-        return "gfx900";
-    case Gpu::gfx906:
-        return "gfx906";
-    case Gpu::gfx908:
-        return "gfx908";
-    case Gpu::gfx90A:
-        return "gfx90a";
-    case Gpu::gfx94X:
-        return "gfx940";
-    case Gpu::gfx103X:
-        return "gfx1030";
-    case Gpu::gfx110X:
-        return "gfx1100";
-    case Gpu::gfx115X:
-        return "gfx1150";
-    default:
-        throw std::runtime_error("unknown device");
+    case Gpu::gfx900: return "gfx900";
+    case Gpu::gfx906: return "gfx906";
+    case Gpu::gfx908: return "gfx908";
+    case Gpu::gfx90A: return "gfx90a";
+    case Gpu::gfx94X: return "gfx940";
+    case Gpu::gfx103X: return "gfx1030";
+    case Gpu::gfx110X: return "gfx1100";
+    case Gpu::gfx115X: return "gfx1150";
+    default: throw std::runtime_error("unknown device");
     }
 }
 
@@ -73,7 +64,9 @@ bool IsGpuSupported(Gpu supported_gpus, Gpu gpu)
     return false;
 }
 
-miopen::conv::ProblemDescription GetProblemDescription(miopenDataType_t datatype, miopen::conv::Direction direction, const ConvTestCaseBase& conv_config)
+miopen::conv::ProblemDescription GetProblemDescription(miopenDataType_t datatype,
+                                                       miopen::conv::Direction direction,
+                                                       const ConvTestCaseBase& conv_config)
 {
     const auto inp_desc  = miopen::TensorDescriptor{datatype, conv_config.GetInput()};
     const auto wei_desc  = miopen::TensorDescriptor{datatype, conv_config.GetWeights()};
@@ -87,8 +80,7 @@ miopen::conv::ProblemDescription GetProblemDescription(miopenDataType_t datatype
         return miopen::conv::ProblemDescription(inp_desc, wei_desc, out_desc, conv_desc, direction);
     case miopen::conv::Direction::BackwardWeights:
         return miopen::conv::ProblemDescription(out_desc, wei_desc, inp_desc, conv_desc, direction);
-    default:
-        throw std::runtime_error("unknown direction");
+    default: throw std::runtime_error("unknown direction");
     }
 }
 
@@ -108,7 +100,12 @@ miopen::Handle EnforceDevice(Gpu gpu)
 
 } // namespace
 
-void UnitTestConvSolverDevApplicabilityBase::RunTestImpl(const miopen::solver::conv::ConvSolverBase& solver, Gpu supported_gpus, miopenDataType_t datatype, miopen::conv::Direction direction, const ConvTestCaseBase& conv_config)
+void UnitTestConvSolverDevApplicabilityBase::RunTestImpl(
+    const miopen::solver::conv::ConvSolverBase& solver,
+    Gpu supported_gpus,
+    miopenDataType_t datatype,
+    miopen::conv::Direction direction,
+    const ConvTestCaseBase& conv_config)
 {
     const auto problem = GetProblemDescription(datatype, direction, conv_config);
 
@@ -116,9 +113,10 @@ void UnitTestConvSolverDevApplicabilityBase::RunTestImpl(const miopen::solver::c
     for(auto gpu : all_known_gpus)
     {
         const auto supported = IsGpuSupported(supported_gpus, gpu);
-        // std::cout << "Test " << GpuTypeToStr(gpu) << " (supported: " << supported << ")" << std::endl;
+        // std::cout << "Test " << GpuTypeToStr(gpu) << " (supported: " << supported << ")" <<
+        // std::endl;
 
-        auto handle = EnforceDevice(gpu);
+        auto handle    = EnforceDevice(gpu);
         const auto ctx = [&] {
             auto tmp = miopen::ExecutionContext{&handle};
             problem.SetupFloats(tmp);
@@ -129,7 +127,9 @@ void UnitTestConvSolverDevApplicabilityBase::RunTestImpl(const miopen::solver::c
         // std::cout << "IsApplicable: " << is_applicable << std::endl;
         if(is_applicable != supported)
         {
-            GTEST_FAIL() << GpuTypeToStr(gpu) << " is" << (is_applicable ? "" : " not") << " applicable for " << solver.SolverDbId() << " but " << (supported ? "" : "not ") << "marked as supported";
+            GTEST_FAIL() << GpuTypeToStr(gpu) << " is" << (is_applicable ? "" : " not")
+                         << " applicable for " << solver.SolverDbId() << " but "
+                         << (supported ? "" : "not ") << "marked as supported";
         }
     }
 }

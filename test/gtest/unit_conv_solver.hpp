@@ -87,11 +87,17 @@ class GPU_UnitTestConvSolver_wrw_fp16 : public UnitTestConvSolverWrw<half_float:
 class UnitTestConvSolverDevApplicabilityBase
 {
 public:
-    void RunTestImpl(const miopen::solver::conv::ConvSolverBase& solver, Gpu supported_gpus, miopenDataType_t datatype, miopen::conv::Direction direction, const ConvTestCaseBase& conv_config);
+    void RunTestImpl(const miopen::solver::conv::ConvSolverBase& solver,
+                     Gpu supported_gpus,
+                     miopenDataType_t datatype,
+                     miopen::conv::Direction direction,
+                     const ConvTestCaseBase& conv_config);
 };
 
 template <miopenDataType_t datatype, miopen::conv::Direction direction>
-class UnitTestConvSolverDevApplicability : public UnitTestConvSolverDevApplicabilityBase, public ::testing::TestWithParam<std::tuple<Gpu, ConvTestCaseBase>>
+class UnitTestConvSolverDevApplicability
+    : public UnitTestConvSolverDevApplicabilityBase,
+      public ::testing::TestWithParam<std::tuple<Gpu, ConvTestCaseBase>>
 {
 public:
     void RunTest(const miopen::solver::conv::ConvSolverBase& solver)
@@ -104,10 +110,12 @@ public:
 };
 
 template <miopenDataType_t datatype>
-class UnitTestConvSolverDevApplicabilityFwd : public UnitTestConvSolverDevApplicability<datatype, miopen::conv::Direction::Forward>
+class UnitTestConvSolverDevApplicabilityFwd
+    : public UnitTestConvSolverDevApplicability<datatype, miopen::conv::Direction::Forward>
 {
 };
 
-class CPU_UnitTestConvSolverDevApplicability_fwd_fp16 : public UnitTestConvSolverDevApplicabilityFwd<miopenHalf>
+class CPU_UnitTestConvSolverDevApplicability_fwd_fp16
+    : public UnitTestConvSolverDevApplicabilityFwd<miopenHalf>
 {
 };
