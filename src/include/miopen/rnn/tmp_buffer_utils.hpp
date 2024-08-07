@@ -734,7 +734,8 @@ class HiddenBuffersDescriptor
 {
 public:
     explicit HiddenBuffersDescriptor(const TensorDescriptor& hx_desc)
-        : lens(hx_desc.GetLengths()), strides(hx_desc.GetStrides())
+        : lens(hx_desc.GetLengths().begin(), hx_desc.GetLengths().begin() + 3),
+          strides(hx_desc.GetStrides().begin(), hx_desc.GetStrides().begin() + 3)
     {
     }
 
