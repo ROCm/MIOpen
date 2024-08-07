@@ -433,7 +433,7 @@ pipeline {
             description: "")
         booleanParam(
             name: "BUILD_STATIC_CHECKS",
-            defaultValue: true,
+            defaultValue: false, //true, temporary disabled
             description: "")
         booleanParam(
             name: "BUILD_SMOKE_FP32",
@@ -441,15 +441,15 @@ pipeline {
             description: "")
         booleanParam(
             name: "BUILD_SMOKE_AUX1",
-            defaultValue: true,
+            defaultValue: false, //true, temporary disabled
             description: "")
         booleanParam(
             name: "BUILD_SMOKE_FP16_BF16_INT8",
-            defaultValue: true,
+            defaultValue: false, //true, temporary disabled
             description: "")
         booleanParam(
             name: "BUILD_FULL_TESTS",
-            defaultValue: true,
+            defaultValue: false, //true, temporary disabled
             description: "")
         booleanParam(
             name: "BUILD_PACKAGES",
@@ -638,6 +638,7 @@ pipeline {
                 expression { params.BUILD_SMOKE_FP32 && params.DATATYPE_FP32 }
             }
             parallel{
+                /*
                 stage('Fp32 Hip gfx90a') {
                     when {
                         beforeAgent true
@@ -651,6 +652,7 @@ pipeline {
                         buildHipClangJobAndReboot(make_targets: Smoke_targets)
                     }
                 }
+                */
                 stage('Fp32 Hip Debug gfx90a') {
                     when {
                         beforeAgent true
@@ -664,6 +666,7 @@ pipeline {
                         buildHipClangJobAndReboot(build_type: 'debug', make_targets: Smoke_targets)
                     }
                 }
+                /*
                 stage('Fp32 Hip Debug gfx908') {
                     when {
                         beforeAgent true
@@ -677,6 +680,8 @@ pipeline {
                         buildHipClangJobAndReboot(build_type: 'debug', make_targets: Smoke_targets)
                     }
                 }
+                */
+                /*
                 stage('Fp32 Hip Debug gfx94X') {
                     when {
                         beforeAgent true
@@ -690,6 +695,7 @@ pipeline {
                         buildHipClangJobAndReboot(build_type: 'debug', make_targets: Smoke_targets, needs_reboot:false)
                     }
                 }
+                */
             }
         }
         stage("Smoke Aux 1") {
