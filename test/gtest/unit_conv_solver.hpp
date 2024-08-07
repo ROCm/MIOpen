@@ -31,6 +31,8 @@
 #include "solver_bwd.hpp"
 #include "solver_wrw.hpp"
 
+// Unit test for convolution solver
+
 class UnitTestConvSolver
 {
 public:
@@ -77,5 +79,35 @@ class GPU_UnitTestConvSolver_bwd_fp16 : public UnitTestConvSolverBwd<half_float:
 };
 
 class GPU_UnitTestConvSolver_wrw_fp16 : public UnitTestConvSolverWrw<half_float::half>
+{
+};
+
+// This test is designed to detect the expansion of the solver's device applicability
+
+class UnitTestConvSolverDevApplicabilityBase
+{
+public:
+    void RunTestImpl(const miopen::solver::conv::ConvSolverBase& solver, Gpu supported_gpus, miopenDataType_t datatype, miopen::conv::Direction direction, const ConvTestCaseBase& conv_config);
+};
+
+template <miopenDataType_t datatype, miopen::conv::Direction direction>
+class UnitTestConvSolverDevApplicability : public UnitTestConvSolverDevApplicabilityBase, public ::testing::TestWithParam<std::tuple<Gpu, ConvTestCaseBase>>
+{
+public:
+    void RunTest(const miopen::solver::conv::ConvSolverBase& solver)
+    {
+        Gpu supported_gpus;
+        ConvTestCaseBase conv_config;
+        std::tie(supported_gpus, conv_config) = GetParam();
+        this->RunTestImpl(solver, supported_gpus, datatype, direction, conv_config);
+    }
+};
+
+template <miopenDataType_t datatype>
+class UnitTestConvSolverDevApplicabilityFwd : public UnitTestConvSolverDevApplicability<datatype, miopen::conv::Direction::Forward>
+{
+};
+
+class CPU_UnitTestConvSolverDevApplicability_fwd_fp16 : public UnitTestConvSolverDevApplicabilityFwd<miopenHalf>
 {
 };

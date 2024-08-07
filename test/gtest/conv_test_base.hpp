@@ -57,9 +57,9 @@ struct ConvTestCaseBase
                   << " stride_x:" << tc.stride_x << " dilation_y:" << tc.dilation_y
                   << " dilation_x:" << tc.dilation_x << " conv_mode:" << tc.conv_mode << " )";
     }
-    const std::vector<size_t> GetInput() { return {N, C, H, W}; }
-    const std::vector<size_t> GetWeights() { return {k, C, y, x}; }
-    const miopen::ConvolutionDescriptor GetConv()
+    const std::vector<size_t> GetInput() const { return {N, C, H, W}; }
+    const std::vector<size_t> GetWeights() const { return {k, C, y, x}; }
+    const miopen::ConvolutionDescriptor GetConv() const
     {
         return miopen::ConvolutionDescriptor{
             {static_cast<int>(pad_y), static_cast<int>(pad_x)},

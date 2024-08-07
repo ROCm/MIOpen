@@ -58,6 +58,7 @@ enum class Gpu : int
     Default = 0, // \todo remove
     None    = 0,
     gfx900  = 1 << 0,
+    gfxFirst = Gpu::gfx900,
     gfx906  = 1 << 1,
     gfx908  = 1 << 2,
     gfx90A  = 1 << 3,
@@ -65,6 +66,7 @@ enum class Gpu : int
     gfx103X = 1 << 5,
     gfx110X = 1 << 6,
     gfx115X = 1 << 7,
+    gfxLast = Gpu::gfx115X, // \note Change the value when adding a new device
     All     = -1
 };
 
@@ -78,6 +80,18 @@ inline Gpu operator&(Gpu lhs, Gpu rhs)
 {
     using T = std::underlying_type_t<Gpu>;
     return static_cast<Gpu>(static_cast<T>(lhs) & static_cast<T>(rhs));
+}
+
+inline Gpu operator<<(Gpu lhs, int rhs)
+{
+    using T = std::underlying_type_t<Gpu>;
+    return static_cast<Gpu>(static_cast<T>(lhs) << rhs);
+}
+
+inline Gpu operator<<=(Gpu& lhs, int rhs)
+{
+    lhs = lhs << rhs;
+    return lhs;
 }
 
 template <Gpu... bits>

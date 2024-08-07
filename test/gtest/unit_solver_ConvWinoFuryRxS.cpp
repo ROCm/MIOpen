@@ -71,6 +71,11 @@ TEST_P(GPU_UnitTestConvSolver_wrw_fp16, ConvWinoFuryRxSf2x3)
     this->RunTest(miopen::solver::conv::ConvWinoFuryRxS<2, 3>{});
 };
 
+TEST_P(CPU_UnitTestConvSolverDevApplicability_fwd_fp16, ConvWinoFuryRxSf2x3)
+{
+    this->RunTest(miopen::solver::conv::ConvWinoFuryRxS<2, 3>{});
+};
+
 INSTANTIATE_TEST_SUITE_P(Unit,
                          GPU_UnitTestConvSolver_fwd_fp16,
                          testing::Combine(testing::Values(GetSupportedDevices()),
@@ -88,3 +93,8 @@ INSTANTIATE_TEST_SUITE_P(Unit,
                          testing::Combine(testing::Values(GetSupportedDevices()),
                                           testing::Values(miopenConvolutionAlgoWinograd),
                                           testing::ValuesIn(GetConvTestCasesWrw())));
+
+INSTANTIATE_TEST_SUITE_P(Unit,
+                         CPU_UnitTestConvSolverDevApplicability_fwd_fp16,
+                         testing::Combine(testing::Values(GetSupportedDevices()),
+                                          testing::Values(GetConvTestCases()[0])));
