@@ -775,25 +775,13 @@ static auto GetAllFusionSolvers()
            GetFusedWinogradSolvers();
 }
 
-namespace {
-auto MakeDbGetter(const FusionContext& ctx)
-{
-    return [&, db_container = std::optional<PerformanceDb>()]() mutable -> PerformanceDb& {
-        if(!db_container)
-            db_container.emplace(GetDb(ctx));
-
-        return *db_container;
-    };
-}
-} // namespace
-
 solver::ConvSolution MakeFusedSolution(const FusionContext& ctx,
                                        solver::Id id,
                                        const std::optional<std::string>& perf_cfg_override,
                                        const FusionDescription& problem,
                                        const AnyInvokeParams& invoke_params)
 {
-    auto db_getter = MakeDbGetter(ctx);
+    auto db_getter = MakeConvDbGetter(ctx);
 
     solver::ConvSolution solution{miopenStatusInternalError};
 
@@ -837,7 +825,7 @@ protected:
     {
         return solvers.SearchForAllSolutions(dynamic_cast<const FusionContext&>(ctx),
                                              problem,
-                                             miopen::GetDb(ctx),
+                                             MakeConvDbGetter(ctx),
                                              invoke_ctx,
                                              std::numeric_limits<std::size_t>::max(),
                                              options);
@@ -1047,7 +1035,7 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
 
             GetAllFusionSolvers().FindById(id, [&](auto solver) {
                 const auto ctx      = FusionContext{handle};
-                auto db_getter      = MakeDbGetter(ctx);
+                auto db_getter      = MakeConvDbGetter(ctx);
                 const auto solution = solver::FindSolution(
                     solver, ctx, fusion_problem, db_getter, {}); // auto tune is not expected here
                 auto invoker =

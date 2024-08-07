@@ -167,6 +167,9 @@ size_t setBotDfDescFromMLDesc(int spatial_dims, TTo& to, const TensorDescriptor&
     return SetDescFromMLDesc(spatial_dims, to, tensor, &TTo::setBotDfDescr);
 }
 
+MIOPEN_INTERNALS_EXPORT auto MakeConvDbGetter(const ExecutionContext& ctx)
+    -> std::function<PerformanceDb&()>;
+
 namespace solver {
 struct ConvSolution;
 

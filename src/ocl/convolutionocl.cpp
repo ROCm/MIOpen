@@ -90,7 +90,7 @@ static Invoker PrepareInvoker(ExecutionContext ctx,
     ctx.disable_search_enforce = true;
 
     const auto solver = solver_id.GetSolver();
-    auto db           = GetDb(ctx);
+    auto db           = MakeConvDbGetter(ctx);
     auto solution     = solver.FindSolution(ctx, problem, db, {}); // auto tune is not expected here
     auto& handle      = ctx.GetStream();
     auto invoker = handle.PrepareInvoker(*solution.invoker_factory, solution.construction_params);
