@@ -775,18 +775,31 @@ static auto GetAllFusionSolvers()
            GetFusedWinogradSolvers();
 }
 
+namespace {
+auto MakeDbGetter(const FusionContext& ctx)
+{
+    return [&, db_container = std::optional<PerformanceDb>()]() mutable -> PerformanceDb& {
+        if(!db_container)
+            db_container.emplace(GetDb(ctx));
+
+        return *db_container;
+    };
+}
+} // namespace
+
 solver::ConvSolution MakeFusedSolution(const FusionContext& ctx,
                                        solver::Id id,
                                        const std::optional<std::string>& perf_cfg_override,
                                        const FusionDescription& problem,
                                        const AnyInvokeParams& invoke_params)
 {
-    decltype(auto) db = GetDb(ctx);
+    auto db_getter = MakeDbGetter(ctx);
+
     solver::ConvSolution solution{miopenStatusInternalError};
 
     GetAllFusionSolvers().FindById(id, [&](auto solver) {
         solution = miopen::solver::FindSolution(
-            solver, ctx, problem, db, invoke_params, perf_cfg_override.value_or(""));
+            solver, ctx, problem, db_getter, invoke_params, perf_cfg_override.value_or(""));
     });
 
     return solution;
@@ -1034,9 +1047,9 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
 
             GetAllFusionSolvers().FindById(id, [&](auto solver) {
                 const auto ctx      = FusionContext{handle};
-                auto db             = GetDb(ctx);
+                auto db_getter      = MakeDbGetter(ctx);
                 const auto solution = solver::FindSolution(
-                    solver, ctx, fusion_problem, db, {}); // auto tune is not expected here
+                    solver, ctx, fusion_problem, db_getter, {}); // auto tune is not expected here
                 auto invoker =
                     handle.PrepareInvoker(*solution.invoker_factory, solution.construction_params);
                 // We register the invoker below
