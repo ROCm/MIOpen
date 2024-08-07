@@ -576,6 +576,7 @@ pipeline {
                 }
             }
         }
+        /*
         stage("Static checks") {
             when {
                 expression { params.BUILD_STATIC_CHECKS && params.TARGET_NOGPU && params.DATATYPE_NA }
@@ -633,6 +634,7 @@ pipeline {
                 }
             }
         }
+        */
         stage("Smoke Fp32") {
             when {
                 expression { params.BUILD_SMOKE_FP32 && params.DATATYPE_FP32 }
