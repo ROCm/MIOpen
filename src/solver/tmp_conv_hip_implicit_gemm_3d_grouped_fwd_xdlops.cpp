@@ -86,10 +86,7 @@ struct Epilogue
 )";
 std::string prologue = "";
 
-// TODO: swap out CKArgs with my own ProblemDescription struct?? I need it to call codegen functions
-// -> then pass this to CKArgs??
-// jk, just fill out the codegen problem descc according to MIO problem desc ... should be quick
-template <typename DataType>
+// template <typename DataType>
 struct CKArgs
 {
     CKArgs(const ProblemDescription& problem)
@@ -99,10 +96,10 @@ struct CKArgs
         prob.NumDim = NumDimSpatial;
         prob.G      = ProblemInterpreter::GetGroupCountG(problem);
         prob.N      = ProblemInterpreter::GetBatchN(problem);
-        K1          = ProblemInterpreter::GetOutputChannelK(problem);
-        C1          = ProblemInterpreter::GetInputChannelC(problem);
-        prob.C      = C1 / G; // Number of input Channel per group
-        prob.K      = K1 / G; // Number of output Channel per group
+        int K1      = ProblemInterpreter::GetOutputChannelK(problem);
+        int C1      = ProblemInterpreter::GetInputChannelC(problem);
+        prob.C      = C1 / prob.G; // Number of input Channel per group
+        prob.K      = K1 / prob.G; // Number of output Channel per group
         prob.Y      = ProblemInterpreter::GetFilterHeightY(problem);
         prob.X      = ProblemInterpreter::GetFilterWidthX(problem);
         prob.Hi     = ProblemInterpreter::GetInputHeightHi(problem);
@@ -110,20 +107,32 @@ struct CKArgs
         prob.Ho     = ProblemInterpreter::GetOutputHeightHo(problem);
         prob.Wo     = ProblemInterpreter::GetOutputWidthWo(problem);
 
-        input  = {G, N, C, Hi, Wi};
-        output = {G, N, K, Ho, Wo};
-        weight = {G, K, C, Y, X};
+        in_lengths  = {prob.G, prob.N, prob.C, prob.Hi, prob.Wi};
+        out_lengths = {prob.G, prob.N, prob.K, prob.Ho, prob.Wo};
+        wei_lengths = {prob.G, prob.K, prob.C, prob.Y, prob.X};
 
-        in_strides  = {C, Hi * Wi * G * C, 1, Wi * G * C, G * C};
-        out_strides = {K, Ho * Wo * G * K, 1, Wo * G * K, G * K};
-        wei_strides = {K * Y * X * C, Y * X * C, 1, X * C, C};
-        strides     = {ProblemInterpreter::GetAdjustedConvolutionStrideH(problem),
-                   ProblemInterpreter::GetAdjustedConvolutionStrideW(problem)};
-        dilation    = {ProblemInterpreter::GetAdjustedConvolutionDilationH(problem),
-                    ProblemInterpreter::GetAdjustedConvolutionDilationW(problem)};
-        lPadding    = {ProblemInterpreter::GetInputLeftPadH(problem),
+        in_strides       = {prob.C,
+                      prob.Hi * prob.Wi * prob.G * prob.C,
+                      1,
+                      prob.Wi * prob.G * prob.C,
+                      prob.G * prob.C};
+        out_strides      = {prob.K,
+                       prob.Ho * prob.Wo * prob.G * prob.K,
+                       1,
+                       prob.Wo * prob.G * prob.K,
+                       prob.G * prob.K};
+        wei_strides      = {prob.K * prob.Y * prob.X * prob.C,
+                       prob.Y * prob.X * prob.C,
+                       1,
+                       prob.X * prob.C,
+                       prob.C};
+        filter_strides   = {ProblemInterpreter::GetAdjustedConvolutionStrideH(problem),
+                          ProblemInterpreter::GetAdjustedConvolutionStrideW(problem)};
+        filter_dilations = {ProblemInterpreter::GetAdjustedConvolutionDilationH(problem),
+                            ProblemInterpreter::GetAdjustedConvolutionDilationW(problem)};
+        lPadding         = {ProblemInterpreter::GetInputLeftPadH(problem),
                     ProblemInterpreter::GetInputLeftPadW(problem)};
-        rPadding    = {ProblemInterpreter::GetAdjustedInputRightPadH(problem),
+        rPadding         = {ProblemInterpreter::GetAdjustedInputRightPadH(problem),
                     ProblemInterpreter::GetAdjustedInputRightPadW(problem)};
     }
 
@@ -145,18 +154,18 @@ struct CKArgs
     int Do;
     int Y;
     int X;
-    int Z;
-    std::array<ck::index_t, 6> in_lengths;
-    std::array<ck::index_t, 6> in_strides;
-    std::array<ck::index_t, 6> out_lengths;
-    std::array<ck::index_t, 6> out_strides;
-    std::array<ck::index_t, 6> wei_lengths;
-    std::array<ck::index_t, 6> wei_strides;
-    std::array<ck::index_t, 3> filter_strides;
-    std::array<ck::index_t, 3> filter_dilations;
-    std::array<ck::index_t, 3> lPadding;
-    std::array<ck::index_t, 3> rPadding;
-    miopenAlphaBetaCase_t alpha_beta_case;**/
+    int Z;**/
+    std::array<ck::index_t, 5> in_lengths;
+    std::array<ck::index_t, 5> in_strides;
+    std::array<ck::index_t, 5> out_lengths;
+    std::array<ck::index_t, 5> out_strides;
+    std::array<ck::index_t, 5> wei_lengths;
+    std::array<ck::index_t, 5> wei_strides;
+    std::array<ck::index_t, 2> filter_strides;
+    std::array<ck::index_t, 2> filter_dilations;
+    std::array<ck::index_t, 2> lPadding;
+    std::array<ck::index_t, 2> rPadding;
+    // miopenAlphaBetaCase_t alpha_beta_case;
 };
 
 } // namespace
@@ -164,8 +173,8 @@ struct CKArgs
 #endif
 
 size_t
-ConvHipImplicitGemm3DGroupFwdXdlops::GetWorkspaceSize(const ExecutionContext&,
-                                                      const ProblemDescription& problem) const
+ConvHipImplicitGemmGroupFwdXdlopsCodegen::GetWorkspaceSize(const ExecutionContext&,
+                                                           const ProblemDescription& problem) const
 {
     return GetWorkspaceSizeLayoutTransformConv(problem);
 }
@@ -178,7 +187,7 @@ ConvHipImplicitGemm3DGroupFwdXdlops::Search(const ExecutionContext& ctx,
     return GenericSearch(*this, ctx, problem, invoke_ctx);
 }**/
 
-bool ConvHipImplicitGemm3DGroupFwdXdlops::IsApplicable(
+bool ConvHipImplicitGemmGroupFwdXdlopsCodegen::IsApplicable(
     [[maybe_unused]] const ExecutionContext& ctx,
     [[maybe_unused]] const ProblemDescription& problem) const
 {
@@ -203,34 +212,34 @@ bool ConvHipImplicitGemm3DGroupFwdXdlops::IsApplicable(
         return false;
     if(!ck_utility::is_ck_whitelist(ctx.GetStream().GetDeviceName()))
         return false;
-    switch(problem.GetInDataType())
-    {
-    case miopenHalf: return CheckCKApplicability<ck::half_t>(problem);
-    case miopenFloat: return CheckCKApplicability<float>(problem);
-    case miopenInt8: return CheckCKApplicability<int8_t>(problem);
-    case miopenBFloat16: return CheckCKApplicability<ck::bhalf_t>(problem);
-    case miopenInt64:
-    case miopenInt32:
-    case miopenFloat8:
-    case miopenBFloat8:
-    case miopenDouble: break;
-    }
+        /**switch(problem.GetInDataType())
+        {
+        case miopenHalf: return CheckCKApplicability<ck::half_t>(problem);
+        case miopenFloat: return CheckCKApplicability<float>(problem);
+        case miopenInt8: return CheckCKApplicability<int8_t>(problem);
+        case miopenBFloat16: return CheckCKApplicability<ck::bhalf_t>(problem);
+        case miopenInt64:
+        case miopenInt32:
+        case miopenFloat8:
+        case miopenBFloat8:
+        case miopenDouble: break;
+        }**/
 #endif
     return false;
 }
 
-ConvSolution ConvHipImplicitGemm3DGroupFwdXdlops::GetSolution(
+ConvSolution ConvHipImplicitGemmGroupFwdXdlopsCodegen::GetSolution(
     [[maybe_unused]] const ExecutionContext& ctx,
-    [[maybe_unused]] const ProblemDescription& problem,
-    [[maybe_unused]] const PerformanceConfigHipImplicitGemm3DGroupFwdXdlops& config) const
+    [[maybe_unused]] const ProblemDescription& problem) const
 {
+    auto prob = CKArgs(problem);
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
-    auto in_dev =
-        to_gpu(generate_buffer<ck::half_t, ck::Array<ck::index_t, 5>>(in_lengths, in_strides, 0));
-    auto wei_dev =
-        to_gpu(generate_buffer<ck::half_t, ck::Array<ck::index_t, 5>>(wei_lengths, wei_strides, 1));
-    auto out_dev =
-        to_gpu(generate_buffer<ck::half_t, ck::Array<ck::index_t, 5>>(out_lengths, out_strides, 2));
+    auto in_dev  = to_gpu(generate_buffer<ck::half_t, ck::Array<ck::index_t, 5>>(
+        prob.in_lengths, prob.in_strides, 0));
+    auto wei_dev = to_gpu(generate_buffer<ck::half_t, ck::Array<ck::index_t, 5>>(
+        prob.wei_lengths, prob.wei_strides, 1));
+    auto out_dev = to_gpu(generate_buffer<ck::half_t, ck::Array<ck::index_t, 5>>(
+        prob.out_lengths, prob.out_strides, 2));
 
     auto solution : prob.GetSolutions("gfx908", prologue, epilogue);
     // substitute instance values into the template
@@ -248,24 +257,24 @@ ConvSolution ConvHipImplicitGemm3DGroupFwdXdlops::GetSolution(
     // Grid size calculation
     auto block_size = solution[0].GetTemplateParameter<ck::index_t>("BlockSize");
 
-    auto tmp = get_launch_params(solution[0], out_lengths, out_strides);
+    auto tmp = get_launch_params(solution[0], prob.out_lengths, prob.out_strides);
 
-    auto grid_size = tmp * in_lengths[1];
+    auto grid_size = tmp * prob.in_lengths[1];
 
     // launch the kernel with arguments needed for the argument pointer
     k.launch(nullptr, grid_size * block_size, block_size)(in_dev.data(),
                                                           wei_dev.data(),
                                                           out_dev.data(),
-                                                          in_lengths,
-                                                          in_strides,
-                                                          wei_lengths,
-                                                          wei_strides,
-                                                          out_lengths,
-                                                          out_strides,
-                                                          conv_filter_strides,
-                                                          conv_filter_dilations,
-                                                          input_left_pads,
-                                                          input_right_pads);
+                                                          prob.in_lengths,
+                                                          prob.in_strides,
+                                                          prob.wei_lengths,
+                                                          prob.wei_strides,
+                                                          prob.out_lengths,
+                                                          prob.out_strides,
+                                                          prob.filter_strides,
+                                                          prob.filter_dilations,
+                                                          prob.lPadding,
+                                                          prob.rPadding);
 
 #else
     return {};

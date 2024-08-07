@@ -298,6 +298,7 @@ set( MIOpen_Source
     solver/reduce/forward_sum.cpp
     solver/softmax/attn_softmax.cpp
     solver/softmax/softmax.cpp
+    solver/tmp_conv_hip_implicit_gemm_3d_grouped_fwd_xdlops.cpp
     subbuffers.cpp
     sum_api.cpp
     t5layernorm_api.cpp
