@@ -109,8 +109,8 @@ PadReflection::GetSolution([[maybe_unused]] const ExecutionContext& context,
 
             auto padding     = params.padding;
             auto num_padding = params.num_padding;
-            long padding_l = padding[0];
-            long padding_t = padding[0];
+            long padding_l   = padding[0];
+            long padding_t   = padding[0];
             if(num_padding == 4)
             {
                 padding_l = padding[0];
