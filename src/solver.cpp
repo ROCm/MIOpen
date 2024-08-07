@@ -24,7 +24,6 @@
  *
  *******************************************************************************/
 
-#include "miopen/prelu/solvers.hpp"
 #include <miopen/solver.hpp>
 
 #include <miopen/activ/solvers.hpp>
@@ -36,6 +35,7 @@
 #include <miopen/getitem/solvers.hpp>
 #include <miopen/layernorm/solvers.hpp>
 #include <miopen/pooling/solvers.hpp>
+#include <miopen/prelu/solvers.hpp>
 #include <miopen/reduce/solvers.hpp>
 #include <miopen/mha/solvers.hpp>
 #include <miopen/softmax/solvers.hpp>
