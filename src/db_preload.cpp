@@ -49,7 +49,9 @@ auto GetPreloadedDb(const fs::path& path) -> std::unique_ptr<Db>
 
     // Mutex is need to ensure states.futures is not updated while we work
     // so we skip locking if it no more writes can happen
-    if(!states.started_loading.load(std::memory_order_relaxed))
+    const auto needs_lock = !states.started_loading.load(std::memory_order_relaxed);
+
+    if(needs_lock)
         lock.lock();
 
     auto it = states.futures.find(path);
@@ -58,7 +60,9 @@ auto GetPreloadedDb(const fs::path& path) -> std::unique_ptr<Db>
         return nullptr;
 
     auto future = std::move(it->second);
-    lock.unlock();
+
+    if(needs_lock)
+        lock.unlock();
 
     const auto start = std::chrono::high_resolution_clock::now();
     auto ret         = future.get();
