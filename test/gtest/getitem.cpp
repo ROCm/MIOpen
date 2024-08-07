@@ -42,22 +42,22 @@ std::string GetFloatArg()
     return tmp;
 }
 
-struct GetitemBwdTestFloat : GetitemBwdTest<float>
+struct GPU_GetitemBwd_FP32 : GetitemBwdTest<float>
 {
 };
 
-struct GetitemBwdTestHalf : GetitemBwdTest<half_float::half>
+struct GPU_GetitemBwd_FP16 : GetitemBwdTest<half_float::half>
 {
 };
 
-struct GetitemBwdTestBFloat16 : GetitemBwdTest<bfloat16>
+struct GPU_GetitemBwd_BFP16 : GetitemBwdTest<bfloat16>
 {
 };
 
 } // namespace getitem
 using namespace getitem;
 
-TEST_P(GetitemBwdTestFloat, GetitemBwdTest)
+TEST_P(GPU_GetitemBwd_FP32, GetitemBwdTest)
 {
     if(!MIOPEN_TEST_ALL ||
        (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--float"))
@@ -71,7 +71,7 @@ TEST_P(GetitemBwdTestFloat, GetitemBwdTest)
     }
 };
 
-TEST_P(GetitemBwdTestHalf, GetitemBwdTest)
+TEST_P(GPU_GetitemBwd_FP16, GetitemBwdTest)
 {
     if(!MIOPEN_TEST_ALL ||
        (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--half"))
@@ -85,7 +85,7 @@ TEST_P(GetitemBwdTestHalf, GetitemBwdTest)
     }
 };
 
-TEST_P(GetitemBwdTestBFloat16, GetitemBwdTest)
+TEST_P(GPU_GetitemBwd_BFP16, GetitemBwdTest)
 {
     if(!MIOPEN_TEST_ALL ||
        (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--bfloat16"))
@@ -99,12 +99,6 @@ TEST_P(GetitemBwdTestBFloat16, GetitemBwdTest)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(GetitemTestSet,
-                         GetitemBwdTestFloat,
-                         testing::ValuesIn(GetitemTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(GetitemTestSet,
-                         GetitemBwdTestHalf,
-                         testing::ValuesIn(GetitemTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(GetitemTestSet,
-                         GetitemBwdTestBFloat16,
-                         testing::ValuesIn(GetitemTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_GetitemBwd_FP32, testing::ValuesIn(GetitemTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_GetitemBwd_FP16, testing::ValuesIn(GetitemTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_GetitemBwd_BFP16, testing::ValuesIn(GetitemTestConfigs()));

@@ -385,7 +385,7 @@ using namespace conv_graph_api_test;
 
 TEST_P(GPU_ConvBiasResAddActivation_fwd_FP16, Test) { Run(); }
 
-INSTANTIATE_TEST_SUITE_P(Full,
+INSTANTIATE_TEST_SUITE_P(Unit,
                          GPU_ConvBiasResAddActivation_fwd_FP16,
                          testing::Combine(testing::ValuesIn(ConvTestConfigs()),
                                           testing::ValuesIn({1.0f, 2.5f}), // alpha1
