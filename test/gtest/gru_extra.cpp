@@ -45,14 +45,14 @@ void GetArgs(const std::string& param, std::vector<std::string>& tokens)
         tokens.push_back(*begin++);
 }
 
-class GRUExtraConfigWithFloat : public testing::TestWithParam<std::vector<std::string>>
+class GPU_GRUExtra_FP32 : public testing::TestWithParam<std::vector<std::string>>
 {
 };
 
 void Run2dDriverFloat(void)
 {
 
-    std::vector<std::string> params = GRUExtraConfigWithFloat::GetParam();
+    std::vector<std::string> params = GPU_GRUExtra_FP32::GetParam();
 
     for(const auto& test_value : params)
     {
@@ -110,7 +110,7 @@ std::vector<std::string> GetTestCases(const std::string& precision)
 } // namespace gru_extra
 using namespace gru_extra;
 
-TEST_P(GRUExtraConfigWithFloat, FloatTest_gru_extra)
+TEST_P(GPU_GRUExtra_FP32, FloatTest_gru_extra)
 {
     if(!MIOPEN_TEST_ALL ||
        (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--float"))
@@ -123,6 +123,4 @@ TEST_P(GRUExtraConfigWithFloat, FloatTest_gru_extra)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(ConvTrans,
-                         GRUExtraConfigWithFloat,
-                         testing::Values(GetTestCases("--float")));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_GRUExtra_FP32, testing::Values(GetTestCases("--float")));

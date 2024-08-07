@@ -33,7 +33,7 @@
 
 #include "graphapi_gtest_common.hpp"
 
-TEST(GraphApiPointwiseBuilder, Attributes)
+TEST(CPU_GraphApiPointwiseBuilder_NONE, Attributes)
 {
     EXPECT_ANY_THROW({
         miopen::graphapi::PointwiseBuilder().setMode(MIOPEN_POINTWISE_ADD).build();
@@ -203,7 +203,7 @@ void PrintTo(const TestCaseType& v, std::ostream* os)
         << ", axis: " << std::get<9>(v);
 }
 
-class GraphApiPointwise : public testing::TestWithParam<TestCaseType>
+class CPU_GraphApiPointwise_NONE : public testing::TestWithParam<TestCaseType>
 {
 private:
     Mode mMode;
@@ -278,11 +278,11 @@ protected:
     }
 };
 
-TEST_P(GraphApiPointwise, CFunctions) { mExecute(); }
+TEST_P(CPU_GraphApiPointwise_NONE, CFunctions) { mExecute(); }
 
 INSTANTIATE_TEST_SUITE_P(
-    ValidAttributes,
-    GraphApiPointwise,
+    Unit,
+    CPU_GraphApiPointwise_NONE,
     testing::Combine(testing::Values(MIOPEN_POINTWISE_ADD, MIOPEN_POINTWISE_MUL),
                      testing::Values(miopenFloat, miopenHalf),
                      testing::Values(MIOPEN_NOT_PROPAGATE_NAN, MIOPEN_PROPAGATE_NAN),
