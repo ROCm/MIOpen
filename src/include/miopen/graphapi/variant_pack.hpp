@@ -106,6 +106,7 @@ private:
     VariantPack mVariantPack;
     bool mTensorIdsSet    = false;
     bool mDataPointersSet = false;
+    bool mWorkspaceSet    = false;
 
 public:
     VariantPackBuilder& setTensorIds(const std::vector<int64_t>& tensorIds) &
@@ -156,12 +157,8 @@ public:
     }
     VariantPackBuilder& setWorkspace(void* workspace) &
     {
-        if(workspace == nullptr)
-        {
-            MIOPEN_THROW(miopenStatusBadParm);
-        }
-
         mVariantPack.mWorkspace = workspace;
+        mWorkspaceSet           = true;
         return *this;
     }
 
@@ -202,7 +199,7 @@ public:
 private:
     bool validate() const
     {
-        return mTensorIdsSet && mDataPointersSet && mVariantPack.mWorkspace != nullptr &&
+        return mTensorIdsSet && mDataPointersSet && mWorkspaceSet &&
                mVariantPack.mTensorIds.size() == mVariantPack.mDataPointers.size() &&
                std::find(mVariantPack.mDataPointers.cbegin(),
                          mVariantPack.mDataPointers.cend(),
