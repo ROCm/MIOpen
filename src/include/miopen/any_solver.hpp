@@ -99,7 +99,7 @@ struct AnySolver
 
     ConvSolution FindSolution(const ExecutionContext& ctx,
                               const miopen::conv::ProblemDescription& problem,
-                              std::function<PerformanceDb& ()> db_getter,
+                              std::function<PerformanceDb&()> db_getter,
                               const miopen::AnyInvokeParams& invoke_ctx,
                               const std::string& perf_cfg = "") const
     {
@@ -328,7 +328,7 @@ struct AnySolver
 
         ConvSolution FindSolution(const ExecutionContext& ctx,
                                   const miopen::conv::ProblemDescription& problem,
-                                  std::function<PerformanceDb& ()> db_getter,
+                                  std::function<PerformanceDb&()> db_getter,
                                   const miopen::AnyInvokeParams& invoke_ctx,
                                   const std::string& perf_cfg) const override
         {
