@@ -28,6 +28,7 @@
 #include "miopen/execution_context.hpp"
 #include "miopen/invoke_params.hpp"
 #include "miopen/tensor_view_utils.hpp"
+#include <cstdint>
 #include <miopen/avgpool/solvers.hpp>
 
 #include <miopen/avgpool/invoke_params.hpp>
@@ -81,12 +82,12 @@ AvgPoolForward2d::GetSolution(const ExecutionContext& context,
             auto input_tv  = get_inner_expanded_tv<4>(deref(params.inputDesc));
             auto output_tv = get_inner_expanded_tv<4>(deref(params.outputDesc));
 
-            auto N  = deref(params.inputDesc).GetLengths()[0];
-            auto C  = deref(params.inputDesc).GetLengths()[1];
-            auto H  = deref(params.inputDesc).GetLengths()[2];
-            auto W  = deref(params.inputDesc).GetLengths()[3];
-            auto OH = deref(params.outputDesc).GetLengths()[2];
-            auto OW = deref(params.outputDesc).GetLengths()[3];
+            size_t N  = deref(params.inputDesc).GetLengths()[0];
+            size_t C  = deref(params.inputDesc).GetLengths()[1];
+            size_t H  = deref(params.inputDesc).GetLengths()[2];
+            size_t W  = deref(params.inputDesc).GetLengths()[3];
+            size_t OH = deref(params.outputDesc).GetLengths()[2];
+            size_t OW = deref(params.outputDesc).GetLengths()[3];
 
             kernel(params.input,
                    params.output,

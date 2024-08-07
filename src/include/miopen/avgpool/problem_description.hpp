@@ -92,12 +92,16 @@ struct FwdProblemDescription : ProblemDescription
            outputDesc.GetLengths()[1] != inputDesc.GetLengths()[1] ||
            outputDesc.GetLengths().size() != input_dims)
         {
-            MIOPEN_THROW(miopenStatusBadParm, "AvgPool: Tensor sizes do not match.");
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "AvgPool: Input and output tensor sizes do not match.");
         }
-        if(input_dims != strideDesc.GetElementSize() ||
-           input_dims != paddingDesc.GetElementSize() || input_dims != kinforDesc.GetElementSize())
+        if(input_dims - 2 != strideDesc.GetElementSize() ||
+           input_dims - 2 != paddingDesc.GetElementSize() ||
+           input_dims - 2 != kinforDesc.GetElementSize())
         {
-            MIOPEN_THROW(miopenStatusBadParm, "AvgPool: Tensor sizes do not match.");
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "AvgPool: Input tensor sizes and Kernel size or stride "
+                         "or padding do not match.");
         }
 
         return true;
@@ -138,12 +142,16 @@ struct BwdProblemDescription : ProblemDescription
            outputGradDesc.GetLengths()[1] != inputGradDesc.GetLengths()[1] ||
            outputGradDesc.GetLengths().size() != input_dims)
         {
-            MIOPEN_THROW(miopenStatusBadParm, "AvgPool: Tensor sizes do not match.");
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "AvgPool: Input grad and output grad tensor sizes do not match.");
         }
-        if(input_dims != strideDesc.GetElementSize() ||
-           input_dims != paddingDesc.GetElementSize() || input_dims != kinforDesc.GetElementSize())
+        if(input_dims - 2 != strideDesc.GetElementSize() ||
+           input_dims - 2 != paddingDesc.GetElementSize() ||
+           input_dims - 2 != kinforDesc.GetElementSize())
         {
-            MIOPEN_THROW(miopenStatusBadParm, "AvgPool: Tensor sizes do not match.");
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "AvgPool: Input grad tensor sizes and Kernel size or stride or padding do "
+                         "not match.");
         }
 
         return true;
