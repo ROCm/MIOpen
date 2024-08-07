@@ -129,7 +129,7 @@
         (dst) = (src) + (dst)*beta;            \
         (void)alpha;                           \
     } while(0)
-#else*/
+#else
 #define SUBTENSOR_OP_WITH_ALPHA_BETA(dst, src) \
     do                                         \
     {                                          \
