@@ -110,6 +110,7 @@ void Handle::TryStartPreloadingDbs()
     // it doesn't use find-db
 #if !MIOPEN_DISABLE_SYSDB
     StartPreloadingDb<ReadonlyRamDb>(states, DbKinds::PerfDb, ctx.GetPerfDbPath("batchnorm"), true);
+#endif
 #if !MIOPEN_DISABLE_USERDB
     StartPreloadingDb<RamDb>(states, DbKinds::PerfDb, ctx.GetUserPerfDbPath("batchnorm"), false);
 #endif
