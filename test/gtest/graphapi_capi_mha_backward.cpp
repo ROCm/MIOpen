@@ -416,11 +416,11 @@ private:
     float m_amaxDSRef = 0.0f;
 };
 
-class MhaBackwardTestFp32 : public MhaBackwardTest<float>
+class GPU_MhaBackward_FP32 : public MhaBackwardTest<float>
 {
 };
 
-class MhaBackwardTestFp8 : public MhaBackwardTest<float8>
+class GPU_MhaBackward_FP8 : public MhaBackwardTest<float8>
 {
     void SetUp() override
     {
@@ -435,8 +435,8 @@ class MhaBackwardTestFp8 : public MhaBackwardTest<float8>
     }
 };
 
-TEST_P(MhaBackwardTestFp32, TestFloat) { Run(); }
-TEST_P(MhaBackwardTestFp8, TestFloat) { Run(); }
+TEST_P(GPU_MhaBackward_FP32, TestFloat) { Run(); }
+TEST_P(GPU_MhaBackward_FP8, TestFloat8) { Run(); }
 
 inline auto GetCases()
 {
@@ -447,5 +447,5 @@ inline auto GetCases()
                             testing::ValuesIn({0.0f, 0.5f})); // bernulli probability
 }
 
-INSTANTIATE_TEST_SUITE_P(MhaBwdSuiteFp32, MhaBackwardTestFp32, GetCases());
-INSTANTIATE_TEST_SUITE_P(MhaBwdSuiteFp8, MhaBackwardTestFp8, GetCases());
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_MhaBackward_FP32, GetCases());
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_MhaBackward_FP8, GetCases());
