@@ -1400,6 +1400,8 @@ struct rnn_seq_api_test_driver : test_driver
     bool nohy{};
     bool nocy{};
 
+    bool pytorchTensorDescriptorFormat{};
+
     rnn_seq_api_test_driver() {}
 
     bool check_GPU_mem_limit(miopen::Handle& handle,
@@ -1629,7 +1631,13 @@ struct rnn_seq_api_test_driver : test_driver
         seqTensor<T> dy(output);
 
         const auto num_hidden_layers = numLayers * ((dirMode != 0) ? 2 : 1);
-        tensor<T> hx(std::vector{num_hidden_layers, batchSize, hiddenSize});
+        tensor<T> hx                 = [=]() {
+            if(pytorchTensorDescriptorFormat)
+                return tensor<T>(std::vector{num_hidden_layers, batchSize, hiddenSize, 1, 1});
+            else
+                return tensor<T>(std::vector{num_hidden_layers, batchSize, hiddenSize});
+        }();
+
         tensor<T> cx(hx), dhy(hx), dcy(hx);
 
         std::vector<T> weights(get_RNN_params_byteSize(handle, rnnDesc, input.desc) / sizeof(T));

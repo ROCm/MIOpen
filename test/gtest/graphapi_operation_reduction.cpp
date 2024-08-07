@@ -39,7 +39,7 @@ using miopen::graphapi::Tensor;
 
 } // namespace
 
-class GraphApiOperationReduction : public testing::Test
+class CPU_GraphApiOperationReduction_NONE : public testing::Test
 {
 protected:
     Reduction mReduction{MIOPEN_REDUCE_TENSOR_ADD, miopenFloat};
@@ -52,7 +52,7 @@ protected:
     Tensor mBadY{miopenFloat, {8, 32, 32}, {32 * 32, 32, 1}, 2, false};
 };
 
-TEST_F(GraphApiOperationReduction, Builder)
+TEST_F(CPU_GraphApiOperationReduction_NONE, Builder)
 {
     for(Tensor& y : mYs)
     {
@@ -213,7 +213,7 @@ public:
 
 } // namespace
 
-TEST_F(GraphApiOperationReduction, CFunctions)
+TEST_F(CPU_GraphApiOperationReduction_NONE, CFunctions)
 {
     ReductionAttribute invalidReduction;
 

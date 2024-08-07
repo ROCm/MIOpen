@@ -33,7 +33,8 @@ namespace miopen {
 
 namespace graphapi {
 
-static std::vector<int> Convert(const std::vector<int64_t>& values)
+namespace {
+std::vector<int> Convert(const std::vector<int64_t>& values)
 {
     std::vector<int> converted(values.size());
     std::transform(values.begin(), values.end(), converted.begin(), [](int64_t value) {
@@ -45,7 +46,7 @@ static std::vector<int> Convert(const std::vector<int64_t>& values)
     return converted;
 }
 
-static ConvolutionDescriptor Convert(const Convolution& conv, int groupCount)
+ConvolutionDescriptor Convert(const Convolution& conv, int groupCount)
 {
     return {conv.getSpatialDims(),
             conv.getMode(),
@@ -56,6 +57,7 @@ static ConvolutionDescriptor Convert(const Convolution& conv, int groupCount)
             Convert(conv.getPostPaddings()),
             groupCount};
 }
+} // namespace
 
 void ConvBiasResAddActivForwardExecutor::execute(miopenHandle_t handle, const VariantPack& vpk)
 {

@@ -46,6 +46,35 @@ GraphPatternMatcher::~GraphPatternMatcher() = default;
 
 class ConvBiasResAddActive_Fwd_Pattern : public GraphPatternMatcher
 {
+    struct OperationPointwiseWithOneVirtualInput
+    {
+        Tensor* concreteTensor;
+        Tensor* virtualTensor;
+        float concreteAlpha;
+        float virtualAlpha;
+
+        OperationPointwiseWithOneVirtualInput(const OperationPointwise* pointwise)
+        {
+            auto convertToFloat = [](auto&& arg) { return static_cast<float>(arg); };
+            if(pointwise->getX()->isVirtual())
+            {
+                virtualTensor = pointwise->getX();
+                virtualAlpha  = std::visit(convertToFloat, pointwise->getAlpha1());
+
+                concreteTensor = pointwise->getB();
+                concreteAlpha  = std::visit(convertToFloat, pointwise->getAlpha2());
+            }
+            else
+            {
+                concreteTensor = pointwise->getX();
+                concreteAlpha  = std::visit(convertToFloat, pointwise->getAlpha1());
+
+                virtualTensor = pointwise->getB();
+                virtualAlpha  = std::visit(convertToFloat, pointwise->getAlpha2());
+            }
+        }
+    };
+
     static const OpGraph& getPatternGraph()
     {
         static auto graph_gen =
@@ -59,34 +88,25 @@ class ConvBiasResAddActive_Fwd_Pattern : public GraphPatternMatcher
 
     static bool isBiasNode(OperationPointwise* addNode)
     {
-        auto& lengthsToCheck  = addNode->getX()->isVirtual() ? addNode->getB()->GetLengths()
-                                                             : addNode->getX()->GetLengths();
-        int notOneOrZeroCount = 0;
-        for(auto& length : lengthsToCheck)
-        {
-            if(length > size_t{1})
-            {
-                notOneOrZeroCount++;
-            }
-        }
+        OperationPointwiseWithOneVirtualInput add(addNode);
 
-        // Assume bias node when at most one dimension is larger than 1.
-        return notOneOrZeroCount <= 1;
+        auto& lengthsToCheck = add.concreteTensor->GetLengths();
+
+        return std::count_if(lengthsToCheck.cbegin(), lengthsToCheck.cend(), [](std::size_t value) {
+                   return value > size_t{1};
+               }) <= 1;
     }
 
     static bool hasBiasNode(const OpGraph& graph)
     {
         auto* conv = dynamic_cast<OperationConvolutionForward*>(
             graph.findOutNeighByName(graph.getSourceNode(), "OP_CONVOLUTION_FORWARD"));
-        assert(conv);
 
         auto* add1 =
             dynamic_cast<OperationPointwise*>(graph.findOutNeighByName(conv, "OP_POINTWISE:ADD"));
-        assert(add1);
 
         auto* add2 =
             dynamic_cast<OperationPointwise*>(graph.findOutNeighByName(add1, "OP_POINTWISE:ADD"));
-        assert(add2);
 
         return isBiasNode(add1) || isBiasNode(add2);
     }
@@ -99,7 +119,7 @@ public:
 
     std::string_view name() const final
     {
-        static const char* n = "convbiasresaddactivation_fwd";
+        static const std::string_view n{"convbiasresaddactivation_fwd"};
         return n;
     }
 
@@ -123,7 +143,6 @@ public:
 
         auto* conv = dynamic_cast<OperationConvolutionForward*>(
             graph.findOutNeighByName(graph.getSourceNode(), "OP_CONVOLUTION_FORWARD"));
-        assert(conv);
 
         std::size_t in_c  = conv->getX()->GetLengths()[1];
         std::size_t wei_c = conv->getW()->GetLengths()[1];
@@ -145,50 +164,36 @@ public:
 
         auto* add1 =
             dynamic_cast<OperationPointwise*>(graph.findOutNeighByName(conv, "OP_POINTWISE:ADD"));
-        assert(add1);
 
         auto* add2 =
             dynamic_cast<OperationPointwise*>(graph.findOutNeighByName(add1, "OP_POINTWISE:ADD"));
-        assert(add2);
 
         auto* activ = dynamic_cast<OperationPointwise*>(
             graph.findOutNeighByName(add2, "OP_POINTWISE:RELU_FWD"));
-        assert(activ);
 
-        auto [add, bias] =
+        auto [addTemp, biasTemp] =
             isBiasNode(add1) ? std::make_pair(add2, add1) : std::make_pair(add1, add2);
 
-        bool addXIsVirtual = add->getX()->isVirtual();
-        assert(addXIsVirtual || add->getB()->isVirtual());
+        OperationPointwiseWithOneVirtualInput add(addTemp);
+        OperationPointwiseWithOneVirtualInput bias(biasTemp);
 
-        auto convertToFloat = [](auto&& arg) { return static_cast<float>(arg); };
         // The virtual tensor for the add is the result of the convolution, and combining the
         // alpha1's allow for users to specify the alpha on either, or both nodes, and have it be
         // correct.
-        float alpha1 =
-            conv->getAlpha() * (addXIsVirtual ? std::visit(convertToFloat, add->getAlpha1())
-                                              : std::visit(convertToFloat, add->getAlpha2()));
-        float alpha2 = addXIsVirtual ? std::visit(convertToFloat, add->getAlpha2())
-                                     : std::visit(convertToFloat, add->getAlpha1());
-
-        auto* zTensor = addXIsVirtual ? add->getB() : add->getX();
-
-        bool biasXIsVirtual = bias->getX()->isVirtual();
-        assert(biasXIsVirtual || bias->getB()->isVirtual());
-
-        auto* biasTensor = biasXIsVirtual ? bias->getB() : bias->getX();
+        float alpha1 = conv->getAlpha() * add.virtualAlpha;
+        float alpha2 = add.concreteAlpha;
 
         std::shared_ptr<GraphPatternExecutor> exec = ConvBiasResAddActivForwardExecutor::make(
             conv->getX(),
             conv->getW(),
             conv->getConvolution(),
             groupCount,
-            zTensor,
-            biasTensor,
+            add.concreteTensor,
+            bias.concreteTensor,
             activ->getY(),
             alpha1,
             alpha2,
-            std::visit(convertToFloat, activ->getAlpha1()));
+            std::visit([](auto&& arg) { return static_cast<float>(arg); }, activ->getAlpha1()));
         return {EngineBuilder().setGraph(graph_ptr).setExecutor(exec).setGlobalIndex(0).build()};
     }
 };
