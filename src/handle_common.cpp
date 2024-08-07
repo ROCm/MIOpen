@@ -106,14 +106,16 @@ void Handle::TryStartPreloadingDbs()
     StartPreloadingDb<RamDb>(states, DbKinds::FindDb, FindDbRecord::GetUserPath(*this, ""), false);
 #endif
 
-    // fusion perf-db
+    // batchnorm perf-db
+    // it doesn't use find-db
 #if !MIOPEN_DISABLE_SYSDB
-    StartPreloadingDb<ReadonlyRamDb>(states, DbKinds::PerfDb, ctx.GetPerfDbPath("fusion"), true);
+    StartPreloadingDb<ReadonlyRamDb>(states, DbKinds::PerfDb, ctx.GetPerfDbPath("batchnorm"), true);
 #if !MIOPEN_DISABLE_USERDB
-    StartPreloadingDb<RamDb>(states, DbKinds::PerfDb, ctx.GetUserPerfDbPath("fusion"), false);
+    StartPreloadingDb<RamDb>(states, DbKinds::PerfDb, ctx.GetUserPerfDbPath("batchnorm"), false);
 #endif
 
     // fusion find-db
+    // it uses perf-db from convolution
 #if !MIOPEN_DISABLE_SYSDB
     StartPreloadingDb<ReadonlyRamDb>(
         states, DbKinds::FindDb, FindDbRecord::GetInstalledPath(*this, "fusion"), true);
