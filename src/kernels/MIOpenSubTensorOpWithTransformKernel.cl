@@ -126,7 +126,7 @@
 #define SUBTENSOR_OP_WITH_ALPHA_BETA(dst, src) \
     do                                         \
     {                                          \
-        (dst) = (src) + (dst)*beta;            \
+        (dst) = mad((dst), beta, (src));       \
         (void)alpha;                           \
     } while(0)
 #else*/
