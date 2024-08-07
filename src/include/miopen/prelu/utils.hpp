@@ -40,14 +40,6 @@ KernelInfo make_hip_kernel(std::vector<size_t> localsize,
                            std::string kernel_name,
                            KernelBuildParameters build_params);
 
-size_t get_reqd_work_item_cnt(const ExecutionContext& context, size_t local_size);
-
-size_t get_reqd_work_item_cnt(const Handle& handle, size_t local_size);
-
-size_t get_parallelism_size(size_t reqd_work_item_cnt, size_t output_numel, size_t reduce_size);
-
-bool is_parallelism(size_t reqd_work_item_cnt, size_t output_numel, size_t reduce_size);
-
 } // namespace prelu
 } // namespace solver
 } // namespace miopen
