@@ -26,6 +26,8 @@
 
 #include <miopen/db_preload.hpp>
 
+#include <miopen/config.h>
+
 #include <chrono>
 
 namespace miopen {
@@ -47,22 +49,13 @@ auto GetPreloadedDb(const fs::path& path) -> std::unique_ptr<Db>
 
     // Mutex is need to ensure states.futures is not updated while we work
     // so we skip locking if it no more writes can happen
-    if(!states.finished_loading.load(std::memory_order_acquire))
-        lock.lock();
-
-    // If we somehow skipped preload entirely we should just return nullptr
     if(!states.started_loading.load(std::memory_order_relaxed))
-        return nullptr;
+        lock.lock();
 
     auto it = states.futures.find(path);
 
     if(it == states.futures.end())
         return nullptr;
-
-    const auto loaded = 1 + states.dbs_loaded.fetch_add(1, std::memory_order_relaxed);
-
-    if(loaded == DbPreloadStates::GetNumberOfDbsToLoad())
-        states.finished_loading.store(true, std::memory_order_release);
 
     auto future = std::move(it->second);
     lock.unlock();

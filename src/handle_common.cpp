@@ -79,67 +79,50 @@ void Handle::TryStartPreloadingDbs()
 
     auto& states = GetDbPreloadStates();
 
-    if(states.started_loading.load(std::memory_order_relaxed))
+    if(states.started_loading.load(std::memory_order_acquire))
         return;
 
     std::unique_lock<std::mutex> lock(states.mutex);
 
-    if(states.started_loading.load(std::memory_order_relaxed))
+    if(states.started_loading.load(std::memory_order_acquire))
         return;
 
     MIOPEN_LOG_I("Preloading dbs");
 
-    auto check = 0;
-
     // conv perf-db
 #if !MIOPEN_DISABLE_SYSDB
     StartPreloadingDb<ReadonlyRamDb>(states, DbKinds::PerfDb, ctx.GetPerfDbPath(), true);
-    check++;
 #endif
 #if !MIOPEN_DISABLE_USERDB
     StartPreloadingDb<RamDb>(states, DbKinds::PerfDb, ctx.GetUserPerfDbPath(), false);
-    check++;
 #endif
 
     // conv find-db
 #if !MIOPEN_DISABLE_SYSDB
     StartPreloadingDb<ReadonlyRamDb>(
         states, DbKinds::FindDb, FindDbRecord::GetInstalledPath(*this, ""), true);
-    check++;
 #endif
 #if !MIOPEN_DISABLE_USERDB
     StartPreloadingDb<RamDb>(states, DbKinds::FindDb, FindDbRecord::GetUserPath(*this, ""), false);
-    check++;
 #endif
 
     // fusion perf-db
 #if !MIOPEN_DISABLE_SYSDB
     StartPreloadingDb<ReadonlyRamDb>(states, DbKinds::PerfDb, ctx.GetPerfDbPath("fusion"), true);
-    check++;
-#endif
 #if !MIOPEN_DISABLE_USERDB
     StartPreloadingDb<RamDb>(states, DbKinds::PerfDb, ctx.GetUserPerfDbPath("fusion"), false);
-    check++;
 #endif
 
     // fusion find-db
 #if !MIOPEN_DISABLE_SYSDB
     StartPreloadingDb<ReadonlyRamDb>(
         states, DbKinds::FindDb, FindDbRecord::GetInstalledPath(*this, "fusion"), true);
-    check++;
 #endif
 #if !MIOPEN_DISABLE_USERDB
     StartPreloadingDb<RamDb>(
         states, DbKinds::FindDb, FindDbRecord::GetUserPath(*this, "fusion"), false);
-    check++;
 #endif
 
-    if(check != DbPreloadStates::GetNumberOfDbsToLoad())
-        // If someone registered more dbs, but forgot to add some specific one to total amount this
-        // would crash tests
-        MIOPEN_THROW(miopenStatusInternalError,
-                     "Update DbPreloadStates::GetNumberOfDbsToLoad() value");
-
-    states.started_loading = true;
+    states.started_loading.store(true, std::memory_order_release);
 }
 } // namespace miopen

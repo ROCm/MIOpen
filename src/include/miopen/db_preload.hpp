@@ -29,7 +29,6 @@
 #include <miopen/filesystem.hpp>
 #include <miopen/ramdb.hpp>
 #include <miopen/readonlyramdb.hpp>
-#include <miopen/config.h>
 
 #include <future>
 #include <memory>
@@ -46,26 +45,12 @@ struct DbPreloadStates
     std::mutex mutex;
     std::unordered_map<fs::path, std::future<PreloadedDb>> futures;
     std::atomic<bool> started_loading{false};
-    std::atomic<bool> finished_loading{GetNumberOfDbsToLoad() == 0};
-    std::atomic<int> dbs_loaded{0};
 
     DbPreloadStates()                       = default;
     DbPreloadStates(const DbPreloadStates&) = delete;
     auto operator=(const DbPreloadStates&) -> DbPreloadStates& = delete;
     DbPreloadStates(DbPreloadStates&&)                         = delete;
     auto operator=(DbPreloadStates&&) -> DbPreloadStates& = delete;
-
-    constexpr static inline auto GetNumberOfDbsToLoad() -> int
-    {
-        int dbs_to_load = 0;
-#if !MIOPEN_DISABLE_SYSDB
-        dbs_to_load += 4;
-#endif
-#if !MIOPEN_DISABLE_USERDB
-        dbs_to_load += 4;
-#endif
-        return dbs_to_load;
-    }
 };
 
 auto GetDbPreloadStates() -> DbPreloadStates&;
