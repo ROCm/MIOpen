@@ -374,6 +374,7 @@ static char mem[10][256];
 
 static auto ValidAttributesTestCases =
     testing::Values(GraphApiVariantPackTuple{true, {true, {}}, {true, {}}, {true, mem[9]}},
+                    GraphApiVariantPackTuple{true, {true, {}}, {true, {}}, {true, nullptr}},
                     GraphApiVariantPackTuple{
                         true, {true, {1, 2, 3}}, {true, {mem[0], mem[1], mem[2]}}, {true, mem[9]}},
                     GraphApiVariantPackTuple{true,
@@ -404,17 +405,9 @@ static auto InvalidPointersTestCases = testing::Combine(
                     ValidatedVector<void*>{false, {mem[0], mem[1], mem[2], mem[0], mem[4]}},
                     ValidatedVector<void*>{false, {mem[0], mem[4], mem[2], mem[3], mem[4]}},
                     ValidatedVector<void*>{false, {mem[0], mem[1], mem[2], mem[2], mem[4]}}),
-    testing::Values(ValidatedValue<void*>{false, nullptr},
+    testing::Values(ValidatedValue<void*>{true, nullptr},
                     ValidatedValue<void*>{true, mem[2]},
                     ValidatedValue<void*>{true, mem[9]}));
-
-static auto NullWorkspace = testing::Combine(
-    testing::Values(false),
-    testing::Values(ValidatedVector<int64_t>{true, {}},
-                    ValidatedVector<int64_t>{true, {1, 2, 3, 4, 5}}),
-    testing::Values(ValidatedVector<void*>{true, {}},
-                    ValidatedVector<void*>{true, {mem[0], mem[1], mem[2], mem[3], mem[4]}}),
-    testing::Values(ValidatedValue<void*>{false, nullptr}));
 
 static auto InvalidWorkspace = testing::Combine(
     testing::Values(false),
@@ -445,13 +438,11 @@ static auto SizeMismatch = testing::Combine(
 INSTANTIATE_TEST_SUITE_P(UnitVA, CPU_GraphApiVariantPackBuilder_NONE, ValidAttributesTestCases);
 INSTANTIATE_TEST_SUITE_P(UnitII, CPU_GraphApiVariantPackBuilder_NONE, InvalidIdsTestCases);
 INSTANTIATE_TEST_SUITE_P(UnitIP, CPU_GraphApiVariantPackBuilder_NONE, InvalidPointersTestCases);
-INSTANTIATE_TEST_SUITE_P(UnitNW, CPU_GraphApiVariantPackBuilder_NONE, NullWorkspace);
 INSTANTIATE_TEST_SUITE_P(UnitIW, CPU_GraphApiVariantPackBuilder_NONE, InvalidWorkspace);
 INSTANTIATE_TEST_SUITE_P(UnitSM, CPU_GraphApiVariantPackBuilder_NONE, SizeMismatch);
 
 INSTANTIATE_TEST_SUITE_P(UnitVA, CPU_GraphApiVariantPack_NONE, ValidAttributesTestCases);
 INSTANTIATE_TEST_SUITE_P(UnitII, CPU_GraphApiVariantPack_NONE, InvalidIdsTestCases);
 INSTANTIATE_TEST_SUITE_P(UnitIP, CPU_GraphApiVariantPack_NONE, InvalidPointersTestCases);
-INSTANTIATE_TEST_SUITE_P(UnitNW, CPU_GraphApiVariantPack_NONE, NullWorkspace);
 INSTANTIATE_TEST_SUITE_P(UnitIW, CPU_GraphApiVariantPack_NONE, InvalidWorkspace);
 INSTANTIATE_TEST_SUITE_P(UnitSM, CPU_GraphApiVariantPack_NONE, SizeMismatch);
