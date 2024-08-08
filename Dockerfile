@@ -18,8 +18,6 @@ RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
     "linux-headers-$(uname -r)" "linux-modules-extra-$(uname -r)"
 
-RUN usermod -a -G render,video $LOGNAME
-
 #Add gpg keys
 ENV APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE=DontWarn
 RUN curl -fsSL https://repo.radeon.com/rocm/rocm.gpg.key | gpg --dearmor -o /etc/apt/trusted.gpg.d/rocm-keyring.gpg
@@ -129,4 +127,4 @@ RUN pip3 install -r /doc-requirements.txt
 # Composable Kernel requires this version cmake
 RUN pip3 install --upgrade cmake==3.27.5
 
-RUN groupadd -f render
+RUN groupadd -f render,video
