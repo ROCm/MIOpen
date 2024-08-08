@@ -23,8 +23,6 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-
-#include "gtest_common.hpp"
 #include "solver_fwd.hpp"
 
 struct ConvFwdSolverTestFloat : ConvFwdSolverTest<float>

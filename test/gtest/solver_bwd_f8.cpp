@@ -23,8 +23,6 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-
-#include "gtest_common.hpp"
 #include "solver_bwd.hpp"
 
 struct ConvBwdFp8 : ConvBwdSolverTest<float8, float, true>
