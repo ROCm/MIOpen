@@ -70,15 +70,15 @@ public:
     }
 };
 
-class GPU_UnitTestConvSolver_fwd_fp16 : public UnitTestConvSolverFwd<half_float::half>
+class GPU_UnitTestConvSolver_fwd_FP16 : public UnitTestConvSolverFwd<half_float::half>
 {
 };
 
-class GPU_UnitTestConvSolver_bwd_fp16 : public UnitTestConvSolverBwd<half_float::half>
+class GPU_UnitTestConvSolver_bwd_FP16 : public UnitTestConvSolverBwd<half_float::half>
 {
 };
 
-class GPU_UnitTestConvSolver_wrw_fp16 : public UnitTestConvSolverWrw<half_float::half>
+class GPU_UnitTestConvSolver_wrw_FP16 : public UnitTestConvSolverWrw<half_float::half>
 {
 };
 
@@ -115,7 +115,7 @@ class UnitTestConvSolverDevApplicabilityFwd
 {
 };
 
-class CPU_UnitTestConvSolverDevApplicability_fwd_fp16
+class CPU_UnitTestConvSolverDevApplicability_fwd_FP16
     : public UnitTestConvSolverDevApplicabilityFwd<miopenHalf>
 {
 };
