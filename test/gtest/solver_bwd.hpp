@@ -91,11 +91,11 @@ struct ConvBwdSolverTest
 protected:
     void SetUp() override
     {
-        Gpu supported_gpus;
+        Gpu supported_devs;
         ConvTestCaseBase conv_config;
-        std::tie(supported_gpus, algo, conv_config) = GetParam();
+        std::tie(supported_devs, algo, conv_config) = GetParam();
 
-        if(!IsTestSupportedByDevice(supported_gpus))
+        if(!IsTestSupportedByDevice(supported_devs))
         {
             GTEST_SKIP();
         }

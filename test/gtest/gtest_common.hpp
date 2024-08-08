@@ -97,7 +97,7 @@ struct disabled
 };
 
 Gpu GetDevGpuType();
-bool IsTestSupportedByDevice(Gpu supported_gpus);
+bool IsTestSupportedByDevice(Gpu supported_devs);
 
 template <typename disabled_mask, typename enabled_mask>
 bool IsTestSupportedForDevMask()

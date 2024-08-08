@@ -34,7 +34,6 @@ struct DevDescription
     unsigned cu_cnt; // CU for gfx9, WGP for gfx10, 11, ...
 };
 
-// Add additional methods here if needed
 class MockHandle : public miopen::Handle
 {
 public:
@@ -42,6 +41,7 @@ public:
     {
     }
 
+    // Add additional methods here if needed
     std::string GetDeviceName() const override { return std::string{dev_descr.name}; }
     std::size_t GetMaxComputeUnits() const override { return dev_descr.cu_cnt; }
     bool CooperativeLaunchSupported() const override { return false; }

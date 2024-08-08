@@ -28,33 +28,33 @@
 
 Gpu GetDevGpuType()
 {
-    const auto dev = get_handle().GetDeviceName();
+    const auto dev_name = get_handle().GetDeviceName();
 
-    static const auto gpu = [&] {
-        if(dev == "gfx900")
+    static const auto dev = [&] {
+        if(dev_name == "gfx900")
             return Gpu::gfx900;
-        else if(dev == "gfx906")
+        else if(dev_name == "gfx906")
             return Gpu::gfx906;
-        else if(dev == "gfx908")
+        else if(dev_name == "gfx908")
             return Gpu::gfx908;
-        else if(dev == "gfx90a")
+        else if(dev_name == "gfx90a")
             return Gpu::gfx90A;
-        else if(miopen::StartsWith(dev, "gfx94"))
+        else if(miopen::StartsWith(dev_name, "gfx94"))
             return Gpu::gfx94X;
-        else if(miopen::StartsWith(dev, "gfx103"))
+        else if(miopen::StartsWith(dev_name, "gfx103"))
             return Gpu::gfx103X;
-        else if(miopen::StartsWith(dev, "gfx110"))
+        else if(miopen::StartsWith(dev_name, "gfx110"))
             return Gpu::gfx110X;
         else
             throw std::runtime_error("unknown_gpu");
     }();
 
-    return gpu;
+    return dev;
 }
 
-bool IsTestSupportedByDevice(Gpu supported_gpus)
+bool IsTestSupportedByDevice(Gpu supported_devs)
 {
-    if((supported_gpus & GetDevGpuType()) != Gpu::None)
+    if((supported_devs & GetDevGpuType()) != Gpu::None)
     {
         return true;
     }
