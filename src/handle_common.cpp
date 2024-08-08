@@ -79,12 +79,12 @@ void Handle::TryStartPreloadingDbs()
 
     auto& states = GetDbPreloadStates();
 
-    if(states.started_loading.load(std::memory_order_acquire))
+    if(states.started_loading.load(std::memory_order_relaxed))
         return;
 
     std::unique_lock<std::mutex> lock(states.mutex);
 
-    if(states.started_loading.load(std::memory_order_acquire))
+    if(states.started_loading.load(std::memory_order_relaxed))
         return;
 
     MIOPEN_LOG_I("Preloading dbs");
@@ -126,6 +126,6 @@ void Handle::TryStartPreloadingDbs()
         states, DbKinds::FindDb, FindDbRecord::GetUserPath(*this, "fusion"), false);
 #endif
 
-    states.started_loading.store(true, std::memory_order_release);
+    states.started_loading.store(true, std::memory_order_relaxed);
 }
 } // namespace miopen
