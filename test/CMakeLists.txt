@@ -401,14 +401,14 @@ foreach(SANTIZER address thread)
     endif()
 endforeach()
 
-# function(add_sanitize_test TEST_SOURCE)
-#     get_filename_component(BASE_NAME ${TEST_SOURCE} NAME_WE)
-#     foreach(SANTIZER ${MIOPEN_TEST_SANITIZERS})
-#         add_test_executable(test_${BASE_NAME}_${SANTIZER} ${TEST_SOURCE})
-#         target_compile_options(test_${BASE_NAME}_${SANTIZER} PUBLIC -fsanitize=${SANTIZER} -fno-sanitize-recover=${SANTIZER})
-#         target_link_libraries(test_${BASE_NAME}_${SANTIZER} -fsanitize=${SANTIZER} -fno-sanitize-recover=${SANTIZER})
-#     endforeach()
-# endfunction()
+function(add_sanitize_test TEST_SOURCE)
+    get_filename_component(BASE_NAME ${TEST_SOURCE} NAME_WE)
+    foreach(SANTIZER ${MIOPEN_TEST_SANITIZERS})
+        add_test_executable(test_${BASE_NAME}_${SANTIZER} ${TEST_SOURCE})
+        target_compile_options(test_${BASE_NAME}_${SANTIZER} PUBLIC -fsanitize=${SANTIZER} -fno-sanitize-recover=${SANTIZER})
+        target_link_libraries(test_${BASE_NAME}_${SANTIZER} -fsanitize=${SANTIZER} -fno-sanitize-recover=${SANTIZER})
+    endforeach()
+endfunction()
 
 file(GLOB TEST_SOURCES *.cpp)
 
@@ -460,15 +460,15 @@ foreach(TEST_SOURCE ${EXCLUDE_TEST_SOURCES})
 endforeach()
 unset(EXCLUDE_TEST_SOURCES)
 
-# foreach(TEST_SOURCE ${TEST_SOURCES})
-#     get_filename_component(BASE_NAME ${TEST_SOURCE} NAME_WE)
-#     add_test_executable(test_${BASE_NAME} ${TEST_SOURCE})
-# endforeach()
+foreach(TEST_SOURCE ${TEST_SOURCES})
+    get_filename_component(BASE_NAME ${TEST_SOURCE} NAME_WE)
+    add_test_executable(test_${BASE_NAME} ${TEST_SOURCE})
+endforeach()
 
-# if(MIOPEN_ENABLE_SQLITE AND (MIOPEN_EMBED_DB STREQUAL ""))
-#     set_tests_properties(test_sqlite_perfdb PROPERTIES RUN_SERIAL On)
-# endif()
-# set_tests_properties(test_perfdb PROPERTIES RUN_SERIAL On)
+if(MIOPEN_ENABLE_SQLITE AND (MIOPEN_EMBED_DB STREQUAL ""))
+    set_tests_properties(test_sqlite_perfdb PROPERTIES RUN_SERIAL On)
+endif()
+set_tests_properties(test_perfdb PROPERTIES RUN_SERIAL On)
 
 # add_sanitize_test(perfdb.cpp)
 # add_sanitize_test(cache.cpp)
@@ -552,11 +552,6 @@ endfunction()
 #   These attributes can be enabled or disabled by using '_ENABLED' and '_DISABLED' suffix.
 #   Default: HIP_ENABLED HIP_NOGPU_DISABLED.
 
-if(1)
-function(add_custom_test NAME)
-    # do nothing
-endfunction()
-else()
 function(add_custom_test NAME)
     set(options
         BF16_ENABLED BF16_DISABLED HALF_ENABLED HALF_DISABLED INT8_ENABLED INT8_DISABLED FLOAT_ENABLED FLOAT_DISABLED
@@ -696,7 +691,6 @@ function(add_custom_test NAME)
         set_tests_properties(${NAME} PROPERTIES DISABLED On)
     endif()
 endfunction()
-endif()
 
 set(IMPLICITGEMM_MLIR_ENV_BASE MIOPEN_FIND_MODE=normal)
 set(IMPLICITGEMM_MLIR_ENV_F ${IMPLICITGEMM_MLIR_ENV_BASE} MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvMlirIgemmFwd)
