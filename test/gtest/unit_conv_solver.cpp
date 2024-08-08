@@ -53,7 +53,7 @@ private:
 // This is a simplified function, only one device is returned for the entire family.
 const auto& GetAllKnownDevices()
 {
-    static_assert(Gpu::gfx115X == Gpu::gfxLast);
+    static_assert(Gpu::gfx110X == Gpu::gfxLast);
 
     // https://rocm.docs.amd.com/en/latest/reference/gpu-arch-specs.html
     static std::map<Gpu, DevDescription> known_devs = {
@@ -65,7 +65,6 @@ const auto& GetAllKnownDevices()
         {Gpu::gfx94X,  {"gfx941",  304}},
         {Gpu::gfx103X, {"gfx1030", 40}},
         {Gpu::gfx110X, {"gfx1100", 48}},
-        {Gpu::gfx115X, {"gfx1150", 8/*???*/}},
         // clang-format on
     };
     return known_devs;

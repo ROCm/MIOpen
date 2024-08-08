@@ -52,7 +52,7 @@ auto GetConvTestCasesWrw()
     };
 }
 
-Gpu GetSupportedDevices() { return Gpu::gfx110X | Gpu::gfx115X; }
+Gpu GetSupportedDevices() { return Gpu::gfx110X; }
 
 } // namespace
 

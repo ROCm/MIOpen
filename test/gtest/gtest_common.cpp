@@ -45,8 +45,6 @@ Gpu GetDevGpuType()
             return Gpu::gfx103X;
         else if(miopen::StartsWith(dev, "gfx110"))
             return Gpu::gfx110X;
-        else if(miopen::StartsWith(dev, "gfx115"))
-            return Gpu::gfx115X;
         else
             throw std::runtime_error("unknown_gpu");
     }();
