@@ -128,6 +128,7 @@ set( MIOpen_Source
     generic_search.cpp
     getitem_api.cpp
     graphapi/convolution.cpp
+    graphapi/conv_bias_res_add_activ_forward_executor.cpp
     graphapi/engine.cpp
     graphapi/enginecfg.cpp
     graphapi/engineheur.cpp
