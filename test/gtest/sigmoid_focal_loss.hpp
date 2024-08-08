@@ -143,7 +143,9 @@ protected:
                                                  config.alpha,
                                                  config.gamma,
                                                  config.reduction);
-        cpu_sigmoid_focal_loss_unreduced_forward<TIO>(input, target, outputHost, config.alpha);
+        tensor<TIO> workspace;
+        cpu_sigmoid_focal_loss_forward<TIO>(
+            input, target, workspace, outputHost, config.alpha, config.gamma, config.reduction, 1);
 
         EXPECT_EQ(status, miopenStatusSuccess);
         output.data = handle.Read<TIO>(output_dev, output.data.size());
@@ -231,8 +233,15 @@ protected:
                                                   config.alpha,
                                                   config.gamma,
                                                   config.reduction);
-        cpu_sigmoid_focal_loss_unreduced_backward<TIO>(
-            input, target, dOutput, dInputHost, dTargetHost, config.alpha, config.gamma);
+        cpu_sigmoid_focal_loss_backward<TIO>(input,
+                                             target,
+                                             dOutput,
+                                             dInputHost,
+                                             dTargetHost,
+                                             config.alpha,
+                                             config.gamma,
+                                             config.reduction,
+                                             1);
 
         EXPECT_EQ(status, miopenStatusSuccess);
 
@@ -339,8 +348,14 @@ protected:
                                                  config.alpha,
                                                  config.gamma,
                                                  config.reduction);
-        cpu_sigmoid_focal_loss_forward<TIO>(
-            input, target, workspace, outputHost, config.alpha, config.gamma, divisor);
+        cpu_sigmoid_focal_loss_forward<TIO>(input,
+                                            target,
+                                            workspace,
+                                            outputHost,
+                                            config.alpha,
+                                            config.gamma,
+                                            config.reduction,
+                                            divisor);
 
         EXPECT_EQ(status, miopenStatusSuccess);
 
@@ -441,8 +456,15 @@ protected:
                                                   config.alpha,
                                                   config.gamma,
                                                   config.reduction);
-        cpu_sigmoid_focal_loss_backward<TIO>(
-            input, target, dOutput, dInputHost, dTargetHost, config.alpha, config.gamma, divisor);
+        cpu_sigmoid_focal_loss_backward<TIO>(input,
+                                             target,
+                                             dOutput,
+                                             dInputHost,
+                                             dTargetHost,
+                                             config.alpha,
+                                             config.gamma,
+                                             config.reduction,
+                                             divisor);
 
         EXPECT_EQ(status, miopenStatusSuccess);
 
