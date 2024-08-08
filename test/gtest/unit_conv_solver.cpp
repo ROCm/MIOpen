@@ -35,10 +35,12 @@ struct DevDescription
 };
 
 // Add additional methods here if needed
-class MockHandle: public miopen::Handle
+class MockHandle : public miopen::Handle
 {
 public:
-    MockHandle(const DevDescription& dev_description) : miopen::Handle{}, dev_descr{dev_description} {}
+    MockHandle(const DevDescription& dev_description) : miopen::Handle{}, dev_descr{dev_description}
+    {
+    }
 
     std::string GetDeviceName() const override { return std::string{dev_descr.name}; }
     std::size_t GetMaxComputeUnits() const override { return dev_descr.cu_cnt; }
@@ -111,9 +113,10 @@ void UnitTestConvSolverDevApplicabilityBase::RunTestImpl(
     for(const auto& [dev, dev_descr] : all_known_devs)
     {
         const auto supported = IsDeviceSupported(supported_devs, dev);
-        // std::cout << "Test " << dev_descr.name << " (supported: " << supported << ")" << std::endl;
+        // std::cout << "Test " << dev_descr.name << " (supported: " << supported << ")" <<
+        // std::endl;
 
-        auto handle = MockHandle{dev_descr};
+        auto handle    = MockHandle{dev_descr};
         const auto ctx = [&] {
             auto tmp = miopen::ExecutionContext{&handle};
             problem.SetupFloats(tmp);
