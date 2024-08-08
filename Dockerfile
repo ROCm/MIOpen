@@ -127,4 +127,7 @@ RUN pip3 install -r /doc-requirements.txt
 # Composable Kernel requires this version cmake
 RUN pip3 install --upgrade cmake==3.27.5
 
-RUN groupadd -f render,video
+# groupadd can add one group a time
+RUN groupadd -f render
+RUN groupadd -f video
+RUN usermod -a -G render,video root
