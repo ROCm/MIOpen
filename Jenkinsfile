@@ -545,7 +545,7 @@ pipeline {
         Bf16_flags      = " -DMIOPEN_TEST_BFLOAT16=On"
         Int8_flags      = " -DMIOPEN_TEST_INT8=On"
         Full_test       = " -DMIOPEN_TEST_ALL=On"
-        Smoke_targets   = " install check MIOpenDriver"
+        Smoke_targets   = " check MIOpenDriver"
         NOCOMGR_flags   = " -DMIOPEN_USE_COMGR=Off"
         NOMLIR_flags    = " -DMIOPEN_USE_MLIR=Off"
     }
@@ -648,7 +648,7 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx90a") }
                     steps{
-                        buildHipClangJobAndReboot(make_targets: Smoke_targets)
+                        buildHipClangJobAndReboot(make_targets: Smoke_targets, build_install: "true")
                     }
                 }
                 stage('Fp32 Hip Debug gfx90a') {
@@ -661,7 +661,7 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx90a") }
                     steps{
-                        buildHipClangJobAndReboot(build_type: 'debug', make_targets: Smoke_targets)
+                        buildHipClangJobAndReboot(build_type: 'debug', make_targets: Smoke_targets, build_install: "true")
                     }
                 }
                 stage('Fp32 Hip Debug gfx908') {
@@ -674,7 +674,7 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx908") }
                     steps{
-                        buildHipClangJobAndReboot(build_type: 'debug', make_targets: Smoke_targets)
+                        buildHipClangJobAndReboot(build_type: 'debug', make_targets: Smoke_targets, build_install: "true")
                     }
                 }
                 stage('Fp32 Hip Debug gfx94X') {
@@ -687,7 +687,7 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx94X") }
                     steps{
-                        buildHipClangJobAndReboot(build_type: 'debug', make_targets: Smoke_targets, needs_reboot:false)
+                        buildHipClangJobAndReboot(build_type: 'debug', make_targets: Smoke_targets, needs_reboot:false, build_install: "true")
                     }
                 }
             }
@@ -711,7 +711,7 @@ pipeline {
                         NOCOMGR_build_cmd = "CTEST_PARALLEL_LEVEL=4 MIOPEN_LOG_LEVEL=5 make -j\$(nproc) check"
                     }
                     steps{
-                        buildHipClangJobAndReboot( build_type: 'debug', setup_flags: NOCOMGR_flags, build_cmd: NOCOMGR_build_cmd, test_flags: ' --verbose ')
+                        buildHipClangJobAndReboot( build_type: 'debug', setup_flags: NOCOMGR_flags, build_cmd: NOCOMGR_build_cmd, test_flags: ' --verbose ', build_install: "true")
                     }
                 }
                 stage('Fp32 Hip Debug NOMLIR gfx90a') {
@@ -728,7 +728,7 @@ pipeline {
                         NOMLIR_build_cmd = "CTEST_PARALLEL_LEVEL=4 MIOPEN_LOG_LEVEL=5 make -j\$(nproc) check"
                     }
                     steps{
-                        buildHipClangJobAndReboot( build_type: 'debug', setup_flags: NOMLIR_flags, build_cmd: NOMLIR_build_cmd, test_flags: ' --verbose ')
+                        buildHipClangJobAndReboot( build_type: 'debug', setup_flags: NOMLIR_flags, build_cmd: NOMLIR_build_cmd, test_flags: ' --verbose ', build_install: "true")
                     }
                 }
                 stage('Fp32 Hip Debug NOCK gfx90a Build-Only') {
@@ -741,7 +741,7 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx90a") }
                     steps{
-                        buildHipClangJobAndReboot( build_type: 'debug', setup_flags: "-DMIOPEN_USE_COMPOSABLEKERNEL=Off", make_targets: "")
+                        buildHipClangJobAndReboot( build_type: 'debug', setup_flags: "-DMIOPEN_USE_COMPOSABLEKERNEL=Off", make_targets: "", build_install: "true")
                     }
                 }
                 stage('Fp32 Hip Debug Embedded Vega20') {
@@ -757,7 +757,7 @@ pipeline {
                         Embedded_flags = "-DMIOPEN_EMBED_DB='gfx906_60'"
                     }
                     steps{
-                        buildHipClangJobAndReboot( build_type: 'debug', setup_flags: Embedded_flags, build_env: extra_log_env, test_flags: ' --verbose ')
+                        buildHipClangJobAndReboot( build_type: 'debug', setup_flags: Embedded_flags, build_env: extra_log_env, test_flags: ' --verbose ', build_install: "true")
                     }
                 }
                 stage('Fp32 Hip Static gfx90a') {
@@ -770,7 +770,7 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx90a") }
                     steps{
-                        buildHipClangJobAndReboot( setup_flags: "-DBUILD_SHARED_LIBS=Off", mlir_build: 'OFF')
+                        buildHipClangJobAndReboot( setup_flags: "-DBUILD_SHARED_LIBS=Off", mlir_build: 'OFF', build_install: "true")
                     }
                 }
                 stage('Fp32 Hip Normal-Find gfx90a') {
@@ -787,7 +787,7 @@ pipeline {
                         execute_cmd = "bin/test_conv2d --disable-verification-cache"
                     }
                     steps{
-                        buildHipClangJobAndReboot(make_targets: make_targets, execute_cmd: execute_cmd, find_mode: "Normal")
+                        buildHipClangJobAndReboot(make_targets: make_targets, execute_cmd: execute_cmd, find_mode: "Normal", build_install: "true")
                     }
                 }
                 stage('Fp32 Hip Fast-Find gfx90a') {
@@ -804,7 +804,7 @@ pipeline {
                         execute_cmd = "MIOPEN_FIND_MODE=2 CTEST_PARALLEL_LEVEL=4 bin/test_conv2d --disable-verification-cache"
                     }
                     steps{
-                        buildHipClangJobAndReboot( make_targets: make_targets, execute_cmd: execute_cmd)
+                        buildHipClangJobAndReboot( make_targets: make_targets, execute_cmd: execute_cmd, build_install: "true")
                     }
                 }
                 stage('Fp32 Hip gfx90a') {
@@ -830,7 +830,7 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx90a") }
                     steps{
-                        buildHipClangJobAndReboot(make_targets: Smoke_targets, setup_flags: "-DMIOPEN_USE_SQLITE_PERF_DB=On")
+                        buildHipClangJobAndReboot(make_targets: Smoke_targets, setup_flags: "-DMIOPEN_USE_SQLITE_PERF_DB=On", build_install: "true")
                     }
                 }
             }
@@ -850,7 +850,7 @@ pipeline {
                     }
                     agent{ label rocmnode("vega20") }
                     steps{
-                        buildHipClangJobAndReboot( setup_flags: Fp16_flags, make_targets: Smoke_targets)
+                        buildHipClangJobAndReboot( setup_flags: Fp16_flags, make_targets: Smoke_targets, build_install: "true")
                     }
                 }
                 stage('Bf16 Hip Vega20') {
@@ -863,7 +863,7 @@ pipeline {
                     }
                     agent{ label rocmnode("vega20") }
                     steps{
-                        buildHipClangJobAndReboot(setup_flags: Bf16_flags, make_targets: Smoke_targets)
+                        buildHipClangJobAndReboot(setup_flags: Bf16_flags, make_targets: Smoke_targets, build_install: "true")
                     }
                 }
                 stage('Fp16 Hip gfx908') {
@@ -876,7 +876,7 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx908") }
                     steps{
-                        buildHipClangJobAndReboot( setup_flags: Fp16_flags, make_targets: Smoke_targets)
+                        buildHipClangJobAndReboot( setup_flags: Fp16_flags, make_targets: Smoke_targets, build_install: "true")
                     }
                 }
                 stage('Bf16 Hip gfx908') {
@@ -889,7 +889,7 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx908") }
                     steps{
-                        buildHipClangJobAndReboot(setup_flags: Bf16_flags, make_targets: Smoke_targets)
+                        buildHipClangJobAndReboot(setup_flags: Bf16_flags, make_targets: Smoke_targets, build_install: "true")
                     }
                 }
                 stage('Fp16 Hip gfx90a') {
@@ -902,7 +902,7 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx90a") }
                     steps{
-                        buildHipClangJobAndReboot( setup_flags: Fp16_flags, make_targets: Smoke_targets)
+                        buildHipClangJobAndReboot( setup_flags: Fp16_flags, make_targets: Smoke_targets, build_install: "true")
                     }
                 }
                 stage('Bf16 Hip gfx90a') {
@@ -915,7 +915,7 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx90a") }
                     steps{
-                        buildHipClangJobAndReboot(setup_flags: Bf16_flags, make_targets: Smoke_targets)
+                        buildHipClangJobAndReboot(setup_flags: Bf16_flags, make_targets: Smoke_targets, build_install: "true")
                     }
                 }
                 stage('Fp16 Hip gfx94X') {
@@ -928,7 +928,7 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx94X") }
                     steps{
-                        buildHipClangJobAndReboot( setup_flags: Fp16_flags, make_targets: Smoke_targets, needs_reboot:false)
+                        buildHipClangJobAndReboot( setup_flags: Fp16_flags, make_targets: Smoke_targets, needs_reboot:false, build_install: "true")
                     }
                 }
                 stage('Bf16 Hip gfx94X') {
@@ -941,7 +941,7 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx94X") }
                     steps{
-                        buildHipClangJobAndReboot(setup_flags: Bf16_flags, make_targets: Smoke_targets, needs_reboot:false)
+                        buildHipClangJobAndReboot(setup_flags: Bf16_flags, make_targets: Smoke_targets, needs_reboot:false, build_install: "true")
                     }
                 }
             }
