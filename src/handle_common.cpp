@@ -46,7 +46,7 @@ void StartPreloadingDb(DbPreloadStates& states,
     if(path.empty())
         return;
 
-    auto task = [db_kind, path, is_system]() {
+    auto task = [](DbKinds db_kind, const fs::path& path, bool is_system) {
         if constexpr(std::is_same_v<Db, RamDb>)
         {
             auto db   = std::make_unique<RamDb>(db_kind, path, is_system);
@@ -67,7 +67,7 @@ void StartPreloadingDb(DbPreloadStates& states,
         }
     };
 
-    auto future = std::async(std::launch::async, std::move(task));
+    auto future = std::async(std::launch::async, std::move(task), db_kind, path, is_system);
 
     states.futures.emplace(path, std::move(future));
 }
