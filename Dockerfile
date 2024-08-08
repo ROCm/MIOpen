@@ -14,6 +14,12 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
     gnupg2 \
     wget
 
+RUN apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
+    "linux-headers-$(uname -r)" "linux-modules-extra-$(uname -r)"
+
+RUN usermod -a -G render,video $LOGNAME
+
 #Add gpg keys
 ENV APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE=DontWarn
 RUN curl -fsSL https://repo.radeon.com/rocm/rocm.gpg.key | gpg --dearmor -o /etc/apt/trusted.gpg.d/rocm-keyring.gpg
@@ -104,7 +110,8 @@ RUN ccache -s
 # even purge will remove some other components which is not ideal
 RUN apt-get update && \
 DEBIAN_FRONTEND=noninteractive apt-get purge -y --allow-unauthenticated \
-    composablekernel-dev
+    composablekernel-dev \
+    miopen-hip
 
 ARG COMPILER_LAUNCHER=""
 # rbuild is used to trigger build of requirements.txt, dev-requirements.txt
