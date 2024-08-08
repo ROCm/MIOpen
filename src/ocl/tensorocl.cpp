@@ -37,8 +37,6 @@
 #include <numeric>
 #include <boost/range/combine.hpp>
 
-#define MIO_TENSOROCL_DEBUG 0
-
 namespace miopen {
 
 TensorDescriptor GetFlattenedTensorDescriptor(const TensorDescriptor& desc)
@@ -163,10 +161,8 @@ void OpTensor3d(const Handle& handle,
     // accounted for in the bitmap
     CreateBitmapAndGrid(bitmap, blens, clens, num_wg, work_per_wg, static_cast<int>(d - 2));
 
-#if(MIO_TENSOROCL_DEBUG == 1)
-    printf("bitmap: %u\n", bitmap);
-    printf("work_per_wg: %d, num_wg: %d\n", work_per_wg, num_wg);
-#endif
+    MIOPEN_LOG_I2("bitmap: " << bitmap);
+    MIOPEN_LOG_I2("work_per_wg: " << work_per_wg << " num_wg: " << num_wg);
 
     int num_wg_orig = num_wg;
     int max_num_wg  = 4096;
@@ -472,10 +468,8 @@ void OpTensor4d(const Handle& handle,
     if(bTensorDesc.GetElementSize() == 1)
         bitmap = 4;
 
-#if(MIO_TENSOROCL_DEBUG == 1)
-    printf("bitmap: %u\n", bitmap);
-    printf("work_per_wg: %d, num_wg: %d\n", work_per_wg, num_wg);
-#endif
+    MIOPEN_LOG_I2("bitmap: " << bitmap);
+    MIOPEN_LOG_I2("work_per_wg: " << work_per_wg << " num_wg: " << num_wg);
 
     // Forward Convolution Bias specialization
     // for fwd-bias, bitmap looks like <0, 1, 0, 0>
@@ -527,10 +521,8 @@ void OpTensor4d(const Handle& handle,
     bool packed_equal_tensor =
         packed_tensor && (bTensorDesc.GetElementSize() == cTensorDesc.GetElementSize());
 
-#if(MIO_TENSOROCL_DEBUG == 1)
-    printf("packed_tensor: %d\n", packed_tensor);
-    printf("equal_tensor: %d\n", bTensorDesc.GetElementSize() == cTensorDesc.GetElementSize());
-#endif
+    MIOPEN_LOG_I2("packed_tensor: " << packed_tensor);
+    MIOPEN_LOG_I2("equal_tensor: " << (bTensorDesc.GetElementSize() == cTensorDesc.GetElementSize()));
 
     // for naive tensor ops
     const std::string data_type = GetDataType(bTensorDesc.GetType());
@@ -998,10 +990,8 @@ void OpTensorOther(const Handle& handle,
     // accounted for in the bitmap
     CreateBitmapAndGrid(bitmap, blens, clens, num_wg, work_per_wg, static_cast<int>(d - 2));
 
-#if(MIO_TENSOROCL_DEBUG == 1)
-    printf("bitmap: %u\n", bitmap);
-    printf("work_per_wg: %d, num_wg: %d\n", work_per_wg, num_wg);
-#endif
+    MIOPEN_LOG_I2("bitmap: " << bitmap);
+    MIOPEN_LOG_I2("work_per_wg: " << work_per_wg << " num_wg: " << num_wg);
 
     int num_wg_orig = num_wg;
     int max_num_wg  = 4096;
@@ -1272,15 +1262,8 @@ void OpTensor(const Handle& handle,
     }
 
     auto blens = bTensorDesc.GetLengths();
-#if(MIO_TENSOROCL_DEBUG == 1)
-    printf("blen:[");
-    for(auto len : blens)
-    {
-        printf(" %lu", len);
-    }
-    printf("]\n");
-#endif
     auto clens = cTensorDesc.GetLengths();
+    MIOPEN_LOG_I2("bTensorDesc: " << bTensorDesc);
 
     if(clens.size() > 5)
     {
