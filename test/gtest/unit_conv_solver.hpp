@@ -88,7 +88,7 @@ class UnitTestConvSolverDevApplicabilityBase
 {
 public:
     void RunTestImpl(const miopen::solver::conv::ConvSolverBase& solver,
-                     Gpu supported_gpus,
+                     Gpu supported_devs,
                      miopenDataType_t datatype,
                      miopen::conv::Direction direction,
                      const ConvTestCaseBase& conv_config);
@@ -102,10 +102,10 @@ class UnitTestConvSolverDevApplicability
 public:
     void RunTest(const miopen::solver::conv::ConvSolverBase& solver)
     {
-        Gpu supported_gpus;
+        Gpu supported_devs;
         ConvTestCaseBase conv_config;
-        std::tie(supported_gpus, conv_config) = GetParam();
-        this->RunTestImpl(solver, supported_gpus, datatype, direction, conv_config);
+        std::tie(supported_devs, conv_config) = GetParam();
+        this->RunTestImpl(solver, supported_devs, datatype, direction, conv_config);
     }
 };
 

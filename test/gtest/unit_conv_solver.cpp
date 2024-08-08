@@ -26,40 +26,52 @@
 
 #include "unit_conv_solver.hpp"
 
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_DEBUG_ENFORCE_DEVICE)
-
 namespace {
 
+struct DevDescription
+{
+    std::string_view name;
+    unsigned cu_cnt; // CU for gfx9, WGP for gfx10, 11, ...
+};
+
+// Add additional methods here if needed
+class MockHandle: public miopen::Handle
+{
+public:
+    MockHandle(const DevDescription& dev_description) : miopen::Handle{}, dev_descr{dev_description} {}
+
+    std::string GetDeviceName() const override { return std::string{dev_descr.name}; }
+    std::size_t GetMaxComputeUnits() const override { return dev_descr.cu_cnt; }
+    bool CooperativeLaunchSupported() const override { return false; }
+
+private:
+    DevDescription dev_descr;
+};
+
 // This is a simplified function, only one device is returned for the entire family.
-std::string_view GpuTypeToStr(Gpu dev)
+const auto& GetAllKnownDevices()
 {
-    switch(dev)
-    {
-    case Gpu::gfx900: return "gfx900";
-    case Gpu::gfx906: return "gfx906";
-    case Gpu::gfx908: return "gfx908";
-    case Gpu::gfx90A: return "gfx90a";
-    case Gpu::gfx94X: return "gfx940";
-    case Gpu::gfx103X: return "gfx1030";
-    case Gpu::gfx110X: return "gfx1100";
-    case Gpu::gfx115X: return "gfx1150";
-    default: throw std::runtime_error("unknown device");
-    }
+    static_assert(Gpu::gfx115X == Gpu::gfxLast);
+
+    // https://rocm.docs.amd.com/en/latest/reference/gpu-arch-specs.html
+    static std::map<Gpu, DevDescription> known_devs = {
+        // clang-format off
+        {Gpu::gfx900,  {"gfx900",  64}},
+        {Gpu::gfx906,  {"gfx906",  60}},
+        {Gpu::gfx908,  {"gfx908",  120}},
+        {Gpu::gfx90A,  {"gfx90a",  104}},
+        {Gpu::gfx94X,  {"gfx941",  304}},
+        {Gpu::gfx103X, {"gfx1030", 40}},
+        {Gpu::gfx110X, {"gfx1100", 48}},
+        {Gpu::gfx115X, {"gfx1150", 8/*???*/}},
+        // clang-format on
+    };
+    return known_devs;
 }
 
-std::vector<Gpu> GetAllKnownGpusAsVector()
+bool IsDeviceSupported(Gpu supported_devs, Gpu dev)
 {
-    std::vector<Gpu> gpu_v;
-    for(Gpu gpu = Gpu::gfxFirst; gpu <= Gpu::gfxLast; gpu <<= 1)
-    {
-        gpu_v.push_back(gpu);
-    }
-    return gpu_v;
-}
-
-bool IsGpuSupported(Gpu supported_gpus, Gpu gpu)
-{
-    if((supported_gpus & gpu) != Gpu::None)
+    if((supported_devs & dev) != Gpu::None)
         return true;
     return false;
 }
@@ -84,39 +96,24 @@ miopen::conv::ProblemDescription GetProblemDescription(miopenDataType_t datatype
     }
 }
 
-miopen::Handle EnforceDevice(Gpu gpu)
-{
-    const auto gpu_str = GpuTypeToStr(gpu);
-    env::update(MIOPEN_DEBUG_ENFORCE_DEVICE, gpu_str);
-
-    auto handle = miopen::Handle{};
-
-    const auto name = handle.GetDeviceName();
-    if(name != gpu_str)
-        throw std::runtime_error("env::update failure");
-
-    return handle;
-}
-
 } // namespace
 
 void UnitTestConvSolverDevApplicabilityBase::RunTestImpl(
     const miopen::solver::conv::ConvSolverBase& solver,
-    Gpu supported_gpus,
+    Gpu supported_devs,
     miopenDataType_t datatype,
     miopen::conv::Direction direction,
     const ConvTestCaseBase& conv_config)
 {
     const auto problem = GetProblemDescription(datatype, direction, conv_config);
 
-    const auto all_known_gpus = GetAllKnownGpusAsVector();
-    for(auto gpu : all_known_gpus)
+    const auto all_known_devs = GetAllKnownDevices();
+    for(const auto& [dev, dev_descr] : all_known_devs)
     {
-        const auto supported = IsGpuSupported(supported_gpus, gpu);
-        // std::cout << "Test " << GpuTypeToStr(gpu) << " (supported: " << supported << ")" <<
-        // std::endl;
+        const auto supported = IsDeviceSupported(supported_devs, dev);
+        // std::cout << "Test " << dev_descr.name << " (supported: " << supported << ")" << std::endl;
 
-        auto handle    = EnforceDevice(gpu);
+        auto handle = MockHandle{dev_descr};
         const auto ctx = [&] {
             auto tmp = miopen::ExecutionContext{&handle};
             problem.SetupFloats(tmp);
@@ -127,7 +124,7 @@ void UnitTestConvSolverDevApplicabilityBase::RunTestImpl(
         // std::cout << "IsApplicable: " << is_applicable << std::endl;
         if(is_applicable != supported)
         {
-            GTEST_FAIL() << GpuTypeToStr(gpu) << " is" << (is_applicable ? "" : " not")
+            GTEST_FAIL() << dev_descr.name << " is" << (is_applicable ? "" : " not")
                          << " applicable for " << solver.SolverDbId() << " but "
                          << (supported ? "" : "not ") << "marked as supported";
         }
