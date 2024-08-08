@@ -39,7 +39,6 @@ struct SigmoidFocalLossTestCase
     bool isContiguous;
     float alpha;
     float gamma;
-    miopenLossReductionMode_t reduction;
     friend std::ostream& operator<<(std::ostream& os, const SigmoidFocalLossTestCase& tc)
     {
         os << "dims: ";
@@ -56,15 +55,11 @@ struct SigmoidFocalLossTestCase
     SigmoidFocalLossTestCase() {}
 
     SigmoidFocalLossTestCase(std::vector<size_t> dim_,
-                             bool isContiguous_                   = true,
-                             miopenLossReductionMode_t reduction_ = MIOPEN_LOSS_REDUCTION_NONE,
-                             float alpha_                         = 0.25,
-                             float gamma_                         = 2)
-        : dims(dim_),
-          isContiguous(isContiguous_),
-          alpha(alpha_),
-          gamma(gamma_),
-          reduction(reduction_)
+                             bool isContiguous_ = true,
+                             //  miopenLossReductionMode_t reduction_ = MIOPEN_LOSS_REDUCTION_NONE,
+                             float alpha_ = 0.25,
+                             float gamma_ = 2)
+        : dims(dim_), isContiguous(isContiguous_), alpha(alpha_), gamma(gamma_)
     {
     }
 
@@ -94,6 +89,10 @@ inline std::vector<SigmoidFocalLossTestCase> SigmoidFocalLossTestConfigs()
         SigmoidFocalLossTestCase({8, 3, 20, 100}, false),   // 4D non-cont
         SigmoidFocalLossTestCase({2, 2, 3, 4, 100}),        // 5D cont
         SigmoidFocalLossTestCase({2, 2, 3, 4, 100}, false), // 5D non-cont
+        SigmoidFocalLossTestCase({10},
+                                 true,
+                                 0.6,
+                                 3), // 5D non-cont, custom alpha, gamma
     };
 }
 
@@ -105,6 +104,7 @@ protected:
     {
         auto&& handle = get_handle();
         config        = GetParam();
+        reduction     = MIOPEN_LOSS_REDUCTION_NONE;
 
         auto in_dims    = config.GetDims();
         auto in_strides = config.ComputeStrides(in_dims);
@@ -142,10 +142,10 @@ protected:
                                                  output_dev.get(),
                                                  config.alpha,
                                                  config.gamma,
-                                                 config.reduction);
+                                                 reduction);
         tensor<TIO> workspace;
         cpu_sigmoid_focal_loss_forward<TIO>(
-            input, target, workspace, outputHost, config.alpha, config.gamma, config.reduction, 1);
+            input, target, workspace, outputHost, config.alpha, config.gamma, reduction, 1);
 
         EXPECT_EQ(status, miopenStatusSuccess);
         output.data = handle.Read<TIO>(output_dev, output.data.size());
@@ -162,6 +162,7 @@ protected:
                                             << ",  Thresholdx10: " << threshold * 10;
     }
     SigmoidFocalLossTestCase config;
+    miopenLossReductionMode_t reduction;
 
     tensor<TIO> input;
     tensor<TIO> target;
@@ -182,6 +183,7 @@ protected:
     {
         auto&& handle = get_handle();
         config        = GetParam();
+        reduction     = MIOPEN_LOSS_REDUCTION_NONE;
 
         auto in_dims      = config.GetDims();
         auto in_strides   = config.ComputeStrides(in_dims);
@@ -232,7 +234,7 @@ protected:
                                                   dTarget_dev.get(),
                                                   config.alpha,
                                                   config.gamma,
-                                                  config.reduction);
+                                                  reduction);
         cpu_sigmoid_focal_loss_backward<TIO>(input,
                                              target,
                                              dOutput,
@@ -240,7 +242,7 @@ protected:
                                              dTargetHost,
                                              config.alpha,
                                              config.gamma,
-                                             config.reduction,
+                                             reduction,
                                              1);
 
         EXPECT_EQ(status, miopenStatusSuccess);
@@ -268,6 +270,7 @@ protected:
             << ",  Thresholdx10: " << threshold * 10;
     }
     SigmoidFocalLossTestCase config;
+    miopenLossReductionMode_t reduction;
 
     tensor<TIO> input;
     tensor<TIO> target;
@@ -294,7 +297,7 @@ protected:
         auto&& handle = get_handle();
         config        = GetParam();
 
-        config.reduction = miopenLossReductionMode_t(int(prng::gen_0_to_B(2) + 1));
+        reduction = miopenLossReductionMode_t(int(prng::gen_0_to_B(2) + 1));
 
         auto in_dims    = config.GetDims();
         auto in_strides = config.ComputeStrides(in_dims);
@@ -306,7 +309,7 @@ protected:
         target             = tensor<TIO>{in_dims, in_strides}.generate(tar_gen_value);
 
         size_t workspaceSizeBytes = miopen::GetSigmoidFocalLossForwardWorkspaceSize(
-            handle, input.desc, target.desc, output.desc, config.reduction);
+            handle, input.desc, target.desc, output.desc, reduction);
         size_t workspaceElements = workspaceSizeBytes / sizeof(TIO);
 
         workspace = tensor<TIO>(workspaceElements);
@@ -319,7 +322,7 @@ protected:
         std::fill(outputHost.begin(), outputHost.end(), 0);
 
         divisor = 1;
-        if(config.reduction == MIOPEN_LOSS_REDUCTION_MEAN)
+        if(reduction == MIOPEN_LOSS_REDUCTION_MEAN)
         {
             divisor *= input.desc.GetElementSize();
         }
@@ -347,15 +350,9 @@ protected:
                                                  output_dev.get(),
                                                  config.alpha,
                                                  config.gamma,
-                                                 config.reduction);
-        cpu_sigmoid_focal_loss_forward<TIO>(input,
-                                            target,
-                                            workspace,
-                                            outputHost,
-                                            config.alpha,
-                                            config.gamma,
-                                            config.reduction,
-                                            divisor);
+                                                 reduction);
+        cpu_sigmoid_focal_loss_forward<TIO>(
+            input, target, workspace, outputHost, config.alpha, config.gamma, reduction, divisor);
 
         EXPECT_EQ(status, miopenStatusSuccess);
 
@@ -371,9 +368,10 @@ protected:
         EXPECT_TRUE(miopen::range_distance(outputHost) == miopen::range_distance(output));
         EXPECT_TRUE(error < threshold * 10)
             << "Error output beyond tolerance Error: " << error
-            << ",  Thresholdx10: " << threshold * 10 << " Reduction: " << config.reduction;
+            << ",  Thresholdx10: " << threshold * 10 << " Reduction: " << reduction;
     }
     SigmoidFocalLossTestCase config;
+    miopenLossReductionMode_t reduction;
 
     tensor<TIO> input;
     tensor<TIO> target;
@@ -401,7 +399,7 @@ protected:
         auto in_dims    = config.GetDims();
         auto in_strides = config.ComputeStrides(in_dims);
 
-        config.reduction = miopenLossReductionMode_t(int(prng::gen_0_to_B(2) + 1));
+        reduction = miopenLossReductionMode_t(int(prng::gen_0_to_B(2) + 1));
 
         auto in_gen_value = [](auto...) { return prng::gen_descreet_uniform_sign<TIO>(0.1, 50); };
         input             = tensor<TIO>{in_dims, in_strides}.generate(in_gen_value);
@@ -425,7 +423,7 @@ protected:
         std::fill(dTargetHost.begin(), dTargetHost.end(), 0);
 
         divisor = 1;
-        if(config.reduction == MIOPEN_LOSS_REDUCTION_MEAN)
+        if(reduction == MIOPEN_LOSS_REDUCTION_MEAN)
         {
             divisor *= input.desc.GetElementSize();
         }
@@ -455,7 +453,7 @@ protected:
                                                   dTarget_dev.get(),
                                                   config.alpha,
                                                   config.gamma,
-                                                  config.reduction);
+                                                  reduction);
         cpu_sigmoid_focal_loss_backward<TIO>(input,
                                              target,
                                              dOutput,
@@ -463,7 +461,7 @@ protected:
                                              dTargetHost,
                                              config.alpha,
                                              config.gamma,
-                                             config.reduction,
+                                             reduction,
                                              divisor);
 
         EXPECT_EQ(status, miopenStatusSuccess);
@@ -491,6 +489,7 @@ protected:
             << ",  Thresholdx10: " << threshold * 10;
     }
     SigmoidFocalLossTestCase config;
+    miopenLossReductionMode_t reduction;
 
     tensor<TIO> input;
     tensor<TIO> target;
