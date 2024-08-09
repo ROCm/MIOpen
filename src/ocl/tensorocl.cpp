@@ -1254,12 +1254,17 @@ void OpTensor(const Handle& handle,
     // if(aTensorDesc != cTensorDesc)
     if(aTensorDesc.GetElementSize() != cTensorDesc.GetElementSize())
     {
-        MIOPEN_THROW("A and C Tensors do not match");
+        MIOPEN_THROW(miopenStatusBadParm, "A and C Tensors do not match");
     }
 
     if(bTensorDesc.GetType() != cTensorDesc.GetType())
     {
-        MIOPEN_THROW("Datatypes for B and C tensors do not match !");
+        MIOPEN_THROW(miopenStatusBadParm, "Datatypes for B and C tensors do not match !");
+    }
+
+    if(!(aTensorDesc.IsPacked() && bTensorDesc.IsPacked() && cTensorDesc.IsPacked()))
+    {
+        MIOPEN_THROW(miopenStatusNotImplemented, "Unpacked tensors are not supported");
     }
 
     auto blens = bTensorDesc.GetLengths();
@@ -1268,13 +1273,15 @@ void OpTensor(const Handle& handle,
 
     if(clens.size() > 5)
     {
-        MIOPEN_THROW("Tensor dimension larger than 5: " + std::to_string(clens.size()));
+        MIOPEN_THROW(miopenStatusBadParm,
+                     "Tensor dimension larger than 5: " + std::to_string(clens.size()));
     }
 
     if(blens.size() != clens.size())
     {
-        MIOPEN_THROW("Number of dims in B and C Tensors do not match: " +
-                     std::to_string(blens.size()) + ", " + std::to_string(clens.size()));
+        MIOPEN_THROW(miopenStatusBadParm,
+                     "Number of dims in B and C Tensors do not match: " +
+                         std::to_string(blens.size()) + ", " + std::to_string(clens.size()));
     }
 
     if(!nonStandardSquash)
@@ -1283,8 +1290,9 @@ void OpTensor(const Handle& handle,
         {
             if(blens[i] != 1 && blens[i] != clens[i])
             {
-                MIOPEN_THROW("BTensor dim != 1 && BTensor dim != CTensor dim: " +
-                             std::to_string(i));
+                MIOPEN_THROW(miopenStatusBadParm,
+                             "BTensor dim != 1 && BTensor dim != CTensor dim: " +
+                                 std::to_string(i));
             }
         }
     }
@@ -1293,7 +1301,8 @@ void OpTensor(const Handle& handle,
         // non standard behavior because blens[1] can be not equalt to clens[1]
         if(!(clens.size() == 3 && blens[0] == 1 && clens[0] == 1 && blens[2] == clens[2]))
         {
-            MIOPEN_THROW("Non standard squashed operation supported only for 3d tensors and for "
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "Non standard squashed operation supported only for 3d tensors and for "
                          "the specific configuration");
         }
     }
