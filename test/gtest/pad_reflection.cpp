@@ -56,9 +56,9 @@ struct GPU_PadReflection_BFP16 : PadReflectionTest<bfloat16>
 
 } // namespace pad_reflection
 
-using pad_reflection::GPU_PadReflection_FP32;
-using pad_reflection::GPU_PadReflection_FP16;
 using pad_reflection::GPU_PadReflection_BFP16;
+using pad_reflection::GPU_PadReflection_FP16;
+using pad_reflection::GPU_PadReflection_FP32;
 
 TEST_P(GPU_PadReflection_FP32, Test)
 {
