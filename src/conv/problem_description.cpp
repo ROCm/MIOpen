@@ -273,12 +273,16 @@ bool ProblemDescription::IsLayoutNCHWc() const
 
 bool ProblemDescription::IsNCHWc_NCHWc() const
 {
-    return GetInLayout() == "NCHWc" && GetWeightsLayout() == "NCHWc" && GetOutLayout() == "NCHWc";
+    return (GetInLayout() == "NCHWc4" || GetInLayout() == "NCHWc8")              //
+           && (GetWeightsLayout() == "NCHWc4" || GetWeightsLayout() == "NCHWc8") //
+           && (GetOutLayout() == "NCHWc4" || GetOutLayout() == "NCHWc8");
 }
 
 bool ProblemDescription::IsNCHWc_CHWNc() const
 {
-    return GetInLayout() == "NCHWc" && GetWeightsLayout() == "CHWNc" && GetOutLayout() == "NCHWc";
+    return (GetInLayout() == "NCHWc4" || GetInLayout() == "NCHWc8")              //
+           && (GetWeightsLayout() == "CHWNc4" || GetWeightsLayout() == "CHWNc8") //
+           && (GetOutLayout() == "NCHWc4" || GetOutLayout() == "NCHWc8");
 }
 
 void ProblemDescription::SetupFloats(ExecutionContext& ctx) const

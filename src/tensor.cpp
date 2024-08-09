@@ -90,14 +90,16 @@ miopenTensorLayout_t LayoutStr2LayoutEnum(std::string_view s)
         return miopenTensorNCHW;
     if(s == "NHWC")
         return miopenTensorNHWC;
-    if(s == "NCHWc")
+    if(s == "NCHWc4")
         return miopenTensorNCHWc4;
-    /// FIXME return miopenTensorNCHWc8;
+    if(s == "NCHWc8")
+        return miopenTensorNCHWc8;
     if(s == "CHWN")
         return miopenTensorCHWN;
-    if(s == "CHWNc")
+    if(s == "CHWNc4")
         return miopenTensorCHWNc4;
-    /// FIXME return miopenTensorCHWNc8;
+    if(s == "CHWNc8")
+        return miopenTensorCHWNc8;
     if(s == "NCDHW")
         return miopenTensorNCDHW;
     if(s == "NDHWC")
@@ -365,11 +367,11 @@ void TensorDescriptor::SetStrideNd(const std::string& layout)
 
 void TensorDescriptor::LensReorder(const std::string& layout)
 {
-    if(layout == "NCHWc")
+    if(layout == "NCHWc4" || layout == "NCHWc8")
     {
         // Do nothing, MIOpen implicit logic that lens are in NCHW order.
     }
-    else if(layout == "CHWNc")
+    else if(layout == "CHWNc4" || layout == "CHWNc8")
     {
         ReorderVector(lens, {1, 2, 3, 0});
     }
@@ -497,11 +499,11 @@ std::string TensorDescriptor::GetLayoutStr(miopenTensorLayout_t tensorLayout)
     {
     case miopenTensorNCHW: return "NCHW";
     case miopenTensorNHWC: return "NHWC";
-    case miopenTensorNCHWc4:
-    case miopenTensorNCHWc8: return "NCHWc";
+    case miopenTensorNCHWc4: return "NCHWc4";
+    case miopenTensorNCHWc8: return "NCHWc8";
     case miopenTensorCHWN: return "CHWN";
-    case miopenTensorCHWNc4:
-    case miopenTensorCHWNc8: return "CHWNc";
+    case miopenTensorCHWNc4: return "CHWNc4";
+    case miopenTensorCHWNc8: return "CHWNc8";
     case miopenTensorNCDHW: return "NCDHW";
     case miopenTensorNDHWC: return "NDHWC";
     case miopenTensorCHW: return "CHW";
@@ -526,7 +528,7 @@ std::size_t TensorDescriptor::GetVectorLength() const { return this->vector_leng
 std::size_t TensorDescriptor::GetIndex(std::initializer_list<int> l) const
 {
     // l is in NCHW order (MIOpen implicit logic)
-    if(this->GetLayout_str() == "CHWNc")
+    if(this->GetLayout_str() == "CHWNc4" || this->GetLayout_str() == "CHWNc8")
     {
         assert(l.size() - 1 <= this->GetNumDims());
         std::initializer_list<int> l_chwn{

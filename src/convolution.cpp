@@ -257,7 +257,7 @@ ConvolutionDescriptor::GetForwardOutputTensorWithLayout(const TensorDescriptor& 
 
     auto wei_spatial = boost::adaptors::slice(wDesc.GetLengths(), 2, 2 + spatial_dim);
 
-    if(wDesc.GetLayout_str() == "CHWNc")
+    if(wDesc.GetLayout_str() == "CHWNc4" || wDesc.GetLayout_str() == "CHWNc8")
     {
         std::tie(wei_k, wei_c) = miopen::tie_pick<3, 0>{}(wDesc.GetLengths());
         wei_spatial            = boost::adaptors::slice(wDesc.GetLengths(), 1, 1 + spatial_dim);

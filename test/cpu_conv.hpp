@@ -108,7 +108,7 @@ void cpu_convolution_forward_impl(const tensor<Tin>& in,
     std::copy_n(wei.desc.GetLengths().begin() + 2, ConvDim, wei_spatial_len.begin());
     std::copy_n(out.desc.GetLengths().begin() + 2, ConvDim, out_spatial_len.begin());
 
-    if(wei.desc.GetLayout_str() == "CHWNc")
+    if(wei.desc.GetLayout_str() == "CHWNc4" || wei.desc.GetLayout_str() == "CHWNc8")
     {
         wei_c_len = wei.desc.GetLengths()[0];
         std::copy_n(wei.desc.GetLengths().begin() + 1, ConvDim, wei_spatial_len.begin());

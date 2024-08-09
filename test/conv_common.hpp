@@ -2258,12 +2258,15 @@ struct conv_driver : test_driver
                   (weights.desc.GetLengths().at(0) % filter.group_count == 0)))) ||
                ((filter.mode == miopenConvolution) &&
                 ((weights.desc.GetLayout_str() == "NCHW") ||
-                 (weights.desc.GetLayout_str() == "NCHWc")) &&
+                 (weights.desc.GetLayout_str() == "NCHWc4") ||
+                 (weights.desc.GetLayout_str() == "NCHWc8")) &&
                 ((filter.group_count == 1 &&
                   (input.desc.GetLengths().at(1) == weights.desc.GetLengths().at(1))) ||
                  (filter.group_count > 1 &&
                   (input.desc.GetLengths().at(1) % weights.desc.GetLengths().at(1) == 0)))) ||
-               ((filter.mode == miopenConvolution) && (weights.desc.GetLayout_str() == "CHWNc") &&
+               ((filter.mode == miopenConvolution) &&
+                (weights.desc.GetLayout_str() == "CHWNc4" ||
+                 weights.desc.GetLayout_str() == "CHWNc8") &&
                 ((filter.group_count == 1 &&
                   (input.desc.GetLengths().at(1) == weights.desc.GetLengths().at(0))) ||
                  (filter.group_count > 1 &&
