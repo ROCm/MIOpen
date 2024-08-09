@@ -27,27 +27,31 @@
 
 #include <miopen/solver.hpp>
 
-#include "solver_fwd.hpp"
-#include "solver_bwd.hpp"
-#include "solver_wrw.hpp"
+#include "gtest_common.hpp"
 
-struct ConvSolverTestCase
+//************************************************************************************
+// ConvTestCase
+//************************************************************************************
+
+struct ConvTestCase
 {
-    ConvSolverTestCase(const std::initializer_list<size_t>& x,
-                       const std::initializer_list<size_t>& w,
-                       const std::initializer_list<int>& pad,
-                       const std::initializer_list<int>& stride,
-                       const std::initializer_list<int>& dilation,
-                       miopenDataType_t type);
+    ConvTestCase();
 
-    ConvSolverTestCase(const std::initializer_list<size_t>& x,
-                       const std::initializer_list<size_t>& w,
-                       const std::initializer_list<int>& pad,
-                       const std::initializer_list<int>& stride,
-                       const std::initializer_list<int>& dilation,
-                       miopenDataType_t type_x,
-                       miopenDataType_t type_w,
-                       miopenDataType_t type_y);
+    ConvTestCase(const std::initializer_list<size_t>& x,
+                 const std::initializer_list<size_t>& w,
+                 const std::initializer_list<int>& pad,
+                 const std::initializer_list<int>& stride,
+                 const std::initializer_list<int>& dilation,
+                 miopenDataType_t type);
+
+    ConvTestCase(const std::initializer_list<size_t>& x,
+                 const std::initializer_list<size_t>& w,
+                 const std::initializer_list<int>& pad,
+                 const std::initializer_list<int>& stride,
+                 const std::initializer_list<int>& dilation,
+                 miopenDataType_t type_x,
+                 miopenDataType_t type_w,
+                 miopenDataType_t type_y);
 
     const std::vector<size_t>& GetXDims() const;
     const std::vector<size_t>& GetWDims() const;
@@ -58,104 +62,99 @@ struct ConvSolverTestCase
 
     miopen::ConvolutionDescriptor GetConv() const;
 
-    friend std::ostream& operator<<(std::ostream& os, const ConvSolverTestCase& tc);
+    friend std::ostream& operator<<(std::ostream& os, const ConvTestCase& tc);
 
 private:
-    const std::vector<size_t> x;
-    const std::vector<size_t> w;
-    const std::vector<int> pad;
-    const std::vector<int> stride;
-    const std::vector<int> dilation;
-    const miopenDataType_t type_x;
-    const miopenDataType_t type_w;
-    const miopenDataType_t type_y;
+    std::vector<size_t> x;
+    std::vector<size_t> w;
+    std::vector<int> pad;
+    std::vector<int> stride;
+    std::vector<int> dilation;
+    miopenDataType_t type_x;
+    miopenDataType_t type_w;
+    miopenDataType_t type_y;
 };
 
+//************************************************************************************
 // Unit test for convolution solver
+//************************************************************************************
 
+class UnitTestConvSolverBase
+{
+public:
+    void RunTestImpl(const miopen::solver::conv::ConvSolverBase& solver,
+                     miopen::conv::Direction direction,
+                     const ConvTestCase& conv_config,
+                     miopenConvAlgorithm_t algo);
+
+protected:
+    void SetUpImpl(Gpu supported_devs);
+};
+
+template <miopen::conv::Direction direction>
 class UnitTestConvSolver
+    : public UnitTestConvSolverBase,
+      public ::testing::TestWithParam<std::tuple<Gpu, miopenConvAlgorithm_t, ConvTestCase>>
 {
 public:
-    virtual ~UnitTestConvSolver()                                            = default;
-    virtual void RunTest(const miopen::solver::conv::ConvSolverBase& solver) = 0;
-};
-
-template <typename T>
-class UnitTestConvSolverFwd : public ConvFwdSolverTest<T, T>, UnitTestConvSolver
-{
-public:
-    void RunTest(const miopen::solver::conv::ConvSolverBase& solver) final
+    void RunTest(const miopen::solver::conv::ConvSolverBase& solver)
     {
-        this->SolverFwd(solver);
+        miopenConvAlgorithm_t algo;
+        ConvTestCase conv_config;
+        std::tie(std::ignore, algo, conv_config) = GetParam();
+        this->RunTestImpl(solver, direction, conv_config, algo);
+    }
+
+protected:
+    void SetUp() override
+    {
+        Gpu supported_devs;
+        std::tie(supported_devs, std::ignore, std::ignore) = GetParam();
+        this->SetUpImpl(supported_devs);
     }
 };
 
-template <typename T>
-class UnitTestConvSolverBwd : public ConvBwdSolverTest<T, T>, UnitTestConvSolver
-{
-public:
-    void RunTest(const miopen::solver::conv::ConvSolverBase& solver) final
-    {
-        this->SolverBwd(solver);
-    }
-};
+using UnitTestConvSolverFwd = UnitTestConvSolver<miopen::conv::Direction::Forward>;
+using UnitTestConvSolverBwd = UnitTestConvSolver<miopen::conv::Direction::BackwardData>;
+using UnitTestConvSolverWrw = UnitTestConvSolver<miopen::conv::Direction::BackwardWeights>;
 
-template <typename T>
-class UnitTestConvSolverWrw : public ConvWrwSolverTest<T, T>, UnitTestConvSolver
-{
-public:
-    void RunTest(const miopen::solver::conv::ConvSolverBase& solver) final
-    {
-        this->SolverWrw(solver);
-    }
-};
+using GPU_UnitTestConvSolver_fwd_FP16 = UnitTestConvSolverFwd;
+using GPU_UnitTestConvSolver_bwd_FP16 = UnitTestConvSolverBwd;
+using GPU_UnitTestConvSolver_wrw_FP16 = UnitTestConvSolverWrw;
 
-class GPU_UnitTestConvSolver_fwd_FP16 : public UnitTestConvSolverFwd<half_float::half>
-{
-};
+using GPU_UnitTestConvSolver_fwd_FP32 = UnitTestConvSolverFwd;
+using GPU_UnitTestConvSolver_bwd_FP32 = UnitTestConvSolverBwd;
+using GPU_UnitTestConvSolver_wrw_FP32 = UnitTestConvSolverWrw;
 
-class GPU_UnitTestConvSolver_bwd_FP16 : public UnitTestConvSolverBwd<half_float::half>
-{
-};
-
-class GPU_UnitTestConvSolver_wrw_FP16 : public UnitTestConvSolverWrw<half_float::half>
-{
-};
-
+//************************************************************************************
 // This test is designed to detect the expansion of the solver's device applicability
+//************************************************************************************
 
 class UnitTestConvSolverDevApplicabilityBase
 {
 public:
     void RunTestImpl(const miopen::solver::conv::ConvSolverBase& solver,
                      Gpu supported_devs,
-                     miopenDataType_t datatype,
                      miopen::conv::Direction direction,
-                     const ConvTestCaseBase& conv_config);
+                     const ConvTestCase& conv_config);
 };
 
-template <miopenDataType_t datatype, miopen::conv::Direction direction>
+template <miopen::conv::Direction direction>
 class UnitTestConvSolverDevApplicability
     : public UnitTestConvSolverDevApplicabilityBase,
-      public ::testing::TestWithParam<std::tuple<Gpu, ConvTestCaseBase>>
+      public ::testing::TestWithParam<std::tuple<Gpu, ConvTestCase>>
 {
 public:
     void RunTest(const miopen::solver::conv::ConvSolverBase& solver)
     {
         Gpu supported_devs;
-        ConvTestCaseBase conv_config;
+        ConvTestCase conv_config;
         std::tie(supported_devs, conv_config) = GetParam();
-        this->RunTestImpl(solver, supported_devs, datatype, direction, conv_config);
+        this->RunTestImpl(solver, supported_devs, direction, conv_config);
     }
 };
 
-template <miopenDataType_t datatype>
-class UnitTestConvSolverDevApplicabilityFwd
-    : public UnitTestConvSolverDevApplicability<datatype, miopen::conv::Direction::Forward>
-{
-};
+using UnitTestConvSolverDevApplicabilityFwd =
+    UnitTestConvSolverDevApplicability<miopen::conv::Direction::Forward>;
 
-class CPU_UnitTestConvSolverDevApplicability_fwd_FP16
-    : public UnitTestConvSolverDevApplicabilityFwd<miopenHalf>
-{
-};
+using CPU_UnitTestConvSolverDevApplicability_fwd_FP16 = UnitTestConvSolverDevApplicabilityFwd;

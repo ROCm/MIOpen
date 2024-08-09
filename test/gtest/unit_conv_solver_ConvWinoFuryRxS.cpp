@@ -28,26 +28,26 @@
 
 namespace {
 
-auto GetConvTestCases()
+auto GetConvTestCases(miopenDataType_t datatype)
 {
-    using TestCase = ConvTestCaseBase;
+    using TestCase = ConvTestCase;
 
     return std::vector{
         // clang-format off
-        TestCase{1,  16, 16, 16,  16, 3, 3, 1, 1, 1, 1, 1, 1, miopenConvolution}, // c16 kernel
-        TestCase{1, 128, 16, 16, 128, 3, 3, 1, 1, 1, 1, 1, 1, miopenConvolution}, // c32 kernel
+        TestCase{{1,  16, 16, 16}, { 16,  16, 3, 3}, {1, 1}, {1, 1}, {1, 1}, datatype}, // c16 kernel
+        TestCase{{1, 128, 16, 16}, {128, 128, 3, 3}, {1, 1}, {1, 1}, {1, 1}, datatype}, // c32 kernel
         // clang-format on
     };
 }
 
-auto GetConvTestCasesWrw()
+auto GetConvTestCasesWrw(miopenDataType_t datatype)
 {
-    using TestCase = ConvTestCaseBase;
+    using TestCase = ConvTestCase;
 
     return std::vector{
         // clang-format off
-        TestCase{ 1,  16, 5, 5, 16, 3, 3, 0, 0, 1, 1, 1, 1, miopenConvolution}, // c16 kernel
-        TestCase{64, 128, 7, 7, 64, 7, 7, 0, 0, 1, 1, 1, 1, miopenConvolution}, // c32 kernel
+        TestCase{{ 1,  16, 5, 5}, {16,  16, 3, 3}, {0, 0}, {1, 1}, {1, 1}, datatype}, // c16 kernel
+        TestCase{{64, 128, 7, 7}, {64, 128, 7, 7}, {0, 0}, {1, 1}, {1, 1}, datatype}, // c32 kernel
         // clang-format on
     };
 }
@@ -80,21 +80,21 @@ INSTANTIATE_TEST_SUITE_P(Unit,
                          GPU_UnitTestConvSolver_fwd_FP16,
                          testing::Combine(testing::Values(GetSupportedDevices()),
                                           testing::Values(miopenConvolutionAlgoWinograd),
-                                          testing::ValuesIn(GetConvTestCases())));
+                                          testing::ValuesIn(GetConvTestCases(miopenHalf))));
 
 INSTANTIATE_TEST_SUITE_P(Unit,
                          GPU_UnitTestConvSolver_bwd_FP16,
                          testing::Combine(testing::Values(GetSupportedDevices()),
                                           testing::Values(miopenConvolutionAlgoWinograd),
-                                          testing::ValuesIn(GetConvTestCases())));
+                                          testing::ValuesIn(GetConvTestCases(miopenHalf))));
 
 INSTANTIATE_TEST_SUITE_P(Unit,
                          GPU_UnitTestConvSolver_wrw_FP16,
                          testing::Combine(testing::Values(GetSupportedDevices()),
                                           testing::Values(miopenConvolutionAlgoWinograd),
-                                          testing::ValuesIn(GetConvTestCasesWrw())));
+                                          testing::ValuesIn(GetConvTestCasesWrw(miopenHalf))));
 
 INSTANTIATE_TEST_SUITE_P(Unit,
                          CPU_UnitTestConvSolverDevApplicability_fwd_FP16,
                          testing::Combine(testing::Values(GetSupportedDevices()),
-                                          testing::Values(GetConvTestCases()[0])));
+                                          testing::Values(GetConvTestCases(miopenHalf)[0])));
