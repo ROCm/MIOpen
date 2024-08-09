@@ -24,10 +24,11 @@
  *
  *******************************************************************************/
 
+#include <miopen/rope.hpp>
 #include <miopen/datatype.hpp>
 #include <miopen/kernel_build_params.hpp>
-#include <miopen/reduce/invoke_params.hpp>
-#include <miopen/reduce/solvers.hpp>
+#include <miopen/rope/invoke_params.hpp>
+#include <miopen/rope/solvers.hpp>
 #include <miopen/target_properties.hpp>
 
 #define LOCAL_SIZE 256
@@ -36,54 +37,31 @@ namespace miopen {
 
 namespace solver {
 
-namespace reduce {
+namespace rope {
 
-size_t MaxForward::XGridSize(std::vector<size_t> ydims) const
+bool RoPEBackward::IsApplicable(const ExecutionContext& /*context*/,
+                                const miopen::rope::ProblemDescriptionBwd& problem) const
 {
-    size_t output_numel =
-        std::accumulate(ydims.begin(), ydims.end(), 1ULL, std::multiplies<size_t>());
-    return AlignUp(output_numel, LOCAL_SIZE);
-}
-
-/// \todo https://github.com/ROCm/MIOpen/pull/2583#discussion_r1437054128
-bool MaxForward::OverMaxGridSize(const ExecutionContext& context,
-                                 const miopen::reduce::ProblemDescriptionExtreme& problem) const
-{
-    auto ydims = problem.GetYDesc().GetLengths();
-    if(XGridSize(ydims) > context.GetStream().GetImage3dMaxWidth())
-        return false;
-    return true;
-}
-
-bool MaxForward::IsApplicable(const ExecutionContext& context,
-                              const miopen::reduce::ProblemDescriptionExtreme& problem) const
-{
-    if(!problem.IsValidDim())
-        return false;
     if(!problem.IsValidLength())
         return false;
-    if(!problem.IsAllContiguousWithIndice())
+    if(!problem.IsSameType())
         return false;
-    if(!problem.IsNotLastDim())
-        return false;
-    if(!problem.IsLargeReduceSize())
-        return false;
-    if(!OverMaxGridSize(context, problem))
+    if(!problem.IsAllContiguous())
         return false;
     return true;
 }
 
-ConvSolution MaxForward::GetSolution(const ExecutionContext&,
-                                     const miopen::reduce::ProblemDescriptionExtreme& problem) const
+ConvSolution RoPEBackward::GetSolution(const ExecutionContext&,
+                                       const miopen::rope::ProblemDescriptionBwd& problem) const
 {
     auto result = ConvSolution{miopenStatusSuccess};
 
-    auto dtype        = problem.GetXDesc().GetType();
-    auto input_dtype  = miopen::GetDataType(problem.GetXDesc().GetType());
-    auto output_dtype = miopen::GetDataType(problem.GetYDesc().GetType());
-    auto indice_dtype = miopen::GetDataType(problem.GetIndiceDesc().GetType());
-    auto xdims        = problem.GetXDesc().GetLengths();
-    auto ydims        = problem.GetYDesc().GetLengths();
+    auto dtype        = problem.GetDYDesc().GetType();
+    auto input_dtype  = miopen::GetDataType(problem.GetDYDesc().GetType());
+    auto output_dtype = miopen::GetDataType(problem.GetDXDesc().GetType());
+    auto dxdims       = problem.GetDXDesc().GetLengths();
+    auto output_numel =
+        std::accumulate(dxdims.begin(), dxdims.end(), 1ULL, std::multiplies<size_t>());
 
     {
         size_t xlocalsize;
@@ -95,23 +73,17 @@ ConvSolution MaxForward::GetSolution(const ExecutionContext&,
 
         auto kernel = KernelInfo{};
 
-        kernel.kernel_file = "MIOpenReduceExtreme.cpp";
-        kernel.kernel_name = "ExtremeFwdContiguous";
+        kernel.kernel_file = "MIOpenRoPE.cpp";
+        kernel.kernel_name = "RoPEBwdContiguous";
         xlocalsize         = LOCAL_SIZE;
-        xgridsize          = XGridSize(ydims);
+        xgridsize          = output_numel;
 
         const auto build_params = KernelBuildParameters{
             {"MIOPEN_USE_FP16", static_cast<int32_t>(dtype == miopenHalf)},
             {"MIOPEN_USE_FP32", static_cast<int32_t>(dtype == miopenFloat)},
             {"MIOPEN_USE_BFP16", static_cast<int32_t>(dtype == miopenBFloat16)},
             {"INPUT_TYPE", input_dtype == "bfloat16" ? "ushort" : input_dtype},
-            {"OUTPUT_TYPE", output_dtype == "bfloat16" ? "ushort" : output_dtype},
-            {"INDICE_TYPE", indice_dtype},
-            {"OP_TYPE", "ReduceExtremeOp_t::Max"},
-            {"MIOPEN_REDUCE_EXTREME_ARGMIN", MIOPEN_REDUCE_EXTREME_ARGMIN},
-            {"MIOPEN_REDUCE_EXTREME_ARGMAX", MIOPEN_REDUCE_EXTREME_ARGMAX},
-            {"MIOPEN_REDUCE_EXTREME_MIN", MIOPEN_REDUCE_EXTREME_MIN},
-            {"MIOPEN_REDUCE_EXTREME_MAX", MIOPEN_REDUCE_EXTREME_MAX}};
+            {"OUTPUT_TYPE", output_dtype == "bfloat16" ? "ushort" : output_dtype}};
 
         kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
 
@@ -129,27 +101,24 @@ ConvSolution MaxForward::GetSolution(const ExecutionContext&,
     result.invoker_factory = [](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
             decltype(auto) kernel = handle_.Run(kernels.front());
-            decltype(auto) params = raw_params.CastTo<miopen::reduce::ExtremeInvokeParams>();
+            decltype(auto) params = raw_params.CastTo<miopen::rope::BwdInvokeParams>();
 
-            auto xdims = params.xDesc->GetLengths();
-            auto ydims = params.yDesc->GetLengths();
-            auto dim   = params.dim;
+            auto dxdims  = params.dxDesc->GetLengths();
+            auto cosdims = params.cosDesc->GetLengths();
 
-            int32_t reduce_size = static_cast<int32_t>(xdims[dim]);
             auto output_numel =
-                std::accumulate(ydims.begin(), ydims.end(), 1ULL, std::multiplies<size_t>());
+                std::accumulate(dxdims.begin(), dxdims.end(), 1ULL, std::multiplies<size_t>());
+            auto rotary_numel =
+                std::accumulate(cosdims.begin(), cosdims.end(), 1ULL, std::multiplies<size_t>());
 
-            auto inner_size = std::accumulate(
-                xdims.begin() + dim + 1, xdims.end(), 1ULL, std::multiplies<size_t>());
-
-            kernel(params.x, params.y, params.indice, output_numel, reduce_size, inner_size);
+            kernel(params.dy, params.cos, params.sin, params.dx, output_numel, rotary_numel);
         };
     };
 
     return result;
 }
 
-} // namespace reduce
+} // namespace rope
 
 } // namespace solver
 
