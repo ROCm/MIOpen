@@ -31,23 +31,23 @@
 #include "solver_bwd.hpp"
 #include "solver_wrw.hpp"
 
-struct ConvTestCase
+struct ConvSolverTestCase
 {
-    ConvTestCase(const std::initializer_list<size_t>& x,
-                 const std::initializer_list<size_t>& w,
-                 const std::initializer_list<int>& pad,
-                 const std::initializer_list<int>& stride,
-                 const std::initializer_list<int>& dilation,
-                 miopenDataType_t type);
+    ConvSolverTestCase(const std::initializer_list<size_t>& x,
+                       const std::initializer_list<size_t>& w,
+                       const std::initializer_list<int>& pad,
+                       const std::initializer_list<int>& stride,
+                       const std::initializer_list<int>& dilation,
+                       miopenDataType_t type);
 
-    ConvTestCase(const std::initializer_list<size_t>& x,
-                 const std::initializer_list<size_t>& w,
-                 const std::initializer_list<int>& pad,
-                 const std::initializer_list<int>& stride,
-                 const std::initializer_list<int>& dilation,
-                 miopenDataType_t type_x,
-                 miopenDataType_t type_w,
-                 miopenDataType_t type_y);
+    ConvSolverTestCase(const std::initializer_list<size_t>& x,
+                       const std::initializer_list<size_t>& w,
+                       const std::initializer_list<int>& pad,
+                       const std::initializer_list<int>& stride,
+                       const std::initializer_list<int>& dilation,
+                       miopenDataType_t type_x,
+                       miopenDataType_t type_w,
+                       miopenDataType_t type_y);
 
     const std::vector<size_t>& GetXDims() const;
     const std::vector<size_t>& GetWDims() const;
@@ -58,7 +58,7 @@ struct ConvTestCase
 
     miopen::ConvolutionDescriptor GetConv() const;
 
-    friend std::ostream& operator<<(std::ostream& os, const ConvTestCase& tc);
+    friend std::ostream& operator<<(std::ostream& os, const ConvSolverTestCase& tc);
 
 private:
     const std::vector<size_t> x;

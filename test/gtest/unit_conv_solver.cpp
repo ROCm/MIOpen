@@ -119,26 +119,26 @@ std::string VecToStr(const std::vector<T>& vec)
 
 } // namespace
 
-// ConvTestCase
+// ConvSolverTestCase
 
-ConvTestCase::ConvTestCase(const std::initializer_list<size_t>& x_,
-                           const std::initializer_list<size_t>& w_,
-                           const std::initializer_list<int>& pad_,
-                           const std::initializer_list<int>& stride_,
-                           const std::initializer_list<int>& dilation_,
-                           miopenDataType_t type_)
-    : ConvTestCase(x_, w_, pad_, stride_, dilation_, type_, type_, type_)
+ConvSolverTestCase::ConvSolverTestCase(const std::initializer_list<size_t>& x_,
+                                       const std::initializer_list<size_t>& w_,
+                                       const std::initializer_list<int>& pad_,
+                                       const std::initializer_list<int>& stride_,
+                                       const std::initializer_list<int>& dilation_,
+                                       miopenDataType_t type_)
+    : ConvSolverTestCase(x_, w_, pad_, stride_, dilation_, type_, type_, type_)
 {
 }
 
-ConvTestCase::ConvTestCase(const std::initializer_list<size_t>& x_,
-                           const std::initializer_list<size_t>& w_,
-                           const std::initializer_list<int>& pad_,
-                           const std::initializer_list<int>& stride_,
-                           const std::initializer_list<int>& dilation_,
-                           miopenDataType_t type_x_,
-                           miopenDataType_t type_w_,
-                           miopenDataType_t type_y_)
+ConvSolverTestCase::ConvSolverTestCase(const std::initializer_list<size_t>& x_,
+                                       const std::initializer_list<size_t>& w_,
+                                       const std::initializer_list<int>& pad_,
+                                       const std::initializer_list<int>& stride_,
+                                       const std::initializer_list<int>& dilation_,
+                                       miopenDataType_t type_x_,
+                                       miopenDataType_t type_w_,
+                                       miopenDataType_t type_y_)
     : x(x_),
       w(w_),
       pad(pad_),
@@ -158,28 +158,30 @@ ConvTestCase::ConvTestCase(const std::initializer_list<size_t>& x_,
     }
 }
 
-const std::vector<size_t>& ConvTestCase::GetXDims() const { return x; }
+const std::vector<size_t>& ConvSolverTestCase::GetXDims() const { return x; }
 
-const std::vector<size_t>& ConvTestCase::GetWDims() const { return w; }
+const std::vector<size_t>& ConvSolverTestCase::GetWDims() const { return w; }
 
-miopenDataType_t ConvTestCase::GetXDataType() const { return type_x; }
+miopenDataType_t ConvSolverTestCase::GetXDataType() const { return type_x; }
 
-miopenDataType_t ConvTestCase::GetWDataType() const { return type_w; }
+miopenDataType_t ConvSolverTestCase::GetWDataType() const { return type_w; }
 
-miopenDataType_t ConvTestCase::GetYDataType() const { return type_y; }
+miopenDataType_t ConvSolverTestCase::GetYDataType() const { return type_y; }
 
-miopen::ConvolutionDescriptor ConvTestCase::GetConv() const
+miopen::ConvolutionDescriptor ConvSolverTestCase::GetConv() const
 {
     return miopen::ConvolutionDescriptor{pad, stride, dilation};
 }
 
-std::ostream& operator<<(std::ostream& os, const ConvTestCase& tc)
+std::ostream& operator<<(std::ostream& os, const ConvSolverTestCase& tc)
 {
     return os << "(x:" << VecToStr(tc.x) << " w:" << VecToStr(tc.w) << " pad:" << VecToStr(tc.pad)
               << " stride:" << VecToStr(tc.stride) << " dilation:" << VecToStr(tc.dilation)
               << " type_x:" << tc.type_x << " type_w:" << tc.type_w << " type_y:" << tc.type_y
               << ")";
 }
+
+// Unit test for convolution solver
 
 // This test is designed to detect the expansion of the solver's device applicability
 
