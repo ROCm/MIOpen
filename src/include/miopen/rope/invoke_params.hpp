@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,30 +23,51 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef MIOPEN_SUM_HPP_
-#define MIOPEN_SUM_HPP_
 
-#include <miopen/common.hpp>
+#pragma once
+
+#include <miopen/invoke_params.hpp>
+#include <miopen/tensor.hpp>
 
 namespace miopen {
+namespace rope {
 
-struct Handle;
-struct TensorDescriptor;
+struct FwdInvokeParams : public miopen::InvokeParams
+{
+    FwdInvokeParams() = default;
 
-MIOPEN_INTERNALS_EXPORT std::size_t GetSumWorkspaceSize(Handle& handle,
-                                                        const TensorDescriptor& xDesc,
-                                                        const TensorDescriptor& yDesc,
-                                                        int32_t dim);
+    const TensorDescriptor* xDesc   = nullptr;
+    const TensorDescriptor* cosDesc = nullptr;
+    const TensorDescriptor* sinDesc = nullptr;
+    const TensorDescriptor* yDesc   = nullptr;
 
-MIOPEN_INTERNALS_EXPORT miopenStatus_t SumForward(Handle& handle,
-                                                  Data_t workspace,
-                                                  size_t workspaceSizeInBytes,
-                                                  const TensorDescriptor& xDesc,
-                                                  ConstData_t x,
-                                                  const TensorDescriptor& yDesc,
-                                                  Data_t y,
-                                                  miopenSumNanPropagation_t nanPropagation,
-                                                  int32_t dim);
+    ConstData_t x   = nullptr;
+    ConstData_t cos = nullptr;
+    ConstData_t sin = nullptr;
+    Data_t y        = nullptr;
+
+    std::size_t GetWorkspaceSize() const { return 0; }
+    Data_t GetWorkspace() const { return nullptr; }
+};
+
+struct BwdInvokeParams : public miopen::InvokeParams
+{
+    BwdInvokeParams() = default;
+
+    const TensorDescriptor* dyDesc  = nullptr;
+    const TensorDescriptor* cosDesc = nullptr;
+    const TensorDescriptor* sinDesc = nullptr;
+    const TensorDescriptor* dxDesc  = nullptr;
+
+    ConstData_t dy  = nullptr;
+    ConstData_t cos = nullptr;
+    ConstData_t sin = nullptr;
+    Data_t dx       = nullptr;
+
+    std::size_t GetWorkspaceSize() const { return 0; }
+    Data_t GetWorkspace() const { return nullptr; }
+};
+
+} // namespace rope
 
 } // namespace miopen
-#endif // _MIOPEN_SUM_HPP_
