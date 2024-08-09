@@ -24,13 +24,13 @@
  *
  *******************************************************************************/
 
-#include "t5layernorm.hpp"
+#include "rope.hpp"
 #include <miopen/env.hpp>
 
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 
-namespace t5layernorm {
+namespace rope {
 
 std::string GetFloatArg()
 {
@@ -42,76 +42,34 @@ std::string GetFloatArg()
     return tmp;
 }
 
-struct T5LayerNormTestFloat : T5LayerNormFwdTest<float>
+struct RoPEFwdTestFloat : RoPEFwdTest<float>
 {
 };
 
-struct T5LayerNormTestHalf : T5LayerNormFwdTest<half_float::half>
+struct RoPEFwdTestHalf : RoPEFwdTest<half_float::half>
 {
 };
 
-struct T5LayerNormTestBFloat16 : T5LayerNormFwdTest<bfloat16>
+struct RoPEFwdTestBFloat16 : RoPEFwdTest<bfloat16>
 {
 };
 
-struct T5LayerNormBwdTestFloat : T5LayerNormBwdTest<float>
+struct RoPEBwdTestFloat : RoPEBwdTest<float>
 {
 };
 
-struct T5LayerNormBwdTestHalf : T5LayerNormBwdTest<half_float::half>
+struct RoPEBwdTestHalf : RoPEBwdTest<half_float::half>
 {
 };
 
-struct T5LayerNormBwdTestBFloat16 : T5LayerNormBwdTest<bfloat16>
+struct RoPEBwdTestBFloat16 : RoPEBwdTest<bfloat16>
 {
 };
 
-} // namespace t5layernorm
-using namespace t5layernorm;
+} // namespace rope
+using namespace rope;
 
-TEST_P(T5LayerNormTestFloat, T5LayerNormFwdTest)
-{
-    if(!MIOPEN_TEST_ALL ||
-       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--float"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
-};
-
-TEST_P(T5LayerNormTestHalf, T5LayerNormFwdTest)
-{
-    if(!MIOPEN_TEST_ALL ||
-       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--half"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
-};
-
-TEST_P(T5LayerNormTestBFloat16, T5LayerNormFwdTest)
-{
-    if(!MIOPEN_TEST_ALL ||
-       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--bfloat16"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
-};
-
-TEST_P(T5LayerNormBwdTestFloat, T5LayerNormBwdTest)
+TEST_P(RoPEFwdTestFloat, RoPEFwdTest)
 {
     if(!MIOPEN_TEST_ALL ||
        (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--float"))
@@ -125,7 +83,7 @@ TEST_P(T5LayerNormBwdTestFloat, T5LayerNormBwdTest)
     }
 };
 
-TEST_P(T5LayerNormBwdTestHalf, T5LayerNormBwdTest)
+TEST_P(RoPEFwdTestHalf, RoPEFwdTest)
 {
     if(!MIOPEN_TEST_ALL ||
        (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--half"))
@@ -139,7 +97,7 @@ TEST_P(T5LayerNormBwdTestHalf, T5LayerNormBwdTest)
     }
 };
 
-TEST_P(T5LayerNormBwdTestBFloat16, T5LayerNormBwdTest)
+TEST_P(RoPEFwdTestBFloat16, RoPEFwdTest)
 {
     if(!MIOPEN_TEST_ALL ||
        (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--bfloat16"))
@@ -153,21 +111,51 @@ TEST_P(T5LayerNormBwdTestBFloat16, T5LayerNormBwdTest)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(T5LayerNormTestSet,
-                         T5LayerNormTestFloat,
-                         testing::ValuesIn(T5LayerNormTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(T5LayerNormTestSet,
-                         T5LayerNormTestHalf,
-                         testing::ValuesIn(T5LayerNormTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(T5LayerNormTestSet,
-                         T5LayerNormTestBFloat16,
-                         testing::ValuesIn(T5LayerNormTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(T5LayerNormTestSet,
-                         T5LayerNormBwdTestFloat,
-                         testing::ValuesIn(T5LayerNormTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(T5LayerNormTestSet,
-                         T5LayerNormBwdTestHalf,
-                         testing::ValuesIn(T5LayerNormTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(T5LayerNormTestSet,
-                         T5LayerNormBwdTestBFloat16,
-                         testing::ValuesIn(T5LayerNormTestConfigs()));
+TEST_P(RoPEBwdTestFloat, RoPEBwdTest)
+{
+    if(!MIOPEN_TEST_ALL ||
+       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--float"))
+    {
+        RunTest();
+        Verify();
+    }
+    else
+    {
+        GTEST_SKIP();
+    }
+};
+
+TEST_P(RoPEBwdTestHalf, RoPEBwdTest)
+{
+    if(!MIOPEN_TEST_ALL ||
+       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--half"))
+    {
+        RunTest();
+        Verify();
+    }
+    else
+    {
+        GTEST_SKIP();
+    }
+};
+
+TEST_P(RoPEBwdTestBFloat16, RoPEBwdTest)
+{
+    if(!MIOPEN_TEST_ALL ||
+       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--bfloat16"))
+    {
+        RunTest();
+        Verify();
+    }
+    else
+    {
+        GTEST_SKIP();
+    }
+};
+
+INSTANTIATE_TEST_SUITE_P(RoPETestSet, RoPEFwdTestFloat, testing::ValuesIn(RoPETestConfigs()));
+INSTANTIATE_TEST_SUITE_P(RoPETestSet, RoPEFwdTestHalf, testing::ValuesIn(RoPETestConfigs()));
+INSTANTIATE_TEST_SUITE_P(RoPETestSet, RoPEFwdTestBFloat16, testing::ValuesIn(RoPETestConfigs()));
+INSTANTIATE_TEST_SUITE_P(RoPETestSet, RoPEBwdTestFloat, testing::ValuesIn(RoPETestConfigs()));
+INSTANTIATE_TEST_SUITE_P(RoPETestSet, RoPEBwdTestHalf, testing::ValuesIn(RoPETestConfigs()));
+INSTANTIATE_TEST_SUITE_P(RoPETestSet, RoPEBwdTestBFloat16, testing::ValuesIn(RoPETestConfigs()));
