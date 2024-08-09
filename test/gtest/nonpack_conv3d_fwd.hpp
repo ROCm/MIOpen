@@ -51,9 +51,10 @@ struct NonPackTestCase : Conv3DTestCase
 
 template <>
 std::vector<NonPackTestCase> ConvTestConfigs()
-{ // g  n  c  d  h  w  k  z  y  x  pad_x pad_y pad_z stri_x stri_y stri_z dia_x dia_y dia_z
+{ // g   n   c   k   image   filter   pad   stride   dilation
+    // clang-format off
     return {{
-                {1, 4, 16, 4, 9, 16, 16, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
+                {1, 4, 16, 16, {4, 9, 16}, {3, 3, 3}, {1, 1, 1}, {1, 1, 1}, {1, 1, 1}, miopenConvolution},
                 10240,
                 1,
                 2560,
@@ -71,7 +72,7 @@ std::vector<NonPackTestCase> ConvTestConfigs()
                 16,
             },
             {
-                {1, 1, 64, 3, 16, 16, 128, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
+                {1, 1, 64, 128, {3, 16, 16}, {3, 3, 3}, {1, 1, 1}, {1, 1, 1}, {1, 1, 1}, miopenConvolution},
                 65536,
                 1,
                 24000,
@@ -88,6 +89,7 @@ std::vector<NonPackTestCase> ConvTestConfigs()
                 2048,
                 128,
             }};
+    // clang-format on
 }
 
 template <typename T = float>
