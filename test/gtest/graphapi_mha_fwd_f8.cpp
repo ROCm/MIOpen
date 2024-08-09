@@ -28,7 +28,7 @@
 
 namespace mha_graph_test {
 
-class MhaFwdGraphTest : public MhaGraphTestBase
+class GPU_MhaFwdGraph_FP32 : public MhaGraphTestBase
 {
 protected:
     void createMhaGraph(size_t n, size_t h, size_t s, size_t d) override
@@ -201,10 +201,10 @@ protected:
 
 using namespace mha_graph_test;
 
-TEST_P(MhaFwdGraphTest, MhaFwdGraph) { Run(); }
+TEST_P(GPU_MhaFwdGraph_FP32, MhaFwdGraph) { Run(); }
 
-INSTANTIATE_TEST_SUITE_P(MhaGraphFwdSuite,
-                         MhaFwdGraphTest,
+INSTANTIATE_TEST_SUITE_P(Unit,
+                         GPU_MhaFwdGraph_FP32,
                          testing::Combine(testing::ValuesIn(std::vector<std::size_t>{2}),     // n
                                           testing::ValuesIn(std::vector<std::size_t>{8}),     // h
                                           testing::ValuesIn(std::vector<std::size_t>{4, 64}), // s

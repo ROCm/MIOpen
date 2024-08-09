@@ -51,8 +51,9 @@ struct ActivationConfig
     }
 };
 
-struct TestActivation : public ::testing::TestWithParam<
-                            std::tuple<miopenDataType_t, miopenActivationMode_t, ActivationConfig>>
+struct GPU_TestActivation_FP32
+    : public ::testing::TestWithParam<
+          std::tuple<miopenDataType_t, miopenActivationMode_t, ActivationConfig>>
 {
 protected:
     template <typename T>
@@ -270,7 +271,7 @@ miopenStatus_t RunFwdBwdActivation(miopen::Handle& handle,
         return bwdStatus;
 }
 
-TEST_P(TestActivation, ActivationFwdTest)
+TEST_P(GPU_TestActivation_FP32, ActivationFwdTest)
 {
     const float alpha = 1.0f, beta = 0;
     isBwdActivation = false;
@@ -292,7 +293,7 @@ TEST_P(TestActivation, ActivationFwdTest)
     EXPECT_EQ(status, miopenStatusSuccess) << "Forward activation failed. Config: " << activ_config;
 }
 
-TEST_P(TestActivation, ActivationBwdTest)
+TEST_P(GPU_TestActivation_FP32, ActivationBwdTest)
 {
     const float alpha = 1.0f, beta = 0;
     isBwdActivation = true;
@@ -319,8 +320,8 @@ TEST_P(TestActivation, ActivationBwdTest)
         << "Backward activation failed. Config: " << activ_config;
 }
 
-INSTANTIATE_TEST_SUITE_P(ActivationTestSuite,
-                         TestActivation,
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_TestActivation_FP32,
                          ::testing::Combine(::testing::Values(miopenFloat),
                                             // miopenDouble),
 
