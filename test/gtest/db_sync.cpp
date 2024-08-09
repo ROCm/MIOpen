@@ -477,6 +477,10 @@ TEST(DBSync, KDBTargetID)
         EXPECT_TRUE(miopen::CheckKDBJournalMode(kdb_file_path));
         EXPECT_FALSE(!SKIP_KDB_PDB_TESTING && miopen::CheckKDBForTargetID(kdb_file_path));
     }
+    else
+    {
+        GTEST_SKIP();
+    }
 }
 
 bool LogBuildMessage()
@@ -778,7 +782,7 @@ struct TestHandle : Handle
 {
     TestHandle(size_t _num_cu) : Handle(), num_cu(_num_cu) {}
 
-    std::size_t GetMaxComputeUnits() const
+    std::size_t GetMaxComputeUnits() const override
     {
         if(num_cu == 0)
             return Handle::GetMaxComputeUnits();
@@ -860,12 +864,16 @@ TEST_P(CPU_DBSync_NONE, StaticFDBSync)
         std::tie(arch, num_cu) = GetParam();
         StaticFDBSync(arch, num_cu);
     }
+    else
+    {
+        GTEST_SKIP();
+    }
 }
 
 INSTANTIATE_TEST_SUITE_P(Smoke,
                          CPU_DBSync_NONE,
-                         testing::Values(std::make_pair("gfx90a", 104),
-                                         std::make_pair("gfx1030", 36),
+                         testing::Values(std::make_pair("gfx908", 120),
+                                         std::make_pair("gfx90a", 104),
                                          std::make_pair("gfx90a", 110),
-                                         std::make_pair("gfx908", 120),
-                                         std::make_pair("gfx942", 304)));
+                                         std::make_pair("gfx942", 304),
+                                         std::make_pair("gfx1030", 36)));
