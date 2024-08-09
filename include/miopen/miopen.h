@@ -389,15 +389,19 @@ typedef enum
  */
 typedef enum
 {
-    miopenTensorNCHW   = 0, /*!< NCHW memory layout (Fully supported) */
-    miopenTensorNHWC   = 1, /*!< NHWC memory layout (Fully supported) */
-    miopenTensorCHWN   = 2, /*!< CHWN memory layout (Not supported) */
-    miopenTensorNCHWc4 = 3, /*!< NCHWc4 memory layout (Partially supported) */
-    miopenTensorNCHWc8 = 4, /*!< NCHWc8 memory layout (Partially supported) */
-    miopenTensorCHWNc4 = 5, /*!< CHWNc4 memory layout (Partially supported) */
-    miopenTensorCHWNc8 = 6, /*!< CHWNc8 memory layout (Partially supported) */
-    miopenTensorNCDHW  = 7, /*!< NCDHW memory layout (Fully supported) */
-    miopenTensorNDHWC  = 8, /*!< NCDHW memory layout (Fully supported) */
+    miopenTensorNCHW          = 0,   /*!< NCHW memory layout (Fully supported) */
+    miopenTensorNHWC          = 1,   /*!< NHWC memory layout (Fully supported) */
+    miopenTensorCHWN          = 2,   /*!< CHWN memory layout (Not supported) */
+    miopenTensorNCHWc4        = 3,   /*!< NCHWc4 memory layout (Partially supported) */
+    miopenTensorNCHWc8        = 4,   /*!< NCHWc8 memory layout (Partially supported) */
+    miopenTensorCHWNc4        = 5,   /*!< CHWNc4 memory layout (Partially supported) */
+    miopenTensorCHWNc8        = 6,   /*!< CHWNc8 memory layout (Partially supported) */
+    miopenTensorNCDHW         = 7,   /*!< NCDHW memory layout (Fully supported) */
+    miopenTensorNDHWC         = 8,   /*!< NCDHW memory layout (Fully supported) */
+    miopenTensorCHW           = 100, /*!< Default 3D tensor layout (internal) */
+    miopenTensorHW            = 106, /*!< Default 2D tensor layout (internal) */
+    miopenTensorW             = 108, /*!< Default 1D tensor layout (internal) */
+    miopenTensorLayoutUnknown = 255, /*!< Unknown layout (internal) */
 } miopenTensorLayout_t;
 
 /*! @ingroup pooling

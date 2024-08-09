@@ -61,6 +61,9 @@ bool IsLayoutSupported(miopenTensorLayout_t layout)
 {
     switch(layout)
     {
+    case miopenTensorW:
+    case miopenTensorHW:
+    case miopenTensorCHW:
     case miopenTensorNCHW:
     case miopenTensorNHWC:
     case miopenTensorCHWN:
@@ -70,8 +73,36 @@ bool IsLayoutSupported(miopenTensorLayout_t layout)
     case miopenTensorCHWNc8:
     case miopenTensorNCDHW:
     case miopenTensorNDHWC: return true;
+    case miopenTensorLayoutUnknown: break;
     }
     return false;
+}
+
+miopenTensorLayout_t LayoutStr2LayoutEnum(std::string_view s)
+{
+    if(s == "NCHW")
+        return miopenTensorNCHW;
+    if(s == "NHWC")
+        return miopenTensorNHWC;
+    if(s == "NCHWc")
+        return miopenTensorNCHWc4;
+    /// FIXME return miopenTensorNCHWc8;
+    if(s == "CHWN")
+        return miopenTensorCHWN;
+    if(s == "CHWNc")
+        return miopenTensorCHWNc4;
+    /// FIXME return miopenTensorCHWNc8;
+    if(s == "NCDHW")
+        return miopenTensorNCDHW;
+    if(s == "NDHWC")
+        return miopenTensorNDHWC;
+    if(s == "CHW")
+        return miopenTensorCHW;
+    if(s == "HW")
+        return miopenTensorHW;
+    if(s == "W")
+        return miopenTensorW;
+    MIOPEN_THROW(miopenStatusInternalError, "Unknown tensor layout: '" + std::string(s) + '\'');
 }
 
 template <class T>
@@ -193,15 +224,14 @@ TensorDescriptor::TensorDescriptor(miopenDataType_t t,
 TensorDescriptor::TensorDescriptor(miopenDataType_t t,
                                    const std::vector<std::size_t>& lens_in,
                                    const std::vector<std::size_t>& strides_in)
-    : TensorDescriptor(t, GetDefaultLayout(lens_in.size()), lens_in, strides_in)
+    : TensorDescriptor(t, miopenTensorLayoutUnknown, lens_in, strides_in)
 {
 }
 
 TensorDescriptor::TensorDescriptor(miopenDataType_t t,
                                    std::vector<std::size_t>&& lens_in,
                                    std::vector<std::size_t>&& strides_in)
-    : TensorDescriptor(
-          t, GetDefaultLayout(lens_in.size()), std::move(lens_in), std::move(strides_in))
+    : TensorDescriptor(t, miopenTensorLayoutUnknown, std::move(lens_in), std::move(strides_in))
 {
 }
 
@@ -253,9 +283,6 @@ void TensorDescriptor::CheckArgsAndInit(bool use_strides)
     if(!IsDataTypeSupported(type))
         MIOPEN_THROW(miopenStatusBadParm, "Unsupported data type");
 
-    if(!IsLayoutSupported(tensorLayout))
-        MIOPEN_THROW(miopenStatusBadParm, "Unsupported layout");
-
     if(lens.empty())
         MIOPEN_THROW(miopenStatusBadParm, "Number of dimensions must be > 1");
 
@@ -273,13 +300,31 @@ void TensorDescriptor::CheckArgsAndInit(bool use_strides)
             MIOPEN_THROW(miopenStatusBadParm, "Strides must be > 0 and <= INT64_MAX");
 
         packed = (this->GetElementSize() == this->GetElementSpace());
+
+        // If layout is unknown, then compute is from strides.
+        if(tensorLayout == miopenTensorLayoutUnknown)
+        {
+            const auto default_str = GetLayoutStr(GetDefaultLayout(lens.size()));
+            tensorLayout           = LayoutStr2LayoutEnum(GetLayout(default_str));
+        }
     }
     else
     {
         packed = true;
+
+        // If layout is unknown, then assume the default one (NC(D)HW).
+        if(tensorLayout == miopenTensorLayoutUnknown)
+        {
+            tensorLayout = GetDefaultLayout(lens.size());
+        }
+
         // Since strides is not passed it is computed based on tensorLayout.
         SetStrideNd(GetLayout_str());
     }
+
+    if(!IsLayoutSupported(tensorLayout))
+        MIOPEN_THROW(miopenStatusBadParm,
+                     "Unsupported layout: " + std::to_string(static_cast<int>(tensorLayout)));
 }
 
 void TensorDescriptor::SetStrideNd(const std::string& layout)
@@ -441,6 +486,9 @@ std::string TensorDescriptor::GetLayoutStr(miopenTensorLayout_t tensorLayout)
     case miopenTensorCHWNc8: return "CHWNc";
     case miopenTensorNCDHW: return "NCDHW";
     case miopenTensorNDHWC: return "NDHWC";
+    case miopenTensorCHW: return "CHW";
+    case miopenTensorHW: return "HW";
+    case miopenTensorW: return "W";
     default:
         MIOPEN_THROW(miopenStatusInternalError,
                      "Unknown tensor layout: " + std::to_string(static_cast<int>(tensorLayout)));

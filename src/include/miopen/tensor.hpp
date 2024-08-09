@@ -298,6 +298,12 @@ protected:
             return miopenTensorNCDHW;
         if(lens_size == 4)
             return miopenTensorNCHW;
+        if(lens_size == 3)
+            return miopenTensorCHW;
+        if(lens_size == 2)
+            return miopenTensorHW;
+        if(lens_size == 1)
+            return miopenTensorW;
         MIOPEN_THROW("Unsupported lens_size: " + std::to_string(lens_size));
     };
 
@@ -330,7 +336,7 @@ private:
 
     miopenDataType_t type = miopenFloat;
     std::optional<miopenDataType_t> cast_type;
-    miopenTensorLayout_t tensorLayout = GetDefaultLayout(4);
+    miopenTensorLayout_t tensorLayout = miopenTensorLayoutUnknown;
 };
 
 template <class TElement>

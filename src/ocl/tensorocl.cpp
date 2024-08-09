@@ -522,7 +522,8 @@ void OpTensor4d(const Handle& handle,
         packed_tensor && (bTensorDesc.GetElementSize() == cTensorDesc.GetElementSize());
 
     MIOPEN_LOG_I2("packed_tensor: " << packed_tensor);
-    MIOPEN_LOG_I2("equal_tensor: " << (bTensorDesc.GetElementSize() == cTensorDesc.GetElementSize()));
+    MIOPEN_LOG_I2(
+        "equal_tensor: " << (bTensorDesc.GetElementSize() == cTensorDesc.GetElementSize()));
 
     // for naive tensor ops
     const std::string data_type = GetDataType(bTensorDesc.GetType());
