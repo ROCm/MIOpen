@@ -284,6 +284,8 @@ struct MIOPEN_INTERNALS_EXPORT TensorDescriptor : miopenTensorDescriptor
             return result + 'c';
         }
     }
+    
+    bool IsLayoutDefault() const { return tensorLayout == GetDefaultLayout(lens.size()); }
 
     friend MIOPEN_INTERNALS_EXPORT std::ostream& operator<<(std::ostream& stream,
                                                             const TensorDescriptor& t);

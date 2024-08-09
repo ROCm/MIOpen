@@ -130,7 +130,8 @@ void OpTensor3d(const Handle& handle,
                 const size_t Aoffset,
                 const size_t Boffset,
                 const size_t Coffset,
-                const bool nonStandardSquash)
+                const bool nonStandardSquash,
+                const bool is_layout_default)
 {
     auto alens = aTensorDesc.GetLengths();
     auto blens = bTensorDesc.GetLengths();
@@ -434,7 +435,8 @@ void OpTensor4d(const Handle& handle,
                 Data_t CTensor,
                 const size_t Aoffset,
                 const size_t Boffset,
-                const size_t Coffset)
+                const size_t Coffset,
+                const bool is_layout_default)
 {
     auto blens = bTensorDesc.GetLengths();
     auto clens = cTensorDesc.GetLengths();
@@ -549,7 +551,7 @@ void OpTensor4d(const Handle& handle,
         auto miopen_alpha1 = as_float(*(static_cast<const float*>(alpha1)));
         auto miopen_beta   = as_float(*(static_cast<const float*>(beta)));
 
-        if(fwd_conv_bias != 0)
+        if(fwd_conv_bias != 0 && is_layout_default)
         {
             if(packed_tensor)
             {
@@ -613,7 +615,7 @@ void OpTensor4d(const Handle& handle,
             }
         }
         // precede leading_ones for bitmap = 1,1,1,1
-        else if(packed_equal_tensor)
+        else if(packed_equal_tensor && is_layout_default)
         {
             network_config += "x" + std::to_string(grp_sz) + "x" + std::to_string(RD_BLCK);
             auto&& kernels = handle.GetKernels("Op4dTensorLite", network_config);
@@ -634,7 +636,7 @@ void OpTensor4d(const Handle& handle,
                 return;
             }
         }
-        else if(leading_ones)
+        else if(leading_ones && is_layout_default)
         {
             if(packed_tensor)
             {
@@ -752,7 +754,7 @@ void OpTensor4d(const Handle& handle,
         case 3: parms += "miopenMax"; break;
         }
 
-        if(fwd_conv_bias != 0)
+        if(fwd_conv_bias != 0 && is_layout_default)
         {
             if(packed_tensor)
             {
@@ -815,7 +817,7 @@ void OpTensor4d(const Handle& handle,
             }
         }
         // precede leading_ones for bitmap = 1,1,1,1
-        else if(packed_equal_tensor)
+        else if(packed_equal_tensor && is_layout_default)
         {
             parms += " -DUSE_4D_TENSOR_LITE";
             parms += " -DRD_BLCK=" + std::to_string(RD_BLCK) + " -DREAD_TYPE=" + READ_TYPE;
@@ -836,7 +838,7 @@ void OpTensor4d(const Handle& handle,
                 static_cast<int64_t>(total_work),
                 static_cast<int>(!float_equal(miopen_beta, 0.0)));
         }
-        else if(leading_ones)
+        else if(leading_ones && is_layout_default)
         {
             if(packed_tensor)
             {
@@ -956,7 +958,8 @@ void OpTensorOther(const Handle& handle,
                    Data_t CTensor,
                    const size_t Aoffset,
                    const size_t Boffset,
-                   const size_t Coffset)
+                   const size_t Coffset,
+                   const bool is_layout_default)
 {
     auto blens = bTensorDesc.GetLengths();
     auto clens = cTensorDesc.GetLengths();
@@ -1262,11 +1265,6 @@ void OpTensor(const Handle& handle,
         MIOPEN_THROW(miopenStatusBadParm, "Datatypes for B and C tensors do not match !");
     }
 
-    if(!(aTensorDesc.IsPacked() && bTensorDesc.IsPacked() && cTensorDesc.IsPacked()))
-    {
-        MIOPEN_THROW(miopenStatusNotImplemented, "Unpacked tensors are not supported");
-    }
-
     const auto lay_a = aTensorDesc.GetLayout_t();
     const auto lay_b = bTensorDesc.GetLayout_t();
     const auto lay_c = cTensorDesc.GetLayout_t();
@@ -1285,8 +1283,8 @@ void OpTensor(const Handle& handle,
                 " != " + TensorDescriptor::GetLayoutStr(lay_c));
     }
 
-    auto blens = bTensorDesc.GetLengths();
-    auto clens = cTensorDesc.GetLengths();
+    const auto blens = bTensorDesc.GetLengths();
+    const auto clens = cTensorDesc.GetLengths();
     MIOPEN_LOG_I2("bTensorDesc: " << bTensorDesc);
 
     if(clens.size() > 5)
@@ -1300,6 +1298,12 @@ void OpTensor(const Handle& handle,
         MIOPEN_THROW(miopenStatusBadParm,
                      "Number of dims in B and C Tensors do not match: " +
                          std::to_string(blens.size()) + ", " + std::to_string(clens.size()));
+    }
+    if(aTensorDesc.GetLengths().size() != blens.size())
+    {
+        MIOPEN_THROW(miopenStatusBadParm,
+                     "Number of dims in A and B Tensors do not match: " +
+                         std::to_string(aTensorDesc.GetLengths().size()) + ", " + std::to_string(blens.size()));
     }
 
     if(!nonStandardSquash)
@@ -1325,7 +1329,8 @@ void OpTensor(const Handle& handle,
         }
     }
 
-    auto bsize = blens.size();
+    const auto bsize = blens.size();
+    const auto is_layout_default = bTensorDesc.IsLayoutDefault();
     if(bsize == 3)
     {
         OpTensor3d(handle,
@@ -1342,7 +1347,8 @@ void OpTensor(const Handle& handle,
                    Aoffset,
                    Boffset,
                    Coffset,
-                   nonStandardSquash);
+                   nonStandardSquash,
+                   is_layout_default);
     }
     else if(bsize == 4)
     {
@@ -1359,7 +1365,8 @@ void OpTensor(const Handle& handle,
                    CTensor,
                    Aoffset,
                    Boffset,
-                   Coffset);
+                   Coffset,
+                   is_layout_default);
     }
     else
     {
@@ -1376,7 +1383,8 @@ void OpTensor(const Handle& handle,
                       CTensor,
                       Aoffset,
                       Boffset,
-                      Coffset);
+                      Coffset,
+                      is_layout_default);
     }
 }
 
