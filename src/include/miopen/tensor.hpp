@@ -292,7 +292,14 @@ struct MIOPEN_INTERNALS_EXPORT TensorDescriptor : miopenTensorDescriptor
     friend void from_json(const nlohmann::json& j, TensorDescriptor& descriptor);
 
 protected:
-    static miopenTensorLayout_t GetDefaultLayout() { return miopenTensorNCHW; };
+    static miopenTensorLayout_t GetDefaultLayout(std::size_t lens_size)
+    {
+        if(lens_size == 5)
+            return miopenTensorNCDHW;
+        if(lens_size == 4)
+            return miopenTensorNCHW;
+        MIOPEN_THROW("Unsupported lens_size: " + std::to_string(lens_size));
+    };
 
 private:
     TensorDescriptor(miopenDataType_t t,
@@ -323,7 +330,7 @@ private:
 
     miopenDataType_t type = miopenFloat;
     std::optional<miopenDataType_t> cast_type;
-    miopenTensorLayout_t tensorLayout = GetDefaultLayout();
+    miopenTensorLayout_t tensorLayout = GetDefaultLayout(4);
 };
 
 template <class TElement>

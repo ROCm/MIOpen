@@ -80,6 +80,7 @@ public:
     bool isVirtual() const noexcept { return mVirtual; }
 
 private:
+    /// \todo Re-use computation of layout from strides from Tensor class.
     static miopenTensorLayout_t getLayout(const std::vector<std::size_t>& strides)
     {
         if(strides.size() >= 4)
@@ -102,7 +103,7 @@ private:
             }
         }
 
-        return GetDefaultLayout();
+        return GetDefaultLayout(strides.size());
     }
 };
 

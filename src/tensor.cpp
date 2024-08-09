@@ -126,7 +126,7 @@ TensorDescriptor::TensorDescriptor(miopenDataType_t t, const std::initializer_li
 }
 
 TensorDescriptor::TensorDescriptor(miopenDataType_t t, const std::vector<int>& lens_in)
-    : TensorDescriptor(t, GetDefaultLayout(), lens_in)
+    : TensorDescriptor(t, GetDefaultLayout(lens_in.size()), lens_in)
 {
 }
 
@@ -137,12 +137,12 @@ TensorDescriptor::TensorDescriptor(miopenDataType_t t,
 }
 
 TensorDescriptor::TensorDescriptor(miopenDataType_t t, const std::vector<std::size_t>& lens_in)
-    : TensorDescriptor(t, GetDefaultLayout(), lens_in)
+    : TensorDescriptor(t, GetDefaultLayout(lens_in.size()), lens_in)
 {
 }
 
 TensorDescriptor::TensorDescriptor(miopenDataType_t t, std::vector<std::size_t>&& lens_in)
-    : TensorDescriptor(t, GetDefaultLayout(), std::move(lens_in))
+    : TensorDescriptor(t, GetDefaultLayout(lens_in.size()), std::move(lens_in))
 {
 }
 
@@ -193,14 +193,15 @@ TensorDescriptor::TensorDescriptor(miopenDataType_t t,
 TensorDescriptor::TensorDescriptor(miopenDataType_t t,
                                    const std::vector<std::size_t>& lens_in,
                                    const std::vector<std::size_t>& strides_in)
-    : TensorDescriptor(t, GetDefaultLayout(), lens_in, strides_in)
+    : TensorDescriptor(t, GetDefaultLayout(lens_in.size()), lens_in, strides_in)
 {
 }
 
 TensorDescriptor::TensorDescriptor(miopenDataType_t t,
                                    std::vector<std::size_t>&& lens_in,
                                    std::vector<std::size_t>&& strides_in)
-    : TensorDescriptor(t, GetDefaultLayout(), std::move(lens_in), std::move(strides_in))
+    : TensorDescriptor(
+          t, GetDefaultLayout(lens_in.size()), std::move(lens_in), std::move(strides_in))
 {
 }
 
@@ -317,13 +318,13 @@ void TensorDescriptor::LensReorder(const std::string& layout)
 
 TensorDescriptor TensorDescriptor::MakeDescriptor(miopenDataType_t t, const int* plens, int size)
 {
-    return MakeDescriptor(t, GetDefaultLayout(), plens, size);
+    return MakeDescriptor(t, GetDefaultLayout(static_cast<size_t>(size)), plens, size);
 }
 
 TensorDescriptor
 TensorDescriptor::MakeDescriptor(miopenDataType_t t, const std::size_t* plens, int size)
 {
-    return MakeDescriptor(t, GetDefaultLayout(), plens, size);
+    return MakeDescriptor(t, GetDefaultLayout(static_cast<size_t>(size)), plens, size);
 }
 
 TensorDescriptor TensorDescriptor::MakeDescriptor(miopenDataType_t t,
@@ -440,7 +441,9 @@ std::string TensorDescriptor::GetLayoutStr(miopenTensorLayout_t tensorLayout)
     case miopenTensorCHWNc8: return "CHWNc";
     case miopenTensorNCDHW: return "NCDHW";
     case miopenTensorNDHWC: return "NDHWC";
-    default: MIOPEN_THROW(miopenStatusInternalError, "Unknown tensor layout");
+    default:
+        MIOPEN_THROW(miopenStatusInternalError,
+                     "Unknown tensor layout: " + std::to_string(static_cast<int>(tensorLayout)));
     }
 }
 
