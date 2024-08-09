@@ -399,7 +399,13 @@ typedef enum
     miopenTensorNCDHW         = 7,   /*!< NCDHW memory layout (Fully supported) */
     miopenTensorNDHWC         = 8,   /*!< NCDHW memory layout (Fully supported) */
     miopenTensorCHW           = 100, /*!< Default 3D tensor layout (internal) */
+    miopenTensorCWH           = 101, /*!< Default 3D tensor layout (internal) */
+    miopenTensorHWC           = 102, /*!< Default 3D tensor layout (internal) */
+    miopenTensorWHC           = 103, /*!< Default 3D tensor layout (internal) */
+    miopenTensorHCW           = 104, /*!< Default 3D tensor layout (internal) */
+    miopenTensorWCH           = 105, /*!< Default 3D tensor layout (internal) */
     miopenTensorHW            = 106, /*!< Default 2D tensor layout (internal) */
+    miopenTensorWH            = 107, /*!< Default 2D tensor layout (internal) */
     miopenTensorW             = 108, /*!< Default 1D tensor layout (internal) */
     miopenTensorLayoutUnknown = 255, /*!< Unknown layout (internal) */
 } miopenTensorLayout_t;

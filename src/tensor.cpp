@@ -63,7 +63,13 @@ bool IsLayoutSupported(miopenTensorLayout_t layout)
     {
     case miopenTensorW:
     case miopenTensorHW:
+    case miopenTensorWH:
     case miopenTensorCHW:
+    case miopenTensorCWH:
+    case miopenTensorHWC:
+    case miopenTensorWHC:
+    case miopenTensorHCW:
+    case miopenTensorWCH:
     case miopenTensorNCHW:
     case miopenTensorNHWC:
     case miopenTensorCHWN:
@@ -98,8 +104,20 @@ miopenTensorLayout_t LayoutStr2LayoutEnum(std::string_view s)
         return miopenTensorNDHWC;
     if(s == "CHW")
         return miopenTensorCHW;
+    if(s == "CWH")
+        return miopenTensorCWH;
+    if(s == "HWC")
+        return miopenTensorHWC;
+    if(s == "WHC")
+        return miopenTensorWHC;
+    if(s == "HCW")
+        return miopenTensorHCW;
+    if(s == "WCH")
+        return miopenTensorWCH;
     if(s == "HW")
         return miopenTensorHW;
+    if(s == "WH")
+        return miopenTensorWH;
     if(s == "W")
         return miopenTensorW;
     MIOPEN_THROW(miopenStatusInternalError, "Unknown tensor layout: '" + std::string(s) + '\'');
@@ -487,7 +505,13 @@ std::string TensorDescriptor::GetLayoutStr(miopenTensorLayout_t tensorLayout)
     case miopenTensorNCDHW: return "NCDHW";
     case miopenTensorNDHWC: return "NDHWC";
     case miopenTensorCHW: return "CHW";
+    case miopenTensorCWH: return "CWH";
+    case miopenTensorHWC: return "HWC";
+    case miopenTensorWHC: return "WHC";
+    case miopenTensorHCW: return "HCW";
+    case miopenTensorWCH: return "WCH";
     case miopenTensorHW: return "HW";
+    case miopenTensorWH: return "WH";
     case miopenTensorW: return "W";
     default:
         MIOPEN_THROW(miopenStatusInternalError,
