@@ -93,13 +93,21 @@ std::vector<PadReflectionCase> PadReflectionTestFloatConfigs()
 { // n c d h w padding
     // clang-format off
     return {
-        {  1,   1,    0,    3,    3, {2}},
-        { 48,   8,    0,  512,  512, {1}},
+        { 48,   8,    0,  512,  512, {1, 1, 1, 1}},
         { 48,   8,    0,  512,  512, {1, 1, 3, 3}},
         { 48,   8,    0,  512,  512, {0, 0, 2, 2}},
-        { 16, 311,    0,   98,  512, {1}},
+        { 16, 311,    0,   98,  512, {1, 1, 1, 1}},
         { 16, 311,    0,   98,  512, {1, 1, 3, 3}},
         { 16, 311,    0,   98,  512, {0, 0, 2, 2}},
+      };
+    // clang-format on
+}
+
+std::vector<PadReflectionCase> PadReflectionSmokeTestFloatConfigs()
+{ // n c d h w padding
+    // clang-format off
+    return {
+        {  1,   1,    0,    3,    3, {2}},
       };
     // clang-format on
 }
@@ -160,17 +168,23 @@ protected:
                                        padding.data(),
                                        padding.size());
 
-        EXPECT_EQ(status, miopenStatusSuccess);
+        ASSERT_EQ(status, miopenStatusSuccess);
 
         output.data = handle.Read<T>(output_dev, output.data.size());
     }
 
     void Verify()
     {
-        for(int i = 0; i < output.data.size() - 1; ++i)
-        {
-            EXPECT_EQ(output.data[i], ref_output.data[i]);
-        }
+        // Computation error of fp16 is ~2^13 (=8192) bigger than
+        // the one of fp32 because mantissa is shorter by 13 bits.
+        auto tolerance = std::is_same<T, float>::value ? 1.5e-6 : 8.2e-3;
+        // bf16 mantissa has 7 bits, by 3 bits shorter than fp16.
+        if(std::is_same<T, bfloat16>::value)
+            tolerance *= 8.0;
+
+        auto error = miopen::rms_range(ref_output, output);
+        ASSERT_EQ(miopen::range_distance(ref_output), miopen::range_distance(output));
+        EXPECT_LT(error, tolerance);
     }
     PadReflectionCase pad_reflection_config;
 

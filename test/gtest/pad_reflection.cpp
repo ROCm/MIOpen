@@ -42,23 +42,25 @@ std::string GetFloatArg()
     return tmp;
 }
 
-struct PadReflectionTestFloat : PadReflectionTest<float>
+struct GPU_PadReflection_FP32 : PadReflectionTest<float>
 {
 };
 
-struct PadReflectionTestHalf : PadReflectionTest<half>
+struct GPU_PadReflection_FP16 : PadReflectionTest<half>
 {
 };
 
-struct PadReflectionTestBF16 : PadReflectionTest<bfloat16>
+struct GPU_PadReflection_BFP16 : PadReflectionTest<bfloat16>
 {
 };
 
 } // namespace pad_reflection
 
-using namespace pad_reflection;
+using pad_reflection::GPU_PadReflection_FP32;
+using pad_reflection::GPU_PadReflection_FP16;
+using pad_reflection::GPU_PadReflection_BFP16;
 
-TEST_P(PadReflectionTestFloat, PadReflectionFw)
+TEST_P(GPU_PadReflection_FP32, Test)
 {
     if(!MIOPEN_TEST_ALL ||
        (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--float"))
@@ -72,7 +74,7 @@ TEST_P(PadReflectionTestFloat, PadReflectionFw)
     }
 };
 
-TEST_P(PadReflectionTestHalf, PadReflectionFw)
+TEST_P(GPU_PadReflection_FP16, Test)
 {
     if(!MIOPEN_TEST_ALL ||
        (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--half"))
@@ -86,7 +88,7 @@ TEST_P(PadReflectionTestHalf, PadReflectionFw)
     }
 };
 
-TEST_P(PadReflectionTestBF16, PadReflectionFw)
+TEST_P(GPU_PadReflection_BFP16, Test)
 {
     if(!MIOPEN_TEST_ALL ||
        (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--bfloat16"))
@@ -100,14 +102,22 @@ TEST_P(PadReflectionTestBF16, PadReflectionFw)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(PadReflectionTestSet,
-                         PadReflectionTestFloat,
-                         testing::ValuesIn(PadReflectionTestFloatConfigs()));
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_PadReflection_FP32,
+                         testing::ValuesIn(PadReflectionSmokeTestFloatConfigs()));
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_PadReflection_FP16,
+                         testing::ValuesIn(PadReflectionSmokeTestFloatConfigs()));
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_PadReflection_BFP16,
+                         testing::ValuesIn(PadReflectionSmokeTestFloatConfigs()));
 
-INSTANTIATE_TEST_SUITE_P(PadReflectionTestSet,
-                         PadReflectionTestHalf,
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_PadReflection_FP32,
                          testing::ValuesIn(PadReflectionTestFloatConfigs()));
-
-INSTANTIATE_TEST_SUITE_P(PadReflectionTestSet,
-                         PadReflectionTestBF16,
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_PadReflection_FP16,
+                         testing::ValuesIn(PadReflectionTestFloatConfigs()));
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_PadReflection_BFP16,
                          testing::ValuesIn(PadReflectionTestFloatConfigs()));
