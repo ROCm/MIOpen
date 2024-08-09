@@ -31,6 +31,46 @@
 #include "solver_bwd.hpp"
 #include "solver_wrw.hpp"
 
+struct ConvTestCase
+{
+    ConvTestCase(const std::initializer_list<size_t>& x,
+                 const std::initializer_list<size_t>& w,
+                 const std::initializer_list<int>& pad,
+                 const std::initializer_list<int>& stride,
+                 const std::initializer_list<int>& dilation,
+                 miopenDataType_t type);
+
+    ConvTestCase(const std::initializer_list<size_t>& x,
+                 const std::initializer_list<size_t>& w,
+                 const std::initializer_list<int>& pad,
+                 const std::initializer_list<int>& stride,
+                 const std::initializer_list<int>& dilation,
+                 miopenDataType_t type_x,
+                 miopenDataType_t type_w,
+                 miopenDataType_t type_y);
+
+    const std::vector<size_t>& GetXDims() const;
+    const std::vector<size_t>& GetWDims() const;
+
+    miopenDataType_t GetXDataType() const;
+    miopenDataType_t GetWDataType() const;
+    miopenDataType_t GetYDataType() const;
+
+    miopen::ConvolutionDescriptor GetConv() const;
+
+    friend std::ostream& operator<<(std::ostream& os, const ConvTestCase& tc);
+
+private:
+    const std::vector<size_t> x;
+    const std::vector<size_t> w;
+    const std::vector<int> pad;
+    const std::vector<int> stride;
+    const std::vector<int> dilation;
+    const miopenDataType_t type_x;
+    const miopenDataType_t type_w;
+    const miopenDataType_t type_y;
+};
+
 // Unit test for convolution solver
 
 class UnitTestConvSolver

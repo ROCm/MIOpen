@@ -97,7 +97,91 @@ miopen::conv::ProblemDescription GetProblemDescription(miopenDataType_t datatype
     }
 }
 
+template <class T>
+std::string VecToStr(const std::vector<T>& vec)
+{
+    bool first = true;
+    std::ostringstream ss;
+
+    ss << "{";
+    for(auto val : vec)
+    {
+        if(first)
+            first = false;
+        else
+            ss << ",";
+        ss << val;
+    }
+    ss << "}";
+
+    return ss.str();
+}
+
 } // namespace
+
+// ConvTestCase
+
+ConvTestCase::ConvTestCase(const std::initializer_list<size_t>& x_,
+                           const std::initializer_list<size_t>& w_,
+                           const std::initializer_list<int>& pad_,
+                           const std::initializer_list<int>& stride_,
+                           const std::initializer_list<int>& dilation_,
+                           miopenDataType_t type_)
+    : ConvTestCase(x_, w_, pad_, stride_, dilation_, type_, type_, type_)
+{
+}
+
+ConvTestCase::ConvTestCase(const std::initializer_list<size_t>& x_,
+                           const std::initializer_list<size_t>& w_,
+                           const std::initializer_list<int>& pad_,
+                           const std::initializer_list<int>& stride_,
+                           const std::initializer_list<int>& dilation_,
+                           miopenDataType_t type_x_,
+                           miopenDataType_t type_w_,
+                           miopenDataType_t type_y_)
+    : x(x_),
+      w(w_),
+      pad(pad_),
+      stride(stride_),
+      dilation(dilation_),
+      type_x(type_x_),
+      type_w(type_w_),
+      type_y(type_y_)
+{
+    const auto num_dims        = pad.size();
+    const auto num_tensor_dims = num_dims + 2;
+
+    if(x.size() != num_tensor_dims || w.size() != num_tensor_dims || stride.size() != num_dims ||
+       dilation.size() != num_dims || x[1] != w[1])
+    {
+        throw std::runtime_error("wrong test case format");
+    }
+}
+
+const std::vector<size_t>& ConvTestCase::GetXDims() const { return x; }
+
+const std::vector<size_t>& ConvTestCase::GetWDims() const { return w; }
+
+miopenDataType_t ConvTestCase::GetXDataType() const { return type_x; }
+
+miopenDataType_t ConvTestCase::GetWDataType() const { return type_w; }
+
+miopenDataType_t ConvTestCase::GetYDataType() const { return type_y; }
+
+miopen::ConvolutionDescriptor ConvTestCase::GetConv() const
+{
+    return miopen::ConvolutionDescriptor{pad, stride, dilation};
+}
+
+std::ostream& operator<<(std::ostream& os, const ConvTestCase& tc)
+{
+    return os << "(x:" << VecToStr(tc.x) << " w:" << VecToStr(tc.w) << " pad:" << VecToStr(tc.pad)
+              << " stride:" << VecToStr(tc.stride) << " dilation:" << VecToStr(tc.dilation)
+              << " type_x:" << tc.type_x << " type_w:" << tc.type_w << " type_y:" << tc.type_y
+              << ")";
+}
+
+// This test is designed to detect the expansion of the solver's device applicability
 
 void UnitTestConvSolverDevApplicabilityBase::RunTestImpl(
     const miopen::solver::conv::ConvSolverBase& solver,
