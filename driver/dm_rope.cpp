@@ -24,16 +24,16 @@
  *
  *******************************************************************************/
 #include "registry_driver_maker.hpp"
-#include "sum_driver.hpp"
+#include "rope_driver.hpp"
 
 static Driver* makeDriver(const std::string& base_arg)
 {
-    if(base_arg == "sum")
-        return new SumDriver<float, float>();
-    if(base_arg == "sumfp16")
-        return new SumDriver<float16, float>();
-    if(base_arg == "sumbfp16")
-        return new SumDriver<bfloat16, float>();
+    if(base_arg == "rope")
+        return new RoPEDriver<float, float>();
+    if(base_arg == "ropefp16")
+        return new RoPEDriver<float16, float>();
+    if(base_arg == "ropebfp16")
+        return new RoPEDriver<bfloat16, float>();
     return nullptr;
 }
 

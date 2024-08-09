@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,45 +23,38 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#ifndef GUARD_KERNELS_MIOPENREDUCECALCULATION_HPP
+#define GUARD_KERNELS_MIOPENREDUCECALCULATION_HPP
 
-#include "sum.hpp"
-#include <miopen/env.hpp>
-
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
-
-namespace env = miopen::env;
-
-namespace sum {
-
-std::string GetFloatArg()
+enum class ReduceCalculationOp_t
 {
-    const auto tmp = env::value(MIOPEN_TEST_FLOAT_ARG);
-    if(tmp.empty())
-    {
-        return "";
-    }
-    return tmp;
-}
-
-struct SumTestFloat : SumTest<float>
-{
+    Prod = 1,
+    Sum,
+    First_ = Prod,
+    Last_  = Sum,
 };
 
-} // namespace sum
-using namespace sum;
+#ifndef __HIP_DEVICE_COMPILE__
+static_assert(MIOPEN_REDUCE_CALCULATION_PROD == static_cast<int>(ReduceCalculationOp_t::Prod));
+static_assert(MIOPEN_REDUCE_CALCULATION_SUM == static_cast<int>(ReduceCalculationOp_t::Sum));
+#endif
 
-TEST_P(SumTestFloat, SumTestFw)
+template <typename T, ReduceCalculationOp_t op>
+struct reduce_func
 {
-    if(env::enabled(MIOPEN_TEST_ALL) && (GetFloatArg() == "--float"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    inline constexpr void calculate(T& a, T b) const;
 };
 
-INSTANTIATE_TEST_SUITE_P(SumTestSet, SumTestFloat, testing::ValuesIn(SumTestConfigs()));
+template <typename T>
+struct reduce_func<T, ReduceCalculationOp_t::Prod>
+{
+    inline constexpr void calculate(T& a, T b) const { a *= b; }
+};
+
+template <typename T>
+struct reduce_func<T, ReduceCalculationOp_t::Sum>
+{
+    inline constexpr void calculate(T& a, T b) const { a += b; }
+};
+
+#endif // GUARD_GUARD_KERNELS_MIOPENREDUCEEXTREME_HPP

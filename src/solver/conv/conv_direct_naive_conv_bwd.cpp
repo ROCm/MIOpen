@@ -40,9 +40,13 @@ using ProblemDescription = miopen::conv::ProblemDescription;
 bool ConvDirectNaiveConvBwd::IsApplicable(const ExecutionContext& ctx,
                                           const ProblemDescription& problem) const
 {
-    if(!miopen::debug::AlwaysEnableConvDirectNaive &&
-       env::disabled(MIOPEN_DEBUG_CONV_DIRECT_NAIVE_CONV_BWD))
-        return false;
+    if(!miopen::debug::AlwaysEnableConvDirectNaive)
+    {
+        if(env::disabled(MIOPEN_DEBUG_CONV_DIRECT_NAIVE_CONV_BWD))
+            return false;
+        if(!ctx.use_hip_kernels)
+            return false;
+    }
 
     if(!ConvDirectNaiveConvIsApplicableByKernelType(ctx, problem))
         return false;
