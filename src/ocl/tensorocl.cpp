@@ -1267,6 +1267,24 @@ void OpTensor(const Handle& handle,
         MIOPEN_THROW(miopenStatusNotImplemented, "Unpacked tensors are not supported");
     }
 
+    const auto lay_a = aTensorDesc.GetLayout_t();
+    const auto lay_b = bTensorDesc.GetLayout_t();
+    const auto lay_c = cTensorDesc.GetLayout_t();
+    if(lay_a != lay_b)
+    {
+        MIOPEN_THROW(
+            miopenStatusBadParm,
+            "Layout of A is not equal to layout of B: " + TensorDescriptor::GetLayoutStr(lay_a) +
+                " != " + TensorDescriptor::GetLayoutStr(lay_b));
+    }
+    if(lay_a != lay_c)
+    {
+        MIOPEN_THROW(
+            miopenStatusBadParm,
+            "Layout of A is not equal to layout of C: " + TensorDescriptor::GetLayoutStr(lay_a) +
+                " != " + TensorDescriptor::GetLayoutStr(lay_c));
+    }
+
     auto blens = bTensorDesc.GetLengths();
     auto clens = cTensorDesc.GetLengths();
     MIOPEN_LOG_I2("bTensorDesc: " << bTensorDesc);
