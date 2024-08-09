@@ -34,6 +34,7 @@
 #include <miopen/groupnorm/solvers.hpp>
 #include <miopen/getitem/solvers.hpp>
 #include <miopen/layernorm/solvers.hpp>
+#include <miopen/pad_reflection/solvers.hpp>
 #include <miopen/pooling/solvers.hpp>
 #include <miopen/reduce/solvers.hpp>
 #include <miopen/mha/solvers.hpp>
@@ -672,6 +673,9 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
              Primitive::Fusion,
              fusion::ConvWinoFuryRxSFused<2, 3>{}.SolverDbId(),
              miopenConvolutionAlgoWinograd);
+
+    Register(
+        registry, ++id, Primitive::PadReflection, pad_reflection::PadReflection{}.SolverDbId());
 
     // IMPORTANT: New solvers should be added to the end of the function!
 }

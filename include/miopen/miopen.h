@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -70,6 +70,7 @@
  * @defgroup SGD
  * @defgroup getitem
  * @defgroup ReduceCalculation
+ * @defgroup pad
  *
  */
 
@@ -5921,6 +5922,35 @@ miopenReduceCalculationForward(miopenHandle_t handle,
 
 /** @} */
 // CLOSEOUT REDUCE CALCULATION DOXYGEN GROUP
+#endif
+
+#ifdef MIOPEN_BETA_API
+// Padreflection APIs
+/** @addtogroup pad
+ *
+ *  @{
+ */
+/*! @brief Add padding by the reflection of the tensor
+ *
+ * @param handle                   MIOpen handle (input)
+ * @param xDesc                    Tensor descriptor for data input tensor x (input)
+ * @param x                        Data tensor x (input)
+ * @param yDesc                    Tensor descriptor for output data tensor y (input)
+ * @param y                        Data tensor y (output)
+ * @param padding                  Padding array contain 1 or 4 elements (input)
+ * @param num_padding              Number of elements in padding, equals 1 or 4 (input)
+ * @return                         miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenPadReflection(miopenHandle_t handle,
+                                                 const miopenTensorDescriptor_t xDesc,
+                                                 const void* x,
+                                                 const miopenTensorDescriptor_t yDesc,
+                                                 void* y,
+                                                 const size_t* padding,
+                                                 const size_t num_padding);
+
+/** @} */
+// CLOSEOUT pad DOXYGEN GROUP
 #endif // MIOPEN_BETA_API
 
 #ifdef MIOPEN_BETA_API
