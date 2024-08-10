@@ -79,7 +79,8 @@ void Consume(
     for(auto i = 0; i < consumers_count; ++i)
     {
         consumers.emplace_back([&]() {
-            auto consumer_lock = std::shared_lock<std::shared_mutex>(preloaded);
+            // just synchronisation
+            std::ignore = std::shared_lock<std::shared_mutex>(preloaded);
             std::ignore =
                 miopen::ReadonlyRamDb::GetCached(miopen::DbKinds::KernelDb, filename, false, dbs);
         });
@@ -97,8 +98,8 @@ void Consume(
 TEST(SmokeCPUDbPreloadTrivialNONE, Basic)
 {
     miopen::DbPreloadStates states;
-    miopen::TmpDir dir;
-    auto filename = dir.path / "db.txt";
+    const miopen::TmpDir dir;
+    const auto filename = dir.path / "db.txt";
 
     Produce(filename, states);
     ASSERT_NE(nullptr, miopen::GetPreloadedReadonlyRamDb(filename, states));
@@ -107,8 +108,8 @@ TEST(SmokeCPUDbPreloadTrivialNONE, Basic)
 TEST(SmokeCPUDbPreloadTrivialNONE, Fallback)
 {
     miopen::DbPreloadStates states;
-    miopen::TmpDir dir;
-    auto filename = dir.path / "db.txt";
+    const miopen::TmpDir dir;
+    const auto filename = dir.path / "db.txt";
 
     ASSERT_EQ(nullptr, miopen::GetPreloadedReadonlyRamDb(filename, states));
 }
@@ -134,8 +135,8 @@ TEST_P(CPUDbPreloadNONE, Sequential)
 
     miopen::DbPreloadStates states;
     miopen::ReadonlyRamDb::Instances dbs{{}, &states};
-    miopen::TmpDir dir;
-    auto filename = dir.path / "db.txt";
+    const miopen::TmpDir dir;
+    const auto filename = dir.path / "db.txt";
 
     Consume(param.consumers, filename, dbs);
 
@@ -153,8 +154,8 @@ TEST_P(CPUDbPreloadNONE, Parallel)
 
     miopen::DbPreloadStates states;
     miopen::ReadonlyRamDb::Instances dbs{{}, &states};
-    miopen::TmpDir dir;
-    auto filename = dir.path / "db.txt";
+    const miopen::TmpDir dir;
+    const auto filename = dir.path / "db.txt";
 
     std::shared_mutex producer_mutex;
     auto producer_mutex_owner_lock = std::unique_lock<std::shared_mutex>(producer_mutex);
