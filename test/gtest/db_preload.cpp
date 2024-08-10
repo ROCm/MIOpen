@@ -105,6 +105,17 @@ TEST(SmokeCPUDbPreloadTrivialNONE, Basic)
     ASSERT_NE(nullptr, miopen::GetPreloadedReadonlyRamDb(filename, states));
 }
 
+TEST(SmokeCPUDbPreloadTrivialNONE, Full)
+{
+    miopen::DbPreloadStates states;
+    miopen::ReadonlyRamDb::Instances dbs{{}, &states};
+    const miopen::TmpDir dir;
+    const auto filename = dir.path / "db.txt";
+
+    Produce(filename, states);
+    std::ignore = miopen::ReadonlyRamDb::GetCached(miopen::DbKinds::KernelDb, filename, false, dbs);
+}
+
 TEST(SmokeCPUDbPreloadTrivialNONE, Fallback)
 {
     miopen::DbPreloadStates states;
