@@ -24,6 +24,7 @@
  *
  *******************************************************************************/
 
+#include "miopen/db_record.hpp"
 #include <miopen/handle.hpp>
 
 #include <miopen/db_preload.hpp>
@@ -33,99 +34,44 @@
 #include <miopen/ramdb.hpp>
 #include <miopen/readonlyramdb.hpp>
 
-#include <mutex>
-
 namespace miopen {
 namespace {
-template <class Db>
-void StartPreloadingDb(DbPreloadStates& states,
-                       DbKinds db_kind,
-                       const fs::path& path,
-                       bool is_system)
+void PreloadDbPair(DbKinds kind, fs::path&& system, fs::path&& user)
 {
-    if(path.empty())
-        return;
-
-    auto task = [](DbKinds db_kind, const fs::path& path, bool is_system) {
-        if constexpr(std::is_same_v<Db, RamDb>)
-        {
-            auto db   = std::make_unique<RamDb>(db_kind, path, is_system);
-            auto lock = std::unique_lock<LockFile>(db->GetLockFile(), GetDbLockTimeout());
-
-            if(!lock)
-                MIOPEN_THROW("Db lock has failed to lock.");
-            db->Prefetch();
-
-            return PreloadedDb(std::move(db));
-        }
-        else
-        {
-            auto db     = std::make_unique<Db>(db_kind, path);
-            std::ignore = is_system;
-            db->Prefetch();
-            return PreloadedDb(std::move(db));
-        }
-    };
-
-    auto future = std::async(std::launch::async, std::move(task), db_kind, path, is_system);
-
-    states.futures.emplace(path, std::move(future));
+#if !MIOPEN_DISABLE_SYSDB
+    StartPreloadingDb(system, MakeDbPreloader<ReadonlyRamDb>(kind, true));
+#endif
+#if !MIOPEN_DISABLE_USERDB
+    StartPreloadingDb(user, MakeDbPreloader<RamDb>(kind, false));
+#endif
 }
 } // namespace
 
 void Handle::TryStartPreloadingDbs()
 {
-    ExecutionContext ctx{this};
+    miopen::TryStartPreloadingDbs([&]() {
+        ExecutionContext ctx{this};
 
-    auto& states = GetDbPreloadStates();
+        MIOPEN_LOG_I("Preloading dbs");
 
-    if(states.started_loading.load(std::memory_order_relaxed))
-        return;
+        // conv perf-db
+        PreloadDbPair(DbKinds::PerfDb, ctx.GetPerfDbPath(), ctx.GetUserPerfDbPath());
 
-    std::unique_lock<std::mutex> lock(states.mutex);
+        // conv find-db
+        PreloadDbPair(DbKinds::FindDb,
+                      FindDbRecord::GetInstalledPath(*this, ""),
+                      FindDbRecord::GetUserPath(*this, ""));
 
-    if(states.started_loading.load(std::memory_order_relaxed))
-        return;
+        // batchnorm perf-db
+        // it doesn't use find-db
+        PreloadDbPair(
+            DbKinds::PerfDb, ctx.GetPerfDbPath("batchnorm"), ctx.GetUserPerfDbPath("batchnorm"));
 
-    MIOPEN_LOG_I("Preloading dbs");
-
-    // conv perf-db
-#if !MIOPEN_DISABLE_SYSDB
-    StartPreloadingDb<ReadonlyRamDb>(states, DbKinds::PerfDb, ctx.GetPerfDbPath(), true);
-#endif
-#if !MIOPEN_DISABLE_USERDB
-    StartPreloadingDb<RamDb>(states, DbKinds::PerfDb, ctx.GetUserPerfDbPath(), false);
-#endif
-
-    // conv find-db
-#if !MIOPEN_DISABLE_SYSDB
-    StartPreloadingDb<ReadonlyRamDb>(
-        states, DbKinds::FindDb, FindDbRecord::GetInstalledPath(*this, ""), true);
-#endif
-#if !MIOPEN_DISABLE_USERDB
-    StartPreloadingDb<RamDb>(states, DbKinds::FindDb, FindDbRecord::GetUserPath(*this, ""), false);
-#endif
-
-    // batchnorm perf-db
-    // it doesn't use find-db
-#if !MIOPEN_DISABLE_SYSDB
-    StartPreloadingDb<ReadonlyRamDb>(states, DbKinds::PerfDb, ctx.GetPerfDbPath("batchnorm"), true);
-#endif
-#if !MIOPEN_DISABLE_USERDB
-    StartPreloadingDb<RamDb>(states, DbKinds::PerfDb, ctx.GetUserPerfDbPath("batchnorm"), false);
-#endif
-
-    // fusion find-db
-    // it uses perf-db from convolution
-#if !MIOPEN_DISABLE_SYSDB
-    StartPreloadingDb<ReadonlyRamDb>(
-        states, DbKinds::FindDb, FindDbRecord::GetInstalledPath(*this, "fusion"), true);
-#endif
-#if !MIOPEN_DISABLE_USERDB
-    StartPreloadingDb<RamDb>(
-        states, DbKinds::FindDb, FindDbRecord::GetUserPath(*this, "fusion"), false);
-#endif
-
-    states.started_loading.store(true, std::memory_order_relaxed);
+        // fusion find-db
+        // it uses perf-db from convolution
+        PreloadDbPair(DbKinds::FindDb,
+                      FindDbRecord::GetInstalledPath(*this, "fusion"),
+                      FindDbRecord::GetUserPath(*this, "fusion"));
+    });
 }
 } // namespace miopen

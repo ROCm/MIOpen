@@ -24,6 +24,10 @@
  *
  *******************************************************************************/
 
+#include "miopen/db_record.hpp"
+#include "miopen/execution_context.hpp"
+#include "miopen/ramdb.hpp"
+#include "miopen/readonlyramdb.hpp"
 #include <miopen/db_preload.hpp>
 
 #include <miopen/config.h>
@@ -37,11 +41,10 @@ auto GetDbPreloadStates() -> DbPreloadStates&
     return db_preload_states;
 }
 
+namespace {
 template <class Db>
-auto GetPreloadedDb(const fs::path& path) -> std::unique_ptr<Db>
+auto GetPreloadedDb(const fs::path& path, DbPreloadStates& states) -> std::unique_ptr<Db>
 {
-    auto& states = GetDbPreloadStates();
-
     std::unique_lock<std::mutex> lock{states.mutex, std::defer_lock};
 
     // Mutex is need to ensure states.futures is not updated while we work
@@ -68,8 +71,77 @@ auto GetPreloadedDb(const fs::path& path) -> std::unique_ptr<Db>
                                                              << " ms");
     return std::get<std::unique_ptr<Db>>(std::move(ret));
 }
+} // namespace
 
-template auto GetPreloadedDb<RamDb>(const fs::path& path) -> std::unique_ptr<RamDb>;
-template auto GetPreloadedDb<ReadonlyRamDb>(const fs::path& path) -> std::unique_ptr<ReadonlyRamDb>;
+template <class Db>
+auto MakeDbPreloader(DbKinds db_kind, bool is_system) -> std::function<PreloadedDb(const fs::path&)>
+{
+    if constexpr(std::is_same_v<Db, RamDb>)
+    {
+        return [=](const fs::path& path) -> PreloadedDb {
+            auto db   = std::make_unique<RamDb>(db_kind, path, is_system);
+            auto lock = std::unique_lock<LockFile>(db->GetLockFile(), GetDbLockTimeout());
+            if(!lock)
+                MIOPEN_THROW("Db lock has failed to lock.");
+            db->Prefetch();
+            return {std::move(db)};
+        };
+    }
+    else
+    {
+        return [=](const fs::path& path) -> PreloadedDb {
+            auto db     = std::make_unique<Db>(db_kind, path);
+            std::ignore = is_system;
+            db->Prefetch();
+            return {std::move(db)};
+        };
+    }
+}
+
+template auto MakeDbPreloader<RamDb>(DbKinds db_kind, bool is_system)
+    -> std::function<PreloadedDb(const fs::path&)>;
+template auto MakeDbPreloader<ReadonlyRamDb>(DbKinds db_kind, bool is_system)
+    -> std::function<PreloadedDb(const fs::path&)>;
+
+MIOPEN_INTERNALS_EXPORT void
+StartPreloadingDb(const fs::path& path,
+                  std::function<PreloadedDb(const fs::path&)>&& preloader,
+                  DbPreloadStates& states)
+{
+    if(path.empty())
+        return;
+
+    auto future = std::async(std::launch::async, std::move(preloader), path);
+    states.futures.emplace(path, std::move(future));
+}
+
+MIOPEN_INTERNALS_EXPORT void TryStartPreloadingDbs(const std::function<void()>& preload,
+                                                   DbPreloadStates& states)
+{
+    if(states.started_loading.load(std::memory_order_relaxed))
+        return;
+
+    std::unique_lock<std::mutex> lock(states.mutex);
+
+    if(states.started_loading.load(std::memory_order_relaxed))
+        return;
+
+    preload();
+
+    states.started_loading.store(true, std::memory_order_relaxed);
+}
+
+MIOPEN_INTERNALS_EXPORT auto GetPreloadedRamDb(const fs::path& path, DbPreloadStates& states)
+    -> std::unique_ptr<RamDb>
+{
+    return GetPreloadedDb<RamDb>(path, states);
+}
+
+MIOPEN_INTERNALS_EXPORT auto GetPreloadedReadonlyRamDb(const fs::path& path,
+                                                       DbPreloadStates& states)
+    -> std::unique_ptr<ReadonlyRamDb>
+{
+    return GetPreloadedDb<ReadonlyRamDb>(path, states);
+}
 
 } // namespace miopen

@@ -51,8 +51,16 @@ bool& rordb_embed_fs_override()
 }
 } // namespace debug
 
-ReadonlyRamDb&
-ReadonlyRamDb::GetCached(DbKinds db_kind_, const fs::path& path, bool warn_if_unreadable)
+auto ReadonlyRamDb::GetInstances() -> Instances&
+{
+    static auto instances = Instances{{}, &GetDbPreloadStates()};
+    return instances;
+}
+
+ReadonlyRamDb& ReadonlyRamDb::GetCached(DbKinds db_kind_,
+                                        const fs::path& path,
+                                        bool warn_if_unreadable,
+                                        Instances& instances)
 {
     // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
     static std::mutex mutex;
@@ -60,10 +68,9 @@ ReadonlyRamDb::GetCached(DbKinds db_kind_, const fs::path& path, bool warn_if_un
 
     // We don't have to store kind to properly index as different dbs would have different paths
     // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
-    static auto instances = std::map<fs::path, ReadonlyRamDb*>{};
-    const auto it         = instances.find(path);
+    const auto it = instances.dbs.find(path);
 
-    if(it != instances.end())
+    if(it != instances.dbs.end())
         return *it->second;
 
     // The ReadonlyRamDb objects allocated here by "new" shall be alive during
@@ -73,15 +80,15 @@ ReadonlyRamDb::GetCached(DbKinds db_kind_, const fs::path& path, bool warn_if_un
     // footprint in heap is very small. That is why we can omit deletion of
     // these objects thus avoiding bothering with MP/MT syncronization.
     // These will be destroyed altogether with heap.
-    if(auto preloaded = GetPreloadedDb<ReadonlyRamDb>(path))
+    if(auto preloaded = GetPreloadedReadonlyRamDb(path, *instances.states))
     {
-        return *instances.emplace(path, preloaded.release()).first->second;
+        return *instances.dbs.emplace(path, preloaded.release()).first->second;
     }
     else
     {
         // NOLINTNEXTLINE (cppcoreguidelines-owning-memory)
         auto instance = new ReadonlyRamDb{db_kind_, path};
-        instances.emplace(path, instance);
+        instances.dbs.emplace(path, instance);
         instance->Prefetch(warn_if_unreadable);
         return *instance;
     }

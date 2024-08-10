@@ -34,8 +34,11 @@
 #include <unordered_map>
 #include <string>
 #include <sstream>
+#include <map>
 
 namespace miopen {
+
+struct DbPreloadStates;
 
 namespace debug {
 MIOPEN_INTERNALS_EXPORT bool& rordb_embed_fs_override();
@@ -46,8 +49,18 @@ class MIOPEN_INTERNALS_EXPORT ReadonlyRamDb
 public:
     ReadonlyRamDb(DbKinds db_kind_, const fs::path& path) : db_kind(db_kind_), db_path(path) {}
 
-    static ReadonlyRamDb&
-    GetCached(DbKinds db_kind_, const fs::path& path, bool warn_if_unreadable);
+    struct Instances
+    {
+        std::map<fs::path, ReadonlyRamDb*> dbs;
+        DbPreloadStates* states;
+    };
+
+    static auto GetInstances() -> Instances&;
+
+    static ReadonlyRamDb& GetCached(DbKinds db_kind_,
+                                    const fs::path& path,
+                                    bool warn_if_unreadable,
+                                    Instances& instances = GetInstances());
 
     boost::optional<DbRecord> FindRecord(const std::string& problem) const
     {

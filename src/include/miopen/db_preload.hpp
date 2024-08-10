@@ -55,11 +55,26 @@ struct DbPreloadStates
 
 auto GetDbPreloadStates() -> DbPreloadStates&;
 
-template <class Db>
-auto GetPreloadedDb(const fs::path& path) -> std::unique_ptr<Db>;
+auto GetPreloadedRamDb(const fs::path& path, DbPreloadStates& states = GetDbPreloadStates())
+    -> std::unique_ptr<RamDb>;
 
-extern template auto GetPreloadedDb<RamDb>(const fs::path& path) -> std::unique_ptr<RamDb>;
-extern template auto GetPreloadedDb<ReadonlyRamDb>(const fs::path& path)
+auto GetPreloadedReadonlyRamDb(const fs::path& path, DbPreloadStates& states = GetDbPreloadStates())
     -> std::unique_ptr<ReadonlyRamDb>;
+
+template <class Db>
+auto MakeDbPreloader(DbKinds db_kind, bool is_system)
+    -> std::function<PreloadedDb(const fs::path&)>;
+
+extern template auto MakeDbPreloader<RamDb>(DbKinds db_kind, bool is_system)
+    -> std::function<PreloadedDb(const fs::path&)>;
+extern template auto MakeDbPreloader<ReadonlyRamDb>(DbKinds db_kind, bool is_system)
+    -> std::function<PreloadedDb(const fs::path&)>;
+
+void StartPreloadingDb(const fs::path& path,
+                       std::function<PreloadedDb(const fs::path&)>&& preloader,
+                       DbPreloadStates& states = GetDbPreloadStates());
+
+void TryStartPreloadingDbs(const std::function<void()>& preload,
+                           DbPreloadStates& states = GetDbPreloadStates());
 
 } // namespace miopen

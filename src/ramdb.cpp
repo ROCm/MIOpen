@@ -105,7 +105,7 @@ RamDb& RamDb::GetCached(DbKinds db_kind_, const fs::path& path, bool is_system)
     if(it != instances.end())
         return *it->second;
 
-    if(auto preloaded = GetPreloadedDb<RamDb>(path))
+    if(auto preloaded = GetPreloadedRamDb(path))
     {
         return *instances.emplace(path, std::move(preloaded)).first->second;
     }
