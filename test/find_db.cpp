@@ -27,7 +27,6 @@
 #include "test.hpp"
 #include "driver.hpp"
 #include "get_handle.hpp"
-#include "workspace.hpp"
 
 #include <miopen/convolution.hpp>
 #include <miopen/conv/problem_description.hpp>
@@ -109,7 +108,10 @@ private:
         const auto ctx = ExecutionContext{&handle};
         const auto problem =
             conv::ProblemDescription{y.desc, w.desc, x.desc, filter, conv::Direction::BackwardData};
-        Workspace wspace{filter.GetWorkSpaceSize(ctx, problem)};
+        const auto workspace_size = filter.GetWorkSpaceSize(ctx, problem);
+
+        auto workspace     = std::vector<char>(workspace_size);
+        auto workspace_dev = workspace_size != 0 ? handle.Write(workspace) : nullptr;
 
         auto filterCall = [&]() {
             int ret_algo_count;
@@ -125,8 +127,8 @@ private:
                                             1,
                                             &ret_algo_count,
                                             perf,
-                                            wspace.ptr(),
-                                            wspace.size(),
+                                            workspace_dev.get(),
+                                            workspace_size,
                                             false);
         };
 
@@ -140,7 +142,10 @@ private:
         const auto ctx = ExecutionContext{&handle};
         const auto problem =
             conv::ProblemDescription{x.desc, w.desc, y.desc, filter, conv::Direction::Forward};
-        Workspace wspace{filter.GetWorkSpaceSize(ctx, problem)};
+        const auto workspace_size = filter.GetWorkSpaceSize(ctx, problem);
+
+        auto workspace     = std::vector<char>(workspace_size);
+        auto workspace_dev = workspace_size != 0 ? handle.Write(workspace) : nullptr;
 
         auto filterCall = [&]() {
             int ret_algo_count;
@@ -156,8 +161,8 @@ private:
                                         1,
                                         &ret_algo_count,
                                         perf,
-                                        wspace.ptr(),
-                                        wspace.size(),
+                                        workspace_dev.get(),
+                                        workspace_size,
                                         false);
         };
 
@@ -171,7 +176,10 @@ private:
         const auto ctx     = ExecutionContext{&handle};
         const auto problem = conv::ProblemDescription{
             y.desc, w.desc, x.desc, filter, conv::Direction::BackwardWeights};
-        Workspace wspace{filter.GetWorkSpaceSize(ctx, problem)};
+        const auto workspace_size = filter.GetWorkSpaceSize(ctx, problem);
+
+        auto workspace     = std::vector<char>(workspace_size);
+        auto workspace_dev = workspace_size != 0 ? handle.Write(workspace) : nullptr;
 
         auto filterCall = [&]() {
             int ret_algo_count;
@@ -187,8 +195,8 @@ private:
                                                1,
                                                &ret_algo_count,
                                                perf,
-                                               wspace.ptr(),
-                                               wspace.size(),
+                                               workspace_dev.get(),
+                                               workspace_size,
                                                false);
         };
 

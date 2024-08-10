@@ -40,7 +40,6 @@
 #include "conv_tensor_gen.hpp"
 
 #include "get_solver.hpp"
-#include "../workspace.hpp"
 
 template <typename T = float, typename Tref = float, bool use_cpu_ref = false>
 struct ConvWrwSolverTest
@@ -77,11 +76,15 @@ struct ConvWrwSolverTest
         if(solv.MayNeedWorkspace())
         {
             const auto cur_sol_ws = solv.GetWorkspaceSize(ctx, problem);
-            wspace.resize(cur_sol_ws);
+            workspace_dev         = handle.Create<T>(cur_sol_ws);
+            workspace_size        = cur_sol_ws;
         }
 
-        const auto invoke_params = miopen::conv::WrWInvokeParams{
-            tensors, wspace.ptr(), wspace.size(), conv_desc.attribute.gfx90aFp16alt.GetBwd()};
+        const auto invoke_params =
+            miopen::conv::WrWInvokeParams{tensors,
+                                          workspace_dev.get(),
+                                          workspace_size,
+                                          conv_desc.attribute.gfx90aFp16alt.GetBwd()};
 
         auto sol = GetSolution(solv, ctx, problem);
         ASSERT_TRUE(sol.Succeeded());
@@ -176,7 +179,8 @@ protected:
     miopen::Allocator::ManageDataPtr in_dev;
     miopen::Allocator::ManageDataPtr wei_dev;
     miopen::Allocator::ManageDataPtr out_dev;
-    Workspace wspace{};
+    miopen::Allocator::ManageDataPtr workspace_dev;
+    size_t workspace_size;
     miopenConvFwdAlgorithm_t algo = miopenConvolutionFwdAlgoDirect;
     bool test_skipped             = false;
 };

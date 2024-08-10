@@ -38,7 +38,6 @@
 
 #include "conv_test_base.hpp"
 #include "get_solver.hpp"
-#include "../workspace.hpp"
 
 template <typename T = float, typename Tref = float, bool use_cpu_ref = false>
 struct ConvFwdSolverTest
@@ -78,11 +77,15 @@ struct ConvFwdSolverTest
         if(solv.MayNeedWorkspace())
         {
             const auto cur_sol_ws = solv.GetWorkspaceSize(ctx, problem);
-            wspace.resize(cur_sol_ws);
+            workspace_dev         = handle.Create<T>(cur_sol_ws);
+            workspace_size        = cur_sol_ws;
         }
 
-        const auto invoke_params = miopen::conv::DataInvokeParams{
-            tensors, wspace.ptr(), wspace.size(), this->conv_desc.attribute.gfx90aFp16alt.GetFwd()};
+        const auto invoke_params =
+            miopen::conv::DataInvokeParams{tensors,
+                                           workspace_dev.get(),
+                                           workspace_size,
+                                           this->conv_desc.attribute.gfx90aFp16alt.GetFwd()};
 
         // auto sol = solv.GetSolution(ctx, problem);
         // This is complicated due to the split between tunable and non-tunable solvers
@@ -113,7 +116,8 @@ protected:
     }
 
     ConvTestCaseBase conv_config;
-    Workspace wspace{};
+    miopen::Allocator::ManageDataPtr workspace_dev;
+    size_t workspace_size;
     miopenConvFwdAlgorithm_t algo = miopenConvolutionFwdAlgoDirect;
     bool test_skipped             = false;
     miopenTensorLayout_t tensor_layout;

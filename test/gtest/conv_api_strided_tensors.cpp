@@ -29,7 +29,6 @@
 #include <gtest/gtest.h>
 #include <miopen/miopen.h>
 #include "platform.hpp"
-#include "../workspace.hpp"
 
 #define MIOPEN_CHECK_RET(val) ASSERT_EQ(val, miopenStatusSuccess)
 
@@ -67,12 +66,10 @@ protected:
         MIOPEN_CHECK_RET(miopenSetConvolutionGroupCount(conv_descr, 1));
 
         // Workspace
-        size_t sz = 0;
         MIOPEN_CHECK_RET(miopenConvolutionForwardGetWorkSpaceSize(
-            handle, filter_descr, input_descr, conv_descr, output_descr, &sz));
+            handle, filter_descr, input_descr, conv_descr, output_descr, &workspace_size));
 
         // Data
-        wspace.resize(sz);
         h_input.resize(input_size);
         h_filter.resize(filter_size);
         h_output.resize(output_size);
@@ -128,7 +125,7 @@ protected:
     std::vector<int> dilation                = {1, 1, 1};
 
     // Workspace
-    Workspace wspace{};
+    size_t workspace_size;
 
     // Data
     const size_t input_size   = input_dims[0] * input_strides[0];
@@ -146,9 +143,10 @@ TEST_F(GPU_ConvStridedTensors_FP32, ConvStridedTensorsNotImplemented)
 {
     auto device = Device(handle);
 
-    auto d_input  = device.Malloc(input_bytes);
-    auto d_filter = device.Malloc(filter_bytes);
-    auto d_output = device.Malloc(output_bytes);
+    auto d_workspace = device.Malloc(workspace_size);
+    auto d_input     = device.Malloc(input_bytes);
+    auto d_filter    = device.Malloc(filter_bytes);
+    auto d_output    = device.Malloc(output_bytes);
 
     std::fill_n(h_input.begin(), h_input.size(), 1.f);
     ASSERT_TRUE(d_input.CopyToDevice(h_input.data(), input_bytes));
@@ -170,8 +168,8 @@ TEST_F(GPU_ConvStridedTensors_FP32, ConvStridedTensorsNotImplemented)
                                                     sizeof(perf_results) / sizeof(perf_results[0]),
                                                     &perf_results_count,
                                                     perf_results,
-                                                    wspace.ptr(),
-                                                    wspace.size(),
+                                                    d_workspace.Data(),
+                                                    workspace_size,
                                                     true),
               miopenStatusSuccess);
     ASSERT_GT(perf_results_count, 0);
@@ -191,8 +189,8 @@ TEST_F(GPU_ConvStridedTensors_FP32, ConvStridedTensorsNotImplemented)
                                        &beta,
                                        output_descr,
                                        d_output.Data(),
-                                       wspace.ptr(),
-                                       wspace.size()),
+                                       d_workspace.Data(),
+                                       workspace_size),
               miopenStatusSuccess);
     ASSERT_TRUE(device.Synchronize());
 }
