@@ -142,9 +142,7 @@ TEST_P(CPUDbPreloadNONE, Sequential)
     std::promise<void> promise;
     auto future = promise.get_future();
 
-    Produce(filename, states, [&]() {
-        promise.set_value(); // promise.set_value_at_thread_exit();
-    });
+    Produce(filename, states, [&]() { promise.set_value_at_thread_exit(); });
 
     Consume(param.consumers, filename, dbs, [&]() { future.get(); });
 }
