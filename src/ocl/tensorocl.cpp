@@ -2187,9 +2187,6 @@ void TransformTensor(const Handle& handle,
         MIOPEN_THROW("Tensor x and y batch sizes do not match");
     }
 
-    const auto is_alpha_one = float_equal(*(static_cast<const float*>(alpha)), 1);
-    const auto is_beta_zero = float_equal(*(static_cast<const float*>(beta)), 0);
-
     if(xDesc.GetType() == miopenInt8 && yDesc.GetType() == miopenInt8 && x_len.size() >= 3)
     {
         if(x_len[1] <= y_len[1])
@@ -2224,7 +2221,8 @@ void TransformTensor(const Handle& handle,
             size_t x_offset = i * x_batch_sz;
             size_t y_offset = i * y_batch_sz;
 
-            if(is_alpha_one && is_beta_zero)
+            if(float_equal(*(static_cast<const float*>(alpha)), 1) &&
+               float_equal(*(static_cast<const float*>(beta)), 0))
             {
                 CopyTensor(handle,
                            ((x_len[1] <= y_len[1]) ? x_batch_desc : y_batch_desc),
@@ -2236,8 +2234,7 @@ void TransformTensor(const Handle& handle,
             }
             else
             {
-                MIOPEN_THROW(miopenStatusNotImplemented,
-                             "y=alpha*x+beta*y is not supported for int8 yet");
+                // TODO: support y=alpha*x+beta*y
             }
         }
     }
@@ -2257,6 +2254,7 @@ void TransformTensor(const Handle& handle,
         const TensorDescriptor& xDesc_flat = std::get<0>(flat_descriptors);
         const TensorDescriptor& yDesc_flat = std::get<1>(flat_descriptors);
 
+#ifndef NDEBUG
         if(xDesc.GetNumDims() != xDesc_flat.GetNumDims())
         {
             MIOPEN_LOG_I2("x real descriptor: " << xDesc);
@@ -2268,6 +2266,7 @@ void TransformTensor(const Handle& handle,
             MIOPEN_LOG_I2("y real descriptor: " << yDesc);
             MIOPEN_LOG_I2("y flat descriptor: " << yDesc_flat);
         }
+#endif
 
         const std::size_t yDim_flat = yDesc_flat.GetNumDims();
 
@@ -2330,10 +2329,8 @@ void TransformTensor(const Handle& handle,
 
             std::size_t wld = 256 < wgd ? 256 : wgd;
 
-            std::string parms =
-                GetDataTypeKernelParams(dataTypey)                                           //
-                + " -DMIOPEN_BETA_IS_ZERO=" + std::to_string(static_cast<int>(is_beta_zero)) //
-                + " -DMIOPEN_ALPHA_IS_ONE=" + std::to_string(static_cast<int>(is_alpha_one));
+            std::string parms = "-DSUBTENSOR_OP_WITH_SCALAR=SUBTENSOR_OP_WITH_SCALAR_MAD" +
+                                GetDataTypeKernelParams(dataTypey);
 
             for(int i = 0; i < yDim_flat; ++i)
             {
