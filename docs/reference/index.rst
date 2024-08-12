@@ -35,4 +35,5 @@ The MIOpen API library is structured as follows:
   * :doc:`ReduceExtreme <../doxygen/html/group__ReduceExtreme>` (experimental)
   * :doc:`Getitem <../doxygen/html/group__getitem>` (experimental)
   * :doc:`ReduceCalculation <../doxygen/html/group__ReduceCalculation>` (experimental)
+  * :doc:`RotaryPositionalEmbeddings <../doxygen/html/group__RotaryPositionalEmbeddings>` (experimental)
   * :doc:`NLLLoss<../doxygen/html/group__nllloss>` (experimental)
