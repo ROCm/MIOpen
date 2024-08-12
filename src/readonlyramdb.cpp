@@ -80,7 +80,7 @@ ReadonlyRamDb& ReadonlyRamDb::GetCached(DbKinds db_kind_,
     // footprint in heap is very small. That is why we can omit deletion of
     // these objects thus avoiding bothering with MP/MT syncronization.
     // These will be destroyed altogether with heap.
-    if(auto preloaded = GetPreloadedReadonlyRamDb(path, *instances.states))
+    if(auto preloaded = instances.states->GetPreloadedReadonlyRamDb(path))
     {
         return *instances.dbs.emplace(path, preloaded.release()).first->second;
     }

@@ -39,17 +39,17 @@ namespace {
 void PreloadDbPair(DbKinds kind, fs::path&& system, fs::path&& user)
 {
 #if !MIOPEN_DISABLE_SYSDB
-    StartPreloadingDb(system, MakeDbPreloader<ReadonlyRamDb>(kind, true));
+    GetDbPreloadStates().StartPreloadingDb(system, MakeDbPreloader<ReadonlyRamDb>(kind, true));
 #endif
 #if !MIOPEN_DISABLE_USERDB
-    StartPreloadingDb(user, MakeDbPreloader<RamDb>(kind, false));
+    GetDbPreloadStates().StartPreloadingDb(user, MakeDbPreloader<RamDb>(kind, false));
 #endif
 }
 } // namespace
 
 void Handle::TryStartPreloadingDbs()
 {
-    miopen::TryStartPreloadingDbs([&]() {
+    GetDbPreloadStates().TryStartPreloadingDbs([&]() {
         ExecutionContext ctx{this};
 
         MIOPEN_LOG_I("Preloading dbs");
@@ -73,5 +73,10 @@ void Handle::TryStartPreloadingDbs()
                       FindDbRecord::GetInstalledPath(*this, "fusion"),
                       FindDbRecord::GetUserPath(*this, "fusion"));
     });
+}
+
+void Handle::WaitForRemainingThreadsIfNeeded() const
+{
+    GetDbPreloadStates().WaitForRemainingThreadsIfNeeded();
 }
 } // namespace miopen

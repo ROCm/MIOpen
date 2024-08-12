@@ -349,7 +349,7 @@ Handle::Handle() : impl(std::make_unique<HandleImpl>())
     MIOPEN_LOG_NQI(*this);
 }
 
-Handle::~Handle() {}
+Handle::~Handle() { WaitForRemainingThreadsIfNeeded(); }
 
 // not MT safe
 void Handle::SetStream(miopenAcceleratorQueue_t streamID) const
