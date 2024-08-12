@@ -23,32 +23,34 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef GUARD_CPU_AVGPOOL_HPP
-#define GUARD_CPU_AVGPOOL_HPP
+#ifndef MLO_AVGPOOLHOST_H_
+#define MLO_AVGPOOLHOST_H_
 
-#include "tensor_holder.hpp"
+#include <miopen/tensor.hpp>
 #include <miopen/tensor_view_utils.hpp>
 
-template <class T>
-void cpu_avgpool_forward_2d(tensor<T> input,
-                            tensor<T>& output,
-                            size_t N,
-                            size_t C,
-                            size_t H,
-                            size_t W,
-                            size_t OH,
-                            size_t OW,
-                            tensor<int32_t> kinfor,
-                            tensor<int32_t> stride,
-                            tensor<int32_t> padding,
-                            bool count_include_pad,
-                            int32_t divisor_override)
+template <typename Tgpu, typename Tcheck>
+int32_t mloAvgPoolForward2dRunHost(const miopenTensorDescriptor_t inputDesc,
+                                   const miopenTensorDescriptor_t outputDesc,
+                                   Tgpu* input,
+                                   Tcheck* output,
+                                   size_t N,
+                                   size_t C,
+                                   size_t H,
+                                   size_t W,
+                                   size_t OH,
+                                   size_t OW,
+                                   const int32_t* kinfor,
+                                   const int32_t* stride,
+                                   const int32_t* padding,
+                                   bool count_include_pad,
+                                   int32_t divisor_override)
 {
-    auto dims  = input.desc.GetLengths();
-    auto numel = output.desc.GetElementSize();
+    auto dims  = miopen::deref(inputDesc).GetLengths();
+    auto numel = miopen::deref(outputDesc).GetElementSize();
 
-    auto input_tv  = miopen::get_inner_expanded_tv<4>(input.desc);
-    auto output_tv = miopen::get_inner_expanded_tv<4>(output.desc);
+    auto input_tv  = miopen::get_inner_expanded_tv<4>(miopen::deref(inputDesc));
+    auto output_tv = miopen::get_inner_expanded_tv<4>(miopen::deref(outputDesc));
 
     for(int32_t gid = 0; gid < numel; gid++)
     {
@@ -63,7 +65,7 @@ void cpu_avgpool_forward_2d(tensor<T> input,
         int32_t pw = padding[1];
 
         if(n >= N)
-            return;
+            return 0;
 
         float m = 0;
         for(int32_t r = 0; r < R; ++r)
@@ -114,32 +116,35 @@ void cpu_avgpool_forward_2d(tensor<T> input,
         float val = m / divide_factor;
 
         output[output_tv.get_tensor_view_idx(tensor_layout_t<4>(n, c, oh, ow))] =
-            static_cast<T>(val);
+            static_cast<Tcheck>(val);
     }
+    return 0;
 }
 
-template <class T>
-void cpu_avgpool_forward_3d(tensor<T> input,
-                            tensor<T>& output,
-                            size_t N,
-                            size_t C,
-                            size_t D,
-                            size_t H,
-                            size_t W,
-                            size_t OD,
-                            size_t OH,
-                            size_t OW,
-                            tensor<int32_t> kinfor,
-                            tensor<int32_t> stride,
-                            tensor<int32_t> padding,
-                            bool count_include_pad,
-                            int32_t divisor_override)
+template <typename Tgpu, typename Tcheck>
+int32_t mloAvgPoolForward3dRunHost(const miopenTensorDescriptor_t inputDesc,
+                                   const miopenTensorDescriptor_t outputDesc,
+                                   Tgpu* input,
+                                   Tcheck* output,
+                                   size_t N,
+                                   size_t C,
+                                   size_t D,
+                                   size_t H,
+                                   size_t W,
+                                   size_t OD,
+                                   size_t OH,
+                                   size_t OW,
+                                   const int32_t* kinfor,
+                                   const int32_t* stride,
+                                   const int32_t* padding,
+                                   bool count_include_pad,
+                                   int32_t divisor_override)
 {
-    auto dims  = input.desc.GetLengths();
-    auto numel = output.desc.GetElementSize();
+    auto dims  = miopen::deref(inputDesc).GetLengths();
+    auto numel = miopen::deref(outputDesc).GetElementSize();
 
-    auto input_tv  = miopen::get_inner_expanded_tv<5>(input.desc);
-    auto output_tv = miopen::get_inner_expanded_tv<5>(output.desc);
+    auto input_tv  = miopen::get_inner_expanded_tv<5>(miopen::deref(inputDesc));
+    auto output_tv = miopen::get_inner_expanded_tv<5>(miopen::deref(outputDesc));
 
     for(int32_t gid = 0; gid < numel; gid++)
     {
@@ -158,7 +163,7 @@ void cpu_avgpool_forward_3d(tensor<T> input,
         int32_t pw = padding[2];
 
         if(n >= N)
-            return;
+            return 0;
         float sum = 0;
         for(int32_t kd = 0; kd < KD; ++kd)
         {
@@ -215,30 +220,33 @@ void cpu_avgpool_forward_3d(tensor<T> input,
         }
         float val = sum / divide_factor;
         output[output_tv.get_tensor_view_idx(tensor_layout_t<5>(n, c, od, oh, ow))] =
-            static_cast<T>(val);
+            static_cast<Tcheck>(val);
     }
+    return 0;
 }
 
-template <class T>
-void cpu_avgpool_backward_2d(tensor<T> output_grad,
-                             tensor<T>& input_grad,
-                             size_t N,
-                             size_t C,
-                             size_t H,
-                             size_t W,
-                             size_t OH,
-                             size_t OW,
-                             tensor<int32_t> kinfor,
-                             tensor<int32_t> stride,
-                             tensor<int32_t> padding,
-                             bool count_include_pad,
-                             int32_t divisor_override)
+template <typename Tgpu, typename Tcheck>
+int32_t mloAvgPoolBackward2dRunHost(const miopenTensorDescriptor_t outputGradDesc,
+                                    const miopenTensorDescriptor_t inputGradDesc,
+                                    Tgpu* output_grad,
+                                    Tcheck* input_grad,
+                                    size_t N,
+                                    size_t C,
+                                    size_t H,
+                                    size_t W,
+                                    size_t OH,
+                                    size_t OW,
+                                    const int32_t* kinfor,
+                                    const int32_t* stride,
+                                    const int32_t* padding,
+                                    bool count_include_pad,
+                                    int32_t divisor_override)
 {
-    auto dims  = input_grad.desc.GetLengths();
-    auto numel = input_grad.desc.GetElementSize();
+    auto dims  = miopen::deref(inputGradDesc).GetLengths();
+    auto numel = miopen::deref(inputGradDesc).GetElementSize();
 
-    auto output_grad_tv = miopen::get_inner_expanded_tv<4>(output_grad.desc);
-    auto input_grad_tv  = miopen::get_inner_expanded_tv<4>(input_grad.desc);
+    auto output_grad_tv = miopen::get_inner_expanded_tv<4>(miopen::deref(outputGradDesc));
+    auto input_grad_tv  = miopen::get_inner_expanded_tv<4>(miopen::deref(inputGradDesc));
 
     for(size_t gid = 0; gid < numel; gid++)
     {
@@ -253,7 +261,7 @@ void cpu_avgpool_backward_2d(tensor<T> output_grad,
         int32_t pw = padding[1];
 
         if(n >= N)
-            return;
+            return 0;
 
         float grad = 0;
         for(int32_t r = 0; r < R; ++r)
@@ -308,32 +316,35 @@ void cpu_avgpool_backward_2d(tensor<T> output_grad,
             }
         }
         input_grad[input_grad_tv.get_tensor_view_idx(tensor_layout_t<4>(n, c, h, w))] =
-            static_cast<T>(grad);
+            static_cast<Tcheck>(grad);
     }
+    return 0;
 }
 
-template <class T>
-void cpu_avgpool_backward_3d(tensor<T> output_grad,
-                             tensor<T>& input_grad,
-                             size_t N,
-                             size_t C,
-                             size_t D,
-                             size_t H,
-                             size_t W,
-                             size_t OD,
-                             size_t OH,
-                             size_t OW,
-                             tensor<int32_t> kinfor,
-                             tensor<int32_t> stride,
-                             tensor<int32_t> padding,
-                             bool count_include_pad,
-                             int32_t divisor_override)
+template <typename Tgpu, typename Tcheck>
+int32_t mloAvgPoolBackward3dRunHost(const miopenTensorDescriptor_t outputGradDesc,
+                                    const miopenTensorDescriptor_t inputGradDesc,
+                                    Tgpu* output_grad,
+                                    Tcheck* input_grad,
+                                    size_t N,
+                                    size_t C,
+                                    size_t D,
+                                    size_t H,
+                                    size_t W,
+                                    size_t OD,
+                                    size_t OH,
+                                    size_t OW,
+                                    const int32_t* kinfor,
+                                    const int32_t* stride,
+                                    const int32_t* padding,
+                                    bool count_include_pad,
+                                    int32_t divisor_override)
 {
-    auto dims  = input_grad.desc.GetLengths();
-    auto numel = input_grad.desc.GetElementSize();
+    auto dims  = miopen::deref(inputGradDesc).GetLengths();
+    auto numel = miopen::deref(inputGradDesc).GetElementSize();
 
-    auto output_grad_tv = miopen::get_inner_expanded_tv<5>(output_grad.desc);
-    auto input_grad_tv  = miopen::get_inner_expanded_tv<5>(input_grad.desc);
+    auto output_grad_tv = miopen::get_inner_expanded_tv<5>(miopen::deref(outputGradDesc));
+    auto input_grad_tv  = miopen::get_inner_expanded_tv<5>(miopen::deref(inputGradDesc));
 
     for(size_t gid = 0; gid < numel; gid++)
     {
@@ -352,7 +363,7 @@ void cpu_avgpool_backward_3d(tensor<T> output_grad,
         int32_t pw = padding[2];
 
         if(n >= N)
-            return;
+            return 0;
 
         float grad = 0;
         for(int32_t kd = 0; kd < KD; ++kd)
@@ -419,8 +430,9 @@ void cpu_avgpool_backward_3d(tensor<T> output_grad,
             }
         }
         input_grad[input_grad_tv.get_tensor_view_idx(tensor_layout_t<5>(n, c, d, h, w))] =
-            static_cast<T>(grad);
+            static_cast<Tcheck>(grad);
     }
+    return 0;
 }
 
-#endif
+#endif // MLO_AVGPOOLHOST_H_

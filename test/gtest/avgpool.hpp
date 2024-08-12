@@ -221,7 +221,6 @@ protected:
                                         count_include_pad,
                                         divisor_override);
         fflush(stdout);
-
         ASSERT_EQ(status, miopenStatusSuccess);
 
         output.data = handle.Read<T>(output_dev, output.data.size());
@@ -234,11 +233,6 @@ protected:
         auto error = miopen::rms_range(ref_output, output);
 
         ASSERT_EQ(miopen::range_distance(ref_output), miopen::range_distance(output));
-        for(int i = 0; i < 10; ++i)
-        {
-            std::cout << "output cpu: " << ref_output[i] << " output gpu: " << output[i]
-                      << std::endl;
-        }
         EXPECT_LT(error, threshold * 10);
     }
     AvgPoolTestCase avgpool_config;

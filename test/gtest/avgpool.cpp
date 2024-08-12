@@ -115,49 +115,49 @@ INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Avgpool_fwd_FP32, testing::ValuesIn(AvgPoolT
 INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Avgpool_fwd_FP16, testing::ValuesIn(AvgPoolTestConfigs()));
 INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Avgpool_fwd_BFP16, testing::ValuesIn(AvgPoolTestConfigs()));
 
-// // BACKWARD TEST
-// TEST_P(GPU_Avgpool_bwd_FP32, AvgPoolTestBwd)
-// {
-//     if(!MIOPEN_TEST_ALL ||
-//        (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--float"))
-//     {
-//         RunTest();
-//         Verify();
-//     }
-//     else
-//     {
-//         GTEST_SKIP();
-//     }
-// };
+// BACKWARD TEST
+TEST_P(GPU_Avgpool_bwd_FP32, AvgPoolTestBwd)
+{
+    if(!MIOPEN_TEST_ALL ||
+       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--float"))
+    {
+        RunTest();
+        Verify();
+    }
+    else
+    {
+        GTEST_SKIP();
+    }
+};
 
-// TEST_P(GPU_Avgpool_bwd_FP16, AvgPoolTestBwd)
-// {
-//     if(!MIOPEN_TEST_ALL ||
-//        (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--half"))
-//     {
-//         RunTest();
-//         Verify();
-//     }
-//     else
-//     {
-//         GTEST_SKIP();
-//     }
-// };
+TEST_P(GPU_Avgpool_bwd_FP16, AvgPoolTestBwd)
+{
+    if(!MIOPEN_TEST_ALL ||
+       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--half"))
+    {
+        RunTest();
+        Verify();
+    }
+    else
+    {
+        GTEST_SKIP();
+    }
+};
 
-// TEST_P(GPU_Avgpool_bwd_BFP16, AvgPoolTestBwd)
-// {
-//     if(!MIOPEN_TEST_ALL ||
-//        (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--bfloat16"))
-//     {
-//         RunTest();
-//         Verify();
-//     }
-//     else
-//     {
-//         GTEST_SKIP();
-//     }
-// };
+TEST_P(GPU_Avgpool_bwd_BFP16, AvgPoolTestBwd)
+{
+    if(!MIOPEN_TEST_ALL ||
+       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--bfloat16"))
+    {
+        RunTest();
+        Verify();
+    }
+    else
+    {
+        GTEST_SKIP();
+    }
+};
 
-// INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Avgpool_bwd_FP32, testing::ValuesIn(AvgPoolTestConfigs()));
-// INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Avgpool_bwd_FP16, testing::ValuesIn(AvgPoolTestConfigs()));
-// INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Avgpool_bwd_BFP16, testing::ValuesIn(AvgPoolTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Avgpool_bwd_FP32, testing::ValuesIn(AvgPoolTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Avgpool_bwd_FP16, testing::ValuesIn(AvgPoolTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Avgpool_bwd_BFP16, testing::ValuesIn(AvgPoolTestConfigs()));

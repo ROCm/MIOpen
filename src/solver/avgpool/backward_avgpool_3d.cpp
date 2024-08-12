@@ -46,6 +46,11 @@ namespace avgpool {
 bool AvgPoolBackward3d::IsApplicable(const ExecutionContext& context,
                                      const miopen::avgpool::BwdProblemDescription& problem) const
 {
+    if(problem.GetInputGradDesc().GetNumDims() != 5 ||
+       problem.GetOutputGradDesc().GetNumDims() != 5)
+    {
+        return false;
+    }
     return true;
 }
 
