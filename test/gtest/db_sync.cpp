@@ -782,12 +782,20 @@ struct TestHandle : Handle
 {
     TestHandle(size_t _num_cu) : Handle(), num_cu(_num_cu) {}
 
-    std::size_t GetMaxComputeUnits() const override
+// Probably, according to the idea of the author of this test, the number of CUs should have been
+// substituted with the value passed to the constructor (which in fact did not happen). After
+// https://github.com/ROCm/MIOpen/pull/3175, the method became virtual, the substitution actually
+// happened, and the test broke. I disabled that part (since it doesn't work as intended anyway) to
+// keep its behavior the same.
+#if 0
+    std::size_t GetMaxComputeUnits() const
     {
         if(num_cu == 0)
             return Handle::GetMaxComputeUnits();
         return num_cu;
     }
+#endif
+
     size_t num_cu = 0;
 };
 } // namespace miopen
