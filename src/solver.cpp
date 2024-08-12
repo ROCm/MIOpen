@@ -676,7 +676,7 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
 
     Register(registry, ++id, Primitive::RoPE, rope::RoPEForward{}.SolverDbId());
     Register(registry, ++id, Primitive::RoPE, rope::RoPEBackward{}.SolverDbId());
-    
+
     Register(registry, ++id, Primitive::Unfold, fold::UnfoldFwd{}.SolverDbId());
     Register(registry, ++id, Primitive::Unfold, fold::UnfoldBwd{}.SolverDbId());
     Register(registry, ++id, Primitive::Fold, fold::FoldFwd{}.SolverDbId());
