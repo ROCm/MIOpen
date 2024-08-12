@@ -53,6 +53,7 @@ bool& rordb_embed_fs_override()
 
 auto ReadonlyRamDb::GetInstances() -> Instances&
 {
+    // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
     static auto instances = Instances{{}, &GetDbPreloadStates()};
     return instances;
 }
@@ -67,7 +68,6 @@ ReadonlyRamDb& ReadonlyRamDb::GetCached(DbKinds db_kind_,
     const std::lock_guard<std::mutex> lock{mutex};
 
     // We don't have to store kind to properly index as different dbs would have different paths
-    // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
     const auto it = instances.dbs.find(path);
 
     if(it != instances.dbs.end())
