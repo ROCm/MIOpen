@@ -184,8 +184,7 @@ protected:
         ASSERT_LT(miopen::find_idx(ref_out, miopen::not_finite), 0)
             << "Non finite number found in the CPU data";
 
-        ASSERT_LT(error, threshold)
-            << "Error beyond tolerance Error:" << error << ",  Threshold: " << threshold;
+        ASSERT_LT(error, threshold) << "Error beyond tolerance";
     }
 
     miopen::ConvolutionDescriptor conv_desc;

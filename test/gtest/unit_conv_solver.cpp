@@ -303,14 +303,14 @@ void RunSolverFwd(const miopen::solver::conv::ConvSolverBase& solv,
     ASSERT_FALSE(miopen::range_zero(output)) << "Gpu data is all zeros";
     ASSERT_EQ(miopen::range_distance(ref_out), miopen::range_distance(output));
 
-    const double tolerance = 5;
+    const double tolerance = 2;
     double threshold       = std::numeric_limits<T>::epsilon() * tolerance;
     auto error             = miopen::rms_range(ref_out, output);
 
     ASSERT_LT(miopen::find_idx(ref_out, miopen::not_finite), 0)
         << "Non finite number found in the CPU data";
 
-    ASSERT_LT(error, threshold) << "Error beyond tolerance Error";
+    ASSERT_LT(error, threshold) << "Error beyond tolerance";
     // std::cout << "error: " << error << " threshold: " << threshold << std::endl;
 }
 
@@ -415,14 +415,14 @@ void RunSolverBwd(const miopen::solver::conv::ConvSolverBase& solv,
     ASSERT_FALSE(miopen::range_zero(input)) << "Gpu data is all zeros";
     ASSERT_EQ(miopen::range_distance(ref_in), miopen::range_distance(input));
 
-    const double tolerance = 5;
+    const double tolerance = 2;
     double threshold       = std::numeric_limits<T>::epsilon() * tolerance;
     auto error             = miopen::rms_range(ref_in, input);
 
     ASSERT_LT(miopen::find_idx(ref_in, miopen::not_finite), 0)
         << "Non finite number found in the CPU data";
 
-    ASSERT_LT(error, threshold) << "Error beyond tolerance Error:";
+    ASSERT_LT(error, threshold) << "Error beyond tolerance";
     // std::cout << "error: " << error << " threshold: " << threshold << std::endl;
 }
 
@@ -527,14 +527,14 @@ void RunSolverWrw(const miopen::solver::conv::ConvSolverBase& solv,
     ASSERT_FALSE(miopen::range_zero(weights)) << "Gpu data is all zeros";
     ASSERT_EQ(miopen::range_distance(ref_weights), miopen::range_distance(weights));
 
-    const double tolerance = 5;
+    const double tolerance = 2;
     double threshold       = std::numeric_limits<T>::epsilon() * tolerance;
     auto error             = miopen::rms_range(ref_weights, weights);
 
     ASSERT_LT(miopen::find_idx(ref_weights, miopen::not_finite), 0)
         << "Non finite number found in the CPU data";
 
-    ASSERT_LT(error, threshold) << "Error beyond tolerance Error:";
+    ASSERT_LT(error, threshold) << "Error beyond tolerance";
     // std::cout << "error: " << error << " threshold: " << threshold << std::endl;
 }
 
