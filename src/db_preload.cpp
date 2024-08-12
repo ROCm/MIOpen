@@ -24,17 +24,17 @@
  *
  *******************************************************************************/
 
-#include "miopen/db_record.hpp"
-#include "miopen/execution_context.hpp"
-#include "miopen/ramdb.hpp"
-#include "miopen/readonlyramdb.hpp"
-#include <atomic>
-#include <future>
+#include <miopen/execution_context.hpp>
+#include <miopen/ramdb.hpp>
+#include <miopen/readonlyramdb.hpp>
+#include <miopen/type_name.hpp>
 #include <miopen/db_preload.hpp>
 
 #include <miopen/config.h>
 
+#include <atomic>
 #include <chrono>
+#include <future>
 #include <mutex>
 
 namespace miopen {
@@ -61,7 +61,11 @@ auto DbPreloadStates::GetPreloadedDb(const fs::path& path) -> std::unique_ptr<Db
     if(it == futures.end())
         return nullptr;
 
-    auto& future = it->second;
+    if(!it->second.valid())
+        MIOPEN_THROW(miopenStatusInternalError,
+                     "Attempt to reload " + path.string() + " as " + get_type_name<Db>());
+
+    auto future = std::move(it->second);
 
     if(needs_lock)
         lock.unlock();
