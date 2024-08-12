@@ -2468,30 +2468,21 @@ struct ConvWinoFuryRxS final : ConvSolver
         return GetSolverDbId<ConvWinoFuryRxS<Winodata, Winofilter>>();
     }
 
-    MIOPEN_INTERNALS_EXPORT bool
-    IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
     bool IsDynamic() const override { return true; }
-    MIOPEN_INTERNALS_EXPORT float GetWti(const ExecutionContext&,
-                                         const miopen::conv::ProblemDescription&) const override;
-    MIOPEN_INTERNALS_EXPORT size_t GetWorkspaceSize(
-        const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    float GetWti(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    size_t GetWorkspaceSize(const ExecutionContext&,
+                            const miopen::conv::ProblemDescription&) const override;
     bool MayNeedWorkspace() const override { return true; }
 
-    MIOPEN_INTERNALS_EXPORT ConvSolution
-    GetSolution(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    ConvSolution GetSolution(const ExecutionContext&,
+                             const miopen::conv::ProblemDescription&) const override;
 };
 
-// Suppress misleading clang warnings
-#if defined(__clang__)
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wweak-template-vtables"
-#endif
-
+#ifndef CONV_WINO_FURY_RXS_CPP
 extern template struct ConvWinoFuryRxS<2, 3>;
 // extern template struct ConvWinoFuryRxS<3, 2>;
-
-#if defined(__clang__)
-#pragma clang diagnostic pop
 #endif
 
 struct PerformanceConfigConvAsmBwdWrW1x1 : PerfConfigBase<PerformanceConfigConvAsmBwdWrW1x1>
