@@ -86,7 +86,6 @@ struct Epilogue
 )";
 std::string prologue = "";
 
-// template <typename DataType>
 struct CKArgs
 {
     CKArgs(const ProblemDescription& problem)
@@ -136,11 +135,11 @@ struct CKArgs
                     ProblemInterpreter::GetAdjustedInputRightPadW(problem)};
     }
 
-    /**CKArgs(const CKArgs&)     = default;
+    CKArgs(const CKArgs&)     = default;
     CKArgs(CKArgs&&) noexcept = default;
     CKArgs& operator=(const CKArgs&) = default;
 
-    int G;
+    /**int G;
     int N;
     int K;
     int C;
@@ -179,14 +178,6 @@ ConvHipImplicitGemmGroupFwdXdlopsCodegen::GetWorkspaceSize(const ExecutionContex
     return GetWorkspaceSizeLayoutTransformConv(problem);
 }
 
-/**PerformanceConfigHipImplicitGemm3DGroupFwdXdlops
-ConvHipImplicitGemm3DGroupFwdXdlops::Search(const ExecutionContext& ctx,
-                                            const ProblemDescription& problem,
-                                            const AnyInvokeParams& invoke_ctx) const
-{
-    return GenericSearch(*this, ctx, problem, invoke_ctx);
-}**/
-
 bool ConvHipImplicitGemmGroupFwdXdlopsCodegen::IsApplicable(
     [[maybe_unused]] const ExecutionContext& ctx,
     [[maybe_unused]] const ProblemDescription& problem) const
@@ -212,18 +203,6 @@ bool ConvHipImplicitGemmGroupFwdXdlopsCodegen::IsApplicable(
         return false;
     if(!ck_utility::is_ck_whitelist(ctx.GetStream().GetDeviceName()))
         return false;
-        /**switch(problem.GetInDataType())
-        {
-        case miopenHalf: return CheckCKApplicability<ck::half_t>(problem);
-        case miopenFloat: return CheckCKApplicability<float>(problem);
-        case miopenInt8: return CheckCKApplicability<int8_t>(problem);
-        case miopenBFloat16: return CheckCKApplicability<ck::bhalf_t>(problem);
-        case miopenInt64:
-        case miopenInt32:
-        case miopenFloat8:
-        case miopenBFloat8:
-        case miopenDouble: break;
-        }**/
 #endif
     return false;
 }
