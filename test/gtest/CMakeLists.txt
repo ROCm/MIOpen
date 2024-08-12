@@ -88,6 +88,10 @@ endforeach()
 add_library(miopen_gtest_common STATIC ${SOURCES})
 target_include_directories(miopen_gtest_common PRIVATE ../ ../../src/kernels)
 target_link_libraries(miopen_gtest_common PRIVATE GTest::gtest MIOpen)
+if(WIN32)
+  # Refer to https://en.cppreference.com/w/cpp/language/types for details.
+  target_compile_options(miopen_gtest_common PRIVATE $<BUILD_INTERFACE:$<$<CXX_COMPILER_ID:Clang>:-U__LP64__>>)
+endif()
 
 if( MIOPEN_TEST_DISCRETE )
   foreach(TEST ${TESTS})
