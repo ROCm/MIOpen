@@ -100,8 +100,8 @@ auto MakeDbPreloader(DbKinds db_kind, bool is_system) -> std::function<Preloaded
     }
 }
 
-template auto MakeDbPreloader<RamDb>(DbKinds db_kind,
-                                     bool is_system) -> std::function<PreloadedDb(const fs::path&)>;
+template auto MakeDbPreloader<RamDb>(DbKinds db_kind, bool is_system)
+    -> std::function<PreloadedDb(const fs::path&)>;
 template auto MakeDbPreloader<ReadonlyRamDb>(DbKinds db_kind, bool is_system)
     -> std::function<PreloadedDb(const fs::path&)>;
 
@@ -169,14 +169,14 @@ MIOPEN_INTERNALS_EXPORT void DbPreloadStates::WaitForRemainingThreadsIfNeeded()
     finish_marker.reset();
 }
 
-MIOPEN_INTERNALS_EXPORT auto
-DbPreloadStates::GetPreloadedRamDb(const fs::path& path) -> std::unique_ptr<RamDb>
+MIOPEN_INTERNALS_EXPORT auto DbPreloadStates::GetPreloadedRamDb(const fs::path& path)
+    -> std::unique_ptr<RamDb>
 {
     return GetPreloadedDb<RamDb>(path);
 }
 
-MIOPEN_INTERNALS_EXPORT auto
-DbPreloadStates::GetPreloadedReadonlyRamDb(const fs::path& path) -> std::unique_ptr<ReadonlyRamDb>
+MIOPEN_INTERNALS_EXPORT auto DbPreloadStates::GetPreloadedReadonlyRamDb(const fs::path& path)
+    -> std::unique_ptr<ReadonlyRamDb>
 {
     return GetPreloadedDb<ReadonlyRamDb>(path);
 }

@@ -43,11 +43,11 @@ using PreloadedDb = std::variant<std::unique_ptr<RamDb>, std::unique_ptr<Readonl
 
 struct DbPreloadStates
 {
-    DbPreloadStates()                                          = default;
-    DbPreloadStates(const DbPreloadStates&)                    = delete;
+    DbPreloadStates()                       = default;
+    DbPreloadStates(const DbPreloadStates&) = delete;
     auto operator=(const DbPreloadStates&) -> DbPreloadStates& = delete;
     DbPreloadStates(DbPreloadStates&&)                         = delete;
-    auto operator=(DbPreloadStates&&) -> DbPreloadStates&      = delete;
+    auto operator=(DbPreloadStates&&) -> DbPreloadStates& = delete;
 
     MIOPEN_INTERNALS_EXPORT auto GetPreloadedRamDb(const fs::path& path) -> std::unique_ptr<RamDb>;
 
@@ -77,8 +77,8 @@ private:
 };
 
 template <class Db>
-auto MakeDbPreloader(DbKinds db_kind,
-                     bool is_system) -> std::function<PreloadedDb(const fs::path&)>;
+auto MakeDbPreloader(DbKinds db_kind, bool is_system)
+    -> std::function<PreloadedDb(const fs::path&)>;
 
 extern template auto MakeDbPreloader<RamDb>(DbKinds db_kind, bool is_system)
     -> std::function<PreloadedDb(const fs::path&)>;

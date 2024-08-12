@@ -74,7 +74,8 @@ void Consume(
     if(filenames.size() != 1)
         ASSERT_LE(consumer_count, filenames.size());
 
-    auto filename = [&](auto i) -> const auto& {
+    auto filename = [&](auto i) -> const auto&
+    {
         return filenames.size() == 1 ? filenames[0] : filenames[i];
     };
 
