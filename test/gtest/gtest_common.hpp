@@ -166,11 +166,18 @@ void invoke_with_params(Check&& check)
         });
 
         testing::internal::CaptureStderr();
-        test_drive<Driver>(ptrs.size(), ptrs.data());
+        test_drive<Driver>(ptrs.size(), ptrs.data(), "unnamed");
         check(testing::internal::GetCapturedStderr());
     }
 }
 
+/// repalcement of gtest's FAIL() because FAIL() returns void and messes up the
+/// return type deduction
+#define MIOPEN_FRIENDLY_FAIL(MSG)   \
+    do                              \
+    {                               \
+        [&]() { FAIL() << MSG; }(); \
+    } while(false);
 /// The types for env variables must be redefined, but
 /// do not mess up with the types - those variables are decalred in the library
 /// and if wrong type (STR|BOOl|UINT64) have been specified they won't be updated. Silently.
