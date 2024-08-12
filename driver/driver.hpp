@@ -175,7 +175,7 @@ inline void PadBufferSize(size_t& sz, int datatype_sz)
            "groupnorm[bfp16|fp16], cat[bfp16|fp16], addlayernorm[bfp16|fp16], "
            "t5layernorm[bfp16|fp16], adam[fp16], ampadam, reduceextreme[bfp16|fp16], "
            "adamw[fp16], ampadamw, transformersadamw[fp16], transformersampadamw, "
-           "getitem[bfp16|fp16], reducecalculation[bfp16|fp16], unfold[bfp16|fp16], "
+           "getitem[bfp16|fp16], reducecalculation[bfp16|fp16], rope[bfp16|fp16], unfold[bfp16|fp16], "
            "fold[bfp16|fp16]\n");
     exit(0); // NOLINT (concurrency-mt-unsafe)
 }
@@ -207,7 +207,8 @@ inline std::string ParseBaseArg(int argc, char* argv[])
        arg != "adamwfp16" && arg != "ampadamw" && arg != "transformersadamw" &&
        arg != "transformersadamwfp16" && arg != "transformersampadamw" && arg != "getitem" &&
        arg != "getitemfp16" && arg != "getitembfp16" && arg != "reducecalculation" &&
-       arg != "reducecalculationfp16" && arg != "reducecalculationbfp16" && arg != "unfold" &&
+       arg != "reducecalculationfp16" && arg != "reducecalculationbfp16" && arg != "rope" &&
+       arg != "ropefp16" && arg != "ropebfp16" && arg != "unfold" &&
        arg != "unfoldfp16" && arg != "unfoldbfp16" && arg != "fold" && arg != "foldfp16" &&
        arg != "foldbfp16" && arg != "--version")
     {

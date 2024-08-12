@@ -37,6 +37,7 @@
 #include <miopen/layernorm/solvers.hpp>
 #include <miopen/pooling/solvers.hpp>
 #include <miopen/reduce/solvers.hpp>
+#include <miopen/rope/solvers.hpp>
 #include <miopen/mha/solvers.hpp>
 #include <miopen/softmax/solvers.hpp>
 
@@ -673,11 +674,13 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
              fusion::ConvWinoFuryRxSFused<2, 3>{}.SolverDbId(),
              miopenConvolutionAlgoWinograd);
 
+    Register(registry, ++id, Primitive::RoPE, rope::RoPEForward{}.SolverDbId());
+    Register(registry, ++id, Primitive::RoPE, rope::RoPEBackward{}.SolverDbId());
+    
     Register(registry, ++id, Primitive::Unfold, fold::UnfoldFwd{}.SolverDbId());
     Register(registry, ++id, Primitive::Unfold, fold::UnfoldBwd{}.SolverDbId());
     Register(registry, ++id, Primitive::Fold, fold::FoldFwd{}.SolverDbId());
     Register(registry, ++id, Primitive::Fold, fold::FoldBwd{}.SolverDbId());
-
     // IMPORTANT: New solvers should be added to the end of the function!
 }
 
