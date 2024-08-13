@@ -300,12 +300,12 @@ int PReLUDriver<Tgpu, Tref>::RunBackwardGPU()
         STOP_TIME
         int iter = inflags.GetValueInt("iter");
         if(WALL_CLOCK)
-            std::cout << "Wall-clock Time Forward PReLU Elapsed: " << t.gettime_ms() / iter << " ms"
-                      << std::endl;
+            std::cout << "Wall-clock Time Backward PReLU Elapsed: " << t.gettime_ms() / iter
+                      << " ms" << std::endl;
 
         float kernel_average_time =
             iter > 1 ? (kernel_total_time - kernel_first_time) / (iter - 1) : kernel_first_time;
-        std::cout << "GPU Kernel Time Forward PReLU Elapsed: " << kernel_average_time << " ms"
+        std::cout << "GPU Kernel Time Backward PReLU Elapsed: " << kernel_average_time << " ms"
                   << std::endl;
     }
 
@@ -370,7 +370,7 @@ int PReLUDriver<Tgpu, Tref>::VerifyBackward()
     {
         std::cout << "Backward PReLU Input Gradient FAILED: " << error_dinput << " > " << tolerance
                   << std::endl;
-        return EC_VerifyFwd;
+        return EC_VerifyBwd;
     }
     else
     {
@@ -382,7 +382,7 @@ int PReLUDriver<Tgpu, Tref>::VerifyBackward()
     {
         std::cout << "Backward PReLU Weight Gradient FAILED: " << error_dweight << " > "
                   << tolerance << std::endl;
-        return EC_VerifyFwd;
+        return EC_VerifyBwd;
     }
     else
     {
