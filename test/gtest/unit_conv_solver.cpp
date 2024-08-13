@@ -42,7 +42,14 @@ struct DevDescription
 {
     std::string_view name;
     unsigned cu_cnt; // CU for gfx9, WGP for gfx10, 11, ...
+
+    friend std::ostream& operator<<(std::ostream& os, const DevDescription& dd);
 };
+
+std::ostream& operator<<(std::ostream& os, const DevDescription& dd)
+{
+    return os << dd.name << "(" << dd.cu_cnt << ")";
+}
 
 class MockHandle : public miopen::Handle
 {
@@ -61,21 +68,38 @@ private:
     DevDescription dev_descr;
 };
 
-// This is a simplified function, only one device is returned for the entire family.
 const auto& GetAllKnownDevices()
 {
     static_assert(Gpu::gfx110X == Gpu::gfxLast);
 
     // https://rocm.docs.amd.com/en/latest/reference/gpu-arch-specs.html
-    static std::map<Gpu, DevDescription> known_devs = {
+    static const std::multimap<Gpu, DevDescription> known_devs = {
         // clang-format off
         {Gpu::gfx900,  {"gfx900",  64}},
         {Gpu::gfx906,  {"gfx906",  60}},
+        {Gpu::gfx906,  {"gfx906",  64}},
         {Gpu::gfx908,  {"gfx908",  120}},
         {Gpu::gfx90A,  {"gfx90a",  104}},
+        {Gpu::gfx90A,  {"gfx90a",  110}},
+        {Gpu::gfx94X,  {"gfx940",  228}},
         {Gpu::gfx94X,  {"gfx941",  304}},
+        {Gpu::gfx94X,  {"gfx942",  228}},
+        {Gpu::gfx94X,  {"gfx942",  304}},
+        {Gpu::gfx103X, {"gfx1030", 30}},
+        {Gpu::gfx103X, {"gfx1030", 36}},
         {Gpu::gfx103X, {"gfx1030", 40}},
+        {Gpu::gfx103X, {"gfx1031", 18}},
+        {Gpu::gfx103X, {"gfx1031", 20}},
+        {Gpu::gfx103X, {"gfx1032", 14}},
+        {Gpu::gfx103X, {"gfx1032", 16}},
+        {Gpu::gfx110X, {"gfx1100", 35}},
+        {Gpu::gfx110X, {"gfx1100", 40}},
+        {Gpu::gfx110X, {"gfx1100", 42}},
         {Gpu::gfx110X, {"gfx1100", 48}},
+        {Gpu::gfx110X, {"gfx1101", 24}},
+        {Gpu::gfx110X, {"gfx1101", 27}},
+        {Gpu::gfx110X, {"gfx1101", 30}},
+        {Gpu::gfx110X, {"gfx1102", 16}},
         // clang-format on
     };
     return known_devs;
@@ -616,8 +640,7 @@ void UnitTestConvSolverDevApplicabilityBase::RunTestImpl(
     for(const auto& [dev, dev_descr] : all_known_devs)
     {
         const auto supported = IsDeviceSupported(supported_devs, dev);
-        // std::cout << "Test " << dev_descr.name << " (supported: " << supported << ")" <<
-        // std::endl;
+        // std::cout << "Test " << dev_descr << " (supported: " << supported << ")" << std::endl;
 
         auto handle    = MockHandle{dev_descr};
         const auto ctx = [&] {
@@ -630,7 +653,7 @@ void UnitTestConvSolverDevApplicabilityBase::RunTestImpl(
         // std::cout << "IsApplicable: " << is_applicable << std::endl;
         if(is_applicable != supported)
         {
-            GTEST_FAIL() << dev_descr.name << " is" << (is_applicable ? "" : " not")
+            GTEST_FAIL() << dev_descr << " is" << (is_applicable ? "" : " not")
                          << " applicable for " << solver.SolverDbId() << " but "
                          << (supported ? "" : "not ") << "marked as supported";
         }
