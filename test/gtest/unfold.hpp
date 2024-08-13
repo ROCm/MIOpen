@@ -209,7 +209,7 @@ protected:
             tolerance *= 8.0;
         auto error_output = miopen::rms_range(outputHost, output);
         ASSERT_EQ(miopen::range_distance(outputHost), miopen::range_distance(output));
-        
+
         EXPECT_TRUE(error_output < tolerance) << "Error forward output beyond tolerance Error: {"
                                               << error_output << "},  Tolerance: " << tolerance;
     }
@@ -306,9 +306,8 @@ protected:
         auto error_dinput = miopen::rms_range(dinputHost, dinput);
         ASSERT_EQ(miopen::range_distance(dinputHost), miopen::range_distance(dinput));
 
-        EXPECT_LT(error_dinput, tolerance)
-            << "Error backward input_grad beyond tolerance Error: {" << error_dinput
-            << "},  Tolerance: " << tolerance;
+        EXPECT_LT(error_dinput, tolerance) << "Error backward input_grad beyond tolerance Error: {"
+                                           << error_dinput << "},  Tolerance: " << tolerance;
     }
     UnfoldTestCase config;
 

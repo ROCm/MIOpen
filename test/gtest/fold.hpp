@@ -207,7 +207,7 @@ protected:
         ASSERT_EQ(miopen::range_distance(outputHost), miopen::range_distance(output));
 
         EXPECT_LT(error_output, tolerance) << "Error forward output beyond tolerance Error: {"
-                                              << error_output << "},  Tolerance: " << tolerance;
+                                           << error_output << "},  Tolerance: " << tolerance;
     }
     FoldTestCase config;
 
@@ -294,11 +294,10 @@ protected:
         auto error_dinput = miopen::rms_range(dinputHost, dinput);
         ASSERT_EQ(miopen::range_distance(dinputHost), miopen::range_distance(dinput));
 
-        EXPECT_LT(error_dinput, tolerance)
-            << "Error backward input_grad beyond tolerance Error: {" << error_dinput
-            << "},  Tolerance: " << tolerance;
+        EXPECT_LT(error_dinput, tolerance) << "Error backward input_grad beyond tolerance Error: {"
+                                           << error_dinput << "},  Tolerance: " << tolerance;
     }
-    
+
     FoldTestCase config;
 
     tensor<T> dinput;
