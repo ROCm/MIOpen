@@ -129,15 +129,17 @@ DbPreloadStates::TryStartPreloadingDbs(const std::function<void()>& preload)
     if(started_loading.load(std::memory_order_relaxed))
         return;
 
-    std::unique_lock<std::mutex> lock(mutex);
+    {
+        std::unique_lock<std::mutex> lock(mutex);
 
-    if(started_loading.load(std::memory_order_relaxed))
-        return;
+        if(started_loading.load(std::memory_order_relaxed))
+            return;
 
-    preload();
+        preload();
 
-    started_loading.store(true, std::memory_order_relaxed);
-    // We have finished updating the map and can allow short-cutting the mutex
+        started_loading.store(true, std::memory_order_relaxed);
+        // We have finished updating the map and can allow short-cutting the mutex
+    }
 
     if(preload_tasks.size() > 0)
     {
