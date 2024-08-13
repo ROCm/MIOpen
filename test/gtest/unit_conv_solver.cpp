@@ -528,11 +528,19 @@ void RunSolver(const miopen::solver::conv::ConvSolverBase& solver,
     {
         switch(conv_config.GetXDataType())
         {
+        // clang-format off
         case miopenHalf:
             RunSolver<half_float::half, half_float::half>(solver, direction, conv_config, algo);
             return;
-        case miopenFloat: RunSolver<float, float>(solver, direction, conv_config, algo); return;
-        default: throw std::runtime_error("handling of this data type is not yet implemented");
+        case miopenFloat:
+            RunSolver<float, float>(solver, direction, conv_config, algo);
+            return;
+        case miopenBFloat16:
+            RunSolver<bfloat16, bfloat16>(solver, direction, conv_config, algo);
+            return;
+        default:
+            throw std::runtime_error("handling of this data type is not yet implemented");
+        // clang-format on
         }
     }
 

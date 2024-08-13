@@ -122,6 +122,10 @@ using GPU_UnitTestConvSolver_fwd_FP16 = UnitTestConvSolverFwd;
 using GPU_UnitTestConvSolver_bwd_FP16 = UnitTestConvSolverBwd;
 using GPU_UnitTestConvSolver_wrw_FP16 = UnitTestConvSolverWrw;
 
+using GPU_UnitTestConvSolver_fwd_BF16 = UnitTestConvSolverFwd;
+using GPU_UnitTestConvSolver_bwd_BF16 = UnitTestConvSolverBwd;
+using GPU_UnitTestConvSolver_wrw_BF16 = UnitTestConvSolverWrw;
+
 using GPU_UnitTestConvSolver_fwd_FP32 = UnitTestConvSolverFwd;
 using GPU_UnitTestConvSolver_bwd_FP32 = UnitTestConvSolverBwd;
 using GPU_UnitTestConvSolver_wrw_FP32 = UnitTestConvSolverWrw;
@@ -158,3 +162,5 @@ using UnitTestConvSolverDevApplicabilityFwd =
     UnitTestConvSolverDevApplicability<miopen::conv::Direction::Forward>;
 
 using CPU_UnitTestConvSolverDevApplicability_fwd_FP16 = UnitTestConvSolverDevApplicabilityFwd;
+
+using CPU_UnitTestConvSolverDevApplicability_fwd_FP32 = UnitTestConvSolverDevApplicabilityFwd;
