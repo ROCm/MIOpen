@@ -57,9 +57,9 @@ struct ConvTestCaseBase
                   << " stride_x:" << tc.stride_x << " dilation_y:" << tc.dilation_y
                   << " dilation_x:" << tc.dilation_x << " conv_mode:" << tc.conv_mode << " )";
     }
-    const std::vector<size_t> GetInput() { return {N, C, H, W}; }
-    const std::vector<size_t> GetWeights() { return {k, C, y, x}; }
-    const miopen::ConvolutionDescriptor GetConv()
+    const std::vector<size_t> GetInput() const { return {N, C, H, W}; }
+    const std::vector<size_t> GetWeights() const { return {k, C, y, x}; }
+    const miopen::ConvolutionDescriptor GetConv() const
     {
         return miopen::ConvolutionDescriptor{
             {static_cast<int>(pad_y), static_cast<int>(pad_x)},
@@ -150,9 +150,7 @@ protected:
 
     void TearDownConv()
     {
-        miopen::TensorDescriptor output_desc =
-            conv_desc.GetForwardOutputTensor(input.desc, weights.desc, miopen_type<T>{});
-        ref_out = tensor<T>{output.desc.GetLayout_t(), output_desc.GetLengths()};
+        ref_out = tensor<Tref>{output.desc.GetLayout_t(), output.desc.GetLengths()};
         if(use_cpu_ref)
         {
             cpu_convolution_forward(conv_desc.GetSpatialDimension(),
@@ -174,26 +172,26 @@ protected:
     {
         auto&& handle = get_handle();
         output.data   = handle.Read<T>(out_dev, output.data.size());
-        EXPECT_FALSE(miopen::range_zero(ref_out)) << "Cpu data is all zeros";
-        EXPECT_FALSE(miopen::range_zero(output)) << "Gpu data is all zeros";
-        EXPECT_TRUE(miopen::range_distance(ref_out) == miopen::range_distance(output));
+
+        ASSERT_FALSE(miopen::range_zero(ref_out)) << "Cpu data is all zeros";
+        ASSERT_FALSE(miopen::range_zero(output)) << "Gpu data is all zeros";
+        ASSERT_EQ(miopen::range_distance(ref_out), miopen::range_distance(output));
 
         const double tolerance = 80;
         double threshold       = std::numeric_limits<T>::epsilon() * tolerance;
         auto error             = miopen::rms_range(ref_out, output);
 
-        EXPECT_FALSE(miopen::find_idx(ref_out, miopen::not_finite) >= 0)
+        ASSERT_LT(miopen::find_idx(ref_out, miopen::not_finite), 0)
             << "Non finite number found in the CPU data";
 
-        EXPECT_TRUE(error < threshold)
-            << "Error beyond tolerance Error:" << error << ",  Threshold: " << threshold;
+        ASSERT_LT(error, threshold) << "Error beyond tolerance";
     }
 
     miopen::ConvolutionDescriptor conv_desc;
     tensor<T> input;
     tensor<T> weights;
     tensor<T> output;
-    tensor<T> ref_out;
+    tensor<Tref> ref_out;
     miopen::Allocator::ManageDataPtr in_dev;
     miopen::Allocator::ManageDataPtr wei_dev;
     miopen::Allocator::ManageDataPtr out_dev;

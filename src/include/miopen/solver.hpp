@@ -118,11 +118,11 @@ struct SolverBase
     /// * @see https://github.com/ROCm/MIOpen/issues/410
     virtual float GetWti(const ExecutionContext& ctx, const boost::any& problem) const = 0;
 
-    // Returns the workspace size required by the solver for a given ExecutionContext
+    /// Returns the workspace size required by the solver for a given ExecutionContext
     virtual size_t GetWorkspaceSize(const ExecutionContext& ctx,
                                     const boost::any& problem) const = 0;
 
-    // Must return true if a Solver has its own implementation of GetWorkspaceSize().
+    /// Must return true if a Solver has its own implementation of GetWorkspaceSize().
     virtual bool MayNeedWorkspace() const { return false; }
 
 protected:
@@ -182,6 +182,7 @@ struct NonTunableSolverBase : SolverMixin<Context, Problem>
     /// Takes problem config, optimization parameters and other info
     /// and computes information required to build and run the kernel(s).
     virtual ConvSolution GetSolution(const Context&, const Problem&) const = 0;
+
     virtual InvokerFactory GetInvokerFactory(const Context& ctx, const Problem& problem) const
     {
         return *GetSolution(ctx, problem).invoker_factory;
@@ -227,6 +228,7 @@ struct TunableSolverBase : SolverMixin<Context, Problem>, TunableSolverTrait
     /// Tunable solvers provide a GetSolution that takes a Context and PerformanceConfig
     virtual ConvSolution
     GetSolution(const Context& ctx, const Problem& problem, const PerfConfig& config) const = 0;
+
     virtual InvokerFactory
     GetInvokerFactory(const Context& ctx, const Problem& problem, const PerfConfig& config) const
     {
@@ -285,6 +287,9 @@ struct IsTunable : std::is_base_of<TunableSolverTrait, Solver>
 };
 
 namespace conv {
+
+/// Base class for convolution tunable and non-tunable solvers
+using ConvSolverBase = SolverMixin<ExecutionContext, miopen::conv::ProblemDescription>;
 
 /// Typedef for convolution non-tunable solvers
 using ConvSolver = NonTunableSolverBase<ExecutionContext, miopen::conv::ProblemDescription>;
@@ -2463,30 +2468,21 @@ struct ConvWinoFuryRxS final : ConvSolver
         return GetSolverDbId<ConvWinoFuryRxS<Winodata, Winofilter>>();
     }
 
-    MIOPEN_INTERNALS_EXPORT bool
-    IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
     bool IsDynamic() const override { return true; }
-    MIOPEN_INTERNALS_EXPORT float GetWti(const ExecutionContext&,
-                                         const miopen::conv::ProblemDescription&) const override;
-    MIOPEN_INTERNALS_EXPORT size_t GetWorkspaceSize(
-        const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    float GetWti(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    size_t GetWorkspaceSize(const ExecutionContext&,
+                            const miopen::conv::ProblemDescription&) const override;
     bool MayNeedWorkspace() const override { return true; }
 
-    MIOPEN_INTERNALS_EXPORT ConvSolution
-    GetSolution(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    ConvSolution GetSolution(const ExecutionContext&,
+                             const miopen::conv::ProblemDescription&) const override;
 };
 
-// Suppress misleading clang warnings
-#if defined(__clang__)
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wweak-template-vtables"
-#endif
-
+#ifndef CONV_WINO_FURY_RXS_CPP
 extern template struct ConvWinoFuryRxS<2, 3>;
 // extern template struct ConvWinoFuryRxS<3, 2>;
-
-#if defined(__clang__)
-#pragma clang diagnostic pop
 #endif
 
 struct PerformanceConfigConvAsmBwdWrW1x1 : PerfConfigBase<PerformanceConfigConvAsmBwdWrW1x1>
