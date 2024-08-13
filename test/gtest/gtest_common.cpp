@@ -31,9 +31,7 @@ std::ostream& operator<<(std::ostream& os, const DevDescription& dd)
     return os << dd.name << "(" << dd.cu_cnt << ")";
 }
 
-MockHandle::MockHandle(const DevDescription& dev_description) : dev_descr{dev_description}
-{
-}
+MockHandle::MockHandle(const DevDescription& dev_description) : dev_descr{dev_description} {}
 
 std::string MockHandle::GetDeviceName() const { return std::string{dev_descr.name}; }
 

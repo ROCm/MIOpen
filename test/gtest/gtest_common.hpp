@@ -110,7 +110,7 @@ public:
     MockHandle(const DevDescription& dev_description);
 
     // Add additional methods here if needed
-    std::string GetDeviceName() const override ;
+    std::string GetDeviceName() const override;
     std::size_t GetMaxComputeUnits() const override;
     std::size_t GetMaxMemoryAllocSize() override;
     bool CooperativeLaunchSupported() const override;
