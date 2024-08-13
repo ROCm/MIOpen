@@ -52,11 +52,12 @@ void Produce(
         for(const auto& filename : filenames)
         {
             states.StartPreloadingDb(
-                filename, [&](const miopen::fs::path& path) -> miopen::PreloadedDb {
+                filename,
+                [waiter = std::move(waiter)](const miopen::fs::path& path) -> miopen::PreloadedDb {
                     auto ret =
                         std::make_unique<miopen::ReadonlyRamDb>(miopen::DbKinds::PerfDb, path);
                     ret->Prefetch(false);
-                    waiter(filename);
+                    waiter(path);
                     return ret;
                 });
         }
@@ -112,6 +113,16 @@ auto GenerateFilenames(int producer_count, const miopen::fs::path& directory)
     return filenames;
 }
 } // namespace
+
+TEST(SmokeCPUDbPreloadTrivialNONE, Cleanup)
+{
+    miopen::DbPreloadStates states;
+    const miopen::TmpDir dir;
+    const auto filenames = GenerateFilenames(1, dir.path);
+
+    Produce(filenames, states);
+    states.WaitForRemainingThreadsIfNeeded();
+}
 
 TEST(SmokeCPUDbPreloadTrivialNONE, Basic)
 {
@@ -180,11 +191,11 @@ TEST_P(CPUDbPreloadNONE, Sequential)
 
     Consume(param.consumers, filenames, dbs);
 
-    std::map<std::string, std::promise<void>> promises;
+    std::map<miopen::fs::path, std::promise<void>> promises;
     for(auto&& filename : filenames)
         promises.emplace(filename, std::promise<void>());
 
-    Produce(filenames, states, [&](auto path) { promises.at(path).set_value_at_thread_exit(); });
+    Produce(filenames, states, [&](auto&& path) { promises.at(path).set_value(); });
 
     Consume(param.consumers, filenames, dbs, [&]() {
         for(auto&& pair : promises)

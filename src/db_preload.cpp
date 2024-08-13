@@ -34,6 +34,7 @@
 
 #include <atomic>
 #include <chrono>
+#include <execution>
 #include <future>
 #include <mutex>
 
@@ -116,24 +117,8 @@ DbPreloadStates::StartPreloadingDb(const fs::path& path,
     if(path.empty())
         return;
 
-    if(!finish_marker)
-    {
-        finish_source = std::promise<void>();
-        finish_marker = finish_source->get_future();
-    }
-
-    threads_left.fetch_add(1, std::memory_order_relaxed);
-
-    auto db_future = std::async(
-        std::launch::async,
-        [preloader = std::move(preloader), this](auto&& path) mutable {
-            const auto left = threads_left.fetch_sub(1, std::memory_order_relaxed) - 1;
-            if(left == 0)
-                finish_source->set_value_at_thread_exit();
-            return preloader(path);
-        },
-        path);
-    futures.emplace(path, std::move(db_future));
+    auto& task = preload_tasks.emplace_back(std::bind(std::move(preloader), path));
+    futures.emplace(path, task.get_future());
 }
 
 MIOPEN_INTERNALS_EXPORT void
@@ -152,6 +137,19 @@ DbPreloadStates::TryStartPreloadingDbs(const std::function<void()>& preload)
     preload();
 
     started_loading.store(true, std::memory_order_relaxed);
+    // We have finished updating the map and can allow short-cutting the mutex
+
+    if(preload_tasks.size() > 0)
+    {
+        preload_thread = std::thread([tasks = std::move(preload_tasks)]() mutable {
+            std::for_each(std::execution::par_unseq,
+                          tasks.begin(),
+                          tasks.end(),
+                          [](auto&& task) {
+                              task();
+                          });
+        });
+    }
 }
 
 MIOPEN_INTERNALS_EXPORT void DbPreloadStates::WaitForRemainingThreadsIfNeeded()
@@ -161,16 +159,18 @@ MIOPEN_INTERNALS_EXPORT void DbPreloadStates::WaitForRemainingThreadsIfNeeded()
 
     const auto requesters_left = requesters.fetch_sub(1, std::memory_order_relaxed) - 1;
 
-    if(requesters_left > 0 || threads_left.load(std::memory_order_relaxed) <= 0 || !finish_marker)
+    if(requesters_left > 0 || !preload_thread)
         return;
 
     std::lock_guard<std::mutex> lock(mutex);
 
-    if(!finish_marker)
+    if(!preload_thread)
         return;
 
-    finish_marker->wait();
-    finish_marker.reset();
+    if(preload_thread->joinable())
+        preload_thread->join();
+
+    preload_thread.reset();
 }
 
 MIOPEN_INTERNALS_EXPORT auto DbPreloadStates::GetPreloadedRamDb(const fs::path& path)

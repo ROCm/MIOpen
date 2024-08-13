@@ -34,6 +34,7 @@
 #include <memory>
 #include <mutex>
 #include <optional>
+#include <thread>
 #include <unordered_map>
 #include <variant>
 
@@ -65,11 +66,10 @@ struct DbPreloadStates
 private:
     std::mutex mutex;
     std::unordered_map<fs::path, std::future<PreloadedDb>> futures;
+    std::optional<std::thread> preload_thread;
+    std::vector<std::packaged_task<PreloadedDb()>> preload_tasks;
     std::atomic<bool> started_loading{false};
 
-    std::optional<std::promise<void>> finish_source{std::nullopt};
-    std::optional<std::future<void>> finish_marker{std::nullopt};
-    std::atomic<int> threads_left{0};
     std::atomic<int> requesters{0};
 
     template <class Db>

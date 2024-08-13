@@ -24,7 +24,6 @@
  *
  *******************************************************************************/
 
-#include "miopen/db_record.hpp"
 #include <miopen/handle.hpp>
 
 #include <miopen/db_preload.hpp>
@@ -54,24 +53,24 @@ void Handle::TryStartPreloadingDbs()
 
         MIOPEN_LOG_I("Preloading dbs");
 
-        // conv perf-db
-        PreloadDbPair(DbKinds::PerfDb, ctx.GetPerfDbPath(), ctx.GetUserPerfDbPath());
-
         // conv find-db
         PreloadDbPair(DbKinds::FindDb,
                       FindDbRecord::GetInstalledPath(*this, ""),
                       FindDbRecord::GetUserPath(*this, ""));
-
-        // batchnorm perf-db
-        // it doesn't use find-db
-        PreloadDbPair(
-            DbKinds::PerfDb, ctx.GetPerfDbPath("batchnorm"), ctx.GetUserPerfDbPath("batchnorm"));
 
         // fusion find-db
         // it uses perf-db from convolution
         PreloadDbPair(DbKinds::FindDb,
                       FindDbRecord::GetInstalledPath(*this, "fusion"),
                       FindDbRecord::GetUserPath(*this, "fusion"));
+
+        // conv perf-db
+        PreloadDbPair(DbKinds::PerfDb, ctx.GetPerfDbPath(), ctx.GetUserPerfDbPath());
+
+        // batchnorm perf-db
+        // it doesn't use find-db
+        PreloadDbPair(
+            DbKinds::PerfDb, ctx.GetPerfDbPath("batchnorm"), ctx.GetUserPerfDbPath("batchnorm"));
     });
 }
 
