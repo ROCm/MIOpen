@@ -146,7 +146,6 @@ protected:
         std::vector<size_t> in_strides = config.ComputeStrides(in_dims);
 
         auto gen_value = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1e-2, 100); };
-        [[maybe_unused]] auto gen_one = [&](auto...) { return 1; };
         auto gen_zero                 = [&](auto...) { return 0; };
         input                         = tensor<T>{in_dims, in_strides}.generate(gen_value);
         const int32_t N               = static_cast<int32_t>(in_dims[0]);
@@ -233,7 +232,6 @@ protected:
         std::vector<size_t> in_strides = config.ComputeStrides(in_dims);
 
         auto gen_value = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1e-2, 100); };
-        [[maybe_unused]] auto gen_one = [&](auto...) { return 1; };
         auto gen_zero                 = [&](auto...) { return 0; };
         dinput                        = tensor<T>{in_dims, in_strides}.generate(gen_zero);
         dinputHost                    = tensor<T>{in_dims, in_strides}.generate(gen_zero);
