@@ -54,6 +54,7 @@ public:
     // Add additional methods here if needed
     std::string GetDeviceName() const override { return std::string{dev_descr.name}; }
     std::size_t GetMaxComputeUnits() const override { return dev_descr.cu_cnt; }
+    std::size_t GetMaxMemoryAllocSize() override { return std::numeric_limits<std::size_t>::max(); }
     bool CooperativeLaunchSupported() const override { return false; }
 
 private:
