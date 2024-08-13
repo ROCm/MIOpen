@@ -39,6 +39,7 @@ __device__ void PReLUBackward(const TI* __restrict__ input,
                               FLOAT_ACCUM* __restrict__ weight_grad_collector,
                               uint64_t N,
                               tensor_view_t<NDIMS> input_tv,
+                              tensor_view_t<1> weight_tv,
                               tensor_view_t<NDIMS> output_grad_tv,
                               tensor_view_t<NDIMS> input_grad_tv)
 {
@@ -53,7 +54,8 @@ __device__ void PReLUBackward(const TI* __restrict__ input,
 
     if(input_grad != nullptr)
     {
-        FLOAT_ACCUM weight_v = CVT_FLOAT2ACCUM(weight[SingleWeight ? 0 : tensor_layout.layout[1]]);
+        FLOAT_ACCUM weight_v = CVT_FLOAT2ACCUM(
+            weight[SingleWeight ? 0 : weight_tv.get_tensor_view_idx({tensor_layout.layout[1]})]);
         FLOAT_ACCUM input_grad_v = input_v > 0 ? grad_v : weight_v * grad_v;
         input_grad[input_grad_tv.get_tensor_view_idx(tensor_layout)] =
             CVT_ACCUM2FLOAT(input_grad_v);
@@ -71,6 +73,7 @@ extern "C" __global__ void PReLUSWBackward(const INPUT_TYPE* __restrict__ input,
                                            FLOAT_ACCUM* __restrict__ weight_grad_collector,
                                            uint64_t N,
                                            tensor_view_t<VIEW_DIMS> input_tv,
+                                           tensor_view_t<1> weight_tv,
                                            tensor_view_t<VIEW_DIMS> output_grad_tv,
                                            tensor_view_t<VIEW_DIMS> input_grad_tv)
 {
@@ -82,6 +85,7 @@ extern "C" __global__ void PReLUSWBackward(const INPUT_TYPE* __restrict__ input,
                                                             weight_grad_collector,
                                                             N,
                                                             input_tv,
+                                                            weight_tv,
                                                             output_grad_tv,
                                                             input_grad_tv);
 }
@@ -93,6 +97,7 @@ extern "C" __global__ void PReLUMWBackward(const INPUT_TYPE* __restrict__ input,
                                            FLOAT_ACCUM* __restrict__ weight_grad_collector,
                                            uint64_t N,
                                            tensor_view_t<VIEW_DIMS> input_tv,
+                                           tensor_view_t<1> weight_tv,
                                            tensor_view_t<VIEW_DIMS> output_grad_tv,
                                            tensor_view_t<VIEW_DIMS> input_grad_tv)
 {
@@ -104,6 +109,7 @@ extern "C" __global__ void PReLUMWBackward(const INPUT_TYPE* __restrict__ input,
                                                              weight_grad_collector,
                                                              N,
                                                              input_tv,
+                                                             weight_tv,
                                                              output_grad_tv,
                                                              input_grad_tv);
 }

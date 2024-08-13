@@ -51,11 +51,13 @@ struct PReLUTestCase
 {
     std::vector<size_t> lengths;
     bool full_params;
+    bool contiguous;
 
     friend std::ostream& operator<<(std::ostream& os, const PReLUTestCase& tc)
     {
         return os << " Lengths:" << tc.lengths
-                  << " Full_num_params:" << (tc.full_params ? "True" : "False");
+                  << " Full_num_params:" << (tc.full_params ? "True" : "False")
+                  << " Contiguous:" << (tc.contiguous ? "True" : "False");
     }
 };
 
@@ -63,8 +65,10 @@ inline std::vector<PReLUTestCase> PReLUSmokeTestConfigs()
 {
     std::vector<PReLUTestCase> tcs;
 
-    tcs.push_back({{64, 112}, false});
-    tcs.push_back({{64, 112}, true});
+    tcs.push_back({{64, 112}, true, true});
+    tcs.push_back({{64, 112}, true, false});
+    tcs.push_back({{64, 112}, false, true});
+    tcs.push_back({{64, 112}, false, false});
 
     return tcs;
 }
@@ -73,8 +77,10 @@ inline std::vector<PReLUTestCase> PReLUPerfTestConfigs()
 {
     std::vector<PReLUTestCase> tcs;
 
-    tcs.push_back({{64, 112, 50}, false});
-    tcs.push_back({{64, 112, 50}, true});
+    tcs.push_back({{64, 112, 50}, true, true});
+    tcs.push_back({{64, 112, 50}, true, false});
+    tcs.push_back({{64, 112, 50}, false, true});
+    tcs.push_back({{64, 112, 50}, false, false});
 
     return tcs;
 }
@@ -121,26 +127,14 @@ protected:
 
         auto lengths = prelu_config.lengths;
 
-        auto input_strides = GetStrides(lengths, true);
+        auto input_strides = GetStrides(lengths, prelu_config.contiguous);
         input              = tensor<T>{lengths, input_strides}.generate(gen_value1);
-        dinput             = tensor<T>{lengths, input_strides};
-        ref_dinput         = tensor<T>{lengths, input_strides};
-        std::fill(dinput.begin(), dinput.end(), static_cast<T>(0.0f));
-        std::fill(ref_dinput.begin(), ref_dinput.end(), static_cast<T>(0.0f));
 
         std::vector<size_t> weight_length = {1};
         if(prelu_config.full_params)
             weight_length = {lengths[1]};
-        auto weight_strides = GetStrides(weight_length, true);
-        weight              = tensor<T>{weight_length, weight_strides}.generate(gen_value2);
-        dweight             = tensor<T>{weight_length, weight_strides};
-        ref_dweight         = tensor<T>{weight_length, weight_strides};
-        std::fill(dweight.begin(), dweight.end(), static_cast<T>(0.0f));
-        std::fill(ref_dweight.begin(), ref_dweight.end(), static_cast<T>(0.0f));
-
-        auto out_strides = GetStrides(lengths, true);
-        doutput          = tensor<T>{lengths, out_strides};
-        std::fill(doutput.begin(), doutput.end(), static_cast<T>(1.0f));
+        std::vector<size_t> weight_strides = {prelu_config.contiguous ? 1 : 2};
+        weight = tensor<T>{weight_length, weight_strides}.generate(gen_value2);
 
         ws_sizeInBytes = miopen::GetPReLUBackwardWorkspaceSize(handle, input.desc, weight.desc);
         if(ws_sizeInBytes == static_cast<size_t>(-1))
@@ -156,6 +150,20 @@ protected:
 
             workspace_dev = handle.Write(workspace.data);
         }
+
+        dinput     = tensor<T>{lengths, input_strides};
+        ref_dinput = tensor<T>{lengths, input_strides};
+        std::fill(dinput.begin(), dinput.end(), static_cast<T>(0.0f));
+        std::fill(ref_dinput.begin(), ref_dinput.end(), static_cast<T>(0.0f));
+
+        dweight     = tensor<T>{weight_length, weight_strides};
+        ref_dweight = tensor<T>{weight_length, weight_strides};
+        std::fill(dweight.begin(), dweight.end(), static_cast<T>(0.0f));
+        std::fill(ref_dweight.begin(), ref_dweight.end(), static_cast<T>(0.0f));
+
+        auto out_strides = GetStrides(lengths, true);
+        doutput          = tensor<T>{lengths, out_strides};
+        std::fill(doutput.begin(), doutput.end(), static_cast<T>(1.0f));
 
         input_dev   = handle.Write(input.data);
         weight_dev  = handle.Write(weight.data);

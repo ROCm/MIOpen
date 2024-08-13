@@ -118,6 +118,7 @@ MultiWeightsBackward::GetSolution(const ExecutionContext& context,
             /* Phase 1: Calc gradient for each elements. */
             {
                 auto input_tv         = get_inner_expanded_tv<VIEW_DIMS>(deref(params.inputDesc));
+                auto weight_tv        = get_inner_expanded_tv<1>(deref(params.weightDesc));
                 auto output_grad_tv   = get_inner_expanded_tv<VIEW_DIMS>(deref(params.doutputDesc));
                 auto input_grad_tv    = get_inner_expanded_tv<VIEW_DIMS>(deref(params.dinputDesc));
                 decltype(auto) kernel = handle_.Run(kernels[kernelCnt++]);
@@ -128,6 +129,7 @@ MultiWeightsBackward::GetSolution(const ExecutionContext& context,
                        params.workspace,
                        static_cast<uint64_t>(deref(params.inputDesc).GetElementSize()),
                        input_tv,
+                       weight_tv,
                        output_grad_tv,
                        input_grad_tv);
             }
@@ -138,8 +140,14 @@ MultiWeightsBackward::GetSolution(const ExecutionContext& context,
                 size_t outer_size   = deref(params.inputDesc).GetLengths()[0];
                 size_t inner_size =
                     deref(params.inputDesc).GetElementSize() / outer_size / output_numel;
-                handle_.Run(kernels[kernelCnt++])(
-                    params.workspace, params.dweight, output_numel, inner_size, outer_size);
+                auto weight_grad_tv   = get_inner_expanded_tv<VIEW_DIMS>(deref(params.dweightDesc));
+                decltype(auto) kernel = handle_.Run(kernels[kernelCnt++]);
+                kernel(params.workspace,
+                       params.dweight,
+                       output_numel,
+                       inner_size,
+                       outer_size,
+                       weight_grad_tv);
             }
 
             if(profiling)

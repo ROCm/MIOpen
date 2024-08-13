@@ -29,6 +29,7 @@
 #endif
 
 #include "float_types.h"
+#include "tensor_view.hpp"
 
 __device__ FLOAT_ACCUM warp_reduce_sum(FLOAT_ACCUM val)
 {
@@ -109,7 +110,8 @@ __device__ void Reduce1dSum(const FLOAT_ACCUM* __restrict__ input,
                             TO* __restrict__ output,
                             uint64_t output_numel,
                             uint64_t inner_size,
-                            uint64_t outer_size)
+                            uint64_t outer_size,
+                            tensor_view_t<1> output_tv)
 {
     uint64_t tid  = threadIdx.x;
     uint64_t oidx = blockIdx.x;
@@ -127,15 +129,16 @@ __device__ void Reduce1dSum(const FLOAT_ACCUM* __restrict__ input,
         sum = block_reduce_sum(sum);
 
     if(tid == 0)
-        output[oidx] = CVT_ACCUM2FLOAT(sum);
+        output[output_tv.get_tensor_view_idx({oidx})] = CVT_ACCUM2FLOAT(sum);
 }
 
 extern "C" __global__ void Reduce1dSum(const FLOAT_ACCUM* __restrict__ input,
                                        OUTPUT_TYPE* __restrict__ output,
                                        uint64_t output_numel,
                                        uint64_t inner_size,
-                                       uint64_t outer_size)
+                                       uint64_t outer_size,
+                                       tensor_view_t<1> output_tv)
 {
     // instantiate the kernel
-    Reduce1dSum<OUTPUT_TYPE>(input, output, output_numel, inner_size, outer_size);
+    Reduce1dSum<OUTPUT_TYPE>(input, output, output_numel, inner_size, outer_size, output_tv);
 }

@@ -141,6 +141,7 @@ SingleWeightBackward::GetSolution(const ExecutionContext& /*context*/,
             /* Phase 1: Calc gradient for each elements. */
             {
                 auto input_tv         = get_inner_expanded_tv<VIEW_DIMS>(deref(params.inputDesc));
+                auto weight_tv        = get_inner_expanded_tv<1>(deref(params.weightDesc));
                 auto output_grad_tv   = get_inner_expanded_tv<VIEW_DIMS>(deref(params.doutputDesc));
                 auto input_grad_tv    = get_inner_expanded_tv<VIEW_DIMS>(deref(params.dinputDesc));
                 decltype(auto) kernel = handle_.Run(kernels[kernelCnt++]);
@@ -151,6 +152,7 @@ SingleWeightBackward::GetSolution(const ExecutionContext& /*context*/,
                        work_a,
                        static_cast<uint64_t>(deref(params.inputDesc).GetElementSize()),
                        input_tv,
+                       weight_tv,
                        output_grad_tv,
                        input_grad_tv);
             }

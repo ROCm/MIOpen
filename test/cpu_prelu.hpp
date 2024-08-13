@@ -40,8 +40,10 @@ void cpu_prelu_backward(const tensor<T> input,
 {
     auto N              = input.desc.GetElementSize();
     auto input_tv       = miopen::get_inner_expanded_tv<5>(input.desc);
+    auto weight_tv      = miopen::get_inner_expanded_tv<1>(weight.desc);
     auto output_grad_tv = miopen::get_inner_expanded_tv<5>(output_grad.desc);
     auto input_grad_tv  = miopen::get_inner_expanded_tv<5>(ref_input_grad.desc);
+    auto weight_grad_tv = miopen::get_inner_expanded_tv<1>(ref_weight_grad.desc);
 
     auto weight_grad_collector = std::vector<float>(N);
 
@@ -54,10 +56,11 @@ void cpu_prelu_backward(const tensor<T> input,
         if(has_dinput)
         {
             float weight_v;
-            if(weight.desc.GetElementSize() == 1)
-                weight_v = static_cast<float>(weight[0]);
-            else
-                weight_v = static_cast<float>(weight[tensor_layout.layout[1]]);
+            weight_v = static_cast<float>(
+                weight[weight.desc.GetElementSize() == 1
+                           ? 0
+                           : weight_tv.get_tensor_view_idx({tensor_layout.layout[1]})]);
+
             float input_grad_v = input_v > 0 ? grad_v : weight_v * grad_v;
             ref_input_grad[input_grad_tv.get_tensor_view_idx(tensor_layout)] =
                 static_cast<T>(input_grad_v);
@@ -90,7 +93,7 @@ void cpu_prelu_backward(const tensor<T> input,
                             weight_grad_collector[j * outer_size + i * inner_size + k]);
                     });
                 });
-                ref_weight_grad[i] = static_cast<T>(sum);
+                ref_weight_grad[weight_grad_tv.get_tensor_view_idx({i})] = static_cast<T>(sum);
             });
         }
     }
