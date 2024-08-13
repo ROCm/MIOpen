@@ -3100,12 +3100,10 @@ struct ConvDirectNaiveConvWrw final : ConvSolver
 struct GemmFwdBase : ConvSolver
 {
     bool IsDynamic() const override { return true; }
-    MIOPEN_INTERNALS_EXPORT float GetWti(const ExecutionContext&,
-                                         const miopen::conv::ProblemDescription&) const override;
+    float GetWti(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
 
 private:
-    MIOPEN_INTERNALS_EXPORT bool
-    IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    bool IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
 
     friend struct GemmFwd1x1_0_2;
     friend struct GemmFwd1x1_0_1_int8;
@@ -3113,185 +3111,154 @@ private:
     friend struct GemmFwdRest;
 };
 
-struct GemmFwd1x1_0_2 final : GemmFwdBase
+struct MIOPEN_INTERNALS_EXPORT GemmFwd1x1_0_2 final : GemmFwdBase
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<GemmFwd1x1_0_2>(); }
 
-    MIOPEN_INTERNALS_EXPORT size_t GetWorkspaceSize(
-        const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    size_t GetWorkspaceSize(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
 
     bool MayNeedWorkspace() const override { return true; }
 
-    MIOPEN_INTERNALS_EXPORT bool
-    IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    bool IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
 
-    MIOPEN_INTERNALS_EXPORT ConvSolution
-    GetSolution(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    ConvSolution GetSolution(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
 
     friend struct GemmFwdRest;
 };
 
-struct GemmFwd1x1_0_1_int8 final : GemmFwdBase
+struct MIOPEN_INTERNALS_EXPORT GemmFwd1x1_0_1_int8 final : GemmFwdBase
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<GemmFwd1x1_0_1_int8>(); }
 
-    MIOPEN_INTERNALS_EXPORT size_t GetWorkspaceSize(
-        const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    size_t GetWorkspaceSize(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
 
     bool MayNeedWorkspace() const override { return true; }
 
-    MIOPEN_INTERNALS_EXPORT bool
-    IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    bool IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
 
-    MIOPEN_INTERNALS_EXPORT ConvSolution
-    GetSolution(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    ConvSolution GetSolution(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
 
     friend struct GemmFwdRest;
 };
 
-struct GemmFwd1x1_0_1 final : GemmFwdBase
+struct MIOPEN_INTERNALS_EXPORT GemmFwd1x1_0_1 final : GemmFwdBase
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<GemmFwd1x1_0_1>(); }
 
-    MIOPEN_INTERNALS_EXPORT size_t GetWorkspaceSize(
-        const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    size_t GetWorkspaceSize(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
 
     bool MayNeedWorkspace() const override { return true; }
 
-    MIOPEN_INTERNALS_EXPORT bool
-    IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    bool IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
 
-    MIOPEN_INTERNALS_EXPORT ConvSolution
-    GetSolution(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    ConvSolution GetSolution(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
 
     friend struct GemmFwdRest;
 };
 
-struct GemmFwdRest final : GemmFwdBase
+struct MIOPEN_INTERNALS_EXPORT GemmFwdRest final : GemmFwdBase
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<GemmFwdRest>(); }
 
-    MIOPEN_INTERNALS_EXPORT size_t GetWorkspaceSize(
-        const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    size_t GetWorkspaceSize(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
 
     bool MayNeedWorkspace() const override { return true; }
 
-    MIOPEN_INTERNALS_EXPORT bool
-    IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    bool IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
 
-    MIOPEN_INTERNALS_EXPORT ConvSolution
-    GetSolution(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    ConvSolution GetSolution(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
 };
 
 struct GemmBwdBase : ConvSolver
 {
     bool IsDynamic() const override { return true; }
-    MIOPEN_INTERNALS_EXPORT float GetWti(const ExecutionContext&,
-                                         const miopen::conv::ProblemDescription&) const override;
+    float GetWti(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
 
 private:
-    MIOPEN_INTERNALS_EXPORT bool
-    IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    bool IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
 
     friend struct GemmBwd1x1_stride2;
     friend struct GemmBwd1x1_stride1;
     friend struct GemmBwdRest;
 };
 
-struct GemmBwd1x1_stride2 final : GemmBwdBase
+struct MIOPEN_INTERNALS_EXPORT GemmBwd1x1_stride2 final : GemmBwdBase
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<GemmBwd1x1_stride2>(); }
 
-    MIOPEN_INTERNALS_EXPORT size_t GetWorkspaceSize(
-        const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    size_t GetWorkspaceSize(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
 
     bool MayNeedWorkspace() const override { return true; }
 
-    MIOPEN_INTERNALS_EXPORT bool
-    IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    bool IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
 
-    MIOPEN_INTERNALS_EXPORT ConvSolution
-    GetSolution(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    ConvSolution GetSolution(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
 
     friend struct GemmBwdRest;
 };
 
-struct GemmBwd1x1_stride1 final : GemmBwdBase
+struct MIOPEN_INTERNALS_EXPORT GemmBwd1x1_stride1 final : GemmBwdBase
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<GemmBwd1x1_stride1>(); }
 
-    MIOPEN_INTERNALS_EXPORT size_t GetWorkspaceSize(
-        const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    size_t GetWorkspaceSize(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
 
     bool MayNeedWorkspace() const override { return true; }
 
-    MIOPEN_INTERNALS_EXPORT bool
-    IsApplicable(const ExecutionContext&,
-                 const miopen::conv::ProblemDescription& problem) const override;
+    bool IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription& problem) const override;
 
-    MIOPEN_INTERNALS_EXPORT ConvSolution GetSolution(
-        const ExecutionContext&, const miopen::conv::ProblemDescription& problem) const override;
+    ConvSolution GetSolution(const ExecutionContext&, const miopen::conv::ProblemDescription& problem) const override;
 
     friend struct GemmBwdRest;
 };
 
-struct GemmBwdRest final : GemmBwdBase
+struct MIOPEN_INTERNALS_EXPORT GemmBwdRest final : GemmBwdBase
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<GemmBwdRest>(); }
 
-    MIOPEN_INTERNALS_EXPORT size_t GetWorkspaceSize(
-        const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    size_t GetWorkspaceSize(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
 
     bool MayNeedWorkspace() const override { return true; }
 
-    MIOPEN_INTERNALS_EXPORT bool
-    IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    bool IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
 
-    MIOPEN_INTERNALS_EXPORT ConvSolution
-    GetSolution(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    ConvSolution GetSolution(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
 };
 
 struct GemmWrwBase : ConvSolver
 {
     bool IsDynamic() const override { return true; }
-    MIOPEN_INTERNALS_EXPORT float GetWti(const ExecutionContext&,
-                                         const miopen::conv::ProblemDescription&) const override;
+    float GetWti(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
 
 private:
-    MIOPEN_INTERNALS_EXPORT bool
-    IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    bool IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
 
     friend struct GemmWrw1x1_stride1;
     friend struct GemmWrwUniversal;
 };
 
-struct GemmWrw1x1_stride1 final : GemmWrwBase
+struct MIOPEN_INTERNALS_EXPORT GemmWrw1x1_stride1 final : GemmWrwBase
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<GemmWrw1x1_stride1>(); }
 
-    MIOPEN_INTERNALS_EXPORT bool
-    IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    bool IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
 
-    MIOPEN_INTERNALS_EXPORT ConvSolution
-    GetSolution(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    ConvSolution GetSolution(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
 
     friend struct GemmWrwUniversal;
 };
 
-struct GemmWrwUniversal final : GemmWrwBase
+struct MIOPEN_INTERNALS_EXPORT GemmWrwUniversal final : GemmWrwBase
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<GemmWrwUniversal>(); }
 
-    MIOPEN_INTERNALS_EXPORT size_t GetWorkspaceSize(
-        const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    size_t GetWorkspaceSize(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
 
     bool MayNeedWorkspace() const override { return true; }
 
-    MIOPEN_INTERNALS_EXPORT bool
-    IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    bool IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
 
-    MIOPEN_INTERNALS_EXPORT ConvSolution
-    GetSolution(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    ConvSolution GetSolution(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
 };
 
 struct PerformanceConfigAsmImplicitGemmGTC : PerfConfigBase<PerformanceConfigAsmImplicitGemmGTC>
