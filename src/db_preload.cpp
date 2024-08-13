@@ -62,14 +62,14 @@ auto DbPreloadStates::GetPreloadedDb(const fs::path& path) -> std::unique_ptr<Db
     if(it == futures.end())
         return nullptr;
 
-    if(!it->second.valid())
-        MIOPEN_THROW(miopenStatusInternalError,
-                     "Attempt to reload " + path.string() + " as " + get_type_name<Db>());
-
     auto future = std::move(it->second);
 
     if(needs_lock)
         lock.unlock();
+
+    if(!future.valid())
+        MIOPEN_THROW(miopenStatusInternalError,
+                     "Attempt to reload " + path.string() + " as " + get_type_name<Db>());
 
     const auto start = std::chrono::high_resolution_clock::now();
     auto ret         = future.get();
