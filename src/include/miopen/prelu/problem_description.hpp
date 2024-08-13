@@ -79,8 +79,6 @@ struct BackwardProblemDescription : ProblemDescriptionBase
 
     bool IsRightLength() const
     {
-        if(inputDesc.GetNumDims() > 5)
-            MIOPEN_THROW(miopenStatusBadParm, "PReLU: Input tensor max number of dimensions is 5.");
         if(!checkSameLength(inputDesc, doutputDesc) || !checkSameLength(inputDesc, dinputDesc))
             MIOPEN_THROW(
                 miopenStatusBadParm,
