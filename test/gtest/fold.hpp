@@ -145,11 +145,11 @@ protected:
         std::vector<size_t> in_dims    = config.GetInput();
         std::vector<size_t> in_strides = config.ComputeStrides(in_dims);
 
-        auto gen_value = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1e-2, 100); };
-        auto gen_zero                 = [&](auto...) { return 0; };
-        input                         = tensor<T>{in_dims, in_strides}.generate(gen_value);
-        const int32_t N               = static_cast<int32_t>(in_dims[0]);
-        int32_t C                     = static_cast<int32_t>(in_dims[1]);
+        auto gen_value  = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1e-2, 100); };
+        auto gen_zero   = [&](auto...) { return 0; };
+        input           = tensor<T>{in_dims, in_strides}.generate(gen_value);
+        const int32_t N = static_cast<int32_t>(in_dims[0]);
+        int32_t C       = static_cast<int32_t>(in_dims[1]);
         for(int32_t i : config.kernelSize)
         {
             C = C / i;
@@ -232,9 +232,9 @@ protected:
         std::vector<size_t> in_strides = config.ComputeStrides(in_dims);
 
         auto gen_value = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1e-2, 100); };
-        auto gen_zero                 = [&](auto...) { return 0; };
-        dinput                        = tensor<T>{in_dims, in_strides}.generate(gen_zero);
-        dinputHost                    = tensor<T>{in_dims, in_strides}.generate(gen_zero);
+        auto gen_zero  = [&](auto...) { return 0; };
+        dinput         = tensor<T>{in_dims, in_strides}.generate(gen_zero);
+        dinputHost     = tensor<T>{in_dims, in_strides}.generate(gen_zero);
 
         const int32_t N = static_cast<int32_t>(in_dims[0]);
         int32_t C       = static_cast<int32_t>(in_dims[1]);
