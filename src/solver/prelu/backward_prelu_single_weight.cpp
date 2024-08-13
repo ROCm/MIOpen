@@ -122,14 +122,10 @@ SingleWeightBackward::GetSolution(const ExecutionContext& /*context*/,
         return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
             decltype(auto) params = raw_params.CastTo<miopen::prelu::InvokeParams>();
 
-            auto elapsed = 0.0f;
-            HipEventPtr start;
-            HipEventPtr stop;
-
-            bool reset_profiling_state = false;
-            if(handle_.IsProfilingEnabled())
+            HipEventPtr start, stop;
+            bool profiling = handle_.IsProfilingEnabled();
+            if(profiling)
             {
-                reset_profiling_state = true;
                 handle_.EnableProfiling(false);
                 hipStreamSynchronize(handle_.GetStream());
                 start = miopen::make_hip_event();
@@ -172,14 +168,13 @@ SingleWeightBackward::GetSolution(const ExecutionContext& /*context*/,
                 handle_.Run(kernels[kernelCnt++])(work_a, params.dweight, size);
             }
 
-            if(reset_profiling_state)
-                handle_.EnableProfiling(true);
-            if(handle_.IsProfilingEnabled())
+            if(profiling)
             {
+                float elapsed = 0.0f;
                 hipEventRecord(stop.get(), handle_.GetStream());
+                handle_.EnableProfiling(true);
                 hipEventSynchronize(stop.get());
                 hipEventElapsedTime(&elapsed, start.get(), stop.get());
-
                 // Clean up
                 hipEventDestroy(start.get());
                 hipEventDestroy(stop.get());
