@@ -144,12 +144,8 @@ DbPreloadStates::TryStartPreloadingDbs(const std::function<void()>& preload)
     if(preload_tasks.size() > 0)
     {
         preload_thread = std::thread([tasks = std::move(preload_tasks)]() mutable {
-            std::for_each(std::execution::par_unseq,
-                          tasks.begin(),
-                          tasks.end(),
-                          [](auto&& task) {
-                              task();
-                          });
+            std::for_each(
+                std::execution::par_unseq, tasks.begin(), tasks.end(), [](auto&& task) { task(); });
         });
     }
 }
