@@ -254,13 +254,13 @@ int PReLUDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 template <typename Tgpu, typename Tref>
 int PReLUDriver<Tgpu, Tref>::RunForwardGPU()
 {
-    return miopenStatusSuccess;
+    return miopenStatusNotImplemented;
 }
 
 template <typename Tgpu, typename Tref>
 int PReLUDriver<Tgpu, Tref>::RunForwardCPU()
 {
-    return miopenStatusSuccess;
+    return miopenStatusNotImplemented;
 }
 
 template <typename Tgpu, typename Tref>
@@ -355,7 +355,7 @@ Tref PReLUDriver<Tgpu, Tref>::GetTolerance()
 template <typename Tgpu, typename Tref>
 int PReLUDriver<Tgpu, Tref>::VerifyForward()
 {
-    return miopenStatusSuccess;
+    return miopenStatusNotImplemented;
 }
 
 template <typename Tgpu, typename Tref>
