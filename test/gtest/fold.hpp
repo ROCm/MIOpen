@@ -23,7 +23,6 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include "../driver/tensor_driver.hpp"
 #include "cpu_unfold.hpp"
 #include "get_handle.hpp"
 #include "miopen/allocator.hpp"
@@ -123,6 +122,13 @@ std::vector<FoldTestCase> FoldTestConfigs()
         {3, 3 * 3 * 4, 0, 0, 3 * 4, {5, 7}, {3, 4}, {1, 1}, {0, 0}, {1, 1}, true},
         {3, 3 * 2 * 2, 0, 0, 3 * 4, {2, 3}, {2, 2}, {1, 1}, {1, 1}, {1, 1}, true},
         {3, 3 * 2 * 2, 0, 0, 3 * 4, {5, 7}, {2, 2}, {1, 1}, {0, 0}, {2, 3}, true},
+        {3, 3 * 2 * 2, 0, 0, 3 * 4, {4, 5}, {2, 2}, {1, 1}, {0, 0}, {1, 1}, false},
+        {3, 3 * 2 * 2, 0, 0, 3 * 4, {6, 11}, {2, 2}, {2, 3}, {0, 0}, {1, 1}, false},
+        {3, 3 * 2 * 2, 0, 0, 3 * 4, {7, 12}, {2, 2}, {2, 3}, {0, 0}, {1, 1}, false},
+        {3, 3 * 2 * 2, 0, 0, 3 * 4, {7, 13}, {2, 2}, {2, 3}, {0, 0}, {1, 1}, false},
+        {3, 3 * 3 * 4, 0, 0, 3 * 4, {5, 7}, {3, 4}, {1, 1}, {0, 0}, {1, 1}, false},
+        {3, 3 * 2 * 2, 0, 0, 3 * 4, {2, 3}, {2, 2}, {1, 1}, {1, 1}, {1, 1}, false},
+        {3, 3 * 2 * 2, 0, 0, 3 * 4, {5, 7}, {2, 2}, {1, 1}, {0, 0}, {2, 3}, false},
     };
     // clang-format: on
 }
@@ -197,13 +203,10 @@ protected:
         // bf16 mantissa has 7 bits, by 3 bits shorter than fp16.
         if(std::is_same<T, bfloat16>::value)
             tolerance *= 8.0;
-        for(int i = 0; i < 10; ++i)
-        {
-            std::cout << "output[" << i << "]: " << output[i] << " ~ " << outputHost[i]
-                      << std::endl;
-        }
         auto error_output = miopen::rms_range(outputHost, output);
-        EXPECT_TRUE(error_output < tolerance) << "Error forward output beyond tolerance Error: {"
+        ASSERT_EQ(miopen::range_distance(outputHost), miopen::range_distance(output));
+
+        EXPECT_LT(error_output, tolerance) << "Error forward output beyond tolerance Error: {"
                                               << error_output << "},  Tolerance: " << tolerance;
     }
     FoldTestCase config;
@@ -289,10 +292,13 @@ protected:
         if(std::is_same<T, bfloat16>::value)
             tolerance *= 8.0;
         auto error_dinput = miopen::rms_range(dinputHost, dinput);
-        EXPECT_TRUE(error_dinput < tolerance)
+        ASSERT_EQ(miopen::range_distance(dinputHost), miopen::range_distance(dinput));
+
+        EXPECT_LT(error_dinput, tolerance)
             << "Error backward input_grad beyond tolerance Error: {" << error_dinput
             << "},  Tolerance: " << tolerance;
     }
+    
     FoldTestCase config;
 
     tensor<T> dinput;

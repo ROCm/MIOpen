@@ -23,7 +23,6 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include "../driver/tensor_driver.hpp"
 #include "cpu_unfold.hpp"
 #include "get_handle.hpp"
 #include "miopen/allocator.hpp"
@@ -32,7 +31,6 @@
 #include "verify.hpp"
 #include <cstddef>
 #include <cstdlib>
-#include <random>
 #include <gtest/gtest.h>
 #include <miopen/miopen.h>
 #include <miopen/fold.hpp>
@@ -121,6 +119,12 @@ std::vector<UnfoldTestCase> UnfoldTestConfigs()
         {11, 13, 0, 17, 19, {3, 3}, {1, 1}, {3, 2}, {1, 1}, true},
         {11, 13, 0, 17, 19, {3, 3}, {1, 1}, {0, 0}, {3, 2}, true},
         {11, 13, 0, 33, 37, {4, 3}, {2, 3}, {5, 2}, {3, 5}, true},
+        {2, 5, 0, 3, 4, {2, 3}, {1, 1}, {0, 0}, {1, 1}, false},
+        {1, 3, 0, 10, 12, {4, 5}, {1, 1}, {0, 0}, {1, 1}, false},
+        {11, 13, 0, 17, 19, {3, 3}, {3, 2}, {0, 0}, {1, 1}, false},
+        {11, 13, 0, 17, 19, {3, 3}, {1, 1}, {3, 2}, {1, 1}, false},
+        {11, 13, 0, 17, 19, {3, 3}, {1, 1}, {0, 0}, {3, 2}, false},
+        {11, 13, 0, 33, 37, {4, 3}, {2, 3}, {5, 2}, {3, 5}, false},
     };
     // clang-format: on
 }
@@ -204,9 +208,12 @@ protected:
         if(std::is_same<T, bfloat16>::value)
             tolerance *= 8.0;
         auto error_output = miopen::rms_range(outputHost, output);
+        ASSERT_EQ(miopen::range_distance(outputHost), miopen::range_distance(output));
+        
         EXPECT_TRUE(error_output < tolerance) << "Error forward output beyond tolerance Error: {"
                                               << error_output << "},  Tolerance: " << tolerance;
     }
+
     UnfoldTestCase config;
 
     tensor<T> input;
@@ -297,7 +304,9 @@ protected:
         if(std::is_same<T, bfloat16>::value)
             tolerance *= 8.0;
         auto error_dinput = miopen::rms_range(dinputHost, dinput);
-        EXPECT_TRUE(error_dinput < tolerance)
+        ASSERT_EQ(miopen::range_distance(dinputHost), miopen::range_distance(dinput));
+
+        EXPECT_LT(error_dinput, tolerance)
             << "Error backward input_grad beyond tolerance Error: {" << error_dinput
             << "},  Tolerance: " << tolerance;
     }
