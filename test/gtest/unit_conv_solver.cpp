@@ -526,9 +526,9 @@ void RunSolver(const miopen::solver::conv::ConvSolverBase& solver,
     if(conv_config.GetXDataType() == conv_config.GetWDataType() &&
        conv_config.GetWDataType() == conv_config.GetYDataType())
     {
+        // clang-format off
         switch(conv_config.GetXDataType())
         {
-        // clang-format off
         case miopenHalf:
             RunSolver<half_float::half, half_float::half>(solver, direction, conv_config, algo);
             return;
@@ -540,8 +540,8 @@ void RunSolver(const miopen::solver::conv::ConvSolverBase& solver,
             return;
         default:
             throw std::runtime_error("handling of this data type is not yet implemented");
-        // clang-format on
         }
+        // clang-format on
     }
 
     throw std::runtime_error("handling of mixed data types is not yet implemented");

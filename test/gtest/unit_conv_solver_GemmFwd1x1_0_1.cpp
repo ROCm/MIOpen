@@ -41,7 +41,8 @@ auto GetConvTestCases(miopenDataType_t datatype)
 
 Gpu GetSupportedDevices()
 {
-    return Gpu::gfx900 | Gpu::gfx906 | Gpu::gfx908 | Gpu::gfx90A | Gpu::gfx94X | Gpu::gfx103X | Gpu::gfx110X;
+    return Gpu::gfx900 | Gpu::gfx906 | Gpu::gfx908 | Gpu::gfx90A | Gpu::gfx94X | Gpu::gfx103X |
+           Gpu::gfx110X;
 }
 
 } // namespace
