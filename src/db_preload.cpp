@@ -141,7 +141,7 @@ DbPreloadStates::TryStartPreloadingDbs(const std::function<void()>& preload)
         // We have finished updating the map and can allow short-cutting the mutex
     }
 
-    if(preload_tasks.size() > 0)
+    if(!preload_tasks.empty())
     {
         preload_thread = std::thread([tasks = std::move(preload_tasks)]() mutable {
             std::for_each(
