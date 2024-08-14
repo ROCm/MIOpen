@@ -306,6 +306,11 @@ public:
 
         // softmax needed for calling cpu backward mha
         mSoftMax = std::move(out.mSoftMax);
+
+        // Remove "SCL_O" here so that it doesn't pollute the variant pack used for
+        // execution
+        size_t cnt = mFilledTensors.erase("SCL_O");
+        ASSERT_EQ(cnt, 1);
     }
 
     void runCpuVerify(size_t n, size_t h, size_t s, size_t d) override
