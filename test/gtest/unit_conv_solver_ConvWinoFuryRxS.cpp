@@ -76,6 +76,7 @@ TEST_P(CPU_UnitTestConvSolverDevApplicability_fwd_FP16, ConvWinoFuryRxSf2x3)
     this->RunTest(miopen::solver::conv::ConvWinoFuryRxS<2, 3>{});
 };
 
+// Smoke tests
 INSTANTIATE_TEST_SUITE_P(Smoke,
                          GPU_UnitTestConvSolver_fwd_FP16,
                          testing::Combine(testing::Values(GetSupportedDevices()),
@@ -94,6 +95,7 @@ INSTANTIATE_TEST_SUITE_P(Smoke,
                                           testing::Values(miopenConvolutionAlgoWinograd),
                                           testing::ValuesIn(GetConvTestCasesWrw(miopenHalf))));
 
+// Device applicability test
 INSTANTIATE_TEST_SUITE_P(Smoke,
                          CPU_UnitTestConvSolverDevApplicability_fwd_FP16,
                          testing::Combine(testing::Values(GetSupportedDevices()),

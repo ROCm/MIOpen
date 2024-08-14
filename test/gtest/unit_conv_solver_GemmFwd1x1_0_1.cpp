@@ -67,6 +67,7 @@ TEST_P(CPU_UnitTestConvSolverDevApplicability_fwd_FP32, GemmFwd1x1_0_1)
     this->RunTest(miopen::solver::conv::GemmFwd1x1_0_1{});
 };
 
+// Smoke tests
 INSTANTIATE_TEST_SUITE_P(Smoke,
                          GPU_UnitTestConvSolver_fwd_FP16,
                          testing::Combine(testing::Values(GetSupportedDevices()),
@@ -85,6 +86,7 @@ INSTANTIATE_TEST_SUITE_P(Smoke,
                                           testing::Values(miopenConvolutionAlgoGEMM),
                                           testing::ValuesIn(GetConvTestCases(miopenFloat))));
 
+// Device applicability test
 INSTANTIATE_TEST_SUITE_P(Smoke,
                          CPU_UnitTestConvSolverDevApplicability_fwd_FP32,
                          testing::Combine(testing::Values(GetSupportedDevices()),
