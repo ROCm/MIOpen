@@ -463,8 +463,8 @@ ConvWinoFuryRxS<Winodata, Winofilter>::GetSolution(const ExecutionContext& ctx,
     return ConvWinoFuryRxSCommon<Winodata, Winofilter>::GetSolution(ctx, problem);
 }
 
-template struct ConvWinoFuryRxS<2, 3>;
-// template struct ConvWinoFuryRxS<3, 2>;
+template struct MIOPEN_INTERNALS_EXPORT ConvWinoFuryRxS<2, 3>;
+// template struct MIOPEN_INTERNALS_EXPORT ConvWinoFuryRxS<3, 2>;
 
 } // namespace conv
 
