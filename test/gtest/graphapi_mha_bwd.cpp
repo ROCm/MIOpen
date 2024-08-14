@@ -39,6 +39,7 @@ public:
         mGraphBuilder = std::make_unique<gr::OpGraphBuilder>();
 
         std::vector<size_t> nhsd  = {n, h, s, d};
+        std::vector<size_t> nhds  = {n, h, d, s};
         std::vector<size_t> nhss  = {n, h, s, s};
         std::vector<size_t> nhs1  = {n, h, s, 1};
         std::vector<size_t> all1s = {1, 1, 1, 1};
@@ -49,8 +50,11 @@ public:
         MAKE_TENSOR_F(dO, nhsd, false);
         MAKE_TENSOR_F(O, nhsd, false);
 
+        MAKE_TENSOR_F(K_T, nhds, true);
         MAKE_TENSOR_F(T_MM_0, nhss, true);
-        addNode("OP_MATMUL", {Q, K}, {T_MM_0});
+
+        addNode("OP_RESHAPE", {K}, {K_T});
+        addNode("OP_MATMUL", {Q, K_T}, {T_MM_0});
 
         MAKE_TENSOR_F(T_SCL_0, nhss, true);
         // MAKE_TENSOR_F(ATN_SCL, all1s, false);
@@ -101,9 +105,11 @@ public:
         MAKE_TENSOR_F(SCL_S, all1s, false);
         addNode("OP_POINTWISE:MUL", {T_SCL_3, SCL_S}, {T_SCL_4});
 
-        // NOTE(Amber): omitting the Reshape transpose node here
+        MAKE_TENSOR_F(SCL_4T, nhss, true);
+        addNode("OP_RESHAPE", {T_SCL_4}, {SCL_4T});
+
         MAKE_TENSOR_F(T_MM_1, nhsd, true);
-        addNode("OP_MATMUL", {T_SCL_4, dO}, {T_MM_1});
+        addNode("OP_MATMUL", {SCL_4T, dO}, {T_MM_1});
 
         MAKE_TENSOR_F(T_SCL_5, nhsd, true);
         MAKE_TENSOR_F(DSCL_S, all1s, false);
@@ -122,8 +128,11 @@ public:
 
         ////////////////// Center-top //////////////////////////////////
 
+        MAKE_TENSOR_F(V_T, nhds, true);
+        addNode("OP_RESHAPE", {V}, {V_T});
+
         MAKE_TENSOR_F(T_MM_2, nhss, true);
-        addNode("OP_MATMUL", {dO, V}, {T_MM_2});
+        addNode("OP_MATMUL", {dO, V_T}, {T_MM_2});
 
         MAKE_TENSOR_F(T_SCL_7, nhss, true);
         addNode("OP_POINTWISE:MUL", {T_MM_2, DSCL_dO}, {T_SCL_7});
@@ -192,9 +201,11 @@ public:
         addNode("OP_REDUCTION:MAX", {T_SCL_17}, {AMax_dQ});
         ////////////////// Right Bottom //////////////////////////////////
 
-        // XXX(Amber): Reshape transpose node goes here
+        MAKE_TENSOR_F(SCL_15T, nhss, true);
+        addNode("OP_RESHAPE", {T_SCL_15}, {SCL_15T});
+
         MAKE_TENSOR_F(T_MM_4, nhsd, true);
-        addNode("OP_MATMUL", {T_SCL_15, Q}, {T_MM_4});
+        addNode("OP_MATMUL", {SCL_15T, Q}, {T_MM_4});
 
         MAKE_TENSOR_F(T_SCL_18, nhsd, true);
         addNode("OP_POINTWISE:MUL", {T_MM_4, DSCL_dS}, {T_SCL_18});
@@ -350,16 +361,13 @@ public:
         checkTensor("dK", dK_ref);
         checkTensor("dV", dV_ref);
     }
-
-    /// \todo remove once backward mha is ready to execute
-    void executeMhaGraph() override {}
 };
 
 } // end namespace mha_graph_test
   //
 using namespace mha_graph_test;
 
-TEST_P(MhaBwdGraphTest, MhaBwdGraph) { Run(); }
+TEST_P(MhaBwdGraphTest, MhaBwdGraph) { Run(MhaDir::Bwd); }
 
 INSTANTIATE_TEST_SUITE_P(MhaGraphBwdSuite,
                          MhaBwdGraphTest,
