@@ -136,11 +136,11 @@ MultiWeightsBackward::GetSolution(const ExecutionContext& context,
 
             /* Phase 2: Reduce gradient. */
             {
-                size_t output_numel = deref(params.weightDesc).GetElementSize();
-                size_t outer_size   = deref(params.inputDesc).GetLengths()[0];
-                size_t inner_size =
+                uint64_t output_numel = deref(params.weightDesc).GetElementSize();
+                uint64_t outer_size   = deref(params.inputDesc).GetLengths()[0];
+                uint64_t inner_size =
                     deref(params.inputDesc).GetElementSize() / outer_size / output_numel;
-                auto weight_grad_tv   = get_inner_expanded_tv<VIEW_DIMS>(deref(params.dweightDesc));
+                auto weight_grad_tv   = get_inner_expanded_tv<1>(deref(params.dweightDesc));
                 decltype(auto) kernel = handle_.Run(kernels[kernelCnt++]);
                 kernel(params.workspace,
                        params.dweight,

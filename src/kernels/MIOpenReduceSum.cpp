@@ -34,7 +34,8 @@
 #include "block_reduce.hpp"
 
 template <typename TO>
-__device__ void ReduceSum(const FLOAT_ACCUM* input, TO* output, uint64_t N)
+__device__ void
+ReduceSum(const FLOAT_ACCUM* input, TO* output, uint64_t N, tensor_view_t<1> output_tv)
 {
     uint64_t gid = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -42,14 +43,16 @@ __device__ void ReduceSum(const FLOAT_ACCUM* input, TO* output, uint64_t N)
     val             = block_reduce<BinaryOp_t::Add, REDUCE_SIZE, ReduceThreadDim::X>(val);
 
     if(threadIdx.x == 0)
-        output[blockIdx.x] = CVT_ACCUM2FLOAT(val);
+        output[output_tv.get_tensor_view_idx({blockIdx.x})] = CVT_ACCUM2FLOAT(val);
 }
 
-extern "C" __global__ void
-ReduceSum(const FLOAT_ACCUM* __restrict__ input, OUTPUT_TYPE* __restrict__ output, uint64_t N)
+extern "C" __global__ void ReduceSum(const FLOAT_ACCUM* __restrict__ input,
+                                     OUTPUT_TYPE* __restrict__ output,
+                                     uint64_t N,
+                                     tensor_view_t<1> output_tv)
 {
     // instantiate the kernel
-    ReduceSum<OUTPUT_TYPE>(input, output, N);
+    ReduceSum<OUTPUT_TYPE>(input, output, N, output_tv);
 }
 
 extern "C" __global__ void ReduceSumFLOATACCUM(const FLOAT_ACCUM* __restrict__ input,

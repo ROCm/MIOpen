@@ -159,7 +159,7 @@ SingleWeightBackward::GetSolution(const ExecutionContext& /*context*/,
 
             /* Phase 2: Reduce gradient. */
             {
-                auto size = deref(params.inputDesc).GetElementSize();
+                uint64_t size = deref(params.inputDesc).GetElementSize();
                 while(size > LOCAL_SIZE_SW_REDUCE_BWD)
                 {
                     auto kernel = handle_.Run(kernels[kernelCnt++]);
@@ -167,7 +167,8 @@ SingleWeightBackward::GetSolution(const ExecutionContext& /*context*/,
                     size = (size + LOCAL_SIZE_SW_REDUCE_BWD - 1) / LOCAL_SIZE_SW_REDUCE_BWD;
                     std::swap(work_a, work_b);
                 }
-                handle_.Run(kernels[kernelCnt++])(work_a, params.dweight, size);
+                auto weight_grad_tv = get_inner_expanded_tv<1>(deref(params.dweightDesc));
+                handle_.Run(kernels[kernelCnt++])(work_a, params.dweight, size, weight_grad_tv);
             }
 
             if(profiling)
