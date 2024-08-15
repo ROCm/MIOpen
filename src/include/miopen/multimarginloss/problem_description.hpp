@@ -45,14 +45,14 @@ struct ForwardProblemDescription : ProblemDescriptionBase
                               const TensorDescriptor& oDesc_,
                               const long p_,
                               const float margin_,
-                              const float divisor_)
+                              const miopenLossReductionMode_t reduction_)
         : iDesc(iDesc_),
           tDesc(tDesc_),
           wDesc(wDesc_),
           oDesc(oDesc_),
           p(p_),
           margin(margin_),
-          divisor(divisor_)
+          reduction(reduction_)
     {
         if(iDesc.GetType() != oDesc.GetType() || iDesc.GetType() != wDesc.GetType())
         {
@@ -81,7 +81,7 @@ struct ForwardProblemDescription : ProblemDescriptionBase
                          "tensor has shape (N, C) then weight tensor must have shape (C)");
         }
         // Check output tensor dimension
-        if(divisor == 0)
+        if(reduction == MIOPEN_LOSS_REDUCTION_NONE)
         {
             // non-reduction case
             if(oDesc.GetNumDims() != 1 || oDesc.GetLengths()[0] != iDesc.GetLengths()[0])
@@ -114,7 +114,7 @@ struct ForwardProblemDescription : ProblemDescriptionBase
     const TensorDescriptor& GetoDesc() const { return oDesc; }
     long Getp() const { return p; }
     float Getmargin() const { return margin; }
-    float Getdivisor() const { return divisor; }
+    miopenLossReductionMode_t Getreduction() const { return reduction; }
 
     NetworkConfig MakeNetworkConfig() const override;
 
@@ -125,7 +125,7 @@ private:
     TensorDescriptor oDesc;
     long p;
     float margin;
-    float divisor;
+    miopenLossReductionMode_t reduction;
 };
 
 } // namespace multimarginloss

@@ -44,19 +44,6 @@ GetMultiMarginLossForwardWorkspaceSize(Handle& handle,
                                        float margin,
                                        miopenLossReductionMode_t reduction);
 
-MIOPEN_INTERNALS_EXPORT miopenStatus_t
-MultiMarginLossUnreducedForward(Handle& handle,
-                                const TensorDescriptor& iDesc,
-                                ConstData_t i,
-                                const TensorDescriptor& tDesc,
-                                ConstData_t t,
-                                const TensorDescriptor& wDesc,
-                                ConstData_t w,
-                                const TensorDescriptor& oDesc,
-                                Data_t o,
-                                long p,
-                                float margin);
-
 MIOPEN_INTERNALS_EXPORT miopenStatus_t MultiMarginLossForward(Handle& handle,
                                                               Data_t workspace,
                                                               size_t workspaceSizeInBytes,

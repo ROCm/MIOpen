@@ -87,23 +87,8 @@ extern "C" miopenStatus_t miopenMultiMarginLossForward(miopenHandle_t handle,
                         workspace,
                         workspaceSizeInBytes);
 
-    if(reduction == MIOPEN_LOSS_REDUCTION_NONE)
-    {
-        return miopen::try_([&] {
-            miopen::MultiMarginLossUnreducedForward(miopen::deref(handle),
-                                                    miopen::deref(inputDesc),
-                                                    DataCast(input),
-                                                    miopen::deref(targetDesc),
-                                                    DataCast(target),
-                                                    miopen::deref(weightDesc),
-                                                    DataCast(weight),
-                                                    miopen::deref(outputDesc),
-                                                    DataCast(output),
-                                                    p,
-                                                    margin);
-        });
-    }
-    else if(reduction == MIOPEN_LOSS_REDUCTION_SUM || reduction == MIOPEN_LOSS_REDUCTION_MEAN)
+    if(reduction == MIOPEN_LOSS_REDUCTION_NONE || reduction == MIOPEN_LOSS_REDUCTION_SUM ||
+       reduction == MIOPEN_LOSS_REDUCTION_MEAN)
     {
         return miopen::try_([&] {
             miopen::MultiMarginLossForward(miopen::deref(handle),

@@ -42,7 +42,7 @@ NetworkConfig ForwardProblemDescription::MakeNetworkConfig() const
     for(unsigned long i : ilen)
         ss << i << "_";
     ss << "cont" << iDesc.IsContiguous();
-    ss << "divisor" << divisor;
+    ss << "reduction" << reduction;
     return NetworkConfig{ss.str()};
 }
 

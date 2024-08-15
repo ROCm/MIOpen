@@ -31,55 +31,18 @@
 #include <miopen/tensor_view_utils.hpp>
 
 template <class T>
-void cpu_multimarginloss_unreduced_forward(tensor<T> input,
-                                           tensor<uint64_t> target,
-                                           tensor<T> weight,
-                                           tensor<T>& ref_output,
-                                           long p,
-                                           float margin)
+void cpu_multimarginloss_forward(tensor<T> input,
+                                 tensor<uint64_t> target,
+                                 tensor<T> weight,
+                                 tensor<T>& ref_output,
+                                 const long p,
+                                 const float margin,
+                                 const float divisor)
 {
     auto I_tv = miopen::get_inner_expanded_tv<2>(input.desc);
     auto T_tv = miopen::get_inner_expanded_tv<1>(target.desc);
     auto W_tv = miopen::get_inner_expanded_tv<1>(weight.desc);
     auto O_tv = miopen::get_inner_expanded_tv<1>(ref_output.desc);
-    auto N = I_tv.size[0], C = I_tv.size[1];
-
-    for(size_t n = 0; n < N; n++)
-    {
-        double loss = 0;
-        uint64_t y  = target[T_tv.get_tensor_view_idx({n})];
-        if(y >= C)
-            continue;
-        for(size_t c = 0; c < C; c++)
-        {
-            if(y == c)
-                continue;
-            double t = margin - static_cast<double>(input[I_tv.get_tensor_view_idx({n, y})]) +
-                       static_cast<double>(input[I_tv.get_tensor_view_idx({n, c})]);
-
-            if(t < 0)
-                continue;
-            if(p == 2)
-                t = t * t;
-            t = static_cast<double>(weight[W_tv.get_tensor_view_idx({y})]) * t;
-            loss += t / C;
-        }
-        ref_output[O_tv.get_tensor_view_idx({n})] = loss;
-    }
-}
-
-template <class T>
-void cpu_multimarginloss_reduced_forward(tensor<T> input,
-                                         tensor<uint64_t> target,
-                                         tensor<T> weight,
-                                         tensor<T>& ref_output,
-                                         long p,
-                                         float margin,
-                                         const float divisor)
-{
-    auto I_tv = miopen::get_inner_expanded_tv<2>(input.desc);
-    auto T_tv = miopen::get_inner_expanded_tv<1>(target.desc);
-    auto W_tv = miopen::get_inner_expanded_tv<1>(weight.desc);
     auto N = I_tv.size[0], C = I_tv.size[1];
 
     double sum = 0;
@@ -103,10 +66,13 @@ void cpu_multimarginloss_reduced_forward(tensor<T> input,
             t = static_cast<double>(weight[W_tv.get_tensor_view_idx({y})]) * t;
             loss += t / C;
         }
-        sum += loss;
+        if(divisor == 0)
+            ref_output[O_tv.get_tensor_view_idx({n})] = loss;
+        else
+            sum += loss;
     }
-    sum /= divisor;
-    ref_output[0] = static_cast<T>(sum);
+    if(divisor != 0)
+        ref_output[0] = static_cast<T>(sum / divisor);
 }
 
 #endif

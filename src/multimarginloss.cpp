@@ -36,46 +36,6 @@
 
 namespace miopen {
 
-miopenStatus_t MultiMarginLossUnreducedForward(Handle& handle,
-                                               const TensorDescriptor& iDesc,
-                                               ConstData_t i,
-                                               const TensorDescriptor& tDesc,
-                                               ConstData_t t,
-                                               const TensorDescriptor& wDesc,
-                                               ConstData_t w,
-                                               const TensorDescriptor& oDesc,
-                                               Data_t o,
-                                               const long p,
-                                               const float margin)
-{
-    const auto problem =
-        multimarginloss::ForwardProblemDescription{iDesc, tDesc, wDesc, oDesc, p, margin, 0};
-
-    const auto invoke_params = [&]() {
-        auto tmp   = multimarginloss::InvokeParams{};
-        tmp.type   = InvokeType::Run;
-        tmp.iDesc  = &iDesc;
-        tmp.i      = i;
-        tmp.tDesc  = &tDesc;
-        tmp.t      = t;
-        tmp.wDesc  = &wDesc;
-        tmp.w      = w;
-        tmp.oDesc  = &oDesc;
-        tmp.o      = o;
-        tmp.p      = p;
-        tmp.margin = margin;
-        return tmp;
-    }();
-
-    const auto algo = AlgorithmName{"MultiMarginLossUnreducedForward"};
-    const auto solvers =
-        solver::SolverContainer<solver::multimarginloss::MultiMarginLossUnreducedForward>{};
-
-    solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
-
-    return miopenStatusSuccess;
-}
-
 std::size_t GetMultiMarginLossForwardWorkspaceSize(Handle& handle,
                                                    const TensorDescriptor& iDesc,
                                                    const TensorDescriptor& tDesc,
@@ -89,10 +49,9 @@ std::size_t GetMultiMarginLossForwardWorkspaceSize(Handle& handle,
     {
         return static_cast<size_t>(0);
     }
-    auto ctx            = ExecutionContext{&handle};
-    const float divisor = (reduction == MIOPEN_LOSS_REDUCTION_MEAN) ? iDesc.GetLengths()[0] : 1;
-    const auto problem =
-        multimarginloss::ForwardProblemDescription{iDesc, tDesc, wDesc, oDesc, p, margin, divisor};
+    auto ctx           = ExecutionContext{&handle};
+    const auto problem = multimarginloss::ForwardProblemDescription{
+        iDesc, tDesc, wDesc, oDesc, p, margin, reduction};
 
     const auto solvers = solver::SolverContainer<solver::multimarginloss::MultiMarginLossForward>{};
 
@@ -115,9 +74,8 @@ miopenStatus_t MultiMarginLossForward(Handle& handle,
                                       const float margin,
                                       miopenLossReductionMode_t reduction)
 {
-    const float divisor = (reduction == MIOPEN_LOSS_REDUCTION_MEAN) ? iDesc.GetLengths()[0] : 1;
-    const auto problem =
-        multimarginloss::ForwardProblemDescription{iDesc, tDesc, wDesc, oDesc, p, margin, divisor};
+    const auto problem = multimarginloss::ForwardProblemDescription{
+        iDesc, tDesc, wDesc, oDesc, p, margin, reduction};
 
     const auto invoke_params = [&]() {
         auto tmp           = multimarginloss::InvokeParams{};
@@ -134,14 +92,30 @@ miopenStatus_t MultiMarginLossForward(Handle& handle,
         tmp.margin         = margin;
         tmp.workspace      = workspace;
         tmp.workspace_size = workspaceSizeInBytes;
-        tmp.divisor        = divisor;
+        switch(reduction)
+        {
+        case MIOPEN_LOSS_REDUCTION_NONE: tmp.divisor = 0; break;
+        case MIOPEN_LOSS_REDUCTION_MEAN: tmp.divisor = iDesc.GetLengths()[0]; break;
+        case MIOPEN_LOSS_REDUCTION_SUM: tmp.divisor = 1; break;
+        }
         return tmp;
     }();
 
-    const auto algo    = AlgorithmName{"MultiMarginLossForward"};
-    const auto solvers = solver::SolverContainer<solver::multimarginloss::MultiMarginLossForward>{};
+    if(reduction == MIOPEN_LOSS_REDUCTION_NONE)
+    {
+        const auto algo = AlgorithmName{"MultiMarginLossUnreducedForward"};
+        const auto solvers =
+            solver::SolverContainer<solver::multimarginloss::MultiMarginLossUnreducedForward>{};
 
-    solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
+        solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
+    }
+    else
+    {
+        const auto algo = AlgorithmName{"MultiMarginLossForward"};
+        const auto solvers =
+            solver::SolverContainer<solver::multimarginloss::MultiMarginLossForward>{};
+        solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
+    }
 
     return miopenStatusSuccess;
 }

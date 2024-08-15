@@ -162,69 +162,49 @@ protected:
         std::fill(ref_output.begin(), ref_output.end(), 0);
         output_dev = handle.Write(output.data);
 
-        if(reduction_mode != MIOPEN_LOSS_REDUCTION_NONE)
+        ws_sizeInBytes = miopen::GetMultiMarginLossForwardWorkspaceSize(
+            handle, input.desc, target.desc, weight.desc, output.desc, p, margin, reduction_mode);
+        if(ws_sizeInBytes == static_cast<size_t>(-1))
+            GTEST_FAIL() << "Call GetMultiMarginLossForwardWorkspaceSize failed!";
+        if(ws_sizeInBytes > 0)
         {
-            ws_sizeInBytes = miopen::GetMultiMarginLossForwardWorkspaceSize(handle,
-                                                                            input.desc,
-                                                                            target.desc,
-                                                                            weight.desc,
-                                                                            output.desc,
-                                                                            p,
-                                                                            margin,
-                                                                            reduction_mode);
-            if(ws_sizeInBytes == static_cast<size_t>(-1))
-                GTEST_FAIL() << "Call GetMultiMarginLossForwardWorkspaceSize failed!";
             workspace = tensor<T>{std::vector<size_t>{ws_sizeInBytes / sizeof(T)}};
             std::fill(workspace.begin(), workspace.end(), 0);
             workspace_dev = handle.Write(workspace.data);
+        }
+        else
+        {
+            workspace_dev = nullptr;
         }
     }
     void RunTest()
     {
         auto&& handle = get_handle();
         miopenStatus_t status;
-        if(reduction_mode == MIOPEN_LOSS_REDUCTION_NONE)
+        float divisor;
+        switch(reduction_mode)
         {
-            cpu_multimarginloss_unreduced_forward<T>(input, target, weight, ref_output, p, margin);
-
-            status = miopen::MultiMarginLossUnreducedForward(handle,
-                                                             input.desc,
-                                                             input_dev.get(),
-                                                             target.desc,
-                                                             target_dev.get(),
-                                                             weight.desc,
-                                                             weight_dev.get(),
-                                                             output.desc,
-                                                             output_dev.get(),
-                                                             p,
-                                                             margin);
+        case MIOPEN_LOSS_REDUCTION_NONE: divisor = 0; break;
+        case MIOPEN_LOSS_REDUCTION_MEAN: divisor = input.desc.GetLengths()[0]; break;
+        case MIOPEN_LOSS_REDUCTION_SUM: divisor = 1; break;
         }
-        else
-        {
-            cpu_multimarginloss_reduced_forward<T>(
-                input,
-                target,
-                weight,
-                ref_output,
-                p,
-                margin,
-                (reduction_mode == MIOPEN_LOSS_REDUCTION_MEAN) ? input.desc.GetLengths()[0] : 1);
+        cpu_multimarginloss_forward<T>(input, target, weight, ref_output, p, margin, divisor);
 
-            status = miopen::MultiMarginLossForward(handle,
-                                                    workspace_dev.get(),
-                                                    ws_sizeInBytes,
-                                                    input.desc,
-                                                    input_dev.get(),
-                                                    target.desc,
-                                                    target_dev.get(),
-                                                    weight.desc,
-                                                    weight_dev.get(),
-                                                    output.desc,
-                                                    output_dev.get(),
-                                                    p,
-                                                    margin,
-                                                    reduction_mode);
-        }
+        status = miopen::MultiMarginLossForward(handle,
+                                                workspace_dev.get(),
+                                                ws_sizeInBytes,
+                                                input.desc,
+                                                input_dev.get(),
+                                                target.desc,
+                                                target_dev.get(),
+                                                weight.desc,
+                                                weight_dev.get(),
+                                                output.desc,
+                                                output_dev.get(),
+                                                p,
+                                                margin,
+                                                reduction_mode);
+
         ASSERT_EQ(status, miopenStatusSuccess);
 
         // Write from GPU to CPU

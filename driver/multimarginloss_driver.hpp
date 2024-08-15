@@ -31,7 +31,6 @@
 #include "tensor_driver.hpp"
 #include "timer.hpp"
 #include "random.hpp"
-#include <algorithm>
 #include <cstdint>
 #include <cstdlib>
 #include <memory>
@@ -43,16 +42,17 @@
 #include <miopen/tensor_view_utils.hpp>
 
 template <typename Tgpu, typename Tcheck>
-int32_t mloMultiMarginLossUnreducedForwardRunHost(miopenTensorDescriptor_t iDesc,
-                                                  miopenTensorDescriptor_t tDesc,
-                                                  miopenTensorDescriptor_t wDesc,
-                                                  miopenTensorDescriptor_t oDesc,
-                                                  long p,
-                                                  float margin,
-                                                  Tgpu* input,
-                                                  const uint64_t* target,
-                                                  Tgpu* weight,
-                                                  Tcheck* ref_output)
+int32_t mloMultiMarginLossForwardRunHost(const miopenTensorDescriptor_t iDesc,
+                                         const miopenTensorDescriptor_t tDesc,
+                                         const miopenTensorDescriptor_t wDesc,
+                                         const miopenTensorDescriptor_t oDesc,
+                                         const long p,
+                                         const float margin,
+                                         const float divisor,
+                                         const Tgpu* input,
+                                         const uint64_t* target,
+                                         const Tgpu* weight,
+                                         Tcheck* ref_output)
 {
     auto I_tv = miopen::get_inner_expanded_tv<2>(miopen::deref(iDesc));
     auto T_tv = miopen::get_inner_expanded_tv<1>(miopen::deref(tDesc));
@@ -60,7 +60,8 @@ int32_t mloMultiMarginLossUnreducedForwardRunHost(miopenTensorDescriptor_t iDesc
     auto O_tv = miopen::get_inner_expanded_tv<1>(miopen::deref(oDesc));
     auto N = I_tv.size[0], C = I_tv.size[1];
 
-    int32_t ret = 0;
+    int32_t ret     = 0;
+    double sum_loss = 0;
 
     for(size_t n = 0; n < N; n++)
     {
@@ -82,56 +83,15 @@ int32_t mloMultiMarginLossUnreducedForwardRunHost(miopenTensorDescriptor_t iDesc
             t = weight[W_tv.get_tensor_view_idx({y})] * t;
             loss += t / C;
         }
-        ref_output[O_tv.get_tensor_view_idx({n})] = static_cast<Tcheck>(loss);
+        if(divisor != 0)
+            sum_loss += loss;
+        else
+            ref_output[O_tv.get_tensor_view_idx({n})] = static_cast<Tcheck>(loss);
     }
+    if(divisor != 0)
+        ref_output[0] = static_cast<Tcheck>(sum_loss / divisor);
     return ret;
 }
-
-template <typename Tgpu, typename Tcheck>
-int32_t mloMultiMarginLossReducedForwardRunHost(miopenTensorDescriptor_t iDesc,
-                                                miopenTensorDescriptor_t tDesc,
-                                                miopenTensorDescriptor_t wDesc,
-                                                long p,
-                                                float margin,
-                                                const float divisor,
-                                                Tgpu* input,
-                                                const uint64_t* target,
-                                                Tgpu* weight,
-                                                Tcheck* ref_output)
-{
-    auto I_tv = miopen::get_inner_expanded_tv<2>(miopen::deref(iDesc));
-    auto T_tv = miopen::get_inner_expanded_tv<1>(miopen::deref(tDesc));
-    auto W_tv = miopen::get_inner_expanded_tv<1>(miopen::deref(wDesc));
-    auto N = I_tv.size[0], C = I_tv.size[1];
-
-    int32_t ret = 0;
-
-    double sum_loss = 0;
-    for(size_t n = 0; n < N; n++)
-    {
-        double loss = 0;
-        uint64_t y  = target[T_tv.get_tensor_view_idx({n})];
-        if(y >= C)
-            continue;
-        for(size_t c = 0; c < C; c++)
-        {
-            if(y == c)
-                continue;
-            double t = margin - static_cast<double>(input[I_tv.get_tensor_view_idx({n, y})]) +
-                       static_cast<double>(input[I_tv.get_tensor_view_idx({n, c})]);
-            if(t < 0)
-                continue;
-            if(p == 2)
-                t = t * t;
-            t = weight[W_tv.get_tensor_view_idx({y})] * t;
-            loss += t / C;
-        }
-        sum_loss += loss;
-    }
-    ref_output[0] = static_cast<Tcheck>(sum_loss / divisor);
-
-    return ret;
-};
 
 template <typename Tgpu, typename Tref>
 class MultiMarginLossDriver : public Driver
@@ -427,19 +387,16 @@ int MultiMarginLossDriver<Tgpu, Tref>::RunForwardGPU()
 template <typename Tgpu, typename Tref>
 int MultiMarginLossDriver<Tgpu, Tref>::RunForwardCPU()
 {
-    if(reduction_mode == MIOPEN_LOSS_REDUCTION_NONE)
+    float divisor;
+    switch(reduction_mode)
     {
-        mloMultiMarginLossUnreducedForwardRunHost(
-            iDesc, tDesc, wDesc, oDesc, p, margin, I.data(), T.data(), W.data(), Ohost.data());
+    case MIOPEN_LOSS_REDUCTION_NONE: divisor = 0; break;
+    case MIOPEN_LOSS_REDUCTION_MEAN: divisor = miopen::deref(iDesc).GetLengths()[0]; break;
+    case MIOPEN_LOSS_REDUCTION_SUM: divisor = 1; break;
     }
-    else
-    {
-        float divisor = (reduction_mode == MIOPEN_LOSS_REDUCTION_MEAN)
-                            ? miopen::deref(iDesc).GetLengths()[0]
-                            : 1;
-        mloMultiMarginLossReducedForwardRunHost(
-            iDesc, tDesc, wDesc, p, margin, divisor, I.data(), T.data(), W.data(), Ohost.data());
-    }
+
+    mloMultiMarginLossForwardRunHost(
+        iDesc, tDesc, wDesc, oDesc, p, margin, divisor, I.data(), T.data(), W.data(), Ohost.data());
     return miopenStatusSuccess;
 }
 
