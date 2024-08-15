@@ -59,6 +59,7 @@ enum class Primitive
     Softmax,
     Adam,
     Item,
+    RoPE,
     MultiMarginLoss
 };
 
