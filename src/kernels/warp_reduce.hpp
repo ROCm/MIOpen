@@ -33,21 +33,25 @@
 
 #include "float_types.h"
 
-template <uint32_t ws = warpSize>
-__device__ FLOAT_ACCUM warp_reduce_sum(FLOAT_ACCUM val)
+enum class BinaryOp_t
 {
-    if(ws >= 64)
-        val += __shfl_down(val, 32);
-    if(ws >= 32)
-        val += __shfl_down(val, 16);
-    if(ws >= 16)
-        val += __shfl_down(val, 8);
-    if(ws >= 8)
-        val += __shfl_down(val, 4);
-    if(ws >= 4)
-        val += __shfl_down(val, 2);
-    if(ws >= 2)
-        val += __shfl_down(val, 1);
+    Add,
+};
+
+template <BinaryOp_t Op, typename T>
+struct BinaryFunc;
+
+template <typename T>
+struct BinaryFunc<BinaryOp_t::Add, T>
+{
+    constexpr void exec(T& a, const T& b) { a += b; }
+};
+
+template <BinaryOp_t Op, uint32_t ws = warpSize>
+__device__ FLOAT_ACCUM warp_reduce(FLOAT_ACCUM val)
+{
+    for(auto d = ws / 2; d >= 1; d >>= 1)
+        BinaryFunc<Op, FLOAT_ACCUM>{}.exec(val, __shfl_down(val, d));
     return val;
 }
 

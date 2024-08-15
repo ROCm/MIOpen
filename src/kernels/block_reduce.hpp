@@ -41,11 +41,11 @@ enum class ReduceThreadDim : int32_t
     Z = 1 << 2,
 };
 
-template <uint64_t reduce_size, ReduceThreadDim thread_dim>
-__device__ FLOAT_ACCUM block_reduce_sum(FLOAT_ACCUM val)
+template <BinaryOp_t Op, uint64_t reduce_size, ReduceThreadDim thread_dim>
+__device__ FLOAT_ACCUM block_reduce(FLOAT_ACCUM val)
 {
     if(reduce_size == warpSize)
-        return warp_reduce_sum(val);
+        return warp_reduce<Op>(val);
 
     static __shared__ FLOAT_ACCUM shared[reduce_size / warpSize];
     uint64_t tid = 0;
@@ -58,14 +58,14 @@ __device__ FLOAT_ACCUM block_reduce_sum(FLOAT_ACCUM val)
     const uint64_t lane = tid % warpSize;
     const uint64_t wid  = tid / warpSize;
 
-    val = warp_reduce_sum(val);
+    val = warp_reduce<Op>(val);
     if(lane == 0)
         shared[wid] = val;
     __syncthreads();
 
     val = tid < reduce_size / warpSize ? shared[lane] : 0;
     if(wid == 0)
-        val = warp_reduce_sum(val);
+        val = warp_reduce<Op>(val);
     return val;
 }
 
