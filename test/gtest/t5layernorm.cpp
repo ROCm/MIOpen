@@ -42,15 +42,15 @@ std::string GetFloatArg()
     return tmp;
 }
 
-struct T5LayerNormTestFloat : T5LayerNormTest<float>
+struct T5LayerNormTestFloat : T5LayerNormFwdTest<float>
 {
 };
 
-struct T5LayerNormTestHalf : T5LayerNormTest<half_float::half>
+struct T5LayerNormTestHalf : T5LayerNormFwdTest<half_float::half>
 {
 };
 
-struct T5LayerNormTestBFloat16 : T5LayerNormTest<bfloat16>
+struct T5LayerNormTestBFloat16 : T5LayerNormFwdTest<bfloat16>
 {
 };
 
@@ -69,7 +69,7 @@ struct T5LayerNormBwdTestBFloat16 : T5LayerNormBwdTest<bfloat16>
 } // namespace t5layernorm
 using namespace t5layernorm;
 
-TEST_P(T5LayerNormTestFloat, T5LayerNormTestFw)
+TEST_P(T5LayerNormTestFloat, T5LayerNormFwdTest)
 {
     if(!MIOPEN_TEST_ALL ||
        (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--float"))
@@ -83,7 +83,7 @@ TEST_P(T5LayerNormTestFloat, T5LayerNormTestFw)
     }
 };
 
-TEST_P(T5LayerNormTestHalf, T5LayerNormTestFw)
+TEST_P(T5LayerNormTestHalf, T5LayerNormFwdTest)
 {
     if(!MIOPEN_TEST_ALL ||
        (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--half"))
@@ -97,7 +97,7 @@ TEST_P(T5LayerNormTestHalf, T5LayerNormTestFw)
     }
 };
 
-TEST_P(T5LayerNormTestBFloat16, T5LayerNormTestFw)
+TEST_P(T5LayerNormTestBFloat16, T5LayerNormFwdTest)
 {
     if(!MIOPEN_TEST_ALL ||
        (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--bfloat16"))
@@ -111,7 +111,7 @@ TEST_P(T5LayerNormTestBFloat16, T5LayerNormTestFw)
     }
 };
 
-TEST_P(T5LayerNormBwdTestFloat, T5LayerNormBwdTestFw)
+TEST_P(T5LayerNormBwdTestFloat, T5LayerNormBwdTest)
 {
     if(!MIOPEN_TEST_ALL ||
        (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--float"))
@@ -125,7 +125,7 @@ TEST_P(T5LayerNormBwdTestFloat, T5LayerNormBwdTestFw)
     }
 };
 
-TEST_P(T5LayerNormBwdTestHalf, T5LayerNormBwdTestFw)
+TEST_P(T5LayerNormBwdTestHalf, T5LayerNormBwdTest)
 {
     if(!MIOPEN_TEST_ALL ||
        (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--half"))
@@ -139,7 +139,7 @@ TEST_P(T5LayerNormBwdTestHalf, T5LayerNormBwdTestFw)
     }
 };
 
-TEST_P(T5LayerNormBwdTestBFloat16, T5LayerNormBwdTestFw)
+TEST_P(T5LayerNormBwdTestBFloat16, T5LayerNormBwdTest)
 {
     if(!MIOPEN_TEST_ALL ||
        (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--bfloat16"))
