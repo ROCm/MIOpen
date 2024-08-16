@@ -167,12 +167,18 @@ void VerifyData(const std::vector<T>& data,
                 miopenConvAlgorithm_t algo)
 {
     ASSERT_FALSE(miopen::range_zero(ref_data)) << "Reference data is all zeros";
-    ASSERT_LT(miopen::find_idx(ref_data, miopen::not_finite), 0)
-        << "Non finite number found in the reference data";
+    if constexpr(!std::is_integral_v<T>)
+    {
+        ASSERT_LT(miopen::find_idx(ref_data, miopen::not_finite), 0)
+            << "Non finite number found in the reference data";
+    }
 
     ASSERT_FALSE(miopen::range_zero(data)) << "Gpu data is all zeros";
-    ASSERT_LT(miopen::find_idx(data, miopen::not_finite), 0)
-        << "Non finite number found in the Gpu data";
+    if constexpr(!std::is_integral_v<T>)
+    {
+        ASSERT_LT(miopen::find_idx(data, miopen::not_finite), 0)
+            << "Non finite number found in the Gpu data";
+    }
 
     ASSERT_EQ(miopen::range_distance(ref_data), miopen::range_distance(data));
 

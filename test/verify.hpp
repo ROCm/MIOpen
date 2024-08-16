@@ -105,6 +105,7 @@ struct not_finite_fn
     template <class T, typename std::enable_if<(std::is_integral_v<T>), bool>::type = false>
     bool operator()(T x) const
     {
+        std::ignore = x;
         return false;
     }
 };

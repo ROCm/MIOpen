@@ -104,7 +104,7 @@ struct DevDescription
     friend std::ostream& operator<<(std::ostream& os, const DevDescription& dd);
 };
 
-class MockHandle : public miopen::Handle
+class MockHandle final : public miopen::Handle
 {
 public:
     MockHandle(const DevDescription& dev_description);
