@@ -102,3 +102,43 @@ struct GenWeights
         return RanGenWeights<T>();
     }
 };
+
+template <typename T>
+struct GenConvData
+{
+    GenConvData(const std::vector<std::size_t>& filter)
+    {
+        // Multiply all dimensions except K to get the number of additions
+        const auto num_add = std::accumulate(filter.cbegin() + 1, filter.cend(), static_cast<std::size_t>(1), std::multiplies<std::size_t>());
+
+        constexpr auto max_v = std::numeric_limits<T>::max();
+
+        if constexpr(std::is_integral_v<T>)
+        {
+            // "B" must not be < 1
+            if(num_add >= max_v)
+                throw std::runtime_error("filter is too big");
+        }
+        B = std::sqrt(max_v / (num_add + 1));
+
+        if constexpr(!std::is_integral_v<T>)
+        {
+            // Limit the range of FP
+            constexpr auto limit = static_cast<float>(std::numeric_limits<uint32_t>::max());
+            if(B > limit)
+                B = limit;
+        }
+
+        A = -B;
+    }
+
+    template <class... Ts>
+    T operator()(Ts...) const
+    {
+        return prng::gen_A_to_B(A, B);
+    }
+
+private:
+    T A;
+    T B;
+};

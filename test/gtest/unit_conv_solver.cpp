@@ -174,15 +174,6 @@ void VerifyData(const std::vector<T>& data, const std::vector<Tref>& ref_data, m
 
     ASSERT_EQ(miopen::range_distance(ref_data), miopen::range_distance(data));
 
-#if 0
-    for(const auto v : ref_data)
-        std::cout << v << ",";
-    std::cout << std::endl;
-    for(const auto v : data)
-        std::cout << v << ",";
-    std::cout << std::endl;
-#endif
-
     if constexpr(std::is_integral_v<T>)
     {
         const auto error = miopen::max_diff_v2(ref_data, data);
@@ -195,7 +186,7 @@ void VerifyData(const std::vector<T>& data, const std::vector<Tref>& ref_data, m
         const double tolerance = 1.0;
         const double threshold = std::numeric_limits<T>::epsilon() * tolerance;
         ASSERT_LT(error, threshold) << "Error beyond tolerance";
-        std::cout << "error: " << error << " threshold: " << threshold << std::endl;
+        // std::cout << "error: " << error << " threshold: " << threshold << std::endl;
     }
 }
 
@@ -214,8 +205,8 @@ void RunSolverFwd(const miopen::solver::conv::ConvSolverBase& solv,
 
     auto input   = tensor<Tin>{conv_config.GetXDims()};
     auto weights = tensor<Twei>{conv_config.GetWDims()};
-    input.generate(GenData<Tin>{});
-    weights.generate(GenWeights<Twei>{});
+    input.generate(GenConvData<Tin>{conv_config.GetWDims()});
+    weights.generate(GenConvData<Twei>{conv_config.GetWDims()});
 
     const auto conv_desc = conv_config.GetConv();
 
@@ -322,7 +313,7 @@ void RunSolverBwd(const miopen::solver::conv::ConvSolverBase& solv,
 
     auto input   = tensor<Tin>{conv_config.GetXDims()};
     auto weights = tensor<Twei>{conv_config.GetWDims()};
-    weights.generate(GenWeights<Twei>{});
+    weights.generate(GenConvData<Twei>{conv_config.GetWDims()});
 
     const auto conv_desc = conv_config.GetConv();
 
@@ -330,7 +321,7 @@ void RunSolverBwd(const miopen::solver::conv::ConvSolverBase& solv,
         conv_desc.GetForwardOutputTensor(input.desc, weights.desc, miopen_type<Tout>{});
 
     auto output = tensor<Tout>{output_desc.GetLengths()};
-    output.generate(GenData<Tout>{});
+    output.generate(GenConvData<Tout>{conv_config.GetWDims()});
 
     std::fill(input.begin(), input.end(), Tin());
 
@@ -431,7 +422,7 @@ void RunSolverWrw(const miopen::solver::conv::ConvSolverBase& solv,
 
     auto input   = tensor<Tin>{conv_config.GetXDims()};
     auto weights = tensor<Twei>{conv_config.GetWDims()};
-    input.generate(GenData<Tin>{});
+    input.generate(GenConvData<Tin>{conv_config.GetWDims()});
 
     const auto conv_desc = conv_config.GetConv();
 
@@ -439,7 +430,7 @@ void RunSolverWrw(const miopen::solver::conv::ConvSolverBase& solv,
         conv_desc.GetForwardOutputTensor(input.desc, weights.desc, miopen_type<Tout>{});
 
     auto output = tensor<Tout>{output_desc.GetLengths()};
-    output.generate(GenData<Tout>{});
+    output.generate(GenConvData<Tout>{conv_config.GetWDims()});
 
     std::fill(weights.begin(), weights.end(), Twei());
 

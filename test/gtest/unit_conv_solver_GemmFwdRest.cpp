@@ -32,9 +32,13 @@ auto GetConvTestCases(miopenDataType_t datatype)
 {
     using TestCase = ConvTestCase;
 
+    auto type_x = datatype;
+    auto type_w = datatype;
+    auto type_y = (datatype == miopenInt8) ? miopenInt32 : datatype;
+
     return std::vector{
         // clang-format off
-        TestCase{{1, 8, 8, 8}, {8, 8, 3, 3}, {0, 0}, {1, 1}, {1, 1}, datatype},
+        TestCase{{1, 8, 8, 8}, {8, 8, 3, 3}, {0, 0}, {1, 1}, {1, 1}, type_x, type_w, type_y},
         // clang-format on
     };
 }
@@ -62,6 +66,11 @@ TEST_P(GPU_UnitTestConvSolver_fwd_FP32, GemmFwdRest)
     this->RunTest(miopen::solver::conv::GemmFwdRest{});
 };
 
+TEST_P(GPU_UnitTestConvSolver_fwd_I8, GemmFwdRest)
+{
+    this->RunTest(miopen::solver::conv::GemmFwdRest{});
+};
+
 TEST_P(CPU_UnitTestConvSolverDevApplicability_fwd_FP32, GemmFwdRest)
 {
     this->RunTest(miopen::solver::conv::GemmFwdRest{});
@@ -85,6 +94,12 @@ INSTANTIATE_TEST_SUITE_P(Smoke,
                          testing::Combine(testing::Values(GetSupportedDevices()),
                                           testing::Values(miopenConvolutionAlgoGEMM),
                                           testing::ValuesIn(GetConvTestCases(miopenFloat))));
+
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_UnitTestConvSolver_fwd_I8,
+                         testing::Combine(testing::Values(GetSupportedDevices()),
+                                          testing::Values(miopenConvolutionAlgoGEMM),
+                                          testing::ValuesIn(GetConvTestCases(miopenInt8))));
 
 // Device applicability test
 INSTANTIATE_TEST_SUITE_P(Smoke,
