@@ -33,13 +33,20 @@ def cmake_build(Map conf=[:]){
     def debug_flags = "-g -fno-omit-frame-pointer -fsanitize=undefined -fno-sanitize-recover=undefined -Wno-option-ignored " + conf.get("extradebugflags", "")
     def build_envs = "CTEST_PARALLEL_LEVEL=4 " + conf.get("build_env","")
     def prefixpath = conf.get("prefixpath","/opt/rocm")
+    def build_type_debug = (conf.get("build_type",'release') == 'debug')
+    def code_conv_enabled = conf.get("codecov", false)
+
     def mlir_args = " -DMIOPEN_USE_MLIR=" + conf.get("mlir_build", "ON")
+    // WORKAROUND_ISSUE_3192 Disabling MLIR for debug builds since MLIR generates sanitizer errors.
+    if (build_type_debug || code_conv_enabled)
+    {
+        mlir_args = " -DMIOPEN_USE_MLIR=OFF"
+    }
+
     def setup_args = mlir_args + " -DMIOPEN_GPU_SYNC=Off " + conf.get("setup_flags","")
     def build_fin = conf.get("build_fin", "OFF")
 
     setup_args = setup_args + " -DCMAKE_PREFIX_PATH=${prefixpath} "
-
-    def build_type_debug = (conf.get("build_type",'release') == 'debug')
 
     //cmake_env can overwrite default CXX variables.
     def cmake_envs = "CXX=${compiler} CXXFLAGS='-Werror' " + conf.get("cmake_ex_env","")
@@ -72,7 +79,7 @@ def cmake_build(Map conf=[:]){
         test_flags = " --disable-verification-cache " + test_flags
     }
 
-    if(conf.get("codecov", false)){ //Need
+    if(code_conv_enabled){ //Need
         setup_args = " -DCMAKE_BUILD_TYPE=debug -DCMAKE_CXX_FLAGS_DEBUG='${debug_flags} -fprofile-arcs -ftest-coverage' -DCODECOV_TEST=On " + setup_args
     }else if(build_type_debug){
         setup_args = " -DCMAKE_BUILD_TYPE=debug -DCMAKE_CXX_FLAGS_DEBUG='${debug_flags}'" + setup_args
