@@ -68,8 +68,9 @@ __device__ void multimarginlossunreducedforward2d(const DTYPE* __restrict__ I,
             continue;
         if(p == 2)
             t = t * t;
-        t = CVT_FLOAT2ACCUM(W[W_tv.get_tensor_view_idx({y})]) * t;
-        loss += t / C;
+        t              = CVT_FLOAT2ACCUM(W[W_tv.get_tensor_view_idx({y})]) * t;
+        FLOAT_ACCUM rC = 1 / static_cast<FLOAT_ACCUM>(C);
+        loss           = fma(t, rC, loss);
     }
     O[O_tv.get_tensor_view_idx({n})] = CVT_ACCUM2FLOAT(loss);
 }
@@ -125,8 +126,9 @@ __device__ void multimarginlossforward2d(const DTYPE* __restrict__ I,
             continue;
         if(p == 2)
             t = t * t;
-        t = CVT_FLOAT2ACCUM(W[W_tv.get_tensor_view_idx({y})]) * t;
-        loss += t / C;
+        t              = CVT_FLOAT2ACCUM(W[W_tv.get_tensor_view_idx({y})]) * t;
+        FLOAT_ACCUM rC = 1 / static_cast<FLOAT_ACCUM>(C);
+        loss           = fma(t, rC, loss);
     }
 
     lsum[n] = CVT_ACCUM2FLOAT(loss / divisor);
