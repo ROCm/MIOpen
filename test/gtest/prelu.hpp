@@ -65,6 +65,11 @@ inline std::vector<PReLUTestCase> PReLUSmokeTestConfigs()
 {
     std::vector<PReLUTestCase> tcs;
 
+    tcs.push_back({{64, 4}, true, true});
+    tcs.push_back({{64, 4}, true, false});
+    tcs.push_back({{64, 4}, false, true});
+    tcs.push_back({{64, 4}, false, false});
+
     tcs.push_back({{64, 112}, true, true});
     tcs.push_back({{64, 112}, true, false});
     tcs.push_back({{64, 112}, false, true});
