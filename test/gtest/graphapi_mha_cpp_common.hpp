@@ -38,6 +38,7 @@
 #include <miopen/graphapi/opgraph.hpp>
 #include <miopen/graphapi/pointwise.hpp>
 #include <miopen/graphapi/reduction.hpp>
+#include <miopen/graphapi/reshape.hpp>
 #include <miopen/graphapi/rng.hpp>
 #include <miopen/graphapi/util.hpp>
 #include <miopen/graphapi/variant_pack.hpp>
@@ -271,6 +272,13 @@ protected:
                                                        .setOutput(out_tensors[0])
                                                        .build()));
         }
+        else if(name == "OP_RESHAPE")
+        {
+            assert(in_tensors.size() == 1);
+            assert(out_tensors.size() == 1);
+            mGraphBuilder->addNode(mAlloc.allocate(
+                gr::OperationReshapeBuilder{}.setX(in_tensors[0]).setY(out_tensors[0]).build()));
+        }
         else
         {
             FAIL() << "Unknown graph node type: " << name;
@@ -423,7 +431,13 @@ protected:
     }
 
 public:
-    void Run()
+    enum class MhaDir
+    {
+        Fwd,
+        Bwd
+    };
+
+    void Run(MhaDir direction)
     {
         auto [n, h, s, d, p] = GetParam();
         std::cout << "n:" << n << ", h:" << h << ", s:" << s << ", d:" << d << ", p:" << p
@@ -431,10 +445,17 @@ public:
         mProbDropout = p;
 
         auto& handle = get_handle();
-        if((p > 0.0f) && (s % handle.GetWavefrontWidth() != 0))
+        if(direction == MhaDir::Fwd && (p > 0.0f) && (s % handle.GetWavefrontWidth() != 0))
         {
-            GTEST_SKIP() << "CPU Dropout currently supprorts only fully occupied warps";
+            GTEST_SKIP()
+                << "CPU Fwd pass with Dropout currently supprorts only fully occupied warps";
         }
+
+        if(direction == MhaDir::Bwd && p > 0.0f)
+        {
+            GTEST_SKIP() << "CPU backward pass with Dropout is not supported currently";
+        }
+
         createMhaGraph(n, h, s, d);
         initInputs(n, h, s, d);
         executeMhaGraph();
