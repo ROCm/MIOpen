@@ -162,7 +162,9 @@ std::ostream& operator<<(std::ostream& os, const ConvTestCase& tc)
 namespace {
 
 template <typename T, typename Tref>
-void VerifyData(const std::vector<T>& data, const std::vector<Tref>& ref_data, miopenConvAlgorithm_t algo)
+void VerifyData(const std::vector<T>& data,
+                const std::vector<Tref>& ref_data,
+                miopenConvAlgorithm_t algo)
 {
     ASSERT_FALSE(miopen::range_zero(ref_data)) << "Reference data is all zeros";
     ASSERT_LT(miopen::find_idx(ref_data, miopen::not_finite), 0)
@@ -182,7 +184,7 @@ void VerifyData(const std::vector<T>& data, const std::vector<Tref>& ref_data, m
     }
     else
     {
-        auto error = miopen::rms_range(ref_data, data);
+        auto error             = miopen::rms_range(ref_data, data);
         const double tolerance = 1.0;
         const double threshold = std::numeric_limits<T>::epsilon() * tolerance;
         ASSERT_LT(error, threshold) << "Error beyond tolerance";
@@ -567,7 +569,9 @@ void RunSolver(const miopen::solver::conv::ConvSolverBase& solver,
         }
         // clang-format on
     }
-    else if(direction == miopen::conv::Direction::Forward && conv_config.GetXDataType() == miopenInt8 && conv_config.GetWDataType() == miopenInt8 && conv_config.GetYDataType() == miopenInt32)
+    else if(direction == miopen::conv::Direction::Forward &&
+            conv_config.GetXDataType() == miopenInt8 && conv_config.GetWDataType() == miopenInt8 &&
+            conv_config.GetYDataType() == miopenInt32)
     {
         RunSolverFwd<int8_t, int8_t, int32_t, int32_t>(solver, conv_config, algo, use_cpu_ref);
         return;

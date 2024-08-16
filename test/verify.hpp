@@ -85,13 +85,18 @@ struct not_finite_fn
         return !std::isfinite(x);
     }
 
-    template <class T, typename std::enable_if<(std::is_same_v<typename std::remove_cv<T>::type, half_float::half>), bool>::type = false>
+    template <class T,
+              typename std::enable_if<
+                  (std::is_same_v<typename std::remove_cv<T>::type, half_float::half>),
+                  bool>::type = false>
     bool operator()(T x) const
     {
         return !half_float::isfinite(x);
     }
 
-    template <class T, typename std::enable_if<(std::is_same_v<typename std::remove_cv<T>::type, bfloat16>), bool>::type = false>
+    template <class T,
+              typename std::enable_if<(std::is_same_v<typename std::remove_cv<T>::type, bfloat16>),
+                                      bool>::type = false>
     bool operator()(T x) const
     {
         return !std::isfinite(x); // bfloat16 has float() conversion operator
@@ -185,8 +190,8 @@ double max_diff(R1&& r1, R2&& r2)
 template <class R1, class R2>
 auto max_diff_v2(R1&& r1, R2&& r2)
 {
-    using T = decltype(r1[0] - r2[0]);
-    auto abs_diff_func = [](auto x, auto y){ return x > y ? x - y : y - x; };
+    using T            = decltype(r1[0] - r2[0]);
+    auto abs_diff_func = [](auto x, auto y) { return x > y ? x - y : y - x; };
     // BUG: deduced wrong datatype, half_float bug
     if constexpr(std::is_same_v<T, half_float::detail::expr>)
         return range_product(r1, r2, half_float::half(), max, abs_diff_func);

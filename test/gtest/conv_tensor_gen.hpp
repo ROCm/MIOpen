@@ -109,7 +109,10 @@ struct GenConvData
     GenConvData(const std::vector<std::size_t>& filter)
     {
         // Multiply all dimensions except K to get the number of additions
-        const auto num_add = std::accumulate(filter.cbegin() + 1, filter.cend(), static_cast<std::size_t>(1), std::multiplies<std::size_t>());
+        const auto num_add = std::accumulate(filter.cbegin() + 1,
+                                             filter.cend(),
+                                             static_cast<std::size_t>(1),
+                                             std::multiplies<std::size_t>());
 
         constexpr auto max_v = std::numeric_limits<T>::max();
 
