@@ -7640,8 +7640,8 @@ MIOPEN_EXPORT miopenStatus_t miopenGetitemBackward(miopenHandle_t handle,
  * @param stride                   Data tensor stride (output)
  * @param paddingDesc              Tensor descriptor for padding tensor (input)
  * @param padding                  Data tensor padding (output)
- * @param kinforDesc               Tensor descriptor for kinfor tensor (input)
- * @param kinfor                   Data tensor kinfor (output)
+ * @param ksizeDesc               Tensor descriptor for ksize tensor (input)
+ * @param ksize                   Data tensor ksize (output)
  * @param count_include_pad        When True, will include the zero-padding in the averaging
  * calculation (input)
  * @param divisor_override         If non-zero, will use this value as the divisor, otherwise will
@@ -7657,8 +7657,8 @@ MIOPEN_EXPORT miopenStatus_t miopenAvgPoolForward(miopenHandle_t handle,
                                                   const void* stride,
                                                   const miopenTensorDescriptor_t paddingDesc,
                                                   const void* padding,
-                                                  const miopenTensorDescriptor_t kinforDesc,
-                                                  const void* kinfor,
+                                                  const miopenTensorDescriptor_t ksizeDesc,
+                                                  const void* ksize,
                                                   const bool count_include_pad,
                                                   const int32_t divisor_override);
 
@@ -7673,8 +7673,8 @@ MIOPEN_EXPORT miopenStatus_t miopenAvgPoolForward(miopenHandle_t handle,
  * @param stride                   Data tensor stride (output)
  * @param paddingDesc              Tensor descriptor for padding tensor (input)
  * @param padding                  Data tensor padding (output)
- * @param kinforDesc               Tensor descriptor for kinfor tensor (input)
- * @param kinfor                   Data tensor kinfor (output)
+ * @param ksizeDesc               Tensor descriptor for ksize tensor (input)
+ * @param ksize                   Data tensor ksize (output)
  * @param count_include_pad        When True, will include the zero-padding in the averaging
  * calculation (input)
  * @param divisor_override         If non-zero, will use this value as the divisor, otherwise will
@@ -7690,8 +7690,8 @@ MIOPEN_EXPORT miopenStatus_t miopenAvgPoolBackward(miopenHandle_t handle,
                                                    const void* stride,
                                                    const miopenTensorDescriptor_t paddingDesc,
                                                    const void* padding,
-                                                   const miopenTensorDescriptor_t kinforDesc,
-                                                   const void* kinfor,
+                                                   const miopenTensorDescriptor_t ksizeDesc,
+                                                   const void* ksize,
                                                    const bool count_include_pad,
                                                    const int32_t divisor_override);
 /** @} */

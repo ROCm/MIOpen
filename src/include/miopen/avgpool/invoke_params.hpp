@@ -42,13 +42,13 @@ struct FwdInvokeParams : public miopen::InvokeParams
     const TensorDescriptor* outputDesc  = nullptr;
     const TensorDescriptor* strideDesc  = nullptr;
     const TensorDescriptor* paddingDesc = nullptr;
-    const TensorDescriptor* kinforDesc  = nullptr;
+    const TensorDescriptor* ksizeDesc   = nullptr;
 
     ConstData_t input   = nullptr;
     Data_t output       = nullptr;
     ConstData_t stride  = nullptr;
     ConstData_t padding = nullptr;
-    ConstData_t kinfor  = nullptr;
+    ConstData_t ksize   = nullptr;
 
     bool count_include_pad   = false;
     int32_t divisor_override = 0;
@@ -66,13 +66,13 @@ struct BwdInvokeParams : public miopen::InvokeParams
     const TensorDescriptor* inputGradDesc  = nullptr;
     const TensorDescriptor* strideDesc     = nullptr;
     const TensorDescriptor* paddingDesc    = nullptr;
-    const TensorDescriptor* kinforDesc     = nullptr;
+    const TensorDescriptor* ksizeDesc      = nullptr;
 
     ConstData_t output_grad = nullptr;
     Data_t input_grad       = nullptr;
     ConstData_t stride      = nullptr;
     ConstData_t padding     = nullptr;
-    ConstData_t kinfor      = nullptr;
+    ConstData_t ksize       = nullptr;
 
     bool count_include_pad   = false;
     int32_t divisor_override = 0;

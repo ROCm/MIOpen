@@ -35,7 +35,7 @@
 #include <miopen/avgpool.hpp>
 #include <miopen/target_properties.hpp>
 
-#define LOCAL_SIZE_BWD_3D 1024
+#define LOCAL_SIZE_BWD_3D 256
 
 namespace miopen {
 
@@ -105,7 +105,7 @@ AvgPoolBackward3d::GetSolution(const ExecutionContext& context,
                    OD,
                    OH,
                    OW,
-                   params.kinfor,
+                   params.ksize,
                    params.stride,
                    params.padding,
                    params.count_include_pad,

@@ -42,8 +42,8 @@ miopenStatus_t AvgPoolForward(Handle& handle,
                               ConstData_t stride,
                               const TensorDescriptor& paddingDesc,
                               ConstData_t padding,
-                              const TensorDescriptor& kinforDesc,
-                              ConstData_t kinfor,
+                              const TensorDescriptor& ksizeDesc,
+                              ConstData_t ksize,
                               const bool count_include_pad,
                               const int32_t divisor_override)
 {
@@ -51,7 +51,7 @@ miopenStatus_t AvgPoolForward(Handle& handle,
                                                         outputDesc,
                                                         strideDesc,
                                                         paddingDesc,
-                                                        kinforDesc,
+                                                        ksizeDesc,
                                                         count_include_pad,
                                                         divisor_override};
 
@@ -61,13 +61,13 @@ miopenStatus_t AvgPoolForward(Handle& handle,
         tmp.outputDesc  = &outputDesc;
         tmp.strideDesc  = &strideDesc;
         tmp.paddingDesc = &paddingDesc;
-        tmp.kinforDesc  = &kinforDesc;
+        tmp.ksizeDesc   = &ksizeDesc;
 
         tmp.input             = input;
         tmp.output            = output;
         tmp.stride            = stride;
         tmp.padding           = padding;
-        tmp.kinfor            = kinfor;
+        tmp.ksize             = ksize;
         tmp.count_include_pad = count_include_pad;
         tmp.divisor_override  = divisor_override;
 
@@ -91,8 +91,8 @@ miopenStatus_t AvgPoolBackward(Handle& handle,
                                ConstData_t stride,
                                const TensorDescriptor& paddingDesc,
                                ConstData_t padding,
-                               const TensorDescriptor& kinforDesc,
-                               ConstData_t kinfor,
+                               const TensorDescriptor& ksizeDesc,
+                               ConstData_t ksize,
                                const bool count_include_pad,
                                const int32_t divisor_override)
 {
@@ -100,7 +100,7 @@ miopenStatus_t AvgPoolBackward(Handle& handle,
                                                         inputGradDesc,
                                                         strideDesc,
                                                         paddingDesc,
-                                                        kinforDesc,
+                                                        ksizeDesc,
                                                         count_include_pad,
                                                         divisor_override};
 
@@ -110,13 +110,13 @@ miopenStatus_t AvgPoolBackward(Handle& handle,
         tmp.inputGradDesc  = &inputGradDesc;
         tmp.strideDesc     = &strideDesc;
         tmp.paddingDesc    = &paddingDesc;
-        tmp.kinforDesc     = &kinforDesc;
+        tmp.ksizeDesc      = &ksizeDesc;
 
         tmp.output_grad       = output_grad;
         tmp.input_grad        = input_grad;
         tmp.stride            = stride;
         tmp.padding           = padding;
-        tmp.kinfor            = kinfor;
+        tmp.ksize             = ksize;
         tmp.count_include_pad = count_include_pad;
         tmp.divisor_override  = divisor_override;
 

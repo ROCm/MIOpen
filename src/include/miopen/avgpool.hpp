@@ -43,8 +43,8 @@ MIOPEN_INTERNALS_EXPORT miopenStatus_t AvgPoolForward(Handle& handle,
                                                       ConstData_t stride,
                                                       const TensorDescriptor& paddingDesc,
                                                       ConstData_t padding,
-                                                      const TensorDescriptor& kinforDesc,
-                                                      ConstData_t kinfor,
+                                                      const TensorDescriptor& ksizeDesc,
+                                                      ConstData_t ksize,
                                                       bool count_include_pad,
                                                       int32_t divisor_override);
 
@@ -57,8 +57,8 @@ MIOPEN_INTERNALS_EXPORT miopenStatus_t AvgPoolBackward(Handle& handle,
                                                        ConstData_t stride,
                                                        const TensorDescriptor& paddingDesc,
                                                        ConstData_t padding,
-                                                       const TensorDescriptor& kinforDesc,
-                                                       ConstData_t kinfor,
+                                                       const TensorDescriptor& ksizeDesc,
+                                                       ConstData_t ksize,
                                                        bool count_include_pad,
                                                        int32_t divisor_override);
 } // namespace miopen

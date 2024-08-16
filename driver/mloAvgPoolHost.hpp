@@ -40,7 +40,7 @@ int32_t mloAvgPoolForward2dRunHost(const miopenTensorDescriptor_t inputDesc,
                                    size_t W,
                                    size_t OH,
                                    size_t OW,
-                                   const int32_t* kinfor,
+                                   const int32_t* ksize,
                                    const int32_t* stride,
                                    const int32_t* padding,
                                    bool count_include_pad,
@@ -57,8 +57,8 @@ int32_t mloAvgPoolForward2dRunHost(const miopenTensorDescriptor_t inputDesc,
         int32_t ncoh = gid / OW, ow = gid % OW;
         int32_t nc = ncoh / OH, oh = ncoh % OH;
         int32_t n = nc / C, c = nc % C;
-        int32_t R  = kinfor[0];
-        int32_t S  = kinfor[1];
+        int32_t R  = ksize[0];
+        int32_t S  = ksize[1];
         int32_t sh = stride[0];
         int32_t sw = stride[1];
         int32_t ph = padding[0];
@@ -134,7 +134,7 @@ int32_t mloAvgPoolForward3dRunHost(const miopenTensorDescriptor_t inputDesc,
                                    size_t OD,
                                    size_t OH,
                                    size_t OW,
-                                   const int32_t* kinfor,
+                                   const int32_t* ksize,
                                    const int32_t* stride,
                                    const int32_t* padding,
                                    bool count_include_pad,
@@ -152,9 +152,9 @@ int32_t mloAvgPoolForward3dRunHost(const miopenTensorDescriptor_t inputDesc,
         int32_t ncod = ncodoh / OH, oh = ncodoh % OH;
         int32_t nc = ncod / OD, od = ncod % OD;
         int32_t n = nc / C, c = nc % C;
-        int32_t KD = kinfor[0];
-        int32_t R  = kinfor[1];
-        int32_t S  = kinfor[2];
+        int32_t KD = ksize[0];
+        int32_t R  = ksize[1];
+        int32_t S  = ksize[2];
         int32_t sd = stride[0];
         int32_t sh = stride[1];
         int32_t sw = stride[2];
@@ -236,7 +236,7 @@ int32_t mloAvgPoolBackward2dRunHost(const miopenTensorDescriptor_t outputGradDes
                                     size_t W,
                                     size_t OH,
                                     size_t OW,
-                                    const int32_t* kinfor,
+                                    const int32_t* ksize,
                                     const int32_t* stride,
                                     const int32_t* padding,
                                     bool count_include_pad,
@@ -253,8 +253,8 @@ int32_t mloAvgPoolBackward2dRunHost(const miopenTensorDescriptor_t outputGradDes
         int32_t nch = gid / W, w = gid % W;
         int32_t nc = nch / H, h = nch % H;
         int32_t n = nc / C, c = nc % C;
-        int32_t R  = kinfor[0];
-        int32_t S  = kinfor[1];
+        int32_t R  = ksize[0];
+        int32_t S  = ksize[1];
         int32_t sh = stride[0];
         int32_t sw = stride[1];
         int32_t ph = padding[0];
@@ -334,7 +334,7 @@ int32_t mloAvgPoolBackward3dRunHost(const miopenTensorDescriptor_t outputGradDes
                                     size_t OD,
                                     size_t OH,
                                     size_t OW,
-                                    const int32_t* kinfor,
+                                    const int32_t* ksize,
                                     const int32_t* stride,
                                     const int32_t* padding,
                                     bool count_include_pad,
@@ -352,9 +352,9 @@ int32_t mloAvgPoolBackward3dRunHost(const miopenTensorDescriptor_t outputGradDes
         int32_t ncd = ncdh / H, h = ncdh % H;
         int32_t nc = ncd / D, d = ncd % D;
         int32_t n = nc / C, c = nc % C;
-        int32_t KD = kinfor[0];
-        int32_t R  = kinfor[1];
-        int32_t S  = kinfor[2];
+        int32_t KD = ksize[0];
+        int32_t R  = ksize[1];
+        int32_t S  = ksize[2];
         int32_t sd = stride[0];
         int32_t sh = stride[1];
         int32_t sw = stride[2];

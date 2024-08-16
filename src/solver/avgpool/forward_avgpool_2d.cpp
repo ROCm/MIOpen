@@ -36,7 +36,7 @@
 #include <miopen/avgpool.hpp>
 #include <miopen/target_properties.hpp>
 
-#define LOCAL_SIZE_FWD_2D 1024
+#define LOCAL_SIZE_FWD_2D 256
 
 namespace miopen {
 
@@ -44,10 +44,46 @@ namespace solver {
 
 namespace avgpool {
 
+bool IsOverRocm(const miopen::avgpool::FwdProblemDescription& problem)
+{
+    auto dtype      = problem.GetOutputDesc().GetType();
+    auto in_nelems  = problem.GetInputDesc().GetElementSize();
+    auto out_nelems = problem.GetOutputDesc().GetElementSize();
+    auto mul_nc = problem.GetOutputDesc().GetLengths()[0] * problem.GetOutputDesc().GetLengths()[1];
+    auto in_over_out = static_cast<float>(in_nelems) / out_nelems;
+
+    if(dtype == miopenFloat)
+    {
+        if(in_over_out > 11 || (in_over_out < 2 && mul_nc >= 12288))
+        {
+            return true;
+        }
+    }
+    else if(dtype == miopenHalf)
+    {
+        if(in_over_out > 11 || (in_over_out < 2 && mul_nc < 90000))
+        {
+            return true;
+        }
+    }
+    else if(dtype == miopenBFloat16)
+    {
+        if(in_over_out >= 1024 || in_over_out < 2 || out_nelems >= 6000000)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
 bool AvgPoolForward2d::IsApplicable(const ExecutionContext& context,
                                     const miopen::avgpool::FwdProblemDescription& problem) const
 {
     if(problem.GetInputDesc().GetNumDims() != 4 || problem.GetOutputDesc().GetNumDims() != 4)
+    {
+        return false;
+    }
+    if(!IsOverRocm(problem))
     {
         return false;
     }
@@ -101,7 +137,7 @@ AvgPoolForward2d::GetSolution(const ExecutionContext& context,
                    W,
                    OH,
                    OW,
-                   params.kinfor,
+                   params.ksize,
                    params.stride,
                    params.padding,
                    params.count_include_pad,
