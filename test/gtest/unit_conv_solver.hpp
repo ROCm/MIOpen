@@ -130,6 +130,10 @@ using GPU_UnitTestConvSolver_fwd_FP32 = UnitTestConvSolverFwd;
 using GPU_UnitTestConvSolver_bwd_FP32 = UnitTestConvSolverBwd;
 using GPU_UnitTestConvSolver_wrw_FP32 = UnitTestConvSolverWrw;
 
+using GPU_UnitTestConvSolver_fwd_I8 = UnitTestConvSolverFwd;
+using GPU_UnitTestConvSolver_bwd_I8 = UnitTestConvSolverBwd;
+using GPU_UnitTestConvSolver_wrw_I8 = UnitTestConvSolverWrw;
+
 //************************************************************************************
 // This test is designed to detect the expansion of the solver's device applicability
 //************************************************************************************
