@@ -144,7 +144,8 @@ miopenDataType_t ConvTestCase::GetYDataType() const { return type_y; }
 
 miopen::ConvolutionDescriptor ConvTestCase::GetConv() const
 {
-    return miopen::ConvolutionDescriptor{pad, stride, dilation};
+    const auto trans_output_pads = std::vector<int>(pad.size(), 0);
+    return miopen::ConvolutionDescriptor{pad, stride, dilation, trans_output_pads};
 }
 
 std::ostream& operator<<(std::ostream& os, const ConvTestCase& tc)

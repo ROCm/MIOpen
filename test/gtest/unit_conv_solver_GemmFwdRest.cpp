@@ -43,6 +43,22 @@ auto GetConvTestCases(miopenDataType_t datatype)
     };
 }
 
+auto GetConvTestCasesFull(miopenDataType_t datatype)
+{
+    using TestCase = ConvTestCase;
+
+    auto type_x = datatype;
+    auto type_w = datatype;
+    auto type_y = (datatype == miopenInt8) ? miopenInt32 : datatype;
+
+    return std::vector{
+        // clang-format off
+        // Regression test for: MIOpenIm3d2Col stuck with ROCm update, https://github.com/ROCm/MIOpen/issues/2047
+        TestCase{{1, 1, 2, 1, 2}, {2, 1, 2, 1, 2}, {0, 0, 0}, {1, 1, 1}, {1, 1, 1}, type_x, type_w, type_y},
+        // clang-format on
+    };
+}
+
 Gpu GetSupportedDevices()
 {
     return Gpu::gfx900 | Gpu::gfx906 | Gpu::gfx908 | Gpu::gfx90A | Gpu::gfx94X | Gpu::gfx103X |
@@ -106,3 +122,28 @@ INSTANTIATE_TEST_SUITE_P(Smoke,
                          CPU_UnitTestConvSolverDevApplicability_fwd_FP32,
                          testing::Combine(testing::Values(GetSupportedDevices()),
                                           testing::Values(GetConvTestCases(miopenFloat)[0])));
+
+// Full tests
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_UnitTestConvSolver_fwd_FP16,
+                         testing::Combine(testing::Values(GetSupportedDevices()),
+                                          testing::Values(miopenConvolutionAlgoGEMM),
+                                          testing::ValuesIn(GetConvTestCasesFull(miopenHalf))));
+
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_UnitTestConvSolver_fwd_BF16,
+                         testing::Combine(testing::Values(GetSupportedDevices()),
+                                          testing::Values(miopenConvolutionAlgoGEMM),
+                                          testing::ValuesIn(GetConvTestCasesFull(miopenBFloat16))));
+
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_UnitTestConvSolver_fwd_FP32,
+                         testing::Combine(testing::Values(GetSupportedDevices()),
+                                          testing::Values(miopenConvolutionAlgoGEMM),
+                                          testing::ValuesIn(GetConvTestCasesFull(miopenFloat))));
+
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_UnitTestConvSolver_fwd_I8,
+                         testing::Combine(testing::Values(GetSupportedDevices()),
+                                          testing::Values(miopenConvolutionAlgoGEMM),
+                                          testing::ValuesIn(GetConvTestCasesFull(miopenInt8))));
