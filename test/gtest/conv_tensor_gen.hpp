@@ -135,7 +135,7 @@ struct GenConvData
         else
         {
             constexpr T max_v = std::numeric_limits<T>::max();
-            B = (tmp_B >= max_v) ? max_v : tmp_B;
+            B                 = (tmp_B >= max_v) ? max_v : tmp_B;
         }
 
         if constexpr(!is_integral)
