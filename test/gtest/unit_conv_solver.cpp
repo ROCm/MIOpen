@@ -213,8 +213,8 @@ void RunSolverFwd(const miopen::solver::conv::ConvSolverBase& solv,
 
     auto input   = tensor<Tin>{conv_config.GetXDims()};
     auto weights = tensor<Twei>{conv_config.GetWDims()};
-    input.generate(GenConvData<Tin>{conv_config.GetWDims()});
-    weights.generate(GenConvData<Twei>{conv_config.GetWDims()});
+    input.generate(GenConvData<Tin, Tout>{conv_config.GetWDims()});
+    weights.generate(GenConvData<Twei, Tout>{conv_config.GetWDims()});
 
     const auto conv_desc = conv_config.GetConv();
 
@@ -321,7 +321,7 @@ void RunSolverBwd(const miopen::solver::conv::ConvSolverBase& solv,
 
     auto input   = tensor<Tin>{conv_config.GetXDims()};
     auto weights = tensor<Twei>{conv_config.GetWDims()};
-    weights.generate(GenConvData<Twei>{conv_config.GetWDims()});
+    weights.generate(GenConvData<Twei, Tin>{conv_config.GetWDims()});
 
     const auto conv_desc = conv_config.GetConv();
 
@@ -329,7 +329,7 @@ void RunSolverBwd(const miopen::solver::conv::ConvSolverBase& solv,
         conv_desc.GetForwardOutputTensor(input.desc, weights.desc, miopen_type<Tout>{});
 
     auto output = tensor<Tout>{output_desc.GetLengths()};
-    output.generate(GenConvData<Tout>{conv_config.GetWDims()});
+    output.generate(GenConvData<Tout, Tin>{conv_config.GetWDims()});
 
     std::fill(input.begin(), input.end(), Tin());
 
@@ -430,7 +430,7 @@ void RunSolverWrw(const miopen::solver::conv::ConvSolverBase& solv,
 
     auto input   = tensor<Tin>{conv_config.GetXDims()};
     auto weights = tensor<Twei>{conv_config.GetWDims()};
-    input.generate(GenConvData<Tin>{conv_config.GetWDims()});
+    input.generate(GenConvData<Tin, Twei>{conv_config.GetWDims()});
 
     const auto conv_desc = conv_config.GetConv();
 
@@ -438,7 +438,7 @@ void RunSolverWrw(const miopen::solver::conv::ConvSolverBase& solv,
         conv_desc.GetForwardOutputTensor(input.desc, weights.desc, miopen_type<Tout>{});
 
     auto output = tensor<Tout>{output_desc.GetLengths()};
-    output.generate(GenConvData<Tout>{conv_config.GetWDims()});
+    output.generate(GenConvData<Tout, Twei>{conv_config.GetWDims()});
 
     std::fill(weights.begin(), weights.end(), Twei());
 

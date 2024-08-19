@@ -103,28 +103,42 @@ struct GenWeights
     }
 };
 
-template <typename T>
+template <typename T, typename Tacc>
 struct GenConvData
 {
     GenConvData(const std::vector<std::size_t>& filter)
     {
+        static_assert(std::is_integral_v<T> == std::is_integral_v<Tacc>);
+        static_assert(sizeof(Tacc) >= sizeof(T));
+
+        constexpr auto is_integral = std::is_integral_v<T>;
+
         // Multiply all dimensions except K to get the number of additions
         const auto num_add = std::accumulate(filter.cbegin() + 1,
                                              filter.cend(),
                                              static_cast<std::size_t>(1),
                                              std::multiplies<std::size_t>());
 
-        constexpr auto max_v = std::numeric_limits<T>::max();
-
-        if constexpr(std::is_integral_v<T>)
+        constexpr auto max_acc_v = std::numeric_limits<Tacc>::max();
+        if constexpr(is_integral)
         {
-            // "B" must not be < 1
-            if(num_add >= max_v)
+            // "B" must be > 0
+            if(num_add >= max_acc_v)
                 throw std::runtime_error("filter is too big");
         }
-        B = std::sqrt(max_v / (num_add + 1));
+        const auto tmp_B = static_cast<Tacc>(std::sqrt(max_acc_v / (num_add + 1)));
 
-        if constexpr(!std::is_integral_v<T>)
+        if constexpr(std::is_same_v<T, Tacc>)
+        {
+            B = tmp_B;
+        }
+        else
+        {
+            constexpr T max_v = std::numeric_limits<T>::max();
+            B = (tmp_B >= max_v) ? max_v : tmp_B;
+        }
+
+        if constexpr(!is_integral)
         {
             // Limit the range of FP
             constexpr auto limit = static_cast<float>(std::numeric_limits<uint32_t>::max());
