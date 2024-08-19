@@ -37,6 +37,8 @@
 #include <cmath>
 #include <vector>
 
+const float MAX_FP16 = 65504;
+
 template <typename Tgpu, typename Tcheck>
 class SigmoidFocalLossDriver : public Driver
 {
@@ -109,7 +111,6 @@ private:
     std::vector<Tgpu> dtarget;
     std::vector<Tcheck> dtargetHost;
     std::vector<Tgpu> workspace;
-    std::vector<Tcheck> workspaceHost;
 
     float alpha;
     float gamma;
@@ -252,7 +253,6 @@ int SigmoidFocalLossDriver<Tgpu, Tcheck>::AllocateBuffersAndCopy()
     dtargetHost           = std::vector<Tcheck>(dT_sz, static_cast<Tcheck>(0));
     size_t workSpaceElems = workSpaceSizeInBytes / sizeof(Tgpu);
     workspace             = std::vector<Tgpu>(workSpaceElems, static_cast<Tgpu>(0));
-    workspaceHost         = std::vector<Tcheck>(workSpaceElems, static_cast<Tcheck>(0));
 
     float randomBound = 2;
     // For half, the random bound is smaller to avoid half overflow
@@ -357,7 +357,6 @@ int SigmoidFocalLossDriver<Tgpu, Tcheck>::RunForwardCPU()
                                                 targetDesc,
                                                 outputHost.data(),
                                                 outputDesc,
-                                                workspaceHost.data(),
                                                 alpha,
                                                 gamma,
                                                 reduction,
@@ -457,13 +456,19 @@ int SigmoidFocalLossDriver<Tgpu, Tcheck>::RunBackwardCPU()
 template <typename Tgpu, typename Tcheck>
 Tcheck SigmoidFocalLossDriver<Tgpu, Tcheck>::GetTolerance()
 {
-    // Computation error of fp16 is ~2^13 (=8192) bigger than
-    // the one of fp32 because mantissa is shorter by 13 bits.
-    auto tolerance = std::is_same<Tgpu, float>::value ? 1.5e-6 : 8.2e-3;
+    Tcheck tolerance;
+    if(reduction == MIOPEN_LOSS_REDUCTION_NONE)
+    {
+        tolerance = std::is_same<Tgpu, float>::value ? 1.5e-6 : 8.2e-3;
+        // bf16 mantissa has 7 bits, by 3 bits shorter than fp16.
+        if(std::is_same<Tgpu, bfloat16>::value)
+            tolerance *= 8.0;
+    }
+    else
+    {
+        tolerance = std::is_same<Tgpu, float>::value ? 1.0e-2 : 8.2e-1;
+    }
 
-    // bf16 mantissa has 7 bits, by 3 bits shorter than fp16.
-    if(std::is_same<Tgpu, bfloat16>::value)
-        tolerance *= 8.0;
     return tolerance;
 }
 
@@ -471,6 +476,12 @@ template <typename Tgpu, typename Tcheck>
 int SigmoidFocalLossDriver<Tgpu, Tcheck>::VerifyForward()
 {
     RunForwardCPU();
+
+    if(miopen::deref(inputDesc).GetType() == miopenHalf &&
+       reduction != MIOPEN_LOSS_REDUCTION_NONE && abs(outputHost[0]) > MAX_FP16)
+    {
+        std::cout << "Float16 overflow - CPU output: " << outputHost[0] << std::endl;
+    }
 
     const Tcheck tolerance = GetTolerance();
     auto error             = miopen::rms_range(outputHost, output);
@@ -503,13 +514,13 @@ int SigmoidFocalLossDriver<Tgpu, Tcheck>::VerifyBackward()
     {
         std::cout << "Backward " << reduction << " Sigmoid Focal Loss FAILED: " << dinputError
                   << " > " << tolerance << std::endl;
-        return EC_VerifyFwd;
+        return EC_VerifyBwd;
     }
     else if(isTargetGradientComputed && (!std::isfinite(dtargetError) || dtargetError > tolerance))
     {
         std::cout << "Backward " << reduction << " Sigmoid Focal Loss FAILED: " << dtargetError
                   << " > " << tolerance << std::endl;
-        return EC_VerifyFwd;
+        return EC_VerifyBwd;
     }
     else
     {

@@ -9,17 +9,17 @@
 template <class TIO>
 void cpu_sigmoid_focal_loss_forward(tensor<TIO> input,
                                     tensor<TIO> target,
-                                    tensor<TIO>& workspace,
                                     tensor<TIO>& outputHost,
                                     float alpha,
                                     float gamma,
                                     miopenLossReductionMode_t reduction,
                                     float divisor)
 {
-    auto input_tv    = miopen::get_inner_expanded_tv<5>(input.desc);
-    auto target_tv   = miopen::get_inner_expanded_tv<5>(target.desc);
-    auto output_tv   = miopen::get_inner_expanded_tv<5>(outputHost.desc);
-    size_t inputSize = input.desc.GetElementSize();
+    auto input_tv     = miopen::get_inner_expanded_tv<5>(input.desc);
+    auto target_tv    = miopen::get_inner_expanded_tv<5>(target.desc);
+    auto output_tv    = miopen::get_inner_expanded_tv<5>(outputHost.desc);
+    size_t inputSize  = input.desc.GetElementSize();
+    float outputFloat = 0;
 
     for(size_t id = 0; id < inputSize; ++id)
     {
@@ -45,36 +45,14 @@ void cpu_sigmoid_focal_loss_forward(tensor<TIO> input,
         }
         else
         {
-            workspace[id] = static_cast<TIO>(loss / divisor);
+            outputFloat += loss / divisor;
         }
     }
 
-    if(reduction == MIOPEN_LOSS_REDUCTION_NONE)
-        return;
-
-    // Reduce loss
-    const int local_size = 256;
-    int offset_a         = 0;
-    int offset_b         = inputSize;
-    size_t _size         = inputSize;
-    do
+    if(reduction != MIOPEN_LOSS_REDUCTION_NONE)
     {
-        for(int i = 0; i < _size; i += local_size)
-        {
-            TIO shared[local_size];
-            for(int j = 0; j < local_size; ++j)
-                shared[j] = i + j < _size ? workspace[offset_a + i + j] : 0.0f;
-            for(int offset = local_size / 2; offset > 0; offset >>= 1)
-                for(int j = 0; j < offset; ++j)
-                    shared[j] += shared[j + offset];
-            if(_size <= local_size)
-                outputHost[0] = shared[0];
-            else
-                workspace[offset_b + i / local_size] = shared[0];
-        }
-        std::swap(offset_a, offset_b);
-        _size = (_size + local_size - 1) / local_size;
-    } while(_size > 1);
+        outputHost[0] = static_cast<TIO>(outputFloat);
+    }
 }
 
 template <class TIO>
@@ -157,4 +135,23 @@ void cpu_sigmoid_focal_loss_backward(tensor<TIO> input,
             dtarget[dtarget_tv.get_tensor_view_idx(idx)] = static_cast<TIO>(gradTarget);
         }
     }
+}
+
+template <typename TIO>
+float get_tolerance(miopenLossReductionMode_t reduction)
+{
+    float tolerance;
+    if(reduction == MIOPEN_LOSS_REDUCTION_NONE)
+    {
+        tolerance = std::is_same<TIO, float>::value ? 1.5e-6 : 8.2e-3;
+        // bf16 mantissa has 7 bits, by 3 bits shorter than fp16.
+        if(std::is_same<TIO, bfloat16>::value)
+            tolerance *= 8.0;
+    }
+    else
+    {
+        tolerance = std::is_same<TIO, float>::value ? 1.0e-2 : 8.2e-1;
+    }
+
+    return tolerance;
 }

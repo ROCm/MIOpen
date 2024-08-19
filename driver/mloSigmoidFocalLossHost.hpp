@@ -8,7 +8,6 @@ void mloSigmoidFocalLossFwdRunHost(Tgpu* input,
                                    miopenTensorDescriptor_t targetDesc,
                                    Tcheck* outputHost,
                                    miopenTensorDescriptor_t outputDesc,
-                                   Tcheck* workspaceHost,
                                    float alpha,
                                    float gamma,
                                    miopenLossReductionMode_t reduction,
@@ -43,36 +42,9 @@ void mloSigmoidFocalLossFwdRunHost(Tgpu* input,
         }
         else
         {
-            workspaceHost[id] = static_cast<Tcheck>(loss / divisor);
+            outputHost[0] += static_cast<Tcheck>(loss / divisor);
         }
     }
-
-    if(reduction == MIOPEN_LOSS_REDUCTION_NONE)
-        return;
-
-    // Reduce loss
-    const int local_size = 256;
-    int offset_a         = 0;
-    int offset_b         = inputSize;
-    size_t _size         = inputSize;
-    do
-    {
-        for(int i = 0; i < _size; i += local_size)
-        {
-            Tcheck shared[local_size];
-            for(int j = 0; j < local_size; ++j)
-                shared[j] = i + j < _size ? workspaceHost[offset_a + i + j] : 0.0f;
-            for(int offset = local_size / 2; offset > 0; offset >>= 1)
-                for(int j = 0; j < offset; ++j)
-                    shared[j] += shared[j + offset];
-            if(_size <= local_size)
-                outputHost[0] = shared[0];
-            else
-                workspaceHost[offset_b + i / local_size] = shared[0];
-        }
-        std::swap(offset_a, offset_b);
-        _size = (_size + local_size - 1) / local_size;
-    } while(_size > 1);
 }
 
 template <typename Tgpu, typename Tcheck>

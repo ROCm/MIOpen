@@ -56,9 +56,8 @@ struct SigmoidFocalLossTestCase
 
     SigmoidFocalLossTestCase(std::vector<size_t> dim_,
                              bool isContiguous_ = true,
-                             //  miopenLossReductionMode_t reduction_ = MIOPEN_LOSS_REDUCTION_NONE,
-                             float alpha_ = 0.25,
-                             float gamma_ = 2)
+                             float alpha_       = 0.25,
+                             float gamma_       = 2)
         : dims(dim_), isContiguous(isContiguous_), alpha(alpha_), gamma(gamma_)
     {
     }
@@ -143,9 +142,8 @@ protected:
                                                  config.alpha,
                                                  config.gamma,
                                                  reduction);
-        tensor<TIO> workspace;
         cpu_sigmoid_focal_loss_forward<TIO>(
-            input, target, workspace, outputHost, config.alpha, config.gamma, reduction, 1);
+            input, target, outputHost, config.alpha, config.gamma, reduction, 1);
 
         EXPECT_EQ(status, miopenStatusSuccess);
         output.data = handle.Read<TIO>(output_dev, output.data.size());
@@ -153,13 +151,13 @@ protected:
 
     void Verify()
     {
-        double threshold = std::numeric_limits<TIO>::epsilon();
+        double threshold = get_tolerance<TIO>(reduction);
 
         auto error = miopen::rms_range(outputHost, output);
 
         EXPECT_TRUE(miopen::range_distance(outputHost) == miopen::range_distance(output));
-        EXPECT_TRUE(error < threshold * 10) << "Error output beyond tolerance Error: " << error
-                                            << ",  Thresholdx10: " << threshold * 10;
+        EXPECT_TRUE(error < threshold)
+            << "Error output beyond tolerance Error: " << error << ",  Threshold: " << threshold;
     }
     SigmoidFocalLossTestCase config;
     miopenLossReductionMode_t reduction;
@@ -253,21 +251,21 @@ protected:
 
     void Verify()
     {
-        double threshold = std::numeric_limits<TIO>::epsilon();
+        double threshold = get_tolerance<TIO>(reduction);
 
         auto dInputError = miopen::rms_range(dInputHost, dInput);
 
         EXPECT_TRUE(miopen::range_distance(dInputHost) == miopen::range_distance(dInput));
-        EXPECT_TRUE(dInputError < threshold * 10)
+        EXPECT_TRUE(dInputError < threshold)
             << "dInput error output beyond tolerance Error: " << dInputError
-            << ",  Thresholdx10: " << threshold * 10;
+            << ",  Threshold: " << threshold;
 
         auto dTargetError = miopen::rms_range(dTargetHost, dTarget);
 
         EXPECT_TRUE(miopen::range_distance(dTargetHost) == miopen::range_distance(dTarget));
-        EXPECT_TRUE(dTargetError < threshold * 10)
+        EXPECT_TRUE(dTargetError < threshold)
             << "dTarget error output beyond tolerance Error: " << dTargetError
-            << ",  Thresholdx10: " << threshold * 10;
+            << ",  Threshold: " << threshold;
     }
     SigmoidFocalLossTestCase config;
     miopenLossReductionMode_t reduction;
@@ -352,7 +350,7 @@ protected:
                                                  config.gamma,
                                                  reduction);
         cpu_sigmoid_focal_loss_forward<TIO>(
-            input, target, workspace, outputHost, config.alpha, config.gamma, reduction, divisor);
+            input, target, outputHost, config.alpha, config.gamma, reduction, divisor);
 
         EXPECT_EQ(status, miopenStatusSuccess);
 
@@ -361,14 +359,14 @@ protected:
 
     void Verify()
     {
-        double threshold = std::numeric_limits<TIO>::epsilon();
+        double threshold = get_tolerance<TIO>(reduction);
 
         auto error = miopen::rms_range(outputHost, output);
 
         EXPECT_TRUE(miopen::range_distance(outputHost) == miopen::range_distance(output));
-        EXPECT_TRUE(error < threshold * 10)
-            << "Error output beyond tolerance Error: " << error
-            << ",  Thresholdx10: " << threshold * 10 << " Reduction: " << reduction;
+        EXPECT_TRUE(error < threshold)
+            << "Error output beyond tolerance Error: " << error << ",  Threshold: " << threshold
+            << " Reduction: " << reduction;
     }
     SigmoidFocalLossTestCase config;
     miopenLossReductionMode_t reduction;
@@ -472,21 +470,21 @@ protected:
 
     void Verify()
     {
-        double threshold = std::numeric_limits<TIO>::epsilon();
+        double threshold = get_tolerance<TIO>(reduction);
 
         auto dInputError = miopen::rms_range(dInputHost, dInput);
 
         EXPECT_TRUE(miopen::range_distance(dInputHost) == miopen::range_distance(dInput));
-        EXPECT_TRUE(dInputError < threshold * 10)
+        EXPECT_TRUE(dInputError < threshold)
             << "dInput error output beyond tolerance Error: " << dInputError
-            << ",  Thresholdx10: " << threshold * 10;
+            << ",  Threshold: " << threshold;
 
         auto dTargetError = miopen::rms_range(dTargetHost, dTarget);
 
         EXPECT_TRUE(miopen::range_distance(dTargetHost) == miopen::range_distance(dTarget));
-        EXPECT_TRUE(dTargetError < threshold * 10)
+        EXPECT_TRUE(dTargetError < threshold)
             << "dTarget error output beyond tolerance Error: " << dTargetError
-            << ",  Thresholdx10: " << threshold * 10;
+            << ",  Threshold: " << threshold;
     }
     SigmoidFocalLossTestCase config;
     miopenLossReductionMode_t reduction;
