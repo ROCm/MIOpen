@@ -7636,12 +7636,6 @@ MIOPEN_EXPORT miopenStatus_t miopenGetitemBackward(miopenHandle_t handle,
  * @param input                    Data tensor input (input)
  * @param outputDesc               Tensor descriptor for output tensor (input)
  * @param output                   Data tensor output (output)
- * @param strideDesc               Tensor descriptor for stride tensor (input)
- * @param stride                   Data tensor stride (output)
- * @param paddingDesc              Tensor descriptor for padding tensor (input)
- * @param padding                  Data tensor padding (output)
- * @param ksizeDesc               Tensor descriptor for ksize tensor (input)
- * @param ksize                   Data tensor ksize (output)
  * @param count_include_pad        When True, will include the zero-padding in the averaging
  * calculation (input)
  * @param divisor_override         If non-zero, will use this value as the divisor, otherwise will
@@ -7653,12 +7647,15 @@ MIOPEN_EXPORT miopenStatus_t miopenAvgPoolForward(miopenHandle_t handle,
                                                   const void* input,
                                                   const miopenTensorDescriptor_t outputDesc,
                                                   void* output,
-                                                  const miopenTensorDescriptor_t strideDesc,
-                                                  const void* stride,
-                                                  const miopenTensorDescriptor_t paddingDesc,
-                                                  const void* padding,
-                                                  const miopenTensorDescriptor_t ksizeDesc,
-                                                  const void* ksize,
+                                                  const int32_t KD,
+                                                  const int32_t KH,
+                                                  const int32_t KW,
+                                                  const int32_t SD,
+                                                  const int32_t SH,
+                                                  const int32_t SW,
+                                                  const int32_t PD,
+                                                  const int32_t PH,
+                                                  const int32_t PW,
                                                   const bool count_include_pad,
                                                   const int32_t divisor_override);
 
@@ -7669,12 +7666,6 @@ MIOPEN_EXPORT miopenStatus_t miopenAvgPoolForward(miopenHandle_t handle,
  * @param output_grad              Data tensor output grad (input)
  * @param inputGradDesc            Tensor descriptor for input grad tensor (input)
  * @param input_grad               Data tensor input grad (output)
- * @param strideDesc               Tensor descriptor for stride tensor (input)
- * @param stride                   Data tensor stride (output)
- * @param paddingDesc              Tensor descriptor for padding tensor (input)
- * @param padding                  Data tensor padding (output)
- * @param ksizeDesc               Tensor descriptor for ksize tensor (input)
- * @param ksize                   Data tensor ksize (output)
  * @param count_include_pad        When True, will include the zero-padding in the averaging
  * calculation (input)
  * @param divisor_override         If non-zero, will use this value as the divisor, otherwise will
@@ -7686,12 +7677,15 @@ MIOPEN_EXPORT miopenStatus_t miopenAvgPoolBackward(miopenHandle_t handle,
                                                    const void* output_grad,
                                                    const miopenTensorDescriptor_t inputGradDesc,
                                                    void* input_grad,
-                                                   const miopenTensorDescriptor_t strideDesc,
-                                                   const void* stride,
-                                                   const miopenTensorDescriptor_t paddingDesc,
-                                                   const void* padding,
-                                                   const miopenTensorDescriptor_t ksizeDesc,
-                                                   const void* ksize,
+                                                   const int32_t KD,
+                                                   const int32_t KH,
+                                                   const int32_t KW,
+                                                   const int32_t SD,
+                                                   const int32_t SH,
+                                                   const int32_t SW,
+                                                   const int32_t PD,
+                                                   const int32_t PH,
+                                                   const int32_t PW,
                                                    const bool count_include_pad,
                                                    const int32_t divisor_override);
 /** @} */

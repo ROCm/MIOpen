@@ -43,6 +43,38 @@ namespace solver {
 
 namespace avgpool {
 
+bool IsOverRocm(const miopen::avgpool::FwdProblemDescription& problem)
+{
+    auto dtype      = problem.GetOutputDesc().GetType();
+    auto in_nelems  = problem.GetInputDesc().GetElementSize();
+    auto out_nelems = problem.GetOutputDesc().GetElementSize();
+    auto mul_nc = problem.GetOutputDesc().GetLengths()[0] * problem.GetOutputDesc().GetLengths()[1];
+    auto in_over_out = static_cast<float>(in_nelems) / out_nelems;
+
+    if(dtype == miopenFloat)
+    {
+        if(in_over_out < 8 || in_over_out >= 262144)
+        {
+            return true;
+        }
+    }
+    else if(dtype == miopenHalf)
+    {
+        if(in_nelems >= 201326592 || (in_over_out < 2 && mul_nc < 8192))
+        {
+            return true;
+        }
+    }
+    else if(dtype == miopenBFloat16)
+    {
+        if((out_nelems >= 5971968 && in_over_out < 2) || out_nelems >= 74088000)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
 bool AvgPoolForward3d::IsApplicable(const ExecutionContext& context,
                                     const miopen::avgpool::FwdProblemDescription& problem) const
 {
@@ -50,6 +82,10 @@ bool AvgPoolForward3d::IsApplicable(const ExecutionContext& context,
     {
         return false;
     }
+    // if(!IsOverRocm(problem))
+    // {
+    //     return false;
+    // }
     return true;
 }
 
@@ -104,9 +140,15 @@ AvgPoolForward3d::GetSolution(const ExecutionContext& context,
                    OD,
                    OH,
                    OW,
-                   params.ksize,
-                   params.stride,
-                   params.padding,
+                   params.KD,
+                   params.KH,
+                   params.KW,
+                   params.SD,
+                   params.SH,
+                   params.SW,
+                   params.PD,
+                   params.PH,
+                   params.PW,
                    params.count_include_pad,
                    params.divisor_override,
                    input_tv,

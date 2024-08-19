@@ -38,18 +38,22 @@ struct FwdInvokeParams : public miopen::InvokeParams
 
     FwdInvokeParams() = default;
 
-    const TensorDescriptor* inputDesc   = nullptr;
-    const TensorDescriptor* outputDesc  = nullptr;
-    const TensorDescriptor* strideDesc  = nullptr;
-    const TensorDescriptor* paddingDesc = nullptr;
-    const TensorDescriptor* ksizeDesc   = nullptr;
+    const TensorDescriptor* inputDesc  = nullptr;
+    const TensorDescriptor* outputDesc = nullptr;
 
-    ConstData_t input   = nullptr;
-    Data_t output       = nullptr;
-    ConstData_t stride  = nullptr;
-    ConstData_t padding = nullptr;
-    ConstData_t ksize   = nullptr;
+    ConstData_t input = nullptr;
+    Data_t output     = nullptr;
+    ConstData_t ksize = nullptr;
 
+    int32_t KD               = 0;
+    int32_t KH               = 0;
+    int32_t KW               = 0;
+    int32_t SD               = 0;
+    int32_t SH               = 0;
+    int32_t SW               = 0;
+    int32_t PD               = 0;
+    int32_t PH               = 0;
+    int32_t PW               = 0;
     bool count_include_pad   = false;
     int32_t divisor_override = 0;
 
@@ -64,16 +68,20 @@ struct BwdInvokeParams : public miopen::InvokeParams
 
     const TensorDescriptor* outputGradDesc = nullptr;
     const TensorDescriptor* inputGradDesc  = nullptr;
-    const TensorDescriptor* strideDesc     = nullptr;
-    const TensorDescriptor* paddingDesc    = nullptr;
-    const TensorDescriptor* ksizeDesc      = nullptr;
 
     ConstData_t output_grad = nullptr;
     Data_t input_grad       = nullptr;
-    ConstData_t stride      = nullptr;
-    ConstData_t padding     = nullptr;
     ConstData_t ksize       = nullptr;
 
+    int32_t KD               = 0;
+    int32_t KH               = 0;
+    int32_t KW               = 0;
+    int32_t SD               = 0;
+    int32_t SH               = 0;
+    int32_t SW               = 0;
+    int32_t PD               = 0;
+    int32_t PH               = 0;
+    int32_t PW               = 0;
     bool count_include_pad   = false;
     int32_t divisor_override = 0;
 

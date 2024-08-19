@@ -38,16 +38,8 @@ namespace avgpool {
 
 struct ProblemDescription : ProblemDescriptionBase
 {
-    ProblemDescription(const TensorDescriptor& strideDesc_,
-                       const TensorDescriptor& paddingDesc_,
-                       const TensorDescriptor& kinforDesc_,
-                       const bool count_include_pad_,
-                       const int32_t divisor_override_)
-        : strideDesc(strideDesc_),
-          paddingDesc(paddingDesc_),
-          kinforDesc(kinforDesc_),
-          count_include_pad(count_include_pad_),
-          divisor_override(divisor_override_)
+    ProblemDescription(const bool count_include_pad_, const int32_t divisor_override_)
+        : count_include_pad(count_include_pad_), divisor_override(divisor_override_)
     {
         if(divisor_override < 0)
         {
@@ -56,10 +48,6 @@ struct ProblemDescription : ProblemDescriptionBase
     }
 
 protected:
-    TensorDescriptor strideDesc;
-    TensorDescriptor paddingDesc;
-    TensorDescriptor kinforDesc;
-
     bool count_include_pad;
     int32_t divisor_override;
 };
@@ -68,13 +56,9 @@ struct FwdProblemDescription : ProblemDescription
 {
     FwdProblemDescription(const TensorDescriptor& inputDesc_,
                           const TensorDescriptor& outputDesc_,
-                          const TensorDescriptor& strideDesc_,
-                          const TensorDescriptor& paddingDesc_,
-                          const TensorDescriptor& kinforDesc_,
                           const bool count_include_pad_,
                           const int32_t divisor_override_)
-        : ProblemDescription(
-              strideDesc_, paddingDesc_, kinforDesc_, count_include_pad_, divisor_override_),
+        : ProblemDescription(count_include_pad_, divisor_override_),
           inputDesc(inputDesc_),
           outputDesc(outputDesc_)
     {
@@ -95,14 +79,6 @@ struct FwdProblemDescription : ProblemDescription
             MIOPEN_THROW(miopenStatusBadParm,
                          "AvgPool: Input and output tensor sizes do not match.");
         }
-        if(input_dims - 2 != strideDesc.GetElementSize() ||
-           input_dims - 2 != paddingDesc.GetElementSize() ||
-           input_dims - 2 != kinforDesc.GetElementSize())
-        {
-            MIOPEN_THROW(miopenStatusBadParm,
-                         "AvgPool: Input tensor sizes and Kernel size or stride "
-                         "or padding do not match.");
-        }
 
         return true;
     }
@@ -118,13 +94,9 @@ struct BwdProblemDescription : ProblemDescription
 {
     BwdProblemDescription(const TensorDescriptor& outputGradDesc_,
                           const TensorDescriptor& inputGradDesc_,
-                          const TensorDescriptor& strideDesc_,
-                          const TensorDescriptor& paddingDesc_,
-                          const TensorDescriptor& kinforDesc_,
                           const bool count_include_pad_,
                           const int32_t divisor_override_)
-        : ProblemDescription(
-              strideDesc_, paddingDesc_, kinforDesc_, count_include_pad_, divisor_override_),
+        : ProblemDescription(count_include_pad_, divisor_override_),
           outputGradDesc(outputGradDesc_),
           inputGradDesc(inputGradDesc_)
     {
@@ -144,14 +116,6 @@ struct BwdProblemDescription : ProblemDescription
         {
             MIOPEN_THROW(miopenStatusBadParm,
                          "AvgPool: Input grad and output grad tensor sizes do not match.");
-        }
-        if(input_dims - 2 != strideDesc.GetElementSize() ||
-           input_dims - 2 != paddingDesc.GetElementSize() ||
-           input_dims - 2 != kinforDesc.GetElementSize())
-        {
-            MIOPEN_THROW(miopenStatusBadParm,
-                         "AvgPool: Input grad tensor sizes and Kernel size or stride or padding do "
-                         "not match.");
         }
 
         return true;

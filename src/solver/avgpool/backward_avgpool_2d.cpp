@@ -81,10 +81,10 @@ bool AvgPoolBackward2d::IsApplicable(const ExecutionContext& context,
     {
         return false;
     }
-    if(!IsOverRocm(problem))
-    {
-        return false;
-    }
+    // if(!IsOverRocm(problem))
+    // {
+    //     return false;
+    // }
     return true;
 }
 
@@ -135,9 +135,12 @@ AvgPoolBackward2d::GetSolution(const ExecutionContext& context,
                    W,
                    OH,
                    OW,
-                   params.ksize,
-                   params.stride,
-                   params.padding,
+                   params.KH,
+                   params.KW,
+                   params.SH,
+                   params.SW,
+                   params.PH,
+                   params.PW,
                    params.count_include_pad,
                    params.divisor_override,
                    output_grad_tv,

@@ -52,9 +52,6 @@ public:
         miopenCreateTensorDescriptor(&outputDesc);
         miopenCreateTensorDescriptor(&inputGradDesc);
         miopenCreateTensorDescriptor(&outputGradDesc);
-        miopenCreateTensorDescriptor(&ksizeDesc);
-        miopenCreateTensorDescriptor(&strideDesc);
-        miopenCreateTensorDescriptor(&paddingDesc);
 
         data_type = miopen_type<Tgpu>{};
     }
@@ -83,9 +80,6 @@ public:
         miopenDestroyTensorDescriptor(outputDesc);
         miopenDestroyTensorDescriptor(inputGradDesc);
         miopenDestroyTensorDescriptor(outputGradDesc);
-        miopenDestroyTensorDescriptor(ksizeDesc);
-        miopenDestroyTensorDescriptor(strideDesc);
-        miopenDestroyTensorDescriptor(paddingDesc);
     }
 
 private:
@@ -97,17 +91,11 @@ private:
     miopenTensorDescriptor_t outputDesc;
     miopenTensorDescriptor_t inputGradDesc;
     miopenTensorDescriptor_t outputGradDesc;
-    miopenTensorDescriptor_t ksizeDesc;
-    miopenTensorDescriptor_t strideDesc;
-    miopenTensorDescriptor_t paddingDesc;
 
     std::unique_ptr<GPUMem> input_dev;
     std::unique_ptr<GPUMem> output_dev;
     std::unique_ptr<GPUMem> input_grad_dev;
     std::unique_ptr<GPUMem> output_grad_dev;
-    std::unique_ptr<GPUMem> ksize_dev;
-    std::unique_ptr<GPUMem> stride_dev;
-    std::unique_ptr<GPUMem> padding_dev;
 
     std::vector<Tgpu> input;
     std::vector<Tgpu> output;
@@ -172,29 +160,29 @@ std::vector<int> AvgPoolDriver<Tgpu, Tref>::GetInputTensorDimsFromCmd(const char
 template <typename Tgpu, typename Tref>
 int AvgPoolDriver<Tgpu, Tref>::GetandSetData()
 {
-    in_dim                   = GetInputTensorDimsFromCmd("input_dims");
-    std::vector<int> ksp_dim = {in_dim.size() - 2};
-    ksize                    = GetInputTensorDimsFromCmd("kernel_size");
-    stride                   = GetInputTensorDimsFromCmd("stride");
-    padding                  = GetInputTensorDimsFromCmd("padding");
+    in_dim      = GetInputTensorDimsFromCmd("input_dims");
+    int ksp_dim = in_dim.size() - 2;
+    ksize       = GetInputTensorDimsFromCmd("kernel_size");
+    stride      = GetInputTensorDimsFromCmd("stride");
+    padding     = GetInputTensorDimsFromCmd("padding");
 
-    if(ksize.size() != ksp_dim[0])
+    if(ksize.size() != ksp_dim)
     {
-        int ref = ksp_dim[0] - ksize.size();
-        while(ref--)
-            ksize.push_back(1);
+        int ref = ksp_dim - ksize.size();
+        while((ref--) != 0)
+            ksize.push_back(ksize[0]);
     }
-    if(stride.size() != ksp_dim[0])
+    if(stride.size() != ksp_dim)
     {
-        int ref = ksp_dim[0] - ksize.size();
-        while(ref--)
-            stride.push_back(1);
+        int ref = ksp_dim - stride.size();
+        while((ref--) != 0)
+            stride.push_back(stride[0]);
     }
-    if(padding.size() != ksp_dim[0])
+    if(padding.size() != ksp_dim)
     {
-        int ref = ksp_dim[0] - ksize.size();
-        while(ref--)
-            padding.push_back(0);
+        int ref = ksp_dim - padding.size();
+        while((ref--) != 0)
+            padding.push_back(padding[0]);
     }
 
     ceil_mode         = static_cast<bool>(inflags.GetValueInt("ceil_mode"));
@@ -242,9 +230,6 @@ int AvgPoolDriver<Tgpu, Tref>::GetandSetData()
     SetTensorNd(outputDesc, out_dim, data_type);
     SetTensorNd(outputGradDesc, out_dim, data_type);
     SetTensorNd(inputGradDesc, in_dim, data_type);
-    SetTensorNd(ksizeDesc, ksp_dim, miopen_type<int32_t>{});
-    SetTensorNd(strideDesc, ksp_dim, miopen_type<int32_t>{});
-    SetTensorNd(paddingDesc, ksp_dim, miopen_type<int32_t>{});
 
     return miopenStatusSuccess;
 }
@@ -301,11 +286,8 @@ int AvgPoolDriver<Tgpu, Tref>::AddCmdLineArgs()
 template <typename Tgpu, typename Tref>
 int AvgPoolDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 {
-    size_t input_sz   = GetTensorSize(inputDesc);
-    size_t output_sz  = GetTensorSize(outputDesc);
-    size_t ksize_sz   = GetTensorSize(ksizeDesc);
-    size_t stride_sz  = GetTensorSize(strideDesc);
-    size_t padding_sz = GetTensorSize(paddingDesc);
+    size_t input_sz  = GetTensorSize(inputDesc);
+    size_t output_sz = GetTensorSize(outputDesc);
 
     uint32_t ctx = 0;
 
@@ -313,9 +295,6 @@ int AvgPoolDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     output_dev      = std::unique_ptr<GPUMem>(new GPUMem(ctx, output_sz, sizeof(Tgpu)));
     input_grad_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, input_sz, sizeof(Tgpu)));
     output_grad_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, output_sz, sizeof(Tgpu)));
-    ksize_dev       = std::unique_ptr<GPUMem>(new GPUMem(ctx, ksize_sz, sizeof(int32_t)));
-    stride_dev      = std::unique_ptr<GPUMem>(new GPUMem(ctx, stride_sz, sizeof(int32_t)));
-    padding_dev     = std::unique_ptr<GPUMem>(new GPUMem(ctx, padding_sz, sizeof(int32_t)));
 
     input       = std::vector<Tgpu>(input_sz, static_cast<Tgpu>(0));
     output      = std::vector<Tgpu>(output_sz, static_cast<Tgpu>(0));
@@ -343,12 +322,6 @@ int AvgPoolDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     }
     status |= output_grad_dev->ToGPU(q, output_grad.data());
 
-    status |= ksize_dev->ToGPU(q, ksize.data());
-
-    status |= stride_dev->ToGPU(q, stride.data());
-
-    status |= padding_dev->ToGPU(q, padding.data());
-
     if(status != 0)
         std::cout << "Error copying data to GPU\n" << std::endl;
 
@@ -371,12 +344,15 @@ int AvgPoolDriver<Tgpu, Tref>::RunForwardGPU()
                              input_dev->GetMem(),
                              outputDesc,
                              output_dev->GetMem(),
-                             strideDesc,
-                             stride_dev->GetMem(),
-                             paddingDesc,
-                             padding_dev->GetMem(),
-                             ksizeDesc,
-                             ksize_dev->GetMem(),
+                             ksize.size() == 3 ? ksize[0] : 0,
+                             ksize.size() == 3 ? ksize[1] : ksize[0],
+                             ksize.size() == 3 ? ksize[2] : ksize[1],
+                             stride.size() == 3 ? stride[0] : 0,
+                             stride.size() == 3 ? stride[1] : stride[0],
+                             stride.size() == 3 ? stride[2] : stride[1],
+                             padding.size() == 3 ? padding[0] : 0,
+                             padding.size() == 3 ? padding[1] : padding[0],
+                             padding.size() == 3 ? padding[2] : padding[1],
                              count_include_pad,
                              divisor_override);
 
@@ -464,12 +440,15 @@ int AvgPoolDriver<Tgpu, Tref>::RunBackwardGPU()
                               output_grad_dev->GetMem(),
                               inputGradDesc,
                               input_grad_dev->GetMem(),
-                              strideDesc,
-                              stride_dev->GetMem(),
-                              paddingDesc,
-                              padding_dev->GetMem(),
-                              ksizeDesc,
-                              ksize_dev->GetMem(),
+                              ksize.size() == 3 ? ksize[0] : 0,
+                              ksize.size() == 3 ? ksize[1] : ksize[0],
+                              ksize.size() == 3 ? ksize[2] : ksize[1],
+                              stride.size() == 3 ? stride[0] : 0,
+                              stride.size() == 3 ? stride[1] : stride[0],
+                              stride.size() == 3 ? stride[2] : stride[1],
+                              padding.size() == 3 ? padding[0] : 0,
+                              padding.size() == 3 ? padding[1] : padding[0],
+                              padding.size() == 3 ? padding[2] : padding[1],
                               count_include_pad,
                               divisor_override);
 

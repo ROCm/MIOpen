@@ -40,27 +40,6 @@
 #define OUTPUT_TYPE float
 #endif
 
-// template <typename T, uint32_t Nd>
-// struct blockNd
-// {
-//     T val[Nd];
-// };
-
-// template <typename TI, typename TO, uint32_t Nd>
-// __device__ void avgPoolForwardNdNew(const TI* __restrict__ input,
-//                                     TO* __restrict__ output,
-//                                     size_t N,
-//                                     size_t C,
-//                                     const blockNd<size_t, Nd> sizeIn,
-//                                     const blockNd<size_t, Nd> sizeOut,
-//                                     const blockNd<int32_t, Nd> ksize,
-//                                     const blockNd<int32_t, Nd> stride,
-//                                     const blockNd<int32_t, Nd> padding,
-//                                     bool count_include_pad,
-//                                     int32_t divisor_override,
-//                                     tensor_view_t<Nd + 2> input_tv,
-//                                     tensor_view_t<Nd + 2> output_tv);
-
 template <typename TI, typename TO>
 __device__ void avgPoolForward2d(const TI* __restrict__ input,
                                  TO* __restrict__ output,
@@ -70,9 +49,12 @@ __device__ void avgPoolForward2d(const TI* __restrict__ input,
                                  size_t W,
                                  size_t OH,
                                  size_t OW,
-                                 const int32_t* __restrict__ ksize,
-                                 const int32_t* __restrict__ stride,
-                                 const int32_t* __restrict__ padding,
+                                 int32_t R,
+                                 int32_t S,
+                                 int32_t sh,
+                                 int32_t sw,
+                                 int32_t ph,
+                                 int32_t pw,
                                  bool count_include_pad,
                                  int32_t divisor_override,
                                  tensor_view_t<4> input_tv,
@@ -82,19 +64,15 @@ __device__ void avgPoolForward2d(const TI* __restrict__ input,
     int32_t ncoh = gid / OW, ow = gid % OW;
     int32_t nc = ncoh / OH, oh = ncoh % OH;
     int32_t n = nc / C, c = nc % C;
-    int32_t R  = ksize[0];
-    int32_t S  = ksize[1];
-    int32_t sh = stride[0];
-    int32_t sw = stride[1];
-    int32_t ph = padding[0];
-    int32_t pw = padding[1];
 
     if(n >= N)
         return;
 
     FLOAT_ACCUM m = 0;
+#pragma unroll
     for(int32_t r = 0; r < R; ++r)
     {
+#pragma unroll
         for(int32_t s = 0; s < S; ++s)
         {
             // input idx : (n, c, h, w)
@@ -151,9 +129,12 @@ extern "C" __global__ void AvgPoolForward2d(const INPUT_TYPE* __restrict__ input
                                             size_t W,
                                             size_t OH,
                                             size_t OW,
-                                            int32_t* ksize,
-                                            int32_t* stride,
-                                            int32_t* padding,
+                                            int32_t R,
+                                            int32_t S,
+                                            int32_t sh,
+                                            int32_t sw,
+                                            int32_t ph,
+                                            int32_t pw,
                                             bool count_include_pad,
                                             int32_t divisor_override,
                                             tensor_view_t<4> input_tv,
@@ -167,9 +148,12 @@ extern "C" __global__ void AvgPoolForward2d(const INPUT_TYPE* __restrict__ input
                                               W,
                                               OH,
                                               OW,
-                                              ksize,
-                                              stride,
-                                              padding,
+                                              R,
+                                              S,
+                                              sh,
+                                              sw,
+                                              ph,
+                                              pw,
                                               count_include_pad,
                                               divisor_override,
                                               input_tv,
@@ -187,9 +171,15 @@ __device__ void avgPoolForward3d(const TI* __restrict__ input,
                                  size_t OD,
                                  size_t OH,
                                  size_t OW,
-                                 int32_t* ksize,
-                                 int32_t* stride,
-                                 int32_t* padding,
+                                 int32_t KD,
+                                 int32_t R,
+                                 int32_t S,
+                                 int32_t sd,
+                                 int32_t sh,
+                                 int32_t sw,
+                                 int32_t pd,
+                                 int32_t ph,
+                                 int32_t pw,
                                  bool count_include_pad,
                                  int32_t divisor_override,
                                  tensor_view_t<5> input_tv,
@@ -200,19 +190,11 @@ __device__ void avgPoolForward3d(const TI* __restrict__ input,
     int32_t ncod = ncodoh / OH, oh = ncodoh % OH;
     int32_t nc = ncod / OD, od = ncod % OD;
     int32_t n = nc / C, c = nc % C;
-    int32_t KD = ksize[0];
-    int32_t R  = ksize[1];
-    int32_t S  = ksize[2];
-    int32_t sd = stride[0];
-    int32_t sh = stride[1];
-    int32_t sw = stride[2];
-    int32_t pd = padding[0];
-    int32_t ph = padding[1];
-    int32_t pw = padding[2];
 
     if(n >= N)
         return;
     FLOAT_ACCUM sum = 0;
+#pragma unroll
     for(int32_t kd = 0; kd < KD; ++kd)
     {
         for(int32_t r = 0; r < R; ++r)
@@ -281,9 +263,15 @@ extern "C" __global__ void AvgPoolForward3d(const INPUT_TYPE* __restrict__ input
                                             size_t OD,
                                             size_t OH,
                                             size_t OW,
-                                            int32_t* ksize,
-                                            int32_t* stride,
-                                            int32_t* padding,
+                                            int32_t KD,
+                                            int32_t R,
+                                            int32_t S,
+                                            int32_t sd,
+                                            int32_t sh,
+                                            int32_t sw,
+                                            int32_t pd,
+                                            int32_t ph,
+                                            int32_t pw,
                                             bool count_include_pad,
                                             int32_t divisor_override,
                                             tensor_view_t<5> input_tv,
@@ -299,9 +287,15 @@ extern "C" __global__ void AvgPoolForward3d(const INPUT_TYPE* __restrict__ input
                                               OD,
                                               OH,
                                               OW,
-                                              ksize,
-                                              stride,
-                                              padding,
+                                              KD,
+                                              R,
+                                              S,
+                                              sd,
+                                              sh,
+                                              sw,
+                                              pd,
+                                              ph,
+                                              pw,
                                               count_include_pad,
                                               divisor_override,
                                               input_tv,
@@ -317,9 +311,12 @@ __device__ void avgPoolBackward2d(const TI* __restrict__ output_grad,
                                   size_t W,
                                   size_t OH,
                                   size_t OW,
-                                  int32_t* ksize,
-                                  int32_t* stride,
-                                  int32_t* padding,
+                                  int32_t R,
+                                  int32_t S,
+                                  int32_t sh,
+                                  int32_t sw,
+                                  int32_t ph,
+                                  int32_t pw,
                                   bool count_include_pad,
                                   int32_t divisor_override,
                                   tensor_view_t<4> output_grad_tv,
@@ -329,19 +326,15 @@ __device__ void avgPoolBackward2d(const TI* __restrict__ output_grad,
     int32_t nch = gid / W, w = gid % W;
     int32_t nc = nch / H, h = nch % H;
     int32_t n = nc / C, c = nc % C;
-    int32_t R  = ksize[0];
-    int32_t S  = ksize[1];
-    int32_t sh = stride[0];
-    int32_t sw = stride[1];
-    int32_t ph = padding[0];
-    int32_t pw = padding[1];
 
     if(n >= N)
         return;
 
     FLOAT_ACCUM grad = 0;
+#pragma unroll
     for(int32_t r = 0; r < R; ++r)
     {
+#pragma unroll
         for(int32_t s = 0; s < S; ++s)
         {
             int32_t ohsh = h + ph - r;
@@ -403,9 +396,12 @@ extern "C" __global__ void AvgPoolBackward2d(const INPUT_TYPE* __restrict__ outp
                                              size_t W,
                                              size_t OH,
                                              size_t OW,
-                                             int32_t* ksize,
-                                             int32_t* stride,
-                                             int32_t* padding,
+                                             int32_t R,
+                                             int32_t S,
+                                             int32_t sh,
+                                             int32_t sw,
+                                             int32_t ph,
+                                             int32_t pw,
                                              bool count_include_pad,
                                              int32_t divisor_override,
                                              tensor_view_t<4> output_grad_tv,
@@ -419,9 +415,12 @@ extern "C" __global__ void AvgPoolBackward2d(const INPUT_TYPE* __restrict__ outp
                                                W,
                                                OH,
                                                OW,
-                                               ksize,
-                                               stride,
-                                               padding,
+                                               R,
+                                               S,
+                                               sh,
+                                               sw,
+                                               ph,
+                                               pw,
                                                count_include_pad,
                                                divisor_override,
                                                output_grad_tv,
@@ -439,9 +438,15 @@ __device__ void avgPoolBackward3d(const TI* __restrict__ output_grad,
                                   size_t OD,
                                   size_t OH,
                                   size_t OW,
-                                  int32_t* ksize,
-                                  int32_t* stride,
-                                  int32_t* padding,
+                                  int32_t KD,
+                                  int32_t R,
+                                  int32_t S,
+                                  int32_t sd,
+                                  int32_t sh,
+                                  int32_t sw,
+                                  int32_t pd,
+                                  int32_t ph,
+                                  int32_t pw,
                                   bool count_include_pad,
                                   int32_t divisor_override,
                                   tensor_view_t<5> output_grad_tv,
@@ -452,20 +457,12 @@ __device__ void avgPoolBackward3d(const TI* __restrict__ output_grad,
     int32_t ncd = ncdh / H, h = ncdh % H;
     int32_t nc = ncd / D, d = ncd % D;
     int32_t n = nc / C, c = nc % C;
-    int32_t KD = ksize[0];
-    int32_t R  = ksize[1];
-    int32_t S  = ksize[2];
-    int32_t sd = stride[0];
-    int32_t sh = stride[1];
-    int32_t sw = stride[2];
-    int32_t pd = padding[0];
-    int32_t ph = padding[1];
-    int32_t pw = padding[2];
 
     if(n >= N)
         return;
 
     FLOAT_ACCUM grad = 0;
+#pragma unroll
     for(int32_t kd = 0; kd < KD; ++kd)
     {
         for(int32_t r = 0; r < R; ++r)
@@ -543,9 +540,15 @@ extern "C" __global__ void AvgPoolBackward3d(const INPUT_TYPE* __restrict__ outp
                                              size_t OD,
                                              size_t OH,
                                              size_t OW,
-                                             int32_t* ksize,
-                                             int32_t* stride,
-                                             int32_t* padding,
+                                             int32_t KD,
+                                             int32_t R,
+                                             int32_t S,
+                                             int32_t sd,
+                                             int32_t sh,
+                                             int32_t sw,
+                                             int32_t pd,
+                                             int32_t ph,
+                                             int32_t pw,
                                              bool count_include_pad,
                                              int32_t divisor_override,
                                              tensor_view_t<5> output_grad_tv,
@@ -561,9 +564,15 @@ extern "C" __global__ void AvgPoolBackward3d(const INPUT_TYPE* __restrict__ outp
                                                OD,
                                                OH,
                                                OW,
-                                               ksize,
-                                               stride,
-                                               padding,
+                                               KD,
+                                               R,
+                                               S,
+                                               sd,
+                                               sh,
+                                               sw,
+                                               pd,
+                                               ph,
+                                               pw,
                                                count_include_pad,
                                                divisor_override,
                                                output_grad_tv,

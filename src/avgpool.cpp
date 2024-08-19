@@ -38,36 +38,37 @@ miopenStatus_t AvgPoolForward(Handle& handle,
                               ConstData_t input,
                               const TensorDescriptor& outputDesc,
                               Data_t output,
-                              const TensorDescriptor& strideDesc,
-                              ConstData_t stride,
-                              const TensorDescriptor& paddingDesc,
-                              ConstData_t padding,
-                              const TensorDescriptor& ksizeDesc,
-                              ConstData_t ksize,
+                              const int32_t KD,
+                              const int32_t KH,
+                              const int32_t KW,
+                              const int32_t SD,
+                              const int32_t SH,
+                              const int32_t SW,
+                              const int32_t PD,
+                              const int32_t PH,
+                              const int32_t PW,
                               const bool count_include_pad,
                               const int32_t divisor_override)
 {
-    const auto problem = avgpool::FwdProblemDescription{inputDesc,
-                                                        outputDesc,
-                                                        strideDesc,
-                                                        paddingDesc,
-                                                        ksizeDesc,
-                                                        count_include_pad,
-                                                        divisor_override};
+    const auto problem =
+        avgpool::FwdProblemDescription{inputDesc, outputDesc, count_include_pad, divisor_override};
 
     const auto invoke_params = [&]() {
-        auto tmp        = avgpool::FwdInvokeParams{};
-        tmp.inputDesc   = &inputDesc;
-        tmp.outputDesc  = &outputDesc;
-        tmp.strideDesc  = &strideDesc;
-        tmp.paddingDesc = &paddingDesc;
-        tmp.ksizeDesc   = &ksizeDesc;
+        auto tmp       = avgpool::FwdInvokeParams{};
+        tmp.inputDesc  = &inputDesc;
+        tmp.outputDesc = &outputDesc;
 
         tmp.input             = input;
         tmp.output            = output;
-        tmp.stride            = stride;
-        tmp.padding           = padding;
-        tmp.ksize             = ksize;
+        tmp.KD                = KD;
+        tmp.KH                = KH;
+        tmp.KW                = KW;
+        tmp.SD                = SD;
+        tmp.SH                = SH;
+        tmp.SW                = SW;
+        tmp.PD                = PD;
+        tmp.PH                = PH;
+        tmp.PW                = PW;
         tmp.count_include_pad = count_include_pad;
         tmp.divisor_override  = divisor_override;
 
@@ -87,36 +88,37 @@ miopenStatus_t AvgPoolBackward(Handle& handle,
                                ConstData_t output_grad,
                                const TensorDescriptor& inputGradDesc,
                                Data_t input_grad,
-                               const TensorDescriptor& strideDesc,
-                               ConstData_t stride,
-                               const TensorDescriptor& paddingDesc,
-                               ConstData_t padding,
-                               const TensorDescriptor& ksizeDesc,
-                               ConstData_t ksize,
+                               const int32_t KD,
+                               const int32_t KH,
+                               const int32_t KW,
+                               const int32_t SD,
+                               const int32_t SH,
+                               const int32_t SW,
+                               const int32_t PD,
+                               const int32_t PH,
+                               const int32_t PW,
                                const bool count_include_pad,
                                const int32_t divisor_override)
 {
-    const auto problem = avgpool::BwdProblemDescription{outputGradDesc,
-                                                        inputGradDesc,
-                                                        strideDesc,
-                                                        paddingDesc,
-                                                        ksizeDesc,
-                                                        count_include_pad,
-                                                        divisor_override};
+    const auto problem = avgpool::BwdProblemDescription{
+        outputGradDesc, inputGradDesc, count_include_pad, divisor_override};
 
     const auto invoke_params = [&]() {
         auto tmp           = avgpool::BwdInvokeParams{};
         tmp.outputGradDesc = &outputGradDesc;
         tmp.inputGradDesc  = &inputGradDesc;
-        tmp.strideDesc     = &strideDesc;
-        tmp.paddingDesc    = &paddingDesc;
-        tmp.ksizeDesc      = &ksizeDesc;
 
         tmp.output_grad       = output_grad;
         tmp.input_grad        = input_grad;
-        tmp.stride            = stride;
-        tmp.padding           = padding;
-        tmp.ksize             = ksize;
+        tmp.KD                = KD;
+        tmp.KH                = KH;
+        tmp.KW                = KW;
+        tmp.SD                = SD;
+        tmp.SH                = SH;
+        tmp.SW                = SW;
+        tmp.PD                = PD;
+        tmp.PH                = PH;
+        tmp.PW                = PW;
         tmp.count_include_pad = count_include_pad;
         tmp.divisor_override  = divisor_override;
 

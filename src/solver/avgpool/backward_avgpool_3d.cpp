@@ -43,6 +43,42 @@ namespace solver {
 
 namespace avgpool {
 
+bool IsOverRocm(const miopen::avgpool::BwdProblemDescription& problem)
+{
+    auto dtype      = problem.GetInputGradDesc().GetType();
+    auto in_nelems  = problem.GetInputGradDesc().GetElementSize();
+    auto out_nelems = problem.GetOutputGradDesc().GetElementSize();
+    auto mul_nc =
+        problem.GetOutputGradDesc().GetLengths()[0] * problem.GetOutputGradDesc().GetLengths()[1];
+    auto in_over_out = static_cast<float>(in_nelems) / out_nelems;
+
+    if(dtype == miopenFloat)
+    {
+        if((in_over_out < 8 && in_over_out > 1) || (in_over_out < 2 && in_nelems <= 5971968))
+        {
+            return true;
+        }
+        return false;
+    }
+    else if(dtype == miopenHalf)
+    {
+        if((in_over_out < 2 && mul_nc < 8192) ||
+           (8 > in_over_out && in_over_out > 7 && out_nelems >= 32401152))
+        {
+            return true;
+        }
+    }
+    else if(dtype == miopenBFloat16)
+    {
+        if((7 < in_over_out && in_over_out < 8 && in_nelems >= 944111616) ||
+           (in_over_out < 2 && in_nelems >= 4194304))
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
 bool AvgPoolBackward3d::IsApplicable(const ExecutionContext& context,
                                      const miopen::avgpool::BwdProblemDescription& problem) const
 {
@@ -51,6 +87,10 @@ bool AvgPoolBackward3d::IsApplicable(const ExecutionContext& context,
     {
         return false;
     }
+    // if(!IsOverRocm(problem))
+    // {
+    //     return false;
+    // }
     return true;
 }
 
@@ -105,9 +145,15 @@ AvgPoolBackward3d::GetSolution(const ExecutionContext& context,
                    OD,
                    OH,
                    OW,
-                   params.ksize,
-                   params.stride,
-                   params.padding,
+                   params.KD,
+                   params.KH,
+                   params.KW,
+                   params.SD,
+                   params.SH,
+                   params.SW,
+                   params.PD,
+                   params.PH,
+                   params.PW,
                    params.count_include_pad,
                    params.divisor_override,
                    output_grad_tv,
