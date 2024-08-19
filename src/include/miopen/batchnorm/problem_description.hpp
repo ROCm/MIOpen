@@ -73,11 +73,11 @@ struct MIOPEN_INTERNALS_EXPORT ProblemDescription : ProblemDescriptionBase, Prob
           resultsave(resultsave_),
           resultrunning(resultrunning_)
     {
-        in_layout  = xDesc.GetLayout(xDesc.GetLengths().size() == 4 ? "NCHW" : "NCDHW");
-        out_layout = yOrDyDesc.GetLayout(yOrDyDesc.GetLengths().size() == 4 ? "NCHW" : "NCDHW");
+        in_layout  = ComputeInLayout();
+        out_layout = ComputeOutLayout();
     }
 
-    // Forward
+    // Forward Inference
     ProblemDescription(miopenBatchNormMode_t bn_mode_,
                        const TensorDescriptor& xDesc_,
                        const TensorDescriptor& yDesc_,
@@ -90,8 +90,8 @@ struct MIOPEN_INTERNALS_EXPORT ProblemDescription : ProblemDescriptionBase, Prob
           scaleBiasDesc(bnScaleBiasMeanVarDesc_),
           epsilon(epsilon_)
     {
-        in_layout  = xDesc.GetLayout(xDesc.GetLengths().size() == 4 ? "NCHW" : "NCDHW");
-        out_layout = yOrDyDesc.GetLayout(yOrDyDesc.GetLengths().size() == 4 ? "NCHW" : "NCDHW");
+        in_layout  = ComputeInLayout();
+        out_layout = ComputeOutLayout();
     }
 
     // Backward
@@ -111,9 +111,9 @@ struct MIOPEN_INTERNALS_EXPORT ProblemDescription : ProblemDescriptionBase, Prob
           epsilon(epsilon_),
           useSaved(useSaved_)
     {
-        in_layout  = xDesc.GetLayout(xDesc.GetLengths().size() == 4 ? "NCHW" : "NCDHW");
-        out_layout = yOrDyDesc.GetLayout(yOrDyDesc.GetLengths().size() == 4 ? "NCHW" : "NCDHW");
-        din_layout = dxDesc.GetLayout(dxDesc.GetLengths().size() == 4 ? "NCHW" : "NCDHW");
+        in_layout  = ComputeInLayout();
+        out_layout = ComputeOutLayout();
+        din_layout = ComputeDinLayout();
     }
 
     Direction GetDirection() const { return direction; }
@@ -199,8 +199,8 @@ struct MIOPEN_INTERNALS_EXPORT ProblemDescription : ProblemDescriptionBase, Prob
 private:
     Direction direction;
     miopenBatchNormMode_t bn_mode;
-    TensorDescriptor xDesc;
-    TensorDescriptor yOrDyDesc;
+    TensorDescriptor xDesc;     // input
+    TensorDescriptor yOrDyDesc; // output
     TensorDescriptor dxDesc;
     TensorDescriptor scaleBiasDesc;
 
@@ -222,10 +222,47 @@ private:
     std::string in_layout  = "NCHW";
     std::string out_layout = "NCHW";
     std::string din_layout = "NCHW";
+    int spatial_dim        = 2;
 
     NetworkConfig MakeForwardTrainingNetworkConfig() const;
     NetworkConfig MakeForwardInferenceNetworkConfig() const;
     NetworkConfig MakeBackwardNetworkConfig() const;
+
+    std::string ComputeInLayout() const
+    {
+        if(spatial_dim == 2)
+        {
+            return xDesc.GetLayout("NCHW");
+        }
+        else
+        {
+            return xDesc.GetLayout("NCDHW");
+        }
+    }
+
+    std::string ComputeOutLayout() const
+    {
+        if(spatial_dim == 2)
+        {
+            return yOrDyDesc.GetLayout("NCHW");
+        }
+        else
+        {
+            return yOrDyDesc.GetLayout("NCDHW");
+        }
+    }
+
+    std::string ComputeDinLayout() const
+    {
+        if(spatial_dim == 2)
+        {
+            return dxDesc.GetLayout("NCHW");
+        }
+        else
+        {
+            return dxDesc.GetLayout("NCDHW");
+        }
+    }
 };
 
 } // namespace batchnorm
