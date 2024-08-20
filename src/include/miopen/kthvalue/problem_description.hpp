@@ -54,7 +54,7 @@ struct FwdProblemDescription : ProblemDescriptionBase
             MIOPEN_THROW(miopenStatusBadParm,
                          "Kthvalue: selected number k out of range for dimension");
         }
-        if(dim < 0 || dim >= inputDesc.GetSize())
+        if(dim < 0 || dim >= inputDesc.GetNumDims())
         {
             MIOPEN_THROW(miopenStatusBadParm, "Kthvalue: dim doesn't not exist");
         }
@@ -79,11 +79,11 @@ struct FwdProblemDescription : ProblemDescriptionBase
         if(inputDesc.GetLengths().size() == 1)
             return true;
 
-        if(keepDim && inputDesc.GetSize() != outputDesc.GetSize())
+        if(keepDim && inputDesc.GetNumDims() != outputDesc.GetNumDims())
         {
             return false;
         }
-        if(!keepDim && inputDesc.GetSize() != outputDesc.GetSize() + 1)
+        if(!keepDim && inputDesc.GetNumDims() != outputDesc.GetNumDims() + 1)
         {
             return false;
         }

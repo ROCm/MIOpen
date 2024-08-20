@@ -38,7 +38,7 @@ NetworkConfig FwdProblemDescription::MakeNetworkConfig() const
     auto size        = inputDesc.GetElementSize();
     auto dim_size    = inputDesc.GetLengths()[dim];
     auto dim_stride  = inputDesc.GetStrides()[dim];
-    int dim_num      = inputDesc.GetSize();
+    int dim_num      = inputDesc.GetNumDims();
     auto output_size = size / dim_size;
 
     std::ostringstream ss;

@@ -54,7 +54,7 @@ bool KthvalueFwd::IsApplicable(const ExecutionContext& /*context*/,
 {
     if(!IsImprovementOverROCm(problem))
         return false;
-    if(problem.GetInputDesc().GetSize() > 5)
+    if(problem.GetInputDesc().GetNumDims() > 5)
         return false;
     return true;
 }

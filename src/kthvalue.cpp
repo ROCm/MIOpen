@@ -47,7 +47,7 @@ miopenStatus_t KthvalueForward(Handle& handle,
 {
     if(dim < 0)
     {
-        dim += inputDesc.GetSize();
+        dim += inputDesc.GetNumDims();
     }
 
     const auto problem =

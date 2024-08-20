@@ -36,12 +36,21 @@ namespace kthvalue {
 
 std::string GetFloatArg()
 {
-    const auto& tmp = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
+    const auto& tmp = env::value(MIOPEN_TEST_FLOAT_ARG);
     if(tmp.empty())
     {
         return "";
     }
     return tmp;
+}
+
+bool CheckFloatArg(std::string arg)
+{
+    if(!MIOPEN_TEST_ALL || (env::enabled(MIOPEN_TEST_ALL) && GetFloatArg() == arg))
+    {
+        return true;
+    }
+    return false;
 }
 
 struct KthvalueForwardTestFloat32 : KthvalueFwdTest<float>
@@ -60,8 +69,7 @@ using namespace kthvalue;
 
 TEST_P(KthvalueForwardTestFloat32, KthvalueForwardTest)
 {
-    if(miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
-       (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float")))
+    if(CheckFloatArg("--float"))
     {
         RunTest();
         Verify();
@@ -74,8 +82,7 @@ TEST_P(KthvalueForwardTestFloat32, KthvalueForwardTest)
 
 TEST_P(KthvalueForwardTestFloat16, KthvalueForwardTest)
 {
-    if(miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
-       (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--half")))
+    if(CheckFloatArg("--half"))
     {
         RunTest();
         Verify();
@@ -88,8 +95,7 @@ TEST_P(KthvalueForwardTestFloat16, KthvalueForwardTest)
 
 TEST_P(KthvalueForwardTestBFloat16, KthvalueForwardTest)
 {
-    if(miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
-       (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--bfloat16")))
+    if(CheckFloatArg("--bfloat16"))
     {
         RunTest();
         Verify();
