@@ -106,7 +106,7 @@ struct GenWeights
 template <typename T, typename Tacc>
 struct GenConvData
 {
-    GenConvData(const std::vector<std::size_t>& filter)
+    GenConvData(const std::vector<std::size_t>& filter, unsigned group_count = 1)
     {
         static_assert(std::is_integral_v<T> == std::is_integral_v<Tacc>);
         static_assert(sizeof(Tacc) >= sizeof(T));
@@ -114,10 +114,7 @@ struct GenConvData
         constexpr auto is_integral = std::is_integral_v<T>;
 
         // Multiply all dimensions except K to get the number of additions
-        const auto num_add = std::accumulate(filter.cbegin() + 1,
-                                             filter.cend(),
-                                             static_cast<std::size_t>(1),
-                                             std::multiplies<std::size_t>());
+        const auto num_add = std::accumulate(filter.cbegin() + 1, filter.cend(), static_cast<std::size_t>(1), std::multiplies<std::size_t>()) / group_count;
 
         constexpr auto max_acc_v = std::numeric_limits<Tacc>::max();
         if constexpr(is_integral)
