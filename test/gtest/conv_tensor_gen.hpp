@@ -114,7 +114,11 @@ struct GenConvData
         constexpr auto is_integral = std::is_integral_v<T>;
 
         // Multiply all dimensions except K to get the number of additions
-        const auto num_add = std::accumulate(filter.cbegin() + 1, filter.cend(), static_cast<std::size_t>(1), std::multiplies<std::size_t>()) / group_count;
+        const auto num_add = std::accumulate(filter.cbegin() + 1,
+                                             filter.cend(),
+                                             static_cast<std::size_t>(1),
+                                             std::multiplies<std::size_t>()) /
+                             group_count;
 
         constexpr auto max_acc_v = std::numeric_limits<Tacc>::max();
         if constexpr(is_integral)
