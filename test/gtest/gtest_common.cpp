@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,45 +23,40 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef GUARD_CPU_SUM_HPP
-#define GUARD_CPU_SUM_HPP
 
-#include "tensor_holder.hpp"
+#include "gtest_common.hpp"
 
-template <class T>
-void cpu_sum_forward(tensor<T> input,
-                     tensor<T>& ref_output,
-                     int32_t dim,
-                     miopenSumNanPropagation_t nanPropagation)
+Gpu GetDevGpuType()
 {
-    auto input_dims  = input.desc.GetLengths();
-    auto output_dims = ref_output.desc.GetLengths();
+    const auto dev_name = get_handle().GetDeviceName();
 
-    auto reduce_size = input_dims[dim];
-    auto output_numel =
-        std::accumulate(output_dims.begin(), output_dims.end(), 1LL, std::multiplies<int64_t>());
+    static const auto dev = [&] {
+        if(dev_name == "gfx900")
+            return Gpu::gfx900;
+        else if(dev_name == "gfx906")
+            return Gpu::gfx906;
+        else if(dev_name == "gfx908")
+            return Gpu::gfx908;
+        else if(dev_name == "gfx90a")
+            return Gpu::gfx90A;
+        else if(miopen::StartsWith(dev_name, "gfx94"))
+            return Gpu::gfx94X;
+        else if(miopen::StartsWith(dev_name, "gfx103"))
+            return Gpu::gfx103X;
+        else if(miopen::StartsWith(dev_name, "gfx110"))
+            return Gpu::gfx110X;
+        else
+            throw std::runtime_error("unknown_gpu");
+    }();
 
-    auto inner_size = 1ULL;
-    for(int32_t i = dim + 1; i < input_dims.size(); i++)
-    {
-        inner_size *= input_dims[i];
-    }
-
-    par_ford(output_numel)([&](size_t o) {
-        size_t input_idx = (o / inner_size) * inner_size * reduce_size + o % inner_size;
-        T sum            = 0.0f;
-
-        ford(reduce_size)([&](size_t) {
-            T val = input[input_idx];
-            if(nanPropagation && std::isnan(val))
-            {
-                val = 0.0f;
-            }
-            sum += val;
-            input_idx += inner_size;
-        });
-
-        ref_output[o] = sum;
-    });
+    return dev;
 }
-#endif
+
+bool IsTestSupportedByDevice(Gpu supported_devs)
+{
+    if((supported_devs & GetDevGpuType()) != Gpu::None)
+    {
+        return true;
+    }
+    return false;
+}
