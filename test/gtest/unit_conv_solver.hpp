@@ -166,9 +166,13 @@ using UnitTestConvSolverDevApplicabilityFwd =
     UnitTestConvSolverDevApplicability<miopen::conv::Direction::Forward>;
 using UnitTestConvSolverDevApplicabilityBwd =
     UnitTestConvSolverDevApplicability<miopen::conv::Direction::BackwardData>;
+using UnitTestConvSolverDevApplicabilityWrw =
+    UnitTestConvSolverDevApplicability<miopen::conv::Direction::BackwardWeights>;
 
 using CPU_UnitTestConvSolverDevApplicability_fwd_FP16 = UnitTestConvSolverDevApplicabilityFwd;
 using CPU_UnitTestConvSolverDevApplicability_bwd_FP16 = UnitTestConvSolverDevApplicabilityBwd;
+using CPU_UnitTestConvSolverDevApplicability_wrw_FP16 = UnitTestConvSolverDevApplicabilityWrw;
 
 using CPU_UnitTestConvSolverDevApplicability_fwd_FP32 = UnitTestConvSolverDevApplicabilityFwd;
 using CPU_UnitTestConvSolverDevApplicability_bwd_FP32 = UnitTestConvSolverDevApplicabilityBwd;
+using CPU_UnitTestConvSolverDevApplicability_wrw_FP32 = UnitTestConvSolverDevApplicabilityWrw;
