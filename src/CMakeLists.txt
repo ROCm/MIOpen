@@ -150,6 +150,8 @@ set( MIOpen_Source
     getitem/problem_description.cpp
     kernel_build_params.cpp
     kernel_warnings.cpp
+    kthvalue/problem_description.cpp
+    kthvalue_api.cpp
     layernorm_api.cpp
     layernorm/problem_description.cpp
     load_file.cpp
@@ -289,6 +291,7 @@ set( MIOpen_Source
     solver/conv_winoRxS_fused.cpp
     solver/groupnorm/forward_groupnorm.cpp
     solver/getitem/backward_getitem.cpp
+    solver/kthvalue/forward_kthvalue.cpp
     solver/layernorm/backward_t5layernorm.cpp
     solver/layernorm/forward_addlayernorm.cpp
     solver/layernorm/forward_layernorm.cpp
@@ -462,6 +465,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/miopen_type_traits.hpp
         kernels/miopen_utility.hpp
         kernels/neuron.inc
+        kernels/radix.hpp
         kernels/rocm_version.inc
         kernels/stride_array.hpp
         kernels/tensor_view.hpp
@@ -504,6 +508,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenConvDirGenFwd.cl
         kernels/MIOpenGroupNorm.cpp
         kernels/MIOpenGetitem.cpp
+        kernels/MIOpenKthvalue.cpp
         kernels/MIOpenLayerNorm.cpp
         kernels/MIOpenLRNBwd.cl
         kernels/MIOpenLRNFwd.cl
@@ -660,6 +665,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         pooling.cpp
         t5layernorm.cpp
         ocl/fusionopconvocl.cpp
+        kthvalue.cpp
         ocl/fusionopbiasbnactivocl.cpp
         reducecalculation.cpp
         reduceextreme.cpp

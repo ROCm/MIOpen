@@ -41,7 +41,12 @@ inline tensor_view_t<N> get_inner_expanded_tv(const TensorDescriptor Desc)
     tensor_view_t<N> tensor_view;
     for(size_t i = 0; i < N; ++i)
     {
-        if(i < dims.size())
+        if(dims.empty())
+        {
+            tensor_view.stride[i] = 0;
+            tensor_view.size[i]   = 0;
+        }
+        else if(i < dims.size())
         {
             tensor_view.stride[i] = strides[i];
             tensor_view.size[i]   = dims[i];
@@ -73,6 +78,28 @@ inline void slice_tv(tensor_view_t<N>& tensor_view, int32_t sliceCount, const in
         tensor_view.size[dim] = (len + step - 1) / step;
         tensor_view.stride[dim] *= step;
     }
+}
+
+template <int N, int M>
+inline tensor_view_t<M> get_tv_without_dim(const tensor_view_t<N>& origin_tv, int selected_dim)
+{
+    tensor_view_t<M> res;
+    for(int i = 0; i < N; ++i)
+    {
+        if(i == selected_dim)
+            continue;
+        if(i < selected_dim)
+        {
+            res.size[i]   = origin_tv.size[i];
+            res.stride[i] = origin_tv.stride[i];
+        }
+        else
+        {
+            res.size[i - 1]   = origin_tv.size[i];
+            res.stride[i - 1] = origin_tv.stride[i];
+        }
+    }
+    return res;
 }
 
 } // namespace miopen

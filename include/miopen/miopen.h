@@ -7675,6 +7675,39 @@ MIOPEN_EXPORT miopenStatus_t miopenRoPEBackward(miopenHandle_t handle,
                                                 void* dx);
 /** @} */
 // CLOSEOUT ROPE DOXYGEN GROUP
+// kthvalue APIs
+/** @addtogroup kthvalue
+ *
+ *  @{
+ */
+
+/*! @brief Execute a Kthvalue forward layer
+ *
+ * @param handle                   MIOpen handle (input)
+ * @param workspace                Address of the allocated workspace data (input)
+ * @param workspaceSizeInBytes     Size in bytes of the allocated workspace data (input)
+ * @param inputDesc                Tensor descriptor for input tensor (input)
+ * @param input                    Data tensor input (input)
+ * @param outputDesc               Tensor descriptor for output tensor (input)
+ * @param output                   Data tensor output (output)
+ * @param indices                  Data tensor index (output)
+ * @param k                        The k-th smallest element(input)
+ * @param dim                      The dimension to find the kth value along(input)
+ * @return                         miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenKthvalueForward(miopenHandle_t handle,
+                                                   void* workspace,
+                                                   size_t workspaceSizeInBytes,
+                                                   miopenTensorDescriptor_t inputDesc,
+                                                   const void* input,
+                                                   miopenTensorDescriptor_t outputDesc,
+                                                   void* output,
+                                                   size_t* indices,
+                                                   size_t k,
+                                                   int32_t dim);
+
+/** @} */
+// CLOSEOUT kthvalue DOXYGEN GROUP
 #endif // MIOPEN_BETA_API
 
 #ifdef __cplusplus

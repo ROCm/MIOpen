@@ -60,7 +60,8 @@ enum class Primitive
     Softmax,
     Adam,
     Item,
-    RoPE
+    RoPE,
+    Kthvalue,
 };
 
 struct MIOPEN_INTERNALS_EXPORT Id
