@@ -72,7 +72,6 @@ __device__ void avgPoolForward2d(const TI* __restrict__ input,
 #pragma unroll
     for(int32_t r = 0; r < R; ++r)
     {
-#pragma unroll
         for(int32_t s = 0; s < S; ++s)
         {
             // input idx : (n, c, h, w)
@@ -194,7 +193,6 @@ __device__ void avgPoolForward3d(const TI* __restrict__ input,
     if(n >= N)
         return;
     FLOAT_ACCUM sum = 0;
-#pragma unroll
     for(int32_t kd = 0; kd < KD; ++kd)
     {
         for(int32_t r = 0; r < R; ++r)
@@ -334,7 +332,6 @@ __device__ void avgPoolBackward2d(const TI* __restrict__ output_grad,
 #pragma unroll
     for(int32_t r = 0; r < R; ++r)
     {
-#pragma unroll
         for(int32_t s = 0; s < S; ++s)
         {
             int32_t ohsh = h + ph - r;
@@ -462,7 +459,6 @@ __device__ void avgPoolBackward3d(const TI* __restrict__ output_grad,
         return;
 
     FLOAT_ACCUM grad = 0;
-#pragma unroll
     for(int32_t kd = 0; kd < KD; ++kd)
     {
         for(int32_t r = 0; r < R; ++r)

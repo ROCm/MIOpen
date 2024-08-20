@@ -44,7 +44,7 @@ namespace solver {
 
 namespace avgpool {
 
-bool IsOverRocm(const miopen::avgpool::FwdProblemDescription& problem)
+bool IsOverRocmFwd2d(const miopen::avgpool::FwdProblemDescription& problem)
 {
     auto dtype      = problem.GetOutputDesc().GetType();
     auto in_nelems  = problem.GetInputDesc().GetElementSize();
@@ -68,7 +68,7 @@ bool IsOverRocm(const miopen::avgpool::FwdProblemDescription& problem)
     }
     else if(dtype == miopenBFloat16)
     {
-        if(in_over_out >= 1024 || in_over_out < 2 || out_nelems >= 6000000)
+        if(in_over_out >= 1024 || in_over_out < 2 || out_nelems >= 4816896)
         {
             return true;
         }
@@ -76,17 +76,17 @@ bool IsOverRocm(const miopen::avgpool::FwdProblemDescription& problem)
     return false;
 }
 
-bool AvgPoolForward2d::IsApplicable(const ExecutionContext& context,
+bool AvgPoolForward2d::IsApplicable(const ExecutionContext&,
                                     const miopen::avgpool::FwdProblemDescription& problem) const
 {
     if(problem.GetInputDesc().GetNumDims() != 4 || problem.GetOutputDesc().GetNumDims() != 4)
     {
         return false;
     }
-    // if(!IsOverRocm(problem))
-    // {
-    //     return false;
-    // }
+    if(!IsOverRocmFwd2d(problem))
+    {
+        return false;
+    }
     return true;
 }
 

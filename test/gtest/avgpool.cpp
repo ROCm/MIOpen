@@ -111,9 +111,15 @@ TEST_P(GPU_Avgpool_fwd_BFP16, AvgPoolTestFwd)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Avgpool_fwd_FP32, testing::ValuesIn(AvgPoolTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Avgpool_fwd_FP16, testing::ValuesIn(AvgPoolTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Avgpool_fwd_BFP16, testing::ValuesIn(AvgPoolTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_Avgpool_fwd_FP32,
+                         testing::ValuesIn(AvgPoolTestConfigsFwdFp32()));
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_Avgpool_fwd_FP16,
+                         testing::ValuesIn(AvgPoolTestConfigsFwdFp16()));
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_Avgpool_fwd_BFP16,
+                         testing::ValuesIn(AvgPoolTestConfigsFwdBfp16()));
 
 // BACKWARD TEST
 TEST_P(GPU_Avgpool_bwd_FP32, AvgPoolTestBwd)
@@ -158,6 +164,12 @@ TEST_P(GPU_Avgpool_bwd_BFP16, AvgPoolTestBwd)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Avgpool_bwd_FP32, testing::ValuesIn(AvgPoolTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Avgpool_bwd_FP16, testing::ValuesIn(AvgPoolTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Avgpool_bwd_BFP16, testing::ValuesIn(AvgPoolTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_Avgpool_bwd_FP32,
+                         testing::ValuesIn(AvgPoolTestConfigsBwdFp32()));
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_Avgpool_bwd_FP16,
+                         testing::ValuesIn(AvgPoolTestConfigsBwdFp16()));
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_Avgpool_bwd_BFP16,
+                         testing::ValuesIn(AvgPoolTestConfigsBwdBfp16()));

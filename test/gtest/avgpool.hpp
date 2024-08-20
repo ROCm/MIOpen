@@ -70,25 +70,50 @@ struct AvgPoolTestCase
     std::vector<int32_t> GetInput() const { return input_dims; }
 };
 
-inline std::vector<AvgPoolTestCase> AvgPoolTestConfigs()
+inline std::vector<AvgPoolTestCase> AvgPoolTestConfigsFwdFp32()
 {
     return {
-        {{2, 3, 7, 9}, {3, 3}, {2, 2}, {1, 1}, false, false, 0},
-        // {{2, 3, 7, 9}, {3, 3}, {2, 2}, {1, 1}, true, false, 0},
-        // {{2, 3, 7, 9}, {3, 3}, {2, 2}, {1, 1}, false, true, 0},
-        // {{2, 3, 7, 9}, {3, 3}, {2, 2}, {1, 1}, true, true, 0},
-        // {{2, 3, 7, 9}, {3, 3}, {2, 2}, {1, 1}, false, false, 1},
-        // {{2, 3, 7, 9}, {3, 3}, {2, 2}, {1, 1}, true, false, 1},
-        // {{2, 3, 7, 9}, {3, 3}, {2, 2}, {1, 1}, false, true, 1},
-        // {{2, 3, 7, 9}, {3, 3}, {2, 2}, {1, 1}, true, true, 1},
-        {{2, 3, 7, 9, 11}, {3, 3, 3}, {2, 2, 2}, {1, 1, 1}, false, false, 0},
-        // {{2, 3, 7, 9, 11}, {3, 3, 3}, {2, 2, 2}, {1, 1, 1}, true, false, 0},
-        // {{2, 3, 7, 9, 11}, {3, 3, 3}, {2, 2, 2}, {1, 1, 1}, false, true, 0},
-        // {{2, 3, 7, 9, 11}, {3, 3, 3}, {2, 2, 2}, {1, 1, 1}, true, true, 0},
-        // {{2, 3, 7, 9, 11}, {3, 3, 3}, {2, 2, 2}, {1, 1, 1}, false, false, 1},
-        // {{2, 3, 7, 9, 11}, {3, 3, 3}, {2, 2, 2}, {1, 1, 1}, true, false, 1},
-        // {{2, 3, 7, 9, 11}, {3, 3, 3}, {2, 2, 2}, {1, 1, 1}, false, true, 1},
-        // {{2, 3, 7, 9, 11}, {3, 3, 3}, {2, 2, 2}, {1, 1, 1}, true, true, 1},
+        {{64, 768, 17, 17}, {5, 5}, {1, 1}, {1, 1}, false, false, 0},
+        {{6, 128, 128, 128, 128}, {3, 3, 3}, {2, 2, 2}, {1, 1, 1}, false, true, 0},
+    };
+}
+
+inline std::vector<AvgPoolTestCase> AvgPoolTestConfigsFwdFp16()
+{
+    return {
+        {{64, 768, 17, 17}, {5, 5}, {1, 1}, {1, 1}, false, false, 0},
+        {{6, 128, 128, 128, 128}, {3, 3, 3}, {2, 2, 2}, {1, 1, 1}, false, true, 0},
+    };
+}
+
+inline std::vector<AvgPoolTestCase> AvgPoolTestConfigsFwdBfp16()
+{
+    return {
+        {{64, 768, 17, 17}, {5, 5}, {1, 1}, {1, 1}, false, false, 0},
+        {{6, 128, 128, 128, 128}, {3, 3, 3}, {2, 2, 2}, {1, 1, 1}, false, true, 0},
+    };
+}
+
+inline std::vector<AvgPoolTestCase> AvgPoolTestConfigsBwdFp32()
+{
+    return {
+        {{6, 128, 128, 128, 128}, {3, 3, 3}, {2, 2, 2}, {1, 1, 1}, false, true, 0},
+    };
+}
+
+inline std::vector<AvgPoolTestCase> AvgPoolTestConfigsBwdFp16()
+{
+    return {
+        {{64, 288, 35, 35}, {3, 3}, {1, 1}, {1, 1}, false, true, 0},
+        {{6, 128, 128, 128, 128}, {3, 3, 3}, {2, 2, 2}, {1, 1, 1}, false, true, 0},
+    };
+}
+
+inline std::vector<AvgPoolTestCase> AvgPoolTestConfigsBwdBfp16()
+{
+    return {
+        {{64, 2048, 9, 9}, {3, 3}, {1, 1}, {1, 1}, false, true, 0},
+        {{6, 128, 128, 128, 128}, {3, 3, 3}, {2, 2, 2}, {1, 1, 1}, false, true, 0},
     };
 }
 
@@ -212,12 +237,15 @@ protected:
                                         input_dev.get(),
                                         output.desc,
                                         output_dev.get(),
-                                        stride.desc,
-                                        stride_dev.get(),
-                                        padding.desc,
-                                        padding_dev.get(),
-                                        ksize.desc,
-                                        ksize_dev.get(),
+                                        ksize.GetSize() == 3 ? ksize[0] : 0,
+                                        ksize.GetSize() == 3 ? ksize[1] : ksize[0],
+                                        ksize.GetSize() == 3 ? ksize[2] : ksize[1],
+                                        stride.GetSize() == 3 ? stride[0] : 0,
+                                        stride.GetSize() == 3 ? stride[1] : stride[0],
+                                        stride.GetSize() == 3 ? stride[2] : stride[1],
+                                        padding.GetSize() == 3 ? padding[0] : 0,
+                                        padding.GetSize() == 3 ? padding[1] : padding[0],
+                                        padding.GetSize() == 3 ? padding[2] : padding[1],
                                         count_include_pad,
                                         divisor_override);
         fflush(stdout);
@@ -377,12 +405,15 @@ protected:
                                          output_grad_dev.get(),
                                          input_grad.desc,
                                          input_grad_dev.get(),
-                                         stride.desc,
-                                         stride_dev.get(),
-                                         padding.desc,
-                                         padding_dev.get(),
-                                         ksize.desc,
-                                         ksize_dev.get(),
+                                         ksize.GetSize() == 3 ? ksize[0] : 0,
+                                         ksize.GetSize() == 3 ? ksize[1] : ksize[0],
+                                         ksize.GetSize() == 3 ? ksize[2] : ksize[1],
+                                         stride.GetSize() == 3 ? stride[0] : 0,
+                                         stride.GetSize() == 3 ? stride[1] : stride[0],
+                                         stride.GetSize() == 3 ? stride[2] : stride[1],
+                                         padding.GetSize() == 3 ? padding[0] : 0,
+                                         padding.GetSize() == 3 ? padding[1] : padding[0],
+                                         padding.GetSize() == 3 ? padding[2] : padding[1],
                                          count_include_pad,
                                          divisor_override);
 
