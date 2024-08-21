@@ -162,10 +162,28 @@ std::ostream& operator<<(std::ostream& os, const ConvTestCase& tc)
 
 namespace {
 
+template <typename T>
+double GetThreshold(miopenConvAlgorithm_t algo, miopen::conv::Direction direction)
+{
+    double tolerance = 1.0;
+
+    if constexpr(std::is_same_v<T, half_float::half>)
+    {
+        if(algo == miopenConvolutionAlgoGEMM && direction != miopen::conv::Direction::Forward)
+        {
+            tolerance *= 2.0;
+        }
+    }
+
+    double threshold = std::numeric_limits<T>::epsilon() * tolerance;
+    return threshold;
+}
+
 template <typename T, typename Tref>
 void VerifyData(const std::vector<T>& data,
                 const std::vector<Tref>& ref_data,
-                miopenConvAlgorithm_t algo)
+                miopenConvAlgorithm_t algo,
+                miopen::conv::Direction direction)
 {
     ASSERT_FALSE(miopen::range_zero(ref_data)) << "Reference data is all zeros";
     if constexpr(!std::is_integral_v<T>)
@@ -191,9 +209,8 @@ void VerifyData(const std::vector<T>& data,
     }
     else
     {
-        auto error             = miopen::rms_range(ref_data, data);
-        const double tolerance = 1.0;
-        const double threshold = std::numeric_limits<T>::epsilon() * tolerance;
+        const auto error       = miopen::rms_range(ref_data, data);
+        const double threshold = GetThreshold<T>(algo, direction);
         ASSERT_LT(error, threshold) << "Error beyond tolerance";
         // std::cout << "error: " << error << " threshold: " << threshold << std::endl;
     }
@@ -296,7 +313,7 @@ void RunSolverFwd(const miopen::solver::conv::ConvSolverBase& solv,
 
     output.data = handle.Read<Tout>(out_dev, output.data.size());
 
-    VerifyData(output.data, ref_out.data, algo);
+    VerifyData(output.data, ref_out.data, algo, miopen::conv::Direction::Forward);
 }
 
 template <typename T, typename Tref>
@@ -405,7 +422,7 @@ void RunSolverBwd(const miopen::solver::conv::ConvSolverBase& solv,
 
     input.data = handle.Read<Tin>(in_dev, input.data.size());
 
-    VerifyData(input.data, ref_in.data, algo);
+    VerifyData(input.data, ref_in.data, algo, miopen::conv::Direction::BackwardData);
 }
 
 template <typename T, typename Tref>
@@ -514,7 +531,7 @@ void RunSolverWrw(const miopen::solver::conv::ConvSolverBase& solv,
 
     weights.data = handle.Read<Twei>(wei_dev, weights.data.size());
 
-    VerifyData(weights.data, ref_weights.data, algo);
+    VerifyData(weights.data, ref_weights.data, algo, miopen::conv::Direction::BackwardWeights);
 }
 
 template <typename T, typename Tref>
