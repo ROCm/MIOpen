@@ -5015,7 +5015,7 @@ MIOPEN_EXPORT miopenStatus_t miopenCTCLoss(miopenHandle_t handle,
  */
 
 /*!  @enum miopenRNGType_t
- * random number generator type
+ * random number generator typnte
  */
 typedef enum
 {

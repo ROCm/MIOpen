@@ -42,17 +42,7 @@
 #define LOCAL_SIZE 256
 #endif
 
-#ifndef RADIX_BITS
-#define RADIX_BITS 2
-#endif
-
-#ifndef RADIX_SIZE
-#define RADIX_SIZE (1 << RADIX_BITS)
-#endif
-
-#ifndef RADIX_MASK
-#define RADIX_MASK (RADIX_SIZE - 1)
-#endif
+using RADIX_TYPE = typename RadixType<IN_OUT_TYPE>::type;
 
 template <typename DTYPE>
 __device__ void kthvalueFwd(const DTYPE* input,
@@ -73,6 +63,9 @@ __device__ void kthvalueFwd(const DTYPE* input,
      * dim = 2 (C)
      * => grid = {A * B * D * E, 1}, block = {LOCAL_SIZE, 1}
      */
+    const int RADIX_BITS = 2;
+    const int RADIX_SIZE = 1 << RADIX_BITS;
+    const int RADIX_MASK = RADIX_SIZE - 1;
 
     size_t lid = threadIdx.x;
     size_t gid = blockIdx.x;
@@ -83,7 +76,7 @@ __device__ void kthvalueFwd(const DTYPE* input,
 
     __shared__ size_t lsum[LOCAL_SIZE][RADIX_SIZE];
     __shared__ DTYPE lval;
-    __shared__ long lidx;
+    __shared__ size_t lidx;
     size_t counts[RADIX_SIZE];
     RADIX_TYPE desired_mask = 0;
     RADIX_TYPE desired      = 0;
@@ -93,7 +86,7 @@ __device__ void kthvalueFwd(const DTYPE* input,
 
     for(int pos = sizeof(RADIX_TYPE) * 8 - RADIX_BITS; pos >= 0; pos -= RADIX_BITS)
     {
-        for(unsigned long& count : counts)
+        for(size_t& count : counts)
         {
             count = 0;
         }
@@ -104,7 +97,7 @@ __device__ void kthvalueFwd(const DTYPE* input,
             RADIX_TYPE val   = encode<DTYPE>(input[input_idx]);
             if((val & desired_mask) == desired)
             {
-                ++counts[GetBitFieldImpl<RADIX_TYPE>(val, pos, RADIX_BITS)];
+                ++counts[GetBitFieldImpl<RADIX_BITS>(val, pos)];
             }
         }
 
@@ -152,7 +145,7 @@ __device__ void kthvalueFwd(const DTYPE* input,
                     DTYPE val_ori    = input[input_idx];
                     RADIX_TYPE val   = encode<DTYPE>(val_ori);
                     if((val & desired_mask) == desired &&
-                       GetBitFieldImpl<RADIX_TYPE>(val, pos, RADIX_BITS) == j)
+                       GetBitFieldImpl<RADIX_BITS>(val, pos) == j)
                     {
                         // For case 2, this will be non-deterministic.
                         lval = val_ori;

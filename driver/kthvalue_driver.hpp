@@ -195,8 +195,7 @@ int KthvalueDriver<TIO>::GetandSetData()
 
     SetTensorNd(inputDesc, inDims, inStride, data_type);
     SetTensorNd(outputDesc, outDims, data_type);
-    // miopenDataType_t doesn't support size_t, I use double instead (both types use 64 bits)
-    SetTensorNd(indicesDesc, outDims, miopen_type<double>{});
+    SetTensorNd(indicesDesc, outDims, miopenInt64);
 
     return 0;
 }

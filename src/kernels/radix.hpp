@@ -27,10 +27,9 @@
 #ifndef GUARD_RADIX_H
 #define GUARD_RADIX_H
 
+#include <limits>
 #include <hip/hip_fp16.h>
 #include <hip/hip_runtime.h>
-
-#define RADIX_TYPE typename RadixType<DTYPE>::type
 
 #define DEFINE_RADIX_TYPE(DTYPE, cpp_type) \
     template <>                            \
@@ -50,6 +49,7 @@ DEFINE_RADIX_TYPE(bool, bool)
 DEFINE_RADIX_TYPE(float, uint32_t)
 DEFINE_RADIX_TYPE(__half, ushort)
 DEFINE_RADIX_TYPE(ushort, ushort) // bfloat16
+#undef DEFINE_RADIX_TYPE
 
 template <typename DTYPE, typename Radix = typename RadixType<DTYPE>::type>
 __device__ inline Radix encode(DTYPE v)
@@ -61,36 +61,36 @@ __device__ inline Radix encode(DTYPE v)
     }
     else if constexpr(std::is_same<int32_t, DTYPE>::value)
     {
-        return 2147483648u + v;
+        return static_cast<Radix>(std::numeric_limits<int32_t>::max()) + v + 1;
     }
     else if constexpr(std::is_same<int64_t, DTYPE>::value)
     {
-        return 9223372036854775808ull + v;
+        return static_cast<Radix>(std::numeric_limits<int64_t>::max()) + v + 1;
     }
     // bfloat16 is passed as ushort in kernel
     else if constexpr(std::is_same<ushort, DTYPE>::value)
     {
         Radix x    = v;
         Radix mask = (x & 0x8000) ? 0xffff : 0x8000;
-        return (v == v) ? (x ^ mask) : 0xffff;
+        return isnan(v) ? 0xffff : (x ^ mask);
     }
     else if constexpr(std::is_same<__half, DTYPE>::value)
     {
         Radix x    = __half_as_ushort(v);
         Radix mask = (x & 0x8000) ? 0xffff : 0x8000;
-        return (v == v) ? (x ^ mask) : 0xffff;
+        return isnan(v) ?  0xffff : (x ^ mask);
     }
     else if constexpr(std::is_same<float, DTYPE>::value)
     {
         Radix x    = __float_as_uint(v);
         Radix mask = (x & 0x80000000) ? 0xffffffff : 0x80000000;
-        return (v == v) ? (x ^ mask) : 0xffffffff;
+        return isnan(v) ? 0xffffffff : (x ^ mask);
     }
 }
 
 // returns x[pos+bits:pos]
-template <typename Radix>
-__device__ inline Radix GetBitFieldImpl(Radix x, int pos, int bits)
+template <int bits, typename Radix>
+__device__ inline Radix GetBitFieldImpl(Radix x, int pos)
 {
     return (x >> pos) & ((1 << bits) - 1);
 }
