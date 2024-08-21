@@ -23,59 +23,37 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#pragma once
 
-#ifndef MIOPEN_TENSOR_VIEW_UTIL_HPP_
-#define MIOPEN_TENSOR_VIEW_UTIL_HPP_
-
-#include <miopen/common.hpp>
+#include <miopen/invoke_params.hpp>
 #include <miopen/tensor.hpp>
-#include "../../kernels/tensor_view.hpp"
 
 namespace miopen {
 
-template <int N>
-inline tensor_view_t<N> get_inner_expanded_tv(const TensorDescriptor Desc)
+namespace prelu {
+
+struct InvokeParams : public miopen::InvokeParams
 {
-    auto dims    = Desc.GetLengths();
-    auto strides = Desc.GetStrides();
+    InvokeParams() = default;
 
-    tensor_view_t<N> tensor_view;
-    for(size_t i = 0; i < N; ++i)
-    {
-        if(i < dims.size())
-        {
-            tensor_view.stride[i] = strides[i];
-            tensor_view.size[i]   = dims[i];
-        }
-        else
-        {
-            tensor_view.stride[i] = (i == 0 ? 1 : strides[i - 1]);
-            tensor_view.size[i]   = 1;
-        }
-    }
-    return tensor_view;
-}
+    const TensorDescriptor* inputDesc   = nullptr;
+    const TensorDescriptor* weightDesc  = nullptr;
+    const TensorDescriptor* doutputDesc = nullptr;
+    const TensorDescriptor* dinputDesc  = nullptr;
+    const TensorDescriptor* dweightDesc = nullptr;
 
-template <int N>
-inline void slice_tv(tensor_view_t<N>& tensor_view, int32_t sliceCount, const int32_t* slices)
-{
-    for(int32_t i = 0; i < sliceCount; i++)
-    {
-        int32_t dim   = slices[4 * i + 0];
-        int32_t start = slices[4 * i + 1];
-        int32_t end   = slices[4 * i + 2];
-        int32_t step  = slices[4 * i + 3];
+    ConstData_t input          = nullptr;
+    ConstData_t weight         = nullptr;
+    ConstData_t doutput        = nullptr;
+    Data_t dinput              = nullptr;
+    Data_t dweight             = nullptr;
+    Data_t workspace           = nullptr;
+    std::size_t workspace_size = 0;
 
-        if(end > static_cast<int32_t>(tensor_view.size[dim]))
-            end = tensor_view.size[dim];
+    std::size_t GetWorkspaceSize() const { return workspace_size; }
+    Data_t GetWorkspace() const { return workspace; }
+};
 
-        auto len = end - start;
-
-        tensor_view.size[dim] = (len + step - 1) / step;
-        tensor_view.stride[dim] *= step;
-    }
-}
+} // namespace prelu
 
 } // namespace miopen
-
-#endif // MIOPEN_TENSOR_REORDER_UTIL_HPP_
