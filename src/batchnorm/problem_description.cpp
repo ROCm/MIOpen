@@ -206,8 +206,6 @@ NetworkConfig ProblemDescription::MakeForwardInferenceNetworkConfig() const
     ss << "C" << c;
     ss << "layout" << in_layout;
 
-    // std::cout << "ss.str() " << ss.str() << std::endl;
-
     return NetworkConfig{ss.str()};
 }
 
