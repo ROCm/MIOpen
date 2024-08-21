@@ -46,21 +46,23 @@ std::vector<std::string> GetTestCases(const std::string& modeConvolutionArg)
 
 using TestCase = decltype(GetTestCases(""))::value_type;
 
-class MIOpenDriverRegressionIssue2047TestFloat
+class GPU_MIOpenDriverRegressionIssue2047Test_FP32
     : public testing::TestWithParam<std::vector<TestCase>>
 {
 };
 
-class MIOpenDriverRegressionIssue2047TestHalf : public testing::TestWithParam<std::vector<TestCase>>
-{
-};
-
-class MIOpenDriverRegressionIssue2047TestBFloat16
+class GPU_MIOpenDriverRegressionIssue2047Test_FP16
     : public testing::TestWithParam<std::vector<TestCase>>
 {
 };
 
-class MIOpenDriverRegressionIssue2047TestInt8 : public testing::TestWithParam<std::vector<TestCase>>
+class GPU_MIOpenDriverRegressionIssue2047Test_BFP16
+    : public testing::TestWithParam<std::vector<TestCase>>
+{
+};
+
+class GPU_MIOpenDriverRegressionIssue2047Test_I8
+    : public testing::TestWithParam<std::vector<TestCase>>
 {
 };
 
@@ -82,38 +84,38 @@ void RunMIOpenDriver(const std::string& floatArg, const std::vector<TestCase>& t
 } // namespace miopendriver_regression_issue_2047
 using namespace miopendriver_regression_issue_2047;
 
-TEST_P(MIOpenDriverRegressionIssue2047TestFloat, MIOpenDriverRegressionIssue2047)
+TEST_P(GPU_MIOpenDriverRegressionIssue2047Test_FP32, MIOpenDriverRegressionIssue2047)
 {
     RunMIOpenDriver("--float", GetParam());
 };
 
-INSTANTIATE_TEST_SUITE_P(MIOpenDriverRegressionIssue2047TestSet,
-                         MIOpenDriverRegressionIssue2047TestFloat,
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_MIOpenDriverRegressionIssue2047Test_FP32,
                          testing::Values(GetTestCases(miopendriver::basearg::conv::Float)));
 
-TEST_P(MIOpenDriverRegressionIssue2047TestHalf, MIOpenDriverRegressionIssue2047)
+TEST_P(GPU_MIOpenDriverRegressionIssue2047Test_FP16, MIOpenDriverRegressionIssue2047)
 {
     RunMIOpenDriver("--half", GetParam());
 };
 
-INSTANTIATE_TEST_SUITE_P(MIOpenDriverRegressionIssue2047TestSet,
-                         MIOpenDriverRegressionIssue2047TestHalf,
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_MIOpenDriverRegressionIssue2047Test_FP16,
                          testing::Values(GetTestCases(miopendriver::basearg::conv::Half)));
 
-TEST_P(MIOpenDriverRegressionIssue2047TestBFloat16, MIOpenDriverRegressionIssue2047)
+TEST_P(GPU_MIOpenDriverRegressionIssue2047Test_BFP16, MIOpenDriverRegressionIssue2047)
 {
     RunMIOpenDriver("--bfloat16", GetParam());
 };
 
-INSTANTIATE_TEST_SUITE_P(MIOpenDriverRegressionIssue2047TestSet,
-                         MIOpenDriverRegressionIssue2047TestBFloat16,
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_MIOpenDriverRegressionIssue2047Test_BFP16,
                          testing::Values(GetTestCases(miopendriver::basearg::conv::BFloat16)));
 
-TEST_P(MIOpenDriverRegressionIssue2047TestInt8, MIOpenDriverRegressionIssue2047)
+TEST_P(GPU_MIOpenDriverRegressionIssue2047Test_I8, MIOpenDriverRegressionIssue2047)
 {
     RunMIOpenDriver("--int8", GetParam());
 };
 
-INSTANTIATE_TEST_SUITE_P(MIOpenDriverRegressionIssue2047TestSet,
-                         MIOpenDriverRegressionIssue2047TestInt8,
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_MIOpenDriverRegressionIssue2047Test_I8,
                          testing::Values(GetTestCases(miopendriver::basearg::conv::Int8)));
