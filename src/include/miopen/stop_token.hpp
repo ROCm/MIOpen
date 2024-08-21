@@ -101,7 +101,7 @@ public:
 private:
     std::weak_ptr<stop_state> state;
 
-    explicit stop_token(std::weak_ptr<stop_state> const& state_) : state(std::move(state_)) {}
+    explicit stop_token(std::weak_ptr<stop_state> state_) : state(std::move(state_)) {}
 };
 
 class stop_source final
