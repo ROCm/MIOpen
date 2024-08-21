@@ -50,7 +50,7 @@ bool MultiMarginLossUnreducedForward::IsImprovementOverROCm(
     {
         switch(problem.GetiDesc().GetType())
         {
-        case miopenFloat: return C <= 32;
+        case miopenFloat: return C <= 33;
         case miopenHalf: return C <= 43;
         case miopenBFloat16: return C <= 44;
         // Have not tested with other types yet
