@@ -310,12 +310,12 @@ bool RamDb::ValidateUnsafe()
     return validation_result;
 }
 
-void RamDb::Prefetch()
+void RamDb::Prefetch(stop_token stop)
 {
     if(DisableUserDbFileIO)
         MIOPEN_THROW("Prefetch should never happen with disabled File IO");
 
-    Measure("Prefetch", [this]() {
+    Measure("Prefetch", [this, stop = std::move(stop)]() {
         auto file = std::ifstream{GetFileName()};
 
         if(!file)
@@ -332,6 +332,9 @@ void RamDb::Prefetch()
 
         while(std::getline(file, line))
         {
+            if(stop.stop_requested())
+                return;
+
             ++n_line;
 
             if(line.empty())

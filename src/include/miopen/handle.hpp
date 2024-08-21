@@ -291,7 +291,6 @@ public:
     }
 
     void TryStartPreloadingDbs();
-    void WaitForRemainingThreadsIfNeeded() const;
 
 #if MIOPEN_USE_ROCBLAS
     const rocblas_handle_ptr& rhandle() const;

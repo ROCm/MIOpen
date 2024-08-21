@@ -29,6 +29,7 @@
 #include <miopen/filesystem.hpp>
 #include <miopen/ramdb.hpp>
 #include <miopen/readonlyramdb.hpp>
+#include <miopen/stop_token.hpp>
 
 #include <future>
 #include <memory>
@@ -41,10 +42,12 @@
 namespace miopen {
 
 using PreloadedDb = std::variant<std::unique_ptr<RamDb>, std::unique_ptr<ReadonlyRamDb>>;
+using DbPreloader = std::function<PreloadedDb(const stop_token&, const fs::path&)>;
 
-struct DbPreloadStates
+struct DbPreloadStates final
 {
-    DbPreloadStates()                       = default;
+    DbPreloadStates() = default;
+    MIOPEN_INTERNALS_EXPORT ~DbPreloadStates();
     DbPreloadStates(const DbPreloadStates&) = delete;
     auto operator=(const DbPreloadStates&) -> DbPreloadStates& = delete;
     DbPreloadStates(DbPreloadStates&&)                         = delete;
@@ -52,14 +55,10 @@ struct DbPreloadStates
 
     MIOPEN_INTERNALS_EXPORT auto GetPreloadedRamDb(const fs::path& path) -> std::unique_ptr<RamDb>;
 
-    MIOPEN_INTERNALS_EXPORT void WaitForRemainingThreadsIfNeeded();
-
     MIOPEN_INTERNALS_EXPORT
     auto GetPreloadedReadonlyRamDb(const fs::path& path) -> std::unique_ptr<ReadonlyRamDb>;
 
-    MIOPEN_INTERNALS_EXPORT void
-    StartPreloadingDb(const fs::path& path,
-                      std::function<PreloadedDb(const fs::path&)>&& preloader);
+    MIOPEN_INTERNALS_EXPORT void StartPreloadingDb(const fs::path& path, DbPreloader&& preloader);
 
     MIOPEN_INTERNALS_EXPORT void TryStartPreloadingDbs(const std::function<void()>& preload);
 
@@ -69,21 +68,17 @@ private:
     std::optional<std::thread> preload_thread;
     std::vector<std::packaged_task<PreloadedDb()>> preload_tasks;
     std::atomic<bool> started_loading{false};
-
-    std::atomic<int> requesters{0};
+    stop_source preload_stoper{nostopstate};
 
     template <class Db>
     auto GetPreloadedDb(const fs::path& path) -> std::unique_ptr<Db>;
 };
 
 template <class Db>
-auto MakeDbPreloader(DbKinds db_kind, bool is_system)
-    -> std::function<PreloadedDb(const fs::path&)>;
+auto MakeDbPreloader(DbKinds db_kind, bool is_system) -> DbPreloader;
 
-extern template auto MakeDbPreloader<RamDb>(DbKinds db_kind, bool is_system)
-    -> std::function<PreloadedDb(const fs::path&)>;
-extern template auto MakeDbPreloader<ReadonlyRamDb>(DbKinds db_kind, bool is_system)
-    -> std::function<PreloadedDb(const fs::path&)>;
+extern template auto MakeDbPreloader<RamDb>(DbKinds db_kind, bool is_system) -> DbPreloader;
+extern template auto MakeDbPreloader<ReadonlyRamDb>(DbKinds db_kind, bool is_system) -> DbPreloader;
 
 auto GetDbPreloadStates() -> DbPreloadStates&;
 

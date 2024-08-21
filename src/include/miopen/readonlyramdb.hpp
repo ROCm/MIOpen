@@ -28,6 +28,7 @@
 
 #include <miopen/db_record.hpp>
 #include <miopen/filesystem.hpp>
+#include <miopen/stop_token.hpp>
 
 #include <boost/optional.hpp>
 
@@ -110,7 +111,7 @@ public:
 
     const std::unordered_map<std::string, CacheItem>& GetCacheMap() const { return cache; }
 
-    void Prefetch(bool warn_if_unreadable = true);
+    void Prefetch(bool warn_if_unreadable = true, stop_token stop = {});
 
 private:
     DbKinds db_kind;
@@ -122,7 +123,8 @@ private:
     ReadonlyRamDb& operator=(const ReadonlyRamDb&) = default;
     ReadonlyRamDb& operator=(ReadonlyRamDb&&) = default;
 
-    void ParseAndLoadDb(std::istream& input_stream, bool warn_if_unreadable);
+    void
+    ParseAndLoadDb(std::istream& input_stream, bool warn_if_unreadable, stop_token const& stop);
 };
 
 } // namespace miopen

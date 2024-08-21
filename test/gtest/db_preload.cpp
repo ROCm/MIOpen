@@ -53,10 +53,11 @@ void Produce(
         {
             states.StartPreloadingDb(
                 filename,
-                [waiter = std::move(waiter)](const miopen::fs::path& path) -> miopen::PreloadedDb {
+                [waiter = std::move(waiter)](const miopen::stop_token& stop,
+                                             const miopen::fs::path& path) -> miopen::PreloadedDb {
                     auto ret =
                         std::make_unique<miopen::ReadonlyRamDb>(miopen::DbKinds::PerfDb, path);
-                    ret->Prefetch(false);
+                    ret->Prefetch(false, stop);
                     waiter(path);
                     return ret;
                 });
@@ -121,7 +122,33 @@ TEST(SmokeCPUDbPreloadTrivialNONE, Cleanup)
     const auto filenames = GenerateFilenames(1, dir.path);
 
     Produce(filenames, states);
-    states.WaitForRemainingThreadsIfNeeded();
+}
+
+TEST(SmokeCPUDbPreloadTrivialNONE, Stop)
+{
+    bool stoped = false;
+
+    {
+        miopen::DbPreloadStates states;
+        const miopen::TmpDir dir;
+        const auto filenames = GenerateFilenames(1, dir.path);
+
+        states.TryStartPreloadingDbs([&]() {
+            auto preloader = [&stoped](const miopen::stop_token& stop,
+                                       const miopen::fs::path& path) -> miopen::PreloadedDb {
+                auto ret = std::make_unique<miopen::ReadonlyRamDb>(miopen::DbKinds::PerfDb, path);
+                ret->Prefetch(false, stop);
+                while(!stop.stop_requested())
+                    std::this_thread::sleep_for(std::chrono::microseconds(1));
+                stoped = true;
+                return ret;
+            };
+
+            states.StartPreloadingDb(filenames[0], std::move(preloader));
+        });
+    }
+
+    ASSERT_TRUE(stoped);
 }
 
 TEST(SmokeCPUDbPreloadTrivialNONE, Basic)
@@ -132,7 +159,6 @@ TEST(SmokeCPUDbPreloadTrivialNONE, Basic)
 
     Produce(filenames, states);
     ASSERT_NE(nullptr, states.GetPreloadedReadonlyRamDb(filenames[0]));
-    states.WaitForRemainingThreadsIfNeeded();
 }
 
 TEST(SmokeCPUDbPreloadTrivialNONE, Full)
@@ -145,7 +171,6 @@ TEST(SmokeCPUDbPreloadTrivialNONE, Full)
     Produce(filenames, states);
     std::ignore =
         miopen::ReadonlyRamDb::GetCached(miopen::DbKinds::KernelDb, filenames[0], false, dbs);
-    states.WaitForRemainingThreadsIfNeeded();
 }
 
 TEST(SmokeCPUDbPreloadTrivialNONE, Fallback)
@@ -155,7 +180,6 @@ TEST(SmokeCPUDbPreloadTrivialNONE, Fallback)
     const auto filenames = GenerateFilenames(1, dir.path);
 
     ASSERT_EQ(nullptr, states.GetPreloadedReadonlyRamDb(filenames[0]));
-    states.WaitForRemainingThreadsIfNeeded();
 }
 
 struct TestCase
@@ -201,8 +225,6 @@ TEST_P(CPUDbPreloadNONE, Sequential)
         for(auto&& pair : promises)
             pair.second.get_future().get();
     });
-
-    states.WaitForRemainingThreadsIfNeeded();
 }
 
 TEST_P(CPUDbPreloadNONE, Parallel)
@@ -231,8 +253,6 @@ TEST_P(CPUDbPreloadNONE, Parallel)
             std::this_thread::sleep_for(std::chrono::milliseconds{10});
             producer_mutex_owner_lock.unlock();
         });
-
-    states.WaitForRemainingThreadsIfNeeded();
 }
 
 INSTANTIATE_TEST_SUITE_P(

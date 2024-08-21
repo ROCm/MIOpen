@@ -107,7 +107,9 @@ static auto Measure(const std::string& funcName, TFunc&& func)
                                    << " ms");
 }
 
-void ReadonlyRamDb::ParseAndLoadDb(std::istream& input_stream, bool warn_if_unreadable)
+void ReadonlyRamDb::ParseAndLoadDb(std::istream& input_stream,
+                                   bool warn_if_unreadable,
+                                   stop_token const& stop)
 {
     if(!input_stream)
     {
@@ -122,6 +124,9 @@ void ReadonlyRamDb::ParseAndLoadDb(std::istream& input_stream, bool warn_if_unre
 
     while(std::getline(input_stream, line))
     {
+        if(stop.stop_requested())
+            return;
+
         ++n_line;
 
         if(line.empty())
@@ -143,9 +148,9 @@ void ReadonlyRamDb::ParseAndLoadDb(std::istream& input_stream, bool warn_if_unre
     }
 }
 
-void ReadonlyRamDb::Prefetch(bool warn_if_unreadable)
+void ReadonlyRamDb::Prefetch(bool warn_if_unreadable, stop_token stop)
 {
-    Measure("Prefetch", [this, warn_if_unreadable]() {
+    Measure("Prefetch", [this, warn_if_unreadable, stop = std::move(stop)]() {
         if(db_path.empty())
             return;
         constexpr bool isEmbedded = MIOPEN_EMBED_DB;
@@ -164,13 +169,13 @@ void ReadonlyRamDb::Prefetch(bool warn_if_unreadable)
             ptrdiff_t sz  = p.second - p.first;
             MIOPEN_LOG_I2("Loading In Memory file: " << filepath);
             auto input_stream = std::stringstream(std::string(p.first, sz));
-            ParseAndLoadDb(input_stream, warn_if_unreadable);
+            ParseAndLoadDb(input_stream, warn_if_unreadable, stop);
 #endif
         }
         else
         {
             auto input_stream = std::ifstream{db_path};
-            ParseAndLoadDb(input_stream, warn_if_unreadable);
+            ParseAndLoadDb(input_stream, warn_if_unreadable, stop);
         }
     });
 }

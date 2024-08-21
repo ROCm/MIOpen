@@ -73,9 +73,4 @@ void Handle::TryStartPreloadingDbs()
             DbKinds::PerfDb, ctx.GetPerfDbPath("batchnorm"), ctx.GetUserPerfDbPath("batchnorm"));
     });
 }
-
-void Handle::WaitForRemainingThreadsIfNeeded() const
-{
-    GetDbPreloadStates().WaitForRemainingThreadsIfNeeded();
-}
 } // namespace miopen

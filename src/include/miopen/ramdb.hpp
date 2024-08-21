@@ -27,6 +27,7 @@
 
 #include <miopen/db.hpp>
 #include <miopen/db_record.hpp>
+#include <miopen/stop_token.hpp>
 
 #include <boost/optional.hpp>
 
@@ -132,7 +133,7 @@ public:
     }
 
     using PlainTextDb::GetLockFile;
-    void Prefetch();
+    void Prefetch(stop_token stop = {});
 
 private:
     struct CacheItem
