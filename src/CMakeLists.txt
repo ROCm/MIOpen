@@ -165,6 +165,8 @@ set( MIOpen_Source
     performance_config.cpp
     pooling/problem_description.cpp
     pooling_api.cpp
+    prelu/problem_description.cpp
+    prelu_api.cpp
     problem.cpp
     process.cpp
     ramdb.cpp
@@ -306,6 +308,9 @@ set( MIOpen_Source
     solver/pooling/forwardNd.cpp
     solver/pooling/backward2d.cpp
     solver/pooling/backwardNd.cpp
+    solver/prelu/backward_prelu_multi_weights.cpp
+    solver/prelu/backward_prelu_single_weight.cpp
+    solver/prelu/utils.cpp
     solver/reduce/forward_argmax.cpp
     solver/reduce/forward_argmin.cpp
     solver/reduce/forward_max.cpp
@@ -515,6 +520,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenLRNFwd.cl
         kernels/MIOpenMultiMarginLoss.cpp
         kernels/MIOpenNeuron.cl
+        kernels/MIOpenPReLU.cpp
         kernels/MIOpenPooling.cl
         kernels/MIOpenPoolingBwd.cl
         kernels/MIOpenPoolingBwdND.cl
@@ -670,6 +676,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         t5layernorm.cpp
         ocl/fusionopconvocl.cpp
         ocl/fusionopbiasbnactivocl.cpp
+        prelu.cpp
         reducecalculation.cpp
         reduceextreme.cpp
         rope.cpp

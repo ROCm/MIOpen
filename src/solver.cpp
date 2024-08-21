@@ -35,6 +35,7 @@
 #include <miopen/getitem/solvers.hpp>
 #include <miopen/layernorm/solvers.hpp>
 #include <miopen/pooling/solvers.hpp>
+#include <miopen/prelu/solvers.hpp>
 #include <miopen/reduce/solvers.hpp>
 #include <miopen/rope/solvers.hpp>
 #include <miopen/mha/solvers.hpp>
@@ -677,6 +678,9 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
 
     Register(registry, ++id, Primitive::RoPE, rope::RoPEForward{}.SolverDbId());
     Register(registry, ++id, Primitive::RoPE, rope::RoPEBackward{}.SolverDbId());
+    Register(registry, ++id, Primitive::ReLU, prelu::MultiWeightsBackward{}.SolverDbId());
+    Register(registry, ++id, Primitive::ReLU, prelu::SingleWeightBackward{}.SolverDbId());
+
     Register(registry,
              ++id,
              Primitive::MultiMarginLoss,

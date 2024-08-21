@@ -49,6 +49,7 @@ add_executable(MIOpenDriver
     dm_lrn.cpp
     dm_multimarginloss.cpp
     dm_pool.cpp
+    dm_prelu.cpp
     dm_reduce.cpp
     dm_reduceextreme.cpp
     dm_reducecalculation.cpp

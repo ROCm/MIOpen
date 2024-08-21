@@ -60,6 +60,7 @@ enum class Primitive
     Adam,
     Item,
     RoPE,
+    ReLU,
     MultiMarginLoss
 };
 
