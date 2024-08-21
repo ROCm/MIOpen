@@ -154,7 +154,6 @@ private:
     std::vector<Tgpu> W;
     std::vector<Tgpu> O;
     std::vector<Tref> Ohost;
-    std::vector<Tgpu> workspace;
 
     long p;
     float margin;
@@ -321,9 +320,7 @@ int MultiMarginLossDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         if(o_dev->ToGPU(GetStream(), O.data()) != 0)
             std::cerr << "Error copying (out) to GPU, size: " << o_dev->GetSize() << std::endl;
 
-        size_t ws_sz  = ws_sizeInBytes / sizeof(Tgpu);
-        workspace_dev = std::make_unique<GPUMem>(ctx, ws_sz, sizeof(Tgpu));
-        workspace     = std::vector<Tgpu>(ws_sz);
+        workspace_dev = std::make_unique<GPUMem>(ctx, ws_sizeInBytes, sizeof(std::byte));
     }
 
     return miopenStatusSuccess;
@@ -334,8 +331,6 @@ int MultiMarginLossDriver<Tgpu, Tref>::RunForwardGPU()
 {
     float kernel_total_time = 0;
     float kernel_first_time = 0;
-
-    std::vector<float> time_vector;
 
     Timer t;
     START_TIME
@@ -362,14 +357,7 @@ int MultiMarginLossDriver<Tgpu, Tref>::RunForwardGPU()
         kernel_total_time += time;
         if(i == 0)
             kernel_first_time = time;
-        else
-            time_vector.push_back(time);
     }
-
-    std::cerr << "Min between iterations: "
-              << *std::min_element(time_vector.begin(), time_vector.end()) << std::endl;
-    std::cerr << "Max between iterations: "
-              << *std::max_element(time_vector.begin(), time_vector.end()) << std::endl;
 
     if(inflags.GetValueInt("time") == 1)
     {
@@ -387,9 +375,6 @@ int MultiMarginLossDriver<Tgpu, Tref>::RunForwardGPU()
 
     if(o_dev->FromGPU(GetStream(), O.data()) != 0)
         std::cerr << "Error copying (o_dev) from GPU, size: " << o_dev->GetSize() << std::endl;
-    if(workspace_dev->FromGPU(GetStream(), workspace.data()) != 0)
-        std::cerr << "Error copying (workspace_dev) from GPU, size: " << workspace_dev->GetSize()
-                  << std::endl;
 
     return miopenStatusSuccess;
 }

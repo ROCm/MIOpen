@@ -31,17 +31,17 @@
 #include "float_types.h"
 #include "tensor_view.hpp"
 
-template <typename DTYPE>
-__device__ void multimarginlossunreducedforward2d(const DTYPE* __restrict__ I,
-                                                  const uint64_t* __restrict__ T,
-                                                  const DTYPE* __restrict__ W,
-                                                  DTYPE* __restrict__ O,
-                                                  const long p,
-                                                  const float margin,
-                                                  tensor_view_t<2> I_tv,
-                                                  tensor_view_t<1> T_tv,
-                                                  tensor_view_t<1> W_tv,
-                                                  tensor_view_t<1> O_tv)
+template <typename DTYPE, int REDUCTION_T>
+__device__ void multimarginlossforward2d(const DTYPE* __restrict__ I,
+                                         const uint64_t* __restrict__ T,
+                                         const DTYPE* __restrict__ W,
+                                         void* __restrict__ O,
+                                         const long p,
+                                         const float margin,
+                                         tensor_view_t<2> I_tv,
+                                         tensor_view_t<1> T_tv,
+                                         tensor_view_t<1> W_tv,
+                                         tensor_view_t<1> O_tv)
 {
     const uint64_t gid = threadIdx.x + blockIdx.x * blockDim.x;
 
@@ -74,79 +74,25 @@ __device__ void multimarginlossunreducedforward2d(const DTYPE* __restrict__ I,
         loss += t;
     }
     loss /= C;
-    O[O_tv.get_tensor_view_idx({n})] = CVT_ACCUM2FLOAT(loss);
-}
-
-extern "C" __global__ void MultiMarginLossUnreducedForward2d(const FLOAT* __restrict__ I,
-                                                             const uint64_t* __restrict__ T,
-                                                             const FLOAT* __restrict__ W,
-                                                             FLOAT* __restrict__ O,
-                                                             const long p,
-                                                             const float margin,
-                                                             tensor_view_t<2> I_tv,
-                                                             tensor_view_t<1> T_tv,
-                                                             tensor_view_t<1> W_tv,
-                                                             tensor_view_t<1> O_tv)
-{
-    // instantiate the kernel
-    multimarginlossunreducedforward2d<FLOAT>(I, T, W, O, p, margin, I_tv, T_tv, W_tv, O_tv);
-}
-
-template <typename DTYPE>
-__device__ void multimarginlossforward2d(const DTYPE* __restrict__ I,
-                                         const uint64_t* __restrict__ T,
-                                         const DTYPE* __restrict__ W,
-                                         DTYPE* __restrict__ lsum,
-                                         const long p,
-                                         const float margin,
-                                         const float divisor,
-                                         tensor_view_t<2> I_tv,
-                                         tensor_view_t<1> T_tv,
-                                         tensor_view_t<1> W_tv)
-{
-    const uint64_t gid = threadIdx.x + blockIdx.x * blockDim.x;
-
-    size_t N = I_tv.size[0], C = I_tv.size[1];
-    size_t n = gid;
-    if(n >= N)
-        return;
-    FLOAT_ACCUM loss = 0;
-    uint64_t y       = T[T_tv.get_tensor_view_idx({n})];
-    if(y >= C)
+    switch(REDUCTION_T)
     {
-        // TODO: need to handle invalid target index value
-        return;
+    case 0: static_cast<DTYPE*>(O)[O_tv.get_tensor_view_idx({n})] = CVT_ACCUM2FLOAT(loss); break;
+    case 1: static_cast<FLOAT_ACCUM*>(O)[n] = loss; break;
+    case 2: static_cast<FLOAT_ACCUM*>(O)[n] = loss / N; break;
     }
-
-    for(size_t c = 0; c < C; c++)
-    {
-        if(y == c)
-            continue;
-        FLOAT_ACCUM t = margin - CVT_FLOAT2ACCUM(I[I_tv.get_tensor_view_idx({n, y})]) +
-                        CVT_FLOAT2ACCUM(I[I_tv.get_tensor_view_idx({n, c})]);
-        if(t < 0)
-            continue;
-        if(p == 2)
-            t = t * t;
-        t              = CVT_FLOAT2ACCUM(W[W_tv.get_tensor_view_idx({y})]) * t;
-        FLOAT_ACCUM rC = 1 / static_cast<FLOAT_ACCUM>(C);
-        loss           = fma(t, rC, loss);
-    }
-
-    lsum[n] = CVT_ACCUM2FLOAT(loss / divisor);
 }
 
 extern "C" __global__ void MultiMarginLossForward2d(const FLOAT* __restrict__ I,
                                                     const uint64_t* __restrict__ T,
                                                     const FLOAT* __restrict__ W,
-                                                    FLOAT* __restrict__ lsum,
+                                                    void* __restrict__ O,
                                                     const long p,
                                                     const float margin,
-                                                    const float divisor,
                                                     tensor_view_t<2> I_tv,
                                                     tensor_view_t<1> T_tv,
-                                                    tensor_view_t<1> W_tv)
+                                                    tensor_view_t<1> W_tv,
+                                                    tensor_view_t<1> O_tv)
 {
     // instantiate the kernel
-    multimarginlossforward2d<FLOAT>(I, T, W, lsum, p, margin, divisor, I_tv, T_tv, W_tv);
+    multimarginlossforward2d<FLOAT, REDUCTION_TYPE>(I, T, W, O, p, margin, I_tv, T_tv, W_tv, O_tv);
 }

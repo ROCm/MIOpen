@@ -23,29 +23,50 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#ifndef GUARD_BLOCK_REDUCE_HPP
+#define GUARD_BLOCK_REDUCE_HPP
+
 #ifndef MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS
 #include <hip/hip_fp16.h>
 #include <hip/hip_runtime.h>
 #endif
 
 #include "float_types.h"
-#include "warp_shuffle.hpp"
+#include "warp_reduce.hpp"
 
-template <typename DTYPE>
-__device__ void LossSum(const DTYPE* __restrict__ input, DTYPE* __restrict__ output, uint64_t N)
+enum class ReduceThreadDim : int32_t
 {
-    auto gid = blockIdx.x * blockDim.x + threadIdx.x;
+    X = 1 << 0,
+    Y = 1 << 1,
+    Z = 1 << 2,
+};
 
-    FLOAT_ACCUM val = gid < N ? CVT_FLOAT2ACCUM(input[gid]) : CVT_FP32_2ACCUM(0.0f);
-    val             = block_reduce_sum(val);
+template <BinaryOp_t Op, uint64_t reduce_size, ReduceThreadDim thread_dim>
+__device__ FLOAT_ACCUM block_reduce(FLOAT_ACCUM val)
+{
+    if(reduce_size == warpSize)
+        return warp_reduce<Op>(val);
 
-    if(threadIdx.x == 0)
-        output[blockIdx.x] = CVT_ACCUM2FLOAT(val);
+    static __shared__ FLOAT_ACCUM shared[reduce_size / warpSize];
+    uint64_t tid = 0;
+    if(static_cast<int32_t>(thread_dim) & static_cast<int32_t>(ReduceThreadDim::X))
+        tid += threadIdx.x;
+    if(static_cast<int32_t>(thread_dim) & static_cast<int32_t>(ReduceThreadDim::Y))
+        tid = tid * blockDim.y + threadIdx.y;
+    if(static_cast<int32_t>(thread_dim) & static_cast<int32_t>(ReduceThreadDim::Z))
+        tid = tid * blockDim.z + threadIdx.z;
+    const uint64_t lane = tid % warpSize;
+    const uint64_t wid  = tid / warpSize;
+
+    val = warp_reduce<Op>(val);
+    if(lane == 0)
+        shared[wid] = val;
+    __syncthreads();
+
+    val = tid < reduce_size / warpSize ? shared[lane] : 0;
+    if(wid == 0)
+        val = warp_reduce<Op>(val);
+    return val;
 }
 
-extern "C" __global__ void
-ReduceSumLoss(const FLOAT* __restrict__ input, FLOAT* __restrict__ output, uint64_t N)
-{
-    // instantiate the kernel
-    LossSum<FLOAT>(input, output, N);
-}
+#endif // GUARD_BLOCK_REDUCE_HPP

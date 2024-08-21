@@ -91,6 +91,7 @@ ConvSolution MultiMarginLossForward::GetSolution(
             {"MIOPEN_USE_FP32", static_cast<int32_t>(dtype == miopenFloat)},
             {"MIOPEN_USE_FP64", static_cast<int32_t>(dtype == miopenDouble)},
             {"MIOPEN_USE_BFP16", static_cast<int32_t>(dtype == miopenBFloat16)},
+            {"REDUCTION_TYPE", static_cast<int>(problem.Getreduction())},
         };
 
         kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
@@ -107,7 +108,7 @@ ConvSolution MultiMarginLossForward::GetSolution(
     }
 
     {
-        /* Phase 2: Reduce */
+        /* Phase 2: Reduce FLOAT_ACCUM -> FLOAT_ACCUM */
         auto _size              = xgrid;
         const auto build_params = KernelBuildParameters{
             {"MIOPEN_USE_FP16", static_cast<int32_t>(dtype == miopenHalf)},
@@ -116,7 +117,7 @@ ConvSolution MultiMarginLossForward::GetSolution(
             {"MIOPEN_USE_BFP16", static_cast<int32_t>(dtype == miopenBFloat16)},
             {"REDUCE_SIZE", LOCAL_SIZE_REDUCE},
         };
-        do
+        while(_size > LOCAL_SIZE_REDUCE)
         {
             size_t xlocalsize = LOCAL_SIZE_REDUCE;
             size_t xgridsize  = AlignUp(_size, xlocalsize);
@@ -126,8 +127,8 @@ ConvSolution MultiMarginLossForward::GetSolution(
             size_t zgridsize  = 1;
 
             auto kernel        = KernelInfo{};
-            kernel.kernel_file = "MIOpenLossReduce.cpp";
-            kernel.kernel_name = "ReduceSumLoss";
+            kernel.kernel_file = "MIOpenReduceSum.cpp";
+            kernel.kernel_name = "ReduceSumFLOATACCUM";
 
             kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
 
@@ -140,8 +141,32 @@ ConvSolution MultiMarginLossForward::GetSolution(
             kernel.g_wk.push_back(zgridsize);
 
             result.construction_params.push_back(kernel);
-            _size = AlignUp(_size, LOCAL_SIZE_REDUCE) / LOCAL_SIZE_REDUCE;
-        } while(_size > 1);
+            _size = (_size + LOCAL_SIZE_REDUCE - 1) / LOCAL_SIZE_REDUCE;
+        }
+
+        // Last kernel reduce: FLOAT_ACCUM -> FLOAT
+        size_t xlocalsize = LOCAL_SIZE_REDUCE;
+        size_t xgridsize  = AlignUp(_size, xlocalsize);
+        size_t ylocalsize = 1;
+        size_t ygridsize  = 1;
+        size_t zlocalsize = 1;
+        size_t zgridsize  = 1;
+
+        auto kernel        = KernelInfo{};
+        kernel.kernel_file = "MIOpenReduceSum.cpp";
+        kernel.kernel_name = "ReduceSum";
+
+        kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
+
+        kernel.l_wk.push_back(xlocalsize);
+        kernel.l_wk.push_back(ylocalsize);
+        kernel.l_wk.push_back(zlocalsize);
+
+        kernel.g_wk.push_back(xgridsize);
+        kernel.g_wk.push_back(ygridsize);
+        kernel.g_wk.push_back(zgridsize);
+
+        result.construction_params.push_back(kernel);
     }
 
     result.invoker_factory = [](const std::vector<Kernel>& kernels) {
@@ -150,6 +175,7 @@ ConvSolution MultiMarginLossForward::GetSolution(
             auto i_tv             = get_inner_expanded_tv<2>(deref(params.iDesc));
             auto t_tv             = get_inner_expanded_tv<1>(deref(params.tDesc));
             auto w_tv             = get_inner_expanded_tv<1>(deref(params.wDesc));
+            auto o_tv             = get_inner_expanded_tv<1>(deref(params.oDesc));
 
             float elapsed = 0.0f;
             HipEventPtr start;
@@ -180,27 +206,24 @@ ConvSolution MultiMarginLossForward::GetSolution(
 
             /* Phase 2: Reduce */
             auto size      = deref(params.iDesc).GetLengths()[0];
-            auto data_size = get_data_size(deref(params.iDesc).GetType());
+            auto data_size = get_data_size(miopenFloat);
             auto wt        = MultiBufferWorkspaceTraits{
-                size * data_size, (size + LOCAL_SIZE_REDUCE) / LOCAL_SIZE_REDUCE * data_size};
+                size * data_size, (size + LOCAL_SIZE_REDUCE - 1) / LOCAL_SIZE_REDUCE * data_size};
             auto reduce_in = params.workspace;
             auto reduce_out =
                 static_cast<Data_t>(static_cast<std::byte*>(params.workspace) + wt.GetOffset(1));
 
-            for(int i = 1; i < kernels.size(); ++i)
+            int kernelCnt = 1;
+            for(kernelCnt; kernelCnt < kernels.size() - 1; kernelCnt++)
             {
-                decltype(auto) kernel = handle_.Run(kernels[i]);
-                if(i + 1 != kernels.size())
-                {
-                    kernel(reduce_in, reduce_out, size);
-                    std::swap(reduce_in, reduce_out);
-                }
-                else
-                {
-                    kernel(reduce_in, params.o, size);
-                }
-                size = AlignUp(size, LOCAL_SIZE_REDUCE) / LOCAL_SIZE_REDUCE;
+                decltype(auto) kernel = handle_.Run(kernels[kernelCnt]);
+                kernel(reduce_in, reduce_out, size);
+                std::swap(reduce_in, reduce_out);
+                size = (size + LOCAL_SIZE_REDUCE - 1) / LOCAL_SIZE_REDUCE;
             }
+
+            decltype(auto) kernel = handle_.Run(kernels[kernelCnt]);
+            kernel(reduce_in, params.o, size, o_tv);
 
             if(profiling)
             {
@@ -227,9 +250,9 @@ std::size_t MultiMarginLossForward::GetWorkspaceSize(
     const miopen::multimarginloss::ForwardProblemDescription& problem) const
 {
     auto size      = problem.GetiDesc().GetLengths()[0];
-    auto data_size = get_data_size(problem.GetiDesc().GetType());
-    return MultiBufferWorkspaceTraits{size * data_size,
-                                      (size + LOCAL_SIZE_REDUCE) / LOCAL_SIZE_REDUCE * data_size}
+    auto data_size = get_data_size(miopenFloat);
+    return MultiBufferWorkspaceTraits{
+        size * data_size, (size + LOCAL_SIZE_REDUCE - 1) / LOCAL_SIZE_REDUCE * data_size}
         .GetSize();
 }
 

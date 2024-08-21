@@ -98,13 +98,14 @@ ConvSolution MultiMarginLossUnreducedForward::GetSolution(
 
         auto kernel        = KernelInfo{};
         kernel.kernel_file = "MIOpenMultiMarginLoss.cpp";
-        kernel.kernel_name = "MultiMarginLossUnreducedForward2d";
+        kernel.kernel_name = "MultiMarginLossForward2d";
 
         const auto build_params = KernelBuildParameters{
             {"MIOPEN_USE_FP16", static_cast<int32_t>(dtype == miopenHalf)},
             {"MIOPEN_USE_FP32", static_cast<int32_t>(dtype == miopenFloat)},
             {"MIOPEN_USE_FP64", static_cast<int32_t>(dtype == miopenDouble)},
             {"MIOPEN_USE_BFP16", static_cast<int32_t>(dtype == miopenBFloat16)},
+            {"REDUCTION_TYPE", static_cast<int>(problem.Getreduction())},
         };
 
         kernel.comp_options = build_params.GenerateFor(kbp::HIP{});

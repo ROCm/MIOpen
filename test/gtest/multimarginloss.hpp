@@ -168,7 +168,7 @@ protected:
             GTEST_FAIL() << "Call GetMultiMarginLossForwardWorkspaceSize failed!";
         if(ws_sizeInBytes > 0)
         {
-            workspace = tensor<T>{std::vector<size_t>{ws_sizeInBytes / sizeof(T)}};
+            workspace = tensor<float>{std::vector<size_t>{ws_sizeInBytes / sizeof(float)}};
             std::fill(workspace.begin(), workspace.end(), 0);
             workspace_dev = handle.Write(workspace.data);
         }
@@ -230,7 +230,7 @@ protected:
     tensor<uint64_t> target;
     tensor<T> weight;
     tensor<T> output;
-    tensor<T> workspace;
+    tensor<float> workspace;
 
     tensor<T> ref_output;
 
