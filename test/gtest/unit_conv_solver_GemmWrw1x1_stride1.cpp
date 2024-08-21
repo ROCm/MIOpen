@@ -62,7 +62,7 @@ TEST_P(GPU_UnitTestConvSolver_wrw_FP32, GemmWrw1x1_stride1)
     this->RunTest(miopen::solver::conv::GemmWrw1x1_stride1{});
 };
 
-TEST_P(CPU_UnitTestConvSolverDevApplicability_wrw_FP32, GemmWrw1x1_stride1)
+TEST_P(CPU_UnitTestConvSolverDevApplicability_wrw_NONE, GemmWrw1x1_stride1)
 {
     this->RunTest(miopen::solver::conv::GemmWrw1x1_stride1{});
 };
@@ -88,6 +88,6 @@ INSTANTIATE_TEST_SUITE_P(Smoke,
 
 // Device applicability test
 INSTANTIATE_TEST_SUITE_P(Smoke,
-                         CPU_UnitTestConvSolverDevApplicability_wrw_FP32,
+                         CPU_UnitTestConvSolverDevApplicability_wrw_NONE,
                          testing::Combine(testing::Values(GetSupportedDevices()),
                                           testing::Values(GetConvTestCases(miopenFloat)[0])));
