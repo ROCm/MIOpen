@@ -105,7 +105,7 @@ inline std::vector<AvgPoolTestCase> AvgPoolTestConfigsBwdFp16()
 {
     return {
         {{64, 288, 35, 35}, {3, 3}, {1, 1}, {1, 1}, false, true, 0},
-        {{6, 128, 128, 128, 128}, {3, 3, 3}, {2, 2, 2}, {1, 1, 1}, false, true, 0},
+        {{6, 288, 35, 35, 35}, {3, 3, 3}, {1, 1, 1}, {1, 1, 1}, false, true, 0},
     };
 }
 
@@ -113,7 +113,7 @@ inline std::vector<AvgPoolTestCase> AvgPoolTestConfigsBwdBfp16()
 {
     return {
         {{64, 2048, 9, 9}, {3, 3}, {1, 1}, {1, 1}, false, true, 0},
-        {{6, 128, 128, 128, 128}, {3, 3, 3}, {2, 2, 2}, {1, 1, 1}, false, true, 0},
+        {{6, 128, 112, 112, 112}, {3, 3, 3}, {2, 2, 2}, {1, 1, 1}, false, true, 0},
     };
 }
 

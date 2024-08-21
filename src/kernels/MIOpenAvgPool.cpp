@@ -69,7 +69,6 @@ __device__ void avgPoolForward2d(const TI* __restrict__ input,
         return;
 
     FLOAT_ACCUM m = 0;
-#pragma unroll
     for(int32_t r = 0; r < R; ++r)
     {
         for(int32_t s = 0; s < S; ++s)
@@ -329,7 +328,6 @@ __device__ void avgPoolBackward2d(const TI* __restrict__ output_grad,
         return;
 
     FLOAT_ACCUM grad = 0;
-#pragma unroll
     for(int32_t r = 0; r < R; ++r)
     {
         for(int32_t s = 0; s < S; ++s)
