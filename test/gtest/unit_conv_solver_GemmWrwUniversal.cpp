@@ -47,47 +47,47 @@ Gpu GetSupportedDevices()
 
 } // namespace
 
-TEST_P(GPU_UnitTestConvSolver_wrw_FP16, GemmWrwUniversal)
+TEST_P(GPU_UnitTestConvSolverWrw_FP16, GemmWrwUniversal)
 {
     this->RunTest(miopen::solver::conv::GemmWrwUniversal{});
 };
 
-TEST_P(GPU_UnitTestConvSolver_wrw_BF16, GemmWrwUniversal)
+TEST_P(GPU_UnitTestConvSolverWrw_BF16, GemmWrwUniversal)
 {
     this->RunTest(miopen::solver::conv::GemmWrwUniversal{});
 };
 
-TEST_P(GPU_UnitTestConvSolver_wrw_FP32, GemmWrwUniversal)
+TEST_P(GPU_UnitTestConvSolverWrw_FP32, GemmWrwUniversal)
 {
     this->RunTest(miopen::solver::conv::GemmWrwUniversal{});
 };
 
-TEST_P(CPU_UnitTestConvSolverDevApplicability_wrw_NONE, GemmWrwUniversal)
+TEST_P(CPU_UnitTestConvSolverDevApplicabilityWrw_NONE, GemmWrwUniversal)
 {
     this->RunTest(miopen::solver::conv::GemmWrwUniversal{});
 };
 
 // Smoke tests
 INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_UnitTestConvSolver_wrw_FP16,
+                         GPU_UnitTestConvSolverWrw_FP16,
                          testing::Combine(testing::Values(GetSupportedDevices()),
                                           testing::Values(miopenConvolutionAlgoGEMM),
                                           testing::ValuesIn(GetConvTestCases(miopenHalf))));
 
 INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_UnitTestConvSolver_wrw_BF16,
+                         GPU_UnitTestConvSolverWrw_BF16,
                          testing::Combine(testing::Values(GetSupportedDevices()),
                                           testing::Values(miopenConvolutionAlgoGEMM),
                                           testing::ValuesIn(GetConvTestCases(miopenBFloat16))));
 
 INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_UnitTestConvSolver_wrw_FP32,
+                         GPU_UnitTestConvSolverWrw_FP32,
                          testing::Combine(testing::Values(GetSupportedDevices()),
                                           testing::Values(miopenConvolutionAlgoGEMM),
                                           testing::ValuesIn(GetConvTestCases(miopenFloat))));
 
 // Device applicability test
 INSTANTIATE_TEST_SUITE_P(Smoke,
-                         CPU_UnitTestConvSolverDevApplicability_wrw_NONE,
+                         CPU_UnitTestConvSolverDevApplicabilityWrw_NONE,
                          testing::Combine(testing::Values(GetSupportedDevices()),
                                           testing::Values(GetConvTestCases(miopenFloat)[0])));

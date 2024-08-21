@@ -51,25 +51,25 @@ Gpu GetSupportedDevices()
 
 } // namespace
 
-TEST_P(GPU_UnitTestConvSolver_fwd_I8, GemmFwd1x1_0_1_int8)
+TEST_P(GPU_UnitTestConvSolverFwd_I8, GemmFwd1x1_0_1_int8)
 {
     this->RunTest(miopen::solver::conv::GemmFwd1x1_0_1_int8{});
 };
 
-TEST_P(CPU_UnitTestConvSolverDevApplicability_fwd_NONE, GemmFwd1x1_0_1_int8)
+TEST_P(CPU_UnitTestConvSolverDevApplicabilityFwd_NONE, GemmFwd1x1_0_1_int8)
 {
     this->RunTest(miopen::solver::conv::GemmFwd1x1_0_1_int8{});
 };
 
 // Smoke tests
 INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_UnitTestConvSolver_fwd_I8,
+                         GPU_UnitTestConvSolverFwd_I8,
                          testing::Combine(testing::Values(GetSupportedDevices()),
                                           testing::Values(miopenConvolutionAlgoGEMM),
                                           testing::ValuesIn(GetConvTestCases(miopenInt8))));
 
 // Device applicability test
 INSTANTIATE_TEST_SUITE_P(Smoke,
-                         CPU_UnitTestConvSolverDevApplicability_fwd_NONE,
+                         CPU_UnitTestConvSolverDevApplicabilityFwd_NONE,
                          testing::Combine(testing::Values(GetSupportedDevices()),
                                           testing::Values(GetConvTestCases(miopenInt8)[0])));
