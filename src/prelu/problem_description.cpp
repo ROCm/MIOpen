@@ -24,58 +24,53 @@
  *
  *******************************************************************************/
 
-#ifndef MIOPEN_TENSOR_VIEW_UTIL_HPP_
-#define MIOPEN_TENSOR_VIEW_UTIL_HPP_
+#include <miopen/prelu/problem_description.hpp>
+#include <miopen/names.hpp>
 
-#include <miopen/common.hpp>
-#include <miopen/tensor.hpp>
-#include "../../kernels/tensor_view.hpp"
+#include <sstream>
 
 namespace miopen {
 
-template <int N>
-inline tensor_view_t<N> get_inner_expanded_tv(const TensorDescriptor Desc)
-{
-    auto dims    = Desc.GetLengths();
-    auto strides = Desc.GetStrides();
+namespace prelu {
 
-    tensor_view_t<N> tensor_view;
-    for(size_t i = 0; i < N; ++i)
-    {
-        if(i < dims.size())
-        {
-            tensor_view.stride[i] = strides[i];
-            tensor_view.size[i]   = dims[i];
-        }
-        else
-        {
-            tensor_view.stride[i] = (i == 0 ? 1 : strides[i - 1]);
-            tensor_view.size[i]   = 1;
-        }
-    }
-    return tensor_view;
+bool checkSameType(const TensorDescriptor& x, const TensorDescriptor& y)
+{
+    if(x.GetType() != y.GetType())
+        return false;
+    return true;
 }
 
-template <int N>
-inline void slice_tv(tensor_view_t<N>& tensor_view, int32_t sliceCount, const int32_t* slices)
+bool checkSameLength(const TensorDescriptor& x, const TensorDescriptor& y)
 {
-    for(int32_t i = 0; i < sliceCount; i++)
+    if(x.GetNumDims() != y.GetNumDims())
+        return false;
+    for(int32_t i = 0; i < x.GetNumDims(); ++i)
     {
-        int32_t dim   = slices[4 * i + 0];
-        int32_t start = slices[4 * i + 1];
-        int32_t end   = slices[4 * i + 2];
-        int32_t step  = slices[4 * i + 3];
-
-        if(end > static_cast<int32_t>(tensor_view.size[dim]))
-            end = tensor_view.size[dim];
-
-        auto len = end - start;
-
-        tensor_view.size[dim] = (len + step - 1) / step;
-        tensor_view.stride[dim] *= step;
+        if(x.GetLengths()[i] != y.GetLengths()[i])
+            return false;
     }
+    return true;
 }
+
+NetworkConfig BackwardProblemDescription::MakeNetworkConfig() const
+{
+    auto input_dtype  = inputDesc.GetType();
+    auto output_dtype = doutputDesc.GetType();
+    auto size         = inputDesc.GetElementSize();
+    auto num_params   = weightDesc.GetElementSize();
+
+    std::ostringstream ss;
+
+    ss << "prelu_bwd";
+    ss << "idtype" << input_dtype;
+    ss << "odtype" << output_dtype;
+    ss << "ndim" << inputDesc.GetNumDims();
+    ss << "size" << size;
+    ss << "num_params" << num_params;
+
+    return NetworkConfig{ss.str()};
+}
+
+} // namespace prelu
 
 } // namespace miopen
-
-#endif // MIOPEN_TENSOR_REORDER_UTIL_HPP_
