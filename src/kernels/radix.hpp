@@ -78,7 +78,7 @@ __device__ inline Radix encode(DTYPE v)
     {
         Radix x    = __half_as_ushort(v);
         Radix mask = (x & 0x8000) ? 0xffff : 0x8000;
-        return isnan(v) ?  0xffff : (x ^ mask);
+        return isnan(v) ? 0xffff : (x ^ mask);
     }
     else if constexpr(std::is_same<float, DTYPE>::value)
     {

@@ -34,15 +34,15 @@ struct Handle;
 struct TensorDescriptor;
 
 MIOPEN_INTERNALS_EXPORT miopenStatus_t KthvalueForward(Handle& handle,
-                               const TensorDescriptor& inputDesc,
-                               ConstData_t input,
-                               const TensorDescriptor& outputDesc,
-                               Data_t output,
-                               const TensorDescriptor& indicesDesc,
-                               size_t* indices,
-                               size_t k,
-                               int32_t dim,
-                               bool keepDim);
+                                                       const TensorDescriptor& inputDesc,
+                                                       ConstData_t input,
+                                                       const TensorDescriptor& outputDesc,
+                                                       Data_t output,
+                                                       const TensorDescriptor& indicesDesc,
+                                                       size_t* indices,
+                                                       size_t k,
+                                                       int32_t dim,
+                                                       bool keepDim);
 
 } // namespace miopen
 #endif // MIOPEN_KTHVALUE_HPP_
