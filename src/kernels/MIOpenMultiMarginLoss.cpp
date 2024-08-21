@@ -51,27 +51,29 @@ __device__ void multimarginlossunreducedforward2d(const DTYPE* __restrict__ I,
         return;
 
     FLOAT_ACCUM loss = 0;
-    uint64_t y       = T[T_tv.get_tensor_view_idx({n})];
+    size_t y         = T[T_tv.get_tensor_view_idx({n})];
     if(y >= C)
     {
         // TODO: need to handle invalid target index value
         return;
     }
 
+    FLOAT_ACCUM Iny = CVT_FLOAT2ACCUM(I[I_tv.get_tensor_view_idx({n, y})]);
+    FLOAT_ACCUM Wy  = CVT_FLOAT2ACCUM(W[W_tv.get_tensor_view_idx({y})]);
+
     for(size_t c = 0; c < C; c++)
     {
         if(y == c)
             continue;
-        FLOAT_ACCUM t = margin - CVT_FLOAT2ACCUM(I[I_tv.get_tensor_view_idx({n, y})]) +
-                        CVT_FLOAT2ACCUM(I[I_tv.get_tensor_view_idx({n, c})]);
+        FLOAT_ACCUM t = margin - Iny + CVT_FLOAT2ACCUM(I[I_tv.get_tensor_view_idx({n, c})]);
         if(t < 0)
             continue;
         if(p == 2)
             t = t * t;
-        t              = CVT_FLOAT2ACCUM(W[W_tv.get_tensor_view_idx({y})]) * t;
-        FLOAT_ACCUM rC = 1 / static_cast<FLOAT_ACCUM>(C);
-        loss           = fma(t, rC, loss);
+        t = Wy * t;
+        loss += t;
     }
+    loss /= C;
     O[O_tv.get_tensor_view_idx({n})] = CVT_ACCUM2FLOAT(loss);
 }
 

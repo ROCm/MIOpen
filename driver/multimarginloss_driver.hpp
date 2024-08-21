@@ -31,6 +31,7 @@
 #include "tensor_driver.hpp"
 #include "timer.hpp"
 #include "random.hpp"
+#include <algorithm>
 #include <cstdint>
 #include <cstdlib>
 #include <memory>
@@ -167,7 +168,7 @@ int MultiMarginLossDriver<Tgpu, Tref>::AddCmdLineArgs()
     inflags.AddInputFlag("forw", 'F', "1", "Run only Forward Take (Default=1)", "int");
     inflags.AddInputFlag("dim", 'D', "41x4", "Dim of input tensor (Default=41x4)", "tensor");
     inflags.AddInputFlag("contiguous", 'C', "1", "Tensor is contiguous or not (Default=1)", "int");
-    inflags.AddInputFlag("iter", 'i', "1", "Number of Iterations (Default=1)", "int");
+    inflags.AddInputFlag("iter", 'i', "10", "Number of Iterations (Default=10)", "int");
     inflags.AddInputFlag("verify", 'V', "1", "Verify Each Layer (Default=1)", "int");
     inflags.AddInputFlag("time", 't', "0", "Time Each Layer (Default=0)", "int");
     inflags.AddInputFlag(
@@ -334,6 +335,8 @@ int MultiMarginLossDriver<Tgpu, Tref>::RunForwardGPU()
     float kernel_total_time = 0;
     float kernel_first_time = 0;
 
+    std::vector<float> time_vector;
+
     Timer t;
     START_TIME
 
@@ -359,7 +362,14 @@ int MultiMarginLossDriver<Tgpu, Tref>::RunForwardGPU()
         kernel_total_time += time;
         if(i == 0)
             kernel_first_time = time;
+        else
+            time_vector.push_back(time);
     }
+
+    std::cerr << "Min between iterations: "
+              << *std::min_element(time_vector.begin(), time_vector.end()) << std::endl;
+    std::cerr << "Max between iterations: "
+              << *std::max_element(time_vector.begin(), time_vector.end()) << std::endl;
 
     if(inflags.GetValueInt("time") == 1)
     {

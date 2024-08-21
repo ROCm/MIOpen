@@ -45,13 +45,29 @@ bool MultiMarginLossUnreducedForward::IsImprovementOverROCm(
     const ExecutionContext& /*context*/,
     const miopen::multimarginloss::ForwardProblemDescription& problem) const
 {
-    if(problem.GetiDesc().GetLengths()[1] <= 30)
-        return true;
-    if((problem.GetiDesc().GetType() == miopenHalf ||
-        problem.GetiDesc().GetType() == miopenBFloat16) &&
-       problem.GetiDesc().IsContiguous() && problem.GetiDesc().GetLengths()[1] <= 40)
-        return true;
-    return false;
+    int C = problem.GetiDesc().GetLengths()[1];
+    if(problem.allContiguousTensor())
+    {
+        switch(problem.GetiDesc().GetType())
+        {
+        case miopenFloat: return C <= 32;
+        case miopenHalf: return C <= 43;
+        case miopenBFloat16: return C <= 44;
+        // Have not tested with other types yet
+        default: return true;
+        }
+    }
+    else
+    {
+        switch(problem.GetiDesc().GetType())
+        {
+        case miopenFloat: return C <= 31;
+        case miopenHalf: return C <= 38;
+        case miopenBFloat16: return C <= 40;
+        // Have not tested with other types yet
+        default: return true;
+        }
+    }
 }
 
 bool MultiMarginLossUnreducedForward::IsApplicable(

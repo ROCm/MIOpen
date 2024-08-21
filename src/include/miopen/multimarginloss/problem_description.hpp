@@ -115,6 +115,11 @@ struct ForwardProblemDescription : ProblemDescriptionBase
     long Getp() const { return p; }
     float Getmargin() const { return margin; }
     miopenLossReductionMode_t Getreduction() const { return reduction; }
+    bool allContiguousTensor() const
+    {
+        return iDesc.IsContiguous() && tDesc.IsContiguous() && wDesc.IsContiguous() &&
+               oDesc.IsContiguous();
+    }
 
     NetworkConfig MakeNetworkConfig() const override;
 
