@@ -822,7 +822,8 @@ protected:
              const FusionFindParameters&,
              const std::optional<FindOptions>& options) const override
     {
-        return solvers.SearchForAllSolutions(dynamic_cast<const FusionContext&>(ctx),
+        const auto fusion_ctx = FusionContext(ctx);
+        return solvers.SearchForAllSolutions(fusion_ctx,
                                              problem,
                                              miopen::GetDb(ctx),
                                              invoke_ctx,
@@ -1096,8 +1097,7 @@ FusionPlanDescriptor::Find(Handle& handle,
                            const std::function<fusion::FusionInvokeParams()>& invoke_params,
                            const std::optional<FindOptions>& options) const
 {
-    // It is actually required to be FusionContext down the line
-    auto ctx      = FusionContext(handle);
+    auto ctx      = ExecutionContext(&handle);
     ctx.do_search = options->exhaustive_search;
     return FindFusion(ctx, this, invoke_params, options);
 }
