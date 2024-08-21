@@ -1096,7 +1096,8 @@ FusionPlanDescriptor::Find(Handle& handle,
                            const std::function<fusion::FusionInvokeParams()>& invoke_params,
                            const std::optional<FindOptions>& options) const
 {
-    auto ctx      = ExecutionContext(&handle);
+    // It is actually required to be FusionContext down the line
+    auto ctx      = FusionContext(handle);
     ctx.do_search = options->exhaustive_search;
     return FindFusion(ctx, this, invoke_params, options);
 }
