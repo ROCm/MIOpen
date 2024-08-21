@@ -201,7 +201,7 @@ protected:
 
 using namespace mha_graph_test;
 
-TEST_P(GPU_MhaFwdGraph_FP32, MhaFwdGraph) { Run(); }
+TEST_P(GPU_MhaFwdGraph_FP32, MhaFwdGraph) { Run(MhaDir::Fwd); }
 
 INSTANTIATE_TEST_SUITE_P(Unit,
                          GPU_MhaFwdGraph_FP32,
