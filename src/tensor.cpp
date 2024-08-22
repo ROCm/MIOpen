@@ -497,6 +497,67 @@ bool TensorDescriptor::IsPossibleLayout(const std::string& labels, const std::st
     return derived_strides == strides;
 }
 
+bool TensorDescriptor::IsPossibleLayout1(const std::string& labels, const std::string& layout) const
+{
+    if(labels.size() != this->GetNumDims())
+    {
+        MIOPEN_THROW(miopenStatusInternalError, "labels.size() must be equal to the number of the tensor dimensions");
+    }
+
+    auto layout_vect = (*(layout.end() - 1) == 'c');
+    if(this->IsVectorized() != layout_vect)
+        return false;
+
+    auto layout_size = this->GetNumDims();
+    if(this->IsVectorized())
+        layout_size++; // last char (c)
+    if(layout.size() != layout_size)
+        return false;
+
+    const auto base_layout = layout.substr(0, this->GetNumDims());
+
+    if(this->GetNumDims() < 2)
+    {
+        if(labels != base_layout)
+            MIOPEN_THROW(miopenStatusInternalError, "labels and layout mismatch");
+        return true;
+    }
+
+    auto op = [&](char cur_char) {
+        const auto pos = labels.find(cur_char);
+        if(pos == std::string::npos)
+            MIOPEN_THROW(miopenStatusInternalError, "wrong layout format");
+        return this->strides[pos];
+    };
+
+    std::vector<std::size_t> layout_strides(base_layout.size());
+    std::transform(base_layout.cbegin(), base_layout.cend(), layout_strides.begin(), op);
+
+    // Check monotonic decreasing
+    for(unsigned i = 0; i < (layout_strides.size() - 1); i++)
+    {
+        if(layout_strides[i] < layout_strides[i + 1])
+            return false;
+    }
+
+    return true;
+}
+
+bool TensorDescriptor::IsPossibleLayout4D5D(const std::string& layout) const
+{
+    // clang-format off
+    switch(this->GetNumDims())
+    {
+    case 4: // 4D: lens are in NCHW order
+        return this->IsPossibleLayout1("NCHW", layout);
+    case 5: // 5D: lens are in NCDHW order
+        return this->IsPossibleLayout1("NCDHW", layout);
+    default:
+        return false;
+    }
+    // clang-format on
+}
+
 std::size_t TensorDescriptor::GetNumBytes() const
 {
     std::size_t typesize = GetTypeSize(this->type);
