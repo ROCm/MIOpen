@@ -544,8 +544,12 @@ bool TensorDescriptor::IsPossibleLayout1(const std::string& labels, const std::s
     return true;
 }
 
+// layout could be NCHW, NHWC, NCDHW, NDHWC, NCHWc, etc. except CHWNc
 bool TensorDescriptor::IsPossibleLayout4D5D(const std::string& layout) const
 {
+    if(this->tensorLayout == miopenTensorCHWNc4 || this->tensorLayout == miopenTensorCHWNc8)
+        return false;
+
     // clang-format off
     switch(this->GetNumDims())
     {
