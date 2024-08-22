@@ -239,7 +239,7 @@ std::string BnormArgsForMIOpenDriver(miopenTensorDescriptor_t xDesc,
             ss << " -H " << miopen::deref(xDesc).GetLengths()[2]
             << " -W " << miopen::deref(xDesc).GetLengths()[3];
         }
-            ss << " -M " << bn_mode; // clang-format on
+            ss << " -m " << bn_mode; // clang-format on
     if(print_for_bn_driver)
     {
         BnDriverInfo(ss,

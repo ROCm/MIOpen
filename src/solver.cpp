@@ -32,9 +32,11 @@
 #include <miopen/cat/solvers.hpp>
 #include <miopen/fusion/solvers.hpp>
 #include <miopen/groupnorm/solvers.hpp>
+#include <miopen/getitem/solvers.hpp>
 #include <miopen/layernorm/solvers.hpp>
 #include <miopen/pooling/solvers.hpp>
 #include <miopen/reduce/solvers.hpp>
+#include <miopen/rope/solvers.hpp>
 #include <miopen/mha/solvers.hpp>
 #include <miopen/softmax/solvers.hpp>
 
@@ -662,6 +664,7 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
 
     Register(registry, ++id, Primitive::Cat, cat::CatForward{}.SolverDbId());
     Register(registry, ++id, Primitive::Adam, adam::Adam{}.SolverDbId());
+    Register(registry, ++id, Primitive::Item, getitem::GetitemBackward{}.SolverDbId());
 
     Register(registry, ++id, Primitive::Adam, adam::TransformersAdamW{}.SolverDbId());
 
@@ -671,6 +674,8 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
              fusion::ConvWinoFuryRxSFused<2, 3>{}.SolverDbId(),
              miopenConvolutionAlgoWinograd);
 
+    Register(registry, ++id, Primitive::RoPE, rope::RoPEForward{}.SolverDbId());
+    Register(registry, ++id, Primitive::RoPE, rope::RoPEBackward{}.SolverDbId());
     // IMPORTANT: New solvers should be added to the end of the function!
 }
 
