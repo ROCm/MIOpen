@@ -183,7 +183,7 @@ NetworkConfig ProblemDescription::MakeForwardTrainingNetworkConfig() const
         ss << "c" << c;
         ss << "hw" << in_cstride;
     }
-    ss << "layout" << xDesc.GetLayout_str();
+    ss << "layout" << in_layout;
 
     return NetworkConfig{ss.str()};
 }
@@ -204,7 +204,7 @@ NetworkConfig ProblemDescription::MakeForwardInferenceNetworkConfig() const
     ss << "mode" << bn_mode;
     ss << "HWdims" << in_cstride;
     ss << "C" << c;
-    ss << "layout" << xDesc.GetLayout_str();
+    ss << "layout" << in_layout;
 
     return NetworkConfig{ss.str()};
 }
@@ -332,7 +332,7 @@ NetworkConfig ProblemDescription::MakeBackwardNetworkConfig() const
         ss << "fbf16" << static_cast<int>(IsBfp16());
         ss << "nhw" << in_nhw;
     }
-    ss << "layout" << xDesc.GetLayout_str();
+    ss << "layout" << in_layout;
 
     return NetworkConfig{ss.str()};
 }
