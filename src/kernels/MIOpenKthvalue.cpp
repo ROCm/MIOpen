@@ -42,8 +42,6 @@
 #define LOCAL_SIZE 256
 #endif
 
-using RADIX_TYPE = typename RadixType<IN_OUT_TYPE>::type;
-
 template <typename DTYPE>
 __device__ void kthvalueFwd(const DTYPE* input,
                             DTYPE* output,
@@ -63,6 +61,8 @@ __device__ void kthvalueFwd(const DTYPE* input,
      * dim = 2 (C)
      * => grid = {A * B * D * E, 1}, block = {LOCAL_SIZE, 1}
      */
+    using RADIX_TYPE = typename RadixType<DTYPE>::type;
+
     const int RADIX_BITS = 2;
     const int RADIX_SIZE = 1 << RADIX_BITS;
     const int RADIX_MASK = RADIX_SIZE - 1;
