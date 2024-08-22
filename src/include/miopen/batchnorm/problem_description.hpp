@@ -228,41 +228,20 @@ private:
     NetworkConfig MakeForwardInferenceNetworkConfig() const;
     NetworkConfig MakeBackwardNetworkConfig() const;
 
-    std::string ComputeInLayout() const
+    std::string ComputeLayout(const TensorDescriptor& td) const
     {
         if(spatial_dim == 2)
         {
-            return xDesc.GetLayout("NCHW");
+            return td.GetLayout("NCHW");
         }
         else
         {
-            return xDesc.GetLayout("NCDHW");
+            return td.GetLayout("NCDHW");
         }
     }
-
-    std::string ComputeOutLayout() const
-    {
-        if(spatial_dim == 2)
-        {
-            return yOrDyDesc.GetLayout("NCHW");
-        }
-        else
-        {
-            return yOrDyDesc.GetLayout("NCDHW");
-        }
-    }
-
-    std::string ComputeDinLayout() const
-    {
-        if(spatial_dim == 2)
-        {
-            return dxDesc.GetLayout("NCHW");
-        }
-        else
-        {
-            return dxDesc.GetLayout("NCDHW");
-        }
-    }
+    std::string ComputeInLayout() const { return ComputeLayout(xDesc); }
+    std::string ComputeOutLayout() const { return ComputeLayout(yOrDyDesc); }
+    std::string ComputeDinLayout() const { return ComputeLayout(dxDesc); }
 };
 
 } // namespace batchnorm
