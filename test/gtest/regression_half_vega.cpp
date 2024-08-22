@@ -68,7 +68,7 @@ std::vector<std::string> GetTestCases()
 
 using TestCase = decltype(GetTestCases())::value_type;
 
-class ConfigWithHalf_regression_half_vega : public testing::TestWithParam<std::vector<TestCase>>
+class GPU_regression_vega_FP16 : public testing::TestWithParam<std::vector<TestCase>>
 {
 };
 
@@ -89,7 +89,7 @@ void Run2dDriver()
         GTEST_SKIP();
     }
     SetupEnvVar();
-    std::vector<std::string> params = ConfigWithHalf_regression_half_vega::GetParam();
+    std::vector<std::string> params = GPU_regression_vega_FP16::GetParam();
 
     for(const auto& test_value : params)
     {
@@ -109,8 +109,6 @@ void Run2dDriver()
 } // namespace regression_half_vega
 using namespace regression_half_vega;
 
-TEST_P(ConfigWithHalf_regression_half_vega, FloatTest_regression_half_vega) { Run2dDriver(); };
+TEST_P(GPU_regression_vega_FP16, FloatTest_regression_half_vega) { Run2dDriver(); };
 
-INSTANTIATE_TEST_SUITE_P(RegressionHalfVega,
-                         ConfigWithHalf_regression_half_vega,
-                         testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_regression_vega_FP16, testing::Values(GetTestCases()));
