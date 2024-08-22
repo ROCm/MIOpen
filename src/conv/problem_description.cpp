@@ -292,20 +292,11 @@ std::string ProblemDescription::ComputeLayout(const TensorDescriptor& td) const
     // clang-format on
 }
 
-std::string ProblemDescription::ComputeInLayout() const
-{
-    return ComputeLayout(in);
-}
+std::string ProblemDescription::ComputeInLayout() const { return ComputeLayout(in); }
 
-std::string ProblemDescription::ComputeOutLayout() const
-{
-    return ComputeLayout(out);
-}
+std::string ProblemDescription::ComputeOutLayout() const { return ComputeLayout(out); }
 
-std::string ProblemDescription::ComputeWeightsLayout() const
-{
-    return ComputeLayout(weights);
-}
+std::string ProblemDescription::ComputeWeightsLayout() const { return ComputeLayout(weights); }
 
 } // namespace conv
 } // namespace miopen
