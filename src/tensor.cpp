@@ -501,7 +501,8 @@ bool TensorDescriptor::IsPossibleLayout1(const std::string& labels, const std::s
 {
     if(labels.size() != this->GetNumDims())
     {
-        MIOPEN_THROW(miopenStatusInternalError, "labels.size() must be equal to the number of the tensor dimensions");
+        MIOPEN_THROW(miopenStatusInternalError,
+                     "labels.size() must be equal to the number of the tensor dimensions");
     }
 
     auto layout_vect = (*(layout.end() - 1) == 'c');

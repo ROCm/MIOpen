@@ -54,7 +54,8 @@ class TestPossibleLayout4D5D : public ::testing::TestWithParam<TestCasePossibleL
 {
     static auto& GetAllLayouts()
     {
-        static const auto layouts = std::vector<std::string>{"NCHW", "NHWC", "CHWN", "NCDHW", "NDHWC", "NCHWc", "CHWNc"};
+        static const auto layouts =
+            std::vector<std::string>{"NCHW", "NHWC", "CHWN", "NCDHW", "NDHWC", "NCHWc", "CHWNc"};
         return layouts;
     }
 
@@ -92,7 +93,8 @@ public:
         for(const auto& layout : this->GetAllLayouts())
         {
             const auto is_possible_layout = td.IsPossibleLayout4D5D(layout);
-            const auto expected = std::count(p.actual_layouts.cbegin(), p.actual_layouts.cend(), layout);
+            const auto expected =
+                std::count(p.actual_layouts.cbegin(), p.actual_layouts.cend(), layout);
             ASSERT_EQ(is_possible_layout, expected) << "current layout: " << layout;
         }
     }
@@ -102,10 +104,7 @@ public:
 
 using CPU_TensorTestPossibleLayout4D5D_NONE = TestPossibleLayout4D5D;
 
-TEST_P(CPU_TensorTestPossibleLayout4D5D_NONE, TensorDescriptor)
-{
-    this->RunTest();
-};
+TEST_P(CPU_TensorTestPossibleLayout4D5D_NONE, TensorDescriptor) { this->RunTest(); };
 
 INSTANTIATE_TEST_SUITE_P(Full,
                          CPU_TensorTestPossibleLayout4D5D_NONE,
