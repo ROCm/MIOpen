@@ -61,6 +61,7 @@ enum class Primitive
     Adam,
     Item,
     RoPE,
+    ReLU,
     Kthvalue,
 };
 
