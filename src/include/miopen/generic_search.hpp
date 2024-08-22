@@ -316,6 +316,7 @@ GetAllSolutions(const Solver s, const Context& context_, const Problem& problem)
 
 std::size_t GetTuningIterationsMax();
 std::chrono::milliseconds GetTuningTimeMax(); // returns the max allowed time in milliseconds
+std::size_t GetTuningPatience();
 std::size_t GetTuningThreadsMax();
 
 template <typename PerformanceConfig, typename Solver, typename Context, typename Problem>
