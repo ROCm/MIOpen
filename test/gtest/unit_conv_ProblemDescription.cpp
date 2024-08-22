@@ -66,6 +66,7 @@ public:
 
         return std::vector{
             // clang-format off
+            // 4D
             TestCase{
                 {miopenHalf, miopenTensorNCHW, {1, 4, 4, 4}}, // NCHW
                 {miopenHalf, miopenTensorNCHW, {1, 4, 4, 4}}, // NCHW
@@ -170,6 +171,17 @@ public:
                 miopen::conv::Direction::Forward,
                 "CHWNc", "CHWNc", "CHWNc"
             },
+#if 1
+            TestCase{
+                {miopenHalf, {1, 1, 1, 1}, {1, 1, 1, 1}}, // ?
+                {miopenHalf, {1, 1, 1, 1}, {1, 1, 1, 1}}, // ?
+                {miopenHalf, {1, 1, 1, 1}, {1, 1, 1, 1}}, // ?
+                {{0, 0}, {1, 1}, {1, 1}},
+                miopen::conv::Direction::Forward,
+                "NCHW", "NCHW", "NCHW"
+            },
+#endif
+            // 5D
             TestCase{
                 {miopenHalf, miopenTensorNCDHW, {1, 4, 4, 4, 4}}, // NCDHW
                 {miopenHalf, miopenTensorNCDHW, {1, 4, 4, 4, 4}}, // NCDHW
@@ -202,6 +214,16 @@ public:
                 miopen::conv::Direction::Forward,
                 "NDHWC", "NDHWC", "NDHWC"
             },
+#if 1
+            TestCase{
+                {miopenHalf, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}}, // ?
+                {miopenHalf, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}}, // ?
+                {miopenHalf, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}}, // ?
+                {{0, 0, 0}, {1, 1, 1}, {1, 1, 1}, {0, 0, 0}},
+                miopen::conv::Direction::Forward,
+                "NCDHW", "NCDHW", "NCDHW"
+            },
+#endif
             // clang-format on
         };
     }

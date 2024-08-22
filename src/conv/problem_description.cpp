@@ -119,29 +119,6 @@ std::string ProblemDescription::GetAlphaBetaCaseStr() const
     }
 }
 
-void ProblemDescription::HeuristicUpdateLayouts()
-{
-    const std::string labels = tensor_layout_get_default(in_layout.size());
-
-    static const std::vector<std::string> supported_layouts = {"NCHW", "NHWC", "CHWN", "NCDHW"};
-    for(const std::string& layout : supported_layouts)
-    {
-        // Skip layouts that doesn't match dimension sizes
-        if(layout.size() != labels.size())
-            continue;
-
-        if(in.IsPossibleLayout(labels, layout) && out.IsPossibleLayout(labels, layout) &&
-           weights.IsPossibleLayout(labels, layout))
-        {
-            in_layout      = layout;
-            weights_layout = layout;
-            out_layout     = layout;
-            return;
-        }
-    }
-    // If we did not find consistent layout, leave them as-is
-}
-
 void ProblemDescription::MakeNetworkConfig(std::string& conf_key) const
 {
     std::ostringstream ss;
@@ -292,6 +269,42 @@ void ProblemDescription::SetupFloats(ExecutionContext& ctx) const
     MIOPEN_LOG_W("Unsupported data types configuration: "
                  << GetDataTypeName(GetInDataType()) << "x" << GetDataTypeName(GetWeightsDataType())
                  << "x" << GetDataTypeName(GetOutDataType()));
+}
+
+std::string ProblemDescription::ComputeLayout(const TensorDescriptor& td) const
+{
+    // 5D
+    if(GetSpatialDims() == 3)
+        return td.GetLayout("NCDHW");
+
+    // 4D
+    // clang-format off
+    switch(td.GetLayout_t())
+    {
+    case miopenTensorNCHWc4:
+    case miopenTensorNCHWc8:
+    case miopenTensorCHWNc4:
+    case miopenTensorCHWNc8:
+        return td.GetLayout(td.GetLayout_str());
+    default:
+        return td.GetLayout("NCHW");
+    }
+    // clang-format on
+}
+
+std::string ProblemDescription::ComputeInLayout() const
+{
+    return ComputeLayout(in);
+}
+
+std::string ProblemDescription::ComputeOutLayout() const
+{
+    return ComputeLayout(out);
+}
+
+std::string ProblemDescription::ComputeWeightsLayout() const
+{
+    return ComputeLayout(weights);
 }
 
 } // namespace conv

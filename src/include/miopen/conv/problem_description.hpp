@@ -166,7 +166,6 @@ struct MIOPEN_INTERNALS_EXPORT ProblemDescription : ProblemDescriptionBase
           beta(beta_),
           alpha_beta_case(ClassifyAlphaBeta(alpha, beta))
     {
-        HeuristicUpdateLayouts();
     }
 
     // Conv descriptor getters
@@ -369,8 +368,6 @@ struct MIOPEN_INTERNALS_EXPORT ProblemDescription : ProblemDescriptionBase
                out.AllLengthsFitIntoInt();
     }
 
-    void HeuristicUpdateLayouts();
-
     void MakeNetworkConfig(std::string& conf_key) const;
 
     NetworkConfig MakeNetworkConfig() const override
@@ -443,41 +440,10 @@ struct MIOPEN_INTERNALS_EXPORT ProblemDescription : ProblemDescriptionBase
     void SetupFloats(ExecutionContext& ctx) const;
 
 private:
-    std::string ComputeInLayout() const
-    {
-        if(GetSpatialDims() == 2)
-        {
-            return in.GetLayout(in.GetLayout_str());
-        }
-        else
-        {
-            return in.GetLayout("NCDHW");
-        }
-    }
-
-    std::string ComputeOutLayout() const
-    {
-        if(GetSpatialDims() == 2)
-        {
-            return out.GetLayout(out.GetLayout_str());
-        }
-        else
-        {
-            return out.GetLayout("NCDHW");
-        }
-    }
-
-    std::string ComputeWeightsLayout() const
-    {
-        if(GetSpatialDims() == 2)
-        {
-            return weights.GetLayout(weights.GetLayout_str());
-        }
-        else
-        {
-            return weights.GetLayout("NCDHW");
-        }
-    }
+    std::string ComputeLayout(const TensorDescriptor& td) const;
+    std::string ComputeInLayout() const;
+    std::string ComputeOutLayout() const;
+    std::string ComputeWeightsLayout() const;
 
     TensorDescriptor in;
     TensorDescriptor weights;
