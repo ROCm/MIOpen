@@ -450,15 +450,15 @@ auto GenericSearch(const Solver s,
         while(true)
         {
             if(n_current >= n_runs_total)
-	    {
+            {
                 MIOPEN_LOG_I2("Ending Search by total runs: " << n_runs_total);
                 break;
-	    }
+            }
             if(last_imprv >= patience)
-	    {
+            {
                 MIOPEN_LOG_I2("Ending Search by patience: " << patience);
                 break;
-	    }
+            }
 
             last_imprv++;
             MIOPEN_LOG_I2("Waiting for item in queue");
