@@ -210,7 +210,8 @@ public:
     {
         const auto p = GetParam();
 
-        const auto pd = miopen::conv::ProblemDescription{p.in, p.weights, p.out, p.conv, p.direction};
+        const auto pd =
+            miopen::conv::ProblemDescription{p.in, p.weights, p.out, p.conv, p.direction};
         ASSERT_EQ(pd.GetInLayout(), p.layout_in);
         ASSERT_EQ(pd.GetWeightsLayout(), p.layout_weights);
         ASSERT_EQ(pd.GetOutLayout(), p.layout_out);
