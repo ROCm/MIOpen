@@ -398,6 +398,7 @@ auto GenericSearch(const Solver s,
     std::shuffle(all_configs.begin(), all_configs.end(), rng);
     std::size_t n_runs_total = std::min(all_configs.size(), GetTuningIterationsMax());
     all_configs.resize(n_runs_total);
+    std::size_t patience = GetTuningPatience();
 
     if(all_configs.empty())
     {
@@ -443,11 +444,16 @@ auto GenericSearch(const Solver s,
     if(!env::enabled(MIOPEN_DEBUG_COMPILE_ONLY))
     {
         size_t n_current       = 0;
+        size_t last_imprv      = 0;
         auto threads_remaining = total_threads;
         while(true)
         {
             if(n_current >= n_runs_total)
                 break;
+            if(last_imprv >= patience)
+                break;
+
+            last_imprv++;
             MIOPEN_LOG_I2("Waiting for item in queue");
             const auto kinder     = solution_queue.pop();
             auto current_config   = std::get<0>(kinder);
@@ -541,6 +547,7 @@ auto GenericSearch(const Solver s,
                             best_config = current_config;
                             best_time   = elapsed_time;
                             n_best      = n_current;
+                            last_imprv  = 0;
                         }
                         else
                         {
