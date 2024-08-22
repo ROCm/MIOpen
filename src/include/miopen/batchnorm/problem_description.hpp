@@ -73,6 +73,7 @@ struct MIOPEN_INTERNALS_EXPORT ProblemDescription : ProblemDescriptionBase, Prob
           resultsave(resultsave_),
           resultrunning(resultrunning_)
     {
+        SetSpatialDims();
         in_layout  = ComputeInLayout();
         out_layout = ComputeOutLayout();
     }
@@ -90,6 +91,7 @@ struct MIOPEN_INTERNALS_EXPORT ProblemDescription : ProblemDescriptionBase, Prob
           scaleBiasDesc(bnScaleBiasMeanVarDesc_),
           epsilon(epsilon_)
     {
+        SetSpatialDims();
         in_layout  = ComputeInLayout();
         out_layout = ComputeOutLayout();
     }
@@ -111,11 +113,21 @@ struct MIOPEN_INTERNALS_EXPORT ProblemDescription : ProblemDescriptionBase, Prob
           epsilon(epsilon_),
           useSaved(useSaved_)
     {
+        SetSpatialDims();
         in_layout  = ComputeInLayout();
         out_layout = ComputeOutLayout();
         din_layout = ComputeDinLayout();
     }
 
+    void SetSpatialDims()
+    {
+        if(Is2D())
+            spatial_dim = 2;
+        else if(Is3D())
+            spatial_dim = 3;
+        else
+            MIOPEN_THROW("Unknown spatial dim!");
+    }
     Direction GetDirection() const { return direction; }
     miopenBatchNormMode_t GetMode() const { return bn_mode; }
     const TensorDescriptor& GetXDesc() const { return xDesc; }
@@ -183,6 +195,7 @@ struct MIOPEN_INTERNALS_EXPORT ProblemDescription : ProblemDescriptionBase, Prob
     }
 
     bool Is2D() const { return xDesc.GetLengths().size() == 4; }
+    bool Is3D() const { return xDesc.GetLengths().size() == 5; }
 
     bool IsFp64() const { return xDesc.GetType() == miopenDouble; }
     bool IsFp32() const { return xDesc.GetType() == miopenFloat; }
@@ -216,13 +229,13 @@ private:
 #pragma clang diagnostic pop
 #endif
 
-    bool resultsave        = false;
-    bool resultrunning     = false;
-    bool useSaved          = false;
-    std::string in_layout  = "NCHW";
-    std::string out_layout = "NCHW";
-    std::string din_layout = "NCHW";
-    int spatial_dim        = 2;
+    bool resultsave         = false;
+    bool resultrunning      = false;
+    bool useSaved           = false;
+    std::string in_layout   = "NCHW";
+    std::string out_layout  = "NCHW";
+    std::string din_layout  = "NCHW";
+    std::size_t spatial_dim = 2;
 
     NetworkConfig MakeForwardTrainingNetworkConfig() const;
     NetworkConfig MakeForwardInferenceNetworkConfig() const;
