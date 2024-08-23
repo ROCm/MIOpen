@@ -46,6 +46,21 @@ struct TestCasePossibleLayout
     }
 };
 
+struct TestCaseGetLayout
+{
+    miopen::TensorDescriptor td;
+    miopenTensorLayout_t actual_layout;
+
+    friend std::ostream& operator<<(std::ostream& os, const TestCaseGetLayout& tc)
+    {
+        os << "(";
+        os << "(" << tc.td << "), ";
+        os << static_cast<int>(tc.actual_layout);
+        os << ")";
+        return os;
+    }
+};
+
 class TestPossibleLayout4D5D : public ::testing::TestWithParam<TestCasePossibleLayout>
 {
     static auto& GetAllLayouts()
@@ -81,26 +96,6 @@ public:
             TestCase{{miopenHalf, miopenTensorCHWNc4, {2, 4, 2, 2}}, {"CHWNc"}},
             TestCase{{miopenHalf, miopenTensorCHWNc8, {1, 8, 1, 1}}, {"NCHWc", "CHWNc"}},
             TestCase{{miopenHalf, miopenTensorCHWNc8, {2, 8, 2, 2}}, {"CHWNc"}},
-#if 0
-            TestCase{{miopenHalf, miopenTensorNCDHW, {1, 1, 1, 1}}, {}}, // Exception
-            TestCase{{miopenHalf, miopenTensorNCDHW, {2, 2, 2, 2}}, {}}, // Exception
-            TestCase{{miopenHalf, miopenTensorNDHWC, {1, 1, 1, 1}}, {}}, // Exception
-            TestCase{{miopenHalf, miopenTensorNDHWC, {2, 2, 2, 2}}, {}}, // Exception
-            TestCase{{miopenHalf, miopenTensorNCHW, {1, 1, 1, 1, 1}}, {}}, // Exception
-            TestCase{{miopenHalf, miopenTensorNCHW, {2, 2, 2, 2, 2}}, {}}, // Exception
-            TestCase{{miopenHalf, miopenTensorNHWC, {1, 1, 1, 1, 1}}, {}}, // Exception
-            TestCase{{miopenHalf, miopenTensorNHWC, {2, 2, 2, 2, 2}}, {}}, // Exception
-            TestCase{{miopenHalf, miopenTensorCHWN, {1, 1, 1, 1, 1}}, {}}, // Exception
-            TestCase{{miopenHalf, miopenTensorCHWN, {2, 2, 2, 2, 2}}, {}}, // Exception
-            TestCase{{miopenHalf, miopenTensorNCHWc4, {1, 1, 1, 1, 1}}, {}}, // Exception
-            TestCase{{miopenHalf, miopenTensorNCHWc4, {2, 2, 2, 2, 2}}, {}}, // Exception
-            TestCase{{miopenHalf, miopenTensorNCHWc8, {1, 1, 1, 1, 1}}, {}}, // Exception
-            TestCase{{miopenHalf, miopenTensorNCHWc8, {2, 2, 2, 2, 2}}, {}}, // Exception
-            TestCase{{miopenHalf, miopenTensorCHWNc4, {1, 1, 1, 1, 1}}, {}}, // Exception
-            TestCase{{miopenHalf, miopenTensorCHWNc4, {2, 2, 2, 2, 2}}, {}}, // Exception
-            TestCase{{miopenHalf, miopenTensorCHWNc8, {1, 1, 1, 1, 1}}, {}}, // Exception
-            TestCase{{miopenHalf, miopenTensorCHWNc8, {2, 2, 2, 2, 2}}, {}}, // Exception
-#endif
             TestCase{{miopenHalf, miopenTensorNCDHW, {1, 1, 1, 1, 1}}, {"NCDHW", "NDHWC"}},
             TestCase{{miopenHalf, miopenTensorNCDHW, {2, 2, 2, 2, 2}}, {"NCDHW"}},
             TestCase{{miopenHalf, miopenTensorNDHWC, {1, 1, 1, 1, 1}}, {"NCDHW", "NDHWC"}},
@@ -120,6 +115,17 @@ public:
             TestCase{{miopenHalf, {2, 2, 2, 2, 2}, {10000, 1000, 100, 10, 1}}, {"NCDHW"}},
             TestCase{{miopenHalf, {2, 2, 2, 2, 2}, {10000, 1, 1000, 100, 10}}, {"NDHWC"}},
             TestCase{{miopenHalf, {2, 2, 2, 2, 2}, { 1, 1, 1, 1, 1}}, {"NCDHW", "NDHWC"}},
+
+            TestCase{{miopenHalf, miopenTensorNCHW, {1, 1, 1, 1}, { 1000, 100, 10, 1}}, {"NCHW"}},
+            TestCase{{miopenHalf, miopenTensorNHWC, {1, 1, 1, 1}, { 1000, 1, 100, 10}}, {"NHWC"}},
+            TestCase{{miopenHalf, miopenTensorCHWN, {1, 1, 1, 1}, { 1, 1000, 100, 10}}, {"CHWN"}},
+            TestCase{{miopenHalf, miopenTensorNCHW, {2, 2, 2, 2}, { 1000, 100, 10, 1}}, {"NCHW"}},
+            TestCase{{miopenHalf, miopenTensorNHWC, {2, 2, 2, 2}, { 1000, 1, 100, 10}}, {"NHWC"}},
+            TestCase{{miopenHalf, miopenTensorCHWN, {2, 2, 2, 2}, { 1, 1000, 100, 10}}, {"CHWN"}},
+            TestCase{{miopenHalf, miopenTensorNCDHW, {1, 1, 1, 1, 1}, {10000, 1000, 100, 10, 1}}, {"NCDHW"}},
+            TestCase{{miopenHalf, miopenTensorNDHWC, {1, 1, 1, 1, 1}, {10000, 1, 1000, 100, 10}}, {"NDHWC"}},
+            TestCase{{miopenHalf, miopenTensorNCDHW, {2, 2, 2, 2, 2}, {10000, 1000, 100, 10, 1}}, {"NCDHW"}},
+            TestCase{{miopenHalf, miopenTensorNDHWC, {2, 2, 2, 2, 2}, {10000, 1, 1000, 100, 10}}, {"NDHWC"}},
             // clang-format on
         };
     }
@@ -138,12 +144,61 @@ public:
     }
 };
 
+class TestGetLayout : public ::testing::TestWithParam<TestCaseGetLayout>
+{
+public:
+    static auto GetTestCases()
+    {
+        using TestCase = TestCaseGetLayout;
+
+        return std::vector{
+            // clang-format off
+            TestCase{{miopenHalf, {2, 2, 2, 2}}, miopenTensorNCHW},
+
+            TestCase{{miopenHalf, miopenTensorNCHW, {2, 2, 2, 2}}, miopenTensorNCHW},
+            TestCase{{miopenHalf, miopenTensorNHWC, {2, 2, 2, 2}}, miopenTensorNHWC},
+            TestCase{{miopenHalf, miopenTensorCHWN, {2, 2, 2, 2}}, miopenTensorCHWN},
+            TestCase{{miopenHalf, miopenTensorNCHWc4, {2, 4, 2, 2}}, miopenTensorNCHWc4},
+            TestCase{{miopenHalf, miopenTensorNCHWc8, {2, 8, 2, 2}}, miopenTensorNCHWc8},
+            TestCase{{miopenHalf, miopenTensorCHWNc4, {2, 4, 2, 2}}, miopenTensorCHWNc4},
+            TestCase{{miopenHalf, miopenTensorCHWNc8, {2, 8, 2, 2}}, miopenTensorCHWNc8},
+            TestCase{{miopenHalf, miopenTensorNCDHW, {2, 2, 2, 2, 2}}, miopenTensorNCDHW},
+            TestCase{{miopenHalf, miopenTensorNDHWC, {2, 2, 2, 2, 2}}, miopenTensorNDHWC},
+
+            TestCase{{miopenHalf, {2, 2, 2, 2}, { 1000, 100, 10, 1}}, miopenTensorNCHW},
+            TestCase{{miopenHalf, {2, 2, 2, 2}, { 1000, 1, 100, 10}}, miopenTensorNHWC},
+            TestCase{{miopenHalf, {2, 2, 2, 2}, { 1, 1000, 100, 10}}, miopenTensorCHWN},
+            TestCase{{miopenHalf, {2, 2, 2, 2, 2}, {10000, 1000, 100, 10, 1}}, miopenTensorNCDHW},
+            TestCase{{miopenHalf, {2, 2, 2, 2, 2}, {10000, 1, 1000, 100, 10}}, miopenTensorNDHWC},
+
+            TestCase{{miopenHalf, miopenTensorNCHW, {2, 2, 2, 2}, { 1000, 100, 10, 1}}, miopenTensorNCHW},
+            TestCase{{miopenHalf, miopenTensorNHWC, {2, 2, 2, 2}, { 1000, 1, 100, 10}}, miopenTensorNHWC},
+            TestCase{{miopenHalf, miopenTensorCHWN, {2, 2, 2, 2}, { 1, 1000, 100, 10}}, miopenTensorCHWN},
+            TestCase{{miopenHalf, miopenTensorNCDHW, {2, 2, 2, 2, 2}, {10000, 1000, 100, 10, 1}}, miopenTensorNCDHW},
+            TestCase{{miopenHalf, miopenTensorNDHWC, {2, 2, 2, 2, 2}, {10000, 1, 1000, 100, 10}}, miopenTensorNDHWC},
+            // clang-format on
+        };
+    }
+
+    void RunTest()
+    {
+        const auto p = GetParam();
+        ASSERT_EQ(p.td.GetLayout_t(), p.actual_layout);
+    }
+};
+
 } // namespace
 
 using CPU_TensorTestPossibleLayout4D5D_NONE = TestPossibleLayout4D5D;
+using CPU_TensorTestGetLayout_NONE = TestGetLayout;
 
 TEST_P(CPU_TensorTestPossibleLayout4D5D_NONE, TensorDescriptor) { this->RunTest(); };
+TEST_P(CPU_TensorTestGetLayout_NONE, TensorDescriptor) { this->RunTest(); };
 
 INSTANTIATE_TEST_SUITE_P(Full,
                          CPU_TensorTestPossibleLayout4D5D_NONE,
                          testing::ValuesIn(TestPossibleLayout4D5D::GetTestCases()));
+
+INSTANTIATE_TEST_SUITE_P(Full,
+                         CPU_TensorTestGetLayout_NONE,
+                         testing::ValuesIn(TestGetLayout::GetTestCases()));
