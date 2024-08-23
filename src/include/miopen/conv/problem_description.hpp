@@ -223,14 +223,14 @@ struct MIOPEN_INTERNALS_EXPORT ProblemDescription : ProblemDescriptionBase
     std::size_t GetWeightsDepth() const { return GetD5(GetSpatialDims(), weights.GetLengths()); }
     std::size_t GetWeightsHeight() const
     {
-        if(weights.GetLayout_str() == "CHWNc")
+        if(weights_layout == "CHWNc")
             return GetHofCHWN(weights.GetLengths());
         else
             return GetH5(GetSpatialDims(), weights.GetLengths());
     }
     std::size_t GetWeightsWidth() const
     {
-        if(weights.GetLayout_str() == "CHWNc")
+        if(weights_layout == "CHWNc")
             return GetWofCHWN(weights.GetLengths());
         else
             return GetW5(GetSpatialDims(), weights.GetLengths());
