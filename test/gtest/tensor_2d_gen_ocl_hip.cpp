@@ -85,7 +85,7 @@ std::vector<TensorsConfig> TensorsConfigs()
             {{32, 64}, {64, 1}, {1, 1}, {1, 1}, {1.0, 0.5, 0}}};
 }
 
-template <typename T, miopenDataType_t t>
+template <typename T>
 struct Op2DTensorGenericTest : public ::testing::TestWithParam<TensorsConfig>
 {
 protected:
@@ -93,6 +93,8 @@ protected:
     {
         auto&& handle = get_handle();
         tensorsConfig = GetParam();
+
+        data_type = miopen_type<T>{};
 
         // Generate elements in tensors
         tensA = tensor<T>{tensorsConfig.aclens, tensorsConfig.acstrides}.generate(
@@ -152,12 +154,12 @@ protected:
 
         vgd = {global_threads, 1, 1};
 
-        network_config += std::to_string(t) + "-miopenTensorOpAdd-" +
+        network_config += std::to_string(data_type) + "-miopenTensorOpAdd-" +
                           std::to_string(global_threads) + "-" + std::to_string(local_threads);
 
-        params = " -DMIOPEN_TYPE=" + miopen::GetDataType(t) +
+        params = " -DMIOPEN_TYPE=" + miopen::GetDataType(data_type) +
                  " -DMAX_NUM_WG=" + std::to_string(max_num_wg);
-        params += miopen::GetDataTypeKernelParams(t);
+        params += miopen::GetDataTypeKernelParams(data_type);
         params += " -DMIOPEN_TENSOR_OP=miopenAdd -DUSE_2D_TENSOR_GENERIC";
     }
 
@@ -169,9 +171,10 @@ protected:
         std::fill(tensC_ocl.begin(), tensC_ocl.end(), std::numeric_limits<T>::quiet_NaN());
 
         std::string program_name = "MIOpenTensorKernels.cl";
+        std::string network_config_ocl = network_config + "-ocl";
 
         handle.AddKernel("Op2dTensorGeneric",
-                         network_config,
+                         network_config_ocl,
                          program_name,
                          "Op2dTensorGeneric",
                          vld,
@@ -198,7 +201,7 @@ protected:
 
         ph.perfTest(handle,
                     "Op2dTensorGeneric",
-                    network_config,
+                    network_config_ocl,
                     false,
                     tensA_dev.get(),
                     static_cast<int>(tensorsConfig.acstrides[0]),
@@ -227,9 +230,10 @@ protected:
         std::fill(tensC_hip.begin(), tensC_hip.end(), std::numeric_limits<T>::quiet_NaN());
 
         std::string program_name = "MIOpenTensorKernelsHip.cpp";
+        std::string network_config_hip = network_config + "-hip";
 
         handle.AddKernel("Op2dTensorGeneric",
-                         network_config,
+                         network_config_hip,
                          program_name,
                          "Op2dTensorGeneric",
                          vld,
@@ -256,7 +260,7 @@ protected:
 
         ph.perfTest(handle,
                     "Op2dTensorGeneric",
-                    network_config,
+                    network_config_hip,
                     false,
                     tensA_dev.get(),
                     static_cast<int>(tensorsConfig.acstrides[0]),
@@ -293,7 +297,7 @@ protected:
         stats += "_blens_" + std::to_string(tensorsConfig.blens[0]) + "_" +
                  std::to_string(tensorsConfig.blens[1]) + "_bstrides_" +
                  std::to_string(tensorsConfig.bstrides[0]) + "_" +
-                 std::to_string(tensorsConfig.bstrides[1]) + "_" + miopen::GetDataType(t);
+                 std::to_string(tensorsConfig.bstrides[1]) + "_" + miopen::GetDataType(data_type);
 
         ph.writeStatsToCSV("tensor_2d.csv", stats);
     }
@@ -311,6 +315,8 @@ protected:
     tensor<T> tensC_ocl;
     tensor<T> tensC_hip;
 
+    miopenDataType_t data_type;
+
     miopen::Allocator::ManageDataPtr tensA_dev;
     miopen::Allocator::ManageDataPtr tensB_dev;
     miopen::Allocator::ManageDataPtr tensC_dev;
@@ -320,7 +326,7 @@ protected:
     PerfHelper<T> ph;
 };
 
-struct GPU_Op2dTensorGenericTest_FP32 : Op2DTensorGenericTest<float, miopenFloat>
+struct GPU_Op2dTensorGenericTest_FP32 : Op2DTensorGenericTest<float>
 {
 };
 
