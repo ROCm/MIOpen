@@ -85,6 +85,7 @@ std::vector<TensorsConfig> TensorsConfigs()
             {{32, 64}, {64, 1}, {1, 1}, {1, 1}, {1.0, 0.5, 0}}};
 }
 
+template <typename T, miopenDataType_t t>
 struct Op2DTensorGenericTest : public ::testing::TestWithParam<TensorsConfig>
 {
 protected:
@@ -93,28 +94,23 @@ protected:
         auto&& handle = get_handle();
         tensorsConfig = GetParam();
 
-        tensA = tensor<float>{tensorsConfig.aclens, tensorsConfig.acstrides}.generate(
+        // Generate elements in tensors
+        tensA = tensor<T>{tensorsConfig.aclens, tensorsConfig.acstrides}.generate(
             tensor_elem_gen_integer{MAX_TENSOR_ELEM});
-        tensB = tensor<float>{tensorsConfig.blens, tensorsConfig.bstrides}.generate(
+        tensB = tensor<T>{tensorsConfig.blens, tensorsConfig.bstrides}.generate(
             tensor_elem_gen_integer{MAX_TENSOR_ELEM});
-        tensC = tensor<float>{tensorsConfig.aclens, tensorsConfig.acstrides}.generate(
+        tensC = tensor<T>{tensorsConfig.aclens, tensorsConfig.acstrides}.generate(
             tensor_elem_gen_integer{MAX_TENSOR_ELEM});
 
+        // Write the device tensors
         tensA_dev = handle.Write(tensA.data);
         tensB_dev = handle.Write(tensB.data);
 
-        tensC_ocl = tensor<float>{tensorsConfig.aclens, tensorsConfig.acstrides};
-        tensC_hip = tensor<float>{tensorsConfig.aclens, tensorsConfig.acstrides};
-    }
+        // Allocate output tensors for OCL and HIP
+        tensC_ocl = tensor<T>{tensorsConfig.aclens, tensorsConfig.acstrides};
+        tensC_hip = tensor<T>{tensorsConfig.aclens, tensorsConfig.acstrides};
 
-    void runOCL()
-    {
-        auto&& handle = get_handle();
-        tensC_dev     = handle.Write(tensC.data);
-        std::fill(tensC_ocl.begin(), tensC_ocl.end(), std::numeric_limits<float>::quiet_NaN());
-
-        std::string program_name = "MIOpenTensorKernels.cl";
-
+        // Prepare all parameters needed for kernel
         auto first_not_one = std::find_if(
             tensorsConfig.blens.rbegin(), tensorsConfig.blens.rend(), [](int i) { return i != 1; });
         auto d = std::distance(tensorsConfig.blens.begin(), first_not_one.base());
@@ -122,12 +118,12 @@ protected:
         int num_wg      = first_not_one != tensorsConfig.blens.rend()
                               ? static_cast<int>(*first_not_one == 0 ? 1 : *first_not_one)
                               : 1;
-        int work_per_wg = std::accumulate(tensorsConfig.aclens.begin() + d,
-                                          tensorsConfig.aclens.end(),
-                                          1,
-                                          std::multiplies<int>());
+        work_per_wg     = std::accumulate(tensorsConfig.aclens.begin() + d,
+                                      tensorsConfig.aclens.end(),
+                                      1,
+                                      std::multiplies<int>());
 
-        unsigned int bitmap = 0;
+        bitmap = 0;
 
         bitmap |= (1 << (tensorsConfig.blens.size() - d));
 
@@ -144,26 +140,35 @@ protected:
             }
         }
 
-        int num_wg_orig = num_wg;
+        num_wg_orig     = num_wg;
         int max_num_wg  = 4096;
         num_wg          = num_wg > max_num_wg ? max_num_wg : num_wg;
 
         size_t local_threads = 256;
 
-        const std::vector<size_t> vld{local_threads, 1, 1};
+        vld = {local_threads, 1, 1};
 
         size_t global_threads = num_wg * local_threads;
 
-        const std::vector<size_t> vgd{global_threads, 1, 1};
+        vgd = {global_threads, 1, 1};
 
-        std::string network_config{};
-        network_config += "miopenFloat-miopenFloat-miopenTensorOpAdd-" +
+        network_config += std::to_string(t) + "-miopenTensorOpAdd-" +
                           std::to_string(global_threads) + "-" + std::to_string(local_threads);
 
-        std::string params = " -DMIOPEN_TYPE=float -DMAX_NUM_WG=" + std::to_string(max_num_wg);
-
-        params += miopen::GetDataTypeKernelParams(miopenFloat);
+        params = " -DMIOPEN_TYPE=" + miopen::GetDataType(t) +
+                 " -DMAX_NUM_WG=" + std::to_string(max_num_wg);
+        params += miopen::GetDataTypeKernelParams(t);
         params += " -DMIOPEN_TENSOR_OP=miopenAdd -DUSE_2D_TENSOR_GENERIC";
+    }
+
+    void runOCL()
+    {
+        auto&& handle = get_handle();
+        // Write data to device tensor
+        tensC_dev = handle.Write(tensC.data);
+        std::fill(tensC_ocl.begin(), tensC_ocl.end(), std::numeric_limits<T>::quiet_NaN());
+
+        std::string program_name = "MIOpenTensorKernels.cl";
 
         handle.AddKernel("Op2dTensorGeneric",
                          network_config,
@@ -189,7 +194,7 @@ protected:
                                  static_cast<int64_t>(0),
                                  static_cast<int>(num_wg_orig));
 
-        tensC_ocl.data = handle.Read<float>(tensC_dev, tensC_ocl.data.size());
+        tensC_ocl.data = handle.Read<T>(tensC_dev, tensC_ocl.data.size());
 
         ph.perfTest(handle,
                     "Op2dTensorGeneric",
@@ -219,59 +224,9 @@ protected:
         auto&& handle = get_handle();
         tensC_dev     = handle.Write(tensC.data);
 
-        std::fill(tensC_hip.begin(), tensC_hip.end(), std::numeric_limits<float>::quiet_NaN());
+        std::fill(tensC_hip.begin(), tensC_hip.end(), std::numeric_limits<T>::quiet_NaN());
 
         std::string program_name = "MIOpenTensorKernelsHip.cpp";
-
-        auto first_not_one = std::find_if(
-            tensorsConfig.blens.rbegin(), tensorsConfig.blens.rend(), [](int i) { return i != 1; });
-        auto d = std::distance(tensorsConfig.blens.begin(), first_not_one.base());
-
-        int num_wg      = first_not_one != tensorsConfig.blens.rend()
-                              ? static_cast<int>(*first_not_one == 0 ? 1 : *first_not_one)
-                              : 1;
-        int work_per_wg = std::accumulate(tensorsConfig.aclens.begin() + d,
-                                          tensorsConfig.aclens.end(),
-                                          1,
-                                          std::multiplies<int>());
-
-        unsigned int bitmap = 0;
-
-        bitmap |= (1 << (tensorsConfig.blens.size() - d));
-
-        for(int i = (d - 2); i >= 0; i--)
-        {
-            if(tensorsConfig.blens[i] != 1)
-            {
-                bitmap |= (1 << (tensorsConfig.blens.size() - (i + 1)));
-                num_wg *= tensorsConfig.blens[i];
-            }
-            else
-            {
-                work_per_wg *= tensorsConfig.aclens[i];
-            }
-        }
-
-        int num_wg_orig = num_wg;
-        int max_num_wg  = 4096;
-        num_wg          = num_wg > max_num_wg ? max_num_wg : num_wg;
-
-        size_t local_threads = 256;
-
-        const std::vector<size_t> vld{local_threads, 1, 1};
-
-        size_t global_threads = num_wg * local_threads;
-
-        const std::vector<size_t> vgd{global_threads, 1, 1};
-
-        std::string network_config{};
-        network_config += "miopenFloat-miopenFloat-miopenTensorOpAdd-" +
-                          std::to_string(global_threads) + "-" + std::to_string(local_threads);
-
-        std::string params = " -DMIOPEN_TYPE=float -DMAX_NUM_WG=" + std::to_string(max_num_wg);
-
-        params += miopen::GetDataTypeKernelParams(miopenFloat);
-        params += " -DMIOPEN_TENSOR_OP=miopenAdd -DUSE_2D_TENSOR_GENERIC";
 
         handle.AddKernel("Op2dTensorGeneric",
                          network_config,
@@ -297,7 +252,7 @@ protected:
                                  static_cast<int64_t>(0),
                                  static_cast<int>(num_wg_orig));
 
-        tensC_hip.data = handle.Read<float>(tensC_dev, tensC_hip.data.size());
+        tensC_hip.data = handle.Read<T>(tensC_dev, tensC_hip.data.size());
 
         ph.perfTest(handle,
                     "Op2dTensorGeneric",
@@ -338,16 +293,23 @@ protected:
         stats += "_blens_" + std::to_string(tensorsConfig.blens[0]) + "_" +
                  std::to_string(tensorsConfig.blens[1]) + "_bstrides_" +
                  std::to_string(tensorsConfig.bstrides[0]) + "_" +
-                 std::to_string(tensorsConfig.bstrides[1]) + "_float";
+                 std::to_string(tensorsConfig.bstrides[1]) + "_" + miopen::GetDataType(t);
 
         ph.writeStatsToCSV("tensor_2d.csv", stats);
     }
 
-    tensor<float> tensA;
-    tensor<float> tensB;
-    tensor<float> tensC;
-    tensor<float> tensC_ocl;
-    tensor<float> tensC_hip;
+    std::string network_config{};
+    std::string params{};
+    std::vector<size_t> vld, vgd;
+    unsigned int bitmap;
+    int work_per_wg;
+    int num_wg_orig;
+
+    tensor<T> tensA;
+    tensor<T> tensB;
+    tensor<T> tensC;
+    tensor<T> tensC_ocl;
+    tensor<T> tensC_hip;
 
     miopen::Allocator::ManageDataPtr tensA_dev;
     miopen::Allocator::ManageDataPtr tensB_dev;
@@ -355,16 +317,23 @@ protected:
 
     TensorsConfig tensorsConfig;
 
-    PerfHelper<float> ph;
+    PerfHelper<T> ph;
 };
 
-TEST_P(Op2DTensorGenericTest, Op2DTensorTest)
+struct GPU_Op2dTensorGenericTest_FP32 : Op2DTensorGenericTest<float, miopenFloat>
 {
+};
+
+TEST_P(GPU_Op2dTensorGenericTest_FP32, PortTest)
+{
+    // run OCL kernel
     runOCL();
+    // run HIP kernel
     runHIP();
+    // verify if the output tensors are same
     verify();
 }
 
-INSTANTIATE_TEST_SUITE_P(Op2DTensorGenericTestSet,
-                         Op2DTensorGenericTest,
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_Op2dTensorGenericTest_FP32,
                          testing::ValuesIn(TensorsConfigs()));

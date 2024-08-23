@@ -125,7 +125,7 @@ extern "C" __global__ void Op2dTensorGeneric(MIOPEN_TYPE* a,
     // MAX_NUM_WG: the maximum number of workgroups actually launched
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wfloat-equal"
-    if(beta == (MIOPEN_TYPE)0)
+    if(beta == static_cast<MIOPEN_TYPE>(0))
 #pragma clang diagnostic pop
     {
         for(; gid < num_wg; gid += MAX_NUM_WG)
