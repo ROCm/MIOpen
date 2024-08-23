@@ -37,19 +37,19 @@ namespace env = miopen::env;
 
 namespace conv3d_codecov {
 
-class GPU_Conv3d_FP32 : public testing::TestWithParam<std::vector<std::string>>
+class GPU_Conv3d_Codecov_FP32 : public testing::TestWithParam<std::vector<std::string>>
 {
 };
 
-class GPU_Conv3d_FP16 : public testing::TestWithParam<std::vector<std::string>>
+class GPU_Conv3d_Codecov_FP16 : public testing::TestWithParam<std::vector<std::string>>
 {
 };
 
-class GPU_Conv3d_BFP16 : public testing::TestWithParam<std::vector<std::string>>
+class GPU_Conv3d_Codecov_BFP16 : public testing::TestWithParam<std::vector<std::string>>
 {
 };
 
-class GPU_Conv3d_I8 : public testing::TestWithParam<std::vector<std::string>>
+class GPU_Conv3d_Codecov_I8 : public testing::TestWithParam<std::vector<std::string>>
 {
 };
 
@@ -70,10 +70,10 @@ void Run3dDriver(miopenDataType_t prec)
     std::vector<std::string> params;
     switch(prec)
     {
-    case miopenHalf: params = GPU_Conv3d_FP16::GetParam(); break;
-    case miopenBFloat16: params = GPU_Conv3d_BFP16::GetParam(); break;
-    case miopenFloat: params = GPU_Conv3d_FP32::GetParam(); break;
-    case miopenInt8: params = GPU_Conv3d_I8::GetParam(); break;
+    case miopenHalf: params = GPU_Conv3d_Codecov_FP16::GetParam(); break;
+    case miopenBFloat16: params = GPU_Conv3d_Codecov_BFP16::GetParam(); break;
+    case miopenFloat: params = GPU_Conv3d_Codecov_FP32::GetParam(); break;
+    case miopenInt8: params = GPU_Conv3d_Codecov_I8::GetParam(); break;
     case miopenFloat8:
     case miopenBFloat8:
     case miopenInt32:
@@ -83,7 +83,7 @@ void Run3dDriver(miopenDataType_t prec)
                   "data type not supported by "
                   "conv3d_codecov test";
 
-    default: params = GPU_Conv3d_FP32::GetParam();
+    default: params = GPU_Conv3d_Codecov_FP32::GetParam();
     }
 
     for(const auto& test_value : params)
@@ -121,7 +121,7 @@ std::vector<std::string> GetTestCases(const std::string& precision)
 } // namespace conv3d_codecov
 using namespace conv3d_codecov;
 
-TEST_P(GPU_Conv3d_FP32, FloatTest_conv3d_codecov)
+TEST_P(GPU_Conv3d_Codecov_FP32, FloatTest_conv3d_codecov)
 {
     const auto& handle = get_handle();
     if(IsTestSupportedForDevice(handle) && !SkipTest() && IsTestRunWith("--float"))
@@ -134,7 +134,7 @@ TEST_P(GPU_Conv3d_FP32, FloatTest_conv3d_codecov)
     }
 };
 
-TEST_P(GPU_Conv3d_FP16, HalfTest_conv3d_codecov)
+TEST_P(GPU_Conv3d_Codecov_FP16, HalfTest_conv3d_codecov)
 {
     const auto& handle = get_handle();
     if(IsTestSupportedForDevice(handle) && !SkipTest() && IsTestRunWith("--half"))
@@ -147,7 +147,7 @@ TEST_P(GPU_Conv3d_FP16, HalfTest_conv3d_codecov)
     }
 };
 
-TEST_P(GPU_Conv3d_BFP16, BFloat16Test_conv3d_codecov)
+TEST_P(GPU_Conv3d_Codecov_BFP16, BFloat16Test_conv3d_codecov)
 {
     const auto& handle = get_handle();
     if(IsTestSupportedForDevice(handle) && !SkipTest() && IsTestRunWith("--bfloat16"))
@@ -160,7 +160,7 @@ TEST_P(GPU_Conv3d_BFP16, BFloat16Test_conv3d_codecov)
     }
 };
 
-TEST_P(GPU_Conv3d_I8, Int8Test_conv3d_codecov)
+TEST_P(GPU_Conv3d_Codecov_I8, Int8Test_conv3d_codecov)
 {
     const auto& handle = get_handle();
     if(IsTestSupportedForDevice(handle) && !SkipTest() && IsTestRunWith("--int8"))
@@ -173,10 +173,12 @@ TEST_P(GPU_Conv3d_I8, Int8Test_conv3d_codecov)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(Full, GPU_Conv3d_FP32, testing::Values(GetTestCases("--float")));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_Conv3d_Codecov_FP32, testing::Values(GetTestCases("--float")));
 
-INSTANTIATE_TEST_SUITE_P(Full, GPU_Conv3d_FP16, testing::Values(GetTestCases("--half")));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_Conv3d_Codecov_FP16, testing::Values(GetTestCases("--half")));
 
-INSTANTIATE_TEST_SUITE_P(Full, GPU_Conv3d_BFP16, testing::Values(GetTestCases("--bfloat16")));
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_Conv3d_Codecov_BFP16,
+                         testing::Values(GetTestCases("--bfloat16")));
 
-INSTANTIATE_TEST_SUITE_P(Full, GPU_Conv3d_I8, testing::Values(GetTestCases("--int8")));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_Conv3d_Codecov_I8, testing::Values(GetTestCases("--int8")));
