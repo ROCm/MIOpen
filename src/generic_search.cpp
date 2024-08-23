@@ -61,11 +61,6 @@ std::chrono::milliseconds GetTuningTimeMax()
     return std::chrono::milliseconds{env::value(MIOPEN_TUNING_TIME_MS_MAX)};
 }
 
-std::size_t GetTuningPatience()
-{
-    return env::value(MIOPEN_TUNING_PATIENCE);
-}
-
 std::size_t GetTuningThreadsMax() { return env::value(MIOPEN_COMPILE_PARALLEL_LEVEL); }
 
 } // namespace solver
