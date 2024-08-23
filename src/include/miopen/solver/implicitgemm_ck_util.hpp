@@ -807,7 +807,7 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
             MIOPEN_LOG_I("Output ConvertTo time: " << t4);
             tr_time += t4;
 
-            MIOPEN_LOG_I("Total Transpose time : " << tr_time);
+            MIOPEN_LOG_W("Total Transpose time : " << tr_time);
         };
     };
 

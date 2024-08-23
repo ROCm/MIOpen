@@ -85,7 +85,7 @@ void timeWithHipEvents(F&& f, const char* timer_name, const Handle& handle) {
   t1.start();
   f();
   t1.stop();
-  MIOPEN_LOG_I(timer_name << " time ms: " << t1.get_ms());
+  MIOPEN_LOG_W(timer_name << " time ms: " << t1.get_ms());
 }
 
 #if 1 // Keep around other storage techinques -- @pfultz2 27.03.2017
