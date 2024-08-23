@@ -273,23 +273,12 @@ void ProblemDescription::SetupFloats(ExecutionContext& ctx) const
 
 std::string ProblemDescription::ComputeLayout(const TensorDescriptor& td) const
 {
-    // 5D
-    if(GetSpatialDims() == 3)
+    if(td.IsVectorized())
+        return td.GetLayout_str();
+    if(td.GetNumDims() == 5)
         return td.GetLayout("NCDHW");
-
-    // 4D
-    // clang-format off
-    switch(td.GetLayout_t())
-    {
-    case miopenTensorNCHWc4:
-    case miopenTensorNCHWc8:
-    case miopenTensorCHWNc4:
-    case miopenTensorCHWNc8:
-        return td.GetLayout(td.GetLayout_str());
-    default:
+    else
         return td.GetLayout("NCHW");
-    }
-    // clang-format on
 }
 
 std::string ProblemDescription::ComputeInLayout() const { return ComputeLayout(in); }
