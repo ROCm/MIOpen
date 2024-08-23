@@ -39,7 +39,7 @@ inline tensor_view_t<N> get_inner_expanded_tv(const TensorDescriptor Desc)
     auto dims    = Desc.GetLengths();
     auto strides = Desc.GetStrides();
 
-    tensor_view_t<N> tensor_view;
+    tensor_view_t<N> tensor_view{};
     for(size_t i = 0; i < N; ++i)
     {
         if(dims.empty())
@@ -84,7 +84,7 @@ inline void slice_tv(tensor_view_t<N>& tensor_view, int32_t sliceCount, const in
 template <int N>
 inline tensor_view_t<N - 1> get_tv_without_dim(const tensor_view_t<N>& origin_tv, int selected_dim)
 {
-    tensor_view_t<N - 1> res;
+    tensor_view_t<N - 1> res{};
     for(int i = 0; i < N; ++i)
     {
         if(i == selected_dim)
