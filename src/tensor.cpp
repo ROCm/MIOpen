@@ -380,10 +380,14 @@ void TensorDescriptor::CalculateStrides()
     strides.resize(lens.size(), 0);
     if(tensorLayout == miopenTensorNCHWc4 || tensorLayout == miopenTensorNCHWc8)
     {
+        if(lens[1] % vector_length)
+            MIOPEN_THROW(miopenStatusBadParm, "Wrong C, C % Vect != 0");
         lens[1] /= vector_length;
     }
     else if(tensorLayout == miopenTensorCHWNc4 || tensorLayout == miopenTensorCHWNc8)
     {
+        if(lens[0] % vector_length)
+            MIOPEN_THROW(miopenStatusBadParm, "Wrong C, C % Vect != 0");
         lens[0] /= vector_length;
     }
 
@@ -544,11 +548,11 @@ bool TensorDescriptor::IsPossibleLayout1(const std::string& labels, const std::s
     return true;
 }
 
-// layout could be NCHW, NHWC, NCDHW, NDHWC, NCHWc, etc. except CHWNc
+// layout could be NCHW, NHWC, NCDHW, NDHWC, NCHWc, ...
 bool TensorDescriptor::IsPossibleLayout4D5D(const std::string& layout) const
 {
     if(this->tensorLayout == miopenTensorCHWNc4 || this->tensorLayout == miopenTensorCHWNc8)
-        return false;
+        return this->IsPossibleLayout1("CHWN", layout);
 
     // clang-format off
     switch(this->GetNumDims())

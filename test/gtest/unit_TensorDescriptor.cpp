@@ -33,17 +33,13 @@ namespace {
 
 struct TestCasePossibleLayout
 {
-    miopenDataType_t datatype;
-    std::vector<std::size_t> lens;
-    std::vector<std::size_t> strides;
+    miopen::TensorDescriptor td;
     std::vector<std::string> actual_layouts;
 
     friend std::ostream& operator<<(std::ostream& os, const TestCasePossibleLayout& tc)
     {
         os << "(";
-        os << tc.datatype << ", ";
-        miopen::LogRange(os << "{", tc.lens, ",") << "}, ";
-        miopen::LogRange(os << "{", tc.strides, ",") << "}, ";
+        os << "(" << tc.td << "), ";
         miopen::LogRange(os << "{", tc.actual_layouts, ",") << "}, ";
         os << ")";
         return os;
@@ -66,20 +62,64 @@ public:
 
         return std::vector{
             // clang-format off
-            TestCase{miopenHalf, {1, 1, 1, 1}, { 1000, 100, 10, 1}, {"NCHW"}},
-            TestCase{miopenHalf, {1, 1, 1, 1}, { 1000, 1, 100, 10}, {"NHWC"}},
-            TestCase{miopenHalf, {1, 1, 1, 1}, { 1, 1000, 100, 10}, {"CHWN"}},
-            TestCase{miopenHalf, {1, 1, 1, 1}, { 1, 1, 1, 1}, {"NCHW", "NHWC", "CHWN"}},
-            TestCase{miopenHalf, {2, 2, 2, 2}, { 1000, 100, 10, 1}, {"NCHW"}},
-            TestCase{miopenHalf, {2, 2, 2, 2}, { 1000, 1, 100, 10}, {"NHWC"}},
-            TestCase{miopenHalf, {2, 2, 2, 2}, { 1, 1000, 100, 10}, {"CHWN"}},
-            TestCase{miopenHalf, {2, 2, 2, 2}, { 1, 1, 1, 1}, {"NCHW", "NHWC", "CHWN"}},
-            TestCase{miopenHalf, {1, 1, 1, 1, 1}, {10000, 1000, 100, 10, 1}, {"NCDHW"}},
-            TestCase{miopenHalf, {1, 1, 1, 1, 1}, {10000, 1, 1000, 100, 10}, {"NDHWC"}},
-            TestCase{miopenHalf, {1, 1, 1, 1, 1}, { 1, 1, 1, 1, 1}, {"NCDHW", "NDHWC"}},
-            TestCase{miopenHalf, {2, 2, 2, 2, 2}, {10000, 1000, 100, 10, 1}, {"NCDHW"}},
-            TestCase{miopenHalf, {2, 2, 2, 2, 2}, {10000, 1, 1000, 100, 10}, {"NDHWC"}},
-            TestCase{miopenHalf, {2, 2, 2, 2, 2}, { 1, 1, 1, 1, 1}, {"NCDHW", "NDHWC"}},
+            TestCase{{miopenHalf, {1, 1, 1, 1}}, {"NCHW", "NHWC", "CHWN"}},
+            TestCase{{miopenHalf, {2, 2, 2, 2}}, {"NCHW"}},
+            TestCase{{miopenHalf, {1, 1, 1, 1, 1}}, {"NCDHW", "NDHWC"}},
+            TestCase{{miopenHalf, {2, 2, 2, 2, 2}}, {"NCDHW"}},
+
+            TestCase{{miopenHalf, miopenTensorNCHW, {1, 1, 1, 1}}, {"NCHW", "NHWC", "CHWN"}},
+            TestCase{{miopenHalf, miopenTensorNCHW, {2, 2, 2, 2}}, {"NCHW"}},
+            TestCase{{miopenHalf, miopenTensorNHWC, {1, 1, 1, 1}}, {"NCHW", "NHWC", "CHWN"}},
+            TestCase{{miopenHalf, miopenTensorNHWC, {2, 2, 2, 2}}, {"NHWC"}},
+            TestCase{{miopenHalf, miopenTensorCHWN, {1, 1, 1, 1}}, {"NCHW", "NHWC", "CHWN"}},
+            TestCase{{miopenHalf, miopenTensorCHWN, {2, 2, 2, 2}}, {"CHWN"}},
+            TestCase{{miopenHalf, miopenTensorNCHWc4, {1, 4, 1, 1}}, {"NCHWc", "CHWNc"}},
+            TestCase{{miopenHalf, miopenTensorNCHWc4, {2, 4, 2, 2}}, {"NCHWc"}},
+            TestCase{{miopenHalf, miopenTensorNCHWc8, {1, 8, 1, 1}}, {"NCHWc", "CHWNc"}},
+            TestCase{{miopenHalf, miopenTensorNCHWc8, {2, 8, 2, 2}}, {"NCHWc"}},
+            TestCase{{miopenHalf, miopenTensorCHWNc4, {1, 4, 1, 1}}, {"NCHWc", "CHWNc"}},
+            TestCase{{miopenHalf, miopenTensorCHWNc4, {2, 4, 2, 2}}, {"CHWNc"}},
+            TestCase{{miopenHalf, miopenTensorCHWNc8, {1, 8, 1, 1}}, {"NCHWc", "CHWNc"}},
+            TestCase{{miopenHalf, miopenTensorCHWNc8, {2, 8, 2, 2}}, {"CHWNc"}},
+#if 0
+            TestCase{{miopenHalf, miopenTensorNCDHW, {1, 1, 1, 1}}, {}}, // Exception
+            TestCase{{miopenHalf, miopenTensorNCDHW, {2, 2, 2, 2}}, {}}, // Exception
+            TestCase{{miopenHalf, miopenTensorNDHWC, {1, 1, 1, 1}}, {}}, // Exception
+            TestCase{{miopenHalf, miopenTensorNDHWC, {2, 2, 2, 2}}, {}}, // Exception
+            TestCase{{miopenHalf, miopenTensorNCHW, {1, 1, 1, 1, 1}}, {}}, // Exception
+            TestCase{{miopenHalf, miopenTensorNCHW, {2, 2, 2, 2, 2}}, {}}, // Exception
+            TestCase{{miopenHalf, miopenTensorNHWC, {1, 1, 1, 1, 1}}, {}}, // Exception
+            TestCase{{miopenHalf, miopenTensorNHWC, {2, 2, 2, 2, 2}}, {}}, // Exception
+            TestCase{{miopenHalf, miopenTensorCHWN, {1, 1, 1, 1, 1}}, {}}, // Exception
+            TestCase{{miopenHalf, miopenTensorCHWN, {2, 2, 2, 2, 2}}, {}}, // Exception
+            TestCase{{miopenHalf, miopenTensorNCHWc4, {1, 1, 1, 1, 1}}, {}}, // Exception
+            TestCase{{miopenHalf, miopenTensorNCHWc4, {2, 2, 2, 2, 2}}, {}}, // Exception
+            TestCase{{miopenHalf, miopenTensorNCHWc8, {1, 1, 1, 1, 1}}, {}}, // Exception
+            TestCase{{miopenHalf, miopenTensorNCHWc8, {2, 2, 2, 2, 2}}, {}}, // Exception
+            TestCase{{miopenHalf, miopenTensorCHWNc4, {1, 1, 1, 1, 1}}, {}}, // Exception
+            TestCase{{miopenHalf, miopenTensorCHWNc4, {2, 2, 2, 2, 2}}, {}}, // Exception
+            TestCase{{miopenHalf, miopenTensorCHWNc8, {1, 1, 1, 1, 1}}, {}}, // Exception
+            TestCase{{miopenHalf, miopenTensorCHWNc8, {2, 2, 2, 2, 2}}, {}}, // Exception
+#endif
+            TestCase{{miopenHalf, miopenTensorNCDHW, {1, 1, 1, 1, 1}}, {"NCDHW", "NDHWC"}},
+            TestCase{{miopenHalf, miopenTensorNCDHW, {2, 2, 2, 2, 2}}, {"NCDHW"}},
+            TestCase{{miopenHalf, miopenTensorNDHWC, {1, 1, 1, 1, 1}}, {"NCDHW", "NDHWC"}},
+            TestCase{{miopenHalf, miopenTensorNDHWC, {2, 2, 2, 2, 2}}, {"NDHWC"}},
+
+            TestCase{{miopenHalf, {1, 1, 1, 1}, { 1000, 100, 10, 1}}, {"NCHW"}},
+            TestCase{{miopenHalf, {1, 1, 1, 1}, { 1000, 1, 100, 10}}, {"NHWC"}},
+            TestCase{{miopenHalf, {1, 1, 1, 1}, { 1, 1000, 100, 10}}, {"CHWN"}},
+            TestCase{{miopenHalf, {1, 1, 1, 1}, { 1, 1, 1, 1}}, {"NCHW", "NHWC", "CHWN"}},
+            TestCase{{miopenHalf, {2, 2, 2, 2}, { 1000, 100, 10, 1}}, {"NCHW"}},
+            TestCase{{miopenHalf, {2, 2, 2, 2}, { 1000, 1, 100, 10}}, {"NHWC"}},
+            TestCase{{miopenHalf, {2, 2, 2, 2}, { 1, 1000, 100, 10}}, {"CHWN"}},
+            TestCase{{miopenHalf, {2, 2, 2, 2}, { 1, 1, 1, 1}}, {"NCHW", "NHWC", "CHWN"}},
+            TestCase{{miopenHalf, {1, 1, 1, 1, 1}, {10000, 1000, 100, 10, 1}}, {"NCDHW"}},
+            TestCase{{miopenHalf, {1, 1, 1, 1, 1}, {10000, 1, 1000, 100, 10}}, {"NDHWC"}},
+            TestCase{{miopenHalf, {1, 1, 1, 1, 1}, { 1, 1, 1, 1, 1}}, {"NCDHW", "NDHWC"}},
+            TestCase{{miopenHalf, {2, 2, 2, 2, 2}, {10000, 1000, 100, 10, 1}}, {"NCDHW"}},
+            TestCase{{miopenHalf, {2, 2, 2, 2, 2}, {10000, 1, 1000, 100, 10}}, {"NDHWC"}},
+            TestCase{{miopenHalf, {2, 2, 2, 2, 2}, { 1, 1, 1, 1, 1}}, {"NCDHW", "NDHWC"}},
             // clang-format on
         };
     }
@@ -88,11 +128,9 @@ public:
     {
         const auto p = GetParam();
 
-        const auto td = miopen::TensorDescriptor{p.datatype, p.lens, p.strides};
-
         for(const auto& layout : this->GetAllLayouts())
         {
-            const auto is_possible_layout = td.IsPossibleLayout4D5D(layout);
+            const auto is_possible_layout = p.td.IsPossibleLayout4D5D(layout);
             const auto expected =
                 std::count(p.actual_layouts.cbegin(), p.actual_layouts.cend(), layout);
             ASSERT_EQ(is_possible_layout, expected) << "current layout: " << layout;
