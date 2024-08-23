@@ -59,6 +59,7 @@ bool IsDataTypeSupported(miopenDataType_t t)
 
 bool IsLayoutSupported(miopenTensorLayout_t layout, unsigned num_dims)
 {
+    // clang-format off
     switch(layout)
     {
     case miopenTensorNCHW:
@@ -73,6 +74,7 @@ bool IsLayoutSupported(miopenTensorLayout_t layout, unsigned num_dims)
     case miopenTensorNDHWC:
         return num_dims == 5;
     }
+    // clang-format on
     return false;
 }
 
@@ -115,6 +117,7 @@ void ReorderVector(std::vector<size_t>& lens, const std::initializer_list<size_t
 
 std::optional<miopenTensorLayout_t> GetDefaultLayout(unsigned num_dims)
 {
+    // clang-format off
     switch(num_dims)
     {
     case 4:
@@ -124,6 +127,7 @@ std::optional<miopenTensorLayout_t> GetDefaultLayout(unsigned num_dims)
     default:
         return std::nullopt;
     }
+    // clang-format on
 }
 
 } // namespace
@@ -141,7 +145,11 @@ TensorDescriptor::TensorDescriptor(miopenDataType_t t, const std::initializer_li
 }
 
 TensorDescriptor::TensorDescriptor(miopenDataType_t t, const std::vector<int>& lens_in)
-    : TensorDescriptor(t, GetDefaultLayout(lens_in.size()), ConvertLengthsOrThrow(lens_in, "Lengths must be > 0"), {}, false)
+    : TensorDescriptor(t,
+                       GetDefaultLayout(lens_in.size()),
+                       ConvertLengthsOrThrow(lens_in, "Lengths must be > 0"),
+                       {},
+                       false)
 {
 }
 
@@ -304,20 +312,22 @@ void TensorDescriptor::CheckArgsAndInit(bool use_strides)
 
 void TensorDescriptor::SetStrides()
 {
-    if(!tensorLayout || tensorLayout == miopenTensorNCHW || tensorLayout == miopenTensorNCDHW || this->IsVectorized())
+    if(!tensorLayout || tensorLayout == miopenTensorNCHW || tensorLayout == miopenTensorNCDHW ||
+       this->IsVectorized())
     {
         this->CalculateStrides();
     }
     else
     {
         const auto default_layout = miopen::tensor_layout_get_default(this->GetNumDims());
-        const auto layout = this->GetLayoutStr(tensorLayout.value());
+        const auto layout         = this->GetLayoutStr(tensorLayout.value());
         tensor_layout_to_strides(lens, default_layout, layout, strides);
     }
 }
 
 void TensorDescriptor::VectLensReorder()
 {
+    // clang-format off
     switch(tensorLayout.value())
     {
     case miopenTensorNCHWc4:
@@ -331,10 +341,12 @@ void TensorDescriptor::VectLensReorder()
     default:
         break;
     }
+    // clang-format on
 }
 
 void TensorDescriptor::VectLensRecalc()
 {
+    // clang-format off
     switch(this->tensorLayout.value())
     {
     case miopenTensorNCHWc4:
@@ -356,6 +368,7 @@ void TensorDescriptor::VectLensRecalc()
     default:
         break;
     }
+    // clang-format on
 }
 
 TensorDescriptor TensorDescriptor::MakeDescriptor(miopenDataType_t t, const int* plens, int size)
@@ -441,6 +454,7 @@ void TensorDescriptor::CalculateVectorLength()
     if(!tensorLayout)
         return;
 
+    // clang-format off
     switch(tensorLayout.value())
     {
     case miopenTensorCHWNc8:
@@ -454,6 +468,7 @@ void TensorDescriptor::CalculateVectorLength()
     default:
         break;
     }
+    // clang-format on
 }
 
 bool TensorDescriptor::IsVectorized() const { return vector_length > 1; }
@@ -483,7 +498,11 @@ miopenTensorLayout_t TensorDescriptor::GetLayout_t() const
     if(tensorLayout)
         return tensorLayout.value();
 
-    const auto known_layouts = {std::make_pair("NCHW", miopenTensorNCHW), std::make_pair("NHWC", miopenTensorNHWC), std::make_pair("NCDHW", miopenTensorNCDHW), std::make_pair("NDHWC", miopenTensorNDHWC), std::make_pair("CHWN", miopenTensorCHWN)};
+    const auto known_layouts = {std::make_pair("NCHW", miopenTensorNCHW),
+                                std::make_pair("NHWC", miopenTensorNHWC),
+                                std::make_pair("NCDHW", miopenTensorNCDHW),
+                                std::make_pair("NDHWC", miopenTensorNDHWC),
+                                std::make_pair("CHWN", miopenTensorCHWN)};
     for(const auto& [layout_s, layout_t] : known_layouts)
     {
         if(this->IsPossibleLayout4D5D(layout_s))

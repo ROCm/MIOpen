@@ -190,7 +190,7 @@ public:
 } // namespace
 
 using CPU_TensorTestPossibleLayout4D5D_NONE = TestPossibleLayout4D5D;
-using CPU_TensorTestGetLayout_NONE = TestGetLayout;
+using CPU_TensorTestGetLayout_NONE          = TestGetLayout;
 
 TEST_P(CPU_TensorTestPossibleLayout4D5D_NONE, TensorDescriptor) { this->RunTest(); };
 TEST_P(CPU_TensorTestGetLayout_NONE, TensorDescriptor) { this->RunTest(); };
