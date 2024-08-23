@@ -273,12 +273,7 @@ void ProblemDescription::SetupFloats(ExecutionContext& ctx) const
 
 std::string ProblemDescription::ComputeLayout(const TensorDescriptor& td) const
 {
-    if(td.IsVectorized())
-        return td.GetLayout_str();
-    if(td.GetNumDims() == 5)
-        return td.GetLayout("NCDHW");
-    else
-        return td.GetLayout("NCHW");
+    return td.GetLayout_str();
 }
 
 std::string ProblemDescription::ComputeInLayout() const { return ComputeLayout(in); }

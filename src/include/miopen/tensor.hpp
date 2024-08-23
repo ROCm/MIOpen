@@ -242,7 +242,7 @@ struct MIOPEN_INTERNALS_EXPORT TensorDescriptor : miopenTensorDescriptor
 
     bool IsPossibleLayout(const std::string& labels, const std::string& layout) const;
     bool IsPossibleLayout1(const std::string& labels, const std::string& layout) const;
-    // layout could be NCHW, NHWC, NCDHW, NDHWC, NCHWc, etc. except CHWNc
+    // layout could be NCHW, NHWC, NCDHW, NDHWC, NCHWc, ...
     bool IsPossibleLayout4D5D(const std::string& layout) const;
 
     static inline std::vector<int64_t> find_permutation(const std::vector<std::size_t>& lens,
@@ -294,26 +294,24 @@ struct MIOPEN_INTERNALS_EXPORT TensorDescriptor : miopenTensorDescriptor
     friend void to_json(nlohmann::json& j, const TensorDescriptor& descriptor);
     friend void from_json(const nlohmann::json& j, TensorDescriptor& descriptor);
 
-protected:
-    static miopenTensorLayout_t GetDefaultLayout() { return miopenTensorNCHW; };
-
 private:
     TensorDescriptor(miopenDataType_t t,
-                     miopenTensorLayout_t layout_in,
+                     std::optional<miopenTensorLayout_t>&& layout_in,
                      const std::vector<std::size_t>& lens_in,
                      const std::vector<std::size_t>& strides_in,
                      bool use_strides);
 
     TensorDescriptor(miopenDataType_t t,
-                     miopenTensorLayout_t layout_in,
+                     std::optional<miopenTensorLayout_t>&& layout_in,
                      std::vector<std::size_t>&& lens_in,
                      std::vector<std::size_t>&& strides_in,
                      bool use_strides);
 
     void CheckArgsAndInit(bool use_strides);
 
-    void SetStrideNd(const std::string& layout);
-    void LensReorder(const std::string& layout);
+    void SetStrides();
+    void VectLensReorder();
+    void VectLensRecalc();
 
     void CalculateStrides();
     void CalculateVectorLength();
@@ -326,7 +324,7 @@ private:
 
     miopenDataType_t type = miopenFloat;
     std::optional<miopenDataType_t> cast_type;
-    miopenTensorLayout_t tensorLayout = GetDefaultLayout();
+    std::optional<miopenTensorLayout_t> tensorLayout;
 };
 
 template <class TElement>
