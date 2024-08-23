@@ -53,21 +53,21 @@ bool CheckFloatArg(std::string arg)
     return false;
 }
 
-struct KthvalueForwardTestFloat32 : KthvalueFwdTest<float>
+struct GPU_Kthvalue_fwd_FP32 : KthvalueFwdTest<float>
 {
 };
 
-struct KthvalueForwardTestFloat16 : KthvalueFwdTest<half>
+struct GPU_Kthvalue_fwd_FP16 : KthvalueFwdTest<half>
 {
 };
 
-struct KthvalueForwardTestBFloat16 : KthvalueFwdTest<bfloat16>
+struct GPU_Kthvalue_fwd_BFP16 : KthvalueFwdTest<bfloat16>
 {
 };
 
 using namespace kthvalue;
 
-TEST_P(KthvalueForwardTestFloat32, KthvalueForwardTest)
+TEST_P(GPU_Kthvalue_fwd_FP32, Test)
 {
     if(CheckFloatArg("--float"))
     {
@@ -80,7 +80,7 @@ TEST_P(KthvalueForwardTestFloat32, KthvalueForwardTest)
     }
 };
 
-TEST_P(KthvalueForwardTestFloat16, KthvalueForwardTest)
+TEST_P(GPU_Kthvalue_fwd_FP16, Test)
 {
     if(CheckFloatArg("--half"))
     {
@@ -93,7 +93,7 @@ TEST_P(KthvalueForwardTestFloat16, KthvalueForwardTest)
     }
 };
 
-TEST_P(KthvalueForwardTestBFloat16, KthvalueForwardTest)
+TEST_P(GPU_Kthvalue_fwd_BFP16, Test)
 {
     if(CheckFloatArg("--bfloat16"))
     {
@@ -106,15 +106,13 @@ TEST_P(KthvalueForwardTestBFloat16, KthvalueForwardTest)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(KthvalueForwardTestSet,
-                         KthvalueForwardTestFloat32,
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_Kthvalue_fwd_FP32,
                          testing::ValuesIn(KthvalueTestConfigs()));
-
-INSTANTIATE_TEST_SUITE_P(KthvalueForwardTestSet,
-                         KthvalueForwardTestFloat16,
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_Kthvalue_fwd_FP16,
                          testing::ValuesIn(KthvalueTestConfigs()));
-
-INSTANTIATE_TEST_SUITE_P(KthvalueForwardTestSet,
-                         KthvalueForwardTestBFloat16,
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_Kthvalue_fwd_BFP16,
                          testing::ValuesIn(KthvalueTestConfigs()));
 } // namespace kthvalue
