@@ -366,14 +366,14 @@ public:
 
     Data_t GetBufferPtr() const { return buf_handle.get(); }
 
-    void ConvertFrom(const Handle& handle, const std::vector<Kernel>& kernels, ConstData_t in_ptr)
+    float ConvertFrom(const Handle& handle, const std::vector<Kernel>& kernels, ConstData_t in_ptr)
     {
-        Run(handle, kernels, buf_handle.get(), in_ptr);
+        return Run(handle, kernels, buf_handle.get(), in_ptr);
     }
 
-    void ConvertTo(const Handle& handle, const std::vector<Kernel>& kernels, Data_t out_ptr)
+    float ConvertTo(const Handle& handle, const std::vector<Kernel>& kernels, Data_t out_ptr)
     {
-        Run(handle, kernels, out_ptr, buf_handle.get());
+        return Run(handle, kernels, out_ptr, buf_handle.get());
     }
 
     void ZeroOutBuffer()
@@ -388,7 +388,7 @@ public:
     ~TransposeInstance()                        = default;
 
 private:
-    void Run(const Handle& handle,
+    float Run(const Handle& handle,
              const std::vector<Kernel>& kernels,
              Data_t out_ptr,
              ConstData_t in_ptr)
@@ -406,6 +406,7 @@ private:
         {
             handle.AccumKernelTime(save);
         }
+        return handle.GetKernelTime();
     }
 };
 
@@ -433,17 +434,17 @@ public:
         return static_cast<IntType>(GetConvOperandTag());
     }
 
-    void ConvertFrom(const Handle& handle,
+    float ConvertFrom(const Handle& handle,
                      const std::vector<Kernel>& kernels,
                      const ConvTensors& tensors)
     {
-        TransposeInstance::ConvertFrom(handle, kernels, pickTensorPtr(tensors));
+        return TransposeInstance::ConvertFrom(handle, kernels, pickTensorPtr(tensors));
     }
 
-    void
+    float
     ConvertTo(const Handle& handle, const std::vector<Kernel>& kernels, const ConvTensors& tensors)
     {
-        TransposeInstance::ConvertTo(handle, kernels, pickTensorPtr(tensors));
+        return TransposeInstance::ConvertTo(handle, kernels, pickTensorPtr(tensors));
     }
 
     TransposeInstanceTagged()                               = delete;
@@ -725,16 +726,30 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
                 std::swap(conv_tensors.xDesc, conv_tensors.yDesc);
             }
             WorkAroundHipEventProfiler pfr(handle);
-            input1_tr_inst.ConvertFrom(handle, kernels, conv_tensors);
 
-            input2_tr_inst.ConvertFrom(handle, kernels, conv_tensors);
+            auto tr_time = 0.0f;
+            auto t1 = input1_tr_inst.ConvertFrom(handle, kernels, conv_tensors);
+            MIOPEN_LOG_I("Input1 ConvertFrom time: " << t1);
+            tr_time += t1;
 
-            output_init_tr_inst.ConvertFrom(handle, kernels, conv_tensors);
+            auto t2 = input2_tr_inst.ConvertFrom(handle, kernels, conv_tensors);
+            MIOPEN_LOG_I("Input2 ConvertFrom time: " << t2);
+            tr_time += t2;
+
+            auto t3 = output_init_tr_inst.ConvertFrom(handle, kernels, conv_tensors);
+            tr_time += t3;
+            MIOPEN_LOG_I("Output ConvertFrom time: " << t3);
 
             /// \todo: Will need SetTensor() to properly zero out non-packed tensors
             if(output_tr_inst.GetConvOperandTag() == internal::ConvOperandTag::Weights)
             {
-                output_tr_inst.ZeroOutBuffer();
+              timeWithHipEvents(
+                  [&] () {
+                    output_tr_inst.ZeroOutBuffer();
+                  },
+                  "ZeroOutBuffer",
+                  handle);
+
             }
 
             std::array<internal::TransposeInstanceTagged*, 3> tr_ptrs = {
@@ -781,8 +796,18 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
                 assert(buf_handle.get());
                 sh_conv_ptr->SetWorkSpacePointer(argument_ptr.get(), buf_handle.get());
             }
-            invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), false});
-            output_tr_inst.ConvertTo(handle, kernels, conv_tensors);
+            timeWithHipEvents(
+                [&] () {
+                  invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), false});
+                },
+                "CK Convolution",
+                handle);
+
+            auto t4 = output_tr_inst.ConvertTo(handle, kernels, conv_tensors);
+            MIOPEN_LOG_I("Output ConvertTo time: " << t4);
+            tr_time += t4;
+
+            MIOPEN_LOG_I("Total Transpose time : " << tr_time);
         };
     };
 
@@ -867,7 +892,12 @@ ConvSolution InitInvokerFactoryNHWC(const ExecutionContext&,
                 {
                     auto zero           = 0.0f;
                     const auto& tensors = data_ctx.tensors;
-                    SetTensor(handle, tensors.dwDesc, tensors.dw, &zero);
+                    timeWithHipEvents(
+                        [&] () {
+                            SetTensor(handle, tensors.dwDesc, tensors.dw, &zero);
+                        },
+                        "SetTensor-to-zero-out",
+                        handle);
                 }
                 // use captured value, other wise getting warning
                 // "lambda capture is not used" since this variable is only used in assert.
@@ -878,7 +908,12 @@ ConvSolution InitInvokerFactoryNHWC(const ExecutionContext&,
                 {
                     sh_conv_ptr->SetWorkSpacePointer(argument_ptr.get(), data_ctx.workSpace);
                 }
-                invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), false});
+            timeWithHipEvents(
+                [&] () {
+                  invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), false});
+                },
+                "CK Convolution",
+                handle);
             };
         };
         result.workspace_sz = GetWorkspaceSizeLayoutTransformConv(problem);
@@ -900,7 +935,12 @@ ConvSolution InitInvokerFactoryNHWC(const ExecutionContext&,
                                                        data_ctx.beta.GetAsFloat());
                 auto invoker_ptr     = sh_conv_ptr->MakeInvokerPointer();
                 HipEventProfiler pfr(handle);
-                invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), false});
+            timeWithHipEvents(
+                [&] () {
+                  invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), false});
+                },
+                "CK Convolution",
+                handle);
             };
         };
         return result;

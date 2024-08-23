@@ -67,6 +67,17 @@ HipEventProfiler::~HipEventProfiler()
     }
 }
 
+void HipEventTimer::start() {
+  hipEventRecord(beg.get(), handle.GetStream());
+}
+
+void HipEventTimer::stop() {
+  hipEventRecord(end.get(), handle.GetStream());
+  hipEventSynchronize(end.get());
+  hipEventElapsedTime(&elapsed_ms, beg.get(), end.get());
+}
+
+
 static std::string DimToFormattedString(const size_t* dims, size_t count)
 {
     std::stringstream ss;

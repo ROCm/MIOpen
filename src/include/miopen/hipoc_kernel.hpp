@@ -31,6 +31,7 @@
 #include <miopen/hipoc_program.hpp>
 #include <miopen/stringutils.hpp>
 #include <miopen/op_kernel_args.hpp>
+#include <miopen/logger.hpp>
 
 #include <array>
 #include <cassert>
@@ -56,6 +57,36 @@ struct HipEventProfiler
     HipEventProfiler(const Handle& handle_);
     ~HipEventProfiler();
 };
+
+struct HipEventTimer {
+  const Handle& handle;
+  HipEventPtr beg;
+  HipEventPtr end;
+  float elapsed_ms = 0;
+
+  HipEventTimer(const Handle& h): handle(h) {
+    beg = make_hip_event();
+    end = make_hip_event();
+  }
+
+  void start();
+
+  void stop();
+
+  float get_ms() const noexcept {
+    return elapsed_ms;
+  }
+
+};
+
+template <typename F>
+void timeWithHipEvents(F&& f, const char* timer_name, const Handle& handle) {
+  HipEventTimer t1(handle);
+  t1.start();
+  f();
+  t1.stop();
+  MIOPEN_LOG_I(timer_name << " time ms: " << t1.get_ms());
+}
 
 #if 1 // Keep around other storage techinques -- @pfultz2 27.03.2017
 
