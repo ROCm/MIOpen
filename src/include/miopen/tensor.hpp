@@ -296,13 +296,13 @@ struct MIOPEN_INTERNALS_EXPORT TensorDescriptor : miopenTensorDescriptor
 
 private:
     TensorDescriptor(miopenDataType_t t,
-                     std::optional<miopenTensorLayout_t>&& layout_in,
+                     const std::optional<miopenTensorLayout_t>& layout_in,
                      const std::vector<std::size_t>& lens_in,
                      const std::vector<std::size_t>& strides_in,
                      bool use_strides);
 
     TensorDescriptor(miopenDataType_t t,
-                     std::optional<miopenTensorLayout_t>&& layout_in,
+                     const std::optional<miopenTensorLayout_t>& layout_in,
                      std::vector<std::size_t>&& lens_in,
                      std::vector<std::size_t>&& strides_in,
                      bool use_strides);

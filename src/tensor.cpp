@@ -245,27 +245,27 @@ TensorDescriptor::TensorDescriptor(miopenDataType_t t,
 
 // Main private constructor
 TensorDescriptor::TensorDescriptor(miopenDataType_t t,
-                                   std::optional<miopenTensorLayout_t>&& layout_in,
+                                   const std::optional<miopenTensorLayout_t>& layout_in,
                                    const std::vector<std::size_t>& lens_in,
                                    const std::vector<std::size_t>& strides_in,
                                    bool use_strides)
     : lens(lens_in),
       strides(use_strides ? strides_in : std::vector<std::size_t>()),
       type(t),
-      tensorLayout(std::move(layout_in))
+      tensorLayout(layout_in)
 {
     this->CheckArgsAndInit(use_strides);
 }
 
 TensorDescriptor::TensorDescriptor(miopenDataType_t t,
-                                   std::optional<miopenTensorLayout_t>&& layout_in,
+                                   const std::optional<miopenTensorLayout_t>& layout_in,
                                    std::vector<std::size_t>&& lens_in,
                                    std::vector<std::size_t>&& strides_in,
                                    bool use_strides)
     : lens(std::move(lens_in)),
       strides(use_strides ? std::move(strides_in) : std::vector<std::size_t>()),
       type(t),
-      tensorLayout(std::move(layout_in))
+      tensorLayout(layout_in)
 {
     this->CheckArgsAndInit(use_strides);
 }
@@ -320,13 +320,15 @@ void TensorDescriptor::SetStrides()
     else
     {
         const auto default_layout = miopen::tensor_layout_get_default(this->GetNumDims());
-        const auto layout         = this->GetLayoutStr(tensorLayout.value());
+        const auto layout         = TensorDescriptor::GetLayoutStr(tensorLayout.value());
         tensor_layout_to_strides(lens, default_layout, layout, strides);
     }
 }
 
 void TensorDescriptor::VectLensReorder()
 {
+    assert(tensorLayout);
+
     // clang-format off
     switch(tensorLayout.value())
     {
@@ -346,13 +348,15 @@ void TensorDescriptor::VectLensReorder()
 
 void TensorDescriptor::VectLensRecalc()
 {
+    assert(tensorLayout);
+
     // clang-format off
     switch(this->tensorLayout.value())
     {
     case miopenTensorNCHWc4:
     case miopenTensorNCHWc8:
         {
-            if(lens[1] % vector_length)
+            if(lens[1] % vector_length != 0)
                 MIOPEN_THROW(miopenStatusBadParm, "Wrong C, C % Vect != 0");
             lens[1] /= vector_length;
         }
@@ -360,7 +364,7 @@ void TensorDescriptor::VectLensRecalc()
     case miopenTensorCHWNc4:
     case miopenTensorCHWNc8:
         {
-            if(lens[0] % vector_length)
+            if(lens[0] % vector_length != 0)
                 MIOPEN_THROW(miopenStatusBadParm, "Wrong C, C % Vect != 0");
             lens[0] /= vector_length;
         }
@@ -532,7 +536,7 @@ std::string TensorDescriptor::GetLayoutStr(miopenTensorLayout_t layout)
 std::string TensorDescriptor::GetLayout_str() const
 {
     if(tensorLayout)
-        return this->GetLayoutStr(tensorLayout.value());
+        return TensorDescriptor::GetLayoutStr(tensorLayout.value());
 
     // clang-format off
     switch(this->GetNumDims())
