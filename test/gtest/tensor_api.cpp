@@ -203,7 +203,8 @@ TestStatus Set4dTensorDescriptorEx(miopenTensorDescriptor_t tensorDesc,
                                    const TensorParams& params,
                                    bool check_skip)
 {
-    if(params.tensorLayout || params.nbDims != 4 || params.dimsA == nullptr || params.stridesA == nullptr)
+    if(params.tensorLayout || params.nbDims != 4 || params.dimsA == nullptr ||
+       params.stridesA == nullptr)
     {
         return TestStatus::Skipped;
     }
@@ -294,7 +295,8 @@ TestStatus GetTensorDescriptor(miopenTensorDescriptor_t tensorDesc, const Tensor
 {
     if(params.tensorLayout)
     {
-        if((params.tensorLayout != miopenTensorNCHW && params.tensorLayout != miopenTensorNCDHW) || params.stridesA != nullptr)
+        if((params.tensorLayout != miopenTensorNCHW && params.tensorLayout != miopenTensorNCDHW) ||
+           params.stridesA != nullptr)
         {
             return TestStatus::Skipped;
         }
@@ -361,23 +363,23 @@ protected:
         static_assert(sizeof(dims) == sizeof(strides));
         const auto max_ndims = sizeof(dims) / sizeof(dims[0]);
 
+        // clang-format off
         for(testDataType_t datatype = miopenFirstDataType; datatype <= miopenLastDataType; datatype++)
+        // clang-format on
         {
             if(datatype == 4)
                 continue; // miopenInt8x4
 
+            // clang-format off
             for(testTensorLayout_t layout = miopenFirstTensorLayout; layout <= miopenLastTensorLayout; layout++)
+            // clang-format on
             {
-                int ndims = GetNumDimsForLayout(layout);
+                int ndims               = GetNumDimsForLayout(layout);
                 const TestConfig config = {
-                        false,
-                        {datatype,
-                         layout,
-                         ndims,
-                         dims + (max_ndims - ndims),
-                         nullptr},
-                        true,
-                        false};
+                    false,
+                    {datatype, layout, ndims, dims + (max_ndims - ndims), nullptr},
+                    true,
+                    false};
                 configs.push_back(config);
             }
 
@@ -389,10 +391,10 @@ protected:
                     const TestConfig config = {
                         false,
                         {datatype,
-                            std::nullopt,
-                            ndims,
-                            dims + (max_ndims - ndims),
-                            use_strides ? (strides + (max_ndims - ndims)) : nullptr},
+                         std::nullopt,
+                         ndims,
+                         dims + (max_ndims - ndims),
+                         use_strides ? (strides + (max_ndims - ndims)) : nullptr},
                         true,
                         false};
                     configs.push_back(config);
@@ -410,17 +412,25 @@ protected:
 
     static std::vector<testDataType_t> GetWrongDataTypes()
     {
-        std::vector<testDataType_t> wrong_datatypes = {static_cast<testDataType_t>(miopenFirstDataType) - 1,
-                                                       static_cast<testDataType_t>(miopenLastDataType) + 1,
-                                                       /*miopenInt8x4*/ 4};
+        std::vector<testDataType_t> wrong_datatypes = {
+            static_cast<testDataType_t>(miopenFirstDataType) - 1,
+            static_cast<testDataType_t>(miopenLastDataType) + 1,
+            /*miopenInt8x4*/ 4};
         return wrong_datatypes;
     }
 
     static std::vector<testTensorLayout_t> GetWrongLayouts(int num_dims, bool use_strides)
     {
-        std::vector<testTensorLayout_t> wrong_layouts = {static_cast<testTensorLayout_t>(miopenFirstTensorLayout) - 1,
-                                    static_cast<testTensorLayout_t>(miopenLastTensorLayout) + 1};
-        std::vector<testTensorLayout_t> layouts_4d = {miopenTensorNCHW, miopenTensorNHWC, miopenTensorCHWN, miopenTensorNCHWc4, miopenTensorNCHWc8, miopenTensorCHWNc4, miopenTensorCHWNc8};
+        std::vector<testTensorLayout_t> wrong_layouts = {
+            static_cast<testTensorLayout_t>(miopenFirstTensorLayout) - 1,
+            static_cast<testTensorLayout_t>(miopenLastTensorLayout) + 1};
+        std::vector<testTensorLayout_t> layouts_4d = {miopenTensorNCHW,
+                                                      miopenTensorNHWC,
+                                                      miopenTensorCHWN,
+                                                      miopenTensorNCHWc4,
+                                                      miopenTensorNCHWc8,
+                                                      miopenTensorCHWNc4,
+                                                      miopenTensorCHWNc8};
         std::vector<testTensorLayout_t> layouts_5d = {miopenTensorNCDHW, miopenTensorNDHWC};
         if(use_strides)
         {
@@ -444,8 +454,8 @@ protected:
             return wrong_ndims;
 
         auto num_dims = GetNumDimsForLayout(layout.value());
-        wrong_ndims.push_back(num_dims-1);
-        wrong_ndims.push_back(num_dims+1);
+        wrong_ndims.push_back(num_dims - 1);
+        wrong_ndims.push_back(num_dims + 1);
 
         return wrong_ndims;
     }
@@ -454,7 +464,8 @@ protected:
                                      std::vector<TestConfig>& wrong_configs)
     {
         const auto wrong_datatypes = GetWrongDataTypes();
-        const auto wrong_layouts   = GetWrongLayouts(valid_config.params.nbDims, valid_config.params.stridesA != nullptr);
+        const auto wrong_layouts =
+            GetWrongLayouts(valid_config.params.nbDims, valid_config.params.stridesA != nullptr);
         const auto wrong_ndims     = GetWrongNumDims(valid_config.params.tensorLayout);
         static int wrong_dims[][8] = {{0, 0, 0, 0, 0, 0, 0, 0}, {-1, -1, -1, -1, -1, -1, -1, -1}};
 
@@ -485,7 +496,8 @@ protected:
             config.params.tensorLayout = layout;
             config.valid               = false;
 #if !USE_OUT_OF_RANGE_ENUM
-            if(config.params.tensorLayout < miopenFirstTensorLayout || config.params.tensorLayout > miopenLastTensorLayout)
+            if(config.params.tensorLayout < miopenFirstTensorLayout ||
+               config.params.tensorLayout > miopenLastTensorLayout)
             {
                 config.skip = true;
             }
@@ -606,7 +618,7 @@ public:
 
 } // namespace
 
-using CPU_ApiTestSetTensorDescriptor_NONE = TestSetTensor;
+using CPU_ApiTestSetTensorDescriptor_NONE      = TestSetTensor;
 using CPU_ApiTestSetWrongTensorDescriptor_NONE = TestSetTensor;
 
 TEST_P(CPU_ApiTestSetTensorDescriptor_NONE, TD) { RunTest(); }
