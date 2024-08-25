@@ -505,10 +505,10 @@ miopenTensorLayout_t TensorDescriptor::GetLayout_t() const
                                 std::make_pair("NCDHW", miopenTensorNCDHW),
                                 std::make_pair("NDHWC", miopenTensorNDHWC),
                                 std::make_pair("CHWN", miopenTensorCHWN)};
-    for(const auto& [layout_s, layout_t] : known_layouts)
+    for(const auto& [layout_str, layout_enum] : known_layouts)
     {
-        if(this->IsPossibleLayout4D5D(layout_s))
-            return layout_t;
+        if(this->IsPossibleLayout4D5D(layout_str))
+            return layout_enum;
     }
 
     MIOPEN_THROW(miopenStatusInternalError, "Unknown layout");
@@ -595,13 +595,6 @@ std::size_t TensorDescriptor::GetElementSpace() const
 
 bool TensorDescriptor::IsPossibleLayout(const std::string& labels, const std::string& layout) const
 {
-    std::vector<size_t> derived_strides;
-    tensor_layout_to_strides(lens, labels, layout, derived_strides);
-    return derived_strides == strides;
-}
-
-bool TensorDescriptor::IsPossibleLayout1(const std::string& labels, const std::string& layout) const
-{
     if(labels.size() != this->GetNumDims())
     {
         MIOPEN_THROW(miopenStatusInternalError,
@@ -653,16 +646,16 @@ bool TensorDescriptor::IsPossibleLayout4D5D(const std::string& layout) const
     if(tensorLayout)
     {
         if(this->tensorLayout == miopenTensorCHWNc4 || this->tensorLayout == miopenTensorCHWNc8)
-            return this->IsPossibleLayout1("CHWN", layout);
+            return this->IsPossibleLayout("CHWN", layout);
     }
 
     // clang-format off
     switch(this->GetNumDims())
     {
     case 4: // 4D: lens are in NCHW order
-        return this->IsPossibleLayout1("NCHW", layout);
+        return this->IsPossibleLayout("NCHW", layout);
     case 5: // 5D: lens are in NCDHW order
-        return this->IsPossibleLayout1("NCDHW", layout);
+        return this->IsPossibleLayout("NCDHW", layout);
     default:
         return false;
     }
