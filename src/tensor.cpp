@@ -327,9 +327,8 @@ void TensorDescriptor::SetStrides()
 
 void TensorDescriptor::VectLensReorder()
 {
-    assert(tensorLayout);
-
     // clang-format off
+    // NOLINTNEXTLINE (bugprone-unchecked-optional-access)
     switch(tensorLayout.value())
     {
     case miopenTensorNCHWc4:
@@ -348,9 +347,8 @@ void TensorDescriptor::VectLensReorder()
 
 void TensorDescriptor::VectLensRecalc()
 {
-    assert(tensorLayout);
-
     // clang-format off
+    // NOLINTNEXTLINE (bugprone-unchecked-optional-access)
     switch(this->tensorLayout.value())
     {
     case miopenTensorNCHWc4:
