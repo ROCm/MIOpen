@@ -251,10 +251,52 @@ TestStatus SetTensorDescriptor(miopenTensorDescriptor_t tensorDesc,
     return TestStatus::Failed;
 }
 
+TestStatus SetTensorDescriptorV2(miopenTensorDescriptor_t tensorDesc,
+                               const TensorParams& params,
+                               bool check_skip)
+{
+    if(params.tensorLayout)
+        return TestStatus::Skipped;
+
+    if(check_skip)
+        return TestStatus::Passed;
+
+    size_t* dimsA = nullptr;
+    size_t* stridesA = nullptr;
+    std::vector<std::size_t> dims;
+    std::vector<std::size_t> strides;
+
+    if(params.nbDims > 0)
+    {
+        if(params.dimsA != nullptr)
+        {
+            dims = std::vector<std::size_t>(params.dimsA, params.dimsA + params.nbDims);
+            dimsA = dims.data();
+        }
+        if(params.stridesA != nullptr)
+        {
+            strides = std::vector<std::size_t>(params.stridesA, params.stridesA + params.nbDims);
+            stridesA = strides.data();
+        }
+    }
+
+    miopenStatus_t status =
+        miopenSetTensorDescriptorV2(tensorDesc,
+                                    static_cast<miopenDataType_t>(params.dataType),
+                                    params.nbDims,
+                                    dimsA,
+                                    stridesA);
+    if(status == miopenStatusSuccess)
+        return TestStatus::Passed;
+
+    return TestStatus::Failed;
+}
+
 const auto set_tensor_descr_funcs = {Set4dTensorDescriptor,
                                      SetNdTensorDescriptorWithLayout,
                                      Set4dTensorDescriptorEx,
-                                     SetTensorDescriptor};
+                                     SetTensorDescriptor,
+                                     SetTensorDescriptorV2};
 
 // Get tensor descriptor
 TestStatus Get4dTensorDescriptor(miopenTensorDescriptor_t tensorDesc, const TensorParams& params)
@@ -484,7 +526,11 @@ protected:
             config.params.dataType = datatype;
             config.valid           = false;
 #if !USE_OUT_OF_RANGE_ENUM
-            config.skip = true;
+            if(config.params.dataType < miopenFirstDataType ||
+               config.params.dataType > miopenLastDataType)
+            {
+                config.skip = true;
+            }
 #endif
             wrong_configs.push_back(config);
         }
