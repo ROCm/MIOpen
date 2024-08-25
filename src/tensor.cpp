@@ -295,6 +295,12 @@ void TensorDescriptor::CheckArgsAndInit(bool use_strides)
             MIOPEN_THROW(miopenStatusBadParm, "Strides must be > 0 and <= INT64_MAX");
 
         packed = (this->GetElementSize() == this->GetElementSpace());
+
+        if(tensorLayout)
+        {
+            if(!this->IsPossibleLayout4D5D(TensorDescriptor::GetLayoutStr(tensorLayout.value())))
+                MIOPEN_THROW(miopenStatusBadParm, "Mismatch of layout and strides");
+        }
     }
     else
     {
