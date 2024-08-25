@@ -252,8 +252,8 @@ TestStatus SetTensorDescriptor(miopenTensorDescriptor_t tensorDesc,
 }
 
 TestStatus SetTensorDescriptorV2(miopenTensorDescriptor_t tensorDesc,
-                               const TensorParams& params,
-                               bool check_skip)
+                                 const TensorParams& params,
+                                 bool check_skip)
 {
     if(params.tensorLayout)
         return TestStatus::Skipped;
@@ -261,7 +261,7 @@ TestStatus SetTensorDescriptorV2(miopenTensorDescriptor_t tensorDesc,
     if(check_skip)
         return TestStatus::Passed;
 
-    size_t* dimsA = nullptr;
+    size_t* dimsA    = nullptr;
     size_t* stridesA = nullptr;
     std::vector<std::size_t> dims;
     std::vector<std::size_t> strides;
@@ -270,22 +270,18 @@ TestStatus SetTensorDescriptorV2(miopenTensorDescriptor_t tensorDesc,
     {
         if(params.dimsA != nullptr)
         {
-            dims = std::vector<std::size_t>(params.dimsA, params.dimsA + params.nbDims);
+            dims  = std::vector<std::size_t>(params.dimsA, params.dimsA + params.nbDims);
             dimsA = dims.data();
         }
         if(params.stridesA != nullptr)
         {
-            strides = std::vector<std::size_t>(params.stridesA, params.stridesA + params.nbDims);
+            strides  = std::vector<std::size_t>(params.stridesA, params.stridesA + params.nbDims);
             stridesA = strides.data();
         }
     }
 
-    miopenStatus_t status =
-        miopenSetTensorDescriptorV2(tensorDesc,
-                                    static_cast<miopenDataType_t>(params.dataType),
-                                    params.nbDims,
-                                    dimsA,
-                                    stridesA);
+    miopenStatus_t status = miopenSetTensorDescriptorV2(
+        tensorDesc, static_cast<miopenDataType_t>(params.dataType), params.nbDims, dimsA, stridesA);
     if(status == miopenStatusSuccess)
         return TestStatus::Passed;
 
