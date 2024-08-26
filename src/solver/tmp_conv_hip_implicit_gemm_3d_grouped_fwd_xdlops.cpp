@@ -31,11 +31,26 @@
 #include <miopen/generic_search.hpp>
 #include <miopen/conv/data_invoke_params.hpp>
 #include <miopen/solver/problem_description_interpreter.hpp>
+#include <miopen/kernel_build_params.hpp>
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 #include <miopen/solver/ck_utility_common.hpp>
 #include <ck/library/tensor_operation_instance/gpu/grouped_convolution_forward_bilinear.hpp>
 #include <ck/library/tensor_operation_instance/gpu/grouped_convolution_forward_scale.hpp>
 #include "ck/library/tensor_operation_instance/gpu/grouped_convolution_forward.hpp"
+
+#include "ck/host/device_grouped_conv_fwd_multiple_d/conv_fwd_op.hpp"
+#include "ck/host/device_grouped_conv_fwd_multiple_d/conv_fwd_problem.hpp"
+#include "ck/host/headers.hpp"
+#include "ck/host/stringutils.hpp"
+#include "ck/host/utils.hpp"
+#include "ck/tensor_operation/gpu/device/helper.hpp"
+#include "ck/library/utility/host_tensor_generator.hpp"
+#include "ck/library/reference_tensor_operation/cpu/reference_conv_fwd.hpp"
+//#include <test.hpp>
+//#include <rtc/compile_kernel.hpp>
+//#include <rtc/hip.hpp>
+//#include "common.hpp"
+#include <fstream>
 #endif
 #include <miopen/solver/implicitgemm_ck_util.hpp>
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_3D_CONV_IMPLICIT_GEMM_HIP_FWD_XDLOPS)
@@ -86,12 +101,28 @@ struct Epilogue
 )";
 std::string prologue = "";
 
+// TODO: temporarily have these two here due to build issues with ck_rtc, remove once resolved
+struct src_file
+{
+    std::filesystem::path path;
+    std::string_view content;
+};
+std::vector<src_file> get_headers_for_test()
+{
+    std::vector<src_file> result;
+    auto hs = ck::host::GetHeaders();
+    std::transform(
+        hs.begin(), hs.end(), std::back_inserter(result), [&](const auto& p) -> src_file {
+            return {p.first, p.second};
+        });
+    return result;
+}
+
 struct CKArgs
 {
     CKArgs(const ProblemDescription& problem)
     {
 
-        ck::host::conv::Problem_Conv_Fwd prob;
         prob.NumDim = NumDimSpatial;
         prob.G      = ProblemInterpreter::GetGroupCountG(problem);
         prob.N      = ProblemInterpreter::GetBatchN(problem);
@@ -154,16 +185,17 @@ struct CKArgs
     int Y;
     int X;
     int Z;**/
-    std::array<ck::index_t, 5> in_lengths;
-    std::array<ck::index_t, 5> in_strides;
-    std::array<ck::index_t, 5> out_lengths;
-    std::array<ck::index_t, 5> out_strides;
-    std::array<ck::index_t, 5> wei_lengths;
-    std::array<ck::index_t, 5> wei_strides;
-    std::array<ck::index_t, 2> filter_strides;
-    std::array<ck::index_t, 2> filter_dilations;
-    std::array<ck::index_t, 2> lPadding;
-    std::array<ck::index_t, 2> rPadding;
+    ck::host::conv::Problem_Conv_Fwd prob;
+    ck::Array<ck::index_t, 5> in_lengths;
+    ck::Array<ck::index_t, 5> in_strides;
+    ck::Array<ck::index_t, 5> out_lengths;
+    ck::Array<ck::index_t, 5> out_strides;
+    ck::Array<ck::index_t, 5> wei_lengths;
+    ck::Array<ck::index_t, 5> wei_strides;
+    ck::Array<ck::index_t, 2> filter_strides;
+    ck::Array<ck::index_t, 2> filter_dilations;
+    ck::Array<ck::index_t, 2> lPadding;
+    ck::Array<ck::index_t, 2> rPadding;
     // miopenAlphaBetaCase_t alpha_beta_case;
 };
 
@@ -211,37 +243,58 @@ ConvSolution ConvHipImplicitGemmGroupFwdXdlopsCodegen::GetSolution(
     [[maybe_unused]] const ExecutionContext& ctx,
     [[maybe_unused]] const ProblemDescription& problem) const
 {
-    auto prob = CKArgs(problem);
+    auto x = CKArgs(problem);
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
-    auto in_dev  = to_gpu(generate_buffer<ck::half_t, ck::Array<ck::index_t, 5>>(
+    // TODO: update this: the user will provide the data, I just need to access the buffer, not
+    // create it
+    /**auto in_dev  = to_gpu(generate_buffer<ck::half_t, ck::Array<ck::index_t, 5>>(
         prob.in_lengths, prob.in_strides, 0));
     auto wei_dev = to_gpu(generate_buffer<ck::half_t, ck::Array<ck::index_t, 5>>(
         prob.wei_lengths, prob.wei_strides, 1));
     auto out_dev = to_gpu(generate_buffer<ck::half_t, ck::Array<ck::index_t, 5>>(
-        prob.out_lengths, prob.out_strides, 2));
+        prob.out_lengths, prob.out_strides, 2));**/
 
-    auto solution : prob.GetSolutions("gfx908", prologue, epilogue);
+    const auto workspace_req = GetWorkspaceSize(ctx, problem);
+
+    auto soln         = ConvSolution{miopenStatusSuccess};
+    soln.workspace_sz = workspace_req;
+
+    auto solution = x.prob.GetSolutions("gfx908", prologue, epilogue);
     // substitute instance values into the template
     auto src = ck::host::InterpolateString(
         conv_compile_check,
-        {{"include", prob.GetIncludeHeader()}, {"template", solution[0].ToTemplateString()}});
+        {{"include", x.prob.GetIncludeHeader()}, {"template", solution[0].ToTemplateString()}});
 
     auto srcs = get_headers_for_test();
     srcs.push_back({"main.cpp", src});
-    rtc::compile_options options;
-    auto name           = solution[0].GetTemplateParameter<std::string>("name");
-    options.kernel_name = "run_" + name;
-    auto k              = rtc::compile_kernel(srcs, options);
+    auto kernel = KernelInfo{};
+    auto name   = solution[0].GetTemplateParameter<std::string>("name");
+    // FIXME: is this how to pass the src files?
+    kernel.kernel_file = srcs[srcs.size() - 1].path.filename().string();
+    kernel.kernel_name = "run_" + name;
+    // rtc::compile_options options;
+    // auto name           = solution[0].GetTemplateParameter<std::string>("name");
+    // options.kernel_name = "run_" + name;
+    // TODO: MIOpen has it's own handlers for compilation
+    // auto k = rtc::compile_kernel(srcs, options);
 
     // Grid size calculation
     auto block_size = solution[0].GetTemplateParameter<ck::index_t>("BlockSize");
 
-    auto tmp = get_launch_params(solution[0], prob.out_lengths, prob.out_strides);
+    auto tmp = get_launch_params(solution[0], x.out_lengths, x.out_strides);
 
-    auto grid_size = tmp * prob.in_lengths[1];
+    auto grid_size = tmp * x.in_lengths[1];
 
+    /**bool bfp16parm  = true;
+    const auto build_params = KernelBuildParameters{
+                        {"MIOPEN_USE_FP16", static_cast<int>(bfp16parm)}};
+    kernel.comp_options = build_params.GenerateFor(kbp::HIP{});**/
+
+    soln.construction_params.push_back(kernel);
+
+    // TODO: remove this, replace with lambda. MIOpen has it's own invoker to launch the kernel
     // launch the kernel with arguments needed for the argument pointer
-    k.launch(nullptr, grid_size * block_size, block_size)(in_dev.data(),
+    /**k.launch(nullptr, grid_size * block_size, block_size)(in_dev.data(),
                                                           wei_dev.data(),
                                                           out_dev.data(),
                                                           prob.in_lengths,
@@ -253,7 +306,7 @@ ConvSolution ConvHipImplicitGemmGroupFwdXdlopsCodegen::GetSolution(
                                                           prob.filter_strides,
                                                           prob.filter_dilations,
                                                           prob.lPadding,
-                                                          prob.rPadding);
+                                                          prob.rPadding);**/
 
 #else
     return {};
