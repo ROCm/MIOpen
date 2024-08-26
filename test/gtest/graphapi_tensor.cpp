@@ -244,9 +244,9 @@ static std::vector<TestCase> TestConfigs()
             {{1, 4, 14, 11, 1}, {616, 154, 11, 1, 1}, miopenFloat, miopenTensorNCDHW},
             {{1, 4, 11, 1}, {44, 1, 4, 4}, miopenFloat, miopenTensorNHWC},
             {{1, 4, 11, 1}, {44, 11, 1, 1}, miopenFloat, miopenTensorNCHW},
-            {{1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, miopenFloat, miopenTensorNDHWC},
-            {{1, 1, 1, 1}, {1, 1, 1, 1}, miopenFloat, miopenTensorNHWC},
-            {{3, 5, 6}, {30, 6, 1}, miopenFloat, miopenTensorNCHW}};
+            {{1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, miopenFloat, miopenTensorNCDHW},
+            {{1, 1, 1, 1}, {1, 1, 1, 1}, miopenFloat, miopenTensorNCHW},
+            {{3, 5, 6}, {30, 6, 1}, miopenFloat, miopenTensorNCHW}}; // dummy layout value
 }
 
 class CPU_GraphTensor_NONE : public ::testing::TestWithParam<TestCase>
@@ -269,15 +269,25 @@ public:
 
         std::tie(dimensions, strides, dataType, layout) = GetParam();
 
-        miopen::TensorDescriptor descriptor(dataType, layout, dimensions, strides);
+        miopen::TensorDescriptor descriptor(dataType, dimensions, strides);
+        if(dimensions.size() >= 4 && dimensions.size() <= 5)
+        {
+            EXPECT_EQ(descriptor.GetLayout_t(), layout);
+        }
 
         gr::Tensor graphTensorFromDescription(descriptor, 0, false);
         EXPECT_EQ(graphTensorFromDescription, descriptor);
-        EXPECT_EQ(graphTensorFromDescription.GetLayout_t(), descriptor.GetLayout_t());
+        if(dimensions.size() >= 4 && dimensions.size() <= 5)
+        {
+            EXPECT_EQ(graphTensorFromDescription.GetLayout_t(), layout);
+        }
 
         gr::Tensor graphTensorFromParams(dataType, dimensions, strides, 0, false);
         EXPECT_EQ(graphTensorFromParams, descriptor);
-        EXPECT_EQ(graphTensorFromParams.GetLayout_t(), descriptor.GetLayout_t());
+        if(dimensions.size() >= 4 && dimensions.size() <= 5)
+        {
+            EXPECT_EQ(graphTensorFromParams.GetLayout_t(), layout);
+        }
     }
 };
 
