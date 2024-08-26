@@ -70,7 +70,9 @@ public:
                                             static_cast<int>(hidden_vec_sz),
                                             layers_cnt,
                                             rnnDesc.biasMode,
-                                            gates_cnt, is_seq_bidir);
+                                            rnnDesc.inputMode,
+                                            gates_cnt,
+                                            is_seq_bidir);
 
         BatchController batch_controller = BatchController::Create(xDesc);
 
@@ -217,6 +219,7 @@ private:
 
     inline miopen::TensorDescriptor BuildLstmFilterXDesc2D(int layer_id) const
     {
+        assert(rnnDesc.inputMode == 0 || layer_id != 0);
         // TODO replace by stride
         auto x_vec = layer_id != 0 ? weightsLayout.xInVec : weightsLayout.inVec;
 
@@ -413,21 +416,20 @@ private:
     const size_t max_seq_len;
 };
 
-
 class RNNBackwardWeightsModularAlgo
 {
 public:
     static RNNBackwardWeightsModularAlgo create(const RNNDescriptor& rnnDesc,
-                                             const SeqTensorDescriptor& xDesc,
-                                             const SeqTensorDescriptor& yDesc,
-                                             const TensorDescriptor& hDesc)
+                                                const SeqTensorDescriptor& xDesc,
+                                                const SeqTensorDescriptor& yDesc,
+                                                const TensorDescriptor& hDesc)
     {
         auto [max_layers_hid, max_batch_hid, hidden_vec_sz] = miopen::tien<3>(hDesc.GetLengths());
         auto [max_batch_in, max_seq, input_vec_sz]          = miopen::tien<3>(xDesc.GetLengths());
 
         assert(max_batch_in <= max_batch_hid);
 
-        size_t layers_cnt   = rnnDesc.nLayers;
+        size_t layers_cnt       = rnnDesc.nLayers;
         const bool is_seq_bidir = rnnDesc.dirMode == miopenRNNbidirection;
 
         assert(layers_cnt * (is_seq_bidir ? 2 : 1) <= max_layers_hid);
@@ -444,13 +446,13 @@ public:
         GeneralLstmTempBuffer workspace_info = GeneralLstmTempBuffer::build(
             layers_cnt, xDesc.GetTotalSequenceLen(), seq_directions, hidden_vec_sz);
 
-        WeightsBufferDescriptor weights_layout =
-            WeightsBufferDescriptor::create(input_vec_sz,
-                                            hidden_vec_sz,
-                                            layers_cnt,
-                                            rnnDesc.biasMode,
-                                            gates_cnt,
-                                            is_seq_bidir);
+        WeightsBufferDescriptor weights_layout = WeightsBufferDescriptor::create(input_vec_sz,
+                                                                                 hidden_vec_sz,
+                                                                                 layers_cnt,
+                                                                                 rnnDesc.biasMode,
+                                                                                 rnnDesc.inputMode,
+                                                                                 gates_cnt,
+                                                                                 is_seq_bidir);
 
         BatchController batch_controller = BatchController::Create(xDesc);
 
@@ -493,7 +495,7 @@ public:
                              size_t layer,
                              SequenceDirection direction) const
     {
-        const size_t gemm_batch_size = [&]() ->size_t {
+        const size_t gemm_batch_size = [&]() -> size_t {
             if(seq.isFirst())
                 return 0;
 
@@ -516,7 +518,7 @@ public:
                              size_t max_seq_len,
                              const SequenceDirection direction) const
     {
-        size_t start_seq_id = 0;
+        size_t start_seq_id   = 0;
         const size_t last_seq = max_seq_len - 1;
         for(auto i = start_seq_id + 1; i <= last_seq; i++)
         {
@@ -569,7 +571,6 @@ public:
         }
     }
 
-
     static bool IsApplicable()
     {
 #if MIOPEN_USE_GEMM && MIOPEN_BACKEND_HIP
@@ -599,18 +600,16 @@ private:
     {
     }
 
-    
-
     void HiddenHStateWeights_Unchecked(const Handle& handle,
-                                  ConstData_t workSpace,
-                                  ConstData_t reserveSpace,
-                                  Data_t dw,
-                                  const SequenceIterator& seq,
-                                  size_t layer,
-                                  SequenceDirection direction,
-                                  size_t gemm_batch_size) const;
+                                       ConstData_t workSpace,
+                                       ConstData_t reserveSpace,
+                                       Data_t dw,
+                                       const SequenceIterator& seq,
+                                       size_t layer,
+                                       SequenceDirection direction,
+                                       size_t gemm_batch_size) const;
 
-        void PhisHStateWeights(const Handle& handle,
+    void PhisHStateWeights(const Handle& handle,
                            ConstData_t workSpace,
                            ConstData_t hx,
                            Data_t dw,
@@ -633,6 +632,7 @@ private:
 
     inline miopen::TensorDescriptor BuildLstmFilterXDesc2D(int layer_id) const
     {
+        assert(rnnDesc.inputMode == 0 || layer_id != 0);
         // TODO replace by stride
         auto x_vec = layer_id != 0 ? weightsLayout.xInVec : weightsLayout.inVec;
 
@@ -652,7 +652,8 @@ private:
     }
 
     template <typename BufType>
-    inline miopen::TensorDescriptor BuildTmpHtDesc2D(const BufType& buf_info, size_t batch_size) const
+    inline miopen::TensorDescriptor BuildTmpHtDesc2D(const BufType& buf_info,
+                                                     size_t batch_size) const
     {
         auto& ht_stride = buf_info.getHiddenStateStride();
         auto& ht_size   = buf_info.hStateSizes;
@@ -702,9 +703,8 @@ private:
     {
         const std::vector<size_t> bias_size = [](const auto& wei_4dim_size) -> std::vector<size_t> {
             // wei_4dim_size{layer, dir, gate, vec}
-            return {1, wei_4dim_size[1] * wei_4dim_size[2] *wei_4dim_size[3]};
-        }
-        (weightsLayout.getBiasSize());
+            return {1, wei_4dim_size[1] * wei_4dim_size[2] * wei_4dim_size[3]};
+        }(weightsLayout.getBiasSize());
 
         const auto bias_stride = [](const auto& wei_4dim_strides) -> std::vector<size_t> {
             // convert 4dim stride to 2 dim without direction
@@ -759,9 +759,9 @@ class RNNModularSingleStreamBWWeights
 {
 public:
     RNNModularSingleStreamBWWeights(const RNNDescriptor& rnn,
-                              const SeqTensorDescriptor& xDesc,
-                              const SeqTensorDescriptor& yDesc,
-                              const TensorDescriptor& hDesc)
+                                    const SeqTensorDescriptor& xDesc,
+                                    const SeqTensorDescriptor& yDesc,
+                                    const TensorDescriptor& hDesc)
         : rnnAlgoModules(RNNBackwardWeightsModularAlgo::create(rnn, xDesc, yDesc, hDesc)),
           rnnDesc(rnn),
           max_seq_len(xDesc.GetMaxSequenceLength())

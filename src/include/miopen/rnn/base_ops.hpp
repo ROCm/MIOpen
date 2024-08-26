@@ -184,7 +184,6 @@ public:
                                     add_assign);
     }
 
-
     static miopenStatus_t BWWei_GEMM(const Handle& handle,
                                      ConstData_t comb_gates_ptr,
                                      size_t comb_gates_offset,
@@ -211,8 +210,7 @@ public:
 
         const size_t tmp_gates_ld_stride = tmp_gates_dsc.GetStrides()[0]; // {batch, comb_gates}
         const size_t ht_dest_ld_stride   = ht_dsc.GetStrides()[0];        // {batch, ht_vec}
-        const size_t filter_ld_stride  = filter_dsc.GetStrides()[0]; // {comb_gates, ht_vec}
-        
+        const size_t filter_ld_stride    = filter_dsc.GetStrides()[0];    // {comb_gates, ht_vec}
 
         // no gemm work
         if(batch_size == 0)

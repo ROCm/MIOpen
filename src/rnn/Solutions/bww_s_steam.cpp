@@ -38,7 +38,6 @@ void RNNModularSingleStreamBWWeights::Compute(const Handle& handle,
                                               ConstData_t reserveSpace,
                                               size_t /*reserveSpaceSize*/) const
 {
-    
 
     if(rnnDesc.nLayers == 0 || max_seq_len == 0)
         return;
@@ -48,11 +47,11 @@ void RNNModularSingleStreamBWWeights::Compute(const Handle& handle,
 
     rnnAlgoModules.PrepareWriteBuffers(handle, dw);
 
-    //auto layer_i = rnnDesc.nLayers;
-    //do
+    // auto layer_i = rnnDesc.nLayers;
+    // do
     for(int layer_i = 0; layer_i < rnnDesc.nLayers; layer_i++)
     {
-        //layer_i--;
+        // layer_i--;
 
         if(layer_i == 0)
             rnnAlgoModules.PhisXInputWeights(handle, x, dw, workSpace);
@@ -72,10 +71,8 @@ void RNNModularSingleStreamBWWeights::Compute(const Handle& handle,
             rnnAlgoModules.HiddenHStateWeights(
                 handle, workSpace, reserveSpace, dw, layer_i, max_seq_len, seq_dir);
         }
-        
 
-    } //while(layer_i != 0);
-
+    } // while(layer_i != 0);
 }
 
 } // namespace rnn_base

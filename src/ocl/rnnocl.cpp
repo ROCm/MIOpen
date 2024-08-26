@@ -5957,8 +5957,8 @@ void RNNDescriptor::RNNBackwardWeightsPackedTensors(
         in_h = 0;
     }
 
-    if(dirMode == 0 && inputMode == miopenRNNlinear && rnnMode == miopenLSTM && !use_dropout &&
-           algoMode == miopenRNNdefault && env::enabled(MIOPEN_RNNWRW_EXP) )
+    if(dirMode == 0 && rnnMode == miopenLSTM && !use_dropout && algoMode == miopenRNNdefault &&
+       !env::disabled(MIOPEN_RNNWRW_EXP))
     {
         SeqTensorDescriptor x_seq =
             makeSeqTensorDescriptor(xDesc, seqLen, miopenRNNDataSeqMajorNotPadded);

@@ -95,8 +95,7 @@ miopenStatus_t ReducAddBias(const miopen::Handle& handle,
                 if(std::align(4,
                               red_workSpace_size_bytes - 4,
                               red_workSpace_bugfix,
-                              red_workSpace_size_bytes) ==
-                   nullptr)
+                              red_workSpace_size_bytes) == nullptr)
                     MIOPEN_THROW(miopenStatusInternalError, "failed alignment.");
             }
 
@@ -197,7 +196,6 @@ miopenStatus_t ReducAddBias(const miopen::Handle& handle,
     return miopenStatusSuccess;
 }
 
-
 void RNNBackwardWeightsModularAlgo::PrepareWriteBuffers(const Handle& handle, Data_t w) const
 {
     const auto rnn_data_type = rnnDesc.dataType;
@@ -213,25 +211,26 @@ void RNNBackwardWeightsModularAlgo::PrepareWriteBuffers(const Handle& handle, Da
     SetTensor(handle, w_desc, w, &beta);
 }
 
-void RNNBackwardWeightsModularAlgo::PhisXInputWeights(
-    const Handle& handle, ConstData_t x, Data_t dw, Data_t workSpace) const
+void RNNBackwardWeightsModularAlgo::PhisXInputWeights(const Handle& handle,
+                                                      ConstData_t x,
+                                                      Data_t dw,
+                                                      Data_t workSpace) const
 {
-    const auto rnn_data_t = rnnDesc.dataType;
+    const auto rnn_data_t        = rnnDesc.dataType;
     const size_t gemm_batch_size = xInfo.getFullSeqMajorSize()[0];
 
     assert(gemm_batch_size != 0);
 
     if(rnnDesc.inputMode == miopenRNNlinear)
     {
-        constexpr int layer                = 0;
+        constexpr int layer                   = 0;
         constexpr SequenceDirection direction = SequenceDirection::Forward;
-        constexpr size_t gemm_batch_offset = 0;
+        constexpr size_t gemm_batch_offset    = 0;
 
-        
         // both directions in 1 call;
 
-        const auto tmp_block_offset = workspaceInfo.getGateBlockOffset(
-            layer, gemm_batch_offset, direction);
+        const auto tmp_block_offset =
+            workspaceInfo.getGateBlockOffset(layer, gemm_batch_offset, direction);
 
         const auto filter_offset =
             weightsLayout.getMatrixXinOff(layer, static_cast<int>(direction));
@@ -264,7 +263,6 @@ void RNNBackwardWeightsModularAlgo::PhisXInputWeights(
                                      filter_src_dsc,
                                      true);
     }
-    
 }
 
 void RNNBackwardWeightsModularAlgo::HiddenXInputWeights(const Handle& handle,
@@ -277,13 +275,14 @@ void RNNBackwardWeightsModularAlgo::HiddenXInputWeights(const Handle& handle,
     const size_t gemm_batch_size = workspaceInfo.getGateBlockSize()[1];
 
     const size_t gemm_batch_offset    = 0;
-    const size_t seq_start = 0;
+    const size_t seq_start            = 0;
     const SequenceDirection direction = SequenceDirection::Forward;
 
     assert(gemm_batch_size != 0);
     assert(layer > 0);
 
-    [[__attribute_maybe_unused__]]bool use_dropout    = !float_equal(miopen::deref(rnnDesc.dropoutDesc).dropout, 0);
+    [[__attribute_maybe_unused__]] bool use_dropout =
+        !float_equal(miopen::deref(rnnDesc.dropoutDesc).dropout, 0);
 
     assert(use_dropout == false);
 
@@ -294,15 +293,13 @@ void RNNBackwardWeightsModularAlgo::HiddenXInputWeights(const Handle& handle,
 
     const auto filter_offset = weightsLayout.getMatrixXinOff(layer, static_cast<int>(direction));
 
-    const auto ht_offset =
-        reservLayout.getHiddenStateOffset(
+    const auto ht_offset = reservLayout.getHiddenStateOffset(
         layer - 1, batchController.getBatchSum(seq_start), direction);
-
 
     const auto tmp_block_src_dsc = BuildLstmTmpBlockDesc2D(workspaceInfo, gemm_batch_size);
 
     const auto filter_src_dsc = BuildLstmFilterXDesc2D(layer);
-    //TODO chage for dropout
+    // TODO chage for dropout
     const auto ht_desc = BuildTmpHtDesc2D(reservLayout, gemm_batch_size);
 
     RnnBaseFunctions::BWWei_GEMM(handle,
@@ -316,7 +313,6 @@ void RNNBackwardWeightsModularAlgo::HiddenXInputWeights(const Handle& handle,
                                  filter_offset,
                                  filter_src_dsc,
                                  true);
-
 }
 
 void RNNBackwardWeightsModularAlgo::BiasUpdate(
@@ -326,15 +322,13 @@ void RNNBackwardWeightsModularAlgo::BiasUpdate(
     {
         const auto batch_size = batchController.getTotalBatchSum();
 
-
         const TensorDescriptor block_dsc = BuildLstmTmpBlockDesc2D(workspaceInfo, batch_size);
 
-        
-//        const std::vector<size_t> dw_bias_strides{
-//            static_cast<size_t>(wei_stride), static_cast<size_t>(wei_stride), 1};
-//
-//        const miopen::TensorDescriptor dw_desc{
-//            rnn_data_t, {1, 1, static_cast<size_t>(wei_stride)}, dw_bias_strides};
+        //        const std::vector<size_t> dw_bias_strides{
+        //            static_cast<size_t>(wei_stride), static_cast<size_t>(wei_stride), 1};
+        //
+        //        const miopen::TensorDescriptor dw_desc{
+        //            rnn_data_t, {1, 1, static_cast<size_t>(wei_stride)}, dw_bias_strides};
 
         const miopen::TensorDescriptor dw_desc = BuildWeiBiasDesc2D();
 
@@ -346,18 +340,16 @@ void RNNBackwardWeightsModularAlgo::BiasUpdate(
         size_t dw_bias_offset =
             weightsLayout.getBiasXinOff(layer, static_cast<int>(SequenceDirection::Forward), 0);
 
-        ReducAddBias(
-            handle,
-            dw,
-            workSpace,
-            dw_desc,
-            block_dsc,
-            dw_bias_offset,
-            workspaceInfo.getGateBlockOffset(layer, 0, SequenceDirection::Forward),
-            reduction_workSpace,
-            reduction_ws_size);
+        ReducAddBias(handle,
+                     dw,
+                     workSpace,
+                     dw_desc,
+                     block_dsc,
+                     dw_bias_offset,
+                     workspaceInfo.getGateBlockOffset(layer, 0, SequenceDirection::Forward),
+                     reduction_workSpace,
+                     reduction_ws_size);
 
-        
         // second dw bias equal to the first, so just copy reduction result
         size_t dw_bias_2_offset =
             weightsLayout.getBiasHidOff(layer, static_cast<int>(SequenceDirection::Forward), 0);
@@ -372,7 +364,7 @@ void RNNBackwardWeightsModularAlgo::HiddenHStateWeights_Unchecked(const Handle& 
                                                                   const SequenceIterator& seq,
                                                                   size_t layer,
                                                                   SequenceDirection direction,
-                                                                  size_t gemm_batch_size)const 
+                                                                  size_t gemm_batch_size) const
 {
     if(gemm_batch_size == 0)
         return;
@@ -388,7 +380,6 @@ void RNNBackwardWeightsModularAlgo::HiddenHStateWeights_Unchecked(const Handle& 
     const TensorDescriptor block_dsc  = BuildLstmTmpBlockDesc2D(workspaceInfo, gemm_batch_size);
     const TensorDescriptor ht_desc    = BuildTmpHtDesc2D(reservLayout, gemm_batch_size);
     const TensorDescriptor filter_dsc = BuildLstmFilterHidDesc2D();
-    
 
     RnnBaseFunctions::BWWei_GEMM(handle,
                                  workSpace,
@@ -401,7 +392,6 @@ void RNNBackwardWeightsModularAlgo::HiddenHStateWeights_Unchecked(const Handle& 
                                  filter_offset,
                                  filter_dsc,
                                  true);
-
 }
 
 void RNNBackwardWeightsModularAlgo::PhisHStateWeights(const Handle& handle,
@@ -422,11 +412,11 @@ void RNNBackwardWeightsModularAlgo::PhisHStateWeights(const Handle& handle,
 
     const auto virt_layer = getVirtualLayer(layer, direction);
 
-    const size_t block_offset = workspaceInfo.getGateBlockOffset(layer, batch_shift, direction);
+    const size_t block_offset  = workspaceInfo.getGateBlockOffset(layer, batch_shift, direction);
     const size_t hx_offset     = hiddenHxCxInfo.getOffset(virt_layer, batch_shift);
     const size_t filter_offset = weightsLayout.getMatrixHidOff(layer, static_cast<int>(direction));
 
-    const TensorDescriptor block_dsc = BuildLstmTmpBlockDesc2D(workspaceInfo, gemm_batch_size);
+    const TensorDescriptor block_dsc  = BuildLstmTmpBlockDesc2D(workspaceInfo, gemm_batch_size);
     const TensorDescriptor hx_desc    = BuildHxCxDesc2D(gemm_batch_size);
     const TensorDescriptor filter_dsc = BuildLstmFilterHidDesc2D();
 

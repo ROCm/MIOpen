@@ -641,28 +641,24 @@ private:
         MIOPEN_THROW("execution failure: bidirect is not supported by this solver");
     }
 
-    static auto matrix_size(size_t input_vector_sz, size_t hidden_vec_sz, size_t gates)
+    static auto filter_size(size_t input_vector_sz, size_t hidden_vec_sz, size_t gates)
     {
         return (input_vector_sz + hidden_vec_sz) * hidden_vec_sz * gates;
     }
 
-    static size_t bias_start_offset(size_t input_vector_sz,
-                                    size_t hidden_vec_sz,
+    static size_t bias_start_offset(size_t phis_layer_filter_sz,
+                                    size_t hidden_layer_filter_sz,
                                     size_t layers_cnt,
-                                    size_t gates,
                                     bool bidirect_mode)
     {
         if(!bidirect_mode)
         {
-            return matrix_size(input_vector_sz, hidden_vec_sz, gates) +
-                   static_cast<size_t>(hidden_vec_sz +
-                                       hidden_xinput_size(hidden_vec_sz, bidirect_mode)) *
-                       hidden_vec_sz * static_cast<size_t>(layers_cnt - 1) * gates;
+            return phis_layer_filter_sz + hidden_layer_filter_sz * (layers_cnt - 1);
         }
 
         MIOPEN_THROW("execution failure: bidirect is not supported by this solver");
     }
-    
+
     WeightsBufferDescriptor(size_t input_vector_sz,
                             size_t hidden_vec_sz,
                             size_t hidden_xinput_sz,
@@ -689,23 +685,25 @@ private:
     {
     }
 
-
 public:
     static WeightsBufferDescriptor create(size_t input_vector_sz,
                                           size_t hidden_vec_sz,
                                           size_t layers_cnt,
                                           size_t bias_mode,
+                                          size_t input_mode,
                                           size_t gates,
                                           bool bidirect_mode)
     {
         const size_t directions_num = bidirect_mode ? 2 : 1;
         const size_t x_in_vec       = hidden_xinput_size(hidden_vec_sz, bidirect_mode);
 
-        const size_t linLayerFilterSize  = matrix_size(input_vector_sz, hidden_vec_sz, gates);
-        const size_t hiddenLayerFilterSize = matrix_size(x_in_vec, hidden_vec_sz, gates);
+        size_t input_vector_filter_sz = input_mode == 0 ? input_vector_sz : 0;
+
+        const size_t linLayerFilterSize = filter_size(input_vector_filter_sz, hidden_vec_sz, gates);
+        const size_t hiddenLayerFilterSize = filter_size(x_in_vec, hidden_vec_sz, gates);
 
         const size_t bias_start_off =
-            bias_start_offset(input_vector_sz, hidden_vec_sz, layers_cnt, gates, bidirect_mode);
+            bias_start_offset(linLayerFilterSize, hiddenLayerFilterSize, layers_cnt, bidirect_mode);
 
         //[layer][dir][param_id][vector]
         const std::array<size_t, 4> bias_lens{layers_cnt, directions_num, gates, hidden_vec_sz};
@@ -717,9 +715,9 @@ public:
                              std::multiplies<size_t>{});
             strides[0] *= bias_cnt;
             return strides;
-        }(bias_lens, bias_mode*2);
+        }(bias_lens, bias_mode * 2);
 
-        return {input_vector_sz,
+        return {input_vector_filter_sz,
                 hidden_vec_sz,
                 x_in_vec,
                 layers_cnt,
@@ -731,7 +729,6 @@ public:
                 bias_lens,
                 bias_start_off};
     }
-
 
     const size_t inVec, hVec;
     const size_t xInVec; // for bidirect TODO
@@ -749,12 +746,19 @@ private:
 
     const size_t linLayerFilterSize;
     const size_t hiddenLayerFilterSize;
-    
 
 public:
     size_t getParamRelativeOff(size_t layer_id, int /*dir_id*/, int param_id) const
     {
-        return param_id * hVec * (layer_id == 0 ? inVec : xInVec);
+        assert(layer_id > 0);
+        return param_id * hVec * xInVec;
+    }
+
+    size_t getPhisParamRelativeOff(int /*dir_id*/, int param_id) const
+    {
+        return hVec * ((static_cast<size_t>(param_id) >= gatesCnt)
+                           ? inVec * gatesCnt + xInVec * (param_id - gatesCnt)
+                           : inVec * param_id);
     }
 
     size_t getMatrixOff(size_t layer_id, int dir_id, int param_id) const
@@ -763,6 +767,10 @@ public:
         if(layer_id > 0)
         {
             offset += linLayerFilterSize;
+        }
+        else
+        {
+            return getPhisParamRelativeOff(dir_id, param_id);
         }
         if(layer_id > 1)
         {
@@ -780,7 +788,6 @@ public:
     {
         return getMatrixOff(layer_id, dir_id, gatesCnt);
     }
-
 
     size_t getBiasOff(size_t layer_id, int dir_id, int param_id) const
     {

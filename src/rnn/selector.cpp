@@ -99,7 +99,7 @@ void RNNDescriptor::ModularBackwardWeights(Handle& handle,
                                            size_t /*reserveSpaceSize*/) const
 {
     rnn_base::RNNModularSingleStreamBWWeights single_stream{*this, xDesc, yDesc, hDesc};
-    single_stream.Compute(handle, x, hx, dw, workSpace, workSpaceSize, reserveSpace,0 );
+    single_stream.Compute(handle, x, hx, dw, workSpace, workSpaceSize, reserveSpace, 0);
 }
 
 } // namespace miopen
