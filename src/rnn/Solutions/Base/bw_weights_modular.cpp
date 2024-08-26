@@ -146,15 +146,15 @@ miopenStatus_t ReducAddBias(const miopen::Handle& handle,
                                                                   red_type,
                                                                   false};
 
-                miopenStatus_t gemm_status = CallGemm(handle,
-                                                      gemm_desc,
-                                                      red_workSpace,
-                                                      0,
-                                                      workSpace,
-                                                      ws_bias_offset,
-                                                      dw,
-                                                      dw_bias_offset,
-                                                      GemmBackend_t::rocblas);
+                CallGemm(handle,
+                         gemm_desc,
+                         red_workSpace,
+                         0,
+                         workSpace,
+                         ws_bias_offset,
+                         dw,
+                         dw_bias_offset,
+                         GemmBackend_t::rocblas);
             }
             else
             {
@@ -216,7 +216,6 @@ void RNNBackwardWeightsModularAlgo::PhisXInputWeights(const Handle& handle,
                                                       Data_t dw,
                                                       Data_t workSpace) const
 {
-    const auto rnn_data_t        = rnnDesc.dataType;
     const size_t gemm_batch_size = xInfo.getFullSeqMajorSize()[0];
 
     assert(gemm_batch_size != 0);
@@ -271,7 +270,6 @@ void RNNBackwardWeightsModularAlgo::HiddenXInputWeights(const Handle& handle,
                                                         ConstData_t reserveSpace,
                                                         size_t layer) const
 {
-    const auto rnn_data_t        = rnnDesc.dataType;
     const size_t gemm_batch_size = workspaceInfo.getGateBlockSize()[1];
 
     const size_t gemm_batch_offset    = 0;
@@ -281,8 +279,7 @@ void RNNBackwardWeightsModularAlgo::HiddenXInputWeights(const Handle& handle,
     assert(gemm_batch_size != 0);
     assert(layer > 0);
 
-    [[__attribute_maybe_unused__]] bool use_dropout =
-        !float_equal(miopen::deref(rnnDesc.dropoutDesc).dropout, 0);
+    [[maybe_unused]] bool use_dropout = !float_equal(miopen::deref(rnnDesc.dropoutDesc).dropout, 0);
 
     assert(use_dropout == false);
 

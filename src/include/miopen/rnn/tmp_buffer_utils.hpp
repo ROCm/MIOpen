@@ -748,7 +748,7 @@ private:
     const size_t hiddenLayerFilterSize;
 
 public:
-    size_t getParamRelativeOff(size_t layer_id, int /*dir_id*/, int param_id) const
+    size_t getParamRelativeOff([[maybe_unused]] size_t layer_id, int /*dir_id*/, int param_id) const
     {
         assert(layer_id > 0);
         return param_id * hVec * xInVec;
