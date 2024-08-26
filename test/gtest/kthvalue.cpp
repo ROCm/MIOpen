@@ -109,4 +109,4 @@ TEST_P(GPU_Kthvalue_fwd_BFP16, Test)
 
 INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Kthvalue_fwd_FP32, testing::ValuesIn(KthvalueTestConfigs()));
 INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Kthvalue_fwd_FP16, testing::ValuesIn(KthvalueTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Kthvalue_fwd_BFP16,testing::ValuesIn(KthvalueTestConfigs())); 
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Kthvalue_fwd_BFP16, testing::ValuesIn(KthvalueTestConfigs()));
