@@ -69,6 +69,7 @@
  * @defgroup cat
  * @defgroup SGD
  * @defgroup getitem
+ * @defgroup ReduceCalculation
  * @defgroup RotaryPositionalEmbeddings
  * @defgroup ReLU
  * @defgroup CumulativeReduction
