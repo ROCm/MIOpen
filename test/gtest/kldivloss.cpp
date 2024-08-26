@@ -23,9 +23,8 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include "miopen/bfloat16.hpp"
-#include <miopen/env.hpp>
 #include "kldivloss.hpp"
+#include <miopen/env.hpp>
 
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
@@ -34,7 +33,7 @@ namespace kldivloss {
 
 std::string GetFloatArg()
 {
-    const auto& tmp = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
+    const auto& tmp = env::value(MIOPEN_TEST_FLOAT_ARG);
     if(tmp.empty())
     {
         return "";
@@ -42,15 +41,15 @@ std::string GetFloatArg()
     return tmp;
 }
 
-struct KLDivLossTestFloatBwd : KLDivLossTestBwd<float>
+struct GPU_KldivLoss_bwd_FP32 : KLDivLossTestBwd<float>
 {
 };
 
-struct KLDivLossTestHalfBwd : KLDivLossTestBwd<half>
+struct GPU_KldivLoss_bwd_FP16 : KLDivLossTestBwd<half>
 {
 };
 
-struct KLDivLossTestBFloat16Bwd : KLDivLossTestBwd<bfloat16>
+struct GPU_KldivLoss_bwd_BFP16 : KLDivLossTestBwd<bfloat16>
 {
 };
 
@@ -58,10 +57,10 @@ struct KLDivLossTestBFloat16Bwd : KLDivLossTestBwd<bfloat16>
 using namespace kldivloss;
 
 // BACKWARD TEST
-TEST_P(KLDivLossTestFloatBwd, KLDivLossTestBwd)
+TEST_P(GPU_KldivLoss_bwd_FP32, KLDivLossTestBwd)
 {
-    if((miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && GetFloatArg() == "--float") ||
-       GetFloatArg() == "--testall")
+    if(!MIOPEN_TEST_ALL ||
+       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--float"))
     {
         RunTest();
         Verify();
@@ -72,10 +71,10 @@ TEST_P(KLDivLossTestFloatBwd, KLDivLossTestBwd)
     }
 };
 
-TEST_P(KLDivLossTestHalfBwd, KLDivLossTestBwd)
+TEST_P(GPU_KldivLoss_bwd_FP16, KLDivLossTestBwd)
 {
-    if((miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && GetFloatArg() == "--half") ||
-       GetFloatArg() == "--testall")
+    if(!MIOPEN_TEST_ALL ||
+       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--half"))
     {
         RunTest();
         Verify();
@@ -86,10 +85,10 @@ TEST_P(KLDivLossTestHalfBwd, KLDivLossTestBwd)
     }
 };
 
-TEST_P(KLDivLossTestBFloat16Bwd, KLDivLossTestBwd)
+TEST_P(GPU_KldivLoss_bwd_BFP16, KLDivLossTestBwd)
 {
-    if((miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && GetFloatArg() == "--bfloat16") ||
-       GetFloatArg() == "--testall")
+    if(!MIOPEN_TEST_ALL ||
+       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--bfloat16"))
     {
         RunTest();
         Verify();
@@ -100,12 +99,6 @@ TEST_P(KLDivLossTestBFloat16Bwd, KLDivLossTestBwd)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(KLDivLossTestSet,
-                         KLDivLossTestFloatBwd,
-                         testing::ValuesIn(KLDivLossTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(KLDivLossTestSet,
-                         KLDivLossTestHalfBwd,
-                         testing::ValuesIn(KLDivLossTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(KLDivLossTestSet,
-                         KLDivLossTestBFloat16Bwd,
-                         testing::ValuesIn(KLDivLossTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_KldivLoss_bwd_FP32, testing::ValuesIn(KLDivLossTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_KldivLoss_bwd_FP16, testing::ValuesIn(KLDivLossTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_KldivLoss_bwd_BFP16, testing::ValuesIn(KLDivLossTestConfigs()));
