@@ -343,8 +343,6 @@ protected:
         // fp32: 1.19209e-07, fp16: 0.000976562, bf16: 0.0078125
         double threshold = std::numeric_limits<T>::epsilon();
         auto error       = miopen::rms_range(ref_output, output);
-        std::cerr << "Error: " << error << std::endl;
-        std::cerr << "Threshold: " << threshold << std::endl;
         EXPECT_TRUE(miopen::range_distance(ref_output) == miopen::range_distance(output));
         EXPECT_TRUE(error < threshold * 10) << "Error output beyond tolerance "
                                                "Error:"
