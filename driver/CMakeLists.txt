@@ -49,10 +49,12 @@ add_executable(MIOpenDriver
     dm_layernorm.cpp
     dm_lrn.cpp
     dm_pool.cpp
+    dm_prelu.cpp
     dm_reduce.cpp
     dm_reduceextreme.cpp
     dm_reducecalculation.cpp
     dm_rnn.cpp
+    dm_rope.cpp
     dm_softmax.cpp
     dm_t5layernorm.cpp
     dm_tensorop.cpp

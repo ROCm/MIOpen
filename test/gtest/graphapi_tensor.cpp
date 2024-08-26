@@ -28,7 +28,7 @@
 #include <miopen/tensor.hpp>
 #include <miopen/graphapi/tensor.hpp>
 
-TEST(BackendApi, Tensor)
+TEST(CPU_BackendApi_NONE, Tensor)
 {
     miopenBackendDescriptor_t tensorDescriptor;
 
@@ -286,4 +286,4 @@ using namespace graph_api_tensor_test;
 
 TEST_P(CPU_GraphTensor_NONE, Test) { Run(); }
 
-INSTANTIATE_TEST_SUITE_P(Smoke, CPU_GraphTensor_NONE, testing::ValuesIn(TestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Unit, CPU_GraphTensor_NONE, testing::ValuesIn(TestConfigs()));

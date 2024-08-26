@@ -130,6 +130,7 @@ set( MIOpen_Source
     generic_search.cpp
     getitem_api.cpp
     graphapi/convolution.cpp
+    graphapi/conv_bias_res_add_activ_forward_executor.cpp
     graphapi/engine.cpp
     graphapi/enginecfg.cpp
     graphapi/engineheur.cpp
@@ -164,6 +165,8 @@ set( MIOpen_Source
     performance_config.cpp
     pooling/problem_description.cpp
     pooling_api.cpp
+    prelu/problem_description.cpp
+    prelu_api.cpp
     problem.cpp
     process.cpp
     ramdb.cpp
@@ -181,6 +184,8 @@ set( MIOpen_Source
     rnn/Solutions/modular_base.cpp
     rnn/Solutions/bwd_s_stream.cpp
     rnn/Solutions/bwd_multi_stream.cpp
+    rope_api.cpp
+    rope/problem_description.cpp
     scalar.cpp
     softmax.cpp
     softmax_api.cpp
@@ -303,12 +308,17 @@ set( MIOpen_Source
     solver/pooling/forwardNd.cpp
     solver/pooling/backward2d.cpp
     solver/pooling/backwardNd.cpp
+    solver/prelu/backward_prelu_multi_weights.cpp
+    solver/prelu/backward_prelu_single_weight.cpp
+    solver/prelu/utils.cpp
     solver/reduce/forward_argmax.cpp
     solver/reduce/forward_argmin.cpp
     solver/reduce/forward_max.cpp
     solver/reduce/forward_min.cpp
     solver/reduce/forward_prod.cpp
     solver/reduce/forward_sum.cpp
+    solver/rope/backward_rope.cpp
+    solver/rope/forward_rope.cpp
     solver/softmax/attn_softmax.cpp
     solver/softmax/softmax.cpp
     subbuffers.cpp
@@ -448,6 +458,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenReduceExtreme.hpp
         kernels/MIOpenCumulativeReduction.hpp
         kernels/bfloat16_dev.hpp
+        kernels/block_reduce.hpp
         kernels/conv_common.inc
         kernels/conv_sizes.inc
         kernels/float_types.h
@@ -466,6 +477,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/stride_array.hpp
         kernels/tensor_view.hpp
         kernels/utilities.inc
+        kernels/warp_reduce.hpp
         kernels/winograd/Conv_Winograd_Fury_v2_4_1_gfx11_1536vgprs_fp16_fp16acc_f2x3_c16_stride1.inc
         kernels/winograd/Conv_Winograd_Fury_v2_4_1_gfx11_1536vgprs_fp16_fp16acc_f2x3_c32_stride1.inc
         kernels/winograd/Conv_Winograd_Fury_v2_4_1_gfx11_1024vgprs_fp16_fp16acc_f2x3_c16_stride1.inc
@@ -509,6 +521,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenLRNBwd.cl
         kernels/MIOpenLRNFwd.cl
         kernels/MIOpenNeuron.cl
+        kernels/MIOpenPReLU.cpp
         kernels/MIOpenPooling.cl
         kernels/MIOpenPoolingBwd.cl
         kernels/MIOpenPoolingBwdND.cl
@@ -519,6 +532,8 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenConv1x1J1_stride.cl
         kernels/MIOpenReduceCalculation.cpp
         kernels/MIOpenReduceExtreme.cpp
+        kernels/MIOpenRoPE.cpp
+        kernels/MIOpenReduceSum.cpp
         kernels/MIOpenSoftmax.cl
         kernels/MIOpenSoftmaxAttn.cpp
         kernels/MIOpenUtilKernels3.cl
@@ -596,6 +611,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenBatchNormActivInfer.cl
         kernels/MIOpenCTCLoss.cl
         kernels/MIOpenDropout.cl
+        kernels/MIOpenDropoutHIP.cpp
         kernels/winograd/Conv_Winograd_Fury_v2_4_1_fp16_fp16acc_f2x3_c16_stride1.s
         kernels/winograd/Conv_Winograd_Fury_v2_4_1_fp16_fp16acc_f2x3_c32_stride1.s
         kernels/xform_data.s
@@ -661,8 +677,10 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         t5layernorm.cpp
         ocl/fusionopconvocl.cpp
         ocl/fusionopbiasbnactivocl.cpp
+        prelu.cpp
         reducecalculation.cpp
         reduceextreme.cpp
+        rope.cpp
         transformers_adam_w.cpp
         ${PROJECT_BINARY_DIR}/db_path.cpp
         )
