@@ -560,7 +560,7 @@ std::size_t TensorDescriptor::GetVectorLength() const { return this->vector_leng
 std::size_t TensorDescriptor::GetIndex(std::initializer_list<int> l) const
 {
     // l is in NCHW order (MIOpen implicit logic)
-    if(this->GetLayout_str() == "CHWNc")
+    if(tensorLayout == miopenTensorCHWNc4 || tensorLayout == miopenTensorCHWNc8)
     {
         assert(l.size() - 1 <= this->GetNumDims());
         std::initializer_list<int> l_chwn{
