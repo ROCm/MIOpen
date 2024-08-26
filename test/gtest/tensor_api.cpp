@@ -47,7 +47,7 @@
 
 // miopenLastDataType must be changed if new data types are added
 #define miopenFirstDataType miopenHalf
-#define miopenLastDataType miopenBFloat8
+#define miopenLastDataType miopenInt64
 
 // miopenLastTensorLayout must be changed if new layouts are added
 #define miopenFirstTensorLayout miopenTensorNCHW

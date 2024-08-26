@@ -7,6 +7,7 @@ RUN dpkg --add-architecture i386
 # Install preliminary dependencies
 RUN apt-get update && \
 DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
+    "linux-headers-$(uname -r)" "linux-modules-extra-$(uname -r)" \
     apt-utils \
     ca-certificates \
     curl \
@@ -18,7 +19,7 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
 ENV APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE=DontWarn
 RUN curl -fsSL https://repo.radeon.com/rocm/rocm.gpg.key | gpg --dearmor -o /etc/apt/trusted.gpg.d/rocm-keyring.gpg
 
-RUN wget https://repo.radeon.com/amdgpu-install/.6.1/ubuntu/jammy/amdgpu-install_6.1.60100-1_all.deb --no-check-certificate
+RUN wget https://repo.radeon.com/amdgpu-install/6.1/ubuntu/jammy/amdgpu-install_6.1.60100-1_all.deb --no-check-certificate
 RUN apt-get update && \
 DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
     ./amdgpu-install_6.1.60100-1_all.deb
@@ -26,8 +27,8 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
 # Add rocm repository
 RUN export ROCM_APT_VER=6.1;\
 echo $ROCM_APT_VER &&\
-sh -c 'echo deb [arch=amd64 signed-by=/etc/apt/trusted.gpg.d/rocm-keyring.gpg] https://repo.radeon.com/amdgpu/.$ROCM_APT_VER/ubuntu jammy main > /etc/apt/sources.list.d/amdgpu.list' &&\
-sh -c 'echo deb [arch=amd64 signed-by=/etc/apt/trusted.gpg.d/rocm-keyring.gpg] https://repo.radeon.com/rocm/apt/.apt_$ROCM_APT_VER jammy main > /etc/apt/sources.list.d/rocm.list'
+sh -c 'echo deb [arch=amd64 signed-by=/etc/apt/trusted.gpg.d/rocm-keyring.gpg] https://repo.radeon.com/amdgpu/$ROCM_APT_VER/ubuntu jammy main > /etc/apt/sources.list.d/amdgpu.list' &&\
+sh -c 'echo deb [arch=amd64 signed-by=/etc/apt/trusted.gpg.d/rocm-keyring.gpg] https://repo.radeon.com/rocm/apt/$ROCM_APT_VER jammy main > /etc/apt/sources.list.d/rocm.list'
 RUN sh -c "echo deb http://mirrors.kernel.org/ubuntu jammy main universe | tee -a /etc/apt/sources.list"
 
 RUN amdgpu-install -y --usecase=rocm --no-dkms
@@ -104,10 +105,11 @@ RUN apt-get update && \
 DEBIAN_FRONTEND=noninteractive apt-get purge -y --allow-unauthenticated \
     composablekernel-dev
 ARG COMPILER_LAUNCHER=""
+# rbuild is used to trigger build of requirements.txt, dev-requirements.txt
 RUN if [ "$USE_FIN" = "ON" ]; then \
-        rbuild prepare -s fin -d $PREFIX -DGPU_TARGETS=${GPU_ARCH} -DCMAKE_CXX_COMPILER_LAUNCHER="${COMPILER_LAUNCHER}"; \
+        rbuild prepare -s fin -d $PREFIX -DCMAKE_CXX_COMPILER_LAUNCHER="${COMPILER_LAUNCHER}"; \
     else \
-        rbuild prepare -s develop -d $PREFIX -DGPU_TARGETS=${GPU_ARCH} -DCMAKE_CXX_COMPILER_LAUNCHER="${COMPILER_LAUNCHER}"; \
+        rbuild prepare -s develop -d $PREFIX -DCMAKE_CXX_COMPILER_LAUNCHER="${COMPILER_LAUNCHER}"; \
     fi
 
 RUN ccache -s 

@@ -34,7 +34,7 @@ namespace layernorm {
 
 std::string GetFloatArg()
 {
-    const auto& tmp = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
+    const auto tmp = env::value(MIOPEN_TEST_FLOAT_ARG);
     if(tmp.empty())
     {
         return "";
@@ -46,17 +46,62 @@ struct LayerNormTestFloat : LayerNormTest<float>
 {
 };
 
+struct LayerNormTestHalf : LayerNormTest<half_float::half>
+{
+};
+
+struct LayerNormTestBFloat16 : LayerNormTest<bfloat16>
+{
+};
+
 } // namespace layernorm
 using namespace layernorm;
 
 TEST_P(LayerNormTestFloat, LayerNormTestFw)
 {
-    auto TypeArg       = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
+    auto TypeArg       = env::value(MIOPEN_TEST_FLOAT_ARG);
     const auto& handle = get_handle();
     if((miopen::StartsWith(handle.GetDeviceName(), "gfx908") ||
         miopen::StartsWith(handle.GetDeviceName(), "gfx90a") ||
         miopen::StartsWith(handle.GetDeviceName(), "gfx94")) &&
-       miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float"))
+       (!MIOPEN_TEST_ALL ||
+        (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--float")))
+    {
+        RunTest();
+        Verify();
+    }
+    else
+    {
+        GTEST_SKIP();
+    }
+};
+
+TEST_P(LayerNormTestHalf, LayerNormTestFw)
+{
+    const auto& handle = get_handle();
+    if((miopen::StartsWith(handle.GetDeviceName(), "gfx908") ||
+        miopen::StartsWith(handle.GetDeviceName(), "gfx90a") ||
+        miopen::StartsWith(handle.GetDeviceName(), "gfx94")) &&
+       (!MIOPEN_TEST_ALL ||
+        (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--half")))
+    {
+        RunTest();
+        Verify();
+    }
+    else
+    {
+        GTEST_SKIP();
+    }
+};
+
+TEST_P(LayerNormTestBFloat16, LayerNormTestFw)
+{
+    const auto& handle = get_handle();
+    if((miopen::StartsWith(handle.GetDeviceName(), "gfx908") ||
+        miopen::StartsWith(handle.GetDeviceName(), "gfx90a") ||
+        miopen::StartsWith(handle.GetDeviceName(), "gfx94")) &&
+       (!MIOPEN_TEST_ALL ||
+        (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--bfloat16")))
     {
         RunTest();
         Verify();
@@ -69,4 +114,10 @@ TEST_P(LayerNormTestFloat, LayerNormTestFw)
 
 INSTANTIATE_TEST_SUITE_P(LayerNormTestSet,
                          LayerNormTestFloat,
+                         testing::ValuesIn(LayerNormTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(LayerNormTestSet,
+                         LayerNormTestHalf,
+                         testing::ValuesIn(LayerNormTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(LayerNormTestSet,
+                         LayerNormTestBFloat16,
                          testing::ValuesIn(LayerNormTestConfigs()));

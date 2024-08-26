@@ -103,7 +103,7 @@ bool IsTestSupportedForDevMask()
     if constexpr(test(Gpu::gfx908))
         res = res || (dev == "gfx908");
     if constexpr(test(Gpu::gfx90A))
-        res = res || (dev == "gfx90A");
+        res = res || (dev == "gfx90a");
     if constexpr(test(Gpu::gfx94X))
         res = res || (miopen::StartsWith(dev, "gfx94"));
     if constexpr(test(Gpu::gfx103X))
@@ -142,9 +142,7 @@ template <typename Case>
 std::vector<std::string> get_args(const Case& param)
 {
     const auto& [env_tuple, cmd] = param;
-    std::apply(
-        [](const auto&... env) { (miopen::UpdateEnvVar(std::get<0>(env), std::get<1>(env)), ...); },
-        env_tuple);
+    std::apply([](const auto&... env) { (env::update(env.first, env.second), ...); }, env_tuple);
 
     std::stringstream ss(cmd);
     std::istream_iterator<std::string> begin(ss);
@@ -168,11 +166,18 @@ void invoke_with_params(Check&& check)
         });
 
         testing::internal::CaptureStderr();
-        test_drive<Driver>(ptrs.size(), ptrs.data());
+        test_drive<Driver>(ptrs.size(), ptrs.data(), "unnamed");
         check(testing::internal::GetCapturedStderr());
     }
 }
 
+/// repalcement of gtest's FAIL() because FAIL() returns void and messes up the
+/// return type deduction
+#define MIOPEN_FRIENDLY_FAIL(MSG)   \
+    do                              \
+    {                               \
+        [&]() { FAIL() << MSG; }(); \
+    } while(false);
 /// The types for env variables must be redefined, but
 /// do not mess up with the types - those variables are decalred in the library
 /// and if wrong type (STR|BOOl|UINT64) have been specified they won't be updated. Silently.

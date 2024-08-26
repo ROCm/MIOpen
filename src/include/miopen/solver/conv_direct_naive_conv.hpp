@@ -25,6 +25,9 @@
  *******************************************************************************/
 #pragma once
 
+#include <miopen/conv_solution.hpp>
+#include <miopen/conv/data_invoke_params.hpp>
+#include <miopen/conv/wrw_invoke_params.hpp>
 #include <miopen/execution_context.hpp>
 #include <miopen/conv/problem_description.hpp>
 #include "miopen/../../kernels/stride_array.hpp"
@@ -147,6 +150,29 @@ auto MakeStrideArray(V vec)
     return ret;
 }
 
+::miopen::solver::ConvSolution
+GetConv2DFWDSolution(const ExecutionContext& ctx,
+                     const ::miopen::conv::ProblemDescription& problem);
+
+::miopen::solver::ConvSolution
+GetConv3DFWDSolution(const ExecutionContext& ctx,
+                     const ::miopen::conv::ProblemDescription& problem);
+
+::miopen::solver::ConvSolution
+GetConv2DWRWSolution(const ExecutionContext& ctx,
+                     const ::miopen::conv::ProblemDescription& problem);
+
+::miopen::solver::ConvSolution
+GetConv3DWRWSolution(const ExecutionContext& ctx,
+                     const ::miopen::conv::ProblemDescription& problem);
+
+::miopen::solver::ConvSolution
+GetConv2DBWDSolution(const ExecutionContext& ctx,
+                     const ::miopen::conv::ProblemDescription& problem);
+
+::miopen::solver::ConvSolution
+GetConv3DBWDSolution(const ExecutionContext& ctx,
+                     const ::miopen::conv::ProblemDescription& problem);
 } // end namespace conv_internal
 
 } // namespace conv
