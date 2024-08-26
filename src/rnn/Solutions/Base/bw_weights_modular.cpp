@@ -212,9 +212,9 @@ void RNNBackwardWeightsModularAlgo::PrepareWriteBuffers(const Handle& handle, Da
 }
 
 void RNNBackwardWeightsModularAlgo::PhisXInputWeights(const Handle& handle,
-                                                      ConstData_t x,
                                                       Data_t dw,
-                                                      Data_t workSpace) const
+                                                      Data_t workSpace,
+                                                      ConstData_t x) const
 {
     const size_t gemm_batch_size = xInfo.getFullSeqMajorSize()[0];
 
@@ -313,19 +313,13 @@ void RNNBackwardWeightsModularAlgo::HiddenXInputWeights(const Handle& handle,
 }
 
 void RNNBackwardWeightsModularAlgo::BiasUpdate(
-    const Handle& handle, Data_t workSpace, Data_t dw, size_t layer, size_t workSpaceSize) const
+    const Handle& handle, Data_t dw, Data_t workSpace, size_t layer, size_t workSpaceSize) const
 {
     if(rnnDesc.biasMode != 0u)
     {
         const auto batch_size = batchController.getTotalBatchSum();
 
         const TensorDescriptor block_dsc = BuildLstmTmpBlockDesc2D(workspaceInfo, batch_size);
-
-        //        const std::vector<size_t> dw_bias_strides{
-        //            static_cast<size_t>(wei_stride), static_cast<size_t>(wei_stride), 1};
-        //
-        //        const miopen::TensorDescriptor dw_desc{
-        //            rnn_data_t, {1, 1, static_cast<size_t>(wei_stride)}, dw_bias_strides};
 
         const miopen::TensorDescriptor dw_desc = BuildWeiBiasDesc2D();
 
@@ -355,9 +349,9 @@ void RNNBackwardWeightsModularAlgo::BiasUpdate(
 }
 
 void RNNBackwardWeightsModularAlgo::HiddenHStateWeights_Unchecked(const Handle& handle,
+                                                                  Data_t dw,
                                                                   ConstData_t workSpace,
                                                                   ConstData_t reserveSpace,
-                                                                  Data_t dw,
                                                                   const SequenceIterator& seq,
                                                                   size_t layer,
                                                                   SequenceDirection direction,
@@ -392,9 +386,9 @@ void RNNBackwardWeightsModularAlgo::HiddenHStateWeights_Unchecked(const Handle& 
 }
 
 void RNNBackwardWeightsModularAlgo::PhisHStateWeights(const Handle& handle,
+                                                      Data_t dw,
                                                       ConstData_t workSpace,
                                                       ConstData_t hx,
-                                                      Data_t dw,
                                                       const SequenceIterator& seq,
                                                       size_t layer,
                                                       SequenceDirection direction) const

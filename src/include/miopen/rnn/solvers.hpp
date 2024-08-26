@@ -473,7 +473,7 @@ public:
 
     void PrepareWriteBuffers(const Handle& handle, Data_t w) const;
 
-    void PhisXInputWeights(const Handle& handle, ConstData_t x, Data_t dw, Data_t workSpace) const;
+    void PhisXInputWeights(const Handle& handle, Data_t dw, Data_t workSpace, ConstData_t x) const;
 
     void HiddenXInputWeights(const Handle& handle,
                              Data_t dw,
@@ -482,15 +482,15 @@ public:
                              size_t layer) const;
 
     void BiasUpdate(const Handle& handle,
-                    Data_t workSpace,
                     Data_t dw,
+                    Data_t workSpace,
                     size_t layer,
                     size_t workSpaceSize) const;
 
     void HiddenHStateWeights(const Handle& handle,
+                             Data_t dw,
                              ConstData_t workSpace,
                              ConstData_t reserveSpace,
-                             Data_t dw,
                              const SequenceIterator& seq,
                              size_t layer,
                              SequenceDirection direction) const
@@ -507,13 +507,13 @@ public:
 
         if(gemm_batch_size != 0)
             return HiddenHStateWeights_Unchecked(
-                handle, workSpace, reserveSpace, dw, seq, layer, direction, gemm_batch_size);
+                handle, dw, workSpace, reserveSpace, seq, layer, direction, gemm_batch_size);
     }
 
     void HiddenHStateWeights(const Handle& handle,
+                             Data_t dw,
                              ConstData_t workSpace,
                              ConstData_t reserveSpace,
-                             Data_t dw,
                              size_t layer,
                              size_t max_seq_len,
                              const SequenceDirection direction) const
@@ -539,9 +539,9 @@ public:
                         SequenceIterator(first_logical_val, direction, max_seq_len, false);
 
                     HiddenHStateWeights_Unchecked(handle,
+                                                  dw,
                                                   workSpace,
                                                   reserveSpace,
-                                                  dw,
                                                   seq,
                                                   layer,
                                                   direction,
@@ -553,9 +553,9 @@ public:
     }
 
     void PhisHStateWeights(const Handle& handle,
+                           Data_t dw,
                            ConstData_t workSpace,
                            ConstData_t hx,
-                           Data_t dw,
                            size_t layer,
                            size_t max_seq_len,
                            SequenceDirection direction) const
@@ -567,7 +567,7 @@ public:
         {
             const auto seq = SequenceIterator(i - 1, direction, max_seq_len, false);
 
-            PhisHStateWeights(handle, workSpace, hx, dw, seq, layer, direction);
+            PhisHStateWeights(handle, dw, workSpace, hx, seq, layer, direction);
         }
     }
 
@@ -601,18 +601,18 @@ private:
     }
 
     void HiddenHStateWeights_Unchecked(const Handle& handle,
+                                       Data_t dw,
                                        ConstData_t workSpace,
                                        ConstData_t reserveSpace,
-                                       Data_t dw,
                                        const SequenceIterator& seq,
                                        size_t layer,
                                        SequenceDirection direction,
                                        size_t gemm_batch_size) const;
 
     void PhisHStateWeights(const Handle& handle,
+                           Data_t dw,
                            ConstData_t workSpace,
                            ConstData_t hx,
-                           Data_t dw,
                            const SequenceIterator& seq,
                            size_t layer,
                            SequenceDirection direction) const;
