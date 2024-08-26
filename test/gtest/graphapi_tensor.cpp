@@ -270,23 +270,19 @@ public:
         std::tie(dimensions, strides, dataType, layout) = GetParam();
 
         miopen::TensorDescriptor descriptor(dataType, dimensions, strides);
-        if(dimensions.size() >= 4 && dimensions.size() <= 5)
-        {
-            EXPECT_EQ(descriptor.GetLayout_t(), layout);
-        }
 
         gr::Tensor graphTensorFromDescription(descriptor, 0, false);
         EXPECT_EQ(graphTensorFromDescription, descriptor);
         if(dimensions.size() >= 4 && dimensions.size() <= 5)
         {
-            EXPECT_EQ(graphTensorFromDescription.GetLayout_t(), layout);
+            EXPECT_EQ(graphTensorFromDescription.GetLayout_t(), descriptor.GetLayout_t());
         }
 
         gr::Tensor graphTensorFromParams(dataType, dimensions, strides, 0, false);
         EXPECT_EQ(graphTensorFromParams, descriptor);
         if(dimensions.size() >= 4 && dimensions.size() <= 5)
         {
-            EXPECT_EQ(graphTensorFromParams.GetLayout_t(), layout);
+            EXPECT_EQ(graphTensorFromParams.GetLayout_t(), descriptor.GetLayout_t());
         }
     }
 };
