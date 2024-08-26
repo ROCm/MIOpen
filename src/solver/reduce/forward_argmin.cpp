@@ -81,6 +81,7 @@ ArgminForward::GetSolution(const ExecutionContext&,
 
     auto dtype        = problem.GetXDesc().GetType();
     auto input_dtype  = miopen::GetDataType(problem.GetXDesc().GetType());
+    auto output_dtype = miopen::GetDataType(problem.GetYDesc().GetType());
     auto indice_dtype = miopen::GetDataType(problem.GetIndiceDesc().GetType());
     auto xdims        = problem.GetXDesc().GetLengths();
     auto indicedims   = problem.GetIndiceDesc().GetLengths();
@@ -105,7 +106,7 @@ ArgminForward::GetSolution(const ExecutionContext&,
             {"MIOPEN_USE_FP32", static_cast<int32_t>(dtype == miopenFloat)},
             {"MIOPEN_USE_BFP16", static_cast<int32_t>(dtype == miopenBFloat16)},
             {"INPUT_TYPE", input_dtype == "bfloat16" ? "ushort" : input_dtype},
-            {"OUTPUT_TYPE", input_dtype == "bfloat16" ? "ushort" : input_dtype},
+            {"OUTPUT_TYPE", output_dtype == "bfloat16" ? "ushort" : output_dtype},
             {"INDICE_TYPE", indice_dtype},
             {"OP_TYPE", "ReduceExtremeOp_t::Argmin"},
             {"MIOPEN_REDUCE_EXTREME_ARGMIN", MIOPEN_REDUCE_EXTREME_ARGMIN},

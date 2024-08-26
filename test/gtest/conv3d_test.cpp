@@ -52,7 +52,7 @@ void GetArgs(const std::string& param, std::vector<std::string>& tokens)
         tokens.push_back(*begin++);
 }
 
-class GPU_conv3d_FP32 : public testing::TestWithParam<std::vector<std::string>>
+class GPU_Conv3d_Test_FP32 : public testing::TestWithParam<std::vector<std::string>>
 {
 };
 
@@ -61,7 +61,7 @@ void Run3dDriver(miopenDataType_t prec)
     std::vector<std::string> params;
     switch(prec)
     {
-    case miopenFloat: params = GPU_conv3d_FP32::GetParam(); break;
+    case miopenFloat: params = GPU_Conv3d_Test_FP32::GetParam(); break;
     case miopenInt8:
     case miopenHalf:
     case miopenBFloat16:
@@ -73,7 +73,7 @@ void Run3dDriver(miopenDataType_t prec)
                   "type not supported by "
                   "test_conv3d_extra test";
 
-    default: params = GPU_conv3d_FP32::GetParam();
+    default: params = GPU_Conv3d_Test_FP32::GetParam();
     }
 
     for(const auto& test_value : params)
@@ -127,7 +127,7 @@ std::vector<std::string> GetTestCases(const std::string& precision)
 
 using namespace conv3d_test;
 
-TEST_P(GPU_conv3d_FP32, FloatTest_conv3d_test)
+TEST_P(GPU_Conv3d_Test_FP32, FloatTest_conv3d_test)
 {
     if(IsTestRunWith("--float"))
     {
@@ -139,4 +139,4 @@ TEST_P(GPU_conv3d_FP32, FloatTest_conv3d_test)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(Full, GPU_conv3d_FP32, testing::Values(GetTestCases("--float")));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_Conv3d_Test_FP32, testing::Values(GetTestCases("--float")));
