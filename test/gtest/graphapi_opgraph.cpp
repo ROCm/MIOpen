@@ -26,7 +26,7 @@
 
 #include "graphapi_opgraph_common.hpp"
 
-TEST(GraphAPI, BuildDiamond)
+TEST(CPU_GraphAPI_NONE, BuildDiamond)
 {
     using namespace graphapi_opgraph_tests;
 

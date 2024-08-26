@@ -32,21 +32,38 @@
 namespace miopen {
 namespace reduce {
 
-struct InvokeParams : public miopen::InvokeParams
+struct ExtremeInvokeParams : public miopen::InvokeParams
 {
-    InvokeParams() = default;
+    ExtremeInvokeParams() = default;
 
     const TensorDescriptor* xDesc      = nullptr;
     const TensorDescriptor* yDesc      = nullptr;
     const TensorDescriptor* indiceDesc = nullptr;
 
-    ConstData_t x                            = nullptr;
-    Data_t y                                 = nullptr;
-    Data_t indice                            = nullptr;
-    Data_t workspace                         = nullptr;
-    std::size_t workspace_size               = 0;
-    int32_t dim                              = 0;
-    miopenSumNanPropagation_t nanPropagation = MIOPEN_SUM_NOT_PROPAGATE_NAN;
+    ConstData_t x              = nullptr;
+    Data_t y                   = nullptr;
+    Data_t indice              = nullptr;
+    std::size_t workspace_size = 0;
+    int32_t dim                = 0;
+
+    std::size_t GetWorkspaceSize() const { return 0; }
+    Data_t GetWorkspace() const { return nullptr; }
+};
+
+struct CalculationInvokeParams : public miopen::InvokeParams
+{
+    CalculationInvokeParams() = default;
+
+    const TensorDescriptor* xDesc = nullptr;
+    const TensorDescriptor* yDesc = nullptr;
+
+    ConstData_t x              = nullptr;
+    Data_t y                   = nullptr;
+    Data_t workspace           = nullptr;
+    std::size_t workspace_size = 0;
+    int32_t dim                = 0;
+    miopenReduceCalculationNanPropagation_t nanPropagation =
+        MIOPEN_REDUCE_CALCULATION_NOT_PROPAGATE_NAN;
 
     std::size_t GetWorkspaceSize() const { return workspace_size; }
     Data_t GetWorkspace() const { return workspace; }

@@ -42,8 +42,6 @@
 #include <boost/core/explicit_operator_bool.hpp>
 #include <boost/none.hpp>
 #include <boost/optional/optional.hpp>
-#include <boost/thread.hpp>
-#include <boost/thread/thread_time.hpp>
 #include "sqlite3.h"
 #include <mutex>
 #include <thread>
@@ -240,7 +238,7 @@ public:
                 if(!fs::create_directories(directory))
                     MIOPEN_LOG_W("Unable to create a directory: " << directory);
                 else
-                    fs::permissions(directory, fs::perms::all);
+                    fs::permissions(directory, FS_ENUM_PERMS_ALL);
             }
         }
         sql = SQLite{filename_, is_system};

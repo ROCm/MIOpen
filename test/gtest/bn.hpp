@@ -51,20 +51,25 @@ protected:
             test_skipped = true;
             GTEST_SKIP() << "Not Applicable on " << handle.GetDeviceName() << " Architecture";
         }
-        miopenBatchNormalizationForwardInference(&handle,
-                                                 bn_config.mode,
-                                                 &bn_infer_test_data.alpha,
-                                                 &bn_infer_test_data.beta,
-                                                 &bn_infer_test_data.input.desc,
-                                                 bn_infer_test_data.in_dev.get(),
-                                                 &bn_infer_test_data.output.desc,
-                                                 bn_infer_test_data.out_dev.get(),
-                                                 &bn_infer_test_data.scale.desc,
-                                                 bn_infer_test_data.scale_dev.get(),
-                                                 bn_infer_test_data.shift_dev.get(),
-                                                 bn_infer_test_data.estMean_dev.get(),
-                                                 bn_infer_test_data.estVariance_dev.get(),
-                                                 bn_infer_test_data.epsilon);
+        auto res =
+            miopenBatchNormalizationForwardInference(&handle,
+                                                     bn_config.mode,
+                                                     &bn_infer_test_data.alpha,
+                                                     &bn_infer_test_data.beta,
+                                                     &bn_infer_test_data.input.desc,
+                                                     bn_infer_test_data.in_dev.get(),
+                                                     &bn_infer_test_data.output.desc,
+                                                     bn_infer_test_data.out_dev.get(),
+                                                     &bn_infer_test_data.scale.desc,
+                                                     bn_infer_test_data.scale_dev.get(),
+                                                     bn_infer_test_data.shift_dev.get(),
+                                                     bn_infer_test_data.estMean_dev.get(),
+                                                     bn_infer_test_data.estVariance_dev.get(),
+                                                     bn_infer_test_data.epsilon);
+        if(res != miopenStatusSuccess)
+        {
+            GTEST_FAIL() << "miopenBatchNormalizationForwardInference failed";
+        }
 
         std::fill(bn_infer_test_data.output.begin(),
                   bn_infer_test_data.output.end(),
@@ -73,10 +78,11 @@ protected:
 
     void TearDown() override
     {
-        if(test_skipped)
+        if(test_skipped || Test::HasFailure())
         {
             return;
         }
+
         auto&& handle                  = get_handle();
         bn_infer_test_data.output.data = handle.Read<YDataType>(
             bn_infer_test_data.out_dev, bn_infer_test_data.output.data.size());
@@ -91,6 +97,7 @@ protected:
         bn_infer_test_data;
     miopenTensorLayout_t tensor_layout;
 };
+
 template <typename XDataType,
           typename DxDataType,
           typename DyDataType,
@@ -107,25 +114,29 @@ protected:
         bn_bwd_test_data.SetUpImpl(bn_config, tensor_layout);
 
         auto&& handle = get_handle();
-        miopenBatchNormalizationBackward(&handle,
-                                         bn_config.mode,
-                                         &bn_bwd_test_data.alphaDataDiff,
-                                         &bn_bwd_test_data.betaDataDiff,
-                                         &bn_bwd_test_data.alphaParamDiff,
-                                         &bn_bwd_test_data.betaParamDiff,
-                                         &bn_bwd_test_data.input.desc,
-                                         bn_bwd_test_data.in_dev.get(),
-                                         &bn_bwd_test_data.dy.desc,
-                                         bn_bwd_test_data.dy_dev.get(),
-                                         &bn_bwd_test_data.output.desc,
-                                         bn_bwd_test_data.out_dev.get(),
-                                         &bn_bwd_test_data.bnScale.desc,
-                                         bn_bwd_test_data.bnScale_dev.get(),
-                                         bn_bwd_test_data.dScale_dev.get(),
-                                         bn_bwd_test_data.dBias_dev.get(),
-                                         bn_bwd_test_data.epsilon,
-                                         bn_bwd_test_data.savedMean_dev.get(),
-                                         bn_bwd_test_data.savedInvVar_dev.get());
+        auto res      = miopenBatchNormalizationBackward(&handle,
+                                                    bn_config.mode,
+                                                    &bn_bwd_test_data.alphaDataDiff,
+                                                    &bn_bwd_test_data.betaDataDiff,
+                                                    &bn_bwd_test_data.alphaParamDiff,
+                                                    &bn_bwd_test_data.betaParamDiff,
+                                                    &bn_bwd_test_data.input.desc,
+                                                    bn_bwd_test_data.in_dev.get(),
+                                                    &bn_bwd_test_data.dy.desc,
+                                                    bn_bwd_test_data.dy_dev.get(),
+                                                    &bn_bwd_test_data.output.desc,
+                                                    bn_bwd_test_data.out_dev.get(),
+                                                    &bn_bwd_test_data.bnScale.desc,
+                                                    bn_bwd_test_data.bnScale_dev.get(),
+                                                    bn_bwd_test_data.dScale_dev.get(),
+                                                    bn_bwd_test_data.dBias_dev.get(),
+                                                    bn_bwd_test_data.epsilon,
+                                                    bn_bwd_test_data.savedMean_dev.get(),
+                                                    bn_bwd_test_data.savedInvVar_dev.get());
+        if(res != miopenStatusSuccess)
+        {
+            GTEST_FAIL() << "miopenBatchNormalizationBackward failed";
+        }
 
         std::fill(bn_bwd_test_data.output.begin(),
                   bn_bwd_test_data.output.end(),
@@ -134,10 +145,11 @@ protected:
 
     void TearDown() override
     {
-        if(test_skipped)
+        if(test_skipped || Test::HasFailure())
         {
             return;
         }
+
         auto&& handle = get_handle();
         bn_bwd_test_data.output.data =
             handle.Read<DyDataType>(bn_bwd_test_data.out_dev, bn_bwd_test_data.output.data.size());
@@ -188,25 +200,28 @@ protected:
         bn_fwd_train_test_data.SetUpImpl(bn_config, tensor_layout);
 
         auto&& handle = get_handle();
-        auto ctx      = miopen::ExecutionContext{};
-
-        miopenBatchNormalizationForwardTraining(&handle,
-                                                bn_config.mode,
-                                                &bn_fwd_train_test_data.alpha,
-                                                &bn_fwd_train_test_data.beta,
-                                                &bn_fwd_train_test_data.input.desc,
-                                                bn_fwd_train_test_data.in_dev.get(),
-                                                &bn_fwd_train_test_data.output.desc,
-                                                bn_fwd_train_test_data.out_dev.get(),
-                                                &bn_fwd_train_test_data.scale.desc,
-                                                bn_fwd_train_test_data.scale_dev.get(),
-                                                bn_fwd_train_test_data.shift_dev.get(),
-                                                bn_fwd_train_test_data.averageFactor,
-                                                bn_fwd_train_test_data.runMean_dev.get(),
-                                                bn_fwd_train_test_data.runVariance_dev.get(),
-                                                bn_fwd_train_test_data.epsilon,
-                                                bn_fwd_train_test_data.saveMean_dev.get(),
-                                                bn_fwd_train_test_data.saveVariance_dev.get());
+        auto res =
+            miopenBatchNormalizationForwardTraining(&handle,
+                                                    bn_config.mode,
+                                                    &bn_fwd_train_test_data.alpha,
+                                                    &bn_fwd_train_test_data.beta,
+                                                    &bn_fwd_train_test_data.input.desc,
+                                                    bn_fwd_train_test_data.in_dev.get(),
+                                                    &bn_fwd_train_test_data.output.desc,
+                                                    bn_fwd_train_test_data.out_dev.get(),
+                                                    &bn_fwd_train_test_data.scale.desc,
+                                                    bn_fwd_train_test_data.scale_dev.get(),
+                                                    bn_fwd_train_test_data.shift_dev.get(),
+                                                    bn_fwd_train_test_data.averageFactor,
+                                                    bn_fwd_train_test_data.runMean_dev.get(),
+                                                    bn_fwd_train_test_data.runVariance_dev.get(),
+                                                    bn_fwd_train_test_data.epsilon,
+                                                    bn_fwd_train_test_data.saveMean_dev.get(),
+                                                    bn_fwd_train_test_data.saveVariance_dev.get());
+        if(res != miopenStatusSuccess)
+        {
+            GTEST_FAIL() << "miopenBatchNormalizationForwardTraining failed";
+        }
 
         std::fill(bn_fwd_train_test_data.output.begin(),
                   bn_fwd_train_test_data.output.end(),
@@ -221,10 +236,11 @@ protected:
 
     void TearDown() override
     {
-        if(test_skipped)
+        if(test_skipped || Test::HasFailure())
         {
             return;
         }
+
         auto&& handle                      = get_handle();
         bn_fwd_train_test_data.output.data = handle.Read<YDataType>(
             bn_fwd_train_test_data.out_dev, bn_fwd_train_test_data.output.data.size());

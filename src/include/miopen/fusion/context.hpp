@@ -36,6 +36,7 @@ struct Handle;
 struct FusionContext : ExecutionContext
 {
     explicit FusionContext(Handle& handle) : ExecutionContext(&handle) {}
+    explicit FusionContext(const ExecutionContext& ctx) : ExecutionContext(ctx) {}
 
     ExecutionContext GetConvContext(const conv::ProblemDescription& conv_problem) const
     {

@@ -105,7 +105,7 @@ using miopen::graphapi::GTestGraphApiExecute;
 
 } // namespace
 
-TEST(GraphApiOperationGraphDescriptor, CFunctions)
+TEST(CPU_GraphApiOperationGraphDescriptor_NONE, CFunctions)
 {
     miopenHandle_t handle = nullptr;
     auto status           = miopenCreate(&handle);
