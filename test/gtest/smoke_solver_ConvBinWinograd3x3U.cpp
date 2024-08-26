@@ -80,6 +80,6 @@ TEST_P(GPU_Conv2dDefault_FP32, FloatTest_smoke_solver_ConvBinWinograd3x3U)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(SmokeSolverConvBinWinograd3x3U,
+INSTANTIATE_TEST_SUITE_P(Smoke,
                          GPU_Conv2dDefault_FP32,
                          testing::Values(GetTestCases()));

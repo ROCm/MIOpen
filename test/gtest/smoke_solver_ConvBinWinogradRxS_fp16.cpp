@@ -79,6 +79,6 @@ TEST_P(GPU_Conv2dDefault_FP16, HalfTest_smoke_solver_ConvBinWinogradRxS_fp16)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(SmokeSolverConvBinWinogradRxSFp16,
+INSTANTIATE_TEST_SUITE_P(Smoke,
                          GPU_Conv2dDefault_FP16,
                          testing::Values(GetTestCases()));
