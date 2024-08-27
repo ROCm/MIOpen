@@ -298,7 +298,7 @@ void TensorDescriptor::CheckArgsAndInit(bool use_strides)
 
         if(tensorLayout)
         {
-            if(!this->IsPossibleLayout4D5D(TensorDescriptor::GetLayoutStr(tensorLayout.value())))
+            if(!this->IsPossibleLayout4D5D(TensorDescriptor::LayoutEnumToStr(tensorLayout.value())))
                 MIOPEN_THROW(miopenStatusBadParm, "Mismatch of layout and strides");
         }
     }
@@ -326,7 +326,7 @@ void TensorDescriptor::SetStrides()
     else
     {
         const auto default_layout = miopen::tensor_layout_get_default(this->GetNumDims());
-        const auto layout         = TensorDescriptor::GetLayoutStr(tensorLayout.value());
+        const auto layout         = TensorDescriptor::LayoutEnumToStr(tensorLayout.value());
         tensor_layout_to_strides(lens, default_layout, layout, strides);
     }
 }
@@ -530,7 +530,7 @@ std::optional<miopenTensorLayout_t> TensorDescriptor::GetLayoutEnum() const
     return std::nullopt;
 }
 
-std::string TensorDescriptor::GetLayoutStr(miopenTensorLayout_t layout)
+std::string TensorDescriptor::LayoutEnumToStr(miopenTensorLayout_t layout)
 {
     switch(layout)
     {
@@ -550,7 +550,7 @@ std::string TensorDescriptor::GetLayoutStr(miopenTensorLayout_t layout)
 std::string TensorDescriptor::GetLayout_str() const
 {
     if(tensorLayout)
-        return TensorDescriptor::GetLayoutStr(tensorLayout.value());
+        return TensorDescriptor::LayoutEnumToStr(tensorLayout.value());
 
     // clang-format off
     switch(this->GetNumDims())
