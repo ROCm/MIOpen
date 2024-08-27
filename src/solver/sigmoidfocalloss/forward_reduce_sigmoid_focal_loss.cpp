@@ -36,7 +36,7 @@
 #include <miopen/sigmoidfocalloss/utils.hpp>
 #include <miopen/tensor_view_utils.hpp>
 
-#define LOCAL_SIZE 256
+#define LOCAL_SIZE_SIGMOIDFOCALLOSS 256
 #define LOCAL_SIZE_REDUCE 256
 
 namespace miopen {
@@ -72,21 +72,25 @@ ConvSolution SigmoidFocalLossFwd::GetSolution(
         {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
         {"IN_OUT_TYPE", in_dtype == "bfloat16" ? "ushort" : in_dtype},
         {"TARGET_TYPE", target_dtype == "bfloat16" ? "ushort" : in_dtype},
-        {"LOCAL_SIZE", LOCAL_SIZE},
+        {"REDUCE_SIZE", LOCAL_SIZE_REDUCE},
     };
 
     /* Prepare params for loss kernel */
     result.construction_params.push_back(make_hip_kernel(
-        {LOCAL_SIZE}, {size}, "MIOpenSigmoidFocalLoss.cpp", "SigmoidFocalLossFwd", build_params));
+        {LOCAL_SIZE_SIGMOIDFOCALLOSS}, {size}, "MIOpenSigmoidFocalLoss.cpp", "SigmoidFocalLossFwd", build_params));
 
     /* Prepare params for reduce kernels */
     auto _size = size;
-    do
+    while(_size > LOCAL_SIZE_REDUCE)
     {
         result.construction_params.push_back(make_hip_kernel(
-            {LOCAL_SIZE_REDUCE}, {_size}, "MIOpenLossSum.cpp", "LossSum", build_params));
+            {LOCAL_SIZE_REDUCE}, {_size}, "MIOpenReduceSum.cpp", "ReduceSumFLOATACCUM", build_params));
+            // {LOCAL_SIZE_REDUCE}, {_size}, "MIOpenLossSum.cpp", "LossSum", build_params));
         _size = AlignUp(_size, LOCAL_SIZE_REDUCE) / LOCAL_SIZE_REDUCE;
-    } while(_size > 1);
+    } 
+
+    result.construction_params.push_back(make_hip_kernel(
+            {LOCAL_SIZE_REDUCE}, {_size}, "MIOpenReduceSum.cpp", "ReduceSum", build_params));
 
     result.invoker_factory = [this, problem](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
@@ -143,7 +147,8 @@ ConvSolution SigmoidFocalLossFwd::GetSolution(
                 }
                 else
                 {
-                    kernel(reduceIn, params.output, size);
+                    auto output_tv        = get_inner_expanded_tv<1>(deref(params.outputDesc));
+                    kernel(reduceIn, params.output, size, output_tv);
                 }
                 size = AlignUp(size, LOCAL_SIZE_REDUCE) / LOCAL_SIZE_REDUCE;
             }
@@ -179,7 +184,7 @@ MultiBufferWorkspaceTraits SigmoidFocalLossFwd::GetMultiBufferWorkspaceTraits(
 {
     size_t inputElements  = problem.GetInputDesc().GetElementSize();
     size_t reduceElements = (inputElements + LOCAL_SIZE_REDUCE - 1) / LOCAL_SIZE_REDUCE;
-    size_t elementSize    = get_data_size(problem.GetOutputDesc().GetType());
+    size_t elementSize    = get_data_size(miopenFloat);
 
     return MultiBufferWorkspaceTraits{inputElements * elementSize, reduceElements * elementSize};
 }

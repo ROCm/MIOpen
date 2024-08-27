@@ -79,6 +79,7 @@ struct SigmoidFocalLossTestCase
 inline std::vector<SigmoidFocalLossTestCase> SigmoidFocalLossTestConfigs()
 {
     return {
+        SigmoidFocalLossTestCase({1}),                   // 1D cont
         SigmoidFocalLossTestCase({4000}),                   // 1D cont
         SigmoidFocalLossTestCase({100, 500}),               // 2D cont
         SigmoidFocalLossTestCase({100, 500}, false),        // 2D non-cont
@@ -308,9 +309,9 @@ protected:
 
         size_t workspaceSizeBytes = miopen::GetSigmoidFocalLossForwardWorkspaceSize(
             handle, input.desc, target.desc, output.desc, reduction);
-        size_t workspaceElements = workspaceSizeBytes / sizeof(TIO);
+        size_t workspaceElements = workspaceSizeBytes / sizeof(float);
 
-        workspace = tensor<TIO>(workspaceElements);
+        workspace = tensor<float>(workspaceElements);
         std::fill(workspace.begin(), workspace.end(), 0);
 
         output = tensor<TIO>(1);
@@ -373,7 +374,7 @@ protected:
 
     tensor<TIO> input;
     tensor<TIO> target;
-    tensor<TIO> workspace;
+    tensor<float> workspace;
     tensor<TIO> output;
 
     tensor<TIO> outputHost;

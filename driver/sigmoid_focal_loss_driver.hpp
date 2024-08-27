@@ -110,7 +110,6 @@ private:
     std::vector<Tcheck> dinputHost;
     std::vector<Tgpu> dtarget;
     std::vector<Tcheck> dtargetHost;
-    std::vector<Tgpu> workspace;
 
     float alpha;
     float gamma;
@@ -239,8 +238,9 @@ int SigmoidFocalLossDriver<Tgpu, Tcheck>::AllocateBuffersAndCopy()
 
     miopenGetSigmoidFocalLossForwardWorkspaceSize(
         handle, inputDesc, targetDesc, outputDesc, reduction, &workSpaceSizeInBytes);
-    workspace_dev =
-        std::unique_ptr<GPUMem>(new GPUMem(ctx, workSpaceSizeInBytes / sizeof(Tgpu), sizeof(Tgpu)));
+    // workspace_dev =
+    //     std::unique_ptr<GPUMem>(new GPUMem(ctx, workSpaceSizeInBytes / sizeof(Tgpu), sizeof(Tgpu)));
+    workspace_dev = std::make_unique<GPUMem>(ctx, workSpaceSizeInBytes, sizeof(std::byte));
 
     input                 = std::vector<Tgpu>(in_sz, static_cast<Tgpu>(0));
     target                = std::vector<Tgpu>(target_sz, static_cast<Tgpu>(0));
@@ -251,8 +251,6 @@ int SigmoidFocalLossDriver<Tgpu, Tcheck>::AllocateBuffersAndCopy()
     dinputHost            = std::vector<Tcheck>(dI_sz, static_cast<Tcheck>(0));
     dtarget               = std::vector<Tgpu>(dT_sz, static_cast<Tgpu>(0));
     dtargetHost           = std::vector<Tcheck>(dT_sz, static_cast<Tcheck>(0));
-    size_t workSpaceElems = workSpaceSizeInBytes / sizeof(Tgpu);
-    workspace             = std::vector<Tgpu>(workSpaceElems, static_cast<Tgpu>(0));
 
     float randomBound = 2;
     // For half, the random bound is smaller to avoid half overflow
@@ -290,9 +288,6 @@ int SigmoidFocalLossDriver<Tgpu, Tcheck>::AllocateBuffersAndCopy()
 
     if(dtarget_dev->ToGPU(GetStream(), dtarget.data()) != 0)
         std::cerr << "Error copying (dT) to GPU, size: " << dtarget_dev->GetSize() << std::endl;
-
-    if(workspace_dev->ToGPU(GetStream(), workspace.data()) != 0)
-        std::cerr << "Error copying (dI) to GPU, size: " << workspace_dev->GetSize() << std::endl;
 
     return miopenStatusSuccess;
 }

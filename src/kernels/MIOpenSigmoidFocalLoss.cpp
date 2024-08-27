@@ -47,7 +47,7 @@
 template <typename TIO>
 __device__ void sigmoidFocalLossFwd(const TIO* input,
                                     TIO* target,
-                                    TIO* workspace,
+                                    FLOAT_ACCUM* workspace,
                                     float alpha,
                                     float gamma,
                                     float divisor,
@@ -74,12 +74,12 @@ __device__ void sigmoidFocalLossFwd(const TIO* input,
         loss                = alpha_t * loss;
     }
 
-    workspace[gid] = CVT_ACCUM2FLOAT(loss / divisor);
+    workspace[gid] = loss / divisor;
 }
 
 extern "C" __global__ void SigmoidFocalLossFwd(const IN_OUT_TYPE* input,
                                                IN_OUT_TYPE* target,
-                                               IN_OUT_TYPE* workspace,
+                                               FLOAT_ACCUM* workspace,
                                                float alpha,
                                                float gamma,
                                                float divisor,
