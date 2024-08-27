@@ -237,7 +237,7 @@ namespace graph_api_tensor_test {
 static bool TestIsApplicable() { return true; }
 
 using TestCase =
-    std::tuple<std::vector<size_t>, std::vector<size_t>, miopenDataType_t, miopenTensorLayout_t>;
+    std::tuple<std::vector<size_t>, std::vector<size_t>, miopenDataType_t, std::optional<miopenTensorLayout_t>>;
 static std::vector<TestCase> TestConfigs()
 {
     return {{{1, 4, 14, 11, 1}, {616, 1, 44, 4, 4}, miopenFloat, miopenTensorNDHWC},
@@ -246,7 +246,7 @@ static std::vector<TestCase> TestConfigs()
             {{1, 4, 11, 1}, {44, 11, 1, 1}, miopenFloat, miopenTensorNCHW},
             {{1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, miopenFloat, miopenTensorNCDHW},
             {{1, 1, 1, 1}, {1, 1, 1, 1}, miopenFloat, miopenTensorNCHW},
-            {{3, 5, 6}, {30, 6, 1}, miopenFloat, miopenTensorNCHW}}; // dummy layout value
+            {{3, 5, 6}, {30, 6, 1}, miopenFloat, std::nullopt}};
 }
 
 class CPU_GraphTensor_NONE : public ::testing::TestWithParam<TestCase>
@@ -265,25 +265,19 @@ public:
         std::vector<std::size_t> dimensions;
         std::vector<std::size_t> strides;
         miopenDataType_t dataType;
-        miopenTensorLayout_t layout;
+        std::optional<miopenTensorLayout_t> layout;
 
         std::tie(dimensions, strides, dataType, layout) = GetParam();
 
-        miopen::TensorDescriptor descriptor(dataType, dimensions, strides);
+        auto descriptor = layout ? miopen::TensorDescriptor(dataType, layout.value(), dimensions, strides) : miopen::TensorDescriptor(dataType, dimensions, strides);
 
         gr::Tensor graphTensorFromDescription(descriptor, 0, false);
         EXPECT_EQ(graphTensorFromDescription, descriptor);
-        if(dimensions.size() >= 4 && dimensions.size() <= 5)
-        {
-            EXPECT_EQ(graphTensorFromDescription.GetLayout_t(), descriptor.GetLayout_t());
-        }
+        EXPECT_EQ(graphTensorFromDescription.GetLayoutEnum(), descriptor.GetLayoutEnum());
 
         gr::Tensor graphTensorFromParams(dataType, dimensions, strides, 0, false);
         EXPECT_EQ(graphTensorFromParams, descriptor);
-        if(dimensions.size() >= 4 && dimensions.size() <= 5)
-        {
-            EXPECT_EQ(graphTensorFromParams.GetLayout_t(), descriptor.GetLayout_t());
-        }
+        EXPECT_EQ(graphTensorFromParams.GetLayoutEnum(), descriptor.GetLayoutEnum());
     }
 };
 

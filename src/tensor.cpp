@@ -501,6 +501,7 @@ void TensorDescriptor::SetCastType(const miopenDataType_t cast_type_)
     this->cast_type = cast_type_;
 }
 
+// Deprecated
 miopenTensorLayout_t TensorDescriptor::GetLayout_t() const
 {
     const auto layout = this->GetLayoutEnum();

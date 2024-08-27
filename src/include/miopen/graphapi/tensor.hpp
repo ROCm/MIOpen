@@ -41,6 +41,9 @@ private:
     int64_t mId   = 0;
     bool mVirtual = false;
 
+    // Deprecated
+    using TensorDescriptor::GetLayout_t;
+
 public:
     Tensor() noexcept         = default;
     Tensor(const Tensor&)     = default;
