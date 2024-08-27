@@ -79,7 +79,7 @@ struct SigmoidFocalLossTestCase
 inline std::vector<SigmoidFocalLossTestCase> SigmoidFocalLossTestConfigs()
 {
     return {
-        SigmoidFocalLossTestCase({1}),                   // 1D cont
+        SigmoidFocalLossTestCase({1}),                      // 1D cont
         SigmoidFocalLossTestCase({4000}),                   // 1D cont
         SigmoidFocalLossTestCase({100, 500}),               // 2D cont
         SigmoidFocalLossTestCase({100, 500}, false),        // 2D non-cont

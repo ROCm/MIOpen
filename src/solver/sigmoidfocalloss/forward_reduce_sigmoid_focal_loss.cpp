@@ -76,21 +76,27 @@ ConvSolution SigmoidFocalLossFwd::GetSolution(
     };
 
     /* Prepare params for loss kernel */
-    result.construction_params.push_back(make_hip_kernel(
-        {LOCAL_SIZE_SIGMOIDFOCALLOSS}, {size}, "MIOpenSigmoidFocalLoss.cpp", "SigmoidFocalLossFwd", build_params));
+    result.construction_params.push_back(make_hip_kernel({LOCAL_SIZE_SIGMOIDFOCALLOSS},
+                                                         {size},
+                                                         "MIOpenSigmoidFocalLoss.cpp",
+                                                         "SigmoidFocalLossFwd",
+                                                         build_params));
 
     /* Prepare params for reduce kernels */
     auto _size = size;
     while(_size > LOCAL_SIZE_REDUCE)
     {
-        result.construction_params.push_back(make_hip_kernel(
-            {LOCAL_SIZE_REDUCE}, {_size}, "MIOpenReduceSum.cpp", "ReduceSumFLOATACCUM", build_params));
-            // {LOCAL_SIZE_REDUCE}, {_size}, "MIOpenLossSum.cpp", "LossSum", build_params));
+        result.construction_params.push_back(make_hip_kernel({LOCAL_SIZE_REDUCE},
+                                                             {_size},
+                                                             "MIOpenReduceSum.cpp",
+                                                             "ReduceSumFLOATACCUM",
+                                                             build_params));
+        // {LOCAL_SIZE_REDUCE}, {_size}, "MIOpenLossSum.cpp", "LossSum", build_params));
         _size = AlignUp(_size, LOCAL_SIZE_REDUCE) / LOCAL_SIZE_REDUCE;
-    } 
+    }
 
     result.construction_params.push_back(make_hip_kernel(
-            {LOCAL_SIZE_REDUCE}, {_size}, "MIOpenReduceSum.cpp", "ReduceSum", build_params));
+        {LOCAL_SIZE_REDUCE}, {_size}, "MIOpenReduceSum.cpp", "ReduceSum", build_params));
 
     result.invoker_factory = [this, problem](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
@@ -147,7 +153,7 @@ ConvSolution SigmoidFocalLossFwd::GetSolution(
                 }
                 else
                 {
-                    auto output_tv        = get_inner_expanded_tv<1>(deref(params.outputDesc));
+                    auto output_tv = get_inner_expanded_tv<1>(deref(params.outputDesc));
                     kernel(reduceIn, params.output, size, output_tv);
                 }
                 size = AlignUp(size, LOCAL_SIZE_REDUCE) / LOCAL_SIZE_REDUCE;
