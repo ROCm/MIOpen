@@ -505,7 +505,7 @@ miopenTensorLayout_t TensorDescriptor::GetLayout_t() const
 {
     const auto layout = this->GetLayoutEnum();
     if(layout)
-        return tensorLayout.value();
+        return layout.value();
 
     MIOPEN_THROW(miopenStatusInternalError, "Unknown layout");
 }
