@@ -79,6 +79,7 @@ __device__ void multimarginlossforward2d(const DTYPE* __restrict__ I,
     case 0: static_cast<DTYPE*>(O)[O_tv.get_tensor_view_idx({n})] = CVT_ACCUM2FLOAT(loss); break;
     case 1: static_cast<FLOAT_ACCUM*>(O)[n] = loss; break;
     case 2: static_cast<FLOAT_ACCUM*>(O)[n] = loss / N; break;
+    default: break;
     }
 }
 

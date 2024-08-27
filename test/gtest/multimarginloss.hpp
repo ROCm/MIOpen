@@ -181,14 +181,9 @@ protected:
     {
         auto&& handle = get_handle();
         miopenStatus_t status;
-        float divisor;
-        switch(reduction_mode)
-        {
-        case MIOPEN_LOSS_REDUCTION_NONE: divisor = 0; break;
-        case MIOPEN_LOSS_REDUCTION_MEAN: divisor = input.desc.GetLengths()[0]; break;
-        case MIOPEN_LOSS_REDUCTION_SUM: divisor = 1; break;
-        }
-        cpu_multimarginloss_forward<T>(input, target, weight, ref_output, p, margin, divisor);
+
+        cpu_multimarginloss_forward<T>(
+            input, target, weight, ref_output, p, margin, reduction_mode);
 
         status = miopen::MultiMarginLossForward(handle,
                                                 workspace_dev.get(),

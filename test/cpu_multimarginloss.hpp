@@ -27,6 +27,7 @@
 #ifndef GUARD_CPU_MULTIMARGINLOSS_HPP
 #define GUARD_CPU_MULTIMARGINLOSS_HPP
 
+#include "miopen/miopen.h"
 #include "tensor_holder.hpp"
 #include <miopen/tensor_view_utils.hpp>
 
@@ -37,7 +38,7 @@ void cpu_multimarginloss_forward(tensor<T> input,
                                  tensor<T>& ref_output,
                                  const long p,
                                  const float margin,
-                                 const float divisor)
+                                 miopenLossReductionMode_t reduction_mode)
 {
     auto I_tv = miopen::get_inner_expanded_tv<2>(input.desc);
     auto T_tv = miopen::get_inner_expanded_tv<1>(target.desc);
@@ -66,13 +67,19 @@ void cpu_multimarginloss_forward(tensor<T> input,
             t = static_cast<double>(weight[W_tv.get_tensor_view_idx({y})]) * t;
             loss += t / C;
         }
-        if(divisor == 0)
+        if(reduction_mode == MIOPEN_LOSS_REDUCTION_NONE)
             ref_output[O_tv.get_tensor_view_idx({n})] = loss;
         else
             sum += loss;
     }
-    if(divisor != 0)
-        ref_output[0] = static_cast<T>(sum / divisor);
+    if(reduction_mode == MIOPEN_LOSS_REDUCTION_MEAN)
+    {
+        ref_output[0] = static_cast<T>(sum / N);
+    }
+    else if(reduction_mode == MIOPEN_LOSS_REDUCTION_SUM)
+    {
+        ref_output[0] = static_cast<T>(sum);
+    }
 }
 
 #endif

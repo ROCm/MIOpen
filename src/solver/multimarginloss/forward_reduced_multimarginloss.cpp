@@ -214,10 +214,10 @@ ConvSolution MultiMarginLossForward::GetSolution(
                        params.workspace,
                        params.p,
                        params.margin,
-                       params.divisor,
                        i_tv,
                        t_tv,
-                       w_tv);
+                       w_tv,
+                       o_tv);
             }
 
             /* Phase 2: Reduce */

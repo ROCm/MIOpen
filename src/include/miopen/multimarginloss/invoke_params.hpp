@@ -48,7 +48,6 @@ struct InvokeParams : public miopen::InvokeParams
 
     long p;
     float margin;
-    float divisor = 0;
 
     Data_t workspace           = nullptr;
     std::size_t workspace_size = 0;

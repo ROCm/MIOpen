@@ -92,12 +92,7 @@ miopenStatus_t MultiMarginLossForward(Handle& handle,
         tmp.margin         = margin;
         tmp.workspace      = workspace;
         tmp.workspace_size = workspaceSizeInBytes;
-        switch(reduction)
-        {
-        case MIOPEN_LOSS_REDUCTION_NONE: tmp.divisor = 0; break;
-        case MIOPEN_LOSS_REDUCTION_MEAN: tmp.divisor = iDesc.GetLengths()[0]; break;
-        case MIOPEN_LOSS_REDUCTION_SUM: tmp.divisor = 1; break;
-        }
+
         return tmp;
     }();
 
