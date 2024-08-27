@@ -82,6 +82,4 @@ TEST_P(GPU_Conv2dTuningV6R1_FP16, HalfTest_smoke_solver_ConvCkIgemmFwdV6r1DlopsN
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_Conv2dTuningV6R1_FP16,
-                         testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Conv2dTuningV6R1_FP16, testing::Values(GetTestCases()));

@@ -124,15 +124,7 @@ TEST_P(GPU_Conv2dNoGpuRef_I8, Int8Test_smoke_solver_ConvDirectNaiveConv_F)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_Conv2dNoGpuRef_FP32,
-                         testing::Values(GetTestCases()));
-INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_Conv2dNoGpuRef_FP16,
-                         testing::Values(GetTestCases()));
-INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_Conv2dNoGpuRef_BFP16,
-                         testing::Values(GetTestCases()));
-INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_Conv2dNoGpuRef_I8,
-                         testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Conv2dNoGpuRef_FP32, testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Conv2dNoGpuRef_FP16, testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Conv2dNoGpuRef_BFP16, testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Conv2dNoGpuRef_I8, testing::Values(GetTestCases()));

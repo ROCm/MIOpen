@@ -76,7 +76,8 @@ class GPU_Conv2dTuning_FP16 : public HalfTestCase<std::vector<TestCase>>
 {
 };
 
-TEST_P(GPU_Conv2dTuning_FP32, FloatTest_smoke_solver_ConvAsmImplicitGemmGTCDynamicXdlopsNHWC_fp32_fp16)
+TEST_P(GPU_Conv2dTuning_FP32,
+       FloatTest_smoke_solver_ConvAsmImplicitGemmGTCDynamicXdlopsNHWC_fp32_fp16)
 {
     if(IsTestSupportedForDevice() && !SkipTest())
     {
@@ -88,7 +89,8 @@ TEST_P(GPU_Conv2dTuning_FP32, FloatTest_smoke_solver_ConvAsmImplicitGemmGTCDynam
     }
 };
 
-TEST_P(GPU_Conv2dTuning_FP16, HalfTest_smoke_solver_ConvAsmImplicitGemmGTCDynamicXdlopsNHWC_fp32_fp16)
+TEST_P(GPU_Conv2dTuning_FP16,
+       HalfTest_smoke_solver_ConvAsmImplicitGemmGTCDynamicXdlopsNHWC_fp32_fp16)
 {
     if(IsTestSupportedForDevice() && !SkipTest())
     {
@@ -100,10 +102,6 @@ TEST_P(GPU_Conv2dTuning_FP16, HalfTest_smoke_solver_ConvAsmImplicitGemmGTCDynami
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_Conv2dTuning_FP32,
-                         testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Conv2dTuning_FP32, testing::Values(GetTestCases()));
 
-INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_Conv2dTuning_FP16,
-                         testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Conv2dTuning_FP16, testing::Values(GetTestCases()));

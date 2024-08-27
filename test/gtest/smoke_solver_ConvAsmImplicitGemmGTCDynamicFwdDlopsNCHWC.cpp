@@ -80,6 +80,4 @@ TEST_P(GPU_Conv2dTuning_FP16, HalfTest_smoke_solver_ConvAsmImplicitGemmGTCDynami
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_Conv2dTuning_FP16,
-                         testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Conv2dTuning_FP16, testing::Values(GetTestCases()));

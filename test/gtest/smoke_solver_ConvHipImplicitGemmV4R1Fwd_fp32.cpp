@@ -81,6 +81,4 @@ TEST_P(GPU_Conv2dTuningV4R1_FP32, FloatTest_smoke_solver_ConvHipImplicitGemmV4R1
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_Conv2dTuningV4R1_FP32,
-                         testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Conv2dTuningV4R1_FP32, testing::Values(GetTestCases()));

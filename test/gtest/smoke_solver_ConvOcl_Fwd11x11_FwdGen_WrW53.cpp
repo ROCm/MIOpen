@@ -116,12 +116,6 @@ TEST_P(GPU_Conv2dDefault_BFP16, Bf16Test_smoke_solver_ConvOcl_Fwd11x11_FwdGen_Wr
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_Conv2dDefault_FP32,
-                         testing::Values(GetTestCases()));
-INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_Conv2dDefault_FP16,
-                         testing::Values(GetTestCases()));
-INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_Conv2dDefault_BFP16,
-                         testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Conv2dDefault_FP32, testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Conv2dDefault_FP16, testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Conv2dDefault_BFP16, testing::Values(GetTestCases()));

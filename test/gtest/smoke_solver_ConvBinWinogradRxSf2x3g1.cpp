@@ -91,10 +91,6 @@ TEST_P(GPU_Conv2dAlt_FP16, HalfTest_smoke_solver_ConvBinWinogradRxSf2x3g1)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_Conv2dAlt_FP32,
-                         testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Conv2dAlt_FP32, testing::Values(GetTestCases()));
 
-INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_Conv2dAlt_FP16,
-                         testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Conv2dAlt_FP16, testing::Values(GetTestCases()));
