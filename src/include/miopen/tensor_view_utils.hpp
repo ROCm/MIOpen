@@ -77,4 +77,4 @@ inline void slice_tv(tensor_view_t<N>& tensor_view, int32_t sliceCount, const in
 
 } // namespace miopen
 
-#endif // MIOPEN_TENSOR_REORDER_UTIL_HPP_
+#endif // MIOPEN_TENSOR_VIEW_UTIL_HPP_

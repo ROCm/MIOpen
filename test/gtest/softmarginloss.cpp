@@ -34,7 +34,7 @@ namespace softmarginloss {
 
 std::string GetFloatArg()
 {
-    const auto& tmp = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
+    const auto& tmp = env::value(MIOPEN_TEST_FLOAT_ARG);
     if(tmp.empty())
     {
         return "";
@@ -97,8 +97,8 @@ using namespace softmarginloss;
 
 TEST_P(SoftMarginLossUnreducedForwardTestFloat, )
 {
-    if(miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
-       (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float")))
+    if(!MIOPEN_TEST_ALL ||
+       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--float"))
     {
         RunTest();
         Verify();
@@ -111,8 +111,8 @@ TEST_P(SoftMarginLossUnreducedForwardTestFloat, )
 
 TEST_P(SoftMarginLossUnreducedForwardTestHalf, )
 {
-    if(miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
-       (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--half")))
+    if(!MIOPEN_TEST_ALL ||
+       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--half"))
     {
         RunTest();
         Verify();
@@ -125,8 +125,8 @@ TEST_P(SoftMarginLossUnreducedForwardTestHalf, )
 
 TEST_P(SoftMarginLossUnreducedForwardTestBFloat16, )
 {
-    if(miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
-       (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--bfloat16")))
+    if(!MIOPEN_TEST_ALL ||
+       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--bfloat16"))
     {
         RunTest();
         Verify();
@@ -148,8 +148,8 @@ INSTANTIATE_TEST_SUITE_P(SoftMarginLossTestSet,
 
 TEST_P(SoftMarginLossUnreducedBackwardTestFloat, )
 {
-    if(miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
-       (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float")))
+    if(!MIOPEN_TEST_ALL ||
+       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--float"))
     {
         RunTest();
         Verify();
@@ -162,8 +162,8 @@ TEST_P(SoftMarginLossUnreducedBackwardTestFloat, )
 
 TEST_P(SoftMarginLossUnreducedBackwardTestHalf, )
 {
-    if(miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
-       (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--half")))
+    if(!MIOPEN_TEST_ALL ||
+       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--half"))
     {
         RunTest();
         Verify();
@@ -176,8 +176,8 @@ TEST_P(SoftMarginLossUnreducedBackwardTestHalf, )
 
 TEST_P(SoftMarginLossUnreducedBackwardTestBFloat16, )
 {
-    if(miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
-       (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--bfloat16")))
+    if(!MIOPEN_TEST_ALL ||
+       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--bfloat16"))
     {
         RunTest();
         Verify();
@@ -199,8 +199,8 @@ INSTANTIATE_TEST_SUITE_P(SoftMarginLossTestSet,
 
 TEST_P(SoftMarginLossReducedForwardTestFloat, )
 {
-    if(miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
-       (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float")))
+    if(!MIOPEN_TEST_ALL ||
+       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--float"))
     {
         RunTest();
         Verify();
@@ -213,8 +213,8 @@ TEST_P(SoftMarginLossReducedForwardTestFloat, )
 
 TEST_P(SoftMarginLossReducedForwardTestHalf, )
 {
-    if(miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
-       (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--half")))
+    if(!MIOPEN_TEST_ALL ||
+       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--half"))
     {
         RunTest();
         Verify();
@@ -227,8 +227,8 @@ TEST_P(SoftMarginLossReducedForwardTestHalf, )
 
 TEST_P(SoftMarginLossReducedForwardTestBFloat16, )
 {
-    if(miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
-       (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--bfloat16")))
+    if(!MIOPEN_TEST_ALL ||
+       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--bfloat16"))
     {
         RunTest();
         Verify();
@@ -250,8 +250,8 @@ INSTANTIATE_TEST_SUITE_P(SoftMarginLossTestSet,
 
 TEST_P(SoftMarginLossReducedBackwardTestFloat, )
 {
-    if(miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
-       (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float")))
+    if(!MIOPEN_TEST_ALL ||
+       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--float"))
     {
         RunTest();
         Verify();
@@ -264,8 +264,8 @@ TEST_P(SoftMarginLossReducedBackwardTestFloat, )
 
 TEST_P(SoftMarginLossReducedBackwardTestHalf, )
 {
-    if(miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
-       (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--half")))
+    if(!MIOPEN_TEST_ALL ||
+       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--half"))
     {
         RunTest();
         Verify();
@@ -278,8 +278,8 @@ TEST_P(SoftMarginLossReducedBackwardTestHalf, )
 
 TEST_P(SoftMarginLossReducedBackwardTestBFloat16, )
 {
-    if(miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
-       (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--bfloat16")))
+    if(!MIOPEN_TEST_ALL ||
+       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--bfloat16"))
     {
         RunTest();
         Verify();
