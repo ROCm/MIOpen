@@ -236,8 +236,10 @@ namespace graph_api_tensor_test {
 
 static bool TestIsApplicable() { return true; }
 
-using TestCase =
-    std::tuple<std::vector<size_t>, std::vector<size_t>, miopenDataType_t, std::optional<miopenTensorLayout_t>>;
+using TestCase = std::tuple<std::vector<size_t>,
+                            std::vector<size_t>,
+                            miopenDataType_t,
+                            std::optional<miopenTensorLayout_t>>;
 static std::vector<TestCase> TestConfigs()
 {
     return {{{1, 4, 14, 11, 1}, {616, 1, 44, 4, 4}, miopenFloat, miopenTensorNDHWC},
@@ -269,7 +271,9 @@ public:
 
         std::tie(dimensions, strides, dataType, layout) = GetParam();
 
-        auto descriptor = layout ? miopen::TensorDescriptor(dataType, layout.value(), dimensions, strides) : miopen::TensorDescriptor(dataType, dimensions, strides);
+        auto descriptor =
+            layout ? miopen::TensorDescriptor(dataType, layout.value(), dimensions, strides)
+                   : miopen::TensorDescriptor(dataType, dimensions, strides);
 
         gr::Tensor graphTensorFromDescription(descriptor, 0, false);
         EXPECT_EQ(graphTensorFromDescription, descriptor);
