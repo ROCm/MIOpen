@@ -151,43 +151,44 @@ protected:
 
 TEST_P(GPU_ConvBiasActivFwd_FP32, DISABLED_DriveAPI)
 {
-    tensor<float> z{};
-    const float alpha = 1.0f;
-    const auto status = miopenConvolutionBiasActivationForward(&get_handle(),
-                                                               &alpha,
-                                                               &input.desc,
-                                                               in_dev.get(),
-                                                               &weights.desc,
-                                                               wei_dev.get(),
-                                                               conv_desc,
-                                                               algo,
-                                                               nullptr,
-                                                               0,
-                                                               &alpha,
-                                                               &z.desc,
-                                                               nullptr,
-                                                               &bias.desc,
-                                                               bias_dev.get(),
-                                                               activ_desc,
-                                                               &output.desc,
-                                                               out_dev.get());
-    EXPECT_EQ(status, miopenStatusSuccess);
-}
-
-void GatherCBATestCases(std::vector<CBATestCase>& cba_test_cases)
-{
     const auto dev_name = get_handle().GetDeviceName();
 #if WORKAROUND_ISSUE_2212
     if(!miopen::StartsWith(dev_name, "gfx11") && !miopen::StartsWith(dev_name, "gfx94"))
 #endif
     {
-        cba_test_cases.push_back(CBATestCase{
-            16, 128, 16, 16, 128, 3, 3, 0, 0, 1, 1, 1, 1, miopenActivationRELU, miopenConvolution});
+
+        tensor<float> z{};
+        const float alpha = 1.0f;
+        const auto status = miopenConvolutionBiasActivationForward(&get_handle(),
+                                                                   &alpha,
+                                                                   &input.desc,
+                                                                   in_dev.get(),
+                                                                   &weights.desc,
+                                                                   wei_dev.get(),
+                                                                   conv_desc,
+                                                                   algo,
+                                                                   nullptr,
+                                                                   0,
+                                                                   &alpha,
+                                                                   &z.desc,
+                                                                   nullptr,
+                                                                   &bias.desc,
+                                                                   bias_dev.get(),
+                                                                   activ_desc,
+                                                                   &output.desc,
+                                                                   out_dev.get());
+        EXPECT_EQ(status, miopenStatusSuccess);
     }
     else
     {
         GTEST_SKIP() << " Skipping fusion test on unsupported ASIC";
     }
+}
+
+void GatherCBATestCases(std::vector<CBATestCase>& cba_test_cases)
+{
+    cba_test_cases.push_back(CBATestCase{
+        16, 128, 16, 16, 128, 3, 3, 0, 0, 1, 1, 1, 1, miopenActivationRELU, miopenConvolution});
 }
 
 // Extra layer of indirection introduced since GTEST_SKIP() cannot be called from non-void function.
