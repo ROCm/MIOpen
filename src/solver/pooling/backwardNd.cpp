@@ -50,11 +50,11 @@ bool PoolingBackwardNd::IsApplicable(const ExecutionContext&,
                || problem.GetPooling().GetMode() == miopenPoolingAverage           //
                || problem.GetPooling().GetMode() == miopenPoolingAverageInclusive) //
            && (                                                                    //
-                  (problem.GetXDesc().GetSize() == 5                               //
+                  (problem.GetXDesc().GetNumDims() == 5                            //
                    && problem.GetXDesc().GetLayout("NCDHW") == "NCDHW"             //
                    && problem.GetYDesc().GetLayout("NCDHW") == "NCDHW")            //
                   ||                                                               //
-                  (problem.GetXDesc().GetSize() == 4                               //
+                  (problem.GetXDesc().GetNumDims() == 4                            //
                    && problem.GetXDesc().GetLayout("NCHW") == "NCHW"               //
                    && problem.GetYDesc().GetLayout("NCHW") == "NCHW")              //
                   )                                                                //
@@ -102,7 +102,7 @@ PoolingBackwardNd::GetSolution(const ExecutionContext&,
     int batch = top.GetLengths()[0];
     int chal  = top.GetLengths()[1];
 
-    const bool is2d = (bot.GetSize() == 4);
+    const bool is2d = (bot.GetNumDims() == 4);
 
     int bot_d = is2d ? 1 : *(bot.GetLengths().rbegin() + 2);
     int bot_h = *(bot.GetLengths().rbegin() + 1);

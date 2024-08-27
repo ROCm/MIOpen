@@ -38,6 +38,7 @@
 #include <miopen/solver_id.hpp>
 #include <miopen/any_solver.hpp>
 #include <miopen/mt_queue.hpp>
+#include <miopen/filesystem.hpp>
 
 #include <cstdlib>
 #include <regex>
@@ -59,13 +60,14 @@
 #define SKIP_KDB_PDB_TESTING 0       // Allows testing FDB on gfx1030.
 #define SKIP_CONVOCLDIRECTFWDFUSED 0 // Allows testing FDB on gfx1030 (legacy fdb).
 
-namespace fs = miopen::fs;
+namespace fs  = miopen::fs;
+namespace env = miopen::env;
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_DBSYNC)
 
 struct KDBKey
 {
-    std::string program_file;
+    fs::path program_file;
     std::string program_args;
     bool operator==(const KDBKey& other) const
     {
@@ -78,10 +80,8 @@ struct std::hash<KDBKey>
 {
     std::size_t operator()(const KDBKey& k) const
     {
-        using std::hash;
-        using std::string;
-
-        return ((hash<string>()(k.program_file)) ^ (hash<string>()(k.program_args) << 1) >> 1);
+        return std::hash<std::string>()(k.program_file.string()) ^
+               (hash<string>()(k.program_args) << 1) >> 1;
     }
 };
 
@@ -395,7 +395,7 @@ auto LoadKDBObjects(const fs::path& filename)
 }
 
 bool CheckKDBObjects(const fs::path& filename,
-                     const std::string& kernel_name,
+                     const fs::path& kernel_name,
                      const std::string& kernel_args)
 {
     static const auto kdb_cache = LoadKDBObjects(filename);
@@ -450,7 +450,7 @@ void SetupPaths(fs::path& fdb_file_path,
                 const miopen::Handle& handle)
 {
     const std::string ext = ".fdb.txt";
-    const auto root_path  = fs::path(miopen::GetSystemDbPath());
+    const auto root_path  = miopen::GetSystemDbPath();
     // The base name has to be the test name for each GPU arch we have
     const std::string base_name = handle.GetDbBasename(); // "gfx90a68";
     const std::string suffix    = "HIP";                  // miopen::GetSystemFindDbSuffix();
@@ -465,7 +465,7 @@ void SetupPaths(fs::path& fdb_file_path,
 
 TEST(DBSync, KDBTargetID)
 {
-    if(miopen::IsEnabled(ENV(MIOPEN_TEST_DBSYNC)))
+    if(env::enabled(MIOPEN_TEST_DBSYNC))
     {
         fs::path fdb_file_path, pdb_file_path, kdb_file_path;
 #if WORKAROUND_ISSUE_2492
@@ -477,6 +477,10 @@ TEST(DBSync, KDBTargetID)
         EXPECT_TRUE(miopen::CheckKDBJournalMode(kdb_file_path));
         EXPECT_FALSE(!SKIP_KDB_PDB_TESTING && miopen::CheckKDBForTargetID(kdb_file_path));
     }
+    else
+    {
+        GTEST_SKIP();
+    }
 }
 
 bool LogBuildMessage()
@@ -485,7 +489,7 @@ bool LogBuildMessage()
     return true;
 }
 
-void BuildKernel(const std::string& program_file,
+void BuildKernel(const fs::path& program_file,
                  const std::string& program_args,
                  [[maybe_unused]] miopen::Handle& handle)
 {
@@ -560,8 +564,8 @@ void CheckDynamicFDBEntry(size_t thread_index,
                 for(const auto& kern : sol.construction_params)
                 {
                     std::string compile_options = kern.comp_options;
-                    auto program_file = miopen::make_object_file_name(kern.kernel_file).string();
-                    ASSERT_TRUE(!miopen::EndsWith(kern.kernel_file, ".mlir"))
+                    auto program_file           = miopen::make_object_file_name(kern.kernel_file);
+                    ASSERT_TRUE(kern.kernel_file.extension() != ".mlir")
                         << "MLIR detected in dynamic solvers";
                     compile_options += " -mcpu=" + handle.GetDeviceName();
                     auto search = checked_kdbs.find({program_file, compile_options});
@@ -585,7 +589,7 @@ void CheckDynamicFDBEntry(size_t thread_index,
     }
 }
 
-TEST(DBSync, DISABLED_DynamicFDBSync)
+TEST(CPU_DBSync_NONE, DISABLED_DynamicFDBSync)
 {
     fs::path fdb_file_path, pdb_file_path, kdb_file_path;
     auto& handle = get_handle();
@@ -732,9 +736,8 @@ void CheckFDBEntry(size_t thread_index,
                     {
                         bool found                  = false;
                         std::string compile_options = kern.comp_options;
-                        auto program_file =
-                            miopen::make_object_file_name(kern.kernel_file).string();
-                        if(!miopen::EndsWith(kern.kernel_file, ".mlir"))
+                        auto program_file = miopen::make_object_file_name(kern.kernel_file);
+                        if(kern.kernel_file.extension() != ".mlir")
                         {
                             auto& handle = ctx.GetStream();
                             compile_options += " -mcpu=" + handle.GetDeviceName();
@@ -779,12 +782,20 @@ struct TestHandle : Handle
 {
     TestHandle(size_t _num_cu) : Handle(), num_cu(_num_cu) {}
 
+// Probably, according to the idea of the author of this test, the number of CUs should have been
+// substituted with the value passed to the constructor (which in fact did not happen). After
+// https://github.com/ROCm/MIOpen/pull/3175, the method became virtual, the substitution actually
+// happened, and the test broke. I disabled that part (since it doesn't work as intended anyway) to
+// keep its behavior the same.
+#if 0
     std::size_t GetMaxComputeUnits() const
     {
         if(num_cu == 0)
             return Handle::GetMaxComputeUnits();
         return num_cu;
     }
+#endif
+
     size_t num_cu = 0;
 };
 } // namespace miopen
@@ -848,25 +859,29 @@ void StaticFDBSync(const std::string& arch, const size_t num_cu)
         << fdb_data.size();
 }
 
-struct DBSync : testing::TestWithParam<std::pair<std::string, size_t>>
+struct CPU_DBSync_NONE : testing::TestWithParam<std::pair<std::string, size_t>>
 {
 };
 
-TEST_P(DBSync, StaticFDBSync)
+TEST_P(CPU_DBSync_NONE, StaticFDBSync)
 {
-    if(miopen::IsEnabled(ENV(MIOPEN_TEST_DBSYNC)))
+    if(env::enabled(MIOPEN_TEST_DBSYNC))
     {
         std::string arch;
         size_t num_cu;
         std::tie(arch, num_cu) = GetParam();
         StaticFDBSync(arch, num_cu);
     }
+    else
+    {
+        GTEST_SKIP();
+    }
 }
 
-INSTANTIATE_TEST_SUITE_P(DBSyncSuite,
-                         DBSync,
-                         testing::Values(std::make_pair("gfx90a", 104),
-                                         std::make_pair("gfx1030", 36),
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         CPU_DBSync_NONE,
+                         testing::Values(std::make_pair("gfx908", 120),
+                                         std::make_pair("gfx90a", 104),
                                          std::make_pair("gfx90a", 110),
-                                         std::make_pair("gfx908", 120),
-                                         std::make_pair("gfx942", 304)));
+                                         std::make_pair("gfx942", 304),
+                                         std::make_pair("gfx1030", 36)));

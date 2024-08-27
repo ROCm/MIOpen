@@ -26,16 +26,22 @@
 
 #include <miopen/errors.hpp>
 #include <miopen/load_file.hpp>
+
 #include <fstream>
 #include <ios>
 #include <iterator>
 #include <vector>
+#include <sstream>
 
 namespace miopen {
 
 std::vector<char> LoadFile(const fs::path& path)
 {
+#if MIOPEN_WORKAROUND_USE_BOOST_FILESYSTEM
+    boost::system::error_code error_code;
+#else
     std::error_code error_code;
+#endif
     const auto size = fs::file_size(path, error_code);
     if(error_code)
         MIOPEN_THROW(path.string() + ": " + error_code.message());

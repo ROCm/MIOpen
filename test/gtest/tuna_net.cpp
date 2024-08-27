@@ -11,7 +11,7 @@ struct TunaNetTestCase : AIModelTestCase
 
 std::vector<TunaNetTestCase> GetGfx908FloatTestCases()
 {
-    return {{{{5, 256, 267, 300, 64, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
+    return {{{{1, 5, 256, 64, {267, 300}, {1, 1}, {0, 0}, {1, 1}, {1, 1}},
               miopen::conv::Direction::Forward,
               miopenFloat,
               miopenTensorNCHW},
@@ -21,7 +21,7 @@ std::vector<TunaNetTestCase> GetGfx908FloatTestCases()
 
 std::vector<TunaNetTestCase> GetGfx908HalfTestCases()
 {
-    return {{{{16, 256, 20, 84, 512, 5, 5, 1, 1, 1, 1, 1, 1, miopenConvolution},
+    return {{{{1, 16, 256, 512, {20, 84}, {5, 5}, {1, 1}, {1, 1}, {1, 1}},
               miopen::conv::Direction::Forward,
               miopenHalf,
               miopenTensorNCHW},
@@ -31,7 +31,7 @@ std::vector<TunaNetTestCase> GetGfx908HalfTestCases()
 
 std::vector<TunaNetTestCase> GetGfx908BF16TestCases()
 {
-    return {{{{32, 1024, 15, 15, 512, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
+    return {{{{1, 32, 1024, 512, {15, 15}, {1, 1}, {0, 0}, {1, 1}, {1, 1}},
               miopen::conv::Direction::Forward,
               miopenBFloat16,
               miopenTensorNCHW},
@@ -41,7 +41,7 @@ std::vector<TunaNetTestCase> GetGfx908BF16TestCases()
 
 std::vector<TunaNetTestCase> GetGfx90aFloatTestCases()
 {
-    return {{{{5, 3, 1301, 1333, 64, 7, 7, 3, 3, 2, 2, 1, 1, miopenConvolution},
+    return {{{{1, 5, 3, 64, {1301, 1333}, {7, 7}, {3, 3}, {2, 2}, {1, 1}},
               miopen::conv::Direction::Forward,
               miopenFloat,
               miopenTensorNCHW},
@@ -51,7 +51,7 @@ std::vector<TunaNetTestCase> GetGfx90aFloatTestCases()
 
 std::vector<TunaNetTestCase> GetGfx90aHalfTestCases()
 {
-    return {{{{24, 1024, 14, 14, 2048, 1, 1, 0, 0, 2, 2, 1, 1, miopenConvolution},
+    return {{{{1, 24, 1024, 2048, {14, 14}, {1, 1}, {0, 0}, {2, 2}, {1, 1}},
               miopen::conv::Direction::Forward,
               miopenHalf,
               miopenTensorNCHW},
@@ -61,7 +61,7 @@ std::vector<TunaNetTestCase> GetGfx90aHalfTestCases()
 
 std::vector<TunaNetTestCase> GetGfx90aBF16TestCases()
 {
-    return {{{{2, 480, 28, 28, 192, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
+    return {{{{1, 2, 480, 192, {28, 28}, {1, 1}, {0, 0}, {1, 1}, {1, 1}},
               miopen::conv::Direction::Forward,
               miopenBFloat16,
               miopenTensorNCHW},

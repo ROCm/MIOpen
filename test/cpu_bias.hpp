@@ -43,7 +43,7 @@
 template <std::size_t NSpatialDim, typename Tout, typename Tbias>
 void cpu_bias_forward_impl(tensor<Tout>& out, const tensor<Tbias>& bias)
 {
-    assert(out.desc.GetSize() == NSpatialDim + 2 and bias.desc.GetSize() == NSpatialDim + 2);
+    assert(out.desc.GetNumDims() == NSpatialDim + 2 and bias.desc.GetNumDims() == NSpatialDim + 2);
     assert(
         bias.desc.GetLengths()[0] == 1 && bias.desc.GetLengths()[1] == out.desc.GetLengths()[1] &&
         std::all_of(bias.desc.GetLengths().begin() + 2, bias.desc.GetLengths().end(), [](auto v) {
@@ -59,7 +59,7 @@ void cpu_bias_forward_impl(tensor<Tout>& out, const tensor<Tbias>& bias)
 template <std::size_t NSpatialDim, typename Tout, typename Tbias>
 void cpu_bias_backward_data_impl(const tensor<Tout>& out, tensor<Tbias>& bias)
 {
-    assert(out.desc.GetSize() == NSpatialDim + 2 and bias.desc.GetSize() == NSpatialDim + 2);
+    assert(out.desc.GetNumDims() == NSpatialDim + 2 and bias.desc.GetNumDims() == NSpatialDim + 2);
     assert(
         bias.desc.GetLengths()[0] == 1 && bias.desc.GetLengths()[1] == out.desc.GetLengths()[0] &&
         std::all_of(bias.desc.GetLengths().begin() + 2, bias.desc.GetLengths().end(), [](auto v) {
@@ -88,7 +88,7 @@ void cpu_bias_backward_data_impl(const tensor<Tout>& out, tensor<Tbias>& bias)
 template <typename Tout, typename Tbias>
 void cpu_bias_forward(tensor<Tout>& out, const tensor<Tbias>& bias)
 {
-    switch(out.desc.GetSize())
+    switch(out.desc.GetNumDims())
     {
     case 3: {
         cpu_bias_forward_impl<1>(out, bias);
@@ -115,7 +115,7 @@ void cpu_bias_forward(tensor<Tout>& out, const tensor<Tbias>& bias)
 template <typename Tout, typename Tbias>
 void cpu_bias_backward_data(const tensor<Tout>& out, tensor<Tbias>& bias)
 {
-    switch(out.desc.GetSize())
+    switch(out.desc.GetNumDims())
     {
     case 3: {
         cpu_bias_backward_data_impl<1>(out, bias);

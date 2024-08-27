@@ -57,6 +57,10 @@
 #include <mutex>
 #include <shared_mutex>
 
+#if MIOPEN_USE_HIPBLASLT
+#include <hipblaslt/hipblaslt.h>
+#endif
+
 /// hipMemGetInfo constantly fails on gfx906/900 and Navi21.
 /// Brute-force W/A: return fixed values.
 #define WORKAROUND_FAULTY_HIPMEMGETINFO_VEGA_NAVI2X (HIP_PACKAGE_VERSION_FLAT >= 5007000000ULL)
@@ -230,6 +234,10 @@ struct HandleImpl
     rocblas_handle_ptr rhandle_;
     using RocblasHandlePtrPool = std::vector<rocblas_handle_ptr>;
 #endif
+#if MIOPEN_USE_HIPBLASLT
+    hipblasLt_handle_ptr hip_blasLt_handle;
+    using HipblasLtHandlePtrPool = std::vector<hipblasLt_handle_ptr>;
+#endif
 
     StreamPtr root_stream = nullptr;
 
@@ -237,16 +245,32 @@ struct HandleImpl
     struct MultiStreamResourses
     {
 
-#if MIOPEN_USE_ROCBLAS
+#if MIOPEN_USE_ROCBLAS && MIOPEN_USE_HIPBLASLT
         //  (rocBLAS doc):rocBLAS handle contains allocated device memory that must not be shared by
         //  multiple
         //  asynchronous streams at the same time.
         //  Each parallel thread must use its own rocblas_handle.
         RocblasHandlePtrPool rhandle_pool;
-        void add_resours(StreamPtr s_ptr, rocblas_handle_ptr r_ptr)
+        HipblasLtHandlePtrPool hhandle_pool;
+        void add_resours(StreamPtr s_ptr, rocblas_handle_ptr r_ptr, hipblasLt_handle_ptr h_ptr)
         {
             stream_pool.push_back(std::move(s_ptr));
             rhandle_pool.push_back(std::move(r_ptr));
+            hhandle_pool.push_back(std::move(h_ptr));
+        }
+#elif MIOPEN_USE_ROCBLAS
+        RocblasHandlePtrPool rhandle_pool;
+        void add_resours(StreamPtr s_ptr, rocblas_handle_ptr r_ptr)
+        {
+            stream_pool.push_back(s_ptr);
+            rhandle_pool.push_back(std::move(r_ptr));
+        }
+#elif MIOPEN_USE_HIPBLASLT
+        HipblasLtHandlePtrPool hhandle_pool;
+        void add_resours(StreamPtr s_ptr, hipblasLt_handle_ptr h_ptr)
+        {
+            stream_pool.push_back(s_ptr);
+            hhandle_pool.push_back(std::move(h_ptr));
         }
 #else
         void add_stream(StreamPtr s_ptr) { stream_pool.push_back(s_ptr); }
@@ -285,6 +309,9 @@ Handle::Handle(miopenAcceleratorQueue_t stream) : impl(std::make_unique<HandleIm
 #if MIOPEN_USE_ROCBLAS
     this->impl->rhandle_ = CreateRocblasHandle(stream);
 #endif
+#if MIOPEN_USE_HIPBLASLT
+    this->impl->hip_blasLt_handle = CreateHipblasLtHandle();
+#endif
     this->impl->target_properties.Init(this);
     MIOPEN_LOG_NQI(*this);
 }
@@ -308,6 +335,9 @@ Handle::Handle() : impl(std::make_unique<HandleImpl>())
 
 #if MIOPEN_USE_ROCBLAS
     this->impl->rhandle_ = CreateRocblasHandle(root_stream);
+#endif
+#if MIOPEN_USE_HIPBLASLT
+    this->impl->hip_blasLt_handle = CreateHipblasLtHandle();
 #endif
     this->impl->target_properties.Init(this);
     MIOPEN_LOG_NQI(*this);
@@ -346,9 +376,17 @@ void Handle::ReserveExtraStreamsInPool(int cnt) const
         for(; last_stream_id < cnt; last_stream_id++)
         {
             auto new_stream = this->impl->create_stream_non_blocking();
-#if MIOPEN_USE_ROCBLAS
+#if MIOPEN_USE_ROCBLAS && MIOPEN_USE_HIPBLASLT
+            auto new_rhandle = CreateRocblasHandle(new_stream.get());
+            auto new_hhandle = CreateHipblasLtHandle();
+            this->impl->ms_resourse_ptr->add_resours(
+                std::move(new_stream), std::move(new_rhandle), std::move(new_hhandle));
+#elif MIOPEN_USE_ROCBLAS
             auto new_rhandle = CreateRocblasHandle(new_stream.get());
             this->impl->ms_resourse_ptr->add_resours(std::move(new_stream), std::move(new_rhandle));
+#elif MIOPEN_USE_HIPBLASLT
+            auto new_hhandle = CreateHipblasLtHandle();
+            this->impl->ms_resourse_ptr->add_resours(std::move(new_stream), std::move(new_hhandle));
 #else
             this->impl->ms_resourse_ptr->add_stream(std::move(new_stream));
 #endif
@@ -422,7 +460,7 @@ void Handle::Copy(ConstData_t src, Data_t dest, std::size_t size) const
 
 KernelInvoke Handle::AddKernel(const std::string& algorithm,
                                const std::string& network_config,
-                               const std::string& program_name,
+                               const fs::path& program_name,
                                const std::string& kernel_name,
                                const std::vector<size_t>& vld,
                                const std::vector<size_t>& vgd,
@@ -444,12 +482,21 @@ KernelInvoke Handle::AddKernel(const std::string& algorithm,
 }
 
 Invoker Handle::PrepareInvoker(const InvokerFactory& factory,
-                               const std::vector<solver::KernelInfo>& kernels) const
+                               const std::vector<solver::KernelInfo>& kernels,
+                               std::vector<Program>* programs_out) const
 {
     std::vector<Kernel> built;
-    for(auto& k : kernels)
+    built.reserve(kernels.size());
+    if(programs_out != nullptr)
+        programs_out->resize(kernels.size());
+
+    for(auto i = 0; i < kernels.size(); ++i)
     {
+        const auto& k        = kernels[i];
+        Program* program_out = programs_out != nullptr ? &(*programs_out)[i] : nullptr;
+
         MIOPEN_LOG_I2("Preparing kernel: " << k.kernel_name);
+
         const auto kernel = this->impl->cache.AddKernel(*this,
                                                         "",
                                                         "",
@@ -458,7 +505,9 @@ Invoker Handle::PrepareInvoker(const InvokerFactory& factory,
                                                         k.l_wk,
                                                         k.g_wk,
                                                         k.comp_options,
-                                                        kernels.size());
+                                                        kernels.size(),
+                                                        "",
+                                                        program_out);
         built.push_back(kernel);
     }
     return factory(built);
@@ -475,26 +524,41 @@ const std::vector<Kernel>& Handle::GetKernelsImpl(const std::string& algorithm,
     return this->impl->cache.GetKernels(algorithm, network_config);
 }
 
-KernelInvoke Handle::Run(Kernel k) const
+KernelInvoke Handle::Run(Kernel k, bool coop_launch) const
 {
     this->impl->set_ctx();
-    if(this->impl->enable_profiling || MIOPEN_GPU_SYNC)
-        return k.Invoke(this->GetStream(), this->impl->elapsed_time_handler());
-    else
-        return k.Invoke(this->GetStream());
+    auto callback = (this->impl->enable_profiling || MIOPEN_GPU_SYNC)
+                        ? this->impl->elapsed_time_handler()
+                        : nullptr;
+    return k.Invoke(this->GetStream(), callback, coop_launch);
 }
 
-Program Handle::LoadProgram(const std::string& program_name,
+Program Handle::LoadProgram(const fs::path& program_name,
                             std::string params,
-                            const std::string& kernel_src) const
+                            const std::string& kernel_src,
+                            bool force_attach_binary) const
 {
     this->impl->set_ctx();
     std::string arch_name = this->GetTargetProperties().Name();
 
     std::string orig_params = params; // make a copy for target ID fallback
 
-    if(!miopen::EndsWith(program_name, ".mlir"))
+#if WORKAROUND_ISSUE_3001
+    if(program_name.extension() != ".mlir")
         params = params + " -mcpu=" + this->GetTargetProperties().Name();
+#else
+    if(program_name.extension() == ".mlir")
+    { // no -mcpu
+    }
+    else if(program_name.extension() == ".s")
+    {
+        params += " -mcpu=" + LcOptionTargetStrings{this->GetTargetProperties()}.targetId;
+    }
+    else
+    {
+        params += " -mcpu=" + this->GetTargetProperties().Name();
+    }
+#endif
 
     auto hsaco = miopen::LoadBinary(
         this->GetTargetProperties(), this->GetMaxComputeUnits(), program_name, params);
@@ -517,47 +581,87 @@ Program Handle::LoadProgram(const std::string& program_name,
     if(hsaco.empty())
     {
         CompileTimer ct;
-        auto p = HIPOCProgram{program_name, params, this->GetTargetProperties(), kernel_src};
-        ct.Log("Kernel", program_name);
+        auto p =
+            HIPOCProgram{program_name.string(), params, this->GetTargetProperties(), kernel_src};
+        ct.Log("Kernel", program_name.string());
 
-// Save to cache
+        // Save to cache
 #if MIOPEN_ENABLE_SQLITE_KERN_CACHE
-        miopen::SaveBinary(p.IsCodeObjectInMemory() ? p.GetCodeObjectBlob()
-                                                    : miopen::LoadFile(p.GetCodeObjectPathname()),
+        std::vector<char> binary;
+        if(!p.IsCodeObjectInMemory())
+            binary = miopen::LoadFile(p.GetCodeObjectPathname());
+
+        miopen::SaveBinary(p.IsCodeObjectInMemory() ? p.GetCodeObjectBlob() : binary,
                            this->GetTargetProperties(),
                            this->GetMaxComputeUnits(),
                            program_name,
                            params);
-#else
-        auto path = miopen::GetCachePath(false) / boost::filesystem::unique_path().string();
-        if(p.IsCodeObjectInMemory())
-            miopen::WriteFile(p.GetCodeObjectBlob(), path);
+
+        if(force_attach_binary && p.IsCodeObjectInTempFile())
+        {
+            MIOPEN_LOG_I2("Attaching a binary to the program for future serialization");
+            p.AttachBinary(std::vector<char>{binary.data(), binary.data() + binary.size()});
+        }
         else
-            fs::copy_file(p.GetCodeObjectPathname(), path);
-        miopen::SaveBinary(path, this->GetTargetProperties(), program_name, params);
-#endif
+        {
+            MIOPEN_LOG_I2("Skipped attaching a binary to the program for future serialization as "
+                          "it is in permanent file storage");
+        }
+
         p.FreeCodeObjectFileStorage();
+#else
+        boost::filesystem::path cache_path;
+
+        // If cache is disabled we don't need to dump binary and move it there
+        if(!miopen::IsCacheDisabled())
+        {
+            auto path = miopen::GetCachePath(false) / boost::filesystem::unique_path();
+            if(p.IsCodeObjectInMemory())
+                miopen::WriteFile(p.GetCodeObjectBlob(), path);
+            else
+                boost::filesystem::copy_file(p.GetCodeObjectPathname(), path);
+            cache_path = miopen::SaveBinary(
+                path, this->GetTargetProperties(), program_name, params, is_kernel_str);
+        }
+
+        if(force_attach_binary && p.IsCodeObjectInTempFile())
+        {
+            MIOPEN_LOG_I2("Attaching a binary to the program for future serialization");
+            if(cache_path.empty())
+                p.AttachBinary(LoadFileAsVector(p.GetCodeObjectPathname()));
+            else
+                p.AttachBinary(std::move(cache_path));
+        }
+
+        p.FreeCodeObjectFileStorage();
+#endif
         return p;
     }
     else
     {
-        return HIPOCProgram{program_name, hsaco};
+        auto p = HIPOCProgram{program_name, hsaco};
+#if MIOPEN_ENABLE_SQLITE_KERN_CACHE
+        if(force_attach_binary)
+        {
+            MIOPEN_LOG_I2("Attaching a binary to the program for future serialization");
+            p.AttachBinary(std::vector<char>{hsaco.data(), hsaco.data() + hsaco.size()});
+        }
+#endif
+        return p;
     }
 }
 
-bool Handle::HasProgram(const std::string& program_name, const std::string& params) const
+bool Handle::HasProgram(const fs::path& program_name, const std::string& params) const
 {
     return this->impl->cache.HasProgram(program_name, params);
 }
 
-void Handle::AddProgram(Program prog,
-                        const std::string& program_name,
-                        const std::string& params) const
+void Handle::AddProgram(Program prog, const fs::path& program_name, const std::string& params) const
 {
     this->impl->cache.AddProgram(prog, program_name, params);
 }
 
-void Handle::ClearProgram(const std::string& program_name, const std::string& params) const
+void Handle::ClearProgram(const fs::path& program_name, const std::string& params) const
 {
     this->impl->cache.ClearProgram(program_name, params);
 }
@@ -618,7 +722,7 @@ std::size_t Handle::GetGlobalMemorySize() const
 
 std::size_t Handle::GetMaxComputeUnits() const
 {
-    const std::size_t num_cu = Value(ENV(MIOPEN_DEVICE_CU));
+    const std::size_t num_cu = env::value(MIOPEN_DEVICE_CU);
     if(num_cu > 0)
         return num_cu;
 
@@ -663,6 +767,17 @@ std::size_t Handle::GetMaxMemoryAllocSize()
     }
 
     return m_MaxMemoryAllocSizeCached;
+}
+
+bool Handle::CooperativeLaunchSupported() const
+{
+    int result;
+    auto status =
+        hipDeviceGetAttribute(&result, hipDeviceAttributeCooperativeLaunch, this->impl->device);
+    if(status != hipSuccess)
+        MIOPEN_THROW_HIP_STATUS(status);
+
+    return result == 1;
 }
 
 std::string Handle::GetDeviceNameImpl() const { return this->impl->get_device_name(); }
@@ -710,6 +825,28 @@ rocblas_handle_ptr Handle::CreateRocblasHandle(miopenAcceleratorQueue_t stream) 
     auto result = rocblas_handle_ptr{x};
     rocblas_set_stream(result.get(), stream);
     return result;
+}
+#endif
+
+#if MIOPEN_USE_HIPBLASLT
+const hipblasLt_handle_ptr& Handle::HipblasLtHandle() const
+{
+    if(meopenHandle_current_stream_id == 0)
+        return this->impl->hip_blasLt_handle;
+    // locking only if handle in multistream mode
+    std::shared_lock<std::shared_timed_mutex> lock(this->impl->stream_pool_mutex);
+    return this->impl->ms_resourse_ptr->hhandle_pool.at(meopenHandle_current_stream_id - 1);
+}
+
+hipblasLt_handle_ptr Handle::CreateHipblasLtHandle() const
+{
+    hipblasLtHandle_t handle = nullptr;
+    if(hipblasLtCreate(&handle) != hipblasStatus_t::HIPBLAS_STATUS_SUCCESS)
+    {
+        MIOPEN_THROW(miopenStatusUnknownError, "failed creating hipBLASLt handle");
+    }
+
+    return hipblasLt_handle_ptr{handle};
 }
 #endif
 } // namespace miopen

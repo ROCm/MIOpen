@@ -50,7 +50,7 @@ std::vector<char> random_bytes(size_t length)
     return v;
 }
 
-TEST(TestCache, check_bz2_compress)
+TEST(CPU_Cache_NONE, check_bz2_compress)
 {
     std::vector<char> to_compress;
     bool success = false;
@@ -67,7 +67,7 @@ TEST(TestCache, check_bz2_compress)
     ASSERT_TRUE(cmprsd.size() < to_compress.size());
 }
 
-TEST(TestCache, check_bz2_decompress)
+TEST(CPU_Cache_NONE, check_bz2_decompress)
 {
     std::vector<char> empty;
 
@@ -89,7 +89,7 @@ TEST(TestCache, check_bz2_decompress)
     ASSERT_TRUE(decompressed == miopen::decompress(compressed, original.size() + 10));
 }
 
-TEST(TestCache, check_kern_db)
+TEST(CPU_Cache_NONE, check_kern_db)
 {
     miopen::KernelConfig cfg0;
     cfg0.kernel_name = "kernel1";
@@ -103,7 +103,7 @@ TEST(TestCache, check_kern_db)
 
     {
         miopen::TempFile temp_file("tmp-kerndb");
-        miopen::KernDb clean_db(miopen::DbKinds::KernelDb, std::string(temp_file), false);
+        miopen::KernDb clean_db(miopen::DbKinds::KernelDb, temp_file, false);
 
         EXPECT_TRUE(clean_db.StoreRecordUnsafe(cfg0));
         auto readout = clean_db.FindRecordUnsafe(cfg0);
@@ -117,7 +117,7 @@ TEST(TestCache, check_kern_db)
         miopen::TempFile temp_file("tmp-kerndb");
         miopen::KernDb err_db(
             miopen::DbKinds::KernelDb,
-            std::string(temp_file),
+            temp_file,
             false,
             [](const std::vector<char>&, bool* success) {
                 *success = false;
@@ -135,8 +135,8 @@ TEST(TestCache, check_kern_db)
 }
 #endif
 
-TEST(TestCache, check_cache_file)
+TEST(CPU_Cache_NONE, check_cache_file)
 {
     auto p = miopen::GetCacheFile("gfx", "base", "args");
-    EXPECT_TRUE(p.filename() == "base.o");
+    EXPECT_TRUE(p.filename() == miopen::make_object_file_name("base"));
 }

@@ -83,6 +83,9 @@ public:
     {
     }
 
+    const auto& getTensorIds() const noexcept { return mTensorIds; }
+    const auto& getDataPtrs() const noexcept { return mDataPointers; }
+
     void* getDataPointer(int64_t tensorId) const
     {
         assert(mTensorIds.size() == mDataPointers.size());
@@ -103,6 +106,7 @@ private:
     VariantPack mVariantPack;
     bool mTensorIdsSet    = false;
     bool mDataPointersSet = false;
+    bool mWorkspaceSet    = false;
 
 public:
     VariantPackBuilder& setTensorIds(const std::vector<int64_t>& tensorIds) &
@@ -153,12 +157,8 @@ public:
     }
     VariantPackBuilder& setWorkspace(void* workspace) &
     {
-        if(workspace == nullptr)
-        {
-            MIOPEN_THROW(miopenStatusBadParm);
-        }
-
         mVariantPack.mWorkspace = workspace;
+        mWorkspaceSet           = true;
         return *this;
     }
 
@@ -199,7 +199,7 @@ public:
 private:
     bool validate() const
     {
-        return mTensorIdsSet && mDataPointersSet && mVariantPack.mWorkspace != nullptr &&
+        return mTensorIdsSet && mDataPointersSet && mWorkspaceSet &&
                mVariantPack.mTensorIds.size() == mVariantPack.mDataPointers.size() &&
                std::find(mVariantPack.mDataPointers.cbegin(),
                          mVariantPack.mDataPointers.cend(),
@@ -225,6 +225,7 @@ public:
                               int64_t* elementCount,
                               void* arrayOfElements) override;
 
+    /// \todo return const ref and ref --amberhassaan May, 2024
     const VariantPack* getVariantPack() const { return &mVariantPack; }
     VariantPack* getVariantPack() { return &mVariantPack; }
 };
