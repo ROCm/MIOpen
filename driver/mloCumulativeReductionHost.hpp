@@ -106,39 +106,39 @@ int32_t mloCumulativeReductionForwardRunHost(const miopenTensorDescriptor_t inpu
                                              const bool reverse)
 {
     const int ndims     = miopen::deref(inputDesc).GetNumDims();
-    const auto true_dim = ((dim % ndims) + ndims) % ndims;
+    const auto exec_dim = ((dim % ndims) + ndims) % ndims;
 
     auto input_tv   = miopen::get_inner_expanded_tv<5>(miopen::deref(inputDesc));
     auto output_tv  = miopen::get_inner_expanded_tv<5>(miopen::deref(outputDesc));
     auto indices_tv = miopen::get_inner_expanded_tv<5>(miopen::deref(indicesDesc));
 
     auto size       = miopen::deref(inputDesc).GetElementSize();
-    auto inner_size = miopen::deref(inputDesc).GetLengths()[true_dim];
+    auto inner_size = miopen::deref(inputDesc).GetLengths()[exec_dim];
     auto outer_size = size / inner_size;
 
     auto op_worker = reduce_func<OP, float, int>{};
 
     tensor_view_t<5> ignore_dim_input_tv = input_tv;
-    ignore_dim_input_tv.size[true_dim]   = 1;
+    ignore_dim_input_tv.size[exec_dim]   = 1;
 
     par_ford(outer_size)([&](int gid) {
         auto tensor_layout = tensor_layout_t<5>(ignore_dim_input_tv, gid);
         float cum_val      = op_worker.START_VAL;
-        int cum_idx        = (reverse ? input_tv.size[true_dim] - 1 : 0);
+        int cum_idx        = (reverse ? input_tv.size[exec_dim] - 1 : 0);
 
         ford(inner_size)([&](int idx) {
             int tmp_idx =
-                (reverse ? input_tv.size[true_dim] - (idx - exclusive) - 1 : (idx - exclusive));
+                (reverse ? input_tv.size[exec_dim] - (idx - exclusive) - 1 : (idx - exclusive));
             float tmp_val = op_worker.START_VAL;
             if(0 <= tmp_idx && tmp_idx < inner_size)
             {
-                tensor_layout.layout[true_dim] = tmp_idx;
+                tensor_layout.layout[exec_dim] = tmp_idx;
                 tmp_val = static_cast<float>(input[input_tv.get_tensor_view_idx(tensor_layout)]);
             }
 
             op_worker.calculate(cum_val, tmp_val, cum_idx, tmp_idx);
 
-            tensor_layout.layout[true_dim] = (reverse ? input_tv.size[true_dim] - idx - 1 : idx);
+            tensor_layout.layout[exec_dim] = (reverse ? input_tv.size[exec_dim] - idx - 1 : idx);
             if(output_host)
                 output_host[output_tv.get_tensor_view_idx(tensor_layout)] =
                     static_cast<Tcheck>(cum_val);

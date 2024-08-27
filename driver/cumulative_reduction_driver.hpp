@@ -34,20 +34,17 @@
 #include <../test/ford.hpp>
 #include <../test/verify.hpp>
 
-#include <cassert>
 #include <miopen/miopen.h>
 
-inline std::vector<int> GetStrides(std::vector<int> lengths, int contiguous)
+inline std::vector<int> GetStrides(std::vector<int> lengths, bool contiguous)
 {
-    if(contiguous != 0 && contiguous != 1)
-        std::cerr << "Error Tensor Contiguous should be 0 or 1" << std::endl;
-    if(contiguous == 0)
+    if(!contiguous)
         std::swap(lengths.front(), lengths.back());
     std::vector<int> strides(lengths.size());
     strides.back() = 1;
     for(int i = lengths.size() - 2; i >= 0; --i)
         strides[i] = strides[i + 1] * lengths[i + 1];
-    if(contiguous == 0)
+    if(!contiguous)
         std::swap(strides.front(), strides.back());
     return strides;
 }
@@ -125,6 +122,39 @@ int CumulativeReductionDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv
     {
         miopenEnableProfiling(GetHandle(), true);
     }
+
+    auto inTensorParam = inflags.GetValueTensor("input");
+    auto input_length  = inTensorParam.lengths;
+    if(input_length.empty())
+    {
+        std::cout << "Tensor must not be empty";
+        return miopenStatusBadParm;
+    }
+
+    int contiguous = inflags.GetValueInt("Contiguous");
+    if(contiguous != 0 && contiguous != 1)
+    {
+        std::cerr << "Error Tensor Contiguous should be 0 or 1" << std::endl;
+        return miopenStatusBadParm;
+    }
+
+    std::vector<miopenCumOp_t> cumOpList = {
+        MIOPEN_CUM_MAX, MIOPEN_CUM_MIN, MIOPEN_CUM_SUM, MIOPEN_CUM_PROD};
+    int cumOpInt = inflags.GetValueInt("CumulativeOperation");
+    bool valid   = true;
+    for(auto op : cumOpList)
+        if(cumOpInt != static_cast<int>(op))
+        {
+            valid = false;
+            break;
+        }
+    if(valid)
+    {
+        std::cerr << "Error CumulativeOperation value should be in set {" << cumOpList << "}"
+                  << std::endl;
+        return miopenStatusBadParm;
+    }
+
     return miopenStatusSuccess;
 }
 
@@ -136,16 +166,17 @@ int CumulativeReductionDriver<Tgpu, Tref>::GetandSetData()
     reverse   = (inflags.GetValueInt("reverse") != 0);
     cumOp     = (miopenCumOp_t)inflags.GetValueInt("CumulativeOperation");
 
-    auto lengths = inflags.GetValueTensor("DimLengths").lengths;
-    if(lengths.empty())
-    {
-        std::cout << "Tensor must not be empty";
-        return miopenStatusInvalidValue;
-    }
-    auto strides = GetStrides(lengths, inflags.GetValueInt("Contiguous"));
-    SetTensorNd(inputDesc, lengths, strides, data_type);
-    SetTensorNd(outputDesc, lengths, strides, data_type);
-    SetTensorNd(indicesDesc, lengths, strides, miopen_type<int>{});
+    auto lengths = inflags.GetValueTensor("input").lengths;
+    auto strides = GetStrides(lengths, inflags.GetValueInt("Contiguous") != 0);
+
+    if(SetTensorNd(inputDesc, lengths, strides, data_type) != miopenStatusSuccess)
+        MIOPEN_THROW("Error parsing input tensor: " + inflags.GetValueStr("input") + ".");
+
+    if(SetTensorNd(outputDesc, lengths, data_type) != miopenStatusSuccess)
+        MIOPEN_THROW("Error parsing output tensor");
+
+    if(SetTensorNd(indicesDesc, lengths, miopen_type<int>{}) != miopenStatusSuccess)
+        MIOPEN_THROW("Error parsing indices tensor");
 
     return miopenStatusSuccess;
 }
@@ -155,8 +186,7 @@ int CumulativeReductionDriver<Tgpu, Tref>::AddCmdLineArgs()
 {
     inflags.AddInputFlag(
         "forw", 'F', "1", "Run only Forward CumulativeReduction (Default=1)", "int");
-    inflags.AddTensorFlag(
-        "DimLengths", 'D', "256x4x256", "The dimensional lengths of the input tensor");
+    inflags.AddTensorFlag("input", 'D', "256x4x256", "input tensor descriptor");
     inflags.AddInputFlag(
         "dim", 'd', "0", "The dimension to do the operation over (Default=0)", "int");
     inflags.AddInputFlag("exclusive",
@@ -213,14 +243,23 @@ int CumulativeReductionDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         input[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(-100), static_cast<Tgpu>(100));
 
     if(input_dev->ToGPU(GetStream(), input.data()) != 0)
+    {
         std::cerr << "Error copying (input) to GPU, size: " << input_dev->GetSize() << std::endl;
+        return miopenStatusAllocFailed;
+    }
 
     if(output_dev->ToGPU(GetStream(), output.data()) != 0)
+    {
         std::cerr << "Error copying (output) to GPU, size: " << output_dev->GetSize() << std::endl;
+        return miopenStatusAllocFailed;
+    }
 
     if(indices_dev->ToGPU(GetStream(), indices.data()) != 0)
+    {
         std::cerr << "Error copying (indices) to GPU, size: " << indices_dev->GetSize()
                   << std::endl;
+        return miopenStatusAllocFailed;
+    }
 
     return miopenStatusSuccess;
 }
@@ -271,11 +310,17 @@ int CumulativeReductionDriver<Tgpu, Tref>::RunForwardGPU()
     }
 
     if(output_dev->FromGPU(GetStream(), output.data()) != 0)
+    {
         std::cerr << "Error copying (output_dev) from GPU, size: " << output_dev->GetSize()
                   << std::endl;
+        return miopenStatusInternalError;
+    }
     if(indices_dev->FromGPU(GetStream(), indices.data()) != 0)
+    {
         std::cerr << "Error copying (indices_dev) from GPU, size: " << indices_dev->GetSize()
                   << std::endl;
+        return miopenStatusInternalError;
+    }
 
     return miopenStatusSuccess;
 }
@@ -283,67 +328,78 @@ int CumulativeReductionDriver<Tgpu, Tref>::RunForwardGPU()
 template <typename Tgpu, typename Tref>
 int CumulativeReductionDriver<Tgpu, Tref>::RunForwardCPU()
 {
+    int32_t mloStatus = miopenStatusSuccess;
+
     switch(cumOp)
     {
     case MIOPEN_CUM_MAX:
-        mloCumulativeReductionForwardRunHost<MIOPEN_CUM_MAX, Tgpu, Tref>(inputDesc,
-                                                                         outputDesc,
-                                                                         indicesDesc,
-                                                                         input.data(),
-                                                                         output_host.data(),
-                                                                         indices_host.data(),
-                                                                         dim,
-                                                                         exclusive,
-                                                                         reverse);
+        mloStatus =
+            mloCumulativeReductionForwardRunHost<MIOPEN_CUM_MAX, Tgpu, Tref>(inputDesc,
+                                                                             outputDesc,
+                                                                             indicesDesc,
+                                                                             input.data(),
+                                                                             output_host.data(),
+                                                                             indices_host.data(),
+                                                                             dim,
+                                                                             exclusive,
+                                                                             reverse);
         break;
     case MIOPEN_CUM_MIN:
-        mloCumulativeReductionForwardRunHost<MIOPEN_CUM_MIN, Tgpu, Tref>(inputDesc,
-                                                                         outputDesc,
-                                                                         indicesDesc,
-                                                                         input.data(),
-                                                                         output_host.data(),
-                                                                         indices_host.data(),
-                                                                         dim,
-                                                                         exclusive,
-                                                                         reverse);
+        mloStatus =
+            mloCumulativeReductionForwardRunHost<MIOPEN_CUM_MIN, Tgpu, Tref>(inputDesc,
+                                                                             outputDesc,
+                                                                             indicesDesc,
+                                                                             input.data(),
+                                                                             output_host.data(),
+                                                                             indices_host.data(),
+                                                                             dim,
+                                                                             exclusive,
+                                                                             reverse);
         break;
     case MIOPEN_CUM_SUM:
-        mloCumulativeReductionForwardRunHost<MIOPEN_CUM_SUM, Tgpu, Tref>(inputDesc,
-                                                                         outputDesc,
-                                                                         indicesDesc,
-                                                                         input.data(),
-                                                                         output_host.data(),
-                                                                         nullptr,
-                                                                         dim,
-                                                                         exclusive,
-                                                                         reverse);
+        mloStatus =
+            mloCumulativeReductionForwardRunHost<MIOPEN_CUM_SUM, Tgpu, Tref>(inputDesc,
+                                                                             outputDesc,
+                                                                             indicesDesc,
+                                                                             input.data(),
+                                                                             output_host.data(),
+                                                                             nullptr,
+                                                                             dim,
+                                                                             exclusive,
+                                                                             reverse);
         break;
     case MIOPEN_CUM_PROD:
-        mloCumulativeReductionForwardRunHost<MIOPEN_CUM_PROD, Tgpu, Tref>(inputDesc,
-                                                                          outputDesc,
-                                                                          indicesDesc,
-                                                                          input.data(),
-                                                                          output_host.data(),
-                                                                          nullptr,
-                                                                          dim,
-                                                                          exclusive,
-                                                                          reverse);
+        mloStatus =
+            mloCumulativeReductionForwardRunHost<MIOPEN_CUM_PROD, Tgpu, Tref>(inputDesc,
+                                                                              outputDesc,
+                                                                              indicesDesc,
+                                                                              input.data(),
+                                                                              output_host.data(),
+                                                                              nullptr,
+                                                                              dim,
+                                                                              exclusive,
+                                                                              reverse);
+        break;
+    default:
+        std::cout << "The CPU version of Cumulative Reduction with Operation code " << cumOp
+                  << " has not been implemented" << std::endl;
+        mloStatus = miopenStatusNotImplemented;
         break;
     }
 
-    return miopenStatusSuccess;
+    return mloStatus;
 }
 
 template <typename Tgpu, typename Tref>
 int CumulativeReductionDriver<Tgpu, Tref>::RunBackwardGPU()
 {
-    return miopenStatusSuccess;
+    return miopenStatusNotImplemented;
 }
 
 template <typename Tgpu, typename Tref>
 int CumulativeReductionDriver<Tgpu, Tref>::RunBackwardCPU()
 {
-    return miopenStatusSuccess;
+    return miopenStatusNotImplemented;
 }
 
 template <typename Tgpu, typename Tref>
@@ -367,17 +423,28 @@ int CumulativeReductionDriver<Tgpu, Tref>::VerifyForward()
     auto error_output    = miopen::rms_range(output_host, output);
     auto error_indices   = miopen::rms_range(indices_host, indices);
 
-    if(!std::isfinite(error_output) || error_output > tolerance || !std::isfinite(error_indices) ||
-       error_indices > tolerance)
+    if(!std::isfinite(error_output) || error_output > tolerance)
     {
-        std::cout << "Forward Cumulative Reduction FAILED: {" << error_output << ","
-                  << error_indices << "} > " << tolerance << std::endl;
+        std::cout << "Forward Cumulative Reduction Output FAILED: " << error_output << " > "
+                  << tolerance << std::endl;
         return EC_VerifyFwd;
     }
     else
     {
-        std::cout << "Forward Cumulative Reduction Verifies OK on CPU reference ({" << error_output
-                  << "," << error_indices << "} < " << tolerance << ')' << std::endl;
+        std::cout << "Forward Cumulative Reduction Output Verifies OK on CPU reference ("
+                  << error_output << " < " << tolerance << ')' << std::endl;
+    }
+
+    if(!std::isfinite(error_indices) || error_indices > tolerance)
+    {
+        std::cout << "Forward Cumulative Reduction Indices FAILED: " << error_indices << " > "
+                  << tolerance << std::endl;
+        return EC_VerifyFwd;
+    }
+    else
+    {
+        std::cout << "Forward Cumulative Reduction Indices Verifies OK on CPU reference ("
+                  << error_indices << " < " << tolerance << ')' << std::endl;
     }
 
     return miopenStatusSuccess;
@@ -386,5 +453,5 @@ int CumulativeReductionDriver<Tgpu, Tref>::VerifyForward()
 template <typename Tgpu, typename Tref>
 int CumulativeReductionDriver<Tgpu, Tref>::VerifyBackward()
 {
-    return miopenStatusSuccess;
+    return miopenStatusNotImplemented;
 }
