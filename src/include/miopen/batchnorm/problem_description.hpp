@@ -243,14 +243,7 @@ private:
 
     std::string ComputeLayout(const TensorDescriptor& td) const
     {
-        if(spatial_dim == 2)
-        {
-            return td.GetLayout("NCHW");
-        }
-        else
-        {
-            return td.GetLayout("NCDHW");
-        }
+        return td.GetLayout_str();
     }
     std::string ComputeInLayout() const { return ComputeLayout(xDesc); }
     std::string ComputeOutLayout() const { return ComputeLayout(yOrDyDesc); }
