@@ -71,6 +71,7 @@
  * @defgroup getitem
  * @defgroup ReduceCalculation
  * @defgroup RotaryPositionalEmbeddings
+ * @defgroup ReLU
  * @defgroup nllloss
  *
  */
@@ -7676,6 +7677,60 @@ MIOPEN_EXPORT miopenStatus_t miopenRoPEBackward(miopenHandle_t handle,
                                                 void* dx);
 /** @} */
 // CLOSEOUT ROPE DOXYGEN GROUP
+#endif // MIOPEN_BETA_API
+
+#ifdef MIOPEN_BETA_API
+/** @addtogroup ReLU
+ *
+ *  @{
+ */
+
+/*! @brief Helper function to query the minimum workspace size required by the PReLU backward call
+ *
+ * @param handle                   MIOpen Handle (input)
+ * @param inputDesc                Tensor descriptor for input tensor (input)
+ * @param weightDesc               Tensor descriptor for weight tensor (input)
+ * @param sizeInBytes              Pointer to data to return the minimum workspace size
+ * @return                         miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenGetPReLUBackwardWorkspaceSize(miopenHandle_t handle,
+                                    miopenTensorDescriptor_t inputDesc,
+                                    miopenTensorDescriptor_t weightDesc,
+                                    size_t* sizeInBytes);
+
+/*! @brief Execute a PReLU backward layer
+ *
+ * @param handle                   MIOpen handle (input)
+ * @param workspace                Address of the allocated workspace data (input)
+ * @param workspaceSizeInBytes     Size in bytes of the allocated workspace data (input)
+ * @param inputDesc                Tensor descriptor for input tensor (input)
+ * @param input                    Data tensor input (input)
+ * @param weightDesc               Tensor descriptor for weight tensor (input)
+ * @param weight                   Data tensor weight (input)
+ * @param doutputDesc              Tensor descriptor for output gradient (input)
+ * @param doutput                  Gradient of output (input)
+ * @param dinputDesc               Tensor descriptor for input gradient (input)
+ * @param dinput                   Gradient of input (output)
+ * @param dweightDesc              Tensor descriptor for weight gradient (input)
+ * @param dweight                  Gradient of weight (output)
+ */
+MIOPEN_EXPORT miopenStatus_t miopenPReLUBackward(miopenHandle_t handle,
+                                                 void* workspace,
+                                                 size_t workspaceSizeInBytes,
+                                                 miopenTensorDescriptor_t inputDesc,
+                                                 const void* input,
+                                                 miopenTensorDescriptor_t weightDesc,
+                                                 const void* weight,
+                                                 miopenTensorDescriptor_t doutputDesc,
+                                                 const void* doutput,
+                                                 miopenTensorDescriptor_t dinputDesc,
+                                                 void* dinput,
+                                                 miopenTensorDescriptor_t dweightDesc,
+                                                 void* dweight);
+
+/** @} */
+// CLOSEOUT RELU DOXYGEN GROUP
 #endif // MIOPEN_BETA_API
 
 #ifdef MIOPEN_BETA_API
