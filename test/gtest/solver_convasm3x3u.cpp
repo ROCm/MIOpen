@@ -35,7 +35,7 @@ TEST_P(GPU_ConvFwdSolverTest_FP32, DISABLED_ConvASM3x3UFwd)
     SolverFwd(solv);
 }
 
-INSTANTIATE_TEST_SUITE_P(Full,
+INSTANTIATE_TEST_SUITE_P(Smoke,
                          GPU_ConvFwdSolverTest_FP32,
                          testing::Combine(testing::Values(Gpu::All),
                                           testing::Values(miopenConvolutionAlgoDirect),

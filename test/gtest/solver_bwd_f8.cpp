@@ -57,7 +57,7 @@ TEST_P(GPU_ConvBwdNaive_FP8, DISABLED_Bwd)
     SolverBwd(solv);
 }
 
-INSTANTIATE_TEST_SUITE_P(Full,
+INSTANTIATE_TEST_SUITE_P(Smoke,
                          GPU_ConvBwd_FP8,
                          testing::Combine(testing::Values(Gpu::All),
                                           testing::Values(miopenConvolutionAlgoGEMM),
@@ -65,7 +65,7 @@ INSTANTIATE_TEST_SUITE_P(Full,
 
 // Since NaiveConv is verified against the CPU, we are conservative in the number and type
 // of test cases we instantiate
-INSTANTIATE_TEST_SUITE_P(Full,
+INSTANTIATE_TEST_SUITE_P(Smoke,
                          GPU_ConvBwdNaive_FP8,
                          testing::Combine(testing::Values(Gpu::All),
                                           testing::Values(miopenConvolutionAlgoGEMM),
