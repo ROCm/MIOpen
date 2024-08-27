@@ -503,6 +503,15 @@ void TensorDescriptor::SetCastType(const miopenDataType_t cast_type_)
 
 miopenTensorLayout_t TensorDescriptor::GetLayout_t() const
 {
+    const auto layout = this->GetLayoutEnum();
+    if(layout)
+        return tensorLayout.value();
+
+    MIOPEN_THROW(miopenStatusInternalError, "Unknown layout");
+}
+
+std::optional<miopenTensorLayout_t> TensorDescriptor::GetLayoutEnum() const
+{
     if(tensorLayout)
         return tensorLayout.value();
 
@@ -517,7 +526,7 @@ miopenTensorLayout_t TensorDescriptor::GetLayout_t() const
             return layout_enum;
     }
 
-    MIOPEN_THROW(miopenStatusInternalError, "Unknown layout");
+    return std::nullopt;
 }
 
 std::string TensorDescriptor::GetLayoutStr(miopenTensorLayout_t layout)
