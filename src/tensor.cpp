@@ -560,7 +560,7 @@ std::string TensorDescriptor::GetLayout_str() const
     case 5: // 5D: lens are in NCDHW order
         return this->GetLayout("NCDHW");
     default:
-        MIOPEN_THROW(miopenStatusInternalError, "Only 4D or 5D tensor is supported");
+        return "UNKNOWN";
     }
     // clang-format on
 }
