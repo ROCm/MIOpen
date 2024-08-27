@@ -511,23 +511,32 @@ miopenTensorLayout_t TensorDescriptor::GetLayout_t() const
     MIOPEN_THROW(miopenStatusInternalError, "Unknown layout");
 }
 
-std::optional<miopenTensorLayout_t> TensorDescriptor::GetLayoutEnum() const
+const std::optional<miopenTensorLayout_t>& TensorDescriptor::GetLayoutEnum() const
 {
-    if(tensorLayout)
-        return tensorLayout.value();
-
-    const auto known_layouts = {std::make_pair("NCHW", miopenTensorNCHW),
-                                std::make_pair("NHWC", miopenTensorNHWC),
-                                std::make_pair("NCDHW", miopenTensorNCDHW),
-                                std::make_pair("NDHWC", miopenTensorNDHWC),
-                                std::make_pair("CHWN", miopenTensorCHWN)};
-    for(const auto& [layout_str, layout_enum] : known_layouts)
+    if(!cached_layout_enum_calculated)
     {
-        if(this->IsPossibleLayout4D5D(layout_str))
-            return layout_enum;
+        cached_layout_enum = [&]() -> std::optional<miopenTensorLayout_t> {
+            if(tensorLayout)
+                return tensorLayout;
+
+            const auto known_layouts = {std::make_pair("NCHW", miopenTensorNCHW),
+                                        std::make_pair("NHWC", miopenTensorNHWC),
+                                        std::make_pair("NCDHW", miopenTensorNCDHW),
+                                        std::make_pair("NDHWC", miopenTensorNDHWC),
+                                        std::make_pair("CHWN", miopenTensorCHWN)};
+            for(const auto& [layout_str, layout_enum] : known_layouts)
+            {
+                if(this->IsPossibleLayout4D5D(layout_str))
+                    return layout_enum;
+            }
+
+            return std::nullopt;
+        }();
+
+        cached_layout_enum_calculated = true;
     }
 
-    return std::nullopt;
+    return cached_layout_enum;
 }
 
 std::string TensorDescriptor::LayoutEnumToStr(miopenTensorLayout_t layout)
@@ -551,7 +560,7 @@ const std::string& TensorDescriptor::GetLayout_str() const
 {
     if(cached_layout_str.empty())
     {
-        cached_layout_str = [&]() {
+        cached_layout_str = [&]() -> std::string {
             if(tensorLayout)
                 return TensorDescriptor::LayoutEnumToStr(tensorLayout.value());
 
@@ -563,7 +572,7 @@ const std::string& TensorDescriptor::GetLayout_str() const
             case 5: // 5D: lens are in NCDHW order
                 return this->GetLayout("NCDHW");
             default:
-                return std::string("UNKNOWN");
+                return "UNKNOWN";
             }
             // clang-format on
         }();

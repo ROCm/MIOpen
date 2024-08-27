@@ -208,7 +208,7 @@ struct MIOPEN_INTERNALS_EXPORT TensorDescriptor : miopenTensorDescriptor
     [[deprecated("Use GetLayoutEnum() instead")]]
     miopenTensorLayout_t GetLayout_t() const;
     // clang-format on
-    std::optional<miopenTensorLayout_t> GetLayoutEnum() const;
+    const std::optional<miopenTensorLayout_t>& GetLayoutEnum() const;
     static std::string LayoutEnumToStr(miopenTensorLayout_t layout);
     const std::string& GetLayout_str() const;
 
@@ -329,7 +329,11 @@ private:
     std::optional<miopenDataType_t> cast_type;
     std::optional<miopenTensorLayout_t> tensorLayout;
 
-    // For GetLayout_str
+    // For GetLayoutEnum()
+    mutable std::optional<miopenTensorLayout_t> cached_layout_enum;
+    mutable bool cached_layout_enum_calculated = false;
+
+    // For GetLayout_str()
     mutable std::string cached_layout_str;
 };
 
