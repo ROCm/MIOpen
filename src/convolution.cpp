@@ -373,7 +373,7 @@ TensorDescriptor ConvolutionDescriptor::GetForwardOutputTensor(const TensorDescr
                                                                miopenDataType_t yType) const
 {
     // output layout same as input
-    const std::string in_layout      = xDesc.GetLayout_str();
+    const std::string in_layout = xDesc.GetLayout_str();
     return GetForwardOutputTensorWithLayout(xDesc, wDesc, in_layout, yType);
 }
 
