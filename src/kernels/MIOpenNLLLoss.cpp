@@ -75,11 +75,9 @@ __device__ void nlllossForward5d(const TI* __restrict__ input,
     size_t target_index = target_tv.get_tensor_view_idx(tensor_layout);
     int32_t t           = target[target_index];
 
-    tensor_layout_t<5> input_layout(n[0], t, n[1], n[2], n[3]);
-    size_t input_index = input_tv.get_tensor_view_idx(input_layout);
+    size_t input_index = input_tv.get_tensor_view_idx({n[0], t, n[1], n[2], n[3]});
 
-    tensor_layout_t<1> weight_layout(t);
-    size_t weight_index = weight_tv.get_tensor_view_idx(weight_layout);
+    size_t weight_index = weight_tv.get_tensor_view_idx({t});
 
     if(t < 0 || t == ignore_index || t >= C)
     {
@@ -126,16 +124,13 @@ __device__ void nlllossBackward2d(TO* __restrict__ input_grad,
     if(gid >= target_tv.size[0])
         return;
 
-    int32_t C = weight_tv.size[0];
-    tensor_layout_t<1> target_layout(gid);
-    size_t target_index = target_tv.get_tensor_view_idx(target_layout);
+    int32_t C           = weight_tv.size[0];
+    size_t target_index = target_tv.get_tensor_view_idx({gid});
     int32_t t           = target[target_index];
 
-    tensor_layout_t<2> input_grad_layout(gid, t);
-    size_t input_grad_index = input_grad_tv.get_tensor_view_idx(input_grad_layout);
+    size_t input_grad_index = input_grad_tv.get_tensor_view_idx({gid, t});
 
-    tensor_layout_t<1> weight_layout(t);
-    size_t weight_index = weight_tv.get_tensor_view_idx(weight_layout);
+    size_t weight_index = weight_tv.get_tensor_view_idx({t});
 
     if(t < 0 || t == ignore_index || t >= C)
     {
@@ -198,13 +193,11 @@ __device__ void nlllossBackward5d(TO* __restrict__ input_grad,
 
     size_t target_index = target_tv.get_tensor_view_idx(tensor_layout);
 
-    int32_t C = weight_tv.size[0];
-    int32_t t = target[target_index];
-    tensor_layout_t<5> input_grad_layout(n[0], t, n[1], n[2], n[3]);
-    size_t input_grad_index = input_grad_tv.get_tensor_view_idx(input_grad_layout);
+    int32_t C               = weight_tv.size[0];
+    int32_t t               = target[target_index];
+    size_t input_grad_index = input_grad_tv.get_tensor_view_idx({n[0], t, n[1], n[2], n[3]});
 
-    tensor_layout_t<1> weight_layout(t);
-    size_t weight_index = weight_tv.get_tensor_view_idx(weight_layout);
+    size_t weight_index = weight_tv.get_tensor_view_idx({t});
 
     if(t < 0 || t == ignore_index || t >= C)
     {
@@ -267,15 +260,12 @@ __device__ void nlllossUnreducedForward5d(const TI* __restrict__ input,
 
     int32_t C = weight_tv.size[0];
 
-    tensor_layout_t<4> target_layout(n[0], n[1], n[2], n[3]);
-    size_t target_index = target_tv.get_tensor_view_idx(target_layout);
+    size_t target_index = target_tv.get_tensor_view_idx({n[0], n[1], n[2], n[3]});
     int32_t t           = target[target_index];
 
-    tensor_layout_t<5> input_layout(n[0], t, n[1], n[2], n[3]);
-    size_t input_index = input_tv.get_tensor_view_idx(input_layout);
+    size_t input_index = input_tv.get_tensor_view_idx({n[0], t, n[1], n[2], n[3]});
 
-    tensor_layout_t<1> weight_layout(t);
-    size_t weight_index = weight_tv.get_tensor_view_idx(weight_layout);
+    size_t weight_index = weight_tv.get_tensor_view_idx({t});
 
     size_t output_index = output_tv.get_tensor_view_idx(tensor_layout);
 
@@ -332,18 +322,14 @@ __device__ void nlllossUnreducedForward4d(const TI* __restrict__ input,
 
     int32_t C = weight_tv.size[0];
 
-    tensor_layout_t<3> target_layout(n[0], n[1], n[2]);
-    size_t target_index = target_tv.get_tensor_view_idx(target_layout);
+    size_t target_index = target_tv.get_tensor_view_idx({n[0], n[1], n[2]});
     int32_t t           = target[target_index];
 
-    tensor_layout_t<4> input_layout(n[0], t, n[1], n[2]);
-    size_t input_index = input_tv.get_tensor_view_idx(input_layout);
+    size_t input_index = input_tv.get_tensor_view_idx({n[0], t, n[1], n[2]});
 
-    tensor_layout_t<1> weight_layout(t);
-    size_t weight_index = weight_tv.get_tensor_view_idx(weight_layout);
+    size_t weight_index = weight_tv.get_tensor_view_idx({t});
 
-    tensor_layout_t<3> output_layout(n[0], n[1], n[2]);
-    size_t output_index = output_tv.get_tensor_view_idx(output_layout);
+    size_t output_index = output_tv.get_tensor_view_idx({n[0], n[1], n[2]});
 
     if(t < 0 || t == ignore_index || t >= C)
     {
@@ -396,10 +382,9 @@ __device__ void nlllossUnreducedForward4dContiguous(const TI* __restrict__ input
     if(n[0] >= output_tv.size[0])
         return;
 
-    int32_t C = input_tv.size[1];
-    int32_t t = target[gid];
-    tensor_layout_t<4> input_layout(n[0], t, n[1], n[2]);
-    size_t input_index = input_tv.get_tensor_view_idx(input_layout);
+    int32_t C          = input_tv.size[1];
+    int32_t t          = target[gid];
+    size_t input_index = input_tv.get_tensor_view_idx({n[0], t, n[1], n[2]});
 
     if(t < 0 || t == ignore_index || t >= C)
     {
@@ -447,17 +432,14 @@ __device__ void nlllossUnreducedForward2d(const TI* __restrict__ input,
 
     int32_t C = weight_tv.size[0];
 
-    tensor_layout_t<1> target_layout(gid);
-    size_t target_index = target_tv.get_tensor_view_idx(target_layout);
+    size_t target_index = target_tv.get_tensor_view_idx({gid});
     int32_t t           = target[target_index];
 
-    tensor_layout_t<2> input_layout(gid, t);
-    size_t input_index = input_tv.get_tensor_view_idx(input_layout);
+    size_t input_index = input_tv.get_tensor_view_idx({gid, t});
 
-    tensor_layout_t<1> weight_layout(t);
-    size_t weight_index = weight_tv.get_tensor_view_idx(weight_layout);
+    size_t weight_index = weight_tv.get_tensor_view_idx({t});
 
-    size_t output_index = output_tv.get_tensor_view_idx(target_layout);
+    size_t output_index = output_tv.get_tensor_view_idx({gid});
 
     if(t < 0 || t == ignore_index || t >= C)
     {
@@ -562,11 +544,9 @@ __device__ void nlllossUnreducedBackward5d(TO* __restrict__ input_grad,
     size_t target_index = target_tv.get_tensor_view_idx(tensor_layout);
     int32_t t           = target[target_index];
 
-    tensor_layout_t<5> input_grad_layout(n[0], t, n[1], n[2], n[3]);
-    size_t input_grad_index = input_grad_tv.get_tensor_view_idx(input_grad_layout);
+    size_t input_grad_index = input_grad_tv.get_tensor_view_idx({n[0], t, n[1], n[2], n[3]});
 
-    tensor_layout_t<1> weight_layout(t);
-    size_t weight_index = weight_tv.get_tensor_view_idx(weight_layout);
+    size_t weight_index = weight_tv.get_tensor_view_idx({t});
 
     size_t output_grad_index = output_grad_tv.get_tensor_view_idx(tensor_layout);
 
@@ -631,11 +611,9 @@ __device__ void nlllossUnreducedBackward4d(TO* __restrict__ input_grad,
     size_t target_index = target_tv.get_tensor_view_idx(tensor_layout);
     int32_t t           = target[target_index];
 
-    tensor_layout_t<4> input_grad_layout(n[0], t, n[1], n[2]);
-    size_t input_grad_index = input_grad_tv.get_tensor_view_idx(input_grad_layout);
+    size_t input_grad_index = input_grad_tv.get_tensor_view_idx({n[0], t, n[1], n[2]});
 
-    tensor_layout_t<1> weight_layout(t);
-    size_t weight_index = weight_tv.get_tensor_view_idx(weight_layout);
+    size_t weight_index = weight_tv.get_tensor_view_idx({t});
 
     size_t output_grad_index = output_grad_tv.get_tensor_view_idx(tensor_layout);
 
@@ -698,8 +676,8 @@ __device__ void nlllossUnreducedBackward4dContiguous(TO* __restrict__ input_grad
 
     int32_t C = weight_tv.size[0];
     int32_t t = target[gid];
-    tensor_layout_t<4> input_grad_layout(n[0], t, n[1], n[2]);
-    size_t input_grad_index = input_grad_tv.get_tensor_view_idx(input_grad_layout);
+
+    size_t input_grad_index = input_grad_tv.get_tensor_view_idx({n[0], t, n[1], n[2]});
 
     if(t < 0 || t == ignore_index || t >= C)
     {
@@ -757,11 +735,9 @@ __device__ void nlllossUnreducedBackward2d(TO* __restrict__ input_grad,
     size_t target_index = target_tv.get_tensor_view_idx(tensor_layout);
     int32_t t           = target[target_index];
 
-    tensor_layout_t<2> input_grad_layout(gid, t);
-    size_t input_grad_index = input_grad_tv.get_tensor_view_idx(input_grad_layout);
+    size_t input_grad_index = input_grad_tv.get_tensor_view_idx({gid, t});
 
-    tensor_layout_t<1> weight_layout(t);
-    size_t weight_index = weight_tv.get_tensor_view_idx(weight_layout);
+    size_t weight_index = weight_tv.get_tensor_view_idx({t});
 
     size_t output_grad_index = output_grad_tv.get_tensor_view_idx(tensor_layout);
 
@@ -818,8 +794,8 @@ __device__ void nlllossUnreducedBackward2dContiguous(TO* __restrict__ input_grad
 
     int32_t C = weight_tv.size[0];
     int32_t t = target[gid];
-    tensor_layout_t<2> input_grad_layout(gid, t);
-    size_t input_grad_index = input_grad_tv.get_tensor_view_idx(input_grad_layout);
+
+    size_t input_grad_index = input_grad_tv.get_tensor_view_idx({gid, t});
 
     if(t < 0 || t == ignore_index || t >= C)
     {

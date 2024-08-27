@@ -81,11 +81,9 @@ void cpu_nllloss_reduce_forward_5d(tensor<T> input,
         size_t target_index = target_tv.get_tensor_view_idx(tensor_layout);
         int32_t t           = target[target_index];
 
-        tensor_layout_t<5> input_layout(n[0], t, n[1], n[2], n[3]);
-        size_t input_index = input_tv.get_tensor_view_idx(input_layout);
+        size_t input_index = input_tv.get_tensor_view_idx({n[0], t, n[1], n[2], n[3]});
 
-        tensor_layout_t<1> weight_layout(t);
-        size_t weight_index = weight_tv.get_tensor_view_idx(weight_layout);
+        size_t weight_index = weight_tv.get_tensor_view_idx({t});
 
         if(t < 0 || t == ignore_index || t >= C)
         {
@@ -188,17 +186,14 @@ void cpu_nllloss_unreduce_forward_2d(tensor<T> input,
 
     for(size_t i = 0; i < numel; i++)
     {
-        tensor_layout_t<1> target_layout(i);
-        size_t target_index = target_tv.get_tensor_view_idx(target_layout);
+        size_t target_index = target_tv.get_tensor_view_idx({i});
         int32_t t           = target[target_index];
 
-        tensor_layout_t<2> input_layout(i, t);
-        size_t input_index = input_tv.get_tensor_view_idx(input_layout);
+        size_t input_index = input_tv.get_tensor_view_idx({i, t});
 
-        tensor_layout_t<1> weight_layout(t);
-        size_t weight_index = weight_tv.get_tensor_view_idx(weight_layout);
+        size_t weight_index = weight_tv.get_tensor_view_idx({t});
 
-        size_t output_index = output_tv.get_tensor_view_idx(target_layout);
+        size_t output_index = output_tv.get_tensor_view_idx({i});
 
         if(t < 0 || t == ignore_index || t >= C)
         {
@@ -234,21 +229,17 @@ void cpu_nllloss_unreduce_forward_4d(tensor<T> input,
     {
         auto tensor_layout = tensor_layout_t<3>(output_tv, i);
         uint64_t n[3];
-        n[0] = tensor_layout.layout[0];
-        n[1] = tensor_layout.layout[1];
-        n[2] = tensor_layout.layout[2];
-        tensor_layout_t<3> target_layout(n[0], n[1], n[2]);
-        size_t target_index = target_tv.get_tensor_view_idx(target_layout);
+        n[0]                = tensor_layout.layout[0];
+        n[1]                = tensor_layout.layout[1];
+        n[2]                = tensor_layout.layout[2];
+        size_t target_index = target_tv.get_tensor_view_idx({n[0], n[1], n[2]});
         int32_t t           = target[target_index];
 
-        tensor_layout_t<4> input_layout(n[0], t, n[1], n[2]);
-        size_t input_index = input_tv.get_tensor_view_idx(input_layout);
+        size_t input_index = input_tv.get_tensor_view_idx({n[0], t, n[1], n[2]});
 
-        tensor_layout_t<1> weight_layout(t);
-        size_t weight_index = weight_tv.get_tensor_view_idx(weight_layout);
+        size_t weight_index = weight_tv.get_tensor_view_idx({t});
 
-        tensor_layout_t<3> output_layout(n[0], n[1], n[2]);
-        size_t output_index = output_tv.get_tensor_view_idx(output_layout);
+        size_t output_index = output_tv.get_tensor_view_idx({n[0], n[1], n[2]});
 
         if(t < 0 || t == ignore_index || t >= C)
         {
@@ -289,15 +280,12 @@ void cpu_nllloss_unreduce_forward_5d(tensor<T> input,
         n[2] = tensor_layout.layout[2];
         n[3] = tensor_layout.layout[3];
 
-        tensor_layout_t<4> target_layout(n[0], n[1], n[2], n[3]);
-        size_t target_index = target_tv.get_tensor_view_idx(target_layout);
+        size_t target_index = target_tv.get_tensor_view_idx({n[0], n[1], n[2], n[3]});
         int32_t t           = target[target_index];
 
-        tensor_layout_t<5> input_layout(n[0], t, n[1], n[2], n[3]);
-        size_t input_index = input_tv.get_tensor_view_idx(input_layout);
+        size_t input_index = input_tv.get_tensor_view_idx({n[0], t, n[1], n[2], n[3]});
 
-        tensor_layout_t<1> weight_layout(t);
-        size_t weight_index = weight_tv.get_tensor_view_idx(weight_layout);
+        size_t weight_index = weight_tv.get_tensor_view_idx({t});
 
         size_t output_index = output_tv.get_tensor_view_idx(tensor_layout);
 
@@ -337,11 +325,9 @@ void cpu_nllloss_unreduce_backward_2d(tensor<T>& input_grad,
         size_t target_index = target_tv.get_tensor_view_idx(tensor_layout);
         int32_t t           = target[target_index];
 
-        tensor_layout_t<2> input_grad_layout(i, t);
-        size_t input_grad_index = input_grad_tv.get_tensor_view_idx(input_grad_layout);
+        size_t input_grad_index = input_grad_tv.get_tensor_view_idx({i, t});
 
-        tensor_layout_t<1> weight_layout(t);
-        size_t weight_index = weight_tv.get_tensor_view_idx(weight_layout);
+        size_t weight_index = weight_tv.get_tensor_view_idx({t});
 
         size_t output_grad_index = output_grad_tv.get_tensor_view_idx(tensor_layout);
 
@@ -387,11 +373,9 @@ void cpu_nllloss_unreduce_backward_4d(tensor<T>& input_grad,
         size_t target_index = target_tv.get_tensor_view_idx(tensor_layout);
         int32_t t           = target[target_index];
 
-        tensor_layout_t<4> input_grad_layout(n[0], t, n[1], n[2]);
-        size_t input_grad_index = input_tv.get_tensor_view_idx(input_grad_layout);
+        size_t input_grad_index = input_tv.get_tensor_view_idx({n[0], t, n[1], n[2]});
 
-        tensor_layout_t<1> weight_layout(t);
-        size_t weight_index = weight_tv.get_tensor_view_idx(weight_layout);
+        size_t weight_index = weight_tv.get_tensor_view_idx({t});
 
         size_t output_grad_index = output_grad_tv.get_tensor_view_idx(tensor_layout);
 
@@ -438,11 +422,9 @@ void cpu_nllloss_unreduce_backward_5d(tensor<T>& input_grad,
         size_t target_index = target_tv.get_tensor_view_idx(tensor_layout);
         int32_t t           = target[target_index];
 
-        tensor_layout_t<5> input_grad_layout(n[0], t, n[1], n[2], n[3]);
-        size_t input_grad_index = input_grad_tv.get_tensor_view_idx(input_grad_layout);
+        size_t input_grad_index = input_grad_tv.get_tensor_view_idx({n[0], t, n[1], n[2], n[3]});
 
-        tensor_layout_t<1> weight_layout(t);
-        size_t weight_index = weight_tv.get_tensor_view_idx(weight_layout);
+        size_t weight_index = weight_tv.get_tensor_view_idx({t});
 
         size_t output_grad_index = output_grad_tv.get_tensor_view_idx(tensor_layout);
 
@@ -479,15 +461,12 @@ void cpu_nllloss_reduce_backward_2d(tensor<T>& input_grad,
 
     for(size_t i = 0; i < numel; i++)
     {
-        tensor_layout_t<1> target_layout(i);
-        size_t target_index = target_tv.get_tensor_view_idx(target_layout);
+        size_t target_index = target_tv.get_tensor_view_idx({i});
         int32_t t           = target[target_index];
 
-        tensor_layout_t<2> input_grad_layout(i, t);
-        size_t input_grad_index = input_grad_tv.get_tensor_view_idx(input_grad_layout);
+        size_t input_grad_index = input_grad_tv.get_tensor_view_idx({i, t});
 
-        tensor_layout_t<1> weight_layout(t);
-        size_t weight_index = weight_tv.get_tensor_view_idx(weight_layout);
+        size_t weight_index = weight_tv.get_tensor_view_idx({t});
 
         if(t < 0 || t == ignore_index || t >= C)
         {
@@ -532,11 +511,9 @@ void cpu_nllloss_reduce_backward_5d(tensor<T>& input_grad,
         size_t target_index = target_tv.get_tensor_view_idx(tensor_layout);
         int32_t t           = target[target_index];
 
-        tensor_layout_t<5> input_grad_layout(n[0], t, n[1], n[2], n[3]);
-        size_t input_grad_index = input_grad_tv.get_tensor_view_idx(input_grad_layout);
+        size_t input_grad_index = input_grad_tv.get_tensor_view_idx({n[0], t, n[1], n[2], n[3]});
 
-        tensor_layout_t<1> weight_layout(t);
-        size_t weight_index = weight_tv.get_tensor_view_idx(weight_layout);
+        size_t weight_index = weight_tv.get_tensor_view_idx({t});
 
         if(t < 0 || t == ignore_index || t >= C)
         {
