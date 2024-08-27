@@ -29,12 +29,17 @@
 import re
 import sys
 import argparse
+from collections import defaultdict
+import logging
+
+logging.basicConfig(level=logging.WARNING)
+logger = logging.getLogger("GTest name checker")
 
 """regexp based on https://github.com/ROCm/MIOpen/wiki/GTest-development#naming"""
-re_prefix = re.compile(r"^((Smoke)|(Full)|(Perf)|(Unit.*))")
-re_hw = re.compile(r"^((CPU)|(GPU))")
+re_prefix = re.compile(r"^((Smoke)|(Full)|(Perf)|(Unit.*))$")
+re_hw = re.compile(r"^((CPU)|(GPU))$")
 re_datatype = re.compile(
-    r"^((FP((8)|(16)|(32)|(64)))|(BFP((8)|(16)))|(I((8)|(32)))|(NONE))"
+    r"^((FP((8)|(16)|(32)|(64)))|(BFP((8)|(16)))|(I((8)|(32)))|(NONE))\.$"
 )
 
 
@@ -54,12 +59,9 @@ def parse_args():
     return args
 
 
-def main():
-    """Main function"""
-    args = parse_args()
-    mismatched_prefix = []
-    mismatched_hw = []
-    mismatched_datatype = []
+def parse_tests(args):
+
+    mismatches = defaultdict(str)
 
     with open(args.list) as fp:
         for line in fp.readlines()[2:]:
@@ -81,37 +83,27 @@ def main():
             hw = re.search(re_hw, name[0])
             datatype = re.search(re_datatype, name[-1])
             if not prefix:
-                mismatched_prefix.append(line)
+                mismatches[line] += " Prefix"
             if not hw:
-                mismatched_hw.append(line)
+                mismatches[line] += " Hw"
             if not datatype:
-                mismatched_datatype.append(line)
+                mismatches[line] += " Datatype"
 
-        if mismatched_prefix:
-            print(
-                "Prefix mismatch (see https://github.com/ROCm/MIOpen/wiki/GTest-development#naming)"
+        for l, k in mismatches.items():
+            logger.warning("Name: " + l + " Mismatch types:" + k)
+
+        if mismatches:
+            logger.critical(
+                "Tests do not match to the test naming scheme (see https://github.com/ROCm/MIOpen/wiki/GTest-development#naming )"
             )
-            for line in mismatched_prefix:
-                print("    ", line)
-
-        if mismatched_hw:
-            print(
-                "HW type mismatch (see https://github.com/ROCm/MIOpen/wiki/GTest-development#naming)"
-            )
-            for line in mismatched_hw:
-                print("    ", line)
-
-        if mismatched_datatype:
-            print(
-                "Data type mismatch (see https://github.com/ROCm/MIOpen/wiki/GTest-development#naming)"
-            )
-            for line in mismatched_datatype:
-                print("    ", line)
-
-        # uncomment when all the tests will be renamed
-        # if mismatched_prefix or mismatched_hw or mismatched_datatype:
-        #     return -1
+            # return -1  # uncomment when all the tests will be renamed
     return 0
+
+
+def main():
+    """Main function"""
+    args = parse_args()
+    return parse_tests(args)
 
 
 if __name__ == "__main__":
