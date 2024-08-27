@@ -210,7 +210,7 @@ struct MIOPEN_INTERNALS_EXPORT TensorDescriptor : miopenTensorDescriptor
     // clang-format on
     std::optional<miopenTensorLayout_t> GetLayoutEnum() const;
     static std::string LayoutEnumToStr(miopenTensorLayout_t layout);
-    std::string GetLayout_str() const;
+    const std::string& GetLayout_str() const;
 
     std::size_t GetVectorLength() const;
     std::optional<miopenDataType_t> GetCastType() const;
@@ -328,6 +328,9 @@ private:
     miopenDataType_t type = miopenFloat;
     std::optional<miopenDataType_t> cast_type;
     std::optional<miopenTensorLayout_t> tensorLayout;
+
+    // For GetLayout_str
+    mutable std::string cached_layout_str;
 };
 
 template <class TElement>

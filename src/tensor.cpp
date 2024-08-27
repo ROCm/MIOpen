@@ -547,22 +547,29 @@ std::string TensorDescriptor::LayoutEnumToStr(miopenTensorLayout_t layout)
     }
 }
 
-std::string TensorDescriptor::GetLayout_str() const
+const std::string& TensorDescriptor::GetLayout_str() const
 {
-    if(tensorLayout)
-        return TensorDescriptor::LayoutEnumToStr(tensorLayout.value());
-
-    // clang-format off
-    switch(this->GetNumDims())
+    if(cached_layout_str.empty())
     {
-    case 4: // 4D: lens are in NCHW order
-        return this->GetLayout("NCHW");
-    case 5: // 5D: lens are in NCDHW order
-        return this->GetLayout("NCDHW");
-    default:
-        return "UNKNOWN";
+        cached_layout_str = [&]() {
+            if(tensorLayout)
+                return TensorDescriptor::LayoutEnumToStr(tensorLayout.value());
+
+            // clang-format off
+            switch(this->GetNumDims())
+            {
+            case 4: // 4D: lens are in NCHW order
+                return this->GetLayout("NCHW");
+            case 5: // 5D: lens are in NCDHW order
+                return this->GetLayout("NCDHW");
+            default:
+                return std::string("UNKNOWN");
+            }
+            // clang-format on
+        }();
     }
-    // clang-format on
+
+    return cached_layout_str;
 }
 
 std::size_t TensorDescriptor::GetVectorLength() const { return this->vector_length; }
