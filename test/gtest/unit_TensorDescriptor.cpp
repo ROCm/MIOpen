@@ -94,6 +94,21 @@ struct TestCaseGetLayoutStr
     }
 };
 
+struct TestCaseLayoutEnumToStr
+{
+    miopenTensorLayout_t layout_enum;
+    std::string layout_str;
+
+    friend std::ostream& operator<<(std::ostream& os, const TestCaseLayoutEnumToStr& tc)
+    {
+        os << "(";
+        os << static_cast<int>(tc.layout_enum) << ", ";
+        os << tc.layout_str;
+        os << ")";
+        return os;
+    }
+};
+
 class TestPossibleLayout4D5D : public ::testing::TestWithParam<TestCasePossibleLayout>
 {
     static auto& GetAllLayouts()
@@ -359,17 +374,46 @@ public:
     }
 };
 
+class TestLayoutEnumToStr : public ::testing::TestWithParam<TestCaseLayoutEnumToStr>
+{
+public:
+    static auto GetTestCases()
+    {
+        using TestCase = TestCaseLayoutEnumToStr;
+
+        return std::vector{
+            TestCase{miopenTensorNCHW, "NCHW"},
+            TestCase{miopenTensorNHWC, "NHWC"},
+            TestCase{miopenTensorCHWN, "CHWN"},
+            TestCase{miopenTensorNCHWc4, "NCHWc"},
+            TestCase{miopenTensorNCHWc8, "NCHWc"},
+            TestCase{miopenTensorCHWNc4, "CHWNc"},
+            TestCase{miopenTensorCHWNc8, "CHWNc"},
+            TestCase{miopenTensorNCDHW, "NCDHW"},
+            TestCase{miopenTensorNDHWC, "NDHWC"},
+        };
+    }
+
+    void RunTest()
+    {
+        const auto p = GetParam();
+        ASSERT_EQ(miopen::TensorDescriptor::LayoutEnumToStr(p.layout_enum), p.layout_str);
+    }
+};
+
 } // namespace
 
 using CPU_TensorTestPossibleLayout4D5D_NONE = TestPossibleLayout4D5D;
 using CPU_TensorTestGetLayoutT_NONE         = TestGetLayoutT;
 using CPU_TensorTestGetLayoutEnum_NONE      = TestGetLayoutEnum;
 using CPU_TensorTestGetLayoutStr_NONE       = TestGetLayoutStr;
+using CPU_TensorTestLayoutEnumToStr_NONE    = TestLayoutEnumToStr;
 
 TEST_P(CPU_TensorTestPossibleLayout4D5D_NONE, TensorDescriptor) { this->RunTest(); };
 TEST_P(CPU_TensorTestGetLayoutT_NONE, TensorDescriptor) { this->RunTest(); };
 TEST_P(CPU_TensorTestGetLayoutEnum_NONE, TensorDescriptor) { this->RunTest(); };
 TEST_P(CPU_TensorTestGetLayoutStr_NONE, TensorDescriptor) { this->RunTest(); };
+TEST_P(CPU_TensorTestLayoutEnumToStr_NONE, TensorDescriptor) { this->RunTest(); };
 
 INSTANTIATE_TEST_SUITE_P(Full,
                          CPU_TensorTestPossibleLayout4D5D_NONE,
@@ -386,3 +430,7 @@ INSTANTIATE_TEST_SUITE_P(Full,
 INSTANTIATE_TEST_SUITE_P(Full,
                          CPU_TensorTestGetLayoutStr_NONE,
                          testing::ValuesIn(TestGetLayoutStr::GetTestCases()));
+
+INSTANTIATE_TEST_SUITE_P(Full,
+                         CPU_TensorTestLayoutEnumToStr_NONE,
+                         testing::ValuesIn(TestLayoutEnumToStr::GetTestCases()));
