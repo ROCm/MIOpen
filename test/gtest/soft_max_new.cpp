@@ -109,6 +109,7 @@ using GPU_SoftMax_Fwd_FP32 = SoftMaxTest<float>;
 
 TEST_P(GPU_SoftMax_Fwd_FP32, Test){
     // print input test parameters
+    std::cout << "Run " << std::endl;
     std::cout << "Input Dimensions: " << input << std::endl;
     std::cout << "Softmax Algorithm: " << algo << std::endl;
     std::cout << "Softmax Mode: " << mode << std::endl;
