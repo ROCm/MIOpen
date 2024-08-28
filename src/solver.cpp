@@ -684,10 +684,6 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
     Register(registry,
              ++id,
              Primitive::MultiMarginLoss,
-             multimarginloss::MultiMarginLossUnreducedForward{}.SolverDbId());
-    Register(registry,
-             ++id,
-             Primitive::MultiMarginLoss,
              multimarginloss::MultiMarginLossForward{}.SolverDbId());
 
     // IMPORTANT: New solvers should be added to the end of the function!

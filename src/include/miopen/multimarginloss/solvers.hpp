@@ -37,23 +37,6 @@ namespace multimarginloss {
 using ForwardMultiMarginLossSolver =
     NonTunableSolverBase<ExecutionContext, miopen::multimarginloss::ForwardProblemDescription>;
 
-struct MultiMarginLossUnreducedForward final : ForwardMultiMarginLossSolver
-{
-    const std::string& SolverDbId() const override
-    {
-        return GetSolverDbId<MultiMarginLossUnreducedForward>();
-    }
-    bool
-    IsImprovementOverROCm(const ExecutionContext& context,
-                          const miopen::multimarginloss::ForwardProblemDescription& problem) const;
-    bool
-    IsApplicable(const ExecutionContext& context,
-                 const miopen::multimarginloss::ForwardProblemDescription& problem) const override;
-    ConvSolution
-    GetSolution(const ExecutionContext& context,
-                const miopen::multimarginloss::ForwardProblemDescription& problem) const override;
-};
-
 struct MultiMarginLossForward final : ForwardMultiMarginLossSolver
 {
     const std::string& SolverDbId() const override

@@ -45,10 +45,6 @@ std::size_t GetMultiMarginLossForwardWorkspaceSize(Handle& handle,
                                                    const float margin,
                                                    miopenLossReductionMode_t reduction)
 {
-    if(reduction == MIOPEN_LOSS_REDUCTION_NONE)
-    {
-        return static_cast<size_t>(0);
-    }
     auto ctx           = ExecutionContext{&handle};
     const auto problem = multimarginloss::ForwardProblemDescription{
         iDesc, tDesc, wDesc, oDesc, p, margin, reduction};
@@ -96,21 +92,9 @@ miopenStatus_t MultiMarginLossForward(Handle& handle,
         return tmp;
     }();
 
-    if(reduction == MIOPEN_LOSS_REDUCTION_NONE)
-    {
-        const auto algo = AlgorithmName{"MultiMarginLossUnreducedForward"};
-        const auto solvers =
-            solver::SolverContainer<solver::multimarginloss::MultiMarginLossUnreducedForward>{};
-
-        solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
-    }
-    else
-    {
-        const auto algo = AlgorithmName{"MultiMarginLossForward"};
-        const auto solvers =
-            solver::SolverContainer<solver::multimarginloss::MultiMarginLossForward>{};
-        solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
-    }
+    const auto algo    = AlgorithmName{"MultiMarginLossForward"};
+    const auto solvers = solver::SolverContainer<solver::multimarginloss::MultiMarginLossForward>{};
+    solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
 
     return miopenStatusSuccess;
 }
