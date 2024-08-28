@@ -35,22 +35,17 @@ struct tensor_layout_t;
 template <int N>
 struct tensor_view_t
 {
-    constexpr uint64_t get_tensor_view_idx(const uint64_t (&layout)[N])
+    // Get index in tensor view at tensor layout
+    constexpr uint64_t get_tensor_view_idx(const tensor_layout_t<N>& tensor_layout)
     {
         static_assert(N > 0);
         uint64_t idx = 0;
         for(auto i = 0; i < N; ++i)
         {
-            idx += stride[i] * layout[i];
+            idx += stride[i] * tensor_layout.layout[i];
         }
         return idx;
     }
-
-    constexpr uint64_t get_tensor_view_idx(const tensor_layout_t<N>& tensor_layout)
-    {
-        return get_tensor_view_idx(tensor_layout.layout);
-    }
-
     uint64_t stride[N];
     uint64_t size[N];
 };
