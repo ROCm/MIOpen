@@ -87,31 +87,20 @@ extern "C" miopenStatus_t miopenMultiMarginLossForward(miopenHandle_t handle,
                         workspace,
                         workspaceSizeInBytes);
 
-    if(reduction == MIOPEN_LOSS_REDUCTION_NONE || reduction == MIOPEN_LOSS_REDUCTION_SUM ||
-       reduction == MIOPEN_LOSS_REDUCTION_MEAN)
-    {
-        return miopen::try_([&] {
-            miopen::MultiMarginLossForward(miopen::deref(handle),
-                                           DataCast(workspace),
-                                           workspaceSizeInBytes,
-                                           miopen::deref(inputDesc),
-                                           DataCast(input),
-                                           miopen::deref(targetDesc),
-                                           DataCast(target),
-                                           miopen::deref(weightDesc),
-                                           DataCast(weight),
-                                           miopen::deref(outputDesc),
-                                           DataCast(output),
-                                           p,
-                                           margin,
-                                           reduction);
-        });
-    }
-    else
-    {
-        MIOPEN_THROW(miopenStatusBadParm,
-                     "miopenMultiMarginLossForward: reduction should be "
-                     "MIOPEN_LOSS_REDUCTION_NONE, "
-                     "MIOPEN_LOSS_REDUCTION_SUM or MIOPEN_LOSS_REDUCTION_MEAN.");
-    }
+    return miopen::try_([&] {
+        miopen::MultiMarginLossForward(miopen::deref(handle),
+                                       DataCast(workspace),
+                                       workspaceSizeInBytes,
+                                       miopen::deref(inputDesc),
+                                       DataCast(input),
+                                       miopen::deref(targetDesc),
+                                       DataCast(target),
+                                       miopen::deref(weightDesc),
+                                       DataCast(weight),
+                                       miopen::deref(outputDesc),
+                                       DataCast(output),
+                                       p,
+                                       margin,
+                                       reduction);
+    });
 }

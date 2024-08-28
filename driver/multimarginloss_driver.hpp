@@ -31,7 +31,6 @@
 #include "tensor_driver.hpp"
 #include "timer.hpp"
 #include "random.hpp"
-#include <algorithm>
 #include <cstdint>
 #include <cstdlib>
 #include <memory>
@@ -49,7 +48,7 @@ int32_t mloMultiMarginLossForwardRunHost(const miopenTensorDescriptor_t iDesc,
                                          const miopenTensorDescriptor_t oDesc,
                                          const long p,
                                          const float margin,
-                                         const float divisor,
+                                         const miopenLossReductionMode_t reduction_mode,
                                          const Tgpu* input,
                                          const uint64_t* target,
                                          const Tgpu* weight,
@@ -84,13 +83,15 @@ int32_t mloMultiMarginLossForwardRunHost(const miopenTensorDescriptor_t iDesc,
             t = weight[W_tv.get_tensor_view_idx({y})] * t;
             loss += t / C;
         }
-        if(divisor != 0)
+        if(reduction_mode != MIOPEN_LOSS_REDUCTION_NONE)
             sum_loss += loss;
         else
             ref_output[O_tv.get_tensor_view_idx({n})] = static_cast<Tcheck>(loss);
     }
-    if(divisor != 0)
-        ref_output[0] = static_cast<Tcheck>(sum_loss / divisor);
+    if(reduction_mode == MIOPEN_LOSS_REDUCTION_MEAN)
+        ref_output[0] = static_cast<Tcheck>(sum_loss / N);
+    else if(reduction_mode == MIOPEN_LOSS_REDUCTION_SUM)
+        ref_output[0] = static_cast<Tcheck>(sum_loss);
     return ret;
 }
 
@@ -382,16 +383,17 @@ int MultiMarginLossDriver<Tgpu, Tref>::RunForwardGPU()
 template <typename Tgpu, typename Tref>
 int MultiMarginLossDriver<Tgpu, Tref>::RunForwardCPU()
 {
-    float divisor;
-    switch(reduction_mode)
-    {
-    case MIOPEN_LOSS_REDUCTION_NONE: divisor = 0; break;
-    case MIOPEN_LOSS_REDUCTION_MEAN: divisor = miopen::deref(iDesc).GetLengths()[0]; break;
-    case MIOPEN_LOSS_REDUCTION_SUM: divisor = 1; break;
-    }
-
-    mloMultiMarginLossForwardRunHost(
-        iDesc, tDesc, wDesc, oDesc, p, margin, divisor, I.data(), T.data(), W.data(), Ohost.data());
+    mloMultiMarginLossForwardRunHost(iDesc,
+                                     tDesc,
+                                     wDesc,
+                                     oDesc,
+                                     p,
+                                     margin,
+                                     reduction_mode,
+                                     I.data(),
+                                     T.data(),
+                                     W.data(),
+                                     Ohost.data());
     return miopenStatusSuccess;
 }
 
