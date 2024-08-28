@@ -35,7 +35,7 @@
 #include <miopen/float_equal.hpp>
 
 #define MAX_TENSOR_ELEM 17
-#define PERF_ENABLE 1
+#define PERF_ENABLE 0
 #define POW_2 1
 
 struct TensorsConfig
@@ -153,13 +153,13 @@ std::vector<TensorsConfig> TensorsConfigs()
 
 template <typename T>
 struct Op2DTensorGenericTest
-    : public ::testing::TestWithParam<std::tuple<TensorsConfig, std::vector<float>>>
+    : public ::testing::TestWithParam<std::tuple<TensorsConfig, float, float, float>>
 {
 protected:
     void SetUp() override
     {
         auto&& handle = get_handle();
-        std::tie(tensorsConfig, alphabeta) = GetParam();
+        std::tie(tensorsConfig, alpha0, alpha1, beta) = GetParam();
 
         data_type = miopen_type<T>{};
 
@@ -254,9 +254,9 @@ protected:
                                  tensC_dev.get(),
                                  static_cast<int>(tensorsConfig.aclens[1]),
                                  static_cast<int>(tensorsConfig.acstrides[0]),
-                                 alphabeta[0],
-                                 alphabeta[1],
-                                 alphabeta[2],
+                                 alpha0,
+                                 alpha1,
+                                 beta,
                                  bitmap,
                                  work_per_wg,
                                  static_cast<int64_t>(0),
@@ -280,9 +280,9 @@ protected:
                         tensC_dev.get(),
                         static_cast<int>(tensorsConfig.aclens[1]),
                         static_cast<int>(tensorsConfig.acstrides[0]),
-                        alphabeta[0],
-                        alphabeta[1],
-                        alphabeta[2],
+                        alpha0,
+                        alpha1,
+                        beta,
                         bitmap,
                         work_per_wg,
                         static_cast<int64_t>(0),
@@ -316,9 +316,9 @@ protected:
                                  tensC_dev.get(),
                                  static_cast<int>(tensorsConfig.aclens[1]),
                                  static_cast<int>(tensorsConfig.acstrides[0]),
-                                 alphabeta[0],
-                                 alphabeta[1],
-                                 alphabeta[2],
+                                 alpha0,
+                                 alpha1,
+                                 beta,
                                  bitmap,
                                  work_per_wg,
                                  static_cast<int64_t>(0),
@@ -342,9 +342,9 @@ protected:
                         tensC_dev.get(),
                         static_cast<int>(tensorsConfig.aclens[1]),
                         static_cast<int>(tensorsConfig.acstrides[0]),
-                        alphabeta[0],
-                        alphabeta[1],
-                        alphabeta[2],
+                        alpha0,
+                        alpha1,
+                        beta,
                         bitmap,
                         work_per_wg,
                         static_cast<int64_t>(0),
@@ -372,8 +372,9 @@ protected:
             stats += "_blens_" + std::to_string(tensorsConfig.blens[0]) + "_" +
                      std::to_string(tensorsConfig.blens[1]) + "_bstrides_" +
                      std::to_string(tensorsConfig.bstrides[0]) + "_" +
-                     std::to_string(tensorsConfig.bstrides[1]) + "_" +
-                     miopen::GetDataType(data_type);
+                     std::to_string(tensorsConfig.bstrides[1]) + "_";
+            stats += "alpha0_" + std::to_string(alpha0) + "_alpha1_" + std::to_string(alpha1) +
+                     "_beta_" + std::to_string(beta) + "_" + miopen::GetDataType(data_type);
 
             ph.writeStatsToCSV("tensor_2d.csv", stats);
         }
@@ -399,7 +400,7 @@ protected:
     miopen::Allocator::ManageDataPtr tensC_dev;
 
     TensorsConfig tensorsConfig;
-    std::vector<float> alphabeta;
+    float alpha0, alpha1, beta;
 
     PerfHelper<T> ph;
 };
@@ -421,6 +422,6 @@ TEST_P(GPU_Op2dTensorGenericTest_FP32, PortTest)
 INSTANTIATE_TEST_SUITE_P(Smoke,
                          GPU_Op2dTensorGenericTest_FP32,
                          testing::Combine(testing::ValuesIn(TensorsConfigs<float>()),
-                                          testing::Values(std::vector<float>{1, 1, 0},
-                                                          std::vector<float>{-1, 1, 1},
-                                                          std::vector<float>{1.0, 0.5, 0})));
+                                          testing::Values(1.0f),
+                                          testing::Values(1.0f),
+                                          testing::Values(0.0f, 1.0f)));
