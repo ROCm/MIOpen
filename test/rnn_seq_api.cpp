@@ -61,6 +61,8 @@ struct rnn_seq_driver : rnn_seq_api_test_driver<T>
         this->add(this->nocx, "nocx", this->generate_data({false, true}));
         this->add(this->nohy, "nohy", this->generate_data({false}));
         this->add(this->nocy, "nocy", this->generate_data({false, true}));
+
+        this->add(this->pytorchTensorDescriptorFormat, "pyDescFormat", this->generate_data(modes));
     }
 
     rnn_seq_driver(bool) : rnn_seq_api_test_driver<T>() {}
@@ -157,6 +159,8 @@ struct lstm_MS_solver : rnn_seq_driver<T>
         this->add(this->nocx, "nocx", this->generate_data(modes));
         this->add(this->nohy, "nohy", this->generate_data(modes));
         this->add(this->nocy, "nocy", this->generate_data(modes));
+
+        this->add(this->pytorchTensorDescriptorFormat, "pyDescFormat", this->generate_data(modes));
     }
 
     void run()

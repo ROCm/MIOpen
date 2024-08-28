@@ -975,11 +975,11 @@ private:
 
 } // namespace
 
-class GraphApiOperationConvolution : public testing::TestWithParam<GTestDescriptor>
+class CPU_GraphApiOperationConvolution_NONE : public testing::TestWithParam<GTestDescriptor>
 {
 };
 
-TEST_P(GraphApiOperationConvolution, CFuntions)
+TEST_P(CPU_GraphApiOperationConvolution_NONE, CFuntions)
 {
     auto [descrTextName, descrType, attrsValid, attributes] = GetParam();
 
@@ -1150,8 +1150,8 @@ TEST_P(GraphApiOperationConvolution, CFuntions)
 // TODO: Use testing::Combine to make
 //       this list concise
 INSTANTIATE_TEST_SUITE_P(
-    GraphApiOperationConvolution,
-    GraphApiOperationConvolution,
+    Unit,
+    CPU_GraphApiOperationConvolution_NONE,
     testing::Values(
 
         // Forward valid

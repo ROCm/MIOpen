@@ -32,4 +32,14 @@ if(HAS_LIB_STD_FILESYSTEM)
     target_link_libraries(addkernels PRIVATE stdc++fs)
 endif()
 
+# This hack is for MIOPEN_WORKAROUND_USE_BOOST_FILESYSTEM.
+# We can't use config.h because it is generated after addkernels.
+target_compile_definitions(addkernels PRIVATE -DMIOPEN_HACK_DO_NOT_INCLUDE_CONFIG_H=1)
+if(MIOPEN_WORKAROUND_USE_BOOST_FILESYSTEM)
+    target_compile_definitions(addkernels PRIVATE -DMIOPEN_WORKAROUND_USE_BOOST_FILESYSTEM=1)
+    target_link_libraries(addkernels PRIVATE Boost::filesystem)
+else()
+    target_compile_definitions(addkernels PRIVATE -DMIOPEN_WORKAROUND_USE_BOOST_FILESYSTEM=0)
+endif()
+
 clang_tidy_check(addkernels)

@@ -76,11 +76,12 @@ auto GetTestCases()
 using TestCase = decltype(GetTestCases())::value_type;
 
 bool SkipTest() { return env::disabled(MIOPEN_TEST_ALL); }
-class Conv2dFloat_conv_ck_igemm_fwd_v6r1_dlops_nchw : public FloatTestCase<std::vector<TestCase>>
+class GPU_Conv2d_conv_ck_igemm_fwd_v6r1_dlops_nchw_FP32
+    : public FloatTestCase<std::vector<TestCase>>
 {
 };
 
-class Conv2dHalf_conv_ck_igemm_fwd_v6r1_dlops_nchw : public HalfTestCase<std::vector<TestCase>>
+class GPU_Conv2d_conv_ck_igemm_fwd_v6r1_dlops_nchw_FP16 : public HalfTestCase<std::vector<TestCase>>
 {
 };
 
@@ -94,11 +95,11 @@ bool IsTestSupportedForDevice()
 } // namespace conv_ck_igemm_fwd_v6r1_dlops_nchw
 using namespace conv_ck_igemm_fwd_v6r1_dlops_nchw;
 
-TEST_P(Conv2dFloat_conv_ck_igemm_fwd_v6r1_dlops_nchw, FloatTest)
+TEST_P(GPU_Conv2d_conv_ck_igemm_fwd_v6r1_dlops_nchw_FP32, FloatTest)
 {
     if(IsTestSupportedForDevice() && !SkipTest())
     {
-        invoke_with_params<conv2d_driver, Conv2dFloat_conv_ck_igemm_fwd_v6r1_dlops_nchw>(
+        invoke_with_params<conv2d_driver, GPU_Conv2d_conv_ck_igemm_fwd_v6r1_dlops_nchw_FP32>(
             default_check);
     }
     else
@@ -107,11 +108,11 @@ TEST_P(Conv2dFloat_conv_ck_igemm_fwd_v6r1_dlops_nchw, FloatTest)
     }
 };
 
-TEST_P(Conv2dHalf_conv_ck_igemm_fwd_v6r1_dlops_nchw, HalfTest)
+TEST_P(GPU_Conv2d_conv_ck_igemm_fwd_v6r1_dlops_nchw_FP16, HalfTest)
 {
     if(IsTestSupportedForDevice() && !SkipTest())
     {
-        invoke_with_params<conv2d_driver, Conv2dHalf_conv_ck_igemm_fwd_v6r1_dlops_nchw>(
+        invoke_with_params<conv2d_driver, GPU_Conv2d_conv_ck_igemm_fwd_v6r1_dlops_nchw_FP16>(
             default_check);
     }
     else
@@ -120,10 +121,10 @@ TEST_P(Conv2dHalf_conv_ck_igemm_fwd_v6r1_dlops_nchw, HalfTest)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(ConvCkIgemmFwdV6r1DlopsNchw,
-                         Conv2dFloat_conv_ck_igemm_fwd_v6r1_dlops_nchw,
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_Conv2d_conv_ck_igemm_fwd_v6r1_dlops_nchw_FP32,
                          testing::Values(GetTestCases()));
 
-INSTANTIATE_TEST_SUITE_P(ConvCkIgemmFwdV6r1DlopsNchw,
-                         Conv2dHalf_conv_ck_igemm_fwd_v6r1_dlops_nchw,
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_Conv2d_conv_ck_igemm_fwd_v6r1_dlops_nchw_FP16,
                          testing::Values(GetTestCases()));

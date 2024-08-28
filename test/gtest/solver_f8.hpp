@@ -134,8 +134,8 @@ protected:
             weight_func);
 
         output.data = handle.Read<Tout>(out_dev, output.data.size());
-        EXPECT_FALSE(miopen::f8_range_zero(ref_out)) << "Cpu data is all zeros";
-        EXPECT_FALSE(miopen::f8_range_zero(output)) << "Gpu data is all zeros";
+        EXPECT_FALSE(miopen::range_zero(ref_out)) << "Cpu data is all zeros";
+        EXPECT_FALSE(miopen::range_zero(output)) << "Gpu data is all zeros";
         EXPECT_TRUE(miopen::range_distance(ref_out) == miopen::range_distance(output));
 
         const float tolerance = 80.0;

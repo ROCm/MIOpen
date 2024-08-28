@@ -36,15 +36,17 @@
 namespace conv_f8_wrw {
 
 std::vector<Conv3DTestCase> ConvTestConfigs()
-{ // g   n   c   d    h   w   k   z  y  x pad_x pad_y pad_z stri_x stri_y stri_z dia_x dia_y dia_z
-    return {{1, 16, 16, 1, 14, 14, 16, 1, 3, 3, 1, 1, 0, 1, 1, 1, 1, 1, 1, miopenConvolution},
-            {1, 64, 128, 1, 28, 3, 128, 1, 3, 3, 1, 1, 0, 1, 1, 1, 1, 1, 1, miopenConvolution},
-            {1, 64, 64, 1, 28, 3, 64, 1, 3, 3, 1, 1, 0, 1, 1, 1, 1, 1, 1, miopenConvolution},
-            {1, 32, 64, 1, 14, 14, 64, 1, 3, 3, 1, 1, 0, 1, 1, 1, 1, 1, 1, miopenConvolution},
-            {1, 32, 32, 1, 14, 14, 32, 1, 3, 3, 1, 1, 0, 1, 1, 1, 1, 1, 1, miopenConvolution},
-            {1, 64, 32, 1, 14, 14, 32, 1, 3, 3, 1, 1, 0, 1, 1, 1, 1, 1, 1, miopenConvolution},
-            {1, 128, 64, 1, 7, 7, 64, 1, 3, 3, 1, 1, 0, 1, 1, 1, 1, 1, 1, miopenConvolution},
-            {1, 128, 32, 1, 7, 7, 32, 1, 3, 3, 1, 1, 0, 1, 1, 1, 1, 1, 1, miopenConvolution}};
+{ // g   n   c   k   image   filter   pad   stride   dilation
+    // clang-format off
+    return {{1, 16, 16, 16, {1, 14, 14}, {1, 3, 3}, {0, 1, 1}, {1, 1, 1}, {1, 1, 1}, miopenConvolution},
+            {1, 64, 128, 128, {1, 28, 3},  {1, 3, 3}, {0, 1, 1}, {1, 1, 1}, {1, 1, 1}, miopenConvolution},
+            {1, 64, 64, 64, {1, 28, 3}, {1, 3, 3}, {0, 1, 1}, {1, 1, 1}, {1, 1, 1}, miopenConvolution},
+            {1, 32, 64, 64, {1, 14, 14}, {1, 3, 3}, {0, 1, 1}, {1, 1, 1}, {1, 1, 1}, miopenConvolution},
+            {1, 32, 32, 32, {1, 14, 14}, {1, 3, 3}, {0, 1, 1}, {1, 1, 1}, {1, 1, 1}, miopenConvolution},
+            {1, 64, 32, 32, {1, 14, 14}, {1, 3, 3}, {0, 1, 1}, {1, 1, 1}, {1, 1, 1}, miopenConvolution},
+            {1, 128, 64, 64, {1, 7, 7}, {1, 3, 3}, {0, 1, 1}, {1, 1, 1}, {1, 1, 1}, miopenConvolution},
+            {1, 128, 32, 32, {1, 7, 7}, {1, 3, 3}, {0, 1, 1}, {1, 1, 1}, {1, 1, 1}, miopenConvolution}};
+    // clang-format on
 }
 
 template <typename T = float>
@@ -134,7 +136,7 @@ protected:
     miopenTensorLayout_t tensor_layout;
 };
 
-struct ConvWrwSolverTestF8 : ConvWrwSolverTest<half_float::half>
+struct GPU_ConvWrwSolver_FP8 : ConvWrwSolverTest<half_float::half>
 {
 };
 
@@ -182,7 +184,7 @@ void SolverWrw(const miopen::TensorDescriptor& inputDesc,
 } // namespace conv_f8_wrw
 using namespace conv_f8_wrw;
 
-TEST_P(ConvWrwSolverTestF8, CKConvF8Wrw)
+TEST_P(GPU_ConvWrwSolver_FP8, CKConvF8Wrw)
 {
     SolverWrw<miopen::solver::conv::ConvHipImplicitGemmF16F8F16WrwXdlops>(input.desc,
                                                                           in_dev.get(),
@@ -196,8 +198,8 @@ TEST_P(ConvWrwSolverTestF8, CKConvF8Wrw)
 }
 
 INSTANTIATE_TEST_SUITE_P(
-    ConvWrwTest,
-    ConvWrwSolverTestF8,
+    Full,
+    GPU_ConvWrwSolver_FP8,
     testing::Combine(testing::Values(miopenConvolutionBwdWeightsAlgoImplicitGEMM),
                      testing::ValuesIn(ConvTestConfigs()),
                      testing::Values(miopenTensorNDHWC)));

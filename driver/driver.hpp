@@ -175,7 +175,8 @@ inline void PadBufferSize(size_t& sz, int datatype_sz)
            "groupnorm[bfp16|fp16], cat[bfp16|fp16], addlayernorm[bfp16|fp16], "
            "t5layernorm[bfp16|fp16], adam[fp16], ampadam, reduceextreme[bfp16|fp16], "
            "adamw[fp16], ampadamw, transformersadamw[fp16], transformersampadamw, "
-           "getitem[bfp16|fp16]\n");
+           "getitem[bfp16|fp16], reducecalculation[bfp16|fp16], rope[bfp16|fp16], "
+           "prelu[bfp16|fp16]\n");
     exit(0); // NOLINT (concurrency-mt-unsafe)
 }
 
@@ -205,7 +206,10 @@ inline std::string ParseBaseArg(int argc, char* argv[])
        arg != "reduceextremefp16" && arg != "reduceextremebfp16" && arg != "adamw" &&
        arg != "adamwfp16" && arg != "ampadamw" && arg != "transformersadamw" &&
        arg != "transformersadamwfp16" && arg != "transformersampadamw" && arg != "getitem" &&
-       arg != "getitemfp16" && arg != "getitembfp16" && arg != "--version")
+       arg != "getitemfp16" && arg != "getitembfp16" && arg != "reducecalculation" &&
+       arg != "reducecalculationfp16" && arg != "reducecalculationbfp16" && arg != "rope" &&
+       arg != "ropefp16" && arg != "ropebfp16" && arg != "prelu" && arg != "prelufp16" &&
+       arg != "prelubfp16" && arg != "--version")
     {
         printf("FAILED: Invalid Base Input Argument\n");
         Usage();

@@ -40,7 +40,7 @@ using miopen::graphapi::ReductionBuilder;
 
 } // namespace
 
-class GraphApiReductionBuilder : public testing::TestWithParam<DescriptorTuple>
+class CPU_GraphApiReductionBuilder_NONE : public testing::TestWithParam<DescriptorTuple>
 {
 protected:
     miopenReduceTensorOp_t mReductionOperator;
@@ -49,7 +49,7 @@ protected:
     void SetUp() override { std::tie(mReductionOperator, mCompType) = GetParam(); }
 };
 
-TEST_P(GraphApiReductionBuilder, MissingSetter)
+TEST_P(CPU_GraphApiReductionBuilder_NONE, MissingSetter)
 {
     EXPECT_NO_THROW({
         ReductionBuilder().setReductionOperator(mReductionOperator).setCompType(mCompType).build();
@@ -68,7 +68,7 @@ using miopen::graphapi::GTestGraphApiExecute;
 
 } // namespace
 
-class GraphApiReduction : public testing::TestWithParam<DescriptorTuple>
+class CPU_GraphApiReduction_NONE : public testing::TestWithParam<DescriptorTuple>
 {
 private:
     // Pointers to these are stored inside 'mExecute' object (below)
@@ -106,11 +106,11 @@ protected:
     }
 };
 
-TEST_P(GraphApiReduction, CFunctions) { mExecute(); }
+TEST_P(CPU_GraphApiReduction_NONE, CFunctions) { mExecute(); }
 
 static auto testCases =
     testing::Combine(testing::Values(MIOPEN_REDUCE_TENSOR_ADD, MIOPEN_REDUCE_TENSOR_MUL),
                      testing::Values(miopenFloat, miopenHalf));
 
-INSTANTIATE_TEST_SUITE_P(TestCases, GraphApiReductionBuilder, testCases);
-INSTANTIATE_TEST_SUITE_P(TestCases, GraphApiReduction, testCases);
+INSTANTIATE_TEST_SUITE_P(Unit, CPU_GraphApiReductionBuilder_NONE, testCases);
+INSTANTIATE_TEST_SUITE_P(Unit, CPU_GraphApiReduction_NONE, testCases);
