@@ -50,7 +50,7 @@ void producer(int thread_idx, data_t<T>& common_data, ThreadSafeQueue<T>& comp_q
     }
 }
 
-TEST(UtilMultiThreadQueue, Basic)
+TEST(CPU_UtilMultiThreadQueue_NONE, Basic)
 {
     ThreadSafeQueue<int> comp_queue;
     int num_cons = 0;
