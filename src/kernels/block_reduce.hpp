@@ -23,18 +23,50 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include "registry_driver_maker.hpp"
-#include "sum_driver.hpp"
+#ifndef GUARD_BLOCK_REDUCE_HPP
+#define GUARD_BLOCK_REDUCE_HPP
 
-static Driver* makeDriver(const std::string& base_arg)
+#ifndef MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS
+#include <hip/hip_fp16.h>
+#include <hip/hip_runtime.h>
+#endif
+
+#include "float_types.h"
+#include "warp_reduce.hpp"
+
+enum class ReduceThreadDim : int32_t
 {
-    if(base_arg == "sum")
-        return new SumDriver<float, float>();
-    if(base_arg == "sumfp16")
-        return new SumDriver<float16, float>();
-    if(base_arg == "sumbfp16")
-        return new SumDriver<bfloat16, float>();
-    return nullptr;
+    X = 1 << 0,
+    Y = 1 << 1,
+    Z = 1 << 2,
+};
+
+template <BinaryOp_t Op, uint64_t reduce_size, ReduceThreadDim thread_dim>
+__device__ FLOAT_ACCUM block_reduce(FLOAT_ACCUM val)
+{
+    if(reduce_size == warpSize)
+        return warp_reduce<Op>(val);
+
+    static __shared__ FLOAT_ACCUM shared[reduce_size / warpSize];
+    uint64_t tid = 0;
+    if(static_cast<int32_t>(thread_dim) & static_cast<int32_t>(ReduceThreadDim::X))
+        tid += threadIdx.x;
+    if(static_cast<int32_t>(thread_dim) & static_cast<int32_t>(ReduceThreadDim::Y))
+        tid = tid * blockDim.y + threadIdx.y;
+    if(static_cast<int32_t>(thread_dim) & static_cast<int32_t>(ReduceThreadDim::Z))
+        tid = tid * blockDim.z + threadIdx.z;
+    const uint64_t lane = tid % warpSize;
+    const uint64_t wid  = tid / warpSize;
+
+    val = warp_reduce<Op>(val);
+    if(lane == 0)
+        shared[wid] = val;
+    __syncthreads();
+
+    val = tid < reduce_size / warpSize ? shared[lane] : 0;
+    if(wid == 0)
+        val = warp_reduce<Op>(val);
+    return val;
 }
 
-REGISTER_DRIVER_MAKER(makeDriver);
+#endif // GUARD_BLOCK_REDUCE_HPP

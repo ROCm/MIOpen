@@ -29,8 +29,8 @@
 
 using namespace group_conv;
 
-DEFINE_GROUP_CONV3D_TEST(float, BackwardData);
-DEFINE_GROUP_CONV3D_TEST(half, BackwardData);
-DEFINE_GROUP_CONV3D_TEST(bfloat16, BackwardData);
+DEFINE_GROUP_CONV3D_TEST(float, FP32, BackwardData);
+DEFINE_GROUP_CONV3D_TEST(half, FP16, BackwardData);
+DEFINE_GROUP_CONV3D_TEST(bfloat16, BFP16, BackwardData);
 /// \todo int8_t tests don't work. Need debugging
 // DEFINE_GROUP_CONV3D_TEST(int8_t, BackwardData);

@@ -56,13 +56,13 @@ public:
     miopen::Allocator::ManageDataPtr wei_dev2;
 };
 
-struct FusionSetArgTestFloat : FusionSetArgTest<float>
+struct GPU_FusionSetArg_FP16 : FusionSetArgTest<float>
 {
 };
 
 bool SkipTest() { return get_handle_xnack(); }
 
-TEST_P(FusionSetArgTestFloat, TestSetArgApiCall)
+TEST_P(GPU_FusionSetArg_FP16, TestSetArgApiCall)
 {
     // Original fusion_plan/args execution happens in cba_infer.cpp
     // Original is checked independently and not sequentially, prior to FusionTestSetArgTest.
@@ -105,8 +105,8 @@ TEST_P(FusionSetArgTestFloat, TestSetArgApiCall)
     ASSERT_EQ(conv_param->weights, wei_dev.get());
 }
 
-INSTANTIATE_TEST_SUITE_P(CBAInferSolverTest,
-                         FusionSetArgTestFloat,
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_FusionSetArg_FP16,
                          testing::Combine(testing::Values(miopenActivationRELU),
                                           testing::ValuesIn(GetNetwork1<ConvTestCaseBase>()),
                                           testing::Values(miopenTensorNCHW)));

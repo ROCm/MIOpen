@@ -261,7 +261,6 @@ static std::vector<Solution> EvaluateInvokers(Handle& handle,
 
         try
         {
-
             // Run invoker max 6 times, with ~5 sec time limit.
             using elapsed_t                 = decltype(handle.GetKernelTime());
             constexpr elapsed_t TIME_MS_MAX = 5000.0;

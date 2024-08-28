@@ -50,7 +50,7 @@ public:
 
 } // namespace
 
-TEST(GraphApi, EngineBuilder)
+TEST(CPU_GraphApi_NONE, EngineBuilder)
 {
     OpGraph opGraph;
     auto executor = std::make_shared<MockPatternExecutor>();
@@ -83,7 +83,7 @@ public:
 
 } // namespace
 
-TEST(GraphApi, Engine)
+TEST(CPU_GraphApi_NONE, Engine)
 {
     MockOpGraphDescriptor opGraphDescriptor;
 

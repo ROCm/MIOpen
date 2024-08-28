@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,32 +25,35 @@
  *******************************************************************************/
 #pragma once
 
-#include <gtest/gtest.h>
-#include "conv_common.hpp"
-#include "get_handle.hpp"
-#include "tensor_util.hpp"
-#include <miopen/conv/data_invoke_params.hpp>
+#include <miopen/invoke_params.hpp>
+#include <miopen/tensor.hpp>
 
-#include <miopen/type_name.hpp>
-#include <miopen/rank.hpp>
+namespace miopen {
 
-template <typename Solver, typename Context, typename Problem>
-auto GetSolutionImpl(miopen::rank<1>, Solver s, const Context& ctx, const Problem& problem)
-    -> decltype(s.GetSolution(ctx, problem, s.GetDefaultPerformanceConfig(ctx, problem)))
+namespace prelu {
+
+struct InvokeParams : public miopen::InvokeParams
 {
-    return s.GetSolution(ctx, problem, s.GetDefaultPerformanceConfig(ctx, problem));
-}
+    InvokeParams() = default;
 
-template <typename Solver, typename Context, typename Problem>
-auto GetSolutionImpl(miopen::rank<0>, Solver s, const Context& ctx, const Problem& problem)
-    -> decltype(s.GetSolution(ctx, problem))
-{
-    return s.GetSolution(ctx, problem);
-}
+    const TensorDescriptor* inputDesc   = nullptr;
+    const TensorDescriptor* weightDesc  = nullptr;
+    const TensorDescriptor* doutputDesc = nullptr;
+    const TensorDescriptor* dinputDesc  = nullptr;
+    const TensorDescriptor* dweightDesc = nullptr;
 
-template <typename Solver, typename Context, typename Problem>
-miopen::solver::ConvSolution GetSolution(Solver s, const Context& ctx, const Problem& problem)
-{
-    auto solution = GetSolutionImpl(miopen::rank<1>{}, s, ctx, problem);
-    return solution;
-}
+    ConstData_t input          = nullptr;
+    ConstData_t weight         = nullptr;
+    ConstData_t doutput        = nullptr;
+    Data_t dinput              = nullptr;
+    Data_t dweight             = nullptr;
+    Data_t workspace           = nullptr;
+    std::size_t workspace_size = 0;
+
+    std::size_t GetWorkspaceSize() const { return workspace_size; }
+    Data_t GetWorkspace() const { return workspace; }
+};
+
+} // namespace prelu
+
+} // namespace miopen

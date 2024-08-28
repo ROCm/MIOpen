@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,8 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef MIOPEN_SUM_HPP_
-#define MIOPEN_SUM_HPP_
+#pragma once
 
 #include <miopen/common.hpp>
 
@@ -33,20 +32,22 @@ namespace miopen {
 struct Handle;
 struct TensorDescriptor;
 
-MIOPEN_INTERNALS_EXPORT std::size_t GetSumWorkspaceSize(Handle& handle,
-                                                        const TensorDescriptor& xDesc,
-                                                        const TensorDescriptor& yDesc,
-                                                        int32_t dim);
+MIOPEN_INTERNALS_EXPORT size_t GetPReLUBackwardWorkspaceSize(Handle& handle,
+                                                             const TensorDescriptor& inputDesc,
+                                                             const TensorDescriptor& weightDesc);
 
-MIOPEN_INTERNALS_EXPORT miopenStatus_t SumForward(Handle& handle,
-                                                  Data_t workspace,
-                                                  size_t workspaceSizeInBytes,
-                                                  const TensorDescriptor& xDesc,
-                                                  ConstData_t x,
-                                                  const TensorDescriptor& yDesc,
-                                                  Data_t y,
-                                                  miopenSumNanPropagation_t nanPropagation,
-                                                  int32_t dim);
+MIOPEN_INTERNALS_EXPORT miopenStatus_t PReLUBackward(Handle& handle,
+                                                     Data_t workspace,
+                                                     size_t workspaceSizeInBytes,
+                                                     const TensorDescriptor& inputDesc,
+                                                     ConstData_t input,
+                                                     const TensorDescriptor& weightDesc,
+                                                     ConstData_t weight,
+                                                     const TensorDescriptor& doutputDesc,
+                                                     ConstData_t doutput,
+                                                     const TensorDescriptor& dinputDesc,
+                                                     Data_t dinput,
+                                                     const TensorDescriptor& dweightDesc,
+                                                     Data_t dweight);
 
 } // namespace miopen
-#endif // _MIOPEN_SUM_HPP_

@@ -55,7 +55,6 @@ struct GPU_BNInfer_FP64 : BNInferTest<double, double, double, double, double>
 {
 };
 
-
 struct GPU_BNInfer_BFP16 : BNInferTest<bfloat16, bfloat16, bfloat16, bfloat16, float>
 {
 };

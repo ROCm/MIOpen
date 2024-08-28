@@ -79,14 +79,34 @@ static constexpr abs_diff_detail::fn abs_diff{};
 
 struct not_finite_fn
 {
-    template <class T>
+    template <class T, typename std::enable_if<(std::is_floating_point_v<T>), bool>::type = false>
     bool operator()(T x) const
     {
-        // The standard library from MSVC does not implement std::isfinite() for integer
-        // types - no additional overloads are provided. According to the documentation,
-        // integer types should be treaded as doubles.
-        // Refer to https://en.cppreference.com/w/cpp/numeric/math/isfinite for more information.
-        return not std::isfinite(static_cast<double>(x));
+        return !std::isfinite(x);
+    }
+
+    template <class T,
+              typename std::enable_if<
+                  (std::is_same_v<typename std::remove_cv<T>::type, half_float::half>),
+                  bool>::type = false>
+    bool operator()(T x) const
+    {
+        return !half_float::isfinite(x);
+    }
+
+    template <class T,
+              typename std::enable_if<(std::is_same_v<typename std::remove_cv<T>::type, bfloat16>),
+                                      bool>::type = false>
+    bool operator()(T x) const
+    {
+        return !std::isfinite(x); // bfloat16 has float() conversion operator
+    }
+
+    template <class T, typename std::enable_if<(std::is_integral_v<T>), bool>::type = false>
+    bool operator()(T x) const
+    {
+        std::ignore = x;
+        return false;
     }
 };
 static constexpr not_finite_fn not_finite{};
@@ -127,31 +147,16 @@ bool range_empty(R1&& r1)
 template <class R1>
 auto range_distance(R1&& r1) MIOPEN_RETURNS(std::distance(r1.begin(), r1.end()));
 
-template <class R>
-bool f8_range_zero(R& r);
-
-template <>
-inline bool f8_range_zero<tensor<float8>>(tensor<float8>& r1)
+template <class T>
+bool range_zero(const std::vector<T>& r)
 {
-    return std::all_of(r1.data.begin(), r1.data.end(), [&](float8 x) { return x.is_zero(); });
+    return std::all_of(r.begin(), r.end(), [](T x) { return x == T(); });
 }
 
-template <>
-inline bool f8_range_zero<tensor<bfloat8>>(tensor<bfloat8>& r1)
+template <class T>
+bool range_zero(const tensor<T>& r)
 {
-    return std::all_of(r1.data.begin(), r1.data.end(), [&](bfloat8 x) { return x.is_zero(); });
-}
-
-template <>
-inline bool f8_range_zero<tensor<float>>(tensor<float>& r1)
-{
-    return std::all_of(r1.data.begin(), r1.data.end(), [](float x) { return x == 0.0; });
-}
-
-template <class R1>
-bool range_zero(R1&& r1)
-{
-    return std::all_of(r1.begin(), r1.end(), [](float x) { return x == 0.0; });
+    return range_zero(r.data);
 }
 
 template <class R1, class R2, class T, class Reducer, class Product>
@@ -181,6 +186,18 @@ template <class R1, class R2>
 double max_diff(R1&& r1, R2&& r2)
 {
     return range_product(r1, r2, 0.0, max, abs_diff);
+}
+
+template <class R1, class R2>
+auto max_diff_v2(R1&& r1, R2&& r2)
+{
+    using T            = decltype(r1[0] - r2[0]);
+    auto abs_diff_func = [](auto x, auto y) { return x > y ? x - y : y - x; };
+    // BUG: deduced wrong datatype, half_float bug
+    if constexpr(std::is_same_v<T, half_float::detail::expr>)
+        return range_product(r1, r2, half_float::half(), max, abs_diff_func);
+    else
+        return range_product(r1, r2, T(), max, abs_diff_func);
 }
 
 template <class R1, class R2, class T>

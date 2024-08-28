@@ -327,11 +327,11 @@ protected:
     miopenProblem_t problem = nullptr;
 };
 
-class Test_Fwd_Mha_F32 : public Test_Fwd_Mha<float>
+class GPU_Fwd_Mha_FP32 : public Test_Fwd_Mha<float>
 {
 };
 
-class Test_Fwd_Mha_F8 : public Test_Fwd_Mha<float8>
+class GPU_Fwd_Mha_FP8 : public Test_Fwd_Mha<float8>
 {
     void SetUp() override
     {
@@ -346,14 +346,14 @@ class Test_Fwd_Mha_F8 : public Test_Fwd_Mha<float8>
     }
 };
 
-TEST_P(Test_Fwd_Mha_F32, Test_float) { return Test_Fwd_Mha<float>::TestBody(); };
+TEST_P(GPU_Fwd_Mha_FP32, Test_float) { return Test_Fwd_Mha<float>::TestBody(); };
 
-INSTANTIATE_TEST_SUITE_P(Fwd_Mha_Smoke_F32, Test_Fwd_Mha_F32, testing::ValuesIn(GetSmokeCases()));
-INSTANTIATE_TEST_SUITE_P(Fwd_Mha_Full_F32, Test_Fwd_Mha_F32, testing::ValuesIn(GetFullTestCases()));
-GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(Test_Fwd_Mha_F32);
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Fwd_Mha_FP32, testing::ValuesIn(GetSmokeCases()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_Fwd_Mha_FP32, testing::ValuesIn(GetFullTestCases()));
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(GPU_Fwd_Mha_FP32);
 
-TEST_P(Test_Fwd_Mha_F8, Test_float) { return Test_Fwd_Mha<float8>::TestBody(); };
+TEST_P(GPU_Fwd_Mha_FP8, Test_float) { return Test_Fwd_Mha<float8>::TestBody(); };
 
-INSTANTIATE_TEST_SUITE_P(Fwd_Mha_Smoke_F8, Test_Fwd_Mha_F8, testing::ValuesIn(GetSmokeCases()));
-INSTANTIATE_TEST_SUITE_P(Fwd_Mha_Full_F8, Test_Fwd_Mha_F8, testing::ValuesIn(GetFullTestCases()));
-GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(Test_Fwd_Mha_F8);
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Fwd_Mha_FP8, testing::ValuesIn(GetSmokeCases()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_Fwd_Mha_FP8, testing::ValuesIn(GetFullTestCases()));
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(GPU_Fwd_Mha_FP8);

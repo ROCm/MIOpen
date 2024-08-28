@@ -57,7 +57,6 @@ struct TensorInfo
 {
     miopenTensorArgumentId_t mEnumId = miopenTensorArgumentIdInvalid;
     Tensor* mGraphTensor             = nullptr;
-
     Data_t mDevBuf                   = nullptr;
 
     TensorInfo(miopenTensorArgumentId_t enum_id, Tensor* tens_ptr)

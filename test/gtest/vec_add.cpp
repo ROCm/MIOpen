@@ -197,7 +197,6 @@ protected:
     miopen::Allocator::ManageDataPtr inputB_dev; // input tensor B device
 
     miopen::Allocator::ManageDataPtr outputC_dev; // output tensor C device
-
 };
 
 namespace vecadd {

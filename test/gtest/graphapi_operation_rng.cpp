@@ -68,7 +68,7 @@ using DescriptorTuple = std::tuple<bool,
 
 } // namespace
 
-class GraphApiOperationRngBuilder : public testing::TestWithParam<DescriptorTuple>
+class CPU_GraphApiOperationRngBuilder_NONE : public testing::TestWithParam<DescriptorTuple>
 {
 protected:
     bool mAttrsValid;
@@ -111,7 +111,7 @@ protected:
     }
 };
 
-TEST_P(GraphApiOperationRngBuilder, ValidateAttributes)
+TEST_P(CPU_GraphApiOperationRngBuilder_NONE, ValidateAttributes)
 {
     if(mAttrsValid)
     {
@@ -190,7 +190,7 @@ TEST_P(GraphApiOperationRngBuilder, ValidateAttributes)
     }
 }
 
-TEST_P(GraphApiOperationRngBuilder, MissingSetter)
+TEST_P(CPU_GraphApiOperationRngBuilder_NONE, MissingSetter)
 {
     EXPECT_ANY_THROW({
         OperationRngBuilder().setOutput(mOutput.value).setOffset(mOffset.value).build();
@@ -365,7 +365,7 @@ public:
 
 } // namespace
 
-class GraphApiOperationRng : public ::testing::TestWithParam<DescriptorTuple>
+class CPU_GraphApiOperationRng_NONE : public ::testing::TestWithParam<DescriptorTuple>
 {
 private:
     // Pointers to these are stored in the objects below
@@ -429,7 +429,7 @@ protected:
     }
 };
 
-TEST_P(GraphApiOperationRng, CFunctions) { mExecute(); }
+TEST_P(CPU_GraphApiOperationRng_NONE, CFunctions) { mExecute(); }
 
 static Rng anRng(MIOPEN_RNG_DISTRIBUTION_BERNOULLI, 0, 0, 0, 0, 0.5);
 
@@ -510,16 +510,16 @@ static auto invalidAtLeastOffsets = testing::Combine(testing::Values(false),
                                                      testing::ValuesIn(anySeeds),
                                                      testing::ValuesIn(invalidOffsets));
 
-INSTANTIATE_TEST_SUITE_P(ValidAttributes, GraphApiOperationRngBuilder, validAttributes);
-INSTANTIATE_TEST_SUITE_P(InvalidAtLeastRngs, GraphApiOperationRngBuilder, invalidAtLeastRngs);
-INSTANTIATE_TEST_SUITE_P(InvalidAtLeastOutputs, GraphApiOperationRngBuilder, invalidAtLeastOutputs);
-INSTANTIATE_TEST_SUITE_P(InvalidAtLeastSeeds, GraphApiOperationRngBuilder, invalidAtLeastSeeds);
-INSTANTIATE_TEST_SUITE_P(InvalidAtLeastOffsets, GraphApiOperationRngBuilder, invalidAtLeastOffsets);
+INSTANTIATE_TEST_SUITE_P(UnitVA, CPU_GraphApiOperationRngBuilder_NONE, validAttributes);
+INSTANTIATE_TEST_SUITE_P(UnitIR, CPU_GraphApiOperationRngBuilder_NONE, invalidAtLeastRngs);
+INSTANTIATE_TEST_SUITE_P(UnitIO, CPU_GraphApiOperationRngBuilder_NONE, invalidAtLeastOutputs);
+INSTANTIATE_TEST_SUITE_P(UnitIS, CPU_GraphApiOperationRngBuilder_NONE, invalidAtLeastSeeds);
+INSTANTIATE_TEST_SUITE_P(UnitIOff, CPU_GraphApiOperationRngBuilder_NONE, invalidAtLeastOffsets);
 
-INSTANTIATE_TEST_SUITE_P(ValidAttributes, GraphApiOperationRng, validAttributes);
-INSTANTIATE_TEST_SUITE_P(InvalidAtLeastRngs, GraphApiOperationRng, invalidAtLeastRngs);
-INSTANTIATE_TEST_SUITE_P(InvalidAtLeastOutputs, GraphApiOperationRng, invalidAtLeastOutputs);
-INSTANTIATE_TEST_SUITE_P(InvalidAtLeastOffsets, GraphApiOperationRng, invalidAtLeastOffsets);
+INSTANTIATE_TEST_SUITE_P(UnitVA, CPU_GraphApiOperationRng_NONE, validAttributes);
+INSTANTIATE_TEST_SUITE_P(UnitIR, CPU_GraphApiOperationRng_NONE, invalidAtLeastRngs);
+INSTANTIATE_TEST_SUITE_P(UnitIO, CPU_GraphApiOperationRng_NONE, invalidAtLeastOutputs);
+INSTANTIATE_TEST_SUITE_P(UnitIOff, CPU_GraphApiOperationRng_NONE, invalidAtLeastOffsets);
 
 /* This one won't work as intended because seed is an optional attribute with a default value
  * and Graph API allows to finalize() if other attributes are valid.

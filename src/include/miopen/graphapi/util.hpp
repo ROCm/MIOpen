@@ -36,13 +36,12 @@
 namespace miopen {
 namespace graphapi {
 
-inline std::string tensorIdAsStr(const Tensor* tens_ptr)
+inline std::string tensorIdAsStr(int64_t tens_id)
 {
 
-    int64_t id = tens_ptr->getId();
-    char* b    = reinterpret_cast<char*>(&id);
+    char* b = reinterpret_cast<char*>(&tens_id);
 
-    return {b, sizeof(id)};
+    return {b, sizeof(tens_id)};
 }
 
 template <bool isVirtual, typename Vec>
