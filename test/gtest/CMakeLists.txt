@@ -38,7 +38,7 @@ function(add_gtest TEST_NAME TEST_CPP)
   if(hipblaslt_FOUND)
     target_link_libraries( ${TEST_NAME} roc::hipblaslt )
   endif()
-  # Workaround : change in rocm-cmake was causing linking error so had to add ${CMAKE_DL_LIBS} 
+  # Workaround : change in rocm-cmake was causing linking error so had to add ${CMAKE_DL_LIBS}
   #               We can remove ${CMAKE_DL_LIBS} once root cause is identified.
   target_link_libraries(${TEST_NAME} ${CMAKE_DL_LIBS} GTest::gtest GTest::gtest_main MIOpen ${Boost_LIBRARIES} hip::host $<BUILD_INTERFACE:roc::rocblas> )
   if(NOT MIOPEN_EMBED_DB STREQUAL "")
@@ -106,6 +106,20 @@ else()
   endforeach()
 
   add_gtest(miopen_gtest "${TESTS_CPP}")
+
+  add_custom_command(
+    OUTPUT test_list
+    COMMAND miopen_gtest --gtest_list_tests > test_list
+    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/check_names.py --list test_list
+    DEPENDS miopen_gtest ${CMAKE_CURRENT_SOURCE_DIR}/check_names.py
+    COMMENT "Checking test names"
+    VERBATIM
+  )
+
+  add_custom_target(
+    miopen_gtest_check
+    DEPENDS test_list
+  )
 
   if( NOT ENABLE_ASAN_PACKAGING )
     install(TARGETS miopen_gtest
