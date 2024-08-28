@@ -1605,7 +1605,7 @@ miopenConvolutionBackwardWeightsGetSolution(miopenHandle_t handle,
  * as part of the
  * miopenConvSolution_t struct.
  *
- * @param handle         MIOpen handle (input
+ * @param handle         MIOpen handle (input)
  * @param dyDesc         Tensor descriptor for data tensor dy (input)
  * @param xDesc          Tensor descriptor for data tensor x (input)
  * @param convDesc       Convolution layer descriptor (input)
