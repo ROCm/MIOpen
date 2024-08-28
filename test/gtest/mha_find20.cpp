@@ -642,7 +642,7 @@ private:
     float scale = 1.0f;
 };
 
-TEST(TestMhaFind20, MhaForward)
+TEST(GPU_TestMhaFind20_FP32, MhaForward)
 {
     Handle& handle = get_handle();
 
@@ -655,7 +655,7 @@ TEST(TestMhaFind20, MhaForward)
     test.Finalize();
 }
 
-TEST(TestMhaFind20, MhaBackward)
+TEST(GPU_TestMhaFind20_FP32, MhaBackward)
 {
     Handle& handle = get_handle();
 
