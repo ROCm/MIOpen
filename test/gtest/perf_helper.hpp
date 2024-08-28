@@ -110,7 +110,8 @@ struct PerfHelper
         }
 
         // If the file was just created (i.e., its size is 0), write the header.
-        if(std::filesystem::file_size(filename) == 0)
+        file.seekp(0, std::ios_base::end);
+        if(file.tellp() == 0)
         {
             file << "KernelAndTestInfo,min_exec_time_ratio,max_exec_time_ratio,mean_exec_time_"
                     "ratio,median_exec_time_ratio,SD_ocl,SD_hip\n";
