@@ -245,14 +245,10 @@ ConvSolution ConvHipImplicitGemmGroupFwdXdlopsCodegen::GetSolution(
 {
     auto x = CKArgs(problem);
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
-    // TODO: update this: the user will provide the data, I just need to access the buffer, not
-    // create it
-    /**auto in_dev  = to_gpu(generate_buffer<ck::half_t, ck::Array<ck::index_t, 5>>(
-        prob.in_lengths, prob.in_strides, 0));
-    auto wei_dev = to_gpu(generate_buffer<ck::half_t, ck::Array<ck::index_t, 5>>(
-        prob.wei_lengths, prob.wei_strides, 1));
-    auto out_dev = to_gpu(generate_buffer<ck::half_t, ck::Array<ck::index_t, 5>>(
-        prob.out_lengths, prob.out_strides, 2));**/
+    /**decltype(auto) conv = problem.GetConv();
+    decltype(auto) in   = problem.GetIn();
+    decltype(auto) wei  = problem.GetWeights();
+    decltype(auto) out  = problem.GetOut();**/
 
     const auto workspace_req = GetWorkspaceSize(ctx, problem);
 
@@ -264,12 +260,11 @@ ConvSolution ConvHipImplicitGemmGroupFwdXdlopsCodegen::GetSolution(
     auto src = ck::host::InterpolateString(
         conv_compile_check,
         {{"include", x.prob.GetIncludeHeader()}, {"template", solution[0].ToTemplateString()}});
-
     auto srcs = get_headers_for_test();
     srcs.push_back({"main.cpp", src});
-    auto kernel = KernelInfo{};
-    auto name   = solution[0].GetTemplateParameter<std::string>("name");
-    // FIXME: is this how to pass the src files?
+    auto name = solution[0].GetTemplateParameter<std::string>("name");
+
+    auto kernel        = KernelInfo{};
     kernel.kernel_file = srcs[srcs.size() - 1].path.filename().string();
     kernel.kernel_name = "run_" + name;
     // rtc::compile_options options;
@@ -285,6 +280,9 @@ ConvSolution ConvHipImplicitGemmGroupFwdXdlopsCodegen::GetSolution(
 
     auto grid_size = tmp * x.in_lengths[1];
 
+    kernel.l_wk = {block_size, 1, 1};
+    kernel.g_wk = {block_size * grid_size, 1, 1};
+
     /**bool bfp16parm  = true;
     const auto build_params = KernelBuildParameters{
                         {"MIOPEN_USE_FP16", static_cast<int>(bfp16parm)}};
@@ -292,6 +290,26 @@ ConvSolution ConvHipImplicitGemmGroupFwdXdlopsCodegen::GetSolution(
 
     soln.construction_params.push_back(kernel);
 
+    soln.invoker_factory = [=](const std::vector<Kernel>& kernels) {
+        return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
+            decltype(auto) kernel = handle_.Run(kernels.front());
+            decltype(auto) params = raw_params.CastTo<miopen::conv::DataInvokeParams>();
+
+            kernel(params.tensors.in,
+                   params.tensors.w,
+                   params.tensors.out,
+                   x.in_lengths,
+                   x.in_strides,
+                   x.wei_lengths,
+                   x.wei_strides,
+                   x.out_lengths,
+                   x.out_strides,
+                   x.filter_strides,
+                   x.filter_dilations,
+                   x.lPadding,
+                   x.rPadding);
+        };
+    };
     // TODO: remove this, replace with lambda. MIOpen has it's own invoker to launch the kernel
     // launch the kernel with arguments needed for the argument pointer
     /**k.launch(nullptr, grid_size * block_size, block_size)(in_dev.data(),
@@ -308,6 +326,7 @@ ConvSolution ConvHipImplicitGemmGroupFwdXdlopsCodegen::GetSolution(
                                                           prob.lPadding,
                                                           prob.rPadding);**/
 
+    return soln;
 #else
     return {};
 #endif
