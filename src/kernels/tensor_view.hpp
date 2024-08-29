@@ -27,6 +27,8 @@
 #ifndef GUARD_TENSOR_VIEW_HPP
 #define GUARD_TENSOR_VIEW_HPP
 
+#include <initializer_list>
+
 template <int N>
 struct tensor_layout_t;
 
@@ -69,6 +71,15 @@ struct tensor_layout_t
             }
             layout[1] = temp % tensor_view.size[1];
             layout[0] = temp / tensor_view.size[1];
+        }
+    }
+
+    constexpr tensor_layout_t(std::initializer_list<uint64_t> layout_)
+    {
+        static_assert(N > 0);
+        for(auto i = 0; i < N; ++i)
+        {
+            layout[i] = layout_.begin()[i];
         }
     }
 

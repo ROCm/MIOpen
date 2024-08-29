@@ -46,14 +46,14 @@ void GetArgs(const std::string& param, std::vector<std::string>& tokens)
         tokens.push_back(*begin++);
 }
 
-class DeepBenchRNNConfigWithFloat : public testing::TestWithParam<std::vector<std::string>>
+class GPU_DeepBenchRNN_FP32 : public testing::TestWithParam<std::vector<std::string>>
 {
 };
 
 void Run2dDriverFloat(void)
 {
 
-    std::vector<std::string> params = DeepBenchRNNConfigWithFloat::GetParam();
+    std::vector<std::string> params = GPU_DeepBenchRNN_FP32::GetParam();
 
     for(const auto& test_value : params)
     {
@@ -103,7 +103,7 @@ std::vector<std::string> GetTestCases(const std::string& precision)
 
 using namespace deepbench_rnn;
 
-TEST_P(DeepBenchRNNConfigWithFloat, FloatTest_deepbench_rnn)
+TEST_P(GPU_DeepBenchRNN_FP32, FloatTest_deepbench_rnn)
 {
     if(SkipTest())
     {
@@ -115,6 +115,4 @@ TEST_P(DeepBenchRNNConfigWithFloat, FloatTest_deepbench_rnn)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(ConvTrans,
-                         DeepBenchRNNConfigWithFloat,
-                         testing::Values(GetTestCases("--float")));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_DeepBenchRNN_FP32, testing::Values(GetTestCases("--float")));

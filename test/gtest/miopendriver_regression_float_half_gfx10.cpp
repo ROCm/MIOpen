@@ -49,11 +49,13 @@ std::vector<std::string> GetTestCases(const std::string& modeBatchNormArg)
 
 using TestCase = decltype(GetTestCases(""))::value_type;
 
-class MIOpenDriverRegressionFloatGfx10Test : public testing::TestWithParam<std::vector<TestCase>>
+class GPU_MIOpenDriverRegressionGfx10Test_FP32
+    : public testing::TestWithParam<std::vector<TestCase>>
 {
 };
 
-class MIOpenDriverRegressionHalfGfx10Test : public testing::TestWithParam<std::vector<TestCase>>
+class GPU_MIOpenDriverRegressionGfx10Test_FP16
+    : public testing::TestWithParam<std::vector<TestCase>>
 {
 };
 
@@ -72,20 +74,20 @@ void RunMIOpenDriver(std::string floatArg, const std::vector<TestCase>& testCase
 } // namespace miopendriver_regression_float_half_gfx10
 using namespace miopendriver_regression_float_half_gfx10;
 
-TEST_P(MIOpenDriverRegressionFloatGfx10Test, MIOpenDriverRegressionFloatHalfGfx10)
+TEST_P(GPU_MIOpenDriverRegressionGfx10Test_FP32, MIOpenDriverRegressionFloatHalfGfx10)
 {
     RunMIOpenDriver("--float", GetParam());
 };
 
-INSTANTIATE_TEST_SUITE_P(MIOpenDriverRegressionFloatHalfGfx10TestSet,
-                         MIOpenDriverRegressionFloatGfx10Test,
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_MIOpenDriverRegressionGfx10Test_FP32,
                          testing::Values(GetTestCases(miopendriver::basearg::bn::Float)));
 
-TEST_P(MIOpenDriverRegressionHalfGfx10Test, MIOpenDriverRegressionFloatHalfGfx10)
+TEST_P(GPU_MIOpenDriverRegressionGfx10Test_FP16, MIOpenDriverRegressionFloatHalfGfx10)
 {
     RunMIOpenDriver("--half", GetParam());
 };
 
-INSTANTIATE_TEST_SUITE_P(MIOpenDriverRegressionFloatHalfGfx10TestSet,
-                         MIOpenDriverRegressionHalfGfx10Test,
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_MIOpenDriverRegressionGfx10Test_FP16,
                          testing::Values(GetTestCases(miopendriver::basearg::bn::Half)));

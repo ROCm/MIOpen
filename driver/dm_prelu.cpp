@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,34 +23,18 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#pragma once
+#include "registry_driver_maker.hpp"
+#include "prelu_driver.hpp"
 
-#include <gtest/gtest.h>
-#include "conv_common.hpp"
-#include "get_handle.hpp"
-#include "tensor_util.hpp"
-#include <miopen/conv/data_invoke_params.hpp>
-
-#include <miopen/type_name.hpp>
-#include <miopen/rank.hpp>
-
-template <typename Solver, typename Context, typename Problem>
-auto GetSolutionImpl(miopen::rank<1>, Solver s, const Context& ctx, const Problem& problem)
-    -> decltype(s.GetSolution(ctx, problem, s.GetDefaultPerformanceConfig(ctx, problem)))
+static Driver* makeDriver(const std::string& base_arg)
 {
-    return s.GetSolution(ctx, problem, s.GetDefaultPerformanceConfig(ctx, problem));
+    if(base_arg == "prelu")
+        return new PReLUDriver<float, float>();
+    if(base_arg == "prelufp16")
+        return new PReLUDriver<float16, float>();
+    if(base_arg == "prelubfp16")
+        return new PReLUDriver<bfloat16, float>();
+    return nullptr;
 }
 
-template <typename Solver, typename Context, typename Problem>
-auto GetSolutionImpl(miopen::rank<0>, Solver s, const Context& ctx, const Problem& problem)
-    -> decltype(s.GetSolution(ctx, problem))
-{
-    return s.GetSolution(ctx, problem);
-}
-
-template <typename Solver, typename Context, typename Problem>
-miopen::solver::ConvSolution GetSolution(Solver s, const Context& ctx, const Problem& problem)
-{
-    auto solution = GetSolutionImpl(miopen::rank<1>{}, s, ctx, problem);
-    return solution;
-}
+REGISTER_DRIVER_MAKER(makeDriver);

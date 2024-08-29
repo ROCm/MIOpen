@@ -36,7 +36,7 @@
 
 #if MIOPEN_TEST_USE_GLOBAL_HANDLE
 
-static inline miopen::Handle& get_handle()
+inline miopen::Handle& get_handle()
 {
     // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
     static miopen::Handle h{};
@@ -51,11 +51,11 @@ static inline miopen::Handle& get_handle()
 
 #else
 
-static inline miopen::Handle get_handle() { return miopen::Handle{}; }
+inline miopen::Handle get_handle() { return miopen::Handle{}; }
 
 #endif
 
-static inline miopen::Handle get_handle_with_stream(const miopen::Handle& h)
+inline miopen::Handle get_handle_with_stream(const miopen::Handle& h)
 {
     return miopen::Handle{h.GetStream()};
 }

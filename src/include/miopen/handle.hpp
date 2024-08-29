@@ -89,7 +89,7 @@ struct MIOPEN_EXPORT Handle : miopenHandle
     Handle();
     Handle(miopenAcceleratorQueue_t stream);
     Handle(Handle&&) noexcept;
-    ~Handle();
+    virtual ~Handle();
 
     miopenAcceleratorQueue_t GetStream() const;
     void SetStream(miopenAcceleratorQueue_t streamID) const;
@@ -156,7 +156,7 @@ struct MIOPEN_EXPORT Handle : miopenHandle
     std::size_t GetGlobalMemorySize() const;
     std::size_t GetImage3dMaxWidth() const;
     std::size_t GetWavefrontWidth() const;
-    std::size_t GetMaxComputeUnits() const;
+    virtual std::size_t GetMaxComputeUnits() const;
     std::size_t GetMaxHardwareComputeUnits() const
     {
         const std::size_t num_cu = this->GetMaxComputeUnits();
@@ -165,10 +165,10 @@ struct MIOPEN_EXPORT Handle : miopenHandle
     }
 
     std::size_t m_MaxMemoryAllocSizeCached = 0;
-    std::size_t GetMaxMemoryAllocSize();
-    bool CooperativeLaunchSupported() const;
+    virtual std::size_t GetMaxMemoryAllocSize();
+    virtual bool CooperativeLaunchSupported() const;
 
-    std::string GetDeviceName() const;
+    virtual std::string GetDeviceName() const;
     const TargetProperties& GetTargetProperties() const;
 
 private:
