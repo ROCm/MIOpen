@@ -61,15 +61,15 @@ bool IsTestSupportedForDevice()
 
 } // namespace
 
-class Conv2dDEfaultHalf : public HalfTestCase<std::vector<TestCase>>
+class GPU_Conv2dDefault_FP16 : public HalfTestCase<std::vector<TestCase>>
 {
 };
 
-TEST_P(Conv2dDEfaultHalf, HalfTest_regression_half_vega_gfx908)
+TEST_P(GPU_Conv2dDefault_FP16, HalfTest_regression_half_vega_gfx908)
 {
     if(IsTestSupportedForDevice())
     {
-        invoke_with_params<conv2d_driver, Conv2dDEfaultHalf>(default_check);
+        invoke_with_params<conv2d_driver, GPU_Conv2dDefault_FP16>(default_check);
     }
     else
     {
@@ -77,6 +77,4 @@ TEST_P(Conv2dDEfaultHalf, HalfTest_regression_half_vega_gfx908)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(RegressionHalfVegaGfx908,
-                         Conv2dDEfaultHalf,
-                         testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_Conv2dDefault_FP16, testing::Values(GetTestCases()));
