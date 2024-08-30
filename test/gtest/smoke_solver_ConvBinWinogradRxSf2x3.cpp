@@ -61,19 +61,19 @@ bool IsTestSupportedForDevice()
 
 } // namespace
 
-class Conv2dAltTuningFloat : public FloatTestCase<std::vector<TestCase>>
+class GPU_Conv2dAltTuning_FP32 : public FloatTestCase<std::vector<TestCase>>
 {
 };
 
-class Conv2dAltTuningHalf : public HalfTestCase<std::vector<TestCase>>
+class GPU_Conv2dAltTuning_FP16 : public HalfTestCase<std::vector<TestCase>>
 {
 };
 
-TEST_P(Conv2dAltTuningFloat, FloatTest_smoke_solver_ConvBinWinogradRxSf2x3)
+TEST_P(GPU_Conv2dAltTuning_FP32, FloatTest_smoke_solver_ConvBinWinogradRxSf2x3)
 {
     if(IsTestSupportedForDevice() && !SkipTest())
     {
-        invoke_with_params<conv2d_driver, Conv2dAltTuningFloat>(tuning_check);
+        invoke_with_params<conv2d_driver, GPU_Conv2dAltTuning_FP32>(tuning_check);
     }
     else
     {
@@ -81,11 +81,11 @@ TEST_P(Conv2dAltTuningFloat, FloatTest_smoke_solver_ConvBinWinogradRxSf2x3)
     }
 };
 
-TEST_P(Conv2dAltTuningHalf, HalfTest_smoke_solver_ConvBinWinogradRxSf2x3)
+TEST_P(GPU_Conv2dAltTuning_FP16, HalfTest_smoke_solver_ConvBinWinogradRxSf2x3)
 {
     if(IsTestSupportedForDevice() && !SkipTest())
     {
-        invoke_with_params<conv2d_driver, Conv2dAltTuningHalf>(tuning_check);
+        invoke_with_params<conv2d_driver, GPU_Conv2dAltTuning_FP16>(tuning_check);
     }
     else
     {
@@ -93,10 +93,6 @@ TEST_P(Conv2dAltTuningHalf, HalfTest_smoke_solver_ConvBinWinogradRxSf2x3)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(SmokeSolverConvBinWinogradRxSf2x3,
-                         Conv2dAltTuningFloat,
-                         testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Conv2dAltTuning_FP32, testing::Values(GetTestCases()));
 
-INSTANTIATE_TEST_SUITE_P(SmokeSolverConvBinWinogradRxSf2x3,
-                         Conv2dAltTuningHalf,
-                         testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Conv2dAltTuning_FP16, testing::Values(GetTestCases()));

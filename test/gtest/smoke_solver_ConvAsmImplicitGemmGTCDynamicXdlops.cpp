@@ -67,23 +67,23 @@ bool IsTestSupportedForDevice()
 
 } // namespace
 
-class Conv2dFloat_smoke_solver_ConvAsmImplicitGemmGTCDynamicXdlops
+class GPU_Conv2d_smoke_solver_ConvAsmImplicitGemmGTCDynamicXdlops_FP32
     : public FloatTestCase<std::vector<TestCase>>
 {
 };
 
-class Conv2dHalf_smoke_solver_ConvAsmImplicitGemmGTCDynamicXdlops
+class GPU_Conv2d_smoke_solver_ConvAsmImplicitGemmGTCDynamicXdlops_FP16
     : public HalfTestCase<std::vector<TestCase>>
 {
 };
 
-TEST_P(Conv2dFloat_smoke_solver_ConvAsmImplicitGemmGTCDynamicXdlops,
+TEST_P(GPU_Conv2d_smoke_solver_ConvAsmImplicitGemmGTCDynamicXdlops_FP32,
        FloatTest_smoke_solver_ConvAsmImplicitGemmGTCDynamicXdlops)
 {
     if(IsTestSupportedForDevice() && !SkipTest())
     {
         invoke_with_params<conv2d_driver,
-                           Conv2dFloat_smoke_solver_ConvAsmImplicitGemmGTCDynamicXdlops>(
+                           GPU_Conv2d_smoke_solver_ConvAsmImplicitGemmGTCDynamicXdlops_FP32>(
             default_check);
     }
     else
@@ -92,13 +92,13 @@ TEST_P(Conv2dFloat_smoke_solver_ConvAsmImplicitGemmGTCDynamicXdlops,
     }
 };
 
-TEST_P(Conv2dHalf_smoke_solver_ConvAsmImplicitGemmGTCDynamicXdlops,
+TEST_P(GPU_Conv2d_smoke_solver_ConvAsmImplicitGemmGTCDynamicXdlops_FP16,
        HalfTest_smoke_solver_ConvAsmImplicitGemmGTCDynamicXdlops)
 {
     if(IsTestSupportedForDevice() && !SkipTest())
     {
         invoke_with_params<conv2d_driver,
-                           Conv2dHalf_smoke_solver_ConvAsmImplicitGemmGTCDynamicXdlops>(
+                           GPU_Conv2d_smoke_solver_ConvAsmImplicitGemmGTCDynamicXdlops_FP16>(
             default_check);
     }
     else
@@ -107,10 +107,10 @@ TEST_P(Conv2dHalf_smoke_solver_ConvAsmImplicitGemmGTCDynamicXdlops,
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(SmokeSolverConvAsmImplicitGemmV4R1Dynamic,
-                         Conv2dFloat_smoke_solver_ConvAsmImplicitGemmGTCDynamicXdlops,
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_Conv2d_smoke_solver_ConvAsmImplicitGemmGTCDynamicXdlops_FP32,
                          testing::Values(GetTestCases()));
 
-INSTANTIATE_TEST_SUITE_P(SmokeSolverConvAsmImplicitGemmV4R1Dynamic,
-                         Conv2dHalf_smoke_solver_ConvAsmImplicitGemmGTCDynamicXdlops,
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_Conv2d_smoke_solver_ConvAsmImplicitGemmGTCDynamicXdlops_FP16,
                          testing::Values(GetTestCases()));
