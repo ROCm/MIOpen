@@ -35,25 +35,18 @@ namespace softmarginloss {
 NetworkConfig ForwardProblemDescription::MakeNetworkConfig() const
 {
     std::ostringstream ss;
-    ss << "softmarginloss_fwd";
     ss << "itype" << iDesc.GetType();
-    ss << "ilen";
-    auto ilen = iDesc.GetLengths();
-    for(int32_t i = 0; i < ilen.size(); i++)
-        ss << ilen[i] << "_";
-    ss << "divisor" << divisor;
+    ss << "input_numel" << iDesc.GetElementSize();
+    ss << "reduction" << reduction;
     return NetworkConfig{ss.str()};
 }
 
 NetworkConfig BackwardProblemDescription::MakeNetworkConfig() const
 {
     std::ostringstream ss;
-    ss << "softmarginloss_bwd";
     ss << "itype" << iDesc.GetType();
-    ss << "ilen";
-    auto ilen = iDesc.GetLengths();
-    for(int32_t i = 0; i < ilen.size(); i++)
-        ss << ilen[i] << "_";
+    ss << "input_numel" << iDesc.GetElementSize();
+    ss << "reduction" << reduction;
     return NetworkConfig{ss.str()};
 }
 

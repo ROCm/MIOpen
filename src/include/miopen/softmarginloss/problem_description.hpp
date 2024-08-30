@@ -25,11 +25,10 @@
  *******************************************************************************/
 #pragma once
 
+#include "miopen/miopen.h"
 #include <miopen/activ.hpp>
 #include <miopen/problem_description_base.hpp>
 #include <miopen/tensor.hpp>
-#include <cassert>
-#include <string>
 
 namespace miopen {
 
@@ -42,37 +41,37 @@ struct ForwardProblemDescription : ProblemDescriptionBase
     ForwardProblemDescription(const TensorDescriptor& iDesc_,
                               const TensorDescriptor& tDesc_,
                               const TensorDescriptor& oDesc_,
-                              const float divisor_)
-        : iDesc(iDesc_), tDesc(tDesc_), oDesc(oDesc_), divisor(divisor_)
+                              const miopenLossReductionMode_t reduction_)
+        : iDesc(iDesc_), tDesc(tDesc_), oDesc(oDesc_), reduction(reduction_)
     {
         if(iDesc.GetType() != tDesc.GetType() || iDesc.GetType() != oDesc.GetType())
         {
             MIOPEN_THROW(miopenStatusBadParm, "SoftMarginLoss: Tensor types do not match.");
         }
-        if((iDesc.GetLengths() != tDesc.GetLengths()) ||
-           ((divisor == 0) && (iDesc.GetLengths() != oDesc.GetLengths())))
-        {
-            MIOPEN_THROW(miopenStatusBadParm,
-                         "SoftMarginLoss: Tensor dimension lengths do not match.");
-        }
-        if((divisor != 0) && (divisor != 1) && (divisor != iDesc.GetElementSize()))
-        {
-            MIOPEN_THROW(miopenStatusBadParm,
-                         "SoftMarginLoss: Divisor need to be 0 (no reduction), or 1 (sum "
-                         "reduction), or number of input tensor elements (mean reduction).");
-        }
-        if(divisor != 0 && oDesc.GetElementSize() != 1)
+        if(iDesc.GetLengths() != tDesc.GetLengths())
         {
             MIOPEN_THROW(
                 miopenStatusBadParm,
-                "SoftMarginLoss: When doing forward reduction, output tensor size need to be 1");
+                "SoftMarginLoss: Input tensor and target tensor dimension lengths do not match.");
+        }
+        if((reduction == MIOPEN_LOSS_REDUCTION_NONE) && (iDesc.GetLengths() != oDesc.GetLengths()))
+        {
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "SoftMarginLoss: When doing forward with no reduction, output tensor and "
+                         "input tensor dimension lengths should be equal.");
+        }
+        if((reduction != MIOPEN_LOSS_REDUCTION_NONE) && (oDesc.GetElementSize() != 1))
+        {
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "SoftMarginLoss: When doing forward reduction, output tensor size "
+                         "need to be 1.");
         }
     }
 
     const TensorDescriptor& GetiDesc() const { return iDesc; }
     const TensorDescriptor& GettDesc() const { return tDesc; }
     const TensorDescriptor& GetoDesc() const { return oDesc; }
-    float Getdivisor() const { return divisor; }
+    miopenLossReductionMode_t Getreduction() const { return reduction; }
 
     NetworkConfig MakeNetworkConfig() const override;
 
@@ -80,7 +79,7 @@ private:
     TensorDescriptor iDesc;
     TensorDescriptor tDesc;
     TensorDescriptor oDesc;
-    float divisor;
+    miopenLossReductionMode_t reduction;
 };
 
 struct BackwardProblemDescription : ProblemDescriptionBase
@@ -89,8 +88,8 @@ struct BackwardProblemDescription : ProblemDescriptionBase
                                const TensorDescriptor& tDesc_,
                                const TensorDescriptor& dODesc_,
                                const TensorDescriptor& dIDesc_,
-                               const float divisor_)
-        : iDesc(iDesc_), tDesc(tDesc_), dODesc(dODesc_), dIDesc(dIDesc_), divisor(divisor_)
+                               const miopenLossReductionMode_t reduction_)
+        : iDesc(iDesc_), tDesc(tDesc_), dODesc(dODesc_), dIDesc(dIDesc_), reduction(reduction_)
     {
         if(iDesc.GetType() != tDesc.GetType() || iDesc.GetType() != dODesc.GetType() ||
            iDesc.GetType() != dIDesc.GetType())
@@ -103,19 +102,13 @@ struct BackwardProblemDescription : ProblemDescriptionBase
             MIOPEN_THROW(miopenStatusBadParm,
                          "SoftMarginLoss: Tensor dimension lengths do not match.");
         }
-        if((divisor != 0) && (divisor != 1) && (divisor != iDesc.GetElementSize()))
-        {
-            MIOPEN_THROW(miopenStatusBadParm,
-                         "SoftMarginLoss: Divisor need to be 0 (no reduction), or 1 (sum "
-                         "reduction), or number of input tensor elements (mean reduction).");
-        }
     }
 
     const TensorDescriptor& GetiDesc() const { return iDesc; }
     const TensorDescriptor& GettDesc() const { return tDesc; }
     const TensorDescriptor& GetdODesc() const { return dODesc; }
     const TensorDescriptor& GetdIDesc() const { return dIDesc; }
-    float Getdivisor() const { return divisor; }
+    miopenLossReductionMode_t Getreduction() const { return reduction; }
 
     NetworkConfig MakeNetworkConfig() const override;
 
@@ -124,7 +117,7 @@ private:
     TensorDescriptor tDesc;
     TensorDescriptor dODesc;
     TensorDescriptor dIDesc;
-    float divisor;
+    miopenLossReductionMode_t reduction;
 };
 
 } // namespace softmarginloss

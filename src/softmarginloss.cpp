@@ -35,49 +35,68 @@
 
 namespace miopen {
 
-miopenStatus_t SoftMarginLossUnreducedForward(Handle& handle,
-                                              const TensorDescriptor& iDesc,
-                                              ConstData_t i,
-                                              const TensorDescriptor& tDesc,
-                                              ConstData_t t,
-                                              const TensorDescriptor& oDesc,
-                                              Data_t o)
+std::size_t GetSoftMarginLossForwardWorkspaceSize(Handle& handle,
+                                                  const TensorDescriptor& iDesc,
+                                                  const TensorDescriptor& tDesc,
+                                                  const TensorDescriptor& oDesc,
+                                                  const miopenLossReductionMode_t reduction)
 {
-    const auto problem = softmarginloss::ForwardProblemDescription{iDesc, tDesc, oDesc, 0};
+    auto ctx           = ExecutionContext{&handle};
+    const auto problem = softmarginloss::ForwardProblemDescription{iDesc, tDesc, oDesc, reduction};
+
+    const auto solvers = solver::SolverContainer<solver::softmarginloss::SoftMarginLossForward>{};
+
+    auto pair_size_vector = solvers.GetWorkspaceSizes(ctx, problem);
+    return pair_size_vector.empty() ? static_cast<size_t>(-1) : pair_size_vector.front().second;
+}
+
+miopenStatus_t SoftMarginLossForward(Handle& handle,
+                                     Data_t workspace,
+                                     size_t workspaceSizeInBytes,
+                                     const TensorDescriptor& iDesc,
+                                     ConstData_t i,
+                                     const TensorDescriptor& tDesc,
+                                     ConstData_t t,
+                                     const TensorDescriptor& oDesc,
+                                     Data_t o,
+                                     const miopenLossReductionMode_t reduction)
+{
+    const auto problem = softmarginloss::ForwardProblemDescription{iDesc, tDesc, oDesc, reduction};
 
     const auto invoke_params = [&]() {
-        auto tmp  = softmarginloss::InvokeParams{};
-        tmp.type  = InvokeType::Run;
-        tmp.iDesc = &iDesc;
-        tmp.i     = i;
-        tmp.tDesc = &tDesc;
-        tmp.t     = t;
-        tmp.oDesc = &oDesc;
-        tmp.o     = o;
+        auto tmp           = softmarginloss::InvokeParams{};
+        tmp.type           = InvokeType::Run;
+        tmp.iDesc          = &iDesc;
+        tmp.i              = i;
+        tmp.tDesc          = &tDesc;
+        tmp.t              = t;
+        tmp.oDesc          = &oDesc;
+        tmp.o              = o;
+        tmp.workspace      = workspace;
+        tmp.workspace_size = workspaceSizeInBytes;
         return tmp;
     }();
 
-    const auto algo = AlgorithmName{"SoftMarginLossUnreducedForward"};
-    const auto solvers =
-        solver::SolverContainer<solver::softmarginloss::SoftMarginLossUnreducedForward>{};
-
+    const auto algo    = AlgorithmName{"SoftMarginLossForward"};
+    const auto solvers = solver::SolverContainer<solver::softmarginloss::SoftMarginLossForward>{};
     solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
 
     return miopenStatusSuccess;
 }
 
-miopenStatus_t SoftMarginLossUnreducedBackward(Handle& handle,
-                                               const TensorDescriptor& iDesc,
-                                               ConstData_t i,
-                                               const TensorDescriptor& tDesc,
-                                               ConstData_t t,
-                                               const TensorDescriptor& dODesc,
-                                               ConstData_t dO,
-                                               const TensorDescriptor& dIDesc,
-                                               Data_t dI)
+miopenStatus_t SoftMarginLossBackward(Handle& handle,
+                                      const TensorDescriptor& iDesc,
+                                      ConstData_t i,
+                                      const TensorDescriptor& tDesc,
+                                      ConstData_t t,
+                                      const TensorDescriptor& dODesc,
+                                      ConstData_t dO,
+                                      const TensorDescriptor& dIDesc,
+                                      Data_t dI,
+                                      const miopenLossReductionMode_t reduction)
 {
     const auto problem =
-        softmarginloss::BackwardProblemDescription{iDesc, tDesc, dODesc, dIDesc, 0};
+        softmarginloss::BackwardProblemDescription{iDesc, tDesc, dODesc, dIDesc, reduction};
 
     const auto invoke_params = [&]() {
         auto tmp   = softmarginloss::InvokeParams{};
@@ -93,100 +112,8 @@ miopenStatus_t SoftMarginLossUnreducedBackward(Handle& handle,
         return tmp;
     }();
 
-    const auto algo = AlgorithmName{"SoftMarginLossUnreducedBackward"};
-    const auto solvers =
-        solver::SolverContainer<solver::softmarginloss::SoftMarginLossUnreducedBackward>{};
-
-    solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
-
-    return miopenStatusSuccess;
-}
-
-std::size_t GetSoftMarginLossForwardWorkspaceSize(Handle& handle,
-                                                  const TensorDescriptor& iDesc,
-                                                  const TensorDescriptor& tDesc,
-                                                  const TensorDescriptor& oDesc,
-                                                  float divisor)
-{
-    auto ctx           = ExecutionContext{&handle};
-    const auto problem = softmarginloss::ForwardProblemDescription{iDesc, tDesc, oDesc, divisor};
-
-    const auto algo    = AlgorithmName{"SoftMarginLossForward"};
-    const auto solvers = solver::SolverContainer<solver::softmarginloss::SoftMarginLossForward>{};
-
-    auto pair_size_vector = solvers.GetWorkspaceSizes(ctx, problem);
-
-    return pair_size_vector.empty() ? static_cast<size_t>(-1) : pair_size_vector.front().second;
-}
-
-miopenStatus_t SoftMarginLossForward(Handle& handle,
-                                     Data_t workspace,
-                                     size_t workspaceSizeInBytes,
-                                     const TensorDescriptor& iDesc,
-                                     ConstData_t i,
-                                     const TensorDescriptor& tDesc,
-                                     ConstData_t t,
-                                     const TensorDescriptor& oDesc,
-                                     Data_t o,
-                                     const float divisor)
-{
-    const auto problem = softmarginloss::ForwardProblemDescription{iDesc, tDesc, oDesc, divisor};
-
-    const auto invoke_params = [&]() {
-        auto tmp           = softmarginloss::InvokeParams{};
-        tmp.type           = InvokeType::Run;
-        tmp.iDesc          = &iDesc;
-        tmp.i              = i;
-        tmp.tDesc          = &tDesc;
-        tmp.t              = t;
-        tmp.oDesc          = &oDesc;
-        tmp.o              = o;
-        tmp.workspace      = workspace;
-        tmp.workspace_size = workspaceSizeInBytes;
-        tmp.divisor        = divisor;
-        return tmp;
-    }();
-
-    const auto algo    = AlgorithmName{"SoftMarginLossForward"};
-    const auto solvers = solver::SolverContainer<solver::softmarginloss::SoftMarginLossForward>{};
-
-    solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
-
-    return miopenStatusSuccess;
-}
-
-miopenStatus_t SoftMarginLossBackward(Handle& handle,
-                                      const TensorDescriptor& iDesc,
-                                      ConstData_t i,
-                                      const TensorDescriptor& tDesc,
-                                      ConstData_t t,
-                                      const TensorDescriptor& dODesc,
-                                      ConstData_t dO,
-                                      const TensorDescriptor& dIDesc,
-                                      Data_t dI,
-                                      const float divisor)
-{
-    const auto problem =
-        softmarginloss::BackwardProblemDescription{iDesc, tDesc, dODesc, dIDesc, divisor};
-
-    const auto invoke_params = [&]() {
-        auto tmp    = softmarginloss::InvokeParams{};
-        tmp.type    = InvokeType::Run;
-        tmp.iDesc   = &iDesc;
-        tmp.i       = i;
-        tmp.tDesc   = &tDesc;
-        tmp.t       = t;
-        tmp.dODesc  = &dODesc;
-        tmp.dO      = dO;
-        tmp.dIDesc  = &dIDesc;
-        tmp.dI      = dI;
-        tmp.divisor = divisor;
-        return tmp;
-    }();
-
     const auto algo    = AlgorithmName{"SoftMarginLossBackward"};
     const auto solvers = solver::SolverContainer<solver::softmarginloss::SoftMarginLossBackward>{};
-
     solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
 
     return miopenStatusSuccess;

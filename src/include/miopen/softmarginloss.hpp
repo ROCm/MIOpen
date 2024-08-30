@@ -34,31 +34,12 @@ namespace miopen {
 struct Handle;
 struct TensorDescriptor;
 
-MIOPEN_INTERNALS_EXPORT miopenStatus_t SoftMarginLossUnreducedForward(Handle& handle,
-                                                                      const TensorDescriptor& iDesc,
-                                                                      ConstData_t i,
-                                                                      const TensorDescriptor& tDesc,
-                                                                      ConstData_t t,
-                                                                      const TensorDescriptor& oDesc,
-                                                                      Data_t o);
-
-MIOPEN_INTERNALS_EXPORT miopenStatus_t
-SoftMarginLossUnreducedBackward(Handle& handle,
-                                const TensorDescriptor& iDesc,
-                                ConstData_t i,
-                                const TensorDescriptor& tDesc,
-                                ConstData_t t,
-                                const TensorDescriptor& dODesc,
-                                ConstData_t dO,
-                                const TensorDescriptor& dIDesc,
-                                Data_t dI);
-
 MIOPEN_INTERNALS_EXPORT std::size_t
 GetSoftMarginLossForwardWorkspaceSize(Handle& handle,
                                       const TensorDescriptor& iDesc,
                                       const TensorDescriptor& tDesc,
                                       const TensorDescriptor& oDesc,
-                                      float divisor);
+                                      miopenLossReductionMode_t reduction);
 
 MIOPEN_INTERNALS_EXPORT miopenStatus_t SoftMarginLossForward(Handle& handle,
                                                              Data_t workspace,
@@ -69,7 +50,7 @@ MIOPEN_INTERNALS_EXPORT miopenStatus_t SoftMarginLossForward(Handle& handle,
                                                              ConstData_t t,
                                                              const TensorDescriptor& oDesc,
                                                              Data_t o,
-                                                             float divisor);
+                                                             miopenLossReductionMode_t reduction);
 
 MIOPEN_INTERNALS_EXPORT miopenStatus_t SoftMarginLossBackward(Handle& handle,
                                                               const TensorDescriptor& iDesc,
@@ -80,7 +61,7 @@ MIOPEN_INTERNALS_EXPORT miopenStatus_t SoftMarginLossBackward(Handle& handle,
                                                               ConstData_t dO,
                                                               const TensorDescriptor& dIDesc,
                                                               Data_t dI,
-                                                              float divisor);
+                                                              miopenLossReductionMode_t reduction);
 
 } // namespace miopen
 #endif // _MIOPEN_SOFTMARGINLOSS_HPP_

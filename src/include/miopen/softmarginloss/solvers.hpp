@@ -27,7 +27,6 @@
 
 #include <miopen/softmarginloss/problem_description.hpp>
 #include <miopen/solver.hpp>
-#include <utility>
 
 namespace miopen {
 
@@ -38,36 +37,8 @@ namespace softmarginloss {
 using ForwardSoftMarginLossSolver =
     NonTunableSolverBase<ExecutionContext, miopen::softmarginloss::ForwardProblemDescription>;
 
-struct SoftMarginLossUnreducedForward final : ForwardSoftMarginLossSolver
-{
-    const std::string& SolverDbId() const override
-    {
-        return GetSolverDbId<SoftMarginLossUnreducedForward>();
-    }
-    bool
-    IsApplicable(const ExecutionContext& context,
-                 const miopen::softmarginloss::ForwardProblemDescription& problem) const override;
-    ConvSolution
-    GetSolution(const ExecutionContext& context,
-                const miopen::softmarginloss::ForwardProblemDescription& problem) const override;
-};
-
 using BackwardSoftMarginLossSolver =
     NonTunableSolverBase<ExecutionContext, miopen::softmarginloss::BackwardProblemDescription>;
-
-struct SoftMarginLossUnreducedBackward final : BackwardSoftMarginLossSolver
-{
-    const std::string& SolverDbId() const override
-    {
-        return GetSolverDbId<SoftMarginLossUnreducedBackward>();
-    }
-    bool
-    IsApplicable(const ExecutionContext& context,
-                 const miopen::softmarginloss::BackwardProblemDescription& problem) const override;
-    ConvSolution
-    GetSolution(const ExecutionContext& context,
-                const miopen::softmarginloss::BackwardProblemDescription& problem) const override;
-};
 
 struct SoftMarginLossForward final : ForwardSoftMarginLossSolver
 {

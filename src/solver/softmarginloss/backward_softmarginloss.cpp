@@ -53,7 +53,7 @@ ConvSolution SoftMarginLossBackward::GetSolution(
 {
     auto result = ConvSolution{miopenStatusSuccess};
 
-    auto elem = problem.GetdIDesc().GetElementSize();
+    auto elem = problem.GetiDesc().GetElementSize();
 
     {
         auto dtype        = problem.GetiDesc().GetType();
@@ -72,10 +72,7 @@ ConvSolution SoftMarginLossBackward::GetSolution(
             {"MIOPEN_USE_FP16", static_cast<int32_t>(dtype == miopenHalf)},
             {"MIOPEN_USE_FP32", static_cast<int32_t>(dtype == miopenFloat)},
             {"MIOPEN_USE_BFP16", static_cast<int32_t>(dtype == miopenBFloat16)},
-            {"INPUT_TYPE",
-             (dtype == miopenBFloat16) ? "ushort"
-             : (dtype == miopenHalf)   ? "_Float16"
-                                       : "float"},
+            {"REDUCTION_TYPE", static_cast<int>(problem.Getreduction())},
         };
 
         kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
@@ -100,8 +97,15 @@ ConvSolution SoftMarginLossBackward::GetSolution(
             auto t_tv  = get_inner_expanded_tv<5>(deref(params.tDesc));
             auto dO_tv = get_inner_expanded_tv<5>(deref(params.dODesc));
             auto dI_tv = get_inner_expanded_tv<5>(deref(params.dIDesc));
-            kernel(
-                params.i, params.t, params.dO, params.dI, params.divisor, i_tv, t_tv, dO_tv, dI_tv);
+            kernel(params.i,
+                   params.t,
+                   params.dO,
+                   params.dI,
+                   params.iDesc->GetElementSize(),
+                   i_tv,
+                   t_tv,
+                   dO_tv,
+                   dI_tv);
         };
     };
 

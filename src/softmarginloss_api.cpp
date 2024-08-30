@@ -40,24 +40,14 @@ miopenGetSoftMarginLossForwardWorkspaceSize(miopenHandle_t handle,
 {
     MIOPEN_LOG_FUNCTION(handle, inputDesc, targetDesc, outputDesc, reduction);
 
-    if(reduction != MIOPEN_LOSS_REDUCTION_SUM && reduction != MIOPEN_LOSS_REDUCTION_MEAN)
-    {
-        MIOPEN_THROW(miopenStatusBadParm,
-                     "miopenGetSoftMarginLossForwardWorkspaceSize: reduction should be "
-                     "MIOPEN_LOSS_REDUCTION_SUM or MIOPEN_LOSS_REDUCTION_MEAN.");
-    }
-    else
-    {
-        return miopen::try_([&] {
-            miopen::deref(sizeInBytes) = miopen::GetSoftMarginLossForwardWorkspaceSize(
-                miopen::deref(handle),
-                miopen::deref(inputDesc),
-                miopen::deref(targetDesc),
-                miopen::deref(outputDesc),
-                reduction == MIOPEN_LOSS_REDUCTION_SUM ? 1
-                                                       : miopen::deref(inputDesc).GetElementSize());
-        });
-    }
+    return miopen::try_([&] {
+        miopen::deref(sizeInBytes) =
+            miopen::GetSoftMarginLossForwardWorkspaceSize(miopen::deref(handle),
+                                                          miopen::deref(inputDesc),
+                                                          miopen::deref(targetDesc),
+                                                          miopen::deref(outputDesc),
+                                                          reduction);
+    });
 }
 
 extern "C" miopenStatus_t miopenSoftMarginLossForward(miopenHandle_t handle,
@@ -82,41 +72,18 @@ extern "C" miopenStatus_t miopenSoftMarginLossForward(miopenHandle_t handle,
                         output,
                         reduction);
 
-    if(reduction == MIOPEN_LOSS_REDUCTION_NONE)
-    {
-        return miopen::try_([&] {
-            miopen::SoftMarginLossUnreducedForward(miopen::deref(handle),
-                                                   miopen::deref(inputDesc),
-                                                   DataCast(input),
-                                                   miopen::deref(targetDesc),
-                                                   DataCast(target),
-                                                   miopen::deref(outputDesc),
-                                                   DataCast(output));
-        });
-    }
-    else if(reduction == MIOPEN_LOSS_REDUCTION_SUM || reduction == MIOPEN_LOSS_REDUCTION_MEAN)
-    {
-        return miopen::try_([&] {
-            miopen::SoftMarginLossForward(miopen::deref(handle),
-                                          DataCast(workspace),
-                                          workspaceSizeInBytes,
-                                          miopen::deref(inputDesc),
-                                          DataCast(input),
-                                          miopen::deref(targetDesc),
-                                          DataCast(target),
-                                          miopen::deref(outputDesc),
-                                          DataCast(output),
-                                          reduction == MIOPEN_LOSS_REDUCTION_SUM
-                                              ? 1
-                                              : miopen::deref(inputDesc).GetElementSize());
-        });
-    }
-    else
-    {
-        MIOPEN_THROW(miopenStatusBadParm,
-                     "miopenSoftMarginLossForward: reduction should be MIOPEN_LOSS_REDUCTION_NONE, "
-                     "MIOPEN_LOSS_REDUCTION_SUM or MIOPEN_LOSS_REDUCTION_MEAN.");
-    }
+    return miopen::try_([&] {
+        miopen::SoftMarginLossForward(miopen::deref(handle),
+                                      DataCast(workspace),
+                                      workspaceSizeInBytes,
+                                      miopen::deref(inputDesc),
+                                      DataCast(input),
+                                      miopen::deref(targetDesc),
+                                      DataCast(target),
+                                      miopen::deref(outputDesc),
+                                      DataCast(output),
+                                      reduction);
+    });
 }
 
 extern "C" miopenStatus_t miopenSoftMarginLossBackward(miopenHandle_t handle,
@@ -140,42 +107,17 @@ extern "C" miopenStatus_t miopenSoftMarginLossBackward(miopenHandle_t handle,
                         dinputDesc,
                         dinput,
                         reduction);
-    if(reduction == MIOPEN_LOSS_REDUCTION_NONE)
-    {
-        return miopen::try_([&] {
-            miopen::SoftMarginLossUnreducedBackward(miopen::deref(handle),
-                                                    miopen::deref(inputDesc),
-                                                    DataCast(input),
-                                                    miopen::deref(targetDesc),
-                                                    DataCast(target),
-                                                    miopen::deref(doutputDesc),
-                                                    DataCast(doutput),
-                                                    miopen::deref(dinputDesc),
-                                                    DataCast(dinput));
-        });
-    }
-    else if(reduction == MIOPEN_LOSS_REDUCTION_SUM || reduction == MIOPEN_LOSS_REDUCTION_MEAN)
-    {
-        return miopen::try_([&] {
-            miopen::SoftMarginLossBackward(miopen::deref(handle),
-                                           miopen::deref(inputDesc),
-                                           DataCast(input),
-                                           miopen::deref(targetDesc),
-                                           DataCast(target),
-                                           miopen::deref(doutputDesc),
-                                           DataCast(doutput),
-                                           miopen::deref(dinputDesc),
-                                           DataCast(dinput),
-                                           reduction == MIOPEN_LOSS_REDUCTION_SUM
-                                               ? 1
-                                               : miopen::deref(inputDesc).GetElementSize());
-        });
-    }
-    else
-    {
-        MIOPEN_THROW(
-            miopenStatusBadParm,
-            "miopenSoftMarginLossBackward: reduction should be MIOPEN_LOSS_REDUCTION_NONE, "
-            "MIOPEN_LOSS_REDUCTION_SUM or MIOPEN_LOSS_REDUCTION_MEAN.");
-    }
+
+    return miopen::try_([&] {
+        miopen::SoftMarginLossBackward(miopen::deref(handle),
+                                       miopen::deref(inputDesc),
+                                       DataCast(input),
+                                       miopen::deref(targetDesc),
+                                       DataCast(target),
+                                       miopen::deref(doutputDesc),
+                                       DataCast(doutput),
+                                       miopen::deref(dinputDesc),
+                                       DataCast(dinput),
+                                       reduction);
+    });
 }
