@@ -216,7 +216,7 @@ public:
         if(batch_size == 0)
             return miopenStatusSuccess;
 
-        const miopen::GemmDescriptor gemm_desc =
+        [[maybe_unused]] const miopen::GemmDescriptor gemm_desc =
             GemmDescriptor64BitWraper(false,
                                       true,
                                       false,
