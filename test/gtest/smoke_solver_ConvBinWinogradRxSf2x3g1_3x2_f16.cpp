@@ -74,15 +74,15 @@ bool IsTestSupportedForDevice()
 
 } // namespace
 
-class Conv2dAltFltHalf : public HalfTestCase<std::vector<TestCase>>
+class GPU_Conv2dAltFlt_FP16 : public HalfTestCase<std::vector<TestCase>>
 {
 };
 
-TEST_P(Conv2dAltFltHalf, HalfTest_smoke_solver_ConvBinWinogradRxSf2x3g1_3x2_f16)
+TEST_P(GPU_Conv2dAltFlt_FP16, HalfTest_smoke_solver_ConvBinWinogradRxSf2x3g1_3x2_f16)
 {
     if(IsTestSupportedForDevice() && !SkipTest())
     {
-        invoke_with_params<conv2d_driver, Conv2dAltFltHalf>(default_check);
+        invoke_with_params<conv2d_driver, GPU_Conv2dAltFlt_FP16>(default_check);
     }
     else
     {
@@ -90,6 +90,4 @@ TEST_P(Conv2dAltFltHalf, HalfTest_smoke_solver_ConvBinWinogradRxSf2x3g1_3x2_f16)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(SmokeSolverConvBinWinogradRxSf2x3g13x2F16,
-                         Conv2dAltFltHalf,
-                         testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Conv2dAltFlt_FP16, testing::Values(GetTestCases()));
