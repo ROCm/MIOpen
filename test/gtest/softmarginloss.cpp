@@ -25,6 +25,7 @@
  *******************************************************************************/
 
 #include "softmarginloss.hpp"
+#include "miopen/miopen.h"
 #include <miopen/env.hpp>
 
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
@@ -42,52 +43,27 @@ std::string GetFloatArg()
     return tmp;
 }
 
-struct SoftMarginLossUnreducedForwardTestFloat : SoftMarginLossUnreducedForwardTest<float>
+struct GPU_SoftMarginLossForward_FP32 : SoftMarginLossForwardTest<float>
 {
 };
 
-struct SoftMarginLossUnreducedForwardTestHalf : SoftMarginLossUnreducedForwardTest<half_float::half>
+struct GPU_SoftMarginLossForward_FP16 : SoftMarginLossForwardTest<half_float::half>
 {
 };
 
-struct SoftMarginLossUnreducedForwardTestBFloat16 : SoftMarginLossUnreducedForwardTest<bfloat16>
+struct GPU_SoftMarginLossForward_BFP16 : SoftMarginLossForwardTest<bfloat16>
 {
 };
 
-struct SoftMarginLossUnreducedBackwardTestFloat : SoftMarginLossUnreducedBackwardTest<float>
+struct GPU_SoftMarginLossBackward_FP32 : SoftMarginLossBackwardTest<float>
 {
 };
 
-struct SoftMarginLossUnreducedBackwardTestHalf
-    : SoftMarginLossUnreducedBackwardTest<half_float::half>
+struct GPU_SoftMarginLossBackward_FP16 : SoftMarginLossBackwardTest<half_float::half>
 {
 };
 
-struct SoftMarginLossUnreducedBackwardTestBFloat16 : SoftMarginLossUnreducedBackwardTest<bfloat16>
-{
-};
-
-struct SoftMarginLossReducedForwardTestFloat : SoftMarginLossReducedForwardTest<float>
-{
-};
-
-struct SoftMarginLossReducedForwardTestHalf : SoftMarginLossReducedForwardTest<half_float::half>
-{
-};
-
-struct SoftMarginLossReducedForwardTestBFloat16 : SoftMarginLossReducedForwardTest<bfloat16>
-{
-};
-
-struct SoftMarginLossReducedBackwardTestFloat : SoftMarginLossReducedBackwardTest<float>
-{
-};
-
-struct SoftMarginLossReducedBackwardTestHalf : SoftMarginLossReducedBackwardTest<half_float::half>
-{
-};
-
-struct SoftMarginLossReducedBackwardTestBFloat16 : SoftMarginLossReducedBackwardTest<bfloat16>
+struct GPU_SoftMarginLossBackward_BFP16 : SoftMarginLossBackwardTest<bfloat16>
 {
 };
 
@@ -95,7 +71,7 @@ struct SoftMarginLossReducedBackwardTestBFloat16 : SoftMarginLossReducedBackward
 
 using namespace softmarginloss;
 
-TEST_P(SoftMarginLossUnreducedForwardTestFloat, )
+TEST_P(GPU_SoftMarginLossForward_FP32, )
 {
     if(!MIOPEN_TEST_ALL ||
        (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--float"))
@@ -109,7 +85,7 @@ TEST_P(SoftMarginLossUnreducedForwardTestFloat, )
     }
 };
 
-TEST_P(SoftMarginLossUnreducedForwardTestHalf, )
+TEST_P(GPU_SoftMarginLossForward_FP16, )
 {
     if(!MIOPEN_TEST_ALL ||
        (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--half"))
@@ -123,7 +99,7 @@ TEST_P(SoftMarginLossUnreducedForwardTestHalf, )
     }
 };
 
-TEST_P(SoftMarginLossUnreducedForwardTestBFloat16, )
+TEST_P(GPU_SoftMarginLossForward_BFP16, )
 {
     if(!MIOPEN_TEST_ALL ||
        (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--bfloat16"))
@@ -136,17 +112,8 @@ TEST_P(SoftMarginLossUnreducedForwardTestBFloat16, )
         GTEST_SKIP();
     }
 };
-INSTANTIATE_TEST_SUITE_P(SoftMarginLossTestSet,
-                         SoftMarginLossUnreducedForwardTestFloat,
-                         testing::ValuesIn(SoftMarginLossTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(SoftMarginLossTestSet,
-                         SoftMarginLossUnreducedForwardTestHalf,
-                         testing::ValuesIn(SoftMarginLossTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(SoftMarginLossTestSet,
-                         SoftMarginLossUnreducedForwardTestBFloat16,
-                         testing::ValuesIn(SoftMarginLossTestConfigs()));
 
-TEST_P(SoftMarginLossUnreducedBackwardTestFloat, )
+TEST_P(GPU_SoftMarginLossBackward_FP32, )
 {
     if(!MIOPEN_TEST_ALL ||
        (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--float"))
@@ -160,7 +127,7 @@ TEST_P(SoftMarginLossUnreducedBackwardTestFloat, )
     }
 };
 
-TEST_P(SoftMarginLossUnreducedBackwardTestHalf, )
+TEST_P(GPU_SoftMarginLossBackward_FP16, )
 {
     if(!MIOPEN_TEST_ALL ||
        (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--half"))
@@ -174,7 +141,7 @@ TEST_P(SoftMarginLossUnreducedBackwardTestHalf, )
     }
 };
 
-TEST_P(SoftMarginLossUnreducedBackwardTestBFloat16, )
+TEST_P(GPU_SoftMarginLossBackward_BFP16, )
 {
     if(!MIOPEN_TEST_ALL ||
        (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--bfloat16"))
@@ -187,114 +154,23 @@ TEST_P(SoftMarginLossUnreducedBackwardTestBFloat16, )
         GTEST_SKIP();
     }
 };
-INSTANTIATE_TEST_SUITE_P(SoftMarginLossTestSet,
-                         SoftMarginLossUnreducedBackwardTestFloat,
-                         testing::ValuesIn(SoftMarginLossTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(SoftMarginLossTestSet,
-                         SoftMarginLossUnreducedBackwardTestHalf,
-                         testing::ValuesIn(SoftMarginLossTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(SoftMarginLossTestSet,
-                         SoftMarginLossUnreducedBackwardTestBFloat16,
-                         testing::ValuesIn(SoftMarginLossTestConfigs()));
 
-TEST_P(SoftMarginLossReducedForwardTestFloat, )
-{
-    if(!MIOPEN_TEST_ALL ||
-       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--float"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
-};
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_SoftMarginLossForward_FP32,
+                         testing::ValuesIn(SoftMarginLossTestConfigs(1, miopenFloat)));
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_SoftMarginLossForward_FP16,
+                         testing::ValuesIn(SoftMarginLossTestConfigs(1, miopenHalf)));
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_SoftMarginLossForward_BFP16,
+                         testing::ValuesIn(SoftMarginLossTestConfigs(1, miopenBFloat16)));
 
-TEST_P(SoftMarginLossReducedForwardTestHalf, )
-{
-    if(!MIOPEN_TEST_ALL ||
-       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--half"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
-};
-
-TEST_P(SoftMarginLossReducedForwardTestBFloat16, )
-{
-    if(!MIOPEN_TEST_ALL ||
-       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--bfloat16"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
-};
-INSTANTIATE_TEST_SUITE_P(SoftMarginLossTestSet,
-                         SoftMarginLossReducedForwardTestFloat,
-                         testing::ValuesIn(SoftMarginLossTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(SoftMarginLossTestSet,
-                         SoftMarginLossReducedForwardTestHalf,
-                         testing::ValuesIn(SoftMarginLossTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(SoftMarginLossTestSet,
-                         SoftMarginLossReducedForwardTestBFloat16,
-                         testing::ValuesIn(SoftMarginLossTestConfigs()));
-
-TEST_P(SoftMarginLossReducedBackwardTestFloat, )
-{
-    if(!MIOPEN_TEST_ALL ||
-       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--float"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
-};
-
-TEST_P(SoftMarginLossReducedBackwardTestHalf, )
-{
-    if(!MIOPEN_TEST_ALL ||
-       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--half"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
-};
-
-TEST_P(SoftMarginLossReducedBackwardTestBFloat16, )
-{
-    if(!MIOPEN_TEST_ALL ||
-       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--bfloat16"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
-};
-INSTANTIATE_TEST_SUITE_P(SoftMarginLossTestSet,
-                         SoftMarginLossReducedBackwardTestFloat,
-                         testing::ValuesIn(SoftMarginLossTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(SoftMarginLossTestSet,
-                         SoftMarginLossReducedBackwardTestHalf,
-                         testing::ValuesIn(SoftMarginLossTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(SoftMarginLossTestSet,
-                         SoftMarginLossReducedBackwardTestBFloat16,
-                         testing::ValuesIn(SoftMarginLossTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_SoftMarginLossBackward_FP32,
+                         testing::ValuesIn(SoftMarginLossTestConfigs(0, miopenFloat)));
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_SoftMarginLossBackward_FP16,
+                         testing::ValuesIn(SoftMarginLossTestConfigs(0, miopenHalf)));
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_SoftMarginLossBackward_BFP16,
+                         testing::ValuesIn(SoftMarginLossTestConfigs(0, miopenBFloat16)));

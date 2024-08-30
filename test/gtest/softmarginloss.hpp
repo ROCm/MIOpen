@@ -24,226 +24,69 @@
  *
  *******************************************************************************/
 
-#include "../driver/tensor_driver.hpp"
 #include "cpu_softmarginloss.hpp"
 #include "get_handle.hpp"
-#include "random.hpp"
 #include "tensor_holder.hpp"
 #include "verify.hpp"
 #include <gtest/gtest.h>
 #include <miopen/miopen.h>
 #include <miopen/softmarginloss.hpp>
-#include <numeric>
 
 struct SoftMarginLossTestCase
 {
+    // dim and stride of input tensor
     std::vector<size_t> dims;
     std::vector<size_t> strides;
+    miopenLossReductionMode_t reduction_mode;
+
+    friend std::ostream& operator<<(std::ostream& os, const SoftMarginLossTestCase& tc)
+    {
+        os << "dims:";
+        os << tc.dims[0];
+        for(int i = 1; i < tc.dims.size(); i++)
+            os << "x" << tc.dims[i];
+        os << " strides:";
+        os << tc.strides[0];
+        for(int i = 1; i < tc.strides.size(); i++)
+            os << "x" << tc.strides[i];
+        os << " reduction_mode:" << tc.reduction_mode;
+        return os;
+    }
 };
 
-std::vector<SoftMarginLossTestCase> SoftMarginLossTestConfigs()
+inline std::vector<SoftMarginLossTestCase> SoftMarginLossTestConfigs(bool is_fwd,
+                                                                     miopenDataType_t data_type)
 {
     // clang-format off
-    return {
-    {{256, 4, 8732}, {34928, 8732, 1}}, // squeezenet
-    {{32, 80, 870}, {69600, 1, 80}}, // t5
-    {{32, 80, 870}, {69600, 870, 1}}, // t5
-    {{4, 182403, 91}, {16598673, 91, 1}}, // resnext
-    {{1534680}, {1}}, // maskrcnn
-    {{16, 1, 512, 512}, {262144, 262144, 512, 1}}, // stdc
-    {{2, 3, 160, 160}, {6528000, 2176000, 13600, 85}}, // yolor
-    {{2, 3, 80, 80}, {1632000, 544000, 6800, 85}}, // yolor
-    {{32756, 80}, {85, 1}}, // yolov5
-    {{64, 3, 80, 80}, {1632000, 544000, 6800, 85}}, // yolov5
-    {{64, 3, 40, 40}, {408000, 136000, 3400, 85}}, // yolov5
-    {{22311, 80}, {85, 1}}, // yolov5
-    {{64, 3, 20, 20}, {102000, 34000, 1700, 85}}, // yolov5
-    {{8, 4}, {4, 1}}, // ssd
-    {{56, 4}, {4, 1}}, // ssd
-    {{131, 4}, {4, 1}}, // ssd
-    {{10000}, {1}}, // 1dcont
-    {{200, 50}, {50, 1}}, // 2dcont
-    {{20, 50, 10}, {500, 10, 1}}, // 3dcont
-    {{4, 25, 4, 25}, {2500, 100, 25, 1}}, // 4dcont
-    {{12, 3, 4, 5, 6}, {360, 120, 30, 6, 1}}, // 5dcont
-    {{10000}, {3}}, // 1d-uncont
-    {{200, 50}, {1, 200}}, // 2d-uncont
-    {{200, 50}, {505, 1}}, // 2d-unpacked
-    {{20, 50, 10}, {1, 20, 1000}}, // 3d-uncont
-    {{20, 50, 10}, {7575, 15, 1}}, // 3d-unpacked
-    {{4, 25, 4, 25}, {1, 16, 4, 400}}, // 4d-uncont
-    {{4, 25, 4, 25}, {5859, 217, 31, 1}}, // 4d-unpacked
-    {{12, 3, 4, 5, 6}, {360, 120, 6, 24, 1}}, // 5d-uncont
-    {{12, 3, 4, 5, 6}, {5760, 960, 120, 12, 1}}, // 5d-unpacked
-    };
+    const std::vector<std::vector<size_t>> dim_config = { {256, 4, 8732}, {32, 80, 870}, {32, 80, 870}, {4, 182403, 91}, {1534680}, {16, 1, 512, 512}, {2, 3, 160, 160}, {2, 3, 80, 80}, {32756, 80},
+          {64, 3, 80, 80}, {64, 3, 40, 40}, {22311, 80}, {64, 3, 20, 20}, {8, 4}, {56, 4}, {131, 4}, {10000}, {200, 50}, {20, 50, 10}, {4, 25, 4, 25},
+          {12, 3, 4, 5, 6}, {10000}, {200, 50}, {200, 50}, {20, 50, 10}, {20, 50, 10}, {4, 25, 4, 25}, {4, 25, 4, 25}, {12, 3, 4, 5, 6}, {12, 3, 4, 5, 6} };
+    const std::vector<std::vector<size_t>> stride_config =  { {34928, 8732, 1}, {69600, 1, 80}, {69600, 870, 1}, {16598673, 91, 1}, {1}, {262144, 262144, 512, 1}, {6528000, 2176000, 13600, 85}, {1632000, 544000, 6800, 85}, {85, 1},
+          {1632000, 544000, 6800, 85}, {408000, 136000, 3400, 85}, {85, 1}, {102000, 34000, 1700, 85}, {4, 1}, {4, 1}, {4, 1}, {1}, {50, 1}, {500, 10, 1}, {2500, 100, 25, 1},
+          {360, 120, 30, 6, 1}, {3}, {1, 200}, {505, 1}, {1, 20, 1000}, {7575, 15, 1}, {1, 16, 4, 400}, {5859, 217, 31, 1}, {360, 120, 6, 24, 1}, {5760, 960, 120, 12, 1} };
+    std::vector<SoftMarginLossTestCase> test_config;
+    // TODO: remove test configs underflow or overflow
+    for (int i = 0; i < dim_config.size(); i++) test_config.push_back({dim_config[i], stride_config[i], MIOPEN_LOSS_REDUCTION_NONE});
+    for (int i = 0; i < dim_config.size(); i++) {
+        // Please note that with backward fp16 mean reduction, if input tensor is too big the result will be wrong because of fp16 underflow
+        size_t input_numel = 1;
+        for (auto x: dim_config[i]) input_numel *= x;
+        if (!is_fwd && data_type == miopenHalf && input_numel >= 320000) continue;
+        test_config.push_back({dim_config[i], stride_config[i], MIOPEN_LOSS_REDUCTION_MEAN});
+    }
+    for (int i = 0; i < dim_config.size(); i++) {
+        // Please note that with forward fp16 sum reduction, if input tensor is too big the result will be wrong because of fp16 overflow
+        size_t input_numel = 1;
+        for (auto x: dim_config[i]) input_numel *= x;
+        if (is_fwd && data_type == miopenHalf && input_numel >= 80000) continue;
+        test_config.push_back({dim_config[i], stride_config[i], MIOPEN_LOSS_REDUCTION_SUM});
+    }
+    return test_config;
     // clang-format on
 }
 
 template <typename T = float>
-struct SoftMarginLossUnreducedForwardTest : public ::testing::TestWithParam<SoftMarginLossTestCase>
-{
-protected:
-    void SetUp() override
-    {
-        auto&& handle         = get_handle();
-        softmarginloss_config = GetParam();
-
-        auto in_dims      = softmarginloss_config.dims;
-        auto in_strides   = softmarginloss_config.strides;
-        auto gen_in_value = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1e-2, 100); };
-
-        // below commented code that I have seen in many files will not work correctly with unpacked
-        // tensor tensor.generate() will call for_each() and this function only iterate through
-        // desc.GetLengths().size(), not desc.GetElementSpace() Example input_tensor to verify:
-        // input_tensor: dim(5, 3), stride(4, 1). Element space = 19, size = 15. Call above code
-        // will only generate value for 15 elements
-
-        // input = tensor<T>{in_dims, in_strides}.generate(gen_in_value);
-
-        // This is the right method to generate value for tensor
-        input = tensor<T>{in_dims, in_strides};
-        std::generate(input.begin(), input.end(), gen_in_value);
-
-        auto gen_target_value = [](auto...) {
-            return (prng::gen_A_to_B<int32_t>(0, 2) == 0) ? -1 : 1;
-        };
-        target = tensor<T>{in_dims, in_strides};
-        std::generate(target.begin(), target.end(), gen_target_value);
-
-        output = tensor<T>{in_dims, in_strides};
-        std::fill(output.begin(), output.end(), 0);
-
-        ref_output = tensor<T>{in_dims, in_strides};
-        std::fill(ref_output.begin(), ref_output.end(), 0);
-
-        input_dev  = handle.Write(input.data);
-        target_dev = handle.Write(target.data);
-        output_dev = handle.Write(output.data);
-    }
-    void RunTest()
-    {
-        auto&& handle = get_handle();
-
-        cpu_softmarginloss_unreduced_forward<T>(input, target, ref_output);
-        miopenStatus_t status;
-
-        status = miopen::SoftMarginLossUnreducedForward(handle,
-                                                        input.desc,
-                                                        input_dev.get(),
-                                                        target.desc,
-                                                        target_dev.get(),
-                                                        output.desc,
-                                                        output_dev.get());
-
-        EXPECT_EQ(status, miopenStatusSuccess);
-
-        output.data = handle.Read<T>(output_dev, output.data.size());
-    }
-
-    void Verify()
-    {
-        double threshold = std::numeric_limits<T>::epsilon();
-        auto error       = miopen::rms_range(ref_output, output);
-        EXPECT_TRUE(miopen::range_distance(ref_output) == miopen::range_distance(output));
-        EXPECT_TRUE(error < threshold) << "Error output beyond tolerance "
-                                          "Error:"
-                                       << error << ",  Threshold: " << threshold;
-    }
-    SoftMarginLossTestCase softmarginloss_config;
-
-    tensor<T> input;
-    tensor<T> target;
-    tensor<T> output;
-
-    tensor<T> ref_output;
-
-    miopen::Allocator::ManageDataPtr input_dev;
-    miopen::Allocator::ManageDataPtr target_dev;
-    miopen::Allocator::ManageDataPtr output_dev;
-};
-
-template <typename T = float>
-struct SoftMarginLossUnreducedBackwardTest : public ::testing::TestWithParam<SoftMarginLossTestCase>
-{
-protected:
-    void SetUp() override
-    {
-        auto&& handle         = get_handle();
-        softmarginloss_config = GetParam();
-
-        auto in_dims      = softmarginloss_config.dims;
-        auto in_strides   = softmarginloss_config.strides;
-        auto gen_in_value = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1e-2, 100); };
-        // Contiguous or not? depends on strides
-        input = tensor<T>{in_dims, in_strides}.generate(gen_in_value);
-
-        auto gen_target_value = [](auto...) {
-            return (prng::gen_A_to_B<int32_t>(0, 2) == 0) ? -1 : 1;
-        };
-        target = tensor<T>{in_dims, in_strides}.generate(gen_target_value);
-
-        dO = tensor<T>{in_dims, in_strides};
-        std::fill(dO.begin(), dO.end(), 1);
-
-        dI = tensor<T>{in_dims, in_strides};
-        std::fill(dI.begin(), dI.end(), 0);
-
-        ref_dI = tensor<T>{in_dims, in_strides};
-        std::fill(ref_dI.begin(), ref_dI.end(), 0);
-
-        input_dev  = handle.Write(input.data);
-        target_dev = handle.Write(target.data);
-        dO_dev     = handle.Write(dO.data);
-        dI_dev     = handle.Write(dI.data);
-    }
-    void RunTest()
-    {
-        auto&& handle = get_handle();
-
-        cpu_softmarginloss_unreduced_backward<T>(input, target, dO, ref_dI);
-        miopenStatus_t status;
-
-        status = miopen::SoftMarginLossUnreducedBackward(handle,
-                                                         input.desc,
-                                                         input_dev.get(),
-                                                         target.desc,
-                                                         target_dev.get(),
-                                                         dO.desc,
-                                                         dO_dev.get(),
-                                                         dI.desc,
-                                                         dI_dev.get());
-
-        EXPECT_EQ(status, miopenStatusSuccess);
-
-        dI.data = handle.Read<T>(dI_dev, dI.data.size());
-    }
-
-    void Verify()
-    {
-        double threshold = std::numeric_limits<T>::epsilon();
-        auto error       = miopen::rms_range(ref_dI, dI);
-        EXPECT_TRUE(miopen::range_distance(ref_dI) == miopen::range_distance(dI));
-        EXPECT_TRUE(error < threshold) << "Error output beyond tolerance "
-                                          "Error:"
-                                       << error << ",  Threshold: " << threshold;
-    }
-    SoftMarginLossTestCase softmarginloss_config;
-
-    tensor<T> input;
-    tensor<T> target;
-    tensor<T> dO;
-    tensor<T> dI;
-
-    tensor<T> ref_dI;
-
-    miopen::Allocator::ManageDataPtr input_dev;
-    miopen::Allocator::ManageDataPtr target_dev;
-    miopen::Allocator::ManageDataPtr dO_dev;
-    miopen::Allocator::ManageDataPtr dI_dev;
-};
-
-template <typename T = float>
-struct SoftMarginLossReducedForwardTest : public ::testing::TestWithParam<SoftMarginLossTestCase>
+struct SoftMarginLossForwardTest : public ::testing::TestWithParam<SoftMarginLossTestCase>
 {
 protected:
     void SetUp() override
@@ -253,74 +96,69 @@ protected:
 
         auto in_dims    = softmarginloss_config.dims;
         auto in_strides = softmarginloss_config.strides;
+        reduction_mode  = softmarginloss_config.reduction_mode;
 
-        auto input_numel =
-            std::accumulate(in_dims.begin(), in_dims.end(), 1L, std::multiplies<int64_t>());
-        if(std::is_same<T, half_float::half>::value && input_numel > 80000)
-        {
-            std::cerr << "For fp16 forward reduction test, too many elements in input tensor can "
-                         "lead to fp16 "
-                         "overflow or underflow. If reduction mean, divisor is very big lead to "
-                         "underflow. If reduction sum, result is too big lead to overflow."
-                      << std::endl;
-            GTEST_SKIP();
-        }
-
-        auto gen_in_value = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1e-2, 100); };
         // below commented code that I have seen in many files will not work correctly with unpacked
-        // tensor tensor.generate() will call for_each() and this function only iterate through
-        // desc.GetLengths().size(), not desc.GetElementSpace() Example input_tensor to verify:
-        // input_tensor: dim(5, 3), stride(4, 1). Element space = 19, size = 15. Call above code
-        // will only generate value for 15 elements
+        // tensor because tensor.generate() will call for_each() and this function only iterate
+        // through desc.GetLengths().size(), not desc.GetElementSpace() Example input_tensor to
+        // verify: input_tensor: dim(5, 3), stride(4, 1). Element space = 19, size = 15. Call above
+        // code will only generate value for 15 elements
 
         // input = tensor<T>{in_dims, in_strides}.generate(gen_in_value);
 
         // This is the right method to generate value for tensor
-        input = tensor<T>{in_dims, in_strides};
+        input             = tensor<T>{in_dims, in_strides};
+        auto gen_in_value = [](auto...) {
+            return prng::gen_A_to_B<T>(static_cast<T>(-1), static_cast<T>(1));
+        };
         std::generate(input.begin(), input.end(), gen_in_value);
+        input_dev = handle.Write(input.data);
 
         auto gen_target_value = [](auto...) {
             return (prng::gen_A_to_B<int32_t>(0, 2) == 0) ? -1 : 1;
         };
         target = tensor<T>{in_dims, in_strides};
         std::generate(target.begin(), target.end(), gen_target_value);
+        target_dev = handle.Write(target.data);
 
-        // Tensor with 1 element to store result after reduce
-        output = tensor<T>{std::vector<size_t>{1}};
+        if(reduction_mode == MIOPEN_LOSS_REDUCTION_NONE)
+        {
+            output     = tensor<T>{in_dims, in_strides};
+            ref_output = tensor<T>{in_dims, in_strides};
+        }
+        else
+        {
+            // Tensor with 1 element to store result after reduce
+            output     = tensor<T>{std::vector<size_t>{1}};
+            ref_output = tensor<T>{std::vector<size_t>{1}};
+        }
         std::fill(output.begin(), output.end(), 0);
-
-        ref_output = tensor<T>{std::vector<size_t>{1}};
         std::fill(ref_output.begin(), ref_output.end(), 0);
+        output_dev = handle.Write(output.data);
 
         ws_sizeInBytes = miopen::GetSoftMarginLossForwardWorkspaceSize(
-            handle, input.desc, target.desc, output.desc, 1);
+            handle, input.desc, target.desc, output.desc, reduction_mode);
         if(ws_sizeInBytes == static_cast<size_t>(-1))
-            GTEST_SKIP();
+            GTEST_FAIL() << "Call GetMultiMarginLossForwardWorkspaceSize failed!";
 
-        std::vector<size_t> workspace_dims;
-        workspace_dims.push_back(ws_sizeInBytes / sizeof(T));
-
-        workspace = tensor<T>{workspace_dims};
-        std::fill(workspace.begin(), workspace.end(), 0);
-
-        ref_workspace = tensor<T>{workspace_dims};
-        std::fill(ref_workspace.begin(), ref_workspace.end(), 0);
-
-        // Write from CPU to GPU
-        input_dev     = handle.Write(input.data);
-        target_dev    = handle.Write(target.data);
-        output_dev    = handle.Write(output.data);
-        workspace_dev = handle.Write(workspace.data);
+        if(ws_sizeInBytes > 0)
+        {
+            workspace = tensor<float>{std::vector<size_t>{ws_sizeInBytes / sizeof(float)}};
+            std::fill(workspace.begin(), workspace.end(), 0);
+            workspace_dev = handle.Write(workspace.data);
+        }
+        else
+        {
+            workspace_dev = nullptr;
+        }
     }
     void RunTest()
     {
         auto&& handle = get_handle();
 
-        // Mean reduction. To test with sum reduction, change divisor to 1
-        const float divisor = input.desc.GetElementSize();
-        cpu_softmarginloss_reduced_forward<T>(input, target, ref_output, ref_workspace, divisor);
-
+        cpu_softmarginloss_forward<T>(input, target, ref_output, reduction_mode);
         miopenStatus_t status;
+
         status = miopen::SoftMarginLossForward(handle,
                                                workspace_dev.get(),
                                                ws_sizeInBytes,
@@ -330,44 +168,46 @@ protected:
                                                target_dev.get(),
                                                output.desc,
                                                output_dev.get(),
-                                               divisor);
-        EXPECT_EQ(status, miopenStatusSuccess);
+                                               reduction_mode);
 
-        // Write from GPU to CPU
-        workspace.data = handle.Read<T>(workspace_dev, workspace.data.size());
-        output.data    = handle.Read<T>(output_dev, output.data.size());
+        ASSERT_EQ(status, miopenStatusSuccess);
+
+        output.data = handle.Read<T>(output_dev, output.data.size());
     }
 
     void Verify()
     {
-        // fp32: 1.19209e-07, fp16: 0.000976562, bf16: 0.0078125
-        double threshold = std::numeric_limits<T>::epsilon();
-        auto error       = miopen::rms_range(ref_output, output);
-        EXPECT_TRUE(miopen::range_distance(ref_output) == miopen::range_distance(output));
-        EXPECT_TRUE(error < threshold * 10) << "Error output beyond tolerance "
-                                               "Error:"
-                                            << error << ",  Threshold x 10: " << threshold * 10;
+        // Computation error of fp16 is ~2^13 (=8192) bigger than
+        // the one of fp32 because mantissa is shorter by 13 bits.
+        auto tolerance = std::is_same<T, float>::value ? 1.5e-6 : 8.2e-3;
+        // bf16 mantissa has 7 bits, by 3 bits shorter than fp16.
+        if(std::is_same<T, bfloat16>::value)
+            tolerance *= 8.0;
+
+        auto error = miopen::rms_range(ref_output, output);
+        ASSERT_EQ(miopen::range_distance(ref_output), miopen::range_distance(output));
+        EXPECT_LT(error, tolerance);
     }
     SoftMarginLossTestCase softmarginloss_config;
 
     tensor<T> input;
     tensor<T> target;
     tensor<T> output;
-    tensor<T> workspace;
+    tensor<float> workspace;
 
     tensor<T> ref_output;
-    tensor<T> ref_workspace;
 
     miopen::Allocator::ManageDataPtr input_dev;
     miopen::Allocator::ManageDataPtr target_dev;
     miopen::Allocator::ManageDataPtr output_dev;
     miopen::Allocator::ManageDataPtr workspace_dev;
 
+    miopenLossReductionMode_t reduction_mode;
     size_t ws_sizeInBytes;
 };
 
 template <typename T = float>
-struct SoftMarginLossReducedBackwardTest : public ::testing::TestWithParam<SoftMarginLossTestCase>
+struct SoftMarginLossBackwardTest : public ::testing::TestWithParam<SoftMarginLossTestCase>
 {
 protected:
     void SetUp() override
@@ -377,47 +217,37 @@ protected:
 
         auto in_dims    = softmarginloss_config.dims;
         auto in_strides = softmarginloss_config.strides;
+        reduction_mode  = softmarginloss_config.reduction_mode;
 
-        // Mean reduction. To test with sum reduction, change divisor to 1
-        // divisor = 1;
-        divisor = input.desc.GetElementSize();
-
-        if(std::is_same<T, half_float::half>::value && divisor > 80000)
-        {
-            std::cerr << "For fp16 backward reduction mean test, too many elements in input tensor "
-                         "can lead to fp16 underflow when divise by too big divisor"
-                      << std::endl;
-            GTEST_SKIP();
-        }
-
-        auto gen_in_value = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1e-2, 100); };
-        // Contiguous or not? depends on strides
-        input = tensor<T>{in_dims, in_strides}.generate(gen_in_value);
+        input             = tensor<T>{in_dims, in_strides};
+        auto gen_in_value = [](auto...) {
+            return prng::gen_A_to_B<T>(static_cast<T>(-1), static_cast<T>(1));
+        };
+        std::generate(input.begin(), input.end(), gen_in_value);
+        input_dev = handle.Write(input.data);
 
         auto gen_target_value = [](auto...) {
             return (prng::gen_A_to_B<int32_t>(0, 2) == 0) ? -1 : 1;
         };
-        target = tensor<T>{in_dims, in_strides}.generate(gen_target_value);
+        target     = tensor<T>{in_dims, in_strides}.generate(gen_target_value);
+        target_dev = handle.Write(target.data);
 
         dO = tensor<T>{in_dims, in_strides};
         std::fill(dO.begin(), dO.end(), 1);
+        dO_dev = handle.Write(dO.data);
 
         dI = tensor<T>{in_dims, in_strides};
         std::fill(dI.begin(), dI.end(), 0);
+        dI_dev = handle.Write(dI.data);
 
         ref_dI = tensor<T>{in_dims, in_strides};
         std::fill(ref_dI.begin(), ref_dI.end(), 0);
-
-        input_dev  = handle.Write(input.data);
-        target_dev = handle.Write(target.data);
-        dO_dev     = handle.Write(dO.data);
-        dI_dev     = handle.Write(dI.data);
     }
     void RunTest()
     {
         auto&& handle = get_handle();
 
-        cpu_softmarginloss_reduced_backward<T>(input, target, dO, ref_dI, divisor);
+        cpu_softmarginloss_backward<T>(input, target, dO, ref_dI, reduction_mode);
         miopenStatus_t status;
 
         status = miopen::SoftMarginLossBackward(handle,
@@ -429,21 +259,25 @@ protected:
                                                 dO_dev.get(),
                                                 dI.desc,
                                                 dI_dev.get(),
-                                                divisor);
+                                                reduction_mode);
 
-        EXPECT_EQ(status, miopenStatusSuccess);
+        ASSERT_EQ(status, miopenStatusSuccess);
 
         dI.data = handle.Read<T>(dI_dev, dI.data.size());
     }
 
     void Verify()
     {
-        double threshold = std::numeric_limits<T>::epsilon();
-        auto error       = miopen::rms_range(ref_dI, dI);
-        EXPECT_TRUE(miopen::range_distance(ref_dI) == miopen::range_distance(dI));
-        EXPECT_TRUE(error < threshold) << "Error output beyond tolerance "
-                                          "Error:"
-                                       << error << ",  Threshold: " << threshold;
+        // Computation error of fp16 is ~2^13 (=8192) bigger than
+        // the one of fp32 because mantissa is shorter by 13 bits.
+        auto tolerance = std::is_same<T, float>::value ? 1.5e-6 : 8.2e-3;
+        // bf16 mantissa has 7 bits, by 3 bits shorter than fp16.
+        if(std::is_same<T, bfloat16>::value)
+            tolerance *= 8.0;
+
+        auto error = miopen::rms_range(ref_dI, dI);
+        ASSERT_EQ(miopen::range_distance(ref_dI), miopen::range_distance(dI));
+        EXPECT_LT(error, tolerance);
     }
     SoftMarginLossTestCase softmarginloss_config;
 
@@ -459,5 +293,5 @@ protected:
     miopen::Allocator::ManageDataPtr dO_dev;
     miopen::Allocator::ManageDataPtr dI_dev;
 
-    float divisor;
+    miopenLossReductionMode_t reduction_mode;
 };
