@@ -70,6 +70,18 @@ __device__ void CumulativeReductionForwardContiguousLastDim(const TI* __restrict
                                                             const bool exclusive,
                                                             const bool reverse)
 {
+    /*
+     * input = packed tensor with stride[last_dim]=1, output: the same as input, indices: the same
+as input
+     * reduce_size = input.size[last_dim]
+     * exclusive: TRUE to exclude input[i] when calculate output[i]
+     * reverse: reverse the operating order
+     *
+     * cumulative dimension = last dim
+     * blockSize = {1, LOCAL_SIZE}
+     * gridSize = {Number of input elements / input.size[last_dim], input.size[last_dim]}
+     */
+
     __shared__ FLOAT_ACCUM otmp[LOCAL_SIZE];
     int* itmp = nullptr;
     if(indices)

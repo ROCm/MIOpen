@@ -76,6 +76,7 @@ ConvSolution ForwardContiguousLastDim::GetSolution(
     auto inner_size = problem.GetInputDesc().GetLengths()[problem.GetDim()];
     auto outer_size = size / inner_size;
 
+    // LOCAL_SIZE must be the smallest power of 2 that greater than inner_size and warpSize
     auto local_size = LOCAL_SIZE_MIN;
     while(local_size < inner_size)
         local_size *= 2;
@@ -110,7 +111,7 @@ ConvSolution ForwardContiguousLastDim::GetSolution(
             kernel(params.input,
                    params.output,
                    params.indices,
-                   deref(params.indicesDesc).GetLengths()[true_dim],
+                   deref(params.inputDesc).GetLengths()[true_dim],
                    params.exclusive,
                    params.reverse);
         };
