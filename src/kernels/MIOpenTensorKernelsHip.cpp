@@ -119,7 +119,7 @@ extern "C" __global__ void Op2dTensorGeneric(MIOPEN_TYPE* a,
     MIOPEN_TYPE* b_off = b + Boffset;
     MIOPEN_TYPE* c_off = c + Coffset;
 
-    int o_n_div = bitmap & (1 << 0) ? 1 : c_c;
+    int o_n_div = (bitmap & (1 << 0)) ? 1 : c_c;
 
     // num_wg: the number of workgroups should be launched
     // MAX_NUM_WG: the maximum number of workgroups actually launched

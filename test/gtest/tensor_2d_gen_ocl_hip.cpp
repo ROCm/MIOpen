@@ -158,7 +158,7 @@ struct Op2DTensorGenericTest
 protected:
     void SetUp() override
     {
-        auto&& handle = get_handle();
+        auto&& handle                                 = get_handle();
         std::tie(tensorsConfig, alpha0, alpha1, beta) = GetParam();
 
         data_type = miopen_type<T>{};
@@ -184,10 +184,10 @@ protected:
             tensorsConfig.blens.rbegin(), tensorsConfig.blens.rend(), [](int i) { return i != 1; });
         auto d = std::distance(tensorsConfig.blens.begin(), first_not_one.base());
 
-        int num_wg      = first_not_one != tensorsConfig.blens.rend()
-                              ? static_cast<int>(*first_not_one == 0 ? 1 : *first_not_one)
-                              : 1;
-        work_per_wg     = std::accumulate(tensorsConfig.aclens.begin() + d,
+        int num_wg  = first_not_one != tensorsConfig.blens.rend()
+                          ? static_cast<int>(*first_not_one == 0 ? 1 : *first_not_one)
+                          : 1;
+        work_per_wg = std::accumulate(tensorsConfig.aclens.begin() + d,
                                       tensorsConfig.aclens.end(),
                                       1,
                                       std::multiplies<int>());
@@ -209,9 +209,9 @@ protected:
             }
         }
 
-        num_wg_orig     = num_wg;
-        int max_num_wg  = 4096;
-        num_wg          = num_wg > max_num_wg ? max_num_wg : num_wg;
+        num_wg_orig    = num_wg;
+        int max_num_wg = 4096;
+        num_wg         = num_wg > max_num_wg ? max_num_wg : num_wg;
 
         size_t local_threads = 256;
 
@@ -237,7 +237,7 @@ protected:
         tensC_dev = handle.Write(tensC.data);
         std::fill(tensC_ocl.begin(), tensC_ocl.end(), std::numeric_limits<T>::quiet_NaN());
 
-        std::string program_name = "MIOpenTensorKernels.cl";
+        std::string program_name       = "MIOpenTensorKernels.cl";
         std::string network_config_ocl = network_config + "-ocl";
 
         handle.AddKernel("Op2dTensorGeneric",
@@ -299,7 +299,7 @@ protected:
 
         std::fill(tensC_hip.begin(), tensC_hip.end(), std::numeric_limits<T>::quiet_NaN());
 
-        std::string program_name = "MIOpenTensorKernelsHip.cpp";
+        std::string program_name       = "MIOpenTensorKernelsHip.cpp";
         std::string network_config_hip = network_config + "-hip";
 
         handle.AddKernel("Op2dTensorGeneric",
