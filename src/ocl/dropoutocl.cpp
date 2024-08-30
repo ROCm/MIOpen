@@ -125,8 +125,8 @@ void DropoutDescriptor::InitPRNGState(Handle& handle,
 #if DROPOUT_DEBUG
     std::cout << "Check memory and threads info of dropout PRNG states in debug mode:" << std::endl;
 #endif
-    std::string program_name = "MIOpenDropout.cl";
-    std::string kernel_name  = "InitKernelState";
+    std::string program_name = "MIOpenDropoutHIP.cpp";
+    std::string kernel_name  = "InitKernelStateHIP";
 
     if(prng_stateSizeInBytes > handle.GetMaxMemoryAllocSize())
     {
@@ -151,7 +151,7 @@ void DropoutDescriptor::InitPRNGState(Handle& handle,
         const std::vector<size_t> vgd{wk_grp_num * 256, 1, 1};
 
         std::string params;
-        params += " -DRUN_INIT_PRNG=1";
+        params += "-DRUN_FORWARD=0  -DRUN_INIT_PRNG=1";
 #if DROPOUT_DEBUG
         std::cout << "Threads allocated for PRNG states: " << vgd[0] << std::endl;
         std::cout << "Memory allocated for PRNG states: " << stateSizeInBytes << std::endl;
