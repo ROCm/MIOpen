@@ -23,16 +23,27 @@
 * SOFTWARE.
 *
 *******************************************************************************/
-
-#include <cstdint>
+#include "test.hpp"
+#include <array>
+#include <cmath>
 #include <iostream>
-#include <tuple>
-#include <gtest/gtest.h>
+#include <iterator>
+#include <limits>
+#include <memory>
+#include <miopen/convolution.hpp>
 #include <miopen/miopen.h>
-// add more includes if needed
 #include <miopen/softmax.hpp>
 #include <miopen/tensor.hpp>
+#include <utility>
+
+#include "driver.hpp"
+#include "get_handle.hpp"
 #include "tensor_holder.hpp"
+#include "verify.hpp"
+
+#include <cstdint>
+#include <tuple>
+#include <gtest/gtest.h>
 
 struct InputDimension
 {
@@ -71,16 +82,23 @@ protected:
         
         auto&& handle = get_handle();
         
-
         //initialze output tensor with same dim as first input tensor
-        output = tensor<T>{out_dim};
-        std::fill(output.begin(), output.end(), std::numeric_limits<T>::quiet_NaN());
+        output = tensor<DataType>{out_dim};
+        std::fill(output.begin(), output.end(), std::numeric_limits<DataType>::quiet_NaN());
 
 
-    output_dev = handle.Write(output.data);
+    auto output_dev = handle.Write(output.data);
 
     }
-
+    void Print()
+    {
+    // print input test parameters
+    std::cout << "Run test:" << std::endl;
+    std::cout << "Input Dimensions: " << input << std::endl;
+    std::cout << "Softmax Algorithm: " << algo << std::endl;
+    std::cout << "Softmax Mode: " << mode << std::endl;
+    std::cout << "Scales: " << scales << std::endl;
+    }
 
     void TearDown() override
     {
@@ -91,29 +109,24 @@ private:
     // keep all the input\output intermediate data here
     
     InputDimension input;
-    tensor<T> output;
-    //tensor<T> ref_output;
+    tensor<DataType> output;
+    tensor<DataType> out_dim;
+
+    //tensor<DataType> ref_output;
 
     miopenSoftmaxAlgorithm_t algo;
     miopenSoftmaxMode_t mode;
     Scales scales;
-
-    using SoftMaxParams = SoftMaxTest<float>;
     
     //std::vector<miopen::Allocator::ManageDataPtr> inputs_dev;
-    miopen::Allocator::ManageDataPtr output_dev;
+    //miopen::Allocator::ManageDataPtr output_dev;
 
 };
 
 using GPU_SoftMax_Fwd_FP32 = SoftMaxTest<float>;
 
 TEST_P(GPU_SoftMax_Fwd_FP32, Test){
-    // print input test parameters
-    std::cout << "Run test:" << std::endl;
-    std::cout << "Input Dimensions: " << input << std::endl;
-    std::cout << "Softmax Algorithm: " << algo << std::endl;
-    std::cout << "Softmax Mode: " << mode << std::endl;
-    std::cout << "Scales: " << scales << std::endl;
+    Print();
     //RunTest();
     //Verify();
 };
@@ -122,7 +135,8 @@ INSTANTIATE_TEST_SUITE_P(
     Smoke,
     GPU_SoftMax_Fwd_FP32,
     testing::Combine(
-        testing::ValuesIn(get_inputs()), //try it
+        testing::ValuesIn({InputDimension{1, 2, 3, 4},   // replace hardcoded initializer_list with
+                           InputDimension{4, 3, 2, 1}}), //try it
         testing::Values(MIOPEN_SOFTMAX_FAST, MIOPEN_SOFTMAX_ACCURATE, MIOPEN_SOFTMAX_LOG),
         testing::Values(MIOPEN_SOFTMAX_MODE_INSTANCE, MIOPEN_SOFTMAX_MODE_CHANNEL),
         testing::Values(Scales{1.0f, 0.0f}, Scales{0.5f, 0.5f})));
