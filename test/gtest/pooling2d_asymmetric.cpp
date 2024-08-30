@@ -38,11 +38,11 @@ namespace env = miopen::env;
 
 namespace pooling2d_asymmetric {
 
-class Pooling2dFloat : public testing::TestWithParam<std::vector<std::string>>
+class GPU_Pooling2d_FP32 : public testing::TestWithParam<std::vector<std::string>>
 {
 };
 
-class AsymPooling2dHalf : public testing::TestWithParam<std::vector<std::string>>
+class GPU_AsymPooling2d_FP16 : public testing::TestWithParam<std::vector<std::string>>
 {
 };
 
@@ -63,8 +63,8 @@ void Run2dDriver(miopenDataType_t prec)
     std::vector<std::string> params;
     switch(prec)
     {
-    case miopenFloat: params = Pooling2dFloat::GetParam(); break;
-    case miopenHalf: params = AsymPooling2dHalf::GetParam(); break;
+    case miopenFloat: params = GPU_Pooling2d_FP32::GetParam(); break;
+    case miopenHalf: params = GPU_AsymPooling2d_FP16::GetParam(); break;
     case miopenBFloat16:
     case miopenInt8:
     case miopenFloat8:
@@ -77,7 +77,7 @@ void Run2dDriver(miopenDataType_t prec)
                "data type not supported by "
                "immed_conv2d_codecov test";
 
-    default: params = Pooling2dFloat::GetParam();
+    default: params = GPU_Pooling2d_FP32::GetParam();
     }
 
     for(const auto& test_value : params)
@@ -116,7 +116,7 @@ std::vector<std::string> GetTestCases(const std::string& precision)
 using namespace pooling2d_asymmetric;
 
 /*
-TEST_P(Pooling2dFloat, FloatTest_pooling2d_asymmetric)
+TEST_P(GPU_Pooling2d_FP32, FloatTest_pooling2d_asymmetric)
 {
     const auto& handle = get_handle();
     if(IsTestSupportedForDevice(handle) && !SkipTest() && IsTestRunWith("--float"))
@@ -130,7 +130,7 @@ TEST_P(Pooling2dFloat, FloatTest_pooling2d_asymmetric)
 };
 */
 
-TEST_P(AsymPooling2dHalf, HalfTest_pooling2d_asymmetric)
+TEST_P(GPU_AsymPooling2d_FP16, HalfTest_pooling2d_asymmetric)
 {
     const auto& handle = get_handle();
     if(IsTestSupportedForDevice(handle) && !SkipTest() && IsTestRunWith("--half"))
@@ -143,6 +143,6 @@ TEST_P(AsymPooling2dHalf, HalfTest_pooling2d_asymmetric)
     }
 };
 
-// INSTANTIATE_TEST_SUITE_P(Pooling2D, Pooling2dFloat, testing::Values(GetTestCases("--float")));
+// INSTANTIATE_TEST_SUITE_P(Full, GPU_Pooling2d_FP32, testing::Values(GetTestCases("--float")));
 
-INSTANTIATE_TEST_SUITE_P(Pooling2D, AsymPooling2dHalf, testing::Values(GetTestCases("--half")));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_AsymPooling2d_FP16, testing::Values(GetTestCases("--half")));

@@ -124,19 +124,19 @@ bool IsTestSupportedForDevice()
 
 } // namespace
 
-class Conv2dTuningV4RxHalf : public HalfTestCase<std::vector<TestCase>>
+class GPU_Conv2dTuningV4Rx_FP16 : public HalfTestCase<std::vector<TestCase>>
 {
 };
 
-class Conv2dTuningV4RxBf16 : public Bf16TestCase<std::vector<TestCase>>
+class GPU_Conv2dTuningV4Rx_BFP16 : public Bf16TestCase<std::vector<TestCase>>
 {
 };
 
-TEST_P(Conv2dTuningV4RxHalf, HalfTest_smoke_solver_ConvHipImplicitGemmDataV4RxXdlops)
+TEST_P(GPU_Conv2dTuningV4Rx_FP16, HalfTest_smoke_solver_ConvHipImplicitGemmDataV4RxXdlops)
 {
     if(IsTestSupportedForDevice())
     {
-        invoke_with_params<conv2d_driver, Conv2dTuningV4RxHalf>(tuning_check);
+        invoke_with_params<conv2d_driver, GPU_Conv2dTuningV4Rx_FP16>(tuning_check);
     }
     else
     {
@@ -144,11 +144,11 @@ TEST_P(Conv2dTuningV4RxHalf, HalfTest_smoke_solver_ConvHipImplicitGemmDataV4RxXd
     }
 };
 
-TEST_P(Conv2dTuningV4RxBf16, Bf16Test_smoke_solver_ConvHipImplicitGemmDataV4RxXdlops)
+TEST_P(GPU_Conv2dTuningV4Rx_BFP16, Bf16Test_smoke_solver_ConvHipImplicitGemmDataV4RxXdlops)
 {
     if(IsTestSupportedForDevice())
     {
-        invoke_with_params<conv2d_driver, Conv2dTuningV4RxBf16>(tuning_check);
+        invoke_with_params<conv2d_driver, GPU_Conv2dTuningV4Rx_BFP16>(tuning_check);
     }
     else
     {
@@ -156,10 +156,6 @@ TEST_P(Conv2dTuningV4RxBf16, Bf16Test_smoke_solver_ConvHipImplicitGemmDataV4RxXd
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(SmokeSolverConvHipImplicitGemmDataV4RxXdlops,
-                         Conv2dTuningV4RxHalf,
-                         testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Conv2dTuningV4Rx_FP16, testing::Values(GetTestCases()));
 
-INSTANTIATE_TEST_SUITE_P(SmokeSolverConvHipImplicitGemmDataV4RxXdlops,
-                         Conv2dTuningV4RxBf16,
-                         testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Conv2dTuningV4Rx_BFP16, testing::Values(GetTestCases()));
