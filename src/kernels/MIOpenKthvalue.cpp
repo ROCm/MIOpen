@@ -55,11 +55,11 @@ __device__ void kthvalueFwd(const DTYPE* input,
                             tensor_view_t<5> indices_tv)
 {
     /*
-     * Example)
-     * input : {A, B, C, D, E}
-     * output/indices : {A, B, 1, D, E} or {A, B, D, E}
-     * dim = 2 (C)
-     * => grid = {A * B * D * E, 1}, block = {LOCAL_SIZE, 1}
+     * Input : {N, C, D, H, W}. Select dim: 2(D)
+     * Output/indices : {N, C, H, W} or {N, C, 1, H, W} (if keepDim param in miopen.h = True)
+     * Each lws handle dim_size elements to find the kth value.
+     * Lws = {256 or 512, 1, 1}
+     * Gws = {A * B * D * E * lws.x, 1, 1},
      */
     using RADIX_TYPE = typename RadixType<DTYPE>::type;
 
