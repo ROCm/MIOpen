@@ -211,7 +211,7 @@ protected:
         }
 
         num_wg_orig    = num_wg;
-        int max_num_wg = 4096;
+        max_num_wg = 4096;
         num_wg         = num_wg > max_num_wg ? max_num_wg : num_wg;
 
         size_t local_threads = 256;
@@ -234,7 +234,7 @@ protected:
         std::fill(tensC_ocl.begin(), tensC_ocl.end(), std::numeric_limits<T>::quiet_NaN());
 
         params = " -DMIOPEN_TYPE=" + miopen::GetDataType(data_type) +
-                 " -DMAX_NUM_WG=" + std::to_string(4096);
+                 " -DMAX_NUM_WG=" + std::to_string(max_num_wg);
         params += " " + miopen::GetDataTypeKBP(data_type).GenerateFor(miopen::kbp::OpenCL{});
         params += " -DMIOPEN_TENSOR_OP=miopenAdd -DUSE_2D_TENSOR_GENERIC";
 
@@ -301,7 +301,7 @@ protected:
         std::fill(tensC_hip.begin(), tensC_hip.end(), std::numeric_limits<T>::quiet_NaN());
 
         params = " -DMIOPEN_TYPE=" + miopen::GetDataType(data_type) +
-                 " -DMAX_NUM_WG=" + std::to_string(4096);
+                 " -DMAX_NUM_WG=" + std::to_string(max_num_wg);
         params += " " + miopen::GetDataTypeKBP(data_type).GenerateFor(miopen::kbp::HIP{});
         params += " -DMIOPEN_TENSOR_OP=miopenAdd -DUSE_2D_TENSOR_GENERIC";
 
@@ -392,6 +392,7 @@ protected:
     unsigned int bitmap;
     int work_per_wg;
     int num_wg_orig;
+    int max_num_wg;
 
     tensor<T> tensA;
     tensor<T> tensB;
