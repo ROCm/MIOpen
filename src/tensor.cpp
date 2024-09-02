@@ -707,34 +707,28 @@ std::vector<int64_t> TensorDescriptor::find_permutation(const std::vector<std::s
 
 std::string TensorDescriptor::GetLayout(std::string labels) const
 {
-    if(*(labels.end() - 1) != 'c')
+    bool is_vectorized = (*(labels.end() - 1) == 'c');
+    if(is_vectorized != this->IsVectorized())
     {
-        if(labels.size() != strides.size())
-        {
-            MIOPEN_THROW(
-                "Invalid labels size. Layout labels size must be equavalent to stride size");
-        }
+        MIOPEN_THROW(miopenStatusInternalError, "Invalid layout labels");
+    }
 
-        // Copy construct the result string from labels. This allocates the space at one go
-        // and is faster than calling push_back in transform.
-        auto result = labels;
-        auto p      = find_permutation(lens, strides);
-        std::transform(p.begin(), p.end(), result.begin(), [&](auto i) { return labels[i]; });
-        return result;
-    }
-    else
+    const std::string base_labels = is_vectorized ? labels.substr(0, labels.size() - 1) : labels;
+    if(base_labels.size() != strides.size())
     {
-        const std::string base_label = labels.substr(0, labels.size() - 1);
-        if(base_label.size() != strides.size())
-        {
-            MIOPEN_THROW(
-                "Invalid labels size. Layout labels size must be equavalent to stride size");
-        }
-        auto result = base_label;
-        auto p      = find_permutation(lens, strides);
-        std::transform(p.begin(), p.end(), result.begin(), [&](auto i) { return labels[i]; });
-        return result + 'c';
+        MIOPEN_THROW("Invalid labels size. Layout labels size must be equavalent to stride size");
     }
+
+    // Copy construct the result string from labels. This allocates the space at one go
+    // and is faster than calling push_back in transform.
+    auto result = base_labels;
+    auto p      = find_permutation(lens, strides);
+    std::transform(p.begin(), p.end(), result.begin(), [&](auto i) { return labels[i]; });
+
+    if(is_vectorized)
+        result += 'c';
+
+    return result;
 }
 
 std::size_t TensorDescriptor::GetNumBytes() const
