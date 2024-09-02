@@ -694,10 +694,11 @@ bool TensorDescriptor::IsPossibleLayout4D5D(const std::string& layout) const
     // clang-format on
 }
 
+// See https://github.com/ROCm/MIOpen/pull/765#discussion_r596465551
 std::vector<int64_t> TensorDescriptor::find_permutation(const std::vector<std::size_t>& lens,
                                                         const std::vector<std::size_t>& strides)
 {
-    std::vector<std::int64_t> result(lens.size());
+    std::vector<int64_t> result(lens.size());
     std::iota(result.begin(), result.end(), 0);
     std::stable_sort(result.begin(), result.end(), by(std::greater<>{}, [&](auto x) {
                             return std::make_tuple(strides[x], lens[x]);
@@ -722,8 +723,12 @@ std::string TensorDescriptor::GetLayout(std::string labels) const
     // Copy construct the result string from labels. This allocates the space at one go
     // and is faster than calling push_back in transform.
     auto result = base_labels;
-    auto p      = find_permutation(lens, strides);
-    std::transform(p.begin(), p.end(), result.begin(), [&](auto i) { return labels[i]; });
+
+    if(cached_permutation.size() == 0)
+        cached_permutation = find_permutation(lens, strides);
+    const auto& p = cached_permutation;
+
+    std::transform(p.cbegin(), p.cend(), result.begin(), [&](auto i) { return labels[i]; });
 
     if(is_vectorized)
         result += 'c';

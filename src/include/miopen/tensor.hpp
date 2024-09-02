@@ -297,6 +297,9 @@ private:
 
     // For GetLayout_str()
     mutable std::string cached_layout_str;
+
+    // For GetLayout
+    mutable std::vector<int64_t> cached_permutation;
 };
 
 template <class TElement>
