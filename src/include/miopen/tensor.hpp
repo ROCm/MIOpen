@@ -248,48 +248,10 @@ struct MIOPEN_INTERNALS_EXPORT TensorDescriptor : miopenTensorDescriptor
     // layout could be NCHW, NHWC, NCDHW, NDHWC, NCHWc, ...
     bool IsPossibleLayout4D5D(const std::string& layout) const;
 
-    static inline std::vector<int64_t> find_permutation(const std::vector<std::size_t>& lens,
-                                                        const std::vector<std::size_t>& strides)
-    {
-        std::vector<std::int64_t> result(lens.size());
-        std::iota(result.begin(), result.end(), 0);
-        std::stable_sort(result.begin(), result.end(), by(std::greater<>{}, [&](auto x) {
-                             return std::make_tuple(strides[x], lens[x]);
-                         }));
-        return result;
-    }
+    static std::vector<int64_t> find_permutation(const std::vector<std::size_t>& lens,
+                                                 const std::vector<std::size_t>& strides);
 
-    std::string GetLayout(std::string labels) const
-    {
-        if(*(labels.end() - 1) != 'c')
-        {
-            if(labels.size() != strides.size())
-            {
-                MIOPEN_THROW(
-                    "Invalid labels size. Layout labels size must be equavalent to stride size");
-            }
-
-            // Copy construct the result string from labels. This allocates the space at one go
-            // and is faster than calling push_back in transform.
-            auto result = labels;
-            auto p      = find_permutation(lens, strides);
-            std::transform(p.begin(), p.end(), result.begin(), [&](auto i) { return labels[i]; });
-            return result;
-        }
-        else
-        {
-            const std::string base_label = labels.substr(0, labels.size() - 1);
-            if(base_label.size() != strides.size())
-            {
-                MIOPEN_THROW(
-                    "Invalid labels size. Layout labels size must be equavalent to stride size");
-            }
-            auto result = base_label;
-            auto p      = find_permutation(lens, strides);
-            std::transform(p.begin(), p.end(), result.begin(), [&](auto i) { return labels[i]; });
-            return result + 'c';
-        }
-    }
+    std::string GetLayout(std::string labels) const;
 
     friend MIOPEN_INTERNALS_EXPORT std::ostream& operator<<(std::ostream& stream,
                                                             const TensorDescriptor& t);
