@@ -29,6 +29,7 @@
 #include <miopen/env.hpp>
 #include <miopen/miopen.h>
 #include <miopen/datatype.hpp>
+#include <miopen/kernel_build_params.hpp>
 #include <gtest/gtest.h>
 
 #include "perf_helper.hpp"
@@ -223,11 +224,6 @@ protected:
 
         network_config += std::to_string(data_type) + "-miopenTensorOpAdd-" +
                           std::to_string(global_threads) + "-" + std::to_string(local_threads);
-
-        params = " -DMIOPEN_TYPE=" + miopen::GetDataType(data_type) +
-                 " -DMAX_NUM_WG=" + std::to_string(max_num_wg);
-        params += miopen::GetDataTypeKernelParams(data_type);
-        params += " -DMIOPEN_TENSOR_OP=miopenAdd -DUSE_2D_TENSOR_GENERIC";
     }
 
     void runOCL()
@@ -236,6 +232,11 @@ protected:
         // Write data to device tensor
         tensC_dev = handle.Write(tensC.data);
         std::fill(tensC_ocl.begin(), tensC_ocl.end(), std::numeric_limits<T>::quiet_NaN());
+
+        params = " -DMIOPEN_TYPE=" + miopen::GetDataType(data_type) +
+                 " -DMAX_NUM_WG=" + std::to_string(4096);
+        params += " " + miopen::GetDataTypeKBP(data_type).GenerateFor(miopen::kbp::OpenCL{});
+        params += " -DMIOPEN_TENSOR_OP=miopenAdd -DUSE_2D_TENSOR_GENERIC";
 
         std::string program_name       = "MIOpenTensorKernels.cl";
         std::string network_config_ocl = network_config + "-ocl";
@@ -298,6 +299,11 @@ protected:
         tensC_dev     = handle.Write(tensC.data);
 
         std::fill(tensC_hip.begin(), tensC_hip.end(), std::numeric_limits<T>::quiet_NaN());
+
+        params = " -DMIOPEN_TYPE=" + miopen::GetDataType(data_type) +
+                 " -DMAX_NUM_WG=" + std::to_string(4096);
+        params += " " + miopen::GetDataTypeKBP(data_type).GenerateFor(miopen::kbp::HIP{});
+        params += " -DMIOPEN_TENSOR_OP=miopenAdd -DUSE_2D_TENSOR_GENERIC";
 
         std::string program_name       = "MIOpenTensorKernelsHip.cpp";
         std::string network_config_hip = network_config + "-hip";
