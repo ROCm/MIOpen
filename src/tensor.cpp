@@ -701,8 +701,8 @@ std::vector<int64_t> TensorDescriptor::find_permutation(const std::vector<std::s
     std::vector<int64_t> result(lens.size());
     std::iota(result.begin(), result.end(), 0);
     std::stable_sort(result.begin(), result.end(), by(std::greater<>{}, [&](auto x) {
-                            return std::make_tuple(strides[x], lens[x]);
-                        }));
+                         return std::make_tuple(strides[x], lens[x]);
+                     }));
     return result;
 }
 
