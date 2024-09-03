@@ -184,6 +184,7 @@ set( MIOpen_Source
     rnn/Solutions/bwd_s_stream.cpp
     rnn/Solutions/bwd_multi_stream.cpp
     rnn/Solutions/bww_s_steam.cpp
+    rnn/Solutions/bww_multi_stream.cpp
     rope_api.cpp
     rope/problem_description.cpp
     scalar.cpp
