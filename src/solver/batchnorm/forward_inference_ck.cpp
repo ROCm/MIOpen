@@ -65,7 +65,8 @@ using DeviceOpBnFwdInfPtrs = ck::tensor_operation::device::instance::DeviceOpera
 
 struct CKArgsBNormFwd
 {
-    CKArgsBNormFwd(const miopen::batchnorm::ProblemDescription& problem)
+    CKArgsBNormFwd(const miopen::batchnorm::ProblemDescription& problem,
+                   const std::array<int, NumBatchNormReduceDim>& reduceDimsArg)
     {
         std::copy(problem.GetXDesc().GetLengths().begin(),
                   problem.GetXDesc().GetLengths().end(),
@@ -82,6 +83,8 @@ struct CKArgsBNormFwd
         aligned_scaleBiasMeanVarStrides[1] = 0;
         aligned_scaleBiasMeanVarStrides[2] = 0;
         aligned_scaleBiasMeanVarStrides[3] = 1;
+
+        this->reduceDims = reduceDimsArg;
     }
 
     std::array<ck::index_t, Rank> xyLengths;
@@ -90,7 +93,7 @@ struct CKArgsBNormFwd
 
     std::array<index_t, Rank> aligned_scaleBiasMeanVarStrides{3};
 
-    std::array<int, NumBatchNormReduceDim> reduceDims{0, 1, 2};
+    std::array<int, NumBatchNormReduceDim> reduceDims;
 
     template <typename InvokerPtr, typename InvokerParams>
     auto MakeArgPtr(const InvokerPtr& invoker_ptr, const InvokerParams& data_ctx) const
@@ -118,9 +121,10 @@ template <typename XDataType,
           typename ScaleDataType,
           typename BiasDataType,
           typename MeanVarDataType>
-static int CheckCKApplicability(const miopen::batchnorm::ProblemDescription& problem)
+static int CheckCKApplicability(const miopen::batchnorm::ProblemDescription& problem,
+                                const std::array<int, NumBatchNormReduceDim>& reduceDims)
 {
-    const auto& args = CKArgsBNormFwd{problem};
+    const auto& args = CKArgsBNormFwd{problem, reduceDims};
     const auto bn_fwd_ptrs =
         DeviceOpBnFwdInfPtrs<XDataType, YDataType, ScaleDataType, BiasDataType, MeanVarDataType>::
             GetInstances();
@@ -153,7 +157,8 @@ template <typename XDataType,
           typename ScaleDataType,
           typename BiasDataType,
           typename MeanVarDataType>
-ConvSolution InvokerFactoryMakerNHWC(const miopen::batchnorm::ProblemDescription& bn_problem)
+ConvSolution InvokerFactoryMaker(const miopen::batchnorm::ProblemDescription& bn_problem,
+                                 const std::array<int, NumBatchNormReduceDim>& reduceDims)
 {
     ConvSolution result;
     const auto kernel_index = CheckCKApplicability<XDataType,
@@ -161,7 +166,7 @@ ConvSolution InvokerFactoryMakerNHWC(const miopen::batchnorm::ProblemDescription
                                                    AccDataType,
                                                    ScaleDataType,
                                                    BiasDataType,
-                                                   MeanVarDataType>(bn_problem);
+                                                   MeanVarDataType>(bn_problem, reduceDims);
     auto bn_fwd_ptrs =
         DeviceOpBnFwdInfPtrs<XDataType, YDataType, ScaleDataType, BiasDataType, MeanVarDataType>::
             GetInstances();
@@ -169,7 +174,7 @@ ConvSolution InvokerFactoryMakerNHWC(const miopen::batchnorm::ProblemDescription
     assert(kernel_index >= 0 && !bn_fwd_ptrs.empty() && kernel_index < bn_fwd_ptrs.size());
     auto bn_ptr = std::move(bn_fwd_ptrs.at(kernel_index));
 
-    result.invoker_factory = [args      = CKArgsBNormFwd{bn_problem},
+    result.invoker_factory = [args      = CKArgsBNormFwd{bn_problem, reduceDims},
                               sh_bn_ptr = std::shared_ptr{std::move(bn_ptr)}](
                                  const std::vector<Kernel>& /*kernels*/) mutable {
         return [args = std::move(args), sh_bn_ptr = std::move(sh_bn_ptr)](
@@ -201,8 +206,19 @@ bool BnCKFwdInference::IsApplicable(
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
     if(env::disabled(MIOPEN_DEBUG_CONV_CK_BN_INFER))
         return false;
-    if(!bn_problem.IsLayoutNHWC())
+    std::array<int, NumBatchNormReduceDim> reduceDims;
+    if(bn_problem.IsLayoutNHWC())
+    { // NHWC
+        reduceDims = {0, 1, 2};
+    }
+    else if(bn_problem.IsLayoutNCHW())
+    { // NCHW
+        reduceDims = {0, 2, 3};
+    }
+    else
+    {
         return false;
+    }
     if(!ck_utility::is_ck_supported_hardware(context.GetStream()))
         return false;
     if(!bn_problem.Is2D())
@@ -212,12 +228,15 @@ bool BnCKFwdInference::IsApplicable(
 
     switch(bn_problem.GetXDesc().GetType())
     {
-    case miopenHalf: return (CheckCKApplicability<F16, F16, F32, F16, F16, F32>(bn_problem) != -1);
-    case miopenFloat: return (CheckCKApplicability<F32, F32, F32, F32, F32, F32>(bn_problem) != -1);
+    case miopenHalf:
+        return (CheckCKApplicability<F16, F16, F32, F16, F16, F32>(bn_problem, reduceDims) != -1);
+    case miopenFloat:
+        return (CheckCKApplicability<F32, F32, F32, F32, F32, F32>(bn_problem, reduceDims) != -1);
     case miopenDouble:
-        return (CheckCKApplicability<F64, F64, F64, F64, F64, F64>(bn_problem) != -1);
+        return (CheckCKApplicability<F64, F64, F64, F64, F64, F64>(bn_problem, reduceDims) != -1);
     case miopenBFloat16:
-        return (CheckCKApplicability<BF16, BF16, F32, BF16, BF16, F32>(bn_problem) != -1);
+        return (CheckCKApplicability<BF16, BF16, F32, BF16, BF16, F32>(bn_problem, reduceDims) !=
+                -1);
     case miopenInt64:
     case miopenInt32:
     case miopenInt8:
@@ -228,30 +247,23 @@ bool BnCKFwdInference::IsApplicable(
     return false;
 }
 
-template <typename InvokerFactoryMakerNHWC>
+template <typename InvokerFactoryMaker>
 ConvSolution MakeAnyInvokerFactory(const miopen::batchnorm::ProblemDescription& problem,
-                                   InvokerFactoryMakerNHWC&& invoker_factory_maker_nhwc)
+                                   InvokerFactoryMaker&& invoker_factory_maker)
 {
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
-    if(problem.IsLayoutNHWC())
+
+    switch(problem.GetXDesc().GetType())
     {
-        switch(problem.GetXDesc().GetType())
-        {
-        case miopenFloat: return invoker_factory_maker_nhwc(F32{});
-        case miopenDouble: return invoker_factory_maker_nhwc(F64{});
-        case miopenHalf: return invoker_factory_maker_nhwc(F16{});
-        case miopenBFloat16: return invoker_factory_maker_nhwc(BF16{});
-        default:
-            MIOPEN_THROW(miopenStatusInternalError,
-                         "BnCKFwdInference operation does not support this data type");
-        }
-    }
-    // Todo: problem.IsLayoutDefault()
-    else
-    {
+    case miopenFloat: return invoker_factory_maker(F32{});
+    case miopenDouble: return invoker_factory_maker(F64{});
+    case miopenHalf: return invoker_factory_maker(F16{});
+    case miopenBFloat16: return invoker_factory_maker(BF16{});
+    default:
         MIOPEN_THROW(miopenStatusInternalError,
-                     "BnCKFwdInference operation does not support this data layout");
+                     "BnCKFwdInference operation does not support this data type");
     }
+
 #else
     return {};
 #endif
@@ -262,6 +274,21 @@ ConvSolution BnCKFwdInference::GetSolution(
     [[maybe_unused]] const miopen::batchnorm::ProblemDescription& bn_problem) const
 {
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
+    std::array<int, NumBatchNormReduceDim> reduceDims;
+    if(bn_problem.IsLayoutNHWC())
+    { // NHWC
+        reduceDims = {0, 1, 2};
+    }
+    else if(bn_problem.IsLayoutNCHW())
+    { // NCHW
+        reduceDims = {0, 2, 3};
+    }
+    else
+    {
+        MIOPEN_THROW(miopenStatusInternalError,
+                     "BnCKFwdInference operation does not support this data layout");
+    }
+
     return MakeAnyInvokerFactory(
         bn_problem,
         [&](auto data_type_val) {
@@ -270,7 +297,7 @@ ConvSolution BnCKFwdInference::GetSolution(
             using AccTy = std::conditional_t<std::is_same_v<T, F64>,
                                              T,    // T==F64
                                              F32>; // T==F32
-            return InvokerFactoryMakerNHWC<T, T, AccTy, T, T, AccTy>(bn_problem);
+            return InvokerFactoryMaker<T, T, AccTy, T, T, AccTy>(bn_problem, reduceDims);
         }
         // Todo: InvokerFactoryMakerNCHW
     );
