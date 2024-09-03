@@ -39,7 +39,7 @@ logger = logging.getLogger("GTest name checker")
 re_prefix = re.compile(r"^((Smoke.*)|(Full.*)|(Perf.*)|(Unit.*))$")
 re_hw = re.compile(r"^((CPU)|(GPU))$")
 re_datatype = re.compile(
-    r"^((FP((8)|(16)|(32)|(64)))|(BFP((8)|(16)))|(I((8)|(16)|(32)|(64)))|(NONE))\.$"
+    r"^((FP((8)|(16)|(32)|(64)))|(BFP((8)|(16)))|(I((8)|(16)|(32)|(64)))|(NONE))\.?$"
 )
 
 
@@ -76,6 +76,12 @@ def parse_tests(args):
             if len(full_name) == 2:
                 prefix = re.search(re_prefix, full_name[0])
                 name = full_name[1].split("_")
+
+                # Try to recognize pattern like HW_NAME_TYPE/<number>. This pattern is used in case of TYPED_TEST_SUITE
+                if not prefix and full_name[1].replace(".", "").isnumeric():
+                    name = full_name[0].split("_")
+                    prefix = ["empty"]
+
             else:
                 prefix = ["empty"]
                 name = full_name[0].split("_")
