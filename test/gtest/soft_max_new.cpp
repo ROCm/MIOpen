@@ -35,6 +35,7 @@
 #include <miopen/softmax.hpp>
 #include <miopen/tensor.hpp>
 #include <utility>
+#include <algorithm>
 
 #include "driver.hpp"
 #include "get_handle.hpp"
@@ -58,6 +59,14 @@ struct InputDimension
                   << ")";
     }
 };
+// this is just try 
+std::set<std::vector<int>> GetInputDimensions()
+{
+    return {
+        {1, 2, 3, 4},
+        {4, 3, 2, 1},
+    };
+}
 
 struct Scales
 {
@@ -75,6 +84,25 @@ class SoftMaxTest
     : public ::testing::TestWithParam<
           std::tuple<InputDimension, miopenSoftmaxAlgorithm_t, miopenSoftmaxMode_t, Scales>>
 {
+public:
+
+static std::vector<InputDimension> convertDim(const std::set<std::vector<int>>& input)
+    {
+
+    std::vector<InputDimension> result;
+    result.reserve(input.size());
+    std::transform(input.begin(), input.end(), std::back_inserter(result),
+    [](const std::vector<int>& inp)
+    {
+            return InputDimension{
+            static_cast<size_t>(inp[0]),
+            static_cast<size_t>(inp[1]),
+            static_cast<size_t>(inp[2]),
+            static_cast<size_t>(inp[3])
+        };
+    });
+    return result;
+    }
 protected:
     void SetUp() override
     {
@@ -90,15 +118,7 @@ protected:
     auto output_dev = handle.Write(output.data);
 
     }
-    void Print()
-    {
-    // print input test parameters
-    std::cout << "Run test:" << std::endl;
-    std::cout << "Input Dimensions: " << input << std::endl;
-    std::cout << "Softmax Algorithm: " << algo << std::endl;
-    std::cout << "Softmax Mode: " << mode << std::endl;
-    std::cout << "Scales: " << scales << std::endl;
-    }
+
 
     void TearDown() override
     {
@@ -126,17 +146,14 @@ private:
 using GPU_SoftMax_Fwd_FP32 = SoftMaxTest<float>;
 
 TEST_P(GPU_SoftMax_Fwd_FP32, Test){
-    Print();
-    //RunTest();
-    //Verify();
+
 };
 
 INSTANTIATE_TEST_SUITE_P(
     Smoke,
     GPU_SoftMax_Fwd_FP32,
     testing::Combine(
-        testing::ValuesIn({InputDimension{1, 2, 3, 4},   // replace hardcoded initializer_list with
-                           InputDimension{4, 3, 2, 1}}), //try it
+        testing::ValuesIn(GPU_SoftMax_Fwd_FP32::convertDim(GetInputDimensions())), 
         testing::Values(MIOPEN_SOFTMAX_FAST, MIOPEN_SOFTMAX_ACCURATE, MIOPEN_SOFTMAX_LOG),
         testing::Values(MIOPEN_SOFTMAX_MODE_INSTANCE, MIOPEN_SOFTMAX_MODE_CHANNEL),
         testing::Values(Scales{1.0f, 0.0f}, Scales{0.5f, 0.5f})));
