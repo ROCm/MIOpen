@@ -109,22 +109,30 @@ bool IsCKApplicable(const ProblemDescriptionType& problem)
 struct HipEventProfiler
 {
     const Handle& handle;
-    float event_time;
     HipEventPtr start;
     HipEventPtr stop;
 
-    HipEventProfiler(const Handle& handle_)
-        : handle(handle_), event_time(0.0f), start(make_hip_event()), stop(make_hip_event())
+    HipEventProfiler(const Handle& handle_) : handle(handle_), start(nullptr), stop(nullptr)
     {
-        hipEventRecord(start.get(), handle.GetStream());
+        if(handle.IsProfilingEnabled())
+        {
+            start = make_hip_event();
+            stop  = make_hip_event();
+            hipEventRecord(start.get(), handle.GetStream());
+        }
     }
+
     ~HipEventProfiler()
     {
-        hipEventRecord(stop.get(), handle.GetStream());
-        hipEventSynchronize(stop.get());
-        hipEventElapsedTime(&event_time, start.get(), stop.get());
-        handle.ResetKernelTime();
-        handle.AccumKernelTime(event_time);
+        if(start)
+        {
+            hipEventRecord(stop.get(), handle.GetStream());
+            hipEventSynchronize(stop.get());
+            float event_time = 0.0f;
+            hipEventElapsedTime(&event_time, start.get(), stop.get());
+            handle.ResetKernelTime();
+            handle.AccumKernelTime(event_time);
+        }
     }
 };
 #endif
