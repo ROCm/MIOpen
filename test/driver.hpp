@@ -1144,15 +1144,6 @@ create_arg_map(Driver& d, std::set<std::string>& keywords, std::vector<std::stri
     });
 }
 
-// simple rolling average equation taken from
-// https://stackoverflow.com/questions/12636613/how-to-calculate-moving-average-without-keeping-the-count-and-data-total
-inline double approxRollingAverage(double avg, double new_sample, int N)
-{
-    avg -= avg / N;
-    avg += new_sample / N;
-    return avg;
-}
-
 template <class Driver>
 void run_config(std::vector<std::string>& config,
                 std::unordered_map<std::string, std::vector<std::string>>& arg_map,
@@ -1227,7 +1218,9 @@ void test_drive_impl_2(std::string program_name, std::vector<std::string> as)
         }
         else
         {
-            running_average = approxRollingAverage(running_average, elapsed.count(), config_count);
+            running_average = [](auto avg_acc, double y, int avg_size) {
+                return (avg_acc - avg_acc / avg_size) + y / avg_size;
+            }(running_average, elapsed.count(), i + 1); // (avg_acc/N-1) * ((N-1)/N) + y/N;
         }
 
         std::cout << "Elapsed time: " << elapsed.count() << " s"
