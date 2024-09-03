@@ -78,7 +78,8 @@ bool IsLayoutSupported(miopenTensorLayout_t layout, unsigned num_dims)
     return false;
 }
 
-// In this case, the "default layout" is the layout that needs to be set if the layout is not passed explicitly or implicitly.
+// In this case, the "default layout" is the layout that needs to be set if the layout is not passed
+// explicitly or implicitly.
 std::optional<miopenTensorLayout_t> GetDefaultLayout(unsigned num_dims)
 {
     // clang-format off
@@ -199,7 +200,9 @@ void VectLensReorder(miopenTensorLayout_t layout, std::vector<size_t>& lens)
 }
 
 // Relevant for NCHWc and CHWNc
-void VectLensRecalc(miopenTensorLayout_t layout, std::size_t vector_length, std::vector<size_t>& lens)
+void VectLensRecalc(miopenTensorLayout_t layout,
+                    std::size_t vector_length,
+                    std::vector<size_t>& lens)
 {
     unsigned c_pos;
 
@@ -225,7 +228,9 @@ void VectLensRecalc(miopenTensorLayout_t layout, std::size_t vector_length, std:
     lens[c_pos] /= vector_length;
 }
 
-void CalculateStrides(std::size_t vector_length, const std::vector<size_t>& lens, std::vector<size_t>& strides)
+void CalculateStrides(std::size_t vector_length,
+                      const std::vector<size_t>& lens,
+                      std::vector<size_t>& strides)
 {
     if(lens.empty())
         MIOPEN_THROW(miopenStatusInternalError);
@@ -238,7 +243,10 @@ void CalculateStrides(std::size_t vector_length, const std::vector<size_t>& lens
         strides[i] *= vector_length;
 }
 
-void SetStrides(const std::optional<miopenTensorLayout_t>& layout, std::size_t vector_length, const std::vector<size_t>& lens, std::vector<size_t>& strides)
+void SetStrides(const std::optional<miopenTensorLayout_t>& layout,
+                std::size_t vector_length,
+                const std::vector<size_t>& lens,
+                std::vector<size_t>& strides)
 {
     const bool is_vectorized = vector_length > 1;
     if(!layout || layout == miopenTensorNCHW || layout == miopenTensorNCDHW || is_vectorized)
@@ -247,7 +255,7 @@ void SetStrides(const std::optional<miopenTensorLayout_t>& layout, std::size_t v
     }
     else
     {
-        const auto num_dims = lens.size();
+        const auto num_dims       = lens.size();
         const auto storage_layout = GetStorageLayout4D5D(num_dims);
         const auto layout_str     = TensorDescriptor::LayoutEnumToStr(layout.value());
         tensor_layout_to_strides(lens, storage_layout, layout_str, strides);
@@ -652,7 +660,8 @@ std::size_t TensorDescriptor::GetElementSpace() const
 }
 
 // For vectorized layouts storage_layout must be without the ending 'c'
-bool TensorDescriptor::IsPossibleLayout(const std::string& storage_layout, const std::string& layout) const
+bool TensorDescriptor::IsPossibleLayout(const std::string& storage_layout,
+                                        const std::string& layout) const
 {
     if(storage_layout.size() != this->GetNumDims())
     {
@@ -732,7 +741,8 @@ std::vector<int64_t> TensorDescriptor::find_permutation(const std::vector<std::s
     return result;
 }
 
-// storage_layout must be NCHW or NCHWc for NCHWc, CHWN or CHWNc for CHWNc, NCHW for other 4D layouts, NCDHW for 5D layouts
+// storage_layout must be NCHW or NCHWc for NCHWc, CHWN or CHWNc for CHWNc, NCHW for other 4D
+// layouts, NCDHW for 5D layouts
 std::string TensorDescriptor::GetLayout(std::string storage_layout) const
 {
     const bool is_vectorized_sl = (*(storage_layout.end() - 1) == 'c');
@@ -741,10 +751,12 @@ std::string TensorDescriptor::GetLayout(std::string storage_layout) const
         MIOPEN_THROW(miopenStatusInternalError, "Invalid storage_layout");
     }
 
-    const std::string base_storage_layout = is_vectorized_sl ? storage_layout.substr(0, storage_layout.size() - 1) : storage_layout;
+    const std::string base_storage_layout =
+        is_vectorized_sl ? storage_layout.substr(0, storage_layout.size() - 1) : storage_layout;
     if(base_storage_layout.size() != strides.size())
     {
-        MIOPEN_THROW("Invalid storage_layout size. storage_layout size must be equavalent to the stride size");
+        MIOPEN_THROW("Invalid storage_layout size. storage_layout size must be equavalent to the "
+                     "stride size");
     }
 
     // Copy construct the result string from storage_layout. This allocates the space at one go
@@ -755,7 +767,8 @@ std::string TensorDescriptor::GetLayout(std::string storage_layout) const
         cached_permutation = find_permutation(lens, strides);
     const auto& p = cached_permutation;
 
-    std::transform(p.cbegin(), p.cend(), result.begin(), [&](auto i) { return base_storage_layout[i]; });
+    std::transform(
+        p.cbegin(), p.cend(), result.begin(), [&](auto i) { return base_storage_layout[i]; });
 
     if(this->IsVectorized())
         result += 'c';

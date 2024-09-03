@@ -253,7 +253,8 @@ struct MIOPEN_INTERNALS_EXPORT TensorDescriptor : miopenTensorDescriptor
     static std::vector<int64_t> find_permutation(const std::vector<std::size_t>& lens,
                                                  const std::vector<std::size_t>& strides);
 
-    // storage_layout must be NCHW or NCHWc for NCHWc, CHWN or CHWNc for CHWNc, NCHW for other 4D layouts, NCDHW for 5D layouts
+    // storage_layout must be NCHW or NCHWc for NCHWc, CHWN or CHWNc for CHWNc, NCHW for other 4D
+    // layouts, NCDHW for 5D layouts
     std::string GetLayout(std::string storage_layout) const;
 
     friend MIOPEN_INTERNALS_EXPORT std::ostream& operator<<(std::ostream& stream,
