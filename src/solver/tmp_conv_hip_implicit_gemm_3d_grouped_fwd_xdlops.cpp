@@ -251,6 +251,7 @@ ConvSolution ConvHipImplicitGemmGroupFwdXdlopsCodegen::GetSolution(
     decltype(auto) out  = problem.GetOut();**/
 
     const auto workspace_req = GetWorkspaceSize(ctx, problem);
+    std::cout << "workspace: " << workspace_req << std::endl;
 
     auto soln         = ConvSolution{miopenStatusSuccess};
     soln.workspace_sz = workspace_req;
