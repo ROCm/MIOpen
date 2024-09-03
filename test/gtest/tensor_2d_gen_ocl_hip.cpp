@@ -210,9 +210,9 @@ protected:
             }
         }
 
-        num_wg_orig    = num_wg;
-        max_num_wg = 4096;
-        num_wg         = num_wg > max_num_wg ? max_num_wg : num_wg;
+        num_wg_orig = num_wg;
+        max_num_wg  = 4096;
+        num_wg      = num_wg > max_num_wg ? max_num_wg : num_wg;
 
         size_t local_threads = 256;
 
