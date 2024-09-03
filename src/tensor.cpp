@@ -78,6 +78,22 @@ bool IsLayoutSupported(miopenTensorLayout_t layout, unsigned num_dims)
     return false;
 }
 
+// In this case, the "default layout" is the layout that needs to be set if the layout is not passed explicitly or implicitly.
+std::optional<miopenTensorLayout_t> GetDefaultLayout(unsigned num_dims)
+{
+    // clang-format off
+    switch(num_dims)
+    {
+    case 4:
+        return miopenTensorNCHW;
+    case 5:
+        return miopenTensorNCDHW;
+    default:
+        return std::nullopt;
+    }
+    // clang-format on
+}
+
 template <class T>
 bool CheckLengths(const std::vector<T>& lens, T maxval = 0)
 {
@@ -103,6 +119,52 @@ std::vector<std::size_t> ConvertLengthsOrThrow(const std::vector<int>& lens_in,
     return lens;
 }
 
+std::string GetStorageLayout4D5D(unsigned num_dims, bool is_CHWNc = false)
+{
+    // For some reason we have CHWN storage layout for CHWNc
+    if(is_CHWNc)
+        return "CHWN";
+
+    // clang-format off
+    switch(num_dims)
+    {
+    case 4:
+        return "NCHW";
+    case 5:
+        return "NCDHW";
+    default:
+        MIOPEN_THROW(miopenStatusInternalError);
+    }
+    // clang-format on
+}
+
+// Relevant for NCHWc and CHWNc
+std::size_t GetVectorLengthForLayout(const std::optional<miopenTensorLayout_t>& layout)
+{
+    std::size_t vector_length = 1;
+
+    if(layout)
+    {
+        // clang-format off
+        switch(layout.value())
+        {
+        case miopenTensorCHWNc8:
+        case miopenTensorNCHWc8:
+            vector_length = 8;
+            break;
+        case miopenTensorCHWNc4:
+        case miopenTensorNCHWc4:
+            vector_length = 4;
+            break;
+        default:
+            break;
+        }
+        // clang-format on
+    }
+
+    return vector_length;
+}
+
 void ReorderVector(std::vector<size_t>& lens, const std::initializer_list<size_t>& indices)
 {
     std::vector<size_t> out_lens;
@@ -115,19 +177,81 @@ void ReorderVector(std::vector<size_t>& lens, const std::initializer_list<size_t
     lens = std::move(out_lens);
 }
 
-std::optional<miopenTensorLayout_t> GetDefaultLayout(unsigned num_dims)
+// Relevant for NCHWc and CHWNc
+void VectLensReorder(miopenTensorLayout_t layout, std::vector<size_t>& lens)
 {
     // clang-format off
-    switch(num_dims)
+    switch(layout)
     {
-    case 4:
-        return miopenTensorNCHW;
-    case 5:
-        return miopenTensorNCDHW;
+    case miopenTensorNCHWc4:
+    case miopenTensorNCHWc8:
+        // Do nothing, MIOpen implicit logic that lens are in NCHW order.
+        break;
+    case miopenTensorCHWNc4:
+    case miopenTensorCHWNc8:
+        // For some reason we have CHWN storage layout for CHWNc
+        ReorderVector(lens, {1, 2, 3, 0});
+        break;
     default:
-        return std::nullopt;
+        break;
     }
     // clang-format on
+}
+
+// Relevant for NCHWc and CHWNc
+void VectLensRecalc(miopenTensorLayout_t layout, std::size_t vector_length, std::vector<size_t>& lens)
+{
+    unsigned c_pos;
+
+    // clang-format off
+    switch(layout)
+    {
+    case miopenTensorNCHWc4:
+    case miopenTensorNCHWc8:
+        c_pos = 1;
+        break;
+    case miopenTensorCHWNc4:
+    case miopenTensorCHWNc8:
+        // For some reason we have CHWN storage layout for CHWNc
+        c_pos = 0;
+        break;
+    default:
+        return;
+    }
+    // clang-format on
+
+    if(lens[c_pos] % vector_length != 0)
+        MIOPEN_THROW(miopenStatusBadParm, "Wrong C, C % Vect != 0");
+    lens[c_pos] /= vector_length;
+}
+
+void CalculateStrides(std::size_t vector_length, const std::vector<size_t>& lens, std::vector<size_t>& strides)
+{
+    if(lens.empty())
+        MIOPEN_THROW(miopenStatusInternalError);
+    strides.clear();
+    strides.resize(lens.size(), 0);
+    strides.back() = vector_length;
+    std::partial_sum(
+        lens.rbegin(), lens.rend() - 1, strides.rbegin() + 1, std::multiplies<std::size_t>());
+    for(int i = 0; i < strides.size() - 1; i++)
+        strides[i] *= vector_length;
+}
+
+void SetStrides(const std::optional<miopenTensorLayout_t>& layout, std::size_t vector_length, const std::vector<size_t>& lens, std::vector<size_t>& strides)
+{
+    const bool is_vectorized = vector_length > 1;
+    if(!layout || layout == miopenTensorNCHW || layout == miopenTensorNCDHW || is_vectorized)
+    {
+        CalculateStrides(vector_length, lens, strides);
+    }
+    else
+    {
+        const auto num_dims = lens.size();
+        const auto storage_layout = GetStorageLayout4D5D(num_dims);
+        const auto layout_str     = TensorDescriptor::LayoutEnumToStr(layout.value());
+        tensor_layout_to_strides(lens, storage_layout, layout_str, strides);
+    }
 }
 
 } // namespace
@@ -284,7 +408,7 @@ void TensorDescriptor::CheckArgsAndInit(bool use_strides)
     if(!CheckLengths(lens, static_cast<std::size_t>(std::numeric_limits<int64_t>::max())))
         MIOPEN_THROW(miopenStatusBadParm, "Lengths must be > 0 and <= INT64_MAX");
 
-    this->CalculateVectorLength();
+    vector_length = GetVectorLengthForLayout(tensorLayout);
 
     if(use_strides)
     {
@@ -308,75 +432,15 @@ void TensorDescriptor::CheckArgsAndInit(bool use_strides)
 
         if(this->IsVectorized())
         {
-            this->VectLensReorder();
-            this->VectLensRecalc();
+            // clang-tidy: bugprone-unchecked-optional-access
+            if(!tensorLayout)
+                MIOPEN_THROW(miopenStatusInternalError);
+            VectLensReorder(tensorLayout.value(), lens);
+            VectLensRecalc(tensorLayout.value(), vector_length, lens);
         }
 
-        this->SetStrides();
+        SetStrides(tensorLayout, vector_length, lens, strides);
     }
-}
-
-void TensorDescriptor::SetStrides()
-{
-    if(!tensorLayout || tensorLayout == miopenTensorNCHW || tensorLayout == miopenTensorNCDHW ||
-       this->IsVectorized())
-    {
-        this->CalculateStrides();
-    }
-    else
-    {
-        const auto default_layout = miopen::tensor_layout_get_default(this->GetNumDims());
-        const auto layout         = TensorDescriptor::LayoutEnumToStr(tensorLayout.value());
-        tensor_layout_to_strides(lens, default_layout, layout, strides);
-    }
-}
-
-void TensorDescriptor::VectLensReorder()
-{
-    // clang-format off
-    // NOLINTNEXTLINE (bugprone-unchecked-optional-access)
-    switch(tensorLayout.value())
-    {
-    case miopenTensorNCHWc4:
-    case miopenTensorNCHWc8:
-        // Do nothing, MIOpen implicit logic that lens are in NCHW order.
-        break;
-    case miopenTensorCHWNc4:
-    case miopenTensorCHWNc8:
-        ReorderVector(lens, {1, 2, 3, 0});
-        break;
-    default:
-        break;
-    }
-    // clang-format on
-}
-
-void TensorDescriptor::VectLensRecalc()
-{
-    // clang-format off
-    // NOLINTNEXTLINE (bugprone-unchecked-optional-access)
-    switch(this->tensorLayout.value())
-    {
-    case miopenTensorNCHWc4:
-    case miopenTensorNCHWc8:
-        {
-            if(lens[1] % vector_length != 0)
-                MIOPEN_THROW(miopenStatusBadParm, "Wrong C, C % Vect != 0");
-            lens[1] /= vector_length;
-        }
-        break;
-    case miopenTensorCHWNc4:
-    case miopenTensorCHWNc8:
-        {
-            if(lens[0] % vector_length != 0)
-                MIOPEN_THROW(miopenStatusBadParm, "Wrong C, C % Vect != 0");
-            lens[0] /= vector_length;
-        }
-        break;
-    default:
-        break;
-    }
-    // clang-format on
 }
 
 TensorDescriptor TensorDescriptor::MakeDescriptor(miopenDataType_t t, const int* plens, int size)
@@ -440,43 +504,6 @@ TensorDescriptor TensorDescriptor::MakeDescriptor(miopenDataType_t t,
     return {t,
             std::vector<std::size_t>(plens, plens + size),
             std::vector<std::size_t>(pstrides, pstrides + size)};
-}
-
-void TensorDescriptor::CalculateStrides()
-{
-    if(lens.empty())
-        MIOPEN_THROW(miopenStatusInternalError, "lens must be non-empty");
-    strides.clear();
-    strides.resize(lens.size(), 0);
-    strides.back() = vector_length;
-    std::partial_sum(
-        lens.rbegin(), lens.rend() - 1, strides.rbegin() + 1, std::multiplies<std::size_t>());
-    for(int i = 0; i < strides.size() - 1; i++)
-        strides[i] *= vector_length;
-}
-
-void TensorDescriptor::CalculateVectorLength()
-{
-    vector_length = 1;
-
-    if(!tensorLayout)
-        return;
-
-    // clang-format off
-    switch(tensorLayout.value())
-    {
-    case miopenTensorCHWNc8:
-    case miopenTensorNCHWc8:
-        vector_length = 8;
-        break;
-    case miopenTensorCHWNc4:
-    case miopenTensorNCHWc4:
-        vector_length = 4;
-        break;
-    default:
-        break;
-    }
-    // clang-format on
 }
 
 bool TensorDescriptor::IsVectorized() const { return vector_length > 1; }
@@ -567,10 +594,9 @@ const std::string& TensorDescriptor::GetLayout_str() const
             // clang-format off
             switch(this->GetNumDims())
             {
-            case 4: // 4D: lens are in NCHW order
-                return this->GetLayout("NCHW");
-            case 5: // 5D: lens are in NCDHW order
-                return this->GetLayout("NCDHW");
+            case 4:
+            case 5:
+                return this->GetLayout(GetStorageLayout4D5D(this->GetNumDims()));
             default:
                 return "UNKNOWN";
             }
@@ -625,12 +651,13 @@ std::size_t TensorDescriptor::GetElementSpace() const
            vector_length;
 }
 
-bool TensorDescriptor::IsPossibleLayout(const std::string& labels, const std::string& layout) const
+// For vectorized layouts storage_layout must be without the ending 'c'
+bool TensorDescriptor::IsPossibleLayout(const std::string& storage_layout, const std::string& layout) const
 {
-    if(labels.size() != this->GetNumDims())
+    if(storage_layout.size() != this->GetNumDims())
     {
         MIOPEN_THROW(miopenStatusInternalError,
-                     "labels.size() must be equal to the number of the tensor dimensions");
+                     "storage_layout.size() must be equal to the number of the tensor dimensions");
     }
 
     auto layout_vect = (*(layout.end() - 1) == 'c');
@@ -647,13 +674,13 @@ bool TensorDescriptor::IsPossibleLayout(const std::string& labels, const std::st
 
     if(this->GetNumDims() < 2)
     {
-        if(labels != base_layout)
-            MIOPEN_THROW(miopenStatusInternalError, "labels and layout mismatch");
+        if(storage_layout != base_layout)
+            MIOPEN_THROW(miopenStatusInternalError, "storage_layout and layout mismatch");
         return true;
     }
 
     auto op = [&](char cur_char) {
-        const auto pos = labels.find(cur_char);
+        const auto pos = storage_layout.find(cur_char);
         if(pos == std::string::npos)
             MIOPEN_THROW(miopenStatusInternalError, "wrong layout format");
         return strides[pos];
@@ -672,22 +699,21 @@ bool TensorDescriptor::IsPossibleLayout(const std::string& labels, const std::st
     return true;
 }
 
-// layout could be NCHW, NHWC, NCDHW, NDHWC, NCHWc, ...
+// Layout could be NCHW, NHWC, NCDHW, NDHWC, NCHWc, ...
 bool TensorDescriptor::IsPossibleLayout4D5D(const std::string& layout) const
 {
     if(tensorLayout)
     {
         if(this->tensorLayout == miopenTensorCHWNc4 || this->tensorLayout == miopenTensorCHWNc8)
-            return this->IsPossibleLayout("CHWN", layout);
+            return this->IsPossibleLayout(GetStorageLayout4D5D(4, true), layout);
     }
 
     // clang-format off
     switch(this->GetNumDims())
     {
-    case 4: // 4D: lens are in NCHW order
-        return this->IsPossibleLayout("NCHW", layout);
-    case 5: // 5D: lens are in NCDHW order
-        return this->IsPossibleLayout("NCDHW", layout);
+    case 4:
+    case 5:
+        return this->IsPossibleLayout(GetStorageLayout4D5D(this->GetNumDims()), layout);
     default:
         return false;
     }
@@ -706,31 +732,32 @@ std::vector<int64_t> TensorDescriptor::find_permutation(const std::vector<std::s
     return result;
 }
 
-std::string TensorDescriptor::GetLayout(std::string labels) const
+// storage_layout must be NCHW or NCHWc for NCHWc, CHWN or CHWNc for CHWNc, NCHW for other 4D layouts, NCDHW for 5D layouts
+std::string TensorDescriptor::GetLayout(std::string storage_layout) const
 {
-    bool is_vectorized = (*(labels.end() - 1) == 'c');
-    if(is_vectorized != this->IsVectorized())
+    const bool is_vectorized_sl = (*(storage_layout.end() - 1) == 'c');
+    if(is_vectorized_sl && !this->IsVectorized())
     {
-        MIOPEN_THROW(miopenStatusInternalError, "Invalid layout labels");
+        MIOPEN_THROW(miopenStatusInternalError, "Invalid storage_layout");
     }
 
-    const std::string base_labels = is_vectorized ? labels.substr(0, labels.size() - 1) : labels;
-    if(base_labels.size() != strides.size())
+    const std::string base_storage_layout = is_vectorized_sl ? storage_layout.substr(0, storage_layout.size() - 1) : storage_layout;
+    if(base_storage_layout.size() != strides.size())
     {
-        MIOPEN_THROW("Invalid labels size. Layout labels size must be equavalent to stride size");
+        MIOPEN_THROW("Invalid storage_layout size. storage_layout size must be equavalent to the stride size");
     }
 
-    // Copy construct the result string from labels. This allocates the space at one go
+    // Copy construct the result string from storage_layout. This allocates the space at one go
     // and is faster than calling push_back in transform.
-    auto result = base_labels;
+    auto result = base_storage_layout;
 
     if(cached_permutation.size() == 0)
         cached_permutation = find_permutation(lens, strides);
     const auto& p = cached_permutation;
 
-    std::transform(p.cbegin(), p.cend(), result.begin(), [&](auto i) { return labels[i]; });
+    std::transform(p.cbegin(), p.cend(), result.begin(), [&](auto i) { return base_storage_layout[i]; });
 
-    if(is_vectorized)
+    if(this->IsVectorized())
         result += 'c';
 
     return result;

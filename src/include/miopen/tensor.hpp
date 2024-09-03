@@ -244,14 +244,17 @@ struct MIOPEN_INTERNALS_EXPORT TensorDescriptor : miopenTensorDescriptor
 
     std::string ToString() const;
 
-    bool IsPossibleLayout(const std::string& labels, const std::string& layout) const;
-    // layout could be NCHW, NHWC, NCDHW, NDHWC, NCHWc, ...
+    // For vectorized layouts storage_layout must be without the ending 'c'
+    // \todo make private
+    bool IsPossibleLayout(const std::string& storage_layout, const std::string& layout) const;
+    // Layout could be NCHW, NHWC, NCDHW, NDHWC, NCHWc, ...
     bool IsPossibleLayout4D5D(const std::string& layout) const;
 
     static std::vector<int64_t> find_permutation(const std::vector<std::size_t>& lens,
                                                  const std::vector<std::size_t>& strides);
 
-    std::string GetLayout(std::string labels) const;
+    // storage_layout must be NCHW or NCHWc for NCHWc, CHWN or CHWNc for CHWNc, NCHW for other 4D layouts, NCDHW for 5D layouts
+    std::string GetLayout(std::string storage_layout) const;
 
     friend MIOPEN_INTERNALS_EXPORT std::ostream& operator<<(std::ostream& stream,
                                                             const TensorDescriptor& t);
@@ -273,13 +276,6 @@ private:
                      bool use_strides);
 
     void CheckArgsAndInit(bool use_strides);
-
-    void SetStrides();
-    void VectLensReorder();
-    void VectLensRecalc();
-
-    void CalculateStrides();
-    void CalculateVectorLength();
 
     std::vector<std::size_t> lens;
     std::vector<std::size_t> strides;
