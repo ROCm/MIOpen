@@ -479,7 +479,7 @@ using namespace conv_graph_api_test;
     {                                                                               \
     };                                                                              \
     TEST_P(GPU_ConvBiasResAddActivation_##dir##_##type, Test) { Run(); }            \
-    INSTANTIATE_TEST_SUITE_P(GPU_ConvBiasResAddActivation_##dir##_##type##_Suite,   \
+    INSTANTIATE_TEST_SUITE_P(Smoke,                                                 \
                              GPU_ConvBiasResAddActivation_##dir##_##type,           \
                              testing::Combine(testing::ValuesIn(ConvTestConfigs()), \
                                               testing::ValuesIn({1.0f, 2.5f}),      \
@@ -489,4 +489,4 @@ using namespace conv_graph_api_test;
 
 DEFINE_GRAPH_API_CONV_BIAS_ACTIV_TEST(FP16, half_float::half, fwd);
 DEFINE_GRAPH_API_CONV_BIAS_ACTIV_TEST(FP32, float, fwd);
-DEFINE_GRAPH_API_CONV_BIAS_ACTIV_TEST(BF16, bfloat16, fwd);
+DEFINE_GRAPH_API_CONV_BIAS_ACTIV_TEST(BFP16, bfloat16, fwd);

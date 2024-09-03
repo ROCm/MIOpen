@@ -522,12 +522,12 @@ public:
 
 TEST_P(CPU_TestSetTensor_NONE, SetTensor) { RunTest(); }
 
-INSTANTIATE_TEST_SUITE_P(Smoke,
+INSTANTIATE_TEST_SUITE_P(SmokeApiSet,
                          CPU_TestSetTensor_NONE,
                          testing::ValuesIn(CPU_TestSetTensor_NONE::GetValidConfigs()),
                          CPU_TestSetTensor_NONE::GetNameSuffix);
 
-INSTANTIATE_TEST_SUITE_P(Smoke,
+INSTANTIATE_TEST_SUITE_P(SmokeApiSetWrong,
                          CPU_TestSetTensor_NONE,
                          testing::ValuesIn(CPU_TestSetTensor_NONE::GetWrongConfigs()),
                          CPU_TestSetTensor_NONE::GetNameSuffix);

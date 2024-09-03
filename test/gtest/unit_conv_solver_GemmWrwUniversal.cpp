@@ -52,7 +52,7 @@ TEST_P(GPU_UnitTestConvSolverWrw_FP16, GemmWrwUniversal)
     this->RunTest(miopen::solver::conv::GemmWrwUniversal{});
 };
 
-TEST_P(GPU_UnitTestConvSolverWrw_BF16, GemmWrwUniversal)
+TEST_P(GPU_UnitTestConvSolverWrw_BFP16, GemmWrwUniversal)
 {
     this->RunTest(miopen::solver::conv::GemmWrwUniversal{});
 };
@@ -75,7 +75,7 @@ INSTANTIATE_TEST_SUITE_P(Smoke,
                                           testing::ValuesIn(GetConvTestCases(miopenHalf))));
 
 INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_UnitTestConvSolverWrw_BF16,
+                         GPU_UnitTestConvSolverWrw_BFP16,
                          testing::Combine(testing::Values(GetSupportedDevices()),
                                           testing::Values(miopenConvolutionAlgoGEMM),
                                           testing::ValuesIn(GetConvTestCases(miopenBFloat16))));

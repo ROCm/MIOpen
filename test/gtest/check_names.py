@@ -36,10 +36,10 @@ logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger("GTest name checker")
 
 """regexp based on https://github.com/ROCm/MIOpen/wiki/GTest-development#naming"""
-re_prefix = re.compile(r"^((Smoke)|(Full)|(Perf)|(Unit.*))$")
+re_prefix = re.compile(r"^((Smoke.*)|(Full.*)|(Perf.*)|(Unit.*))$")
 re_hw = re.compile(r"^((CPU)|(GPU))$")
 re_datatype = re.compile(
-    r"^((FP((8)|(16)|(32)|(64)))|(BFP((8)|(16)))|(I((8)|(32)))|(NONE))\.$"
+    r"^((FP((8)|(16)|(32)|(64)))|(BFP((8)|(16)))|(I((8)|(16)|(32)|(64)))|(NONE))\.$"
 )
 
 
@@ -96,7 +96,7 @@ def parse_tests(args):
             logger.critical(
                 "Tests do not match to the test naming scheme (see https://github.com/ROCm/MIOpen/wiki/GTest-development#naming )"
             )
-            # return -1  # uncomment when all the tests will be renamed
+            return -1  # uncomment when all the tests will be renamed
     return 0
 
 
