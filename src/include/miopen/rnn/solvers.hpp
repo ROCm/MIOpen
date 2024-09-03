@@ -798,9 +798,9 @@ class RNNModularMultiStreamBWWeights
 {
 public:
     RNNModularMultiStreamBWWeights(const RNNDescriptor& rnn,
-                                    const SeqTensorDescriptor& xDesc,
-                                    const SeqTensorDescriptor& yDesc,
-                                    const TensorDescriptor& hDesc)
+                                   const SeqTensorDescriptor& xDesc,
+                                   const SeqTensorDescriptor& yDesc,
+                                   const TensorDescriptor& hDesc)
         : rnnAlgoModules(RNNBackwardWeightsModularAlgo::create(rnn, xDesc, yDesc, hDesc)),
           rnnDesc(rnn),
           max_seq_len(xDesc.GetMaxSequenceLength())
@@ -827,10 +827,7 @@ public:
         Data_t dw;
         Data_t workSpace;
         ConstData_t reserveSpace;
-        size_t /*workSpaceSize*/;
-        size_t /*reserveSpaceSize*/;
     };
-
 
     void Compute(const Handle& handle,
                  ConstData_t x,
@@ -848,7 +845,6 @@ private:
     const RNNDescriptor& rnnDesc;
     const size_t max_seq_len;
 };
-
 
 } // namespace rnn_base
 } // namespace miopen

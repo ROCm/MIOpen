@@ -39,20 +39,19 @@ void RNNModularMultiStreamBWWeights::PrologueDispatch(const runtimeArgsBww& args
 }
 
 void RNNModularMultiStreamBWWeights::Compute(const Handle& handle,
-                                              ConstData_t x,
-                                              ConstData_t hx,
-                                              Data_t dw,
-                                              Data_t workSpace,
-                                              size_t workSpaceSize,
-                                              ConstData_t reserveSpace,
-                                              size_t reserveSpaceSize) const
+                                             ConstData_t x,
+                                             ConstData_t hx,
+                                             Data_t dw,
+                                             Data_t workSpace,
+                                             size_t workSpaceSize,
+                                             ConstData_t reserveSpace,
+                                             [[maybe_unused]] size_t reserveSpaceSize) const
 {
 
     if(rnnDesc.nLayers == 0 || max_seq_len == 0)
         return;
 
-    const runtimeArgsBww args{
-        &handle, x, hx, dw, workSpace, reserveSpace};
+    const runtimeArgsBww args{&handle, x, hx, dw, workSpace, reserveSpace};
 
     MultiStreamController ms_controller{handle, env::value_or(MIOPEN_RNN_MS_STREAM_CNT, 4)};
 
@@ -64,19 +63,18 @@ void RNNModularMultiStreamBWWeights::Compute(const Handle& handle,
 
     const auto [bias_stream, first_stream, stream_round] =
         [](const MultiStreamController& controller) {
-            auto size             = static_cast<int>(controller.size());
+            auto size = static_cast<int>(controller.size());
 
-            const int first       = size > 1 ? 1 : 0;
-            const int tmp_round   = size > 1 ? size - first : 1;
-            const int bias = first + tmp_round - 1;
-            const int round       = bias != first ? tmp_round - 1 : tmp_round;
+            const int first     = size > 1 ? 1 : 0;
+            const int tmp_round = size > 1 ? size - first : 1;
+            const int bias      = first + tmp_round - 1;
+            const int round     = bias != first ? tmp_round - 1 : tmp_round;
             return std::make_tuple(bias, first, round);
         }(ms_controller);
 
     ms_controller.ChangeActiveStream(bias_stream);
     for(int layer_i = 0; layer_i < rnnDesc.nLayers; layer_i++)
         rnnAlgoModules.BiasUpdate(handle, dw, workSpace, layer_i, workSpaceSize);
-
 
     auto sequence_directions =
         rnnDesc.dirMode == miopenRNNDirectionMode_t::miopenRNNbidirection ? 2 : 1;
