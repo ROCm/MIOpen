@@ -86,6 +86,8 @@ struct CKArgsBNormFwdTraining
         // prep for CK
         std::sort(xyStrides.begin(), xyStrides.end(), std::greater<>());
         std::rotate(xyLengths.begin() + 1, xyLengths.begin() + 2, xyLengths.end());
+
+        this->reduceDims = problem.reduceDims;
     }
 
     CKArgsBNormFwdTraining(const CKArgsBNormFwdTraining&) = default;
@@ -130,7 +132,7 @@ struct CKArgsBNormFwdTraining
     std::array<index_t, Rank - NumBatchNormReduceDim> arrScaleBiasMeanVarLengths;
     std::array<index_t, Rank - NumBatchNormReduceDim> arrScaleBiasMeanVarStrides;
 
-    std::array<int, NumBatchNormReduceDim> reduceDims{0, 1, 2};
+    std::array<int, NumBatchNormReduceDim> reduceDims;
 };
 
 template <typename XDataType,
