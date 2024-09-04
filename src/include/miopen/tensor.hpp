@@ -297,6 +297,11 @@ private:
 
     // For GetLayout
     mutable std::vector<int64_t> cached_permutation;
+
+    // For AllLengthsFitIntoInt()
+    mutable std::optional<bool> cached_lengths_fit_into_int;
+    // For AllDimsFitIntoInt()
+    mutable std::optional<bool> cached_strides_fit_into_int;
 };
 
 template <class TElement>

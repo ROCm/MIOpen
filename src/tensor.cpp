@@ -234,6 +234,16 @@ void SetStrides(const std::optional<miopenTensorLayout_t>& layout,
     }
 }
 
+bool CheckDimsFitIntoInt(const std::vector<std::size_t>& v)
+{
+    if(std::any_of(
+           v.cbegin(), v.cend(), [](std::size_t x) { return x > std::numeric_limits<int>::max(); }))
+    {
+        return false;
+    }
+    return true;
+}
+
 } // namespace
 
 TensorDescriptor::TensorDescriptor() : packed(true) {}
@@ -766,26 +776,21 @@ bool TensorDescriptor::IsContiguous() const
 
 bool TensorDescriptor::AllLengthsFitIntoInt() const
 {
-    if(std::any_of(lens.cbegin(), lens.cend(), [](std::size_t x) {
-           return x > std::numeric_limits<int>::max();
-       }))
-    {
-        return false;
-    }
-    return true;
+    if(!cached_lengths_fit_into_int)
+        cached_lengths_fit_into_int = CheckDimsFitIntoInt(lens);
+
+    return cached_lengths_fit_into_int.value();
 }
 
 bool TensorDescriptor::AllDimsFitIntoInt() const
 {
     if(!this->AllLengthsFitIntoInt())
         return false;
-    if(std::any_of(strides.cbegin(), strides.cend(), [](std::size_t x) {
-           return x > std::numeric_limits<int>::max();
-       }))
-    {
-        return false;
-    }
-    return true;
+
+    if(!cached_strides_fit_into_int)
+        cached_strides_fit_into_int = CheckDimsFitIntoInt(strides);
+
+    return cached_strides_fit_into_int.value();
 }
 
 bool TensorDescriptor::operator==(const TensorDescriptor& rhs) const
