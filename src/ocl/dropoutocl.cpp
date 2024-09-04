@@ -266,7 +266,7 @@ void DropoutDescriptor::DropoutForward(const Handle& handle,
     }
 
     std::string program_name = "MIOpenDropoutHIP.cpp";
-    std::string kernel_name  = "DropoutFW";
+    std::string kernel_name  = "DropoutMerge";
 
     std::string network_config =
         "fwd-" + std::string(xDesc.GetType() == miopenHalf ? "fp16-" : "fp32-") + "-seed" +
@@ -327,7 +327,7 @@ void DropoutDescriptor::DropoutForward(const Handle& handle,
         else
             params += " -DMIOPEN_USE_FP32=1";
 
-        params += " -DRUN_FORWARD=1";
+        // params += " -DRUN_FORWARD=1";
 
         params += " -DUSE_RSVSP=" + std::to_string(static_cast<size_t>(use_rsvsp));
         params += " -DUSE_MASK=" + std::to_string(static_cast<size_t>(use_mask));
@@ -472,7 +472,7 @@ void DropoutDescriptor::DropoutBackward(const Handle& handle,
     }
 
     std::string program_name = "MIOpenDropoutHIP.cpp";
-    std::string kernel_name  = "DropoutBW";
+    std::string kernel_name  = "DropoutMerge";
 
     std::string network_config =
         "bwd-" + std::string(dyDesc.GetType() == miopenHalf ? "fp16-" : "fp32-") + "-seed" +
@@ -497,12 +497,12 @@ void DropoutDescriptor::DropoutBackward(const Handle& handle,
                         static_cast<int>(in_len[2]),
                         static_cast<int>(in_len[3]),
                         static_cast<int>(in_len[4]),
-                        dy,
+                        dx,
                         static_cast<int>(out_str[0]),
                         static_cast<int>(out_str[1]),
                         static_cast<int>(out_str[2]),
                         static_cast<int>(out_str[3]),
-                        dx,
+                        dy,
                         static_cast<int>(in_str[0]),
                         static_cast<int>(in_str[1]),
                         static_cast<int>(in_str[2]),
@@ -529,7 +529,11 @@ void DropoutDescriptor::DropoutBackward(const Handle& handle,
 
         if(use_prng)
         {
-            params += " -DUSE_PRNG=1";
+            params += " -DUSE_MASK=0 -DUSE_RSVSP=0";
+        }
+        else
+        {
+            params += " -DUSE_MASK=1 -DUSE_RSVSP=0";
         }
 
         if(dyDesc.GetType() == miopenHalf)
@@ -537,7 +541,7 @@ void DropoutDescriptor::DropoutBackward(const Handle& handle,
         else
             params += " -DMIOPEN_USE_FP32=1";
 
-        params += " -DRUN_FORWARD=0";
+        // params += " -DRUN_FORWARD=0";
 
         const std::vector<size_t> vld{256, 1, 1};
         const std::vector<size_t> vgd{wk_grp_num * 256, 1, 1};
@@ -550,12 +554,12 @@ void DropoutDescriptor::DropoutBackward(const Handle& handle,
             static_cast<int>(in_len[2]),
             static_cast<int>(in_len[3]),
             static_cast<int>(in_len[4]),
-            dy,
+            dx,
             static_cast<int>(out_str[0]),
             static_cast<int>(out_str[1]),
             static_cast<int>(out_str[2]),
             static_cast<int>(out_str[3]),
-            dx,
+            dy,
             static_cast<int>(in_str[0]),
             static_cast<int>(in_str[1]),
             static_cast<int>(in_str[2]),
