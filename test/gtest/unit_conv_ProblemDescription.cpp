@@ -27,13 +27,15 @@
 #include <gtest/gtest.h>
 #include <miopen/conv/problem_description.hpp>
 
+#include "unit_TensorDescriptor.hpp"
+
 namespace {
 
 struct TestCaseProblemDescription
 {
-    miopen::TensorDescriptor in;
-    miopen::TensorDescriptor weights;
-    miopen::TensorDescriptor out;
+    miopen::unit_tests::TensorParams in;
+    miopen::unit_tests::TensorParams weights;
+    miopen::unit_tests::TensorParams out;
     miopen::ConvolutionDescriptor conv;
     miopen::conv::Direction direction;
 
@@ -233,8 +235,11 @@ public:
     {
         const auto p = GetParam();
 
-        const auto pd =
-            miopen::conv::ProblemDescription{p.in, p.weights, p.out, p.conv, p.direction};
+        const auto pd = miopen::conv::ProblemDescription{p.in.GetTensorDescriptor(),
+                                                         p.weights.GetTensorDescriptor(),
+                                                         p.out.GetTensorDescriptor(),
+                                                         p.conv,
+                                                         p.direction};
         ASSERT_EQ(pd.GetInLayout(), p.layout_in);
         ASSERT_EQ(pd.GetWeightsLayout(), p.layout_weights);
         ASSERT_EQ(pd.GetOutLayout(), p.layout_out);
