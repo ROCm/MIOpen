@@ -28,7 +28,7 @@
 
 namespace mha_graph_test {
 
-class MhaBwdGraphTest : public MhaGraphTestBase
+class GPU_MhaBwdGraphTest_FP32 : public MhaGraphTestBase
 {
 
     tensor<float> mSoftMax;
@@ -372,10 +372,10 @@ public:
   //
 using namespace mha_graph_test;
 
-TEST_P(MhaBwdGraphTest, MhaBwdGraph) { Run(MhaDir::Bwd); }
+TEST_P(GPU_MhaBwdGraphTest_FP32, MhaBwdGraph) { Run(MhaDir::Bwd); }
 
-INSTANTIATE_TEST_SUITE_P(MhaGraphBwdSuite,
-                         MhaBwdGraphTest,
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_MhaBwdGraphTest_FP32,
                          testing::Combine(testing::ValuesIn(std::vector<std::size_t>{2}),     // n
                                           testing::ValuesIn(std::vector<std::size_t>{8}),     // h
                                           testing::ValuesIn(std::vector<std::size_t>{4, 64}), // s
