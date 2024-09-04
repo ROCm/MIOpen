@@ -64,7 +64,7 @@ public:
             cmd += " " + std::string{args};
 
         // Refer to
-        // https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-createprocessa
+        // CreateProcessA function (processthreadsapi.h)
         constexpr std::size_t BUFFER_CAPACITY = 32767;
 
         if(cmd.size() < BUFFER_CAPACITY)
