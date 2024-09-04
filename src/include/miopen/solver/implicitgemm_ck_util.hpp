@@ -376,9 +376,9 @@ public:
         Run(handle, kernels, out_ptr, buf_handle.get());
     }
 
-    void ZeroOutBuffer()
+    void ZeroOutBuffer(const Handle& handle)
     {
-        [[maybe_unused]] auto status = hipMemsetAsync(buf_handle.get(), 0, tensor_sz);
+        [[maybe_unused]] auto status = hipMemsetAsync(buf_handle.get(), 0, tensor_sz, handle.GetStream());
         assert(status == hipSuccess);
     }
 
@@ -734,7 +734,7 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
             /// \todo: Will need SetTensor() to properly zero out non-packed tensors
             if(output_tr_inst.GetConvOperandTag() == internal::ConvOperandTag::Weights)
             {
-                output_tr_inst.ZeroOutBuffer();
+                output_tr_inst.ZeroOutBuffer(handle);
             }
 
             std::array<internal::TransposeInstanceTagged*, 3> tr_ptrs = {
