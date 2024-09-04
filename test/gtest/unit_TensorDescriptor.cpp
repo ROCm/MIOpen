@@ -33,7 +33,7 @@ namespace {
 
 struct TestCasePossibleLayout
 {
-    miopen::unit_tests::TensorParams tp;
+    miopen::unit_tests::TensorDescriptorParams tp;
     std::vector<std::string> actual_layouts;
 
     friend std::ostream& operator<<(std::ostream& os, const TestCasePossibleLayout& tc)
@@ -48,7 +48,7 @@ struct TestCasePossibleLayout
 
 struct TestCaseGetLayoutT
 {
-    miopen::unit_tests::TensorParams tp;
+    miopen::unit_tests::TensorDescriptorParams tp;
     miopenTensorLayout_t actual_layout;
 
     friend std::ostream& operator<<(std::ostream& os, const TestCaseGetLayoutT& tc)
@@ -63,7 +63,7 @@ struct TestCaseGetLayoutT
 
 struct TestCaseGetLayoutEnum
 {
-    miopen::unit_tests::TensorParams tp;
+    miopen::unit_tests::TensorDescriptorParams tp;
     std::optional<miopenTensorLayout_t> actual_layout;
 
     friend std::ostream& operator<<(std::ostream& os, const TestCaseGetLayoutEnum& tc)
@@ -81,7 +81,7 @@ struct TestCaseGetLayoutEnum
 
 struct TestCaseGetLayoutStr
 {
-    miopen::unit_tests::TensorParams tp;
+    miopen::unit_tests::TensorDescriptorParams tp;
     std::string actual_layout;
 
     friend std::ostream& operator<<(std::ostream& os, const TestCaseGetLayoutStr& tc)
@@ -111,7 +111,7 @@ struct TestCaseLayoutEnumToStr
 
 struct TestCaseGetLayout
 {
-    miopen::unit_tests::TensorParams tp;
+    miopen::unit_tests::TensorDescriptorParams tp;
     std::string labels;
     std::string actual_layout;
 

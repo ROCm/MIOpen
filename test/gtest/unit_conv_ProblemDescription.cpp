@@ -33,9 +33,9 @@ namespace {
 
 struct TestCaseProblemDescription
 {
-    miopen::unit_tests::TensorParams in;
-    miopen::unit_tests::TensorParams weights;
-    miopen::unit_tests::TensorParams out;
+    miopen::unit_tests::TensorDescriptorParams in;
+    miopen::unit_tests::TensorDescriptorParams weights;
+    miopen::unit_tests::TensorDescriptorParams out;
     miopen::ConvolutionDescriptor conv;
     miopen::conv::Direction direction;
 
