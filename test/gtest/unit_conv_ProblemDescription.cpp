@@ -28,6 +28,7 @@
 #include <miopen/conv/problem_description.hpp>
 
 #include "unit_TensorDescriptor.hpp"
+#include "unit_conv_ConvolutionDescriptor.hpp"
 
 namespace {
 
@@ -36,7 +37,7 @@ struct TestCaseProblemDescription
     miopen::unit_tests::TensorDescriptorParams in;
     miopen::unit_tests::TensorDescriptorParams weights;
     miopen::unit_tests::TensorDescriptorParams out;
-    miopen::ConvolutionDescriptor conv;
+    miopen::unit_tests::ConvolutionDescriptorParams conv;
     miopen::conv::Direction direction;
 
     std::string layout_in;
@@ -189,7 +190,7 @@ public:
                 {miopenHalf, miopenTensorNCDHW, {1, 4, 4, 4, 4}}, // NCDHW
                 {miopenHalf, miopenTensorNCDHW, {1, 4, 4, 4, 4}}, // NCDHW
                 {miopenHalf, miopenTensorNCDHW, {1, 4, 4, 4, 4}}, // NCDHW
-                {{0, 0, 0}, {1, 1, 1}, {1, 1, 1}, {0, 0, 0}},
+                {{0, 0, 0}, {1, 1, 1}, {1, 1, 1}},
                 miopen::conv::Direction::Forward,
                 "NCDHW", "NCDHW", "NCDHW"
             },
@@ -197,7 +198,7 @@ public:
                 {miopenHalf, {1, 1, 1, 1, 1}, {10000, 1000, 100, 10, 1}}, // NCDHW
                 {miopenHalf, {1, 1, 1, 1, 1}, {10000, 1000, 100, 10, 1}}, // NCDHW
                 {miopenHalf, {1, 1, 1, 1, 1}, {10000, 1000, 100, 10, 1}}, // NCDHW
-                {{0, 0, 0}, {1, 1, 1}, {1, 1, 1}, {0, 0, 0}},
+                {{0, 0, 0}, {1, 1, 1}, {1, 1, 1}},
                 miopen::conv::Direction::Forward,
                 "NCDHW", "NCDHW", "NCDHW"
             },
@@ -205,7 +206,7 @@ public:
                 {miopenHalf, miopenTensorNDHWC, {1, 4, 4, 4, 4}}, // NDHWC
                 {miopenHalf, miopenTensorNDHWC, {1, 4, 4, 4, 4}}, // NDHWC
                 {miopenHalf, miopenTensorNDHWC, {1, 4, 4, 4, 4}}, // NDHWC
-                {{0, 0, 0}, {1, 1, 1}, {1, 1, 1}, {0, 0, 0}},
+                {{0, 0, 0}, {1, 1, 1}, {1, 1, 1}},
                 miopen::conv::Direction::Forward,
                 "NDHWC", "NDHWC", "NDHWC"
             },
@@ -213,7 +214,7 @@ public:
                 {miopenHalf, {1, 1, 1, 1, 1}, {10000, 1, 1000, 100, 10}}, // NDHWC
                 {miopenHalf, {1, 1, 1, 1, 1}, {10000, 1, 1000, 100, 10}}, // NDHWC
                 {miopenHalf, {1, 1, 1, 1, 1}, {10000, 1, 1000, 100, 10}}, // NDHWC
-                {{0, 0, 0}, {1, 1, 1}, {1, 1, 1}, {0, 0, 0}},
+                {{0, 0, 0}, {1, 1, 1}, {1, 1, 1}},
                 miopen::conv::Direction::Forward,
                 "NDHWC", "NDHWC", "NDHWC"
             },
@@ -222,7 +223,7 @@ public:
                 {miopenHalf, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}}, // ?
                 {miopenHalf, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}}, // ?
                 {miopenHalf, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}}, // ?
-                {{0, 0, 0}, {1, 1, 1}, {1, 1, 1}, {0, 0, 0}},
+                {{0, 0, 0}, {1, 1, 1}, {1, 1, 1}},
                 miopen::conv::Direction::Forward,
                 "NCDHW", "NCDHW", "NCDHW"
             },
@@ -238,7 +239,7 @@ public:
         const auto pd = miopen::conv::ProblemDescription{p.in.GetTensorDescriptor(),
                                                          p.weights.GetTensorDescriptor(),
                                                          p.out.GetTensorDescriptor(),
-                                                         p.conv,
+                                                         p.conv.GetConvolutionDescriptor(),
                                                          p.direction};
         ASSERT_EQ(pd.GetInLayout(), p.layout_in);
         ASSERT_EQ(pd.GetWeightsLayout(), p.layout_weights);
