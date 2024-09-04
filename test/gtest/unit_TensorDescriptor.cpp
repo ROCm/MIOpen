@@ -26,83 +26,14 @@
 
 #include <gtest/gtest.h>
 #include <miopen/logger.hpp>
-#include <miopen/tensor.hpp>
-#include <miopen/tensor_layout.hpp>
+
+#include "unit_TensorDescriptor.hpp"
 
 namespace {
 
-struct TestTensorParams
-{
-    TestTensorParams(miopenDataType_t datatype_in, std::vector<std::size_t>&& lens_in)
-        : datatype(datatype_in), lens(std::move(lens_in))
-    {
-    }
-
-    TestTensorParams(miopenDataType_t datatype_in,
-                     miopenTensorLayout_t layout_in,
-                     std::vector<std::size_t>&& lens_in)
-        : datatype(datatype_in), layout(layout_in), lens(std::move(lens_in))
-    {
-    }
-
-    TestTensorParams(miopenDataType_t datatype_in,
-                     std::vector<std::size_t>&& lens_in,
-                     std::vector<std::size_t>&& strides_in)
-        : datatype(datatype_in), lens(std::move(lens_in)), strides(std::move(strides_in))
-    {
-    }
-
-    TestTensorParams(miopenDataType_t datatype_in,
-                     miopenTensorLayout_t layout_in,
-                     std::vector<std::size_t>&& lens_in,
-                     std::vector<std::size_t>&& strides_in)
-        : datatype(datatype_in),
-          layout(layout_in),
-          lens(std::move(lens_in)),
-          strides(std::move(strides_in))
-    {
-    }
-
-    miopen::TensorDescriptor GetTensorDescriptor() const
-    {
-        if(layout)
-        {
-            if(!strides.empty())
-                return {datatype, layout.value(), lens, strides};
-            else
-                return {datatype, layout.value(), lens};
-        }
-        else
-        {
-            if(!strides.empty())
-                return {datatype, lens, strides};
-            else
-                return {datatype, lens};
-        }
-    }
-
-    friend std::ostream& operator<<(std::ostream& os, const TestTensorParams& tp)
-    {
-        os << tp.datatype << ", ";
-        if(tp.layout)
-            os << tp.layout.value() << ", ";
-        else
-            os << "{}, ";
-        miopen::LogRange(os << "{", tp.lens, ",") << "}, ";
-        miopen::LogRange(os << "{", tp.strides, ",") << "}";
-        return os;
-    }
-
-private:
-    miopenDataType_t datatype;
-    std::optional<miopenTensorLayout_t> layout;
-    std::vector<std::size_t> lens;
-    std::vector<std::size_t> strides;
-};
-
 struct TestCasePossibleLayout
 {
-    TestTensorParams tp;
+    miopen::unit_tests::TensorParams tp;
     std::vector<std::string> actual_layouts;
 
     friend std::ostream& operator<<(std::ostream& os, const TestCasePossibleLayout& tc)
@@ -117,7 +48,7 @@ struct TestCasePossibleLayout
 
 struct TestCaseGetLayoutT
 {
-    TestTensorParams tp;
+    miopen::unit_tests::TensorParams tp;
     miopenTensorLayout_t actual_layout;
 
     friend std::ostream& operator<<(std::ostream& os, const TestCaseGetLayoutT& tc)
@@ -132,7 +63,7 @@ struct TestCaseGetLayoutT
 
 struct TestCaseGetLayoutEnum
 {
-    TestTensorParams tp;
+    miopen::unit_tests::TensorParams tp;
     std::optional<miopenTensorLayout_t> actual_layout;
 
     friend std::ostream& operator<<(std::ostream& os, const TestCaseGetLayoutEnum& tc)
@@ -150,7 +81,7 @@ struct TestCaseGetLayoutEnum
 
 struct TestCaseGetLayoutStr
 {
-    TestTensorParams tp;
+    miopen::unit_tests::TensorParams tp;
     std::string actual_layout;
 
     friend std::ostream& operator<<(std::ostream& os, const TestCaseGetLayoutStr& tc)
@@ -180,7 +111,7 @@ struct TestCaseLayoutEnumToStr
 
 struct TestCaseGetLayout
 {
-    TestTensorParams tp;
+    miopen::unit_tests::TensorParams tp;
     std::string labels;
     std::string actual_layout;
 
