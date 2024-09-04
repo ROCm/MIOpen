@@ -141,6 +141,23 @@ struct TestCaseGetVectorLength
     }
 };
 
+struct TestCaseCheckDimsFitIntoInt
+{
+    miopen::unit_tests::TensorDescriptorParams tp;
+    bool lens_fit_into_int;
+    bool strides_fit_into_int;
+
+    friend std::ostream& operator<<(std::ostream& os, const TestCaseCheckDimsFitIntoInt& tc)
+    {
+        os << "(";
+        os << "(" << tc.tp << "), ";
+        os << tc.lens_fit_into_int << ", ";
+        os << tc.strides_fit_into_int;
+        os << ")";
+        return os;
+    }
+};
+
 class TestPossibleLayout4D5D : public ::testing::TestWithParam<TestCasePossibleLayout>
 {
     static auto& GetAllLayouts()
@@ -495,13 +512,13 @@ public:
             TestCase{{miopenHalf, miopenTensorCHWN, {2, 2, 2, 2}, {1, 1000, 100, 10}}, "NCHW", "CHWN"},
             TestCase{{miopenHalf, miopenTensorNCDHW, {2, 2, 2, 2, 2}, {10000, 1000, 100, 10, 1}}, "NCDHW", "NCDHW"},
             TestCase{{miopenHalf, miopenTensorNDHWC, {2, 2, 2, 2, 2}, {10000, 1, 1000, 100, 10}}, "NCDHW", "NDHWC"},
-            // clang-format off
+            // clang-format on
         };
     }
 
     void RunTest()
     {
-        const auto p = GetParam();
+        const auto p  = GetParam();
         const auto td = p.tp.GetTensorDescriptor();
         ASSERT_EQ(td.GetLayout(p.storage_layout), p.actual_layout);
     }
@@ -541,27 +558,70 @@ public:
             TestCase{{miopenHalf, miopenTensorCHWN, {2, 2, 2, 2}, {1, 1000, 100, 10}}, 1},
             TestCase{{miopenHalf, miopenTensorNCDHW, {2, 2, 2, 2, 2}, {10000, 1000, 100, 10, 1}}, 1},
             TestCase{{miopenHalf, miopenTensorNDHWC, {2, 2, 2, 2, 2}, {10000, 1, 1000, 100, 10}}, 1},
-            // clang-format off
+            // clang-format on
         };
     }
 
     void RunTest()
     {
-        const auto p = GetParam();
+        const auto p  = GetParam();
         const auto td = p.tp.GetTensorDescriptor();
         ASSERT_EQ(td.GetVectorLength(), p.actual_vector_length);
     }
 };
 
+class TestCheckDimsFitIntoInt : public ::testing::TestWithParam<TestCaseCheckDimsFitIntoInt>
+{
+public:
+    static auto GetTestCases()
+    {
+        using TestCase          = TestCaseCheckDimsFitIntoInt;
+        const std::size_t maxv  = std::numeric_limits<int>::max();
+        const std::size_t maxv1 = maxv + 1;
+
+        return std::vector{
+            // clang-format off
+            TestCase{{miopenHalf, {1, 1, 1, 1}, {1, 1, 1, 1}}, true, true},
+            TestCase{{miopenHalf, {maxv, maxv, maxv, maxv}, {1, 1, 1, 1}}, true, true},
+            TestCase{{miopenHalf, {1, 1, 1, 1}, {maxv, maxv, maxv, maxv}}, true, true},
+            TestCase{{miopenHalf, {maxv, maxv, maxv, maxv}, {maxv, maxv, maxv, maxv}}, true, true},
+
+            TestCase{{miopenHalf, {maxv1, maxv1, maxv1, maxv1}, {1, 1, 1, 1}}, false, true},
+            TestCase{{miopenHalf, {1, 1, 1, 1}, {maxv1, maxv1, maxv1, maxv1}}, true, false},
+            TestCase{{miopenHalf, {maxv1, maxv1, maxv1, maxv1}, {maxv1, maxv1, maxv1, maxv1}}, false, false},
+
+            TestCase{{miopenHalf, {1, maxv1, 1, 1}, {1, 1, 1, 1}}, false, true},
+            TestCase{{miopenHalf, {maxv, maxv, maxv1, maxv}, {1, 1, 1, 1}}, false, true},
+            TestCase{{miopenHalf, {1, 1, 1, 1}, {maxv, maxv, maxv, maxv1}}, true, false},
+            TestCase{{miopenHalf, {maxv1, maxv, maxv, maxv}, {maxv, maxv, maxv, maxv}}, false, true},
+
+            TestCase{{miopenHalf, {maxv, maxv1, maxv1, maxv1}, {1, 1, 1, 1}}, false, true},
+            TestCase{{miopenHalf, {1, 1, 1, 1}, {maxv1, maxv, maxv1, maxv1}}, true, false},
+            TestCase{{miopenHalf, {maxv1, maxv1, maxv1, maxv}, {maxv1, maxv1, maxv1, maxv1}}, false, false},
+            // clang-format on
+        };
+    }
+
+    void RunTest()
+    {
+        const auto p                     = GetParam();
+        const auto td                    = p.tp.GetTensorDescriptor();
+        const auto all_dims_fit_into_int = (p.lens_fit_into_int && p.strides_fit_into_int);
+        ASSERT_EQ(td.AllLengthsFitIntoInt(), p.lens_fit_into_int);
+        ASSERT_EQ(td.AllDimsFitIntoInt(), all_dims_fit_into_int);
+    }
+};
+
 } // namespace
 
-using CPU_TensorTestPossibleLayout4D5D_NONE = TestPossibleLayout4D5D;
-using CPU_TensorTestGetLayoutT_NONE         = TestGetLayoutT;
-using CPU_TensorTestGetLayoutEnum_NONE      = TestGetLayoutEnum;
-using CPU_TensorTestGetLayoutStr_NONE       = TestGetLayoutStr;
-using CPU_TensorTestLayoutEnumToStr_NONE    = TestLayoutEnumToStr;
-using CPU_TensorTestGetLayout_NONE          = TestGetLayout;
-using CPU_TensorTestGetVectorLength_NONE    = TestGetVectorLength;
+using CPU_TensorTestPossibleLayout4D5D_NONE  = TestPossibleLayout4D5D;
+using CPU_TensorTestGetLayoutT_NONE          = TestGetLayoutT;
+using CPU_TensorTestGetLayoutEnum_NONE       = TestGetLayoutEnum;
+using CPU_TensorTestGetLayoutStr_NONE        = TestGetLayoutStr;
+using CPU_TensorTestLayoutEnumToStr_NONE     = TestLayoutEnumToStr;
+using CPU_TensorTestGetLayout_NONE           = TestGetLayout;
+using CPU_TensorTestGetVectorLength_NONE     = TestGetVectorLength;
+using CPU_TensorTestCheckDimsFitIntoInt_NONE = TestCheckDimsFitIntoInt;
 
 TEST_P(CPU_TensorTestPossibleLayout4D5D_NONE, TensorDescriptor) { this->RunTest(); };
 TEST_P(CPU_TensorTestGetLayoutT_NONE, TensorDescriptor) { this->RunTest(); };
@@ -570,6 +630,7 @@ TEST_P(CPU_TensorTestGetLayoutStr_NONE, TensorDescriptor) { this->RunTest(); };
 TEST_P(CPU_TensorTestLayoutEnumToStr_NONE, TensorDescriptor) { this->RunTest(); };
 TEST_P(CPU_TensorTestGetLayout_NONE, TensorDescriptor) { this->RunTest(); };
 TEST_P(CPU_TensorTestGetVectorLength_NONE, TensorDescriptor) { this->RunTest(); };
+TEST_P(CPU_TensorTestCheckDimsFitIntoInt_NONE, TensorDescriptor) { this->RunTest(); };
 
 INSTANTIATE_TEST_SUITE_P(Full,
                          CPU_TensorTestPossibleLayout4D5D_NONE,
@@ -598,3 +659,7 @@ INSTANTIATE_TEST_SUITE_P(Full,
 INSTANTIATE_TEST_SUITE_P(Full,
                          CPU_TensorTestGetVectorLength_NONE,
                          testing::ValuesIn(TestGetVectorLength::GetTestCases()));
+
+INSTANTIATE_TEST_SUITE_P(Full,
+                         CPU_TensorTestCheckDimsFitIntoInt_NONE,
+                         testing::ValuesIn(TestCheckDimsFitIntoInt::GetTestCases()));
