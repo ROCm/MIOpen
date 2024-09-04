@@ -161,6 +161,6 @@ TEST_P(GPU_Conv2dHalf_conv_igemm_dynamic_xdlops_FP16, HalfTest_conv_igemm_dynami
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(ConvIgemmDynamicXdlopsFwdWrw,
+INSTANTIATE_TEST_SUITE_P(Full,
                          GPU_Conv2dHalf_conv_igemm_dynamic_xdlops_FP16,
                          testing::Values(GetTestCases("--half")));
