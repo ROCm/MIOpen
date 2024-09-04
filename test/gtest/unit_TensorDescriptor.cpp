@@ -112,15 +112,30 @@ struct TestCaseLayoutEnumToStr
 struct TestCaseGetLayout
 {
     miopen::unit_tests::TensorDescriptorParams tp;
-    std::string labels;
+    std::string storage_layout;
     std::string actual_layout;
 
     friend std::ostream& operator<<(std::ostream& os, const TestCaseGetLayout& tc)
     {
         os << "(";
         os << "(" << tc.tp << "), ";
-        os << tc.labels << ", ";
+        os << tc.storage_layout << ", ";
         os << tc.actual_layout;
+        os << ")";
+        return os;
+    }
+};
+
+struct TestCaseGetVectorLength
+{
+    miopen::unit_tests::TensorDescriptorParams tp;
+    std::size_t actual_vector_length;
+
+    friend std::ostream& operator<<(std::ostream& os, const TestCaseGetVectorLength& tc)
+    {
+        os << "(";
+        os << "(" << tc.tp << "), ";
+        os << tc.actual_vector_length;
         os << ")";
         return os;
     }
@@ -488,7 +503,53 @@ public:
     {
         const auto p = GetParam();
         const auto td = p.tp.GetTensorDescriptor();
-        ASSERT_EQ(td.GetLayout(p.labels), p.actual_layout);
+        ASSERT_EQ(td.GetLayout(p.storage_layout), p.actual_layout);
+    }
+};
+
+class TestGetVectorLength : public ::testing::TestWithParam<TestCaseGetVectorLength>
+{
+public:
+    static auto GetTestCases()
+    {
+        using TestCase = TestCaseGetVectorLength;
+
+        return std::vector{
+            // clang-format off
+            TestCase{{miopenHalf, {2, 2, 2}}, 1},
+            TestCase{{miopenHalf, {2, 2, 2, 2}}, 1},
+            TestCase{{miopenHalf, {2, 2, 2, 2, 2}}, 1},
+            TestCase{{miopenHalf, {2, 2, 2, 2, 2, 2}}, 1},
+
+            TestCase{{miopenHalf, miopenTensorNCHW, {2, 2, 2, 2}}, 1},
+            TestCase{{miopenHalf, miopenTensorNHWC, {2, 2, 2, 2}}, 1},
+            TestCase{{miopenHalf, miopenTensorCHWN, {2, 2, 2, 2}}, 1},
+            TestCase{{miopenHalf, miopenTensorNCHWc4, {2, 8, 2, 2}}, 4},
+            TestCase{{miopenHalf, miopenTensorNCHWc8, {2, 16, 2, 2}}, 8},
+            TestCase{{miopenHalf, miopenTensorCHWNc4, {2, 8, 2, 2}}, 4},
+            TestCase{{miopenHalf, miopenTensorCHWNc8, {2, 16, 2, 2}}, 8},
+            TestCase{{miopenHalf, miopenTensorNCDHW, {2, 2, 2, 2, 2}}, 1},
+            TestCase{{miopenHalf, miopenTensorNDHWC, {2, 2, 2, 2, 2}}, 1},
+
+            TestCase{{miopenHalf, {2, 2, 2}, {100, 10, 1}}, 1},
+            TestCase{{miopenHalf, {2, 2, 2, 2}, {1000, 100, 10, 1}}, 1},
+            TestCase{{miopenHalf, {2, 2, 2, 2, 2}, {10000, 1000, 100, 10, 1}}, 1},
+            TestCase{{miopenHalf, {2, 2, 2, 2, 2, 2}, {100000, 10000, 1000, 100, 10, 1}}, 1},
+
+            TestCase{{miopenHalf, miopenTensorNCHW, {2, 2, 2, 2}, {1000, 100, 10, 1}}, 1},
+            TestCase{{miopenHalf, miopenTensorNHWC, {2, 2, 2, 2}, {1000, 1, 100, 10}}, 1},
+            TestCase{{miopenHalf, miopenTensorCHWN, {2, 2, 2, 2}, {1, 1000, 100, 10}}, 1},
+            TestCase{{miopenHalf, miopenTensorNCDHW, {2, 2, 2, 2, 2}, {10000, 1000, 100, 10, 1}}, 1},
+            TestCase{{miopenHalf, miopenTensorNDHWC, {2, 2, 2, 2, 2}, {10000, 1, 1000, 100, 10}}, 1},
+            // clang-format off
+        };
+    }
+
+    void RunTest()
+    {
+        const auto p = GetParam();
+        const auto td = p.tp.GetTensorDescriptor();
+        ASSERT_EQ(td.GetVectorLength(), p.actual_vector_length);
     }
 };
 
@@ -500,6 +561,7 @@ using CPU_TensorTestGetLayoutEnum_NONE      = TestGetLayoutEnum;
 using CPU_TensorTestGetLayoutStr_NONE       = TestGetLayoutStr;
 using CPU_TensorTestLayoutEnumToStr_NONE    = TestLayoutEnumToStr;
 using CPU_TensorTestGetLayout_NONE          = TestGetLayout;
+using CPU_TensorTestGetVectorLength_NONE    = TestGetVectorLength;
 
 TEST_P(CPU_TensorTestPossibleLayout4D5D_NONE, TensorDescriptor) { this->RunTest(); };
 TEST_P(CPU_TensorTestGetLayoutT_NONE, TensorDescriptor) { this->RunTest(); };
@@ -507,6 +569,7 @@ TEST_P(CPU_TensorTestGetLayoutEnum_NONE, TensorDescriptor) { this->RunTest(); };
 TEST_P(CPU_TensorTestGetLayoutStr_NONE, TensorDescriptor) { this->RunTest(); };
 TEST_P(CPU_TensorTestLayoutEnumToStr_NONE, TensorDescriptor) { this->RunTest(); };
 TEST_P(CPU_TensorTestGetLayout_NONE, TensorDescriptor) { this->RunTest(); };
+TEST_P(CPU_TensorTestGetVectorLength_NONE, TensorDescriptor) { this->RunTest(); };
 
 INSTANTIATE_TEST_SUITE_P(Full,
                          CPU_TensorTestPossibleLayout4D5D_NONE,
@@ -531,3 +594,7 @@ INSTANTIATE_TEST_SUITE_P(Full,
 INSTANTIATE_TEST_SUITE_P(Full,
                          CPU_TensorTestGetLayout_NONE,
                          testing::ValuesIn(TestGetLayout::GetTestCases()));
+
+INSTANTIATE_TEST_SUITE_P(Full,
+                         CPU_TensorTestGetVectorLength_NONE,
+                         testing::ValuesIn(TestGetVectorLength::GetTestCases()));
