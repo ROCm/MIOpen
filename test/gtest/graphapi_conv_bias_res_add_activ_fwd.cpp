@@ -24,6 +24,7 @@
  *
  *******************************************************************************/
 #include <gtest/gtest.h>
+#include <gtest/gtest_common.hpp>
 #include <miopen/miopen.h>
 #include <miopen/env.hpp>
 
@@ -42,8 +43,15 @@
 #include "conv3d_test_case.hpp"
 
 namespace gr = miopen::graphapi;
-
 namespace conv_graph_api_test {
+
+bool IsTestSupportedForDevice()
+{
+    using e_mask = enabled<Gpu::gfx94X, Gpu::gfx103X, Gpu::gfx110X>;
+    // gfx120X is not enabled due to WORKAROUND_SWDEV_479810
+    using d_mask = disabled<Gpu::None>;
+    return ::IsTestSupportedForDevMask<d_mask, e_mask>();
+}
 
 static bool TestIsApplicable() { return true; }
 
@@ -206,6 +214,10 @@ public:
         if(!TestIsApplicable())
         {
             GTEST_SKIP();
+        }
+        if(!IsTestSupportedForDevice())
+        {
+            GTEST_SKIP() << "CBA graph Fusion not supported in this device";
         }
 
         prng::reset_seed();
@@ -479,7 +491,7 @@ using namespace conv_graph_api_test;
     {                                                                               \
     };                                                                              \
     TEST_P(GPU_ConvBiasResAddActivation_##dir##_##type, Test) { Run(); }            \
-    INSTANTIATE_TEST_SUITE_P(GPU_ConvBiasResAddActivation_##dir##_##type##_Suite,   \
+    INSTANTIATE_TEST_SUITE_P(Smoke,                                                 \
                              GPU_ConvBiasResAddActivation_##dir##_##type,           \
                              testing::Combine(testing::ValuesIn(ConvTestConfigs()), \
                                               testing::ValuesIn({1.0f, 2.5f}),      \
@@ -489,4 +501,4 @@ using namespace conv_graph_api_test;
 
 DEFINE_GRAPH_API_CONV_BIAS_ACTIV_TEST(FP16, half_float::half, fwd);
 DEFINE_GRAPH_API_CONV_BIAS_ACTIV_TEST(FP32, float, fwd);
-DEFINE_GRAPH_API_CONV_BIAS_ACTIV_TEST(BF16, bfloat16, fwd);
+DEFINE_GRAPH_API_CONV_BIAS_ACTIV_TEST(BFP16, bfloat16, fwd);
