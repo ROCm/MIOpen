@@ -24,16 +24,16 @@ template <typename GridwiseGemm,
           bool HasDoubleTailKBlockLoop>
 __global__ void
 #if CK_USE_LAUNCH_BOUNDS
-    __launch_bounds__(CK_MAX_THREAD_PER_BLOCK, CK_MIN_BLOCK_PER_CU)
+__launch_bounds__(CK_MAX_THREAD_PER_BLOCK, CK_MIN_BLOCK_PER_CU)
 #endif
-        kernel_gemm_dlops_v1r2(
-            const FloatAB* __restrict__ p_a_grid,
-            const FloatAB* __restrict__ p_b_grid,
-            FloatC* __restrict__ p_c_grid,
-            const AKM0M1GridDesc a_k_m0_m1_grid_desc,
-            const BKN0N1GridDesc b_k_n0_n1_grid_desc,
-            const CM0M10M11N0N10N11GridDesc c_m0_m10_m11_n0_n10_n11_grid_desc,
-            const CBlockIdToM0N0BlockClusterAdaptor c_blockid_to_m0_n0_block_cluster_adaptor)
+    kernel_gemm_dlops_v1r2(
+        const FloatAB* __restrict__ p_a_grid,
+        const FloatAB* __restrict__ p_b_grid,
+        FloatC* __restrict__ p_c_grid,
+        const AKM0M1GridDesc a_k_m0_m1_grid_desc,
+        const BKN0N1GridDesc b_k_n0_n1_grid_desc,
+        const CM0M10M11N0N10N11GridDesc c_m0_m10_m11_n0_n10_n11_grid_desc,
+        const CBlockIdToM0N0BlockClusterAdaptor c_blockid_to_m0_n0_block_cluster_adaptor)
 {
     constexpr index_t shared_block_size =
         GridwiseGemm::GetSharedMemoryNumberOfByte() / sizeof(FloatAB);
@@ -66,15 +66,15 @@ template <typename GridwiseGemm,
           bool HasDoubleTailKBlockLoop>
 __global__ void
 #if CK_USE_LAUNCH_BOUNDS
-    __launch_bounds__(CK_MAX_THREAD_PER_BLOCK, CK_MIN_BLOCK_PER_CU)
+__launch_bounds__(CK_MAX_THREAD_PER_BLOCK, CK_MIN_BLOCK_PER_CU)
 #endif
-        kernel_gemm_dlops_v1r2(const FloatAB* __restrict__ p_a_grid,
-                               const FloatAB* __restrict__ p_b_grid,
-                               FloatC* __restrict__ p_c_grid,
-                               const void CONSTANT* p_a_k_m0_m1_grid_desc,
-                               const void CONSTANT* p_b_k_n0_n1_grid_desc,
-                               const void CONSTANT* p_c_m0_m10_m11_n0_n10_n11_grid_desc,
-                               const void CONSTANT* p_c_blockid_to_m0_n0_block_cluster_adaptor)
+    kernel_gemm_dlops_v1r2(const FloatAB* __restrict__ p_a_grid,
+                           const FloatAB* __restrict__ p_b_grid,
+                           FloatC* __restrict__ p_c_grid,
+                           const void CONSTANT* p_a_k_m0_m1_grid_desc,
+                           const void CONSTANT* p_b_k_n0_n1_grid_desc,
+                           const void CONSTANT* p_c_m0_m10_m11_n0_n10_n11_grid_desc,
+                           const void CONSTANT* p_c_blockid_to_m0_n0_block_cluster_adaptor)
 {
     // first cast void CONSTANT void* to void*
     // second cast void* to Desc*

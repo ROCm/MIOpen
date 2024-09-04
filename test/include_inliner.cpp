@@ -56,12 +56,12 @@ public:
         const auto invalid_src     = test_srcs / "invalid.cl";
         const auto header_src      = test_srcs / header_filename;
 
-        // clang-format-off
+        // clang-format off
         std::ofstream(valid_src.c_str()) << "#include <" << header_filename << ">\n"
                                          << "#include \"" << header_filename << "\"\n"
                                          << "//inliner-include-optional\n"
                                          << "#include <missing_header.h>" << std::endl;
-        // clang-format-on
+        // clang-format on
 
         std::ofstream(asm_src.c_str()) << ".include \"" << header_filename << "\"" << std::endl;
         std::ofstream(invalid_src.c_str()) << "#include <missing_header.h>" << std::endl;

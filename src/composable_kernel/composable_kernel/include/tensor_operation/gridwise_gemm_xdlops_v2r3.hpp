@@ -22,15 +22,15 @@ template <typename GridwiseGemm,
           typename CBlockClusterAdaptor>
 __global__ void
 #if CK_USE_LAUNCH_BOUNDS
-    __launch_bounds__(CK_MAX_THREAD_PER_BLOCK, CK_MIN_BLOCK_PER_CU)
+__launch_bounds__(CK_MAX_THREAD_PER_BLOCK, CK_MIN_BLOCK_PER_CU)
 #endif
-        kernel_gemm_xdlops_v2r3(const FloatAB* __restrict__ p_a_grid,
-                                const FloatAB* __restrict__ p_b_grid,
-                                FloatC* __restrict__ p_c_grid,
-                                const AK0MK1GridDesc a_k0_m_k1_grid_desc,
-                                const BK0NK1GridDesc b_k0_n_k1_grid_desc,
-                                const CM0M1M2NGridDesc c_m0_m1_m2_n_grid_desc,
-                                const CBlockClusterAdaptor c_block_cluster_adaptor)
+    kernel_gemm_xdlops_v2r3(const FloatAB* __restrict__ p_a_grid,
+                            const FloatAB* __restrict__ p_b_grid,
+                            FloatC* __restrict__ p_c_grid,
+                            const AK0MK1GridDesc a_k0_m_k1_grid_desc,
+                            const BK0NK1GridDesc b_k0_n_k1_grid_desc,
+                            const CM0M1M2NGridDesc c_m0_m1_m2_n_grid_desc,
+                            const CBlockClusterAdaptor c_block_cluster_adaptor)
 {
     constexpr index_t shared_block_size =
         GridwiseGemm::GetSharedMemoryNumberOfByte() / sizeof(FloatAB);
@@ -56,15 +56,15 @@ template <typename GridwiseGemm,
           typename CBlockClusterAdaptor>
 __global__ void
 #if CK_USE_LAUNCH_BOUNDS
-    __launch_bounds__(CK_MAX_THREAD_PER_BLOCK, CK_MIN_BLOCK_PER_CU)
+__launch_bounds__(CK_MAX_THREAD_PER_BLOCK, CK_MIN_BLOCK_PER_CU)
 #endif
-        kernel_gemm_xdlops_v2r3(const FloatAB* __restrict__ p_a_grid,
-                                const FloatAB* __restrict__ p_b_grid,
-                                FloatC* __restrict__ p_c_grid,
-                                const void CONSTANT* p_a_k0_m_k1_grid_desc,
-                                const void CONSTANT* p_b_k0_n_k1_grid_desc,
-                                const void CONSTANT* p_c_m0_m1_m2_n_grid_desc,
-                                const void CONSTANT* p_c_block_cluster_adaptor)
+    kernel_gemm_xdlops_v2r3(const FloatAB* __restrict__ p_a_grid,
+                            const FloatAB* __restrict__ p_b_grid,
+                            FloatC* __restrict__ p_c_grid,
+                            const void CONSTANT* p_a_k0_m_k1_grid_desc,
+                            const void CONSTANT* p_b_k0_n_k1_grid_desc,
+                            const void CONSTANT* p_c_m0_m1_m2_n_grid_desc,
+                            const void CONSTANT* p_c_block_cluster_adaptor)
 {
     constexpr index_t shared_block_size =
         GridwiseGemm::GetSharedMemoryNumberOfByte() / sizeof(FloatAB);

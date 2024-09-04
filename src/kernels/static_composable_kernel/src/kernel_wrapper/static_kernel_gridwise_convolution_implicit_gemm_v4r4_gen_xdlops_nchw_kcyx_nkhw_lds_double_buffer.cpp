@@ -6,10 +6,10 @@
 #include "float_types.h"
 
 extern "C" __global__
-    __launch_bounds__(CK_PARAM_TUNABLE_BLOCK_SIZE, 2) void gridwise_convolution_implicit_gemm_v4r4_gen_xdlops_nchw_kcyx_nkhw_lds_double_buffer(
-        const FLOAT* const __restrict__ p_in_global,
-        const FLOAT* const __restrict__ p_wei_global,
-        FLOAT* const __restrict__ p_out_global)
+__launch_bounds__(CK_PARAM_TUNABLE_BLOCK_SIZE, 2) void gridwise_convolution_implicit_gemm_v4r4_gen_xdlops_nchw_kcyx_nkhw_lds_double_buffer(
+    const FLOAT* const __restrict__ p_in_global,
+    const FLOAT* const __restrict__ p_wei_global,
+    FLOAT* const __restrict__ p_out_global)
 {
     using namespace ck;
 

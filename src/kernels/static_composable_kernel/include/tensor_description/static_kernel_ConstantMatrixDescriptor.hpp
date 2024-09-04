@@ -53,14 +53,14 @@ __host__ __device__ constexpr auto make_ConstantMatrixDescriptor_packed(Number<N
 
 template <index_t NRow, index_t NCol, index_t RowStride>
 __host__ __device__ constexpr auto
-    make_ConstantMatrixDescriptor(Number<NRow>, Number<NCol>, Number<RowStride>)
+make_ConstantMatrixDescriptor(Number<NRow>, Number<NCol>, Number<RowStride>)
 {
     return ConstantMatrixDescriptor<NRow, NCol, RowStride>{};
 }
 
 template <typename... Ts>
 __host__ __device__ constexpr auto
-    make_ConstantMatrixDescriptor(ConstantTensorDescriptor_deprecated<Ts...>)
+make_ConstantMatrixDescriptor(ConstantTensorDescriptor_deprecated<Ts...>)
 {
     using TDesc = ConstantTensorDescriptor_deprecated<Ts...>;
     static_assert(TDesc::GetNumOfDimension() == 2, "wrong");

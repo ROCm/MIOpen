@@ -372,7 +372,7 @@ struct ConstantTensorDescriptor_deprecated
 
     template <index_t IDim, index_t SliceLength, index_t SliceStride>
     __host__ __device__ static constexpr auto
-        StridedSlice(Number<IDim>, Number<SliceLength>, Number<SliceStride>)
+    StridedSlice(Number<IDim>, Number<SliceLength>, Number<SliceStride>)
     {
         constexpr index_t new_stride = Strides::Get(Number<IDim>{}) * SliceStride;
 

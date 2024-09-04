@@ -206,16 +206,16 @@ extern "C" __global__ void convolution_forward_implicit_gemm_v4r4_xdlops_nhwc_ky
 
 extern "C" __global__ void
 #if CK_USE_LAUNCH_BOUNDS
-    __launch_bounds__(CK_MAX_THREAD_PER_BLOCK, CK_MIN_BLOCK_PER_CU)
+__launch_bounds__(CK_MAX_THREAD_PER_BLOCK, CK_MIN_BLOCK_PER_CU)
 #endif
-        convolution_forward_implicit_gemm_v4r4_xdlops_nhwc_kyxc_nhwk(
-            const FloatAB* __restrict__ p_a_grid,
-            const FloatAB* __restrict__ p_b_grid,
-            FloatC* __restrict__ p_c_grid,
-            const void CONSTANT* p_a_k0_m_k1_grid_desc,
-            const void CONSTANT* p_b_k0_n_k1_grid_desc,
-            const void CONSTANT* p_c_m0_m1_m2_n_grid_desc,
-            const void CONSTANT* p_c_blockid_to_m0_n0_block_cluster_adaptor)
+    convolution_forward_implicit_gemm_v4r4_xdlops_nhwc_kyxc_nhwk(
+        const FloatAB* __restrict__ p_a_grid,
+        const FloatAB* __restrict__ p_b_grid,
+        FloatC* __restrict__ p_c_grid,
+        const void CONSTANT* p_a_k0_m_k1_grid_desc,
+        const void CONSTANT* p_b_k0_n_k1_grid_desc,
+        const void CONSTANT* p_c_m0_m1_m2_n_grid_desc,
+        const void CONSTANT* p_c_blockid_to_m0_n0_block_cluster_adaptor)
 {
 
     constexpr auto I0 = Number<0>{};

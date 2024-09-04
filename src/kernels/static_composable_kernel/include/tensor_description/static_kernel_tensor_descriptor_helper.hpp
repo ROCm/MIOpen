@@ -51,7 +51,7 @@ template <typename LowTensorDescriptor,
           typename LowDimensionIds,
           typename UpDimensionIds>
 __host__ __device__ constexpr auto
-    transform_tensor_descriptor(LowTensorDescriptor, Transforms, LowDimensionIds, UpDimensionIds)
+transform_tensor_descriptor(LowTensorDescriptor, Transforms, LowDimensionIds, UpDimensionIds)
 {
     return TransformedTensorDescriptor<LowTensorDescriptor,
                                        Transforms,
@@ -64,10 +64,10 @@ template <typename LowerTensorDescriptor,
           index_t... LowerDimensionIds,
           index_t... UpperDimensionIds>
 __host__ __device__ constexpr auto
-    reorder_transformed_tensor_descriptor_impl(LowerTensorDescriptor,
-                                               Sequence<LowerLengths...>,
-                                               Sequence<LowerDimensionIds...>,
-                                               Sequence<UpperDimensionIds...>)
+reorder_transformed_tensor_descriptor_impl(LowerTensorDescriptor,
+                                           Sequence<LowerLengths...>,
+                                           Sequence<LowerDimensionIds...>,
+                                           Sequence<UpperDimensionIds...>)
 {
     return TransformedTensorDescriptor<LowerTensorDescriptor,
                                        Tuple<PassThrough<LowerLengths>...>,
@@ -78,7 +78,7 @@ __host__ __device__ constexpr auto
 // reorder a NativeTensorDescriptor
 template <typename... Ts, typename MapLower2Upper>
 __host__ __device__ constexpr auto
-    reorder_tensor_descriptor_given_lower2upper(NativeTensorDescriptor<Ts...>, MapLower2Upper)
+reorder_tensor_descriptor_given_lower2upper(NativeTensorDescriptor<Ts...>, MapLower2Upper)
 {
     static_assert(is_valid_sequence_map<MapLower2Upper>{},
                   "wrong! MapLower2Upper is not a valid map");
@@ -96,7 +96,7 @@ __host__ __device__ constexpr auto
 // reorder a TransformedTensorDescriptor
 template <typename... Ts, typename MapLower2Upper>
 __host__ __device__ constexpr auto
-    reorder_tensor_descriptor_given_lower2upper(TransformedTensorDescriptor<Ts...>, MapLower2Upper)
+reorder_tensor_descriptor_given_lower2upper(TransformedTensorDescriptor<Ts...>, MapLower2Upper)
 {
     static_assert(is_valid_sequence_map<MapLower2Upper>{},
                   "wrong! MapLower2Upper is not a valid map");
@@ -114,7 +114,7 @@ __host__ __device__ constexpr auto
 
 template <typename LowerTensorDescriptor, typename MapUpper2Lower>
 __host__ __device__ constexpr auto
-    reorder_tensor_descriptor_given_upper2lower(LowerTensorDescriptor, MapUpper2Lower)
+reorder_tensor_descriptor_given_upper2lower(LowerTensorDescriptor, MapUpper2Lower)
 {
     return reorder_tensor_descriptor_given_lower2upper(
         LowerTensorDescriptor{}, typename sequence_map_inverse<MapUpper2Lower>::type{});

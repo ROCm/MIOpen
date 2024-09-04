@@ -41,7 +41,7 @@ RUN apt-get update && \
 DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
     build-essential \
     cmake \
-    clang-format-12 \
+    clang-format-13 \
     doxygen \
     gdb \
     git \

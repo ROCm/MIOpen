@@ -327,14 +327,14 @@ struct TensorCoordinate_deprecated
 private:
     template <class... Ts>
     __host__ __device__ static constexpr auto
-        MakeDummyTensorCoordinate(ConstantTensorDescriptor_deprecated<Ts...>)
+    MakeDummyTensorCoordinate(ConstantTensorDescriptor_deprecated<Ts...>)
     {
         return NormalTensorCoordinate_deprecated<ConstantTensorDescriptor_deprecated<Ts...>>();
     }
 
     template <class... Ts>
     __host__ __device__ static constexpr auto
-        MakeDummyTensorCoordinate(ConstantMergedTensorDescriptor_deprecated<Ts...>)
+    MakeDummyTensorCoordinate(ConstantMergedTensorDescriptor_deprecated<Ts...>)
     {
         return MergedTensorCoordinate_deprecated<
             ConstantMergedTensorDescriptor_deprecated<Ts...>>();
