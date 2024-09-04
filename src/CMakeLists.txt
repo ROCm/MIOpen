@@ -179,9 +179,11 @@ set( MIOpen_Source
     rnn/rnn_util.cpp
     rnn/selector.cpp
     rnn/Solutions/rnn_transformer.cpp
+    rnn/Solutions/Base/bw_weights_modular.cpp
     rnn/Solutions/modular_base.cpp
     rnn/Solutions/bwd_s_stream.cpp
     rnn/Solutions/bwd_multi_stream.cpp
+    rnn/Solutions/bww_s_steam.cpp
     rope_api.cpp
     rope/problem_description.cpp
     scalar.cpp
