@@ -31,15 +31,70 @@
 
 namespace {
 
+struct TestTensorParams
+{
+    TestTensorParams(miopenDataType_t datatype_in, std::vector<std::size_t>&& lens_in) : datatype(datatype_in), lens(std::move(lens_in))
+    {
+    }
+
+    TestTensorParams(miopenDataType_t datatype_in, miopenTensorLayout_t layout_in, std::vector<std::size_t>&& lens_in) : datatype(datatype_in), layout(layout_in), lens(std::move(lens_in))
+    {
+    }
+
+    TestTensorParams(miopenDataType_t datatype_in, std::vector<std::size_t>&& lens_in, std::vector<std::size_t>&& strides_in) : datatype(datatype_in), lens(std::move(lens_in)), strides(std::move(strides_in))
+    {
+    }
+
+    TestTensorParams(miopenDataType_t datatype_in, miopenTensorLayout_t layout_in, std::vector<std::size_t>&& lens_in, std::vector<std::size_t>&& strides_in) : datatype(datatype_in), layout(layout_in), lens(std::move(lens_in)), strides(std::move(strides_in))
+    {
+    }
+
+    miopen::TensorDescriptor GetTensorDescriptor() const
+    {
+        if(layout)
+        {
+            if(!strides.empty())
+                return {datatype, layout.value(), lens, strides};
+            else
+                return {datatype, layout.value(), lens};
+        }
+        else
+        {
+            if(!strides.empty())
+                return {datatype, lens, strides};
+            else
+                return {datatype, lens};
+        }
+    }
+
+    friend std::ostream& operator<<(std::ostream& os, const TestTensorParams& tp)
+    {
+        os << tp.datatype << ", ";
+        if(tp.layout)
+            os << tp.layout.value() << ", ";
+        else
+            os << "{}, ";
+        miopen::LogRange(os << "{", tp.lens, ",") << "}, ";
+        miopen::LogRange(os << "{", tp.strides, ",") << "}";
+        return os;
+    }
+
+private:
+    miopenDataType_t datatype;
+    std::optional<miopenTensorLayout_t> layout;
+    std::vector<std::size_t> lens;
+    std::vector<std::size_t> strides;
+};
+
 struct TestCasePossibleLayout
 {
-    miopen::TensorDescriptor td;
+    TestTensorParams tp;
     std::vector<std::string> actual_layouts;
 
     friend std::ostream& operator<<(std::ostream& os, const TestCasePossibleLayout& tc)
     {
         os << "(";
-        os << "(" << tc.td << "), ";
+        os << "(" << tc.tp << "), ";
         miopen::LogRange(os << "{", tc.actual_layouts, ",") << "}, ";
         os << ")";
         return os;
@@ -48,13 +103,13 @@ struct TestCasePossibleLayout
 
 struct TestCaseGetLayoutT
 {
-    miopen::TensorDescriptor td;
+    TestTensorParams tp;
     miopenTensorLayout_t actual_layout;
 
     friend std::ostream& operator<<(std::ostream& os, const TestCaseGetLayoutT& tc)
     {
         os << "(";
-        os << "(" << tc.td << "), ";
+        os << "(" << tc.tp << "), ";
         os << static_cast<int>(tc.actual_layout);
         os << ")";
         return os;
@@ -63,13 +118,13 @@ struct TestCaseGetLayoutT
 
 struct TestCaseGetLayoutEnum
 {
-    miopen::TensorDescriptor td;
+    TestTensorParams tp;
     std::optional<miopenTensorLayout_t> actual_layout;
 
     friend std::ostream& operator<<(std::ostream& os, const TestCaseGetLayoutEnum& tc)
     {
         os << "(";
-        os << "(" << tc.td << "), ";
+        os << "(" << tc.tp << "), ";
         if(tc.actual_layout)
             os << static_cast<int>(tc.actual_layout.value());
         else
@@ -81,13 +136,13 @@ struct TestCaseGetLayoutEnum
 
 struct TestCaseGetLayoutStr
 {
-    miopen::TensorDescriptor td;
+    TestTensorParams tp;
     std::string actual_layout;
 
     friend std::ostream& operator<<(std::ostream& os, const TestCaseGetLayoutStr& tc)
     {
         os << "(";
-        os << "(" << tc.td << "), ";
+        os << "(" << tc.tp << "), ";
         os << tc.actual_layout;
         os << ")";
         return os;
@@ -111,14 +166,14 @@ struct TestCaseLayoutEnumToStr
 
 struct TestCaseGetLayout
 {
-    miopen::TensorDescriptor td;
+    TestTensorParams tp;
     std::string labels;
     std::string actual_layout;
 
     friend std::ostream& operator<<(std::ostream& os, const TestCaseGetLayout& tc)
     {
         os << "(";
-        os << "(" << tc.td << "), ";
+        os << "(" << tc.tp << "), ";
         os << tc.labels << ", ";
         os << tc.actual_layout;
         os << ")";
@@ -198,10 +253,11 @@ public:
     void RunTest()
     {
         const auto p = GetParam();
+        const auto td = p.tp.GetTensorDescriptor();
 
         for(const auto& layout : this->GetAllLayouts())
         {
-            const auto is_possible_layout = p.td.IsPossibleLayout4D5D(layout);
+            const auto is_possible_layout = td.IsPossibleLayout4D5D(layout);
             const auto expected =
                 std::count(p.actual_layouts.cbegin(), p.actual_layouts.cend(), layout);
             ASSERT_EQ(is_possible_layout, expected) << "current layout: " << layout;
@@ -249,7 +305,8 @@ public:
     void RunTest()
     {
         const auto p = GetParam();
-        ASSERT_EQ(p.td.GetLayout_t(), p.actual_layout);
+        const auto td = p.tp.GetTensorDescriptor();
+        ASSERT_EQ(td.GetLayout_t(), p.actual_layout);
     }
 };
 
@@ -318,7 +375,8 @@ public:
     void RunTest()
     {
         const auto p = GetParam();
-        ASSERT_EQ(p.td.GetLayoutEnum(), p.actual_layout);
+        const auto td = p.tp.GetTensorDescriptor();
+        ASSERT_EQ(td.GetLayoutEnum(), p.actual_layout);
     }
 };
 
@@ -387,7 +445,8 @@ public:
     void RunTest()
     {
         const auto p = GetParam();
-        ASSERT_EQ(p.td.GetLayout_str(), p.actual_layout);
+        const auto td = p.tp.GetTensorDescriptor();
+        ASSERT_EQ(td.GetLayout_str(), p.actual_layout);
     }
 };
 
@@ -483,7 +542,8 @@ public:
     void RunTest()
     {
         const auto p = GetParam();
-        ASSERT_EQ(p.td.GetLayout(p.labels), p.actual_layout);
+        const auto td = p.tp.GetTensorDescriptor();
+        ASSERT_EQ(td.GetLayout(p.labels), p.actual_layout);
     }
 };
 
