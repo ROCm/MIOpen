@@ -48,7 +48,7 @@ TEST_P(GPU_UnitTestConvSolverBwd_FP16, GemmBwd1x1_stride2)
     this->RunTest(miopen::solver::conv::GemmBwd1x1_stride2{});
 };
 
-TEST_P(GPU_UnitTestConvSolverBwd_BF16, GemmBwd1x1_stride2)
+TEST_P(GPU_UnitTestConvSolverBwd_BFP16, GemmBwd1x1_stride2)
 {
     this->RunTest(miopen::solver::conv::GemmBwd1x1_stride2{});
 };
@@ -71,7 +71,7 @@ INSTANTIATE_TEST_SUITE_P(Smoke,
                                           testing::ValuesIn(GetConvTestCases(miopenHalf))));
 
 INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_UnitTestConvSolverBwd_BF16,
+                         GPU_UnitTestConvSolverBwd_BFP16,
                          testing::Combine(testing::Values(GetSupportedDevices()),
                                           testing::Values(miopenConvolutionAlgoGEMM),
                                           testing::ValuesIn(GetConvTestCases(miopenBFloat16))));

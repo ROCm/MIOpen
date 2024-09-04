@@ -264,7 +264,7 @@ TestStatus GetTensorDescriptor(miopenTensorDescriptor_t tensorDesc, const Tensor
 
 const auto get_tensor_descr_funcs = {Get4dTensorDescriptor, GetTensorDescriptor};
 
-class TestSetTensor : public ::testing::TestWithParam<TestConfig>
+class CPU_TestSetTensor_NONE : public ::testing::TestWithParam<TestConfig>
 {
 protected:
     static void GenerateValidConfigs(bool use_strides, std::vector<TestConfig>& configs)
@@ -520,14 +520,14 @@ public:
 
 } // namespace
 
-TEST_P(TestSetTensor, SetTensor) { RunTest(); }
+TEST_P(CPU_TestSetTensor_NONE, SetTensor) { RunTest(); }
 
-INSTANTIATE_TEST_SUITE_P(TensorApiSetTensor,
-                         TestSetTensor,
-                         testing::ValuesIn(TestSetTensor::GetValidConfigs()),
-                         TestSetTensor::GetNameSuffix);
+INSTANTIATE_TEST_SUITE_P(SmokeApiSet,
+                         CPU_TestSetTensor_NONE,
+                         testing::ValuesIn(CPU_TestSetTensor_NONE::GetValidConfigs()),
+                         CPU_TestSetTensor_NONE::GetNameSuffix);
 
-INSTANTIATE_TEST_SUITE_P(TensorApiSetWrongTensor,
-                         TestSetTensor,
-                         testing::ValuesIn(TestSetTensor::GetWrongConfigs()),
-                         TestSetTensor::GetNameSuffix);
+INSTANTIATE_TEST_SUITE_P(SmokeApiSetWrong,
+                         CPU_TestSetTensor_NONE,
+                         testing::ValuesIn(CPU_TestSetTensor_NONE::GetWrongConfigs()),
+                         CPU_TestSetTensor_NONE::GetNameSuffix);
