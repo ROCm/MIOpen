@@ -86,4 +86,20 @@ void RNNDescriptor::ModularBackward(Handle& handle,
     }
 }
 
+void RNNDescriptor::ModularBackwardWeights(Handle& handle,
+                                           const SeqTensorDescriptor& xDesc,
+                                           ConstData_t x,
+                                           const TensorDescriptor& hDesc,
+                                           ConstData_t hx,
+                                           const SeqTensorDescriptor& yDesc,
+                                           Data_t dw,
+                                           Data_t workSpace,
+                                           size_t workSpaceSize,
+                                           ConstData_t reserveSpace,
+                                           size_t /*reserveSpaceSize*/) const
+{
+    rnn_base::RNNModularSingleStreamBWWeights single_stream{*this, xDesc, yDesc, hDesc};
+    single_stream.Compute(handle, x, hx, dw, workSpace, workSpaceSize, reserveSpace, 0);
+}
+
 } // namespace miopen
