@@ -171,8 +171,8 @@ void batchNormSpatialHostInference(const tensor<T>& input,
 template <class T, class U>
 void batchNormPerActivHostInference(const tensor<T>& input,
                                     tensor<T>& output,
-                                    const tensor<U>& scale,
-                                    const tensor<U>& bias,
+                                    const tensor<T>& scale,
+                                    const tensor<T>& bias,
                                     double epsilon,
                                     const tensor<U>& estimatedMean,
                                     const tensor<U>& estimatedVariance)
@@ -278,15 +278,15 @@ void batchNormSpatialHostFwdTrain(const tensor<T>& input,
     });
 }
 
-template <class DataType, class XAndScaleDataType>
-void batchNormSpatialHostBwdTrain(const tensor<XAndScaleDataType>& x_input,
-                                  const tensor<DataType>& dy_input,
-                                  tensor<DataType>& dx_out,
-                                  const tensor<XAndScaleDataType>& scale,
-                                  tensor<DataType>& dscale,
-                                  tensor<DataType>& dbias,
-                                  const tensor<DataType>& savedMean,
-                                  const tensor<DataType>& savedInvVar)
+template <class T, class U=T>
+void batchNormSpatialHostBwdTrain(const tensor<T>& x_input,
+                                  const tensor<U>& dy_input,
+                                  tensor<T>& dx_out,
+                                  const tensor<T>& scale,
+                                  tensor<U>& dscale,
+                                  tensor<U>& dbias,
+                                  const tensor<U>& savedMean,
+                                  const tensor<U>& savedInvVar)
 {
 
     int height, width, n_batch, channels;
@@ -334,7 +334,7 @@ void batchNormSpatialHostBwdTrain(const tensor<XAndScaleDataType>& x_input,
                     double tmp1 = nhw * dy_input(bidx, cidx, row, column) - dbias(0, cidx, 0, 0);
                     double tmp2 = -xhat[xhat_index] * dscale(0, cidx, 0, 0);
                     double tmp3 = (scale(0, cidx, 0, 0) * invVar) / nhw;
-                    dx_out(bidx, cidx, row, column) = static_cast<DataType>(tmp3 * (tmp2 + tmp1));
+                    dx_out(bidx, cidx, row, column) = static_cast<T>(tmp3 * (tmp2 + tmp1));
                 } // end for(n_batchs)
             }     // for (column)
         }         // for (row)
@@ -347,11 +347,11 @@ void batchNormActivSpatialHostBwdTrain(miopenActivationMode_t activMode,
                                        double beta,
                                        double alpha,
                                        const tensor<T>& x_input,
-                                       const tensor<T>& dy_input,
+                                       const tensor<U>& dy_input,
                                        const tensor<T>& y_input,
                                        tensor<T>& dx_out,
-                                       const tensor<U>& scale,
-                                       const tensor<U>& bias,
+                                       const tensor<T>& scale,
+                                       const tensor<T>& bias,
                                        tensor<U>& dscale,
                                        tensor<U>& dbias,
                                        const tensor<U>& savedMean,
@@ -432,8 +432,8 @@ void batchNormActivSpatialHostBwdTrain(miopenActivationMode_t activMode,
 template <class T, class U>
 void batchNormPerActHostFwdTrain(const tensor<T>& input,
                                  tensor<T>& out,
-                                 const tensor<U>& scale,
-                                 const tensor<U>& bias,
+                                 const tensor<T>& scale,
+                                 const tensor<T>& bias,
                                  double epsilon,
                                  double expAvgFactor,
                                  tensor<U>& saveMean,

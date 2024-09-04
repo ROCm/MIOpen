@@ -33,12 +33,15 @@
 #include "tensor_driver.hpp"
 #include "timer.hpp"
 #include "util_driver.hpp"
+#include "rocrand_wrapper.hpp"
 
 #include "../test/verify.hpp"
+#include "../test/fusionHost.hpp"
 
 #include <miopen/handle.hpp>
 #include <miopen/miopen.h>
 #include <miopen/tensor.hpp>
+#include "miopen/batch_norm.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -60,9 +63,147 @@
 
 #define MIO_DRIVER_BN_REFERENCE_COMPUTE_3D_AS_2D 1 // Resolves issue #1974
 
+//========================
+
+
+template <typename Tgpu>
+class GpumemTensor
+{
+    std::unique_ptr<GPUMem> dev;
+    tensor<Tgpu> host;
+    bool is_gpualloc = false;
+
+public:
+    void SetGpuallocMode(bool v) { is_gpualloc = v; }
+    tensor<Tgpu>& GetTensor() { return host; }
+
+    void AllocOnHost(miopenTensorDescriptor_t t)
+    {
+        host = tensor<Tgpu>(miopen::deref(t));
+        if(is_gpualloc) // We do not need host data.
+        {
+            host.data.clear();
+            host.data.shrink_to_fit(); // To free host memory.
+        }
+    }
+    template <typename T>
+    void AllocOnHost(tensor<T> t)
+    {
+        AllocOnHost(&t.desc);
+    }
+
+    std::vector<Tgpu>& GetVector()
+    {
+        if(is_gpualloc)
+            MIOPEN_THROW("[MIOpenDriver] GpumemTensor::GetVector should not be called in "
+                         "'--gpualloc 1' mode");
+        return host.data;
+    }
+
+    Tgpu* GetVectorData() { return is_gpualloc ? nullptr : host.data.data(); }
+    std::size_t GetVectorSize() const { return is_gpualloc ? 0 : host.data.size(); }
+
+    void
+    InitHostData(const size_t sz,     //
+                 const bool do_write, // If set to false, then only generate random data. This is
+                                      // necessary to reproduce values in input buffers even if some
+                                      // directions are skipped. For example, inputs for Backward
+                                      // will be the same for both "-F 0" and "-F 2".
+                 std::function<Tgpu()> generator)
+    {
+        if(is_gpualloc)
+        {
+            /// In gpualloc mode, we do not care about reproducibility of results, because
+            /// validation is not used. Therefore, we do not have to always generate random value
+            /// (\ref move_rand)
+            return;
+        }
+
+        for(size_t i = 0; i < sz; ++i)
+        {
+            /// \anchor move_rand
+            /// Generate random value, even if buffer is unused. This provides the same
+            /// initialization of input buffers regardless of which kinds of
+            /// convolutions are currently selectedfor testing (see the "-F" option).
+            /// Verification cache would be broken otherwise.
+            auto val = generator();
+            if(do_write)
+                GetVector()[i] = val;
+        }
+    }
+
+    status_t AllocOnDevice(stream, context_t ctx, const size_t sz)
+    {
+        dev = std::make_unique<GPUMem>(ctx, sz, sizeof(Tgpu));
+        return STATUS_SUCCESS;
+    }
+
+    status_t AllocOnDeviceAndInit(stream q, context_t ctx, const size_t sz)
+    {
+        AllocOnDevice(q, ctx, sz);
+        if(is_gpualloc)
+        {
+            /// \anchor gpualloc_random_init
+            /// In gpualloc mode, we do not want to leave input buffers uninitialized, because
+            /// there could be NaNs and Infs, which may affect the performance (which we are
+            /// interested to evaluate in this mode). Initialization with all 0's is not the
+            /// best choice as well, because GPU HW may optimize out computations with 0's and
+            /// that could affect performance of kernels too. That is why we are using
+            /// rocrand to initialize input buffers.
+            ///
+            /// However we do not care about precision in gpualloc mode, because validation
+            /// is not used. Therefore, range (0,1] is fine.
+            return gpumemrand::gen_0_1(static_cast<Tgpu*>(GetDevicePtr()), sz);
+        }
+        return dev->ToGPU(q, GetVectorData());
+    }
+
+    template <typename T>
+    status_t AllocOnDevice(stream, context_t ctx, const size_t sz, std::vector<T>&)
+    {
+        static_assert(std::is_same<T, float>::value           //
+                          || std::is_same<T, int32_t>::value, //
+                      "Before enabling more types, check thoroughly.");
+        dev = std::make_unique<GPUMem>(ctx, sz, sizeof(T));
+        return STATUS_SUCCESS;
+    }
+
+    template <typename T>
+    status_t AllocOnDeviceAndInit(stream q, context_t ctx, const size_t sz, std::vector<T>& init)
+    {
+        AllocOnDevice(q, ctx, sz, init);
+        if(is_gpualloc)
+        {
+            /// \ref gpualloc_random_init
+            return gpumemrand::gen_0_1(static_cast<Tgpu*>(GetDevicePtr()), sz);
+        }
+        return dev->ToGPU(q, init.data());
+    }
+
+    status_t CopyFromDeviceToHost(stream q)
+    {
+        return is_gpualloc ? STATUS_SUCCESS : dev->FromGPU(q, GetVectorData());
+    }
+
+    template <typename T>
+    status_t CopyFromDeviceToHost(stream q, tensor<T>& t)
+    {
+        return is_gpualloc ? STATUS_SUCCESS : dev->FromGPU(q, t.data.data());
+    }
+
+    template <typename T>
+    status_t CopyFromDeviceToHost(stream q, std::vector<T>& v)
+    {
+        return is_gpualloc ? STATUS_SUCCESS : dev->FromGPU(q, v.data());
+    }
+
+    auto GetDevicePtr() -> auto { return dev->GetMem(); }
+};
+//========================
+
 //#define BN_RUNFOR_PROFILER
 
-template <typename Tgpu, typename Tref, typename Tmix = Tgpu>
+template <typename Tgpu, typename Acc, typename Tref, typename Tmix = Tgpu>
 class BatchNormDriver : public Driver
 {
 public:
@@ -70,9 +211,9 @@ public:
     {
         miopenCreateTensorDescriptor(&inputTensor);
         miopenCreateTensorDescriptor(&outputTensor);
-        miopenCreateTensorDescriptor(&biasScaleTensor);
-        miopenCreateTensorDescriptor(&dxOutputTensor);
-        miopenCreateTensorDescriptor(&dyInputTensor);
+        // miopenCreateTensorDescriptor(&biasScaleTensor);
+        // miopenCreateTensorDescriptor(&dxOutputTensor);
+        // miopenCreateTensorDescriptor(&dyInputTensor);
 
         data_type = (sizeof(Tgpu) == 4) ? miopenFloat : miopenHalf;
     }
@@ -100,9 +241,9 @@ public:
     void runGPUBwd(Tref epsilon, float alpha, float beta);
 
     void runCPUFwdInference(
-        Tref epsilon, int batch_sz, int channels, int height, int width, int depth = 0);
+        Tref epsilon);
     void runCPUFwdTrain(
-        Tref epsilon, Tref eAF, int batch_sz, int channels, int height, int width, int depth = 0);
+        Tref epsilon, Tref eAF);
 
     int VerifyBackward() override;
     int VerifyForward() override;
@@ -111,13 +252,15 @@ public:
     {
         miopenDestroyTensorDescriptor(outputTensor);
         miopenDestroyTensorDescriptor(inputTensor);
-        miopenDestroyTensorDescriptor(biasScaleTensor);
-        miopenDestroyTensorDescriptor(dxOutputTensor);
-        miopenDestroyTensorDescriptor(dyInputTensor);
+        // miopenDestroyTensorDescriptor(biasScaleTensor);
+        // miopenDestroyTensorDescriptor(dxOutputTensor);
+        // miopenDestroyTensorDescriptor(dyInputTensor);
     }
 
 private:
     miopenBatchNormMode_t bn_mode;
+    miopenActivationMode_t activ_mode = miopenActivationRELU;
+
     bool saveMeanVar;
     bool bsaveMeanVar;
     bool keepRunningMeanVar;
@@ -126,67 +269,84 @@ private:
     int forw;
     int back;
 
+    bool isFwdInfer = false;
+    bool isFwdTrain = false;
+    bool isBwd = false;
+
     InputFlags inflags;
     bool isDepthSpecified = false;
 
-    miopenTensorDescriptor_t inputTensor;
-    miopenTensorDescriptor_t biasScaleTensor;
+    miopenTensorDescriptor_t inputTensor; 
     miopenTensorDescriptor_t outputTensor;
+    // // forward
+    // miopenTensorDescriptor_t scaleTensor;
+    // miopenTensorDescriptor_t biasTensor;
 
-    // Backwards
-    miopenTensorDescriptor_t dyInputTensor;
-    miopenTensorDescriptor_t dxOutputTensor;
+    // // forward inference
+    // miopenTensorDescriptor_t estMean;
+    // miopenTensorDescriptor_t estVariance;
 
-    std::unique_ptr<GPUMem> dyin_dev; // this is the output of fwd
-    std::unique_ptr<GPUMem> in_dev;
-    std::unique_ptr<GPUMem> out_dev;
-    std::unique_ptr<GPUMem> scale_dev;
-    std::unique_ptr<GPUMem> bias_dev;
+    // // forward training
+    // miopenTensorDescriptor_t savedMean;
+    // miopenTensorDescriptor_t savedVariance;
+    // miopenTensorDescriptor_t runMean;
+    // miopenTensorDescriptor_t runVariance;
 
-    std::unique_ptr<GPUMem> dxout_dev;
-    std::unique_ptr<GPUMem> dscale_dev;
-    std::unique_ptr<GPUMem> dbias_dev;
+    // // backward
+    // miopenTensorDescriptor_t bnScale;
+    // miopenTensorDescriptor_t dy;
 
-    std::unique_ptr<GPUMem> runningMean_dev;
-    std::unique_ptr<GPUMem> runningVariance_dev;
-    std::unique_ptr<GPUMem> saveMean_dev;
-    std::unique_ptr<GPUMem> saveInvVariance_dev;
+    // miopenTensorDescriptor_t dScale;
+    // miopenTensorDescriptor_t dBias;
+    // miopenTensorDescriptor_t savedMean;
+    // miopenTensorDescriptor_t savedInvVar;
 
-    std::vector<Tgpu> dyin; // output of forward
-    std::vector<Tgpu> in;
-    std::vector<Tgpu> out;
-    std::vector<Tref> out_host;
-    std::vector<Tgpu> dxout;
-    std::vector<Tref> dxout_host;
+    // --------------
 
-    std::vector<Tmix> scale;
-    std::vector<Tref> scale_host;
-    std::vector<Tmix> bias;
-    std::vector<Tref> bias_host;
 
-    std::vector<Tmix> dscale;
-    std::vector<Tref> dscale_host;
-    std::vector<Tmix> dbias;
-    std::vector<Tref> dbias_host;
+    GpumemTensor<Tgpu> in; // done
+    GpumemTensor<Tgpu> out; // done
+    tensor<Tgpu> out_ref;
 
-    std::vector<Tmix> runningMean;
-    std::vector<Tmix> runningVariance;
-    std::vector<Tref> runningMean_host;
-    std::vector<Tref> runningVariance_host;
 
-    std::vector<Tmix> saveMean;
-    std::vector<Tmix> saveInvVariance;
+    // forward
+    GpumemTensor<Tgpu> scale; // done
+    GpumemTensor<Tgpu> bias; // done
 
-    std::vector<Tref> saveMean_host;
-    std::vector<Tref> saveInvVariance_host;
+    // forward inference
+    GpumemTensor<Acc> estMean;
+    GpumemTensor<Acc> estVariance;
 
-    int createSaveBuffers();
-    int createRunningBuffers();
+    // forward training
+    GpumemTensor<Acc> savedMean;
+    tensor<Acc> savedMean_ref;
+
+    GpumemTensor<Acc> savedVariance;
+    tensor<Acc> savedVariance_ref;
+
+    GpumemTensor<Acc> runMean;
+    tensor<Acc> runMean_ref;
+
+    GpumemTensor<Acc> runVariance;
+    tensor<Acc> runVariance_ref;
+
+
+    // backward
+    GpumemTensor<Tgpu> bnScale;
+    GpumemTensor<Acc> dy;
+
+    GpumemTensor<Acc> dScale;
+    tensor<Acc> dScale_ref;
+    GpumemTensor<Acc> dBias;
+    tensor<Acc> dBias_ref;
+
+    GpumemTensor<Acc> savedInvVar;
+    
     Tref maxval;
 };
 
-template <typename Tgpu, typename Tref, typename Tmix>
-int BatchNormDriver<Tgpu, Tref, Tmix>::ParseCmdLineArgs(int argc, char* argv[])
+template <typename Tgpu, typename Acc, typename Tref, typename Tmix>
+int BatchNormDriver<Tgpu, Acc, Tref, Tmix>::ParseCmdLineArgs(int argc, char* argv[])
 {
     inflags.Parse(argc, argv);
 
@@ -198,56 +358,56 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::ParseCmdLineArgs(int argc, char* argv[])
     return miopenStatusSuccess;
 }
 
-template <typename Tgpu, typename Tref, typename Tmix>
-int BatchNormDriver<Tgpu, Tref, Tmix>::GetandSetData()
+template <typename Tgpu, typename Acc, typename Tref, typename Tmix>
+int BatchNormDriver<Tgpu, Acc, Tref, Tmix>::GetandSetData()
 {
 
     SetBNParametersFromCmdLineArgs();
 
     std::vector<int> in_len = GetInputTensorLengthsFromCmdLine();
-
-    std::vector<int> sb_len;
-    if(bn_mode == miopenBNPerActivation)
+    
+    // change this to supoort NHWC too 
+    in.AllocOnHost(tensor<Tgpu>{miopenTensorNCHW, in_len});
+    out.AllocOnHost(tensor<Tgpu>{miopenTensorNCHW, in_len});
+    auto derivedBnDesc = miopen::TensorDescriptor{};
+    miopen::DeriveBNTensorDescriptor(derivedBnDesc,
+                                         in.GetTensor().desc,
+                                         bn_mode);
+    if(isFwdInfer || isFwdTrain)
     {
-        // 1xCxHxW | in_len.size = 4
-        sb_len.push_back(1);
-        sb_len.push_back(in_len[1]);
-        sb_len.push_back(in_len[2]);
-        sb_len.push_back(in_len[3]);
-
-        // 1xCxDxHxW | in_len.size = 5
-        if(in_len.size() == 5)
-        {
-            sb_len.push_back(in_len[4]);
-        }
+        scale.AllocOnHost(tensor<Tgpu>{miopenTensorNCHW, derivedBnDesc.GetLengths()});
+        bias.AllocOnHost(tensor<Tgpu>{miopenTensorNCHW, derivedBnDesc.GetLengths()});
     }
-    else if(bn_mode == miopenBNSpatial)
-    { // 1xCx1x1
-        sb_len.push_back(1);
-        sb_len.push_back(in_len[1]);
-        sb_len.push_back(1);
-        sb_len.push_back(1);
-
-        // 1xCx1x1x1
-        if(in_len.size() == 5)
-        {
-            sb_len.push_back(1);
-        }
+    if(isFwdInfer)
+    {
+        estMean.AllocOnHost(tensor<Tgpu>{miopenTensorNCHW, derivedBnDesc.GetLengths()});
+        estVariance.AllocOnHost(tensor<Tgpu>{miopenTensorNCHW, derivedBnDesc.GetLengths()});
     }
+    if(isFwdTrain && saveMeanVar)
+    {
+        savedMean.AllocOnHost(tensor<Tgpu>{miopenTensorNCHW, derivedBnDesc.GetLengths()});
+        savedVariance.AllocOnHost(tensor<Tgpu>{miopenTensorNCHW, derivedBnDesc.GetLengths()});
+    }
+    if(isFwdTrain && keepRunningMeanVar)
+    {
+        runMean.AllocOnHost(tensor<Tgpu>{miopenTensorNCHW, derivedBnDesc.GetLengths()});
+        runVariance.AllocOnHost(tensor<Tgpu>{miopenTensorNCHW, derivedBnDesc.GetLengths()});
+    }
+    if(isBwd)
+    {
+        bnScale.AllocOnHost(tensor<Tgpu>{miopenTensorNCHW, derivedBnDesc.GetLengths()});
+        dy.AllocOnHost(tensor<Tgpu>{miopenTensorNCHW, derivedBnDesc.GetLengths()});
 
-    SetTensorNd(inputTensor, in_len, data_type);
-    SetTensorNd(biasScaleTensor, sb_len, ((sizeof(Tmix) == 4) ? miopenFloat : miopenHalf));
-    SetTensorNd(outputTensor, in_len, data_type);
-
-    // backwards
-    SetTensorNd(dyInputTensor, in_len, data_type);
-    SetTensorNd(dxOutputTensor, in_len, data_type);
-
+        dScale.AllocOnHost(tensor<Tgpu>{miopenTensorNCHW, derivedBnDesc.GetLengths()});
+        dBias.AllocOnHost(tensor<Tgpu>{miopenTensorNCHW, derivedBnDesc.GetLengths()});
+        savedMean.AllocOnHost(tensor<Tgpu>{miopenTensorNCHW, derivedBnDesc.GetLengths()});
+        savedInvVar.AllocOnHost(tensor<Tgpu>{miopenTensorNCHW, derivedBnDesc.GetLengths()});
+    }
     return miopenStatusSuccess;
 }
 
-template <typename Tgpu, typename Tref, typename Tmix>
-int BatchNormDriver<Tgpu, Tref, Tmix>::AddCmdLineArgs()
+template <typename Tgpu, typename Acc, typename Tref, typename Tmix>
+int BatchNormDriver<Tgpu, Acc, Tref, Tmix>::AddCmdLineArgs()
 {
     inflags.AddInputFlag(
         "forw",
@@ -294,8 +454,8 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::AddCmdLineArgs()
     return miopenStatusSuccess;
 }
 
-template <typename Tgpu, typename Tref, typename Tmix>
-std::vector<int> BatchNormDriver<Tgpu, Tref, Tmix>::GetInputTensorLengthsFromCmdLine()
+template <typename Tgpu, typename Acc, typename Tref, typename Tmix>
+std::vector<int> BatchNormDriver<Tgpu, Acc, Tref, Tmix>::GetInputTensorLengthsFromCmdLine()
 {
     int in_n = inflags.GetValueInt("batchsize");
     int in_c = inflags.GetValueInt("in_channels");
@@ -317,8 +477,8 @@ std::vector<int> BatchNormDriver<Tgpu, Tref, Tmix>::GetInputTensorLengthsFromCmd
     }
 }
 
-template <typename Tgpu, typename Tref, typename Tmix>
-int BatchNormDriver<Tgpu, Tref, Tmix>::SetBNParametersFromCmdLineArgs()
+template <typename Tgpu, typename Acc, typename Tref, typename Tmix>
+int BatchNormDriver<Tgpu, Acc, Tref, Tmix>::SetBNParametersFromCmdLineArgs()
 {
 
     //    	double bnAlpha = inflags.GetValueDouble("alpha");
@@ -395,242 +555,61 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::SetBNParametersFromCmdLineArgs()
         forw = 1;
     }
 
-    return miopenStatusSuccess;
-}
-
-template <typename Tgpu, typename Tref, typename Tmix>
-int BatchNormDriver<Tgpu, Tref, Tmix>::createSaveBuffers()
-{
-
-    status_t status = STATUS_SUCCESS;
-    DEFINE_CONTEXT(ctx);
-#if MIOPEN_BACKEND_OPENCL
-    clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
-#endif
-
-    size_t sb_sz = GetTensorSize(biasScaleTensor);
-
-    if(saveMeanVar)
+    if(forw == 1)
     {
-        // GPU allocation
-        saveMean_dev        = std::unique_ptr<GPUMem>(new GPUMem(ctx, sb_sz, sizeof(Tmix)));
-        saveInvVariance_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, sb_sz, sizeof(Tmix)));
-
-        if(back == 1)
-        {
-            // GPU host allocation
-            saveMean        = std::vector<Tmix>(sb_sz, static_cast<Tmix>(0));
-            saveInvVariance = std::vector<Tmix>(sb_sz, static_cast<Tmix>(0));
-
-            // CPU allocation
-            saveMean_host        = std::vector<Tref>(sb_sz, static_cast<Tref>(0));
-            saveInvVariance_host = std::vector<Tref>(sb_sz, static_cast<Tref>(0));
-
-            // Populate
-            for(int i = 0; i < sb_sz; i++)
-            {
-                saveMean[i]             = prng::gen_canonical<Tmix>();
-                saveMean_host[i]        = static_cast<Tref>(saveMean[i]);
-                saveInvVariance[i]      = prng::gen_canonical<Tmix>();
-                saveInvVariance_host[i] = static_cast<Tref>(saveInvVariance[i]);
-            }
-        }
-        else
-        {
-            // GPU host allocation
-            saveMean        = std::vector<Tmix>(sb_sz, static_cast<Tmix>(0));
-            saveInvVariance = std::vector<Tmix>(sb_sz, static_cast<Tmix>(0));
-
-            // CPU allocation
-            saveMean_host        = std::vector<Tref>(sb_sz, static_cast<Tref>(0));
-            saveInvVariance_host = std::vector<Tref>(sb_sz, static_cast<Tref>(0));
-        }
-        // GPU data transfer
-        status |= saveMean_dev->ToGPU(q, saveMean.data());
-        status |= saveInvVariance_dev->ToGPU(q, saveInvVariance.data());
+        isFwdInfer = true;
     }
-    else
+    else if(forw == 2)
     {
-        saveMean_dev        = nullptr;
-        saveInvVariance_dev = nullptr;
+        isFwdTrain = true;
     }
-
-    if(status != STATUS_SUCCESS)
-        printf("Error copying data to GPU\n");
+    else{
+        isBwd = true;
+    }
 
     return miopenStatusSuccess;
 }
 
-template <typename Tgpu, typename Tref, typename Tmix>
-int BatchNormDriver<Tgpu, Tref, Tmix>::createRunningBuffers()
+
+template <typename Tgpu, typename Acc, typename Tref, typename Tmix>
+int BatchNormDriver<Tgpu, Acc, Tref, Tmix>::AllocateBuffersAndCopy()
 {
     status_t status = STATUS_SUCCESS;
     DEFINE_CONTEXT(ctx);
 #if MIOPEN_BACKEND_OPENCL
     clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
 #endif
-    size_t sb_sz = GetTensorSize(biasScaleTensor);
-
-    if(keepRunningMeanVar)
+    status |= in.AllocOnDeviceAndInit(q, ctx, in.GetTensor().desc.GetElementSpace());
+    status |= out.AllocOnDeviceAndInit(q, ctx, out.GetTensor().desc.GetElementSpace());
+    if(isFwdInfer || isFwdTrain)
     {
-        // GPU allocation
-        runningMean_dev     = std::unique_ptr<GPUMem>(new GPUMem(ctx, sb_sz, sizeof(Tmix)));
-        runningVariance_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, sb_sz, sizeof(Tmix)));
-
-        if(forw == 2)
-        {
-            // GPU host allocation
-            runningMean     = std::vector<Tmix>(sb_sz, static_cast<Tmix>(0));
-            runningVariance = std::vector<Tmix>(sb_sz, static_cast<Tmix>(0));
-
-            // CPU allocation
-            runningMean_host     = std::vector<Tref>(sb_sz, static_cast<Tref>(0));
-            runningVariance_host = std::vector<Tref>(sb_sz, static_cast<Tref>(0));
-
-            // Populate
-            for(int i = 0; i < sb_sz; i++)
-            {
-                runningMean[i]          = prng::gen_canonical<Tmix>();
-                runningMean_host[i]     = static_cast<Tref>(runningMean[i]);
-                runningVariance[i]      = prng::gen_canonical<Tmix>();
-                runningVariance_host[i] = static_cast<Tref>(runningVariance[i]);
-            }
-        }
-        else
-        {
-            // GPU host allocation
-            runningMean     = std::vector<Tmix>(sb_sz, static_cast<Tmix>(0));
-            runningVariance = std::vector<Tmix>(sb_sz, static_cast<Tmix>(0));
-
-            // CPU allocation
-            runningMean_host     = std::vector<Tref>(sb_sz, static_cast<Tref>(0));
-            runningVariance_host = std::vector<Tref>(sb_sz, static_cast<Tref>(0));
-        }
-
-        // GPU data transfer
-        status |= runningMean_dev->ToGPU(q, runningMean.data());
-        status |= runningVariance_dev->ToGPU(q, runningVariance.data());
+        status |= scale.AllocOnDeviceAndInit(q, ctx, scale.GetTensor().desc.GetElementSpace());
+        status |= bias.AllocOnDeviceAndInit(q, ctx, bias.GetTensor().desc.GetElementSpace());
     }
-    else
+    if(isFwdInfer)
     {
-        runningMean_dev     = nullptr;
-        runningVariance_dev = nullptr;
+        status |= estMean.AllocOnDeviceAndInit(q, ctx, estMean.GetTensor().desc.GetElementSpace());
+        status |= estVariance.AllocOnDeviceAndInit(q, ctx, estVariance.GetTensor().desc.GetElementSpace());
     }
-    if(status != STATUS_SUCCESS)
-        printf("Error copying data to GPU\n");
-
-    return miopenStatusSuccess;
-}
-
-template <typename Tgpu, typename Tref, typename Tmix>
-int BatchNormDriver<Tgpu, Tref, Tmix>::AllocateBuffersAndCopy()
-{
-    status_t status = STATUS_SUCCESS;
-    DEFINE_CONTEXT(ctx);
-#if MIOPEN_BACKEND_OPENCL
-    clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
-#endif
-
-    size_t in_sz = GetTensorSize(inputTensor);
-    size_t sb_sz = GetTensorSize(biasScaleTensor);
-
-    if(forw)
+    if(isFwdTrain && saveMeanVar)
     {
-
-        size_t out_sz = GetTensorSize(outputTensor);
-
-        // GPU allocation
-        in_dev    = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(Tgpu)));
-        scale_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, sb_sz, sizeof(Tmix)));
-        bias_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, sb_sz, sizeof(Tmix)));
-        out_dev   = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(Tgpu)));
-
-        // GPU host allocation
-        in    = std::vector<Tgpu>(in_sz, static_cast<Tgpu>(0));
-        out   = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
-        scale = std::vector<Tmix>(sb_sz, static_cast<Tmix>(0));
-        bias  = std::vector<Tmix>(sb_sz, static_cast<Tmix>(0));
-
-        // CPU allocation
-        out_host   = std::vector<Tref>(out_sz, static_cast<Tref>(0));
-        scale_host = std::vector<Tref>(sb_sz, static_cast<Tref>(0));
-        bias_host  = std::vector<Tref>(sb_sz, static_cast<Tref>(0));
-
-        // Data initialization
-        for(int i = 0; i < in_sz; i++)
-        {
-            in[i] = prng::gen_canonical<Tgpu>();
-        }
-        status |= in_dev->ToGPU(q, in.data());
-
-        // Using random beta and gamma
-        for(int i = 0; i < sb_sz; i++)
-        {
-            scale[i]      = prng::gen_canonical<Tmix>();
-            scale_host[i] = static_cast<Tref>(scale[i]);
-            bias[i]       = prng::gen_canonical<Tmix>();
-            bias_host[i]  = static_cast<Tref>(bias[i]);
-        }
-        status |= scale_dev->ToGPU(q, scale.data());
-        status |= bias_dev->ToGPU(q, bias.data());
-        status |= out_dev->ToGPU(q, out.data());
-
-        if(forw == 1)
-        { // training
-            status |= createRunningBuffers();
-            status |= createSaveBuffers();
-        }
-        else if(forw == 2)
-        { // inference
-            status |= createRunningBuffers();
-        }
-    } // end forward
-
-    if(back == 1)
+        status |= savedMean.AllocOnDeviceAndInit(q, ctx, savedMean.GetTensor().desc.GetElementSpace());
+        status |= savedVariance.AllocOnDeviceAndInit(q, ctx, savedVariance.GetTensor().desc.GetElementSpace());
+    }
+    if(isFwdTrain && keepRunningMeanVar)
     {
+        status |= runMean.AllocOnDeviceAndInit(q, ctx, runMean.GetTensor().desc.GetElementSpace());
+        status |= runVariance.AllocOnDeviceAndInit(q, ctx, runVariance.GetTensor().desc.GetElementSpace());
+    }
+    if(isBwd)
+    {
+        status |= bnScale.AllocOnDeviceAndInit(q, ctx, bnScale.GetTensor().desc.GetElementSpace());
+        status |= dy.AllocOnDeviceAndInit(q, ctx, dy.GetTensor().desc.GetElementSpace());
 
-        size_t out_sz = GetTensorSize(dxOutputTensor);
-
-        // GPU allocation
-        in_dev     = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(Tgpu)));
-        dyin_dev   = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(Tgpu)));
-        dxout_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(Tgpu)));
-        dscale_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, sb_sz, sizeof(Tmix)));
-        dbias_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, sb_sz, sizeof(Tmix)));
-        scale_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, sb_sz, sizeof(Tmix)));
-
-        // GPU host allocation
-        in     = std::vector<Tgpu>(in_sz, static_cast<Tgpu>(0));
-        dyin   = std::vector<Tgpu>(in_sz, static_cast<Tgpu>(0));
-        dxout  = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
-        dscale = std::vector<Tmix>(sb_sz, static_cast<Tmix>(0));
-        dbias  = std::vector<Tmix>(sb_sz, static_cast<Tmix>(0));
-        scale  = std::vector<Tmix>(sb_sz, static_cast<Tmix>(0));
-
-        // CPU allocation
-        dxout_host  = std::vector<Tref>(out_sz, static_cast<Tref>(0));
-        dscale_host = std::vector<Tref>(sb_sz, static_cast<Tref>(0));
-        dbias_host  = std::vector<Tref>(sb_sz, static_cast<Tref>(0));
-
-        // Populate
-        for(int i = 0; i < sb_sz; i++)
-        {
-            scale[i] = prng::gen_canonical<Tmix>();
-        }
-        status |= scale_dev->ToGPU(q, scale.data());
-        status |= dscale_dev->ToGPU(q, dscale.data());
-        status |= dbias_dev->ToGPU(q, dbias.data());
-
-        for(int i = 0; i < in_sz; i++)
-        {
-            dyin[i] = prng::gen_canonical<Tgpu>();
-            in[i]   = prng::gen_canonical<Tgpu>();
-        }
-        status |= dyin_dev->ToGPU(q, dyin.data());
-        status |= in_dev->ToGPU(q, in.data());
-        status |= dxout_dev->ToGPU(q, dxout.data());
-
-        status |= createSaveBuffers();
+        status |= dScale.AllocOnDeviceAndInit(q, ctx, dScale.GetTensor().desc.GetElementSpace());
+        status |= dBias.AllocOnDeviceAndInit(q, ctx, dBias.GetTensor().desc.GetElementSpace());
+        status |= savedMean.AllocOnDeviceAndInit(q, ctx, savedMean.GetTensor().desc.GetElementSpace());
+        status |= savedInvVar.AllocOnDeviceAndInit(q, ctx, savedInvVar.GetTensor().desc.GetElementSpace());
     }
 
     if(status != STATUS_SUCCESS)
@@ -639,8 +618,8 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::AllocateBuffersAndCopy()
     return miopenStatusSuccess;
 }
 
-template <typename Tgpu, typename Tref, typename Tmix>
-void BatchNormDriver<Tgpu, Tref, Tmix>::runGPUFwdInference(Tref epsilon, float alpha, float beta)
+template <typename Tgpu, typename Acc, typename Tref, typename Tmix>
+void BatchNormDriver<Tgpu, Acc, Tref, Tmix>::runGPUFwdInference(Tref epsilon, float alpha, float beta)
 {
 
     if(keepRunningMeanVar)
@@ -649,15 +628,15 @@ void BatchNormDriver<Tgpu, Tref, Tmix>::runGPUFwdInference(Tref epsilon, float a
                                                  bn_mode,
                                                  &alpha,
                                                  &beta,
-                                                 inputTensor,
-                                                 in_dev->GetMem(),
-                                                 outputTensor,
-                                                 out_dev->GetMem(),
-                                                 biasScaleTensor,
-                                                 scale_dev->GetMem(),
-                                                 bias_dev->GetMem(),
-                                                 runningMean_dev->GetMem(),
-                                                 runningVariance_dev->GetMem(),
+                                                 &in.GetTensor().desc,
+                                                 in.GetDevicePtr(),
+                                                 &out.GetTensor().desc,
+                                                 out.GetDevicePtr(),
+                                                 &scale.GetTensor().desc,
+                                                 scale.GetDevicePtr(),
+                                                 bias.GetDevicePtr(),
+                                                 estMean.GetDevicePtr(),
+                                                 estVariance.GetDevicePtr(),
                                                  epsilon);
     }
     else
@@ -666,13 +645,13 @@ void BatchNormDriver<Tgpu, Tref, Tmix>::runGPUFwdInference(Tref epsilon, float a
                                                  bn_mode,
                                                  &alpha,
                                                  &beta,
-                                                 inputTensor,
-                                                 in_dev->GetMem(),
-                                                 outputTensor,
-                                                 out_dev->GetMem(),
-                                                 biasScaleTensor,
-                                                 scale_dev->GetMem(),
-                                                 bias_dev->GetMem(),
+                                                 &in.GetTensor().desc,
+                                                 in.GetDevicePtr(),
+                                                 &out.GetTensor().desc,
+                                                 out.GetDevicePtr(),
+                                                 &scale.GetTensor().desc,
+                                                 scale.GetDevicePtr(),
+                                                 bias.GetDevicePtr(),
                                                  nullptr,
                                                  nullptr,
                                                  epsilon);
@@ -681,8 +660,8 @@ void BatchNormDriver<Tgpu, Tref, Tmix>::runGPUFwdInference(Tref epsilon, float a
     return;
 }
 
-template <typename Tgpu, typename Tref, typename Tmix>
-void BatchNormDriver<Tgpu, Tref, Tmix>::runGPUFwdTrain(Tref epsilon,
+template <typename Tgpu, typename Acc, typename Tref, typename Tmix>
+void BatchNormDriver<Tgpu, Acc, Tref, Tmix>::runGPUFwdTrain(Tref epsilon,
                                                        Tref eAF,
                                                        float alpha,
                                                        float beta)
@@ -690,107 +669,107 @@ void BatchNormDriver<Tgpu, Tref, Tmix>::runGPUFwdTrain(Tref epsilon,
     if(saveMeanVar && keepRunningMeanVar)
     {
         miopenBatchNormalizationForwardTraining(GetHandle(),
-                                                bn_mode,
-                                                &alpha,
-                                                &beta,
-                                                inputTensor,
-                                                in_dev->GetMem(),
-                                                outputTensor,
-                                                out_dev->GetMem(),
-                                                biasScaleTensor,
-                                                scale_dev->GetMem(),
-                                                bias_dev->GetMem(),
-                                                eAF,
-                                                runningMean_dev->GetMem(),
-                                                runningVariance_dev->GetMem(),
-                                                epsilon,
-                                                saveMean_dev->GetMem(),
-                                                saveInvVariance_dev->GetMem());
+                                                 bn_mode,
+                                                 &alpha,
+                                                 &beta,
+                                                 &in.GetTensor().desc,
+                                                 in.GetDevicePtr(),
+                                                 &out.GetTensor().desc,
+                                                 out.GetDevicePtr(),
+                                                 &scale.GetTensor().desc,
+                                                 scale.GetDevicePtr(),
+                                                 bias.GetDevicePtr(),
+                                                 eAF,
+                                                 runMean.GetDevicePtr(),
+                                                 runVariance.GetDevicePtr(),
+                                                 epsilon,
+                                                 savedMean.GetDevicePtr(),
+                                                 savedVariance.GetDevicePtr());
     }
     else if(saveMeanVar)
     {
         miopenBatchNormalizationForwardTraining(GetHandle(),
-                                                bn_mode,
-                                                &alpha,
-                                                &beta,
-                                                inputTensor,
-                                                in_dev->GetMem(),
-                                                outputTensor,
-                                                out_dev->GetMem(),
-                                                biasScaleTensor,
-                                                scale_dev->GetMem(),
-                                                bias_dev->GetMem(),
-                                                eAF,
-                                                nullptr,
-                                                nullptr,
-                                                epsilon,
-                                                saveMean_dev->GetMem(),
-                                                saveInvVariance_dev->GetMem());
+                                                 bn_mode,
+                                                 &alpha,
+                                                 &beta,
+                                                 &in.GetTensor().desc,
+                                                 in.GetDevicePtr(),
+                                                 &out.GetTensor().desc,
+                                                 out.GetDevicePtr(),
+                                                 &scale.GetTensor().desc,
+                                                 scale.GetDevicePtr(),
+                                                 bias.GetDevicePtr(),
+                                                 eAF,
+                                                 nullptr,
+                                                 nullptr,
+                                                 epsilon,
+                                                 savedMean.GetDevicePtr(),
+                                                 savedVariance.GetDevicePtr());
     }
     else if(keepRunningMeanVar)
     {
         miopenBatchNormalizationForwardTraining(GetHandle(),
-                                                bn_mode,
-                                                &alpha,
-                                                &beta,
-                                                inputTensor,
-                                                in_dev->GetMem(),
-                                                outputTensor,
-                                                out_dev->GetMem(),
-                                                biasScaleTensor,
-                                                scale_dev->GetMem(),
-                                                bias_dev->GetMem(),
-                                                eAF,
-                                                runningMean_dev->GetMem(),
-                                                runningVariance_dev->GetMem(),
-                                                epsilon,
-                                                nullptr,
-                                                nullptr);
+                                                 bn_mode,
+                                                 &alpha,
+                                                 &beta,
+                                                 &in.GetTensor().desc,
+                                                 in.GetDevicePtr(),
+                                                 &out.GetTensor().desc,
+                                                 out.GetDevicePtr(),
+                                                 &scale.GetTensor().desc,
+                                                 scale.GetDevicePtr(),
+                                                 bias.GetDevicePtr(),
+                                                 eAF,
+                                                 runMean.GetDevicePtr(),
+                                                 runVariance.GetDevicePtr(),
+                                                 epsilon,
+                                                 nullptr,
+                                                 nullptr);
     }
     else
     {
         miopenBatchNormalizationForwardTraining(GetHandle(),
-                                                bn_mode,
-                                                &alpha,
-                                                &beta,
-                                                inputTensor,
-                                                in_dev->GetMem(),
-                                                outputTensor,
-                                                out_dev->GetMem(),
-                                                biasScaleTensor,
-                                                scale_dev->GetMem(),
-                                                bias_dev->GetMem(),
-                                                eAF,
-                                                nullptr,
-                                                nullptr,
-                                                epsilon,
-                                                nullptr,
-                                                nullptr);
+                                                 bn_mode,
+                                                 &alpha,
+                                                 &beta,
+                                                 &in.GetTensor().desc,
+                                                 in.GetDevicePtr(),
+                                                 &out.GetTensor().desc,
+                                                 out.GetDevicePtr(),
+                                                 &scale.GetTensor().desc,
+                                                 scale.GetDevicePtr(),
+                                                 bias.GetDevicePtr(),
+                                                 eAF,
+                                                 nullptr,
+                                                 nullptr,
+                                                 epsilon,
+                                                 nullptr,
+                                                 nullptr);
     }
 
 #ifdef BN_RUNFOR_PROFILER
     miopenBatchNormalizationForwardTraining(GetHandle(),
-                                            bn_mode,
-                                            &alpha,
-                                            &beta,
-                                            inputTensor,
-                                            in_dev->GetMem(),
-                                            outputTensor,
-                                            out_dev->GetMem(),
-                                            biasScaleTensor,
-                                            scale_dev->GetMem(),
-                                            bias_dev->GetMem(),
-                                            eAF,
-                                            nullptr,
-                                            nullptr,
-                                            epsilon,
-                                            nullptr,
-                                            nullptr);
+                                                 bn_mode,
+                                                 &alpha,
+                                                 &beta,
+                                                 &in.GetTensor().desc,
+                                                 in.GetDevicePtr(),
+                                                 &out.GetTensor().desc,
+                                                 out.GetDevicePtr(),
+                                                 &scale.GetTensor().desc,
+                                                 scale.GetDevicePtr(),
+                                                 bias.GetDevicePtr(),
+                                                 eAF,
+                                                 nullptr,
+                                                 nullptr,
+                                                 epsilon,
+                                                 nullptr,
+                                                 nullptr);
 #endif
 }
 
-template <typename Tgpu, typename Tref, typename Tmix>
-int BatchNormDriver<Tgpu, Tref, Tmix>::RunForwardGPU()
+template <typename Tgpu, typename Acc, typename Tref, typename Tmix>
+int BatchNormDriver<Tgpu, Acc, Tref, Tmix>::RunForwardGPU()
 {
 
     float alpha = static_cast<float>(1), beta = static_cast<float>(0);
@@ -889,42 +868,33 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::RunForwardGPU()
     return miopenStatusSuccess;
 }
 
-template <typename Tgpu, typename Tref, typename Tmix>
-void BatchNormDriver<Tgpu, Tref, Tmix>::runCPUFwdInference(
-    Tref epsilon, int batch_sz, int channels, int height, int width, int depth)
+template <typename Tgpu, typename Acc, typename Tref, typename Tmix>
+void BatchNormDriver<Tgpu, Acc, Tref, Tmix>::runCPUFwdInference(
+    Tref epsilon)
 {
 
     if(bn_mode == miopenBNPerActivation)
     { // 1xCxHxW
-        miopenBNFwdInferPerActivationRunHost<Tgpu, Tref>(/* alpha, beta, */ batch_sz,
-                                                         channels,
-                                                         (isDepthSpecified ? depth : 1),
-                                                         height,
-                                                         width,
-                                                         in.data(),
-                                                         out_host.data(),
-                                                         scale_host.data(),
-                                                         bias_host.data(),
-                                                         epsilon,
-                                                         keepRunningMeanVar,
-                                                         runningMean_host.data(),
-                                                         runningVariance_host.data());
+        // handle 3d case
+        batchNormPerActivHostInference(in.GetTensor(),
+                                      out_ref,
+                                      scale.GetTensor(),
+                                      bias.GetTensor(),
+                                      epsilon,
+                                      estMean.GetTensor(),
+                                      estVariance.GetTensor());
     }
     else if(bn_mode == miopenBNSpatial)
     { // 1xCx1x1
-        miopenBNFwdInferSpatialRunHost<Tgpu, Tref>(/* alpha, beta, */ batch_sz,
-                                                   channels,
-                                                   (isDepthSpecified ? depth : 1),
-                                                   height,
-                                                   width,
-                                                   in.data(),
-                                                   out_host.data(),
-                                                   scale_host.data(),
-                                                   bias_host.data(),
-                                                   epsilon,
-                                                   keepRunningMeanVar,
-                                                   runningMean_host.data(),
-                                                   runningVariance_host.data());
+        batchNormSpatialHostInference(in.GetTensor(),
+                                      out_ref,
+                                      scale.GetTensor(),
+                                      bias.GetTensor(),
+                                      epsilon,
+                                      estMean.GetTensor(),
+                                      estVariance.GetTensor()
+                                      );
+
     }
     else
     {
@@ -935,60 +905,36 @@ void BatchNormDriver<Tgpu, Tref, Tmix>::runCPUFwdInference(
     return;
 }
 
-template <typename Tgpu, typename Tref, typename Tmix>
-void BatchNormDriver<Tgpu, Tref, Tmix>::runCPUFwdTrain(
-    Tref epsilon, Tref eAF, int batch_sz, int channels, int height, int width, int depth)
+template <typename Tgpu, typename Acc, typename Tref, typename Tmix>
+void BatchNormDriver<Tgpu, Acc, Tref, Tmix>::runCPUFwdTrain(
+    Tref epsilon, Tref eAF)
 {
 
     if(bn_mode == miopenBNPerActivation)
     { // 1xCxHxW
-        miopenBNFwdTrainPerActivationRunHost<Tgpu, Tref>(/* alpha, beta, */ batch_sz,
-                                                         channels,
-#if MIO_DRIVER_BN_REFERENCE_COMPUTE_3D_AS_2D
-                                                         1,
-                                                         height * (isDepthSpecified ? depth : 1),
-#else
-                                                         (isDepthSpecified ? depth : 1),
-                                                         height,
-#endif
-                                                         width,
-                                                         in.data(),
-                                                         out_host.data(),
-                                                         scale_host.data(),
-                                                         bias_host.data(),
-                                                         epsilon,
-                                                         saveMeanVar,
-                                                         keepRunningMeanVar,
-                                                         saveMean_host.data(),
-                                                         saveInvVariance_host.data(),
-                                                         runningMean_host.data(),
-                                                         runningVariance_host.data(),
-                                                         eAF);
+        batchNormPerActHostFwdTrain(in.GetTensor(),
+                                 out_ref,
+                                 scale.GetTensor(),
+                                 bias.GetTensor(),
+                                 static_cast<double>(epsilon),
+                                 static_cast<double>(eAF),
+                                 savedMean_ref,
+                                 savedVariance_ref,
+                                 runMean_ref,
+                                 runVariance_ref);
     }
     else if(bn_mode == miopenBNSpatial)
     { // 1xCx1x1
-        miopenBNFwdTrainSpatialRunHost<Tgpu, Tref>(/* alpha, beta, */ batch_sz,
-                                                   channels,
-#if MIO_DRIVER_BN_REFERENCE_COMPUTE_3D_AS_2D
-                                                   1,
-                                                   height * (isDepthSpecified ? depth : 1),
-#else
-                                                   (isDepthSpecified ? depth : 1),
-                                                   height,
-#endif
-                                                   width,
-                                                   in.data(),
-                                                   out_host.data(),
-                                                   scale_host.data(),
-                                                   bias_host.data(),
-                                                   epsilon,
-                                                   saveMeanVar,
-                                                   keepRunningMeanVar,
-                                                   saveMean_host.data(),
-                                                   saveInvVariance_host.data(),
-                                                   runningMean_host.data(),
-                                                   runningVariance_host.data(),
-                                                   eAF);
+        batchNormSpatialHostFwdTrain(in.GetTensor(),
+                                 out_ref,
+                                 scale.GetTensor(),
+                                 bias.GetTensor(),
+                                 static_cast<double>(epsilon),
+                                 static_cast<double>(eAF),
+                                 savedMean_ref,
+                                 savedVariance_ref,
+                                 runMean_ref,
+                                 runVariance_ref);
     }
     else
     {
@@ -998,22 +944,9 @@ void BatchNormDriver<Tgpu, Tref, Tmix>::runCPUFwdTrain(
     }
 }
 
-template <typename Tgpu, typename Tref, typename Tmix>
-int BatchNormDriver<Tgpu, Tref, Tmix>::RunForwardCPU()
+template <typename Tgpu, typename Acc, typename Tref, typename Tmix>
+int BatchNormDriver<Tgpu, Acc, Tref, Tmix>::RunForwardCPU()
 {
-    int nIn = 0, cIn = 0, dIn = 0, hIn = 0, wIn = 0;
-
-    if(isDepthSpecified)
-        miopenGet5dTensorDescriptorLengths(inputTensor, &nIn, &cIn, &dIn, &hIn, &wIn);
-    else
-        miopenGet4dTensorDescriptorLengths(inputTensor, &nIn, &cIn, &hIn, &wIn);
-
-    int batch_sz = nIn;
-    int channels = cIn;
-    int height   = hIn;
-    int width    = wIn;
-    int depth    = dIn;
-
     //	T alpha = 0., beta  = 0.;
     Tref epsilon = static_cast<Tref>(EPSILON);
     Tref eAF     = static_cast<Tref>(1.0);
@@ -1024,19 +957,19 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::RunForwardCPU()
         {
             eAF = static_cast<Tref>(1.0) / (static_cast<Tref>(i) + static_cast<Tref>(1.0));
             runCPUFwdTrain(
-                epsilon, eAF, /* alpha, beta,*/ batch_sz, channels, height, width, depth);
+                epsilon, eAF /* alpha, beta,*/);
         }
     }
     else if(forw == 2)
     { // inference only
-        runCPUFwdInference(epsilon, /* alpha, beta,*/ batch_sz, channels, height, width, depth);
+        runCPUFwdInference(epsilon);
     }
 
     return miopenStatusSuccess;
 }
 
-template <typename Tgpu, typename Tref, typename Tmix>
-int BatchNormDriver<Tgpu, Tref, Tmix>::RunBackwardGPU()
+template <typename Tgpu, typename Acc, typename Tref, typename Tmix>
+int BatchNormDriver<Tgpu, Acc, Tref, Tmix>::RunBackwardGPU()
 {
 
     if(!back)
@@ -1059,46 +992,47 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::RunBackwardGPU()
         if(saveMeanVar)
         {
             miopenBatchNormalizationBackward(GetHandle(),
-                                             bn_mode,
-                                             &alphaDataDiff,
-                                             &betaDataDiff,
-                                             &alphaParamDiff,
-                                             &betaParamDiff,
-                                             inputTensor,
-                                             in_dev->GetMem(),
-                                             dyInputTensor,
-                                             dyin_dev->GetMem(),
-                                             dxOutputTensor,
-                                             dxout_dev->GetMem(),
-                                             biasScaleTensor,
-                                             scale_dev->GetMem(),
-                                             dscale_dev->GetMem(),
-                                             dbias_dev->GetMem(),
-                                             epsilon,
-                                             saveMean_dev->GetMem(),
-                                             saveInvVariance_dev->GetMem());
+                                                 bn_mode,
+                                                 &alphaDataDiff,
+                                                 &betaDataDiff,
+                                                 &alphaParamDiff,
+                                                 &betaParamDiff,
+                                                 &in.GetTensor().desc,
+                                                 in.GetDevicePtr(),
+                                                 &dy.GetTensor().desc,
+                                                 dy.GetDevicePtr(),
+                                                 &out.GetTensor().desc,
+                                                 out.GetDevicePtr(),
+                                                 &bnScale.GetTensor().desc,
+                                                 bnScale.GetDevicePtr(),
+                                                 dScale.GetDevicePtr(),
+                                                 dBias.GetDevicePtr(),
+                                                 epsilon,
+                                                 savedMean.GetDevicePtr(),
+                                                 savedInvVar.GetDevicePtr()
+                                                 );
         }
         else
         {
             miopenBatchNormalizationBackward(GetHandle(),
-                                             bn_mode,
-                                             &alphaDataDiff,
-                                             &betaDataDiff,
-                                             &alphaParamDiff,
-                                             &betaParamDiff,
-                                             inputTensor,
-                                             in_dev->GetMem(),
-                                             dyInputTensor,
-                                             dyin_dev->GetMem(),
-                                             dxOutputTensor,
-                                             dxout_dev->GetMem(),
-                                             biasScaleTensor,
-                                             scale_dev->GetMem(),
-                                             dscale_dev->GetMem(),
-                                             dbias_dev->GetMem(),
-                                             epsilon,
-                                             nullptr,
-                                             nullptr);
+                                                 bn_mode,
+                                                 &alphaDataDiff,
+                                                 &betaDataDiff,
+                                                 &alphaParamDiff,
+                                                 &betaParamDiff,
+                                                 &in.GetTensor().desc,
+                                                 in.GetDevicePtr(),
+                                                 &dy.GetTensor().desc,
+                                                 dy.GetDevicePtr(),
+                                                 &out.GetTensor().desc,
+                                                 out.GetDevicePtr(),
+                                                 &bnScale.GetTensor().desc,
+                                                 bnScale.GetDevicePtr(),
+                                                 dScale.GetDevicePtr(),
+                                                 dBias.GetDevicePtr(),
+                                                 epsilon,
+                                                 nullptr,
+                                                 nullptr);
         }
 
         miopen::deref(GetHandle()).Finish();
@@ -1152,8 +1086,8 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::RunBackwardGPU()
     return miopenStatusSuccess;
 }
 
-template <typename Tgpu, typename Tref, typename Tmix>
-int BatchNormDriver<Tgpu, Tref, Tmix>::VerifyForward()
+template <typename Tgpu, typename Acc, typename Tref, typename Tmix>
+int BatchNormDriver<Tgpu, Acc, Tref, Tmix>::VerifyForward()
 {
 
     // jump out since we are forcing forward off when doing backwards.
@@ -1176,27 +1110,27 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::VerifyForward()
 
         if(keepRunningMeanVar)
         { // copy back for verification
-            runningMean_dev->FromGPU(GetStream(), runningMean.data());
-            runningVariance_dev->FromGPU(GetStream(), runningVariance.data());
+            runMean.CopyFromDeviceToHost(GetStream());
+            runVariance.CopyFromDeviceToHost(GetStream());
 
-            auto errorRunMean = miopen::rms_range(runningMean_host, runningMean);
+            auto errorRunMean = miopen::rms_range(runMean_ref.data, runMean.GetVector());
             if(!std::isfinite(errorRunMean) || errorRunMean > maxrms)
             {
                 std::cout << "Forward train batch norm verification FAILED on running mean: "
                           << errorRunMean << std::endl;
                 anError = true;
 #if(MIO_BN_DEBUG == 1)
-                for(int i = 0; i < runningMean.size() && i < runningMean_host.size() &&
+                for(int i = 0; i < runMean.GetVector().size() && i < runMean_ref.data.size() &&
                                i < MIO_BN_MAX_DEBUGLOOP;
                     i++)
                 {
-                    diff = fabs(Tmix(fabs(runningMean[i]) - fabs(runningMean_host[i])));
+                    diff = fabs(Tmix(fabs(runMean.GetVector()[i]) - fabs(runMean_ref.data[i])));
                     if(!std::isfinite(diff) || diff > tolerance)
                     {
-                        std::cout << "rm[" << i << "]: " << runningMean[i];
-                        std::cout << ", rm_host[" << i << "]: " << runningMean_host[i];
+                        std::cout << "rm[" << i << "]: " << runMean.GetVector()[i];
+                        std::cout << ", rm_host[" << i << "]: " << runMean_ref.data[i];
                         std::cout << ", diff[" << i
-                                  << "]: " << Tmix(fabs(runningMean[i]) - fabs(runningMean_host[i]))
+                                  << "]: " << Tmix(fabs(runMean.GetVector()[i]) - fabs(runMean_ref.data[i]))
                                   << std::endl;
                     }
                 }
@@ -1208,24 +1142,24 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::VerifyForward()
                           << errorRunMean << ')' << std::endl;
             }
 
-            auto errorRunVar = miopen::rms_range(runningVariance_host, runningVariance);
+            auto errorRunVar = miopen::rms_range(runVariance_ref.data, runVariance.GetVector());
             if(!std::isfinite(errorRunVar) || errorRunVar > maxrms)
             {
                 std::cout << "Forward train batch norm verification FAILED on running variance: "
                           << errorRunVar << std::endl;
                 anError = true;
 #if(MIO_BN_DEBUG == 1)
-                for(int i = 0; i < runningVariance.size() && i < runningVariance_host.size() &&
+                for(int i = 0; i < runVariance.GetVector().size() && i < runVariance_ref.data.size() &&
                                i < MIO_BN_MAX_DEBUGLOOP;
                     i++)
                 {
-                    diff = fabs(Tmix(fabs(runningVariance[i]) - fabs(runningVariance_host[i])));
+                    diff = fabs(Tmix(fabs(runVariance.GetVector()[i]) - fabs(runVariance_ref.data[i])));
                     if(!std::isfinite(diff) || diff > tolerance)
                     {
-                        std::cout << "rv[" << i << "]: " << runningVariance[i];
-                        std::cout << ", rv_host[" << i << "]: " << runningVariance_host[i];
+                        std::cout << "rv[" << i << "]: " << runVariance.GetVector()[i];
+                        std::cout << ", rv_host[" << i << "]: " << runVariance_ref.data[i];
                         std::cout << ", diff[" << i << "]: "
-                                  << Tmix(fabs(runningVariance[i]) - fabs(runningVariance_host[i]))
+                                  << Tmix(fabs(runVariance.GetVector()[i]) - fabs(runVariance_ref.data[i]))
                                   << std::endl;
                     }
                 }
@@ -1240,10 +1174,14 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::VerifyForward()
 
         if(saveMeanVar)
         { // copy back for verification
-            saveMean_dev->FromGPU(GetStream(), saveMean.data());
-            saveInvVariance_dev->FromGPU(GetStream(), saveInvVariance.data());
+            // saveMean_dev->FromGPU(GetStream(), savedMean.data());
+            // saveInvVariance_dev->FromGPU(GetStream(), savedInvVar.data());
+            
+            savedMean.CopyFromDeviceToHost(GetStream());
+            savedVariance.CopyFromDeviceToHost(GetStream());
+
             maxval             = static_cast<Tref>(0.0);
-            auto errorSaveMean = miopen::rms_range(saveMean_host, saveMean);
+            auto errorSaveMean = miopen::rms_range(savedVariance_ref.data, savedMean.GetVector());
             if(!std::isfinite(errorSaveMean) || errorSaveMean > maxrms)
             {
                 std::cout << "Forward train batch norm verification FAILED on saved mean: "
@@ -1251,17 +1189,17 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::VerifyForward()
                 anError = true;
 #if(MIO_BN_DEBUG == 1)
                 for(int i = 0;
-                    i < saveMean.size() && i < saveMean_host.size() && i < MIO_BN_MAX_DEBUGLOOP;
+                    i < savedMean.GetVector().size() && i < savedVariance_ref.data.size() && i < MIO_BN_MAX_DEBUGLOOP;
                     i++)
                 {
-                    diff   = fabs(Tmix(fabs(saveMean[i]) - fabs(saveMean_host[i])));
+                    diff   = fabs(Tmix(fabs(savedMean.GetVector()[i]) - fabs(savedVariance_ref.data[i])));
                     maxval = maxval < diff ? diff : maxval;
                     if(!std::isfinite(diff) || diff > tolerance)
                     {
-                        std::cout << "sm[" << i << "]: " << saveMean[i];
-                        std::cout << ", sm_host[" << i << "]: " << saveMean_host[i];
+                        std::cout << "sm[" << i << "]: " << savedMean.GetVector()[i];
+                        std::cout << ", sm_host[" << i << "]: " << savedVariance_ref.data[i];
                         std::cout << ", diff[" << i
-                                  << "]: " << Tmix(fabs(saveMean[i]) - fabs(saveMean_host[i]))
+                                  << "]: " << Tmix(fabs(savedMean.GetVector()[i]) - fabs(savedVariance_ref.data[i]))
                                   << std::endl;
                     }
                 }
@@ -1274,7 +1212,7 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::VerifyForward()
                           << errorSaveMean << ')' << std::endl;
             }
 
-            auto errorSaveVar = miopen::rms_range(saveInvVariance_host, saveInvVariance);
+            auto errorSaveVar = miopen::rms_range(savedVariance_ref.data, savedVariance.GetVector());
             if(!std::isfinite(errorSaveVar) || errorSaveVar > maxrms)
             {
                 std::cout
@@ -1282,17 +1220,17 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::VerifyForward()
                     << errorSaveVar << std::endl;
                 anError = true;
 #if(MIO_BN_DEBUG == 1)
-                for(int i = 0; i < saveInvVariance.size() && i < saveInvVariance_host.size() &&
+                for(int i = 0; i < savedVariance.GetVector().size() && i < savedVariance_ref.data.size() &&
                                i < MIO_BN_MAX_DEBUGLOOP;
                     i++)
                 {
-                    diff = fabs(Tmix(fabs(saveInvVariance[i]) - fabs(saveInvVariance_host[i])));
+                    diff = fabs(Tmix(fabs(savedVariance.GetVector()[i]) - fabs(savedVariance_ref.data[i])));
                     if(!std::isfinite(diff) || diff > tolerance)
                     {
-                        std::cout << "sv[" << i << "]: " << saveInvVariance[i];
-                        std::cout << ", sv_host[" << i << "]: " << saveInvVariance_host[i];
+                        std::cout << "sv[" << i << "]: " << savedVariance.GetVector()[i];
+                        std::cout << ", sv_host[" << i << "]: " << savedVariance_ref.data[i];
                         std::cout << ", diff[" << i << "]: "
-                                  << Tmix(fabs(saveInvVariance[i]) - fabs(saveInvVariance_host[i]))
+                                  << Tmix(fabs(savedVariance.GetVector()[i]) - fabs(savedVariance_ref.data[i]))
                                   << std::endl;
                     }
                 }
@@ -1308,37 +1246,39 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::VerifyForward()
     }
 
     // Check output tensor error
-    out_dev->FromGPU(GetStream(), out.data());
+    // out_dev->FromGPU(GetStream(), out.data());
+    out.CopyFromDeviceToHost(GetStream());
+
     maxval        = static_cast<Tref>(0.0);
-    auto errorOut = miopen::rms_range(out_host, out);
+    auto errorOut = miopen::rms_range(out_ref.data, out.GetVector());
     if(!std::isfinite(errorOut) || errorOut > maxrms)
     {
         std::cout << "Forward batch norm verification FAILED on output: " << errorOut << std::endl;
         anError = true;
 #if(MIO_BN_DEBUG == 1)
         unsigned int count = 0;
-        for(int i = 0; i < out.size() && i < out_host.size(); i++)
+        for(int i = 0; i < out.GetVector().size() && i < out_ref.data.size(); i++)
         {
-            if(std::isnan(out[i]))
+            if(std::isnan(out.GetVector()[i]))
             {
-                std::cout << "out[" << i << "] produced a nan: " << out[i] << std::endl;
+                std::cout << "out[" << i << "] produced a nan: " << out.GetVector()[i] << std::endl;
             }
-            if(std::isnan(out_host[i]))
+            if(std::isnan(out_ref.data[i]))
             {
-                std::cout << "out_host[" << i << "] produced a nan: " << out_host[i] << std::endl;
+                std::cout << "out_ref[" << i << "] produced a nan: " << out_ref.data[i] << std::endl;
             }
-            diff   = Tref(fabs(out[i]) - fabs(out_host[i]));
+            diff   = Tref(fabs(out.GetVector()[i]) - fabs(out_ref.data[i]));
             maxval = maxval < diff ? diff : maxval;
             if(!std::isfinite(diff) || diff > tolerance)
             {
-                std::cout << "out[" << i << "]: " << out[i];
-                std::cout << ", out_host[" << i << "]: " << out_host[i];
-                std::cout << ", diff[" << i << "]: " << Tref(out[i] - out_host[i]) << std::endl;
+                std::cout << "out[" << i << "]: " << out.GetVector()[i];
+                std::cout << ", out_ref.data[" << i << "]: " << out_ref.data[i];
+                std::cout << ", diff[" << i << "]: " << Tref(out.GetVector()[i] - out_ref.data[i]) << std::endl;
                 count++;
             }
         }
 
-        std::cout << "Number of elements: " << out.size() << std::endl;
+        std::cout << "Number of elements: " << out.GetVector().size() << std::endl;
         std::cout << "Number of bad elements: " << count << std::endl;
         std::cout << "max difference in output: " << maxval << std::endl;
 #endif
@@ -1358,68 +1298,46 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::VerifyForward()
     return miopenStatusSuccess;
 }
 
-template <typename Tgpu, typename Tref, typename Tmix>
-int BatchNormDriver<Tgpu, Tref, Tmix>::RunBackwardCPU()
+template <typename Tgpu, typename Acc, typename Tref, typename Tmix>
+int BatchNormDriver<Tgpu, Acc, Tref, Tmix>::RunBackwardCPU()
 {
 
     if(!back)
         return miopenStatusSuccess;
 
-    int nIn = 0, cIn = 0, dIn = 0, hIn = 0, wIn = 0;
-    if(isDepthSpecified)
-        miopenGet5dTensorDescriptorLengths(inputTensor, &nIn, &cIn, &dIn, &hIn, &wIn);
-    else
-        miopenGet4dTensorDescriptorLengths(inputTensor, &nIn, &cIn, &hIn, &wIn);
-
-    int batch_sz = nIn;
-    int channels = cIn;
-    int height   = hIn;
-    int width    = wIn;
-    int depth    = dIn;
-
     //	T alphaDiff = 1, betaDiff = 0;
     //	T alphaParam = 1, betaParam = 0;
-    Tref epsilon = static_cast<Tref>(EPSILON);
+    float alpha = static_cast<float>(1), beta = static_cast<float>(0), gamma = static_cast<float>(1);
 
     if(bn_mode == miopenBNPerActivation)
-    {                                                     // 1xCxHxW
-        miopenBNBwdPerActivationRunHost<Tgpu, Tref, Tmix>(/* alphaDiff, betaDiff, alphaParam,
-                                                             betaParam, */
-                                                          batch_sz,
-                                                          channels,
-                                                          (isDepthSpecified ? depth : 1),
-                                                          height,
-                                                          width,
-                                                          in.data(),
-                                                          dyin.data(),
-                                                          dxout_host.data(),
-                                                          scale.data(),
-                                                          dscale_host.data(),
-                                                          dbias_host.data(),
-                                                          epsilon,
-                                                          saveMeanVar,
-                                                          saveMean_host.data(),
-                                                          saveInvVariance_host.data());
+    {   
+        // 1xCxHxW
+        batchNormActivSpatialHostBwdTrain(activ_mode,
+                                      gamma,
+                                      beta,
+                                      alpha,
+                                      in.GetTensor(),
+                                      dy.GetTensor(),
+                                      out.GetTensor(),
+                                      out_ref,
+                                      scale.GetTensor(),
+                                      bias.GetTensor(),
+                                      dScale_ref,
+                                      dBias_ref,
+                                      savedMean.GetTensor(),
+                                      savedInvVar.GetTensor());
+
     }
     else if(bn_mode == miopenBNSpatial)
     {                                               // 1xCx1x1
-        miopenBNBwdSpatialRunHost<Tgpu, Tref, Tmix>(/* alphaDiff, betaDiff, alphaParam, betaParam,
-                                                     */
-                                                    batch_sz,
-                                                    channels,
-                                                    (isDepthSpecified ? depth : 1),
-                                                    height,
-                                                    width,
-                                                    in.data(),
-                                                    dyin.data(),
-                                                    dxout_host.data(),
-                                                    scale.data(),
-                                                    dscale_host.data(),
-                                                    dbias_host.data(),
-                                                    epsilon,
-                                                    saveMeanVar,
-                                                    saveMean_host.data(),
-                                                    saveInvVariance_host.data());
+                batchNormSpatialHostBwdTrain(in.GetTensor(),
+                                      dy.GetTensor(),
+                                      out_ref,
+                                      scale.GetTensor(),
+                                      dScale_ref,
+                                      dBias_ref,
+                                      savedMean.GetTensor(),
+                                      savedInvVar.GetTensor());
     }
     else
     {
@@ -1431,8 +1349,8 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::RunBackwardCPU()
     return miopenStatusSuccess;
 }
 
-template <typename Tgpu, typename Tref, typename Tmix>
-int BatchNormDriver<Tgpu, Tref, Tmix>::VerifyBackward()
+template <typename Tgpu, typename Acc, typename Tref, typename Tmix>
+int BatchNormDriver<Tgpu, Acc, Tref, Tmix>::VerifyBackward()
 {
 
     if(!back)
@@ -1442,34 +1360,35 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::VerifyBackward()
     bool anError      = false;
 
     RunBackwardCPU();
-
-    dxout_dev->FromGPU(GetStream(), dxout.data());
-    dscale_dev->FromGPU(GetStream(), dscale.data());
-    dbias_dev->FromGPU(GetStream(), dbias.data());
+    
+    out.CopyFromDeviceToHost(GetStream());
+    dScale.CopyFromDeviceToHost(GetStream());
+    dBias.CopyFromDeviceToHost(GetStream());
+    
 #if(MIO_BN_DEBUG == 1)
     const Tref tolerance =
         static_cast<Tref>(1000 * (sizeof(Tgpu) == 4) ? ERRTOL_FP32 : ERRTOL_FP16);
     Tref diff = static_cast<Tref>(0.0);
 #endif
     maxval          = static_cast<Tref>(0.0);
-    auto errordxout = miopen::rms_range(dxout_host, dxout);
+    auto errordxout = miopen::rms_range(out_ref.data, out.GetVector());
     if(!std::isfinite(errordxout) || errordxout > maxrms)
     {
         std::cout << "Backwards prop batch norm verification FAILED on dx: " << errordxout
                   << std::endl;
         anError = true;
 #if(MIO_BN_DEBUG == 1)
-        for(int i = 0; i < dxout.size() && i < MIO_BN_MAX_DEBUGLOOP; i++)
+        for(int i = 0; i < out_ref.data.size() && i < MIO_BN_MAX_DEBUGLOOP; i++)
         {
-            diff   = fabs(Tgpu(fabs(dxout[i]) - fabs(dxout_host[i])));
+            diff   = fabs(Tgpu(fabs(out_ref.data[i]) - fabs(out.GetVector()[i])));
             maxval = maxval < diff ? diff : maxval;
             if(!std::isfinite(diff) || diff > tolerance)
             {
-                std::cout << "dxout[" << i << "]: " << dxout[i];
-                std::cout << "\tdxout_host[" << i << "]: " << dxout_host[i];
-                std::cout << "\tdiff[" << i << "]: " << Tgpu(fabs(dxout[i]) - fabs(dxout_host[i]));
+                std::cout << "out_ref[" << i << "]: " << out_ref.data[i];
+                std::cout << "\tout.GetVector()[" << i << "]: " << out.GetVector()[i];
+                std::cout << "\tdiff[" << i << "]: " << Tgpu(fabs(out_ref.data[i]) - fabs(out.GetVector()[i]));
                 std::cout << "\tratioH: "
-                          << fabs(fabs(dxout[i]) - fabs(dxout_host[i])) / fabs(dxout_host[i])
+                          << fabs(fabs(out_ref.data[i]) - fabs(out.GetVector()[i])) / fabs(out.GetVector()[i])
                           << std::endl;
             }
         }
@@ -1483,25 +1402,25 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::VerifyBackward()
     }
 
     maxval           = static_cast<Tref>(0.0);
-    auto errordscale = miopen::rms_range(dscale_host, dscale);
+    auto errordscale = miopen::rms_range(dScale_ref.data, dScale.GetVector());
     if(!std::isfinite(errordscale) || errordscale > maxrms)
     {
         std::cout << "Backwards prop batch norm verification FAILED on dscale: " << errordscale
                   << std::endl;
         anError = true;
 #if(MIO_BN_DEBUG == 1)
-        for(int i = 0; i < dscale.size() && i < MIO_BN_MAX_DEBUGLOOP; i++)
+        for(int i = 0; i < dScale.GetVector().size() && i < MIO_BN_MAX_DEBUGLOOP; i++)
         {
-            diff   = fabs(Tmix(fabs(dscale[i]) - fabs(dscale_host[i])));
+            diff   = fabs(Tmix(fabs(dScale.GetVector()[i]) - fabs(dScale_ref.data[i])));
             maxval = maxval < diff ? diff : maxval;
             if(!std::isfinite(diff) || diff > tolerance)
             {
-                std::cout << "dscale[" << i << "]: " << dscale[i];
-                std::cout << "\tdscale_host[" << i << "]: " << dscale_host[i];
+                std::cout << "dscale[" << i << "]: " << dScale.GetVector()[i];
+                std::cout << "\tdscale_host[" << i << "]: " << dScale_ref.data[i];
                 std::cout << "\tdiff[" << i
-                          << "]: " << Tmix(fabs(dscale[i]) - fabs(dscale_host[i]));
+                          << "]: " << Tmix(fabs(dScale.GetVector()[i]) - fabs(dScale_ref.data[i]));
                 std::cout << "\tratioH: "
-                          << fabs(fabs(dscale[i]) - fabs(dscale_host[i])) / fabs(dscale_host[i])
+                          << fabs(fabs(dScale.GetVector()[i]) - fabs(dScale_ref.data[i])) / fabs(dScale_ref.data[i])
                           << std::endl;
             }
         }
@@ -1514,23 +1433,23 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::VerifyBackward()
                   << ')' << std::endl;
     }
 
-    auto errordbias = miopen::rms_range(dbias_host, dbias);
+    auto errordbias = miopen::rms_range(dBias_ref.data, dBias.GetVector());
     if(!std::isfinite(errordbias) || errordbias > maxrms)
     {
         std::cout << "Backwards prop batch norm verification FAILED on dbias: " << errordbias
                   << std::endl;
         anError = true;
 #if(MIO_BN_DEBUG == 1)
-        for(int i = 0; i < dbias.size() && i < MIO_BN_MAX_DEBUGLOOP; i++)
+        for(int i = 0; i <  dBias.GetVector().size() && i < MIO_BN_MAX_DEBUGLOOP; i++)
         {
-            diff = fabs(Tmix(fabs(dbias[i]) - fabs(dbias_host[i])));
+            diff = fabs(Tmix(fabs( dBias.GetVector()[i]) - fabs(dBias_ref.data[i])));
             if(!std::isfinite(diff) || diff > tolerance)
             {
-                std::cout << "dbias[" << i << "]: " << dbias[i];
-                std::cout << "\tdbias_host[" << i << "]: " << dbias_host[i];
-                std::cout << "\tdiff[" << i << "]: " << Tmix(fabs(dbias[i]) - fabs(dbias_host[i]));
+                std::cout << "dbias[" << i << "]: " <<  dBias.GetVector()[i];
+                std::cout << "\tdbias_host[" << i << "]: " << dBias_ref.data[i];
+                std::cout << "\tdiff[" << i << "]: " << Tmix(fabs( dBias.GetVector()[i]) - fabs(dBias_ref.data[i]));
                 std::cout << "\tratioH: "
-                          << fabs(fabs(dbias[i]) - fabs(dbias_host[i])) / fabs(dbias_host[i])
+                          << fabs(fabs( dBias.GetVector()[i]) - fabs(dBias_ref.data[i])) / fabs(dBias_ref.data[i])
                           << std::endl;
             }
         }

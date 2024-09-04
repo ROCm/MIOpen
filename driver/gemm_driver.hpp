@@ -148,7 +148,7 @@ private:
     std::vector<T> c;
     std::vector<T> chost;
 
-    T alpha, beta;
+    T alpha, beta, gamma;
 
     miopen::GemmDescriptor gemm_desc = {
         false, false, false, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1.0f, 0.0f, miopenFloat, false};
