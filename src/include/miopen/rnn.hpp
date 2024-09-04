@@ -389,6 +389,18 @@ private:
                          Data_t reserveSpace,
                          size_t reserveSpaceSize) const;
 
+    void ModularBackwardWeights(Handle& handle,
+                                const SeqTensorDescriptor& xDesc,
+                                ConstData_t x,
+                                const TensorDescriptor& hDesc,
+                                ConstData_t hx,
+                                const SeqTensorDescriptor& yDesc,
+                                Data_t w,
+                                Data_t workSpace,
+                                size_t workSpaceSize,
+                                ConstData_t reserveSpace,
+                                size_t /*reserveSpaceSize*/) const;
+
     void RNNTransformerForward(Handle& handle,
                                miopenRNNFWDMode_t fwdMode,
                                ConstData_t w,
