@@ -39,23 +39,23 @@ struct TensorParams
     }
 
     TensorParams(miopenDataType_t datatype_in,
-                     miopenTensorLayout_t layout_in,
-                     std::vector<std::size_t>&& lens_in)
+                 miopenTensorLayout_t layout_in,
+                 std::vector<std::size_t>&& lens_in)
         : datatype(datatype_in), layout(layout_in), lens(std::move(lens_in))
     {
     }
 
     TensorParams(miopenDataType_t datatype_in,
-                     std::vector<std::size_t>&& lens_in,
-                     std::vector<std::size_t>&& strides_in)
+                 std::vector<std::size_t>&& lens_in,
+                 std::vector<std::size_t>&& strides_in)
         : datatype(datatype_in), lens(std::move(lens_in)), strides(std::move(strides_in))
     {
     }
 
     TensorParams(miopenDataType_t datatype_in,
-                     miopenTensorLayout_t layout_in,
-                     std::vector<std::size_t>&& lens_in,
-                     std::vector<std::size_t>&& strides_in)
+                 miopenTensorLayout_t layout_in,
+                 std::vector<std::size_t>&& lens_in,
+                 std::vector<std::size_t>&& strides_in)
         : datatype(datatype_in),
           layout(layout_in),
           lens(std::move(lens_in)),
