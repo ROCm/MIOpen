@@ -81,12 +81,12 @@ INSTANTIATE_TEST_SUITE_P(BNInferTestFloatSuite,
                          testing::Combine(testing::ValuesIn(Network1<BNTestCase>()),
                                           testing::ValuesIn({miopenTensorNHWC, miopenTensorNCHW})));
 
-INSTANTIATE_TEST_SUITE_P(BNInferTestDoubleNHWCSuite,
+INSTANTIATE_TEST_SUITE_P(BNInferTestDoubleNHWCNCHWSuite,
                          GPU_BNInfer_FP64,
                          testing::Combine(testing::ValuesIn(Network1<BNTestCase>()),
-                                          testing::ValuesIn({miopenTensorNHWC})));
+                                          testing::ValuesIn({miopenTensorNHWC, miopenTensorNCHW})));
 
-INSTANTIATE_TEST_SUITE_P(BNInferTestBFloat16NHWCSuite,
+INSTANTIATE_TEST_SUITE_P(BNInferTestBFloat16NHWCNCHWSuite,
                          GPU_BNInfer_BFP16,
                          testing::Combine(testing::ValuesIn(Network1<BNTestCase>()),
-                                          testing::ValuesIn({miopenTensorNHWC})));
+                                          testing::ValuesIn({miopenTensorNHWC, miopenTensorNCHW})));
