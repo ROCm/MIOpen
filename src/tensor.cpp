@@ -59,7 +59,6 @@ bool IsDataTypeSupported(miopenDataType_t t)
 
 bool IsLayoutSupported(miopenTensorLayout_t layout, unsigned num_dims)
 {
-    // clang-format off
     switch(layout)
     {
     case miopenTensorNCHW:
@@ -68,13 +67,11 @@ bool IsLayoutSupported(miopenTensorLayout_t layout, unsigned num_dims)
     case miopenTensorNCHWc4:
     case miopenTensorNCHWc8:
     case miopenTensorCHWNc4:
-    case miopenTensorCHWNc8:
-        return num_dims == 4;
+    case miopenTensorCHWNc8: return num_dims == 4;
     case miopenTensorNCDHW:
-    case miopenTensorNDHWC:
-        return num_dims == 5;
+    case miopenTensorNDHWC: return num_dims == 5;
     }
-    // clang-format on
+
     return false;
 }
 
@@ -82,17 +79,12 @@ bool IsLayoutSupported(miopenTensorLayout_t layout, unsigned num_dims)
 // explicitly or implicitly.
 std::optional<miopenTensorLayout_t> GetDefaultLayout(unsigned num_dims)
 {
-    // clang-format off
     switch(num_dims)
     {
-    case 4:
-        return miopenTensorNCHW;
-    case 5:
-        return miopenTensorNCDHW;
-    default:
-        return std::nullopt;
+    case 4: return miopenTensorNCHW;
+    case 5: return miopenTensorNCDHW;
+    default: return std::nullopt;
     }
-    // clang-format on
 }
 
 template <class T>
@@ -126,17 +118,12 @@ std::string GetStorageLayout4D5D(unsigned num_dims, bool is_CHWNc = false)
     if(is_CHWNc)
         return "CHWN";
 
-    // clang-format off
     switch(num_dims)
     {
-    case 4:
-        return "NCHW";
-    case 5:
-        return "NCDHW";
-    default:
-        MIOPEN_THROW(miopenStatusInternalError);
+    case 4: return "NCHW";
+    case 5: return "NCDHW";
+    default: MIOPEN_THROW(miopenStatusInternalError);
     }
-    // clang-format on
 }
 
 // Relevant for NCHWc and CHWNc
@@ -146,21 +133,14 @@ std::size_t GetVectorLengthForLayout(const std::optional<miopenTensorLayout_t>& 
 
     if(layout)
     {
-        // clang-format off
         switch(layout.value())
         {
         case miopenTensorCHWNc8:
-        case miopenTensorNCHWc8:
-            vector_length = 8;
-            break;
+        case miopenTensorNCHWc8: vector_length = 8; break;
         case miopenTensorCHWNc4:
-        case miopenTensorNCHWc4:
-            vector_length = 4;
-            break;
-        default:
-            break;
+        case miopenTensorNCHWc4: vector_length = 4; break;
+        default: break;
         }
-        // clang-format on
     }
 
     return vector_length;
@@ -181,7 +161,6 @@ void ReorderVector(std::vector<size_t>& lens, const std::initializer_list<size_t
 // Relevant for NCHWc and CHWNc
 void VectLensReorder(miopenTensorLayout_t layout, std::vector<size_t>& lens)
 {
-    // clang-format off
     switch(layout)
     {
     case miopenTensorNCHWc4:
@@ -193,10 +172,8 @@ void VectLensReorder(miopenTensorLayout_t layout, std::vector<size_t>& lens)
         // For some reason we have CHWN storage layout for CHWNc
         ReorderVector(lens, {1, 2, 3, 0});
         break;
-    default:
-        break;
+    default: break;
     }
-    // clang-format on
 }
 
 // Relevant for NCHWc and CHWNc
@@ -206,22 +183,17 @@ void VectLensRecalc(miopenTensorLayout_t layout,
 {
     unsigned c_pos;
 
-    // clang-format off
     switch(layout)
     {
     case miopenTensorNCHWc4:
-    case miopenTensorNCHWc8:
-        c_pos = 1;
-        break;
+    case miopenTensorNCHWc8: c_pos = 1; break;
     case miopenTensorCHWNc4:
     case miopenTensorCHWNc8:
         // For some reason we have CHWN storage layout for CHWNc
         c_pos = 0;
         break;
-    default:
-        return;
+    default: return;
     }
-    // clang-format on
 
     if(lens[c_pos] % vector_length != 0)
         MIOPEN_THROW(miopenStatusBadParm, "Wrong C, C % Vect != 0");
@@ -599,16 +571,12 @@ const std::string& TensorDescriptor::GetLayout_str() const
             if(tensorLayout)
                 return TensorDescriptor::LayoutEnumToStr(tensorLayout.value());
 
-            // clang-format off
             switch(this->GetNumDims())
             {
             case 4:
-            case 5:
-                return this->GetLayout(GetStorageLayout4D5D(this->GetNumDims()));
-            default:
-                return "UNKNOWN";
+            case 5: return this->GetLayout(GetStorageLayout4D5D(this->GetNumDims()));
+            default: return "UNKNOWN";
             }
-            // clang-format on
         }();
     }
 
@@ -717,16 +685,12 @@ bool TensorDescriptor::IsPossibleLayout4D5D(const std::string& layout) const
             return this->IsPossibleLayout(GetStorageLayout4D5D(4, true), layout);
     }
 
-    // clang-format off
     switch(this->GetNumDims())
     {
     case 4:
-    case 5:
-        return this->IsPossibleLayout(GetStorageLayout4D5D(this->GetNumDims()), layout);
-    default:
-        return false;
+    case 5: return this->IsPossibleLayout(GetStorageLayout4D5D(this->GetNumDims()), layout);
+    default: return false;
     }
-    // clang-format on
 }
 
 // See https://github.com/ROCm/MIOpen/pull/765#discussion_r596465551
