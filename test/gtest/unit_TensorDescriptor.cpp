@@ -33,19 +33,33 @@ namespace {
 
 struct TestTensorParams
 {
-    TestTensorParams(miopenDataType_t datatype_in, std::vector<std::size_t>&& lens_in) : datatype(datatype_in), lens(std::move(lens_in))
+    TestTensorParams(miopenDataType_t datatype_in, std::vector<std::size_t>&& lens_in)
+        : datatype(datatype_in), lens(std::move(lens_in))
     {
     }
 
-    TestTensorParams(miopenDataType_t datatype_in, miopenTensorLayout_t layout_in, std::vector<std::size_t>&& lens_in) : datatype(datatype_in), layout(layout_in), lens(std::move(lens_in))
+    TestTensorParams(miopenDataType_t datatype_in,
+                     miopenTensorLayout_t layout_in,
+                     std::vector<std::size_t>&& lens_in)
+        : datatype(datatype_in), layout(layout_in), lens(std::move(lens_in))
     {
     }
 
-    TestTensorParams(miopenDataType_t datatype_in, std::vector<std::size_t>&& lens_in, std::vector<std::size_t>&& strides_in) : datatype(datatype_in), lens(std::move(lens_in)), strides(std::move(strides_in))
+    TestTensorParams(miopenDataType_t datatype_in,
+                     std::vector<std::size_t>&& lens_in,
+                     std::vector<std::size_t>&& strides_in)
+        : datatype(datatype_in), lens(std::move(lens_in)), strides(std::move(strides_in))
     {
     }
 
-    TestTensorParams(miopenDataType_t datatype_in, miopenTensorLayout_t layout_in, std::vector<std::size_t>&& lens_in, std::vector<std::size_t>&& strides_in) : datatype(datatype_in), layout(layout_in), lens(std::move(lens_in)), strides(std::move(strides_in))
+    TestTensorParams(miopenDataType_t datatype_in,
+                     miopenTensorLayout_t layout_in,
+                     std::vector<std::size_t>&& lens_in,
+                     std::vector<std::size_t>&& strides_in)
+        : datatype(datatype_in),
+          layout(layout_in),
+          lens(std::move(lens_in)),
+          strides(std::move(strides_in))
     {
     }
 
@@ -252,7 +266,7 @@ public:
 
     void RunTest()
     {
-        const auto p = GetParam();
+        const auto p  = GetParam();
         const auto td = p.tp.GetTensorDescriptor();
 
         for(const auto& layout : this->GetAllLayouts())
@@ -304,7 +318,7 @@ public:
 
     void RunTest()
     {
-        const auto p = GetParam();
+        const auto p  = GetParam();
         const auto td = p.tp.GetTensorDescriptor();
         ASSERT_EQ(td.GetLayout_t(), p.actual_layout);
     }
@@ -374,7 +388,7 @@ public:
 
     void RunTest()
     {
-        const auto p = GetParam();
+        const auto p  = GetParam();
         const auto td = p.tp.GetTensorDescriptor();
         ASSERT_EQ(td.GetLayoutEnum(), p.actual_layout);
     }
@@ -444,7 +458,7 @@ public:
 
     void RunTest()
     {
-        const auto p = GetParam();
+        const auto p  = GetParam();
         const auto td = p.tp.GetTensorDescriptor();
         ASSERT_EQ(td.GetLayout_str(), p.actual_layout);
     }
