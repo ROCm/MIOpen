@@ -301,7 +301,7 @@ set( MIOpen_Source
     solver/layernorm/forward_t5layernorm.cpp
     solver/mha/mha_solver_backward.cpp
     solver/mha/mha_solver_forward.cpp
-    solver/multimarginloss/forward_reduced_multimarginloss.cpp
+    solver/multimarginloss/forward_multimarginloss.cpp
     solver/pooling/forward2d.cpp
     solver/pooling/forwardNaive.cpp
     solver/pooling/forwardNd.cpp
