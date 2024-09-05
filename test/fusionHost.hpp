@@ -278,11 +278,11 @@ void batchNormSpatialHostFwdTrain(const tensor<T>& input,
     });
 }
 
-template <class T, class U=T>
+template <class T, class U>
 void batchNormSpatialHostBwdTrain(const tensor<T>& x_input,
                                   const tensor<U>& dy_input,
                                   tensor<T>& dx_out,
-                                  const tensor<T>& scale,
+                                  const tensor<T>& bnScale,
                                   tensor<U>& dscale,
                                   tensor<U>& dbias,
                                   const tensor<U>& savedMean,
@@ -333,7 +333,7 @@ void batchNormSpatialHostBwdTrain(const tensor<T>& x_input,
 
                     double tmp1 = nhw * dy_input(bidx, cidx, row, column) - dbias(0, cidx, 0, 0);
                     double tmp2 = -xhat[xhat_index] * dscale(0, cidx, 0, 0);
-                    double tmp3 = (scale(0, cidx, 0, 0) * invVar) / nhw;
+                    double tmp3 = (bnScale(0, cidx, 0, 0) * invVar) / nhw;
                     dx_out(bidx, cidx, row, column) = static_cast<T>(tmp3 * (tmp2 + tmp1));
                 } // end for(n_batchs)
             }     // for (column)
@@ -347,11 +347,11 @@ void batchNormActivSpatialHostBwdTrain(miopenActivationMode_t activMode,
                                        double beta,
                                        double alpha,
                                        const tensor<T>& x_input,
-                                       const tensor<U>& dy_input,
                                        const tensor<T>& y_input,
                                        tensor<T>& dx_out,
-                                       const tensor<T>& scale,
-                                       const tensor<T>& bias,
+                                       const tensor<T>& bnScale,
+                                       const tensor<U>& dy_input,
+                                       const tensor<U>& bias,
                                        tensor<U>& dscale,
                                        tensor<U>& dbias,
                                        const tensor<U>& savedMean,
@@ -387,7 +387,8 @@ void batchNormActivSpatialHostBwdTrain(miopenActivationMode_t activMode,
                     elemStd = static_cast<double>(x_input(bidx, cidx, row, column)) -
                               mean; // (x_i - mean)
                     xhat[xhat_index] = elemStd * invVar;
-                    double bnrefowd = scale(0, cidx, 0, 0) * xhat[xhat_index] + bias(0, cidx, 0, 0);
+                    double bnrefowd =
+                        bnScale(0, cidx, 0, 0) * xhat[xhat_index] + bias(0, cidx, 0, 0);
                     activationHostBwdElement(activMode,
                                              gamma,
                                              beta,
@@ -408,8 +409,9 @@ void batchNormActivSpatialHostBwdTrain(miopenActivationMode_t activMode,
             { // via columns
                 for(int bidx = 0; bidx < n_batch; bidx++)
                 { // via mini_batch
-                    xhat_index      = in_cstride * bidx + (width * row + column);
-                    double bnrefowd = scale(0, cidx, 0, 0) * xhat[xhat_index] + bias(0, cidx, 0, 0);
+                    xhat_index = in_cstride * bidx + (width * row + column);
+                    double bnrefowd =
+                        bnScale(0, cidx, 0, 0) * xhat[xhat_index] + bias(0, cidx, 0, 0);
                     activationHostBwdElement(activMode,
                                              gamma,
                                              beta,
@@ -421,7 +423,7 @@ void batchNormActivSpatialHostBwdTrain(miopenActivationMode_t activMode,
                     // double tmp1 = nhw * dy_input(bidx, cidx, row, column) - dbias(0, cidx, 0, 0);
                     double tmp1                     = nhw * dyelem - dbias(0, cidx, 0, 0);
                     double tmp2                     = -xhat[xhat_index] * dscale(0, cidx, 0, 0);
-                    double tmp3                     = (scale(0, cidx, 0, 0) * invVar) / nhw;
+                    double tmp3                     = (bnScale(0, cidx, 0, 0) * invVar) / nhw;
                     dx_out(bidx, cidx, row, column) = static_cast<T>(tmp3 * (tmp2 + tmp1));
                 } // end for(n_batchs)
             }     // for (column)

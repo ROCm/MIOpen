@@ -248,6 +248,7 @@ std::string BnormArgsForMIOpenDriver(miopenTensorDescriptor_t xDesc,
                      resultRunningVariance,
                      resultSaveMean,
                      resultSaveInvVariance);
+        ss << " --layout " << miopen::deref(xDesc).GetLayout_str();
     }
     return ss.str();
 }
