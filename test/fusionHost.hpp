@@ -168,14 +168,14 @@ void batchNormSpatialHostInference(const tensor<T>& input,
     });
 }
 
-template <class T, class U>
+template <class T, class U, class V>
 void batchNormPerActivHostInference(const tensor<T>& input,
                                     tensor<T>& output,
-                                    const tensor<T>& scale,
-                                    const tensor<T>& bias,
+                                    const tensor<U>& scale,
+                                    const tensor<U>& bias,
                                     double epsilon,
-                                    const tensor<U>& estimatedMean,
-                                    const tensor<U>& estimatedVariance)
+                                    const tensor<V>& estimatedMean,
+                                    const tensor<V>& estimatedVariance)
 {
     int n_batches, channels, height, width;
     std::tie(n_batches, channels, height, width) = miopen::tien<4>(input.desc.GetLengths());
@@ -278,15 +278,15 @@ void batchNormSpatialHostFwdTrain(const tensor<T>& input,
     });
 }
 
-template <class T, class U>
+template <class T, class U, class V>
 void batchNormSpatialHostBwdTrain(const tensor<T>& x_input,
-                                  const tensor<U>& dy_input,
-                                  tensor<T>& dx_out,
+                                  const tensor<V>& dy_input,
+                                  tensor<U>& dx_out,
                                   const tensor<T>& bnScale,
-                                  tensor<U>& dscale,
-                                  tensor<U>& dbias,
-                                  const tensor<U>& savedMean,
-                                  const tensor<U>& savedInvVar)
+                                  tensor<V>& dscale,
+                                  tensor<V>& dbias,
+                                  const tensor<V>& savedMean,
+                                  const tensor<V>& savedInvVar)
 {
 
     int height, width, n_batch, channels;
@@ -431,17 +431,17 @@ void batchNormActivSpatialHostBwdTrain(miopenActivationMode_t activMode,
     });           // for (channel)
 }
 
-template <class T, class U>
+template <class T, class U, class V>
 void batchNormPerActHostFwdTrain(const tensor<T>& input,
                                  tensor<T>& out,
-                                 const tensor<T>& scale,
-                                 const tensor<T>& bias,
+                                 const tensor<U>& scale,
+                                 const tensor<U>& bias,
                                  double epsilon,
                                  double expAvgFactor,
-                                 tensor<U>& saveMean,
-                                 tensor<U>& saveInvVar,
-                                 tensor<U>& runMean,
-                                 tensor<U>& runVar)
+                                 tensor<V>& saveMean,
+                                 tensor<V>& saveInvVar,
+                                 tensor<V>& runMean,
+                                 tensor<V>& runVar)
 {
 
     int height, width, n_batch, channels;
