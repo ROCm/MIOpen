@@ -269,7 +269,7 @@ protected:
 
                 std::string layout_default = miopen::tensor_layout_get_default(tensor_len.size());
                 std::string layout_string =
-                    miopen::TensorDescriptor::GetLayoutStr(miopenTensorNCHW);
+                    miopen::TensorDescriptor::LayoutEnumToStr(miopenTensorNCHW);
 
                 miopen::tensor_layout_to_strides(
                     tensor_len, layout_default, layout_string, tensor_strides);
@@ -358,7 +358,7 @@ protected:
                     std::string layout_default =
                         miopen::tensor_layout_get_default(tensor_len.size());
                     std::string layout_string =
-                        miopen::TensorDescriptor::GetLayoutStr(miopenTensorNCDHW);
+                        miopen::TensorDescriptor::LayoutEnumToStr(miopenTensorNCDHW);
 
                     miopen::tensor_layout_to_strides(
                         tensor_len, layout_default, layout_string, tensor_strides);

@@ -204,9 +204,13 @@ struct MIOPEN_INTERNALS_EXPORT TensorDescriptor : miopenTensorDescriptor
     unsigned GetNumDims() const;
 
     miopenDataType_t GetType() const;
+    // clang-format off
+    [[deprecated("Use GetLayoutEnum() instead")]]
     miopenTensorLayout_t GetLayout_t() const;
-    static std::string GetLayoutStr(miopenTensorLayout_t layout);
-    std::string GetLayout_str() const;
+    // clang-format on
+    const std::optional<miopenTensorLayout_t>& GetLayoutEnum() const;
+    static std::string LayoutEnumToStr(miopenTensorLayout_t layout);
+    const std::string& GetLayout_str() const;
 
     std::size_t GetVectorLength() const;
     std::optional<miopenDataType_t> GetCastType() const;
@@ -240,50 +244,18 @@ struct MIOPEN_INTERNALS_EXPORT TensorDescriptor : miopenTensorDescriptor
 
     std::string ToString() const;
 
-    bool IsPossibleLayout(const std::string& labels, const std::string& layout) const;
+    // For vectorized layouts storage_layout must be without the ending 'c'
+    // \todo make private
+    bool IsPossibleLayout(const std::string& storage_layout, const std::string& layout) const;
+    // Layout could be NCHW, NHWC, NCDHW, NDHWC, NCHWc, ...
+    bool IsPossibleLayout4D5D(const std::string& layout) const;
 
-    static inline std::vector<int64_t> find_permutation(const std::vector<std::size_t>& lens,
-                                                        const std::vector<std::size_t>& strides)
-    {
-        std::vector<std::int64_t> result(lens.size());
-        std::iota(result.begin(), result.end(), 0);
-        std::stable_sort(result.begin(), result.end(), by(std::greater<>{}, [&](auto x) {
-                             return std::make_tuple(strides[x], lens[x]);
-                         }));
-        return result;
-    }
+    static std::vector<int64_t> find_permutation(const std::vector<std::size_t>& lens,
+                                                 const std::vector<std::size_t>& strides);
 
-    std::string GetLayout(std::string labels) const
-    {
-        if(*(labels.end() - 1) != 'c')
-        {
-            if(labels.size() != strides.size())
-            {
-                MIOPEN_THROW(
-                    "Invalid labels size. Layout labels size must be equavalent to stride size");
-            }
-
-            // Copy construct the result string from labels. This allocates the space at one go
-            // and is faster than calling push_back in transform.
-            auto result = labels;
-            auto p      = find_permutation(lens, strides);
-            std::transform(p.begin(), p.end(), result.begin(), [&](auto i) { return labels[i]; });
-            return result;
-        }
-        else
-        {
-            const std::string base_label = labels.substr(0, labels.size() - 1);
-            if(base_label.size() != strides.size())
-            {
-                MIOPEN_THROW(
-                    "Invalid labels size. Layout labels size must be equavalent to stride size");
-            }
-            auto result = base_label;
-            auto p      = find_permutation(lens, strides);
-            std::transform(p.begin(), p.end(), result.begin(), [&](auto i) { return labels[i]; });
-            return result + 'c';
-        }
-    }
+    // storage_layout must be NCHW or NCHWc for NCHWc, CHWN or CHWNc for CHWNc, NCHW for other 4D
+    // layouts, NCDHW for 5D layouts
+    std::string GetLayout(std::string storage_layout) const;
 
     friend MIOPEN_INTERNALS_EXPORT std::ostream& operator<<(std::ostream& stream,
                                                             const TensorDescriptor& t);
@@ -291,29 +263,20 @@ struct MIOPEN_INTERNALS_EXPORT TensorDescriptor : miopenTensorDescriptor
     friend void to_json(nlohmann::json& j, const TensorDescriptor& descriptor);
     friend void from_json(const nlohmann::json& j, TensorDescriptor& descriptor);
 
-protected:
-    static miopenTensorLayout_t GetDefaultLayout() { return miopenTensorNCHW; };
-
 private:
     TensorDescriptor(miopenDataType_t t,
-                     miopenTensorLayout_t layout_in,
+                     const std::optional<miopenTensorLayout_t>& layout_in,
                      const std::vector<std::size_t>& lens_in,
                      const std::vector<std::size_t>& strides_in,
                      bool use_strides);
 
     TensorDescriptor(miopenDataType_t t,
-                     miopenTensorLayout_t layout_in,
+                     const std::optional<miopenTensorLayout_t>& layout_in,
                      std::vector<std::size_t>&& lens_in,
                      std::vector<std::size_t>&& strides_in,
                      bool use_strides);
 
     void CheckArgsAndInit(bool use_strides);
-
-    void SetStrideNd(const std::string& layout);
-    void LensReorder(const std::string& layout);
-
-    void CalculateStrides();
-    void CalculateVectorLength();
 
     std::vector<std::size_t> lens;
     std::vector<std::size_t> strides;
@@ -323,7 +286,22 @@ private:
 
     miopenDataType_t type = miopenFloat;
     std::optional<miopenDataType_t> cast_type;
-    miopenTensorLayout_t tensorLayout = GetDefaultLayout();
+    std::optional<miopenTensorLayout_t> tensorLayout;
+
+    // For GetLayoutEnum()
+    mutable std::optional<miopenTensorLayout_t> cached_layout_enum;
+    mutable bool cached_layout_enum_calculated = false;
+
+    // For GetLayout_str()
+    mutable std::string cached_layout_str;
+
+    // For GetLayout
+    mutable std::vector<int64_t> cached_permutation;
+
+    // For AllLengthsFitIntoInt()
+    mutable std::optional<bool> cached_lengths_fit_into_int;
+    // For AllDimsFitIntoInt()
+    mutable std::optional<bool> cached_strides_fit_into_int;
 };
 
 template <class TElement>
