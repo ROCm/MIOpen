@@ -29,9 +29,9 @@
 static Driver* makeDriver(const std::string& base_arg)
 {
     if(base_arg == "bnorm")
-        return new BatchNormDriver<float, float, double>();
+        return new BatchNormDriver<float, double>();
     if(base_arg == "bnormfp16")
-        return new BatchNormDriver<float16, float, double, float>();
+        return new BatchNormDriver<float16, double, float>();
     return nullptr;
 }
 
