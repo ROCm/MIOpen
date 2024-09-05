@@ -26,7 +26,7 @@ charset-normalizer==3.3.2
     # via requests
 click==8.1.7
     # via sphinx-external-toc
-cryptography==42.0.7
+cryptography==43.0.1
     # via pyjwt
 deprecated==1.2.14
     # via pygithub
