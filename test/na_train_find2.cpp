@@ -380,20 +380,20 @@ struct verify_bwd_batchnorm_spatial_activ
         std::fill(dgamma.begin(), dgamma.end(), 0.);
         std::fill(dbeta.begin(), dbeta.end(), 0.);
 
-        // batchNormActivSpatialHostBwdTrain(activ_mode,
-        //                                   activ_gamma,
-        //                                   activ_beta,
-        //                                   activ_alpha,
-        //                                   x,
-        //                                   y,
-        //                                   dx,
-        //                                   bnscale,
-        //                                   dy,
-        //                                   bnbias,
-        //                                   dgamma,
-        //                                   dbeta,
-        //                                   savedMean,
-        //                                   savedInvVar);
+        batchNormActivSpatialHostBwdTrain(activ_mode,
+                                          activ_gamma,
+                                          activ_beta,
+                                          activ_alpha,
+                                          x,
+                                          y,
+                                          dx,
+                                          bnscale,
+                                          dy,
+                                          bnbias,
+                                          dgamma,
+                                          dbeta,
+                                          savedMean,
+                                          savedInvVar);
 
         return std::make_tuple(dx, dgamma, dbeta);
     }

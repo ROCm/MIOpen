@@ -35,6 +35,7 @@
 #include <cassert>
 #include <numeric>
 #include <string>
+
 namespace miopen {
 
 namespace {
