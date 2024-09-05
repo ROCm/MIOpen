@@ -329,7 +329,7 @@ struct gpu_reference_conv_2d : gpu_reference_kernel_base
             std::vector<int> out_strides;
 
             std::string layout_default = miopen::tensor_layout_get_default(4);
-            std::string layout_string  = miopen::TensorDescriptor::GetLayoutStr(tensor_layout);
+            std::string layout_string  = miopen::TensorDescriptor::LayoutEnumToStr(tensor_layout);
 
             miopen::tensor_layout_to_strides(in_len, layout_default, layout_string, in_strides);
             miopen::tensor_layout_to_strides(wei_len, layout_default, layout_string, wei_strides);
@@ -697,7 +697,7 @@ struct gpu_reference_conv_3d : gpu_reference_kernel_base
             std::vector<int> out_strides;
 
             std::string layout_default = miopen::tensor_layout_get_default(5);
-            std::string layout_string  = miopen::TensorDescriptor::GetLayoutStr(tensor_layout);
+            std::string layout_string  = miopen::TensorDescriptor::LayoutEnumToStr(tensor_layout);
 
             miopen::tensor_layout_to_strides(in_len, layout_default, layout_string, in_strides);
             miopen::tensor_layout_to_strides(wei_len, layout_default, layout_string, wei_strides);

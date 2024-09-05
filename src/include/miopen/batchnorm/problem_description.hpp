@@ -241,17 +241,7 @@ private:
     NetworkConfig MakeForwardInferenceNetworkConfig() const;
     NetworkConfig MakeBackwardNetworkConfig() const;
 
-    std::string ComputeLayout(const TensorDescriptor& td) const
-    {
-        if(spatial_dim == 2)
-        {
-            return td.GetLayout("NCHW");
-        }
-        else
-        {
-            return td.GetLayout("NCDHW");
-        }
-    }
+    std::string ComputeLayout(const TensorDescriptor& td) const { return td.GetLayout_str(); }
     std::string ComputeInLayout() const { return ComputeLayout(xDesc); }
     std::string ComputeOutLayout() const { return ComputeLayout(yOrDyDesc); }
     std::string ComputeDinLayout() const { return ComputeLayout(dxDesc); }
