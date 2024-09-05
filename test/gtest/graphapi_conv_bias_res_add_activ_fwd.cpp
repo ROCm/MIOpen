@@ -25,6 +25,7 @@
  *******************************************************************************/
 #include <gtest/gtest.h>
 #include <gtest/gtest_common.hpp>
+#include <gtest/gtest_ck_common.hpp>
 #include <miopen/miopen.h>
 #include <miopen/env.hpp>
 
@@ -45,13 +46,7 @@
 namespace gr = miopen::graphapi;
 namespace conv_graph_api_test {
 
-bool IsTestSupportedForDevice()
-{
-    using e_mask = enabled<Gpu::gfx94X, Gpu::gfx103X, Gpu::gfx110X>;
-    // gfx120X is not enabled due to WORKAROUND_SWDEV_479810
-    using d_mask = disabled<Gpu::None>;
-    return ::IsTestSupportedForDevMask<d_mask, e_mask>();
-}
+bool IsTestSupportedForDevice() { return ::IsDeviceSupportedForCK(); }
 
 static bool TestIsApplicable() { return true; }
 
