@@ -25,11 +25,11 @@
  *******************************************************************************/
 #include "solver_wrw.hpp"
 
-struct ConvWrwFp8Naive : ConvWrwSolverTest<float8, float, true>
+struct GPU_ConvWrwNaive_FP8 : ConvWrwSolverTest<float8, float, true>
 {
 };
 
-TEST_P(ConvWrwFp8Naive, DISABLED_Wrw)
+TEST_P(GPU_ConvWrwNaive_FP8, DISABLED_Wrw)
 {
     miopen::solver::conv::ConvDirectNaiveConvWrw solv{};
     SolverWrw(solv);
@@ -37,8 +37,8 @@ TEST_P(ConvWrwFp8Naive, DISABLED_Wrw)
 
 // Since NaiveConv is verified against the CPU, we are conservative in the number and type
 // of test cases we instantiate
-INSTANTIATE_TEST_SUITE_P(ConvWrwTest,
-                         ConvWrwFp8Naive,
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_ConvWrwNaive_FP8,
                          testing::Combine(testing::Values(Gpu::All),
                                           testing::Values(miopenConvolutionAlgoGEMM),
                                           testing::ValuesIn(ConvTestConfigs<ConvTestCaseBase>())));
