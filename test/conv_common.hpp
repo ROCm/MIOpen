@@ -38,7 +38,6 @@
 #include <miopen/tensor_layout.hpp>
 #include <miopen/tensor_ops.hpp>
 #include <miopen/mlo_internal.hpp>
-#include <miopen/solver.hpp>
 #include <miopen/solution.hpp>
 #include <miopen/invoke_params.hpp>
 #include <miopen/conv/tensors.hpp>
