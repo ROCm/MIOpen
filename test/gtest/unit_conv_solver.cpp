@@ -294,7 +294,7 @@ void RunSolverFwd(const miopen::solver::conv::ConvSolverBase& solv,
     // Verify
     //**********************************
 
-    auto ref_out = tensor<Tref>{output.desc.GetLayout_t(), output.desc.GetLengths()};
+    auto ref_out = tensor<Tref>{output.desc.GetLengths()};
     if(use_cpu_ref)
     {
         cpu_convolution_forward(conv_desc.GetSpatialDimension(),

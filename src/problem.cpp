@@ -651,7 +651,7 @@ Problem::FindSolutionsImpl(Handle& handle,
 namespace {
 inline bool IsValidFilterChannelNumber(const TensorDescriptor& x,
                                        const TensorDescriptor& w,
-                                       const miopenTensorLayout_t layout,
+                                       const std::optional<miopenTensorLayout_t>& layout,
                                        const int groups)
 {
     if(layout == miopenTensorNCHW      //
@@ -672,7 +672,7 @@ inline bool IsValidFilterChannelNumber(const TensorDescriptor& x,
 
 inline bool IsValidGroupCount(const TensorDescriptor& x,
                               const TensorDescriptor& w,
-                              const miopenTensorLayout_t layout,
+                              const std::optional<miopenTensorLayout_t>& layout,
                               const int groups)
 {
     if(groups > 1) // Optimize for speed
@@ -697,7 +697,7 @@ void Problem::ValidateGroupCount(const TensorDescriptor& x,
                                  const TensorDescriptor& w,
                                  const ConvolutionDescriptor& conv)
 {
-    const auto layout = w.GetLayout_t();
+    const auto layout = w.GetLayoutEnum();
     const auto groups = conv.group_count;
     assert(groups > 0);
 
