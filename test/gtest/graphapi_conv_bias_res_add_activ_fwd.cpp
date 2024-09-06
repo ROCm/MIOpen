@@ -25,7 +25,6 @@
  *******************************************************************************/
 #include <gtest/gtest.h>
 #include <gtest/gtest_common.hpp>
-#include <gtest/gtest_ck_common.hpp>
 #include <miopen/miopen.h>
 #include <miopen/env.hpp>
 
@@ -46,7 +45,7 @@
 namespace gr = miopen::graphapi;
 namespace conv_graph_api_test {
 
-bool IsTestSupportedForDevice() { return ::IsDeviceSupportedForCK(); }
+bool IsTestSupportedForDevice() { return IsTestSupportedByDevice(Gpu::gfx908 | Gpu::gfx90A | Gpu::gfx94X); }
 
 static bool TestIsApplicable() { return true; }
 
