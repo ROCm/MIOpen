@@ -46,9 +46,6 @@
 #include "ck/tensor_operation/gpu/device/helper.hpp"
 #include "ck/library/utility/host_tensor_generator.hpp"
 #include "ck/library/reference_tensor_operation/cpu/reference_conv_fwd.hpp"
-//#include <test.hpp>
-//#include <rtc/compile_kernel.hpp>
-//#include <rtc/hip.hpp>
 //#include "common.hpp"
 #include <fstream>
 #endif
@@ -214,6 +211,8 @@ bool ConvHipImplicitGemmGroupFwdXdlopsCodegen::IsApplicable(
     [[maybe_unused]] const ExecutionContext& ctx,
     [[maybe_unused]] const ProblemDescription& problem) const
 {
+    // FIXME: rewrite this function
+    return true;
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
     if(env::disabled(MIOPEN_DEBUG_3D_CONV_IMPLICIT_GEMM_HIP_FWD_XDLOPS))
         return false;
@@ -232,8 +231,6 @@ bool ConvHipImplicitGemmGroupFwdXdlopsCodegen::IsApplicable(
         return false;
     // needed because layout transpose kernel does not support non-packed tensors
     if(problem.IsLayoutDefault() && problem.HasNonPackedTensors())
-        return false;
-    if(!ck_utility::is_ck_whitelist(ctx.GetStream().GetDeviceName()))
         return false;
 #endif
     return false;
