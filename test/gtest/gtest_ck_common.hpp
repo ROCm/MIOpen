@@ -36,9 +36,7 @@ static inline bool IsDeviceSupportedForCK()
 {
 #if MIOPEN_USE_COMPOSABLEKERNEL
 #if WORAROUND_ISSUE_2533
-    using e_mask = enabled<Gpu::gfx908, Gpu::gfx90A, Gpu::gfx94X>;
-    using d_mask = disabled<Gpu::gfx103X, Gpu::gfx110X, Gpu::gfx120X>;
-    return ::IsTestSupportedForDevMask<d_mask, e_mask>();
+    return IsTestSupportedByDevice(Gpu::gfx908 | Gpu::gfx90A | Gpu::gfx94X);
 #else
     return true;
 #endif
