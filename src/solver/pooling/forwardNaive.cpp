@@ -78,12 +78,12 @@ bool PoolingForwardNaive::IsApplicable(const ExecutionContext&,
                || problem.GetPooling().GetMode() == miopenPoolingAverageInclusive) //
            && (                                                                    //
                   (problem.GetXDesc().GetNumDims() == 5                            //
-                   && problem.GetXDesc().GetLayout("NCDHW") == "NCDHW"             //
-                   && problem.GetYDesc().GetLayout("NCDHW") == "NCDHW")            //
+                   && problem.GetXDesc().IsPossibleLayout4D5D("NCDHW")             //
+                   && problem.GetYDesc().IsPossibleLayout4D5D("NCDHW"))            //
                   ||                                                               //
                   (problem.GetXDesc().GetNumDims() == 4                            //
-                   && problem.GetXDesc().GetLayout("NCHW") == "NCHW"               //
-                   && problem.GetYDesc().GetLayout("NCHW") == "NCHW")              //
+                   && problem.GetXDesc().IsPossibleLayout4D5D("NCHW")              //
+                   && problem.GetYDesc().IsPossibleLayout4D5D("NCHW"))             //
               );
 }
 

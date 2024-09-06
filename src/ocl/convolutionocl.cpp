@@ -368,7 +368,7 @@ void ConvolutionDescriptor::ValidateTensors(const ConvTensors& tensors) const
     // left of C to be a multiple of group count G. e.g. for NCHW, the stride for N
     // should be a multiple of G so that we can compute the strides for NGCHW
     auto bad_group_stride = [this](const TensorDescriptor& td) {
-        auto l             = td.GetLayout_t();
+        auto l             = td.GetLayoutEnum();
         int g_stride_index = -1;
         if(l == miopenTensorNCHW || l == miopenTensorNCDHW)
         {
