@@ -345,25 +345,25 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::GetandSetData()
     }
     if(isFwdInfer)
     {
-        estMean.AllocOnHost(tensor<Tref>{bn_layout, derivedBnDesc.GetLengths()});
-        estVariance.AllocOnHost(tensor<Tref>{bn_layout, derivedBnDesc.GetLengths()});
+        estMean.AllocOnHost(tensor<Tmix>{bn_layout, derivedBnDesc.GetLengths()});
+        estVariance.AllocOnHost(tensor<Tmix>{bn_layout, derivedBnDesc.GetLengths()});
     }
     else if(isFwdTrain)
     {
-        savedMean.AllocOnHost(tensor<Tref>{bn_layout, derivedBnDesc.GetLengths()});
-        savedVariance.AllocOnHost(tensor<Tref>{bn_layout, derivedBnDesc.GetLengths()});
-        runMean.AllocOnHost(tensor<Tref>{bn_layout, derivedBnDesc.GetLengths()});
-        runVariance.AllocOnHost(tensor<Tref>{bn_layout, derivedBnDesc.GetLengths()});
+        savedMean.AllocOnHost(tensor<Tmix>{bn_layout, derivedBnDesc.GetLengths()});
+        savedVariance.AllocOnHost(tensor<Tmix>{bn_layout, derivedBnDesc.GetLengths()});
+        runMean.AllocOnHost(tensor<Tmix>{bn_layout, derivedBnDesc.GetLengths()});
+        runVariance.AllocOnHost(tensor<Tmix>{bn_layout, derivedBnDesc.GetLengths()});
     }
     else if(isBwd)
     {
         bnScale.AllocOnHost(tensor<Tgpu>{bn_layout, derivedBnDesc.GetLengths()});
-        dy.AllocOnHost(tensor<Tref>{bn_layout, in_len});
+        dy.AllocOnHost(tensor<Tmix>{bn_layout, in_len});
 
-        dScale.AllocOnHost(tensor<Tref>{bn_layout, derivedBnDesc.GetLengths()});
-        dBias.AllocOnHost(tensor<Tref>{bn_layout, derivedBnDesc.GetLengths()});
-        savedMean.AllocOnHost(tensor<Tref>{bn_layout, derivedBnDesc.GetLengths()});
-        savedInvVar.AllocOnHost(tensor<Tref>{bn_layout, derivedBnDesc.GetLengths()});
+        dScale.AllocOnHost(tensor<Tmix>{bn_layout, derivedBnDesc.GetLengths()});
+        dBias.AllocOnHost(tensor<Tmix>{bn_layout, derivedBnDesc.GetLengths()});
+        savedMean.AllocOnHost(tensor<Tmix>{bn_layout, derivedBnDesc.GetLengths()});
+        savedInvVar.AllocOnHost(tensor<Tmix>{bn_layout, derivedBnDesc.GetLengths()});
     }
     else
     {
