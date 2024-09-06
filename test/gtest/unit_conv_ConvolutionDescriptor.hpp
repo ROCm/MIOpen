@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2022 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,28 +23,44 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <miopen/config.h>
+#pragma once
 
-#if MIOPEN_BACKEND_HIP
-#include "log.hpp"
+#include <miopen/convolution.hpp>
+#include <miopen/logger.hpp>
 
-TEST(CPU_LOG_TEST_NONE, AssertLogCmdOutput_Neg)
+namespace miopen {
+namespace unit_tests {
+
+struct ConvolutionDescriptorParams
 {
-    TestLogFun(miopen::debug::LogCmdConvolution, logConv, false);
-}
+    ConvolutionDescriptorParams(std::vector<int>&& pads_in,
+                                std::vector<int>&& strides_in,
+                                std::vector<int>&& dilations_in)
+        : pads(std::move(pads_in)),
+          strides(std::move(strides_in)),
+          dilations(std::move(dilations_in))
+    {
+    }
 
-TEST(CPU_LOG_TEST_NONE, AssertLogFindCmdOutput_Neg)
-{
-    TestLogFun(miopen::debug::LogCmdFindConvolution, logFindConv, false);
-}
+    miopen::ConvolutionDescriptor GetConvolutionDescriptor() const
+    {
+        const auto trans_output_pads = std::vector<int>(pads.size(), 0);
+        return {pads, strides, dilations, trans_output_pads};
+    }
 
-TEST(CPU_LOG_TEST_NONE, AssertTestLogCmdCBAFusionOutput_Neg)
-{
-    TestLogCmdCBAFusion(miopen::debug::LogCmdFusion, logFusionConvBiasActiv, false);
-}
+    friend std::ostream& operator<<(std::ostream& os, const ConvolutionDescriptorParams& cp)
+    {
+        LogRange(os << "{", cp.pads, ",") << "}, ";
+        LogRange(os << "{", cp.strides, ",") << "}, ";
+        LogRange(os << "{", cp.dilations, ",") << "}";
+        return os;
+    }
 
-TEST(CPU_LOG_TEST_NONE, AssertTestLogCmdBNormFusionOutput_Neg)
-{
-    TestLogCmdBNormFusion(miopen::debug::LogCmdFusion, logBnormActiv, false);
-}
-#endif
+private:
+    std::vector<int> pads;
+    std::vector<int> strides;
+    std::vector<int> dilations;
+};
+
+} // namespace unit_tests
+} // namespace miopen

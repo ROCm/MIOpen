@@ -112,6 +112,77 @@ miopenStatus_t ReducAddBias(const miopen::Handle& handle,
                                  dstC_with_offset);
         }
         break;
+        case 2:
+        case 3: {
+#if MIOPEN_USE_ROCBLAS
+            float alpha1  = 1.;
+            auto red_type = ws_desc.GetType();
+            int m = 1, n = ws_desc.GetLengths()[2], k = ws_desc.GetLengths()[1];
+            int lda = k, ldb = ws_desc.GetStrides()[1], ldc = n;
+
+            const miopen::TensorDescriptor red_matrix{
+                red_type, std::vector<int>{1, 1, k}, std::vector<int>{k, k, 1}};
+
+            SetTensor(handle, red_matrix, red_workSpace, &alpha1);
+
+            float alpha = 1, beta = 1;
+            if(algo == 2)
+            {
+                miopen::GemmDescriptor gemm_desc = GemmDescriptor{false,
+                                                                  false,
+                                                                  false,
+                                                                  m,
+                                                                  n,
+                                                                  k,
+                                                                  lda,
+                                                                  ldb,
+                                                                  ldc,
+                                                                  1,     // batch count
+                                                                  0,     // Stride A
+                                                                  0,     // Stride B
+                                                                  0,     // Stride C
+                                                                  alpha, // alpha
+                                                                  beta,  // beta
+                                                                  red_type,
+                                                                  false};
+
+                CallGemm(handle,
+                         gemm_desc,
+                         red_workSpace,
+                         0,
+                         workSpace,
+                         ws_bias_offset,
+                         dw,
+                         dw_bias_offset,
+                         GemmBackend_t::rocblas);
+            }
+            else
+            {
+                if(dw_desc.GetType() != miopenDataType_t::miopenFloat)
+                    MIOPEN_THROW(miopenStatusInternalError, "rocblas_sgemv wrong Type");
+
+                Data_t srcA_with_offset =
+                    static_cast<char*>(workSpace) + ws_bias_offset * GetTypeSize(dw_desc.GetType());
+
+                Data_t dstY_with_offset =
+                    static_cast<char*>(dw) + dw_bias_offset * GetTypeSize(dw_desc.GetType());
+
+                rocblas_sgemv(handle.rhandle().get(),
+                              rocblas_operation::rocblas_operation_none,
+                              n,
+                              k,
+                              &alpha,
+                              static_cast<float*>(srcA_with_offset),
+                              ldb,
+                              static_cast<float*>(red_workSpace),
+                              1,
+                              &beta,
+                              static_cast<float*>(dstY_with_offset),
+                              1);
+            }
+#endif // MIOPEN_USE_ROCBLAS
+        }
+        break;
         default: break;
         }
     }
