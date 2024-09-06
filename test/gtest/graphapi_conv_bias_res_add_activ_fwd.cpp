@@ -45,7 +45,10 @@
 namespace gr = miopen::graphapi;
 namespace conv_graph_api_test {
 
-bool IsTestSupportedForDevice() { return IsTestSupportedByDevice(Gpu::gfx908 | Gpu::gfx90A | Gpu::gfx94X); }
+bool IsTestSupportedForDevice()
+{
+    return IsTestSupportedByDevice(Gpu::gfx908 | Gpu::gfx90A | Gpu::gfx94X);
+}
 
 static bool TestIsApplicable() { return true; }
 
