@@ -36,6 +36,7 @@
 #include "rocrand_wrapper.hpp"
 
 #include "../test/verify.hpp"
+#include "../test/random.hpp"
 #include "../test/fusionHost.hpp"
 
 #include <miopen/handle.hpp>
@@ -162,7 +163,7 @@ private:
     tensor<Tmix> runVariance_ref;
 
     // backward
-    GpumemTensor<Tgpu> bnScale;
+    GpumemTensor<Tmix> bnScale;
 
     GpumemTensor<Tmix> dy;
     GpumemTensor<Tmix> dScale;
@@ -197,19 +198,38 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::GetandSetData()
 
     std::vector<int> in_len = GetInputTensorLengthsFromCmdLine();
 
+    auto gen_value = [](auto...) { return prng::gen_descreet_uniform_sign<Tgpu>(1e-2, 100); };
+
     in.AllocOnHost(tensor<Tgpu>{bn_layout, in_len});
+    in.InitHostData(in.GetTensor().desc.GetElementSize(), true, gen_value);
+
     out.AllocOnHost(tensor<Tgpu>{bn_layout, in_len});
+    // out.InitHostData(in.GetTensor().desc.GetElementSize(), true, gen_value);
+
     auto derivedBnDesc = miopen::TensorDescriptor{};
     miopen::DeriveBNTensorDescriptor(derivedBnDesc, in.GetTensor().desc, bn_mode);
+
     if(isFwdInfer || isFwdTrain)
     {
         scale.AllocOnHost(tensor<Tgpu>{bn_layout, derivedBnDesc.GetLengths()});
         bias.AllocOnHost(tensor<Tgpu>{bn_layout, derivedBnDesc.GetLengths()});
+
+        auto gen_value_scale_bias = [](auto...) {
+            return prng::gen_descreet_uniform_sign<Tgpu>(1e-2, 100);
+        };
+
+        scale.InitHostData(scale.GetTensor().desc.GetElementSize(), true, gen_value_scale_bias);
+        bias.InitHostData(bias.GetTensor().desc.GetElementSize(), true, gen_value_scale_bias);
     }
     if(isFwdInfer)
     {
         estMean.AllocOnHost(tensor<Tmix>{bn_layout, derivedBnDesc.GetLengths()});
         estVariance.AllocOnHost(tensor<Tmix>{bn_layout, derivedBnDesc.GetLengths()});
+
+        auto gen_value_emean = [](auto...) {
+            return prng::gen_descreet_uniform_sign<Tmix>(1e-2, 100);
+        };
+        estMean.InitHostData(estMean.GetTensor().desc.GetElementSize(), true, gen_value_emean);
     }
     else if(isFwdTrain)
     {
@@ -217,16 +237,36 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::GetandSetData()
         savedVariance.AllocOnHost(tensor<Tmix>{bn_layout, derivedBnDesc.GetLengths()});
         runMean.AllocOnHost(tensor<Tmix>{bn_layout, derivedBnDesc.GetLengths()});
         runVariance.AllocOnHost(tensor<Tmix>{bn_layout, derivedBnDesc.GetLengths()});
+
+        auto gen_var = [](auto...) {
+            return static_cast<Tmix>(1e-2 * (prng::gen_0_to_B(100) + 1));
+        };
+        runMean.InitHostData(runMean.GetTensor().desc.GetElementSize(), true, gen_var);
+        runVariance.InitHostData(runVariance.GetTensor().desc.GetElementSize(), true, gen_var);
     }
     else if(isBwd)
     {
-        bnScale.AllocOnHost(tensor<Tgpu>{bn_layout, derivedBnDesc.GetLengths()});
+        bnScale.AllocOnHost(tensor<Tmix>{bn_layout, derivedBnDesc.GetLengths()});
         dy.AllocOnHost(tensor<Tmix>{bn_layout, in_len});
+
+        auto gen_value_bwd = [](auto...) {
+            return prng::gen_descreet_uniform_sign<Tmix>(1e-2, 100);
+        };
+
+        dy.InitHostData(dy.GetTensor().desc.GetElementSize(), true, gen_value_bwd);
+        bnScale.InitHostData(bnScale.GetTensor().desc.GetElementSize(), true, gen_value_bwd);
 
         dScale.AllocOnHost(tensor<Tmix>{bn_layout, derivedBnDesc.GetLengths()});
         dBias.AllocOnHost(tensor<Tmix>{bn_layout, derivedBnDesc.GetLengths()});
         savedMean.AllocOnHost(tensor<Tmix>{bn_layout, derivedBnDesc.GetLengths()});
         savedInvVar.AllocOnHost(tensor<Tmix>{bn_layout, derivedBnDesc.GetLengths()});
+
+        savedMean.InitHostData(savedMean.GetTensor().desc.GetElementSize(), true, gen_value_bwd);
+
+        auto gen_inv_var = [](auto...) {
+            return static_cast<Tmix>(1e-2 * (prng::gen_0_to_B(100) + 1));
+        };
+        savedInvVar.InitHostData(savedInvVar.GetTensor().desc.GetElementSize(), true, gen_inv_var);
     }
     else
     {
@@ -1112,8 +1152,6 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::VerifyForward()
         } // end if(saveMeanVar)
     }
 
-    // Check output tensor error
-    // out_dev->FromGPU(GetStream(), out.data());
     out.CopyFromDeviceToHost(GetStream());
 
     maxval        = static_cast<Tref>(0.0);
@@ -1178,6 +1216,9 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::RunBackwardCPU()
     //	T alphaParam = 1, betaParam = 0;
     double alpha = static_cast<double>(1), beta = static_cast<double>(0),
            gamma = static_cast<double>(1);
+
+    // float alphaDataDiff = static_cast<float>(1), betaDataDiff = static_cast<float>(0);
+    // float alphaParamDiff = static_cast<float>(1), betaParamDiff = static_cast<float>(0);
 
     if(bn_mode == miopenBNPerActivation)
     {
@@ -1282,8 +1323,8 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::VerifyBackward()
 #if(MIO_BN_DEBUG == 1)
         for(int i = 0; i < dScale.GetVector().size() && i < MIO_BN_MAX_DEBUGLOOP; i++)
         {
-            diff   = fabs(Tmix(fabs(dScale.GetVector()[i]) - fabs(dScale_ref.data[i])));
-            maxval = maxval < diff ? diff : maxval;
+            auto diff = fabs(Tmix(fabs(dScale.GetVector()[i]) - fabs(dScale_ref.data[i])));
+            maxval    = maxval < diff ? diff : maxval;
             if(!std::isfinite(diff) || diff > tolerance)
             {
                 std::cout << "dscale[" << i << "]: " << dScale.GetVector()[i];

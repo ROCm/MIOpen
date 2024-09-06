@@ -162,6 +162,7 @@ void batchNormSpatialHostInference(const tensor<T>& input,
                     output(bidx, cidx, row, column) =
                         static_cast<T>(scale(0, cidx, 0, 0) * inhat + bias(0, cidx, 0, 0));
                     // printf("output: %f\n",scale(0, cidx, 0, 0) * inhat + bias(0, cidx, 0, 0));
+                    // std::cout << output(bidx, cidx, row, column) << ",";
                 }
             }
         }
@@ -292,7 +293,6 @@ void batchNormSpatialHostBwdTrain(const tensor<XDataType>& x_input,
                                   const tensor<AccDataType>& savedMean,
                                   const tensor<AccDataType>& savedInvVar)
 {
-
     int height, width, n_batch, channels;
     std::tie(n_batch, channels, height, width) = miopen::tien<4>(x_input.desc.GetLengths());
     auto nhw                                   = double(height * width * n_batch);
