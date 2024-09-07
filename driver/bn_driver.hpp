@@ -1083,27 +1083,26 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::VerifyForward()
             savedVariance.CopyFromDeviceToHost(GetStream());
 
             maxval             = static_cast<Tref>(0.0);
-            auto errorSaveMean = miopen::rms_range(savedVariance_ref.data, savedMean.GetVector());
+            auto errorSaveMean = miopen::rms_range(savedMean_ref.data, savedMean.GetVector());
             if(!std::isfinite(errorSaveMean) || errorSaveMean > maxrms)
             {
                 std::cout << "Forward train batch norm verification FAILED on saved mean: "
                           << errorSaveMean << std::endl;
                 anError = true;
 #if(MIO_BN_DEBUG == 1)
-                for(int i = 0; i < savedMean.GetVector().size() &&
-                               i < savedVariance_ref.data.size() && i < MIO_BN_MAX_DEBUGLOOP;
+                for(int i = 0; i < savedMean.GetVector().size() && i < savedMean_ref.data.size() &&
+                               i < MIO_BN_MAX_DEBUGLOOP;
                     i++)
                 {
-                    diff = fabs(
-                        Tmix(fabs(savedMean.GetVector()[i]) - fabs(savedVariance_ref.data[i])));
+                    diff = fabs(Tmix(fabs(savedMean.GetVector()[i]) - fabs(savedMean_ref.data[i])));
                     maxval = maxval < diff ? diff : maxval;
                     if(!std::isfinite(diff) || diff > tolerance)
                     {
                         std::cout << "sm[" << i << "]: " << savedMean.GetVector()[i];
-                        std::cout << ", sm_host[" << i << "]: " << savedVariance_ref.data[i];
+                        std::cout << ", sm_host[" << i << "]: " << savedMean_ref.data[i];
                         std::cout << ", diff[" << i << "]: "
                                   << Tmix(fabs(savedMean.GetVector()[i]) -
-                                          fabs(savedVariance_ref.data[i]))
+                                          fabs(savedMean_ref.data[i]))
                                   << std::endl;
                     }
                 }
@@ -1156,6 +1155,7 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::VerifyForward()
 
     maxval        = static_cast<Tref>(0.0);
     auto errorOut = miopen::rms_range(out_ref.data, out.GetVector());
+
     if(!std::isfinite(errorOut) || errorOut > maxrms)
     {
         std::cout << "Forward batch norm verification FAILED on output: " << errorOut << std::endl;
