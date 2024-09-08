@@ -378,7 +378,8 @@ public:
 
     void ZeroOutBuffer(const Handle& handle)
     {
-        [[maybe_unused]] auto status = hipMemsetAsync(buf_handle.get(), 0, tensor_sz, handle.GetStream());
+        [[maybe_unused]] auto status =
+            hipMemsetAsync(buf_handle.get(), 0, tensor_sz, handle.GetStream());
         assert(status == hipSuccess);
     }
 
