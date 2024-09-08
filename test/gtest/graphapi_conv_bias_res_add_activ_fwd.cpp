@@ -47,10 +47,7 @@ namespace conv_graph_api_test {
 
 bool IsTestSupportedForDevice()
 {
-    using e_mask = enabled<Gpu::gfx94X, Gpu::gfx103X, Gpu::gfx110X>;
-    // gfx120X is not enabled due to WORKAROUND_SWDEV_479810
-    using d_mask = disabled<Gpu::None>;
-    return ::IsTestSupportedForDevMask<d_mask, e_mask>();
+    return IsTestSupportedByDevice(Gpu::gfx908 | Gpu::gfx90A | Gpu::gfx94X);
 }
 
 static bool TestIsApplicable() { return true; }
