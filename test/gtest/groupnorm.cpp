@@ -43,21 +43,17 @@ std::string GetFloatArg()
     return tmp;
 }
 
-struct GroupNormTestFloat : GroupNormTest<float>
+struct GPU_GroupNorm_FP32 : GroupNormTest<float>
 {
 };
 
 } // namespace groupnorm
 using namespace groupnorm;
 
-TEST_P(GroupNormTestFloat, GroupNormTestFw)
+TEST_P(GPU_GroupNorm_FP32, GroupNormTestFw)
 {
-    const auto& handle = get_handle();
-
-    if((miopen::StartsWith(handle.GetDeviceName(), "gfx908") ||
-        miopen::StartsWith(handle.GetDeviceName(), "gfx90a") ||
-        miopen::StartsWith(handle.GetDeviceName(), "gfx94")) &&
-       env::enabled(MIOPEN_TEST_ALL) && (GetFloatArg() == "--float"))
+    if(!MIOPEN_TEST_ALL ||
+       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--float"))
     {
         RunTest();
         Verify();
@@ -68,6 +64,4 @@ TEST_P(GroupNormTestFloat, GroupNormTestFw)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(GroupNormTestSet,
-                         GroupNormTestFloat,
-                         testing::ValuesIn(GroupNormTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_GroupNorm_FP32, testing::ValuesIn(GroupNormTestConfigs()));

@@ -37,6 +37,19 @@ macro(set_var_to_condition var)
     endif()
 endmacro()
 
+macro(set_if_bools_are_different var in1 in2)
+    set(${var} FALSE)
+    if(${in1})
+        if(NOT ${in2})
+           set(${var} TRUE)
+        endif()
+    else()
+        if(${in2})
+           set(${var} TRUE)
+        endif()
+    endif()
+endmacro()
+
 get_property(MIOPEN_GENERATOR_IS_MULTI_CONFIG GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
 
 # This has to be initialized before the project() command appears
@@ -105,6 +118,8 @@ option( BUILD_DEV "Build for development only" OFF)
 option(MIOPEN_ENABLE_FIN "Enable the fin driver for MIOpen"  OFF)
 option(MIOPEN_STRIP_SYMBOLS "Strip symbols in release mode" ON)
 
+option(MIOPEN_WORKAROUND_USE_BOOST_FILESYSTEM "Workaround: Use boost::filesystem instead of std::filesystem" OFF)
+message(STATUS "MIOPEN_WORKAROUND_USE_BOOST_FILESYSTEM ${MIOPEN_WORKAROUND_USE_BOOST_FILESYSTEM}")
 
 # Strip symbols for release
 if(MIOPEN_STRIP_SYMBOLS AND NOT WIN32 AND NOT APPLE)
@@ -112,7 +127,7 @@ if(MIOPEN_STRIP_SYMBOLS AND NOT WIN32 AND NOT APPLE)
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -s")
 endif()
 
-rocm_setup_version(VERSION 3.2.0)
+rocm_setup_version(VERSION 3.3.0)
 
 list( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake )
 include(TargetFlags)
@@ -134,9 +149,9 @@ else()
     set(MIOPEN_DEFAULT_BACKEND "OpenCL")
 endif()
 
-if(NOT WIN32)
+if(NOT WIN32 AND NOT MIOPEN_WORKAROUND_USE_BOOST_FILESYSTEM)
     include(CheckCXXLinkerFlag)
-    check_cxx_linker_flag(stdc++fs HAS_LIB_STD_FILESYSTEM)
+    check_cxx_linker_flag(-lstdc++fs HAS_LIB_STD_FILESYSTEM)
 endif()
 
 list(APPEND CMAKE_PREFIX_PATH ${CMAKE_INSTALL_PREFIX} ${CMAKE_INSTALL_PREFIX}/llvm ${CMAKE_INSTALL_PREFIX}/hip /opt/rocm /opt/rocm/llvm /opt/rocm/hip)
@@ -217,7 +232,7 @@ endif()
 
 # HIP is always required
 find_package(hip REQUIRED PATHS /opt/rocm)
-message(STATUS "Build with HIP ${hip_VERSION}")
+message(STATUS "Build with HIP ${hip_VERSION} ${hip_DIR}")
 
 # Override HIP version in config.h, if necessary.
 # The variables set by find_package() can't be overwritten,
@@ -252,8 +267,13 @@ set(MIOPEN_hip_VERSION ${MIOPEN_hip_VERSION_MAJOR}.${MIOPEN_hip_VERSION_MINOR}.$
 
 # Do not enable HIPRTC by default for older ROCm versions in order to avoid
 # build time errors, because HIPRTC is a relatively new component.
-set_var_to_condition(MIOPEN_USE_HIPRTC_DEFAULT (MIOPEN_USE_COMGR AND (MIOPEN_hip_VERSION VERSION_GREATER_EQUAL 5)))
+set_var_to_condition(MIOPEN_USE_HIPRTC_DEFAULT MIOPEN_USE_COMGR)
 option(MIOPEN_USE_HIPRTC "Use HIPRTC to build HIP kernels instead of COMGR" ${MIOPEN_USE_HIPRTC_DEFAULT})
+
+set_if_bools_are_different(MIOPEN_CONFIGURATION_ERROR_COMGR_HIPRTC MIOPEN_USE_COMGR MIOPEN_USE_HIPRTC)
+if(MIOPEN_CONFIGURATION_ERROR_COMGR_HIPRTC)
+   message(FATAL_ERROR "MIOPEN_USE_COMGR (${MIOPEN_USE_COMGR}) and MIOPEN_USE_HIPRTC (${MIOPEN_USE_HIPRTC}) should be set to the same value")
+endif()
 
 # Do not append system include directories to HIP compiler flags when HIPRTC is used
 set_var_to_condition(MIOPEN_HIP_COMPILER_USE_SYSTEM_INCLUDE_DIRECTORIES_DEFAULT
@@ -333,7 +353,7 @@ if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_B
     set(MIOPEN_USE_ROCBLAS ON CACHE BOOL "")
     if(MIOPEN_USE_ROCBLAS)
         find_package(rocblas REQUIRED PATHS /opt/rocm)
-        message(STATUS "Build with rocblas ${rocblas_VERSION}")
+        message(STATUS "Build with rocblas ${rocblas_VERSION} ${rocblas_DIR}")
     else()
         message(STATUS "Build without rocblas")
     endif()
@@ -402,7 +422,7 @@ if(MIOPEN_USE_MLIR)
             endif()
         endif()
     endif()
-    message(STATUS "Build with rocMLIR::rockCompiler ${rocMLIR_VERSION}")
+    message(STATUS "Build with rocMLIR::rockCompiler ${rocMLIR_VERSION} ${rocMLIR_DIR}")
 endif()
 
 # Update HIP Runtime Package Dependency
@@ -431,7 +451,7 @@ message(STATUS "AMDGCN assembler: ${MIOPEN_AMDGCN_ASSEMBLER}")
 
 if(MIOPEN_USE_COMGR)
     find_package(amd_comgr REQUIRED CONFIG)
-    message(STATUS "Build with comgr ${amd_comgr_VERSION}")
+    message(STATUS "Build with amd_comgr ${amd_comgr_VERSION} ${amd_comgr_DIR}")
     set(MIOPEN_PACKAGE_REQS "${MIOPEN_PACKAGE_REQS}, comgr")
 endif()
 
@@ -440,7 +460,7 @@ if(MIOPEN_USE_HIPRTC)
         message(FATAL_ERROR "HIPRTC can be used only together with COMGR")
     endif()
     find_package(hiprtc REQUIRED)
-    message(STATUS "Build with HIPRTC ${hiprtc_VERSION}")
+    message(STATUS "Build with hiprtc ${hiprtc_VERSION} ${hiprtc_DIR}")
 endif()
 
 option(Boost_USE_STATIC_LIBS "Use boost static libraries" ON)
@@ -471,7 +491,9 @@ endif()
 
 if(MIOPEN_ENABLE_AI_KERNEL_TUNING OR MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK)
     find_package(frugally-deep CONFIG REQUIRED)
+    message(STATUS "Build with frugally-deep ${frugally-deep_VERSION} ${frugally-deep_DIR}")
     find_package(Eigen3 REQUIRED)
+    message(STATUS "Build with Eigen3 ${Eigen3_VERSION} ${Eigen3_DIR}")
 endif()
 
 if(WIN32)
@@ -533,7 +555,7 @@ endif()
 if(MIOPEN_BUILD_DRIVER)
     # PR #2785 MIOpenDriver to use rocrand to init buffers
     find_package(rocrand REQUIRED)
-    message(STATUS "rocrand_VERSION=${rocrand_VERSION}")
+    message(STATUS "Build with rocrand ${rocrand_VERSION} ${rocrand_DIR}")
     set(MIOPEN_PACKAGE_REQS "${MIOPEN_PACKAGE_REQS}, rocrand")
 endif()
 

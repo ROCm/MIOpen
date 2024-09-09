@@ -52,31 +52,16 @@ static void LogCmdReduceExtreme(const miopenTensorDescriptor_t xDesc,
             ss << "reduceextremebfp16";
         }
 
-        int32_t size = {0};
-        miopenGetTensorDescriptorSize(xDesc, &size);
-        ss << " -n " << miopen::deref(xDesc).GetLengths()[0];
-        if(size == 5)
+        std::string input_sz;
+        auto input = miopen::deref(xDesc).GetLengths();
+        for(int32_t i = 0; i < input.size(); ++i)
         {
-            ss << " -c " << miopen::deref(xDesc).GetLengths()[1] << " -D "
-               << miopen::deref(xDesc).GetLengths()[2] << " -H "
-               << miopen::deref(xDesc).GetLengths()[3] << " -W "
-               << miopen::deref(xDesc).GetLengths()[4];
+            input_sz += std::to_string(input[i]);
+            if(i != input.size() - 1)
+                input_sz += "x";
         }
-        else if(size == 4)
-        {
-            ss << " -c " << miopen::deref(xDesc).GetLengths()[1] << " -H "
-               << miopen::deref(xDesc).GetLengths()[2] << " -W "
-               << miopen::deref(xDesc).GetLengths()[3];
-        }
-        else if(size == 3)
-        {
-            ss << " -c " << miopen::deref(xDesc).GetLengths()[1] << " -W "
-               << miopen::deref(xDesc).GetLengths()[2];
-        }
-        else if(size == 2)
-        {
-            ss << " -c " << miopen::deref(xDesc).GetLengths()[1];
-        }
+
+        ss << " -input " << input_sz;
 
         ss << " -F " << ((is_fwd) ? "1" : "2");
 

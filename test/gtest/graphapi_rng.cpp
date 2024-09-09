@@ -49,7 +49,7 @@ using miopen::graphapi::RngBuilder;
 
 } // namespace
 
-class GraphApiRngBuilder : public testing::TestWithParam<DescriptorTuple>
+class CPU_GraphApiRngBuilder_NONE : public testing::TestWithParam<DescriptorTuple>
 {
 protected:
     bool mAttrsValid;
@@ -72,7 +72,7 @@ protected:
     }
 };
 
-TEST_P(GraphApiRngBuilder, ValidateAttributes)
+TEST_P(CPU_GraphApiRngBuilder_NONE, ValidateAttributes)
 {
     if(mAttrsValid && mNormalStdev.valid && mBernoulliProb.valid)
     {
@@ -130,7 +130,7 @@ using miopen::graphapi::GTestGraphApiExecute;
 
 } // namespace
 
-class GraphApiRng : public testing::TestWithParam<DescriptorTuple>
+class CPU_GraphApiRng_NONE : public testing::TestWithParam<DescriptorTuple>
 {
 private:
     // Pointers to these are used in mExecute object below
@@ -210,7 +210,7 @@ protected:
     }
 };
 
-TEST_P(GraphApiRng, CFunctions) { mExecute(); }
+TEST_P(CPU_GraphApiRng_NONE, CFunctions) { mExecute(); }
 
 static auto validAttributesNormal =
     testing::Combine(testing::Values(true),
@@ -274,20 +274,18 @@ static auto invalidAttributesBernoulli = testing::Combine(
     testing::Values(0.0, 1.0),
     testing::Values(ValidatedValue<double>{false, -0.5}, ValidatedValue<double>{false, 1.5}));
 
-INSTANTIATE_TEST_SUITE_P(ValidAttributesNormal, GraphApiRngBuilder, validAttributesNormal);
-INSTANTIATE_TEST_SUITE_P(ValidAttributesUniform, GraphApiRngBuilder, validAttributesUniform);
-INSTANTIATE_TEST_SUITE_P(ValidAttributesBernoulli, GraphApiRngBuilder, validAttributesBernoulli);
+INSTANTIATE_TEST_SUITE_P(UnitVAN, CPU_GraphApiRngBuilder_NONE, validAttributesNormal);
+INSTANTIATE_TEST_SUITE_P(UnitVAU, CPU_GraphApiRngBuilder_NONE, validAttributesUniform);
+INSTANTIATE_TEST_SUITE_P(UnitVAB, CPU_GraphApiRngBuilder_NONE, validAttributesBernoulli);
 
-INSTANTIATE_TEST_SUITE_P(InvalidAttributesNormal, GraphApiRngBuilder, invalidAttributesNormal);
-INSTANTIATE_TEST_SUITE_P(InvalidAttributesUniform, GraphApiRngBuilder, invalidAttributesUniform);
-INSTANTIATE_TEST_SUITE_P(InvalidAttributesBernoulli,
-                         GraphApiRngBuilder,
-                         invalidAttributesBernoulli);
+INSTANTIATE_TEST_SUITE_P(UnitIAN, CPU_GraphApiRngBuilder_NONE, invalidAttributesNormal);
+INSTANTIATE_TEST_SUITE_P(UnitIAU, CPU_GraphApiRngBuilder_NONE, invalidAttributesUniform);
+INSTANTIATE_TEST_SUITE_P(UnitIAB, CPU_GraphApiRngBuilder_NONE, invalidAttributesBernoulli);
 
-INSTANTIATE_TEST_SUITE_P(ValidAttributesNormal, GraphApiRng, validAttributesNormal);
-INSTANTIATE_TEST_SUITE_P(ValidAttributesUniform, GraphApiRng, validAttributesUniform);
-INSTANTIATE_TEST_SUITE_P(ValidAttributesBernoulli, GraphApiRng, validAttributesBernoulli);
+INSTANTIATE_TEST_SUITE_P(UnitVAN, CPU_GraphApiRng_NONE, validAttributesNormal);
+INSTANTIATE_TEST_SUITE_P(UnitVAU, CPU_GraphApiRng_NONE, validAttributesUniform);
+INSTANTIATE_TEST_SUITE_P(UnitVAB, CPU_GraphApiRng_NONE, validAttributesBernoulli);
 
-INSTANTIATE_TEST_SUITE_P(InvalidAttributesNormal, GraphApiRng, invalidAttributesNormal);
-INSTANTIATE_TEST_SUITE_P(InvalidAttributesUniform, GraphApiRng, invalidAttributesUniform);
-INSTANTIATE_TEST_SUITE_P(InvalidAttributesBernoulli, GraphApiRng, invalidAttributesBernoulli);
+INSTANTIATE_TEST_SUITE_P(UnitIAN, CPU_GraphApiRng_NONE, invalidAttributesNormal);
+INSTANTIATE_TEST_SUITE_P(UnitIAU, CPU_GraphApiRng_NONE, invalidAttributesUniform);
+INSTANTIATE_TEST_SUITE_P(UnitIAB, CPU_GraphApiRng_NONE, invalidAttributesBernoulli);

@@ -32,9 +32,7 @@
 #include <miopen/conv/invokers/gcn_asm_wino.hpp>
 #include <miopen/conv/kernel_interface/winograd_kernel_interface.hpp>
 #include <miopen/env.hpp>
-#if !MIOPEN_USE_COMGR
 #include <miopen/kernel_build_params.hpp>
-#endif
 #include <miopen/stringutils.hpp>
 #include <miopen/fusion/utils.hpp>
 
@@ -375,12 +373,13 @@ ConvWinoFuryRxSCommon<Winodata, Winofilter>::GetSolution(const ExecutionContext&
     // KernelInfo
     KernelInfo kernel;
 
-#if !MIOPEN_USE_COMGR
+    /// Kernel doesn't need ROCM_METADATA_VERSION, but AmdgcnAssemble()
+    /// uses it to find out required CO version (hack).
+    /// \todo Delete when COv2 support is removed.
     KernelBuildParameters options{
-        {"ROCM_METADATA_VERSION", 5}, // For AmdgcnAssemble(...)
+        {"ROCM_METADATA_VERSION", 5},
     };
     kernel.comp_options = options.GenerateFor(kbp::GcnAsm{});
-#endif
     kernel.comp_options += std::string(" -mcumode -mwavefrontsize64");
 
     kernel.l_wk.push_back(wg_size);
@@ -464,8 +463,8 @@ ConvWinoFuryRxS<Winodata, Winofilter>::GetSolution(const ExecutionContext& ctx,
     return ConvWinoFuryRxSCommon<Winodata, Winofilter>::GetSolution(ctx, problem);
 }
 
-template struct ConvWinoFuryRxS<2, 3>;
-// template struct ConvWinoFuryRxS<3, 2>;
+template struct MIOPEN_INTERNALS_EXPORT ConvWinoFuryRxS<2, 3>;
+// template struct MIOPEN_INTERNALS_EXPORT ConvWinoFuryRxS<3, 2>;
 
 } // namespace conv
 

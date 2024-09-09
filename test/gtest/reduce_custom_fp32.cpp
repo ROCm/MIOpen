@@ -44,8 +44,10 @@ std::vector<std::string> GetArgs(const std::string& param)
 
 std::vector<std::string> GetTestCases(void)
 {
-    const std::string& cmd       = "test_reduce_test ";
-    const std::string& float_arg = env::value(MIOPEN_TEST_FLOAT_ARG);
+    const std::string& cmd = "test_reduce_test ";
+    std::string float_arg  = env::value(MIOPEN_TEST_FLOAT_ARG);
+    if(float_arg.empty())
+        float_arg = "--float";
 
     // clang-format off
     return std::vector<std::string>{
@@ -56,7 +58,7 @@ std::vector<std::string> GetTestCases(void)
 
 using TestCase = decltype(GetTestCases())::value_type;
 
-class ConfigWithFloat_reduce_custom_fp32 : public testing::TestWithParam<std::vector<TestCase>>
+class GPU_reduce_custom_fp32_FP32 : public testing::TestWithParam<std::vector<TestCase>>
 {
 };
 
@@ -76,7 +78,7 @@ void Run2dDriver(void)
     {
         GTEST_SKIP();
     }
-    std::vector<std::string> params = ConfigWithFloat_reduce_custom_fp32::GetParam();
+    std::vector<std::string> params = GPU_reduce_custom_fp32_FP32::GetParam();
 
     for(const auto& test_value : params)
     {
@@ -96,8 +98,6 @@ void Run2dDriver(void)
 } // namespace reduce_custom_fp32
 using namespace reduce_custom_fp32;
 
-TEST_P(ConfigWithFloat_reduce_custom_fp32, FloatTest_reduce_custom_fp32) { Run2dDriver(); };
+TEST_P(GPU_reduce_custom_fp32_FP32, FloatTest_reduce_custom_fp32) { Run2dDriver(); };
 
-INSTANTIATE_TEST_SUITE_P(ReduceCustomFp32,
-                         ConfigWithFloat_reduce_custom_fp32,
-                         testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_reduce_custom_fp32_FP32, testing::Values(GetTestCases()));

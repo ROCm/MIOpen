@@ -269,7 +269,7 @@ protected:
 
                 std::string layout_default = miopen::tensor_layout_get_default(tensor_len.size());
                 std::string layout_string =
-                    miopen::TensorDescriptor::GetLayoutStr(miopenTensorNCHW);
+                    miopen::TensorDescriptor::LayoutEnumToStr(miopenTensorNCHW);
 
                 miopen::tensor_layout_to_strides(
                     tensor_len, layout_default, layout_string, tensor_strides);
@@ -358,7 +358,7 @@ protected:
                     std::string layout_default =
                         miopen::tensor_layout_get_default(tensor_len.size());
                     std::string layout_string =
-                        miopen::TensorDescriptor::GetLayoutStr(miopenTensorNCDHW);
+                        miopen::TensorDescriptor::LayoutEnumToStr(miopenTensorNCDHW);
 
                     miopen::tensor_layout_to_strides(
                         tensor_len, layout_default, layout_string, tensor_strides);
@@ -406,52 +406,54 @@ protected:
     virtual void TearDown() override {}
 };
 
-#define DEFINE_LayoutTransposeTest_2D(type, sol)                                             \
-    struct LayoutTransposeTest_2D_##sol##_##type                                             \
-        : public LayoutTransposeTest_2D<type, miopen::sol>                                   \
-    {                                                                                        \
-    };                                                                                       \
-    TEST_P(LayoutTransposeTest_2D_##sol##_##type, LayoutTransposeTest_2D_##sol##_##type##_P) \
-    {                                                                                        \
-        RunTest();                                                                           \
-    }                                                                                        \
-    INSTANTIATE_TEST_SUITE_P(                                                                \
-        LayoutTransposeTest_2D_##sol##_##type##_Test,                                        \
-        LayoutTransposeTest_2D_##sol##_##type,                                               \
-        testing::Combine(testing::ValuesIn(transpose_dims::get_batch_size()),                \
+#define DEFINE_LayoutTransposeTest_2D(type, naming_type, sol)                 \
+    struct GPU_LayoutTransposeTest_2D_##sol##_##naming_type                   \
+        : public LayoutTransposeTest_2D<type, miopen::sol>                    \
+    {                                                                         \
+    };                                                                        \
+    TEST_P(GPU_LayoutTransposeTest_2D_##sol##_##naming_type,                  \
+           LayoutTransposeTest_2D_##sol##_##type##_P)                         \
+    {                                                                         \
+        RunTest();                                                            \
+    }                                                                         \
+    INSTANTIATE_TEST_SUITE_P(                                                 \
+        Full,                                                                 \
+        GPU_LayoutTransposeTest_2D_##sol##_##naming_type,                     \
+        testing::Combine(testing::ValuesIn(transpose_dims::get_batch_size()), \
                          testing::ValuesIn(transpose_dims::get_channel_size())));
 
-#define DEFINE_2D_TYPED_TESTS(sol)                \
-    DEFINE_LayoutTransposeTest_2D(float, sol);    \
-    DEFINE_LayoutTransposeTest_2D(float16, sol);  \
-    DEFINE_LayoutTransposeTest_2D(bfloat16, sol); \
-    DEFINE_LayoutTransposeTest_2D(uint16_t, sol); \
-    DEFINE_LayoutTransposeTest_2D(uint8_t, sol);
+#define DEFINE_2D_TYPED_TESTS(sol)                       \
+    DEFINE_LayoutTransposeTest_2D(float, FP32, sol);     \
+    DEFINE_LayoutTransposeTest_2D(float16, FP16, sol);   \
+    DEFINE_LayoutTransposeTest_2D(bfloat16, BFP16, sol); \
+    DEFINE_LayoutTransposeTest_2D(uint16_t, I16, sol);   \
+    DEFINE_LayoutTransposeTest_2D(uint8_t, I8, sol);
 
 DEFINE_2D_TYPED_TESTS(TransposeSolutionDefault2Nhwc);
 DEFINE_2D_TYPED_TESTS(TransposeSolutionNhwc2Default);
 
-#define DEFINE_LayoutTransposeTest_3D(type, sol)                                             \
-    struct LayoutTransposeTest_3D_##sol##_##type                                             \
-        : public LayoutTransposeTest_3D<type, miopen::sol>                                   \
-    {                                                                                        \
-    };                                                                                       \
-    TEST_P(LayoutTransposeTest_3D_##sol##_##type, LayoutTransposeTest_3D_##sol##_##type##_P) \
-    {                                                                                        \
-        RunTest();                                                                           \
-    }                                                                                        \
-    INSTANTIATE_TEST_SUITE_P(                                                                \
-        LayoutTransposeTest_3D_##sol##_##type##_Test,                                        \
-        LayoutTransposeTest_3D_##sol##_##type,                                               \
-        testing::Combine(testing::ValuesIn(transpose_dims::get_batch_size()),                \
+#define DEFINE_LayoutTransposeTest_3D(type, naming_type, sol)                 \
+    struct GPU_LayoutTransposeTest_3D_##sol##_##naming_type                   \
+        : public LayoutTransposeTest_3D<type, miopen::sol>                    \
+    {                                                                         \
+    };                                                                        \
+    TEST_P(GPU_LayoutTransposeTest_3D_##sol##_##naming_type,                  \
+           LayoutTransposeTest_3D_##sol##_##type##_P)                         \
+    {                                                                         \
+        RunTest();                                                            \
+    }                                                                         \
+    INSTANTIATE_TEST_SUITE_P(                                                 \
+        Full,                                                                 \
+        GPU_LayoutTransposeTest_3D_##sol##_##naming_type,                     \
+        testing::Combine(testing::ValuesIn(transpose_dims::get_batch_size()), \
                          testing::ValuesIn(transpose_dims::get_channel_size())));
 
-#define DEFINE_3D_TYPED_TESTS(sol)                \
-    DEFINE_LayoutTransposeTest_3D(float, sol);    \
-    DEFINE_LayoutTransposeTest_3D(float16, sol);  \
-    DEFINE_LayoutTransposeTest_3D(bfloat16, sol); \
-    DEFINE_LayoutTransposeTest_3D(uint16_t, sol); \
-    DEFINE_LayoutTransposeTest_3D(uint8_t, sol);
+#define DEFINE_3D_TYPED_TESTS(sol)                       \
+    DEFINE_LayoutTransposeTest_3D(float, FP32, sol);     \
+    DEFINE_LayoutTransposeTest_3D(float16, FP16, sol);   \
+    DEFINE_LayoutTransposeTest_3D(bfloat16, BFP16, sol); \
+    DEFINE_LayoutTransposeTest_3D(uint16_t, I16, sol);   \
+    DEFINE_LayoutTransposeTest_3D(uint8_t, I8, sol);
 
 DEFINE_3D_TYPED_TESTS(TransposeSolutionDefault2Ndhwc);
 DEFINE_3D_TYPED_TESTS(TransposeSolutionNdhwc2Default);
