@@ -291,7 +291,7 @@ def buildHipClangJob(Map conf=[:]){
             }
 
             withDockerContainer(image: image, args: dockerOpts + ' -v=/var/jenkins/:/var/jenkins') {
-                timeout(time: 600, unit:'MINUTES')
+                timeout(time: 420, unit:'MINUTES')
                 {
                     if (lfs_pull) {
                         sh "git lfs pull --exclude="
