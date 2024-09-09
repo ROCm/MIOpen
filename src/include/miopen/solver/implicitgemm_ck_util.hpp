@@ -846,7 +846,7 @@ ConvSolution InitInvokerFactoryWrwNCHW(const ExecutionContext& ctx,
             /// \todo: Will need SetTensor() to properly zero out non-packed tensors
             if(output_tr_inst.GetConvOperandTag() == internal::ConvOperandTag::Weights)
             {
-                output_tr_inst.ZeroOutBuffer();
+                output_tr_inst.ZeroOutBuffer(handle);
             }
 
             std::array<internal::TransposeInstanceTagged*, 3> tr_ptrs = {
