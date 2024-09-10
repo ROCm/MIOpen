@@ -260,6 +260,7 @@ inline std::string_view tensorEnumIdToStr(miopenTensorArgumentId_t id)
         ENUM_CASE(miopenTensorMhaAmaxDK)
         ENUM_CASE(miopenTensorMhaAmaxDV)
         ENUM_CASE(miopenTensorMhaAmaxDS)
+        ENUM_CASE(miopenTensorMhaBias)
     default: MIOPEN_THROW(miopenStatusInternalError, "unknown tensor enum id");
     }
 #undef ENUM_CASE
