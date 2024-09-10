@@ -100,13 +100,42 @@
 #define WORK_STRIDE_1 (WORK_LENGTH_2 * WORK_STRIDE_2)
 #define WORK_STRIDE_0 (WORK_LENGTH_1 * WORK_STRIDE_1)
 
-#ifndef SUBTENSOR_OP_WITH_SCALAR
-#define SUBTENSOR_OP_WITH_SCALAR BREAK_COMPILE_INTENTIONALLY
+#ifndef MIOPEN_BETA_IS_ZERO
+#error "MIOPEN_BETA_IS_ZERO must be defined"
+#endif
+#ifndef MIOPEN_ALPHA_IS_ONE
+#error "MIOPEN_ALPHA_IS_ONE must be defined"
 #endif
 
-#define SUBTENSOR_OP_WITH_SCALAR_SET(t, a) (t = a)
-#define SUBTENSOR_OP_WITH_SCALAR_MULTIPLY(t, a) (t *= a)
-#define SUBTENSOR_OP_WITH_SCALAR_MAD(tb, b, ta, a) (tb = mad(ta, a, tb * b))
+#if MIOPEN_BETA_IS_ZERO && MIOPEN_ALPHA_IS_ONE
+#define SUBTENSOR_OP_WITH_ALPHA_BETA(dst, src) \
+    do                                         \
+    {                                          \
+        (dst) = (src);                         \
+        (void)beta;                            \
+        (void)alpha;                           \
+    } while(0)
+#elif MIOPEN_BETA_IS_ZERO
+#define SUBTENSOR_OP_WITH_ALPHA_BETA(dst, src) \
+    do                                         \
+    {                                          \
+        (dst) = (src)*alpha;                   \
+        (void)beta;                            \
+    } while(0)
+#elif MIOPEN_ALPHA_IS_ONE
+#define SUBTENSOR_OP_WITH_ALPHA_BETA(dst, src) \
+    do                                         \
+    {                                          \
+        (dst) = mad((dst), beta, (src));       \
+        (void)alpha;                           \
+    } while(0)
+#else
+#define SUBTENSOR_OP_WITH_ALPHA_BETA(dst, src) \
+    do                                         \
+    {                                          \
+        (dst) = mad((src), alpha, (dst)*beta); \
+    } while(0)
+#endif
 
 __kernel void SubTensorOpWithTransform1d(global _FLOAT* __restrict src,
                                          const _FLOAT alpha,
@@ -127,7 +156,7 @@ __kernel void SubTensorOpWithTransform1d(global _FLOAT* __restrict src,
         uint si = src_stride0 * did0 + src_offset;
         uint di = dst_stride0 * did0 + dst_offset;
 
-        SUBTENSOR_OP_WITH_SCALAR(dst[di], beta, src[si], alpha);
+        SUBTENSOR_OP_WITH_ALPHA_BETA(dst[di], src[si]);
     }
 }
 
@@ -159,7 +188,7 @@ __kernel void SubTensorOpWithTransform2d(global _FLOAT* __restrict src,
             uint si = src_stride0 * did0 + src_stride1 * did1 + src_offset;
             uint di = dst_stride0 * did0 + dst_stride1 * did1 + dst_offset;
 
-            SUBTENSOR_OP_WITH_SCALAR(dst[di], beta, src[si], alpha);
+            SUBTENSOR_OP_WITH_ALPHA_BETA(dst[di], src[si]);
         }
     }
 }
@@ -201,7 +230,7 @@ __kernel void SubTensorOpWithTransform3d(global _FLOAT* __restrict src,
                 uint si = src_stride0 * did0 + src_stride1 * did1 + src_stride2 * did2 + src_offset;
                 uint di = dst_stride0 * did0 + dst_stride1 * did1 + dst_stride2 * did2 + dst_offset;
 
-                SUBTENSOR_OP_WITH_SCALAR(dst[di], beta, src[si], alpha);
+                SUBTENSOR_OP_WITH_ALPHA_BETA(dst[di], src[si]);
             }
         }
     }
@@ -255,7 +284,7 @@ __kernel void SubTensorOpWithTransform4d(global _FLOAT* __restrict src,
                     uint di = dst_stride0 * did0 + dst_stride1 * did1 + dst_stride2 * did2 +
                               dst_stride3 * did3 + dst_offset;
 
-                    SUBTENSOR_OP_WITH_SCALAR(dst[di], beta, src[si], alpha);
+                    SUBTENSOR_OP_WITH_ALPHA_BETA(dst[di], src[si]);
                 }
             }
         }
@@ -319,7 +348,7 @@ __kernel void SubTensorOpWithTransform5d(global _FLOAT* __restrict src,
                         uint di = dst_stride0 * did0 + dst_stride1 * did1 + dst_stride2 * did2 +
                                   dst_stride3 * did3 + dst_stride4 * did4 + dst_offset;
 
-                        SUBTENSOR_OP_WITH_SCALAR(dst[di], beta, src[si], alpha);
+                        SUBTENSOR_OP_WITH_ALPHA_BETA(dst[di], src[si]);
                     }
                 }
             }

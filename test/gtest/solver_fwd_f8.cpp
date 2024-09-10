@@ -25,48 +25,48 @@
  *******************************************************************************/
 #include "solver_fwd.hpp"
 
-struct ConvFwdFp8 : ConvFwdSolverTest<float8, float>
+struct GPU_ConvFwd_FP8 : ConvFwdSolverTest<float8, float>
 {
 };
 
-struct ConvFwdFp8Naive : ConvFwdSolverTest<float8, float, true>
+struct GPU_ConvFwdNaive_FP8 : ConvFwdSolverTest<float8, float, true>
 {
 };
 
-TEST_P(ConvFwdFp8, DISABLED_GemmFwdRest)
+TEST_P(GPU_ConvFwd_FP8, DISABLED_GemmFwdRest)
 {
     miopen::solver::conv::GemmFwdRest solv{};
     SolverFwd(solv);
 }
 
-TEST_P(ConvFwdFp8, DISABLED_GemmFwd1x1_0_2)
+TEST_P(GPU_ConvFwd_FP8, DISABLED_GemmFwd1x1_0_2)
 {
     miopen::solver::conv::GemmFwd1x1_0_2 solv{};
     SolverFwd(solv);
 }
 
-TEST_P(ConvFwdFp8, DISABLED_Gemm1x1x0x1)
+TEST_P(GPU_ConvFwd_FP8, DISABLED_Gemm1x1x0x1)
 {
     miopen::solver::conv::GemmFwd1x1_0_1 solv{};
     SolverFwd(solv);
 }
 
-TEST_P(ConvFwdFp8Naive, DISABLED_Fwd)
+TEST_P(GPU_ConvFwdNaive_FP8, DISABLED_Fwd)
 {
     miopen::solver::conv::ConvDirectNaiveConvFwd solv{};
     SolverFwd(solv);
 }
 
-INSTANTIATE_TEST_SUITE_P(ConvFwdTest,
-                         ConvFwdFp8,
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_ConvFwd_FP8,
                          testing::Combine(testing::Values(Gpu::All),
                                           testing::Values(miopenConvolutionAlgoGEMM),
                                           testing::ValuesIn(ConvTestConfigs<ConvTestCaseBase>())));
 
 // Since NaiveConv is verified against the CPU, we are conservative in the number and type
 // of test cases we instantiate
-INSTANTIATE_TEST_SUITE_P(ConvFwdTest,
-                         ConvFwdFp8Naive,
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_ConvFwdNaive_FP8,
                          testing::Combine(testing::Values(Gpu::All),
                                           testing::Values(miopenConvolutionAlgoGEMM),
                                           testing::ValuesIn(ConvTestConfigs<ConvTestCaseBase>())));
