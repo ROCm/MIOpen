@@ -41,10 +41,21 @@
 #include <miopen/rnn/tmp_buffer_utils.hpp>
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_RNNBWDMS_EXP)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_RNNBWMS_EXP)
 
 namespace miopen {
 
 bool RNNBwdMSIsFast(const int seqLen)
+{
+    if(env::enabled(MIOPEN_RNNBWDMS_EXP))
+        return true;
+
+    if(seqLen >= 32 && !env::disabled(MIOPEN_RNNBWDMS_EXP))
+        return true;
+    return false;
+}
+
+bool RNNBwWeightMSIsFast(const int seqLen)
 {
     if(env::enabled(MIOPEN_RNNBWDMS_EXP))
         return true;
@@ -96,10 +107,20 @@ void RNNDescriptor::ModularBackwardWeights(Handle& handle,
                                            Data_t workSpace,
                                            size_t workSpaceSize,
                                            ConstData_t reserveSpace,
-                                           size_t /*reserveSpaceSize*/) const
+                                           size_t reserveSpaceSize) const
 {
-    rnn_base::RNNModularSingleStreamBWWeights single_stream{*this, xDesc, yDesc, hDesc};
-    single_stream.Compute(handle, x, hx, dw, workSpace, workSpaceSize, reserveSpace, 0);
+    if(RNNBwWeightMSIsFast(xDesc.GetMaxSequenceLength()))
+    {
+        rnn_base::RNNModularMultiStreamBWWeights multi_stream{*this, xDesc, yDesc, hDesc};
+        multi_stream.Compute(
+            handle, x, hx, dw, workSpace, workSpaceSize, reserveSpace, reserveSpaceSize);
+    }
+    else
+    {
+        rnn_base::RNNModularSingleStreamBWWeights single_stream{*this, xDesc, yDesc, hDesc};
+        single_stream.Compute(
+            handle, x, hx, dw, workSpace, workSpaceSize, reserveSpace, reserveSpaceSize);
+    }
 }
 
 } // namespace miopen
