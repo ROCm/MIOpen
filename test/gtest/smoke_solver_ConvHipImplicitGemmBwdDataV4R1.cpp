@@ -64,15 +64,15 @@ bool IsTestSupportedForDevice()
 
 } // namespace
 
-class Conv2dTuningV4R1BWDFloat : public FloatTestCase<std::vector<TestCase>>
+class GPU_Conv2dTuningV4R1BWD_FP32 : public FloatTestCase<std::vector<TestCase>>
 {
 };
 
-TEST_P(Conv2dTuningV4R1BWDFloat, FloatTest_smoke_solver_ConvHipImplicitGemmBwdDataV4R1)
+TEST_P(GPU_Conv2dTuningV4R1BWD_FP32, FloatTest_smoke_solver_ConvHipImplicitGemmBwdDataV4R1)
 {
     if(IsTestSupportedForDevice())
     {
-        invoke_with_params<conv2d_driver, Conv2dTuningV4R1BWDFloat>(tuning_check);
+        invoke_with_params<conv2d_driver, GPU_Conv2dTuningV4R1BWD_FP32>(tuning_check);
     }
     else
     {
@@ -80,6 +80,4 @@ TEST_P(Conv2dTuningV4R1BWDFloat, FloatTest_smoke_solver_ConvHipImplicitGemmBwdDa
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(SmokeSolverConvHipImplicitGemmBwdDataV4R1,
-                         Conv2dTuningV4R1BWDFloat,
-                         testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Conv2dTuningV4R1BWD_FP32, testing::Values(GetTestCases()));
