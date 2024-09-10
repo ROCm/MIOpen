@@ -61,7 +61,7 @@ struct GLUTestCase
     }
 };
 
-std::vector<GLUTestCase> GLUTestConfigs()
+std::vector<GLUTestCase> GenFullTestCases()
 { // n c d h w dim
     // clang-format off
     return {

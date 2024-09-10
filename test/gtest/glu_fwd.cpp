@@ -43,22 +43,22 @@ std::string GetFloatArg()
     return tmp;
 }
 
-struct GLUFwdTestFloat : GLUFwdTest<float>
+struct GPU_GLU_fwd_FP32 : GLUFwdTest<float>
 {
 };
 
-struct GLUFwdTestFP16 : GLUFwdTest<float16>
+struct GPU_GLU_fwd_FP16 : GLUFwdTest<float16>
 {
 };
 
-struct GLUFwdTestBFP16 : GLUFwdTest<bfloat16>
+struct GPU_GLU_fwd_BFP16 : GLUFwdTest<bfloat16>
 {
 };
 
 } // namespace glu
 using namespace glu;
 
-TEST_P(GLUFwdTestFloat, GLUTestFw)
+TEST_P(GPU_GLU_fwd_FP32, Test)
 {
     if(!MIOPEN_TEST_ALL ||
        (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--float"))
@@ -72,7 +72,7 @@ TEST_P(GLUFwdTestFloat, GLUTestFw)
     }
 };
 
-TEST_P(GLUFwdTestFP16, GLUTestFw)
+TEST_P(GPU_GLU_fwd_FP16, Test)
 {
     if(!MIOPEN_TEST_ALL ||
        (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--half"))
@@ -86,7 +86,7 @@ TEST_P(GLUFwdTestFP16, GLUTestFw)
     }
 };
 
-TEST_P(GLUFwdTestBFP16, GLUTestFw)
+TEST_P(GPU_GLU_fwd_BFP16, Test)
 {
     if(!MIOPEN_TEST_ALL ||
        (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--bfp16"))
@@ -100,6 +100,6 @@ TEST_P(GLUFwdTestBFP16, GLUTestFw)
     }
 }
 
-INSTANTIATE_TEST_SUITE_P(GLUTestSet, GLUFwdTestFloat, testing::ValuesIn(GLUTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(GLUTestSet, GLUFwdTestFP16, testing::ValuesIn(GLUTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(GLUTestSet, GLUFwdTestBFP16, testing::ValuesIn(GLUTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_GLU_fwd_FP32, testing::ValuesIn(GenFullTestCases()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_GLU_fwd_FP16, testing::ValuesIn(GenFullTestCases()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_GLU_fwd_BFP16, testing::ValuesIn(GenFullTestCases()));
