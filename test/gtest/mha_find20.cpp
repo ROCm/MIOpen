@@ -361,6 +361,8 @@ private:
         CreateTensor(miopenTensorMhaDropoutSeed).InitWithInt64Value(0);
         CreateTensor(miopenTensorMhaDropoutOffset).InitWithInt64Value(0);
 
+        CreateTensor(miopenTensorMhaBias, test_n, test_h, test_s, test_s).InitWithRandom();
+
         if(isForward)
         {
             CreateTensor(miopenTensorMhaQ, test_n, test_h, test_s, test_d).InitWithRandom();
@@ -423,6 +425,8 @@ private:
         const auto& mhads = tensors[miopenTensorMhaDropoutSeed];
         const auto& mhado = tensors[miopenTensorMhaDropoutOffset];
 
+        const auto& mhabias = tensors[miopenTensorMhaBias];
+
         mha::MhaInputDescsForward inputDescs = {
             mhaK->GetTensorDescriptor(),
             mhaQ->GetTensorDescriptor(),
@@ -437,6 +441,7 @@ private:
             mhadp->GetTensorDescriptor(),
             mhads->GetTensorDescriptor(),
             mhado->GetTensorDescriptor(),
+            mhabias->GetTensorDescriptor(),
             tensors[miopenTensorMhaO]->GetTensorDescriptor(),
             tensors[miopenTensorMhaAmaxO]->GetTensorDescriptor(),
             tensors[miopenTensorMhaAmaxS]->GetTensorDescriptor(),
@@ -459,6 +464,7 @@ private:
                 mhadp->gpuBuffer.get(),
                 mhads->gpuBuffer.get(),
                 mhado->gpuBuffer.get(),
+                mhabias->gpuBuffer.get(),
                 outputResultsMap[miopenTensorMhaO]->gpuBuffer.get(),
                 outputResultsMap[miopenTensorMhaAmaxO]->gpuBuffer.get(),
                 outputResultsMap[miopenTensorMhaAmaxS]->gpuBuffer.get(),
