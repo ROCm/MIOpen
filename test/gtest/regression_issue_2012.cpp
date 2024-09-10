@@ -65,7 +65,7 @@ std::vector<std::string> GetTestCases()
 
 using TestCase = decltype(GetTestCases())::value_type;
 
-class ConfigWithFloat_regression_issue_2012 : public testing::TestWithParam<std::vector<TestCase>>
+class GPU_regression_issue_2012_FP32 : public testing::TestWithParam<std::vector<TestCase>>
 {
 };
 
@@ -83,7 +83,7 @@ void Run2dDriver()
         GTEST_SKIP();
     }
     SetupEnvVar();
-    std::vector<std::string> params = ConfigWithFloat_regression_issue_2012::GetParam();
+    std::vector<std::string> params = GPU_regression_issue_2012_FP32::GetParam();
 
     for(const auto& test_value : params)
     {
@@ -103,8 +103,6 @@ void Run2dDriver()
 } // namespace regression_issue_2012
 using namespace regression_issue_2012;
 
-TEST_P(ConfigWithFloat_regression_issue_2012, FloatTest_regression_issue_2012) { Run2dDriver(); };
+TEST_P(GPU_regression_issue_2012_FP32, FloatTest_regression_issue_2012) { Run2dDriver(); };
 
-INSTANTIATE_TEST_SUITE_P(RegressionIssue2012,
-                         ConfigWithFloat_regression_issue_2012,
-                         testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_regression_issue_2012_FP32, testing::Values(GetTestCases()));

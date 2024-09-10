@@ -29,11 +29,11 @@
 
 #include "na.hpp"
 
-struct BNActivInferFloat : BNActivInferTest<float>
+struct GPU_BNActivInfer_FP32 : BNActivInferTest<float>
 {
 };
 
-struct BNActivInferHalf : BNActivInferTest<half_float::half>
+struct GPU_BNActivInfer_FP16 : BNActivInferTest<half_float::half>
 {
 };
 
@@ -60,7 +60,7 @@ void RunSolver(miopen::FusionPlanDescriptor& fusePlanDesc,
     (invoker)(handle, plan_params);
     handle.Finish();
 }
-TEST_P(BNActivInferFloat, BnFwdInferActivationFused)
+TEST_P(GPU_BNActivInfer_FP32, BnFwdInferActivationFused)
 {
     const auto plan_params = miopen::fusion::FusionInvokeParams(
         params, input.desc, in_dev.get(), output.desc, out_dev.get(), false);
@@ -68,11 +68,11 @@ TEST_P(BNActivInferFloat, BnFwdInferActivationFused)
         fusePlanDesc, plan_params, bn_config, test_skipped);
 }
 
-INSTANTIATE_TEST_SUITE_P(BNActivInferFloatSuite,
-                         BNActivInferFloat,
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_BNActivInfer_FP32,
                          testing::Combine(testing::Values(miopenActivationRELU),
                                           testing::ValuesIn(Networkna1())));
-TEST_P(BNActivInferHalf, DISABLED_BnFwdInferActivationFused)
+TEST_P(GPU_BNActivInfer_FP16, DISABLED_BnFwdInferActivationFused)
 {
     const auto plan_params = miopen::fusion::FusionInvokeParams(
         params, input.desc, in_dev.get(), output.desc, out_dev.get(), false);
@@ -80,7 +80,7 @@ TEST_P(BNActivInferHalf, DISABLED_BnFwdInferActivationFused)
         fusePlanDesc, plan_params, bn_config, test_skipped);
 }
 
-INSTANTIATE_TEST_SUITE_P(BNActivInferHalfSuite,
-                         BNActivInferHalf,
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_BNActivInfer_FP16,
                          testing::Combine(testing::Values(miopenActivationRELU),
                                           testing::ValuesIn(Networkna1())));

@@ -30,7 +30,7 @@
 #include <gtest/gtest.h>
 #include "graphapi_gtest_common.hpp"
 
-TEST(GraphApiMatmulBuilder, Attributes)
+TEST(CPU_GraphApiMatmulBuilder_NONE, Attributes)
 {
     EXPECT_ANY_THROW({ miopen::graphapi::MatmulBuilder().build(); })
         << "Builder produced Matmul despite missing setComputeType call";
@@ -65,7 +65,7 @@ public:
 
 void PrintTo(const miopenDataType_t& v, std::ostream* os) { *os << "compute type: " << v; }
 
-class GraphApiMatMul : public testing::TestWithParam<miopenDataType_t>
+class CPU_GraphApiMatMul_NONE : public testing::TestWithParam<miopenDataType_t>
 {
 protected:
     GTestGraphApiExecute<GTestDescriptorAttribute*> execute;
@@ -83,6 +83,6 @@ protected:
     }
 };
 
-TEST_P(GraphApiMatMul, CFuncions) { execute(); }
+TEST_P(CPU_GraphApiMatMul_NONE, CFuncions) { execute(); }
 
-INSTANTIATE_TEST_SUITE_P(CFuncionsTest, GraphApiMatMul, testing::Values(miopenFloat, miopenDouble));
+INSTANTIATE_TEST_SUITE_P(Unit, CPU_GraphApiMatMul_NONE, testing::Values(miopenFloat, miopenDouble));

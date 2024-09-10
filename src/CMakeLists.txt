@@ -128,6 +128,7 @@ set( MIOpen_Source
     generic_search.cpp
     getitem_api.cpp
     graphapi/convolution.cpp
+    graphapi/conv_bias_res_add_activ_forward_executor.cpp
     graphapi/engine.cpp
     graphapi/enginecfg.cpp
     graphapi/engineheur.cpp
@@ -162,10 +163,13 @@ set( MIOpen_Source
     performance_config.cpp
     pooling/problem_description.cpp
     pooling_api.cpp
+    prelu/problem_description.cpp
+    prelu_api.cpp
     problem.cpp
     process.cpp
     ramdb.cpp
     readonlyramdb.cpp
+    reducecalculation_api.cpp
     reduceextreme_api.cpp
     reducetensor.cpp
     reducetensor_api.cpp
@@ -173,7 +177,15 @@ set( MIOpen_Source
     rnn.cpp
     rnn_api.cpp
     rnn/rnn_util.cpp
+    rnn/selector.cpp
     rnn/Solutions/rnn_transformer.cpp
+    rnn/Solutions/Base/bw_weights_modular.cpp
+    rnn/Solutions/modular_base.cpp
+    rnn/Solutions/bwd_s_stream.cpp
+    rnn/Solutions/bwd_multi_stream.cpp
+    rnn/Solutions/bww_s_steam.cpp
+    rope_api.cpp
+    rope/problem_description.cpp
     scalar.cpp
     softmax.cpp
     softmax_api.cpp
@@ -294,15 +306,20 @@ set( MIOpen_Source
     solver/pooling/forwardNd.cpp
     solver/pooling/backward2d.cpp
     solver/pooling/backwardNd.cpp
+    solver/prelu/backward_prelu_multi_weights.cpp
+    solver/prelu/backward_prelu_single_weight.cpp
+    solver/prelu/utils.cpp
     solver/reduce/forward_argmax.cpp
     solver/reduce/forward_argmin.cpp
     solver/reduce/forward_max.cpp
     solver/reduce/forward_min.cpp
+    solver/reduce/forward_prod.cpp
     solver/reduce/forward_sum.cpp
+    solver/rope/backward_rope.cpp
+    solver/rope/forward_rope.cpp
     solver/softmax/attn_softmax.cpp
     solver/softmax/softmax.cpp
     subbuffers.cpp
-    sum_api.cpp
     t5layernorm_api.cpp
     target_properties.cpp
     temp_file.cpp
@@ -435,8 +452,10 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/Conv_Winograd_v30_3_1_gfx11_fp32_f3x2_stride1.inc
         kernels/Conv_Winograd_v30_3_1_gfx11_fp32_f3x2_stride2.inc
         kernels/Conv_Winograd_v30_3_1_metadata.inc
+        kernels/MIOpenReduceCalculation.hpp
         kernels/MIOpenReduceExtreme.hpp
         kernels/bfloat16_dev.hpp
+        kernels/block_reduce.hpp
         kernels/conv_common.inc
         kernels/conv_sizes.inc
         kernels/float_types.h
@@ -460,6 +479,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/winograd/Conv_Winograd_Fury_v2_4_1_gfx11_1024vgprs_fp16_fp16acc_f2x3_c16_stride1.inc
         kernels/winograd/Conv_Winograd_Fury_v2_4_1_metadata.inc
         kernels/workaround_issue_1431.hpp
+        kernels/warp_reduce.hpp
         kernels/xform_bidirect_winograd_code.inc
         kernels/xform_data_filter.inc
         kernels/xform_kd_cov2.inc
@@ -497,6 +517,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenLRNBwd.cl
         kernels/MIOpenLRNFwd.cl
         kernels/MIOpenNeuron.cl
+        kernels/MIOpenPReLU.cpp
         kernels/MIOpenPooling.cl
         kernels/MIOpenPoolingBwd.cl
         kernels/MIOpenPoolingBwdND.cl
@@ -505,10 +526,12 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenConv1x1S.cl
         kernels/MIOpenConv1x1J1.cl
         kernels/MIOpenConv1x1J1_stride.cl
+        kernels/MIOpenReduceCalculation.cpp
         kernels/MIOpenReduceExtreme.cpp
+        kernels/MIOpenRoPE.cpp
+        kernels/MIOpenReduceSum.cpp
         kernels/MIOpenSoftmax.cl
         kernels/MIOpenSoftmaxAttn.cpp
-        kernels/MIOpenSum.cpp
         kernels/MIOpenUtilKernels3.cl
         kernels/MIOpenUtilKernels4.cl
         kernels/MIOpenUtilKernels5.cl
@@ -584,6 +607,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenBatchNormActivInfer.cl
         kernels/MIOpenCTCLoss.cl
         kernels/MIOpenDropout.cl
+        kernels/MIOpenDropoutHIP.cpp
         kernels/winograd/Conv_Winograd_Fury_v2_4_1_fp16_fp16acc_f2x3_c16_stride1.s
         kernels/winograd/Conv_Winograd_Fury_v2_4_1_fp16_fp16acc_f2x3_c32_stride1.s
         kernels/xform_data.s
@@ -648,8 +672,10 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         t5layernorm.cpp
         ocl/fusionopconvocl.cpp
         ocl/fusionopbiasbnactivocl.cpp
+        prelu.cpp
+        reducecalculation.cpp
         reduceextreme.cpp
-        sum.cpp
+        rope.cpp
         transformers_adam_w.cpp
         ${PROJECT_BINARY_DIR}/db_path.cpp
         )
@@ -818,7 +844,6 @@ if(BUILD_TESTING)
     # binaries must not have internals exposed because doing so violates the threats model requirements.
     # We cannot use the CMake property CMAKE_EXPORT_ALL_SYMBOLS here because the number of automatically
     # exported symbols exceeds the maximum allowed number in a DLL library (64K).
-    # See details here: https://learn.microsoft.com/en-us/cpp/build/exporting-from-a-dll?view=msvc-170
     generate_export_header(MIOpen BASE_NAME MIOPEN_INTERNALS EXPORT_FILE_NAME ${CMAKE_BINARY_DIR}/include/miopen/export_internals.h)
     target_compile_definitions(MIOpen PUBLIC $<BUILD_INTERFACE:MIOPEN_BUILD_TESTING>)
 endif()

@@ -932,13 +932,13 @@ int ConvDriver<Tgpu, Tref>::GetandSetData()
     SetConvDescriptorFromCmdLineArgs();
 
     std::vector<int> out_len = GetOutputTensorLengths();
-    if(miopen::deref(inputTensor).GetLayout_t() == miopenTensorNCHWc4 ||
-       miopen::deref(inputTensor).GetLayout_t() == miopenTensorNCHWc8)
+    if(miopen::deref(inputTensor).GetLayoutEnum() == miopenTensorNCHWc4 ||
+       miopen::deref(inputTensor).GetLayoutEnum() == miopenTensorNCHWc8)
     {
         out_len[1] *= miopen::deref(inputTensor).GetVectorLength();
     }
-    if(miopen::deref(inputTensor).GetLayout_t() == miopenTensorCHWNc4 ||
-       miopen::deref(inputTensor).GetLayout_t() == miopenTensorCHWNc8)
+    if(miopen::deref(inputTensor).GetLayoutEnum() == miopenTensorCHWNc4 ||
+       miopen::deref(inputTensor).GetLayoutEnum() == miopenTensorCHWNc8)
     {
         out_len[0] *= miopen::deref(inputTensor).GetVectorLength();
     }

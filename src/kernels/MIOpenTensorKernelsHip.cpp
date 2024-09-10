@@ -24,6 +24,12 @@
  *
  *******************************************************************************/
 
+#ifndef MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS
+#include <hip/hip_fp16.h>
+#include <hip/hip_runtime.h>
+#include <hip/hip_bfloat16.h>
+#endif
+
 template <typename T>
 __device__ T miopenAdd(T a, T b)
 {
@@ -88,6 +94,89 @@ extern "C" __global__ void Op1dTensorGeneric(const MIOPEN_TYPE* a,
         a_ptr += a_step;
         b_ptr += b_step;
         c_ptr += c_step;
+    }
+}
+
+#endif
+
+#ifdef USE_2D_TENSOR_GENERIC
+// NC
+extern "C" __global__ void Op2dTensorGeneric(MIOPEN_TYPE* a,
+                                             const int a_nstride,
+                                             MIOPEN_TYPE* b,
+                                             const int b_c,
+                                             const int b_nstride,
+                                             MIOPEN_TYPE* c,
+                                             const int c_c,
+                                             const int c_nstride,
+                                             const MIOPEN_TYPE alpha0,
+                                             const MIOPEN_TYPE alpha1,
+                                             const MIOPEN_TYPE beta,
+                                             const unsigned int bitmap,
+                                             const int work_per_wg,
+                                             const long Aoffset,
+                                             const long Boffset,
+                                             const long Coffset,
+                                             const int num_wg)
+{
+    int gid = blockIdx.x;
+
+    MIOPEN_TYPE* a_off = a + Aoffset;
+    MIOPEN_TYPE* b_off = b + Boffset;
+    MIOPEN_TYPE* c_off = c + Coffset;
+
+    int o_n_div = (bitmap & (1 << 0)) ? 1 : c_c;
+
+    // num_wg: the number of workgroups should be launched
+    // MAX_NUM_WG: the maximum number of workgroups actually launched
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wfloat-equal"
+    if(beta == static_cast<MIOPEN_TYPE>(0))
+#pragma clang diagnostic pop
+    {
+        for(; gid < num_wg; gid += MAX_NUM_WG)
+        {
+
+            int lid         = threadIdx.x;
+            int o_c_gid_off = gid % b_c;
+            int o_n_gid_off = gid / b_c;
+
+            int bindex          = o_n_gid_off * b_nstride + o_c_gid_off;
+            MIOPEN_TYPE operand = b_off[bindex] * alpha1;
+
+            while(lid < work_per_wg)
+            {
+                int o_c       = (bitmap & (1 << 0)) ? o_c_gid_off : lid % c_c;
+                int o_n       = (bitmap & (1 << 1)) ? o_n_gid_off : lid / o_n_div;
+                int aindex    = o_n * a_nstride + o_c;
+                int cindex    = o_n * c_nstride + o_c;
+                c_off[cindex] = MIOPEN_TENSOR_OP(a_off[aindex] * alpha0, operand);
+                lid += blockDim.x;
+            }
+        }
+    }
+    else
+    {
+        for(; gid < num_wg; gid += MAX_NUM_WG)
+        {
+            int lid         = threadIdx.x;
+            int o_c_gid_off = gid % b_c;
+            int o_n_gid_off = gid / b_c;
+
+            int bindex          = o_n_gid_off * b_nstride + o_c_gid_off;
+            MIOPEN_TYPE operand = b_off[bindex] * alpha1;
+
+            while(lid < work_per_wg)
+            {
+                int o_c    = (bitmap & (1 << 0)) ? o_c_gid_off : lid % c_c;
+                int o_n    = (bitmap & (1 << 1)) ? o_n_gid_off : lid / o_n_div;
+                int aindex = o_n * a_nstride + o_c;
+                int cindex = o_n * c_nstride + o_c;
+                c_off[cindex] =
+                    MIOPEN_TENSOR_OP(a_off[aindex] * alpha0, operand) + beta * c_off[cindex];
+                lid += blockDim.x;
+            }
+        }
     }
 }
 
