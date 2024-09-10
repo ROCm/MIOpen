@@ -52,6 +52,7 @@ class DbRecord;
 // This can be used to pass some primitive-specific pre-computed data to finders.
 struct PrimitiveFindParameters
 {
+protected:
     PrimitiveFindParameters() = default;
 };
 

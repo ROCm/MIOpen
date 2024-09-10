@@ -304,7 +304,7 @@ void HIPOCProgramImpl::BuildCodeObject(std::string params, const std::string& ke
             return {}; // MLIR solutions do not use source code.
         if(!kernel_src.empty())
             return kernel_src;
-        return GetKernelSrc(program.string());
+        return GetKernelSrc(program);
     }();
 
 #if MIOPEN_BUILD_DEV
