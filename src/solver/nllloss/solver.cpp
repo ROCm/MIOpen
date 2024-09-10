@@ -34,14 +34,12 @@ namespace solver {
 
 namespace nllloss {
 
-bool NLLLossUnreduceSolver::IsApplicable(
-    const ExecutionContext&, const miopen::nllloss::UnreduceProblemDescription& problem) const
+bool NLLLossSolver::IsApplicable(const ExecutionContext&,
+                                 const miopen::nllloss::ProblemDescription& problem) const
 {
     if(!problem.IsSameType())
         return false;
     if(!problem.IsValidLength())
-        return false;
-    if(!problem.IsValidStride())
         return false;
     return true;
 }

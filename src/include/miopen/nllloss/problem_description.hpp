@@ -26,11 +26,10 @@
 
 #pragma once
 
+#include "miopen/miopen.h"
 #include <miopen/problem_description_base.hpp>
 #include <miopen/activ.hpp>
 #include <miopen/tensor.hpp>
-#include <cassert>
-#include <string>
 
 namespace miopen {
 
@@ -45,13 +44,16 @@ struct ProblemDescription : ProblemDescriptionBase
                        const TensorDescriptor& weightDesc_,
                        const TensorDescriptor& outputDesc_,
                        int32_t ignore_index_,
-                       bool is_fwd_)
+                       bool is_fwd_,
+                       const miopenLossReductionMode_t reduction_)
         : inputDesc(inputDesc_),
           targetDesc(targetDesc_),
           weightDesc(weightDesc_),
           outputDesc(outputDesc_),
           ignore_index(ignore_index_),
-          is_fwd(is_fwd_)
+          is_fwd(is_fwd_),
+          reduction(reduction_)
+
     {
     }
 
@@ -59,10 +61,19 @@ struct ProblemDescription : ProblemDescriptionBase
     const TensorDescriptor& GetTargetDesc() const { return targetDesc; }
     const TensorDescriptor& GetWeightDesc() const { return weightDesc; }
     const TensorDescriptor& GetOutputDesc() const { return outputDesc; }
+
     int32_t GetIgnoreIndex() const { return ignore_index; }
+    size_t GetNtotal() const { return targetDesc.GetElementSize(); }
+    size_t GetC() const { return weightDesc.GetElementSize(); }
+    miopenLossReductionMode_t GetReduction() const { return reduction; }
 
     bool IsValidLength() const
     {
+        if(reduction != MIOPEN_LOSS_REDUCTION_NONE &&
+           (outputDesc.GetNumDims() != 1 || outputDesc.GetLengths()[0] != 1))
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "NLLLoss: Output Tensor size must be (1) in Reduce mode.");
+
         if(targetDesc.GetLengths()[0] != inputDesc.GetLengths()[0])
             MIOPEN_THROW(miopenStatusBadParm, "NLLLoss: Tensor sizes do not match.");
 
@@ -82,30 +93,6 @@ struct ProblemDescription : ProblemDescriptionBase
             MIOPEN_THROW(miopenStatusBadParm, "NLLLoss: Do not support Input Tensor dims > 5.");
         }
         return true;
-    }
-
-    bool IsValidStride() const
-    {
-        auto isRightStride = [](TensorDescriptor td) {
-            auto strides = td.GetStrides();
-            auto lengths = td.GetLengths();
-            std::vector<std::pair<size_t, size_t>> p;
-            p.reserve(td.GetNumDims());
-            std::transform(strides.begin(),
-                           strides.end(),
-                           lengths.begin(),
-                           std::back_inserter(p),
-                           [](size_t a, size_t b) { return std::make_pair(a, b); });
-            std::sort(p.begin(), p.end());
-            for(int i = 1; i < p.size(); ++i)
-            {
-                if(p[i].first != p[i - 1].first * p[i - 1].second)
-                    MIOPEN_THROW(miopenStatusBadParm, "NLLLoss: Tensor strides do not valid.");
-            }
-            return true;
-        };
-        return isRightStride(inputDesc) && isRightStride(targetDesc) && isRightStride(outputDesc) &&
-               isRightStride(weightDesc);
     }
 
     bool IsSameType() const
@@ -136,7 +123,9 @@ struct ProblemDescription : ProblemDescriptionBase
                isContiguous(outputDesc);
     }
 
-protected:
+    NetworkConfig MakeNetworkConfig() const override;
+
+private:
     TensorDescriptor inputDesc;
     TensorDescriptor targetDesc;
     TensorDescriptor weightDesc;
@@ -144,70 +133,7 @@ protected:
 
     int32_t ignore_index;
     bool is_fwd;
-
-    NetworkConfig MakeForwardNetworkConfig() const;
-};
-
-struct UnreduceProblemDescription : ProblemDescription
-{
-    UnreduceProblemDescription(const TensorDescriptor& inputDesc_,
-                               const TensorDescriptor& targetDesc_,
-                               const TensorDescriptor& weightDesc_,
-                               const TensorDescriptor& outputDesc_,
-                               int32_t ignore_index_,
-                               bool is_fwd_)
-        : ProblemDescription(
-              inputDesc_, targetDesc_, weightDesc_, outputDesc_, ignore_index_, is_fwd_)
-    {
-        IsSameType();
-        IsValidLength();
-        IsValidStride();
-    }
-
-    size_t GetNtotal() const { return outputDesc.GetElementSize(); }
-    size_t GetC() const { return weightDesc.GetElementSize(); }
-
-    NetworkConfig MakeNetworkConfig() const override;
-
-private:
-    NetworkConfig MakeForwardNetworkConfig() const;
-};
-
-struct ReduceProblemDescription : ProblemDescription
-{
-    ReduceProblemDescription(const TensorDescriptor& inputDesc_,
-                             const TensorDescriptor& targetDesc_,
-                             const TensorDescriptor& weightDesc_,
-                             const TensorDescriptor& outputDesc_,
-                             int32_t ignore_index_,
-                             float divisor_,
-                             bool is_fwd_)
-        : ProblemDescription(
-              inputDesc_, targetDesc_, weightDesc_, outputDesc_, ignore_index_, is_fwd_)
-    {
-        divisor = divisor_;
-        IsSameType();
-        IsValidLength();
-        IsValidStride();
-    }
-
-    size_t GetNtotal() const { return targetDesc.GetElementSize(); }
-    size_t GetC() const { return weightDesc.GetElementSize(); }
-
-    bool IsValidLength() const
-    {
-        if(outputDesc.GetNumDims() != 1 || outputDesc.GetLengths()[0] != 1)
-            MIOPEN_THROW(miopenStatusBadParm, "NLLLoss: Output Tensor size must be (1).");
-        if(!ProblemDescription::IsValidLength())
-            return false;
-        return true;
-    }
-
-    NetworkConfig MakeNetworkConfig() const override;
-
-private:
-    float divisor;
-    NetworkConfig MakeForwardNetworkConfig() const;
+    miopenLossReductionMode_t reduction;
 };
 
 } // namespace nllloss

@@ -34,31 +34,7 @@ namespace miopen {
 
 namespace nllloss {
 
-NetworkConfig UnreduceProblemDescription::MakeNetworkConfig() const
-{
-    auto contiguous    = IsAllContiguous();
-    size_t numel       = GetNtotal();
-    size_t num_batches = inputDesc.GetLengths()[0];
-    size_t num_classes = GetC();
-    size_t num_dims    = inputDesc.GetNumDims();
-
-    auto input_dtype = inputDesc.GetType();
-
-    std::ostringstream ss;
-
-    ss << "nllloss_unreduce";
-    ss << "is_fwd" << is_fwd;
-    ss << "contiguous" << contiguous;
-    ss << "input_dtype" << input_dtype;
-    ss << "numel" << numel;
-    ss << "num_dims" << num_dims;
-    ss << "num_batches" << num_batches;
-    ss << "num_classes" << num_classes;
-
-    return NetworkConfig{ss.str()};
-}
-
-NetworkConfig ReduceProblemDescription::MakeNetworkConfig() const
+NetworkConfig ProblemDescription::MakeNetworkConfig() const
 {
     size_t numel       = GetNtotal();
     size_t num_batches = inputDesc.GetLengths()[0];
@@ -72,7 +48,7 @@ NetworkConfig ReduceProblemDescription::MakeNetworkConfig() const
     ss << "nllloss_reduce";
     ss << "is_fwd" << is_fwd;
     ss << "input_dtype" << input_dtype;
-    ss << "divisor" << divisor;
+    ss << "reduce_mode" << reduction;
     ss << "numel" << numel;
     ss << "num_dims" << num_dims;
     ss << "num_batches" << num_batches;

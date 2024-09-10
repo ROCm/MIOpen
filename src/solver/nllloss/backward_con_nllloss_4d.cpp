@@ -27,6 +27,7 @@
 #include "miopen/conv_solution.hpp"
 #include "miopen/execution_context.hpp"
 #include "miopen/invoke_params.hpp"
+#include "miopen/miopen.h"
 #include <miopen/nllloss/solvers.hpp>
 
 #include <miopen/nllloss/invoke_params.hpp>
@@ -44,21 +45,21 @@ namespace solver {
 namespace nllloss {
 
 bool NLLLossUnreduceBackwardContiguous4d::IsApplicable(
-    const ExecutionContext& context,
-    const miopen::nllloss::UnreduceProblemDescription& problem) const
+    const ExecutionContext& context, const miopen::nllloss::ProblemDescription& problem) const
 {
-    if(problem.GetInputDesc().GetNumDims() > 4)
+    if(problem.GetInputDesc().GetNumDims() > 4 || problem.GetInputDesc().GetNumDims() < 3)
         return false;
     if(!problem.IsAllContiguous())
         return false;
-    if(!NLLLossUnreduceSolver::IsApplicable(context, problem))
+    if(problem.GetReduction() != MIOPEN_LOSS_REDUCTION_NONE)
+        return false;
+    if(!NLLLossSolver::IsApplicable(context, problem))
         return false;
     return true;
 }
 
 ConvSolution NLLLossUnreduceBackwardContiguous4d::GetSolution(
-    const ExecutionContext& context,
-    const miopen::nllloss::UnreduceProblemDescription& problem) const
+    const ExecutionContext& context, const miopen::nllloss::ProblemDescription& problem) const
 {
     std::ignore = context;
 

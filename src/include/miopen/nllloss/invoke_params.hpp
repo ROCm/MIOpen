@@ -26,11 +26,8 @@
 
 #pragma once
 
-#include "miopen/common.hpp"
 #include <miopen/invoke_params.hpp>
 #include <miopen/tensor.hpp>
-
-#include <limits>
 
 namespace miopen {
 namespace nllloss {
@@ -51,7 +48,6 @@ struct FwdInvokeParams : public miopen::InvokeParams
     Data_t output      = nullptr;
 
     int32_t ignore_index       = -1;
-    float divisor              = std::numeric_limits<float>::quiet_NaN();
     Data_t workspace           = nullptr;
     std::size_t workspace_size = 0;
 
@@ -75,7 +71,6 @@ struct BwdInvokeParams : public miopen::InvokeParams
     ConstData_t output_grad = nullptr;
 
     int32_t ignore_index = -1;
-    float divisor        = std::numeric_limits<float>::quiet_NaN();
 
     std::size_t GetWorkspaceSize() const { return 0; }
     Data_t GetWorkspace() const { return nullptr; }

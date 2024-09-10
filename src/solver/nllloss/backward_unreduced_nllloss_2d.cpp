@@ -44,19 +44,22 @@ namespace solver {
 namespace nllloss {
 
 bool NLLLossUnreduceBackward2d::IsApplicable(
-    const ExecutionContext& context,
-    const miopen::nllloss::UnreduceProblemDescription& problem) const
+    const ExecutionContext& context, const miopen::nllloss::ProblemDescription& problem) const
 {
     if(problem.GetInputDesc().GetNumDims() > 2)
         return false;
-    if(!NLLLossUnreduceSolver::IsApplicable(context, problem))
+    if(problem.IsAllContiguous())
+        return false;
+    if(problem.GetReduction() != MIOPEN_LOSS_REDUCTION_NONE)
+        return false;
+    if(!NLLLossSolver::IsApplicable(context, problem))
         return false;
     return true;
 }
 
-ConvSolution NLLLossUnreduceBackward2d::GetSolution(
-    const ExecutionContext& context,
-    const miopen::nllloss::UnreduceProblemDescription& problem) const
+ConvSolution
+NLLLossUnreduceBackward2d::GetSolution(const ExecutionContext& context,
+                                       const miopen::nllloss::ProblemDescription& problem) const
 {
     std::ignore = context;
 

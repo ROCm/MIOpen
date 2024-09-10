@@ -24,6 +24,7 @@
  *
  *******************************************************************************/
 
+#include "miopen/miopen.h"
 #include <miopen/nllloss.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/handle.hpp>
@@ -46,7 +47,8 @@ inline std::ostream& operator<<(std::ostream& os, const std::vector<size_t>& v)
 static void LogCmdNLLLoss(const miopenTensorDescriptor_t xDesc,
                           const miopenTensorDescriptor_t tDesc,
                           const miopenTensorDescriptor_t wDesc,
-                          bool is_fwd)
+                          bool is_fwd,
+                          const miopenLossReductionMode_t reduction)
 {
     if(miopen::IsLoggingCmd())
     {
@@ -71,6 +73,7 @@ static void LogCmdNLLLoss(const miopenTensorDescriptor_t xDesc,
         ss << " -Si " << miopen::deref(xDesc).GetStrides();
         ss << " -St " << miopen::deref(tDesc).GetStrides();
         ss << " -Sw " << miopen::deref(wDesc).GetStrides();
+        ss << " -R " << reduction;
 
         ss << " -F " << ((is_fwd) ? "1" : "2");
 
@@ -78,81 +81,51 @@ static void LogCmdNLLLoss(const miopenTensorDescriptor_t xDesc,
     }
 }
 
-extern "C" miopenStatus_t miopenNLLLossUnreduceForward(miopenHandle_t handle,
-                                                       const miopenTensorDescriptor_t inputDesc,
-                                                       const void* input,
-                                                       const miopenTensorDescriptor_t targetDesc,
-                                                       const void* target,
-                                                       const miopenTensorDescriptor_t weightDesc,
-                                                       const void* weight,
-                                                       const miopenTensorDescriptor_t outputDesc,
-                                                       void* output,
-                                                       int32_t ignore_index)
+extern "C" miopenStatus_t
+miopenGetNLLLossForwardWorkspaceSize(miopenHandle_t handle,
+                                     const miopenTensorDescriptor_t inputDesc,
+                                     const miopenTensorDescriptor_t targetDesc,
+                                     const miopenTensorDescriptor_t weightDesc,
+                                     const miopenTensorDescriptor_t outputDesc,
+                                     int32_t ignore_index,
+                                     miopenLossReductionMode_t reduction,
+                                     size_t* sizeInBytes)
 {
+
     MIOPEN_LOG_FUNCTION(handle,
                         inputDesc,
-                        input,
                         targetDesc,
-                        target,
                         weightDesc,
-                        weight,
                         outputDesc,
-                        output,
-                        ignore_index);
-
-    LogCmdNLLLoss(inputDesc, targetDesc, weightDesc, true);
-    return miopen::try_([&] {
-        miopen::NLLLossUnreduceForward(miopen::deref(handle),
-                                       miopen::deref(inputDesc),
-                                       DataCast(input),
-                                       miopen::deref(targetDesc),
-                                       DataCast(target),
-                                       miopen::deref(weightDesc),
-                                       DataCast(weight),
-                                       miopen::deref(outputDesc),
-                                       DataCast(output),
-                                       ignore_index);
-    });
-}
-
-extern "C" miopenStatus_t
-miopenGetNLLLossReduceForwardWorkspaceSize(miopenHandle_t handle,
-                                           const miopenTensorDescriptor_t inputDesc,
-                                           const miopenTensorDescriptor_t targetDesc,
-                                           const miopenTensorDescriptor_t weightDesc,
-                                           const miopenTensorDescriptor_t outputDesc,
-                                           int32_t ignore_index,
-                                           float divisor,
-                                           size_t* sizeInBytes)
-{
-
-    MIOPEN_LOG_FUNCTION(handle, inputDesc, targetDesc, weightDesc, outputDesc, sizeInBytes);
+                        ignore_index,
+                        reduction,
+                        sizeInBytes);
 
     return miopen::try_([&] {
         miopen::deref(sizeInBytes) =
-            miopen::GetNLLLossReduceForwardWorkspaceSize(miopen::deref(handle),
-                                                         miopen::deref(inputDesc),
-                                                         miopen::deref(targetDesc),
-                                                         miopen::deref(weightDesc),
-                                                         miopen::deref(outputDesc),
-                                                         ignore_index,
-                                                         divisor);
+            miopen::GetNLLLossForwardWorkspaceSize(miopen::deref(handle),
+                                                   miopen::deref(inputDesc),
+                                                   miopen::deref(targetDesc),
+                                                   miopen::deref(weightDesc),
+                                                   miopen::deref(outputDesc),
+                                                   ignore_index,
+                                                   reduction);
     });
 }
 
-extern "C" miopenStatus_t miopenNLLLossReduceForward(miopenHandle_t handle,
-                                                     void* workspace,
-                                                     size_t workspaceSizeInBytes,
-                                                     const miopenTensorDescriptor_t inputDesc,
-                                                     const void* input,
-                                                     const miopenTensorDescriptor_t targetDesc,
-                                                     const void* target,
-                                                     const miopenTensorDescriptor_t weightDesc,
-                                                     const void* weight,
-                                                     const miopenTensorDescriptor_t outputDesc,
-                                                     void* output,
-                                                     const int32_t ignore_index,
-                                                     const float divisor)
+extern "C" miopenStatus_t miopenNLLLossForward(miopenHandle_t handle,
+                                               void* workspace,
+                                               size_t workspaceSizeInBytes,
+                                               const miopenTensorDescriptor_t inputDesc,
+                                               const void* input,
+                                               const miopenTensorDescriptor_t targetDesc,
+                                               const void* target,
+                                               const miopenTensorDescriptor_t weightDesc,
+                                               const void* weight,
+                                               const miopenTensorDescriptor_t outputDesc,
+                                               void* output,
+                                               const int32_t ignore_index,
+                                               const miopenLossReductionMode_t reduction)
 {
     MIOPEN_LOG_FUNCTION(handle,
                         workspace,
@@ -166,75 +139,37 @@ extern "C" miopenStatus_t miopenNLLLossReduceForward(miopenHandle_t handle,
                         outputDesc,
                         output,
                         ignore_index,
-                        divisor);
+                        reduction);
 
-    LogCmdNLLLoss(inputDesc, targetDesc, weightDesc, true);
+    LogCmdNLLLoss(inputDesc, targetDesc, weightDesc, true, reduction);
     return miopen::try_([&] {
-        miopen::NLLLossReduceForward(miopen::deref(handle),
-                                     DataCast(workspace),
-                                     workspaceSizeInBytes,
-                                     miopen::deref(inputDesc),
-                                     DataCast(input),
-                                     miopen::deref(targetDesc),
-                                     DataCast(target),
-                                     miopen::deref(weightDesc),
-                                     DataCast(weight),
-                                     miopen::deref(outputDesc),
-                                     DataCast(output),
-                                     ignore_index,
-                                     divisor);
+        miopen::NLLLossForward(miopen::deref(handle),
+                               DataCast(workspace),
+                               workspaceSizeInBytes,
+                               miopen::deref(inputDesc),
+                               DataCast(input),
+                               miopen::deref(targetDesc),
+                               DataCast(target),
+                               miopen::deref(weightDesc),
+                               DataCast(weight),
+                               miopen::deref(outputDesc),
+                               DataCast(output),
+                               ignore_index,
+                               reduction);
     });
 }
 
-extern "C" miopenStatus_t
-miopenNLLLossUnreduceBackward(miopenHandle_t handle,
-                              const miopenTensorDescriptor_t inputGradDesc,
-                              void* input_grad,
-                              const miopenTensorDescriptor_t targetDesc,
-                              const void* target,
-                              const miopenTensorDescriptor_t weightDesc,
-                              const void* weight,
-                              const miopenTensorDescriptor_t outputGradDesc,
-                              void* output_grad,
-                              int32_t ignore_index)
-{
-    MIOPEN_LOG_FUNCTION(handle,
-                        inputGradDesc,
-                        input_grad,
-                        targetDesc,
-                        target,
-                        weightDesc,
-                        weight,
-                        outputGradDesc,
-                        output_grad,
-                        ignore_index);
-
-    LogCmdNLLLoss(inputGradDesc, targetDesc, weightDesc, false);
-    return miopen::try_([&] {
-        miopen::NLLLossUnreduceBackward(miopen::deref(handle),
-                                        miopen::deref(inputGradDesc),
-                                        DataCast(input_grad),
-                                        miopen::deref(targetDesc),
-                                        DataCast(target),
-                                        miopen::deref(weightDesc),
-                                        DataCast(weight),
-                                        miopen::deref(outputGradDesc),
-                                        DataCast(output_grad),
-                                        ignore_index);
-    });
-}
-
-extern "C" miopenStatus_t miopenNLLLossReduceBackward(miopenHandle_t handle,
-                                                      const miopenTensorDescriptor_t inputGradDesc,
-                                                      void* input_grad,
-                                                      const miopenTensorDescriptor_t targetDesc,
-                                                      const void* target,
-                                                      const miopenTensorDescriptor_t weightDesc,
-                                                      const void* weight,
-                                                      const miopenTensorDescriptor_t outputGradDesc,
-                                                      void* output_grad,
-                                                      const int32_t ignore_index,
-                                                      const float divisor)
+extern "C" miopenStatus_t miopenNLLLossBackward(miopenHandle_t handle,
+                                                const miopenTensorDescriptor_t inputGradDesc,
+                                                void* input_grad,
+                                                const miopenTensorDescriptor_t targetDesc,
+                                                const void* target,
+                                                const miopenTensorDescriptor_t weightDesc,
+                                                const void* weight,
+                                                const miopenTensorDescriptor_t outputGradDesc,
+                                                void* output_grad,
+                                                const int32_t ignore_index,
+                                                const miopenLossReductionMode_t reduction)
 {
     MIOPEN_LOG_FUNCTION(handle,
                         inputGradDesc,
@@ -246,20 +181,20 @@ extern "C" miopenStatus_t miopenNLLLossReduceBackward(miopenHandle_t handle,
                         outputGradDesc,
                         output_grad,
                         ignore_index,
-                        divisor);
+                        reduction);
 
-    LogCmdNLLLoss(inputGradDesc, targetDesc, weightDesc, false);
+    LogCmdNLLLoss(inputGradDesc, targetDesc, weightDesc, false, reduction);
     return miopen::try_([&] {
-        miopen::NLLLossReduceBackward(miopen::deref(handle),
-                                      miopen::deref(inputGradDesc),
-                                      DataCast(input_grad),
-                                      miopen::deref(targetDesc),
-                                      DataCast(target),
-                                      miopen::deref(weightDesc),
-                                      DataCast(weight),
-                                      miopen::deref(outputGradDesc),
-                                      DataCast(output_grad),
-                                      ignore_index,
-                                      divisor);
+        miopen::NLLLossBackward(miopen::deref(handle),
+                                miopen::deref(inputGradDesc),
+                                DataCast(input_grad),
+                                miopen::deref(targetDesc),
+                                DataCast(target),
+                                miopen::deref(weightDesc),
+                                DataCast(weight),
+                                miopen::deref(outputGradDesc),
+                                DataCast(output_grad),
+                                ignore_index,
+                                reduction);
     });
 }

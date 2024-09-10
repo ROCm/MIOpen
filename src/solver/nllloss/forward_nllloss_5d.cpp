@@ -44,19 +44,21 @@ namespace solver {
 
 namespace nllloss {
 
-bool NLLLossReduceForward5d::IsApplicable(
-    const ExecutionContext& context, const miopen::nllloss::ReduceProblemDescription& problem) const
+bool NLLLossReduceForward5d::IsApplicable(const ExecutionContext& context,
+                                          const miopen::nllloss::ProblemDescription& problem) const
 {
     if(problem.GetInputDesc().GetNumDims() > 5)
         return false;
-    if(!NLLLossReduceSolver::IsApplicable(context, problem))
+    if(problem.GetReduction() == MIOPEN_LOSS_REDUCTION_NONE)
+        return false;
+    if(!NLLLossSolver::IsApplicable(context, problem))
         return false;
     return true;
 }
 
 ConvSolution
 NLLLossReduceForward5d::GetSolution(const ExecutionContext& context,
-                                    const miopen::nllloss::ReduceProblemDescription& problem) const
+                                    const miopen::nllloss::ProblemDescription& problem) const
 {
     std::ignore = context;
 
@@ -160,9 +162,9 @@ NLLLossReduceForward5d::GetSolution(const ExecutionContext& context,
     return result;
 }
 
-std::size_t NLLLossReduceForward5d::GetWorkspaceSize(
-    const ExecutionContext& /*context*/,
-    const miopen::nllloss::ReduceProblemDescription& problem) const
+std::size_t
+NLLLossReduceForward5d::GetWorkspaceSize(const ExecutionContext& /*context*/,
+                                         const miopen::nllloss::ProblemDescription& problem) const
 {
     return (problem.GetTargetDesc().GetElementSize() +
             AlignUp(problem.GetTargetDesc().GetElementSize(), LOCAL_SIZE_REDUCE_FWD) /
