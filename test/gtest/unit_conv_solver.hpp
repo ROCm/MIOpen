@@ -122,9 +122,9 @@ using GPU_UnitTestConvSolverFwd_FP16 = UnitTestConvSolverFwd;
 using GPU_UnitTestConvSolverBwd_FP16 = UnitTestConvSolverBwd;
 using GPU_UnitTestConvSolverWrw_FP16 = UnitTestConvSolverWrw;
 
-using GPU_UnitTestConvSolverFwd_BF16 = UnitTestConvSolverFwd;
-using GPU_UnitTestConvSolverBwd_BF16 = UnitTestConvSolverBwd;
-using GPU_UnitTestConvSolverWrw_BF16 = UnitTestConvSolverWrw;
+using GPU_UnitTestConvSolverFwd_BFP16 = UnitTestConvSolverFwd;
+using GPU_UnitTestConvSolverBwd_BFP16 = UnitTestConvSolverBwd;
+using GPU_UnitTestConvSolverWrw_BFP16 = UnitTestConvSolverWrw;
 
 using GPU_UnitTestConvSolverFwd_FP32 = UnitTestConvSolverFwd;
 using GPU_UnitTestConvSolverBwd_FP32 = UnitTestConvSolverBwd;
