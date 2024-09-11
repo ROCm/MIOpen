@@ -52,6 +52,9 @@ struct ProblemDescriptionTag
 {
 };
 
+using index_t                           = int32_t;
+constexpr index_t NumBatchNormReduceDim = 3;
+
 struct MIOPEN_INTERNALS_EXPORT ProblemDescription : ProblemDescriptionBase, ProblemDescriptionTag
 {
     // Forward Training
@@ -76,6 +79,14 @@ struct MIOPEN_INTERNALS_EXPORT ProblemDescription : ProblemDescriptionBase, Prob
         SetSpatialDims();
         in_layout  = ComputeInLayout();
         out_layout = ComputeOutLayout();
+        if(IsLayoutNHWC())
+        { // NHWC
+            reduceDims = {0, 1, 2};
+        }
+        else if(IsLayoutNCHW())
+        { // NCHW
+            reduceDims = {0, 2, 3};
+        }
     }
 
     // Forward Inference
@@ -94,6 +105,14 @@ struct MIOPEN_INTERNALS_EXPORT ProblemDescription : ProblemDescriptionBase, Prob
         SetSpatialDims();
         in_layout  = ComputeInLayout();
         out_layout = ComputeOutLayout();
+        if(IsLayoutNHWC())
+        { // NHWC
+            reduceDims = {0, 1, 2};
+        }
+        else if(IsLayoutNCHW())
+        { // NCHW
+            reduceDims = {0, 2, 3};
+        }
     }
 
     // Backward
@@ -117,6 +136,14 @@ struct MIOPEN_INTERNALS_EXPORT ProblemDescription : ProblemDescriptionBase, Prob
         in_layout  = ComputeInLayout();
         out_layout = ComputeOutLayout();
         din_layout = ComputeDinLayout();
+        if(IsLayoutNHWC())
+        { // NHWC
+            reduceDims = {0, 1, 2};
+        }
+        else if(IsLayoutNCHW())
+        { // NCHW
+            reduceDims = {0, 2, 3};
+        }
     }
 
     void SetSpatialDims()
@@ -194,6 +221,20 @@ struct MIOPEN_INTERNALS_EXPORT ProblemDescription : ProblemDescriptionBase, Prob
                                               : ((in_layout == "NDHWC") && (out_layout == "NDHWC"));
     }
 
+    bool IsLayoutNCHW() const
+    {
+        if(direction == Direction::Backward)
+        {
+            return xDesc.GetLengths().size() == 4
+                       ? ((in_layout == "NCHW") && (out_layout == "NCHW") && (din_layout == "NCHW"))
+                       : ((in_layout == "NCDHW") && (out_layout == "NCDHW") &&
+                          (din_layout == "NCDHW"));
+        }
+
+        return xDesc.GetLengths().size() == 4 ? ((in_layout == "NCHW") && (out_layout == "NCHW"))
+                                              : ((in_layout == "NCDHW") && (out_layout == "NCDHW"));
+    }
+
     bool Is2D() const { return xDesc.GetLengths().size() == 4; }
     bool Is3D() const { return xDesc.GetLengths().size() == 5; }
 
@@ -208,6 +249,7 @@ struct MIOPEN_INTERNALS_EXPORT ProblemDescription : ProblemDescriptionBase, Prob
     // Any tunable solver would be able pick it and fetch a db instance in ExecutePrimitive.
     // It has to be discoverable via ADL from problem description.
     friend auto GetDb(const ExecutionContext& ctx, const ProblemDescriptionTag&) -> PerformanceDb;
+    std::array<int, NumBatchNormReduceDim> reduceDims;
 
 private:
     Direction direction;
@@ -241,7 +283,17 @@ private:
     NetworkConfig MakeForwardInferenceNetworkConfig() const;
     NetworkConfig MakeBackwardNetworkConfig() const;
 
-    std::string ComputeLayout(const TensorDescriptor& td) const { return td.GetLayout_str(); }
+    std::string ComputeLayout(const TensorDescriptor& td) const
+    {
+        if(spatial_dim == 2)
+        {
+            return td.GetLayout("NCHW");
+        }
+        else
+        {
+            return td.GetLayout("NCDHW");
+        }
+    }
     std::string ComputeInLayout() const { return ComputeLayout(xDesc); }
     std::string ComputeOutLayout() const { return ComputeLayout(yOrDyDesc); }
     std::string ComputeDinLayout() const { return ComputeLayout(dxDesc); }
