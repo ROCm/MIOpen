@@ -64,7 +64,17 @@ std::set<std::vector<int>> GetInputDimensions()
 {
     return {
         {1, 2, 3, 4},
-        {4, 3, 2, 1},
+        {4, 2, 3, 4},
+        {8, 2, 3, 4},
+        {16, 2, 3, 4},
+    };
+}
+std::set<std::vector<int>> GetOutputDimensions()
+{
+    return {
+        {1, 2, 3, 4},
+        {4, 3, 2, 4},
+
     };
 }
 
@@ -108,12 +118,45 @@ protected:
         std::tie(input, algo, mode, scales) = GetParam();
 
         auto&& handle = get_handle();
+/* ovo mozda ne valja
+        input_dim = tensor<DataType>{input.N, input.C, input.H, input.W};  
+        std::generate(input_dim.begin(), input_dim.end(), []() { return static_cast<DataType>(rand()) / RAND_MAX; });
+*/
+    auto input_dims = GetInputDimensions();
+    
+    //prve dimenzije iz skupa
+    auto selected_input_dim = *input_dims.begin(); // Možeš koristiti i druge dimenzije
 
-        // initialze output tensor with same dim as first input tensor
-        output = tensor<DataType>{out_dim};
+    // Kreiraj tensor koristeći dimenzije iz selected_input_dim
+    input_dim = tensor<DataType>{static_cast<size_t>(selected_input_dim[0]),
+                                 static_cast<size_t>(selected_input_dim[1]),
+                                 static_cast<size_t>(selected_input_dim[2]),
+                                 static_cast<size_t>(selected_input_dim[3])};
+
+    // Popuni input_dim tensor
+    std::generate(input_dim.begin(), input_dim.end(), []() { return static_cast<DataType>(rand()) / RAND_MAX; });
+
+        output = tensor<DataType>{input_dim};
         std::fill(output.begin(), output.end(), std::numeric_limits<DataType>::quiet_NaN());
 
         auto output_dev = handle.Write(output.data);
+        
+        ref_out = tensor<DataType>{input_dim};
+        std::fill(ref_out.begin(), ref_out.end(), std::numeric_limits<DataType>::quiet_NaN());
+        auto ref_out_dev = handle.Write(ref_out.data);
+
+        //backward pass
+        bw_input = tensor<DataType>{input_dim};  
+        std::fill(bw_input.begin(), bw_input.end(), std::numeric_limits<DataType>::quiet_NaN());
+        bw_output = tensor<DataType>{input_dim};
+        std::fill(bw_output.begin(), bw_output.end(), std::numeric_limits<DataType>::quiet_NaN());
+
+        //backward pass na GPU
+        auto bw_input_dev = handle.Write(bw_input.data);
+        auto bw_output_dev = handle.Write(bw_output.data);
+
+        auto din_dev = handle.Write(input_dim.data);
+
     }
     void Print()
     {
@@ -132,12 +175,13 @@ protected:
 
 private:
     // keep all the input\output intermediate data here
-
     InputDimension input;
     tensor<DataType> output;
-    tensor<DataType> out_dim;
-
-    // tensor<DataType> ref_output;
+    tensor<DataType> input_dim;
+    tensor<DataType> ref_out;
+    
+    tensor<DataType> bw_input;  // Backward input tensor
+    tensor<DataType> bw_output; // Backward output tensor
 
     miopenSoftmaxAlgorithm_t algo;
     miopenSoftmaxMode_t mode;
