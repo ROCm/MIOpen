@@ -271,7 +271,7 @@ private:
     std::vector<Tref> cy_host;
     std::vector<Tref> dhx_host;
     std::vector<Tref> dcx_host;
-    std::vector<prngStates> dropout_states_host;
+    std::vector<rocrand_state_xorwow> dropout_states_host;
 
     miopenRNNDescriptor_t rnnDesc;
 
@@ -717,7 +717,7 @@ int RNNSeqDriver<Tgpu, Tref>::SetRNNDescriptorFromCmdLineArgs()
 
         size_t statesSizeInBytes = 0;
         miopenDropoutGetStatesSize(GetHandle(), &statesSizeInBytes);
-        size_t states_size = statesSizeInBytes / sizeof(prngStates);
+        size_t states_size = statesSizeInBytes / sizeof(rocrand_state_xorwow);
 
         DEFINE_CONTEXT(ctx);
 #if MIOPEN_BACKEND_OPENCL
@@ -725,7 +725,7 @@ int RNNSeqDriver<Tgpu, Tref>::SetRNNDescriptorFromCmdLineArgs()
 #endif
 
         dropout_states_dev =
-            std::unique_ptr<GPUMem>(new GPUMem(ctx, states_size, sizeof(prngStates)));
+            std::unique_ptr<GPUMem>(new GPUMem(ctx, states_size, sizeof(rocrand_state_xorwow)));
 
         miopenSetDropoutDescriptor(DropoutDesc,
                                    GetHandle(),
