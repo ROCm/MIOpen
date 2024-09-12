@@ -34,7 +34,10 @@
 #ifdef FQUALIFIERS
 #error rocrand FQUALIFIERS defined externally, probably one of rocrand device header included prior to this
 #endif
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-macros"
 #define FQUALIFIERS inline
+#pragma clang diagnostic pop
 #include "kernels/miopen_rocrand.hpp"
 
 extern "C" miopenStatus_t miopenCreateDropoutDescriptor(miopenDropoutDescriptor_t* dropoutDesc)
