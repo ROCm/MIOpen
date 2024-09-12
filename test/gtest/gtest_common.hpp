@@ -64,7 +64,8 @@ enum class Gpu : int
     gfx94X  = 1 << 4,
     gfx103X = 1 << 5,
     gfx110X = 1 << 6,
-    gfxLast = Gpu::gfx110X, // \note Change the value when adding a new device
+    gfx120X = 1 << 7,
+    gfxLast = Gpu::gfx120X, // \note Change the value when adding a new device
     All     = -1
 };
 
@@ -96,7 +97,31 @@ struct disabled
     static constexpr bool enabling = false;
 };
 
+struct DevDescription
+{
+    std::string_view name;
+    unsigned cu_cnt; // CU for gfx9, WGP for gfx10, 11, ...
+
+    friend std::ostream& operator<<(std::ostream& os, const DevDescription& dd);
+};
+
+class MockHandle final : public miopen::Handle
+{
+public:
+    MockHandle(const DevDescription& dev_description);
+
+    // Add additional methods here if needed
+    std::string GetDeviceName() const override;
+    std::size_t GetMaxComputeUnits() const override;
+    std::size_t GetMaxMemoryAllocSize() override;
+    bool CooperativeLaunchSupported() const override;
+
+private:
+    DevDescription dev_descr;
+};
+
 Gpu GetDevGpuType();
+const std::multimap<Gpu, DevDescription>& GetAllKnownDevices();
 bool IsTestSupportedByDevice(Gpu supported_devs);
 
 template <typename disabled_mask, typename enabled_mask>

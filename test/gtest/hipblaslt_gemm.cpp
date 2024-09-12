@@ -85,39 +85,39 @@ static std::vector<TestCase> GetTestCases()
             {false, 32, 64, 128, false, true, 1.0f, 1.0f, 10}};
 }
 
-class HipBLASLtGEMMTestFloat : public testing::TestWithParam<TestCase>
+class GPU_HipBLASLtGEMMTest_FP32 : public testing::TestWithParam<TestCase>
 {
 };
 
-class HipBLASLtGEMMTestHalf : public testing::TestWithParam<TestCase>
+class GPU_HipBLASLtGEMMTest_FP16 : public testing::TestWithParam<TestCase>
 {
 };
 
-class HipBLASLtGEMMTestBFloat16 : public testing::TestWithParam<TestCase>
+class GPU_HipBLASLtGEMMTest_BFP16 : public testing::TestWithParam<TestCase>
 {
 };
 
-class HipBLASLtGEMMTestFloat8 : public testing::TestWithParam<TestCase>
+class GPU_HipBLASLtGEMMTest_FP8 : public testing::TestWithParam<TestCase>
 {
 };
 
-class HipBLASLtGEMMTestBFloat8 : public testing::TestWithParam<TestCase>
+class GPU_HipBLASLtGEMMTest_BFP8 : public testing::TestWithParam<TestCase>
 {
 };
 
-class HipBLASLtGEMMTestInt64 : public testing::Test
+class GPU_HipBLASLtGEMMTest_I64 : public testing::Test
 {
 };
 
-class HipBLASLtGEMMTestInt : public testing::Test
+class GPU_HipBLASLtGEMMTest_I32 : public testing::Test
 {
 };
 
-class HipBLASLtGEMMTestInt8 : public testing::Test
+class GPU_HipBLASLtGEMMTest_I8 : public testing::Test
 {
 };
 
-class HipBLASLtGEMMTestDouble : public testing::Test
+class GPU_HipBLASLtGEMMTest_FP64 : public testing::Test
 {
 };
 
@@ -289,73 +289,65 @@ static void CheckExceptionsWithSkip(miopenDataType_t dataType)
 } // namespace hipblaslt_gemm
 using namespace hipblaslt_gemm;
 
-TEST_F(HipBLASLtGEMMTestFloat, CheckHipBLASLtGEMMException)
+TEST_F(GPU_HipBLASLtGEMMTest_FP32, CheckHipBLASLtGEMMException)
 {
     using e_mask = enabled<Gpu::gfx94X, Gpu::gfx90A, Gpu::gfx110X>;
     using d_mask = disabled<Gpu::gfx103X, Gpu::gfx900, Gpu::gfx906, Gpu::gfx908>;
     CheckExceptionsWithSkip<float, d_mask, e_mask>(miopenDataType_t::miopenFloat);
 };
-TEST_P(HipBLASLtGEMMTestFloat, RunHipBLASLtGEMM)
+TEST_P(GPU_HipBLASLtGEMMTest_FP32, RunHipBLASLtGEMM)
 {
     using e_mask = enabled<Gpu::gfx94X, Gpu::gfx90A, Gpu::gfx110X>;
     using d_mask = disabled<Gpu::gfx103X, Gpu::gfx900, Gpu::gfx906, Gpu::gfx908>;
     RunGemmDescriptors<float, d_mask, e_mask>(GetParam(), miopenDataType_t::miopenFloat);
 };
-INSTANTIATE_TEST_SUITE_P(HipBLASLtGEMMTestSet,
-                         HipBLASLtGEMMTestFloat,
-                         testing::ValuesIn(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_HipBLASLtGEMMTest_FP32, testing::ValuesIn(GetTestCases()));
 
-TEST_F(HipBLASLtGEMMTestHalf, CheckHipBLASLtGEMMException)
+TEST_F(GPU_HipBLASLtGEMMTest_FP16, CheckHipBLASLtGEMMException)
 {
     using e_mask = enabled<Gpu::gfx94X, Gpu::gfx90A, Gpu::gfx110X>;
     using d_mask = disabled<Gpu::gfx103X, Gpu::gfx900, Gpu::gfx906, Gpu::gfx908>;
     CheckExceptionsWithSkip<float16, d_mask, e_mask>(miopenDataType_t::miopenHalf);
 };
-TEST_P(HipBLASLtGEMMTestHalf, RunHipBLASLtGEMM)
+TEST_P(GPU_HipBLASLtGEMMTest_FP16, RunHipBLASLtGEMM)
 {
     using e_mask = enabled<Gpu::gfx94X, Gpu::gfx90A, Gpu::gfx110X>;
     using d_mask = disabled<Gpu::gfx103X, Gpu::gfx900, Gpu::gfx906, Gpu::gfx908>;
     RunGemmDescriptors<float16, d_mask, e_mask>(GetParam(), miopenDataType_t::miopenHalf);
 };
-INSTANTIATE_TEST_SUITE_P(HipBLASLtGEMMTestSet,
-                         HipBLASLtGEMMTestHalf,
-                         testing::ValuesIn(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_HipBLASLtGEMMTest_FP16, testing::ValuesIn(GetTestCases()));
 
-TEST_F(HipBLASLtGEMMTestBFloat16, CheckHipBLASLtGEMMException)
+TEST_F(GPU_HipBLASLtGEMMTest_BFP16, CheckHipBLASLtGEMMException)
 {
     using e_mask = enabled<Gpu::gfx94X, Gpu::gfx90A, Gpu::gfx110X>;
     using d_mask = disabled<Gpu::gfx103X, Gpu::gfx900, Gpu::gfx906, Gpu::gfx908>;
     CheckExceptionsWithSkip<bfloat16, d_mask, e_mask>(miopenDataType_t::miopenBFloat16);
 };
-TEST_P(HipBLASLtGEMMTestBFloat16, RunHipBLASLtGEMM)
+TEST_P(GPU_HipBLASLtGEMMTest_BFP16, RunHipBLASLtGEMM)
 {
     using e_mask = enabled<Gpu::gfx94X, Gpu::gfx90A, Gpu::gfx110X>;
     using d_mask = disabled<Gpu::gfx103X, Gpu::gfx900, Gpu::gfx906, Gpu::gfx908>;
     RunGemmDescriptors<bfloat16, d_mask, e_mask>(GetParam(), miopenDataType_t::miopenBFloat16);
 };
-INSTANTIATE_TEST_SUITE_P(HipBLASLtGEMMTestSet,
-                         HipBLASLtGEMMTestBFloat16,
-                         testing::ValuesIn(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_HipBLASLtGEMMTest_BFP16, testing::ValuesIn(GetTestCases()));
 
-TEST_F(HipBLASLtGEMMTestFloat8, CheckHipBLASLtGEMMException)
+TEST_F(GPU_HipBLASLtGEMMTest_FP8, CheckHipBLASLtGEMMException)
 {
     using e_mask = enabled<Gpu::gfx94X>;
     using d_mask =
         disabled<Gpu::gfx103X, Gpu::gfx900, Gpu::gfx906, Gpu::gfx908, Gpu::gfx90A, Gpu::gfx110X>;
     CheckExceptionsWithSkip<float8, d_mask, e_mask>(miopenDataType_t::miopenFloat8);
 };
-TEST_P(HipBLASLtGEMMTestFloat8, RunHipBLASLtGEMM)
+TEST_P(GPU_HipBLASLtGEMMTest_FP8, RunHipBLASLtGEMM)
 {
     using e_mask = enabled<Gpu::gfx94X>;
     using d_mask =
         disabled<Gpu::gfx103X, Gpu::gfx900, Gpu::gfx906, Gpu::gfx908, Gpu::gfx90A, Gpu::gfx110X>;
     RunGemmDescriptors<float8, d_mask, e_mask>(GetParam(), miopenDataType_t::miopenFloat8);
 };
-INSTANTIATE_TEST_SUITE_P(HipBLASLtGEMMTestSet,
-                         HipBLASLtGEMMTestFloat8,
-                         testing::ValuesIn(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_HipBLASLtGEMMTest_FP8, testing::ValuesIn(GetTestCases()));
 
-TEST_F(HipBLASLtGEMMTestBFloat8, CheckHipBLASLtGEMMException)
+TEST_F(GPU_HipBLASLtGEMMTest_BFP8, CheckHipBLASLtGEMMException)
 {
 #ifdef ENABLE_HIPBLASLT_BF8
     using e_mask = enabled<Gpu::gfx94X>;
@@ -366,7 +358,7 @@ TEST_F(HipBLASLtGEMMTestBFloat8, CheckHipBLASLtGEMMException)
     CheckExceptions<bfloat8>(miopenDataType_t::miopenInt64);
 #endif
 };
-TEST_P(HipBLASLtGEMMTestBFloat8, RunHipBLASLtGEMM)
+TEST_P(GPU_HipBLASLtGEMMTest_BFP8, RunHipBLASLtGEMM)
 {
 #ifdef ENABLE_HIPBLASLT_BF8
     using e_mask = enabled<Gpu::gfx94X>;
@@ -377,26 +369,24 @@ TEST_P(HipBLASLtGEMMTestBFloat8, RunHipBLASLtGEMM)
     GTEST_SKIP();
 #endif
 };
-INSTANTIATE_TEST_SUITE_P(HipBLASLtGEMMTestSet,
-                         HipBLASLtGEMMTestBFloat8,
-                         testing::ValuesIn(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_HipBLASLtGEMMTest_BFP8, testing::ValuesIn(GetTestCases()));
 
-TEST_F(HipBLASLtGEMMTestInt64, CheckHipBLASLtGEMMException)
+TEST_F(GPU_HipBLASLtGEMMTest_I64, CheckHipBLASLtGEMMException)
 {
     CheckExceptions<int64_t>(miopenDataType_t::miopenInt64);
 };
 
-TEST_F(HipBLASLtGEMMTestInt, CheckHipBLASLtGEMMException)
+TEST_F(GPU_HipBLASLtGEMMTest_I32, CheckHipBLASLtGEMMException)
 {
     CheckExceptions<int>(miopenDataType_t::miopenInt32);
 };
 
-TEST_F(HipBLASLtGEMMTestInt8, CheckHipBLASLtGEMMException)
+TEST_F(GPU_HipBLASLtGEMMTest_I8, CheckHipBLASLtGEMMException)
 {
     CheckExceptions<int8_t>(miopenDataType_t::miopenInt8);
 };
 
-TEST_F(HipBLASLtGEMMTestDouble, CheckHipBLASLtGEMMException)
+TEST_F(GPU_HipBLASLtGEMMTest_FP64, CheckHipBLASLtGEMMException)
 {
     CheckExceptions<double>(miopenDataType_t::miopenDouble);
 };
