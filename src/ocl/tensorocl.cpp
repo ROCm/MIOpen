@@ -2309,6 +2309,11 @@ void TransformTensor(const Handle& handle,
             network_config += "x" + std::to_string(len);
         }
 
+        if(is_beta_zero)
+            network_config += "xBETA_IS_ZERO";
+        if(is_alpha_one)
+            network_config += "xALPHA_IS_ONE";
+
         auto&& kernels = handle.GetKernels(kernel_name, network_config);
 
         KernelInvoke kernel;

@@ -38,7 +38,7 @@ class MultiStreamController
 public:
     static constexpr int rootStreamId = 0;
 
-    MultiStreamController(Handle& handle, int extra_stream_cnt)
+    MultiStreamController(const Handle& handle, int extra_stream_cnt)
         : streamPoolIdsMapping{init_stream_pool_ids(handle, extra_stream_cnt)},
           streamPoolCache{init_stream_pool(handle, streamPoolIdsMapping)},
           activeHandle{handle}
@@ -90,6 +90,8 @@ public:
 
     size_t size() const { return streamPoolIdsMapping.size(); }
 
+    ~MultiStreamController() { ChangeActiveStream(rootStreamId); }
+
 private:
     static std::vector<int> init_stream_pool_ids(const Handle& handle, int extra_stream_cnt)
     {
@@ -97,12 +99,13 @@ private:
         ids.reserve(extra_stream_cnt + 1);
 
         bool ms_wa_fix_active = extra_stream_cnt > 2 && !env::disabled(MIOPEN_MS_WA_FIX);
-        int wa_steams         = ms_wa_fix_active ? 2 : 0;
+        handle.SetStreamFromPool(0);
+        int wa_steams = ms_wa_fix_active ? (handle.GetStream() == nullptr ? 3 : 2) : 0;
 
         handle.ReserveExtraStreamsInPool(extra_stream_cnt + wa_steams);
 
         for(int i = 0; i <= extra_stream_cnt + wa_steams; i++)
-            if(!(ms_wa_fix_active && (i == 3 || i == 4)))
+            if(!(ms_wa_fix_active && (i > 0 && i <= wa_steams)))
                 ids.push_back(i);
 
         return ids;
