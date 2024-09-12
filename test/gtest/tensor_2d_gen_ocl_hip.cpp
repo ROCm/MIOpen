@@ -360,6 +360,70 @@ protected:
         }
     }
 
+    void runHIPnew()
+    {
+        auto&& handle = get_handle();
+        tensC_dev     = handle.Write(tensC.data);
+
+        std::fill(tensC_hip.begin(), tensC_hip.end(), std::numeric_limits<T>::quiet_NaN());
+
+        params = " -DMIOPEN_TYPE=" + miopen::GetDataType(data_type);
+        params += " " + miopen::GetDataTypeKBP(data_type).GenerateFor(miopen::kbp::HIP{});
+        params += " -DMIOPEN_TENSOR_OP=miopenAdd -DUSE_2D_TENSOR_GENERIC_NEW";
+
+        std::string program_name       = "MIOpenTensorKernelsHip.cpp";
+        std::string network_config_hip = network_config + "-hip";
+
+        handle.AddKernel("Op2dTensorGenericNew",
+                         network_config_hip,
+                         program_name,
+                         "Op2dTensorGenericNews",
+                         vld,
+                         vgd,
+                         params)(tensA_dev.get(),
+                                 tensB_dev.get(),
+                                 tensC_dev.get(),
+                                 static_cast<int64_t>(0),
+                                 static_cast<int64_t>(0),
+                                 static_cast<int64_t>(0),
+                                 static_cast<int>(tensorsConfig.blens[1]),
+                                 static_cast<int>(tensorsConfig.aclens[1]),
+                                 static_cast<int>(tensorsConfig.acstrides[0]),
+                                 static_cast<int>(tensorsConfig.bstrides[0]),
+                                 static_cast<int>(tensorsConfig.acstrides[0]),
+                                 alpha0,
+                                 alpha1,
+                                 beta,
+                                 aclens[0],
+                                 !float_equal(beta, 0.0));
+
+        tensC_hip.data = handle.Read<T>(tensC_dev, tensC_hip.data.size());
+
+        if constexpr(PERF_ENABLE)
+        {
+            ph.perfTest(handle,
+                        "Op2dTensorGeneric",
+                        network_config_hip,
+                        false,
+                        tensA_dev.get(),
+                        tensB_dev.get(),
+                        tensC_dev.get(),
+                        static_cast<int64_t>(0),
+                        static_cast<int64_t>(0),
+                        static_cast<int64_t>(0),
+                        static_cast<int>(tensorsConfig.blens[1]),
+                        static_cast<int>(tensorsConfig.aclens[1]),
+                        static_cast<int>(tensorsConfig.acstrides[0]),
+                        static_cast<int>(tensorsConfig.bstrides[0]),
+                        static_cast<int>(tensorsConfig.acstrides[0]),
+                        alpha0,
+                        alpha1,
+                        beta,
+                        aclens[0],
+                        !float_equal(beta, 0.0));
+        }
+    }
+
     void verify()
     {
         auto error = miopen::rms_range(tensC_ocl, tensC_hip);
