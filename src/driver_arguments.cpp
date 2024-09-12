@@ -142,9 +142,9 @@ std::string ConvArgsForMIOpenDriver(const miopen::TensorDescriptor& xDesc,
            << " -v " << convDesc.GetConvStrides()[1]   //
            << " -l " << convDesc.GetConvDilations()[0] //
            << " -j " << convDesc.GetConvDilations()[1];
-        std::string x_layout = xDesc.GetLayout("NCHW");
-        std::string w_layout = wDesc.GetLayout("NCHW");
-        std::string y_layout = yDesc.GetLayout("NCHW");
+        std::string x_layout = xDesc.GetLayout_str();
+        std::string w_layout = wDesc.GetLayout_str();
+        std::string y_layout = yDesc.GetLayout_str();
         if(x_layout != "NCHW")
         {
             ss << " --in_layout " << x_layout;
@@ -182,9 +182,9 @@ std::string ConvArgsForMIOpenDriver(const miopen::TensorDescriptor& xDesc,
            << " -l " << convDesc.GetConvDilations()[1]            //
            << " -j " << convDesc.GetConvDilations()[2]            //
            << " --spatial_dim 3";
-        std::string x_layout = xDesc.GetLayout("NCDHW");
-        std::string w_layout = wDesc.GetLayout("NCDHW");
-        std::string y_layout = yDesc.GetLayout("NCDHW");
+        std::string x_layout = xDesc.GetLayout_str();
+        std::string w_layout = wDesc.GetLayout_str();
+        std::string y_layout = yDesc.GetLayout_str();
         if(x_layout != "NCDHW")
         {
             ss << " --in_layout " << x_layout;
