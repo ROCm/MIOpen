@@ -229,6 +229,10 @@ if( MIOPEN_BACKEND STREQUAL "OpenCL")
     set (HIP_CXX_COMPILER ${MIOPEN_HIP_COMPILER})
 endif()
 
+# HIP SDK on Windows does not detect platform correctly, defaulting to "amd"
+if(NOT HIP_PLATFORM AND CMAKE_SYSTEM_NAME STREQUAL "Windows")
+    set(HIP_PLATFORM "amd")
+endif()
 
 # HIP is always required
 find_package(hip REQUIRED PATHS /opt/rocm)
