@@ -59,7 +59,7 @@ static void InitKernelStateEmulator(std::vector<rocrand_state_xorwow>& states,
     {
         for(size_t i = 0; i < glb_sz; i++)
         {
-            size_t gid                = i + j * glb_sz;
+            size_t gid = i + j * glb_sz;
             rocrand_state_xorwow state_gid;
             rocrand_init(miopen::deref(dropoutDesc).seed, gid, 0ULL, &state_gid);
             states[gid] = state_gid;
