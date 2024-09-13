@@ -23,7 +23,6 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-
 #ifndef MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS
 #include <hip/hip_fp16.h>
 #include <hip/hip_runtime.h>
@@ -190,42 +189,44 @@ extern "C" __global__ void Op2dTensorGenericNew(const MIOPEN_TYPE* a,
                                                 const long Aoffset,
                                                 const long Boffset,
                                                 const long Coffset,
-                                                const int b_c,
-                                                const int c_c,
-                                                const int a_nstride,
-                                                const int b_nstride,
-                                                const int c_nstride,
+                                                const uint32_t b_c,
+                                                const uint32_t c_c,
+                                                const uint32_t a_nstride,
+                                                const uint32_t a_cstride,
+                                                const uint32_t b_nstride,
+                                                const uint32_t b_cstride,
+                                                const uint32_t c_nstride,
+                                                const uint32_t c_cstride,
+                                                const uint32_t b_size,
                                                 const MIOPEN_TYPE alpha0,
                                                 const MIOPEN_TYPE alpha1,
                                                 const MIOPEN_TYPE beta,
                                                 const uint32_t total_work,
                                                 const bool use_beta)
 {
-    // int gid = blockIdx.x;
-
     const MIOPEN_TYPE* a_off = a + Aoffset;
     const MIOPEN_TYPE* b_off = b + Boffset;
     MIOPEN_TYPE* c_off       = c + Coffset;
 
-    // int o_n_div = (bitmap & (1 << 0)) ? 1 : c_c;
     const auto gid = blockIdx.x * blockDim.x + threadIdx.x;
-    auto a_ptr     = a_off + (gid / c_c) * a_nstride + (gid % c_c);
-    auto b_ptr     = b_off + (gid / b_c) * b_nstride + (gid % b_c);
-    auto c_ptr     = c_off + (gid / c_c) * c_nstride + (gid % c_c);
+    auto a_ptr     = a_off + (gid / c_c) * a_nstride + (gid % c_c) * a_cstride;
+    auto b_ptr     = b_off + (gid / b_c) * b_nstride + (gid % b_c) * b_cstride;
+    auto c_ptr     = c_off + (gid / c_c) * c_nstride + (gid % c_c) * c_cstride;
 
     const auto step   = gridDim.x * blockDim.x;
-    const auto a_step = (step / c_c) * a_nstride + (step % c_c);
-    const auto b_step = (step / b_c) * b_nstride + (step % b_c);
-    const auto c_step = (step / c_c) * c_nstride + (step % c_c);
+    const auto a_step = (step / c_c) * a_nstride + (step % c_c) * a_cstride;
+    const auto b_step = (step / b_c) * b_nstride + (step % b_c) * b_cstride;
+    const auto c_step = (step / c_c) * c_nstride + (step % c_c) * c_cstride;
 
     const auto c_end = c_off + total_work * c_nstride;
+    const auto b_end = b_off + b_size;
     while(c_ptr < c_end)
     {
         const auto res = MIOPEN_TENSOR_OP(a_ptr[0] * alpha0, b_ptr[0] * alpha1);
         c_ptr[0]       = use_beta ? c_ptr[0] * beta + res : res;
 
         a_ptr += a_step;
-        b_ptr += b_step;
+        b_ptr = (b_ptr + b_step) >= b_end ? (b_off + (b_ptr + b_step - b_end)) : (b_ptr + b_step);
         c_ptr += c_step;
     }
 }

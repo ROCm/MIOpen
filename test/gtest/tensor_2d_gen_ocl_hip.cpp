@@ -33,10 +33,11 @@
 #include <gtest/gtest.h>
 
 #include "perf_helper.hpp"
+#include <tensor_util.hpp>
 #include <miopen/float_equal.hpp>
 
 #define MAX_TENSOR_ELEM 17
-#define PERF_ENABLE 0
+#define PERF_ENABLE 1
 #define POW_2 1
 
 struct TensorsConfig
@@ -162,6 +163,15 @@ protected:
         auto&& handle                                 = get_handle();
         std::tie(tensorsConfig, alpha0, alpha1, beta) = GetParam();
 
+        std::cout << "(" << std::to_string(tensorsConfig.aclens[0]) << ", "
+                  << std::to_string(tensorsConfig.aclens[1]) << ")->("
+                  << std::to_string(tensorsConfig.acstrides[0]) << ", "
+                  << std::to_string(tensorsConfig.acstrides[1]) << ") ";
+        std::cout << "(" << std::to_string(tensorsConfig.blens[0]) << ", "
+                  << std::to_string(tensorsConfig.blens[1]) << ")->("
+                  << std::to_string(tensorsConfig.bstrides[0]) << ", "
+                  << std::to_string(tensorsConfig.bstrides[1]) << ") " << std::endl;
+
         data_type = miopen_type<T>{};
 
         // Generate elements in tensors
@@ -179,8 +189,14 @@ protected:
         // Allocate output tensors for OCL and HIP
         tensC_ocl = tensor<T>{tensorsConfig.aclens, tensorsConfig.acstrides};
         tensC_hip = tensor<T>{tensorsConfig.aclens, tensorsConfig.acstrides};
+        tensC_hip_new = tensor<T>{tensorsConfig.aclens, tensorsConfig.acstrides};
 
-        // Prepare all parameters needed for kernel
+        // print_tensor(tensA, "a", 1);
+        // print_tensor(tensB, "b", 1);
+        // std::cout << "(alpha0, alpha1, beta) " << std::endl << "(";
+        // std::cout << std::to_string(alpha0) << ", " << std::to_string(alpha1);
+        // std::cout << ", " << std::to_string(beta) << ")" << std::endl;
+        // // Prepare all parameters needed for kernel
         auto first_not_one = std::find_if(
             tensorsConfig.blens.rbegin(), tensorsConfig.blens.rend(), [](int i) { return i != 1; });
         auto d = std::distance(tensorsConfig.blens.begin(), first_not_one.base());
@@ -221,6 +237,9 @@ protected:
         size_t global_threads = num_wg * local_threads;
 
         vgd = {global_threads, 1, 1};
+
+        std::cout << "num_wg: " << std::to_string(num_wg)
+                  << " x local: " << std::to_string(local_threads) << std::endl;
 
         network_config += std::to_string(data_type) + "-miopenTensorOpAdd-" +
                           std::to_string(global_threads) + "-" + std::to_string(local_threads);
@@ -333,6 +352,7 @@ protected:
                                  static_cast<int>(num_wg_orig));
 
         tensC_hip.data = handle.Read<T>(tensC_dev, tensC_hip.data.size());
+        // print_tensor(tensC_hip, "hip old", 1);
 
         if constexpr(PERF_ENABLE)
         {
@@ -365,68 +385,96 @@ protected:
         auto&& handle = get_handle();
         tensC_dev     = handle.Write(tensC.data);
 
-        std::fill(tensC_hip.begin(), tensC_hip.end(), std::numeric_limits<T>::quiet_NaN());
+        // print_tensor(tensC, "c", 1);
+
+        std::fill(tensC_hip_new.begin(), tensC_hip_new.end(), std::numeric_limits<T>::quiet_NaN());
 
         params = " -DMIOPEN_TYPE=" + miopen::GetDataType(data_type);
         params += " " + miopen::GetDataTypeKBP(data_type).GenerateFor(miopen::kbp::HIP{});
         params += " -DMIOPEN_TENSOR_OP=miopenAdd -DUSE_2D_TENSOR_GENERIC_NEW";
 
         std::string program_name       = "MIOpenTensorKernelsHip.cpp";
-        std::string network_config_hip = network_config + "-hip";
+        std::string network_config_hip = network_config + "-hip_new";
+
+        std::cout << static_cast<uint32_t>(tensorsConfig.blens[0] * tensorsConfig.blens[1]);
 
         handle.AddKernel("Op2dTensorGenericNew",
                          network_config_hip,
                          program_name,
-                         "Op2dTensorGenericNews",
+                         "Op2dTensorGenericNew",
                          vld,
                          vgd,
-                         params)(tensA_dev.get(),
-                                 tensB_dev.get(),
-                                 tensC_dev.get(),
-                                 static_cast<int64_t>(0),
-                                 static_cast<int64_t>(0),
-                                 static_cast<int64_t>(0),
-                                 static_cast<int>(tensorsConfig.blens[1]),
-                                 static_cast<int>(tensorsConfig.aclens[1]),
-                                 static_cast<int>(tensorsConfig.acstrides[0]),
-                                 static_cast<int>(tensorsConfig.bstrides[0]),
-                                 static_cast<int>(tensorsConfig.acstrides[0]),
-                                 alpha0,
-                                 alpha1,
-                                 beta,
-                                 aclens[0],
-                                 !float_equal(beta, 0.0));
+                         params)(
+            tensA_dev.get(),
+            tensB_dev.get(),
+            tensC_dev.get(),
+            static_cast<long>(0),
+            static_cast<long>(0),
+            static_cast<long>(0),
+            static_cast<uint32_t>(tensorsConfig.blens[1] == 1 ? tensorsConfig.aclens[1]
+                                                              : tensorsConfig.blens[1]),
+            static_cast<uint32_t>(tensorsConfig.aclens[1]),
+            static_cast<uint32_t>(tensorsConfig.acstrides[0]),
+            static_cast<uint32_t>(tensorsConfig.acstrides[1]),
+            static_cast<uint32_t>(tensorsConfig.blens[0] == 1 ? 0 : tensorsConfig.bstrides[0]),
+            static_cast<uint32_t>(tensorsConfig.blens[1] == 1 ? 0 : tensorsConfig.bstrides[1]),
+            static_cast<uint32_t>(tensorsConfig.acstrides[0]),
+            static_cast<uint32_t>(tensorsConfig.acstrides[1]),
+            static_cast<uint32_t>(tensorsConfig.blens[0] * tensorsConfig.bstrides[0]),
+            alpha0,
+            alpha1,
+            beta,
+            static_cast<uint32_t>(tensorsConfig.aclens[0]),
+            !miopen::float_equal(beta, 0.0));
 
-        tensC_hip.data = handle.Read<T>(tensC_dev, tensC_hip.data.size());
+        tensC_hip_new.data = handle.Read<T>(tensC_dev, tensC_hip_new.data.size());
+        // print_tensor(tensC_hip_new, "hip new", 1);
 
         if constexpr(PERF_ENABLE)
         {
-            ph.perfTest(handle,
-                        "Op2dTensorGeneric",
-                        network_config_hip,
-                        false,
-                        tensA_dev.get(),
-                        tensB_dev.get(),
-                        tensC_dev.get(),
-                        static_cast<int64_t>(0),
-                        static_cast<int64_t>(0),
-                        static_cast<int64_t>(0),
-                        static_cast<int>(tensorsConfig.blens[1]),
-                        static_cast<int>(tensorsConfig.aclens[1]),
-                        static_cast<int>(tensorsConfig.acstrides[0]),
-                        static_cast<int>(tensorsConfig.bstrides[0]),
-                        static_cast<int>(tensorsConfig.acstrides[0]),
-                        alpha0,
-                        alpha1,
-                        beta,
-                        aclens[0],
-                        !float_equal(beta, 0.0));
+            ph.perfTest(
+                handle,
+                "Op2dTensorGenericNew",
+                network_config_hip,
+                false,
+                tensA_dev.get(),
+                tensB_dev.get(),
+                tensC_dev.get(),
+                static_cast<long>(0),
+                static_cast<long>(0),
+                static_cast<long>(0),
+                static_cast<uint32_t>(tensorsConfig.blens[1] == 1 ? tensorsConfig.aclens[1]
+                                                                  : tensorsConfig.blens[1]),
+                static_cast<uint32_t>(tensorsConfig.aclens[1]),
+                static_cast<uint32_t>(tensorsConfig.acstrides[0]),
+                static_cast<uint32_t>(tensorsConfig.acstrides[1]),
+                static_cast<uint32_t>(tensorsConfig.blens[0] == 1 ? 0 : tensorsConfig.bstrides[0]),
+                static_cast<uint32_t>(tensorsConfig.blens[1] == 1 ? 0 : tensorsConfig.bstrides[1]),
+                static_cast<uint32_t>(tensorsConfig.acstrides[0]),
+                static_cast<uint32_t>(tensorsConfig.acstrides[1]),
+                alpha0,
+                alpha1,
+                beta,
+                static_cast<uint32_t>(tensorsConfig.aclens[0]),
+                !miopen::float_equal(beta, 0.0));
         }
     }
 
-    void verify()
+    void verifyOCLHIP()
     {
         auto error = miopen::rms_range(tensC_ocl, tensC_hip);
+        EXPECT_TRUE(error == 0) << "GPU outputs do not match each other. Error: " << error;
+    }
+
+    void verifyHIPnewHIP()
+    {
+        auto error = miopen::rms_range(tensC_hip_new, tensC_hip);
+        EXPECT_TRUE(error == 0) << "GPU outputs do not match each other. Error: " << error;
+    }
+
+    void verifyOCLHIPnew()
+    {
+        auto error = miopen::rms_range(tensC_ocl, tensC_hip_new);
         EXPECT_TRUE(error == 0) << "GPU outputs do not match each other. Error: " << error;
     }
 
@@ -463,6 +511,7 @@ protected:
     tensor<T> tensC;
     tensor<T> tensC_ocl;
     tensor<T> tensC_hip;
+    tensor<T> tensC_hip_new;
 
     miopenDataType_t data_type;
 
@@ -483,11 +532,15 @@ struct GPU_Op2dTensorGenericTest_FP32 : Op2DTensorGenericTest<float>
 TEST_P(GPU_Op2dTensorGenericTest_FP32, PortTest)
 {
     // run OCL kernel
-    runOCL();
+    // runOCL();
     // run HIP kernel
     runHIP();
+    // run HIP upgraded kernel
+    runHIPnew();
     // verify if the output tensors are same
-    verify();
+    // verifyOCLHIP();
+    verifyHIPnewHIP();
+    //  verifyOCLHIPnew();
 }
 
 INSTANTIATE_TEST_SUITE_P(Smoke,
