@@ -118,13 +118,21 @@ using UnitTestConvSolverFwd = UnitTestConvSolver<miopen::conv::Direction::Forwar
 using UnitTestConvSolverBwd = UnitTestConvSolver<miopen::conv::Direction::BackwardData>;
 using UnitTestConvSolverWrw = UnitTestConvSolver<miopen::conv::Direction::BackwardWeights>;
 
-using GPU_UnitTestConvSolver_fwd_FP16 = UnitTestConvSolverFwd;
-using GPU_UnitTestConvSolver_bwd_FP16 = UnitTestConvSolverBwd;
-using GPU_UnitTestConvSolver_wrw_FP16 = UnitTestConvSolverWrw;
+using GPU_UnitTestConvSolverFwd_FP16 = UnitTestConvSolverFwd;
+using GPU_UnitTestConvSolverBwd_FP16 = UnitTestConvSolverBwd;
+using GPU_UnitTestConvSolverWrw_FP16 = UnitTestConvSolverWrw;
 
-using GPU_UnitTestConvSolver_fwd_FP32 = UnitTestConvSolverFwd;
-using GPU_UnitTestConvSolver_bwd_FP32 = UnitTestConvSolverBwd;
-using GPU_UnitTestConvSolver_wrw_FP32 = UnitTestConvSolverWrw;
+using GPU_UnitTestConvSolverFwd_BFP16 = UnitTestConvSolverFwd;
+using GPU_UnitTestConvSolverBwd_BFP16 = UnitTestConvSolverBwd;
+using GPU_UnitTestConvSolverWrw_BFP16 = UnitTestConvSolverWrw;
+
+using GPU_UnitTestConvSolverFwd_FP32 = UnitTestConvSolverFwd;
+using GPU_UnitTestConvSolverBwd_FP32 = UnitTestConvSolverBwd;
+using GPU_UnitTestConvSolverWrw_FP32 = UnitTestConvSolverWrw;
+
+using GPU_UnitTestConvSolverFwd_I8 = UnitTestConvSolverFwd;
+using GPU_UnitTestConvSolverBwd_I8 = UnitTestConvSolverBwd;
+using GPU_UnitTestConvSolverWrw_I8 = UnitTestConvSolverWrw;
 
 //************************************************************************************
 // This test is designed to detect the expansion of the solver's device applicability
@@ -156,5 +164,11 @@ public:
 
 using UnitTestConvSolverDevApplicabilityFwd =
     UnitTestConvSolverDevApplicability<miopen::conv::Direction::Forward>;
+using UnitTestConvSolverDevApplicabilityBwd =
+    UnitTestConvSolverDevApplicability<miopen::conv::Direction::BackwardData>;
+using UnitTestConvSolverDevApplicabilityWrw =
+    UnitTestConvSolverDevApplicability<miopen::conv::Direction::BackwardWeights>;
 
-using CPU_UnitTestConvSolverDevApplicability_fwd_FP16 = UnitTestConvSolverDevApplicabilityFwd;
+using CPU_UnitTestConvSolverDevApplicabilityFwd_NONE = UnitTestConvSolverDevApplicabilityFwd;
+using CPU_UnitTestConvSolverDevApplicabilityBwd_NONE = UnitTestConvSolverDevApplicabilityBwd;
+using CPU_UnitTestConvSolverDevApplicabilityWrw_NONE = UnitTestConvSolverDevApplicabilityWrw;
