@@ -62,7 +62,6 @@ if(NOT MIOPEN_GENERATOR_IS_MULTI_CONFIG)
     message( STATUS "CMAKE_BUILD_TYPE= ${CMAKE_BUILD_TYPE}" )
 endif()
 
-message("CK include: ${COMPOSABLE_KERNEL_INCLUDE}")
 # This is incremented when the ABI to the library changes
 set( MIOpen_SOVERSION 1.0 )
 
@@ -587,7 +586,8 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/xform_bidirect_winograd_data.s
         kernels/xform_bidirect_winograd_filter.s
         kernels/xform_bidirect_winograd_out.s
-        kernels/UniversalTranspose.cl)
+        kernels/UniversalTranspose.cl
+	kernels/main.cpp)
 
     # Kernels in development lists.
     # Should be ALWAYS empty in develop branch (at the time of PR merge)
