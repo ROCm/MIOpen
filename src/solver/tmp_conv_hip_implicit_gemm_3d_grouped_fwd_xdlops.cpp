@@ -32,6 +32,7 @@
 #include <miopen/conv/data_invoke_params.hpp>
 #include <miopen/solver/problem_description_interpreter.hpp>
 #include <miopen/kernel_build_params.hpp>
+#include <miopen/hipoc_program.hpp>
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 #include <miopen/solver/ck_utility_common.hpp>
 #include <ck/library/tensor_operation_instance/gpu/grouped_convolution_forward_bilinear.hpp>
@@ -271,6 +272,13 @@ ConvSolution ConvHipImplicitGemmGroupFwdXdlopsCodegen::GetSolution(
     // TODO: MIOpen has it's own handlers for compilation
     // auto k = rtc::compile_kernel(srcs, options);
 
+    /**auto pImpl     = std::make_shared<HIPOCProgramImpl>();
+    pImpl->program = program_name;
+    pImpl->target  = this->GetTargetProperties();
+    auto p           = HIPOCProgram{};
+    p.impl           = pImpl;
+    pImpl->BuildCodeObject(params, src);**/
+
     // Grid size calculation
     auto block_size = solution[0].GetTemplateParameter<ck::index_t>("BlockSize");
 
@@ -281,10 +289,12 @@ ConvSolution ConvHipImplicitGemmGroupFwdXdlopsCodegen::GetSolution(
     kernel.l_wk = {block_size, 1, 1};
     kernel.g_wk = {block_size * grid_size, 1, 1};
 
-    /**bool bfp16parm  = true;
-    const auto build_params = KernelBuildParameters{
-                        {"MIOPEN_USE_FP16", static_cast<int>(bfp16parm)}};
-    kernel.comp_options = build_params.GenerateFor(kbp::HIP{});**/
+    bool bfp16parm = true;
+    const auto build_params =
+        KernelBuildParameters{{"MIOPEN_USE_FP16", static_cast<int>(bfp16parm)}};
+    kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
+    kernel.comp_options += " -DCK_DONT_USE_HIP_RUNTIME_HEADERS";
+    std::cout << "comp options: " << kernel.comp_options << std::endl;
 
     soln.construction_params.push_back(kernel);
 
