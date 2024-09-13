@@ -57,7 +57,7 @@ std::set<std::vector<int>> GetTestCases(bool full)
 
 auto GetAllActivationModes()
 {
-    return std::vector<miopenActivationMode_t> {
+    return std::vector<miopenActivationMode_t>{
         miopenActivationPASTHRU,
         miopenActivationLOGISTIC,
         miopenActivationTANH,
@@ -74,7 +74,8 @@ auto GetAllActivationModes()
 Gpu GetSupportedDevices() { return Gpu::All; }
 
 template <class T>
-class UnitTestActivationDescriptor : public ::testing::TestWithParam<std::tuple<Gpu, miopenActivationMode_t, std::vector<int>>>
+class UnitTestActivationDescriptor
+    : public ::testing::TestWithParam<std::tuple<Gpu, miopenActivationMode_t, std::vector<int>>>
 {
 public:
     void RunTest()
@@ -88,17 +89,17 @@ public:
         const double gamma = 3.4;
         const auto desc    = miopen::ActivationDescriptor{mode, alpha, beta, gamma};
 
-        auto x_tensor = tensor<T>{input_dims};
-        auto y_tensor_gpu = tensor<T>{input_dims};
-        auto y_tensor_cpu = tensor<T>{input_dims};
+        auto x_tensor      = tensor<T>{input_dims};
+        auto y_tensor_gpu  = tensor<T>{input_dims};
+        auto y_tensor_cpu  = tensor<T>{input_dims};
         auto dx_tensor_gpu = tensor<T>{input_dims};
-        auto dy_tensor = tensor<T>{input_dims};
+        auto dy_tensor     = tensor<T>{input_dims};
         auto dx_tensor_cpu = tensor<T>{input_dims};
 
-        auto x_data_ready      = std::async(std::launch::async, [&](){ GenData_x(x_tensor); });
-        auto y_data_gpu_ready  = std::async(std::launch::async, [&](){ ZeroData(y_tensor_gpu); });
-        auto dx_data_gpu_ready = std::async(std::launch::async, [&](){ ZeroData(dx_tensor_gpu); });
-        auto dy_data_ready     = std::async(std::launch::async, [&](){ GenData_dy(dy_tensor); });
+        auto x_data_ready      = std::async(std::launch::async, [&]() { GenData_x(x_tensor); });
+        auto y_data_gpu_ready  = std::async(std::launch::async, [&]() { ZeroData(y_tensor_gpu); });
+        auto dx_data_gpu_ready = std::async(std::launch::async, [&]() { ZeroData(dx_tensor_gpu); });
+        auto dy_data_ready     = std::async(std::launch::async, [&]() { GenData_dy(dy_tensor); });
 
         x_data_ready.wait();
         y_data_gpu_ready.wait();
@@ -107,31 +108,56 @@ public:
 
         std::promise<void> fwd_gpu_ready;
         std::promise<void> fwd_cpu_ready;
-        auto gpu_ready = std::async(std::launch::async, [&](){ RunGpu(desc, x_tensor, y_tensor_gpu, dx_tensor_gpu, dy_tensor, fwd_gpu_ready); });
-        auto cpu_ready = std::async(std::launch::async, [&](){ RunCpu(desc, x_tensor, y_tensor_cpu, dx_tensor_cpu, dy_tensor, fwd_cpu_ready); });
+        auto gpu_ready = std::async(std::launch::async, [&]() {
+            RunGpu(desc, x_tensor, y_tensor_gpu, dx_tensor_gpu, dy_tensor, fwd_gpu_ready);
+        });
+        auto cpu_ready = std::async(std::launch::async, [&]() {
+            RunCpu(desc, x_tensor, y_tensor_cpu, dx_tensor_cpu, dy_tensor, fwd_cpu_ready);
+        });
 
         fwd_gpu_ready.get_future().wait();
         fwd_cpu_ready.get_future().wait();
 
-        auto verify_fwd_ready = std::async(std::launch::async, [&](){ return VerifyDataAsync(y_tensor_gpu, y_tensor_cpu, true); });
+        auto verify_fwd_ready = std::async(std::launch::async, [&]() {
+            return VerifyDataAsync(y_tensor_gpu, y_tensor_cpu, true);
+        });
 
         gpu_ready.wait();
         cpu_ready.wait();
 
-        auto verify_bwd_ready = std::async(std::launch::async, [&](){ return VerifyDataAsync(dx_tensor_gpu, dx_tensor_cpu, false); });
+        auto verify_bwd_ready = std::async(std::launch::async, [&]() {
+            return VerifyDataAsync(dx_tensor_gpu, dx_tensor_cpu, false);
+        });
 
         verify_fwd_ready.wait();
         verify_bwd_ready.wait();
 
         if(!verify_fwd_ready.get())
         {
-            DebugPrintTensors(DEBUG_PRINT_X_TENSOR|DEBUG_PRINT_Y_TENSOR_CPU|DEBUG_PRINT_Y_TENSOR_GPU, x_tensor, y_tensor_cpu, y_tensor_gpu, dy_tensor, dx_tensor_cpu, dx_tensor_gpu, 100);
+            DebugPrintTensors(DEBUG_PRINT_X_TENSOR | DEBUG_PRINT_Y_TENSOR_CPU |
+                                  DEBUG_PRINT_Y_TENSOR_GPU,
+                              x_tensor,
+                              y_tensor_cpu,
+                              y_tensor_gpu,
+                              dy_tensor,
+                              dx_tensor_cpu,
+                              dx_tensor_gpu,
+                              100);
             GTEST_FAIL();
         }
 
         if(!verify_bwd_ready.get())
         {
-            DebugPrintTensors(DEBUG_PRINT_X_TENSOR|DEBUG_PRINT_Y_TENSOR_GPU|DEBUG_PRINT_dY_TENSOR|DEBUG_PRINT_dX_TENSOR_CPU|DEBUG_PRINT_dX_TENSOR_GPU, x_tensor, y_tensor_cpu, y_tensor_gpu, dy_tensor, dx_tensor_cpu, dx_tensor_gpu, 100);
+            DebugPrintTensors(DEBUG_PRINT_X_TENSOR | DEBUG_PRINT_Y_TENSOR_GPU |
+                                  DEBUG_PRINT_dY_TENSOR | DEBUG_PRINT_dX_TENSOR_CPU |
+                                  DEBUG_PRINT_dX_TENSOR_GPU,
+                              x_tensor,
+                              y_tensor_cpu,
+                              y_tensor_gpu,
+                              dy_tensor,
+                              dx_tensor_cpu,
+                              dx_tensor_gpu,
+                              100);
             GTEST_FAIL();
         }
     }
@@ -139,12 +165,12 @@ public:
 protected:
     enum
     {
-        DEBUG_PRINT_X_TENSOR = 1<<0,
-        DEBUG_PRINT_Y_TENSOR_CPU = 1<<1,
-        DEBUG_PRINT_Y_TENSOR_GPU = 1<<2,
-        DEBUG_PRINT_dY_TENSOR = 1<<3,
-        DEBUG_PRINT_dX_TENSOR_CPU = 1<<4,
-        DEBUG_PRINT_dX_TENSOR_GPU = 1<<5,
+        DEBUG_PRINT_X_TENSOR      = 1 << 0,
+        DEBUG_PRINT_Y_TENSOR_CPU  = 1 << 1,
+        DEBUG_PRINT_Y_TENSOR_GPU  = 1 << 2,
+        DEBUG_PRINT_dY_TENSOR     = 1 << 3,
+        DEBUG_PRINT_dX_TENSOR_CPU = 1 << 4,
+        DEBUG_PRINT_dX_TENSOR_GPU = 1 << 5,
     };
 
     static void DebugPrintTensors(int print_mask,
@@ -156,7 +182,8 @@ protected:
                                   const tensor<T>& dx_gpu,
                                   std::size_t max_len)
     {
-        if(!(x.desc.IsPacked() && y_cpu.desc.IsPacked() && y_gpu.desc.IsPacked() && dx_cpu.desc.IsPacked() && dx_gpu.desc.IsPacked() && dy.desc.IsPacked()))
+        if(!(x.desc.IsPacked() && y_cpu.desc.IsPacked() && y_gpu.desc.IsPacked() &&
+             dx_cpu.desc.IsPacked() && dx_gpu.desc.IsPacked() && dy.desc.IsPacked()))
         {
             NonPackedTensorWarning();
         }
@@ -185,7 +212,9 @@ protected:
 
     static void NonPackedTensorWarning()
     {
-        std::cout << "WARNING: Non-packed tensor. Some modifications are needed to achieve optimal performance." << std::endl;
+        std::cout << "WARNING: Non-packed tensor. Some modifications are needed to achieve optimal "
+                     "performance."
+                  << std::endl;
     }
 
     static void ZeroData(tensor<T>& tensor)
@@ -230,17 +259,11 @@ protected:
     {
         // Dummy values
         float alpha = 1.0f;
-        float beta = 0.0f;
+        float beta  = 0.0f;
 
         miopenStatus_t status;
-        status = desc.Forward(handle,
-                              &alpha,
-                              x_desc,
-                              x,
-                              &beta,
-                              y_desc,
-                              y);
-        
+        status = desc.Forward(handle, &alpha, x_desc, x, &beta, y_desc, y);
+
         if(status != miopenStatusSuccess)
             throw std::runtime_error("Backward failed");
     }
@@ -258,38 +281,29 @@ protected:
     {
         // Dummy values
         float alpha = 1.0f;
-        float beta = 0.0f;
+        float beta  = 0.0f;
 
         miopenStatus_t status;
-        status = desc.Backward(handle,
-                               &alpha,
-                               y_desc,
-                               y,
-                               dy_desc,
-                               dy,
-                               x_desc,
-                               x,
-                               &beta,
-                               dx_desc,
-                               dx);
-        
+        status =
+            desc.Backward(handle, &alpha, y_desc, y, dy_desc, dy, x_desc, x, &beta, dx_desc, dx);
+
         if(status != miopenStatusSuccess)
             throw std::runtime_error("Backward failed");
     }
 
-    static void RunGpu(const miopen::ActivationDescriptor& desc, const tensor<T>& x, tensor<T>& y, tensor<T>& dx, const tensor<T>& dy, std::promise<void>& forward_ready)
+    static void RunGpu(const miopen::ActivationDescriptor& desc,
+                       const tensor<T>& x,
+                       tensor<T>& y,
+                       tensor<T>& dx,
+                       const tensor<T>& dy,
+                       std::promise<void>& forward_ready)
     {
         auto handle = miopen::Handle{};
 
-        auto x_dev   = handle.Write(x.data);
+        auto x_dev = handle.Write(x.data);
         auto y_dev = handle.Write(y.data);
 
-        RunGpuForward(handle,
-                      desc,
-                      x.desc,
-                      x_dev.get(),
-                      y.desc,
-                      y_dev.get());
+        RunGpuForward(handle, desc, x.desc, x_dev.get(), y.desc, y_dev.get());
 
         y.data = handle.Read<T>(y_dev, y.data.size());
         handle.Finish();
@@ -314,9 +328,11 @@ protected:
         handle.Finish();
     }
 
-    static void RunCpuForward(const miopen::ActivationDescriptor& desc, const tensor<T>& x, tensor<T>& y)
+    static void
+    RunCpuForward(const miopen::ActivationDescriptor& desc, const tensor<T>& x, tensor<T>& y)
     {
-        miopen::tests::CpuActivationForward(desc.GetMode(), desc.GetAlpha(), desc.GetBeta(), desc.GetGamma(), x, y);
+        miopen::tests::CpuActivationForward(
+            desc.GetMode(), desc.GetAlpha(), desc.GetBeta(), desc.GetGamma(), x, y);
     }
 
     static void RunCpuBackward(const miopen::ActivationDescriptor& desc,
@@ -325,10 +341,16 @@ protected:
                                const tensor<T>& x,
                                tensor<T>& dx)
     {
-        miopen::tests::CpuActivationBackward(desc.GetMode(), desc.GetAlpha(), desc.GetBeta(), desc.GetGamma(), y, dy, x, dx);
+        miopen::tests::CpuActivationBackward(
+            desc.GetMode(), desc.GetAlpha(), desc.GetBeta(), desc.GetGamma(), y, dy, x, dx);
     }
 
-    static void RunCpu(const miopen::ActivationDescriptor& desc, const tensor<T>& x, tensor<T>& y, tensor<T>& dx, const tensor<T>& dy, std::promise<void>& forward_ready)
+    static void RunCpu(const miopen::ActivationDescriptor& desc,
+                       const tensor<T>& x,
+                       tensor<T>& y,
+                       tensor<T>& dx,
+                       const tensor<T>& dy,
+                       std::promise<void>& forward_ready)
     {
         RunCpuForward(desc, x, y);
         forward_ready.set_value();
@@ -342,16 +364,17 @@ protected:
         return threshold;
     }
 
-    static bool VerifyDataAsync(const tensor<T>& tensor_gpu, const tensor<T>& tensor_cpu, bool forward)
+    static bool
+    VerifyDataAsync(const tensor<T>& tensor_gpu, const tensor<T>& tensor_cpu, bool forward)
     {
         if(!(tensor_gpu.desc.IsPacked() && tensor_cpu.desc.IsPacked()))
             NonPackedTensorWarning();
-        
-        const auto& cpu_data = tensor_cpu.data;
-        const auto& gpu_data = tensor_gpu.data;
+
+        const auto& cpu_data        = tensor_cpu.data;
+        const auto& gpu_data        = tensor_gpu.data;
         const std::string direction = forward ? "(forward)" : "(backward)";
 
-        auto check_gpu_zero = [&](){
+        auto check_gpu_zero = [&]() {
             auto res = miopen::range_zero(gpu_data);
             if(res)
             {
@@ -360,7 +383,7 @@ protected:
             }
             return true;
         };
-        auto check_cpu_finite = [&](){
+        auto check_cpu_finite = [&]() {
             auto res = miopen::find_idx(cpu_data, miopen::not_finite);
             if(res != -1)
             {
@@ -369,7 +392,7 @@ protected:
             }
             return true;
         };
-        auto check_gpu_finite = [&](){
+        auto check_gpu_finite = [&]() {
             auto res = miopen::find_idx(gpu_data, miopen::not_finite);
             if(res != -1)
             {
@@ -378,7 +401,7 @@ protected:
             }
             return true;
         };
-        auto check_range_distance = [&](){
+        auto check_range_distance = [&]() {
             if(miopen::range_distance(cpu_data) != miopen::range_distance(gpu_data))
             {
                 std::cout << "Range distance mismatch " << direction << std::endl;
@@ -386,12 +409,13 @@ protected:
             }
             return true;
         };
-        auto check_error = [&](){
+        auto check_error = [&]() {
             const auto error       = miopen::rms_range(cpu_data, gpu_data);
             const double threshold = GetThreshold();
             if(error >= threshold)
             {
-                std::cout << "Error beyond tolerance, error=" << error << ", threshold=" << threshold << " " << direction << std::endl;
+                std::cout << "Error beyond tolerance, error=" << error
+                          << ", threshold=" << threshold << " " << direction << std::endl;
                 return false;
             }
 #if 0
@@ -435,19 +459,13 @@ struct FPStr;
 template <>
 struct FPStr<half_float::half>
 {
-    std::string operator()() const
-    {
-        return "--half";
-    }
+    std::string operator()() const { return "--half"; }
 };
 
 template <>
 struct FPStr<float>
 {
-    std::string operator()() const
-    {
-        return "--float";
-    }
+    std::string operator()() const { return "--float"; }
 };
 
 template <class T>
