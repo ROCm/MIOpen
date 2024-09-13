@@ -24,6 +24,7 @@
  *
  *******************************************************************************/
 #include <gtest/gtest.h>
+#include <gtest/gtest_common.hpp>
 #include <miopen/miopen.h>
 #include <miopen/env.hpp>
 
@@ -42,24 +43,29 @@
 #include "conv3d_test_case.hpp"
 
 namespace gr = miopen::graphapi;
-
 namespace conv_graph_api_test {
+
+bool IsTestSupportedForDevice()
+{
+    return IsTestSupportedByDevice(Gpu::gfx908 | Gpu::gfx90A | Gpu::gfx94X);
+}
 
 static bool TestIsApplicable() { return true; }
 
 static std::vector<Conv3DTestCase> ConvTestConfigs()
-{ //         g, n, c, d,  h,  w, k,  z, y, x, pad_x pad_y pad_z stri_x stri_y stri_z dia_x dia_y
-  //         dia_z
-    return {{1, 1, 4, 14, 11, 1, 4, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
-            {1, 1, 1, 1, 4, 4, 1, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
-            {1, 1, 1, 8, 8, 8, 1, 2, 2, 2, 0, 0, 0, 1, 1, 1, 1, 1, 1, miopenConvolution},
-            {1, 1, 1, 8, 8, 8, 1, 2, 2, 2, 0, 0, 0, 2, 2, 2, 1, 1, 1, miopenConvolution},
-            {2, 8, 8, 12, 14, 4, 4, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
-            {4, 8, 8, 11, 11, 11, 16, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
-            {6, 8, 18, 11, 11, 11, 18, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
-            {8, 8, 8, 11, 11, 11, 8, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
-            {4, 8, 4, 11, 11, 11, 8, 3, 4, 5, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
-            {2, 8, 2, 11, 11, 11, 2, 4, 4, 4, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution}};
+{ // g   n   c   k   image   filter   pad   stride   dilation
+    // clang-format off
+    return {{1, 1, 4, 4, {14, 11, 1}, {3, 3, 3}, {1, 1, 1}, {1, 1, 1}, {1, 1, 1}, miopenConvolution},
+            {1, 1, 1, 1, {1, 4, 4}, {2, 2, 2}, {1, 1, 1}, {1, 1, 1}, {1, 1, 1}, miopenConvolution},
+            {1, 1, 1, 1, {8, 8, 8}, {2, 2, 2}, {0, 0, 0}, {1, 1, 1}, {1, 1, 1}, miopenConvolution},
+            {1, 1, 1, 1, {8, 8, 8}, {2, 2, 2}, {0, 0, 0}, {2, 2, 2}, {1, 1, 1}, miopenConvolution},
+            {2, 8, 8, 4, {12, 14, 4}, {3, 3, 3}, {1, 1, 1}, {1, 1, 1}, {1, 1, 1}, miopenConvolution},
+            {4, 8, 8, 16, {11, 11, 11}, {3, 3, 3}, {1, 1, 1}, {1, 1, 1}, {1, 1, 1}, miopenConvolution},
+            {6, 8, 18, 18, {11, 11, 11}, {3, 3, 3}, {1, 1, 1}, {1, 1, 1}, {1, 1, 1}, miopenConvolution},
+            {8, 8, 8, 8, {11, 11, 11}, {3, 3, 3}, {1, 1, 1}, {1, 1, 1}, {1, 1, 1}, miopenConvolution},
+            {4, 8, 4, 8, {11, 11, 11}, {3, 4, 5}, {1, 1, 1}, {1, 1, 1}, {1, 1, 1}, miopenConvolution},
+            {2, 8, 2, 2, {11, 11, 11}, {4, 4, 4}, {1, 1, 1}, {1, 1, 1}, {1, 1, 1}, miopenConvolution}};
+    // clang-format on
 }
 
 template <typename T>
@@ -206,6 +212,10 @@ public:
         {
             GTEST_SKIP();
         }
+        if(!IsTestSupportedForDevice())
+        {
+            GTEST_SKIP() << "CBA graph Fusion not supported in this device";
+        }
 
         prng::reset_seed();
     }
@@ -272,7 +282,7 @@ public:
             graphNodeAllocator, dataType, convOutput, addInput, addOutput, alpha1, alpha2)));
 
         miopen::TensorDescriptor biasInputTensorDesc{
-            dataType, tensorLayout, {1, convConfig.k, 1, 1, 1}};
+            dataType, tensorLayout, {1, convConfig.K, 1, 1, 1}};
         auto biasInput = graphTensorAllocator.template MakeTensor<false>(
             biasInputName, dataType, biasInputTensorDesc);
         auto biasOutput = graphTensorAllocator.template MakeTensor<true>(
@@ -478,7 +488,7 @@ using namespace conv_graph_api_test;
     {                                                                               \
     };                                                                              \
     TEST_P(GPU_ConvBiasResAddActivation_##dir##_##type, Test) { Run(); }            \
-    INSTANTIATE_TEST_SUITE_P(GPU_ConvBiasResAddActivation_##dir##_##type##_Suite,   \
+    INSTANTIATE_TEST_SUITE_P(Smoke,                                                 \
                              GPU_ConvBiasResAddActivation_##dir##_##type,           \
                              testing::Combine(testing::ValuesIn(ConvTestConfigs()), \
                                               testing::ValuesIn({1.0f, 2.5f}),      \
@@ -488,4 +498,4 @@ using namespace conv_graph_api_test;
 
 DEFINE_GRAPH_API_CONV_BIAS_ACTIV_TEST(FP16, half_float::half, fwd);
 DEFINE_GRAPH_API_CONV_BIAS_ACTIV_TEST(FP32, float, fwd);
-DEFINE_GRAPH_API_CONV_BIAS_ACTIV_TEST(BF16, bfloat16, fwd);
+DEFINE_GRAPH_API_CONV_BIAS_ACTIV_TEST(BFP16, bfloat16, fwd);

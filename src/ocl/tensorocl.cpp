@@ -1272,15 +1272,15 @@ void OpTensor(const Handle& handle,
     {
         MIOPEN_THROW(
             miopenStatusBadParm,
-            "Layout of A is not equal to layout of B: " + TensorDescriptor::GetLayoutStr(lay_a) +
-                " != " + TensorDescriptor::GetLayoutStr(lay_b));
+            "Layout of A is not equal to layout of B: " + TensorDescriptor::LayoutEnumToStr(lay_a) +
+                " != " + TensorDescriptor::LayoutEnumToStr(lay_b));
     }
     if(lay_a != lay_c)
     {
         MIOPEN_THROW(
             miopenStatusBadParm,
-            "Layout of A is not equal to layout of C: " + TensorDescriptor::GetLayoutStr(lay_a) +
-                " != " + TensorDescriptor::GetLayoutStr(lay_c));
+            "Layout of A is not equal to layout of C: " + TensorDescriptor::LayoutEnumToStr(lay_a) +
+                " != " + TensorDescriptor::LayoutEnumToStr(lay_c));
     }
 
     const auto blens = bTensorDesc.GetLengths();
@@ -1303,7 +1303,8 @@ void OpTensor(const Handle& handle,
     {
         MIOPEN_THROW(miopenStatusBadParm,
                      "Number of dims in A and B Tensors do not match: " +
-                         std::to_string(aTensorDesc.GetLengths().size()) + ", " + std::to_string(blens.size()));
+                         std::to_string(aTensorDesc.GetLengths().size()) + ", " +
+                         std::to_string(blens.size()));
     }
 
     if(!nonStandardSquash)
@@ -1329,7 +1330,7 @@ void OpTensor(const Handle& handle,
         }
     }
 
-    const auto bsize = blens.size();
+    const auto bsize             = blens.size();
     const auto is_layout_default = bTensorDesc.IsLayoutDefault();
     if(bsize == 3)
     {
@@ -2327,6 +2328,11 @@ void TransformTensor(const Handle& handle,
         {
             network_config += "x" + std::to_string(len);
         }
+
+        if(is_beta_zero)
+            network_config += "xBETA_IS_ZERO";
+        if(is_alpha_one)
+            network_config += "xALPHA_IS_ONE";
 
         auto&& kernels = handle.GetKernels(kernel_name, network_config);
 

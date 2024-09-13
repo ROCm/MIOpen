@@ -49,7 +49,8 @@ std::vector<std::string> GetTestCases()
 
 using TestCase = decltype(GetTestCases())::value_type;
 
-class MIOpenDriverRegressionBigTensorTest : public testing::TestWithParam<std::vector<TestCase>>
+class CPU_MIOpenDriverRegressionBigTensorTest_FP32
+    : public testing::TestWithParam<std::vector<TestCase>>
 {
 };
 
@@ -62,14 +63,17 @@ void RunMIOpenDriver()
         GTEST_SKIP();
     }
 
-    RunMIOpenDriverTestCommand(MIOpenDriverRegressionBigTensorTest::GetParam());
+    RunMIOpenDriverTestCommand(CPU_MIOpenDriverRegressionBigTensorTest_FP32::GetParam());
 };
 
 } // namespace miopendriver_regression_big_tensor
 using namespace miopendriver_regression_big_tensor;
 
-TEST_P(MIOpenDriverRegressionBigTensorTest, MIOpenDriverRegressionBigTensor) { RunMIOpenDriver(); };
+TEST_P(CPU_MIOpenDriverRegressionBigTensorTest_FP32, MIOpenDriverRegressionBigTensor)
+{
+    RunMIOpenDriver();
+};
 
-INSTANTIATE_TEST_SUITE_P(MIOpenDriverRegressionBigTensorTestSet,
-                         MIOpenDriverRegressionBigTensorTest,
+INSTANTIATE_TEST_SUITE_P(Full,
+                         CPU_MIOpenDriverRegressionBigTensorTest_FP32,
                          testing::Values(GetTestCases()));
