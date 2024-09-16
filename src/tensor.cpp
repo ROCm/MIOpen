@@ -152,14 +152,17 @@ std::vector<std::size_t> ConvertLengthsOrThrow(const std::vector<int>& lens_in,
     return lens;
 }
 
-std::string GetStorageLayout4D5D(unsigned num_dims, bool is_CHWNc = false)
+std::string GetStorageLayout(unsigned num_dims, bool is_CHWNc = false)
 {
     // For some reason we have CHWN storage layout for CHWNc
-    if(is_CHWNc)
+    if(is_CHWNc && num_dims == 4)
         return "CHWN";
 
     switch(num_dims)
     {
+    case 1: return "W";
+    case 2: return "HW";
+    case 3: return "CHW";
     case 4: return "NCHW";
     case 5: return "NCDHW";
     default: MIOPEN_THROW(miopenStatusInternalError);
@@ -268,7 +271,7 @@ void SetStrides(const std::optional<miopenTensorLayout_t>& layout,
     else
     {
         const auto num_dims       = lens.size();
-        const auto storage_layout = GetStorageLayout4D5D(num_dims);
+        const auto storage_layout = GetStorageLayout(num_dims);
         const auto layout_str     = TensorDescriptor::LayoutEnumToStr(layout.value());
         tensor_layout_to_strides(lens, storage_layout, layout_str, strides);
     }
@@ -452,7 +455,7 @@ void TensorDescriptor::CheckArgsAndInit(bool use_strides)
 
         if(tensorLayout)
         {
-            if(!this->IsPossibleLayout4D5D(TensorDescriptor::LayoutEnumToStr(tensorLayout.value())))
+            if(!this->IsPossibleLayout(TensorDescriptor::LayoutEnumToStr(tensorLayout.value())))
                 MIOPEN_THROW(miopenStatusBadParm, "Mismatch of layout and strides");
         }
     }
@@ -580,10 +583,13 @@ const std::optional<miopenTensorLayout_t>& TensorDescriptor::GetLayoutEnum() con
                                         std::make_pair("NHWC", miopenTensorNHWC),
                                         std::make_pair("NCDHW", miopenTensorNCDHW),
                                         std::make_pair("NDHWC", miopenTensorNDHWC),
+                                        std::make_pair("CHW", miopenTensorCHW),
+                                        std::make_pair("HW", miopenTensorHW),
+                                        std::make_pair("W", miopenTensorW),
                                         std::make_pair("CHWN", miopenTensorCHWN)};
             for(const auto& [layout_str, layout_enum] : known_layouts)
             {
-                if(this->IsPossibleLayout4D5D(layout_str))
+                if(this->IsPossibleLayout(layout_str))
                     return layout_enum;
             }
 
@@ -634,8 +640,11 @@ const std::string& TensorDescriptor::GetLayout_str() const
 
             switch(this->GetNumDims())
             {
+            case 1:
+            case 2:
+            case 3:
             case 4:
-            case 5: return this->GetLayout(GetStorageLayout4D5D(this->GetNumDims()));
+            case 5: return this->GetLayout(GetStorageLayout(this->GetNumDims()));
             default: return "UNKNOWN";
             }
         }();
@@ -738,18 +747,21 @@ bool TensorDescriptor::IsPossibleLayout(const std::string& storage_layout,
 }
 
 // Layout could be NCHW, NHWC, NCDHW, NDHWC, NCHWc, ...
-bool TensorDescriptor::IsPossibleLayout4D5D(const std::string& layout) const
+bool TensorDescriptor::IsPossibleLayout(const std::string& layout) const
 {
     if(tensorLayout)
     {
         if(this->tensorLayout == miopenTensorCHWNc4 || this->tensorLayout == miopenTensorCHWNc8)
-            return this->IsPossibleLayout(GetStorageLayout4D5D(4, true), layout);
+            return this->IsPossibleLayout(GetStorageLayout(4, true), layout);
     }
 
     switch(this->GetNumDims())
     {
+    case 1:
+    case 2:
+    case 3:
     case 4:
-    case 5: return this->IsPossibleLayout(GetStorageLayout4D5D(this->GetNumDims()), layout);
+    case 5: return this->IsPossibleLayout(GetStorageLayout(this->GetNumDims()), layout);
     default: return false;
     }
 }

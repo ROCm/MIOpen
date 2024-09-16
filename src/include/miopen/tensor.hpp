@@ -248,7 +248,7 @@ struct MIOPEN_INTERNALS_EXPORT TensorDescriptor : miopenTensorDescriptor
     // \todo make private
     bool IsPossibleLayout(const std::string& storage_layout, const std::string& layout) const;
     // Layout could be NCHW, NHWC, NCDHW, NDHWC, NCHWc, ...
-    bool IsPossibleLayout4D5D(const std::string& layout) const;
+    bool IsPossibleLayout(const std::string& layout) const;
 
     static std::vector<int64_t> find_permutation(const std::vector<std::size_t>& lens,
                                                  const std::vector<std::size_t>& strides);

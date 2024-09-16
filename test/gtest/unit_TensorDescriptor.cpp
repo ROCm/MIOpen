@@ -234,7 +234,7 @@ public:
 
         for(const auto& layout : this->GetAllLayouts())
         {
-            const auto is_possible_layout = td.IsPossibleLayout4D5D(layout);
+            const auto is_possible_layout = td.IsPossibleLayout(layout);
             const auto expected =
                 std::count(p.actual_layouts.cbegin(), p.actual_layouts.cend(), layout);
             ASSERT_EQ(is_possible_layout, expected) << "current layout: " << layout;

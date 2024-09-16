@@ -109,8 +109,8 @@ bool PoolingForwardNd::IsApplicable(const ExecutionContext& context,
 
     return problem.GetDirection() == miopen::pooling::Direction::Forward                      //
            && problem.GetXDesc().GetNumDims() == 5                                            //
-           && problem.GetXDesc().IsPossibleLayout4D5D("NCDHW")                                //
-           && problem.GetYDesc().IsPossibleLayout4D5D("NCDHW")                                //
+           && problem.GetXDesc().IsPossibleLayout("NCDHW")                                    //
+           && problem.GetYDesc().IsPossibleLayout("NCDHW")                                    //
            && problem.GetXDesc().GetType() == problem.GetYDesc().GetType()                    //
            && (problem.GetXDesc().GetType() == miopenFloat                                    //
                || problem.GetXDesc().GetType() == miopenHalf)                                 //

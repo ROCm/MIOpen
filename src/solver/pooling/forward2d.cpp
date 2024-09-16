@@ -140,8 +140,8 @@ bool PoolingForward2d::IsApplicable(const ExecutionContext& context,
            problem.GetXDesc().GetType() == problem.GetYDesc().GetType() &&
            (problem.GetXDesc().GetType() == miopenFloat ||
             problem.GetXDesc().GetType() == miopenHalf) &&
-           problem.GetXDesc().IsPossibleLayout4D5D("NCHW") &&
-           problem.GetYDesc().IsPossibleLayout4D5D("NCHW") &&
+           problem.GetXDesc().IsPossibleLayout("NCHW") &&
+           problem.GetYDesc().IsPossibleLayout("NCHW") &&
            sizeof_private_memory(problem) <=
                TargetProperties::GetMaxWaveScratchSize() / context.GetStream().GetWavefrontWidth();
 }
