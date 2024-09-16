@@ -163,15 +163,6 @@ protected:
         auto&& handle                                 = get_handle();
         std::tie(tensorsConfig, alpha0, alpha1, beta) = GetParam();
 
-        std::cout << "(" << std::to_string(tensorsConfig.aclens[0]) << ", "
-                  << std::to_string(tensorsConfig.aclens[1]) << ")->("
-                  << std::to_string(tensorsConfig.acstrides[0]) << ", "
-                  << std::to_string(tensorsConfig.acstrides[1]) << ") ";
-        std::cout << "(" << std::to_string(tensorsConfig.blens[0]) << ", "
-                  << std::to_string(tensorsConfig.blens[1]) << ")->("
-                  << std::to_string(tensorsConfig.bstrides[0]) << ", "
-                  << std::to_string(tensorsConfig.bstrides[1]) << ") " << std::endl;
-
         data_type = miopen_type<T>{};
 
         // Generate elements in tensors
@@ -191,12 +182,7 @@ protected:
         tensC_hip = tensor<T>{tensorsConfig.aclens, tensorsConfig.acstrides};
         tensC_hip_new = tensor<T>{tensorsConfig.aclens, tensorsConfig.acstrides};
 
-        // print_tensor(tensA, "a", 1);
-        // print_tensor(tensB, "b", 1);
-        // std::cout << "(alpha0, alpha1, beta) " << std::endl << "(";
-        // std::cout << std::to_string(alpha0) << ", " << std::to_string(alpha1);
-        // std::cout << ", " << std::to_string(beta) << ")" << std::endl;
-        // // Prepare all parameters needed for kernel
+        // Prepare all parameters needed for kernel
         auto first_not_one = std::find_if(
             tensorsConfig.blens.rbegin(), tensorsConfig.blens.rend(), [](int i) { return i != 1; });
         auto d = std::distance(tensorsConfig.blens.begin(), first_not_one.base());
@@ -237,9 +223,6 @@ protected:
         size_t global_threads = num_wg * local_threads;
 
         vgd = {global_threads, 1, 1};
-
-        std::cout << "num_wg: " << std::to_string(num_wg)
-                  << " x local: " << std::to_string(local_threads) << std::endl;
 
         network_config += std::to_string(data_type) + "-miopenTensorOpAdd-" +
                           std::to_string(global_threads) + "-" + std::to_string(local_threads);
@@ -352,7 +335,6 @@ protected:
                                  static_cast<int>(num_wg_orig));
 
         tensC_hip.data = handle.Read<T>(tensC_dev, tensC_hip.data.size());
-        // print_tensor(tensC_hip, "hip old", 1);
 
         if constexpr(PERF_ENABLE)
         {
@@ -385,8 +367,6 @@ protected:
         auto&& handle = get_handle();
         tensC_dev     = handle.Write(tensC.data);
 
-        // print_tensor(tensC, "c", 1);
-
         std::fill(tensC_hip_new.begin(), tensC_hip_new.end(), std::numeric_limits<T>::quiet_NaN());
 
         params = " -DMIOPEN_TYPE=" + miopen::GetDataType(data_type);
@@ -395,8 +375,6 @@ protected:
 
         std::string program_name       = "MIOpenTensorKernelsHip.cpp";
         std::string network_config_hip = network_config + "-hip_new";
-
-        std::cout << static_cast<uint32_t>(tensorsConfig.blens[0] * tensorsConfig.blens[1]);
 
         handle.AddKernel("Op2dTensorGenericNew",
                          network_config_hip,
@@ -420,7 +398,6 @@ protected:
             static_cast<uint32_t>(tensorsConfig.blens[1] == 1 ? 0 : tensorsConfig.bstrides[1]),
             static_cast<uint32_t>(tensorsConfig.acstrides[0]),
             static_cast<uint32_t>(tensorsConfig.acstrides[1]),
-            static_cast<uint32_t>(tensorsConfig.blens[0] * tensorsConfig.bstrides[0]),
             alpha0,
             alpha1,
             beta,
@@ -428,7 +405,6 @@ protected:
             !miopen::float_equal(beta, 0.0));
 
         tensC_hip_new.data = handle.Read<T>(tensC_dev, tensC_hip_new.data.size());
-        // print_tensor(tensC_hip_new, "hip new", 1);
 
         if constexpr(PERF_ENABLE)
         {
