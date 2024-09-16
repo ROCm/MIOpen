@@ -294,6 +294,7 @@ ConvSolution ConvHipImplicitGemmGroupFwdXdlopsCodegen::GetSolution(
         KernelBuildParameters{{"MIOPEN_USE_FP16", static_cast<int>(bfp16parm)}};
     kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
     kernel.comp_options += " -DCK_DONT_USE_HIP_RUNTIME_HEADERS";
+    kernel.comp_options += " -DCK_CODE_GEN_RTC";
     std::cout << "comp options: " << kernel.comp_options << std::endl;
 
     soln.construction_params.push_back(kernel);
