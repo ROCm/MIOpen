@@ -129,7 +129,6 @@ public:
     int RunBackwardGPU() override;
     int RunBackwardCPU(); // Verify implements it
 
-    Tref GetTolerance();
     int VerifyBackward() override;
     int VerifyForward() override;
     ~GLUDriver() override
@@ -434,23 +433,10 @@ int GLUDriver<Tgpu, Tref>::RunBackwardGPU()
 }
 
 template <typename Tgpu, typename Tref>
-Tref GLUDriver<Tgpu, Tref>::GetTolerance()
-{
-    // Computation error of fp16 is ~2^13 (=8192) bigger than
-    // the one of fp32 because mantissa is shorter by 13 bits.
-    auto tolerance = std::is_same<Tgpu, float>::value ? 1.5e-6 : 8.2e-3;
-
-    // bf16 mantissa has 7 bits, by 3 bits shorter than fp16.
-    if(std::is_same<Tgpu, bfloat16>::value)
-        tolerance *= 8.0;
-    return tolerance;
-}
-
-template <typename Tgpu, typename Tref>
 int GLUDriver<Tgpu, Tref>::VerifyForward()
 {
     RunForwardCPU();
-    const Tref tolerance = GetTolerance();
+    const Tref tolerance = std::numeric_limits<Tgpu>::epsilon() * 10;
     auto error           = miopen::rms_range(outhost, out);
 
     if(!std::isfinite(error) || error > tolerance)
@@ -480,7 +466,7 @@ template <typename Tgpu, typename Tref>
 int GLUDriver<Tgpu, Tref>::VerifyBackward()
 {
     RunBackwardCPU();
-    const Tref tolerance = GetTolerance();
+    const Tref tolerance = std::numeric_limits<Tgpu>::epsilon() * 10;
     auto error           = miopen::rms_range(inGradhost, inGrad);
     if(!std::isfinite(error) || error > tolerance)
     {
