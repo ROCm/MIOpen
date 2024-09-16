@@ -257,8 +257,6 @@ struct MIOPEN_INTERNALS_EXPORT TensorDescriptor : miopenTensorDescriptor
     // layouts, NCDHW for 5D layouts
     std::string GetLayout(std::string storage_layout) const;
 
-    bool IsLayoutDefault() const { return tensorLayout == GetDefaultLayout(lens.size()); }
-
     friend MIOPEN_INTERNALS_EXPORT std::ostream& operator<<(std::ostream& stream,
                                                             const TensorDescriptor& t);
 
@@ -266,21 +264,6 @@ struct MIOPEN_INTERNALS_EXPORT TensorDescriptor : miopenTensorDescriptor
     friend void from_json(const nlohmann::json& j, TensorDescriptor& descriptor);
 
 private:
-    // In this case, the "default layout" is the layout that needs to be set if the layout
-    // is not passed explicitly or implicitly.
-    static std::optional<miopenTensorLayout_t> GetDefaultLayout(std::size_t lens_size)
-    {
-        switch(lens_size)
-        {
-        case 5: return miopenTensorNCDHW;
-        case 4: return miopenTensorNCHW;
-        case 3: return miopenTensorCHW;
-        case 2: return miopenTensorHW;
-        case 1: return miopenTensorW;
-        default: return std::nullopt;
-        }
-    };
-
     TensorDescriptor(miopenDataType_t t,
                      const std::optional<miopenTensorLayout_t>& layout_in,
                      const std::vector<std::size_t>& lens_in,

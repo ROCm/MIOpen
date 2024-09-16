@@ -84,6 +84,21 @@ bool IsLayoutSupported(miopenTensorLayout_t layout, unsigned num_dims)
     return false;
 }
 
+// In this case, the "default layout" is the layout that needs to be set if the layout is not passed
+// explicitly or implicitly.
+std::optional<miopenTensorLayout_t> GetDefaultLayout(unsigned num_dims)
+{
+    switch(num_dims)
+    {
+    case 1: return miopenTensorW;
+    case 2: return miopenTensorHW;
+    case 3: return miopenTensorCHW;
+    case 4: return miopenTensorNCHW;
+    case 5: return miopenTensorNCDHW;
+    default: return std::nullopt;
+    }
+}
+
 #if 0 // FIXME
 miopenTensorLayout_t LayoutStr2LayoutEnum(std::string_view s)
 {

@@ -130,8 +130,7 @@ void OpTensor3d(const Handle& handle,
                 const size_t Aoffset,
                 const size_t Boffset,
                 const size_t Coffset,
-                const bool nonStandardSquash,
-                const bool is_layout_default)
+                const bool nonStandardSquash)
 {
     auto alens = aTensorDesc.GetLengths();
     auto blens = bTensorDesc.GetLengths();
@@ -435,8 +434,7 @@ void OpTensor4d(const Handle& handle,
                 Data_t CTensor,
                 const size_t Aoffset,
                 const size_t Boffset,
-                const size_t Coffset,
-                const bool is_layout_default)
+                const size_t Coffset)
 {
     auto blens = bTensorDesc.GetLengths();
     auto clens = cTensorDesc.GetLengths();
@@ -551,7 +549,7 @@ void OpTensor4d(const Handle& handle,
         auto miopen_alpha1 = as_float(*(static_cast<const float*>(alpha1)));
         auto miopen_beta   = as_float(*(static_cast<const float*>(beta)));
 
-        if(fwd_conv_bias != 0 && is_layout_default)
+        if(fwd_conv_bias != 0)
         {
             if(packed_tensor)
             {
@@ -615,7 +613,7 @@ void OpTensor4d(const Handle& handle,
             }
         }
         // precede leading_ones for bitmap = 1,1,1,1
-        else if(packed_equal_tensor && is_layout_default)
+        else if(packed_equal_tensor)
         {
             network_config += "x" + std::to_string(grp_sz) + "x" + std::to_string(RD_BLCK);
             auto&& kernels = handle.GetKernels("Op4dTensorLite", network_config);
@@ -636,7 +634,7 @@ void OpTensor4d(const Handle& handle,
                 return;
             }
         }
-        else if(leading_ones && is_layout_default)
+        else if(leading_ones)
         {
             if(packed_tensor)
             {
@@ -754,7 +752,7 @@ void OpTensor4d(const Handle& handle,
         case 3: parms += "miopenMax"; break;
         }
 
-        if(fwd_conv_bias != 0 && is_layout_default)
+        if(fwd_conv_bias != 0)
         {
             if(packed_tensor)
             {
@@ -817,7 +815,7 @@ void OpTensor4d(const Handle& handle,
             }
         }
         // precede leading_ones for bitmap = 1,1,1,1
-        else if(packed_equal_tensor && is_layout_default)
+        else if(packed_equal_tensor)
         {
             parms += " -DUSE_4D_TENSOR_LITE";
             parms += " -DRD_BLCK=" + std::to_string(RD_BLCK) + " -DREAD_TYPE=" + READ_TYPE;
@@ -838,7 +836,7 @@ void OpTensor4d(const Handle& handle,
                 static_cast<int64_t>(total_work),
                 static_cast<int>(!float_equal(miopen_beta, 0.0)));
         }
-        else if(leading_ones && is_layout_default)
+        else if(leading_ones)
         {
             if(packed_tensor)
             {
@@ -958,8 +956,7 @@ void OpTensorOther(const Handle& handle,
                    Data_t CTensor,
                    const size_t Aoffset,
                    const size_t Boffset,
-                   const size_t Coffset,
-                   const bool is_layout_default)
+                   const size_t Coffset)
 {
     auto blens = bTensorDesc.GetLengths();
     auto clens = cTensorDesc.GetLengths();
@@ -1330,8 +1327,7 @@ void OpTensor(const Handle& handle,
         }
     }
 
-    const auto bsize             = blens.size();
-    const auto is_layout_default = bTensorDesc.IsLayoutDefault();
+    const auto bsize = blens.size();
     if(bsize == 3)
     {
         OpTensor3d(handle,
@@ -1348,8 +1344,7 @@ void OpTensor(const Handle& handle,
                    Aoffset,
                    Boffset,
                    Coffset,
-                   nonStandardSquash,
-                   is_layout_default);
+                   nonStandardSquash);
     }
     else if(bsize == 4)
     {
@@ -1366,8 +1361,7 @@ void OpTensor(const Handle& handle,
                    CTensor,
                    Aoffset,
                    Boffset,
-                   Coffset,
-                   is_layout_default);
+                   Coffset);
     }
     else
     {
@@ -1384,8 +1378,7 @@ void OpTensor(const Handle& handle,
                       CTensor,
                       Aoffset,
                       Boffset,
-                      Coffset,
-                      is_layout_default);
+                      Coffset);
     }
 }
 
