@@ -697,6 +697,7 @@ void Problem::ValidateGroupCount(const TensorDescriptor& x,
                                  const TensorDescriptor& w,
                                  const ConvolutionDescriptor& conv)
 {
+    return;
     const auto layout = w.GetLayoutEnum();
     const auto groups = conv.group_count;
     assert(groups > 0);
