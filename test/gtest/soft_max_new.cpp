@@ -74,37 +74,37 @@ protected:
     void SetUp() override
     {
         std::tie(input_dim, algo, mode, scales) = GetParam();
-        auto&& handle = get_handle();
-
+        auto&& handle                           = get_handle();
 
         // Randomly generate dimensions
-        input_dim.N = rand() % 255 + 1; 
-        input_dim.C = rand() % 255 + 1; 
-        input_dim.H = rand() % 255 + 1; 
-        input_dim.W = rand() % 255 + 1; 
+        input_dim.N = rand() % 255 + 1;
+        input_dim.C = rand() % 255 + 1;
+        input_dim.H = rand() % 255 + 1;
+        input_dim.W = rand() % 255 + 1;
 
         input = tensor<DataType>{input_dim.N, input_dim.C, input_dim.H, input_dim.W};
         assert(input_dim.N > 0 && input_dim.C > 0 && input_dim.H > 0 && input_dim.W > 0);
 
-        std::generate(input.begin(), input.end(), []() { return static_cast<DataType>(rand()) / RAND_MAX; });
+        std::generate(
+            input.begin(), input.end(), []() { return static_cast<DataType>(rand()) / RAND_MAX; });
 
         output = tensor<DataType>{input};
         std::fill(output.begin(), output.end(), std::numeric_limits<DataType>::quiet_NaN());
 
         auto output_dev = handle.Write(output.data);
-        
+
         ref_out = tensor<DataType>{input};
         std::fill(ref_out.begin(), ref_out.end(), std::numeric_limits<DataType>::quiet_NaN());
         auto ref_out_dev = handle.Write(ref_out.data);
 
         // backward pass
-        bw_input = tensor<DataType>{input};  
+        bw_input = tensor<DataType>{input};
         std::fill(bw_input.begin(), bw_input.end(), std::numeric_limits<DataType>::quiet_NaN());
         bw_output = tensor<DataType>{input};
         std::fill(bw_output.begin(), bw_output.end(), std::numeric_limits<DataType>::quiet_NaN());
 
         // backward pass on GPU
-        auto bw_input_dev = handle.Write(bw_input.data);
+        auto bw_input_dev  = handle.Write(bw_input.data);
         auto bw_output_dev = handle.Write(bw_output.data);
 
         auto din_dev = handle.Write(input.data);
@@ -119,7 +119,8 @@ protected:
         std::cout << "Softmax Mode: " << mode << std::endl;
         std::cout << "Scales: " << scales << std::endl;
 
-        std::cout << "input_dim: " << input_dim.N << "x" << input_dim.C << "x" << input_dim.H << "x" << input_dim.W << std::endl;
+        std::cout << "input_dim: " << input_dim.N << "x" << input_dim.C << "x" << input_dim.H << "x"
+                  << input_dim.W << std::endl;
     }
 
     void TearDown() override
@@ -132,7 +133,7 @@ private:
     tensor<DataType> input;
     tensor<DataType> output;
     tensor<DataType> ref_out;
-    
+
     tensor<DataType> bw_input;  // Backward input tensor
     tensor<DataType> bw_output; // Backward output tensor
 
