@@ -24,15 +24,14 @@
  *
  *******************************************************************************/
 
+#include <cstdint>
+
 #include <miopen/common.hpp>
-#include <miopen/datatype.hpp>
 #include <miopen/find_solution.hpp>
-#include <miopen/float_equal.hpp>
-#include <miopen/kernel_cache.hpp>
-#include <miopen/glu/invoke_params.hpp>
-#include <miopen/glu/solvers.hpp>
 #include <miopen/glu.hpp>
 #include <miopen/tensor.hpp>
+#include <miopen/glu/invoke_params.hpp>
+#include <miopen/glu/solvers.hpp>
 
 namespace miopen {
 
@@ -41,7 +40,7 @@ miopenStatus_t GLUForward(Handle& handle,
                           ConstData_t input,
                           const TensorDescriptor& outputDesc,
                           Data_t output,
-                          int64_t dim)
+                          uint32_t dim)
 {
     const auto problem = glu::ProblemDescription{inputDesc, outputDesc, dim};
 
@@ -71,7 +70,7 @@ miopenStatus_t GLUBackward(Handle& handle,
                            ConstData_t outputGrad,
                            const TensorDescriptor& inputGradDesc,
                            Data_t inputGrad,
-                           int64_t dim)
+                           uint32_t dim)
 {
     const auto problem = glu::ProblemDescription{inputDesc, outputGradDesc, inputGradDesc, dim};
 

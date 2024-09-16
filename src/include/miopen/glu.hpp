@@ -23,8 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef MIOPEN_GLU_HPP_
-#define MIOPEN_GLU_HPP_
+#pragma once
 
 #include <miopen/common.hpp>
 
@@ -33,21 +32,20 @@ namespace miopen {
 struct Handle;
 struct TensorDescriptor;
 
-miopenStatus_t GLUForward(Handle& handle,
-                          const TensorDescriptor& inputDesc,
-                          ConstData_t input,
-                          const TensorDescriptor& outputDesc,
-                          Data_t output,
-                          int64_t dim);
+MIOPEN_INTERNALS_EXPORT miopenStatus_t GLUForward(Handle& handle,
+                                                  const TensorDescriptor& inputDesc,
+                                                  ConstData_t input,
+                                                  const TensorDescriptor& outputDesc,
+                                                  Data_t output,
+                                                  uint32_t dim);
 
-miopenStatus_t GLUBackward(Handle& handle,
-                           const TensorDescriptor& inputDesc,
-                           ConstData_t input,
-                           const TensorDescriptor& outputGradDesc,
-                           ConstData_t outputGrad,
-                           const TensorDescriptor& inputGradDesc,
-                           Data_t inputGrad,
-                           int64_t dim);
+MIOPEN_INTERNALS_EXPORT miopenStatus_t GLUBackward(Handle& handle,
+                                                   const TensorDescriptor& inputDesc,
+                                                   ConstData_t input,
+                                                   const TensorDescriptor& outputGradDesc,
+                                                   ConstData_t outputGrad,
+                                                   const TensorDescriptor& inputGradDesc,
+                                                   Data_t inputGrad,
+                                                   uint32_t dim);
 
 } // namespace miopen
-#endif // _MIOPEN_GLU_HPP_

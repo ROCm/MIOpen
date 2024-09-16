@@ -681,8 +681,8 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
     Register(registry, ++id, Primitive::ReLU, prelu::MultiWeightsBackward{}.SolverDbId());
     Register(registry, ++id, Primitive::ReLU, prelu::SingleWeightBackward{}.SolverDbId());
 
-    Register(registry, ++id, Primitive::Glu, glu::GLUForward{}.SolverDbId());
-    Register(registry, ++id, Primitive::Glu, glu::GLUBackward{}.SolverDbId());
+    Register(registry, ++id, Primitive::Activation, glu::GLUForward{}.SolverDbId());
+    Register(registry, ++id, Primitive::Activation, glu::GLUBackward{}.SolverDbId());
 
     // IMPORTANT: New solvers should be added to the end of the function!
 }

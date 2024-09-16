@@ -23,8 +23,8 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef GUARD_CPU_GLU_HPP
-#define GUARD_CPU_GLU_HPP
+
+#pragma once
 
 #include "ford.hpp"
 #include "tensor_holder.hpp"
@@ -36,7 +36,7 @@ T sigmoid(T x)
 }
 
 template <class T>
-void cpu_glu_forward(tensor<T> input, tensor<T>& ref_output)
+void cpu_glu_forward(const tensor<T>& input, tensor<T>& ref_output)
 {
     auto output_dims = ref_output.desc.GetLengths();
 
@@ -52,7 +52,7 @@ void cpu_glu_forward(tensor<T> input, tensor<T>& ref_output)
 }
 
 template <class T>
-void cpu_glu_backward(tensor<T> input, tensor<T> grad_output, tensor<T>& grad_input)
+void cpu_glu_backward(const tensor<T>& input, const tensor<T>& grad_output, tensor<T>& grad_input)
 {
     auto outputGrad_dims = grad_output.desc.GetLengths();
 
@@ -67,5 +67,3 @@ void cpu_glu_backward(tensor<T> input, tensor<T> grad_output, tensor<T>& grad_in
         grad_input[o + outputGrad_numel] = (1 - sigmoid_v) * sigmoid_v * grad_v * inputFirstHalf_v;
     });
 }
-
-#endif

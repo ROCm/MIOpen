@@ -26,6 +26,7 @@
 
 #include "glu.hpp"
 #include <miopen/env.hpp>
+
 using float16 = half_float::half;
 
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)

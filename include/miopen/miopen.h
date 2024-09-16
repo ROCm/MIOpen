@@ -26,6 +26,7 @@
 #ifndef MIOPEN_GUARD_MIOPEN_H_
 #define MIOPEN_GUARD_MIOPEN_H_
 
+#include <cstdint>
 #ifdef __clang__
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wextern-c-compat"
@@ -72,7 +73,6 @@
  * @defgroup ReduceCalculation
  * @defgroup RotaryPositionalEmbeddings
  * @defgroup ReLU
- * @defgroup GLU
  *
  */
 
@@ -7734,8 +7734,7 @@ MIOPEN_EXPORT miopenStatus_t miopenPReLUBackward(miopenHandle_t handle,
 #endif // MIOPEN_BETA_API
 
 #ifdef MIOPEN_BETA_API
-// GLU APIs
-/** @addtogroup GLU
+/** @addtogroup activation
  *
  *  @{
  */
@@ -7752,10 +7751,10 @@ MIOPEN_EXPORT miopenStatus_t miopenPReLUBackward(miopenHandle_t handle,
  */
 MIOPEN_EXPORT miopenStatus_t miopenGLUForward(miopenHandle_t handle,
                                               const miopenTensorDescriptor_t inputDesc,
-                                              void* input,
+                                              const void* input,
                                               const miopenTensorDescriptor_t outputDesc,
                                               void* output,
-                                              const int64_t dim);
+                                              const uint32_t dim);
 
 /*! @brief Execute a GLU backward layer
  *
@@ -7771,12 +7770,12 @@ MIOPEN_EXPORT miopenStatus_t miopenGLUForward(miopenHandle_t handle,
  */
 MIOPEN_EXPORT miopenStatus_t miopenGLUBackward(miopenHandle_t handle,
                                                const miopenTensorDescriptor_t inputDesc,
-                                               void* input,
+                                               const void* input,
                                                const miopenTensorDescriptor_t outputGradDesc,
-                                               void* outputGrad,
+                                               const void* outputGrad,
                                                const miopenTensorDescriptor_t inputGradDesc,
                                                void* inputGrad,
-                                               const int64_t dim);
+                                               const uint32_t dim);
 
 /** @} */
 // CLOSEOUT BackendAPI DOXYGEN GROUP

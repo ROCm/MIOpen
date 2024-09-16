@@ -24,6 +24,7 @@
  *
  *******************************************************************************/
 
+#include <cstdint>
 #include <miopen/glu.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/handle.hpp>
@@ -32,10 +33,10 @@
 
 extern "C" miopenStatus_t miopenGLUForward(miopenHandle_t handle,
                                            const miopenTensorDescriptor_t inputDesc,
-                                           void* input,
+                                           const void* input,
                                            const miopenTensorDescriptor_t outputDesc,
                                            void* output,
-                                           const int64_t dim)
+                                           const uint32_t dim)
 {
     MIOPEN_LOG_FUNCTION(handle, inputDesc, input, outputDesc, output, dim);
 
@@ -51,12 +52,12 @@ extern "C" miopenStatus_t miopenGLUForward(miopenHandle_t handle,
 
 extern "C" miopenStatus_t miopenGLUBackward(miopenHandle_t handle,
                                             const miopenTensorDescriptor_t inputDesc,
-                                            void* input,
+                                            const void* input,
                                             const miopenTensorDescriptor_t outputGradDesc,
-                                            void* outputGrad,
+                                            const void* outputGrad,
                                             const miopenTensorDescriptor_t inputGradDesc,
                                             void* inputGrad,
-                                            const int64_t dim)
+                                            const uint32_t dim)
 {
     MIOPEN_LOG_FUNCTION(
         handle, inputDesc, input, outputGradDesc, outputGrad, inputGradDesc, inputGrad, dim);

@@ -31,6 +31,7 @@
 #include "verify.hpp"
 
 #include <algorithm>
+#include <cstdint>
 #include <gtest/gtest.h>
 
 #include <miopen/allocator.hpp>
@@ -41,7 +42,7 @@
 struct GLUTestCase
 {
     std::vector<size_t> dimsLength;
-    int64_t dim;
+    uint32_t dim;
     friend std::ostream& operator<<(std::ostream& os, const GLUTestCase& tc)
     {
         os << "Dims Length: ";
@@ -56,7 +57,7 @@ struct GLUTestCase
 
     GLUTestCase() {}
 
-    GLUTestCase(std::vector<size_t> dimsLength_, int64_t dim_) : dimsLength(dimsLength_), dim(dim_)
+    GLUTestCase(std::vector<size_t> dimsLength_, uint32_t dim_) : dimsLength(dimsLength_), dim(dim_)
     {
     }
 };
@@ -163,7 +164,7 @@ protected:
     miopen::Allocator::ManageDataPtr input_dev;
     miopen::Allocator::ManageDataPtr output_dev;
 
-    int32_t dim;
+    uint32_t dim;
 };
 
 template <typename T>
@@ -263,5 +264,5 @@ protected:
     miopen::Allocator::ManageDataPtr inputGrad_dev;
     miopen::Allocator::ManageDataPtr outputGrad_dev;
 
-    int64_t dim;
+    uint32_t dim;
 };
