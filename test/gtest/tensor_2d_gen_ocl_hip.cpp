@@ -220,10 +220,24 @@ protected:
 
         vld = {local_threads, 1, 1};
 
+        vld_new = {local_threads, 1, 1};
+
         size_t global_threads = num_wg * local_threads;
 
         vgd = {global_threads, 1, 1};
 
+        num_wg = (tensorsConfig.aclens[0] * tensorsConfig.aclens[1]) / local_threads;
+        num_wg = num_wg > max_num_wg ? max_num_wg : (num_wg < 1) ? 1 : num_wg;
+
+        global_threads = num_wg * local_threads;
+
+        vgd_new = {global_threads, 1, 1};
+
+        // std::cout << "AC(" << tensorsConfig.aclens[0] << ", " << tensorsConfig.aclens[1] << ")
+        // B("
+        //           << tensorsConfig.blens[0] << ", " << tensorsConfig.blens[1] << ")" <<
+        //           std::endl;
+        // std::cout << "blocks: " << num_wg << " x local: " << local_threads << std::endl;
         network_config += std::to_string(data_type) + "-miopenTensorOpAdd-" +
                           std::to_string(global_threads) + "-" + std::to_string(local_threads);
     }
@@ -380,8 +394,8 @@ protected:
                          network_config_hip,
                          program_name,
                          "Op2dTensorGenericNew",
-                         vld,
-                         vgd,
+                         vld_new,
+                         vgd_new,
                          params)(
             tensA_dev.get(),
             tensB_dev.get(),
@@ -476,7 +490,7 @@ protected:
 
     std::string network_config{};
     std::string params{};
-    std::vector<size_t> vld, vgd;
+    std::vector<size_t> vld, vld_new, vgd, vgd_new;
     unsigned int bitmap;
     int work_per_wg;
     int num_wg_orig;

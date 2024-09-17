@@ -219,15 +219,24 @@ extern "C" __global__ void Op2dTensorGenericNew(const MIOPEN_TYPE* a,
     const auto c_end = c_off + total_work * c_nstride;
     // total id
     auto tid = gid;
+    auto b_val  = b_ptr[0];
+    bool is_1x1 = (b_nstride == 0) && (b_cstride == 0);
     while(c_ptr < c_end)
     {
-        const auto res = MIOPEN_TENSOR_OP(a_ptr[0] * alpha0, b_ptr[0] * alpha1);
+        if(!is_1x1)
+        {
+            b_val = b_ptr[0];
+        }
+        const auto res = MIOPEN_TENSOR_OP(a_ptr[0] * alpha0, b_val * alpha1);
         c_ptr[0]       = use_beta ? c_ptr[0] * beta + res : res;
 
         a_ptr += a_step;
-        tid += step;
-        b_ptr = b_off + (tid / b_c) * b_nstride + (tid % b_c) * b_cstride;
         c_ptr += c_step;
+        if(!is_1x1)
+        {
+            tid += step;
+            b_ptr = b_off + (tid / b_c) * b_nstride + (tid % b_c) * b_cstride;
+        }
     }
 }
 
