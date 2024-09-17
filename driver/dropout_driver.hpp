@@ -109,7 +109,7 @@ private:
     tensor<Tref> outhost;
     tensor<Tref> din_host;
 
-    std::vector<prngStates> states_host;
+    std::vector<rocrand_state_xorwow> states_host;
     std::vector<unsigned char> reservespace;
     std::vector<unsigned char> reservespace_host;
 
@@ -222,17 +222,18 @@ int DropoutDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
     size_t statesSizeInBytes = 0;
     miopenDropoutGetStatesSize(GetHandle(), &statesSizeInBytes);
-    size_t states_size = statesSizeInBytes / sizeof(prngStates);
+    size_t states_size = statesSizeInBytes / sizeof(rocrand_state_xorwow);
 
     DEFINE_CONTEXT(ctx);
 #if MIOPEN_BACKEND_OPENCL
     clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
 #endif
 
-    states_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, states_size, sizeof(prngStates)));
+    states_dev =
+        std::unique_ptr<GPUMem>(new GPUMem(ctx, states_size, sizeof(rocrand_state_xorwow)));
 
-    if(inflags.GetValueInt("gen_file"))
-        generate_skipahead_file();
+    // if(inflags.GetValueInt("gen_file"))
+    //     generate_skipahead_file();
 
     miopenSetDropoutDescriptor(DropoutDesc,
                                GetHandle(),
@@ -269,7 +270,7 @@ int DropoutDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     reservespace      = std::vector<unsigned char>(reserveSpaceSize, static_cast<unsigned char>(1));
     reservespace_host = std::vector<unsigned char>(reserveSpaceSize, static_cast<unsigned char>(1));
 
-    states_host = std::vector<prngStates>(states_size);
+    states_host = std::vector<rocrand_state_xorwow>(states_size);
 
     Tgpu Data_scale = static_cast<Tgpu>(0.01);
 
