@@ -135,9 +135,7 @@ public:
         if(!verify_fwd_ready.get())
         {
 #if UNIT_ACTIVATION_DESCRIPTOR_DEBUG
-            DebugPrintTensorsForward(x_tensor,
-                                     y_tensor_cpu,
-                                     y_tensor_gpu);
+            DebugPrintTensorsForward(x_tensor, y_tensor_cpu, y_tensor_gpu);
 #endif
             GTEST_FAIL();
         }
@@ -145,20 +143,16 @@ public:
         if(!verify_bwd_ready.get())
         {
 #if UNIT_ACTIVATION_DESCRIPTOR_DEBUG
-            DebugPrintTensorsBackward(x_tensor,
-                                      y_tensor_gpu,
-                                      dy_tensor,
-                                      dx_tensor_cpu,
-                                      dx_tensor_gpu);
+            DebugPrintTensorsBackward(
+                x_tensor, y_tensor_gpu, dy_tensor, dx_tensor_cpu, dx_tensor_gpu);
 #endif
             GTEST_FAIL();
         }
     }
 
 protected:
-    static void DebugPrintTensorsForward(const tensor<T>& x,
-                                         const tensor<T>& y_cpu,
-                                         const tensor<T>& y_gpu)
+    static void
+    DebugPrintTensorsForward(const tensor<T>& x, const tensor<T>& y_cpu, const tensor<T>& y_gpu)
     {
         print_tensor(x, "X_TENSOR");
         print_tensor(y_cpu, "Y_TENSOR_CPU");
@@ -178,7 +172,10 @@ protected:
         print_tensor(dx_gpu, "dX_TENSOR_GPU");
     }
 
-    /// \note In the original test, support for non-packed tensors was implemented in a very strange way (by incrementing the stride of the last dimension), in this reincarnation, support for non-packed tensors is not yet implemented. This warning is provided to help the developer when adding this missing functionality.
+    /// \note In the original test, support for non-packed tensors was implemented in a very strange
+    /// way (by incrementing the stride of the last dimension), in this reincarnation, support for
+    /// non-packed tensors is not yet implemented. This warning is provided to help the developer
+    /// when adding this missing functionality.
     static void NonPackedTensorWarning()
     {
         std::cout << "WARNING: Non-packed tensor. Some modifications are needed to achieve optimal "
@@ -248,7 +245,17 @@ protected:
         auto dx_dev = handle.Write(dx.data);
         auto dy_dev = handle.Write(dy.data);
 
-        status = desc.Backward(handle, &alpha, y.desc, y_dev.get(), dy.desc, dy_dev.get(), x.desc, x_dev.get(), &beta, dx.desc, dx_dev.get());
+        status = desc.Backward(handle,
+                               &alpha,
+                               y.desc,
+                               y_dev.get(),
+                               dy.desc,
+                               dy_dev.get(),
+                               x.desc,
+                               x_dev.get(),
+                               &beta,
+                               dx.desc,
+                               dx_dev.get());
         if(status != miopenStatusSuccess)
             throw std::runtime_error("Backward failed");
 

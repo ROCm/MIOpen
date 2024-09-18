@@ -39,7 +39,9 @@ namespace miopen {
 namespace tests {
 namespace activ {
 
-template <class T1, class T2, std::enable_if_t<(std::is_unsigned_v<T1> && std::is_unsigned_v<T2>), bool> = false>
+template <class T1,
+          class T2,
+          std::enable_if_t<(std::is_unsigned_v<T1> && std::is_unsigned_v<T2>), bool> = false>
 auto Ceil(T1 val, T2 div)
 {
     assert(div != 0);
@@ -48,7 +50,8 @@ auto Ceil(T1 val, T2 div)
 
 namespace activ_func {
 
-/// \note static_cast in below functions is needed to speed up execution time for CPU non-native data types
+/// \note static_cast in below functions is needed to speed up execution time for CPU non-native
+/// data types
 class ActivationPASTHRU
 {
 public:
@@ -262,7 +265,13 @@ unsigned CpuActivationGetNumThreads(std::size_t num_jobs)
 }
 
 template <class A, class Tparam, class T>
-void DoCpuActivationForwardPacked(std::size_t offset, std::size_t end, Tparam alpha, Tparam beta, Tparam gamma, const tensor<T>& x, tensor<T>& y)
+void DoCpuActivationForwardPacked(std::size_t offset,
+                                  std::size_t end,
+                                  Tparam alpha,
+                                  Tparam beta,
+                                  Tparam gamma,
+                                  const tensor<T>& x,
+                                  tensor<T>& y)
 {
     for(std::size_t i = offset; i < end; i++)
         y.data[i] = A::Forward(alpha, beta, gamma, x.data[i]);
@@ -302,8 +311,8 @@ template <Direction direction, class A, class... Ts>
 void CpuActivationPackedMultiThread(std::size_t num_items, Ts&&... xs)
 {
     const std::size_t max_num_items_per_job = 16 * 1024 * 1024;
-    const std::size_t num_jobs = Ceil(num_items, max_num_items_per_job);
-    const auto num_threads     = CpuActivationGetNumThreads(num_jobs);
+    const std::size_t num_jobs              = Ceil(num_items, max_num_items_per_job);
+    const auto num_threads                  = CpuActivationGetNumThreads(num_jobs);
     if(num_threads == 1)
     {
         CpuActivationPackedSingleThread<direction, A>(num_items, xs...);
@@ -414,7 +423,7 @@ void CpuActivationForward(miopenActivationMode_t m,
         throw std::runtime_error("x.desc.GetElementSize() != y.desc.GetElementSize()");
 
     Tparam p_alpha = alpha;
-    Tparam p_beta = beta;
+    Tparam p_beta  = beta;
     Tparam p_gamma = gamma;
 
     if(x.desc.IsPacked() && y.desc.IsPacked())
@@ -448,13 +457,14 @@ void CpuActivationBackward(miopenActivationMode_t m,
         throw std::runtime_error("x.desc.GetElementSize() != dx.desc.GetElementSize()");
 
     Tparam p_alpha = alpha;
-    Tparam p_beta = beta;
+    Tparam p_beta  = beta;
     Tparam p_gamma = gamma;
 
     if(y.desc.IsPacked() && dy.desc.IsPacked() && x.desc.IsPacked() && dx.desc.IsPacked())
     {
         const auto num_items = dy.data.size();
-        CpuActivation<Direction::Backward, true>(m, num_items, p_alpha, p_beta, p_gamma, y, dy, x, dx);
+        CpuActivation<Direction::Backward, true>(
+            m, num_items, p_alpha, p_beta, p_gamma, y, dy, x, dx);
     }
     else
     {
