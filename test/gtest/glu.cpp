@@ -25,13 +25,14 @@
  *******************************************************************************/
 
 #include "glu.hpp"
+#include "gtest/gtest.h"
 #include <miopen/env.hpp>
 using float16 = half_float::half;
 
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 
-namespace glu {
+namespace {
 
 std::string GetFloatArg()
 {
@@ -43,25 +44,24 @@ std::string GetFloatArg()
     return tmp;
 }
 
-struct GPU_GLU_fwd_FP32 : GLUFwdTest<float>
+bool CheckFloatArg(std::string arg)
 {
-};
+    if(!MIOPEN_TEST_ALL || (env::enabled(MIOPEN_TEST_ALL) && GetFloatArg() == arg))
+    {
+        return true;
+    }
+    return false;
+}
 
-struct GPU_GLU_fwd_FP16 : GLUFwdTest<float16>
-{
-};
+} // namespace
 
-struct GPU_GLU_fwd_BFP16 : GLUFwdTest<bfloat16>
-{
-};
-
-} // namespace glu
-using namespace glu;
+using GPU_GLU_fwd_FP32  = GLUFwdTest<float>;
+using GPU_GLU_fwd_FP16  = GLUFwdTest<float16>;
+using GPU_GLU_fwd_BFP16 = GLUFwdTest<bfloat16>;
 
 TEST_P(GPU_GLU_fwd_FP32, Test)
 {
-    if(!MIOPEN_TEST_ALL ||
-       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--float"))
+    if(CheckFloatArg("--float"))
     {
         RunTest();
         Verify();
@@ -74,8 +74,7 @@ TEST_P(GPU_GLU_fwd_FP32, Test)
 
 TEST_P(GPU_GLU_fwd_FP16, Test)
 {
-    if(!MIOPEN_TEST_ALL ||
-       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--half"))
+    if(CheckFloatArg("--half"))
     {
         RunTest();
         Verify();
@@ -88,8 +87,7 @@ TEST_P(GPU_GLU_fwd_FP16, Test)
 
 TEST_P(GPU_GLU_fwd_BFP16, Test)
 {
-    if(!MIOPEN_TEST_ALL ||
-       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--bfp16"))
+    if(CheckFloatArg("--bfloat16"))
     {
         RunTest();
         Verify();
@@ -98,8 +96,55 @@ TEST_P(GPU_GLU_fwd_BFP16, Test)
     {
         GTEST_SKIP();
     }
-}
+};
+
+using GPU_GLU_bwd_FP32  = GLUBwdTest<float>;
+using GPU_GLU_bwd_FP16  = GLUBwdTest<float16>;
+using GPU_GLU_bwd_BFP16 = GLUBwdTest<bfloat16>;
+
+TEST_P(GPU_GLU_bwd_FP32, Test)
+{
+    if(CheckFloatArg("--float"))
+    {
+        RunTest();
+        Verify();
+    }
+    else
+    {
+        GTEST_SKIP();
+    }
+};
+
+TEST_P(GPU_GLU_bwd_FP16, Test)
+{
+    if(CheckFloatArg("--half"))
+    {
+        RunTest();
+        Verify();
+    }
+    else
+    {
+        GTEST_SKIP();
+    }
+};
+
+TEST_P(GPU_GLU_bwd_BFP16, Test)
+{
+    if(CheckFloatArg("--bfloat16"))
+    {
+        RunTest();
+        Verify();
+    }
+    else
+    {
+        GTEST_SKIP();
+    }
+};
 
 INSTANTIATE_TEST_SUITE_P(Full, GPU_GLU_fwd_FP32, testing::ValuesIn(GenFullTestCases()));
 INSTANTIATE_TEST_SUITE_P(Full, GPU_GLU_fwd_FP16, testing::ValuesIn(GenFullTestCases()));
 INSTANTIATE_TEST_SUITE_P(Full, GPU_GLU_fwd_BFP16, testing::ValuesIn(GenFullTestCases()));
+
+INSTANTIATE_TEST_SUITE_P(Full, GPU_GLU_bwd_FP32, testing::ValuesIn(GenFullTestCases()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_GLU_bwd_FP16, testing::ValuesIn(GenFullTestCases()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_GLU_bwd_BFP16, testing::ValuesIn(GenFullTestCases()));
