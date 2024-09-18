@@ -129,6 +129,8 @@ public:
     int RunBackwardGPU() override;
     int RunBackwardCPU(); // Verify implements it
 
+    Tref GetTolerance();
+
     int VerifyBackward() override;
     int VerifyForward() override;
     ~GLUDriver() override
@@ -343,11 +345,8 @@ int GLUDriver<Tgpu, Tref>::RunForwardGPU()
     {
         miopenStatus_t status = miopenGLUForward(
             GetHandle(), inputTensor, in_dev->GetMem(), outputTensor, out_dev->GetMem(), dim);
-        if(status != miopenStatusSuccess)
-        {
-            std::cerr << "Error in miopenGLUForward" << std::endl;
-            exit(EXIT_FAILURE);
-        }
+
+        MIOPEN_THROW_IF(status != miopenStatusSuccess, "Error in miopenGLUForward");
 
         float time = 0.0;
         miopenGetKernelTime(GetHandle(), &time);
@@ -400,11 +399,8 @@ int GLUDriver<Tgpu, Tref>::RunBackwardGPU()
                                                   inputTensorGrad,
                                                   inGrad_dev->GetMem(),
                                                   dim);
-        if(status != miopenStatusSuccess)
-        {
-            std::cerr << "Error in miopenGLUBackward" << std::endl;
-            exit(EXIT_FAILURE);
-        }
+
+        MIOPEN_THROW_IF(status != miopenStatusSuccess, "Error in miopenGLUBackward");
 
         float time = 0.0;
         miopenGetKernelTime(GetHandle(), &time);
@@ -433,10 +429,17 @@ int GLUDriver<Tgpu, Tref>::RunBackwardGPU()
 }
 
 template <typename Tgpu, typename Tref>
+Tref GLUDriver<Tgpu, Tref>::GetTolerance()
+{
+    Tref tolerance = std::numeric_limits<Tgpu>::epsilon() * 10;
+    return tolerance;
+}
+
+template <typename Tgpu, typename Tref>
 int GLUDriver<Tgpu, Tref>::VerifyForward()
 {
     RunForwardCPU();
-    const Tref tolerance = std::numeric_limits<Tgpu>::epsilon() * 10;
+    const Tref tolerance = GetTolerance();
     auto error           = miopen::rms_range(outhost, out);
 
     if(!std::isfinite(error) || error > tolerance)
@@ -466,7 +469,7 @@ template <typename Tgpu, typename Tref>
 int GLUDriver<Tgpu, Tref>::VerifyBackward()
 {
     RunBackwardCPU();
-    const Tref tolerance = std::numeric_limits<Tgpu>::epsilon() * 10;
+    const Tref tolerance = GetTolerance();
     auto error           = miopen::rms_range(inGradhost, inGrad);
     if(!std::isfinite(error) || error > tolerance)
     {

@@ -24,6 +24,8 @@
  *
  *******************************************************************************/
 
+#pragma once
+
 #include "cpu_glu.hpp"
 #include "get_handle.hpp"
 #include "random.hpp"
@@ -33,11 +35,12 @@
 #include <algorithm>
 #include <cstdint>
 #include <gtest/gtest.h>
+#include <limits>
+#include <vector>
 
 #include <miopen/allocator.hpp>
 #include <miopen/miopen.h>
 #include <miopen/glu.hpp>
-#include <vector>
 
 struct GLUTestCase
 {
@@ -62,7 +65,7 @@ struct GLUTestCase
     }
 };
 
-std::vector<GLUTestCase> GenFullTestCases()
+inline std::vector<GLUTestCase> GenFullTestCases()
 { // n c d h w dim
     // clang-format off
     return {
@@ -135,13 +138,7 @@ protected:
 
     double GetTolerance()
     {
-        // Computation error of fp16 is ~2^13 (=8192) bigger than
-        // the one of fp32 because mantissa is shorter by 13 bits.
-        double tolerance = std::is_same<T, float>::value ? 1.5e-6 : 8.2e-3;
-
-        // bf16 mantissa has 7 bits, by 3 bits shorter than fp16.
-        if(std::is_same<T, bfloat16>::value)
-            tolerance *= 8.0;
+        double tolerance = std::numeric_limits<T>::epsilon() * 10;
         return tolerance;
     }
 
@@ -233,13 +230,7 @@ protected:
 
     double GetTolerance()
     {
-        // Computation error of fp16 is ~2^13 (=8192) bigger than
-        // the one of fp32 because mantissa is shorter by 13 bits.
-        double tolerance = std::is_same<T, float>::value ? 1.5e-6 : 8.2e-3;
-
-        // bf16 mantissa has 7 bits, by 3 bits shorter than fp16.
-        if(std::is_same<T, bfloat16>::value)
-            tolerance *= 8.0;
+        double tolerance = std::numeric_limits<T>::epsilon() * 10;
         return tolerance;
     }
 

@@ -24,15 +24,16 @@
  *
  *******************************************************************************/
 
-#include <miopen/kernel_info.hpp>
-#include <miopen/mlo_internal.hpp>
-#include <cstddef>
 #include <miopen/datatype.hpp>
 #include <miopen/kernel_build_params.hpp>
+#include <miopen/kernel_info.hpp>
 #include <miopen/glu/invoke_params.hpp>
 #include <miopen/glu/solvers.hpp>
 #include <miopen/glu.hpp>
+#include <miopen/mlo_internal.hpp>
 #include <miopen/target_properties.hpp>
+
+#include <cstddef>
 
 #define LOCAL_SIZE 256
 
@@ -52,6 +53,10 @@ bool GLUForward::IsApplicable(const ExecutionContext& context,
     if(!problem.IsFirstDim())
         return false;
     if(!(input_numel < 400000))
+        return false;
+    if(!(problem.GetInputDesc().GetType() == miopenFloat ||
+         problem.GetInputDesc().GetType() == miopenHalf ||
+         problem.GetInputDesc().GetType() == miopenBFloat16))
         return false;
     return true;
 }
