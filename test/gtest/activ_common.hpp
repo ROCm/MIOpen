@@ -218,6 +218,12 @@ public:
 
 } // namespace activ_func
 
+enum class Direction
+{
+    Forward,
+    Backward
+};
+
 template <class T>
 class ActivationParamDataType;
 
@@ -256,39 +262,51 @@ unsigned CpuActivationGetNumThreads(std::size_t num_jobs)
 }
 
 template <class A, class Tparam, class T>
-void CpuActivationForwardPackedSingleThread(
-    Tparam alpha, Tparam beta, Tparam gamma, const tensor<T>& x, tensor<T>& y)
+void DoCpuActivationForwardPacked(std::size_t offset, std::size_t end, Tparam alpha, Tparam beta, Tparam gamma, const tensor<T>& x, tensor<T>& y)
 {
-    const auto len = x.data.size();
-    for(std::size_t i = 0; i < len; i++)
+    for(std::size_t i = offset; i < end; i++)
         y.data[i] = A::Forward(alpha, beta, gamma, x.data[i]);
 }
 
 template <class A, class Tparam, class T>
-void CpuActivationBackwardPackedSingleThread(Tparam alpha,
-                                             Tparam beta,
-                                             Tparam gamma,
-                                             const tensor<T>& y,
-                                             const tensor<T>& dy,
-                                             const tensor<T>& x,
-                                             tensor<T>& dx)
+void DoCpuActivationBackwardPacked(std::size_t offset,
+                                   std::size_t end,
+                                   Tparam alpha,
+                                   Tparam beta,
+                                   Tparam gamma,
+                                   const tensor<T>& y,
+                                   const tensor<T>& dy,
+                                   const tensor<T>& x,
+                                   tensor<T>& dx)
 {
-    const auto len = dy.data.size();
-    for(std::size_t i = 0; i < len; i++)
+    for(std::size_t i = offset; i < end; i++)
         dx.data[i] = A::Backward(alpha, beta, gamma, dy.data[i], x.data[i], y.data[i]);
 }
 
-template <class A, class Tparam, class T>
-void CpuActivationForwardPackedMultiThread(
-    Tparam alpha, Tparam beta, Tparam gamma, const tensor<T>& x, tensor<T>& y)
+template <Direction direction, class A, class... Ts>
+void DoCpuActivationPacked(std::size_t offset, std::size_t end, Ts&&... xs)
 {
-    const auto num_items                    = x.data.size();
+    if constexpr(direction == Direction::Forward)
+        DoCpuActivationForwardPacked<A>(offset, end, xs...);
+    else
+        DoCpuActivationBackwardPacked<A>(offset, end, xs...);
+}
+
+template <Direction direction, class A, class... Ts>
+void CpuActivationPackedSingleThread(std::size_t num_items, Ts&&... xs)
+{
+    DoCpuActivationPacked<direction, A>(0, num_items, xs...);
+}
+
+template <Direction direction, class A, class... Ts>
+void CpuActivationPackedMultiThread(std::size_t num_items, Ts&&... xs)
+{
     const std::size_t max_num_items_per_job = 16 * 1024 * 1024;
     const std::size_t num_jobs = Ceil(num_items, max_num_items_per_job);
     const auto num_threads     = CpuActivationGetNumThreads(num_jobs);
     if(num_threads == 1)
     {
-        CpuActivationForwardPackedSingleThread<A, Tparam>(alpha, beta, gamma, x, y);
+        CpuActivationPackedSingleThread<direction, A>(num_items, xs...);
         return;
     }
 
@@ -297,20 +315,17 @@ void CpuActivationForwardPackedMultiThread(
     const std::size_t remainder                = num_items % max_num_items_per_thread;
     const auto num_async_threads               = num_threads - 1;
 
-    auto func_async = [&, max_num_items_per_thread, alpha, beta, gamma](unsigned thread_num) {
+    auto func_async = [&](unsigned thread_num) {
         const auto offset = max_num_items_per_thread * thread_num;
         const auto end    = offset + max_num_items_per_thread;
-        for(std::size_t i = offset; i < end; i++)
-            y.data[i] = A::Forward(alpha, beta, gamma, x.data[i]);
+        DoCpuActivationPacked<direction, A>(offset, end, xs...);
     };
 
-    auto func_remainder =
-        [&, max_num_items_per_thread, remainder, num_async_threads, alpha, beta, gamma]() {
-            const auto offset = max_num_items_per_thread * num_async_threads;
-            const auto end    = offset + remainder;
-            for(std::size_t i = offset; i < end; i++)
-                y.data[i] = A::Forward(alpha, beta, gamma, x.data[i]);
-        };
+    auto func_remainder = [&]() {
+        const auto offset = max_num_items_per_thread * num_async_threads;
+        const auto end    = offset + remainder;
+        DoCpuActivationPacked<direction, A>(offset, end, xs...);
+    };
 
     std::vector<decltype(std::async(func_async, 0))> threads;
     for(unsigned i = 0; i < num_async_threads; i++)
@@ -325,122 +340,64 @@ void CpuActivationForwardPackedMultiThread(
         thread.wait();
 }
 
-template <class A, class Tparam, class T>
-void CpuActivationBackwardPackedMultiThread(Tparam alpha,
-                                            Tparam beta,
-                                            Tparam gamma,
-                                            const tensor<T>& y,
-                                            const tensor<T>& dy,
-                                            const tensor<T>& x,
-                                            tensor<T>& dx)
+template <Direction direction, class A, class... Ts>
+void CpuActivationPacked(std::size_t num_items, Ts&&... xs)
 {
-    const auto num_items                    = dy.data.size();
-    const std::size_t max_num_items_per_job = 16 * 1024 * 1024;
-    const std::size_t num_jobs = Ceil(num_items, max_num_items_per_job);
-    const auto num_threads     = CpuActivationGetNumThreads(num_jobs);
-    if(num_threads == 1)
+    CpuActivationPackedMultiThread<direction, A>(num_items, xs...);
+}
+
+template <Direction direction, class A, class... Ts>
+void CpuActivationNonPacked(std::size_t num_items, Ts&&... xs)
+{
+    throw std::runtime_error("CpuActivationNonPacked is not implemented yet");
+}
+
+template <Direction direction, bool is_packed, class A, class... Ts>
+void CpuActivation(std::size_t num_items, Ts&&... xs)
+{
+    if constexpr(is_packed)
+        CpuActivationPacked<direction, A>(num_items, xs...);
+    else
+        CpuActivationNonPacked<direction, A>(num_items, xs...);
+}
+
+template <Direction direction, bool is_packed, class... Ts>
+void CpuActivation(miopenActivationMode_t m, std::size_t num_items, Ts&&... xs)
+{
+    switch(m)
     {
-        CpuActivationBackwardPackedSingleThread<A, Tparam>(alpha, beta, gamma, y, dy, x, dx);
-        return;
+    case miopenActivationPASTHRU:
+        CpuActivation<direction, is_packed, activ_func::ActivationPASTHRU>(num_items, xs...);
+        break;
+    case miopenActivationLOGISTIC:
+        CpuActivation<direction, is_packed, activ_func::ActivationLOGISTIC>(num_items, xs...);
+        break;
+    case miopenActivationTANH:
+        CpuActivation<direction, is_packed, activ_func::ActivationTANH>(num_items, xs...);
+        break;
+    case miopenActivationRELU:
+        CpuActivation<direction, is_packed, activ_func::ActivationRELU>(num_items, xs...);
+        break;
+    case miopenActivationSOFTRELU:
+        CpuActivation<direction, is_packed, activ_func::ActivationSOFTRELU>(num_items, xs...);
+        break;
+    case miopenActivationABS:
+        CpuActivation<direction, is_packed, activ_func::ActivationABS>(num_items, xs...);
+        break;
+    case miopenActivationPOWER:
+        CpuActivation<direction, is_packed, activ_func::ActivationPOWER>(num_items, xs...);
+        break;
+    case miopenActivationCLIPPEDRELU:
+        CpuActivation<direction, is_packed, activ_func::ActivationCLIPPEDRELU>(num_items, xs...);
+        break;
+    case miopenActivationLEAKYRELU:
+        CpuActivation<direction, is_packed, activ_func::ActivationLEAKYRELU>(num_items, xs...);
+        break;
+    case miopenActivationELU:
+        CpuActivation<direction, is_packed, activ_func::ActivationELU>(num_items, xs...);
+        break;
+    default: throw std::runtime_error("Unknown activation mode");
     }
-
-    const std::size_t max_num_jobs_per_thread  = Ceil(num_jobs, num_threads);
-    const std::size_t max_num_items_per_thread = max_num_items_per_job * max_num_jobs_per_thread;
-    const std::size_t remainder                = num_items % max_num_items_per_thread;
-    const auto num_async_threads               = num_threads - 1;
-
-    auto func_async = [&, max_num_items_per_thread, alpha, beta, gamma](unsigned thread_num) {
-        const auto offset = max_num_items_per_thread * thread_num;
-        const auto end    = offset + max_num_items_per_thread;
-        for(std::size_t i = offset; i < end; i++)
-            dx.data[i] = A::Backward(alpha, beta, gamma, dy.data[i], x.data[i], y.data[i]);
-    };
-
-    auto func_remainder =
-        [&, max_num_items_per_thread, remainder, num_async_threads, alpha, beta, gamma]() {
-            const auto offset = max_num_items_per_thread * num_async_threads;
-            const auto end    = offset + remainder;
-            for(std::size_t i = offset; i < end; i++)
-                dx.data[i] = A::Backward(alpha, beta, gamma, dy.data[i], x.data[i], y.data[i]);
-        };
-
-    std::vector<decltype(std::async(func_async, 0))> threads;
-    for(unsigned i = 0; i < num_async_threads; i++)
-        threads.push_back(std::async(std::launch::async, func_async, i));
-
-    if(remainder)
-        func_remainder();
-    else
-        func_async(num_async_threads);
-
-    for(auto& thread : threads)
-        thread.wait();
-}
-
-template <class A, class Tparam, class T>
-void CpuActivationForwardPacked(
-    Tparam alpha, Tparam beta, Tparam gamma, const tensor<T>& x, tensor<T>& y)
-{
-    CpuActivationForwardPackedMultiThread<A, Tparam>(alpha, beta, gamma, x, y);
-}
-
-template <class A, class Tparam, class T>
-void CpuActivationBackwardPacked(Tparam alpha,
-                                 Tparam beta,
-                                 Tparam gamma,
-                                 const tensor<T>& y,
-                                 const tensor<T>& dy,
-                                 const tensor<T>& x,
-                                 tensor<T>& dx)
-{
-    CpuActivationBackwardPackedMultiThread<A, Tparam>(alpha, beta, gamma, y, dy, x, dx);
-}
-
-template <class A, class Tparam, class T>
-void CpuActivationForwardNonPacked(
-    Tparam alpha, Tparam beta, Tparam gamma, const tensor<T>& x, tensor<T>& y)
-{
-    throw std::runtime_error("CpuActivationForwardNonPacked is not implemented yet");
-}
-
-template <class A, class Tparam, class T>
-void CpuActivationBackwardNonPacked(Tparam alpha,
-                                    Tparam beta,
-                                    Tparam gamma,
-                                    const tensor<T>& y,
-                                    const tensor<T>& dy,
-                                    const tensor<T>& x,
-                                    tensor<T>& dx)
-{
-    throw std::runtime_error("CpuActivationBackwardNonPacked is not implemented yet");
-}
-
-template <class A, class T>
-void CpuActivationForward(double alpha, double beta, double gamma, const tensor<T>& x, tensor<T>& y)
-{
-    using Tparam = typename ActivationParamDataType<T>::Type;
-
-    if(x.desc.IsPacked() && y.desc.IsPacked())
-        CpuActivationForwardPacked<A, Tparam>(alpha, beta, gamma, x, y);
-    else
-        CpuActivationForwardNonPacked<A, Tparam>(alpha, beta, gamma, x, y);
-}
-
-template <class A, class T>
-void CpuActivationBackward(double alpha,
-                           double beta,
-                           double gamma,
-                           const tensor<T>& y,
-                           const tensor<T>& dy,
-                           const tensor<T>& x,
-                           tensor<T>& dx)
-{
-    using Tparam = typename ActivationParamDataType<T>::Type;
-
-    if(y.desc.IsPacked() && dy.desc.IsPacked() && x.desc.IsPacked() && dx.desc.IsPacked())
-        CpuActivationBackwardPacked<A, Tparam>(alpha, beta, gamma, y, dy, x, dx);
-    else
-        CpuActivationBackwardNonPacked<A, Tparam>(alpha, beta, gamma, y, dy, x, dx);
 }
 
 template <class T>
@@ -451,42 +408,23 @@ void CpuActivationForward(miopenActivationMode_t m,
                           const tensor<T>& x,
                           tensor<T>& y)
 {
+    using Tparam = typename ActivationParamDataType<T>::Type;
+
     if(x.desc.GetElementSize() != y.desc.GetElementSize())
         throw std::runtime_error("x.desc.GetElementSize() != y.desc.GetElementSize()");
 
-    switch(m)
+    Tparam p_alpha = alpha;
+    Tparam p_beta = beta;
+    Tparam p_gamma = gamma;
+
+    if(x.desc.IsPacked() && y.desc.IsPacked())
     {
-    case miopenActivationPASTHRU:
-        CpuActivationForward<activ_func::ActivationPASTHRU>(alpha, beta, gamma, x, y);
-        break;
-    case miopenActivationLOGISTIC:
-        CpuActivationForward<activ_func::ActivationLOGISTIC>(alpha, beta, gamma, x, y);
-        break;
-    case miopenActivationTANH:
-        CpuActivationForward<activ_func::ActivationTANH>(alpha, beta, gamma, x, y);
-        break;
-    case miopenActivationRELU:
-        CpuActivationForward<activ_func::ActivationRELU>(alpha, beta, gamma, x, y);
-        break;
-    case miopenActivationSOFTRELU:
-        CpuActivationForward<activ_func::ActivationSOFTRELU>(alpha, beta, gamma, x, y);
-        break;
-    case miopenActivationABS:
-        CpuActivationForward<activ_func::ActivationABS>(alpha, beta, gamma, x, y);
-        break;
-    case miopenActivationPOWER:
-        CpuActivationForward<activ_func::ActivationPOWER>(alpha, beta, gamma, x, y);
-        break;
-    case miopenActivationCLIPPEDRELU:
-        CpuActivationForward<activ_func::ActivationCLIPPEDRELU>(alpha, beta, gamma, x, y);
-        break;
-    case miopenActivationLEAKYRELU:
-        CpuActivationForward<activ_func::ActivationLEAKYRELU>(alpha, beta, gamma, x, y);
-        break;
-    case miopenActivationELU:
-        CpuActivationForward<activ_func::ActivationELU>(alpha, beta, gamma, x, y);
-        break;
-    default: throw std::runtime_error("Unknown activation mode");
+        const auto num_items = x.data.size();
+        CpuActivation<Direction::Forward, true>(m, num_items, p_alpha, p_beta, p_gamma, x, y);
+    }
+    else
+    {
+        CpuActivation<Direction::Forward, false>(m, 0, p_alpha, p_beta, p_gamma, x, y);
     }
 }
 
@@ -500,6 +438,8 @@ void CpuActivationBackward(miopenActivationMode_t m,
                            const tensor<T>& x,
                            tensor<T>& dx)
 {
+    using Tparam = typename ActivationParamDataType<T>::Type;
+
     if(x.desc.GetElementSize() != y.desc.GetElementSize())
         throw std::runtime_error("x.desc.GetElementSize() != y.desc.GetElementSize()");
     if(dx.desc.GetElementSize() != dy.desc.GetElementSize())
@@ -507,39 +447,18 @@ void CpuActivationBackward(miopenActivationMode_t m,
     if(x.desc.GetElementSize() != dx.desc.GetElementSize())
         throw std::runtime_error("x.desc.GetElementSize() != dx.desc.GetElementSize()");
 
-    switch(m)
+    Tparam p_alpha = alpha;
+    Tparam p_beta = beta;
+    Tparam p_gamma = gamma;
+
+    if(y.desc.IsPacked() && dy.desc.IsPacked() && x.desc.IsPacked() && dx.desc.IsPacked())
     {
-    case miopenActivationPASTHRU:
-        CpuActivationBackward<activ_func::ActivationPASTHRU>(alpha, beta, gamma, y, dy, x, dx);
-        break;
-    case miopenActivationLOGISTIC:
-        CpuActivationBackward<activ_func::ActivationLOGISTIC>(alpha, beta, gamma, y, dy, x, dx);
-        break;
-    case miopenActivationTANH:
-        CpuActivationBackward<activ_func::ActivationTANH>(alpha, beta, gamma, y, dy, x, dx);
-        break;
-    case miopenActivationRELU:
-        CpuActivationBackward<activ_func::ActivationRELU>(alpha, beta, gamma, y, dy, x, dx);
-        break;
-    case miopenActivationSOFTRELU:
-        CpuActivationBackward<activ_func::ActivationSOFTRELU>(alpha, beta, gamma, y, dy, x, dx);
-        break;
-    case miopenActivationABS:
-        CpuActivationBackward<activ_func::ActivationABS>(alpha, beta, gamma, y, dy, x, dx);
-        break;
-    case miopenActivationPOWER:
-        CpuActivationBackward<activ_func::ActivationPOWER>(alpha, beta, gamma, y, dy, x, dx);
-        break;
-    case miopenActivationCLIPPEDRELU:
-        CpuActivationBackward<activ_func::ActivationCLIPPEDRELU>(alpha, beta, gamma, y, dy, x, dx);
-        break;
-    case miopenActivationLEAKYRELU:
-        CpuActivationBackward<activ_func::ActivationLEAKYRELU>(alpha, beta, gamma, y, dy, x, dx);
-        break;
-    case miopenActivationELU:
-        CpuActivationBackward<activ_func::ActivationELU>(alpha, beta, gamma, y, dy, x, dx);
-        break;
-    default: throw std::runtime_error("Unknown activation mode");
+        const auto num_items = dy.data.size();
+        CpuActivation<Direction::Backward, true>(m, num_items, p_alpha, p_beta, p_gamma, y, dy, x, dx);
+    }
+    else
+    {
+        CpuActivation<Direction::Backward, false>(m, 0, p_alpha, p_beta, p_gamma, y, dy, x, dx);
     }
 }
 

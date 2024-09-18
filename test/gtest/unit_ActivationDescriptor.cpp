@@ -41,6 +41,8 @@
 #include "../tensor_holder.hpp"
 #include "../verify.hpp"
 
+#define UNIT_ACTIVATION_DESCRIPTOR_DEBUG 0
+
 // \todo This should be removed when the testing infrastructure is improved
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
@@ -134,6 +136,7 @@ public:
 
         if(!verify_fwd_ready.get())
         {
+#if UNIT_ACTIVATION_DESCRIPTOR_DEBUG
             DebugPrintTensors(DEBUG_PRINT_X_TENSOR | DEBUG_PRINT_Y_TENSOR_CPU |
                                   DEBUG_PRINT_Y_TENSOR_GPU,
                               x_tensor,
@@ -143,11 +146,13 @@ public:
                               dx_tensor_cpu,
                               dx_tensor_gpu,
                               100);
+#endif
             GTEST_FAIL();
         }
 
         if(!verify_bwd_ready.get())
         {
+#if UNIT_ACTIVATION_DESCRIPTOR_DEBUG
             DebugPrintTensors(DEBUG_PRINT_X_TENSOR | DEBUG_PRINT_Y_TENSOR_GPU |
                                   DEBUG_PRINT_dY_TENSOR | DEBUG_PRINT_dX_TENSOR_CPU |
                                   DEBUG_PRINT_dX_TENSOR_GPU,
@@ -158,6 +163,7 @@ public:
                               dx_tensor_cpu,
                               dx_tensor_gpu,
                               100);
+#endif
             GTEST_FAIL();
         }
     }
