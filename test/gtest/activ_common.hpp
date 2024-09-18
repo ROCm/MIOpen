@@ -37,9 +37,18 @@
 
 namespace miopen {
 namespace tests {
+namespace activ {
+
+template <class T1, class T2, std::enable_if_t<(std::is_unsigned_v<T1> && std::is_unsigned_v<T2>), bool> = false>
+auto Ceil(T1 val, T2 div)
+{
+    assert(div != 0);
+    return (val + div - 1) / div;
+}
 
 namespace activ_func {
 
+/// \note static_cast in below functions is needed to speed up execution time for CPU non-native data types
 class ActivationPASTHRU
 {
 public:
@@ -162,7 +171,7 @@ public:
     template <class T, class Tparam>
     static Tparam Forward(Tparam alpha, Tparam beta, Tparam gamma, T x)
     {
-        return std::min(alpha, std::max(static_cast<Tparam>(0), static_cast<Tparam>(x)));
+        return std::clamp(static_cast<Tparam>(x), static_cast<Tparam>(0), alpha);
     }
 
     template <class T, class Tparam>
@@ -275,7 +284,7 @@ void CpuActivationForwardPackedMultiThread(
 {
     const auto num_items                    = x.data.size();
     const std::size_t max_num_items_per_job = 16 * 1024 * 1024;
-    const std::size_t num_jobs = (num_items + max_num_items_per_job - 1) / max_num_items_per_job;
+    const std::size_t num_jobs = Ceil(num_items, max_num_items_per_job);
     const auto num_threads     = CpuActivationGetNumThreads(num_jobs);
     if(num_threads == 1)
     {
@@ -283,7 +292,7 @@ void CpuActivationForwardPackedMultiThread(
         return;
     }
 
-    const std::size_t max_num_jobs_per_thread  = (num_jobs + num_threads - 1) / num_threads;
+    const std::size_t max_num_jobs_per_thread  = Ceil(num_jobs, num_threads);
     const std::size_t max_num_items_per_thread = max_num_items_per_job * max_num_jobs_per_thread;
     const std::size_t remainder                = num_items % max_num_items_per_thread;
     const auto num_async_threads               = num_threads - 1;
@@ -295,10 +304,10 @@ void CpuActivationForwardPackedMultiThread(
             y.data[i] = A::Forward(alpha, beta, gamma, x.data[i]);
     };
 
-    auto func_reminder =
+    auto func_remainder =
         [&, max_num_items_per_thread, remainder, num_async_threads, alpha, beta, gamma]() {
             const auto offset = max_num_items_per_thread * num_async_threads;
-            const auto end    = offset + (remainder ? remainder : max_num_items_per_thread);
+            const auto end    = offset + remainder;
             for(std::size_t i = offset; i < end; i++)
                 y.data[i] = A::Forward(alpha, beta, gamma, x.data[i]);
         };
@@ -307,7 +316,10 @@ void CpuActivationForwardPackedMultiThread(
     for(unsigned i = 0; i < num_async_threads; i++)
         threads.push_back(std::async(std::launch::async, func_async, i));
 
-    func_reminder();
+    if(remainder)
+        func_remainder();
+    else
+        func_async(num_async_threads);
 
     for(auto& thread : threads)
         thread.wait();
@@ -324,7 +336,7 @@ void CpuActivationBackwardPackedMultiThread(Tparam alpha,
 {
     const auto num_items                    = dy.data.size();
     const std::size_t max_num_items_per_job = 16 * 1024 * 1024;
-    const std::size_t num_jobs = (num_items + max_num_items_per_job - 1) / max_num_items_per_job;
+    const std::size_t num_jobs = Ceil(num_items, max_num_items_per_job);
     const auto num_threads     = CpuActivationGetNumThreads(num_jobs);
     if(num_threads == 1)
     {
@@ -332,7 +344,7 @@ void CpuActivationBackwardPackedMultiThread(Tparam alpha,
         return;
     }
 
-    const std::size_t max_num_jobs_per_thread  = (num_jobs + num_threads - 1) / num_threads;
+    const std::size_t max_num_jobs_per_thread  = Ceil(num_jobs, num_threads);
     const std::size_t max_num_items_per_thread = max_num_items_per_job * max_num_jobs_per_thread;
     const std::size_t remainder                = num_items % max_num_items_per_thread;
     const auto num_async_threads               = num_threads - 1;
@@ -344,10 +356,10 @@ void CpuActivationBackwardPackedMultiThread(Tparam alpha,
             dx.data[i] = A::Backward(alpha, beta, gamma, dy.data[i], x.data[i], y.data[i]);
     };
 
-    auto func_reminder =
+    auto func_remainder =
         [&, max_num_items_per_thread, remainder, num_async_threads, alpha, beta, gamma]() {
             const auto offset = max_num_items_per_thread * num_async_threads;
-            const auto end    = offset + (remainder ? remainder : max_num_items_per_thread);
+            const auto end    = offset + remainder;
             for(std::size_t i = offset; i < end; i++)
                 dx.data[i] = A::Backward(alpha, beta, gamma, dy.data[i], x.data[i], y.data[i]);
         };
@@ -356,7 +368,10 @@ void CpuActivationBackwardPackedMultiThread(Tparam alpha,
     for(unsigned i = 0; i < num_async_threads; i++)
         threads.push_back(std::async(std::launch::async, func_async, i));
 
-    func_reminder();
+    if(remainder)
+        func_remainder();
+    else
+        func_async(num_async_threads);
 
     for(auto& thread : threads)
         thread.wait();
@@ -528,5 +543,6 @@ void CpuActivationBackward(miopenActivationMode_t m,
     }
 }
 
+} // namespace activ
 } // namespace tests
 } // namespace miopen

@@ -210,6 +210,7 @@ protected:
             print_tensor(dx_gpu.data, "dX_TENSOR_GPU");
     }
 
+    /// \note In the original test, support for non-packed tensors was implemented in a very strange way (by incrementing the stride of the last dimension), in this reincarnation, support for non-packed tensors is not yet implemented. This warning is provided to help the developer when adding this missing functionality.
     static void NonPackedTensorWarning()
     {
         std::cout << "WARNING: Non-packed tensor. Some modifications are needed to achieve optimal "
@@ -265,7 +266,7 @@ protected:
         status = desc.Forward(handle, &alpha, x_desc, x, &beta, y_desc, y);
 
         if(status != miopenStatusSuccess)
-            throw std::runtime_error("Backward failed");
+            throw std::runtime_error("Forward failed");
     }
 
     static void RunGpuBackward(miopen::Handle& handle,
@@ -331,7 +332,7 @@ protected:
     static void
     RunCpuForward(const miopen::ActivationDescriptor& desc, const tensor<T>& x, tensor<T>& y)
     {
-        miopen::tests::CpuActivationForward(
+        miopen::tests::activ::CpuActivationForward(
             desc.GetMode(), desc.GetAlpha(), desc.GetBeta(), desc.GetGamma(), x, y);
     }
 
@@ -341,7 +342,7 @@ protected:
                                const tensor<T>& x,
                                tensor<T>& dx)
     {
-        miopen::tests::CpuActivationBackward(
+        miopen::tests::activ::CpuActivationBackward(
             desc.GetMode(), desc.GetAlpha(), desc.GetBeta(), desc.GetGamma(), y, dy, x, dx);
     }
 
