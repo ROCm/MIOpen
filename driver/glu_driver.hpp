@@ -119,8 +119,6 @@ public:
     int GetandSetData() override;
     std::vector<int> GetInputTensorLengthsFromCmdLine();
 
-    int SetBNParametersFromCmdLineArgs();
-
     int AllocateBuffersAndCopy() override;
 
     int RunForwardGPU() override;
@@ -179,14 +177,20 @@ int GLUDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
     {
         miopenEnableProfiling(GetHandle(), true);
     }
+
+    forw = inflags.GetValueInt("forw");
+
+    if(forw != 0 && forw != 1)
+    {
+        MIOPEN_THROW("Invalid Forward Mode");
+    }
+
     return miopenStatusSuccess;
 }
 
 template <typename Tgpu, typename Tref>
 int GLUDriver<Tgpu, Tref>::GetandSetData()
 {
-    SetBNParametersFromCmdLineArgs();
-
     std::vector<int> in_len = inflags.GetValueTensor("dim-lengths").lengths;
     dim                     = inflags.GetValueInt("DimToSplit");
 
@@ -235,19 +239,6 @@ int GLUDriver<Tgpu, Tref>::AddCmdLineArgs()
     inflags.AddInputFlag("time", 't', "0", "Time Each Layer (Default=0)", "int");
     inflags.AddInputFlag(
         "wall", 'w', "0", "Wall-clock Time Each Layer, Requires time == 1 (Default=0)", "int");
-
-    return miopenStatusSuccess;
-}
-
-template <typename Tgpu, typename Tref>
-int GLUDriver<Tgpu, Tref>::SetBNParametersFromCmdLineArgs()
-{
-    forw = inflags.GetValueInt("forw");
-    if(forw != 0 && forw != 1)
-    {
-        printf("Incorrect Forward Mode\n");
-        exit(EXIT_FAILURE); // NOLINT (concurrency-mt-unsafe)
-    }
 
     return miopenStatusSuccess;
 }
