@@ -23,6 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#include <stdio.h>
 #ifndef MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS
 #include <hip/hip_fp16.h>
 #include <hip/hip_runtime.h>
@@ -223,12 +224,36 @@ extern "C" __global__ void Op2dTensorGenericNew(const MIOPEN_TYPE* a,
     bool is_1x1 = (b_nstride == 0) && (b_cstride == 0);
     while(c_ptr < c_end)
     {
+        // if((gid == 1024 || gid == 0) && total_work == 2048 && c_c == 1)
+        // {
+        //     printf("before gid: %d -> %p, %p, %p, a: %f b: %f c: %f, %d\n",
+        //            gid,
+        //            (void*)a_ptr,
+        //            (void*)b_ptr,
+        //            (void*)c_ptr,
+        //            a_ptr[0],
+        //            b_ptr[0],
+        //            c_ptr[0],
+        //            use_beta);
+        // }
         if(!is_1x1)
         {
             b_val = b_ptr[0];
         }
         const auto res = MIOPEN_TENSOR_OP(a_ptr[0] * alpha0, b_val * alpha1);
         c_ptr[0]       = use_beta ? c_ptr[0] * beta + res : res;
+        // if((gid == 1024 || gid == 0) && total_work == 2048 && c_c == 1)
+        // {
+        //     printf("before gid: %d -> %p, %p, %p, a: %f b: %f c: %f, %d\n",
+        //            gid,
+        //            (void*)a_ptr,
+        //            (void*)b_ptr,
+        //            (void*)c_ptr,
+        //            a_ptr[0],
+        //            b_ptr[0],
+        //            c_ptr[0],
+        //            use_beta);
+        // }
 
         a_ptr += a_step;
         c_ptr += c_step;
