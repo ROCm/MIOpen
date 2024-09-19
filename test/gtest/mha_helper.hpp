@@ -215,27 +215,33 @@ void PointWiseMultiply(const tensor<T>& tensor_a, const tensor<T>& tensor_b, ten
     tensor_c.par_for_each([&](auto... id) { tensor_c(id...) = tensor_a(id...) * tensor_b(id...); });
 }
 
+template <class T>
+void PointWiseSub(const tensor<T>& tensor_a, const tensor<T>& tensor_b, tensor<T>& tensor_c)
+{
+    tensor_c.par_for_each([&](auto... id) { tensor_c(id...) = tensor_a(id...) - tensor_b(id...); });
+}
+
 template <typename T>
 void BroadCastSub(const tensor<T>& tensor_val1,
-                  const tensor<T>& tesnor_val2,
+                  const tensor<T>& tensor_val2,
                   tensor<T>& tensor_val1_sub_val2)
 {
     tensor_val1_sub_val2.par_for_each(
         [&](size_t b_id, size_t h_id, size_t sl_i_id, size_t sl_j_id) {
             tensor_val1_sub_val2(b_id, h_id, sl_i_id, sl_j_id) =
-                tensor_val1(b_id, h_id, sl_i_id, sl_j_id) - tesnor_val2(b_id, h_id, sl_i_id, 0);
+                tensor_val1(b_id, h_id, sl_i_id, sl_j_id) - tensor_val2(b_id, h_id, sl_i_id, 0);
         });
 }
 
 template <typename T>
 void BroadCastAdd(const tensor<T>& tensor_val1,
-                  const tensor<T>& tesnor_val2,
+                  const tensor<T>& tensor_val2,
                   tensor<T>& tensor_val1_sub_val2)
 {
     tensor_val1_sub_val2.par_for_each(
         [&](size_t b_id, size_t h_id, size_t sl_i_id, size_t sl_j_id) {
             tensor_val1_sub_val2(b_id, h_id, sl_i_id, sl_j_id) =
-                tensor_val1(b_id, h_id, sl_i_id, sl_j_id) + tesnor_val2(b_id, h_id, sl_i_id, 0);
+                tensor_val1(b_id, h_id, sl_i_id, sl_j_id) + tensor_val2(b_id, h_id, sl_i_id, 0);
         });
 }
 
@@ -369,7 +375,8 @@ void MultiHeadAttentionfp8(const tensor<T>& q_val,
                            uint64_t offset,
                            float& aMax_S,
                            float& aMax_O,
-                           tensor<T>& multi_head_attention_fp8)
+                           tensor<T>& multi_head_attention_fp8,
+                           const tensor<float>* optional_bias = nullptr)      // pointer to optional bias, nullptr if not provided
 {
     auto inputLengths = q_val.desc.GetLengths();
     inputLengths[3]   = inputLengths[2]; // NHSD converting to NHSS
@@ -384,6 +391,11 @@ void MultiHeadAttentionfp8(const tensor<T>& q_val,
     ScaleMult(q_dot_k_fp8_stored_in_fp32_tensor,
               q_descale * k_descale,
               q_dot_k_fp8_stored_in_fp32_tensor);
+
+    if (optional_bias != nullptr)
+    {
+        PointWiseSub(q_dot_k_fp8_stored_in_fp32_tensor, *optional_bias, q_dot_k_fp8_stored_in_fp32_tensor);
+    }
 
     SoftMax(q_dot_k_fp8_stored_in_fp32_tensor, softmax, attn_max, Z_sum);
 
