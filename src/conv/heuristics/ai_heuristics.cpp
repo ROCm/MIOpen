@@ -480,7 +480,6 @@ protected:
             static_cast<float>(problem.GetDilationH()),
             static_cast<float>(problem.GetDilationW()),
             static_cast<float>(problem.GetOutBatchSize()),
-            static_cast<float>(metadata.EncodeLayout(problem.GetInLayout())),
             static_cast<float>(metadata.EncodePrecision(problem.GetInDataType())),
             static_cast<float>(metadata.EncodeDirection(problem.GetDirection())),
             static_cast<float>(problem.GetGroupCount())};
