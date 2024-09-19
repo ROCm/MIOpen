@@ -263,9 +263,6 @@ struct MIOPEN_INTERNALS_EXPORT TensorDescriptor : miopenTensorDescriptor
     friend void to_json(nlohmann::json& j, const TensorDescriptor& descriptor);
     friend void from_json(const nlohmann::json& j, TensorDescriptor& descriptor);
 
-protected:
-    static miopenTensorLayout_t GetDefaultLayout() { return miopenTensorNCHW; };
-
 private:
     TensorDescriptor(miopenDataType_t t,
                      const std::optional<miopenTensorLayout_t>& layout_in,
