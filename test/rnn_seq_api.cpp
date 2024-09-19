@@ -98,6 +98,9 @@ struct rnn_seq_driver : rnn_seq_api_test_driver<T>
         if(this->seqLenArray.size() > this->batchSize)
             return false;
 
+        if(this->biasMode && this->nohx)
+            return false;
+
         if(!this->seqLenArray.empty())
         {
             if(this->seqLength <
@@ -115,6 +118,7 @@ struct rnn_seq_driver : rnn_seq_api_test_driver<T>
 
     void run()
     {
+
         if(!this->full_set || (is_correct_params() && !is_skip_comb()))
             rnn_seq_api_test_driver<T>::run();
         else

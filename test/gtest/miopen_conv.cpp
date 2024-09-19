@@ -44,7 +44,7 @@ void GetArgs(const std::string& param, std::vector<std::string>& tokens)
         tokens.push_back(*begin++);
 }
 
-class Conv2dFloat_miopen_conv : public testing::TestWithParam<std::vector<std::string>>
+class GPU_Conv2d_miopen_conv_FP32 : public testing::TestWithParam<std::vector<std::string>>
 {
 };
 
@@ -53,7 +53,7 @@ void Run2dDriver(miopenDataType_t prec)
     std::vector<std::string> params;
     switch(prec)
     {
-    case miopenFloat: params = Conv2dFloat_miopen_conv::GetParam(); break;
+    case miopenFloat: params = GPU_Conv2d_miopen_conv_FP32::GetParam(); break;
     case miopenInt8:
     case miopenBFloat8:
     case miopenFloat8:
@@ -68,7 +68,7 @@ void Run2dDriver(miopenDataType_t prec)
                   "type not supported by "
                   "miopen_conv test";
 
-    default: params = Conv2dFloat_miopen_conv::GetParam();
+    default: params = GPU_Conv2d_miopen_conv_FP32::GetParam();
     }
 
     for(const auto& test_value : params)
@@ -154,7 +154,7 @@ std::vector<std::string> GetTestCases(const std::string& precision)
 } // namespace miopen_conv
 using namespace miopen_conv;
 
-TEST_P(Conv2dFloat_miopen_conv, FloatTest)
+TEST_P(GPU_Conv2d_miopen_conv_FP32, FloatTest)
 {
     const auto& handle = get_handle();
     if(IsTestSupportedForDevice(handle) && !SkipTest())
@@ -167,6 +167,6 @@ TEST_P(Conv2dFloat_miopen_conv, FloatTest)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(MiopenConv,
-                         Conv2dFloat_miopen_conv,
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_Conv2d_miopen_conv_FP32,
                          testing::Values(GetTestCases("--float")));

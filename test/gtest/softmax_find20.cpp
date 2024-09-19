@@ -300,7 +300,7 @@ private:
     const unsigned int test_w = 32;
 };
 
-TEST(TestSoftmaxFind20, softmaxForward)
+TEST(GPU_SoftmaxFind20_FP32, softmaxForward)
 {
     Handle& handle = get_handle();
 
@@ -313,7 +313,7 @@ TEST(TestSoftmaxFind20, softmaxForward)
     test.Finalize();
 }
 
-TEST(TestSoftmaxFind20, softmaxBackward)
+TEST(GPU_SoftmaxFind20_FP32, softmaxBackward)
 {
     Handle& handle = get_handle();
 

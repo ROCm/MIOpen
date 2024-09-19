@@ -463,7 +463,7 @@ void SetupPaths(fs::path& fdb_file_path,
         << "Db file does not exist" << kdb_file_path;
 }
 
-TEST(DBSync, KDBTargetID)
+TEST(CPU_DBSync_NONE, KDBTargetID)
 {
     if(env::enabled(MIOPEN_TEST_DBSYNC))
     {

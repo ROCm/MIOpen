@@ -35,19 +35,19 @@ MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLAGS_ARGS)
 
 namespace immed_conv3d_codecov {
 
-class ImmedConv3dFloat : public testing::TestWithParam<std::vector<std::string>>
+class GPU_ImmedConv3d_FP32 : public testing::TestWithParam<std::vector<std::string>>
 {
 };
 
-class ImmedConv3dHalf : public testing::TestWithParam<std::vector<std::string>>
+class GPU_ImmedConv3d_FP16 : public testing::TestWithParam<std::vector<std::string>>
 {
 };
 
-class ImmedConv3dBFloat16 : public testing::TestWithParam<std::vector<std::string>>
+class GPU_ImmedConv3d_BFP16 : public testing::TestWithParam<std::vector<std::string>>
 {
 };
 
-class ImmedConv3dInt8 : public testing::TestWithParam<std::vector<std::string>>
+class GPU_ImmedConv3d_I8 : public testing::TestWithParam<std::vector<std::string>>
 {
 };
 
@@ -68,10 +68,10 @@ void Run3dDriver(miopenDataType_t prec)
     std::vector<std::string> params;
     switch(prec)
     {
-    case miopenHalf: params = ImmedConv3dHalf::GetParam(); break;
-    case miopenBFloat16: params = ImmedConv3dBFloat16::GetParam(); break;
-    case miopenFloat: params = ImmedConv3dFloat::GetParam(); break;
-    case miopenInt8: params = ImmedConv3dInt8::GetParam(); break;
+    case miopenHalf: params = GPU_ImmedConv3d_FP16::GetParam(); break;
+    case miopenBFloat16: params = GPU_ImmedConv3d_BFP16::GetParam(); break;
+    case miopenFloat: params = GPU_ImmedConv3d_FP32::GetParam(); break;
+    case miopenInt8: params = GPU_ImmedConv3d_I8::GetParam(); break;
     case miopenFloat8:
     case miopenBFloat8:
     case miopenInt32:
@@ -81,7 +81,7 @@ void Run3dDriver(miopenDataType_t prec)
                   "data type not supported by "
                   "immed_conv3d_codecov test";
 
-    default: params = ImmedConv3dFloat::GetParam();
+    default: params = GPU_ImmedConv3d_FP32::GetParam();
     }
 
     for(const auto& test_value : params)
@@ -119,7 +119,7 @@ std::vector<std::string> GetTestCases(const std::string& precision)
 } // namespace immed_conv3d_codecov
 using namespace immed_conv3d_codecov;
 
-TEST_P(ImmedConv3dFloat, FloatTest_immed_conv3d_codecov)
+TEST_P(GPU_ImmedConv3d_FP32, FloatTest_immed_conv3d_codecov)
 {
     const auto& handle = get_handle();
     if(IsTestSupportedForDevice(handle) && !SkipTest() && IsTestRunWith("--float"))
@@ -132,7 +132,7 @@ TEST_P(ImmedConv3dFloat, FloatTest_immed_conv3d_codecov)
     }
 };
 
-TEST_P(ImmedConv3dHalf, HalfTest_immed_conv3d_codecov)
+TEST_P(GPU_ImmedConv3d_FP16, HalfTest_immed_conv3d_codecov)
 {
     const auto& handle = get_handle();
     if(IsTestSupportedForDevice(handle) && !SkipTest() && IsTestRunWith("--half"))
@@ -145,7 +145,7 @@ TEST_P(ImmedConv3dHalf, HalfTest_immed_conv3d_codecov)
     }
 };
 
-TEST_P(ImmedConv3dBFloat16, BFloat16Test_immed_conv3d_codecov)
+TEST_P(GPU_ImmedConv3d_BFP16, BFloat16Test_immed_conv3d_codecov)
 {
     const auto& handle = get_handle();
     if(IsTestSupportedForDevice(handle) && !SkipTest() && IsTestRunWith("--bfloat16"))
@@ -158,7 +158,7 @@ TEST_P(ImmedConv3dBFloat16, BFloat16Test_immed_conv3d_codecov)
     }
 };
 
-TEST_P(ImmedConv3dInt8, Int8Test_immed_conv3d_codecov)
+TEST_P(GPU_ImmedConv3d_I8, Int8Test_immed_conv3d_codecov)
 {
     const auto& handle = get_handle();
     if(IsTestSupportedForDevice(handle) && !SkipTest() && IsTestRunWith("--int8"))
@@ -171,12 +171,10 @@ TEST_P(ImmedConv3dInt8, Int8Test_immed_conv3d_codecov)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(ImmedConv3D, ImmedConv3dFloat, testing::Values(GetTestCases("--float")));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_ImmedConv3d_FP32, testing::Values(GetTestCases("--float")));
 
-INSTANTIATE_TEST_SUITE_P(ImmedConv3D, ImmedConv3dHalf, testing::Values(GetTestCases("--half")));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_ImmedConv3d_FP16, testing::Values(GetTestCases("--half")));
 
-INSTANTIATE_TEST_SUITE_P(ImmedConv3D,
-                         ImmedConv3dBFloat16,
-                         testing::Values(GetTestCases("--bfloat16")));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_ImmedConv3d_BFP16, testing::Values(GetTestCases("--bfloat16")));
 
-INSTANTIATE_TEST_SUITE_P(ImmedConv3D, ImmedConv3dInt8, testing::Values(GetTestCases("--int8")));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_ImmedConv3d_I8, testing::Values(GetTestCases("--int8")));
