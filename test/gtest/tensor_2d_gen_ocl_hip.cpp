@@ -228,40 +228,23 @@ protected:
 
         if(tensorsConfig.blens[0] > 1 && tensorsConfig.blens[1] == 1)
         {
-            local_threads_new = 1024;
-            max_num_wg        = 4096 / 4;
+            local_threads_new = tensorsConfig.aclens[1] < 1024 ? tensorsConfig.aclens[1] : 1024;
         }
 
         vld_new = {local_threads_new, 1, 1};
 
         num_wg = (tensorsConfig.aclens[0] * tensorsConfig.aclens[1]) / local_threads_new;
-        num_wg = num_wg > max_num_wg ? max_num_wg : (num_wg < 1) ? 1 : num_wg;
+        num_wg = num_wg >= max_num_wg ? max_num_wg : ((num_wg < 1) ? 1 : num_wg);
 
         size_t global_threads_new = num_wg * local_threads_new;
 
         vgd_new = {global_threads_new, 1, 1};
 
-        // std::cout << "AC(" << tensorsConfig.aclens[0] << ", " << tensorsConfig.aclens[1] << ")
-        // B("
+        // std::cout << "AC(" << tensorsConfig.aclens[0] << ", " << tensorsConfig.aclens[1] << ")B("
         //           << tensorsConfig.blens[0] << ", " << tensorsConfig.blens[1] << ")" <<
         //           std::endl;
         // std::cout << "blocks: " << num_wg << " x local: " << local_threads_new << std::endl;
         // std::cout << "beta: " << beta << std::endl;
-        // if(tensorsConfig.aclens[0] == 2048 && tensorsConfig.aclens[1] == 1 &&
-        //    tensorsConfig.blens[0] == 2048 && tensorsConfig.blens[1] == 1)
-        // {
-        //     print_tensor(tensA, "A", 1);
-        // }
-        // if(tensorsConfig.aclens[0] == 2048 && tensorsConfig.aclens[1] == 1 &&
-        //    tensorsConfig.blens[0] == 2048 && tensorsConfig.blens[1] == 1)
-        // {
-        //     print_tensor(tensB, "B", 1);
-        // }
-        // if(tensorsConfig.aclens[0] == 2048 && tensorsConfig.aclens[1] == 1 &&
-        //    tensorsConfig.blens[0] == 2048 && tensorsConfig.blens[1] == 1)
-        // {
-        //     print_tensor(tensC, "C", 1);
-        // }
 
         network_config += std::to_string(data_type) + "-miopenTensorOpAdd-" +
                           std::to_string(global_threads) + "-" + std::to_string(local_threads);
@@ -378,12 +361,6 @@ protected:
 
         tensC_hip.data = handle.Read<T>(tensC_dev, tensC_hip.data.size());
 
-        // if(tensorsConfig.aclens[0] == 2048 && tensorsConfig.aclens[1] == 1 &&
-        //    tensorsConfig.blens[0] == 2048 && tensorsConfig.blens[1] == 1)
-        // {
-        //     print_tensor(tensC_hip, "hip odl", 1);
-        // }
-
         if constexpr(PERF_ENABLE)
         {
             ph.perfTest(handle,
@@ -453,11 +430,7 @@ protected:
             !miopen::float_equal(beta, 0.0));
 
         tensC_hip_new.data = handle.Read<T>(tensC_dev, tensC_hip_new.data.size());
-        // if(tensorsConfig.aclens[0] == 2048 && tensorsConfig.aclens[1] == 1 &&
-        //    tensorsConfig.blens[0] == 2048 && tensorsConfig.blens[1] == 1)
-        // {
-        //     print_tensor(tensC_hip_new, "hip new", 1);
-        // }
+
         if constexpr(PERF_ENABLE)
         {
             ph.perfTest(

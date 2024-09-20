@@ -220,47 +220,42 @@ extern "C" __global__ void Op2dTensorGenericNew(const MIOPEN_TYPE* a,
     const auto c_end = c_off + total_work * c_nstride;
     // total id
     auto tid = gid;
-    auto b_val  = b_ptr[0];
-    bool is_1x1 = (b_nstride == 0) && (b_cstride == 0);
+    __shared__ float b_val;
+    bool b_1x1    = (b_nstride == 0) && (b_cstride == 0);
+    bool b_nx1    = (b_nstride > 0) && (b_cstride == 0);
+    bool next_row = false;
+    b_val         = b_ptr[0];
     while(c_ptr < c_end)
     {
-        // if((gid == 1024 || gid == 0) && total_work == 2048 && c_c == 1)
-        // {
-        //     printf("before gid: %d -> %p, %p, %p, a: %f b: %f c: %f, %d\n",
-        //            gid,
-        //            (void*)a_ptr,
-        //            (void*)b_ptr,
-        //            (void*)c_ptr,
-        //            a_ptr[0],
-        //            b_ptr[0],
-        //            c_ptr[0],
-        //            use_beta);
-        // }
-        if(!is_1x1)
+        if((!b_1x1 && !b_nx1) || next_row)
         {
-            b_val = b_ptr[0];
+            if(b_nx1)
+            {
+                __syncthreads();
+                if(threadIdx.x == 0)
+                {
+                    b_val = b_ptr[0];
+                }
+                __syncthreads();
+            }
+            else
+            {
+                b_val = b_ptr[0];
+            }
         }
         const auto res = MIOPEN_TENSOR_OP(a_ptr[0] * alpha0, b_val * alpha1);
         c_ptr[0]       = use_beta ? c_ptr[0] * beta + res : res;
-        // if((gid == 1024 || gid == 0) && total_work == 2048 && c_c == 1)
-        // {
-        //     printf("before gid: %d -> %p, %p, %p, a: %f b: %f c: %f, %d\n",
-        //            gid,
-        //            (void*)a_ptr,
-        //            (void*)b_ptr,
-        //            (void*)c_ptr,
-        //            a_ptr[0],
-        //            b_ptr[0],
-        //            c_ptr[0],
-        //            use_beta);
-        // }
 
         a_ptr += a_step;
         c_ptr += c_step;
-        if(!is_1x1)
+        if(!b_1x1)
         {
             tid += step;
             b_ptr = b_off + (tid / b_c) * b_nstride + (tid % b_c) * b_cstride;
+            if(b_nx1)
+            {
+                next_row = ((tid - step) / c_c) < (tid / c_c);
+            }
         }
     }
 }
