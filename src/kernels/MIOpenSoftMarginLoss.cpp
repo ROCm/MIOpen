@@ -48,15 +48,15 @@ __device__ void softmarginlossforward5d(const DTYPE* __restrict__ I,
 
     FLOAT_ACCUM i    = CVT_FLOAT2ACCUM(I[I_tv.get_tensor_view_idx(idx)]);
     FLOAT_ACCUM t    = CVT_FLOAT2ACCUM(T[T_tv.get_tensor_view_idx(idx)]);
-    FLOAT_ACCUM loss = log(1 + exp(-i * t));
+    FLOAT_ACCUM loss = log1p(exp(-i * t));
     switch(REDUCTION_T)
     {
     // If reduction = None, O is DTYPE*
     case 0: static_cast<DTYPE*>(O)[O_tv.get_tensor_view_idx(idx)] = CVT_ACCUM2FLOAT(loss); break;
-    // If reduction != Sum, O is FLOAT_ACCUM* and then all elements will be sum up in the next
+    // If reduction = Sum, O is FLOAT_ACCUM* and then all elements will be sum up in the next
     // kernel
     case 1: static_cast<FLOAT_ACCUM*>(O)[gid] = loss; break;
-    // If reduction != Mean, same as Sum but O will be divided by num_elem, then the next kernel sum
+    // If reduction = Mean, same as Sum but O will be divided by num_elem, then the next kernel sum
     // up will return mean of all elements
     case 2: static_cast<FLOAT_ACCUM*>(O)[gid] = loss / num_elem; break;
     default: break;

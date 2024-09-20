@@ -71,7 +71,7 @@ struct GPU_SoftMarginLossBackward_BFP16 : SoftMarginLossBackwardTest<bfloat16>
 
 using namespace softmarginloss;
 
-TEST_P(GPU_SoftMarginLossForward_FP32, )
+TEST_P(GPU_SoftMarginLossForward_FP32, Test)
 {
     if(!MIOPEN_TEST_ALL ||
        (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--float"))
@@ -85,7 +85,7 @@ TEST_P(GPU_SoftMarginLossForward_FP32, )
     }
 };
 
-TEST_P(GPU_SoftMarginLossForward_FP16, )
+TEST_P(GPU_SoftMarginLossForward_FP16, Test)
 {
     if(!MIOPEN_TEST_ALL ||
        (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--half"))
@@ -99,7 +99,7 @@ TEST_P(GPU_SoftMarginLossForward_FP16, )
     }
 };
 
-TEST_P(GPU_SoftMarginLossForward_BFP16, )
+TEST_P(GPU_SoftMarginLossForward_BFP16, Test)
 {
     if(!MIOPEN_TEST_ALL ||
        (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--bfloat16"))
@@ -113,7 +113,7 @@ TEST_P(GPU_SoftMarginLossForward_BFP16, )
     }
 };
 
-TEST_P(GPU_SoftMarginLossBackward_FP32, )
+TEST_P(GPU_SoftMarginLossBackward_FP32, Test)
 {
     if(!MIOPEN_TEST_ALL ||
        (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--float"))
@@ -127,7 +127,7 @@ TEST_P(GPU_SoftMarginLossBackward_FP32, )
     }
 };
 
-TEST_P(GPU_SoftMarginLossBackward_FP16, )
+TEST_P(GPU_SoftMarginLossBackward_FP16, Test)
 {
     if(!MIOPEN_TEST_ALL ||
        (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--half"))
@@ -141,7 +141,7 @@ TEST_P(GPU_SoftMarginLossBackward_FP16, )
     }
 };
 
-TEST_P(GPU_SoftMarginLossBackward_BFP16, )
+TEST_P(GPU_SoftMarginLossBackward_BFP16, Test)
 {
     if(!MIOPEN_TEST_ALL ||
        (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--bfloat16"))

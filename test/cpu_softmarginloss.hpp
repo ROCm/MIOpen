@@ -49,9 +49,9 @@ void cpu_softmarginloss_forward(tensor<T> input,
         double i = input[i_tv.get_tensor_view_idx(idx)];
         double t = target[t_tv.get_tensor_view_idx(idx)];
         if(reduction_mode == MIOPEN_LOSS_REDUCTION_NONE)
-            ref_output[o_tv.get_tensor_view_idx(idx)] = log(1 + exp(-i * t));
+            ref_output[o_tv.get_tensor_view_idx(idx)] = log1p(exp(-i * t));
         else
-            sum_loss += log(1 + exp(-i * t));
+            sum_loss += log1p(exp(-i * t));
     };
 
     if(reduction_mode == MIOPEN_LOSS_REDUCTION_MEAN)

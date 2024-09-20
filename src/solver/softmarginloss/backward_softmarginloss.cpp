@@ -42,7 +42,7 @@ namespace softmarginloss {
 
 bool SoftMarginLossBackward::IsApplicable(
     const ExecutionContext& /*context*/,
-    const miopen::softmarginloss::BackwardProblemDescription& problem) const
+    const miopen::softmarginloss::BackwardProblemDescription& /*problem*/) const
 {
     return true;
 }

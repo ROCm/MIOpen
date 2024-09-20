@@ -63,7 +63,7 @@ int32_t mloSoftMarginLossForwardRunHost(miopenTensorDescriptor_t inputDesc,
         tensor_layout_t<5> idx(i_tv, gid);
         double i    = input[i_tv.get_tensor_view_idx(idx)];
         double t    = target[t_tv.get_tensor_view_idx(idx)];
-        double loss = log(1 + exp(-i * t));
+        double loss = log1p(exp(-i * t));
         if(reduction_mode != MIOPEN_LOSS_REDUCTION_NONE)
             sum_loss += loss;
         else

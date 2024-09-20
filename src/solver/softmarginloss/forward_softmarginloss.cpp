@@ -44,7 +44,7 @@ namespace softmarginloss {
 
 bool SoftMarginLossForward::IsApplicable(
     const ExecutionContext& /*context*/,
-    const miopen::softmarginloss::ForwardProblemDescription& problem) const
+    const miopen::softmarginloss::ForwardProblemDescription& /*problem*/) const
 {
     return true;
 }
