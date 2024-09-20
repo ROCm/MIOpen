@@ -376,7 +376,8 @@ void MultiHeadAttentionfp8(const tensor<T>& q_val,
                            float& aMax_S,
                            float& aMax_O,
                            tensor<T>& multi_head_attention_fp8,
-                           const tensor<float>* optional_bias = nullptr)      // pointer to optional bias, nullptr if not provided
+                           const tensor<float>* optional_bias =
+                               nullptr) // pointer to optional bias, nullptr if not provided
 {
     auto inputLengths = q_val.desc.GetLengths();
     inputLengths[3]   = inputLengths[2]; // NHSD converting to NHSS
@@ -392,9 +393,10 @@ void MultiHeadAttentionfp8(const tensor<T>& q_val,
               q_descale * k_descale,
               q_dot_k_fp8_stored_in_fp32_tensor);
 
-    if (optional_bias != nullptr)
+    if(optional_bias != nullptr)
     {
-        PointWiseAdd(q_dot_k_fp8_stored_in_fp32_tensor, *optional_bias, q_dot_k_fp8_stored_in_fp32_tensor);
+        PointWiseAdd(
+            q_dot_k_fp8_stored_in_fp32_tensor, *optional_bias, q_dot_k_fp8_stored_in_fp32_tensor);
     }
 
     SoftMax(q_dot_k_fp8_stored_in_fp32_tensor, softmax, attn_max, Z_sum);
@@ -422,21 +424,22 @@ void MultiHeadAttentionfp8(const tensor<T>& q_val,
 }
 
 template <typename T>
-void MultiHeadAttentionf32(const tensor<T>& q_val,
-                           const tensor<T>& k_val,
-                           const tensor<T>& v_val,
-                           tensor<T>& q_dot_k_transpose,
-                           tensor<T>& softmax,
-                           tensor<T>& attn_max,
-                           tensor<T>& Z_sum,
-                           float& aMax_S,
-                           float& aMax_O,
-                           tensor<T>& multi_head_attention,
-                           const tensor<T>* optional_bias = nullptr)      // pointer to optional bias, nullptr if not provided
+void MultiHeadAttentionf32(
+    const tensor<T>& q_val,
+    const tensor<T>& k_val,
+    const tensor<T>& v_val,
+    tensor<T>& q_dot_k_transpose,
+    tensor<T>& softmax,
+    tensor<T>& attn_max,
+    tensor<T>& Z_sum,
+    float& aMax_S,
+    float& aMax_O,
+    tensor<T>& multi_head_attention,
+    const tensor<T>* optional_bias = nullptr) // pointer to optional bias, nullptr if not provided
 {
     Dot_4D_4D_T(q_val, k_val, q_dot_k_transpose);
 
-    if (optional_bias != nullptr)
+    if(optional_bias != nullptr)
     {
         PointWiseAdd(q_dot_k_transpose, *optional_bias, q_dot_k_transpose);
     }
