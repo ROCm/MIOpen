@@ -441,8 +441,7 @@ struct TransposingSolver : Base
         for(auto transpose : Derived::GetTransposes())
         {
             decltype(auto) descriptor = (problem.*(transpose.cdescriptor))();
-            const auto labels         = tensor_layout_get_default(descriptor.GetNumDims());
-            const auto layout         = descriptor.GetLayout(labels);
+            const auto layout         = descriptor.GetLayout_str();
             const auto to             = SyncLayoutDims(layout.c_str(), transpose.to);
 
             auto specific_pair = layout + "-";
@@ -488,9 +487,8 @@ struct TransposingSolver : Base
         for(auto transpose : Derived::GetTransposes())
         {
             const auto& descriptor = (problem.*(transpose.cdescriptor))();
-            const auto labels      = tensor_layout_get_default(descriptor.GetNumDims());
-            const auto layout      = descriptor.GetLayout(labels);
-            const auto to          = SyncLayoutDims(labels.c_str(), transpose.to);
+            const auto layout      = descriptor.GetLayout_str();
+            const auto to          = SyncLayoutDims(layout.c_str(), transpose.to);
 
             if(layout == to)
                 continue;
