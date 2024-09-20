@@ -178,8 +178,8 @@ protected:
         tensB_dev = handle.Write(tensB.data);
 
         // Allocate output tensors for OCL and HIP
-        tensC_ocl = tensor<T>{tensorsConfig.aclens, tensorsConfig.acstrides};
-        tensC_hip = tensor<T>{tensorsConfig.aclens, tensorsConfig.acstrides};
+        tensC_ocl     = tensor<T>{tensorsConfig.aclens, tensorsConfig.acstrides};
+        tensC_hip     = tensor<T>{tensorsConfig.aclens, tensorsConfig.acstrides};
         tensC_hip_new = tensor<T>{tensorsConfig.aclens, tensorsConfig.acstrides};
 
         // Prepare all parameters needed for kernel
