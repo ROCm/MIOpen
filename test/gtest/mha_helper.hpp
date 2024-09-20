@@ -216,9 +216,9 @@ void PointWiseMultiply(const tensor<T>& tensor_a, const tensor<T>& tensor_b, ten
 }
 
 template <class T>
-void PointWiseSub(const tensor<T>& tensor_a, const tensor<T>& tensor_b, tensor<T>& tensor_c)
+void PointWiseAdd(const tensor<T>& tensor_a, const tensor<T>& tensor_b, tensor<T>& tensor_c)
 {
-    tensor_c.par_for_each([&](auto... id) { tensor_c(id...) = tensor_a(id...) - tensor_b(id...); });
+    tensor_c.par_for_each([&](auto... id) { tensor_c(id...) = tensor_a(id...) + tensor_b(id...); });
 }
 
 template <typename T>
@@ -394,7 +394,7 @@ void MultiHeadAttentionfp8(const tensor<T>& q_val,
 
     if (optional_bias != nullptr)
     {
-        PointWiseSub(q_dot_k_fp8_stored_in_fp32_tensor, *optional_bias, q_dot_k_fp8_stored_in_fp32_tensor);
+        PointWiseAdd(q_dot_k_fp8_stored_in_fp32_tensor, *optional_bias, q_dot_k_fp8_stored_in_fp32_tensor);
     }
 
     SoftMax(q_dot_k_fp8_stored_in_fp32_tensor, softmax, attn_max, Z_sum);
@@ -431,10 +431,15 @@ void MultiHeadAttentionf32(const tensor<T>& q_val,
                            tensor<T>& Z_sum,
                            float& aMax_S,
                            float& aMax_O,
-                           tensor<T>& multi_head_attention)
+                           tensor<T>& multi_head_attention,
+                           const tensor<T>* optional_bias = nullptr)      // pointer to optional bias, nullptr if not provided
 {
-
     Dot_4D_4D_T(q_val, k_val, q_dot_k_transpose);
+
+    if (optional_bias != nullptr)
+    {
+        PointWiseAdd(q_dot_k_transpose, *optional_bias, q_dot_k_transpose);
+    }
 
     SoftMax(q_dot_k_transpose, softmax, attn_max, Z_sum);
     aMax_S = AbsoluteMax(softmax);
