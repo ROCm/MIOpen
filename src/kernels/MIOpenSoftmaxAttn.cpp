@@ -160,6 +160,7 @@ reductionBlock(float local_val, Op op, uint32_t lid, uint32_t laneId, uint32_t w
 
 template <uint32_t NumWarps, typename ReductionOp, typename ElementOp>
 __forceinline__ __device__ float reductionCommon(const float* __restrict__ line,
+                                                 const float* __restrict__ bias_line,
                                                  const float init_value,
                                                  const uint32_t seq_len,
                                                  ReductionOp&& op,
@@ -168,10 +169,19 @@ __forceinline__ __device__ float reductionCommon(const float* __restrict__ line,
                                                  uint32_t laneId,
                                                  uint32_t warpId)
 {
-    float reduced_val = (lid < seq_len) ? eop(line[lid]) : init_value;
+    float bias        = (bias_line && lid < seq_len) ? bias_line[lid] : 0.0f;
+    float reduced_val = (lid < seq_len) ? eop(line[lid] - bias) : init_value;
 
-    for(uint32_t loop_lid = lid + blockDim.x; loop_lid < seq_len; loop_lid += blockDim.x)
-        reduced_val = op(eop(line[loop_lid]), reduced_val);
+    if(bias_line)
+    {
+        for(uint32_t loop_lid = lid + blockDim.x; loop_lid < seq_len; loop_lid += blockDim.x)
+            reduced_val = op(eop(line[loop_lid] - bias_line[loop_lid]), reduced_val);
+    }
+    else
+    {
+        for(uint32_t loop_lid = lid + blockDim.x; loop_lid < seq_len; loop_lid += blockDim.x)
+            reduced_val = op(eop(line[loop_lid]), reduced_val);
+    }
 
     return reductionBlock<NumWarps>(reduced_val, op, lid, laneId, warpId);
 };
@@ -187,6 +197,7 @@ extern "C" __global__ void __launch_bounds__(THREADS)
                 OUT_TYPE* out,
                 float* __restrict__ M,
                 float* __restrict__ Z,
+                float* __restrict__ bias,
                 float* __restrict__ Amax,
                 const float* __restrict__ descale_Q,
                 const float* __restrict__ descale_K,
@@ -223,6 +234,9 @@ extern "C" __global__ void __launch_bounds__(THREADS)
 
         float local_val =
             (laneId < seq_len) ? (*line) * descaler : std::numeric_limits<float>::lowest();
+
+        if(bias)
+            local_val -= *(bias + gid * seq_len + laneId);
 
         float r_max = reductionFullWarp<warpSize>(local_val, laneId, fmaxf_op);
 
@@ -264,6 +278,7 @@ extern "C" __global__ void __launch_bounds__(THREADS)
                  OUT_TYPE* out,
                  float* __restrict__ M,
                  float* __restrict__ Z,
+                 float* __restrict__ bias,
                  float* __restrict__ Amax,
                  const float* __restrict__ descale_Q,
                  const float* __restrict__ descale_K,
@@ -300,6 +315,10 @@ extern "C" __global__ void __launch_bounds__(THREADS)
 
         float local_val =
             (lid < seq_len) ? (*line) * descaler : std::numeric_limits<float>::lowest();
+
+        if(bias)
+            local_val -= *(bias + gid * seq_len + lid);
+
         float r_max = reductionBlock<NumWarps>(local_val, fmaxf_op, lid, laneId, warpId);
 
         local_val = (lid < seq_len) ? expf(local_val - r_max) : 0;
@@ -340,6 +359,7 @@ extern "C" __global__ void __launch_bounds__(THREADS)
                   OUT_TYPE* out,
                   float* __restrict__ M,
                   float* __restrict__ Z,
+                  float* __restrict__ bias,
                   float* __restrict__ Amax,
                   const float* __restrict__ descale_Q,
                   const float* __restrict__ descale_K,
@@ -371,11 +391,13 @@ extern "C" __global__ void __launch_bounds__(THREADS)
 
     for(uint64_t gid = blockIdx.x; gid < nhs; gid += gridDim.x)
     {
-        const float* line = in + gid * seq_len;
-        auto res          = out + gid * seq_len;
+        const float* line      = in + gid * seq_len;
+        const float* bias_line = bias + gid * seq_len;
+        auto res               = out + gid * seq_len;
 
         float r_max = reductionCommon<NumWarps>(
             line,
+            bias_line,
             std::numeric_limits<float>::lowest(),
             seq_len,
             fmaxf_op,
@@ -386,6 +408,7 @@ extern "C" __global__ void __launch_bounds__(THREADS)
 
         float r_sum = 1.0f / reductionCommon<NumWarps>(
                                  line,
+                                 nullptr,
                                  0,
                                  seq_len,
                                  plus_op,
