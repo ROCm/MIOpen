@@ -382,6 +382,7 @@ mha::ProblemDescription Problem::AsMha() const
             dpDesc,
             dsDesc,
             doffDesc,
+            GetTensorDescriptor(miopenTensorMhaBias, TensorDescriptor()),
             oDesc,
             GetTensorDescriptorChecked(miopenTensorMhaAmaxO, "miopenTensorMhaAmaxO"),
             GetTensorDescriptorChecked(miopenTensorMhaAmaxS, "miopenTensorMhaAmaxS"),
