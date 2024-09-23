@@ -632,6 +632,9 @@ void RNNBackwardDataModularAlgo::PropDx(const Handle& handle,
                                         size_t gemm_batch_offset,
                                         size_t gemm_batch_size) const
 {
+    // TODO
+    assert(rnnDesc.inputMode == miopenRNNlinear);
+
     constexpr size_t layer = 0;
 
     const auto tmp_block_offset =
