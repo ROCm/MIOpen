@@ -128,7 +128,7 @@ protected:
         cpu_glu_forward<T>(input, ref_output);
         miopenStatus_t status;
 
-        status = miopen::GLUForward(
+        status = miopen::glu::GLUForward(
             handle, input.desc, input_dev.get(), output.desc, output_dev.get(), dim);
 
         EXPECT_EQ(status, miopenStatusSuccess);
@@ -214,7 +214,7 @@ protected:
         cpu_glu_backward<T>(input, outputGrad, ref_inputGrad);
         miopenStatus_t status;
 
-        status = miopen::GLUBackward(handle,
+        status = miopen::glu::GLUBackward(handle,
                                      input.desc,
                                      input_dev.get(),
                                      outputGrad.desc,
