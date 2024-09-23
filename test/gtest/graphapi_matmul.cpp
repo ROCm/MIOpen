@@ -85,6 +85,4 @@ protected:
 
 TEST_P(CPU_GraphApiMatMul_NONE, CFuncions) { execute(); }
 
-INSTANTIATE_TEST_SUITE_P(CFuncionsTest,
-                         CPU_GraphApiMatMul_NONE,
-                         testing::Values(miopenFloat, miopenDouble));
+INSTANTIATE_TEST_SUITE_P(Unit, CPU_GraphApiMatMul_NONE, testing::Values(miopenFloat, miopenDouble));

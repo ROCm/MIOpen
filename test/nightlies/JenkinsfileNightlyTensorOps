@@ -68,13 +68,6 @@ pipeline {
     stages{
         stage("HIP Release Auxilary fp32"){
             parallel{
-                stage("Activations") {
-                    agent{ label rocmnode("vega")}
-                    steps{
-                        buildJob("hcc", buildflag, image, 'test_activation', '--all -n 2 --verbose --disable-verification-cache')
-                    }
-                }
-
                 stage("Tensor Operators") {
                     agent{ label rocmnode("vega") }
                     steps{
