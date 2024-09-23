@@ -30,9 +30,6 @@
 #include <miopen/env.hpp>
 #include "get_handle.hpp"
 
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
-
 namespace conv_3d {
 void GetArgs(const std::string& param, std::vector<std::string>& tokens)
 {
@@ -86,13 +83,11 @@ bool IsTestSupportedForDevice()
 
 void Run2dDriver()
 {
-    if(!(IsTestSupportedForDevice()            //
-         && (!MIOPEN_TEST_ALL                  // standalone run
-             || (env::enabled(MIOPEN_TEST_ALL) // or --float full tests enabled
-                 && env::value(MIOPEN_TEST_FLOAT_ARG) == "--float"))))
+    if(!IsTestSupportedForDevice())
     {
         GTEST_SKIP();
     }
+
     std::vector<std::string> params = GPU_conv3d_FP32::GetParam();
 
     for(const auto& test_value : params)
