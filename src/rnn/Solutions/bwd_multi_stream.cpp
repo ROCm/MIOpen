@@ -273,7 +273,7 @@ void RNNModularMultiStreamBWD::ComputeBWD(Handle& handle,
 
     const runtimeArgsBwd args{&handle, dy, dhy, dhx, cx, dcy, dcx, dx, w, workSpace, reserveSpace};
 
-    MultiStreamController ms_controller{handle, env::value_or(MIOPEN_RNN_MS_STREAM_CNT, 4)};
+    MultiStreamController ms_controller{handle, env::value_or(MIOPEN_RNN_MS_STREAM_CNT, 2)};
 
     constexpr size_t try_chunks_cnt = 16;
     const auto time_chunk_sz        = ((max_seq_len + try_chunks_cnt - 1) / try_chunks_cnt);

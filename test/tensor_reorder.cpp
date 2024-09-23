@@ -339,7 +339,7 @@ struct tensor_reorder_driver : tensor_reorder_base_driver
             std::vector<int> tensor_strides;
 
             std::string layout_default = miopen::tensor_layout_get_default(4);
-            std::string layout_string  = miopen::TensorDescriptor::GetLayoutStr(miopenTensorNCHW);
+            std::string layout_string = miopen::TensorDescriptor::LayoutEnumToStr(miopenTensorNCHW);
             std::string reorder_string =
                 supported_reorder_to_string(order_0, order_1, order_2, order_3);
 

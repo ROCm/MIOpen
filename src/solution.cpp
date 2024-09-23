@@ -300,6 +300,14 @@ void Solution::RunImpl(Handle& handle,
     auto dropoutOffset =
         get_input_checked(miopenTensorMhaDropoutOffset, "miopenTensorMhaDropoutOffset");
 
+    // reading bias buffer as an optional parameter
+    Data_t biasBuffer = nullptr;
+    const auto& found = inputs.find(miopenTensorMhaBias);
+    if(found != inputs.end())
+    {
+        biasBuffer = found->second.buffer;
+    }
+
     const auto invoke_ctx = [&]() -> AnyInvokeParams {
         switch(problem_casted.GetDirection())
         {
@@ -322,6 +330,7 @@ void Solution::RunImpl(Handle& handle,
                                                dropoutProbability.buffer,
                                                dropoutSeed.buffer,
                                                dropoutOffset.buffer,
+                                               biasBuffer,
                                                o.buffer,
                                                amaxO.buffer,
                                                amaxS.buffer,

@@ -41,22 +41,22 @@ bool CheckFloatArg(std::string arg)
     return false;
 }
 
-struct TransformersAdamWTestFloat : TransformersAdamWTest<float, float>
+struct GPU_TransformersAdamWTest_FP32 : TransformersAdamWTest<float, float>
 {
 };
 
-struct TransformersAdamWTestFloat16 : TransformersAdamWTest<half_float::half, half_float::half>
+struct GPU_TransformersAdamWTest_FP16 : TransformersAdamWTest<half_float::half, half_float::half>
 {
 };
 
-struct TransformersAmpAdamWTestFloat : TransformersAdamWTest<float, half_float::half, true>
+struct GPU_TransformersAmpAdamWTest_FP32 : TransformersAdamWTest<float, half_float::half, true>
 {
 };
 
 } // namespace transformers_adam_w
 using namespace transformers_adam_w;
 
-TEST_P(TransformersAdamWTestFloat, TransformersAdamWFloatTest)
+TEST_P(GPU_TransformersAdamWTest_FP32, TransformersAdamWFloatTest)
 {
     if(CheckFloatArg("--float"))
     {
@@ -69,7 +69,7 @@ TEST_P(TransformersAdamWTestFloat, TransformersAdamWFloatTest)
     }
 };
 
-TEST_P(TransformersAdamWTestFloat16, TransformersAdamWFloat16Test)
+TEST_P(GPU_TransformersAdamWTest_FP16, TransformersAdamWFloat16Test)
 {
     if(CheckFloatArg("--half"))
     {
@@ -82,7 +82,7 @@ TEST_P(TransformersAdamWTestFloat16, TransformersAdamWFloat16Test)
     }
 };
 
-TEST_P(TransformersAmpAdamWTestFloat, TransformersAmpAdamWTest)
+TEST_P(GPU_TransformersAmpAdamWTest_FP32, TransformersAmpAdamWTest)
 {
     if(CheckFloatArg("--float"))
     {
@@ -95,12 +95,12 @@ TEST_P(TransformersAmpAdamWTestFloat, TransformersAmpAdamWTest)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(TransformersAdamWTestSet,
-                         TransformersAdamWTestFloat,
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_TransformersAdamWTest_FP32,
                          testing::ValuesIn(TransformersAdamWTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(TransformersAdamWTestSet,
-                         TransformersAdamWTestFloat16,
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_TransformersAdamWTest_FP16,
                          testing::ValuesIn(TransformersAdamWTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(TransformersAdamWTestSet,
-                         TransformersAmpAdamWTestFloat,
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_TransformersAmpAdamWTest_FP32,
                          testing::ValuesIn(TransformersAdamWTestConfigs()));

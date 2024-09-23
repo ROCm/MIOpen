@@ -38,7 +38,7 @@ class MultiStreamController
 public:
     static constexpr int rootStreamId = 0;
 
-    MultiStreamController(Handle& handle, int extra_stream_cnt)
+    MultiStreamController(const Handle& handle, int extra_stream_cnt)
         : streamPoolIdsMapping{init_stream_pool_ids(handle, extra_stream_cnt)},
           streamPoolCache{init_stream_pool(handle, streamPoolIdsMapping)},
           activeHandle{handle}
@@ -89,6 +89,8 @@ public:
     };
 
     size_t size() const { return streamPoolIdsMapping.size(); }
+
+    ~MultiStreamController() { ChangeActiveStream(rootStreamId); }
 
 private:
     static std::vector<int> init_stream_pool_ids(const Handle& handle, int extra_stream_cnt)

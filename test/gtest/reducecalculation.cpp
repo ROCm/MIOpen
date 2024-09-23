@@ -42,22 +42,22 @@ std::string GetFloatArg()
     return tmp;
 }
 
-struct ReduceCalculationTestFloat : ReduceCalculationTest<float>
+struct GPU_ReduceCalculationTest_FP32 : ReduceCalculationTest<float>
 {
 };
 
-struct ReduceCalculationTestHalf : ReduceCalculationTest<half_float::half>
+struct GPU_ReduceCalculationTest_FP16 : ReduceCalculationTest<half_float::half>
 {
 };
 
-struct ReduceCalculationTestBFloat16 : ReduceCalculationTest<bfloat16>
+struct GPU_ReduceCalculationTest_BFP16 : ReduceCalculationTest<bfloat16>
 {
 };
 
 } // namespace reducecalculation
 using namespace reducecalculation;
 
-TEST_P(ReduceCalculationTestFloat, ReduceCalculationTestFw)
+TEST_P(GPU_ReduceCalculationTest_FP32, ReduceCalculationTestFw)
 {
     if(!MIOPEN_TEST_ALL ||
        (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--float"))
@@ -71,7 +71,7 @@ TEST_P(ReduceCalculationTestFloat, ReduceCalculationTestFw)
     }
 };
 
-TEST_P(ReduceCalculationTestHalf, ReduceCalculationTestFw)
+TEST_P(GPU_ReduceCalculationTest_FP16, ReduceCalculationTestFw)
 {
     if(!MIOPEN_TEST_ALL ||
        (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--half"))
@@ -85,7 +85,7 @@ TEST_P(ReduceCalculationTestHalf, ReduceCalculationTestFw)
     }
 };
 
-TEST_P(ReduceCalculationTestBFloat16, ReduceCalculationTestFw)
+TEST_P(GPU_ReduceCalculationTest_BFP16, ReduceCalculationTestFw)
 {
     if(!MIOPEN_TEST_ALL ||
        (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--bfloat16"))
@@ -100,26 +100,26 @@ TEST_P(ReduceCalculationTestBFloat16, ReduceCalculationTestFw)
 };
 
 INSTANTIATE_TEST_SUITE_P(
-    ReduceCalculationTestSetSUM,
-    ReduceCalculationTestFloat,
+    FullSUM,
+    GPU_ReduceCalculationTest_FP32,
     testing::ValuesIn(ReduceCalculationTestConfigs(MIOPEN_REDUCE_CALCULATION_SUM)));
 INSTANTIATE_TEST_SUITE_P(
-    ReduceCalculationTestSetPROD,
-    ReduceCalculationTestFloat,
+    FullPROD,
+    GPU_ReduceCalculationTest_FP32,
     testing::ValuesIn(ReduceCalculationTestConfigs(MIOPEN_REDUCE_CALCULATION_PROD)));
 INSTANTIATE_TEST_SUITE_P(
-    ReduceCalculationTestSetSUM,
-    ReduceCalculationTestHalf,
+    FullSUM,
+    GPU_ReduceCalculationTest_FP16,
     testing::ValuesIn(ReduceCalculationTestConfigs(MIOPEN_REDUCE_CALCULATION_SUM)));
 INSTANTIATE_TEST_SUITE_P(
-    ReduceCalculationTestSetPROD,
-    ReduceCalculationTestHalf,
+    FullPROD,
+    GPU_ReduceCalculationTest_FP16,
     testing::ValuesIn(ReduceCalculationTestConfigs(MIOPEN_REDUCE_CALCULATION_PROD)));
 INSTANTIATE_TEST_SUITE_P(
-    ReduceCalculationTestSetSUM,
-    ReduceCalculationTestBFloat16,
+    FullSUM,
+    GPU_ReduceCalculationTest_BFP16,
     testing::ValuesIn(ReduceCalculationTestConfigs(MIOPEN_REDUCE_CALCULATION_SUM)));
 INSTANTIATE_TEST_SUITE_P(
-    ReduceCalculationTestSetPROD,
-    ReduceCalculationTestBFloat16,
+    FullPROD,
+    GPU_ReduceCalculationTest_BFP16,
     testing::ValuesIn(ReduceCalculationTestConfigs(MIOPEN_REDUCE_CALCULATION_PROD)));

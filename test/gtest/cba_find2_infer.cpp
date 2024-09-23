@@ -24,6 +24,7 @@
  *
  *******************************************************************************/
 #include <gtest/gtest.h>
+#include <gtest/gtest_common.hpp>
 #include <miopen/generic_search.hpp>
 #include <miopen/miopen.h>
 #include <miopen/search_options.hpp>
@@ -39,6 +40,14 @@
 #include "cba_find2.hpp"
 
 namespace cba_find2_infer {
+
+bool IsTestSupportedForDevice()
+{
+    using e_mask = enabled<Gpu::gfx94X, Gpu::gfx103X, Gpu::gfx110X>;
+    // gfx120X is not enabled due to WORKAROUND_SWDEV_479810
+    using d_mask = disabled<Gpu::None>;
+    return ::IsTestSupportedForDevMask<d_mask, e_mask>();
+}
 
 struct GPU_ConvBiasActivFind2Infer_FP32 : ConvBiasActivInferFind2Test<float>
 {
@@ -147,6 +156,11 @@ TEST_P(GPU_ConvBiasActivFind2InferFusionFind_FP32, ConvBiasActivFind2Float_testF
     {
         test_skipped = true;
         GTEST_SKIP() << "Fusion does not support xnack";
+    }
+    if(!IsTestSupportedForDevice())
+    {
+        test_skipped = true;
+        GTEST_SKIP() << "Fusion not supported for this device";
     }
     miopen::solver::debug::TuningIterationScopedLimiter tuning_limit{5};
 
