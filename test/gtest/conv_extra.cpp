@@ -70,11 +70,9 @@ std::vector<std::string> GetTestCases(const std::string& float_arg)
         {cmd + float_arg + " --input 352 192 7 1 --weights 320 192 1 1 --pads_strides_dilations 0 0 1 1 1 1 " + flag_arg},
         {cmd + float_arg + " --input 352 16 7 1 --weights 32 16 1 1 --pads_strides_dilations 2 2 1 1 1 1 " + flag_arg}
     };
-    // clang-format on
 
     if (float_arg == "--float")
     {
-        // clang-format off
         std::vector<std::string> test_cases = {
             // {cmd_v_float + " --input	1	1	1	1	--weights	1	1	2	2	--pads_strides_dilations	0	0	3	3	1	1"},
             {cmd_v_float + " --input	4	1	161	700	--weights	4	1	5	20	--pads_strides_dilations	0	0	2	2	1	1"},
@@ -91,7 +89,6 @@ std::vector<std::string> GetTestCases(const std::string& float_arg)
             {cmd_v_float + " --input	4	16	14	14	--weights	4	16	5	5	--pads_strides_dilations	2	2	1	1	1	1"},
             {cmd_v_float + " --input	4	32	14	14	--weights	4	32	5	5	--pads_strides_dilations	2	2	1	1	1	1"}
         };
-        // clang-format on
 
         test_cases.insert(test_cases.end(), common_test_cases.begin(), common_test_cases.end());
         return test_cases;
@@ -100,6 +97,7 @@ std::vector<std::string> GetTestCases(const std::string& float_arg)
     {
         return common_test_cases;
     } 
+    // clang-format on    
 }
 
 using TestCase = decltype(GetTestCases(""))::value_type;
