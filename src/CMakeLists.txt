@@ -317,8 +317,7 @@ set( MIOpen_Source
     solver/nllloss/forward_unreduced_nllloss_2d.cpp
     solver/nllloss/forward_unreduced_nllloss_4d.cpp
     solver/nllloss/forward_unreduced_nllloss_5d.cpp
-    solver/nllloss/solver_reduced.cpp
-    solver/nllloss/solver_unreduced.cpp
+    solver/nllloss/solver.cpp
     solver/pooling/forward2d.cpp
     solver/pooling/forwardNaive.cpp
     solver/pooling/forwardNd.cpp
