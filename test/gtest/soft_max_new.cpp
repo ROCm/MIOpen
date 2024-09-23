@@ -17,6 +17,7 @@
 #include "get_handle.hpp"
 #include "tensor_holder.hpp"
 #include "verify.hpp"
+#include "random.hpp"
 
 #include <cstdint>
 #include <tuple>
@@ -76,17 +77,13 @@ protected:
         std::tie(input_dim, algo, mode, scales) = GetParam();
         auto&& handle                           = get_handle();
 
-        // Randomly generate dimensions
-        input_dim.N = rand() % 255 + 1;
-        input_dim.C = rand() % 255 + 1;
-        input_dim.H = rand() % 255 + 1;
-        input_dim.W = rand() % 255 + 1;
-
         input = tensor<DataType>{input_dim.N, input_dim.C, input_dim.H, input_dim.W};
         assert(input_dim.N > 0 && input_dim.C > 0 && input_dim.H > 0 && input_dim.W > 0);
 
-        std::generate(
-            input.begin(), input.end(), []() { return static_cast<DataType>(rand()) / RAND_MAX; });
+        // Initialize input with random values using prng
+        std::generate(input.begin(), input.end(), []() {
+            return static_cast<DataType>(prng::gen_0_to_B<int>(RAND_MAX) / RAND_MAX);
+        });
 
         output = tensor<DataType>{input};
         std::fill(output.begin(), output.end(), std::numeric_limits<DataType>::quiet_NaN());
@@ -102,12 +99,61 @@ protected:
         std::fill(bw_input.begin(), bw_input.end(), std::numeric_limits<DataType>::quiet_NaN());
         bw_output = tensor<DataType>{input};
         std::fill(bw_output.begin(), bw_output.end(), std::numeric_limits<DataType>::quiet_NaN());
+        bw_doutput = tensor<DataType>{input}; // Inicijalizuj gradient tensor
+        std::fill(bw_doutput.begin(), bw_doutput.end(), std::numeric_limits<DataType>::quiet_NaN());
+    
 
-        // backward pass on GPU
-        auto bw_input_dev  = handle.Write(bw_input.data);
-        auto bw_output_dev = handle.Write(bw_output.data);
+    }
+    void RunForwardPass()
+    {
+    auto&& handle = get_handle();
 
-        auto din_dev = handle.Write(input.data);
+    // Alokacija i kopiranje podataka za forward pass
+    auto input_dev = handle.Write(input.data);
+    auto output_dev = handle.Write(output.data); // Ako trebaš referencu na output
+
+    // Izvršavanje forward pass-a na GPU
+    miopen::SoftmaxForward(
+        handle,
+        &scales.alpha,
+        &scales.beta,
+        input.desc,
+        input_dev.get(),
+        output.desc,
+        output_dev.get(),
+        algo,
+        mode
+    );
+
+    std::cout << "Forward pass GPU executed successfully." << std::endl;
+
+    }   
+    void RunBackwardPass() //gpu
+    {
+            auto&& handle = get_handle();
+            //auto din = dinput; //cpu tek u verify
+
+            //auto din_dev  = handle.Write(din.data); //cpu
+            auto bw_doutput_dev = handle.Write(input.data);
+            // backward pass on GPU
+            auto bw_input_dev  = handle.Write(bw_input.data);
+            auto bw_output_dev = handle.Write(bw_output.data);
+            // Execute backward pass on GPU
+             miopen::SoftmaxBackward(
+                handle,
+                &scales.alpha,
+                bw_output.desc,
+                bw_output_dev.get(),
+                bw_input.desc,
+                bw_input_dev.get(),
+                &scales.beta,
+                input.desc,
+                bw_doutput_dev.get(),
+                algo,
+                mode);    
+
+            std::cout << "Backward pass GPU executed successfully." << std::endl;
+
     }
 
     void Print()
@@ -119,8 +165,6 @@ protected:
         std::cout << "Softmax Mode: " << mode << std::endl;
         std::cout << "Scales: " << scales << std::endl;
 
-        std::cout << "input_dim: " << input_dim.N << "x" << input_dim.C << "x" << input_dim.H << "x"
-                  << input_dim.W << std::endl;
     }
 
     void TearDown() override
@@ -136,6 +180,7 @@ private:
 
     tensor<DataType> bw_input;  // Backward input tensor
     tensor<DataType> bw_output; // Backward output tensor
+    tensor<DataType> bw_doutput; //Backward gardian output tensor
 
     miopenSoftmaxAlgorithm_t algo;
     miopenSoftmaxMode_t mode;
@@ -145,18 +190,21 @@ private:
 // Main test case
 using GPU_SoftMax_Fwd_FP32 = SoftMaxTest<float>;
 
-TEST_P(GPU_SoftMax_Fwd_FP32, Test) { Print(); };
+TEST_P(GPU_SoftMax_Fwd_FP32, Test) { 
+    Print();
+    RunForwardPass();
+    RunBackwardPass();
+    };
 
 // Define fixed input dimensions for testing (this could be dynamic)
 std::set<std::vector<int>> GetOutputDimensions()
 {
     return {
         {1, 2, 3, 4},
-        {4, 3, 2, 4},
+        {4, 3, 2, 1},
 
     };
 }
-
 // Instantiate the test cases
 INSTANTIATE_TEST_SUITE_P(
     Smoke,
