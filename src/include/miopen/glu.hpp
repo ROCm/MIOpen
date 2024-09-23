@@ -32,6 +32,8 @@ namespace miopen {
 struct Handle;
 struct TensorDescriptor;
 
+namespace glu {
+
 MIOPEN_INTERNALS_EXPORT miopenStatus_t GLUForward(Handle& handle,
                                                   const TensorDescriptor& inputDesc,
                                                   ConstData_t input,
@@ -47,5 +49,7 @@ MIOPEN_INTERNALS_EXPORT miopenStatus_t GLUBackward(Handle& handle,
                                                    const TensorDescriptor& inputGradDesc,
                                                    Data_t inputGrad,
                                                    uint32_t dim);
+
+} // namespace glu
 
 } // namespace miopen

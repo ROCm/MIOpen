@@ -68,13 +68,13 @@ GLUBwdContiguousKernel(const TIO* input, const TIO* output_grad, TIO* input_grad
         CVT_ACCUM2FLOAT((1 - sigmoid_v) * sigmoid_v * grad_v * inputFirstHalf_v);
 }
 
-extern "C" __global__ void GLUFwdContiguous(const IO_TYPE* input, IO_TYPE* output, long N)
+extern "C" __global__ void GLUFwdContiguousDim0(const IO_TYPE* input, IO_TYPE* output, long N)
 {
     GLUFwdContiguousKernel<IO_TYPE>(input, output, N);
 }
 
 extern "C" __global__ void
-GLUBwdContiguous(const IO_TYPE* input, const IO_TYPE* output_grad, IO_TYPE* input_grad, long N)
+GLUBwdContiguousDim0(const IO_TYPE* input, const IO_TYPE* output_grad, IO_TYPE* input_grad, long N)
 {
     GLUBwdContiguousKernel<IO_TYPE>(input, output_grad, input_grad, N);
 }

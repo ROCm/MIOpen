@@ -35,6 +35,8 @@
 
 namespace miopen {
 
+namespace glu {
+
 miopenStatus_t GLUForward(Handle& handle,
                           const TensorDescriptor& inputDesc,
                           ConstData_t input,
@@ -45,7 +47,7 @@ miopenStatus_t GLUForward(Handle& handle,
     const auto problem = glu::ProblemDescription{inputDesc, outputDesc, dim};
 
     const auto invoke_params = [&]() {
-        auto tmp       = glu::InvokeParams{};
+        auto tmp       = glu::FwdInvokeParams{};
         tmp.type       = InvokeType::Run;
         tmp.inputDesc  = &inputDesc;
         tmp.outputDesc = &outputDesc;
@@ -94,5 +96,7 @@ miopenStatus_t GLUBackward(Handle& handle,
 
     return miopenStatusSuccess;
 }
+
+} // namespace glu
 
 } // namespace miopen

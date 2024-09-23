@@ -41,12 +41,12 @@ extern "C" miopenStatus_t miopenGLUForward(miopenHandle_t handle,
     MIOPEN_LOG_FUNCTION(handle, inputDesc, input, outputDesc, output, dim);
 
     return miopen::try_([&] {
-        miopen::GLUForward(miopen::deref(handle),
-                           miopen::deref(inputDesc),
-                           DataCast(input),
-                           miopen::deref(outputDesc),
-                           DataCast(output),
-                           dim);
+        miopen::glu::GLUForward(miopen::deref(handle),
+                                miopen::deref(inputDesc),
+                                DataCast(input),
+                                miopen::deref(outputDesc),
+                                DataCast(output),
+                                dim);
     });
 }
 
@@ -62,13 +62,13 @@ extern "C" miopenStatus_t miopenGLUBackward(miopenHandle_t handle,
     MIOPEN_LOG_FUNCTION(
         handle, inputDesc, input, outputGradDesc, outputGrad, inputGradDesc, inputGrad, dim);
     return miopen::try_([&] {
-        miopen::GLUBackward(miopen::deref(handle),
-                            miopen::deref(inputDesc),
-                            DataCast(input),
-                            miopen::deref(outputGradDesc),
-                            DataCast(outputGrad),
-                            miopen::deref(inputGradDesc),
-                            DataCast(inputGrad),
-                            dim);
+        miopen::glu::GLUBackward(miopen::deref(handle),
+                                 miopen::deref(inputDesc),
+                                 DataCast(input),
+                                 miopen::deref(outputGradDesc),
+                                 DataCast(outputGrad),
+                                 miopen::deref(inputGradDesc),
+                                 DataCast(inputGrad),
+                                 dim);
     });
 }

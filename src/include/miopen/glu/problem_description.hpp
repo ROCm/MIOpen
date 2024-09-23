@@ -47,120 +47,13 @@ struct ProblemDescription : ProblemDescriptionBase
     // Forward constructor
     ProblemDescription(const TensorDescriptor& inputDesc_,
                        const TensorDescriptor& outputDesc_,
-                       uint32_t dim_)
-        : direction(Direction::Forward), inputDesc(inputDesc_), outputDesc(outputDesc_), dim(dim_)
-    {
-        if(inputDesc.GetNumDims() != outputDesc.GetNumDims())
-        {
-            MIOPEN_THROW(miopenStatusBadParm,
-                         "GLU::ProblemDescription: Number of dimensions between input and output "
-                         "tensor do not match.");
-        }
-
-        if(dim >= inputDesc.GetNumDims())
-        {
-            MIOPEN_THROW(miopenStatusBadParm,
-                         "GLU::ProblemDescription: Dimension is out of range.");
-        }
-
-        if(inputDesc.GetLengths()[dim] % 2 != 0)
-        {
-            MIOPEN_THROW(miopenStatusBadParm,
-                         "GLU::ProblemDescription: The split dimension size of input tensor should "
-                         "be divisible by 2.");
-        }
-
-        for(auto i = 0; i < inputDesc.GetNumDims(); i++)
-        {
-            if(i == dim)
-            {
-                if(inputDesc.GetLengths()[i] / 2 != outputDesc.GetLengths()[i])
-                {
-                    MIOPEN_THROW(miopenStatusBadParm,
-                                 "GLU::ProblemDescription: Dimension sizes don't match between "
-                                 "input tensor and output tensor.");
-                }
-            }
-            else
-            {
-                if(inputDesc.GetLengths()[i] != outputDesc.GetLengths()[i])
-                {
-                    MIOPEN_THROW(miopenStatusBadParm,
-                                 "GLU::ProblemDescription: Dimension sizes don't match between "
-                                 "input tensor and output tensor.");
-                }
-            }
-        }
-
-        if(!IsSameType())
-        {
-            MIOPEN_THROW(miopenStatusBadParm,
-                         "GLU::ProblemDescription: Tensor types do not match.");
-        }
-    }
+                       uint32_t dim_);
 
     // Backward constructor
     ProblemDescription(const TensorDescriptor& inputDesc_,
                        const TensorDescriptor& outputGradDesc_,
                        const TensorDescriptor& inputGradDesc_,
-                       uint32_t dim_)
-        : direction(Direction::Backward),
-          inputDesc(inputDesc_),
-          outputGradDesc(outputGradDesc_),
-          inputGradDesc(inputGradDesc_),
-          dim(dim_)
-    {
-        if(inputDesc.GetNumDims() != inputGradDesc.GetNumDims() ||
-           inputDesc.GetNumDims() != outputGradDesc.GetNumDims())
-        {
-            MIOPEN_THROW(miopenStatusBadParm,
-                         "GLU::ProblemDescription: Number of tensor dimensions between input and "
-                         "output tensor do not match.");
-        }
-
-        if(dim >= inputDesc.GetNumDims())
-        {
-            MIOPEN_THROW(miopenStatusBadParm,
-                         "GLU::ProblemDescription: Dimension is out of range.");
-        }
-
-        if(inputDesc.GetLengths()[dim] % 2 != 0)
-        {
-            MIOPEN_THROW(miopenStatusBadParm,
-                         "GLU::ProblemDescription: The split dimension size of input tensor should "
-                         "be divisible by 2.");
-        }
-
-        for(auto i = 0; i < inputDesc.GetNumDims(); i++)
-        {
-            if(i == dim)
-            {
-                if(inputDesc.GetLengths()[i] / 2 != outputGradDesc.GetLengths()[i] ||
-                   inputDesc.GetLengths()[i] != inputGradDesc.GetLengths()[i])
-                {
-                    MIOPEN_THROW(miopenStatusBadParm,
-                                 "GLU::ProblemDescription: Dimension sizes don't match between "
-                                 "input tensor and output tensor.");
-                }
-            }
-            else
-            {
-                if(inputDesc.GetLengths()[i] != inputGradDesc.GetLengths()[i] ||
-                   inputDesc.GetLengths()[i] != outputGradDesc.GetLengths()[i])
-                {
-                    MIOPEN_THROW(miopenStatusBadParm,
-                                 "GLU::ProblemDescription: Dimension sizes don't match between "
-                                 "input tensor and output tensor.");
-                }
-            }
-        }
-
-        if(!IsSameType())
-        {
-            MIOPEN_THROW(miopenStatusBadParm,
-                         "GLU::ProblemDescription: Tensor types do not match.");
-        }
-    }
+                       uint32_t dim_);
 
     Direction GetDirection() const { return direction; }
     const TensorDescriptor& GetInputDesc() const { return inputDesc; }
@@ -169,56 +62,9 @@ struct ProblemDescription : ProblemDescriptionBase
     const TensorDescriptor& GetOutputGradDesc() const { return outputGradDesc; }
     uint32_t GetDim() const { return dim; }
 
-    bool IsSameType() const
-    {
-        if(direction == Direction::Forward)
-        {
-            if(inputDesc.GetType() != outputDesc.GetType())
-            {
-                return false;
-            }
-        }
-        else
-        {
-            if(inputDesc.GetType() != inputGradDesc.GetType() ||
-               inputGradDesc.GetType() != outputGradDesc.GetType())
-            {
-                return false;
-            }
-        }
+    bool IsSameType() const;
 
-        return true;
-    }
-
-    bool IsAllContiguous() const
-    {
-        if(direction == Direction::Forward)
-        {
-            if(!(inputDesc.IsContiguous() && outputDesc.IsContiguous()))
-            {
-                return false;
-            }
-        }
-        else
-        {
-            if(!(inputDesc.IsContiguous() && inputGradDesc.IsContiguous() &&
-                 outputGradDesc.IsContiguous()))
-            {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    bool IsFirstDim() const
-    {
-        if(dim != 0)
-        {
-            return false;
-        }
-        return true;
-    }
+    bool IsAllContiguous() const;
 
     NetworkConfig MakeNetworkConfig() const override;
 

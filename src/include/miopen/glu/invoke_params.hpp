@@ -34,9 +34,9 @@
 namespace miopen {
 namespace glu {
 
-struct InvokeParams : public miopen::InvokeParams
+struct FwdInvokeParams : public miopen::InvokeParams
 {
-    InvokeParams() = default;
+    FwdInvokeParams() = default;
 
     const TensorDescriptor* inputDesc  = nullptr;
     const TensorDescriptor* outputDesc = nullptr;

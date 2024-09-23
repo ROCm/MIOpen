@@ -191,8 +191,8 @@ int GLUDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
 template <typename Tgpu, typename Tref>
 int GLUDriver<Tgpu, Tref>::GetandSetData()
 {
-    std::vector<int> in_len = inflags.GetValueTensor("dim-lengths").lengths;
-    dim                     = inflags.GetValueInt("DimToSplit");
+    std::vector<int> in_len = inflags.GetValueTensor("dim_lengths").lengths;
+    dim                     = inflags.GetValueInt("dim_to_split");
 
     SetTensorNd(inputTensor, in_len, data_type);
 
@@ -231,9 +231,12 @@ int GLUDriver<Tgpu, Tref>::AddCmdLineArgs()
                          "Run only Forward (1) or Run both Forward and Backward (0) (Default=1)",
                          "int");
     inflags.AddTensorFlag(
-        "dim-lengths", 'D', "256x512", "The dimensional lengths of the input tensor");
-    inflags.AddInputFlag(
-        "DimToSplit", 'R', "0", "The indice of the dimensions to be split half(Default=0)", "int");
+        "dim_lengths", 'D', "256x512", "The dimensional lengths of the input tensor");
+    inflags.AddInputFlag("dim_to_split",
+                         'R',
+                         "0",
+                         "The indice of the dimensions to be split half(Default=0)",
+                         "int");
     inflags.AddInputFlag("iter", 'i', "10", "Number of Iterations (Default=10)", "int");
     inflags.AddInputFlag("verify", 'V', "1", "Verify Each Layer (Default=1)", "int");
     inflags.AddInputFlag("time", 't', "0", "Time Each Layer (Default=0)", "int");

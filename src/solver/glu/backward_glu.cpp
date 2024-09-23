@@ -51,7 +51,7 @@ bool GLUBackward::IsApplicable(const ExecutionContext& context,
 
     if(!problem.IsAllContiguous())
         return false;
-    if(!problem.IsFirstDim())
+    if(problem.GetDim() != 0)
         return false;
     if(!(input_numel < 800000))
         return false;
@@ -83,7 +83,7 @@ ConvSolution GLUBackward::GetSolution(const ExecutionContext& context,
     auto kernel = KernelInfo{};
 
     kernel.kernel_file = "MIOpenGLU.cpp";
-    kernel.kernel_name = "GLUBwdContiguous";
+    kernel.kernel_name = "GLUBwdContiguousDim0";
 
     const auto build_params =
         KernelBuildParameters{{"MIOPEN_USE_FP16", static_cast<int>(dtype == miopenHalf)},

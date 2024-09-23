@@ -50,7 +50,7 @@ bool GLUForward::IsApplicable(const ExecutionContext& context,
     auto input_numel = problem.GetInputDesc().GetElementSize();
     if(!problem.IsAllContiguous())
         return false;
-    if(!problem.IsFirstDim())
+    if(problem.GetDim() != 0)
         return false;
     if(!(input_numel < 400000))
         return false;
@@ -82,7 +82,7 @@ ConvSolution GLUForward::GetSolution(const ExecutionContext& context,
     auto kernel = KernelInfo{};
 
     kernel.kernel_file = "MIOpenGLU.cpp";
-    kernel.kernel_name = "GLUFwdContiguous";
+    kernel.kernel_name = "GLUFwdContiguousDim0";
 
     const auto build_params =
         KernelBuildParameters{{"MIOPEN_USE_FP16", static_cast<int>(dtype == miopenHalf)},
@@ -105,7 +105,7 @@ ConvSolution GLUForward::GetSolution(const ExecutionContext& context,
     result.invoker_factory = [output_numel](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
             decltype(auto) kernel = handle_.Run(kernels.front());
-            decltype(auto) params = raw_params.CastTo<miopen::glu::InvokeParams>();
+            decltype(auto) params = raw_params.CastTo<miopen::glu::FwdInvokeParams>();
 
             kernel(params.input, params.output, output_numel);
         };
