@@ -426,7 +426,6 @@ set(LONG_TESTS
     test_conv3d_extra
     test_conv_3d
     test_pooling2d
-    test_activation
     test_conv_ck_igemm_fwd_v6r1_dlops_nchw
     )
 
