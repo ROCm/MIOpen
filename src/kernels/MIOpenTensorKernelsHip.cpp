@@ -23,7 +23,6 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <stdio.h>
 #ifndef MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS
 #include <hip/hip_fp16.h>
 #include <hip/hip_runtime.h>
@@ -204,10 +203,6 @@ extern "C" __global__ void Op2dTensorGenericNew(const MIOPEN_TYPE* a,
                                                 const uint32_t total_work,
                                                 const bool use_beta)
 {
-    bool b_1x1    = (b_nstride == 0) && (b_cstride == 0);
-    bool b_nx1    = (b_nstride > 0) && (b_cstride == 0);
-    bool next_row = false;
-
     const MIOPEN_TYPE* a_off = a + Aoffset;
     const MIOPEN_TYPE* b_off = b + Boffset;
     MIOPEN_TYPE* c_off       = c + Coffset;
@@ -217,29 +212,17 @@ extern "C" __global__ void Op2dTensorGenericNew(const MIOPEN_TYPE* a,
     auto b_ptr     = b_off + (gid / b_c) * b_nstride + (gid % b_c) * b_cstride;
     auto c_ptr     = c_off + (gid / c_c) * c_nstride + (gid % c_c) * c_cstride;
 
-    auto step   = gridDim.x * blockDim.x;
-    auto a_step = (step / c_c) * a_nstride + (step % c_c) * a_cstride;
-    auto c_step = (step / c_c) * c_nstride + (step % c_c) * c_cstride;
+    const auto step   = gridDim.x * blockDim.x;
+    const auto a_step = (step / c_c) * a_nstride + (step % c_c) * a_cstride;
+    const auto c_step = (step / c_c) * c_nstride + (step % c_c) * c_cstride;
 
     const auto c_end = c_off + total_work * c_nstride;
-    // total id
-    auto tid = gid;
-    if(b_nx1)
-    {
-        a_ptr = a_off + blockIdx.x * a_nstride + (threadIdx.x % c_c) * a_cstride;
-        b_ptr = b_off + blockIdx.x * b_nstride + (threadIdx.x % b_c) * b_cstride;
-        c_ptr = c_off + blockIdx.x * c_nstride + (threadIdx.x % c_c) * c_cstride;
-
-        step   = blockDim.x;
-        a_step = (step / c_c) * a_nstride + (step % c_c) * a_cstride;
-        c_step = (step / c_c) * c_nstride + (step % c_c) * c_cstride;
-        tid    = threadIdx.x;
-    }
-
+    auto tid         = gid;
     auto b_val = b_ptr[0];
+    bool b_1x1       = (b_nstride == 0) && (b_cstride == 0);
     while(c_ptr < c_end)
     {
-        if((!b_1x1 && !b_nx1) || next_row)
+        if(!b_1x1)
         {
             b_val = b_ptr[0];
         }
@@ -251,21 +234,7 @@ extern "C" __global__ void Op2dTensorGenericNew(const MIOPEN_TYPE* a,
         if(!b_1x1)
         {
             tid += step;
-            if(b_nx1)
-            {
-                next_row = (tid >= c_c);
-                if(next_row)
-                {
-                    a_ptr += (gridDim.x - 1) * a_nstride;
-                    c_ptr += (gridDim.x - 1) * c_nstride;
-                    b_ptr += gridDim.x * b_nstride;
-                    tid = threadIdx.x;
-                }
-            }
-            else
-            {
-                b_ptr = b_off + (tid / b_c) * b_nstride + (tid % b_c) * b_cstride;
-            }
+            b_ptr = b_off + (tid / b_c) * b_nstride + (tid % b_c) * b_cstride;
         }
     }
 }
