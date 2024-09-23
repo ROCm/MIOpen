@@ -228,23 +228,23 @@ protected:
 
         if(tensorsConfig.blens[0] > 1 && tensorsConfig.blens[1] == 1)
         {
-            local_threads_new = tensorsConfig.aclens[1] < 1024 ? tensorsConfig.aclens[1] : 1024;
+            local_threads_new = tensorsConfig.aclens[1] < 256
+                                    ? tensorsConfig.aclens[1]
+                                    : (tensorsConfig.aclens[1] < 1024 ? 256 : 1024);
         }
 
         vld_new = {local_threads_new, 1, 1};
 
         num_wg = (tensorsConfig.aclens[0] * tensorsConfig.aclens[1]) / local_threads_new;
+        if(tensorsConfig.blens[0] > 1 && tensorsConfig.blens[1] == 1)
+        {
+            num_wg = tensorsConfig.aclens[0];
+        }
         num_wg = num_wg >= max_num_wg ? max_num_wg : ((num_wg < 1) ? 1 : num_wg);
 
         size_t global_threads_new = num_wg * local_threads_new;
 
         vgd_new = {global_threads_new, 1, 1};
-
-        // std::cout << "AC(" << tensorsConfig.aclens[0] << ", " << tensorsConfig.aclens[1] << ")B("
-        //           << tensorsConfig.blens[0] << ", " << tensorsConfig.blens[1] << ")" <<
-        //           std::endl;
-        // std::cout << "blocks: " << num_wg << " x local: " << local_threads_new << std::endl;
-        // std::cout << "beta: " << beta << std::endl;
 
         network_config += std::to_string(data_type) + "-miopenTensorOpAdd-" +
                           std::to_string(global_threads) + "-" + std::to_string(local_threads);
