@@ -115,7 +115,7 @@ auto GenerateFilenames(int producer_count, const miopen::fs::path& directory)
 }
 } // namespace
 
-TEST(SmokeCPUDbPreloadTrivialNONE, Cleanup)
+TEST(CPU_Smoke_DbPreloadTrivial_NONE, Cleanup)
 {
     miopen::DbPreloadStates states;
     const miopen::TmpDir dir;
@@ -124,7 +124,7 @@ TEST(SmokeCPUDbPreloadTrivialNONE, Cleanup)
     Produce(filenames, states);
 }
 
-TEST(SmokeCPUDbPreloadTrivialNONE, Stop)
+TEST(CPU_Smoke_DbPreloadTrivial_NONE, Stop)
 {
     bool stoped = false;
 
@@ -151,7 +151,7 @@ TEST(SmokeCPUDbPreloadTrivialNONE, Stop)
     ASSERT_TRUE(stoped);
 }
 
-TEST(SmokeCPUDbPreloadTrivialNONE, Basic)
+TEST(CPU_Smoke_DbPreloadTrivial_NONE, Basic)
 {
     miopen::DbPreloadStates states;
     const miopen::TmpDir dir;
@@ -161,7 +161,7 @@ TEST(SmokeCPUDbPreloadTrivialNONE, Basic)
     ASSERT_NE(nullptr, states.GetPreloadedReadonlyRamDb(filenames[0]));
 }
 
-TEST(SmokeCPUDbPreloadTrivialNONE, Full)
+TEST(CPU_Smoke_DbPreloadTrivial_NONE, Full)
 {
     miopen::DbPreloadStates states;
     miopen::ReadonlyRamDb::Instances dbs{{}, &states};
@@ -173,7 +173,7 @@ TEST(SmokeCPUDbPreloadTrivialNONE, Full)
         miopen::ReadonlyRamDb::GetCached(miopen::DbKinds::KernelDb, filenames[0], false, dbs);
 }
 
-TEST(SmokeCPUDbPreloadTrivialNONE, Fallback)
+TEST(CPU_Smoke_DbPreloadTrivial_NONE, Fallback)
 {
     miopen::DbPreloadStates states;
     const miopen::TmpDir dir;
@@ -200,11 +200,11 @@ struct TestCase
     }
 };
 
-class CPUDbPreloadNONE : public testing::TestWithParam<TestCase>
+class CPU_DbPreload_NONE : public testing::TestWithParam<TestCase>
 {
 };
 
-TEST_P(CPUDbPreloadNONE, Sequential)
+TEST_P(CPU_DbPreload_NONE, Sequential)
 {
     auto param = GetParam();
 
@@ -227,7 +227,7 @@ TEST_P(CPUDbPreloadNONE, Sequential)
     });
 }
 
-TEST_P(CPUDbPreloadNONE, Parallel)
+TEST_P(CPU_DbPreload_NONE, Parallel)
 {
     auto param = GetParam();
 
@@ -257,6 +257,6 @@ TEST_P(CPUDbPreloadNONE, Parallel)
 
 INSTANTIATE_TEST_SUITE_P(
     Smoke,
-    CPUDbPreloadNONE,
+    CPU_DbPreload_NONE,
     testing::Values(TestCase{1, 1}, TestCase{4, 1}, TestCase{1, 4}, TestCase{4, 4}),
     [](const testing::TestParamInfo<TestCase>& info) { return info.param.ToTestName(); });
