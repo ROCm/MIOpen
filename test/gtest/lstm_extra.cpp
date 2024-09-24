@@ -90,7 +90,7 @@ auto GetTestCases(std::string precision)
 
 using TestCase = decltype(GetTestCases({}))::value_type;
 
-class ConfigWithFloat_lstm_extra : public testing::TestWithParam<std::vector<TestCase>>
+class GPU_lstm_extra_FP32 : public testing::TestWithParam<std::vector<TestCase>>
 {
 };
 
@@ -111,7 +111,7 @@ void Run2dDriver(miopenDataType_t prec)
     {
         GTEST_SKIP();
     }
-    std::vector<std::string> params = ConfigWithFloat_lstm_extra::GetParam();
+    std::vector<std::string> params = GPU_lstm_extra_FP32::GetParam();
 
     for(const auto& test_value : params)
     {
@@ -132,8 +132,6 @@ void Run2dDriver(miopenDataType_t prec)
 } // namespace lstm_extra
 using namespace lstm_extra;
 
-TEST_P(ConfigWithFloat_lstm_extra, FloatTest_lstm_extra) { Run2dDriver(miopenFloat); };
+TEST_P(GPU_lstm_extra_FP32, FloatTest_lstm_extra) { Run2dDriver(miopenFloat); };
 
-INSTANTIATE_TEST_SUITE_P(LstmExtra,
-                         ConfigWithFloat_lstm_extra,
-                         testing::Values(GetTestCases("--float")));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_lstm_extra_FP32, testing::Values(GetTestCases("--float")));
