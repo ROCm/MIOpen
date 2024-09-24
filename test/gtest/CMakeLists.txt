@@ -58,20 +58,20 @@ function(add_gtest TEST_NAME TEST_CPP)
     "ENVIRONMENT;MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=${MIOPEN_DEBUG_TUNING_ITERATIONS_MAX};"
     "ENVIRONMENT;MIOPEN_TEST_WITH_MIOPENDRIVER=${MIOPEN_TEST_WITH_MIOPENDRIVER};")
 
-    set(MIOPEN_TEST_PREFIX)
+    set(MIOPEN_GTEST_PREFIX)
 
     if (MIOPEN_TEST_ALL)
-      set(MIOPEN_TEST_PREFIX "*")
+      set(MIOPEN_GTEST_PREFIX "")
     else()
-      set(MIOPEN_TEST_PREFIX "Smoke*")
+      set(MIOPEN_GTEST_PREFIX "Smoke")
     endif()
 
-    set(MIOPEN_TEST_FILTER "${MIOPEN_TEST_PREFIX}${MIOPEN_TEST_SUFFIX}*")
+    set(MIOPEN_GTEST_FILTER "${MIOPEN_GTEST_PREFIX}*${MIOPEN_GTEST_SUFFIX}*")
 
     #it prints the message only once
     set(TMPFNAME _dummy_static_variable_${name})
     if (NOT COMMAND ${TMPFNAME})
-      message(STATUS "TEST_FILTER ${MIOPEN_TEST_FILTER}")
+      message(STATUS "TEST_FILTER ${MIOPEN_GTEST_FILTER}")
       # Define a function so next time it will exist
       function(${TMPFNAME})
       endfunction()
@@ -80,7 +80,7 @@ function(add_gtest TEST_NAME TEST_CPP)
     # Enable CMake to discover the test binary
     # Note: Due to the following cmake issue with gtest_discover_tests https://gitlab.kitware.com/cmake/cmake/-/issues/17812 you cannot pass PROPERTIES as a list.
     #       To work around this limitation, we are passing the environment variables in the format ENVIRONMENT;value1=${value1};ENVIRONMENT;value2=${value2}.
-    gtest_discover_tests(${TEST_NAME} DISCOVERY_TIMEOUT 300 DISCOVERY_MODE PRE_TEST WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/${DATABASE_INSTALL_DIR} PROPERTIES ${TEST_ENVIRONMENT_VARIABLES} TEST_FILTER "${MIOPEN_TEST_FILTER}")
+    gtest_discover_tests(${TEST_NAME} DISCOVERY_TIMEOUT 300 DISCOVERY_MODE PRE_TEST WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/${DATABASE_INSTALL_DIR} PROPERTIES ${TEST_ENVIRONMENT_VARIABLES} TEST_FILTER "${MIOPEN_GTEST_FILTER}")
   endif()
   target_link_libraries(${TEST_NAME} BZip2::BZip2)
   if(WIN32)
