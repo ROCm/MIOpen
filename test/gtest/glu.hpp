@@ -125,7 +125,7 @@ protected:
     {
         auto&& handle = get_handle();
 
-        cpu_glu_forward<T>(input, ref_output);
+        cpu_glu_forward<T>(input, ref_output, dim);
         miopenStatus_t status;
 
         status = miopen::glu::GLUForward(
@@ -211,17 +211,17 @@ protected:
     {
         auto&& handle = get_handle();
 
-        cpu_glu_backward<T>(input, outputGrad, ref_inputGrad);
+        cpu_glu_backward<T>(input, outputGrad, ref_inputGrad, dim);
         miopenStatus_t status;
 
         status = miopen::glu::GLUBackward(handle,
-                                     input.desc,
-                                     input_dev.get(),
-                                     outputGrad.desc,
-                                     outputGrad_dev.get(),
-                                     inputGrad.desc,
-                                     inputGrad_dev.get(),
-                                     dim);
+                                          input.desc,
+                                          input_dev.get(),
+                                          outputGrad.desc,
+                                          outputGrad_dev.get(),
+                                          inputGrad.desc,
+                                          inputGrad_dev.get(),
+                                          dim);
 
         EXPECT_EQ(status, miopenStatusSuccess);
 

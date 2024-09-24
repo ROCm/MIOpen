@@ -33,7 +33,7 @@
 __device__ FLOAT_ACCUM sigmoid(FLOAT_ACCUM x) { return 1.0f / (1.0f + exp(-x)); }
 
 template <typename TIO>
-__device__ void GLUFwdContiguousKernel(const TIO* input, TIO* output, long N)
+__device__ void GLUFwdContiguousKernel(const TIO* input, TIO* output, uint64_t N)
 {
     const TIO* inputFirstHalf  = input;
     const TIO* inputSecondHalf = input + N;
@@ -49,7 +49,7 @@ __device__ void GLUFwdContiguousKernel(const TIO* input, TIO* output, long N)
 
 template <typename TIO>
 __device__ void
-GLUBwdContiguousKernel(const TIO* input, const TIO* output_grad, TIO* input_grad, long N)
+GLUBwdContiguousKernel(const TIO* input, const TIO* output_grad, TIO* input_grad, uint64_t N)
 {
     const TIO* inputFirstHalf  = input;
     const TIO* inputSecondHalf = input + N;
@@ -68,13 +68,15 @@ GLUBwdContiguousKernel(const TIO* input, const TIO* output_grad, TIO* input_grad
         CVT_ACCUM2FLOAT((1 - sigmoid_v) * sigmoid_v * grad_v * inputFirstHalf_v);
 }
 
-extern "C" __global__ void GLUFwdContiguousDim0(const IO_TYPE* input, IO_TYPE* output, long N)
+extern "C" __global__ void GLUFwdContiguousDim0(const IO_TYPE* input, IO_TYPE* output, uint64_t N)
 {
     GLUFwdContiguousKernel<IO_TYPE>(input, output, N);
 }
 
-extern "C" __global__ void
-GLUBwdContiguousDim0(const IO_TYPE* input, const IO_TYPE* output_grad, IO_TYPE* input_grad, long N)
+extern "C" __global__ void GLUBwdContiguousDim0(const IO_TYPE* input,
+                                                const IO_TYPE* output_grad,
+                                                IO_TYPE* input_grad,
+                                                uint64_t N)
 {
     GLUBwdContiguousKernel<IO_TYPE>(input, output_grad, input_grad, N);
 }

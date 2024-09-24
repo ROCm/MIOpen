@@ -46,13 +46,15 @@ namespace glu {
 bool GLUForward::IsApplicable(const ExecutionContext& context,
                               const miopen::glu::ProblemDescription& problem) const
 {
-    std::ignore      = context;
-    auto input_numel = problem.GetInputDesc().GetElementSize();
+    std::ignore                  = context;
+    auto input_numel             = problem.GetInputDesc().GetElementSize();
+    size_t input_numel_threshold = 400000;
+
     if(!problem.IsAllContiguous())
         return false;
     if(problem.GetDim() != 0)
         return false;
-    if(!(input_numel < 400000))
+    if(!(input_numel < input_numel_threshold))
         return false;
     if(!(problem.GetInputDesc().GetType() == miopenFloat ||
          problem.GetInputDesc().GetType() == miopenHalf ||
