@@ -30,8 +30,6 @@
 
 #include "../conv2d.hpp"
 
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
-
 namespace conv_igemm_dynamic {
 
 auto GetTestCases()
@@ -75,11 +73,9 @@ auto GetTestCases()
         // clang-format on
     };
 
-    if(env::enabled(MIOPEN_TEST_ALL))
-    {
-        basic_tests.insert(basic_tests.end(),
-                           {
-                               // clang-format off
+    basic_tests.insert(basic_tests.end(),
+                       {
+                           // clang-format off
     std::pair{env    , v + " --input  64   64 56 56 --weights 256  64  1 1 --pads_strides_dilations 0 0 1 1 1 1" + dis_bk_data + dis_bk_wei},
     std::pair{env    , v + " --input  64  256 34 34 --weights 256  256 3 3 --pads_strides_dilations 0 0 1 1 1 1" + dis_bk_data + dis_bk_wei},
     std::pair{env    , v + " --input 128  128 35 35 --weights 128  128 3 3 --pads_strides_dilations 0 0 2 2 1 1" + dis_bk_data + dis_bk_wei},
@@ -99,9 +95,9 @@ auto GetTestCases()
     std::pair{env_bwd, v + " --input  32  128 34 34 --weights 64  128  3 3 --pads_strides_dilations 0 0 1 1 1 1" + dis_fwd + dis_bk_wei},
     std::pair{env_bwd, v + " --input 128  128 35 35 --weights 128  128 3 3 --pads_strides_dilations 1 1 1 1 1 1" + dis_fwd + dis_bk_wei},
     std::pair{env_bwd, v + " --input 128  256 56 56 --weights 64  256 1 1 --pads_strides_dilations 0 0 1 1 1 1" + dis_fwd + dis_bk_wei}
-                               // clang-format on
-                           });
-    }
+                           // clang-format on
+                       });
+
     return basic_tests;
 }
 
