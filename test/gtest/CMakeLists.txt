@@ -61,12 +61,12 @@ function(add_gtest TEST_NAME TEST_CPP)
     set(MIOPEN_TEST_PREFIX)
 
     if (MIOPEN_TEST_ALL)
-      set(MIOPEN_TEST_PREFIX Full)
+      set(MIOPEN_TEST_PREFIX "*")
     else()
-      set(MIOPEN_TEST_PREFIX Smoke)
+      set(MIOPEN_TEST_PREFIX "Smoke*")
     endif()
 
-    set(MIOPEN_TEST_FILTER "${MIOPEN_TEST_PREFIX}*${MIOPEN_TEST_SUFFIX}*")
+    set(MIOPEN_TEST_FILTER "${MIOPEN_TEST_PREFIX}${MIOPEN_TEST_SUFFIX}*")
 
     #it prints the message only once
     set(TMPFNAME _dummy_static_variable_${name})
