@@ -142,7 +142,7 @@ auto GetTestCases()
 
 using TestCase = decltype(GetTestCases())::value_type;
 
-bool SkipTest() { return get_handle_xnack() }
+bool SkipTest() { return get_handle_xnack(); }
 
 bool IsTestSupportedForDevice()
 {
