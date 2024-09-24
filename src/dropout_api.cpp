@@ -177,14 +177,15 @@ extern "C" miopenStatus_t miopenDropoutForward(miopenHandle_t handle,
     LogCmdDropout(dropoutDesc, xDesc, true);
     return miopen::try_([&] {
         miopen::deref(dropoutDesc)
-            .DropoutForward(miopen::deref(handle),
+            .Dropout(miopen::deref(handle),
                             miopen::deref(noise_shape),
                             miopen::deref(xDesc),
                             DataCast(x),
                             miopen::deref(yDesc),
                             DataCast(y),
                             DataCast(reserveSpace),
-                            reserveSpaceSizeInBytes);
+                            reserveSpaceSizeInBytes,
+                            false /* is_backward */);
     });
 }
 
@@ -203,13 +204,14 @@ extern "C" miopenStatus_t miopenDropoutBackward(miopenHandle_t handle,
     LogCmdDropout(dropoutDesc, dxDesc, false);
     return miopen::try_([&] {
         miopen::deref(dropoutDesc)
-            .DropoutBackward(miopen::deref(handle),
+            .Dropout(miopen::deref(handle),
                              miopen::deref(noise_shape),
                              miopen::deref(dyDesc),
                              DataCast(dy),
                              miopen::deref(dxDesc),
                              DataCast(dx),
                              DataCast(reserveSpace),
-                             reserveSpaceSizeInBytes);
+                             reserveSpaceSizeInBytes,
+                             true /* is_backward */);
     });
 }
