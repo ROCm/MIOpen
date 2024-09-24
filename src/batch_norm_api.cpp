@@ -251,6 +251,7 @@ miopenBatchNormalizationBackward(miopenHandle_t handle,
                                savedMean,
                                savedInvVariance,
                                miopen::debug::BatchNormDirection_t::Backward);
+
     // In case of NxCxDxHxW
     int size{0};
     miopenGetTensorDescriptorSize(xDesc, &size);

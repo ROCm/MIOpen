@@ -134,9 +134,9 @@ void convHostForward(const tensor<T>& input,
     }
 }
 
-template <class T, class U, class V = U>
+template <class T, class Tref, class U, class V = U>
 void batchNormSpatialHostInference(const tensor<T>& input,
-                                   tensor<T>& output,
+                                   tensor<Tref>& output,
                                    const tensor<U>& scale,
                                    const tensor<U>& bias,
                                    double epsilon,
@@ -169,9 +169,9 @@ void batchNormSpatialHostInference(const tensor<T>& input,
     });
 }
 
-template <class T, class U, class V>
+template <class T, class U, class V, class Tref>
 void batchNormPerActivHostInference(const tensor<T>& input,
-                                    tensor<T>& output,
+                                    tensor<Tref>& output,
                                     const tensor<U>& scale,
                                     const tensor<U>& bias,
                                     double epsilon,
@@ -203,17 +203,17 @@ void batchNormPerActivHostInference(const tensor<T>& input,
     });
 }
 
-template <class T, class U, class V = U>
+template <class T, class U, class Tref = U, class Tout>
 void batchNormSpatialHostFwdTrain(const tensor<T>& input,
-                                  tensor<T>& out,
+                                  tensor<Tout>& out,
                                   const tensor<U>& scale,
                                   const tensor<U>& bias,
                                   double epsilon,
                                   double expAvgFactor,
-                                  tensor<V>& saveMean,
-                                  tensor<V>& saveInvVar,
-                                  tensor<V>& runMean,
-                                  tensor<V>& runVar)
+                                  tensor<Tref>& saveMean,
+                                  tensor<Tref>& saveInvVar,
+                                  tensor<Tref>& runMean,
+                                  tensor<Tref>& runVar)
 {
 
     int height, width, n_batch, channels;
@@ -281,15 +281,15 @@ void batchNormSpatialHostFwdTrain(const tensor<T>& input,
 
 template <typename XDataType,
           typename DyDataType,
-          typename DxDataType,
           typename ScaleDataType,
-          typename AccDataType>
+          typename AccDataType,
+          typename RefDataType>
 void batchNormSpatialHostBwdTrain(const tensor<XDataType>& x_input,
                                   const tensor<DyDataType>& dy_input,
-                                  tensor<DxDataType>& dx_out,
+                                  tensor<RefDataType>& dx_out,
                                   const tensor<ScaleDataType>& bnScale,
-                                  tensor<AccDataType>& dscale,
-                                  tensor<AccDataType>& dbias,
+                                  tensor<RefDataType>& dscale,
+                                  tensor<RefDataType>& dbias,
                                   const tensor<AccDataType>& savedMean,
                                   const tensor<AccDataType>& savedInvVar)
 {
@@ -338,7 +338,8 @@ void batchNormSpatialHostBwdTrain(const tensor<XDataType>& x_input,
                     double tmp1 = nhw * dy_input(bidx, cidx, row, column) - dbias(0, cidx, 0, 0);
                     double tmp2 = -xhat[xhat_index] * dscale(0, cidx, 0, 0);
                     double tmp3 = (bnScale(0, cidx, 0, 0) * invVar) / nhw;
-                    dx_out(bidx, cidx, row, column) = static_cast<DxDataType>(tmp3 * (tmp2 + tmp1));
+                    dx_out(bidx, cidx, row, column) =
+                        static_cast<RefDataType>(tmp3 * (tmp2 + tmp1));
                 } // end for(n_batchs)
             }     // for (column)
         }         // for (row)
@@ -349,7 +350,9 @@ template <typename XDataType,
           typename DyDataType,
           typename DxDataType,
           typename ScaleDataType,
-          typename AccDataType>
+          typename AccDataType,
+          typename OutRefDataType,
+          typename RefDataType>
 void batchNormActivSpatialHostBwdTrain(miopenActivationMode_t activMode,
                                        double gamma,
                                        double beta,
@@ -357,11 +360,11 @@ void batchNormActivSpatialHostBwdTrain(miopenActivationMode_t activMode,
                                        const tensor<XDataType>& x_input,
                                        const tensor<DyDataType>& dy_input,
                                        const tensor<DxDataType>& y_input,
-                                       tensor<DxDataType>& dx_out,
+                                       tensor<OutRefDataType>& dx_out,
                                        const tensor<ScaleDataType>& bnScale,
                                        const tensor<AccDataType>& bias,
-                                       tensor<AccDataType>& dscale,
-                                       tensor<AccDataType>& dbias,
+                                       tensor<RefDataType>& dscale,
+                                       tensor<RefDataType>& dbias,
                                        const tensor<AccDataType>& savedMean,
                                        const tensor<AccDataType>& savedInvVar)
 {
@@ -439,17 +442,17 @@ void batchNormActivSpatialHostBwdTrain(miopenActivationMode_t activMode,
     });           // for (channel)
 }
 
-template <class T, class U, class V>
+template <class T, class U, class Tref, class TOutref>
 void batchNormPerActHostFwdTrain(const tensor<T>& input,
-                                 tensor<T>& out,
+                                 tensor<TOutref>& out,
                                  const tensor<U>& scale,
                                  const tensor<U>& bias,
                                  double epsilon,
                                  double expAvgFactor,
-                                 tensor<V>& saveMean,
-                                 tensor<V>& saveInvVar,
-                                 tensor<V>& runMean,
-                                 tensor<V>& runVar)
+                                 tensor<Tref>& saveMean,
+                                 tensor<Tref>& saveInvVar,
+                                 tensor<Tref>& runMean,
+                                 tensor<Tref>& runVar)
 {
 
     int height, width, n_batch, channels;
@@ -493,7 +496,7 @@ void batchNormPerActHostFwdTrain(const tensor<T>& input,
                     elemStd = (input(bidx, cidx, row, column) - mean_accum); // (x_i - mean)
                     inhat   = elemStd * elemInvVar;
                     // #5 Gamma and Beta adjust :: y_i = gamma*x_hat + beta
-                    out(bidx, cidx, row, column) = static_cast<T>(
+                    out(bidx, cidx, row, column) = static_cast<Tref>(
                         scale(0, cidx, row, column) * inhat + bias(0, cidx, row, column));
                 } // end for(n_batch)
 
@@ -506,21 +509,21 @@ void batchNormPerActHostFwdTrain(const tensor<T>& input,
                 runVar(0, cidx, row, column) =
                     (1 - expAvgFactor) * runVar(0, cidx, row, column) + expAvgFactor * adjust;
 
-                saveMean(0, cidx, row, column)   = static_cast<U>(mean_accum);
-                saveInvVar(0, cidx, row, column) = static_cast<U>(elemInvVar);
+                saveMean(0, cidx, row, column)   = static_cast<Tref>(mean_accum);
+                saveInvVar(0, cidx, row, column) = static_cast<Tref>(elemInvVar);
 
             } // for (column)
         }     // for (row)
     });
 }
 
-template <class T, class U>
+template <class T, class U, class Tref>
 void batchNormPerActHostBwdTrain(const tensor<T>& x_input,
                                  const tensor<T>& dy_input,
                                  const tensor<U>& scale,
-                                 tensor<U>& dscale,
-                                 tensor<U>& dbias,
-                                 tensor<T>& dx_out,
+                                 tensor<Tref>& dscale,
+                                 tensor<Tref>& dbias,
+                                 tensor<Tref>& dx_out,
                                  const tensor<U>& savedMean,
                                  const tensor<U>& savedInvVar)
 {

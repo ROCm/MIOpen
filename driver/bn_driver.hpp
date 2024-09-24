@@ -142,7 +142,7 @@ private:
 
     GpumemTensor<Tgpu> in;
     GpumemTensor<Tgpu> out;
-    tensor<Tgpu> out_ref;
+    tensor<Tref> out_ref;
 
     // forward
     GpumemTensor<Tgpu> scale;
@@ -152,25 +152,30 @@ private:
     GpumemTensor<Tmix> estMean;
     GpumemTensor<Tmix> estVariance;
 
-    // forward training
     GpumemTensor<Tmix> savedMean;
-    tensor<Tmix> savedMean_ref;
+    tensor<Tref> savedMean_ref;
+
+    // forward training
     GpumemTensor<Tmix> savedVariance;
-    tensor<Tmix> savedVariance_ref;
     GpumemTensor<Tmix> runMean;
-    tensor<Tmix> runMean_ref;
     GpumemTensor<Tmix> runVariance;
-    tensor<Tmix> runVariance_ref;
+    // ref
+    tensor<Tref> savedVariance_ref;
+    tensor<Tref> runMean_ref;
+    tensor<Tref> runVariance_ref;
 
     // backward
-    GpumemTensor<Tmix> bnScale;
+    GpumemTensor<Tmix> out_bwd;
 
-    GpumemTensor<Tmix> dy;
+    GpumemTensor<Tgpu> bnScale;
     GpumemTensor<Tmix> dScale;
-    tensor<Tmix> dScale_ref;
     GpumemTensor<Tmix> dBias;
-    tensor<Tmix> dBias_ref;
+    // savedMean declared above as Tmix as well
     GpumemTensor<Tmix> savedInvVar;
+    GpumemTensor<Tmix> dy;
+
+    tensor<Tref> dBias_ref;
+    tensor<Tref> dScale_ref;
 
     Tref maxval;
 
@@ -203,14 +208,12 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::GetandSetData()
     in.AllocOnHost(tensor<Tgpu>{bn_layout, in_len});
     in.InitHostData(in.GetTensor().desc.GetElementSize(), true, gen_value);
 
-    out.AllocOnHost(tensor<Tgpu>{bn_layout, in_len});
-    // out.InitHostData(in.GetTensor().desc.GetElementSize(), true, gen_value);
-
     auto derivedBnDesc = miopen::TensorDescriptor{};
     miopen::DeriveBNTensorDescriptor(derivedBnDesc, in.GetTensor().desc, bn_mode);
 
     if(isFwdInfer || isFwdTrain)
     {
+        out.AllocOnHost(tensor<Tgpu>{bn_layout, in_len});
         scale.AllocOnHost(tensor<Tgpu>{bn_layout, derivedBnDesc.GetLengths()});
         bias.AllocOnHost(tensor<Tgpu>{bn_layout, derivedBnDesc.GetLengths()});
 
@@ -246,27 +249,33 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::GetandSetData()
     }
     else if(isBwd)
     {
-        bnScale.AllocOnHost(tensor<Tmix>{bn_layout, derivedBnDesc.GetLengths()});
+        out_bwd.AllocOnHost(tensor<Tmix>{bn_layout, in_len});
+
+        bnScale.AllocOnHost(tensor<Tgpu>{bn_layout, derivedBnDesc.GetLengths()});
         dy.AllocOnHost(tensor<Tmix>{bn_layout, in_len});
 
-        auto gen_value_bwd = [](auto...) {
-            return prng::gen_descreet_uniform_sign<Tmix>(1e-2, 100);
+        auto gen_var_bwd = [](auto...) {
+            return static_cast<Tmix>(1e-2 * (prng::gen_0_to_B(100) + 1));
         };
-
-        dy.InitHostData(dy.GetTensor().desc.GetElementSize(), true, gen_value_bwd);
-        bnScale.InitHostData(bnScale.GetTensor().desc.GetElementSize(), true, gen_value_bwd);
+        dy.InitHostData(dy.GetTensor().desc.GetElementSize(), true, gen_var_bwd);
 
         dScale.AllocOnHost(tensor<Tmix>{bn_layout, derivedBnDesc.GetLengths()});
         dBias.AllocOnHost(tensor<Tmix>{bn_layout, derivedBnDesc.GetLengths()});
         savedMean.AllocOnHost(tensor<Tmix>{bn_layout, derivedBnDesc.GetLengths()});
         savedInvVar.AllocOnHost(tensor<Tmix>{bn_layout, derivedBnDesc.GetLengths()});
 
-        savedMean.InitHostData(savedMean.GetTensor().desc.GetElementSize(), true, gen_value_bwd);
+        bnScale.InitHostData(bnScale.GetTensor().desc.GetElementSize(), true, gen_value);
 
-        auto gen_inv_var = [](auto...) {
-            return static_cast<Tmix>(1e-2 * (prng::gen_0_to_B(100) + 1));
-        };
-        savedInvVar.InitHostData(savedInvVar.GetTensor().desc.GetElementSize(), true, gen_inv_var);
+        if(saveMeanVar && keepRunningMeanVar)
+        {
+            savedMean.InitHostData(savedMean.GetTensor().desc.GetElementSize(), true, gen_var_bwd);
+
+            auto gen_in_var = [](auto...) {
+                return static_cast<Tmix>(1e-2 * (prng::gen_0_to_B(100) + 1));
+            };
+            savedInvVar.InitHostData(
+                savedInvVar.GetTensor().desc.GetElementSize(), true, gen_in_var);
+        }
     }
     else
     {
@@ -473,49 +482,66 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::AllocateBuffersAndCopy()
 #if MIOPEN_BACKEND_OPENCL
     clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
 #endif
-    status |= in.AllocOnDeviceAndInit(q, ctx, in.GetTensor().desc.GetElementSpace());
-    status |= out.AllocOnDeviceAndInit(q, ctx, out.GetTensor().desc.GetElementSpace());
-    out_ref = out.GetTensor();
+    status |= in.AllocOnDeviceAndInit(q, ctx, GetTensorSize(&in.GetTensor().desc));
+
     if(isFwdInfer || isFwdTrain)
     {
-        status |= scale.AllocOnDeviceAndInit(q, ctx, scale.GetTensor().desc.GetElementSpace());
-        status |= bias.AllocOnDeviceAndInit(q, ctx, bias.GetTensor().desc.GetElementSpace());
+        status |= out.AllocOnDeviceAndInit(q, ctx, GetTensorSize(&out.GetTensor().desc));
+        out_ref =
+            tensor<Tref>{out.GetTensor().desc.GetLayout_t(), out.GetTensor().desc.GetLengths()};
+        status |= scale.AllocOnDeviceAndInit(q, ctx, GetTensorSize(&scale.GetTensor().desc));
+        status |= bias.AllocOnDeviceAndInit(q, ctx, GetTensorSize(&bias.GetTensor().desc));
     }
     if(isFwdInfer)
     {
-        status |= estMean.AllocOnDeviceAndInit(q, ctx, estMean.GetTensor().desc.GetElementSpace());
-        status |= estVariance.AllocOnDeviceAndInit(
-            q, ctx, estVariance.GetTensor().desc.GetElementSpace());
+        status |= estMean.AllocOnDeviceAndInit(q, ctx, GetTensorSize(&estMean.GetTensor().desc));
+        status |=
+            estVariance.AllocOnDeviceAndInit(q, ctx, GetTensorSize(&estVariance.GetTensor().desc));
     }
     if(isFwdTrain)
     {
         status |=
-            savedMean.AllocOnDeviceAndInit(q, ctx, savedMean.GetTensor().desc.GetElementSpace());
+            savedMean.AllocOnDeviceAndInit(q, ctx, GetTensorSize(&savedMean.GetTensor().desc));
         status |= savedVariance.AllocOnDeviceAndInit(
-            q, ctx, savedVariance.GetTensor().desc.GetElementSpace());
-        status |= runMean.AllocOnDeviceAndInit(q, ctx, runMean.GetTensor().desc.GetElementSpace());
-        status |= runVariance.AllocOnDeviceAndInit(
-            q, ctx, runVariance.GetTensor().desc.GetElementSpace());
+            q, ctx, GetTensorSize(&savedVariance.GetTensor().desc));
+        status |= runMean.AllocOnDeviceAndInit(q, ctx, GetTensorSize(&runMean.GetTensor().desc));
+        status |=
+            runVariance.AllocOnDeviceAndInit(q, ctx, GetTensorSize(&runVariance.GetTensor().desc));
 
-        savedMean_ref     = savedMean.GetTensor();
-        savedVariance_ref = savedVariance.GetTensor();
-        runMean_ref       = runMean.GetTensor();
-        runVariance_ref   = runVariance.GetTensor();
+        savedMean_ref = tensor<Tref>{savedMean.GetTensor().desc.GetLayout_t(),
+                                     savedMean.GetTensor().desc.GetLengths()};
+
+        savedVariance_ref = tensor<Tref>{savedVariance.GetTensor().desc.GetLayout_t(),
+                                         savedVariance.GetTensor().desc.GetLengths()};
+
+        runMean_ref = tensor<Tref>{runMean.GetTensor().desc.GetLayout_t(),
+                                   runMean.GetTensor().desc.GetLengths()};
+
+        runVariance_ref = tensor<Tref>{runVariance.GetTensor().desc.GetLayout_t(),
+                                       runVariance.GetTensor().desc.GetLengths()};
     }
     if(isBwd)
     {
-        status |= bnScale.AllocOnDeviceAndInit(q, ctx, bnScale.GetTensor().desc.GetElementSpace());
-        status |= dy.AllocOnDeviceAndInit(q, ctx, dy.GetTensor().desc.GetElementSpace());
+        status |= out_bwd.AllocOnDeviceAndInit(q, ctx, GetTensorSize(&out_bwd.GetTensor().desc));
 
-        status |= dScale.AllocOnDeviceAndInit(q, ctx, dScale.GetTensor().desc.GetElementSpace());
-        status |= dBias.AllocOnDeviceAndInit(q, ctx, dBias.GetTensor().desc.GetElementSpace());
+        out_ref = tensor<Tref>{out_bwd.GetTensor().desc.GetLayout_t(),
+                               out_bwd.GetTensor().desc.GetLengths()};
+
+        status |= bnScale.AllocOnDeviceAndInit(q, ctx, GetTensorSize(&bnScale.GetTensor().desc));
+        status |= dy.AllocOnDeviceAndInit(q, ctx, GetTensorSize(&dy.GetTensor().desc));
+
+        status |= dScale.AllocOnDeviceAndInit(q, ctx, GetTensorSize(&dScale.GetTensor().desc));
+        status |= dBias.AllocOnDeviceAndInit(q, ctx, GetTensorSize(&dBias.GetTensor().desc));
         status |=
-            savedMean.AllocOnDeviceAndInit(q, ctx, savedMean.GetTensor().desc.GetElementSpace());
-        status |= savedInvVar.AllocOnDeviceAndInit(
-            q, ctx, savedInvVar.GetTensor().desc.GetElementSpace());
+            savedMean.AllocOnDeviceAndInit(q, ctx, GetTensorSize(&savedMean.GetTensor().desc));
+        status |=
+            savedInvVar.AllocOnDeviceAndInit(q, ctx, GetTensorSize(&savedInvVar.GetTensor().desc));
 
-        dScale_ref = dScale.GetTensor();
-        dBias_ref  = dBias.GetTensor();
+        dScale_ref = tensor<Tref>{dScale.GetTensor().desc.GetLayout_t(),
+                                  dScale.GetTensor().desc.GetLengths()};
+
+        dBias_ref =
+            tensor<Tref>{dBias.GetTensor().desc.GetLayout_t(), dBias.GetTensor().desc.GetLengths()};
     }
 
     if(status != STATUS_SUCCESS)
@@ -902,8 +928,8 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::RunBackwardGPU()
                                              in.GetDevicePtr(),
                                              &dy.GetTensor().desc,
                                              dy.GetDevicePtr(),
-                                             &out.GetTensor().desc,
-                                             out.GetDevicePtr(),
+                                             &out_bwd.GetTensor().desc,
+                                             out_bwd.GetDevicePtr(),
                                              &bnScale.GetTensor().desc,
                                              bnScale.GetDevicePtr(),
                                              dScale.GetDevicePtr(),
@@ -924,8 +950,8 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::RunBackwardGPU()
                                              in.GetDevicePtr(),
                                              &dy.GetTensor().desc,
                                              dy.GetDevicePtr(),
-                                             &out.GetTensor().desc,
-                                             out.GetDevicePtr(),
+                                             &out_bwd.GetTensor().desc,
+                                             out_bwd.GetDevicePtr(),
                                              &bnScale.GetTensor().desc,
                                              bnScale.GetDevicePtr(),
                                              dScale.GetDevicePtr(),
@@ -1014,6 +1040,7 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::VerifyForward()
             runVariance.CopyFromDeviceToHost(GetStream());
 
             auto errorRunMean = miopen::rms_range(runMean_ref.data, runMean.GetVector());
+
             if(!std::isfinite(errorRunMean) || errorRunMean > maxrms)
             {
                 std::cout << "Forward train batch norm verification FAILED on running mean: "
@@ -1240,6 +1267,7 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::RunBackwardCPU()
     }
     else if(bn_mode == miopenBNSpatial)
     { // 1xCx1x1
+
         batchNormSpatialHostBwdTrain(in.GetTensor(),
                                      dy.GetTensor(),
                                      out_ref,
@@ -1271,7 +1299,7 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::VerifyBackward()
 
     RunBackwardCPU();
 
-    out.CopyFromDeviceToHost(GetStream());
+    out_bwd.CopyFromDeviceToHost(GetStream());
     dScale.CopyFromDeviceToHost(GetStream());
     dBias.CopyFromDeviceToHost(GetStream());
 
@@ -1281,7 +1309,8 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::VerifyBackward()
     Tref diff = static_cast<Tref>(0.0);
 #endif
     maxval          = static_cast<Tref>(0.0);
-    auto errordxout = miopen::rms_range(out_ref.data, out.GetVector());
+    auto errordxout = miopen::rms_range(out_ref.data, out_bwd.GetVector());
+
     if(!std::isfinite(errordxout) || errordxout > maxrms)
     {
         std::cout << "Backwards prop batch norm verification FAILED on dx: " << errordxout
@@ -1290,17 +1319,17 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::VerifyBackward()
 #if(MIO_BN_DEBUG == 1)
         for(int i = 0; i < out_ref.data.size() && i < MIO_BN_MAX_DEBUGLOOP; i++)
         {
-            diff   = fabs(Tgpu(fabs(out_ref.data[i]) - fabs(out.GetVector()[i])));
+            diff   = fabs(Tgpu(fabs(out_ref.data[i]) - fabs(out_bwd.GetVector()[i])));
             maxval = maxval < diff ? diff : maxval;
             if(!std::isfinite(diff) || diff > tolerance)
             {
                 std::cout << "out_ref[" << i << "]: " << out_ref.data[i];
-                std::cout << "\tout.GetVector()[" << i << "]: " << out.GetVector()[i];
+                std::cout << "\tout_bwd.GetVector()[" << i << "]: " << out_bwd.GetVector()[i];
                 std::cout << "\tdiff[" << i
-                          << "]: " << Tgpu(fabs(out_ref.data[i]) - fabs(out.GetVector()[i]));
+                          << "]: " << Tgpu(fabs(out_ref.data[i]) - fabs(out_bwd.GetVector()[i]));
                 std::cout << "\tratioH: "
-                          << fabs(fabs(out_ref.data[i]) - fabs(out.GetVector()[i])) /
-                                 fabs(out.GetVector()[i])
+                          << fabs(fabs(out_ref.data[i]) - fabs(out_bwd.GetVector()[i])) /
+                                 fabs(out_bwd.GetVector()[i])
                           << std::endl;
             }
         }

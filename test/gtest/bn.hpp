@@ -165,7 +165,6 @@ protected:
                               ScaleDataType,
                               DscaleDbiasDataType,
                               MeanVarDataType>(bn_bwd_test_data);
-
         test::CompareTensor<DxDataType>(bn_bwd_test_data.output, bn_bwd_test_data.ref_out, 5e-4);
         test::CompareTensor<DxDataType>(bn_bwd_test_data.dScale, bn_bwd_test_data.dScale_ref, 5e-4);
         test::CompareTensor<DxDataType>(bn_bwd_test_data.dBias, bn_bwd_test_data.dBias_ref, 5e-4);

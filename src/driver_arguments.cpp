@@ -66,6 +66,10 @@ void BnDataType(std::stringstream& ss, const miopen::TensorDescriptor& desc)
     {
         ss << "bnormfp16";
     }
+    if(desc.GetType() == miopenBFloat16)
+    {
+        ss << "bnormbfp16";
+    }
     else
     {
         ss << "bnorm";

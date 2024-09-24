@@ -48,6 +48,32 @@ template <typename XDataType,
           typename DLModule>
 void ComputeCPUBNBwd(DLModule& dl_module)
 {
+    std::cout << "\n====start dy====\n";
+    for(int i = 0; i < dl_module.dy.data.size(); ++i)
+    {
+        std::cout << dl_module.dy[i] << ",";
+    }
+    std::cout << "\n";
+    std::cout << "\n====start bnScale====\n";
+    for(int i = 0; i < dl_module.bnScale.data.size(); ++i)
+    {
+        std::cout << dl_module.bnScale[i] << ",";
+    }
+    std::cout << "\n";
+    std::cout << "\n====start savedMean====\n";
+    for(int i = 0; i < dl_module.savedMean.data.size(); ++i)
+    {
+        std::cout << dl_module.savedMean[i] << ",";
+    }
+    std::cout << "\n";
+    std::cout << "\n====start savedInvVar====\n";
+    for(int i = 0; i < dl_module.savedInvVar.data.size(); ++i)
+    {
+        std::cout << dl_module.savedInvVar[i] << ",";
+    }
+    std::cout << "\n";
+
+    // todo : need to do based on bn_mode
     batchNormSpatialHostBwdTrain(dl_module.input,
                                  dl_module.dy,
                                  dl_module.ref_out,
