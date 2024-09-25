@@ -40,6 +40,8 @@ struct GLUForward final : GLUSolver
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<GLUForward>(); }
 
+    bool IsImprovementOverROCm(const miopen::glu::ProblemDescription& problem) const;
+
     bool IsApplicable(const ExecutionContext& context,
                       const miopen::glu::ProblemDescription& problem) const override;
     ConvSolution GetSolution(const ExecutionContext& context,
@@ -49,6 +51,8 @@ struct GLUForward final : GLUSolver
 struct GLUBackward final : GLUSolver
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<GLUBackward>(); }
+
+    bool IsImprovementOverROCm(const miopen::glu::ProblemDescription& problem) const;
 
     bool IsApplicable(const ExecutionContext& context,
                       const miopen::glu::ProblemDescription& problem) const override;
