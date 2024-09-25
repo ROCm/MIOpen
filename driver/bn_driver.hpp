@@ -70,16 +70,7 @@ template <typename Tgpu, typename Tref, typename Tmix = Tgpu>
 class BatchNormDriver : public Driver
 {
 public:
-    BatchNormDriver() : Driver()
-    {
-        miopenCreateTensorDescriptor(&inputTensor);
-        miopenCreateTensorDescriptor(&outputTensor);
-        // miopenCreateTensorDescriptor(&biasScaleTensor);
-        // miopenCreateTensorDescriptor(&dxOutputTensor);
-        // miopenCreateTensorDescriptor(&dyInputTensor);
-
-        data_type = (sizeof(Tgpu) == 4) ? miopenFloat : miopenHalf;
-    }
+    BatchNormDriver() : Driver() { data_type = (sizeof(Tgpu) == 4) ? miopenFloat : miopenHalf; }
 
     int AddCmdLineArgs() override;
     int ParseCmdLineArgs(int argc, char* argv[]) override;
@@ -109,14 +100,7 @@ public:
     int VerifyBackward() override;
     int VerifyForward() override;
 
-    ~BatchNormDriver() override
-    {
-        miopenDestroyTensorDescriptor(outputTensor);
-        miopenDestroyTensorDescriptor(inputTensor);
-        // miopenDestroyTensorDescriptor(biasScaleTensor);
-        // miopenDestroyTensorDescriptor(dxOutputTensor);
-        // miopenDestroyTensorDescriptor(dyInputTensor);
-    }
+    ~BatchNormDriver() override {}
 
 private:
     miopenBatchNormMode_t bn_mode;
@@ -136,9 +120,6 @@ private:
 
     InputFlags inflags;
     bool isDepthSpecified = false;
-
-    miopenTensorDescriptor_t inputTensor;
-    miopenTensorDescriptor_t outputTensor;
 
     GpumemTensor<Tgpu> in;
     GpumemTensor<Tgpu> out;
@@ -777,9 +758,9 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::RunForwardGPU()
                    avgtime / (iters - 1),
                    iters - 1);
         int in_n, in_c, in_h, in_w;
-        std::tie(in_n, in_c, in_h, in_w) = miopen::tien<4>(miopen::deref(inputTensor).GetLengths());
+        std::tie(in_n, in_c, in_h, in_w) = miopen::tien<4>(in.GetTensor().desc.GetLengths());
         size_t M                         = in_n * in_c * in_h * in_w;
-        size_t dataSz = (M + 2 * in_c) * miopen::GetTypeSize(miopen::deref(inputTensor).GetType());
+        size_t dataSz = (M + 2 * in_c) * miopen::GetTypeSize(in.GetTensor().desc.GetType());
         float rdCnt   = -1.0;
         float wrCnt   = 1.0;
         if(forw == 1)
@@ -980,13 +961,11 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::RunBackwardGPU()
                 avgtime += time;
 
             int in_n, in_c, in_h, in_w;
-            std::tie(in_n, in_c, in_h, in_w) =
-                miopen::tien<4>(miopen::deref(inputTensor).GetLengths());
-            size_t M = in_n * in_c * in_h * in_w;
-            size_t dataSz =
-                (M + 2 * in_c) * miopen::GetTypeSize(miopen::deref(inputTensor).GetType());
-            float rdCnt = 2.0;
-            float wrCnt = 1.0;
+            std::tie(in_n, in_c, in_h, in_w) = miopen::tien<4>(in.GetTensor().desc.GetLengths());
+            size_t M                         = in_n * in_c * in_h * in_w;
+            size_t dataSz = (M + 2 * in_c) * miopen::GetTypeSize(in.GetTensor().desc.GetType());
+            float rdCnt   = 2.0;
+            float wrCnt   = 1.0;
             // layer, flopCnt, reads, writes, GFLOPS, GB/s, timeMs
             printf("stats: bnormb, 0, %zu, %zu, 0, %f, %f\n",
                    dataSz,
