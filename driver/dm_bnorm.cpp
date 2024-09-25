@@ -26,8 +26,6 @@
 #include "bn_driver.hpp"
 #include "registry_driver_maker.hpp"
 
-// template <typename Tgpu, typename Tref, typename Tmix = Tgpu>
-
 static Driver* makeDriver(const std::string& base_arg)
 {
     if(base_arg == "bnorm")
