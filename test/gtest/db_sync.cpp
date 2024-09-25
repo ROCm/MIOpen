@@ -845,7 +845,7 @@ struct TestHandle : Handle
 // happened, and the test broke. I disabled that part (since it doesn't work as intended anyway) to
 // keep its behavior the same.
 #if 1
-    std::size_t GetMaxComputeUnits() const
+    std::size_t GetMaxComputeUnits() const override
     {
         if(num_cu == 0)
             return Handle::GetMaxComputeUnits();
