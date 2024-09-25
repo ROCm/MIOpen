@@ -269,7 +269,6 @@ void DropoutDescriptor::Dropout(const Handle& handle,
         MIOPEN_THROW("Insufficient state size for parallel PRNG");
     }
 
-
     std::string program_name   = "MIOpenDropoutHIP.cpp";
     std::string kernel_name    = "DropoutKernel";
     std::string network_config = "";
@@ -347,7 +346,6 @@ void DropoutDescriptor::Dropout(const Handle& handle,
             params += " -DMIOPEN_USE_FP32=1";
 
         // params += " -DRUN_FORWARD=1";
-
 
         if(is_backward)
         {
