@@ -79,11 +79,29 @@ struct CKArgsBNormFwd
         std::sort(xyStrides.begin(), xyStrides.end(), std::greater<>());
         std::rotate(xyLengths.begin() + 1, xyLengths.begin() + 2, xyLengths.end());
 
-        aligned_scaleBiasMeanVarStrides[0] = 0;
-        aligned_scaleBiasMeanVarStrides[1] = 0;
-        aligned_scaleBiasMeanVarStrides[2] = 0;
-        aligned_scaleBiasMeanVarStrides[3] = 1;
+        std::copy(problem.GetBnScaleBiasMeanVarDesc().GetStrides().begin(),
+                  problem.GetBnScaleBiasMeanVarDesc().GetStrides().end(),
+                  arrScaleBiasMeanVarStrides.begin());
 
+        std::array<int, Rank> allDims;
+        std::iota(allDims.begin(), allDims.end(), 0);
+
+        // Populate invariantDims by checking for dimensions not in reduceDimsArg
+        std::copy_if(std::begin(allDims),
+                     std::end(allDims),
+                     std::back_inserter(invariantDims),
+                     [&](int dim) {
+                         return std::none_of(reduceDimsArg.begin(),
+                                             reduceDimsArg.end(),
+                                             [&](int d) { return dim == d; });
+                     });
+
+        // Update aligned_scaleBiasMeanVarStrides with the corresponding strides from
+        // arrScaleBiasMeanVarStrides
+        for(size_t i = 0; i < invariantDims.size(); ++i)
+        {
+            aligned_scaleBiasMeanVarStrides[invariantDims[i]] = arrScaleBiasMeanVarStrides[i];
+        }
         this->reduceDims = reduceDimsArg;
     }
 
@@ -92,6 +110,7 @@ struct CKArgsBNormFwd
     std::vector<int> invariantDims;
 
     std::array<index_t, Rank> aligned_scaleBiasMeanVarStrides{3};
+    std::array<index_t, Rank - NumBatchNormReduceDim> arrScaleBiasMeanVarStrides;
 
     std::array<int, NumBatchNormReduceDim> reduceDims;
 
