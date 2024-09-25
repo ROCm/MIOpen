@@ -366,9 +366,8 @@ void GetPerfDbVals(const fs::path& filename,
 }
 
 void RemovePerfDbEntry(const fs::path& filename,
-                   const conv::ProblemDescription& problem_config,
-                   const std::string& solver
-                   )
+                       const conv::ProblemDescription& problem_config,
+                       const std::string& solver)
 {
     std::string select_query;
     std::string clause;
@@ -733,18 +732,20 @@ void CheckFDBEntry(size_t thread_index,
                 // TODO: Print the SQL query
                 if(env::enabled(MIOPEN_DBSYNC_CLEAN) && not pdb_entry_exists)
                 {
-                    MIOPEN_LOG_W("PDB entry does not exist for tunable fdb-key:" << kinder.first << ": solver"
-                        << val.solver_id << ", Removing entry from fdb");
+                    MIOPEN_LOG_W("PDB entry does not exist for tunable fdb-key:"
+                                 << kinder.first << ": solver" << val.solver_id
+                                 << ", Removing entry from fdb");
                     find_db_rw.Remove(kinder.first, id.ToString());
-                    MIOPEN_LOG_W("Removal Complete fdb-key:" << kinder.first << ": solver" << val.solver_id);
+                    MIOPEN_LOG_W("Removal Complete fdb-key:" << kinder.first << ": solver"
+                                                             << val.solver_id);
                     continue;
                 }
                 else
                 {
                     EXPECT_TRUE(SKIP_KDB_PDB_TESTING || pdb_entry_exists)
                         << '[' << (++failures) << "] " //
-                        << "PDB entry does not exist for tunable fdb-key:" << kinder.first << ": solver"
-                        << val.solver_id << " pdb-select-query: " << pdb_select_query;
+                        << "PDB entry does not exist for tunable fdb-key:" << kinder.first
+                        << ": solver" << val.solver_id << " pdb-select-query: " << pdb_select_query;
                 }
                 auto db               = miopen::GetDb(ctx);
                 std::string pdb_entry = "";
@@ -754,20 +755,22 @@ void CheckFDBEntry(size_t thread_index,
                     bool res  = solv.TestPerfCfgParams(ctx, problem, pdb_vals.at(val.solver_id));
                     if(env::enabled(MIOPEN_DBSYNC_CLEAN) && not res)
                     {
-                        MIOPEN_LOG_W("Invalid perf config found fdb-key:" << kinder.first << ": solver"
-                        << val.solver_id << ", Removing entry from fdb and pdb");
+                        MIOPEN_LOG_W("Invalid perf config found fdb-key:"
+                                     << kinder.first << ": solver" << val.solver_id
+                                     << ", Removing entry from fdb and pdb");
                         find_db_rw.Remove(kinder.first, id.ToString());
                         RemovePerfDbEntry(pdb_file_path, problem, id.ToString());
-                        MIOPEN_LOG_W("Removal Complete fdb-key:" << kinder.first << ": solver" << val.solver_id);
+                        MIOPEN_LOG_W("Removal Complete fdb-key:" << kinder.first << ": solver"
+                                                                 << val.solver_id);
                         continue;
                     }
                     else
                     {
-                        EXPECT_TRUE(res)
-                            << '[' << (++failures) << "] " //
-                            << "Invalid perf config found fdb-key:" << kinder.first
-                            << " Solver: " << solv.GetSolverDbId() << ":" << pdb_vals.at(val.solver_id)
-                            << " pdb-select-query: " << pdb_select_query;
+                        EXPECT_TRUE(res) << '[' << (++failures) << "] " //
+                                         << "Invalid perf config found fdb-key:" << kinder.first
+                                         << " Solver: " << solv.GetSolverDbId() << ":"
+                                         << pdb_vals.at(val.solver_id)
+                                         << " pdb-select-query: " << pdb_select_query;
                     }
                     // we can verify the pdb entry by passing in an empty string and then comparing
                     // the received solution with the one below or having the find_solution pass out
@@ -877,9 +880,8 @@ void StaticFDBSync(const std::string& arch, const size_t num_cu)
     SetupPaths(fdb_file_path, pdb_file_path, kdb_file_path, handle);
     std::cout << "Handle CU count: " << handle.GetMaxComputeUnits()
               << " Parameter Value: " << num_cu << std::endl;
-    std::cout << "FDB: " << fdb_file_path
-              << ", PDB: " << pdb_file_path
-              << ", KDB: "<< kdb_file_path << std::endl;
+    std::cout << "FDB: " << fdb_file_path << ", PDB: " << pdb_file_path
+              << ", KDB: " << kdb_file_path << std::endl;
 #if !SKIP_KDB_PDB_TESTING
     // Warmup the kdb cache
     miopen::CheckKDBObjects(kdb_file_path, "", "");
