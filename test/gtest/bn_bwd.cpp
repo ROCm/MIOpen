@@ -31,41 +31,41 @@ struct GPU_BNBwd_FP16
 {
 };
 
-// struct GPU_BNBwd_FP32 : BNBwdTest<float, float, float, float, float, float, float>
-// {
-// };
+struct GPU_BNBwd_FP32 : BNBwdTest<float, float, float, float, float, float, float>
+{
+};
 
-// struct GPU_BNBwd_BFP16 : BNBwdTest<bfloat16, float, float, float, bfloat16, float, float>
-// {
-// };
+struct GPU_BNBwd_BFP16 : BNBwdTest<bfloat16, float, float, float, bfloat16, float, float>
+{
+};
 
-// struct GPU_BNBwd_FP64 : BNBwdTest<double, double, double, double, double, double, double>
-// {
-// };
+struct GPU_BNBwd_FP64 : BNBwdTest<double, double, double, double, double, double, double>
+{
+};
 
 TEST_P(GPU_BNBwd_FP16, BnBwdCKHalf) {}
 
-// TEST_P(GPU_BNBwd_FP32, BnBwdCKFloat) {}
+TEST_P(GPU_BNBwd_FP32, BnBwdCKFloat) {}
 
-// TEST_P(GPU_BNBwd_BFP16, BnBwdCKBFloat16) {}
-// TEST_P(GPU_BNBwd_FP64, BnBwdCKDouble) {}
+TEST_P(GPU_BNBwd_BFP16, BnBwdCKBFloat16) {}
+TEST_P(GPU_BNBwd_FP64, BnBwdCKDouble) {}
 
 INSTANTIATE_TEST_SUITE_P(Smoke,
                          GPU_BNBwd_FP16,
                          testing::Combine(testing::ValuesIn(Network1<BNTestCase>()),
                                           testing::Values(miopenTensorNHWC)));
 
-// INSTANTIATE_TEST_SUITE_P(Smoke,
-//                          GPU_BNBwd_FP32,
-//                          testing::Combine(testing::ValuesIn(Network1<BNTestCase>()),
-//                                           testing::Values(miopenTensorNHWC)));
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_BNBwd_FP32,
+                         testing::Combine(testing::ValuesIn(Network1<BNTestCase>()),
+                                          testing::Values(miopenTensorNHWC)));
 
-// INSTANTIATE_TEST_SUITE_P(Smoke,
-//                          GPU_BNBwd_BFP16,
-//                          testing::Combine(testing::ValuesIn(Network1<BNTestCase>()),
-//                                           testing::Values(miopenTensorNHWC)));
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_BNBwd_BFP16,
+                         testing::Combine(testing::ValuesIn(Network1<BNTestCase>()),
+                                          testing::Values(miopenTensorNHWC)));
 
-// INSTANTIATE_TEST_SUITE_P(Smoke,
-//                          GPU_BNBwd_FP64,
-//                          testing::Combine(testing::ValuesIn(Network1<BNTestCase>()),
-//                                           testing::Values(miopenTensorNHWC)));
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_BNBwd_FP64,
+                         testing::Combine(testing::ValuesIn(Network1<BNTestCase>()),
+                                          testing::Values(miopenTensorNHWC)));

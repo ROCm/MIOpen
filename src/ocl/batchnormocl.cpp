@@ -313,10 +313,10 @@ void BatchNormBackward(Handle& handle,
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
-    // if(dxDesc.GetType() != dyDesc.GetType())
-    // {
-    //     MIOPEN_THROW(miopenStatusBadParm);
-    // }
+    if(dxDesc.GetType() != dyDesc.GetType())
+    {
+        MIOPEN_THROW(miopenStatusBadParm);
+    }
     if(xDesc.GetNumDims() < 3)
     {
         MIOPEN_THROW(miopenStatusBadParm);
