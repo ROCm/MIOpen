@@ -376,9 +376,10 @@ public:
         Run(handle, kernels, out_ptr, buf_handle.get());
     }
 
-    void ZeroOutBuffer()
+    void ZeroOutBuffer(const Handle& handle)
     {
-        [[maybe_unused]] auto status = hipMemset(buf_handle.get(), 0, tensor_sz);
+        [[maybe_unused]] auto status =
+            hipMemsetAsync(buf_handle.get(), 0, tensor_sz, handle.GetStream());
         assert(status == hipSuccess);
     }
 
@@ -680,7 +681,7 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
         internal::MakeTaggedTransposeInstances<CKArgsType>(
             result, ctx, problem, ck_args, input1_op, input2_op, output_op, _ck_buff_des);
 
-    result.invoker_factory = [split_k,
+    result.invoker_factory = [split_k             = split_k,
                               ck_args             = std::move(ck_args),
                               sh_conv_ptr         = std::shared_ptr{std::move(*ptr_iter)},
                               input1_tr_inst      = std::move(_input1_tr_inst),
@@ -689,7 +690,7 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
                               output_init_tr_inst = std::move(_output_init_tr_inst),
                               ck_buff_des =
                                   _ck_buff_des](const std::vector<Kernel>& kernels) mutable {
-        return [split_k,
+        return [split_k = split_k,
                 kernels,
                 ck_args             = std::move(ck_args),
                 sh_conv_ptr         = std::move(sh_conv_ptr),
@@ -697,8 +698,8 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
                 input2_tr_inst      = std::move(input2_tr_inst),
                 output_tr_inst      = std::move(output_tr_inst),
                 output_init_tr_inst = std::move(output_init_tr_inst),
-                ck_buff_des](const Handle& handle,
-                             const AnyInvokeParams& primitive_parameters) mutable {
+                ck_buff_des         = ck_buff_des](const Handle& handle,
+                                           const AnyInvokeParams& primitive_parameters) mutable {
             handle.ResetKernelTime();
 
             const auto& data_ctx = primitive_parameters.CastTo<CastType>();
@@ -734,7 +735,7 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
             /// \todo: Will need SetTensor() to properly zero out non-packed tensors
             if(output_tr_inst.GetConvOperandTag() == internal::ConvOperandTag::Weights)
             {
-                output_tr_inst.ZeroOutBuffer();
+                output_tr_inst.ZeroOutBuffer(handle);
             }
 
             std::array<internal::TransposeInstanceTagged*, 3> tr_ptrs = {
@@ -826,17 +827,17 @@ ConvSolution InitInvokerFactoryNHWC(const ExecutionContext&,
         [[maybe_unused]] bool should_allocated_wrw_buffer =
             ShouldAllocateWorkSpaceBufferForWRW(problem);
 
-        result.invoker_factory = [split_k,
-                                  ck_args = CKArgsType{problem},
-                                  alpha_beta_case,
-                                  should_allocated_wrw_buffer,
+        result.invoker_factory = [split_k                     = split_k,
+                                  ck_args                     = CKArgsType{problem},
+                                  alpha_beta_case             = alpha_beta_case,
+                                  should_allocated_wrw_buffer = should_allocated_wrw_buffer,
                                   sh_conv_ptr = std::shared_ptr{std::move(*ptr_iter)}](
                                      const std::vector<Kernel>&) mutable {
-            return [split_k,
-                    ck_args = std::move(ck_args),
-                    alpha_beta_case,
-                    should_allocated_wrw_buffer,
-                    sh_conv_ptr = std::move(sh_conv_ptr)](
+            return [split_k                     = split_k,
+                    ck_args                     = std::move(ck_args),
+                    alpha_beta_case             = alpha_beta_case,
+                    should_allocated_wrw_buffer = should_allocated_wrw_buffer,
+                    sh_conv_ptr                 = std::move(sh_conv_ptr)](
                        const Handle& handle, const AnyInvokeParams& primitive_parameters) {
                 const auto& data_ctx = primitive_parameters.CastTo<CastType>();
                 std::unique_ptr<ck::tensor_operation::device::BaseArgument> argument_ptr;
