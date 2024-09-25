@@ -301,11 +301,19 @@ void Solution::RunImpl(Handle& handle,
         get_input_checked(miopenTensorMhaDropoutOffset, "miopenTensorMhaDropoutOffset");
 
     // reading bias buffer as an optional parameter
-    Data_t biasBuffer = nullptr;
-    const auto& found = inputs.find(miopenTensorMhaBias);
-    if(found != inputs.end())
+    Data_t biasBuffer  = nullptr;
+    const auto& biasIt = inputs.find(miopenTensorMhaBias);
+    if(biasIt != inputs.end())
     {
-        biasBuffer = found->second.buffer;
+        biasBuffer = biasIt->second.buffer;
+    }
+
+    // reading a mask as an optional parameter
+    miopenMhaMask_t mask = miopenMhaMaskNone;
+    const auto& maskIt   = inputs.find(miopenTensorMhaMask);
+    if(maskIt != inputs.end())
+    {
+        mask = *(static_cast<miopenMhaMask_t*>(maskIt->second.buffer));
     }
 
     const auto invoke_ctx = [&]() -> AnyInvokeParams {
@@ -331,6 +339,7 @@ void Solution::RunImpl(Handle& handle,
                                                dropoutSeed.buffer,
                                                dropoutOffset.buffer,
                                                biasBuffer,
+                                               mask,
                                                o.buffer,
                                                amaxO.buffer,
                                                amaxS.buffer,

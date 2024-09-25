@@ -132,6 +132,7 @@ struct MhaDataForward
     ConstData_t dropoutOffsetData;
 
     ConstData_t biasData;
+    miopenMhaMask_t mask;
 
     // output tensors
     Data_t oData;
