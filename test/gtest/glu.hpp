@@ -125,7 +125,7 @@ protected:
     {
         auto&& handle = get_handle();
 
-        cpu_glu_forward<T>(input, ref_output, dim);
+        cpu_glu_contiguous_dim0_forward<T>(input, ref_output);
         miopenStatus_t status;
 
         status = miopen::glu::GLUForward(
@@ -211,7 +211,7 @@ protected:
     {
         auto&& handle = get_handle();
 
-        cpu_glu_backward<T>(input, outputGrad, ref_inputGrad, dim);
+        cpu_glu_contiguous_dim0_backward<T>(input, outputGrad, ref_inputGrad);
         miopenStatus_t status;
 
         status = miopen::glu::GLUBackward(handle,

@@ -36,72 +36,32 @@ T sigmoid(T x)
 }
 
 template <class T>
-void cpu_glu_forward(const tensor<T>& input, tensor<T>& ref_output, uint32_t dim)
+void cpu_glu_contiguous_dim0_forward(const tensor<T>& input, tensor<T>& ref_output)
 {
-    auto output_dims     = ref_output.desc.GetLengths();
-    auto input_lengths   = input.desc.GetLengths();
-    size_t dim_size      = input_lengths[dim];
-    size_t half_dim_size = dim_size / 2;
-    size_t inner_size    = 1;
-
-    for(size_t i = dim + 1; i < input_lengths.size(); i++)
-    {
-        inner_size *= input_lengths[i];
-    }
-
-    auto output_numel =
-        std::accumulate(output_dims.begin(), output_dims.end(), 1L, std::multiplies<int64_t>());
+    auto output_dims  = ref_output.desc.GetLengths();
+    auto output_numel = ref_output.desc.GetElementSize();
 
     par_ford(output_numel)([&](size_t o) {
-        size_t outer_idx = o / (dim_size * inner_size);
-        o                = o % (dim_size * inner_size);
-        size_t dim_idx   = o / inner_size;
-        size_t inner_idx = o % inner_size;
-        size_t inputFirstHalf_idx =
-            outer_idx * (dim_size * inner_size) + dim_idx * inner_size + inner_idx;
-        T valA                     = input[inputFirstHalf_idx];
-        size_t inputSecondHalf_idx = outer_idx * (dim_size * inner_size) +
-                                     (dim_idx + half_dim_size) * inner_size + inner_idx;
-        T valB        = input[inputSecondHalf_idx];
+        T valA        = input[o];
+        T valB        = input[o + output_numel];
         T val         = valA * sigmoid(valB);
         ref_output[o] = val;
     });
 }
 
 template <class T>
-void cpu_glu_backward(const tensor<T>& input,
-                      const tensor<T>& grad_output,
-                      tensor<T>& grad_input,
-                      uint32_t dim)
+void cpu_glu_contiguous_dim0_backward(const tensor<T>& input,
+                                      const tensor<T>& grad_output,
+                                      tensor<T>& grad_input)
 {
-    auto outputGrad_dims = grad_output.desc.GetLengths();
-    auto input_lengths   = input.desc.GetLengths();
-    size_t dim_size      = input_lengths[dim];
-    size_t half_dim_size = dim_size / 2;
-    size_t inner_size    = 1;
-
-    for(size_t i = dim + 1; i < input_lengths.size(); i++)
-    {
-        inner_size *= input_lengths[i];
-    }
-
-    auto outputGrad_numel = std::accumulate(
-        outputGrad_dims.begin(), outputGrad_dims.end(), 1L, std::multiplies<int64_t>());
+    auto outputGrad_dims  = grad_output.desc.GetLengths();
+    auto outputGrad_numel = grad_output.desc.GetElementSize();
 
     par_ford(outputGrad_numel)([&](size_t o) {
-        size_t outer_idx = o / (dim_size * inner_size);
-        o                = o % (dim_size * inner_size);
-        size_t dim_idx   = o / inner_size;
-        size_t inner_idx = o % inner_size;
-        size_t inputFirstHalf_idx =
-            outer_idx * (dim_size * inner_size) + dim_idx * inner_size + inner_idx;
-        T inputFirstHalf           = input[inputFirstHalf_idx];
-        size_t inputSecondHalf_idx = outer_idx * (dim_size * inner_size) +
-                                     (dim_idx + half_dim_size) * inner_size + inner_idx;
-        T inputSecondHalf                = input[inputSecondHalf_idx];
-        T sigmoid_v                      = sigmoid(inputSecondHalf);
+        T inputFirstHalf_v               = input[o];
+        T sigmoid_v                      = sigmoid(input[o + outputGrad_numel]);
         T grad_v                         = grad_output[o];
         grad_input[o]                    = sigmoid_v * grad_v;
-        grad_input[o + outputGrad_numel] = (1 - sigmoid_v) * sigmoid_v * grad_v * inputFirstHalf;
+        grad_input[o + outputGrad_numel] = (1 - sigmoid_v) * sigmoid_v * grad_v * inputFirstHalf_v;
     });
 }

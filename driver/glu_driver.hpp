@@ -50,37 +50,20 @@ T sigmoid(T x)
 }
 
 template <typename Tgpu, typename Tcheck>
-int mloGLUForwardContiguousRunHost(miopenTensorDescriptor_t inputDesc,
-                                   const Tgpu* input,
-                                   miopenTensorDescriptor_t outputDesc,
-                                   Tcheck* outputHost,
-                                   uint32_t dim)
+int mloGLUForwardContiguousDim0RunHost(const Tgpu* input,
+                                       miopenTensorDescriptor_t outputDesc,
+                                       Tcheck* outputHost)
 {
     auto output_numel    = miopen::deref(outputDesc).GetElementSize();
-    auto input_lengths   = miopen::deref(inputDesc).GetLengths();
-    size_t dim_size      = input_lengths[dim];
-    size_t half_dim_size = dim_size / 2;
-    size_t inner_size    = 1;
-
-    for(size_t i = dim + 1; i < input_lengths.size(); i++)
-    {
-        inner_size *= input_lengths[i];
-    }
+    auto inputFirstHalf  = input;
+    auto inputSecondHalf = input + output_numel;
 
     int ret = 0;
 
     for(size_t o = 0; o < output_numel; o++)
     {
-        size_t outer_idx = o / (dim_size * inner_size);
-        o                = o % (dim_size * inner_size);
-        size_t dim_idx   = o / inner_size;
-        size_t inner_idx = o % inner_size;
-        size_t inputFirstHalf_idx =
-            outer_idx * (dim_size * inner_size) + dim_idx * inner_size + inner_idx;
-        Tcheck valA                = static_cast<Tcheck>(input[inputFirstHalf_idx]);
-        size_t inputSecondHalf_idx = outer_idx * (dim_size * inner_size) +
-                                     (dim_idx + half_dim_size) * inner_size + inner_idx;
-        Tcheck valB   = static_cast<Tcheck>(input[inputSecondHalf_idx]);
+        Tcheck valA   = static_cast<Tcheck>(inputFirstHalf[o]);
+        Tcheck valB   = static_cast<Tcheck>(inputSecondHalf[o]);
         Tcheck val    = valA * sigmoid(valB);
         outputHost[o] = val;
     }
@@ -89,43 +72,27 @@ int mloGLUForwardContiguousRunHost(miopenTensorDescriptor_t inputDesc,
 }
 
 template <typename Tgpu, typename Tcheck>
-int mloGLUBackwardCongiguousRunHost(miopenTensorDescriptor_t inputDesc,
-                                    const Tgpu* input,
-                                    miopenTensorDescriptor_t outputGradDesc,
-                                    const Tgpu* outputGrad,
-                                    Tcheck* inputGradHost,
-                                    uint32_t dim)
+int mloGLUBackwardCongiguousDim0RunHost(const Tgpu* input,
+                                        miopenTensorDescriptor_t outputGradDesc,
+                                        const Tgpu* outputGrad,
+                                        Tcheck* inputGradHost)
 {
     int ret = 0;
 
-    auto outputGrad_numel = miopen::deref(outputGradDesc).GetElementSize();
-    auto input_lengths    = miopen::deref(inputDesc).GetLengths();
-    size_t dim_size       = input_lengths[dim];
-    size_t inner_size     = 1;
-
-    for(size_t i = dim + 1; i < input_lengths.size(); i++)
-    {
-        inner_size *= input_lengths[i];
-    }
+    auto outputGrad_numel     = miopen::deref(outputGradDesc).GetElementSize();
+    auto inputFirstHalf       = input;
+    auto inputSecondHalf      = input + outputGrad_numel;
+    auto inputFistHalf_grad   = inputGradHost;
+    auto inputSecondHalf_grad = inputGradHost + outputGrad_numel;
 
     for(size_t o = 0; o < outputGrad_numel; o++)
     {
-        size_t outer_idx = o / (dim_size * inner_size);
-        o                = o % (dim_size * inner_size);
-        size_t dim_idx   = o / inner_size;
-        size_t inner_idx = o % inner_size;
-        size_t inputFirstHalf_idx =
-            outer_idx * (dim_size * inner_size) + dim_idx * inner_size + inner_idx;
-        Tcheck inputFirstHalf = static_cast<Tcheck>(input[inputFirstHalf_idx]);
-        size_t inputSecondHalf_idx =
-            outer_idx * (dim_size * inner_size) + (dim_idx + dim_size / 2) * inner_size + inner_idx;
-        Tcheck inputSecondHalf = static_cast<Tcheck>(input[inputSecondHalf_idx]);
+        Tcheck inputFirstHalf_v = static_cast<Tcheck>(inputFirstHalf[o]);
+        Tcheck sigmoid_v        = sigmoid(static_cast<Tcheck>(inputSecondHalf[o]));
+        Tcheck grad_v           = static_cast<Tcheck>(outputGrad[o]);
 
-        Tcheck sigmoid_v = sigmoid(inputSecondHalf);
-        Tcheck grad_v    = static_cast<Tcheck>(outputGrad[o]);
-
-        inputGradHost[inputFirstHalf_idx]  = sigmoid_v * grad_v;
-        inputGradHost[inputSecondHalf_idx] = (1 - sigmoid_v) * sigmoid_v * grad_v * inputFirstHalf;
+        inputFistHalf_grad[o]   = sigmoid_v * grad_v;
+        inputSecondHalf_grad[o] = (1 - sigmoid_v) * sigmoid_v * grad_v * inputFirstHalf_v;
     }
 
     return ret;
@@ -404,8 +371,7 @@ int GLUDriver<Tgpu, Tref>::RunForwardGPU()
 template <typename Tgpu, typename Tref>
 int GLUDriver<Tgpu, Tref>::RunForwardCPU()
 {
-    mloGLUForwardContiguousRunHost<Tgpu, Tref>(
-        inputTensor, in.data(), outputTensor, outhost.data(), dim);
+    mloGLUForwardContiguousDim0RunHost<Tgpu, Tref>(in.data(), outputTensor, outhost.data());
 
     return miopenStatusSuccess;
 }
@@ -487,8 +453,8 @@ int GLUDriver<Tgpu, Tref>::VerifyForward()
 template <typename Tgpu, typename Tref>
 int GLUDriver<Tgpu, Tref>::RunBackwardCPU()
 {
-    mloGLUBackwardCongiguousRunHost<Tgpu, Tref>(
-        inputTensor, in.data(), outputTensorGrad, outGrad.data(), inGradhost.data(), dim);
+    mloGLUBackwardCongiguousDim0RunHost<Tgpu, Tref>(
+        in.data(), outputTensorGrad, outGrad.data(), inGradhost.data());
 
     return miopenStatusSuccess;
 }
