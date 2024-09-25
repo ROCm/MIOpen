@@ -60,27 +60,27 @@ bool IsTestSupportedForDevice()
 
 } // namespace
 
-class Conv2dNoGpuRefFloat : public FloatTestCase<std::vector<TestCase>>
+class GPU_Conv2dNoGpuRef_FP32 : public FloatTestCase<std::vector<TestCase>>
 {
 };
 
-class Conv2dNoGpuRefHalf : public HalfTestCase<std::vector<TestCase>>
+class GPU_Conv2dNoGpuRef_FP16 : public HalfTestCase<std::vector<TestCase>>
 {
 };
 
-class Conv2dNoGpuRefBf16 : public Bf16TestCase<std::vector<TestCase>>
+class GPU_Conv2dNoGpuRef_BFP16 : public Bf16TestCase<std::vector<TestCase>>
 {
 };
 
-class Conv2dNoGpuRefInt8 : public Int8TestCase<std::vector<TestCase>>
+class GPU_Conv2dNoGpuRef_I8 : public Int8TestCase<std::vector<TestCase>>
 {
 };
 
-TEST_P(Conv2dNoGpuRefFloat, FloatTest_smoke_solver_ConvDirectNaiveConv_F)
+TEST_P(GPU_Conv2dNoGpuRef_FP32, FloatTest_smoke_solver_ConvDirectNaiveConv_F)
 {
     if(IsTestSupportedForDevice())
     {
-        invoke_with_params<conv2d_driver, Conv2dNoGpuRefFloat>(default_check);
+        invoke_with_params<conv2d_driver, GPU_Conv2dNoGpuRef_FP32>(default_check);
     }
     else
     {
@@ -88,11 +88,11 @@ TEST_P(Conv2dNoGpuRefFloat, FloatTest_smoke_solver_ConvDirectNaiveConv_F)
     }
 };
 
-TEST_P(Conv2dNoGpuRefHalf, HalftTest_smoke_solver_ConvDirectNaiveConv_F)
+TEST_P(GPU_Conv2dNoGpuRef_FP16, HalftTest_smoke_solver_ConvDirectNaiveConv_F)
 {
     if(IsTestSupportedForDevice())
     {
-        invoke_with_params<conv2d_driver, Conv2dNoGpuRefHalf>(default_check);
+        invoke_with_params<conv2d_driver, GPU_Conv2dNoGpuRef_FP16>(default_check);
     }
     else
     {
@@ -100,11 +100,11 @@ TEST_P(Conv2dNoGpuRefHalf, HalftTest_smoke_solver_ConvDirectNaiveConv_F)
     }
 };
 
-TEST_P(Conv2dNoGpuRefBf16, Bf16Test_smoke_solver_ConvDirectNaiveConv_F)
+TEST_P(GPU_Conv2dNoGpuRef_BFP16, Bf16Test_smoke_solver_ConvDirectNaiveConv_F)
 {
     if(IsTestSupportedForDevice())
     {
-        invoke_with_params<conv2d_driver, Conv2dNoGpuRefBf16>(default_check);
+        invoke_with_params<conv2d_driver, GPU_Conv2dNoGpuRef_BFP16>(default_check);
     }
     else
     {
@@ -112,11 +112,11 @@ TEST_P(Conv2dNoGpuRefBf16, Bf16Test_smoke_solver_ConvDirectNaiveConv_F)
     }
 };
 
-TEST_P(Conv2dNoGpuRefInt8, Int8Test_smoke_solver_ConvDirectNaiveConv_F)
+TEST_P(GPU_Conv2dNoGpuRef_I8, Int8Test_smoke_solver_ConvDirectNaiveConv_F)
 {
     if(IsTestSupportedForDevice())
     {
-        invoke_with_params<conv2d_driver, Conv2dNoGpuRefInt8>(default_check);
+        invoke_with_params<conv2d_driver, GPU_Conv2dNoGpuRef_I8>(default_check);
     }
     else
     {
@@ -124,15 +124,7 @@ TEST_P(Conv2dNoGpuRefInt8, Int8Test_smoke_solver_ConvDirectNaiveConv_F)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(SmokeSolverConvDirectNaiveConvF,
-                         Conv2dNoGpuRefFloat,
-                         testing::Values(GetTestCases()));
-INSTANTIATE_TEST_SUITE_P(SmokeSolverConvDirectNaiveConvF,
-                         Conv2dNoGpuRefHalf,
-                         testing::Values(GetTestCases()));
-INSTANTIATE_TEST_SUITE_P(SmokeSolverConvDirectNaiveConvF,
-                         Conv2dNoGpuRefBf16,
-                         testing::Values(GetTestCases()));
-INSTANTIATE_TEST_SUITE_P(SmokeSolverConvDirectNaiveConvF,
-                         Conv2dNoGpuRefInt8,
-                         testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Conv2dNoGpuRef_FP32, testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Conv2dNoGpuRef_FP16, testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Conv2dNoGpuRef_BFP16, testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Conv2dNoGpuRef_I8, testing::Values(GetTestCases()));

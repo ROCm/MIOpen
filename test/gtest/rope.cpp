@@ -42,34 +42,34 @@ std::string GetFloatArg()
     return tmp;
 }
 
-struct RoPEFwdTestFloat : RoPEFwdTest<float>
+struct GPU_RoPEFwdTest_FP32 : RoPEFwdTest<float>
 {
 };
 
-struct RoPEFwdTestHalf : RoPEFwdTest<half_float::half>
+struct GPU_RoPEFwdTest_FP16 : RoPEFwdTest<half_float::half>
 {
 };
 
-struct RoPEFwdTestBFloat16 : RoPEFwdTest<bfloat16>
+struct GPU_RoPEFwdTest_BFP16 : RoPEFwdTest<bfloat16>
 {
 };
 
-struct RoPEBwdTestFloat : RoPEBwdTest<float>
+struct GPU_RoPEBwdTest_FP32 : RoPEBwdTest<float>
 {
 };
 
-struct RoPEBwdTestHalf : RoPEBwdTest<half_float::half>
+struct GPU_RoPEBwdTest_FP16 : RoPEBwdTest<half_float::half>
 {
 };
 
-struct RoPEBwdTestBFloat16 : RoPEBwdTest<bfloat16>
+struct GPU_RoPEBwdTest_BFP16 : RoPEBwdTest<bfloat16>
 {
 };
 
 } // namespace rope
 using namespace rope;
 
-TEST_P(RoPEFwdTestFloat, RoPEFwdTest)
+TEST_P(GPU_RoPEFwdTest_FP32, RoPEFwdTest)
 {
     if(!MIOPEN_TEST_ALL ||
        (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--float"))
@@ -83,7 +83,7 @@ TEST_P(RoPEFwdTestFloat, RoPEFwdTest)
     }
 };
 
-TEST_P(RoPEFwdTestHalf, RoPEFwdTest)
+TEST_P(GPU_RoPEFwdTest_FP16, RoPEFwdTest)
 {
     if(!MIOPEN_TEST_ALL ||
        (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--half"))
@@ -97,7 +97,7 @@ TEST_P(RoPEFwdTestHalf, RoPEFwdTest)
     }
 };
 
-TEST_P(RoPEFwdTestBFloat16, RoPEFwdTest)
+TEST_P(GPU_RoPEFwdTest_BFP16, RoPEFwdTest)
 {
     if(!MIOPEN_TEST_ALL ||
        (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--bfloat16"))
@@ -111,7 +111,7 @@ TEST_P(RoPEFwdTestBFloat16, RoPEFwdTest)
     }
 };
 
-TEST_P(RoPEBwdTestFloat, RoPEBwdTest)
+TEST_P(GPU_RoPEBwdTest_FP32, RoPEBwdTest)
 {
     if(!MIOPEN_TEST_ALL ||
        (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--float"))
@@ -125,7 +125,7 @@ TEST_P(RoPEBwdTestFloat, RoPEBwdTest)
     }
 };
 
-TEST_P(RoPEBwdTestHalf, RoPEBwdTest)
+TEST_P(GPU_RoPEBwdTest_FP16, RoPEBwdTest)
 {
     if(!MIOPEN_TEST_ALL ||
        (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--half"))
@@ -139,7 +139,7 @@ TEST_P(RoPEBwdTestHalf, RoPEBwdTest)
     }
 };
 
-TEST_P(RoPEBwdTestBFloat16, RoPEBwdTest)
+TEST_P(GPU_RoPEBwdTest_BFP16, RoPEBwdTest)
 {
     if(!MIOPEN_TEST_ALL ||
        (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--bfloat16"))
@@ -153,9 +153,9 @@ TEST_P(RoPEBwdTestBFloat16, RoPEBwdTest)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(RoPETestSet, RoPEFwdTestFloat, testing::ValuesIn(RoPETestConfigs()));
-INSTANTIATE_TEST_SUITE_P(RoPETestSet, RoPEFwdTestHalf, testing::ValuesIn(RoPETestConfigs()));
-INSTANTIATE_TEST_SUITE_P(RoPETestSet, RoPEFwdTestBFloat16, testing::ValuesIn(RoPETestConfigs()));
-INSTANTIATE_TEST_SUITE_P(RoPETestSet, RoPEBwdTestFloat, testing::ValuesIn(RoPETestConfigs()));
-INSTANTIATE_TEST_SUITE_P(RoPETestSet, RoPEBwdTestHalf, testing::ValuesIn(RoPETestConfigs()));
-INSTANTIATE_TEST_SUITE_P(RoPETestSet, RoPEBwdTestBFloat16, testing::ValuesIn(RoPETestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_RoPEFwdTest_FP32, testing::ValuesIn(RoPETestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_RoPEFwdTest_FP16, testing::ValuesIn(RoPETestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_RoPEFwdTest_BFP16, testing::ValuesIn(RoPETestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_RoPEBwdTest_FP32, testing::ValuesIn(RoPETestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_RoPEBwdTest_FP16, testing::ValuesIn(RoPETestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_RoPEBwdTest_BFP16, testing::ValuesIn(RoPETestConfigs()));

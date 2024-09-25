@@ -26,6 +26,21 @@
 
 #include "gtest_common.hpp"
 
+std::ostream& operator<<(std::ostream& os, const DevDescription& dd)
+{
+    return os << dd.name << "(" << dd.cu_cnt << ")";
+}
+
+MockHandle::MockHandle(const DevDescription& dev_description) : dev_descr{dev_description} {}
+
+std::string MockHandle::GetDeviceName() const { return std::string{dev_descr.name}; }
+
+std::size_t MockHandle::GetMaxComputeUnits() const { return dev_descr.cu_cnt; }
+
+std::size_t MockHandle::GetMaxMemoryAllocSize() { return std::numeric_limits<std::size_t>::max(); }
+
+bool MockHandle::CooperativeLaunchSupported() const { return false; }
+
 Gpu GetDevGpuType()
 {
     const auto dev_name = get_handle().GetDeviceName();
@@ -45,11 +60,51 @@ Gpu GetDevGpuType()
             return Gpu::gfx103X;
         else if(miopen::StartsWith(dev_name, "gfx110"))
             return Gpu::gfx110X;
+        else if(miopen::StartsWith(dev_name, "gfx120"))
+            return Gpu::gfx120X;
         else
             throw std::runtime_error("unknown_gpu");
     }();
 
     return dev;
+}
+
+const std::multimap<Gpu, DevDescription>& GetAllKnownDevices()
+{
+    static_assert(Gpu::gfx120X == Gpu::gfxLast);
+
+    // https://rocm.docs.amd.com/en/latest/reference/gpu-arch-specs.html
+    static const std::multimap<Gpu, DevDescription> known_devs = {
+        // clang-format off
+        {Gpu::gfx900,  {"gfx900",  64}},
+        {Gpu::gfx906,  {"gfx906",  60}},
+        {Gpu::gfx906,  {"gfx906",  64}},
+        {Gpu::gfx908,  {"gfx908",  120}},
+        {Gpu::gfx90A,  {"gfx90a",  104}},
+        {Gpu::gfx90A,  {"gfx90a",  110}},
+        {Gpu::gfx94X,  {"gfx940",  228}},
+        {Gpu::gfx94X,  {"gfx941",  304}},
+        {Gpu::gfx94X,  {"gfx942",  228}},
+        {Gpu::gfx94X,  {"gfx942",  304}},
+        {Gpu::gfx103X, {"gfx1030", 30}},
+        {Gpu::gfx103X, {"gfx1030", 36}},
+        {Gpu::gfx103X, {"gfx1030", 40}},
+        {Gpu::gfx103X, {"gfx1031", 18}},
+        {Gpu::gfx103X, {"gfx1031", 20}},
+        {Gpu::gfx103X, {"gfx1032", 14}},
+        {Gpu::gfx103X, {"gfx1032", 16}},
+        {Gpu::gfx110X, {"gfx1100", 35}},
+        {Gpu::gfx110X, {"gfx1100", 40}},
+        {Gpu::gfx110X, {"gfx1100", 42}},
+        {Gpu::gfx110X, {"gfx1100", 48}},
+        {Gpu::gfx110X, {"gfx1101", 24}},
+        {Gpu::gfx110X, {"gfx1101", 27}},
+        {Gpu::gfx110X, {"gfx1101", 30}},
+        {Gpu::gfx110X, {"gfx1102", 16}},
+        {Gpu::gfx120X, {"gfx1201", 10000}}, //\todo 10000 is a dummy value, replace with real value.
+        // clang-format on
+    };
+    return known_devs;
 }
 
 bool IsTestSupportedByDevice(Gpu supported_devs)
