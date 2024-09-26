@@ -30,7 +30,6 @@
 #include <miopen/tensor.hpp>
 
 #include <cmath>
-#include <iomanip>
 #include <iostream>
 
 #include "calcerr.hpp"
@@ -76,7 +75,7 @@ void ADNN_mm_cpu(const Dtype* a_ptr,
        (!(a_flags & ADNN_MM_TRANSPOSE) && (b_flags & ADNN_MM_TRANSPOSE) &&
         ((a_cols != b_cols) || (a_rows != c_rows) || (b_rows != c_cols))))
     {
-        printf("MM_CPU ERROR; %zd %zd   %zd %zd   %zd %zd\n",
+        printf("MM_CPU ERROR; %zu %zu   %zu %zu   %zu %zu\n",
                a_cols,
                a_rows,
                b_cols,
