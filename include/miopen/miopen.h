@@ -5006,6 +5006,98 @@ MIOPEN_EXPORT miopenStatus_t miopenCTCLoss(miopenHandle_t handle,
                                            void* workSpace,
                                            size_t workSpaceSize);
 
+#ifdef MIOPEN_BETA_API
+
+typedef enum
+{
+    MIOPEN_LOSS_REDUCTION_NONE = 0, /*!< output tensor elements are not reduced */
+    MIOPEN_LOSS_REDUCTION_SUM  = 1, /*!< output tensor elements are summed up */
+    MIOPEN_LOSS_REDUCTION_MEAN = 2, /*!< output tensor elements are summed up and divided with total
+                                       number of elements to get mean value */
+} miopenLossReductionMode_t;
+
+/*! @brief Helper function to query the minimum workspace size required by the sigmoid focal loss
+ * call
+ *
+ * @param handle                   MIOpen Handle (input)
+ * @param inputDesc                Tensor descriptor for input tensor (input)
+ * @param targetDesc               Tensor descriptor for target tensor (input)
+ * @param outputDesc               Tensor descriptor for output tensor (input)
+ * @param reduction                Reduction (input)
+ * @param sizeInBytes              Pointer to data to return the minimum workspace size
+ * @return                         miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenGetSigmoidFocalLossForwardWorkspaceSize(miopenHandle_t handle,
+                                              miopenTensorDescriptor_t inputDesc,
+                                              miopenTensorDescriptor_t targetDesc,
+                                              miopenTensorDescriptor_t outputDesc,
+                                              miopenLossReductionMode_t reduction,
+                                              size_t* sizeInBytes);
+
+/*! @brief Execute a SigmoidFocalLoss forward layer
+ *
+ * @param handle                   MIOpen handle (input)
+ * @param workspace                Address of the allocated workspace data (input)
+ * @param workspaceSizeInBytes     Size in bytes of the allocated workspace data (input)
+ * @param inputDesc                Tensor descriptor for input tensor (input)
+ * @param input                    Data tensor input (input)
+ * @param targetDesc               Tensor descriptor for target tensor (input)
+ * @param target                   Data tensor target (input)
+ * @param outputDesc               Tensor descriptor for output tensor (input)
+ * @param output                   Data tensor output (output)
+ * @param alpha                    Alpha (input)
+ * @param gamma                    Gamma (input)
+ * @param reduction                Reduction (input)
+ * @return                         miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenSigmoidFocalLossForward(miopenHandle_t handle,
+                                                           void* workspace,
+                                                           size_t workspaceSizeInBytes,
+                                                           miopenTensorDescriptor_t inputDesc,
+                                                           const void* input,
+                                                           miopenTensorDescriptor_t targetDesc,
+                                                           const void* target,
+                                                           miopenTensorDescriptor_t outputDesc,
+                                                           void* output,
+                                                           float alpha,
+                                                           float gamma,
+                                                           miopenLossReductionMode_t reduction);
+
+/*! @brief Execute a SigmoidFocalLoss backward layer
+ *
+ * @param handle                   MIOpen handle (input)
+ * @param inputDesc                Tensor descriptor for input tensor (input)
+ * @param input                    Data tensor input (input)
+ * @param targetDesc               Tensor descriptor for target tensor (input)
+ * @param target                   Data tensor target (input)
+ * @param doutputDesc              Tensor descriptor for output gradient (input)
+ * @param doutput                  Gradient of output (input)
+ * @param dinputDesc               Tensor descriptor for input gradient (input)
+ * @param dinput                   Gradient of input (output)
+ * @param dtargetDesc              Tensor descriptor for target gradient (input)
+ * @param dtarget                  Gradient of target (output)
+ * @param alpha                    Alpha (input)
+ * @param gamma                    Gamma (input)
+ * @param reduction                Reduction (input)
+ * @return                         miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenSigmoidFocalLossBackward(miopenHandle_t handle,
+                                                            miopenTensorDescriptor_t inputDesc,
+                                                            const void* input,
+                                                            miopenTensorDescriptor_t targetDesc,
+                                                            const void* target,
+                                                            miopenTensorDescriptor_t doutputDesc,
+                                                            const void* doutput,
+                                                            miopenTensorDescriptor_t dinputDesc,
+                                                            void* dinput,
+                                                            miopenTensorDescriptor_t dtargetDesc,
+                                                            void* dtarget,
+                                                            float alpha,
+                                                            float gamma,
+                                                            miopenLossReductionMode_t reduction);
+#endif
+
 /** @} */
 // CLOSEOUT LossFunction DOXYGEN GROUP
 

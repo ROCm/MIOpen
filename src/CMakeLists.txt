@@ -188,6 +188,8 @@ set( MIOpen_Source
     rope_api.cpp
     rope/problem_description.cpp
     scalar.cpp
+    sigmoidfocalloss/problem_description.cpp
+    sigmoid_focal_loss_api.cpp
     softmax.cpp
     softmax_api.cpp
     softmax/problem_description.cpp
@@ -318,6 +320,10 @@ set( MIOpen_Source
     solver/reduce/forward_sum.cpp
     solver/rope/backward_rope.cpp
     solver/rope/forward_rope.cpp
+    solver/sigmoidfocalloss/backward_reduce_sigmoid_focal_loss.cpp
+    solver/sigmoidfocalloss/backward_unreduce_sigmoid_focal_loss.cpp
+    solver/sigmoidfocalloss/forward_reduce_sigmoid_focal_loss.cpp
+    solver/sigmoidfocalloss/forward_unreduce_sigmoid_focal_loss.cpp
     solver/softmax/attn_softmax.cpp
     solver/softmax/softmax.cpp
     subbuffers.cpp
@@ -567,6 +573,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/gcnAsmBNBwdTrainSpatial.s
         kernels/MIOpenTensorKernels.cl
         kernels/MIOpenTensorKernelsHip.cpp
+        kernels/MIOpenSigmoidFocalLoss.cpp
         kernels/MIOpenSubTensorOpWithScalarKernel.cl
         kernels/MIOpenSubTensorOpWithSubTensorKernel.cl
         kernels/MIOpenSubTensorOpWithCastTensorKernel.cl
@@ -678,6 +685,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         reducecalculation.cpp
         reduceextreme.cpp
         rope.cpp
+        sigmoid_focal_loss.cpp
         transformers_adam_w.cpp
         ${PROJECT_BINARY_DIR}/db_path.cpp
         )
