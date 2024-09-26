@@ -100,6 +100,13 @@ public:
     int VerifyBackward() override;
     int VerifyForward() override;
 
+    // Helper function to check the Layout type short names
+    int ChkLayout_ShortName();
+    // function to validate the Layout type parameters.
+    // layout parameter value to std (NCHW/NHWC/NCDHW/NDHWC) values,
+    // defined in MIOpen lib.
+    void ValidateLayoutInputParameters(std::string layout_type);
+
     ~BatchNormDriver() override {}
 
 private:
@@ -145,7 +152,7 @@ private:
     tensor<Tref> runMean_ref;
     tensor<Tref> runVariance_ref;
 
-    // backward
+    // backward needed different type for bwd.
     GpumemTensor<Tmix> out_bwd;
 
     GpumemTensor<Tgpu> bnScale;
@@ -180,9 +187,8 @@ template <typename Tgpu, typename Tref, typename Tmix>
 int BatchNormDriver<Tgpu, Tref, Tmix>::GetandSetData()
 {
 
-    SetBNParametersFromCmdLineArgs();
-
     std::vector<int> in_len = GetInputTensorLengthsFromCmdLine();
+    SetBNParametersFromCmdLineArgs();
 
     auto gen_value = [](auto...) { return prng::gen_descreet_uniform_sign<Tgpu>(1e-2, 100); };
 
@@ -286,12 +292,8 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::AddCmdLineArgs()
     inflags.AddInputFlag("in_w", 'W', "32", "Input Width (Default=32)", "int");
     inflags.AddInputFlag("in_d", 'D', "0", "Input Depth (Default=0)", "int");
 
-    inflags.AddInputFlag("layout",
-                         'L',
-                         "NCHW",
-                         "Layout (Default=NCHW for 2d conv, NCDHW for 3d conv)",
-                         "string",
-                         true);
+    inflags.AddInputFlag(
+        "layout", 'L', "", "Layout (Default=NCHW for 2d conv, NCDHW for 3d conv)", "string", true);
 
     inflags.AddInputFlag("alpha", 'A', "1.0", "Alpha (Default=1.0)", "float");
     inflags.AddInputFlag("beta", 'B', "0.", "Beta (Default=0.)", "float");
@@ -346,11 +348,66 @@ std::vector<int> BatchNormDriver<Tgpu, Tref, Tmix>::GetInputTensorLengthsFromCmd
 }
 
 template <typename Tgpu, typename Tref, typename Tmix>
+int BatchNormDriver<Tgpu, Tref, Tmix>::ChkLayout_ShortName()
+{
+    // check for short name of layout type
+    if(inflags.FindShortName("layout") == 'I')
+    {
+        // do noting
+        // found valid short names
+        return 0;
+    }
+    else
+    {
+        std::cerr << "Error:Invalid Short Name for layout!" << std::endl;
+        exit(EXIT_FAILURE);
+    }
+}
+
+template <typename Tgpu, typename Tref, typename Tmix>
+void BatchNormDriver<Tgpu, Tref, Tmix>::ValidateLayoutInputParameters(std::string layout_value)
+{
+    if((ChkLayout_ShortName()))
+    {
+        std::cerr << " Invalid Layout Short Name = " << ChkLayout_ShortName() << std::endl;
+        exit(EXIT_FAILURE);
+    }
+    else
+    {
+        if((layout_value.compare("NCHW") == 0) || (layout_value.compare("NHWC") == 0) ||
+           (layout_value.compare("NCDHW") == 0) || (layout_value.compare("NDHWC") == 0))
+        {
+            // do nothing,Values are matching as defined in Lib.
+        }
+        else
+        {
+            std::cerr << "Invalid Layout Parameter Value - " << layout_value << std::endl;
+            exit(EXIT_FAILURE);
+        }
+    }
+}
+
+template <typename Tgpu, typename Tref, typename Tmix>
 int BatchNormDriver<Tgpu, Tref, Tmix>::SetBNParametersFromCmdLineArgs()
 {
 
     //    	double bnAlpha = inflags.GetValueDouble("alpha");
     //    	double bnBeta = inflags.GetValueDouble("beta");
+
+    const std::string default_layout = isDepthSpecified ? "NCDHW" : "NCHW";
+
+    // inflags value is empty, default value is used
+    // if it is supplied via cmd line, check the value.
+    if(inflags.GetValueStr("layout").empty())
+    {
+        inflags.SetValue("layout", default_layout);
+    }
+    else
+    {
+        std::string layoutValue = inflags.GetValueStr("layout");
+        ValidateLayoutInputParameters(layoutValue);
+        inflags.SetValue("layout", layoutValue);
+    }
 
     std::string layout = inflags.GetValueStr("layout");
 
@@ -361,6 +418,14 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::SetBNParametersFromCmdLineArgs()
     else if(layout == "NHWC")
     {
         bn_layout = miopenTensorNHWC;
+    }
+    else if(layout == "NCDHW")
+    {
+        bn_layout = miopenTensorNCDHW;
+    }
+    else if(layout == "NDHWC")
+    {
+        bn_layout = miopenTensorNDHWC;
     }
     else
     {
@@ -784,6 +849,20 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::RunForwardGPU()
 template <typename Tgpu, typename Tref, typename Tmix>
 void BatchNormDriver<Tgpu, Tref, Tmix>::runCPUFwdInference(Tref epsilon)
 {
+    int size{0};
+    miopenGetTensorDescriptorSize(&in.GetTensor().desc, &size);
+
+    if(size == 5)
+    {
+        in.GetTensor().desc    = miopen::BuildReshaped4DTensorDescriptor(in.GetTensor().desc);
+        out_ref.desc           = miopen::BuildReshaped4DTensorDescriptor(out_ref.desc);
+        scale.GetTensor().desc = miopen::BuildReshaped4DTensorDescriptor(scale.GetTensor().desc);
+        bias.GetTensor().desc  = miopen::BuildReshaped4DTensorDescriptor(bias.GetTensor().desc);
+        estMean.GetTensor().desc =
+            miopen::BuildReshaped4DTensorDescriptor(estMean.GetTensor().desc);
+        estVariance.GetTensor().desc =
+            miopen::BuildReshaped4DTensorDescriptor(estVariance.GetTensor().desc);
+    }
 
     if(bn_mode == miopenBNPerActivation)
     { // 1xCxHxW
@@ -798,6 +877,7 @@ void BatchNormDriver<Tgpu, Tref, Tmix>::runCPUFwdInference(Tref epsilon)
     }
     else if(bn_mode == miopenBNSpatial)
     { // 1xCx1x1
+
         batchNormSpatialHostInference(in.GetTensor(),
                                       out_ref,
                                       scale.GetTensor(),
@@ -818,7 +898,19 @@ void BatchNormDriver<Tgpu, Tref, Tmix>::runCPUFwdInference(Tref epsilon)
 template <typename Tgpu, typename Tref, typename Tmix>
 void BatchNormDriver<Tgpu, Tref, Tmix>::runCPUFwdTrain(Tref epsilon, Tref eAF)
 {
-
+    int size{0};
+    miopenGetTensorDescriptorSize(&in.GetTensor().desc, &size);
+    if(size == 5)
+    {
+        in.GetTensor().desc    = miopen::BuildReshaped4DTensorDescriptor(in.GetTensor().desc);
+        out_ref.desc           = miopen::BuildReshaped4DTensorDescriptor(out_ref.desc);
+        scale.GetTensor().desc = miopen::BuildReshaped4DTensorDescriptor(scale.GetTensor().desc);
+        bias.GetTensor().desc  = miopen::BuildReshaped4DTensorDescriptor(bias.GetTensor().desc);
+        savedMean_ref.desc     = miopen::BuildReshaped4DTensorDescriptor(savedMean_ref.desc);
+        savedVariance_ref.desc = miopen::BuildReshaped4DTensorDescriptor(savedVariance_ref.desc);
+        runMean_ref.desc       = miopen::BuildReshaped4DTensorDescriptor(runMean_ref.desc);
+        runVariance_ref.desc   = miopen::BuildReshaped4DTensorDescriptor(runVariance_ref.desc);
+    }
     if(bn_mode == miopenBNPerActivation)
     { // 1xCxHxW
         batchNormPerActHostFwdTrain(in.GetTensor(),
@@ -879,7 +971,6 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::RunForwardCPU()
 template <typename Tgpu, typename Tref, typename Tmix>
 int BatchNormDriver<Tgpu, Tref, Tmix>::RunBackwardGPU()
 {
-
     if(!back)
         return miopenStatusSuccess;
 
@@ -1225,6 +1316,25 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::RunBackwardCPU()
 
     // float alphaDataDiff = static_cast<float>(1), betaDataDiff = static_cast<float>(0);
     // float alphaParamDiff = static_cast<float>(1), betaParamDiff = static_cast<float>(0);
+    int size{0};
+    miopenGetTensorDescriptorSize(&in.GetTensor().desc, &size);
+    if(size == 5)
+    {
+        in.GetTensor().desc = miopen::BuildReshaped4DTensorDescriptor(in.GetTensor().desc);
+        dy.GetTensor().desc = miopen::BuildReshaped4DTensorDescriptor(dy.GetTensor().desc);
+        out_bwd.GetTensor().desc =
+            miopen::BuildReshaped4DTensorDescriptor(out_bwd.GetTensor().desc);
+        out_ref.desc = miopen::BuildReshaped4DTensorDescriptor(out_ref.desc);
+        bnScale.GetTensor().desc =
+            miopen::BuildReshaped4DTensorDescriptor(bnScale.GetTensor().desc);
+        dBias.GetTensor().desc = miopen::BuildReshaped4DTensorDescriptor(dBias.GetTensor().desc);
+        dScale_ref.desc        = miopen::BuildReshaped4DTensorDescriptor(dScale_ref.desc);
+        dBias_ref.desc         = miopen::BuildReshaped4DTensorDescriptor(dBias_ref.desc);
+        savedMean.GetTensor().desc =
+            miopen::BuildReshaped4DTensorDescriptor(savedMean.GetTensor().desc);
+        savedInvVar.GetTensor().desc =
+            miopen::BuildReshaped4DTensorDescriptor(savedInvVar.GetTensor().desc);
+    }
 
     if(bn_mode == miopenBNPerActivation)
     {
