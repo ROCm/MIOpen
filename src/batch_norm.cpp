@@ -68,6 +68,19 @@ TensorDescriptor BuildReshaped4DTensorDescriptor(const miopen::TensorDescriptor&
 {
     auto dataType = tDesc.GetType();
     auto layout   = tDesc.GetLayout_t();
+    if(layout == miopenTensorNCDHW)
+    {
+        layout = miopenTensorNCHW;
+    }
+    else if(layout == miopenTensorNDHWC)
+    {
+        layout = miopenTensorNHWC;
+    }
+    else
+    {
+        std::cout << "Cannot handle layout : " << layout << "\n";
+        exit(EXIT_FAILURE); // NOLINT (concurrency-mt-unsafe)
+    }
     std::vector<size_t> dims(tDesc.GetLengths());
 
     // NxCxDxHxW -> NxCx(D*H)xW

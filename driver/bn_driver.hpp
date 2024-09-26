@@ -351,7 +351,7 @@ template <typename Tgpu, typename Tref, typename Tmix>
 int BatchNormDriver<Tgpu, Tref, Tmix>::ChkLayout_ShortName()
 {
     // check for short name of layout type
-    if(inflags.FindShortName("layout") == 'I')
+    if(inflags.FindShortName("layout") == 'L')
     {
         // do noting
         // found valid short names
