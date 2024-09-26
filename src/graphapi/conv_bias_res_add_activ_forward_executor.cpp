@@ -27,6 +27,7 @@
 #include <miopen/errors.hpp>
 #include <miopen/graphapi/conv_bias_res_add_activ_forward_executor.hpp>
 #include <miopen/fusion.hpp>
+#include <miopen/handle.hpp>
 #include <miopen/visit_float.hpp>
 
 namespace miopen {
