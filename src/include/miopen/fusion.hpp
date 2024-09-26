@@ -30,7 +30,8 @@
 #include <miopen/miopen.h>
 #include <miopen/tensor.hpp>
 #include <miopen/convolution.hpp>
-#include <miopen/solver.hpp>
+#include <miopen/conv/problem_description.hpp>
+#include <miopen/kernel_info.hpp>
 #include <miopen/op_kernel_args.hpp>
 #include <miopen/fusion_ops.hpp>
 #include <miopen/fusion/fusion_invoke_params.hpp>

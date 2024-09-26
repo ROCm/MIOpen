@@ -29,6 +29,7 @@
 #include <miopen/mha/solvers.hpp>
 
 #include <miopen/mha/invoke_params.hpp>
+#include <miopen/buffer_info.hpp>
 #include <miopen/datatype.hpp>
 #include <miopen/kernel_build_params.hpp>
 #include <miopen/target_properties.hpp>

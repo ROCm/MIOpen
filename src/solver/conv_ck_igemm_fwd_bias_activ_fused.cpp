@@ -29,7 +29,6 @@
 #include <cstdint>
 
 #include <miopen/check_numerics.hpp>
-#include <miopen/solver.hpp>
 #include <miopen/fusion/solvers.hpp>
 #include <miopen/generic_search.hpp>
 #include <miopen/conv/data_invoke_params.hpp>

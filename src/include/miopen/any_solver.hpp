@@ -31,6 +31,7 @@
 #include <miopen/conv_solution.hpp>
 #include <miopen/find_solution.hpp>
 #include <miopen/mlo_internal.hpp>
+#include <miopen/legacy_exhaustive_search.hpp>
 
 #include <miopen/generic_search.hpp>
 

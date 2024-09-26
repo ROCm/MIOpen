@@ -24,7 +24,7 @@
  *
  *******************************************************************************/
 
-#include <miopen/solver.hpp>
+#include <miopen/conv/solvers.hpp>
 #include <miopen/gcn_asm_utils.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/env.hpp>

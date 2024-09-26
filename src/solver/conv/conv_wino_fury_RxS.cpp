@@ -26,7 +26,7 @@
 
 #define CONV_WINO_FURY_RXS_CPP
 
-#include <miopen/solver.hpp>
+#include <miopen/conv/solvers.hpp>
 #include <miopen/fusion/solvers.hpp>
 
 #include <miopen/conv/invokers/gcn_asm_wino.hpp>

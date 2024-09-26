@@ -47,7 +47,7 @@
 #include <miopen/logger.hpp>
 #include <miopen/miopen.h>
 #include <miopen/miopen_internal.h>
-#include <miopen/solver.hpp>
+#include <miopen/conv/solvers.hpp>
 #include <miopen/tensor.hpp>
 
 #include <../test/cpu_bias.hpp>

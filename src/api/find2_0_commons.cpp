@@ -28,6 +28,7 @@
 
 #include <miopen/common.hpp>
 #include <miopen/errors.hpp>
+#include <miopen/handle.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/problem.hpp>
 #include <miopen/search_options.hpp>

@@ -24,12 +24,11 @@
  *
  *******************************************************************************/
 
-#include <miopen/solver.hpp>
-
 #include <miopen/activ/solvers.hpp>
 #include <miopen/adam/solvers.hpp>
 #include <miopen/batchnorm/solvers.hpp>
 #include <miopen/cat/solvers.hpp>
+#include <miopen/conv/solvers.hpp>
 #include <miopen/fusion/solvers.hpp>
 #include <miopen/groupnorm/solvers.hpp>
 #include <miopen/getitem/solvers.hpp>
