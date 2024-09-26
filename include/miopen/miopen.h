@@ -5407,40 +5407,42 @@ typedef enum
     miopenTensorMhaAmaxDK             = 33,
     miopenTensorMhaAmaxDV             = 34,
     miopenTensorMhaAmaxDS             = 35,
+    miopenTensorMhaBias               = 36,
 
 #ifdef MIOPEN_BETA_API
-    miopenTensorActivationX                = 36,
-    miopenTensorActivationY                = 37,
-    miopenTensorActivationDX               = 38,
-    miopenTensorActivationDY               = 39,
-    miopenTensorBiasX                      = 40,
-    miopenTensorBiasY                      = 41,
-    miopenTensorBias                       = 42,
-    miopenTensorSoftmaxX                   = 43,
-    miopenTensorSoftmaxY                   = 44,
-    miopenTensorSoftmaxDX                  = 45,
-    miopenTensorSoftmaxDY                  = 46,
-    miopenTensorBatchnormX                 = 47,
-    miopenTensorBatchnormY                 = 48,
-    miopenTensorBatchnormRunningMean       = 49,
-    miopenTensorBatchnormRunningVariance   = 50,
-    miopenTensorBatchnormSavedMean         = 51,
-    miopenTensorBatchnormSavedVariance     = 52,
-    miopenTensorBatchnormScale             = 53,
-    miopenTensorBatchnormScaleDiff         = 54,
-    miopenTensorBatchnormEstimatedMean     = 55,
-    miopenTensorBatchnormEstimatedVariance = 56,
-    miopenTensorBatchnormBias              = 57,
-    miopenTensorBatchnormBiasDiff          = 58,
-    miopenTensorBatchnormDX                = 59,
-    miopenTensorBatchnormDY                = 60,
+    miopenTensorActivationX                = 37,
+    miopenTensorActivationY                = 38,
+    miopenTensorActivationDX               = 39,
+    miopenTensorActivationDY               = 40,
+    miopenTensorBiasX                      = 41,
+    miopenTensorBiasY                      = 42,
+    miopenTensorBias                       = 43,
+    miopenTensorSoftmaxX                   = 44,
+    miopenTensorSoftmaxY                   = 45,
+    miopenTensorSoftmaxDX                  = 46,
+    miopenTensorSoftmaxDY                  = 47,
+    miopenTensorBatchnormX                 = 48,
+    miopenTensorBatchnormY                 = 49,
+    miopenTensorBatchnormRunningMean       = 50,
+    miopenTensorBatchnormRunningVariance   = 51,
+    miopenTensorBatchnormSavedMean         = 52,
+    miopenTensorBatchnormSavedVariance     = 53,
+    miopenTensorBatchnormScale             = 54,
+    miopenTensorBatchnormScaleDiff         = 55,
+    miopenTensorBatchnormEstimatedMean     = 56,
+    miopenTensorBatchnormEstimatedVariance = 57,
+    miopenTensorBatchnormBias              = 58,
+    miopenTensorBatchnormBiasDiff          = 59,
+    miopenTensorBatchnormDX                = 60,
+    miopenTensorBatchnormDY                = 61,
 #endif
 
     miopenTensorArgumentIsScalar = 1U << 31,
 
+    miopenTensorMhaMask = miopenTensorArgumentIsScalar | 1,
 #ifdef MIOPEN_BETA_API
-    miopenScalarBatchnormExpAvgFactor = miopenTensorArgumentIsScalar | 1,
-    miopenScalarBatchnormEpsilon      = miopenTensorArgumentIsScalar | 2,
+    miopenScalarBatchnormExpAvgFactor = miopenTensorArgumentIsScalar | 2,
+    miopenScalarBatchnormEpsilon      = miopenTensorArgumentIsScalar | 3,
 #endif
 } miopenTensorArgumentId_t;
 
@@ -5471,6 +5473,15 @@ MIOPEN_EXPORT miopenStatus_t miopenCreateConvProblem(miopenProblem_t* problem,
  * @param direction    Direction of the operation
  * @return             miopenStatus_t
  */
+
+/*! @enum miopenMhaMask_t
+ * Different masks for Mha.
+ */
+typedef enum
+{
+    miopenMhaMaskNone   = 0,
+    miopenMhaMaskCausal = 1,
+} miopenMhaMask_t;
 
 MIOPEN_EXPORT miopenStatus_t miopenCreateMhaProblem(miopenProblem_t* problem,
                                                     miopenMhaDescriptor_t operatorDesc,

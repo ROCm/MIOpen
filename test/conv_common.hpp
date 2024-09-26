@@ -38,7 +38,6 @@
 #include <miopen/tensor_layout.hpp>
 #include <miopen/tensor_ops.hpp>
 #include <miopen/mlo_internal.hpp>
-#include <miopen/solver.hpp>
 #include <miopen/solution.hpp>
 #include <miopen/invoke_params.hpp>
 #include <miopen/conv/tensors.hpp>
@@ -185,10 +184,7 @@ tensor<Tout> get_output_tensor(const miopen::ConvolutionDescriptor& filter,
                                const std::string& out_layout)
 {
 
-    std::string yLayout =
-        out_layout.empty()
-            ? input.desc.GetLayout(miopen::tensor_layout_get_default(input.desc.GetNumDims()))
-            : out_layout;
+    std::string yLayout = out_layout.empty() ? input.desc.GetLayout_str() : out_layout;
     return tensor<Tout>{filter.GetForwardOutputTensorWithLayout(
         input.desc, weights.desc, yLayout, miopen_type<Tout>{})};
 }

@@ -34,7 +34,7 @@
 #include <miopen/env.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/handle.hpp>
-#include <miopen/solver.hpp>
+#include <miopen/conv/solvers.hpp>
 #include <miopen/generic_search.hpp>
 
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW1X1_PERF_VALS)

@@ -32,6 +32,7 @@
 #include <miopen/fusion.hpp>
 #include <miopen/fusion_plan.hpp>
 #include <miopen/errors.hpp>
+#include <miopen/handle.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/tensor.hpp>
 
