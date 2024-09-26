@@ -24,6 +24,7 @@
  *
  *******************************************************************************/
 
+#include <miopen/mlo_internal.hpp>
 #include <miopen/cumulative_reduction/utils.hpp>
 
 namespace miopen {
