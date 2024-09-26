@@ -473,6 +473,7 @@ if(MIOPEN_BUILD_DRIVER)
     # boost core is a header only component that can't be found by find_package
     # list(APPEND BOOST_COMPONENTS core)
 endif()
+
 add_definitions(-DBOOST_ALL_NO_LIB=1)
 find_package(Boost REQUIRED COMPONENTS ${BOOST_COMPONENTS})
 
@@ -582,7 +583,7 @@ endif()
 
 set(KERNELS_SOURCE_DIR ${PROJECT_SOURCE_DIR}/src/kernels)
 
-find_program(UNZIPPER lbzcat bzcat REQUIRED)
+find_program(UNZIPPER bzip2 REQUIRED)
 file(MAKE_DIRECTORY ${KERNELS_BINARY_DIR})
 
 add_custom_target(generate_kernels ALL)
@@ -597,7 +598,7 @@ endif()
 function(unpack_db db_bzip2_file)
     get_filename_component(__fname ${db_bzip2_file} NAME_WLE)
     add_custom_command(OUTPUT ${KERNELS_BINARY_DIR}/${__fname}
-                       COMMAND ${UNZIPPER} -k ${db_bzip2_file} > ${KERNELS_BINARY_DIR}/${__fname})
+                       COMMAND ${UNZIPPER} -dc -k ${db_bzip2_file} > ${KERNELS_BINARY_DIR}/${__fname})
     string(REPLACE "." "_" __tname ${__fname})
     add_custom_target(generate_${__tname} ALL DEPENDS ${KERNELS_BINARY_DIR}/${__fname})
 
