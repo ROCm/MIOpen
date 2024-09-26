@@ -5487,9 +5487,10 @@ typedef enum
 
     miopenTensorArgumentIsScalar = 1U << 31,
 
+    miopenTensorMhaMask = miopenTensorArgumentIsScalar | 1,
 #ifdef MIOPEN_BETA_API
-    miopenScalarBatchnormExpAvgFactor = miopenTensorArgumentIsScalar | 1,
-    miopenScalarBatchnormEpsilon      = miopenTensorArgumentIsScalar | 2,
+    miopenScalarBatchnormExpAvgFactor = miopenTensorArgumentIsScalar | 2,
+    miopenScalarBatchnormEpsilon      = miopenTensorArgumentIsScalar | 3,
 #endif
 } miopenTensorArgumentId_t;
 
@@ -5520,6 +5521,15 @@ MIOPEN_EXPORT miopenStatus_t miopenCreateConvProblem(miopenProblem_t* problem,
  * @param direction    Direction of the operation
  * @return             miopenStatus_t
  */
+
+/*! @enum miopenMhaMask_t
+ * Different masks for Mha.
+ */
+typedef enum
+{
+    miopenMhaMaskNone   = 0,
+    miopenMhaMaskCausal = 1,
+} miopenMhaMask_t;
 
 MIOPEN_EXPORT miopenStatus_t miopenCreateMhaProblem(miopenProblem_t* problem,
                                                     miopenMhaDescriptor_t operatorDesc,

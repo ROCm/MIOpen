@@ -1,3 +1,4 @@
+#include <miopen/buffer_info.hpp>
 #include <miopen/conv/invokers/impl_gemm_dynamic.hpp>
 #include <miopen/conv/data_invoke_params.hpp>
 #include <miopen/algorithm.hpp>
