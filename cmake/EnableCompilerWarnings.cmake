@@ -105,7 +105,8 @@ set(__clang_cxx_compile_options
     -Wno-unused-value
     -Wno-unused-parameter
     -Wno-missing-noreturn
-    -Wno-tautological-constant-out-of-range-compare)
+    -Wno-tautological-constant-out-of-range-compare
+    -Wno-c++20-extensions)
 if(WIN32)
     list(APPEND __clang_cxx_compile_options
         -fdelayed-template-parsing
