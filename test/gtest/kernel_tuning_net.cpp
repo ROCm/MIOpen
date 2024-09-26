@@ -1,7 +1,7 @@
 #include <gtest/ai_heuristics.hpp>
 #include "../tensor_holder.hpp"
 #include "get_handle.hpp"
-#include <miopen/solver.hpp>
+#include <miopen/conv/solvers.hpp>
 #include <miopen/conv/heuristics/ai_heuristics.hpp>
 
 struct KernelTuningNetTestCase : AIModelTestCase
