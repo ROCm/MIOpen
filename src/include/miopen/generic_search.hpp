@@ -518,17 +518,18 @@ auto GenericSearch(const Solver s,
             if(ret == 0)
             {
                 // Smooth the jitter of measurements:
-                // If the 1st probe is NOT too bad (measured time <= 1.05 * best known time),
-                // then re-run it 4 times more and compute average time,
-                // and decide using average of all 5 attempts vs. the best.
-                if(elapsed_time / best_time < 1.05f)
+                // If the 1st probe is NOT too bad (measured time <= 1.10 * best known time),
+                // then re-run it 9 times more and compute average time,
+                // and decide using average of all 10 attempts vs. the best.
+                constexpr int N_RUNS = 10;
+                if(elapsed_time / best_time < 1.10f)
                 {
                     MIOPEN_LOG_I2("Finding average for: " << elapsed_time << " / " << best_time
                                                           << " = " << (elapsed_time / best_time));
 
                     try
                     {
-                        for(int i = 0; i < 4; ++i)
+                        for(int i = 1; i < N_RUNS; ++i)
                         {
                             invoker(profile_h, invoke_ctx);
                             elapsed_time += profile_h.GetKernelTime();
@@ -542,7 +543,7 @@ auto GenericSearch(const Solver s,
                     if(ret == 0)
                     {
                         is_passed = true;
-                        elapsed_time /= 5;
+                        elapsed_time /= N_RUNS;
                         if(elapsed_time < best_time)
                         {
                             MIOPEN_LOG_I('#' << n_current << '/' << n_failed << '/' << n_runs_total
