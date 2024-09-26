@@ -27,6 +27,7 @@
 #pragma once
 
 #include <miopen/solver.hpp>
+#include <miopen/conv/solvers.hpp>
 #include <miopen/fusion.hpp>
 #include <miopen/fusion_plan.hpp>
 #include <utility>

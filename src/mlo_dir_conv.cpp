@@ -30,7 +30,7 @@
 #include <miopen/env.hpp>
 #include <miopen/gcn_asm_utils.hpp>
 #include <miopen/mlo_internal.hpp>
-#include <miopen/solver.hpp>
+#include <miopen/conv/solvers.hpp>
 #include <miopen/readonlyramdb.hpp>
 #include <miopen/datatype.hpp>
 #include <miopen/version.h>

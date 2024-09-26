@@ -30,7 +30,7 @@
 #include <miopen/env.hpp>
 #include <miopen/generic_search.hpp>
 #include <miopen/mlir_build.hpp>
-#include <miopen/solver.hpp>
+#include <miopen/conv/solvers.hpp>
 #include <miopen/solver/implicitgemm_util.hpp>
 #include <miopen/solver/mlir_common.hpp>
 

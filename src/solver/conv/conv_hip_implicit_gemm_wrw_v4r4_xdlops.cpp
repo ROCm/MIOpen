@@ -24,7 +24,7 @@
  *
  *******************************************************************************/
 
-#include <miopen/solver.hpp>
+#include <miopen/conv/solvers.hpp>
 #include <miopen/conv/invokers/impl_gemm.hpp>
 #include <miopen/conv/wrw_invoke_params.hpp>
 #include <miopen/handle.hpp>

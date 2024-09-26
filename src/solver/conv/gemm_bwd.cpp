@@ -24,7 +24,7 @@
  *
  *******************************************************************************/
 
-#include <miopen/solver.hpp>
+#include <miopen/conv/solvers.hpp>
 
 #include <miopen/algorithm.hpp>
 #include <miopen/env.hpp>

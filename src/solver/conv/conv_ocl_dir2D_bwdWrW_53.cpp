@@ -24,9 +24,10 @@
  *
  *******************************************************************************/
 
-#include <miopen/solver.hpp>
+#include <miopen/conv/solvers.hpp>
 
 #include <miopen/conv/invokers/ocl_wrw_rdc.hpp>
+#include <miopen/mlo_internal.hpp>
 #include <miopen/stringutils.hpp>
 #include <miopen/env.hpp>
 

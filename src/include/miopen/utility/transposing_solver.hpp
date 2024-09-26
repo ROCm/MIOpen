@@ -26,8 +26,6 @@
 
 #pragma once
 
-#include <miopen/solver.hpp>
-
 #include <miopen/datatype.hpp>
 #include <miopen/subbuffers.hpp>
 #include <miopen/tensor_layout.hpp>

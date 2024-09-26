@@ -23,7 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <miopen/solver.hpp>
+#include <miopen/conv/solvers.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/stringutils.hpp>
 #include <miopen/solver/implicitgemm_util.hpp>
