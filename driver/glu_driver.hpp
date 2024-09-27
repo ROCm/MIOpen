@@ -371,6 +371,7 @@ int GLUDriver<Tgpu, Tref>::RunForwardGPU()
 template <typename Tgpu, typename Tref>
 int GLUDriver<Tgpu, Tref>::RunForwardCPU()
 {
+    MIOPEN_THROW_IF(dim != 0, "This driver only supports dim = 0");
     mloGLUForwardContiguousDim0RunHost<Tgpu, Tref>(in.data(), outputTensor, outhost.data());
 
     return miopenStatusSuccess;
@@ -453,6 +454,7 @@ int GLUDriver<Tgpu, Tref>::VerifyForward()
 template <typename Tgpu, typename Tref>
 int GLUDriver<Tgpu, Tref>::RunBackwardCPU()
 {
+    MIOPEN_THROW_IF(dim != 0, "This driver only supports dim = 0");
     mloGLUBackwardCongiguousDim0RunHost<Tgpu, Tref>(
         in.data(), outputTensorGrad, outGrad.data(), inGradhost.data());
 

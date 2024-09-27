@@ -76,9 +76,6 @@ private:
     TensorDescriptor inputGradDesc;
 
     uint32_t dim;
-
-    NetworkConfig MakeForwardNetworkConfig() const;
-    NetworkConfig MakeBackwardNetworkConfig() const;
 };
 
 } // namespace glu

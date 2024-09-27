@@ -190,37 +190,12 @@ bool ProblemDescription::IsAllContiguous() const
 
 NetworkConfig ProblemDescription::MakeNetworkConfig() const
 {
-    switch(direction)
-    {
-    case Direction::Forward: return MakeForwardNetworkConfig();
-    case Direction::Backward: return MakeBackwardNetworkConfig();
-    default: MIOPEN_THROW(miopenStatusInternalError);
-    }
-}
-
-NetworkConfig ProblemDescription::MakeForwardNetworkConfig() const
-{
     auto input_numel = inputDesc.GetElementSize();
     auto io_dtype    = miopen::GetDataType(inputDesc.GetType());
 
     std::ostringstream ss;
 
     ss << "io_dtype" << io_dtype;
-    ss << "dim" << dim;
-    ss << "input_numel" << input_numel;
-    ss << IsAllContiguous();
-
-    return NetworkConfig{ss.str()};
-}
-
-NetworkConfig ProblemDescription::MakeBackwardNetworkConfig() const
-{
-    auto input_numel = inputDesc.GetElementSize();
-    auto io_dtype    = miopen::GetDataType(inputDesc.GetType());
-
-    std::ostringstream ss;
-
-    ss << "input_dtype" << io_dtype;
     ss << "dim" << dim;
     ss << "input_numel" << input_numel;
     ss << IsAllContiguous();

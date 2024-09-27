@@ -26,34 +26,7 @@
 
 #include "glu.hpp"
 #include "gtest/gtest.h"
-#include <miopen/env.hpp>
 using float16 = half_float::half;
-
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
-
-namespace {
-
-std::string GetFloatArg()
-{
-    const auto& tmp = env::value(MIOPEN_TEST_FLOAT_ARG);
-    if(tmp.empty())
-    {
-        return "";
-    }
-    return tmp;
-}
-
-bool CheckFloatArg(std::string arg)
-{
-    if(!MIOPEN_TEST_ALL || (env::enabled(MIOPEN_TEST_ALL) && GetFloatArg() == arg))
-    {
-        return true;
-    }
-    return false;
-}
-
-} // namespace
 
 using GPU_GLU_fwd_FP32  = GLUFwdTest<float>;
 using GPU_GLU_fwd_FP16  = GLUFwdTest<float16>;
@@ -61,41 +34,20 @@ using GPU_GLU_fwd_BFP16 = GLUFwdTest<bfloat16>;
 
 TEST_P(GPU_GLU_fwd_FP32, Test)
 {
-    if(CheckFloatArg("--float"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 };
 
 TEST_P(GPU_GLU_fwd_FP16, Test)
 {
-    if(CheckFloatArg("--half"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 };
 
 TEST_P(GPU_GLU_fwd_BFP16, Test)
 {
-    if(CheckFloatArg("--bfloat16"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 };
 
 using GPU_GLU_bwd_FP32  = GLUBwdTest<float>;
@@ -104,41 +56,20 @@ using GPU_GLU_bwd_BFP16 = GLUBwdTest<bfloat16>;
 
 TEST_P(GPU_GLU_bwd_FP32, Test)
 {
-    if(CheckFloatArg("--float"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 };
 
 TEST_P(GPU_GLU_bwd_FP16, Test)
 {
-    if(CheckFloatArg("--half"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 };
 
 TEST_P(GPU_GLU_bwd_BFP16, Test)
 {
-    if(CheckFloatArg("--bfloat16"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 };
 
 INSTANTIATE_TEST_SUITE_P(Full, GPU_GLU_fwd_FP32, testing::ValuesIn(GenFullTestCases()));

@@ -43,17 +43,6 @@ namespace solver {
 
 namespace glu {
 
-bool GLUBackward::IsImprovementOverROCm(const miopen::glu::ProblemDescription& problem) const
-{
-    constexpr size_t max_input_tensor_size = 800000;
-    if(problem.GetInputDesc().GetElementSize() < max_input_tensor_size)
-    {
-        return true;
-    }
-
-    return false;
-}
-
 bool GLUBackward::IsApplicable(const ExecutionContext& context,
                                const miopen::glu::ProblemDescription& problem) const
 {
@@ -62,8 +51,6 @@ bool GLUBackward::IsApplicable(const ExecutionContext& context,
     if(!problem.IsAllContiguous())
         return false;
     if(problem.GetDim() != 0)
-        return false;
-    if(!IsImprovementOverROCm(problem))
         return false;
     if(!(problem.GetInputDesc().GetType() == miopenFloat ||
          problem.GetInputDesc().GetType() == miopenHalf ||
