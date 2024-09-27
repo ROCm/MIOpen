@@ -23,59 +23,33 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-
-#ifndef MIOPEN_TENSOR_VIEW_UTIL_HPP_
-#define MIOPEN_TENSOR_VIEW_UTIL_HPP_
+#pragma once
 
 #include <miopen/common.hpp>
-#include <miopen/tensor.hpp>
-#include "../../kernels/tensor_view.hpp"
 
 namespace miopen {
 
-template <int N>
-inline tensor_view_t<N> get_inner_expanded_tv(const TensorDescriptor Desc)
-{
-    auto dims    = Desc.GetLengths();
-    auto strides = Desc.GetStrides();
+struct Handle;
+struct TensorDescriptor;
 
-    tensor_view_t<N> tensor_view{};
-    for(size_t i = 0; i < N; ++i)
-    {
-        if(i < dims.size())
-        {
-            tensor_view.stride[i] = strides[i];
-            tensor_view.size[i]   = dims[i];
-        }
-        else
-        {
-            tensor_view.stride[i] = (i == 0 ? 1 : strides[i - 1]);
-            tensor_view.size[i]   = 1;
-        }
-    }
-    return tensor_view;
-}
+namespace glu {
 
-template <int N>
-inline void slice_tv(tensor_view_t<N>& tensor_view, int32_t sliceCount, const int32_t* slices)
-{
-    for(int32_t i = 0; i < sliceCount; i++)
-    {
-        int32_t dim   = slices[4 * i + 0];
-        int32_t start = slices[4 * i + 1];
-        int32_t end   = slices[4 * i + 2];
-        int32_t step  = slices[4 * i + 3];
+MIOPEN_INTERNALS_EXPORT miopenStatus_t GLUForward(Handle& handle,
+                                                  const TensorDescriptor& inputDesc,
+                                                  ConstData_t input,
+                                                  const TensorDescriptor& outputDesc,
+                                                  Data_t output,
+                                                  uint32_t dim);
 
-        if(end > static_cast<int32_t>(tensor_view.size[dim]))
-            end = tensor_view.size[dim];
+MIOPEN_INTERNALS_EXPORT miopenStatus_t GLUBackward(Handle& handle,
+                                                   const TensorDescriptor& inputDesc,
+                                                   ConstData_t input,
+                                                   const TensorDescriptor& outputGradDesc,
+                                                   ConstData_t outputGrad,
+                                                   const TensorDescriptor& inputGradDesc,
+                                                   Data_t inputGrad,
+                                                   uint32_t dim);
 
-        auto len = end - start;
-
-        tensor_view.size[dim] = (len + step - 1) / step;
-        tensor_view.stride[dim] *= step;
-    }
-}
+} // namespace glu
 
 } // namespace miopen
-
-#endif // MIOPEN_TENSOR_VIEW_UTIL_HPP_

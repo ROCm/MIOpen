@@ -1,0 +1,83 @@
+/*******************************************************************************
+ *
+ * MIT License
+ *
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ *******************************************************************************/
+
+#pragma once
+
+#include <cstdint>
+#include <miopen/problem_description_base.hpp>
+#include <miopen/tensor.hpp>
+
+namespace miopen {
+
+struct NetworkConfig;
+
+namespace glu {
+
+enum class Direction
+{
+    Forward,
+    Backward,
+};
+
+struct ProblemDescription : ProblemDescriptionBase
+{
+    // Forward constructor
+    ProblemDescription(const TensorDescriptor& inputDesc_,
+                       const TensorDescriptor& outputDesc_,
+                       uint32_t dim_);
+
+    // Backward constructor
+    ProblemDescription(const TensorDescriptor& inputDesc_,
+                       const TensorDescriptor& outputGradDesc_,
+                       const TensorDescriptor& inputGradDesc_,
+                       uint32_t dim_);
+
+    Direction GetDirection() const { return direction; }
+    const TensorDescriptor& GetInputDesc() const { return inputDesc; }
+    const TensorDescriptor& GetInputGradDesc() const { return inputGradDesc; }
+    const TensorDescriptor& GetOutputDesc() const { return outputDesc; }
+    const TensorDescriptor& GetOutputGradDesc() const { return outputGradDesc; }
+    uint32_t GetDim() const { return dim; }
+
+    bool IsSameType() const;
+
+    bool IsAllContiguous() const;
+
+    NetworkConfig MakeNetworkConfig() const override;
+
+private:
+    Direction direction;
+    TensorDescriptor inputDesc;
+    TensorDescriptor outputDesc;
+    TensorDescriptor outputGradDesc;
+    TensorDescriptor inputGradDesc;
+
+    uint32_t dim;
+};
+
+} // namespace glu
+
+} // namespace miopen
