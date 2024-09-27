@@ -108,6 +108,7 @@ ConvSolution
 MhaCKFlashAttentionV2Forward::GetSolution([[maybe_unused]] const ExecutionContext& context,
                                           const miopen::mha::ProblemDescription& problem) const
 {
+#if MIOPEN_USE_COMPOSABLEKERNEL
     auto result         = ConvSolution{miopenStatusSuccess};
     result.workspace_sz = 0;
 
@@ -240,6 +241,9 @@ MhaCKFlashAttentionV2Forward::GetSolution([[maybe_unused]] const ExecutionContex
     };
 
     return result;
+#else
+    return ConvSolution{miopenStatusNotImplemented};
+#endif
 }
 
 bool MhaCKFlashAttentionV2Forward::MayNeedWorkspace() const { return false; }
