@@ -30,6 +30,16 @@
 #include <miopen/dropout.hpp>
 #include <miopen/tensor_ops.hpp>
 
+// disable __device__ qualifiers
+#ifdef FQUALIFIERS
+#error rocrand FQUALIFIERS defined externally, probably one of rocrand device header included prior to this
+#endif
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-macros"
+#define FQUALIFIERS inline
+#pragma clang diagnostic pop
+#include "kernels/miopen_rocrand.hpp"
+
 extern "C" miopenStatus_t miopenCreateDropoutDescriptor(miopenDropoutDescriptor_t* dropoutDesc)
 {
 
@@ -63,7 +73,7 @@ extern "C" miopenStatus_t miopenDropoutGetStatesSize(miopenHandle_t handle,
     return miopen::try_([&] {
         miopen::deref(stateSizeInBytes) =
             std::min(size_t(MAX_PRNG_STATE), miopen::deref(handle).GetImage3dMaxWidth()) *
-            sizeof(prngStates);
+            sizeof(rocrand_state_xorwow);
     });
 }
 
