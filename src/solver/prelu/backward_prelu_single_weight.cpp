@@ -24,8 +24,10 @@
  *
  *******************************************************************************/
 
+#include <miopen/buffer_info.hpp>
 #include <miopen/datatype.hpp>
 #include <miopen/kernel_build_params.hpp>
+#include <miopen/mlo_internal.hpp>
 #include <miopen/tensor_view_utils.hpp>
 #include <miopen/prelu/invoke_params.hpp>
 #include <miopen/prelu/solvers.hpp>
