@@ -29,6 +29,7 @@
 #include <miopen/layernorm/solvers.hpp>
 #include <miopen/layernorm/invoke_params.hpp>
 #include <miopen/layernorm/utils.hpp>
+#include <miopen/mlo_internal.hpp>
 #include <miopen/t5layernorm.hpp>
 #include <miopen/target_properties.hpp>
 
