@@ -148,6 +148,7 @@ MhaCKFlashAttentionV2Forward::GetSolution([[maybe_unused]] const ExecutionContex
     fmha_traits.has_lse             = false;
     fmha_traits.is_v_rowmajor       = false;
     fmha_traits.do_fp8_static_quant = false;
+    fmha_traits.has_dropout         = false;
 
     fmha_fwd_args fmha_args;
     fmha_args.batch          = batch;
@@ -197,13 +198,30 @@ MhaCKFlashAttentionV2Forward::GetSolution([[maybe_unused]] const ExecutionContex
             fmha_fwd_traits fmha_runtime_traits = fmha_traits;
             fmha_fwd_args fmha_runtime_args     = fmha_args;
 
+            fmha_runtime_args.q_ptr        = dataFwd.qData;
+            fmha_runtime_args.k_ptr        = dataFwd.kData;
+            fmha_runtime_args.v_ptr        = dataFwd.vData;
+            fmha_runtime_args.rand_val_ptr = nullptr;
+            fmha_runtime_args.o_ptr        = dataFwd.oData;
+
             fmha_runtime_traits.bias_type =
                 dataFwd.biasData != nullptr ? bias_enum::elementwise_bias : bias_enum::no_bias;
-            fmha_runtime_traits.has_dropout = dataFwd.dropoutProbabilityData != nullptr;
+            fmha_runtime_args.bias_ptr = dataFwd.biasData;
 
-            float probability = 0;
-            uint64_t seed     = 0;
-            uint64_t offset   = 0;
+            // Top-left causal mask
+            if(dataFwd.mask == miopenMhaMask_t::miopenMhaMaskCausal)
+            {
+                fmha_runtime_traits.mask_type = mask_enum::mask_top_left;
+                fmha_runtime_args.mask_type =
+                    static_cast<ck_tile::index_t>(mask_enum::mask_top_left);
+                fmha_runtime_args.window_size_left  = -1;
+                fmha_runtime_args.window_size_right = 0;
+            }
+
+            fmha_runtime_traits.has_dropout = dataFwd.dropoutProbabilityData != nullptr;
+            float probability               = 0;
+            uint64_t seed                   = 0;
+            uint64_t offset                 = 0;
             if(fmha_runtime_traits.has_dropout)
             {
                 hipMemcpy(&probability,
@@ -221,13 +239,6 @@ MhaCKFlashAttentionV2Forward::GetSolution([[maybe_unused]] const ExecutionContex
             }
             fmha_runtime_args.p_drop           = probability;
             fmha_runtime_args.drop_seed_offset = {seed, offset};
-
-            fmha_runtime_args.bias_ptr     = dataFwd.biasData;
-            fmha_runtime_args.q_ptr        = dataFwd.qData;
-            fmha_runtime_args.k_ptr        = dataFwd.kData;
-            fmha_runtime_args.v_ptr        = dataFwd.vData;
-            fmha_runtime_args.rand_val_ptr = nullptr;
-            fmha_runtime_args.o_ptr        = dataFwd.oData;
 
             // Create stream_config, and set it to not time kernel.
             ck_tile::stream_config stream_config;
