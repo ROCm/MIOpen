@@ -25,7 +25,6 @@
  *******************************************************************************/
 
 #include "addlayernorm.hpp"
-#include <miopen/env.hpp>
 
 namespace addlayernorm {
 

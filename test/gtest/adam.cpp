@@ -23,10 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <miopen/env.hpp>
 #include "adam.hpp"
-
-namespace env = miopen::env;
 
 namespace adam {
 

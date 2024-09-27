@@ -27,7 +27,6 @@
 #include <miopen/miopen.h>
 #include <gtest/gtest_common.hpp>
 #include <gtest/gtest.h>
-#include <miopen/env.hpp>
 #include "get_handle.hpp"
 
 namespace conv_group {

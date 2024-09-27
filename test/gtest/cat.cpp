@@ -23,10 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <miopen/env.hpp>
 #include "cat.hpp"
-
-namespace env = miopen::env;
 
 namespace cat {
 
