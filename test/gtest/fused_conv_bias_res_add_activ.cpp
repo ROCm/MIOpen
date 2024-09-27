@@ -26,7 +26,6 @@
 #include <gtest/gtest.h>
 #include <gtest/gtest_ck_common.hpp>
 #include <miopen/miopen.h>
-#include <miopen/env.hpp>
 
 #include "tensor_util.hpp"
 #include "get_handle.hpp"

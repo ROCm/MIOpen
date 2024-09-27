@@ -25,7 +25,6 @@
  *******************************************************************************/
 #include <tuple>
 #include <miopen/miopen.h>
-#include <miopen/env.hpp>
 #include <gtest/gtest.h>
 #include "../conv3d.hpp"
 #include "get_handle.hpp"
@@ -116,9 +115,6 @@ std::vector<std::string> GetTestCases(const std::string& precision)
 
 using namespace conv3d_test;
 
-TEST_P(GPU_Conv3d_Test_FP32, FloatTest_conv3d_test)
-{
-    Run3dDriver(miopenFloat);
-};
+TEST_P(GPU_Conv3d_Test_FP32, FloatTest_conv3d_test) { Run3dDriver(miopenFloat); };
 
 INSTANTIATE_TEST_SUITE_P(Full, GPU_Conv3d_Test_FP32, testing::Values(GetTestCases("--float")));
