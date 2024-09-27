@@ -24,7 +24,7 @@
  *
  *******************************************************************************/
 
-#include <miopen/solver.hpp>
+#include <miopen/conv/solvers.hpp>
 
 #include <miopen/conv/compiled_in_parameters.hpp>
 #include <miopen/conv/wrw_invoke_params.hpp>

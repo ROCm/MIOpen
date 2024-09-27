@@ -2960,6 +2960,54 @@ miopenDestroyActivationDescriptor(miopenActivationDescriptor_t activDesc);
 /** @} */
 // CLOSEOUT ACTIVATION DOXYGEN GROUP
 
+#ifdef MIOPEN_BETA_API
+/** @addtogroup activation
+ *
+ *  @{
+ */
+
+/*! @brief Execute a GLU forward layer
+ *
+ * @param handle                   MIOpen handle (input)
+ * @param inputDesc                Tensor descriptor for input tensor (input)
+ * @param input                    Input tensor (input)
+ * @param outputDesc               Tensor descriptor for output tensor (input)
+ * @param output                   Output tensor (output)
+ * @param dim                      Dimension to split the input (input)
+ * @return                         miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenGLUForward(miopenHandle_t handle,
+                                              const miopenTensorDescriptor_t inputDesc,
+                                              const void* input,
+                                              const miopenTensorDescriptor_t outputDesc,
+                                              void* output,
+                                              const uint32_t dim);
+
+/*! @brief Execute a GLU backward layer
+ *
+ * @param handle                   MIOpen handle (input)
+ * @param inputDesc                Tensor descriptor for input tensor (input)
+ * @param input                    Input tensor (input)
+ * @param outputGradDesc           Tensor descriptor for delta output tensor (input)
+ * @param outputGrad               Delta output tensor (input)
+ * @param inputGradDesc            Tensor descriptor for delta input tensor (input)
+ * @param inputGrad                Delta input tensor (output)
+ * @param dim                      Dimension to split the input (input)
+ * @return                         miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenGLUBackward(miopenHandle_t handle,
+                                               const miopenTensorDescriptor_t inputDesc,
+                                               const void* input,
+                                               const miopenTensorDescriptor_t outputGradDesc,
+                                               const void* outputGrad,
+                                               const miopenTensorDescriptor_t inputGradDesc,
+                                               void* inputGrad,
+                                               const uint32_t dim);
+
+/** @} */
+// CLOSEOUT ACTIVATION DOXYGEN GROUP
+#endif // MIOPEN_BETA_API
+
 // Softmax APIs
 /** @addtogroup softmax
  *
@@ -5448,9 +5496,10 @@ typedef enum
 
     miopenTensorArgumentIsScalar = 1U << 31,
 
+    miopenTensorMhaMask = miopenTensorArgumentIsScalar | 1,
 #ifdef MIOPEN_BETA_API
-    miopenScalarBatchnormExpAvgFactor = miopenTensorArgumentIsScalar | 1,
-    miopenScalarBatchnormEpsilon      = miopenTensorArgumentIsScalar | 2,
+    miopenScalarBatchnormExpAvgFactor = miopenTensorArgumentIsScalar | 2,
+    miopenScalarBatchnormEpsilon      = miopenTensorArgumentIsScalar | 3,
 #endif
 } miopenTensorArgumentId_t;
 
@@ -5481,6 +5530,15 @@ MIOPEN_EXPORT miopenStatus_t miopenCreateConvProblem(miopenProblem_t* problem,
  * @param direction    Direction of the operation
  * @return             miopenStatus_t
  */
+
+/*! @enum miopenMhaMask_t
+ * Different masks for Mha.
+ */
+typedef enum
+{
+    miopenMhaMaskNone   = 0,
+    miopenMhaMaskCausal = 1,
+} miopenMhaMask_t;
 
 MIOPEN_EXPORT miopenStatus_t miopenCreateMhaProblem(miopenProblem_t* problem,
                                                     miopenMhaDescriptor_t operatorDesc,
