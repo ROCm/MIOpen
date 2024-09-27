@@ -7773,7 +7773,7 @@ miopenGetNLLLossForwardWorkspaceSize(miopenHandle_t handle,
                                      miopenLossReductionMode_t reduction,
                                      size_t* sizeInBytes);
 
-/*! @brief Execute a NLLLoss reduced forward layer
+/*! @brief Execute a NLLLoss forward layer
  *
  * @param handle                   MIOpen handle (input)
  * @param workspace                Address of the allocated workspace data (input)
@@ -7804,7 +7804,7 @@ MIOPEN_EXPORT miopenStatus_t miopenNLLLossForward(miopenHandle_t handle,
                                                   const int32_t ignore_index,
                                                   const miopenLossReductionMode_t reduction);
 
-/*! @brief Execute a NLLLoss reduced backward layer
+/*! @brief Execute a NLLLoss backward layer
  *
  * @param handle                   MIOpen handle (input)
  * @param inputGradDesc            Tensor descriptor for data input tensor input (input)

@@ -49,13 +49,13 @@ struct NLLLossTestCase
     std::vector<size_t> input;
     bool weight_mode;
     int32_t ignore_index;
-    float divisor;
+    miopenLossReductionMode_t reduction;
     bool contiguous;
 
     friend std::ostream& operator<<(std::ostream& os, const NLLLossTestCase& tc)
     {
         return os << " input:" << tc.input << " weight_mode:" << tc.weight_mode
-                  << " ignore_index:" << tc.ignore_index << " divisor:" << tc.divisor
+                  << " ignore_index:" << tc.ignore_index << " reduction:" << tc.reduction
                   << " Contiguous:" << tc.contiguous;
     }
 
@@ -65,19 +65,15 @@ struct NLLLossTestCase
 inline std::vector<NLLLossTestCase> NLLLossTestConfigs()
 {
     return {
-        {{16, 21, 21, 21, 10}, false, 255, 1, false},
-        {{55, 21, 21, 21, 10}, false, 255, 0, false},
-        {{24, 21, 21, 21, 10}, true, 255, 0, true},
-        {{16, 21, 19, 23}, false, 255, 1, false},
-        {{55, 21, 19, 23}, false, 255, 0, false},
-        {{24, 21, 19, 23}, true, 255, 0, true},
-        {{16, 21, 25}, false, 255, 1, false},
-        {{16, 21, 25}, false, 255, 0, false},
-        {{16, 21, 25}, true, 255, 0, true},
-        {{16, 21}, false, 255, 1, false},
-        {{16, 21}, false, 255, 0, false},
-        {{16, 21}, true, 255, 0, true},
-        {{8192, 52100}, true, -100, 1, false},
+        {{16, 21, 21, 21, 10}, false, 255, MIOPEN_LOSS_REDUCTION_MEAN, false},
+        {{24, 21, 21, 21, 10}, true, 255, MIOPEN_LOSS_REDUCTION_NONE, true},
+        {{16, 21, 19, 23}, false, 255, MIOPEN_LOSS_REDUCTION_MEAN, false},
+        {{24, 21, 19, 23}, true, 255, MIOPEN_LOSS_REDUCTION_NONE, true},
+        {{16, 21, 25}, false, 255, MIOPEN_LOSS_REDUCTION_MEAN, false},
+        {{16, 21, 25}, true, 255, MIOPEN_LOSS_REDUCTION_NONE, true},
+        {{16, 21}, false, 255, MIOPEN_LOSS_REDUCTION_SUM, false},
+        {{16, 21}, true, 255, MIOPEN_LOSS_REDUCTION_NONE, true},
+        {{8192, 52100}, true, -100, MIOPEN_LOSS_REDUCTION_SUM, false},
     };
 }
 
@@ -106,7 +102,7 @@ protected:
 
         ignore_index    = nllloss_config.ignore_index;
         weight_mode     = nllloss_config.weight_mode;
-        divisor         = nllloss_config.divisor;
+        reduction       = nllloss_config.reduction;
         auto contiguous = nllloss_config.contiguous;
 
         auto in_dim                    = nllloss_config.GetInput();
@@ -139,7 +135,8 @@ protected:
         else
             weight = tensor<T>{weight_dim, weight_strides}.generate(gen_weight_value);
 
-        auto out_dim     = divisor == 0.f ? target_dim : std::vector<size_t>{1};
+        auto out_dim =
+            reduction == MIOPEN_LOSS_REDUCTION_NONE ? target_dim : std::vector<size_t>{1};
         auto out_strides = GetStrides(out_dim, true);
         output           = tensor<T>{out_dim, out_strides};
         std::fill(output.begin(), output.end(), std::numeric_limits<T>::quiet_NaN());
@@ -147,14 +144,15 @@ protected:
         ref_output = tensor<T>{out_dim, out_strides};
         std::fill(ref_output.begin(), ref_output.end(), std::numeric_limits<T>::quiet_NaN());
 
-        ws_sizeInBytes = divisor == 0.f ? 0
-                                        : miopen::GetNLLLossReduceForwardWorkspaceSize(handle,
-                                                                                       input.desc,
-                                                                                       target.desc,
-                                                                                       weight.desc,
-                                                                                       output.desc,
-                                                                                       ignore_index,
-                                                                                       divisor);
+        ws_sizeInBytes = reduction == MIOPEN_LOSS_REDUCTION_NONE
+                             ? 0
+                             : miopen::GetNLLLossForwardWorkspaceSize(handle,
+                                                                      input.desc,
+                                                                      target.desc,
+                                                                      weight.desc,
+                                                                      output.desc,
+                                                                      ignore_index,
+                                                                      reduction);
         if(ws_sizeInBytes == static_cast<size_t>(-1))
             GTEST_SKIP();
 
@@ -185,40 +183,31 @@ protected:
 
         miopenStatus_t status;
 
-        if(divisor == 0.f)
+        if(reduction == MIOPEN_LOSS_REDUCTION_NONE)
         {
             cpu_nllloss_unreduce_forward<T>(input, target, weight, ref_output, ignore_index);
-
-            status = miopen::NLLLossUnreduceForward(handle,
-                                                    input.desc,
-                                                    input_dev.get(),
-                                                    target.desc,
-                                                    target_dev.get(),
-                                                    weight.desc,
-                                                    weight_dev.get(),
-                                                    output.desc,
-                                                    output_dev.get(),
-                                                    ignore_index);
         }
         else
         {
+            float divisor = 1.0f;
+            if(reduction == MIOPEN_LOSS_REDUCTION_MEAN)
+                divisor = static_cast<float>(target.desc.GetElementSize());
             cpu_nllloss_reduce_forward_5d<T>(
                 input, target, weight, ref_output, ref_workspace, ignore_index, divisor);
-            status         = miopen::NLLLossReduceForward(handle,
-                                                  workspace_dev.get(),
-                                                  ws_sizeInBytes,
-                                                  input.desc,
-                                                  input_dev.get(),
-                                                  target.desc,
-                                                  target_dev.get(),
-                                                  weight.desc,
-                                                  weight_dev.get(),
-                                                  output.desc,
-                                                  output_dev.get(),
-                                                  ignore_index,
-                                                  divisor);
-            workspace.data = handle.Read<T>(workspace_dev, workspace.data.size());
         }
+        status = miopen::NLLLossForward(handle,
+                                        workspace_dev.get(),
+                                        ws_sizeInBytes,
+                                        input.desc,
+                                        input_dev.get(),
+                                        target.desc,
+                                        target_dev.get(),
+                                        weight.desc,
+                                        weight_dev.get(),
+                                        output.desc,
+                                        output_dev.get(),
+                                        ignore_index,
+                                        reduction);
         fflush(stdout);
 
         ASSERT_EQ(status, miopenStatusSuccess);
@@ -247,7 +236,7 @@ protected:
 
     bool weight_mode;
     int32_t ignore_index;
-    float divisor;
+    miopenLossReductionMode_t reduction;
 
     miopen::Allocator::ManageDataPtr input_dev;
     miopen::Allocator::ManageDataPtr target_dev;
@@ -271,7 +260,7 @@ protected:
         ignore_index    = nllloss_config.ignore_index;
         weight_mode     = nllloss_config.weight_mode;
         auto contiguous = nllloss_config.contiguous;
-        divisor         = nllloss_config.divisor;
+        reduction       = nllloss_config.reduction;
 
         auto in_dim = nllloss_config.GetInput();
 
@@ -309,9 +298,10 @@ protected:
         else
             weight = tensor<T>{weight_dim, weight_strides}.generate(gen_weight_value);
 
-        std::vector<size_t> out_grad_dim = divisor == 0.f ? target_dim : std::vector<size_t>{1};
-        auto out_strides                 = GetStrides(out_grad_dim, true);
-        output_grad = tensor<T>{out_grad_dim, out_strides}.generate(gen_output_grad_value);
+        std::vector<size_t> out_grad_dim =
+            reduction == MIOPEN_LOSS_REDUCTION_NONE ? target_dim : std::vector<size_t>{1};
+        auto out_strides = GetStrides(out_grad_dim, true);
+        output_grad      = tensor<T>{out_grad_dim, out_strides}.generate(gen_output_grad_value);
 
         input_grad_dev  = handle.Write(input_grad.data);
         target_dev      = handle.Write(target.data);
@@ -325,39 +315,30 @@ protected:
 
         miopenStatus_t status;
 
-        if(divisor != 0.f)
-        {
-            cpu_nllloss_reduce_backward<T>(
-                ref_input_grad, target, weight, output_grad, ignore_index, divisor);
-
-            status = miopen::NLLLossReduceBackward(handle,
-                                                   input_grad.desc,
-                                                   input_grad_dev.get(),
-                                                   target.desc,
-                                                   target_dev.get(),
-                                                   weight.desc,
-                                                   weight_dev.get(),
-                                                   output_grad.desc,
-                                                   output_grad_dev.get(),
-                                                   ignore_index,
-                                                   divisor);
-        }
-        else
+        if(reduction == MIOPEN_LOSS_REDUCTION_NONE)
         {
             cpu_nllloss_unreduce_backward<T>(
                 ref_input_grad, target, weight, output_grad, ignore_index);
-
-            status = miopen::NLLLossUnreduceBackward(handle,
-                                                     input_grad.desc,
-                                                     input_grad_dev.get(),
-                                                     target.desc,
-                                                     target_dev.get(),
-                                                     weight.desc,
-                                                     weight_dev.get(),
-                                                     output_grad.desc,
-                                                     output_grad_dev.get(),
-                                                     ignore_index);
         }
+        else
+        {
+            float divisor = 1.0f;
+            if(reduction == MIOPEN_LOSS_REDUCTION_MEAN)
+                divisor = static_cast<float>(target.desc.GetElementSize());
+            cpu_nllloss_reduce_backward<T>(
+                ref_input_grad, target, weight, output_grad, ignore_index, divisor);
+        }
+        status = miopen::NLLLossBackward(handle,
+                                         input_grad.desc,
+                                         input_grad_dev.get(),
+                                         target.desc,
+                                         target_dev.get(),
+                                         weight.desc,
+                                         weight_dev.get(),
+                                         output_grad.desc,
+                                         output_grad_dev.get(),
+                                         ignore_index,
+                                         reduction);
 
         ASSERT_EQ(status, miopenStatusSuccess);
 
@@ -381,7 +362,7 @@ protected:
 
     bool weight_mode;
     int32_t ignore_index;
-    float divisor;
+    miopenLossReductionMode_t reduction;
 
     miopen::Allocator::ManageDataPtr input_grad_dev;
     miopen::Allocator::ManageDataPtr target_dev;

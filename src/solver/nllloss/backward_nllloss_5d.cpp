@@ -46,7 +46,7 @@ namespace nllloss {
 bool NLLLossReduceBackward5d::IsApplicable(const ExecutionContext& context,
                                            const miopen::nllloss::ProblemDescription& problem) const
 {
-    if(problem.GetInputDesc().GetNumDims() > 5 && problem.GetInputDesc().GetNumDims() < 3)
+    if(problem.GetInputDesc().GetNumDims() > 5 || problem.GetInputDesc().GetNumDims() < 3)
         return false;
     if(problem.GetReduction() == MIOPEN_LOSS_REDUCTION_NONE)
         return false;
@@ -89,13 +89,18 @@ NLLLossReduceBackward5d::GetSolution(const ExecutionContext& context,
             auto input_grad_tv  = get_inner_expanded_tv<5>(deref(params.inputGradDesc));
             auto target_grad_tv = get_inner_expanded_tv<4>(deref(params.targetDesc));
             auto weight_grad_tv = get_inner_expanded_tv<1>(deref(params.weightDesc));
+            float divisor       = 1;
+            if(params.reduction == MIOPEN_LOSS_REDUCTION_MEAN)
+            {
+                divisor = static_cast<float>(deref(params.targetDesc).GetElementSize());
+            }
 
             kernel(params.input_grad,
                    params.target,
                    params.weight,
                    params.output_grad,
                    params.ignore_index,
-                   params.divisor,
+                   divisor,
                    input_grad_tv,
                    target_grad_tv,
                    weight_grad_tv);

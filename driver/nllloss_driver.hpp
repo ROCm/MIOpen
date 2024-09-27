@@ -139,6 +139,7 @@ private:
     std::vector<int> input_sizes;
     int32_t ignore_index;
     float divisor;
+    miopenLossReductionMode_t reduction;
 };
 
 template <typename Tgpu, typename Tref>
@@ -186,8 +187,8 @@ std::vector<int> NLLLossDriver<Tgpu, Tref>::GetInputTensorDimsFromCmd()
 template <typename Tgpu, typename Tref>
 int NLLLossDriver<Tgpu, Tref>::GetandSetData()
 {
-    auto reduction = inflags.GetValueStr("reduce");
-    if(reduction != "none" && reduction != "mean" && reduction != "sum")
+    auto reduction_param = inflags.GetValueStr("reduce");
+    if(reduction_param != "none" && reduction_param != "mean" && reduction_param != "sum")
         return miopenStatusInvalidValue;
 
     input_sizes  = GetInputTensorDimsFromCmd();
@@ -207,8 +208,9 @@ int NLLLossDriver<Tgpu, Tref>::GetandSetData()
     SetTensorNd(targetDesc, target_len, tar_strides, data_type);
     SetTensorNd(weightDesc, weight_len, weight_strides, data_type);
 
-    if(reduction == "none")
+    if(reduction_param == "none")
     {
+        reduction           = MIOPEN_LOSS_REDUCTION_NONE;
         divisor             = std::numeric_limits<float>::quiet_NaN();
         auto output_strides = GetStrides(out_len, 1);
         SetTensorNd(outputDesc, out_len, output_strides, data_type);
@@ -220,10 +222,16 @@ int NLLLossDriver<Tgpu, Tref>::GetandSetData()
         SetTensorNd(outputDesc, out_len_rd, data_type);
         auto output_strides = GetStrides(out_len_rd, 1);
         SetTensorNd(outputGradDesc, out_len_rd, output_strides, data_type);
-        if(reduction == "sum")
-            divisor = 1;
-        if(reduction == "mean")
-            divisor = miopen::deref(targetDesc).GetElementSize();
+        if(reduction_param == "sum")
+        {
+            reduction = MIOPEN_LOSS_REDUCTION_SUM;
+            divisor   = 1;
+        }
+        if(reduction_param == "mean")
+        {
+            reduction = MIOPEN_LOSS_REDUCTION_MEAN;
+            divisor   = miopen::deref(targetDesc).GetElementSize();
+        }
     }
 
     SetTensorNd(inputGradDesc, in_len, in_strides, data_type);
@@ -273,14 +281,14 @@ int NLLLossDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
     if(!std::isnan(divisor))
     {
-        miopenGetNLLLossReduceForwardWorkspaceSize(GetHandle(),
-                                                   inputDesc,
-                                                   targetDesc,
-                                                   weightDesc,
-                                                   outputDesc,
-                                                   ignore_index,
-                                                   divisor,
-                                                   &ws_sizeInBytes);
+        miopenGetNLLLossForwardWorkspaceSize(GetHandle(),
+                                             inputDesc,
+                                             targetDesc,
+                                             weightDesc,
+                                             outputDesc,
+                                             ignore_index,
+                                             reduction,
+                                             &ws_sizeInBytes);
         if(ws_sizeInBytes == static_cast<size_t>(-1))
             return miopenStatusAllocFailed;
     }
@@ -357,35 +365,20 @@ int NLLLossDriver<Tgpu, Tref>::RunForwardGPU()
 
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
-        if(!std::isnan(divisor))
-        {
-            miopenNLLLossReduceForward(GetHandle(),
-                                       workspace_dev->GetMem(),
-                                       ws_sizeInBytes,
-                                       inputDesc,
-                                       in_dev->GetMem(),
-                                       targetDesc,
-                                       target_dev->GetMem(),
-                                       weightDesc,
-                                       weight_dev->GetMem(),
-                                       outputDesc,
-                                       out_dev->GetMem(),
-                                       ignore_index,
-                                       divisor);
-        }
-        else
-        {
-            miopenNLLLossUnreduceForward(GetHandle(),
-                                         inputDesc,
-                                         in_dev->GetMem(),
-                                         targetDesc,
-                                         target_dev->GetMem(),
-                                         weightDesc,
-                                         weight_dev->GetMem(),
-                                         outputDesc,
-                                         out_dev->GetMem(),
-                                         ignore_index);
-        }
+        miopenNLLLossForward(GetHandle(),
+                             workspace_dev->GetMem(),
+                             ws_sizeInBytes,
+                             inputDesc,
+                             in_dev->GetMem(),
+                             targetDesc,
+                             target_dev->GetMem(),
+                             weightDesc,
+                             weight_dev->GetMem(),
+                             outputDesc,
+                             out_dev->GetMem(),
+                             ignore_index,
+                             reduction);
+
         float time = 0.0;
         miopenGetKernelTime(GetHandle(), &time);
         kernel_total_time += time;
@@ -452,33 +445,17 @@ int NLLLossDriver<Tgpu, Tref>::RunBackwardGPU()
 
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
-        if(!std::isnan(divisor))
-        {
-            miopenNLLLossReduceBackward(GetHandle(),
-                                        inputGradDesc,
-                                        in_grad_dev->GetMem(),
-                                        targetDesc,
-                                        target_dev->GetMem(),
-                                        weightDesc,
-                                        weight_dev->GetMem(),
-                                        outputGradDesc,
-                                        out_grad_dev->GetMem(),
-                                        ignore_index,
-                                        divisor);
-        }
-        else
-        {
-            miopenNLLLossUnreduceBackward(GetHandle(),
-                                          inputGradDesc,
-                                          in_grad_dev->GetMem(),
-                                          targetDesc,
-                                          target_dev->GetMem(),
-                                          weightDesc,
-                                          weight_dev->GetMem(),
-                                          outputGradDesc,
-                                          out_grad_dev->GetMem(),
-                                          ignore_index);
-        }
+        miopenNLLLossBackward(GetHandle(),
+                              inputGradDesc,
+                              in_grad_dev->GetMem(),
+                              targetDesc,
+                              target_dev->GetMem(),
+                              weightDesc,
+                              weight_dev->GetMem(),
+                              outputGradDesc,
+                              out_grad_dev->GetMem(),
+                              ignore_index,
+                              reduction);
 
         float time = 0.0;
         miopenGetKernelTime(GetHandle(), &time);

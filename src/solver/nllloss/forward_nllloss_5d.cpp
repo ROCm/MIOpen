@@ -119,13 +119,18 @@ NLLLossReduceForward5d::GetSolution(const ExecutionContext& context,
                 handle_.EnableProfiling(false);
                 hipEventRecord(start.get(), handle_.GetStream());
             }
+            float divisor = 1;
+            if(params.reduction == MIOPEN_LOSS_REDUCTION_MEAN)
+            {
+                divisor = static_cast<float>(deref(params.targetDesc).GetElementSize());
+            }
 
             kernel(params.input,
                    params.target,
                    params.weight,
                    params.workspace,
                    params.ignore_index,
-                   params.divisor,
+                   divisor,
                    input_tv,
                    target_tv,
                    weight_tv);

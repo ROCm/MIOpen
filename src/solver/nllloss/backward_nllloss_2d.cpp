@@ -89,13 +89,18 @@ NLLLossReduceBackward2d::GetSolution(const ExecutionContext& context,
             auto input_grad_tv  = get_inner_expanded_tv<2>(deref(params.inputGradDesc));
             auto target_grad_tv = get_inner_expanded_tv<1>(deref(params.targetDesc));
             auto weight_grad_tv = get_inner_expanded_tv<1>(deref(params.weightDesc));
+            float divisor       = 1;
+            if(params.reduction == MIOPEN_LOSS_REDUCTION_MEAN)
+            {
+                divisor = static_cast<float>(deref(params.targetDesc).GetElementSize());
+            }
 
             kernel(params.input_grad,
                    params.target,
                    params.weight,
                    params.output_grad,
                    params.ignore_index,
-                   params.divisor,
+                   divisor,
                    input_grad_tv,
                    target_grad_tv,
                    weight_grad_tv);

@@ -47,6 +47,7 @@ struct FwdInvokeParams : public miopen::InvokeParams
     ConstData_t weight = nullptr;
     Data_t output      = nullptr;
 
+    miopenLossReductionMode_t reduction;
     int32_t ignore_index       = -1;
     Data_t workspace           = nullptr;
     std::size_t workspace_size = 0;
@@ -70,6 +71,7 @@ struct BwdInvokeParams : public miopen::InvokeParams
     ConstData_t weight      = nullptr;
     ConstData_t output_grad = nullptr;
 
+    miopenLossReductionMode_t reduction;
     int32_t ignore_index = -1;
 
     std::size_t GetWorkspaceSize() const { return 0; }

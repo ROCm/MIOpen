@@ -46,7 +46,7 @@ namespace nllloss {
 bool NLLLossUnreduceForward4d::IsApplicable(
     const ExecutionContext& context, const miopen::nllloss::ProblemDescription& problem) const
 {
-    if(problem.GetInputDesc().GetNumDims() > 4 && problem.GetInputDesc().GetNumDims() < 3)
+    if(problem.GetInputDesc().GetNumDims() < 3 || problem.GetInputDesc().GetNumDims() > 4)
         return false;
     if(problem.IsAllContiguous())
         return false;

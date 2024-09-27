@@ -84,6 +84,7 @@ miopenStatus_t NLLLossForward(Handle& handle,
         tmp.workspace      = workspace;
         tmp.workspace_size = workspaceSizeInBytes;
         tmp.ignore_index   = ignore_index;
+        tmp.reduction      = reduction;
         return tmp;
     }();
 
@@ -128,6 +129,7 @@ miopenStatus_t NLLLossBackward(Handle& handle,
         tmp.weight       = weight;
         tmp.output_grad  = output_grad;
         tmp.ignore_index = ignore_index;
+        tmp.reduction    = reduction;
         return tmp;
     }();
     const auto algo = AlgorithmName{"NLLLossReduceBackward"};
