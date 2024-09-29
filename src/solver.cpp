@@ -30,6 +30,7 @@
 #include <miopen/cat/solvers.hpp>
 #include <miopen/conv/solvers.hpp>
 #include <miopen/fusion/solvers.hpp>
+#include <miopen/glu/solvers.hpp>
 #include <miopen/groupnorm/solvers.hpp>
 #include <miopen/getitem/solvers.hpp>
 #include <miopen/layernorm/solvers.hpp>
@@ -680,6 +681,9 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
 
     Register(registry, ++id, Primitive::ReLU, prelu::MultiWeightsBackward{}.SolverDbId());
     Register(registry, ++id, Primitive::ReLU, prelu::SingleWeightBackward{}.SolverDbId());
+
+    Register(registry, ++id, Primitive::Activation, glu::GLUForward{}.SolverDbId());
+    Register(registry, ++id, Primitive::Activation, glu::GLUBackward{}.SolverDbId());
 
     Register(registry,
              ++id,
