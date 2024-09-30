@@ -195,6 +195,9 @@ extern "C" miopenStatus_t miopenDropoutForward(miopenHandle_t handle,
                             DataCast(y),
                             DataCast(reserveSpace),
                             reserveSpaceSizeInBytes,
+                            static_cast<size_t>(0),
+                            static_cast<size_t>(0),
+                            static_cast<size_t>(0),
                             false /* is_backward */);
     });
 }
@@ -222,6 +225,9 @@ extern "C" miopenStatus_t miopenDropoutBackward(miopenHandle_t handle,
                              DataCast(dx),
                              DataCast(reserveSpace),
                              reserveSpaceSizeInBytes,
+                             static_cast<size_t>(0),
+                             static_cast<size_t>(0),
+                             static_cast<size_t>(0),
                              true /* is_backward */);
     });
 }

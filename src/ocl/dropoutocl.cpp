@@ -352,7 +352,6 @@ void DropoutDescriptor::Dropout(const Handle& handle,
             params +=
                 " -DUSE_MASK=" + std::to_string(static_cast<size_t>(!use_prng)) + " -DUSE_RSVSP=0";
         }
-
         else
         {
             params += " -DUSE_RSVSP=" + std::to_string(static_cast<size_t>(use_rsvsp));
