@@ -61,7 +61,7 @@ These modes include:
 *  normal find
 *  fast find
 *  hybrid find
-*  dynamic hybrid find.
+*  dynamic hybrid find
  
 For more information about MIOpen find modes, see :ref:`Find modes <find_modes>`.
 
