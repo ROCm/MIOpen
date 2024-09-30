@@ -24,57 +24,48 @@
  *
  *******************************************************************************/
 
-#ifndef MIOPEN_TENSOR_VIEW_UTIL_HPP_
-#define MIOPEN_TENSOR_VIEW_UTIL_HPP_
+#pragma once
 
-#include "../../kernels/tensor_view.hpp"
+#include <cstdint>
+#include <miopen/common.hpp>
+#include <miopen/invoke_params.hpp>
 #include <miopen/tensor.hpp>
 
 namespace miopen {
+namespace glu {
 
-template <int N>
-inline tensor_view_t<N> get_inner_expanded_tv(const TensorDescriptor Desc)
+struct FwdInvokeParams : public miopen::InvokeParams
 {
-    auto dims    = Desc.GetLengths();
-    auto strides = Desc.GetStrides();
+    FwdInvokeParams() = default;
 
-    tensor_view_t<N> tensor_view{};
-    for(size_t i = 0; i < N; ++i)
-    {
-        if(i < dims.size())
-        {
-            tensor_view.stride[i] = strides[i];
-            tensor_view.size[i]   = dims[i];
-        }
-        else
-        {
-            tensor_view.stride[i] = (i == 0 ? 1 : strides[i - 1]);
-            tensor_view.size[i]   = 1;
-        }
-    }
-    return tensor_view;
-}
+    const TensorDescriptor* inputDesc  = nullptr;
+    const TensorDescriptor* outputDesc = nullptr;
 
-template <int N>
-inline void slice_tv(tensor_view_t<N>& tensor_view, int32_t sliceCount, const int32_t* slices)
+    ConstData_t input = nullptr;
+    Data_t output     = nullptr;
+    uint32_t dim      = 0;
+
+    std::size_t GetWorkspaceSize() const { return 0; }
+    Data_t GetWorkspace() const { return nullptr; }
+};
+
+struct BwdInvokeParams : public miopen::InvokeParams
 {
-    for(int32_t i = 0; i < sliceCount; i++)
-    {
-        int32_t dim   = slices[4 * i + 0];
-        int32_t start = slices[4 * i + 1];
-        int32_t end   = slices[4 * i + 2];
-        int32_t step  = slices[4 * i + 3];
+    BwdInvokeParams() = default;
 
-        if(end > static_cast<int32_t>(tensor_view.size[dim]))
-            end = tensor_view.size[dim];
+    const TensorDescriptor* inputDesc      = nullptr;
+    const TensorDescriptor* inputGradDesc  = nullptr;
+    const TensorDescriptor* outputGradDesc = nullptr;
 
-        auto len = end - start;
+    ConstData_t input      = nullptr;
+    ConstData_t outputGrad = nullptr;
+    Data_t inputGrad       = nullptr;
+    uint32_t dim           = 0;
 
-        tensor_view.size[dim] = (len + step - 1) / step;
-        tensor_view.stride[dim] *= step;
-    }
-}
+    std::size_t GetWorkspaceSize() const { return 0; }
+    Data_t GetWorkspace() const { return nullptr; }
+};
+
+} // namespace glu
 
 } // namespace miopen
-
-#endif // MIOPEN_TENSOR_VIEW_UTIL_HPP_
