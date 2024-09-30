@@ -614,7 +614,8 @@ Problem::FindSolutionsImpl(Handle& handle,
     static solver::mha::MhaForward mhaForwardSolver;
     static solver::mha::MhaBackward mhaBackwardSolver;
 
-    std::vector<solver::mha::MhaSolver*> solvers = {&mhaCKFAForwardSolver, &mhaForwardSolver, &mhaBackwardSolver};
+    std::vector<solver::mha::MhaSolver*> solvers = {
+        &mhaCKFAForwardSolver, &mhaForwardSolver, &mhaBackwardSolver};
 
     for(auto solver : solvers)
     {
