@@ -30,11 +30,11 @@
 
 #include "float_types.h"
 
-template <typename TI, typename TO>
-__device__ void WhereBroadcastedContiguousBackward_Kernel(const TI* condition,
-                                                          const TI* output_grad,
-                                                          TO* input_grad,
-                                                          TO* other_grad,
+template <typename TIO>
+__device__ void WhereBroadcastedContiguousBackward_Kernel(const TIO* condition,
+                                                          const TIO* output_grad,
+                                                          TIO* input_grad,
+                                                          TIO* other_grad,
                                                           size_t size,
                                                           size_t condition_size,
                                                           size_t input_size,
@@ -59,30 +59,30 @@ __device__ void WhereBroadcastedContiguousBackward_Kernel(const TI* condition,
     }
 }
 
-extern "C" __global__ void WhereBroadcastedContiguousBackward(const INPUT_TYPE* condition,
-                                                              const INPUT_TYPE* output_grad,
-                                                              OUTPUT_TYPE* input_grad,
-                                                              OUTPUT_TYPE* other_grad,
+extern "C" __global__ void WhereBroadcastedContiguousBackward(const IO_TYPE* condition,
+                                                              const IO_TYPE* output_grad,
+                                                              IO_TYPE* input_grad,
+                                                              IO_TYPE* other_grad,
                                                               size_t size,
                                                               size_t condition_size,
                                                               size_t input_size,
                                                               size_t other_size)
 {
-    WhereBroadcastedContiguousBackward_Kernel<INPUT_TYPE, OUTPUT_TYPE>(condition,
-                                                                       output_grad,
-                                                                       input_grad,
-                                                                       other_grad,
-                                                                       size,
-                                                                       condition_size,
-                                                                       input_size,
-                                                                       other_size);
+    WhereBroadcastedContiguousBackward_Kernel<IO_TYPE>(condition,
+                                                       output_grad,
+                                                       input_grad,
+                                                       other_grad,
+                                                       size,
+                                                       condition_size,
+                                                       input_size,
+                                                       other_size);
 }
 
-template <typename TI, typename TO>
-__device__ void WhereConditionBroadcastedContiguousBackward_Kernel(const TI* condition,
-                                                                   const TI* output_grad,
-                                                                   TO* input_grad,
-                                                                   TO* other_grad,
+template <typename TIO>
+__device__ void WhereConditionBroadcastedContiguousBackward_Kernel(const TIO* condition,
+                                                                   const TIO* output_grad,
+                                                                   TIO* input_grad,
+                                                                   TIO* other_grad,
                                                                    size_t size,
                                                                    size_t condition_size,
                                                                    size_t input_size,
@@ -112,29 +112,28 @@ __device__ void WhereConditionBroadcastedContiguousBackward_Kernel(const TI* con
     }
 }
 
-extern "C" __global__ void
-WhereConditionBroadcastedContiguousBackward(const INPUT_TYPE* condition,
-                                            const INPUT_TYPE* output_grad,
-                                            OUTPUT_TYPE* input_grad,
-                                            OUTPUT_TYPE* other_grad,
-                                            size_t size,
-                                            size_t condition_size,
-                                            size_t input_size,
-                                            size_t other_size)
+extern "C" __global__ void WhereConditionBroadcastedContiguousBackward(const IO_TYPE* condition,
+                                                                       const IO_TYPE* output_grad,
+                                                                       IO_TYPE* input_grad,
+                                                                       IO_TYPE* other_grad,
+                                                                       size_t size,
+                                                                       size_t condition_size,
+                                                                       size_t input_size,
+                                                                       size_t other_size)
 {
-    WhereConditionBroadcastedContiguousBackward_Kernel<INPUT_TYPE, OUTPUT_TYPE>(condition,
-                                                                                output_grad,
-                                                                                input_grad,
-                                                                                other_grad,
-                                                                                size,
-                                                                                condition_size,
-                                                                                input_size,
-                                                                                other_size);
+    WhereConditionBroadcastedContiguousBackward_Kernel<IO_TYPE>(condition,
+                                                                output_grad,
+                                                                input_grad,
+                                                                other_grad,
+                                                                size,
+                                                                condition_size,
+                                                                input_size,
+                                                                other_size);
 }
 
-template <typename TI, typename TO>
+template <typename TIO>
 __device__ void WhereContiguousBackward_Kernel(
-    const TI* condition, const TI* output_grad, TO* input_grad, TO* other_grad, size_t size)
+    const TIO* condition, const TIO* output_grad, TIO* input_grad, TIO* other_grad, size_t size)
 {
     size_t gid = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -155,12 +154,11 @@ __device__ void WhereContiguousBackward_Kernel(
     }
 }
 
-extern "C" __global__ void WhereContiguousBackward(const INPUT_TYPE* condition,
-                                                   const INPUT_TYPE* output_grad,
-                                                   OUTPUT_TYPE* input_grad,
-                                                   OUTPUT_TYPE* other_grad,
+extern "C" __global__ void WhereContiguousBackward(const IO_TYPE* condition,
+                                                   const IO_TYPE* output_grad,
+                                                   IO_TYPE* input_grad,
+                                                   IO_TYPE* other_grad,
                                                    size_t size)
 {
-    WhereContiguousBackward_Kernel<INPUT_TYPE, OUTPUT_TYPE>(
-        condition, output_grad, input_grad, other_grad, size);
+    WhereContiguousBackward_Kernel<IO_TYPE>(condition, output_grad, input_grad, other_grad, size);
 }

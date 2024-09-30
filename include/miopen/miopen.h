@@ -6983,41 +6983,6 @@ MIOPEN_EXPORT miopenStatus_t miopenBackendInitialize(miopenBackendDescriptor_t d
 #endif // MIOPEN_BETA_API
 
 #ifdef MIOPEN_BETA_API
-
-// WHERE APIs
-/** @addtogroup where
- *
- *  @{
- */
-
-/*! @brief Execute WHERE backward layer
- *
- * @param handle                   MIOpen handle (input)
- * @param outputGradDesc           Tensor descriptor for output gradient tensor (input)
- * @param outputGrad               Output gradient tensor (input)
- * @param conditionDesc            Tensor descriptor for condition tensor (input)
- * @param condition                Condition tensor (input)
- * @param inputGradDesc            Tensor descriptor for input gradient tensor (input)
- * @param inputGrad                Input gradient tensor (output)
- * @param otherGradDesc            Tensor descriptor for other gradient tensor (input)
- * @param otherGrad                Other gradient tensor (output)
- * @return                         miopenStatus_t
- */
-MIOPEN_EXPORT miopenStatus_t miopenWhereBackward(miopenHandle_t handle,
-                                                 const miopenTensorDescriptor_t outputGradDesc,
-                                                 void* outputGrad,
-                                                 const miopenTensorDescriptor_t conditionDesc,
-                                                 void* condition,
-                                                 const miopenTensorDescriptor_t inputGradDesc,
-                                                 void* inputGrad,
-                                                 const miopenTensorDescriptor_t otherGradDesc,
-                                                 void* otherGrad);
-
-/** @} */
-// CLOSEOUT BackendAPI DOXYGEN GROUP
-#endif // MIOPEN_BETA_API
-
-#ifdef MIOPEN_BETA_API
 // FusedAdam APIs
 /** @addtogroup SGD
  *
@@ -7828,8 +7793,6 @@ MIOPEN_EXPORT miopenStatus_t miopenPReLUBackward(miopenHandle_t handle,
 #endif // MIOPEN_BETA_API
 
 #ifdef MIOPEN_BETA_API
-
-// WHERE APIs
 /** @addtogroup where
  *
  *  @{
@@ -7850,16 +7813,17 @@ MIOPEN_EXPORT miopenStatus_t miopenPReLUBackward(miopenHandle_t handle,
  */
 MIOPEN_EXPORT miopenStatus_t miopenWhereBackward(miopenHandle_t handle,
                                                  const miopenTensorDescriptor_t outputGradDesc,
-                                                 void* outputGrad,
+                                                 const void* outputGrad,
                                                  const miopenTensorDescriptor_t conditionDesc,
-                                                 void* condition,
+                                                 const void* condition,
                                                  const miopenTensorDescriptor_t inputGradDesc,
                                                  void* inputGrad,
                                                  const miopenTensorDescriptor_t otherGradDesc,
                                                  void* otherGrad);
 
 /** @} */
-// CLOSEOUT BackendAPI DOXYGEN GROUP
+// CLOSEOUT WHERE DOXYGEN GROUP
+#endif // MIOPEN_BETA_API
 
 #ifdef __cplusplus
 }

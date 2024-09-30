@@ -26,13 +26,14 @@
 
 #pragma once
 
-#include "miopen/tensor_view_utils.hpp"
+#include <cstddef>
 #include <cstdint>
+
+#include "miopen/errors.hpp"
+#include "miopen/tensor_view_utils.hpp"
 #include <miopen/problem_description_base.hpp>
 #include <miopen/tensor.hpp>
 #include <miopen/activ.hpp>
-
-#include <string>
 
 namespace miopen {
 
@@ -40,16 +41,8 @@ struct NetworkConfig;
 
 namespace where {
 
-enum class Direction
-{
-    Forward,
-    Backward,
-};
+bool isSameShape(const TensorDescriptor& x, const TensorDescriptor& y);
 
-bool isBroadcastable(const TensorDescriptor& x, const TensorDescriptor& y);
-template <int N>
-tensor_view_t<N> broadcastTo(const tensor_view_t<N>& in, const tensor_view_t<N>& target);
-extern template tensor_view_t<5> broadcastTo(const tensor_view_t<5>&, const tensor_view_t<5>&);
 template <int N>
 int64_t checkBroadcastedContiguous(const tensor_view_t<N>& tensorView);
 extern template int64_t checkBroadcastedContiguous(const tensor_view_t<5>&);
@@ -61,39 +54,36 @@ struct BackwardProblemDescription : ProblemDescriptionBase
                                const TensorDescriptor& conditionDesc_,
                                const TensorDescriptor& inputGradDesc_,
                                const TensorDescriptor& otherGradDesc_)
-        : direction(Direction::Backward),
-          outputGradDesc(outputGradDesc_),
+        : outputGradDesc(outputGradDesc_),
           conditionDesc(conditionDesc_),
           inputGradDesc(inputGradDesc_),
           otherGradDesc(otherGradDesc_)
     {
-        if(!inputGradDesc.GetLengths().empty() && !isBroadcastable(inputGradDesc, outputGradDesc))
+        // TODO: support broadcastable ops
+        if(!isAllSameShape())
         {
             MIOPEN_THROW(miopenStatusBadParm,
-                         "WHERE::ProblemDescription: Dimensions of input gradient and output "
-                         "gradient must be "
-                         "broadcastable.");
+                         "WHERE::ProblemDescription: All tensors must have the same shape.");
         }
 
-        if(!otherGradDesc.GetLengths().empty() && !isBroadcastable(otherGradDesc, outputGradDesc))
+        if(!isAllContiguous())
         {
             MIOPEN_THROW(miopenStatusBadParm,
-                         "WHERE::ProblemDescription: Dimensions of other gradient and output "
-                         "gradient must be "
-                         "broadcastable.");
+                         "WHERE::ProblemDescription: All tensors must be contiguous.");
         }
 
-        inputGrad_tv  = get_inner_expanded_5dtv(inputGradDesc);
-        otherGrad_tv  = get_inner_expanded_5dtv(otherGradDesc);
-        condition_tv  = get_inner_expanded_5dtv(conditionDesc);
-        outputGrad_tv = get_inner_expanded_5dtv(outputGradDesc);
+        if(!IsSameType())
+        {
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "WHERE::ProblemDescription: All tensors must have the same type.");
+        }
 
-        inputGrad_tv = broadcastTo(inputGrad_tv, outputGrad_tv);
-        otherGrad_tv = broadcastTo(otherGrad_tv, outputGrad_tv);
-        condition_tv = broadcastTo(condition_tv, outputGrad_tv);
+        inputGrad_tv  = get_inner_expanded_tv<5>(inputGradDesc);
+        otherGrad_tv  = get_inner_expanded_tv<5>(otherGradDesc);
+        condition_tv  = get_inner_expanded_tv<5>(conditionDesc);
+        outputGrad_tv = get_inner_expanded_tv<5>(outputGradDesc);
     }
 
-    Direction GetDirection() const { return direction; }
     const TensorDescriptor& GetOutputGradDesc() const { return outputGradDesc; }
     const TensorDescriptor& GetConditionDesc() const { return conditionDesc; }
     const TensorDescriptor& GetInputGradDesc() const { return inputGradDesc; }
@@ -119,35 +109,30 @@ struct BackwardProblemDescription : ProblemDescriptionBase
         return true;
     }
 
-    bool IsAllPacked() const
+    bool isAllSameShape() const
     {
-        if(!(inputGradDesc.IsPacked() && otherGradDesc.IsPacked() && outputGradDesc.IsPacked()))
-        {
-            return false;
-        }
-
-        return true;
+        // TODO: inputGradDesc and otherGradDesc not exist
+        return isSameShape(outputGradDesc, inputGradDesc) &&
+               isSameShape(outputGradDesc, otherGradDesc) &&
+               isSameShape(outputGradDesc, conditionDesc);
     }
 
     bool isAllContiguous() const
     {
-        auto is_all_contiguous =
-            isTensorViewContiguous(inputGrad_tv) && isTensorViewContiguous(otherGrad_tv) &&
-            isTensorViewContiguous(condition_tv) && isTensorViewContiguous(outputGrad_tv);
-
-        return is_all_contiguous;
+        // TODO: inputGrad and otherGrad not exist
+        return outputGradDesc.IsContiguous() && conditionDesc.IsContiguous() &&
+               inputGradDesc.IsContiguous() && otherGradDesc.IsContiguous();
     }
 
     bool isAllBroadcastedContiguous() const
     {
-        auto cond_contig_size        = checkBroadcastedContiguous(condition_tv);
-        auto input_grad_contig_size  = checkBroadcastedContiguous(inputGrad_tv);
-        auto other_grad_contig_size  = checkBroadcastedContiguous(otherGrad_tv);
-        auto output_grad_contig_size = checkBroadcastedContiguous(outputGrad_tv);
+        auto cond_contig_size       = checkBroadcastedContiguous(condition_tv);
+        auto input_grad_contig_size = checkBroadcastedContiguous(inputGrad_tv);
+        auto other_grad_contig_size = checkBroadcastedContiguous(otherGrad_tv);
 
         bool is_all_broadcasted_contiguous =
-            (cond_contig_size > 0) && (output_grad_contig_size > 0) &&
-            (input_grad_contig_size > 0) && (other_grad_contig_size > 0);
+            (cond_contig_size > 0) && (input_grad_contig_size > 0) &&
+            (other_grad_contig_size > 0) && outputGradDesc.IsContiguous();
         return is_all_broadcasted_contiguous;
     }
 
@@ -157,16 +142,16 @@ struct BackwardProblemDescription : ProblemDescriptionBase
         auto input_grad_contig_size = checkBroadcastedContiguous(inputGrad_tv);
         auto other_grad_contig_size = checkBroadcastedContiguous(otherGrad_tv);
 
-        bool is_condition_broadcasted =
-            (cond_contig_size > 0) && ((input_grad_contig_size % cond_contig_size == 0) ||
-                                       (other_grad_contig_size % cond_contig_size == 0));
+        bool is_condition_broadcasted = (cond_contig_size > 0) &&
+                                        ((input_grad_contig_size % cond_contig_size == 0) ||
+                                         (other_grad_contig_size % cond_contig_size == 0)) &&
+                                        cond_contig_size >= static_cast<int64_t>(256 * 120 * 4);
         return is_condition_broadcasted;
     }
 
     NetworkConfig MakeNetworkConfig() const override;
 
 private:
-    Direction direction;
     TensorDescriptor outputGradDesc;
     TensorDescriptor conditionDesc;
     TensorDescriptor inputGradDesc;

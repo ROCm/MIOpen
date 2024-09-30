@@ -23,8 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef MIOPEN_WHERE_HPP_
-#define MIOPEN_WHERE_HPP_
+#pragma once
 
 #include <miopen/common.hpp>
 
@@ -33,15 +32,18 @@ namespace miopen {
 struct Handle;
 struct TensorDescriptor;
 
-miopenStatus_t WhereBackward(Handle& handle,
-                             const TensorDescriptor& outputGradDesc,
-                             Data_t outputGrad,
-                             const TensorDescriptor& conditionDesc,
-                             Data_t condition,
-                             const TensorDescriptor& inputGradDesc,
-                             Data_t inputGrad,
-                             const TensorDescriptor& otherGradDesc,
-                             Data_t otherGrad);
+namespace where {
+
+MIOPEN_INTERNALS_EXPORT miopenStatus_t WhereBackward(Handle& handle,
+                                                     const TensorDescriptor& outputGradDesc,
+                                                     ConstData_t outputGrad,
+                                                     const TensorDescriptor& conditionDesc,
+                                                     ConstData_t condition,
+                                                     const TensorDescriptor& inputGradDesc,
+                                                     Data_t inputGrad,
+                                                     const TensorDescriptor& otherGradDesc,
+                                                     Data_t otherGrad);
+
+} // namespace where
 
 } // namespace miopen
-#endif // _MIOPEN_WHERE_HPP_

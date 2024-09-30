@@ -24,20 +24,19 @@
  *
  *******************************************************************************/
 
-#include "miopen/tensor.hpp"
-#include <miopen/where.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/logger.hpp>
-#include <miopen/tensor_ops.hpp>
+#include <miopen/tensor.hpp>
+#include <miopen/where.hpp>
 
 #define CHECK_DESC_EXIST(desc) (((desc) != nullptr) ? miopen::deref(desc) : dummyDesc)
 
 extern "C" miopenStatus_t miopenWhereBackward(miopenHandle_t handle,
                                               const miopenTensorDescriptor_t outputGradDesc,
-                                              void* outputGrad,
+                                              const void* outputGrad,
                                               const miopenTensorDescriptor_t conditionDesc,
-                                              void* condition,
+                                              const void* condition,
                                               const miopenTensorDescriptor_t inputGradDesc,
                                               void* inputGrad,
                                               const miopenTensorDescriptor_t otherGradDesc,
@@ -55,14 +54,14 @@ extern "C" miopenStatus_t miopenWhereBackward(miopenHandle_t handle,
     const miopen::TensorDescriptor dummyDesc;
 
     return miopen::try_([&] {
-        miopen::WhereBackward(miopen::deref(handle),
-                              miopen::deref(outputGradDesc),
-                              DataCast(outputGrad),
-                              miopen::deref(conditionDesc),
-                              DataCast(condition),
-                              CHECK_DESC_EXIST(inputGradDesc),
-                              DataCast(inputGrad),
-                              CHECK_DESC_EXIST(otherGradDesc),
-                              DataCast(otherGrad));
+        miopen::where::WhereBackward(miopen::deref(handle),
+                                     miopen::deref(outputGradDesc),
+                                     DataCast(outputGrad),
+                                     miopen::deref(conditionDesc),
+                                     DataCast(condition),
+                                     CHECK_DESC_EXIST(inputGradDesc),
+                                     DataCast(inputGrad),
+                                     CHECK_DESC_EXIST(otherGradDesc),
+                                     DataCast(otherGrad));
     });
 }

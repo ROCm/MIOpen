@@ -24,23 +24,22 @@
  *
  *******************************************************************************/
 
-#include "miopen/where/problem_description.hpp"
-#include <miopen/datatype.hpp>
 #include <miopen/find_solution.hpp>
-#include <miopen/float_equal.hpp>
-#include <miopen/kernel_cache.hpp>
-#include <miopen/where/invoke_params.hpp>
-#include <miopen/where/solvers.hpp>
-#include <miopen/where.hpp>
 #include <miopen/tensor.hpp>
+#include <miopen/where.hpp>
+#include <miopen/where/invoke_params.hpp>
+#include <miopen/where/problem_description.hpp>
+#include <miopen/where/solvers.hpp>
 
 namespace miopen {
 
+namespace where {
+
 miopenStatus_t WhereBackward(Handle& handle,
                              const TensorDescriptor& outputGradDesc,
-                             Data_t outputGrad,
+                             ConstData_t outputGrad,
                              const TensorDescriptor& conditionDesc,
-                             Data_t condition,
+                             ConstData_t condition,
                              const TensorDescriptor& inputGradDesc,
                              Data_t inputGrad,
                              const TensorDescriptor& otherGradDesc,
@@ -70,5 +69,7 @@ miopenStatus_t WhereBackward(Handle& handle,
 
     return miopenStatusSuccess;
 }
+
+} // namespace where
 
 } // namespace miopen

@@ -30,31 +30,16 @@
 #include <miopen/where/solvers.hpp>
 #include <miopen/names.hpp>
 
-#include <sstream>
-
 namespace miopen {
 
 namespace where {
 
-bool isBroadcastable(const TensorDescriptor& x, const TensorDescriptor& y)
+bool isSameShape(const TensorDescriptor& x, const TensorDescriptor& y)
 {
-    auto xLen = x.GetLengths();
-    auto yLen = y.GetLengths();
-    if(xLen.empty() || yLen.empty())
-        return false;
-
-    int trailIdxX = xLen.size() - 1;
-    int trailIdxY = yLen.size() - 1;
-    while(trailIdxX >= 0 && trailIdxY >= 0)
-    {
-        if(xLen[trailIdxX] != yLen[trailIdxY] && xLen[trailIdxX] != 1 && yLen[trailIdxY] != 1)
-            return false;
-        trailIdxX--;
-        trailIdxY--;
-    }
-    return true;
+    return x.GetNumDims() == y.GetNumDims();
 }
 
+// Strides of broadcasted but contiguous tensors are like [0, x * y, y, 1]
 template <int N>
 int64_t checkBroadcastedContiguous(const tensor_view_t<N>& tensorView)
 {
@@ -78,28 +63,6 @@ int64_t checkBroadcastedContiguous(const tensor_view_t<N>& tensorView)
 }
 
 template int64_t checkBroadcastedContiguous(const tensor_view_t<5>&);
-
-template <int N>
-tensor_view_t<N> broadcastTo(const tensor_view_t<N>& in, const tensor_view_t<N>& target)
-{
-    tensor_view_t<N> out;
-    for(int i = 0; i < N; i++)
-    {
-        if(in.size[i] == target.size[i])
-        {
-            out.size[i]   = in.size[i];
-            out.stride[i] = in.stride[i];
-        }
-        else
-        {
-            out.size[i]   = target.size[i];
-            out.stride[i] = 0;
-        }
-    }
-    return out;
-}
-
-template tensor_view_t<5> broadcastTo(const tensor_view_t<5>&, const tensor_view_t<5>&);
 
 NetworkConfig BackwardProblemDescription::MakeNetworkConfig() const
 {
@@ -126,7 +89,7 @@ NetworkConfig BackwardProblemDescription::MakeNetworkConfig() const
     ss << "cond_contig_size" << cond_contig_size;
     ss << "input_contig_size" << input_grad_contig_size;
     ss << "other_contig_size" << other_grad_contig_size;
-    ss << IsAllPacked();
+    ss << isAllContiguous();
 
     return NetworkConfig{ss.str()};
 }

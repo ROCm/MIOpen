@@ -24,19 +24,15 @@
  *
  *******************************************************************************/
 
-#include "miopen/kernel_info.hpp"
-#include "miopen/mlo_internal.hpp"
-#include "miopen/tensor.hpp"
-#include "miopen/tensor_view_utils.hpp"
-#include "miopen/where/problem_description.hpp"
 #include <cstddef>
+
 #include <miopen/datatype.hpp>
 #include <miopen/kernel_build_params.hpp>
+#include <miopen/kernel_info.hpp>
+#include <miopen/mlo_internal.hpp>
 #include <miopen/where/invoke_params.hpp>
+#include <miopen/where/problem_description.hpp>
 #include <miopen/where/solvers.hpp>
-#include <miopen/where.hpp>
-#include <miopen/target_properties.hpp>
-#include "../kernels/tensor_view.hpp"
 
 #define LOCAL_SIZE 256
 
@@ -55,10 +51,6 @@ bool WhereBackward::IsApplicable(const ExecutionContext& context,
     bool is_all_broadcasted_contiguous = problem.isAllBroadcastedContiguous();
 
     if(!is_all_broadcasted_contiguous && !is_all_contiguous)
-        return false;
-    if(!problem.IsSameType())
-        return false;
-    if(!problem.IsAllPacked())
         return false;
     return true;
 }
@@ -83,13 +75,12 @@ WhereBackward::GetSolution(const ExecutionContext& context,
     auto kernel          = KernelInfo{};
     kernel.kernel_file   = "MIOpenWhere.cpp";
 
-    const auto build_params = KernelBuildParameters{
-        {"MIOPEN_USE_FP16", static_cast<int>(dtype == miopenHalf)},
-        {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
-        {"MIOPEN_USE_FP64", static_cast<int>(dtype == miopenDouble)},
-        {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
-        {"INPUT_TYPE", input_dtype == "bfloat16" ? "ushort" : input_dtype},
-        {"OUTPUT_TYPE", output_dtype == "bfloat16" ? "ushort" : output_dtype}};
+    const auto build_params =
+        KernelBuildParameters{{"MIOPEN_USE_FP16", static_cast<int>(dtype == miopenHalf)},
+                              {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
+                              {"MIOPEN_USE_FP64", static_cast<int>(dtype == miopenDouble)},
+                              {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
+                              {"IO_TYPE", input_dtype == "bfloat16" ? "ushort" : input_dtype}};
 
     kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
 

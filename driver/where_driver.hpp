@@ -23,30 +23,20 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef GUARD_MIOPEN_WHERE_DRIVER_HPP
-#define GUARD_MIOPEN_WHERE_DRIVER_HPP
+#pragma once
 
 #include "InputFlags.hpp"
 #include "driver.hpp"
 #include "miopen/errors.hpp"
-#include "miopen/tensor_view_utils.hpp"
 #include "tensor_driver.hpp"
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
-#include <cstdlib>
-#include <cfloat>
 #include <memory>
 #include <miopen/miopen.h>
-#include <miopen/tensor.hpp>
-#include <numeric>
 #include <vector>
-#include "random.hpp"
 #include "timer.hpp"
 #include "../test/verify.hpp"
-
-#ifndef MLO_WHEREHOST_H_
-#define MLO_WHEREHOST_H_
 
 template <typename Tgpu, typename Tcheck>
 int32_t mloWhereBackwardRunHost(miopenTensorDescriptor_t outputGradDesc,
@@ -82,8 +72,6 @@ int32_t mloWhereBackwardRunHost(miopenTensorDescriptor_t outputGradDesc,
     return 0;
 }
 
-#endif
-
 bool isDefined(std::vector<int>& len)
 {
     return std::all_of(len.begin(), len.end(), [](int i) { return i > 0; });
@@ -109,8 +97,6 @@ public:
 
     int GetandSetData() override;
     std::vector<int> GetTensorLengthsFromCmdLine(std::string name);
-
-    int SetBNParametersFromCmdLineArgs();
 
     int AllocateBuffersAndCopy() override;
 
@@ -166,17 +152,22 @@ int WhereDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
     {
         miopenEnableProfiling(GetHandle(), true);
     }
+
+    forw = inflags.GetValueInt("forw");
+    if(forw != 0 && forw != 1)
+    {
+        MIOPEN_THROW("Invalid Forward Mode");
+    }
+
     return miopenStatusSuccess;
 }
 
 template <typename Tgpu, typename Tref>
 int WhereDriver<Tgpu, Tref>::GetandSetData()
 {
-    SetBNParametersFromCmdLineArgs();
-
-    std::vector<int> in_len    = GetTensorLengthsFromCmdLine("inputDims");
-    std::vector<int> other_len = GetTensorLengthsFromCmdLine("otherDims");
-    std::vector<int> cond_len  = GetTensorLengthsFromCmdLine("condDims");
+    std::vector<int> in_len    = inflags.GetValueTensor("input_dim").lengths;
+    std::vector<int> other_len = inflags.GetValueTensor("other_dim").lengths;
+    std::vector<int> cond_len  = inflags.GetValueTensor("cond_dim").lengths;
 
     isInputGradRequired = isDefined(in_len);
     isOtherGradRequired = isDefined(other_len);
@@ -219,87 +210,16 @@ int WhereDriver<Tgpu, Tref>::AddCmdLineArgs()
                          "0",
                          "Run only Forward (1) or Run both Forward and Backward (0) (Default=0)",
                          "int");
-    inflags.AddInputFlag("inputDims",
-                         'I',
-                         "1,2,2,2,2",
-                         "The dimensional lengths of input tensor. Please specify the dimensions "
-                         "as a comma-separated list, e.g., \"1,2,2,2,2\"",
-                         "string");
-    inflags.AddInputFlag("otherDims",
-                         'O',
-                         "1,2,2,2,2",
-                         "The dimensional lengths of other tensor. Please specify the dimensions "
-                         "as a comma-separated list, e.g., \"1,2,2,2,2\"",
-                         "string");
-    inflags.AddInputFlag("condDims",
-                         'C',
-                         "4,2,2,2,2",
-                         "The dimensional lengths of the condition tensor. Please specify the "
-                         "dimensions as a comma-separated list, e.g., \"4,2,2,2,2\"",
-                         "string");
+    inflags.AddTensorFlag("input_dim", 'I', "1x2x2x2x2", "The dimensional lengths of input tensor");
+    inflags.AddTensorFlag("other_dim", 'O', "1x2x2x2x2", "The dimensional lengths of other tensor");
+    inflags.AddTensorFlag(
+        "cond_dim", 'C', "1x2x2x2x2", "The dimensional lengths of the condition tensor");
 
     inflags.AddInputFlag("iter", 'i', "10", "Number of Iterations (Default=10)", "int");
     inflags.AddInputFlag("verify", 'V', "1", "Verify Each Layer (Default=1)", "int");
     inflags.AddInputFlag("time", 't', "0", "Time Each Layer (Default=0)", "int");
     inflags.AddInputFlag(
         "wall", 'w', "0", "Wall-clock Time Each Layer, Requires time == 1 (Default=0)", "int");
-
-    return miopenStatusSuccess;
-}
-
-template <typename Tgpu, typename Tref>
-std::vector<int> WhereDriver<Tgpu, Tref>::GetTensorLengthsFromCmdLine(std::string name)
-{
-    std::string lengthsString = inflags.GetValueStr(name);
-    std::vector<int> lengths;
-    std::string number;
-
-    for(char ch : lengthsString)
-    {
-        if(ch == ',')
-        {
-            if(!number.empty())
-            {
-                int temp = std::stoi(number);
-                if(temp != 0)
-                {
-                    lengths.push_back(temp);
-                }
-                number.clear();
-            }
-        }
-        else
-        {
-            number += ch;
-        }
-    }
-
-    if(!number.empty())
-    {
-        int temp = std::stoi(number);
-        if(temp != 0)
-        {
-            lengths.push_back(temp);
-        }
-    }
-
-    if(lengths.empty())
-    {
-        return std::vector<int>({0});
-    }
-
-    return lengths;
-}
-
-template <typename Tgpu, typename Tref>
-int WhereDriver<Tgpu, Tref>::SetBNParametersFromCmdLineArgs()
-{
-    forw = inflags.GetValueInt("forw");
-    if(forw != 0 && forw != 1)
-    {
-        printf("Incorrect Forward Mode\n");
-        exit(EXIT_FAILURE); // NOLINT (concurrency-mt-unsafe)
-    }
 
     return miopenStatusSuccess;
 }
@@ -370,13 +290,13 @@ int WhereDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 template <typename Tgpu, typename Tref>
 int WhereDriver<Tgpu, Tref>::RunForwardGPU()
 {
-    return miopenStatusSuccess;
+    return miopenStatusNotImplemented;
 }
 
 template <typename Tgpu, typename Tref>
 int WhereDriver<Tgpu, Tref>::RunForwardCPU()
 {
-    return miopenStatusSuccess;
+    return miopenStatusNotImplemented;
 }
 
 template <typename Tgpu, typename Tref>
@@ -431,20 +351,14 @@ int WhereDriver<Tgpu, Tref>::RunBackwardGPU()
 template <typename Tgpu, typename Tref>
 Tref WhereDriver<Tgpu, Tref>::GetTolerance()
 {
-    // Computation error of fp16 is ~2^13 (=8192) bigger than
-    // the one of fp32 because mantissa is shorter by 13 bits.
-    auto tolerance = std::is_same<Tgpu, float>::value ? 1.5e-6 : 8.2e-3;
-
-    // bf16 mantissa has 7 bits, by 3 bits shorter than fp16.
-    if(std::is_same<Tgpu, bfloat16>::value)
-        tolerance *= 8.0;
+    Tref tolerance = std::numeric_limits<Tgpu>::epsilon() * 10;
     return tolerance;
 }
 
 template <typename Tgpu, typename Tref>
 int WhereDriver<Tgpu, Tref>::VerifyForward()
 {
-    return miopenStatusSuccess;
+    return miopenStatusNotImplemented;
 }
 
 template <typename Tgpu, typename Tref>
@@ -484,5 +398,3 @@ int WhereDriver<Tgpu, Tref>::VerifyBackward()
 
     return miopenStatusSuccess;
 }
-
-#endif // GUARD_MIOPEN_WHERE_DRIVER_HPP
