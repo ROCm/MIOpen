@@ -35,4 +35,4 @@ The MIOpen API library is structured as follows:
   * :doc:`ReduceExtreme <../doxygen/html/group__ReduceExtreme>` (experimental)
   * :doc:`Getitem <../doxygen/html/group__getitem>` (experimental)
   * :doc:`ReduceCalculation <../doxygen/html/group__ReduceCalculation>` (experimental)
-  * :doc:`AvgPool <../doxygen/html/group__avgpool>` (experimental)
+  * :doc:`AdaptiveAvgPool <../doxygen/html/group__adaptiveavgpool>` (experimental)

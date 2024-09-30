@@ -24,6 +24,7 @@
  *
  *******************************************************************************/
 
+#include "miopen/adaptiveavgpool/solvers.hpp"
 #include <miopen/solver.hpp>
 
 #include <miopen/activ/solvers.hpp>
@@ -673,6 +674,30 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
              fusion::ConvWinoFuryRxSFused<2, 3>{}.SolverDbId(),
              miopenConvolutionAlgoWinograd);
 
+    Register(registry,
+             ++id,
+             Primitive::AdaptiveAvgPool,
+             adaptiveavgpool::AdaptiveAvgPoolForward1d{}.SolverDbId());
+    Register(registry,
+             ++id,
+             Primitive::AdaptiveAvgPool,
+             adaptiveavgpool::AdaptiveAvgPoolForward2d{}.SolverDbId());
+    Register(registry,
+             ++id,
+             Primitive::AdaptiveAvgPool,
+             adaptiveavgpool::AdaptiveAvgPoolForward3d{}.SolverDbId());
+    Register(registry,
+             ++id,
+             Primitive::AdaptiveAvgPool,
+             adaptiveavgpool::AdaptiveAvgPoolBackward1d{}.SolverDbId());
+    Register(registry,
+             ++id,
+             Primitive::AdaptiveAvgPool,
+             adaptiveavgpool::AdaptiveAvgPoolBackward2d{}.SolverDbId());
+    Register(registry,
+             ++id,
+             Primitive::AdaptiveAvgPool,
+             adaptiveavgpool::AdaptiveAvgPoolBackward3d{}.SolverDbId());
     // IMPORTANT: New solvers should be added to the end of the function!
 }
 

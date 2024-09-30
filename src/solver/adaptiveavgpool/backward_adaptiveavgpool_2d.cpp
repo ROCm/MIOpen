@@ -28,50 +28,44 @@
 #include "miopen/execution_context.hpp"
 #include "miopen/invoke_params.hpp"
 #include "miopen/tensor_view_utils.hpp"
-#include <miopen/avgpool/solvers.hpp>
+#include <miopen/adaptiveavgpool/solvers.hpp>
 
-#include <miopen/avgpool/invoke_params.hpp>
+#include <miopen/adaptiveavgpool/invoke_params.hpp>
 #include <miopen/datatype.hpp>
-#include <miopen/avgpool.hpp>
+#include <miopen/adaptiveavgpool.hpp>
 #include <miopen/target_properties.hpp>
 
-#define LOCAL_SIZE_BWD_3D 256
+#define LOCAL_SIZE_BWD_2D 256
 
 namespace miopen {
 
 namespace solver {
 
-namespace avgpool {
+namespace adaptiveavgpool {
 
-bool IsOverRocmBwd3d(const miopen::avgpool::BwdProblemDescription& problem)
+bool IsOverRocmBwd2d(const miopen::adaptiveavgpool::BwdProblemDescription& problem)
 {
     auto dtype      = problem.GetInputGradDesc().GetType();
     auto in_nelems  = problem.GetInputGradDesc().GetElementSize();
     auto out_nelems = problem.GetOutputGradDesc().GetElementSize();
     auto mul_nc =
         problem.GetOutputGradDesc().GetLengths()[0] * problem.GetOutputGradDesc().GetLengths()[1];
-    auto N           = problem.GetOutputGradDesc().GetLengths()[0];
     auto in_over_out = static_cast<float>(in_nelems) / out_nelems;
 
     if(dtype == miopenFloat)
     {
-        if((in_over_out < 2 && out_nelems <= 12582912) || (in_over_out <= 8 && N >= 6))
-        {
-            return true;
-        }
         return false;
     }
     else if(dtype == miopenHalf)
     {
-        if((in_over_out < 2 && mul_nc < 8192) || (8 > in_over_out && out_nelems >= 29052108))
+        if(in_over_out < 2 && in_nelems >= 11075584)
         {
             return true;
         }
     }
     else if(dtype == miopenBFloat16)
     {
-        if((1 <= in_over_out && in_over_out < 2 && in_nelems >= 4194304) ||
-           (in_over_out <= 8 && in_nelems >= 944111616))
+        if(in_over_out < 2 || (in_nelems > 20000000 && mul_nc <= 2048))
         {
             return true;
         }
@@ -79,24 +73,24 @@ bool IsOverRocmBwd3d(const miopen::avgpool::BwdProblemDescription& problem)
     return false;
 }
 
-bool AvgPoolBackward3d::IsApplicable(const ExecutionContext&,
-                                     const miopen::avgpool::BwdProblemDescription& problem) const
+bool AdaptiveAvgPoolBackward2d::IsApplicable(
+    const ExecutionContext&, const miopen::adaptiveavgpool::BwdProblemDescription& problem) const
 {
-    if(problem.GetInputGradDesc().GetNumDims() != 5 ||
-       problem.GetOutputGradDesc().GetNumDims() != 5)
+    if(problem.GetInputGradDesc().GetNumDims() != 4 ||
+       problem.GetOutputGradDesc().GetNumDims() != 4)
     {
         return false;
     }
-    if(!IsOverRocmBwd3d(problem))
+    if(!IsOverRocmBwd2d(problem))
     {
         return false;
     }
     return true;
 }
 
-ConvSolution
-AvgPoolBackward3d::GetSolution(const ExecutionContext& context,
-                               const miopen::avgpool::BwdProblemDescription& problem) const
+ConvSolution AdaptiveAvgPoolBackward2d::GetSolution(
+    const ExecutionContext& context,
+    const miopen::adaptiveavgpool::BwdProblemDescription& problem) const
 {
     std::ignore = context;
 
@@ -114,48 +108,36 @@ AvgPoolBackward3d::GetSolution(const ExecutionContext& context,
         {"INPUT_TYPE", input_dtype == "bfloat16" ? "ushort" : input_dtype},
         {"OUTPUT_TYPE", output_dtype == "bfloat16" ? "ushort" : output_dtype}};
 
-    result.construction_params.push_back(make_hip_kernel(
-        {LOCAL_SIZE_BWD_3D}, {N_total}, "MIOpenAvgPool.cpp", "AvgPoolBackward3d", build_params));
+    result.construction_params.push_back(make_hip_kernel({LOCAL_SIZE_BWD_2D},
+                                                         {N_total},
+                                                         "MIOpenAdaptiveAvgPool.cpp",
+                                                         "AdaptiveAvgPoolBackward2d",
+                                                         build_params));
 
     result.invoker_factory = [](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
-            decltype(auto) params = raw_params.CastTo<miopen::avgpool::BwdInvokeParams>();
+            decltype(auto) params = raw_params.CastTo<miopen::adaptiveavgpool::BwdInvokeParams>();
 
             decltype(auto) kernel = handle_.Run(kernels.front());
 
-            auto input_grad_tv  = get_inner_expanded_tv<5>(deref(params.inputGradDesc));
-            auto output_grad_tv = get_inner_expanded_tv<5>(deref(params.outputGradDesc));
+            auto input_grad_tv  = get_inner_expanded_tv<4>(deref(params.inputGradDesc));
+            auto output_grad_tv = get_inner_expanded_tv<4>(deref(params.outputGradDesc));
 
             auto N  = deref(params.inputGradDesc).GetLengths()[0];
             auto C  = deref(params.inputGradDesc).GetLengths()[1];
-            auto D  = deref(params.inputGradDesc).GetLengths()[2];
-            auto H  = deref(params.inputGradDesc).GetLengths()[3];
-            auto W  = deref(params.inputGradDesc).GetLengths()[4];
-            auto OD = deref(params.outputGradDesc).GetLengths()[2];
-            auto OH = deref(params.outputGradDesc).GetLengths()[3];
-            auto OW = deref(params.outputGradDesc).GetLengths()[4];
+            auto H  = deref(params.inputGradDesc).GetLengths()[2];
+            auto W  = deref(params.inputGradDesc).GetLengths()[3];
+            auto OH = deref(params.outputGradDesc).GetLengths()[2];
+            auto OW = deref(params.outputGradDesc).GetLengths()[3];
 
             kernel(params.output_grad,
                    params.input_grad,
                    N,
                    C,
-                   D,
                    H,
                    W,
-                   OD,
                    OH,
                    OW,
-                   params.KD,
-                   params.KH,
-                   params.KW,
-                   params.SD,
-                   params.SH,
-                   params.SW,
-                   params.PD,
-                   params.PH,
-                   params.PW,
-                   params.count_include_pad,
-                   params.divisor_override,
                    output_grad_tv,
                    input_grad_tv);
         };
@@ -164,7 +146,7 @@ AvgPoolBackward3d::GetSolution(const ExecutionContext& context,
     return result;
 }
 
-} // namespace avgpool
+} // namespace adaptiveavgpool
 
 } // namespace solver
 

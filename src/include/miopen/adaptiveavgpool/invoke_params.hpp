@@ -31,7 +31,7 @@
 #include <miopen/tensor.hpp>
 
 namespace miopen {
-namespace avgpool {
+namespace adaptiveavgpool {
 
 struct FwdInvokeParams : public miopen::InvokeParams
 {
@@ -43,19 +43,6 @@ struct FwdInvokeParams : public miopen::InvokeParams
 
     ConstData_t input = nullptr;
     Data_t output     = nullptr;
-    ConstData_t ksize = nullptr;
-
-    int32_t KD               = 0;
-    int32_t KH               = 0;
-    int32_t KW               = 0;
-    int32_t SD               = 0;
-    int32_t SH               = 0;
-    int32_t SW               = 0;
-    int32_t PD               = 0;
-    int32_t PH               = 0;
-    int32_t PW               = 0;
-    bool count_include_pad   = false;
-    int32_t divisor_override = 0;
 
     std::size_t GetWorkspaceSize() const { return 0; }
     Data_t GetWorkspace() const { return nullptr; }
@@ -71,23 +58,10 @@ struct BwdInvokeParams : public miopen::InvokeParams
 
     ConstData_t output_grad = nullptr;
     Data_t input_grad       = nullptr;
-    ConstData_t ksize       = nullptr;
-
-    int32_t KD               = 0;
-    int32_t KH               = 0;
-    int32_t KW               = 0;
-    int32_t SD               = 0;
-    int32_t SH               = 0;
-    int32_t SW               = 0;
-    int32_t PD               = 0;
-    int32_t PH               = 0;
-    int32_t PW               = 0;
-    bool count_include_pad   = false;
-    int32_t divisor_override = 0;
 
     std::size_t GetWorkspaceSize() const { return 0; }
     Data_t GetWorkspace() const { return nullptr; }
 };
 
-} // namespace avgpool
+} // namespace adaptiveavgpool
 } // namespace miopen

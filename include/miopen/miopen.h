@@ -70,7 +70,7 @@
  * @defgroup SGD
  * @defgroup getitem
  * @defgroup ReduceCalculation
- * @defgroup avgpool
+ * @defgroup adaptiveavgpool
  *
  */
 
@@ -7623,73 +7623,43 @@ MIOPEN_EXPORT miopenStatus_t miopenGetitemBackward(miopenHandle_t handle,
 #endif // MIOPEN_BETA_API
 
 #ifdef MIOPEN_BETA_API
-// avgpool APIs
-/** @addtogroup avgpool
+// adaptiveavgpool APIs
+/** @addtogroup adaptiveavgpool
  *
  *  @{
  */
 
-/*! @brief Execute an avgpool forward layer
+/*! @brief Execute an adaptiveavgpool forward layer
  *
  * @param handle                   MIOpen handle (input)
  * @param inputDesc                Tensor descriptor for input tensor (input)
  * @param input                    Data tensor input (input)
  * @param outputDesc               Tensor descriptor for output tensor (input)
  * @param output                   Data tensor output (output)
- * @param count_include_pad        When True, will include the zero-padding in the averaging
- * calculation (input)
- * @param divisor_override         If non-zero, will use this value as the divisor, otherwise will
- * use the number of elements in the pooling window (input)
  * @return                         miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t miopenAvgPoolForward(miopenHandle_t handle,
                                                   const miopenTensorDescriptor_t inputDesc,
                                                   const void* input,
                                                   const miopenTensorDescriptor_t outputDesc,
-                                                  void* output,
-                                                  const int32_t KD,
-                                                  const int32_t KH,
-                                                  const int32_t KW,
-                                                  const int32_t SD,
-                                                  const int32_t SH,
-                                                  const int32_t SW,
-                                                  const int32_t PD,
-                                                  const int32_t PH,
-                                                  const int32_t PW,
-                                                  const bool count_include_pad,
-                                                  const int32_t divisor_override);
+                                                  void* output);
 
-/*! @brief Execute an avgpool backward layer
+/*! @brief Execute an adaptiveavgpool backward layer
  *
  * @param handle                   MIOpen handle (input)
  * @param outputGradDesc           Tensor descriptor for output grad tensor (input)
  * @param output_grad              Data tensor output grad (input)
  * @param inputGradDesc            Tensor descriptor for input grad tensor (input)
  * @param input_grad               Data tensor input grad (output)
- * @param count_include_pad        When True, will include the zero-padding in the averaging
- * calculation (input)
- * @param divisor_override         If non-zero, will use this value as the divisor, otherwise will
- * use the number of elements in the pooling window (input)
  * @return                         miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t miopenAvgPoolBackward(miopenHandle_t handle,
                                                    const miopenTensorDescriptor_t outputGradDesc,
                                                    const void* output_grad,
                                                    const miopenTensorDescriptor_t inputGradDesc,
-                                                   void* input_grad,
-                                                   const int32_t KD,
-                                                   const int32_t KH,
-                                                   const int32_t KW,
-                                                   const int32_t SD,
-                                                   const int32_t SH,
-                                                   const int32_t SW,
-                                                   const int32_t PD,
-                                                   const int32_t PH,
-                                                   const int32_t PW,
-                                                   const bool count_include_pad,
-                                                   const int32_t divisor_override);
+                                                   void* input_grad);
 /** @} */
-// CLOSEOUT avgpool DOXYGEN GROUP
+// CLOSEOUT adaptiveavgpool DOXYGEN GROUP
 #endif // MIOPEN_BETA_API
 
 #ifdef __cplusplus
