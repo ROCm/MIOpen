@@ -37,4 +37,4 @@ The MIOpen API library is structured as follows:
   * :doc:`ReduceCalculation <../doxygen/html/group__ReduceCalculation>` (experimental)
   * :doc:`RotaryPositionalEmbeddings <../doxygen/html/group__RotaryPositionalEmbeddings>` (experimental)
   * :doc:`ReLU <../doxygen/html/group___re_l_u>` (experimental)
-  * :doc:`Cumulative Reduction <./group___cumulative_reduction>` (experimental)
+  * :doc:`LogCumSumExp <./group___log_cum_sum_exp>` (experimental)

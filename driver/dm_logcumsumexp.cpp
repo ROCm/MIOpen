@@ -24,30 +24,18 @@
  *
  *******************************************************************************/
 
-#include <miopen/cumulative_reduction/utils.hpp>
+#include "registry_driver_maker.hpp"
+#include "logcumsumexp_driver.hpp"
 
-namespace miopen {
-
-namespace solver {
-
-namespace cumulative_reduction {
-
-KernelInfo make_hip_kernel(std::vector<size_t> localsize,
-                           std::vector<size_t> gridsize,
-                           std::string kernel_file,
-                           std::string kernel_name,
-                           KernelBuildParameters build_params)
+static Driver* makeDriver(const std::string& base_arg)
 {
-    while(localsize.size() < 3)
-        localsize.push_back(1);
-    while(gridsize.size() < 3)
-        gridsize.push_back(1);
-    for(int i = 0; i < localsize.size(); ++i)
-        gridsize[i] = AlignUp(gridsize[i], localsize[i]);
-    return KernelInfo{
-        build_params.GenerateFor(kbp::HIP{}), localsize, gridsize, kernel_file, kernel_name};
+    if(base_arg == "logcumsumexp")
+        return new LogCumSumExpDriver<float, float>();
+    if(base_arg == "logcumsumexpfp16")
+        return new LogCumSumExpDriver<float16, float>();
+    if(base_arg == "logcumsumexpbfp16")
+        return new LogCumSumExpDriver<bfloat16, float>();
+    return nullptr;
 }
 
-} // namespace cumulative_reduction
-} // namespace solver
-} // namespace miopen
+REGISTER_DRIVER_MAKER(makeDriver);

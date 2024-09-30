@@ -34,7 +34,7 @@ namespace miopen {
 
 struct NetworkConfig;
 
-namespace cumulative_reduction {
+namespace logcumsumexp {
 
 bool checkSameLength(const TensorDescriptor& x, const TensorDescriptor& y);
 
@@ -42,26 +42,18 @@ struct ForwardProblemDescription : ProblemDescriptionBase
 {
     ForwardProblemDescription(const TensorDescriptor& inputDesc_,
                               const TensorDescriptor& outputDesc_,
-                              const TensorDescriptor& indicesDesc_,
-                              const int& dim_,
-                              const miopenCumOp_t& cumOp_)
-        : inputDesc(inputDesc_),
-          outputDesc(outputDesc_),
-          indicesDesc(indicesDesc_),
-          dim(dim_),
-          cumOp(cumOp_)
+                              const int& dim_)
+        : inputDesc(inputDesc_), outputDesc(outputDesc_), dim(dim_)
     {
         if(IsValidDim())
             dim = (dim < 0 ? dim + inputDesc.GetNumDims() : dim);
-        IsValidIndicesType();
         IsSameLength();
+        IsSameType();
     }
 
     const TensorDescriptor& GetInputDesc() const { return inputDesc; }
     const TensorDescriptor& GetOutputDesc() const { return outputDesc; }
-    const TensorDescriptor& GetIndicesDesc() const { return indicesDesc; }
     const int& GetDim() const { return dim; }
-    const miopenCumOp_t& GetCumOp() const { return cumOp; }
 
     bool IsValidDim() const
     {
@@ -70,35 +62,32 @@ struct ForwardProblemDescription : ProblemDescriptionBase
         {
             MIOPEN_THROW(miopenStatusBadParm,
                          (std::stringstream()
-                          << "Cumulative Reduction: Operating dim value must be in range ["
-                          << -ndims << "," << ndims - 1 << "].")
+                          << "LogCumSumExp: Operating dim value must be in range [" << -ndims << ","
+                          << ndims - 1 << "].")
                              .str());
         }
         return true;
     }
 
-    bool IsValidIndicesType() const
+    bool IsSameLength() const
     {
-        if(indicesDesc.GetElementSize() > 0 && indicesDesc.GetType() != miopenInt32)
+        if(inputDesc.GetLengths() != outputDesc.GetLengths())
             MIOPEN_THROW(miopenStatusBadParm,
-                         "Cumulative Reduction: Indices tensor type must be int32.");
+                         "LogCumSumExp: Input and Output tensor sizes do not match.");
         return true;
     }
 
-    bool IsSameLength() const
+    bool IsSameType() const
     {
-        if(outputDesc.GetElementSize() > 0 && !checkSameLength(inputDesc, outputDesc))
+        if(inputDesc.GetType() != outputDesc.GetType())
             MIOPEN_THROW(miopenStatusBadParm,
-                         "Cumulative Reduction: Input and Output tensor sizes do not match.");
-        if(indicesDesc.GetElementSize() > 0 && !checkSameLength(inputDesc, indicesDesc))
-            MIOPEN_THROW(miopenStatusBadParm,
-                         "Cumulative Reduction: Input and Indices tensor sizes do not match.");
+                         "LogCumSumExp: Input and Output tensor type do not match.");
         return true;
     }
 
     bool IsAllPacked() const
     {
-        if(!inputDesc.IsPacked() || !outputDesc.IsPacked() || !indicesDesc.IsPacked())
+        if(!inputDesc.IsPacked() || !outputDesc.IsPacked())
             return false;
         return true;
     }
@@ -109,8 +98,6 @@ struct ForwardProblemDescription : ProblemDescriptionBase
             return false;
         if(outputDesc.GetElementSize() > 0 && outputDesc.GetStrides()[dim] != 1)
             return false;
-        if(indicesDesc.GetElementSize() > 0 && indicesDesc.GetStrides()[dim] != 1)
-            return false;
         return true;
     }
 
@@ -119,13 +106,11 @@ struct ForwardProblemDescription : ProblemDescriptionBase
 private:
     TensorDescriptor inputDesc;
     TensorDescriptor outputDesc;
-    TensorDescriptor indicesDesc;
     int dim;
-    miopenCumOp_t cumOp;
 
     NetworkConfig MakeForwardNetworkConfig() const;
 };
 
-} // namespace cumulative_reduction
+} // namespace logcumsumexp
 
 } // namespace miopen

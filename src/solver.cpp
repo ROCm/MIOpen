@@ -40,7 +40,7 @@
 #include <miopen/rope/solvers.hpp>
 #include <miopen/mha/solvers.hpp>
 #include <miopen/softmax/solvers.hpp>
-#include <miopen/cumulative_reduction/solvers.hpp>
+#include <miopen/logcumsumexp/solvers.hpp>
 
 #include <miopen/conv_algo_name.hpp>
 #include <miopen/db.hpp>
@@ -685,7 +685,7 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
     Register(registry,
              ++id,
              Primitive::Reduce,
-             cumulative_reduction::ForwardContiguousLastDim{}.SolverDbId());
+             logcumsumexp::ForwardContiguousSmallLastDim{}.SolverDbId());
 
     // IMPORTANT: New solvers should be added to the end of the function!
 }

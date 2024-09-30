@@ -24,13 +24,13 @@
  *
  *******************************************************************************/
 
-#include "cumulative_reduction.hpp"
+#include "logcumsumexp.hpp"
 #include <miopen/env.hpp>
 
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 
-namespace cumulative_reduction {
+namespace logcumsumexp {
 
 std::string GetFloatArg()
 {
@@ -51,22 +51,22 @@ bool CheckFloatArg(std::string arg)
     return false;
 }
 
-struct GPU_CumulativeReduction_fwd_FP32 : CumulativeReductionTest<float>
+struct GPU_LogCumSumExp_fwd_FP32 : LogCumSumExpTest<float>
 {
 };
 
-struct GPU_CumulativeReduction_fwd_FP16 : CumulativeReductionTest<half>
+struct GPU_LogCumSumExp_fwd_FP16 : LogCumSumExpTest<half>
 {
 };
 
-struct GPU_CumulativeReduction_fwd_BPF16 : CumulativeReductionTest<bfloat16>
+struct GPU_LogCumSumExp_fwd_BPF16 : LogCumSumExpTest<bfloat16>
 {
 };
 
-} // namespace cumulative_reduction
-using namespace cumulative_reduction;
+} // namespace logcumsumexp
+using namespace logcumsumexp;
 
-TEST_P(GPU_CumulativeReduction_fwd_FP32, Test)
+TEST_P(GPU_LogCumSumExp_fwd_FP32, Test)
 {
     if(CheckFloatArg("--float"))
     {
@@ -79,7 +79,7 @@ TEST_P(GPU_CumulativeReduction_fwd_FP32, Test)
     }
 };
 
-TEST_P(GPU_CumulativeReduction_fwd_FP16, Test)
+TEST_P(GPU_LogCumSumExp_fwd_FP16, Test)
 {
     if(CheckFloatArg("--half"))
     {
@@ -92,7 +92,7 @@ TEST_P(GPU_CumulativeReduction_fwd_FP16, Test)
     }
 };
 
-TEST_P(GPU_CumulativeReduction_fwd_BPF16, Test)
+TEST_P(GPU_LogCumSumExp_fwd_BPF16, Test)
 {
     if(CheckFloatArg("--bfloat16"))
     {
@@ -106,31 +106,31 @@ TEST_P(GPU_CumulativeReduction_fwd_BPF16, Test)
 };
 
 INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_CumulativeReduction_fwd_FP32,
-                         testing::ValuesIn(CumulativeReductionSmokeTestConfigs()));
+                         GPU_LogCumSumExp_fwd_FP32,
+                         testing::ValuesIn(LogCumSumExpSmokeTestConfigs()));
 INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_CumulativeReduction_fwd_FP16,
-                         testing::ValuesIn(CumulativeReductionSmokeTestConfigs()));
+                         GPU_LogCumSumExp_fwd_FP16,
+                         testing::ValuesIn(LogCumSumExpSmokeTestConfigs()));
 INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_CumulativeReduction_fwd_BPF16,
-                         testing::ValuesIn(CumulativeReductionSmokeTestConfigs()));
+                         GPU_LogCumSumExp_fwd_BPF16,
+                         testing::ValuesIn(LogCumSumExpSmokeTestConfigs()));
 
 INSTANTIATE_TEST_SUITE_P(Perf,
-                         GPU_CumulativeReduction_fwd_FP32,
-                         testing::ValuesIn(CumulativeReductionPerfTestConfigs()));
+                         GPU_LogCumSumExp_fwd_FP32,
+                         testing::ValuesIn(LogCumSumExpPerfTestConfigs()));
 INSTANTIATE_TEST_SUITE_P(Perf,
-                         GPU_CumulativeReduction_fwd_FP16,
-                         testing::ValuesIn(CumulativeReductionPerfTestConfigs()));
+                         GPU_LogCumSumExp_fwd_FP16,
+                         testing::ValuesIn(LogCumSumExpPerfTestConfigs()));
 INSTANTIATE_TEST_SUITE_P(Perf,
-                         GPU_CumulativeReduction_fwd_BPF16,
-                         testing::ValuesIn(CumulativeReductionPerfTestConfigs()));
+                         GPU_LogCumSumExp_fwd_BPF16,
+                         testing::ValuesIn(LogCumSumExpPerfTestConfigs()));
 
 INSTANTIATE_TEST_SUITE_P(Full,
-                         GPU_CumulativeReduction_fwd_FP32,
-                         testing::ValuesIn(CumulativeReductionFullTestConfigs()));
+                         GPU_LogCumSumExp_fwd_FP32,
+                         testing::ValuesIn(LogCumSumExpFullTestConfigs()));
 INSTANTIATE_TEST_SUITE_P(Full,
-                         GPU_CumulativeReduction_fwd_FP16,
-                         testing::ValuesIn(CumulativeReductionFullTestConfigs()));
+                         GPU_LogCumSumExp_fwd_FP16,
+                         testing::ValuesIn(LogCumSumExpFullTestConfigs()));
 INSTANTIATE_TEST_SUITE_P(Full,
-                         GPU_CumulativeReduction_fwd_BPF16,
-                         testing::ValuesIn(CumulativeReductionFullTestConfigs()));
+                         GPU_LogCumSumExp_fwd_BPF16,
+                         testing::ValuesIn(LogCumSumExpFullTestConfigs()));

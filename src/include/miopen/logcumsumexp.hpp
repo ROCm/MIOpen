@@ -25,35 +25,20 @@
  *******************************************************************************/
 #pragma once
 
-#include <miopen/cumulative_reduction/problem_description.hpp>
-#include <miopen/solver.hpp>
+#include <miopen/common.hpp>
 
 namespace miopen {
 
-namespace solver {
+struct Handle;
+struct TensorDescriptor;
 
-namespace cumulative_reduction {
-
-using ForwardSolverBase =
-    NonTunableSolverBase<ExecutionContext, miopen::cumulative_reduction::ForwardProblemDescription>;
-
-struct ForwardContiguousLastDim final : ForwardSolverBase
-{
-    const std::string& SolverDbId() const override
-    {
-        return GetSolverDbId<ForwardContiguousLastDim>();
-    }
-
-    bool IsApplicable(
-        const ExecutionContext& context,
-        const miopen::cumulative_reduction::ForwardProblemDescription& problem) const override;
-    ConvSolution GetSolution(
-        const ExecutionContext& context,
-        const miopen::cumulative_reduction::ForwardProblemDescription& problem) const override;
-};
-
-} // namespace cumulative_reduction
-
-} // namespace solver
+MIOPEN_INTERNALS_EXPORT miopenStatus_t LogCumSumExpForward(Handle& handle,
+                                                           const TensorDescriptor& inputDesc,
+                                                           ConstData_t input,
+                                                           const TensorDescriptor& outputDesc,
+                                                           Data_t output,
+                                                           int dim,
+                                                           bool exclusive,
+                                                           bool reverse);
 
 } // namespace miopen

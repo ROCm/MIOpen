@@ -40,13 +40,13 @@ add_executable(MIOpenDriver
     dm_convfp16.cpp
     dm_convfp8.cpp
     dm_convint8.cpp
-    dm_cumulative_reduction.cpp
     dm_dropout.cpp
     dm_fusion.cpp
     dm_gemm.cpp
     dm_getitem.cpp
     dm_groupnorm.cpp
     dm_layernorm.cpp
+    dm_logcumsumexp.cpp
     dm_lrn.cpp
     dm_pool.cpp
     dm_prelu.cpp

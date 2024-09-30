@@ -23,50 +23,37 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#pragma once
 
-#include <miopen/cumulative_reduction/problem_description.hpp>
-#include <miopen/names.hpp>
-
-#include <sstream>
+#include <miopen/logcumsumexp/problem_description.hpp>
+#include <miopen/solver.hpp>
 
 namespace miopen {
 
-namespace cumulative_reduction {
+namespace solver {
 
-bool checkSameLength(const TensorDescriptor& x, const TensorDescriptor& y)
+namespace logcumsumexp {
+
+using ForwardSolverBase =
+    NonTunableSolverBase<ExecutionContext, miopen::logcumsumexp::ForwardProblemDescription>;
+
+struct ForwardContiguousSmallLastDim final : ForwardSolverBase
 {
-    if(x.GetNumDims() != y.GetNumDims())
-        return false;
-    for(int i = 0; i < x.GetNumDims(); ++i)
+    const std::string& SolverDbId() const override
     {
-        if(x.GetLengths()[i] != y.GetLengths()[i])
-            return false;
+        return GetSolverDbId<ForwardContiguousSmallLastDim>();
     }
-    return true;
-}
 
-NetworkConfig ForwardProblemDescription::MakeNetworkConfig() const
-{
-    auto input_dtype  = inputDesc.GetType();
-    auto output_dtype = outputDesc.GetType();
-    auto size         = inputDesc.GetElementSize();
-    auto inner_size   = inputDesc.GetLengths()[dim];
-    auto outer_size   = size / inner_size;
+    bool
+    IsApplicable(const ExecutionContext& context,
+                 const miopen::logcumsumexp ::ForwardProblemDescription& problem) const override;
+    ConvSolution
+    GetSolution(const ExecutionContext& context,
+                const miopen::logcumsumexp ::ForwardProblemDescription& problem) const override;
+};
 
-    std::ostringstream ss;
+} // namespace logcumsumexp
 
-    ss << "cum_reduc_fwd";
-    ss << "idtype" << input_dtype;
-    ss << "odtype" << output_dtype;
-    ss << "outer" << outer_size;
-    ss << "inner" << inner_size;
-    ss << "op" << cumOp;
-    ss << "packed" << IsAllPacked();
-    ss << "dimstride1" << IsAllDimStride1();
-
-    return NetworkConfig{ss.str()};
-}
-
-} // namespace cumulative_reduction
+} // namespace solver
 
 } // namespace miopen

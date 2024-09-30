@@ -26,36 +26,30 @@
 
 #include <miopen/find_solution.hpp>
 #include <miopen/tensor.hpp>
-#include <miopen/cumulative_reduction.hpp>
-#include <miopen/cumulative_reduction/invoke_params.hpp>
-#include <miopen/cumulative_reduction/solvers.hpp>
+#include <miopen/logcumsumexp.hpp>
+#include <miopen/logcumsumexp/invoke_params.hpp>
+#include <miopen/logcumsumexp/solvers.hpp>
 
 namespace miopen {
 
-miopenStatus_t CumulativeReductionForward(Handle& handle,
-                                          const TensorDescriptor& inputDesc,
-                                          ConstData_t input,
-                                          const TensorDescriptor& outputDesc,
-                                          Data_t output,
-                                          const TensorDescriptor& indicesDesc,
-                                          Data_t indices,
-                                          const int dim,
-                                          const bool exclusive,
-                                          const bool reverse,
-                                          const miopenCumOp_t cumOp)
+miopenStatus_t LogCumSumExpForward(Handle& handle,
+                                   const TensorDescriptor& inputDesc,
+                                   ConstData_t input,
+                                   const TensorDescriptor& outputDesc,
+                                   Data_t output,
+                                   const int dim,
+                                   const bool exclusive,
+                                   const bool reverse)
 {
-    const auto problem = cumulative_reduction::ForwardProblemDescription{
-        inputDesc, outputDesc, indicesDesc, dim, cumOp};
+    const auto problem = logcumsumexp::ForwardProblemDescription{inputDesc, outputDesc, dim};
 
     const auto invoke_params = [&]() {
-        auto tmp        = cumulative_reduction::InvokeParams{};
-        tmp.type        = InvokeType::Run;
-        tmp.inputDesc   = &inputDesc;
-        tmp.outputDesc  = &outputDesc;
-        tmp.indicesDesc = &indicesDesc;
-        tmp.input       = input;
-        tmp.output      = output;
-        tmp.indices     = indices;
+        auto tmp       = logcumsumexp::InvokeParams{};
+        tmp.type       = InvokeType::Run;
+        tmp.inputDesc  = &inputDesc;
+        tmp.outputDesc = &outputDesc;
+        tmp.input      = input;
+        tmp.output     = output;
 
         tmp.dim       = dim;
         tmp.exclusive = exclusive;
@@ -64,9 +58,9 @@ miopenStatus_t CumulativeReductionForward(Handle& handle,
         return tmp;
     }();
 
-    const auto algo = AlgorithmName{"CumulativeReductionForward"};
+    const auto algo = AlgorithmName{"LogCumSumExpForward"};
     const auto solvers =
-        solver::SolverContainer<solver::cumulative_reduction::ForwardContiguousLastDim>{};
+        solver::SolverContainer<solver::logcumsumexp::ForwardContiguousSmallLastDim>{};
 
     solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
 

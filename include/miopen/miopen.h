@@ -72,7 +72,7 @@
  * @defgroup ReduceCalculation
  * @defgroup RotaryPositionalEmbeddings
  * @defgroup ReLU
- * @defgroup CumulativeReduction
+ * @defgroup LogCumSumExp
  *
  */
 
@@ -7735,52 +7735,33 @@ MIOPEN_EXPORT miopenStatus_t miopenPReLUBackward(miopenHandle_t handle,
 
 #ifdef MIOPEN_BETA_API
 
-/** @addtogroup CumulativeReduction
+/** @addtogroup LogCumSumExp
  *
  *  @{
  */
 
-/*! @enum miopenCumOp_t
- * Cumulative Reduction operation types
- */
-using miopenCumOp_t = enum {
-    MIOPEN_CUM_MAX = 1,  /*!< the operation is getting the maximun value and index of the reduced
-                        elements */
-    MIOPEN_CUM_MIN = 2,  /*!< the operation is getting the minimum value and index of the reduced
-                        elements */
-    MIOPEN_CUM_SUM  = 3, /*!< the operation is getting the sum of the reduced elements */
-    MIOPEN_CUM_PROD = 4, /*!< the operation is getting the product of the reduced elements */
-};
-
-/*! @brief Execute a Cumulative Reduction forward layer
+/*! @brief Execute a LogCumSumExp forward layer
  *
  * @param handle                   MIOpen handle (input)
  * @param inputDesc                Tensor descriptor for input tensor (input)
  * @param input                    Data tensor input (input)
  * @param outputDesc               Tensor descriptor for output tensor (input)
- * @param output                   Data tensor output, using `nullptr` if it is not needed (output)
- * @param indicesDesc              Tensor descriptor for indices tensor (input)
- * @param indices                  Data tensor indices, using `nullptr` if it is not needed (output)
+ * @param output                   Data tensor output (output)
  * @param dim                      The dimension to do the operation over (input)
  * @param exclusive                Exclusive operation (input)
  * @param reverse                  Reverse the operation order (input)
- * @param cumOp                    Enumerant specifying the operation used by Cumulative Reduction
- * (input)
  */
-MIOPEN_EXPORT miopenStatus_t miopenCumulativeReductionForward(miopenHandle_t handle,
-                                                              miopenTensorDescriptor_t inputDesc,
-                                                              const void* input,
-                                                              miopenTensorDescriptor_t outputDesc,
-                                                              void* output,
-                                                              miopenTensorDescriptor_t indicesDesc,
-                                                              void* indices,
-                                                              int dim,
-                                                              bool exclusive,
-                                                              bool reverse,
-                                                              miopenCumOp_t cumOp);
+MIOPEN_EXPORT miopenStatus_t miopenLogCumSumExpForward(miopenHandle_t handle,
+                                                       miopenTensorDescriptor_t inputDesc,
+                                                       const void* input,
+                                                       miopenTensorDescriptor_t outputDesc,
+                                                       void* output,
+                                                       int dim,
+                                                       bool exclusive,
+                                                       bool reverse);
 
 /** @} */
-// CLOSEOUT CUMULATIVE REDUCTION DOXYGEN GROUP
+// CLOSEOUT LogCumSumExp DOXYGEN GROUP
 #endif // MIOPEN_BETA_API
 
 #ifdef __cplusplus

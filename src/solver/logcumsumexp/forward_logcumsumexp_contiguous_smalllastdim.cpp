@@ -26,33 +26,37 @@
 
 #include <miopen/datatype.hpp>
 #include <miopen/kernel_build_params.hpp>
-#include <miopen/cumulative_reduction/invoke_params.hpp>
-#include <miopen/cumulative_reduction/solvers.hpp>
-#include <miopen/cumulative_reduction/utils.hpp>
+#include <miopen/logcumsumexp/invoke_params.hpp>
+#include <miopen/logcumsumexp/solvers.hpp>
+#include <miopen/mlo_internal.hpp>
 
 #define warpSizeCTX (context.GetStream().GetWavefrontWidth())
-#define LOCAL_SIZE_MAX 256
+#define LOCAL_SIZE_MAX 1024
 #define LOCAL_SIZE_MIN warpSizeCTX
 
 namespace miopen {
 
 namespace solver {
 
-namespace cumulative_reduction {
+namespace logcumsumexp {
 
+namespace {
 bool IsImprovementOverROCm(const ExecutionContext& /*context*/,
-                           const miopen::cumulative_reduction::ForwardProblemDescription& problem)
+                           const miopen::logcumsumexp::ForwardProblemDescription& problem)
 {
-    if(problem.GetInputDesc().GetLengths()[problem.GetDim()] > LOCAL_SIZE_MAX)
+    if(problem.GetInputDesc().GetLengths()[problem.GetDim()] > 256)
         return false;
     return true;
 }
+} // namespace
 
-bool ForwardContiguousLastDim::IsApplicable(
+bool ForwardContiguousSmallLastDim::IsApplicable(
     const ExecutionContext& context,
-    const miopen::cumulative_reduction::ForwardProblemDescription& problem) const
+    const miopen::logcumsumexp::ForwardProblemDescription& problem) const
 {
     if(!IsImprovementOverROCm(context, problem))
+        return false;
+    if(problem.GetInputDesc().GetLengths()[problem.GetDim()] > LOCAL_SIZE_MAX)
         return false;
     if(!problem.IsAllPacked())
         return false;
@@ -61,16 +65,15 @@ bool ForwardContiguousLastDim::IsApplicable(
     return true;
 }
 
-ConvSolution ForwardContiguousLastDim::GetSolution(
+ConvSolution ForwardContiguousSmallLastDim::GetSolution(
     const ExecutionContext& context,
-    const miopen::cumulative_reduction::ForwardProblemDescription& problem) const
+    const miopen::logcumsumexp::ForwardProblemDescription& problem) const
 {
     auto result = ConvSolution{miopenStatusSuccess};
 
     auto dtype        = problem.GetInputDesc().GetType();
     auto input_dtype  = miopen::GetDataType(problem.GetInputDesc().GetType());
     auto output_dtype = miopen::GetDataType(problem.GetOutputDesc().GetType());
-    auto cum_op       = problem.GetCumOp();
 
     auto size       = problem.GetInputDesc().GetElementSize();
     auto inner_size = problem.GetInputDesc().GetLengths()[problem.GetDim()];
@@ -86,31 +89,28 @@ ConvSolution ForwardContiguousLastDim::GetSolution(
         {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
         {"MIOPEN_USE_FP64", static_cast<int>(dtype == miopenDouble)},
         {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
-        {"INPUT_TYPE", input_dtype == "bfloat16" ? "ushort" : input_dtype},
-        {"OUTPUT_TYPE", output_dtype == "bfloat16" ? "ushort" : output_dtype},
-        {"OP_TYPE", cum_op},
         {"REDUCE_SIZE", local_size},
     };
 
     {
-        result.construction_params.push_back(
-            make_hip_kernel({1, local_size},
-                            {outer_size, inner_size},
-                            "MIOpenCumulativeReduction.cpp",
-                            "CumulativeReductionForwardContiguousLastDim",
-                            build_params));
+        result.construction_params.push_back(KernelInfo{
+            build_params.GenerateFor(kbp::HIP{}),
+            {1, local_size},
+            {outer_size, AlignUp(inner_size, local_size)},
+            "MIOpenLogCumSumExp.cpp",
+            "LogCumSumExpForwardContiguousSmallLastDim",
+        });
     }
 
     result.invoker_factory = [](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
-            auto params = raw_params.CastTo<miopen::cumulative_reduction::InvokeParams>();
+            auto params = raw_params.CastTo<miopen::logcumsumexp::InvokeParams>();
 
             const int ndims             = deref(params.inputDesc).GetNumDims();
             const unsigned int true_dim = ((params.dim % ndims) + ndims) % ndims;
             auto kernel                 = handle_.Run(kernels[0]);
             kernel(params.input,
                    params.output,
-                   params.indices,
                    deref(params.inputDesc).GetLengths()[true_dim],
                    params.exclusive,
                    params.reverse);
@@ -120,6 +120,6 @@ ConvSolution ForwardContiguousLastDim::GetSolution(
     return result;
 }
 
-} // namespace cumulative_reduction
+} // namespace logcumsumexp
 } // namespace solver
 } // namespace miopen

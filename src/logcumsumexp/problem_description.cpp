@@ -24,18 +24,34 @@
  *
  *******************************************************************************/
 
-#include "registry_driver_maker.hpp"
-#include "cumulative_reduction_driver.hpp"
+#include <miopen/logcumsumexp/problem_description.hpp>
+#include <miopen/names.hpp>
 
-static Driver* makeDriver(const std::string& base_arg)
+#include <sstream>
+
+namespace miopen {
+
+namespace logcumsumexp {
+
+NetworkConfig ForwardProblemDescription::MakeNetworkConfig() const
 {
-    if(base_arg == "cum")
-        return new CumulativeReductionDriver<float, float>();
-    if(base_arg == "cumfp16")
-        return new CumulativeReductionDriver<float16, float>();
-    if(base_arg == "cumbfp16")
-        return new CumulativeReductionDriver<bfloat16, float>();
-    return nullptr;
+    auto dtype      = inputDesc.GetType();
+    auto size       = inputDesc.GetElementSize();
+    auto inner_size = inputDesc.GetLengths()[dim];
+    auto outer_size = size / inner_size;
+
+    std::ostringstream ss;
+
+    ss << "logcumsumexp_fwd";
+    ss << "dtype" << dtype;
+    ss << "outer" << outer_size;
+    ss << "inner" << inner_size;
+    ss << "packed" << IsAllPacked();
+    ss << "dimstride1" << IsAllDimStride1();
+
+    return NetworkConfig{ss.str()};
 }
 
-REGISTER_DRIVER_MAKER(makeDriver);
+} // namespace logcumsumexp
+
+} // namespace miopen

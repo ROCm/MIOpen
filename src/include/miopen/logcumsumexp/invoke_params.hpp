@@ -25,21 +25,31 @@
  *******************************************************************************/
 #pragma once
 
-#include <miopen/kernel_build_params.hpp>
-#include <miopen/problem_description_base.hpp>
+#include <miopen/invoke_params.hpp>
 #include <miopen/tensor.hpp>
-#include <miopen/solver.hpp>
 
 namespace miopen {
-namespace solver {
-namespace cumulative_reduction {
 
-KernelInfo make_hip_kernel(std::vector<size_t> localsize,
-                           std::vector<size_t> gridsize,
-                           std::string kernel_file,
-                           std::string kernel_name,
-                           KernelBuildParameters build_params);
+namespace logcumsumexp {
 
-} // namespace cumulative_reduction
-} // namespace solver
+struct InvokeParams : public miopen::InvokeParams
+{
+    InvokeParams() = default;
+
+    const TensorDescriptor* inputDesc  = nullptr;
+    const TensorDescriptor* outputDesc = nullptr;
+
+    ConstData_t input = nullptr;
+    Data_t output     = nullptr;
+
+    int dim        = 0;
+    bool exclusive = false;
+    bool reverse   = false;
+
+    std::size_t GetWorkspaceSize() const { return 0; }
+    Data_t GetWorkspace() const { return nullptr; }
+};
+
+} // namespace logcumsumexp
+
 } // namespace miopen

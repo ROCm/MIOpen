@@ -112,8 +112,6 @@ set( MIOpen_Source
     convolution_api.cpp
     ctc.cpp
     ctc_api.cpp
-    cumulative_reduction/problem_description.cpp
-    cumulative_reduction_api.cpp
     db.cpp
     db_record.cpp
     driver_arguments.cpp
@@ -156,6 +154,8 @@ set( MIOpen_Source
     layernorm/problem_description.cpp
     load_file.cpp
     lock_file.cpp
+    logcumsumexp/problem_description.cpp
+    logcumsumexp_api.cpp
     logger.cpp
     lrn_api.cpp
     mha/mha_descriptor.cpp
@@ -291,8 +291,6 @@ set( MIOpen_Source
     solver/conv_ck_igemm_fwd_bias_res_add_activ_fused.cpp
     solver/conv_ocl_dir2Dfwd_fused.cpp
     solver/conv_winoRxS_fused.cpp
-    solver/cumulative_reduction/forward_cumulative_reduction_contiguous_lastdim.cpp
-    solver/cumulative_reduction/utils.cpp
     solver/groupnorm/forward_groupnorm.cpp
     solver/getitem/backward_getitem.cpp
     solver/layernorm/backward_t5layernorm.cpp
@@ -301,6 +299,7 @@ set( MIOpen_Source
     solver/layernorm/forward_layernorm2d_ck.cpp
     solver/layernorm/forward_layernorm4d_ck.cpp
     solver/layernorm/forward_t5layernorm.cpp
+    solver/logcumsumexp/forward_logcumsumexp_contiguous_smalllastdim.cpp
     solver/mha/mha_solver_backward.cpp
     solver/mha/mha_solver_forward.cpp
     solver/pooling/forward2d.cpp
@@ -456,7 +455,6 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/Conv_Winograd_v30_3_1_metadata.inc
         kernels/MIOpenReduceCalculation.hpp
         kernels/MIOpenReduceExtreme.hpp
-        kernels/MIOpenCumulativeReduction.hpp
         kernels/bfloat16_dev.hpp
         kernels/block_reduce.hpp
         kernels/conv_common.inc
@@ -514,10 +512,10 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenConvDirUni.cl
         kernels/MIOpenConvDirBatchNormActiv.cl
         kernels/MIOpenConvDirGenFwd.cl
-        kernels/MIOpenCumulativeReduction.cpp
         kernels/MIOpenGroupNorm.cpp
         kernels/MIOpenGetitem.cpp
         kernels/MIOpenLayerNorm.cpp
+        kernels/MIOpenLogCumSumExp.cpp
         kernels/MIOpenLRNBwd.cl
         kernels/MIOpenLRNFwd.cl
         kernels/MIOpenNeuron.cl
@@ -649,11 +647,11 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         adam.cpp
         addlayernorm.cpp
         cat.cpp
-        cumulative_reduction.cpp
         groupnorm.cpp
         getitem.cpp
         kernel_cache.cpp
         layernorm.cpp
+        logcumsumexp.cpp
         lrn.cpp
         mlo_dir_conv.cpp
         exec_utils.cpp
