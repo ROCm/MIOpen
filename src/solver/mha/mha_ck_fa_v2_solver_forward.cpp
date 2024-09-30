@@ -146,7 +146,6 @@ MhaCKFlashAttentionV2Forward::GetSolution([[maybe_unused]] const ExecutionContex
     fmha_traits.is_v_rowmajor       = false;
     fmha_traits.mask_type           = mask_enum::no_mask;
     fmha_traits.has_lse             = false;
-    fmha_traits.is_v_rowmajor       = false;
     fmha_traits.do_fp8_static_quant = false;
     fmha_traits.has_dropout         = false;
 
@@ -175,9 +174,9 @@ MhaCKFlashAttentionV2Forward::GetSolution([[maybe_unused]] const ExecutionContex
     fmha_args.scale_s           = scale_s;
     fmha_args.scale_p           = scale_p;
     fmha_args.scale_o           = scale_o;
-    fmha_args.stride_bias       = (i_perm ? shape_seqlen_k : 1 * shape_seqlen_k);
+    fmha_args.stride_bias       = shape_seqlen_k;
     fmha_args.stride_o          = (o_perm ? hdim_v : nhead * hdim_v);
-    fmha_args.nhead_stride_bias = i_perm ? 0 * shape_seqlen_q * shape_seqlen_k : 0 * shape_seqlen_k;
+    fmha_args.nhead_stride_bias = 0;
     fmha_args.nhead_stride_lse  = shape_seqlen_q;
     fmha_args.nhead_stride_o    = o_perm ? shape_seqlen_q * hdim_v : hdim_v;
     fmha_args.window_size_left  = 0;
