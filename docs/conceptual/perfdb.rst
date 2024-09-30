@@ -56,8 +56,14 @@ You can override the latter two conditions by enforcing the search using the
 from User PerfDb, as described in the following section.
 
 To optimize performance, MIOpen provides several find modes to accelerate find API calls.
-These modes include normal find, fast find, hybrid find, and dynamic hybrid find.
-For more information on the MIOpen find modes, see the :ref:`find modes documentation <find_modes>`.
+These modes include:
+
+*  normal find
+*  fast find
+*  hybrid find
+*  dynamic hybrid find.
+ 
+For more information about MIOpen find modes, see :ref:`Find modes <find_modes>`.
 
 Using MIOPEN_FIND_ENFORCE
 ----------------------------------------------------------------------------------------------------------
