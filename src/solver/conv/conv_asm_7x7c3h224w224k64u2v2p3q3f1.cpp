@@ -25,10 +25,11 @@
  *******************************************************************************/
 
 #include <sstream>
-#include <miopen/solver.hpp>
+#include <miopen/conv/solvers.hpp>
 #include <miopen/gcn_asm_utils.hpp>
 #include <miopen/env.hpp>
 #include <miopen/conv/invokers/gen_x_w_y_pad.hpp>
+#include <miopen/mlo_internal.hpp>
 
 #define WORKAROUND_ISSUE_1146 1 // check asm solver applicability for gfx90a
 
