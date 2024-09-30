@@ -58,6 +58,7 @@ enum class Primitive
     Cat,
     Mha,
     Softmax,
+    Loss,
     Adam,
     Item,
     RoPE,

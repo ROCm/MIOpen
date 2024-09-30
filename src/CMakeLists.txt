@@ -160,6 +160,9 @@ set( MIOpen_Source
     lrn_api.cpp
     mha/mha_descriptor.cpp
     mha/problem_description.cpp
+    mseloss/problem_description.cpp
+    mseloss_api.cpp
+    mseloss.cpp
     op_args.cpp
     operator.cpp
     performance_config.cpp
@@ -306,6 +309,7 @@ set( MIOpen_Source
     solver/layernorm/forward_t5layernorm.cpp
     solver/mha/mha_solver_backward.cpp
     solver/mha/mha_solver_forward.cpp
+    solver/mseloss/mseloss.cpp
     solver/pooling/forward2d.cpp
     solver/pooling/forwardNaive.cpp
     solver/pooling/forwardNd.cpp
@@ -622,7 +626,8 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/xform_bidirect_winograd_data.s
         kernels/xform_bidirect_winograd_filter.s
         kernels/xform_bidirect_winograd_out.s
-        kernels/UniversalTranspose.cl)
+        kernels/UniversalTranspose.cl
+        kernels/MIOpenMSELoss.cpp)
 
     # Kernels in development lists.
     # Should be ALWAYS empty in develop branch (at the time of PR merge)
