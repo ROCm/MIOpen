@@ -30,6 +30,7 @@
 #include <miopen/datatype.hpp>
 #include <miopen/pooling.hpp>
 #include <miopen/kernel_build_params.hpp>
+#include <miopen/mlo_internal.hpp>
 
 #define WORKAROUND_ISSUE_MIFIN_80 1 // https://github.com/ROCm/MIFin/issues/80
 
@@ -50,13 +51,13 @@ bool PoolingBackwardNd::IsApplicable(const ExecutionContext&,
                || problem.GetPooling().GetMode() == miopenPoolingAverage           //
                || problem.GetPooling().GetMode() == miopenPoolingAverageInclusive) //
            && (                                                                    //
-                  (problem.GetXDesc().GetSize() == 5                               //
-                   && problem.GetXDesc().GetLayout("NCDHW") == "NCDHW"             //
-                   && problem.GetYDesc().GetLayout("NCDHW") == "NCDHW")            //
+                  (problem.GetXDesc().GetNumDims() == 5                            //
+                   && problem.GetXDesc().IsPossibleLayout4D5D("NCDHW")             //
+                   && problem.GetYDesc().IsPossibleLayout4D5D("NCDHW"))            //
                   ||                                                               //
-                  (problem.GetXDesc().GetSize() == 4                               //
-                   && problem.GetXDesc().GetLayout("NCHW") == "NCHW"               //
-                   && problem.GetYDesc().GetLayout("NCHW") == "NCHW")              //
+                  (problem.GetXDesc().GetNumDims() == 4                            //
+                   && problem.GetXDesc().IsPossibleLayout4D5D("NCHW")              //
+                   && problem.GetYDesc().IsPossibleLayout4D5D("NCHW"))             //
                   )                                                                //
            /// \todo This solver does not support workspace index mask mode yet.
            && !(problem.GetPooling().GetMode() == miopenPoolingMax //
@@ -102,7 +103,7 @@ PoolingBackwardNd::GetSolution(const ExecutionContext&,
     int batch = top.GetLengths()[0];
     int chal  = top.GetLengths()[1];
 
-    const bool is2d = (bot.GetSize() == 4);
+    const bool is2d = (bot.GetNumDims() == 4);
 
     int bot_d = is2d ? 1 : *(bot.GetLengths().rbegin() + 2);
     int bot_h = *(bot.GetLengths().rbegin() + 1);

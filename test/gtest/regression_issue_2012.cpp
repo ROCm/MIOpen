@@ -33,7 +33,7 @@
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
 
 namespace regression_issue_2012 {
-void SetupEnvVar(void) { miopen::UpdateEnvVar(ENV(MIOPEN_FIND_MODE), std::string("normal")); }
+void SetupEnvVar() { env::update(MIOPEN_FIND_MODE, "normal"); }
 
 std::vector<std::string> GetArgs(const std::string& param)
 {
@@ -43,10 +43,10 @@ std::vector<std::string> GetArgs(const std::string& param)
     return {begin, end};
 }
 
-std::vector<std::string> GetTestCases(void)
+std::vector<std::string> GetTestCases()
 {
     const std::string& cmd       = "test_conv2d ";
-    const std::string& float_arg = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
+    const std::string& float_arg = env::value(MIOPEN_TEST_FLOAT_ARG);
     const std::string& args =
         " --verbose --disable-forward --disable-backward-data --disable-validation";
 
@@ -65,7 +65,7 @@ std::vector<std::string> GetTestCases(void)
 
 using TestCase = decltype(GetTestCases())::value_type;
 
-class ConfigWithFloat_regression_issue_2012 : public testing::TestWithParam<std::vector<TestCase>>
+class GPU_regression_issue_2012_FP32 : public testing::TestWithParam<std::vector<TestCase>>
 {
 };
 
@@ -76,15 +76,14 @@ bool IsTestSupportedForDevice()
     return ::IsTestSupportedForDevMask<d_mask, e_mask>();
 }
 
-void Run2dDriver(void)
+void Run2dDriver()
 {
-    if(!(IsTestSupportedForDevice() &&
-         miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG)) == "--float"))
+    if(!(IsTestSupportedForDevice() && env::value(MIOPEN_TEST_FLOAT_ARG) == "--float"))
     {
         GTEST_SKIP();
     }
     SetupEnvVar();
-    std::vector<std::string> params = ConfigWithFloat_regression_issue_2012::GetParam();
+    std::vector<std::string> params = GPU_regression_issue_2012_FP32::GetParam();
 
     for(const auto& test_value : params)
     {
@@ -104,8 +103,6 @@ void Run2dDriver(void)
 } // namespace regression_issue_2012
 using namespace regression_issue_2012;
 
-TEST_P(ConfigWithFloat_regression_issue_2012, FloatTest_regression_issue_2012) { Run2dDriver(); };
+TEST_P(GPU_regression_issue_2012_FP32, FloatTest_regression_issue_2012) { Run2dDriver(); };
 
-INSTANTIATE_TEST_SUITE_P(RegressionIssue2012,
-                         ConfigWithFloat_regression_issue_2012,
-                         testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_regression_issue_2012_FP32, testing::Values(GetTestCases()));

@@ -34,16 +34,15 @@ namespace {
 
 auto GetTestCases()
 {
-    const auto env_2x3 = std::tuple{
-        std::pair{ENV(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL), std::string_view("0")},
-        std::pair{ENV(MIOPEN_FIND_MODE), std::string_view("normal")},
-        std::pair{ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER),
-                  std::string_view("ConvBinWinogradRxSf2x3g1")}};
+    const auto env_2x3 =
+        std::tuple{std::pair{MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL, 0},
+                   std::pair{MIOPEN_FIND_MODE, "normal"},
+                   std::pair{MIOPEN_DEBUG_FIND_ONLY_SOLVER, "ConvBinWinogradRxSf2x3g1"}};
 
-    const auto env_3x2 = std::tuple{
-        std::pair{ENV(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL), std::string_view("0")},
-        std::pair{ENV(MIOPEN_FIND_MODE), std::string_view("normal")},
-        std::pair{ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER), std::string_view("ConvBinWinogradRxSf3x2")}};
+    const auto env_3x2 =
+        std::tuple{std::pair{MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL, 0},
+                   std::pair{MIOPEN_FIND_MODE, "normal"},
+                   std::pair{MIOPEN_DEBUG_FIND_ONLY_SOLVER, "ConvBinWinogradRxSf3x2"}};
 
     const std::string vf = " --verbose --disable-backward-data --disable-backward-weights";
     const std::string vb = " --verbose --disable-forward --disable-backward-weights";
@@ -75,15 +74,15 @@ bool IsTestSupportedForDevice()
 
 } // namespace
 
-class Conv2dAltFltHalf : public HalfTestCase<std::vector<TestCase>>
+class GPU_Conv2dAltFlt_FP16 : public HalfTestCase<std::vector<TestCase>>
 {
 };
 
-TEST_P(Conv2dAltFltHalf, HalfTest_smoke_solver_ConvBinWinogradRxSf2x3g1_3x2_f16)
+TEST_P(GPU_Conv2dAltFlt_FP16, HalfTest_smoke_solver_ConvBinWinogradRxSf2x3g1_3x2_f16)
 {
     if(IsTestSupportedForDevice() && !SkipTest())
     {
-        invoke_with_params<conv2d_driver, Conv2dAltFltHalf>(default_check);
+        invoke_with_params<conv2d_driver, GPU_Conv2dAltFlt_FP16>(default_check);
     }
     else
     {
@@ -91,6 +90,4 @@ TEST_P(Conv2dAltFltHalf, HalfTest_smoke_solver_ConvBinWinogradRxSf2x3g1_3x2_f16)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(SmokeSolverConvBinWinogradRxSf2x3g13x2F16,
-                         Conv2dAltFltHalf,
-                         testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Conv2dAltFlt_FP16, testing::Values(GetTestCases()));

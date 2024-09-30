@@ -38,6 +38,8 @@
 #include <algorithm>
 #include <iostream>
 
+#include "../../test/dropout_util.hpp"
+
 #define DROPOUT_DEBUG 0
 
 namespace miopen {
@@ -125,19 +127,19 @@ void DropoutDescriptor::InitPRNGState(Handle& handle,
 #if DROPOUT_DEBUG
     std::cout << "Check memory and threads info of dropout PRNG states in debug mode:" << std::endl;
 #endif
-    std::string program_name = "MIOpenDropout.cl";
-    std::string kernel_name  = "InitKernelState";
+    std::string program_name = "MIOpenDropoutHIP.cpp";
+    std::string kernel_name  = "InitKernelStateHIP";
 
     if(prng_stateSizeInBytes > handle.GetMaxMemoryAllocSize())
     {
         MIOPEN_THROW("PRNG state size should not exceed system maximum memory allocation size.");
     }
 
-    unsigned long long states_num = prng_stateSizeInBytes / sizeof(prngStates);
+    unsigned long long states_num = prng_stateSizeInBytes / sizeof(rocrand_state_xorwow);
     size_t wk_grp_num =
         std::min(static_cast<unsigned long long>(MAX_PRNG_STATE / 256), (states_num + 255) / 256);
 
-    std::string network_config = "initprngs-" + std::to_string(sizeof(prngStates)) + "x" +
+    std::string network_config = "initprngs-" + std::to_string(sizeof(rocrand_state_xorwow)) + "x" +
                                  std::to_string(rng_mode) + "x" + std::to_string(wk_grp_num);
 
     auto&& kernels = handle.GetKernels(kernel_name, network_config);
@@ -151,7 +153,7 @@ void DropoutDescriptor::InitPRNGState(Handle& handle,
         const std::vector<size_t> vgd{wk_grp_num * 256, 1, 1};
 
         std::string params;
-        params += " -DRUN_INIT_PRNG=1";
+        params += "-DRUN_FORWARD=0  -DRUN_INIT_PRNG=1";
 #if DROPOUT_DEBUG
         std::cout << "Threads allocated for PRNG states: " << vgd[0] << std::endl;
         std::cout << "Memory allocated for PRNG states: " << stateSizeInBytes << std::endl;
@@ -181,12 +183,12 @@ void DropoutDescriptor::DropoutForward(const Handle& handle,
         MIOPEN_THROW(miopenStatusBadParm);
     }
 
-    if(xDesc.GetSize() != yDesc.GetSize())
+    if(xDesc.GetNumDims() != yDesc.GetNumDims())
     {
         MIOPEN_THROW("Input/Output dimension does not match");
     }
 
-    if(xDesc.GetSize() > 5)
+    if(xDesc.GetNumDims() > 5)
     {
         MIOPEN_THROW("Only support 1D to 5D tensors");
     }
@@ -197,7 +199,7 @@ void DropoutDescriptor::DropoutForward(const Handle& handle,
     }
 
     if(xDesc.GetElementSize() != noise_shape.GetElementSize() ||
-       xDesc.GetSize() != noise_shape.GetSize())
+       xDesc.GetNumDims() != noise_shape.GetNumDims())
     {
         MIOPEN_THROW("Only support dropout with regular noise shape currently");
     }
@@ -259,14 +261,14 @@ void DropoutDescriptor::DropoutForward(const Handle& handle,
         std::min(max_wk_grp / 256,
                  ((in_len[4] * in_len[3] * in_len[2] * in_len[1] * in_len[0] + 255) / 256));
 
-    size_t states_num = stateSizeInBytes / sizeof(prngStates);
+    size_t states_num = stateSizeInBytes / sizeof(rocrand_state_xorwow);
     if(states_num < wk_grp_num * 256 && !use_mask)
     {
         MIOPEN_THROW("Insufficient state size for parallel PRNG");
     }
 
-    std::string program_name = "MIOpenDropout.cl";
-    std::string kernel_name  = "DropoutForward";
+    std::string program_name = "MIOpenDropoutHIP.cpp";
+    std::string kernel_name  = "DropoutFW";
 
     std::string network_config =
         "fwd-" + std::string(xDesc.GetType() == miopenHalf ? "fp16-" : "fp32-") + "-seed" +
@@ -277,7 +279,7 @@ void DropoutDescriptor::DropoutForward(const Handle& handle,
         std::to_string(wk_grp_num) /* + "-noise" + std::to_string(noise_shape.GetLengths()[0])*/;
 
     // TODO: Add noise shape
-    // for(int i = 1; i < noise_shape.GetSize(); i++)
+    // for(int i = 1; i < noise_shape.GetNumDims(); i++)
     //    network_config += "x" + std::to_string(noise_shape.GetLengths()[i]);
 
     auto&& kernels = handle.GetKernels(kernel_name, network_config);
@@ -385,12 +387,12 @@ void DropoutDescriptor::DropoutBackward(const Handle& handle,
         MIOPEN_THROW(miopenStatusBadParm);
     }
 
-    if(dxDesc.GetSize() != dyDesc.GetSize())
+    if(dxDesc.GetNumDims() != dyDesc.GetNumDims())
     {
         MIOPEN_THROW("Input/Output dimension does not match");
     }
 
-    if(dyDesc.GetSize() > 5)
+    if(dyDesc.GetNumDims() > 5)
     {
         MIOPEN_THROW("Only support 1D to 5D tensors");
     }
@@ -401,7 +403,7 @@ void DropoutDescriptor::DropoutBackward(const Handle& handle,
     }
 
     if(dxDesc.GetElementSize() != noise_shape.GetElementSize() ||
-       dxDesc.GetSize() != noise_shape.GetSize())
+       dxDesc.GetNumDims() != noise_shape.GetNumDims())
     {
         MIOPEN_THROW("Only support dropout with regular noise shape currently");
     }
@@ -464,15 +466,15 @@ void DropoutDescriptor::DropoutBackward(const Handle& handle,
 
     if(use_prng)
     {
-        size_t states_num = stateSizeInBytes / sizeof(prngStates);
+        size_t states_num = stateSizeInBytes / sizeof(rocrand_state_xorwow);
         if(states_num < wk_grp_num * 256)
         {
             MIOPEN_THROW("Insufficient state size for parallel PRNG");
         }
     }
 
-    std::string program_name = "MIOpenDropout.cl";
-    std::string kernel_name  = "DropoutBackward";
+    std::string program_name = "MIOpenDropoutHIP.cpp";
+    std::string kernel_name  = "DropoutBW";
 
     std::string network_config =
         "bwd-" + std::string(dyDesc.GetType() == miopenHalf ? "fp16-" : "fp32-") + "-seed" +
@@ -482,7 +484,7 @@ void DropoutDescriptor::DropoutBackward(const Handle& handle,
         std::to_string(wk_grp_num) /* + "-noise" + std::to_string(noise_shape.GetLengths()[0]) */;
 
     // TODO: Add noise shape
-    // for(int i = 1; i < noise_shape.GetSize(); i++)
+    // for(int i = 1; i < noise_shape.GetNumDims(); i++)
     //    network_config += "x" + std::to_string(noise_shape.GetLengths()[i]);
 
     auto&& kernels = handle.GetKernels(kernel_name, network_config);

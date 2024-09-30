@@ -29,14 +29,23 @@
 #include <miopen/conv_solution.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/execution_context.hpp>
+#include <miopen/invoke_params.hpp>
 #include <miopen/problem_description_base.hpp>
 #include <miopen/search_options.hpp>
+#include <miopen/solver_id.hpp>
 
 #include <memory>
+#include <string_view>
 #include <type_traits>
 #include <vector>
 
 namespace miopen {
+
+namespace conv {
+struct ProblemDescription;
+} // namespace conv
+
+struct Solution;
 
 class DbRecord;
 
@@ -149,17 +158,26 @@ const std::vector<std::unique_ptr<ISolversFinder>>& GetConvSolverFinders();
 
 } // namespace conv
 
-void FindCore(const AnyInvokeParams& invoke_ctx,
-              DbRecord& record,
-              const ExecutionContext& ctx,
-              const ProblemDescriptionBase& problem,
-              const PrimitiveFindParameters& parameters,
-              const std::vector<std::unique_ptr<ISolversFinder>>& finders,
-              const std::optional<FindOptions>& options = std::nullopt);
+struct FindCoreResult
+{
+    std::vector<Solution> solutions;
+    bool is_optimal;
+};
+
+FindCoreResult FindCore(const AnyInvokeParams& invoke_ctx,
+                        const ExecutionContext& ctx,
+                        const ProblemDescriptionBase& problem,
+                        const PrimitiveFindParameters& parameters,
+                        const std::vector<std::unique_ptr<ISolversFinder>>& finders,
+                        const std::optional<FindOptions>& options = std::nullopt,
+                        bool force_attach_binary                  = false);
 
 namespace conv {
-
 bool IsAlgorithmDisabled(miopenConvAlgorithm_t algo);
+bool IsEnoughWorkspace(std::string_view where,
+                       const miopen::solver::Id& solver_id,
+                       std::size_t required_size,
+                       const miopen::AnyInvokeParams* invokeParams);
 
 struct ConvFindParameters : PrimitiveFindParameters
 {

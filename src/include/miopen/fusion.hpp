@@ -30,7 +30,8 @@
 #include <miopen/miopen.h>
 #include <miopen/tensor.hpp>
 #include <miopen/convolution.hpp>
-#include <miopen/solver.hpp>
+#include <miopen/conv/problem_description.hpp>
+#include <miopen/kernel_info.hpp>
 #include <miopen/op_kernel_args.hpp>
 #include <miopen/fusion_ops.hpp>
 #include <miopen/fusion/fusion_invoke_params.hpp>
@@ -52,7 +53,7 @@ enum FusionKernelSourceType
     Binary, /// \todo Unused, consider removing.
 };
 
-struct FusionOpDescriptor : miopenFusionOpDescriptor
+struct MIOPEN_INTERNALS_EXPORT FusionOpDescriptor : miopenFusionOpDescriptor
 {
     virtual ~FusionOpDescriptor()                 = default;
     FusionOpDescriptor(const FusionOpDescriptor&) = delete;
@@ -70,7 +71,7 @@ struct FusionOpDescriptor : miopenFusionOpDescriptor
     int plan_idx = 0;
 };
 
-struct BiasFusionOpDescriptor : FusionOpDescriptor
+struct MIOPEN_INTERNALS_EXPORT BiasFusionOpDescriptor : FusionOpDescriptor
 {
     BiasFusionOpDescriptor(const TensorDescriptor& desc) : base_desc(desc) {}
     miopenStatus_t GetOutputDesc(TensorDescriptor& output_desc) const override;
@@ -81,7 +82,7 @@ struct BiasFusionOpDescriptor : FusionOpDescriptor
     TensorDescriptor base_desc;
 };
 
-struct TensorScaleAddOpDescriptor : public FusionOpDescriptor
+struct MIOPEN_INTERNALS_EXPORT TensorScaleAddOpDescriptor : public FusionOpDescriptor
 {
     TensorScaleAddOpDescriptor(const TensorDescriptor& desc) : tensor_desc(desc) {}
     miopenStatus_t GetOutputDesc(TensorDescriptor& output_desc) const override;
@@ -91,7 +92,7 @@ struct TensorScaleAddOpDescriptor : public FusionOpDescriptor
     TensorDescriptor tensor_desc;
 };
 
-struct ActivFwdFusionOpDescriptor : FusionOpDescriptor
+struct MIOPEN_INTERNALS_EXPORT ActivFwdFusionOpDescriptor : FusionOpDescriptor
 {
     ActivFwdFusionOpDescriptor(miopenActivationMode_t mode) : activMode(mode) {}
     miopenStatus_t GetOutputDesc(TensorDescriptor& output_desc) const override;
@@ -106,7 +107,7 @@ struct ActivFwdFusionOpDescriptor : FusionOpDescriptor
     miopenActivationMode_t activMode;
 };
 
-struct ActivBwdFusionOpDescriptor : FusionOpDescriptor
+struct MIOPEN_INTERNALS_EXPORT ActivBwdFusionOpDescriptor : FusionOpDescriptor
 {
     ActivBwdFusionOpDescriptor(miopenActivationMode_t mode) : activMode(mode) {}
     miopenStatus_t GetOutputDesc(TensorDescriptor& output_desc) const override;
@@ -123,7 +124,7 @@ struct ActivBwdFusionOpDescriptor : FusionOpDescriptor
     miopenActivationMode_t activMode;
 };
 
-struct BatchNormInferenceFusionOpDescriptor : FusionOpDescriptor
+struct MIOPEN_INTERNALS_EXPORT BatchNormInferenceFusionOpDescriptor : FusionOpDescriptor
 {
     BatchNormInferenceFusionOpDescriptor(miopenBatchNormMode_t bn_mode,
                                          const TensorDescriptor& desc)
@@ -148,7 +149,7 @@ struct BatchNormInferenceFusionOpDescriptor : FusionOpDescriptor
     TensorDescriptor base_desc;
 };
 
-struct BatchNormFwdTrainFusionOpDescriptor : FusionOpDescriptor
+struct MIOPEN_INTERNALS_EXPORT BatchNormFwdTrainFusionOpDescriptor : FusionOpDescriptor
 {
     BatchNormFwdTrainFusionOpDescriptor(miopenBatchNormMode_t bn_mode, bool runningMeanVariance)
         : mode(bn_mode), runningMeanVar(runningMeanVariance)
@@ -182,7 +183,7 @@ struct BatchNormFwdTrainFusionOpDescriptor : FusionOpDescriptor
     bool runningMeanVar;
 };
 
-struct BatchNormBwdTrainFusionOpDescriptor : FusionOpDescriptor
+struct MIOPEN_INTERNALS_EXPORT BatchNormBwdTrainFusionOpDescriptor : FusionOpDescriptor
 {
     BatchNormBwdTrainFusionOpDescriptor(miopenBatchNormMode_t bn_mode)
         : mode(bn_mode), useBatchStats(true)
@@ -215,7 +216,7 @@ struct BatchNormBwdTrainFusionOpDescriptor : FusionOpDescriptor
     bool useBatchStats;
 };
 
-struct ConvForwardOpDescriptor : FusionOpDescriptor
+struct MIOPEN_INTERNALS_EXPORT ConvForwardOpDescriptor : FusionOpDescriptor
 {
     ConvForwardOpDescriptor(const ConvolutionDescriptor& conv_descriptor,
                             const TensorDescriptor& filter_descriptor)
@@ -240,11 +241,7 @@ private:
     conv::ProblemDescription GetConvProblem();
 };
 
-namespace fusion {
-
-bool IsWinograd(const std::vector<solver::AnySolver>& ss);
-
-} // namespace fusion
+MIOPEN_INTERNALS_EXPORT
 miopenStatus_t ConvBiasActivFusion(Handle& handle,
                                    const void* alpha1,
                                    const TensorDescriptor& xDesc,
@@ -264,6 +261,7 @@ miopenStatus_t ConvBiasActivFusion(Handle& handle,
                                    const TensorDescriptor& yDesc,
                                    Data_t y);
 
+MIOPEN_INTERNALS_EXPORT
 solver::ConvSolution MakeFusedSolution(const struct FusionContext& ctx,
                                        solver::Id id,
                                        const std::optional<std::string>& perf_cfg_override,

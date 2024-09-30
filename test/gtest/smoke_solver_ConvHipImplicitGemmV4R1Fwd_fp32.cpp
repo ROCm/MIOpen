@@ -37,14 +37,13 @@ auto GetTestCases()
     // MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=1 is necessary due to WORKAROUND_iGemm_936 in
     // Jenkinsfile, which disables ConvHipImplicitGemmV4R1Fwd, but we still want to check that the
     // solver is not broken.
-    const auto env_fwd = std::tuple{
-        std::pair{ENV(MIOPEN_FIND_ENFORCE), std::string_view("SEARCH_DB_UPDATE")},
-        std::pair{ENV(MIOPEN_DEBUG_TUNING_ITERATIONS_MAX), std::string_view("5")},
-        std::pair{ENV(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1), std::string_view("1")},
-        std::pair{ENV(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL), std::string_view("0")},
-        std::pair{ENV(MIOPEN_FIND_MODE), std::string_view("normal")},
-        std::pair{ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER),
-                  std::string_view("ConvHipImplicitGemmV4R1Fwd")}};
+    const auto env_fwd =
+        std::tuple{std::pair{MIOPEN_FIND_ENFORCE, "SEARCH_DB_UPDATE"},
+                   std::pair{MIOPEN_DEBUG_TUNING_ITERATIONS_MAX, 5},
+                   std::pair{MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1, true},
+                   std::pair{MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL, 0},
+                   std::pair{MIOPEN_FIND_MODE, "normal"},
+                   std::pair{MIOPEN_DEBUG_FIND_ONLY_SOLVER, "ConvHipImplicitGemmV4R1Fwd"}};
 
     const std::string vf = " --verbose --disable-backward-data --disable-backward-weights";
 
@@ -66,15 +65,15 @@ bool IsTestSupportedForDevice()
 
 } // namespace
 
-class Conv2dTuningV4R1Float : public FloatTestCase<std::vector<TestCase>>
+class GPU_Conv2dTuningV4R1_FP32 : public FloatTestCase<std::vector<TestCase>>
 {
 };
 
-TEST_P(Conv2dTuningV4R1Float, FloatTest_smoke_solver_ConvHipImplicitGemmV4R1Fwd_fp32)
+TEST_P(GPU_Conv2dTuningV4R1_FP32, FloatTest_smoke_solver_ConvHipImplicitGemmV4R1Fwd_fp32)
 {
     if(IsTestSupportedForDevice())
     {
-        invoke_with_params<conv2d_driver, Conv2dTuningV4R1Float>(tuning_check);
+        invoke_with_params<conv2d_driver, GPU_Conv2dTuningV4R1_FP32>(tuning_check);
     }
     else
     {
@@ -82,6 +81,4 @@ TEST_P(Conv2dTuningV4R1Float, FloatTest_smoke_solver_ConvHipImplicitGemmV4R1Fwd_
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(SmokeSolverConvHipImplicitGemmV4R1FwdFp32,
-                         Conv2dTuningV4R1Float,
-                         testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Conv2dTuningV4R1_FP32, testing::Values(GetTestCases()));

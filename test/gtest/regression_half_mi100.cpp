@@ -37,10 +37,9 @@ namespace {
 auto GetTestCases()
 {
     // Regression test for SWDEV-291202
-    const auto env =
-        std::tuple{std::pair{ENV(MIOPEN_FIND_MODE), std::string_view("normal")},
-                   std::pair{ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER),
-                             std::string_view("ConvHipImplicitGemmBwdDataV4R1Xdlops")}};
+    const auto env = std::tuple{
+        std::pair{MIOPEN_FIND_MODE, "normal"},
+        std::pair{MIOPEN_DEBUG_FIND_ONLY_SOLVER, "ConvHipImplicitGemmBwdDataV4R1Xdlops"}};
 
     const std::string v          = " --verbose";
     const std::string dis_fwd    = " --disable-forward";
@@ -55,7 +54,7 @@ auto GetTestCases()
 
 using TestCase = decltype(GetTestCases())::value_type;
 
-bool SkipTest() { return miopen::IsDisabled(ENV(MIOPEN_TEST_ALL)); }
+bool SkipTest() { return env::disabled(MIOPEN_TEST_ALL); }
 
 bool IsTestSupportedForDevice()
 {
@@ -66,15 +65,15 @@ bool IsTestSupportedForDevice()
 
 } // namespace
 
-class Conv2dDefaultHalf : public HalfTestCase<std::vector<TestCase>>
+class GPU_Conv2dDefault_FP16 : public HalfTestCase<std::vector<TestCase>>
 {
 };
 
-TEST_P(Conv2dDefaultHalf, HalfTest_regression_half_mi100)
+TEST_P(GPU_Conv2dDefault_FP16, HalfTest_regression_half_mi100)
 {
     if(IsTestSupportedForDevice() && !SkipTest())
     {
-        invoke_with_params<conv2d_driver, Conv2dDefaultHalf>(default_check);
+        invoke_with_params<conv2d_driver, GPU_Conv2dDefault_FP16>(default_check);
     }
     else
     {
@@ -82,4 +81,4 @@ TEST_P(Conv2dDefaultHalf, HalfTest_regression_half_mi100)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(RegressionMi100, Conv2dDefaultHalf, testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Conv2dDefault_FP16, testing::Values(GetTestCases()));

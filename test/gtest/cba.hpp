@@ -44,7 +44,7 @@ template <typename T = float>
 struct ConvBiasActivInferTest
     : public ::testing::TestWithParam<
           std::tuple<miopenActivationMode_t, ConvTestCaseBase, miopenTensorLayout_t>>,
-      ConvFwdSolverTestBase<T>
+      ConvFwdSolverTestBase<T, T>
 {
 protected:
     void SetUp() override
@@ -104,5 +104,5 @@ protected:
     const float activ_beta  = static_cast<double>(0.5f);
     const float activ_gamma = static_cast<double>(0.5f);
     miopenTensorLayout_t tensor_layout;
-    using cfsb = ConvFwdSolverTestBase<T>;
+    using cfsb = ConvFwdSolverTestBase<T, T>;
 };

@@ -27,20 +27,20 @@
 #ifndef MIOPEN_TENSOR_VIEW_UTIL_HPP_
 #define MIOPEN_TENSOR_VIEW_UTIL_HPP_
 
-#include <cstdlib>
 #include <miopen/common.hpp>
+#include <miopen/tensor.hpp>
 #include "../../kernels/tensor_view.hpp"
-#include "miopen/tensor.hpp"
 
 namespace miopen {
 
-inline tensor_view_t<5> get_inner_expanded_5dtv(const TensorDescriptor Desc)
+template <int N>
+inline tensor_view_t<N> get_inner_expanded_tv(const TensorDescriptor Desc)
 {
     auto dims    = Desc.GetLengths();
     auto strides = Desc.GetStrides();
 
-    tensor_view_t<5> tensor_view;
-    for(size_t i = 0; i < 5; ++i)
+    tensor_view_t<N> tensor_view{};
+    for(size_t i = 0; i < N; ++i)
     {
         if(i < dims.size())
         {
@@ -49,7 +49,7 @@ inline tensor_view_t<5> get_inner_expanded_5dtv(const TensorDescriptor Desc)
         }
         else
         {
-            tensor_view.stride[i] = (i == 0 ? 1 : tensor_view.stride[i - 1]);
+            tensor_view.stride[i] = (i == 0 ? 1 : strides[i - 1]);
             tensor_view.size[i]   = 1;
         }
     }
@@ -57,18 +57,25 @@ inline tensor_view_t<5> get_inner_expanded_5dtv(const TensorDescriptor Desc)
 }
 
 template <int N>
-inline bool isTensorViewContiguous(const tensor_view_t<N>& tv)
+inline void slice_tv(tensor_view_t<N>& tensor_view, int32_t sliceCount, const int32_t* slices)
 {
-    size_t planeSize = 1;
-    for(int i = N - 1; i >= 0; i--)
+    for(int32_t i = 0; i < sliceCount; i++)
     {
-        if(tv.stride[i] != planeSize)
-            return false;
-        planeSize *= tv.size[i];
+        int32_t dim   = slices[4 * i + 0];
+        int32_t start = slices[4 * i + 1];
+        int32_t end   = slices[4 * i + 2];
+        int32_t step  = slices[4 * i + 3];
+
+        if(end > static_cast<int32_t>(tensor_view.size[dim]))
+            end = tensor_view.size[dim];
+
+        auto len = end - start;
+
+        tensor_view.size[dim] = (len + step - 1) / step;
+        tensor_view.stride[dim] *= step;
     }
-    return true;
 }
 
 } // namespace miopen
 
-#endif // MIOPEN_TENSOR_REORDER_UTIL_HPP_
+#endif // MIOPEN_TENSOR_VIEW_UTIL_HPP_

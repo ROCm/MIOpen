@@ -30,6 +30,7 @@
 #include <miopen/env.hpp>
 #include "get_handle.hpp"
 
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
 
 namespace reduce_custom_fp32 {
@@ -43,19 +44,21 @@ std::vector<std::string> GetArgs(const std::string& param)
 
 std::vector<std::string> GetTestCases(void)
 {
-    const std::string& cmd       = "test_reduce_test ";
-    const std::string& float_arg = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
+    const std::string& cmd = "test_reduce_test ";
+    std::string float_arg  = env::value(MIOPEN_TEST_FLOAT_ARG);
+    if(float_arg.empty())
+        float_arg = "--float";
 
     // clang-format off
     return std::vector<std::string>{
-        {cmd + float_arg + " --scales 1 0 --CompType 1 --D 1024 30528 1 --I 0 --N 1 ---ReduceOp 0 --R 0 1 2"}
+        {cmd + float_arg + " --scales 1 0 --CompType 1 --D 1024 30528 1 --I 0 --N 1 --ReduceOp 0 --R 0 1 2"}
     };
     // clang-format on
 }
 
 using TestCase = decltype(GetTestCases())::value_type;
 
-class ConfigWithFloat_reduce_custom_fp32 : public testing::TestWithParam<std::vector<TestCase>>
+class GPU_reduce_custom_fp32_FP32 : public testing::TestWithParam<std::vector<TestCase>>
 {
 };
 
@@ -69,11 +72,13 @@ bool IsTestSupportedForDevice()
 void Run2dDriver(void)
 {
     if(!(IsTestSupportedForDevice() &&
-         miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG)) == "--float"))
+         (!MIOPEN_TEST_ALL                  // standalone run
+          || (env::enabled(MIOPEN_TEST_ALL) // or --float full tests enabled
+              && env::value(MIOPEN_TEST_FLOAT_ARG) == "--float"))))
     {
         GTEST_SKIP();
     }
-    std::vector<std::string> params = ConfigWithFloat_reduce_custom_fp32::GetParam();
+    std::vector<std::string> params = GPU_reduce_custom_fp32_FP32::GetParam();
 
     for(const auto& test_value : params)
     {
@@ -93,8 +98,6 @@ void Run2dDriver(void)
 } // namespace reduce_custom_fp32
 using namespace reduce_custom_fp32;
 
-TEST_P(ConfigWithFloat_reduce_custom_fp32, FloatTest_reduce_custom_fp32) { Run2dDriver(); };
+TEST_P(GPU_reduce_custom_fp32_FP32, FloatTest_reduce_custom_fp32) { Run2dDriver(); };
 
-INSTANTIATE_TEST_SUITE_P(ReduceCustomFp32,
-                         ConfigWithFloat_reduce_custom_fp32,
-                         testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_reduce_custom_fp32_FP32, testing::Values(GetTestCases()));

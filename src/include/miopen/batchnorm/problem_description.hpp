@@ -29,6 +29,7 @@
 #include <miopen/problem_description_base.hpp>
 #include <miopen/activ.hpp>
 #include <miopen/tensor.hpp>
+#include <miopen/mlo_internal.hpp>
 
 #include <cassert>
 #include <string>
@@ -36,6 +37,7 @@
 namespace miopen {
 
 struct NetworkConfig;
+struct ExecutionContext;
 
 namespace batchnorm {
 
@@ -46,9 +48,13 @@ enum class Direction
     Backward,
 };
 
-struct ProblemDescription : ProblemDescriptionBase
+struct ProblemDescriptionTag
 {
-    // Forward
+};
+
+struct MIOPEN_INTERNALS_EXPORT ProblemDescription : ProblemDescriptionBase, ProblemDescriptionTag
+{
+    // Forward Training
     ProblemDescription(miopenBatchNormMode_t bn_mode_,
                        const TensorDescriptor& xDesc_,
                        const TensorDescriptor& yDesc_,
@@ -67,11 +73,12 @@ struct ProblemDescription : ProblemDescriptionBase
           resultsave(resultsave_),
           resultrunning(resultrunning_)
     {
-        in_layout  = xDesc.GetLayout(xDesc.GetLengths().size() == 4 ? "NCHW" : "NCDHW");
-        out_layout = yOrDyDesc.GetLayout(yOrDyDesc.GetLengths().size() == 4 ? "NCHW" : "NCDHW");
+        SetSpatialDims();
+        in_layout  = ComputeInLayout();
+        out_layout = ComputeOutLayout();
     }
 
-    // Forward
+    // Forward Inference
     ProblemDescription(miopenBatchNormMode_t bn_mode_,
                        const TensorDescriptor& xDesc_,
                        const TensorDescriptor& yDesc_,
@@ -84,8 +91,9 @@ struct ProblemDescription : ProblemDescriptionBase
           scaleBiasDesc(bnScaleBiasMeanVarDesc_),
           epsilon(epsilon_)
     {
-        in_layout  = xDesc.GetLayout(xDesc.GetLengths().size() == 4 ? "NCHW" : "NCDHW");
-        out_layout = yOrDyDesc.GetLayout(yOrDyDesc.GetLengths().size() == 4 ? "NCHW" : "NCDHW");
+        SetSpatialDims();
+        in_layout  = ComputeInLayout();
+        out_layout = ComputeOutLayout();
     }
 
     // Backward
@@ -105,11 +113,21 @@ struct ProblemDescription : ProblemDescriptionBase
           epsilon(epsilon_),
           useSaved(useSaved_)
     {
-        in_layout  = xDesc.GetLayout(xDesc.GetLengths().size() == 4 ? "NCHW" : "NCDHW");
-        out_layout = yOrDyDesc.GetLayout(yOrDyDesc.GetLengths().size() == 4 ? "NCHW" : "NCDHW");
-        din_layout = dxDesc.GetLayout(dxDesc.GetLengths().size() == 4 ? "NCHW" : "NCDHW");
+        SetSpatialDims();
+        in_layout  = ComputeInLayout();
+        out_layout = ComputeOutLayout();
+        din_layout = ComputeDinLayout();
     }
 
+    void SetSpatialDims()
+    {
+        if(Is2D())
+            spatial_dim = 2;
+        else if(Is3D())
+            spatial_dim = 3;
+        else
+            MIOPEN_THROW("Unknown spatial dim!");
+    }
     Direction GetDirection() const { return direction; }
     miopenBatchNormMode_t GetMode() const { return bn_mode; }
     const TensorDescriptor& GetXDesc() const { return xDesc; }
@@ -176,13 +194,26 @@ struct ProblemDescription : ProblemDescriptionBase
                                               : ((in_layout == "NDHWC") && (out_layout == "NDHWC"));
     }
 
+    bool Is2D() const { return xDesc.GetLengths().size() == 4; }
+    bool Is3D() const { return xDesc.GetLengths().size() == 5; }
+
+    bool IsFp64() const { return xDesc.GetType() == miopenDouble; }
+    bool IsFp32() const { return xDesc.GetType() == miopenFloat; }
+    bool IsFp16() const { return xDesc.GetType() == miopenHalf; }
+    bool IsBfp16() const { return xDesc.GetType() == miopenBFloat16; }
+
     NetworkConfig MakeNetworkConfig() const override;
+
+    // This declaration marks batchnorm as a primitive with tuning enabled.
+    // Any tunable solver would be able pick it and fetch a db instance in ExecutePrimitive.
+    // It has to be discoverable via ADL from problem description.
+    friend auto GetDb(const ExecutionContext& ctx, const ProblemDescriptionTag&) -> PerformanceDb;
 
 private:
     Direction direction;
     miopenBatchNormMode_t bn_mode;
-    TensorDescriptor xDesc;
-    TensorDescriptor yOrDyDesc;
+    TensorDescriptor xDesc;     // input
+    TensorDescriptor yOrDyDesc; // output
     TensorDescriptor dxDesc;
     TensorDescriptor scaleBiasDesc;
 
@@ -198,16 +229,22 @@ private:
 #pragma clang diagnostic pop
 #endif
 
-    bool resultsave        = false;
-    bool resultrunning     = false;
-    bool useSaved          = false;
-    std::string in_layout  = "NCHW";
-    std::string out_layout = "NCHW";
-    std::string din_layout = "NCHW";
+    bool resultsave         = false;
+    bool resultrunning      = false;
+    bool useSaved           = false;
+    std::string in_layout   = "NCHW";
+    std::string out_layout  = "NCHW";
+    std::string din_layout  = "NCHW";
+    std::size_t spatial_dim = 2;
 
     NetworkConfig MakeForwardTrainingNetworkConfig() const;
     NetworkConfig MakeForwardInferenceNetworkConfig() const;
     NetworkConfig MakeBackwardNetworkConfig() const;
+
+    std::string ComputeLayout(const TensorDescriptor& td) const { return td.GetLayout_str(); }
+    std::string ComputeInLayout() const { return ComputeLayout(xDesc); }
+    std::string ComputeOutLayout() const { return ComputeLayout(yOrDyDesc); }
+    std::string ComputeDinLayout() const { return ComputeLayout(dxDesc); }
 };
 
 } // namespace batchnorm

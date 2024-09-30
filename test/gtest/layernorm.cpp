@@ -34,7 +34,7 @@ namespace layernorm {
 
 std::string GetFloatArg()
 {
-    const auto& tmp = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
+    const auto tmp = env::value(MIOPEN_TEST_FLOAT_ARG);
     if(tmp.empty())
     {
         return "";
@@ -42,21 +42,30 @@ std::string GetFloatArg()
     return tmp;
 }
 
-struct LayerNormTestFloat : LayerNormTest<float>
+struct GPU_LayerNormTest_FP32 : LayerNormTest<float>
+{
+};
+
+struct GPU_LayerNormTest_FP16 : LayerNormTest<half_float::half>
+{
+};
+
+struct GPU_LayerNormTest_BFP16 : LayerNormTest<bfloat16>
 {
 };
 
 } // namespace layernorm
 using namespace layernorm;
 
-TEST_P(LayerNormTestFloat, LayerNormTestFw)
+TEST_P(GPU_LayerNormTest_FP32, LayerNormTestFw)
 {
-    auto TypeArg       = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
+    auto TypeArg       = env::value(MIOPEN_TEST_FLOAT_ARG);
     const auto& handle = get_handle();
     if((miopen::StartsWith(handle.GetDeviceName(), "gfx908") ||
         miopen::StartsWith(handle.GetDeviceName(), "gfx90a") ||
         miopen::StartsWith(handle.GetDeviceName(), "gfx94")) &&
-       miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float"))
+       (!MIOPEN_TEST_ALL ||
+        (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--float")))
     {
         RunTest();
         Verify();
@@ -67,6 +76,42 @@ TEST_P(LayerNormTestFloat, LayerNormTestFw)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(LayerNormTestSet,
-                         LayerNormTestFloat,
-                         testing::ValuesIn(LayerNormTestConfigs()));
+TEST_P(GPU_LayerNormTest_FP16, LayerNormTestFw)
+{
+    const auto& handle = get_handle();
+    if((miopen::StartsWith(handle.GetDeviceName(), "gfx908") ||
+        miopen::StartsWith(handle.GetDeviceName(), "gfx90a") ||
+        miopen::StartsWith(handle.GetDeviceName(), "gfx94")) &&
+       (!MIOPEN_TEST_ALL ||
+        (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--half")))
+    {
+        RunTest();
+        Verify();
+    }
+    else
+    {
+        GTEST_SKIP();
+    }
+};
+
+TEST_P(GPU_LayerNormTest_BFP16, LayerNormTestFw)
+{
+    const auto& handle = get_handle();
+    if((miopen::StartsWith(handle.GetDeviceName(), "gfx908") ||
+        miopen::StartsWith(handle.GetDeviceName(), "gfx90a") ||
+        miopen::StartsWith(handle.GetDeviceName(), "gfx94")) &&
+       (!MIOPEN_TEST_ALL ||
+        (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--bfloat16")))
+    {
+        RunTest();
+        Verify();
+    }
+    else
+    {
+        GTEST_SKIP();
+    }
+};
+
+INSTANTIATE_TEST_SUITE_P(Full, GPU_LayerNormTest_FP32, testing::ValuesIn(LayerNormTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_LayerNormTest_FP16, testing::ValuesIn(LayerNormTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_LayerNormTest_BFP16, testing::ValuesIn(LayerNormTestConfigs()));

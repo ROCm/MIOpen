@@ -38,13 +38,11 @@ namespace {
 
 auto GetTestCases()
 {
-    const auto bwd = std::tuple{
-        std::pair{ENV(MIOPEN_FIND_MODE), std::string_view("normal")},
-        std::pair{ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER), std::string_view("ConvMlirIgemmBwdXdlops")}};
+    const auto bwd = std::tuple{std::pair{MIOPEN_FIND_MODE, "normal"},
+                                std::pair{MIOPEN_DEBUG_FIND_ONLY_SOLVER, "ConvMlirIgemmBwdXdlops"}};
 
-    const auto wrw = std::tuple{
-        std::pair{ENV(MIOPEN_FIND_MODE), std::string_view("normal")},
-        std::pair{ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER), std::string_view("ConvMlirIgemmWrWXdlops")}};
+    const auto wrw = std::tuple{std::pair{MIOPEN_FIND_MODE, "normal"},
+                                std::pair{MIOPEN_DEBUG_FIND_ONLY_SOLVER, "ConvMlirIgemmWrWXdlops"}};
 
     const std::string flags_bwd = " --verbose --disable-forward --disable-backward-weights";
     const std::string flags_wrw = " --verbose --disable-forward --disable-backward-data";
@@ -79,10 +77,7 @@ auto GetTestCases()
 
 using TestCase = decltype(GetTestCases())::value_type;
 
-bool SkipTest()
-{
-    return !(miopen::IsEnabled(ENV(MIOPEN_TEST_MLIR))) || miopen::IsDisabled(ENV(MIOPEN_TEST_ALL));
-}
+bool SkipTest() { return !env::enabled(MIOPEN_TEST_MLIR) || env::disabled(MIOPEN_TEST_ALL); }
 
 bool IsTestSupportedForDevice()
 {
@@ -93,15 +88,15 @@ bool IsTestSupportedForDevice()
 
 } // namespace
 
-class Conv2dDefaultHalf : public FloatTestCase<std::vector<TestCase>>
+class GPU_Conv2dDefault_FP16 : public FloatTestCase<std::vector<TestCase>>
 {
 };
 
-TEST_P(Conv2dDefaultHalf, HalfTest_conv_igemm_mlir_xdlops_bwd_wrw)
+TEST_P(GPU_Conv2dDefault_FP16, HalfTest_conv_igemm_mlir_xdlops_bwd_wrw)
 {
     if(IsTestSupportedForDevice() && !SkipTest())
     {
-        invoke_with_params<conv2d_driver, Conv2dDefaultHalf>(db_check);
+        invoke_with_params<conv2d_driver, GPU_Conv2dDefault_FP16>(db_check);
     }
     else
     {
@@ -110,4 +105,4 @@ TEST_P(Conv2dDefaultHalf, HalfTest_conv_igemm_mlir_xdlops_bwd_wrw)
 };
 
 // Half for FWD, BWD, WRW
-INSTANTIATE_TEST_SUITE_P(ConvIgemmMlirXdlops, Conv2dDefaultHalf, testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_Conv2dDefault_FP16, testing::Values(GetTestCases()));
