@@ -29,7 +29,7 @@ std::vector<KernelTuningNetTestCase> GetConvAsm1x1UTestCases_FP16()
              "gfx908"}};
 }
 
-std::vector<KernelTuningNetTestCase> GetConvHipIgemmGroupFwdXdlopsTestCases_FP16()
+std::vector<KernelTuningNetTestCase> GetConvHipIgemmGroupFwdXdlopsTestCases_FP32()
 {
     return {{{{1, 128, 64, 128, {209, 209}, {3, 3}, {0, 0}, {2, 2}, {1, 1}},
               miopen::conv::Direction::Forward,
@@ -40,7 +40,7 @@ std::vector<KernelTuningNetTestCase> GetConvHipIgemmGroupFwdXdlopsTestCases_FP16
              "gfx90a"}};
 }
 
-std::vector<KernelTuningNetTestCase> GetConvHipIgemmGroupFwdXdlopsTestCases_FP32()
+std::vector<KernelTuningNetTestCase> GetConvHipIgemmGroupFwdXdlopsTestCases_FP16()
 {
     return {{{{16, 256, 2016, 192, {7, 7}, {1, 1}, {0, 0}, {1, 1}, {1, 1}},
               miopen::conv::Direction::Forward,
