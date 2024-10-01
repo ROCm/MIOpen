@@ -104,7 +104,7 @@ ConvSolution ForwardContiguousSmallLastDim::GetSolution(
 
     result.invoker_factory = [](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
-            auto params = raw_params.CastTo<miopen::logcumsumexp::InvokeParams>();
+            auto params = raw_params.CastTo<miopen::logcumsumexp::InvokeParamsForward>();
 
             const int ndims             = deref(params.inputDesc).GetNumDims();
             const unsigned int true_dim = ((params.dim % ndims) + ndims) % ndims;

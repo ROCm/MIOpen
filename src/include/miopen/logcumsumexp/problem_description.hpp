@@ -36,13 +36,12 @@ struct NetworkConfig;
 
 namespace logcumsumexp {
 
-bool checkSameLength(const TensorDescriptor& x, const TensorDescriptor& y);
-
-struct ForwardProblemDescription : ProblemDescriptionBase
+struct LocalProblemDescriptionBase : ProblemDescriptionBase
 {
-    ForwardProblemDescription(const TensorDescriptor& inputDesc_,
-                              const TensorDescriptor& outputDesc_,
-                              const int& dim_)
+    LocalProblemDescriptionBase() = default;
+    LocalProblemDescriptionBase(const TensorDescriptor& inputDesc_,
+                                const TensorDescriptor& outputDesc_,
+                                const int& dim_)
         : inputDesc(inputDesc_), outputDesc(outputDesc_), dim(dim_)
     {
         if(IsValidDim())
@@ -96,7 +95,85 @@ struct ForwardProblemDescription : ProblemDescriptionBase
     {
         if(inputDesc.GetStrides()[dim] != 1)
             return false;
-        if(outputDesc.GetElementSize() > 0 && outputDesc.GetStrides()[dim] != 1)
+        if(outputDesc.GetStrides()[dim] != 1)
+            return false;
+        return true;
+    }
+
+protected:
+    TensorDescriptor inputDesc;
+    TensorDescriptor outputDesc;
+    int dim;
+};
+
+struct ForwardProblemDescription : LocalProblemDescriptionBase
+{
+    ForwardProblemDescription(const TensorDescriptor& inputDesc_,
+                              const TensorDescriptor& outputDesc_,
+                              const int& dim_)
+        : LocalProblemDescriptionBase(inputDesc_, outputDesc_, dim_)
+    {
+    }
+
+    NetworkConfig MakeNetworkConfig() const override;
+
+private:
+    NetworkConfig MakeForwardNetworkConfig() const;
+};
+
+struct BackwardProblemDescription : LocalProblemDescriptionBase
+{
+    BackwardProblemDescription(const TensorDescriptor& inputDesc_,
+                               const TensorDescriptor& outputDesc_,
+                               const TensorDescriptor& doutputDesc_,
+                               const TensorDescriptor& dinputDesc_,
+                               const int& dim_)
+        : LocalProblemDescriptionBase(inputDesc_, outputDesc_, dim_),
+          doutputDesc(doutputDesc_),
+          dinputDesc(dinputDesc_)
+    {
+        IsSameLength();
+        IsSameType();
+    }
+
+    bool IsSameLength() const
+    {
+        if(inputDesc.GetLengths() != dinputDesc.GetLengths())
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "LogCumSumExp: Input and its Gradient tensor sizes do not match.");
+        if(outputDesc.GetLengths() != doutputDesc.GetLengths())
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "LogCumSumExp: Output and its Gradient tensor sizes do not match.");
+        return true;
+    }
+
+    bool IsSameType() const
+    {
+        if(inputDesc.GetType() != dinputDesc.GetType())
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "LogCumSumExp: Input and its Gradient tensor type do not match.");
+        if(outputDesc.GetType() != doutputDesc.GetType())
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "LogCumSumExp: Output and its Gradient tensor type do not match.");
+        return true;
+    }
+
+    bool IsAllPacked() const
+    {
+        if(!LocalProblemDescriptionBase::IsAllPacked())
+            return false;
+        if(!dinputDesc.IsPacked() || !doutputDesc.IsPacked())
+            return false;
+        return true;
+    }
+
+    bool IsAllDimStride1() const
+    {
+        if(!LocalProblemDescriptionBase::IsAllDimStride1())
+            return false;
+        if(dinputDesc.GetStrides()[dim] != 1)
+            return false;
+        if(doutputDesc.GetStrides()[dim] != 1)
             return false;
         return true;
     }
@@ -104,11 +181,10 @@ struct ForwardProblemDescription : ProblemDescriptionBase
     NetworkConfig MakeNetworkConfig() const override;
 
 private:
-    TensorDescriptor inputDesc;
-    TensorDescriptor outputDesc;
-    int dim;
+    TensorDescriptor doutputDesc;
+    TensorDescriptor dinputDesc;
 
-    NetworkConfig MakeForwardNetworkConfig() const;
+    NetworkConfig MakeBackwardNetworkConfig() const;
 };
 
 } // namespace logcumsumexp

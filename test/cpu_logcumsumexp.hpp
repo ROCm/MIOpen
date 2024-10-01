@@ -36,11 +36,11 @@ void cpu_logcumsumexp_forward(const tensor<T> input,
                               const bool exclusive,
                               const bool reverse)
 {
-    const int ndims     = input.desc.GetNumDims();
-    const auto true_dim = ((dim % ndims) + ndims) % ndims;
-
     auto input_tv  = miopen::get_inner_expanded_tv<5>(input.desc);
     auto output_tv = miopen::get_inner_expanded_tv<5>(ref_output.desc);
+
+    const int ndims     = input.desc.GetNumDims();
+    const auto true_dim = ((dim % ndims) + ndims) % ndims;
 
     auto size       = input.desc.GetElementSize();
     auto inner_size = input.desc.GetLengths()[true_dim];
@@ -70,5 +70,70 @@ void cpu_logcumsumexp_forward(const tensor<T> input,
             ref_output[output_tv.get_tensor_view_idx(tensor_layout)] =
                 static_cast<T>(std::log(cumsum));
         });
+    });
+}
+
+template <class T>
+void cpu_logcumsumexp_backward(const tensor<T> input,
+                               const tensor<T> output,
+                               const tensor<T> doutput,
+                               tensor<T>& ref_dinput,
+                               const int dim,
+                               const bool exclusive,
+                               const bool reverse)
+{
+    auto input_tv   = miopen::get_inner_expanded_tv<5>(input.desc);
+    auto output_tv  = miopen::get_inner_expanded_tv<5>(output.desc);
+    auto doutput_tv = miopen::get_inner_expanded_tv<5>(doutput.desc);
+    auto dinput_tv  = miopen::get_inner_expanded_tv<5>(ref_dinput.desc);
+
+    auto size = input.desc.GetElementSize();
+
+    auto log_grad_positive        = tensor<float>{input.desc.GetLengths()};
+    auto log_grad_negative        = tensor<float>{input.desc.GetLengths()};
+    auto pos_reverse_logcumsumexp = tensor<float>{input.desc.GetLengths()};
+    auto neg_reverse_logcumsumexp = tensor<float>{input.desc.GetLengths()};
+    auto base_tv                  = miopen::get_inner_expanded_tv<5>(log_grad_positive.desc);
+
+    // InitLogGrad
+    par_ford(size)([&](int idx) {
+        auto tensor_layout = tensor_layout_t<5>(base_tv, idx);
+
+        auto doutput_v = static_cast<float>(doutput[doutput_tv.get_tensor_view_idx(tensor_layout)]);
+        auto output_v  = static_cast<float>(output[output_tv.get_tensor_view_idx(tensor_layout)]);
+
+        log_grad_positive[idx] = (doutput_v > 0 ? std::log(doutput_v) - output_v : std::log(0));
+        log_grad_negative[idx] = (doutput_v < 0 ? std::log(-doutput_v) - output_v : std::log(0));
+    });
+
+    // LogCumSumExp1dForward pos_reverse_logcumsumexp
+    cpu_logcumsumexp_forward(
+        log_grad_positive, pos_reverse_logcumsumexp, dim, /*exclusive=*/false, reverse);
+
+    // LogCumSumExp1dForward neg_reverse_logcumsumexp
+    cpu_logcumsumexp_forward(
+        log_grad_negative, neg_reverse_logcumsumexp, dim, /*exclusive=*/false, reverse);
+
+    // LogCumSumExp1dBackwardStep2
+    par_ford(size)([&](int idx) {
+        auto tensor_layout = tensor_layout_t<5>(base_tv, idx);
+
+        const int ndims     = input.desc.GetNumDims();
+        const auto true_dim = ((dim % ndims) + ndims) % ndims;
+        if(tensor_layout.layout[true_dim] + exclusive >= ref_dinput.desc.GetLengths()[true_dim])
+        {
+            ref_dinput[dinput_tv.get_tensor_view_idx(tensor_layout)] = static_cast<T>(0.0f);
+            return;
+        }
+        else
+            idx += exclusive;
+
+        auto input_v = static_cast<float>(input[input_tv.get_tensor_view_idx(tensor_layout)]);
+
+        auto output_pos = std::exp(pos_reverse_logcumsumexp[idx] + input_v);
+        auto output_neg = std::exp(neg_reverse_logcumsumexp[idx] + input_v);
+
+        ref_dinput[dinput_tv.get_tensor_view_idx(tensor_layout)] =
+            static_cast<T>(output_pos - output_neg);
     });
 }

@@ -41,4 +41,18 @@ MIOPEN_INTERNALS_EXPORT miopenStatus_t LogCumSumExpForward(Handle& handle,
                                                            bool exclusive,
                                                            bool reverse);
 
+MIOPEN_INTERNALS_EXPORT miopenStatus_t LogCumSumExpBackward(Handle& handle,
+                                                            Data_t workspace, // will be removed
+                                                            const TensorDescriptor& inputDesc,
+                                                            ConstData_t input,
+                                                            const TensorDescriptor& outputDesc,
+                                                            ConstData_t output,
+                                                            const TensorDescriptor& doutputDesc,
+                                                            ConstData_t doutput,
+                                                            const TensorDescriptor& dinputDesc,
+                                                            Data_t dinput,
+                                                            int dim,
+                                                            bool exclusive,
+                                                            bool reverse);
+
 } // namespace miopen

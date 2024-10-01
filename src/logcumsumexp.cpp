@@ -44,7 +44,7 @@ miopenStatus_t LogCumSumExpForward(Handle& handle,
     const auto problem = logcumsumexp::ForwardProblemDescription{inputDesc, outputDesc, dim};
 
     const auto invoke_params = [&]() {
-        auto tmp       = logcumsumexp::InvokeParams{};
+        auto tmp       = logcumsumexp::InvokeParamsForward{};
         tmp.type       = InvokeType::Run;
         tmp.inputDesc  = &inputDesc;
         tmp.outputDesc = &outputDesc;
@@ -61,6 +61,53 @@ miopenStatus_t LogCumSumExpForward(Handle& handle,
     const auto algo = AlgorithmName{"LogCumSumExpForward"};
     const auto solvers =
         solver::SolverContainer<solver::logcumsumexp::ForwardContiguousSmallLastDim>{};
+
+    solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
+
+    return miopenStatusSuccess;
+}
+
+miopenStatus_t LogCumSumExpBackward(Handle& handle,
+                                    Data_t workspace, // will be removed
+                                    const TensorDescriptor& inputDesc,
+                                    ConstData_t input,
+                                    const TensorDescriptor& outputDesc,
+                                    ConstData_t output,
+                                    const TensorDescriptor& doutputDesc,
+                                    ConstData_t doutput,
+                                    const TensorDescriptor& dinputDesc,
+                                    Data_t dinput,
+                                    const int dim,
+                                    const bool exclusive,
+                                    const bool reverse)
+{
+    const auto problem = logcumsumexp::BackwardProblemDescription{
+        inputDesc, outputDesc, doutputDesc, dinputDesc, dim};
+
+    const auto invoke_params = [&]() {
+        auto tmp        = logcumsumexp::InvokeParamsBackward{};
+        tmp.type        = InvokeType::Run;
+        tmp.inputDesc   = &inputDesc;
+        tmp.outputDesc  = &outputDesc;
+        tmp.doutputDesc = &doutputDesc;
+        tmp.dinputDesc  = &dinputDesc;
+        tmp.input       = input;
+        tmp.output      = output;
+        tmp.doutput     = doutput;
+        tmp.dinput      = dinput;
+
+        tmp.workspace = workspace;
+
+        tmp.dim       = dim;
+        tmp.exclusive = exclusive;
+        tmp.reverse   = reverse;
+
+        return tmp;
+    }();
+
+    const auto algo = AlgorithmName{"LogCumSumExpBackward"};
+    const auto solvers =
+        solver::SolverContainer<solver::logcumsumexp::BackwardContiguousSmallLastDim>{};
 
     solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
 

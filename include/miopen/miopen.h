@@ -7760,6 +7760,34 @@ MIOPEN_EXPORT miopenStatus_t miopenLogCumSumExpForward(miopenHandle_t handle,
                                                        bool exclusive,
                                                        bool reverse);
 
+/*! @brief Execute a LogCumSumExp backward layer
+ *
+ * @param handle                   MIOpen handle (input)
+ * @param inputDesc                Tensor descriptor for input tensor (input)
+ * @param input                    Data tensor input (input)
+ * @param outputDesc               Tensor descriptor for output tensor (input)
+ * @param output                   Data tensor output (input)
+ * @param doutputDesc              Tensor descriptor for output tensor gradient (input)
+ * @param doutput                  Data tensor output gradient (input)
+ * @param dinputDesc               Tensor descriptor for input gradient tensor (input)
+ * @param dinput                   Data tensor input gradient (output)
+ * @param dim                      The dimension to do the operation over (input)
+ * @param exclusive                Exclusive operation (input)
+ * @param reverse                  Reverse the operation order (input)
+ */
+MIOPEN_EXPORT miopenStatus_t miopenLogCumSumExpBackward(miopenHandle_t handle,
+                                                        miopenTensorDescriptor_t inputDesc,
+                                                        const void* input,
+                                                        miopenTensorDescriptor_t outputDesc,
+                                                        const void* output,
+                                                        miopenTensorDescriptor_t doutputDesc,
+                                                        const void* doutput,
+                                                        miopenTensorDescriptor_t dinputDesc,
+                                                        void* dinput,
+                                                        int dim,
+                                                        bool exclusive,
+                                                        bool reverse);
+
 /** @} */
 // CLOSEOUT LogCumSumExp DOXYGEN GROUP
 #endif // MIOPEN_BETA_API

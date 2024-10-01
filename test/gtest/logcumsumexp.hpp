@@ -166,7 +166,7 @@ inline std::vector<LogCumSumExpTestCase> LogCumSumExpFullTestConfigs()
 }
 
 template <typename T>
-struct LogCumSumExpTest : public ::testing::TestWithParam<LogCumSumExpTestCase>
+struct LogCumSumExpTestFwd : public ::testing::TestWithParam<LogCumSumExpTestCase>
 {
 protected:
     void SetUp() override
@@ -222,11 +222,6 @@ protected:
         if(std::is_same<T, bfloat16>::value)
             tolerance *= 8.0;
 
-        // for(auto i = 0; i < output.data.size(); ++i)
-        // {
-        //     std::cout << i << ' ' << output[i] << ' ' << ref_output[i] << std::endl;
-        // }
-
         auto error_output = miopen::rms_range(ref_output, output);
         ASSERT_EQ(miopen::range_distance(ref_output), miopen::range_distance(output));
         EXPECT_LT(error_output, tolerance)
@@ -243,4 +238,112 @@ protected:
 
     miopen::Allocator::ManageDataPtr input_dev;
     miopen::Allocator::ManageDataPtr output_dev;
+};
+
+template <typename T>
+struct LogCumSumExpTestBwd : public ::testing::TestWithParam<LogCumSumExpTestCase>
+{
+protected:
+    void SetUp() override
+    {
+        auto&& handle        = get_handle();
+        logcumsumexp_config  = GetParam();
+        auto gen_value_input = [](auto...) {
+            return prng::gen_descreet_uniform_sign<T>(1e-2, 100);
+        };
+        auto gen_value_doutput = [](auto...) {
+            return prng::gen_descreet_uniform_sign<T>(1e-2, 100);
+        };
+
+        auto lengths = logcumsumexp_config.lengths;
+
+        auto input_strides = GetStrides(lengths, logcumsumexp_config.contiguous);
+        input              = tensor<T>{lengths, input_strides}.generate(gen_value_input);
+        dinput             = tensor<T>{lengths, input_strides};
+        fill(dinput.begin(), dinput.end(), -1);
+
+        auto out_strides = GetStrides(lengths, true);
+        output           = tensor<T>{lengths, out_strides};
+        doutput          = tensor<T>{lengths, out_strides}.generate(gen_value_doutput);
+
+        // Calculate output tensor value by forwarding input tensor
+        cpu_logcumsumexp_forward(input,
+                                 output,
+                                 logcumsumexp_config.dim,
+                                 logcumsumexp_config.exclusive,
+                                 logcumsumexp_config.reverse);
+
+        ref_dinput = tensor<T>{lengths, input_strides};
+
+        // Allocate workspace, will be removed
+        workspace     = tensor<float>{{input.data.size() * 4}};
+        workspace_dev = handle.Write(workspace.data);
+
+        input_dev   = handle.Write(input.data);
+        output_dev  = handle.Write(output.data);
+        doutput_dev = handle.Write(doutput.data);
+        dinput_dev  = handle.Write(dinput.data);
+    }
+
+    void RunTest()
+    {
+        cpu_logcumsumexp_backward<T>(input,
+                                     output,
+                                     doutput,
+                                     ref_dinput,
+                                     logcumsumexp_config.dim,
+                                     logcumsumexp_config.exclusive,
+                                     logcumsumexp_config.reverse);
+
+        auto&& handle = get_handle();
+        auto status   = miopen::LogCumSumExpBackward(handle,
+                                                   workspace_dev.get(),
+                                                   input.desc,
+                                                   input_dev.get(),
+                                                   output.desc,
+                                                   output_dev.get(),
+                                                   doutput.desc,
+                                                   doutput_dev.get(),
+                                                   dinput.desc,
+                                                   dinput_dev.get(),
+                                                   logcumsumexp_config.dim,
+                                                   logcumsumexp_config.exclusive,
+                                                   logcumsumexp_config.reverse);
+        EXPECT_EQ(status, miopenStatusSuccess);
+        dinput.data = handle.Read<T>(dinput_dev, dinput.data.size());
+    }
+
+    void Verify()
+    {
+        // Computation error of fp16 is ~2^13 (=8192) bigger than
+        // the one of fp32 because mantissa is shorter by 13 bits.
+        double tolerance = std::is_same<T, float>::value ? 1.5e-6 : 8.2e-3;
+
+        // bf16 mantissa has 7 bits, by 3 bits shorter than fp16.
+        if(std::is_same<T, bfloat16>::value)
+            tolerance *= 8.0;
+
+        auto error_dinput = miopen::rms_range(ref_dinput, dinput);
+        ASSERT_EQ(miopen::range_distance(ref_dinput), miopen::range_distance(dinput));
+        EXPECT_LT(error_dinput, tolerance)
+            << "Error backward Input Gradient beyond tolerance Error: " << error_dinput
+            << " Tolerance: " << tolerance;
+    }
+
+    LogCumSumExpTestCase logcumsumexp_config;
+
+    tensor<T> input;
+    tensor<T> output;
+    tensor<T> doutput;
+    tensor<T> dinput;
+    tensor<float> workspace;
+
+    tensor<T> ref_dinput;
+
+    miopen::Allocator::ManageDataPtr input_dev;
+    miopen::Allocator::ManageDataPtr output_dev;
+    miopen::Allocator::ManageDataPtr doutput_dev;
+    miopen::Allocator::ManageDataPtr dinput_dev;
+
+    miopen::Allocator::ManageDataPtr workspace_dev;
 };

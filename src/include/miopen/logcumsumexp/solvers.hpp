@@ -46,10 +46,28 @@ struct ForwardContiguousSmallLastDim final : ForwardSolverBase
 
     bool
     IsApplicable(const ExecutionContext& context,
-                 const miopen::logcumsumexp ::ForwardProblemDescription& problem) const override;
+                 const miopen::logcumsumexp::ForwardProblemDescription& problem) const override;
     ConvSolution
     GetSolution(const ExecutionContext& context,
-                const miopen::logcumsumexp ::ForwardProblemDescription& problem) const override;
+                const miopen::logcumsumexp::ForwardProblemDescription& problem) const override;
+};
+
+using BackwardSolverBase =
+    NonTunableSolverBase<ExecutionContext, miopen::logcumsumexp::BackwardProblemDescription>;
+
+struct BackwardContiguousSmallLastDim final : BackwardSolverBase
+{
+    const std::string& SolverDbId() const override
+    {
+        return GetSolverDbId<BackwardContiguousSmallLastDim>();
+    }
+
+    bool
+    IsApplicable(const ExecutionContext& context,
+                 const miopen::logcumsumexp::BackwardProblemDescription& problem) const override;
+    ConvSolution
+    GetSolution(const ExecutionContext& context,
+                const miopen::logcumsumexp::BackwardProblemDescription& problem) const override;
 };
 
 } // namespace logcumsumexp

@@ -113,3 +113,136 @@ extern "C" __global__ void LogCumSumExpForwardContiguousSmallLastDim(const FLOAT
     LogCumSumExpForwardContiguousSmallLastDim<FLOAT, REDUCE_SIZE>(
         input, output, reduce_size, exclusive, reverse);
 }
+
+extern "C" __global__ void InitLogGradContiguous(const FLOAT* output_grad,
+                                                 const FLOAT* output,
+                                                 FLOAT_ACCUM* log_grad_positive,
+                                                 FLOAT_ACCUM* log_grad_negative,
+                                                 const uint64_t N)
+{
+    size_t gid = blockIdx.x * blockDim.x + threadIdx.x;
+    if(gid >= N)
+        return;
+
+    auto output_grad_v = CVT_FLOAT2ACCUM(output_grad[gid]);
+    auto output_v      = CVT_FLOAT2ACCUM(output[gid]);
+
+    log_grad_positive[gid] = (output_grad_v > 0 ? log(output_grad_v) - output_v : log(0));
+    log_grad_negative[gid] = (output_grad_v < 0 ? log(-output_grad_v) - output_v : log(0));
+}
+
+extern "C" __global__ void
+LogCumSumExp1dBackwardStep2Contiguous(const FLOAT_ACCUM* pos_reverse_logcumsumexp,
+                                      const FLOAT_ACCUM* neg_reverse_logcumsumexp,
+                                      const FLOAT* input,
+                                      FLOAT* input_grad,
+                                      const uint64_t N,
+                                      const uint64_t dim_size,
+                                      const bool exclusive)
+{
+    size_t gid = blockIdx.x * blockDim.x + threadIdx.x;
+    if(gid >= N)
+        return;
+    if(gid % dim_size + exclusive >= dim_size)
+    {
+        input_grad[gid] = CVT_FP32_2FLOAT(0.0f);
+        return;
+    }
+
+    FLOAT_ACCUM input_v = CVT_FLOAT2ACCUM(input[gid]);
+
+    FLOAT_ACCUM output_pos = exp(pos_reverse_logcumsumexp[gid + exclusive] + input_v);
+    FLOAT_ACCUM output_neg = exp(neg_reverse_logcumsumexp[gid + exclusive] + input_v);
+
+    input_grad[gid] = CVT_ACCUM2FLOAT(output_pos - output_neg);
+}
+
+// extern "C" __global__ void
+// LogCumSumExpBackwardContiguousSmallLastDim(const FLOAT* input,
+//                                            const FLOAT* output,
+//                                            const FLOAT* output_grad,
+//                                            FLOAT* input_grad,
+//                                            FLOAT_ACCUM* log_grad_positive,
+//                                            FLOAT_ACCUM* log_grad_negative,
+//                                            FLOAT_ACCUM* pos_reverse_logcumsumexp,
+//                                            FLOAT_ACCUM* neg_reverse_logcumsumexp,
+//                                            const uint64_t reduce_size,
+//                                            const bool exclusive,
+//                                            const bool reverse)
+// {
+//     __shared__ FLOAT_ACCUM tmp[LOCAL_SIZE];
+
+//     int lid = threadIdx.y;
+
+//     auto xid = blockIdx.x * blockDim.x + threadIdx.x;
+//     auto yid = blockIdx.y * blockDim.y + threadIdx.y;
+
+//     int idx = yid - exclusive;
+//     if(0 <= idx && idx < reduce_size - exclusive)
+//     {
+//         idx                = (reverse ? reduce_size - idx - 1 : idx);
+//         auto output_v      = CVT_FLOAT2ACCUM(output[xid * reduce_size + idx]);
+//         auto output_grad_v = CVT_FLOAT2ACCUM(output_grad[xid * reduce_size + idx]);
+//         if(output_grad_v > 0)
+//             tmp[lid] = exp(log(output_grad_v) - output_v);
+//         else
+//             tmp[lid] = 0;
+//     }
+//     else
+//     {
+//         tmp[lid] = 0;
+//     }
+//     __syncthreads();
+
+//     CumulativeReductionSumScan<LOCAL_SIZE>(lid, tmp);
+
+//     idx = yid;
+//     if(idx < reduce_size)
+//     {
+//         idx                                               = (reverse ? reduce_size - idx - 1 :
+//         idx); pos_reverse_logcumsumexp[xid * reduce_size + idx] = CVT_ACCUM2FLOAT(log(tmp[lid]));
+//     }
+
+//     __syncthreads();
+
+//     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//     idx = yid - exclusive;
+//     if(0 <= idx && idx < reduce_size - exclusive)
+//     {
+//         idx                = (reverse ? reduce_size - idx - 1 : idx);
+//         auto output_v      = CVT_FLOAT2ACCUM(output[xid * reduce_size + idx]);
+//         auto output_grad_v = CVT_FLOAT2ACCUM(output_grad[xid * reduce_size + idx]);
+//         if(output_grad_v > 0)
+//             tmp[lid] = exp(log(output_grad_v) - output_v);
+//         else
+//             tmp[lid] = 0;
+//     }
+//     else
+//     {
+//         tmp[lid] = 0;
+//     }
+//     __syncthreads();
+
+//     CumulativeReductionSumScan<LOCAL_SIZE>(lid, tmp);
+
+//     idx = yid;
+//     if(idx < reduce_size)
+//     {
+//         idx                                               = (reverse ? reduce_size - idx - 1 :
+//         idx); neg_reverse_logcumsumexp[xid * reduce_size + idx] = CVT_ACCUM2FLOAT(log(tmp[lid]));
+//     }
+
+//     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//     idx = yid;
+//     if(idx < reduce_size)
+//     {
+//         idx                 = (reverse ? reduce_size - idx - 1 : idx);
+//         FLOAT_ACCUM input_v = CVT_FLOAT2ACCUM(input[xid * reduce_size + idx]);
+
+//         FLOAT_ACCUM output_pos = exp(pos_reverse_logcumsumexp[xid * reduce_size + idx] +
+//         input_v); FLOAT_ACCUM output_neg = exp(neg_reverse_logcumsumexp[xid * reduce_size + idx]
+//         + input_v);
+
+//         input_grad[xid * reduce_size + idx] = CVT_ACCUM2FLOAT(output_pos - output_neg);
+//     }
+// }

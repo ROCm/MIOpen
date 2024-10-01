@@ -299,6 +299,7 @@ set( MIOpen_Source
     solver/layernorm/forward_layernorm2d_ck.cpp
     solver/layernorm/forward_layernorm4d_ck.cpp
     solver/layernorm/forward_t5layernorm.cpp
+    solver/logcumsumexp/backward_logcumsumexp_contiguous_smalllastdim.cpp
     solver/logcumsumexp/forward_logcumsumexp_contiguous_smalllastdim.cpp
     solver/mha/mha_solver_backward.cpp
     solver/mha/mha_solver_forward.cpp

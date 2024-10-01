@@ -25,6 +25,7 @@
  *******************************************************************************/
 #pragma once
 
+#include "miopen/common.hpp"
 #include <miopen/invoke_params.hpp>
 #include <miopen/tensor.hpp>
 
@@ -40,7 +41,6 @@ struct InvokeParams : public miopen::InvokeParams
     const TensorDescriptor* outputDesc = nullptr;
 
     ConstData_t input = nullptr;
-    Data_t output     = nullptr;
 
     int dim        = 0;
     bool exclusive = false;
@@ -48,6 +48,29 @@ struct InvokeParams : public miopen::InvokeParams
 
     std::size_t GetWorkspaceSize() const { return 0; }
     Data_t GetWorkspace() const { return nullptr; }
+};
+
+struct InvokeParamsForward : public InvokeParams
+{
+    InvokeParamsForward() = default;
+
+    Data_t output = nullptr;
+};
+
+struct InvokeParamsBackward : public InvokeParams
+{
+    InvokeParamsBackward() = default;
+
+    const TensorDescriptor* dinputDesc  = nullptr;
+    const TensorDescriptor* doutputDesc = nullptr;
+
+    ConstData_t output  = nullptr;
+    ConstData_t doutput = nullptr;
+    Data_t dinput       = nullptr;
+
+    Data_t workspace;
+
+    Data_t GetWorkspace() const { return workspace; }
 };
 
 } // namespace logcumsumexp

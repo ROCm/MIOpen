@@ -52,6 +52,25 @@ NetworkConfig ForwardProblemDescription::MakeNetworkConfig() const
     return NetworkConfig{ss.str()};
 }
 
+NetworkConfig BackwardProblemDescription::MakeNetworkConfig() const
+{
+    auto dtype      = inputDesc.GetType();
+    auto size       = inputDesc.GetElementSize();
+    auto inner_size = inputDesc.GetLengths()[dim];
+    auto outer_size = size / inner_size;
+
+    std::ostringstream ss;
+
+    ss << "logcumsumexp_bwd";
+    ss << "dtype" << dtype;
+    ss << "outer" << outer_size;
+    ss << "inner" << inner_size;
+    ss << "packed" << IsAllPacked();
+    ss << "dimstride1" << IsAllDimStride1();
+
+    return NetworkConfig{ss.str()};
+}
+
 } // namespace logcumsumexp
 
 } // namespace miopen
