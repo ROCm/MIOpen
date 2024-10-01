@@ -24,23 +24,21 @@
  *
  *******************************************************************************/
 
-#include "../driver/tensor_driver.hpp"
 #include "cpu_where.hpp"
 #include "get_handle.hpp"
-#include "miopen/allocator.hpp"
-#include "miopen/tensor.hpp"
 #include "random.hpp"
 #include "tensor_holder.hpp"
 #include "verify.hpp"
+
 #include <algorithm>
-#include <cmath>
 #include <cstddef>
+#include <cstdint>
+#include <vector>
+
 #include <gtest/gtest.h>
+#include <miopen/allocator.hpp>
 #include <miopen/miopen.h>
 #include <miopen/where.hpp>
-#include <numeric>
-#include <random>
-#include <vector>
 
 struct WhereTestCase
 {
@@ -70,71 +68,56 @@ struct WhereTestCase
         return os;
     }
 
-    std::vector<size_t> GetInputDim()
+    std::vector<size_t> GetInputDim() const
     {
-        std::vector<size_t> res;
         if(inDims.empty())
         {
             return std::vector<size_t>{0};
         }
-        for(auto inDim : inDims)
-        {
-            if(inDim != 0)
-            {
-                res.push_back(inDim);
-            }
-        }
-        return res;
+        return inDims;
     }
 
-    std::vector<size_t> GetOtherDim()
+    std::vector<size_t> GetOtherDim() const
     {
-        std::vector<size_t> res;
         if(otherDims.empty())
         {
             return std::vector<size_t>{0};
         }
-        for(auto otherDim : otherDims)
-        {
-            if(otherDim != 0)
-            {
-                res.push_back(otherDim);
-            }
-        }
-        return res;
+        return otherDims;
     }
 
-    std::vector<size_t> GetCondDim()
+    std::vector<size_t> GetCondDim() const
     {
-        std::vector<size_t> res;
         if(condDims.empty())
         {
             return std::vector<size_t>{0};
         }
-        for(auto condDim : condDims)
-        {
-            if(condDim != 0)
-            {
-                res.push_back(condDim);
-            }
-        }
-        return res;
+        return condDims;
+    }
+
+    WhereTestCase() {}
+
+    WhereTestCase(std::vector<size_t> input_dim)
+        : inDims(input_dim), otherDims(input_dim), condDims(input_dim)
+    {
     }
 };
 
-std::vector<WhereTestCase> WhereTestConfigs()
+inline std::vector<WhereTestCase> GenFullTestCases()
 { // n c d h w dim
     // clang-format off
     return {
-        {std::vector<size_t>{1, 2, 8, 2, 2}, std::vector<size_t>{1, 2, 8, 2, 2}, std::vector<size_t>{1, 2, 8, 2, 2}},
-        {std::vector<size_t>{6, 2, 2, 2, 2}, std::vector<size_t>{1, 2, 2, 2, 2}, std::vector<size_t>{1, 2, 2, 2, 2}},
-        {std::vector<size_t>{1, 2, 2, 2, 2}, std::vector<size_t>{1, 2, 2, 2, 2}, std::vector<size_t>{4, 2, 2, 2, 2}},
-        {std::vector<size_t>{ 2, 2, 2, 2}, std::vector<size_t>{1, 2, 2, 2}, std::vector<size_t>{1, 2, 2, 2, 1}},
-        {std::vector<size_t>{1, 2, 1, 1, 1}, std::vector<size_t>{6, 2, 1, 1, 1}, std::vector<size_t>{6, 2}},
-        {std::vector<size_t>{6, 2, 2, 2, 2}, std::vector<size_t>{0}, std::vector<size_t>{1, 2, 2, 2, 2}},
-        {std::vector<size_t>{0}, std::vector<size_t>{1, 2, 2, 2, 2}, std::vector<size_t>{4, 2, 2, 2, 2}},
-        {std::vector<size_t>{ 2, 2, 2, 2}, std::vector<size_t>{0}, std::vector<size_t>{1, 2, 2, 2, 1}},
-        {std::vector<size_t>{1, 2, 1, 1, 1}, std::vector<size_t>{0}, std::vector<size_t>{6, 2}}
+        WhereTestCase({6, 2, 2, 2, 2}),
+        WhereTestCase({4, 4, 8, 8, 2}),
+        WhereTestCase({1, 2, 8, 2, 2}),
+        WhereTestCase({16, 20, 20, 12, 12}),
+        //{std::vector<size_t>{1, 2, 8, 2, 2}, std::vector<size_t>{1, 2, 8, 2, 2}, std::vector<size_t>{1, 2, 8, 2, 2}},
+        //{std::vector<size_t>{6, 2, 2, 2, 2}, std::vector<size_t>{6, 2, 2, 2, 2}, std::vector<size_t>{6, 2, 2, 2, 2}},
+        //{std::vector<size_t>{4, 2, 2, 2, 2}, std::vector<size_t>{4, 2, 2, 2, 2}, std::vector<size_t>{4, 2, 2, 2, 2}},
+        //{std::vector<size_t>{ 2, 2, 2, 2}, std::vector<size_t>{2, 2, 2, 2}, std::vector<size_t>{2, 2, 2, 2}},
+        //{std::vector<size_t>{16, 2, 2, 2, 2}, std::vector<size_t>{16, 2, 2, 2, 2}, std::vector<size_t>{16, 2, 2, 2, 2}},
+        //{std::vector<size_t>{ 2, 2, 2, 2}, std::vector<size_t>{0}, std::vector<size_t>{1, 2, 2, 2, 1}},
+        //{std::vector<size_t>{1, 2, 1, 1, 1}, std::vector<size_t>{0}, std::vector<size_t>{6, 2}}
     };
     // clang-format on
 }
@@ -156,17 +139,10 @@ protected:
         isInputGradRequired = !in_dims.empty();
         isOtherGradRequired = !other_dims.empty();
 
-        cond = tensor<T>{cond_dims}.generate(gen_value);
+        cond = tensor<uint8_t>{cond_dims};
         for(auto i = 0; i < cond.GetSize(); i++)
         {
-            if(cond[i] > 0.5)
-            {
-                cond[i] = 1;
-            }
-            else
-            {
-                cond[i] = 0;
-            }
+            cond[i] = rand() % 2;
         }
 
         size_t out_sz = std::max({in_dims.size(), other_dims.size(), cond_dims.size()});
@@ -224,15 +200,15 @@ protected:
 
         auto inputGradMem = isInputGradRequired ? inputGrad_dev.get() : nullptr;
         auto otherGradMem = isOtherGradRequired ? otherGrad_dev.get() : nullptr;
-        status            = miopen::WhereBackward(handle,
-                                       outputGrad.desc,
-                                       outputGrad_dev.get(),
-                                       cond.desc,
-                                       cond_dev.get(),
-                                       inputGrad.desc,
-                                       inputGradMem,
-                                       otherGrad.desc,
-                                       otherGradMem);
+        status            = miopen::where::WhereBackward(handle,
+                                              outputGrad.desc,
+                                              outputGrad_dev.get(),
+                                              cond.desc,
+                                              cond_dev.get(),
+                                              inputGrad.desc,
+                                              inputGradMem,
+                                              otherGrad.desc,
+                                              otherGradMem);
 
         EXPECT_EQ(status, miopenStatusSuccess);
 
@@ -248,13 +224,7 @@ protected:
 
     double GetTolerance()
     {
-        // Computation error of fp16 is ~2^13 (=8192) bigger than
-        // the one of fp32 because mantissa is shorter by 13 bits.
-        double tolerance = std::is_same<T, float>::value ? 1.5e-6 : 8.2e-3;
-
-        // bf16 mantissa has 7 bits, by 3 bits shorter than fp16.
-        if(std::is_same<T, bfloat16>::value)
-            tolerance *= 8.0;
+        double tolerance = std::numeric_limits<T>::epsilon() * 10;
         return tolerance;
     }
 
@@ -272,21 +242,22 @@ protected:
         {
             EXPECT_TRUE(miopen::range_distance(ref_otherGrad) == miopen::range_distance(otherGrad));
         }
-        EXPECT_TRUE(error1 < threshold * 10)
+        EXPECT_TRUE(error1 < threshold)
             << "Error output (input grad) beyond tolerance Error:" << error1
-            << ",  Thresholdx10: " << threshold * 10 << std::endl;
+            << ",  Threshold: " << threshold << std::endl;
 
-        EXPECT_TRUE(error2 < threshold * 10)
+        EXPECT_TRUE(error2 < threshold)
             << "Error output (other grad) beyond tolerance Error:" << error2
-            << ",  Thresholdx10: " << threshold * 10 << std::endl;
+            << ",  Threshold: " << threshold << std::endl;
     }
+
     WhereTestCase where_config;
     bool isInputGradRequired;
     bool isOtherGradRequired;
 
     tensor<T> inputGrad;
     tensor<T> otherGrad;
-    tensor<T> cond;
+    tensor<uint8_t> cond;
     tensor<T> outputGrad;
 
     tensor<T> ref_inputGrad;

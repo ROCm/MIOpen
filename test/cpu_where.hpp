@@ -23,32 +23,34 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef GUARD_CPU_WHERE_HPP
-#define GUARD_CPU_WHERE_HPP
+
+#pragma once
+
+#include <cstddef>
+#include <cstdint>
 
 #include "ford.hpp"
 #include "tensor_holder.hpp"
-#include <algorithm>
-#include <cstddef>
-#include <vector>
 
 template <class T>
-void cpu_where_backward(tensor<T> outputGrad,
-                        tensor<T> cond,
+void cpu_where_backward(const tensor<T>& outputGrad,
+                        const tensor<uint8_t>& cond,
                         tensor<T>& inputGrad,
                         tensor<T>& otherGrad)
 {
     auto outputGradSize = outputGrad.desc.GetElementSize();
     auto condSize       = cond.desc.GetElementSize();
+    auto condData       = cond.data;
     auto inputGradSize  = inputGrad.data.empty() ? 0 : inputGrad.desc.GetElementSize();
     auto otherGradSize  = otherGrad.data.empty() ? 0 : otherGrad.desc.GetElementSize();
 
-    par_ford(inputGradSize)(
-        [&](size_t i) { inputGrad[i] = outputGrad[i % outputGradSize] * cond[i % condSize]; });
+    par_ford(inputGradSize)([&](size_t i) {
+        auto condVal = condData[i % condSize];
+        inputGrad[i] = outputGrad[i % outputGradSize] * condVal;
+    });
 
     par_ford(otherGradSize)([&](size_t i) {
-        otherGrad[i] = outputGrad[i % outputGradSize] * (1 - cond[i % condSize]);
+        auto condVal = condData[i % condSize];
+        otherGrad[i] = outputGrad[i % outputGradSize] * (1 - condVal);
     });
 }
-
-#endif

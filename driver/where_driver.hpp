@@ -39,14 +39,14 @@
 #include "../test/verify.hpp"
 
 template <typename Tgpu, typename Tcheck>
-int32_t mloWhereBackwardRunHost(miopenTensorDescriptor_t outputGradDesc,
-                                Tgpu* outputGrad,
-                                miopenTensorDescriptor_t conditionDesc,
-                                Tgpu* condition,
-                                miopenTensorDescriptor_t inputGradDesc,
-                                Tcheck* inputGrad,
-                                miopenTensorDescriptor_t otherGradDesc,
-                                Tcheck* otherGrad)
+int mloWhereBackwardRunHost(miopenTensorDescriptor_t outputGradDesc,
+                            Tgpu* outputGrad,
+                            miopenTensorDescriptor_t conditionDesc,
+                            const uint8_t* condition,
+                            miopenTensorDescriptor_t inputGradDesc,
+                            Tcheck* inputGrad,
+                            miopenTensorDescriptor_t otherGradDesc,
+                            Tcheck* otherGrad)
 {
     auto input_grad_numel  = miopen::deref(inputGradDesc).GetElementSize();
     auto other_grad_numel  = miopen::deref(otherGradDesc).GetElementSize();
@@ -57,7 +57,8 @@ int32_t mloWhereBackwardRunHost(miopenTensorDescriptor_t outputGradDesc,
     {
         for(size_t i = 0; i < input_grad_numel; i++)
         {
-            inputGrad[i] = outputGrad[i % output_grad_numel] * condition[i % cond_numel];
+            int cond     = condition[i % cond_numel] ? 1 : 0;
+            inputGrad[i] = outputGrad[i % output_grad_numel] * cond;
         }
     }
 
@@ -65,7 +66,8 @@ int32_t mloWhereBackwardRunHost(miopenTensorDescriptor_t outputGradDesc,
     {
         for(size_t o = 0; o < other_grad_numel; o++)
         {
-            otherGrad[o] = outputGrad[o % output_grad_numel] * (1 - condition[o % cond_numel]);
+            int cond     = condition[o % cond_numel] ? 1 : 0;
+            otherGrad[o] = outputGrad[o % output_grad_numel] * (1 - cond);
         }
     }
 
@@ -135,7 +137,7 @@ private:
     std::unique_ptr<GPUMem> inGrad_dev    = nullptr;
     std::unique_ptr<GPUMem> otherGrad_dev = nullptr;
 
-    std::vector<Tgpu> cond;
+    std::vector<uint8_t> cond;
     std::vector<Tgpu> outGrad;
     std::vector<Tgpu> inGrad;
     std::vector<Tgpu> otherGrad;
@@ -238,7 +240,7 @@ int WhereDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         size_t outGrad_sz   = GetTensorSpace(outputTensorGrad);
 
         // GPU allocation
-        cond_dev      = std::unique_ptr<GPUMem>(new GPUMem(ctx, cond_sz, sizeof(Tgpu)));
+        cond_dev      = std::unique_ptr<GPUMem>(new GPUMem(ctx, cond_sz, sizeof(uint8_t)));
         inGrad_dev    = isInputGradRequired
                             ? std::unique_ptr<GPUMem>(new GPUMem(ctx, inGrad_sz, sizeof(Tgpu)))
                             : nullptr;
@@ -248,7 +250,7 @@ int WhereDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         outGrad_dev   = std::unique_ptr<GPUMem>(new GPUMem(ctx, outGrad_sz, sizeof(Tgpu)));
 
         // GPU host allocation
-        cond      = std::vector<Tgpu>(cond_sz, static_cast<Tgpu>(0));
+        cond      = std::vector<uint8_t>(cond_sz, static_cast<uint8_t>(0));
         inGrad    = isInputGradRequired ? std::vector<Tgpu>(inGrad_sz, static_cast<Tgpu>(0))
                                         : std::vector<Tgpu>();
         otherGrad = isOtherGradRequired ? std::vector<Tgpu>(otherGrad_sz, static_cast<Tgpu>(0))
@@ -264,7 +266,7 @@ int WhereDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         for(int i = 0; i < cond_sz; i++)
         {
             Tgpu tmp = prng::gen_A_to_B(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
-            cond[i]  = (tmp > 0.5) ? 1 : 0;
+            cond[i]  = (tmp > 0.5) ? true : false;
         }
         for(int i = 0; i < outGrad_sz; i++)
         {

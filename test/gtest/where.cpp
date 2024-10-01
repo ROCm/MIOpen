@@ -25,81 +25,43 @@
  *******************************************************************************/
 
 #include "where.hpp"
-#include <miopen/env.hpp>
 using float16 = half_float::half;
-
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 
 namespace where {
 
-std::string GetFloatArg()
-{
-    const auto& tmp = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
-    if(tmp.empty())
-    {
-        return "";
-    }
-    return tmp;
-}
-
-struct WhereBwdTestFloat : WhereBwdTest<float>
+struct GPU_Where_bwd_FP32 : WhereBwdTest<float>
 {
 };
 
-struct WhereBwdTestFP16 : WhereBwdTest<float16>
+struct GPU_Where_bwd_FP16 : WhereBwdTest<float16>
 {
 };
 
-struct WhereBwdTestBFP16 : WhereBwdTest<bfloat16>
+struct GPU_Where_bwd_BFP16 : WhereBwdTest<bfloat16>
 {
 };
 
 } // namespace where
 using namespace where;
 
-TEST_P(WhereBwdTestFloat, WhereTestBw)
+TEST_P(GPU_Where_bwd_FP32, Test)
 {
-    if(miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
-       (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && GetFloatArg() == "--float"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 };
 
-TEST_P(WhereBwdTestFP16, WhereTestBw)
+TEST_P(GPU_Where_bwd_FP16, Test)
 {
-    if(miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
-       (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && GetFloatArg() == "--fp16"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 };
 
-TEST_P(WhereBwdTestBFP16, WhereTestBw)
+TEST_P(GPU_Where_bwd_BFP16, Test)
 {
-    if(miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
-       (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && GetFloatArg() == "--bfp16"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 }
 
-INSTANTIATE_TEST_SUITE_P(WhereTestSet, WhereBwdTestFloat, testing::ValuesIn(WhereTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(WhereTestSet, WhereBwdTestFP16, testing::ValuesIn(WhereTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(WhereTestSet, WhereBwdTestBFP16, testing::ValuesIn(WhereTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_Where_bwd_FP32, testing::ValuesIn(GenFullTestCases()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_Where_bwd_FP16, testing::ValuesIn(GenFullTestCases()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_Where_bwd_BFP16, testing::ValuesIn(GenFullTestCases()));

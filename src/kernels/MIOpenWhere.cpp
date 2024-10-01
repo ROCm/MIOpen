@@ -28,10 +28,8 @@
 #include <hip/hip_runtime.h>
 #endif
 
-#include "float_types.h"
-
 template <typename TIO>
-__device__ void WhereBroadcastedContiguousBackward_Kernel(const TIO* condition,
+__device__ void WhereBroadcastedContiguousBackward_Kernel(const char* condition,
                                                           const TIO* output_grad,
                                                           TIO* input_grad,
                                                           TIO* other_grad,
@@ -45,21 +43,20 @@ __device__ void WhereBroadcastedContiguousBackward_Kernel(const TIO* condition,
     if(gid >= size)
         return;
 
-    if(input_grad && gid < input_size)
+    TIO outgrad = output_grad[gid];
+
+    if(input_grad)
     {
-        FLOAT_ACCUM outgrad = CVT_FLOAT2ACCUM(output_grad[gid]);
-        FLOAT_ACCUM cond    = CVT_FLOAT2ACCUM(condition[gid % condition_size]);
-        input_grad[gid]     = CVT_ACCUM2FLOAT(outgrad * cond);
+        input_grad[gid % input_size] = outgrad * static_cast<TIO>(condition[gid % condition_size]);
     }
     if(other_grad && gid < other_size)
     {
-        FLOAT_ACCUM outgrad = CVT_FLOAT2ACCUM(output_grad[gid]);
-        FLOAT_ACCUM cond    = CVT_FLOAT2ACCUM(condition[gid % condition_size]);
-        other_grad[gid]     = CVT_ACCUM2FLOAT(outgrad * (1 - cond));
+        other_grad[gid % other_size] =
+            outgrad * static_cast<TIO>(1 - condition[gid % condition_size]);
     }
 }
 
-extern "C" __global__ void WhereBroadcastedContiguousBackward(const IO_TYPE* condition,
+extern "C" __global__ void WhereBroadcastedContiguousBackward(const char* condition,
                                                               const IO_TYPE* output_grad,
                                                               IO_TYPE* input_grad,
                                                               IO_TYPE* other_grad,
@@ -79,7 +76,7 @@ extern "C" __global__ void WhereBroadcastedContiguousBackward(const IO_TYPE* con
 }
 
 template <typename TIO>
-__device__ void WhereConditionBroadcastedContiguousBackward_Kernel(const TIO* condition,
+__device__ void WhereConditionBroadcastedContiguousBackward_Kernel(const char* condition,
                                                                    const TIO* output_grad,
                                                                    TIO* input_grad,
                                                                    TIO* other_grad,
@@ -92,27 +89,27 @@ __device__ void WhereConditionBroadcastedContiguousBackward_Kernel(const TIO* co
     if(gid >= condition_size)
         return;
 
-    FLOAT_ACCUM cond = CVT_FLOAT2ACCUM(condition[gid]);
+    char cond = condition[gid % condition_size];
 
     if(input_grad)
     {
         for(int idx = gid; idx < input_size; idx += condition_size)
         {
-            FLOAT_ACCUM outgrad = CVT_FLOAT2ACCUM(output_grad[idx % size]);
-            input_grad[idx]     = CVT_ACCUM2FLOAT(outgrad * cond);
+            TIO outgrad     = output_grad[idx % size];
+            input_grad[idx] = outgrad * static_cast<TIO>(cond);
         }
     }
     if(other_grad)
     {
         for(int idx = gid; idx < other_size; idx += condition_size)
         {
-            FLOAT_ACCUM outgrad = CVT_FLOAT2ACCUM(output_grad[idx % size]);
-            other_grad[idx]     = CVT_ACCUM2FLOAT(outgrad * (1 - cond));
+            TIO outgrad     = output_grad[idx % size];
+            other_grad[idx] = outgrad * static_cast<TIO>(1 - cond);
         }
     }
 }
 
-extern "C" __global__ void WhereConditionBroadcastedContiguousBackward(const IO_TYPE* condition,
+extern "C" __global__ void WhereConditionBroadcastedContiguousBackward(const char* condition,
                                                                        const IO_TYPE* output_grad,
                                                                        IO_TYPE* input_grad,
                                                                        IO_TYPE* other_grad,
@@ -133,28 +130,27 @@ extern "C" __global__ void WhereConditionBroadcastedContiguousBackward(const IO_
 
 template <typename TIO>
 __device__ void WhereContiguousBackward_Kernel(
-    const TIO* condition, const TIO* output_grad, TIO* input_grad, TIO* other_grad, size_t size)
+    const char* condition, const TIO* output_grad, TIO* input_grad, TIO* other_grad, size_t size)
 {
     size_t gid = blockIdx.x * blockDim.x + threadIdx.x;
 
     if(gid >= size)
         return;
 
+    TIO outgrad = output_grad[gid];
+    char cond   = condition[gid];
+
     if(input_grad)
     {
-        FLOAT_ACCUM outgrad = CVT_FLOAT2ACCUM(output_grad[gid]);
-        FLOAT_ACCUM cond    = CVT_FLOAT2ACCUM(condition[gid]);
-        input_grad[gid]     = CVT_ACCUM2FLOAT(outgrad * cond);
+        input_grad[gid] = outgrad * static_cast<TIO>(cond);
     }
     if(other_grad)
     {
-        FLOAT_ACCUM outgrad = CVT_FLOAT2ACCUM(output_grad[gid]);
-        FLOAT_ACCUM cond    = CVT_FLOAT2ACCUM(condition[gid]);
-        other_grad[gid]     = CVT_ACCUM2FLOAT(outgrad * (1 - cond));
+        other_grad[gid] = outgrad * static_cast<TIO>(1 - cond);
     }
 }
 
-extern "C" __global__ void WhereContiguousBackward(const IO_TYPE* condition,
+extern "C" __global__ void WhereContiguousBackward(const char* condition,
                                                    const IO_TYPE* output_grad,
                                                    IO_TYPE* input_grad,
                                                    IO_TYPE* other_grad,

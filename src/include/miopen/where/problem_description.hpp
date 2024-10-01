@@ -26,14 +26,12 @@
 
 #pragma once
 
-#include <cstddef>
 #include <cstdint>
 
-#include "miopen/errors.hpp"
-#include "miopen/tensor_view_utils.hpp"
+#include <miopen/errors.hpp>
 #include <miopen/problem_description_base.hpp>
 #include <miopen/tensor.hpp>
-#include <miopen/activ.hpp>
+#include "miopen/tensor_view_utils.hpp"
 
 namespace miopen {
 
@@ -41,7 +39,16 @@ struct NetworkConfig;
 
 namespace where {
 
+bool isBroadcastable(const TensorDescriptor& x, const TensorDescriptor& y);
+
 bool isSameShape(const TensorDescriptor& x, const TensorDescriptor& y);
+
+template <int M, int N>
+tensor_view_t<N> broadcastTo(const tensor_view_t<M>& in, const tensor_view_t<N>& target);
+// extern template tensor_view_t<5> broadcastTo(const tensor_view_t<5>&, const tensor_view_t<5>&);
+
+template <int N>
+tensor_view_t<N> broadcastTo(const TensorDescriptor& cur_tensor, const tensor_view_t<N>& target);
 
 template <int N>
 int64_t checkBroadcastedContiguous(const tensor_view_t<N>& tensorView);
@@ -142,10 +149,9 @@ struct BackwardProblemDescription : ProblemDescriptionBase
         auto input_grad_contig_size = checkBroadcastedContiguous(inputGrad_tv);
         auto other_grad_contig_size = checkBroadcastedContiguous(otherGrad_tv);
 
-        bool is_condition_broadcasted = (cond_contig_size > 0) &&
-                                        ((input_grad_contig_size % cond_contig_size == 0) ||
-                                         (other_grad_contig_size % cond_contig_size == 0)) &&
-                                        cond_contig_size >= static_cast<int64_t>(256 * 120 * 4);
+        bool is_condition_broadcasted =
+            (cond_contig_size > 0) && ((input_grad_contig_size % cond_contig_size == 0) ||
+                                       (other_grad_contig_size % cond_contig_size == 0));
         return is_condition_broadcasted;
     }
 
