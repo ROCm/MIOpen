@@ -7636,6 +7636,15 @@ MIOPEN_EXPORT miopenStatus_t miopenGetitemBackward(miopenHandle_t handle,
  * @param input                    Data tensor input (input)
  * @param outputDesc               Tensor descriptor for output tensor (input)
  * @param output                   Data tensor output (output)
+ * @param KD                       Kernel size in dimension D  (input)
+ * @param KH                       Kernel size in dimension H (input)
+ * @param KW                       Kernel size in dimension K (input)
+ * @param SD                       Stride size in dimension D (input)
+ * @param SH                       Stride size in dimension H (input)
+ * @param SW                       Stride size in dimension K (input)
+ * @param PD                       Padding size in dimension D (input)
+ * @param PH                       Padding size in dimension H (input)
+ * @param PW                       Padding size in dimension K (input)
  * @param count_include_pad        When True, will include the zero-padding in the averaging
  * calculation (input)
  * @param divisor_override         If non-zero, will use this value as the divisor, otherwise will
@@ -7647,17 +7656,17 @@ MIOPEN_EXPORT miopenStatus_t miopenAvgPoolForward(miopenHandle_t handle,
                                                   const void* input,
                                                   const miopenTensorDescriptor_t outputDesc,
                                                   void* output,
-                                                  const int32_t KD,
-                                                  const int32_t KH,
-                                                  const int32_t KW,
-                                                  const int32_t SD,
-                                                  const int32_t SH,
-                                                  const int32_t SW,
-                                                  const int32_t PD,
-                                                  const int32_t PH,
-                                                  const int32_t PW,
+                                                  const int64_t KD,
+                                                  const int64_t KH,
+                                                  const int64_t KW,
+                                                  const int64_t SD,
+                                                  const int64_t SH,
+                                                  const int64_t SW,
+                                                  const int64_t PD,
+                                                  const int64_t PH,
+                                                  const int64_t PW,
                                                   const bool count_include_pad,
-                                                  const int32_t divisor_override);
+                                                  const int64_t divisor_override);
 
 /*! @brief Execute an avgpool backward layer
  *
@@ -7666,6 +7675,15 @@ MIOPEN_EXPORT miopenStatus_t miopenAvgPoolForward(miopenHandle_t handle,
  * @param output_grad              Data tensor output grad (input)
  * @param inputGradDesc            Tensor descriptor for input grad tensor (input)
  * @param input_grad               Data tensor input grad (output)
+ * @param KD                       Kernel size in dimension D  (input)
+ * @param KH                       Kernel size in dimension H (input)
+ * @param KW                       Kernel size in dimension K (input)
+ * @param SD                       Stride size in dimension D (input)
+ * @param SH                       Stride size in dimension H (input)
+ * @param SW                       Stride size in dimension K (input)
+ * @param PD                       Padding size in dimension D (input)
+ * @param PH                       Padding size in dimension H (input)
+ * @param PW                       Padding size in dimension K (input)
  * @param count_include_pad        When True, will include the zero-padding in the averaging
  * calculation (input)
  * @param divisor_override         If non-zero, will use this value as the divisor, otherwise will
@@ -7677,17 +7695,17 @@ MIOPEN_EXPORT miopenStatus_t miopenAvgPoolBackward(miopenHandle_t handle,
                                                    const void* output_grad,
                                                    const miopenTensorDescriptor_t inputGradDesc,
                                                    void* input_grad,
-                                                   const int32_t KD,
-                                                   const int32_t KH,
-                                                   const int32_t KW,
-                                                   const int32_t SD,
-                                                   const int32_t SH,
-                                                   const int32_t SW,
-                                                   const int32_t PD,
-                                                   const int32_t PH,
-                                                   const int32_t PW,
+                                                   const int64_t KD,
+                                                   const int64_t KH,
+                                                   const int64_t KW,
+                                                   const int64_t SD,
+                                                   const int64_t SH,
+                                                   const int64_t SW,
+                                                   const int64_t PD,
+                                                   const int64_t PH,
+                                                   const int64_t PW,
                                                    const bool count_include_pad,
-                                                   const int32_t divisor_override);
+                                                   const int64_t divisor_override);
 /** @} */
 // CLOSEOUT avgpool DOXYGEN GROUP
 #endif // MIOPEN_BETA_API

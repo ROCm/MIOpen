@@ -51,13 +51,13 @@ inline std::ostream& operator<<(std::ostream& os, const std::vector<T>& v)
 
 struct AvgPoolTestCase
 {
-    std::vector<int32_t> input_dims;
-    std::vector<int32_t> kernel_size;
-    std::vector<int32_t> stride;
-    std::vector<int32_t> padding;
+    std::vector<int64_t> input_dims;
+    std::vector<int64_t> kernel_size;
+    std::vector<int64_t> stride;
+    std::vector<int64_t> padding;
     bool ceil_mode;
     bool count_include_pad;
-    int32_t divisor_override;
+    int64_t divisor_override;
 
     friend std::ostream& operator<<(std::ostream& os, const AvgPoolTestCase& tc)
     {
@@ -67,7 +67,7 @@ struct AvgPoolTestCase
                   << " divisor_override:" << tc.divisor_override;
     }
 
-    std::vector<int32_t> GetInput() const { return input_dims; }
+    std::vector<int64_t> GetInput() const { return input_dims; }
 };
 
 inline std::vector<AvgPoolTestCase> AvgPoolTestConfigsFwdFp32()
@@ -132,11 +132,11 @@ protected:
         D                 = in_dim.size() == 5 ? in_dim[2] : 1;
         H                 = in_dim.size() == 5 ? in_dim[3] : in_dim[2];
         W                 = in_dim.size() == 5 ? in_dim[4] : in_dim[3];
-        ksize             = tensor<int32_t>{in_dim.size() - 2};
+        ksize             = tensor<int64_t>{in_dim.size() - 2};
         ksize.data        = avgpool_config.kernel_size;
-        stride            = tensor<int32_t>{in_dim.size() - 2};
+        stride            = tensor<int64_t>{in_dim.size() - 2};
         stride.data       = avgpool_config.stride;
-        padding           = tensor<int32_t>{in_dim.size() - 2};
+        padding           = tensor<int64_t>{in_dim.size() - 2};
         padding.data      = avgpool_config.padding;
         ceil_mode         = avgpool_config.ceil_mode;
         count_include_pad = avgpool_config.count_include_pad;
@@ -147,7 +147,7 @@ protected:
         };
         input = tensor<T>{in_dim}.generate(gen_input_value);
 
-        std::vector<int32_t> out_dim;
+        std::vector<int64_t> out_dim;
         if(in_dim.size() == 5)
         {
             if(ceil_mode)
@@ -268,14 +268,14 @@ protected:
     tensor<T> input;
     tensor<T> output;
     tensor<T> ref_output;
-    tensor<int32_t> ksize;
-    tensor<int32_t> stride;
-    tensor<int32_t> padding;
+    tensor<int64_t> ksize;
+    tensor<int64_t> stride;
+    tensor<int64_t> padding;
 
     bool ceil_mode;
     bool count_include_pad;
-    int32_t divisor_override;
-    int32_t N, C, D, H, W, OD, OH, OW;
+    int64_t divisor_override;
+    int64_t N, C, D, H, W, OD, OH, OW;
 
     miopen::Allocator::ManageDataPtr input_dev;
     miopen::Allocator::ManageDataPtr output_dev;
@@ -299,17 +299,17 @@ protected:
         D                 = in_grad_dim.size() == 5 ? in_grad_dim[2] : 1;
         H                 = in_grad_dim.size() == 5 ? in_grad_dim[3] : in_grad_dim[2];
         W                 = in_grad_dim.size() == 5 ? in_grad_dim[4] : in_grad_dim[3];
-        ksize             = tensor<int32_t>{in_grad_dim.size() - 2};
+        ksize             = tensor<int64_t>{in_grad_dim.size() - 2};
         ksize.data        = avgpool_config.kernel_size;
-        stride            = tensor<int32_t>{in_grad_dim.size() - 2};
+        stride            = tensor<int64_t>{in_grad_dim.size() - 2};
         stride.data       = avgpool_config.stride;
-        padding           = tensor<int32_t>{in_grad_dim.size() - 2};
+        padding           = tensor<int64_t>{in_grad_dim.size() - 2};
         padding.data      = avgpool_config.padding;
         ceil_mode         = avgpool_config.ceil_mode;
         count_include_pad = avgpool_config.count_include_pad;
         divisor_override  = avgpool_config.divisor_override;
 
-        std::vector<int32_t> out_grad_dim;
+        std::vector<int64_t> out_grad_dim;
         if(in_grad_dim.size() == 5)
         {
             if(ceil_mode)
@@ -434,14 +434,14 @@ protected:
     tensor<T> output_grad;
     tensor<T> input_grad;
     tensor<T> ref_input_grad;
-    tensor<int32_t> ksize;
-    tensor<int32_t> stride;
-    tensor<int32_t> padding;
+    tensor<int64_t> ksize;
+    tensor<int64_t> stride;
+    tensor<int64_t> padding;
 
     bool ceil_mode;
     bool count_include_pad;
-    int32_t divisor_override;
-    int32_t N, C, D, H, W, OD, OH, OW;
+    int64_t divisor_override;
+    int64_t N, C, D, H, W, OD, OH, OW;
 
     miopen::Allocator::ManageDataPtr output_grad_dev;
     miopen::Allocator::ManageDataPtr input_grad_dev;
