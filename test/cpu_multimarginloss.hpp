@@ -32,9 +32,9 @@
 #include <miopen/tensor_view_utils.hpp>
 
 template <class T>
-void cpu_multimarginloss_forward(tensor<T> input,
-                                 tensor<uint64_t> target,
-                                 tensor<T> weight,
+void cpu_multimarginloss_forward(const tensor<T>& input,
+                                 const tensor<uint64_t>& target,
+                                 const tensor<T>& weight,
                                  tensor<T>& ref_output,
                                  const long p,
                                  const float margin,

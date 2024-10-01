@@ -23,8 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef GUARD_MIOPEN_MULTIMARGINLOSS_DRIVER_HPP
-#define GUARD_MIOPEN_MULTIMARGINLOSS_DRIVER_HPP
+#pragma once
 
 #include "InputFlags.hpp"
 #include "driver.hpp"
@@ -338,20 +337,22 @@ int MultiMarginLossDriver<Tgpu, Tref>::RunForwardGPU()
 
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
-        miopenMultiMarginLossForward(GetHandle(),
-                                     iDesc,
-                                     i_dev->GetMem(),
-                                     tDesc,
-                                     t_dev->GetMem(),
-                                     wDesc,
-                                     w_dev->GetMem(),
-                                     oDesc,
-                                     o_dev->GetMem(),
-                                     p,
-                                     margin,
-                                     reduction_mode,
-                                     workspace_dev->GetMem(),
-                                     ws_sizeInBytes);
+        miopenStatus_t status = miopenMultiMarginLossForward(GetHandle(),
+                                                             iDesc,
+                                                             i_dev->GetMem(),
+                                                             tDesc,
+                                                             t_dev->GetMem(),
+                                                             wDesc,
+                                                             w_dev->GetMem(),
+                                                             oDesc,
+                                                             o_dev->GetMem(),
+                                                             p,
+                                                             margin,
+                                                             reduction_mode,
+                                                             workspace_dev->GetMem(),
+                                                             ws_sizeInBytes);
+
+        MIOPEN_THROW_IF(status != miopenStatusSuccess, "Error in miopenMultiMarginLossForward");
 
         float time = 0.0;
         miopenGetKernelTime(GetHandle(), &time);
@@ -406,13 +407,7 @@ int MultiMarginLossDriver<Tgpu, Tref>::RunBackwardGPU()
 template <typename Tgpu, typename Tref>
 Tref MultiMarginLossDriver<Tgpu, Tref>::GetTolerance()
 {
-    // Computation error of fp16 is ~2^13 (=8192) bigger than
-    // the one of fp32 because mantissa is shorter by 13 bits.
-    auto tolerance = std::is_same<Tgpu, float>::value ? 1.5e-6 : 8.2e-3;
-
-    // bf16 mantissa has 7 bits, by 3 bits shorter than fp16.
-    if(std::is_same<Tgpu, bfloat16>::value)
-        tolerance *= 8.0;
+    Tref tolerance = std::numeric_limits<Tgpu>::epsilon() * 10;
     return tolerance;
 }
 
@@ -442,5 +437,3 @@ int MultiMarginLossDriver<Tgpu, Tref>::VerifyBackward()
 {
     return miopenStatusSuccess;
 }
-
-#endif // GUARD_MIOPEN_MULTIMARGINLOSS_DRIVER_HPP

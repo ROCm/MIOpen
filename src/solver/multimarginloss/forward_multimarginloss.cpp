@@ -56,7 +56,6 @@ bool MultiMarginLossForward::IsImprovementOverROCm(
         case miopenFloat: return C <= 33;
         case miopenHalf: return C <= 43;
         case miopenBFloat16: return C <= 44;
-        // Have not tested with other types yet
         default: return true;
         }
     }
@@ -67,7 +66,6 @@ bool MultiMarginLossForward::IsImprovementOverROCm(
         case miopenFloat: return C <= 31;
         case miopenHalf: return C <= 38;
         case miopenBFloat16: return C <= 40;
-        // Have not tested with other types yet
         default: return true;
         }
     }
@@ -77,6 +75,10 @@ bool MultiMarginLossForward::IsApplicable(
     const ExecutionContext& context,
     const miopen::multimarginloss::ForwardProblemDescription& problem) const
 {
+    if(!(problem.GetiDesc().GetType() == miopenFloat ||
+         problem.GetiDesc().GetType() == miopenHalf ||
+         problem.GetiDesc().GetType() == miopenBFloat16))
+        return false;
     if(!IsImprovementOverROCm(context, problem))
         return false;
     return true;
