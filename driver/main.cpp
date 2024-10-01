@@ -55,7 +55,7 @@ int main(int argc, char* argv[])
     std::shared_ptr<Driver> drv;
     for(auto f : rdm::GetRegistry())
     {
-        drv = std::shared_ptr<Driver>(f(base_arg));
+        drv.reset(f(base_arg));
         if(drv != nullptr)
             break;
     }
