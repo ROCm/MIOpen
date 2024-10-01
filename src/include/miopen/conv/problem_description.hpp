@@ -166,6 +166,7 @@ struct MIOPEN_INTERNALS_EXPORT ProblemDescription : ProblemDescriptionBase
           beta(beta_),
           alpha_beta_case(ClassifyAlphaBeta(alpha, beta))
     {
+        HeuristicUpdateLayouts();
     }
 
     // Conv descriptor getters
@@ -367,6 +368,8 @@ struct MIOPEN_INTERNALS_EXPORT ProblemDescription : ProblemDescriptionBase
         return in.AllLengthsFitIntoInt() && weights.AllLengthsFitIntoInt() &&
                out.AllLengthsFitIntoInt();
     }
+
+    void HeuristicUpdateLayouts();
 
     void MakeNetworkConfig(std::string& conf_key) const;
 
