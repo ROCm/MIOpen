@@ -288,7 +288,7 @@ All the code is formatted using `clang-format`. To format a file, use:
 
 .. code:: shell
 
-  clang-format-10 -style=file -i <path-to-source-file>
+  clang-format-13 -style=file -i <path-to-source-file>
 
 To format the code per commit, you can install githooks:
 

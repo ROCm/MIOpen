@@ -3,10 +3,10 @@
 #include "float_types.h"
 
 extern "C" __global__
-    __launch_bounds__(CK_PARAM_DEPENDENT_BLOCK_SIZE) void gridwise_convolution_forward_implicit_gemm_v4r4_xdlops_nchw_kcyx_nkhw_padded_gemm(
-        const FLOAT* const __restrict__ p_in_global,
-        const FLOAT* const __restrict__ p_wei_global,
-        FLOAT* const __restrict__ p_out_global)
+__launch_bounds__(CK_PARAM_DEPENDENT_BLOCK_SIZE) void gridwise_convolution_forward_implicit_gemm_v4r4_xdlops_nchw_kcyx_nkhw_padded_gemm(
+    const FLOAT* const __restrict__ p_in_global,
+    const FLOAT* const __restrict__ p_wei_global,
+    FLOAT* const __restrict__ p_out_global)
 {
     using namespace ck;
 

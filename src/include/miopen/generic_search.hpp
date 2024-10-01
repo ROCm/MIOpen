@@ -243,7 +243,6 @@ public:
 /// * Solution should provide invoker
 /// * RunAndMeasureSolution must NOT be implemented. Invoker will be used instead.
 ///
-/// clang-format-off
 /// -----------------------------------------------
 /// Dataflow:
 ///      Forward:
@@ -261,7 +260,6 @@ public:
 ///                        | kernel | --> wei[] (dw)
 ///         bot[] (dy) --> +--------+
 /// ------------------------------------------------
-/// clang-format-on
 
 template <class Solver, class Top, class Bottom>
 using RunAndMeasure_t =

@@ -231,13 +231,13 @@ convolution_forward_implicit_gemm_v6r1_dlops_nchw_kcyx_nkhw_prepare(int N_,
 
 extern "C" __global__ void
 #if CK_USE_LAUNCH_BOUNDS
-    __launch_bounds__(CK_MAX_THREAD_PER_BLOCK, CK_MIN_BLOCK_PER_CU)
+__launch_bounds__(CK_MAX_THREAD_PER_BLOCK, CK_MIN_BLOCK_PER_CU)
 #endif
-        convolution_forward_implicit_gemm_v6r1_dlops_nchw_kcyx_nkhw(
-            const FloatAB* __restrict__ p_a_grid,
-            const FloatAB* __restrict__ p_b_grid,
-            FloatC* __restrict__ p_c_grid,
-            const void CONSTANT* p_desc_tuple)
+    convolution_forward_implicit_gemm_v6r1_dlops_nchw_kcyx_nkhw(
+        const FloatAB* __restrict__ p_a_grid,
+        const FloatAB* __restrict__ p_b_grid,
+        FloatC* __restrict__ p_c_grid,
+        const void CONSTANT* p_desc_tuple)
 {
     constexpr auto I0 = Number<0>{};
     constexpr auto I1 = Number<1>{};

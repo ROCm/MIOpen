@@ -4,7 +4,7 @@
 # are installed, and if so, uses the installed version to format
 # the staged changes.
 
-base=clang-format-12
+base=clang-format-13
 format=""
 
 # Redirect output to stderr.

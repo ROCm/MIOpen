@@ -90,7 +90,7 @@ struct BlockwiseGemmXdlops_km_kn_m0m1m2n_v1
 
     template <index_t m0, index_t n0, index_t xdlops_i, index_t blk_i>
     __device__ static CIndex
-        CalculateCThreadOriginDataIndex(Number<m0>, Number<n0>, Number<xdlops_i>, Number<blk_i>)
+    CalculateCThreadOriginDataIndex(Number<m0>, Number<n0>, Number<xdlops_i>, Number<blk_i>)
     {
 
         const index_t waveId = get_thread_local_1d_id() / WaveSize;
@@ -308,7 +308,7 @@ struct BlockwiseGemmXdlops_km_kn_m0m1m2n_v1_2x2pipeline
 
     template <index_t m0, index_t n0, index_t xdlops_i, index_t blk_i>
     __device__ static CIndex
-        CalculateCThreadOriginDataIndex(Number<m0>, Number<n0>, Number<xdlops_i>, Number<blk_i>)
+    CalculateCThreadOriginDataIndex(Number<m0>, Number<n0>, Number<xdlops_i>, Number<blk_i>)
     {
 
         const index_t waveId = get_thread_local_1d_id() / WaveSize;
