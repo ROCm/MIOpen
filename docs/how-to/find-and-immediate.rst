@@ -214,6 +214,7 @@ OpenCL). MIOpenGEMM only contains support for FP32.
 
 The HIP backend uses rocBLAS as its fallback path, which contains a more robust set of datatypes.
 
+.. _find_modes:
 
 Find modes
 ============================================================
