@@ -180,10 +180,8 @@ protected:
         auto input_strides = GetStrides(lengths, logcumsumexp_config.contiguous);
         input              = tensor<T>{lengths, input_strides}.generate(gen_value);
 
-        auto out_strides = GetStrides(lengths, true);
-        output           = tensor<T>{lengths, out_strides};
-
-        ref_output = tensor<T>{lengths, out_strides};
+        output     = tensor<T>{lengths};
+        ref_output = tensor<T>{lengths};
 
         input_dev  = handle.Write(input.data);
         output_dev = handle.Write(output.data);
@@ -260,11 +258,9 @@ protected:
         auto input_strides = GetStrides(lengths, logcumsumexp_config.contiguous);
         input              = tensor<T>{lengths, input_strides}.generate(gen_value_input);
         dinput             = tensor<T>{lengths, input_strides};
-        fill(dinput.begin(), dinput.end(), -1);
 
-        auto out_strides = GetStrides(lengths, true);
-        output           = tensor<T>{lengths, out_strides};
-        doutput          = tensor<T>{lengths, out_strides}.generate(gen_value_doutput);
+        output  = tensor<T>{lengths};
+        doutput = tensor<T>{lengths}.generate(gen_value_doutput);
 
         // Calculate output tensor value by forwarding input tensor
         cpu_logcumsumexp_forward(input,
@@ -274,10 +270,6 @@ protected:
                                  logcumsumexp_config.reverse);
 
         ref_dinput = tensor<T>{lengths, input_strides};
-
-        // Allocate workspace, will be removed
-        workspace     = tensor<float>{{input.data.size() * 4}};
-        workspace_dev = handle.Write(workspace.data);
 
         input_dev   = handle.Write(input.data);
         output_dev  = handle.Write(output.data);
@@ -297,7 +289,6 @@ protected:
 
         auto&& handle = get_handle();
         auto status   = miopen::LogCumSumExpBackward(handle,
-                                                   workspace_dev.get(),
                                                    input.desc,
                                                    input_dev.get(),
                                                    output.desc,
@@ -336,7 +327,6 @@ protected:
     tensor<T> output;
     tensor<T> doutput;
     tensor<T> dinput;
-    tensor<float> workspace;
 
     tensor<T> ref_dinput;
 
@@ -344,6 +334,4 @@ protected:
     miopen::Allocator::ManageDataPtr output_dev;
     miopen::Allocator::ManageDataPtr doutput_dev;
     miopen::Allocator::ManageDataPtr dinput_dev;
-
-    miopen::Allocator::ManageDataPtr workspace_dev;
 };

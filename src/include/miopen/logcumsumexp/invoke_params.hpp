@@ -67,10 +67,6 @@ struct InvokeParamsBackward : public InvokeParams
     ConstData_t output  = nullptr;
     ConstData_t doutput = nullptr;
     Data_t dinput       = nullptr;
-
-    Data_t workspace;
-
-    Data_t GetWorkspace() const { return workspace; }
 };
 
 } // namespace logcumsumexp

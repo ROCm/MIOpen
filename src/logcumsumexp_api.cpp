@@ -85,3 +85,46 @@ extern "C" miopenStatus_t miopenLogCumSumExpForward(miopenHandle_t handle,
                                     reverse);
     });
 }
+
+extern "C" miopenStatus_t miopenLogCumSumExpBackward(miopenHandle_t handle,
+                                                     miopenTensorDescriptor_t inputDesc,
+                                                     const void* input,
+                                                     miopenTensorDescriptor_t outputDesc,
+                                                     const void* output,
+                                                     miopenTensorDescriptor_t doutputDesc,
+                                                     const void* doutput,
+                                                     miopenTensorDescriptor_t dinputDesc,
+                                                     void* dinput,
+                                                     int dim,
+                                                     bool exclusive,
+                                                     bool reverse)
+{
+    MIOPEN_LOG_FUNCTION(handle,
+                        inputDesc,
+                        input,
+                        outputDesc,
+                        output,
+                        doutputDesc,
+                        doutput,
+                        dinputDesc,
+                        dinput,
+                        dim,
+                        exclusive,
+                        reverse);
+
+    LogCmdLogCumSumExp(inputDesc, outputDesc, dim, exclusive, reverse, false);
+    return miopen::try_([&] {
+        miopen::LogCumSumExpBackward(miopen::deref(handle),
+                                     miopen::deref(inputDesc),
+                                     DataCast(input),
+                                     miopen::deref(outputDesc),
+                                     DataCast(output),
+                                     miopen::deref(doutputDesc),
+                                     DataCast(doutput),
+                                     miopen::deref(dinputDesc),
+                                     DataCast(dinput),
+                                     dim,
+                                     exclusive,
+                                     reverse);
+    });
+}

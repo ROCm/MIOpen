@@ -68,7 +68,6 @@ miopenStatus_t LogCumSumExpForward(Handle& handle,
 }
 
 miopenStatus_t LogCumSumExpBackward(Handle& handle,
-                                    Data_t workspace, // will be removed
                                     const TensorDescriptor& inputDesc,
                                     ConstData_t input,
                                     const TensorDescriptor& outputDesc,
@@ -95,8 +94,6 @@ miopenStatus_t LogCumSumExpBackward(Handle& handle,
         tmp.output      = output;
         tmp.doutput     = doutput;
         tmp.dinput      = dinput;
-
-        tmp.workspace = workspace;
 
         tmp.dim       = dim;
         tmp.exclusive = exclusive;
