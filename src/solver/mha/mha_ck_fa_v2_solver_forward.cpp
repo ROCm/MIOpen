@@ -43,6 +43,7 @@ namespace solver {
 
 namespace mha {
 
+#ifdef MIOPEN_USE_COMPOSABLEKERNEL
 static std::string Convert(miopenDataType_t dataType)
 {
     switch(dataType)
@@ -58,6 +59,7 @@ static std::string Convert(miopenDataType_t dataType)
     }
     }
 }
+#endif
 
 bool MhaCKFlashAttentionV2Forward::IsApplicable(
     [[maybe_unused]] const ExecutionContext& context,
@@ -69,7 +71,8 @@ bool MhaCKFlashAttentionV2Forward::IsApplicable(
         return false;
     }
 
-    if(!StartsWith(context.GetStream().GetDeviceName(), "gfx94"))
+    auto deviceName = context.GetStream().GetDeviceName();
+    if(!StartsWith(deviceName, "gfx94") || deviceName != "gfx90a")
     {
         return false;
     }
@@ -114,55 +117,55 @@ MhaCKFlashAttentionV2Forward::GetSolution([[maybe_unused]] const ExecutionContex
 
     const miopen::mha::MhaInputDescsForward& descsFwd = problem.GetDescsForward();
     auto [N_k, H_k, S_k, D_k] = miopen::tien<4>(descsFwd.kDesc.GetLengths());
+    auto [N_stride_k, H_stride_k, S_stride_k, D_stride_k] =
+        miopen::tien<4>(descsFwd.kDesc.GetStrides());
+
     auto [N_q, H_q, S_q, D_q] = miopen::tien<4>(descsFwd.qDesc.GetLengths());
+    auto [N_stride_q, H_stride_q, S_stride_q, D_stride_q] =
+        miopen::tien<4>(descsFwd.qDesc.GetStrides());
+
     auto [N_v, H_v, S_v, D_v] = miopen::tien<4>(descsFwd.vDesc.GetLengths());
+    auto [N_stride_v, H_stride_v, S_stride_v, D_stride_v] =
+        miopen::tien<4>(descsFwd.vDesc.GetStrides());
 
-    ck_tile::index_t batch    = N_q;
-    ck_tile::index_t seqlen_q = S_q;
-    ck_tile::index_t seqlen_k = S_k;
-    ck_tile::index_t hdim_q   = D_q;
-    ck_tile::index_t hdim_v   = D_v;
-    ck_tile::index_t nhead    = H_q;
-    ck_tile::index_t nhead_k  = H_k;
-    ck_tile::index_t nhead_q  = H_q;
-
-    bool is_group_mode = false;
-    bool o_perm = true, i_perm = true; // if true, will be batch * nhead * seqlen * hdim
+    auto [N_stride_bias, H_stride_bias, S_stride_bias, D_stride_bias] =
+        miopen::tien<4>(descsFwd.biasDesc.GetStrides());
 
     float scale_s = descsFwd.scale;
     float scale_p = 1.0;
     float scale_o = 1.0;
 
-    const ck_tile::index_t shape_seqlen_q = seqlen_q;
-    const ck_tile::index_t shape_seqlen_k = seqlen_k;
-    const ck_tile::index_t max_seqlen_q   = seqlen_q;
-    const ck_tile::index_t max_seqlen_k   = seqlen_k;
-
     fmha_fwd_traits fmha_traits;
-    fmha_traits.hdim_q              = hdim_q;
-    fmha_traits.hdim_v              = hdim_v;
-    fmha_traits.data_type           = Convert(descsFwd.qDesc.GetType());
-    fmha_traits.is_group_mode       = is_group_mode;
-    fmha_traits.is_v_rowmajor       = false;
+    fmha_traits.hdim_q        = H_q;
+    fmha_traits.hdim_v        = H_v;
+    fmha_traits.data_type     = Convert(descsFwd.qDesc.GetType());
+    fmha_traits.is_group_mode = false;
+    // is_v_rowmajor relates to the layout of the V tensor. Row major means NHSD, and Col major
+    // means NHDS.
+    fmha_traits.is_v_rowmajor       = true;
     fmha_traits.mask_type           = mask_enum::no_mask;
     fmha_traits.has_lse             = false;
     fmha_traits.do_fp8_static_quant = false;
     fmha_traits.has_dropout         = false;
 
     fmha_fwd_args fmha_args;
-    fmha_args.batch          = batch;
-    fmha_args.hdim_q         = hdim_q;
-    fmha_args.hdim_v         = hdim_v;
-    fmha_args.nhead_q        = nhead_q;
-    fmha_args.nhead_k        = nhead_k;
-    fmha_args.stride_q       = (i_perm ? hdim_q : nhead * hdim_q);
-    fmha_args.stride_k       = (i_perm ? hdim_q : nhead_k * hdim_q);
-    fmha_args.stride_v       = (i_perm ? shape_seqlen_k : nhead_k * shape_seqlen_k);
-    fmha_args.batch_stride_q = (nhead * shape_seqlen_q * hdim_q);
-    fmha_args.batch_stride_k = (nhead_k * shape_seqlen_k * hdim_q);
-    fmha_args.batch_stride_v = (nhead_k * hdim_v * shape_seqlen_k);
-    fmha_args.seqlen_k       = shape_seqlen_k;
-    fmha_args.max_seqlen_q   = max_seqlen_q;
+    fmha_args.batch          = N_q;
+    fmha_args.hdim_q         = D_q;
+    fmha_args.hdim_v         = D_v;
+    fmha_args.nhead_q        = H_q;
+    fmha_args.nhead_k        = H_k;
+    fmha_args.stride_q       = S_stride_q;
+    fmha_args.stride_k       = S_stride_k;
+    fmha_args.stride_v       = S_stride_v;
+    fmha_args.nhead_stride_q = H_stride_q;
+    fmha_args.nhead_stride_k = H_stride_k;
+    fmha_args.nhead_stride_v = H_stride_v;
+    fmha_args.batch_stride_q = N_stride_q;
+    fmha_args.batch_stride_k = N_stride_k;
+    fmha_args.batch_stride_v = N_stride_v;
+    fmha_args.seqlen_k       = S_k;
+    fmha_args.seqlen_q       = S_q;
+    fmha_args.max_seqlen_q   = S_q;
 
     // These are used for group mode, and we are in batch right now.
     fmha_args.seqstart_q_ptr = nullptr;
@@ -174,20 +177,20 @@ MhaCKFlashAttentionV2Forward::GetSolution([[maybe_unused]] const ExecutionContex
     fmha_args.scale_s           = scale_s;
     fmha_args.scale_p           = scale_p;
     fmha_args.scale_o           = scale_o;
-    fmha_args.stride_bias       = shape_seqlen_k;
-    fmha_args.stride_o          = (o_perm ? hdim_v : nhead * hdim_v);
+    fmha_args.stride_bias       = S_stride_bias;
+    fmha_args.stride_o          = S_stride_v;
     fmha_args.nhead_stride_bias = 0;
-    fmha_args.nhead_stride_lse  = shape_seqlen_q;
-    fmha_args.nhead_stride_o    = o_perm ? shape_seqlen_q * hdim_v : hdim_v;
+    fmha_args.nhead_stride_lse  = S_q;
+    fmha_args.nhead_stride_o    = S_q * D_v;
     fmha_args.window_size_left  = 0;
     fmha_args.window_size_right = 0;
     fmha_args.mask_type         = static_cast<ck_tile::index_t>(fmha_traits.mask_type);
 
     fmha_args.s_randval = false;
     // Since we aren't storing the random values these will be unused for now.
-    fmha_args.stride_randval       = max_seqlen_k;
-    fmha_args.nhead_stride_randval = (shape_seqlen_q * max_seqlen_k);
-    fmha_args.batch_stride_randval = (nhead * shape_seqlen_q * max_seqlen_k);
+    fmha_args.stride_randval       = S_q;
+    fmha_args.nhead_stride_randval = S_q * S_k;
+    fmha_args.batch_stride_randval = H_q * S_q * S_k;
 
     result.invoker_factory = [=](const std::vector<Kernel>&) {
         return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
