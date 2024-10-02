@@ -367,22 +367,6 @@ protected:
     }
 };
 
-// \todo This should be removed when the testing infrastructure is improved
-template <class T>
-struct FPStr;
-
-template <>
-struct FPStr<half_float::half>
-{
-    std::string operator()() const { return "--half"; }
-};
-
-template <>
-struct FPStr<float>
-{
-    std::string operator()() const { return "--float"; }
-};
-
 } // namespace
 
 using GPU_UnitTestActivationDescriptor_FP16 = UnitTestActivationDescriptor<half_float::half>;
