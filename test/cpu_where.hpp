@@ -31,36 +31,23 @@
 
 #include "ford.hpp"
 #include "tensor_holder.hpp"
-#include "tensor_view.hpp"
 
 template <class T>
 void cpu_where_backward(const tensor<T>& outputGrad,
                         const tensor<uint8_t>& cond,
                         tensor<T>& inputGrad,
                         tensor<T>& otherGrad,
-                        const tensor_view_t<5>& outputGrad_tv,
-                        const tensor_view_t<5>& cond_tv,
-                        const tensor_view_t<5>& inputGrad_tv,
-                        const tensor_view_t<5>& otherGrad_tv)
+                        size_t size)
 {
-    // auto condSize       = cond.desc.GetElementSize();
-    // auto condData       = cond.data;
-    auto inputGradSize  = inputGrad.data.empty() ? 0 : inputGrad.desc.GetElementSize();
-    auto otherGradSize  = otherGrad.data.empty() ? 0 : otherGrad.desc.GetElementSize();
-    auto outputGradSize = outputGrad.desc.GetElementSize();
-
-    par_ford(outputGradSize)([&](size_t i) {
-        auto condVal       = getNDVal(cond.data.data(), cond_tv, i);
-        auto outputGradVal = getNDVal(outputGrad.data.data(), outputGrad_tv, i);
-        if(condVal > 0) // TODO: case empty
+    par_ford(size)([&](size_t i) {
+        auto condVal       = cond.data[i];
+        if(condVal > 0)
         {
-            addNDVal(inputGrad.data.data(), inputGrad_tv, i, outputGradVal);
-            // inputGrad[i % inputGradSize] += outputGrad[i];
+            inputGrad[i] = outputGrad[i];
         }
         else
         {
-            addNDVal(otherGrad.data.data(), otherGrad_tv, i, outputGradVal);
-            // otherGrad[i % otherGradSize] += outputGrad[i];
+            otherGrad[i] = outputGrad[i];
         }
     });
 }
