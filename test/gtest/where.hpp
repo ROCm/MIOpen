@@ -102,7 +102,9 @@ struct WhereTestCase
     {
     }
 
-    WhereTestCase(std::vector<size_t> input_dim, std::vector<size_t> other_dim, std::vector<size_t> cond_dim)
+    WhereTestCase(std::vector<size_t> input_dim,
+                  std::vector<size_t> other_dim,
+                  std::vector<size_t> cond_dim)
         : inDims(input_dim), otherDims(other_dim), condDims(cond_dim)
     {
     }
@@ -194,11 +196,7 @@ protected:
         tensor<T> dummy;
         tensor<T>& refInput = isInputGradRequired ? ref_inputGrad : dummy;
         tensor<T>& refOther = isOtherGradRequired ? ref_otherGrad : dummy;
-        cpu_where_backward<T>(outputGrad,
-                              cond,
-                              refInput,
-                              refOther,
-                              size);
+        cpu_where_backward<T>(outputGrad, cond, refInput, refOther, size);
         miopenStatus_t status;
 
         auto inputGradMem = isInputGradRequired ? inputGrad_dev.get() : nullptr;
