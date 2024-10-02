@@ -39,8 +39,7 @@
 #include "../test/verify.hpp"
 
 template <typename Tgpu, typename Tcheck>
-int mloWhereBackwardRunHost(miopenTensorDescriptor_t outputGradDesc,
-                            Tgpu* outputGrad,
+int mloWhereBackwardRunHost(const Tgpu* outputGrad,
                             miopenTensorDescriptor_t conditionDesc,
                             const uint8_t* condition,
                             miopenTensorDescriptor_t inputGradDesc,
@@ -48,17 +47,16 @@ int mloWhereBackwardRunHost(miopenTensorDescriptor_t outputGradDesc,
                             miopenTensorDescriptor_t otherGradDesc,
                             Tcheck* otherGrad)
 {
-    auto input_grad_numel  = miopen::deref(inputGradDesc).GetElementSize();
-    auto other_grad_numel  = miopen::deref(otherGradDesc).GetElementSize();
-    auto cond_numel        = miopen::deref(conditionDesc).GetElementSize();
-    auto output_grad_numel = miopen::deref(outputGradDesc).GetElementSize();
+    auto input_grad_numel = miopen::deref(inputGradDesc).GetElementSize();
+    auto other_grad_numel = miopen::deref(otherGradDesc).GetElementSize();
+    auto cond_numel       = miopen::deref(conditionDesc).GetElementSize();
 
     if(inputGrad)
     {
         for(size_t i = 0; i < input_grad_numel; i++)
         {
-            int cond     = condition[i % cond_numel] ? 1 : 0;
-            inputGrad[i] = outputGrad[i % output_grad_numel] * cond;
+            int cond     = (condition[i % cond_numel] > 0) ? 1 : 0;
+            inputGrad[i] = outputGrad[i] * cond;
         }
     }
 
@@ -66,8 +64,8 @@ int mloWhereBackwardRunHost(miopenTensorDescriptor_t outputGradDesc,
     {
         for(size_t o = 0; o < other_grad_numel; o++)
         {
-            int cond     = condition[o % cond_numel] ? 1 : 0;
-            otherGrad[o] = outputGrad[o % output_grad_numel] * (1 - cond);
+            int cond     = (condition[o % cond_numel] > 0) ? 1 : 0;
+            otherGrad[o] = outputGrad[o] * (1 - cond);
         }
     }
 
@@ -366,8 +364,7 @@ int WhereDriver<Tgpu, Tref>::VerifyForward()
 template <typename Tgpu, typename Tref>
 int WhereDriver<Tgpu, Tref>::RunBackwardCPU()
 {
-    mloWhereBackwardRunHost<Tgpu, Tref>(outputTensorGrad,
-                                        outGrad.data(),
+    mloWhereBackwardRunHost<Tgpu, Tref>(outGrad.data(),
                                         condTensor,
                                         cond.data(),
                                         inputTensorGrad,

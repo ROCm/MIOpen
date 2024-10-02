@@ -26,8 +26,11 @@
 
 #include "cpu_where.hpp"
 #include "get_handle.hpp"
+#include "miopen/tensor_view_utils.hpp"
+#include "miopen/where/problem_description.hpp"
 #include "random.hpp"
 #include "tensor_holder.hpp"
+#include "tensor_view.hpp"
 #include "verify.hpp"
 
 #include <algorithm>
@@ -101,6 +104,13 @@ struct WhereTestCase
         : inDims(input_dim), otherDims(input_dim), condDims(input_dim)
     {
     }
+
+    WhereTestCase(std::vector<size_t> input_dim,
+                  std::vector<size_t> other_dim,
+                  std::vector<size_t> cond_dim)
+        : inDims(input_dim), otherDims(other_dim), condDims(cond_dim)
+    {
+    }
 };
 
 inline std::vector<WhereTestCase> GenFullTestCases()
@@ -111,6 +121,8 @@ inline std::vector<WhereTestCase> GenFullTestCases()
         WhereTestCase({4, 4, 8, 8, 2}),
         WhereTestCase({1, 2, 8, 2, 2}),
         WhereTestCase({16, 20, 20, 12, 12}),
+        WhereTestCase({6, 2, 2, 2, 2}, {6, 2, 2, 2, 2}, {1, 2, 2, 2}),
+        WhereTestCase({25, 25, 2, 2, 2}, {1, 2, 2, 2}, {1, 25, 2, 2, 2}),
         //{std::vector<size_t>{1, 2, 8, 2, 2}, std::vector<size_t>{1, 2, 8, 2, 2}, std::vector<size_t>{1, 2, 8, 2, 2}},
         //{std::vector<size_t>{6, 2, 2, 2, 2}, std::vector<size_t>{6, 2, 2, 2, 2}, std::vector<size_t>{6, 2, 2, 2, 2}},
         //{std::vector<size_t>{4, 2, 2, 2, 2}, std::vector<size_t>{4, 2, 2, 2, 2}, std::vector<size_t>{4, 2, 2, 2, 2}},
@@ -160,16 +172,19 @@ protected:
 
         outputGrad = tensor<T>{out_dims}.generate(gen_value);
 
+        outputGrad_tv = miopen::get_inner_expanded_tv<5>(outputGrad.desc);
+        condition_tv  = miopen::where::broadcastTo(cond.desc, outputGrad_tv);
+
         if(isInputGradRequired)
         {
             inputGrad = tensor<T>{in_dims};
             std::fill(inputGrad.begin(), inputGrad.end(), std::numeric_limits<T>::quiet_NaN());
 
             ref_inputGrad = tensor<T>{in_dims};
-            std::fill(
-                ref_inputGrad.begin(), ref_inputGrad.end(), std::numeric_limits<T>::quiet_NaN());
+            std::fill(ref_inputGrad.begin(), ref_inputGrad.end(), static_cast<T>(0));
 
             inputGrad_dev = handle.Write(inputGrad.data);
+            inputGrad_tv  = miopen::where::broadcastTo(inputGrad.desc, outputGrad_tv);
         }
 
         if(isOtherGradRequired)
@@ -178,10 +193,10 @@ protected:
             std::fill(otherGrad.begin(), otherGrad.end(), std::numeric_limits<T>::quiet_NaN());
 
             ref_otherGrad = tensor<T>{other_dims};
-            std::fill(
-                ref_otherGrad.begin(), ref_otherGrad.end(), std::numeric_limits<T>::quiet_NaN());
+            std::fill(ref_otherGrad.begin(), ref_otherGrad.end(), static_cast<T>(0));
 
             otherGrad_dev = handle.Write(otherGrad.data);
+            otherGrad_tv  = miopen::where::broadcastTo(otherGrad.desc, outputGrad_tv);
         }
 
         cond_dev       = handle.Write(cond.data);
@@ -195,7 +210,14 @@ protected:
         tensor<T> dummy;
         tensor<T>& refInput = isInputGradRequired ? ref_inputGrad : dummy;
         tensor<T>& refOther = isOtherGradRequired ? ref_otherGrad : dummy;
-        cpu_where_backward<T>(outputGrad, cond, refInput, refOther);
+        cpu_where_backward<T>(outputGrad,
+                              cond,
+                              refInput,
+                              refOther,
+                              outputGrad_tv,
+                              condition_tv,
+                              inputGrad_tv,
+                              otherGrad_tv);
         miopenStatus_t status;
 
         auto inputGradMem = isInputGradRequired ? inputGrad_dev.get() : nullptr;
@@ -262,6 +284,11 @@ protected:
 
     tensor<T> ref_inputGrad;
     tensor<T> ref_otherGrad;
+
+    tensor_view_t<5> outputGrad_tv;
+    tensor_view_t<5> condition_tv;
+    tensor_view_t<5> inputGrad_tv;
+    tensor_view_t<5> otherGrad_tv;
 
     miopen::Allocator::ManageDataPtr inputGrad_dev;
     miopen::Allocator::ManageDataPtr otherGrad_dev;

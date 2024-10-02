@@ -49,6 +49,7 @@ tensor_view_t<N> broadcastTo(const tensor_view_t<M>& in, const tensor_view_t<N>&
 
 template <int N>
 tensor_view_t<N> broadcastTo(const TensorDescriptor& cur_tensor, const tensor_view_t<N>& target);
+extern template tensor_view_t<5> broadcastTo(const TensorDescriptor&, const tensor_view_t<5>&);
 
 template <int N>
 int64_t checkBroadcastedContiguous(const tensor_view_t<N>& tensorView);
@@ -66,11 +67,10 @@ struct BackwardProblemDescription : ProblemDescriptionBase
           inputGradDesc(inputGradDesc_),
           otherGradDesc(otherGradDesc_)
     {
-        // TODO: support broadcastable ops
-        if(!isAllSameShape())
+        if(!isAllBroadcastable())
         {
             MIOPEN_THROW(miopenStatusBadParm,
-                         "WHERE::ProblemDescription: All tensors must have the same shape.");
+                         "WHERE::ProblemDescription: All tensors must be broadcastable.");
         }
 
         if(!isAllContiguous())
@@ -85,10 +85,13 @@ struct BackwardProblemDescription : ProblemDescriptionBase
                          "WHERE::ProblemDescription: All tensors must have the same type.");
         }
 
-        inputGrad_tv  = get_inner_expanded_tv<5>(inputGradDesc);
-        otherGrad_tv  = get_inner_expanded_tv<5>(otherGradDesc);
-        condition_tv  = get_inner_expanded_tv<5>(conditionDesc);
+        // inputGrad_tv  = get_inner_expanded_tv<5>(inputGradDesc);
+        // otherGrad_tv  = get_inner_expanded_tv<5>(otherGradDesc);
+        // condition_tv  = get_inner_expanded_tv<5>(conditionDesc);
         outputGrad_tv = get_inner_expanded_tv<5>(outputGradDesc);
+        condition_tv  = broadcastTo(conditionDesc, outputGrad_tv);
+        inputGrad_tv  = broadcastTo(inputGradDesc, outputGrad_tv);
+        otherGrad_tv  = broadcastTo(otherGradDesc, outputGrad_tv);
     }
 
     const TensorDescriptor& GetOutputGradDesc() const { return outputGradDesc; }
@@ -153,6 +156,13 @@ struct BackwardProblemDescription : ProblemDescriptionBase
             (cond_contig_size > 0) && ((input_grad_contig_size % cond_contig_size == 0) ||
                                        (other_grad_contig_size % cond_contig_size == 0));
         return is_condition_broadcasted;
+    }
+
+    bool isAllBroadcastable() const
+    {
+        return isBroadcastable(outputGradDesc, conditionDesc) &&
+               isBroadcastable(outputGradDesc, inputGradDesc) &&
+               isBroadcastable(outputGradDesc, otherGradDesc);
     }
 
     NetworkConfig MakeNetworkConfig() const override;

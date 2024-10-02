@@ -27,8 +27,6 @@
 #ifndef GUARD_TENSOR_VIEW_HPP
 #define GUARD_TENSOR_VIEW_HPP
 
-#include <initializer_list>
-
 template <int N>
 struct tensor_layout_t;
 
@@ -85,5 +83,29 @@ struct tensor_layout_t
 
     uint64_t layout[N];
 };
+
+template <typename T, int N>
+__host__ __device__ T inline getNDVal(const T* x, tensor_view_t<N> x_tv, uint64_t idx)
+{
+    tensor_layout_t<N> layout = tensor_layout_t<N>(x_tv, idx);
+    uint64_t x_idx            = x_tv.get_tensor_view_idx(layout);
+    return x[x_idx];
+}
+
+template <typename T, int N>
+__host__ __device__ void inline setNDVal(T* x, tensor_view_t<N> x_tv, uint64_t idx, T val)
+{
+    tensor_layout_t<N> layout = tensor_layout_t<N>(x_tv, idx);
+    uint64_t x_idx            = x_tv.get_tensor_view_idx(layout);
+    x[x_idx]                  = val;
+}
+
+template <typename T, int N>
+__host__ __device__ void inline addNDVal(T* x, tensor_view_t<N> x_tv, uint64_t idx, T val)
+{
+    tensor_layout_t<N> layout = tensor_layout_t<N>(x_tv, idx);
+    uint64_t x_idx            = x_tv.get_tensor_view_idx(layout);
+    x[x_idx] += val;
+}
 
 #endif // GUARD_TENSOR_VIEW_HPP

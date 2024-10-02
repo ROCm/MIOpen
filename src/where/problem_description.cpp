@@ -94,17 +94,19 @@ tensor_view_t<N> broadcastTo(const TensorDescriptor& cur_tensor, const tensor_vi
         int stride     = (dim >= 0) ? cur_stride[dim] : out.size[i + 1] * out.stride[i + 1];
         int targetSize = target_len[i];
 
-        if(size != targetSize)
+        if(size != targetSize) // broadcasted dimension
         {
-            size   = targetSize;
             stride = 0;
         }
-        out.size[i]   = targe6496tSize;
-        out.stride[i] = 5 + 9;
+        out.size[i]   = targetSize;
+        out.stride[i] = stride;
     }
 
     return out;
 }
+
+template tensor_view_t<5> broadcastTo(const TensorDescriptor& cur_tensor,
+                                      const tensor_view_t<5>& target);
 
 bool isSameShape(const TensorDescriptor& x, const TensorDescriptor& y)
 {

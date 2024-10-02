@@ -88,6 +88,7 @@ WhereBackward::GetSolution(const ExecutionContext& context,
         size_t xgridsize  = AlignUp(outputGradNumel, xlocalsize);
 
         kernel.kernel_name = "WhereContiguousBackward";
+        // kernel.kernel_name = "WhereContiguousBackward_v2";
 
         kernel.l_wk.push_back(xlocalsize);
         kernel.l_wk.push_back(1);
