@@ -24,8 +24,7 @@
  *
  *******************************************************************************/
 
-#ifndef GUARD_CPU_MULTIMARGINLOSS_HPP
-#define GUARD_CPU_MULTIMARGINLOSS_HPP
+#pragma once
 
 #include "miopen/miopen.h"
 #include "tensor_holder.hpp"
@@ -81,5 +80,3 @@ void cpu_multimarginloss_forward(const tensor<T>& input,
         ref_output[0] = static_cast<T>(sum);
     }
 }
-
-#endif
