@@ -24,6 +24,7 @@
  *
  *******************************************************************************/
 
+#include <miopen/mlo_internal.hpp>
 #include <miopen/prelu/utils.hpp>
 
 namespace miopen {
