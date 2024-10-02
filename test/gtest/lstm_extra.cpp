@@ -100,7 +100,7 @@ bool IsTestSupportedForDevice()
 
 void Run2dDriver(miopenDataType_t prec)
 {
-    if(!(IsTestSupportedForDevice())
+    if(!IsTestSupportedForDevice())
     {
         GTEST_SKIP();
     }
