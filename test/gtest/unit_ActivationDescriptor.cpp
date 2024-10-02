@@ -372,15 +372,9 @@ protected:
 using GPU_UnitTestActivationDescriptor_FP16 = UnitTestActivationDescriptor<half_float::half>;
 using GPU_UnitTestActivationDescriptor_FP32 = UnitTestActivationDescriptor<float>;
 
-TEST_P(GPU_UnitTestActivationDescriptor_FP16, Activation)
-{
-    this->RunTest();
-};
+TEST_P(GPU_UnitTestActivationDescriptor_FP16, Activation) { this->RunTest(); };
 
-TEST_P(GPU_UnitTestActivationDescriptor_FP32, Activation)
-{
-    this->RunTest();
-};
+TEST_P(GPU_UnitTestActivationDescriptor_FP32, Activation) { this->RunTest(); };
 
 // Smoke tests
 INSTANTIATE_TEST_SUITE_P(Smoke,
