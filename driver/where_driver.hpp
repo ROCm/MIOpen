@@ -23,48 +23,49 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+
 #pragma once
 
 #include "InputFlags.hpp"
 #include "driver.hpp"
-#include "miopen/errors.hpp"
 #include "tensor_driver.hpp"
+#include "timer.hpp"
+
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
-#include <miopen/miopen.h>
+#include <sys/types.h>
 #include <vector>
-#include "timer.hpp"
-#include "../test/verify.hpp"
+
+#include <../test/verify.hpp>
+
+#include <miopen/errors.hpp>
+#include <miopen/miopen.h>
 
 template <typename Tgpu, typename Tcheck>
-int mloWhereBackwardRunHost(const Tgpu* outputGrad,
-                            miopenTensorDescriptor_t conditionDesc,
-                            const uint8_t* condition,
-                            miopenTensorDescriptor_t inputGradDesc,
-                            Tcheck* inputGrad,
-                            miopenTensorDescriptor_t otherGradDesc,
-                            Tcheck* otherGrad)
+int mloWhereBackwardNoBroadcastRunHost(miopenTensorDescriptor_t outputGradDesc,
+                                       const Tgpu* outputGrad,
+                                       const uint8_t* condition,
+                                       Tcheck* inputGrad,
+                                       Tcheck* otherGrad)
 {
-    auto input_grad_numel = miopen::deref(inputGradDesc).GetElementSize();
-    auto other_grad_numel = miopen::deref(otherGradDesc).GetElementSize();
-    auto cond_numel       = miopen::deref(conditionDesc).GetElementSize();
+    auto output_grad_numel = miopen::deref(outputGradDesc).GetElementSize();
 
     if(inputGrad)
     {
-        for(size_t i = 0; i < input_grad_numel; i++)
+        for(size_t i = 0; i < output_grad_numel; i++)
         {
-            int cond     = (condition[i % cond_numel] > 0) ? 1 : 0;
+            uint8_t cond = (condition[i] > 0) ? 1 : 0;
             inputGrad[i] = outputGrad[i] * cond;
         }
     }
 
     if(otherGrad)
     {
-        for(size_t o = 0; o < other_grad_numel; o++)
+        for(size_t o = 0; o < output_grad_numel; o++)
         {
-            int cond     = (condition[o % cond_numel] > 0) ? 1 : 0;
+            uint8_t cond = (condition[o] > 0) ? 1 : 0;
             otherGrad[o] = outputGrad[o] * (1 - cond);
         }
     }
@@ -96,7 +97,6 @@ public:
     InputFlags& GetInputFlags() override { return inflags; }
 
     int GetandSetData() override;
-    std::vector<int> GetTensorLengthsFromCmdLine(std::string name);
 
     int AllocateBuffersAndCopy() override;
 
@@ -180,24 +180,9 @@ int WhereDriver<Tgpu, Tref>::GetandSetData()
     {
         SetTensorNd(otherTensorGrad, other_len, data_type);
     }
-    SetTensorNd(condTensor, cond_len, data_type);
 
-    int in_sz    = in_len.size();
-    int other_sz = other_len.size();
-    int cond_sz  = cond_len.size();
-    int out_sz   = std::max({in_sz, other_sz, cond_sz});
-    std::vector<int> out_len(out_sz);
-
-    for(int i = 0; i < out_sz; i++)
-    {
-        int InVal    = (i < in_sz) ? in_len[i] : 1;
-        int OtherVal = (i < other_sz) ? other_len[i] : 1;
-        int CondVal  = (i < cond_sz) ? cond_len[i] : 1;
-        out_len[i]   = std::max({InVal, OtherVal, CondVal});
-    }
-
-    // Backwards
-    SetTensorNd(outputTensorGrad, out_len, data_type);
+    SetTensorNd(condTensor, in_len, data_type);
+    SetTensorNd(outputTensorGrad, cond_len, data_type);
 
     return miopenStatusSuccess;
 }
@@ -364,13 +349,8 @@ int WhereDriver<Tgpu, Tref>::VerifyForward()
 template <typename Tgpu, typename Tref>
 int WhereDriver<Tgpu, Tref>::RunBackwardCPU()
 {
-    mloWhereBackwardRunHost<Tgpu, Tref>(outGrad.data(),
-                                        condTensor,
-                                        cond.data(),
-                                        inputTensorGrad,
-                                        inGradhost.data(),
-                                        otherTensorGrad,
-                                        otherGradhost.data());
+    mloWhereBackwardNoBroadcastRunHost<Tgpu, Tref>(
+        outputTensorGrad, outGrad.data(), cond.data(), inGradhost.data(), otherGradhost.data());
 
     return miopenStatusSuccess;
 }

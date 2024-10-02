@@ -118,7 +118,6 @@ inline std::vector<WhereTestCase> GenFullTestCases()
         WhereTestCase({4, 4, 8, 8, 2}),
         WhereTestCase({1, 2, 8, 2, 2}),
         WhereTestCase({16, 20, 20, 12, 12}),
-        WhereTestCase({16, 20, 20, 12, 12}, {}, {16, 20, 20, 12, 12}),
     };
     // clang-format on
 }
@@ -146,20 +145,7 @@ protected:
             cond[i] = rand() % 2;
         }
 
-        size_t out_sz = std::max({in_dims.size(), other_dims.size(), cond_dims.size()});
-        int in_sz     = in_dims.size();
-        int other_sz  = other_dims.size();
-        int cond_sz   = cond_dims.size();
-        std::vector<size_t> out_dims(out_sz);
-        for(int i = 0; i < out_sz; i++)
-        {
-            size_t in_dim    = (i < in_sz) ? in_dims[i] : 1;
-            size_t other_dim = (i < other_sz) ? other_dims[i] : 1;
-            size_t cond_dim  = (i < cond_sz) ? cond_dims[i] : 1;
-            out_dims[i]      = std::max({in_dim, other_dim, cond_dim});
-        }
-
-        outputGrad = tensor<T>{out_dims}.generate(gen_value);
+        outputGrad = tensor<T>{cond_dims}.generate(gen_value);
 
         if(isInputGradRequired)
         {

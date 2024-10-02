@@ -336,9 +336,8 @@ set( MIOpen_Source
     tensor_api.cpp
     transformers_adam_w_api.cpp
     seq_tensor.cpp
-    where.cpp
-    where_api.cpp
     where/problem_description.cpp
+    where_api.cpp
 )
 
 if(MIOPEN_ENABLE_AI_KERNEL_TUNING OR MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK)
@@ -696,6 +695,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         reduceextreme.cpp
         rope.cpp
         transformers_adam_w.cpp
+        where.cpp
         ${PROJECT_BINARY_DIR}/db_path.cpp
         )
 

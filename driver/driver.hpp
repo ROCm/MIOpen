@@ -210,9 +210,8 @@ inline std::string ParseBaseArg(int argc, char* argv[])
        arg != "reducecalculationfp16" && arg != "reducecalculationbfp16" && arg != "rope" &&
        arg != "ropefp16" && arg != "ropebfp16" && arg != "prelu" && arg != "prelufp16" &&
        arg != "prelubfp16" && arg != "kthvalue" && arg != "kthvaluefp16" &&
-       arg != "kthvaluebfp16" && arg != "glu" && arg != "glufp16" && arg != "glubfp16" && arg != "where" && arg != "wherefp16" &&
-       arg != "wherebfp16" && 
-       arg != "--version")
+       arg != "kthvaluebfp16" && arg != "glu" && arg != "glufp16" && arg != "glubfp16" &&
+       arg != "where" && arg != "wherefp16" && arg != "wherebfp16" && arg != "--version")
     {
         printf("FAILED: Invalid Base Input Argument\n");
         Usage();

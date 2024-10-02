@@ -42,16 +42,10 @@ namespace solver {
 
 namespace where {
 
-bool WhereBackward::IsApplicable(const ExecutionContext& context,
-                                 const miopen::where::BackwardProblemDescription& problem) const
+bool WhereBackward::IsApplicable(
+    [[maybe_unused]] const ExecutionContext& context,
+    [[maybe_unused]] const miopen::where::BackwardProblemDescription& problem) const
 {
-    auto ignore = context;
-
-    bool is_all_contiguous             = problem.isAllContiguous();
-    bool is_all_broadcasted_contiguous = problem.isAllBroadcastedContiguous();
-
-    if(!is_all_broadcasted_contiguous && !is_all_contiguous)
-        return false;
     return true;
 }
 
@@ -60,11 +54,6 @@ WhereBackward::GetSolution(const ExecutionContext& context,
                            const miopen::where::BackwardProblemDescription& problem) const
 {
     std::ignore = context;
-
-    auto cond_contig_size  = miopen::where::checkBroadcastedContiguous(problem.GetCondition_tv());
-    bool is_all_same_shape = problem.isAllSameShape();
-    bool is_all_broadcasted_contiguous = problem.isAllBroadcastedContiguous();
-    bool is_condition_broadcasted      = problem.isConditionBroadcasted();
 
     auto result = ConvSolution{miopenStatusSuccess};
 
@@ -82,127 +71,33 @@ WhereBackward::GetSolution(const ExecutionContext& context,
 
     kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
 
-    if(is_all_same_shape) // no broadcast
-    {
-        size_t xlocalsize = LOCAL_SIZE;
-        size_t xgridsize  = AlignUp(outputGradNumel, xlocalsize);
+    size_t xlocalsize = LOCAL_SIZE;
+    size_t xgridsize  = AlignUp(outputGradNumel, xlocalsize);
 
-        kernel.kernel_name = "WhereContiguousBackward";
-        // kernel.kernel_name = "WhereContiguousBackward_v2";
+    kernel.kernel_name = "WhereContiguousBackward";
 
-        kernel.l_wk.push_back(xlocalsize);
-        kernel.l_wk.push_back(1);
-        kernel.l_wk.push_back(1);
+    kernel.l_wk.push_back(xlocalsize);
+    kernel.l_wk.push_back(1);
+    kernel.l_wk.push_back(1);
 
-        kernel.g_wk.push_back(xgridsize);
-        kernel.g_wk.push_back(1);
-        kernel.g_wk.push_back(1);
+    kernel.g_wk.push_back(xgridsize);
+    kernel.g_wk.push_back(1);
+    kernel.g_wk.push_back(1);
 
-        result.construction_params.push_back(kernel);
+    result.construction_params.push_back(kernel);
 
-        result.invoker_factory = [outputGradNumel](const std::vector<Kernel>& kernels) {
-            return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
-                decltype(auto) kernel = handle_.Run(kernels.front());
-                decltype(auto) params = raw_params.CastTo<miopen::where::BwdInvokeParams>();
+    result.invoker_factory = [outputGradNumel](const std::vector<Kernel>& kernels) {
+        return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
+            decltype(auto) kernel = handle_.Run(kernels.front());
+            decltype(auto) params = raw_params.CastTo<miopen::where::BwdInvokeParams>();
 
-                kernel(params.condition,
-                       params.outputGrad,
-                       params.inputGrad,
-                       params.otherGrad,
-                       outputGradNumel);
-            };
+            kernel(params.condition,
+                   params.outputGrad,
+                   params.inputGrad,
+                   params.otherGrad,
+                   outputGradNumel);
         };
-    }
-    else if(is_condition_broadcasted && is_all_broadcasted_contiguous)
-    {
-        size_t xlocalsize = LOCAL_SIZE;
-        size_t xgridsize  = AlignUp(cond_contig_size, xlocalsize);
-        size_t ylocalsize = 1;
-        size_t ygridsize  = 1;
-        size_t zlocalsize = 1;
-        size_t zgridsize  = 1;
-
-        kernel.kernel_name = "WhereConditionBroadcastedContiguousBackward";
-
-        kernel.l_wk.push_back(xlocalsize);
-        kernel.l_wk.push_back(ylocalsize);
-        kernel.l_wk.push_back(zlocalsize);
-
-        kernel.g_wk.push_back(xgridsize);
-        kernel.g_wk.push_back(ygridsize);
-        kernel.g_wk.push_back(zgridsize);
-
-        result.construction_params.push_back(kernel);
-
-        result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
-            return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
-                decltype(auto) kernel = handle_.Run(kernels.front());
-                decltype(auto) params = raw_params.CastTo<miopen::where::BwdInvokeParams>();
-
-                size_t output_grad_numel = problem.GetOutputGradDesc().GetElementSize();
-                size_t cond_contig_size =
-                    miopen::where::checkBroadcastedContiguous(problem.GetCondition_tv());
-                size_t input_grad_contig_size =
-                    miopen::where::checkBroadcastedContiguous(problem.GetInputGrad_tv());
-                size_t other_grad_contig_size =
-                    miopen::where::checkBroadcastedContiguous(problem.GetOtherGrad_tv());
-
-                kernel(params.condition,
-                       params.outputGrad,
-                       params.inputGrad,
-                       params.otherGrad,
-                       output_grad_numel,
-                       cond_contig_size,
-                       input_grad_contig_size,
-                       other_grad_contig_size);
-            };
-        };
-    }
-    else if(is_all_broadcasted_contiguous)
-    {
-        size_t xlocalsize = LOCAL_SIZE;
-        size_t xgridsize  = AlignUp(outputGradNumel, xlocalsize);
-        size_t ylocalsize = 1;
-        size_t ygridsize  = 1;
-        size_t zlocalsize = 1;
-        size_t zgridsize  = 1;
-
-        kernel.kernel_name = "WhereBroadcastedContiguousBackward";
-
-        kernel.l_wk.push_back(xlocalsize);
-        kernel.l_wk.push_back(ylocalsize);
-        kernel.l_wk.push_back(zlocalsize);
-
-        kernel.g_wk.push_back(xgridsize);
-        kernel.g_wk.push_back(ygridsize);
-        kernel.g_wk.push_back(zgridsize);
-
-        result.construction_params.push_back(kernel);
-
-        result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
-            return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
-                decltype(auto) kernel = handle_.Run(kernels.front());
-                decltype(auto) params = raw_params.CastTo<miopen::where::BwdInvokeParams>();
-
-                size_t output_grad_numel = problem.GetOutputGradDesc().GetElementSize();
-                size_t cond_contig_size =
-                    miopen::where::checkBroadcastedContiguous(problem.GetCondition_tv());
-                size_t input_grad_contig_size =
-                    miopen::where::checkBroadcastedContiguous(problem.GetInputGrad_tv());
-                size_t other_grad_contig_size =
-                    miopen::where::checkBroadcastedContiguous(problem.GetOtherGrad_tv());
-
-                kernel(params.condition,
-                       params.outputGrad,
-                       params.inputGrad,
-                       params.otherGrad,
-                       output_grad_numel,
-                       cond_contig_size,
-                       input_grad_contig_size,
-                       other_grad_contig_size);
-            };
-        };
-    }
+    };
 
     return result;
 }
