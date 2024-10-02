@@ -253,22 +253,19 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::GetandSetData()
 
         bnScale.InitHostData(bnScale.GetTensor().desc.GetElementSize(), true, gen_value);
 
-        if(saveMeanVar && keepRunningMeanVar)
-        {
-            savedMean.InitHostData(savedMean.GetTensor().desc.GetElementSize(), true, gen_var_bwd);
+        savedMean.InitHostData(savedMean.GetTensor().desc.GetElementSize(), true, gen_var_bwd);
 
-            auto gen_in_var = [](auto...) {
-                return static_cast<Tmix>(1e-2 * (prng::gen_0_to_B(100) + 1));
-            };
-            savedInvVar.InitHostData(
-                savedInvVar.GetTensor().desc.GetElementSize(), true, gen_in_var);
-        }
+        auto gen_in_var = [](auto...) {
+            return static_cast<Tmix>(1e-2 * (prng::gen_0_to_B(100) + 1));
+        };
+        savedInvVar.InitHostData(savedInvVar.GetTensor().desc.GetElementSize(), true, gen_in_var);
     }
     else
     {
         std::cout << "\nUnknown batch norm state!\n";
         exit(EXIT_FAILURE);
     }
+
     return miopenStatusSuccess;
 }
 
@@ -588,6 +585,16 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::AllocateBuffersAndCopy()
 
         dBias_ref =
             tensor<Tref>{dBias.GetTensor().desc.GetLayout_t(), dBias.GetTensor().desc.GetLengths()};
+    }
+
+    for(size_t i = 0; i < runMean.GetVector().size(); ++i)
+    {
+        runMean_ref.data[i] = static_cast<Tref>(runMean.GetVector()[i]);
+    }
+
+    for(size_t i = 0; i < runVariance.GetVector().size(); ++i)
+    {
+        runVariance_ref.data[i] = static_cast<Tref>(runVariance.GetVector()[i]);
     }
 
     if(status != STATUS_SUCCESS)
@@ -913,6 +920,7 @@ void BatchNormDriver<Tgpu, Tref, Tmix>::runCPUFwdTrain(Tref epsilon, Tref eAF)
     }
     if(bn_mode == miopenBNPerActivation)
     { // 1xCxHxW
+
         batchNormPerActHostFwdTrain(in.GetTensor(),
                                     out_ref,
                                     scale.GetTensor(),
@@ -926,16 +934,34 @@ void BatchNormDriver<Tgpu, Tref, Tmix>::runCPUFwdTrain(Tref epsilon, Tref eAF)
     }
     else if(bn_mode == miopenBNSpatial)
     { // 1xCx1x1
-        batchNormSpatialHostFwdTrain(in.GetTensor(),
-                                     out_ref,
-                                     scale.GetTensor(),
-                                     bias.GetTensor(),
-                                     static_cast<double>(epsilon),
-                                     static_cast<double>(eAF),
-                                     savedMean_ref,
-                                     savedVariance_ref,
-                                     runMean_ref,
-                                     runVariance_ref);
+
+        if(forw == 2 && !keepRunningMeanVar)
+        {
+            tensor<Tref> empty_tensor;
+            batchNormSpatialHostFwdTrain(in.GetTensor(),
+                                         out_ref,
+                                         scale.GetTensor(),
+                                         bias.GetTensor(),
+                                         static_cast<double>(epsilon),
+                                         static_cast<double>(eAF),
+                                         empty_tensor,  // savedMean_ref
+                                         empty_tensor,  // savedVariance_ref
+                                         empty_tensor,  // runMean_ref
+                                         empty_tensor); // runVariance_ref
+        }
+        else
+        {
+            batchNormSpatialHostFwdTrain(in.GetTensor(),
+                                         out_ref,
+                                         scale.GetTensor(),
+                                         bias.GetTensor(),
+                                         static_cast<double>(epsilon),
+                                         static_cast<double>(eAF),
+                                         savedMean_ref,
+                                         savedVariance_ref,
+                                         runMean_ref,
+                                         runVariance_ref);
+        }
     }
     else
     {
@@ -952,7 +978,7 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::RunForwardCPU()
     Tref epsilon = static_cast<Tref>(EPSILON);
     Tref eAF     = static_cast<Tref>(1.0);
 
-    if(forw == 1)
+    if(forw == 1 || (forw == 2 && !keepRunningMeanVar))
     { // training only
         for(int i = 0; i < inflags.GetValueInt("iter"); i++)
         {
@@ -960,9 +986,15 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::RunForwardCPU()
             runCPUFwdTrain(epsilon, eAF /* alpha, beta,*/);
         }
     }
-    else if(forw == 2)
-    { // inference only
+    else if(forw == 2 && keepRunningMeanVar)
+    {
+        // inference only
         runCPUFwdInference(epsilon);
+    }
+    else
+    {
+        printf("Unsupported forward cpu run state.\nExiting...\n\n");
+        exit(EXIT_FAILURE); // NOLINT (concurrency-mt-unsafe)
     }
 
     return miopenStatusSuccess;
@@ -1173,12 +1205,8 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::VerifyForward()
 
         if(saveMeanVar)
         { // copy back for verification
-            // saveMean_dev->FromGPU(GetStream(), savedMean.data());
-            // saveInvVariance_dev->FromGPU(GetStream(), savedInvVar.data());
-
             savedMean.CopyFromDeviceToHost(GetStream());
             savedVariance.CopyFromDeviceToHost(GetStream());
-
             maxval             = static_cast<Tref>(0.0);
             auto errorSaveMean = miopen::rms_range(savedMean_ref.data, savedMean.GetVector());
             if(!std::isfinite(errorSaveMean) || errorSaveMean > maxrms)
@@ -1252,7 +1280,6 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::VerifyForward()
 
     maxval        = static_cast<Tref>(0.0);
     auto errorOut = miopen::rms_range(out_ref.data, out.GetVector());
-
     if(!std::isfinite(errorOut) || errorOut > maxrms)
     {
         std::cout << "Forward batch norm verification FAILED on output: " << errorOut << std::endl;
@@ -1356,15 +1383,30 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::RunBackwardCPU()
     }
     else if(bn_mode == miopenBNSpatial)
     { // 1xCx1x1
+        if(saveMeanVar)
+        {
 
-        batchNormSpatialHostBwdTrain(in.GetTensor(),
-                                     dy.GetTensor(),
-                                     out_ref,
-                                     bnScale.GetTensor(),
-                                     dScale_ref,
-                                     dBias_ref,
-                                     savedMean.GetTensor(),
-                                     savedInvVar.GetTensor());
+            batchNormSpatialHostBwdTrain(in.GetTensor(),
+                                         dy.GetTensor(),
+                                         out_ref,
+                                         bnScale.GetTensor(),
+                                         dScale_ref,
+                                         dBias_ref,
+                                         savedMean.GetTensor(),
+                                         savedInvVar.GetTensor());
+        }
+        else
+        {
+            tensor<Tref> empty_tensor;
+            batchNormSpatialHostBwdTrain(in.GetTensor(),
+                                         dy.GetTensor(),
+                                         out_ref,
+                                         bnScale.GetTensor(),
+                                         dScale_ref,
+                                         dBias_ref,
+                                         empty_tensor,
+                                         empty_tensor);
+        }
     }
     else
     {
@@ -1399,7 +1441,6 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::VerifyBackward()
 #endif
     maxval          = static_cast<Tref>(0.0);
     auto errordxout = miopen::rms_range(out_ref.data, out_bwd.GetVector());
-
     if(!std::isfinite(errordxout) || errordxout > maxrms)
     {
         std::cout << "Backwards prop batch norm verification FAILED on dx: " << errordxout

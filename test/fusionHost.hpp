@@ -266,16 +266,21 @@ void batchNormSpatialHostFwdTrain(const tensor<T>& input,
                 } // for (column)
             }     // for (row)
         }         // end for(n_batchs)
-
-        saveMean(0, cidx, 0, 0)   = mean_accum;
-        saveInvVar(0, cidx, 0, 0) = invVar;
-
-        newRunMean             = runMean(0, cidx, 0, 0) * (1 - expAvgFactor);
-        runMean(0, cidx, 0, 0) = mean_accum * expAvgFactor + newRunMean; // newMean*factor + tmp
-        // var(n+1) = p * var(n-1) + (1 - p)*(b/b-1)*var(n)
-        adjust =
-            (n_batch * height * width == 1) ? variance_accum : (nhw / (nhw - 1)) * variance_accum;
-        runVar(0, cidx, 0, 0) = (1 - expAvgFactor) * runVar(0, cidx, 0, 0) + expAvgFactor * adjust;
+        if(!saveMean.data.empty())
+        {
+            saveMean(0, cidx, 0, 0)   = mean_accum;
+            saveInvVar(0, cidx, 0, 0) = invVar;
+        }
+        if(!runMean.data.empty())
+        {
+            newRunMean             = runMean(0, cidx, 0, 0) * (1 - expAvgFactor);
+            runMean(0, cidx, 0, 0) = mean_accum * expAvgFactor + newRunMean; // newMean*factor + tmp
+            // var(n+1) = p * var(n-1) + (1 - p)*(b/b-1)*var(n)
+            adjust = (n_batch * height * width == 1) ? variance_accum
+                                                     : (nhw / (nhw - 1)) * variance_accum;
+            runVar(0, cidx, 0, 0) =
+                (1 - expAvgFactor) * runVar(0, cidx, 0, 0) + expAvgFactor * adjust;
+        }
     });
 }
 
@@ -301,14 +306,50 @@ void batchNormSpatialHostBwdTrain(const tensor<XDataType>& x_input,
     par_for(channels, 1, [&](int cidx) {
         double elemStd = 0.;
         unsigned int xhat_index;
-        double mean   = savedMean(0, cidx, 0, 0);   // HxW elements
-        double invVar = savedInvVar(0, cidx, 0, 0); // HxW elements
+        double mean   = 0.0;
+        double invVar = 0.0;
         double dyelem = 0.;
         std::vector<double> xhat(static_cast<std::size_t>(n_batch) * in_cstride, 0.0);
         // process the batch per channel
         dscale(0, cidx, 0, 0) = 0.;
         dbias(0, cidx, 0, 0)  = 0.;
 
+        if(!savedMean.data.empty())
+        {
+
+            mean   = savedMean(0, cidx, 0, 0);   // HxW elements
+            invVar = savedInvVar(0, cidx, 0, 0); // HxW elements
+        }
+        else
+        {
+            double variance_accum = 0.;
+            double mean_accum     = 0.;
+            double inv_Var        = 0.;
+
+            // process the batch per channel
+            for(int bidx = 0; bidx < n_batch; bidx++)
+            { // via mini_batch
+                for(int row = 0; row < height; row++)
+                { // via rows
+                    for(int column = 0; column < width; column++)
+                    { // via columns
+                        // #1 calculate the mean
+                        // iterating through the stack of images in the mini_batch
+                        auto inval = static_cast<double>(x_input(bidx, cidx, row, column));
+                        mean_accum += inval;
+                        variance_accum += inval * inval;
+                    } // end for (column)
+                }     // end for (row)
+            }         // end for (n)
+
+            mean_accum /= nhw;
+            variance_accum /= nhw;
+            variance_accum += (-mean_accum * mean_accum);
+            inv_Var = 1.0 / sqrt(variance_accum);
+
+            mean   = mean_accum;
+            invVar = inv_Var;
+        }
         for(int row = 0; row < height; row++)
         { // via rows
             for(int column = 0; column < width; column++)
