@@ -79,8 +79,8 @@ std::vector<KernelTuningNetTestCase> GetConvHipIgemmGroupWrwXdlopsTestCases_FP32
               miopen::conv::Direction::BackwardWeights,
               miopenFloat,
               miopenTensorNHWC},
-             "DeviceGroupedConvBwdWeight_Xdl_CShuffle<128, 128, 32, 4, Default, 4, 2, 1, 4, 4, 1, "
-             "1, 1, 1, 1>+128",
+             "DeviceGroupedConvBwdWeight_Xdl_CShuffle<64, 64, 64, 4, Default, 4, 2, 2, 1, 4, 1, "
+             "4, 1, 1, 1>+1",
              "gfx942"}};
 }
 
