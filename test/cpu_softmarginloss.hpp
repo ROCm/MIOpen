@@ -23,16 +23,15 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef GUARD_CPU_SOFTMARGINLOSS_HPP
-#define GUARD_CPU_SOFTMARGINLOSS_HPP
+#pragma once
 
 #include "miopen/miopen.h"
 #include "tensor_holder.hpp"
 #include <miopen/tensor_view_utils.hpp>
 
 template <class T>
-void cpu_softmarginloss_forward(tensor<T> input,
-                                tensor<T> target,
+void cpu_softmarginloss_forward(const tensor<T>& input,
+                                const tensor<T>& target,
                                 tensor<T>& ref_output,
                                 miopenLossReductionMode_t reduction_mode)
 {
@@ -61,9 +60,9 @@ void cpu_softmarginloss_forward(tensor<T> input,
 }
 
 template <class T>
-void cpu_softmarginloss_backward(tensor<T> input,
-                                 tensor<T> target,
-                                 tensor<T> dO,
+void cpu_softmarginloss_backward(const tensor<T>& input,
+                                 const tensor<T>& target,
+                                 const tensor<T>& dO,
                                  tensor<T>& ref_dI,
                                  miopenLossReductionMode_t reduction_mode)
 {
@@ -85,5 +84,3 @@ void cpu_softmarginloss_backward(tensor<T> input,
             ref_dI[dI_tv.get_tensor_view_idx(idx)] = -t / (exp(i * t) + 1) * _dO / input_numel;
     });
 }
-
-#endif

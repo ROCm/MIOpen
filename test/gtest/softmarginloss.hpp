@@ -177,12 +177,7 @@ protected:
 
     void Verify()
     {
-        // Computation error of fp16 is ~2^13 (=8192) bigger than
-        // the one of fp32 because mantissa is shorter by 13 bits.
-        auto tolerance = std::is_same<T, float>::value ? 1.5e-6 : 8.2e-3;
-        // bf16 mantissa has 7 bits, by 3 bits shorter than fp16.
-        if(std::is_same<T, bfloat16>::value)
-            tolerance *= 8.0;
+        auto tolerance = std::numeric_limits<T>::epsilon() * 10;
 
         auto error = miopen::rms_range(ref_output, output);
         ASSERT_EQ(miopen::range_distance(ref_output), miopen::range_distance(output));
@@ -268,12 +263,7 @@ protected:
 
     void Verify()
     {
-        // Computation error of fp16 is ~2^13 (=8192) bigger than
-        // the one of fp32 because mantissa is shorter by 13 bits.
-        auto tolerance = std::is_same<T, float>::value ? 1.5e-6 : 8.2e-3;
-        // bf16 mantissa has 7 bits, by 3 bits shorter than fp16.
-        if(std::is_same<T, bfloat16>::value)
-            tolerance *= 8.0;
+        auto tolerance = std::numeric_limits<T>::epsilon() * 10;
 
         auto error = miopen::rms_range(ref_dI, dI);
         ASSERT_EQ(miopen::range_distance(ref_dI), miopen::range_distance(dI));

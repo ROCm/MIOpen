@@ -24,6 +24,7 @@
  *
  *******************************************************************************/
 
+#include "miopen/mlo_internal.hpp"
 #include <miopen/datatype.hpp>
 #include <miopen/kernel_build_params.hpp>
 #include <miopen/softmarginloss/invoke_params.hpp>
@@ -42,8 +43,12 @@ namespace softmarginloss {
 
 bool SoftMarginLossBackward::IsApplicable(
     const ExecutionContext& /*context*/,
-    const miopen::softmarginloss::BackwardProblemDescription& /*problem*/) const
+    const miopen::softmarginloss::BackwardProblemDescription& problem) const
 {
+    if(!(problem.GetiDesc().GetType() == miopenFloat ||
+         problem.GetiDesc().GetType() == miopenHalf ||
+         problem.GetiDesc().GetType() == miopenBFloat16))
+        return false;
     return true;
 }
 

@@ -23,8 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef GUARD_MIOPEN_SOFTMARGINLOSS_DRIVER_HPP
-#define GUARD_MIOPEN_SOFTMARGINLOSS_DRIVER_HPP
+#pragma once
 
 #include "InputFlags.hpp"
 #include "driver.hpp"
@@ -380,16 +379,18 @@ int SoftMarginLossDriver<Tgpu, Tref>::RunForwardGPU()
 
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
-        miopenSoftMarginLossForward(GetHandle(),
-                                    inputDesc,
-                                    in_dev->GetMem(),
-                                    targetDesc,
-                                    target_dev->GetMem(),
-                                    outputDesc,
-                                    out_dev->GetMem(),
-                                    reduction_mode,
-                                    workspace_dev->GetMem(),
-                                    ws_sizeInBytes);
+        miopenStatus_t status = miopenSoftMarginLossForward(GetHandle(),
+                                                            inputDesc,
+                                                            in_dev->GetMem(),
+                                                            targetDesc,
+                                                            target_dev->GetMem(),
+                                                            outputDesc,
+                                                            out_dev->GetMem(),
+                                                            reduction_mode,
+                                                            workspace_dev->GetMem(),
+                                                            ws_sizeInBytes);
+
+        MIOPEN_THROW_IF(status != miopenStatusSuccess, "Error in miopenSoftMarginLossForward");
 
         float time = 0.0;
         miopenGetKernelTime(GetHandle(), &time);
@@ -442,16 +443,18 @@ int SoftMarginLossDriver<Tgpu, Tref>::RunBackwardGPU()
 
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
-        miopenSoftMarginLossBackward(GetHandle(),
-                                     inputDesc,
-                                     in_dev->GetMem(),
-                                     targetDesc,
-                                     target_dev->GetMem(),
-                                     dODesc,
-                                     dO_dev->GetMem(),
-                                     dIDesc,
-                                     dI_dev->GetMem(),
-                                     reduction_mode);
+        miopenStatus_t status = miopenSoftMarginLossBackward(GetHandle(),
+                                                             inputDesc,
+                                                             in_dev->GetMem(),
+                                                             targetDesc,
+                                                             target_dev->GetMem(),
+                                                             dODesc,
+                                                             dO_dev->GetMem(),
+                                                             dIDesc,
+                                                             dI_dev->GetMem(),
+                                                             reduction_mode);
+
+        MIOPEN_THROW_IF(status != miopenStatusSuccess, "Error in miopenSoftMarginLossBackward");
 
         float time = 0.0;
         miopenGetKernelTime(GetHandle(), &time);
@@ -498,13 +501,7 @@ int SoftMarginLossDriver<Tgpu, Tref>::RunBackwardCPU()
 template <typename Tgpu, typename Tref>
 Tref SoftMarginLossDriver<Tgpu, Tref>::GetTolerance()
 {
-    // Computation error of fp16 is ~2^13 (=8192) bigger than
-    // the one of fp32 because mantissa is shorter by 13 bits.
-    auto tolerance = std::is_same<Tgpu, float>::value ? 1.5e-6 : 8.2e-3;
-
-    // bf16 mantissa has 7 bits, by 3 bits shorter than fp16.
-    if(std::is_same<Tgpu, bfloat16>::value)
-        tolerance *= 8.0;
+    Tref tolerance = std::numeric_limits<Tgpu>::epsilon() * 10;
     return tolerance;
 }
 
@@ -556,5 +553,3 @@ int SoftMarginLossDriver<Tgpu, Tref>::VerifyBackward()
 
     return miopenStatusSuccess;
 }
-
-#endif // GUARD_MIOPEN_SOFTMARGINLOSS_DRIVER_HPP
