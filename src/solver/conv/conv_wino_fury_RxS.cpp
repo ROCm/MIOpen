@@ -26,7 +26,7 @@
 
 #define CONV_WINO_FURY_RXS_CPP
 
-#include <miopen/solver.hpp>
+#include <miopen/conv/solvers.hpp>
 #include <miopen/fusion/solvers.hpp>
 
 #include <miopen/conv/invokers/gcn_asm_wino.hpp>
@@ -463,8 +463,8 @@ ConvWinoFuryRxS<Winodata, Winofilter>::GetSolution(const ExecutionContext& ctx,
     return ConvWinoFuryRxSCommon<Winodata, Winofilter>::GetSolution(ctx, problem);
 }
 
-template struct ConvWinoFuryRxS<2, 3>;
-// template struct ConvWinoFuryRxS<3, 2>;
+template struct MIOPEN_INTERNALS_EXPORT ConvWinoFuryRxS<2, 3>;
+// template struct MIOPEN_INTERNALS_EXPORT ConvWinoFuryRxS<3, 2>;
 
 } // namespace conv
 

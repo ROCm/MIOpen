@@ -35,6 +35,9 @@ MIOPEN_DECLARE_ENV_VAR_UINT64(MIOPEN_DEBUG_TUNING_ITERATIONS_MAX,
 MIOPEN_DECLARE_ENV_VAR_UINT64(
     MIOPEN_TUNING_TIME_MS_MAX,
     std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::hours{2}).count())
+MIOPEN_DECLARE_ENV_VAR_UINT64(
+    MIOPEN_TUNING_PATIENCE,
+    std::numeric_limits<std::size_t>::max()) // End tuning if no improvement in X iterations
 
 #if MIOPEN_USE_COMGR
 MIOPEN_DECLARE_ENV_VAR_UINT64(MIOPEN_COMPILE_PARALLEL_LEVEL, 1) // COMGR is not parallelizable
