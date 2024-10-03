@@ -79,7 +79,18 @@ bool MhaCKFlashAttentionV2Forward::IsApplicable(
 
     auto& descsFwd            = problem.GetDescsForward();
     auto [N_k, H_k, S_k, D_k] = miopen::tien<4>(descsFwd.kDesc.GetLengths());
+    auto [N_stride_k, H_stride_k, S_stride_k, D_stride_k] =
+        miopen::tien<4>(descsFwd.kDesc.GetStrides());
+
     auto [N_q, H_q, S_q, D_q] = miopen::tien<4>(descsFwd.qDesc.GetLengths());
+    auto [N_stride_q, H_stride_q, S_stride_q, D_stride_q] =
+        miopen::tien<4>(descsFwd.qDesc.GetStrides());
+
+    auto [N_stride_v, H_stride_v, S_stride_v, D_stride_v] =
+        miopen::tien<4>(descsFwd.vDesc.GetStrides());
+
+    auto [N_stride_o, H_stride_o, S_stride_o, D_stride_o] =
+        miopen::tien<4>(descsFwd.oDesc.GetStrides());
 
     return !env::disabled(MIOPEN_DEBUG_FA_CK_V2_FWD) //
            && H_q == H_k   // Replace with H_q % H_k == 0 once we add support for MQA & GQA.
@@ -94,7 +105,9 @@ bool MhaCKFlashAttentionV2Forward::IsApplicable(
            && descsFwd.kDesc.GetType() == miopenHalf    //
            && descsFwd.qDesc.GetType() == miopenHalf    //
            && descsFwd.vDesc.GetType() == miopenHalf    //
-           && descsFwd.oDesc.GetType() == miopenHalf;   //
+           && descsFwd.oDesc.GetType() == miopenHalf    //
+           && D_stride_k == 1                           // CK requires D stride as 1.
+           && D_stride_q == 1 && D_stride_v == 1 && D_stride_o == 1;
 #else
     return false;
 #endif
