@@ -34,25 +34,46 @@ namespace miopen {
 
 namespace nllloss {
 
+inline std::ostream& operator<<(std::ostream& os, const std::vector<size_t>& v)
+{
+    os << '{';
+    for(int i = 0; i < v.size(); ++i)
+    {
+        if(i != 0)
+            os << ',';
+        os << v[i];
+    }
+    os << '}';
+    return os;
+}
+
 NetworkConfig ProblemDescription::MakeNetworkConfig() const
 {
-    size_t numel       = GetNtotal();
-    size_t num_batches = inputDesc.GetLengths()[0];
-    size_t num_classes = GetC();
-    size_t num_dims    = inputDesc.GetNumDims();
+    auto input_size     = inputDesc.GetLengths();
+    auto input_strides  = inputDesc.GetStrides();
+    auto target_size    = targetDesc.GetLengths();
+    auto target_strides = targetDesc.GetStrides();
+    auto weight_size    = weightDesc.GetLengths();
+    auto weight_strides = weightDesc.GetStrides();
+    auto output_size    = outputDesc.GetLengths();
+    auto output_strides = outputDesc.GetStrides();
 
     auto input_dtype = inputDesc.GetType();
 
     std::ostringstream ss;
 
-    ss << "nllloss_reduce";
+    ss << "nllloss";
     ss << "is_fwd" << is_fwd;
-    ss << "input_dtype" << input_dtype;
-    ss << "reduce_mode" << reduction;
-    ss << "numel" << numel;
-    ss << "num_dims" << num_dims;
-    ss << "num_batches" << num_batches;
-    ss << "num_classes" << num_classes;
+    ss << "reduction" << reduction;
+    ss << "-input_dtype" << input_dtype;
+    ss << "-dIs" << input_size;
+    ss << "-dOs" << output_size;
+    ss << "-dSi" << input_strides;
+    ss << "-dSo" << output_strides;
+    ss << "-dTs" << target_size;
+    ss << "-dTs" << target_strides;
+    ss << "-dWs" << weight_size;
+    ss << "-dWs" << weight_strides;
 
     return NetworkConfig{ss.str()};
 }

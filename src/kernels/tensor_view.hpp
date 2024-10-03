@@ -24,8 +24,8 @@
  *
  *******************************************************************************/
 
-#ifndef GUARD_TENSOR_VIEW_H
-#define GUARD_TENSOR_VIEW_H
+#ifndef GUARD_TENSOR_VIEW_HPP
+#define GUARD_TENSOR_VIEW_HPP
 
 #include <initializer_list>
 
@@ -36,7 +36,7 @@ template <int N>
 struct tensor_view_t
 {
     // Get index in tensor view at tensor layout
-    constexpr uint64_t get_tensor_view_idx(const tensor_layout_t<N>& tensor_layout) const
+    constexpr uint64_t get_tensor_view_idx(const tensor_layout_t<N>& tensor_layout)
     {
         static_assert(N > 0);
         uint64_t idx = 0;
@@ -49,7 +49,6 @@ struct tensor_view_t
     uint64_t stride[N];
     uint64_t size[N];
 };
-
 template <int N>
 struct tensor_layout_t
 {
@@ -86,4 +85,4 @@ struct tensor_layout_t
     uint64_t layout[N];
 };
 
-#endif // GUARD_TENSOR_VIEW_H
+#endif // GUARD_TENSOR_VIEW_HPP

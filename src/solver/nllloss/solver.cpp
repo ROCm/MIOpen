@@ -41,6 +41,10 @@ bool NLLLossSolver::IsApplicable(const ExecutionContext&,
         return false;
     if(!problem.IsValidLength())
         return false;
+    if(!(problem.GetInputDesc().GetType() == miopenFloat ||
+         problem.GetInputDesc().GetType() == miopenHalf ||
+         problem.GetInputDesc().GetType() == miopenBFloat16))
+        return false;
     return true;
 }
 

@@ -34,6 +34,8 @@ namespace miopen {
 struct Handle;
 struct TensorDescriptor;
 
+namespace nllloss {
+
 MIOPEN_INTERNALS_EXPORT size_t GetNLLLossForwardWorkspaceSize(Handle& handle,
                                                               const TensorDescriptor& inputDesc,
                                                               const TensorDescriptor& targetDesc,
@@ -64,8 +66,11 @@ MIOPEN_INTERNALS_EXPORT miopenStatus_t NLLLossBackward(Handle& handle,
                                                        const TensorDescriptor& weightDesc,
                                                        ConstData_t weight,
                                                        const TensorDescriptor& outputGradDesc,
-                                                       Data_t output_grad,
+                                                       ConstData_t output_grad,
                                                        int32_t ignore_index,
                                                        miopenLossReductionMode_t reduction);
+
+} // namespace nllloss
+
 } // namespace miopen
 #endif // _MIOPEN_NLLLOSS_HPP_

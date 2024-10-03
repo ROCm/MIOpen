@@ -103,13 +103,13 @@ miopenGetNLLLossForwardWorkspaceSize(miopenHandle_t handle,
 
     return miopen::try_([&] {
         miopen::deref(sizeInBytes) =
-            miopen::GetNLLLossForwardWorkspaceSize(miopen::deref(handle),
-                                                   miopen::deref(inputDesc),
-                                                   miopen::deref(targetDesc),
-                                                   miopen::deref(weightDesc),
-                                                   miopen::deref(outputDesc),
-                                                   ignore_index,
-                                                   reduction);
+            miopen::nllloss::GetNLLLossForwardWorkspaceSize(miopen::deref(handle),
+                                                            miopen::deref(inputDesc),
+                                                            miopen::deref(targetDesc),
+                                                            miopen::deref(weightDesc),
+                                                            miopen::deref(outputDesc),
+                                                            ignore_index,
+                                                            reduction);
     });
 }
 
@@ -143,19 +143,19 @@ extern "C" miopenStatus_t miopenNLLLossForward(miopenHandle_t handle,
 
     LogCmdNLLLoss(inputDesc, targetDesc, weightDesc, true, reduction);
     return miopen::try_([&] {
-        miopen::NLLLossForward(miopen::deref(handle),
-                               DataCast(workspace),
-                               workspaceSizeInBytes,
-                               miopen::deref(inputDesc),
-                               DataCast(input),
-                               miopen::deref(targetDesc),
-                               DataCast(target),
-                               miopen::deref(weightDesc),
-                               DataCast(weight),
-                               miopen::deref(outputDesc),
-                               DataCast(output),
-                               ignore_index,
-                               reduction);
+        miopen::nllloss::NLLLossForward(miopen::deref(handle),
+                                        DataCast(workspace),
+                                        workspaceSizeInBytes,
+                                        miopen::deref(inputDesc),
+                                        DataCast(input),
+                                        miopen::deref(targetDesc),
+                                        DataCast(target),
+                                        miopen::deref(weightDesc),
+                                        DataCast(weight),
+                                        miopen::deref(outputDesc),
+                                        DataCast(output),
+                                        ignore_index,
+                                        reduction);
     });
 }
 
@@ -185,16 +185,16 @@ extern "C" miopenStatus_t miopenNLLLossBackward(miopenHandle_t handle,
 
     LogCmdNLLLoss(inputGradDesc, targetDesc, weightDesc, false, reduction);
     return miopen::try_([&] {
-        miopen::NLLLossBackward(miopen::deref(handle),
-                                miopen::deref(inputGradDesc),
-                                DataCast(input_grad),
-                                miopen::deref(targetDesc),
-                                DataCast(target),
-                                miopen::deref(weightDesc),
-                                DataCast(weight),
-                                miopen::deref(outputGradDesc),
-                                DataCast(output_grad),
-                                ignore_index,
-                                reduction);
+        miopen::nllloss::NLLLossBackward(miopen::deref(handle),
+                                         miopen::deref(inputGradDesc),
+                                         DataCast(input_grad),
+                                         miopen::deref(targetDesc),
+                                         DataCast(target),
+                                         miopen::deref(weightDesc),
+                                         DataCast(weight),
+                                         miopen::deref(outputGradDesc),
+                                         DataCast(output_grad),
+                                         ignore_index,
+                                         reduction);
     });
 }

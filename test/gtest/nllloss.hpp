@@ -146,13 +146,13 @@ protected:
 
         ws_sizeInBytes = reduction == MIOPEN_LOSS_REDUCTION_NONE
                              ? 0
-                             : miopen::GetNLLLossForwardWorkspaceSize(handle,
-                                                                      input.desc,
-                                                                      target.desc,
-                                                                      weight.desc,
-                                                                      output.desc,
-                                                                      ignore_index,
-                                                                      reduction);
+                             : miopen::nllloss::GetNLLLossForwardWorkspaceSize(handle,
+                                                                               input.desc,
+                                                                               target.desc,
+                                                                               weight.desc,
+                                                                               output.desc,
+                                                                               ignore_index,
+                                                                               reduction);
         if(ws_sizeInBytes == static_cast<size_t>(-1))
             GTEST_SKIP();
 
@@ -195,19 +195,19 @@ protected:
             cpu_nllloss_reduce_forward_5d<T>(
                 input, target, weight, ref_output, ref_workspace, ignore_index, divisor);
         }
-        status = miopen::NLLLossForward(handle,
-                                        workspace_dev.get(),
-                                        ws_sizeInBytes,
-                                        input.desc,
-                                        input_dev.get(),
-                                        target.desc,
-                                        target_dev.get(),
-                                        weight.desc,
-                                        weight_dev.get(),
-                                        output.desc,
-                                        output_dev.get(),
-                                        ignore_index,
-                                        reduction);
+        status = miopen::nllloss::NLLLossForward(handle,
+                                                 workspace_dev.get(),
+                                                 ws_sizeInBytes,
+                                                 input.desc,
+                                                 input_dev.get(),
+                                                 target.desc,
+                                                 target_dev.get(),
+                                                 weight.desc,
+                                                 weight_dev.get(),
+                                                 output.desc,
+                                                 output_dev.get(),
+                                                 ignore_index,
+                                                 reduction);
         fflush(stdout);
 
         ASSERT_EQ(status, miopenStatusSuccess);
@@ -328,17 +328,17 @@ protected:
             cpu_nllloss_reduce_backward<T>(
                 ref_input_grad, target, weight, output_grad, ignore_index, divisor);
         }
-        status = miopen::NLLLossBackward(handle,
-                                         input_grad.desc,
-                                         input_grad_dev.get(),
-                                         target.desc,
-                                         target_dev.get(),
-                                         weight.desc,
-                                         weight_dev.get(),
-                                         output_grad.desc,
-                                         output_grad_dev.get(),
-                                         ignore_index,
-                                         reduction);
+        status = miopen::nllloss::NLLLossBackward(handle,
+                                                  input_grad.desc,
+                                                  input_grad_dev.get(),
+                                                  target.desc,
+                                                  target_dev.get(),
+                                                  weight.desc,
+                                                  weight_dev.get(),
+                                                  output_grad.desc,
+                                                  output_grad_dev.get(),
+                                                  ignore_index,
+                                                  reduction);
 
         ASSERT_EQ(status, miopenStatusSuccess);
 
