@@ -62,6 +62,8 @@ enum class Primitive
     Item,
     RoPE,
     ReLU,
+    Kthvalue,
+    ,
     Loss
 };
 
