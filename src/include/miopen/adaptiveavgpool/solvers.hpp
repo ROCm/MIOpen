@@ -32,6 +32,7 @@
 #include <miopen/adaptiveavgpool/problem_description.hpp>
 #include "miopen/kernel_build_params.hpp"
 #include "miopen/kernel_info.hpp"
+#include "miopen/mlo_internal.hpp"
 
 namespace miopen {
 

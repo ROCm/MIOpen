@@ -45,37 +45,19 @@ namespace adaptiveavgpool {
 
 bool IsOverRocmFwd3d(const miopen::adaptiveavgpool::FwdProblemDescription& problem)
 {
-    auto dtype      = problem.GetOutputDesc().GetType();
-    auto in_nelems  = problem.GetInputDesc().GetElementSize();
-    auto out_nelems = problem.GetOutputDesc().GetElementSize();
-    auto mul_nc = problem.GetOutputDesc().GetLengths()[0] * problem.GetOutputDesc().GetLengths()[1];
-    auto N      = problem.GetOutputDesc().GetLengths()[0];
+    auto in_nelems   = problem.GetInputDesc().GetElementSize();
+    auto out_nelems  = problem.GetOutputDesc().GetElementSize();
     auto in_over_out = static_cast<float>(in_nelems) / out_nelems;
 
-    std::cout << "in_over_out: " << in_over_out << std::endl;
-    std::cout << "in_nelems: " << in_nelems << std::endl;
-    std::cout << "out_nelems: " << out_nelems << std::endl;
-
-    if(dtype == miopenFloat)
+    if(problem.IsAllContiguous())
     {
-        if(in_over_out < 2 || in_over_out >= 262144 || (out_nelems >= 10125000 && N > 4))
-        {
+        if(in_over_out <= 98)
             return true;
-        }
     }
-    else if(dtype == miopenHalf)
+    else
     {
-        if(in_nelems >= 201326592 || (in_over_out < 2 && mul_nc < 8192))
-        {
+        if(in_over_out < 8000)
             return true;
-        }
-    }
-    else if(dtype == miopenBFloat16)
-    {
-        if((out_nelems >= 5971968 && in_over_out < 2) || out_nelems >= 74088000)
-        {
-            return true;
-        }
     }
     return false;
 }

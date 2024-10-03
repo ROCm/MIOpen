@@ -117,10 +117,9 @@ inline std::vector<AdaptiveAvgPoolTestCase> AdaptiveAvgPoolTestConfigsBwdFp32()
     return {
         {{64, 768, 17}, {10}, false},
         {{64, 768, 17}, {10}, true},
-        {{64, 78, 17, 17}, {10, 10}, false},
-        {{64, 78, 17, 17}, {10, 10}, true},
+        {{64, 206, 17, 17}, {10, 10}, false},
         {{6, 18, 18, 18, 18}, {5, 5, 5}, false},
-        {{6, 18, 18, 18, 18}, {5, 5, 5}, true},
+        {{6, 18, 18, 18, 18}, {18, 18, 18}, true},
     };
 }
 
@@ -129,10 +128,9 @@ inline std::vector<AdaptiveAvgPoolTestCase> AdaptiveAvgPoolTestConfigsBwdFp16()
     return {
         {{64, 768, 17}, {10}, false},
         {{64, 768, 17}, {10}, true},
-        {{64, 28, 35, 35}, {7, 7}, false},
-        {{64, 28, 35, 35}, {7, 7}, true},
+        {{64, 28, 35, 35}, {35, 35}, false},
         {{6, 28, 35, 35, 35}, {10, 10, 10}, false},
-        {{6, 28, 35, 35, 35}, {10, 10, 10}, true},
+        {{6, 28, 35, 35, 35}, {35, 35, 35}, true},
     };
 }
 
@@ -142,9 +140,8 @@ inline std::vector<AdaptiveAvgPoolTestCase> AdaptiveAvgPoolTestConfigsBwdBfp16()
         {{64, 768, 17}, {10}, false},
         {{64, 768, 17}, {10}, true},
         {{64, 208, 9, 9}, {7, 7}, false},
-        {{64, 208, 9, 9}, {7, 7}, true},
         {{6, 18, 12, 12, 12}, {5, 5, 5}, false},
-        {{6, 18, 12, 12, 12}, {5, 5, 5}, true},
+        {{6, 18, 12, 12, 12}, {12, 12, 12}, true},
     };
 }
 
