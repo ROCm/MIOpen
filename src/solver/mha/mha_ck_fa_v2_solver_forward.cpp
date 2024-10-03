@@ -96,17 +96,17 @@ bool MhaCKFlashAttentionV2Forward::IsApplicable(
            && H_q == H_k   // Replace with H_q % H_k == 0 once we add support for MQA & GQA.
            && H_q <= 256   //
            && H_q % 8 == 0 // No padding support yet which means it needs to be multiple of 8.
-           && descsFwd.kDesc.IsPacked()                 //
-           && descsFwd.qDesc.IsPacked()                 //
-           && descsFwd.vDesc.IsPacked()                 //
-           && descsFwd.oDesc.IsPacked()                 //
-           && descsFwd.biasDesc.IsPacked()              //
+           && descsFwd.kDesc.IsPacked()    //
+           && descsFwd.qDesc.IsPacked()    //
+           && descsFwd.vDesc.IsPacked()    //
+           && descsFwd.oDesc.IsPacked()    //
+           && descsFwd.biasDesc.IsPacked() //
            //&& descsFwd.biasDesc.GetType() == miopenHalf //
-           && descsFwd.kDesc.GetType() == miopenHalf    //
-           && descsFwd.qDesc.GetType() == miopenHalf    //
-           && descsFwd.vDesc.GetType() == miopenHalf    //
-           && descsFwd.oDesc.GetType() == miopenHalf    //
-           && D_stride_k == 1                           // CK requires D stride as 1.
+           && descsFwd.kDesc.GetType() == miopenHalf //
+           && descsFwd.qDesc.GetType() == miopenHalf //
+           && descsFwd.vDesc.GetType() == miopenHalf //
+           && descsFwd.oDesc.GetType() == miopenHalf //
+           && D_stride_k == 1                        // CK requires D stride as 1.
            && D_stride_q == 1 && D_stride_v == 1 && D_stride_o == 1;
 #else
     return false;
@@ -220,7 +220,7 @@ MhaCKFlashAttentionV2Forward::GetSolution([[maybe_unused]] const ExecutionContex
             fmha_runtime_args.o_ptr        = dataFwd.oData;
 
             fmha_runtime_traits.bias_type = bias_enum::no_bias;
-            fmha_runtime_args.bias_ptr = nullptr;
+            fmha_runtime_args.bias_ptr    = nullptr;
 
             // Top-left causal mask
             if(dataFwd.mask == miopenMhaMask_t::miopenMhaMaskCausal)
