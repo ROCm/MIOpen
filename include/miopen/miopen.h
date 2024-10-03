@@ -70,6 +70,8 @@
  * @defgroup SGD
  * @defgroup getitem
  * @defgroup ReduceCalculation
+ * @defgroup RotaryPositionalEmbeddings
+ * @defgroup ReLU
  * @defgroup avgpool
  *
  */
@@ -7620,6 +7622,115 @@ MIOPEN_EXPORT miopenStatus_t miopenGetitemBackward(miopenHandle_t handle,
 
 /** @} */
 // CLOSEOUT GETITEM DOXYGEN GROUP
+#endif // MIOPEN_BETA_API
+
+#ifdef MIOPEN_BETA_API
+// RotaryPositionalEmbeddings APIs
+/** @addtogroup RotaryPositionalEmbeddings
+ *
+ *  @{
+ */
+/*! @brief Execute a rope forward layer
+ *
+ * @param [in]   handle         MIOpen handle
+ * @param [in]   xDesc          Tensor descriptor for data input tensor x
+ * @param [in]   x              Data tensor x
+ * @param [in]   cosDesc        Tensor descriptor for data input tensor cos
+ * @param [in]   cos            Data tensor cos
+ * @param [in]   sinDesc        Tensor descriptor for data input tensor sin
+ * @param [in]   sin            Data tensor sin
+ * @param [in]   yDesc          Tensor descriptor for output data tensor y
+ * @param [out]  y              Data tensor y
+ * @return                      miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenRoPEForward(miopenHandle_t handle,
+                                               const miopenTensorDescriptor_t xDesc,
+                                               const void* x,
+                                               const miopenTensorDescriptor_t cosDesc,
+                                               const void* cos,
+                                               const miopenTensorDescriptor_t sinDesc,
+                                               const void* sin,
+                                               const miopenTensorDescriptor_t yDesc,
+                                               void* y);
+
+/*! @brief Execute a rope backward layer
+ *
+ * @param [in]   handle         MIOpen handle
+ * @param [in]   dyDesc         Tensor descriptor for data input tensor dy
+ * @param [in]   dy             Data tensor dy
+ * @param [in]   cosDesc        Tensor descriptor for output data tensor cos
+ * @param [in]   cos            Data tensor cos
+ * @param [in]   sinDesc        Tensor descriptor for data input tensor sin
+ * @param [in]   sin            Data tensor sin
+ * @param [in]   dxDesc         Tensor descriptor for output data tensor dx
+ * @param [out]  dx             Data tensor dx
+ * @return                      miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenRoPEBackward(miopenHandle_t handle,
+                                                const miopenTensorDescriptor_t dyDesc,
+                                                const void* dy,
+                                                const miopenTensorDescriptor_t cosDesc,
+                                                const void* cos,
+                                                const miopenTensorDescriptor_t sinDesc,
+                                                const void* sin,
+                                                const miopenTensorDescriptor_t dxDesc,
+                                                void* dx);
+/** @} */
+// CLOSEOUT ROPE DOXYGEN GROUP
+#endif // MIOPEN_BETA_API
+
+#ifdef MIOPEN_BETA_API
+/** @addtogroup ReLU
+ *
+ *  @{
+ */
+
+/*! @brief Helper function to query the minimum workspace size required by the PReLU backward call
+ *
+ * @param handle                   MIOpen Handle (input)
+ * @param inputDesc                Tensor descriptor for input tensor (input)
+ * @param weightDesc               Tensor descriptor for weight tensor (input)
+ * @param sizeInBytes              Pointer to data to return the minimum workspace size
+ * @return                         miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenGetPReLUBackwardWorkspaceSize(miopenHandle_t handle,
+                                    miopenTensorDescriptor_t inputDesc,
+                                    miopenTensorDescriptor_t weightDesc,
+                                    size_t* sizeInBytes);
+
+/*! @brief Execute a PReLU backward layer
+ *
+ * @param handle                   MIOpen handle (input)
+ * @param workspace                Address of the allocated workspace data (input)
+ * @param workspaceSizeInBytes     Size in bytes of the allocated workspace data (input)
+ * @param inputDesc                Tensor descriptor for input tensor (input)
+ * @param input                    Data tensor input (input)
+ * @param weightDesc               Tensor descriptor for weight tensor (input)
+ * @param weight                   Data tensor weight (input)
+ * @param doutputDesc              Tensor descriptor for output gradient (input)
+ * @param doutput                  Gradient of output (input)
+ * @param dinputDesc               Tensor descriptor for input gradient (input)
+ * @param dinput                   Gradient of input (output)
+ * @param dweightDesc              Tensor descriptor for weight gradient (input)
+ * @param dweight                  Gradient of weight (output)
+ */
+MIOPEN_EXPORT miopenStatus_t miopenPReLUBackward(miopenHandle_t handle,
+                                                 void* workspace,
+                                                 size_t workspaceSizeInBytes,
+                                                 miopenTensorDescriptor_t inputDesc,
+                                                 const void* input,
+                                                 miopenTensorDescriptor_t weightDesc,
+                                                 const void* weight,
+                                                 miopenTensorDescriptor_t doutputDesc,
+                                                 const void* doutput,
+                                                 miopenTensorDescriptor_t dinputDesc,
+                                                 void* dinput,
+                                                 miopenTensorDescriptor_t dweightDesc,
+                                                 void* dweight);
+
+/** @} */
+// CLOSEOUT RELU DOXYGEN GROUP
 #endif // MIOPEN_BETA_API
 
 #ifdef MIOPEN_BETA_API
