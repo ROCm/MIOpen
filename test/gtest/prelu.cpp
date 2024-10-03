@@ -25,31 +25,8 @@
  *******************************************************************************/
 
 #include "prelu.hpp"
-#include <miopen/env.hpp>
-
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 
 namespace prelu {
-
-std::string GetFloatArg()
-{
-    const auto& tmp = env::value(MIOPEN_TEST_FLOAT_ARG);
-    if(tmp.empty())
-    {
-        return "";
-    }
-    return tmp;
-}
-
-bool CheckFloatArg(std::string arg)
-{
-    if(!MIOPEN_TEST_ALL || (env::enabled(MIOPEN_TEST_ALL) && GetFloatArg() == arg))
-    {
-        return true;
-    }
-    return false;
-}
 
 struct GPU_PReLU_bwd_FP32 : PReLUTest<float>
 {
@@ -68,41 +45,20 @@ using namespace prelu;
 
 TEST_P(GPU_PReLU_bwd_FP32, Test)
 {
-    if(CheckFloatArg("--float"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 };
 
 TEST_P(GPU_PReLU_bwd_FP16, Test)
 {
-    if(CheckFloatArg("--half"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 };
 
 TEST_P(GPU_PReLU_bwd_BFP16, Test)
 {
-    if(CheckFloatArg("--bfloat16"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 };
 
 INSTANTIATE_TEST_SUITE_P(Smoke, GPU_PReLU_bwd_FP32, testing::ValuesIn(PReLUSmokeTestConfigs()));
