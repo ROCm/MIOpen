@@ -33,7 +33,7 @@
 template <typename Tgpu, typename Tcheck>
 int32_t mloAdaptiveAvgPoolForward1dRunHost(const miopenTensorDescriptor_t inputDesc,
                                            const miopenTensorDescriptor_t outputDesc,
-                                           Tgpu* input,
+                                           const Tgpu* input,
                                            Tcheck* output,
                                            size_t N,
                                            size_t C,
@@ -71,7 +71,7 @@ int32_t mloAdaptiveAvgPoolForward1dRunHost(const miopenTensorDescriptor_t inputD
 template <typename Tgpu, typename Tcheck>
 int32_t mloAdaptiveAvgPoolForward2dRunHost(const miopenTensorDescriptor_t inputDesc,
                                            const miopenTensorDescriptor_t outputDesc,
-                                           Tgpu* input,
+                                           const Tgpu* input,
                                            Tcheck* output,
                                            size_t N,
                                            size_t C,
@@ -119,7 +119,7 @@ int32_t mloAdaptiveAvgPoolForward2dRunHost(const miopenTensorDescriptor_t inputD
 template <typename Tgpu, typename Tcheck>
 int32_t mloAdaptiveAvgPoolForward3dRunHost(const miopenTensorDescriptor_t inputDesc,
                                            const miopenTensorDescriptor_t outputDesc,
-                                           Tgpu* input,
+                                           const Tgpu* input,
                                            Tcheck* output,
                                            size_t N,
                                            size_t C,
@@ -177,7 +177,7 @@ int32_t mloAdaptiveAvgPoolForward3dRunHost(const miopenTensorDescriptor_t inputD
 template <typename Tgpu, typename Tcheck>
 int32_t mloAdaptiveAvgPoolBackward1dRunHost(const miopenTensorDescriptor_t outputGradDesc,
                                             const miopenTensorDescriptor_t inputGradDesc,
-                                            Tgpu* output_grad,
+                                            const Tgpu* output_grad,
                                             Tcheck* input_grad,
                                             size_t N,
                                             size_t C,
@@ -218,7 +218,7 @@ int32_t mloAdaptiveAvgPoolBackward1dRunHost(const miopenTensorDescriptor_t outpu
 template <typename Tgpu, typename Tcheck>
 int32_t mloAdaptiveAvgPoolBackward2dRunHost(const miopenTensorDescriptor_t outputGradDesc,
                                             const miopenTensorDescriptor_t inputGradDesc,
-                                            Tgpu* output_grad,
+                                            const Tgpu* output_grad,
                                             Tcheck* input_grad,
                                             size_t N,
                                             size_t C,
@@ -271,7 +271,7 @@ int32_t mloAdaptiveAvgPoolBackward2dRunHost(const miopenTensorDescriptor_t outpu
 template <typename Tgpu, typename Tcheck>
 int32_t mloAdaptiveAvgPoolBackward3dRunHost(const miopenTensorDescriptor_t outputGradDesc,
                                             const miopenTensorDescriptor_t inputGradDesc,
-                                            Tgpu* output_grad,
+                                            const Tgpu* output_grad,
                                             Tcheck* input_grad,
                                             size_t N,
                                             size_t C,
