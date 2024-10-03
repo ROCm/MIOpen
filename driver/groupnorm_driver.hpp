@@ -41,7 +41,7 @@
 #include <numeric>
 #include <vector>
 #include <miopen/gpuMemTensor.hpp>
-#include "random.hpp"
+#include <miopen/random.hpp>
 
 template <typename Tgpu, typename Tref>
 class GroupNormDriver : public Driver

@@ -30,7 +30,7 @@
 #include "driver.hpp"
 #include "tensor_driver.hpp"
 #include "timer.hpp"
-#include "random.hpp"
+#include <miopen/random.hpp>
 #include <algorithm>
 #include <cfloat>
 #include <cstdlib>

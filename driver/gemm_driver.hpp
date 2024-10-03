@@ -31,7 +31,7 @@
 #if MIOPEN_USE_GEMM
 #include "InputFlags.hpp"
 #include "driver.hpp"
-#include "random.hpp"
+#include <miopen/random.hpp>
 #include "util_driver.hpp"
 
 #include <../test/verify.hpp>

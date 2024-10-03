@@ -30,7 +30,7 @@
 #include <../test/verify.hpp>
 #include "InputFlags.hpp"
 #include "driver.hpp"
-#include "random.hpp"
+#include <miopen/random.hpp>
 #include "tensor_driver.hpp"
 #include "timer.hpp"
 #include <algorithm>

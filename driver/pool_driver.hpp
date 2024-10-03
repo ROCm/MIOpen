@@ -30,7 +30,7 @@
 #include "driver.hpp"
 #include "mloConvHost.hpp"
 #include "mloPoolingHost.hpp"
-#include "random.hpp"
+#include <miopen/random.hpp>
 #include "tensor_driver.hpp"
 #include "timer.hpp"
 #include "util_driver.hpp"

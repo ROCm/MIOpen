@@ -31,7 +31,7 @@
 #include "conv_common.hpp"
 #include "driver.hpp"
 #include "mloConvHost.hpp"
-#include "random.hpp"
+#include <miopen/random.hpp>
 #include <miopen/rocrand_wrapper.hpp>
 #include "tensor_driver.hpp"
 #include "timer.hpp"

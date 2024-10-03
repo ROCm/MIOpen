@@ -31,7 +31,7 @@
 #include "gru_verify_gemm.hpp"
 #include "lstm_verify_gemm.hpp"
 #include "mloConvHost.hpp"
-#include "random.hpp"
+#include <miopen/random.hpp>
 #include "rnn_verify_gemm.hpp"
 #include "tensor_driver.hpp"
 #include "timer.hpp"
