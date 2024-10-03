@@ -1,7 +1,7 @@
 #include <gtest/ai_heuristics.hpp>
 #include "../tensor_holder.hpp"
 #include "get_handle.hpp"
-#include <miopen/solver.hpp>
+#include <miopen/conv/solvers.hpp>
 #include <miopen/conv/heuristics/ai_heuristics.hpp>
 
 struct KernelTuningNetTestCase : AIModelTestCase
@@ -34,7 +34,7 @@ std::vector<KernelTuningNetTestCase> GetConvHipIgemmGroupFwdXdlopsTestCases()
           miopenFloat,
           miopenTensorNHWC},
          "DeviceGroupedConvFwdMultipleABD_Xdl_CShuffle<256, 128, 128, 16, Default, 32, 32, 2, 2, "
-         "4, 4, 4, 1, 1>",
+         "4, 4, 4, 1, 1, 1>",
          "gfx90a"},
         {{{16, 256, 2016, 192, {7, 7}, {1, 1}, {0, 0}, {1, 1}, {1, 1}},
           miopen::conv::Direction::Forward,
