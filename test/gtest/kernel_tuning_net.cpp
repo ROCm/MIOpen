@@ -1,5 +1,5 @@
 #include <gtest/ai_heuristics.hpp>
-#include "../tensor_holder.hpp"
+#include <miopen/tensor_holder.hpp>
 #include "get_handle.hpp"
 #include <miopen/conv/solvers.hpp>
 #include <miopen/conv/heuristics/ai_heuristics.hpp>
