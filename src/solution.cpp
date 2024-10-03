@@ -394,14 +394,13 @@ void Solution::RunImpl(Handle& handle,
         }
     }();
 
-     if(invoker)
+    if(invoker)
     {
         (*invoker)(handle, invoke_ctx);
         return;
     }
 
-    auto getSolution = [&](const ExecutionContext& ctx)
-    {
+    auto getSolution = [&](const ExecutionContext& ctx) {
         auto solverId = GetSolver();
         solver::mha::MhaForward mhaForward;
         solver::mha::MhaBackward mhaBackward;
@@ -443,7 +442,7 @@ void Solution::RunImpl(Handle& handle,
         return;
     }
 
-    auto ctx = ExecutionContext{&handle};
+    auto ctx                = ExecutionContext{&handle};
     const auto mha_solution = getSolution(ctx);
 
     invoker =
