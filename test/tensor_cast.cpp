@@ -37,7 +37,7 @@
 #include <cstdlib>
 #include "driver.hpp"
 #include "get_handle.hpp"
-#include "tensor_holder.hpp"
+#include <miopen/tensor_holder.hpp>
 #include "verify.hpp"
 
 template <class T>

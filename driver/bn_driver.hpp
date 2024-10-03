@@ -33,7 +33,7 @@
 #include "tensor_driver.hpp"
 #include "timer.hpp"
 #include "util_driver.hpp"
-#include "rocrand_wrapper.hpp"
+#include <miopen/rocrand_wrapper.hpp>
 
 #include "../test/verify.hpp"
 #include "../test/random.hpp"
@@ -42,6 +42,7 @@
 #include <miopen/handle.hpp>
 #include <miopen/miopen.h>
 #include <miopen/tensor.hpp>
+#include <miopen/gpuMemTensor.hpp>
 #include "miopen/batch_norm.hpp"
 
 #include <algorithm>

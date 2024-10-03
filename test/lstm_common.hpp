@@ -31,7 +31,7 @@
 #include "driver.hpp"
 #include "dropout_util.hpp"
 #include "get_handle.hpp"
-#include "tensor_holder.hpp"
+#include <miopen/tensor_holder.hpp>
 #include "test.hpp"
 #include "verify.hpp"
 #include "rnn_util.hpp"

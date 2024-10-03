@@ -27,7 +27,7 @@
 
 #include "get_handle.hpp"
 #include "mha_helper.hpp"
-#include "tensor_holder.hpp"
+#include <miopen/tensor_holder.hpp>
 #include "verify.hpp"
 #include "gtest_common.hpp"
 #include "../workspace.hpp"

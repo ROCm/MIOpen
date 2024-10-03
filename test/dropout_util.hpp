@@ -39,8 +39,7 @@
 #include <miopen/dropout.hpp>
 #include <miopen/miopen.h>
 #include <miopen/tensor.hpp>
-
-#include "ford.hpp"
+#include <miopen/ford.hpp>
 
 // disable __device__ qualifiers
 #ifdef FQUALIFIERS

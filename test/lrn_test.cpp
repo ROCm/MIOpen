@@ -27,7 +27,7 @@
 #include "test.hpp"
 #include "verify.hpp"
 #include "get_handle.hpp"
-#include "tensor_holder.hpp"
+#include <miopen/tensor_holder.hpp>
 #include <miopen/miopen.h>
 #include <miopen/tensor.hpp>
 #include <miopen/stringutils.hpp>

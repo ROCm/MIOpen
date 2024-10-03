@@ -31,7 +31,7 @@
 #include <miopen/tensor.hpp>
 
 #include "driver.hpp"
-#include "tensor_holder.hpp"
+#include <miopen/tensor_holder.hpp>
 
 template <class T>
 struct check_numerics_base

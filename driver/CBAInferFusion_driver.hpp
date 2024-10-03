@@ -41,6 +41,7 @@
 #include <miopen/handle.hpp>
 #include <miopen/miopen.h>
 #include <miopen/tensor.hpp>
+#include <miopen/gpuMemTensor.hpp>
 
 #include <algorithm>
 #include <cassert>

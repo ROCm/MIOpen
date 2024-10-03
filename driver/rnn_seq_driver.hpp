@@ -45,6 +45,7 @@
 #include <miopen/rnn.hpp>
 #include <miopen/tensor.hpp>
 #include <miopen/tensor_ops.hpp>
+#include <miopen/gpuMemTensor.hpp>
 
 #include <algorithm>
 #include <array>

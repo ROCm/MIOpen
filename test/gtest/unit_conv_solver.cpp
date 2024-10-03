@@ -32,7 +32,7 @@
 #include "get_handle.hpp"
 #include "conv_common.hpp"
 #include "conv_tensor_gen.hpp"
-#include "tensor_holder.hpp"
+#include <miopen/tensor_holder.hpp>
 
 #include "../workspace.hpp"
 

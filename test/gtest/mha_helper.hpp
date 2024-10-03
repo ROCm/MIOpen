@@ -23,7 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include "tensor_holder.hpp"
+#include <miopen/tensor_holder.hpp>
 #include "conv_tensor_gen.hpp"
 
 #include <hip_float8.hpp>

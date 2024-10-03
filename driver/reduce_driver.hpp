@@ -40,6 +40,7 @@
 #include <miopen/miopen.h>
 #include <miopen/reduce_common.hpp>
 #include <miopen/tensor.hpp>
+#include <miopen/gpuMemTensor.hpp>
 
 #include <half/half.hpp>
 

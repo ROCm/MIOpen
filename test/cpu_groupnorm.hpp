@@ -26,7 +26,7 @@
 #ifndef GUARD_CPU_GROUPNORM_HPP
 #define GUARD_CPU_GROUPNORM_HPP
 
-#include "tensor_holder.hpp"
+#include <miopen/tensor_holder.hpp>
 
 template <class T>
 void cpu_groupnorm_forward(tensor<T> input,

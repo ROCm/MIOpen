@@ -28,7 +28,7 @@
 #include <miopen/miopen.h>
 #include <iostream>
 
-#include "tensor_holder.hpp"
+#include <miopen/tensor_holder.hpp>
 #include "conv_common.hpp"
 #include "conv_tensor_gen.hpp"
 

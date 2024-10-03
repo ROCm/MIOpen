@@ -40,7 +40,7 @@
 #include <miopen/tensor.hpp>
 #include <numeric>
 #include <vector>
-#include <../test/tensor_holder.hpp>
+#include <miopen/gpuMemTensor.hpp>
 #include "random.hpp"
 
 template <typename Tgpu, typename Tref>

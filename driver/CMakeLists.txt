@@ -59,8 +59,7 @@ add_executable(MIOpenDriver
     dm_tensorop.cpp
     dm_transformers_adam_w.cpp
     main.cpp
-    registry_driver_maker.cpp
-    rocrand_wrapper.cpp)
+    registry_driver_maker.cpp)
 if(WIN32)
     # Refer to https://en.cppreference.com/w/cpp/language/types for details.
     target_compile_options(MIOpenDriver PRIVATE $<BUILD_INTERFACE:$<$<CXX_COMPILER_ID:Clang>:-U__LP64__>>)

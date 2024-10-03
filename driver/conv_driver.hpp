@@ -32,7 +32,7 @@
 #include "driver.hpp"
 #include "mloConvHost.hpp"
 #include "random.hpp"
-#include "rocrand_wrapper.hpp"
+#include <miopen/rocrand_wrapper.hpp>
 #include "tensor_driver.hpp"
 #include "timer.hpp"
 #include "util_driver.hpp"
@@ -49,11 +49,11 @@
 #include <miopen/miopen_internal.h>
 #include <miopen/conv/solvers.hpp>
 #include <miopen/tensor.hpp>
+#include <miopen/gpuMemTensor.hpp>
 
 #include <../test/cpu_bias.hpp>
 #include <../test/cpu_conv.hpp>
-#include <../test/serialize.hpp>
-#include <../test/tensor_holder.hpp>
+#include <miopen/serialize.hpp>
 #include <../test/verify.hpp>
 
 #include <boost/optional.hpp>

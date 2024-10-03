@@ -38,6 +38,7 @@
 
 #include <miopen/gemm_v2.hpp>
 #include <miopen/miopen.h>
+#include <miopen/gpuMemTensor.hpp>
 
 #include <algorithm>
 #include <cstdlib>

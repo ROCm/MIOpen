@@ -25,7 +25,7 @@
  *******************************************************************************/
 
 #include "driver.hpp"
-#include "tensor_holder.hpp"
+#include <miopen/tensor_holder.hpp>
 #include "test.hpp"
 #include "verify.hpp"
 #include <array>

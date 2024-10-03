@@ -37,6 +37,7 @@
 #include <miopen/float_equal.hpp>
 #include <miopen/miopen.h>
 #include <miopen/tensor.hpp>
+#include <miopen/gpuMemTensor.hpp>
 
 template <typename Tgpu, typename Tref>
 class TensorOpDriver : public Driver
