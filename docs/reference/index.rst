@@ -38,4 +38,4 @@ The MIOpen API library is structured as follows:
   * :doc:`RotaryPositionalEmbeddings <../doxygen/html/group__RotaryPositionalEmbeddings>` (experimental)
   * :doc:`ReLU <../doxygen/html/group___re_l_u>` (experimental)
   * :doc:`GLU <../doxygen/html/group__glu>` (experimental)
-  * :doc:`NLLLoss<../doxygen/html/group__nllloss>` (experimental)
+  * :doc:`NLLLoss <../doxygen/html/group__nllloss>` (experimental)
