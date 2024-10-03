@@ -29,7 +29,7 @@
 #include <miopen/miopen.h>
 #include <miopen/solver_id.hpp>
 #include <miopen/batchnorm/problem_description.hpp>
-#include <serialize.hpp>
+#include <miopen/serialize.hpp>
 #include <fusionHost.hpp>
 
 #include "tensor_util.hpp"

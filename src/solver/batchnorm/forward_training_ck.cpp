@@ -196,11 +196,11 @@ bool BnCKFwdTraining::IsApplicable(
 
     switch(bn_problem.GetXDesc().GetType())
     {
-    case miopenHalf: return CheckCKApplicability<F16, F16, F32, F16, F16, F32>(bn_problem);
+    case miopenHalf: return CheckCKApplicability<F16, F16, F16, F16, F16, F16>(bn_problem);
     case miopenFloat: return CheckCKApplicability<F32, F32, F32, F32, F32, F32>(bn_problem);
     case miopenDouble: return CheckCKApplicability<F64, F64, F64, F64, F64, F64>(bn_problem);
     case miopenBFloat16: {
-        bool var = CheckCKApplicability<BF16, BF16, F32, BF16, BF16, F32>(bn_problem);
+        bool var = CheckCKApplicability<BF16, BF16, BF16, BF16, BF16, BF16>(bn_problem);
         return var;
     }
     case miopenInt64:
@@ -223,8 +223,9 @@ ConvSolution BnCKFwdTraining::GetSolution(
 
     case miopenFloat: return MakeAnyInvokerFactory<F32, F32, F32, F32, F32, F32>(bn_problem);
     case miopenDouble: return MakeAnyInvokerFactory<F64, F64, F64, F64, F64, F64>(bn_problem);
-    case miopenHalf: return MakeAnyInvokerFactory<F16, F16, F32, F16, F16, F32>(bn_problem);
-    case miopenBFloat16: return MakeAnyInvokerFactory<BF16, BF16, F32, BF16, BF16, F32>(bn_problem);
+    case miopenHalf: return MakeAnyInvokerFactory<F16, F16, F16, F16, F16, F16>(bn_problem);
+    case miopenBFloat16:
+        return MakeAnyInvokerFactory<BF16, BF16, BF16, BF16, BF16, BF16>(bn_problem);
     case miopenInt8:
     case miopenInt32:
     case miopenInt64:

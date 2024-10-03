@@ -40,7 +40,6 @@
 #include <miopen/tensor.hpp>
 #include <utility>
 
-// #include "network_data.hpp"
 #include "driver.hpp"
 #include "get_handle.hpp"
 #include <miopen/tensor_holder.hpp>

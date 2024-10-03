@@ -32,7 +32,7 @@
 #include <miopen/problem.hpp>
 #include <miopen/solver_id.hpp>
 #include <miopen/fusion/fusion_invoke_params.hpp>
-#include <serialize.hpp>
+#include <miopen/serialize.hpp>
 #include <fusionHost.hpp>
 
 #include "tensor_util.hpp"

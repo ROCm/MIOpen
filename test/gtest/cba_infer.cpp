@@ -26,7 +26,7 @@
 #include <gtest/gtest.h>
 #include <miopen/miopen.h>
 #include <miopen/solver_id.hpp>
-#include <serialize.hpp>
+#include <miopen/serialize.hpp>
 #include <fusionHost.hpp>
 #include <miopen/fusion.hpp>
 #include <miopen/fusion/solvers.hpp>
