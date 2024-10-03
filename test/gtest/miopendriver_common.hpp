@@ -39,9 +39,6 @@
 using ::testing::HasSubstr;
 using ::testing::Not;
 
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_WITH_MIOPENDRIVER)
-
 namespace miopendriver::basearg {
 namespace conv {
 static const std::string Float    = "conv";
@@ -107,26 +104,8 @@ RunMIOpenDriverTestCommand(const std::vector<std::string>& params,
     }
 }
 
-static inline bool CheckFloatCondition(std::string_view floatArg)
-{
-    return env::enabled(MIOPEN_TEST_WITH_MIOPENDRIVER) &&
-           env::value(MIOPEN_TEST_FLOAT_ARG) == floatArg;
-}
-
-static inline bool CheckFloatAndAllCondition(std::string_view floatArg)
-{
-    return env::enabled(MIOPEN_TEST_ALL) && CheckFloatCondition(floatArg);
-}
-
 template <typename disabled_mask, typename enabled_mask>
-static inline bool ShouldRunMIOpenDriverTest(const std::string& floatArg, bool skipUnlessAllEnabled)
+static inline bool ShouldRunMIOpenDriverTest()
 {
-    if(skipUnlessAllEnabled)
-    {
-        return ShouldRunTestCase<disabled_mask, enabled_mask>(
-            [&]() { return CheckFloatAndAllCondition(floatArg); });
-    }
-
-    return ShouldRunTestCase<disabled_mask, enabled_mask>(
-        [&]() { return CheckFloatCondition(floatArg); });
+    return ShouldRunTestCase<disabled_mask, enabled_mask>();
 }
