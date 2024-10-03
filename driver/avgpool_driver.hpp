@@ -56,6 +56,7 @@ public:
         data_type = miopen_type<Tgpu>{};
     }
 
+    std::vector<int> ComputeStrides(std::vector<int> input);
     int AddCmdLineArgs() override;
     int ParseCmdLineArgs(int argc, char* argv[]) override;
     InputFlags& GetInputFlags() override { return inflags; }
@@ -103,22 +104,24 @@ private:
     std::vector<Tgpu> input_grad;
     std::vector<Tref> input_grad_host;
     std::vector<Tgpu> output_grad;
-    std::vector<int32_t> ksize;
-    std::vector<int32_t> stride;
-    std::vector<int32_t> padding;
+    std::vector<int64_t> ksize;
+    std::vector<int64_t> stride;
+    std::vector<int64_t> padding;
 
     bool ceil_mode;
     bool count_include_pad;
-    int32_t divisor_override;
-    int32_t N, C, D, H, W, OD, OH, OW;
+    int64_t divisor_override;
+    int64_t N, C, D, H, W, OD, OH, OW;
 
     std::vector<int> in_dim;
+    bool isContiguous;
 };
 
 template <typename Tgpu, typename Tref>
 int AvgPoolDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
 {
     inflags.Parse(argc, argv);
+    isContiguous = inflags.GetValueInt("is-contiguous") == 1 ? true : false;
 
     if(inflags.GetValueInt("time") == 1)
     {
@@ -160,11 +163,12 @@ std::vector<int> AvgPoolDriver<Tgpu, Tref>::GetInputTensorDimsFromCmd(const char
 template <typename Tgpu, typename Tref>
 int AvgPoolDriver<Tgpu, Tref>::GetandSetData()
 {
-    in_dim      = GetInputTensorDimsFromCmd("input_dims");
-    int ksp_dim = in_dim.size() - 2;
-    ksize       = GetInputTensorDimsFromCmd("kernel_size");
-    stride      = GetInputTensorDimsFromCmd("stride");
-    padding     = GetInputTensorDimsFromCmd("padding");
+    in_dim                     = GetInputTensorDimsFromCmd("input_dims");
+    std::vector<int> in_stride = ComputeStrides(in_dim);
+    int ksp_dim                = in_dim.size() - 2;
+    ksize                      = GetInputTensorDimsFromCmd("kernel_size");
+    stride                     = GetInputTensorDimsFromCmd("stride");
+    padding                    = GetInputTensorDimsFromCmd("padding");
 
     if(ksize.size() != ksp_dim)
     {
@@ -195,7 +199,7 @@ int AvgPoolDriver<Tgpu, Tref>::GetandSetData()
     H = in_dim.size() == 5 ? in_dim[3] : in_dim[2];
     W = in_dim.size() == 5 ? in_dim[4] : in_dim[3];
 
-    std::vector<int32_t> out_dim;
+    std::vector<int64_t> out_dim;
     if(in_dim.size() == 5)
     {
         if(ceil_mode)
@@ -210,7 +214,7 @@ int AvgPoolDriver<Tgpu, Tref>::GetandSetData()
             OH = std::floor(static_cast<float>(H - ksize[1] + 2 * padding[1]) / stride[1]) + 1;
             OW = std::floor(static_cast<float>(W - ksize[2] + 2 * padding[2]) / stride[2]) + 1;
         }
-        out_dim = std::vector<int32_t>{N, C, OD, OH, OW};
+        out_dim = std::vector<int64_t>{N, C, OD, OH, OW};
     }
     else
     {
@@ -224,14 +228,30 @@ int AvgPoolDriver<Tgpu, Tref>::GetandSetData()
             OH = std::floor(static_cast<float>(H - ksize[0] + 2 * padding[0]) / stride[0]) + 1;
             OW = std::floor(static_cast<float>(W - ksize[1] + 2 * padding[1]) / stride[1]) + 1;
         }
-        out_dim = std::vector<int32_t>{N, C, OH, OW};
+        out_dim = std::vector<int64_t>{N, C, OH, OW};
     }
-    SetTensorNd(inputDesc, in_dim, data_type);
+    std::vector<int> out_grad_stride = ComputeStrides(out_dim);
+    SetTensorNd(inputDesc, in_dim, in_stride, data_type);
     SetTensorNd(outputDesc, out_dim, data_type);
-    SetTensorNd(outputGradDesc, out_dim, data_type);
+    SetTensorNd(outputGradDesc, out_dim, out_grad_stride, data_type);
     SetTensorNd(inputGradDesc, in_dim, data_type);
 
     return miopenStatusSuccess;
+}
+
+// Equivalent to: tensor.tranpose(0, -1).contiguous().tranpose(0, -1) incase contiguous = False
+template <typename Tgpu, typename Tref>
+std::vector<int> AvgPoolDriver<Tgpu, Tref>::ComputeStrides(std::vector<int> inputDim)
+{
+    if(!isContiguous)
+        std::swap(inputDim.front(), inputDim.back());
+    std::vector<int> strides(inputDim.size());
+    strides.back() = 1;
+    for(int i = inputDim.size() - 2; i >= 0; --i)
+        strides[i] = strides[i + 1] * inputDim[i + 1];
+    if(!isContiguous)
+        std::swap(strides.front(), strides.back());
+    return strides;
 }
 
 template <typename Tgpu, typename Tref>

@@ -45,17 +45,17 @@ struct FwdInvokeParams : public miopen::InvokeParams
     Data_t output     = nullptr;
     ConstData_t ksize = nullptr;
 
-    int32_t KD               = 0;
-    int32_t KH               = 0;
-    int32_t KW               = 0;
-    int32_t SD               = 0;
-    int32_t SH               = 0;
-    int32_t SW               = 0;
-    int32_t PD               = 0;
-    int32_t PH               = 0;
-    int32_t PW               = 0;
+    int64_t KD               = 0;
+    int64_t KH               = 0;
+    int64_t KW               = 0;
+    int64_t SD               = 0;
+    int64_t SH               = 0;
+    int64_t SW               = 0;
+    int64_t PD               = 0;
+    int64_t PH               = 0;
+    int64_t PW               = 0;
     bool count_include_pad   = false;
-    int32_t divisor_override = 0;
+    int64_t divisor_override = 0;
 
     std::size_t GetWorkspaceSize() const { return 0; }
     Data_t GetWorkspace() const { return nullptr; }
@@ -73,17 +73,17 @@ struct BwdInvokeParams : public miopen::InvokeParams
     Data_t input_grad       = nullptr;
     ConstData_t ksize       = nullptr;
 
-    int32_t KD               = 0;
-    int32_t KH               = 0;
-    int32_t KW               = 0;
-    int32_t SD               = 0;
-    int32_t SH               = 0;
-    int32_t SW               = 0;
-    int32_t PD               = 0;
-    int32_t PH               = 0;
-    int32_t PW               = 0;
+    int64_t KD               = 0;
+    int64_t KH               = 0;
+    int64_t KW               = 0;
+    int64_t SD               = 0;
+    int64_t SH               = 0;
+    int64_t SW               = 0;
+    int64_t PD               = 0;
+    int64_t PH               = 0;
+    int64_t PW               = 0;
     bool count_include_pad   = false;
-    int32_t divisor_override = 0;
+    int64_t divisor_override = 0;
 
     std::size_t GetWorkspaceSize() const { return 0; }
     Data_t GetWorkspace() const { return nullptr; }

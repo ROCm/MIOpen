@@ -81,8 +81,7 @@ __device__ void avgPoolForward2d(const TI* __restrict__ input,
             if(w < 0 || w >= W)
                 continue;
             // int64_t input_idx = ((n * C + c) * H + h) * W + w;
-            m += CVT_FLOAT2ACCUM(
-                input[input_tv.get_tensor_view_idx(tensor_layout_t<4>(n, c, h, w))]);
+            m += CVT_FLOAT2ACCUM(input[input_tv.get_tensor_view_idx({n, c, h, w})]);
         }
     }
 
@@ -116,7 +115,7 @@ __device__ void avgPoolForward2d(const TI* __restrict__ input,
     }
     FLOAT_ACCUM val = m / divide_factor;
 
-    output[output_tv.get_tensor_view_idx(tensor_layout_t<4>(n, c, oh, ow))] = CVT_ACCUM2FLOAT(val);
+    output[output_tv.get_tensor_view_idx({n, c, oh, ow})] = CVT_ACCUM2FLOAT(val);
 }
 
 extern "C" __global__ void AvgPoolForward2d(const INPUT_TYPE* __restrict__ input,
@@ -209,8 +208,7 @@ __device__ void avgPoolForward3d(const TI* __restrict__ input,
                 if(w < 0 || w >= W)
                     continue;
                 // int64_t input_idx = ((n * C + c) * H + h) * W + w;
-                sum += CVT_FLOAT2ACCUM(
-                    input[input_tv.get_tensor_view_idx(tensor_layout_t<5>(n, c, d, h, w))]);
+                sum += CVT_FLOAT2ACCUM(input[input_tv.get_tensor_view_idx({n, c, d, h, w})]);
             }
         }
     }
@@ -245,9 +243,8 @@ __device__ void avgPoolForward3d(const TI* __restrict__ input,
             divide_factor = (dend - dstart) * (hend - hstart) * (wend - wstart);
         }
     }
-    FLOAT_ACCUM val = sum / divide_factor;
-    output[output_tv.get_tensor_view_idx(tensor_layout_t<5>(n, c, od, oh, ow))] =
-        CVT_ACCUM2FLOAT(val);
+    FLOAT_ACCUM val                                           = sum / divide_factor;
+    output[output_tv.get_tensor_view_idx({n, c, od, oh, ow})] = CVT_ACCUM2FLOAT(val);
 }
 
 extern "C" __global__ void AvgPoolForward3d(const INPUT_TYPE* __restrict__ input,
@@ -374,13 +371,12 @@ __device__ void avgPoolBackward2d(const TI* __restrict__ output_grad,
                 }
             }
 
-            grad += CVT_FLOAT2ACCUM(output_grad[output_grad_tv.get_tensor_view_idx(
-                        tensor_layout_t<4>(n, c, oh, ow))]) /
-                    divide_factor;
+            grad +=
+                CVT_FLOAT2ACCUM(output_grad[output_grad_tv.get_tensor_view_idx({n, c, oh, ow})]) /
+                divide_factor;
         }
     }
-    input_grad[input_grad_tv.get_tensor_view_idx(tensor_layout_t<4>(n, c, h, w))] =
-        CVT_ACCUM2FLOAT(grad);
+    input_grad[input_grad_tv.get_tensor_view_idx({n, c, h, w})] = CVT_ACCUM2FLOAT(grad);
 }
 
 extern "C" __global__ void AvgPoolBackward2d(const INPUT_TYPE* __restrict__ output_grad,
@@ -514,14 +510,13 @@ __device__ void avgPoolBackward3d(const TI* __restrict__ output_grad,
                         divide_factor = (dend - dstart) * (hend - hstart) * (wend - wstart);
                     }
                 }
-                grad += CVT_FLOAT2ACCUM(output_grad[output_grad_tv.get_tensor_view_idx(
-                            tensor_layout_t<5>(n, c, od, oh, ow))]) /
+                grad += CVT_FLOAT2ACCUM(
+                            output_grad[output_grad_tv.get_tensor_view_idx({n, c, od, oh, ow})]) /
                         divide_factor;
             }
         }
     }
-    input_grad[input_grad_tv.get_tensor_view_idx(tensor_layout_t<5>(n, c, d, h, w))] =
-        CVT_ACCUM2FLOAT(grad);
+    input_grad[input_grad_tv.get_tensor_view_idx({n, c, d, h, w})] = CVT_ACCUM2FLOAT(grad);
 }
 
 extern "C" __global__ void AvgPoolBackward3d(const INPUT_TYPE* __restrict__ output_grad,

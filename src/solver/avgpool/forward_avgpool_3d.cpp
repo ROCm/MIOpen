@@ -52,10 +52,6 @@ bool IsOverRocmFwd3d(const miopen::avgpool::FwdProblemDescription& problem)
     auto N      = problem.GetOutputDesc().GetLengths()[0];
     auto in_over_out = static_cast<float>(in_nelems) / out_nelems;
 
-    std::cout << "in_over_out: " << in_over_out << std::endl;
-    std::cout << "in_nelems: " << in_nelems << std::endl;
-    std::cout << "out_nelems: " << out_nelems << std::endl;
-
     if(dtype == miopenFloat)
     {
         if(in_over_out < 2 || in_over_out >= 262144 || (out_nelems >= 10125000 && N > 4))
