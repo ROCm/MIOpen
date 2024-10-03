@@ -63,7 +63,7 @@ struct AvgPoolTestCase
                   << " stride:" << tc.stride << " padding:" << tc.padding
                   << " ceil_mode:" << tc.ceil_mode << " count_include_pad:" << tc.count_include_pad
                   << " divisor_override:" << tc.divisor_override
-                  << "is_contiguous:" << tc.is_contiguous;
+                  << " is_contiguous:" << tc.is_contiguous;
     }
 
     std::vector<size_t> GetInput() const { return input_dims; }

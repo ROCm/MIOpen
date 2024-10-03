@@ -32,19 +32,19 @@
 template <typename Tgpu, typename Tcheck>
 int32_t mloAvgPoolForward2dRunHost(const miopenTensorDescriptor_t inputDesc,
                                    const miopenTensorDescriptor_t outputDesc,
-                                   Tgpu* input,
+                                   const Tgpu* input,
                                    Tcheck* output,
-                                   size_t N,
-                                   size_t C,
-                                   size_t H,
-                                   size_t W,
-                                   size_t OH,
-                                   size_t OW,
-                                   const int32_t* ksize,
-                                   const int32_t* stride,
-                                   const int32_t* padding,
+                                   int64_t N,
+                                   int64_t C,
+                                   int64_t H,
+                                   int64_t W,
+                                   int64_t OH,
+                                   int64_t OW,
+                                   const int64_t* ksize,
+                                   const int64_t* stride,
+                                   const int64_t* padding,
                                    bool count_include_pad,
-                                   int32_t divisor_override)
+                                   int64_t divisor_override)
 {
     auto dims  = miopen::deref(inputDesc).GetLengths();
     auto numel = miopen::deref(outputDesc).GetElementSize();
@@ -52,52 +52,51 @@ int32_t mloAvgPoolForward2dRunHost(const miopenTensorDescriptor_t inputDesc,
     auto input_tv  = miopen::get_inner_expanded_tv<4>(miopen::deref(inputDesc));
     auto output_tv = miopen::get_inner_expanded_tv<4>(miopen::deref(outputDesc));
 
-    for(int32_t gid = 0; gid < numel; gid++)
+    for(int64_t gid = 0; gid < numel; gid++)
     {
-        int32_t ncoh = gid / OW, ow = gid % OW;
-        int32_t nc = ncoh / OH, oh = ncoh % OH;
-        int32_t n = nc / C, c = nc % C;
-        int32_t R  = ksize[0];
-        int32_t S  = ksize[1];
-        int32_t sh = stride[0];
-        int32_t sw = stride[1];
-        int32_t ph = padding[0];
-        int32_t pw = padding[1];
+        int64_t ncoh = gid / OW, ow = gid % OW;
+        int64_t nc = ncoh / OH, oh = ncoh % OH;
+        int64_t n = nc / C, c = nc % C;
+        int64_t R  = ksize[0];
+        int64_t S  = ksize[1];
+        int64_t sh = stride[0];
+        int64_t sw = stride[1];
+        int64_t ph = padding[0];
+        int64_t pw = padding[1];
 
         if(n >= N)
             return 0;
 
         float m = 0;
-        for(int32_t r = 0; r < R; ++r)
+        for(int64_t r = 0; r < R; ++r)
         {
-            for(int32_t s = 0; s < S; ++s)
+            for(int64_t s = 0; s < S; ++s)
             {
                 // input idx : (n, c, h, w)
-                int32_t h = oh * sh - ph + r;
+                int64_t h = oh * sh - ph + r;
                 if(h < 0 || h >= H)
                     continue;
-                int32_t w = ow * sw - pw + s;
+                int64_t w = ow * sw - pw + s;
                 if(w < 0 || w >= W)
                     continue;
-                // int32_t input_idx = ((n * C + c) * H + h) * W + w;
-                m += static_cast<float>(
-                    input[input_tv.get_tensor_view_idx(tensor_layout_t<4>(n, c, h, w))]);
+                // int64_t input_idx = ((n * C + c) * H + h) * W + w;
+                m += static_cast<float>(input[input_tv.get_tensor_view_idx({n, c, h, w})]);
             }
         }
 
-        int32_t hstart = oh * sh - ph;
-        int32_t wstart = ow * sw - pw;
-        int32_t hend   = min(hstart + R, H + ph);
-        int32_t wend   = min(wstart + S, W + pw);
+        int64_t hstart = oh * sh - ph;
+        int64_t wstart = ow * sw - pw;
+        int64_t hend   = min(hstart + R, H + ph);
+        int64_t wend   = min(wstart + S, W + pw);
 
-        const int32_t pool_size = (hend - hstart) * (wend - wstart);
+        const int64_t pool_size = (hend - hstart) * (wend - wstart);
 
         hstart = max(hstart, 0);
         wstart = max(wstart, 0);
         hend   = min(hend, H);
         wend   = min(wend, W);
 
-        int32_t divide_factor;
+        int64_t divide_factor;
         if(divisor_override != 0)
         {
             divide_factor = divisor_override;
@@ -115,8 +114,7 @@ int32_t mloAvgPoolForward2dRunHost(const miopenTensorDescriptor_t inputDesc,
         }
         float val = m / divide_factor;
 
-        output[output_tv.get_tensor_view_idx(tensor_layout_t<4>(n, c, oh, ow))] =
-            static_cast<Tcheck>(val);
+        output[output_tv.get_tensor_view_idx({n, c, oh, ow})] = static_cast<Tcheck>(val);
     }
     return 0;
 }
@@ -124,21 +122,21 @@ int32_t mloAvgPoolForward2dRunHost(const miopenTensorDescriptor_t inputDesc,
 template <typename Tgpu, typename Tcheck>
 int32_t mloAvgPoolForward3dRunHost(const miopenTensorDescriptor_t inputDesc,
                                    const miopenTensorDescriptor_t outputDesc,
-                                   Tgpu* input,
+                                   const Tgpu* input,
                                    Tcheck* output,
-                                   size_t N,
-                                   size_t C,
-                                   size_t D,
-                                   size_t H,
-                                   size_t W,
-                                   size_t OD,
-                                   size_t OH,
-                                   size_t OW,
-                                   const int32_t* ksize,
-                                   const int32_t* stride,
-                                   const int32_t* padding,
+                                   int64_t N,
+                                   int64_t C,
+                                   int64_t D,
+                                   int64_t H,
+                                   int64_t W,
+                                   int64_t OD,
+                                   int64_t OH,
+                                   int64_t OW,
+                                   const int64_t* ksize,
+                                   const int64_t* stride,
+                                   const int64_t* padding,
                                    bool count_include_pad,
-                                   int32_t divisor_override)
+                                   int64_t divisor_override)
 {
     auto dims  = miopen::deref(inputDesc).GetLengths();
     auto numel = miopen::deref(outputDesc).GetElementSize();
@@ -146,55 +144,54 @@ int32_t mloAvgPoolForward3dRunHost(const miopenTensorDescriptor_t inputDesc,
     auto input_tv  = miopen::get_inner_expanded_tv<5>(miopen::deref(inputDesc));
     auto output_tv = miopen::get_inner_expanded_tv<5>(miopen::deref(outputDesc));
 
-    for(int32_t gid = 0; gid < numel; gid++)
+    for(int64_t gid = 0; gid < numel; gid++)
     {
-        int32_t ncodoh = gid / OW, ow = gid % OW;
-        int32_t ncod = ncodoh / OH, oh = ncodoh % OH;
-        int32_t nc = ncod / OD, od = ncod % OD;
-        int32_t n = nc / C, c = nc % C;
-        int32_t KD = ksize[0];
-        int32_t R  = ksize[1];
-        int32_t S  = ksize[2];
-        int32_t sd = stride[0];
-        int32_t sh = stride[1];
-        int32_t sw = stride[2];
-        int32_t pd = padding[0];
-        int32_t ph = padding[1];
-        int32_t pw = padding[2];
+        int64_t ncodoh = gid / OW, ow = gid % OW;
+        int64_t ncod = ncodoh / OH, oh = ncodoh % OH;
+        int64_t nc = ncod / OD, od = ncod % OD;
+        int64_t n = nc / C, c = nc % C;
+        int64_t KD = ksize[0];
+        int64_t R  = ksize[1];
+        int64_t S  = ksize[2];
+        int64_t sd = stride[0];
+        int64_t sh = stride[1];
+        int64_t sw = stride[2];
+        int64_t pd = padding[0];
+        int64_t ph = padding[1];
+        int64_t pw = padding[2];
 
         if(n >= N)
             return 0;
         float sum = 0;
-        for(int32_t kd = 0; kd < KD; ++kd)
+        for(int64_t kd = 0; kd < KD; ++kd)
         {
-            for(int32_t r = 0; r < R; ++r)
+            for(int64_t r = 0; r < R; ++r)
             {
-                for(int32_t s = 0; s < S; ++s)
+                for(int64_t s = 0; s < S; ++s)
                 {
                     // input idx : (n, c, d, h, w)
-                    int32_t d = od * sd - pd + kd;
+                    int64_t d = od * sd - pd + kd;
                     if(d < 0 || d >= D)
                         continue;
-                    int32_t h = oh * sh - ph + r;
+                    int64_t h = oh * sh - ph + r;
                     if(h < 0 || h >= H)
                         continue;
-                    int32_t w = ow * sw - pw + s;
+                    int64_t w = ow * sw - pw + s;
                     if(w < 0 || w >= W)
                         continue;
-                    // int32_t input_idx = ((n * C + c) * H + h) * W + w;
-                    sum += static_cast<float>(
-                        input[input_tv.get_tensor_view_idx(tensor_layout_t<5>(n, c, d, h, w))]);
+                    // int64_t input_idx = ((n * C + c) * H + h) * W + w;
+                    sum += static_cast<float>(input[input_tv.get_tensor_view_idx({n, c, d, h, w})]);
                 }
             }
         }
-        int32_t dstart = od * sd - pd;
-        int32_t hstart = oh * sh - ph;
-        int32_t wstart = ow * sw - pw;
-        int32_t dend   = min(dstart + KD, D + pd);
-        int32_t hend   = min(hstart + R, H + ph);
-        int32_t wend   = min(wstart + S, W + pw);
+        int64_t dstart = od * sd - pd;
+        int64_t hstart = oh * sh - ph;
+        int64_t wstart = ow * sw - pw;
+        int64_t dend   = min(dstart + KD, D + pd);
+        int64_t hend   = min(hstart + R, H + ph);
+        int64_t wend   = min(wstart + S, W + pw);
 
-        const int32_t pool_size = (dend - dstart) * (hend - hstart) * (wend - wstart);
+        const int64_t pool_size = (dend - dstart) * (hend - hstart) * (wend - wstart);
         dstart                  = max(dstart, 0);
         hstart                  = max(hstart, 0);
         wstart                  = max(wstart, 0);
@@ -202,7 +199,7 @@ int32_t mloAvgPoolForward3dRunHost(const miopenTensorDescriptor_t inputDesc,
         hend                    = min(hend, H);
         wend                    = min(wend, W);
 
-        int32_t divide_factor;
+        int64_t divide_factor;
         if(divisor_override != 0)
         {
             divide_factor = divisor_override;
@@ -218,9 +215,8 @@ int32_t mloAvgPoolForward3dRunHost(const miopenTensorDescriptor_t inputDesc,
                 divide_factor = (dend - dstart) * (hend - hstart) * (wend - wstart);
             }
         }
-        float val = sum / divide_factor;
-        output[output_tv.get_tensor_view_idx(tensor_layout_t<5>(n, c, od, oh, ow))] =
-            static_cast<Tcheck>(val);
+        float val                                                 = sum / divide_factor;
+        output[output_tv.get_tensor_view_idx({n, c, od, oh, ow})] = static_cast<Tcheck>(val);
     }
     return 0;
 }
@@ -230,17 +226,17 @@ int32_t mloAvgPoolBackward2dRunHost(const miopenTensorDescriptor_t outputGradDes
                                     const miopenTensorDescriptor_t inputGradDesc,
                                     Tgpu* output_grad,
                                     Tcheck* input_grad,
-                                    size_t N,
-                                    size_t C,
-                                    size_t H,
-                                    size_t W,
-                                    size_t OH,
-                                    size_t OW,
-                                    const int32_t* ksize,
-                                    const int32_t* stride,
-                                    const int32_t* padding,
+                                    int64_t N,
+                                    int64_t C,
+                                    int64_t H,
+                                    int64_t W,
+                                    int64_t OH,
+                                    int64_t OW,
+                                    const int64_t* ksize,
+                                    const int64_t* stride,
+                                    const int64_t* padding,
                                     bool count_include_pad,
-                                    int32_t divisor_override)
+                                    int64_t divisor_override)
 {
     auto dims  = miopen::deref(inputGradDesc).GetLengths();
     auto numel = miopen::deref(inputGradDesc).GetElementSize();
@@ -248,52 +244,52 @@ int32_t mloAvgPoolBackward2dRunHost(const miopenTensorDescriptor_t outputGradDes
     auto output_grad_tv = miopen::get_inner_expanded_tv<4>(miopen::deref(outputGradDesc));
     auto input_grad_tv  = miopen::get_inner_expanded_tv<4>(miopen::deref(inputGradDesc));
 
-    for(size_t gid = 0; gid < numel; gid++)
+    for(int64_t gid = 0; gid < numel; gid++)
     {
-        int32_t nch = gid / W, w = gid % W;
-        int32_t nc = nch / H, h = nch % H;
-        int32_t n = nc / C, c = nc % C;
-        int32_t R  = ksize[0];
-        int32_t S  = ksize[1];
-        int32_t sh = stride[0];
-        int32_t sw = stride[1];
-        int32_t ph = padding[0];
-        int32_t pw = padding[1];
+        int64_t nch = gid / W, w = gid % W;
+        int64_t nc = nch / H, h = nch % H;
+        int64_t n = nc / C, c = nc % C;
+        int64_t R  = ksize[0];
+        int64_t S  = ksize[1];
+        int64_t sh = stride[0];
+        int64_t sw = stride[1];
+        int64_t ph = padding[0];
+        int64_t pw = padding[1];
 
         if(n >= N)
             return 0;
 
         float grad = 0;
-        for(int32_t r = 0; r < R; ++r)
+        for(int64_t r = 0; r < R; ++r)
         {
-            for(int32_t s = 0; s < S; ++s)
+            for(int64_t s = 0; s < S; ++s)
             {
-                int32_t ohsh = h + ph - r;
+                int64_t ohsh = h + ph - r;
                 if(ohsh % sh != 0)
                     continue;
-                int32_t oh = ohsh / sh;
+                int64_t oh = ohsh / sh;
                 if(oh < 0 || oh >= OH)
                     continue;
-                int32_t owsw = w + pw - s;
+                int64_t owsw = w + pw - s;
                 if(owsw % sw != 0)
                     continue;
-                int32_t ow = owsw / sw;
+                int64_t ow = owsw / sw;
                 if(ow < 0 || ow >= OW)
                     continue;
 
-                int32_t hstart = oh * sh - ph;
-                int32_t wstart = ow * sw - pw;
-                int32_t hend   = min(hstart + R, H + ph);
-                int32_t wend   = min(wstart + S, W + pw);
+                int64_t hstart = oh * sh - ph;
+                int64_t wstart = ow * sw - pw;
+                int64_t hend   = min(hstart + R, H + ph);
+                int64_t wend   = min(wstart + S, W + pw);
 
-                const int32_t pool_size = (hend - hstart) * (wend - wstart);
+                const int64_t pool_size = (hend - hstart) * (wend - wstart);
 
                 hstart = max(hstart, 0);
                 wstart = max(wstart, 0);
                 hend   = min(hend, H);
                 wend   = min(wend, W);
 
-                int32_t divide_factor;
+                int64_t divide_factor;
                 if(divisor_override != 0)
                 {
                     divide_factor = divisor_override;
@@ -310,13 +306,12 @@ int32_t mloAvgPoolBackward2dRunHost(const miopenTensorDescriptor_t outputGradDes
                     }
                 }
 
-                grad += static_cast<float>(output_grad[output_grad_tv.get_tensor_view_idx(
-                            tensor_layout_t<4>(n, c, oh, ow))]) /
+                grad += static_cast<float>(
+                            output_grad[output_grad_tv.get_tensor_view_idx({n, c, oh, ow})]) /
                         divide_factor;
             }
         }
-        input_grad[input_grad_tv.get_tensor_view_idx(tensor_layout_t<4>(n, c, h, w))] =
-            static_cast<Tcheck>(grad);
+        input_grad[input_grad_tv.get_tensor_view_idx({n, c, h, w})] = static_cast<Tcheck>(grad);
     }
     return 0;
 }
@@ -326,19 +321,19 @@ int32_t mloAvgPoolBackward3dRunHost(const miopenTensorDescriptor_t outputGradDes
                                     const miopenTensorDescriptor_t inputGradDesc,
                                     Tgpu* output_grad,
                                     Tcheck* input_grad,
-                                    size_t N,
-                                    size_t C,
-                                    size_t D,
-                                    size_t H,
-                                    size_t W,
-                                    size_t OD,
-                                    size_t OH,
-                                    size_t OW,
-                                    const int32_t* ksize,
-                                    const int32_t* stride,
-                                    const int32_t* padding,
+                                    int64_t N,
+                                    int64_t C,
+                                    int64_t D,
+                                    int64_t H,
+                                    int64_t W,
+                                    int64_t OD,
+                                    int64_t OH,
+                                    int64_t OW,
+                                    const int64_t* ksize,
+                                    const int64_t* stride,
+                                    const int64_t* padding,
                                     bool count_include_pad,
-                                    int32_t divisor_override)
+                                    int64_t divisor_override)
 {
     auto dims  = miopen::deref(inputGradDesc).GetLengths();
     auto numel = miopen::deref(inputGradDesc).GetElementSize();
@@ -346,68 +341,68 @@ int32_t mloAvgPoolBackward3dRunHost(const miopenTensorDescriptor_t outputGradDes
     auto output_grad_tv = miopen::get_inner_expanded_tv<5>(miopen::deref(outputGradDesc));
     auto input_grad_tv  = miopen::get_inner_expanded_tv<5>(miopen::deref(inputGradDesc));
 
-    for(size_t gid = 0; gid < numel; gid++)
+    for(int64_t gid = 0; gid < numel; gid++)
     {
-        int32_t ncdh = gid / W, w = gid % W;
-        int32_t ncd = ncdh / H, h = ncdh % H;
-        int32_t nc = ncd / D, d = ncd % D;
-        int32_t n = nc / C, c = nc % C;
-        int32_t KD = ksize[0];
-        int32_t R  = ksize[1];
-        int32_t S  = ksize[2];
-        int32_t sd = stride[0];
-        int32_t sh = stride[1];
-        int32_t sw = stride[2];
-        int32_t pd = padding[0];
-        int32_t ph = padding[1];
-        int32_t pw = padding[2];
+        int64_t ncdh = gid / W, w = gid % W;
+        int64_t ncd = ncdh / H, h = ncdh % H;
+        int64_t nc = ncd / D, d = ncd % D;
+        int64_t n = nc / C, c = nc % C;
+        int64_t KD = ksize[0];
+        int64_t R  = ksize[1];
+        int64_t S  = ksize[2];
+        int64_t sd = stride[0];
+        int64_t sh = stride[1];
+        int64_t sw = stride[2];
+        int64_t pd = padding[0];
+        int64_t ph = padding[1];
+        int64_t pw = padding[2];
 
         if(n >= N)
             return 0;
 
         float grad = 0;
-        for(int32_t kd = 0; kd < KD; ++kd)
+        for(int64_t kd = 0; kd < KD; ++kd)
         {
-            for(int32_t r = 0; r < R; ++r)
+            for(int64_t r = 0; r < R; ++r)
             {
-                for(int32_t s = 0; s < S; ++s)
+                for(int64_t s = 0; s < S; ++s)
                 {
-                    int32_t odsd = d + pd - kd;
+                    int64_t odsd = d + pd - kd;
                     if(odsd % sd != 0)
                         continue;
-                    int32_t od = odsd / sd;
+                    int64_t od = odsd / sd;
                     if(od < 0 || od >= OD)
                         continue;
 
-                    int32_t ohsh = h + ph - r;
+                    int64_t ohsh = h + ph - r;
                     if(ohsh % sh != 0)
                         continue;
-                    int32_t oh = ohsh / sh;
+                    int64_t oh = ohsh / sh;
                     if(oh < 0 || oh >= OH)
                         continue;
 
-                    int32_t owsw = w + pw - s;
+                    int64_t owsw = w + pw - s;
                     if(owsw % sw != 0)
                         continue;
-                    int32_t ow = owsw / sw;
+                    int64_t ow = owsw / sw;
                     if(ow < 0 || ow >= OW)
                         continue;
 
-                    int32_t dstart = od * sd - pd;
-                    int32_t hstart = oh * sh - ph;
-                    int32_t wstart = ow * sw - pw;
-                    int32_t dend   = min(dstart + KD, D + pd);
-                    int32_t hend   = min(hstart + R, H + ph);
-                    int32_t wend   = min(wstart + S, W + pw);
+                    int64_t dstart = od * sd - pd;
+                    int64_t hstart = oh * sh - ph;
+                    int64_t wstart = ow * sw - pw;
+                    int64_t dend   = min(dstart + KD, D + pd);
+                    int64_t hend   = min(hstart + R, H + ph);
+                    int64_t wend   = min(wstart + S, W + pw);
 
-                    const int32_t pool_size = (dend - dstart) * (hend - hstart) * (wend - wstart);
+                    const int64_t pool_size = (dend - dstart) * (hend - hstart) * (wend - wstart);
                     dstart                  = max(dstart, 0);
                     hstart                  = max(hstart, 0);
                     wstart                  = max(wstart, 0);
                     dend                    = min(dend, D);
                     hend                    = min(hend, H);
                     wend                    = min(wend, W);
-                    int32_t divide_factor;
+                    int64_t divide_factor;
                     if(divisor_override != 0)
                     {
                         divide_factor = divisor_override;
@@ -423,14 +418,14 @@ int32_t mloAvgPoolBackward3dRunHost(const miopenTensorDescriptor_t outputGradDes
                             divide_factor = (dend - dstart) * (hend - hstart) * (wend - wstart);
                         }
                     }
-                    grad += static_cast<float>(output_grad[output_grad_tv.get_tensor_view_idx(
-                                tensor_layout_t<5>(n, c, od, oh, ow))]) /
-                            divide_factor;
+                    grad +=
+                        static_cast<float>(
+                            output_grad[output_grad_tv.get_tensor_view_idx({n, c, od, oh, ow})]) /
+                        divide_factor;
                 }
             }
         }
-        input_grad[input_grad_tv.get_tensor_view_idx(tensor_layout_t<5>(n, c, d, h, w))] =
-            static_cast<Tcheck>(grad);
+        input_grad[input_grad_tv.get_tensor_view_idx({n, c, d, h, w})] = static_cast<Tcheck>(grad);
     }
     return 0;
 }
