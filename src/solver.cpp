@@ -686,8 +686,8 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
     Register(registry, ++id, Primitive::Activation, glu::GLUBackward{}.SolverDbId());
 
     Register(registry, ++id, Primitive::Mha, mha::MhaCKFlashAttentionV2Forward{}.SolverDbId());
-
-    // IMPORTANT: New solvers should be added to the end of the function!
+    // IMPORTANT: New solvers should be added to the end of the function, and don't leave a white
+    // space between this comment and the newly registered solver(s)!
 }
 
 bool ThisSolverIsDeprecatedStatic::IsDisabled(const ExecutionContext& ctx)
