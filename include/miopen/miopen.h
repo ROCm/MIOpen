@@ -7638,11 +7638,11 @@ MIOPEN_EXPORT miopenStatus_t miopenGetitemBackward(miopenHandle_t handle,
  * @param output                   Data tensor output (output)
  * @return                         miopenStatus_t
  */
-MIOPEN_EXPORT miopenStatus_t miopenAvgPoolForward(miopenHandle_t handle,
-                                                  const miopenTensorDescriptor_t inputDesc,
-                                                  const void* input,
-                                                  const miopenTensorDescriptor_t outputDesc,
-                                                  void* output);
+MIOPEN_EXPORT miopenStatus_t miopenAdaptiveAvgPoolForward(miopenHandle_t handle,
+                                                          const miopenTensorDescriptor_t inputDesc,
+                                                          const void* input,
+                                                          const miopenTensorDescriptor_t outputDesc,
+                                                          void* output);
 
 /*! @brief Execute an adaptiveavgpool backward layer
  *
@@ -7653,11 +7653,12 @@ MIOPEN_EXPORT miopenStatus_t miopenAvgPoolForward(miopenHandle_t handle,
  * @param input_grad               Data tensor input grad (output)
  * @return                         miopenStatus_t
  */
-MIOPEN_EXPORT miopenStatus_t miopenAvgPoolBackward(miopenHandle_t handle,
-                                                   const miopenTensorDescriptor_t outputGradDesc,
-                                                   const void* output_grad,
-                                                   const miopenTensorDescriptor_t inputGradDesc,
-                                                   void* input_grad);
+MIOPEN_EXPORT miopenStatus_t
+miopenAdaptiveAvgPoolBackward(miopenHandle_t handle,
+                              const miopenTensorDescriptor_t outputGradDesc,
+                              const void* output_grad,
+                              const miopenTensorDescriptor_t inputGradDesc,
+                              void* input_grad);
 /** @} */
 // CLOSEOUT adaptiveavgpool DOXYGEN GROUP
 #endif // MIOPEN_BETA_API

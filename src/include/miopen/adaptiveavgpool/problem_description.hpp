@@ -42,6 +42,7 @@ struct FwdProblemDescription : ProblemDescriptionBase
         : inputDesc(inputDesc_), outputDesc(outputDesc_)
     {
         IsValidLength();
+        IsValidDims();
     }
 
     auto GetInputDesc() const { return inputDesc; }
@@ -59,7 +60,66 @@ struct FwdProblemDescription : ProblemDescriptionBase
                          "AdaptiveAvgPool: Input and output tensor sizes do not match.");
         }
 
+        if(input_dims == 3)
+        {
+            if(outputDesc.GetLengths()[2] > inputDesc.GetLengths()[2])
+            {
+                MIOPEN_THROW(miopenStatusBadParm,
+                             "AdaptiveAvgPool: Input tensor sizes are too small compare to output "
+                             "tensor sizes.");
+            }
+        }
+        else if(input_dims == 4)
+        {
+            if(outputDesc.GetLengths()[2] > inputDesc.GetLengths()[2] ||
+               outputDesc.GetLengths()[3] > inputDesc.GetLengths()[3])
+            {
+                MIOPEN_THROW(miopenStatusBadParm,
+                             "AdaptiveAvgPool: Input tensor sizes are too small compare to output "
+                             "tensor sizes.");
+            }
+        }
+        else if(input_dims == 5)
+        {
+            if(outputDesc.GetLengths()[2] > inputDesc.GetLengths()[2] ||
+               outputDesc.GetLengths()[3] > inputDesc.GetLengths()[3] ||
+               outputDesc.GetLengths()[4] > inputDesc.GetLengths()[4])
+            {
+                MIOPEN_THROW(miopenStatusBadParm,
+                             "AdaptiveAvgPool: Input tensor sizes are too small compare to output "
+                             "tensor sizes.");
+            }
+        }
+
         return true;
+    }
+
+    bool IsValidDims() const
+    {
+        if(inputDesc.GetLengths().size() > 5 || inputDesc.GetLengths().size() < 3)
+        {
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "AdaptiveAvgPool: Only 3D, 4D and 5D tensors are supported.");
+        }
+
+        return true;
+    }
+
+    bool IsAllContiguous() const
+    {
+        auto isContiguous = [](TensorDescriptor td) {
+            size_t s = 1;
+            for(int i = td.GetNumDims() - 1; i >= 0; --i)
+            {
+                if(s != td.GetStrides()[i])
+                {
+                    return false;
+                }
+                s *= td.GetLengths()[i];
+            }
+            return true;
+        };
+        return isContiguous(inputDesc) && isContiguous(outputDesc);
     }
 
     NetworkConfig MakeNetworkConfig() const override;
@@ -76,6 +136,7 @@ struct BwdProblemDescription : ProblemDescriptionBase
         : outputGradDesc(outputGradDesc_), inputGradDesc(inputGradDesc_)
     {
         IsValidLength();
+        IsValidDims();
     }
 
     auto GetOutputGradDesc() const { return outputGradDesc; }
@@ -93,7 +154,66 @@ struct BwdProblemDescription : ProblemDescriptionBase
                          "AdaptiveAvgPool: Input grad and output grad tensor sizes do not match.");
         }
 
+        if(input_dims == 3)
+        {
+            if(outputGradDesc.GetLengths()[2] > inputGradDesc.GetLengths()[2])
+            {
+                MIOPEN_THROW(miopenStatusBadParm,
+                             "AdaptiveAvgPool: Input grad tensor sizes are too small compare to "
+                             "output grad tensor sizes.");
+            }
+        }
+        else if(input_dims == 4)
+        {
+            if(outputGradDesc.GetLengths()[2] > inputGradDesc.GetLengths()[2] ||
+               outputGradDesc.GetLengths()[3] > inputGradDesc.GetLengths()[3])
+            {
+                MIOPEN_THROW(miopenStatusBadParm,
+                             "AdaptiveAvgPool: Input grad tensor sizes are too small compare to "
+                             "output grad tensor sizes.");
+            }
+        }
+        else if(input_dims == 5)
+        {
+            if(outputGradDesc.GetLengths()[2] > inputGradDesc.GetLengths()[2] ||
+               outputGradDesc.GetLengths()[3] > inputGradDesc.GetLengths()[3] ||
+               outputGradDesc.GetLengths()[4] > inputGradDesc.GetLengths()[4])
+            {
+                MIOPEN_THROW(miopenStatusBadParm,
+                             "AdaptiveAvgPool: Input grad tensor sizes are too small compare to "
+                             "output grad tensor sizes.");
+            }
+        }
+
         return true;
+    }
+
+    bool IsValidDims() const
+    {
+        if(inputGradDesc.GetLengths().size() > 5 || inputGradDesc.GetLengths().size() < 3)
+        {
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "AdaptiveAvgPool: Only 3D, 4D and 5D tensors are supported.");
+        }
+
+        return true;
+    }
+
+    bool IsAllContiguous() const
+    {
+        auto isContiguous = [](TensorDescriptor td) {
+            size_t s = 1;
+            for(int i = td.GetNumDims() - 1; i >= 0; --i)
+            {
+                if(s != td.GetStrides()[i])
+                {
+                    return false;
+                }
+                s *= td.GetLengths()[i];
+            }
+            return true;
+        };
+        return isContiguous(inputGradDesc) && isContiguous(outputGradDesc);
     }
 
     NetworkConfig MakeNetworkConfig() const override;

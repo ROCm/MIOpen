@@ -23,13 +23,13 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include "avgpool.hpp"
+#include "adaptiveavgpool.hpp"
 #include <miopen/env.hpp>
 
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 
-namespace avgpool {
+namespace adaptiveavgpool {
 
 std::string GetFloatArg()
 {
@@ -41,35 +41,35 @@ std::string GetFloatArg()
     return tmp;
 }
 
-struct GPU_Avgpool_fwd_FP32 : AvgPoolTestFwd<float>
+struct GPU_AdaptiveAvgpool_fwd_FP32 : AdaptiveAvgPoolTestFwd<float>
 {
 };
 
-struct GPU_Avgpool_fwd_FP16 : AvgPoolTestFwd<half>
+struct GPU_AdaptiveAvgpool_fwd_FP16 : AdaptiveAvgPoolTestFwd<half>
 {
 };
 
-struct GPU_Avgpool_fwd_BFP16 : AvgPoolTestFwd<bfloat16>
+struct GPU_AdaptiveAvgpool_fwd_BFP16 : AdaptiveAvgPoolTestFwd<bfloat16>
 {
 };
 
-struct GPU_Avgpool_bwd_FP32 : AvgPoolTestBwd<float>
+struct GPU_AdaptiveAvgpool_bwd_FP32 : AdaptiveAvgPoolTestBwd<float>
 {
 };
 
-struct GPU_Avgpool_bwd_FP16 : AvgPoolTestBwd<half>
+struct GPU_AdaptiveAvgpool_bwd_FP16 : AdaptiveAvgPoolTestBwd<half>
 {
 };
 
-struct GPU_Avgpool_bwd_BFP16 : AvgPoolTestBwd<bfloat16>
+struct GPU_AdaptiveAvgpool_bwd_BFP16 : AdaptiveAvgPoolTestBwd<bfloat16>
 {
 };
 
-} // namespace avgpool
-using namespace avgpool;
+} // namespace adaptiveavgpool
+using namespace adaptiveavgpool;
 
 // FORWARD TEST
-TEST_P(GPU_Avgpool_fwd_FP32, AvgPoolTestFwd)
+TEST_P(GPU_AdaptiveAvgpool_fwd_FP32, AdaptiveAvgPoolTestFwd)
 {
     if(!MIOPEN_TEST_ALL ||
        (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--float"))
@@ -83,7 +83,7 @@ TEST_P(GPU_Avgpool_fwd_FP32, AvgPoolTestFwd)
     }
 };
 
-TEST_P(GPU_Avgpool_fwd_FP16, AvgPoolTestFwd)
+TEST_P(GPU_AdaptiveAvgpool_fwd_FP16, AdaptiveAvgPoolTestFwd)
 {
     if(!MIOPEN_TEST_ALL ||
        (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--half"))
@@ -97,7 +97,7 @@ TEST_P(GPU_Avgpool_fwd_FP16, AvgPoolTestFwd)
     }
 };
 
-TEST_P(GPU_Avgpool_fwd_BFP16, AvgPoolTestFwd)
+TEST_P(GPU_AdaptiveAvgpool_fwd_BFP16, AdaptiveAvgPoolTestFwd)
 {
     if(!MIOPEN_TEST_ALL ||
        (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--bfloat16"))
@@ -112,17 +112,17 @@ TEST_P(GPU_Avgpool_fwd_BFP16, AvgPoolTestFwd)
 };
 
 INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_Avgpool_fwd_FP32,
-                         testing::ValuesIn(AvgPoolTestConfigsFwdFp32()));
+                         GPU_AdaptiveAvgpool_fwd_FP32,
+                         testing::ValuesIn(AdaptiveAvgPoolTestConfigsFwdFp32()));
 INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_Avgpool_fwd_FP16,
-                         testing::ValuesIn(AvgPoolTestConfigsFwdFp16()));
+                         GPU_AdaptiveAvgpool_fwd_FP16,
+                         testing::ValuesIn(AdaptiveAvgPoolTestConfigsFwdFp16()));
 INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_Avgpool_fwd_BFP16,
-                         testing::ValuesIn(AvgPoolTestConfigsFwdBfp16()));
+                         GPU_AdaptiveAvgpool_fwd_BFP16,
+                         testing::ValuesIn(AdaptiveAvgPoolTestConfigsFwdBfp16()));
 
 // BACKWARD TEST
-TEST_P(GPU_Avgpool_bwd_FP32, AvgPoolTestBwd)
+TEST_P(GPU_AdaptiveAvgpool_bwd_FP32, AdaptiveAvgPoolTestBwd)
 {
     if(!MIOPEN_TEST_ALL ||
        (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--float"))
@@ -136,7 +136,7 @@ TEST_P(GPU_Avgpool_bwd_FP32, AvgPoolTestBwd)
     }
 };
 
-TEST_P(GPU_Avgpool_bwd_FP16, AvgPoolTestBwd)
+TEST_P(GPU_AdaptiveAvgpool_bwd_FP16, AdaptiveAvgPoolTestBwd)
 {
     if(!MIOPEN_TEST_ALL ||
        (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--half"))
@@ -150,7 +150,7 @@ TEST_P(GPU_Avgpool_bwd_FP16, AvgPoolTestBwd)
     }
 };
 
-TEST_P(GPU_Avgpool_bwd_BFP16, AvgPoolTestBwd)
+TEST_P(GPU_AdaptiveAvgpool_bwd_BFP16, AdaptiveAvgPoolTestBwd)
 {
     if(!MIOPEN_TEST_ALL ||
        (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--bfloat16"))
@@ -165,11 +165,11 @@ TEST_P(GPU_Avgpool_bwd_BFP16, AvgPoolTestBwd)
 };
 
 INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_Avgpool_bwd_FP32,
-                         testing::ValuesIn(AvgPoolTestConfigsBwdFp32()));
+                         GPU_AdaptiveAvgpool_bwd_FP32,
+                         testing::ValuesIn(AdaptiveAvgPoolTestConfigsBwdFp32()));
 INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_Avgpool_bwd_FP16,
-                         testing::ValuesIn(AvgPoolTestConfigsBwdFp16()));
+                         GPU_AdaptiveAvgpool_bwd_FP16,
+                         testing::ValuesIn(AdaptiveAvgPoolTestConfigsBwdFp16()));
 INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_Avgpool_bwd_BFP16,
-                         testing::ValuesIn(AvgPoolTestConfigsBwdBfp16()));
+                         GPU_AdaptiveAvgpool_bwd_BFP16,
+                         testing::ValuesIn(AdaptiveAvgPoolTestConfigsBwdBfp16()));

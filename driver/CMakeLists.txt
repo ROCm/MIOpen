@@ -32,7 +32,7 @@ add_executable(MIOpenDriver
     dm_activ.cpp
     dm_adam.cpp
     dm_addlayernorm.cpp
-    dm_avgpool.cpp
+    dm_adaptiveavgpool.cpp
     dm_bnorm.cpp
     dm_cat.cpp
     dm_conv.cpp

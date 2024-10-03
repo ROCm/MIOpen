@@ -35,7 +35,7 @@
 #include <miopen/adaptiveavgpool.hpp>
 #include <miopen/target_properties.hpp>
 
-#define LOCAL_SIZE_BWD_2D 256
+#define LOCAL_SIZE_BWD_1D 256
 
 namespace miopen {
 
@@ -43,29 +43,17 @@ namespace solver {
 
 namespace adaptiveavgpool {
 
-bool IsOverRocmBwd2d(const miopen::adaptiveavgpool::BwdProblemDescription& problem)
+bool IsOverRocmBwd1d(const miopen::adaptiveavgpool::BwdProblemDescription& problem)
 {
-    auto dtype      = problem.GetInputGradDesc().GetType();
-    auto in_nelems  = problem.GetInputGradDesc().GetElementSize();
-    auto out_nelems = problem.GetOutputGradDesc().GetElementSize();
-    auto mul_nc =
-        problem.GetOutputGradDesc().GetLengths()[0] * problem.GetOutputGradDesc().GetLengths()[1];
-    auto in_over_out = static_cast<float>(in_nelems) / out_nelems;
-
-    if(dtype == miopenFloat)
+    if(!problem.IsAllContiguous())
     {
-        return false;
+        return true;
     }
-    else if(dtype == miopenHalf)
+    else
     {
-        if(in_over_out < 2 && in_nelems >= 11075584)
-        {
-            return true;
-        }
-    }
-    else if(dtype == miopenBFloat16)
-    {
-        if(in_over_out < 2 || (in_nelems > 20000000 && mul_nc <= 2048))
+        auto mul_nc = problem.GetOutputGradDesc().GetLengths()[0] *
+                      problem.GetOutputGradDesc().GetLengths()[1];
+        if(mul_nc < 141312)
         {
             return true;
         }
@@ -73,22 +61,22 @@ bool IsOverRocmBwd2d(const miopen::adaptiveavgpool::BwdProblemDescription& probl
     return false;
 }
 
-bool AdaptiveAvgPoolBackward2d::IsApplicable(
+bool AdaptiveAvgPoolBackward1d::IsApplicable(
     const ExecutionContext&, const miopen::adaptiveavgpool::BwdProblemDescription& problem) const
 {
-    if(problem.GetInputGradDesc().GetNumDims() != 4 ||
-       problem.GetOutputGradDesc().GetNumDims() != 4)
+    if(problem.GetInputGradDesc().GetNumDims() != 3 ||
+       problem.GetOutputGradDesc().GetNumDims() != 3)
     {
         return false;
     }
-    if(!IsOverRocmBwd2d(problem))
+    if(!IsOverRocmBwd1d(problem))
     {
         return false;
     }
     return true;
 }
 
-ConvSolution AdaptiveAvgPoolBackward2d::GetSolution(
+ConvSolution AdaptiveAvgPoolBackward1d::GetSolution(
     const ExecutionContext& context,
     const miopen::adaptiveavgpool::BwdProblemDescription& problem) const
 {
@@ -108,10 +96,10 @@ ConvSolution AdaptiveAvgPoolBackward2d::GetSolution(
         {"INPUT_TYPE", input_dtype == "bfloat16" ? "ushort" : input_dtype},
         {"OUTPUT_TYPE", output_dtype == "bfloat16" ? "ushort" : output_dtype}};
 
-    result.construction_params.push_back(make_hip_kernel({LOCAL_SIZE_BWD_2D},
+    result.construction_params.push_back(make_hip_kernel({LOCAL_SIZE_BWD_1D},
                                                          {N_total},
                                                          "MIOpenAdaptiveAvgPool.cpp",
-                                                         "AdaptiveAvgPoolBackward2d",
+                                                         "AdaptiveAvgPoolBackward1d",
                                                          build_params));
 
     result.invoker_factory = [](const std::vector<Kernel>& kernels) {
@@ -120,26 +108,16 @@ ConvSolution AdaptiveAvgPoolBackward2d::GetSolution(
 
             decltype(auto) kernel = handle_.Run(kernels.front());
 
-            auto input_grad_tv  = get_inner_expanded_tv<4>(deref(params.inputGradDesc));
-            auto output_grad_tv = get_inner_expanded_tv<4>(deref(params.outputGradDesc));
+            auto input_grad_tv  = get_inner_expanded_tv<3>(deref(params.inputGradDesc));
+            auto output_grad_tv = get_inner_expanded_tv<3>(deref(params.outputGradDesc));
 
             auto N  = deref(params.inputGradDesc).GetLengths()[0];
             auto C  = deref(params.inputGradDesc).GetLengths()[1];
             auto H  = deref(params.inputGradDesc).GetLengths()[2];
-            auto W  = deref(params.inputGradDesc).GetLengths()[3];
             auto OH = deref(params.outputGradDesc).GetLengths()[2];
-            auto OW = deref(params.outputGradDesc).GetLengths()[3];
 
-            kernel(params.output_grad,
-                   params.input_grad,
-                   N,
-                   C,
-                   H,
-                   W,
-                   OH,
-                   OW,
-                   output_grad_tv,
-                   input_grad_tv);
+            kernel(
+                params.output_grad, params.input_grad, N, C, H, OH, output_grad_tv, input_grad_tv);
         };
     };
 

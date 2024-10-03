@@ -35,7 +35,7 @@
 #include <miopen/adaptiveavgpool.hpp>
 #include <miopen/target_properties.hpp>
 
-#define LOCAL_SIZE_FWD_2D 256
+#define LOCAL_SIZE_FWD_1D 256
 
 namespace miopen {
 
@@ -43,34 +43,15 @@ namespace solver {
 
 namespace adaptiveavgpool {
 
-bool IsOverRocmFwd2d(const miopen::adaptiveavgpool::FwdProblemDescription& problem)
+bool IsOverRocmFwd1d(const miopen::adaptiveavgpool::FwdProblemDescription& problem)
 {
-    auto dtype      = problem.GetOutputDesc().GetType();
-    auto in_nelems  = problem.GetInputDesc().GetElementSize();
-    auto out_nelems = problem.GetOutputDesc().GetElementSize();
-    auto mul_nc = problem.GetOutputDesc().GetLengths()[0] * problem.GetOutputDesc().GetLengths()[1];
+    auto in_nelems   = problem.GetInputDesc().GetLengths()[-1];
+    auto out_nelems  = problem.GetOutputDesc().GetLengths()[-1];
     auto in_over_out = static_cast<float>(in_nelems) / out_nelems;
 
-    if(dtype == miopenFloat)
+    if(in_over_out < 56)
     {
-        if(in_over_out > 11 || (in_over_out < 2 && mul_nc >= 12288))
-        {
-            return true;
-        }
-    }
-    else if(dtype == miopenHalf)
-    {
-        if(in_over_out > 11 || (in_over_out < 2 && mul_nc < 90000))
-        {
-            return true;
-        }
-    }
-    else if(dtype == miopenBFloat16)
-    {
-        if(in_over_out >= 1024 || in_over_out < 2 || out_nelems >= 4816896)
-        {
-            return true;
-        }
+        return true;
     }
     return false;
 }
@@ -78,11 +59,11 @@ bool IsOverRocmFwd2d(const miopen::adaptiveavgpool::FwdProblemDescription& probl
 bool AdaptiveAvgPoolForward1d::IsApplicable(
     const ExecutionContext&, const miopen::adaptiveavgpool::FwdProblemDescription& problem) const
 {
-    if(problem.GetInputDesc().GetNumDims() != 4 || problem.GetOutputDesc().GetNumDims() != 4)
+    if(problem.GetInputDesc().GetNumDims() != 3 || problem.GetOutputDesc().GetNumDims() != 3)
     {
         return false;
     }
-    if(!IsOverRocmFwd2d(problem))
+    if(!IsOverRocmFwd1d(problem))
     {
         return false;
     }
@@ -109,7 +90,7 @@ ConvSolution AdaptiveAvgPoolForward1d::GetSolution(
         {"INPUT_TYPE", input_dtype == "bfloat16" ? "ushort" : input_dtype},
         {"OUTPUT_TYPE", output_dtype == "bfloat16" ? "ushort" : output_dtype}};
 
-    result.construction_params.push_back(make_hip_kernel({LOCAL_SIZE_FWD_2D},
+    result.construction_params.push_back(make_hip_kernel({LOCAL_SIZE_FWD_1D},
                                                          {N_total},
                                                          "MIOpenAdaptiveAvgPool.cpp",
                                                          "AdaptiveAvgPoolForward1d",
@@ -121,17 +102,15 @@ ConvSolution AdaptiveAvgPoolForward1d::GetSolution(
 
             decltype(auto) kernel = handle_.Run(kernels.front());
 
-            auto input_tv  = get_inner_expanded_tv<4>(deref(params.inputDesc));
-            auto output_tv = get_inner_expanded_tv<4>(deref(params.outputDesc));
+            auto input_tv  = get_inner_expanded_tv<3>(deref(params.inputDesc));
+            auto output_tv = get_inner_expanded_tv<3>(deref(params.outputDesc));
 
             size_t N  = deref(params.inputDesc).GetLengths()[0];
             size_t C  = deref(params.inputDesc).GetLengths()[1];
             size_t H  = deref(params.inputDesc).GetLengths()[2];
-            size_t W  = deref(params.inputDesc).GetLengths()[3];
             size_t OH = deref(params.outputDesc).GetLengths()[2];
-            size_t OW = deref(params.outputDesc).GetLengths()[3];
 
-            kernel(params.input, params.output, N, C, H, W, OH, OW, input_tv, output_tv);
+            kernel(params.input, params.output, N, C, H, OH, input_tv, output_tv);
         };
     };
 

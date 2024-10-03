@@ -28,7 +28,6 @@
 #include "miopen/execution_context.hpp"
 #include "miopen/invoke_params.hpp"
 #include "miopen/tensor_view_utils.hpp"
-#include <cstdint>
 #include <miopen/adaptiveavgpool/solvers.hpp>
 
 #include <miopen/adaptiveavgpool/invoke_params.hpp>
@@ -46,32 +45,19 @@ namespace adaptiveavgpool {
 
 bool IsOverRocmFwd2d(const miopen::adaptiveavgpool::FwdProblemDescription& problem)
 {
-    auto dtype      = problem.GetOutputDesc().GetType();
-    auto in_nelems  = problem.GetInputDesc().GetElementSize();
-    auto out_nelems = problem.GetOutputDesc().GetElementSize();
-    auto mul_nc = problem.GetOutputDesc().GetLengths()[0] * problem.GetOutputDesc().GetLengths()[1];
+    auto in_nelems   = problem.GetInputDesc().GetElementSize();
+    auto out_nelems  = problem.GetOutputDesc().GetElementSize();
     auto in_over_out = static_cast<float>(in_nelems) / out_nelems;
 
-    if(dtype == miopenFloat)
+    if(problem.IsAllContiguous())
     {
-        if(in_over_out > 11 || (in_over_out < 2 && mul_nc >= 12288))
-        {
+        if((in_over_out < 13) || (in_over_out >= 100 && in_over_out <= 112))
             return true;
-        }
     }
-    else if(dtype == miopenHalf)
+    else
     {
-        if(in_over_out > 11 || (in_over_out < 2 && mul_nc < 90000))
-        {
+        if(in_over_out < 248)
             return true;
-        }
-    }
-    else if(dtype == miopenBFloat16)
-    {
-        if(in_over_out >= 1024 || in_over_out < 2 || out_nelems >= 4816896)
-        {
-            return true;
-        }
     }
     return false;
 }

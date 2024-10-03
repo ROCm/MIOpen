@@ -45,29 +45,33 @@ namespace adaptiveavgpool {
 
 bool IsOverRocmBwd2d(const miopen::adaptiveavgpool::BwdProblemDescription& problem)
 {
-    auto dtype      = problem.GetInputGradDesc().GetType();
-    auto in_nelems  = problem.GetInputGradDesc().GetElementSize();
-    auto out_nelems = problem.GetOutputGradDesc().GetElementSize();
-    auto mul_nc =
-        problem.GetOutputGradDesc().GetLengths()[0] * problem.GetOutputGradDesc().GetLengths()[1];
-    auto in_over_out = static_cast<float>(in_nelems) / out_nelems;
-
-    if(dtype == miopenFloat)
+    if(problem.IsAllContiguous())
     {
         return false;
     }
-    else if(dtype == miopenHalf)
+    else
     {
-        if(in_over_out < 2 && in_nelems >= 11075584)
+        auto dtype       = problem.GetInputGradDesc().GetType();
+        auto in_nelems   = problem.GetInputGradDesc().GetElementSize();
+        auto out_nelems  = problem.GetOutputGradDesc().GetElementSize();
+        auto in_over_out = static_cast<float>(in_nelems) / out_nelems;
+
+        if(dtype == miopenFloat)
         {
-            return true;
+            if(in_nelems > 3801600)
+                return true;
         }
-    }
-    else if(dtype == miopenBFloat16)
-    {
-        if(in_over_out < 2 || (in_nelems > 20000000 && mul_nc <= 2048))
+        else if(dtype == miopenHalf)
         {
-            return true;
+            if(in_over_out == 1 || (in_over_out >= 1024 && in_over_out <= 4096))
+                return true;
+        }
+        else if(dtype == miopenBFloat16)
+        {
+            if(in_over_out < 13 || (in_over_out >= 1024 && in_over_out <= 4096))
+            {
+                return true;
+            }
         }
     }
     return false;
