@@ -43,7 +43,7 @@ namespace solver {
 
 namespace mha {
 
-#ifdef MIOPEN_USE_COMPOSABLEKERNEL
+#if MIOPEN_USE_COMPOSABLEKERNEL
 static std::string Convert(miopenDataType_t dataType)
 {
     switch(dataType)
