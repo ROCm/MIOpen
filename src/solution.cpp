@@ -394,12 +394,62 @@ void Solution::RunImpl(Handle& handle,
         }
     }();
 
-    const auto algo    = AlgorithmName{"MHA"};
-    const auto solvers = solver::SolverContainer<solver::mha::MhaCKFlashAttentionV2Forward,
-                                                 solver::mha::MhaForward,
-                                                 solver::mha::MhaBackward>{};
+     if(invoker)
+    {
+        (*invoker)(handle, invoke_ctx);
+        return;
+    }
 
-    solvers.ExecutePrimitive(handle, problem_description, algo, invoke_ctx);
+    auto getSolution = [&](const ExecutionContext& ctx)
+    {
+        auto solverId = GetSolver();
+        solver::mha::MhaForward mhaForward;
+        solver::mha::MhaBackward mhaBackward;
+        solver::mha::MhaCKFlashAttentionV2Forward ckMhaForward;
+
+        if(solverId == ckMhaForward.SolverDbId())
+        {
+            return ckMhaForward.GetSolution(ctx, problem_description);
+        }
+        else if(solverId == mhaForward.SolverDbId())
+        {
+            return mhaForward.GetSolution(ctx, problem_description);
+        }
+        else if(solverId == mhaBackward.SolverDbId())
+        {
+            return mhaBackward.GetSolution(ctx, problem_description);
+        }
+
+        MIOPEN_THROW("No MHA solver with matching SolverDbId of " + solverId.ToString());
+    };
+
+    if(!kernels.empty())
+    {
+        const auto ctx          = ExecutionContext{&handle};
+        const auto mha_solution = getSolution(ctx);
+        auto kernel_handles     = std::vector<Kernel>{std::begin(kernels), std::end(kernels)};
+
+        invoker = (*mha_solution.invoker_factory)(kernel_handles);
+        (*invoker)(handle, invoke_ctx);
+        return;
+    }
+
+    const auto net_cfg = problem_description.MakeNetworkConfig();
+    invoker            = handle.GetInvoker(net_cfg, GetSolver());
+
+    if(invoker)
+    {
+        (*invoker)(handle, invoke_ctx);
+        return;
+    }
+
+    auto ctx = ExecutionContext{&handle};
+    const auto mha_solution = getSolution(ctx);
+
+    invoker =
+        handle.PrepareInvoker(*mha_solution.invoker_factory, mha_solution.construction_params);
+    handle.RegisterInvoker(*invoker, net_cfg, GetSolver().ToString());
+    (*invoker)(handle, invoke_ctx);
 }
 
 void Solution::RunImpl(Handle& handle,
