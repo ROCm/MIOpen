@@ -25,18 +25,20 @@
  *******************************************************************************/
 
 #include "miopen/adaptiveavgpool/solvers.hpp"
-#include <miopen/solver.hpp>
-
 #include <miopen/activ/solvers.hpp>
 #include <miopen/adam/solvers.hpp>
 #include <miopen/batchnorm/solvers.hpp>
 #include <miopen/cat/solvers.hpp>
+#include <miopen/conv/solvers.hpp>
 #include <miopen/fusion/solvers.hpp>
+#include <miopen/glu/solvers.hpp>
 #include <miopen/groupnorm/solvers.hpp>
 #include <miopen/getitem/solvers.hpp>
 #include <miopen/layernorm/solvers.hpp>
 #include <miopen/pooling/solvers.hpp>
+#include <miopen/prelu/solvers.hpp>
 #include <miopen/reduce/solvers.hpp>
+#include <miopen/rope/solvers.hpp>
 #include <miopen/mha/solvers.hpp>
 #include <miopen/softmax/solvers.hpp>
 
@@ -673,6 +675,14 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
              Primitive::Fusion,
              fusion::ConvWinoFuryRxSFused<2, 3>{}.SolverDbId(),
              miopenConvolutionAlgoWinograd);
+
+    Register(registry, ++id, Primitive::RoPE, rope::RoPEForward{}.SolverDbId());
+    Register(registry, ++id, Primitive::RoPE, rope::RoPEBackward{}.SolverDbId());
+    Register(registry, ++id, Primitive::ReLU, prelu::MultiWeightsBackward{}.SolverDbId());
+    Register(registry, ++id, Primitive::ReLU, prelu::SingleWeightBackward{}.SolverDbId());
+
+    Register(registry, ++id, Primitive::Activation, glu::GLUForward{}.SolverDbId());
+    Register(registry, ++id, Primitive::Activation, glu::GLUBackward{}.SolverDbId());
 
     Register(registry,
              ++id,

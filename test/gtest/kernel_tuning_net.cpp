@@ -1,7 +1,7 @@
 #include <gtest/ai_heuristics.hpp>
 #include "../tensor_holder.hpp"
 #include "get_handle.hpp"
-#include <miopen/solver.hpp>
+#include <miopen/conv/solvers.hpp>
 #include <miopen/conv/heuristics/ai_heuristics.hpp>
 
 struct KernelTuningNetTestCase : AIModelTestCase
@@ -34,7 +34,7 @@ std::vector<KernelTuningNetTestCase> GetConvHipIgemmGroupFwdXdlopsTestCases()
           miopenFloat,
           miopenTensorNHWC},
          "DeviceGroupedConvFwdMultipleABD_Xdl_CShuffle<256, 128, 128, 16, Default, 32, 32, 2, 2, "
-         "4, 4, 4, 1, 1>",
+         "4, 4, 4, 1, 1, 1>",
          "gfx90a"},
         {{{16, 256, 2016, 192, {7, 7}, {1, 1}, {0, 0}, {1, 1}, {1, 1}},
           miopen::conv::Direction::Forward,
@@ -153,29 +153,29 @@ void TestParameterPredictionModel(miopen::conv::ProblemDescription problem,
 #endif
 }
 
-struct KernelTuningNetTestConvAsm1x1U : KernelTuningNetTest
+struct GPU_KernelTuningNetTestConvAsm1x1U_NONE : KernelTuningNetTest
 {
 };
 
-struct KernelTuningNetTestConvHipIgemmGroupFwdXdlops : KernelTuningNetTest
+struct GPU_KernelTuningNetTestConvHipIgemmGroupFwdXdlops_NONE : KernelTuningNetTest
 {
 };
 
-struct KernelTuningNetTestConvHipIgemmGroupBwdXdlops : KernelTuningNetTest
+struct GPU_KernelTuningNetTestConvHipIgemmGroupBwdXdlops_NONE : KernelTuningNetTest
 {
 };
 
-struct KernelTuningNetTestConvHipIgemmGroupWrwXdlops : KernelTuningNetTest
+struct GPU_KernelTuningNetTestConvHipIgemmGroupWrwXdlops_NONE : KernelTuningNetTest
 {
 };
 
-TEST_P(KernelTuningNetTestConvAsm1x1U, ConvAsm1x1UParameterPredictionModel)
+TEST_P(GPU_KernelTuningNetTestConvAsm1x1U_NONE, ConvAsm1x1UParameterPredictionModel)
 {
     TestParameterPredictionModel<miopen::solver::conv::PerformanceConfigConvAsm1x1U>(
         problem, expected, arch);
 }
 
-TEST_P(KernelTuningNetTestConvHipIgemmGroupFwdXdlops,
+TEST_P(GPU_KernelTuningNetTestConvHipIgemmGroupFwdXdlops_NONE,
        ConvHipIgemmGroupFwdXdlopsParameterPredictionModel)
 {
     TestParameterPredictionModel<
@@ -183,7 +183,7 @@ TEST_P(KernelTuningNetTestConvHipIgemmGroupFwdXdlops,
         problem, expected, arch);
 }
 
-TEST_P(KernelTuningNetTestConvHipIgemmGroupBwdXdlops,
+TEST_P(GPU_KernelTuningNetTestConvHipIgemmGroupBwdXdlops_NONE,
        ConvHipIgemmGroupBwdXdlopsParameterPredictionModel)
 {
     TestParameterPredictionModel<
@@ -191,7 +191,7 @@ TEST_P(KernelTuningNetTestConvHipIgemmGroupBwdXdlops,
         problem, expected, arch);
 }
 
-TEST_P(KernelTuningNetTestConvHipIgemmGroupWrwXdlops,
+TEST_P(GPU_KernelTuningNetTestConvHipIgemmGroupWrwXdlops_NONE,
        ConvHipIgemmGroupWrwXdlopsParameterPredictionModel)
 {
     TestParameterPredictionModel<
@@ -199,18 +199,18 @@ TEST_P(KernelTuningNetTestConvHipIgemmGroupWrwXdlops,
         problem, expected, arch);
 }
 
-INSTANTIATE_TEST_SUITE_P(ConvAsm1x1UParameterPredictionModelTest,
-                         KernelTuningNetTestConvAsm1x1U,
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_KernelTuningNetTestConvAsm1x1U_NONE,
                          testing::ValuesIn(GetConvAsm1x1UTestCases()));
 
-INSTANTIATE_TEST_SUITE_P(ConvHipIgemmGroupFwdXdlopsParameterPredictionModelTest,
-                         KernelTuningNetTestConvHipIgemmGroupFwdXdlops,
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_KernelTuningNetTestConvHipIgemmGroupFwdXdlops_NONE,
                          testing::ValuesIn(GetConvHipIgemmGroupFwdXdlopsTestCases()));
 
-INSTANTIATE_TEST_SUITE_P(ConvHipIgemmGroupBwdXdlopsParameterPredictionModelTest,
-                         KernelTuningNetTestConvHipIgemmGroupBwdXdlops,
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_KernelTuningNetTestConvHipIgemmGroupBwdXdlops_NONE,
                          testing::ValuesIn(GetConvHipIgemmGroupBwdXdlopsTestCases()));
 
-INSTANTIATE_TEST_SUITE_P(ConvHipIgemmGroupWrwXdlopsParameterPredictionModelTest,
-                         KernelTuningNetTestConvHipIgemmGroupWrwXdlops,
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_KernelTuningNetTestConvHipIgemmGroupWrwXdlops_NONE,
                          testing::ValuesIn(GetConvHipIgemmGroupWrwXdlopsTestCases()));

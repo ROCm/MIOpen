@@ -24,6 +24,7 @@
  *
  *******************************************************************************/
 #include <gtest/gtest.h>
+#include <miopen/conv/solvers.hpp>
 #include <miopen/miopen.h>
 #include <miopen/solver_id.hpp>
 #include <serialize.hpp>
@@ -35,13 +36,15 @@
 namespace conv_f8_fwd {
 
 std::vector<Conv3DTestCase> ConvTestConfigs()
-{ // g    n   c   d    h   w   k   z  y  x pad_x pad_y pad_z stri_x stri_y stri_z dia_x dia_y dia_z
-    return {{1, 16, 16, 1, 14, 14, 16, 1, 3, 3, 1, 1, 0, 1, 1, 1, 1, 1, 1, miopenConvolution},
-            {1, 64, 64, 1, 14, 14, 64, 1, 3, 3, 1, 1, 0, 1, 1, 1, 1, 1, 1, miopenConvolution},
-            {1, 64, 32, 1, 28, 28, 32, 1, 3, 3, 1, 1, 0, 1, 1, 1, 1, 1, 1, miopenConvolution},
-            {2, 128, 32, 1, 28, 28, 32, 1, 3, 3, 1, 1, 0, 1, 1, 1, 1, 1, 1, miopenConvolution},
-            {32, 128, 32, 1, 28, 28, 32, 1, 3, 3, 1, 1, 0, 1, 1, 1, 1, 1, 1, miopenConvolution},
-            {5, 120, 60, 1, 28, 28, 60, 1, 3, 3, 1, 1, 0, 1, 1, 1, 1, 1, 1, miopenConvolution}};
+{ // g   n   c   k   image   filter   pad   stride   dilation
+    // clang-format off
+    return {{1, 16, 16, 16, {1, 14, 14}, {1, 3, 3}, {0, 1, 1}, {1, 1, 1}, {1, 1, 1}, miopenConvolution},
+            {1, 64, 64, 64, {1, 14, 14}, {1, 3, 3}, {0, 1, 1}, {1, 1, 1}, {1, 1, 1}, miopenConvolution},
+            {1, 64, 32, 32, {1, 28, 28}, {1, 3, 3}, {0, 1, 1}, {1, 1, 1}, {1, 1, 1}, miopenConvolution},
+            {2, 128, 32, 32, {1, 28, 28}, {1, 3, 3}, {0, 1, 1}, {1, 1, 1}, {1, 1, 1}, miopenConvolution},
+            {32, 128, 32, 32, {1, 28, 28}, {1, 3, 3}, {0, 1, 1}, {1, 1, 1}, {1, 1, 1}, miopenConvolution},
+            {5, 120, 60, 60, {1, 28, 28}, {1, 3, 3}, {0, 1, 1}, {1, 1, 1}, {1, 1, 1}, miopenConvolution}};
+    // clang-format on
 }
 
 template <typename T = float>

@@ -29,7 +29,7 @@
 #include <miopen/find_solution.hpp>
 #include <miopen/invoke_params.hpp>
 #include <miopen/mlo_internal.hpp>
-#include <miopen/solver.hpp>
+#include <miopen/conv/solvers.hpp>
 #include <miopen/temp_file.hpp>
 
 #include <cstdlib>

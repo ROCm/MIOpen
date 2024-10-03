@@ -254,7 +254,7 @@ TensorParameters InputFlags::GetValueTensor(const std::string& long_name) const
     const auto& input     = MapInputs.at(FindShortName(long_name));
     const auto components = miopen::SplitDelim(input.value.c_str(), ',');
 
-    if(components.size() < 1)
+    if(components.empty())
         return {};
 
     auto parse = [](auto line) {

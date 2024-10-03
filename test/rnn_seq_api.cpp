@@ -61,6 +61,8 @@ struct rnn_seq_driver : rnn_seq_api_test_driver<T>
         this->add(this->nocx, "nocx", this->generate_data({false, true}));
         this->add(this->nohy, "nohy", this->generate_data({false}));
         this->add(this->nocy, "nocy", this->generate_data({false, true}));
+
+        this->add(this->pytorchTensorDescriptorFormat, "pyDescFormat", this->generate_data(modes));
     }
 
     rnn_seq_driver(bool) : rnn_seq_api_test_driver<T>() {}
@@ -96,6 +98,9 @@ struct rnn_seq_driver : rnn_seq_api_test_driver<T>
         if(this->seqLenArray.size() > this->batchSize)
             return false;
 
+        if(this->biasMode && this->nohx)
+            return false;
+
         if(!this->seqLenArray.empty())
         {
             if(this->seqLength <
@@ -113,6 +118,7 @@ struct rnn_seq_driver : rnn_seq_api_test_driver<T>
 
     void run()
     {
+
         if(!this->full_set || (is_correct_params() && !is_skip_comb()))
             rnn_seq_api_test_driver<T>::run();
         else
@@ -157,6 +163,8 @@ struct lstm_MS_solver : rnn_seq_driver<T>
         this->add(this->nocx, "nocx", this->generate_data(modes));
         this->add(this->nohy, "nohy", this->generate_data(modes));
         this->add(this->nocy, "nocy", this->generate_data(modes));
+
+        this->add(this->pytorchTensorDescriptorFormat, "pyDescFormat", this->generate_data(modes));
     }
 
     void run()
