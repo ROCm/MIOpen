@@ -73,7 +73,7 @@ int mloWhereBackwardNoBroadcastRunHost(miopenTensorDescriptor_t outputGradDesc,
     return 0;
 }
 
-bool isDefined(std::vector<int>& len)
+inline bool isDefined(const std::vector<int>& len)
 {
     return std::all_of(len.begin(), len.end(), [](int i) { return i > 0; });
 }
@@ -139,6 +139,7 @@ private:
     std::vector<Tgpu> outGrad;
     std::vector<Tgpu> inGrad;
     std::vector<Tgpu> otherGrad;
+
     std::vector<Tref> inGradhost;
     std::vector<Tref> otherGradhost;
 };
@@ -154,7 +155,7 @@ int WhereDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
     }
 
     forw = inflags.GetValueInt("forw");
-    if(forw != 0 && forw != 1)
+    if(forw != 0)
     {
         MIOPEN_THROW("Invalid Forward Mode");
     }
@@ -214,12 +215,11 @@ int WhereDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 {
     uint32_t ctx = 0;
 
-    size_t cond_sz = GetTensorSpace(condTensor);
-
     if(forw == 0)
     {
         size_t inGrad_sz    = isInputGradRequired ? GetTensorSpace(inputTensorGrad) : 0;
         size_t otherGrad_sz = isOtherGradRequired ? GetTensorSpace(otherTensorGrad) : 0;
+        size_t cond_sz      = GetTensorSpace(condTensor);
         size_t outGrad_sz   = GetTensorSpace(outputTensorGrad);
 
         // GPU allocation
@@ -249,7 +249,7 @@ int WhereDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         for(int i = 0; i < cond_sz; i++)
         {
             Tgpu tmp = prng::gen_A_to_B(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
-            cond[i]  = (tmp > 0.5) ? true : false;
+            cond[i]  = (tmp > 0.5) ? 1 : 0;
         }
         for(int i = 0; i < outGrad_sz; i++)
         {

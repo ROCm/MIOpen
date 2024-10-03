@@ -24,8 +24,6 @@
  *
  *******************************************************************************/
 
-#include <miopen/solver.hpp>
-
 #include <miopen/activ/solvers.hpp>
 #include <miopen/adam/solvers.hpp>
 #include <miopen/batchnorm/solvers.hpp>

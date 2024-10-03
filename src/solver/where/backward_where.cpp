@@ -24,6 +24,7 @@
  *
  *******************************************************************************/
 
+#include "miopen/miopen.h"
 #include <cstddef>
 
 #include <miopen/datatype.hpp>
@@ -42,10 +43,16 @@ namespace solver {
 
 namespace where {
 
-bool WhereBackward::IsApplicable(
-    [[maybe_unused]] const ExecutionContext& context,
-    [[maybe_unused]] const miopen::where::BackwardProblemDescription& problem) const
+bool WhereBackward::IsApplicable(const ExecutionContext& /* context */,
+                                 const miopen::where::BackwardProblemDescription& problem) const
 {
+    if(!(problem.GetInputGradDesc().GetType() == miopenFloat ||
+         problem.GetInputGradDesc().GetType() == miopenHalf ||
+         problem.GetInputGradDesc().GetType() == miopenBFloat16))
+    {
+        return false;
+    }
+
     return true;
 }
 
