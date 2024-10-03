@@ -2951,6 +2951,54 @@ miopenDestroyActivationDescriptor(miopenActivationDescriptor_t activDesc);
 /** @} */
 // CLOSEOUT ACTIVATION DOXYGEN GROUP
 
+#ifdef MIOPEN_BETA_API
+/** @addtogroup activation
+ *
+ *  @{
+ */
+
+/*! @brief Execute a GLU forward layer
+ *
+ * @param handle                   MIOpen handle (input)
+ * @param inputDesc                Tensor descriptor for input tensor (input)
+ * @param input                    Input tensor (input)
+ * @param outputDesc               Tensor descriptor for output tensor (input)
+ * @param output                   Output tensor (output)
+ * @param dim                      Dimension to split the input (input)
+ * @return                         miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenGLUForward(miopenHandle_t handle,
+                                              const miopenTensorDescriptor_t inputDesc,
+                                              const void* input,
+                                              const miopenTensorDescriptor_t outputDesc,
+                                              void* output,
+                                              const uint32_t dim);
+
+/*! @brief Execute a GLU backward layer
+ *
+ * @param handle                   MIOpen handle (input)
+ * @param inputDesc                Tensor descriptor for input tensor (input)
+ * @param input                    Input tensor (input)
+ * @param outputGradDesc           Tensor descriptor for delta output tensor (input)
+ * @param outputGrad               Delta output tensor (input)
+ * @param inputGradDesc            Tensor descriptor for delta input tensor (input)
+ * @param inputGrad                Delta input tensor (output)
+ * @param dim                      Dimension to split the input (input)
+ * @return                         miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenGLUBackward(miopenHandle_t handle,
+                                               const miopenTensorDescriptor_t inputDesc,
+                                               const void* input,
+                                               const miopenTensorDescriptor_t outputGradDesc,
+                                               const void* outputGrad,
+                                               const miopenTensorDescriptor_t inputGradDesc,
+                                               void* inputGrad,
+                                               const uint32_t dim);
+
+/** @} */
+// CLOSEOUT ACTIVATION DOXYGEN GROUP
+#endif // MIOPEN_BETA_API
+
 // Softmax APIs
 /** @addtogroup softmax
  *
@@ -7687,6 +7735,40 @@ MIOPEN_EXPORT miopenStatus_t miopenRoPEBackward(miopenHandle_t handle,
                                                 void* dx);
 /** @} */
 // CLOSEOUT ROPE DOXYGEN GROUP
+// kthvalue APIs
+/** @addtogroup kthvalue
+ *
+ *  @{
+ */
+
+/*! @brief Execute a Kthvalue forward layer
+ *
+ * @param handle                   MIOpen handle (input)
+ * @param inputDesc                Tensor descriptor for input tensor (input)
+ * @param input                    Data tensor input (input)
+ * @param outputDesc               Tensor descriptor for output tensor (input)
+ * @param output                   Data tensor output (output)
+ * @param indices                  Data tensor indices (output)
+ * @param indicesDesc              Tensor descriptor for indices tensor (input)
+ * @param k                        The k-th smallest element(input)
+ * @param dim                      The dimension to find the kth value along (Default = -1)(input)
+ * @param keepDim                  Whether the output tensor has dim retained or not (Default =
+ * false)(input)
+ * @return                         miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenKthvalueForward(miopenHandle_t handle,
+                                                   miopenTensorDescriptor_t inputDesc,
+                                                   const void* input,
+                                                   miopenTensorDescriptor_t outputDesc,
+                                                   void* output,
+                                                   miopenTensorDescriptor_t indicesDesc,
+                                                   size_t* indices,
+                                                   size_t k,
+                                                   int32_t dim  = -1,
+                                                   bool keepDim = false);
+
+/** @} */
+// CLOSEOUT kthvalue DOXYGEN GROUP
 #endif // MIOPEN_BETA_API
 
 #ifdef MIOPEN_BETA_API

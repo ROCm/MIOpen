@@ -239,7 +239,7 @@ struct ProblemDescriptionCalculation : ProblemDescriptionBase
 
     bool IsValidDim() const
     {
-        if((dim < 0) || (dim > xDesc.GetLengths().size()))
+        if((dim < 0) || (dim >= xDesc.GetLengths().size()))
         {
             MIOPEN_THROW(
                 miopenStatusBadParm,
