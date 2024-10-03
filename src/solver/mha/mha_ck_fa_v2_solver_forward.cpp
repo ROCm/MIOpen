@@ -72,7 +72,7 @@ bool MhaCKFlashAttentionV2Forward::IsApplicable(
     }
 
     auto deviceName = context.GetStream().GetDeviceName();
-    if(!StartsWith(deviceName, "gfx94") || deviceName != "gfx90a")
+    if(!StartsWith(deviceName, "gfx94") && deviceName != "gfx90a")
     {
         return false;
     }
@@ -101,7 +101,7 @@ bool MhaCKFlashAttentionV2Forward::IsApplicable(
            && descsFwd.vDesc.IsPacked()                 //
            && descsFwd.oDesc.IsPacked()                 //
            && descsFwd.biasDesc.IsPacked()              //
-           && descsFwd.biasDesc.GetType() == miopenHalf //
+           //&& descsFwd.biasDesc.GetType() == miopenHalf //
            && descsFwd.kDesc.GetType() == miopenHalf    //
            && descsFwd.qDesc.GetType() == miopenHalf    //
            && descsFwd.vDesc.GetType() == miopenHalf    //
@@ -219,9 +219,8 @@ MhaCKFlashAttentionV2Forward::GetSolution([[maybe_unused]] const ExecutionContex
             fmha_runtime_args.rand_val_ptr = nullptr;
             fmha_runtime_args.o_ptr        = dataFwd.oData;
 
-            fmha_runtime_traits.bias_type =
-                dataFwd.biasData != nullptr ? bias_enum::elementwise_bias : bias_enum::no_bias;
-            fmha_runtime_args.bias_ptr = dataFwd.biasData;
+            fmha_runtime_traits.bias_type = bias_enum::no_bias;
+            fmha_runtime_args.bias_ptr = nullptr;
 
             // Top-left causal mask
             if(dataFwd.mask == miopenMhaMask_t::miopenMhaMaskCausal)
