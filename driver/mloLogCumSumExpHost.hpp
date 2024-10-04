@@ -32,6 +32,8 @@
 #include <miopen/tensor.hpp>
 #include <miopen/tensor_view_utils.hpp>
 
+#include <limits>
+
 template <typename Tgpu, typename Tcheck>
 int mloLogCumSumExpForwardRunHost(const miopenTensorDescriptor_t inputDesc,
                                   const miopenTensorDescriptor_t outputDesc,
@@ -119,12 +121,14 @@ int mloLogCumSumExpBackwardRunHost(const miopenTensorDescriptor_t inputDesc,
 
         if(!reverse ? tensor_layout.layout[true_dim] < exclusive
                     : tensor_layout.layout[true_dim] + exclusive >= dim_size)
-            log_grad_positive[idx] = log_grad_negative[idx] = std::log(0);
+            log_grad_positive[idx] = log_grad_negative[idx] =
+                -std::numeric_limits<float>::infinity();
         else
         {
-            log_grad_positive[idx] = (doutput_v > 0 ? std::log(doutput_v) - output_v : std::log(0));
-            log_grad_negative[idx] =
-                (doutput_v < 0 ? std::log(-doutput_v) - output_v : std::log(0));
+            log_grad_positive[idx] = (doutput_v > 0 ? std::log(doutput_v) - output_v
+                                                    : -std::numeric_limits<float>::infinity());
+            log_grad_negative[idx] = (doutput_v < 0 ? std::log(-doutput_v) - output_v
+                                                    : -std::numeric_limits<float>::infinity());
         }
     });
 

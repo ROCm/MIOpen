@@ -29,6 +29,8 @@
 #include "tensor_holder.hpp"
 #include <miopen/tensor_view_utils.hpp>
 
+#include <limits>
+
 template <class T>
 void cpu_logcumsumexp_forward(const tensor<T> input,
                               tensor<T>& ref_output,
@@ -107,12 +109,14 @@ void cpu_logcumsumexp_backward(const tensor<T> input,
 
         if(!reverse ? tensor_layout.layout[true_dim] < exclusive
                     : tensor_layout.layout[true_dim] + exclusive >= dim_size)
-            log_grad_positive[idx] = log_grad_negative[idx] = std::log(0);
+            log_grad_positive[idx] = log_grad_negative[idx] =
+                -std::numeric_limits<float>::infinity();
         else
         {
-            log_grad_positive[idx] = (doutput_v > 0 ? std::log(doutput_v) - output_v : std::log(0));
-            log_grad_negative[idx] =
-                (doutput_v < 0 ? std::log(-doutput_v) - output_v : std::log(0));
+            log_grad_positive[idx] = (doutput_v > 0 ? std::log(doutput_v) - output_v
+                                                    : -std::numeric_limits<float>::infinity());
+            log_grad_negative[idx] = (doutput_v < 0 ? std::log(-doutput_v) - output_v
+                                                    : -std::numeric_limits<float>::infinity());
         }
     });
 
