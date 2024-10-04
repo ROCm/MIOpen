@@ -23,141 +23,60 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <miopen/env.hpp>
 #include "nllloss.hpp"
-
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
-
-namespace nllloss {
-
-std::string GetFloatArg()
-{
-    const auto& tmp = env::value(MIOPEN_TEST_FLOAT_ARG);
-    if(tmp.empty())
-    {
-        return "";
-    }
-    return tmp;
-}
-
-struct GPU_Nllloss_fwd_FP32 : NLLLossTestFwd<float>
-{
-};
-
-struct GPU_Nllloss_fwd_FP16 : NLLLossTestFwd<half>
-{
-};
-
-struct GPU_Nllloss_fwd_BFP16 : NLLLossTestFwd<bfloat16>
-{
-};
-
-struct GPU_Nllloss_bwd_FP32 : NLLLossTestBwd<float>
-{
-};
-
-struct GPU_Nllloss_bwd_FP16 : NLLLossTestBwd<half>
-{
-};
-
-struct GPU_Nllloss_bwd_BFP16 : NLLLossTestBwd<bfloat16>
-{
-};
-
-} // namespace nllloss
-using namespace nllloss;
+#include "gtest/gtest.h"
+using float16 = half_float::half;
 
 // FORWARD TEST
+using GPU_Nllloss_fwd_FP32  = NLLLossTestFwd<float>;
+using GPU_Nllloss_fwd_FP16  = NLLLossTestFwd<float16>;
+using GPU_Nllloss_fwd_BFP16 = NLLLossTestFwd<bfloat16>;
+
 TEST_P(GPU_Nllloss_fwd_FP32, NLLLossTestFwd)
 {
-    if(!MIOPEN_TEST_ALL ||
-       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--float"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 };
 
 TEST_P(GPU_Nllloss_fwd_FP16, NLLLossTestFwd)
 {
-    if(!MIOPEN_TEST_ALL ||
-       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--half"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 };
 
 TEST_P(GPU_Nllloss_fwd_BFP16, NLLLossTestFwd)
 {
-    if(!MIOPEN_TEST_ALL ||
-       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--bfloat16"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 };
 
-INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Nllloss_fwd_FP32, testing::ValuesIn(NLLLossTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Nllloss_fwd_FP16, testing::ValuesIn(NLLLossTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Nllloss_fwd_BFP16, testing::ValuesIn(NLLLossTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_Nllloss_fwd_FP32, testing::ValuesIn(NLLLossTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_Nllloss_fwd_FP16, testing::ValuesIn(NLLLossTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_Nllloss_fwd_BFP16, testing::ValuesIn(NLLLossTestConfigs()));
 
 // BACKWARD TEST
+using GPU_Nllloss_bwd_FP32  = NLLLossTestBwd<float>;
+using GPU_Nllloss_bwd_FP16  = NLLLossTestBwd<float16>;
+using GPU_Nllloss_bwd_BFP16 = NLLLossTestBwd<bfloat16>;
+
 TEST_P(GPU_Nllloss_bwd_FP32, NLLLossTestBwd)
 {
-    if(!MIOPEN_TEST_ALL ||
-       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--float"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 };
 
 TEST_P(GPU_Nllloss_bwd_FP16, NLLLossTestBwd)
 {
-    if(!MIOPEN_TEST_ALL ||
-       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--half"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 };
 
 TEST_P(GPU_Nllloss_bwd_BFP16, NLLLossTestBwd)
 {
-    if(!MIOPEN_TEST_ALL ||
-       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--bfloat16"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 };
 
-INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Nllloss_bwd_FP32, testing::ValuesIn(NLLLossTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Nllloss_bwd_FP16, testing::ValuesIn(NLLLossTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Nllloss_bwd_BFP16, testing::ValuesIn(NLLLossTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_Nllloss_bwd_FP32, testing::ValuesIn(NLLLossTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_Nllloss_bwd_FP16, testing::ValuesIn(NLLLossTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_Nllloss_bwd_BFP16, testing::ValuesIn(NLLLossTestConfigs()));
