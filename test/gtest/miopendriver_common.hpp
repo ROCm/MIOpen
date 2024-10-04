@@ -27,7 +27,7 @@
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
-#include <gtest/gtest_env_check_common.hpp>
+#include <gtest/gtest_common.hpp>
 
 #include <miopen/process.hpp>
 #include <miopen/filesystem.hpp>
@@ -107,5 +107,5 @@ RunMIOpenDriverTestCommand(const std::vector<std::string>& params,
 template <typename disabled_mask, typename enabled_mask>
 static inline bool ShouldRunMIOpenDriverTest()
 {
-    return ShouldRunTestCase<disabled_mask, enabled_mask>();
+    return IsTestSupportedForDevMask<disabled_mask, enabled_mask>();
 }

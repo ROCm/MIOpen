@@ -76,6 +76,6 @@ INSTANTIATE_TEST_SUITE_P(Full,
 
 TEST_P(GPU_MIOpenDriverGemmTest_FP16, MIOpenDriverGemm) { RunMIOpenDriver(GetParam()); };
 
-INSTANTIATE_TEST_SUITE_P(Full,
+INSTANTIATE_TEST_SUITE_P(Smoke,
                          GPU_MIOpenDriverGemmTest_FP16,
                          testing::Values(GetTestCases(miopendriver::basearg::gemm::Half)));

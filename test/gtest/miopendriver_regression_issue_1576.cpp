@@ -76,6 +76,6 @@ TEST_P(GPU_MIOpenDriverRegressionIssue1576Test_FP16, MIOpenDriverRegressionIssue
     RunMIOpenDriver();
 };
 
-INSTANTIATE_TEST_SUITE_P(Smoke,
+INSTANTIATE_TEST_SUITE_P(Full,
                          GPU_MIOpenDriverRegressionIssue1576Test_FP16,
                          testing::Values(GetTestCases()));
