@@ -406,3 +406,4 @@ INSTANTIATE_TEST_SUITE_P(
         testing::Values(MIOPEN_SOFTMAX_FAST, MIOPEN_SOFTMAX_ACCURATE, MIOPEN_SOFTMAX_LOG),
         testing::Values(MIOPEN_SOFTMAX_MODE_INSTANCE, MIOPEN_SOFTMAX_MODE_CHANNEL),
         testing::Values(Scales{1.0f, 0.0f}, Scales{0.5f, 0.5f})));
+        
