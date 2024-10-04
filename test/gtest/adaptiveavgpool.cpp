@@ -24,91 +24,30 @@
  *
  *******************************************************************************/
 #include "adaptiveavgpool.hpp"
-#include <miopen/env.hpp>
-
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
-
-namespace adaptiveavgpool {
-
-std::string GetFloatArg()
-{
-    const auto& tmp = env::value(MIOPEN_TEST_FLOAT_ARG);
-    if(tmp.empty())
-    {
-        return "";
-    }
-    return tmp;
-}
-
-struct GPU_AdaptiveAvgpool_fwd_FP32 : AdaptiveAvgPoolTestFwd<float>
-{
-};
-
-struct GPU_AdaptiveAvgpool_fwd_FP16 : AdaptiveAvgPoolTestFwd<half>
-{
-};
-
-struct GPU_AdaptiveAvgpool_fwd_BFP16 : AdaptiveAvgPoolTestFwd<bfloat16>
-{
-};
-
-struct GPU_AdaptiveAvgpool_bwd_FP32 : AdaptiveAvgPoolTestBwd<float>
-{
-};
-
-struct GPU_AdaptiveAvgpool_bwd_FP16 : AdaptiveAvgPoolTestBwd<half>
-{
-};
-
-struct GPU_AdaptiveAvgpool_bwd_BFP16 : AdaptiveAvgPoolTestBwd<bfloat16>
-{
-};
-
-} // namespace adaptiveavgpool
-using namespace adaptiveavgpool;
+#include "gtest/gtest.h"
+using float16 = half_float::half;
 
 // FORWARD TEST
+using GPU_AdaptiveAvgpool_fwd_FP32  = AdaptiveAvgPoolTestFwd<float>;
+using GPU_AdaptiveAvgpool_fwd_FP16  = AdaptiveAvgPoolTestFwd<float16>;
+using GPU_AdaptiveAvgpool_fwd_BFP16 = AdaptiveAvgPoolTestFwd<bfloat16>;
+
 TEST_P(GPU_AdaptiveAvgpool_fwd_FP32, AdaptiveAvgPoolTestFwd)
 {
-    if(!MIOPEN_TEST_ALL ||
-       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--float"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 };
 
 TEST_P(GPU_AdaptiveAvgpool_fwd_FP16, AdaptiveAvgPoolTestFwd)
 {
-    if(!MIOPEN_TEST_ALL ||
-       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--half"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 };
 
 TEST_P(GPU_AdaptiveAvgpool_fwd_BFP16, AdaptiveAvgPoolTestFwd)
 {
-    if(!MIOPEN_TEST_ALL ||
-       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--bfloat16"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 };
 
 INSTANTIATE_TEST_SUITE_P(Smoke,
@@ -122,46 +61,26 @@ INSTANTIATE_TEST_SUITE_P(Smoke,
                          testing::ValuesIn(AdaptiveAvgPoolTestConfigsFwdBfp16()));
 
 // BACKWARD TEST
+using GPU_AdaptiveAvgpool_bwd_FP32  = AdaptiveAvgPoolTestBwd<float>;
+using GPU_AdaptiveAvgpool_bwd_FP16  = AdaptiveAvgPoolTestBwd<float16>;
+using GPU_AdaptiveAvgpool_bwd_BFP16 = AdaptiveAvgPoolTestBwd<bfloat16>;
+
 TEST_P(GPU_AdaptiveAvgpool_bwd_FP32, AdaptiveAvgPoolTestBwd)
 {
-    if(!MIOPEN_TEST_ALL ||
-       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--float"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 };
 
 TEST_P(GPU_AdaptiveAvgpool_bwd_FP16, AdaptiveAvgPoolTestBwd)
 {
-    if(!MIOPEN_TEST_ALL ||
-       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--half"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 };
 
 TEST_P(GPU_AdaptiveAvgpool_bwd_BFP16, AdaptiveAvgPoolTestBwd)
 {
-    if(!MIOPEN_TEST_ALL ||
-       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--bfloat16"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 };
 
 INSTANTIATE_TEST_SUITE_P(Smoke,
