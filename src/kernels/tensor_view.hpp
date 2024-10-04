@@ -49,7 +49,6 @@ struct tensor_view_t
     uint64_t stride[N];
     uint64_t size[N];
 };
-
 template <int N>
 struct tensor_layout_t
 {

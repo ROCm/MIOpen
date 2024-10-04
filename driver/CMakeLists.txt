@@ -49,6 +49,7 @@ add_executable(MIOpenDriver
     dm_kthvalue.cpp
     dm_layernorm.cpp
     dm_lrn.cpp
+    dm_nllloss.cpp
     dm_pool.cpp
     dm_prelu.cpp
     dm_reduce.cpp

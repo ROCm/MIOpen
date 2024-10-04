@@ -35,6 +35,7 @@
 #include <miopen/getitem/solvers.hpp>
 #include <miopen/kthvalue/solvers.hpp>
 #include <miopen/layernorm/solvers.hpp>
+#include <miopen/nllloss/solvers.hpp>
 #include <miopen/pooling/solvers.hpp>
 #include <miopen/prelu/solvers.hpp>
 #include <miopen/reduce/solvers.hpp>
@@ -685,6 +686,31 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
     Register(registry, ++id, Primitive::Activation, glu::GLUForward{}.SolverDbId());
     Register(registry, ++id, Primitive::Activation, glu::GLUBackward{}.SolverDbId());
 
+    Register(registry,
+             ++id,
+             Primitive::Loss,
+             nllloss::NLLLossUnreduceForwardContiguous4d{}.SolverDbId());
+    Register(registry,
+             ++id,
+             Primitive::Loss,
+             nllloss::NLLLossUnreduceForwardContiguous2d{}.SolverDbId());
+    Register(registry, ++id, Primitive::Loss, nllloss::NLLLossUnreduceForward4d{}.SolverDbId());
+    Register(registry, ++id, Primitive::Loss, nllloss::NLLLossUnreduceForward2d{}.SolverDbId());
+    Register(registry, ++id, Primitive::Loss, nllloss::NLLLossUnreduceForward5d{}.SolverDbId());
+    Register(registry, ++id, Primitive::Loss, nllloss::NLLLossReduceForward5d{}.SolverDbId());
+    Register(registry,
+             ++id,
+             Primitive::Loss,
+             nllloss::NLLLossUnreduceBackwardContiguous2d{}.SolverDbId());
+    Register(registry,
+             ++id,
+             Primitive::Loss,
+             nllloss::NLLLossUnreduceBackwardContiguous4d{}.SolverDbId());
+    Register(registry, ++id, Primitive::Loss, nllloss::NLLLossUnreduceBackward4d{}.SolverDbId());
+    Register(registry, ++id, Primitive::Loss, nllloss::NLLLossUnreduceBackward2d{}.SolverDbId());
+    Register(registry, ++id, Primitive::Loss, nllloss::NLLLossUnreduceBackward5d{}.SolverDbId());
+    Register(registry, ++id, Primitive::Loss, nllloss::NLLLossReduceBackward2d{}.SolverDbId());
+    Register(registry, ++id, Primitive::Loss, nllloss::NLLLossReduceBackward5d{}.SolverDbId());
     // IMPORTANT: New solvers should be added to the end of the function!
 }
 
