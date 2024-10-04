@@ -30,6 +30,8 @@
 
 static void LogCmdLogCumSumExp(const miopenTensorDescriptor_t inputDesc,
                                const miopenTensorDescriptor_t outputDesc,
+                               const miopenTensorDescriptor_t doutputDesc,
+                               const miopenTensorDescriptor_t dinputDesc,
                                const int dim,
                                const bool exclusive,
                                const bool reverse,
@@ -52,7 +54,14 @@ static void LogCmdLogCumSumExp(const miopenTensorDescriptor_t inputDesc,
             ss << "logcumsumexpbfp16";
         }
 
-        MIOPEN_LOG_FUNCTION(inputDesc, outputDesc);
+        if(is_fwd)
+        {
+            MIOPEN_LOG_FUNCTION(inputDesc, outputDesc);
+        }
+        else
+        {
+            MIOPEN_LOG_FUNCTION(inputDesc, outputDesc, doutputDesc, dinputDesc);
+        }
         ss << " -d " << dim;
         ss << " --excl " << exclusive;
         ss << " --rev " << reverse;
@@ -73,7 +82,7 @@ extern "C" miopenStatus_t miopenLogCumSumExpForward(miopenHandle_t handle,
 {
     MIOPEN_LOG_FUNCTION(handle, inputDesc, input, outputDesc, output, dim, exclusive, reverse);
 
-    LogCmdLogCumSumExp(inputDesc, outputDesc, dim, exclusive, reverse, true);
+    LogCmdLogCumSumExp(inputDesc, outputDesc, nullptr, nullptr, dim, exclusive, reverse, true);
     return miopen::try_([&] {
         miopen::LogCumSumExpForward(miopen::deref(handle),
                                     miopen::deref(inputDesc),
@@ -112,7 +121,8 @@ extern "C" miopenStatus_t miopenLogCumSumExpBackward(miopenHandle_t handle,
                         exclusive,
                         reverse);
 
-    LogCmdLogCumSumExp(inputDesc, outputDesc, dim, exclusive, reverse, false);
+    LogCmdLogCumSumExp(
+        inputDesc, outputDesc, doutputDesc, dinputDesc, dim, exclusive, reverse, false);
     return miopen::try_([&] {
         miopen::LogCumSumExpBackward(miopen::deref(handle),
                                      miopen::deref(inputDesc),
