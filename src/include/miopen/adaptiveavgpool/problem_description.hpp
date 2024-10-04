@@ -43,6 +43,7 @@ struct FwdProblemDescription : ProblemDescriptionBase
     {
         IsValidLength();
         IsValidDims();
+        IsSameType();
     }
 
     auto GetInputDesc() const { return inputDesc; }
@@ -122,6 +123,17 @@ struct FwdProblemDescription : ProblemDescriptionBase
         return isContiguous(inputDesc) && isContiguous(outputDesc);
     }
 
+    bool IsSameType() const
+    {
+        if(inputDesc.GetType() != outputDesc.GetType())
+        {
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "AdaptiveAvgPool: Input and output tensor types do not match.");
+        }
+
+        return true;
+    }
+
     NetworkConfig MakeNetworkConfig() const override;
 
 protected:
@@ -137,6 +149,7 @@ struct BwdProblemDescription : ProblemDescriptionBase
     {
         IsValidLength();
         IsValidDims();
+        IsSameType();
     }
 
     auto GetOutputGradDesc() const { return outputGradDesc; }
@@ -214,6 +227,17 @@ struct BwdProblemDescription : ProblemDescriptionBase
             return true;
         };
         return isContiguous(inputGradDesc) && isContiguous(outputGradDesc);
+    }
+
+    bool IsSameType() const
+    {
+        if(inputGradDesc.GetType() != outputGradDesc.GetType())
+        {
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "AdaptiveAvgPool: Input grad and output grad tensor types do not match.");
+        }
+
+        return true;
     }
 
     NetworkConfig MakeNetworkConfig() const override;
