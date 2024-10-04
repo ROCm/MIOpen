@@ -40,7 +40,6 @@
 #include <miopen/generic_search_controls.hpp>
 #include <miopen/invoker.hpp>
 #include <miopen/kernel.hpp>
-#include <miopen/solver.hpp>
 #include <miopen/solution.hpp>
 #include <miopen/tensor_ops.hpp>
 #include <miopen/tensor.hpp>
@@ -369,7 +368,7 @@ void ConvolutionDescriptor::ValidateTensors(const ConvTensors& tensors) const
     // left of C to be a multiple of group count G. e.g. for NCHW, the stride for N
     // should be a multiple of G so that we can compute the strides for NGCHW
     auto bad_group_stride = [this](const TensorDescriptor& td) {
-        auto l             = td.GetLayout_t();
+        auto l             = td.GetLayoutEnum();
         int g_stride_index = -1;
         if(l == miopenTensorNCHW || l == miopenTensorNCDHW)
         {

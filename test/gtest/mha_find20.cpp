@@ -210,7 +210,9 @@ public:
 
         const size_t numTensors = tensors.size();
 
-        auto arguments = std::make_unique<miopenTensorArgument_t[]>(numTensors);
+        unsigned int numberOfBuffers = numTensors + 1; // +1 for passing a scalar for mhaMask
+
+        auto arguments = std::make_unique<miopenTensorArgument_t[]>(numberOfBuffers);
 
         std::vector<miopenTensorDescriptor_t> descVector(numTensors);
 
@@ -227,6 +229,11 @@ public:
 
             ++i;
         }
+
+        // Passing a scalar is a special case for current Find 2.0 implementation
+        arguments[i].id         = miopenTensorMhaMask;
+        arguments[i].descriptor = nullptr;
+        arguments[i].buffer     = &mhaMask;
 
         std::vector<miopenTensorArgumentId_t> output_ids;
 
@@ -264,7 +271,7 @@ public:
             std::cerr << "Run a solution." << std::endl;
             EXPECT_EQUAL(miopenRunSolution(&handle,
                                            solution,
-                                           numTensors,
+                                           numberOfBuffers,
                                            arguments.get(),
                                            workspace.ptr(),
                                            workspace.size()),
@@ -361,6 +368,8 @@ private:
         CreateTensor(miopenTensorMhaDropoutSeed).InitWithInt64Value(0);
         CreateTensor(miopenTensorMhaDropoutOffset).InitWithInt64Value(0);
 
+        CreateTensor(miopenTensorMhaBias, test_n, test_h, test_s, test_s).InitWithRandom();
+
         if(isForward)
         {
             CreateTensor(miopenTensorMhaQ, test_n, test_h, test_s, test_d).InitWithRandom();
@@ -379,7 +388,6 @@ private:
             CreateTensor(miopenTensorMhaO, test_n, test_h, test_s, test_d).InitWithRandom();
 
             CreateTensor(miopenTensorMhaDO, test_n, test_h, test_s, test_d).InitWithRandom();
-            ;
 
             CreateTensor(miopenTensorMhaM, test_n, test_h, test_s, 1).InitWithFloatValue(0.0f);
             CreateTensor(miopenTensorMhaZInv, test_n, test_h, test_s, 1).InitWithFloatValue(1.0f);
@@ -423,6 +431,8 @@ private:
         const auto& mhads = tensors[miopenTensorMhaDropoutSeed];
         const auto& mhado = tensors[miopenTensorMhaDropoutOffset];
 
+        const auto& mhabias = tensors[miopenTensorMhaBias];
+
         mha::MhaInputDescsForward inputDescs = {
             mhaK->GetTensorDescriptor(),
             mhaQ->GetTensorDescriptor(),
@@ -437,6 +447,7 @@ private:
             mhadp->GetTensorDescriptor(),
             mhads->GetTensorDescriptor(),
             mhado->GetTensorDescriptor(),
+            mhabias->GetTensorDescriptor(),
             tensors[miopenTensorMhaO]->GetTensorDescriptor(),
             tensors[miopenTensorMhaAmaxO]->GetTensorDescriptor(),
             tensors[miopenTensorMhaAmaxS]->GetTensorDescriptor(),
@@ -459,6 +470,8 @@ private:
                 mhadp->gpuBuffer.get(),
                 mhads->gpuBuffer.get(),
                 mhado->gpuBuffer.get(),
+                mhabias->gpuBuffer.get(),
+                mhaMask,
                 outputResultsMap[miopenTensorMhaO]->gpuBuffer.get(),
                 outputResultsMap[miopenTensorMhaAmaxO]->gpuBuffer.get(),
                 outputResultsMap[miopenTensorMhaAmaxS]->gpuBuffer.get(),
@@ -639,10 +652,11 @@ private:
     const unsigned int test_s = 8;
     const unsigned int test_d = 16;
 
-    float scale = 1.0f;
+    float scale             = 1.0f;
+    miopenMhaMask_t mhaMask = miopenMhaMaskNone;
 };
 
-TEST(TestMhaFind20, MhaForward)
+TEST(GPU_TestMhaFind20_FP32, MhaForward)
 {
     Handle& handle = get_handle();
 
@@ -655,7 +669,7 @@ TEST(TestMhaFind20, MhaForward)
     test.Finalize();
 }
 
-TEST(TestMhaFind20, MhaBackward)
+TEST(GPU_TestMhaFind20_FP32, MhaBackward)
 {
     Handle& handle = get_handle();
 

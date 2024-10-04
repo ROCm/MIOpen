@@ -107,7 +107,7 @@ void RunRNNForwardGEMMCPUVerify(miopenHandle_t handle,
     int wei_shift_bias = ((in_h + hy_h) * bi + (bi * hy_h + hy_h) * bi * (numlayer - 1)) * hy_h;
 
     // initial dropoput
-    std::vector<prngStates> dropout_states_host;
+    std::vector<rocrand_state_xorwow> dropout_states_host;
     std::vector<unsigned char> dropout_reservespace_host;
     std::vector<Tref> dropout_hid_state;
     miopenTensorDescriptor_t dropout_inputTensor{}, dropout_outputTensor{};
@@ -115,8 +115,8 @@ void RunRNNForwardGEMMCPUVerify(miopenHandle_t handle,
     {
         size_t statesSizeInBytes = 0;
         miopenDropoutGetStatesSize(handle, &statesSizeInBytes);
-        size_t states_size  = statesSizeInBytes / sizeof(prngStates);
-        dropout_states_host = std::vector<prngStates>(states_size);
+        size_t states_size  = statesSizeInBytes / sizeof(rocrand_state_xorwow);
+        dropout_states_host = std::vector<rocrand_state_xorwow>(states_size);
         InitKernelStateEmulator(dropout_states_host, dropoutDesc);
 
         std::array<int, 2> drop_in_len  = {{batch_n, hy_h * bi}};
