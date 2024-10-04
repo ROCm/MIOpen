@@ -56,7 +56,7 @@ public:
         data_type = miopen_type<Tgpu>{};
     }
 
-    std::vector<size_t> ComputeStrides(std::vector<size_t> input);
+    std::vector<int> ComputeStrides(std::vector<int> input);
     int AddCmdLineArgs() override;
     int ParseCmdLineArgs(int argc, char* argv[]) override;
     InputFlags& GetInputFlags() override { return inflags; }
@@ -127,17 +127,17 @@ int AdaptiveAvgPoolDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
 template <typename Tgpu, typename Tref>
 int AdaptiveAvgPoolDriver<Tgpu, Tref>::GetandSetData()
 {
-    in_dim                        = inflags.GetValueTensor("input_dims").lengths;
-    std::vector<size_t> in_stride = ComputeStrides(in_dim);
-    out_dim                       = inflags.GetValueTensor("output_dims").lengths;
+    in_dim                     = inflags.GetValueTensor("input_dims").lengths;
+    std::vector<int> in_stride = ComputeStrides(in_dim);
+    out_dim                    = inflags.GetValueTensor("output_dims").lengths;
     if(in_dim.size() != out_dim.size() + 2)
     {
         MIOPEN_THROW(miopenStatusBadParm,
                      "AdaptiveAvgPool: Input and output tensor sizes do not match.");
     }
-    N                                 = in_dim[0];
-    C                                 = in_dim[1];
-    std::vector<size_t> out_dim_final = {N, C};
+    N                              = in_dim[0];
+    C                              = in_dim[1];
+    std::vector<int> out_dim_final = {N, C};
     if(in_dim.size() == 3)
     {
         H = in_dim[2];
@@ -168,7 +168,7 @@ int AdaptiveAvgPoolDriver<Tgpu, Tref>::GetandSetData()
         out_dim_final.push_back(OH);
         out_dim_final.push_back(OW);
     }
-    std::vector<size_t> out_grad_stride = ComputeStrides(out_dim_final);
+    std::vector<int> out_grad_stride = ComputeStrides(out_dim_final);
     SetTensorNd(inputDesc, in_dim, in_stride, data_type);
     SetTensorNd(outputDesc, out_dim_final, data_type);
     SetTensorNd(outputGradDesc, out_dim_final, out_grad_stride, data_type);
@@ -179,11 +179,11 @@ int AdaptiveAvgPoolDriver<Tgpu, Tref>::GetandSetData()
 
 // Equivalent to: tensor.tranpose(0, -1).contiguous().tranpose(0, -1) incase contiguous = False
 template <typename Tgpu, typename Tref>
-std::vector<size_t> AdaptiveAvgPoolDriver<Tgpu, Tref>::ComputeStrides(std::vector<size_t> inputDim)
+std::vector<int> AdaptiveAvgPoolDriver<Tgpu, Tref>::ComputeStrides(std::vector<int> inputDim)
 {
     if(!isContiguous)
         std::swap(inputDim.front(), inputDim.back());
-    std::vector<size_t> strides(inputDim.size());
+    std::vector<int> strides(inputDim.size());
     strides.back() = 1;
     for(int i = inputDim.size() - 2; i >= 0; --i)
         strides[i] = strides[i + 1] * inputDim[i + 1];
