@@ -34,6 +34,8 @@ namespace miopen {
 struct Handle;
 struct TensorDescriptor;
 
+namespace adaptiveavgpool {
+
 MIOPEN_INTERNALS_EXPORT miopenStatus_t AdaptiveAvgPoolForward(Handle& handle,
                                                               const TensorDescriptor& inputDesc,
                                                               ConstData_t input,
@@ -46,5 +48,8 @@ AdaptiveAvgPoolBackward(Handle& handle,
                         ConstData_t output_grad,
                         const TensorDescriptor& inputGradDesc,
                         Data_t input_grad);
+
+} // namespace adaptiveavgpool
+
 } // namespace miopen
 #endif // _MIOPEN_ADAPTIVEAVGPOOL_HPP_

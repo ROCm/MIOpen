@@ -33,6 +33,8 @@
 
 namespace miopen {
 
+namespace adaptiveavgpool {
+
 miopenStatus_t AdaptiveAvgPoolForward(Handle& handle,
                                       const TensorDescriptor& inputDesc,
                                       ConstData_t input,
@@ -90,5 +92,7 @@ miopenStatus_t AdaptiveAvgPoolBackward(Handle& handle,
 
     return miopenStatusSuccess;
 }
+
+} // namespace adaptiveavgpool
 
 } // namespace miopen

@@ -89,6 +89,10 @@ bool AdaptiveAvgPoolBackward2d::IsApplicable(
     {
         return false;
     }
+    if(!(problem.GetInputGradDesc().GetType() == miopenFloat ||
+         problem.GetInputGradDesc().GetType() == miopenHalf ||
+         problem.GetInputGradDesc().GetType() == miopenBFloat16))
+        return false;
     return true;
 }
 

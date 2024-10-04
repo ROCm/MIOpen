@@ -85,11 +85,11 @@ extern "C" miopenStatus_t miopenAdaptiveAvgPoolForward(miopenHandle_t handle,
 
     LogCmdAdaptiveAvgPool(inputDesc, outputDesc, true);
     return miopen::try_([&] {
-        miopen::AdaptiveAvgPoolForward(miopen::deref(handle),
-                                       miopen::deref(inputDesc),
-                                       DataCast(input),
-                                       miopen::deref(outputDesc),
-                                       DataCast(output));
+        miopen::adaptiveavgpool::AdaptiveAvgPoolForward(miopen::deref(handle),
+                                                        miopen::deref(inputDesc),
+                                                        DataCast(input),
+                                                        miopen::deref(outputDesc),
+                                                        DataCast(output));
     });
 }
 
@@ -104,10 +104,10 @@ miopenAdaptiveAvgPoolBackward(miopenHandle_t handle,
 
     LogCmdAdaptiveAvgPool(inputGradDesc, outputGradDesc, false);
     return miopen::try_([&] {
-        miopen::AdaptiveAvgPoolBackward(miopen::deref(handle),
-                                        miopen::deref(outputGradDesc),
-                                        DataCast(output_grad),
-                                        miopen::deref(inputGradDesc),
-                                        DataCast(input_grad));
+        miopen::adaptiveavgpool::AdaptiveAvgPoolBackward(miopen::deref(handle),
+                                                         miopen::deref(outputGradDesc),
+                                                         DataCast(output_grad),
+                                                         miopen::deref(inputGradDesc),
+                                                         DataCast(input_grad));
     });
 }
