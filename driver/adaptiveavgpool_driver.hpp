@@ -61,7 +61,6 @@ public:
     int ParseCmdLineArgs(int argc, char* argv[]) override;
     InputFlags& GetInputFlags() override { return inflags; }
 
-    std::vector<size_t> GetInputTensorDimsFromCmd(const char* param);
     int GetandSetData() override;
 
     int AllocateBuffersAndCopy() override;
@@ -107,8 +106,8 @@ private:
 
     size_t N = 1, C = 1, D = 1, H = 1, W = 1, OD = 1, OH = 1, OW = 1;
 
-    std::vector<size_t> in_dim;
-    std::vector<size_t> out_dim;
+    std::vector<int> in_dim;
+    std::vector<int> out_dim;
     bool isContiguous;
 };
 
@@ -126,41 +125,11 @@ int AdaptiveAvgPoolDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
 }
 
 template <typename Tgpu, typename Tref>
-std::vector<size_t> AdaptiveAvgPoolDriver<Tgpu, Tref>::GetInputTensorDimsFromCmd(const char* param)
-{
-    std::string lengthsStr = inflags.GetValueStr(param);
-
-    std::vector<size_t> lengths;
-    std::size_t pos = 0;
-    std::size_t new_pos;
-
-    new_pos = lengthsStr.find(',', pos);
-    while(new_pos != std::string::npos)
-    {
-        std::string sliceStr = lengthsStr.substr(pos, new_pos - pos);
-
-        int len = std::stoi(sliceStr);
-
-        lengths.push_back(len);
-
-        pos     = new_pos + 1;
-        new_pos = lengthsStr.find(',', pos);
-    };
-
-    std::string sliceStr = lengthsStr.substr(pos);
-    int len              = std::stoi(sliceStr);
-
-    lengths.push_back(static_cast<size_t>(len));
-
-    return (lengths);
-}
-
-template <typename Tgpu, typename Tref>
 int AdaptiveAvgPoolDriver<Tgpu, Tref>::GetandSetData()
 {
-    in_dim                        = GetInputTensorDimsFromCmd("input_dims");
+    in_dim                        = inflags.GetValueTensor("input_dims").lengths;
     std::vector<size_t> in_stride = ComputeStrides(in_dim);
-    out_dim                       = GetInputTensorDimsFromCmd("output_dims");
+    out_dim                       = inflags.GetValueTensor("output_dims").lengths;
     if(in_dim.size() != out_dim.size() + 2)
     {
         MIOPEN_THROW(miopenStatusBadParm,
@@ -227,18 +196,16 @@ template <typename Tgpu, typename Tref>
 int AdaptiveAvgPoolDriver<Tgpu, Tref>::AddCmdLineArgs()
 {
     inflags.AddInputFlag("forw", 'F', "1", "Run only Forward AdaptiveAvgPool (Default=1)", "int");
-    inflags.AddInputFlag(
+    inflags.AddTensorFlag(
         "input_dims",
         'D',
-        "2,3,7,9,9",
-        "The dimensional lengths of the input tensor: N,C,D,H,W... Example: 2,3,7,9,9.",
-        "string");
-    inflags.AddInputFlag(
+        "2x3x7x9x9",
+        "The dimensional lengths of the input tensor: N,C,D,H,W... Example: 2,3,7,9,9.");
+    inflags.AddTensorFlag(
         "output_dims",
         'S',
-        "5,5,5",
-        "The dimensional lengths of the output tensor: OD,OH,OW,... Example: 5,5,5.",
-        "string");
+        "5x5x5",
+        "The dimensional lengths of the output tensor: OD,OH,OW,... Example: 5,5,5.");
     inflags.AddInputFlag("is-contiguous", 'c', "1", "is-contiguous (Default=1)", "int");
     inflags.AddInputFlag("iter", 'i', "10", "Number of Iterations (Default=10)", "int");
     inflags.AddInputFlag("verify", 'V', "1", "Verify (Default=1)", "int");
