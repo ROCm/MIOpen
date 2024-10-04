@@ -60,7 +60,8 @@ miopenStatus_t LogCumSumExpForward(Handle& handle,
 
     const auto algo = AlgorithmName{"LogCumSumExpForward"};
     const auto solvers =
-        solver::SolverContainer<solver::logcumsumexp::ForwardContiguousSmallLastDim>{};
+        solver::SolverContainer<solver::logcumsumexp::ForwardContiguousSmallCumDimStride1,
+                                solver::logcumsumexp::ForwardSmallCumDim>{};
 
     solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
 
@@ -104,7 +105,8 @@ miopenStatus_t LogCumSumExpBackward(Handle& handle,
 
     const auto algo = AlgorithmName{"LogCumSumExpBackward"};
     const auto solvers =
-        solver::SolverContainer<solver::logcumsumexp::BackwardContiguousSmallLastDim>{};
+        solver::SolverContainer<solver::logcumsumexp::BackwardContiguousSmallCumDimStride1,
+                                solver::logcumsumexp::BackwardSmallCumDim>{};
 
     solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
 

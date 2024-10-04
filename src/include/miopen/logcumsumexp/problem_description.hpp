@@ -84,6 +84,13 @@ struct LocalProblemDescriptionBase : ProblemDescriptionBase
         return true;
     }
 
+    bool IsSameStride() const
+    {
+        if(inputDesc.GetStrides() != outputDesc.GetStrides())
+            return false;
+        return true;
+    }
+
     bool IsAllPacked() const
     {
         if(!inputDesc.IsPacked() || !outputDesc.IsPacked())
@@ -138,6 +145,8 @@ struct BackwardProblemDescription : LocalProblemDescriptionBase
 
     bool IsSameLength() const
     {
+        if(!LocalProblemDescriptionBase::IsSameLength())
+            return false;
         if(inputDesc.GetLengths() != dinputDesc.GetLengths())
             MIOPEN_THROW(miopenStatusBadParm,
                          "LogCumSumExp: Input and its Gradient tensor sizes do not match.");
@@ -149,12 +158,25 @@ struct BackwardProblemDescription : LocalProblemDescriptionBase
 
     bool IsSameType() const
     {
+        if(!LocalProblemDescriptionBase::IsSameType())
+            return false;
         if(inputDesc.GetType() != dinputDesc.GetType())
             MIOPEN_THROW(miopenStatusBadParm,
                          "LogCumSumExp: Input and its Gradient tensor type do not match.");
         if(outputDesc.GetType() != doutputDesc.GetType())
             MIOPEN_THROW(miopenStatusBadParm,
                          "LogCumSumExp: Output and its Gradient tensor type do not match.");
+        return true;
+    }
+
+    bool IsSameStride() const
+    {
+        if(!LocalProblemDescriptionBase::IsSameStride())
+            return false;
+        if(inputDesc.GetStrides() != dinputDesc.GetStrides())
+            return false;
+        if(outputDesc.GetStrides() != doutputDesc.GetStrides())
+            return false;
         return true;
     }
 

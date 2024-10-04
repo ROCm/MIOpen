@@ -37,12 +37,24 @@ namespace logcumsumexp {
 using ForwardSolverBase =
     NonTunableSolverBase<ExecutionContext, miopen::logcumsumexp::ForwardProblemDescription>;
 
-struct ForwardContiguousSmallLastDim final : ForwardSolverBase
+struct ForwardContiguousSmallCumDimStride1 final : ForwardSolverBase
 {
     const std::string& SolverDbId() const override
     {
-        return GetSolverDbId<ForwardContiguousSmallLastDim>();
+        return GetSolverDbId<ForwardContiguousSmallCumDimStride1>();
     }
+
+    bool
+    IsApplicable(const ExecutionContext& context,
+                 const miopen::logcumsumexp::ForwardProblemDescription& problem) const override;
+    ConvSolution
+    GetSolution(const ExecutionContext& context,
+                const miopen::logcumsumexp::ForwardProblemDescription& problem) const override;
+};
+
+struct ForwardSmallCumDim final : ForwardSolverBase
+{
+    const std::string& SolverDbId() const override { return GetSolverDbId<ForwardSmallCumDim>(); }
 
     bool
     IsApplicable(const ExecutionContext& context,
@@ -55,12 +67,24 @@ struct ForwardContiguousSmallLastDim final : ForwardSolverBase
 using BackwardSolverBase =
     NonTunableSolverBase<ExecutionContext, miopen::logcumsumexp::BackwardProblemDescription>;
 
-struct BackwardContiguousSmallLastDim final : BackwardSolverBase
+struct BackwardContiguousSmallCumDimStride1 final : BackwardSolverBase
 {
     const std::string& SolverDbId() const override
     {
-        return GetSolverDbId<BackwardContiguousSmallLastDim>();
+        return GetSolverDbId<BackwardContiguousSmallCumDimStride1>();
     }
+
+    bool
+    IsApplicable(const ExecutionContext& context,
+                 const miopen::logcumsumexp::BackwardProblemDescription& problem) const override;
+    ConvSolution
+    GetSolution(const ExecutionContext& context,
+                const miopen::logcumsumexp::BackwardProblemDescription& problem) const override;
+};
+
+struct BackwardSmallCumDim final : BackwardSolverBase
+{
+    const std::string& SolverDbId() const override { return GetSolverDbId<BackwardSmallCumDim>(); }
 
     bool
     IsApplicable(const ExecutionContext& context,

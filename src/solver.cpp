@@ -685,7 +685,13 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
     Register(registry,
              ++id,
              Primitive::Reduce,
-             logcumsumexp::ForwardContiguousSmallLastDim{}.SolverDbId());
+             logcumsumexp::ForwardContiguousSmallCumDimStride1{}.SolverDbId());
+    Register(registry, ++id, Primitive::Reduce, logcumsumexp::ForwardSmallCumDim{}.SolverDbId());
+    Register(registry,
+             ++id,
+             Primitive::Reduce,
+             logcumsumexp::BackwardContiguousSmallCumDimStride1{}.SolverDbId());
+    Register(registry, ++id, Primitive::Reduce, logcumsumexp::BackwardSmallCumDim{}.SolverDbId());
 
     // IMPORTANT: New solvers should be added to the end of the function!
 }

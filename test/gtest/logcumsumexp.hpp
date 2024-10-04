@@ -85,7 +85,7 @@ LogCumSumExpTestConfigs(const std::vector<std::vector<size_t>>& SizeList)
 {
     std::vector<LogCumSumExpTestCase> tcs;
 
-    std::vector<size_t> dims      = {-1, 0};
+    std::vector<size_t> dims      = {-1, 0, 1};
     std::vector<bool> exclusives  = {false, true};
     std::vector<bool> reverses    = {false, true};
     std::vector<bool> contiguouss = {true, false};
@@ -103,14 +103,22 @@ LogCumSumExpTestConfigs(const std::vector<std::vector<size_t>>& SizeList)
                 {
                     for(auto reverse : reverses)
                     {
-                        if(miopen::solver::logcumsumexp::ForwardContiguousSmallLastDim()
+                        if(miopen::solver::logcumsumexp::ForwardContiguousSmallCumDimStride1()
                                .IsApplicable(miopen::ExecutionContext(&handle),
                                              miopen::logcumsumexp::ForwardProblemDescription(
                                                  miopen::TensorDescriptor(
                                                      miopen_type<float>{}, lengths, input_strides),
                                                  miopen::TensorDescriptor(
                                                      miopen_type<float>{}, lengths, out_strides),
-                                                 dim)))
+                                                 dim)) ||
+                           miopen::solver::logcumsumexp::ForwardSmallCumDim().IsApplicable(
+                               miopen::ExecutionContext(&handle),
+                               miopen::logcumsumexp::ForwardProblemDescription(
+                                   miopen::TensorDescriptor(
+                                       miopen_type<float>{}, lengths, input_strides),
+                                   miopen::TensorDescriptor(
+                                       miopen_type<float>{}, lengths, out_strides),
+                                   dim)))
                             tcs.push_back({lengths, dim, exclusive, reverse, contiguous});
                     }
                 }
@@ -124,9 +132,9 @@ LogCumSumExpTestConfigs(const std::vector<std::vector<size_t>>& SizeList)
 inline std::vector<std::vector<size_t>> GetSmokeTestSize()
 {
     return {
-        {10},
+        {1, 10},
         {65, 100},
-        {65},
+        {1, 65},
         {70, 10},
     };
 }

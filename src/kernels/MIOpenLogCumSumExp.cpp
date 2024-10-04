@@ -29,15 +29,16 @@
 #endif
 
 #include "float_types.h"
+#include "tensor_view.hpp"
 
 template <uint64_t LOCAL_SIZE>
-__device__ inline void CumulativeReductionSumScan(const int& lid, FLOAT_ACCUM* cumsum)
+__device__ inline void CumulativeReductionSumScan(const uint64_t& lid, FLOAT_ACCUM* cumsum)
 {
     // reduction
-    int stride = 1;
+    uint64_t stride = 1;
     while(stride <= LOCAL_SIZE)
     {
-        int idx = (lid + 1) * stride * 2 - 1;
+        uint64_t idx = (lid + 1) * stride * 2 - 1;
         if(idx < LOCAL_SIZE)
             cumsum[idx] += cumsum[idx - stride];
         stride *= 2;
@@ -57,16 +58,16 @@ __device__ inline void CumulativeReductionSumScan(const int& lid, FLOAT_ACCUM* c
 }
 
 template <typename DTYPE, uint64_t LOCAL_SIZE>
-__device__ void LogCumSumExpForwardContiguousSmallLastDim(const DTYPE* __restrict__ input,
-                                                          DTYPE* __restrict__ output,
-                                                          const uint64_t reduce_size,
-                                                          const bool exclusive,
-                                                          const bool reverse)
+__device__ void LogCumSumExpForwardContiguousSmallCumDimStride1(const DTYPE* __restrict__ input,
+                                                                DTYPE* __restrict__ output,
+                                                                const uint64_t reduce_size,
+                                                                const bool exclusive,
+                                                                const bool reverse)
 {
     /*
      * input: packed tensor with stride[last_dim]=1
      * output: the same as input
-     * reduce_size = input.size[last_dim]
+     * reduce_size: input.size[last_dim]
      * exclusive: TRUE to exclude input[i] when calculate output[i]
      * reverse: reverse the operating order
      *
@@ -104,72 +105,73 @@ __device__ void LogCumSumExpForwardContiguousSmallLastDim(const DTYPE* __restric
     }
 }
 
-extern "C" __global__ void LogCumSumExpForwardContiguousSmallLastDim(const FLOAT* input,
-                                                                     FLOAT* output,
-                                                                     const uint64_t reduce_size,
-                                                                     const bool exclusive,
-                                                                     const bool reverse)
+template <typename DTYPE, uint32_t NDIMS, uint64_t LOCAL_SIZE>
+__device__ void LogCumSumExpForwardSmallCumDim(const DTYPE* __restrict__ input,
+                                               DTYPE* __restrict__ output,
+                                               const uint64_t dim,
+                                               const bool exclusive,
+                                               const bool reverse,
+                                               tensor_view_t<NDIMS> input_tv,
+                                               tensor_view_t<NDIMS> output_tv)
 {
-    // instantiate the kernel
-    LogCumSumExpForwardContiguousSmallLastDim<FLOAT, REDUCE_SIZE>(
-        input, output, reduce_size, exclusive, reverse);
-}
+    /*
+     * input: tensors with NDIMS dimensions
+     * output: tensors with NDIMS dimensions
+     * dim: cumulative dimension
+     * exclusive: TRUE to exclude input[i] when calculate output[i]
+     * reverse: reverse the operating order
+     *
+     * blockSize = {1, LOCAL_SIZE}
+     * gridSize = {Number of input elements / input.size[dim], input.size[dim]}
+     */
 
-extern "C" __global__ void InitLogGradContiguous(const FLOAT* output_grad,
-                                                 const FLOAT* output,
-                                                 FLOAT_ACCUM* log_grad_positive,
-                                                 FLOAT_ACCUM* log_grad_negative,
-                                                 const uint64_t N)
-{
-    size_t gid = blockIdx.x * blockDim.x + threadIdx.x;
-    if(gid >= N)
-        return;
+    __shared__ FLOAT_ACCUM otmp[LOCAL_SIZE];
+    uint64_t xid = blockIdx.x * blockDim.x + threadIdx.x;
+    uint64_t yid = blockIdx.y * blockDim.y + threadIdx.y;
+    uint64_t lid = threadIdx.y;
 
-    auto output_grad_v = CVT_FLOAT2ACCUM(output_grad[gid]);
-    auto output_v      = CVT_FLOAT2ACCUM(output[gid]);
+    uint64_t reduce_size = input_tv.size[dim];
 
-    log_grad_positive[gid] = (output_grad_v > 0 ? log(output_grad_v) - output_v : log(0));
-    log_grad_negative[gid] = (output_grad_v < 0 ? log(-output_grad_v) - output_v : log(0));
-}
+    input_tv.size[dim] = 1;
+    tensor_layout_t<NDIMS> tensor_layout(input_tv, xid);
+    input_tv.size[dim] = reduce_size;
 
-extern "C" __global__ void
-LogCumSumExp1dBackwardStep2Contiguous(const FLOAT_ACCUM* pos_reverse_logcumsumexp,
-                                      const FLOAT_ACCUM* neg_reverse_logcumsumexp,
-                                      const FLOAT* input,
-                                      FLOAT* input_grad,
-                                      const uint64_t N,
-                                      const uint64_t reduce_size,
-                                      const bool exclusive)
-{
-    size_t gid = blockIdx.x * blockDim.x + threadIdx.x;
-    if(gid >= N)
-        return;
-    if(gid % reduce_size + exclusive >= reduce_size)
+    if(exclusive <= yid && yid < reduce_size)
     {
-        input_grad[gid] = CVT_FP32_2FLOAT(0.0f);
-        return;
+        uint64_t idx              = yid - exclusive;
+        tensor_layout.layout[dim] = (reverse ? reduce_size - idx - 1 : idx);
+        otmp[lid] = exp(CVT_FLOAT2ACCUM(input[input_tv.get_tensor_view_idx(tensor_layout)]));
     }
+    else
+    {
+        otmp[lid] = 0;
+    }
+    __syncthreads();
 
-    FLOAT_ACCUM input_v = CVT_FLOAT2ACCUM(input[gid]);
+    CumulativeReductionSumScan<LOCAL_SIZE>(lid, otmp);
 
-    FLOAT_ACCUM output_pos = exp(pos_reverse_logcumsumexp[gid + exclusive] + input_v);
-    FLOAT_ACCUM output_neg = exp(neg_reverse_logcumsumexp[gid + exclusive] + input_v);
-
-    input_grad[gid] = CVT_ACCUM2FLOAT(output_pos - output_neg);
+    if(yid < reduce_size)
+    {
+        tensor_layout.layout[dim] = (reverse ? reduce_size - yid - 1 : yid);
+        output[output_tv.get_tensor_view_idx(tensor_layout)] = CVT_ACCUM2FLOAT(log(otmp[lid]));
+    }
 }
 
 template <typename DTYPE, uint64_t LOCAL_SIZE>
-__device__ void LogCumSumExpBackwardContiguousSmallLastDim(const DTYPE* __restrict__ input,
-                                                           const DTYPE* __restrict__ output,
-                                                           const DTYPE* __restrict__ output_grad,
-                                                           DTYPE* __restrict__ input_grad,
-                                                           const uint64_t reduce_size,
-                                                           const bool exclusive,
-                                                           const bool reverse)
+__device__ void
+LogCumSumExpBackwardContiguousSmallCumDimStride1(const DTYPE* __restrict__ input,
+                                                 const DTYPE* __restrict__ output,
+                                                 const DTYPE* __restrict__ output_grad,
+                                                 DTYPE* __restrict__ input_grad,
+                                                 const uint64_t reduce_size,
+                                                 const bool exclusive,
+                                                 const bool reverse)
 {
     /*
      * input_grad: packed tensor with stride[last_dim]=1
-     * input, output, output_grad: the same as input
+     * input: the same as input
+     * output: the same as input
+     * output_grad: the same as input
      * reduce_size = input.size[last_dim]
      * exclusive: TRUE to exclude input[i] when calculate output[i]
      * reverse: reverse the operating order
@@ -231,14 +233,154 @@ __device__ void LogCumSumExpBackwardContiguousSmallLastDim(const DTYPE* __restri
     //------------------------------------------------------------------------------------
 }
 
-extern "C" __global__ void LogCumSumExpBackwardContiguousSmallLastDim(const FLOAT* input,
-                                                                      const FLOAT* output,
-                                                                      const FLOAT* output_grad,
-                                                                      FLOAT* input_grad,
-                                                                      const uint64_t reduce_size,
-                                                                      const bool exclusive,
-                                                                      const bool reverse)
+template <typename DTYPE, uint32_t NDIMS, uint64_t LOCAL_SIZE>
+__device__ void LogCumSumExpBackwardSmallCumDim(const DTYPE* __restrict__ input,
+                                                const DTYPE* __restrict__ output,
+                                                const DTYPE* __restrict__ output_grad,
+                                                DTYPE* __restrict__ input_grad,
+                                                const uint64_t dim,
+                                                const bool exclusive,
+                                                const bool reverse,
+                                                tensor_view_t<NDIMS> input_tv,
+                                                tensor_view_t<NDIMS> output_tv,
+                                                tensor_view_t<NDIMS> doutput_tv,
+                                                tensor_view_t<NDIMS> dinput_tv)
 {
-    LogCumSumExpBackwardContiguousSmallLastDim<FLOAT, REDUCE_SIZE>(
+    /*
+     * input: tensors with NDIMS dimensions
+     * output: tensors with NDIMS dimensions
+     * dim: cumulative dimension
+     * exclusive: TRUE to exclude input[i] when calculate output[i]
+     * reverse: reverse the operating order
+     *
+     * blockSize = {1, LOCAL_SIZE}
+     * gridSize = {Number of input elements / input.size[dim], input.size[dim]}
+     */
+
+    __shared__ FLOAT_ACCUM otmp[LOCAL_SIZE];
+    uint64_t xid = blockIdx.x * blockDim.x + threadIdx.x;
+    uint64_t yid = blockIdx.y * blockDim.y + threadIdx.y;
+    uint64_t lid = threadIdx.y;
+
+    uint64_t reduce_size = output_tv.size[dim];
+
+    output_tv.size[dim] = 1;
+    tensor_layout_t<NDIMS> tensor_layout(output_tv, xid);
+    output_tv.size[dim] = reduce_size;
+
+    FLOAT_ACCUM output_v, output_grad_v = 0;
+    if(exclusive <= yid && yid < reduce_size)
+    {
+        tensor_layout.layout[dim] = (reverse ? reduce_size - yid - 1 : yid);
+        output_grad_v = CVT_FLOAT2ACCUM(output_grad[doutput_tv.get_tensor_view_idx(tensor_layout)]);
+        output_v      = CVT_FLOAT2ACCUM(output[output_tv.get_tensor_view_idx(tensor_layout)]);
+    }
+
+    // LogCumSumExp pos_reverse_logcumsumexp
+    if(output_grad_v > 0)
+        otmp[lid] = exp(log(output_grad_v) - output_v);
+    else
+        otmp[lid] = 0;
+    __syncthreads();
+    CumulativeReductionSumScan<LOCAL_SIZE>(lid, otmp);
+    auto pos_reverse_logcumsumexp =
+        ((reverse ? exclusive <= lid : lid + exclusive < reduce_size)
+             ? log(otmp[reverse ? reduce_size - (lid - exclusive) - 1 : (lid + exclusive)])
+             : 0.0f);
+    //------------------------------------------------------------------------------------
+
+    __syncthreads();
+
+    // LogCumSumExp neg_reverse_logcumsumexp
+    if(output_grad_v < 0)
+        otmp[lid] = exp(log(-output_grad_v) - output_v);
+    else
+        otmp[lid] = 0;
+    __syncthreads();
+    CumulativeReductionSumScan<LOCAL_SIZE>(lid, otmp);
+    auto neg_reverse_logcumsumexp =
+        ((reverse ? exclusive <= lid : lid + exclusive < reduce_size)
+             ? log(otmp[reverse ? reduce_size - (lid - exclusive) - 1 : (lid + exclusive)])
+             : 0.0f);
+    //------------------------------------------------------------------------------------
+
+    // Calculate Input Gradient
+    if(yid < reduce_size)
+    {
+        tensor_layout.layout[dim] = yid;
+        auto input_v = CVT_FLOAT2ACCUM(input[input_tv.get_tensor_view_idx(tensor_layout)]);
+        FLOAT_ACCUM output_pos = exp(pos_reverse_logcumsumexp + input_v);
+        FLOAT_ACCUM output_neg = exp(neg_reverse_logcumsumexp + input_v);
+
+        input_grad[dinput_tv.get_tensor_view_idx(tensor_layout)] =
+            CVT_ACCUM2FLOAT(output_pos - output_neg);
+    }
+    //------------------------------------------------------------------------------------
+}
+
+#ifndef VIEW_DIMS
+extern "C" __global__ void
+LogCumSumExpForwardContiguousSmallCumDimStride1(const FLOAT* input,
+                                                FLOAT* output,
+                                                const uint64_t reduce_size,
+                                                const bool exclusive,
+                                                const bool reverse)
+{
+    // instantiate the kernel
+    LogCumSumExpForwardContiguousSmallCumDimStride1<FLOAT, REDUCE_SIZE>(
+        input, output, reduce_size, exclusive, reverse);
+}
+
+extern "C" __global__ void
+LogCumSumExpBackwardContiguousSmallCumDimStride1(const FLOAT* input,
+                                                 const FLOAT* output,
+                                                 const FLOAT* output_grad,
+                                                 FLOAT* input_grad,
+                                                 const uint64_t reduce_size,
+                                                 const bool exclusive,
+                                                 const bool reverse)
+{
+    LogCumSumExpBackwardContiguousSmallCumDimStride1<FLOAT, REDUCE_SIZE>(
         input, output, output_grad, input_grad, reduce_size, exclusive, reverse);
 }
+
+#else
+extern "C" __global__ void LogCumSumExpForwardSmallCumDim(const FLOAT* input,
+                                                          FLOAT* output,
+                                                          const uint64_t dim,
+                                                          const bool exclusive,
+                                                          const bool reverse,
+                                                          tensor_view_t<VIEW_DIMS> input_tv,
+                                                          tensor_view_t<VIEW_DIMS> output_tv)
+{
+    // instantiate the kernel
+    LogCumSumExpForwardSmallCumDim<FLOAT, VIEW_DIMS, REDUCE_SIZE>(
+        input, output, dim, exclusive, reverse, input_tv, output_tv);
+}
+
+extern "C" __global__ void LogCumSumExpBackwardSmallCumDim(const FLOAT* input,
+                                                           const FLOAT* output,
+                                                           const FLOAT* output_grad,
+                                                           FLOAT* input_grad,
+                                                           const uint64_t dim,
+                                                           const bool exclusive,
+                                                           const bool reverse,
+                                                           tensor_view_t<VIEW_DIMS> input_tv,
+                                                           tensor_view_t<VIEW_DIMS> output_tv,
+                                                           tensor_view_t<VIEW_DIMS> doutput_tv,
+                                                           tensor_view_t<VIEW_DIMS> dinput_tv)
+{
+    LogCumSumExpBackwardSmallCumDim<FLOAT, VIEW_DIMS, REDUCE_SIZE>(input,
+                                                                   output,
+                                                                   output_grad,
+                                                                   input_grad,
+                                                                   dim,
+                                                                   exclusive,
+                                                                   reverse,
+                                                                   input_tv,
+                                                                   output_tv,
+                                                                   doutput_tv,
+                                                                   dinput_tv);
+}
+
+#endif

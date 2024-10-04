@@ -57,6 +57,8 @@ public:
     {
         miopenCreateTensorDescriptor(&inputDesc);
         miopenCreateTensorDescriptor(&outputDesc);
+        miopenCreateTensorDescriptor(&doutputDesc);
+        miopenCreateTensorDescriptor(&dinputDesc);
 
         data_type = miopen_type<Tgpu>{};
     }
@@ -82,23 +84,32 @@ public:
     {
         miopenDestroyTensorDescriptor(inputDesc);
         miopenDestroyTensorDescriptor(outputDesc);
+        miopenDestroyTensorDescriptor(doutputDesc);
+        miopenDestroyTensorDescriptor(dinputDesc);
     }
 
 private:
     InputFlags inflags;
 
-    int forw;
+    bool runForwardGPU = false;
 
     miopenTensorDescriptor_t inputDesc;
     miopenTensorDescriptor_t outputDesc;
+    miopenTensorDescriptor_t doutputDesc;
+    miopenTensorDescriptor_t dinputDesc;
 
     std::unique_ptr<GPUMem> input_dev;
     std::unique_ptr<GPUMem> output_dev;
+    std::unique_ptr<GPUMem> doutput_dev;
+    std::unique_ptr<GPUMem> dinput_dev;
 
     std::vector<Tgpu> input;
     std::vector<Tgpu> output;
+    std::vector<Tgpu> doutput;
+    std::vector<Tgpu> dinput;
 
     std::vector<Tref> output_host;
+    std::vector<Tref> dinput_host;
 
     int dim;
     bool exclusive;
@@ -147,7 +158,13 @@ int LogCumSumExpDriver<Tgpu, Tref>::GetandSetData()
         MIOPEN_THROW("Error parsing input tensor: " + inflags.GetValueStr("input") + ".");
 
     if(SetTensorNd(outputDesc, lengths, data_type) != miopenStatusSuccess)
-        MIOPEN_THROW("Error parsing output tensor");
+        MIOPEN_THROW("Error parsing output tensor" + inflags.GetValueStr("input") + ".");
+
+    if(SetTensorNd(doutputDesc, lengths, data_type) != miopenStatusSuccess)
+        MIOPEN_THROW("Error parsing output gradient tensor" + inflags.GetValueStr("input") + ".");
+
+    if(SetTensorNd(dinputDesc, lengths, strides, data_type) != miopenStatusSuccess)
+        MIOPEN_THROW("Error parsing input gradient tensor: " + inflags.GetValueStr("input") + ".");
 
     return miopenStatusSuccess;
 }
@@ -187,21 +204,31 @@ int LogCumSumExpDriver<Tgpu, Tref>::AddCmdLineArgs()
 template <typename Tgpu, typename Tref>
 int LogCumSumExpDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 {
-    size_t input_sz  = miopen::deref(inputDesc).GetElementSpace();
-    size_t output_sz = miopen::deref(outputDesc).GetElementSpace();
+    size_t input_sz   = miopen::deref(inputDesc).GetElementSpace();
+    size_t output_sz  = miopen::deref(outputDesc).GetElementSpace();
+    size_t doutput_sz = miopen::deref(doutputDesc).GetElementSpace();
+    size_t dinput_sz  = miopen::deref(dinputDesc).GetElementSpace();
 
     uint32_t ctx = 0;
 
-    input_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, input_sz, sizeof(Tgpu)));
-    output_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, output_sz, sizeof(Tgpu)));
+    input_dev   = std::unique_ptr<GPUMem>(new GPUMem(ctx, input_sz, sizeof(Tgpu)));
+    output_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, output_sz, sizeof(Tgpu)));
+    doutput_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, doutput_sz, sizeof(Tgpu)));
+    dinput_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, dinput_sz, sizeof(Tgpu)));
 
-    input  = std::vector<Tgpu>(input_sz);
-    output = std::vector<Tgpu>(output_sz, static_cast<Tgpu>(0.0f));
+    input   = std::vector<Tgpu>(input_sz);
+    output  = std::vector<Tgpu>(output_sz);
+    doutput = std::vector<Tgpu>(doutput_sz);
+    dinput  = std::vector<Tgpu>(dinput_sz);
 
-    output_host = std::vector<Tref>(output_sz, static_cast<Tgpu>(0.0f));
+    output_host = std::vector<Tref>(output_sz);
+    dinput_host = std::vector<Tref>(output_sz);
 
     for(int i = 0; i < input_sz; i++)
         input[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(-1), static_cast<Tgpu>(1));
+
+    for(int i = 0; i < doutput_sz; i++)
+        doutput[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(-1), static_cast<Tgpu>(1));
 
     if(input_dev->ToGPU(GetStream(), input.data()) != 0)
     {
@@ -209,9 +236,10 @@ int LogCumSumExpDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         return miopenStatusAllocFailed;
     }
 
-    if(output_dev->ToGPU(GetStream(), output.data()) != 0)
+    if(doutput_dev->ToGPU(GetStream(), doutput.data()) != 0)
     {
-        std::cerr << "Error copying (output) to GPU, size: " << output_dev->GetSize() << std::endl;
+        std::cerr << "Error copying (doutput) to GPU, size: " << doutput_dev->GetSize()
+                  << std::endl;
         return miopenStatusAllocFailed;
     }
 
@@ -268,26 +296,101 @@ int LogCumSumExpDriver<Tgpu, Tref>::RunForwardGPU()
         return miopenStatusInternalError;
     }
 
+    runForwardGPU = true;
     return miopenStatusSuccess;
 }
 
 template <typename Tgpu, typename Tref>
 int LogCumSumExpDriver<Tgpu, Tref>::RunForwardCPU()
 {
-    return mloLogCumSumExpForwardRunHost<Tgpu, Tref>(
+    auto status = mloLogCumSumExpForwardRunHost<Tgpu, Tref>(
         inputDesc, outputDesc, input.data(), output_host.data(), dim, exclusive, reverse);
+    MIOPEN_THROW_IF(status != miopenStatusSuccess, "Error in mloLogCumSumExpForwardRunHost");
+    return status;
 }
 
 template <typename Tgpu, typename Tref>
 int LogCumSumExpDriver<Tgpu, Tref>::RunBackwardGPU()
 {
-    return miopenStatusNotImplemented;
+    if(!runForwardGPU)
+    {
+        auto status = mloLogCumSumExpForwardRunHost<Tgpu, Tgpu>(
+            inputDesc, outputDesc, input.data(), output.data(), dim, exclusive, reverse);
+        MIOPEN_THROW_IF(status != miopenStatusSuccess,
+                        "Error in mloLogCumSumExpForwardRunHost when calculate output tensor for "
+                        "RunBackwardGPU");
+    }
+
+    float kernel_total_time = 0;
+    float kernel_first_time = 0;
+
+    Timer t;
+    START_TIME
+
+    for(int i = 0; i < inflags.GetValueInt("iter"); i++)
+    {
+        auto status = miopenLogCumSumExpBackward(GetHandle(),
+                                                 inputDesc,
+                                                 input_dev->GetMem(),
+                                                 outputDesc,
+                                                 output_dev->GetMem(),
+                                                 doutputDesc,
+                                                 doutput_dev->GetMem(),
+                                                 dinputDesc,
+                                                 dinput_dev->GetMem(),
+                                                 dim,
+                                                 exclusive,
+                                                 reverse);
+
+        MIOPEN_THROW_IF(status != miopenStatusSuccess, "Error in miopenLogCumSumExpBackward");
+
+        float time = 0.0;
+        miopenGetKernelTime(GetHandle(), &time);
+        kernel_total_time += time;
+        if(i == 0)
+            kernel_first_time = time;
+    }
+
+    if(inflags.GetValueInt("time") == 1)
+    {
+        STOP_TIME
+        int iter = inflags.GetValueInt("iter");
+        if(WALL_CLOCK)
+            std::cout << "Wall-clock Time Backward LogCumSumExp Elapsed: " << t.gettime_ms() / iter
+                      << " ms" << std::endl;
+
+        float kernel_average_time =
+            iter > 1 ? (kernel_total_time - kernel_first_time) / (iter - 1) : kernel_first_time;
+        std::cout << "GPU Kernel Time Backward LogCumSumExp Elapsed: " << kernel_average_time
+                  << " ms" << std::endl;
+    }
+
+    if(dinput_dev->FromGPU(GetStream(), dinput.data()) != 0)
+    {
+        std::cerr << "Error copying (dinput_dev) from GPU, size: " << dinput_dev->GetSize()
+                  << std::endl;
+        return miopenStatusInternalError;
+    }
+
+    return miopenStatusSuccess;
 }
 
 template <typename Tgpu, typename Tref>
 int LogCumSumExpDriver<Tgpu, Tref>::RunBackwardCPU()
 {
-    return miopenStatusNotImplemented;
+    auto status = mloLogCumSumExpBackwardRunHost<Tgpu, Tref>(inputDesc,
+                                                             outputDesc,
+                                                             doutputDesc,
+                                                             dinputDesc,
+                                                             input.data(),
+                                                             output.data(),
+                                                             doutput.data(),
+                                                             dinput_host.data(),
+                                                             dim,
+                                                             exclusive,
+                                                             reverse);
+    MIOPEN_THROW_IF(status != miopenStatusSuccess, "Error in mloLogCumSumExpBackwardRunHost");
+    return status;
 }
 
 template <typename Tgpu, typename Tref>
@@ -307,6 +410,7 @@ template <typename Tgpu, typename Tref>
 int LogCumSumExpDriver<Tgpu, Tref>::VerifyForward()
 {
     RunForwardCPU();
+
     const Tref tolerance = GetTolerance();
     auto error_output    = miopen::rms_range(output_host, output);
 
@@ -328,5 +432,22 @@ int LogCumSumExpDriver<Tgpu, Tref>::VerifyForward()
 template <typename Tgpu, typename Tref>
 int LogCumSumExpDriver<Tgpu, Tref>::VerifyBackward()
 {
-    return miopenStatusNotImplemented;
+    RunBackwardCPU();
+
+    const Tref tolerance = GetTolerance();
+    auto error_dinput    = miopen::rms_range(dinput_host, dinput);
+
+    if(!std::isfinite(error_dinput) || error_dinput > tolerance)
+    {
+        std::cout << "Backward LogCumSumExp Input Gradient FAILED: " << error_dinput << " > "
+                  << tolerance << std::endl;
+        return EC_VerifyBwd;
+    }
+    else
+    {
+        std::cout << "Backward LogCumSumExp Input Gradient Verifies OK on CPU reference ("
+                  << error_dinput << " < " << tolerance << ')' << std::endl;
+    }
+
+    return miopenStatusSuccess;
 }

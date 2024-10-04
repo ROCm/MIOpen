@@ -26,13 +26,16 @@
 
 #include <miopen/datatype.hpp>
 #include <miopen/kernel_build_params.hpp>
+#include <miopen/mlo_internal.hpp>
+#include <miopen/tensor_view_utils.hpp>
 #include <miopen/logcumsumexp/invoke_params.hpp>
 #include <miopen/logcumsumexp/solvers.hpp>
-#include <miopen/mlo_internal.hpp>
 
 #define warpSizeCTX (context.GetStream().GetWavefrontWidth())
 #define LOCAL_SIZE_MAX 1024
 #define LOCAL_SIZE_MIN warpSizeCTX
+
+#define VIEW_DIMS 5
 
 namespace miopen {
 
@@ -44,13 +47,13 @@ namespace {
 bool IsImprovementOverROCm(const ExecutionContext& /*context*/,
                            const miopen::logcumsumexp::ForwardProblemDescription& problem)
 {
-    if(problem.GetInputDesc().GetLengths()[problem.GetDim()] > 256)
+    if(!problem.IsAllDimStride1())
         return false;
     return true;
 }
 } // namespace
 
-bool ForwardContiguousSmallLastDim::IsApplicable(
+bool ForwardSmallCumDim::IsApplicable(
     const ExecutionContext& context,
     const miopen::logcumsumexp::ForwardProblemDescription& problem) const
 {
@@ -60,12 +63,12 @@ bool ForwardContiguousSmallLastDim::IsApplicable(
         return false;
     if(!problem.IsAllPacked())
         return false;
-    if(!problem.IsAllDimStride1())
+    if(problem.GetInputDesc().GetNumDims() > VIEW_DIMS)
         return false;
     return true;
 }
 
-ConvSolution ForwardContiguousSmallLastDim::GetSolution(
+ConvSolution ForwardSmallCumDim::GetSolution(
     const ExecutionContext& context,
     const miopen::logcumsumexp::ForwardProblemDescription& problem) const
 {
@@ -90,6 +93,7 @@ ConvSolution ForwardContiguousSmallLastDim::GetSolution(
         {"MIOPEN_USE_FP64", static_cast<int>(dtype == miopenDouble)},
         {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
         {"REDUCE_SIZE", local_size},
+        {"VIEW_DIMS", VIEW_DIMS},
     };
 
     {
@@ -98,7 +102,7 @@ ConvSolution ForwardContiguousSmallLastDim::GetSolution(
             {1, local_size},
             {outer_size, AlignUp(inner_size, local_size)},
             "MIOpenLogCumSumExp.cpp",
-            "LogCumSumExpForwardContiguousSmallLastDim",
+            "LogCumSumExpForwardSmallCumDim",
         });
     }
 
@@ -108,12 +112,16 @@ ConvSolution ForwardContiguousSmallLastDim::GetSolution(
 
             const int ndims             = deref(params.inputDesc).GetNumDims();
             const unsigned int true_dim = ((params.dim % ndims) + ndims) % ndims;
-            auto kernel                 = handle_.Run(kernels[0]);
+            auto input_tv               = get_inner_expanded_tv<VIEW_DIMS>(deref(params.inputDesc));
+            auto output_tv = get_inner_expanded_tv<VIEW_DIMS>(deref(params.outputDesc));
+            auto kernel    = handle_.Run(kernels[0]);
             kernel(params.input,
                    params.output,
-                   deref(params.inputDesc).GetLengths()[true_dim],
+                   static_cast<int64_t>(true_dim),
                    params.exclusive,
-                   params.reverse);
+                   params.reverse,
+                   input_tv,
+                   output_tv);
         };
     };
 

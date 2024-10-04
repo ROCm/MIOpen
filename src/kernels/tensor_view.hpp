@@ -36,7 +36,7 @@ template <int N>
 struct tensor_view_t
 {
     // Get index in tensor view at tensor layout
-    constexpr uint64_t get_tensor_view_idx(const tensor_layout_t<N>& tensor_layout)
+    constexpr uint64_t get_tensor_view_idx(const tensor_layout_t<N>& tensor_layout) const
     {
         static_assert(N > 0);
         uint64_t idx = 0;
@@ -53,6 +53,8 @@ struct tensor_view_t
 template <int N>
 struct tensor_layout_t
 {
+    tensor_layout_t() = default;
+
     // Make tensor layout at index using tensor view
     constexpr tensor_layout_t(const tensor_view_t<N>& tensor_view, uint64_t idx)
     {

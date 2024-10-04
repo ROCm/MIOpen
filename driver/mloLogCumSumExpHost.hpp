@@ -26,19 +26,20 @@
 
 #pragma once
 
+#include <miopen/miopen.h>
 #include <../test/ford.hpp>
 
 #include <miopen/tensor.hpp>
 #include <miopen/tensor_view_utils.hpp>
 
 template <typename Tgpu, typename Tcheck>
-int32_t mloLogCumSumExpForwardRunHost(const miopenTensorDescriptor_t inputDesc,
-                                      const miopenTensorDescriptor_t outputDesc,
-                                      const Tgpu* input,
-                                      Tcheck* output_host,
-                                      const int dim,
-                                      const bool exclusive,
-                                      const bool reverse)
+int mloLogCumSumExpForwardRunHost(const miopenTensorDescriptor_t inputDesc,
+                                  const miopenTensorDescriptor_t outputDesc,
+                                  const Tgpu* input,
+                                  Tcheck* output_host,
+                                  const int dim,
+                                  const bool exclusive,
+                                  const bool reverse)
 {
     const int ndims     = miopen::deref(inputDesc).GetNumDims();
     const auto exec_dim = ((dim % ndims) + ndims) % ndims;
@@ -74,6 +75,97 @@ int32_t mloLogCumSumExpForwardRunHost(const miopenTensorDescriptor_t inputDesc,
             output_host[output_tv.get_tensor_view_idx(tensor_layout)] =
                 static_cast<Tcheck>(std::log(cumsum));
         });
+    });
+
+    return miopenStatusSuccess;
+}
+
+template <typename Tgpu, typename Tcheck>
+int mloLogCumSumExpBackwardRunHost(const miopenTensorDescriptor_t inputDesc,
+                                   const miopenTensorDescriptor_t outputDesc,
+                                   const miopenTensorDescriptor_t doutputDesc,
+                                   const miopenTensorDescriptor_t dinputDesc,
+                                   const Tgpu* input,
+                                   const Tgpu* output,
+                                   const Tgpu* doutput,
+                                   Tcheck* dinput_host,
+                                   const int dim,
+                                   const bool exclusive,
+                                   const bool reverse)
+{
+    const auto input_tv   = miopen::get_inner_expanded_tv<5>(miopen::deref(inputDesc));
+    const auto output_tv  = miopen::get_inner_expanded_tv<5>(miopen::deref(outputDesc));
+    const auto doutput_tv = miopen::get_inner_expanded_tv<5>(miopen::deref(doutputDesc));
+    const auto dinput_tv  = miopen::get_inner_expanded_tv<5>(miopen::deref(dinputDesc));
+
+    const auto size     = miopen::deref(inputDesc).GetElementSize();
+    const int ndims     = miopen::deref(inputDesc).GetNumDims();
+    const auto true_dim = ((dim % ndims) + ndims) % ndims;
+    const auto dim_size = miopen::deref(inputDesc).GetLengths()[true_dim];
+
+    auto baseDesc = miopen::TensorDescriptor(miopenFloat, miopen::deref(inputDesc).GetLengths());
+    auto base_tv  = miopen::get_inner_expanded_tv<5>(baseDesc);
+    auto log_grad_positive        = std::vector<float>(baseDesc.GetElementSize());
+    auto log_grad_negative        = std::vector<float>(baseDesc.GetElementSize());
+    auto pos_reverse_logcumsumexp = std::vector<float>(baseDesc.GetElementSize());
+    auto neg_reverse_logcumsumexp = std::vector<float>(baseDesc.GetElementSize());
+
+    // InitLogGrad
+    par_ford(size)([&](int idx) {
+        auto tensor_layout = tensor_layout_t<5>(base_tv, idx);
+
+        auto doutput_v = static_cast<float>(doutput[doutput_tv.get_tensor_view_idx(tensor_layout)]);
+        auto output_v  = static_cast<float>(output[output_tv.get_tensor_view_idx(tensor_layout)]);
+
+        if(!reverse ? tensor_layout.layout[true_dim] < exclusive
+                    : tensor_layout.layout[true_dim] + exclusive >= dim_size)
+            log_grad_positive[idx] = log_grad_negative[idx] = std::log(0);
+        else
+        {
+            log_grad_positive[idx] = (doutput_v > 0 ? std::log(doutput_v) - output_v : std::log(0));
+            log_grad_negative[idx] =
+                (doutput_v < 0 ? std::log(-doutput_v) - output_v : std::log(0));
+        }
+    });
+
+    // LogCumSumExpForward pos_reverse_logcumsumexp
+    mloLogCumSumExpForwardRunHost(/*inputDesc=*/&baseDesc,
+                                  /*outputDesc=*/&baseDesc,
+                                  /*input=*/log_grad_positive.data(),
+                                  /*output_host=*/pos_reverse_logcumsumexp.data(),
+                                  dim,
+                                  /*exclusive=*/false,
+                                  reverse);
+
+    // LogCumSumExpForward neg_reverse_logcumsumexp
+    mloLogCumSumExpForwardRunHost(/*inputDesc=*/&baseDesc,
+                                  /*outputDesc=*/&baseDesc,
+                                  /*input=*/log_grad_negative.data(),
+                                  /*output_host=*/neg_reverse_logcumsumexp.data(),
+                                  dim,
+                                  /*exclusive=*/false,
+                                  reverse);
+
+    // LogCumSumExpBackwardStep2
+    par_ford(size)([&](int idx) {
+        auto tensor_layout = tensor_layout_t<5>(base_tv, idx);
+
+        if(reverse ? tensor_layout.layout[true_dim] < exclusive
+                   : tensor_layout.layout[true_dim] + exclusive >= dim_size)
+        {
+            dinput_host[dinput_tv.get_tensor_view_idx(tensor_layout)] = static_cast<Tcheck>(0.0f);
+            return;
+        }
+        else
+            idx += (!reverse ? exclusive : -exclusive) * base_tv.stride[true_dim];
+
+        auto input_v = static_cast<float>(input[input_tv.get_tensor_view_idx(tensor_layout)]);
+
+        auto output_pos = std::exp(pos_reverse_logcumsumexp[idx] + input_v);
+        auto output_neg = std::exp(neg_reverse_logcumsumexp[idx] + input_v);
+
+        dinput_host[dinput_tv.get_tensor_view_idx(tensor_layout)] =
+            static_cast<Tcheck>(output_pos - output_neg);
     });
 
     return miopenStatusSuccess;
