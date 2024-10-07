@@ -63,6 +63,7 @@ enum class Primitive
     RoPE,
     ReLU,
     Kthvalue,
+    SoftMarginLoss,
     AdaptiveAvgPool,
 };
 
