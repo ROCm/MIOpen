@@ -320,7 +320,10 @@ int MultiMarginLossDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         if(o_dev->ToGPU(GetStream(), O.data()) != 0)
             std::cerr << "Error copying (out) to GPU, size: " << o_dev->GetSize() << std::endl;
 
-        workspace_dev = std::make_unique<GPUMem>(ctx, ws_sizeInBytes, sizeof(std::byte));
+        if(ws_sizeInBytes == 0)
+            workspace_dev = nullptr;
+        else
+            workspace_dev = std::make_unique<GPUMem>(ctx, ws_sizeInBytes, sizeof(std::byte));
     }
 
     return miopenStatusSuccess;
@@ -337,20 +340,21 @@ int MultiMarginLossDriver<Tgpu, Tref>::RunForwardGPU()
 
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
-        miopenStatus_t status = miopenMultiMarginLossForward(GetHandle(),
-                                                             iDesc,
-                                                             i_dev->GetMem(),
-                                                             tDesc,
-                                                             t_dev->GetMem(),
-                                                             wDesc,
-                                                             w_dev->GetMem(),
-                                                             oDesc,
-                                                             o_dev->GetMem(),
-                                                             p,
-                                                             margin,
-                                                             reduction_mode,
-                                                             workspace_dev->GetMem(),
-                                                             ws_sizeInBytes);
+        miopenStatus_t status = miopenMultiMarginLossForward(
+            GetHandle(),
+            iDesc,
+            i_dev->GetMem(),
+            tDesc,
+            t_dev->GetMem(),
+            wDesc,
+            w_dev->GetMem(),
+            oDesc,
+            o_dev->GetMem(),
+            p,
+            margin,
+            reduction_mode,
+            workspace_dev == nullptr ? nullptr : workspace_dev->GetMem(),
+            ws_sizeInBytes);
 
         MIOPEN_THROW_IF(status != miopenStatusSuccess, "Error in miopenMultiMarginLossForward");
 

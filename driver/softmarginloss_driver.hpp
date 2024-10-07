@@ -341,10 +341,13 @@ int SoftMarginLossDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
             return miopenStatusAllocFailed;
         }
 
-        out_dev       = std::make_unique<GPUMem>(ctx, out_sz, sizeof(Tgpu));
-        workspace_dev = std::make_unique<GPUMem>(ctx, ws_sizeInBytes, sizeof(std::byte));
-        out           = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
-        outhost       = std::vector<Tref>(out_sz, static_cast<Tref>(0));
+        out_dev = std::make_unique<GPUMem>(ctx, out_sz, sizeof(Tgpu));
+        if(ws_sizeInBytes == 0)
+            workspace_dev = nullptr;
+        else
+            workspace_dev = std::make_unique<GPUMem>(ctx, ws_sizeInBytes, sizeof(std::byte));
+        out     = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
+        outhost = std::vector<Tref>(out_sz, static_cast<Tref>(0));
         if(out_dev->ToGPU(GetStream(), out.data()) != 0)
             std::cerr << "Error copying (out) to GPU, size: " << out_dev->GetSize() << std::endl;
     }
@@ -379,16 +382,17 @@ int SoftMarginLossDriver<Tgpu, Tref>::RunForwardGPU()
 
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
-        miopenStatus_t status = miopenSoftMarginLossForward(GetHandle(),
-                                                            inputDesc,
-                                                            in_dev->GetMem(),
-                                                            targetDesc,
-                                                            target_dev->GetMem(),
-                                                            outputDesc,
-                                                            out_dev->GetMem(),
-                                                            reduction_mode,
-                                                            workspace_dev->GetMem(),
-                                                            ws_sizeInBytes);
+        miopenStatus_t status = miopenSoftMarginLossForward(
+            GetHandle(),
+            inputDesc,
+            in_dev->GetMem(),
+            targetDesc,
+            target_dev->GetMem(),
+            outputDesc,
+            out_dev->GetMem(),
+            reduction_mode,
+            (workspace_dev == nullptr) ? nullptr : workspace_dev->GetMem(),
+            ws_sizeInBytes);
 
         MIOPEN_THROW_IF(status != miopenStatusSuccess, "Error in miopenSoftMarginLossForward");
 
