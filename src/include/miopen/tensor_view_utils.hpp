@@ -28,7 +28,7 @@
 #define MIOPEN_TENSOR_VIEW_UTIL_HPP_
 
 #include "../../kernels/tensor_view.hpp"
-#include "miopen/tensor.hpp"
+#include <miopen/tensor.hpp>
 
 namespace miopen {
 
