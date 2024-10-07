@@ -2988,17 +2988,18 @@ void RNNDescriptor::RNNForwardTrainingPackedTensors(
                                          (li - 1) * drop_rsv_size;
 
                 miopen::deref(dropoutDesc)
-                    .DropoutForward(handle,
-                                    drop_in_desc,
-                                    drop_in_desc,
-                                    reserveSpace,
-                                    drop_out_desc,
-                                    reserveSpace,
-                                    reserveSpace,
-                                    drop_rsv_size,
-                                    drop_in_offset,
-                                    drop_out_offset,
-                                    drop_rsv_offset);
+                    .Dropout(handle,
+                             drop_in_desc,
+                             drop_in_desc,
+                             reserveSpace,
+                             drop_out_desc,
+                             reserveSpace,
+                             reserveSpace,
+                             drop_rsv_size,
+                             drop_in_offset,
+                             drop_out_offset,
+                             drop_rsv_offset,
+                             false /* is_backward */);
                 // Update time
                 profileRNNkernels(handle, 1, ctime);
                 prelayer_shift = drop_out_offset;
@@ -4487,17 +4488,18 @@ void RNNDescriptor::RNNBackwardDataPackedTensors(
                                          li * drop_rsv_size;
 
                 miopen::deref(dropoutDesc)
-                    .DropoutBackward(handle,
-                                     drop_in_desc,
-                                     drop_in_desc,
-                                     workSpace,
-                                     drop_in_desc,
-                                     workSpace,
-                                     reserveSpace,
-                                     drop_rsv_size,
-                                     hid_shift + dhd_off,
-                                     hid_shift + dhd_off,
-                                     drop_rsv_offset);
+                    .Dropout(handle,
+                             drop_in_desc,
+                             drop_in_desc,
+                             workSpace,
+                             drop_in_desc,
+                             workSpace,
+                             reserveSpace,
+                             drop_rsv_size,
+                             hid_shift + dhd_off,
+                             hid_shift + dhd_off,
+                             drop_rsv_offset,
+                             true /* is_backward */);
                 // Update time
                 profileRNNkernels(handle, 1, ctime);
             }
