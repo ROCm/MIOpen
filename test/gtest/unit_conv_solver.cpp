@@ -36,6 +36,9 @@
 
 #include "../workspace.hpp"
 
+namespace miopen {
+namespace unit_tests {
+
 namespace {
 
 bool IsDeviceSupported(Gpu supported_devs, Gpu dev)
@@ -48,10 +51,8 @@ bool IsDeviceSupported(Gpu supported_devs, Gpu dev)
 miopen::conv::ProblemDescription GetProblemDescription(miopen::conv::Direction direction,
                                                        const ConvTestCase& conv_config)
 {
-    const auto x_desc =
-        miopen::TensorDescriptor{conv_config.GetXDataType(), conv_config.GetXDims()};
-    const auto w_desc =
-        miopen::TensorDescriptor{conv_config.GetWDataType(), conv_config.GetWDims()};
+    const auto x_desc = conv_config.GetXTensorDescriptor();
+    const auto w_desc = conv_config.GetWTensorDescriptor();
     const auto conv_desc = conv_config.GetConv();
     const auto y_desc =
         conv_desc.GetForwardOutputTensor(x_desc, w_desc, conv_config.GetYDataType());
@@ -67,93 +68,84 @@ miopen::conv::ProblemDescription GetProblemDescription(miopen::conv::Direction d
     }
 }
 
-template <class T>
-std::string VecToStr(const std::vector<T>& vec)
-{
-    bool first = true;
-    std::ostringstream ss;
-
-    ss << "{";
-    for(auto val : vec)
-    {
-        if(first)
-            first = false;
-        else
-            ss << ",";
-        ss << val;
-    }
-    ss << "}";
-
-    return ss.str();
-}
-
 } // namespace
 
 //************************************************************************************
 // ConvTestCase
 //************************************************************************************
 
-ConvTestCase::ConvTestCase() : type_x(miopenFloat), type_w(miopenFloat), type_y(miopenFloat) {}
+ConvTestCase::ConvTestCase() : x(miopenHalf, {}), w(miopenHalf, {}), conv({}, {}, {}) {};
 
-ConvTestCase::ConvTestCase(const std::initializer_list<size_t>& x_,
-                           const std::initializer_list<size_t>& w_,
-                           const std::initializer_list<int>& pad_,
-                           const std::initializer_list<int>& stride_,
-                           const std::initializer_list<int>& dilation_,
+ConvTestCase::ConvTestCase(std::vector<size_t>&& x_,
+                           std::vector<size_t>&& w_,
+                           std::vector<int>&& pad_,
+                           std::vector<int>&& stride_,
+                           std::vector<int>&& dilation_,
                            miopenDataType_t type_)
-    : ConvTestCase(x_, w_, pad_, stride_, dilation_, type_, type_, type_)
+    : ConvTestCase(std::forward<decltype(x_)>(x_), std::forward<decltype(w_)>(w_), std::forward<decltype(pad_)>(pad_), std::forward<decltype(stride_)>(stride_), std::forward<decltype(dilation_)>(dilation_), type_, type_, type_)
 {
 }
 
-ConvTestCase::ConvTestCase(const std::initializer_list<size_t>& x_,
-                           const std::initializer_list<size_t>& w_,
-                           const std::initializer_list<int>& pad_,
-                           const std::initializer_list<int>& stride_,
-                           const std::initializer_list<int>& dilation_,
+ConvTestCase::ConvTestCase(std::vector<size_t>&& x_,
+                           std::vector<size_t>&& w_,
+                           std::vector<int>&& pad_,
+                           std::vector<int>&& stride_,
+                           std::vector<int>&& dilation_,
                            miopenDataType_t type_x_,
                            miopenDataType_t type_w_,
                            miopenDataType_t type_y_)
-    : x(x_),
-      w(w_),
-      pad(pad_),
-      stride(stride_),
-      dilation(dilation_),
-      type_x(type_x_),
-      type_w(type_w_),
-      type_y(type_y_)
+    : ConvTestCase(TensorDescriptorParams{type_x_, std::forward<decltype(x_)>(x_)}, TensorDescriptorParams{type_w_, std::forward<decltype(w_)>(w_)}, type_y_, ConvolutionDescriptorParams{std::forward<decltype(pad_)>(pad_), std::forward<decltype(stride_)>(stride_), std::forward<decltype(dilation_)>(dilation_)})
 {
-    const auto num_dims        = pad.size();
-    const auto num_tensor_dims = num_dims + 2;
+}
 
-    if(x.size() != num_tensor_dims || w.size() != num_tensor_dims || stride.size() != num_dims ||
-       dilation.size() != num_dims || x[1] != w[1])
+ConvTestCase::ConvTestCase(TensorDescriptorParams&& x_,
+                           TensorDescriptorParams&& w_,
+                           miopenDataType_t type_y_,
+                           ConvolutionDescriptorParams&& conv_)
+    : x(std::move(x_)),
+      w(std::move(w_)),
+      type_y(type_y_),
+      conv(std::move(conv_))
+{
+    const auto num_spatial_dims = conv.GetNumSpatialDims();
+    const auto num_tensor_dims  = num_spatial_dims + 2;
+
+    if(x.GetNumDims() != num_tensor_dims || w.GetNumDims() != num_tensor_dims || x.GetLens()[1] != w.GetLens()[1])
     {
         throw std::runtime_error("wrong test case format");
     }
 }
 
-const std::vector<size_t>& ConvTestCase::GetXDims() const { return x; }
+miopen::TensorDescriptor ConvTestCase::GetXTensorDescriptor() const
+{
+    return x.GetTensorDescriptor();
+}
 
-const std::vector<size_t>& ConvTestCase::GetWDims() const { return w; }
+miopen::TensorDescriptor ConvTestCase::GetWTensorDescriptor() const
+{
+    return w.GetTensorDescriptor();
+}
 
-miopenDataType_t ConvTestCase::GetXDataType() const { return type_x; }
+miopenDataType_t ConvTestCase::GetXDataType() const { return x.GetDataType(); }
 
-miopenDataType_t ConvTestCase::GetWDataType() const { return type_w; }
+miopenDataType_t ConvTestCase::GetWDataType() const { return w.GetDataType(); }
 
 miopenDataType_t ConvTestCase::GetYDataType() const { return type_y; }
 
 miopen::ConvolutionDescriptor ConvTestCase::GetConv() const
 {
-    const auto trans_output_pads = std::vector<int>(pad.size(), 0);
-    return miopen::ConvolutionDescriptor{pad, stride, dilation, trans_output_pads};
+    return conv.GetConvolutionDescriptor();
 }
 
 std::ostream& operator<<(std::ostream& os, const ConvTestCase& tc)
 {
-    return os << "(x:" << VecToStr(tc.x) << " w:" << VecToStr(tc.w) << " pad:" << VecToStr(tc.pad)
-              << " stride:" << VecToStr(tc.stride) << " dilation:" << VecToStr(tc.dilation)
-              << " type_x:" << tc.type_x << " type_w:" << tc.type_w << " type_y:" << tc.type_y
-              << ")";
+    os << "(";
+    os << "x:(" << tc.x << "), ";
+    os << "w:(" << tc.w << "), ";
+    os << "type_y:" << tc.type_y << "), ";
+    os << "conv:(" << tc.conv << ")";
+    os << ")";
+    return os;
 }
 
 //************************************************************************************
@@ -229,8 +221,13 @@ void RunSolverFwd(const miopen::solver::conv::ConvSolverBase& solv,
     // Prepare
     //**********************************
 
-    auto input   = tensor<Tin>{conv_config.GetXDims()};
-    auto weights = tensor<Twei>{conv_config.GetWDims()};
+    auto input   = tensor<Tin>{conv_config.GetXTensorDescriptor()};
+    auto weights = tensor<Twei>{conv_config.GetWTensorDescriptor()};
+
+    if(weights.desc.GetLayoutEnum() == miopenTensorCHWNc4 || weights.desc.GetLayoutEnum() == miopenTensorCHWNc8)
+    {
+        throw std::runtime_error("GenConvData do not support CHWNc filter layout");
+    }
 
     const auto conv_desc = conv_config.GetConv();
 
@@ -239,8 +236,8 @@ void RunSolverFwd(const miopen::solver::conv::ConvSolverBase& solv,
 
     auto output = tensor<Tout>{output_desc.GetLengths()};
 
-    input.generate(GenConvData<Tin, Tout>{conv_config.GetWDims()});
-    weights.generate(GenConvData<Twei, Tout>{conv_config.GetWDims()});
+    input.generate(GenConvData<Tin, Tout>{weights.desc.GetLengths()});
+    weights.generate(GenConvData<Twei, Tout>{weights.desc.GetLengths()});
     std::fill(output.begin(), output.end(), Tout());
 
     auto&& handle = get_handle();
@@ -338,8 +335,13 @@ void RunSolverBwd(const miopen::solver::conv::ConvSolverBase& solv,
     // Prepare
     //**********************************
 
-    auto input   = tensor<Tin>{conv_config.GetXDims()};
-    auto weights = tensor<Twei>{conv_config.GetWDims()};
+    auto input   = tensor<Tin>{conv_config.GetXTensorDescriptor()};
+    auto weights = tensor<Twei>{conv_config.GetWTensorDescriptor()};
+
+    if(weights.desc.GetLayoutEnum() == miopenTensorCHWNc4 || weights.desc.GetLayoutEnum() == miopenTensorCHWNc8)
+    {
+        throw std::runtime_error("GenConvData do not support CHWNc filter layout");
+    }
 
     const auto conv_desc = conv_config.GetConv();
 
@@ -348,8 +350,8 @@ void RunSolverBwd(const miopen::solver::conv::ConvSolverBase& solv,
 
     auto output = tensor<Tout>{output_desc.GetLengths()};
 
-    output.generate(GenConvData<Tout, Tin>{conv_config.GetWDims()});
-    weights.generate(GenConvData<Twei, Tin>{conv_config.GetWDims()});
+    output.generate(GenConvData<Tout, Tin>{weights.desc.GetLengths()});
+    weights.generate(GenConvData<Twei, Tin>{weights.desc.GetLengths()});
     std::fill(input.begin(), input.end(), Tin());
 
     auto&& handle = get_handle();
@@ -447,13 +449,18 @@ void RunSolverWrw(const miopen::solver::conv::ConvSolverBase& solv,
     // Prepare
     //**********************************
 
-    auto input   = tensor<Tin>{conv_config.GetXDims()};
-    auto weights = tensor<Twei>{conv_config.GetWDims()};
+    auto input   = tensor<Tin>{conv_config.GetXTensorDescriptor()};
+    auto weights = tensor<Twei>{conv_config.GetWTensorDescriptor()};
 
     const auto conv_desc = conv_config.GetConv();
 
     const auto output_desc =
         conv_desc.GetForwardOutputTensor(input.desc, weights.desc, miopen_type<Tout>{});
+
+    if(output_desc.GetLayoutEnum() == miopenTensorCHWNc4 || output_desc.GetLayoutEnum() == miopenTensorCHWNc8)
+    {
+        throw std::runtime_error("GenConvData do not support CHWNc filter layout");
+    }
 
     auto output = tensor<Tout>{output_desc.GetLengths()};
 
@@ -658,3 +665,6 @@ void UnitTestConvSolverDevApplicabilityBase::RunTestImpl(
         }
     }
 }
+
+} // namespace unit_tests
+} // namespace miopen
