@@ -296,7 +296,49 @@ class GPU_MhaForward_FP8 : public MhaForwardTest<float8>
     }
 };
 
+class GPU_MhaForward_FP16 : public MhaForwardTest<half_float::half>
+{
+    void RunCPUverify(miopen::Handle& handle) override
+    {
+        auto softmaxRef  = tensor<float>{m_testN, m_testH, m_testS, m_testS};
+        auto oDescRef    = tensor<half_float::half>{m_testN, m_testH, m_testS, m_testD};
+        auto mDescRef    = tensor<float>{m_testN, m_testH, m_testS, 1};
+        auto zInvDescRef = tensor<float>{m_testN, m_testH, m_testS, 1};
+
+        auto lookup = [this](const int64_t id) -> TensorVariant& {
+            auto it = m_realTensorMap.find(id);
+            assert(it != m_realTensorMap.cend());
+            return it->second->m_tensorVariant;
+        };
+
+        test::cpu::MultiHeadAttentionfp16(GetTensor<half_float::half>(lookup(miopenTensorMhaQ)),
+                                          GetTensor<half_float::half>(lookup(miopenTensorMhaK)),
+                                          GetTensor<half_float::half>(lookup(miopenTensorMhaV)),
+                                          softmaxRef,
+                                          mDescRef,
+                                          zInvDescRef,
+                                          oDescRef);
+
+        const double errorThreshold = 3e-4;
+
+        auto oRes     = GetResult<half_float::half>(miopenTensorMhaO, handle);
+        double oError = miopen::rms_range(oDescRef, oRes);
+
+        if(m_bernulliProbability > 0.0f)
+        {
+            // Due to GPU version using a different dropout generator we will compare to CPU without
+            // dropout and verify that dropout causes a large difference when comparing results.
+            EXPECT_GT(oError, errorThreshold);
+        }
+        else
+        {
+            EXPECT_LT(oError, errorThreshold);
+        }
+    }
+};
+
 TEST_P(GPU_MhaForward_FP32, TestFloat) { Run(); }
+TEST_P(GPU_MhaForward_FP16, TestFloat16) { Run(); }
 TEST_P(GPU_MhaForward_FP8, TestFloat8) { Run(); }
 
 inline auto GetCases()
@@ -309,5 +351,7 @@ inline auto GetCases()
 }
 
 INSTANTIATE_TEST_SUITE_P(Smoke, GPU_MhaForward_FP32, GetCases());
+
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_MhaForward_FP16, GetCases());
 
 INSTANTIATE_TEST_SUITE_P(Smoke, GPU_MhaForward_FP8, GetCases());
