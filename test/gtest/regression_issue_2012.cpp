@@ -42,7 +42,7 @@ std::vector<std::string> GetArgs(const std::string& param)
 
 std::vector<std::string> GetTestCases(const std::string& float_arg)
 {
-    const std::string& cmd       = "test_conv2d ";
+    const std::string& cmd = "test_conv2d ";
     const std::string& args =
         " --verbose --disable-forward --disable-backward-data --disable-validation";
 
@@ -78,7 +78,7 @@ void Run2dDriver()
     {
         GTEST_SKIP();
     }
-    
+
     SetupEnvVar();
     std::vector<std::string> params = GPU_regression_issue_2012_FP32::GetParam();
 
@@ -102,4 +102,6 @@ using namespace regression_issue_2012;
 
 TEST_P(GPU_regression_issue_2012_FP32, FloatTest_regression_issue_2012) { Run2dDriver(); };
 
-INSTANTIATE_TEST_SUITE_P(Smoke, GPU_regression_issue_2012_FP32, testing::Values(GetTestCases("--float")));
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_regression_issue_2012_FP32,
+                         testing::Values(GetTestCases("--float")));

@@ -46,7 +46,7 @@ std::vector<std::string> GetArgs(const std::string& param)
 
 std::vector<std::string> GetTestCases(const std::string& float_arg)
 {
-    const std::string& cmd       = "test_conv2d ";
+    const std::string& cmd = "test_conv2d ";
     const std::string& args =
         " --verbose --disable-forward --disable-backward-data --disable-validation";
 
@@ -76,7 +76,7 @@ void Run2dDriver(void)
     {
         GTEST_SKIP();
     }
-    
+
     SetupEnvVar();
     std::vector<std::string> params = GPU_regression_mi200_FP16::GetParam();
 
