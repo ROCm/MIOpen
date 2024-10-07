@@ -7827,47 +7827,6 @@ MIOPEN_EXPORT miopenStatus_t miopenPReLUBackward(miopenHandle_t handle,
 #endif // MIOPEN_BETA_API
 
 #ifdef MIOPEN_BETA_API
-// adaptiveavgpool APIs
-/** @addtogroup adaptiveavgpool
- *
- *  @{
- */
-
-/*! @brief Execute an adaptiveavgpool forward layer
- *
- * @param handle                   MIOpen handle (input)
- * @param inputDesc                Tensor descriptor for input tensor (input)
- * @param input                    Data tensor input (input)
- * @param outputDesc               Tensor descriptor for output tensor (input)
- * @param output                   Data tensor output (output)
- * @return                         miopenStatus_t
- */
-MIOPEN_EXPORT miopenStatus_t miopenAdaptiveAvgPoolForward(miopenHandle_t handle,
-                                                          const miopenTensorDescriptor_t inputDesc,
-                                                          const void* input,
-                                                          const miopenTensorDescriptor_t outputDesc,
-                                                          void* output);
-
-/*! @brief Execute an adaptiveavgpool backward layer
- *
- * @param handle                   MIOpen handle (input)
- * @param outputGradDesc           Tensor descriptor for output grad tensor (input)
- * @param output_grad              Data tensor output grad (input)
- * @param inputGradDesc            Tensor descriptor for input grad tensor (input)
- * @param input_grad               Data tensor input grad (output)
- * @return                         miopenStatus_t
- */
-MIOPEN_EXPORT miopenStatus_t
-miopenAdaptiveAvgPoolBackward(miopenHandle_t handle,
-                              const miopenTensorDescriptor_t outputGradDesc,
-                              const void* output_grad,
-                              const miopenTensorDescriptor_t inputGradDesc,
-                              void* input_grad);
-/** @} */
-// CLOSEOUT adaptiveavgpool DOXYGEN GROUP
-#endif // MIOPEN_BETA_API
-
-#ifdef MIOPEN_BETA_API
 
 /*! @ingroup LossFunction
  * @enum miopenLossReductionMode_t
@@ -7962,6 +7921,47 @@ MIOPEN_EXPORT miopenStatus_t miopenSoftMarginLossBackward(miopenHandle_t handle,
 /** @} */
 // CLOSEOUT LossFunction DOXYGEN GROUP
 #endif
+
+#ifdef MIOPEN_BETA_API
+// adaptiveavgpool APIs
+/** @addtogroup adaptiveavgpool
+ *
+ *  @{
+ */
+
+/*! @brief Execute an adaptiveavgpool forward layer
+ *
+ * @param handle                   MIOpen handle (input)
+ * @param inputDesc                Tensor descriptor for input tensor (input)
+ * @param input                    Data tensor input (input)
+ * @param outputDesc               Tensor descriptor for output tensor (input)
+ * @param output                   Data tensor output (output)
+ * @return                         miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenAdaptiveAvgPoolForward(miopenHandle_t handle,
+                                                          const miopenTensorDescriptor_t inputDesc,
+                                                          const void* input,
+                                                          const miopenTensorDescriptor_t outputDesc,
+                                                          void* output);
+
+/*! @brief Execute an adaptiveavgpool backward layer
+ *
+ * @param handle                   MIOpen handle (input)
+ * @param outputGradDesc           Tensor descriptor for output grad tensor (input)
+ * @param output_grad              Data tensor output grad (input)
+ * @param inputGradDesc            Tensor descriptor for input grad tensor (input)
+ * @param input_grad               Data tensor input grad (output)
+ * @return                         miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenAdaptiveAvgPoolBackward(miopenHandle_t handle,
+                              const miopenTensorDescriptor_t outputGradDesc,
+                              const void* output_grad,
+                              const miopenTensorDescriptor_t inputGradDesc,
+                              void* input_grad);
+/** @} */
+// CLOSEOUT adaptiveavgpool DOXYGEN GROUP
+#endif // MIOPEN_BETA_API
 
 #ifdef __cplusplus
 }
