@@ -47,8 +47,8 @@ __device__ void adaptiveAvgPoolForward1d(const TI* __restrict__ input,
     if(n >= N)
         return;
 
-    uint64_t h  = static_cast<uint64_t>(floor(static_cast<FLOAT_ACCUM>(oh * H) / OH));
-    uint64_t kh = static_cast<uint64_t>(ceil(static_cast<FLOAT_ACCUM>((oh + 1) * H) / OH)) - h;
+    uint64_t h  = oh * H / OH;
+    uint64_t kh = (((oh + 1) * H + OH - 1) / OH) - h;
 
     FLOAT_ACCUM sum = 0;
     for(uint64_t ih = h; ih < (h + kh); ++ih)
@@ -86,14 +86,13 @@ __device__ void adaptiveAvgPoolBackward1d(const TI* __restrict__ output_grad,
     if(n >= N)
         return;
 
-    uint64_t oh  = static_cast<uint64_t>(floor(static_cast<FLOAT_ACCUM>(h * OH) / H));
-    uint64_t koh = static_cast<uint64_t>(ceil(static_cast<FLOAT_ACCUM>((h + 1) * OH) / H)) - oh;
+    uint64_t oh  = (h * OH) / H;
+    uint64_t koh = (((h + 1) * OH + H - 1) / H) - oh;
 
     FLOAT_ACCUM grad = 0;
     for(uint64_t ih = oh; ih < (oh + koh); ++ih)
     {
-        uint64_t kh = static_cast<uint64_t>(ceil(static_cast<FLOAT_ACCUM>((ih + 1) * H) / OH)) -
-                      static_cast<uint64_t>(floor(static_cast<FLOAT_ACCUM>(ih * H) / OH));
+        uint64_t kh = ((ih + 1) * H + OH - 1) / OH - (ih * H) / OH;
         grad += CVT_FLOAT2ACCUM(output_grad[output_grad_tv.get_tensor_view_idx({n, c, ih})]) / kh;
     }
     input_grad[input_grad_tv.get_tensor_view_idx({n, c, h})] = CVT_ACCUM2FLOAT(grad);
@@ -132,11 +131,11 @@ __device__ void adaptiveAvgPoolForward2d(const TI* __restrict__ input,
     if(n >= N)
         return;
 
-    uint64_t h  = static_cast<uint64_t>(floor(static_cast<FLOAT_ACCUM>(oh * H) / OH));
-    uint64_t kh = static_cast<uint64_t>(ceil(static_cast<FLOAT_ACCUM>((oh + 1) * H) / OH)) - h;
+    uint64_t h  = (oh * H) / OH;
+    uint64_t kh = (((oh + 1) * H + OH - 1) / OH) - h;
 
-    uint64_t w  = static_cast<uint64_t>(floor(static_cast<FLOAT_ACCUM>(ow * W) / OW));
-    uint64_t kw = static_cast<uint64_t>(ceil(static_cast<FLOAT_ACCUM>((ow + 1) * W) / OW)) - w;
+    uint64_t w  = (ow * W) / OW;
+    uint64_t kw = (((ow + 1) * W + OW - 1) / OW) - w;
 
     FLOAT_ACCUM divider = static_cast<FLOAT_ACCUM>(kh * kw);
     FLOAT_ACCUM sum     = 0;
@@ -185,21 +184,19 @@ __device__ void adaptiveAvgPoolBackward2d(const TI* __restrict__ output_grad,
     if(n >= N)
         return;
 
-    uint64_t oh  = static_cast<uint64_t>(floor(static_cast<FLOAT_ACCUM>(h * OH) / H));
-    uint64_t koh = static_cast<uint64_t>(ceil(static_cast<FLOAT_ACCUM>((h + 1) * OH) / H)) - oh;
+    uint64_t oh  = (h * OH) / H;
+    uint64_t koh = ((h + 1) * OH + H - 1) / H - oh;
 
-    uint64_t ow  = static_cast<uint64_t>(floor(static_cast<FLOAT_ACCUM>(w * OW) / W));
-    uint64_t kow = static_cast<uint64_t>(ceil(static_cast<FLOAT_ACCUM>((w + 1) * OW) / W)) - ow;
+    uint64_t ow  = (w * OW) / W;
+    uint64_t kow = ((w + 1) * OW + W - 1) / W - ow;
 
     FLOAT_ACCUM grad = 0;
     for(uint64_t ih = oh; ih < (oh + koh); ++ih)
     {
-        uint64_t kh = static_cast<uint64_t>(ceil(static_cast<FLOAT_ACCUM>((ih + 1) * H) / OH)) -
-                      static_cast<uint64_t>(floor(static_cast<FLOAT_ACCUM>(ih * H) / OH));
+        uint64_t kh = ((ih + 1) * H + OH - 1) / OH - (ih * H) / OH;
         for(uint64_t iw = ow; iw < (ow + kow); ++iw)
         {
-            uint64_t kw = static_cast<uint64_t>(ceil(static_cast<FLOAT_ACCUM>((iw + 1) * W) / OW)) -
-                          static_cast<uint64_t>(floor(static_cast<FLOAT_ACCUM>(iw * W) / OW));
+            uint64_t kw = ((iw + 1) * W + OW - 1) / OW - (iw * W) / OW;
             grad +=
                 CVT_FLOAT2ACCUM(output_grad[output_grad_tv.get_tensor_view_idx({n, c, ih, iw})]) /
                 (kh * kw);
@@ -246,14 +243,14 @@ __device__ void adaptiveAvgPoolForward3d(const TI* __restrict__ input,
 
     if(n >= N)
         return;
-    uint64_t d  = static_cast<uint64_t>(floor(static_cast<FLOAT_ACCUM>(od * D) / OD));
-    uint64_t kd = static_cast<uint64_t>(ceil(static_cast<FLOAT_ACCUM>((od + 1) * D) / OD)) - d;
+    uint64_t d  = (od * D) / OD;
+    uint64_t kd = ((od + 1) * D + OD - 1) / OD - d;
 
-    uint64_t h  = static_cast<uint64_t>(floor(static_cast<FLOAT_ACCUM>(oh * H) / OH));
-    uint64_t kh = static_cast<uint64_t>(ceil(static_cast<FLOAT_ACCUM>((oh + 1) * H) / OH)) - h;
+    uint64_t h  = (oh * H) / OH;
+    uint64_t kh = ((oh + 1) * H + OH - 1) / OH - h;
 
-    uint64_t w  = static_cast<uint64_t>(floor(static_cast<FLOAT_ACCUM>(ow * W) / OW));
-    uint64_t kw = static_cast<uint64_t>(ceil(static_cast<FLOAT_ACCUM>((ow + 1) * W) / OW)) - w;
+    uint64_t w  = (ow * W) / OW;
+    uint64_t kw = ((ow + 1) * W + OW - 1) / OW - w;
 
     FLOAT_ACCUM sum = 0;
     for(uint64_t id = d; id < (d + kd); ++id)
@@ -311,29 +308,25 @@ __device__ void adaptiveAvgPoolBackward3d(const TI* __restrict__ output_grad,
     if(n >= N)
         return;
 
-    uint64_t od  = static_cast<uint64_t>(floor(static_cast<FLOAT_ACCUM>(d * OD) / D));
-    uint64_t kod = static_cast<uint64_t>(ceil(static_cast<FLOAT_ACCUM>((d + 1) * OD) / D)) - od;
+    uint64_t od  = (d * OD) / D;
+    uint64_t kod = ((d + 1) * OD + D - 1) / D - od;
 
-    uint64_t oh  = static_cast<uint64_t>(floor(static_cast<FLOAT_ACCUM>(h * OH) / H));
-    uint64_t koh = static_cast<uint64_t>(ceil(static_cast<FLOAT_ACCUM>((h + 1) * OH) / H)) - oh;
+    uint64_t oh  = (h * OH) / H;
+    uint64_t koh = ((h + 1) * OH + H - 1) / H - oh;
 
-    uint64_t ow  = static_cast<uint64_t>(floor(static_cast<FLOAT_ACCUM>(w * OW) / W));
-    uint64_t kow = static_cast<uint64_t>(ceil(static_cast<FLOAT_ACCUM>((w + 1) * OW) / W)) - ow;
+    uint64_t ow  = (w * OW) / W;
+    uint64_t kow = ((w + 1) * OW + W - 1) / W - ow;
 
     FLOAT_ACCUM grad = 0;
     for(uint64_t id = od; id < (od + kod); ++id)
     {
-        uint64_t kd = static_cast<uint64_t>(ceil(static_cast<FLOAT_ACCUM>((id + 1) * D) / OD)) -
-                      static_cast<uint64_t>(floor(static_cast<FLOAT_ACCUM>(id * D) / OD));
+        uint64_t kd = ((id + 1) * D + OD - 1) / OD - (id * D) / OD;
         for(uint64_t ih = oh; ih < (oh + koh); ++ih)
         {
-            uint64_t kh = static_cast<uint64_t>(ceil(static_cast<FLOAT_ACCUM>((ih + 1) * H) / OH)) -
-                          static_cast<uint64_t>(floor(static_cast<FLOAT_ACCUM>(ih * H) / OH));
+            uint64_t kh = ((ih + 1) * H + OH - 1) / OH - (ih * H) / OH;
             for(uint64_t iw = ow; iw < (ow + kow); ++iw)
             {
-                uint64_t kw =
-                    static_cast<uint64_t>(ceil(static_cast<FLOAT_ACCUM>((iw + 1) * W) / OW)) -
-                    static_cast<uint64_t>(floor(static_cast<FLOAT_ACCUM>(iw * W) / OW));
+                uint64_t kw = ((iw + 1) * W + OW - 1) / OW - (iw * W) / OW;
                 grad += CVT_FLOAT2ACCUM(
                             output_grad[output_grad_tv.get_tensor_view_idx({n, c, id, ih, iw})]) /
                         (kd * kh * kw);
