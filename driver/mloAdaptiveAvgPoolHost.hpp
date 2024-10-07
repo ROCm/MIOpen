@@ -23,8 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef MLO_ADAPTIVEAVGPOOLHOST_H_
-#define MLO_ADAPTIVEAVGPOOLHOST_H_
+#pragma once
 
 #include <cmath>
 #include <miopen/tensor.hpp>
@@ -52,7 +51,7 @@ int32_t mloAdaptiveAvgPoolForward1dRunHost(const miopenTensorDescriptor_t inputD
         size_t n = nc / C, c = nc % C;
 
         if(n >= N)
-            return 0;
+            return miopenStatusSuccess;
 
         size_t h  = static_cast<size_t>(std::floor(static_cast<float>(oh * H) / OH));
         size_t kh = static_cast<size_t>(std::ceil(static_cast<float>((oh + 1) * H) / OH)) - h;
@@ -65,7 +64,7 @@ int32_t mloAdaptiveAvgPoolForward1dRunHost(const miopenTensorDescriptor_t inputD
 
         output[output_tv.get_tensor_view_idx({n, c, oh})] = static_cast<Tcheck>(sum / kh);
     }
-    return 0;
+    return miopenStatusSuccess;
 }
 
 template <typename Tgpu, typename Tcheck>
@@ -93,7 +92,7 @@ int32_t mloAdaptiveAvgPoolForward2dRunHost(const miopenTensorDescriptor_t inputD
         size_t n = nc / C, c = nc % C;
 
         if(n >= N)
-            return 0;
+            return miopenStatusSuccess;
 
         size_t h  = static_cast<size_t>(std::floor(static_cast<float>(oh * H) / OH));
         size_t kh = static_cast<size_t>(std::ceil(static_cast<float>((oh + 1) * H) / OH)) - h;
@@ -113,7 +112,7 @@ int32_t mloAdaptiveAvgPoolForward2dRunHost(const miopenTensorDescriptor_t inputD
 
         output[output_tv.get_tensor_view_idx({n, c, oh, ow})] = static_cast<Tcheck>(sum / divider);
     }
-    return 0;
+    return miopenStatusSuccess;
 }
 
 template <typename Tgpu, typename Tcheck>
@@ -144,7 +143,7 @@ int32_t mloAdaptiveAvgPoolForward3dRunHost(const miopenTensorDescriptor_t inputD
         size_t n = nc / C, c = nc % C;
 
         if(n >= N)
-            return 0;
+            return miopenStatusSuccess;
 
         size_t d  = static_cast<size_t>(std::floor(static_cast<float>(od * D) / OD));
         size_t kd = static_cast<size_t>(std::ceil(static_cast<float>((od + 1) * D) / OD)) - d;
@@ -171,7 +170,7 @@ int32_t mloAdaptiveAvgPoolForward3dRunHost(const miopenTensorDescriptor_t inputD
         output[output_tv.get_tensor_view_idx({n, c, od, oh, ow})] =
             static_cast<Tcheck>(sum / (kd * kh * kw));
     }
-    return 0;
+    return miopenStatusSuccess;
 }
 
 template <typename Tgpu, typename Tcheck>
@@ -196,7 +195,7 @@ int32_t mloAdaptiveAvgPoolBackward1dRunHost(const miopenTensorDescriptor_t outpu
         size_t n = nc / C, c = nc % C;
 
         if(n >= N)
-            return 0;
+            return miopenStatusSuccess;
 
         size_t oh  = static_cast<size_t>(std::floor(static_cast<float>(h * OH) / H));
         size_t koh = static_cast<size_t>(std::ceil(static_cast<float>((h + 1) * OH) / H)) - oh;
@@ -212,7 +211,7 @@ int32_t mloAdaptiveAvgPoolBackward1dRunHost(const miopenTensorDescriptor_t outpu
         }
         input_grad[input_grad_tv.get_tensor_view_idx({n, c, h})] = static_cast<Tcheck>(grad);
     }
-    return 0;
+    return miopenStatusSuccess;
 }
 
 template <typename Tgpu, typename Tcheck>
@@ -240,7 +239,7 @@ int32_t mloAdaptiveAvgPoolBackward2dRunHost(const miopenTensorDescriptor_t outpu
         size_t n = nc / C, c = nc % C;
 
         if(n >= N)
-            return 0;
+            return miopenStatusSuccess;
 
         size_t oh  = static_cast<size_t>(std::floor(static_cast<float>(h * OH) / H));
         size_t koh = static_cast<size_t>(std::ceil(static_cast<float>((h + 1) * OH) / H)) - oh;
@@ -265,7 +264,7 @@ int32_t mloAdaptiveAvgPoolBackward2dRunHost(const miopenTensorDescriptor_t outpu
 
         input_grad[input_grad_tv.get_tensor_view_idx({n, c, h, w})] = static_cast<Tcheck>(grad);
     }
-    return 0;
+    return miopenStatusSuccess;
 }
 
 template <typename Tgpu, typename Tcheck>
@@ -296,7 +295,7 @@ int32_t mloAdaptiveAvgPoolBackward3dRunHost(const miopenTensorDescriptor_t outpu
         size_t n = nc / C, c = nc % C;
 
         if(n >= N)
-            return 0;
+            return miopenStatusSuccess;
 
         size_t od  = static_cast<size_t>(std::floor(static_cast<float>(d * OD) / D));
         size_t kod = static_cast<size_t>(std::ceil(static_cast<float>((d + 1) * OD) / D)) - od;
@@ -331,7 +330,5 @@ int32_t mloAdaptiveAvgPoolBackward3dRunHost(const miopenTensorDescriptor_t outpu
 
         input_grad[input_grad_tv.get_tensor_view_idx({n, c, d, h, w})] = static_cast<Tcheck>(grad);
     }
-    return 0;
+    return miopenStatusSuccess;
 }
-
-#endif // MLO_ADAPTIVEAVGPOOLHOST_H_

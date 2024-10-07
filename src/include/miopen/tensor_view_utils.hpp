@@ -30,7 +30,6 @@
 #include <miopen/common.hpp>
 #include <miopen/tensor.hpp>
 #include "../../kernels/tensor_view.hpp"
-#include "miopen/tensor.hpp"
 
 namespace miopen {
 

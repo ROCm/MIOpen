@@ -23,8 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef GUARD_MIOPEN_ADAPTIVEAVGPOOL_DRIVER_HPP
-#define GUARD_MIOPEN_ADAPTIVEAVGPOOL_DRIVER_HPP
+#pragma once
 
 #include "InputFlags.hpp"
 #include "driver.hpp"
@@ -169,10 +168,16 @@ int AdaptiveAvgPoolDriver<Tgpu, Tref>::GetandSetData()
         out_dim_final.push_back(OW);
     }
     std::vector<int> out_grad_stride = ComputeStrides(out_dim_final);
-    SetTensorNd(inputDesc, in_dim, in_stride, data_type);
-    SetTensorNd(outputDesc, out_dim_final, data_type);
-    SetTensorNd(outputGradDesc, out_dim_final, out_grad_stride, data_type);
-    SetTensorNd(inputGradDesc, in_dim, data_type);
+    if(SetTensorNd(inputDesc, in_dim, in_stride, data_type) != miopenStatusSuccess)
+        MIOPEN_THROW("Error parsing input tensor: " + inflags.GetValueStr("input_dims") + ".");
+    if(SetTensorNd(outputDesc, out_dim_final, data_type) != miopenStatusSuccess)
+        MIOPEN_THROW("Error parsing output tensor: " + inflags.GetValueStr("output_dims") + ".");
+    if(SetTensorNd(outputGradDesc, out_dim_final, out_grad_stride, data_type) !=
+       miopenStatusSuccess)
+        MIOPEN_THROW("Error parsing output grad tensor: " + inflags.GetValueStr("output_dims") +
+                     ".");
+    if(SetTensorNd(inputGradDesc, in_dim, data_type) != miopenStatusSuccess)
+        MIOPEN_THROW("Error parsing input grad tensor: " + inflags.GetValueStr("input_dims") + ".");
 
     return miopenStatusSuccess;
 }
@@ -200,12 +205,12 @@ int AdaptiveAvgPoolDriver<Tgpu, Tref>::AddCmdLineArgs()
         "input_dims",
         'D',
         "2x3x7x9x9",
-        "The dimensional lengths of the input tensor: N,C,D,H,W... Example: 2,3,7,9,9.");
+        "The dimensional lengths of the input tensor: N,C,D,H,W... Example: 2x3x7x9x9.");
     inflags.AddTensorFlag(
         "output_dims",
         'S',
         "5x5x5",
-        "The dimensional lengths of the output tensor: OD,OH,OW,... Example: 5,5,5.");
+        "The dimensional lengths of the output tensor: OD,OH,OW,... Example: 5x5x5.");
     inflags.AddInputFlag("is-contiguous", 'c', "1", "is-contiguous (Default=1)", "int");
     inflags.AddInputFlag("iter", 'i', "10", "Number of Iterations (Default=10)", "int");
     inflags.AddInputFlag("verify", 'V', "1", "Verify (Default=1)", "int");
@@ -272,8 +277,9 @@ int AdaptiveAvgPoolDriver<Tgpu, Tref>::RunForwardGPU()
 
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
-        miopenAdaptiveAvgPoolForward(
+        auto status = miopenAdaptiveAvgPoolForward(
             GetHandle(), inputDesc, input_dev->GetMem(), outputDesc, output_dev->GetMem());
+        MIOPEN_THROW_IF(status != miopenStatusSuccess, "Error in miopenAdaptiveAvgPoolForward");
 
         float time = 0.0;
         miopenGetKernelTime(GetHandle(), &time);
@@ -287,15 +293,21 @@ int AdaptiveAvgPoolDriver<Tgpu, Tref>::RunForwardGPU()
         STOP_TIME
         int iter = inflags.GetValueInt("iter");
         if(WALL_CLOCK)
-            printf("Wall-clock Time Forward AdaptiveAvgPool Elapsed: %f ms\n",
-                   t.gettime_ms() / iter);
+            std::cout << "Wall-clock Time Forward AdaptiveAvgPool Elapsed: "
+                      << t.gettime_ms() / iter << " ms" << std::endl;
 
         float kernel_average_time =
             iter > 1 ? (kernel_total_time - kernel_first_time) / (iter - 1) : kernel_first_time;
-        printf("GPU Kernel Time Forward AdaptiveAvgPool Elapsed: %f ms\n", kernel_average_time);
+        std::cout << "GPU Kernel Time Forward AdaptiveAvgPool Elapsed: " << kernel_average_time
+                  << " ms" << std::endl;
     }
 
-    output_dev->FromGPU(GetStream(), output.data());
+    if(output_dev->FromGPU(GetStream(), output.data()) != 0)
+    {
+        std::cerr << "Error copying (output_dev) from GPU, size: " << output_dev->GetSize()
+                  << std::endl;
+        return miopenStatusInternalError;
+    }
 
     return miopenStatusSuccess;
 }
@@ -303,22 +315,30 @@ int AdaptiveAvgPoolDriver<Tgpu, Tref>::RunForwardGPU()
 template <typename Tgpu, typename Tref>
 int AdaptiveAvgPoolDriver<Tgpu, Tref>::RunForwardCPU()
 {
+    int status = miopenStatusSuccess;
+
     if(in_dim.size() == 3)
     {
-        mloAdaptiveAvgPoolForward1dRunHost<Tgpu, Tref>(
+        status = mloAdaptiveAvgPoolForward1dRunHost<Tgpu, Tref>(
             inputDesc, outputDesc, input.data(), output_host.data(), N, C, H, OH);
+        MIOPEN_THROW_IF(status != miopenStatusSuccess,
+                        "Error in mloAdaptiveAvgPoolForward1dRunHost");
     }
     else if(in_dim.size() == 4)
     {
-        mloAdaptiveAvgPoolForward2dRunHost<Tgpu, Tref>(
+        status = mloAdaptiveAvgPoolForward2dRunHost<Tgpu, Tref>(
             inputDesc, outputDesc, input.data(), output_host.data(), N, C, H, W, OH, OW);
+        MIOPEN_THROW_IF(status != miopenStatusSuccess,
+                        "Error in mloAdaptiveAvgPoolForward2dRunHost");
     }
     else if(in_dim.size() == 5)
     {
-        mloAdaptiveAvgPoolForward3dRunHost<Tgpu, Tref>(
+        status = mloAdaptiveAvgPoolForward3dRunHost<Tgpu, Tref>(
             inputDesc, outputDesc, input.data(), output_host.data(), N, C, D, H, W, OD, OH, OW);
+        MIOPEN_THROW_IF(status != miopenStatusSuccess,
+                        "Error in mloAdaptiveAvgPoolForward3dRunHost");
     }
-    return miopenStatusSuccess;
+    return status;
 }
 
 template <typename Tgpu, typename Tref>
@@ -332,11 +352,12 @@ int AdaptiveAvgPoolDriver<Tgpu, Tref>::RunBackwardGPU()
 
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
-        miopenAdaptiveAvgPoolBackward(GetHandle(),
-                                      outputGradDesc,
-                                      output_grad_dev->GetMem(),
-                                      inputGradDesc,
-                                      input_grad_dev->GetMem());
+        auto status = miopenAdaptiveAvgPoolBackward(GetHandle(),
+                                                    outputGradDesc,
+                                                    output_grad_dev->GetMem(),
+                                                    inputGradDesc,
+                                                    input_grad_dev->GetMem());
+        MIOPEN_THROW_IF(status != miopenStatusSuccess, "Error in miopenAdaptiveAvgPoolBackward");
 
         float time = 0.0;
         miopenGetKernelTime(GetHandle(), &time);
@@ -350,15 +371,21 @@ int AdaptiveAvgPoolDriver<Tgpu, Tref>::RunBackwardGPU()
         STOP_TIME
         int iter = inflags.GetValueInt("iter");
         if(WALL_CLOCK)
-            printf("Wall-clock Time Backward AdaptiveAvgPool Elapsed: %f ms\n",
-                   t.gettime_ms() / iter);
+            std::cout << "Wall-clock Time Backward AdaptiveAvgPool Elapsed: "
+                      << t.gettime_ms() / iter << " ms" << std::endl;
 
         float kernel_average_time =
             iter > 1 ? (kernel_total_time - kernel_first_time) / (iter - 1) : kernel_first_time;
-        printf("GPU Kernel Time Backward AdaptiveAvgPool Elapsed: %f ms\n", kernel_average_time);
+        std::cout << "GPU Kernel Time Backward AdaptiveAvgPool Elapsed: " << kernel_average_time
+                  << " ms" << std::endl;
     }
 
-    input_grad_dev->FromGPU(GetStream(), input_grad.data());
+    if(input_grad_dev->FromGPU(GetStream(), input_grad.data()) != 0)
+    {
+        std::cerr << "Error copying (input_grad_dev) from GPU, size: " << input_grad_dev->GetSize()
+                  << std::endl;
+        return miopenStatusInternalError;
+    }
 
     return miopenStatusSuccess;
 }
@@ -366,40 +393,48 @@ int AdaptiveAvgPoolDriver<Tgpu, Tref>::RunBackwardGPU()
 template <typename Tgpu, typename Tref>
 int AdaptiveAvgPoolDriver<Tgpu, Tref>::RunBackwardCPU()
 {
+    int status = miopenStatusSuccess;
+
     if(in_dim.size() == 3)
     {
-        mloAdaptiveAvgPoolBackward1dRunHost<Tgpu, Tref>(
+        status = mloAdaptiveAvgPoolBackward1dRunHost<Tgpu, Tref>(
             outputGradDesc, inputGradDesc, output_grad.data(), input_grad_host.data(), N, C, H, OH);
+        MIOPEN_THROW_IF(status != miopenStatusSuccess,
+                        "Error in mloAdaptiveAvgPoolBackward1dRunHost");
     }
     else if(in_dim.size() == 4)
     {
-        mloAdaptiveAvgPoolBackward2dRunHost<Tgpu, Tref>(outputGradDesc,
-                                                        inputGradDesc,
-                                                        output_grad.data(),
-                                                        input_grad_host.data(),
-                                                        N,
-                                                        C,
-                                                        H,
-                                                        W,
-                                                        OH,
-                                                        OW);
+        status = mloAdaptiveAvgPoolBackward2dRunHost<Tgpu, Tref>(outputGradDesc,
+                                                                 inputGradDesc,
+                                                                 output_grad.data(),
+                                                                 input_grad_host.data(),
+                                                                 N,
+                                                                 C,
+                                                                 H,
+                                                                 W,
+                                                                 OH,
+                                                                 OW);
+        MIOPEN_THROW_IF(status != miopenStatusSuccess,
+                        "Error in mloAdaptiveAvgPoolBackward2dRunHost");
     }
     else if(in_dim.size() == 5)
     {
-        mloAdaptiveAvgPoolBackward3dRunHost<Tgpu, Tref>(outputGradDesc,
-                                                        inputGradDesc,
-                                                        output_grad.data(),
-                                                        input_grad_host.data(),
-                                                        N,
-                                                        C,
-                                                        D,
-                                                        H,
-                                                        W,
-                                                        OD,
-                                                        OH,
-                                                        OW);
+        status = mloAdaptiveAvgPoolBackward3dRunHost<Tgpu, Tref>(outputGradDesc,
+                                                                 inputGradDesc,
+                                                                 output_grad.data(),
+                                                                 input_grad_host.data(),
+                                                                 N,
+                                                                 C,
+                                                                 D,
+                                                                 H,
+                                                                 W,
+                                                                 OD,
+                                                                 OH,
+                                                                 OW);
+        MIOPEN_THROW_IF(status != miopenStatusSuccess,
+                        "Error in mloAdaptiveAvgPoolBackward3dRunHost");
     }
-    return miopenStatusSuccess;
+    return status;
 }
 
 template <typename Tgpu, typename Tref>
@@ -423,7 +458,8 @@ int AdaptiveAvgPoolDriver<Tgpu, Tref>::VerifyForward()
     }
     else
     {
-        printf("Forward AdaptiveAvgPool Verifies on CPU and GPU (err=%f)\n", error);
+        std::cout << "Forward AdaptiveAvgPool Verifies on CPU and GPU (err=" << error << ")"
+                  << std::endl;
     }
 
     return miopenStatusSuccess;
@@ -439,13 +475,12 @@ int AdaptiveAvgPoolDriver<Tgpu, Tref>::VerifyBackward()
     if(!std::isfinite(error) || error > tolerance)
     {
         std::cout << "Backward AdaptiveAvgPool FAILED: " << error << std::endl;
-        return EC_VerifyFwd;
+        return EC_VerifyBwd;
     }
     else
     {
-        printf("Backward AdaptiveAvgPool Verifies on CPU and GPU (err=%f)\n", error);
+        std::cout << "Backward AdaptiveAvgPool Verifies on CPU and GPU (err=" << error << ")"
+                  << std::endl;
     }
     return miopenStatusSuccess;
 }
-
-#endif // GUARD_MIOPEN_ADAPTIVEAVGPOOL_DRIVER_HPP
