@@ -62,7 +62,8 @@ enum class Primitive
     Item,
     RoPE,
     ReLU,
-    AdaptiveAvgPool
+    Kthvalue,
+    AdaptiveAvgPool,
 };
 
 struct MIOPEN_INTERNALS_EXPORT Id
