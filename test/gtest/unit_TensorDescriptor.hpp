@@ -63,20 +63,11 @@ struct TensorDescriptorParams
     {
     }
 
-    std::size_t GetNumDims() const
-    {
-        return lens.size();
-    }
+    std::size_t GetNumDims() const { return lens.size(); }
 
-    const std::vector<std::size_t>& GetLens() const
-    {
-        return lens;
-    }
+    const std::vector<std::size_t>& GetLens() const { return lens; }
 
-    miopenDataType_t GetDataType() const
-    {
-        return datatype;
-    }
+    miopenDataType_t GetDataType() const { return datatype; }
 
     miopen::TensorDescriptor GetTensorDescriptor() const
     {

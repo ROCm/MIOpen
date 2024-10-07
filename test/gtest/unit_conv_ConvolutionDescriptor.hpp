@@ -42,10 +42,7 @@ struct ConvolutionDescriptorParams
     {
     }
 
-    std::size_t GetNumSpatialDims() const
-    {
-        return pads.size();
-    }
+    std::size_t GetNumSpatialDims() const { return pads.size(); }
 
     miopen::ConvolutionDescriptor GetConvolutionDescriptor() const
     {

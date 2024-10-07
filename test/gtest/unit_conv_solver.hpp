@@ -185,6 +185,9 @@ using GPU_UnitTestConvSolverWrw_I8 = miopen::unit_tests::UnitTestConvSolverWrw;
 // This test is designed to detect the expansion of the solver's device applicability
 //************************************************************************************
 
-using CPU_UnitTestConvSolverDevApplicabilityFwd_NONE = miopen::unit_tests::UnitTestConvSolverDevApplicabilityFwd;
-using CPU_UnitTestConvSolverDevApplicabilityBwd_NONE = miopen::unit_tests::UnitTestConvSolverDevApplicabilityBwd;
-using CPU_UnitTestConvSolverDevApplicabilityWrw_NONE = miopen::unit_tests::UnitTestConvSolverDevApplicabilityWrw;
+using CPU_UnitTestConvSolverDevApplicabilityFwd_NONE =
+    miopen::unit_tests::UnitTestConvSolverDevApplicabilityFwd;
+using CPU_UnitTestConvSolverDevApplicabilityBwd_NONE =
+    miopen::unit_tests::UnitTestConvSolverDevApplicabilityBwd;
+using CPU_UnitTestConvSolverDevApplicabilityWrw_NONE =
+    miopen::unit_tests::UnitTestConvSolverDevApplicabilityWrw;
