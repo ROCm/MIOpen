@@ -87,10 +87,10 @@ set( MIOpen_Source
     activ_api.cpp
     adam/problem_description.cpp
     adam_api.cpp
-    addlayernorm_api.cpp
-    api/find2_0_commons.cpp
     adaptiveavgpool_api.cpp
     adaptiveavgpool/problem_description.cpp
+    addlayernorm_api.cpp
+    api/find2_0_commons.cpp
     batch_norm.cpp
     batch_norm_api.cpp
     batchnorm/problem_description.cpp
@@ -659,8 +659,8 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
     list(APPEND MIOpen_Source
         activ.cpp
         adam.cpp
-        addlayernorm.cpp
         adaptiveavgpool.cpp
+        addlayernorm.cpp
         cat.cpp
         groupnorm.cpp
         getitem.cpp

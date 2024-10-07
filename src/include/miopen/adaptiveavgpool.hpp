@@ -23,10 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <miopen/miopen.h>
-#ifndef MIOPEN_ADAPTIVEAVGPOOL_HPP_
-#define MIOPEN_ADAPTIVEAVGPOOL_HPP_
-
+#pragma once
 #include <miopen/common.hpp>
 
 namespace miopen {
@@ -52,4 +49,3 @@ AdaptiveAvgPoolBackward(Handle& handle,
 } // namespace adaptiveavgpool
 
 } // namespace miopen
-#endif // _MIOPEN_ADAPTIVEAVGPOOL_HPP_

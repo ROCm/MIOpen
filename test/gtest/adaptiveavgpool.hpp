@@ -232,7 +232,6 @@ protected:
         }
         status = miopen::adaptiveavgpool::AdaptiveAvgPoolForward(
             handle, input.desc, input_dev.get(), output.desc, output_dev.get());
-        fflush(stdout);
         ASSERT_EQ(status, miopenStatusSuccess);
 
         output.data = handle.Read<T>(output_dev, output.data.size());
@@ -245,7 +244,8 @@ protected:
         auto error = miopen::rms_range(ref_output, output);
 
         ASSERT_EQ(miopen::range_distance(ref_output), miopen::range_distance(output));
-        EXPECT_LT(error, threshold * 10);
+        EXPECT_LT(error, threshold * 10) << "Error forward Output beyond 10xthreshold : " << error
+                                         << " Tolerance: " << threshold * 10;
     }
     AdaptiveAvgPoolTestCase adaptiveavgpool_config;
 
@@ -362,7 +362,9 @@ protected:
         double threshold = std::numeric_limits<T>::epsilon();
         auto error       = miopen::rms_range(ref_input_grad, input_grad);
         ASSERT_EQ(miopen::range_distance(ref_input_grad), miopen::range_distance(input_grad));
-        EXPECT_LT(error, threshold * 10);
+        EXPECT_LT(error, threshold * 10)
+            << "Error backward Input Gradient beyond 10xthreshold : " << error
+            << " Tolerance: " << threshold * 10;
     }
     AdaptiveAvgPoolTestCase adaptiveavgpool_config;
 

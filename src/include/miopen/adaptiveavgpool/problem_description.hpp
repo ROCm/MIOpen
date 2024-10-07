@@ -106,22 +106,7 @@ struct FwdProblemDescription : ProblemDescriptionBase
         return true;
     }
 
-    bool IsAllContiguous() const
-    {
-        auto isContiguous = [](TensorDescriptor td) {
-            size_t s = 1;
-            for(int i = td.GetNumDims() - 1; i >= 0; --i)
-            {
-                if(s != td.GetStrides()[i])
-                {
-                    return false;
-                }
-                s *= td.GetLengths()[i];
-            }
-            return true;
-        };
-        return isContiguous(inputDesc) && isContiguous(outputDesc);
-    }
+    bool IsAllContiguous() const { return inputDesc.IsContiguous() && outputDesc.IsContiguous(); }
 
     bool IsSameType() const
     {
@@ -214,19 +199,7 @@ struct BwdProblemDescription : ProblemDescriptionBase
 
     bool IsAllContiguous() const
     {
-        auto isContiguous = [](TensorDescriptor td) {
-            size_t s = 1;
-            for(int i = td.GetNumDims() - 1; i >= 0; --i)
-            {
-                if(s != td.GetStrides()[i])
-                {
-                    return false;
-                }
-                s *= td.GetLengths()[i];
-            }
-            return true;
-        };
-        return isContiguous(inputGradDesc) && isContiguous(outputGradDesc);
+        return inputGradDesc.IsContiguous() && outputGradDesc.IsContiguous();
     }
 
     bool IsSameType() const

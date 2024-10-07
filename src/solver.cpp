@@ -24,9 +24,9 @@
  *
  *******************************************************************************/
 
-#include "miopen/adaptiveavgpool/solvers.hpp"
 #include <miopen/activ/solvers.hpp>
 #include <miopen/adam/solvers.hpp>
+#include <miopen/adaptiveavgpool/solvers.hpp>
 #include <miopen/batchnorm/solvers.hpp>
 #include <miopen/cat/solvers.hpp>
 #include <miopen/conv/solvers.hpp>

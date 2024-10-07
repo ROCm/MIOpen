@@ -24,10 +24,10 @@
  *
  *******************************************************************************/
 
-#include "miopen/conv_solution.hpp"
-#include "miopen/execution_context.hpp"
-#include "miopen/invoke_params.hpp"
-#include "miopen/tensor_view_utils.hpp"
+#include <miopen/conv_solution.hpp>
+#include <miopen/execution_context.hpp>
+#include <miopen/invoke_params.hpp>
+#include <miopen/tensor_view_utils.hpp>
 #include <miopen/adaptiveavgpool/solvers.hpp>
 
 #include <miopen/adaptiveavgpool/invoke_params.hpp>
@@ -84,7 +84,7 @@ ConvSolution AdaptiveAvgPoolForward1d::GetSolution(
     auto input_dtype  = miopen::GetDataType(problem.GetInputDesc().GetType());
     auto output_dtype = miopen::GetDataType(problem.GetOutputDesc().GetType());
     auto dtype        = problem.GetOutputDesc().GetType();
-    size_t N_total    = problem.GetNtotal();
+    uint64_t N_total  = problem.GetNtotal();
 
     auto build_params = KernelBuildParameters{
         {"MIOPEN_USE_FP16", static_cast<int>(dtype == miopenHalf)},
@@ -109,10 +109,10 @@ ConvSolution AdaptiveAvgPoolForward1d::GetSolution(
             auto input_tv  = get_inner_expanded_tv<3>(deref(params.inputDesc));
             auto output_tv = get_inner_expanded_tv<3>(deref(params.outputDesc));
 
-            size_t N  = deref(params.inputDesc).GetLengths()[0];
-            size_t C  = deref(params.inputDesc).GetLengths()[1];
-            size_t H  = deref(params.inputDesc).GetLengths()[2];
-            size_t OH = deref(params.outputDesc).GetLengths()[2];
+            uint64_t N  = deref(params.inputDesc).GetLengths()[0];
+            uint64_t C  = deref(params.inputDesc).GetLengths()[1];
+            uint64_t H  = deref(params.inputDesc).GetLengths()[2];
+            uint64_t OH = deref(params.outputDesc).GetLengths()[2];
 
             kernel(params.input, params.output, N, C, H, OH, input_tv, output_tv);
         };
