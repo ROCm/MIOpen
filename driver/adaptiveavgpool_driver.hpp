@@ -261,7 +261,10 @@ int AdaptiveAvgPoolDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     status |= output_grad_dev->ToGPU(q, output_grad.data());
 
     if(status != 0)
+    {
         std::cout << "Error copying data to GPU\n" << std::endl;
+        return miopenStatusAllocFailed;
+    }
 
     return miopenStatusSuccess;
 }

@@ -228,7 +228,7 @@ protected:
         }
         else if(dims == 5)
         {
-            cpu_adaptiveavgpool_forward_3d<T>(input, ref_output, N, C, D, H, W, OD, OH, OW);
+            cpu_adaptiveavgpool_forward_3d(input, ref_output, N, C, D, H, W, OD, OH, OW);
         }
         status = miopen::adaptiveavgpool::AdaptiveAvgPoolForward(
             handle, input.desc, input_dev.get(), output.desc, output_dev.get());
@@ -346,8 +346,7 @@ protected:
         }
         else if(dims == 5)
         {
-            cpu_adaptiveavgpool_backward_3d<T>(
-                output_grad, ref_input_grad, N, C, D, H, W, OD, OH, OW);
+            cpu_adaptiveavgpool_backward_3d(output_grad, ref_input_grad, N, C, D, H, W, OD, OH, OW);
         }
         status = miopen::adaptiveavgpool::AdaptiveAvgPoolBackward(
             handle, output_grad.desc, output_grad_dev.get(), input_grad.desc, input_grad_dev.get());
