@@ -59,7 +59,7 @@ int32_t mloMultiMarginLossForwardRunHost(const miopenTensorDescriptor_t iDesc,
     auto O_tv = miopen::get_inner_expanded_tv<1>(miopen::deref(oDesc));
     auto N = I_tv.size[0], C = I_tv.size[1];
 
-    int32_t ret     = 0;
+    int32_t ret     = miopenStatusSuccess;
     double sum_loss = 0;
 
     for(size_t n = 0; n < N; n++)
@@ -164,7 +164,12 @@ private:
 template <typename Tgpu, typename Tref>
 int MultiMarginLossDriver<Tgpu, Tref>::AddCmdLineArgs()
 {
-    inflags.AddInputFlag("forw", 'F', "1", "Run only Forward Take (Default=1)", "int");
+    inflags.AddInputFlag("forw",
+                         'F',
+                         "1",
+                         "Run Forward or Backward. 0 to run both Fw and Bw, 1 to run only Fw, 2 to "
+                         "run only Bw (Default=1)",
+                         "int");
     inflags.AddInputFlag("dim", 'D', "41x4", "Dim of input tensor (Default=41x4)", "tensor");
     inflags.AddInputFlag("contiguous", 'C', "1", "Tensor is contiguous or not (Default=1)", "int");
     inflags.AddInputFlag("iter", 'i', "10", "Number of Iterations (Default=10)", "int");
@@ -195,6 +200,11 @@ int MultiMarginLossDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
         miopenEnableProfiling(GetHandle(), true);
     }
     forw = inflags.GetValueInt("forw");
+    if(forw == 2)
+    {
+        std::cerr << "MultiMarginLoss backward is not implemented." << std::endl;
+        return miopenStatusNotImplemented;
+    }
     return miopenStatusSuccess;
 }
 
@@ -295,13 +305,22 @@ int MultiMarginLossDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     }
 
     if(i_dev->ToGPU(GetStream(), I.data()) != 0)
+    {
         std::cerr << "Error copying (I) to GPU, size: " << i_dev->GetSize() << std::endl;
+        return miopenStatusAllocFailed;
+    }
 
     if(t_dev->ToGPU(GetStream(), T.data()) != 0)
+    {
         std::cerr << "Error copying (T) to GPU, size: " << t_dev->GetSize() << std::endl;
+        return miopenStatusAllocFailed;
+    }
 
     if(w_dev->ToGPU(GetStream(), W.data()) != 0)
+    {
         std::cerr << "Error copying (W) to GPU, size: " << w_dev->GetSize() << std::endl;
+        return miopenStatusAllocFailed;
+    }
 
     if(forw == 0 || forw == 1)
     {
@@ -318,7 +337,10 @@ int MultiMarginLossDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         O     = std::vector<Tgpu>(o_sz, static_cast<Tgpu>(0));
         Ohost = std::vector<Tref>(o_sz, static_cast<Tref>(0));
         if(o_dev->ToGPU(GetStream(), O.data()) != 0)
+        {
             std::cerr << "Error copying (out) to GPU, size: " << o_dev->GetSize() << std::endl;
+            return miopenStatusAllocFailed;
+        }
 
         if(ws_sizeInBytes == 0)
             workspace_dev = nullptr;
@@ -380,7 +402,10 @@ int MultiMarginLossDriver<Tgpu, Tref>::RunForwardGPU()
     }
 
     if(o_dev->FromGPU(GetStream(), O.data()) != 0)
+    {
         std::cerr << "Error copying (o_dev) from GPU, size: " << o_dev->GetSize() << std::endl;
+        return miopenStatusInternalError;
+    }
 
     return miopenStatusSuccess;
 }
@@ -388,24 +413,24 @@ int MultiMarginLossDriver<Tgpu, Tref>::RunForwardGPU()
 template <typename Tgpu, typename Tref>
 int MultiMarginLossDriver<Tgpu, Tref>::RunForwardCPU()
 {
-    mloMultiMarginLossForwardRunHost(iDesc,
-                                     tDesc,
-                                     wDesc,
-                                     oDesc,
-                                     p,
-                                     margin,
-                                     reduction_mode,
-                                     I.data(),
-                                     T.data(),
-                                     W.data(),
-                                     Ohost.data());
-    return miopenStatusSuccess;
+    return mloMultiMarginLossForwardRunHost(iDesc,
+                                            tDesc,
+                                            wDesc,
+                                            oDesc,
+                                            p,
+                                            margin,
+                                            reduction_mode,
+                                            I.data(),
+                                            T.data(),
+                                            W.data(),
+                                            Ohost.data());
 }
 
 template <typename Tgpu, typename Tref>
 int MultiMarginLossDriver<Tgpu, Tref>::RunBackwardGPU()
 {
-    return miopenStatusSuccess;
+    std::cerr << "MultiMarginLoss backward is not implemented." << std::endl;
+    return miopenStatusNotImplemented;
 }
 
 template <typename Tgpu, typename Tref>
@@ -439,5 +464,5 @@ int MultiMarginLossDriver<Tgpu, Tref>::VerifyForward()
 template <typename Tgpu, typename Tref>
 int MultiMarginLossDriver<Tgpu, Tref>::VerifyBackward()
 {
-    return miopenStatusSuccess;
+    return miopenStatusNotImplemented;
 }
