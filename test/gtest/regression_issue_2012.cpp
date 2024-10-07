@@ -59,7 +59,7 @@ std::vector<std::string> GetTestCases(const std::string& float_arg)
     // clang-format on
 }
 
-using TestCase = decltype(GetTestCases())::value_type;
+using TestCase = decltype(GetTestCases(std::string{}))::value_type;
 
 class GPU_regression_issue_2012_FP32 : public testing::TestWithParam<std::vector<TestCase>>
 {
