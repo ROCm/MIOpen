@@ -62,6 +62,7 @@ enum class Primitive
     RoPE,
     ReLU,
     Kthvalue,
+    SoftMarginLoss,
     MultiMarginLoss
 };
 

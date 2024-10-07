@@ -7839,6 +7839,89 @@ typedef enum
                                        number of elements to get mean value */
 } miopenLossReductionMode_t;
 
+// SoftMarginLoss APIs
+/** @addtogroup LossFunction
+ *
+ *  @{
+ */
+
+/*! @brief Helper function to query the minimum workspace size required by the
+SoftMarginLossForward call
+ *
+ * @param [in]  handle              MIOpen Handle
+ * @param [in]  inputDesc           Tensor descriptor for input tensor
+ * @param [in]  targetDesc          Tensor descriptor for target tensor
+ * @param [in]  outputDesc          Tensor descriptor for output tensor
+*  @param [in]  reduction           Reduction mode (sum, mean). For none reduction we don't need to
+use this function
+ * @param [out] sizeInBytes         Pointer to data to return the minimum workspace size
+ * @return                          miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenGetSoftMarginLossForwardWorkspaceSize(miopenHandle_t handle,
+                                            miopenTensorDescriptor_t inputDesc,
+                                            miopenTensorDescriptor_t targetDesc,
+                                            miopenTensorDescriptor_t outputDesc,
+                                            miopenLossReductionMode_t reduction,
+                                            size_t* sizeInBytes);
+
+/*! @brief Execute a SoftMarginLoss forward layer
+ *
+ * @param [in]  handle                  MIOpen handle
+ * @param [in]  inputDesc               Tensor descriptor for input tensor
+ * @param [in]  input                   Data tensor input
+ * @param [in]  targetDesc              Tensor descriptor for target tensor
+ * @param [in]  target                  Data tensor target
+ * @param [in]  outputDesc              Tensor descriptor for output tensor
+ * @param [out] output                  Data tensor output
+ * @param [in]  reduction               Reduction mode. If reduction mode is mean or sum, you must
+ * provide param workspace and workspaceSizeInBytes. Call
+ * miopenGetSoftMarginLossForwardWorkspaceSize to get workspaceSizeInBytes
+ * @param [in]  workspace               Address of the allocated workspace data (Default = null)
+ * @param [in]  workspaceSizeInBytes    Size in bytes of the allocated workspace data (Default = 0)
+ * @return                              miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenSoftMarginLossForward(miopenHandle_t handle,
+                                                         miopenTensorDescriptor_t inputDesc,
+                                                         const void* input,
+                                                         miopenTensorDescriptor_t targetDesc,
+                                                         const void* target,
+                                                         miopenTensorDescriptor_t outputDesc,
+                                                         void* output,
+                                                         miopenLossReductionMode_t reduction,
+                                                         void* workspace             = nullptr,
+                                                         size_t workspaceSizeInBytes = 0);
+
+/*! @brief Execute a SoftMarginLoss backward layer
+ *
+ * @param [in]  handle                  MIOpen handle
+ * @param [in]  inputDesc               Tensor descriptor for input tensor
+ * @param [in]  input                   Data tensor input
+ * @param [in]  targetDesc              Tensor descriptor for target tensor
+ * @param [in]  target                  Data tensor target
+ * @param [in]  doutputDesc             Tensor descriptor for output gradient
+ * @param [in]  doutput                 Output gradient
+ * @param [in]  dinputDesc              Tensor descriptor for input gradient
+ * @param [out] dinput                  Input gradient
+ * @param [in]  reduction               Reduction mode (none, sum, mean)
+ * @return                              miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenSoftMarginLossBackward(miopenHandle_t handle,
+                                                          miopenTensorDescriptor_t inputDesc,
+                                                          const void* input,
+                                                          miopenTensorDescriptor_t targetDesc,
+                                                          const void* target,
+                                                          miopenTensorDescriptor_t doutputDesc,
+                                                          const void* doutput,
+                                                          miopenTensorDescriptor_t dinputDesc,
+                                                          void* dinput,
+                                                          miopenLossReductionMode_t reduction);
+
+/** @} */
+// CLOSEOUT LossFunction DOXYGEN GROUP
+#endif
+
+#ifdef MIOPEN_BETA_API
 // MultiMarginLoss APIs
 /** @addtogroup LossFunction
  *

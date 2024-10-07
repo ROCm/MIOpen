@@ -194,6 +194,8 @@ set( MIOpen_Source
     rope_api.cpp
     rope/problem_description.cpp
     scalar.cpp
+    softmarginloss/problem_description.cpp 
+    softmarginloss_api.cpp
     softmax.cpp
     softmax_api.cpp
     softmax/problem_description.cpp
@@ -328,6 +330,8 @@ set( MIOpen_Source
     solver/reduce/forward_sum.cpp
     solver/rope/backward_rope.cpp
     solver/rope/forward_rope.cpp
+    solver/softmarginloss/backward_softmarginloss.cpp
+    solver/softmarginloss/forward_softmarginloss.cpp
     solver/softmax/attn_softmax.cpp
     solver/softmax/softmax.cpp
     subbuffers.cpp
@@ -546,6 +550,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenReduceExtreme.cpp
         kernels/MIOpenReduceSum.cpp
         kernels/MIOpenRoPE.cpp
+        kernels/MIOpenSoftMarginLoss.cpp
         kernels/MIOpenSoftmax.cl
         kernels/MIOpenSoftmaxAttn.cpp
         kernels/MIOpenUtilKernels3.cl
@@ -695,6 +700,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         reducecalculation.cpp
         reduceextreme.cpp
         rope.cpp
+        softmarginloss.cpp
         transformers_adam_w.cpp
         ${PROJECT_BINARY_DIR}/db_path.cpp
         )
