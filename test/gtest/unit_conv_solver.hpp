@@ -91,7 +91,8 @@ public:
     void RunTestImpl(const miopen::solver::conv::ConvSolverBase& solver,
                      miopen::conv::Direction direction,
                      const ConvTestCase& conv_config,
-                     miopenConvAlgorithm_t algo);
+                     miopenConvAlgorithm_t algo,
+                     bool use_cpu_ref);
 
 protected:
     void SetUpImpl(Gpu supported_devs);
@@ -103,12 +104,12 @@ class UnitTestConvSolver
       public ::testing::TestWithParam<std::tuple<Gpu, miopenConvAlgorithm_t, ConvTestCase>>
 {
 public:
-    void RunTest(const miopen::solver::conv::ConvSolverBase& solver)
+    void RunTest(const miopen::solver::conv::ConvSolverBase& solver, bool use_cpu_ref = false)
     {
         miopenConvAlgorithm_t algo;
         ConvTestCase conv_config;
         std::tie(std::ignore, algo, conv_config) = GetParam();
-        this->RunTestImpl(solver, direction, conv_config, algo);
+        this->RunTestImpl(solver, direction, conv_config, algo, use_cpu_ref);
     }
 
 protected:

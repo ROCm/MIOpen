@@ -82,11 +82,11 @@ ConvTestCase::ConvTestCase(std::vector<size_t>&& x_,
                            std::vector<int>&& stride_,
                            std::vector<int>&& dilation_,
                            miopenDataType_t type_)
-    : ConvTestCase(std::forward<decltype(x_)>(x_),
-                   std::forward<decltype(w_)>(w_),
-                   std::forward<decltype(pad_)>(pad_),
-                   std::forward<decltype(stride_)>(stride_),
-                   std::forward<decltype(dilation_)>(dilation_),
+    : ConvTestCase(std::move(x_),
+                   std::move(w_),
+                   std::move(pad_),
+                   std::move(stride_),
+                   std::move(dilation_),
                    type_,
                    type_,
                    type_)
@@ -101,12 +101,12 @@ ConvTestCase::ConvTestCase(std::vector<size_t>&& x_,
                            miopenDataType_t type_x_,
                            miopenDataType_t type_w_,
                            miopenDataType_t type_y_)
-    : ConvTestCase(TensorDescriptorParams{type_x_, std::forward<decltype(x_)>(x_)},
-                   TensorDescriptorParams{type_w_, std::forward<decltype(w_)>(w_)},
+    : ConvTestCase(TensorDescriptorParams{type_x_, std::move(x_)},
+                   TensorDescriptorParams{type_w_, std::move(w_)},
                    type_y_,
-                   ConvolutionDescriptorParams{std::forward<decltype(pad_)>(pad_),
-                                               std::forward<decltype(stride_)>(stride_),
-                                               std::forward<decltype(dilation_)>(dilation_)})
+                   ConvolutionDescriptorParams{std::move(pad_),
+                                               std::move(stride_),
+                                               std::move(dilation_)})
 {
 }
 
@@ -245,7 +245,7 @@ void RunSolverFwd(const miopen::solver::conv::ConvSolverBase& solv,
     const auto output_desc =
         conv_desc.GetForwardOutputTensor(input.desc, weights.desc, miopen_type<Tout>{});
 
-    auto output = tensor<Tout>{output_desc.GetLengths()};
+    auto output = tensor<Tout>{output_desc};
 
     input.generate(GenConvData<Tin, Tout>{weights.desc.GetLengths()});
     weights.generate(GenConvData<Twei, Tout>{weights.desc.GetLengths()});
@@ -302,7 +302,7 @@ void RunSolverFwd(const miopen::solver::conv::ConvSolverBase& solv,
     // Verify
     //**********************************
 
-    auto ref_out = tensor<Tref>{output.desc.GetLengths()};
+    auto ref_out = tensor<Tref>{output.desc};
     if(use_cpu_ref)
     {
         cpu_convolution_forward(conv_desc.GetSpatialDimension(),
@@ -360,7 +360,7 @@ void RunSolverBwd(const miopen::solver::conv::ConvSolverBase& solv,
     const auto output_desc =
         conv_desc.GetForwardOutputTensor(input.desc, weights.desc, miopen_type<Tout>{});
 
-    auto output = tensor<Tout>{output_desc.GetLengths()};
+    auto output = tensor<Tout>{output_desc};
 
     output.generate(GenConvData<Tout, Tin>{weights.desc.GetLengths()});
     weights.generate(GenConvData<Twei, Tin>{weights.desc.GetLengths()});
@@ -417,9 +417,10 @@ void RunSolverBwd(const miopen::solver::conv::ConvSolverBase& solv,
     // Verify
     //**********************************
 
-    auto ref_in = tensor<Tref>{input.desc.GetLengths()};
+    auto ref_in = tensor<Tref>{input.desc};
     if(use_cpu_ref)
     {
+        std::cout << "cpu_convolution_backward_data" << std::endl; // TODO remove
         cpu_convolution_backward_data(conv_desc.GetSpatialDimension(),
                                       ref_in,
                                       weights,
@@ -475,7 +476,7 @@ void RunSolverWrw(const miopen::solver::conv::ConvSolverBase& solv,
         throw std::runtime_error("GenConvData do not support CHWNc filter layout");
     }
 
-    auto output = tensor<Tout>{output_desc.GetLengths()};
+    auto output = tensor<Tout>{output_desc};
 
     input.generate(GenConvData<Tin, Twei>{output_desc.GetLengths()});
     output.generate(GenConvData<Tout, Twei>{output_desc.GetLengths()});
@@ -532,9 +533,10 @@ void RunSolverWrw(const miopen::solver::conv::ConvSolverBase& solv,
     // Verify
     //**********************************
 
-    auto ref_weights = tensor<Tref>{weights.desc.GetLengths()};
+    auto ref_weights = tensor<Tref>{weights.desc};
     if(use_cpu_ref)
     {
+        std::cout << "cpu_convolution_backward_weight" << std::endl; // TODO remove
         cpu_convolution_backward_weight(conv_desc.GetSpatialDimension(),
                                         input,
                                         ref_weights,
@@ -592,7 +594,7 @@ void RunSolver(const miopen::solver::conv::ConvSolverBase& solver,
                miopen::conv::Direction direction,
                const ConvTestCase& conv_config,
                miopenConvAlgorithm_t algo,
-               bool use_cpu_ref = false)
+               bool use_cpu_ref)
 {
     if(conv_config.GetXDataType() == conv_config.GetWDataType() &&
        conv_config.GetWDataType() == conv_config.GetYDataType())
@@ -638,9 +640,10 @@ void UnitTestConvSolverBase::SetUpImpl(Gpu supported_devs)
 void UnitTestConvSolverBase::RunTestImpl(const miopen::solver::conv::ConvSolverBase& solver,
                                          miopen::conv::Direction direction,
                                          const ConvTestCase& conv_config,
-                                         miopenConvAlgorithm_t algo)
+                                         miopenConvAlgorithm_t algo,
+                                         bool use_cpu_ref)
 {
-    RunSolver(solver, direction, conv_config, algo);
+    RunSolver(solver, direction, conv_config, algo, use_cpu_ref);
 }
 
 //************************************************************************************
