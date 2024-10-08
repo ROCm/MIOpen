@@ -2818,7 +2818,8 @@ struct MIOPEN_INTERNALS_EXPORT ConvDirectNaiveConvFwd final : ConvSolver
         return GetSolverDbId<ConvDirectNaiveConvFwd>();
     }
 
-    bool IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
     bool IsDynamic() const override { return true; }
     /// Use very small fixed value enough to backup GEMM for cases when
     /// GEMM is disabled.
@@ -2826,7 +2827,8 @@ struct MIOPEN_INTERNALS_EXPORT ConvDirectNaiveConvFwd final : ConvSolver
     {
         return 0.01f;
     }
-    ConvSolution GetSolution(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    ConvSolution GetSolution(const ExecutionContext&,
+                             const miopen::conv::ProblemDescription&) const override;
 };
 
 struct MIOPEN_INTERNALS_EXPORT ConvDirectNaiveConvBwd final : ConvSolver
@@ -2836,7 +2838,8 @@ struct MIOPEN_INTERNALS_EXPORT ConvDirectNaiveConvBwd final : ConvSolver
         return GetSolverDbId<ConvDirectNaiveConvBwd>();
     }
 
-    bool IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
     bool IsDynamic() const override { return true; }
     /// Use very small fixed value enough to backup GEMM for cases when
     /// GEMM is disabled.
@@ -2844,7 +2847,8 @@ struct MIOPEN_INTERNALS_EXPORT ConvDirectNaiveConvBwd final : ConvSolver
     {
         return 0.01f;
     }
-    ConvSolution GetSolution(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    ConvSolution GetSolution(const ExecutionContext&,
+                             const miopen::conv::ProblemDescription&) const override;
 };
 
 struct MIOPEN_INTERNALS_EXPORT ConvDirectNaiveConvWrw final : ConvSolver
@@ -2854,7 +2858,8 @@ struct MIOPEN_INTERNALS_EXPORT ConvDirectNaiveConvWrw final : ConvSolver
         return GetSolverDbId<ConvDirectNaiveConvWrw>();
     }
 
-    bool IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
     bool IsDynamic() const override { return true; }
     /// Use very small fixed value enough to backup GEMM for cases when
     /// GEMM is disabled.
@@ -2862,7 +2867,8 @@ struct MIOPEN_INTERNALS_EXPORT ConvDirectNaiveConvWrw final : ConvSolver
     {
         return 0.01f;
     }
-    ConvSolution GetSolution(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    ConvSolution GetSolution(const ExecutionContext&,
+                             const miopen::conv::ProblemDescription&) const override;
 };
 
 struct GemmFwdBase : ConvSolver

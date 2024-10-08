@@ -101,12 +101,11 @@ ConvTestCase::ConvTestCase(std::vector<size_t>&& x_,
                            miopenDataType_t type_x_,
                            miopenDataType_t type_w_,
                            miopenDataType_t type_y_)
-    : ConvTestCase(TensorDescriptorParams{type_x_, std::move(x_)},
-                   TensorDescriptorParams{type_w_, std::move(w_)},
-                   type_y_,
-                   ConvolutionDescriptorParams{std::move(pad_),
-                                               std::move(stride_),
-                                               std::move(dilation_)})
+    : ConvTestCase(
+          TensorDescriptorParams{type_x_, std::move(x_)},
+          TensorDescriptorParams{type_w_, std::move(w_)},
+          type_y_,
+          ConvolutionDescriptorParams{std::move(pad_), std::move(stride_), std::move(dilation_)})
 {
 }
 
