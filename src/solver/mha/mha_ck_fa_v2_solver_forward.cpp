@@ -93,8 +93,9 @@ bool MhaCKFlashAttentionV2Forward::IsApplicable(
         miopen::tien<4>(descsFwd.oDesc.GetStrides());
 
     return !env::disabled(MIOPEN_DEBUG_FA_CK_V2_FWD) //
-           && H_q == H_k // Replace with H_q % H_k == 0 once we add support for MQA & GQA.
-           && D_q <= 256 //
+           && H_q == H_k   // Replace with H_q % H_k == 0 once we add support for MQA & GQA.
+           && D_q <= 256   //
+           && D_q % 8 == 0 //
            && descsFwd.kDesc.IsPacked()              //
            && descsFwd.qDesc.IsPacked()              //
            && descsFwd.vDesc.IsPacked()              //
@@ -146,8 +147,8 @@ MhaCKFlashAttentionV2Forward::GetSolution([[maybe_unused]] const ExecutionContex
     float scale_o = 1.0;
 
     fmha_fwd_traits fmha_traits;
-    fmha_traits.hdim_q        = H_q;
-    fmha_traits.hdim_v        = H_v;
+    fmha_traits.hdim_q        = D_q;
+    fmha_traits.hdim_v        = D_v;
     fmha_traits.data_type     = Convert(descsFwd.qDesc.GetType());
     fmha_traits.is_group_mode = false;
     // is_v_rowmajor relates to the layout of the V tensor. Row major means NHSD, and Col major
@@ -171,7 +172,7 @@ MhaCKFlashAttentionV2Forward::GetSolution([[maybe_unused]] const ExecutionContex
     fmha_args.stride_q             = S_stride_q;
     fmha_args.stride_k             = S_stride_k;
     fmha_args.stride_v             = S_stride_v;
-    fmha_args.stride_o             = S_stride_v;
+    fmha_args.stride_o             = S_stride_o;
     fmha_args.stride_bias          = 0;
     fmha_args.stride_randval       = S_q;
     fmha_args.nhead_stride_q       = H_stride_q;

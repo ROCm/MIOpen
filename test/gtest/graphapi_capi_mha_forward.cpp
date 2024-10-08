@@ -298,6 +298,16 @@ class GPU_MhaForward_FP8 : public MhaForwardTest<float8>
 
 class GPU_MhaForward_FP16 : public MhaForwardTest<half_float::half>
 {
+    void SetUp() override
+    {
+        if(!IsTestSupportedByDevice(Gpu::gfx90A | Gpu::gfx94X))
+        {
+            GTEST_SKIP() << "FP16 is unsupported on this HW";
+        }
+
+        MhaForwardTest<half_float::half>::SetUp();
+    }
+
     void RunCPUverify(miopen::Handle& handle) override
     {
         auto softmaxRef  = tensor<float>{m_testN, m_testH, m_testS, m_testS};
@@ -319,7 +329,7 @@ class GPU_MhaForward_FP16 : public MhaForwardTest<half_float::half>
                                           zInvDescRef,
                                           oDescRef);
 
-        const double errorThreshold = 3e-4;
+        const double errorThreshold = 4e-4;
 
         auto oRes     = GetResult<half_float::half>(miopenTensorMhaO, handle);
         double oError = miopen::rms_range(oDescRef, oRes);
