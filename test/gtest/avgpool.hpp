@@ -264,22 +264,22 @@ protected:
                                       count_include_pad,
                                       divisor_override);
         }
-        status = miopen::AvgPoolForward(handle,
-                                        input.desc,
-                                        input_dev.get(),
-                                        output.desc,
-                                        output_dev.get(),
-                                        ksize.GetSize() == 3 ? ksize[0] : 1,
-                                        ksize.GetSize() == 3 ? ksize[1] : ksize[0],
-                                        ksize.GetSize() == 3 ? ksize[2] : ksize[1],
-                                        stride.GetSize() == 3 ? stride[0] : 1,
-                                        stride.GetSize() == 3 ? stride[1] : stride[0],
-                                        stride.GetSize() == 3 ? stride[2] : stride[1],
-                                        padding.GetSize() == 3 ? padding[0] : 1,
-                                        padding.GetSize() == 3 ? padding[1] : padding[0],
-                                        padding.GetSize() == 3 ? padding[2] : padding[1],
-                                        count_include_pad,
-                                        divisor_override);
+        status = miopen::avgpool::AvgPoolForward(handle,
+                                                 input.desc,
+                                                 input_dev.get(),
+                                                 output.desc,
+                                                 output_dev.get(),
+                                                 ksize.GetSize() == 3 ? ksize[0] : 1,
+                                                 ksize.GetSize() == 3 ? ksize[1] : ksize[0],
+                                                 ksize.GetSize() == 3 ? ksize[2] : ksize[1],
+                                                 stride.GetSize() == 3 ? stride[0] : 1,
+                                                 stride.GetSize() == 3 ? stride[1] : stride[0],
+                                                 stride.GetSize() == 3 ? stride[2] : stride[1],
+                                                 padding.GetSize() == 3 ? padding[0] : 1,
+                                                 padding.GetSize() == 3 ? padding[1] : padding[0],
+                                                 padding.GetSize() == 3 ? padding[2] : padding[1],
+                                                 count_include_pad,
+                                                 divisor_override);
         fflush(stdout);
         ASSERT_EQ(status, miopenStatusSuccess);
 
@@ -431,22 +431,22 @@ protected:
                                        count_include_pad,
                                        static_cast<long>(divisor_override));
         }
-        status = miopen::AvgPoolBackward(handle,
-                                         output_grad.desc,
-                                         output_grad_dev.get(),
-                                         input_grad.desc,
-                                         input_grad_dev.get(),
-                                         ksize.GetSize() == 3 ? ksize[0] : 1,
-                                         ksize.GetSize() == 3 ? ksize[1] : ksize[0],
-                                         ksize.GetSize() == 3 ? ksize[2] : ksize[1],
-                                         stride.GetSize() == 3 ? stride[0] : 1,
-                                         stride.GetSize() == 3 ? stride[1] : stride[0],
-                                         stride.GetSize() == 3 ? stride[2] : stride[1],
-                                         padding.GetSize() == 3 ? padding[0] : 1,
-                                         padding.GetSize() == 3 ? padding[1] : padding[0],
-                                         padding.GetSize() == 3 ? padding[2] : padding[1],
-                                         count_include_pad,
-                                         divisor_override);
+        status = miopen::avgpool::AvgPoolBackward(handle,
+                                                  output_grad.desc,
+                                                  output_grad_dev.get(),
+                                                  input_grad.desc,
+                                                  input_grad_dev.get(),
+                                                  ksize.GetSize() == 3 ? ksize[0] : 1,
+                                                  ksize.GetSize() == 3 ? ksize[1] : ksize[0],
+                                                  ksize.GetSize() == 3 ? ksize[2] : ksize[1],
+                                                  stride.GetSize() == 3 ? stride[0] : 1,
+                                                  stride.GetSize() == 3 ? stride[1] : stride[0],
+                                                  stride.GetSize() == 3 ? stride[2] : stride[1],
+                                                  padding.GetSize() == 3 ? padding[0] : 1,
+                                                  padding.GetSize() == 3 ? padding[1] : padding[0],
+                                                  padding.GetSize() == 3 ? padding[2] : padding[1],
+                                                  count_include_pad,
+                                                  divisor_override);
 
         ASSERT_EQ(status, miopenStatusSuccess);
 

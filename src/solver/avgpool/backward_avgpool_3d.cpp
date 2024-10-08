@@ -24,10 +24,10 @@
  *
  *******************************************************************************/
 
-#include "miopen/conv_solution.hpp"
-#include "miopen/execution_context.hpp"
-#include "miopen/invoke_params.hpp"
-#include "miopen/tensor_view_utils.hpp"
+#include <miopen/conv_solution.hpp>
+#include <miopen/execution_context.hpp>
+#include <miopen/invoke_params.hpp>
+#include <miopen/tensor_view_utils.hpp>
 #include <miopen/avgpool/solvers.hpp>
 
 #include <miopen/avgpool/invoke_params.hpp>
@@ -87,10 +87,10 @@ bool AvgPoolBackward3d::IsApplicable(const ExecutionContext&,
     {
         return false;
     }
-    if(!IsOverRocmBwd3d(problem))
-    {
-        return false;
-    }
+    // if(!IsOverRocmBwd3d(problem))
+    // {
+    //     return false;
+    // }
     return true;
 }
 
@@ -104,7 +104,7 @@ AvgPoolBackward3d::GetSolution(const ExecutionContext& context,
     auto input_dtype  = miopen::GetDataType(problem.GetOutputGradDesc().GetType());
     auto output_dtype = miopen::GetDataType(problem.GetInputGradDesc().GetType());
     auto dtype        = problem.GetInputGradDesc().GetType();
-    size_t N_total    = problem.GetNtotal();
+    uint64_t N_total  = problem.GetNtotal();
 
     auto build_params = KernelBuildParameters{
         {"MIOPEN_USE_FP16", static_cast<int>(dtype == miopenHalf)},
@@ -126,14 +126,14 @@ AvgPoolBackward3d::GetSolution(const ExecutionContext& context,
             auto input_grad_tv  = get_inner_expanded_tv<5>(deref(params.inputGradDesc));
             auto output_grad_tv = get_inner_expanded_tv<5>(deref(params.outputGradDesc));
 
-            auto N  = deref(params.inputGradDesc).GetLengths()[0];
-            auto C  = deref(params.inputGradDesc).GetLengths()[1];
-            auto D  = deref(params.inputGradDesc).GetLengths()[2];
-            auto H  = deref(params.inputGradDesc).GetLengths()[3];
-            auto W  = deref(params.inputGradDesc).GetLengths()[4];
-            auto OD = deref(params.outputGradDesc).GetLengths()[2];
-            auto OH = deref(params.outputGradDesc).GetLengths()[3];
-            auto OW = deref(params.outputGradDesc).GetLengths()[4];
+            int64_t N  = deref(params.inputGradDesc).GetLengths()[0];
+            int64_t C  = deref(params.inputGradDesc).GetLengths()[1];
+            int64_t D  = deref(params.inputGradDesc).GetLengths()[2];
+            int64_t H  = deref(params.inputGradDesc).GetLengths()[3];
+            int64_t W  = deref(params.inputGradDesc).GetLengths()[4];
+            int64_t OD = deref(params.outputGradDesc).GetLengths()[2];
+            int64_t OH = deref(params.outputGradDesc).GetLengths()[3];
+            int64_t OW = deref(params.outputGradDesc).GetLengths()[4];
 
             kernel(params.output_grad,
                    params.input_grad,

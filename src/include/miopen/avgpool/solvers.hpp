@@ -26,17 +26,19 @@
 
 #pragma once
 
-#include "miopen/conv_solution.hpp"
-#include "miopen/execution_context.hpp"
+#include <miopen/conv_solution.hpp>
+#include <miopen/execution_context.hpp>
 #include <miopen/solver.hpp>
 #include <miopen/avgpool/problem_description.hpp>
-#include "miopen/kernel_build_params.hpp"
-#include "miopen/kernel_info.hpp"
-#include "miopen/mlo_internal.hpp"
+#include <miopen/kernel_build_params.hpp>
+#include <miopen/kernel_info.hpp>
+#include <miopen/mlo_internal.hpp>
 
 namespace miopen {
 
 namespace solver {
+
+namespace avgpool {
 
 const auto make_hip_kernel = [](std::vector<size_t> localsize,
                                 std::vector<size_t> gridsize,
@@ -52,8 +54,6 @@ const auto make_hip_kernel = [](std::vector<size_t> localsize,
     return KernelInfo{
         build_params.GenerateFor(kbp::HIP{}), localsize, gridsize, kernel_file, kernel_name};
 };
-
-namespace avgpool {
 
 using AvgPoolForward =
     NonTunableSolverBase<ExecutionContext, miopen::avgpool::FwdProblemDescription>;

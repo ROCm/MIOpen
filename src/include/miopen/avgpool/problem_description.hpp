@@ -63,6 +63,8 @@ struct FwdProblemDescription : ProblemDescription
           outputDesc(outputDesc_)
     {
         IsValidLength();
+        IsSameType();
+        IsValidDims();
     }
 
     auto GetInputDesc() const { return inputDesc; }
@@ -78,6 +80,29 @@ struct FwdProblemDescription : ProblemDescription
         {
             MIOPEN_THROW(miopenStatusBadParm,
                          "AvgPool: Input and output tensor sizes do not match.");
+        }
+
+        return true;
+    }
+
+    bool IsValidDims() const
+    {
+        if(inputDesc.GetLengths().size() > 5 || inputDesc.GetLengths().size() < 4)
+        {
+            MIOPEN_THROW(miopenStatusBadParm, "AvgPool: Only 4D and 5D tensors are supported.");
+        }
+
+        return true;
+    }
+
+    bool IsAllContiguous() const { return inputDesc.IsContiguous() && outputDesc.IsContiguous(); }
+
+    bool IsSameType() const
+    {
+        if(inputDesc.GetType() != outputDesc.GetType())
+        {
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "AvgPool: Input and output tensor types do not match.");
         }
 
         return true;
@@ -101,6 +126,8 @@ struct BwdProblemDescription : ProblemDescription
           inputGradDesc(inputGradDesc_)
     {
         IsValidLength();
+        IsSameType();
+        IsValidDims();
     }
 
     auto GetOutputGradDesc() const { return outputGradDesc; }
@@ -116,6 +143,32 @@ struct BwdProblemDescription : ProblemDescription
         {
             MIOPEN_THROW(miopenStatusBadParm,
                          "AvgPool: Input grad and output grad tensor sizes do not match.");
+        }
+
+        return true;
+    }
+
+    bool IsValidDims() const
+    {
+        if(inputGradDesc.GetLengths().size() > 5 || inputGradDesc.GetLengths().size() < 4)
+        {
+            MIOPEN_THROW(miopenStatusBadParm, "AvgPool: Only 4D and 5D tensors are supported.");
+        }
+
+        return true;
+    }
+
+    bool IsAllContiguous() const
+    {
+        return inputGradDesc.IsContiguous() && outputGradDesc.IsContiguous();
+    }
+
+    bool IsSameType() const
+    {
+        if(inputGradDesc.GetType() != outputGradDesc.GetType())
+        {
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "AvgPool: Input grad and output grad tensor types do not match.");
         }
 
         return true;

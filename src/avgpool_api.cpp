@@ -115,22 +115,22 @@ extern "C" miopenStatus_t miopenAvgPoolForward(miopenHandle_t handle,
 
     LogCmdAvgPool(inputDesc, outputDesc, count_include_pad, divisor_override, true);
     return miopen::try_([&] {
-        miopen::AvgPoolForward(miopen::deref(handle),
-                               miopen::deref(inputDesc),
-                               DataCast(input),
-                               miopen::deref(outputDesc),
-                               DataCast(output),
-                               KD,
-                               KH,
-                               KW,
-                               SD,
-                               SH,
-                               SW,
-                               PD,
-                               PH,
-                               PW,
-                               count_include_pad,
-                               divisor_override);
+        miopen::avgpool::AvgPoolForward(miopen::deref(handle),
+                                        miopen::deref(inputDesc),
+                                        DataCast(input),
+                                        miopen::deref(outputDesc),
+                                        DataCast(output),
+                                        KD,
+                                        KH,
+                                        KW,
+                                        SD,
+                                        SH,
+                                        SW,
+                                        PD,
+                                        PH,
+                                        PW,
+                                        count_include_pad,
+                                        divisor_override);
     });
 }
 
@@ -170,21 +170,21 @@ extern "C" miopenStatus_t miopenAvgPoolBackward(miopenHandle_t handle,
 
     LogCmdAvgPool(inputGradDesc, outputGradDesc, count_include_pad, divisor_override, false);
     return miopen::try_([&] {
-        miopen::AvgPoolBackward(miopen::deref(handle),
-                                miopen::deref(outputGradDesc),
-                                DataCast(output_grad),
-                                miopen::deref(inputGradDesc),
-                                DataCast(input_grad),
-                                KD,
-                                KH,
-                                KW,
-                                SD,
-                                SH,
-                                SW,
-                                PD,
-                                PH,
-                                PW,
-                                count_include_pad,
-                                divisor_override);
+        miopen::avgpool::AvgPoolBackward(miopen::deref(handle),
+                                         miopen::deref(outputGradDesc),
+                                         DataCast(output_grad),
+                                         miopen::deref(inputGradDesc),
+                                         DataCast(input_grad),
+                                         KD,
+                                         KH,
+                                         KW,
+                                         SD,
+                                         SH,
+                                         SW,
+                                         PD,
+                                         PH,
+                                         PW,
+                                         count_include_pad,
+                                         divisor_override);
     });
 }

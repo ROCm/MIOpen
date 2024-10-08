@@ -23,11 +23,11 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef GUARD_CPU_AVGPOOL_HPP
-#define GUARD_CPU_AVGPOOL_HPP
+#pragma once
 
 #include "tensor_holder.hpp"
 #include <miopen/tensor_view_utils.hpp>
+#include "ford.hpp"
 
 template <class T>
 void cpu_avgpool_forward_2d(tensor<T> input,
@@ -50,8 +50,7 @@ void cpu_avgpool_forward_2d(tensor<T> input,
     auto input_tv  = miopen::get_inner_expanded_tv<4>(input.desc);
     auto output_tv = miopen::get_inner_expanded_tv<4>(output.desc);
 
-    for(long gid = 0; gid < numel; gid++)
-    {
+    par_ford(numel)([&](long gid) {
         long ncoh = gid / OW, ow = gid % OW;
         long nc = ncoh / OH, oh = ncoh % OH;
         long n = nc / C, c = nc % C;
@@ -113,7 +112,7 @@ void cpu_avgpool_forward_2d(tensor<T> input,
         float val = m / divide_factor;
 
         output[output_tv.get_tensor_view_idx({n, c, oh, ow})] = static_cast<T>(val);
-    }
+    });
 }
 
 template <class T>
@@ -139,8 +138,7 @@ void cpu_avgpool_forward_3d(tensor<T> input,
     auto input_tv  = miopen::get_inner_expanded_tv<5>(input.desc);
     auto output_tv = miopen::get_inner_expanded_tv<5>(output.desc);
 
-    for(long gid = 0; gid < numel; gid++)
-    {
+    par_ford(numel)([&](long gid) {
         long ncodoh = gid / OW, ow = gid % OW;
         long ncod = ncodoh / OH, oh = ncodoh % OH;
         long nc = ncod / OD, od = ncod % OD;
@@ -212,7 +210,7 @@ void cpu_avgpool_forward_3d(tensor<T> input,
         }
         float val                                                 = sum / divide_factor;
         output[output_tv.get_tensor_view_idx({n, c, od, oh, ow})] = static_cast<T>(val);
-    }
+    });
 }
 
 template <class T>
@@ -236,8 +234,7 @@ void cpu_avgpool_backward_2d(tensor<T> output_grad,
     auto output_grad_tv = miopen::get_inner_expanded_tv<4>(output_grad.desc);
     auto input_grad_tv  = miopen::get_inner_expanded_tv<4>(input_grad.desc);
 
-    for(long gid = 0; gid < numel; gid++)
-    {
+    par_ford(numel)([&](long gid) {
         long nch = gid / W, w = gid % W;
         long nc = nch / H, h = nch % H;
         long n = nc / C, c = nc % C;
@@ -304,7 +301,7 @@ void cpu_avgpool_backward_2d(tensor<T> output_grad,
             }
         }
         input_grad[input_grad_tv.get_tensor_view_idx({n, c, h, w})] = static_cast<T>(grad);
-    }
+    });
 }
 
 template <class T>
@@ -330,8 +327,7 @@ void cpu_avgpool_backward_3d(tensor<T> output_grad,
     auto output_grad_tv = miopen::get_inner_expanded_tv<5>(output_grad.desc);
     auto input_grad_tv  = miopen::get_inner_expanded_tv<5>(input_grad.desc);
 
-    for(long gid = 0; gid < numel; gid++)
-    {
+    par_ford(numel)([&](long gid) {
         long ncdh = gid / W, w = gid % W;
         long ncd = ncdh / H, h = ncdh % H;
         long nc = ncd / D, d = ncd % D;
@@ -415,7 +411,5 @@ void cpu_avgpool_backward_3d(tensor<T> output_grad,
             }
         }
         input_grad[input_grad_tv.get_tensor_view_idx({n, c, d, h, w})] = static_cast<T>(grad);
-    }
+    });
 }
-
-#endif

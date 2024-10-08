@@ -24,91 +24,30 @@
  *
  *******************************************************************************/
 #include "avgpool.hpp"
-#include <miopen/env.hpp>
-
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
-
-namespace avgpool {
-
-std::string GetFloatArg()
-{
-    const auto& tmp = env::value(MIOPEN_TEST_FLOAT_ARG);
-    if(tmp.empty())
-    {
-        return "";
-    }
-    return tmp;
-}
-
-struct GPU_Avgpool_fwd_FP32 : AvgPoolTestFwd<float>
-{
-};
-
-struct GPU_Avgpool_fwd_FP16 : AvgPoolTestFwd<half>
-{
-};
-
-struct GPU_Avgpool_fwd_BFP16 : AvgPoolTestFwd<bfloat16>
-{
-};
-
-struct GPU_Avgpool_bwd_FP32 : AvgPoolTestBwd<float>
-{
-};
-
-struct GPU_Avgpool_bwd_FP16 : AvgPoolTestBwd<half>
-{
-};
-
-struct GPU_Avgpool_bwd_BFP16 : AvgPoolTestBwd<bfloat16>
-{
-};
-
-} // namespace avgpool
-using namespace avgpool;
+#include "gtest/gtest.h"
+using float16 = half_float::half;
 
 // FORWARD TEST
+using GPU_Avgpool_fwd_FP32  = AvgPoolTestFwd<float>;
+using GPU_Avgpool_fwd_FP16  = AvgPoolTestFwd<float16>;
+using GPU_Avgpool_fwd_BFP16 = AvgPoolTestFwd<bfloat16>;
+
 TEST_P(GPU_Avgpool_fwd_FP32, AvgPoolTestFwd)
 {
-    if(!MIOPEN_TEST_ALL ||
-       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--float"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 };
 
 TEST_P(GPU_Avgpool_fwd_FP16, AvgPoolTestFwd)
 {
-    if(!MIOPEN_TEST_ALL ||
-       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--half"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 };
 
 TEST_P(GPU_Avgpool_fwd_BFP16, AvgPoolTestFwd)
 {
-    if(!MIOPEN_TEST_ALL ||
-       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--bfloat16"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 };
 
 INSTANTIATE_TEST_SUITE_P(Smoke,
@@ -122,46 +61,26 @@ INSTANTIATE_TEST_SUITE_P(Smoke,
                          testing::ValuesIn(AvgPoolTestConfigsFwdBfp16()));
 
 // BACKWARD TEST
+using GPU_Avgpool_bwd_FP32  = AvgPoolTestBwd<float>;
+using GPU_Avgpool_bwd_FP16  = AvgPoolTestBwd<float16>;
+using GPU_Avgpool_bwd_BFP16 = AvgPoolTestBwd<bfloat16>;
+
 TEST_P(GPU_Avgpool_bwd_FP32, AvgPoolTestBwd)
 {
-    if(!MIOPEN_TEST_ALL ||
-       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--float"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 };
 
 TEST_P(GPU_Avgpool_bwd_FP16, AvgPoolTestBwd)
 {
-    if(!MIOPEN_TEST_ALL ||
-       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--half"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 };
 
 TEST_P(GPU_Avgpool_bwd_BFP16, AvgPoolTestBwd)
 {
-    if(!MIOPEN_TEST_ALL ||
-       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--bfloat16"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 };
 
 INSTANTIATE_TEST_SUITE_P(Smoke,

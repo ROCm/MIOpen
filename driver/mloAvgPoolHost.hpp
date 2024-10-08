@@ -23,11 +23,11 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef MLO_AVGPOOLHOST_H_
-#define MLO_AVGPOOLHOST_H_
+#pragma once
 
 #include <miopen/tensor.hpp>
 #include <miopen/tensor_view_utils.hpp>
+#include <../test/ford.hpp>
 
 template <typename Tgpu, typename Tcheck>
 int32_t mloAvgPoolForward2dRunHost(const miopenTensorDescriptor_t inputDesc,
@@ -52,8 +52,7 @@ int32_t mloAvgPoolForward2dRunHost(const miopenTensorDescriptor_t inputDesc,
     auto input_tv  = miopen::get_inner_expanded_tv<4>(miopen::deref(inputDesc));
     auto output_tv = miopen::get_inner_expanded_tv<4>(miopen::deref(outputDesc));
 
-    for(int64_t gid = 0; gid < numel; gid++)
-    {
+    par_ford(numel)([&](int64_t gid) {
         int64_t ncoh = gid / OW, ow = gid % OW;
         int64_t nc = ncoh / OH, oh = ncoh % OH;
         int64_t n = nc / C, c = nc % C;
@@ -63,9 +62,6 @@ int32_t mloAvgPoolForward2dRunHost(const miopenTensorDescriptor_t inputDesc,
         int64_t sw = stride[1];
         int64_t ph = padding[0];
         int64_t pw = padding[1];
-
-        if(n >= N)
-            return 0;
 
         float m = 0;
         for(int64_t r = 0; r < R; ++r)
@@ -115,8 +111,8 @@ int32_t mloAvgPoolForward2dRunHost(const miopenTensorDescriptor_t inputDesc,
         float val = m / divide_factor;
 
         output[output_tv.get_tensor_view_idx({n, c, oh, ow})] = static_cast<Tcheck>(val);
-    }
-    return 0;
+    });
+    return miopenStatusSuccess;
 }
 
 template <typename Tgpu, typename Tcheck>
@@ -144,8 +140,7 @@ int32_t mloAvgPoolForward3dRunHost(const miopenTensorDescriptor_t inputDesc,
     auto input_tv  = miopen::get_inner_expanded_tv<5>(miopen::deref(inputDesc));
     auto output_tv = miopen::get_inner_expanded_tv<5>(miopen::deref(outputDesc));
 
-    for(int64_t gid = 0; gid < numel; gid++)
-    {
+    par_ford(numel)([&](int64_t gid) {
         int64_t ncodoh = gid / OW, ow = gid % OW;
         int64_t ncod = ncodoh / OH, oh = ncodoh % OH;
         int64_t nc = ncod / OD, od = ncod % OD;
@@ -160,8 +155,6 @@ int32_t mloAvgPoolForward3dRunHost(const miopenTensorDescriptor_t inputDesc,
         int64_t ph = padding[1];
         int64_t pw = padding[2];
 
-        if(n >= N)
-            return 0;
         float sum = 0;
         for(int64_t kd = 0; kd < KD; ++kd)
         {
@@ -217,8 +210,8 @@ int32_t mloAvgPoolForward3dRunHost(const miopenTensorDescriptor_t inputDesc,
         }
         float val                                                 = sum / divide_factor;
         output[output_tv.get_tensor_view_idx({n, c, od, oh, ow})] = static_cast<Tcheck>(val);
-    }
-    return 0;
+    });
+    return miopenStatusSuccess;
 }
 
 template <typename Tgpu, typename Tcheck>
@@ -244,8 +237,7 @@ int32_t mloAvgPoolBackward2dRunHost(const miopenTensorDescriptor_t outputGradDes
     auto output_grad_tv = miopen::get_inner_expanded_tv<4>(miopen::deref(outputGradDesc));
     auto input_grad_tv  = miopen::get_inner_expanded_tv<4>(miopen::deref(inputGradDesc));
 
-    for(int64_t gid = 0; gid < numel; gid++)
-    {
+    par_ford(numel)([&](int64_t gid) {
         int64_t nch = gid / W, w = gid % W;
         int64_t nc = nch / H, h = nch % H;
         int64_t n = nc / C, c = nc % C;
@@ -255,9 +247,6 @@ int32_t mloAvgPoolBackward2dRunHost(const miopenTensorDescriptor_t outputGradDes
         int64_t sw = stride[1];
         int64_t ph = padding[0];
         int64_t pw = padding[1];
-
-        if(n >= N)
-            return 0;
 
         float grad = 0;
         for(int64_t r = 0; r < R; ++r)
@@ -312,8 +301,8 @@ int32_t mloAvgPoolBackward2dRunHost(const miopenTensorDescriptor_t outputGradDes
             }
         }
         input_grad[input_grad_tv.get_tensor_view_idx({n, c, h, w})] = static_cast<Tcheck>(grad);
-    }
-    return 0;
+    });
+    return miopenStatusSuccess;
 }
 
 template <typename Tgpu, typename Tcheck>
@@ -341,8 +330,7 @@ int32_t mloAvgPoolBackward3dRunHost(const miopenTensorDescriptor_t outputGradDes
     auto output_grad_tv = miopen::get_inner_expanded_tv<5>(miopen::deref(outputGradDesc));
     auto input_grad_tv  = miopen::get_inner_expanded_tv<5>(miopen::deref(inputGradDesc));
 
-    for(int64_t gid = 0; gid < numel; gid++)
-    {
+    par_ford(numel)([&](int64_t gid) {
         int64_t ncdh = gid / W, w = gid % W;
         int64_t ncd = ncdh / H, h = ncdh % H;
         int64_t nc = ncd / D, d = ncd % D;
@@ -356,9 +344,6 @@ int32_t mloAvgPoolBackward3dRunHost(const miopenTensorDescriptor_t outputGradDes
         int64_t pd = padding[0];
         int64_t ph = padding[1];
         int64_t pw = padding[2];
-
-        if(n >= N)
-            return 0;
 
         float grad = 0;
         for(int64_t kd = 0; kd < KD; ++kd)
@@ -426,8 +411,6 @@ int32_t mloAvgPoolBackward3dRunHost(const miopenTensorDescriptor_t outputGradDes
             }
         }
         input_grad[input_grad_tv.get_tensor_view_idx({n, c, d, h, w})] = static_cast<Tcheck>(grad);
-    }
-    return 0;
+    });
+    return miopenStatusSuccess;
 }
-
-#endif // MLO_AVGPOOLHOST_H_

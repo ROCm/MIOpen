@@ -23,16 +23,15 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <miopen/miopen.h>
-#ifndef MIOPEN_AVGPOOL_HPP_
-#define MIOPEN_AVGPOOL_HPP_
-
+#pragma once
 #include <miopen/common.hpp>
 
 namespace miopen {
 
 struct Handle;
 struct TensorDescriptor;
+
+namespace avgpool {
 
 MIOPEN_INTERNALS_EXPORT miopenStatus_t AvgPoolForward(Handle& handle,
                                                       const TensorDescriptor& inputDesc,
@@ -67,5 +66,6 @@ MIOPEN_INTERNALS_EXPORT miopenStatus_t AvgPoolBackward(Handle& handle,
                                                        int64_t PW,
                                                        bool count_include_pad,
                                                        int64_t divisor_override);
+} // namespace avgpool
+
 } // namespace miopen
-#endif // _MIOPEN_AVGPOOL_HPP_
