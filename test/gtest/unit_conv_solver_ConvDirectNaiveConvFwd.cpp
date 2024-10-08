@@ -49,6 +49,18 @@ auto GetConvTestCasesFull(miopenDataType_t datatype)
 
     auto cases = std::vector<TestCase>{};
 
+    if(datatype == miopenInt8)
+    {
+        auto type_x = datatype;
+        auto type_w = datatype;
+        auto type_y = miopenInt32;
+
+        // clang-format off
+        // Regression test for int8, issue unknown
+        cases.emplace_back(TestCase{{256, 1024, 14, 14}, {256, 1024, 1, 1}, {0, 0}, {1, 1}, {1, 1}, type_x, type_w, type_y});
+        // clang-format on
+    }
+
     if(datatype == miopenHalf || datatype == miopenFloat)
     {
         // clang-format off
@@ -121,6 +133,12 @@ INSTANTIATE_TEST_SUITE_P(Smoke,
                                           testing::Values(GetConvTestCases(miopenFloat)[0])));
 
 // Full tests
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_UnitTestConvSolverFwd_I8,
+                         testing::Combine(testing::Values(GetSupportedDevices()),
+                                          testing::Values(miopenConvolutionAlgoDirect),
+                                          testing::ValuesIn(GetConvTestCasesFull(miopenInt8))));
+
 INSTANTIATE_TEST_SUITE_P(Full,
                          GPU_UnitTestConvSolverFwd_FP16,
                          testing::Combine(testing::Values(GetSupportedDevices()),
