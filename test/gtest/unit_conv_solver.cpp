@@ -419,7 +419,6 @@ void RunSolverBwd(const miopen::solver::conv::ConvSolverBase& solv,
     auto ref_in = tensor<Tref>{input.desc};
     if(use_cpu_ref)
     {
-        std::cout << "cpu_convolution_backward_data" << std::endl; // TODO remove
         cpu_convolution_backward_data(conv_desc.GetSpatialDimension(),
                                       ref_in,
                                       weights,
@@ -535,7 +534,6 @@ void RunSolverWrw(const miopen::solver::conv::ConvSolverBase& solv,
     auto ref_weights = tensor<Tref>{weights.desc};
     if(use_cpu_ref)
     {
-        std::cout << "cpu_convolution_backward_weight" << std::endl; // TODO remove
         cpu_convolution_backward_weight(conv_desc.GetSpatialDimension(),
                                         input,
                                         ref_weights,
