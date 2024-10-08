@@ -7808,13 +7808,13 @@ MIOPEN_EXPORT miopenStatus_t miopenPReLUBackward(miopenHandle_t handle,
  * @param output                   Data tensor output (output)
  * @param KD                       Kernel size in dimension D  (input)
  * @param KH                       Kernel size in dimension H (input)
- * @param KW                       Kernel size in dimension K (input)
+ * @param KW                       Kernel size in dimension W (input)
  * @param SD                       Stride size in dimension D (input)
  * @param SH                       Stride size in dimension H (input)
- * @param SW                       Stride size in dimension K (input)
+ * @param SW                       Stride size in dimension W (input)
  * @param PD                       Padding size in dimension D (input)
  * @param PH                       Padding size in dimension H (input)
- * @param PW                       Padding size in dimension K (input)
+ * @param PW                       Padding size in dimension W (input)
  * @param count_include_pad        When True, will include the zero-padding in the averaging
  * calculation (input)
  * @param divisor_override         If non-zero, will use this value as the divisor, otherwise will
@@ -7847,13 +7847,13 @@ MIOPEN_EXPORT miopenStatus_t miopenAvgPoolForward(miopenHandle_t handle,
  * @param input_grad               Data tensor input grad (output)
  * @param KD                       Kernel size in dimension D  (input)
  * @param KH                       Kernel size in dimension H (input)
- * @param KW                       Kernel size in dimension K (input)
+ * @param KW                       Kernel size in dimension W (input)
  * @param SD                       Stride size in dimension D (input)
  * @param SH                       Stride size in dimension H (input)
- * @param SW                       Stride size in dimension K (input)
+ * @param SW                       Stride size in dimension W (input)
  * @param PD                       Padding size in dimension D (input)
  * @param PH                       Padding size in dimension H (input)
- * @param PW                       Padding size in dimension K (input)
+ * @param PW                       Padding size in dimension W (input)
  * @param count_include_pad        When True, will include the zero-padding in the averaging
  * calculation (input)
  * @param divisor_override         If non-zero, will use this value as the divisor, otherwise will
