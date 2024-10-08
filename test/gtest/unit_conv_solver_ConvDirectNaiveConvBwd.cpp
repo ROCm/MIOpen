@@ -39,6 +39,23 @@ auto GetConvTestCases(miopenDataType_t datatype)
     };
 }
 
+auto GetConvTestCasesFull(miopenDataType_t datatype)
+{
+    using TestCase = miopen::unit_tests::ConvTestCase;
+
+    auto cases = std::vector<TestCase>{};
+
+    if(datatype == miopenHalf)
+    {
+        // clang-format off
+        // Regression test for https://github.com/ROCm/MIOpen/issues/1576
+        cases.emplace_back(TestCase{{256, 1024, 14, 14}, {256, 1024, 1, 1}, {0, 0}, {1, 1}, {1, 1}, datatype});
+        // clang-format on
+    }
+
+    return cases;
+}
+
 Gpu GetSupportedDevices() { return Gpu::All; }
 
 } // namespace
@@ -87,3 +104,10 @@ INSTANTIATE_TEST_SUITE_P(Smoke,
                          CPU_UnitTestConvSolverDevApplicabilityBwd_NONE,
                          testing::Combine(testing::Values(GetSupportedDevices()),
                                           testing::Values(GetConvTestCases(miopenFloat)[0])));
+
+// Full tests
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_UnitTestConvSolverBwd_FP16,
+                         testing::Combine(testing::Values(GetSupportedDevices()),
+                                          testing::Values(miopenConvolutionAlgoDirect),
+                                          testing::ValuesIn(GetConvTestCasesFull(miopenHalf))));
