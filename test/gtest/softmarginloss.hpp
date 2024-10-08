@@ -65,7 +65,6 @@ inline std::vector<SoftMarginLossTestCase> SoftMarginLossTestConfigs(bool is_fwd
           {1632000, 544000, 6800, 85}, {408000, 136000, 3400, 85}, {85, 1}, {102000, 34000, 1700, 85}, {4, 1}, {4, 1}, {4, 1}, {1}, {50, 1}, {500, 10, 1}, {2500, 100, 25, 1},
           {360, 120, 30, 6, 1}, {3}, {1, 200}, {505, 1}, {1, 20, 1000}, {7575, 15, 1}, {1, 16, 4, 400}, {5859, 217, 31, 1}, {360, 120, 6, 24, 1}, {5760, 960, 120, 12, 1} };
     std::vector<SoftMarginLossTestCase> test_config;
-    // TODO: remove test configs underflow or overflow
     for (int i = 0; i < dim_config.size(); i++) test_config.push_back({dim_config[i], stride_config[i], MIOPEN_LOSS_REDUCTION_NONE});
     for (int i = 0; i < dim_config.size(); i++) {
         // Please note that with backward fp16 mean reduction, if input tensor is too big the result will be wrong because of fp16 underflow
