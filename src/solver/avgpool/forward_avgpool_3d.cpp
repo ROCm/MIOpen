@@ -45,33 +45,21 @@ namespace avgpool {
 
 bool IsOverRocmFwd3d(const miopen::avgpool::FwdProblemDescription& problem)
 {
-    auto dtype      = problem.GetOutputDesc().GetType();
-    auto in_nelems  = problem.GetInputDesc().GetElementSize();
-    auto out_nelems = problem.GetOutputDesc().GetElementSize();
-    auto mul_nc = problem.GetOutputDesc().GetLengths()[0] * problem.GetOutputDesc().GetLengths()[1];
-    auto N      = problem.GetOutputDesc().GetLengths()[0];
-    auto in_over_out = static_cast<float>(in_nelems) / out_nelems;
-
-    if(dtype == miopenFloat)
+    if(problem.IsAllContiguous())
     {
-        if(in_over_out < 2 || in_over_out >= 262144 || (out_nelems >= 10125000 && N > 4))
-        {
-            return true;
-        }
+        return true;
     }
-    else if(dtype == miopenHalf)
+    else
     {
-        if(in_nelems >= 201326592 || (in_over_out < 2 && mul_nc < 8192))
-        {
-            return true;
-        }
-    }
-    else if(dtype == miopenBFloat16)
-    {
-        if((out_nelems >= 5971968 && in_over_out < 2) || out_nelems >= 74088000)
-        {
-            return true;
-        }
+        // TODO: Add more conditions
+        auto dtype      = problem.GetOutputDesc().GetType();
+        auto in_nelems  = problem.GetInputDesc().GetElementSize();
+        auto out_nelems = problem.GetOutputDesc().GetElementSize();
+        auto mul_nc =
+            problem.GetOutputDesc().GetLengths()[0] * problem.GetOutputDesc().GetLengths()[1];
+        auto N           = problem.GetOutputDesc().GetLengths()[0];
+        auto in_over_out = static_cast<float>(in_nelems) / out_nelems;
+        return true;
     }
     return false;
 }
@@ -83,10 +71,16 @@ bool AvgPoolForward3d::IsApplicable(const ExecutionContext&,
     {
         return false;
     }
-    // if(!IsOverRocmFwd3d(problem))
-    // {
-    //     return false;
-    // }
+    if(!(problem.GetInputDesc().GetType() == miopenHalf ||
+         problem.GetInputDesc().GetType() == miopenFloat ||
+         problem.GetInputDesc().GetType() == miopenBFloat16))
+    {
+        return false;
+    }
+    if(!IsOverRocmFwd3d(problem))
+    {
+        return false;
+    }
     return true;
 }
 

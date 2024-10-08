@@ -24,6 +24,7 @@
  *
  *******************************************************************************/
 
+#include "miopen/miopen.h"
 #include <miopen/conv_solution.hpp>
 #include <miopen/execution_context.hpp>
 #include <miopen/invoke_params.hpp>
@@ -45,31 +46,27 @@ namespace avgpool {
 
 bool IsOverRocmFwd2d(const miopen::avgpool::FwdProblemDescription& problem)
 {
-    auto dtype      = problem.GetOutputDesc().GetType();
-    auto in_nelems  = problem.GetInputDesc().GetElementSize();
-    auto out_nelems = problem.GetOutputDesc().GetElementSize();
-    auto mul_nc = problem.GetOutputDesc().GetLengths()[0] * problem.GetOutputDesc().GetLengths()[1];
-    auto in_over_out = static_cast<float>(in_nelems) / out_nelems;
-
-    if(dtype == miopenFloat)
+    if(problem.IsAllContiguous())
+        return true;
+    else
     {
-        if(in_over_out > 11 || (in_over_out < 2 && mul_nc >= 12288))
+        auto dtype       = problem.GetInputDesc().GetType();
+        auto in_nelems   = problem.GetInputDesc().GetElementSize();
+        auto out_nelems  = problem.GetOutputDesc().GetElementSize();
+        auto in_over_out = static_cast<float>(in_nelems) / out_nelems;
+        if(dtype == miopenFloat)
         {
-            return true;
+            if(out_nelems <= 9633792 && in_over_out >= 4)
+            {
+                return true;
+            }
         }
-    }
-    else if(dtype == miopenHalf)
-    {
-        if(in_over_out > 11 || (in_over_out < 2 && mul_nc < 90000))
+        else if(dtype == miopenHalf || dtype == miopenBFloat16)
         {
-            return true;
-        }
-    }
-    else if(dtype == miopenBFloat16)
-    {
-        if(in_over_out >= 1024 || in_over_out < 2 || out_nelems >= 4816896)
-        {
-            return true;
+            if(out_nelems <= 3311616 && in_over_out >= 4)
+            {
+                return true;
+            }
         }
     }
     return false;
@@ -82,10 +79,16 @@ bool AvgPoolForward2d::IsApplicable(const ExecutionContext&,
     {
         return false;
     }
-    // if(!IsOverRocmFwd2d(problem))
-    // {
-    //     return false;
-    // }
+    if(!(problem.GetInputDesc().GetType() == miopenHalf ||
+         problem.GetInputDesc().GetType() == miopenFloat ||
+         problem.GetInputDesc().GetType() == miopenBFloat16))
+    {
+        return false;
+    }
+    if(!IsOverRocmFwd2d(problem))
+    {
+        return false;
+    }
     return true;
 }
 

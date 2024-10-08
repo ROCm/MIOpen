@@ -24,6 +24,7 @@
  *
  *******************************************************************************/
 
+#include "miopen/miopen.h"
 #include <miopen/conv_solution.hpp>
 #include <miopen/execution_context.hpp>
 #include <miopen/invoke_params.hpp>
@@ -45,36 +46,26 @@ namespace avgpool {
 
 bool IsOverRocmBwd3d(const miopen::avgpool::BwdProblemDescription& problem)
 {
-    auto dtype      = problem.GetInputGradDesc().GetType();
-    auto in_nelems  = problem.GetInputGradDesc().GetElementSize();
-    auto out_nelems = problem.GetOutputGradDesc().GetElementSize();
-    auto mul_nc =
-        problem.GetOutputGradDesc().GetLengths()[0] * problem.GetOutputGradDesc().GetLengths()[1];
-    auto N           = problem.GetOutputGradDesc().GetLengths()[0];
+
+    auto dtype       = problem.GetInputGradDesc().GetType();
+    auto in_nelems   = problem.GetInputGradDesc().GetElementSize();
+    auto out_nelems  = problem.GetOutputGradDesc().GetElementSize();
     auto in_over_out = static_cast<float>(in_nelems) / out_nelems;
 
-    if(dtype == miopenFloat)
+    if(problem.IsAllContiguous())
     {
-        if((in_over_out < 2 && out_nelems <= 12582912) || (in_over_out <= 8 && N >= 6))
+        if(dtype == miopenBFloat16 || dtype == miopenHalf)
         {
-            return true;
-        }
-        return false;
-    }
-    else if(dtype == miopenHalf)
-    {
-        if((in_over_out < 2 && mul_nc < 8192) || (8 > in_over_out && out_nelems >= 29052108))
-        {
-            return true;
+            if(in_over_out < 2)
+            {
+                return true;
+            }
         }
     }
-    else if(dtype == miopenBFloat16)
+    else
     {
-        if((1 <= in_over_out && in_over_out < 2 && in_nelems >= 4194304) ||
-           (in_over_out <= 8 && in_nelems >= 944111616))
-        {
-            return true;
-        }
+        // TODO: Add more conditions
+        return true;
     }
     return false;
 }
@@ -87,10 +78,16 @@ bool AvgPoolBackward3d::IsApplicable(const ExecutionContext&,
     {
         return false;
     }
-    // if(!IsOverRocmBwd3d(problem))
-    // {
-    //     return false;
-    // }
+    if(!(problem.GetOutputGradDesc().GetType() == miopenHalf ||
+         problem.GetOutputGradDesc().GetType() == miopenFloat ||
+         problem.GetOutputGradDesc().GetType() == miopenBFloat16))
+    {
+        return false;
+    }
+    if(!IsOverRocmBwd3d(problem))
+    {
+        return false;
+    }
     return true;
 }
 

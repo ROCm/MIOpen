@@ -45,27 +45,13 @@ namespace avgpool {
 
 bool IsOverRocmBwd2d(const miopen::avgpool::BwdProblemDescription& problem)
 {
-    auto dtype      = problem.GetInputGradDesc().GetType();
-    auto in_nelems  = problem.GetInputGradDesc().GetElementSize();
-    auto out_nelems = problem.GetOutputGradDesc().GetElementSize();
-    auto mul_nc =
-        problem.GetOutputGradDesc().GetLengths()[0] * problem.GetOutputGradDesc().GetLengths()[1];
-    auto in_over_out = static_cast<float>(in_nelems) / out_nelems;
+    if(!problem.IsAllContiguous())
+    {
+        auto in_nelems   = problem.GetInputGradDesc().GetElementSize();
+        auto out_nelems  = problem.GetOutputGradDesc().GetElementSize();
+        auto in_over_out = static_cast<float>(in_nelems) / out_nelems;
 
-    if(dtype == miopenFloat)
-    {
-        return false;
-    }
-    else if(dtype == miopenHalf)
-    {
-        if(in_over_out < 2 && in_nelems >= 11075584)
-        {
-            return true;
-        }
-    }
-    else if(dtype == miopenBFloat16)
-    {
-        if(in_over_out < 2 || (in_nelems > 20000000 && mul_nc <= 2048))
+        if(in_over_out == 4)
         {
             return true;
         }
@@ -81,10 +67,16 @@ bool AvgPoolBackward2d::IsApplicable(const ExecutionContext&,
     {
         return false;
     }
-    // if(!IsOverRocmBwd2d(problem))
-    // {
-    //     return false;
-    // }
+    if(!(problem.GetOutputGradDesc().GetType() == miopenHalf ||
+         problem.GetOutputGradDesc().GetType() == miopenFloat ||
+         problem.GetOutputGradDesc().GetType() == miopenBFloat16))
+    {
+        return false;
+    }
+    if(!IsOverRocmBwd2d(problem))
+    {
+        return false;
+    }
     return true;
 }
 
