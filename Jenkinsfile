@@ -681,7 +681,9 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx908") }
                     steps{
-                        buildHipClangJobAndReboot(build_type: 'debug', make_targets: Smoke_targets, build_install: "true")
+                        catchError(stageResult: 'FAILURE') {
+                            buildHipClangJobAndReboot(build_type: 'debug', make_targets: Smoke_targets, build_install: "true")
+                        }
                     }
                 }
                 stage('Fp32 Hip Debug gfx94X') {
@@ -883,7 +885,9 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx908") }
                     steps{
-                        buildHipClangJobAndReboot( setup_flags: Fp16_flags, make_targets: Smoke_targets, build_install: "true")
+                        catchError(stageResult: 'FAILURE') {
+                            buildHipClangJobAndReboot( setup_flags: Fp16_flags, make_targets: Smoke_targets, build_install: "true")
+                        }
                     }
                 }
                 stage('Bf16 Hip gfx908') {
@@ -896,7 +900,9 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx908") }
                     steps{
-                        buildHipClangJobAndReboot(setup_flags: Bf16_flags, make_targets: Smoke_targets, build_install: "true")
+                        catchError(stageResult: 'FAILURE') {
+                            buildHipClangJobAndReboot(setup_flags: Bf16_flags, make_targets: Smoke_targets, build_install: "true")
+                        }
                     }
                 }
                 stage('Fp16 Hip gfx90a') {
@@ -973,13 +979,15 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx908") }
                     steps{
-                        buildHipClangJobAndReboot(lfs_pull: true,
-                                                  setup_flags: "-DMIOPEN_TEST_DBSYNC=1",
-                                                  make_targets: 'test_db_sync',
-                                                  execute_cmd: 'MIOPEN_TEST_DBSYNC=1 ./bin/test_db_sync',
-                                                  needs_gpu:false,
-                                                  needs_reboot:false,
-                                                  build_install: "true")
+                        catchError(stageResult: 'FAILURE') {
+                            buildHipClangJobAndReboot(lfs_pull: true,
+                                                    setup_flags: "-DMIOPEN_TEST_DBSYNC=1",
+                                                    make_targets: 'test_db_sync',
+                                                    execute_cmd: 'MIOPEN_TEST_DBSYNC=1 ./bin/test_db_sync',
+                                                    needs_gpu:false,
+                                                    needs_reboot:false,
+                                                    build_install: "true")
+                        }
                     }
                 }
                 stage('Dbsync gfx90a') {
@@ -1043,7 +1051,9 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx908") }
                     steps{
-                        buildHipClangJobAndReboot(setup_flags: Bf16_flags + Full_test, build_install: "true")
+                        catchError(stageResult: 'FAILURE') {
+                            buildHipClangJobAndReboot(setup_flags: Bf16_flags + Full_test, build_install: "true")
+                        }
                     }
                 }
                 stage('Bf16 Hip Install All gfx90a') {
@@ -1108,7 +1118,9 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx908") }
                     steps{
-                        buildHipClangJobAndReboot(setup_flags: Full_test)
+                        catchError(stageResult: 'FAILURE') {
+                            buildHipClangJobAndReboot(setup_flags: Full_test)
+                        }
                     }
                 }
                 stage('Fp32 Hip All gfx90a') {
@@ -1209,7 +1221,9 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx908") }
                     steps{
-                        buildHipClangJobAndReboot(setup_flags: Full_test + Fp16_flags, build_install: "true")
+                        catchError(stageResult: 'FAILURE') {
+                            buildHipClangJobAndReboot(setup_flags: Full_test + Fp16_flags, build_install: "true")
+                        }
                     }
                 }
                 stage('Fp16 Hip All Install gfx90a') {
