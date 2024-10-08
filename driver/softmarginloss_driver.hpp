@@ -30,7 +30,6 @@
 #include "tensor_driver.hpp"
 #include "timer.hpp"
 #include "random.hpp"
-#include <algorithm>
 #include <cstdlib>
 #include <memory>
 #include <miopen/miopen.h>
@@ -54,7 +53,7 @@ int32_t mloSoftMarginLossForwardRunHost(miopenTensorDescriptor_t inputDesc,
     auto t_tv        = miopen::get_inner_expanded_tv<5>(miopen::deref(targetDesc));
     auto o_tv        = miopen::get_inner_expanded_tv<5>(miopen::deref(outputDesc));
 
-    int32_t ret = 0;
+    int32_t ret = miopenStatusSuccess;
 
     double sum_loss = 0;
     for(size_t gid = 0; gid < input_numel; gid++)
@@ -93,10 +92,9 @@ int32_t mloSoftMarginLossBackwardRunHost(miopenTensorDescriptor_t inputDesc,
     auto dO_tv       = miopen::get_inner_expanded_tv<5>(miopen::deref(dODesc));
     auto dI_tv       = miopen::get_inner_expanded_tv<5>(miopen::deref(dIDesc));
 
-    int32_t ret = 0;
+    int32_t ret = miopenStatusSuccess;
 
-    for(size_t gid = 0; gid < input_numel; gid++)
-    {
+    par_ford(input_numel)([&](size_t gid) {
         tensor_layout_t<5> idx(i_tv, gid);
         double i   = input[i_tv.get_tensor_view_idx(idx)];
         double t   = target[t_tv.get_tensor_view_idx(idx)];
@@ -107,7 +105,7 @@ int32_t mloSoftMarginLossBackwardRunHost(miopenTensorDescriptor_t inputDesc,
         else
             dIhost[dI_tv.get_tensor_view_idx(idx)] =
                 static_cast<Tcheck>(-t / (exp(i * t) + 1) * _dO);
-    }
+    });
     return ret;
 }
 
@@ -186,7 +184,12 @@ private:
 template <typename Tgpu, typename Tref>
 int SoftMarginLossDriver<Tgpu, Tref>::AddCmdLineArgs()
 {
-    inflags.AddInputFlag("forw", 'F', "1", "Run only Forward Take (Default=1)", "int");
+    inflags.AddInputFlag("forw",
+                         'F',
+                         "1",
+                         "Run Forward or Backward. 0 to run both Fw and Bw, 1 to run only Fw, 2 to "
+                         "run only Bw (Default=1)",
+                         "int");
     inflags.AddInputFlag(
         "dim", 'D', "4x25x4x25", "Dim of input tensor (Default=4x25x4x25)", "tensor");
     inflags.AddInputFlag("stride",
@@ -325,10 +328,16 @@ int SoftMarginLossDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
                                                                                                : 1;
     }
     if(in_dev->ToGPU(GetStream(), in.data()) != 0)
+    {
         std::cerr << "Error copying (in) to GPU, size: " << in_dev->GetSize() << std::endl;
+        return miopenStatusAllocFailed;
+    }
 
     if(target_dev->ToGPU(GetStream(), target.data()) != 0)
+    {
         std::cerr << "Error copying (target) to GPU, size: " << target_dev->GetSize() << std::endl;
+        return miopenStatusAllocFailed;
+    }
 
     if(forw == 0 || forw == 1)
     {
@@ -341,12 +350,18 @@ int SoftMarginLossDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
             return miopenStatusAllocFailed;
         }
 
-        out_dev       = std::make_unique<GPUMem>(ctx, out_sz, sizeof(Tgpu));
-        workspace_dev = std::make_unique<GPUMem>(ctx, ws_sizeInBytes, sizeof(std::byte));
-        out           = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
-        outhost       = std::vector<Tref>(out_sz, static_cast<Tref>(0));
+        out_dev = std::make_unique<GPUMem>(ctx, out_sz, sizeof(Tgpu));
+        if(ws_sizeInBytes == 0)
+            workspace_dev = nullptr;
+        else
+            workspace_dev = std::make_unique<GPUMem>(ctx, ws_sizeInBytes, sizeof(std::byte));
+        out     = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
+        outhost = std::vector<Tref>(out_sz, static_cast<Tref>(0));
         if(out_dev->ToGPU(GetStream(), out.data()) != 0)
+        {
             std::cerr << "Error copying (out) to GPU, size: " << out_dev->GetSize() << std::endl;
+            return miopenStatusAllocFailed;
+        }
     }
     if(forw == 0 || forw == 2)
     {
@@ -360,9 +375,15 @@ int SoftMarginLossDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         dIhost = std::vector<Tref>(dI_sz, static_cast<Tref>(0));
 
         if(dO_dev->ToGPU(GetStream(), dO.data()) != 0)
+        {
             std::cerr << "Error copying (dO) to GPU, size: " << dO_dev->GetSize() << std::endl;
+            return miopenStatusAllocFailed;
+        }
         if(dI_dev->ToGPU(GetStream(), dI.data()) != 0)
+        {
             std::cerr << "Error copying (dI) to GPU, size: " << dI_dev->GetSize() << std::endl;
+            return miopenStatusAllocFailed;
+        }
     }
 
     return miopenStatusSuccess;
@@ -379,16 +400,17 @@ int SoftMarginLossDriver<Tgpu, Tref>::RunForwardGPU()
 
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
-        miopenStatus_t status = miopenSoftMarginLossForward(GetHandle(),
-                                                            inputDesc,
-                                                            in_dev->GetMem(),
-                                                            targetDesc,
-                                                            target_dev->GetMem(),
-                                                            outputDesc,
-                                                            out_dev->GetMem(),
-                                                            reduction_mode,
-                                                            workspace_dev->GetMem(),
-                                                            ws_sizeInBytes);
+        miopenStatus_t status = miopenSoftMarginLossForward(
+            GetHandle(),
+            inputDesc,
+            in_dev->GetMem(),
+            targetDesc,
+            target_dev->GetMem(),
+            outputDesc,
+            out_dev->GetMem(),
+            reduction_mode,
+            (workspace_dev == nullptr) ? nullptr : workspace_dev->GetMem(),
+            ws_sizeInBytes);
 
         MIOPEN_THROW_IF(status != miopenStatusSuccess, "Error in miopenSoftMarginLossForward");
 
@@ -414,7 +436,10 @@ int SoftMarginLossDriver<Tgpu, Tref>::RunForwardGPU()
     }
 
     if(out_dev->FromGPU(GetStream(), out.data()) != 0)
+    {
         std::cerr << "Error copying (out_dev) from GPU, size: " << out_dev->GetSize() << std::endl;
+        return miopenStatusInternalError;
+    }
 
     return miopenStatusSuccess;
 }
@@ -422,14 +447,13 @@ int SoftMarginLossDriver<Tgpu, Tref>::RunForwardGPU()
 template <typename Tgpu, typename Tref>
 int SoftMarginLossDriver<Tgpu, Tref>::RunForwardCPU()
 {
-    mloSoftMarginLossForwardRunHost(inputDesc,
-                                    targetDesc,
-                                    outputDesc,
-                                    in.data(),
-                                    target.data(),
-                                    outhost.data(),
-                                    reduction_mode);
-    return miopenStatusSuccess;
+    return mloSoftMarginLossForwardRunHost(inputDesc,
+                                           targetDesc,
+                                           outputDesc,
+                                           in.data(),
+                                           target.data(),
+                                           outhost.data(),
+                                           reduction_mode);
 }
 
 template <typename Tgpu, typename Tref>
@@ -478,7 +502,10 @@ int SoftMarginLossDriver<Tgpu, Tref>::RunBackwardGPU()
     }
 
     if(dI_dev->FromGPU(GetStream(), dI.data()) != 0)
+    {
         std::cerr << "Error copying (dI_dev) from GPU, size: " << dI_dev->GetSize() << std::endl;
+        return miopenStatusInternalError;
+    }
 
     return miopenStatusSuccess;
 }
@@ -486,16 +513,15 @@ int SoftMarginLossDriver<Tgpu, Tref>::RunBackwardGPU()
 template <typename Tgpu, typename Tref>
 int SoftMarginLossDriver<Tgpu, Tref>::RunBackwardCPU()
 {
-    mloSoftMarginLossBackwardRunHost(inputDesc,
-                                     targetDesc,
-                                     dODesc,
-                                     dIDesc,
-                                     in.data(),
-                                     target.data(),
-                                     dO.data(),
-                                     dIhost.data(),
-                                     reduction_mode);
-    return miopenStatusSuccess;
+    return mloSoftMarginLossBackwardRunHost(inputDesc,
+                                            targetDesc,
+                                            dODesc,
+                                            dIDesc,
+                                            in.data(),
+                                            target.data(),
+                                            dO.data(),
+                                            dIhost.data(),
+                                            reduction_mode);
 }
 
 template <typename Tgpu, typename Tref>

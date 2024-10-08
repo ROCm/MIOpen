@@ -32,7 +32,6 @@
 #include <miopen/conv_algo_name.hpp>
 
 #include <cstdint>
-#include <unordered_map>
 
 namespace miopen {
 
@@ -64,7 +63,7 @@ enum class Primitive
     ReLU,
     Kthvalue,
     SoftMarginLoss,
-    AdaptiveAvgPool,
+    MultiMarginLoss AdaptiveAvgPool,
 };
 
 struct MIOPEN_INTERNALS_EXPORT Id

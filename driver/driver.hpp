@@ -177,7 +177,7 @@ inline void PadBufferSize(size_t& sz, int datatype_sz)
            "adamw[fp16], ampadamw, transformersadamw[fp16], transformersampadamw, "
            "getitem[bfp16|fp16], reducecalculation[bfp16|fp16], rope[bfp16|fp16], "
            "prelu[bfp16|fp16], kthvalue[bfp16|fp16], glu[bfp16|fp16], softmarginloss[bfp16|fp16], "
-           "adaptiveavgpool[bfp16|fp16]\n");
+           "multimarginloss[bfp16|fp16], adaptiveavgpool[bfp16|fp16]\n");
     exit(0); // NOLINT (concurrency-mt-unsafe)
 }
 
@@ -213,6 +213,7 @@ inline std::string ParseBaseArg(int argc, char* argv[])
        arg != "prelubfp16" && arg != "kthvalue" && arg != "kthvaluefp16" &&
        arg != "kthvaluebfp16" && arg != "glu" && arg != "glufp16" && arg != "glubfp16" &&
        arg != "softmarginloss" && arg != "softmarginlossfp16" && arg != "softmarginlossbfp16" &&
+       arg != "multimarginloss" && arg != "multimarginlossfp16" && arg != "multimarginlossbfp16" &&
        arg != "adaptiveavgpool" && arg != "adaptiveavgpoolfp16" && arg != "adaptiveavgpoolbfp16" &&
        arg != "--version")
     {
