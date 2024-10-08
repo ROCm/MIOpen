@@ -27,9 +27,8 @@
 #ifndef MIOPEN_TENSOR_VIEW_UTIL_HPP_
 #define MIOPEN_TENSOR_VIEW_UTIL_HPP_
 
-#include <miopen/common.hpp>
-#include <miopen/tensor.hpp>
 #include "../../kernels/tensor_view.hpp"
+#include <miopen/tensor.hpp>
 
 namespace miopen {
 
