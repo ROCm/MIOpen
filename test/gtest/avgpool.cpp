@@ -50,15 +50,9 @@ TEST_P(GPU_Avgpool_fwd_BFP16, AvgPoolTestFwd)
     Verify();
 };
 
-INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_Avgpool_fwd_FP32,
-                         testing::ValuesIn(AvgPoolTestConfigsFwdFp32()));
-INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_Avgpool_fwd_FP16,
-                         testing::ValuesIn(AvgPoolTestConfigsFwdFp16()));
-INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_Avgpool_fwd_BFP16,
-                         testing::ValuesIn(AvgPoolTestConfigsFwdBfp16()));
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Avgpool_fwd_FP32, testing::ValuesIn(AvgPoolTestConfigsFwd()));
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Avgpool_fwd_FP16, testing::ValuesIn(AvgPoolTestConfigsFwd()));
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Avgpool_fwd_BFP16, testing::ValuesIn(AvgPoolTestConfigsFwd()));
 
 // BACKWARD TEST
 using GPU_Avgpool_bwd_FP32  = AvgPoolTestBwd<float>;
@@ -88,7 +82,7 @@ INSTANTIATE_TEST_SUITE_P(Smoke,
                          testing::ValuesIn(AvgPoolTestConfigsBwdFp32()));
 INSTANTIATE_TEST_SUITE_P(Smoke,
                          GPU_Avgpool_bwd_FP16,
-                         testing::ValuesIn(AvgPoolTestConfigsBwdFp16()));
+                         testing::ValuesIn(AvgPoolTestConfigsBwdFp16BFp16()));
 INSTANTIATE_TEST_SUITE_P(Smoke,
                          GPU_Avgpool_bwd_BFP16,
-                         testing::ValuesIn(AvgPoolTestConfigsBwdBfp16()));
+                         testing::ValuesIn(AvgPoolTestConfigsBwdFp16BFp16()));

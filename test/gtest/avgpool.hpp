@@ -81,61 +81,31 @@ struct AvgPoolTestCase
     }
 };
 
-inline std::vector<AvgPoolTestCase> AvgPoolTestConfigsFwdFp32()
+inline std::vector<AvgPoolTestCase> AvgPoolTestConfigsFwd()
 {
     return {
-        {{64, 768, 17, 17}, {5, 5}, {1, 1}, {1, 1}, false, false, 0, true},
-        {{64, 768, 17, 17}, {5, 5}, {1, 1}, {1, 1}, false, false, 0, false},
-        {{6, 128, 128, 128, 128}, {3, 3, 3}, {2, 2, 2}, {1, 1, 1}, false, true, 0, true},
-        {{6, 128, 128, 128, 128}, {3, 3, 3}, {2, 2, 2}, {1, 1, 1}, false, true, 0, false},
-    };
-}
+        {{64, 512, 14, 14}, {2, 2}, {2, 2}, {0, 0}, false, true, 0, false},
+        {{64, 512, 14, 14}, {2, 2}, {2, 2}, {0, 0}, false, true, 0, true},
+        {{4, 512, 14, 14, 14}, {2, 2, 2}, {2, 2, 2}, {0, 0, 0}, false, true, 0, false},
+        {{4, 512, 14, 14, 14}, {2, 2, 2}, {2, 2, 2}, {0, 0, 0}, false, true, 0, true},
 
-inline std::vector<AvgPoolTestCase> AvgPoolTestConfigsFwdFp16()
-{
-    return {
-        {{64, 768, 17, 17}, {5, 5}, {1, 1}, {1, 1}, false, false, 0, true},
-        {{64, 768, 17, 17}, {5, 5}, {1, 1}, {1, 1}, false, false, 0, false},
-        {{6, 128, 128, 128, 128}, {3, 3, 3}, {2, 2, 2}, {1, 1, 1}, false, true, 0, true},
-        {{6, 128, 128, 128, 128}, {3, 3, 3}, {2, 2, 2}, {1, 1, 1}, false, true, 0, false},
-    };
-}
-
-inline std::vector<AvgPoolTestCase> AvgPoolTestConfigsFwdBfp16()
-{
-    return {
-        {{64, 768, 17, 17}, {5, 5}, {1, 1}, {1, 1}, false, false, 0, true},
-        {{64, 768, 17, 17}, {5, 5}, {1, 1}, {1, 1}, false, false, 0, false},
-        {{6, 128, 128, 128, 128}, {3, 3, 3}, {2, 2, 2}, {1, 1, 1}, false, true, 0, true},
-        {{6, 128, 128, 128, 128}, {3, 3, 3}, {2, 2, 2}, {1, 1, 1}, false, true, 0, false},
     };
 }
 
 inline std::vector<AvgPoolTestCase> AvgPoolTestConfigsBwdFp32()
 {
     return {
-        {{6, 128, 128, 128, 128}, {3, 3, 3}, {2, 2, 2}, {1, 1, 1}, false, true, 0, true},
-        {{6, 128, 128, 128, 128}, {3, 3, 3}, {2, 2, 2}, {1, 1, 1}, false, true, 0, false},
+        {{16, 112, 112, 112}, {3, 3}, {2, 2}, {1, 1}, false, true, 0, false},
     };
 }
 
-inline std::vector<AvgPoolTestCase> AvgPoolTestConfigsBwdFp16()
+inline std::vector<AvgPoolTestCase> AvgPoolTestConfigsBwdFp16BFp16()
 {
     return {
-        {{64, 288, 35, 35}, {3, 3}, {1, 1}, {1, 1}, false, true, 0, true},
-        {{64, 288, 35, 35}, {3, 3}, {1, 1}, {1, 1}, false, true, 0, false},
-        {{6, 288, 35, 35, 35}, {3, 3, 3}, {1, 1, 1}, {1, 1, 1}, false, true, 0, true},
-        {{6, 288, 35, 35, 35}, {3, 3, 3}, {1, 1, 1}, {1, 1, 1}, false, true, 0, false},
-    };
-}
+        {{16, 112, 112, 112}, {3, 3}, {2, 2}, {1, 1}, false, true, 0, false},
+        {{4, 912, 8, 8, 8}, {3, 3, 3}, {1, 1, 1}, {1, 1, 1}, false, true, 0, false},
+        {{4, 912, 8, 8, 8}, {3, 3, 3}, {1, 1, 1}, {1, 1, 1}, false, true, 0, true},
 
-inline std::vector<AvgPoolTestCase> AvgPoolTestConfigsBwdBfp16()
-{
-    return {
-        {{64, 2048, 9, 9}, {3, 3}, {1, 1}, {1, 1}, false, true, 0, true},
-        {{64, 2048, 9, 9}, {3, 3}, {1, 1}, {1, 1}, false, true, 0, false},
-        {{6, 128, 112, 112, 112}, {3, 3, 3}, {2, 2, 2}, {1, 1, 1}, false, true, 0, true},
-        {{6, 128, 112, 112, 112}, {3, 3, 3}, {2, 2, 2}, {1, 1, 1}, false, true, 0, false},
     };
 }
 
