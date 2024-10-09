@@ -111,7 +111,7 @@ protected:
         cond = tensor<uint8_t>{cond_dims};
         for(auto i = 0; i < cond.GetSize(); i++)
         {
-            cond[i] = rand() % 2;
+            cond.data[i] = rand() % 2;
         }
 
         outputGrad = tensor<T>{cond_dims}.generate(gen_value);
