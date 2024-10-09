@@ -25,7 +25,6 @@
  *******************************************************************************/
 
 #include "logcumsumexp.hpp"
-#include <miopen/env.hpp>
 
 namespace logcumsumexp {
 struct GPU_LogCumSumExp_fwd_FP32 : LogCumSumExpTestFwd<float>
