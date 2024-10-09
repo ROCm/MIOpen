@@ -29,7 +29,7 @@
 #include "conv_common.hpp"
 #include "get_handle.hpp"
 #include <miopen/conv/data_invoke_params.hpp>
-#include <miopen/solver.hpp>
+#include <miopen/conv/solvers.hpp>
 
 #include "conv_test_base.hpp"
 #include "conv_tensor_gen.hpp"

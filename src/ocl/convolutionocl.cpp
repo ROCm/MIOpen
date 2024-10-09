@@ -40,7 +40,6 @@
 #include <miopen/generic_search_controls.hpp>
 #include <miopen/invoker.hpp>
 #include <miopen/kernel.hpp>
-#include <miopen/solver.hpp>
 #include <miopen/solution.hpp>
 #include <miopen/tensor_ops.hpp>
 #include <miopen/tensor.hpp>

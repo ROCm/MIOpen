@@ -229,6 +229,10 @@ if( MIOPEN_BACKEND STREQUAL "OpenCL")
     set (HIP_CXX_COMPILER ${MIOPEN_HIP_COMPILER})
 endif()
 
+# HIP SDK on Windows does not detect platform correctly, defaulting to "amd"
+if(NOT HIP_PLATFORM AND CMAKE_SYSTEM_NAME STREQUAL "Windows")
+    set(HIP_PLATFORM "amd")
+endif()
 
 # HIP is always required
 find_package(hip REQUIRED PATHS /opt/rocm)
@@ -469,8 +473,10 @@ if(MIOPEN_BUILD_DRIVER)
     # boost core is a header only component that can't be found by find_package
     # list(APPEND BOOST_COMPONENTS core)
 endif()
+
+# The FindBoost module has been removed since CMake 3.30. Use the Boost 1.83 configuration file instead.
 add_definitions(-DBOOST_ALL_NO_LIB=1)
-find_package(Boost REQUIRED COMPONENTS ${BOOST_COMPONENTS})
+find_package(Boost REQUIRED COMPONENTS ${BOOST_COMPONENTS} CONFIG)
 
 find_path(HALF_INCLUDE_DIR half/half.hpp)
 message(STATUS "HALF_INCLUDE_DIR: ${HALF_INCLUDE_DIR}")
@@ -578,7 +584,7 @@ endif()
 
 set(KERNELS_SOURCE_DIR ${PROJECT_SOURCE_DIR}/src/kernels)
 
-find_program(UNZIPPER lbzcat bzcat REQUIRED)
+find_program(UNZIPPER bzip2 REQUIRED)
 file(MAKE_DIRECTORY ${KERNELS_BINARY_DIR})
 
 add_custom_target(generate_kernels ALL)
@@ -593,7 +599,7 @@ endif()
 function(unpack_db db_bzip2_file)
     get_filename_component(__fname ${db_bzip2_file} NAME_WLE)
     add_custom_command(OUTPUT ${KERNELS_BINARY_DIR}/${__fname}
-                       COMMAND ${UNZIPPER} -k ${db_bzip2_file} > ${KERNELS_BINARY_DIR}/${__fname})
+                       COMMAND ${UNZIPPER} -dc -k ${db_bzip2_file} > ${KERNELS_BINARY_DIR}/${__fname})
     string(REPLACE "." "_" __tname ${__fname})
     add_custom_target(generate_${__tname} ALL DEPENDS ${KERNELS_BINARY_DIR}/${__fname})
 

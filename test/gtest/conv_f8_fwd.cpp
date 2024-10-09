@@ -24,6 +24,7 @@
  *
  *******************************************************************************/
 #include <gtest/gtest.h>
+#include <miopen/conv/solvers.hpp>
 #include <miopen/miopen.h>
 #include <miopen/solver_id.hpp>
 #include <serialize.hpp>
