@@ -250,17 +250,18 @@ protected:
         auto&& handle = get_handle();
         miopenStatus_t status;
 
-        status = miopen::CumulativeReductionForward(handle,
-                                                    input.desc,
-                                                    input_dev.get(),
-                                                    output.desc,
-                                                    output_dev.get(),
-                                                    indices.desc,
-                                                    indices_dev.get(),
-                                                    cumulative_reduction_config.dim,
-                                                    cumulative_reduction_config.exclusive,
-                                                    cumulative_reduction_config.reverse,
-                                                    cumulative_reduction_config.op);
+        status = miopen::cumulative_reduction::CumulativeReductionForward(
+            handle,
+            input.desc,
+            input_dev.get(),
+            output.desc,
+            output_dev.get(),
+            indices.desc,
+            indices_dev.get(),
+            cumulative_reduction_config.dim,
+            cumulative_reduction_config.exclusive,
+            cumulative_reduction_config.reverse,
+            cumulative_reduction_config.op);
         EXPECT_EQ(status, miopenStatusSuccess);
         output.data  = handle.Read<T>(output_dev, output.data.size());
         indices.data = handle.Read<int>(indices_dev, indices.data.size());

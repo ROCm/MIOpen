@@ -28,9 +28,10 @@
 #include <miopen/common.hpp>
 
 namespace miopen {
-
 struct Handle;
 struct TensorDescriptor;
+
+namespace cumulative_reduction {
 
 MIOPEN_INTERNALS_EXPORT miopenStatus_t
 CumulativeReductionForward(Handle& handle,
@@ -45,4 +46,5 @@ CumulativeReductionForward(Handle& handle,
                            bool reverse,
                            miopenCumOp_t cumOp);
 
+} // namespace cumulative_reduction
 } // namespace miopen

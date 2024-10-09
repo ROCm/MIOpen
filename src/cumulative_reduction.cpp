@@ -31,6 +31,7 @@
 #include <miopen/cumulative_reduction/solvers.hpp>
 
 namespace miopen {
+namespace cumulative_reduction {
 
 miopenStatus_t CumulativeReductionForward(Handle& handle,
                                           const TensorDescriptor& inputDesc,
@@ -73,4 +74,5 @@ miopenStatus_t CumulativeReductionForward(Handle& handle,
     return miopenStatusSuccess;
 }
 
+} // namespace cumulative_reduction
 } // namespace miopen

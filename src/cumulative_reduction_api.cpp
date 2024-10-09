@@ -93,16 +93,16 @@ miopenCumulativeReductionForward(miopenHandle_t handle,
     LogCmdCumulativeReduction(
         inputDesc, outputDesc, indicesDesc, dim, exclusive, reverse, cumOp, true);
     return miopen::try_([&] {
-        miopen::CumulativeReductionForward(miopen::deref(handle),
-                                           miopen::deref(inputDesc),
-                                           DataCast(input),
-                                           miopen::deref(outputDesc),
-                                           DataCast(output),
-                                           miopen::deref(indicesDesc),
-                                           DataCast(indices),
-                                           dim,
-                                           exclusive,
-                                           reverse,
-                                           cumOp);
+        miopen::cumulative_reduction::CumulativeReductionForward(miopen::deref(handle),
+                                                                 miopen::deref(inputDesc),
+                                                                 DataCast(input),
+                                                                 miopen::deref(outputDesc),
+                                                                 DataCast(output),
+                                                                 miopen::deref(indicesDesc),
+                                                                 DataCast(indices),
+                                                                 dim,
+                                                                 exclusive,
+                                                                 reverse,
+                                                                 cumOp);
     });
 }
