@@ -42,21 +42,21 @@ std::string GetFloatArg()
     return tmp;
 }
 
-struct MSELossTestFloat : MSELossTest<float>
+struct GPU_MSELoss_fwd_FP32 : MSELossTest<float>
 {
 };
 
-struct MSELossTestHalf : MSELossTest<half>
+struct GPU_MSELoss_fwd_FP16 : MSELossTest<half>
 {
 };
 
-struct MSELossTestBfloat16 : MSELossTest<bfloat16>
+struct GPU_MSELoss_fwd_BFP16 : MSELossTest<bfloat16>
 {
 };
 } // namespace mseloss
 
 using namespace mseloss;
-TEST_P(MSELossTestFloat, MSELossTestFw)
+TEST_P(GPU_MSELoss_fwd_FP32, Full)
 {
     if(!MIOPEN_TEST_ALL ||
        (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--float"))
@@ -68,7 +68,7 @@ TEST_P(MSELossTestFloat, MSELossTestFw)
         GTEST_SKIP();
 }
 
-TEST_P(MSELossTestHalf, MSELossTestFw)
+TEST_P(GPU_MSELoss_fwd_FP16, Full)
 {
     if(!MIOPEN_TEST_ALL ||
        (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--half"))
@@ -80,7 +80,7 @@ TEST_P(MSELossTestHalf, MSELossTestFw)
         GTEST_SKIP();
 }
 
-TEST_P(MSELossTestBfloat16, MSELossTestFw)
+TEST_P(GPU_MSELoss_fwd_BFP16, Full)
 {
     if(!MIOPEN_TEST_ALL ||
        (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--bfloat16"))
@@ -92,6 +92,6 @@ TEST_P(MSELossTestBfloat16, MSELossTestFw)
         GTEST_SKIP();
 }
 
-INSTANTIATE_TEST_CASE_P(MSELossTest, MSELossTestFloat, testing::ValuesIn(MSELossTestConfigs()));
-INSTANTIATE_TEST_CASE_P(MSELossTest, MSELossTestHalf, testing::ValuesIn(MSELossTestConfigs()));
-INSTANTIATE_TEST_CASE_P(MSELossTest, MSELossTestBfloat16, testing::ValuesIn(MSELossTestConfigs()));
+INSTANTIATE_TEST_CASE_P(Full, GPU_MSELoss_fwd_FP32, testing::ValuesIn(MSELossTestConfigs()));
+INSTANTIATE_TEST_CASE_P(Full, GPU_MSELoss_fwd_FP16, testing::ValuesIn(MSELossTestConfigs()));
+INSTANTIATE_TEST_CASE_P(Full, GPU_MSELoss_fwd_BFP16, testing::ValuesIn(MSELossTestConfigs()));
