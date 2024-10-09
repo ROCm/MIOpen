@@ -174,6 +174,7 @@ set( MIOpen_Source
     reducetensor.cpp
     reducetensor_api.cpp
     reduce/problem_description.cpp
+    rocrand_wrapper.cpp
     rnn.cpp
     rnn_api.cpp
     rnn/rnn_util.cpp

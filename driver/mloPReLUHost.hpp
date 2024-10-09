@@ -26,7 +26,7 @@
 
 #pragma once
 
-#include <../test/ford.hpp>
+#include <miopen/ford.hpp>
 
 #include <miopen/tensor.hpp>
 #include <miopen/tensor_view_utils.hpp>

@@ -29,9 +29,6 @@
 
 #include "args.hpp"
 #include "get_handle.hpp"
-#include "network_data.hpp"
-#include "serialize.hpp"
-#include "tensor_holder.hpp"
 #include "test.hpp"
 #include "verify.hpp"
 
@@ -39,6 +36,9 @@
 #include <deque>
 #include <half/half.hpp>
 #include <type_traits>
+#include <miopen/tensor_holder.hpp>
+#include <miopen/serialize.hpp>
+#include <miopen/network_data.hpp>
 #include <miopen/filesystem.hpp>
 #include <miopen/functional.hpp>
 #include <miopen/expanduser.hpp>

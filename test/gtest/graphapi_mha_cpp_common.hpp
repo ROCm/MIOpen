@@ -28,7 +28,7 @@
 #include "gtest_common.hpp"
 #include "../verify.hpp"
 #include "../get_handle.hpp"
-#include "../tensor_holder.hpp"
+#include <miopen/tensor_holder.hpp>
 #include "../workspace.hpp"
 
 #include <gtest/gtest.h>

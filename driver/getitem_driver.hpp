@@ -30,7 +30,7 @@
 #include "driver.hpp"
 #include "tensor_driver.hpp"
 #include "timer.hpp"
-#include "random.hpp"
+#include <miopen/random.hpp>
 #include <algorithm>
 #include <cfloat>
 #include <cstdlib>
@@ -40,7 +40,7 @@
 #include <miopen/tensor_view_utils.hpp>
 #include <numeric>
 #include <vector>
-#include <../test/tensor_holder.hpp>
+#include <miopen/gpuMemTensor.hpp>
 #include <../test/verify.hpp>
 
 template <typename Tgpu, typename Tcheck>

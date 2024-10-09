@@ -36,7 +36,7 @@
 #include <miopen/tensor.hpp>
 #include <utility>
 
-#include "tensor_holder.hpp"
+#include <miopen/tensor_holder.hpp>
 #include <miopen/stringutils.hpp>
 #include <miopen/functional.hpp>
 #include <hip_float8.hpp>

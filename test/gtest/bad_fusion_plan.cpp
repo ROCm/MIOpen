@@ -28,7 +28,7 @@
 #include <miopen/fusion/fusion_invoke_params.hpp>
 #include <miopen/env.hpp>
 
-#include "tensor_holder.hpp"
+#include <miopen/tensor_holder.hpp>
 #include "get_handle.hpp"
 #include "conv_test_base.hpp"
 

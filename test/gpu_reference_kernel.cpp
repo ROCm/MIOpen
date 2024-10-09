@@ -39,7 +39,7 @@
 #include <half/half.hpp>
 #include "test.hpp"
 #include "driver.hpp"
-#include "tensor_holder.hpp"
+#include <miopen/tensor_holder.hpp>
 #include "cpu_conv.hpp"
 #include "random.hpp"
 

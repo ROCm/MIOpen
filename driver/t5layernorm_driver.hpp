@@ -26,11 +26,11 @@
 #ifndef GUARD_MIOPEN_T5LAYERNORM_DRIVER_HPP
 #define GUARD_MIOPEN_T5LAYERNORM_DRIVER_HPP
 
-#include <../test/tensor_holder.hpp>
+#include <miopen/tensor_holder.hpp>
 #include <../test/verify.hpp>
 #include "InputFlags.hpp"
 #include "driver.hpp"
-#include "random.hpp"
+#include <miopen/random.hpp>
 #include "tensor_driver.hpp"
 #include "timer.hpp"
 #include <algorithm>
@@ -38,6 +38,7 @@
 #include <cstdlib>
 #include <memory>
 #include <miopen/tensor.hpp>
+#include <miopen/gpuMemTensor.hpp>
 #include <numeric>
 #include <vector>
 

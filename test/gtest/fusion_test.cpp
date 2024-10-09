@@ -27,7 +27,7 @@
 #include <gtest/gtest_common.hpp>
 #include <miopen/miopen.h>
 
-#include "tensor_holder.hpp"
+#include <miopen/tensor_holder.hpp>
 #include "get_handle.hpp"
 #include "cba.hpp"
 

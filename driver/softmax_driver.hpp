@@ -29,7 +29,7 @@
 #include "InputFlags.hpp"
 #include "driver.hpp"
 #include "mloSoftmaxHost.hpp"
-#include "random.hpp"
+#include <miopen/random.hpp>
 #include "tensor_driver.hpp"
 #include "timer.hpp"
 #include "util_driver.hpp"
@@ -38,6 +38,7 @@
 
 #include <miopen/miopen.h>
 #include <miopen/tensor.hpp>
+#include <miopen/gpuMemTensor.hpp>
 
 #include <algorithm>
 #include <cfloat>

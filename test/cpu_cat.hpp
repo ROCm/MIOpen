@@ -26,7 +26,7 @@
 #ifndef GUARD_CPU_CAT_HPP
 #define GUARD_CPU_CAT_HPP
 
-#include "tensor_holder.hpp"
+#include <miopen/tensor_holder.hpp>
 
 template <class T>
 void cpu_cat_forward(std::vector<tensor<T>> inputs, tensor<T>& ref_output, int32_t dim)

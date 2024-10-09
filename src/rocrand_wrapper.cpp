@@ -24,7 +24,7 @@
  *
  *******************************************************************************/
 
-#include "rocrand_wrapper.hpp"
+#include <miopen/rocrand_wrapper.hpp>
 
 #include <rocrand/rocrand.hpp>
 

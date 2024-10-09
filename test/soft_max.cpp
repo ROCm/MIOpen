@@ -39,7 +39,7 @@
 
 #include "driver.hpp"
 #include "get_handle.hpp"
-#include "tensor_holder.hpp"
+#include <miopen/tensor_holder.hpp>
 #include "verify.hpp"
 
 #define NEGATIVE_CUTOFF_VAL_FP32 (-1e20)

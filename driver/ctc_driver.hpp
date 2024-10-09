@@ -28,13 +28,14 @@
 #include "InputFlags.hpp"
 #include "ctc_verify.hpp"
 #include "driver.hpp"
-#include "random.hpp"
+#include <miopen/random.hpp>
 #include "timer.hpp"
 #include "util_driver.hpp"
 #include "util_file.hpp"
 
 #include <miopen/env.hpp>
 #include <miopen/miopen.h>
+#include <miopen/gpuMemTensor.hpp>
 
 #include <../test/verify.hpp>
 

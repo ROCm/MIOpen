@@ -28,7 +28,7 @@
 
 #include "InputFlags.hpp"
 #include "driver.hpp"
-#include "random.hpp"
+#include <miopen/random.hpp>
 #include "tensor_driver.hpp"
 #include "timer.hpp"
 #include <algorithm>
@@ -39,7 +39,7 @@
 #include <miopen/tensor.hpp>
 #include <numeric>
 #include <vector>
-#include <../test/tensor_holder.hpp>
+#include <miopen/gpuMemTensor.hpp>
 #include <../test/verify.hpp>
 
 #ifndef MLO_CATHOST_H_

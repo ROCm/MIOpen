@@ -29,7 +29,7 @@
 #include "InputFlags.hpp"
 #include "driver.hpp"
 #include "miopen_Reduction.hpp"
-#include "random.hpp"
+#include <miopen/random.hpp>
 #include "tensor_driver.hpp"
 #include "timer.hpp"
 #include "util_driver.hpp"
@@ -40,6 +40,7 @@
 #include <miopen/miopen.h>
 #include <miopen/reduce_common.hpp>
 #include <miopen/tensor.hpp>
+#include <miopen/gpuMemTensor.hpp>
 
 #include <half/half.hpp>
 

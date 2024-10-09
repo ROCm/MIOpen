@@ -26,7 +26,7 @@
 #ifndef GUARD_CPU_TRANSFORMERS_ADAM_W_HPP
 #define GUARD_CPU_TRANSFORMERS_ADAM_W_HPP
 
-#include "tensor_holder.hpp"
+#include <miopen/tensor_holder.hpp>
 
 template <typename T1, typename T2>
 void cpu_transformers_adam_w(tensor<T1>& params,

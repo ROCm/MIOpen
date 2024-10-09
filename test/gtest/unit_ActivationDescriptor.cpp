@@ -36,9 +36,9 @@
 #include "activ_common.hpp"
 #include "gtest_common.hpp"
 
-#include "../network_data.hpp"
+#include <miopen/network_data.hpp>
 #include "../random.hpp"
-#include "../tensor_holder.hpp"
+#include <miopen/tensor_holder.hpp>
 #include "../tensor_util.hpp"
 #include "../verify.hpp"
 

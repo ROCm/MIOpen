@@ -26,8 +26,11 @@
 
 #include "bn.hpp"
 
-struct GPU_BNFwdTrain_FP16
-    : BNFwdTrainTest<half_float::half, half_float::half, half_float::half, half_float::half, float>
+struct GPU_BNFwdTrain_FP16 : BNFwdTrainTest<half_float::half,
+                                            half_float::half,
+                                            half_float::half,
+                                            half_float::half,
+                                            half_float::half>
 {
 };
 
@@ -39,7 +42,7 @@ struct GPU_BNFwdTrain_FP64 : BNFwdTrainTest<double, double, double, double, doub
 {
 };
 
-struct GPU_BNFwdTrain_BFP16 : BNFwdTrainTest<bfloat16, bfloat16, bfloat16, bfloat16, float>
+struct GPU_BNFwdTrain_BFP16 : BNFwdTrainTest<bfloat16, bfloat16, bfloat16, bfloat16, bfloat16>
 {
 };
 

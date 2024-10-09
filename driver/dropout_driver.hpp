@@ -39,6 +39,7 @@
 #include <miopen/dropout.hpp>
 #include <miopen/env.hpp>
 #include <miopen/miopen.h>
+#include <miopen/gpuMemTensor.hpp>
 
 #include <algorithm>
 #include <array>

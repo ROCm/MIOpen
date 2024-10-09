@@ -26,7 +26,7 @@
 #ifndef GUARD_MIOPEN_TEST_RANDOM_HPP
 #define GUARD_MIOPEN_TEST_RANDOM_HPP
 
-#include "../driver/random.hpp"
+#include <miopen/random.hpp>
 
 namespace prng {
 template <typename T>

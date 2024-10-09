@@ -29,7 +29,7 @@
 #include "driver.hpp"
 #include "gru_verify_gemm.hpp"
 #include "lstm_verify_gemm.hpp"
-#include "random.hpp"
+#include <miopen/random.hpp>
 #include "rnn_verify_gemm.hpp"
 #include "tensor_driver.hpp"
 #include "timer.hpp"
@@ -45,6 +45,7 @@
 #include <miopen/rnn.hpp>
 #include <miopen/tensor.hpp>
 #include <miopen/tensor_ops.hpp>
+#include <miopen/gpuMemTensor.hpp>
 
 #include <algorithm>
 #include <array>

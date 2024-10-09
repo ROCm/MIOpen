@@ -43,18 +43,18 @@
 #include <miopen/conv/tensors.hpp>
 #include <miopen/conv/data_invoke_params.hpp>
 #include <miopen/any_solver.hpp>
+#include <miopen/network_data.hpp>
 
 #include <utility>
 #include "driver.hpp"
 #include "get_handle.hpp"
-#include "tensor_holder.hpp"
+#include <miopen/tensor_holder.hpp>
 #include "verify.hpp"
 #include <miopen/stringutils.hpp>
 #include "tensor_util.hpp"
 #include <miopen/algorithm.hpp>
 #include "cpu_conv.hpp"
 #include "gpu_conv.hpp"
-#include "network_data.hpp"
 #include "miopen/find_db.hpp"
 #include "cpu_bias.hpp"
 #include "random.hpp"
