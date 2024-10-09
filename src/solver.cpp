@@ -43,7 +43,9 @@
 #include <miopen/rope/solvers.hpp>
 #include <miopen/mha/solvers.hpp>
 #include <miopen/mseloss/solvers.hpp>
+#include <miopen/softmarginloss/solvers.hpp>
 #include <miopen/softmax/solvers.hpp>
+#include <miopen/multimarginloss/solvers.hpp>
 
 #include <miopen/conv_algo_name.hpp>
 #include <miopen/db.hpp>
@@ -687,6 +689,19 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
 
     Register(registry, ++id, Primitive::Activation, glu::GLUForward{}.SolverDbId());
     Register(registry, ++id, Primitive::Activation, glu::GLUBackward{}.SolverDbId());
+
+    Register(registry,
+             ++id,
+             Primitive::SoftMarginLoss,
+             softmarginloss::SoftMarginLossForward{}.SolverDbId());
+    Register(registry,
+             ++id,
+             Primitive::SoftMarginLoss,
+             softmarginloss::SoftMarginLossBackward{}.SolverDbId());
+    Register(registry,
+             ++id,
+             Primitive::MultiMarginLoss,
+             multimarginloss::MultiMarginLossForward{}.SolverDbId());
 
     Register(registry, ++id, Primitive::Loss, mseloss::forward::MSELossForward{}.SolverDbId());
     Register(registry, ++id, Primitive::Loss, mseloss::backward::MSELossBackward{}.SolverDbId());
