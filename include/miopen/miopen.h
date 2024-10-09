@@ -7824,6 +7824,8 @@ MIOPEN_EXPORT miopenStatus_t miopenPReLUBackward(miopenHandle_t handle,
 // CLOSEOUT RELU DOXYGEN GROUP
 #endif // MIOPEN_BETA_API
 
+#ifdef MIOPEN_BETA_API
+
 /*! @ingroup LossFunction
  * @enum miopenLossReductionMode_t
  * Reduction mode for loss function
