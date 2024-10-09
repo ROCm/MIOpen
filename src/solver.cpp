@@ -43,6 +43,7 @@
 #include <miopen/softmarginloss/solvers.hpp>
 #include <miopen/softmax/solvers.hpp>
 #include <miopen/multimarginloss/solvers.hpp>
+#include <miopen/cumulative_reduction/solvers.hpp>
 
 #include <miopen/conv_algo_name.hpp>
 #include <miopen/db.hpp>
@@ -680,6 +681,7 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
 
     Register(registry, ++id, Primitive::RoPE, rope::RoPEForward{}.SolverDbId());
     Register(registry, ++id, Primitive::RoPE, rope::RoPEBackward{}.SolverDbId());
+
     Register(registry, ++id, Primitive::ReLU, prelu::MultiWeightsBackward{}.SolverDbId());
     Register(registry, ++id, Primitive::ReLU, prelu::SingleWeightBackward{}.SolverDbId());
     Register(registry, ++id, Primitive::Kthvalue, kthvalue::KthvalueFwd{}.SolverDbId());
@@ -699,6 +701,11 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
              ++id,
              Primitive::MultiMarginLoss,
              multimarginloss::MultiMarginLossForward{}.SolverDbId());
+
+    Register(registry,
+             ++id,
+             Primitive::Reduce,
+             cumulative_reduction::ForwardContiguousLastDim{}.SolverDbId());
 
     // IMPORTANT: New solvers should be added to the end of the function!
 }
