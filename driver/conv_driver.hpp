@@ -47,7 +47,7 @@
 #include <miopen/logger.hpp>
 #include <miopen/miopen.h>
 #include <miopen/miopen_internal.h>
-#include <miopen/solver.hpp>
+#include <miopen/conv/solvers.hpp>
 #include <miopen/tensor.hpp>
 
 #include <../test/cpu_bias.hpp>
@@ -932,13 +932,13 @@ int ConvDriver<Tgpu, Tref>::GetandSetData()
     SetConvDescriptorFromCmdLineArgs();
 
     std::vector<int> out_len = GetOutputTensorLengths();
-    if(miopen::deref(inputTensor).GetLayout_t() == miopenTensorNCHWc4 ||
-       miopen::deref(inputTensor).GetLayout_t() == miopenTensorNCHWc8)
+    if(miopen::deref(inputTensor).GetLayoutEnum() == miopenTensorNCHWc4 ||
+       miopen::deref(inputTensor).GetLayoutEnum() == miopenTensorNCHWc8)
     {
         out_len[1] *= miopen::deref(inputTensor).GetVectorLength();
     }
-    if(miopen::deref(inputTensor).GetLayout_t() == miopenTensorCHWNc4 ||
-       miopen::deref(inputTensor).GetLayout_t() == miopenTensorCHWNc8)
+    if(miopen::deref(inputTensor).GetLayoutEnum() == miopenTensorCHWNc4 ||
+       miopen::deref(inputTensor).GetLayoutEnum() == miopenTensorCHWNc8)
     {
         out_len[0] *= miopen::deref(inputTensor).GetVectorLength();
     }
@@ -1799,7 +1799,7 @@ void ConvDriver<Tgpu, Tref>::PrintForwardTime(const float kernel_total_time,
     const auto num_dim = miopen::deref(inputTensor).GetNumDims() - 2;
     if(num_dim != 2 && num_dim != 3)
     {
-        printf("stats: <not implemented> for conv%dd\n", num_dim);
+        printf("stats: <not implemented> for conv%ud\n", num_dim);
         return;
     }
 
@@ -1829,7 +1829,7 @@ void ConvDriver<Tgpu, Tref>::PrintForwardTime(const float kernel_total_time,
 
         printf("stats: name, n, c, ho, wo, x, y, k, flopCnt, bytesRead, bytesWritten, GFLOPs, "
                "GB/s, timeMs\n");
-        printf("stats: %s%dx%du%d, %u, %u, %u, %u, %u, %u, %u,  %zu, %zu, %zu, %.0f, %.0f, %f\n",
+        printf("stats: %s%dx%du%d, %d, %d, %d, %d, %d, %d, %d,  %zu, %zu, %zu, %.0f, %.0f, %f\n",
                "fwd-conv",
                wei_h,
                wei_w,
@@ -1874,7 +1874,7 @@ void ConvDriver<Tgpu, Tref>::PrintForwardTime(const float kernel_total_time,
         printf("stats: name  , n, c, do, ho, wo, z, y, x, k, flopCnt, bytesRead, bytesWritten, "
                "GFLOPs, "
                "GB/s, timeMs\n");
-        printf("stats: %s%dx%dx%du%d, %u, %u, %u, %u, %u, %u, %u, %u, %u,  %zu, %zu, %zu, "
+        printf("stats: %s%dx%dx%du%d, %d, %d, %d, %d, %d, %d, %d, %d, %d,  %zu, %zu, %zu, "
                "%.0f, %.0f, %f\n",
                "fwd-conv",
                wei_d,
@@ -2717,7 +2717,7 @@ void ConvDriver<Tgpu, Tref>::PrintBackwardDataTime(float kernel_total_time, floa
     const auto num_dim = miopen::deref(inputTensor).GetNumDims() - 2;
     if(num_dim != 2 && num_dim != 3)
     {
-        printf("stats: <not implemented> for conv%dd\n", num_dim);
+        printf("stats: <not implemented> for conv%ud\n", num_dim);
         return;
     }
 
@@ -2747,7 +2747,7 @@ void ConvDriver<Tgpu, Tref>::PrintBackwardDataTime(float kernel_total_time, floa
 
         printf("stats: name, n, c, ho, wo, x, y, k, flopCnt, bytesRead, bytesWritten, GFLOPs, "
                "GB/s, timeMs\n");
-        printf("stats: %s%dx%du%d, %u, %u, %u, %u, %u, %u, %u,  %zu, %zu, %zu, %.0f, %.0f, %f\n",
+        printf("stats: %s%dx%du%d, %d, %d, %d, %d, %d, %d, %d,  %zu, %zu, %zu, %.0f, %.0f, %f\n",
                "bwdd-conv",
                wei_h,
                wei_w,
@@ -2792,7 +2792,7 @@ void ConvDriver<Tgpu, Tref>::PrintBackwardDataTime(float kernel_total_time, floa
         printf(
             "stats: name, n, c, do, ho, wo, z, x, y, k, flopCnt, bytesRead, bytesWritten, GFLOPs, "
             "GB/s, timeMs\n");
-        printf("stats: %s%dx%dx%du%d, %u, %u, %u, %u, %u, %u, %u, %u, %u  %zu, %zu, %zu, %.0f, "
+        printf("stats: %s%dx%dx%du%d, %d, %d, %d, %d, %d, %d, %d, %d, %d  %zu, %zu, %zu, %.0f, "
                "%.0f, %f\n",
                "bwdd-conv",
                wei_d,
@@ -2928,7 +2928,7 @@ void ConvDriver<Tgpu, Tref>::PrintBackwardWrwTime(float kernel_total_time, float
     const auto num_dim = miopen::deref(inputTensor).GetNumDims() - 2;
     if(num_dim != 2 && num_dim != 3)
     {
-        printf("stats: <not implemented> for conv%dd\n", num_dim);
+        printf("stats: <not implemented> for conv%ud\n", num_dim);
         return;
     }
 
@@ -2952,7 +2952,7 @@ void ConvDriver<Tgpu, Tref>::PrintBackwardWrwTime(float kernel_total_time, float
 
         printf("stats: name, n, c, ho, wo, x, y, k, flopCnt, bytesRead, bytesWritten, GFLOPs, "
                "GB/s, timeMs\n");
-        printf("stats: %s%dx%du%d, %u, %u, %u, %u, %u, %u, %u,  %zu, %zu, %zu, %.0f, %.0f, %f\n",
+        printf("stats: %s%dx%du%d, %d, %d, %d, %d, %d, %d, %d,  %zu, %zu, %zu, %.0f, %.0f, %f\n",
                "bwdw-conv",
                wei_h,
                wei_w,
@@ -2991,7 +2991,7 @@ void ConvDriver<Tgpu, Tref>::PrintBackwardWrwTime(float kernel_total_time, float
         printf(
             "stats: name, n, c, do, ho, wo, z, x, y, k, flopCnt, bytesRead, bytesWritten, GFLOPs, "
             "GB/s, timeMs\n");
-        printf("stats: %s%dx%dx%du%d, %u, %u, %u, %u, %u, %u, %u, %u, %u,  %zu, %zu, %zu, %.0f, "
+        printf("stats: %s%dx%dx%du%d, %d, %d, %d, %d, %d, %d, %d, %d, %d,  %zu, %zu, %zu, %.0f, "
                "%.0f, %f\n",
                "bwdw-conv",
                wei_d,

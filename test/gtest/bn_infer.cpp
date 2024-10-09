@@ -71,22 +71,22 @@ INSTANTIATE_TEST_SUITE_P(Smoke,
                          testing::Combine(testing::ValuesIn(Network1<BNTestCase>()),
                                           testing::Values(miopenTensorNCHW)));
 
-INSTANTIATE_TEST_SUITE_P(BNInferTestHalfSuiteNHWC,
+INSTANTIATE_TEST_SUITE_P(Smoke,
                          GPU_BNInferNHWC_FP16,
                          testing::Combine(testing::ValuesIn(Network1<BNTestCase>()),
                                           testing::Values(miopenTensorNHWC)));
 
-INSTANTIATE_TEST_SUITE_P(BNInferTestFloatSuite,
+INSTANTIATE_TEST_SUITE_P(Smoke,
                          GPU_BNInfer_FP32,
                          testing::Combine(testing::ValuesIn(Network1<BNTestCase>()),
                                           testing::ValuesIn({miopenTensorNHWC, miopenTensorNCHW})));
 
-INSTANTIATE_TEST_SUITE_P(BNInferTestDoubleNHWCSuite,
+INSTANTIATE_TEST_SUITE_P(Smoke,
                          GPU_BNInfer_FP64,
                          testing::Combine(testing::ValuesIn(Network1<BNTestCase>()),
                                           testing::ValuesIn({miopenTensorNHWC})));
 
-INSTANTIATE_TEST_SUITE_P(BNInferTestBFloat16NHWCSuite,
+INSTANTIATE_TEST_SUITE_P(Smoke,
                          GPU_BNInfer_BFP16,
                          testing::Combine(testing::ValuesIn(Network1<BNTestCase>()),
                                           testing::ValuesIn({miopenTensorNHWC})));

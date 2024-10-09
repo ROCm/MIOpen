@@ -28,7 +28,8 @@
 
 #include <limits>
 #include <cassert>
-#include <miopen/solver.hpp>
+#include <miopen/buffer_info.hpp>
+#include <miopen/conv/solvers.hpp>
 #include <miopen/env.hpp>
 #include <miopen/gcn_asm_utils.hpp>
 #include <miopen/tensor.hpp>

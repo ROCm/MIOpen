@@ -121,17 +121,12 @@ std::string ProblemDescription::GetAlphaBetaCaseStr() const
 
 void ProblemDescription::HeuristicUpdateLayouts()
 {
-    const std::string labels = tensor_layout_get_default(in_layout.size());
-
     static const std::vector<std::string> supported_layouts = {"NCHW", "NHWC", "CHWN", "NCDHW"};
+
     for(const std::string& layout : supported_layouts)
     {
-        // Skip layouts that doesn't match dimension sizes
-        if(layout.size() != labels.size())
-            continue;
-
-        if(in.IsPossibleLayout(labels, layout) && out.IsPossibleLayout(labels, layout) &&
-           weights.IsPossibleLayout(labels, layout))
+        if(in.IsPossibleLayout4D5D(layout) && out.IsPossibleLayout4D5D(layout) &&
+           weights.IsPossibleLayout4D5D(layout))
         {
             in_layout      = layout;
             weights_layout = layout;
@@ -293,6 +288,17 @@ void ProblemDescription::SetupFloats(ExecutionContext& ctx) const
                  << GetDataTypeName(GetInDataType()) << "x" << GetDataTypeName(GetWeightsDataType())
                  << "x" << GetDataTypeName(GetOutDataType()));
 }
+
+std::string ProblemDescription::ComputeLayout(const TensorDescriptor& td) const
+{
+    return td.GetLayout_str();
+}
+
+std::string ProblemDescription::ComputeInLayout() const { return ComputeLayout(in); }
+
+std::string ProblemDescription::ComputeOutLayout() const { return ComputeLayout(out); }
+
+std::string ProblemDescription::ComputeWeightsLayout() const { return ComputeLayout(weights); }
 
 } // namespace conv
 } // namespace miopen

@@ -29,6 +29,7 @@
 
 #include "get_handle.hpp"
 #include <miopen/conv/data_invoke_params.hpp>
+#include <miopen/conv/solvers.hpp>
 #include <miopen/conv/wrw_invoke_params.hpp>
 
 #include "../driver/tensor_driver.hpp"

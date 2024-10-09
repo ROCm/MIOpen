@@ -38,7 +38,7 @@ function(add_gtest TEST_NAME TEST_CPP)
   if(hipblaslt_FOUND)
     target_link_libraries( ${TEST_NAME} roc::hipblaslt )
   endif()
-  # Workaround : change in rocm-cmake was causing linking error so had to add ${CMAKE_DL_LIBS} 
+  # Workaround : change in rocm-cmake was causing linking error so had to add ${CMAKE_DL_LIBS}
   #               We can remove ${CMAKE_DL_LIBS} once root cause is identified.
   target_link_libraries(${TEST_NAME} ${CMAKE_DL_LIBS} GTest::gtest GTest::gtest_main MIOpen ${Boost_LIBRARIES} hip::host $<BUILD_INTERFACE:roc::rocblas> )
   if(NOT MIOPEN_EMBED_DB STREQUAL "")
@@ -58,10 +58,29 @@ function(add_gtest TEST_NAME TEST_CPP)
     "ENVIRONMENT;MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=${MIOPEN_DEBUG_TUNING_ITERATIONS_MAX};"
     "ENVIRONMENT;MIOPEN_TEST_WITH_MIOPENDRIVER=${MIOPEN_TEST_WITH_MIOPENDRIVER};")
 
+    set(MIOPEN_GTEST_PREFIX)
+
+    if (MIOPEN_TEST_ALL)
+      set(MIOPEN_GTEST_PREFIX "")
+    else()
+      set(MIOPEN_GTEST_PREFIX "Smoke")
+    endif()
+
+    set(MIOPEN_GTEST_FILTER "${MIOPEN_GTEST_PREFIX}*${MIOPEN_GTEST_SUFFIX}*")
+
+    #it prints the message only once
+    set(TMPFNAME _dummy_static_variable_${name})
+    if (NOT COMMAND ${TMPFNAME})
+      message(STATUS "TEST_FILTER ${MIOPEN_GTEST_FILTER}")
+      # Define a function so next time it will exist
+      function(${TMPFNAME})
+      endfunction()
+    endif()
+
     # Enable CMake to discover the test binary
     # Note: Due to the following cmake issue with gtest_discover_tests https://gitlab.kitware.com/cmake/cmake/-/issues/17812 you cannot pass PROPERTIES as a list.
     #       To work around this limitation, we are passing the environment variables in the format ENVIRONMENT;value1=${value1};ENVIRONMENT;value2=${value2}.
-    gtest_discover_tests(${TEST_NAME} DISCOVERY_TIMEOUT 300 DISCOVERY_MODE PRE_TEST WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/${DATABASE_INSTALL_DIR} PROPERTIES ${TEST_ENVIRONMENT_VARIABLES})
+    gtest_discover_tests(${TEST_NAME} DISCOVERY_TIMEOUT 300 DISCOVERY_MODE PRE_TEST WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/${DATABASE_INSTALL_DIR} PROPERTIES ${TEST_ENVIRONMENT_VARIABLES} TEST_FILTER "${MIOPEN_GTEST_FILTER}")
   endif()
   target_link_libraries(${TEST_NAME} BZip2::BZip2)
   if(WIN32)
@@ -106,6 +125,20 @@ else()
   endforeach()
 
   add_gtest(miopen_gtest "${TESTS_CPP}")
+
+  add_custom_command(
+    OUTPUT test_list
+    COMMAND miopen_gtest --gtest_list_tests > test_list
+    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/check_names.py --list test_list
+    DEPENDS miopen_gtest ${CMAKE_CURRENT_SOURCE_DIR}/check_names.py
+    COMMENT "Checking test names"
+    VERBATIM
+  )
+
+  add_custom_target(
+    miopen_gtest_check
+    DEPENDS test_list
+  )
 
   if( NOT ENABLE_ASAN_PACKAGING )
     install(TARGETS miopen_gtest

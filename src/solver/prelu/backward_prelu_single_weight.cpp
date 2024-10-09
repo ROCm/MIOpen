@@ -24,8 +24,10 @@
  *
  *******************************************************************************/
 
+#include <miopen/buffer_info.hpp>
 #include <miopen/datatype.hpp>
 #include <miopen/kernel_build_params.hpp>
+#include <miopen/mlo_internal.hpp>
 #include <miopen/tensor_view_utils.hpp>
 #include <miopen/prelu/invoke_params.hpp>
 #include <miopen/prelu/solvers.hpp>
@@ -97,7 +99,6 @@ SingleWeightBackward::GetSolution(const ExecutionContext& /*context*/,
             {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
             {"MIOPEN_USE_FP64", static_cast<int>(dtype == miopenDouble)},
             {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
-            {"OUTPUT_TYPE", input_dtype == "bfloat16" ? "ushort" : input_dtype},
             {"REDUCE_SIZE", LOCAL_SIZE_SW_REDUCE_BWD},
         };
         while(size > LOCAL_SIZE_SW_REDUCE_BWD)
