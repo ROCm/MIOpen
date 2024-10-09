@@ -32,6 +32,8 @@ namespace miopen {
 struct Handle;
 struct TensorDescriptor;
 
+namespace logcumsumexp {
+
 MIOPEN_INTERNALS_EXPORT miopenStatus_t LogCumSumExpForward(Handle& handle,
                                                            const TensorDescriptor& inputDesc,
                                                            ConstData_t input,
@@ -53,5 +55,7 @@ MIOPEN_INTERNALS_EXPORT miopenStatus_t LogCumSumExpBackward(Handle& handle,
                                                             int dim,
                                                             bool exclusive,
                                                             bool reverse);
+
+} // namespace logcumsumexp
 
 } // namespace miopen

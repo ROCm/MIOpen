@@ -27,29 +27,7 @@
 #include "logcumsumexp.hpp"
 #include <miopen/env.hpp>
 
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
-
 namespace logcumsumexp {
-
-std::string GetFloatArg()
-{
-    const auto& tmp = env::value(MIOPEN_TEST_FLOAT_ARG);
-    if(tmp.empty())
-    {
-        return "";
-    }
-    return tmp;
-}
-
-bool CheckFloatArg(std::string arg)
-{
-    if(!MIOPEN_TEST_ALL || (env::enabled(MIOPEN_TEST_ALL) && GetFloatArg() == arg))
-    {
-        return true;
-    }
-    return false;
-}
 
 struct GPU_LogCumSumExp_bwd_FP32 : LogCumSumExpTestBwd<float>
 {
@@ -59,7 +37,7 @@ struct GPU_LogCumSumExp_bwd_FP16 : LogCumSumExpTestBwd<half>
 {
 };
 
-struct GPU_LogCumSumExp_bwd_BPF16 : LogCumSumExpTestBwd<bfloat16>
+struct GPU_LogCumSumExp_bwd_BFP16 : LogCumSumExpTestBwd<bfloat16>
 {
 };
 
@@ -68,41 +46,20 @@ using namespace logcumsumexp;
 
 TEST_P(GPU_LogCumSumExp_bwd_FP32, Test)
 {
-    if(CheckFloatArg("--float"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 };
 
 TEST_P(GPU_LogCumSumExp_bwd_FP16, Test)
 {
-    if(CheckFloatArg("--half"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 };
 
-TEST_P(GPU_LogCumSumExp_bwd_BPF16, Test)
+TEST_P(GPU_LogCumSumExp_bwd_BFP16, Test)
 {
-    if(CheckFloatArg("--bfloat16"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 };
 
 INSTANTIATE_TEST_SUITE_P(Smoke,
@@ -112,7 +69,7 @@ INSTANTIATE_TEST_SUITE_P(Smoke,
                          GPU_LogCumSumExp_bwd_FP16,
                          testing::ValuesIn(LogCumSumExpSmokeTestConfigs()));
 INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_LogCumSumExp_bwd_BPF16,
+                         GPU_LogCumSumExp_bwd_BFP16,
                          testing::ValuesIn(LogCumSumExpSmokeTestConfigs()));
 
 INSTANTIATE_TEST_SUITE_P(Perf,
@@ -122,7 +79,7 @@ INSTANTIATE_TEST_SUITE_P(Perf,
                          GPU_LogCumSumExp_bwd_FP16,
                          testing::ValuesIn(LogCumSumExpPerfTestConfigs()));
 INSTANTIATE_TEST_SUITE_P(Perf,
-                         GPU_LogCumSumExp_bwd_BPF16,
+                         GPU_LogCumSumExp_bwd_BFP16,
                          testing::ValuesIn(LogCumSumExpPerfTestConfigs()));
 
 INSTANTIATE_TEST_SUITE_P(Full,
@@ -132,5 +89,5 @@ INSTANTIATE_TEST_SUITE_P(Full,
                          GPU_LogCumSumExp_bwd_FP16,
                          testing::ValuesIn(LogCumSumExpFullTestConfigs()));
 INSTANTIATE_TEST_SUITE_P(Full,
-                         GPU_LogCumSumExp_bwd_BPF16,
+                         GPU_LogCumSumExp_bwd_BFP16,
                          testing::ValuesIn(LogCumSumExpFullTestConfigs()));

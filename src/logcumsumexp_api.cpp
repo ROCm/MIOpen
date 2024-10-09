@@ -84,14 +84,14 @@ extern "C" miopenStatus_t miopenLogCumSumExpForward(miopenHandle_t handle,
 
     LogCmdLogCumSumExp(inputDesc, outputDesc, nullptr, nullptr, dim, exclusive, reverse, true);
     return miopen::try_([&] {
-        miopen::LogCumSumExpForward(miopen::deref(handle),
-                                    miopen::deref(inputDesc),
-                                    DataCast(input),
-                                    miopen::deref(outputDesc),
-                                    DataCast(output),
-                                    dim,
-                                    exclusive,
-                                    reverse);
+        miopen::logcumsumexp::LogCumSumExpForward(miopen::deref(handle),
+                                                  miopen::deref(inputDesc),
+                                                  DataCast(input),
+                                                  miopen::deref(outputDesc),
+                                                  DataCast(output),
+                                                  dim,
+                                                  exclusive,
+                                                  reverse);
     });
 }
 
@@ -124,17 +124,17 @@ extern "C" miopenStatus_t miopenLogCumSumExpBackward(miopenHandle_t handle,
     LogCmdLogCumSumExp(
         inputDesc, outputDesc, doutputDesc, dinputDesc, dim, exclusive, reverse, false);
     return miopen::try_([&] {
-        miopen::LogCumSumExpBackward(miopen::deref(handle),
-                                     miopen::deref(inputDesc),
-                                     DataCast(input),
-                                     miopen::deref(outputDesc),
-                                     DataCast(output),
-                                     miopen::deref(doutputDesc),
-                                     DataCast(doutput),
-                                     miopen::deref(dinputDesc),
-                                     DataCast(dinput),
-                                     dim,
-                                     exclusive,
-                                     reverse);
+        miopen::logcumsumexp::LogCumSumExpBackward(miopen::deref(handle),
+                                                   miopen::deref(inputDesc),
+                                                   DataCast(input),
+                                                   miopen::deref(outputDesc),
+                                                   DataCast(output),
+                                                   miopen::deref(doutputDesc),
+                                                   DataCast(doutput),
+                                                   miopen::deref(dinputDesc),
+                                                   DataCast(dinput),
+                                                   dim,
+                                                   exclusive,
+                                                   reverse);
     });
 }

@@ -31,6 +31,7 @@
 #include <miopen/logcumsumexp/solvers.hpp>
 
 namespace miopen {
+namespace logcumsumexp {
 
 miopenStatus_t LogCumSumExpForward(Handle& handle,
                                    const TensorDescriptor& inputDesc,
@@ -113,4 +114,5 @@ miopenStatus_t LogCumSumExpBackward(Handle& handle,
     return miopenStatusSuccess;
 }
 
+} // namespace logcumsumexp
 } // namespace miopen

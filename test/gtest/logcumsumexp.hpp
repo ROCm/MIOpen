@@ -206,14 +206,14 @@ protected:
         auto&& handle = get_handle();
         miopenStatus_t status;
 
-        status = miopen::LogCumSumExpForward(handle,
-                                             input.desc,
-                                             input_dev.get(),
-                                             output.desc,
-                                             output_dev.get(),
-                                             logcumsumexp_config.dim,
-                                             logcumsumexp_config.exclusive,
-                                             logcumsumexp_config.reverse);
+        status = miopen::logcumsumexp::LogCumSumExpForward(handle,
+                                                           input.desc,
+                                                           input_dev.get(),
+                                                           output.desc,
+                                                           output_dev.get(),
+                                                           logcumsumexp_config.dim,
+                                                           logcumsumexp_config.exclusive,
+                                                           logcumsumexp_config.reverse);
         EXPECT_EQ(status, miopenStatusSuccess);
         output.data = handle.Read<T>(output_dev, output.data.size());
     }
@@ -296,18 +296,18 @@ protected:
                                      logcumsumexp_config.reverse);
 
         auto&& handle = get_handle();
-        auto status   = miopen::LogCumSumExpBackward(handle,
-                                                   input.desc,
-                                                   input_dev.get(),
-                                                   output.desc,
-                                                   output_dev.get(),
-                                                   doutput.desc,
-                                                   doutput_dev.get(),
-                                                   dinput.desc,
-                                                   dinput_dev.get(),
-                                                   logcumsumexp_config.dim,
-                                                   logcumsumexp_config.exclusive,
-                                                   logcumsumexp_config.reverse);
+        auto status   = miopen::logcumsumexp::LogCumSumExpBackward(handle,
+                                                                 input.desc,
+                                                                 input_dev.get(),
+                                                                 output.desc,
+                                                                 output_dev.get(),
+                                                                 doutput.desc,
+                                                                 doutput_dev.get(),
+                                                                 dinput.desc,
+                                                                 dinput_dev.get(),
+                                                                 logcumsumexp_config.dim,
+                                                                 logcumsumexp_config.exclusive,
+                                                                 logcumsumexp_config.reverse);
         EXPECT_EQ(status, miopenStatusSuccess);
         dinput.data = handle.Read<T>(dinput_dev, dinput.data.size());
     }
