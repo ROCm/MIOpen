@@ -56,11 +56,7 @@ auto GetConvTestCasesFull(miopenDataType_t datatype)
     return cases;
 }
 
-Gpu GetSupportedDevices()
-{
-    return Gpu::gfx900 | Gpu::gfx906 | Gpu::gfx908 | Gpu::gfx90A | Gpu::gfx94X | Gpu::gfx103X |
-           Gpu::gfx110X;
-}
+Gpu GetSupportedDevices() { return Gpu::All; }
 
 } // namespace
 
@@ -69,7 +65,7 @@ TEST_P(GPU_UnitTestConvSolverBwd_FP16, GemmBwdRest)
     this->RunTest(miopen::solver::conv::GemmBwdRest{});
 };
 
-TEST_P(GPU_UnitTestConvSolverBwd_BF16, GemmBwdRest)
+TEST_P(GPU_UnitTestConvSolverBwd_BFP16, GemmBwdRest)
 {
     this->RunTest(miopen::solver::conv::GemmBwdRest{});
 };
@@ -92,7 +88,7 @@ INSTANTIATE_TEST_SUITE_P(Smoke,
                                           testing::ValuesIn(GetConvTestCases(miopenHalf))));
 
 INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_UnitTestConvSolverBwd_BF16,
+                         GPU_UnitTestConvSolverBwd_BFP16,
                          testing::Combine(testing::Values(GetSupportedDevices()),
                                           testing::Values(miopenConvolutionAlgoGEMM),
                                           testing::ValuesIn(GetConvTestCases(miopenBFloat16))));

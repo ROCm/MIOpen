@@ -24,11 +24,9 @@
  *
  *******************************************************************************/
 #include <gtest/gtest.h>
+#include <gtest/gtest_ck_common.hpp>
 #include <miopen/miopen.h>
 #include <miopen/env.hpp>
-#if MIOPEN_USE_COMPOSABLEKERNEL
-#include <miopen/solver/ck_utility_common.hpp>
-#endif
 
 #include "tensor_util.hpp"
 #include "get_handle.hpp"
@@ -38,28 +36,16 @@
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
 
-#if MIOPEN_USE_COMPOSABLEKERNEL
-#define WORAROUND_ISSUE_2533 1
-#endif
-
 namespace conv_bias_act_res_add_fwd {
 
 bool TestIsApplicable()
 {
-#if MIOPEN_USE_COMPOSABLEKERNEL
     const auto float_arg = env::value(MIOPEN_TEST_FLOAT_ARG);
-    return
-#if WORAROUND_ISSUE_2533
-        miopen::solver::ck_utility::is_ck_whitelist(get_handle().GetDeviceName()) //
-#else
     /// \todo Check against specific ASCIs.
-#endif
-        && (float_arg == "--half"           // So far only test for fp16 is implemented.
-            || float_arg.empty())           // Empty when gtest is run without parameters.
-        && !env::disabled(MIOPEN_TEST_ALL); // Not disabled when gtest is run without parameters.
-#else
-    return false;
-#endif
+    return ::IsDeviceSupportedForCK() &&
+           (float_arg == "--half"              // So far only test for fp16 is implemented.
+            || float_arg.empty())              // Empty when gtest is run without parameters.
+           && !env::disabled(MIOPEN_TEST_ALL); // Not disabled when gtest is run without parameters.
 }
 
 std::vector<Conv3DTestCase> ConvTestConfigs()

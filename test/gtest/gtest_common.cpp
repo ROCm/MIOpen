@@ -60,6 +60,8 @@ Gpu GetDevGpuType()
             return Gpu::gfx103X;
         else if(miopen::StartsWith(dev_name, "gfx110"))
             return Gpu::gfx110X;
+        else if(miopen::StartsWith(dev_name, "gfx120"))
+            return Gpu::gfx120X;
         else
             throw std::runtime_error("unknown_gpu");
     }();
@@ -69,7 +71,7 @@ Gpu GetDevGpuType()
 
 const std::multimap<Gpu, DevDescription>& GetAllKnownDevices()
 {
-    static_assert(Gpu::gfx110X == Gpu::gfxLast);
+    static_assert(Gpu::gfx120X == Gpu::gfxLast);
 
     // https://rocm.docs.amd.com/en/latest/reference/gpu-arch-specs.html
     static const std::multimap<Gpu, DevDescription> known_devs = {
@@ -99,6 +101,7 @@ const std::multimap<Gpu, DevDescription>& GetAllKnownDevices()
         {Gpu::gfx110X, {"gfx1101", 27}},
         {Gpu::gfx110X, {"gfx1101", 30}},
         {Gpu::gfx110X, {"gfx1102", 16}},
+        {Gpu::gfx120X, {"gfx1201", 10000}}, //\todo 10000 is a dummy value, replace with real value.
         // clang-format on
     };
     return known_devs;

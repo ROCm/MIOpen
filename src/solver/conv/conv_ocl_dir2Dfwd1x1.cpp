@@ -26,7 +26,7 @@
 
 #include <miopen/handle.hpp>
 #include <miopen/legacy_exhaustive_search.hpp>
-#include <miopen/solver.hpp>
+#include <miopen/conv/solvers.hpp>
 #include <miopen/env.hpp>
 #include <miopen/conv/invokers/gen_x_w_y_pad.hpp>
 #include <miopen/stringutils.hpp>

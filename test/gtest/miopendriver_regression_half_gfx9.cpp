@@ -50,7 +50,7 @@ std::vector<std::string> GetTestCases()
 
 using TestCase = decltype(GetTestCases())::value_type;
 
-class MIOpenDriverRegressionHalfGfx9Test : public testing::TestWithParam<std::vector<TestCase>>
+class GPU_MIOpenDriverRegressionGfx9Test_FP16 : public testing::TestWithParam<std::vector<TestCase>>
 {
 };
 
@@ -63,14 +63,17 @@ void RunMIOpenDriver()
         GTEST_SKIP();
     }
 
-    RunMIOpenDriverTestCommand(MIOpenDriverRegressionHalfGfx9Test::GetParam());
+    RunMIOpenDriverTestCommand(GPU_MIOpenDriverRegressionGfx9Test_FP16::GetParam());
 };
 
 } // namespace miopendriver_regression_half_gfx9
 using namespace miopendriver_regression_half_gfx9;
 
-TEST_P(MIOpenDriverRegressionHalfGfx9Test, MIOpenDriverRegressionHalfGfx9) { RunMIOpenDriver(); };
+TEST_P(GPU_MIOpenDriverRegressionGfx9Test_FP16, MIOpenDriverRegressionHalfGfx9)
+{
+    RunMIOpenDriver();
+};
 
-INSTANTIATE_TEST_SUITE_P(MIOpenDriverRegressionHalfGfx9TestSet,
-                         MIOpenDriverRegressionHalfGfx9Test,
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_MIOpenDriverRegressionGfx9Test_FP16,
                          testing::Values(GetTestCases()));

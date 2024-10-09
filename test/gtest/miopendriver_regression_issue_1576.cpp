@@ -48,7 +48,8 @@ std::vector<std::string> GetTestCases()
 
 using TestCase = decltype(GetTestCases())::value_type;
 
-class MIOpenDriverRegressionIssue1576Test : public testing::TestWithParam<std::vector<TestCase>>
+class GPU_MIOpenDriverRegressionIssue1576Test_FP16
+    : public testing::TestWithParam<std::vector<TestCase>>
 {
 };
 
@@ -64,15 +65,18 @@ void RunMIOpenDriver()
     miopen::ProcessEnvironmentMap environmentVariables = {
         {"MIOPEN_FIND_MODE", "1"}, {"MIOPEN_DEBUG_FIND_ONLY_SOLVER", "ConvDirectNaiveConvBwd"}};
 
-    RunMIOpenDriverTestCommand(MIOpenDriverRegressionIssue1576Test::GetParam(),
+    RunMIOpenDriverTestCommand(GPU_MIOpenDriverRegressionIssue1576Test_FP16::GetParam(),
                                environmentVariables);
 };
 
 } // namespace miopendriver_regression_issue_1576
 using namespace miopendriver_regression_issue_1576;
 
-TEST_P(MIOpenDriverRegressionIssue1576Test, MIOpenDriverRegressionIssue1576) { RunMIOpenDriver(); };
+TEST_P(GPU_MIOpenDriverRegressionIssue1576Test_FP16, MIOpenDriverRegressionIssue1576)
+{
+    RunMIOpenDriver();
+};
 
-INSTANTIATE_TEST_SUITE_P(MIOpenDriverRegressionIssue1576TestSet,
-                         MIOpenDriverRegressionIssue1576Test,
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_MIOpenDriverRegressionIssue1576Test_FP16,
                          testing::Values(GetTestCases()));

@@ -73,13 +73,11 @@ std::vector<std::string> GetTestCases(const std::string& precision)
     // clang-format on
 }
 
-class ConfigWithFloat_reduce_custom_fp32_fp16
-    : public testing::TestWithParam<std::vector<std::string>>
+class GPU_reduce_custom_fp32_fp16_FP32 : public testing::TestWithParam<std::vector<std::string>>
 {
 };
 
-class ConfigWithHalf_reduce_custom_fp32_fp16
-    : public testing::TestWithParam<std::vector<std::string>>
+class GPU_reduce_custom_fp32_fp16_FP16 : public testing::TestWithParam<std::vector<std::string>>
 {
 };
 
@@ -95,8 +93,8 @@ void Run2dDriver(miopenDataType_t prec)
     std::vector<std::string> params;
     switch(prec)
     {
-    case miopenFloat: params = ConfigWithFloat_reduce_custom_fp32_fp16::GetParam(); break;
-    case miopenHalf: params = ConfigWithHalf_reduce_custom_fp32_fp16::GetParam(); break;
+    case miopenFloat: params = GPU_reduce_custom_fp32_fp16_FP32::GetParam(); break;
+    case miopenHalf: params = GPU_reduce_custom_fp32_fp16_FP16::GetParam(); break;
     case miopenInt8:
     case miopenBFloat16:
     case miopenInt32:
@@ -128,7 +126,7 @@ void Run2dDriver(miopenDataType_t prec)
 } // namespace reduce_custom_fp32_fp16
 using namespace reduce_custom_fp32_fp16;
 
-TEST_P(ConfigWithFloat_reduce_custom_fp32_fp16, FloatTest_reduce_custom_fp32_fp16)
+TEST_P(GPU_reduce_custom_fp32_fp16_FP32, FloatTest_reduce_custom_fp32_fp16)
 {
     if(!(IsTestSupportedForDevice()            //
          && (!MIOPEN_TEST_ALL                  // standalone run
@@ -141,7 +139,7 @@ TEST_P(ConfigWithFloat_reduce_custom_fp32_fp16, FloatTest_reduce_custom_fp32_fp1
     Run2dDriver(miopenFloat);
 };
 
-TEST_P(ConfigWithHalf_reduce_custom_fp32_fp16, HalfTest_reduce_custom_fp32_fp16)
+TEST_P(GPU_reduce_custom_fp32_fp16_FP16, HalfTest_reduce_custom_fp32_fp16)
 {
     if(!(IsTestSupportedForDevice()            //
          && (!MIOPEN_TEST_ALL                  // standalone run
@@ -154,10 +152,10 @@ TEST_P(ConfigWithHalf_reduce_custom_fp32_fp16, HalfTest_reduce_custom_fp32_fp16)
     Run2dDriver(miopenHalf);
 };
 
-INSTANTIATE_TEST_SUITE_P(ReduceCustomFp32,
-                         ConfigWithFloat_reduce_custom_fp32_fp16,
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_reduce_custom_fp32_fp16_FP32,
                          testing::Values(GetTestCases("--float")));
 
-INSTANTIATE_TEST_SUITE_P(ReduceCustomFp32,
-                         ConfigWithHalf_reduce_custom_fp32_fp16,
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_reduce_custom_fp32_fp16_FP16,
                          testing::Values(GetTestCases("--half")));

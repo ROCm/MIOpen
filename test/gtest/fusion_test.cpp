@@ -24,6 +24,7 @@
  *
  *******************************************************************************/
 #include <gtest/gtest.h>
+#include <gtest/gtest_common.hpp>
 #include <miopen/miopen.h>
 
 #include "tensor_holder.hpp"
@@ -31,6 +32,14 @@
 #include "cba.hpp"
 
 #if MIOPEN_BACKEND_HIP
+namespace {
+bool IsTestSupportedForDevice()
+{
+    using e_mask = enabled<Gpu::gfx94X, Gpu::gfx103X, Gpu::gfx110X>;
+    // gfx120X is not enabled due to WORKAROUND_SWDEV_479810
+    using d_mask = disabled<Gpu::None>;
+    return ::IsTestSupportedForDevMask<d_mask, e_mask>();
+}
 
 template <typename T>
 class FusionSetArgTest : public ConvBiasActivInferTest<T>
@@ -56,11 +65,11 @@ public:
     miopen::Allocator::ManageDataPtr wei_dev2;
 };
 
-struct GPU_FusionSetArg_FP16 : FusionSetArgTest<float>
-{
-};
-
 bool SkipTest() { return get_handle_xnack(); }
+
+} // namespace
+
+using GPU_FusionSetArg_FP16 = FusionSetArgTest<float>;
 
 TEST_P(GPU_FusionSetArg_FP16, TestSetArgApiCall)
 {
@@ -71,6 +80,11 @@ TEST_P(GPU_FusionSetArg_FP16, TestSetArgApiCall)
     {
         test_skipped = true;
         GTEST_SKIP() << "Fusion does not support xnack";
+    }
+    if(!IsTestSupportedForDevice())
+    {
+        test_skipped = true;
+        GTEST_SKIP() << "CBA fusion_test is not supported for this device";
     }
 
     using cba_float = cba<float>;

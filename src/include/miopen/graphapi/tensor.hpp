@@ -41,6 +41,9 @@ private:
     int64_t mId   = 0;
     bool mVirtual = false;
 
+    // Deprecated
+    using TensorDescriptor::GetLayout_t;
+
 public:
     Tensor() noexcept         = default;
     Tensor(const Tensor&)     = default;
@@ -60,9 +63,7 @@ public:
            const std::vector<std::size_t>& strides,
            int64_t id,
            bool isVirtual)
-        : TensorDescriptor(dataType, getLayout(strides), dimensions, strides),
-          mId(id),
-          mVirtual(isVirtual)
+        : TensorDescriptor(dataType, dimensions, strides), mId(id), mVirtual(isVirtual)
     {
     }
     Tensor(miopenDataType_t dataType,
@@ -70,7 +71,7 @@ public:
            std::vector<std::size_t>&& strides,
            int64_t id,
            bool isVirtual) noexcept
-        : TensorDescriptor(dataType, getLayout(strides), std::move(dimensions), std::move(strides)),
+        : TensorDescriptor(dataType, std::move(dimensions), std::move(strides)),
           mId(id),
           mVirtual(isVirtual)
     {
@@ -78,32 +79,6 @@ public:
 
     int64_t getId() const noexcept { return mId; }
     bool isVirtual() const noexcept { return mVirtual; }
-
-private:
-    static miopenTensorLayout_t getLayout(const std::vector<std::size_t>& strides)
-    {
-        if(strides.size() >= 4)
-        {
-            int stride_c = strides[1];
-
-            // If channels have the smallest stride, or are tied for smallest stride, then we are
-            // assuming NHWC format. Otherwise, assume NCHW format.
-            if(std::all_of(strides.cbegin(), strides.cend(), [stride_c](std::size_t x) {
-                   return x >= stride_c;
-               }))
-            {
-                return strides.size() == 4 ? miopenTensorLayout_t::miopenTensorNHWC
-                                           : miopenTensorLayout_t::miopenTensorNDHWC;
-            }
-            else
-            {
-                return strides.size() == 4 ? miopenTensorLayout_t::miopenTensorNCHW
-                                           : miopenTensorLayout_t::miopenTensorNCDHW;
-            }
-        }
-
-        return GetDefaultLayout();
-    }
 };
 
 class MIOPEN_INTERNALS_EXPORT TensorBuilder

@@ -28,22 +28,22 @@
 #if MIOPEN_BACKEND_HIP
 #include "log.hpp"
 
-TEST(LOG_TEST, AssertLogCmdOutput_Neg)
+TEST(CPU_LOG_TEST_NONE, AssertLogCmdOutput_Neg)
 {
     TestLogFun(miopen::debug::LogCmdConvolution, logConv, false);
 }
 
-TEST(LOG_TEST, AssertLogFindCmdOutput_Neg)
+TEST(CPU_LOG_TEST_NONE, AssertLogFindCmdOutput_Neg)
 {
     TestLogFun(miopen::debug::LogCmdFindConvolution, logFindConv, false);
 }
 
-TEST(LOG_TEST, AssertTestLogCmdCBAFusionOutput_Neg)
+TEST(CPU_LOG_TEST_NONE, AssertTestLogCmdCBAFusionOutput_Neg)
 {
     TestLogCmdCBAFusion(miopen::debug::LogCmdFusion, logFusionConvBiasActiv, false);
 }
 
-TEST(LOG_TEST, AssertTestLogCmdBNormFusionOutput_Neg)
+TEST(CPU_LOG_TEST_NONE, AssertTestLogCmdBNormFusionOutput_Neg)
 {
     TestLogCmdBNormFusion(miopen::debug::LogCmdFusion, logBnormActiv, false);
 }

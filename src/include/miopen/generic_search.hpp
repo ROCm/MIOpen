@@ -398,6 +398,7 @@ auto GenericSearch(const Solver s,
     std::shuffle(all_configs.begin(), all_configs.end(), rng);
     std::size_t n_runs_total = std::min(all_configs.size(), GetTuningIterationsMax());
     all_configs.resize(n_runs_total);
+    std::size_t patience = env::value(MIOPEN_TUNING_PATIENCE);
 
     if(all_configs.empty())
     {
@@ -443,11 +444,22 @@ auto GenericSearch(const Solver s,
     if(!env::enabled(MIOPEN_DEBUG_COMPILE_ONLY))
     {
         size_t n_current       = 0;
+        size_t last_imprv      = 0;
         auto threads_remaining = total_threads;
         while(true)
         {
             if(n_current >= n_runs_total)
+            {
+                MIOPEN_LOG_I2("Ending Search by total runs: " << n_runs_total);
                 break;
+            }
+            if(last_imprv >= patience)
+            {
+                MIOPEN_LOG_I2("Ending Search by patience: " << patience);
+                break;
+            }
+
+            last_imprv++;
             MIOPEN_LOG_I2("Waiting for item in queue");
             const auto kinder     = solution_queue.pop();
             auto current_config   = std::get<0>(kinder);
@@ -508,17 +520,18 @@ auto GenericSearch(const Solver s,
             if(ret == 0)
             {
                 // Smooth the jitter of measurements:
-                // If the 1st probe is NOT too bad (measured time <= 1.05 * best known time),
-                // then re-run it 4 times more and compute average time,
-                // and decide using average of all 5 attempts vs. the best.
-                if(elapsed_time / best_time < 1.05f)
+                // If the 1st probe is NOT too bad (measured time <= 1.10 * best known time),
+                // then re-run it 9 times more and compute average time,
+                // and decide using average of all 10 attempts vs. the best.
+                constexpr int N_RUNS = 10;
+                if(elapsed_time / best_time < 1.10f)
                 {
                     MIOPEN_LOG_I2("Finding average for: " << elapsed_time << " / " << best_time
                                                           << " = " << (elapsed_time / best_time));
 
                     try
                     {
-                        for(int i = 0; i < 4; ++i)
+                        for(int i = 1; i < N_RUNS; ++i)
                         {
                             invoker(profile_h, invoke_ctx);
                             elapsed_time += profile_h.GetKernelTime();
@@ -532,7 +545,7 @@ auto GenericSearch(const Solver s,
                     if(ret == 0)
                     {
                         is_passed = true;
-                        elapsed_time /= 5;
+                        elapsed_time /= N_RUNS;
                         if(elapsed_time < best_time)
                         {
                             MIOPEN_LOG_I('#' << n_current << '/' << n_failed << '/' << n_runs_total
@@ -541,6 +554,7 @@ auto GenericSearch(const Solver s,
                             best_config = current_config;
                             best_time   = elapsed_time;
                             n_best      = n_current;
+                            last_imprv  = 0;
                         }
                         else
                         {
