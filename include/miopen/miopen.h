@@ -2738,6 +2738,28 @@ miopenBatchNormalizationForwardTraining(miopenHandle_t handle,
                                         void* resultSaveMean,
                                         void* resultSaveInvVariance);
 
+MIOPEN_EXPORT miopenStatus_t
+miopenBatchNormalizationForwardTraining_V2(miopenHandle_t handle,
+                                           miopenBatchNormMode_t bn_mode,
+                                           void* alpha,
+                                           void* beta,
+                                           const miopenTensorDescriptor_t xDesc,
+                                           const void* x,
+                                           const miopenTensorDescriptor_t yDesc,
+                                           void* y,
+                                           const miopenTensorDescriptor_t scaleDesc,
+                                           const miopenTensorDescriptor_t biasVarDesc,
+                                           const miopenTensorDescriptor_t savedMeanDesc,
+                                           const miopenTensorDescriptor_t savedVarDesc,
+                                           void* bnScale,
+                                           void* bnBias,
+                                           double expAvgFactor,
+                                           void* resultRunningMean,
+                                           void* resultRunningVariance,
+                                           double epsilon,
+                                           void* resultSaveMean,
+                                           void* resultSaveInvVariance);
+
 /*! @brief Execute forward inference layer for batch normalization
  *
  * Batch normalization pass for forward inference pass.
@@ -2782,6 +2804,25 @@ miopenBatchNormalizationForwardInference(miopenHandle_t handle,
                                          void* estimatedMean,
                                          void* estimatedVariance,
                                          double epsilon);
+
+MIOPEN_EXPORT miopenStatus_t
+miopenBatchNormalizationForwardInference_V2(miopenHandle_t handle,
+                                            miopenBatchNormMode_t bn_mode,
+                                            void* alpha,
+                                            void* beta,
+                                            const miopenTensorDescriptor_t xDesc,
+                                            const void* x,
+                                            const miopenTensorDescriptor_t yDesc,
+                                            void* y,
+                                            const miopenTensorDescriptor_t scaleDesc,
+                                            const miopenTensorDescriptor_t BiasDesc,
+                                            const miopenTensorDescriptor_t estMeanDesc,
+                                            const miopenTensorDescriptor_t estVarianceDesc,
+                                            void* bnScale,
+                                            void* bnBias,
+                                            void* estimatedMean,
+                                            void* estimatedVariance,
+                                            double epsilon);
 
 /*! @brief Execute backwards propagation layer for batch normalization
  *
@@ -2837,6 +2878,30 @@ miopenBatchNormalizationBackward(miopenHandle_t handle,
                                  double epsilon,
                                  const void* savedMean,
                                  const void* savedInvVariance);
+
+MIOPEN_EXPORT miopenStatus_t
+miopenBatchNormalizationBackward_V2(miopenHandle_t handle,
+                                    miopenBatchNormMode_t bn_mode,
+                                    const void* alphaDataDiff,
+                                    const void* betaDataDiff,
+                                    const void* alphaParamDiff,
+                                    const void* betaParamDiff,
+                                    const miopenTensorDescriptor_t xDesc,
+                                    const void* x,
+                                    const miopenTensorDescriptor_t dyDesc,
+                                    const void* dy,
+                                    const miopenTensorDescriptor_t dxDesc,
+                                    void* dx,
+                                    const miopenTensorDescriptor_t scaleDesc,
+                                    const miopenTensorDescriptor_t biasDesc,
+                                    const miopenTensorDescriptor_t savedMeanDesc,
+                                    const miopenTensorDescriptor_t savedVarDesc,
+                                    const void* bnScale,
+                                    void* resultBnScaleDiff,
+                                    void* resultBnBiasDiff,
+                                    double epsilon,
+                                    const void* savedMean,
+                                    const void* savedInvVariance);
 
 /** @} */
 // CLOSEOUT BATCHNORM DOXYGEN GROUP
