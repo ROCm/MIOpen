@@ -68,20 +68,11 @@ struct WhereTestCase
         return os;
     }
 
-    const std::vector<size_t>& GetInputDim() const
-    {
-        return inDims;
-    }
+    const std::vector<size_t>& GetInputDim() const { return inDims; }
 
-    const std::vector<size_t>& GetOtherDim() const
-    {
-        return otherDims;
-    }
+    const std::vector<size_t>& GetOtherDim() const { return otherDims; }
 
-    const std::vector<size_t>& GetCondDim() const
-    {
-        return condDims;
-    }
+    const std::vector<size_t>& GetCondDim() const { return condDims; }
 
     WhereTestCase() {}
 
@@ -125,20 +116,20 @@ protected:
 
         outputGrad = tensor<T>{cond_dims}.generate(gen_value);
 
-            inputGrad = tensor<T>{in_dims};
-            std::fill(inputGrad.begin(), inputGrad.end(), std::numeric_limits<T>::quiet_NaN());
+        inputGrad = tensor<T>{in_dims};
+        std::fill(inputGrad.begin(), inputGrad.end(), std::numeric_limits<T>::quiet_NaN());
 
-            ref_inputGrad = tensor<T>{in_dims};
-            std::fill(ref_inputGrad.begin(), ref_inputGrad.end(), static_cast<T>(0));
+        ref_inputGrad = tensor<T>{in_dims};
+        std::fill(ref_inputGrad.begin(), ref_inputGrad.end(), static_cast<T>(0));
 
-            otherGrad = tensor<T>{other_dims};
-            std::fill(otherGrad.begin(), otherGrad.end(), std::numeric_limits<T>::quiet_NaN());
+        otherGrad = tensor<T>{other_dims};
+        std::fill(otherGrad.begin(), otherGrad.end(), std::numeric_limits<T>::quiet_NaN());
 
-            ref_otherGrad = tensor<T>{other_dims};
-            std::fill(ref_otherGrad.begin(), ref_otherGrad.end(), static_cast<T>(0));
+        ref_otherGrad = tensor<T>{other_dims};
+        std::fill(ref_otherGrad.begin(), ref_otherGrad.end(), static_cast<T>(0));
 
-        inputGrad_dev = handle.Write(inputGrad.data);
-        otherGrad_dev = handle.Write(otherGrad.data);
+        inputGrad_dev  = handle.Write(inputGrad.data);
+        otherGrad_dev  = handle.Write(otherGrad.data);
         cond_dev       = handle.Write(cond.data);
         outputGrad_dev = handle.Write(outputGrad.data);
     }
@@ -152,7 +143,7 @@ protected:
         cpu_where_backward<T>(outputGrad, cond, ref_inputGrad, ref_otherGrad, size);
         miopenStatus_t status;
 
-        status            = miopen::where::WhereBackward(handle,
+        status = miopen::where::WhereBackward(handle,
                                               outputGrad.desc,
                                               outputGrad_dev.get(),
                                               cond.desc,
@@ -180,9 +171,9 @@ protected:
         auto error1      = miopen::rms_range(ref_inputGrad, inputGrad);
         auto error2      = miopen::rms_range(ref_otherGrad, otherGrad);
 
-            EXPECT_TRUE(miopen::range_distance(ref_inputGrad) == miopen::range_distance(inputGrad));
-            EXPECT_TRUE(miopen::range_distance(ref_otherGrad) == miopen::range_distance(otherGrad));
-        
+        EXPECT_TRUE(miopen::range_distance(ref_inputGrad) == miopen::range_distance(inputGrad));
+        EXPECT_TRUE(miopen::range_distance(ref_otherGrad) == miopen::range_distance(otherGrad));
+
         EXPECT_TRUE(error1 < threshold)
             << "Error output (input grad) beyond tolerance Error:" << error1
             << ",  Threshold: " << threshold << std::endl;
