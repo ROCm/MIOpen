@@ -182,7 +182,7 @@ int WhereDriver<Tgpu, Tref>::GetandSetData()
         SetTensorNd(otherTensorGrad, other_len, data_type);
     }
 
-    SetTensorNd(condTensor, in_len, data_type);
+    SetTensorNd(condTensor, in_len, miopenInt8);
     SetTensorNd(outputTensorGrad, cond_len, data_type);
 
     return miopenStatusSuccess;
