@@ -180,8 +180,15 @@ extern "C" __global__ void Op2dTensorGeneric(MIOPEN_TYPE* a,
 }
 
 #endif
-
+#ifndef USE_2D_TENSOR_GENERIC_NEW
+#define USE_2D_TENSOR_GENERIC_NEW
+#endif
 #ifdef USE_2D_TENSOR_GENERIC_NEW
+
+#ifndef MIOPEN_TYPE
+#define MIOPEN_TYPE float
+#endif
+
 // NC
 extern "C" __global__ void Op2dTensorGenericNew(const MIOPEN_TYPE* a,
                                                 const MIOPEN_TYPE* b,
@@ -207,35 +214,32 @@ extern "C" __global__ void Op2dTensorGenericNew(const MIOPEN_TYPE* a,
     const MIOPEN_TYPE* b_off = b + Boffset;
     MIOPEN_TYPE* c_off       = c + Coffset;
 
-    const auto gid = blockIdx.x * blockDim.x + threadIdx.x;
-    auto a_ptr     = a_off + (gid / c_c) * a_nstride + (gid % c_c) * a_cstride;
-    auto b_ptr     = b_off + (gid / b_c) * b_nstride + (gid % b_c) * b_cstride;
-    auto c_ptr     = c_off + (gid / c_c) * c_nstride + (gid % c_c) * c_cstride;
+    auto gid          = blockIdx.x * blockDim.x + threadIdx.x;
+    const auto* a_ptr = a_off + (gid / c_c) * a_nstride + (gid % c_c) * a_cstride;
+    auto* c_ptr       = c_off + (gid / c_c) * c_nstride + (gid % c_c) * c_cstride;
 
     const auto step   = gridDim.x * blockDim.x;
     const auto a_step = (step / c_c) * a_nstride + (step % c_c) * a_cstride;
     const auto c_step = (step / c_c) * c_nstride + (step % c_c) * c_cstride;
 
     const auto c_end = c_off + total_work * c_nstride;
-    auto tid         = gid;
-    auto b_val = b_ptr[0];
-    bool b_1x1       = (b_nstride == 0) && (b_cstride == 0);
     while(c_ptr < c_end)
     {
-        if(!b_1x1)
-        {
-            b_val = b_ptr[0];
-        }
-        const auto res = MIOPEN_TENSOR_OP(a_ptr[0] * alpha0, b_val * alpha1);
-        c_ptr[0]       = use_beta ? c_ptr[0] * beta + res : res;
+        const auto* b_ptr = b_off;
+        if(b_nstride != 0)
+            b_ptr += (gid / b_c) * b_nstride;
+
+        if(b_cstride != 0)
+            b_ptr += (gid % b_c) * b_cstride;
+
+        auto b_val = *b_ptr;
+        auto a_val = *a_ptr;
+        auto c_val = use_beta ? *c_ptr : 0;
+        *c_ptr     = MIOPEN_TENSOR_OP(b_val * alpha1, a_val * alpha0) + c_val * beta;
 
         a_ptr += a_step;
         c_ptr += c_step;
-        if(!b_1x1)
-        {
-            tid += step;
-            b_ptr = b_off + (tid / b_c) * b_nstride + (tid % b_c) * b_cstride;
-        }
+        gid += step;
     }
 }
 

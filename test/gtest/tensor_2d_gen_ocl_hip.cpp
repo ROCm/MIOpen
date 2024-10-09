@@ -224,11 +224,16 @@ protected:
 
         vgd = {global_threads, 1, 1};
 
-        size_t local_threads_new = 256;
+        size_t local_threads_new = 32;
+        // if(tensorsConfig.blens[0] > 1 && tensorsConfig.blens[1] == 1)
+        // {
+        //     local_threads_new = 32;
+        // }
 
         vld_new = {local_threads_new, 1, 1};
 
-        num_wg = (tensorsConfig.aclens[0] * tensorsConfig.aclens[1]) / local_threads_new;
+        num_wg = (tensorsConfig.aclens[0] * tensorsConfig.aclens[1] + local_threads_new - 1) /
+                 local_threads_new;
         num_wg = num_wg >= max_num_wg ? max_num_wg : ((num_wg < 1) ? 1 : num_wg);
 
         size_t global_threads_new = num_wg * local_threads_new;
