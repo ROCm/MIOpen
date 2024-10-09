@@ -35,8 +35,6 @@
 #include <miopen/logcumsumexp.hpp>
 #include <miopen/logcumsumexp/solvers.hpp>
 
-#define FLOAT_ACCUM float
-
 inline std::ostream& operator<<(std::ostream& os, const std::vector<size_t>& v)
 {
     os << '{';

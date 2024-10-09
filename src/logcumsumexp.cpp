@@ -25,10 +25,10 @@
  *******************************************************************************/
 
 #include <miopen/find_solution.hpp>
-#include <miopen/tensor.hpp>
 #include <miopen/logcumsumexp.hpp>
 #include <miopen/logcumsumexp/invoke_params.hpp>
 #include <miopen/logcumsumexp/solvers.hpp>
+#include <miopen/tensor.hpp>
 
 namespace miopen {
 namespace logcumsumexp {

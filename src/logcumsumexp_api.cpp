@@ -104,9 +104,9 @@ extern "C" miopenStatus_t miopenLogCumSumExpBackward(miopenHandle_t handle,
                                                      const void* doutput,
                                                      miopenTensorDescriptor_t dinputDesc,
                                                      void* dinput,
-                                                     int dim,
-                                                     bool exclusive,
-                                                     bool reverse)
+                                                     const int dim,
+                                                     const bool exclusive,
+                                                     const bool reverse)
 {
     MIOPEN_LOG_FUNCTION(handle,
                         inputDesc,

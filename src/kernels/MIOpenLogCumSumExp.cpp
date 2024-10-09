@@ -318,7 +318,6 @@ __device__ void LogCumSumExpBackwardSmallCumDim(const DTYPE* __restrict__ input,
     //------------------------------------------------------------------------------------
 }
 
-#ifndef VIEW_DIMS
 extern "C" __global__ void
 LogCumSumExpForwardContiguousSmallCumDimStride1(const FLOAT* input,
                                                 FLOAT* output,
@@ -344,7 +343,7 @@ LogCumSumExpBackwardContiguousSmallCumDimStride1(const FLOAT* input,
         input, output, output_grad, input_grad, reduce_size, exclusive, reverse);
 }
 
-#else
+#ifdef VIEW_DIMS
 extern "C" __global__ void LogCumSumExpForwardSmallCumDim(const FLOAT* input,
                                                           FLOAT* output,
                                                           const uint64_t dim,

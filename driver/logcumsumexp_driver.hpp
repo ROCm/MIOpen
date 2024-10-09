@@ -130,7 +130,7 @@ int LogCumSumExpDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
     auto input_length  = inTensorParam.lengths;
     if(input_length.empty())
     {
-        std::cout << "Tensor must not be empty";
+        std::cout << "Tensor must not be empty" << std::endl;
         return miopenStatusBadParm;
     }
 
@@ -173,7 +173,7 @@ template <typename Tgpu, typename Tref>
 int LogCumSumExpDriver<Tgpu, Tref>::AddCmdLineArgs()
 {
     inflags.AddInputFlag("forw", 'F', "1", "Run only Forward LogCumSumExp (Default=1)", "int");
-    inflags.AddTensorFlag("input", 'D', "256x4x256", "input tensor descriptor");
+    inflags.AddTensorFlag("input", 'D', "256x4x256", "Input tensor descriptor (Default=256x4x256)");
     inflags.AddInputFlag(
         "dim", 'd', "0", "The dimension to do the operation over (Default=0)", "int");
     inflags.AddInputFlag("exclusive",
@@ -233,14 +233,14 @@ int LogCumSumExpDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     if(input_dev->ToGPU(GetStream(), input.data()) != 0)
     {
         std::cerr << "Error copying (input) to GPU, size: " << input_dev->GetSize() << std::endl;
-        return miopenStatusAllocFailed;
+        return miopenStatusInternalError;
     }
 
     if(doutput_dev->ToGPU(GetStream(), doutput.data()) != 0)
     {
         std::cerr << "Error copying (doutput) to GPU, size: " << doutput_dev->GetSize()
                   << std::endl;
-        return miopenStatusAllocFailed;
+        return miopenStatusInternalError;
     }
 
     return miopenStatusSuccess;
