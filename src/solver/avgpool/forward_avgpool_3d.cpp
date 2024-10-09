@@ -45,21 +45,16 @@ namespace avgpool {
 
 bool IsOverRocmFwd3d(const miopen::avgpool::FwdProblemDescription& problem)
 {
+    auto out_nelems = problem.GetOutputDesc().GetElementSize();
     if(problem.IsAllContiguous())
     {
-        return true;
+        if(out_nelems > 1536)
+            return true;
     }
     else
     {
-        // TODO: Add more conditions
-        auto dtype      = problem.GetOutputDesc().GetType();
-        auto in_nelems  = problem.GetInputDesc().GetElementSize();
-        auto out_nelems = problem.GetOutputDesc().GetElementSize();
-        auto mul_nc =
-            problem.GetOutputDesc().GetLengths()[0] * problem.GetOutputDesc().GetLengths()[1];
-        auto N           = problem.GetOutputDesc().GetLengths()[0];
-        auto in_over_out = static_cast<float>(in_nelems) / out_nelems;
-        return true;
+        if(out_nelems > 6144 && out_nelems <= 17915904)
+            return true;
     }
     return false;
 }

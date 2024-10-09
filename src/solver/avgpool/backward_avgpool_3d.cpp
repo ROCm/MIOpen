@@ -52,21 +52,14 @@ bool IsOverRocmBwd3d(const miopen::avgpool::BwdProblemDescription& problem)
     auto out_nelems  = problem.GetOutputGradDesc().GetElementSize();
     auto in_over_out = static_cast<float>(in_nelems) / out_nelems;
 
-    if(problem.IsAllContiguous())
+    if(dtype == miopenBFloat16 || dtype == miopenHalf)
     {
-        if(dtype == miopenBFloat16 || dtype == miopenHalf)
+        if(in_over_out < 2)
         {
-            if(in_over_out < 2)
-            {
-                return true;
-            }
+            return true;
         }
     }
-    else
-    {
-        // TODO: Add more conditions
-        return true;
-    }
+
     return false;
 }
 
