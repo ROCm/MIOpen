@@ -103,17 +103,13 @@ protected:
         auto&& handle  = get_handle();
         where_config   = GetParam();
         auto gen_value = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1e-2, 100); };
+        auto gen_bool = [](auto...) { return 0; };
 
         auto in_dims    = where_config.GetInputDim();
         auto other_dims = where_config.GetOtherDim();
         auto cond_dims  = where_config.GetCondDim();
 
-        cond = tensor<uint8_t>{cond_dims};
-        for(auto i = 0; i < cond.GetSize(); i++)
-        {
-            cond.data[i] = rand() % 2;
-        }
-
+        cond = tensor<uint8_t>{cond_dims}.generate(gen_bool);
         outputGrad = tensor<T>{cond_dims}.generate(gen_value);
 
         inputGrad = tensor<T>{in_dims};
