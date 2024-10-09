@@ -25,7 +25,7 @@
  *******************************************************************************/
 
 #include <miopen/config.h>
-#include <miopen/solver.hpp>
+#include <miopen/conv/solvers.hpp>
 #include <miopen/generic_search.hpp>
 #include <miopen/conv/data_invoke_params.hpp>
 #include <miopen/solver/problem_description_interpreter.hpp>

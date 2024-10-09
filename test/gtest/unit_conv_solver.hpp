@@ -25,7 +25,7 @@
  *******************************************************************************/
 #pragma once
 
-#include <miopen/solver.hpp>
+#include <miopen/conv/solvers.hpp>
 
 #include "gtest_common.hpp"
 
