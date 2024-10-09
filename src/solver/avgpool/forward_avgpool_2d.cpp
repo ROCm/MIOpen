@@ -24,7 +24,7 @@
  *
  *******************************************************************************/
 
-#include "miopen/miopen.h"
+#include <miopen/miopen.h>
 #include <miopen/conv_solution.hpp>
 #include <miopen/execution_context.hpp>
 #include <miopen/invoke_params.hpp>
