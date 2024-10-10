@@ -94,19 +94,17 @@ bool MhaCKFlashAttentionV2Forward::IsApplicable(
 
     return !env::disabled(MIOPEN_DEBUG_FA_CK_V2_FWD) //
            && H_q == H_k   // Replace with H_q % H_k == 0 once we add support for MQA & GQA.
-           && H_q <= 256   //
-           && H_q % 8 == 0 // No padding support yet which means it needs to be multiple of 8.
-           && descsFwd.kDesc.IsPacked()                 //
-           && descsFwd.qDesc.IsPacked()                 //
-           && descsFwd.vDesc.IsPacked()                 //
-           && descsFwd.oDesc.IsPacked()                 //
-           && descsFwd.biasDesc.IsPacked()              //
-           && descsFwd.biasDesc.GetType() == miopenHalf //
-           && descsFwd.kDesc.GetType() == miopenHalf    //
-           && descsFwd.qDesc.GetType() == miopenHalf    //
-           && descsFwd.vDesc.GetType() == miopenHalf    //
-           && descsFwd.oDesc.GetType() == miopenHalf    //
-           && D_stride_k == 1                           // CK requires D stride as 1.
+           && D_q <= 256   //
+           && D_q % 8 == 0 //
+           && descsFwd.kDesc.IsPacked()              //
+           && descsFwd.qDesc.IsPacked()              //
+           && descsFwd.vDesc.IsPacked()              //
+           && descsFwd.oDesc.IsPacked()              //
+           && descsFwd.kDesc.GetType() == miopenHalf //
+           && descsFwd.qDesc.GetType() == miopenHalf //
+           && descsFwd.vDesc.GetType() == miopenHalf //
+           && descsFwd.oDesc.GetType() == miopenHalf //
+           && D_stride_k == 1                        // CK requires D stride as 1.
            && D_stride_q == 1 && D_stride_v == 1 && D_stride_o == 1;
 #else
     return false;
@@ -141,16 +139,16 @@ MhaCKFlashAttentionV2Forward::GetSolution([[maybe_unused]] const ExecutionContex
     auto [N_stride_v, H_stride_v, S_stride_v, D_stride_v] =
         miopen::tien<4>(descsFwd.vDesc.GetStrides());
 
-    auto [N_stride_bias, H_stride_bias, S_stride_bias, D_stride_bias] =
-        miopen::tien<4>(descsFwd.biasDesc.GetStrides());
+    auto [N_stride_o, H_stride_o, S_stride_o, D_stride_o] =
+        miopen::tien<4>(descsFwd.oDesc.GetStrides());
 
     float scale_s = descsFwd.scale;
     float scale_p = 1.0;
     float scale_o = 1.0;
 
     fmha_fwd_traits fmha_traits;
-    fmha_traits.hdim_q        = H_q;
-    fmha_traits.hdim_v        = H_v;
+    fmha_traits.hdim_q        = D_q;
+    fmha_traits.hdim_v        = D_v;
     fmha_traits.data_type     = Convert(descsFwd.qDesc.GetType());
     fmha_traits.is_group_mode = false;
     // is_v_rowmajor relates to the layout of the V tensor. Row major means NHSD, and Col major
@@ -160,25 +158,37 @@ MhaCKFlashAttentionV2Forward::GetSolution([[maybe_unused]] const ExecutionContex
     fmha_traits.has_lse             = false;
     fmha_traits.do_fp8_static_quant = false;
     fmha_traits.has_dropout         = false;
+    fmha_traits.bias_type           = bias_enum::no_bias;
 
     fmha_fwd_args fmha_args;
-    fmha_args.batch          = N_q;
-    fmha_args.hdim_q         = D_q;
-    fmha_args.hdim_v         = D_v;
-    fmha_args.nhead_q        = H_q;
-    fmha_args.nhead_k        = H_k;
-    fmha_args.stride_q       = S_stride_q;
-    fmha_args.stride_k       = S_stride_k;
-    fmha_args.stride_v       = S_stride_v;
-    fmha_args.nhead_stride_q = H_stride_q;
-    fmha_args.nhead_stride_k = H_stride_k;
-    fmha_args.nhead_stride_v = H_stride_v;
-    fmha_args.batch_stride_q = N_stride_q;
-    fmha_args.batch_stride_k = N_stride_k;
-    fmha_args.batch_stride_v = N_stride_v;
-    fmha_args.seqlen_k       = S_k;
-    fmha_args.seqlen_q       = S_q;
-    fmha_args.max_seqlen_q   = S_q;
+    fmha_args.hdim_q               = D_q;
+    fmha_args.hdim_v               = D_v;
+    fmha_args.seqlen_k             = S_k;
+    fmha_args.seqlen_q             = S_q;
+    fmha_args.max_seqlen_q         = S_q;
+    fmha_args.nhead_q              = H_q;
+    fmha_args.nhead_k              = H_k;
+    fmha_args.batch                = N_q;
+    fmha_args.stride_q             = S_stride_q;
+    fmha_args.stride_k             = S_stride_k;
+    fmha_args.stride_v             = S_stride_v;
+    fmha_args.stride_o             = S_stride_o;
+    fmha_args.stride_bias          = 0;
+    fmha_args.stride_randval       = S_q;
+    fmha_args.nhead_stride_q       = H_stride_q;
+    fmha_args.nhead_stride_k       = H_stride_k;
+    fmha_args.nhead_stride_v       = H_stride_v;
+    fmha_args.nhead_stride_o       = H_stride_o;
+    fmha_args.nhead_stride_lse     = S_q;
+    fmha_args.nhead_stride_bias    = 0;
+    fmha_args.nhead_stride_randval = S_q * S_k;
+    fmha_args.batch_stride_q       = N_stride_q;
+    fmha_args.batch_stride_k       = N_stride_k;
+    fmha_args.batch_stride_v       = N_stride_v;
+    fmha_args.batch_stride_o       = N_stride_o;
+    fmha_args.batch_stride_lse     = H_q * S_q;
+    fmha_args.batch_stride_bias    = 0;
+    fmha_args.batch_stride_randval = H_q * S_q * S_k;
 
     // These are used for group mode, and we are in batch right now.
     fmha_args.seqstart_q_ptr = nullptr;
@@ -187,23 +197,13 @@ MhaCKFlashAttentionV2Forward::GetSolution([[maybe_unused]] const ExecutionContex
     // Batch does not support padding, and we aren't using kvcache yet.
     fmha_args.seqlen_k_ptr = nullptr;
 
+    fmha_args.s_randval         = false;
     fmha_args.scale_s           = scale_s;
     fmha_args.scale_p           = scale_p;
     fmha_args.scale_o           = scale_o;
-    fmha_args.stride_bias       = S_stride_bias;
-    fmha_args.stride_o          = S_stride_v;
-    fmha_args.nhead_stride_bias = 0;
-    fmha_args.nhead_stride_lse  = S_q;
-    fmha_args.nhead_stride_o    = S_q * D_v;
     fmha_args.window_size_left  = 0;
     fmha_args.window_size_right = 0;
     fmha_args.mask_type         = static_cast<ck_tile::index_t>(fmha_traits.mask_type);
-
-    fmha_args.s_randval = false;
-    // Since we aren't storing the random values these will be unused for now.
-    fmha_args.stride_randval       = S_q;
-    fmha_args.nhead_stride_randval = S_q * S_k;
-    fmha_args.batch_stride_randval = H_q * S_q * S_k;
 
     result.invoker_factory = [=](const std::vector<Kernel>&) {
         return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
@@ -216,12 +216,10 @@ MhaCKFlashAttentionV2Forward::GetSolution([[maybe_unused]] const ExecutionContex
             fmha_runtime_args.q_ptr        = dataFwd.qData;
             fmha_runtime_args.k_ptr        = dataFwd.kData;
             fmha_runtime_args.v_ptr        = dataFwd.vData;
-            fmha_runtime_args.rand_val_ptr = nullptr;
             fmha_runtime_args.o_ptr        = dataFwd.oData;
-
-            fmha_runtime_traits.bias_type =
-                dataFwd.biasData != nullptr ? bias_enum::elementwise_bias : bias_enum::no_bias;
-            fmha_runtime_args.bias_ptr = dataFwd.biasData;
+            fmha_runtime_args.rand_val_ptr = nullptr;
+            fmha_runtime_args.bias_ptr     = nullptr;
+            fmha_runtime_args.lse_ptr      = nullptr;
 
             // Top-left causal mask
             if(dataFwd.mask == miopenMhaMask_t::miopenMhaMaskCausal)
