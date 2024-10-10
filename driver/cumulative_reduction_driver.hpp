@@ -101,10 +101,10 @@ private:
 
     std::vector<Tgpu> input;
     std::vector<Tgpu> output;
-    std::vector<int> indices;
+    std::vector<int64_t> indices;
 
     std::vector<Tref> output_host;
-    std::vector<int> indices_host;
+    std::vector<int64_t> indices_host;
 
     int dim;
     bool exclusive;
@@ -230,14 +230,14 @@ int CumulativeReductionDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
     input_dev   = std::unique_ptr<GPUMem>(new GPUMem(ctx, input_sz, sizeof(Tgpu)));
     output_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, output_sz, sizeof(Tgpu)));
-    indices_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, indices_sz, sizeof(int)));
+    indices_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, indices_sz, sizeof(int64_t)));
 
     input   = std::vector<Tgpu>(input_sz);
     output  = std::vector<Tgpu>(output_sz, static_cast<Tgpu>(0.0f));
-    indices = std::vector<int>(indices_sz, static_cast<int>(-1));
+    indices = std::vector<int64_t>(indices_sz, static_cast<int64_t>(-1));
 
     output_host  = std::vector<Tref>(output_sz, static_cast<Tgpu>(0.0f));
-    indices_host = std::vector<int>(indices_sz, static_cast<int>(-1));
+    indices_host = std::vector<int64_t>(indices_sz, static_cast<int64_t>(-1));
 
     for(int i = 0; i < input_sz; i++)
         input[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(-100), static_cast<Tgpu>(100));

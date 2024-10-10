@@ -33,15 +33,15 @@
 
 template <CumulativeReductionOp_t OP, uint64_t LOCAL_SIZE, typename... Ts>
 __device__ inline void CumulativeReductionScan(const bool& reverse,
-                                               const int& lid,
+                                               const uint64_t& lid,
                                                FLOAT_ACCUM* __restrict__ a,
                                                Ts* __restrict__... b)
 {
     // reduction
-    int stride = 1;
+    uint64_t stride = 1;
     while(stride <= LOCAL_SIZE)
     {
-        int idx = (lid + 1) * stride * 2 - 1;
+        uint64_t idx = (lid + 1) * stride * 2 - 1;
         if(idx < LOCAL_SIZE)
             reduce_func<OP, FLOAT_ACCUM, Ts...>{}.calculate(
                 !reverse, a[idx], a[idx - stride], b[idx]..., b[idx - stride]...);
@@ -53,7 +53,7 @@ __device__ inline void CumulativeReductionScan(const bool& reverse,
     stride = LOCAL_SIZE / 2;
     while(stride > 0)
     {
-        int idx = (lid + 1) * stride * 2 - 1;
+        uint64_t idx = (lid + 1) * stride * 2 - 1;
         if((idx + stride) < LOCAL_SIZE)
             reduce_func<OP, FLOAT_ACCUM, Ts...>{}.calculate(
                 !reverse, a[idx + stride], a[idx], b[idx + stride]..., b[idx]...);
@@ -65,7 +65,7 @@ __device__ inline void CumulativeReductionScan(const bool& reverse,
 template <typename TI, typename TO, CumulativeReductionOp_t OP, uint64_t LOCAL_SIZE>
 __device__ void CumulativeReductionForwardContiguousLastDim(const TI* __restrict__ input,
                                                             TO* __restrict__ output,
-                                                            int* __restrict__ indices,
+                                                            int64_t* __restrict__ indices,
                                                             const uint64_t reduce_size,
                                                             const bool exclusive,
                                                             const bool reverse)
@@ -83,23 +83,23 @@ as input
      */
 
     __shared__ FLOAT_ACCUM otmp[LOCAL_SIZE];
-    int* itmp = nullptr;
+    int64_t* itmp = nullptr;
     if(indices)
     {
-        __shared__ int _itmp[LOCAL_SIZE];
+        __shared__ int64_t _itmp[LOCAL_SIZE];
         itmp = _itmp;
     }
 
-    int lid = threadIdx.y;
+    uint64_t lid = threadIdx.y;
 
-    auto xid = blockIdx.x * blockDim.x + threadIdx.x;
-    auto yid = blockIdx.y * blockDim.y + threadIdx.y;
+    uint64_t xid = blockIdx.x * blockDim.x + threadIdx.x;
+    uint64_t yid = blockIdx.y * blockDim.y + threadIdx.y;
 
-    int idx = yid - exclusive;
-    if(0 <= idx && idx < reduce_size - exclusive)
+    if(exclusive <= yid && yid < reduce_size)
     {
-        idx       = (reverse ? reduce_size - idx - 1 : idx);
-        otmp[lid] = CVT_FLOAT2ACCUM(input[xid * reduce_size + idx]);
+        int64_t idx = (reverse ? reduce_size - static_cast<int64_t>(yid) + exclusive - 1
+                               : static_cast<int64_t>(yid) - exclusive);
+        otmp[lid]   = CVT_FLOAT2ACCUM(input[xid * reduce_size + idx]);
         if(indices)
             itmp[lid] = idx;
     }
@@ -107,19 +107,20 @@ as input
     {
         otmp[lid] = reduce_func<OP, FLOAT_ACCUM>{}.START_VAL;
         if(indices)
-            itmp[lid] = (reverse ? reduce_size - idx - 1 : idx);
+            itmp[lid] = (reverse ? reduce_size - static_cast<int64_t>(yid) + exclusive - 1
+                                 : static_cast<int64_t>(yid) - exclusive);
     }
     __syncthreads();
 
     if(indices)
-        CumulativeReductionScan<OP, LOCAL_SIZE, int>(reverse, lid, otmp, itmp);
+        CumulativeReductionScan<OP, LOCAL_SIZE, int64_t>(reverse, lid, otmp, itmp);
     else
         CumulativeReductionScan<OP, LOCAL_SIZE>(reverse, lid, otmp);
 
-    idx = yid;
-    if(idx < reduce_size)
+    if(yid < reduce_size)
     {
-        idx = (reverse ? reduce_size - idx - 1 : idx);
+        int64_t idx =
+            (reverse ? reduce_size - static_cast<int64_t>(yid) - 1 : static_cast<int64_t>(yid));
         if(output)
             output[xid * reduce_size + idx] = CVT_ACCUM2FLOAT(otmp[lid]);
         if(indices)
@@ -129,7 +130,7 @@ as input
 
 extern "C" __global__ void CumulativeReductionForwardContiguousLastDim(const INPUT_TYPE* input,
                                                                        OUTPUT_TYPE* output,
-                                                                       int* indices,
+                                                                       int64_t* indices,
                                                                        const uint64_t reduce_size,
                                                                        const bool exclusive,
                                                                        const bool reverse)

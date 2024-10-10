@@ -95,7 +95,7 @@ struct reduce_func<MIOPEN_CUM_PROD, T, Ts...> : reduce_func_base<T, Ts...>
 template <miopenCumOp_t OP, class T>
 void cpu_cumulative_reduction_forward(const tensor<T> input,
                                       tensor<T>& ref_output,
-                                      tensor<int>& ref_indices,
+                                      tensor<int64_t>& ref_indices,
                                       const int dim,
                                       const bool exclusive,
                                       const bool reverse,
@@ -113,7 +113,7 @@ void cpu_cumulative_reduction_forward(const tensor<T> input,
     auto inner_size = input.desc.GetLengths()[true_dim];
     auto outer_size = size / inner_size;
 
-    auto op_worker = reduce_func<OP, float, int>{};
+    auto op_worker = reduce_func<OP, float, int64_t>{};
 
     tensor_view_t<5> ignore_dim_input_tv = input_tv;
     ignore_dim_input_tv.size[true_dim]   = 1;
@@ -121,10 +121,10 @@ void cpu_cumulative_reduction_forward(const tensor<T> input,
     par_ford(outer_size)([&](int gid) {
         auto tensor_layout = tensor_layout_t<5>(ignore_dim_input_tv, gid);
         float cum_val      = op_worker.START_VAL;
-        int cum_idx        = (reverse ? input_tv.size[true_dim] - 1 : 0);
+        int64_t cum_idx    = (reverse ? input_tv.size[true_dim] - 1 : 0);
 
         ford(inner_size)([&](int idx) {
-            int tmp_idx =
+            int64_t tmp_idx =
                 (reverse ? input_tv.size[true_dim] - (idx - exclusive) - 1 : (idx - exclusive));
             float tmp_val = op_worker.START_VAL;
             if(0 <= tmp_idx && tmp_idx < inner_size)

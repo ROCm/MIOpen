@@ -120,7 +120,7 @@ CumulativeReductionTestConfigs(const std::vector<std::vector<size_t>>& SizeList)
                                            miopen::TensorDescriptor(
                                                miopen_type<float>{}, lengths, out_strides),
                                            miopen::TensorDescriptor(
-                                               miopen_type<int>{}, lengths, indices_strides),
+                                               miopen_type<int64_t>{}, lengths, indices_strides),
                                            dim,
                                            op)))
                                 tcs.push_back({lengths, op, dim, exclusive, reverse, contiguous});
@@ -137,6 +137,7 @@ CumulativeReductionTestConfigs(const std::vector<std::vector<size_t>>& SizeList)
 inline std::vector<std::vector<size_t>> GetSmokeTestSize()
 {
     return {
+        {10},
         {65, 100},
         {65},
         {70, 10},
@@ -195,10 +196,10 @@ protected:
         output           = tensor<T>{lengths, out_strides};
 
         auto indices_strides = GetStrides(lengths, true);
-        indices              = tensor<int>{lengths, indices_strides};
+        indices              = tensor<int64_t>{lengths, indices_strides};
 
         ref_output  = tensor<T>{lengths, out_strides};
-        ref_indices = tensor<int>{lengths, indices_strides};
+        ref_indices = tensor<int64_t>{lengths, indices_strides};
 
         input_dev   = handle.Write(input.data);
         output_dev  = handle.Write(output.data);
@@ -264,7 +265,7 @@ protected:
             cumulative_reduction_config.op);
         EXPECT_EQ(status, miopenStatusSuccess);
         output.data  = handle.Read<T>(output_dev, output.data.size());
-        indices.data = handle.Read<int>(indices_dev, indices.data.size());
+        indices.data = handle.Read<int64_t>(indices_dev, indices.data.size());
     }
 
     void Verify()
@@ -293,10 +294,10 @@ protected:
 
     tensor<T> input;
     tensor<T> output;
-    tensor<int> indices;
+    tensor<int64_t> indices;
 
     tensor<T> ref_output;
-    tensor<int> ref_indices;
+    tensor<int64_t> ref_indices;
 
     miopen::Allocator::ManageDataPtr input_dev;
     miopen::Allocator::ManageDataPtr output_dev;

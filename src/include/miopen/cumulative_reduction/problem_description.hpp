@@ -25,6 +25,7 @@
  *******************************************************************************/
 #pragma once
 
+#include <miopen/miopen.h>
 #include <miopen/problem_description_base.hpp>
 #include <miopen/tensor.hpp>
 
@@ -79,7 +80,7 @@ struct ForwardProblemDescription : ProblemDescriptionBase
 
     bool IsValidIndicesType() const
     {
-        if(indicesDesc.GetElementSize() > 0 && indicesDesc.GetType() != miopenInt32)
+        if(indicesDesc.GetElementSize() > 0 && indicesDesc.GetType() != miopenInt64)
             MIOPEN_THROW(miopenStatusBadParm,
                          "Cumulative Reduction: Indices tensor type must be int32.");
         return true;

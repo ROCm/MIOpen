@@ -111,7 +111,7 @@ ConvSolution ForwardContiguousLastDim::GetSolution(
             kernel(params.input,
                    params.output,
                    params.indices,
-                   deref(params.inputDesc).GetLengths()[true_dim],
+                   static_cast<uint64_t>(deref(params.inputDesc).GetLengths()[true_dim]),
                    params.exclusive,
                    params.reverse);
         };
