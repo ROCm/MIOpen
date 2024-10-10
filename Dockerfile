@@ -89,7 +89,7 @@ ADD dev-requirements.txt /dev-requirements.txt
 # Install dependencies
 # TODO: Add --std=c++14
 # GPU_ARCH can be defined in docker build process
-# ARG GPU_ARCH=";"
+ARG GPU_ARCHS="gfx908;gfx90a;gfx942;gfx1100"
 # install to /opt/rocm will cause permission issue
 ARG PREFIX=/usr/local
 ARG USE_FIN="OFF"
