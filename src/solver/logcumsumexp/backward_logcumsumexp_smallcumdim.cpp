@@ -24,7 +24,6 @@
  *
  *******************************************************************************/
 
-#include "miopen/reduce/utils.hpp"
 #include <miopen/datatype.hpp>
 #include <miopen/kernel_build_params.hpp>
 #include <miopen/mlo_internal.hpp>
