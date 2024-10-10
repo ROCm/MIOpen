@@ -25,24 +25,10 @@
  *******************************************************************************/
 
 #include "where.hpp"
-using float16 = half_float::half;
 
-namespace where {
-
-struct GPU_Where_bwd_FP32 : WhereBwdTest<float>
-{
-};
-
-struct GPU_Where_bwd_FP16 : WhereBwdTest<float16>
-{
-};
-
-struct GPU_Where_bwd_BFP16 : WhereBwdTest<bfloat16>
-{
-};
-
-} // namespace where
-using namespace where;
+using GPU_Where_bwd_FP32  = WhereBwdTest<float>;
+using GPU_Where_bwd_FP16  = WhereBwdTest<half>;
+using GPU_Where_bwd_BFP16 = WhereBwdTest<bfloat16>;
 
 TEST_P(GPU_Where_bwd_FP32, Test)
 {

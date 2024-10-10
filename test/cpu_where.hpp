@@ -40,7 +40,7 @@ void cpu_where_backward(const tensor<T>& outputGrad,
                         size_t size)
 {
     par_ford(size)([&](size_t i) {
-        auto condVal = cond.data[i];
+        auto condVal = cond[i];
         if(condVal > 0)
         {
             inputGrad[i] = outputGrad[i];

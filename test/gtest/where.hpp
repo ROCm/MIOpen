@@ -33,6 +33,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <cstdlib>
 #include <vector>
 
 #include <gtest/gtest.h>
@@ -43,8 +44,8 @@
 struct WhereTestCase
 {
     std::vector<size_t> inDims;
-    std::vector<size_t> otherDims;
-    std::vector<size_t> condDims;
+    bool isContiguous;
+
     friend std::ostream& operator<<(std::ostream& os, const WhereTestCase& tc)
     {
         os << "Input dim: ";
@@ -53,45 +54,26 @@ struct WhereTestCase
             os << inDim << " ";
         }
         os << std::endl;
-        os << "Other dim: ";
-        for(auto otherDim : tc.otherDims)
-        {
-            os << otherDim << " ";
-        }
-        os << std::endl;
-        os << "Cond dim: ";
-        for(auto condDim : tc.condDims)
-        {
-            os << condDim << " ";
-        }
-        os << std::endl;
+
         return os;
     }
 
-    const std::vector<size_t>& GetInputDim() const { return inDims; }
-
-    const std::vector<size_t>& GetOtherDim() const { return otherDims; }
-
-    const std::vector<size_t>& GetCondDim() const { return condDims; }
+    std::vector<size_t> GetInputDim() const { return inDims; }
 
     WhereTestCase() {}
 
-    WhereTestCase(std::vector<size_t> input_dim)
-        : inDims(input_dim), otherDims(input_dim), condDims(input_dim)
+    WhereTestCase(std::vector<size_t> input_dim, bool isContiguous_)
+        : inDims(input_dim), isContiguous(isContiguous_)
     {
     }
 };
 
 inline std::vector<WhereTestCase> GenFullTestCases()
-{ // n c d h w dim
-    // clang-format off
-    return {
-        WhereTestCase({6, 2, 2, 2, 2}),
-        WhereTestCase({4, 4, 8, 8, 2}),
-        WhereTestCase({1, 2, 8, 2, 2}),
-        WhereTestCase({16, 20, 20, 12, 12}),
-    };
-    // clang-format on
+{
+    return {WhereTestCase({6, 2, 2, 2}, true),
+            WhereTestCase({4, 4, 8, 8, 2}, true),
+            WhereTestCase({2, 8, 2}, true),
+            WhereTestCase({20, 20, 12, 12}, true)};
 }
 
 template <typename T>
@@ -103,14 +85,12 @@ protected:
         auto&& handle  = get_handle();
         where_config   = GetParam();
         auto gen_value = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1e-2, 100); };
-        auto gen_bool = [](auto...) { return 0; };
+        auto gen_bool  = [](auto...) { return rand() % 2; };
 
-        auto in_dims    = where_config.GetInputDim();
-        auto other_dims = where_config.GetOtherDim();
-        auto cond_dims  = where_config.GetCondDim();
+        auto in_dims = where_config.GetInputDim();
 
-        cond = tensor<uint8_t>{cond_dims}.generate(gen_bool);
-        outputGrad = tensor<T>{cond_dims}.generate(gen_value);
+        cond       = tensor<uint8_t>{in_dims}.generate(gen_bool);
+        outputGrad = tensor<T>{in_dims}.generate(gen_value);
 
         inputGrad = tensor<T>{in_dims};
         std::fill(inputGrad.begin(), inputGrad.end(), std::numeric_limits<T>::quiet_NaN());
@@ -118,10 +98,10 @@ protected:
         ref_inputGrad = tensor<T>{in_dims};
         std::fill(ref_inputGrad.begin(), ref_inputGrad.end(), static_cast<T>(0));
 
-        otherGrad = tensor<T>{other_dims};
+        otherGrad = tensor<T>{in_dims};
         std::fill(otherGrad.begin(), otherGrad.end(), std::numeric_limits<T>::quiet_NaN());
 
-        ref_otherGrad = tensor<T>{other_dims};
+        ref_otherGrad = tensor<T>{in_dims};
         std::fill(ref_otherGrad.begin(), ref_otherGrad.end(), static_cast<T>(0));
 
         inputGrad_dev  = handle.Write(inputGrad.data);
