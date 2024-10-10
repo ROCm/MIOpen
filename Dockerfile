@@ -113,6 +113,10 @@ DEBIAN_FRONTEND=noninteractive apt-get purge -y --allow-unauthenticated \
     composablekernel-dev \
     miopen-hip
 
+# Composable Kernel installed separated from rbuild to take in values from GPU_ARCHS 
+# this can minimize build time
+RUN sed '/composable_kernel/d' /requirements.txt
+
 ARG COMPILER_LAUNCHER=""
 # rbuild is used to trigger build of requirements.txt, dev-requirements.txt
 RUN if [ "$USE_FIN" = "ON" ]; then \
@@ -120,6 +124,20 @@ RUN if [ "$USE_FIN" = "ON" ]; then \
     else \
         rbuild prepare -s develop -d $PREFIX -DGPU_ARCHS="${GPU_ARCHS}" -DCMAKE_CXX_COMPILER_LAUNCHER="${COMPILER_LAUNCHER}"; \
     fi
+
+# TODO: it should be able to automatically get commit hash from requirements.txt
+ARG CK_COMMIT=467b4e502d1c2ee2c5fe85ff9fd637b04a5b7ba7
+RUN wget -O ck.tar.gz https://www.github.com/ROCm/composable_kernel/archive/${CK_COMMIT}.tar.gz && \
+    tar zxvf ck.tar.gz &&\
+    cd composable_kernel-${CK_COMMIT} && \
+    mkdir build && cd build && \
+    CXX=/opt/rocm/bin/amdclang++ cmake \
+    -D CMAKE_PREFIX_PATH=/opt/rocm \
+    -D CMAKE_CXX_COMPILER_LAUNCHER="${COMPILER_LAUNCHER}" \
+    -D CMAKE_BUILD_TYPE=Release \
+    -D GPU_ARCHS=${GPU_ARCHS} \
+    -D CMAKE_CXX_FLAGS=" -O3 " .. && \
+    make -j $(nproc) install 
 
 RUN ccache -s 
 # Install doc requirements
