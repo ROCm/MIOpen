@@ -33,6 +33,139 @@ namespace miopen {
 
 namespace logcumsumexp {
 
+ForwardProblemDescription::ForwardProblemDescription(const TensorDescriptor& inputDesc_,
+                                                     const TensorDescriptor& outputDesc_,
+                                                     const int dim_)
+    : inputDesc(inputDesc_), outputDesc(outputDesc_), dim(dim_)
+{
+    if(IsValidDim())
+        dim = (dim < 0 ? dim + inputDesc.GetNumDims() : dim);
+    IsSameLength();
+    IsSameType();
+}
+
+bool ForwardProblemDescription::IsValidDim() const
+{
+    const int ndims = inputDesc.GetNumDims();
+    if(dim < -ndims || ndims - 1 < dim)
+    {
+        MIOPEN_THROW(miopenStatusBadParm,
+                     (std::stringstream() << "LogCumSumExp: Operating dim value must be in range ["
+                                          << -ndims << "," << ndims - 1 << "].")
+                         .str());
+    }
+    return true;
+}
+
+bool ForwardProblemDescription::IsSameLength() const
+{
+    if(inputDesc.GetLengths() != outputDesc.GetLengths())
+        MIOPEN_THROW(miopenStatusBadParm,
+                     "LogCumSumExp: Input and Output tensor sizes do not match.");
+    return true;
+}
+
+bool ForwardProblemDescription::IsSameType() const
+{
+    if(inputDesc.GetType() != outputDesc.GetType())
+        MIOPEN_THROW(miopenStatusBadParm,
+                     "LogCumSumExp: Input and Output tensor type do not match.");
+    return true;
+}
+
+bool ForwardProblemDescription::IsSameStride() const
+{
+    if(inputDesc.GetStrides() != outputDesc.GetStrides())
+        return false;
+    return true;
+}
+
+bool ForwardProblemDescription::IsAllPacked() const
+{
+    if(!inputDesc.IsPacked() || !outputDesc.IsPacked())
+        return false;
+    return true;
+}
+
+bool ForwardProblemDescription::IsAllDimStride1() const
+{
+    if(inputDesc.GetStrides()[dim] != 1)
+        return false;
+    if(outputDesc.GetStrides()[dim] != 1)
+        return false;
+    return true;
+}
+
+BackwardProblemDescription::BackwardProblemDescription(const TensorDescriptor& inputDesc_,
+                                                       const TensorDescriptor& outputDesc_,
+                                                       const TensorDescriptor& doutputDesc_,
+                                                       const TensorDescriptor& dinputDesc_,
+                                                       const int& dim_)
+    : ForwardProblemDescription(inputDesc_, outputDesc_, dim_),
+      doutputDesc(doutputDesc_),
+      dinputDesc(dinputDesc_)
+{
+    IsSameLength();
+    IsSameType();
+}
+
+bool BackwardProblemDescription::IsSameLength() const
+{
+    if(!ForwardProblemDescription::IsSameLength())
+        return false;
+    if(inputDesc.GetLengths() != dinputDesc.GetLengths())
+        MIOPEN_THROW(miopenStatusBadParm,
+                     "LogCumSumExp: Input and its Gradient tensor sizes do not match.");
+    if(outputDesc.GetLengths() != doutputDesc.GetLengths())
+        MIOPEN_THROW(miopenStatusBadParm,
+                     "LogCumSumExp: Output and its Gradient tensor sizes do not match.");
+    return true;
+}
+
+bool BackwardProblemDescription::IsSameType() const
+{
+    if(!ForwardProblemDescription::IsSameType())
+        return false;
+    if(inputDesc.GetType() != dinputDesc.GetType())
+        MIOPEN_THROW(miopenStatusBadParm,
+                     "LogCumSumExp: Input and its Gradient tensor type do not match.");
+    if(outputDesc.GetType() != doutputDesc.GetType())
+        MIOPEN_THROW(miopenStatusBadParm,
+                     "LogCumSumExp: Output and its Gradient tensor type do not match.");
+    return true;
+}
+
+bool BackwardProblemDescription::IsSameStride() const
+{
+    if(!ForwardProblemDescription::IsSameStride())
+        return false;
+    if(inputDesc.GetStrides() != dinputDesc.GetStrides())
+        return false;
+    if(outputDesc.GetStrides() != doutputDesc.GetStrides())
+        return false;
+    return true;
+}
+
+bool BackwardProblemDescription::IsAllPacked() const
+{
+    if(!ForwardProblemDescription::IsAllPacked())
+        return false;
+    if(!dinputDesc.IsPacked() || !doutputDesc.IsPacked())
+        return false;
+    return true;
+}
+
+bool BackwardProblemDescription::IsAllDimStride1() const
+{
+    if(!ForwardProblemDescription::IsAllDimStride1())
+        return false;
+    if(dinputDesc.GetStrides()[dim] != 1)
+        return false;
+    if(doutputDesc.GetStrides()[dim] != 1)
+        return false;
+    return true;
+}
+
 NetworkConfig ForwardProblemDescription::MakeNetworkConfig() const
 {
     auto dtype      = inputDesc.GetType();

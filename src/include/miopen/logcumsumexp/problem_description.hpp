@@ -36,76 +36,24 @@ struct NetworkConfig;
 
 namespace logcumsumexp {
 
-struct LocalProblemDescriptionBase : ProblemDescriptionBase
+struct ForwardProblemDescription : ProblemDescriptionBase
 {
-    LocalProblemDescriptionBase() = default;
-    LocalProblemDescriptionBase(const TensorDescriptor& inputDesc_,
-                                const TensorDescriptor& outputDesc_,
-                                const int& dim_)
-        : inputDesc(inputDesc_), outputDesc(outputDesc_), dim(dim_)
-    {
-        if(IsValidDim())
-            dim = (dim < 0 ? dim + inputDesc.GetNumDims() : dim);
-        IsSameLength();
-        IsSameType();
-    }
+    ForwardProblemDescription(const TensorDescriptor& inputDesc_,
+                              const TensorDescriptor& outputDesc_,
+                              int dim_);
 
     const TensorDescriptor& GetInputDesc() const { return inputDesc; }
     const TensorDescriptor& GetOutputDesc() const { return outputDesc; }
     const int& GetDim() const { return dim; }
 
-    bool IsValidDim() const
-    {
-        const int ndims = inputDesc.GetNumDims();
-        if(dim < -ndims || ndims - 1 < dim)
-        {
-            MIOPEN_THROW(miopenStatusBadParm,
-                         (std::stringstream()
-                          << "LogCumSumExp: Operating dim value must be in range [" << -ndims << ","
-                          << ndims - 1 << "].")
-                             .str());
-        }
-        return true;
-    }
+    bool IsValidDim() const;
+    bool IsSameLength() const;
+    bool IsSameType() const;
+    bool IsSameStride() const;
+    bool IsAllPacked() const;
+    bool IsAllDimStride1() const;
 
-    bool IsSameLength() const
-    {
-        if(inputDesc.GetLengths() != outputDesc.GetLengths())
-            MIOPEN_THROW(miopenStatusBadParm,
-                         "LogCumSumExp: Input and Output tensor sizes do not match.");
-        return true;
-    }
-
-    bool IsSameType() const
-    {
-        if(inputDesc.GetType() != outputDesc.GetType())
-            MIOPEN_THROW(miopenStatusBadParm,
-                         "LogCumSumExp: Input and Output tensor type do not match.");
-        return true;
-    }
-
-    bool IsSameStride() const
-    {
-        if(inputDesc.GetStrides() != outputDesc.GetStrides())
-            return false;
-        return true;
-    }
-
-    bool IsAllPacked() const
-    {
-        if(!inputDesc.IsPacked() || !outputDesc.IsPacked())
-            return false;
-        return true;
-    }
-
-    bool IsAllDimStride1() const
-    {
-        if(inputDesc.GetStrides()[dim] != 1)
-            return false;
-        if(outputDesc.GetStrides()[dim] != 1)
-            return false;
-        return true;
-    }
+    NetworkConfig MakeNetworkConfig() const override;
 
 protected:
     TensorDescriptor inputDesc;
@@ -113,100 +61,28 @@ protected:
     int dim;
 };
 
-struct ForwardProblemDescription : LocalProblemDescriptionBase
-{
-    ForwardProblemDescription(const TensorDescriptor& inputDesc_,
-                              const TensorDescriptor& outputDesc_,
-                              const int& dim_)
-        : LocalProblemDescriptionBase(inputDesc_, outputDesc_, dim_)
-    {
-    }
-
-    NetworkConfig MakeNetworkConfig() const override;
-
-private:
-    NetworkConfig MakeForwardNetworkConfig() const;
-};
-
-struct BackwardProblemDescription : LocalProblemDescriptionBase
+struct BackwardProblemDescription : ForwardProblemDescription
 {
     BackwardProblemDescription(const TensorDescriptor& inputDesc_,
                                const TensorDescriptor& outputDesc_,
                                const TensorDescriptor& doutputDesc_,
                                const TensorDescriptor& dinputDesc_,
-                               const int& dim_)
-        : LocalProblemDescriptionBase(inputDesc_, outputDesc_, dim_),
-          doutputDesc(doutputDesc_),
-          dinputDesc(dinputDesc_)
-    {
-        IsSameLength();
-        IsSameType();
-    }
+                               const int& dim_);
 
-    bool IsSameLength() const
-    {
-        if(!LocalProblemDescriptionBase::IsSameLength())
-            return false;
-        if(inputDesc.GetLengths() != dinputDesc.GetLengths())
-            MIOPEN_THROW(miopenStatusBadParm,
-                         "LogCumSumExp: Input and its Gradient tensor sizes do not match.");
-        if(outputDesc.GetLengths() != doutputDesc.GetLengths())
-            MIOPEN_THROW(miopenStatusBadParm,
-                         "LogCumSumExp: Output and its Gradient tensor sizes do not match.");
-        return true;
-    }
+    const TensorDescriptor& GetDInputDesc() const { return dinputDesc; }
+    const TensorDescriptor& GetDOutputDesc() const { return doutputDesc; }
 
-    bool IsSameType() const
-    {
-        if(!LocalProblemDescriptionBase::IsSameType())
-            return false;
-        if(inputDesc.GetType() != dinputDesc.GetType())
-            MIOPEN_THROW(miopenStatusBadParm,
-                         "LogCumSumExp: Input and its Gradient tensor type do not match.");
-        if(outputDesc.GetType() != doutputDesc.GetType())
-            MIOPEN_THROW(miopenStatusBadParm,
-                         "LogCumSumExp: Output and its Gradient tensor type do not match.");
-        return true;
-    }
-
-    bool IsSameStride() const
-    {
-        if(!LocalProblemDescriptionBase::IsSameStride())
-            return false;
-        if(inputDesc.GetStrides() != dinputDesc.GetStrides())
-            return false;
-        if(outputDesc.GetStrides() != doutputDesc.GetStrides())
-            return false;
-        return true;
-    }
-
-    bool IsAllPacked() const
-    {
-        if(!LocalProblemDescriptionBase::IsAllPacked())
-            return false;
-        if(!dinputDesc.IsPacked() || !doutputDesc.IsPacked())
-            return false;
-        return true;
-    }
-
-    bool IsAllDimStride1() const
-    {
-        if(!LocalProblemDescriptionBase::IsAllDimStride1())
-            return false;
-        if(dinputDesc.GetStrides()[dim] != 1)
-            return false;
-        if(doutputDesc.GetStrides()[dim] != 1)
-            return false;
-        return true;
-    }
+    bool IsSameLength() const;
+    bool IsSameType() const;
+    bool IsSameStride() const;
+    bool IsAllPacked() const;
+    bool IsAllDimStride1() const;
 
     NetworkConfig MakeNetworkConfig() const override;
 
 private:
     TensorDescriptor doutputDesc;
     TensorDescriptor dinputDesc;
-
-    NetworkConfig MakeBackwardNetworkConfig() const;
 };
 
 } // namespace logcumsumexp
