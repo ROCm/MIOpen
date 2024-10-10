@@ -49,6 +49,7 @@ add_executable(MIOpenDriver
     dm_kthvalue.cpp
     dm_layernorm.cpp
     dm_lrn.cpp
+    dm_multimarginloss.cpp
     dm_pool.cpp
     dm_prelu.cpp
     dm_reduce.cpp
@@ -56,6 +57,7 @@ add_executable(MIOpenDriver
     dm_reducecalculation.cpp
     dm_rnn.cpp
     dm_rope.cpp
+    dm_softmarginloss.cpp
     dm_softmax.cpp
     dm_t5layernorm.cpp
     dm_tensorop.cpp
