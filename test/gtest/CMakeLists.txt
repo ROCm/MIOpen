@@ -100,6 +100,7 @@ foreach(SOURCE ${SKIP_TESTS})
     list(REMOVE_ITEM TESTS ${CMAKE_CURRENT_SOURCE_DIR}/${SOURCE})
 endforeach()
 
+
 # Common static library speeds up test assembly.
 # Otherwise, all files in ${SOURCES} are rebuilt for each test.
 add_library(miopen_gtest_common STATIC ${SOURCES})
