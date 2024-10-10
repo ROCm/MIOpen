@@ -118,12 +118,12 @@ void cpu_cumulative_reduction_forward(const tensor<T> input,
     tensor_view_t<5> ignore_dim_input_tv = input_tv;
     ignore_dim_input_tv.size[true_dim]   = 1;
 
-    par_ford(outer_size)([&](int gid) {
+    par_ford(outer_size)([&](int64_t gid) {
         auto tensor_layout = tensor_layout_t<5>(ignore_dim_input_tv, gid);
         float cum_val      = op_worker.START_VAL;
         int64_t cum_idx    = (reverse ? input_tv.size[true_dim] - 1 : 0);
 
-        ford(inner_size)([&](int idx) {
+        ford(inner_size)([&](int64_t idx) {
             int64_t tmp_idx =
                 (reverse ? input_tv.size[true_dim] - (idx - exclusive) - 1 : (idx - exclusive));
             float tmp_val = op_worker.START_VAL;

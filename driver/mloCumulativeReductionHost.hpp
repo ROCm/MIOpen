@@ -100,7 +100,7 @@ int32_t mloCumulativeReductionForwardRunHost(const miopenTensorDescriptor_t inpu
                                              const miopenTensorDescriptor_t indicesDesc,
                                              const Tgpu* input,
                                              Tcheck* output_host,
-                                             int* indices_host,
+                                             int64_t* indices_host,
                                              const int dim,
                                              const bool exclusive,
                                              const bool reverse)
@@ -121,13 +121,13 @@ int32_t mloCumulativeReductionForwardRunHost(const miopenTensorDescriptor_t inpu
     tensor_view_t<5> ignore_dim_input_tv = input_tv;
     ignore_dim_input_tv.size[exec_dim]   = 1;
 
-    par_ford(outer_size)([&](int gid) {
+    par_ford(outer_size)([&](int64_t gid) {
         auto tensor_layout = tensor_layout_t<5>(ignore_dim_input_tv, gid);
         float cum_val      = op_worker.START_VAL;
-        int cum_idx        = (reverse ? input_tv.size[exec_dim] - 1 : 0);
+        int64_t cum_idx    = (reverse ? input_tv.size[exec_dim] - 1 : 0);
 
-        ford(inner_size)([&](int idx) {
-            int tmp_idx =
+        ford(inner_size)([&](int64_t idx) {
+            int64_t tmp_idx =
                 (reverse ? input_tv.size[exec_dim] - (idx - exclusive) - 1 : (idx - exclusive));
             float tmp_val = op_worker.START_VAL;
             if(0 <= tmp_idx && tmp_idx < inner_size)
