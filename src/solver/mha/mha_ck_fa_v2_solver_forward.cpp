@@ -29,7 +29,7 @@
 #include <miopen/datatype.hpp>
 #include <miopen/hipoc_kernel.hpp>
 
-#ifdef MIOPEN_USE_COMPOSABLEKERNEL
+#if MIOPEN_USE_COMPOSABLEKERNEL
 #include "ck_tile/ops/fmha.hpp"
 #include "ck_tile/ops/fmha_fwd.hpp"
 #include "ck/stream_config.hpp"
