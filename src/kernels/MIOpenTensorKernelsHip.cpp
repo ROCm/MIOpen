@@ -144,7 +144,7 @@ extern "C" __global__ void Op2dTensorGeneric(const MIOPEN_TYPE* a,
 
         auto b_val = *b_ptr;
         auto a_val = *a_ptr;
-        auto c_val = use_beta ? *c_ptr : 0;
+        auto c_val = use_beta ? *c_ptr : static_cast<MIOPEN_TYPE>(0);
         *c_ptr     = MIOPEN_TENSOR_OP(b_val * alpha1, a_val * alpha0) + c_val * beta;
 
         a_ptr += a_step;
