@@ -43,6 +43,15 @@
 
 namespace miopen {
 
+namespace debug {
+
+/// Enables deprecated solvers.
+/// This variable is intended for use in unit tests.
+// NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
+MIOPEN_EXPORT extern bool EnableDeprecatedSolvers;
+
+} // namespace debug
+
 struct AnyInvokeParams;
 
 namespace solver {

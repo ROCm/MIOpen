@@ -2498,17 +2498,15 @@ extern template struct ConvOclBwdWrW2<16>;
 /// Basically, this is *hack* for non-group 3x3 and 1x1 cases.
 /// It is assumed that Solutions provided by the ConvOclBwdWrW2 solver
 /// would never beat 3x3 and 1x1 assembly WrW kernels, even after tuning.
-struct ConvOclBwdWrW2NonTunable final : ConvOclBwdWrW2<1>
+struct MIOPEN_INTERNALS_EXPORT ConvOclBwdWrW2NonTunable final : ConvOclBwdWrW2<1>
 {
     const std::string& SolverDbId() const override
     {
         return GetSolverDbId<ConvOclBwdWrW2NonTunable>();
     }
 
-    MIOPEN_INTERNALS_EXPORT bool
-    IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
-    MIOPEN_INTERNALS_EXPORT ConvSolution GetSolution(const ExecutionContext&,
-                                                     const miopen::conv::ProblemDescription&) const;
+    bool IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    ConvSolution GetSolution(const ExecutionContext&, const miopen::conv::ProblemDescription&) const;
     InvokerFactory GetInvokerFactory(const ExecutionContext& ctx,
                                      const miopen::conv::ProblemDescription& problem) const
     {

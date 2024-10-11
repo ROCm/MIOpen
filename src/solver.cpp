@@ -59,6 +59,14 @@
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS)
 
 namespace miopen {
+
+namespace debug {
+
+// NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
+bool EnableDeprecatedSolvers = false;
+
+} // namespace debug
+
 namespace solver {
 
 std::ostream& operator<<(std::ostream& os, const KernelInfo& k)
@@ -706,6 +714,8 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
 bool ThisSolverIsDeprecatedStatic::IsDisabled(const ExecutionContext& ctx)
 {
     static const bool device_is_allowed = [&]() {
+        if(miopen::debug::EnableDeprecatedSolvers)
+            return true;
         if(env::enabled(MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS))
             return true;
         const auto device = ctx.GetStream().GetTargetProperties().Name();

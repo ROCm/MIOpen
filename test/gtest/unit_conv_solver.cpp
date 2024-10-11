@@ -41,6 +41,32 @@ namespace unit_tests {
 
 namespace {
 
+class DeprecatedSolversEnabler
+{
+public:
+    DeprecatedSolversEnabler() noexcept
+    {
+    }
+    DeprecatedSolversEnabler(const DeprecatedSolversEnabler&) = delete;
+    DeprecatedSolversEnabler(DeprecatedSolversEnabler&&)      = delete;
+    DeprecatedSolversEnabler& operator=(const DeprecatedSolversEnabler&) = delete;
+    DeprecatedSolversEnabler& operator=(DeprecatedSolversEnabler&&) = delete;
+    ~DeprecatedSolversEnabler() noexcept
+    {
+        if(prev)
+            miopen::debug::EnableDeprecatedSolvers = prev.value();
+    }
+
+    void Enable() noexcept
+    {
+        prev = miopen::debug::EnableDeprecatedSolvers;
+        miopen::debug::EnableDeprecatedSolvers = true;
+    }
+
+private:
+    std::optional<bool> prev;
+};
+
 bool IsDeviceSupported(Gpu supported_devs, Gpu dev)
 {
     if((supported_devs & dev) != Gpu::None)
@@ -160,6 +186,24 @@ std::ostream& operator<<(std::ostream& os, const ConvTestCase& tc)
 //************************************************************************************
 // Unit test for convolution solver
 //************************************************************************************
+
+UnitTestConvSolverParams::UnitTestConvSolverParams() : UnitTestConvSolverParams(Gpu::None)
+{
+}
+
+UnitTestConvSolverParams::UnitTestConvSolverParams(Gpu supported_devs_) : supported_devs(supported_devs_), use_cpu_ref(false), enable_deprecated_solvers(false)
+{
+}
+
+void UnitTestConvSolverParams::UseCpuRef()
+{
+    use_cpu_ref = true;
+}
+
+void UnitTestConvSolverParams::EnableDeprecatedSolvers()
+{
+    enable_deprecated_solvers = true;
+}
 
 namespace {
 
@@ -626,21 +670,27 @@ void RunSolver(const miopen::solver::conv::ConvSolverBase& solver,
 
 } // namespace
 
-void UnitTestConvSolverBase::SetUpImpl(Gpu supported_devs)
+void UnitTestConvSolverBase::SetUpImpl(const UnitTestConvSolverParams& params)
 {
-    if(!IsTestSupportedByDevice(supported_devs))
+    if(!IsTestSupportedByDevice(params.supported_devs))
     {
         GTEST_SKIP();
     }
 }
 
 void UnitTestConvSolverBase::RunTestImpl(const miopen::solver::conv::ConvSolverBase& solver,
+                                         const UnitTestConvSolverParams& params,
                                          miopen::conv::Direction direction,
                                          const ConvTestCase& conv_config,
-                                         miopenConvAlgorithm_t algo,
-                                         bool use_cpu_ref)
+                                         miopenConvAlgorithm_t algo)
 {
-    RunSolver(solver, direction, conv_config, algo, use_cpu_ref);
+    DeprecatedSolversEnabler deprecated_solv_enabler;
+    if(params.enable_deprecated_solvers)
+    {
+        deprecated_solv_enabler.Enable();
+    }
+
+    RunSolver(solver, direction, conv_config, algo, params.use_cpu_ref);
 }
 
 //************************************************************************************
@@ -649,16 +699,22 @@ void UnitTestConvSolverBase::RunTestImpl(const miopen::solver::conv::ConvSolverB
 
 void UnitTestConvSolverDevApplicabilityBase::RunTestImpl(
     const miopen::solver::conv::ConvSolverBase& solver,
-    Gpu supported_devs,
+    const UnitTestConvSolverParams& params,
     miopen::conv::Direction direction,
     const ConvTestCase& conv_config)
 {
+    DeprecatedSolversEnabler deprecated_solv_enabler;
+    if(params.enable_deprecated_solvers)
+    {
+        deprecated_solv_enabler.Enable();
+    }
+
     const auto problem = GetProblemDescription(direction, conv_config);
 
     const auto all_known_devs = GetAllKnownDevices();
     for(const auto& [dev, dev_descr] : all_known_devs)
     {
-        const auto supported = IsDeviceSupported(supported_devs, dev);
+        const auto supported = IsDeviceSupported(params.supported_devs, dev);
         // std::cout << "Test " << dev_descr << " (supported: " << supported << ")" << std::endl;
 
         auto handle    = MockHandle{dev_descr};

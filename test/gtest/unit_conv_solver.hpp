@@ -85,39 +85,53 @@ private:
 // Unit test for convolution solver
 //************************************************************************************
 
+struct UnitTestConvSolverParams
+{
+    UnitTestConvSolverParams();
+    UnitTestConvSolverParams(Gpu supported_devs);
+
+    void UseCpuRef();
+    void EnableDeprecatedSolvers();
+
+    Gpu supported_devs;
+    bool use_cpu_ref;
+    bool enable_deprecated_solvers;
+};
+
 class UnitTestConvSolverBase
 {
 public:
     void RunTestImpl(const miopen::solver::conv::ConvSolverBase& solver,
+                     const UnitTestConvSolverParams& params,
                      miopen::conv::Direction direction,
                      const ConvTestCase& conv_config,
-                     miopenConvAlgorithm_t algo,
-                     bool use_cpu_ref);
+                     miopenConvAlgorithm_t algo);
 
 protected:
-    void SetUpImpl(Gpu supported_devs);
+    void SetUpImpl(const UnitTestConvSolverParams& params);
 };
 
 template <miopen::conv::Direction direction>
 class UnitTestConvSolver
     : public UnitTestConvSolverBase,
-      public ::testing::TestWithParam<std::tuple<Gpu, miopenConvAlgorithm_t, ConvTestCase>>
+      public ::testing::TestWithParam<std::tuple<UnitTestConvSolverParams, miopenConvAlgorithm_t, ConvTestCase>>
 {
 public:
-    void RunTest(const miopen::solver::conv::ConvSolverBase& solver, bool use_cpu_ref = false)
+    void RunTest(const miopen::solver::conv::ConvSolverBase& solver)
     {
+        UnitTestConvSolverParams params;
         miopenConvAlgorithm_t algo;
         ConvTestCase conv_config;
-        std::tie(std::ignore, algo, conv_config) = GetParam();
-        this->RunTestImpl(solver, direction, conv_config, algo, use_cpu_ref);
+        std::tie(params, algo, conv_config) = GetParam();
+        this->RunTestImpl(solver, params, direction, conv_config, algo);
     }
 
 protected:
     void SetUp() override
     {
-        Gpu supported_devs;
-        std::tie(supported_devs, std::ignore, std::ignore) = GetParam();
-        this->SetUpImpl(supported_devs);
+        UnitTestConvSolverParams params;
+        std::tie(params, std::ignore, std::ignore) = GetParam();
+        this->SetUpImpl(params);
     }
 };
 
@@ -133,7 +147,7 @@ class UnitTestConvSolverDevApplicabilityBase
 {
 public:
     void RunTestImpl(const miopen::solver::conv::ConvSolverBase& solver,
-                     Gpu supported_devs,
+                     const UnitTestConvSolverParams& params,
                      miopen::conv::Direction direction,
                      const ConvTestCase& conv_config);
 };
@@ -141,15 +155,15 @@ public:
 template <miopen::conv::Direction direction>
 class UnitTestConvSolverDevApplicability
     : public UnitTestConvSolverDevApplicabilityBase,
-      public ::testing::TestWithParam<std::tuple<Gpu, ConvTestCase>>
+      public ::testing::TestWithParam<std::tuple<UnitTestConvSolverParams, ConvTestCase>>
 {
 public:
     void RunTest(const miopen::solver::conv::ConvSolverBase& solver)
     {
-        Gpu supported_devs;
+        UnitTestConvSolverParams params;
         ConvTestCase conv_config;
-        std::tie(supported_devs, conv_config) = GetParam();
-        this->RunTestImpl(solver, supported_devs, direction, conv_config);
+        std::tie(params, conv_config) = GetParam();
+        this->RunTestImpl(solver, params, direction, conv_config);
     }
 };
 
