@@ -2505,8 +2505,10 @@ struct MIOPEN_INTERNALS_EXPORT ConvOclBwdWrW2NonTunable final : ConvOclBwdWrW2<1
         return GetSolverDbId<ConvOclBwdWrW2NonTunable>();
     }
 
-    bool IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
-    ConvSolution GetSolution(const ExecutionContext&, const miopen::conv::ProblemDescription&) const;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
+    ConvSolution GetSolution(const ExecutionContext&,
+                             const miopen::conv::ProblemDescription&) const;
     InvokerFactory GetInvokerFactory(const ExecutionContext& ctx,
                                      const miopen::conv::ProblemDescription& problem) const
     {

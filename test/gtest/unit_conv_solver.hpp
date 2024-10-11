@@ -114,7 +114,8 @@ protected:
 template <miopen::conv::Direction direction>
 class UnitTestConvSolver
     : public UnitTestConvSolverBase,
-      public ::testing::TestWithParam<std::tuple<UnitTestConvSolverParams, miopenConvAlgorithm_t, ConvTestCase>>
+      public ::testing::TestWithParam<
+          std::tuple<UnitTestConvSolverParams, miopenConvAlgorithm_t, ConvTestCase>>
 {
 public:
     void RunTest(const miopen::solver::conv::ConvSolverBase& solver)

@@ -44,9 +44,7 @@ namespace {
 class DeprecatedSolversEnabler
 {
 public:
-    DeprecatedSolversEnabler() noexcept
-    {
-    }
+    DeprecatedSolversEnabler() noexcept {}
     DeprecatedSolversEnabler(const DeprecatedSolversEnabler&) = delete;
     DeprecatedSolversEnabler(DeprecatedSolversEnabler&&)      = delete;
     DeprecatedSolversEnabler& operator=(const DeprecatedSolversEnabler&) = delete;
@@ -59,7 +57,7 @@ public:
 
     void Enable() noexcept
     {
-        prev = miopen::debug::EnableDeprecatedSolvers;
+        prev                                   = miopen::debug::EnableDeprecatedSolvers;
         miopen::debug::EnableDeprecatedSolvers = true;
     }
 
@@ -187,23 +185,16 @@ std::ostream& operator<<(std::ostream& os, const ConvTestCase& tc)
 // Unit test for convolution solver
 //************************************************************************************
 
-UnitTestConvSolverParams::UnitTestConvSolverParams() : UnitTestConvSolverParams(Gpu::None)
+UnitTestConvSolverParams::UnitTestConvSolverParams() : UnitTestConvSolverParams(Gpu::None) {}
+
+UnitTestConvSolverParams::UnitTestConvSolverParams(Gpu supported_devs_)
+    : supported_devs(supported_devs_), use_cpu_ref(false), enable_deprecated_solvers(false)
 {
 }
 
-UnitTestConvSolverParams::UnitTestConvSolverParams(Gpu supported_devs_) : supported_devs(supported_devs_), use_cpu_ref(false), enable_deprecated_solvers(false)
-{
-}
+void UnitTestConvSolverParams::UseCpuRef() { use_cpu_ref = true; }
 
-void UnitTestConvSolverParams::UseCpuRef()
-{
-    use_cpu_ref = true;
-}
-
-void UnitTestConvSolverParams::EnableDeprecatedSolvers()
-{
-    enable_deprecated_solvers = true;
-}
+void UnitTestConvSolverParams::EnableDeprecatedSolvers() { enable_deprecated_solvers = true; }
 
 namespace {
 
