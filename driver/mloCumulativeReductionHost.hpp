@@ -116,7 +116,7 @@ int32_t mloCumulativeReductionForwardRunHost(const miopenTensorDescriptor_t inpu
     auto inner_size = miopen::deref(inputDesc).GetLengths()[exec_dim];
     auto outer_size = size / inner_size;
 
-    auto op_worker = reduce_func<OP, float, int>{};
+    auto op_worker = reduce_func<OP, float, int64_t>{};
 
     tensor_view_t<5> ignore_dim_input_tv = input_tv;
     ignore_dim_input_tv.size[exec_dim]   = 1;
