@@ -127,10 +127,6 @@ RUN wget -O ck.tar.gz https://www.github.com/ROCm/composable_kernel/archive/${CK
     -D CMAKE_CXX_FLAGS=" -O3 " .. && \
     make -j $(nproc) install 
 
-# Composable Kernel installed separated from rbuild to take in values from GPU_ARCHS 
-# this can minimize build time
-RUN sed '/composable_kernel/d' /requirements.txt
-
 ARG COMPILER_LAUNCHER=""
 # rbuild is used to trigger build of requirements.txt, dev-requirements.txt
 RUN if [ "$USE_FIN" = "ON" ]; then \
