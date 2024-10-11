@@ -250,8 +250,9 @@ MhaCKFlashAttentionV2Forward::GetSolution([[maybe_unused]] const ExecutionContex
                           sizeof(uint64_t),
                           hipMemcpyKind::hipMemcpyDeviceToHost);
             }
-            fmha_runtime_args.p_drop           = probability;
-            fmha_runtime_args.drop_seed_offset = {seed, offset};
+            fmha_runtime_args.p_drop = probability;
+            // TODO: update to use GPU pointers once available from CK hash update.
+            fmha_runtime_args.drop_seed_offset = std::make_pair(seed, offset);
 
             // Create stream_config, and set it to not time kernel.
             ck_tile::stream_config stream_config;
