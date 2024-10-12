@@ -26,13 +26,9 @@
 
 #include "lstm.hpp"
 #include "get_handle.hpp"
-#include <miopen/env.hpp>
 #include <gtest/gtest_common.hpp>
 #include <gtest/gtest.h>
 #include <boost/algorithm/string.hpp>
-
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
 
 namespace env = miopen::env;
 
@@ -104,10 +100,7 @@ bool IsTestSupportedForDevice()
 
 void Run2dDriver(miopenDataType_t prec)
 {
-    if(!(IsTestSupportedForDevice()            //
-         && (!MIOPEN_TEST_ALL                  // standalone run
-             || (env::enabled(MIOPEN_TEST_ALL) // or --float full tests enabled
-                 && env::value(MIOPEN_TEST_FLOAT_ARG) == "--float"))))
+    if(!IsTestSupportedForDevice())
     {
         GTEST_SKIP();
     }

@@ -23,25 +23,9 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <miopen/env.hpp>
 #include "cat.hpp"
 
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
-
-namespace env = miopen::env;
-
 namespace cat {
-
-std::string GetFloatArg()
-{
-    const auto tmp = env::value(MIOPEN_TEST_FLOAT_ARG);
-    if(tmp.empty())
-    {
-        return "";
-    }
-    return tmp;
-}
 
 struct GPU_Cat_FP32 : CatTest<float>
 {
@@ -52,16 +36,8 @@ using namespace cat;
 
 TEST_P(GPU_Cat_FP32, CatTestFw)
 {
-    if(!MIOPEN_TEST_ALL ||
-       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--float"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 };
 
 INSTANTIATE_TEST_SUITE_P(Full, GPU_Cat_FP32, testing::ValuesIn(CatTestConfigs()));

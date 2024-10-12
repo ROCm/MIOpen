@@ -25,12 +25,8 @@
  *******************************************************************************/
 #include <miopen/miopen.h>
 #include <gtest/gtest.h>
-#include <miopen/env.hpp>
 #include "../rnn_vanilla.hpp"
 #include "get_handle.hpp"
-
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 
 namespace env = miopen::env;
 
@@ -123,17 +119,6 @@ std::vector<std::string> GetTestCases(const std::string& precision)
 } // namespace rnn_extra
 using namespace rnn_extra;
 
-TEST_P(GPU_RNNExtra_FP32, FloatTest_rnn_extra)
-{
-    if(!MIOPEN_TEST_ALL ||
-       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--float"))
-    {
-        Run2dDriverFloat();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
-};
+TEST_P(GPU_RNNExtra_FP32, FloatTest_rnn_extra) { Run2dDriverFloat(); };
 
 INSTANTIATE_TEST_SUITE_P(Full, GPU_RNNExtra_FP32, testing::Values(GetTestCases("--float")));
