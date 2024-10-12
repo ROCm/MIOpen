@@ -23,20 +23,49 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+
 #pragma once
 
-#include <miopen/env.hpp>
-#include <gtest/gtest_common.hpp>
+#include <cstdint>
+#include <miopen/common.hpp>
+#include <miopen/invoke_params.hpp>
+#include <miopen/tensor.hpp>
 
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
+namespace miopen {
+namespace glu {
 
-// For determining if we should run test suite. First ensure that test is supported on the hardware.
-// If the MIOPEN_TEST_ALL environment isn't set, then assume we are running standalone outside
-// CICD, and include the test. Otherwise, check the provided functor to ensure the environment
-// conditions match expected conditions to run this test suite.
-template <typename disabled_mask, typename enabled_mask, typename check_functor>
-bool ShouldRunTestCase(check_functor&& checkConditions)
+struct FwdInvokeParams : public miopen::InvokeParams
 {
-    return IsTestSupportedForDevMask<disabled_mask, enabled_mask>() &&
-           (!MIOPEN_TEST_ALL || checkConditions());
-}
+    FwdInvokeParams() = default;
+
+    const TensorDescriptor* inputDesc  = nullptr;
+    const TensorDescriptor* outputDesc = nullptr;
+
+    ConstData_t input = nullptr;
+    Data_t output     = nullptr;
+    uint32_t dim      = 0;
+
+    std::size_t GetWorkspaceSize() const { return 0; }
+    Data_t GetWorkspace() const { return nullptr; }
+};
+
+struct BwdInvokeParams : public miopen::InvokeParams
+{
+    BwdInvokeParams() = default;
+
+    const TensorDescriptor* inputDesc      = nullptr;
+    const TensorDescriptor* inputGradDesc  = nullptr;
+    const TensorDescriptor* outputGradDesc = nullptr;
+
+    ConstData_t input      = nullptr;
+    ConstData_t outputGrad = nullptr;
+    Data_t inputGrad       = nullptr;
+    uint32_t dim           = 0;
+
+    std::size_t GetWorkspaceSize() const { return 0; }
+    Data_t GetWorkspace() const { return nullptr; }
+};
+
+} // namespace glu
+
+} // namespace miopen

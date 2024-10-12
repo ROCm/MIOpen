@@ -25,22 +25,8 @@
  *******************************************************************************/
 
 #include "layernorm.hpp"
-#include <miopen/env.hpp>
-
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 
 namespace layernorm {
-
-std::string GetFloatArg()
-{
-    const auto tmp = env::value(MIOPEN_TEST_FLOAT_ARG);
-    if(tmp.empty())
-    {
-        return "";
-    }
-    return tmp;
-}
 
 struct GPU_LayerNormTest_FP32 : LayerNormTest<float>
 {
@@ -59,13 +45,10 @@ using namespace layernorm;
 
 TEST_P(GPU_LayerNormTest_FP32, LayerNormTestFw)
 {
-    auto TypeArg       = env::value(MIOPEN_TEST_FLOAT_ARG);
     const auto& handle = get_handle();
     if((miopen::StartsWith(handle.GetDeviceName(), "gfx908") ||
         miopen::StartsWith(handle.GetDeviceName(), "gfx90a") ||
-        miopen::StartsWith(handle.GetDeviceName(), "gfx94")) &&
-       (!MIOPEN_TEST_ALL ||
-        (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--float")))
+        miopen::StartsWith(handle.GetDeviceName(), "gfx94")))
     {
         RunTest();
         Verify();
@@ -81,9 +64,7 @@ TEST_P(GPU_LayerNormTest_FP16, LayerNormTestFw)
     const auto& handle = get_handle();
     if((miopen::StartsWith(handle.GetDeviceName(), "gfx908") ||
         miopen::StartsWith(handle.GetDeviceName(), "gfx90a") ||
-        miopen::StartsWith(handle.GetDeviceName(), "gfx94")) &&
-       (!MIOPEN_TEST_ALL ||
-        (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--half")))
+        miopen::StartsWith(handle.GetDeviceName(), "gfx94")))
     {
         RunTest();
         Verify();
@@ -99,9 +80,7 @@ TEST_P(GPU_LayerNormTest_BFP16, LayerNormTestFw)
     const auto& handle = get_handle();
     if((miopen::StartsWith(handle.GetDeviceName(), "gfx908") ||
         miopen::StartsWith(handle.GetDeviceName(), "gfx90a") ||
-        miopen::StartsWith(handle.GetDeviceName(), "gfx94")) &&
-       (!MIOPEN_TEST_ALL ||
-        (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--bfloat16")))
+        miopen::StartsWith(handle.GetDeviceName(), "gfx94")))
     {
         RunTest();
         Verify();

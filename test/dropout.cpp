@@ -104,17 +104,18 @@ struct verify_forward_dropout
         auto in_dev    = handle.Write(input.data);
         auto out_dev   = handle.Write(output.data);
 
-        DropoutDesc.DropoutForward(handle,
-                                   input.desc,
-                                   input.desc,
-                                   in_dev.get(),
-                                   output.desc,
-                                   out_dev.get(),
-                                   use_rsvsp ? rsvsp_dev.get() : nullptr,
-                                   rsvsp.size(),
-                                   in_offset,
-                                   out_offset,
-                                   rsvsp_offset);
+        DropoutDesc.Dropout(handle,
+                            input.desc,
+                            input.desc,
+                            in_dev.get(),
+                            output.desc,
+                            out_dev.get(),
+                            use_rsvsp ? rsvsp_dev.get() : nullptr,
+                            rsvsp.size(),
+                            in_offset,
+                            out_offset,
+                            rsvsp_offset,
+                            false /* is_backward */);
 
         out_gpu.data   = handle.Read<T>(out_dev, output.data.size());
         auto rsvsp_gpu = handle.Read<unsigned char>(rsvsp_dev, rsvsp.size());
@@ -195,17 +196,18 @@ struct verify_backward_dropout
         auto dout_dev  = handle.Write(dout.data);
         auto rsvsp_dev = handle.Write(rsvsp);
 
-        DropoutDesc.DropoutBackward(handle,
-                                    din.desc,
-                                    dout.desc,
-                                    dout_dev.get(),
-                                    din.desc,
-                                    din_dev.get(),
-                                    use_rsvsp ? rsvsp_dev.get() : nullptr,
-                                    rsvsp.size(),
-                                    in_offset,
-                                    out_offset,
-                                    rsvsp_offset);
+        DropoutDesc.Dropout(handle,
+                            din.desc,
+                            dout.desc,
+                            dout_dev.get(),
+                            din.desc,
+                            din_dev.get(),
+                            use_rsvsp ? rsvsp_dev.get() : nullptr,
+                            rsvsp.size(),
+                            in_offset,
+                            out_offset,
+                            rsvsp_offset,
+                            true /* is_backward*/);
 
         din_gpu.data = handle.Read<T>(din_dev, din.data.size());
         return din_gpu;
