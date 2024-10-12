@@ -26,11 +26,8 @@
 #include <miopen/miopen.h>
 #include <gtest/gtest.h>
 #include <miopen/miopen.h>
-#include <miopen/env.hpp>
 #include "../conv2d.hpp"
 #include "get_handle.hpp"
-
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 
 namespace env = miopen::env;
 
@@ -148,7 +145,7 @@ using namespace conv_trans;
 TEST_P(GPU_conv_trans_FP32, FloatTest_conv_trans)
 {
     const auto& handle = get_handle();
-    if(IsTestSupportedForDevice(handle) && env::enabled(MIOPEN_TEST_ALL))
+    if(IsTestSupportedForDevice(handle))
     {
         Run2dDriver(miopenFloat);
     }

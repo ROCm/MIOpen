@@ -30,7 +30,6 @@
 #include "get_handle.hpp"
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_DEEPBENCH)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 
 namespace env = miopen::env;
 
@@ -52,7 +51,6 @@ class GPU_DeepBenchRNN_FP32 : public testing::TestWithParam<std::vector<std::str
 
 void Run2dDriverFloat(void)
 {
-
     std::vector<std::string> params = GPU_DeepBenchRNN_FP32::GetParam();
 
     for(const auto& test_value : params)
