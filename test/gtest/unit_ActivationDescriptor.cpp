@@ -28,8 +28,6 @@
 #include <future>
 
 #include <miopen/activ.hpp>
-// \todo This should be removed when the testing infrastructure is improved
-#include <miopen/env.hpp>
 #include <miopen/miopen.h>
 #include <miopen/handle.hpp>
 
@@ -43,10 +41,6 @@
 #include "../verify.hpp"
 
 #define UNIT_ACTIVATION_DESCRIPTOR_DEBUG 0
-
-// \todo This should be removed when the testing infrastructure is improved
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 
 namespace {
 
@@ -373,58 +367,14 @@ protected:
     }
 };
 
-// \todo This should be removed when the testing infrastructure is improved
-template <class T>
-struct FPStr;
-
-template <>
-struct FPStr<half_float::half>
-{
-    std::string operator()() const { return "--half"; }
-};
-
-template <>
-struct FPStr<float>
-{
-    std::string operator()() const { return "--float"; }
-};
-
-template <class T>
-bool SkipTest()
-{
-    if(!env::enabled(MIOPEN_TEST_ALL))
-        return false; // standalone run
-    return env::value(MIOPEN_TEST_FLOAT_ARG) != FPStr<T>{}();
-}
-
 } // namespace
 
 using GPU_UnitTestActivationDescriptor_FP16 = UnitTestActivationDescriptor<half_float::half>;
 using GPU_UnitTestActivationDescriptor_FP32 = UnitTestActivationDescriptor<float>;
 
-TEST_P(GPU_UnitTestActivationDescriptor_FP16, Activation)
-{
-    if(SkipTest<half_float::half>())
-    {
-        GTEST_SKIP();
-    }
-    else
-    {
-        this->RunTest();
-    }
-};
+TEST_P(GPU_UnitTestActivationDescriptor_FP16, Activation) { this->RunTest(); };
 
-TEST_P(GPU_UnitTestActivationDescriptor_FP32, Activation)
-{
-    if(SkipTest<float>())
-    {
-        GTEST_SKIP();
-    }
-    else
-    {
-        this->RunTest();
-    }
-};
+TEST_P(GPU_UnitTestActivationDescriptor_FP32, Activation) { this->RunTest(); };
 
 // Smoke tests
 INSTANTIATE_TEST_SUITE_P(Smoke,
