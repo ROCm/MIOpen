@@ -28,7 +28,6 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
-#include <miopen/env.hpp>
 #include <miopen/miopen.h>
 #include <miopen/process.hpp>
 
@@ -57,7 +56,7 @@ void RunMIOpenDriver()
 {
     using e_mask = enabled<Gpu::gfx94X, Gpu::gfx103X, Gpu::gfx110X>;
     using d_mask = disabled<Gpu::Default>;
-    if(!ShouldRunMIOpenDriverTest<d_mask, e_mask>("--half", true))
+    if(!ShouldRunMIOpenDriverTest<d_mask, e_mask>())
     {
         GTEST_SKIP();
     }
@@ -77,6 +76,6 @@ TEST_P(GPU_MIOpenDriverRegressionIssue1576Test_FP16, MIOpenDriverRegressionIssue
     RunMIOpenDriver();
 };
 
-INSTANTIATE_TEST_SUITE_P(Smoke,
+INSTANTIATE_TEST_SUITE_P(Full,
                          GPU_MIOpenDriverRegressionIssue1576Test_FP16,
                          testing::Values(GetTestCases()));
