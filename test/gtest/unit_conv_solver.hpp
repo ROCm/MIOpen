@@ -92,16 +92,19 @@ struct UnitTestConvSolverParams
 
     void UseCpuRef();
     void EnableDeprecatedSolvers();
+    void Tunable(std::size_t iterations_max);
 
     Gpu supported_devs;
     bool use_cpu_ref;
     bool enable_deprecated_solvers;
+    bool tunable;
+    std::size_t tuning_iterations_max;
 };
 
 class UnitTestConvSolverBase
 {
 public:
-    void RunTestImpl(const miopen::solver::conv::ConvSolverBase& solver,
+    void RunTestImpl(const miopen::solver::conv::ConvSolverInterface& solver,
                      const UnitTestConvSolverParams& params,
                      miopen::conv::Direction direction,
                      const ConvTestCase& conv_config,
@@ -118,7 +121,7 @@ class UnitTestConvSolver
           std::tuple<UnitTestConvSolverParams, miopenConvAlgorithm_t, ConvTestCase>>
 {
 public:
-    void RunTest(const miopen::solver::conv::ConvSolverBase& solver)
+    void RunTest(const miopen::solver::conv::ConvSolverInterface& solver)
     {
         UnitTestConvSolverParams params;
         miopenConvAlgorithm_t algo;
@@ -147,7 +150,7 @@ using UnitTestConvSolverWrw = UnitTestConvSolver<miopen::conv::Direction::Backwa
 class UnitTestConvSolverDevApplicabilityBase
 {
 public:
-    void RunTestImpl(const miopen::solver::conv::ConvSolverBase& solver,
+    void RunTestImpl(const miopen::solver::conv::ConvSolverInterface& solver,
                      const UnitTestConvSolverParams& params,
                      miopen::conv::Direction direction,
                      const ConvTestCase& conv_config);
@@ -159,7 +162,7 @@ class UnitTestConvSolverDevApplicability
       public ::testing::TestWithParam<std::tuple<UnitTestConvSolverParams, ConvTestCase>>
 {
 public:
-    void RunTest(const miopen::solver::conv::ConvSolverBase& solver)
+    void RunTest(const miopen::solver::conv::ConvSolverInterface& solver)
     {
         UnitTestConvSolverParams params;
         ConvTestCase conv_config;

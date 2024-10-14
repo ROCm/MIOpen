@@ -62,16 +62,22 @@ const int wave_size = 64;
 
 namespace conv {
 
-/// Base class for convolution tunable and non-tunable solvers
-using ConvSolverBase = SolverMixin<ExecutionContext, miopen::conv::ProblemDescription>;
+/// Common interface for convolution tunable and non-tunable solvers
+using ConvSolverInterface = SolverInterface<ExecutionContext, miopen::conv::ProblemDescription>;
+
+/// Common interface for convolution non-tunable solvers
+using ConvSolverInterfaceNonTunable = SolverInterfaceNonTunable<ExecutionContext, miopen::conv::ProblemDescription>;
+
+/// Common interface for convolution tunable solvers
+using ConvSolverInterfaceTunable = SolverInterfaceTunable<ExecutionContext, miopen::conv::ProblemDescription>;
 
 /// Typedef for convolution non-tunable solvers
-using ConvSolver = NonTunableSolverBase<ExecutionContext, miopen::conv::ProblemDescription>;
+using ConvSolver = SolverBaseNonTunable<ExecutionContext, miopen::conv::ProblemDescription>;
 
 /// Typedef for convolution tunable solvers
 template <class PerformanceConfig>
 using ConvTunableSolver =
-    TunableSolverMixin<ExecutionContext, miopen::conv::ProblemDescription, PerformanceConfig>;
+    SolverBaseTunable<ExecutionContext, miopen::conv::ProblemDescription, PerformanceConfig>;
 
 struct PerformanceConfigConvAsm3x3U : PerfConfigBase<PerformanceConfigConvAsm3x3U>
 {

@@ -54,6 +54,7 @@ namespace solver {
 namespace debug {
 // This struct is not MT-safe, meaning one should use it before starting threads, thus avoiding
 // constructing it inside a worker thread.
+/// \todo This class should be moved out of the library
 struct MIOPEN_INTERNALS_EXPORT TuningIterationScopedLimiter
 {
     TuningIterationScopedLimiter(std::size_t new_limit);
