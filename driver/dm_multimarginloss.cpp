@@ -23,20 +23,18 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#pragma once
+#include "multimarginloss_driver.hpp"
+#include "registry_driver_maker.hpp"
 
-#include <miopen/env.hpp>
-#include <gtest/gtest_common.hpp>
-
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
-
-// For determining if we should run test suite. First ensure that test is supported on the hardware.
-// If the MIOPEN_TEST_ALL environment isn't set, then assume we are running standalone outside
-// CICD, and include the test. Otherwise, check the provided functor to ensure the environment
-// conditions match expected conditions to run this test suite.
-template <typename disabled_mask, typename enabled_mask, typename check_functor>
-bool ShouldRunTestCase(check_functor&& checkConditions)
+static Driver* makeDriver(const std::string& base_arg)
 {
-    return IsTestSupportedForDevMask<disabled_mask, enabled_mask>() &&
-           (!MIOPEN_TEST_ALL || checkConditions());
+    if(base_arg == "multimarginloss")
+        return new MultiMarginLossDriver<float, float>();
+    if(base_arg == "multimarginlossfp16")
+        return new MultiMarginLossDriver<float16, float>();
+    if(base_arg == "multimarginlossbfp16")
+        return new MultiMarginLossDriver<bfloat16, float>();
+    return nullptr;
 }
+
+REGISTER_DRIVER_MAKER(makeDriver);

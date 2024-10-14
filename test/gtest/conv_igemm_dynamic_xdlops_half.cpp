@@ -29,22 +29,10 @@
 #include "../conv2d.hpp"
 #include "get_handle.hpp"
 
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_FIND_MODE)
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_DEBUG_FIND_ONLY_SOLVER)
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
 
 namespace conv_igemm_dynamic_xdlops_half {
-
-static bool SkipTest(const std::string& float_arg)
-{
-    if(!MIOPEN_TEST_ALL)
-        return false;
-    if(env::enabled(MIOPEN_TEST_ALL))
-        if(env::value(MIOPEN_TEST_FLOAT_ARG) == float_arg)
-            return false;
-    return true;
-}
 
 void SetupEnvVar()
 {
@@ -151,7 +139,7 @@ using namespace conv_igemm_dynamic_xdlops_half;
 TEST_P(GPU_Conv2dHalf_conv_igemm_dynamic_xdlops_FP16, HalfTest_conv_igemm_dynamic_xdlops_half)
 {
     const auto& handle = get_handle();
-    if(IsTestSupportedForDevice(handle) && !SkipTest("--half"))
+    if(IsTestSupportedForDevice(handle))
     {
         Run2dDriver(miopenHalf);
     }
