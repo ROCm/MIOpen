@@ -23,25 +23,9 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <miopen/env.hpp>
 #include "adam.hpp"
 
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
-
-namespace env = miopen::env;
-
 namespace adam {
-
-bool CheckFloatArg(std::string arg)
-{
-    if(!MIOPEN_TEST_ALL ||
-       (env::enabled(MIOPEN_TEST_ALL) && (env::value(MIOPEN_TEST_FLOAT_ARG) == arg)))
-    {
-        return true;
-    }
-    return false;
-}
 
 struct GPU_Adam_FP32 : AdamTest<float, float>
 {
@@ -60,41 +44,20 @@ using namespace adam;
 
 TEST_P(GPU_Adam_FP32, AdamFloatTestFw)
 {
-    if(CheckFloatArg("--float"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 };
 
 TEST_P(GPU_Adam_FP16, AdamFloat16TestFw)
 {
-    if(CheckFloatArg("--half"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 };
 
 TEST_P(GPU_AmpAdam_FP32, AmpAdamTestFw)
 {
-    if(CheckFloatArg("--float"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 };
 
 INSTANTIATE_TEST_SUITE_P(Full, GPU_Adam_FP32, testing::ValuesIn(AdamTestConfigs()));

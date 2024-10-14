@@ -25,22 +25,8 @@
  *******************************************************************************/
 
 #include "addlayernorm.hpp"
-#include <miopen/env.hpp>
-
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 
 namespace addlayernorm {
-
-std::string GetFloatArg()
-{
-    const auto& tmp = env::value(MIOPEN_TEST_FLOAT_ARG);
-    if(tmp.empty())
-    {
-        return "";
-    }
-    return tmp;
-}
 
 struct GPU_AddLayerNorm_FP32 : AddLayerNormTest<float>
 {
@@ -59,44 +45,20 @@ using namespace addlayernorm;
 
 TEST_P(GPU_AddLayerNorm_FP32, AddLayerNormTestFw)
 {
-    if(!MIOPEN_TEST_ALL ||
-       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--float"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 };
 
 TEST_P(GPU_AddLayerNorm_FP16, AddLayerNormTestFw)
 {
-    if(!MIOPEN_TEST_ALL ||
-       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--half"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 };
 
 TEST_P(GPU_AddLayerNorm_BFP16, AddLayerNormTestFw)
 {
-    if(!MIOPEN_TEST_ALL ||
-       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--bfloat16"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 };
 
 INSTANTIATE_TEST_SUITE_P(Full, GPU_AddLayerNorm_FP32, testing::ValuesIn(AddLayerNormTestConfigs()));
