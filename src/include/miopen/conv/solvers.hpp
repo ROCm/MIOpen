@@ -66,10 +66,12 @@ namespace conv {
 using ConvSolverInterface = SolverInterface<ExecutionContext, miopen::conv::ProblemDescription>;
 
 /// Common interface for convolution non-tunable solvers
-using ConvSolverInterfaceNonTunable = SolverInterfaceNonTunable<ExecutionContext, miopen::conv::ProblemDescription>;
+using ConvSolverInterfaceNonTunable =
+    SolverInterfaceNonTunable<ExecutionContext, miopen::conv::ProblemDescription>;
 
 /// Common interface for convolution tunable solvers
-using ConvSolverInterfaceTunable = SolverInterfaceTunable<ExecutionContext, miopen::conv::ProblemDescription>;
+using ConvSolverInterfaceTunable =
+    SolverInterfaceTunable<ExecutionContext, miopen::conv::ProblemDescription>;
 
 /// Typedef for convolution non-tunable solvers
 using ConvSolver = SolverBaseNonTunable<ExecutionContext, miopen::conv::ProblemDescription>;

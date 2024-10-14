@@ -129,7 +129,10 @@ struct SolverInterface : SolverBase
     ///   if Direct computational algorithm is used.
     /// * [Notice] WTI may exceed 1.0 for highly optimized algorithms like Winograd.
     /// * @see https://github.com/ROCm/MIOpen/issues/410
-    virtual float GetWti(const Context& ctx, const Problem& problem) const { return wti_approximate_worst; };
+    virtual float GetWti(const Context& ctx, const Problem& problem) const
+    {
+        return wti_approximate_worst;
+    };
 
     /// Returns the workspace size required by the solver for the given Problem
     virtual size_t GetWorkspaceSize(const Context& ctx, const Problem& problem) const { return 0; };
@@ -148,8 +151,11 @@ struct SolverInterfaceNonTunable : SolverInterface<Context, Problem>
 template <class Context, class Problem>
 struct SolverInterfaceTunable : SolverInterface<Context, Problem>
 {
-    /// This function is a simplified version of FindSolution(), it does not obey search parameters from the Context and does not use the database. Intended to be used in unit tests.
-    virtual ConvSolution FindSolutionSimple(const Context& ctx, const Problem& problem, const AnyInvokeParams& invoke_ctx) const = 0;
+    /// This function is a simplified version of FindSolution(), it does not obey search parameters
+    /// from the Context and does not use the database. Intended to be used in unit tests.
+    virtual ConvSolution FindSolutionSimple(const Context& ctx,
+                                            const Problem& problem,
+                                            const AnyInvokeParams& invoke_ctx) const = 0;
 };
 
 /// Base class for non-tunable solvers
@@ -176,25 +182,35 @@ struct SolverBaseTunable : SolverInterfaceTunable<Context, Problem>, TunableSolv
     /// configuration. It is assumed that the function takes constant time
     /// to finish and does not run kernels to measure performance etc.
     /// The function shall always return valid config.
-    virtual PerformanceConfig GetDefaultPerformanceConfig(const Context& ctx, const Problem& problem) const = 0;
+    virtual PerformanceConfig GetDefaultPerformanceConfig(const Context& ctx,
+                                                          const Problem& problem) const = 0;
 
     /// Should return false if performance config is wrong for a problem.
     /// Main use is validation of values read from the perf db.
-    virtual bool IsValidPerformanceConfig(const Context& ctx, const Problem& problem, const PerformanceConfig& config) const = 0;
+    virtual bool IsValidPerformanceConfig(const Context& ctx,
+                                          const Problem& problem,
+                                          const PerformanceConfig& config) const = 0;
 
     /// Search
-    virtual PerformanceConfig Search(const Context& ctx, const Problem& problem, const AnyInvokeParams& invoke_ctx) const = 0;
+    virtual PerformanceConfig
+    Search(const Context& ctx, const Problem& problem, const AnyInvokeParams& invoke_ctx) const = 0;
 
     /// Tunable solvers provide a GetSolution that takes a Context and PerformanceConfig
-    virtual ConvSolution GetSolution(const Context& ctx, const Problem& problem, const PerformanceConfig& config) const = 0;
+    virtual ConvSolution GetSolution(const Context& ctx,
+                                     const Problem& problem,
+                                     const PerformanceConfig& config) const = 0;
 
-    ConvSolution FindSolutionSimple(const Context& ctx, const Problem& problem, const AnyInvokeParams& invoke_ctx) const final
+    ConvSolution FindSolutionSimple(const Context& ctx,
+                                    const Problem& problem,
+                                    const AnyInvokeParams& invoke_ctx) const final
     {
         const PerformanceConfig config = Search(ctx, problem, invoke_ctx);
         return GetSolution(ctx, problem, config);
     }
 
-    InvokerFactory GetInvokerFactory(const Context& ctx, const Problem& problem, const PerformanceConfig& config) const
+    InvokerFactory GetInvokerFactory(const Context& ctx,
+                                     const Problem& problem,
+                                     const PerformanceConfig& config) const
     {
         return *GetSolution(ctx, problem, config).invoker_factory;
     }

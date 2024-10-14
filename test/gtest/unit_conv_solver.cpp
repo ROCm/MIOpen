@@ -189,7 +189,10 @@ std::ostream& operator<<(std::ostream& os, const ConvTestCase& tc)
 UnitTestConvSolverParams::UnitTestConvSolverParams() : UnitTestConvSolverParams(Gpu::None) {}
 
 UnitTestConvSolverParams::UnitTestConvSolverParams(Gpu supported_devs_)
-    : supported_devs(supported_devs_), use_cpu_ref(false), enable_deprecated_solvers(false), tunable(false)
+    : supported_devs(supported_devs_),
+      use_cpu_ref(false),
+      enable_deprecated_solvers(false),
+      tunable(false)
 {
 }
 
@@ -199,7 +202,7 @@ void UnitTestConvSolverParams::EnableDeprecatedSolvers() { enable_deprecated_sol
 
 void UnitTestConvSolverParams::Tunable(std::size_t iterations_max_)
 {
-    tunable = true;
+    tunable               = true;
     tuning_iterations_max = iterations_max_;
 }
 
@@ -213,13 +216,16 @@ miopen::solver::ConvSolution FindSolution(const miopen::solver::conv::ConvSolver
 {
     if(params.tunable)
     {
-        miopen::solver::debug::TuningIterationScopedLimiter tuning_limit{params.tuning_iterations_max};
-        const auto& tunable_solv = dynamic_cast<const miopen::solver::conv::ConvSolverInterfaceTunable&>(solv);
+        using IterationLimiter = miopen::solver::debug::TuningIterationScopedLimiter;
+        IterationLimiter tuning_limit{params.tuning_iterations_max};
+        const auto& tunable_solv =
+            dynamic_cast<const miopen::solver::conv::ConvSolverInterfaceTunable&>(solv);
         return tunable_solv.FindSolutionSimple(ctx, problem, invoke_ctx);
     }
     else
     {
-        const auto& non_tunable_solv = dynamic_cast<const miopen::solver::conv::ConvSolverInterfaceNonTunable&>(solv);
+        const auto& non_tunable_solv =
+            dynamic_cast<const miopen::solver::conv::ConvSolverInterfaceNonTunable&>(solv);
         return non_tunable_solv.GetSolution(ctx, problem);
     }
 }
