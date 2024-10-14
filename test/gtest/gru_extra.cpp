@@ -25,14 +25,8 @@
  *******************************************************************************/
 #include <miopen/miopen.h>
 #include <gtest/gtest.h>
-#include <miopen/env.hpp>
 #include "../gru.hpp"
 #include "get_handle.hpp"
-
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
-
-namespace env = miopen::env;
 
 namespace gru_extra {
 
@@ -110,17 +104,6 @@ std::vector<std::string> GetTestCases(const std::string& precision)
 } // namespace gru_extra
 using namespace gru_extra;
 
-TEST_P(GPU_GRUExtra_FP32, FloatTest_gru_extra)
-{
-    if(!MIOPEN_TEST_ALL ||
-       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--float"))
-    {
-        Run2dDriverFloat();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
-};
+TEST_P(GPU_GRUExtra_FP32, FloatTest_gru_extra) { Run2dDriverFloat(); };
 
 INSTANTIATE_TEST_SUITE_P(Full, GPU_GRUExtra_FP32, testing::Values(GetTestCases("--float")));

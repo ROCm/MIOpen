@@ -26,26 +26,18 @@
 #include <gtest/gtest.h>
 #include <gtest/gtest_ck_common.hpp>
 #include <miopen/miopen.h>
-#include <miopen/env.hpp>
 
 #include "tensor_util.hpp"
 #include "get_handle.hpp"
 
 #include "conv3d_test_case.hpp"
 
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
-
 namespace conv_bias_act_res_add_fwd {
 
 bool TestIsApplicable()
 {
-    const auto float_arg = env::value(MIOPEN_TEST_FLOAT_ARG);
     /// \todo Check against specific ASCIs.
-    return ::IsDeviceSupportedForCK() &&
-           (float_arg == "--half"              // So far only test for fp16 is implemented.
-            || float_arg.empty())              // Empty when gtest is run without parameters.
-           && !env::disabled(MIOPEN_TEST_ALL); // Not disabled when gtest is run without parameters.
+    return ::IsDeviceSupportedForCK();
 }
 
 std::vector<Conv3DTestCase> ConvTestConfigs()

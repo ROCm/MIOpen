@@ -53,11 +53,11 @@ class GPU_MIOpenDriverGemmTest_FP16 : public testing::TestWithParam<std::vector<
 {
 };
 
-void RunMIOpenDriver(const std::string& floatArg, const std::vector<TestCase>& testCases)
+void RunMIOpenDriver(const std::vector<TestCase>& testCases)
 {
     using e_mask = enabled<Gpu::gfx94X, Gpu::gfx103X, Gpu::gfx110X>;
     using d_mask = disabled<Gpu::Default>;
-    if(!ShouldRunMIOpenDriverTest<d_mask, e_mask>(floatArg, false))
+    if(!ShouldRunMIOpenDriverTest<d_mask, e_mask>())
     {
         GTEST_SKIP();
     }
@@ -68,14 +68,14 @@ void RunMIOpenDriver(const std::string& floatArg, const std::vector<TestCase>& t
 } // namespace miopendriver_gemm
 using namespace miopendriver_gemm;
 
-TEST_P(GPU_MIOpenDriverGemmTest_FP32, MIOpenDriverGemm) { RunMIOpenDriver("--float", GetParam()); };
+TEST_P(GPU_MIOpenDriverGemmTest_FP32, MIOpenDriverGemm) { RunMIOpenDriver(GetParam()); };
 
 INSTANTIATE_TEST_SUITE_P(Full,
                          GPU_MIOpenDriverGemmTest_FP32,
                          testing::Values(GetTestCases(miopendriver::basearg::gemm::Float)));
 
-TEST_P(GPU_MIOpenDriverGemmTest_FP16, MIOpenDriverGemm) { RunMIOpenDriver("--half", GetParam()); };
+TEST_P(GPU_MIOpenDriverGemmTest_FP16, MIOpenDriverGemm) { RunMIOpenDriver(GetParam()); };
 
-INSTANTIATE_TEST_SUITE_P(Full,
+INSTANTIATE_TEST_SUITE_P(Smoke,
                          GPU_MIOpenDriverGemmTest_FP16,
                          testing::Values(GetTestCases(miopendriver::basearg::gemm::Half)));
