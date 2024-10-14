@@ -23,7 +23,6 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-
 #ifndef MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS
 #include <hip/hip_fp16.h>
 #include <hip/hip_runtime.h>
@@ -101,82 +100,56 @@ extern "C" __global__ void Op1dTensorGeneric(const MIOPEN_TYPE* a,
 
 #ifdef USE_2D_TENSOR_GENERIC
 // NC
-extern "C" __global__ void Op2dTensorGeneric(MIOPEN_TYPE* a,
-                                             const int a_nstride,
-                                             MIOPEN_TYPE* b,
-                                             const int b_c,
-                                             const int b_nstride,
+extern "C" __global__ void Op2dTensorGeneric(const MIOPEN_TYPE* a,
+                                             const MIOPEN_TYPE* b,
                                              MIOPEN_TYPE* c,
-                                             const int c_c,
-                                             const int c_nstride,
-                                             const MIOPEN_TYPE alpha0,
-                                             const MIOPEN_TYPE alpha1,
-                                             const MIOPEN_TYPE beta,
-                                             const unsigned int bitmap,
-                                             const int work_per_wg,
                                              const long Aoffset,
                                              const long Boffset,
                                              const long Coffset,
-                                             const int num_wg)
+                                             const uint32_t b_c,
+                                             const uint32_t c_c,
+                                             const uint32_t a_nstride,
+                                             const uint32_t a_cstride,
+                                             const uint32_t b_nstride,
+                                             const uint32_t b_cstride,
+                                             const uint32_t c_nstride,
+                                             const uint32_t c_cstride,
+                                             const MIOPEN_TYPE alpha0,
+                                             const MIOPEN_TYPE alpha1,
+                                             const MIOPEN_TYPE beta,
+                                             const uint32_t total_work,
+                                             const bool use_beta)
 {
-    int gid = blockIdx.x;
+    const MIOPEN_TYPE* a_off = a + Aoffset;
+    const MIOPEN_TYPE* b_off = b + Boffset;
+    MIOPEN_TYPE* c_off       = c + Coffset;
 
-    MIOPEN_TYPE* a_off = a + Aoffset;
-    MIOPEN_TYPE* b_off = b + Boffset;
-    MIOPEN_TYPE* c_off = c + Coffset;
+    auto gid          = blockIdx.x * blockDim.x + threadIdx.x;
+    const auto* a_ptr = a_off + (gid / c_c) * a_nstride + (gid % c_c) * a_cstride;
+    auto* c_ptr       = c_off + (gid / c_c) * c_nstride + (gid % c_c) * c_cstride;
 
-    int o_n_div = (bitmap & (1 << 0)) ? 1 : c_c;
+    const auto step   = gridDim.x * blockDim.x;
+    const auto a_step = (step / c_c) * a_nstride + (step % c_c) * a_cstride;
+    const auto c_step = (step / c_c) * c_nstride + (step % c_c) * c_cstride;
 
-    // num_wg: the number of workgroups should be launched
-    // MAX_NUM_WG: the maximum number of workgroups actually launched
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wfloat-equal"
-    if(beta == static_cast<MIOPEN_TYPE>(0))
-#pragma clang diagnostic pop
+    const auto c_end = c_off + total_work * c_nstride;
+    while(c_ptr < c_end)
     {
-        for(; gid < num_wg; gid += MAX_NUM_WG)
-        {
+        const auto* b_ptr = b_off;
+        if(b_nstride != 0)
+            b_ptr += (gid / b_c) * b_nstride;
 
-            int lid         = threadIdx.x;
-            int o_c_gid_off = gid % b_c;
-            int o_n_gid_off = gid / b_c;
+        if(b_cstride != 0)
+            b_ptr += (gid % b_c) * b_cstride;
 
-            int bindex          = o_n_gid_off * b_nstride + o_c_gid_off;
-            MIOPEN_TYPE operand = b_off[bindex] * alpha1;
+        auto b_val = *b_ptr;
+        auto a_val = *a_ptr;
+        auto c_val = use_beta ? *c_ptr : static_cast<MIOPEN_TYPE>(0);
+        *c_ptr     = MIOPEN_TENSOR_OP(b_val * alpha1, a_val * alpha0) + c_val * beta;
 
-            while(lid < work_per_wg)
-            {
-                int o_c       = (bitmap & (1 << 0)) ? o_c_gid_off : lid % c_c;
-                int o_n       = (bitmap & (1 << 1)) ? o_n_gid_off : lid / o_n_div;
-                int aindex    = o_n * a_nstride + o_c;
-                int cindex    = o_n * c_nstride + o_c;
-                c_off[cindex] = MIOPEN_TENSOR_OP(a_off[aindex] * alpha0, operand);
-                lid += blockDim.x;
-            }
-        }
-    }
-    else
-    {
-        for(; gid < num_wg; gid += MAX_NUM_WG)
-        {
-            int lid         = threadIdx.x;
-            int o_c_gid_off = gid % b_c;
-            int o_n_gid_off = gid / b_c;
-
-            int bindex          = o_n_gid_off * b_nstride + o_c_gid_off;
-            MIOPEN_TYPE operand = b_off[bindex] * alpha1;
-
-            while(lid < work_per_wg)
-            {
-                int o_c    = (bitmap & (1 << 0)) ? o_c_gid_off : lid % c_c;
-                int o_n    = (bitmap & (1 << 1)) ? o_n_gid_off : lid / o_n_div;
-                int aindex = o_n * a_nstride + o_c;
-                int cindex = o_n * c_nstride + o_c;
-                c_off[cindex] =
-                    MIOPEN_TENSOR_OP(a_off[aindex] * alpha0, operand) + beta * c_off[cindex];
-                lid += blockDim.x;
-            }
-        }
+        a_ptr += a_step;
+        c_ptr += c_step;
+        gid += step;
     }
 }
 
