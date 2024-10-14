@@ -223,16 +223,17 @@ struct verify_backward_dropout
 template <class T>
 struct dropout_driver : test_driver
 {
-    std::vector<std::vector<int>> input_dims;
+    std::vector<std::vector<uint64_t>> input_dims;
     float dropout_rate{};
     unsigned long long seed{};
     bool mask{};
-    std::vector<int> in_dim{};
+    std::vector<uint64_t> in_dim{};
     int rng_mode_cmd = 0;
 
     dropout_driver()
     {
-        input_dims                                              = get_sub_tensor();
+        input_dims = {
+            {static_cast<uint64_t>(8589934592), static_cast<uint64_t>(1)}}; // get_sub_tensor();
         std::set<std::vector<int>> get_inputs_set               = get_inputs(1);
         std::set<std::vector<int>> get_3d_conv_input_shapes_set = get_3d_conv_input_shapes(1);
 
