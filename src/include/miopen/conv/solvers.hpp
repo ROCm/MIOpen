@@ -2470,6 +2470,8 @@ struct ConvOclBwdWrW2 : ConvTunableSolver<PerformanceConfigConvOclBwdWrw2<N_BATC
 
 protected:
     bool IsApplicableBase(const ExecutionContext&, const miopen::conv::ProblemDescription&) const;
+
+    friend struct ConvOclBwdWrW2NonTunable;
 };
 
 // To suppress misleading clang warnings
@@ -2498,7 +2500,7 @@ extern template struct ConvOclBwdWrW2<16>;
 /// Basically, this is *hack* for non-group 3x3 and 1x1 cases.
 /// It is assumed that Solutions provided by the ConvOclBwdWrW2 solver
 /// would never beat 3x3 and 1x1 assembly WrW kernels, even after tuning.
-struct MIOPEN_INTERNALS_EXPORT ConvOclBwdWrW2NonTunable final : ConvOclBwdWrW2<1>
+struct MIOPEN_INTERNALS_EXPORT ConvOclBwdWrW2NonTunable final : ConvSolver
 {
     const std::string& SolverDbId() const override
     {
@@ -2507,20 +2509,11 @@ struct MIOPEN_INTERNALS_EXPORT ConvOclBwdWrW2NonTunable final : ConvOclBwdWrW2<1
 
     bool IsApplicable(const ExecutionContext&,
                       const miopen::conv::ProblemDescription&) const override;
+    size_t GetWorkspaceSize(const ExecutionContext&,
+                            const miopen::conv::ProblemDescription&) const override;
+    bool MayNeedWorkspace() const override { return true; }
     ConvSolution GetSolution(const ExecutionContext&,
-                             const miopen::conv::ProblemDescription&) const;
-    InvokerFactory GetInvokerFactory(const ExecutionContext& ctx,
-                                     const miopen::conv::ProblemDescription& problem) const
-    {
-        return *GetSolution(ctx, problem).invoker_factory;
-    }
-
-private:
-    // This function dervied from ConvOclBwdWrW2 is declared private
-    // so that this solver is not marked searchable/tunable.
-    using ConvOclBwdWrW2<1>::GetDefaultPerformanceConfig;
-    using ConvOclBwdWrW2<1>::GetSolution;
-    using ConvOclBwdWrW2<1>::GetInvokerFactory;
+                             const miopen::conv::ProblemDescription&) const override;
 };
 
 struct ConvOclBwdWrW53 final : ConvSolver
