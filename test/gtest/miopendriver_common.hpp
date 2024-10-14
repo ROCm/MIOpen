@@ -44,7 +44,6 @@ namespace conv {
 static const std::string Float    = "conv";
 static const std::string Half     = "convfp16";
 static const std::string BFloat16 = "convbfp16";
-static const std::string Int8     = "convint8";
 } // namespace conv
 
 namespace pool {
