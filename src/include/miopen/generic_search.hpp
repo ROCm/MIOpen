@@ -36,7 +36,6 @@
 #include <miopen/invoke_params.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/timer.hpp>
-#include <miopen/type_traits.hpp>
 #include <miopen/mt_queue.hpp>
 #include <miopen/generic_search_controls.hpp>
 
@@ -241,7 +240,6 @@ public:
 ///   - Its return type shall be suitable for instantiation of the ComputedContainer.
 /// * GetSolution shall be implemented.
 /// * Solution should provide invoker
-/// * RunAndMeasureSolution must NOT be implemented. Invoker will be used instead.
 ///
 /// clang-format-off
 /// -----------------------------------------------
@@ -262,17 +260,6 @@ public:
 ///         bot[] (dy) --> +--------+
 /// ------------------------------------------------
 /// clang-format-on
-
-template <class Solver, class Top, class Bottom>
-using RunAndMeasure_t =
-    decltype(std::declval<Solver>().RunAndMeasureSolution(std::declval<miopen::Handle&>(),
-                                                          std::declval<Bottom>(),
-                                                          std::declval<Top>(),
-                                                          std::declval<ConstData_t>(),
-                                                          std::declval<ConstData_t>(),
-                                                          std::declval<ExecutionContext>(),
-                                                          std::declval<ConvSolution>(),
-                                                          std::declval<float&>()));
 
 template <class Solver, class Context, class Problem>
 auto GetAllConfigs(const Solver s, const Context& context, const Problem& problem)
@@ -367,11 +354,6 @@ auto GenericSearch(const Solver s,
                    const AnyInvokeParams& invoke_ctx_)
     -> decltype(s.GetDefaultPerformanceConfig(context_, problem))
 {
-    static_assert(
-        !(HasMember<RunAndMeasure_t, Solver, ConstData_t, Data_t>{} ||
-          HasMember<RunAndMeasure_t, Solver, Data_t, ConstData_t>{}),
-        "RunAndMeasure is obsolete. Solvers should implement auto-tune evaluation in invoker");
-
     auto context                  = context_;
     context.is_for_generic_search = true;
 
