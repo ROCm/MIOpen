@@ -68,11 +68,11 @@ class GPU_MIOpenDriverConv2dTransTest_BFP16 : public testing::TestWithParam<std:
 {
 };
 
-void RunMIOpenDriver(const std::string& floatArg, const std::vector<TestCase>& testCases)
+void RunMIOpenDriver(const std::vector<TestCase>& testCases)
 {
     using e_mask = enabled<Gpu::gfx94X, Gpu::gfx103X, Gpu::gfx110X>;
     using d_mask = disabled<Gpu::gfx900>;
-    if(!ShouldRunMIOpenDriverTest<d_mask, e_mask>(floatArg, true))
+    if(!ShouldRunMIOpenDriverTest<d_mask, e_mask>())
     {
         GTEST_SKIP();
     }
@@ -85,7 +85,7 @@ using namespace miopendriver_conv2d_trans;
 
 TEST_P(GPU_MIOpenDriverConv2dTransTest_FP32, MIOpenDriverConv2dTrans)
 {
-    RunMIOpenDriver("--float", GetParam());
+    RunMIOpenDriver(GetParam());
 };
 
 INSTANTIATE_TEST_SUITE_P(Full,
@@ -94,7 +94,7 @@ INSTANTIATE_TEST_SUITE_P(Full,
 
 TEST_P(GPU_MIOpenDriverConv2dTransTest_FP16, MIOpenDriverConv2dTrans)
 {
-    RunMIOpenDriver("--half", GetParam());
+    RunMIOpenDriver(GetParam());
 };
 
 INSTANTIATE_TEST_SUITE_P(Full,
@@ -103,7 +103,7 @@ INSTANTIATE_TEST_SUITE_P(Full,
 
 TEST_P(GPU_MIOpenDriverConv2dTransTest_BFP16, MIOpenDriverConv2dTrans)
 {
-    RunMIOpenDriver("--bfloat16", GetParam());
+    RunMIOpenDriver(GetParam());
 };
 
 INSTANTIATE_TEST_SUITE_P(Full,

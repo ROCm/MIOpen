@@ -31,7 +31,6 @@
 
 #include "pooling2d.hpp"
 
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLAGS_ARGS)
 
 namespace env = miopen::env;
@@ -45,8 +44,6 @@ class GPU_Pooling2d_FP32 : public testing::TestWithParam<std::vector<std::string
 class GPU_WidePooling2d_FP16 : public testing::TestWithParam<std::vector<std::string>>
 {
 };
-
-static bool SkipTest(void) { return env::disabled(MIOPEN_TEST_ALL); }
 
 void GetArgs(const std::string& param, std::vector<std::string>& tokens)
 {
@@ -133,7 +130,7 @@ TEST_P(GPU_Pooling2d_FP32, FloatTest_pooling2d_wide)
 TEST_P(GPU_WidePooling2d_FP16, HalfTest_pooling2d_wide)
 {
     const auto& handle = get_handle();
-    if(IsTestSupportedForDevice(handle) && !SkipTest() && IsTestRunWith("--half"))
+    if(IsTestSupportedForDevice(handle))
     {
         Run2dDriver(miopenHalf);
     }

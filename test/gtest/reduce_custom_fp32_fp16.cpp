@@ -27,11 +27,7 @@
 #include <miopen/miopen.h>
 #include <gtest/gtest_common.hpp>
 #include <gtest/gtest.h>
-#include <miopen/env.hpp>
 #include "get_handle.hpp"
-
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
 
 namespace reduce_custom_fp32_fp16 {
 std::vector<std::string> GetArgs(const std::string& param)
@@ -128,10 +124,7 @@ using namespace reduce_custom_fp32_fp16;
 
 TEST_P(GPU_reduce_custom_fp32_fp16_FP32, FloatTest_reduce_custom_fp32_fp16)
 {
-    if(!(IsTestSupportedForDevice()            //
-         && (!MIOPEN_TEST_ALL                  // standalone run
-             || (env::enabled(MIOPEN_TEST_ALL) // or --float full tests enabled
-                 && env::value(MIOPEN_TEST_FLOAT_ARG) == "--float"))))
+    if(!IsTestSupportedForDevice())
     {
         GTEST_SKIP();
     }
@@ -141,10 +134,7 @@ TEST_P(GPU_reduce_custom_fp32_fp16_FP32, FloatTest_reduce_custom_fp32_fp16)
 
 TEST_P(GPU_reduce_custom_fp32_fp16_FP16, HalfTest_reduce_custom_fp32_fp16)
 {
-    if(!(IsTestSupportedForDevice()            //
-         && (!MIOPEN_TEST_ALL                  // standalone run
-             || (env::enabled(MIOPEN_TEST_ALL) // or --half full tests enabled
-                 && env::value(MIOPEN_TEST_FLOAT_ARG) == "--half"))))
+    if(!IsTestSupportedForDevice())
     {
         GTEST_SKIP();
     }
