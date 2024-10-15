@@ -59,11 +59,11 @@ class GPU_MIOpenDriverRegressionGfx10Test_FP16
 {
 };
 
-void RunMIOpenDriver(std::string floatArg, const std::vector<TestCase>& testCases)
+void RunMIOpenDriver(const std::vector<TestCase>& testCases)
 {
     using e_mask = enabled<Gpu::gfx103X>;
     using d_mask = disabled<Gpu::gfx900, Gpu::gfx906, Gpu::gfx908, Gpu::gfx90A>;
-    if(!ShouldRunMIOpenDriverTest<d_mask, e_mask>(floatArg, true))
+    if(!ShouldRunMIOpenDriverTest<d_mask, e_mask>())
     {
         GTEST_SKIP();
     }
@@ -76,7 +76,7 @@ using namespace miopendriver_regression_float_half_gfx10;
 
 TEST_P(GPU_MIOpenDriverRegressionGfx10Test_FP32, MIOpenDriverRegressionFloatHalfGfx10)
 {
-    RunMIOpenDriver("--float", GetParam());
+    RunMIOpenDriver(GetParam());
 };
 
 INSTANTIATE_TEST_SUITE_P(Full,
@@ -85,7 +85,7 @@ INSTANTIATE_TEST_SUITE_P(Full,
 
 TEST_P(GPU_MIOpenDriverRegressionGfx10Test_FP16, MIOpenDriverRegressionFloatHalfGfx10)
 {
-    RunMIOpenDriver("--half", GetParam());
+    RunMIOpenDriver(GetParam());
 };
 
 INSTANTIATE_TEST_SUITE_P(Full,
