@@ -231,15 +231,13 @@ MhaCKFlashAttentionV2Forward::GetSolution([[maybe_unused]] const ExecutionContex
                 fmha_runtime_args.window_size_right = 0;
             }
 
-            fmha_runtime_traits.has_dropout = dataFwd.dropoutProbabilityData != nullptr;
+            fmha_runtime_traits.has_dropout = false;
             float probability               = 0;
-            if(fmha_runtime_traits.has_dropout)
-            {
-                hipMemcpy(&probability,
-                          dataFwd.dropoutProbabilityData,
-                          sizeof(float),
-                          hipMemcpyKind::hipMemcpyDeviceToHost);
-            }
+
+            // TODO : Change API to take in probability value as host side value instead of device
+            // pointer to match CK API. Calling a blocking hipMemcpy will cause issues with stream,
+            // and isn't async.
+
             fmha_runtime_args.p_drop = probability;
             fmha_runtime_args.drop_seed_offset =
                 std::make_pair(dataFwd.dropoutSeedData, dataFwd.dropoutOffsetData);

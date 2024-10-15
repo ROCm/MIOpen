@@ -306,6 +306,11 @@ class GPU_MhaForward_FP16 : public MhaForwardTest<half_float::half>
         }
 
         MhaForwardTest<half_float::half>::SetUp();
+
+        if(m_bernulliProbability != 0.0f)
+        {
+            GTEST_SKIP() << "Dropout not currently supported for FP16";
+        }
     }
 
     void RunCPUverify(miopen::Handle& handle) override
@@ -333,17 +338,7 @@ class GPU_MhaForward_FP16 : public MhaForwardTest<half_float::half>
 
         auto oRes     = GetResult<half_float::half>(miopenTensorMhaO, handle);
         double oError = miopen::rms_range(oDescRef, oRes);
-
-        if(m_bernulliProbability > 0.0f)
-        {
-            // Due to GPU version using a different dropout generator we will compare to CPU without
-            // dropout and verify that dropout causes a large difference when comparing results.
-            EXPECT_GT(oError, errorThreshold);
-        }
-        else
-        {
-            EXPECT_LT(oError, errorThreshold);
-        }
+        EXPECT_LT(oError, errorThreshold);
     }
 };
 

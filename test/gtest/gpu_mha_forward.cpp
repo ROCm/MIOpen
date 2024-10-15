@@ -116,7 +116,6 @@ inline std::vector<TestCase> GetFp16SmokeCases()
         {3, 5, 528, 32, 0.0f},
         {3, 7, 712, 16, 0.0f},
         {5, 3, 1111, 8, 0.0f},
-        {1, 2, 64, 8, 0.5f},
     };
 }
 
@@ -409,6 +408,11 @@ class GPU_Fwd_Mha_FP16 : public Test_Fwd_Mha<half_float::half>
         }
 
         Test_Fwd_Mha<half_float::half>::SetUp();
+
+        if(dropout != 0.0f)
+        {
+            GTEST_SKIP() << "Dropout not currently supported for FP16";
+        }
     }
 
     void RunReference(const tensor<half_float::half>& q_val,
