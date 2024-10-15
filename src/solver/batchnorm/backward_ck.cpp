@@ -88,7 +88,18 @@ struct CKArgsBNormBwd
         std::sort(in_strides.begin(), in_strides.end(), std::greater<>());
         std::rotate(lens.begin() + 1, lens.begin() + 2, lens.end());
 
-        this->reduceDims = problem.reduceDims;
+        if(problem.IsLayoutNHWC())
+        {
+            this->reduceDims = {0, 1, 2};
+        }
+        else if(problem.IsLayoutNCHW())
+        {
+            this->reduceDims = {0, 2, 3};
+        }
+        else
+        {
+            this->reduceDims = {0, 1, 2};
+        }
     }
 
     CKArgsBNormBwd(const CKArgsBNormBwd&) = default;

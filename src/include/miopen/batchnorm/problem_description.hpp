@@ -79,14 +79,6 @@ struct MIOPEN_INTERNALS_EXPORT ProblemDescription : ProblemDescriptionBase, Prob
         SetSpatialDims();
         in_layout  = ComputeInLayout();
         out_layout = ComputeOutLayout();
-        if(IsLayoutNHWC())
-        { // NHWC
-            reduceDims = {0, 1, 2};
-        }
-        else if(IsLayoutNCHW())
-        { // NCHW
-            reduceDims = {0, 2, 3};
-        }
     }
 
     // Forward Inference
@@ -105,14 +97,6 @@ struct MIOPEN_INTERNALS_EXPORT ProblemDescription : ProblemDescriptionBase, Prob
         SetSpatialDims();
         in_layout  = ComputeInLayout();
         out_layout = ComputeOutLayout();
-        if(IsLayoutNHWC())
-        { // NHWC
-            reduceDims = {0, 1, 2};
-        }
-        else if(IsLayoutNCHW())
-        { // NCHW
-            reduceDims = {0, 2, 3};
-        }
     }
 
     // Backward
@@ -136,14 +120,6 @@ struct MIOPEN_INTERNALS_EXPORT ProblemDescription : ProblemDescriptionBase, Prob
         in_layout  = ComputeInLayout();
         out_layout = ComputeOutLayout();
         din_layout = ComputeDinLayout();
-        if(IsLayoutNHWC())
-        { // NHWC
-            reduceDims = {0, 1, 2};
-        }
-        else if(IsLayoutNCHW())
-        { // NCHW
-            reduceDims = {0, 2, 3};
-        }
     }
 
     void SetSpatialDims()
@@ -249,7 +225,6 @@ struct MIOPEN_INTERNALS_EXPORT ProblemDescription : ProblemDescriptionBase, Prob
     // Any tunable solver would be able pick it and fetch a db instance in ExecutePrimitive.
     // It has to be discoverable via ADL from problem description.
     friend auto GetDb(const ExecutionContext& ctx, const ProblemDescriptionTag&) -> PerformanceDb;
-    std::array<int, NumBatchNormReduceDim> reduceDims;
 
 private:
     Direction direction;
