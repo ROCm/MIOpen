@@ -47,8 +47,6 @@ function(add_gtest TEST_NAME TEST_CPP)
   if(MIOPEN_TEST_DISCRETE)
     string(CONCAT TEST_ENVIRONMENT_VARIABLES
     "ENVIRONMENT;MIOPEN_USER_DB_PATH=${CMAKE_CURRENT_BINARY_DIR};"
-    "ENVIRONMENT;MIOPEN_TEST_FLOAT_ARG=${MIOPEN_TEST_FLOAT_ARG};"
-    "ENVIRONMENT;MIOPEN_TEST_ALL=${MIOPEN_TEST_ALL};"
     "ENVIRONMENT;MIOPEN_TEST_MLIR=${MIOPEN_TEST_MLIR};"
     "ENVIRONMENT;MIOPEN_TEST_COMPOSABLEKERNEL=${MIOPEN_TEST_COMPOSABLEKERNEL};"
     "ENVIRONMENT;CODECOV_TEST=${CODECOV_TEST};"
@@ -58,10 +56,29 @@ function(add_gtest TEST_NAME TEST_CPP)
     "ENVIRONMENT;MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=${MIOPEN_DEBUG_TUNING_ITERATIONS_MAX};"
     "ENVIRONMENT;MIOPEN_TEST_WITH_MIOPENDRIVER=${MIOPEN_TEST_WITH_MIOPENDRIVER};")
 
+    set(MIOPEN_GTEST_PREFIX)
+
+    if (MIOPEN_TEST_ALL)
+      set(MIOPEN_GTEST_PREFIX "")
+    else()
+      set(MIOPEN_GTEST_PREFIX "Smoke")
+    endif()
+
+    set(MIOPEN_GTEST_FILTER "${MIOPEN_GTEST_PREFIX}*${MIOPEN_GTEST_SUFFIX}*")
+
+    #it prints the message only once
+    set(TMPFNAME _dummy_static_variable_${name})
+    if (NOT COMMAND ${TMPFNAME})
+      message(STATUS "TEST_FILTER ${MIOPEN_GTEST_FILTER}")
+      # Define a function so next time it will exist
+      function(${TMPFNAME})
+      endfunction()
+    endif()
+
     # Enable CMake to discover the test binary
     # Note: Due to the following cmake issue with gtest_discover_tests https://gitlab.kitware.com/cmake/cmake/-/issues/17812 you cannot pass PROPERTIES as a list.
     #       To work around this limitation, we are passing the environment variables in the format ENVIRONMENT;value1=${value1};ENVIRONMENT;value2=${value2}.
-    gtest_discover_tests(${TEST_NAME} DISCOVERY_TIMEOUT 300 DISCOVERY_MODE PRE_TEST WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/${DATABASE_INSTALL_DIR} PROPERTIES ${TEST_ENVIRONMENT_VARIABLES})
+    gtest_discover_tests(${TEST_NAME} DISCOVERY_TIMEOUT 300 DISCOVERY_MODE PRE_TEST WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/${DATABASE_INSTALL_DIR} PROPERTIES ${TEST_ENVIRONMENT_VARIABLES} TEST_FILTER "${MIOPEN_GTEST_FILTER}")
   endif()
   target_link_libraries(${TEST_NAME} BZip2::BZip2)
   if(WIN32)
@@ -130,6 +147,4 @@ else()
 endif()
 
 message(STATUS "gtest env: MIOPEN_USER_DB_PATH=${CMAKE_CURRENT_BINARY_DIR}")
-message(STATUS "gtest env: MIOPEN_TEST_FLOAT_ARG=${MIOPEN_TEST_FLOAT_ARG}")
-message(STATUS "gtest env: MIOPEN_TEST_ALL=${MIOPEN_TEST_ALL}")
 message(STATUS "gtest env: MIOPEN_TEST_COMPOSABLEKERNEL=${MIOPEN_TEST_COMPOSABLEKERNEL}")

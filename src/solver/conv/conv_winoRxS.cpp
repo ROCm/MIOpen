@@ -24,8 +24,9 @@
  *
  *******************************************************************************/
 
-#include <miopen/solver.hpp>
+#include <miopen/conv/solvers.hpp>
 
+#include <miopen/buffer_info.hpp>
 #include <miopen/conv/data_invoke_params.hpp>
 #include <miopen/conv/compiled_in_parameters.hpp>
 #include <miopen/conv/wrw_invoke_params.hpp>
@@ -33,6 +34,7 @@
 #include <miopen/generic_search.hpp>
 #include <miopen/invoke_params.hpp>
 #include <miopen/kernel_build_params.hpp>
+#include <miopen/problem_description.hpp>
 #include <miopen/sequences.hpp>
 #include <miopen/stringutils.hpp>
 

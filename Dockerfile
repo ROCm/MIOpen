@@ -14,21 +14,22 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
     gnupg2 \
     wget
 
-RUN apt-get update && \
-    DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
-    "linux-headers-$(uname -r)" "linux-modules-extra-$(uname -r)"
+# This stage fails quite often and not always necessary
+# RUN apt-get update && \
+#     DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
+#     "linux-headers-$(uname -r)" "linux-modules-extra-$(uname -r)"
 
 #Add gpg keys
 ENV APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE=DontWarn
 RUN curl -fsSL https://repo.radeon.com/rocm/rocm.gpg.key | gpg --dearmor -o /etc/apt/trusted.gpg.d/rocm-keyring.gpg
 
-RUN wget https://repo.radeon.com/amdgpu-install/6.2/ubuntu/jammy/amdgpu-install_6.2.60200-1_all.deb --no-check-certificate
+RUN wget https://repo.radeon.com/amdgpu-install/6.2.2/ubuntu/jammy/amdgpu-install_6.2.60202-1_all.deb --no-check-certificate
 RUN apt-get update && \
 DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
-    ./amdgpu-install_6.2.60200-1_all.deb
+    ./amdgpu-install_6.2.60202-1_all.deb
 
 # Add rocm repository
-RUN export ROCM_APT_VER=6.2;\
+RUN export ROCM_APT_VER=6.2.2;\
 echo $ROCM_APT_VER &&\
 sh -c 'echo deb [arch=amd64 signed-by=/etc/apt/trusted.gpg.d/rocm-keyring.gpg] https://repo.radeon.com/amdgpu/$ROCM_APT_VER/ubuntu jammy main > /etc/apt/sources.list.d/amdgpu.list' &&\
 sh -c 'echo deb [arch=amd64 signed-by=/etc/apt/trusted.gpg.d/rocm-keyring.gpg] https://repo.radeon.com/rocm/apt/$ROCM_APT_VER jammy main > /etc/apt/sources.list.d/rocm.list'
@@ -87,7 +88,8 @@ ADD requirements.txt /requirements.txt
 ADD dev-requirements.txt /dev-requirements.txt
 # Install dependencies
 # TODO: Add --std=c++14
-ARG GPU_ARCH=";"
+# GPU_ARCH can be defined in docker build process
+ARG GPU_ARCHS=gfx908;gfx90a;gfx942;gfx1100
 # install to /opt/rocm will cause permission issue
 ARG PREFIX=/usr/local
 ARG USE_FIN="OFF"
@@ -111,12 +113,30 @@ DEBIAN_FRONTEND=noninteractive apt-get purge -y --allow-unauthenticated \
     composablekernel-dev \
     miopen-hip
 
+# TODO: it should be able to automatically get commit hash from requirements.txt
+ARG CK_COMMIT=467b4e502d1c2ee2c5fe85ff9fd637b04a5b7ba7
+RUN wget -O ck.tar.gz https://www.github.com/ROCm/composable_kernel/archive/${CK_COMMIT}.tar.gz && \
+    tar zxvf ck.tar.gz &&\
+    cd composable_kernel-${CK_COMMIT} && \
+    mkdir build && cd build && \
+    CXX=/opt/rocm/bin/amdclang++ cmake \
+    -D CMAKE_PREFIX_PATH=/opt/rocm \
+    -D CMAKE_CXX_COMPILER_LAUNCHER="${COMPILER_LAUNCHER}" \
+    -D CMAKE_BUILD_TYPE=Release \
+    -D GPU_ARCHS="gfx908;gfx90a;gfx942;gfx1100" \
+    -D CMAKE_CXX_FLAGS=" -O3 " .. && \
+    make -j $(nproc) install 
+
+# Composable Kernel installed separated from rbuild to take in values from GPU_ARCHS 
+# this can minimize build time
+RUN sed -i '/composable_kernel/d' /requirements.txt
+
 ARG COMPILER_LAUNCHER=""
 # rbuild is used to trigger build of requirements.txt, dev-requirements.txt
 RUN if [ "$USE_FIN" = "ON" ]; then \
-        rbuild prepare -s fin -d $PREFIX -DCMAKE_CXX_COMPILER_LAUNCHER="${COMPILER_LAUNCHER}"; \
+        rbuild prepare -s fin -d $PREFIX -DGPU_ARCHS="${GPU_ARCHS}" -DCMAKE_CXX_COMPILER_LAUNCHER="${COMPILER_LAUNCHER}"; \
     else \
-        rbuild prepare -s develop -d $PREFIX -DCMAKE_CXX_COMPILER_LAUNCHER="${COMPILER_LAUNCHER}"; \
+        rbuild prepare -s develop -d $PREFIX -DGPU_ARCHS="${GPU_ARCHS}" -DCMAKE_CXX_COMPILER_LAUNCHER="${COMPILER_LAUNCHER}"; \
     fi
 
 RUN ccache -s 
