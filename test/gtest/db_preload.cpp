@@ -163,12 +163,12 @@ TEST(CPU_Smoke_DbPreloadTrivial_NONE, Basic)
 
 TEST(CPU_Smoke_DbPreloadTrivial_NONE, Full)
 {
-    miopen::DbPreloadStates states;
-    miopen::ReadonlyRamDb::Instances dbs{{}, &states};
+    auto states = std::make_shared<miopen::DbPreloadStates>();
+    miopen::ReadonlyRamDb::Instances dbs{{}, states};
     const miopen::TmpDir dir;
     const auto filenames = GenerateFilenames(1, dir.path);
 
-    Produce(filenames, states);
+    Produce(filenames, *states);
     std::ignore =
         miopen::ReadonlyRamDb::GetCached(miopen::DbKinds::KernelDb, filenames[0], false, dbs);
 }
@@ -208,8 +208,8 @@ TEST_P(CPU_DbPreload_NONE, Sequential)
 {
     auto param = GetParam();
 
-    miopen::DbPreloadStates states;
-    miopen::ReadonlyRamDb::Instances dbs{{}, &states};
+    auto states = std::make_shared<miopen::DbPreloadStates>();
+    miopen::ReadonlyRamDb::Instances dbs{{}, states};
     const miopen::TmpDir dir;
     const auto filenames = GenerateFilenames(param.producers, dir.path);
 
@@ -219,7 +219,7 @@ TEST_P(CPU_DbPreload_NONE, Sequential)
     for(auto&& filename : filenames)
         promises.emplace(filename, std::promise<void>());
 
-    Produce(filenames, states, [&](auto&& path) { promises.at(path).set_value(); });
+    Produce(filenames, *states, [&](auto&& path) { promises.at(path).set_value(); });
 
     Consume(param.consumers, filenames, dbs, [&]() {
         for(auto&& pair : promises)
@@ -231,15 +231,15 @@ TEST_P(CPU_DbPreload_NONE, Parallel)
 {
     auto param = GetParam();
 
-    miopen::DbPreloadStates states;
-    miopen::ReadonlyRamDb::Instances dbs{{}, &states};
+    auto states = std::make_shared<miopen::DbPreloadStates>();
+    miopen::ReadonlyRamDb::Instances dbs{{}, states};
     const miopen::TmpDir dir;
     const auto filenames = GenerateFilenames(param.consumers, dir.path);
 
     std::shared_mutex producer_mutex;
     auto producer_mutex_owner_lock = std::unique_lock<std::shared_mutex>(producer_mutex);
 
-    Produce(filenames, states, [&](auto) {
+    Produce(filenames, *states, [&](auto) {
         // just synchronisation
         std::ignore = std::shared_lock<std::shared_mutex>(producer_mutex);
     });
