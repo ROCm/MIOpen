@@ -52,7 +52,7 @@ public:
 
     struct Instances
     {
-        std::map<fs::path, ReadonlyRamDb*> dbs;
+        std::map<fs::path, std::unique_ptr<ReadonlyRamDb>> dbs;
         DbPreloadStates* states;
     };
 

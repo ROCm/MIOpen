@@ -82,15 +82,13 @@ ReadonlyRamDb& ReadonlyRamDb::GetCached(DbKinds db_kind_,
     // These will be destroyed altogether with heap.
     if(auto preloaded = instances.states->GetPreloadedReadonlyRamDb(path))
     {
-        return *instances.dbs.emplace(path, preloaded.release()).first->second;
+        return *instances.dbs.emplace(path, std::move(preloaded)).first->second;
     }
     else
     {
-        // NOLINTNEXTLINE (cppcoreguidelines-owning-memory)
-        auto instance = new ReadonlyRamDb{db_kind_, path};
-        instances.dbs.emplace(path, instance);
-        instance->Prefetch(warn_if_unreadable);
-        return *instance;
+        auto &ref = *instances.dbs.emplace(path, std::make_unique<ReadonlyRamDb>(db_kind_, path)).first->second;
+        ref.Prefetch(warn_if_unreadable);
+        return ref;
     }
 }
 
