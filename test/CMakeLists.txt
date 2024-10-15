@@ -63,6 +63,7 @@ option( MIOPEN_TEST_GFX900 "Test on Vega10 (gfx900)" OFF )
 option( MIOPEN_TEST_GFX906 "Test on Vega20 (gfx906)" OFF )
 option( MIOPEN_TEST_GFX103X "Test on Navi21/22 (gfx1030/31)" OFF )
 option( MIOPEN_TEST_GFX110X "Test on Navi31/32 (gfx1100/02)" OFF )
+option( MIOPEN_TEST_GFX120X "Test on gfx1200/01" OFF )
 option( MIOPEN_TEST_GPU_XNACK_ENABLED "Test as if XNACK mode is enabled" OFF )
 option( MIOPEN_TEST_CONV "" OFF)
 option( MIOPEN_TEST_DEEPBENCH "" OFF)
@@ -98,7 +99,7 @@ endif()
 # Also we do not detect GPU when target GPU for testing is specified explicitly.
 set(MIOPEN_TEST_GPU_DETECTION_FAILED FALSE)
 set(MIOPEN_NO_GPU FALSE)
-if(NOT (MIOPEN_TEST_GFX900 OR MIOPEN_TEST_GFX906 OR MIOPEN_TEST_GFX908 OR MIOPEN_TEST_GFX90A OR MIOPEN_TEST_GFX94X OR MIOPEN_TEST_GFX103X OR MIOPEN_TEST_GFX110X OR MIOPEN_TEST_HIP_NOGPU))
+if(NOT (MIOPEN_TEST_GFX900 OR MIOPEN_TEST_GFX906 OR MIOPEN_TEST_GFX908 OR MIOPEN_TEST_GFX90A OR MIOPEN_TEST_GFX94X OR MIOPEN_TEST_GFX103X OR MIOPEN_TEST_GFX110X OR MIOPEN_TEST_GFX120X OR MIOPEN_TEST_HIP_NOGPU))
     find_program(ROCMINFO
         NAMES rocminfo
         PATHS
@@ -130,6 +131,10 @@ if(NOT (MIOPEN_TEST_GFX900 OR MIOPEN_TEST_GFX906 OR MIOPEN_TEST_GFX908 OR MIOPEN
             set(MIOPEN_TEST_GFX110X ON)
         elseif(ROCMINFO_OUTPUT MATCHES "gfx1102")
             set(MIOPEN_TEST_GFX110X ON)
+        elseif(ROCMINFO_OUTPUT MATCHES "gfx1200")
+            set(MIOPEN_TEST_GFX120X ON)
+        elseif(ROCMINFO_OUTPUT MATCHES "gfx1201")
+            set(MIOPEN_TEST_GFX120X ON)
         elseif(ROCMINFO_OUTPUT MATCHES "gfx900")
             set(MIOPEN_TEST_GFX900 ON)
         elseif(ROCMINFO_OUTPUT MATCHES "gfx906")
@@ -175,6 +180,7 @@ message(STATUS "MIOPEN_TEST_GFX90A ${MIOPEN_TEST_GFX90A}")
 message(STATUS "MIOPEN_TEST_GFX94X ${MIOPEN_TEST_GFX94X}")
 message(STATUS "MIOPEN_TEST_GFX103X ${MIOPEN_TEST_GFX103X}")
 message(STATUS "MIOPEN_TEST_GFX110X ${MIOPEN_TEST_GFX110X}")
+message(STATUS "MIOPEN_TEST_GFX120X ${MIOPEN_TEST_GFX120X}")
 message(STATUS "MIOPEN_TEST_GPU_XNACK_ENABLED ${MIOPEN_TEST_GPU_XNACK_ENABLED}")
 message(STATUS "MIOPEN_TEST_GPU_DETECTION_FAILED ${MIOPEN_TEST_GPU_DETECTION_FAILED}")
 message(STATUS "MIOPEN_TEST_WITH_MIOPENDRIVER ${MIOPEN_TEST_WITH_MIOPENDRIVER}")
@@ -205,18 +211,22 @@ if(MIOPEN_TEST_WITH_MIOPENDRIVER)
     add_dependencies(check MIOpenDriver)
 endif()
 
+
+set(MIOPEN_GTEST_SUFFIX)
 set(MIOPEN_TEST_FLOAT_ARG)
 set(MIOPEN_TEST_FLOAT FALSE)
 set(MIOPEN_TEST_CONV_INT8_OUTPUT_TYPE_INT8)
 set(MIOPEN_TEST_CONV_INT8_OUTPUT_TYPE_INT32)
 set(MIOPEN_TEST_CONV_INT8_OUTPUT_TYPE_FLOAT)
 if(MIOPEN_TEST_HALF)
+    set(MIOPEN_GTEST_SUFFIX FP16)
     set(MIOPEN_TEST_FLOAT_ARG --half)
     set(MIOPENDRIVER_MODE_CONV convfp16)
     set(MIOPENDRIVER_MODE_BN bnormfp16)
     set(MIOPENDRIVER_MODE_POOL poolfp16)
     set(MIOPENDRIVER_MODE_GEMM gemmfp16)
 elseif(MIOPEN_TEST_INT8)
+    set(MIOPEN_GTEST_SUFFIX I8)
     set(MIOPEN_TEST_FLOAT_ARG --int8)
     set(MIOPENDRIVER_MODE_CONV convint8)
     set(MIOPENDRIVER_MODE_BN NOT_SUPPORTED)
@@ -226,12 +236,14 @@ elseif(MIOPEN_TEST_INT8)
     set(MIOPEN_TEST_CONV_INT8_OUTPUT_TYPE_INT32 --output_type int32)
     set(MIOPEN_TEST_CONV_INT8_OUTPUT_TYPE_FLOAT --output_type float)
 elseif(MIOPEN_TEST_BFLOAT16)
+    set(MIOPEN_GTEST_SUFFIX BFP16)
     set(MIOPEN_TEST_FLOAT_ARG --bfloat16)
     set(MIOPENDRIVER_MODE_CONV convbfp16)
     set(MIOPENDRIVER_MODE_BN NOT_SUPPORTED)
     set(MIOPENDRIVER_MODE_POOL NOT_SUPPORTED)
     set(MIOPENDRIVER_MODE_GEMM NOT_SUPPORTED)
 else()
+    set(MIOPEN_GTEST_SUFFIX FP32)
     set(MIOPEN_TEST_FLOAT_ARG --float)
     set(MIOPEN_TEST_FLOAT TRUE)
     set(MIOPENDRIVER_MODE_CONV conv)
@@ -240,6 +252,7 @@ else()
     set(MIOPENDRIVER_MODE_GEMM gemm)
 endif()
 
+message(STATUS "MIOPEN_GTEST_SUFFIX ${MIOPEN_GTEST_SUFFIX}")
 message(STATUS "MIOPEN_TEST_FLOAT ${MIOPEN_TEST_FLOAT}")
 message(STATUS "MIOPEN_TEST_HALF ${MIOPEN_TEST_HALF}")
 message(STATUS "MIOPEN_TEST_BFLOAT16 ${MIOPEN_TEST_BFLOAT16}")
@@ -374,7 +387,7 @@ function(add_test_executable TEST_NAME)
     endif()
     if(NOT MIOPEN_EMBED_DB STREQUAL "")
         target_link_libraries(${TEST_NAME} MIOpen miopen_data)
-    else()       
+    else()
         target_link_libraries(${TEST_NAME} MIOpen)
     endif()
     target_include_directories(${TEST_NAME} PRIVATE ../src/kernels)
@@ -420,7 +433,6 @@ set(LONG_TESTS
     test_conv3d_extra
     test_conv_3d
     test_pooling2d
-    test_activation
     test_conv_ck_igemm_fwd_v6r1_dlops_nchw
     )
 
@@ -919,7 +931,7 @@ add_custom_test(smoke_solver_ConvMlirIgemm_W GFX900_DISABLED GFX908_DISABLED GFX
     COMMAND $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_W} --input 64 64  28 28 --weights 64  64  1 1 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
 )
 #Dont install the tests if we are building each test separately
-#When the tests are built as a single unit, then we want to be 
+#When the tests are built as a single unit, then we want to be
 #able to package them
 set(INSTALL_GTEST OFF)
 if(MIOPEN_TEST_DISCRETE)

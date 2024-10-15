@@ -29,6 +29,7 @@
 #include <miopen/conv/data_invoke_params.hpp>
 #include <miopen/conv/wrw_invoke_params.hpp>
 #include <miopen/batched_transpose_sol.hpp>
+#include <miopen/buffer_info.hpp>
 #include <miopen/tensor_ops.hpp>
 #include <miopen/miopen_internal.h>
 
@@ -168,27 +169,7 @@ bool IsCKApplicable(const ProblemDescriptionType& problem)
 
 #define WORKAROUND_CK_ISSUE_1184 1
 #if WORKAROUND_CK_ISSUE_1184
-struct HipEventProfiler
-{
-    const Handle& handle;
-    float event_time;
-    HipEventPtr start;
-    HipEventPtr stop;
-
-    HipEventProfiler(const Handle& handle_)
-        : handle(handle_), event_time(0.0f), start(make_hip_event()), stop(make_hip_event())
-    {
-        hipEventRecord(start.get(), handle.GetStream());
-    }
-    ~HipEventProfiler()
-    {
-        hipEventRecord(stop.get(), handle.GetStream());
-        hipEventSynchronize(stop.get());
-        hipEventElapsedTime(&event_time, start.get(), stop.get());
-        handle.ResetKernelTime();
-        handle.AccumKernelTime(event_time);
-    }
-};
+using WorkAroundHipEventProfiler = HipEventProfiler;
 #endif
 
 inline bool isDataTypeHalfAndChannelsEven(const miopen::conv::ProblemDescription& problem)
@@ -396,9 +377,10 @@ public:
         Run(handle, kernels, out_ptr, buf_handle.get());
     }
 
-    void ZeroOutBuffer()
+    void ZeroOutBuffer(const Handle& handle)
     {
-        [[maybe_unused]] auto status = hipMemset(buf_handle.get(), 0, tensor_sz);
+        [[maybe_unused]] auto status =
+            hipMemsetAsync(buf_handle.get(), 0, tensor_sz, handle.GetStream());
         assert(status == hipSuccess);
     }
 
@@ -744,7 +726,7 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
                 std::swap(conv_tensors.x, conv_tensors.y);
                 std::swap(conv_tensors.xDesc, conv_tensors.yDesc);
             }
-            HipEventProfiler pfr(handle);
+            WorkAroundHipEventProfiler pfr(handle);
             input1_tr_inst.ConvertFrom(handle, kernels, conv_tensors);
 
             input2_tr_inst.ConvertFrom(handle, kernels, conv_tensors);
@@ -754,7 +736,7 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
             /// \todo: Will need SetTensor() to properly zero out non-packed tensors
             if(output_tr_inst.GetConvOperandTag() == internal::ConvOperandTag::Weights)
             {
-                output_tr_inst.ZeroOutBuffer();
+                output_tr_inst.ZeroOutBuffer(handle);
             }
 
             std::array<internal::TransposeInstanceTagged*, 3> tr_ptrs = {

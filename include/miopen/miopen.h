@@ -64,11 +64,14 @@
  * @defgroup LossFunction
  * @defgroup TensorReduce
  * @defgroup find2
- * @defgroup sum
  * @defgroup ReduceExtreme
  * @defgroup groupnorm
  * @defgroup cat
  * @defgroup SGD
+ * @defgroup getitem
+ * @defgroup ReduceCalculation
+ * @defgroup RotaryPositionalEmbeddings
+ * @defgroup ReLU
  *
  */
 
@@ -2948,6 +2951,54 @@ miopenDestroyActivationDescriptor(miopenActivationDescriptor_t activDesc);
 /** @} */
 // CLOSEOUT ACTIVATION DOXYGEN GROUP
 
+#ifdef MIOPEN_BETA_API
+/** @addtogroup activation
+ *
+ *  @{
+ */
+
+/*! @brief Execute a GLU forward layer
+ *
+ * @param handle                   MIOpen handle (input)
+ * @param inputDesc                Tensor descriptor for input tensor (input)
+ * @param input                    Input tensor (input)
+ * @param outputDesc               Tensor descriptor for output tensor (input)
+ * @param output                   Output tensor (output)
+ * @param dim                      Dimension to split the input (input)
+ * @return                         miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenGLUForward(miopenHandle_t handle,
+                                              const miopenTensorDescriptor_t inputDesc,
+                                              const void* input,
+                                              const miopenTensorDescriptor_t outputDesc,
+                                              void* output,
+                                              const uint32_t dim);
+
+/*! @brief Execute a GLU backward layer
+ *
+ * @param handle                   MIOpen handle (input)
+ * @param inputDesc                Tensor descriptor for input tensor (input)
+ * @param input                    Input tensor (input)
+ * @param outputGradDesc           Tensor descriptor for delta output tensor (input)
+ * @param outputGrad               Delta output tensor (input)
+ * @param inputGradDesc            Tensor descriptor for delta input tensor (input)
+ * @param inputGrad                Delta input tensor (output)
+ * @param dim                      Dimension to split the input (input)
+ * @return                         miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenGLUBackward(miopenHandle_t handle,
+                                               const miopenTensorDescriptor_t inputDesc,
+                                               const void* input,
+                                               const miopenTensorDescriptor_t outputGradDesc,
+                                               const void* outputGrad,
+                                               const miopenTensorDescriptor_t inputGradDesc,
+                                               void* inputGrad,
+                                               const uint32_t dim);
+
+/** @} */
+// CLOSEOUT ACTIVATION DOXYGEN GROUP
+#endif // MIOPEN_BETA_API
+
 // Softmax APIs
 /** @addtogroup softmax
  *
@@ -5404,40 +5455,42 @@ typedef enum
     miopenTensorMhaAmaxDK             = 33,
     miopenTensorMhaAmaxDV             = 34,
     miopenTensorMhaAmaxDS             = 35,
+    miopenTensorMhaBias               = 36,
 
 #ifdef MIOPEN_BETA_API
-    miopenTensorActivationX                = 36,
-    miopenTensorActivationY                = 37,
-    miopenTensorActivationDX               = 38,
-    miopenTensorActivationDY               = 39,
-    miopenTensorBiasX                      = 40,
-    miopenTensorBiasY                      = 41,
-    miopenTensorBias                       = 42,
-    miopenTensorSoftmaxX                   = 43,
-    miopenTensorSoftmaxY                   = 44,
-    miopenTensorSoftmaxDX                  = 45,
-    miopenTensorSoftmaxDY                  = 46,
-    miopenTensorBatchnormX                 = 47,
-    miopenTensorBatchnormY                 = 48,
-    miopenTensorBatchnormRunningMean       = 49,
-    miopenTensorBatchnormRunningVariance   = 50,
-    miopenTensorBatchnormSavedMean         = 51,
-    miopenTensorBatchnormSavedVariance     = 52,
-    miopenTensorBatchnormScale             = 53,
-    miopenTensorBatchnormScaleDiff         = 54,
-    miopenTensorBatchnormEstimatedMean     = 55,
-    miopenTensorBatchnormEstimatedVariance = 56,
-    miopenTensorBatchnormBias              = 57,
-    miopenTensorBatchnormBiasDiff          = 58,
-    miopenTensorBatchnormDX                = 59,
-    miopenTensorBatchnormDY                = 60,
+    miopenTensorActivationX                = 37,
+    miopenTensorActivationY                = 38,
+    miopenTensorActivationDX               = 39,
+    miopenTensorActivationDY               = 40,
+    miopenTensorBiasX                      = 41,
+    miopenTensorBiasY                      = 42,
+    miopenTensorBias                       = 43,
+    miopenTensorSoftmaxX                   = 44,
+    miopenTensorSoftmaxY                   = 45,
+    miopenTensorSoftmaxDX                  = 46,
+    miopenTensorSoftmaxDY                  = 47,
+    miopenTensorBatchnormX                 = 48,
+    miopenTensorBatchnormY                 = 49,
+    miopenTensorBatchnormRunningMean       = 50,
+    miopenTensorBatchnormRunningVariance   = 51,
+    miopenTensorBatchnormSavedMean         = 52,
+    miopenTensorBatchnormSavedVariance     = 53,
+    miopenTensorBatchnormScale             = 54,
+    miopenTensorBatchnormScaleDiff         = 55,
+    miopenTensorBatchnormEstimatedMean     = 56,
+    miopenTensorBatchnormEstimatedVariance = 57,
+    miopenTensorBatchnormBias              = 58,
+    miopenTensorBatchnormBiasDiff          = 59,
+    miopenTensorBatchnormDX                = 60,
+    miopenTensorBatchnormDY                = 61,
 #endif
 
     miopenTensorArgumentIsScalar = 1U << 31,
 
+    miopenTensorMhaMask = miopenTensorArgumentIsScalar | 1,
 #ifdef MIOPEN_BETA_API
-    miopenScalarBatchnormExpAvgFactor = miopenTensorArgumentIsScalar | 1,
-    miopenScalarBatchnormEpsilon      = miopenTensorArgumentIsScalar | 2,
+    miopenScalarBatchnormExpAvgFactor = miopenTensorArgumentIsScalar | 2,
+    miopenScalarBatchnormEpsilon      = miopenTensorArgumentIsScalar | 3,
 #endif
 } miopenTensorArgumentId_t;
 
@@ -5468,6 +5521,15 @@ MIOPEN_EXPORT miopenStatus_t miopenCreateConvProblem(miopenProblem_t* problem,
  * @param direction    Direction of the operation
  * @return             miopenStatus_t
  */
+
+/*! @enum miopenMhaMask_t
+ * Different masks for Mha.
+ */
+typedef enum
+{
+    miopenMhaMaskNone   = 0,
+    miopenMhaMaskCausal = 1,
+} miopenMhaMask_t;
 
 MIOPEN_EXPORT miopenStatus_t miopenCreateMhaProblem(miopenProblem_t* problem,
                                                     miopenMhaDescriptor_t operatorDesc,
@@ -5848,63 +5910,79 @@ MIOPEN_EXPORT miopenStatus_t miopenCreateSoftmaxProblem(miopenProblem_t* problem
 
 #ifdef MIOPEN_BETA_API
 
-/*! @ingroup sum
- * @enum miopenSumNanPropagation_t
- * Nan numbers propagation modes for sum
+/*! @ingroup ReduceCalculation
+ * @enum miopenReduceCalculationNanPropagation_t
+ * Nan numbers propagation modes for reduce calculation
  */
 typedef enum
 {
-    MIOPEN_SUM_NOT_PROPAGATE_NAN = 0, /*!< does not propagate Nan number */
-    MIOPEN_SUM_PROPAGATE_NAN     = 1, /*!< propagate the Nan number by the Reduction operation */
-} miopenSumNanPropagation_t;
+    MIOPEN_REDUCE_CALCULATION_NOT_PROPAGATE_NAN = 0, /*!< does not propagate Nan number */
+    MIOPEN_REDUCE_CALCULATION_PROPAGATE_NAN =
+        1, /*!< propagate the Nan number by the Reduction operation */
+} miopenReduceCalculationNanPropagation_t;
 
-// Sum APIs
-/** @addtogroup sum
+// ReduceCalculation APIs
+/** @addtogroup reducecalculation
  *
  *  @{
  */
 
+/*! @enum miopenReduceCalculationOp_t
+ * Reduction Calculation operation types
+ */
+typedef enum
+{
+    MIOPEN_REDUCE_CALCULATION_PROD =
+        1, /*!< the operation is multiplying the values of the reduced elements */
+    MIOPEN_REDUCE_CALCULATION_SUM =
+        2, /*!< the operation is adding the values of the reduced elements */
+} miopenReduceCalculationOp_t;
+
 /*! @brief Helper function to query the minimum workspace size required by the ReduceTensor call
  *
- * @param handle                   MIOpen Handle (input)
- * @param xDesc                    Tensor descriptor for data input tensor x (input)
- * @param dim                      Dimension to sum. (input)
- * @param yDesc                    Tensor descriptor for output data tensor y (input)
- * @param sizeInBytes              Pointer to data to return the minimum workspace size
- * @return                         miopenStatus_t
+ * @param [in]   handle                   MIOpen Handle
+ * @param [in]   xDesc                    Tensor descriptor for data input tensor x
+ * @param [in]   dim                      Dimension to calculation.
+ * @param [in]   yDesc                    Tensor descriptor for output data tensor y
+ * @param [out]  sizeInBytes              Pointer to data to return the minimum workspace size
+ * @return                                miopenStatus_t
  */
-MIOPEN_EXPORT miopenStatus_t miopenGetSumWorkspaceSize(miopenHandle_t handle,
-                                                       const miopenTensorDescriptor_t xDesc,
-                                                       const int32_t dim,
-                                                       const miopenTensorDescriptor_t yDesc,
-                                                       size_t* sizeInBytes);
+MIOPEN_EXPORT miopenStatus_t
+miopenGetReduceCalculationWorkspaceSize(miopenHandle_t handle,
+                                        const miopenTensorDescriptor_t xDesc,
+                                        const int32_t dim,
+                                        const miopenReduceCalculationOp_t reduceCalculationOp,
+                                        const miopenTensorDescriptor_t reduceDesc,
+                                        size_t* sizeInBytes);
 
-/*! @brief Execute a sum forward layer
+/*! @brief Execute a reducecalculation forward layer
  *
- * @param handle                   MIOpen handle (input)
- * @param nanPropagation           Nan number propagation mode (input)
- * @param workspace                Address of the allocated workspace data (input)
- * @param workspaceSizeInBytes     Size in bytes of the allocated workspace data (input)
- * @param xDesc                    Tensor descriptor for data input tensor x (input)
- * @param x                        Data tensor x (input)
- * @param dim                      Dimension to sum. (input)
- * @param yDesc                    Tensor descriptor for output data tensor y (input)
- * @param y                        Data tensor y (output)
- * @return                         miopenStatus_t
+ * @param [in]   handle                   MIOpen handle
+ * @param [in]   nanPropagation           Nan number propagation mode
+ * @param [in]   workspace                Address of the allocated workspace data
+ * @param [in]   workspaceSizeInBytes     Size in bytes of the allocated workspace data
+ * @param [in]   xDesc                    Tensor descriptor for data input tensor x
+ * @param [in]   x                        Data tensor x
+ * @param [in]   dim                      Dimension to calculation.
+ * @param [in]   yDesc                    Tensor descriptor for output data tensor y
+ * @param [out]  y                        Data tensor y
+ * @return                                miopenStatus_t
  */
-MIOPEN_EXPORT miopenStatus_t miopenSumForward(miopenHandle_t handle,
-                                              miopenSumNanPropagation_t nanPropagation,
-                                              void* workspace,
-                                              size_t workspaceSizeInBytes,
-                                              const miopenTensorDescriptor_t xDesc,
-                                              const void* x,
-                                              const int32_t dim,
-                                              const miopenTensorDescriptor_t yDesc,
-                                              void* y);
+MIOPEN_EXPORT miopenStatus_t
+miopenReduceCalculationForward(miopenHandle_t handle,
+                               miopenReduceCalculationNanPropagation_t nanPropagation,
+                               void* workspace,
+                               size_t workspaceSizeInBytes,
+                               const miopenTensorDescriptor_t xDesc,
+                               const void* x,
+                               const int32_t dim,
+                               const miopenReduceCalculationOp_t reduceCalculationOp,
+                               const miopenTensorDescriptor_t reduceDesc,
+                               void* y);
 
 /** @} */
-// CLOSEOUT SUM DOXYGEN GROUP
-#endif
+// CLOSEOUT REDUCE CALCULATION DOXYGEN GROUP
+#endif // MIOPEN_BETA_API
 
 #ifdef MIOPEN_BETA_API
 
@@ -5957,7 +6035,7 @@ miopenReduceExtremeForward(miopenHandle_t handle,
 
 /** @} */
 // CLOSEOUT REDUCEEXTREME DOXYGEN GROUP
-#endif
+#endif // MIOPEN_BETA_API
 
 #ifdef MIOPEN_BETA_API
 // GroupNorm APIs
@@ -6004,7 +6082,7 @@ MIOPEN_EXPORT miopenStatus_t miopenGroupNormForward(miopenHandle_t handle,
 
 /** @} */
 // CLOSEOUT groupnorm DOXYGEN GROUP
-#endif
+#endif // MIOPEN_BETA_API
 
 #ifdef MIOPEN_BETA_API
 // LayerNorm APIs
@@ -6055,7 +6133,7 @@ MIOPEN_EXPORT miopenStatus_t miopenAddLayerNormForward(miopenHandle_t handle,
 
 /** @} */
 // CLOSEOUT LAYERNORM DOXYGEN GROUP
-#endif
+#endif // MIOPEN_BETA_API
 
 #ifdef MIOPEN_BETA_API
 // LayerNorm APIs
@@ -6153,7 +6231,7 @@ MIOPEN_EXPORT miopenStatus_t miopenT5LayerNormBackward(miopenHandle_t handle,
                                                        void* dw);
 /** @} */
 // CLOSEOUT LAYERNORM DOXYGEN GROUP
-#endif
+#endif // MIOPEN_BETA_API
 
 #ifdef MIOPEN_BETA_API
 // Graph API
@@ -7536,6 +7614,393 @@ miopenTransformersAdamWWithOutput(miopenHandle_t handle,
 
 /** @} */
 // CLOSEOUT SGD DOXYGEN GROUP
+#endif // MIOPEN_BETA_API
+
+#ifdef MIOPEN_BETA_API
+// GetItem APIs
+/** @addtogroup getitem
+ *
+ *  @{
+ */
+/*! @brief Helper function to query the minimum workspace size required by the getitem call
+ *
+ * @param [in]   handle                  MIOpen Handle
+ * @param [in]   indexCount              Number of input tensor indexs
+ * @param [in]   indexDescs              Tensor descriptor of input tensor indexs
+ * @param [out]  sizeInBytes             Pointer to data to return the minimum workspace size
+ * @return                        miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenGetGetitemWorkspaceSize(miopenHandle_t handle,
+                              uint32_t indexCount,
+                              const miopenTensorDescriptor_t* indexDescs,
+                              size_t* sizeInBytes);
+
+/*! @brief Execute a getitem backward layer
+ *
+ * Backward of getitem for tensor indexing, slicing, masking.
+ *
+ * @param [in]   handle                  MIOpen handle
+ * @param [in]   workspace               Address of the allocated workspace data
+ * @param [in]   workspaceSizeInBytes    Size in bytes of the allocated workspace data
+ * @param [in]   dyDesc                  Tensor descriptor of input tensor dy
+ * @param [in]   dy                      Source data tensor dy
+ * @param [in]   indexCount              Number of input tensor indexs
+ * @param [in]   indexDescs              Tensor descriptor of input tensor indexs(All indexs same
+ * size)
+ * @param [in]   indexs                  Source data tensor indexs
+ * @param [in]   dxDesc                  Tensor descriptor of output tensor dx
+ * @param [out]  dx                      Data tensor dx(It must be initialized to 0)
+ * @param [in]   errorDesc               Tensor descriptor of output tensor error
+ * @param [out]  error                   Data tensor error(It must be initialized to 0)
+ * @param [in]   dimCount                Number of dimensions
+ * @param [in]   dims                    Dimensions
+ * @param [in]   sliceCount              Number of slices
+ * @param [in]   slices                  Slices
+ * @param [in]   offset                  Offset of output tensor dx
+ * @return                               miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenGetitemBackward(miopenHandle_t handle,
+                                                   void* workspace,
+                                                   size_t workspaceSizeInBytes,
+                                                   const miopenTensorDescriptor_t dyDesc,
+                                                   const void* dy,
+                                                   uint32_t indexCount,
+                                                   const miopenTensorDescriptor_t* indexDescs,
+                                                   const void* const* indexs,
+                                                   const miopenTensorDescriptor_t dxDesc,
+                                                   void* dx,
+                                                   const miopenTensorDescriptor_t errorDesc,
+                                                   void* error,
+                                                   uint32_t dimCount,
+                                                   const int32_t* dims,
+                                                   uint32_t sliceCount,
+                                                   const int32_t* slices,
+                                                   uint32_t offset);
+
+/** @} */
+// CLOSEOUT GETITEM DOXYGEN GROUP
+#endif // MIOPEN_BETA_API
+
+#ifdef MIOPEN_BETA_API
+// RotaryPositionalEmbeddings APIs
+/** @addtogroup RotaryPositionalEmbeddings
+ *
+ *  @{
+ */
+/*! @brief Execute a rope forward layer
+ *
+ * @param [in]   handle         MIOpen handle
+ * @param [in]   xDesc          Tensor descriptor for data input tensor x
+ * @param [in]   x              Data tensor x
+ * @param [in]   cosDesc        Tensor descriptor for data input tensor cos
+ * @param [in]   cos            Data tensor cos
+ * @param [in]   sinDesc        Tensor descriptor for data input tensor sin
+ * @param [in]   sin            Data tensor sin
+ * @param [in]   yDesc          Tensor descriptor for output data tensor y
+ * @param [out]  y              Data tensor y
+ * @return                      miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenRoPEForward(miopenHandle_t handle,
+                                               const miopenTensorDescriptor_t xDesc,
+                                               const void* x,
+                                               const miopenTensorDescriptor_t cosDesc,
+                                               const void* cos,
+                                               const miopenTensorDescriptor_t sinDesc,
+                                               const void* sin,
+                                               const miopenTensorDescriptor_t yDesc,
+                                               void* y);
+
+/*! @brief Execute a rope backward layer
+ *
+ * @param [in]   handle         MIOpen handle
+ * @param [in]   dyDesc         Tensor descriptor for data input tensor dy
+ * @param [in]   dy             Data tensor dy
+ * @param [in]   cosDesc        Tensor descriptor for output data tensor cos
+ * @param [in]   cos            Data tensor cos
+ * @param [in]   sinDesc        Tensor descriptor for data input tensor sin
+ * @param [in]   sin            Data tensor sin
+ * @param [in]   dxDesc         Tensor descriptor for output data tensor dx
+ * @param [out]  dx             Data tensor dx
+ * @return                      miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenRoPEBackward(miopenHandle_t handle,
+                                                const miopenTensorDescriptor_t dyDesc,
+                                                const void* dy,
+                                                const miopenTensorDescriptor_t cosDesc,
+                                                const void* cos,
+                                                const miopenTensorDescriptor_t sinDesc,
+                                                const void* sin,
+                                                const miopenTensorDescriptor_t dxDesc,
+                                                void* dx);
+/** @} */
+// CLOSEOUT ROPE DOXYGEN GROUP
+// kthvalue APIs
+/** @addtogroup kthvalue
+ *
+ *  @{
+ */
+
+/*! @brief Execute a Kthvalue forward layer
+ *
+ * @param handle                   MIOpen handle (input)
+ * @param inputDesc                Tensor descriptor for input tensor (input)
+ * @param input                    Data tensor input (input)
+ * @param outputDesc               Tensor descriptor for output tensor (input)
+ * @param output                   Data tensor output (output)
+ * @param indices                  Data tensor indices (output)
+ * @param indicesDesc              Tensor descriptor for indices tensor (input)
+ * @param k                        The k-th smallest element(input)
+ * @param dim                      The dimension to find the kth value along (Default = -1)(input)
+ * @param keepDim                  Whether the output tensor has dim retained or not (Default =
+ * false)(input)
+ * @return                         miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenKthvalueForward(miopenHandle_t handle,
+                                                   miopenTensorDescriptor_t inputDesc,
+                                                   const void* input,
+                                                   miopenTensorDescriptor_t outputDesc,
+                                                   void* output,
+                                                   miopenTensorDescriptor_t indicesDesc,
+                                                   size_t* indices,
+                                                   size_t k,
+                                                   int32_t dim  = -1,
+                                                   bool keepDim = false);
+
+/** @} */
+// CLOSEOUT kthvalue DOXYGEN GROUP
+#endif // MIOPEN_BETA_API
+
+#ifdef MIOPEN_BETA_API
+/** @addtogroup ReLU
+ *
+ *  @{
+ */
+
+/*! @brief Helper function to query the minimum workspace size required by the PReLU backward call
+ *
+ * @param handle                   MIOpen Handle (input)
+ * @param inputDesc                Tensor descriptor for input tensor (input)
+ * @param weightDesc               Tensor descriptor for weight tensor (input)
+ * @param sizeInBytes              Pointer to data to return the minimum workspace size
+ * @return                         miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenGetPReLUBackwardWorkspaceSize(miopenHandle_t handle,
+                                    miopenTensorDescriptor_t inputDesc,
+                                    miopenTensorDescriptor_t weightDesc,
+                                    size_t* sizeInBytes);
+
+/*! @brief Execute a PReLU backward layer
+ *
+ * @param handle                   MIOpen handle (input)
+ * @param workspace                Address of the allocated workspace data (input)
+ * @param workspaceSizeInBytes     Size in bytes of the allocated workspace data (input)
+ * @param inputDesc                Tensor descriptor for input tensor (input)
+ * @param input                    Data tensor input (input)
+ * @param weightDesc               Tensor descriptor for weight tensor (input)
+ * @param weight                   Data tensor weight (input)
+ * @param doutputDesc              Tensor descriptor for output gradient (input)
+ * @param doutput                  Gradient of output (input)
+ * @param dinputDesc               Tensor descriptor for input gradient (input)
+ * @param dinput                   Gradient of input (output)
+ * @param dweightDesc              Tensor descriptor for weight gradient (input)
+ * @param dweight                  Gradient of weight (output)
+ */
+MIOPEN_EXPORT miopenStatus_t miopenPReLUBackward(miopenHandle_t handle,
+                                                 void* workspace,
+                                                 size_t workspaceSizeInBytes,
+                                                 miopenTensorDescriptor_t inputDesc,
+                                                 const void* input,
+                                                 miopenTensorDescriptor_t weightDesc,
+                                                 const void* weight,
+                                                 miopenTensorDescriptor_t doutputDesc,
+                                                 const void* doutput,
+                                                 miopenTensorDescriptor_t dinputDesc,
+                                                 void* dinput,
+                                                 miopenTensorDescriptor_t dweightDesc,
+                                                 void* dweight);
+
+/** @} */
+// CLOSEOUT RELU DOXYGEN GROUP
+#endif // MIOPEN_BETA_API
+
+#ifdef MIOPEN_BETA_API
+
+/*! @ingroup LossFunction
+ * @enum miopenLossReductionMode_t
+ * Reduction mode for loss function
+ */
+typedef enum
+{
+    MIOPEN_LOSS_REDUCTION_NONE = 0, /*!< output tensor elements are not reduced */
+    MIOPEN_LOSS_REDUCTION_SUM  = 1, /*!< output tensor elements are summed up */
+    MIOPEN_LOSS_REDUCTION_MEAN = 2, /*!< output tensor elements are summed up and divided with total
+                                       number of elements to get mean value */
+} miopenLossReductionMode_t;
+
+// SoftMarginLoss APIs
+/** @addtogroup LossFunction
+ *
+ *  @{
+ */
+
+/*! @brief Helper function to query the minimum workspace size required by the
+SoftMarginLossForward call
+ *
+ * @param [in]  handle              MIOpen Handle
+ * @param [in]  inputDesc           Tensor descriptor for input tensor
+ * @param [in]  targetDesc          Tensor descriptor for target tensor
+ * @param [in]  outputDesc          Tensor descriptor for output tensor
+*  @param [in]  reduction           Reduction mode (sum, mean). For none reduction we don't need to
+use this function
+ * @param [out] sizeInBytes         Pointer to data to return the minimum workspace size
+ * @return                          miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenGetSoftMarginLossForwardWorkspaceSize(miopenHandle_t handle,
+                                            miopenTensorDescriptor_t inputDesc,
+                                            miopenTensorDescriptor_t targetDesc,
+                                            miopenTensorDescriptor_t outputDesc,
+                                            miopenLossReductionMode_t reduction,
+                                            size_t* sizeInBytes);
+
+/*! @brief Execute a SoftMarginLoss forward layer
+ *
+ * @param [in]  handle                  MIOpen handle
+ * @param [in]  inputDesc               Tensor descriptor for input tensor
+ * @param [in]  input                   Data tensor input
+ * @param [in]  targetDesc              Tensor descriptor for target tensor
+ * @param [in]  target                  Data tensor target
+ * @param [in]  outputDesc              Tensor descriptor for output tensor
+ * @param [out] output                  Data tensor output
+ * @param [in]  reduction               Reduction mode. If reduction mode is mean or sum, you must
+ * provide param workspace and workspaceSizeInBytes. Call
+ * miopenGetSoftMarginLossForwardWorkspaceSize to get workspaceSizeInBytes
+ * @param [in]  workspace               Address of the allocated workspace data (Default = null)
+ * @param [in]  workspaceSizeInBytes    Size in bytes of the allocated workspace data (Default = 0)
+ * @return                              miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenSoftMarginLossForward(miopenHandle_t handle,
+                                                         miopenTensorDescriptor_t inputDesc,
+                                                         const void* input,
+                                                         miopenTensorDescriptor_t targetDesc,
+                                                         const void* target,
+                                                         miopenTensorDescriptor_t outputDesc,
+                                                         void* output,
+                                                         miopenLossReductionMode_t reduction,
+                                                         void* workspace             = nullptr,
+                                                         size_t workspaceSizeInBytes = 0);
+
+/*! @brief Execute a SoftMarginLoss backward layer
+ *
+ * @param [in]  handle                  MIOpen handle
+ * @param [in]  inputDesc               Tensor descriptor for input tensor
+ * @param [in]  input                   Data tensor input
+ * @param [in]  targetDesc              Tensor descriptor for target tensor
+ * @param [in]  target                  Data tensor target
+ * @param [in]  doutputDesc             Tensor descriptor for output gradient
+ * @param [in]  doutput                 Output gradient
+ * @param [in]  dinputDesc              Tensor descriptor for input gradient
+ * @param [out] dinput                  Input gradient
+ * @param [in]  reduction               Reduction mode (none, sum, mean)
+ * @return                              miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenSoftMarginLossBackward(miopenHandle_t handle,
+                                                          miopenTensorDescriptor_t inputDesc,
+                                                          const void* input,
+                                                          miopenTensorDescriptor_t targetDesc,
+                                                          const void* target,
+                                                          miopenTensorDescriptor_t doutputDesc,
+                                                          const void* doutput,
+                                                          miopenTensorDescriptor_t dinputDesc,
+                                                          void* dinput,
+                                                          miopenLossReductionMode_t reduction);
+
+/** @} */
+// CLOSEOUT LossFunction DOXYGEN GROUP
+#endif
+
+#ifdef MIOPEN_BETA_API
+// MultiMarginLoss APIs
+/** @addtogroup LossFunction
+ *
+ *  @{
+ */
+
+/*! @brief Helper function to query the minimum workspace size required by the
+MultiMarginLossForward call
+ *
+ * @param [in]  handle              MIOpen Handle
+ * @param [in]  inputDesc           Tensor descriptor for input tensor (N, C) where N is the batch
+size and C is the number of classes
+ * @param [in]  targetDesc          Tensor descriptor for target tensor, must have shape (N). Each
+value is between 0 and C - 1
+ * @param [in]  weightDesc          Tensor descriptor for weight tensor. It is a manual rescaling
+weight given to each class. It has to be a Tensor of size C
+ * @param [in]  outputDesc          Tensor descriptor for output tensor. If reduction is 'none,
+then it must have shape (N). Otherwise, it is a scalar
+ * @param [in]  p                   Has a default value of 1. The only supported values are 1 and 2
+ * @param [in]  margin              Has a default value of 1
+ * @param [in]  reduction           Reduction mode (sum, mean)
+ * @param [out] sizeInBytes         Pointer to data to return the minimum workspace size
+ * @return                          miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenGetMultiMarginLossForwardWorkspaceSize(miopenHandle_t handle,
+                                             miopenTensorDescriptor_t inputDesc,
+                                             miopenTensorDescriptor_t targetDesc,
+                                             miopenTensorDescriptor_t weightDesc,
+                                             miopenTensorDescriptor_t outputDesc,
+                                             long p,
+                                             float margin,
+                                             miopenLossReductionMode_t reduction,
+                                             size_t* sizeInBytes);
+
+/*! @brief Execute a MultiMarginLoss forward layer
+ *
+ * @param [in]  handle                  MIOpen handle
+ * @param [in]  inputDesc               Tensor descriptor for input tensor (N, C) where N is the
+batch size and C is the number of classes.
+ * @param [in]  input                   Data tensor input
+ * @param [in]  targetDesc              Tensor descriptor for target tensor, must have shape (N).
+Each value is between 0 and C - 1
+ * @param [in]  target                  Data tensor target
+ * @param [in]  weightDesc              Tensor descriptor for weight tensor. It is a manual
+rescaling weight given to each class. It has to be a Tensor of size C
+ * @param [in]  weight                  Data tensor weight
+ * @param [in]  outputDesc              Tensor descriptor for output tensor. If reduction is 'none,
+then it must have shape (N). Otherwise, it is a scalar.
+ * @param [out] output                  Data tensor output
+ * @param [in]  p                       Has a default value of 1. The only supported values are 1
+and 2
+ * @param [in]  margin                  Has a default value of 1
+ * @param [in]  reduction               Reduction mode. If reduction mode is mean or sum, you must
+ * provide param workspace and workspaceSizeInBytes. Call
+ * miopenGetMultiMarginLossForwardWorkspaceSize to get workspaceSizeInBytes
+ * @param [in]  workspace               Address of the allocated workspace data. Set = nullptr if
+reduction = 'none'
+ * @param [in]  workspaceSizeInBytes    Size in bytes of the allocated workspace data. Set = 0 if
+reduction = 'none
+ * @return                              miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenMultiMarginLossForward(miopenHandle_t handle,
+                                                          miopenTensorDescriptor_t inputDesc,
+                                                          const void* input,
+                                                          miopenTensorDescriptor_t targetDesc,
+                                                          const void* target,
+                                                          miopenTensorDescriptor_t weightDesc,
+                                                          const void* weight,
+                                                          miopenTensorDescriptor_t outputDesc,
+                                                          void* output,
+                                                          long p,
+                                                          float margin,
+                                                          miopenLossReductionMode_t reduction,
+                                                          void* workspace,
+                                                          size_t workspaceSizeInBytes);
+
+/** @} */
+// CLOSEOUT LossFunction DOXYGEN GROUP
 #endif // MIOPEN_BETA_API
 
 #ifdef __cplusplus

@@ -32,7 +32,6 @@
 #include <miopen/conv_algo_name.hpp>
 
 #include <cstdint>
-#include <unordered_map>
 
 namespace miopen {
 
@@ -58,7 +57,13 @@ enum class Primitive
     Cat,
     Mha,
     Softmax,
-    Adam
+    Adam,
+    Item,
+    RoPE,
+    ReLU,
+    Kthvalue,
+    SoftMarginLoss,
+    MultiMarginLoss
 };
 
 struct MIOPEN_INTERNALS_EXPORT Id

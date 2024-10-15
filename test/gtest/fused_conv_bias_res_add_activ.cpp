@@ -24,57 +24,36 @@
  *
  *******************************************************************************/
 #include <gtest/gtest.h>
+#include <gtest/gtest_ck_common.hpp>
 #include <miopen/miopen.h>
-#include <miopen/env.hpp>
-#if MIOPEN_USE_COMPOSABLEKERNEL
-#include <miopen/solver/ck_utility_common.hpp>
-#endif
 
 #include "tensor_util.hpp"
 #include "get_handle.hpp"
 
 #include "conv3d_test_case.hpp"
 
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
-
-#if MIOPEN_USE_COMPOSABLEKERNEL
-#define WORAROUND_ISSUE_2533 1
-#endif
-
 namespace conv_bias_act_res_add_fwd {
 
 bool TestIsApplicable()
 {
-#if MIOPEN_USE_COMPOSABLEKERNEL
-    const auto float_arg = env::value(MIOPEN_TEST_FLOAT_ARG);
-    return
-#if WORAROUND_ISSUE_2533
-        miopen::solver::ck_utility::is_ck_whitelist(get_handle().GetDeviceName()) //
-#else
     /// \todo Check against specific ASCIs.
-#endif
-        && (float_arg == "--half"           // So far only test for fp16 is implemented.
-            || float_arg.empty())           // Empty when gtest is run without parameters.
-        && !env::disabled(MIOPEN_TEST_ALL); // Not disabled when gtest is run without parameters.
-#else
-    return false;
-#endif
+    return ::IsDeviceSupportedForCK();
 }
 
 std::vector<Conv3DTestCase> ConvTestConfigs()
-{ //         g, n, c, d,  h,  w, k,  z, y, x, pad_x pad_y pad_z stri_x stri_y stri_z dia_x dia_y
-  //         dia_z
-    return {{1, 1, 4, 14, 11, 1, 4, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
-            {1, 1, 1, 1, 4, 4, 1, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
-            {1, 1, 1, 8, 8, 8, 1, 2, 2, 2, 0, 0, 0, 1, 1, 1, 1, 1, 1, miopenConvolution},
-            {1, 1, 1, 8, 8, 8, 1, 2, 2, 2, 0, 0, 0, 2, 2, 2, 1, 1, 1, miopenConvolution},
-            {2, 8, 8, 12, 14, 4, 4, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
-            {4, 8, 8, 11, 11, 11, 16, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
-            {6, 8, 18, 11, 11, 11, 18, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
-            {8, 8, 8, 11, 11, 11, 8, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
-            {4, 8, 4, 11, 11, 11, 8, 3, 4, 5, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution},
-            {2, 8, 2, 11, 11, 11, 2, 4, 4, 4, 1, 1, 1, 1, 1, 1, 1, 1, 1, miopenConvolution}};
+{ // g   n   c   k   image   filter   pad   stride   dilation
+    // clang-format off
+    return {{1, 1, 4, 4, {14, 11, 1}, {3, 3, 3}, {1, 1, 1}, {1, 1, 1}, {1, 1, 1}, miopenConvolution},
+            {1, 1, 1, 1, {1, 4, 4}, {2, 2, 2}, {1, 1, 1}, {1, 1, 1}, {1, 1, 1}, miopenConvolution},
+            {1, 1, 1, 1, {8, 8, 8}, {2, 2, 2}, {0, 0, 0}, {1, 1, 1}, {1, 1, 1}, miopenConvolution},
+            {1, 1, 1, 1, {8, 8, 8}, {2, 2, 2}, {0, 0, 0}, {2, 2, 2}, {1, 1, 1}, miopenConvolution},
+            {2, 8, 8, 4, {12, 14, 4}, {3, 3, 3}, {1, 1, 1}, {1, 1, 1}, {1, 1, 1}, miopenConvolution},
+            {4, 8, 8, 16, {11, 11, 11}, {3, 3, 3}, {1, 1, 1}, {1, 1, 1}, {1, 1, 1}, miopenConvolution},
+            {6, 8, 18, 18, {11, 11, 11}, {3, 3, 3}, {1, 1, 1}, {1, 1, 1}, {1, 1, 1}, miopenConvolution},
+            {8, 8, 8, 8, {11, 11, 11}, {3, 3, 3}, {1, 1, 1}, {1, 1, 1}, {1, 1, 1}, miopenConvolution},
+            {4, 8, 4, 8, {11, 11, 11}, {3, 4, 5}, {1, 1, 1}, {1, 1, 1}, {1, 1, 1}, miopenConvolution},
+            {2, 8, 2, 2, {11, 11, 11}, {4, 4, 4}, {1, 1, 1}, {1, 1, 1}, {1, 1, 1}, miopenConvolution}};
+    // clang-format on
 }
 
 template <typename T = float>
@@ -110,7 +89,7 @@ protected:
         z.generate(gen_value);
 
         const std::vector<std::size_t>& strides = {1, 1, 1, 1, 1};
-        bias = tensor<T>{tensor_layout, {1, 1, 1, 1, conv_config.k}, strides};
+        bias = tensor<T>{tensor_layout, {1, conv_config.K, 1, 1, 1}, strides};
 
         bias.generate(gen_value);
 
@@ -186,7 +165,7 @@ protected:
     miopenActivationDescriptor_t activ_desc;
 };
 
-struct ConvFwdBiasResAddActivTest : ConvFwdBiasResAddFixture<half_float::half>
+struct GPU_ConvFwdBiasResAddActiv_FP16 : ConvFwdBiasResAddFixture<half_float::half>
 {
 };
 
@@ -195,7 +174,7 @@ struct ConvFwdBiasResAddActivTest : ConvFwdBiasResAddFixture<half_float::half>
 
 using namespace conv_bias_act_res_add_fwd;
 
-TEST_P(ConvFwdBiasResAddActivTest, ConvFusedAPI)
+TEST_P(GPU_ConvFwdBiasResAddActiv_FP16, ConvFusedAPI)
 {
     if(TestIsApplicable())
     {
@@ -226,8 +205,8 @@ TEST_P(ConvFwdBiasResAddActivTest, ConvFusedAPI)
     }
 }
 
-INSTANTIATE_TEST_SUITE_P(ConvFwdBiasActivAPI,
-                         ConvFwdBiasResAddActivTest,
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_ConvFwdBiasResAddActiv_FP16,
                          testing::Combine(testing::Values(miopenConvolutionFwdAlgoImplicitGEMM),
                                           testing::ValuesIn(ConvTestConfigs()),
                                           testing::ValuesIn({1.0f, 2.0f}), // alpha1

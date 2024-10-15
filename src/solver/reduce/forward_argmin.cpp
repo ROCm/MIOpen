@@ -26,6 +26,7 @@
 
 #include <miopen/datatype.hpp>
 #include <miopen/kernel_build_params.hpp>
+#include <miopen/mlo_internal.hpp>
 #include <miopen/reduce/invoke_params.hpp>
 #include <miopen/reduce/solvers.hpp>
 #include <miopen/target_properties.hpp>
@@ -40,14 +41,14 @@ namespace reduce {
 
 size_t ArgminForward::XGridSize(std::vector<size_t> indicedims) const
 {
-    auto indice_numel =
+    size_t indice_numel =
         std::accumulate(indicedims.begin(), indicedims.end(), 1ULL, std::multiplies<size_t>());
     return AlignUp(indice_numel, LOCAL_SIZE);
 }
 
 /// \todo https://github.com/ROCm/MIOpen/pull/2583#discussion_r1437054128
 bool ArgminForward::OverMaxGridSize(const ExecutionContext& context,
-                                    const miopen::reduce::ProblemDescription& problem) const
+                                    const miopen::reduce::ProblemDescriptionExtreme& problem) const
 {
     auto indicedims = problem.GetIndiceDesc().GetLengths();
     if(XGridSize(indicedims) > context.GetStream().GetImage3dMaxWidth())
@@ -56,7 +57,7 @@ bool ArgminForward::OverMaxGridSize(const ExecutionContext& context,
 }
 
 bool ArgminForward::IsApplicable(const ExecutionContext& context,
-                                 const miopen::reduce::ProblemDescription& problem) const
+                                 const miopen::reduce::ProblemDescriptionExtreme& problem) const
 {
     if(!problem.IsValidDim())
         return false;
@@ -64,7 +65,7 @@ bool ArgminForward::IsApplicable(const ExecutionContext& context,
         return false;
     if(!problem.IsValidInputNumel())
         return false;
-    if(!problem.IsAllPackedIndice())
+    if(!problem.IsAllContiguousIndice())
         return false;
     if(!problem.IsNotLastDim())
         return false;
@@ -73,13 +74,15 @@ bool ArgminForward::IsApplicable(const ExecutionContext& context,
     return true;
 }
 
-ConvSolution ArgminForward::GetSolution(const ExecutionContext&,
-                                        const miopen::reduce::ProblemDescription& problem) const
+ConvSolution
+ArgminForward::GetSolution(const ExecutionContext&,
+                           const miopen::reduce::ProblemDescriptionExtreme& problem) const
 {
     auto result = ConvSolution{miopenStatusSuccess};
 
     auto dtype        = problem.GetXDesc().GetType();
     auto input_dtype  = miopen::GetDataType(problem.GetXDesc().GetType());
+    auto output_dtype = miopen::GetDataType(problem.GetYDesc().GetType());
     auto indice_dtype = miopen::GetDataType(problem.GetIndiceDesc().GetType());
     auto xdims        = problem.GetXDesc().GetLengths();
     auto indicedims   = problem.GetIndiceDesc().GetLengths();
@@ -104,7 +107,7 @@ ConvSolution ArgminForward::GetSolution(const ExecutionContext&,
             {"MIOPEN_USE_FP32", static_cast<int32_t>(dtype == miopenFloat)},
             {"MIOPEN_USE_BFP16", static_cast<int32_t>(dtype == miopenBFloat16)},
             {"INPUT_TYPE", input_dtype == "bfloat16" ? "ushort" : input_dtype},
-            {"OUTPUT_TYPE", input_dtype == "bfloat16" ? "ushort" : input_dtype},
+            {"OUTPUT_TYPE", output_dtype == "bfloat16" ? "ushort" : output_dtype},
             {"INDICE_TYPE", indice_dtype},
             {"OP_TYPE", "ReduceExtremeOp_t::Argmin"},
             {"MIOPEN_REDUCE_EXTREME_ARGMIN", MIOPEN_REDUCE_EXTREME_ARGMIN},
@@ -128,7 +131,7 @@ ConvSolution ArgminForward::GetSolution(const ExecutionContext&,
     result.invoker_factory = [](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
             decltype(auto) kernel = handle_.Run(kernels.front());
-            decltype(auto) params = raw_params.CastTo<miopen::reduce::InvokeParams>();
+            decltype(auto) params = raw_params.CastTo<miopen::reduce::ExtremeInvokeParams>();
 
             auto xdims      = params.xDesc->GetLengths();
             auto indicedims = params.indiceDesc->GetLengths();

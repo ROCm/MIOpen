@@ -29,44 +29,23 @@
 
 #include <miopen/config.hpp>
 
-#include <miopen/buffer_info.hpp>
-#include <miopen/conv/problem_description.hpp>
 #include <miopen/conv_solution.hpp>
 #include <miopen/execution_context.hpp>
-#include <miopen/legacy_exhaustive_search.hpp>
-#include <miopen/logger.hpp>
-#include <miopen/miopen.h>
-#include <miopen/mlo_internal.hpp>
+#include <miopen/invoker.hpp>
 #include <miopen/performance_config.hpp>
 #include <miopen/type_name.hpp>
 
 #include <boost/any.hpp>
 
-#include <memory>
 #include <string>
 #include <type_traits>
-#include <vector>
-#include <ostream>
 #include <algorithm>
-#include <initializer_list>
 
 namespace miopen {
-
-namespace debug {
-
-/// If set to true, then always enable ConvDirectNaive* solver, regardless of environment value
-/// MIOPEN_DEBUG_CONV_DIRECT_NAIVE_CONV_* that control enable/disable of these solvers.
-/// Currently used during driver using naive kernel as gpu reference.
-MIOPEN_EXPORT extern bool
-    AlwaysEnableConvDirectNaive; // NOLINT (cppcoreguidelines-avoid-non-const-global-variables)
-
-} // namespace debug
 
 struct AnyInvokeParams;
 
 namespace solver {
-/// \todo Move wave_size into abstraction wich represent GPU information
-const int wave_size = 64;
 
 /// Base class for problem solvers.
 ///
@@ -108,19 +87,21 @@ struct SolverBase
     /// run-time parameters.
     virtual bool IsDynamic() const { return false; }
 
+    static constexpr float wti_approximate_worst = -2;
+
     /// [Informative as of Sep 2020] Returns an approximated value of the expected
-    /// WTI or -2.0 when this value can't be computed. Tips:
+    /// WTI or wti_approximate_worst when this value can't be computed. Tips:
     /// * Value 1.0 corresponds to the 100% utilization of HW capabilities as
     ///   if Direct computational algorithm is used.
     /// * [Notice] WTI may exceed 1.0 for highly optimized algorithms like Winograd.
     /// * @see https://github.com/ROCm/MIOpen/issues/410
     virtual float GetWti(const ExecutionContext& ctx, const boost::any& problem) const = 0;
 
-    // Returns the workspace size required by the solver for a given ExecutionContext
+    /// Returns the workspace size required by the solver for a given ExecutionContext
     virtual size_t GetWorkspaceSize(const ExecutionContext& ctx,
                                     const boost::any& problem) const = 0;
 
-    // Must return true if a Solver has its own implementation of GetWorkspaceSize().
+    /// Must return true if a Solver has its own implementation of GetWorkspaceSize().
     virtual bool MayNeedWorkspace() const { return false; }
 
 protected:
@@ -152,7 +133,7 @@ struct SolverMixin : SolverBase
                   "Context must be derived of ExecutionContext");
 
     virtual bool IsApplicable(const Context&, const Problem&) const = 0;
-    virtual float GetWti(const Context&, const Problem&) const { return -2.0f; };
+    virtual float GetWti(const Context&, const Problem&) const { return wti_approximate_worst; };
     virtual size_t GetWorkspaceSize(const Context&, const Problem&) const { return 0; };
 
     bool IsApplicable(const ExecutionContext& ctx, const boost::any& problem) const final
@@ -180,6 +161,7 @@ struct NonTunableSolverBase : SolverMixin<Context, Problem>
     /// Takes problem config, optimization parameters and other info
     /// and computes information required to build and run the kernel(s).
     virtual ConvSolution GetSolution(const Context&, const Problem&) const = 0;
+
     virtual InvokerFactory GetInvokerFactory(const Context& ctx, const Problem& problem) const
     {
         return *GetSolution(ctx, problem).invoker_factory;
@@ -225,6 +207,7 @@ struct TunableSolverBase : SolverMixin<Context, Problem>, TunableSolverTrait
     /// Tunable solvers provide a GetSolution that takes a Context and PerformanceConfig
     virtual ConvSolution
     GetSolution(const Context& ctx, const Problem& problem, const PerfConfig& config) const = 0;
+
     virtual InvokerFactory
     GetInvokerFactory(const Context& ctx, const Problem& problem, const PerfConfig& config) const
     {

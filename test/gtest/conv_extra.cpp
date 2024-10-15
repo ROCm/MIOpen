@@ -30,8 +30,6 @@
 #include <miopen/env.hpp>
 #include "get_handle.hpp"
 
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLAGS_ARGS)
 
 namespace env = miopen::env;
@@ -46,30 +44,17 @@ void GetArgs(const std::string& param, std::vector<std::string>& tokens)
         tokens.push_back(*begin++);
 }
 
-std::vector<std::string> GetTestCases(void)
+std::vector<std::string> GetTestCases(const std::string& float_arg)
 {
-    std::string cmd       = "test_conv2d ";
-    std::string v         = " --verbose ";
-    std::string float_arg = env::value(MIOPEN_TEST_FLOAT_ARG);
-    std::string flag_arg  = env::value(MIOPEN_TEST_FLAGS_ARGS);
+    const std::string cmd               = "test_conv2d ";
+    const std::string cmd_v             = cmd + "--verbose";
+    const std::string default_float_arg = " --float";
+    const std::string cmd_v_float       = cmd_v + default_float_arg;
+
+    std::string flag_arg = env::value(MIOPEN_TEST_FLAGS_ARGS);
 
     // clang-format off
-    return std::vector<std::string>{
-        // {cmd + v + " --input	1	1	1	1	--weights	1	1	2	2	--pads_strides_dilations	0	0	3	3	1	1"},
-        {cmd + v + " --input	4	1	161	700	--weights	4	1	5	20	--pads_strides_dilations	0	0	2	2	1	1"},
-        {cmd + v + " --input	4	1	161	700	--weights	4	1	5	20	--pads_strides_dilations	0	0	2	2	1	1"},
-        {cmd + v + " --input	4	32	79	341	--weights	4	32	5	10	--pads_strides_dilations	0	0	2	2	1	1"},
-        {cmd + v + " --input	4	32	79	341	--weights	4	32	5	10	--pads_strides_dilations	0	0	2	2	1	1"},
-        {cmd + v + " --input	4	3	227	227	--weights	4	3	11	11	--pads_strides_dilations	0	0	4	4	1	1"},
-        {cmd + v + " --input	4	3	224	224	--weights	4	3	11	11	--pads_strides_dilations	2	2	4	4	1	1"},
-        {cmd + v + " --input	16	1	48	480	--weights	16	1	3	3	--pads_strides_dilations	1	1	1	1	1	1"},
-        // Forward disabled since FFT fails verification for the forward direction
-        {cmd + v + " --input	32	64	27	27	--weights	192	64	5	5	--pads_strides_dilations	2	2	1	1	1	1 --disable-forward"},
-        // {cmd + v + " --input	4	64	14	14	--weights	24	64	5	5	--pads_strides_dilations	2	2	1	1	1	1"},
-        {cmd + v + " --input	4	96	14	14	--weights	32	96	5	5	--pads_strides_dilations	2	2	1	1	1	1"},
-        {cmd + v + " --input	4	16	14	14	--weights	4	16	5	5	--pads_strides_dilations	2	2	1	1	1	1"},
-        {cmd + v + " --input	4	32	14	14	--weights	4	32	5	5	--pads_strides_dilations	2	2	1	1	1	1"},
-
+    std::vector<std::string> common_test_cases{
         {cmd + float_arg + " --input 16 3 64 128 --weights 96 3 11 11 --pads_strides_dilations 0 0 1 1 1 1 " + flag_arg},
         {cmd + float_arg + " --input 16 3 32 32 --weights 96 3 11 11 --pads_strides_dilations 0 0 2 2 1 1  " + flag_arg},
         {cmd + float_arg + " --input 16 3 64 128 --weights 96 3 11 11 --pads_strides_dilations 5 5 2 2 1 1 " + flag_arg},
@@ -85,14 +70,54 @@ std::vector<std::string> GetTestCases(void)
         {cmd + float_arg + " --input 352 192 7 1 --weights 320 192 1 1 --pads_strides_dilations 0 0 1 1 1 1 " + flag_arg},
         {cmd + float_arg + " --input 352 16 7 1 --weights 32 16 1 1 --pads_strides_dilations 2 2 1 1 1 1 " + flag_arg}
     };
-    // clang-format on
+
+    if (float_arg == "--float")
+    {
+        std::vector<std::string> test_cases = {
+            // {cmd_v_float + " --input	1	1	1	1	--weights	1	1	2	2	--pads_strides_dilations	0	0	3	3	1	1"},
+            {cmd_v_float + " --input	4	1	161	700	--weights	4	1	5	20	--pads_strides_dilations	0	0	2	2	1	1"},
+            {cmd_v_float + " --input	4	1	161	700	--weights	4	1	5	20	--pads_strides_dilations	0	0	2	2	1	1"},
+            {cmd_v_float + " --input	4	32	79	341	--weights	4	32	5	10	--pads_strides_dilations	0	0	2	2	1	1"},
+            {cmd_v_float + " --input	4	32	79	341	--weights	4	32	5	10	--pads_strides_dilations	0	0	2	2	1	1"},
+            {cmd_v_float + " --input	4	3	227	227	--weights	4	3	11	11	--pads_strides_dilations	0	0	4	4	1	1"},
+            {cmd_v_float + " --input	4	3	224	224	--weights	4	3	11	11	--pads_strides_dilations	2	2	4	4	1	1"},
+            {cmd_v_float + " --input	16	1	48	480	--weights	16	1	3	3	--pads_strides_dilations	1	1	1	1	1	1"},
+            // Forward disabled since FFT fails verification for the forward direction
+            {cmd_v_float + " --input	32	64	27	27	--weights	192	64	5	5	--pads_strides_dilations	2	2	1	1	1	1 --disable-forward"},
+            // {cmd_v_float + " --input	4	64	14	14	--weights	24	64	5	5	--pads_strides_dilations	2	2	1	1	1	1"},
+            {cmd_v_float + " --input	4	96	14	14	--weights	32	96	5	5	--pads_strides_dilations	2	2	1	1	1	1"},
+            {cmd_v_float + " --input	4	16	14	14	--weights	4	16	5	5	--pads_strides_dilations	2	2	1	1	1	1"},
+            {cmd_v_float + " --input	4	32	14	14	--weights	4	32	5	5	--pads_strides_dilations	2	2	1	1	1	1"}
+        };
+
+        test_cases.insert(test_cases.end(), common_test_cases.begin(), common_test_cases.end());
+        return test_cases;
+    }
+    else
+    {
+        return common_test_cases;
+    } 
+    // clang-format on    
 }
 
-using TestCase = decltype(GetTestCases())::value_type;
+using TestCase = decltype(GetTestCases(""))::value_type;
 
-class ConfigWithFloat_conv_extra : public testing::TestWithParam<std::vector<TestCase>>
+class GPU_conv_extra_FP32 : public testing::TestWithParam<std::vector<TestCase>>
 {
 };
+
+class GPU_conv_extra_FP16 : public testing::TestWithParam<std::vector<TestCase>>
+{
+};
+
+class GPU_conv_extra_BFP16 : public testing::TestWithParam<std::vector<TestCase>>
+{
+};
+
+class GPU_conv_extra_I8 : public testing::TestWithParam<std::vector<TestCase>>
+{
+};
+
 
 bool IsTestSupportedForDevice()
 {
@@ -104,11 +129,11 @@ bool IsTestSupportedForDevice()
 
 void Run2dDriver(void)
 {
-    if(!IsTestSupportedForDevice() && !env::enabled(MIOPEN_TEST_ALL))
+    if(!IsTestSupportedForDevice())
     {
         GTEST_SKIP();
     }
-    std::vector<std::string> params = ConfigWithFloat_conv_extra::GetParam();
+    std::vector<std::string> params = GPU_conv_extra_FP32::GetParam();
 
     for(const auto& test_value : params)
     {
@@ -129,6 +154,14 @@ void Run2dDriver(void)
 } // namespace conv_extra
 using namespace conv_extra;
 
-TEST_P(ConfigWithFloat_conv_extra, FloatTest_conv_extra) { Run2dDriver(); };
+TEST_P(GPU_conv_extra_FP32, FloatTest_conv_extra) { Run2dDriver(); };
+INSTANTIATE_TEST_SUITE_P(Full, GPU_conv_extra_FP32, testing::Values(GetTestCases("--float")));
 
-INSTANTIATE_TEST_SUITE_P(ConvExtra, ConfigWithFloat_conv_extra, testing::Values(GetTestCases()));
+TEST_P(GPU_conv_extra_FP16, HalfTest_conv_extra) { Run2dDriver(); };
+INSTANTIATE_TEST_SUITE_P(Full, GPU_conv_extra_FP16, testing::Values(GetTestCases("--half")));
+
+TEST_P(GPU_conv_extra_BFP16, bHalfTest_conv_extra) { Run2dDriver(); };
+INSTANTIATE_TEST_SUITE_P(Full, GPU_conv_extra_BFP16, testing::Values(GetTestCases("--bfloat16")));
+
+TEST_P(GPU_conv_extra_I8, Int8Test_conv_extra) { Run2dDriver(); };
+INSTANTIATE_TEST_SUITE_P(Full, GPU_conv_extra_I8, testing::Values(GetTestCases("--int8")));

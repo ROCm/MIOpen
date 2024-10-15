@@ -29,6 +29,7 @@
 
 #include "get_handle.hpp"
 #include <miopen/conv/data_invoke_params.hpp>
+#include <miopen/conv/solvers.hpp>
 #include <miopen/conv/wrw_invoke_params.hpp>
 
 #include "../driver/tensor_driver.hpp"
@@ -568,22 +569,25 @@ std::vector<float> GetBetaValues()
     }
 }
 
-#define DEFINE_GROUP_CONV_TEST(ndim, type, dir)                                             \
-    struct GroupConv##ndim##D_##dir##_##type : GroupConvTestFix<ndim, type, Direction::dir> \
-    {                                                                                       \
-    };                                                                                      \
-    TEST_P(GroupConv##ndim##D_##dir##_##type, GroupConv##ndim##D_##dir##_##type##_Test)     \
-    {                                                                                       \
-        RunSolver();                                                                        \
-    }                                                                                       \
-    INSTANTIATE_TEST_SUITE_P(                                                               \
-        GroupConv##ndim##D_##dir##_##type##_Suite,                                          \
-        GroupConv##ndim##D_##dir##_##type,                                                  \
-        testing::Combine(                                                                   \
-            testing::ValuesIn(GroupConvTestConfig<ndim>::GetConfigs<Direction::dir>()),     \
-            testing::ValuesIn(GetAlphaValues<ndim>()),                                      \
-            testing::ValuesIn(GetBetaValues<ndim>()),                                       \
+#define DEFINE_GROUP_CONV_TEST(ndim, type, naming_type, dir)                                       \
+    struct GPU_GroupConv##ndim##D_##dir##_##naming_type                                            \
+        : GroupConvTestFix<ndim, type, Direction::dir>                                             \
+    {                                                                                              \
+    };                                                                                             \
+    TEST_P(GPU_GroupConv##ndim##D_##dir##_##naming_type, GroupConv##ndim##D_##dir##_##type##_Test) \
+    {                                                                                              \
+        RunSolver();                                                                               \
+    }                                                                                              \
+    INSTANTIATE_TEST_SUITE_P(                                                                      \
+        Full,                                                                                      \
+        GPU_GroupConv##ndim##D_##dir##_##naming_type,                                              \
+        testing::Combine(                                                                          \
+            testing::ValuesIn(GroupConvTestConfig<ndim>::GetConfigs<Direction::dir>()),            \
+            testing::ValuesIn(GetAlphaValues<ndim>()),                                             \
+            testing::ValuesIn(GetBetaValues<ndim>()),                                              \
             testing::ValuesIn(GetLayoutValues<ndim>())));
 
-#define DEFINE_GROUP_CONV2D_TEST(type, dir) DEFINE_GROUP_CONV_TEST(2, type, dir)
-#define DEFINE_GROUP_CONV3D_TEST(type, dir) DEFINE_GROUP_CONV_TEST(3, type, dir)
+#define DEFINE_GROUP_CONV2D_TEST(type, naming_type, dir) \
+    DEFINE_GROUP_CONV_TEST(2, type, naming_type, dir)
+#define DEFINE_GROUP_CONV3D_TEST(type, naming_type, dir) \
+    DEFINE_GROUP_CONV_TEST(3, type, naming_type, dir)

@@ -45,6 +45,9 @@ To install MIOpen, you must first install these prerequisites:
   (BLAS) on the ROCm platform.
   * Minimum version branch for pre-ROCm 3.5 [master-rocm-2.10](https://github.com/ROCm/rocBLAS/tree/master-rocm-2.10)
   * Minimum version branch for post-ROCm 3.5 [master-rocm-3.5](https://github.com/ROCm/rocBLAS/tree/master-rocm-3.5)
+* [hipBLASLt](https://github.com/ROCm/hipBLASLt): AMD's flexible Basic Linear Algebra Subprograms
+  (BLAS) API.
+* [hipBLAS](https://github.com/ROCm/hipBLAS): AMD's (BLAS) marshalling library.
 * [Multi-Level Intermediate Representation (MLIR)](https://github.com/ROCm/rocMLIR) with its
   MIOpen dialect to support and complement kernel development
 * [Composable Kernel](https://github.com/ROCm/composable_kernel): A C++ templated device library
@@ -120,6 +123,12 @@ You can use this prefix to specify the dependency path during the configuration 
 MIOpen's HIP backend uses [rocBLAS](https://github.com/ROCm/rocBLAS) by default. You can install
 rocBLAS' minimum release using `apt-get install rocblas`. To disable rocBLAS, set the configuration flag
 `-DMIOPEN_USE_ROCBLAS=Off`. rocBLAS is **not** available with OpenCL.
+
+MIOpen's HIP backend can use [hipBLASLt](https://github.com/ROCm/hipBLASLt). You can install hipBLASLt's minimum
+release using ``apt-get install hipblaslt``. In addition to needing hipblaslt, you will also need to install [hipBLAS](https://github.com/ROCm/hipBLAS).
+You can install hipBLAS's minimum release using ``apt-get install hipblas``.
+To disable hipBLASLt, set the configuration flag ``-DMIOPEN_USE_HIPBLASLT=Off``.
+hipBLASLt is **not** available with OpenCL.
 
 ## Building MIOpen from source
 

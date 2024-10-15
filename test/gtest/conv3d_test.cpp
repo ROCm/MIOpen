@@ -25,23 +25,11 @@
  *******************************************************************************/
 #include <tuple>
 #include <miopen/miopen.h>
-#include <miopen/env.hpp>
 #include <gtest/gtest.h>
 #include "../conv3d.hpp"
 #include "get_handle.hpp"
 
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
-
 namespace conv3d_test {
-
-static bool IsTestRunWith(const char* float_arg)
-{
-    assert(float_arg != nullptr);
-    if(!MIOPEN_TEST_ALL)
-        return true; // standalone run
-    return env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == float_arg;
-}
 
 void GetArgs(const std::string& param, std::vector<std::string>& tokens)
 {
@@ -52,7 +40,7 @@ void GetArgs(const std::string& param, std::vector<std::string>& tokens)
         tokens.push_back(*begin++);
 }
 
-class ConfigWithFloat_conv3d_test : public testing::TestWithParam<std::vector<std::string>>
+class GPU_Conv3d_Test_FP32 : public testing::TestWithParam<std::vector<std::string>>
 {
 };
 
@@ -61,7 +49,7 @@ void Run3dDriver(miopenDataType_t prec)
     std::vector<std::string> params;
     switch(prec)
     {
-    case miopenFloat: params = ConfigWithFloat_conv3d_test::GetParam(); break;
+    case miopenFloat: params = GPU_Conv3d_Test_FP32::GetParam(); break;
     case miopenInt8:
     case miopenHalf:
     case miopenBFloat16:
@@ -73,7 +61,7 @@ void Run3dDriver(miopenDataType_t prec)
                   "type not supported by "
                   "test_conv3d_extra test";
 
-    default: params = ConfigWithFloat_conv3d_test::GetParam();
+    default: params = GPU_Conv3d_Test_FP32::GetParam();
     }
 
     for(const auto& test_value : params)
@@ -87,7 +75,7 @@ void Run3dDriver(miopenDataType_t prec)
         });
 
         testing::internal::CaptureStderr();
-        test_drive<conv3d_driver>(ptrs.size(), ptrs.data());
+        test_drive<conv3d_driver>(ptrs.size(), ptrs.data(), "test_conv3d");
         auto capture = testing::internal::GetCapturedStderr();
         std::cout << capture;
     }
@@ -127,18 +115,6 @@ std::vector<std::string> GetTestCases(const std::string& precision)
 
 using namespace conv3d_test;
 
-TEST_P(ConfigWithFloat_conv3d_test, FloatTest_conv3d_test)
-{
-    if(IsTestRunWith("--float"))
-    {
-        Run3dDriver(miopenFloat);
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
-};
+TEST_P(GPU_Conv3d_Test_FP32, FloatTest_conv3d_test) { Run3dDriver(miopenFloat); };
 
-INSTANTIATE_TEST_SUITE_P(Conv3dTestExtra,
-                         ConfigWithFloat_conv3d_test,
-                         testing::Values(GetTestCases("--float")));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_Conv3d_Test_FP32, testing::Values(GetTestCases("--float")));

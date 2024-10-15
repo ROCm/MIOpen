@@ -27,10 +27,7 @@
 #include <miopen/miopen.h>
 #include <gtest/gtest_common.hpp>
 #include <gtest/gtest.h>
-#include <miopen/env.hpp>
 #include "get_handle.hpp"
-
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
 
 namespace regression_issue_2012 {
 void SetupEnvVar() { env::update(MIOPEN_FIND_MODE, "normal"); }
@@ -43,10 +40,9 @@ std::vector<std::string> GetArgs(const std::string& param)
     return {begin, end};
 }
 
-std::vector<std::string> GetTestCases()
+std::vector<std::string> GetTestCases(const std::string& float_arg)
 {
-    const std::string& cmd       = "test_conv2d ";
-    const std::string& float_arg = env::value(MIOPEN_TEST_FLOAT_ARG);
+    const std::string& cmd = "test_conv2d ";
     const std::string& args =
         " --verbose --disable-forward --disable-backward-data --disable-validation";
 
@@ -63,9 +59,9 @@ std::vector<std::string> GetTestCases()
     // clang-format on
 }
 
-using TestCase = decltype(GetTestCases())::value_type;
+using TestCase = decltype(GetTestCases(std::string{}))::value_type;
 
-class ConfigWithFloat_regression_issue_2012 : public testing::TestWithParam<std::vector<TestCase>>
+class GPU_regression_issue_2012_FP32 : public testing::TestWithParam<std::vector<TestCase>>
 {
 };
 
@@ -78,12 +74,13 @@ bool IsTestSupportedForDevice()
 
 void Run2dDriver()
 {
-    if(!(IsTestSupportedForDevice() && env::value(MIOPEN_TEST_FLOAT_ARG) == "--float"))
+    if(!IsTestSupportedForDevice())
     {
         GTEST_SKIP();
     }
+
     SetupEnvVar();
-    std::vector<std::string> params = ConfigWithFloat_regression_issue_2012::GetParam();
+    std::vector<std::string> params = GPU_regression_issue_2012_FP32::GetParam();
 
     for(const auto& test_value : params)
     {
@@ -103,8 +100,8 @@ void Run2dDriver()
 } // namespace regression_issue_2012
 using namespace regression_issue_2012;
 
-TEST_P(ConfigWithFloat_regression_issue_2012, FloatTest_regression_issue_2012) { Run2dDriver(); };
+TEST_P(GPU_regression_issue_2012_FP32, FloatTest_regression_issue_2012) { Run2dDriver(); };
 
-INSTANTIATE_TEST_SUITE_P(RegressionIssue2012,
-                         ConfigWithFloat_regression_issue_2012,
-                         testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_regression_issue_2012_FP32,
+                         testing::Values(GetTestCases("--float")));

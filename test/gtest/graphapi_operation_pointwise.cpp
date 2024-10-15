@@ -46,7 +46,7 @@ using ThreeInputTuple = std::tuple<bool, Pointwise*, Tensor*, Tensor*, Tensor*, 
 
 } // namespace
 
-TEST(GraphApiOperationPointwiseBuilderSingleSetter, AnyAttribute)
+TEST(CPU_GraphApiOperationPointwiseBuilderSingleSetter_NONE, AnyAttribute)
 {
     EXPECT_ANY_THROW({ OperationPointwiseBuilder().setPointwise(nullptr); })
         << "OperationPointwiseBuilder::setPointwise failed on an invalid attribute";
@@ -82,7 +82,8 @@ TEST(GraphApiOperationPointwiseBuilderSingleSetter, AnyAttribute)
         << "OperationPointwiseBuilder::setDy failed on a valid attribute";
 }
 
-class GraphApiOperationPointwiseBuilderOneInput : public testing::TestWithParam<OneInputTuple>
+class CPU_GraphApiOperationPointwiseBuilderOneInput_NONE
+    : public testing::TestWithParam<OneInputTuple>
 {
 protected:
     bool mValid;
@@ -93,7 +94,7 @@ protected:
     void SetUp() override { std::tie(mValid, mPointwise, mX, mY) = GetParam(); }
 };
 
-TEST_P(GraphApiOperationPointwiseBuilderOneInput, Test)
+TEST_P(CPU_GraphApiOperationPointwiseBuilderOneInput_NONE, Test)
 {
     if(mValid)
     {
@@ -143,7 +144,8 @@ TEST_P(GraphApiOperationPointwiseBuilderOneInput, Test)
     }) << "Builder failed to detect unwanted setAlpha2 call";
 }
 
-class GraphApiOperationPointwiseBuilderTwoInput : public testing::TestWithParam<TwoInputTuple>
+class CPU_GraphApiOperationPointwiseBuilderTwoInput_NONE
+    : public testing::TestWithParam<TwoInputTuple>
 {
 protected:
     bool mValid;
@@ -155,7 +157,7 @@ protected:
     void SetUp() override { std::tie(mValid, mPointwise, mX, mB, mY) = GetParam(); }
 };
 
-TEST_P(GraphApiOperationPointwiseBuilderTwoInput, Test)
+TEST_P(CPU_GraphApiOperationPointwiseBuilderTwoInput_NONE, Test)
 {
     if(mValid)
     {
@@ -237,7 +239,7 @@ TEST_P(GraphApiOperationPointwiseBuilderTwoInput, Test)
     }) << "Builder failed to detect unwanted setDy call";
 }
 
-class GraphApiOperationPointwiseBuilderBwd : public testing::TestWithParam<TwoInputTuple>
+class CPU_GraphApiOperationPointwiseBuilderBwd_NONE : public testing::TestWithParam<TwoInputTuple>
 {
 protected:
     bool mValid;
@@ -249,7 +251,7 @@ protected:
     void SetUp() override { std::tie(mValid, mPointwise, mY, mDy, mDx) = GetParam(); }
 };
 
-TEST_P(GraphApiOperationPointwiseBuilderBwd, Test)
+TEST_P(CPU_GraphApiOperationPointwiseBuilderBwd_NONE, Test)
 {
     if(mValid)
     {
@@ -341,7 +343,8 @@ TEST_P(GraphApiOperationPointwiseBuilderBwd, Test)
     }) << "Builder failed to detect unwanted setT call";
 }
 
-class GraphApiOperationPointwiseBuilderThreeInput : public testing::TestWithParam<ThreeInputTuple>
+class CPU_GraphApiOperationPointwiseBuilderThreeInput_NONE
+    : public testing::TestWithParam<ThreeInputTuple>
 {
 protected:
     bool mValid;
@@ -354,7 +357,7 @@ protected:
     void SetUp() override { std::tie(mValid, mPointwise, mX, mB, mY, mT) = GetParam(); }
 };
 
-TEST_P(GraphApiOperationPointwiseBuilderThreeInput, Test)
+TEST_P(CPU_GraphApiOperationPointwiseBuilderThreeInput_NONE, Test)
 {
     if(mValid)
     {
@@ -545,8 +548,8 @@ protected:
 
 } // namespace
 
-class GraphApiOperationPointwiseOneInput : public testing::TestWithParam<OneInputTuple>,
-                                           protected GraphApiOperationPointwiseBase
+class CPU_GraphApiOperationPointwiseOneInput_NONE : public testing::TestWithParam<OneInputTuple>,
+                                                    protected GraphApiOperationPointwiseBase
 {
 protected:
     void SetUp() override
@@ -563,8 +566,8 @@ protected:
     }
 };
 
-class GraphApiOperationPointwiseTwoInput : public testing::TestWithParam<TwoInputTuple>,
-                                           protected GraphApiOperationPointwiseBase
+class CPU_GraphApiOperationPointwiseTwoInput_NONE : public testing::TestWithParam<TwoInputTuple>,
+                                                    protected GraphApiOperationPointwiseBase
 {
 protected:
     void SetUp() override
@@ -582,8 +585,8 @@ protected:
     }
 };
 
-class GraphApiOperationPointwiseBwd : public testing::TestWithParam<TwoInputTuple>,
-                                      protected GraphApiOperationPointwiseBase
+class CPU_GraphApiOperationPointwiseBwd_NONE : public testing::TestWithParam<TwoInputTuple>,
+                                               protected GraphApiOperationPointwiseBase
 {
 protected:
     void SetUp() override
@@ -601,8 +604,9 @@ protected:
     }
 };
 
-class GraphApiOperationPointwiseThreeInput : public testing::TestWithParam<ThreeInputTuple>,
-                                             protected GraphApiOperationPointwiseBase
+class CPU_GraphApiOperationPointwiseThreeInput_NONE
+    : public testing::TestWithParam<ThreeInputTuple>,
+      protected GraphApiOperationPointwiseBase
 {
 protected:
     void SetUp() override
@@ -689,51 +693,51 @@ static auto threeInputInvalid = testing::Combine(testing::Values(false),
                                                  testing::Values(&y, &y2, nullptr),
                                                  testing::Values(&t, nullptr));
 
-INSTANTIATE_TEST_SUITE_P(OneInputValid, GraphApiOperationPointwiseBuilderOneInput, oneInputValid);
-INSTANTIATE_TEST_SUITE_P(OneInputInvalid,
-                         GraphApiOperationPointwiseBuilderOneInput,
+INSTANTIATE_TEST_SUITE_P(UnitIV, CPU_GraphApiOperationPointwiseBuilderOneInput_NONE, oneInputValid);
+INSTANTIATE_TEST_SUITE_P(UnitII,
+                         CPU_GraphApiOperationPointwiseBuilderOneInput_NONE,
                          oneInputInvalid);
 
-INSTANTIATE_TEST_SUITE_P(TwoInputValid1, GraphApiOperationPointwiseBuilderTwoInput, twoInputValid1);
-INSTANTIATE_TEST_SUITE_P(TwoInputValid2, GraphApiOperationPointwiseBuilderTwoInput, twoInputValid2);
-INSTANTIATE_TEST_SUITE_P(TwoInputInvalid,
-                         GraphApiOperationPointwiseBuilderTwoInput,
+INSTANTIATE_TEST_SUITE_P(Unit2IV1,
+                         CPU_GraphApiOperationPointwiseBuilderTwoInput_NONE,
+                         twoInputValid1);
+INSTANTIATE_TEST_SUITE_P(Unit2IV2,
+                         CPU_GraphApiOperationPointwiseBuilderTwoInput_NONE,
+                         twoInputValid2);
+INSTANTIATE_TEST_SUITE_P(Unit2II,
+                         CPU_GraphApiOperationPointwiseBuilderTwoInput_NONE,
                          twoInputInvalid);
 
-INSTANTIATE_TEST_SUITE_P(TwoInputValidBwd1,
-                         GraphApiOperationPointwiseBuilderBwd,
-                         twoInputValidBwd1);
-INSTANTIATE_TEST_SUITE_P(TwoInputValidBwd2,
-                         GraphApiOperationPointwiseBuilderBwd,
+INSTANTIATE_TEST_SUITE_P(Unit2IV, CPU_GraphApiOperationPointwiseBuilderBwd_NONE, twoInputValidBwd1);
+INSTANTIATE_TEST_SUITE_P(Unit2IV2,
+                         CPU_GraphApiOperationPointwiseBuilderBwd_NONE,
                          twoInputValidBwd2);
-INSTANTIATE_TEST_SUITE_P(TwoInputInvalidBwd,
-                         GraphApiOperationPointwiseBuilderBwd,
+INSTANTIATE_TEST_SUITE_P(Unit2II,
+                         CPU_GraphApiOperationPointwiseBuilderBwd_NONE,
                          twoInputInvalidBwd);
 
-INSTANTIATE_TEST_SUITE_P(ThreeInputValid,
-                         GraphApiOperationPointwiseBuilderThreeInput,
+INSTANTIATE_TEST_SUITE_P(Unit3IV,
+                         CPU_GraphApiOperationPointwiseBuilderThreeInput_NONE,
                          threeInputValid);
-INSTANTIATE_TEST_SUITE_P(ThreeInputInvalid,
-                         GraphApiOperationPointwiseBuilderThreeInput,
+INSTANTIATE_TEST_SUITE_P(Unit3II,
+                         CPU_GraphApiOperationPointwiseBuilderThreeInput_NONE,
                          threeInputInvalid);
 
-TEST_P(GraphApiOperationPointwiseOneInput, CFunctions) { mExecute(); }
-TEST_P(GraphApiOperationPointwiseTwoInput, CFunctions) { mExecute(); }
-TEST_P(GraphApiOperationPointwiseBwd, CFunctions) { mExecute(); }
-TEST_P(GraphApiOperationPointwiseThreeInput, CFunctions) { mExecute(); }
+TEST_P(CPU_GraphApiOperationPointwiseOneInput_NONE, CFunctions) { mExecute(); }
+TEST_P(CPU_GraphApiOperationPointwiseTwoInput_NONE, CFunctions) { mExecute(); }
+TEST_P(CPU_GraphApiOperationPointwiseBwd_NONE, CFunctions) { mExecute(); }
+TEST_P(CPU_GraphApiOperationPointwiseThreeInput_NONE, CFunctions) { mExecute(); }
 
-INSTANTIATE_TEST_SUITE_P(OneInputValid, GraphApiOperationPointwiseOneInput, oneInputValid);
-INSTANTIATE_TEST_SUITE_P(OneInputInvalid, GraphApiOperationPointwiseOneInput, oneInputInvalid);
+INSTANTIATE_TEST_SUITE_P(UnitIV, CPU_GraphApiOperationPointwiseOneInput_NONE, oneInputValid);
+INSTANTIATE_TEST_SUITE_P(UnitII, CPU_GraphApiOperationPointwiseOneInput_NONE, oneInputInvalid);
 
-INSTANTIATE_TEST_SUITE_P(TwoInputValid1, GraphApiOperationPointwiseTwoInput, twoInputValid1);
-INSTANTIATE_TEST_SUITE_P(TwoInputValid2, GraphApiOperationPointwiseTwoInput, twoInputValid2);
-INSTANTIATE_TEST_SUITE_P(TwoInputInvalid, GraphApiOperationPointwiseTwoInput, twoInputInvalid);
+INSTANTIATE_TEST_SUITE_P(Unit2IV1, CPU_GraphApiOperationPointwiseTwoInput_NONE, twoInputValid1);
+INSTANTIATE_TEST_SUITE_P(Unit2IV2, CPU_GraphApiOperationPointwiseTwoInput_NONE, twoInputValid2);
+INSTANTIATE_TEST_SUITE_P(Unit2II, CPU_GraphApiOperationPointwiseTwoInput_NONE, twoInputInvalid);
 
-INSTANTIATE_TEST_SUITE_P(TwoInputValidBwd1, GraphApiOperationPointwiseBwd, twoInputValidBwd1);
-INSTANTIATE_TEST_SUITE_P(TwoInputValidBwd2, GraphApiOperationPointwiseBwd, twoInputValidBwd2);
-INSTANTIATE_TEST_SUITE_P(TwoInputInvalidBwd, GraphApiOperationPointwiseBwd, twoInputInvalidBwd);
+INSTANTIATE_TEST_SUITE_P(Unit2IV1, CPU_GraphApiOperationPointwiseBwd_NONE, twoInputValidBwd1);
+INSTANTIATE_TEST_SUITE_P(Unit2IV2, CPU_GraphApiOperationPointwiseBwd_NONE, twoInputValidBwd2);
+INSTANTIATE_TEST_SUITE_P(Unit2II, CPU_GraphApiOperationPointwiseBwd_NONE, twoInputInvalidBwd);
 
-INSTANTIATE_TEST_SUITE_P(ThreeInputValid, GraphApiOperationPointwiseThreeInput, threeInputValid);
-INSTANTIATE_TEST_SUITE_P(ThreeInputInvalid,
-                         GraphApiOperationPointwiseThreeInput,
-                         threeInputInvalid);
+INSTANTIATE_TEST_SUITE_P(Unit3IV, CPU_GraphApiOperationPointwiseThreeInput_NONE, threeInputValid);
+INSTANTIATE_TEST_SUITE_P(Unit3II, CPU_GraphApiOperationPointwiseThreeInput_NONE, threeInputInvalid);
