@@ -66,7 +66,7 @@ private:
     std::mutex mutex;
     std::unordered_map<fs::path, std::future<PreloadedDb>> futures;
     std::optional<std::thread> preload_thread;
-    std::vector<std::packaged_task<PreloadedDb()>> preload_tasks;
+    std::vector<std::packaged_task<PreloadedDb(const stop_token&)>> preload_tasks;
     std::atomic<bool> started_loading{false};
     stop_source preload_stoper{nostopstate};
 
@@ -80,6 +80,6 @@ auto MakeDbPreloader(DbKinds db_kind, bool is_system) -> DbPreloader;
 extern template auto MakeDbPreloader<RamDb>(DbKinds db_kind, bool is_system) -> DbPreloader;
 extern template auto MakeDbPreloader<ReadonlyRamDb>(DbKinds db_kind, bool is_system) -> DbPreloader;
 
-auto GetDbPreloadStates() -> DbPreloadStates&;
+auto GetDbPreloadStates() -> std::shared_ptr<DbPreloadStates>;
 
 } // namespace miopen

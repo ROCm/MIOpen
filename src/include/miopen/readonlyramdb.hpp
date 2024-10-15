@@ -53,7 +53,7 @@ public:
     struct Instances
     {
         std::map<fs::path, std::unique_ptr<ReadonlyRamDb>> dbs;
-        DbPreloadStates* states;
+        std::shared_ptr<DbPreloadStates> states;
     };
 
     static auto GetInstances() -> Instances&;

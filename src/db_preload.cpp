@@ -41,6 +41,8 @@
 namespace miopen {
 MIOPEN_INTERNALS_EXPORT DbPreloadStates::~DbPreloadStates()
 {
+    std::unique_lock<std::mutex> lock(mutex);
+
     if(preload_thread && preload_thread->joinable())
     {
         preload_stoper.request_stop();
@@ -48,9 +50,9 @@ MIOPEN_INTERNALS_EXPORT DbPreloadStates::~DbPreloadStates()
     }
 }
 
-auto GetDbPreloadStates() -> DbPreloadStates&
+auto GetDbPreloadStates() -> std::shared_ptr<DbPreloadStates>
 {
-    static DbPreloadStates db_preload_states;
+    static auto db_preload_states = std::make_shared<DbPreloadStates>();
     return db_preload_states;
 }
 
@@ -124,7 +126,7 @@ MIOPEN_INTERNALS_EXPORT void DbPreloadStates::StartPreloadingDb(const fs::path& 
         return;
 
     auto& task = preload_tasks.emplace_back(
-        std::bind(std::move(preloader), preload_stoper.get_token(), path));
+        std::bind(std::move(preloader), std::placeholders::_1, path));
     futures.emplace(path, task.get_future());
 }
 
@@ -134,25 +136,25 @@ DbPreloadStates::TryStartPreloadingDbs(const std::function<void()>& preload)
     if(started_loading.load(std::memory_order_relaxed))
         return;
 
-    {
-        std::unique_lock<std::mutex> lock(mutex);
+    std::unique_lock<std::mutex> lock(mutex);
 
-        if(started_loading.load(std::memory_order_relaxed))
-            return;
+    if(started_loading.load(std::memory_order_relaxed))
+        return;
 
-        preload_stoper = stop_source();
+    preload();
 
-        preload();
-
-        started_loading.store(true, std::memory_order_relaxed);
-        // We have finished updating the map and can allow short-cutting the mutex
-    }
+    started_loading.store(true, std::memory_order_relaxed);
+    // We have finished updating the map and can allow short-cutting the mutex
 
     if(!preload_tasks.empty())
     {
-        preload_thread = std::thread([tasks = std::move(preload_tasks)]() mutable {
+        preload_stoper = stop_source();
+
+        preload_thread = std::thread([tasks = std::move(preload_tasks), token = preload_stoper.get_token()]() mutable {
+            MIOPEN_LOG_I("DB preload thread started");
             std::for_each(
-                std::execution::par_unseq, tasks.begin(), tasks.end(), [](auto&& task) { task(); });
+                std::execution::par_unseq, tasks.begin(), tasks.end(), [token](auto&& task) { task(token); });
+            MIOPEN_LOG_I("DB preload thread finished");
         });
     }
 }

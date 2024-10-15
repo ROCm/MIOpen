@@ -54,7 +54,7 @@ bool& rordb_embed_fs_override()
 auto ReadonlyRamDb::GetInstances() -> Instances&
 {
     // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
-    static auto instances = Instances{{}, &GetDbPreloadStates()};
+    static auto instances = Instances{{}, GetDbPreloadStates()};
     return instances;
 }
 

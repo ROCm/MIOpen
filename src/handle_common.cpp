@@ -35,42 +35,44 @@
 
 namespace miopen {
 namespace {
-void PreloadDbPair(DbKinds kind, fs::path&& system, fs::path&& user)
+void PreloadDbPair(DbPreloadStates* states, DbKinds kind, fs::path&& system, fs::path&& user)
 {
 #if !MIOPEN_DISABLE_SYSDB
-    GetDbPreloadStates().StartPreloadingDb(system, MakeDbPreloader<ReadonlyRamDb>(kind, true));
+    states->StartPreloadingDb(system, MakeDbPreloader<ReadonlyRamDb>(kind, true));
 #endif
 #if !MIOPEN_DISABLE_USERDB
-    GetDbPreloadStates().StartPreloadingDb(user, MakeDbPreloader<RamDb>(kind, false));
+    states->StartPreloadingDb(user, MakeDbPreloader<RamDb>(kind, false));
 #endif
 }
 } // namespace
 
 void Handle::TryStartPreloadingDbs()
 {
-    GetDbPreloadStates().TryStartPreloadingDbs([&]() {
+    auto const states = GetDbPreloadStates();
+
+    states->TryStartPreloadingDbs([&]() {
         ExecutionContext ctx{this};
 
         MIOPEN_LOG_I("Preloading dbs");
 
         // conv find-db
-        PreloadDbPair(DbKinds::FindDb,
+        PreloadDbPair(states.get(), DbKinds::FindDb,
                       FindDbRecord::GetInstalledPath(*this, ""),
                       FindDbRecord::GetUserPath(*this, ""));
 
         // fusion find-db
         // it uses perf-db from convolution
-        PreloadDbPair(DbKinds::FindDb,
+        PreloadDbPair(states.get(), DbKinds::FindDb,
                       FindDbRecord::GetInstalledPath(*this, "fusion"),
                       FindDbRecord::GetUserPath(*this, "fusion"));
 
         // conv perf-db
-        PreloadDbPair(DbKinds::PerfDb, ctx.GetPerfDbPath(), ctx.GetUserPerfDbPath());
+        PreloadDbPair(states.get(), DbKinds::PerfDb, ctx.GetPerfDbPath(), ctx.GetUserPerfDbPath());
 
         // batchnorm perf-db
         // it doesn't use find-db
         PreloadDbPair(
-            DbKinds::PerfDb, ctx.GetPerfDbPath("batchnorm"), ctx.GetUserPerfDbPath("batchnorm"));
+            states.get(), DbKinds::PerfDb, ctx.GetPerfDbPath("batchnorm"), ctx.GetUserPerfDbPath("batchnorm"));
     });
 }
 } // namespace miopen
