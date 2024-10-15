@@ -35,8 +35,7 @@
 
 #include <functional>
 
-namespace miopen
-{
+namespace miopen {
 struct ExecutionContext;
 
 #if MIOPEN_ENABLE_SQLITE && MIOPEN_USE_SQLITE_PERFDB
