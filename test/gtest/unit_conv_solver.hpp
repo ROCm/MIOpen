@@ -108,8 +108,7 @@ public:
                      const UnitTestConvSolverParams& params,
                      miopen::conv::Direction direction,
                      const ConvTestCase& conv_config,
-                     miopenConvAlgorithm_t algo,
-                     bool use_cpu_ref);
+                     miopenConvAlgorithm_t algo);
 
 protected:
     void SetUpImpl(const UnitTestConvSolverParams& params);

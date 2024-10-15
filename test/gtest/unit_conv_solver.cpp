@@ -696,8 +696,7 @@ void UnitTestConvSolverBase::RunTestImpl(const miopen::solver::conv::ConvSolverI
                                          const UnitTestConvSolverParams& params,
                                          miopen::conv::Direction direction,
                                          const ConvTestCase& conv_config,
-                                         miopenConvAlgorithm_t algo,
-                                         bool use_cpu_ref)
+                                         miopenConvAlgorithm_t algo)
 {
     DeprecatedSolversEnabler deprecated_solv_enabler;
     if(params.enable_deprecated_solvers)
