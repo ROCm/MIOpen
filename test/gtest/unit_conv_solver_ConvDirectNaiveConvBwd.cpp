@@ -34,52 +34,69 @@ auto GetConvTestCases(miopenDataType_t datatype)
 
     return std::vector{
         // clang-format off
-        TestCase{{1, 8, 8, 8}, {8, 8, 1, 1}, {0, 0}, {1, 1}, {1, 1}, datatype},
+        TestCase{{1, 16, 14, 14}, {48, 16, 5, 5}, {2, 2}, {1, 1}, {1, 1}, datatype},
         // clang-format on
     };
+}
+
+auto GetConvTestCasesFull(miopenDataType_t datatype)
+{
+    using TestCase = miopen::unit_tests::ConvTestCase;
+
+    auto cases = std::vector<TestCase>{};
+
+    if(datatype == miopenHalf)
+    {
+        // clang-format off
+        // Regression test for https://github.com/ROCm/MIOpen/issues/1576
+        cases.emplace_back(TestCase{{256, 1024, 14, 14}, {256, 1024, 1, 1}, {0, 0}, {1, 1}, {1, 1}, datatype});
+        // clang-format on
+    }
+
+    return cases;
 }
 
 Gpu GetSupportedDevices() { return Gpu::All; }
 
 } // namespace
 
-TEST_P(GPU_UnitTestConvSolverBwd_FP16, GemmBwd1x1_stride1)
+TEST_P(GPU_UnitTestConvSolverBwd_FP16, ConvDirectNaiveConvBwd)
 {
-    this->RunTest(miopen::solver::conv::GemmBwd1x1_stride1{});
+    this->RunTest(miopen::solver::conv::ConvDirectNaiveConvBwd{}, true); // CPU verification
 };
 
-TEST_P(GPU_UnitTestConvSolverBwd_BFP16, GemmBwd1x1_stride1)
+TEST_P(GPU_UnitTestConvSolverBwd_BFP16, ConvDirectNaiveConvBwd)
 {
-    this->RunTest(miopen::solver::conv::GemmBwd1x1_stride1{});
+    this->RunTest(miopen::solver::conv::ConvDirectNaiveConvBwd{}, true); // CPU verification
 };
 
-TEST_P(GPU_UnitTestConvSolverBwd_FP32, GemmBwd1x1_stride1)
+TEST_P(GPU_UnitTestConvSolverBwd_FP32, ConvDirectNaiveConvBwd)
 {
-    this->RunTest(miopen::solver::conv::GemmBwd1x1_stride1{});
+    this->RunTest(miopen::solver::conv::ConvDirectNaiveConvBwd{}, true); // CPU verification
 };
 
-TEST_P(CPU_UnitTestConvSolverDevApplicabilityBwd_NONE, GemmBwd1x1_stride1)
+TEST_P(CPU_UnitTestConvSolverDevApplicabilityBwd_NONE, ConvDirectNaiveConvBwd)
 {
-    this->RunTest(miopen::solver::conv::GemmBwd1x1_stride1{});
+    this->RunTest(miopen::solver::conv::ConvDirectNaiveConvBwd{});
 };
 
 // Smoke tests
 INSTANTIATE_TEST_SUITE_P(Smoke,
                          GPU_UnitTestConvSolverBwd_FP16,
                          testing::Combine(testing::Values(GetSupportedDevices()),
-                                          testing::Values(miopenConvolutionAlgoGEMM),
+                                          testing::Values(miopenConvolutionAlgoDirect),
                                           testing::ValuesIn(GetConvTestCases(miopenHalf))));
 
 INSTANTIATE_TEST_SUITE_P(Smoke,
                          GPU_UnitTestConvSolverBwd_BFP16,
                          testing::Combine(testing::Values(GetSupportedDevices()),
-                                          testing::Values(miopenConvolutionAlgoGEMM),
+                                          testing::Values(miopenConvolutionAlgoDirect),
                                           testing::ValuesIn(GetConvTestCases(miopenBFloat16))));
 
 INSTANTIATE_TEST_SUITE_P(Smoke,
                          GPU_UnitTestConvSolverBwd_FP32,
                          testing::Combine(testing::Values(GetSupportedDevices()),
-                                          testing::Values(miopenConvolutionAlgoGEMM),
+                                          testing::Values(miopenConvolutionAlgoDirect),
                                           testing::ValuesIn(GetConvTestCases(miopenFloat))));
 
 // Device applicability test
@@ -87,3 +104,10 @@ INSTANTIATE_TEST_SUITE_P(Smoke,
                          CPU_UnitTestConvSolverDevApplicabilityBwd_NONE,
                          testing::Combine(testing::Values(GetSupportedDevices()),
                                           testing::Values(GetConvTestCases(miopenFloat)[0])));
+
+// Full tests
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_UnitTestConvSolverBwd_FP16,
+                         testing::Combine(testing::Values(GetSupportedDevices()),
+                                          testing::Values(miopenConvolutionAlgoDirect),
+                                          testing::ValuesIn(GetConvTestCasesFull(miopenHalf))));

@@ -63,6 +63,12 @@ struct TensorDescriptorParams
     {
     }
 
+    std::size_t GetNumDims() const { return lens.size(); }
+
+    const std::vector<std::size_t>& GetLens() const { return lens; }
+
+    miopenDataType_t GetDataType() const { return datatype; }
+
     miopen::TensorDescriptor GetTensorDescriptor() const
     {
         if(layout)
@@ -87,7 +93,7 @@ struct TensorDescriptorParams
         if(tp.layout)
             os << tp.layout.value() << ", ";
         else
-            os << "{}, ";
+            os << "none, ";
         miopen::LogRange(os << "{", tp.lens, ",") << "}, ";
         miopen::LogRange(os << "{", tp.strides, ",") << "}";
         return os;
