@@ -23,23 +23,10 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <miopen/env.hpp>
+
 #include "transformers_adam_w.hpp"
 
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
-
 namespace transformers_adam_w {
-
-bool CheckFloatArg(std::string arg)
-{
-    if(!MIOPEN_TEST_ALL ||
-       (env::enabled(MIOPEN_TEST_ALL) && (env::value(MIOPEN_TEST_FLOAT_ARG) == arg)))
-    {
-        return true;
-    }
-    return false;
-}
 
 struct GPU_TransformersAdamWTest_FP32 : TransformersAdamWTest<float, float>
 {
@@ -58,41 +45,20 @@ using namespace transformers_adam_w;
 
 TEST_P(GPU_TransformersAdamWTest_FP32, TransformersAdamWFloatTest)
 {
-    if(CheckFloatArg("--float"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 };
 
 TEST_P(GPU_TransformersAdamWTest_FP16, TransformersAdamWFloat16Test)
 {
-    if(CheckFloatArg("--half"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 };
 
 TEST_P(GPU_TransformersAmpAdamWTest_FP32, TransformersAmpAdamWTest)
 {
-    if(CheckFloatArg("--float"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 };
 
 INSTANTIATE_TEST_SUITE_P(Full,
