@@ -38,6 +38,8 @@
 #include <memory>
 #include <typeinfo>
 
+#define FIN_ANY_SOLVER_FIND_SOLUTION_COMPAT
+
 namespace miopen {
 namespace solver {
 
@@ -87,6 +89,7 @@ struct AnySolver
     };
     bool IsEmpty() const { return ptr_value == nullptr; };
 
+#if defined(FIN_ANY_SOLVER_FIND_SOLUTION_COMPAT)
     ConvSolution FindSolution(const ExecutionContext& ctx,
                               const miopen::conv::ProblemDescription& problem,
                               PerformanceDb& db,
@@ -96,6 +99,7 @@ struct AnySolver
         assert(ptr_value != nullptr);
         return ptr_value->FindSolution(ctx, problem, db, invoke_ctx, perf_cfg);
     }
+#endif
 
     ConvSolution FindSolution(const ExecutionContext& ctx,
                               const miopen::conv::ProblemDescription& problem,
