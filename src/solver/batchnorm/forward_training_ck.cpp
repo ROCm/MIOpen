@@ -87,7 +87,18 @@ struct CKArgsBNormFwdTraining
         std::sort(xyStrides.begin(), xyStrides.end(), std::greater<>());
         std::rotate(xyLengths.begin() + 1, xyLengths.begin() + 2, xyLengths.end());
 
-        this->reduceDims = problem.reduceDims;
+        if(problem.IsLayoutNHWC())
+        {
+            this->reduceDims = {0, 1, 2};
+        }
+        else if(problem.IsLayoutNCHW())
+        {
+            this->reduceDims = {0, 2, 3};
+        }
+        else
+        {
+            this->reduceDims = {0, 1, 2};
+        }
     }
 
     CKArgsBNormFwdTraining(const CKArgsBNormFwdTraining&) = default;
