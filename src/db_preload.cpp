@@ -125,8 +125,8 @@ MIOPEN_INTERNALS_EXPORT void DbPreloadStates::StartPreloadingDb(const fs::path& 
     if(path.empty())
         return;
 
-    auto& task = preload_tasks.emplace_back(
-        std::bind(std::move(preloader), std::placeholders::_1, path));
+    auto& task =
+        preload_tasks.emplace_back(std::bind(std::move(preloader), std::placeholders::_1, path));
     futures.emplace(path, task.get_future());
 }
 
@@ -150,12 +150,15 @@ DbPreloadStates::TryStartPreloadingDbs(const std::function<void()>& preload)
     {
         preload_stoper = stop_source();
 
-        preload_thread = std::thread([tasks = std::move(preload_tasks), token = preload_stoper.get_token()]() mutable {
-            MIOPEN_LOG_I("DB preload thread started");
-            std::for_each(
-                std::execution::par_unseq, tasks.begin(), tasks.end(), [token](auto&& task) { task(token); });
-            MIOPEN_LOG_I("DB preload thread finished");
-        });
+        preload_thread = std::thread(
+            [tasks = std::move(preload_tasks), token = preload_stoper.get_token()]() mutable {
+                MIOPEN_LOG_I("DB preload thread started");
+                std::for_each(std::execution::par_unseq,
+                              tasks.begin(),
+                              tasks.end(),
+                              [token](auto&& task) { task(token); });
+                MIOPEN_LOG_I("DB preload thread finished");
+            });
     }
 }
 

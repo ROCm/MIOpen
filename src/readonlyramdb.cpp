@@ -86,7 +86,8 @@ ReadonlyRamDb& ReadonlyRamDb::GetCached(DbKinds db_kind_,
     }
     else
     {
-        auto &ref = *instances.dbs.emplace(path, std::make_unique<ReadonlyRamDb>(db_kind_, path)).first->second;
+        auto& ref = *instances.dbs.emplace(path, std::make_unique<ReadonlyRamDb>(db_kind_, path))
+                         .first->second;
         ref.Prefetch(warn_if_unreadable);
         return ref;
     }

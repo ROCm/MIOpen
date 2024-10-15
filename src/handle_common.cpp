@@ -56,13 +56,15 @@ void Handle::TryStartPreloadingDbs()
         MIOPEN_LOG_I("Preloading dbs");
 
         // conv find-db
-        PreloadDbPair(states.get(), DbKinds::FindDb,
+        PreloadDbPair(states.get(),
+                      DbKinds::FindDb,
                       FindDbRecord::GetInstalledPath(*this, ""),
                       FindDbRecord::GetUserPath(*this, ""));
 
         // fusion find-db
         // it uses perf-db from convolution
-        PreloadDbPair(states.get(), DbKinds::FindDb,
+        PreloadDbPair(states.get(),
+                      DbKinds::FindDb,
                       FindDbRecord::GetInstalledPath(*this, "fusion"),
                       FindDbRecord::GetUserPath(*this, "fusion"));
 
@@ -71,8 +73,10 @@ void Handle::TryStartPreloadingDbs()
 
         // batchnorm perf-db
         // it doesn't use find-db
-        PreloadDbPair(
-            states.get(), DbKinds::PerfDb, ctx.GetPerfDbPath("batchnorm"), ctx.GetUserPerfDbPath("batchnorm"));
+        PreloadDbPair(states.get(),
+                      DbKinds::PerfDb,
+                      ctx.GetPerfDbPath("batchnorm"),
+                      ctx.GetUserPerfDbPath("batchnorm"));
     });
 }
 } // namespace miopen
