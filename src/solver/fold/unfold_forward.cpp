@@ -24,13 +24,14 @@
  *
  *******************************************************************************/
 
-#include <miopen/fold/problem_description.hpp>
-#include <miopen/miopen.h>
 #include <miopen/datatype.hpp>
-#include <miopen/kernel_build_params.hpp>
 #include <miopen/fold/invoke_params.hpp>
+#include <miopen/fold/problem_description.hpp>
 #include <miopen/fold/solvers.hpp>
 #include <miopen/fold.hpp>
+#include <miopen/kernel_build_params.hpp>
+#include <miopen/miopen.h>
+#include <miopen/mlo_internal.hpp>
 #include <miopen/target_properties.hpp>
 #include <miopen/tensor_view_utils.hpp>
 
