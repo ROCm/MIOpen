@@ -65,9 +65,21 @@ using DeviceOpBnFwdInfPtrs = ck::tensor_operation::device::instance::DeviceOpera
 
 struct CKArgsBNormFwd
 {
-    CKArgsBNormFwd(const miopen::batchnorm::ProblemDescription& problem,
-                   const std::array<int, NumBatchNormReduceDim>& reduceDimsArg)
+    CKArgsBNormFwd(const miopen::batchnorm::ProblemDescription& problem)
     {
+        if(problem.IsLayoutNHWC())
+        {
+            reduceDims = {0, 1, 2};
+        }
+        else if(problem.IsLayoutNCHW())
+        {
+            reduceDims = {0, 2, 3};
+        }
+        else
+        {
+            MIOPEN_THROW(miopenStatusInternalError,
+                         "BnCKFwdInference operation does not support this data layout");
+        }
         std::copy(problem.GetXDesc().GetLengths().begin(),
                   problem.GetXDesc().GetLengths().end(),
                   xyLengths.begin());
@@ -86,14 +98,13 @@ struct CKArgsBNormFwd
         std::array<int, Rank> allDims;
         std::iota(allDims.begin(), allDims.end(), 0);
 
-        // Populate invariantDims by checking for dimensions not in reduceDimsArg
+        // Populate invariantDims by checking for dimensions not in reduceDims
         std::copy_if(std::begin(allDims),
                      std::end(allDims),
                      std::back_inserter(invariantDims),
                      [&](int dim) {
-                         return std::none_of(reduceDimsArg.begin(),
-                                             reduceDimsArg.end(),
-                                             [&](int d) { return dim == d; });
+                         return std::none_of(
+                             reduceDims.begin(), reduceDims.end(), [&](int d) { return dim == d; });
                      });
 
         // Update aligned_scaleBiasMeanVarStrides with the corresponding strides from
@@ -102,7 +113,6 @@ struct CKArgsBNormFwd
         {
             aligned_scaleBiasMeanVarStrides[invariantDims[i]] = arrScaleBiasMeanVarStrides[i];
         }
-        this->reduceDims = reduceDimsArg;
     }
 
     std::array<ck::index_t, Rank> xyLengths;
@@ -140,10 +150,9 @@ template <typename XDataType,
           typename ScaleDataType,
           typename BiasDataType,
           typename MeanVarDataType>
-static int CheckCKApplicability(const miopen::batchnorm::ProblemDescription& problem,
-                                const std::array<int, NumBatchNormReduceDim>& reduceDims)
+static int CheckCKApplicability(const miopen::batchnorm::ProblemDescription& problem)
 {
-    const auto& args = CKArgsBNormFwd{problem, reduceDims};
+    const auto& args = CKArgsBNormFwd{problem};
     const auto bn_fwd_ptrs =
         DeviceOpBnFwdInfPtrs<XDataType, YDataType, ScaleDataType, BiasDataType, MeanVarDataType>::
             GetInstances();
@@ -176,8 +185,7 @@ template <typename XDataType,
           typename ScaleDataType,
           typename BiasDataType,
           typename MeanVarDataType>
-ConvSolution InvokerFactoryMaker(const miopen::batchnorm::ProblemDescription& bn_problem,
-                                 const std::array<int, NumBatchNormReduceDim>& reduceDims)
+ConvSolution InvokerFactoryMaker(const miopen::batchnorm::ProblemDescription& bn_problem)
 {
     ConvSolution result;
     const auto kernel_index = CheckCKApplicability<XDataType,
@@ -185,7 +193,7 @@ ConvSolution InvokerFactoryMaker(const miopen::batchnorm::ProblemDescription& bn
                                                    AccDataType,
                                                    ScaleDataType,
                                                    BiasDataType,
-                                                   MeanVarDataType>(bn_problem, reduceDims);
+                                                   MeanVarDataType>(bn_problem);
     auto bn_fwd_ptrs =
         DeviceOpBnFwdInfPtrs<XDataType, YDataType, ScaleDataType, BiasDataType, MeanVarDataType>::
             GetInstances();
@@ -193,7 +201,7 @@ ConvSolution InvokerFactoryMaker(const miopen::batchnorm::ProblemDescription& bn
     assert(kernel_index >= 0 && !bn_fwd_ptrs.empty() && kernel_index < bn_fwd_ptrs.size());
     auto bn_ptr = std::move(bn_fwd_ptrs.at(kernel_index));
 
-    result.invoker_factory = [args      = CKArgsBNormFwd{bn_problem, reduceDims},
+    result.invoker_factory = [args      = CKArgsBNormFwd{bn_problem},
                               sh_bn_ptr = std::shared_ptr{std::move(bn_ptr)}](
                                  const std::vector<Kernel>& /*kernels*/) mutable {
         return [args = std::move(args), sh_bn_ptr = std::move(sh_bn_ptr)](
@@ -225,19 +233,6 @@ bool BnCKFwdInference::IsApplicable(
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
     if(env::disabled(MIOPEN_DEBUG_CONV_CK_BN_INFER))
         return false;
-    std::array<int, NumBatchNormReduceDim> reduceDims;
-    if(bn_problem.IsLayoutNHWC())
-    { // NHWC
-        reduceDims = {0, 1, 2};
-    }
-    else if(bn_problem.IsLayoutNCHW())
-    { // NCHW
-        reduceDims = {0, 2, 3};
-    }
-    else
-    {
-        return false;
-    }
     if(!ck_utility::is_ck_supported_hardware(context.GetStream()))
         return false;
     if(!bn_problem.Is2D())
@@ -247,15 +242,12 @@ bool BnCKFwdInference::IsApplicable(
 
     switch(bn_problem.GetXDesc().GetType())
     {
-    case miopenHalf:
-        return (CheckCKApplicability<F16, F16, F32, F16, F16, F32>(bn_problem, reduceDims) != -1);
-    case miopenFloat:
-        return (CheckCKApplicability<F32, F32, F32, F32, F32, F32>(bn_problem, reduceDims) != -1);
+    case miopenHalf: return (CheckCKApplicability<F16, F16, F32, F16, F16, F32>(bn_problem) != -1);
+    case miopenFloat: return (CheckCKApplicability<F32, F32, F32, F32, F32, F32>(bn_problem) != -1);
     case miopenDouble:
-        return (CheckCKApplicability<F64, F64, F64, F64, F64, F64>(bn_problem, reduceDims) != -1);
+        return (CheckCKApplicability<F64, F64, F64, F64, F64, F64>(bn_problem) != -1);
     case miopenBFloat16:
-        return (CheckCKApplicability<BF16, BF16, F32, BF16, BF16, F32>(bn_problem, reduceDims) !=
-                -1);
+        return (CheckCKApplicability<BF16, BF16, F32, BF16, BF16, F32>(bn_problem) != -1);
     case miopenInt64:
     case miopenInt32:
     case miopenInt8:
@@ -293,21 +285,6 @@ ConvSolution BnCKFwdInference::GetSolution(
     [[maybe_unused]] const miopen::batchnorm::ProblemDescription& bn_problem) const
 {
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
-    std::array<int, NumBatchNormReduceDim> reduceDims;
-    if(bn_problem.IsLayoutNHWC())
-    { // NHWC
-        reduceDims = {0, 1, 2};
-    }
-    else if(bn_problem.IsLayoutNCHW())
-    { // NCHW
-        reduceDims = {0, 2, 3};
-    }
-    else
-    {
-        MIOPEN_THROW(miopenStatusInternalError,
-                     "BnCKFwdInference operation does not support this data layout");
-    }
-
     return MakeAnyInvokerFactory(
         bn_problem,
         [&](auto data_type_val) {
@@ -316,7 +293,7 @@ ConvSolution BnCKFwdInference::GetSolution(
             using AccTy = std::conditional_t<std::is_same_v<T, F64>,
                                              T,    // T==F64
                                              F32>; // T==F32
-            return InvokerFactoryMaker<T, T, AccTy, T, T, AccTy>(bn_problem, reduceDims);
+            return InvokerFactoryMaker<T, T, AccTy, T, T, AccTy>(bn_problem);
         }
         // Todo: InvokerFactoryMakerNCHW
     );
