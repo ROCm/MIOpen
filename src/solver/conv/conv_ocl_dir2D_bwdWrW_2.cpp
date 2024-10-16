@@ -771,11 +771,11 @@ template struct PerformanceConfigConvOclBwdWrw2<4>;
 template struct PerformanceConfigConvOclBwdWrw2<8>;
 template struct PerformanceConfigConvOclBwdWrw2<16>;
 
-template struct MIOPEN_INTERNALS_EXPORT ConvOclBwdWrW2<1>;
-template struct MIOPEN_INTERNALS_EXPORT ConvOclBwdWrW2<2>;
-template struct MIOPEN_INTERNALS_EXPORT ConvOclBwdWrW2<4>;
-template struct MIOPEN_INTERNALS_EXPORT ConvOclBwdWrW2<8>;
-template struct MIOPEN_INTERNALS_EXPORT ConvOclBwdWrW2<16>;
+template struct ConvOclBwdWrW2<1>;
+template struct ConvOclBwdWrW2<2>;
+template struct ConvOclBwdWrW2<4>;
+template struct ConvOclBwdWrW2<8>;
+template struct ConvOclBwdWrW2<16>;
 
 } // namespace conv
 } // namespace solver
