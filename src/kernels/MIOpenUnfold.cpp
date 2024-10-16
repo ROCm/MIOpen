@@ -35,22 +35,22 @@
 template <typename DTYPE>
 __device__ void unfoldForward4D(const DTYPE* __restrict__ input,
                                 DTYPE* __restrict__ output,
-                                int N,
-                                int C,
-                                int H,
-                                int W,
-                                int P,
-                                int L,
-                                int LH,
-                                int LW,
-                                int kernel_size_h,
-                                int kernel_size_w,
-                                int stride_h,
-                                int stride_w,
-                                int padding_h,
-                                int padding_w,
-                                int dilation_h,
-                                int dilation_w,
+                                int64_t N,
+                                int64_t C,
+                                int64_t H,
+                                int64_t W,
+                                int64_t P,
+                                int64_t L,
+                                int64_t LH,
+                                int64_t LW,
+                                int64_t kernel_size_h,
+                                int64_t kernel_size_w,
+                                int64_t stride_h,
+                                int64_t stride_w,
+                                int64_t padding_h,
+                                int64_t padding_w,
+                                int64_t dilation_h,
+                                int64_t dilation_w,
                                 tensor_view_t<4> input_tv,
                                 tensor_view_t<3> output_tv)
 {
@@ -61,17 +61,17 @@ __device__ void unfoldForward4D(const DTYPE* __restrict__ input,
      * => gws = {ceil(N * C * P * L, LOCAL_SIZE)}, lws = {LOCAL_SIZE}
      */
 
-    const int gid = threadIdx.x + blockIdx.x * blockDim.x;
-    int ncp = gid / L, l = gid % L;
-    int nc = ncp / P, p = ncp % P;
-    int n = nc / C, c = nc % C;
+    const int64_t gid = threadIdx.x + blockIdx.x * blockDim.x;
+    int64_t ncp = gid / L, l = gid % L;
+    int64_t nc = ncp / P, p = ncp % P;
+    int64_t n = nc / C, c = nc % C;
     if(n >= N)
         return;
 
-    int lh = l / LW, lw = l % LW;                       // sliding window position
-    int ph = p / kernel_size_w, pw = p % kernel_size_w; // position inside kernel
-    int h = lh * stride_h - padding_h + ph * dilation_h;
-    int w = lw * stride_w - padding_w + pw * dilation_w;
+    int64_t lh = l / LW, lw = l % LW;                       // sliding window position
+    int64_t ph = p / kernel_size_w, pw = p % kernel_size_w; // position inside kernel
+    int64_t h = lh * stride_h - padding_h + ph * dilation_h;
+    int64_t w = lw * stride_w - padding_w + pw * dilation_w;
 
     DTYPE x = 0;
     if(0 <= h && h < H && 0 <= w && w < W)
@@ -85,22 +85,22 @@ __device__ void unfoldForward4D(const DTYPE* __restrict__ input,
 
 extern "C" __global__ void UnfoldForward4D(const FLOAT* __restrict__ input,
                                            FLOAT* __restrict__ output,
-                                           int N,
-                                           int C,
-                                           int H,
-                                           int W,
-                                           int P,
-                                           int L,
-                                           int LH,
-                                           int LW,
-                                           int kernel_size_h,
-                                           int kernel_size_w,
-                                           int stride_h,
-                                           int stride_w,
-                                           int padding_h,
-                                           int padding_w,
-                                           int dilation_h,
-                                           int dilation_w,
+                                           int64_t N,
+                                           int64_t C,
+                                           int64_t H,
+                                           int64_t W,
+                                           int64_t P,
+                                           int64_t L,
+                                           int64_t LH,
+                                           int64_t LW,
+                                           int64_t kernel_size_h,
+                                           int64_t kernel_size_w,
+                                           int64_t stride_h,
+                                           int64_t stride_w,
+                                           int64_t padding_h,
+                                           int64_t padding_w,
+                                           int64_t dilation_h,
+                                           int64_t dilation_w,
                                            tensor_view_t<4> input_tv,
                                            tensor_view_t<3> output_tv)
 {
@@ -129,22 +129,22 @@ extern "C" __global__ void UnfoldForward4D(const FLOAT* __restrict__ input,
 template <typename DTYPE>
 __device__ void unfoldBackward4D(const DTYPE* __restrict__ output_grad,
                                  DTYPE* __restrict__ input_grad,
-                                 int N,
-                                 int C,
-                                 int H,
-                                 int W,
-                                 int P,
-                                 int L,
-                                 int LH,
-                                 int LW,
-                                 int kernel_size_h,
-                                 int kernel_size_w,
-                                 int stride_h,
-                                 int stride_w,
-                                 int padding_h,
-                                 int padding_w,
-                                 int dilation_h,
-                                 int dilation_w,
+                                 int64_t N,
+                                 int64_t C,
+                                 int64_t H,
+                                 int64_t W,
+                                 int64_t P,
+                                 int64_t L,
+                                 int64_t LH,
+                                 int64_t LW,
+                                 int64_t kernel_size_h,
+                                 int64_t kernel_size_w,
+                                 int64_t stride_h,
+                                 int64_t stride_w,
+                                 int64_t padding_h,
+                                 int64_t padding_w,
+                                 int64_t dilation_h,
+                                 int64_t dilation_w,
                                  tensor_view_t<3> output_grad_tv,
                                  tensor_view_t<4> input_grad_tv)
 {
@@ -155,26 +155,26 @@ __device__ void unfoldBackward4D(const DTYPE* __restrict__ output_grad,
      * => gws = {ceil(N * C * H * W, LOCAL_SIZE)}, lws = {LOCAL_SIZE}
      */
 
-    const int gid = threadIdx.x + blockIdx.x * blockDim.x;
-    int nch = gid / W, w = gid % W;
-    int nc = nch / H, h = nch % H;
-    int n = nc / C, c = nc % C;
+    const int64_t gid = threadIdx.x + blockIdx.x * blockDim.x;
+    int64_t nch = gid / W, w = gid % W;
+    int64_t nc = nch / H, h = nch % H;
+    int64_t n = nc / C, c = nc % C;
     if(n >= N)
         return;
 
     FLOAT_ACCUM sum = 0.0f;
-    for(int ph = 0; ph < kernel_size_h; ++ph)
+    for(int64_t ph = 0; ph < kernel_size_h; ++ph)
     {
-        for(int pw = 0; pw < kernel_size_w; ++pw)
+        for(int64_t pw = 0; pw < kernel_size_w; ++pw)
         {
-            int lhsh = h - ph * dilation_h + padding_h;
-            int lwsw = w - pw * dilation_w + padding_w;
+            int64_t lhsh = h - ph * dilation_h + padding_h;
+            int64_t lwsw = w - pw * dilation_w + padding_w;
             if(lhsh % stride_h != 0)
                 continue;
             if(lwsw % stride_w != 0)
                 continue;
-            int lh = lhsh / stride_h;
-            int lw = lwsw / stride_w;
+            int64_t lh = lhsh / stride_h;
+            int64_t lw = lwsw / stride_w;
             if(lh < 0 || LH <= lh)
                 continue;
             if(lw < 0 || LW <= lw)
@@ -191,22 +191,22 @@ __device__ void unfoldBackward4D(const DTYPE* __restrict__ output_grad,
 
 extern "C" __global__ void UnfoldBackward4D(const FLOAT* __restrict__ output_grad,
                                             FLOAT* __restrict__ input_grad,
-                                            int N,
-                                            int C,
-                                            int H,
-                                            int W,
-                                            int P,
-                                            int L,
-                                            int LH,
-                                            int LW,
-                                            int kernel_size_h,
-                                            int kernel_size_w,
-                                            int stride_h,
-                                            int stride_w,
-                                            int padding_h,
-                                            int padding_w,
-                                            int dilation_h,
-                                            int dilation_w,
+                                            int64_t N,
+                                            int64_t C,
+                                            int64_t H,
+                                            int64_t W,
+                                            int64_t P,
+                                            int64_t L,
+                                            int64_t LH,
+                                            int64_t LW,
+                                            int64_t kernel_size_h,
+                                            int64_t kernel_size_w,
+                                            int64_t stride_h,
+                                            int64_t stride_w,
+                                            int64_t padding_h,
+                                            int64_t padding_w,
+                                            int64_t dilation_h,
+                                            int64_t dilation_w,
                                             tensor_view_t<3> output_grad_tv,
                                             tensor_view_t<4> input_grad_tv)
 {

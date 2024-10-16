@@ -61,10 +61,10 @@ ConvSolution UnfoldBwd::GetSolution([[maybe_unused]] const ExecutionContext& con
     auto input_grad_dims  = problem.GetDinputDesc().GetLengths();
     auto output_grad_dims = problem.GetDoutputDesc().GetLengths();
 
-    const int32_t N = static_cast<int32_t>(input_grad_dims[0]);
-    const int32_t C = static_cast<int32_t>(input_grad_dims[1]);
-    int32_t H       = static_cast<int32_t>(input_grad_dims[2]);
-    int32_t W       = static_cast<int32_t>(input_grad_dims[3]);
+    const int64_t N = static_cast<int64_t>(input_grad_dims[0]);
+    const int64_t C = static_cast<int64_t>(input_grad_dims[1]);
+    int64_t H       = static_cast<int64_t>(input_grad_dims[2]);
+    int64_t W       = static_cast<int64_t>(input_grad_dims[3]);
 
     {
         auto kernel        = KernelInfo{};
@@ -80,7 +80,7 @@ ConvSolution UnfoldBwd::GetSolution([[maybe_unused]] const ExecutionContext& con
         kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
 
         size_t xlocalsize = LOCAL_SIZE;
-        size_t xgridsize  = AlignUp(N * C * H * W, LOCAL_SIZE);
+        size_t xgridsize  = AlignUp(static_cast<size_t>(N * C * H * W), LOCAL_SIZE);
         size_t ylocalsize = 1;
         size_t ygridsize  = 1;
         size_t zlocalsize = 1;
@@ -107,12 +107,12 @@ ConvSolution UnfoldBwd::GetSolution([[maybe_unused]] const ExecutionContext& con
             auto output_grad_dims = deref(params.doutputDesc).GetLengths();
 
             int spatial_dim_size = input_grad_dims.size() - 2;
-            int32_t P = 1, L = 1;
-            std::vector<int32_t> ls;
+            int64_t P = 1, L = 1;
+            std::vector<int64_t> ls;
             for(int i = 0; i < spatial_dim_size; ++i)
             {
                 P *= params.kernel_size[i];
-                int32_t l = (static_cast<int32_t>(input_grad_dims[i + 2]) + 2 * params.padding[i] -
+                int64_t l = (static_cast<int64_t>(input_grad_dims[i + 2]) + 2 * params.padding[i] -
                              params.dilation[i] * (params.kernel_size[i] - 1) - 1) /
                                 params.stride[i] +
                             1;
@@ -120,16 +120,16 @@ ConvSolution UnfoldBwd::GetSolution([[maybe_unused]] const ExecutionContext& con
                 ls.push_back(l);
             }
 
-            int32_t kernel_size_h = params.kernel_size[0];
-            int32_t kernel_size_w = params.kernel_size[1];
-            int32_t stride_h      = params.stride[0];
-            int32_t stride_w      = params.stride[1];
-            int32_t padding_h     = params.padding[0];
-            int32_t padding_w     = params.padding[1];
-            int32_t dilation_h    = params.dilation[0];
-            int32_t dilation_w    = params.dilation[1];
-            int32_t LH            = ls[0];
-            int32_t LW            = ls[1];
+            int64_t kernel_size_h = params.kernel_size[0];
+            int64_t kernel_size_w = params.kernel_size[1];
+            int64_t stride_h      = params.stride[0];
+            int64_t stride_w      = params.stride[1];
+            int64_t padding_h     = params.padding[0];
+            int64_t padding_w     = params.padding[1];
+            int64_t dilation_h    = params.dilation[0];
+            int64_t dilation_w    = params.dilation[1];
+            int64_t LH            = ls[0];
+            int64_t LW            = ls[1];
 
             kernel(params.doutput,
                    params.dinput,

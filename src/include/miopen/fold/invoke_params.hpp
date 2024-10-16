@@ -49,14 +49,14 @@ struct InvokeParams : public miopen::InvokeParams
     Data_t dinput                       = nullptr;
     ConstData_t doutput                 = nullptr;
 
-    const int32_t* kernel_size = nullptr;
-    const int32_t* stride      = nullptr;
-    const int32_t* padding     = nullptr;
-    const int32_t* dilation    = nullptr;
-    int32_t kernel_size_size   = 0;
-    int32_t stride_size        = 0;
-    int32_t padding_size       = 0;
-    int32_t dilation_size      = 0;
+    const int64_t* kernel_size = nullptr;
+    const int64_t* stride      = nullptr;
+    const int64_t* padding     = nullptr;
+    const int64_t* dilation    = nullptr;
+    int64_t kernel_size_size   = 0;
+    int64_t stride_size        = 0;
+    int64_t padding_size       = 0;
+    int64_t dilation_size      = 0;
 
     std::size_t GetWorkspaceSize() const { return 0; }
     Data_t GetWorkspace() const { return nullptr; }

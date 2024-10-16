@@ -25,14 +25,11 @@
  *******************************************************************************/
 #pragma once
 
-#include "miopen/errors.hpp"
+#include <miopen/errors.hpp>
 #include <miopen/miopen.h>
 #include <miopen/activ.hpp>
 #include <miopen/problem_description_base.hpp>
 #include <miopen/tensor.hpp>
-
-#include <cassert>
-#include <string>
 
 namespace miopen {
 
@@ -46,14 +43,14 @@ struct UnfoldFwdProblemDescription : ProblemDescriptionBase
 {
     UnfoldFwdProblemDescription(const TensorDescriptor& inputDesc_,
                                 const TensorDescriptor& outputDesc_,
-                                const int32_t* kernel_size_,
-                                const int32_t kernel_size_size_,
-                                const int32_t* stride_,
-                                const int32_t stride_size_,
-                                const int32_t* padding_,
-                                const int32_t padding_size_,
-                                const int32_t* dilation_,
-                                const int32_t dilation_size_)
+                                const int64_t* kernel_size_,
+                                const int64_t kernel_size_size_,
+                                const int64_t* stride_,
+                                const int64_t stride_size_,
+                                const int64_t* padding_,
+                                const int64_t padding_size_,
+                                const int64_t* dilation_,
+                                const int64_t dilation_size_)
         : inputDesc(inputDesc_),
           outputDesc(outputDesc_),
           kernel_size(kernel_size_),
@@ -79,21 +76,21 @@ struct UnfoldFwdProblemDescription : ProblemDescriptionBase
             return false;
 #endif
         }
-        int32_t spatial_dim_size = inputDesc.GetNumDims() - 2;
+        int64_t spatial_dim_size = inputDesc.GetNumDims() - 2;
         if(kernel_size_size != spatial_dim_size || stride_size != spatial_dim_size ||
            padding_size != spatial_dim_size || dilation_size != spatial_dim_size)
         {
             MIOPEN_THROW(miopenStatusBadParm, "Unfold: Argument length should be 2D");
         }
         auto input_dims = inputDesc.GetLengths();
-        const int32_t N = static_cast<int32_t>(input_dims[0]);
-        const int32_t C = static_cast<int32_t>(input_dims[1]);
-        int32_t P = 1, L = 1;
-        std::vector<int32_t> ls;
-        for(int i = 0; i < spatial_dim_size; ++i)
+        const int64_t N = static_cast<int64_t>(input_dims[0]);
+        const int64_t C = static_cast<int64_t>(input_dims[1]);
+        int64_t P = 1, L = 1;
+        std::vector<int64_t> ls;
+        for(int64_t i = 0; i < spatial_dim_size; ++i)
         {
             P *= kernel_size[i];
-            int32_t l = (static_cast<int32_t>(input_dims[i + 2]) + 2 * padding[i] -
+            int64_t l = (static_cast<int64_t>(input_dims[i + 2]) + 2 * padding[i] -
                          dilation[i] * (kernel_size[i] - 1) - 1) /
                             stride[i] +
                         1;
@@ -128,28 +125,28 @@ struct UnfoldFwdProblemDescription : ProblemDescriptionBase
 public:
     TensorDescriptor inputDesc;
     TensorDescriptor outputDesc;
-    const int32_t* kernel_size;
-    const int32_t kernel_size_size;
-    const int32_t* stride;
-    const int32_t stride_size;
-    const int32_t* padding;
-    const int32_t padding_size;
-    const int32_t* dilation;
-    const int32_t dilation_size;
+    const int64_t* kernel_size;
+    const int64_t kernel_size_size;
+    const int64_t* stride;
+    const int64_t stride_size;
+    const int64_t* padding;
+    const int64_t padding_size;
+    const int64_t* dilation;
+    const int64_t dilation_size;
 };
 
 struct UnfoldBwdProblemDescription : ProblemDescriptionBase
 {
     UnfoldBwdProblemDescription(const TensorDescriptor& dinputDesc_,
                                 const TensorDescriptor& doutputDesc_,
-                                const int32_t* kernel_size_,
-                                const int32_t kernel_size_size_,
-                                const int32_t* stride_,
-                                const int32_t stride_size_,
-                                const int32_t* padding_,
-                                const int32_t padding_size_,
-                                const int32_t* dilation_,
-                                const int32_t dilation_size_)
+                                const int64_t* kernel_size_,
+                                const int64_t kernel_size_size_,
+                                const int64_t* stride_,
+                                const int64_t stride_size_,
+                                const int64_t* padding_,
+                                const int64_t padding_size_,
+                                const int64_t* dilation_,
+                                const int64_t dilation_size_)
         : dinputDesc(dinputDesc_),
           doutputDesc(doutputDesc_),
           kernel_size(kernel_size_),
@@ -171,21 +168,21 @@ struct UnfoldBwdProblemDescription : ProblemDescriptionBase
         {
             MIOPEN_THROW(miopenStatusBadParm, "Unfold: The input gradient tensor should be 4D.");
         }
-        int32_t spatial_dim_size = dinputDesc.GetNumDims() - 2;
+        int64_t spatial_dim_size = dinputDesc.GetNumDims() - 2;
         if(kernel_size_size != spatial_dim_size || stride_size != spatial_dim_size ||
            padding_size != spatial_dim_size || dilation_size != spatial_dim_size)
         {
             MIOPEN_THROW(miopenStatusBadParm, "Unfold: Argument length should be 2D");
         }
         auto input_dims = dinputDesc.GetLengths();
-        const int32_t N = static_cast<int32_t>(input_dims[0]);
-        const int32_t C = static_cast<int32_t>(input_dims[1]);
-        int32_t P = 1, L = 1;
-        std::vector<int32_t> ls;
-        for(int i = 0; i < spatial_dim_size; ++i)
+        const int64_t N = static_cast<int64_t>(input_dims[0]);
+        const int64_t C = static_cast<int64_t>(input_dims[1]);
+        int64_t P = 1, L = 1;
+        std::vector<int64_t> ls;
+        for(int64_t i = 0; i < spatial_dim_size; ++i)
         {
             P *= kernel_size[i];
-            int32_t l = (static_cast<int32_t>(input_dims[i + 2]) + 2 * padding[i] -
+            int64_t l = (static_cast<int64_t>(input_dims[i + 2]) + 2 * padding[i] -
                          dilation[i] * (kernel_size[i] - 1) - 1) /
                             stride[i] +
                         1;
@@ -221,28 +218,28 @@ struct UnfoldBwdProblemDescription : ProblemDescriptionBase
 public:
     TensorDescriptor dinputDesc;
     TensorDescriptor doutputDesc;
-    const int32_t* kernel_size;
-    const int32_t kernel_size_size;
-    const int32_t* stride;
-    const int32_t stride_size;
-    const int32_t* padding;
-    const int32_t padding_size;
-    const int32_t* dilation;
-    const int32_t dilation_size;
+    const int64_t* kernel_size;
+    const int64_t kernel_size_size;
+    const int64_t* stride;
+    const int64_t stride_size;
+    const int64_t* padding;
+    const int64_t padding_size;
+    const int64_t* dilation;
+    const int64_t dilation_size;
 };
 
 struct FoldFwdProblemDescription : ProblemDescriptionBase
 {
     FoldFwdProblemDescription(const TensorDescriptor& inputDesc_,
                               const TensorDescriptor& outputDesc_,
-                              const int32_t* kernel_size_,
-                              const int32_t kernel_size_size_,
-                              const int32_t* stride_,
-                              const int32_t stride_size_,
-                              const int32_t* padding_,
-                              const int32_t padding_size_,
-                              const int32_t* dilation_,
-                              const int32_t dilation_size_)
+                              const int64_t* kernel_size_,
+                              const int64_t kernel_size_size_,
+                              const int64_t* stride_,
+                              const int64_t stride_size_,
+                              const int64_t* padding_,
+                              const int64_t padding_size_,
+                              const int64_t* dilation_,
+                              const int64_t dilation_size_)
         : inputDesc(inputDesc_),
           outputDesc(outputDesc_),
           kernel_size(kernel_size_),
@@ -264,7 +261,7 @@ struct FoldFwdProblemDescription : ProblemDescriptionBase
         {
             MIOPEN_THROW(miopenStatusBadParm, "Fold: The output tensor should be 4D.");
         }
-        int32_t spatial_dim_size = outputDesc.GetNumDims() - 2;
+        int64_t spatial_dim_size = outputDesc.GetNumDims() - 2;
         if(kernel_size_size != spatial_dim_size || stride_size != spatial_dim_size ||
            padding_size != spatial_dim_size || dilation_size != spatial_dim_size)
         {
@@ -272,14 +269,14 @@ struct FoldFwdProblemDescription : ProblemDescriptionBase
         }
         auto input_dims  = inputDesc.GetLengths();
         auto output_dims = outputDesc.GetLengths();
-        const int32_t N  = static_cast<int32_t>(output_dims[0]);
-        const int32_t C  = static_cast<int32_t>(output_dims[1]);
-        int32_t P = 1, L = 1;
-        std::vector<int32_t> ls;
-        for(int i = 0; i < spatial_dim_size; ++i)
+        const int64_t N  = static_cast<int64_t>(output_dims[0]);
+        const int64_t C  = static_cast<int64_t>(output_dims[1]);
+        int64_t P = 1, L = 1;
+        std::vector<int64_t> ls;
+        for(int64_t i = 0; i < spatial_dim_size; ++i)
         {
             P *= kernel_size[i];
-            int32_t l = (static_cast<int32_t>(output_dims[i + 2]) + 2 * padding[i] -
+            int64_t l = (static_cast<int64_t>(output_dims[i + 2]) + 2 * padding[i] -
                          dilation[i] * (kernel_size[i] - 1) - 1) /
                             stride[i] +
                         1;
@@ -313,28 +310,28 @@ struct FoldFwdProblemDescription : ProblemDescriptionBase
 public:
     TensorDescriptor inputDesc;
     TensorDescriptor outputDesc;
-    const int32_t* kernel_size;
-    const int32_t kernel_size_size;
-    const int32_t* stride;
-    const int32_t stride_size;
-    const int32_t* padding;
-    const int32_t padding_size;
-    const int32_t* dilation;
-    const int32_t dilation_size;
+    const int64_t* kernel_size;
+    const int64_t kernel_size_size;
+    const int64_t* stride;
+    const int64_t stride_size;
+    const int64_t* padding;
+    const int64_t padding_size;
+    const int64_t* dilation;
+    const int64_t dilation_size;
 };
 
 struct FoldBwdProblemDescription : ProblemDescriptionBase
 {
     FoldBwdProblemDescription(const TensorDescriptor& dinputDesc_,
                               const TensorDescriptor& doutputDesc_,
-                              const int32_t* kernel_size_,
-                              const int32_t kernel_size_size_,
-                              const int32_t* stride_,
-                              const int32_t stride_size_,
-                              const int32_t* padding_,
-                              const int32_t padding_size_,
-                              const int32_t* dilation_,
-                              const int32_t dilation_size_)
+                              const int64_t* kernel_size_,
+                              const int64_t kernel_size_size_,
+                              const int64_t* stride_,
+                              const int64_t stride_size_,
+                              const int64_t* padding_,
+                              const int64_t padding_size_,
+                              const int64_t* dilation_,
+                              const int64_t dilation_size_)
         : dinputDesc(dinputDesc_),
           doutputDesc(doutputDesc_),
           kernel_size(kernel_size_),
@@ -356,7 +353,7 @@ struct FoldBwdProblemDescription : ProblemDescriptionBase
         {
             MIOPEN_THROW(miopenStatusBadParm, "Fold: The output gradient tensor should be 4D.");
         }
-        int32_t spatial_dim_size = doutputDesc.GetNumDims() - 2;
+        int64_t spatial_dim_size = doutputDesc.GetNumDims() - 2;
         if(kernel_size_size != spatial_dim_size || stride_size != spatial_dim_size ||
            padding_size != spatial_dim_size || dilation_size != spatial_dim_size)
         {
@@ -364,14 +361,14 @@ struct FoldBwdProblemDescription : ProblemDescriptionBase
         }
         auto input_dims  = dinputDesc.GetLengths();
         auto output_dims = doutputDesc.GetLengths();
-        const int32_t N  = static_cast<int32_t>(output_dims[0]);
-        const int32_t C  = static_cast<int32_t>(output_dims[1]);
-        int32_t P = 1, L = 1;
-        std::vector<int32_t> ls;
-        for(int i = 0; i < spatial_dim_size; ++i)
+        const int64_t N  = static_cast<int64_t>(output_dims[0]);
+        const int64_t C  = static_cast<int64_t>(output_dims[1]);
+        int64_t P = 1, L = 1;
+        std::vector<int64_t> ls;
+        for(int64_t i = 0; i < spatial_dim_size; ++i)
         {
             P *= kernel_size[i];
-            int32_t l = (static_cast<int32_t>(output_dims[i + 2]) + 2 * padding[i] -
+            int64_t l = (static_cast<int64_t>(output_dims[i + 2]) + 2 * padding[i] -
                          dilation[i] * (kernel_size[i] - 1) - 1) /
                             stride[i] +
                         1;
@@ -406,14 +403,14 @@ struct FoldBwdProblemDescription : ProblemDescriptionBase
 public:
     TensorDescriptor dinputDesc;
     TensorDescriptor doutputDesc;
-    const int32_t* kernel_size;
-    const int32_t kernel_size_size;
-    const int32_t* stride;
-    const int32_t stride_size;
-    const int32_t* padding;
-    const int32_t padding_size;
-    const int32_t* dilation;
-    const int32_t dilation_size;
+    const int64_t* kernel_size;
+    const int64_t kernel_size_size;
+    const int64_t* stride;
+    const int64_t stride_size;
+    const int64_t* padding;
+    const int64_t padding_size;
+    const int64_t* dilation;
+    const int64_t dilation_size;
 };
 
 } // namespace fold
