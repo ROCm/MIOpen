@@ -84,9 +84,9 @@ INSTANTIATE_TEST_SUITE_P(Smoke,
 INSTANTIATE_TEST_SUITE_P(Smoke,
                          GPU_BNInfer_FP64,
                          testing::Combine(testing::ValuesIn(Network1<BNTestCase>()),
-                                          testing::ValuesIn({miopenTensorNHWC})));
+                                          testing::ValuesIn({miopenTensorNHWC, miopenTensorNCHW})));
 
 INSTANTIATE_TEST_SUITE_P(Smoke,
                          GPU_BNInfer_BFP16,
                          testing::Combine(testing::ValuesIn(Network1<BNTestCase>()),
-                                          testing::ValuesIn({miopenTensorNHWC})));
+                                          testing::ValuesIn({miopenTensorNHWC, miopenTensorNCHW})));
