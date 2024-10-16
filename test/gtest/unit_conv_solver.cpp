@@ -58,7 +58,7 @@ public:
 
     void Enable() noexcept
     {
-        prev                                   = miopen::debug::enable_deprecated_solvers;
+        prev                                     = miopen::debug::enable_deprecated_solvers;
         miopen::debug::enable_deprecated_solvers = true;
     }
 

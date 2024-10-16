@@ -40,7 +40,9 @@ namespace miopen {
 #if WORKAROUND_SWDEV_271887
 namespace debug {
 
-/// WORKAROUND_SWDEV_271887 disables ConvOclDirectFwd1x1 solver on gfx10 due to precision issues. However we still want to check that the solver is not broken and therefore use disable_wa_swdev_271887 = true to enable it.
+/// WORKAROUND_SWDEV_271887 disables ConvOclDirectFwd1x1 solver on gfx10 due to precision issues.
+/// However we still want to check that the solver is not broken and therefore use
+/// disable_wa_swdev_271887 = true to enable it.
 // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
 bool disable_wa_swdev_271887 = false;
 
@@ -59,7 +61,7 @@ bool ConvOclDirectFwd1x1::IsApplicable(const ExecutionContext& ctx,
     if(!miopen::debug::disable_wa_swdev_271887)
     {
         if(StartsWith(ctx.GetStream().GetDeviceName(), "gfx10") ||
-        StartsWith(ctx.GetStream().GetDeviceName(), "gfx11"))
+           StartsWith(ctx.GetStream().GetDeviceName(), "gfx11"))
         {
             if(!env::enabled(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD1X1))
                 return false;

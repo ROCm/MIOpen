@@ -33,7 +33,7 @@ class WA_SWDEV_271887_ScopedDisabler
 public:
     WA_SWDEV_271887_ScopedDisabler() noexcept
     {
-        prev = miopen::debug::disable_wa_swdev_271887;
+        prev                                   = miopen::debug::disable_wa_swdev_271887;
         miopen::debug::disable_wa_swdev_271887 = true;
     }
 
