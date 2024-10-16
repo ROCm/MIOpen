@@ -39,7 +39,7 @@ namespace {
 
 auto GetConvTestCases(miopenDataType_t datatype)
 {
-    using TestCase = miopen::unit_tests::ConvTestCase;
+    using TestCase      = miopen::unit_tests::ConvTestCase;
     const std::size_t N = NUM_BATCH_LOOPS;
 
     return std::vector{
