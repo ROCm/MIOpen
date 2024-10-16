@@ -89,11 +89,16 @@ struct CKArgsBNormFwdTraining
 
         if(problem.IsLayoutNHWC())
         {
-            this->reduceDims = {0, 1, 2};
+            reduceDims = {0, 1, 2};
+        }
+        else if(problem.IsLayoutNCHW())
+        {
+            reduceDims = {0, 2, 3};
         }
         else
         {
-            this->reduceDims = {0, 2, 3};
+            MIOPEN_THROW(miopenStatusInternalError,
+                         "BnCKFwdTraining operation does not support this data layout");
         }
     }
 
