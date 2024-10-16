@@ -77,7 +77,7 @@ bool MhaCKFlashAttentionV2Forward::IsApplicable(
         return false;
     }
 
-    auto& descsFwd            = problem.GetDescsForward();
+    const auto& descsFwd      = problem.GetDescsForward();
     auto [N_k, H_k, S_k, D_k] = miopen::tien<4>(descsFwd.kDesc.GetLengths());
     auto [N_stride_k, H_stride_k, S_stride_k, D_stride_k] =
         miopen::tien<4>(descsFwd.kDesc.GetStrides());

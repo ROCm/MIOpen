@@ -282,24 +282,24 @@ protected:
                               float& aMax_O,
                               tensor<T>& multi_head_attention_fp8)
     {
-        test::cpu::MultiHeadAttentionfp8(q_val,
-                                         k_val,
-                                         v_val,
-                                         softmax,
-                                         attn_max,
-                                         Z_sum,
-                                         q_descale,
-                                         k_descale,
-                                         v_descale,
-                                         s_descale,
-                                         s_scale,
-                                         o_scale,
-                                         dropout_rate,
-                                         seed,
-                                         offset,
-                                         aMax_S,
-                                         aMax_O,
-                                         multi_head_attention_fp8);
+        test::cpu::MultiHeadAttentionForwardfp8(q_val,
+                                                k_val,
+                                                v_val,
+                                                softmax,
+                                                attn_max,
+                                                Z_sum,
+                                                q_descale,
+                                                k_descale,
+                                                v_descale,
+                                                s_descale,
+                                                s_scale,
+                                                o_scale,
+                                                dropout_rate,
+                                                seed,
+                                                offset,
+                                                aMax_S,
+                                                aMax_O,
+                                                multi_head_attention_fp8);
     }
 
     void TestBody() override
@@ -434,7 +434,8 @@ class GPU_Fwd_Mha_FP16 : public Test_Fwd_Mha<half_float::half>
                       [[maybe_unused]] float& aMax_O,
                       tensor<half_float::half>& output) override
     {
-        test::cpu::MultiHeadAttentionfp16(q_val, k_val, v_val, softmax, attn_max, Z_sum, output);
+        test::cpu::MultiHeadAttentionForwardfp16(
+            q_val, k_val, v_val, softmax, attn_max, Z_sum, output);
     }
 
     void VerifyResults(Handle& handle) override

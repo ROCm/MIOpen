@@ -230,7 +230,7 @@ protected:
             return it->second->m_tensorVariant;
         };
 
-        test::cpu::MultiHeadAttentionfp8(
+        test::cpu::MultiHeadAttentionForwardfp8(
             GetTensor<T>(lookup(miopenTensorMhaQ)),
             GetTensor<T>(lookup(miopenTensorMhaK)),
             GetTensor<T>(lookup(miopenTensorMhaV)),
@@ -326,13 +326,14 @@ class GPU_MhaForward_FP16 : public MhaForwardTest<half_float::half>
             return it->second->m_tensorVariant;
         };
 
-        test::cpu::MultiHeadAttentionfp16(GetTensor<half_float::half>(lookup(miopenTensorMhaQ)),
-                                          GetTensor<half_float::half>(lookup(miopenTensorMhaK)),
-                                          GetTensor<half_float::half>(lookup(miopenTensorMhaV)),
-                                          softmaxRef,
-                                          mDescRef,
-                                          zInvDescRef,
-                                          oDescRef);
+        test::cpu::MultiHeadAttentionForwardfp16(
+            GetTensor<half_float::half>(lookup(miopenTensorMhaQ)),
+            GetTensor<half_float::half>(lookup(miopenTensorMhaK)),
+            GetTensor<half_float::half>(lookup(miopenTensorMhaV)),
+            softmaxRef,
+            mDescRef,
+            zInvDescRef,
+            oDescRef);
 
         const double errorThreshold = 4e-4;
 
