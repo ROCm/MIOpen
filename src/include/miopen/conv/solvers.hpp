@@ -1747,12 +1747,8 @@ struct ConvAsmImplicitGemmGTCDynamicBwdXdlops final : ConvSolver
 /// "legacy exhaustive search" machinery.
 struct ConvOclDirectFwdLegacyExhaustiveSearch : ConvTunableSolver<LegacyPerformanceConfig>
 {
-    MIOPEN_INTERNALS_EXPORT LegacyPerformanceConfig GetDefaultPerformanceConfig(
-        const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
-    MIOPEN_INTERNALS_EXPORT LegacyPerformanceConfig
-    Search(const ExecutionContext&,
-           const miopen::conv::ProblemDescription&,
-           const AnyInvokeParams& invoke_ctx) const override;
+    LegacyPerformanceConfig GetDefaultPerformanceConfig(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    LegacyPerformanceConfig Search(const ExecutionContext&, const miopen::conv::ProblemDescription&, const AnyInvokeParams& invoke_ctx) const override;
 
 private:
     template <typename Tgpu>
@@ -1761,35 +1757,23 @@ private:
                                        const AnyInvokeParams& invoke_ctx) const;
 };
 
-struct ConvOclDirectFwd : ConvOclDirectFwdLegacyExhaustiveSearch
+struct MIOPEN_INTERNALS_EXPORT ConvOclDirectFwd final : ConvOclDirectFwdLegacyExhaustiveSearch
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<ConvOclDirectFwd>(); }
 
-    MIOPEN_INTERNALS_EXPORT static ConvSolution
-    BaseGetSolution(const ExecutionContext&,
-                    const miopen::conv::ProblemDescription&,
-                    const LegacyPerformanceConfig&);
+    static ConvSolution BaseGetSolution(const ExecutionContext&, const miopen::conv::ProblemDescription&, const LegacyPerformanceConfig&);
 
-    MIOPEN_INTERNALS_EXPORT bool
-    IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
-    MIOPEN_INTERNALS_EXPORT ConvSolution GetSolution(const ExecutionContext&,
-                                                     const miopen::conv::ProblemDescription&,
-                                                     const LegacyPerformanceConfig&) const override;
-    MIOPEN_INTERNALS_EXPORT bool
-    IsValidPerformanceConfig(const ExecutionContext&,
-                             const miopen::conv::ProblemDescription&,
-                             const LegacyPerformanceConfig&) const override;
+    bool IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    ConvSolution GetSolution(const ExecutionContext&, const miopen::conv::ProblemDescription&, const LegacyPerformanceConfig&) const override;
+    bool IsValidPerformanceConfig(const ExecutionContext&, const miopen::conv::ProblemDescription&, const LegacyPerformanceConfig&) const override;
 };
 
-struct ConvOclDirectFwd1x1 final : ConvOclDirectFwdLegacyExhaustiveSearch
+struct MIOPEN_INTERNALS_EXPORT ConvOclDirectFwd1x1 final : ConvOclDirectFwdLegacyExhaustiveSearch
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<ConvOclDirectFwd1x1>(); }
 
-    MIOPEN_INTERNALS_EXPORT bool
-    IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
-    MIOPEN_INTERNALS_EXPORT ConvSolution GetSolution(const ExecutionContext&,
-                                                     const miopen::conv::ProblemDescription&,
-                                                     const LegacyPerformanceConfig&) const override;
+    bool IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    ConvSolution GetSolution(const ExecutionContext&, const miopen::conv::ProblemDescription&, const LegacyPerformanceConfig&) const override;
 
     bool IsValidPerformanceConfig(const ExecutionContext&,
                                   const miopen::conv::ProblemDescription&,
