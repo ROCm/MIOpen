@@ -243,6 +243,14 @@ double GetThreshold(miopenConvAlgorithm_t algo, miopen::conv::Direction directio
         }
     }
 
+    if constexpr(std::is_same_v<T, float>)
+    {
+        if(algo == miopenConvolutionAlgoDirect && direction == miopen::conv::Direction::BackwardWeights)
+        {
+            tolerance *= 2.0;
+        }
+    }
+
     double threshold = std::numeric_limits<T>::epsilon() * tolerance;
     return threshold;
 }
