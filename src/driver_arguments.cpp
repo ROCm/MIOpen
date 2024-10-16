@@ -76,7 +76,7 @@ void BnDataType(std::stringstream& ss,
     }
     else if(xDesc.GetType() == miopenHalf && sMeanDesc.GetType() == miopenFloat)
     {
-        ss << "bnormbfp16fp32";
+        ss << "bnormfp16fp32";
     }
     else if(xDesc.GetType() == miopenBFloat16 && sMeanDesc.GetType() == miopenFloat)
     {
