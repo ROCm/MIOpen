@@ -49,9 +49,9 @@ struct verify_tensor_ops
     tensor<T> b;
     tensor<T> c;
 
-    uint64_t Aoffset;
-    uint64_t Boffset;
-    uint64_t Coffset;
+    int Aoffset;
+    int Boffset;
+    int Coffset;
 
     float alpha0;
     float alpha1;
@@ -62,7 +62,7 @@ struct verify_tensor_ops
     verify_tensor_ops(tensor<T>&& pa,
                       tensor<T>&& pb,
                       tensor<T>&& pc,
-                      const std::vector<uint64_t>& offsets,
+                      const std::vector<int>& offsets,
                       const std::vector<float>& alphabeta,
                       bool no_validate_param)
         : a{std::move(pa)},
@@ -91,22 +91,22 @@ struct verify_tensor_ops
                                 float palpha0,
                                 float palpha1,
                                 float pbeta,
-                                uint64_t recurr_aoffset,
-                                uint64_t recurr_boffset,
-                                uint64_t recurr_coffset,
-                                uint64_t dim,
-                                uint64_t AtenOffset,
-                                uint64_t BtenOffset,
-                                uint64_t CtenOffset)
+                                int recurr_aoffset,
+                                int recurr_boffset,
+                                int recurr_coffset,
+                                int dim,
+                                int AtenOffset,
+                                int BtenOffset,
+                                int CtenOffset)
     {
 
-        uint64_t astride = aten.desc.GetStrides()[dim];
-        uint64_t bstride = bten.desc.GetStrides()[dim];
-        uint64_t cstride = cten.desc.GetStrides()[dim];
+        intastride = aten.desc.GetStrides()[dim];
+        intbstride = bten.desc.GetStrides()[dim];
+        intcstride = cten.desc.GetStrides()[dim];
 
         // printf("cstride: %d\n", cstride);
 
-        for(uint64_t idx = 0; idx < a_dims[dim]; idx++)
+        for(int idx = 0; idx < a_dims[dim]; idx++)
         {
             size_t aindex = recurr_aoffset + astride * idx;
             size_t cindex = recurr_coffset + cstride * idx;
@@ -230,24 +230,23 @@ struct verify_tensor_ops
 template <class T>
 struct tensor_ops_driver : test_driver
 {
-    std::vector<uint64_t> tensorlens_ac;
-    std::vector<uint64_t> tensorlens_b;
-    std::vector<uint64_t> offsets;
-    std::vector<uint64_t> stride_a;
-    std::vector<uint64_t> stride_b;
-    std::vector<uint64_t> stride_c;
+    std::vector<int> tensorlens_ac;
+    std::vector<int> tensorlens_b;
+    std::vector<int> offsets;
+    std::vector<int> stride_a;
+    std::vector<int> stride_b;
+    std::vector<int> stride_c;
     std::vector<float> alphabeta;
     bool packed = false;
 
-    std::vector<std::vector<uint64_t>> get_sub_tensor_a()
+    std::vector<std::vector<int>> get_sub_tensor_a()
     {
-        return {/*{32, 16, 8, 4, 4}, {16, 20, 16, 8}, {20, 16, 8}, {1, 16, 8}, {16, 8}, */ {
-            8589934592}};
+        return {{32, 16, 8, 4, 4}, {16, 20, 16, 8}, {20, 16, 8}, {1, 16, 8}, {16, 8}, {8}};
     }
 
-    std::vector<std::vector<uint64_t>> get_sub_tensor_b()
+    std::vector<std::vector<int>> get_sub_tensor_b()
     {
-        return {/*{32, 16, 8, 4, 4},
+        return {{32, 16, 8, 4, 4},
                 {32, 16, 1, 1, 1},
                 {1, 16, 8, 1, 1},
                 {1, 1, 8, 4, 1},
@@ -268,7 +267,7 @@ struct tensor_ops_driver : test_driver
                 {16, 8},
                 {16, 1},
                 {1, 8},
-                {8},*/
+                {8},
                 {1}};
     }
 
@@ -276,12 +275,10 @@ struct tensor_ops_driver : test_driver
     {
         disabled_cache = true;
 
-        std::vector<std::vector<uint64_t>> get_offsets = {
-            {0, 0, 0} /*, {64, 32, 16}, {32, 16, 32}, {32, 16, 32}*/};
-        std::vector<std::vector<float>> get_alphabeta = {
-            {1, 1, 0} /*, {-1, 1, 1}, {1.0, 0.5, 0.3}*/};
-        std::vector<std::vector<uint64_t>> get_strides = {
-            {8 * 16 * 20 * 16, 8 * 16 * 20, 8 * 16, 8, 1}};
+        std::vector<std::vector<int>> get_offsets = {
+            {0, 0, 0}, {64, 32, 16}, {32, 16, 32}, {32, 16, 32}};
+        std::vector<std::vector<float>> get_alphabeta = {{1, 1, 0}, {-1, 1, 1}, {1.0, 0.5, 0.3}};
+        std::vector<std::vector<int>> get_strides = {{8 * 16 * 20 * 16, 8 * 16 * 20, 8 * 16, 8, 1}};
 
         add(tensorlens_ac, "a", generate_data(get_sub_tensor_a()));
         add(tensorlens_b, "b", generate_data(get_sub_tensor_b()));
@@ -293,17 +290,17 @@ struct tensor_ops_driver : test_driver
         add(packed, "packed", generate_data({false, true}));
     }
 
-    tensor<T> get_subtensors(const std::vector<uint64_t>& lens,
-                             const std::vector<uint64_t>& strides,
-                             uint64_t offset,
+    tensor<T> get_subtensors(const std::vector<int>& lens,
+                             const std::vector<int>& strides,
+                             int offset,
                              bool isPacked)
     {
         uint64_t max_value = miopen_type<T>{} == miopenHalf ? 5 : 17;
 
         if(!isPacked)
         {
-            std::vector<uint64_t> real_strides(strides.begin() + (strides.size() - lens.size()),
-                                               strides.end());
+            std::vector<int> real_strides(strides.begin() + (strides.size() - lens.size()),
+                                          strides.end());
             auto r = tensor<T>{lens, real_strides}.generate(tensor_elem_gen_integer{max_value});
             r.data.resize(r.data.size() + offset);
             return r;
@@ -324,7 +321,7 @@ struct tensor_ops_driver : test_driver
                     return;
             }
 
-            std::vector<uint64_t> final_offsets{0, 0, 0};
+            std::vector<int> final_offsets{0, 0, 0};
             if(!packed)
             {
                 if(std::any_of(offsets.begin(), offsets.end(), [](int o) { return o < 0; }))
@@ -333,8 +330,8 @@ struct tensor_ops_driver : test_driver
                 final_offsets = offsets;
             }
 
-            auto checkStride = [p = packed](const std::vector<uint64_t>& lens,
-                                            const std::vector<uint64_t>& strides) {
+            auto checkStride = [p = packed](const std::vector<int>& lens,
+                                            const std::vector<int>& strides) {
                 if(p)
                     return true;
 
