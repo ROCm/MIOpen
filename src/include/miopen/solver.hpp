@@ -129,13 +129,10 @@ struct SolverInterface : SolverBase
     ///   if Direct computational algorithm is used.
     /// * [Notice] WTI may exceed 1.0 for highly optimized algorithms like Winograd.
     /// * @see https://github.com/ROCm/MIOpen/issues/410
-    virtual float GetWti(const Context& ctx, const Problem& problem) const
-    {
-        return wti_approximate_worst;
-    };
+    virtual float GetWti(const Context&, const Problem&) const { return wti_approximate_worst; };
 
     /// Returns the workspace size required by the solver for the given Problem
-    virtual size_t GetWorkspaceSize(const Context& ctx, const Problem& problem) const { return 0; };
+    virtual size_t GetWorkspaceSize(const Context&, const Problem&) const { return 0; };
 };
 
 /// Common interface for non-tunable solvers
