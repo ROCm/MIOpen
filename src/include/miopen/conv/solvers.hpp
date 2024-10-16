@@ -2464,7 +2464,7 @@ struct PerformanceConfigConvOclBwdWrw2
 template <int N_BATCH_LOOPS>
 struct ConvOclBwdWrW2 : ConvTunableSolver<PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>>
 {
-    const std::string& SolverDbId() const override
+    MIOPEN_INTERNALS_EXPORT const std::string& SolverDbId() const override
     {
         return this->template GetSolverDbId<ConvOclBwdWrW2<N_BATCH_LOOPS>>();
     }
@@ -2484,7 +2484,7 @@ struct ConvOclBwdWrW2 : ConvTunableSolver<PerformanceConfigConvOclBwdWrw2<N_BATC
     IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
     MIOPEN_INTERNALS_EXPORT size_t GetWorkspaceSize(
         const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
-    bool MayNeedWorkspace() const override { return true; }
+    MIOPEN_INTERNALS_EXPORT bool MayNeedWorkspace() const override { return true; }
     MIOPEN_INTERNALS_EXPORT ConvSolution
     GetSolution(const ExecutionContext&,
                 const miopen::conv::ProblemDescription&,
