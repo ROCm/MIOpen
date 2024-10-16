@@ -101,7 +101,7 @@ public:
     int VerifyForward() override;
 
     // Helper function to check the Layout type short names
-    int ChkLayout_ShortName();
+    bool ChkLayout_ShortName();
     // function to validate the Layout type parameters.
     // layout parameter value to std (NCHW/NHWC/NCDHW/NDHWC) values,
     // defined in MIOpen lib.
@@ -345,14 +345,14 @@ std::vector<int> BatchNormDriver<Tgpu, Tref, Tmix>::GetInputTensorLengthsFromCmd
 }
 
 template <typename Tgpu, typename Tref, typename Tmix>
-int BatchNormDriver<Tgpu, Tref, Tmix>::ChkLayout_ShortName()
+bool BatchNormDriver<Tgpu, Tref, Tmix>::ChkLayout_ShortName()
 {
     // check for short name of layout type
     if(inflags.FindShortName("layout") == 'L')
     {
         // do noting
         // found valid short names
-        return 0;
+        return true;
     }
     else
     {
@@ -364,23 +364,16 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::ChkLayout_ShortName()
 template <typename Tgpu, typename Tref, typename Tmix>
 void BatchNormDriver<Tgpu, Tref, Tmix>::ValidateLayoutInputParameters(std::string layout_value)
 {
-    if((ChkLayout_ShortName()))
+    if(!ChkLayout_ShortName())
     {
-        std::cerr << " Invalid Layout Short Name = " << ChkLayout_ShortName() << std::endl;
+        std::cerr << "Invalid Layout Short Name = " << inflags.FindShortName("layout") << std::endl;
         exit(EXIT_FAILURE);
     }
-    else
+    if((layout_value.compare("NCHW") != 0) && (layout_value.compare("NHWC") != 0) &&
+       (layout_value.compare("NCDHW") != 0) && (layout_value.compare("NDHWC") != 0))
     {
-        if((layout_value.compare("NCHW") == 0) || (layout_value.compare("NHWC") == 0) ||
-           (layout_value.compare("NCDHW") == 0) || (layout_value.compare("NDHWC") == 0))
-        {
-            // do nothing,Values are matching as defined in Lib.
-        }
-        else
-        {
-            std::cerr << "Invalid Layout Parameter Value - " << layout_value << std::endl;
-            exit(EXIT_FAILURE);
-        }
+        std::cerr << "Invalid Layout Parameter Value - " << layout_value << std::endl;
+        exit(EXIT_FAILURE);
     }
 }
 
