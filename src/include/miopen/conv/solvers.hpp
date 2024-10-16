@@ -173,7 +173,6 @@ struct PerformanceConfigConvAsm1x1U : PerfConfigBase<PerformanceConfigConvAsm1x1
         f(self.waves_k_in_group, "waves_k_in_group");
     }
 
-    // clang-format off
     int GetReadSize() const { return read_size; }
     int GetKMult() const { return k_mult; }
     int GetChunksPerWave() const { return chunks_per_wave; }
@@ -182,8 +181,11 @@ struct PerformanceConfigConvAsm1x1U : PerfConfigBase<PerformanceConfigConvAsm1x1
     int GetCMult() const { return c_mult; }
     int GetWavesCInGroup() const { return waves_c_in_group; }
     int GetWavesKInGroup() const { return waves_k_in_group; }
-    int GetNPerGpr() const { assert(chunk_size); return 64 / chunk_size; }
-    // clang-format on
+    int GetNPerGpr() const
+    {
+        assert(chunk_size);
+        return 64 / chunk_size;
+    }
 
     MIOPEN_INTERNALS_EXPORT void StaticHeuristic(const miopen::conv::ProblemDescription& problem);
     MIOPEN_INTERNALS_EXPORT void HeuristicInit(const ExecutionContext&,
@@ -286,7 +288,6 @@ struct PerformanceConfigConvAsm1x1UV2 : PerfConfigBase<PerformanceConfigConvAsm1
         f(self.waves_c_in_group, "waves_c_in_group");
     }
 
-    // clang-format off
     int GetChunkSize() const { return chunk_size; }
     int GetDwordsPerLd() const { return dwords_per_ld; }
     int GetCMult() const { return c_mult; }
@@ -297,8 +298,11 @@ struct PerformanceConfigConvAsm1x1UV2 : PerfConfigBase<PerformanceConfigConvAsm1
     int GetHPerChunk() const { return h_per_chunk; }
     int GetWavesCInGroup() const { return waves_c_in_group; }
     int GetWavesKInGroup() const { return waves_k_in_group; }
-    int GetNPerGpr() const { assert(chunk_size); return 64 / chunk_size; }
-    // clang-format on
+    int GetNPerGpr() const
+    {
+        assert(chunk_size);
+        return 64 / chunk_size;
+    }
 
     MIOPEN_INTERNALS_EXPORT void HeuristicInit(const miopen::conv::ProblemDescription&);
     MIOPEN_INTERNALS_EXPORT bool IsValidValue() const;
@@ -2206,14 +2210,17 @@ struct PerformanceConfigAsmDirect3x3WrW : PerfConfigBase<PerformanceConfigAsmDir
         f(self.n_per_group, "n_per_group");
     }
 
-    // clang-format off
     int GetLimitWaveCnt() const { return limit_wave_cnt; }
     int GetReverseInout() const { return reverse_inout; }
     int GetChunkSize() const { return chunk_size; }
     int GetKPerWave() const { return k_per_wave; }
     int GetPipeLinesDepth() const { return pipe_lines_depth; }
     int GetNPerGroup() const { return n_per_group; }
-    int GetCPerWave() const { assert(chunk_size); return 64 / chunk_size; } // clang-format on
+    int GetCPerWave() const
+    {
+        assert(chunk_size);
+        return 64 / chunk_size;
+    }
 
     MIOPEN_INTERNALS_EXPORT void HeuristicInit(const ExecutionContext&,
                                                const miopen::conv::ProblemDescription&);
@@ -2339,7 +2346,6 @@ struct PerformanceConfigConvAsmBwdWrW1x1 : PerfConfigBase<PerformanceConfigConvA
         f(self.data_prefetch, "data_prefetch");
     }
 
-    // clang-format off
     int GetChunkSize() const { return chunk_size; }
     int GetCPerGpr() const { return c_per_gpr; }
     int GetCMult() const { return c_mult; }
@@ -2347,12 +2353,17 @@ struct PerformanceConfigConvAsmBwdWrW1x1 : PerfConfigBase<PerformanceConfigConvA
     int GetKMult() const { return k_mult; }
     int GetNPerGpr() const { return n_per_gpr; }
     int GetNPartCnt() const { return n_part_cnt; }
-    int GetHWPerGpr() const {   assert(c_per_gpr); assert(n_per_gpr); assert(chunk_size);
-                                return wave_size / (c_per_gpr * n_per_gpr * chunk_size); } // "hw" stands for "height-and-width".
+    // "hw" stands for "height-and-width".
+    int GetHWPerGpr() const
+    {
+        assert(c_per_gpr);
+        assert(n_per_gpr);
+        assert(chunk_size);
+        return wave_size / (c_per_gpr * n_per_gpr * chunk_size);
+    }
     int GetReadSize() const { return read_size; }
-    int GetShortStore() const {return short_store; }
+    int GetShortStore() const { return short_store; }
     int GetDataPrefetch() const { return data_prefetch; }
-    // clang-format on
 
     MIOPEN_INTERNALS_EXPORT void HeuristicInit(const ExecutionContext&,
                                                const miopen::conv::ProblemDescription&);
@@ -2435,12 +2446,11 @@ struct PerformanceConfigConvOclBwdWrw2
         f(self.n_out_rows_in_lcl, "n_out_rows_in_lcl");
     }
 
-    // clang-format off
     int GetNumWaves() const { return n_waves; }
     int GetReadSize() const { return read_size; }
     int GetNumOutChannelsPerTile() const { return n_out_channels_per_tile; }
     int GetNumOutChannelTiles() const { return n_out_channels_tiles; }
-    int GetNumOutRowsPerIterPerWork() const { return n_out_rows_in_lcl; } // clang-format on
+    int GetNumOutRowsPerIterPerWork() const { return n_out_rows_in_lcl; }
 
     void HeuristicInit(const miopen::conv::ProblemDescription&);
     bool IsValidValue() const;
