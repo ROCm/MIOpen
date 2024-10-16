@@ -25,7 +25,7 @@
  *******************************************************************************/
 #include "cpu_unfold.hpp"
 #include "get_handle.hpp"
-#include "miopen/allocator.hpp"
+#include <miopen/allocator.hpp>
 #include "random.hpp"
 #include "tensor_holder.hpp"
 #include "verify.hpp"
@@ -33,27 +33,13 @@
 #include <miopen/miopen.h>
 #include <miopen/fold.hpp>
 
-template <class T>
-inline std::ostream& operator<<(std::ostream& os, const std::vector<T>& v)
-{
-    os << '{';
-    for(int i = 0; i < v.size(); ++i)
-    {
-        if(i != 0)
-            os << ',';
-        os << v[i];
-    }
-    os << '}';
-    return os;
-}
-
 struct FoldTestCase
 {
-    int64_t N;
-    int64_t C;
-    int64_t D;
-    int64_t H;
-    int64_t W;
+    size_t N;
+    size_t C;
+    size_t D;
+    size_t H;
+    size_t W;
     std::vector<int64_t> outputSize;
     std::vector<int64_t> kernelSize;
     std::vector<int64_t> stride;
@@ -82,40 +68,40 @@ struct FoldTestCase
         return os;
     }
 
-    std::vector<int64_t> GetInput()
+    std::vector<size_t> GetInput()
     {
         if((N != 0) && (C != 0) && (D != 0) && (H != 0) && (W != 0))
         {
-            return std::vector<int64_t>({N, C, D, H, W});
+            return std::vector<size_t>({N, C, D, H, W});
         }
         else if((N != 0) && (C != 0) && (H != 0) && (W != 0))
         {
-            return std::vector<int64_t>({N, C, H, W});
+            return std::vector<size_t>({N, C, H, W});
         }
         else if((N != 0) && (C != 0) && (W != 0))
         {
-            return std::vector<int64_t>({N, C, W});
+            return std::vector<size_t>({N, C, W});
         }
         else if((N != 0) && (W != 0))
         {
-            return std::vector<int64_t>({N, W});
+            return std::vector<size_t>({N, W});
         }
         else if((N != 0))
         {
-            return std::vector<int64_t>({N});
+            return std::vector<size_t>({N});
         }
         else
         {
             std::cout << "Error Input Tensor Lengths\n" << std::endl;
-            return std::vector<int64_t>({0});
+            return std::vector<size_t>({0});
         }
     }
 
-    std::vector<int64_t> ComputeStrides(std::vector<int64_t> inputDim) const
+    std::vector<size_t> ComputeStrides(std::vector<size_t> inputDim) const
     {
         if(!isContiguous)
             std::swap(inputDim.front(), inputDim.back());
-        std::vector<int64_t> strides(inputDim.size());
+        std::vector<size_t> strides(inputDim.size());
         strides.back() = 1;
         for(int i = inputDim.size() - 2; i >= 0; --i)
             strides[i] = strides[i + 1] * inputDim[i + 1];
@@ -125,7 +111,7 @@ struct FoldTestCase
     }
 };
 
-std::vector<FoldTestCase> FoldTestConfigs()
+inline std::vector<FoldTestCase> FoldTestConfigs()
 {
     // clang-format: off
     return {
@@ -156,8 +142,8 @@ protected:
         auto&& handle = get_handle();
         config        = GetParam();
 
-        std::vector<int64_t> in_dims    = config.GetInput();
-        std::vector<int64_t> in_strides = config.ComputeStrides(in_dims);
+        std::vector<size_t> in_dims    = config.GetInput();
+        std::vector<size_t> in_strides = config.ComputeStrides(in_dims);
 
         auto gen_value  = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1e-2, 100); };
         auto gen_zero   = [&](auto...) { return 0; };
@@ -169,7 +155,7 @@ protected:
             C = C / i;
         }
 
-        std::vector<int64_t> out_dims{N, C, config.outputSize[0], config.outputSize[1]};
+        std::vector<size_t> out_dims{N, C, config.outputSize[0], config.outputSize[1]};
 
         output     = tensor<T>{out_dims}.generate(gen_zero);
         outputHost = tensor<T>{out_dims}.generate(gen_zero);
@@ -233,8 +219,8 @@ protected:
         auto&& handle = get_handle();
         config        = GetParam();
 
-        std::vector<int64_t> in_dims    = config.GetInput();
-        std::vector<int64_t> in_strides = config.ComputeStrides(in_dims);
+        std::vector<size_t> in_dims    = config.GetInput();
+        std::vector<size_t> in_strides = config.ComputeStrides(in_dims);
 
         auto gen_value = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1e-2, 100); };
         auto gen_zero  = [&](auto...) { return 0; };
@@ -248,7 +234,7 @@ protected:
             C = C / i;
         }
 
-        std::vector<int64_t> out_dims{N, C, config.outputSize[0], config.outputSize[1]};
+        std::vector<size_t> out_dims{N, C, config.outputSize[0], config.outputSize[1]};
 
         doutput = tensor<T>{out_dims}.generate(gen_value);
 

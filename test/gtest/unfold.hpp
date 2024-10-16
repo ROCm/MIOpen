@@ -29,8 +29,6 @@
 #include "random.hpp"
 #include "tensor_holder.hpp"
 #include "verify.hpp"
-#include <cstddef>
-#include <cstdlib>
 #include <gtest/gtest.h>
 #include <miopen/miopen.h>
 #include <miopen/fold.hpp>
@@ -42,10 +40,10 @@ struct UnfoldTestCase
     size_t D;
     size_t H;
     size_t W;
-    std::vector<int32_t> kernelSize;
-    std::vector<int32_t> stride;
-    std::vector<int32_t> padding;
-    std::vector<int32_t> dilation;
+    std::vector<int64_t> kernelSize;
+    std::vector<int64_t> stride;
+    std::vector<int64_t> padding;
+    std::vector<int64_t> dilation;
     bool isContiguous = true;
     friend std::ostream& operator<<(std::ostream& os, const UnfoldTestCase& tc)
     {
@@ -109,7 +107,7 @@ struct UnfoldTestCase
     }
 };
 
-std::vector<UnfoldTestCase> UnfoldTestConfigs()
+inline std::vector<UnfoldTestCase> UnfoldTestConfigs()
 {
     // clang-format: off
     return {
@@ -146,14 +144,14 @@ protected:
         input          = tensor<T>{in_dims, in_strides}.generate(gen_value);
 
         int spatial_dim_size = in_dims.size() - 2;
-        const int32_t N      = static_cast<int32_t>(in_dims[0]);
-        const int32_t C      = static_cast<int32_t>(in_dims[1]);
-        int32_t P = 1, L = 1;
-        std::vector<int32_t> ls;
+        const int64_t N      = static_cast<int64_t>(in_dims[0]);
+        const int64_t C      = static_cast<int64_t>(in_dims[1]);
+        int64_t P = 1, L = 1;
+        std::vector<int64_t> ls;
         for(int i = 0; i < spatial_dim_size; ++i)
         {
             P *= config.kernelSize[i];
-            int32_t l = (static_cast<int32_t>(in_dims[i + 2]) + 2 * config.padding[i] -
+            int64_t l = (in_dims[i + 2] + 2 * config.padding[i] -
                          config.dilation[i] * (config.kernelSize[i] - 1) - 1) /
                             config.stride[i] +
                         1;
@@ -161,8 +159,7 @@ protected:
             ls.push_back(l);
         }
 
-        std::vector<size_t> out_dims{
-            static_cast<size_t>(N), static_cast<size_t>(C * P), static_cast<size_t>(L)};
+        std::vector<size_t> out_dims{N, C * P, L};
 
         output     = tensor<T>{out_dims}.generate(gen_zero);
         outputHost = tensor<T>{out_dims}.generate(gen_zero);
@@ -182,13 +179,13 @@ protected:
                                        output.desc,
                                        output_dev.get(),
                                        config.kernelSize.data(),
-                                       static_cast<int>(config.kernelSize.size()),
+                                       static_cast<int64_t>(config.kernelSize.size()),
                                        config.stride.data(),
-                                       static_cast<int>(config.stride.size()),
+                                       static_cast<int64_t>(config.stride.size()),
                                        config.padding.data(),
-                                       static_cast<int>(config.padding.size()),
+                                       static_cast<int64_t>(config.padding.size()),
                                        config.dilation.data(),
-                                       static_cast<int>(config.dilation.size()));
+                                       static_cast<int64_t>(config.dilation.size()));
 
         cpu_unfold_fwd_4d<T>(
             input, outputHost, config.kernelSize, config.stride, config.padding, config.dilation);
@@ -199,25 +196,19 @@ protected:
 
     void Verify()
     {
-        // Computation error of fp16 is ~2^13 (=8192) bigger than
-        // the one of fp32 because mantissa is shorter by 13 bits.
-        double tolerance = std::is_same<T, float>::value ? 1.5e-6 : 8.2e-3;
+        double threshold = std::numeric_limits<T>::epsilon();
 
-        // bf16 mantissa has 7 bits, by 3 bits shorter than fp16.
-        if(std::is_same<T, bfloat16>::value)
-            tolerance *= 8.0;
-        auto error_output = miopen::rms_range(outputHost, output);
+        auto error = miopen::rms_range(outputHost, output);
+
         ASSERT_EQ(miopen::range_distance(outputHost), miopen::range_distance(output));
-
-        EXPECT_TRUE(error_output < tolerance) << "Error forward output beyond tolerance Error: {"
-                                              << error_output << "},  Tolerance: " << tolerance;
+        EXPECT_LT(error, threshold * 10) << "Error forward output beyond tolerance Error: {"
+                                         << error << "},  Tolerance: " << threshold * 10;
     }
 
     UnfoldTestCase config;
 
     tensor<T> input;
     tensor<T> output;
-
     tensor<T> outputHost;
 
     miopen::Allocator::ManageDataPtr input_dev;
@@ -242,14 +233,14 @@ protected:
         dinputHost     = tensor<T>{in_dims, in_strides}.generate(gen_zero);
 
         int spatial_dim_size = in_dims.size() - 2;
-        const int32_t N      = static_cast<int32_t>(in_dims[0]);
-        const int32_t C      = static_cast<int32_t>(in_dims[1]);
-        int32_t P = 1, L = 1;
-        std::vector<int32_t> ls;
+        const int64_t N      = static_cast<int64_t>(in_dims[0]);
+        const int64_t C      = static_cast<int64_t>(in_dims[1]);
+        int64_t P = 1, L = 1;
+        std::vector<int64_t> ls;
         for(int i = 0; i < spatial_dim_size; ++i)
         {
             P *= config.kernelSize[i];
-            int32_t l = (static_cast<int32_t>(in_dims[i + 2]) + 2 * config.padding[i] -
+            int64_t l = (static_cast<int64_t>(in_dims[i + 2]) + 2 * config.padding[i] -
                          config.dilation[i] * (config.kernelSize[i] - 1) - 1) /
                             config.stride[i] +
                         1;
@@ -257,8 +248,7 @@ protected:
             ls.push_back(l);
         }
 
-        std::vector<size_t> out_dims{
-            static_cast<size_t>(N), static_cast<size_t>(C * P), static_cast<size_t>(L)};
+        std::vector<size_t> out_dims{N, C * P, L};
 
         doutput = tensor<T>{out_dims}.generate(gen_value);
 
@@ -277,13 +267,13 @@ protected:
                                         doutput.desc,
                                         doutput_dev.get(),
                                         config.kernelSize.data(),
-                                        static_cast<int>(config.kernelSize.size()),
+                                        static_cast<int64_t>(config.kernelSize.size()),
                                         config.stride.data(),
-                                        static_cast<int>(config.stride.size()),
+                                        static_cast<int64_t>(config.stride.size()),
                                         config.padding.data(),
-                                        static_cast<int>(config.padding.size()),
+                                        static_cast<int64_t>(config.padding.size()),
                                         config.dilation.data(),
-                                        static_cast<int>(config.dilation.size()));
+                                        static_cast<int64_t>(config.dilation.size()));
 
         cpu_unfold_bwd_4d<T>(
             dinputHost, doutput, config.kernelSize, config.stride, config.padding, config.dilation);
@@ -294,24 +284,16 @@ protected:
 
     void Verify()
     {
-        // Computation error of fp16 is ~2^13 (=8192) bigger than
-        // the one of fp32 because mantissa is shorter by 13 bits.
-        double tolerance = std::is_same<T, float>::value ? 1.5e-6 : 8.2e-3;
-
-        // bf16 mantissa has 7 bits, by 3 bits shorter than fp16.
-        if(std::is_same<T, bfloat16>::value)
-            tolerance *= 8.0;
-        auto error_dinput = miopen::rms_range(dinputHost, dinput);
+        double threshold = std::numeric_limits<T>::epsilon();
+        auto error       = miopen::rms_range(dinputHost, dinput);
         ASSERT_EQ(miopen::range_distance(dinputHost), miopen::range_distance(dinput));
-
-        EXPECT_LT(error_dinput, tolerance) << "Error backward input_grad beyond tolerance Error: {"
-                                           << error_dinput << "},  Tolerance: " << tolerance;
+        EXPECT_LT(error, threshold * 10) << "Error backward input_grad beyond tolerance Error: {"
+                                         << error << "},  Tolerance: " << threshold * 10;
     }
     UnfoldTestCase config;
 
     tensor<T> dinput;
     tensor<T> doutput;
-
     tensor<T> dinputHost;
 
     miopen::Allocator::ManageDataPtr dinput_dev;
