@@ -2505,15 +2505,18 @@ extern template struct PerformanceConfigConvOclBwdWrw2<4>;
 extern template struct PerformanceConfigConvOclBwdWrw2<8>;
 extern template struct PerformanceConfigConvOclBwdWrw2<16>;
 
+#if defined(__clang__) && defined(CONV_OCL_DIR2D_BWDWRW_2_CPP)
+#pragma clang diagnostic pop
+#endif
+
+#ifndef CONV_OCL_DIR2D_BWDWRW_2_CPP
 extern template struct ConvOclBwdWrW2<1>;
 extern template struct ConvOclBwdWrW2<2>;
 extern template struct ConvOclBwdWrW2<4>;
 extern template struct ConvOclBwdWrW2<8>;
 extern template struct ConvOclBwdWrW2<16>;
-
-#if defined(__clang__) && defined(CONV_OCL_DIR2D_BWDWRW_2_CPP)
-#pragma clang diagnostic pop
 #endif
+
 
 /// A separate solver from ConvOclBwdWrW2 to disable auto-tuning for certain configs.
 /// Basically, this is *hack* for non-group 3x3 and 1x1 cases.
