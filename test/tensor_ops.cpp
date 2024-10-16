@@ -100,9 +100,9 @@ struct verify_tensor_ops
                                 int CtenOffset)
     {
 
-        intastride = aten.desc.GetStrides()[dim];
-        intbstride = bten.desc.GetStrides()[dim];
-        intcstride = cten.desc.GetStrides()[dim];
+        int astride = aten.desc.GetStrides()[dim];
+        int bstride = bten.desc.GetStrides()[dim];
+        int cstride = cten.desc.GetStrides()[dim];
 
         // printf("cstride: %d\n", cstride);
 
