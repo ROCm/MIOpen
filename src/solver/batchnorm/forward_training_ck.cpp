@@ -91,13 +91,9 @@ struct CKArgsBNormFwdTraining
         {
             this->reduceDims = {0, 1, 2};
         }
-        else if(problem.IsLayoutNCHW())
-        {
-            this->reduceDims = {0, 2, 3};
-        }
         else
         {
-            this->reduceDims = {0, 1, 2};
+            this->reduceDims = {0, 2, 3};
         }
     }
 
