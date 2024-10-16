@@ -2483,7 +2483,11 @@ protected:
     friend struct ConvOclBwdWrW2NonTunable;
 };
 
-#ifndef CONV_OCL_DIR2D_BWDWRW_2_CPP
+// To suppress misleading clang warnings
+#if defined(__clang__) && defined(CONV_OCL_DIR2D_BWDWRW_2_CPP)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wweak-template-vtables"
+#endif
 
 extern template struct PerformanceConfigConvOclBwdWrw2<1>;
 extern template struct PerformanceConfigConvOclBwdWrw2<2>;
@@ -2497,6 +2501,8 @@ extern template struct ConvOclBwdWrW2<4>;
 extern template struct ConvOclBwdWrW2<8>;
 extern template struct ConvOclBwdWrW2<16>;
 
+#if defined(__clang__) && defined(CONV_OCL_DIR2D_BWDWRW_2_CPP)
+#pragma clang diagnostic pop
 #endif
 
 /// A separate solver from ConvOclBwdWrW2 to disable auto-tuning for certain configs.
