@@ -30,6 +30,16 @@
 #include <miopen/dropout.hpp>
 #include <miopen/tensor_ops.hpp>
 
+// disable __device__ qualifiers
+#ifdef FQUALIFIERS
+#error rocrand FQUALIFIERS defined externally, probably one of rocrand device header included prior to this
+#endif
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-macros"
+#define FQUALIFIERS inline
+#pragma clang diagnostic pop
+#include "kernels/miopen_rocrand.hpp"
+
 extern "C" miopenStatus_t miopenCreateDropoutDescriptor(miopenDropoutDescriptor_t* dropoutDesc)
 {
 
@@ -63,7 +73,7 @@ extern "C" miopenStatus_t miopenDropoutGetStatesSize(miopenHandle_t handle,
     return miopen::try_([&] {
         miopen::deref(stateSizeInBytes) =
             std::min(size_t(MAX_PRNG_STATE), miopen::deref(handle).GetImage3dMaxWidth()) *
-            sizeof(prngStates);
+            sizeof(rocrand_state_xorwow);
     });
 }
 
@@ -177,14 +187,18 @@ extern "C" miopenStatus_t miopenDropoutForward(miopenHandle_t handle,
     LogCmdDropout(dropoutDesc, xDesc, true);
     return miopen::try_([&] {
         miopen::deref(dropoutDesc)
-            .DropoutForward(miopen::deref(handle),
+            .Dropout(miopen::deref(handle),
                             miopen::deref(noise_shape),
                             miopen::deref(xDesc),
                             DataCast(x),
                             miopen::deref(yDesc),
                             DataCast(y),
                             DataCast(reserveSpace),
-                            reserveSpaceSizeInBytes);
+                            reserveSpaceSizeInBytes,
+                            static_cast<size_t>(0),
+                            static_cast<size_t>(0),
+                            static_cast<size_t>(0),
+                            false /* is_backward */);
     });
 }
 
@@ -203,13 +217,17 @@ extern "C" miopenStatus_t miopenDropoutBackward(miopenHandle_t handle,
     LogCmdDropout(dropoutDesc, dxDesc, false);
     return miopen::try_([&] {
         miopen::deref(dropoutDesc)
-            .DropoutBackward(miopen::deref(handle),
+            .Dropout(miopen::deref(handle),
                              miopen::deref(noise_shape),
                              miopen::deref(dyDesc),
                              DataCast(dy),
                              miopen::deref(dxDesc),
                              DataCast(dx),
                              DataCast(reserveSpace),
-                             reserveSpaceSizeInBytes);
+                             reserveSpaceSizeInBytes,
+                             static_cast<size_t>(0),
+                             static_cast<size_t>(0),
+                             static_cast<size_t>(0),
+                             true /* is_backward */);
     });
 }

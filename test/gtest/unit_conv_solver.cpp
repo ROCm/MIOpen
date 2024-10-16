@@ -36,49 +36,10 @@
 
 #include "../workspace.hpp"
 
+namespace miopen {
+namespace unit_tests {
+
 namespace {
-
-struct DevDescription
-{
-    std::string_view name;
-    unsigned cu_cnt; // CU for gfx9, WGP for gfx10, 11, ...
-};
-
-class MockHandle : public miopen::Handle
-{
-public:
-    MockHandle(const DevDescription& dev_description) : miopen::Handle{}, dev_descr{dev_description}
-    {
-    }
-
-    // Add additional methods here if needed
-    std::string GetDeviceName() const override { return std::string{dev_descr.name}; }
-    std::size_t GetMaxComputeUnits() const override { return dev_descr.cu_cnt; }
-    bool CooperativeLaunchSupported() const override { return false; }
-
-private:
-    DevDescription dev_descr;
-};
-
-// This is a simplified function, only one device is returned for the entire family.
-const auto& GetAllKnownDevices()
-{
-    static_assert(Gpu::gfx110X == Gpu::gfxLast);
-
-    // https://rocm.docs.amd.com/en/latest/reference/gpu-arch-specs.html
-    static std::map<Gpu, DevDescription> known_devs = {
-        // clang-format off
-        {Gpu::gfx900,  {"gfx900",  64}},
-        {Gpu::gfx906,  {"gfx906",  60}},
-        {Gpu::gfx908,  {"gfx908",  120}},
-        {Gpu::gfx90A,  {"gfx90a",  104}},
-        {Gpu::gfx94X,  {"gfx941",  304}},
-        {Gpu::gfx103X, {"gfx1030", 40}},
-        {Gpu::gfx110X, {"gfx1100", 48}},
-        // clang-format on
-    };
-    return known_devs;
-}
 
 bool IsDeviceSupported(Gpu supported_devs, Gpu dev)
 {
@@ -90,10 +51,8 @@ bool IsDeviceSupported(Gpu supported_devs, Gpu dev)
 miopen::conv::ProblemDescription GetProblemDescription(miopen::conv::Direction direction,
                                                        const ConvTestCase& conv_config)
 {
-    const auto x_desc =
-        miopen::TensorDescriptor{conv_config.GetXDataType(), conv_config.GetXDims()};
-    const auto w_desc =
-        miopen::TensorDescriptor{conv_config.GetWDataType(), conv_config.GetWDims()};
+    const auto x_desc    = conv_config.GetXTensorDescriptor();
+    const auto w_desc    = conv_config.GetWTensorDescriptor();
     const auto conv_desc = conv_config.GetConv();
     const auto y_desc =
         conv_desc.GetForwardOutputTensor(x_desc, w_desc, conv_config.GetYDataType());
@@ -109,92 +68,93 @@ miopen::conv::ProblemDescription GetProblemDescription(miopen::conv::Direction d
     }
 }
 
-template <class T>
-std::string VecToStr(const std::vector<T>& vec)
-{
-    bool first = true;
-    std::ostringstream ss;
-
-    ss << "{";
-    for(auto val : vec)
-    {
-        if(first)
-            first = false;
-        else
-            ss << ",";
-        ss << val;
-    }
-    ss << "}";
-
-    return ss.str();
-}
-
 } // namespace
 
 //************************************************************************************
 // ConvTestCase
 //************************************************************************************
 
-ConvTestCase::ConvTestCase() : type_x(miopenFloat), type_w(miopenFloat), type_y(miopenFloat) {}
+ConvTestCase::ConvTestCase() : x(miopenHalf, {}), w(miopenHalf, {}), conv({}, {}, {}){};
 
-ConvTestCase::ConvTestCase(const std::initializer_list<size_t>& x_,
-                           const std::initializer_list<size_t>& w_,
-                           const std::initializer_list<int>& pad_,
-                           const std::initializer_list<int>& stride_,
-                           const std::initializer_list<int>& dilation_,
+ConvTestCase::ConvTestCase(std::vector<size_t>&& x_,
+                           std::vector<size_t>&& w_,
+                           std::vector<int>&& pad_,
+                           std::vector<int>&& stride_,
+                           std::vector<int>&& dilation_,
                            miopenDataType_t type_)
-    : ConvTestCase(x_, w_, pad_, stride_, dilation_, type_, type_, type_)
+    : ConvTestCase(std::move(x_),
+                   std::move(w_),
+                   std::move(pad_),
+                   std::move(stride_),
+                   std::move(dilation_),
+                   type_,
+                   type_,
+                   type_)
 {
 }
 
-ConvTestCase::ConvTestCase(const std::initializer_list<size_t>& x_,
-                           const std::initializer_list<size_t>& w_,
-                           const std::initializer_list<int>& pad_,
-                           const std::initializer_list<int>& stride_,
-                           const std::initializer_list<int>& dilation_,
+ConvTestCase::ConvTestCase(std::vector<size_t>&& x_,
+                           std::vector<size_t>&& w_,
+                           std::vector<int>&& pad_,
+                           std::vector<int>&& stride_,
+                           std::vector<int>&& dilation_,
                            miopenDataType_t type_x_,
                            miopenDataType_t type_w_,
                            miopenDataType_t type_y_)
-    : x(x_),
-      w(w_),
-      pad(pad_),
-      stride(stride_),
-      dilation(dilation_),
-      type_x(type_x_),
-      type_w(type_w_),
-      type_y(type_y_)
+    : ConvTestCase(
+          TensorDescriptorParams{type_x_, std::move(x_)},
+          TensorDescriptorParams{type_w_, std::move(w_)},
+          type_y_,
+          ConvolutionDescriptorParams{std::move(pad_), std::move(stride_), std::move(dilation_)})
 {
-    const auto num_dims        = pad.size();
-    const auto num_tensor_dims = num_dims + 2;
+}
 
-    if(x.size() != num_tensor_dims || w.size() != num_tensor_dims || stride.size() != num_dims ||
-       dilation.size() != num_dims || x[1] != w[1])
+ConvTestCase::ConvTestCase(TensorDescriptorParams&& x_,
+                           TensorDescriptorParams&& w_,
+                           miopenDataType_t type_y_,
+                           ConvolutionDescriptorParams&& conv_)
+    : x(std::move(x_)), w(std::move(w_)), type_y(type_y_), conv(std::move(conv_))
+{
+    const auto num_spatial_dims = conv.GetNumSpatialDims();
+    const auto num_tensor_dims  = num_spatial_dims + 2;
+
+    if(x.GetNumDims() != num_tensor_dims || w.GetNumDims() != num_tensor_dims ||
+       x.GetLens()[1] != w.GetLens()[1])
     {
         throw std::runtime_error("wrong test case format");
     }
 }
 
-const std::vector<size_t>& ConvTestCase::GetXDims() const { return x; }
+miopen::TensorDescriptor ConvTestCase::GetXTensorDescriptor() const
+{
+    return x.GetTensorDescriptor();
+}
 
-const std::vector<size_t>& ConvTestCase::GetWDims() const { return w; }
+miopen::TensorDescriptor ConvTestCase::GetWTensorDescriptor() const
+{
+    return w.GetTensorDescriptor();
+}
 
-miopenDataType_t ConvTestCase::GetXDataType() const { return type_x; }
+miopenDataType_t ConvTestCase::GetXDataType() const { return x.GetDataType(); }
 
-miopenDataType_t ConvTestCase::GetWDataType() const { return type_w; }
+miopenDataType_t ConvTestCase::GetWDataType() const { return w.GetDataType(); }
 
 miopenDataType_t ConvTestCase::GetYDataType() const { return type_y; }
 
 miopen::ConvolutionDescriptor ConvTestCase::GetConv() const
 {
-    return miopen::ConvolutionDescriptor{pad, stride, dilation};
+    return conv.GetConvolutionDescriptor();
 }
 
 std::ostream& operator<<(std::ostream& os, const ConvTestCase& tc)
 {
-    return os << "(x:" << VecToStr(tc.x) << " w:" << VecToStr(tc.w) << " pad:" << VecToStr(tc.pad)
-              << " stride:" << VecToStr(tc.stride) << " dilation:" << VecToStr(tc.dilation)
-              << " type_x:" << tc.type_x << " type_w:" << tc.type_w << " type_y:" << tc.type_y
-              << ")";
+    os << "(";
+    os << "x:(" << tc.x << "), ";
+    os << "w:(" << tc.w << "), ";
+    os << "type_y:" << tc.type_y << "), ";
+    os << "conv:(" << tc.conv << ")";
+    os << ")";
+    return os;
 }
 
 //************************************************************************************
@@ -203,10 +163,64 @@ std::ostream& operator<<(std::ostream& os, const ConvTestCase& tc)
 
 namespace {
 
+template <typename T>
+double GetThreshold(miopenConvAlgorithm_t algo, miopen::conv::Direction direction)
+{
+    double tolerance = 1.0;
+
+    if constexpr(std::is_same_v<T, half_float::half>)
+    {
+        if(algo == miopenConvolutionAlgoGEMM && direction != miopen::conv::Direction::Forward)
+        {
+            tolerance *= 2.0;
+        }
+    }
+
+    double threshold = std::numeric_limits<T>::epsilon() * tolerance;
+    return threshold;
+}
+
+template <typename T, typename Tref>
+void VerifyData(const std::vector<T>& data,
+                const std::vector<Tref>& ref_data,
+                miopenConvAlgorithm_t algo,
+                miopen::conv::Direction direction)
+{
+    ASSERT_FALSE(miopen::range_zero(ref_data)) << "Reference data is all zeros";
+    if constexpr(!std::is_integral_v<T>)
+    {
+        ASSERT_LT(miopen::find_idx(ref_data, miopen::not_finite), 0)
+            << "Non finite number found in the reference data";
+    }
+
+    ASSERT_FALSE(miopen::range_zero(data)) << "Gpu data is all zeros";
+    if constexpr(!std::is_integral_v<T>)
+    {
+        ASSERT_LT(miopen::find_idx(data, miopen::not_finite), 0)
+            << "Non finite number found in the Gpu data";
+    }
+
+    ASSERT_EQ(miopen::range_distance(ref_data), miopen::range_distance(data));
+
+    if constexpr(std::is_integral_v<T>)
+    {
+        const auto error = miopen::max_diff_v2(ref_data, data);
+        static_assert(std::is_integral_v<decltype(error)>);
+        ASSERT_EQ(error, 0) << "Error beyond tolerance";
+    }
+    else
+    {
+        const auto error       = miopen::rms_range(ref_data, data);
+        const double threshold = GetThreshold<T>(algo, direction);
+        ASSERT_LT(error, threshold) << "Error beyond tolerance";
+        // std::cout << "error: " << error << " threshold: " << threshold << std::endl;
+    }
+}
+
 //**********************************
 // Fwd
 //**********************************
-template <typename T = float, typename Tref = float>
+template <typename Tin, typename Twei, typename Tout, typename Tref>
 void RunSolverFwd(const miopen::solver::conv::ConvSolverBase& solv,
                   const ConvTestCase& conv_config,
                   miopenConvAlgorithm_t algo,
@@ -216,18 +230,25 @@ void RunSolverFwd(const miopen::solver::conv::ConvSolverBase& solv,
     // Prepare
     //**********************************
 
-    auto input   = tensor<T>{conv_config.GetXDims()};
-    auto weights = tensor<T>{conv_config.GetWDims()};
-    input.generate(GenData<T>{});
-    weights.generate(GenWeights<T>{});
+    auto input   = tensor<Tin>{conv_config.GetXTensorDescriptor()};
+    auto weights = tensor<Twei>{conv_config.GetWTensorDescriptor()};
+
+    if(weights.desc.GetLayoutEnum() == miopenTensorCHWNc4 ||
+       weights.desc.GetLayoutEnum() == miopenTensorCHWNc8)
+    {
+        throw std::runtime_error("GenConvData do not support CHWNc filter layout");
+    }
 
     const auto conv_desc = conv_config.GetConv();
 
     const auto output_desc =
-        conv_desc.GetForwardOutputTensor(input.desc, weights.desc, miopen_type<T>{});
+        conv_desc.GetForwardOutputTensor(input.desc, weights.desc, miopen_type<Tout>{});
 
-    auto output = tensor<T>{output_desc.GetLengths()};
-    std::fill(output.begin(), output.end(), T(0));
+    auto output = tensor<Tout>{output_desc};
+
+    input.generate(GenConvData<Tin, Tout>{weights.desc.GetLengths()});
+    weights.generate(GenConvData<Twei, Tout>{weights.desc.GetLengths()});
+    std::fill(output.begin(), output.end(), Tout());
 
     auto&& handle = get_handle();
     auto in_dev   = handle.Write(input.data);
@@ -280,7 +301,7 @@ void RunSolverFwd(const miopen::solver::conv::ConvSolverBase& solv,
     // Verify
     //**********************************
 
-    auto ref_out = tensor<Tref>{output.desc.GetLayout_t(), output.desc.GetLengths()};
+    auto ref_out = tensor<Tref>{output.desc};
     if(use_cpu_ref)
     {
         cpu_convolution_forward(conv_desc.GetSpatialDimension(),
@@ -297,27 +318,24 @@ void RunSolverFwd(const miopen::solver::conv::ConvSolverBase& solv,
         ref_out = ref_conv_fwd(input, weights, ref_out, conv_desc);
     }
 
-    output.data = handle.Read<T>(out_dev, output.data.size());
+    output.data = handle.Read<Tout>(out_dev, output.data.size());
 
-    ASSERT_FALSE(miopen::range_zero(ref_out)) << "Cpu data is all zeros";
-    ASSERT_FALSE(miopen::range_zero(output)) << "Gpu data is all zeros";
-    ASSERT_EQ(miopen::range_distance(ref_out), miopen::range_distance(output));
+    VerifyData(output.data, ref_out.data, algo, miopen::conv::Direction::Forward);
+}
 
-    const double tolerance = 2;
-    double threshold       = std::numeric_limits<T>::epsilon() * tolerance;
-    auto error             = miopen::rms_range(ref_out, output);
-
-    ASSERT_LT(miopen::find_idx(ref_out, miopen::not_finite), 0)
-        << "Non finite number found in the CPU data";
-
-    ASSERT_LT(error, threshold) << "Error beyond tolerance";
-    // std::cout << "error: " << error << " threshold: " << threshold << std::endl;
+template <typename T, typename Tref>
+void RunSolverFwd(const miopen::solver::conv::ConvSolverBase& solv,
+                  const ConvTestCase& conv_config,
+                  miopenConvAlgorithm_t algo,
+                  bool use_cpu_ref)
+{
+    RunSolverFwd<T, T, T, Tref>(solv, conv_config, algo, use_cpu_ref);
 }
 
 //**********************************
 // Bwd
 //**********************************
-template <typename T = float, typename Tref = float>
+template <typename Tin, typename Twei, typename Tout, typename Tref>
 void RunSolverBwd(const miopen::solver::conv::ConvSolverBase& solv,
                   const ConvTestCase& conv_config,
                   miopenConvAlgorithm_t algo,
@@ -327,19 +345,25 @@ void RunSolverBwd(const miopen::solver::conv::ConvSolverBase& solv,
     // Prepare
     //**********************************
 
-    auto input   = tensor<T>{conv_config.GetXDims()};
-    auto weights = tensor<T>{conv_config.GetWDims()};
-    weights.generate(GenWeights<T>{});
+    auto input   = tensor<Tin>{conv_config.GetXTensorDescriptor()};
+    auto weights = tensor<Twei>{conv_config.GetWTensorDescriptor()};
+
+    if(weights.desc.GetLayoutEnum() == miopenTensorCHWNc4 ||
+       weights.desc.GetLayoutEnum() == miopenTensorCHWNc8)
+    {
+        throw std::runtime_error("GenConvData do not support CHWNc filter layout");
+    }
 
     const auto conv_desc = conv_config.GetConv();
 
     const auto output_desc =
-        conv_desc.GetForwardOutputTensor(input.desc, weights.desc, miopen_type<T>{});
+        conv_desc.GetForwardOutputTensor(input.desc, weights.desc, miopen_type<Tout>{});
 
-    auto output = tensor<T>{output_desc.GetLengths()};
-    output.generate(GenData<T>{});
+    auto output = tensor<Tout>{output_desc};
 
-    std::fill(input.begin(), input.end(), T(0));
+    output.generate(GenConvData<Tout, Tin>{weights.desc.GetLengths()});
+    weights.generate(GenConvData<Twei, Tin>{weights.desc.GetLengths()});
+    std::fill(input.begin(), input.end(), Tin());
 
     auto&& handle = get_handle();
     auto in_dev   = handle.Write(input.data);
@@ -354,7 +378,7 @@ void RunSolverBwd(const miopen::solver::conv::ConvSolverBase& solv,
         output.desc, out_dev.get(), weights.desc, wei_dev.get(), input.desc, in_dev.get()};
 
     const auto problem = miopen::conv::ProblemDescription(
-        input.desc, weights.desc, output.desc, conv_desc, miopen::conv::Direction::BackwardData);
+        output.desc, weights.desc, input.desc, conv_desc, miopen::conv::Direction::BackwardData);
     const auto ctx = [&] {
         auto tmp = miopen::ExecutionContext{&handle};
         problem.SetupFloats(tmp);
@@ -392,7 +416,7 @@ void RunSolverBwd(const miopen::solver::conv::ConvSolverBase& solv,
     // Verify
     //**********************************
 
-    auto ref_in = tensor<Tref>{input.desc.GetLengths()};
+    auto ref_in = tensor<Tref>{input.desc};
     if(use_cpu_ref)
     {
         cpu_convolution_backward_data(conv_desc.GetSpatialDimension(),
@@ -409,27 +433,24 @@ void RunSolverBwd(const miopen::solver::conv::ConvSolverBase& solv,
         ref_in = ref_conv_bwd(ref_in, weights, output, conv_desc);
     }
 
-    input.data = handle.Read<T>(in_dev, input.data.size());
+    input.data = handle.Read<Tin>(in_dev, input.data.size());
 
-    ASSERT_FALSE(miopen::range_zero(ref_in)) << "Cpu data is all zeros";
-    ASSERT_FALSE(miopen::range_zero(input)) << "Gpu data is all zeros";
-    ASSERT_EQ(miopen::range_distance(ref_in), miopen::range_distance(input));
+    VerifyData(input.data, ref_in.data, algo, miopen::conv::Direction::BackwardData);
+}
 
-    const double tolerance = 2;
-    double threshold       = std::numeric_limits<T>::epsilon() * tolerance;
-    auto error             = miopen::rms_range(ref_in, input);
-
-    ASSERT_LT(miopen::find_idx(ref_in, miopen::not_finite), 0)
-        << "Non finite number found in the CPU data";
-
-    ASSERT_LT(error, threshold) << "Error beyond tolerance";
-    // std::cout << "error: " << error << " threshold: " << threshold << std::endl;
+template <typename T, typename Tref>
+void RunSolverBwd(const miopen::solver::conv::ConvSolverBase& solv,
+                  const ConvTestCase& conv_config,
+                  miopenConvAlgorithm_t algo,
+                  bool use_cpu_ref)
+{
+    RunSolverBwd<T, T, T, Tref>(solv, conv_config, algo, use_cpu_ref);
 }
 
 //**********************************
 // Wrw
 //**********************************
-template <typename T = float, typename Tref = float>
+template <typename Tin, typename Twei, typename Tout, typename Tref>
 void RunSolverWrw(const miopen::solver::conv::ConvSolverBase& solv,
                   const ConvTestCase& conv_config,
                   miopenConvAlgorithm_t algo,
@@ -439,19 +460,25 @@ void RunSolverWrw(const miopen::solver::conv::ConvSolverBase& solv,
     // Prepare
     //**********************************
 
-    auto input   = tensor<T>{conv_config.GetXDims()};
-    auto weights = tensor<T>{conv_config.GetWDims()};
-    input.generate(GenData<T>{});
+    auto input   = tensor<Tin>{conv_config.GetXTensorDescriptor()};
+    auto weights = tensor<Twei>{conv_config.GetWTensorDescriptor()};
 
     const auto conv_desc = conv_config.GetConv();
 
     const auto output_desc =
-        conv_desc.GetForwardOutputTensor(input.desc, weights.desc, miopen_type<T>{});
+        conv_desc.GetForwardOutputTensor(input.desc, weights.desc, miopen_type<Tout>{});
 
-    auto output = tensor<T>{output_desc.GetLengths()};
-    output.generate(GenData<T>{});
+    if(output_desc.GetLayoutEnum() == miopenTensorCHWNc4 ||
+       output_desc.GetLayoutEnum() == miopenTensorCHWNc8)
+    {
+        throw std::runtime_error("GenConvData do not support CHWNc filter layout");
+    }
 
-    std::fill(weights.begin(), weights.end(), T(0));
+    auto output = tensor<Tout>{output_desc};
+
+    input.generate(GenConvData<Tin, Twei>{output_desc.GetLengths()});
+    output.generate(GenConvData<Tout, Twei>{output_desc.GetLengths()});
+    std::fill(weights.begin(), weights.end(), Twei());
 
     auto&& handle = get_handle();
     auto in_dev   = handle.Write(input.data);
@@ -504,7 +531,7 @@ void RunSolverWrw(const miopen::solver::conv::ConvSolverBase& solv,
     // Verify
     //**********************************
 
-    auto ref_weights = tensor<Tref>{weights.desc.GetLengths()};
+    auto ref_weights = tensor<Tref>{weights.desc};
     if(use_cpu_ref)
     {
         cpu_convolution_backward_weight(conv_desc.GetSpatialDimension(),
@@ -521,30 +548,28 @@ void RunSolverWrw(const miopen::solver::conv::ConvSolverBase& solv,
         ref_weights = ref_conv_wrw(input, ref_weights, output, conv_desc);
     }
 
-    weights.data = handle.Read<T>(wei_dev, weights.data.size());
+    weights.data = handle.Read<Twei>(wei_dev, weights.data.size());
 
-    ASSERT_FALSE(miopen::range_zero(ref_weights)) << "Cpu data is all zeros";
-    ASSERT_FALSE(miopen::range_zero(weights)) << "Gpu data is all zeros";
-    ASSERT_EQ(miopen::range_distance(ref_weights), miopen::range_distance(weights));
-
-    const double tolerance = 2;
-    double threshold       = std::numeric_limits<T>::epsilon() * tolerance;
-    auto error             = miopen::rms_range(ref_weights, weights);
-
-    ASSERT_LT(miopen::find_idx(ref_weights, miopen::not_finite), 0)
-        << "Non finite number found in the CPU data";
-
-    ASSERT_LT(error, threshold) << "Error beyond tolerance";
-    // std::cout << "error: " << error << " threshold: " << threshold << std::endl;
+    VerifyData(weights.data, ref_weights.data, algo, miopen::conv::Direction::BackwardWeights);
 }
 
-template <typename T = float, typename Tref = float>
+template <typename T, typename Tref>
+void RunSolverWrw(const miopen::solver::conv::ConvSolverBase& solv,
+                  const ConvTestCase& conv_config,
+                  miopenConvAlgorithm_t algo,
+                  bool use_cpu_ref)
+{
+    RunSolverWrw<T, T, T, Tref>(solv, conv_config, algo, use_cpu_ref);
+}
+
+template <typename T, typename Tref>
 void RunSolver(const miopen::solver::conv::ConvSolverBase& solver,
                miopen::conv::Direction direction,
                const ConvTestCase& conv_config,
                miopenConvAlgorithm_t algo,
-               bool use_cpu_ref = false)
+               bool use_cpu_ref)
 {
+    // clang-format off
     switch(direction)
     {
     case miopen::conv::Direction::Forward:
@@ -556,26 +581,44 @@ void RunSolver(const miopen::solver::conv::ConvSolverBase& solver,
     case miopen::conv::Direction::BackwardWeights:
         RunSolverWrw<T, Tref>(solver, conv_config, algo, use_cpu_ref);
         return;
-    default: throw std::runtime_error("unknown direction");
+    default:
+        throw std::runtime_error("unknown direction");
     }
+    // clang-format on
 }
 
 void RunSolver(const miopen::solver::conv::ConvSolverBase& solver,
                miopen::conv::Direction direction,
                const ConvTestCase& conv_config,
-               miopenConvAlgorithm_t algo)
+               miopenConvAlgorithm_t algo,
+               bool use_cpu_ref)
 {
     if(conv_config.GetXDataType() == conv_config.GetWDataType() &&
        conv_config.GetWDataType() == conv_config.GetYDataType())
     {
+        // clang-format off
         switch(conv_config.GetXDataType())
         {
         case miopenHalf:
-            RunSolver<half_float::half, half_float::half>(solver, direction, conv_config, algo);
+            RunSolver<half_float::half, half_float::half>(solver, direction, conv_config, algo, use_cpu_ref);
             return;
-        case miopenFloat: RunSolver<float, float>(solver, direction, conv_config, algo); return;
-        default: throw std::runtime_error("handling of this data type is not yet implemented");
+        case miopenFloat:
+            RunSolver<float, float>(solver, direction, conv_config, algo, use_cpu_ref);
+            return;
+        case miopenBFloat16:
+            RunSolver<bfloat16, bfloat16>(solver, direction, conv_config, algo, use_cpu_ref);
+            return;
+        default:
+            throw std::runtime_error("handling of this data type is not yet implemented");
         }
+        // clang-format on
+    }
+    else if(direction == miopen::conv::Direction::Forward &&
+            conv_config.GetXDataType() == miopenInt8 && conv_config.GetWDataType() == miopenInt8 &&
+            conv_config.GetYDataType() == miopenInt32)
+    {
+        RunSolverFwd<int8_t, int8_t, int32_t, int32_t>(solver, conv_config, algo, use_cpu_ref);
+        return;
     }
 
     throw std::runtime_error("handling of mixed data types is not yet implemented");
@@ -594,9 +637,10 @@ void UnitTestConvSolverBase::SetUpImpl(Gpu supported_devs)
 void UnitTestConvSolverBase::RunTestImpl(const miopen::solver::conv::ConvSolverBase& solver,
                                          miopen::conv::Direction direction,
                                          const ConvTestCase& conv_config,
-                                         miopenConvAlgorithm_t algo)
+                                         miopenConvAlgorithm_t algo,
+                                         bool use_cpu_ref)
 {
-    RunSolver(solver, direction, conv_config, algo);
+    RunSolver(solver, direction, conv_config, algo, use_cpu_ref);
 }
 
 //************************************************************************************
@@ -615,8 +659,7 @@ void UnitTestConvSolverDevApplicabilityBase::RunTestImpl(
     for(const auto& [dev, dev_descr] : all_known_devs)
     {
         const auto supported = IsDeviceSupported(supported_devs, dev);
-        // std::cout << "Test " << dev_descr.name << " (supported: " << supported << ")" <<
-        // std::endl;
+        // std::cout << "Test " << dev_descr << " (supported: " << supported << ")" << std::endl;
 
         auto handle    = MockHandle{dev_descr};
         const auto ctx = [&] {
@@ -629,9 +672,12 @@ void UnitTestConvSolverDevApplicabilityBase::RunTestImpl(
         // std::cout << "IsApplicable: " << is_applicable << std::endl;
         if(is_applicable != supported)
         {
-            GTEST_FAIL() << dev_descr.name << " is" << (is_applicable ? "" : " not")
+            GTEST_FAIL() << dev_descr << " is" << (is_applicable ? "" : " not")
                          << " applicable for " << solver.SolverDbId() << " but "
                          << (supported ? "" : "not ") << "marked as supported";
         }
     }
 }
+
+} // namespace unit_tests
+} // namespace miopen

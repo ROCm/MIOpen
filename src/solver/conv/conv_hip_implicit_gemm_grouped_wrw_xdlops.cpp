@@ -27,7 +27,7 @@
 #include <vector>
 #include <cstdint>
 
-#include <miopen/solver.hpp>
+#include <miopen/conv/solvers.hpp>
 #include <miopen/generic_search.hpp>
 #include <miopen/conv/wrw_invoke_params.hpp>
 #include <miopen/solver/problem_description_interpreter.hpp>
@@ -289,7 +289,8 @@ bool PerformanceConfigHipImplicitGemmGroupWrwXdlops::ModelApplyToken(
             idx += 2;
         if(((idx == 15 && (heuristic_kernels[heuristic_indexes[0]].size() == 15)) || idx == 18))
         {
-            kernel_id          = valid_kernels[heuristic_indexes[0]] + "+" + value;
+            kernel_id =
+                valid_kernels[heuristic_indexes[0]] + "+" + value + "+" + std::to_string(split_k);
             index              = heuristic_indexes[0];
             bool valid_split_k = false;
             switch(problem.GetInDataType())

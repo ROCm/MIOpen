@@ -44,15 +44,20 @@ add_executable(MIOpenDriver
     dm_fusion.cpp
     dm_gemm.cpp
     dm_getitem.cpp
+    dm_glu.cpp
     dm_groupnorm.cpp
+    dm_kthvalue.cpp
     dm_layernorm.cpp
     dm_lrn.cpp
+    dm_multimarginloss.cpp
     dm_pool.cpp
+    dm_prelu.cpp
     dm_reduce.cpp
     dm_reduceextreme.cpp
     dm_reducecalculation.cpp
     dm_rnn.cpp
     dm_rope.cpp
+    dm_softmarginloss.cpp
     dm_softmax.cpp
     dm_t5layernorm.cpp
     dm_tensorop.cpp

@@ -201,14 +201,14 @@ protected:
 
 namespace vecadd {
 
-struct VecAddTestFloat : VecAddTest<float>
+struct GPU_VecAddTest_FP32 : VecAddTest<float>
 {
 };
 
 } // namespace vecadd
 using namespace vecadd;
 
-TEST_P(VecAddTestFloat, VecAddTestFw)
+TEST_P(GPU_VecAddTest_FP32, VecAddTestFw)
 {
     RunTestOCL();
     // Verify OCL results against CPU reference
@@ -222,4 +222,4 @@ TEST_P(VecAddTestFloat, VecAddTestFw)
     VerifyGPU();
 };
 
-INSTANTIATE_TEST_SUITE_P(VecAddTestSet, VecAddTestFloat, testing::ValuesIn(VecAddTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_VecAddTest_FP32, testing::ValuesIn(VecAddTestConfigs()));

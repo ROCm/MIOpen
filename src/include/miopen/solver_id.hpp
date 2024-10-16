@@ -32,7 +32,6 @@
 #include <miopen/conv_algo_name.hpp>
 
 #include <cstdint>
-#include <unordered_map>
 
 namespace miopen {
 
@@ -61,8 +60,12 @@ enum class Primitive
     Adam,
     Item,
     RoPE,
+    ReLU,
+    Kthvalue,
+    SoftMarginLoss,
+    MultiMarginLoss,
     Fold,
-    Unfold
+    Unfold,
 };
 
 struct MIOPEN_INTERNALS_EXPORT Id
