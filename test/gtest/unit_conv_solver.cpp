@@ -42,24 +42,24 @@ namespace unit_tests {
 
 namespace {
 
-class DeprecatedSolversEnabler
+class DeprecatedSolversScopedEnabler
 {
 public:
-    DeprecatedSolversEnabler() noexcept {}
-    DeprecatedSolversEnabler(const DeprecatedSolversEnabler&) = delete;
-    DeprecatedSolversEnabler(DeprecatedSolversEnabler&&)      = delete;
-    DeprecatedSolversEnabler& operator=(const DeprecatedSolversEnabler&) = delete;
-    DeprecatedSolversEnabler& operator=(DeprecatedSolversEnabler&&) = delete;
-    ~DeprecatedSolversEnabler() noexcept
+    DeprecatedSolversScopedEnabler() noexcept {}
+    DeprecatedSolversScopedEnabler(const DeprecatedSolversScopedEnabler&) = delete;
+    DeprecatedSolversScopedEnabler(DeprecatedSolversScopedEnabler&&)      = delete;
+    DeprecatedSolversScopedEnabler& operator=(const DeprecatedSolversScopedEnabler&) = delete;
+    DeprecatedSolversScopedEnabler& operator=(DeprecatedSolversScopedEnabler&&) = delete;
+    ~DeprecatedSolversScopedEnabler() noexcept
     {
         if(prev)
-            miopen::debug::EnableDeprecatedSolvers = prev.value();
+            miopen::debug::enable_deprecated_solvers = prev.value();
     }
 
     void Enable() noexcept
     {
-        prev                                   = miopen::debug::EnableDeprecatedSolvers;
-        miopen::debug::EnableDeprecatedSolvers = true;
+        prev                                   = miopen::debug::enable_deprecated_solvers;
+        miopen::debug::enable_deprecated_solvers = true;
     }
 
 private:
@@ -707,7 +707,7 @@ void UnitTestConvSolverBase::RunTestImpl(const miopen::solver::conv::ConvSolverI
                                          const ConvTestCase& conv_config,
                                          miopenConvAlgorithm_t algo)
 {
-    DeprecatedSolversEnabler deprecated_solv_enabler;
+    DeprecatedSolversScopedEnabler deprecated_solv_enabler;
     if(params.enable_deprecated_solvers)
     {
         deprecated_solv_enabler.Enable();
@@ -726,7 +726,7 @@ void UnitTestConvSolverDevApplicabilityBase::RunTestImpl(
     miopen::conv::Direction direction,
     const ConvTestCase& conv_config)
 {
-    DeprecatedSolversEnabler deprecated_solv_enabler;
+    DeprecatedSolversScopedEnabler deprecated_solv_enabler;
     if(params.enable_deprecated_solvers)
     {
         deprecated_solv_enabler.Enable();

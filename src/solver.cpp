@@ -63,7 +63,7 @@ namespace miopen {
 namespace debug {
 
 // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
-bool EnableDeprecatedSolvers = false;
+bool enable_deprecated_solvers = false;
 
 } // namespace debug
 
@@ -714,7 +714,7 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
 bool ThisSolverIsDeprecatedStatic::IsDisabled(const ExecutionContext& ctx)
 {
     static const bool device_is_allowed = [&]() {
-        if(miopen::debug::EnableDeprecatedSolvers)
+        if(miopen::debug::enable_deprecated_solvers)
             return true;
         if(env::enabled(MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS))
             return true;
