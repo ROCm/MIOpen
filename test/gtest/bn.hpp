@@ -59,7 +59,7 @@ protected:
             test_skipped = true;
             GTEST_SKIP() << "Not Applicable on " << handle.GetDeviceName() << " Architecture";
         }
-        miopenStatus_t res;
+        miopenStatus_t res = miopenStatusUnknownError;
         if(api_type == BNApiType::testBNAPIV1)
         {
             res = miopenBatchNormalizationForwardInference(&handle,
@@ -155,7 +155,7 @@ protected:
             test_skipped = true;
             GTEST_SKIP() << "Not Applicable on " << handle.GetDeviceName() << " Architecture";
         }
-        miopenStatus_t res;
+        miopenStatus_t res = miopenStatusUnknownError;
         if(api_type == BNApiType::testBNAPIV1)
         {
             res = miopenBatchNormalizationBackward(&handle,
@@ -278,7 +278,7 @@ protected:
             test_skipped = true;
             GTEST_SKIP() << "Not Applicable on " << handle.GetDeviceName() << " Architecture";
         }
-        miopenStatus_t res;
+        miopenStatus_t res = miopenStatusUnknownError;
         if(api_type == BNApiType::testBNAPIV1)
         {
             res = miopenBatchNormalizationForwardTraining(
