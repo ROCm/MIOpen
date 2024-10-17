@@ -81,16 +81,16 @@ protected:
         if constexpr(std::is_same_v<OutputType, float>)
         {
             // forward
-            MultiHeadAttentionf32(q_val,
-                                  k_val,
-                                  v_val,
-                                  q_dot_k_transpose,
-                                  softmax,
-                                  attn_max,
-                                  z_sum,
-                                  aMax_S,
-                                  aMax_O,
-                                  multi_head_attention);
+            MultiHeadAttentionForwardf32(q_val,
+                                         k_val,
+                                         v_val,
+                                         q_dot_k_transpose,
+                                         softmax,
+                                         attn_max,
+                                         z_sum,
+                                         aMax_S,
+                                         aMax_O,
+                                         multi_head_attention);
 
             Concat(multi_head_attention, concatinated_attention);
 
@@ -138,24 +138,24 @@ protected:
             ScaleMult(v_val, v_scale, v_val_fp8);
 
             // forward
-            MultiHeadAttentionfp8(q_val_fp8,
-                                  k_val_fp8,
-                                  v_val_fp8,
-                                  softmax, // fp32
-                                  attn_max,
-                                  z_sum,
-                                  q_descale,
-                                  k_descale,
-                                  v_descale,
-                                  s_descale,
-                                  s_scale,
-                                  o_scale,
-                                  0.0f,
-                                  0,
-                                  0,
-                                  aMax_S,
-                                  aMax_O,
-                                  multi_head_attention);
+            MultiHeadAttentionForwardfp8(q_val_fp8,
+                                         k_val_fp8,
+                                         v_val_fp8,
+                                         softmax, // fp32
+                                         attn_max,
+                                         z_sum,
+                                         q_descale,
+                                         k_descale,
+                                         v_descale,
+                                         s_descale,
+                                         s_scale,
+                                         o_scale,
+                                         0.0f,
+                                         0,
+                                         0,
+                                         aMax_S,
+                                         aMax_O,
+                                         multi_head_attention);
             Concat(multi_head_attention, final_transformed_attention);
             ScaleMult(final_transformed_attention, o_descale, concatinated_attention);
 
