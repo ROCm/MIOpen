@@ -37,10 +37,7 @@ public:
         miopen::debug::disable_wa_swdev_271887 = true;
     }
 
-    ~WA_SWDEV_271887_ScopedDisabler() noexcept
-    {
-        miopen::debug::disable_wa_swdev_271887 = prev;
-    }
+    ~WA_SWDEV_271887_ScopedDisabler() noexcept { miopen::debug::disable_wa_swdev_271887 = prev; }
 
 private:
     bool prev;

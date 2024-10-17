@@ -2469,26 +2469,25 @@ struct ConvOclBwdWrW2 : ConvTunableSolver<PerformanceConfigConvOclBwdWrw2<N_BATC
         return this->template GetSolverDbId<ConvOclBwdWrW2<N_BATCH_LOOPS>>();
     }
 
-    MIOPEN_INTERNALS_EXPORT PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>
+    PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>
     GetDefaultPerformanceConfig(const ExecutionContext&,
                                 const miopen::conv::ProblemDescription&) const override;
-    MIOPEN_INTERNALS_EXPORT bool
+    bool
     IsValidPerformanceConfig(const ExecutionContext&,
                              const miopen::conv::ProblemDescription&,
                              const PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>&) const override;
-    MIOPEN_INTERNALS_EXPORT PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>
+    PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>
     Search(const ExecutionContext&,
            const miopen::conv::ProblemDescription&,
            const AnyInvokeParams& invoke_ctx) const override;
-    MIOPEN_INTERNALS_EXPORT bool
-    IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
-    MIOPEN_INTERNALS_EXPORT size_t GetWorkspaceSize(
-        const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
+    size_t GetWorkspaceSize(const ExecutionContext&,
+                            const miopen::conv::ProblemDescription&) const override;
     MIOPEN_INTERNALS_EXPORT bool MayNeedWorkspace() const override { return true; }
-    MIOPEN_INTERNALS_EXPORT ConvSolution
-    GetSolution(const ExecutionContext&,
-                const miopen::conv::ProblemDescription&,
-                const PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>&) const override;
+    ConvSolution GetSolution(const ExecutionContext&,
+                             const miopen::conv::ProblemDescription&,
+                             const PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>&) const override;
 
 protected:
     bool IsApplicableBase(const ExecutionContext&, const miopen::conv::ProblemDescription&) const;
@@ -2508,14 +2507,16 @@ extern template struct PerformanceConfigConvOclBwdWrw2<4>;
 extern template struct PerformanceConfigConvOclBwdWrw2<8>;
 extern template struct PerformanceConfigConvOclBwdWrw2<16>;
 
+#if defined(__clang__) && defined(CONV_OCL_DIR2D_BWDWRW_2_CPP)
+#pragma clang diagnostic pop
+#endif
+
+#ifndef CONV_OCL_DIR2D_BWDWRW_2_CPP
 extern template struct ConvOclBwdWrW2<1>;
 extern template struct ConvOclBwdWrW2<2>;
 extern template struct ConvOclBwdWrW2<4>;
 extern template struct ConvOclBwdWrW2<8>;
 extern template struct ConvOclBwdWrW2<16>;
-
-#if defined(__clang__) && defined(CONV_OCL_DIR2D_BWDWRW_2_CPP)
-#pragma clang diagnostic pop
 #endif
 
 /// A separate solver from ConvOclBwdWrW2 to disable auto-tuning for certain configs.
