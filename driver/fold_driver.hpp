@@ -60,8 +60,6 @@ public:
     InputFlags& GetInputFlags() override { return inflags; }
 
     int GetandSetData() override;
-    std::vector<int> GetTensorLengthsFromCmdLine();
-    std::vector<int32_t> GetVectorInt32tFromCmdLine(std::string long_name);
 
     int AllocateBuffersAndCopy() override;
 
@@ -109,11 +107,11 @@ private:
 
     std::vector<Tref> dinput_host;
 
-    std::vector<int32_t> output_size;
-    std::vector<int32_t> kernel_size;
-    std::vector<int32_t> stride;
-    std::vector<int32_t> padding;
-    std::vector<int32_t> dilation;
+    std::vector<int64_t> output_size;
+    std::vector<int64_t> kernel_size;
+    std::vector<int64_t> stride;
+    std::vector<int64_t> padding;
+    std::vector<int64_t> dilation;
 };
 
 template <typename Tgpu, typename Tref>
@@ -131,25 +129,35 @@ int FoldDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
 template <typename Tgpu, typename Tref>
 int FoldDriver<Tgpu, Tref>::GetandSetData()
 {
-    std::vector<int> input_length = inflags.GetValueTensor("DimLengths").lengths;
+    std::vector<int> input_length    = inflags.GetValueTensor("DimLengths").lengths;
+    std::vector<int> output_size_int = inflags.GetValueTensor("outputSize").lengths;
+    output_size                      = {output_size_int.begin(), output_size_int.end()};
+    std::vector<int> kernel_size_int = inflags.GetValueTensor("kernelSize").lengths;
+    kernel_size                      = {kernel_size_int.begin(), kernel_size_int.end()};
+    std::vector<int> stride_int      = inflags.GetValueTensor("stride").lengths;
+    stride                           = {stride_int.begin(), stride_int.end()};
+    std::vector<int> padding_int     = inflags.GetValueTensor("padding").lengths;
+    padding                          = {padding_int.begin(), padding_int.end()};
+    std::vector<int> dilation_int    = inflags.GetValueTensor("dilation").lengths;
+    dilation                         = {dilation_int.begin(), dilation_int.end()};
 
-    output_size = GetVectorInt32tFromCmdLine("outputSize");
-    kernel_size = GetVectorInt32tFromCmdLine("kernelSize");
-    stride      = GetVectorInt32tFromCmdLine("stride");
-    padding     = GetVectorInt32tFromCmdLine("padding");
-    dilation    = GetVectorInt32tFromCmdLine("dilation");
-    const int N = input_length[0];
-    int C       = input_length[1];
-    for(int32_t i : kernel_size)
+    int64_t N = input_length[0];
+    int64_t C = input_length[1];
+    for(int64_t i : kernel_size)
     {
         C = C / i;
     }
 
     std::vector<int> output_length = {N, C, output_size[0], output_size[1]};
-    SetTensorNd(inputDesc, input_length, data_type);
-    SetTensorNd(outputDesc, output_length, data_type);
-    SetTensorNd(dinputDesc, input_length, data_type);
-    SetTensorNd(doutputDesc, output_length, data_type);
+    if(SetTensorNd(inputDesc, input_length, data_type) != miopenStatusSuccess)
+        MIOPEN_THROW("Error parsing input tensor: " + inflags.GetValueStr("input_dims") + ".");
+    if(SetTensorNd(outputDesc, output_length, data_type) != miopenStatusSuccess)
+        MIOPEN_THROW("Error parsing output tensor: " + inflags.GetValueStr("output_dims") + ".");
+    if(SetTensorNd(doutputDesc, output_length, data_type) != miopenStatusSuccess)
+        MIOPEN_THROW("Error parsing output grad tensor: " + inflags.GetValueStr("output_dims") +
+                     ".");
+    if(SetTensorNd(dinputDesc, input_length, data_type) != miopenStatusSuccess)
+        MIOPEN_THROW("Error parsing input grad tensor: " + inflags.GetValueStr("input_dims") + ".");
 
     return miopenStatusSuccess;
 }
@@ -159,13 +167,15 @@ int FoldDriver<Tgpu, Tref>::AddCmdLineArgs()
 {
     inflags.AddInputFlag(
         "forw", 'F', "1", "Run Fold Forward (Default=1) or both Forward and Backward (0)", "int");
-    inflags.AddTensorFlag(
-        "DimLengths", 'D', "3x12x12", "The dimensional lengths of the input tensor");
-    inflags.AddInputFlag("outputSize", 'o', "4,5", "Output Size (Default=2,3)", "str");
-    inflags.AddInputFlag("kernelSize", 'k', "2,2", "Kernel Size (Default=2,3)", "str");
-    inflags.AddInputFlag("stride", 's', "1,1", "Stride (Default=1,1)", "str");
-    inflags.AddInputFlag("padding", 'p', "0,0", "Padding (Default=0,0)", "str");
-    inflags.AddInputFlag("dilation", 'd', "1,1", "Dilation (Default=1,1)", "str");
+    inflags.AddTensorFlag("DimLengths",
+                          'D',
+                          "3x12x12",
+                          "The dimensional lengths of the input tensor (Default=3x12x12)");
+    inflags.AddTensorFlag("outputSize", 'o', "4x5", "Output Size (Default=2x3)");
+    inflags.AddTensorFlag("kernelSize", 'k', "2x2", "Kernel Size (Default=2x3)");
+    inflags.AddTensorFlag("stride", 's', "1x1", "Stride (Default=1x1)");
+    inflags.AddTensorFlag("padding", 'p', "0x0", "Padding (Default=0x0)");
+    inflags.AddTensorFlag("dilation", 'd', "1x1", "Dilation (Default=1x1)");
     inflags.AddInputFlag("iter", 'i', "10", "Number of Iterations (Default=10)", "int");
     inflags.AddInputFlag("verify", 'V', "0", "Verify Each Layer (Default=0)", "int");
     inflags.AddInputFlag("time", 't', "0", "Time Each Layer (Default=0)", "int");
@@ -173,66 +183,6 @@ int FoldDriver<Tgpu, Tref>::AddCmdLineArgs()
         "wall", 'w', "0", "Wall-clock Time Each Layer, Requires time == 1 (Default=0)", "int");
 
     return miopenStatusSuccess;
-}
-
-template <typename Tgpu, typename Tref>
-std::vector<int> FoldDriver<Tgpu, Tref>::GetTensorLengthsFromCmdLine()
-{
-    std::string lengthsStr = inflags.GetValueStr("DimLengths");
-
-    std::vector<int> lengths;
-    std::size_t pos = 0;
-    std::size_t new_pos;
-
-    new_pos = lengthsStr.find(',', pos);
-    while(new_pos != std::string::npos)
-    {
-        std::string sliceStr = lengthsStr.substr(pos, new_pos - pos);
-
-        int len = std::stoi(sliceStr);
-
-        lengths.push_back(len);
-
-        pos     = new_pos + 1;
-        new_pos = lengthsStr.find(',', pos);
-    };
-
-    std::string sliceStr = lengthsStr.substr(pos);
-    int len              = std::stoi(sliceStr);
-
-    lengths.push_back(len);
-
-    return (lengths);
-}
-
-template <typename Tgpu, typename Tref>
-std::vector<int32_t> FoldDriver<Tgpu, Tref>::GetVectorInt32tFromCmdLine(std::string long_name)
-{
-    std::string lengthsStr = inflags.GetValueStr(long_name);
-
-    std::vector<int32_t> lengths;
-    std::size_t pos = 0;
-    std::size_t new_pos;
-
-    new_pos = lengthsStr.find(',', pos);
-    while(new_pos != std::string::npos)
-    {
-        std::string sliceStr = lengthsStr.substr(pos, new_pos - pos);
-
-        int len = std::stoi(sliceStr);
-
-        lengths.push_back(static_cast<int32_t>(len));
-
-        pos     = new_pos + 1;
-        new_pos = lengthsStr.find(',', pos);
-    };
-
-    std::string sliceStr = lengthsStr.substr(pos);
-    int len              = std::stoi(sliceStr);
-
-    lengths.push_back(static_cast<int32_t>(len));
-
-    return (lengths);
 }
 
 template <typename Tgpu, typename Tref>
@@ -276,8 +226,10 @@ int FoldDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     status |= dinput_dev->ToGPU(GetStream(), dinput.data());
 
     if(status != 0)
-        std::cout << "Fold Driver Error copying data to GPU\n" << std::endl;
-
+    {
+        std::cout << "Error copying data to GPU\n" << std::endl;
+        return miopenStatusAllocFailed;
+    }
     return miopenStatusSuccess;
 }
 
@@ -418,13 +370,7 @@ int FoldDriver<Tgpu, Tref>::RunBackwardCPU()
 template <typename Tgpu, typename Tref>
 Tref FoldDriver<Tgpu, Tref>::GetTolerance()
 {
-    // Computation error of fp16 is ~2^13 (=8192) bigger than
-    // the one of fp32 because mantissa is shorter by 13 bits.
-    auto tolerance = std::is_same<Tgpu, float>::value ? 1.5e-6 : 8.2e-3;
-
-    // bf16 mantissa has 7 bits, by 3 bits shorter than fp16.
-    if(std::is_same<Tgpu, bfloat16>::value)
-        tolerance *= 8.0;
+    Tref tolerance = std::numeric_limits<Tgpu>::epsilon() * 10;
     return tolerance;
 }
 
