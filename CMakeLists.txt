@@ -681,7 +681,7 @@ endif()
 # End KDB package creation
 
 if(NOT MIOPEN_TEST_DISCRETE)
-list(APPEND CPACK_COMPONENTS_ALL client)
+list(APPEND CPACK_COMPONENTS_ALL clients)
 endif()
 
 rocm_create_package(

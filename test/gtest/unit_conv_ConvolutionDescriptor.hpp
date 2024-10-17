@@ -42,6 +42,8 @@ struct ConvolutionDescriptorParams
     {
     }
 
+    std::size_t GetNumSpatialDims() const { return pads.size(); }
+
     miopen::ConvolutionDescriptor GetConvolutionDescriptor() const
     {
         const auto trans_output_pads = std::vector<int>(pads.size(), 0);
