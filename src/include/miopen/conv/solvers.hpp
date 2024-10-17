@@ -2460,7 +2460,7 @@ struct PerformanceConfigConvOclBwdWrw2
 };
 
 template <int N_BATCH_LOOPS>
-struct ConvOclBwdWrW2 : ConvTunableSolver<PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>>
+struct ConvOclBwdWrW2 final : ConvTunableSolver<PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>>
 {
     MIOPEN_INTERNALS_EXPORT const std::string& SolverDbId() const override
     {
