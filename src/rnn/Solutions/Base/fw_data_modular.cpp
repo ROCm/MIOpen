@@ -320,12 +320,10 @@ void RNNForwardDataModularAlgo::UpdateHStatePerTimeSeq(const Handle& handle,
     size_t seq_batch_offset_prev = batchController.getBatchSum(
         currentSeq.isFirst() ? currentSeq.getPhisVal() : currentSeq.getPrev().getPhisVal());
 
-    const auto fwd_mode = miopenRNNFWDMode_t::miopenRNNTraining;
-
     LSTMForwardHiddenStateUpdate(
         handle,
         rnnDesc.dataType,
-        fwd_mode == miopenRNNFWDMode_t::miopenRNNTraining ? false : true,
+        fwdMode == miopenRNNFWDMode_t::miopenRNNTraining ? false : true,
         currentSeq.isFirst(),
         static_cast<int>(direction),
         batchController.getBatchSize(0),

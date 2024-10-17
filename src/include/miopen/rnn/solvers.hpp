@@ -54,7 +54,8 @@ public:
     static RNNModuleAlgoBase create(const RNNDescriptor& rnnDesc,
                                     const SeqTensorDescriptor& xDesc,
                                     const SeqTensorDescriptor& yDesc,
-                                    const TensorDescriptor& hDesc)
+                                    const TensorDescriptor& hDesc,
+                                    miopenRNNFWDMode_t mode)
     {
         auto [max_layers_hid, max_batch_hid, hidden_vec_sz] = miopen::tien<3>(hDesc.GetLengths());
         auto [max_batch_in, max_seq, input_vec_sz]          = miopen::tien<3>(xDesc.GetLengths());
@@ -102,7 +103,8 @@ public:
                 x_info,
                 y_info,
                 rnnDesc,
-                batch_controller};
+                batch_controller,
+                mode};
     }
 
     RNNModuleAlgoBase(RNNModuleAlgoBase&&) = default;
@@ -115,7 +117,8 @@ public:
                       IOBufferDescriptor x_info,
                       IOBufferDescriptor y_info,
                       const RNNDescriptor& rnn_desc,
-                      BatchController batch_controller)
+                      BatchController batch_controller,
+                      miopenRNNFWDMode_t fwd_mode)
         : reservLayout(std::move(rb_layout)),
           workspaceInfo(std::move(workspace_info)),
           weightsLayout(std::move(weights_layout)),
@@ -123,7 +126,12 @@ public:
           xInfo(std::move(x_info)),
           yInfo(std::move(y_info)),
           rnnDesc(rnn_desc),
-          batchController(std::move(batch_controller))
+          tanhDesc{miopenActivationTANH, 1, 1, 1},
+          sigDesc{miopenActivationLOGISTIC, 1, 0, 1},
+          reluDesc{miopenActivationRELU, 1, 0, 1},
+          batchController(std::move(batch_controller)),
+          fwdMode(fwd_mode),
+          isBidirectSeq(false)
     {
     }
 
@@ -139,13 +147,15 @@ public:
 
     const RNNDescriptor& rnnDesc;
 
-    const ActivationDescriptor tanhDesc = {miopenActivationTANH, 1, 1, 1};
-    const ActivationDescriptor sigDesc  = {miopenActivationLOGISTIC, 1, 0, 1};
-    const ActivationDescriptor reluDesc = {miopenActivationRELU, 1, 0, 1};
+    const ActivationDescriptor tanhDesc;
+    const ActivationDescriptor sigDesc;
+    const ActivationDescriptor reluDesc;
 
     const BatchController batchController;
 
-    const bool isBidirectSeq = false;
+    const miopenRNNFWDMode_t fwdMode;
+
+    const bool isBidirectSeq;
 
     inline size_t getVirtualLayer(const size_t layer_id, SequenceDirection direction) const
     {
@@ -516,8 +526,9 @@ public:
     RNNModularSingleStreamFWD(const RNNDescriptor& rnn,
                               const SeqTensorDescriptor& xDesc,
                               const SeqTensorDescriptor& yDesc,
-                              const TensorDescriptor& hDesc)
-        : rnnAlgoModules(RNNModuleAlgoBase::create(rnn, xDesc, yDesc, hDesc)),
+                              const TensorDescriptor& hDesc,
+                              miopenRNNFWDMode_t mode)
+        : rnnAlgoModules(RNNModuleAlgoBase::create(rnn, xDesc, yDesc, hDesc, mode)),
           rnnDesc(rnn),
           max_seq_len(xDesc.GetMaxSequenceLength())
     {
@@ -549,8 +560,9 @@ public:
     RNNModularSingleStreamBWD(const RNNDescriptor& rnn,
                               const SeqTensorDescriptor& xDesc,
                               const SeqTensorDescriptor& yDesc,
-                              const TensorDescriptor& hDesc)
-        : rnnAlgoModules(RNNModuleAlgoBase::create(rnn, xDesc, yDesc, hDesc)),
+                              const TensorDescriptor& hDesc,
+                              miopenRNNFWDMode_t mode)
+        : rnnAlgoModules(RNNModuleAlgoBase::create(rnn, xDesc, yDesc, hDesc, mode)),
           rnnDesc(rnn),
           max_seq_len(xDesc.GetMaxSequenceLength())
     {
@@ -591,8 +603,9 @@ public:
     RNNModularMultiStreamBWD(const RNNDescriptor& rnn,
                              const SeqTensorDescriptor& xDesc,
                              const SeqTensorDescriptor& yDesc,
-                             const TensorDescriptor& hDesc)
-        : rnnAlgoModules(RNNModuleAlgoBase::create(rnn, xDesc, yDesc, hDesc)),
+                             const TensorDescriptor& hDesc,
+                             miopenRNNFWDMode_t mode)
+        : rnnAlgoModules(RNNModuleAlgoBase::create(rnn, xDesc, yDesc, hDesc, mode)),
           rnnDesc(rnn),
           max_seq_len(xDesc.GetMaxSequenceLength())
     {
