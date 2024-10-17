@@ -185,8 +185,10 @@ set( MIOpen_Source
     rnn/rnn_util.cpp
     rnn/selector.cpp
     rnn/Solutions/rnn_transformer.cpp
+    rnn/Solutions/Base/fw_data_modular.cpp
     rnn/Solutions/Base/bw_weights_modular.cpp
     rnn/Solutions/Base/bw_data_modular.cpp
+    rnn/Solutions/fwd_s_stream.cpp
     rnn/Solutions/bwd_s_stream.cpp
     rnn/Solutions/bwd_multi_stream.cpp
     rnn/Solutions/bww_s_steam.cpp
