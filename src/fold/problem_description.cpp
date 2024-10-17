@@ -26,7 +26,6 @@
 
 #include <miopen/fold/problem_description.hpp>
 #include <miopen/names.hpp>
-
 #include <sstream>
 
 namespace miopen {

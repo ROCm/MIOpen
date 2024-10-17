@@ -25,7 +25,7 @@
  *******************************************************************************/
 #include "cpu_unfold.hpp"
 #include "get_handle.hpp"
-#include "miopen/allocator.hpp"
+#include <miopen/allocator.hpp>
 #include "random.hpp"
 #include "tensor_holder.hpp"
 #include "verify.hpp"

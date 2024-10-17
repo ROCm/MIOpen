@@ -23,8 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef GUARD_MIOPEN_FOLD_DRIVER_HPP
-#define GUARD_MIOPEN_FOLD_DRIVER_HPP
+#pragma once
 
 #include "InputFlags.hpp"
 #include "driver.hpp"
@@ -32,7 +31,6 @@
 #include "random.hpp"
 #include "tensor_driver.hpp"
 #include "timer.hpp"
-#include "util_driver.hpp"
 
 #include <../test/tensor_holder.hpp>
 #include <../test/verify.hpp>
@@ -469,5 +467,3 @@ int FoldDriver<Tgpu, Tref>::VerifyBackward()
     }
     return miopenStatusSuccess;
 }
-
-#endif // GUARD_MIOPEN_FOLD_DRIVER_HPP

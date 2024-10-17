@@ -23,9 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef MIOPEN_FOLD_HPP_
-#define MIOPEN_FOLD_HPP_
-
+#pragma once
 #include <miopen/common.hpp>
 
 namespace miopen {
@@ -89,4 +87,3 @@ MIOPEN_INTERNALS_EXPORT miopenStatus_t FoldBackward(Handle& handle,
                                                     const int64_t* dilation,
                                                     int64_t dilation_size);
 } // namespace miopen
-#endif // MIOPEN_FOLD_HPP_

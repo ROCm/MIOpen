@@ -28,7 +28,7 @@
 
 #include <../test/ford.hpp>
 #include "tensor_view.hpp"
-#include "miopen/tensor_view_utils.hpp"
+#include <miopen/tensor_view_utils.hpp>
 #include <vector>
 #include <miopen/tensor.hpp>
 

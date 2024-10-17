@@ -23,14 +23,10 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef GUARD_CPU_UNFOLD_HPP
-#define GUARD_CPU_UNFOLD_HPP
-
 #pragma once
 
 #include <miopen/tensor.hpp>
 #include "tensor_holder.hpp"
-#include "tensor_view.hpp"
 #include <miopen/tensor_view_utils.hpp>
 
 template <class T>
@@ -190,4 +186,3 @@ void cpu_unfold_bwd_4d(tensor<T>& ref_dinput_tensor,
         input_grad[input_grad_idx] = static_cast<T>(sum);
     });
 }
-#endif
