@@ -2802,6 +2802,33 @@ void RNNDescriptor::RNNForwardTrainingPackedTensors(
                             reserveSpaceSize,
                             miopenRNNFWDMode_t::miopenRNNTraining);
     }
+    else if(dirMode == 0 && inputMode == miopenRNNlinear && rnnMode == miopenLSTM && !use_dropout &&
+            algoMode == miopenRNNdefault)
+    {
+        SeqTensorDescriptor x_seq =
+            makeSeqTensorDescriptor(xDesc, seqLen, miopenRNNDataSeqMajorNotPadded);
+
+        SeqTensorDescriptor y_seq =
+            makeSeqTensorDescriptor(yDesc, seqLen, miopenRNNDataSeqMajorNotPadded);
+
+        return ModularForward(handle,
+                              miopenRNNFWDMode_t::miopenRNNTraining,
+                              w,
+                              x_seq,
+                              x,
+                              hxDesc,
+                              hx,
+                              hy,
+                              cxDesc,
+                              cx,
+                              cy,
+                              y_seq,
+                              y,
+                              nullptr,
+                              0,
+                              reserveSpace,
+                              reserveSpaceSize);
+    }
 
     int in_stride  = xDesc[0].GetLengths()[1];
     int hy_stride  = hy_h * bi * static_cast<int>(workspaceScale);

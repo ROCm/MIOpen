@@ -138,6 +138,72 @@ public:
 #endif // MIOPEN_USE_GEMM&& MIOPEN_BACKEND_HIP
     }
 
+    static miopenStatus_t FWD_GEMM(const Handle& handle,
+                                   ConstData_t ht_ptr,
+                                   size_t ht_offset,
+                                   const miopen::TensorDescriptor& ht_dsc,
+                                   ConstData_t filter_ptr,
+                                   size_t filter_offset,
+                                   const miopen::TensorDescriptor& filter_dsc,
+                                   Data_t comb_gates_ptr,
+                                   size_t comb_gates_offset,
+                                   const miopen::TensorDescriptor& tmp_gates_dsc,
+                                   bool add_assign = true)
+    {
+
+        assert(filter_dsc.GetNumDims() == 2 && tmp_gates_dsc.GetNumDims() == 2 &&
+               ht_dsc.GetNumDims() == 2);
+
+        const size_t batch_size      = tmp_gates_dsc.GetLengths()[0];
+        const size_t comb_gates_size = tmp_gates_dsc.GetLengths()[1];
+        const size_t ht_vec_size     = ht_dsc.GetLengths()[1];
+
+        assert(filter_dsc.GetLengths()[0] == comb_gates_size);
+        assert(filter_dsc.GetLengths()[1] == ht_vec_size);
+        assert(ht_dsc.GetLengths()[0] == batch_size);
+
+        const size_t tmp_gates_ld_stride = tmp_gates_dsc.GetStrides()[0]; // {batch, comb_gates}
+        const size_t ht_dest_ld_stride   = ht_dsc.GetStrides()[0];        // {batch, ht_vec}
+        const size_t filter_ld_stride    = filter_dsc.GetStrides()[0];    // {comb_gates, ht_vec}
+
+        // no gemm work
+        if(batch_size == 0)
+            return miopenStatusSuccess;
+
+        [[maybe_unused]] const miopen::GemmDescriptor gemm_desc =
+            GemmDescriptor64BitWraper(false,
+                                      false,
+                                      true,
+                                      batch_size,
+                                      comb_gates_size,
+                                      ht_vec_size,
+                                      ht_dest_ld_stride,
+                                      filter_ld_stride,
+                                      tmp_gates_ld_stride,
+                                      1,                  // batch count
+                                      0,                  // Stride A
+                                      0,                  // Stride B
+                                      0,                  // Stride C
+                                      1,                  // alpha
+                                      add_assign ? 1 : 0, // beta
+                                      ht_dsc.GetType(),
+                                      false);
+#if MIOPEN_USE_GEMM && MIOPEN_BACKEND_HIP
+        return CallGemm(handle,
+                        gemm_desc,
+                        ht_ptr,
+                        ht_offset,
+                        filter_ptr,
+                        filter_offset,
+                        comb_gates_ptr,
+                        comb_gates_offset,
+                        GemmBackend_t::rocblas);
+#else
+
+        return miopenStatusNotImplemented;
+#endif // MIOPEN_USE_GEMM&& MIOPEN_BACKEND_HIP
+    }
+
     static miopenStatus_t BWD_GEMM_Hidden_Prop(const Handle& handle,
                                                ConstData_t comb_gates_src_ptr,
                                                size_t comb_gates_src_offset,

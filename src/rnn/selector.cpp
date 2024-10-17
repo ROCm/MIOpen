@@ -65,6 +65,29 @@ bool RNNBwWeightMSIsFast(const int seqLen)
     return false;
 }
 
+void RNNDescriptor::ModularForward(Handle& handle,
+                                   miopenRNNFWDMode_t fwdMode,
+                                   ConstData_t w,
+                                   const SeqTensorDescriptor& xDesc,
+                                   ConstData_t x,
+                                   const TensorDescriptor& hDesc,
+                                   ConstData_t hx,
+                                   Data_t hy,
+                                   const TensorDescriptor& /*cDesc*/,
+                                   ConstData_t cx,
+                                   Data_t cy,
+                                   const SeqTensorDescriptor& yDesc,
+                                   Data_t y,
+                                   Data_t workSpace,
+                                   size_t /*workSpaceSize*/,
+                                   Data_t reserveSpace,
+                                   size_t /*reserveSpaceSize*/) const
+{
+    rnn_base::RNNModularSingleStreamFWD single_stream{*this, xDesc, yDesc, hDesc, fwdMode};
+    single_stream.ComputeFWD(
+        handle, rnn_base::runtimeArgsFwd{x, hx, cx, y, hy, cy, w, workSpace, reserveSpace});
+}
+
 void RNNDescriptor::ModularBackward(Handle& handle,
                                     const SeqTensorDescriptor& yDesc,
                                     ConstData_t dy,
@@ -86,12 +109,14 @@ void RNNDescriptor::ModularBackward(Handle& handle,
 {
     if(RNNBwdMSIsFast(xDesc.GetMaxSequenceLength()))
     {
-        rnn_base::RNNModularMultiStreamBWD multi_stream{*this, xDesc, yDesc, hDesc};
+        rnn_base::RNNModularMultiStreamBWD multi_stream{
+            *this, xDesc, yDesc, hDesc, miopenRNNFWDMode_t::miopenRNNTraining};
         multi_stream.ComputeBWD(handle, dy, dhy, dhx, cx, dcy, dcx, dx, w, workSpace, reserveSpace);
     }
     else
     {
-        rnn_base::RNNModularSingleStreamBWD single_stream{*this, xDesc, yDesc, hDesc};
+        rnn_base::RNNModularSingleStreamBWD single_stream{
+            *this, xDesc, yDesc, hDesc, miopenRNNFWDMode_t::miopenRNNTraining};
         single_stream.ComputeBWD(
             handle, dy, dhy, dhx, cx, dcy, dcx, dx, w, workSpace, reserveSpace);
     }
