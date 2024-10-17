@@ -29,6 +29,7 @@
 #include <miopen/batchnorm/solvers.hpp>
 #include <miopen/cat/solvers.hpp>
 #include <miopen/conv/solvers.hpp>
+#include <miopen/fold/solvers.hpp>
 #include <miopen/fusion/solvers.hpp>
 #include <miopen/glu/solvers.hpp>
 #include <miopen/groupnorm/solvers.hpp>
@@ -668,7 +669,6 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
 
     Register(registry, ++id, Primitive::Cat, cat::CatForward{}.SolverDbId());
     Register(registry, ++id, Primitive::Adam, adam::Adam{}.SolverDbId());
-    Register(registry, ++id, Primitive::Item, getitem::GetitemBackward{}.SolverDbId());
 
     Register(registry, ++id, Primitive::Adam, adam::TransformersAdamW{}.SolverDbId());
 
@@ -700,6 +700,10 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
              Primitive::MultiMarginLoss,
              multimarginloss::MultiMarginLossForward{}.SolverDbId());
 
+    Register(registry, ++id, Primitive::Unfold, fold::UnfoldFwd{}.SolverDbId());
+    Register(registry, ++id, Primitive::Unfold, fold::UnfoldBwd{}.SolverDbId());
+    Register(registry, ++id, Primitive::Fold, fold::FoldFwd{}.SolverDbId());
+    Register(registry, ++id, Primitive::Fold, fold::FoldBwd{}.SolverDbId());
     // IMPORTANT: New solvers should be added to the end of the function!
 }
 
