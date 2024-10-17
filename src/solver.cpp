@@ -43,6 +43,7 @@
 #include <miopen/softmarginloss/solvers.hpp>
 #include <miopen/softmax/solvers.hpp>
 #include <miopen/multimarginloss/solvers.hpp>
+#include <miopen/where/solvers.hpp>
 
 #include <miopen/conv_algo_name.hpp>
 #include <miopen/db.hpp>
@@ -699,6 +700,8 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
              ++id,
              Primitive::MultiMarginLoss,
              multimarginloss::MultiMarginLossForward{}.SolverDbId());
+
+    Register(registry, ++id, Primitive::Where, where::WhereBackward{}.SolverDbId());
 
     // IMPORTANT: New solvers should be added to the end of the function!
 }

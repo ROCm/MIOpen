@@ -72,6 +72,7 @@
  * @defgroup ReduceCalculation
  * @defgroup RotaryPositionalEmbeddings
  * @defgroup ReLU
+ * @defgroup where
  *
  */
 
@@ -8174,6 +8175,39 @@ MIOPEN_EXPORT miopenStatus_t miopenMultiMarginLossForward(miopenHandle_t handle,
 
 /** @} */
 // CLOSEOUT LossFunction DOXYGEN GROUP
+#endif // MIOPEN_BETA_API
+
+#ifdef MIOPEN_BETA_API
+/** @addtogroup where
+ *
+ *  @{
+ */
+
+/*! @brief Execute WHERE backward layer
+ *
+ * @param handle                   MIOpen handle (input)
+ * @param outputGradDesc           Tensor descriptor for output gradient tensor (input)
+ * @param outputGrad               Output gradient tensor (input)
+ * @param conditionDesc            Tensor descriptor for condition tensor (input)
+ * @param condition                Condition tensor (input)
+ * @param inputGradDesc            Tensor descriptor for input gradient tensor (input)
+ * @param inputGrad                Input gradient tensor (output)
+ * @param otherGradDesc            Tensor descriptor for other gradient tensor (input)
+ * @param otherGrad                Other gradient tensor (output)
+ * @return                         miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenWhereBackward(miopenHandle_t handle,
+                                                 const miopenTensorDescriptor_t outputGradDesc,
+                                                 const void* outputGrad,
+                                                 const miopenTensorDescriptor_t conditionDesc,
+                                                 const void* condition,
+                                                 const miopenTensorDescriptor_t inputGradDesc,
+                                                 void* inputGrad,
+                                                 const miopenTensorDescriptor_t otherGradDesc,
+                                                 void* otherGrad);
+
+/** @} */
+// CLOSEOUT WHERE DOXYGEN GROUP
 #endif // MIOPEN_BETA_API
 
 #ifdef __cplusplus
