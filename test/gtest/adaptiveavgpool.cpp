@@ -28,67 +28,67 @@
 using float16 = half_float::half;
 
 // FORWARD TEST
-using GPU_AdaptiveAvgpool_fwd_FP32  = AdaptiveAvgPoolTestFwd<float>;
-using GPU_AdaptiveAvgpool_fwd_FP16  = AdaptiveAvgPoolTestFwd<float16>;
-using GPU_AdaptiveAvgpool_fwd_BFP16 = AdaptiveAvgPoolTestFwd<bfloat16>;
+using GPU_AdaptiveAvgPool_fwd_FP32  = AdaptiveAvgPoolTestFwd<float>;
+using GPU_AdaptiveAvgPool_fwd_FP16  = AdaptiveAvgPoolTestFwd<float16>;
+using GPU_AdaptiveAvgPool_fwd_BFP16 = AdaptiveAvgPoolTestFwd<bfloat16>;
 
-TEST_P(GPU_AdaptiveAvgpool_fwd_FP32, AdaptiveAvgPoolTestFwd)
+TEST_P(GPU_AdaptiveAvgPool_fwd_FP32, AdaptiveAvgPoolTestFwd)
 {
     RunTest();
     Verify();
 };
 
-TEST_P(GPU_AdaptiveAvgpool_fwd_FP16, AdaptiveAvgPoolTestFwd)
+TEST_P(GPU_AdaptiveAvgPool_fwd_FP16, AdaptiveAvgPoolTestFwd)
 {
     RunTest();
     Verify();
 };
 
-TEST_P(GPU_AdaptiveAvgpool_fwd_BFP16, AdaptiveAvgPoolTestFwd)
+TEST_P(GPU_AdaptiveAvgPool_fwd_BFP16, AdaptiveAvgPoolTestFwd)
 {
     RunTest();
     Verify();
 };
 
 INSTANTIATE_TEST_SUITE_P(Full,
-                         GPU_AdaptiveAvgpool_fwd_FP32,
+                         GPU_AdaptiveAvgPool_fwd_FP32,
                          testing::ValuesIn(AdaptiveAvgPoolTestConfigsFwdFp32()));
 INSTANTIATE_TEST_SUITE_P(Full,
-                         GPU_AdaptiveAvgpool_fwd_FP16,
+                         GPU_AdaptiveAvgPool_fwd_FP16,
                          testing::ValuesIn(AdaptiveAvgPoolTestConfigsFwdFp16()));
 INSTANTIATE_TEST_SUITE_P(Full,
-                         GPU_AdaptiveAvgpool_fwd_BFP16,
+                         GPU_AdaptiveAvgPool_fwd_BFP16,
                          testing::ValuesIn(AdaptiveAvgPoolTestConfigsFwdBfp16()));
 
 // BACKWARD TEST
-using GPU_AdaptiveAvgpool_bwd_FP32  = AdaptiveAvgPoolTestBwd<float>;
-using GPU_AdaptiveAvgpool_bwd_FP16  = AdaptiveAvgPoolTestBwd<float16>;
-using GPU_AdaptiveAvgpool_bwd_BFP16 = AdaptiveAvgPoolTestBwd<bfloat16>;
+using GPU_AdaptiveAvgPool_bwd_FP32  = AdaptiveAvgPoolTestBwd<float>;
+using GPU_AdaptiveAvgPool_bwd_FP16  = AdaptiveAvgPoolTestBwd<float16>;
+using GPU_AdaptiveAvgPool_bwd_BFP16 = AdaptiveAvgPoolTestBwd<bfloat16>;
 
-TEST_P(GPU_AdaptiveAvgpool_bwd_FP32, AdaptiveAvgPoolTestBwd)
+TEST_P(GPU_AdaptiveAvgPool_bwd_FP32, AdaptiveAvgPoolTestBwd)
 {
     RunTest();
     Verify();
 };
 
-TEST_P(GPU_AdaptiveAvgpool_bwd_FP16, AdaptiveAvgPoolTestBwd)
+TEST_P(GPU_AdaptiveAvgPool_bwd_FP16, AdaptiveAvgPoolTestBwd)
 {
     RunTest();
     Verify();
 };
 
-TEST_P(GPU_AdaptiveAvgpool_bwd_BFP16, AdaptiveAvgPoolTestBwd)
+TEST_P(GPU_AdaptiveAvgPool_bwd_BFP16, AdaptiveAvgPoolTestBwd)
 {
     RunTest();
     Verify();
 };
 
 INSTANTIATE_TEST_SUITE_P(Full,
-                         GPU_AdaptiveAvgpool_bwd_FP32,
+                         GPU_AdaptiveAvgPool_bwd_FP32,
                          testing::ValuesIn(AdaptiveAvgPoolTestConfigsBwdFp32()));
 INSTANTIATE_TEST_SUITE_P(Full,
-                         GPU_AdaptiveAvgpool_bwd_FP16,
+                         GPU_AdaptiveAvgPool_bwd_FP16,
                          testing::ValuesIn(AdaptiveAvgPoolTestConfigsBwdFp16()));
 INSTANTIATE_TEST_SUITE_P(Full,
-                         GPU_AdaptiveAvgpool_bwd_BFP16,
+                         GPU_AdaptiveAvgPool_bwd_BFP16,
                          testing::ValuesIn(AdaptiveAvgPoolTestConfigsBwdBfp16()));
