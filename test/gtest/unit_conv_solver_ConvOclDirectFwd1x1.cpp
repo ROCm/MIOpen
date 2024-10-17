@@ -39,12 +39,11 @@ public:
 
     ~WA_SWDEV_271887_ScopedDisabler() noexcept
     {
-        if(prev)
-            miopen::debug::disable_wa_swdev_271887 = prev.value();
+        miopen::debug::disable_wa_swdev_271887 = prev;
     }
 
 private:
-    std::optional<bool> prev;
+    bool prev;
 };
 
 auto GetConvTestCases(miopenDataType_t datatype)
