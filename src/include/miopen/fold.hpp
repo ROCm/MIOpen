@@ -31,6 +31,8 @@ namespace miopen {
 struct Handle;
 struct TensorDescriptor;
 
+namespace fold {
+
 MIOPEN_INTERNALS_EXPORT miopenStatus_t UnfoldForward(Handle& handle,
                                                      const TensorDescriptor& inputDesc,
                                                      ConstData_t input,
@@ -86,4 +88,7 @@ MIOPEN_INTERNALS_EXPORT miopenStatus_t FoldBackward(Handle& handle,
                                                     int64_t padding_size,
                                                     const int64_t* dilation,
                                                     int64_t dilation_size);
+
+} // namespace fold
+
 } // namespace miopen

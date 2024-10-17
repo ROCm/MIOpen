@@ -46,19 +46,19 @@ extern "C" miopenStatus_t miopenUnfoldForward(miopenHandle_t handle,
                                               const int64_t dilation_size)
 {
     return miopen::try_([&] {
-        miopen::UnfoldForward(miopen::deref(handle),
-                              miopen::deref(inputDesc),
-                              DataCast(input),
-                              miopen::deref(outputDesc),
-                              DataCast(output),
-                              kernel_size,
-                              kernel_size_size,
-                              stride,
-                              stride_size,
-                              padding,
-                              padding_size,
-                              dilation,
-                              dilation_size);
+        miopen::fold::UnfoldForward(miopen::deref(handle),
+                                    miopen::deref(inputDesc),
+                                    DataCast(input),
+                                    miopen::deref(outputDesc),
+                                    DataCast(output),
+                                    kernel_size,
+                                    kernel_size_size,
+                                    stride,
+                                    stride_size,
+                                    padding,
+                                    padding_size,
+                                    dilation,
+                                    dilation_size);
     });
 }
 
@@ -77,19 +77,19 @@ extern "C" miopenStatus_t miopenUnfoldBackward(miopenHandle_t handle,
                                                const int64_t dilation_size)
 {
     return miopen::try_([&] {
-        miopen::UnfoldBackward(miopen::deref(handle),
-                               miopen::deref(dinputDesc),
-                               DataCast(dinput),
-                               miopen::deref(doutputDesc),
-                               DataCast(doutput),
-                               kernel_size,
-                               kernel_size_size,
-                               stride,
-                               stride_size,
-                               padding,
-                               padding_size,
-                               dilation,
-                               dilation_size);
+        miopen::fold::UnfoldBackward(miopen::deref(handle),
+                                     miopen::deref(dinputDesc),
+                                     DataCast(dinput),
+                                     miopen::deref(doutputDesc),
+                                     DataCast(doutput),
+                                     kernel_size,
+                                     kernel_size_size,
+                                     stride,
+                                     stride_size,
+                                     padding,
+                                     padding_size,
+                                     dilation,
+                                     dilation_size);
     });
 }
 
@@ -108,19 +108,19 @@ extern "C" miopenStatus_t miopenFoldForward(miopenHandle_t handle,
                                             const int64_t dilation_size)
 {
     return miopen::try_([&] {
-        miopen::FoldForward(miopen::deref(handle),
-                            miopen::deref(inputDesc),
-                            DataCast(input),
-                            miopen::deref(outputDesc),
-                            DataCast(output),
-                            kernel_size,
-                            kernel_size_size,
-                            stride,
-                            stride_size,
-                            padding,
-                            padding_size,
-                            dilation,
-                            dilation_size);
+        miopen::fold::FoldForward(miopen::deref(handle),
+                                  miopen::deref(inputDesc),
+                                  DataCast(input),
+                                  miopen::deref(outputDesc),
+                                  DataCast(output),
+                                  kernel_size,
+                                  kernel_size_size,
+                                  stride,
+                                  stride_size,
+                                  padding,
+                                  padding_size,
+                                  dilation,
+                                  dilation_size);
     });
 }
 
@@ -139,18 +139,18 @@ extern "C" miopenStatus_t miopenFoldBackward(miopenHandle_t handle,
                                              const int64_t dilation_size)
 {
     return miopen::try_([&] {
-        miopen::FoldBackward(miopen::deref(handle),
-                             miopen::deref(dinputDesc),
-                             DataCast(dinput),
-                             miopen::deref(doutputDesc),
-                             DataCast(doutput),
-                             kernel_size,
-                             kernel_size_size,
-                             stride,
-                             stride_size,
-                             padding,
-                             padding_size,
-                             dilation,
-                             dilation_size);
+        miopen::fold::FoldBackward(miopen::deref(handle),
+                                   miopen::deref(dinputDesc),
+                                   DataCast(dinput),
+                                   miopen::deref(doutputDesc),
+                                   DataCast(doutput),
+                                   kernel_size,
+                                   kernel_size_size,
+                                   stride,
+                                   stride_size,
+                                   padding,
+                                   padding_size,
+                                   dilation,
+                                   dilation_size);
     });
 }

@@ -37,6 +37,8 @@
 
 namespace miopen {
 
+namespace fold {
+
 miopenStatus_t UnfoldForward(Handle& handle,
                              const TensorDescriptor& inputDesc,
                              ConstData_t input,
@@ -236,5 +238,7 @@ miopenStatus_t FoldBackward(Handle& handle,
 
     return miopenStatusSuccess;
 }
+
+} // namespace fold
 
 } // namespace miopen

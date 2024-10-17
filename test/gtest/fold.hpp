@@ -169,19 +169,19 @@ protected:
         auto&& handle = get_handle();
         miopenStatus_t status;
 
-        status = miopen::FoldForward(handle,
-                                     input.desc,
-                                     input_dev.get(),
-                                     output.desc,
-                                     output_dev.get(),
-                                     config.kernelSize.data(),
-                                     static_cast<int64_t>(config.kernelSize.size()),
-                                     config.stride.data(),
-                                     static_cast<int64_t>(config.stride.size()),
-                                     config.padding.data(),
-                                     static_cast<int64_t>(config.padding.size()),
-                                     config.dilation.data(),
-                                     static_cast<int64_t>(config.dilation.size()));
+        status = miopen::fold::FoldForward(handle,
+                                           input.desc,
+                                           input_dev.get(),
+                                           output.desc,
+                                           output_dev.get(),
+                                           config.kernelSize.data(),
+                                           static_cast<int64_t>(config.kernelSize.size()),
+                                           config.stride.data(),
+                                           static_cast<int64_t>(config.stride.size()),
+                                           config.padding.data(),
+                                           static_cast<int64_t>(config.padding.size()),
+                                           config.dilation.data(),
+                                           static_cast<int64_t>(config.dilation.size()));
 
         cpu_unfold_bwd_4d<T>(
             outputHost, input, config.kernelSize, config.stride, config.padding, config.dilation);
@@ -247,19 +247,19 @@ protected:
         auto&& handle = get_handle();
         miopenStatus_t status;
 
-        status = miopen::FoldBackward(handle,
-                                      dinput.desc,
-                                      dinput_dev.get(),
-                                      doutput.desc,
-                                      doutput_dev.get(),
-                                      config.kernelSize.data(),
-                                      static_cast<int64_t>(config.kernelSize.size()),
-                                      config.stride.data(),
-                                      static_cast<int64_t>(config.stride.size()),
-                                      config.padding.data(),
-                                      static_cast<int64_t>(config.padding.size()),
-                                      config.dilation.data(),
-                                      static_cast<int64_t>(config.dilation.size()));
+        status = miopen::fold::FoldBackward(handle,
+                                            dinput.desc,
+                                            dinput_dev.get(),
+                                            doutput.desc,
+                                            doutput_dev.get(),
+                                            config.kernelSize.data(),
+                                            static_cast<int64_t>(config.kernelSize.size()),
+                                            config.stride.data(),
+                                            static_cast<int64_t>(config.stride.size()),
+                                            config.padding.data(),
+                                            static_cast<int64_t>(config.padding.size()),
+                                            config.dilation.data(),
+                                            static_cast<int64_t>(config.dilation.size()));
 
         cpu_unfold_fwd_4d<T>(
             doutput, dinputHost, config.kernelSize, config.stride, config.padding, config.dilation);

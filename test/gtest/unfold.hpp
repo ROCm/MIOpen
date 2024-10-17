@@ -173,19 +173,19 @@ protected:
         auto&& handle = get_handle();
         miopenStatus_t status;
 
-        status = miopen::UnfoldForward(handle,
-                                       input.desc,
-                                       input_dev.get(),
-                                       output.desc,
-                                       output_dev.get(),
-                                       config.kernelSize.data(),
-                                       static_cast<int64_t>(config.kernelSize.size()),
-                                       config.stride.data(),
-                                       static_cast<int64_t>(config.stride.size()),
-                                       config.padding.data(),
-                                       static_cast<int64_t>(config.padding.size()),
-                                       config.dilation.data(),
-                                       static_cast<int64_t>(config.dilation.size()));
+        status = miopen::fold::UnfoldForward(handle,
+                                             input.desc,
+                                             input_dev.get(),
+                                             output.desc,
+                                             output_dev.get(),
+                                             config.kernelSize.data(),
+                                             static_cast<int64_t>(config.kernelSize.size()),
+                                             config.stride.data(),
+                                             static_cast<int64_t>(config.stride.size()),
+                                             config.padding.data(),
+                                             static_cast<int64_t>(config.padding.size()),
+                                             config.dilation.data(),
+                                             static_cast<int64_t>(config.dilation.size()));
 
         cpu_unfold_fwd_4d<T>(
             input, outputHost, config.kernelSize, config.stride, config.padding, config.dilation);
@@ -261,19 +261,19 @@ protected:
         auto&& handle = get_handle();
         miopenStatus_t status;
 
-        status = miopen::UnfoldBackward(handle,
-                                        dinput.desc,
-                                        dinput_dev.get(),
-                                        doutput.desc,
-                                        doutput_dev.get(),
-                                        config.kernelSize.data(),
-                                        static_cast<int64_t>(config.kernelSize.size()),
-                                        config.stride.data(),
-                                        static_cast<int64_t>(config.stride.size()),
-                                        config.padding.data(),
-                                        static_cast<int64_t>(config.padding.size()),
-                                        config.dilation.data(),
-                                        static_cast<int64_t>(config.dilation.size()));
+        status = miopen::fold::UnfoldBackward(handle,
+                                              dinput.desc,
+                                              dinput_dev.get(),
+                                              doutput.desc,
+                                              doutput_dev.get(),
+                                              config.kernelSize.data(),
+                                              static_cast<int64_t>(config.kernelSize.size()),
+                                              config.stride.data(),
+                                              static_cast<int64_t>(config.stride.size()),
+                                              config.padding.data(),
+                                              static_cast<int64_t>(config.padding.size()),
+                                              config.dilation.data(),
+                                              static_cast<int64_t>(config.dilation.size()));
 
         cpu_unfold_bwd_4d<T>(
             dinputHost, doutput, config.kernelSize, config.stride, config.padding, config.dilation);
