@@ -24,6 +24,8 @@
  *
  *******************************************************************************/
 
+#include <miopen/solver.hpp>
+
 #include <miopen/activ/solvers.hpp>
 #include <miopen/adam/solvers.hpp>
 #include <miopen/batchnorm/solvers.hpp>
@@ -40,6 +42,7 @@
 #include <miopen/reduce/solvers.hpp>
 #include <miopen/rope/solvers.hpp>
 #include <miopen/mha/solvers.hpp>
+#include <miopen/mseloss/solvers.hpp>
 #include <miopen/softmarginloss/solvers.hpp>
 #include <miopen/softmax/solvers.hpp>
 #include <miopen/multimarginloss/solvers.hpp>
@@ -699,6 +702,17 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
              ++id,
              Primitive::MultiMarginLoss,
              multimarginloss::MultiMarginLossForward{}.SolverDbId());
+
+    Register(registry, ++id, Primitive::Loss, mseloss::forward::MSELossForward{}.SolverDbId());
+    Register(registry, ++id, Primitive::Loss, mseloss::backward::MSELossBackward{}.SolverDbId());
+    Register(registry,
+             ++id,
+             Primitive::Loss,
+             mseloss::forward_unreduced::MSELossForwardUnreduced{}.SolverDbId());
+    Register(registry,
+             ++id,
+             Primitive::Loss,
+             mseloss::backward_unreduced::MSELossBackwardUnreduced{}.SolverDbId());
 
     // IMPORTANT: New solvers should be added to the end of the function!
 }

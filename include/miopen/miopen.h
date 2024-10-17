@@ -7149,7 +7149,6 @@ MIOPEN_EXPORT miopenStatus_t miopenBackendDestroyDescriptor(miopenBackendDescrip
 MIOPEN_EXPORT miopenStatus_t miopenBackendInitialize(miopenBackendDescriptor_t descriptor,
                                                      miopenBackendDescriptorType_t descriptorType,
                                                      size_t sizeInBytes);
-
 /** @} */
 // CLOSEOUT BackendAPI DOXYGEN GROUP
 #endif // MIOPEN_BETA_API
@@ -8173,6 +8172,84 @@ MIOPEN_EXPORT miopenStatus_t miopenMultiMarginLossForward(miopenHandle_t handle,
                                                           size_t workspaceSizeInBytes);
 
 /** @} */
+// CLOSEOUT LossFunction DOXYGEN GROUP
+#endif // MIOPEN_BETA_API
+
+#ifdef MIOPEN_BETA_API
+/** @addtogroup LossFunction
+ * @{
+ */
+
+/*! MSELoss APIs
+ * @brief MSELoss forward functon
+ *
+ * MSELoss forward, reduced function
+ * @param  [in]  handle         An instance of miopenHandle_t
+ * @param  [in]  xDesc          Input Tensor descriptor
+ * @param  [in]  yDesc          Target Tensor descriptor
+ * @param  [in]  zDesc          Output Tensor descriptor
+ * @param  [in]  x              Pointer to input tensor data
+ * @param  [in]  y              Pointer to target tensor data
+ * @param  [out] z              Pointer to the output tensor data
+ * @param  [out] workspace      Pointer to the workspace area (for reduction)
+ * @param  [in]  divisor        Divisor value
+ */
+MIOPEN_EXPORT miopenStatus_t miopenMSELossForward(miopenHandle_t handle,
+                                                  miopenTensorDescriptor_t xDesc,
+                                                  miopenTensorDescriptor_t yDesc,
+                                                  miopenTensorDescriptor_t zDesc,
+                                                  const void* x,
+                                                  const void* y,
+                                                  void* z,
+                                                  void* ws,
+                                                  float divisor = 1.0f);
+
+/*!
+ * @brief MSELoss Forward helper function
+ *
+ * MSELoss forward reduced helper function to find the workspace size
+ * @param  [in]  handle         An instance of miopenHandle_t
+ * @param  [in]  xDesc          Input Tensor descriptor
+ * @param  [in]  yDesc          Target Tensor descriptor
+ * @param  [out] sizeInBytes    Needed workspace size
+ */
+
+MIOPEN_EXPORT miopenStatus_t miopenGetMSELossForwardWorkspaceSize(miopenHandle_t handle,
+                                                                  miopenTensorDescriptor_t xDesc,
+                                                                  miopenTensorDescriptor_t yDesc,
+                                                                  size_t* sizeInBytes);
+
+/*!
+ * @brief MSELoss backward function
+ *
+ * MSELoss backward, unreduced function
+ * @param  [in]  handle         An instance of miopenHandle_t
+ * @param  [in]  xDesc          Input Tensor descriptor
+ * @param  [in]  yDesc          Target Tensor descriptor
+ * @param  [in]  dzDesc         Output Tensor descriptor
+ * @param  [in]  dxDesc         Input gradient Tensor descriptor
+ * @param  [in]  dyDesc         Target gradient Tensor descriptor
+ * @param  [in]  x              Pointer to input tensor data
+ * @param  [in]  y              Pointer to target tensor data
+ * @param  [in]  dz             Pointer to output tensor data
+ * @param  [out] dx             Pointer to input gradient data
+ * @param  [out] dy             Pointer to target gradient data
+ * @param  [in]  divisor        Divisor value
+ */
+
+MIOPEN_EXPORT miopenStatus_t miopenMSELossBackward(miopenHandle_t handle,
+                                                   miopenTensorDescriptor_t xDesc,
+                                                   miopenTensorDescriptor_t yDesc,
+                                                   miopenTensorDescriptor_t dzDesc,
+                                                   miopenTensorDescriptor_t dxDesc,
+                                                   miopenTensorDescriptor_t dyDesc,
+                                                   const void* x,
+                                                   const void* y,
+                                                   const void* z,
+                                                   void* dx,
+                                                   void* dy,
+                                                   float divisor = 1.0f);
+/*! @} */
 // CLOSEOUT LossFunction DOXYGEN GROUP
 #endif // MIOPEN_BETA_API
 
