@@ -41,6 +41,8 @@ namespace batchnorm {
 bool BnBwdTrainingPerActivation::IsApplicable(
     const ExecutionContext&, const miopen::batchnorm::ProblemDescription& problem) const
 {
+    if(!problem.Is2D())
+        return false;
     return problem.GetDirection() == miopen::batchnorm::Direction::Backward &&
            problem.GetMode() == miopenBNPerActivation;
 }

@@ -390,6 +390,7 @@ std::string LogCmdBnormFusion(const miopenFusionPlanDescriptor_t fusePlanDesc, i
     if(bn_op != nullptr)
     {
         str += BnormArgsForMIOpenDriver(&bn_op->input_desc,
+                                        &bn_op->base_desc,
                                         bn_op->mode,
                                         nullptr,
                                         nullptr,
