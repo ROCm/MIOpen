@@ -87,6 +87,20 @@ struct CKArgsBNormBwd
         // prep for CK
         std::sort(in_strides.begin(), in_strides.end(), std::greater<>());
         std::rotate(lens.begin() + 1, lens.begin() + 2, lens.end());
+
+        if(problem.IsLayoutNHWC())
+        {
+            reduceDims = {0, 1, 2};
+        }
+        else if(problem.IsLayoutNCHW())
+        {
+            reduceDims = {0, 2, 3};
+        }
+        else
+        {
+            MIOPEN_THROW(miopenStatusInternalError,
+                         "BnCKBwd operation does not support this data layout");
+        }
     }
 
     CKArgsBNormBwd(const CKArgsBNormBwd&) = default;
@@ -132,7 +146,7 @@ struct CKArgsBNormBwd
     std::array<index_t, Rank - NumBatchNormReduceDim> arrScaleBiasMeanVarStrides;
 
     double epsilon = 1e-5;
-    std::array<int, NumBatchNormReduceDim> reduceDims{0, 1, 2};
+    std::array<int, NumBatchNormReduceDim> reduceDims;
 };
 
 template <typename XDataType,
