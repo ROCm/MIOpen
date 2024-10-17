@@ -27,11 +27,15 @@
 
 #include <miopen/db.hpp>
 #include <miopen/db_record.hpp>
+#include <miopen/stop_token.hpp>
 
 #include <boost/optional.hpp>
 
 #include <chrono>
+#include <future>
 #include <map>
+#include <memory>
+#include <mutex>
 #include <string>
 #include <sstream>
 
@@ -44,6 +48,8 @@ namespace miopen {
 using ramdb_clock = std::chrono::steady_clock;
 
 class LockFile;
+
+constexpr std::chrono::seconds GetDbLockTimeout() { return std::chrono::seconds{60}; }
 
 class MIOPEN_INTERNALS_EXPORT RamDb : protected PlainTextDb
 {
@@ -126,6 +132,9 @@ public:
             return boost::none;
     }
 
+    using PlainTextDb::GetLockFile;
+    void Prefetch(stop_token stop = {});
+
 private:
     struct CacheItem
     {
@@ -139,7 +148,6 @@ private:
     boost::optional<miopen::DbRecord> FindRecordUnsafe(const std::string& problem);
 
     bool ValidateUnsafe();
-    void Prefetch();
 
 #if MIOPEN_DB_CACHE_WRITE_THROUGH
     void UpdateCacheEntryUnsafe(const DbRecord& record);
