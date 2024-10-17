@@ -29,7 +29,7 @@
 
 #include <miopen/rank.hpp>
 #include <miopen/each_args.hpp>
-#include <half/half.hpp>
+#include <half.hpp>
 #include <fstream>
 #include <string>
 #include <tuple>

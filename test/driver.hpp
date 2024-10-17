@@ -37,7 +37,7 @@
 
 #include <functional>
 #include <deque>
-#include <half/half.hpp>
+#include <half.hpp>
 #include <type_traits>
 #include <miopen/filesystem.hpp>
 #include <miopen/functional.hpp>

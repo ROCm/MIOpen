@@ -36,7 +36,7 @@
 #include <cstdlib>
 #include <ctime>
 #include <type_traits>
-#include <half/half.hpp>
+#include <half.hpp>
 #include "test.hpp"
 #include "driver.hpp"
 #include "tensor_holder.hpp"

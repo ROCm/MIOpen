@@ -34,7 +34,7 @@
 // definitions are different.
 
 #include <boost/core/demangle.hpp>
-#include <half/half.hpp>
+#include <half.hpp>
 
 #include <iostream>
 #include <typeinfo>

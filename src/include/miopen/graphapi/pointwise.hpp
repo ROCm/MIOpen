@@ -26,7 +26,7 @@
 
 #pragma once
 
-#include <half/half.hpp>
+#include <half.hpp>
 #include <miopen/graphapi/graphapi.hpp>
 #include <miopen/graphapi/opgraph.hpp>
 

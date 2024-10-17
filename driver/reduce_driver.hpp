@@ -41,7 +41,7 @@
 #include <miopen/reduce_common.hpp>
 #include <miopen/tensor.hpp>
 
-#include <half/half.hpp>
+#include <half.hpp>
 
 #include <algorithm>
 #include <cassert>

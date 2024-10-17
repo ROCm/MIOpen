@@ -37,7 +37,7 @@
 
 #include "serialize.hpp"
 
-#include <half/half.hpp>
+#include <half.hpp>
 using half         = half_float::half;
 using hip_bfloat16 = bfloat16;
 #include "../../src/kernels/hip_float8.hpp"
