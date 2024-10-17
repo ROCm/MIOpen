@@ -139,8 +139,8 @@ void Dot_4D_T_4D(const tensor<T1>& A_mat, const tensor<T3>& B_mat, tensor<T2>& C
     });
 }
 
-template <typename T1, typename T2>
-void Dot_4D_4D(const tensor<T1>& A_mat, const tensor<T1>& B_mat, tensor<T2>& C_mat)
+template <typename T1, typename T2, typename T3>
+void Dot_4D_4D(const tensor<T1>& A_mat, const tensor<T2>& B_mat, tensor<T3>& C_mat)
 {
     size_t k_val = A_mat.desc.GetLengths()[3];
     assert(k_val == B_mat.desc.GetLengths()[2]);
@@ -151,7 +151,7 @@ void Dot_4D_4D(const tensor<T1>& A_mat, const tensor<T1>& B_mat, tensor<T2>& C_m
             sum += double(A_mat(b_id, h_id, sl_id, k_id)) * double(B_mat(b_id, h_id, k_id, dk_id));
         }
 
-        C_mat(b_id, h_id, sl_id, dk_id) = T2(sum);
+        C_mat(b_id, h_id, sl_id, dk_id) = T3(sum);
     });
 }
 
@@ -358,26 +358,26 @@ void SoftMax(const tensor<T>& q_dot_k_transpose,
 }
 
 template <typename T = float8>
-void MultiHeadAttentionfp8(const tensor<T>& q_val,
-                           const tensor<T>& k_val,
-                           const tensor<T>& v_val,
-                           tensor<float>& softmax,
-                           tensor<float>& attn_max,
-                           tensor<float>& Z_sum,
-                           float q_descale,
-                           float k_descale,
-                           float v_descale,
-                           float s_descale,
-                           float s_scale,
-                           float o_scale,
-                           float dropout_rate,
-                           uint64_t seed,
-                           uint64_t offset,
-                           float& aMax_S,
-                           float& aMax_O,
-                           tensor<T>& multi_head_attention_fp8,
-                           const tensor<float>* optional_bias =
-                               nullptr) // pointer to optional bias, nullptr if not provided
+void MultiHeadAttentionForwardfp8(const tensor<T>& q_val,
+                                  const tensor<T>& k_val,
+                                  const tensor<T>& v_val,
+                                  tensor<float>& softmax,
+                                  tensor<float>& attn_max,
+                                  tensor<float>& Z_sum,
+                                  float q_descale,
+                                  float k_descale,
+                                  float v_descale,
+                                  float s_descale,
+                                  float s_scale,
+                                  float o_scale,
+                                  float dropout_rate,
+                                  uint64_t seed,
+                                  uint64_t offset,
+                                  float& aMax_S,
+                                  float& aMax_O,
+                                  tensor<T>& multi_head_attention_fp8,
+                                  const tensor<float>* optional_bias =
+                                      nullptr) // pointer to optional bias, nullptr if not provided
 {
     auto inputLengths = q_val.desc.GetLengths();
     inputLengths[3]   = inputLengths[2]; // NHSD converting to NHSS
@@ -424,7 +424,34 @@ void MultiHeadAttentionfp8(const tensor<T>& q_val,
 }
 
 template <typename T>
-void MultiHeadAttentionf32(
+void MultiHeadAttentionForwardfp16(const tensor<T>& q_val,
+                                   const tensor<T>& k_val,
+                                   const tensor<T>& v_val,
+                                   tensor<float>& softmax,
+                                   tensor<float>& attn_max,
+                                   tensor<float>& Z_sum,
+                                   tensor<T>& multi_head_attention,
+                                   const tensor<float>* optional_bias =
+                                       nullptr) // pointer to optional bias, nullptr if not provided
+{
+    auto inputLengths = q_val.desc.GetLengths();
+    inputLengths[3]   = inputLengths[2]; // NHSD converting to NHSS
+    tensor<float> q_dot_k_transpose(inputLengths);
+
+    Dot_4D_4D_T(q_val, k_val, q_dot_k_transpose);
+
+    if(optional_bias != nullptr)
+    {
+        PointWiseAdd(q_dot_k_transpose, *optional_bias, q_dot_k_transpose);
+    }
+
+    SoftMax(q_dot_k_transpose, softmax, attn_max, Z_sum);
+
+    Dot_4D_4D(softmax, v_val, multi_head_attention);
+}
+
+template <typename T>
+void MultiHeadAttentionForwardf32(
     const tensor<T>& q_val,
     const tensor<T>& k_val,
     const tensor<T>& v_val,

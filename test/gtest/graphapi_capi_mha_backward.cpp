@@ -95,7 +95,7 @@ protected:
 
         // proper O, M and zInv tensors are required for backward pass.
         // randomly generated M and zInv may lead to nan\inf values
-        test::cpu::MultiHeadAttentionfp8(
+        test::cpu::MultiHeadAttentionForwardfp8(
             GetTensor<T>(m_realTensorMap[miopenTensorMhaQ]->m_tensorVariant),
             GetTensor<T>(m_realTensorMap[miopenTensorMhaK]->m_tensorVariant),
             GetTensor<T>(m_realTensorMap[miopenTensorMhaV]->m_tensorVariant),
