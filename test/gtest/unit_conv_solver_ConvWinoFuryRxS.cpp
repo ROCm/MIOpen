@@ -30,7 +30,7 @@ namespace {
 
 auto GetConvTestCases(miopenDataType_t datatype)
 {
-    using TestCase = ConvTestCase;
+    using TestCase = miopen::unit_tests::ConvTestCase;
 
     return std::vector{
         // clang-format off
@@ -42,7 +42,7 @@ auto GetConvTestCases(miopenDataType_t datatype)
 
 auto GetConvTestCasesWrw(miopenDataType_t datatype)
 {
-    using TestCase = ConvTestCase;
+    using TestCase = miopen::unit_tests::ConvTestCase;
 
     return std::vector{
         // clang-format off

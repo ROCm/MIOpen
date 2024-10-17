@@ -34,7 +34,7 @@ auto GetConvTestCases(miopenDataType_t datatype)
 
     return std::vector{
         // clang-format off
-        TestCase{{1, 8, 8, 8}, {8, 8, 1, 1}, {0, 0}, {1, 1}, {1, 1}, datatype},
+        TestCase{{1, 16, 14, 14}, {48, 16, 5, 5}, {2, 2}, {1, 1}, {1, 1}, datatype},
         // clang-format on
     };
 }
@@ -43,47 +43,47 @@ Gpu GetSupportedDevices() { return Gpu::All; }
 
 } // namespace
 
-TEST_P(GPU_UnitTestConvSolverBwd_FP16, GemmBwd1x1_stride1)
+TEST_P(GPU_UnitTestConvSolverWrw_FP16, ConvDirectNaiveConvWrw)
 {
-    this->RunTest(miopen::solver::conv::GemmBwd1x1_stride1{});
+    this->RunTest(miopen::solver::conv::ConvDirectNaiveConvWrw{}, true); // CPU verification
 };
 
-TEST_P(GPU_UnitTestConvSolverBwd_BFP16, GemmBwd1x1_stride1)
+TEST_P(GPU_UnitTestConvSolverWrw_BFP16, ConvDirectNaiveConvWrw)
 {
-    this->RunTest(miopen::solver::conv::GemmBwd1x1_stride1{});
+    this->RunTest(miopen::solver::conv::ConvDirectNaiveConvWrw{}, true); // CPU verification
 };
 
-TEST_P(GPU_UnitTestConvSolverBwd_FP32, GemmBwd1x1_stride1)
+TEST_P(GPU_UnitTestConvSolverWrw_FP32, ConvDirectNaiveConvWrw)
 {
-    this->RunTest(miopen::solver::conv::GemmBwd1x1_stride1{});
+    this->RunTest(miopen::solver::conv::ConvDirectNaiveConvWrw{}, true); // CPU verification
 };
 
-TEST_P(CPU_UnitTestConvSolverDevApplicabilityBwd_NONE, GemmBwd1x1_stride1)
+TEST_P(CPU_UnitTestConvSolverDevApplicabilityWrw_NONE, ConvDirectNaiveConvWrw)
 {
-    this->RunTest(miopen::solver::conv::GemmBwd1x1_stride1{});
+    this->RunTest(miopen::solver::conv::ConvDirectNaiveConvWrw{});
 };
 
 // Smoke tests
 INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_UnitTestConvSolverBwd_FP16,
+                         GPU_UnitTestConvSolverWrw_FP16,
                          testing::Combine(testing::Values(GetSupportedDevices()),
-                                          testing::Values(miopenConvolutionAlgoGEMM),
+                                          testing::Values(miopenConvolutionAlgoDirect),
                                           testing::ValuesIn(GetConvTestCases(miopenHalf))));
 
 INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_UnitTestConvSolverBwd_BFP16,
+                         GPU_UnitTestConvSolverWrw_BFP16,
                          testing::Combine(testing::Values(GetSupportedDevices()),
-                                          testing::Values(miopenConvolutionAlgoGEMM),
+                                          testing::Values(miopenConvolutionAlgoDirect),
                                           testing::ValuesIn(GetConvTestCases(miopenBFloat16))));
 
 INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_UnitTestConvSolverBwd_FP32,
+                         GPU_UnitTestConvSolverWrw_FP32,
                          testing::Combine(testing::Values(GetSupportedDevices()),
-                                          testing::Values(miopenConvolutionAlgoGEMM),
+                                          testing::Values(miopenConvolutionAlgoDirect),
                                           testing::ValuesIn(GetConvTestCases(miopenFloat))));
 
 // Device applicability test
 INSTANTIATE_TEST_SUITE_P(Smoke,
-                         CPU_UnitTestConvSolverDevApplicabilityBwd_NONE,
+                         CPU_UnitTestConvSolverDevApplicabilityWrw_NONE,
                          testing::Combine(testing::Values(GetSupportedDevices()),
                                           testing::Values(GetConvTestCases(miopenFloat)[0])));
