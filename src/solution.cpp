@@ -246,7 +246,7 @@ void Solution::RunImpl(Handle& handle,
     auto conv_ctx = ExecutionContext{&handle};
     conv_problem.SetupFloats(conv_ctx);
 
-    decltype(auto) db        = GetDb(conv_ctx);
+    decltype(auto) db        = MakeConvDbGetter(conv_ctx);
     const auto conv_solution = GetSolver().GetSolver().FindSolution(
         conv_ctx, conv_problem, db, invoke_ctx, perf_cfg.value_or(""));
 
