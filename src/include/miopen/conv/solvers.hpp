@@ -2452,13 +2452,11 @@ struct PerformanceConfigConvOclBwdWrw2
     int GetNumOutChannelTiles() const { return n_out_channels_tiles; }
     int GetNumOutRowsPerIterPerWork() const { return n_out_rows_in_lcl; }
 
-    MIOPEN_INTERNALS_EXPORT void HeuristicInit(const miopen::conv::ProblemDescription&);
-    MIOPEN_INTERNALS_EXPORT bool IsValidValue() const;
-    MIOPEN_INTERNALS_EXPORT bool SetNextValue(const miopen::conv::ProblemDescription&);
-    MIOPEN_INTERNALS_EXPORT bool IsValid(const ExecutionContext&,
-                                         const miopen::conv::ProblemDescription&) const;
-    MIOPEN_INTERNALS_EXPORT bool
-    operator==(const PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>& other) const;
+    void HeuristicInit(const miopen::conv::ProblemDescription&);
+    bool IsValidValue() const;
+    bool SetNextValue(const miopen::conv::ProblemDescription&);
+    bool IsValid(const ExecutionContext&, const miopen::conv::ProblemDescription&) const;
+    bool operator==(const PerformanceConfigConvOclBwdWrw2<N_BATCH_LOOPS>& other) const;
 };
 
 template <int N_BATCH_LOOPS>
