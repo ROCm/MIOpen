@@ -136,7 +136,7 @@ void BatchNormForwardTraining(Handle& handle,
                           : AlgorithmName{"miopenBatchNormForwardTrainingPerActivation"};
 
     const auto invoke_params = [&]() {
-        auto tmp                  = batchnorm::InvokeParams{};
+        auto tmp                  = miopen::batchnorm::FwdTrainInvokeParams{};
         tmp.type                  = InvokeType::Run;
         tmp.x                     = x;
         tmp.y                     = y;
@@ -250,8 +250,7 @@ void BatchNormForwardInference(Handle& handle,
         }();
 
         const auto algo    = AlgorithmName{"miopenBatchNormalizationForwardInference"};
-        const auto solvers = solver::SolverContainer<solver::batchnorm::BnFwdInference,
-                                                     solver::batchnorm::BnCKFwdInference>{};
+        const auto solvers = solver::SolverContainer<solver::batchnorm::BnCKFwdInference>{};
 
         solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
     }
