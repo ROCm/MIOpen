@@ -368,8 +368,8 @@ void PerformanceConfigHipImplicitGemmGroupBwdXdlops::HeuristicInit(
     case miopenBFloat16: Init<ck::bhalf_t>(problem); break;
     case miopenInt64:
     case miopenInt32:
-    case miopenFloat8:
-    case miopenBFloat8:
+    case miopenFloat8_fnuz:
+    case miopenBFloat8_fnuz:
     case miopenDouble: break;
     }
 #endif
@@ -388,8 +388,8 @@ bool PerformanceConfigHipImplicitGemmGroupBwdXdlops::SetNextValue(const ProblemD
         case miopenBFloat16: Init<ck::bhalf_t>(problem); break;
         case miopenInt64:
         case miopenInt32:
-        case miopenFloat8:
-        case miopenBFloat8:
+        case miopenFloat8_fnuz:
+        case miopenBFloat8_fnuz:
         case miopenDouble: break;
         }
         assert(!valid_kernels.empty());
@@ -423,8 +423,8 @@ bool PerformanceConfigHipImplicitGemmGroupBwdXdlops::IsValid(
     case miopenBFloat16: return CheckIsSupportCKArgs<ck::bhalf_t>(problem);
     case miopenInt64:
     case miopenInt32:
-    case miopenFloat8:
-    case miopenBFloat8:
+    case miopenFloat8_fnuz:
+    case miopenBFloat8_fnuz:
     case miopenDouble: break;
     }
 #endif
@@ -502,8 +502,8 @@ bool ConvHipImplicitGemmGroupBwdXdlops::IsApplicable(
     case miopenBFloat16: return CheckCKApplicability<ck::bhalf_t>(problem);
     case miopenInt64:
     case miopenInt32:
-    case miopenFloat8:
-    case miopenBFloat8:
+    case miopenFloat8_fnuz:
+    case miopenBFloat8_fnuz:
     case miopenDouble: break;
     }
 #endif

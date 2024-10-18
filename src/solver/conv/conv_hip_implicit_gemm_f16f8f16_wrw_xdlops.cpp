@@ -229,8 +229,8 @@ void PerformanceConfigHipImplicitGemmF16F8F16WrwXdlops::HeuristicInit(
     kernel_id = "";
 
 #if MIOPEN_USE_COMPOSABLEKERNEL
-    if(problem.GetIn().GetCastType() == miopenFloat8 &&
-       problem.GetOut().GetCastType() == miopenBFloat8)
+    if(problem.GetIn().GetCastType() == miopenFloat8_fnuz &&
+       problem.GetOut().GetCastType() == miopenBFloat8_fnuz)
         Init<ck::half_t, ck::bf8_t, ck::f8_t>(problem);
 #endif
 }
@@ -263,8 +263,8 @@ bool PerformanceConfigHipImplicitGemmF16F8F16WrwXdlops::IsValid(
     [[maybe_unused]] const ProblemDescription& problem) const
 {
 #if MIOPEN_USE_COMPOSABLEKERNEL
-    if(problem.GetIn().GetCastType() == miopenFloat8 &&
-       problem.GetOut().GetCastType() == miopenBFloat8)
+    if(problem.GetIn().GetCastType() == miopenFloat8_fnuz &&
+       problem.GetOut().GetCastType() == miopenBFloat8_fnuz)
         return CheckIsSupportCKArgs<ck::half_t, ck::bf8_t, ck::f8_t>(problem);
 #endif
     return false;
@@ -324,8 +324,8 @@ bool ConvHipImplicitGemmF16F8F16WrwXdlops::IsApplicable(
         return false;
     if(!ck_utility::is_ck_whitelist(ctx.GetStream().GetDeviceName()))
         return false;
-    if(problem.GetIn().GetCastType() == miopenFloat8 &&
-       problem.GetOut().GetCastType() == miopenBFloat8)
+    if(problem.GetIn().GetCastType() == miopenFloat8_fnuz &&
+       problem.GetOut().GetCastType() == miopenBFloat8_fnuz)
         return CheckCKApplicability<ck::half_t, ck::bf8_t, ck::f8_t>(problem);
 #endif
     return false;

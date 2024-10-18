@@ -62,16 +62,16 @@ bool GemmWrwBase::IsApplicable(const ExecutionContext& ctx, const ProblemDescrip
         {
             const auto a_cast_type = xDesc.GetCastType();
             const auto b_cast_type = dyDesc.GetCastType();
-            if(a_cast_type != miopenFloat8 && b_cast_type != miopenBFloat8)
+            if(a_cast_type != miopenFloat8_fnuz && b_cast_type != miopenBFloat8_fnuz)
             {
-                MIOPEN_LOG_W(
-                    "Casting is only supported for the miopenFloat8 and miopenBFloat8 data types");
+                MIOPEN_LOG_W("Casting is only supported for the miopenFloat8_fnuz and "
+                             "miopenBFloat8_fnuz data types");
                 return false;
             }
-            if(a_cast_type != miopenFloat8 && b_cast_type != miopenBFloat8)
+            if(a_cast_type != miopenFloat8_fnuz && b_cast_type != miopenBFloat8_fnuz)
             {
-                MIOPEN_LOG_W(
-                    "Casting is only supported for the miopenFloat8 and miopenBFloat8 data types");
+                MIOPEN_LOG_W("Casting is only supported for the miopenFloat8_fnuz and "
+                             "miopenBFloat8_fnuz data types");
                 return false;
             }
         }

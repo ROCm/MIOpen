@@ -37,15 +37,15 @@ inline T RanGenData()
 }
 
 template <>
-inline float8 RanGenData()
+inline float8_fnuz RanGenData()
 {
-    return prng::gen_A_to_B(static_cast<float8>(-1.0f), static_cast<float8>(1.0f));
+    return prng::gen_A_to_B(static_cast<float8_fnuz>(-1.0f), static_cast<float8_fnuz>(1.0f));
 }
 
 template <>
-inline bfloat8 RanGenData()
+inline bfloat8_fnuz RanGenData()
 {
-    return prng::gen_A_to_B(static_cast<bfloat8>(-1.0f), static_cast<bfloat8>(1.0f));
+    return prng::gen_A_to_B(static_cast<bfloat8_fnuz>(-1.0f), static_cast<bfloat8_fnuz>(1.0f));
 }
 
 template <typename T>
@@ -74,23 +74,23 @@ inline half_float::half RanGenWeights()
 }
 
 template <>
-inline float8 RanGenWeights()
+inline float8_fnuz RanGenWeights()
 {
     const auto tmp = prng::gen_canonical<float>() > 0.5f ? 0.0f : 2.0f;
     // 1 in 2 chance of number being positive
     const auto sign = prng::gen_canonical<float>() > 0.5f ? -1.0f : 1.0f;
-    return static_cast<float8>(static_cast<float>(std::numeric_limits<float8>::epsilon()) * sign *
-                               tmp);
+    return static_cast<float8_fnuz>(
+        static_cast<float>(std::numeric_limits<float8_fnuz>::epsilon()) * sign * tmp);
 }
 
 template <>
-inline bfloat8 RanGenWeights()
+inline bfloat8_fnuz RanGenWeights()
 {
     const auto tmp = prng::gen_canonical<float>() > 0.5f ? 0.0f : 2.0f;
     // 1 in 2 chance of number being positive
     const auto sign = prng::gen_canonical<float>() > 0.5f ? -1.0f : 1.0f;
-    return static_cast<bfloat8>(static_cast<float>(std::numeric_limits<bfloat8>::epsilon()) * sign *
-                                tmp);
+    return static_cast<bfloat8_fnuz>(
+        static_cast<float>(std::numeric_limits<bfloat8_fnuz>::epsilon()) * sign * tmp);
 }
 
 template <typename T>

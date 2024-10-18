@@ -41,8 +41,8 @@
 using half         = half_float::half;
 using hip_bfloat16 = bfloat16;
 #include "../../src/kernels/hip_float8.hpp"
-using float8  = miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>;
-using bfloat8 = miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>;
+using float8_fnuz  = miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>;
+using bfloat8_fnuz = miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>;
 
 #include <iomanip>
 #include <fstream>
@@ -118,12 +118,12 @@ struct miopen_type<int64_t> : std::integral_constant<miopenDataType_t, miopenInt
 };
 
 template <>
-struct miopen_type<float8> : std::integral_constant<miopenDataType_t, miopenFloat8>
+struct miopen_type<float8_fnuz> : std::integral_constant<miopenDataType_t, miopenFloat8_fnuz>
 {
 };
 
 template <>
-struct miopen_type<bfloat8> : std::integral_constant<miopenDataType_t, miopenBFloat8>
+struct miopen_type<bfloat8_fnuz> : std::integral_constant<miopenDataType_t, miopenBFloat8_fnuz>
 {
 };
 

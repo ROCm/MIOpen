@@ -66,8 +66,8 @@ protected:
         input.generate(gen_value);
         weights.generate(gen_value);
         conv_desc = conv_config.GetConv();
-        input.desc.SetCastType(miopenFloat8);
-        weights.desc.SetCastType(miopenFloat8);
+        input.desc.SetCastType(miopenFloat8_fnuz);
+        weights.desc.SetCastType(miopenFloat8_fnuz);
 
         miopen::TensorDescriptor output_desc =
             conv_desc.GetForwardOutputTensor(input.desc, weights.desc, miopen_type<T>{});

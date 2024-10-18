@@ -221,8 +221,8 @@ bool BnCKFwdInference::IsApplicable(
     case miopenInt64:
     case miopenInt32:
     case miopenInt8:
-    case miopenFloat8:
-    case miopenBFloat8: break;
+    case miopenFloat8_fnuz:
+    case miopenBFloat8_fnuz: break;
     }
 #endif
     return false;

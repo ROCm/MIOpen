@@ -251,7 +251,7 @@ protected:
             oDescRef);
 
         const double errorThreshold      = 5e-6;
-        const double typedErrorThreshold = (std::is_same_v<T, float8>) ? 2e-4 : errorThreshold;
+        const double typedErrorThreshold = (std::is_same_v<T, float8_fnuz>) ? 2e-4 : errorThreshold;
 
         const auto& resAmaxS = GetResult<float>(miopenTensorMhaAmaxS, handle);
         auto amaxSAbsDiff    = std::abs(amaxSRef - resAmaxS[0]);
@@ -281,7 +281,7 @@ class GPU_MhaForward_FP32 : public MhaForwardTest<float>
 {
 };
 
-class GPU_MhaForward_FP8 : public MhaForwardTest<float8>
+class GPU_MhaForward_FP8 : public MhaForwardTest<float8_fnuz>
 {
     void SetUp() override
     {
@@ -292,7 +292,7 @@ class GPU_MhaForward_FP8 : public MhaForwardTest<float8>
             GTEST_SKIP() << "FP8 is unsupported on this HW";
         }
 
-        MhaForwardTest<float8>::SetUp();
+        MhaForwardTest<float8_fnuz>::SetUp();
     }
 };
 

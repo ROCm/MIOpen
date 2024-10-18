@@ -212,8 +212,8 @@ bool BnCKBwdBackward::IsApplicable(
     case miopenInt64:
     case miopenInt32:
     case miopenInt8:
-    case miopenBFloat8:
-    case miopenFloat8: break;
+    case miopenBFloat8_fnuz:
+    case miopenFloat8_fnuz: break;
     }
 #endif
     return false;
@@ -235,8 +235,8 @@ ConvSolution BnCKBwdBackward::GetSolution(
     case miopenInt8:
     case miopenInt32:
     case miopenInt64:
-    case miopenBFloat8:
-    case miopenFloat8:
+    case miopenBFloat8_fnuz:
+    case miopenFloat8_fnuz:
     default:
         MIOPEN_THROW(miopenStatusInternalError,
                      "BnCKBwdBackward operation does not support this data type");

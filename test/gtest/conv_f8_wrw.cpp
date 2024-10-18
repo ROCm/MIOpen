@@ -77,8 +77,8 @@ protected:
         output = tensor<T>{tensor_layout, output_desc.GetLengths()};
         output.generate(gen_value);
         auto&& handle = get_handle();
-        input.desc.SetCastType(miopenFloat8);
-        output.desc.SetCastType(miopenBFloat8);
+        input.desc.SetCastType(miopenFloat8_fnuz);
+        output.desc.SetCastType(miopenBFloat8_fnuz);
 
         in_dev  = handle.Write(input.data);
         wei_dev = handle.Write(weights.data);

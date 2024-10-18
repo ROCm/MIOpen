@@ -1944,10 +1944,12 @@ std::string GetCastTensorBuildOptionFromType(const std::string& buildOption, mio
     case miopenHalf: return option += "2";
     case miopenFloat: return option += "3";
     case miopenBFloat16: return option += "4";
-    case miopenFloat8:
-        MIOPEN_THROW(miopenStatusBadParm, "miopenFloat8 data type not supported in cast tensor.");
-    case miopenBFloat8:
-        MIOPEN_THROW(miopenStatusBadParm, "miopenBFloat8 data type not supported in cast tensor.");
+    case miopenFloat8_fnuz:
+        MIOPEN_THROW(miopenStatusBadParm,
+                     "miopenFloat8_fnuz data type not supported in cast tensor.");
+    case miopenBFloat8_fnuz:
+        MIOPEN_THROW(miopenStatusBadParm,
+                     "miopenBFloat8_fnuz data type not supported in cast tensor.");
     case miopenDouble:
         // TODO
         MIOPEN_THROW(miopenStatusBadParm, "miopenDouble data type not supported in cast tensor.");
