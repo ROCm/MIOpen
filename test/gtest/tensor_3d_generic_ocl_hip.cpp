@@ -176,14 +176,14 @@ std::vector<TensorsConfig> TensorsConfigs()
     }
     else
     {
-        return {{{16, 8. 4}, {8 * 4, 4, 1}, {16, 8, 4}, {8 * 4, 4, 1}},
-                {{16, 8. 4}, {8 * 4, 4, 1}, {16, 8, 1}, {8 * 1, 1, 1}},
-                {{16, 8. 4}, {8 * 4, 4, 1}, {16, 1, 4}, {1 * 4, 4, 1}},
-                {{16, 8. 4}, {8 * 4, 4, 1}, {16, 1, 1}, {1 * 1, 1, 1}},
-                {{16, 8. 4}, {8 * 4, 4, 1}, {1, 8, 4}, {8 * 4, 4, 1}},
-                {{16, 8. 4}, {8 * 4, 4, 1}, {1, 8, 1}, {8 * 1, 1, 1}},
-                {{16, 8. 4}, {8 * 4, 4, 1}, {1, 1, 4}, {1 * 4, 4, 1}},
-                {{16, 8. 4}, {8 * 4, 4, 1}, {1, 1, 1}, {1 * 1, 1, 1}},
+        return {{{16, 8, 4}, {8 * 4, 4, 1}, {16, 8, 4}, {8 * 4, 4, 1}},
+                {{16, 8, 4}, {8 * 4, 4, 1}, {16, 8, 1}, {8 * 1, 1, 1}},
+                {{16, 8, 4}, {8 * 4, 4, 1}, {16, 1, 4}, {1 * 4, 4, 1}},
+                {{16, 8, 4}, {8 * 4, 4, 1}, {16, 1, 1}, {1 * 1, 1, 1}},
+                {{16, 8, 4}, {8 * 4, 4, 1}, {1, 8, 4}, {8 * 4, 4, 1}},
+                {{16, 8, 4}, {8 * 4, 4, 1}, {1, 8, 1}, {8 * 1, 1, 1}},
+                {{16, 8, 4}, {8 * 4, 4, 1}, {1, 1, 4}, {1 * 4, 4, 1}},
+                {{16, 8, 4}, {8 * 4, 4, 1}, {1, 1, 1}, {1 * 1, 1, 1}},
                 {{20, 16, 8}, {16 * 8, 8, 1}, {20, 16, 8}, {16 * 8, 8, 1}},
                 {{20, 16, 8}, {16 * 8, 8, 1}, {20, 16, 1}, {16 * 1, 1, 1}},
                 {{20, 16, 8}, {16 * 8, 8, 1}, {20, 1, 8}, {1 * 8, 8, 1}},
@@ -287,25 +287,30 @@ protected:
         params = " -DMIOPEN_TYPE=" + miopen::GetDataType(data_type) +
                  " -DMAX_NUM_WG=" + std::to_string(max_num_wg);
         params += " " + miopen::GetDataTypeKBP(data_type).GenerateFor(miopen::kbp::OpenCL{});
-        params += " -DMIOPEN_TENSOR_OP=miopenAdd -DUSE_2D_TENSOR_GENERIC";
+        params += " -DMIOPEN_TENSOR_OP=miopenAdd -DUSE_3D_TENSOR_GENERIC";
 
         std::string program_name       = "MIOpenTensorKernels.cl";
         std::string network_config_ocl = network_config + "-ocl";
 
-        handle.AddKernel("Op2dTensorGeneric",
+        handle.AddKernel("Op3dTensorGeneric",
                          network_config_ocl,
                          program_name,
-                         "Op2dTensorGeneric",
+                         "Op3dTensorGeneric",
                          vld,
                          vgd,
                          params)(tensA_dev.get(),
                                  static_cast<int>(tensorsConfig.acstrides[0]),
+                                 static_cast<int>(tensorsConfig.acstrides[1]),
                                  tensB_dev.get(),
                                  static_cast<int>(tensorsConfig.blens[1]),
+                                 static_cast<int>(tensorsConfig.blens[2]),
                                  static_cast<int>(tensorsConfig.bstrides[0]),
+                                 static_cast<int>(tensorsConfig.bstrides[1]),
                                  tensC_dev.get(),
                                  static_cast<int>(tensorsConfig.aclens[1]),
+                                 static_cast<int>(tensorsConfig.aclens[2]),
                                  static_cast<int>(tensorsConfig.acstrides[0]),
+                                 static_cast<int>(tensorsConfig.acstrides[1]),
                                  alpha0,
                                  alpha1,
                                  beta,
@@ -321,17 +326,22 @@ protected:
         if constexpr(PERF_ENABLE)
         {
             ph.perfTest(handle,
-                        "Op2dTensorGeneric",
+                        "Op3dTensorGeneric",
                         network_config_ocl,
                         false,
                         tensA_dev.get(),
                         static_cast<int>(tensorsConfig.acstrides[0]),
+                        static_cast<int>(tensorsConfig.acstrides[1]),
                         tensB_dev.get(),
                         static_cast<int>(tensorsConfig.blens[1]),
+                        static_cast<int>(tensorsConfig.blens[2]),
                         static_cast<int>(tensorsConfig.bstrides[0]),
+                        static_cast<int>(tensorsConfig.bstrides[1]),
                         tensC_dev.get(),
                         static_cast<int>(tensorsConfig.aclens[1]),
+                        static_cast<int>(tensorsConfig.aclens[2]),
                         static_cast<int>(tensorsConfig.acstrides[0]),
+                        static_cast<int>(tensorsConfig.acstrides[1]),
                         alpha0,
                         alpha1,
                         beta,
@@ -354,25 +364,30 @@ protected:
         params = " -DMIOPEN_TYPE=" + miopen::GetDataType(data_type) +
                  " -DMAX_NUM_WG=" + std::to_string(max_num_wg);
         params += " " + miopen::GetDataTypeKBP(data_type).GenerateFor(miopen::kbp::HIP{});
-        params += " -DMIOPEN_TENSOR_OP=miopenAdd -DUSE_2D_TENSOR_GENERIC";
+        params += " -DMIOPEN_TENSOR_OP=miopenAdd -DUSE_3D_TENSOR_GENERIC";
 
         std::string program_name       = "MIOpenTensorKernelsHip.cpp";
         std::string network_config_hip = network_config + "-hip";
 
-        handle.AddKernel("Op2dTensorGeneric",
+        handle.AddKernel("Op3dTensorGeneric",
                          network_config_hip,
                          program_name,
-                         "Op2dTensorGeneric",
+                         "Op3dTensorGeneric",
                          vld,
                          vgd,
                          params)(tensA_dev.get(),
                                  static_cast<int>(tensorsConfig.acstrides[0]),
+                                 static_cast<int>(tensorsConfig.acstrides[1]),
                                  tensB_dev.get(),
                                  static_cast<int>(tensorsConfig.blens[1]),
+                                 static_cast<int>(tensorsConfig.blens[2]),
                                  static_cast<int>(tensorsConfig.bstrides[0]),
+                                 static_cast<int>(tensorsConfig.bstrides[1]),
                                  tensC_dev.get(),
                                  static_cast<int>(tensorsConfig.aclens[1]),
+                                 static_cast<int>(tensorsConfig.aclens[2]),
                                  static_cast<int>(tensorsConfig.acstrides[0]),
+                                 static_cast<int>(tensorsConfig.acstrides[1]),
                                  alpha0,
                                  alpha1,
                                  beta,
@@ -388,17 +403,22 @@ protected:
         if constexpr(PERF_ENABLE)
         {
             ph.perfTest(handle,
-                        "Op2dTensorGeneric",
+                        "Op3dTensorGeneric",
                         network_config_hip,
                         false,
                         tensA_dev.get(),
                         static_cast<int>(tensorsConfig.acstrides[0]),
+                        static_cast<int>(tensorsConfig.acstrides[1]),
                         tensB_dev.get(),
                         static_cast<int>(tensorsConfig.blens[1]),
+                        static_cast<int>(tensorsConfig.blens[2]),
                         static_cast<int>(tensorsConfig.bstrides[0]),
+                        static_cast<int>(tensorsConfig.bstrides[1]),
                         tensC_dev.get(),
                         static_cast<int>(tensorsConfig.aclens[1]),
+                        static_cast<int>(tensorsConfig.aclens[2]),
                         static_cast<int>(tensorsConfig.acstrides[0]),
+                        static_cast<int>(tensorsConfig.acstrides[1]),
                         alpha0,
                         alpha1,
                         beta,
@@ -423,17 +443,21 @@ protected:
         {
             std::string stats{};
             stats += "_aclens_" + std::to_string(tensorsConfig.aclens[0]) + "_" +
-                     std::to_string(tensorsConfig.aclens[1]) + "_acstrides_" +
+                     std::to_string(tensorsConfig.aclens[1]) + "_" +
+                     std::to_string(tensorsConfig.aclens[2]) + "_acstrides_" +
                      std::to_string(tensorsConfig.acstrides[0]) + "_" +
-                     std::to_string(tensorsConfig.acstrides[1]);
+                     std::to_string(tensorsConfig.acstrides[1]) + "_" +
+                     std::to_string(tensorsConfig.acstrides[2]);
             stats += "_blens_" + std::to_string(tensorsConfig.blens[0]) + "_" +
-                     std::to_string(tensorsConfig.blens[1]) + "_bstrides_" +
+                     std::to_string(tensorsConfig.blens[1]) + "_" +
+                     std::to_string(tensorsConfig.blens[2]) + "_bstrides_" +
                      std::to_string(tensorsConfig.bstrides[0]) + "_" +
-                     std::to_string(tensorsConfig.bstrides[1]) + "_";
-            stats += "alpha0_" + std::to_string(alpha0) + "_alpha1_" + std::to_string(alpha1) +
+                     std::to_string(tensorsConfig.bstrides[1]) + "_" +
+                     std::to_string(tensorsConfig.bstrides[2]);
+            stats += "_alpha0_" + std::to_string(alpha0) + "_alpha1_" + std::to_string(alpha1) +
                      "_beta_" + std::to_string(beta) + "_" + miopen::GetDataType(data_type);
 
-            ph.writeStatsToCSV("tensor_2d.csv", stats);
+            ph.writeStatsToCSV("tensor_3d.csv", stats);
         }
     }
 
