@@ -383,24 +383,24 @@ protected:
 
         CpuMhaFwdOut out(n, h, s, d);
 
-        test::cpu::MultiHeadAttentionfp8(lookup_f("Q"),
-                                         lookup_f("K"),
-                                         lookup_f("V"),
-                                         out.mSoftMax,
-                                         out.mM,
-                                         out.mZinv,
-                                         lookup_f("DSCL_Q")[0],
-                                         lookup_f("DSCL_K")[0],
-                                         lookup_f("DSCL_V")[0],
-                                         lookup_f("DSCL_S")[0],
-                                         lookup_f("SCL_S")[0],
-                                         lookup_f("SCL_O")[0],
-                                         lookup_f("RND_PRB")[0],
-                                         lookup_i("RND_SD")[0],
-                                         lookup_i("RND_OFF")[0],
-                                         out.mAmaxS,
-                                         out.mAmaxO,
-                                         out.mO);
+        test::cpu::MultiHeadAttentionForwardfp8(lookup_f("Q"),
+                                                lookup_f("K"),
+                                                lookup_f("V"),
+                                                out.mSoftMax,
+                                                out.mM,
+                                                out.mZinv,
+                                                lookup_f("DSCL_Q")[0],
+                                                lookup_f("DSCL_K")[0],
+                                                lookup_f("DSCL_V")[0],
+                                                lookup_f("DSCL_S")[0],
+                                                lookup_f("SCL_S")[0],
+                                                lookup_f("SCL_O")[0],
+                                                lookup_f("RND_PRB")[0],
+                                                lookup_i("RND_SD")[0],
+                                                lookup_i("RND_OFF")[0],
+                                                out.mAmaxS,
+                                                out.mAmaxO,
+                                                out.mO);
 
         return out;
     }

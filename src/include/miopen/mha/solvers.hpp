@@ -77,6 +77,28 @@ struct MhaBackward final : MhaSolver
     MIOPEN_INTERNALS_EXPORT bool MayNeedWorkspace() const override;
 };
 
+struct MhaCKFlashAttentionV2Forward final : MhaSolver
+{
+    const std::string& SolverDbId() const override
+    {
+        return GetSolverDbId<MhaCKFlashAttentionV2Forward>();
+    }
+
+    MIOPEN_INTERNALS_EXPORT bool
+    IsApplicable(const ExecutionContext& context,
+                 const miopen::mha::ProblemDescription& problem) const override;
+
+    MIOPEN_INTERNALS_EXPORT ConvSolution
+    GetSolution(const ExecutionContext& context,
+                const miopen::mha::ProblemDescription& problem) const override;
+
+    MIOPEN_INTERNALS_EXPORT std::size_t
+    GetWorkspaceSize(const ExecutionContext& context,
+                     const miopen::mha::ProblemDescription& problem) const override;
+
+    MIOPEN_INTERNALS_EXPORT bool MayNeedWorkspace() const override;
+};
+
 } // namespace mha
 
 } // namespace solver

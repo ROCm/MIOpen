@@ -23,20 +23,6 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include "bn_driver.hpp"
-#include "registry_driver_maker.hpp"
 
-static Driver* makeDriver(const std::string& base_arg)
-{
-    if(base_arg == "bnorm")
-        return new BatchNormDriver<float, double>();
-    if(base_arg == "bnormfp16")
-        return new BatchNormDriver<float16, double, float16>();
-    if(base_arg == "bnormfp16fp32")
-        return new BatchNormDriver<float16, double, float>();
-    if(base_arg == "bnormbfp16fp32")
-        return new BatchNormDriver<bfloat16, double, float>();
-    return nullptr;
-}
-
-REGISTER_DRIVER_MAKER(makeDriver);
+#define NUM_BATCH_LOOPS 1
+#include "unit_conv_solver_ConvOclBwdWrW2.hpp"

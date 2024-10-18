@@ -28,44 +28,43 @@
 
 namespace {
 
+class WA_SWDEV_271887_ScopedDisabler
+{
+public:
+    WA_SWDEV_271887_ScopedDisabler() noexcept
+    {
+        prev                                   = miopen::debug::disable_wa_swdev_271887;
+        miopen::debug::disable_wa_swdev_271887 = true;
+    }
+
+    ~WA_SWDEV_271887_ScopedDisabler() noexcept { miopen::debug::disable_wa_swdev_271887 = prev; }
+
+private:
+    bool prev;
+};
+
 auto GetConvTestCases(miopenDataType_t datatype)
 {
     using TestCase = miopen::unit_tests::ConvTestCase;
 
-    auto type_x = datatype;
-    auto type_w = datatype;
-    auto type_y = (datatype == miopenInt8) ? miopenInt32 : datatype;
-
     return std::vector{
         // clang-format off
-        TestCase{{1, 16, 14, 14}, {48, 16, 5, 5}, {2, 2}, {1, 1}, {1, 1}, type_x, type_w, type_y},
+        TestCase{{16, 16, 16, 16}, {16, 16, 1, 1}, {0, 0}, {1, 1}, {1, 1}, datatype},
         // clang-format on
     };
 }
 
-auto GetConvTestCasesFull(miopenDataType_t datatype)
+auto GetConvTestCasesFull(miopenDataType_t datatype, miopen::conv::Direction direction)
 {
     using TestCase = miopen::unit_tests::ConvTestCase;
 
     auto cases = std::vector<TestCase>{};
 
-    if(datatype == miopenInt8)
-    {
-        auto type_x = datatype;
-        auto type_w = datatype;
-        auto type_y = miopenInt32;
-
-        // clang-format off
-        // Regression test for int8, issue unknown
-        cases.emplace_back(TestCase{{256, 1024, 14, 14}, {256, 1024, 1, 1}, {0, 0}, {1, 1}, {1, 1}, type_x, type_w, type_y});
-        // clang-format on
-    }
-
-    if(datatype == miopenHalf || datatype == miopenFloat)
+    if(datatype == miopenHalf && direction == miopen::conv::Direction::Forward)
     {
         // clang-format off
-        // Regression test for https://github.com/ROCm/MIOpen/issues/3279
-        cases.emplace_back(TestCase{{datatype, miopenTensorNHWC, {1, 1, 7, 7}}, {datatype, {1, 1, 1, 1}}, datatype, {{0, 0}, {1, 1}, {1, 1}}});
+        // Regression test for https://github.com/ROCm/MIOpen/issues/894
+        cases.emplace_back(TestCase{{1, 16, 7, 7}, {16, 16, 1, 1}, {0, 0}, {1, 1}, {1, 1}, miopenHalf});
         // clang-format on
     }
 
@@ -76,7 +75,8 @@ const auto& GetTestParams()
 {
     static const auto params = [] {
         auto p = miopen::unit_tests::UnitTestConvSolverParams(Gpu::All);
-        p.UseCpuRef(); // CPU verification
+        p.EnableDeprecatedSolvers();
+        p.Tunable(5);
         return p;
     }();
     return params;
@@ -84,40 +84,57 @@ const auto& GetTestParams()
 
 } // namespace
 
-TEST_P(GPU_UnitTestConvSolverFwd_I8, ConvDirectNaiveConvFwd)
+TEST_P(GPU_UnitTestConvSolverFwd_FP16, ConvOclDirectFwd1x1)
 {
-    this->RunTest(miopen::solver::conv::ConvDirectNaiveConvFwd{});
+    WA_SWDEV_271887_ScopedDisabler wa_swdev_271887_disabler;
+    this->RunTest(miopen::solver::conv::ConvOclDirectFwd1x1{});
 };
 
-TEST_P(GPU_UnitTestConvSolverFwd_FP16, ConvDirectNaiveConvFwd)
+TEST_P(GPU_UnitTestConvSolverBwd_FP16, ConvOclDirectFwd1x1)
 {
-    this->RunTest(miopen::solver::conv::ConvDirectNaiveConvFwd{});
+    WA_SWDEV_271887_ScopedDisabler wa_swdev_271887_disabler;
+    this->RunTest(miopen::solver::conv::ConvOclDirectFwd1x1{});
 };
 
-TEST_P(GPU_UnitTestConvSolverFwd_BFP16, ConvDirectNaiveConvFwd)
+TEST_P(GPU_UnitTestConvSolverFwd_BFP16, ConvOclDirectFwd1x1)
 {
-    this->RunTest(miopen::solver::conv::ConvDirectNaiveConvFwd{});
+    WA_SWDEV_271887_ScopedDisabler wa_swdev_271887_disabler;
+    this->RunTest(miopen::solver::conv::ConvOclDirectFwd1x1{});
 };
 
-TEST_P(GPU_UnitTestConvSolverFwd_FP32, ConvDirectNaiveConvFwd)
+TEST_P(GPU_UnitTestConvSolverBwd_BFP16, ConvOclDirectFwd1x1)
 {
-    this->RunTest(miopen::solver::conv::ConvDirectNaiveConvFwd{});
+    WA_SWDEV_271887_ScopedDisabler wa_swdev_271887_disabler;
+    this->RunTest(miopen::solver::conv::ConvOclDirectFwd1x1{});
 };
 
-TEST_P(CPU_UnitTestConvSolverDevApplicabilityFwd_NONE, ConvDirectNaiveConvFwd)
+TEST_P(GPU_UnitTestConvSolverFwd_FP32, ConvOclDirectFwd1x1)
 {
-    this->RunTest(miopen::solver::conv::ConvDirectNaiveConvFwd{});
+    WA_SWDEV_271887_ScopedDisabler wa_swdev_271887_disabler;
+    this->RunTest(miopen::solver::conv::ConvOclDirectFwd1x1{});
+};
+
+TEST_P(GPU_UnitTestConvSolverBwd_FP32, ConvOclDirectFwd1x1)
+{
+    WA_SWDEV_271887_ScopedDisabler wa_swdev_271887_disabler;
+    this->RunTest(miopen::solver::conv::ConvOclDirectFwd1x1{});
+};
+
+TEST_P(CPU_UnitTestConvSolverDevApplicabilityFwd_NONE, ConvOclDirectFwd1x1)
+{
+    WA_SWDEV_271887_ScopedDisabler wa_swdev_271887_disabler;
+    this->RunTest(miopen::solver::conv::ConvOclDirectFwd1x1{});
 };
 
 // Smoke tests
 INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_UnitTestConvSolverFwd_I8,
+                         GPU_UnitTestConvSolverFwd_FP16,
                          testing::Combine(testing::Values(GetTestParams()),
                                           testing::Values(miopenConvolutionAlgoDirect),
-                                          testing::ValuesIn(GetConvTestCases(miopenInt8))));
+                                          testing::ValuesIn(GetConvTestCases(miopenHalf))));
 
 INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_UnitTestConvSolverFwd_FP16,
+                         GPU_UnitTestConvSolverBwd_FP16,
                          testing::Combine(testing::Values(GetTestParams()),
                                           testing::Values(miopenConvolutionAlgoDirect),
                                           testing::ValuesIn(GetConvTestCases(miopenHalf))));
@@ -129,7 +146,19 @@ INSTANTIATE_TEST_SUITE_P(Smoke,
                                           testing::ValuesIn(GetConvTestCases(miopenBFloat16))));
 
 INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_UnitTestConvSolverBwd_BFP16,
+                         testing::Combine(testing::Values(GetTestParams()),
+                                          testing::Values(miopenConvolutionAlgoDirect),
+                                          testing::ValuesIn(GetConvTestCases(miopenBFloat16))));
+
+INSTANTIATE_TEST_SUITE_P(Smoke,
                          GPU_UnitTestConvSolverFwd_FP32,
+                         testing::Combine(testing::Values(GetTestParams()),
+                                          testing::Values(miopenConvolutionAlgoDirect),
+                                          testing::ValuesIn(GetConvTestCases(miopenFloat))));
+
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_UnitTestConvSolverBwd_FP32,
                          testing::Combine(testing::Values(GetTestParams()),
                                           testing::Values(miopenConvolutionAlgoDirect),
                                           testing::ValuesIn(GetConvTestCases(miopenFloat))));
@@ -141,20 +170,10 @@ INSTANTIATE_TEST_SUITE_P(Smoke,
                                           testing::Values(GetConvTestCases(miopenFloat)[0])));
 
 // Full tests
-INSTANTIATE_TEST_SUITE_P(Full,
-                         GPU_UnitTestConvSolverFwd_I8,
-                         testing::Combine(testing::Values(GetTestParams()),
-                                          testing::Values(miopenConvolutionAlgoDirect),
-                                          testing::ValuesIn(GetConvTestCasesFull(miopenInt8))));
-
+// clang-format off
 INSTANTIATE_TEST_SUITE_P(Full,
                          GPU_UnitTestConvSolverFwd_FP16,
                          testing::Combine(testing::Values(GetTestParams()),
                                           testing::Values(miopenConvolutionAlgoDirect),
-                                          testing::ValuesIn(GetConvTestCasesFull(miopenHalf))));
-
-INSTANTIATE_TEST_SUITE_P(Full,
-                         GPU_UnitTestConvSolverFwd_FP32,
-                         testing::Combine(testing::Values(GetTestParams()),
-                                          testing::Values(miopenConvolutionAlgoDirect),
-                                          testing::ValuesIn(GetConvTestCasesFull(miopenFloat))));
+                                          testing::ValuesIn(GetConvTestCasesFull(miopenHalf, miopen::conv::Direction::Forward))));
+// clang-format on

@@ -165,7 +165,11 @@ private:
     std::vector<DescriptorWrapperPtr> m_refsToKeep;
 };
 
-using TensorVariant = std::variant<tensor<float>, tensor<float8>, tensor<bfloat8>, tensor<int64_t>>;
+using TensorVariant = std::variant<tensor<float>,
+                                   tensor<float8>,
+                                   tensor<bfloat8>,
+                                   tensor<half_float::half>,
+                                   tensor<int64_t>>;
 
 template <typename T>
 tensor<T>& GetTensor(TensorVariant& var)
@@ -210,6 +214,10 @@ miopenDataType_t GetMainType()
     else if(std::is_same_v<T, bfloat8>)
     {
         return miopenBFloat8;
+    }
+    else if(std::is_same_v<T, half_float::half>)
+    {
+        return miopenHalf;
     }
 
     assert(false);
@@ -659,6 +667,10 @@ protected:
         else if(dtype == miopenBFloat8)
         {
             tensorDataPtr->m_tensorVariant = tensor<bfloat8>{n, h, s, d};
+        }
+        else if(dtype == miopenHalf)
+        {
+            tensorDataPtr->m_tensorVariant = tensor<half_float::half>{n, h, s, d};
         }
         else
         {

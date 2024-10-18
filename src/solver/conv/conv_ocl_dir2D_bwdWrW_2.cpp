@@ -148,7 +148,15 @@ bool ConvOclBwdWrW2NonTunable::IsApplicable(const ExecutionContext& ctx,
     // At present, auto-tuning is disabled for non-group 3x3 and 1x1 filters for multiple
     // reasons: after tuning ocl kernel for 3x3 and 1x1 filters, assembly kernel still
     // dominates. Thus, this solver is used for non-group 3x3 and 1x1 filters only.
-    return ConvOclBwdWrW2<1>::IsApplicableBase(ctx, problem) && !IsTunable(problem);
+    const auto tunable = ConvOclBwdWrW2<1>{};
+    return tunable.IsApplicableBase(ctx, problem) && !IsTunable(problem);
+}
+
+size_t ConvOclBwdWrW2NonTunable::GetWorkspaceSize(const ExecutionContext& ctx,
+                                                  const ProblemDescription& problem) const
+{
+    const auto tunable = ConvOclBwdWrW2<1>{};
+    return tunable.GetWorkspaceSize(ctx, problem);
 }
 
 ConvSolution ConvOclBwdWrW2NonTunable::GetSolution(const ExecutionContext& ctx,
@@ -156,7 +164,8 @@ ConvSolution ConvOclBwdWrW2NonTunable::GetSolution(const ExecutionContext& ctx,
 {
     // Invoking base class GetSolution with default values for params obtained
     // from GetDefaultPerformanceConfig()
-    return ConvOclBwdWrW2<1>::GetSolution(ctx, problem, GetDefaultPerformanceConfig(ctx, problem));
+    const auto tunable = ConvOclBwdWrW2<1>{};
+    return tunable.GetSolution(ctx, problem, tunable.GetDefaultPerformanceConfig(ctx, problem));
 }
 
 template <int N_BATCH_LOOPS>

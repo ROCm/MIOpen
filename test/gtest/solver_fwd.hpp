@@ -39,7 +39,7 @@ struct ConvFwdSolverTest
     : public ::testing::TestWithParam<std::tuple<Gpu, miopenConvAlgorithm_t, ConvTestCaseBase>>,
       ConvFwdSolverTestBase<T, Tref, use_cpu_ref>
 {
-    void SolverFwd(const miopen::solver::conv::ConvSolverBase& solv)
+    void SolverFwd(const miopen::solver::conv::ConvSolverInterface& solv)
     {
         auto&& handle = get_handle();
 
