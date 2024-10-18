@@ -28,6 +28,7 @@
 #include <cstdlib>
 #include <map>
 #include <string>
+#include <vector>
 #include <random.hpp>
 
 class TestBase : public ::testing::Test
@@ -47,27 +48,26 @@ protected:
 private:
     void save_env_vars()
     {
-        const char* env_vars[] = {"CMAKE_CURRENT_BINARY_DIR",
-                                  "MIOPEN_TEST_MLIR",
-                                  "MIOPEN_TEST_COMPOSABLEKERNEL",
-                                  "CODECOV_TEST",
-                                  "MIOPEN_TEST_DBSYNC",
-                                  "MIOPEN_TEST_CONV",
-                                  "MIOPEN_TEST_DEEPBENCH",
-                                  "MIOPEN_DEBUG_TUNING_ITERATIONS_MAX",
-                                  "MIOPEN_TEST_WITH_MIOPENDRIVER",
-                                  nullptr};
+        std::vector<std::string> env_vars = {"CMAKE_CURRENT_BINARY_DIR",
+                                             "MIOPEN_TEST_MLIR",
+                                             "MIOPEN_TEST_COMPOSABLEKERNEL",
+                                             "CODECOV_TEST",
+                                             "MIOPEN_TEST_DBSYNC",
+                                             "MIOPEN_TEST_CONV",
+                                             "MIOPEN_TEST_DEEPBENCH",
+                                             "MIOPEN_DEBUG_TUNING_ITERATIONS_MAX",
+                                             "MIOPEN_TEST_WITH_MIOPENDRIVER"};
 
-        for(const char** var = env_vars; *var != nullptr; ++var)
+        for(const auto& var : env_vars)
         {
-            const char* value = std::getenv(*var);
+            const char* value = std::getenv(var.c_str());
             if(value)
             {
-                original_env_vars[*var] = value;
+                original_env_vars[var] = value;
             }
             else
             {
-                original_env_vars[*var] = "";
+                original_env_vars[var] = "";
             }
         }
     }
