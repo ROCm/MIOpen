@@ -26,15 +26,25 @@
 
 #include "unit_conv_solver.hpp"
 
+#ifndef NUM_BATCH_LOOPS
+#error "NUM_BATCH_LOOPS undefined"
+#endif
+
+#define MAKE_SOLVER_NAME1(name, suffix) name##suffix
+#define MAKE_SOLVER_NAME(name, suffix) MAKE_SOLVER_NAME1(name, suffix)
+
+#define SOLVER_NAME MAKE_SOLVER_NAME(ConvOclBwdWrW2N, NUM_BATCH_LOOPS)
+
 namespace {
 
 auto GetConvTestCases(miopenDataType_t datatype)
 {
-    using TestCase = miopen::unit_tests::ConvTestCase;
+    using TestCase      = miopen::unit_tests::ConvTestCase;
+    const std::size_t N = NUM_BATCH_LOOPS;
 
     return std::vector{
         // clang-format off
-        TestCase{{1, 8, 8, 8}, {8, 8, 1, 1}, {0, 0}, {1, 1}, {1, 1}, datatype},
+        TestCase{{N, 1, 16, 16}, {1, 1, 4, 4}, {3, 3}, {1, 1}, {1, 1}, datatype},
         // clang-format on
     };
 }
@@ -43,6 +53,8 @@ const auto& GetTestParams()
 {
     static const auto params = [] {
         auto p = miopen::unit_tests::UnitTestConvSolverParams(Gpu::All);
+        p.EnableDeprecatedSolvers();
+        p.Tunable(5);
         return p;
     }();
     return params;
@@ -50,47 +62,47 @@ const auto& GetTestParams()
 
 } // namespace
 
-TEST_P(GPU_UnitTestConvSolverFwd_FP16, GemmFwd1x1_0_1)
+TEST_P(GPU_UnitTestConvSolverWrw_FP16, SOLVER_NAME)
 {
-    this->RunTest(miopen::solver::conv::GemmFwd1x1_0_1{});
+    this->RunTest(miopen::solver::conv::ConvOclBwdWrW2<NUM_BATCH_LOOPS>{});
 };
 
-TEST_P(GPU_UnitTestConvSolverFwd_BFP16, GemmFwd1x1_0_1)
+TEST_P(GPU_UnitTestConvSolverWrw_BFP16, SOLVER_NAME)
 {
-    this->RunTest(miopen::solver::conv::GemmFwd1x1_0_1{});
+    this->RunTest(miopen::solver::conv::ConvOclBwdWrW2<NUM_BATCH_LOOPS>{});
 };
 
-TEST_P(GPU_UnitTestConvSolverFwd_FP32, GemmFwd1x1_0_1)
+TEST_P(GPU_UnitTestConvSolverWrw_FP32, SOLVER_NAME)
 {
-    this->RunTest(miopen::solver::conv::GemmFwd1x1_0_1{});
+    this->RunTest(miopen::solver::conv::ConvOclBwdWrW2<NUM_BATCH_LOOPS>{});
 };
 
-TEST_P(CPU_UnitTestConvSolverDevApplicabilityFwd_NONE, GemmFwd1x1_0_1)
+TEST_P(CPU_UnitTestConvSolverDevApplicabilityWrw_NONE, SOLVER_NAME)
 {
-    this->RunTest(miopen::solver::conv::GemmFwd1x1_0_1{});
+    this->RunTest(miopen::solver::conv::ConvOclBwdWrW2<NUM_BATCH_LOOPS>{});
 };
 
 // Smoke tests
 INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_UnitTestConvSolverFwd_FP16,
+                         GPU_UnitTestConvSolverWrw_FP16,
                          testing::Combine(testing::Values(GetTestParams()),
-                                          testing::Values(miopenConvolutionAlgoGEMM),
+                                          testing::Values(miopenConvolutionAlgoDirect),
                                           testing::ValuesIn(GetConvTestCases(miopenHalf))));
 
 INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_UnitTestConvSolverFwd_BFP16,
+                         GPU_UnitTestConvSolverWrw_BFP16,
                          testing::Combine(testing::Values(GetTestParams()),
-                                          testing::Values(miopenConvolutionAlgoGEMM),
+                                          testing::Values(miopenConvolutionAlgoDirect),
                                           testing::ValuesIn(GetConvTestCases(miopenBFloat16))));
 
 INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_UnitTestConvSolverFwd_FP32,
+                         GPU_UnitTestConvSolverWrw_FP32,
                          testing::Combine(testing::Values(GetTestParams()),
-                                          testing::Values(miopenConvolutionAlgoGEMM),
+                                          testing::Values(miopenConvolutionAlgoDirect),
                                           testing::ValuesIn(GetConvTestCases(miopenFloat))));
 
 // Device applicability test
 INSTANTIATE_TEST_SUITE_P(Smoke,
-                         CPU_UnitTestConvSolverDevApplicabilityFwd_NONE,
+                         CPU_UnitTestConvSolverDevApplicabilityWrw_NONE,
                          testing::Combine(testing::Values(GetTestParams()),
                                           testing::Values(GetConvTestCases(miopenFloat)[0])));
