@@ -8032,14 +8032,14 @@ MIOPEN_EXPORT miopenStatus_t miopenFoldForward(miopenHandle_t handle,
                                                const void* input,
                                                const miopenTensorDescriptor_t outputDesc,
                                                void* output,
-                                               const int64_t* kernel_size,
-                                               const int64_t kernel_size_size,
-                                               const int64_t* stride,
-                                               const int64_t stride_size,
-                                               const int64_t* padding,
-                                               const int64_t padding_size,
-                                               const int64_t* dilation,
-                                               const int64_t dilation_size);
+                                               const uint64_t* kernel_size,
+                                               const uint64_t kernel_size_size,
+                                               const uint64_t* stride,
+                                               const uint64_t stride_size,
+                                               const uint64_t* padding,
+                                               const uint64_t padding_size,
+                                               const uint64_t* dilation,
+                                               const uint64_t dilation_size);
 
 /*! @brief Execute an fold backward layer
 *
@@ -8064,14 +8064,14 @@ MIOPEN_EXPORT miopenStatus_t miopenFoldBackward(miopenHandle_t handle,
                                                 void* dinput,
                                                 const miopenTensorDescriptor_t doutputDesc,
                                                 const void* doutput,
-                                                const int64_t* kernel_size,
-                                                const int64_t kernel_size_size,
-                                                const int64_t* stride,
-                                                const int64_t stride_size,
-                                                const int64_t* padding,
-                                                const int64_t padding_size,
-                                                const int64_t* dilation,
-                                                const int64_t dilation_size);
+                                                const uint64_t* kernel_size,
+                                                const uint64_t kernel_size_size,
+                                                const uint64_t* stride,
+                                                const uint64_t stride_size,
+                                                const uint64_t* padding,
+                                                const uint64_t padding_size,
+                                                const uint64_t* dilation,
+                                                const uint64_t dilation_size);
 
 /*! @brief Execute an unfold forward layer
  *
@@ -8096,14 +8096,14 @@ MIOPEN_EXPORT miopenStatus_t miopenUnfoldForward(miopenHandle_t handle,
                                                  const void* input,
                                                  const miopenTensorDescriptor_t outputDesc,
                                                  void* output,
-                                                 const int64_t* kernel_size,
-                                                 const int64_t kernel_size_size,
-                                                 const int64_t* stride,
-                                                 const int64_t stride_size,
-                                                 const int64_t* padding,
-                                                 const int64_t padding_size,
-                                                 const int64_t* dilation,
-                                                 const int64_t dilation_size);
+                                                 const uint64_t* kernel_size,
+                                                 const uint64_t kernel_size_size,
+                                                 const uint64_t* stride,
+                                                 const uint64_t stride_size,
+                                                 const uint64_t* padding,
+                                                 const uint64_t padding_size,
+                                                 const uint64_t* dilation,
+                                                 const uint64_t dilation_size);
 
 /*! @brief Execute an unfold backward layer
  *
@@ -8128,14 +8128,14 @@ MIOPEN_EXPORT miopenStatus_t miopenUnfoldBackward(miopenHandle_t handle,
                                                   void* dinput,
                                                   const miopenTensorDescriptor_t doutputDesc,
                                                   const void* doutput,
-                                                  const int64_t* kernel_size,
-                                                  const int64_t kernel_size_size,
-                                                  const int64_t* stride,
-                                                  const int64_t stride_size,
-                                                  const int64_t* padding,
-                                                  const int64_t padding_size,
-                                                  const int64_t* dilation,
-                                                  const int64_t dilation_size);
+                                                  const uint64_t* kernel_size,
+                                                  const uint64_t kernel_size_size,
+                                                  const uint64_t* stride,
+                                                  const uint64_t stride_size,
+                                                  const uint64_t* padding,
+                                                  const uint64_t padding_size,
+                                                  const uint64_t* dilation,
+                                                  const uint64_t dilation_size);
 
 /** @} */
 // CLOSEOUT FOLD DOXYGEN GROUP

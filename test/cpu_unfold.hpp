@@ -32,10 +32,10 @@
 template <class T>
 void cpu_unfold_fwd_4d(tensor<T> input_tensor,
                        tensor<T>& ref_output_tensor,
-                       const std::vector<int64_t> kernel_size,
-                       const std::vector<int64_t> stride,
-                       const std::vector<int64_t> padding,
-                       const std::vector<int64_t> dilation)
+                       const std::vector<uint64_t> kernel_size,
+                       const std::vector<uint64_t> stride,
+                       const std::vector<uint64_t> padding,
+                       const std::vector<uint64_t> dilation)
 {
     auto input_tv   = miopen::get_inner_expanded_tv<4>(input_tensor.desc);
     auto output_tv  = miopen::get_inner_expanded_tv<3>(ref_output_tensor.desc);
@@ -45,40 +45,40 @@ void cpu_unfold_fwd_4d(tensor<T> input_tensor,
     auto input  = input_tensor.data.data();
     auto output = ref_output_tensor.data.data();
 
-    const int64_t LOCAL_SIZE = 256;
-    int64_t spatial_dim_size = input_size - 2;
+    const uint64_t LOCAL_SIZE = 256;
+    uint64_t spatial_dim_size = input_size - 2;
 
-    const int64_t N = static_cast<int64_t>(input_dims[0]);
-    const int64_t C = static_cast<int64_t>(input_dims[1]);
+    const uint64_t N = static_cast<uint64_t>(input_dims[0]);
+    const uint64_t C = static_cast<uint64_t>(input_dims[1]);
 
-    int64_t P = 1, L = 1;
-    std::vector<int64_t> ls;
-    for(int64_t i = 0; i < spatial_dim_size; ++i)
+    uint64_t P = 1, L = 1;
+    std::vector<uint64_t> ls;
+    for(uint64_t i = 0; i < spatial_dim_size; ++i)
     {
         P *= kernel_size[i];
-        int64_t l = (static_cast<int64_t>(input_dims[i + 2]) + 2 * padding[i] -
-                     dilation[i] * (kernel_size[i] - 1) - 1) /
-                        stride[i] +
-                    1;
+        uint64_t l = (static_cast<uint64_t>(input_dims[i + 2]) + 2 * padding[i] -
+                      dilation[i] * (kernel_size[i] - 1) - 1) /
+                         stride[i] +
+                     1;
         L *= l;
         ls.push_back(l);
     }
 
-    int64_t kernel_size_w = kernel_size[1];
-    int64_t stride_h      = stride[0];
-    int64_t stride_w      = stride[1];
-    int64_t padding_h     = padding[0];
-    int64_t padding_w     = padding[1];
-    int64_t dilation_h    = dilation[0];
-    int64_t dilation_w    = dilation[1];
-    int64_t LW            = ls[1];
-    int64_t H             = static_cast<int64_t>(input_dims[2]);
-    int64_t W             = static_cast<int64_t>(input_dims[3]);
-    int64_t work_size     = (((N * C * P * L) + LOCAL_SIZE - 1) / LOCAL_SIZE) * LOCAL_SIZE;
-    par_ford(work_size)([&](int64_t gid) {
-        int64_t ncp = gid / L, l = gid % L;
-        int64_t nc = ncp / P, p = ncp % P;
-        int64_t n = nc / C, c = nc % C;
+    uint64_t kernel_size_w = kernel_size[1];
+    uint64_t stride_h      = stride[0];
+    uint64_t stride_w      = stride[1];
+    uint64_t padding_h     = padding[0];
+    uint64_t padding_w     = padding[1];
+    uint64_t dilation_h    = dilation[0];
+    uint64_t dilation_w    = dilation[1];
+    uint64_t LW            = ls[1];
+    uint64_t H             = static_cast<uint64_t>(input_dims[2]);
+    uint64_t W             = static_cast<uint64_t>(input_dims[3]);
+    uint64_t work_size     = (((N * C * P * L) + LOCAL_SIZE - 1) / LOCAL_SIZE) * LOCAL_SIZE;
+    par_ford(work_size)([&](uint64_t gid) {
+        uint64_t ncp = gid / L, l = gid % L;
+        uint64_t nc = ncp / P, p = ncp % P;
+        uint64_t n = nc / C, c = nc % C;
         if(n >= N)
             return;
 
@@ -104,10 +104,10 @@ void cpu_unfold_fwd_4d(tensor<T> input_tensor,
 template <class T>
 void cpu_unfold_bwd_4d(tensor<T>& ref_dinput_tensor,
                        tensor<T> doutput_tensor,
-                       const std::vector<int64_t> kernel_size,
-                       const std::vector<int64_t> stride,
-                       const std::vector<int64_t> padding,
-                       const std::vector<int64_t> dilation)
+                       const std::vector<uint64_t> kernel_size,
+                       const std::vector<uint64_t> stride,
+                       const std::vector<uint64_t> padding,
+                       const std::vector<uint64_t> dilation)
 {
     auto input_grad_tv   = miopen::get_inner_expanded_tv<4>(ref_dinput_tensor.desc);
     auto output_grad_tv  = miopen::get_inner_expanded_tv<3>(doutput_tensor.desc);
@@ -117,49 +117,49 @@ void cpu_unfold_bwd_4d(tensor<T>& ref_dinput_tensor,
     auto input_grad  = ref_dinput_tensor.data.data();
     auto output_grad = doutput_tensor.data.data();
 
-    const int64_t LOCAL_SIZE = 256;
-    int64_t spatial_dim_size = input_size - 2;
+    const uint64_t LOCAL_SIZE = 256;
+    uint64_t spatial_dim_size = input_size - 2;
 
-    const int64_t N = static_cast<int64_t>(input_grad_dims[0]);
-    const int64_t C = static_cast<int64_t>(input_grad_dims[1]);
+    const uint64_t N = static_cast<uint64_t>(input_grad_dims[0]);
+    const uint64_t C = static_cast<uint64_t>(input_grad_dims[1]);
 
-    int64_t P = 1;
-    std::vector<int64_t> ls;
-    for(int64_t i = 0; i < spatial_dim_size; ++i)
+    uint64_t P = 1;
+    std::vector<uint64_t> ls;
+    for(uint64_t i = 0; i < spatial_dim_size; ++i)
     {
         P *= kernel_size[i];
-        int64_t l = (static_cast<int64_t>(input_grad_dims[i + 2]) + 2 * padding[i] -
-                     dilation[i] * (kernel_size[i] - 1) - 1) /
-                        stride[i] +
-                    1;
+        uint64_t l = (static_cast<uint64_t>(input_grad_dims[i + 2]) + 2 * padding[i] -
+                      dilation[i] * (kernel_size[i] - 1) - 1) /
+                         stride[i] +
+                     1;
         ls.push_back(l);
     }
 
-    int64_t kernel_size_h = kernel_size[0];
-    int64_t kernel_size_w = kernel_size[1];
-    int64_t stride_h      = stride[0];
-    int64_t stride_w      = stride[1];
-    int64_t padding_h     = padding[0];
-    int64_t padding_w     = padding[1];
-    int64_t dilation_h    = dilation[0];
-    int64_t dilation_w    = dilation[1];
-    int64_t LH            = ls[0];
-    int64_t LW            = ls[1];
-    int64_t H             = static_cast<int64_t>(input_grad_dims[2]);
-    int64_t W             = static_cast<int64_t>(input_grad_dims[3]);
-    int64_t work_size     = (((N * C * H * W) + LOCAL_SIZE - 1) / LOCAL_SIZE) * LOCAL_SIZE;
-    par_ford(work_size)([&](int64_t gid) {
-        int64_t nch = gid / W, w = gid % W;
-        int64_t nc = nch / H, h = nch % H;
-        int64_t n = nc / C, c = nc % C;
+    uint64_t kernel_size_h = kernel_size[0];
+    uint64_t kernel_size_w = kernel_size[1];
+    uint64_t stride_h      = stride[0];
+    uint64_t stride_w      = stride[1];
+    uint64_t padding_h     = padding[0];
+    uint64_t padding_w     = padding[1];
+    uint64_t dilation_h    = dilation[0];
+    uint64_t dilation_w    = dilation[1];
+    uint64_t LH            = ls[0];
+    uint64_t LW            = ls[1];
+    uint64_t H             = static_cast<uint64_t>(input_grad_dims[2]);
+    uint64_t W             = static_cast<uint64_t>(input_grad_dims[3]);
+    uint64_t work_size     = (((N * C * H * W) + LOCAL_SIZE - 1) / LOCAL_SIZE) * LOCAL_SIZE;
+    par_ford(work_size)([&](uint64_t gid) {
+        uint64_t nch = gid / W, w = gid % W;
+        uint64_t nc = nch / H, h = nch % H;
+        uint64_t n = nc / C, c = nc % C;
         if(n >= N)
             return;
 
         float sum = 0.0f;
 
-        for(int64_t ph = 0; ph < kernel_size_h; ++ph)
+        for(uint64_t ph = 0; ph < kernel_size_h; ++ph)
         {
-            for(int64_t pw = 0; pw < kernel_size_w; ++pw)
+            for(uint64_t pw = 0; pw < kernel_size_w; ++pw)
             {
                 int64_t lhsh = h - ph * dilation_h + padding_h;
                 int64_t lwsw = w - pw * dilation_w + padding_w;

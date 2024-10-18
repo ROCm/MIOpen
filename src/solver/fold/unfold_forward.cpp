@@ -61,18 +61,18 @@ ConvSolution UnfoldFwd::GetSolution([[maybe_unused]] const ExecutionContext& con
     auto input_dims = problem.GetInputDesc().GetLengths();
 
     auto output_dims     = problem.GetOutputDesc().GetLengths();
-    const int64_t N      = static_cast<int64_t>(input_dims[0]);
-    const int64_t C      = static_cast<int64_t>(input_dims[1]);
+    const uint64_t N     = static_cast<uint64_t>(input_dims[0]);
+    const uint64_t C     = static_cast<uint64_t>(input_dims[1]);
     int spatial_dim_size = input_dims.size() - 2;
-    int64_t P = 1, L = 1;
-    std::vector<int64_t> ls;
+    uint64_t P = 1, L = 1;
+    std::vector<uint64_t> ls;
     for(int i = 0; i < spatial_dim_size; ++i)
     {
         P *= problem.kernel_size[i];
-        int64_t l = (static_cast<int64_t>(input_dims[i + 2]) + 2 * problem.padding[i] -
-                     problem.dilation[i] * (problem.kernel_size[i] - 1) - 1) /
-                        problem.stride[i] +
-                    1;
+        uint64_t l = (static_cast<uint64_t>(input_dims[i + 2]) + 2 * problem.padding[i] -
+                      problem.dilation[i] * (problem.kernel_size[i] - 1) - 1) /
+                         problem.stride[i] +
+                     1;
         L *= l;
         ls.push_back(l);
     }
@@ -115,18 +115,18 @@ ConvSolution UnfoldFwd::GetSolution([[maybe_unused]] const ExecutionContext& con
             auto input_dims  = deref(params.inputDesc).GetLengths();
             auto output_dims = deref(params.outputDesc).GetLengths();
 
-            int64_t kernel_size_h = params.kernel_size[0];
-            int64_t kernel_size_w = params.kernel_size[1];
-            int64_t stride_h      = params.stride[0];
-            int64_t stride_w      = params.stride[1];
-            int64_t padding_h     = params.padding[0];
-            int64_t padding_w     = params.padding[1];
-            int64_t dilation_h    = params.dilation[0];
-            int64_t dilation_w    = params.dilation[1];
-            int64_t LH            = ls[0];
-            int64_t LW            = ls[1];
-            int64_t H             = static_cast<int64_t>(input_dims[2]);
-            int64_t W             = static_cast<int64_t>(input_dims[3]);
+            uint64_t kernel_size_h = params.kernel_size[0];
+            uint64_t kernel_size_w = params.kernel_size[1];
+            uint64_t stride_h      = params.stride[0];
+            uint64_t stride_w      = params.stride[1];
+            uint64_t padding_h     = params.padding[0];
+            uint64_t padding_w     = params.padding[1];
+            uint64_t dilation_h    = params.dilation[0];
+            uint64_t dilation_w    = params.dilation[1];
+            uint64_t LH            = ls[0];
+            uint64_t LW            = ls[1];
+            uint64_t H             = static_cast<uint64_t>(input_dims[2]);
+            uint64_t W             = static_cast<uint64_t>(input_dims[3]);
 
             kernel(params.input,
                    params.output,

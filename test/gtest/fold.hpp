@@ -35,16 +35,16 @@
 
 struct FoldTestCase
 {
-    size_t N;
-    size_t C;
-    size_t D;
-    size_t H;
-    size_t W;
-    std::vector<int64_t> outputSize;
-    std::vector<int64_t> kernelSize;
-    std::vector<int64_t> stride;
-    std::vector<int64_t> padding;
-    std::vector<int64_t> dilation;
+    uint64_t N;
+    uint64_t C;
+    uint64_t D;
+    uint64_t H;
+    uint64_t W;
+    std::vector<uint64_t> outputSize;
+    std::vector<uint64_t> kernelSize;
+    std::vector<uint64_t> stride;
+    std::vector<uint64_t> padding;
+    std::vector<uint64_t> dilation;
     bool isContiguous = true;
     friend std::ostream& operator<<(std::ostream& os, const FoldTestCase& tc)
     {
@@ -68,40 +68,40 @@ struct FoldTestCase
         return os;
     }
 
-    std::vector<size_t> GetInput()
+    std::vector<uint64_t> GetInput()
     {
         if((N != 0) && (C != 0) && (D != 0) && (H != 0) && (W != 0))
         {
-            return std::vector<size_t>({N, C, D, H, W});
+            return std::vector<uint64_t>({N, C, D, H, W});
         }
         else if((N != 0) && (C != 0) && (H != 0) && (W != 0))
         {
-            return std::vector<size_t>({N, C, H, W});
+            return std::vector<uint64_t>({N, C, H, W});
         }
         else if((N != 0) && (C != 0) && (W != 0))
         {
-            return std::vector<size_t>({N, C, W});
+            return std::vector<uint64_t>({N, C, W});
         }
         else if((N != 0) && (W != 0))
         {
-            return std::vector<size_t>({N, W});
+            return std::vector<uint64_t>({N, W});
         }
         else if((N != 0))
         {
-            return std::vector<size_t>({N});
+            return std::vector<uint64_t>({N});
         }
         else
         {
             std::cout << "Error Input Tensor Lengths\n" << std::endl;
-            return std::vector<size_t>({0});
+            return std::vector<uint64_t>({0});
         }
     }
 
-    std::vector<size_t> ComputeStrides(std::vector<size_t> inputDim) const
+    std::vector<uint64_t> ComputeStrides(std::vector<uint64_t> inputDim) const
     {
         if(!isContiguous)
             std::swap(inputDim.front(), inputDim.back());
-        std::vector<size_t> strides(inputDim.size());
+        std::vector<uint64_t> strides(inputDim.size());
         strides.back() = 1;
         for(int i = inputDim.size() - 2; i >= 0; --i)
             strides[i] = strides[i + 1] * inputDim[i + 1];
@@ -142,20 +142,20 @@ protected:
         auto&& handle = get_handle();
         config        = GetParam();
 
-        std::vector<size_t> in_dims    = config.GetInput();
-        std::vector<size_t> in_strides = config.ComputeStrides(in_dims);
+        std::vector<uint64_t> in_dims    = config.GetInput();
+        std::vector<uint64_t> in_strides = config.ComputeStrides(in_dims);
 
-        auto gen_value  = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1e-2, 100); };
-        auto gen_zero   = [&](auto...) { return 0; };
-        input           = tensor<T>{in_dims, in_strides}.generate(gen_value);
-        const int64_t N = static_cast<int64_t>(in_dims[0]);
-        int64_t C       = static_cast<int64_t>(in_dims[1]);
-        for(int64_t i : config.kernelSize)
+        auto gen_value   = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1e-2, 100); };
+        auto gen_zero    = [&](auto...) { return 0; };
+        input            = tensor<T>{in_dims, in_strides}.generate(gen_value);
+        const uint64_t N = static_cast<uint64_t>(in_dims[0]);
+        uint64_t C       = static_cast<uint64_t>(in_dims[1]);
+        for(uint64_t i : config.kernelSize)
         {
             C = C / i;
         }
 
-        std::vector<size_t> out_dims{N, C, config.outputSize[0], config.outputSize[1]};
+        std::vector<uint64_t> out_dims{N, C, config.outputSize[0], config.outputSize[1]};
 
         output     = tensor<T>{out_dims}.generate(gen_zero);
         outputHost = tensor<T>{out_dims}.generate(gen_zero);
@@ -175,13 +175,13 @@ protected:
                                            output.desc,
                                            output_dev.get(),
                                            config.kernelSize.data(),
-                                           static_cast<int64_t>(config.kernelSize.size()),
+                                           static_cast<uint64_t>(config.kernelSize.size()),
                                            config.stride.data(),
-                                           static_cast<int64_t>(config.stride.size()),
+                                           static_cast<uint64_t>(config.stride.size()),
                                            config.padding.data(),
-                                           static_cast<int64_t>(config.padding.size()),
+                                           static_cast<uint64_t>(config.padding.size()),
                                            config.dilation.data(),
-                                           static_cast<int64_t>(config.dilation.size()));
+                                           static_cast<uint64_t>(config.dilation.size()));
 
         cpu_unfold_bwd_4d<T>(
             outputHost, input, config.kernelSize, config.stride, config.padding, config.dilation);
@@ -219,22 +219,22 @@ protected:
         auto&& handle = get_handle();
         config        = GetParam();
 
-        std::vector<size_t> in_dims    = config.GetInput();
-        std::vector<size_t> in_strides = config.ComputeStrides(in_dims);
+        std::vector<uint64_t> in_dims    = config.GetInput();
+        std::vector<uint64_t> in_strides = config.ComputeStrides(in_dims);
 
         auto gen_value = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1e-2, 100); };
         auto gen_zero  = [&](auto...) { return 0; };
         dinput         = tensor<T>{in_dims, in_strides}.generate(gen_zero);
         dinputHost     = tensor<T>{in_dims, in_strides}.generate(gen_zero);
 
-        const int64_t N = static_cast<int64_t>(in_dims[0]);
-        int64_t C       = static_cast<int64_t>(in_dims[1]);
-        for(int64_t i : config.kernelSize)
+        const uint64_t N = static_cast<uint64_t>(in_dims[0]);
+        uint64_t C       = static_cast<uint64_t>(in_dims[1]);
+        for(uint64_t i : config.kernelSize)
         {
             C = C / i;
         }
 
-        std::vector<size_t> out_dims{N, C, config.outputSize[0], config.outputSize[1]};
+        std::vector<uint64_t> out_dims{N, C, config.outputSize[0], config.outputSize[1]};
 
         doutput = tensor<T>{out_dims}.generate(gen_value);
 
@@ -253,13 +253,13 @@ protected:
                                             doutput.desc,
                                             doutput_dev.get(),
                                             config.kernelSize.data(),
-                                            static_cast<int64_t>(config.kernelSize.size()),
+                                            static_cast<uint64_t>(config.kernelSize.size()),
                                             config.stride.data(),
-                                            static_cast<int64_t>(config.stride.size()),
+                                            static_cast<uint64_t>(config.stride.size()),
                                             config.padding.data(),
-                                            static_cast<int64_t>(config.padding.size()),
+                                            static_cast<uint64_t>(config.padding.size()),
                                             config.dilation.data(),
-                                            static_cast<int64_t>(config.dilation.size()));
+                                            static_cast<uint64_t>(config.dilation.size()));
 
         cpu_unfold_fwd_4d<T>(
             doutput, dinputHost, config.kernelSize, config.stride, config.padding, config.dilation);
