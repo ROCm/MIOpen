@@ -25,6 +25,8 @@
  *******************************************************************************/
 
 #include <miopen/readonlyramdb.hpp>
+
+#include <miopen/db_preload.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/filesystem.hpp>
@@ -49,25 +51,46 @@ bool& rordb_embed_fs_override()
 }
 } // namespace debug
 
-ReadonlyRamDb&
-ReadonlyRamDb::GetCached(DbKinds db_kind_, const fs::path& path, bool warn_if_unreadable)
+auto ReadonlyRamDb::GetInstances() -> Instances&
+{
+    // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
+    static auto instances = Instances{{}, GetDbPreloadStates()};
+    return instances;
+}
+
+ReadonlyRamDb& ReadonlyRamDb::GetCached(DbKinds db_kind_,
+                                        const fs::path& path,
+                                        bool warn_if_unreadable,
+                                        Instances& instances)
 {
     // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
     static std::mutex mutex;
     const std::lock_guard<std::mutex> lock{mutex};
 
     // We don't have to store kind to properly index as different dbs would have different paths
-    // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
-    static auto instances = std::map<fs::path, std::unique_ptr<ReadonlyRamDb>>{};
-    const auto it         = instances.find(path);
+    const auto it = instances.dbs.find(path);
 
-    if(it != instances.end())
+    if(it != instances.dbs.end())
         return *it->second;
 
-    auto& instance =
-        *instances.emplace(path, std::make_unique<ReadonlyRamDb>(db_kind_, path)).first->second;
-    instance.Prefetch(warn_if_unreadable);
-    return instance;
+    // The ReadonlyRamDb objects allocated here by "new" shall be alive during
+    // the calling app lifetime. Size of each is very small, and there couldn't
+    // be many of them (max number is number of _different_ GPU board installed
+    // in the user's system, which is _one_ for now). Therefore the total
+    // footprint in heap is very small. That is why we can omit deletion of
+    // these objects thus avoiding bothering with MP/MT syncronization.
+    // These will be destroyed altogether with heap.
+    if(auto preloaded = instances.states->GetPreloadedReadonlyRamDb(path))
+    {
+        return *instances.dbs.emplace(path, std::move(preloaded)).first->second;
+    }
+    else
+    {
+        auto& ref = *instances.dbs.emplace(path, std::make_unique<ReadonlyRamDb>(db_kind_, path))
+                         .first->second;
+        ref.Prefetch(warn_if_unreadable);
+        return ref;
+    }
 }
 
 template <class TFunc>
@@ -83,7 +106,9 @@ static auto Measure(const std::string& funcName, TFunc&& func)
                                    << " ms");
 }
 
-void ReadonlyRamDb::ParseAndLoadDb(std::istream& input_stream, bool warn_if_unreadable)
+void ReadonlyRamDb::ParseAndLoadDb(std::istream& input_stream,
+                                   bool warn_if_unreadable,
+                                   stop_token const& stop)
 {
     if(!input_stream)
     {
@@ -98,6 +123,9 @@ void ReadonlyRamDb::ParseAndLoadDb(std::istream& input_stream, bool warn_if_unre
 
     while(std::getline(input_stream, line))
     {
+        if(stop.stop_requested())
+            return;
+
         ++n_line;
 
         if(line.empty())
@@ -119,9 +147,9 @@ void ReadonlyRamDb::ParseAndLoadDb(std::istream& input_stream, bool warn_if_unre
     }
 }
 
-void ReadonlyRamDb::Prefetch(bool warn_if_unreadable)
+void ReadonlyRamDb::Prefetch(bool warn_if_unreadable, stop_token stop)
 {
-    Measure("Prefetch", [this, warn_if_unreadable]() {
+    Measure("Prefetch", [this, warn_if_unreadable, stop = std::move(stop)]() {
         if(db_path.empty())
             return;
         constexpr bool isEmbedded = MIOPEN_EMBED_DB;
@@ -140,13 +168,13 @@ void ReadonlyRamDb::Prefetch(bool warn_if_unreadable)
             ptrdiff_t sz  = p.second - p.first;
             MIOPEN_LOG_I2("Loading In Memory file: " << filepath);
             auto input_stream = std::stringstream(std::string(p.first, sz));
-            ParseAndLoadDb(input_stream, warn_if_unreadable);
+            ParseAndLoadDb(input_stream, warn_if_unreadable, stop);
 #endif
         }
         else
         {
             auto input_stream = std::ifstream{db_path};
-            ParseAndLoadDb(input_stream, warn_if_unreadable);
+            ParseAndLoadDb(input_stream, warn_if_unreadable, stop);
         }
     });
 }

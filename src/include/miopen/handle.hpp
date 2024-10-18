@@ -290,6 +290,8 @@ public:
         return invokers.GetFound1_0SolverId(config, algo);
     }
 
+    void TryStartPreloadingDbs();
+
 #if MIOPEN_USE_ROCBLAS
     const rocblas_handle_ptr& rhandle() const;
 #endif
