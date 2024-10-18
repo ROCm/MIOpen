@@ -41,7 +41,7 @@
 
 #include <miopen/gemm_v2.hpp>
 
-#include <half/half.hpp>
+#include <half.hpp>
 #include <hip_float8.hpp>
 
 using float16 = half_float::half;

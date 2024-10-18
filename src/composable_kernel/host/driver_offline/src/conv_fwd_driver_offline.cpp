@@ -4,7 +4,7 @@
 #include <cstdlib>
 #include <stdlib.h>
 #if !defined(_WIN32)
-#include <half/half.hpp>
+#include <half.hpp>
 #else
 #include <half.hpp>
 #endif

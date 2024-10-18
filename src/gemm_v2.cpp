@@ -45,7 +45,7 @@
 #pragma clang diagnostic ignored "-Wunused-macros"
 #define ROCBLAS_BETA_FEATURES_API 1
 #pragma clang diagnostic pop
-#include <half/half.hpp>
+#include <half.hpp>
 #if MIOPEN_ROCBLAS_VERSION_FLAT < 2045000
 #include <rocblas.h>
 #else

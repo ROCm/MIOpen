@@ -26,7 +26,7 @@
 #ifndef GUARD_MIOPEN_DRIVER_HPP
 #define GUARD_MIOPEN_DRIVER_HPP
 
-#include <half/half.hpp>
+#include <half.hpp>
 #include "random.hpp"
 
 #include "InputFlags.hpp"
