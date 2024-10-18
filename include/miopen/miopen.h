@@ -72,6 +72,7 @@
  * @defgroup ReduceCalculation
  * @defgroup RotaryPositionalEmbeddings
  * @defgroup ReLU
+ * @defgroup Any
  *
  */
 
@@ -7730,6 +7731,60 @@ MIOPEN_EXPORT miopenStatus_t miopenPReLUBackward(miopenHandle_t handle,
 
 /** @} */
 // CLOSEOUT RELU DOXYGEN GROUP
+#endif // MIOPEN_BETA_API
+
+#ifdef MIOPEN_BETA_API
+
+// Any APIs
+/** @addtogroup any
+ *
+ *  @{
+ */
+
+/*! @brief Helper function to query the minimum workspace size required by the any call
+ *
+ * @param handle                   MIOpen Handle (input)
+ * @param inputDesc                Tensor descriptor for data input tensor x (input)
+ * @param dim                      The dimension(s) to reduce (input)
+ * @param keepdim                  Whether the output tensor has dim retained or not (input)
+ * @param outputDesc               Tensor descriptor for output tensor (input)
+ * @param sizeInBytes              Pointer to data to return the minimum workspace size
+ * @return                         miopenStatus_t
+ */
+
+MIOPEN_EXPORT miopenStatus_t miopenGetAnyWorkspaceSize(miopenHandle_t handle,
+                                                       const miopenTensorDescriptor_t inputDesc,
+                                                       const int32_t dim,
+                                                       const bool keepdim,
+                                                       const miopenTensorDescriptor_t outputDesc,
+                                                       size_t* sizeInBytes);
+
+/** @brief Execute an any forward layer
+ *
+ * @param handle                   MIOpen handle (input)
+ * @param workspace                Address of the allocated workspace data (input)
+ * @param workspaceSizeInBytes     Size in bytes of the allocated workspace data (input)
+ * @param inputDesc                Tensor descriptor for input tensor (input)
+ * @param input                    Data tensor input (input)
+ * @param dim                      The dimension(s) to reduce (input)
+ * @param keepdim                  Whether the output tensor has dim retained or not (input)
+ * @param outputDesc               Tensor descriptor for output tensor (input)
+ * @param output                   Data tensor output (output)
+ * @return                         miopenStatus_t
+ */
+
+MIOPEN_EXPORT miopenStatus_t miopenAnyForward(miopenHandle_t handle,
+                                              void* workspace,
+                                              size_t workspaceSizeInBytes,
+                                              const miopenTensorDescriptor_t inputDesc,
+                                              const void* input,
+                                              const int32_t dim,
+                                              const bool keepdim,
+                                              const miopenTensorDescriptor_t outputDesc,
+                                              void* output);
+
+/** @} */
+// CLOSEOUT ANY DOXYGEN GROUP
 #endif // MIOPEN_BETA_API
 
 #ifdef __cplusplus
