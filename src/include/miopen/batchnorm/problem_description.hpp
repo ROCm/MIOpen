@@ -61,7 +61,10 @@ struct MIOPEN_INTERNALS_EXPORT ProblemDescription : ProblemDescriptionBase, Prob
     ProblemDescription(miopenBatchNormMode_t bn_mode_,
                        const TensorDescriptor& xDesc_,
                        const TensorDescriptor& yDesc_,
-                       const TensorDescriptor& bnScaleBiasMeanVarDesc_,
+                       const TensorDescriptor& scaleDesc_,
+                       const TensorDescriptor& biasDesc_,
+                       const TensorDescriptor& sMeanDesc_,
+                       const TensorDescriptor& sVarianceDesc_,
                        double expAvgFactor_,
                        double epsilon_,
                        bool resultsave_,
@@ -70,7 +73,10 @@ struct MIOPEN_INTERNALS_EXPORT ProblemDescription : ProblemDescriptionBase, Prob
           bn_mode(bn_mode_),
           xDesc(xDesc_),
           yOrDyDesc(yDesc_),
-          scaleBiasDesc(bnScaleBiasMeanVarDesc_),
+          scaleDesc(scaleDesc_),
+          biasDesc(biasDesc_),
+          sMeanDesc(sMeanDesc_),
+          sVarianceDesc(sVarianceDesc_),
           expAvgFactor(expAvgFactor_),
           epsilon(epsilon_),
           resultsave(resultsave_),
@@ -85,13 +91,19 @@ struct MIOPEN_INTERNALS_EXPORT ProblemDescription : ProblemDescriptionBase, Prob
     ProblemDescription(miopenBatchNormMode_t bn_mode_,
                        const TensorDescriptor& xDesc_,
                        const TensorDescriptor& yDesc_,
-                       const TensorDescriptor& bnScaleBiasMeanVarDesc_,
+                       const TensorDescriptor& scaleDesc_,
+                       const TensorDescriptor& biasDesc_,
+                       const TensorDescriptor& sMeanDesc_,
+                       const TensorDescriptor& sVarianceDesc_,
                        double epsilon_)
         : direction(Direction::ForwardInference),
           bn_mode(bn_mode_),
           xDesc(xDesc_),
           yOrDyDesc(yDesc_),
-          scaleBiasDesc(bnScaleBiasMeanVarDesc_),
+          scaleDesc(scaleDesc_),
+          biasDesc(biasDesc_),
+          sMeanDesc(sMeanDesc_),
+          sVarianceDesc(sVarianceDesc_),
           epsilon(epsilon_)
     {
         SetSpatialDims();
@@ -104,7 +116,10 @@ struct MIOPEN_INTERNALS_EXPORT ProblemDescription : ProblemDescriptionBase, Prob
                        const TensorDescriptor& xDesc_,
                        const TensorDescriptor& dyDesc_,
                        const TensorDescriptor& dxDesc_,
-                       const TensorDescriptor& bnScaleBiasDiffDesc_,
+                       const TensorDescriptor& scaleDesc_,
+                       const TensorDescriptor& biasDesc_,
+                       const TensorDescriptor& sMeanDesc_,
+                       const TensorDescriptor& sVarianceDesc_,
                        double epsilon_,
                        bool useSaved_)
         : direction(Direction::Backward),
@@ -112,7 +127,10 @@ struct MIOPEN_INTERNALS_EXPORT ProblemDescription : ProblemDescriptionBase, Prob
           xDesc(xDesc_),
           yOrDyDesc(dyDesc_),
           dxDesc(dxDesc_),
-          scaleBiasDesc(bnScaleBiasDiffDesc_),
+          scaleDesc(scaleDesc_),
+          biasDesc(biasDesc_),
+          sMeanDesc(sMeanDesc_),
+          sVarianceDesc(sVarianceDesc_),
           epsilon(epsilon_),
           useSaved(useSaved_)
     {
@@ -156,13 +174,13 @@ struct MIOPEN_INTERNALS_EXPORT ProblemDescription : ProblemDescriptionBase, Prob
     const TensorDescriptor& GetBnScaleBiasMeanVarDesc() const
     {
         assert(direction == Direction::ForwardTraining || direction == Direction::ForwardInference);
-        return scaleBiasDesc;
+        return scaleDesc;
     }
 
     const TensorDescriptor& GetScaleBiasDiffDesc() const
     {
         assert(direction == Direction::Backward);
-        return scaleBiasDesc;
+        return scaleDesc;
     }
 
     bool GetResultSave() const
@@ -232,7 +250,11 @@ private:
     TensorDescriptor xDesc;     // input
     TensorDescriptor yOrDyDesc; // output
     TensorDescriptor dxDesc;
-    TensorDescriptor scaleBiasDesc;
+
+    TensorDescriptor scaleDesc; // scale
+    TensorDescriptor biasDesc;  // bias (shift)
+    TensorDescriptor sMeanDesc;
+    TensorDescriptor sVarianceDesc;
 
 #ifdef __clang__
 #pragma clang diagnostic push
