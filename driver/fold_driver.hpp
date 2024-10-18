@@ -83,8 +83,6 @@ public:
 private:
     InputFlags inflags;
 
-    int forw;
-
     miopenTensorDescriptor_t inputDesc;
     miopenTensorDescriptor_t outputDesc;
 
@@ -104,14 +102,13 @@ private:
     std::vector<Tgpu> dinput;
 
     std::vector<Tref> output_host;
-
     std::vector<Tref> dinput_host;
 
-    std::vector<int64_t> output_size;
-    std::vector<int64_t> kernel_size;
-    std::vector<int64_t> stride;
-    std::vector<int64_t> padding;
-    std::vector<int64_t> dilation;
+    std::vector<uint64_t> output_size;
+    std::vector<uint64_t> kernel_size;
+    std::vector<uint64_t> stride;
+    std::vector<uint64_t> padding;
+    std::vector<uint64_t> dilation;
 };
 
 template <typename Tgpu, typename Tref>
@@ -141,14 +138,14 @@ int FoldDriver<Tgpu, Tref>::GetandSetData()
     std::vector<int> dilation_int    = inflags.GetValueTensor("dilation").lengths;
     dilation                         = {dilation_int.begin(), dilation_int.end()};
 
-    int64_t N = input_length[0];
-    int64_t C = input_length[1];
-    for(int64_t i : kernel_size)
+    uint64_t N = input_length[0];
+    uint64_t C = input_length[1];
+    for(uint64_t i : kernel_size)
     {
         C = C / i;
     }
 
-    std::vector<int> output_length = {N, C, output_size[0], output_size[1]};
+    std::vector<uint64_t> output_length = {N, C, output_size[0], output_size[1]};
     if(SetTensorNd(inputDesc, input_length, data_type) != miopenStatusSuccess)
         MIOPEN_THROW("Error parsing input tensor: " + inflags.GetValueStr("input_dims") + ".");
     if(SetTensorNd(outputDesc, output_length, data_type) != miopenStatusSuccess)

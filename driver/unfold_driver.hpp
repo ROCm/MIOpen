@@ -23,8 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef GUARD_MIOPEN_UNFOLD_DRIVER_HPP
-#define GUARD_MIOPEN_UNFOLD_DRIVER_HPP
+#pragma once
 
 #include "InputFlags.hpp"
 #include "driver.hpp"
@@ -84,8 +83,6 @@ public:
 private:
     InputFlags inflags;
 
-    int forw;
-
     miopenTensorDescriptor_t inputDesc;
     miopenTensorDescriptor_t outputDesc;
 
@@ -105,13 +102,13 @@ private:
     std::vector<Tgpu> dinput;
 
     std::vector<Tref> output_host;
-
     std::vector<Tref> dinput_host;
 
-    std::vector<int64_t> kernel_size;
-    std::vector<int64_t> stride;
-    std::vector<int64_t> padding;
-    std::vector<int64_t> dilation;
+    std::vector<uint64_t> input_length;
+    std::vector<uint64_t> kernel_size;
+    std::vector<uint64_t> stride;
+    std::vector<uint64_t> padding;
+    std::vector<uint64_t> dilation;
 };
 
 template <typename Tgpu, typename Tref>
@@ -129,8 +126,8 @@ int UnfoldDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
 template <typename Tgpu, typename Tref>
 int UnfoldDriver<Tgpu, Tref>::GetandSetData()
 {
-    std::vector<int> input_length = inflags.GetValueTensor("DimLengths").lengths;
-
+    std::vector<int> input_dims      = inflags.GetValueTensor("DimLengths").lengths;
+    input_length                     = {input_dims.begin(), input_dims.end()};
     std::vector<int> kernel_size_int = inflags.GetValueTensor("kernelSize").lengths;
     kernel_size                      = {kernel_size_int.begin(), kernel_size_int.end()};
     std::vector<int> stride_int      = inflags.GetValueTensor("stride").lengths;
@@ -139,24 +136,24 @@ int UnfoldDriver<Tgpu, Tref>::GetandSetData()
     padding                          = {padding_int.begin(), padding_int.end()};
     std::vector<int> dilation_int    = inflags.GetValueTensor("dilation").lengths;
     dilation                         = {dilation_int.begin(), dilation_int.end()};
+    uint64_t spatial_dim_size        = input_length.size() - 2;
+    uint64_t N                       = input_length[0];
+    uint64_t C                       = input_length[1];
 
-    int spatial_dim_size = input_length.size() - 2;
-    int64_t N            = input_length[0];
-    int64_t C            = input_length[1];
-
-    int64_t P = 1, L = 1;
-    std::vector<int64_t> ls;
-    for(int i = 0; i < spatial_dim_size; ++i)
+    uint64_t P = 1, L = 1;
+    std::vector<uint64_t> ls;
+    for(uint64_t i = 0; i < spatial_dim_size; ++i)
     {
         P *= kernel_size[i];
-        int64_t l =
+        uint64_t l =
             (input_length[i + 2] + 2 * padding[i] - dilation[i] * (kernel_size[i] - 1) - 1) /
                 stride[i] +
             1;
         L *= l;
         ls.push_back(l);
     }
-    std::vector<int> output_length = {N, (C * P), L};
+
+    std::vector<uint64_t> output_length = {N, (C * P), L};
     if(SetTensorNd(inputDesc, input_length, data_type) != miopenStatusSuccess)
         MIOPEN_THROW("Error parsing input tensor: " + inflags.GetValueStr("input_dims") + ".");
     if(SetTensorNd(outputDesc, output_length, data_type) != miopenStatusSuccess)
@@ -177,10 +174,10 @@ int UnfoldDriver<Tgpu, Tref>::AddCmdLineArgs()
         "forw", 'F', "1", "Run Unfold Forward (Default=1) or both Forward and Backward (0)", "int");
     inflags.AddTensorFlag(
         "DimLengths", 'D', "2x5x3x4", "The dimensional lengths of the input tensor");
-    inflags.AddInputFlag("kernelSize", 'k', "2,3", "Kernel Size (Default=2,3)", "str");
-    inflags.AddInputFlag("stride", 's', "1,1", "Stride (Default=1,1)", "str");
-    inflags.AddInputFlag("padding", 'p', "0,0", "Padding (Default=0,0)", "str");
-    inflags.AddInputFlag("dilation", 'd', "1,1", "Dilation (Default=1,1)", "str");
+    inflags.AddTensorFlag("kernelSize", 'k', "2x2", "Kernel Size (Default=2x3)");
+    inflags.AddTensorFlag("stride", 's', "1x1", "Stride (Default=1x1)");
+    inflags.AddTensorFlag("padding", 'p', "0x0", "Padding (Default=0x0)");
+    inflags.AddTensorFlag("dilation", 'd', "1x1", "Dilation (Default=1x1)");
     inflags.AddInputFlag("iter", 'i', "10", "Number of Iterations (Default=10)", "int");
     inflags.AddInputFlag("verify", 'V', "0", "Verify Each Layer (Default=0)", "int");
     inflags.AddInputFlag("time", 't', "0", "Time Each Layer (Default=0)", "int");
@@ -420,5 +417,3 @@ int UnfoldDriver<Tgpu, Tref>::VerifyBackward()
     }
     return miopenStatusSuccess;
 }
-
-#endif // GUARD_MIOPEN_UNFOLD_DRIVER_HPP
