@@ -57,7 +57,8 @@ struct TensorStruct
 
     ~TensorStruct() = default;
 
-    std::variant<tensor<float>, tensor<float8>, tensor<int64_t>> m_cpu_tensor;
+    std::variant<tensor<float>, tensor<float8>, tensor<int64_t>, tensor<half_float::half>>
+        m_cpu_tensor;
     Allocator::ManageDataPtr m_gpu_buffer;
 };
 
@@ -105,12 +106,50 @@ inline std::vector<TestCase> GetFullTestCases()
         {11, 150, 256, 31, 0.4f},
     };
 }
+
+inline std::vector<TestCase> GetFp16SmokeCases()
+{
+    return {
+        {2, 1, 1, 256, 0.0f},
+        {2, 2, 65, 128, 0.0f},
+        {3, 2, 257, 64, 0.0f},
+        {3, 5, 528, 32, 0.0f},
+        {3, 7, 712, 16, 0.0f},
+        {5, 3, 1111, 8, 0.0f},
+    };
+}
+
+inline std::vector<TestCase> GetFp16FullTestCases()
+{
+    return {
+        {3, 11, 1731, 8, 0.0f},
+        {2049, 5, 7, 8, 0.0f},
+        {5, 2000, 32, 8, 0.0f},
+        {3, 9, 1407, 16, 0.0f},
+        {1027, 5, 21, 16, 0.0f},
+        {5, 1040, 32, 24, 0.0f},
+        {3, 7, 1212, 32, 0.0f},
+        {550, 5, 16, 40, 0.0f},
+        {5, 550, 40, 48, 0.0f},
+        {2, 9, 1057, 64, 0.0f},
+        {250, 3, 19, 72, 0.0f},
+        {5, 230, 27, 80, 0.0f},
+        {2, 5, 920, 128, 0.0f},
+        {111, 2, 27, 136, 0.0f},
+        {3, 110, 22, 152, 0.0f},
+        {2, 4, 600, 224, 0.0f},
+        {57, 1, 63, 232, 0.0f},
+        {2, 65, 18, 256, 0.0f},
+    };
+}
+
 } // namespace
 
 template <typename T>
 class Test_Fwd_Mha : public testing::TestWithParam<TestCase>
 {
-    static_assert(std::is_same_v<T, float> || std::is_same_v<T, float8>);
+    static_assert(std::is_same_v<T, float> || std::is_same_v<T, float8> ||
+                  std::is_same_v<T, half_float::half>);
 
 protected:
     void SetUp() override
@@ -123,6 +162,8 @@ protected:
         {
             GTEST_SKIP() << "CPU Dropout currently supports only fully occupied warps";
         }
+
+        dropout = drop;
 
         mha_descriptor.SetParams(1);
         ASSERT_EQ(miopenCreateMhaProblem(&problem, &mha_descriptor, miopenProblemDirectionForward),
@@ -200,27 +241,65 @@ protected:
         mDesc_ref    = tensor<float>{n, h, s, 1};
         zInvDesc_ref = tensor<float>{n, h, s, 1};
 
-        test::cpu::MultiHeadAttentionfp8(
-            std::get<tensor<T>>(tensors[miopenTensorMhaQ]->m_cpu_tensor),
-            std::get<tensor<T>>(tensors[miopenTensorMhaK]->m_cpu_tensor),
-            std::get<tensor<T>>(tensors[miopenTensorMhaV]->m_cpu_tensor),
-            softmax_ref,
-            mDesc_ref,
-            zInvDesc_ref,
-            q.mDescale,
-            k.mDescale,
-            v.mDescale,
-            s_descale,
-            s_scale,
-            o_scale,
-            drop,
-            std::get<tensor<int64_t>>(tensors[miopenTensorMhaDropoutSeed]->m_cpu_tensor)
-                .data.front(),
-            std::get<tensor<int64_t>>(tensors[miopenTensorMhaDropoutOffset]->m_cpu_tensor)
-                .data.front(),
-            amaxS_ref,
-            amaxO_ref,
-            oDesc_ref);
+        RunReference(std::get<tensor<T>>(tensors[miopenTensorMhaQ]->m_cpu_tensor),
+                     std::get<tensor<T>>(tensors[miopenTensorMhaK]->m_cpu_tensor),
+                     std::get<tensor<T>>(tensors[miopenTensorMhaV]->m_cpu_tensor),
+                     softmax_ref,
+                     mDesc_ref,
+                     zInvDesc_ref,
+                     q.mDescale,
+                     k.mDescale,
+                     v.mDescale,
+                     s_descale,
+                     s_scale,
+                     o_scale,
+                     dropout,
+                     std::get<tensor<int64_t>>(tensors[miopenTensorMhaDropoutSeed]->m_cpu_tensor)
+                         .data.front(),
+                     std::get<tensor<int64_t>>(tensors[miopenTensorMhaDropoutOffset]->m_cpu_tensor)
+                         .data.front(),
+                     amaxS_ref,
+                     amaxO_ref,
+                     oDesc_ref);
+    }
+
+    virtual void RunReference(const tensor<T>& q_val,
+                              const tensor<T>& k_val,
+                              const tensor<T>& v_val,
+                              tensor<float>& softmax,
+                              tensor<float>& attn_max,
+                              tensor<float>& Z_sum,
+                              float q_descale,
+                              float k_descale,
+                              float v_descale,
+                              float s_descale,
+                              float s_scale,
+                              float o_scale,
+                              float dropout_rate,
+                              uint64_t seed,
+                              uint64_t offset,
+                              float& aMax_S,
+                              float& aMax_O,
+                              tensor<T>& multi_head_attention_fp8)
+    {
+        test::cpu::MultiHeadAttentionForwardfp8(q_val,
+                                                k_val,
+                                                v_val,
+                                                softmax,
+                                                attn_max,
+                                                Z_sum,
+                                                q_descale,
+                                                k_descale,
+                                                v_descale,
+                                                s_descale,
+                                                s_scale,
+                                                o_scale,
+                                                dropout_rate,
+                                                seed,
+                                                offset,
+                                                aMax_S,
+                                                aMax_O,
+                                                multi_head_attention_fp8);
     }
 
     void TestBody() override
@@ -249,40 +328,45 @@ protected:
                     &handle, solution, args.size(), args.data(), workspace.ptr(), workspace.size()),
                 miopenStatusSuccess);
 
-            auto GetResult = [this, &handle](miopenTensorArgumentId_t id, auto type) {
-                using ResultT         = std::decay_t<decltype(type)>;
-                auto& tensorStructPtr = tensors[id];
-                auto& cpu_tensor      = std::get<tensor<ResultT>>(tensorStructPtr->m_cpu_tensor);
-
-                cpu_tensor.data =
-                    handle.Read<ResultT>(tensorStructPtr->m_gpu_buffer, cpu_tensor.data.size());
-
-                return cpu_tensor;
-            };
-
-            const double error_threshold     = 5e-6;
-            const double fp8_error_threshold = (std::is_same_v<T, float8>) ? 2e-4 : error_threshold;
-
-            const auto& resAmaxS = GetResult(miopenTensorMhaAmaxS, float{});
-            auto amaxS_abs_diff  = std::abs(amaxS_ref - resAmaxS[0]);
-            EXPECT_LT(amaxS_abs_diff, error_threshold)
-                << " ref: " << amaxS_ref << " result: " << resAmaxS[0];
-
-            const auto& resAmaxO = GetResult(miopenTensorMhaAmaxO, float{});
-            auto amaxO_abs_diff  = std::abs(amaxO_ref - resAmaxO[0]);
-            EXPECT_LT(amaxO_abs_diff, error_threshold)
-                << " ref: " << amaxO_ref << " result: " << resAmaxO[0];
-
-            double M_error = miopen::rms_range(mDesc_ref, GetResult(miopenTensorMhaM, float{}));
-            EXPECT_LT(M_error, error_threshold);
-
-            double ZInv_error =
-                miopen::rms_range(zInvDesc_ref, GetResult(miopenTensorMhaZInv, float{}));
-            EXPECT_LT(ZInv_error, error_threshold);
-
-            double O_error = miopen::rms_range(oDesc_ref, GetResult(miopenTensorMhaO, T{}));
-            EXPECT_LT(O_error, fp8_error_threshold);
+            VerifyResults(handle);
         }
+    }
+
+    virtual void VerifyResults(Handle& handle)
+    {
+        auto GetResult = [this, &handle](miopenTensorArgumentId_t id, auto type) {
+            using ResultT         = std::decay_t<decltype(type)>;
+            auto& tensorStructPtr = tensors[id];
+            auto& cpu_tensor      = std::get<tensor<ResultT>>(tensorStructPtr->m_cpu_tensor);
+
+            cpu_tensor.data =
+                handle.Read<ResultT>(tensorStructPtr->m_gpu_buffer, cpu_tensor.data.size());
+
+            return cpu_tensor;
+        };
+
+        const double error_threshold     = 5e-6;
+        const double fp8_error_threshold = (std::is_same_v<T, float8>) ? 2e-4 : error_threshold;
+
+        const auto& resAmaxS = GetResult(miopenTensorMhaAmaxS, float{});
+        auto amaxS_abs_diff  = std::abs(amaxS_ref - resAmaxS[0]);
+        EXPECT_LT(amaxS_abs_diff, error_threshold)
+            << " ref: " << amaxS_ref << " result: " << resAmaxS[0];
+
+        const auto& resAmaxO = GetResult(miopenTensorMhaAmaxO, float{});
+        auto amaxO_abs_diff  = std::abs(amaxO_ref - resAmaxO[0]);
+        EXPECT_LT(amaxO_abs_diff, error_threshold)
+            << " ref: " << amaxO_ref << " result: " << resAmaxO[0];
+
+        double M_error = miopen::rms_range(mDesc_ref, GetResult(miopenTensorMhaM, float{}));
+        EXPECT_LT(M_error, error_threshold);
+
+        double ZInv_error =
+            miopen::rms_range(zInvDesc_ref, GetResult(miopenTensorMhaZInv, float{}));
+        EXPECT_LT(ZInv_error, error_threshold);
+
+        double O_error = miopen::rms_range(oDesc_ref, GetResult(miopenTensorMhaO, T{}));
+        EXPECT_LT(O_error, fp8_error_threshold);
     }
 
     void TearDown() override
@@ -304,6 +388,7 @@ protected:
     tensor<float> zInvDesc_ref;
     float amaxS_ref;
     float amaxO_ref;
+    float dropout;
 
     MhaDescriptor mha_descriptor;
     miopenProblem_t problem = nullptr;
@@ -311,6 +396,74 @@ protected:
 
 class GPU_Fwd_Mha_FP32 : public Test_Fwd_Mha<float>
 {
+};
+
+class GPU_Fwd_Mha_FP16 : public Test_Fwd_Mha<half_float::half>
+{
+    void SetUp() override
+    {
+        if(!IsTestSupportedByDevice(Gpu::gfx90A | Gpu::gfx94X))
+        {
+            GTEST_SKIP() << "FP16 is unsupported on this HW";
+        }
+
+        Test_Fwd_Mha<half_float::half>::SetUp();
+
+        if(dropout != 0.0f)
+        {
+            GTEST_SKIP() << "Dropout not currently supported for FP16";
+        }
+    }
+
+    void RunReference(const tensor<half_float::half>& q_val,
+                      const tensor<half_float::half>& k_val,
+                      const tensor<half_float::half>& v_val,
+                      tensor<float>& softmax,
+                      tensor<float>& attn_max,
+                      tensor<float>& Z_sum,
+                      [[maybe_unused]] float q_descale,
+                      [[maybe_unused]] float k_descale,
+                      [[maybe_unused]] float v_descale,
+                      [[maybe_unused]] float s_descale,
+                      [[maybe_unused]] float s_scale,
+                      [[maybe_unused]] float o_scale,
+                      [[maybe_unused]] float dropout_rate,
+                      [[maybe_unused]] uint64_t seed,
+                      [[maybe_unused]] uint64_t offset,
+                      [[maybe_unused]] float& aMax_S,
+                      [[maybe_unused]] float& aMax_O,
+                      tensor<half_float::half>& output) override
+    {
+        test::cpu::MultiHeadAttentionForwardfp16(
+            q_val, k_val, v_val, softmax, attn_max, Z_sum, output);
+    }
+
+    void VerifyResults(Handle& handle) override
+    {
+        auto GetResult = [this, &handle](miopenTensorArgumentId_t id) {
+            auto& tensorStructPtr = tensors[id];
+            auto& cpu_tensor = std::get<tensor<half_float::half>>(tensorStructPtr->m_cpu_tensor);
+
+            cpu_tensor.data = handle.Read<half_float::half>(tensorStructPtr->m_gpu_buffer,
+                                                            cpu_tensor.data.size());
+
+            return cpu_tensor;
+        };
+
+        const double errorThreshold = 4e-4;
+        double oError               = miopen::rms_range(oDesc_ref, GetResult(miopenTensorMhaO));
+
+        if(dropout > 0.0f)
+        {
+            // Due to GPU version using a different dropout generator we will compare to CPU without
+            // dropout and verify that dropout causes a large difference when comparing results.
+            EXPECT_GT(oError, errorThreshold);
+        }
+        else
+        {
+            EXPECT_LT(oError, errorThreshold);
+        }
+    }
 };
 
 class GPU_Fwd_Mha_FP8 : public Test_Fwd_Mha<float8>
@@ -333,6 +486,12 @@ TEST_P(GPU_Fwd_Mha_FP32, Test_float) { return Test_Fwd_Mha<float>::TestBody(); }
 INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Fwd_Mha_FP32, testing::ValuesIn(GetSmokeCases()));
 INSTANTIATE_TEST_SUITE_P(Full, GPU_Fwd_Mha_FP32, testing::ValuesIn(GetFullTestCases()));
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(GPU_Fwd_Mha_FP32);
+
+TEST_P(GPU_Fwd_Mha_FP16, Test_float) { return GPU_Fwd_Mha_FP16::TestBody(); };
+
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Fwd_Mha_FP16, testing::ValuesIn(GetFp16SmokeCases()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_Fwd_Mha_FP16, testing::ValuesIn(GetFp16FullTestCases()));
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(GPU_Fwd_Mha_FP16);
 
 TEST_P(GPU_Fwd_Mha_FP8, Test_float) { return Test_Fwd_Mha<float8>::TestBody(); };
 

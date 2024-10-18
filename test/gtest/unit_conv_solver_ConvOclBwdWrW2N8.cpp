@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2022 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,34 +24,5 @@
  *
  *******************************************************************************/
 
-#pragma once
-
-#include <type_traits>
-
-namespace miopen {
-
-namespace detail {
-
-template <typename...>
-using void_t = void;
-
-template <class Default, class AlwaysVoid, template <class...> class Op, class... Args>
-struct MemberDetector
-{
-    using value_t = std::false_type;
-    using type    = Default;
-};
-
-template <class Default, template <class...> class Op, class... Args>
-struct MemberDetector<Default, void_t<Op<Args...>>, Op, Args...>
-{
-    using value_t = std::true_type;
-    using type    = Op<Args...>;
-};
-
-} // namespace detail
-
-template <template <class...> class Op, class... Args>
-using HasMember = typename detail::MemberDetector<void, void, Op, Args...>::value_t;
-
-} // namespace miopen
+#define NUM_BATCH_LOOPS 8
+#include "unit_conv_solver_ConvOclBwdWrW2.hpp"
