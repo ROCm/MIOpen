@@ -26,6 +26,7 @@
 
 #include <miopen/activ/solvers.hpp>
 #include <miopen/adam/solvers.hpp>
+#include <miopen/adaptiveavgpool/solvers.hpp>
 #include <miopen/batchnorm/solvers.hpp>
 #include <miopen/cat/solvers.hpp>
 #include <miopen/conv/solvers.hpp>
@@ -709,6 +710,30 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
              multimarginloss::MultiMarginLossForward{}.SolverDbId());
 
     Register(registry, ++id, Primitive::Mha, mha::MhaCKFlashAttentionV2Forward{}.SolverDbId());
+    Register(registry,
+             ++id,
+             Primitive::AdaptiveAvgPool,
+             adaptiveavgpool::AdaptiveAvgPoolForward1d{}.SolverDbId());
+    Register(registry,
+             ++id,
+             Primitive::AdaptiveAvgPool,
+             adaptiveavgpool::AdaptiveAvgPoolForward2d{}.SolverDbId());
+    Register(registry,
+             ++id,
+             Primitive::AdaptiveAvgPool,
+             adaptiveavgpool::AdaptiveAvgPoolForward3d{}.SolverDbId());
+    Register(registry,
+             ++id,
+             Primitive::AdaptiveAvgPool,
+             adaptiveavgpool::AdaptiveAvgPoolBackward1d{}.SolverDbId());
+    Register(registry,
+             ++id,
+             Primitive::AdaptiveAvgPool,
+             adaptiveavgpool::AdaptiveAvgPoolBackward2d{}.SolverDbId());
+    Register(registry,
+             ++id,
+             Primitive::AdaptiveAvgPool,
+             adaptiveavgpool::AdaptiveAvgPoolBackward3d{}.SolverDbId());
     // IMPORTANT: New solvers should be added to the end of the function, and don't leave a white
     // space between this comment and the newly registered solver(s)!
 }
