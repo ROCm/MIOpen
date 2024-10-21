@@ -25,23 +25,11 @@
  *******************************************************************************/
 #include <tuple>
 #include <miopen/miopen.h>
-#include <miopen/env.hpp>
 #include <gtest/gtest.h>
 #include "../conv3d.hpp"
 #include "get_handle.hpp"
 
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
-
 namespace conv3d_test {
-
-static bool IsTestRunWith(const char* float_arg)
-{
-    assert(float_arg != nullptr);
-    if(!MIOPEN_TEST_ALL)
-        return true; // standalone run
-    return env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == float_arg;
-}
 
 void GetArgs(const std::string& param, std::vector<std::string>& tokens)
 {
@@ -127,16 +115,6 @@ std::vector<std::string> GetTestCases(const std::string& precision)
 
 using namespace conv3d_test;
 
-TEST_P(GPU_Conv3d_Test_FP32, FloatTest_conv3d_test)
-{
-    if(IsTestRunWith("--float"))
-    {
-        Run3dDriver(miopenFloat);
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
-};
+TEST_P(GPU_Conv3d_Test_FP32, FloatTest_conv3d_test) { Run3dDriver(miopenFloat); };
 
 INSTANTIATE_TEST_SUITE_P(Full, GPU_Conv3d_Test_FP32, testing::Values(GetTestCases("--float")));

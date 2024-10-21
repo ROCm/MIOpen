@@ -30,7 +30,7 @@ namespace {
 
 auto GetConvTestCases(miopenDataType_t datatype)
 {
-    using TestCase = ConvTestCase;
+    using TestCase = miopen::unit_tests::ConvTestCase;
 
     auto type_x = datatype;
     auto type_w = datatype;
