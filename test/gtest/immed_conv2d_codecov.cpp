@@ -27,7 +27,6 @@
 #include "get_handle.hpp"
 #include <miopen/env.hpp>
 #include <gtest/gtest.h>
-#include "test_env.hpp"
 
 #include "immed_conv2d.hpp"
 
