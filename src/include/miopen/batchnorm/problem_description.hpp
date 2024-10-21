@@ -52,6 +52,9 @@ struct ProblemDescriptionTag
 {
 };
 
+using index_t                           = int32_t;
+constexpr index_t NumBatchNormReduceDim = 3;
+
 struct MIOPEN_INTERNALS_EXPORT ProblemDescription : ProblemDescriptionBase, ProblemDescriptionTag
 {
     // Forward Training
@@ -210,6 +213,20 @@ struct MIOPEN_INTERNALS_EXPORT ProblemDescription : ProblemDescriptionBase, Prob
 
         return xDesc.GetLengths().size() == 4 ? ((in_layout == "NHWC") && (out_layout == "NHWC"))
                                               : ((in_layout == "NDHWC") && (out_layout == "NDHWC"));
+    }
+
+    bool IsLayoutNCHW() const
+    {
+        if(direction == Direction::Backward)
+        {
+            return xDesc.GetLengths().size() == 4
+                       ? ((in_layout == "NCHW") && (out_layout == "NCHW") && (din_layout == "NCHW"))
+                       : ((in_layout == "NCDHW") && (out_layout == "NCDHW") &&
+                          (din_layout == "NCDHW"));
+        }
+
+        return xDesc.GetLengths().size() == 4 ? ((in_layout == "NCHW") && (out_layout == "NCHW"))
+                                              : ((in_layout == "NCDHW") && (out_layout == "NCDHW"));
     }
 
     bool Is2D() const { return xDesc.GetLengths().size() == 4; }
