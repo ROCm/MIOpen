@@ -134,23 +134,6 @@ struct CKArgsBNormFwdTraining
     std::array<int, NumBatchNormReduceDim> reduceDims{0, 1, 2};
 };
 
-// template <typename XDataType,
-//           typename YDataType,
-//           typename AccDataType,
-//           typename ScaleDataType,
-//           typename BiasDataType,
-//           typename MeanVarDataType>
-// static bool CheckCKApplicability(const miopen::batchnorm::ProblemDescription& problem)
-// {
-//     return IsCKApplicable<DeviceOpBNFwdTrainingPtrs<XDataType,
-//                                                     YDataType,
-//                                                     AccDataType,
-//                                                     ScaleDataType,
-//                                                     BiasDataType,
-//                                                     MeanVarDataType>,
-//                           CKArgsBNormFwdTraining>(problem);
-// }
-
 template <typename XDataType,
           typename YDataType,
           typename AccDataType,
@@ -177,8 +160,6 @@ static ConvSolution MakeAnyInvokerFactory(const miopen::batchnorm::ProblemDescri
                                  CKArgsBNormFwdTraining,
                                  miopen::batchnorm::FwdTrainInvokeParams>(bn_problem, kernel_id);
 }
-
-//====================== start
 
 template <typename XDataType,
           typename YDataType,
@@ -569,8 +550,6 @@ ConvSolution BnCKFwdTraining::GetSolution(
     return {};
 #endif
 }
-
-//=======================
 
 } // namespace batchnorm
 } // namespace solver

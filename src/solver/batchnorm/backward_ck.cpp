@@ -166,8 +166,6 @@ static ConvSolution MakeAnyInvokerFactory(const miopen::batchnorm::ProblemDescri
                                  miopen::batchnorm::BwdInvokeParams>(bn_problem, kernel_id);
 }
 
-//====================== start
-
 template <typename XDataType,
           typename DxDataType,
           typename DyDataType,
@@ -567,8 +565,6 @@ ConvSolution BnCKBwdBackward::GetSolution(
     return {};
 #endif
 }
-
-// ====================== end
 
 } // namespace batchnorm
 } // namespace solver

@@ -204,17 +204,6 @@ struct BnCKFwdInference final : BatchNormTunableSolver<PerformanceConfigBnCKFwdI
                 const miopen::batchnorm::ProblemDescription& problem_desc,
                 const PerformanceConfigBnCKFwdInference& config) const override;
 };
-// ====================================
-// struct BnCKBwdBackward final : BatchnormSolver
-// {
-//     const std::string& SolverDbId() const override { return GetSolverDbId<BnCKBwdBackward>(); }
-
-//     bool IsApplicable(const ExecutionContext& context,
-//                       const miopen::batchnorm::ProblemDescription& problem) const override;
-//     ConvSolution GetSolution(const ExecutionContext& context,
-//                              const miopen::batchnorm::ProblemDescription& problem) const
-//                              override;
-// };
 
 struct PerformanceConfigBnCKBwdBackward : PerfConfigBase<PerformanceConfigBnCKBwdBackward>
 {
@@ -286,8 +275,6 @@ struct BnCKBwdBackward final : BatchNormTunableSolver<PerformanceConfigBnCKBwdBa
                 const PerformanceConfigBnCKBwdBackward& config) const override;
 };
 
-//=======================================================
-
 struct PerformanceConfigBnCKFwdTraining : PerfConfigBase<PerformanceConfigBnCKFwdTraining>
 {
     int index;
@@ -355,7 +342,6 @@ struct BnCKFwdTraining final : BatchNormTunableSolver<PerformanceConfigBnCKFwdTr
                 const miopen::batchnorm::ProblemDescription& problem_desc,
                 const PerformanceConfigBnCKFwdTraining& config) const override;
 };
-//=======================================================
 
 } // namespace batchnorm
 
