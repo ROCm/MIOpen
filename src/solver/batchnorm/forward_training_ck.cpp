@@ -199,7 +199,7 @@ bool BnCKFwdTraining::IsApplicable(
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
     if(env::disabled(MIOPEN_DEBUG_CONV_CK_BN_FWD_TRAINING))
         return false;
-    if(!bn_problem.IsLayoutNHWC())
+    if(!bn_problem.IsLayoutNHWC() || !bn_problem.IsLayoutNCHW())
         return false;
     if(!ck_utility::is_ck_supported_hardware(context.GetStream()))
         return false;
