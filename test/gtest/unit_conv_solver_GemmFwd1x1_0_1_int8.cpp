@@ -43,7 +43,14 @@ auto GetConvTestCases(miopenDataType_t datatype)
     };
 }
 
-Gpu GetSupportedDevices() { return Gpu::All; }
+const auto& GetTestParams()
+{
+    static const auto params = [] {
+        auto p = miopen::unit_tests::UnitTestConvSolverParams(Gpu::All);
+        return p;
+    }();
+    return params;
+}
 
 } // namespace
 
@@ -60,12 +67,12 @@ TEST_P(CPU_UnitTestConvSolverDevApplicabilityFwd_NONE, GemmFwd1x1_0_1_int8)
 // Smoke tests
 INSTANTIATE_TEST_SUITE_P(Smoke,
                          GPU_UnitTestConvSolverFwd_I8,
-                         testing::Combine(testing::Values(GetSupportedDevices()),
+                         testing::Combine(testing::Values(GetTestParams()),
                                           testing::Values(miopenConvolutionAlgoGEMM),
                                           testing::ValuesIn(GetConvTestCases(miopenInt8))));
 
 // Device applicability test
 INSTANTIATE_TEST_SUITE_P(Smoke,
                          CPU_UnitTestConvSolverDevApplicabilityFwd_NONE,
-                         testing::Combine(testing::Values(GetSupportedDevices()),
+                         testing::Combine(testing::Values(GetTestParams()),
                                           testing::Values(GetConvTestCases(miopenInt8)[0])));
