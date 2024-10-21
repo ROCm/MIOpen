@@ -143,49 +143,21 @@ template <typename XDataType,
           typename ScaleDataType,
           typename DscaleDbiasDataType,
           typename MeanVarDataType>
-static ConvSolution MakeAnyInvokerFactory(const miopen::batchnorm::ProblemDescription& bn_problem)
-{
-    const auto& valid_kernel_ids = FillValidKernelsIDs<DeviceOpBNBwdPtrs<XDataType,
-                                                                         DxDataType,
-                                                                         DyDataType,
-                                                                         AccDataType,
-                                                                         ScaleDataType,
-                                                                         DscaleDbiasDataType,
-                                                                         MeanVarDataType>,
-                                                       CKArgsBNormBwd>(bn_problem);
-    assert(!valid_kernel_ids.empty());
-    const auto& kernel_id = valid_kernel_ids[0];
-    return InitAnyInvokerFactory<DeviceOpBNBwdPtrs<XDataType,
-                                                   DxDataType,
-                                                   DyDataType,
-                                                   AccDataType,
-                                                   ScaleDataType,
-                                                   DscaleDbiasDataType,
-                                                   MeanVarDataType>,
-                                 CKArgsBNormBwd,
-                                 miopen::batchnorm::BwdInvokeParams>(bn_problem, kernel_id);
-}
-
-template <typename XDataType,
-          typename DxDataType,
-          typename DyDataType,
-          typename AccDataType,
-          typename ScaleDataType,
-          typename DscaleDbiasDataType,
-          typename MeanVarDataType>
 void PerformanceConfigBnCKBwdBackward::Init(
     const miopen::batchnorm::ProblemDescription& problem_desc)
 {
     const auto& args       = CKArgsBNormBwd{problem_desc};
-    const auto bn_fwd_ptrs = DeviceOpBNBwdPtrs<XDataType,
+    const auto bn_bwd_ptrs = DeviceOpBNBwdPtrs<XDataType,
                                                DxDataType,
                                                DyDataType,
                                                AccDataType,
                                                ScaleDataType,
                                                DscaleDbiasDataType,
                                                MeanVarDataType>::GetInstances();
-    assert(!bn_fwd_ptrs.empty());
-    for(const auto& it : bn_fwd_ptrs)
+    if(bn_bwd_ptrs.empty())
+        MIOPEN_THROW(miopenStatusInternalError, "BnCKBwdBackward bn_bwd_ptrs empty");
+
+    for(const auto& it : bn_bwd_ptrs)
     {
         auto argument_ptr = it->MakeArgumentPointer(args.lens,
                                                     args.in_strides,
@@ -212,7 +184,9 @@ void PerformanceConfigBnCKBwdBackward::Init(
         }
     }
 
-    assert(!valid_kernels.empty());
+    if(valid_kernels.empty())
+        MIOPEN_THROW(miopenStatusInternalError, "BnCKBwdBackward valid_kernels empty");
+
     this->index     = 0;
     this->kernel_id = valid_kernels[0];
 }
@@ -228,19 +202,20 @@ bool PerformanceConfigBnCKBwdBackward::CheckIsSupportCKArgs(
     const miopen::batchnorm::ProblemDescription& problem) const
 {
     const auto& args       = CKArgsBNormBwd{problem};
-    const auto bn_fwd_ptrs = DeviceOpBNBwdPtrs<XDataType,
+    const auto bn_bwd_ptrs = DeviceOpBNBwdPtrs<XDataType,
                                                DxDataType,
                                                DyDataType,
                                                AccDataType,
                                                ScaleDataType,
                                                DscaleDbiasDataType,
                                                MeanVarDataType>::GetInstances();
-    assert(!bn_fwd_ptrs.empty());
+    if(bn_bwd_ptrs.empty())
+        MIOPEN_THROW(miopenStatusInternalError, "BnCKBwdBackward bn_bwd_ptrs empty");
 
     int i = 0;
-    for(; i < bn_fwd_ptrs.size(); i++)
+    for(; i < bn_bwd_ptrs.size(); i++)
     {
-        if(bn_fwd_ptrs[i]->GetTypeString() == this->kernel_id)
+        if(bn_bwd_ptrs[i]->GetTypeString() == this->kernel_id)
         {
             break;
         }
@@ -249,7 +224,7 @@ bool PerformanceConfigBnCKBwdBackward::CheckIsSupportCKArgs(
     {
         return false;
     }
-    auto argument_ptr = bn_fwd_ptrs[i]->MakeArgumentPointer(args.lens,
+    auto argument_ptr = bn_bwd_ptrs[i]->MakeArgumentPointer(args.lens,
                                                             args.in_strides,
                                                             args.in_strides,
                                                             args.in_strides,
@@ -268,7 +243,7 @@ bool PerformanceConfigBnCKBwdBackward::CheckIsSupportCKArgs(
                                                             nullptr,
                                                             nullptr,
                                                             nullptr);
-    return bn_fwd_ptrs[i]->IsSupportedArgument(argument_ptr.get());
+    return bn_bwd_ptrs[i]->IsSupportedArgument(argument_ptr.get());
 }
 
 void PerformanceConfigBnCKBwdBackward::HeuristicInit(
@@ -304,7 +279,8 @@ bool PerformanceConfigBnCKBwdBackward::SetNextValue(
     if(this->valid_kernels.empty())
     {
         this->HeuristicInit(problem_desc);
-        assert(!valid_kernels.empty());
+        if(valid_kernels.empty())
+            MIOPEN_THROW(miopenStatusInternalError, "BnCKBwdBackward valid_kernels empty");
         return true;
     }
     if((this->index + 1) < valid_kernels.size())
@@ -364,16 +340,17 @@ template <typename XDataType,
 static int CheckCKApplicability(const miopen::batchnorm::ProblemDescription& problem)
 {
     const auto& args       = CKArgsBNormBwd{problem};
-    const auto bn_fwd_ptrs = DeviceOpBNBwdPtrs<XDataType,
+    const auto bn_bwd_ptrs = DeviceOpBNBwdPtrs<XDataType,
                                                DxDataType,
                                                DyDataType,
                                                AccDataType,
                                                ScaleDataType,
                                                DscaleDbiasDataType,
                                                MeanVarDataType>::GetInstances();
-    assert(!bn_fwd_ptrs.empty());
+    if(bn_bwd_ptrs.empty())
+        MIOPEN_THROW(miopenStatusInternalError, "BnCKBwdBackward kernel empty");
     int count = 0;
-    for(const auto& it : bn_fwd_ptrs)
+    for(const auto& it : bn_bwd_ptrs)
     {
         auto argument_ptr = it->MakeArgumentPointer(args.lens,
                                                     args.in_strides,
@@ -414,7 +391,7 @@ ConvSolution InvokerFactoryMakerNHWC(const miopen::batchnorm::ProblemDescription
                                      const PerformanceConfigBnCKBwdBackward& config)
 {
     ConvSolution result;
-    auto bn_fwd_ptrs = DeviceOpBNBwdPtrs<XDataType,
+    auto bn_bwd_ptrs = DeviceOpBNBwdPtrs<XDataType,
                                          DxDataType,
                                          DyDataType,
                                          AccDataType,
@@ -422,8 +399,8 @@ ConvSolution InvokerFactoryMakerNHWC(const miopen::batchnorm::ProblemDescription
                                          DscaleDbiasDataType,
                                          MeanVarDataType>::GetInstances();
 
-    assert(config.index >= 0 && !bn_fwd_ptrs.empty() && config.index < bn_fwd_ptrs.size());
-    auto bn_ptr = std::move(bn_fwd_ptrs.at(config.index));
+    assert(config.index >= 0 && !bn_bwd_ptrs.empty() && config.index < bn_bwd_ptrs.size());
+    auto bn_ptr = std::move(bn_bwd_ptrs.at(config.index));
 
     result.invoker_factory = [args      = CKArgsBNormBwd{bn_problem},
                               sh_bn_ptr = std::shared_ptr{std::move(bn_ptr)}](
@@ -451,7 +428,7 @@ ConvSolution InvokerFactoryMakerNHWC(const miopen::batchnorm::ProblemDescription
 #endif
 
 PerformanceConfigBnCKBwdBackward BnCKBwdBackward::GetDefaultPerformanceConfig(
-    const ExecutionContext& ctx, const miopen::batchnorm::ProblemDescription& problem_desc) const
+    const ExecutionContext&, const miopen::batchnorm::ProblemDescription& problem_desc) const
 {
     PerformanceConfigBnCKBwdBackward pp;
     pp.HeuristicInit(problem_desc);
@@ -526,14 +503,14 @@ ConvSolution MakeAnyInvokerFactory(const miopen::batchnorm::ProblemDescription& 
         case miopenBFloat16: return invoker_factory_maker_nhwc(BF16{});
         default:
             MIOPEN_THROW(miopenStatusInternalError,
-                         "BnCKFwdInference operation does not support this data type");
+                         "BnCKBwdBackward operation does not support this data type");
         }
     }
     // Todo: problem.IsLayoutDefault()
     else
     {
         MIOPEN_THROW(miopenStatusInternalError,
-                     "BnCKFwdInference operation does not support this data layout");
+                     "BnCKBwdBackward operation does not support this data layout");
     }
 #else
     return {};

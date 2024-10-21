@@ -126,7 +126,9 @@ void PerformanceConfigBnCKFwdInference::Init(
     const auto bn_fwd_ptrs =
         DeviceOpBnFwdInfPtrs<XDataType, YDataType, ScaleDataType, BiasDataType, MeanVarDataType>::
             GetInstances();
-    assert(!bn_fwd_ptrs.empty());
+    if(bn_fwd_ptrs.empty())
+        MIOPEN_THROW(miopenStatusInternalError, "BnCKFwdInference bn_fwd_ptrs empty");
+
     for(const auto& it : bn_fwd_ptrs)
     {
         auto argument_ptr = it->MakeArgumentPointer(args.xyLengths,
@@ -145,7 +147,8 @@ void PerformanceConfigBnCKFwdInference::Init(
         }
     }
 
-    assert(!valid_kernels.empty());
+    if(valid_kernels.empty())
+        MIOPEN_THROW(miopenStatusInternalError, "BnCKFwdInference valid_kernels empty");
     this->index     = 0;
     this->kernel_id = valid_kernels[0];
 }
@@ -163,7 +166,8 @@ bool PerformanceConfigBnCKFwdInference::CheckIsSupportCKArgs(
     const auto bn_fwd_ptrs =
         DeviceOpBnFwdInfPtrs<XDataType, YDataType, ScaleDataType, BiasDataType, MeanVarDataType>::
             GetInstances();
-    assert(!bn_fwd_ptrs.empty());
+    if(bn_fwd_ptrs.empty())
+        MIOPEN_THROW(miopenStatusInternalError, "BnCKFwdInference bn_fwd_ptrs empty");
 
     int i = 0;
     for(; i < bn_fwd_ptrs.size(); i++)
@@ -190,8 +194,6 @@ bool PerformanceConfigBnCKFwdInference::CheckIsSupportCKArgs(
                                             Normalize{0.0});
     return bn_fwd_ptrs[i]->IsSupportedArgument(argument_ptr.get());
 }
-
-//======================================
 
 void PerformanceConfigBnCKFwdInference::HeuristicInit(
     const miopen::batchnorm::ProblemDescription& problem_desc)
@@ -226,7 +228,8 @@ bool PerformanceConfigBnCKFwdInference::SetNextValue(
     if(this->valid_kernels.empty())
     {
         this->HeuristicInit(problem_desc);
-        assert(!valid_kernels.empty());
+        if(valid_kernels.empty())
+            MIOPEN_THROW(miopenStatusInternalError, "BnCKFwdInference valid_kernels empty");
         return true;
     }
     if((this->index + 1) < valid_kernels.size())
@@ -290,7 +293,9 @@ static int CheckCKApplicability(const miopen::batchnorm::ProblemDescription& pro
     const auto bn_fwd_ptrs =
         DeviceOpBnFwdInfPtrs<XDataType, YDataType, ScaleDataType, BiasDataType, MeanVarDataType>::
             GetInstances();
-    assert(!bn_fwd_ptrs.empty());
+    if(bn_fwd_ptrs.empty())
+        MIOPEN_THROW(miopenStatusInternalError, "BnCKFwdInference bn_fwd_ptrs empty");
+
     int count = 0;
     for(const auto& it : bn_fwd_ptrs)
     {
@@ -356,7 +361,7 @@ ConvSolution InvokerFactoryMakerNHWC(const miopen::batchnorm::ProblemDescription
 #endif
 
 PerformanceConfigBnCKFwdInference BnCKFwdInference::GetDefaultPerformanceConfig(
-    const ExecutionContext& ctx, const miopen::batchnorm::ProblemDescription& problem_desc) const
+    const ExecutionContext&, const miopen::batchnorm::ProblemDescription& problem_desc) const
 {
     PerformanceConfigBnCKFwdInference pp;
     pp.HeuristicInit(problem_desc);

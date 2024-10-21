@@ -140,33 +140,6 @@ template <typename XDataType,
           typename ScaleDataType,
           typename BiasDataType,
           typename MeanVarDataType>
-static ConvSolution MakeAnyInvokerFactory(const miopen::batchnorm::ProblemDescription& bn_problem)
-{
-    const auto& valid_kernel_ids = FillValidKernelsIDs<DeviceOpBNFwdTrainingPtrs<XDataType,
-                                                                                 YDataType,
-                                                                                 AccDataType,
-                                                                                 ScaleDataType,
-                                                                                 BiasDataType,
-                                                                                 MeanVarDataType>,
-                                                       CKArgsBNormFwdTraining>(bn_problem);
-    assert(!valid_kernel_ids.empty());
-    const auto& kernel_id = valid_kernel_ids[0];
-    return InitAnyInvokerFactory<DeviceOpBNFwdTrainingPtrs<XDataType,
-                                                           YDataType,
-                                                           AccDataType,
-                                                           ScaleDataType,
-                                                           BiasDataType,
-                                                           MeanVarDataType>,
-                                 CKArgsBNormFwdTraining,
-                                 miopen::batchnorm::FwdTrainInvokeParams>(bn_problem, kernel_id);
-}
-
-template <typename XDataType,
-          typename YDataType,
-          typename AccDataType,
-          typename ScaleDataType,
-          typename BiasDataType,
-          typename MeanVarDataType>
 void PerformanceConfigBnCKFwdTraining::Init(
     const miopen::batchnorm::ProblemDescription& problem_desc)
 {
@@ -177,7 +150,9 @@ void PerformanceConfigBnCKFwdTraining::Init(
                                                        ScaleDataType,
                                                        BiasDataType,
                                                        MeanVarDataType>::GetInstances();
-    assert(!bn_fwd_ptrs.empty());
+    if(bn_fwd_ptrs.empty())
+        MIOPEN_THROW(miopenStatusInternalError, "BnCKFwdTraining bn_fwd_ptrs empty");
+
     for(const auto& it : bn_fwd_ptrs)
     {
         auto argument_ptr = it->MakeArgumentPointer(args.xyLengths,
@@ -205,7 +180,9 @@ void PerformanceConfigBnCKFwdTraining::Init(
         }
     }
 
-    assert(!valid_kernels.empty());
+    if(valid_kernels.empty())
+        MIOPEN_THROW(miopenStatusInternalError, "BnCKFwdTraining valid_kernels empty");
+
     this->index     = 0;
     this->kernel_id = valid_kernels[0];
 }
@@ -226,7 +203,8 @@ bool PerformanceConfigBnCKFwdTraining::CheckIsSupportCKArgs(
                                                        ScaleDataType,
                                                        BiasDataType,
                                                        MeanVarDataType>::GetInstances();
-    assert(!bn_fwd_ptrs.empty());
+    if(bn_fwd_ptrs.empty())
+        MIOPEN_THROW(miopenStatusInternalError, "BnCKFwdTraining bn_fwd_ptrs empty");
 
     int i = 0;
     for(; i < bn_fwd_ptrs.size(); i++)
@@ -295,7 +273,9 @@ bool PerformanceConfigBnCKFwdTraining::SetNextValue(
     if(this->valid_kernels.empty())
     {
         this->HeuristicInit(problem_desc);
-        assert(!valid_kernels.empty());
+        if(valid_kernels.empty())
+            MIOPEN_THROW(miopenStatusInternalError, "BnCKFwdTraining valid_kernels empty");
+
         return true;
     }
     if((this->index + 1) < valid_kernels.size())
@@ -360,7 +340,10 @@ static int CheckCKApplicability(const miopen::batchnorm::ProblemDescription& pro
                                                        ScaleDataType,
                                                        BiasDataType,
                                                        MeanVarDataType>::GetInstances();
-    assert(!bn_fwd_ptrs.empty());
+
+    if(bn_fwd_ptrs.empty())
+        MIOPEN_THROW(miopenStatusInternalError, "BnCKFwdTraining bn_fwd_ptrs empty");
+
     int count = 0;
     for(const auto& it : bn_fwd_ptrs)
     {
@@ -439,7 +422,7 @@ ConvSolution InvokerFactoryMakerNHWC(const miopen::batchnorm::ProblemDescription
 #endif
 
 PerformanceConfigBnCKFwdTraining BnCKFwdTraining::GetDefaultPerformanceConfig(
-    const ExecutionContext& ctx, const miopen::batchnorm::ProblemDescription& problem_desc) const
+    const ExecutionContext&, const miopen::batchnorm::ProblemDescription& problem_desc) const
 {
     PerformanceConfigBnCKFwdTraining pp;
     pp.HeuristicInit(problem_desc);
@@ -512,14 +495,14 @@ ConvSolution MakeAnyInvokerFactory(const miopen::batchnorm::ProblemDescription& 
         case miopenBFloat16: return invoker_factory_maker_nhwc(BF16{});
         default:
             MIOPEN_THROW(miopenStatusInternalError,
-                         "BnCKFwdInference operation does not support this data type");
+                         "BnCKFwdTraining operation does not support this data type");
         }
     }
     // Todo: problem.IsLayoutDefault()
     else
     {
         MIOPEN_THROW(miopenStatusInternalError,
-                     "BnCKFwdInference operation does not support this data layout");
+                     "BnCKFwdTraining operation does not support this data layout");
     }
 #else
     return {};
