@@ -366,6 +366,7 @@ bool PerformanceConfigConvCKIgemmFwdBiasActivFused::operator==(
 {
     return this->kernel_id == other.kernel_id;
 }
+
 PerformanceConfigConvCKIgemmFwdBiasActivFused
 ConvCKIgemmFwdBiasActivFused::GetDefaultPerformanceConfig(
     const FusionContext&, const FusionDescription& fdesc_problem) const

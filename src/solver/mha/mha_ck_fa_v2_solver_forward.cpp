@@ -240,7 +240,8 @@ MhaCKFlashAttentionV2Forward::GetSolution([[maybe_unused]] const ExecutionContex
 
             fmha_runtime_args.p_drop = probability;
             fmha_runtime_args.drop_seed_offset =
-                std::make_pair(dataFwd.dropoutSeedData, dataFwd.dropoutOffsetData);
+                std::make_pair(reinterpret_cast<uint64_t>(dataFwd.dropoutSeedData),
+                               reinterpret_cast<uint64_t>(dataFwd.dropoutOffsetData));
 
             // Create stream_config, and set it to not time kernel.
             ck_tile::stream_config stream_config;

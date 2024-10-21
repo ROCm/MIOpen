@@ -220,7 +220,42 @@ struct MIOPEN_INTERNALS_EXPORT ProblemDescription : ProblemDescriptionBase, Prob
     bool IsFp16() const { return xDesc.GetType() == miopenHalf; }
     bool IsBfp16() const { return xDesc.GetType() == miopenBFloat16; }
 
+    void Serialize(std::ostream& stream) const { stream << MakeNetworkConfig().ToString(); }
+
     NetworkConfig MakeNetworkConfig() const override;
+
+    template <class Self>
+    static void Visit(Self&& self, std::function<void(int64_t, std::string)> f)
+    {
+        // The column names match the driver command line argument names
+        f(self.spatial_dim, "spatial_dim");
+        f(self.GetBatchSize(), "batchsize");
+        f(self.GetChannel(), "in_channels");
+        f(self.GetHeight(), "in_h");
+        f(self.GetWidth(), "in_w");
+        f(self.GetDepth(), "in_d");
+
+        f(self.resultsave, "resultsave");
+        f(self.resultrunning, "resultrunning");
+        f(self.useSaved, "useSaved");
+    }
+
+    template <class Self>
+    static void Visit(Self&& self, std::function<void(std::string, std::string)> f)
+    {
+        f(self.ComputeInLayout(), "layout");
+        f(self.GetDirectionStr(), "direction");
+        f(GetDataTypeName(self.xDesc.GetType()), "data_type");
+        f(self.GetModeStr(), "mode");
+    }
+
+    template <class Self, class Visitor>
+    static void VisitAll(Self&& self, const Visitor& f)
+    {
+        Visit(std::forward<Self>(self), [&](int64_t value, std::string name) { f(value, name); });
+        Visit(std::forward<Self>(self),
+              [&](std::string value, std::string name) { f(value, name); });
+    }
 
     // This declaration marks batchnorm as a primitive with tuning enabled.
     // Any tunable solver would be able pick it and fetch a db instance in ExecutePrimitive.
@@ -267,6 +302,39 @@ private:
     std::string ComputeInLayout() const { return ComputeLayout(xDesc); }
     std::string ComputeOutLayout() const { return ComputeLayout(yOrDyDesc); }
     std::string ComputeDinLayout() const { return ComputeLayout(dxDesc); }
+
+    size_t GetSpatialDims() const { return spatial_dim; }
+
+    std::size_t GetBatchSize() const { return GetN5(GetSpatialDims(), xDesc.GetLengths()); }
+    std::size_t GetChannel() const { return GetC5(GetSpatialDims(), xDesc.GetLengths()); }
+    std::size_t GetHeight() const { return GetH5(GetSpatialDims(), xDesc.GetLengths()); }
+    std::size_t GetWidth() const { return GetW5(GetSpatialDims(), xDesc.GetLengths()); }
+    std::size_t GetDepth() const { return GetD5(GetSpatialDims(), xDesc.GetLengths()); }
+
+    std::string GetDirectionStr() const
+    {
+        std::string s;
+
+        switch(direction)
+        {
+        case Direction::ForwardInference: s = "Inf"; break;
+        case Direction::ForwardTraining: s = "Trn"; break;
+        case Direction::Backward: s = "Bwd"; break;
+        default: MIOPEN_THROW(miopenStatusInvalidValue, "Wrong Batchnorm Direction provided");
+        }
+
+        return s;
+    }
+
+    std::string GetModeStr() const
+    {
+        switch(bn_mode)
+        {
+        case miopenBNPerActivation: return "0";
+        case miopenBNSpatial: return "1";
+        default: MIOPEN_THROW(miopenStatusInvalidValue, "Wrong Batchnorm Direction provided");
+        }
+    }
 };
 
 } // namespace batchnorm
