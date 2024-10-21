@@ -7754,8 +7754,8 @@ MIOPEN_EXPORT miopenStatus_t miopenPReLUBackward(miopenHandle_t handle,
 
 MIOPEN_EXPORT miopenStatus_t miopenGetAnyWorkspaceSize(miopenHandle_t handle,
                                                        const miopenTensorDescriptor_t inputDesc,
-                                                       const int32_t dim,
-                                                       const bool keepdim,
+                                                       int32_t dim,
+                                                       bool keepdim,
                                                        const miopenTensorDescriptor_t outputDesc,
                                                        size_t* sizeInBytes);
 

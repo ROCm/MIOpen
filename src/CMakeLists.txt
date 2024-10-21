@@ -88,8 +88,8 @@ set( MIOpen_Source
     adam/problem_description.cpp
     adam_api.cpp
     addlayernorm_api.cpp
-    any/problem_description.cpp
     any_api.cpp
+    any/problem_description.cpp
     api/find2_0_commons.cpp
     batch_norm.cpp
     batch_norm_api.cpp

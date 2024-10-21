@@ -30,6 +30,7 @@
 #include "tensor_driver.hpp"
 #include "timer.hpp"
 #include "random.hpp"
+// #include "mloAnyForward.hpp"
 
 #include <cstdint>
 #include <cstdlib>
@@ -38,18 +39,23 @@
 // #include <stdexcept>
 #include <vector>
 
+#include <miopen/tensor_view_utils.hpp>
+#include <../test/tensor_holder.hpp>
 #include <../test/verify.hpp>
 
 #include <miopen/errors.hpp>
 #include <miopen/miopen.h>
+#include <miopen/env.hpp>
+#include <miopen/handle.hpp>
+#include <miopen/tensor.hpp>
 
 template <typename Tgpu, typename Tcheck>
 int32_t mloAnyForwardRunHost(miopenTensorDescriptor_t inputDesc,
                              miopenTensorDescriptor_t outputDesc,
                              const Tgpu* input,
                              Tcheck* outputHost,
-                             int32_t dim,
-                             bool keepdim)
+                             int32_t dim
+)
 {
     auto input_dims  = miopen::deref(inputDesc).GetLengths();
     auto output_dims = miopen::deref(outputDesc).GetLengths();
@@ -58,13 +64,16 @@ int32_t mloAnyForwardRunHost(miopenTensorDescriptor_t inputDesc,
     auto output_numel = miopen::deref(outputDesc).GetElementSize();
     auto input_numel  = miopen::deref(inputDesc).GetElementSize();
 
+    // QUES: Can I directly use input[x] instead of i_tv.get_tensor_view_idx(idx)? -> it seems like
+    // I can in case input tensor is contiguous but for non-contiguous tensor, it seems like I
+    // should use tensor_view instead auto input_tv =
+    // miopen::get_inner_expanded_tv<5>(miopen::deref(inputDesc));
+
     auto inner_size = 1ULL;
     for(int32_t i = dim + 1; i < input_dims.size(); i++)
     {
         inner_size *= input_dims[i];
     }
-
-    int32_t ret = 0;
 
     if(dim != -1)
     {
@@ -76,11 +85,7 @@ int32_t mloAnyForwardRunHost(miopenTensorDescriptor_t inputDesc,
             for(size_t i = 0; i < reduce_size; i++)
             {
                 Tcheck val = static_cast<Tcheck>(input[input_idx]);
-                // if(nanPropagation && isnan(val))
-                // {
-                //     val = 0.0f;
-                // }
-                any = any || val;
+                any        = any || val;
                 input_idx += inner_size;
             }
             outputHost[o] = any;
@@ -96,7 +101,7 @@ int32_t mloAnyForwardRunHost(miopenTensorDescriptor_t inputDesc,
         outputHost[0] = any;
     }
 
-    return ret; // Why return ret without using its value?
+    return miopenStatusSuccess;
 }
 
 template <typename Tgpu, typename Tref>
@@ -134,7 +139,7 @@ public:
 
 private:
     InputFlags inflags;
-    int forw;
+    // int forw;
 
     miopenTensorDescriptor_t inputDesc;
     miopenTensorDescriptor_t outputDesc;
@@ -149,19 +154,46 @@ private:
 
     size_t ws_sizeInBytes;
 
-    int dim;
+    int32_t dim;
     bool keepdim;
 };
+
+template <typename Tgpu, typename Tref>
+int AnyDriver<Tgpu, Tref>::AddCmdLineArgs()
+{
+
+    inflags.AddTensorFlag(
+        "dim_lengths", 'L', "3x4x5", "The dimensional lengths of the input tensor");
+    inflags.AddInputFlag("dim", 'd', "-1", "the dimension to reduce (Default=None)", "int");
+    inflags.AddInputFlag("keepdim", 'k', "0", "Keep the reduced dimension (Default=0)", "int");
+    inflags.AddInputFlag("iter", 'i', "10", "Number of Iterations (Default=10)", "int");
+    inflags.AddInputFlag("verify", 'V', "1", "Verify Each Layer (Default=1)", "int");
+    inflags.AddInputFlag("time", 't', "0", "Time Each Layer (Default=0)", "int");
+    inflags.AddInputFlag(
+        "wall", 'w', "0", "Wall-clock Time Each Layer, Requires time == 1 (Default=0)", "int");
+    return miopenStatusSuccess;
+}
 
 template <typename Tgpu, typename Tref>
 int AnyDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
 {
     inflags.Parse(argc, argv);
 
+    // QUES: Is this check necessary?
+    // auto dim     = inflags.GetValueInt("dim");
+    // auto keepdim = inflags.GetValueInt("keepdim");
+
+    // if(dim == -1 && keepdim == 1)
+    // {
+    //     // NOTE: keepdim is not supported when dim is None
+    //     return miopenStatusInvalidValue;
+    // }
+
     if(inflags.GetValueInt("time") == 1)
     {
         miopenEnableProfiling(GetHandle(), true);
     }
+
     return miopenStatusSuccess;
 }
 
@@ -186,32 +218,14 @@ int AnyDriver<Tgpu, Tref>::GetandSetData()
         {
             out_len.erase(out_len.begin() + dim);
         }
-        // out_len[dim] = 1;
     }
     else
     {
-        // out_len.erase(out_len.begin() + dim);
         out_len = {1};
     }
 
     SetTensorNd(outputDesc, out_len, data_type);
 
-    return miopenStatusSuccess;
-}
-
-template <typename Tgpu, typename Tref>
-int AnyDriver<Tgpu, Tref>::AddCmdLineArgs()
-{
-
-    inflags.AddTensorFlag(
-        "dim_lengths", 'L', "3x4x5", "The dimensional lengths of the input tensor");
-    inflags.AddInputFlag("dim", 'd', "-1", "the dimension to reduce (Default=None)", "int");
-    inflags.AddInputFlag("keepdim", 'k', "0", "Keep the reduced dimension (Default=0)", "int");
-    inflags.AddInputFlag("iter", 'i', "10", "Number of Iterations (Default=10)", "int");
-    inflags.AddInputFlag("verify", 'V', "1", "Verify Each Layer (Default=1)", "int");
-    inflags.AddInputFlag("time", 't', "0", "Time Each Layer (Default=0)", "int");
-    inflags.AddInputFlag(
-        "wall", 'w', "0", "Wall-clock Time Each Layer, Requires time == 1 (Default=0)", "int");
     return miopenStatusSuccess;
 }
 
@@ -225,6 +239,7 @@ int AnyDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     size_t out_sz = GetTensorSize(outputDesc);
 
     miopenGetAnyWorkspaceSize(GetHandle(), inputDesc, dim, keepdim, outputDesc, &ws_sizeInBytes);
+
     if(ws_sizeInBytes == static_cast<size_t>(-1))
         return miopenStatusAllocFailed;
 
@@ -256,33 +271,12 @@ int AnyDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     if(out_dev->ToGPU(GetStream(), out.data()) != 0)
         std::cerr << "Error copying (out) to GPU, size: " << out_dev->GetSize() << std::endl;
 
-    // in_dev        = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(Tgpu)));
-    // out_dev       = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(Tgpu)));
-    // workspace_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, ws_sizeInBytes, sizeof(std::byte)));
-
-    // in      = std::vector<Tgpu>(in_sz, static_cast<Tgpu>(0));
-    // out     = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
-    // outHost = std::vector<Tref>(out_sz, static_cast<Tref>(0));
-
-    // for(int i = 0; i < in_sz; i++)
-    // {
-    //     in[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
-    // }
-
-    // if(in_dev->ToGPU(GetStream(), in.data()) != 0)
-    //     std::cerr << "Error copying (in) to GPU, size: " << in_dev->GetSize() << std::endl;
-
-    // if(out_dev->ToGPU(GetStream(), out.data()) != 0)
-    //     std::cerr << "Error copying (out) to GPU, size: " << out_dev->GetSize() << std::endl;
-
     return miopenStatusSuccess;
 }
 
 template <typename Tgpu, typename Tref>
 int AnyDriver<Tgpu, Tref>::RunForwardGPU()
 {
-    // mloAnyForwardRunHost<Tgpu, Tref>(
-    //     inputDesc, outputDesc, in.data(), outHost.data(), dim, keepdim);
 
     float kernel_total_time = 0;
     float kernel_first_time = 0;
@@ -332,7 +326,7 @@ template <typename Tgpu, typename Tref>
 int AnyDriver<Tgpu, Tref>::RunForwardCPU()
 {
     mloAnyForwardRunHost<Tgpu, Tref>(
-        inputDesc, outputDesc, in.data(), outhost.data(), dim, keepdim);
+        inputDesc, outputDesc, in.data(), outhost.data(), dim);
 
     return miopenStatusSuccess;
 }

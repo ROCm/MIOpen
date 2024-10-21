@@ -72,8 +72,8 @@
 
 extern "C" miopenStatus_t miopenGetAnyWorkspaceSize(miopenHandle_t handle,
                                                     const miopenTensorDescriptor_t inputDesc,
-                                                    const int32_t dim,
-                                                    const bool keepdim,
+                                                    int32_t dim,
+                                                    bool keepdim,
                                                     const miopenTensorDescriptor_t outputDesc,
                                                     size_t* sizeInBytes)
 {
@@ -82,9 +82,9 @@ extern "C" miopenStatus_t miopenGetAnyWorkspaceSize(miopenHandle_t handle,
     return miopen::try_([&] {
         miopen::deref(sizeInBytes) = miopen::GetAnyWorkspaceSize(miopen::deref(handle),
                                                                  miopen::deref(inputDesc),
+                                                                 miopen::deref(outputDesc),
                                                                  dim,
-                                                                 keepdim,
-                                                                 miopen::deref(outputDesc));
+                                                                 keepdim);
     });
 }
 

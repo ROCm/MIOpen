@@ -23,8 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef MIOPEN_ANY_HPP_
-#define MIOPEN_ANY_HPP_
+#pragma once
 
 // #include <miopen/miopen.h>
 #include <miopen/common.hpp>
@@ -34,11 +33,11 @@ namespace miopen {
 struct Handle;
 struct TensorDescriptor;
 
-size_t GetAnyWorkspaceSize(Handle& handle,
+MIOPEN_INTERNALS_EXPORT size_t GetAnyWorkspaceSize(Handle& handle,
                            const TensorDescriptor& inputDesc,
+                           const TensorDescriptor& outputDesc,
                            int32_t dim,
-                           bool keepdim,
-                           const TensorDescriptor& outputDesc);
+                           bool keepdim);
 
 MIOPEN_INTERNALS_EXPORT miopenStatus_t AnyForward(Handle& handle,
                                                   Data_t workspace,
@@ -51,4 +50,3 @@ MIOPEN_INTERNALS_EXPORT miopenStatus_t AnyForward(Handle& handle,
                                                   ConstData_t output);
 
 } // namespace miopen
-#endif // _MIOPEN_ANY_HPP_

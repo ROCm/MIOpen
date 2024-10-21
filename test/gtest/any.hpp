@@ -96,7 +96,7 @@ protected:
         // auto gen_value
         auto in_dims = any_config.GetDims();
         dim          = any_config.dim;
-        keep_dim     = any_config.keepdim;
+        keepdim     = any_config.keepdim;
 
         auto gen_in_value = [](auto...) {
             if(std::is_same<T, bool>::value)
@@ -123,7 +123,7 @@ protected:
 
         if(dim != -1)
         {
-            if(keep_dim)
+            if(keepdim)
             {
                 out_dims[dim] = 1;
             }
@@ -150,8 +150,9 @@ protected:
         output_dev = handle.Write(output.data);
 
         // Get workspace size
-        ws_sizeInBytes = miopen::GetAnyWorkspaceSize(
-            handle, input.desc, dim, keep_dim, input, output.desc, output);
+        // ws_sizeInBytes = miopen::GetAnyWorkspaceSize(
+        //     handle, input.desc, dim, keepdim, input, output.desc, output);
+        ws_sizeInBytes = miopen::GetAnyWorkspaceSize(handle, input.desc, output.desc, dim, keepdim);
 
         if(ws_sizeInBytes == static_cast<size_t>(-1))
             GTEST_FAIL() << "Call GetMultiMarginLossForwardWorkspaceSize failed!";
@@ -173,7 +174,7 @@ protected:
         auto&& handle = get_handle();
 
         // Run cpu
-        cpu_any_forward<T>(input, ref_output, dim, keep_dim);
+        cpu_any_forward<T>(input, ref_output, dim, keepdim);
 
         miopenStatus_t status;
         // Run kernel
@@ -216,5 +217,5 @@ protected:
 
     size_t ws_sizeInBytes;
     int32_t dim;
-    bool keep_dim;
+    bool keepdim;
 };

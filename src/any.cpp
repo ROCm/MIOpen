@@ -23,27 +23,14 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-
-// // #include "miopen/any.hpp"
-// // #include "miopen/miopen.h"
-// // #include <miopen/>
-// #include <miopen/any.hpp>
-// // #include <miopen/any/invoke_params.hpp>
-// // #include <miopen/any/solvers.hpp>
-// #include <miopen/check_numerics.hpp>
-// #include <miopen/datatype.hpp>
-// #include <miopen/find_solution.hpp>
-// #include <miopen/float_equal.hpp>
-// #include <miopen/kernel_cache.hpp>
-// #include <miopen/tensor.hpp>
-
-#include "miopen/any/problem_description.hpp"
-#include "miopen/execution_context.hpp"
-#include "miopen/miopen.h"
-#include "miopen/names.hpp"
 #include <miopen/any.hpp>
 #include <miopen/any/invoke_params.hpp>
 #include <miopen/any/solvers.hpp>
+#include "miopen/any/problem_description.hpp"
+
+#include "miopen/execution_context.hpp"
+#include "miopen/miopen.h"
+#include "miopen/names.hpp"
 #include <miopen/datatype.hpp>
 #include <miopen/find_solution.hpp>
 #include <miopen/float_equal.hpp>
