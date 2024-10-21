@@ -317,9 +317,9 @@ private:
 
         switch(direction)
         {
-        case Direction::ForwardInference: s = "F2b0"; break;
-        case Direction::ForwardTraining: s = "F1b0"; break;
-        case Direction::Backward: s = "F0b1"; break;
+        case Direction::ForwardInference: s = "Inf"; break;
+        case Direction::ForwardTraining: s = "Trn"; break;
+        case Direction::Backward: s = "Bwd"; break;
         default: MIOPEN_THROW(miopenStatusInvalidValue, "Wrong Batchnorm Direction provided");
         }
 
