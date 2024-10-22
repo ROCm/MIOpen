@@ -321,9 +321,9 @@ private:
 
         switch(direction)
         {
-        case Direction::ForwardInference: s = "Inf"; break;
-        case Direction::ForwardTraining: s = "Trn"; break;
-        case Direction::Backward: s = "Bwd"; break;
+        case Direction::ForwardInference: return "Inf"; ;
+        case Direction::ForwardTraining: return "Trn";
+        case Direction::Backward: return "Bwd";
         default: MIOPEN_THROW(miopenStatusInvalidValue, "Wrong Batchnorm Direction provided");
         }
 
@@ -336,7 +336,7 @@ private:
         {
         case miopenBNPerActivation: return "0";
         case miopenBNSpatial: return "1";
-        default: MIOPEN_THROW(miopenStatusInvalidValue, "Wrong Batchnorm Direction provided");
+        default: MIOPEN_THROW(miopenStatusInvalidValue, "Wrong Batchnorm Mode provided");
         }
     }
 };

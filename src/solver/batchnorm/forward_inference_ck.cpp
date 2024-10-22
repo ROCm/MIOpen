@@ -112,6 +112,13 @@ struct CKArgsBNormFwd
                                                 {data_ctx.y},
                                                 Normalize{data_ctx.epsilon});
     }
+
+    template <typename ConvPtr>
+    bool IsSupportedBy(const ConvPtr& invoker_ptr) const
+    {
+        auto arg_ptr = MakeArgPtr(invoker_ptr, miopen::batchnorm::InfInvokeParams{});
+        return invoker_ptr->IsSupportedArgument(arg_ptr.get());
+    }
 };
 
 template <typename XDataType,
@@ -163,37 +170,9 @@ template <typename XDataType,
 bool PerformanceConfigBnCKFwdInference::CheckIsSupportCKArgs(
     const miopen::batchnorm::ProblemDescription& problem) const
 {
-    const auto& args = CKArgsBNormFwd{problem};
-    const auto bn_fwd_ptrs =
-        DeviceOpBnFwdInfPtrs<XDataType, YDataType, ScaleDataType, BiasDataType, MeanVarDataType>::
-            GetInstances();
-    if(bn_fwd_ptrs.empty())
-        MIOPEN_THROW(miopenStatusInternalError, "BnCKFwdInference bn_fwd_ptrs empty");
-
-    int i = 0;
-    for(; i < bn_fwd_ptrs.size(); i++)
-    {
-        if(bn_fwd_ptrs[i]->GetTypeString() == this->kernel_id)
-        {
-            break;
-        }
-    }
-    if(i == valid_kernels.size())
-    {
-        return false;
-    }
-    auto argument_ptr =
-        bn_fwd_ptrs[i]->MakeArgumentPointer(args.xyLengths,
-                                            {args.xyStrides,
-                                             args.aligned_scaleBiasMeanVarStrides,
-                                             args.aligned_scaleBiasMeanVarStrides,
-                                             args.aligned_scaleBiasMeanVarStrides,
-                                             args.aligned_scaleBiasMeanVarStrides},
-                                            {args.xyStrides},
-                                            {nullptr, nullptr, nullptr, nullptr, nullptr},
-                                            {nullptr},
-                                            Normalize{0.0});
-    return bn_fwd_ptrs[i]->IsSupportedArgument(argument_ptr.get());
+    return IsCKArgsSupported<
+        DeviceOpBnFwdInfPtrs<XDataType, YDataType, ScaleDataType, BiasDataType, MeanVarDataType>,
+        CKArgsBNormFwd>(problem, this->kernel_id);
 }
 
 void PerformanceConfigBnCKFwdInference::HeuristicInit(
@@ -286,35 +265,11 @@ template <typename XDataType,
           typename ScaleDataType,
           typename BiasDataType,
           typename MeanVarDataType>
-static int CheckCKApplicability(const miopen::batchnorm::ProblemDescription& problem)
+static bool CheckCKApplicability(const miopen::batchnorm::ProblemDescription& problem)
 {
-    const auto& args = CKArgsBNormFwd{problem};
-    const auto bn_fwd_ptrs =
-        DeviceOpBnFwdInfPtrs<XDataType, YDataType, ScaleDataType, BiasDataType, MeanVarDataType>::
-            GetInstances();
-    if(bn_fwd_ptrs.empty())
-        MIOPEN_THROW(miopenStatusInternalError, "BnCKFwdInference bn_fwd_ptrs empty");
-
-    int count = 0;
-    for(const auto& it : bn_fwd_ptrs)
-    {
-        auto argument_ptr = it->MakeArgumentPointer(args.xyLengths,
-                                                    {args.xyStrides,
-                                                     args.aligned_scaleBiasMeanVarStrides,
-                                                     args.aligned_scaleBiasMeanVarStrides,
-                                                     args.aligned_scaleBiasMeanVarStrides,
-                                                     args.aligned_scaleBiasMeanVarStrides},
-                                                    {args.xyStrides},
-                                                    {nullptr, nullptr, nullptr, nullptr, nullptr},
-                                                    {nullptr},
-                                                    Normalize{0.0});
-        if(it->IsSupportedArgument(argument_ptr.get()))
-        {
-            return count;
-        }
-        count++;
-    }
-    return -1;
+    return IsCKApplicable<
+        DeviceOpBnFwdInfPtrs<XDataType, YDataType, ScaleDataType, BiasDataType, MeanVarDataType>,
+        CKArgsBNormFwd>(problem);
 }
 
 #endif

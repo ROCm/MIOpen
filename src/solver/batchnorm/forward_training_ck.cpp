@@ -196,48 +196,13 @@ template <typename XDataType,
 bool PerformanceConfigBnCKFwdTraining::CheckIsSupportCKArgs(
     const miopen::batchnorm::ProblemDescription& problem) const
 {
-    const auto& args       = CKArgsBNormFwdTraining{problem};
-    const auto bn_fwd_ptrs = DeviceOpBNFwdTrainingPtrs<XDataType,
+    return IsCKArgsSupported<DeviceOpBNFwdTrainingPtrs<XDataType,
                                                        YDataType,
                                                        AccDataType,
                                                        ScaleDataType,
                                                        BiasDataType,
-                                                       MeanVarDataType>::GetInstances();
-    if(bn_fwd_ptrs.empty())
-        MIOPEN_THROW(miopenStatusInternalError, "BnCKFwdTraining bn_fwd_ptrs empty");
-
-    int i = 0;
-    for(; i < bn_fwd_ptrs.size(); i++)
-    {
-        if(bn_fwd_ptrs[i]->GetTypeString() == this->kernel_id)
-        {
-            break;
-        }
-    }
-    if(i == valid_kernels.size())
-    {
-        return false;
-    }
-    auto argument_ptr = bn_fwd_ptrs[i]->MakeArgumentPointer(args.xyLengths,
-                                                            args.xyStrides,
-                                                            args.xyStrides,
-                                                            args.reduceDims,
-                                                            args.arrScaleBiasMeanVarLengths,
-                                                            args.arrScaleBiasMeanVarStrides,
-                                                            args.arrScaleBiasMeanVarStrides,
-                                                            args.arrScaleBiasMeanVarStrides,
-                                                            nullptr,
-                                                            nullptr,
-                                                            nullptr,
-                                                            0.0,
-                                                            PassThroughOp{},
-                                                            nullptr,
-                                                            nullptr,
-                                                            nullptr,
-                                                            0.0,
-                                                            nullptr,
-                                                            nullptr);
-    return bn_fwd_ptrs[i]->IsSupportedArgument(argument_ptr.get());
+                                                       MeanVarDataType>,
+                             CKArgsBNormFwdTraining>(problem, this->kernel_id);
 }
 
 void PerformanceConfigBnCKFwdTraining::HeuristicInit(
@@ -273,9 +238,6 @@ bool PerformanceConfigBnCKFwdTraining::SetNextValue(
     if(this->valid_kernels.empty())
     {
         this->HeuristicInit(problem_desc);
-        if(valid_kernels.empty())
-            MIOPEN_THROW(miopenStatusInternalError, "BnCKFwdTraining valid_kernels empty");
-
         return true;
     }
     if((this->index + 1) < valid_kernels.size())

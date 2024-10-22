@@ -201,49 +201,14 @@ template <typename XDataType,
 bool PerformanceConfigBnCKBwdBackward::CheckIsSupportCKArgs(
     const miopen::batchnorm::ProblemDescription& problem) const
 {
-    const auto& args       = CKArgsBNormBwd{problem};
-    const auto bn_bwd_ptrs = DeviceOpBNBwdPtrs<XDataType,
+    return IsCKArgsSupported<DeviceOpBNBwdPtrs<XDataType,
                                                DxDataType,
                                                DyDataType,
                                                AccDataType,
                                                ScaleDataType,
                                                DscaleDbiasDataType,
-                                               MeanVarDataType>::GetInstances();
-    if(bn_bwd_ptrs.empty())
-        MIOPEN_THROW(miopenStatusInternalError, "BnCKBwdBackward bn_bwd_ptrs empty");
-
-    int i = 0;
-    for(; i < bn_bwd_ptrs.size(); i++)
-    {
-        if(bn_bwd_ptrs[i]->GetTypeString() == this->kernel_id)
-        {
-            break;
-        }
-    }
-    if(i == valid_kernels.size())
-    {
-        return false;
-    }
-    auto argument_ptr = bn_bwd_ptrs[i]->MakeArgumentPointer(args.lens,
-                                                            args.in_strides,
-                                                            args.in_strides,
-                                                            args.in_strides,
-                                                            args.reduceDims,
-                                                            args.arrScaleBiasMeanVarLengths,
-                                                            args.arrScaleBiasMeanVarStrides,
-                                                            args.arrScaleBiasMeanVarStrides,
-                                                            args.arrScaleBiasMeanVarStrides,
-                                                            nullptr,
-                                                            nullptr,
-                                                            nullptr,
-                                                            nullptr,
-                                                            nullptr,
-                                                            0.0,
-                                                            PassThroughOp{},
-                                                            nullptr,
-                                                            nullptr,
-                                                            nullptr);
-    return bn_bwd_ptrs[i]->IsSupportedArgument(argument_ptr.get());
+                                               MeanVarDataType>,
+                             CKArgsBNormBwd>(problem, this->kernel_id);
 }
 
 void PerformanceConfigBnCKBwdBackward::HeuristicInit(
@@ -279,8 +244,6 @@ bool PerformanceConfigBnCKBwdBackward::SetNextValue(
     if(this->valid_kernels.empty())
     {
         this->HeuristicInit(problem_desc);
-        if(valid_kernels.empty())
-            MIOPEN_THROW(miopenStatusInternalError, "BnCKBwdBackward valid_kernels empty");
         return true;
     }
     if((this->index + 1) < valid_kernels.size())
@@ -337,47 +300,16 @@ template <typename XDataType,
           typename ScaleDataType,
           typename DscaleDbiasDataType,
           typename MeanVarDataType>
-static int CheckCKApplicability(const miopen::batchnorm::ProblemDescription& problem)
+static bool CheckCKApplicability(const miopen::batchnorm::ProblemDescription& problem)
 {
-    const auto& args       = CKArgsBNormBwd{problem};
-    const auto bn_bwd_ptrs = DeviceOpBNBwdPtrs<XDataType,
-                                               DxDataType,
-                                               DyDataType,
-                                               AccDataType,
-                                               ScaleDataType,
-                                               DscaleDbiasDataType,
-                                               MeanVarDataType>::GetInstances();
-    if(bn_bwd_ptrs.empty())
-        MIOPEN_THROW(miopenStatusInternalError, "BnCKBwdBackward kernel empty");
-    int count = 0;
-    for(const auto& it : bn_bwd_ptrs)
-    {
-        auto argument_ptr = it->MakeArgumentPointer(args.lens,
-                                                    args.in_strides,
-                                                    args.in_strides,
-                                                    args.in_strides,
-                                                    args.reduceDims,
-                                                    args.arrScaleBiasMeanVarLengths,
-                                                    args.arrScaleBiasMeanVarStrides,
-                                                    args.arrScaleBiasMeanVarStrides,
-                                                    args.arrScaleBiasMeanVarStrides,
-                                                    nullptr,
-                                                    nullptr,
-                                                    nullptr,
-                                                    nullptr,
-                                                    nullptr,
-                                                    0.0,
-                                                    PassThroughOp{},
-                                                    nullptr,
-                                                    nullptr,
-                                                    nullptr);
-        if(it->IsSupportedArgument(argument_ptr.get()))
-        {
-            return count;
-        }
-        count++;
-    }
-    return -1;
+    return IsCKApplicable<DeviceOpBNBwdPtrs<XDataType,
+                                            DxDataType,
+                                            DyDataType,
+                                            AccDataType,
+                                            ScaleDataType,
+                                            DscaleDbiasDataType,
+                                            MeanVarDataType>,
+                          CKArgsBNormBwd>(problem);
 }
 
 #endif
@@ -425,14 +357,11 @@ bool BnCKBwdBackward::IsApplicable(
 
     switch(bn_problem.GetXDesc().GetType())
     {
-    case miopenHalf:
-        return (CheckCKApplicability<F16, F32, F32, F32, F16, F32, F32>(bn_problem) != -1);
+    case miopenHalf: return CheckCKApplicability<F16, F32, F32, F32, F16, F32, F32>(bn_problem);
     case miopenBFloat16:
-        return (CheckCKApplicability<BF16, F32, F32, F32, BF16, F32, F32>(bn_problem) != -1);
-    case miopenFloat:
-        return (CheckCKApplicability<F32, F32, F32, F32, F32, F32, F32>(bn_problem) != -1);
-    case miopenDouble:
-        return (CheckCKApplicability<F64, F64, F64, F64, F64, F64, F64>(bn_problem) != -1);
+        return CheckCKApplicability<BF16, F32, F32, F32, BF16, F32, F32>(bn_problem);
+    case miopenFloat: return CheckCKApplicability<F32, F32, F32, F32, F32, F32, F32>(bn_problem);
+    case miopenDouble: return CheckCKApplicability<F64, F64, F64, F64, F64, F64, F64>(bn_problem);
     case miopenInt64:
     case miopenInt32:
     case miopenInt8:
