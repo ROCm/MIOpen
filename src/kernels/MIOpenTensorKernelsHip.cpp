@@ -58,16 +58,16 @@ __device__ T miopenMin(T a, T b)
 extern "C" __global__ void Op1dTensorGeneric(const MIOPEN_TYPE* a,
                                              const MIOPEN_TYPE* b,
                                              MIOPEN_TYPE* c,
-                                             const uint64_t Aoffset,
-                                             const uint64_t Boffset,
-                                             const uint64_t Coffset,
-                                             const uint32_t a_nstride,
-                                             const uint32_t b_nstride,
-                                             const uint32_t c_nstride,
+                                             const DIM_TYPE Aoffset,
+                                             const DIM_TYPE Boffset,
+                                             const DIM_TYPE Coffset,
+                                             const DIM_TYPE a_nstride,
+                                             const DIM_TYPE b_nstride,
+                                             const DIM_TYPE c_nstride,
                                              const MIOPEN_TYPE alpha0,
                                              const MIOPEN_TYPE alpha1,
                                              const MIOPEN_TYPE beta,
-                                             const uint32_t total_work,
+                                             const DIM_TYPE total_work,
                                              const bool use_beta)
 {
     const MIOPEN_TYPE* a_off = a + Aoffset;
