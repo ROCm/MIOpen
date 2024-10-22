@@ -45,6 +45,8 @@ bool BnBwdTrainingSpatialSingle::IsApplicable(
     if(problem.GetDirection() != miopen::batchnorm::Direction::Backward ||
        problem.GetMode() != miopenBNSpatial)
         return false;
+    if(!problem.Is2D())
+        return false;
 
 #if WORKAROUND_ISSUE_1549_FP16_BUILD_ERROR
     if(problem.GetXDesc().GetType() == miopenHalf &&

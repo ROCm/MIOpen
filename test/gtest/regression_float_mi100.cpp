@@ -31,8 +31,6 @@
 
 #include "../conv2d.hpp"
 
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
-
 namespace regression_float_mi100 {
 
 auto GetTestCases()
@@ -58,8 +56,6 @@ auto GetTestCases()
 
 using TestCase = decltype(GetTestCases())::value_type;
 
-bool SkipTest() { return env::disabled(MIOPEN_TEST_ALL); }
-
 class GPU_Conv2d_regression_mi100_FP32 : public FloatTestCase<std::vector<TestCase>>
 {
 };
@@ -76,7 +72,7 @@ using namespace regression_float_mi100;
 
 TEST_P(GPU_Conv2d_regression_mi100_FP32, FloatTest)
 {
-    if(IsTestSupportedForDevice() && !SkipTest())
+    if(IsTestSupportedForDevice())
     {
         invoke_with_params<conv2d_driver, GPU_Conv2d_regression_mi100_FP32>(default_check);
     }

@@ -34,9 +34,7 @@
 
 using TestCase = std::tuple<std::vector<std::string>, std::string>;
 
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 MIOPEN_DECLARE_ENV_VAR_BOOL(IMPLICITGEMM_TESTING_ENV)
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
 
 namespace env = miopen::env;
 
@@ -44,19 +42,9 @@ namespace test_conv_for_implicit_gemm {
 
 static bool SkipTest()
 {
-    if(!MIOPEN_TEST_ALL)
-        return false;
     if(env::enabled(IMPLICITGEMM_TESTING_ENV))
         return false;
     return true;
-}
-
-static bool IsTestRunWith(const char* float_arg)
-{
-    assert(float_arg != nullptr);
-    if(!MIOPEN_TEST_ALL)
-        return true; // standalone run
-    return env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == float_arg;
 }
 
 void GetArgs(const TestCase& param, std::vector<std::string>& tokens)
@@ -262,7 +250,7 @@ using namespace test_conv_for_implicit_gemm;
 TEST_P(GPU_ConvImplicitGemm_BFP16, Test_conv_for_implicit_gemm_bf16)
 {
     const auto& handle = get_handle();
-    if(IsTestSupportedForDevice(handle) && !SkipTest() && IsTestRunWith("--bfloat16"))
+    if(IsTestSupportedForDevice(handle) && !SkipTest())
     {
         Run2dDriver(miopenBFloat16);
     }
@@ -275,7 +263,7 @@ TEST_P(GPU_ConvImplicitGemm_BFP16, Test_conv_for_implicit_gemm_bf16)
 TEST_P(GPU_ConvImplicitGemm_FP16, Test_conv_for_implicit_gemm_half)
 {
     const auto& handle = get_handle();
-    if(IsTestSupportedForDevice(handle) && !SkipTest() && IsTestRunWith("--half"))
+    if(IsTestSupportedForDevice(handle) && !SkipTest())
     {
         Run2dDriver(miopenHalf);
     }

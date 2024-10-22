@@ -93,41 +93,80 @@ std::vector<TensorsConfig> TensorsConfigs()
             {
                 for(size_t C = 1; C <= maxTotalSize / N; C *= 2)
                 {
-                    size_t totalSize = N * C;
-                    // Ensure the total size does not exceed the maximum limit
-                    if(totalSize <= maxTotalSize)
+                    for(size_t H = 1; H <= maxTotalSize / (N * C); H *= 2)
                     {
-                        configs.push_back({{N, C}, {C, 1}, {N, C}, {C, 1}});
-                        configs.push_back({{N, C}, {C, 1}, {1, C}, {C, 1}});
-                        configs.push_back({{N, C}, {C, 1}, {N, 1}, {1, 1}});
-                        configs.push_back({{N, C}, {C, 1}, {1, 1}, {1, 1}});
+                        size_t totalSize = N * C * H;
+                        // Ensure the total size does not exceed the maximum limit
+                        if(totalSize <= maxTotalSize)
+                        {
+                            configs.push_back({{N, C, H}, {C * H, H, 1}, {N, C, H}, {C * H, H, 1}});
+                            configs.push_back({{N, C, H}, {C * H, H, 1}, {N, C, 1}, {C * 1, 1, 1}});
+                            configs.push_back({{N, C, H}, {C * H, H, 1}, {N, 1, H}, {1 * H, H, 1}});
+                            configs.push_back({{N, C, H}, {C * H, H, 1}, {N, 1, 1}, {1 * 1, 1, 1}});
+                            configs.push_back({{N, C, H}, {C * H, H, 1}, {1, C, H}, {C * H, H, 1}});
+                            configs.push_back({{N, C, H}, {C * H, H, 1}, {1, C, 1}, {C * 1, 1, 1}});
+                            configs.push_back({{N, C, H}, {C * H, H, 1}, {1, 1, H}, {1 * H, H, 1}});
+                            configs.push_back({{N, C, H}, {C * H, H, 1}, {1, 1, 1}, {1 * 1, 1, 1}});
+                        }
                     }
                 }
             }
         }
         else
         {
-            for(size_t N = 2; N <= maxTotalSize; N *= 2)
+            for(size_t N = 1; N <= maxTotalSize; N *= 2)
             {
-                for(size_t C = 2; C <= maxTotalSize / N; C *= 2)
+                for(size_t C = 1; C <= maxTotalSize / N; C *= 2)
                 {
-                    size_t totalSize = (N - 1) * (C - 1);
-                    // Ensure the total size does not exceed the maximum limit
-                    if(totalSize <= maxTotalSize)
+                    for(size_t H = 1; H <= maxTotalSize / (N * C); H *= 2)
                     {
-                        configs.push_back({{N - 1, C - 1}, {C - 1, 1}, {N - 1, C - 1}, {C - 1, 1}});
-                        configs.push_back({{N - 1, C - 1}, {C - 1, 1}, {1, C - 1}, {C - 1, 1}});
-                        configs.push_back({{N - 1, C - 1}, {C - 1, 1}, {N - 1, 1}, {1, 1}});
-                        configs.push_back({{N - 1, C - 1}, {C - 1, 1}, {1, 1}, {1, 1}});
-                    }
 
-                    totalSize = (N + 1) * (C + 1);
-                    if(totalSize <= maxTotalSize)
-                    {
-                        configs.push_back({{N + 1, C + 1}, {C + 1, 1}, {N + 1, C + 1}, {C + 1, 1}});
-                        configs.push_back({{N + 1, C + 1}, {C + 1, 1}, {1, C + 1}, {C + 1, 1}});
-                        configs.push_back({{N + 1, C + 1}, {C + 1, 1}, {N + 1, 1}, {1, 1}});
-                        configs.push_back({{N + 1, C + 1}, {C + 1, 1}, {1, 1}, {1, 1}});
+                        for(int dn = -1; dn <= 1; dn += 2)
+                        {
+                            for(int dc = -1; dc <= 1; dc += 2)
+                            {
+                                for(int dh = -1; dh <= 1; dh += 2)
+                                {
+                                    size_t totalSize = (N + dn) * (C + dc) * (H + dh);
+                                    // Ensure the total size does not exceed the maximum limit
+                                    if(totalSize <= maxTotalSize)
+                                    {
+                                        configs.push_back({{N + dn, C + dc, H + dh},
+                                                           {(C + dc) * (H + dh), H + dh, 1},
+                                                           {N + dn, C + dc, H + dh},
+                                                           {(C + dc) * (H + dh), H + dh, 1}});
+                                        configs.push_back({{N + dn, C + dc, H + dh},
+                                                           {(C + dc) * (H + dh), H + dh, 1},
+                                                           {N + dn, C + dc, 1},
+                                                           {C + dc, 1, 1}});
+                                        configs.push_back({{N + dn, C + dc, H + dh},
+                                                           {(C + dc) * (H + dh), H + dh, 1},
+                                                           {N + dn, 1, H + dh},
+                                                           {H + dh, H + dh, 1}});
+                                        configs.push_back({{N + dn, C + dc, H + dh},
+                                                           {(C + dc) * (H + dh), H + dh, 1},
+                                                           {N + dn, 1, 1},
+                                                           {1, 1, 1}});
+                                        configs.push_back({{N + dn, C + dc, H + dh},
+                                                           {(C + dc) * (H + dh), H + dh, 1},
+                                                           {1, C + dc, H + dh},
+                                                           {(C + dc) * (H + dh), H + dh, 1}});
+                                        configs.push_back({{N + dn, C + dc, H + dh},
+                                                           {(C + dc) * (H + dh), H + dh, 1},
+                                                           {1, C + dc, 1},
+                                                           {C + dc, 1, 1}});
+                                        configs.push_back({{N + dn, C + dc, H + dh},
+                                                           {(C + dc) * (H + dh), H + dh, 1},
+                                                           {1, 1, H + dh},
+                                                           {H + dh, H + dh, 1}});
+                                        configs.push_back({{N + dn, C + dc, H + dh},
+                                                           {(C + dc) * (H + dh), H + dh, 1},
+                                                           {1, 1, 1},
+                                                           {1, 1, 1}});
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -137,23 +176,35 @@ std::vector<TensorsConfig> TensorsConfigs()
     }
     else
     {
-        return {{{16, 8}, {8, 1}, {16, 8}, {8, 1}},
-                {{16, 8}, {8, 1}, {1, 8}, {8, 1}},
-                {{16, 8}, {8, 1}, {16, 1}, {1, 1}},
-                {{16, 8}, {8, 1}, {1, 1}, {1, 1}},
-                {{20, 16}, {16, 1}, {20, 16}, {16, 1}},
-                {{20, 16}, {16, 1}, {1, 16}, {16, 1}},
-                {{20, 16}, {16, 1}, {20, 1}, {1, 1}},
-                {{20, 16}, {16, 1}, {1, 1}, {1, 1}},
-                {{32, 64}, {64, 1}, {32, 64}, {64, 1}},
-                {{32, 64}, {64, 1}, {1, 64}, {64, 1}},
-                {{32, 64}, {64, 1}, {32, 1}, {1, 1}},
-                {{32, 64}, {64, 1}, {1, 1}, {1, 1}}};
+        return {{{16, 8, 4}, {8 * 4, 4, 1}, {16, 8, 4}, {8 * 4, 4, 1}},
+                {{16, 8, 4}, {8 * 4, 4, 1}, {16, 8, 1}, {8 * 1, 1, 1}},
+                {{16, 8, 4}, {8 * 4, 4, 1}, {16, 1, 4}, {1 * 4, 4, 1}},
+                {{16, 8, 4}, {8 * 4, 4, 1}, {16, 1, 1}, {1 * 1, 1, 1}},
+                {{16, 8, 4}, {8 * 4, 4, 1}, {1, 8, 4}, {8 * 4, 4, 1}},
+                {{16, 8, 4}, {8 * 4, 4, 1}, {1, 8, 1}, {8 * 1, 1, 1}},
+                {{16, 8, 4}, {8 * 4, 4, 1}, {1, 1, 4}, {1 * 4, 4, 1}},
+                {{16, 8, 4}, {8 * 4, 4, 1}, {1, 1, 1}, {1 * 1, 1, 1}},
+                {{20, 16, 8}, {16 * 8, 8, 1}, {20, 16, 8}, {16 * 8, 8, 1}},
+                {{20, 16, 8}, {16 * 8, 8, 1}, {20, 16, 1}, {16 * 1, 1, 1}},
+                {{20, 16, 8}, {16 * 8, 8, 1}, {20, 1, 8}, {1 * 8, 8, 1}},
+                {{20, 16, 8}, {16 * 8, 8, 1}, {20, 1, 1}, {1 * 1, 1, 1}},
+                {{20, 16, 8}, {16 * 8, 8, 1}, {1, 16, 8}, {16 * 8, 8, 1}},
+                {{20, 16, 8}, {16 * 8, 8, 1}, {1, 16, 1}, {16 * 1, 1, 1}},
+                {{20, 16, 8}, {16 * 8, 8, 1}, {1, 1, 8}, {1 * 8, 8, 1}},
+                {{20, 16, 8}, {16 * 8, 8, 1}, {1, 1, 1}, {1 * 1, 1, 1}},
+                {{32, 64, 16}, {64 * 16, 16, 1}, {32, 64, 16}, {64 * 16, 16, 1}},
+                {{32, 64, 16}, {64 * 16, 16, 1}, {32, 64, 1}, {64 * 1, 1, 1}},
+                {{32, 64, 16}, {64 * 16, 16, 1}, {32, 1, 16}, {1 * 16, 16, 1}},
+                {{32, 64, 16}, {64 * 16, 16, 1}, {32, 1, 1}, {1 * 1, 1, 1}},
+                {{32, 64, 16}, {64 * 16, 16, 1}, {1, 64, 16}, {64 * 16, 16, 1}},
+                {{32, 64, 16}, {64 * 16, 16, 1}, {1, 64, 1}, {64 * 1, 1, 1}},
+                {{32, 64, 16}, {64 * 16, 16, 1}, {1, 1, 16}, {1 * 16, 16, 1}},
+                {{32, 64, 16}, {64 * 16, 16, 1}, {1, 1, 1}, {1 * 1, 1, 1}}};
     }
 }
 
 template <typename T>
-struct Op2DTensorGenericTest
+struct Op3DTensorGenericTest
     : public ::testing::TestWithParam<std::tuple<TensorsConfig, float, float, float>>
 {
 protected:
@@ -236,25 +287,30 @@ protected:
         params = " -DMIOPEN_TYPE=" + miopen::GetDataType(data_type) +
                  " -DMAX_NUM_WG=" + std::to_string(max_num_wg);
         params += " " + miopen::GetDataTypeKBP(data_type).GenerateFor(miopen::kbp::OpenCL{});
-        params += " -DMIOPEN_TENSOR_OP=miopenAdd -DUSE_2D_TENSOR_GENERIC";
+        params += " -DMIOPEN_TENSOR_OP=miopenAdd -DUSE_3D_TENSOR_GENERIC";
 
         std::string program_name       = "MIOpenTensorKernels.cl";
         std::string network_config_ocl = network_config + "-ocl";
 
-        handle.AddKernel("Op2dTensorGeneric",
+        handle.AddKernel("Op3dTensorGeneric",
                          network_config_ocl,
                          program_name,
-                         "Op2dTensorGeneric",
+                         "Op3dTensorGeneric",
                          vld,
                          vgd,
                          params)(tensA_dev.get(),
                                  static_cast<int>(tensorsConfig.acstrides[0]),
+                                 static_cast<int>(tensorsConfig.acstrides[1]),
                                  tensB_dev.get(),
                                  static_cast<int>(tensorsConfig.blens[1]),
+                                 static_cast<int>(tensorsConfig.blens[2]),
                                  static_cast<int>(tensorsConfig.bstrides[0]),
+                                 static_cast<int>(tensorsConfig.bstrides[1]),
                                  tensC_dev.get(),
                                  static_cast<int>(tensorsConfig.aclens[1]),
+                                 static_cast<int>(tensorsConfig.aclens[2]),
                                  static_cast<int>(tensorsConfig.acstrides[0]),
+                                 static_cast<int>(tensorsConfig.acstrides[1]),
                                  alpha0,
                                  alpha1,
                                  beta,
@@ -270,17 +326,22 @@ protected:
         if constexpr(PERF_ENABLE)
         {
             ph.perfTest(handle,
-                        "Op2dTensorGeneric",
+                        "Op3dTensorGeneric",
                         network_config_ocl,
                         false,
                         tensA_dev.get(),
                         static_cast<int>(tensorsConfig.acstrides[0]),
+                        static_cast<int>(tensorsConfig.acstrides[1]),
                         tensB_dev.get(),
                         static_cast<int>(tensorsConfig.blens[1]),
+                        static_cast<int>(tensorsConfig.blens[2]),
                         static_cast<int>(tensorsConfig.bstrides[0]),
+                        static_cast<int>(tensorsConfig.bstrides[1]),
                         tensC_dev.get(),
                         static_cast<int>(tensorsConfig.aclens[1]),
+                        static_cast<int>(tensorsConfig.aclens[2]),
                         static_cast<int>(tensorsConfig.acstrides[0]),
+                        static_cast<int>(tensorsConfig.acstrides[1]),
                         alpha0,
                         alpha1,
                         beta,
@@ -303,25 +364,30 @@ protected:
         params = " -DMIOPEN_TYPE=" + miopen::GetDataType(data_type) +
                  " -DMAX_NUM_WG=" + std::to_string(max_num_wg);
         params += " " + miopen::GetDataTypeKBP(data_type).GenerateFor(miopen::kbp::HIP{});
-        params += " -DMIOPEN_TENSOR_OP=miopenAdd -DUSE_2D_TENSOR_GENERIC";
+        params += " -DMIOPEN_TENSOR_OP=miopenAdd -DUSE_3D_TENSOR_GENERIC";
 
         std::string program_name       = "MIOpenTensorKernelsHip.cpp";
         std::string network_config_hip = network_config + "-hip";
 
-        handle.AddKernel("Op2dTensorGeneric",
+        handle.AddKernel("Op3dTensorGeneric",
                          network_config_hip,
                          program_name,
-                         "Op2dTensorGeneric",
+                         "Op3dTensorGeneric",
                          vld,
                          vgd,
                          params)(tensA_dev.get(),
                                  static_cast<int>(tensorsConfig.acstrides[0]),
+                                 static_cast<int>(tensorsConfig.acstrides[1]),
                                  tensB_dev.get(),
                                  static_cast<int>(tensorsConfig.blens[1]),
+                                 static_cast<int>(tensorsConfig.blens[2]),
                                  static_cast<int>(tensorsConfig.bstrides[0]),
+                                 static_cast<int>(tensorsConfig.bstrides[1]),
                                  tensC_dev.get(),
                                  static_cast<int>(tensorsConfig.aclens[1]),
+                                 static_cast<int>(tensorsConfig.aclens[2]),
                                  static_cast<int>(tensorsConfig.acstrides[0]),
+                                 static_cast<int>(tensorsConfig.acstrides[1]),
                                  alpha0,
                                  alpha1,
                                  beta,
@@ -337,17 +403,22 @@ protected:
         if constexpr(PERF_ENABLE)
         {
             ph.perfTest(handle,
-                        "Op2dTensorGeneric",
+                        "Op3dTensorGeneric",
                         network_config_hip,
                         false,
                         tensA_dev.get(),
                         static_cast<int>(tensorsConfig.acstrides[0]),
+                        static_cast<int>(tensorsConfig.acstrides[1]),
                         tensB_dev.get(),
                         static_cast<int>(tensorsConfig.blens[1]),
+                        static_cast<int>(tensorsConfig.blens[2]),
                         static_cast<int>(tensorsConfig.bstrides[0]),
+                        static_cast<int>(tensorsConfig.bstrides[1]),
                         tensC_dev.get(),
                         static_cast<int>(tensorsConfig.aclens[1]),
+                        static_cast<int>(tensorsConfig.aclens[2]),
                         static_cast<int>(tensorsConfig.acstrides[0]),
+                        static_cast<int>(tensorsConfig.acstrides[1]),
                         alpha0,
                         alpha1,
                         beta,
@@ -372,17 +443,21 @@ protected:
         {
             std::string stats{};
             stats += "_aclens_" + std::to_string(tensorsConfig.aclens[0]) + "_" +
-                     std::to_string(tensorsConfig.aclens[1]) + "_acstrides_" +
+                     std::to_string(tensorsConfig.aclens[1]) + "_" +
+                     std::to_string(tensorsConfig.aclens[2]) + "_acstrides_" +
                      std::to_string(tensorsConfig.acstrides[0]) + "_" +
-                     std::to_string(tensorsConfig.acstrides[1]);
+                     std::to_string(tensorsConfig.acstrides[1]) + "_" +
+                     std::to_string(tensorsConfig.acstrides[2]);
             stats += "_blens_" + std::to_string(tensorsConfig.blens[0]) + "_" +
-                     std::to_string(tensorsConfig.blens[1]) + "_bstrides_" +
+                     std::to_string(tensorsConfig.blens[1]) + "_" +
+                     std::to_string(tensorsConfig.blens[2]) + "_bstrides_" +
                      std::to_string(tensorsConfig.bstrides[0]) + "_" +
-                     std::to_string(tensorsConfig.bstrides[1]) + "_";
-            stats += "alpha0_" + std::to_string(alpha0) + "_alpha1_" + std::to_string(alpha1) +
+                     std::to_string(tensorsConfig.bstrides[1]) + "_" +
+                     std::to_string(tensorsConfig.bstrides[2]);
+            stats += "_alpha0_" + std::to_string(alpha0) + "_alpha1_" + std::to_string(alpha1) +
                      "_beta_" + std::to_string(beta) + "_" + miopen::GetDataType(data_type);
 
-            ph.writeStatsToCSV("tensor_2d.csv", stats);
+            ph.writeStatsToCSV("tensor_3d.csv", stats);
         }
     }
 
@@ -412,11 +487,11 @@ protected:
     PerfHelper<T> ph;
 };
 
-struct GPU_Op2dTensorGenericTest_FP32 : Op2DTensorGenericTest<float>
+struct GPU_Op3dTensorGenericTest_FP32 : Op3DTensorGenericTest<float>
 {
 };
 
-TEST_P(GPU_Op2dTensorGenericTest_FP32, PortTest)
+TEST_P(GPU_Op3dTensorGenericTest_FP32, PortTest)
 {
     // run OCL kernel
     runOCL();
@@ -427,7 +502,7 @@ TEST_P(GPU_Op2dTensorGenericTest_FP32, PortTest)
 }
 
 INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_Op2dTensorGenericTest_FP32,
+                         GPU_Op3dTensorGenericTest_FP32,
                          testing::Combine(testing::ValuesIn(TensorsConfigs<float>()),
                                           testing::Values(1.0f),
                                           testing::Values(1.0f),
