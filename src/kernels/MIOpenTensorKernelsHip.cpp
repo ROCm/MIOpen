@@ -197,8 +197,8 @@ extern "C" __global__ void Op3dTensorGeneric(MIOPEN_TYPE* a,
         {
 
             int lid     = threadIdx.x;
-            int o_c_div = bitmap & (1 << 0) ? 1 : c_h;
-            int o_n_div = o_c_div * (bitmap & (1 << 1) ? 1 : c_c);
+            int o_c_div = (bitmap & (1 << 0)) ? 1 : c_h;
+            int o_n_div = o_c_div * ((bitmap & (1 << 1)) ? 1 : c_c);
 
             int o_h_gid_off = gid % b_h;
             int o_c_gid_off = (gid / b_h) % b_c;
@@ -229,8 +229,8 @@ extern "C" __global__ void Op3dTensorGeneric(MIOPEN_TYPE* a,
         {
 
             int lid     = threadIdx.x;
-            int o_c_div = bitmap & (1 << 0) ? 1 : c_h;
-            int o_n_div = o_c_div * (bitmap & (1 << 1) ? 1 : c_c);
+            int o_c_div = (bitmap & (1 << 0)) ? 1 : c_h;
+            int o_n_div = o_c_div * ((bitmap & (1 << 1)) ? 1 : c_c);
 
             int o_h_gid_off = gid % b_h;
             int o_c_gid_off = (gid / b_h) % b_c;
