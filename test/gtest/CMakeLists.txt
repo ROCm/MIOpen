@@ -60,8 +60,6 @@ function(add_gtest TEST_NAME TEST_CPP)
   if(MIOPEN_TEST_DISCRETE)
     string(CONCAT TEST_ENVIRONMENT_VARIABLES
     "ENVIRONMENT;MIOPEN_USER_DB_PATH=${CMAKE_CURRENT_BINARY_DIR};"
-    "ENVIRONMENT;CODECOV_TEST=${CODECOV_TEST};"
-
     "ENVIRONMENT;MIOPEN_TEST_CONV=${MIOPEN_TEST_CONV};")
 
     set(MIOPEN_GTEST_PREFIX)
@@ -83,6 +81,10 @@ function(add_gtest TEST_NAME TEST_CPP)
 
     if (NOT MIOPEN_TEST_DEEPBENCH)
         add_gtest_negative_filter("*DeepBench*")
+    endif()      
+
+    if (NOT CODECOV_TEST)
+        add_gtest_negative_filter("*CodecovTest*")
     endif()      
 
     set(MIOPEN_GTEST_FILTER "${MIOPEN_GTEST_PREFIX}*${MIOPEN_GTEST_SUFFIX}*${MIOPEN_GTEST_FILTER_NEGATIVE}")

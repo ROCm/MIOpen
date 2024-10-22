@@ -85,7 +85,7 @@ class GPU_DeepBench_lstm_FP32 : public testing::TestWithParam<std::vector<TestCa
 
 void Run2dDriverFloat(void)
 {
-    std::vector<std::string> params = GPU_deepbench_lstm_FP32::GetParam();
+    std::vector<std::string> params = GPU_DeepBench_lstm_FP32::GetParam();
 
     for(const auto& test_value : params)
     {
