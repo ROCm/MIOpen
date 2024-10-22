@@ -33,7 +33,6 @@
 #include <miopen/solver/ck_utility_common.hpp>
 #include <miopen/solver/implicitgemm_ck_util.hpp>
 #include <ck/library/tensor_operation_instance/gpu/batchnorm_backward.hpp>
-#include <miopen/solver/implicitgemm_ck_util.hpp>
 #endif
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CK_BN_BACK)
 

@@ -31,6 +31,7 @@
 #include <miopen/batch_norm.hpp>
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 #include <miopen/solver/ck_utility_common.hpp>
+#include <miopen/solver/implicitgemm_ck_util.hpp>
 #include <ck/library/tensor_operation_instance/gpu/batchnorm_infer.hpp>
 #endif
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CK_BN_INFER)
@@ -316,46 +317,6 @@ static int CheckCKApplicability(const miopen::batchnorm::ProblemDescription& pro
     return -1;
 }
 
-template <typename XDataType,
-          typename YDataType,
-          typename AccDataType,
-          typename ScaleDataType,
-          typename BiasDataType,
-          typename MeanVarDataType>
-ConvSolution InvokerFactoryMakerNHWC(const miopen::batchnorm::ProblemDescription& bn_problem,
-                                     const PerformanceConfigBnCKFwdInference& config)
-{
-    ConvSolution result;
-    auto bn_fwd_ptrs =
-        DeviceOpBnFwdInfPtrs<XDataType, YDataType, ScaleDataType, BiasDataType, MeanVarDataType>::
-            GetInstances();
-
-    assert(config.index >= 0 && !bn_fwd_ptrs.empty() && config.index < bn_fwd_ptrs.size());
-    auto bn_ptr = std::move(bn_fwd_ptrs.at(config.index));
-
-    result.invoker_factory = [args      = CKArgsBNormFwd{bn_problem},
-                              sh_bn_ptr = std::shared_ptr{std::move(bn_ptr)}](
-                                 const std::vector<Kernel>& /*kernels*/) mutable {
-        return [args = std::move(args), sh_bn_ptr = std::move(sh_bn_ptr)](
-                   const Handle& handle, const AnyInvokeParams& primitive_parameters) {
-            const auto& params = primitive_parameters.CastTo<miopen::batchnorm::InfInvokeParams>();
-
-            auto argument_ptr = args.MakeArgPtr(sh_bn_ptr, params);
-
-            auto invoker_ptr            = sh_bn_ptr->MakeInvokerPointer();
-            const auto enable_profiling = handle.IsProfilingEnabled();
-
-            float elapsed_time =
-                invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), enable_profiling});
-            if(enable_profiling)
-            {
-                handle.ResetKernelTime();
-                handle.AccumKernelTime(elapsed_time);
-            }
-        };
-    };
-    return result;
-}
 #endif
 
 PerformanceConfigBnCKFwdInference BnCKFwdInference::GetDefaultPerformanceConfig(
@@ -460,7 +421,11 @@ ConvSolution BnCKFwdInference::GetSolution(
             using AccTy = std::conditional_t<std::is_same_v<T, F64>,
                                              T,    // T==F64
                                              F32>; // T==F32
-            return InvokerFactoryMakerNHWC<T, T, AccTy, T, T, AccTy>(bn_problem, config);
+            return InitAnyInvokerFactory<DeviceOpBnFwdInfPtrs<T, T, T, T, AccTy>,
+                                         CKArgsBNormFwd,
+                                         miopen::batchnorm::InfInvokeParams,
+                                         miopen::batchnorm::ProblemDescription>(bn_problem,
+                                                                                config.kernel_id);
         }
         // Todo: InvokerFactoryMakerNCHW
     );
