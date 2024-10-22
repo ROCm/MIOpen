@@ -137,6 +137,10 @@ TEST_P(GPU_Pooling2d_CodecovTest_FP16, HalfTest_pooling2d_codecov)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(Full, GPU_Pooling2d_CodecovTest_FP32, testing::Values(GetTestCases("--float")));
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_Pooling2d_CodecovTest_FP32,
+                         testing::Values(GetTestCases("--float")));
 
-INSTANTIATE_TEST_SUITE_P(Full, GPU_Pooling2d_CodecovTest_FP16, testing::Values(GetTestCases("--half")));
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_Pooling2d_CodecovTest_FP16,
+                         testing::Values(GetTestCases("--half")));

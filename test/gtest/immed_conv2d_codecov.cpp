@@ -43,11 +43,13 @@ void GetArgs(const std::string& param, std::vector<std::string>& tokens)
         tokens.push_back(*begin++);
 }
 
-class GPU_Conv2d_immed_conv2d_CodecovTest_FP32 : public testing::TestWithParam<std::vector<std::string>>
+class GPU_Conv2d_immed_conv2d_CodecovTest_FP32
+    : public testing::TestWithParam<std::vector<std::string>>
 {
 };
 
-class GPU_Conv2d_immed_conv2d_CodecovTest_FP16 : public testing::TestWithParam<std::vector<std::string>>
+class GPU_Conv2d_immed_conv2d_CodecovTest_FP16
+    : public testing::TestWithParam<std::vector<std::string>>
 {
 };
 
@@ -56,7 +58,8 @@ class GPU_Conv2d_immed_conv2d_CodecovTest_BFP16
 {
 };
 
-class GPU_Conv2d_immed_conv2d_CodecovTest_I8 : public testing::TestWithParam<std::vector<std::string>>
+class GPU_Conv2d_immed_conv2d_CodecovTest_I8
+    : public testing::TestWithParam<std::vector<std::string>>
 {
 };
 

@@ -167,10 +167,18 @@ TEST_P(GPU_ImmedConv3d_CodecovTest_I8, Int8Test_immed_conv3d_codecov)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(Full, GPU_ImmedConv3d_CodecovTest_FP32, testing::Values(GetTestCases("--float")));
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_ImmedConv3d_CodecovTest_FP32,
+                         testing::Values(GetTestCases("--float")));
 
-INSTANTIATE_TEST_SUITE_P(Full, GPU_ImmedConv3d_CodecovTest_FP16, testing::Values(GetTestCases("--half")));
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_ImmedConv3d_CodecovTest_FP16,
+                         testing::Values(GetTestCases("--half")));
 
-INSTANTIATE_TEST_SUITE_P(Full, GPU_ImmedConv3d_CodecovTest_BFP16, testing::Values(GetTestCases("--bfloat16")));
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_ImmedConv3d_CodecovTest_BFP16,
+                         testing::Values(GetTestCases("--bfloat16")));
 
-INSTANTIATE_TEST_SUITE_P(Full, GPU_ImmedConv3d_CodecovTest_I8, testing::Values(GetTestCases("--int8")));
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_ImmedConv3d_CodecovTest_I8,
+                         testing::Values(GetTestCases("--int8")));
