@@ -31,6 +31,7 @@
 #include <miopen/bfloat16.hpp>
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 #include <miopen/solver/ck_utility_common.hpp>
+#include <miopen/solver/implicitgemm_ck_util.hpp>
 #include <ck/library/tensor_operation_instance/gpu/batchnorm_backward.hpp>
 #include <miopen/solver/implicitgemm_ck_util.hpp>
 #endif
@@ -380,51 +381,6 @@ static int CheckCKApplicability(const miopen::batchnorm::ProblemDescription& pro
     return -1;
 }
 
-template <typename XDataType,
-          typename DxDataType,
-          typename DyDataType,
-          typename AccDataType,
-          typename ScaleDataType,
-          typename DscaleDbiasDataType,
-          typename MeanVarDataType>
-ConvSolution InvokerFactoryMakerNHWC(const miopen::batchnorm::ProblemDescription& bn_problem,
-                                     const PerformanceConfigBnCKBwdBackward& config)
-{
-    ConvSolution result;
-    auto bn_bwd_ptrs = DeviceOpBNBwdPtrs<XDataType,
-                                         DxDataType,
-                                         DyDataType,
-                                         AccDataType,
-                                         ScaleDataType,
-                                         DscaleDbiasDataType,
-                                         MeanVarDataType>::GetInstances();
-
-    assert(config.index >= 0 && !bn_bwd_ptrs.empty() && config.index < bn_bwd_ptrs.size());
-    auto bn_ptr = std::move(bn_bwd_ptrs.at(config.index));
-
-    result.invoker_factory = [args      = CKArgsBNormBwd{bn_problem},
-                              sh_bn_ptr = std::shared_ptr{std::move(bn_ptr)}](
-                                 const std::vector<Kernel>& /*kernels*/) mutable {
-        return [args = std::move(args), sh_bn_ptr = std::move(sh_bn_ptr)](
-                   const Handle& handle, const AnyInvokeParams& primitive_parameters) {
-            const auto& params = primitive_parameters.CastTo<miopen::batchnorm::BwdInvokeParams>();
-
-            auto argument_ptr = args.MakeArgPtr(sh_bn_ptr, params);
-
-            auto invoker_ptr            = sh_bn_ptr->MakeInvokerPointer();
-            const auto enable_profiling = handle.IsProfilingEnabled();
-
-            float elapsed_time =
-                invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), enable_profiling});
-            if(enable_profiling)
-            {
-                handle.ResetKernelTime();
-                handle.AccumKernelTime(elapsed_time);
-            }
-        };
-    };
-    return result;
-}
 #endif
 
 PerformanceConfigBnCKBwdBackward BnCKBwdBackward::GetDefaultPerformanceConfig(
@@ -465,7 +421,7 @@ bool BnCKBwdBackward::IsApplicable(
         return false;
     if(!bn_problem.Is2D())
         return false;
-    if(bn_problem.GetDirection() != miopen::batchnorm::Direction::ForwardInference)
+    if(bn_problem.GetDirection() != miopen::batchnorm::Direction::Backward)
         return false;
 
     switch(bn_problem.GetXDesc().GetType())
@@ -531,8 +487,11 @@ ConvSolution BnCKBwdBackward::GetSolution(
             using AccTy = std::conditional_t<std::is_same_v<T, F64>,
                                              T,    // T==F64
                                              F32>; // T==F32
-            return InvokerFactoryMakerNHWC<T, AccTy, AccTy, AccTy, T, AccTy, AccTy>(bn_problem,
-                                                                                    config);
+            return InitAnyInvokerFactory<DeviceOpBNBwdPtrs<T, AccTy, AccTy, AccTy, T, AccTy, AccTy>,
+                                         CKArgsBNormBwd,
+                                         miopen::batchnorm::BwdInvokeParams,
+                                         miopen::batchnorm::ProblemDescription>(bn_problem,
+                                                                                config.kernel_id);
         }
         // Todo: InvokerFactoryMakerNCHW
     );

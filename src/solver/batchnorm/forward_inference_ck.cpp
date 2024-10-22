@@ -279,8 +279,6 @@ bool PerformanceConfigBnCKFwdInference::operator==(
     return this->kernel_id == other.kernel_id;
 }
 
-//======================================
-
 template <typename XDataType,
           typename YDataType,
           typename AccDataType,
