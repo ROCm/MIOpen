@@ -98,17 +98,19 @@ extern "C" miopenStatus_t miopenAnyForward(miopenHandle_t handle,
                                            const miopenTensorDescriptor_t outputDesc,
                                            void* output)
 {
-    MIOPEN_LOG_FUNCTION(handle,
-                        workspace,
-                        workspaceSizeInBytes,
-                        inputDesc,
-                        input,
-                        dim,
-                        keepdim,
-                        outputDesc,
-                        output);
+    // MIOPEN_LOG_FUNCTION(handle,
+    //                     workspace,
+    //                     workspaceSizeInBytes,
+    //                     inputDesc,
+    //                     input,
+    //                     dim,
+    //                     keepdim,
+    //                     outputDesc,
+    //                     output);
 
     // LogCmdAny(inputDesc, dim, keepdim);
+
+    // return miopenStatusSuccess;
 
     return miopen::try_([&] {
         miopen::AnyForward(miopen::deref(handle),

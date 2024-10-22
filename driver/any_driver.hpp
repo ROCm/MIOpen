@@ -139,7 +139,8 @@ public:
 
 private:
     InputFlags inflags;
-    // int forw;
+
+    int forw;
 
     miopenTensorDescriptor_t inputDesc;
     miopenTensorDescriptor_t outputDesc;
@@ -161,7 +162,7 @@ private:
 template <typename Tgpu, typename Tref>
 int AnyDriver<Tgpu, Tref>::AddCmdLineArgs()
 {
-
+    inflags.AddInputFlag("forw", 'F', "1", "Run only Forward LPPool (Default=1)", "int");
     inflags.AddTensorFlag(
         "dim_lengths", 'L', "3x4x5", "The dimensional lengths of the input tensor");
     inflags.AddInputFlag("dim", 'd', "-1", "the dimension to reduce (Default=None)", "int");
@@ -262,7 +263,7 @@ int AnyDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
     for(int i = 0; i < in_sz; i++)
     {
-        in[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(-1.0), static_cast<Tgpu>(1.0));
+        in[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(0), static_cast<Tgpu>(1));
     }
 
     if(in_dev->ToGPU(GetStream(), in.data()) != 0)
@@ -287,7 +288,6 @@ int AnyDriver<Tgpu, Tref>::RunForwardGPU()
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
         miopenAnyForward(GetHandle(),
-                         //  nanPropagation,
                          workspace_dev->GetMem(),
                          ws_sizeInBytes,
                          inputDesc,

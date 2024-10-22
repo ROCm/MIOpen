@@ -41,9 +41,9 @@ namespace miopen {
 
 std::size_t GetAnyWorkspaceSize(Handle& handle,
                                 const TensorDescriptor& inputDesc,
-                                TensorDescriptor& outputDesc,
-                                const int32_t dim,
-                                const bool keepdim)
+                                const TensorDescriptor& outputDesc,
+                                int32_t dim,
+                                bool keepdim)
 {
     if(dim != -1)
     {
@@ -67,10 +67,10 @@ miopenStatus_t AnyForward(Handle& handle,
                           size_t workspaceSizeInBytes,
                           const TensorDescriptor& inputDesc,
                           ConstData_t input,
+                          int32_t dim,
+                          bool keepdim,
                           const TensorDescriptor& outputDesc,
-                          Data_t output,
-                          const int32_t dim,
-                          const bool keepdim)
+                          Data_t output)
 {
     const auto problem = any::ProblemDescription{inputDesc, outputDesc, dim, keepdim};
 

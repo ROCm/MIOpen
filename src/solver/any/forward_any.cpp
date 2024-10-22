@@ -78,6 +78,11 @@ ConvSolution AnyForward::GetSolution(const ExecutionContext& context,
     auto input_dtype  = miopen::GetDataType(problem.GetInputDesc().GetType());
     auto output_dtype = miopen::GetDataType(problem.GetOutputDesc().GetType());
 
+    // std::cout << std::endl << std::endl;
+    // std::cout << "input_dtype: " << input_dtype << std::endl;
+    // std::cout << "output_dtype: " << output_dtype << std::endl;
+    // std::cout << std::endl << std::endl;
+
     auto input_dims  = problem.GetInputDesc().GetLengths();
     auto output_dims = problem.GetOutputDesc().GetLengths();
     auto dim         = problem.GetDim();
@@ -85,6 +90,39 @@ ConvSolution AnyForward::GetSolution(const ExecutionContext& context,
 
     auto input_numel  = problem.GetInputDesc().GetElementSize();
     auto output_numel = problem.GetOutputDesc().GetElementSize();
+
+    std::string i_dtype = input_dtype;
+    std::string o_dtype = output_dtype;
+
+    if(input_dtype == "bool" || input_dtype == "uint8_t")
+    {
+        i_dtype = "byte";
+    }
+    else if(input_dtype == "int8_t")
+    {
+        i_dtype = "char";
+        std::cout << "Hit here!!!";
+    }
+    else if(input_dtype == "bfloat16")
+    {
+        i_dtype = "ushort";
+    }
+
+    if(output_dtype == "bool" || output_dtype == "uint8_t")
+    {
+        o_dtype = "byte";
+    }
+    else if(output_dtype == "int8_t")
+    {
+        o_dtype = "char";
+    }
+    else if(output_dtype == "bfloat16")
+    {
+        o_dtype = "ushort";
+    }
+
+    std::cout << "i_dtype: " << i_dtype << std::endl;
+    std::cout << "o_dtype: " << o_dtype << std::endl;
 
     if(dim != -1)
     {
@@ -100,8 +138,8 @@ ConvSolution AnyForward::GetSolution(const ExecutionContext& context,
         kernel.kernel_name = "AnyForward";
 
         auto build_params = KernelBuildParameters{
-            {"INPUT_TYPE", input_dtype},
-            {"OUTPUT_TYPE", output_dtype},
+            {"INPUT_TYPE", i_dtype},
+            {"OUTPUT_TYPE", o_dtype},
         };
 
         kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
@@ -163,10 +201,9 @@ ConvSolution AnyForward::GetSolution(const ExecutionContext& context,
                 kernel.kernel_file = "MIOpenAny.cpp";
                 kernel.kernel_name = "ReduceAny";
 
-                // KernelBuildParameters build_params;
                 auto build_params = KernelBuildParameters{
-                    {"INPUT_TYPE", input_dtype},
-                    {"OUTPUT_TYPE", output_dtype},
+                    {"INPUT_TYPE", i_dtype},
+                    {"OUTPUT_TYPE", o_dtype},
                 };
 
                 kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
@@ -198,9 +235,14 @@ ConvSolution AnyForward::GetSolution(const ExecutionContext& context,
             kernel.kernel_name = "ReduceAny";
 
             // KernelBuildParameters build_params;
+            // auto build_params = KernelBuildParameters{
+            //     {"INPUT_TYPE", input_dtype},
+            //     {"OUTPUT_TYPE", output_dtype},
+            // };
+
             auto build_params = KernelBuildParameters{
-                {"INPUT_TYPE", input_dtype},
-                {"OUTPUT_TYPE", output_dtype},
+                {"INPUT_TYPE", i_dtype},
+                {"OUTPUT_TYPE", o_dtype},
             };
 
             kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
