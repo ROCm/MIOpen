@@ -59,8 +59,8 @@ void Run2dDriver(miopenDataType_t prec)
     std::vector<std::string> params;
     switch(prec)
     {
-    case miopenHalf: params = GPU_Pooling2d_FP16::GetParam(); break;
-    case miopenFloat: params = GPU_Pooling2d_FP32::GetParam(); break;
+    case miopenHalf: params = GPU_Pooling2d_CodecovTest_FP16::GetParam(); break;
+    case miopenFloat: params = GPU_Pooling2d_CodecovTest_FP32::GetParam(); break;
     case miopenBFloat16:
     case miopenInt8:
     case miopenFloat8:
@@ -73,7 +73,7 @@ void Run2dDriver(miopenDataType_t prec)
                "data type not supported by "
                "immed_conv2d_codecov test";
 
-    default: params = GPU_Pooling2d_FP32::GetParam();
+    default: params = GPU_Pooling2d_CodecovTest_FP32::GetParam();
     }
 
     for(const auto& test_value : params)

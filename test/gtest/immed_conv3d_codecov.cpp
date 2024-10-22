@@ -64,10 +64,10 @@ void Run3dDriver(miopenDataType_t prec)
     std::vector<std::string> params;
     switch(prec)
     {
-    case miopenHalf: params = GPU_ImmedConv3d_FP16::GetParam(); break;
-    case miopenBFloat16: params = GPU_ImmedConv3d_BFP16::GetParam(); break;
-    case miopenFloat: params = GPU_ImmedConv3d_FP32::GetParam(); break;
-    case miopenInt8: params = GPU_ImmedConv3d_I8::GetParam(); break;
+    case miopenHalf: params = GPU_ImmedConv3d_CodecovTest_FP16::GetParam(); break;
+    case miopenBFloat16: params = GPU_ImmedConv3d_CodecovTest_BFP16::GetParam(); break;
+    case miopenFloat: params = GPU_ImmedConv3d_CodecovTest_FP32::GetParam(); break;
+    case miopenInt8: params = GPU_ImmedConv3d_CodecovTest_I8::GetParam(); break;
     case miopenFloat8:
     case miopenBFloat8:
     case miopenInt32:
@@ -77,7 +77,7 @@ void Run3dDriver(miopenDataType_t prec)
                   "data type not supported by "
                   "immed_conv3d_codecov test";
 
-    default: params = GPU_ImmedConv3d_FP32::GetParam();
+    default: params = GPU_ImmedConv3d_CodecovTest_FP32::GetParam();
     }
 
     for(const auto& test_value : params)
