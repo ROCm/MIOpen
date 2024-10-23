@@ -293,48 +293,15 @@ template <typename XDataType,
           typename ScaleDataType,
           typename BiasDataType,
           typename MeanVarDataType>
-static int CheckCKApplicability(const miopen::batchnorm::ProblemDescription& problem)
+static bool CheckCKApplicability(const miopen::batchnorm::ProblemDescription& problem)
 {
-    const auto& args       = CKArgsBNormFwdTraining{problem};
-    const auto bn_fwd_ptrs = DeviceOpBNFwdTrainingPtrs<XDataType,
-                                                       YDataType,
-                                                       AccDataType,
-                                                       ScaleDataType,
-                                                       BiasDataType,
-                                                       MeanVarDataType>::GetInstances();
-
-    if(bn_fwd_ptrs.empty())
-        MIOPEN_THROW(miopenStatusInternalError, "BnCKFwdTraining bn_fwd_ptrs empty");
-
-    int count = 0;
-    for(const auto& it : bn_fwd_ptrs)
-    {
-        auto argument_ptr = it->MakeArgumentPointer(args.xyLengths,
-                                                    args.xyStrides,
-                                                    args.xyStrides,
-                                                    args.reduceDims,
-                                                    args.arrScaleBiasMeanVarLengths,
-                                                    args.arrScaleBiasMeanVarStrides,
-                                                    args.arrScaleBiasMeanVarStrides,
-                                                    args.arrScaleBiasMeanVarStrides,
-                                                    nullptr,
-                                                    nullptr,
-                                                    nullptr,
-                                                    0.0,
-                                                    PassThroughOp{},
-                                                    nullptr,
-                                                    nullptr,
-                                                    nullptr,
-                                                    0.0,
-                                                    nullptr,
-                                                    nullptr);
-        if(it->IsSupportedArgument(argument_ptr.get()))
-        {
-            return count;
-        }
-        count++;
-    }
-    return -1;
+    return IsCKApplicable<DeviceOpBNFwdTrainingPtrs<XDataType,
+                                                    YDataType,
+                                                    AccDataType,
+                                                    ScaleDataType,
+                                                    BiasDataType,
+                                                    MeanVarDataType>,
+                          CKArgsBNormFwdTraining>(problem);
 }
 
 #endif
@@ -382,12 +349,10 @@ bool BnCKFwdTraining::IsApplicable(
 
     switch(bn_problem.GetXDesc().GetType())
     {
-    case miopenHalf: return (CheckCKApplicability<F16, F16, F32, F16, F16, F32>(bn_problem) != -1);
-    case miopenBFloat16:
-        return (CheckCKApplicability<BF16, BF16, F32, BF16, BF16, F32>(bn_problem) != -1);
-    case miopenFloat: return (CheckCKApplicability<F32, F32, F32, F32, F32, F32>(bn_problem) != -1);
-    case miopenDouble:
-        return (CheckCKApplicability<F64, F64, F64, F64, F64, F64>(bn_problem) != -1);
+    case miopenHalf: return CheckCKApplicability<F16, F16, F32, F16, F16, F32>(bn_problem);
+    case miopenBFloat16: return CheckCKApplicability<BF16, BF16, F32, BF16, BF16, F32>(bn_problem);
+    case miopenFloat: return CheckCKApplicability<F32, F32, F32, F32, F32, F32>(bn_problem);
+    case miopenDouble: return CheckCKApplicability<F64, F64, F64, F64, F64, F64>(bn_problem);
     case miopenInt64:
     case miopenInt32:
     case miopenInt8:
