@@ -27,26 +27,22 @@
 #include <gtest/gtest.h>
 #include <miopen/env.hpp>
 #include "get_handle.hpp"
-#include "test_env.hpp"
 
 #include "pooling2d.hpp"
 
-MIOPEN_DECLARE_ENV_VAR_BOOL(CODECOV_TEST)
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLAGS_ARGS)
 
 namespace env = miopen::env;
 
 namespace pooling2d_codecov {
 
-class GPU_Pooling2d_FP32 : public testing::TestWithParam<std::vector<std::string>>
+class GPU_Pooling2d_CodecovTest_FP32 : public testing::TestWithParam<std::vector<std::string>>
 {
 };
 
-class GPU_Pooling2d_FP16 : public testing::TestWithParam<std::vector<std::string>>
+class GPU_Pooling2d_CodecovTest_FP16 : public testing::TestWithParam<std::vector<std::string>>
 {
 };
-
-static bool SkipTest(void) { return !env::enabled(CODECOV_TEST); }
 
 void GetArgs(const std::string& param, std::vector<std::string>& tokens)
 {
@@ -63,8 +59,8 @@ void Run2dDriver(miopenDataType_t prec)
     std::vector<std::string> params;
     switch(prec)
     {
-    case miopenHalf: params = GPU_Pooling2d_FP16::GetParam(); break;
-    case miopenFloat: params = GPU_Pooling2d_FP32::GetParam(); break;
+    case miopenHalf: params = GPU_Pooling2d_CodecovTest_FP16::GetParam(); break;
+    case miopenFloat: params = GPU_Pooling2d_CodecovTest_FP32::GetParam(); break;
     case miopenBFloat16:
     case miopenInt8:
     case miopenFloat8:
@@ -77,7 +73,7 @@ void Run2dDriver(miopenDataType_t prec)
                "data type not supported by "
                "immed_conv2d_codecov test";
 
-    default: params = GPU_Pooling2d_FP32::GetParam();
+    default: params = GPU_Pooling2d_CodecovTest_FP32::GetParam();
     }
 
     for(const auto& test_value : params)
@@ -115,10 +111,10 @@ std::vector<std::string> GetTestCases(const std::string& precision)
 } // namespace pooling2d_codecov
 using namespace pooling2d_codecov;
 
-TEST_P(GPU_Pooling2d_FP32, FloatTest_pooling2d_codecov)
+TEST_P(GPU_Pooling2d_CodecovTest_FP32, FloatTest_pooling2d_codecov)
 {
     const auto& handle = get_handle();
-    if(IsTestSupportedForDevice(handle) && !SkipTest() && IsTestRunWith("--float"))
+    if(IsTestSupportedForDevice(handle))
     {
         Run2dDriver(miopenFloat);
     }
@@ -128,10 +124,10 @@ TEST_P(GPU_Pooling2d_FP32, FloatTest_pooling2d_codecov)
     }
 };
 
-TEST_P(GPU_Pooling2d_FP16, HalfTest_pooling2d_codecov)
+TEST_P(GPU_Pooling2d_CodecovTest_FP16, HalfTest_pooling2d_codecov)
 {
     const auto& handle = get_handle();
-    if(IsTestSupportedForDevice(handle) && !SkipTest() && IsTestRunWith("--half"))
+    if(IsTestSupportedForDevice(handle))
     {
         Run2dDriver(miopenHalf);
     }
@@ -141,6 +137,10 @@ TEST_P(GPU_Pooling2d_FP16, HalfTest_pooling2d_codecov)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(Full, GPU_Pooling2d_FP32, testing::Values(GetTestCases("--float")));
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_Pooling2d_CodecovTest_FP32,
+                         testing::Values(GetTestCases("--float")));
 
-INSTANTIATE_TEST_SUITE_P(Full, GPU_Pooling2d_FP16, testing::Values(GetTestCases("--half")));
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_Pooling2d_CodecovTest_FP16,
+                         testing::Values(GetTestCases("--half")));

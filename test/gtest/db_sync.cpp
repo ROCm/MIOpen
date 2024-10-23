@@ -63,7 +63,6 @@
 namespace fs  = miopen::fs;
 namespace env = miopen::env;
 
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_DBSYNC)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DBSYNC_CLEAN)
 
 struct KDBKey
@@ -494,22 +493,15 @@ void SetupPaths(fs::path& fdb_file_path,
 
 TEST(CPU_DBSync_NONE, KDBTargetID)
 {
-    if(env::enabled(MIOPEN_TEST_DBSYNC))
-    {
-        fs::path fdb_file_path, pdb_file_path, kdb_file_path;
+    fs::path fdb_file_path, pdb_file_path, kdb_file_path;
 #if WORKAROUND_ISSUE_2492
-        SetEnvironmentVariable("MIOPEN_DEBUG_WORKAROUND_ISSUE_2492", "0");
+    SetEnvironmentVariable("MIOPEN_DEBUG_WORKAROUND_ISSUE_2492", "0");
 #endif
-        SetupPaths(fdb_file_path, pdb_file_path, kdb_file_path, get_handle());
-        std::ignore = fdb_file_path;
-        std::ignore = pdb_file_path;
-        EXPECT_TRUE(miopen::CheckKDBJournalMode(kdb_file_path));
-        EXPECT_FALSE(!SKIP_KDB_PDB_TESTING && miopen::CheckKDBForTargetID(kdb_file_path));
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    SetupPaths(fdb_file_path, pdb_file_path, kdb_file_path, get_handle());
+    std::ignore = fdb_file_path;
+    std::ignore = pdb_file_path;
+    EXPECT_TRUE(miopen::CheckKDBJournalMode(kdb_file_path));
+    EXPECT_FALSE(!SKIP_KDB_PDB_TESTING && miopen::CheckKDBForTargetID(kdb_file_path));
 }
 
 bool LogBuildMessage()
@@ -927,17 +919,10 @@ struct CPU_DBSync_NONE : testing::TestWithParam<std::pair<std::string, size_t>>
 
 TEST_P(CPU_DBSync_NONE, StaticFDBSync)
 {
-    if(env::enabled(MIOPEN_TEST_DBSYNC))
-    {
-        std::string arch;
-        size_t num_cu;
-        std::tie(arch, num_cu) = GetParam();
-        StaticFDBSync(arch, num_cu);
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    std::string arch;
+    size_t num_cu;
+    std::tie(arch, num_cu) = GetParam();
+    StaticFDBSync(arch, num_cu);
 }
 
 INSTANTIATE_TEST_SUITE_P(Smoke,

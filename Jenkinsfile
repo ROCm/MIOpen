@@ -976,7 +976,7 @@ pipeline {
                         buildHipClangJobAndReboot(lfs_pull: true,
                                                   setup_flags: "-DMIOPEN_TEST_DBSYNC=1",
                                                   make_targets: 'test_db_sync',
-                                                  execute_cmd: 'MIOPEN_TEST_DBSYNC=1 ./bin/test_db_sync',
+                                                  execute_cmd: './bin/test_db_sync',
                                                   needs_gpu:false,
                                                   needs_reboot:false,
                                                   build_install: "true")
@@ -995,7 +995,7 @@ pipeline {
                         buildHipClangJobAndReboot(lfs_pull: true,
                                                   setup_flags: "-DMIOPEN_TEST_DBSYNC=1",
                                                   make_targets: 'test_db_sync',
-                                                  execute_cmd: 'MIOPEN_TEST_DBSYNC=1 ./bin/test_db_sync',
+                                                  execute_cmd: './bin/test_db_sync',
                                                   needs_gpu:false,
                                                   needs_reboot:false,
                                                   build_install: "true")
@@ -1014,7 +1014,7 @@ pipeline {
                         buildHipClangJobAndReboot(lfs_pull: true,
                                                   setup_flags: "-DMIOPEN_TEST_DBSYNC=1",
                                                   make_targets: 'test_db_sync',
-                                                  execute_cmd: 'MIOPEN_TEST_DBSYNC=1 ./bin/test_db_sync',
+                                                  execute_cmd: './bin/test_db_sync',
                                                   needs_gpu:false,
                                                   needs_reboot:false,
                                                   build_install: "true")

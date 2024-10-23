@@ -26,32 +26,28 @@
 #include <gtest/gtest.h>
 #include <miopen/env.hpp>
 #include "get_handle.hpp"
-#include "test_env.hpp"
 
 #include "immed_conv3d.hpp"
 
-MIOPEN_DECLARE_ENV_VAR_BOOL(CODECOV_TEST)
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLAGS_ARGS)
 
 namespace immed_conv3d_codecov {
 
-class GPU_ImmedConv3d_FP32 : public testing::TestWithParam<std::vector<std::string>>
+class GPU_ImmedConv3d_CodecovTest_FP32 : public testing::TestWithParam<std::vector<std::string>>
 {
 };
 
-class GPU_ImmedConv3d_FP16 : public testing::TestWithParam<std::vector<std::string>>
+class GPU_ImmedConv3d_CodecovTest_FP16 : public testing::TestWithParam<std::vector<std::string>>
 {
 };
 
-class GPU_ImmedConv3d_BFP16 : public testing::TestWithParam<std::vector<std::string>>
+class GPU_ImmedConv3d_CodecovTest_BFP16 : public testing::TestWithParam<std::vector<std::string>>
 {
 };
 
-class GPU_ImmedConv3d_I8 : public testing::TestWithParam<std::vector<std::string>>
+class GPU_ImmedConv3d_CodecovTest_I8 : public testing::TestWithParam<std::vector<std::string>>
 {
 };
-
-static bool SkipTest(void) { return !env::enabled(CODECOV_TEST); }
 
 void GetArgs(const std::string& param, std::vector<std::string>& tokens)
 {
@@ -68,10 +64,10 @@ void Run3dDriver(miopenDataType_t prec)
     std::vector<std::string> params;
     switch(prec)
     {
-    case miopenHalf: params = GPU_ImmedConv3d_FP16::GetParam(); break;
-    case miopenBFloat16: params = GPU_ImmedConv3d_BFP16::GetParam(); break;
-    case miopenFloat: params = GPU_ImmedConv3d_FP32::GetParam(); break;
-    case miopenInt8: params = GPU_ImmedConv3d_I8::GetParam(); break;
+    case miopenHalf: params = GPU_ImmedConv3d_CodecovTest_FP16::GetParam(); break;
+    case miopenBFloat16: params = GPU_ImmedConv3d_CodecovTest_BFP16::GetParam(); break;
+    case miopenFloat: params = GPU_ImmedConv3d_CodecovTest_FP32::GetParam(); break;
+    case miopenInt8: params = GPU_ImmedConv3d_CodecovTest_I8::GetParam(); break;
     case miopenFloat8:
     case miopenBFloat8:
     case miopenInt32:
@@ -81,7 +77,7 @@ void Run3dDriver(miopenDataType_t prec)
                   "data type not supported by "
                   "immed_conv3d_codecov test";
 
-    default: params = GPU_ImmedConv3d_FP32::GetParam();
+    default: params = GPU_ImmedConv3d_CodecovTest_FP32::GetParam();
     }
 
     for(const auto& test_value : params)
@@ -119,10 +115,10 @@ std::vector<std::string> GetTestCases(const std::string& precision)
 } // namespace immed_conv3d_codecov
 using namespace immed_conv3d_codecov;
 
-TEST_P(GPU_ImmedConv3d_FP32, FloatTest_immed_conv3d_codecov)
+TEST_P(GPU_ImmedConv3d_CodecovTest_FP32, FloatTest_immed_conv3d_codecov)
 {
     const auto& handle = get_handle();
-    if(IsTestSupportedForDevice(handle) && !SkipTest() && IsTestRunWith("--float"))
+    if(IsTestSupportedForDevice(handle))
     {
         Run3dDriver(miopenFloat);
     }
@@ -132,10 +128,10 @@ TEST_P(GPU_ImmedConv3d_FP32, FloatTest_immed_conv3d_codecov)
     }
 };
 
-TEST_P(GPU_ImmedConv3d_FP16, HalfTest_immed_conv3d_codecov)
+TEST_P(GPU_ImmedConv3d_CodecovTest_FP16, HalfTest_immed_conv3d_codecov)
 {
     const auto& handle = get_handle();
-    if(IsTestSupportedForDevice(handle) && !SkipTest() && IsTestRunWith("--half"))
+    if(IsTestSupportedForDevice(handle))
     {
         Run3dDriver(miopenHalf);
     }
@@ -145,10 +141,10 @@ TEST_P(GPU_ImmedConv3d_FP16, HalfTest_immed_conv3d_codecov)
     }
 };
 
-TEST_P(GPU_ImmedConv3d_BFP16, BFloat16Test_immed_conv3d_codecov)
+TEST_P(GPU_ImmedConv3d_CodecovTest_BFP16, BFloat16Test_immed_conv3d_codecov)
 {
     const auto& handle = get_handle();
-    if(IsTestSupportedForDevice(handle) && !SkipTest() && IsTestRunWith("--bfloat16"))
+    if(IsTestSupportedForDevice(handle))
     {
         Run3dDriver(miopenBFloat16);
     }
@@ -158,10 +154,10 @@ TEST_P(GPU_ImmedConv3d_BFP16, BFloat16Test_immed_conv3d_codecov)
     }
 };
 
-TEST_P(GPU_ImmedConv3d_I8, Int8Test_immed_conv3d_codecov)
+TEST_P(GPU_ImmedConv3d_CodecovTest_I8, Int8Test_immed_conv3d_codecov)
 {
     const auto& handle = get_handle();
-    if(IsTestSupportedForDevice(handle) && !SkipTest() && IsTestRunWith("--int8"))
+    if(IsTestSupportedForDevice(handle))
     {
         Run3dDriver(miopenInt8);
     }
@@ -171,10 +167,18 @@ TEST_P(GPU_ImmedConv3d_I8, Int8Test_immed_conv3d_codecov)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(Full, GPU_ImmedConv3d_FP32, testing::Values(GetTestCases("--float")));
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_ImmedConv3d_CodecovTest_FP32,
+                         testing::Values(GetTestCases("--float")));
 
-INSTANTIATE_TEST_SUITE_P(Full, GPU_ImmedConv3d_FP16, testing::Values(GetTestCases("--half")));
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_ImmedConv3d_CodecovTest_FP16,
+                         testing::Values(GetTestCases("--half")));
 
-INSTANTIATE_TEST_SUITE_P(Full, GPU_ImmedConv3d_BFP16, testing::Values(GetTestCases("--bfloat16")));
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_ImmedConv3d_CodecovTest_BFP16,
+                         testing::Values(GetTestCases("--bfloat16")));
 
-INSTANTIATE_TEST_SUITE_P(Full, GPU_ImmedConv3d_I8, testing::Values(GetTestCases("--int8")));
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_ImmedConv3d_CodecovTest_I8,
+                         testing::Values(GetTestCases("--int8")));
