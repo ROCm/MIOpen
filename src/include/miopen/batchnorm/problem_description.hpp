@@ -52,7 +52,12 @@ struct ProblemDescriptionTag
 {
 };
 
-struct MIOPEN_INTERNALS_EXPORT ProblemDescription : ProblemDescriptionBase, ProblemDescriptionTag
+struct MIOPEN_INTERNALS_EXPORT ProblemDescription : ProblemDescriptionBase,
+                                                    ProblemDescriptionTag
+#if MIOPEN_ENABLE_SQLITE
+    ,
+                                                    SQLiteSerializable<ProblemDescription>
+#endif
 {
     // Forward Training
     ProblemDescription(miopenBatchNormMode_t bn_mode_,
