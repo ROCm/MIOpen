@@ -2,9 +2,10 @@
 
 MIOpen is AMD's library for high-performance machine learning primitives.
 
-You can find sources and binaries in our [GitHub repository](https://github.com/ROCm/MIOpen) and
-our documentation on
-[ROCm docs](https://rocm.docs.amd.com/projects/MIOpen/en/latest/index.html).
+You can find sources and binaries in our [GitHub repository](https://github.com/ROCm/MIOpen).
+
+> [!NOTE]
+> The published MIOpen documentation is available at [MIOpen](https://rocm.docs.amd.com/projects/MIOpen/en/latest/index.html) in an organized, easy-to-read format, with search and a table of contents. The documentation source files reside in the MIOpen/docs folder of this repository. As with all ROCm projects, the documentation is open source. For more information, see [Contribute to ROCm documentation](https://rocm.docs.amd.com/en/latest/contribute/contributing.html).
 
 MIOpen supports these programming models (backends):
 
