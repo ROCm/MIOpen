@@ -67,19 +67,7 @@ struct CKArgsBNormFwd
 {
     CKArgsBNormFwd(const miopen::batchnorm::ProblemDescription& problem)
     {
-        if(problem.IsLayoutNHWC())
-        {
-            reduceDims = {0, 1, 2};
-        }
-        else if(problem.IsLayoutNCHW())
-        {
-            reduceDims = {0, 2, 3};
-        }
-        else
-        {
-            MIOPEN_THROW(miopenStatusInternalError,
-                         "BnCKFwdInference operation does not support this data layout");
-        }
+
         std::copy(problem.GetXDesc().GetLengths().begin(),
                   problem.GetXDesc().GetLengths().end(),
                   xyLengths.begin());
@@ -89,29 +77,28 @@ struct CKArgsBNormFwd
                   xyStrides.begin());
         // prep for CK
         std::sort(xyStrides.begin(), xyStrides.end(), std::greater<>());
-        std::rotate(xyLengths.begin() + 1, xyLengths.begin() + 2, xyLengths.end());
 
-        std::copy(problem.GetBnScaleBiasMeanVarDesc().GetStrides().begin(),
-                  problem.GetBnScaleBiasMeanVarDesc().GetStrides().end(),
-                  arrScaleBiasMeanVarStrides.begin());
-
-        std::array<int, Rank> allDims;
-        std::iota(allDims.begin(), allDims.end(), 0);
-
-        // Populate invariantDims by checking for dimensions not in reduceDims
-        std::copy_if(std::begin(allDims),
-                     std::end(allDims),
-                     std::back_inserter(invariantDims),
-                     [&](int dim) {
-                         return std::none_of(
-                             reduceDims.begin(), reduceDims.end(), [&](int d) { return dim == d; });
-                     });
-
-        // Update aligned_scaleBiasMeanVarStrides with the corresponding strides from
-        // arrScaleBiasMeanVarStrides
-        for(size_t i = 0; i < invariantDims.size(); ++i)
+        if(problem.IsLayoutNHWC())
         {
-            aligned_scaleBiasMeanVarStrides[invariantDims[i]] = arrScaleBiasMeanVarStrides[i];
+            std::rotate(xyLengths.begin() + 1, xyLengths.begin() + 2, xyLengths.end());
+            reduceDims                         = {0, 1, 2};
+            aligned_scaleBiasMeanVarStrides[0] = 0;
+            aligned_scaleBiasMeanVarStrides[1] = 0;
+            aligned_scaleBiasMeanVarStrides[2] = 0;
+            aligned_scaleBiasMeanVarStrides[3] = 1;
+        }
+        else if(problem.IsLayoutNCHW())
+        {
+            reduceDims                         = {0, 2, 3};
+            aligned_scaleBiasMeanVarStrides[0] = 0;
+            aligned_scaleBiasMeanVarStrides[1] = 1;
+            aligned_scaleBiasMeanVarStrides[2] = 0;
+            aligned_scaleBiasMeanVarStrides[3] = 0;
+        }
+        else
+        {
+            MIOPEN_THROW(miopenStatusInternalError,
+                         "BnCKFwdInference operation does not support this data layout");
         }
     }
 
