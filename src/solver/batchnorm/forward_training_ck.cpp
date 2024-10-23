@@ -85,10 +85,10 @@ struct CKArgsBNormFwdTraining
 
         // prep for CK
         std::sort(xyStrides.begin(), xyStrides.end(), std::greater<>());
-        std::rotate(xyLengths.begin() + 1, xyLengths.begin() + 2, xyLengths.end());
 
         if(problem.IsLayoutNHWC())
         {
+            std::rotate(xyLengths.begin() + 1, xyLengths.begin() + 2, xyLengths.end());
             reduceDims = {0, 1, 2};
         }
         else if(problem.IsLayoutNCHW())
