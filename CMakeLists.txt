@@ -558,12 +558,10 @@ if(MIOPEN_OFFLINE_COMPILER_PATHS_V2)
     set(MIOPEN_PACKAGE_REQS "${MIOPEN_PACKAGE_REQS}, rocm-core")
 endif()
 
-if(MIOPEN_BUILD_DRIVER)
-    # PR #2785 MIOpenDriver to use rocrand to init buffers
-    find_package(rocrand REQUIRED)
-    message(STATUS "Build with rocrand ${rocrand_VERSION} ${rocrand_DIR}")
-    set(MIOPEN_PACKAGE_REQS "${MIOPEN_PACKAGE_REQS}, rocrand")
-endif()
+# Include rocrand in miopen package 
+find_package(rocrand REQUIRED)
+message(STATUS "Build with rocrand for all ${rocrand_VERSION} ${rocrand_DIR}")
+set(MIOPEN_PACKAGE_REQS "${MIOPEN_PACKAGE_REQS}, rocrand")
 
 if(MIOPEN_BACKEND STREQUAL "HIP")
     set(CPACK_DEBIAN_PACKAGE_DEPENDS "${MIOPEN_PACKAGE_REQS}")
