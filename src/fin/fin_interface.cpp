@@ -34,20 +34,16 @@ namespace miopen {
 namespace fin {
 
 // ================== Solver ==================
-Solver::Solver(const miopen::solver::SolverBase* solver_base, uint64_t solver_id) : sbase(solver_base), id(solver_id)
+Solver::Solver(const miopen::solver::SolverBase* solver_base, uint64_t solver_id)
+    : sbase(solver_base), id(solver_id)
 {
     if(sbase == nullptr)
         MIOPEN_THROW(miopenStatusInternalError);
 }
 
-Solver::Solver(const std::string& requested_name) : rname(requested_name)
-{
-}
+Solver::Solver(const std::string& requested_name) : rname(requested_name) {}
 
-bool Solver::IsValid() const
-{
-    return sbase != nullptr;
-}
+bool Solver::IsValid() const { return sbase != nullptr; }
 
 uint64_t Solver::GetId() const
 {
@@ -77,7 +73,7 @@ bool Solver::IsDynamic() const
 {
     if(sbase == nullptr)
         MIOPEN_THROW(miopenStatusNotInitialized);
-    
+
     return sbase->IsDynamic();
 }
 
@@ -87,35 +83,40 @@ bool SolverMixin<Context, Problem>::IsApplicable(const Context& ctx, const Probl
 {
     if(sbase == nullptr)
         MIOPEN_THROW(miopenStatusNotInitialized);
-    
-    return static_cast<miopen::solver::SolverInterface<Context, Problem>*>(sbase)->IsApplicable(ctx, problem);
+
+    return static_cast<miopen::solver::SolverInterface<Context, Problem>*>(sbase)->IsApplicable(
+        ctx, problem);
 }
 
 template <class Context, class Problem>
-size_t SolverMixin<Context, Problem>::GetWorkspaceSize(const Context& ctx, const Problem& problem) const
+size_t SolverMixin<Context, Problem>::GetWorkspaceSize(const Context& ctx,
+                                                       const Problem& problem) const
 {
     if(sbase == nullptr)
         MIOPEN_THROW(miopenStatusNotInitialized);
 
-    return static_cast<miopen::solver::SolverInterface<Context, Problem>*>(sbase)->GetWorkspaceSize(ctx, problem);
+    return static_cast<miopen::solver::SolverInterface<Context, Problem>*>(sbase)->GetWorkspaceSize(
+        ctx, problem);
 }
 
 template <class Context, class Problem>
-miopen::solver::ConvSolution SolverMixin<Context, Problem>::FindSolution(const Context& ctx,
-                                          const Problem& problem,
-                                          miopen::PerformanceDb& db,
-                                          const miopen::AnyInvokeParams& invoke_ctx,
-                                          const std::string& perf_cfg) const
+miopen::solver::ConvSolution
+SolverMixin<Context, Problem>::FindSolution(const Context& ctx,
+                                            const Problem& problem,
+                                            miopen::PerformanceDb& db,
+                                            const miopen::AnyInvokeParams& invoke_ctx,
+                                            const std::string& perf_cfg) const
 {
     if(sbase == nullptr)
-       MIOPEN_THROW(miopenStatusNotInitialized);
+        MIOPEN_THROW(miopenStatusNotInitialized);
 
     /// \todo
     MIOPEN_THROW(miopenStatusNotImplemented);
 }
 
 template <class Context, class Problem>
-std::vector<miopen::solver::ConvSolution> SolverMixin<Context, Problem>::GetAllSolutions(const Context& ctx, const Problem& problem) const
+std::vector<miopen::solver::ConvSolution>
+SolverMixin<Context, Problem>::GetAllSolutions(const Context& ctx, const Problem& problem) const
 {
     if(sbase == nullptr)
         MIOPEN_THROW(miopenStatusNotInitialized);
@@ -126,8 +127,8 @@ std::vector<miopen::solver::ConvSolution> SolverMixin<Context, Problem>::GetAllS
 
 template <class Context, class Problem>
 std::string SolverMixin<Context, Problem>::GetPerfCfgParams(const Context& ctx,
-                                 const Problem& problem,
-                                 const PerformanceDb& db) const
+                                                            const Problem& problem,
+                                                            const PerformanceDb& db) const
 {
     if(sbase == nullptr)
         MIOPEN_THROW(miopenStatusNotInitialized);
@@ -138,8 +139,8 @@ std::string SolverMixin<Context, Problem>::GetPerfCfgParams(const Context& ctx,
 
 template <class Context, class Problem>
 bool SolverMixin<Context, Problem>::TestPerfCfgParams(const Context& ctx,
-                           const Problem& problem,
-                           const std::string& params) const
+                                                      const Problem& problem,
+                                                      const std::string& params) const
 {
     if(sbase == nullptr)
         MIOPEN_THROW(miopenStatusNotInitialized);
@@ -149,7 +150,12 @@ bool SolverMixin<Context, Problem>::TestPerfCfgParams(const Context& ctx,
 }
 
 // ================== ConvSolver ==================
-ConvSolver::ConvSolver(const miopen::solver::SolverBase* solver_base, uint64_t solver_id, miopenConvAlgorithm_t algo_) : SolverMixin(solver_base, solver_id), algo(algo_) {}
+ConvSolver::ConvSolver(const miopen::solver::SolverBase* solver_base,
+                       uint64_t solver_id,
+                       miopenConvAlgorithm_t algo_)
+    : SolverMixin(solver_base, solver_id), algo(algo_)
+{
+}
 
 std::string ConvSolver::GetAlgo(miopen::conv::Direction dir) const
 {

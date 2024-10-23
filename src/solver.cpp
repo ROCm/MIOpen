@@ -297,8 +297,8 @@ RegisterWithSolver(IdRegistryData& registry, uint64_t value, TSolver, miopenConv
     auto solver_base = std::make_unique<TSolver>();
     if(!Register(registry, value, solver_base->SolverDbId(), algo))
         return;
-    auto& entry = registry.value_to_entry.at(value);
-    entry.solver = TSolver{};
+    auto& entry       = registry.value_to_entry.at(value);
+    entry.solver      = TSolver{};
     entry.solver_base = std::move(solver_base);
 }
 
@@ -575,12 +575,14 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
     RegisterWithSolver(
         registry, ++id, conv::ConvCkIgemmFwdV6r1DlopsNchw{}, miopenConvolutionAlgoImplicitGEMM);
 
-    RegisterWithSolver<batchnorm::BnFwdTrainingSpatialMultiple>(registry, ++id, Primitive::Batchnorm);
+    RegisterWithSolver<batchnorm::BnFwdTrainingSpatialMultiple>(
+        registry, ++id, Primitive::Batchnorm);
 
     RegisterWithSolver<batchnorm::BnFwdTrainingPerActivation>(registry, ++id, Primitive::Batchnorm);
 
     RegisterWithSolver<batchnorm::BnBwdTrainingSpatialSingle>(registry, ++id, Primitive::Batchnorm);
-    RegisterWithSolver<batchnorm::BnBwdTrainingSpatialMultiple>(registry, ++id, Primitive::Batchnorm);
+    RegisterWithSolver<batchnorm::BnBwdTrainingSpatialMultiple>(
+        registry, ++id, Primitive::Batchnorm);
     RegisterWithSolver<batchnorm::BnBwdTrainingPerActivation>(registry, ++id, Primitive::Batchnorm);
 
     RegisterWithSolver<batchnorm::BnFwdInference>(registry, ++id, Primitive::Batchnorm);

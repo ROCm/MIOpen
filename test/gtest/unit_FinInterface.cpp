@@ -47,7 +47,10 @@ struct TestParams
 struct SolverInfo
 {
     SolverInfo() = default;
-    SolverInfo(uint64_t id_, bool dynamic_, bool tunable_) : id(id_), dynamic(dynamic_), tunable(tunable_) {}
+    SolverInfo(uint64_t id_, bool dynamic_, bool tunable_)
+        : id(id_), dynamic(dynamic_), tunable(tunable_)
+    {
+    }
 
     friend std::ostream& operator<<(std::ostream& os, const SolverInfo& info)
     {
@@ -67,7 +70,10 @@ struct SolverInfo
 struct ConvSolverInfo : SolverInfo
 {
     using SolverInfo::SolverInfo;
-    ConvSolverInfo(uint64_t id_, bool dynamic_, bool tunable_, std::string algo_) : SolverInfo(id_, dynamic_, tunable_), algo(std::move(algo_)) {}
+    ConvSolverInfo(uint64_t id_, bool dynamic_, bool tunable_, std::string algo_)
+        : SolverInfo(id_, dynamic_, tunable_), algo(std::move(algo_))
+    {
+    }
 
     friend std::ostream& operator<<(std::ostream& os, const ConvSolverInfo& info)
     {
@@ -99,7 +105,7 @@ struct TestCase
     Info info;
 };
 
-using ConvTestCase = TestCase<ConvSolverInfo>;
+using ConvTestCase      = TestCase<ConvSolverInfo>;
 using BatchNormTestCase = TestCase<BatchNormSolverInfo>;
 
 const auto& GetTestParams()
@@ -300,13 +306,13 @@ class TestGetAllConvSolvers : public ::testing::TestWithParam<TestParams>
 public:
     void RunTest()
     {
-        const auto& solvers = miopen::fin::FinInterface::GetAllConvSolvers();
+        const auto& solvers      = miopen::fin::FinInterface::GetAllConvSolvers();
         const auto& solvers_info = GetConvSolversInfo();
 
         ASSERT_EQ(solvers.size(), solvers_info.size());
         for(const auto& solver : solvers)
         {
-            const auto& name = solver.GetName();
+            const auto& name        = solver.GetName();
             const auto& solver_info = solvers_info.find(name);
             if(solver_info == solvers_info.end())
             {
@@ -325,7 +331,7 @@ public:
     {
         ConvTestCase test_case;
         std::tie(std::ignore, test_case) = GetParam();
-        const auto solver = miopen::fin::FinInterface::GetConvSolver(test_case.name);
+        const auto solver                = miopen::fin::FinInterface::GetConvSolver(test_case.name);
         CheckConvSolver(solver, test_case);
     }
 };
@@ -335,13 +341,13 @@ class TestGetAllBatchNormSolvers : public ::testing::TestWithParam<TestParams>
 public:
     void RunTest()
     {
-        const auto& solvers = miopen::fin::FinInterface::GetAllBatchNormSolvers();
+        const auto& solvers      = miopen::fin::FinInterface::GetAllBatchNormSolvers();
         const auto& solvers_info = GetBatchNormSolversInfo();
 
         ASSERT_EQ(solvers.size(), solvers_info.size());
         for(const auto& solver : solvers)
         {
-            const auto& name = solver.GetName();
+            const auto& name        = solver.GetName();
             const auto& solver_info = solvers_info.find(name);
             if(solver_info == solvers_info.end())
             {
@@ -353,7 +359,8 @@ public:
     }
 };
 
-class TestGetBatchNormSolver : public ::testing::TestWithParam<std::tuple<TestParams, BatchNormTestCase>>
+class TestGetBatchNormSolver
+    : public ::testing::TestWithParam<std::tuple<TestParams, BatchNormTestCase>>
 {
 public:
     void RunTest()
@@ -367,10 +374,10 @@ public:
 
 } // namespace
 
-using CPU_FinInterfaceTestGetAllConvSolvers_NONE  = TestGetAllConvSolvers;
-using CPU_FinInterfaceTestGetConvSolver_NONE  = TestGetConvSolver;
-using CPU_FinInterfaceTestGetAllBatchNormSolvers_NONE  = TestGetAllBatchNormSolvers;
-using CPU_FinInterfaceTestGetBatchNormSolver_NONE  = TestGetBatchNormSolver;
+using CPU_FinInterfaceTestGetAllConvSolvers_NONE      = TestGetAllConvSolvers;
+using CPU_FinInterfaceTestGetConvSolver_NONE          = TestGetConvSolver;
+using CPU_FinInterfaceTestGetAllBatchNormSolvers_NONE = TestGetAllBatchNormSolvers;
+using CPU_FinInterfaceTestGetBatchNormSolver_NONE     = TestGetBatchNormSolver;
 
 TEST_P(CPU_FinInterfaceTestGetAllConvSolvers_NONE, FinInterface) { this->RunTest(); };
 TEST_P(CPU_FinInterfaceTestGetConvSolver_NONE, FinInterface) { this->RunTest(); };

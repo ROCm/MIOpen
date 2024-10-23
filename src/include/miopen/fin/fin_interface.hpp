@@ -46,7 +46,7 @@ struct ProblemDescription;
 
 namespace batchnorm {
 struct ProblemDescription;
-} // namespace conv
+} // namespace batchnorm
 
 namespace solver {
 struct SolverBase;
@@ -58,7 +58,8 @@ namespace fin {
 class Solver
 {
 public:
-    // GetId(), IsDynamic() and IsTunable() throw miopenStatusNotInitialized if the solver is not valid.
+    // GetId(), IsDynamic() and IsTunable() throw miopenStatusNotInitialized if the solver is not
+    // valid.
 
     // Returns false if the solver could not be found by its name.
     bool IsValid() const;
@@ -92,33 +93,34 @@ public:
     size_t GetWorkspaceSize(const Context& ctx, const Problem& problem) const;
 
     miopen::solver::ConvSolution FindSolution(const Context& ctx,
-                              const Problem& problem,
-                              miopen::PerformanceDb& db,
-                              const miopen::AnyInvokeParams& invoke_ctx,
-                              const std::string& perf_cfg = "") const;
+                                              const Problem& problem,
+                                              miopen::PerformanceDb& db,
+                                              const miopen::AnyInvokeParams& invoke_ctx,
+                                              const std::string& perf_cfg = "") const;
 
-    std::vector<miopen::solver::ConvSolution> GetAllSolutions(const Context& ctx, const Problem& problem) const;
+    std::vector<miopen::solver::ConvSolution> GetAllSolutions(const Context& ctx,
+                                                              const Problem& problem) const;
 
-    std::string GetPerfCfgParams(const Context& ctx,
-                                 const Problem& problem,
-                                 const PerformanceDb& db) const;
+    std::string
+    GetPerfCfgParams(const Context& ctx, const Problem& problem, const PerformanceDb& db) const;
 
-    bool TestPerfCfgParams(const Context& ctx,
-                           const Problem& problem,
-                           const std::string& params) const;
+    bool
+    TestPerfCfgParams(const Context& ctx, const Problem& problem, const std::string& params) const;
 
 protected:
     using Solver::Solver;
 };
 
 // Convolution solver
-class ConvSolver: public SolverMixin<miopen::ExecutionContext, miopen::conv::ProblemDescription>
+class ConvSolver : public SolverMixin<miopen::ExecutionContext, miopen::conv::ProblemDescription>
 {
 public:
     std::string GetAlgo(miopen::conv::Direction dir) const;
 
 protected:
-    ConvSolver(const miopen::solver::SolverBase* solver_base, uint64_t solver_id, miopenConvAlgorithm_t algo_);
+    ConvSolver(const miopen::solver::SolverBase* solver_base,
+               uint64_t solver_id,
+               miopenConvAlgorithm_t algo_);
     using SolverMixin::SolverMixin;
 
     miopenConvAlgorithm_t algo;
@@ -127,7 +129,8 @@ protected:
 };
 
 // Batch normalization solver
-class BatchNormSolver: public SolverMixin<miopen::ExecutionContext, miopen::batchnorm::ProblemDescription>
+class BatchNormSolver
+    : public SolverMixin<miopen::ExecutionContext, miopen::batchnorm::ProblemDescription>
 {
 protected:
     using SolverMixin::SolverMixin;
@@ -137,9 +140,11 @@ protected:
 class FinInterface
 {
 public:
-    // GetAll*Solvers() - returns all solvers for a particular primitive. All solvers are always valid.
+    // GetAll*Solvers() - returns all solvers for a particular primitive. All solvers are always
+    // valid.
     //
-    // Get*Solver(name) - returns single solver by its name for a particular primitive. May return a dummy if a solver with specified name does not exist.
+    // Get*Solver(name) - returns single solver by its name for a particular primitive. May return a
+    // dummy if a solver with specified name does not exist.
 
     // Convolution
     static const std::vector<ConvSolver>& GetAllConvSolvers();
@@ -163,7 +168,8 @@ private:
 //
 // 1a (Old version):
 //
-// const auto& solver_id_list = miopen::solver::GetSolversByPrimitive(miopen::solver::Primitive::Convolution);
+// const auto& solver_id_list =
+//     miopen::solver::GetSolversByPrimitive(miopen::solver::Primitive::Convolution);
 // for(const auto& id : solver_id_list)
 // {
 //     std::unordered_map<std::string, std::string> solver_info;
