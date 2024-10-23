@@ -204,6 +204,7 @@ bool PerformanceConfigBnCKFwdTraining::CheckIsSupportCKArgs(
                                                        MeanVarDataType>,
                              CKArgsBNormFwdTraining>(problem, this->kernel_id);
 }
+#endif
 
 void PerformanceConfigBnCKFwdTraining::HeuristicInit(
     const miopen::batchnorm::ProblemDescription& problem_desc)
@@ -303,8 +304,6 @@ static bool CheckCKApplicability(const miopen::batchnorm::ProblemDescription& pr
                                                     MeanVarDataType>,
                           CKArgsBNormFwdTraining>(problem);
 }
-
-#endif
 
 PerformanceConfigBnCKFwdTraining BnCKFwdTraining::GetDefaultPerformanceConfig(
     const ExecutionContext&, const miopen::batchnorm::ProblemDescription& problem_desc) const

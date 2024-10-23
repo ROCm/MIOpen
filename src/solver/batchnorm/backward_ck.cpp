@@ -210,6 +210,7 @@ bool PerformanceConfigBnCKBwdBackward::CheckIsSupportCKArgs(
                                                MeanVarDataType>,
                              CKArgsBNormBwd>(problem, this->kernel_id);
 }
+#endif
 
 void PerformanceConfigBnCKBwdBackward::HeuristicInit(
     const miopen::batchnorm::ProblemDescription& problem_desc)
@@ -311,8 +312,6 @@ static bool CheckCKApplicability(const miopen::batchnorm::ProblemDescription& pr
                                             MeanVarDataType>,
                           CKArgsBNormBwd>(problem);
 }
-
-#endif
 
 PerformanceConfigBnCKBwdBackward BnCKBwdBackward::GetDefaultPerformanceConfig(
     const ExecutionContext&, const miopen::batchnorm::ProblemDescription& problem_desc) const
