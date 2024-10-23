@@ -142,7 +142,7 @@ struct PerformanceConfigBnCKFwdInference : PerfConfigBase<PerformanceConfigBnCKF
     int index;
     std::string kernel_id;
     std::vector<std::string> valid_kernels;
-    PerformanceConfigBnCKFwdInference(int idx, std::string kernl_id)
+    MIOPEN_INTERNALS_EXPORT PerformanceConfigBnCKFwdInference(int idx, std::string kernl_id)
         : index(idx), kernel_id(kernl_id)
     {
     }
@@ -210,7 +210,7 @@ struct PerformanceConfigBnCKBwdBackward : PerfConfigBase<PerformanceConfigBnCKBw
     int index;
     std::string kernel_id;
     std::vector<std::string> valid_kernels;
-    PerformanceConfigBnCKBwdBackward(int idx, std::string kernl_id)
+    MIOPEN_INTERNALS_EXPORT PerformanceConfigBnCKBwdBackward(int idx, std::string kernl_id)
         : index(idx), kernel_id(kernl_id)
     {
     }
@@ -280,7 +280,7 @@ struct PerformanceConfigBnCKFwdTraining : PerfConfigBase<PerformanceConfigBnCKFw
     int index;
     std::string kernel_id;
     std::vector<std::string> valid_kernels;
-    PerformanceConfigBnCKFwdTraining(int idx, std::string kernl_id)
+    MIOPEN_INTERNALS_EXPORT PerformanceConfigBnCKFwdTraining(int idx, std::string kernl_id)
         : index(idx), kernel_id(kernl_id)
     {
     }
