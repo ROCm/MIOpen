@@ -120,6 +120,7 @@ set( MIOpen_Source
     env.cpp
     execution_context.cpp
     expanduser.cpp
+    fin/fin_interface.cpp
     find_controls.cpp
     find_db.cpp
     fused_api.cpp
