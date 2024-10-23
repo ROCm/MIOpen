@@ -86,10 +86,10 @@ struct CKArgsBNormBwd
 
         // prep for CK
         std::sort(in_strides.begin(), in_strides.end(), std::greater<>());
-        std::rotate(lens.begin() + 1, lens.begin() + 2, lens.end());
 
         if(problem.IsLayoutNHWC())
         {
+            std::rotate(lens.begin() + 1, lens.begin() + 2, lens.end());
             reduceDims = {0, 1, 2};
         }
         else if(problem.IsLayoutNCHW())
