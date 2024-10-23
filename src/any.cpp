@@ -39,12 +39,13 @@
 
 namespace miopen {
 
-std::size_t GetAnyWorkspaceSize(Handle& handle,
-                                const TensorDescriptor& inputDesc,
-                                const TensorDescriptor& outputDesc,
-                                int32_t dim,
-                                bool keepdim)
+std::size_t GetAnyForwardWorkspaceSize(Handle& handle,
+                                       const TensorDescriptor& inputDesc,
+                                       const TensorDescriptor& outputDesc,
+                                       int32_t dim,
+                                       bool keepdim)
 {
+    // NOTE: If dim != -1 (i.e. dim != None), then no additional temporary workspace is needed
     if(dim != -1)
     {
         return 0;
@@ -53,7 +54,6 @@ std::size_t GetAnyWorkspaceSize(Handle& handle,
     auto ctx           = ExecutionContext{&handle};
     const auto problem = any::ProblemDescription{inputDesc, outputDesc, dim, keepdim};
 
-    // NOTE(anhduong): Check later: algorithm name is kernel function's name or solver's name?
     const auto algo    = AlgorithmName("AnyForward");
     const auto solvers = solver::SolverContainer<solver::any::AnyForward>{};
 

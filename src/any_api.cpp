@@ -34,59 +34,67 @@
 // #include "miopen/common.hpp"
 // #include "miopen/miopen.h"
 
-// static void
-// LogCmdAny(const miopenTensorDescriptor_t inputDesc, const int32_t dim, const bool keepdim)
-// {
-//     if(miopen::IsLoggingCmd())
-//     {
-//         std::stringstream ss;
-//         auto dtype = miopen::deref(inputDesc).GetType();
-//         if(dtype == miopenHalf)
-//         {
-//             ss << "anyfp16";
-//         }
-//         else if(dtype == miopenFloat)
-//         {
-//             ss << "anyfp32";
-//         }
-//         else if(dtype == miopenBFloat16)
-//         {
-//             ss << "anybfp16";
-//         }
-//         else if(dtype == miopenDouble)
-//         {
-//             ss << "anyfp64";
-//         }
-
-//         // int32_t size = {0};
-
-//         // miopenGetTensorDescriptorSize(inputDesc, &size);
-//         // ss << "-n " << miopen::deref(inputDesc).GetLengths()[0] << " -c " << size;
-
-//         ss << " -dim " << dim;
-//         ss << " -keepdim " << keepdim;
-
-//         MIOPEN_LOG_DRIVER_CMD(ss.sinputtr());
-//     }
-// }
-
-extern "C" miopenStatus_t miopenGetAnyWorkspaceSize(miopenHandle_t handle,
-                                                    const miopenTensorDescriptor_t inputDesc,
-                                                    int32_t dim,
-                                                    bool keepdim,
-                                                    const miopenTensorDescriptor_t outputDesc,
-                                                    size_t* sizeInBytes)
+static void
+LogCmdAny(const miopenTensorDescriptor_t inputDesc, const int32_t dim, const bool keepdim)
 {
+    if(miopen::IsLoggingCmd())
+    {
+        std::stringstream ss;
+        auto dtype = miopen::deref(inputDesc).GetType();
+
+        // TODO: Rearange in a logic way if needed
+        if(dtype == miopenInt8)
+        {
+            ss << "anyint8";
+        }
+        else if(dtype == miopenHalf)
+        {
+            ss << "anyfp16";
+        }
+        else if(dtype == miopenFloat)
+        {
+            ss << "anyfp32";
+        }
+        else if(dtype == miopenBFloat16)
+        {
+            ss << "anybfp16";
+        }
+        else if(dtype == miopenDouble)
+        {
+            ss << "anyfp64";
+        }
+
+        // int32_t size = {0};
+
+        // miopenGetTensorDescriptorSize(inputDesc, &size);
+        // ss << "-n " << miopen::deref(inputDesc).GetLengths()[0] << " -c " << size;
+
+        ss << " -dim " << dim;
+        ss << " -keepdim " << keepdim;
+
+        MIOPEN_LOG_DRIVER_CMD(ss.str());
+    }
+}
+
+extern "C" miopenStatus_t
+miopenGetAnyForwardWorkspaceSize(miopenHandle_t handle,
+                                 const miopenTensorDescriptor_t inputDesc,
+                                 const int32_t dim,
+                                 const bool keepdim,
+                                 const miopenTensorDescriptor_t outputDesc,
+                                 size_t* sizeInBytes)
+{
+    // MIOPEN_LOG_FUNCTION(handle, inputDesc, dim, keepdim, outputDesc, sizeInBytes);
     MIOPEN_LOG_FUNCTION(handle, inputDesc, dim, keepdim, outputDesc, sizeInBytes);
 
     return miopen::try_([&] {
-        miopen::deref(sizeInBytes) = miopen::GetAnyWorkspaceSize(miopen::deref(handle),
-                                                                 miopen::deref(inputDesc),
-                                                                 miopen::deref(outputDesc),
-                                                                 dim,
-                                                                 keepdim);
+        miopen::deref(sizeInBytes) = miopen::GetAnyForwardWorkspaceSize(miopen::deref(handle),
+                                                                        miopen::deref(inputDesc),
+                                                                        miopen::deref(outputDesc),
+                                                                        dim,
+                                                                        keepdim);
     });
-}
+};
 
 extern "C" miopenStatus_t miopenAnyForward(miopenHandle_t handle,
                                            void* workspace,
@@ -98,19 +106,17 @@ extern "C" miopenStatus_t miopenAnyForward(miopenHandle_t handle,
                                            const miopenTensorDescriptor_t outputDesc,
                                            void* output)
 {
-    // MIOPEN_LOG_FUNCTION(handle,
-    //                     workspace,
-    //                     workspaceSizeInBytes,
-    //                     inputDesc,
-    //                     input,
-    //                     dim,
-    //                     keepdim,
-    //                     outputDesc,
-    //                     output);
+    MIOPEN_LOG_FUNCTION(handle,
+                        workspace,
+                        workspaceSizeInBytes,
+                        inputDesc,
+                        input,
+                        dim,
+                        keepdim,
+                        outputDesc,
+                        output);
 
-    // LogCmdAny(inputDesc, dim, keepdim);
-
-    // return miopenStatusSuccess;
+    LogCmdAny(inputDesc, dim, keepdim);
 
     return miopen::try_([&] {
         miopen::AnyForward(miopen::deref(handle),

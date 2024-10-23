@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,27 +23,27 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-
 #include <cstddef>
 #include <cstdint>
+
+#include <vector>
+
 #include <miopen/any.hpp>
 #include <miopen/any/solvers.hpp>
 #include <miopen/any/invoke_params.hpp>
 #include "miopen/any/problem_description.hpp"
+
+#include "miopen/miopen.h"
+#include <miopen/datatype.hpp>
+#include <miopen/kernel_build_params.hpp>
+#include <miopen/kernel_info.hpp>
+#include <miopen/mlo_internal.hpp>
+#include <miopen/target_properties.hpp>
 #include "miopen/buffer_info.hpp"
 #include "miopen/errors.hpp"
 #include "miopen/execution_context.hpp"
 #include "miopen/invoke_params.hpp"
-#include "miopen/kernel_info.hpp"
-#include "miopen/miopen.h"
-#include "miopen/mlo_internal.hpp"
-#include "miopen/prelu/utils.hpp"
 #include "miopen/tensor_view_utils.hpp"
-#include <miopen/datatype.hpp>
-#include <miopen/kernel_build_params.hpp>
-// #include <miopen/any/utils.hpp>
-#include <miopen/target_properties.hpp>
-#include <vector>
 
 #define LOCAL_SIZE 256
 
@@ -51,15 +51,31 @@ namespace miopen {
 
 namespace solver {
 
+namespace any {
+
 constexpr uint64_t DivCeil(uint64_t numer, uint64_t denom) { return (numer + denom - 1) / denom; }
 
-namespace any {
+MultiBufferWorkspaceTraits GetMultiBufferWorkspaceTraits(const TensorDescriptor& inputDesc)
+{
+    auto input_numel = inputDesc.GetElementSize();
+    auto size        = ((input_numel + LOCAL_SIZE - 1) / LOCAL_SIZE);
+
+    auto dtype = inputDesc.GetType();
+    size *= get_data_size(dtype);
+    size_t data_size      = get_data_size(dtype);
+    size_t workspace_size = AlignUp(size, LOCAL_SIZE) / LOCAL_SIZE;
+    size_t ws_scratch_mem = 2 * workspace_size * data_size;
+    size_t ws_local_mem   = LOCAL_SIZE * data_size;
+
+    return MultiBufferWorkspaceTraits{ws_scratch_mem, ws_local_mem};
+}
 
 bool AnyForward::IsApplicable(const ExecutionContext& context,
                               const miopen::any::ProblemDescription& problem) const
 {
-    // NOTE(anhduong): What to do if I've already check condition in problem_description.hpp?
-    // if(!problem.IsRightLength() || !problem.IsAllPacked())
+    // std::ignore = context;
+
+    // if(!problem.IsAllPacked())
     // {
     //     return false;
     // }
@@ -71,17 +87,12 @@ ConvSolution AnyForward::GetSolution(const ExecutionContext& context,
                                      const miopen::any::ProblemDescription& problem) const
 {
     // NOTE(anhduong): What's this for?
-    std::ignore = context;
+    // std::ignore = context;
 
     auto result = ConvSolution{miopenStatusSuccess};
 
     auto input_dtype  = miopen::GetDataType(problem.GetInputDesc().GetType());
     auto output_dtype = miopen::GetDataType(problem.GetOutputDesc().GetType());
-
-    // std::cout << std::endl << std::endl;
-    // std::cout << "input_dtype: " << input_dtype << std::endl;
-    // std::cout << "output_dtype: " << output_dtype << std::endl;
-    // std::cout << std::endl << std::endl;
 
     auto input_dims  = problem.GetInputDesc().GetLengths();
     auto output_dims = problem.GetOutputDesc().GetLengths();
@@ -94,35 +105,14 @@ ConvSolution AnyForward::GetSolution(const ExecutionContext& context,
     std::string i_dtype = input_dtype;
     std::string o_dtype = output_dtype;
 
-    if(input_dtype == "bool" || input_dtype == "uint8_t")
-    {
-        i_dtype = "byte";
-    }
-    else if(input_dtype == "int8_t")
+    if(input_dtype == "int8_t")
     {
         i_dtype = "char";
-        std::cout << "Hit here!!!";
     }
     else if(input_dtype == "bfloat16")
     {
         i_dtype = "ushort";
     }
-
-    if(output_dtype == "bool" || output_dtype == "uint8_t")
-    {
-        o_dtype = "byte";
-    }
-    else if(output_dtype == "int8_t")
-    {
-        o_dtype = "char";
-    }
-    else if(output_dtype == "bfloat16")
-    {
-        o_dtype = "ushort";
-    }
-
-    std::cout << "i_dtype: " << i_dtype << std::endl;
-    std::cout << "o_dtype: " << o_dtype << std::endl;
 
     if(dim != -1)
     {
@@ -137,9 +127,10 @@ ConvSolution AnyForward::GetSolution(const ExecutionContext& context,
         kernel.kernel_file = "MIOpenAny.cpp";
         kernel.kernel_name = "AnyForward";
 
+        // MIOpen doesn't support for bool so I have to use char instead
         auto build_params = KernelBuildParameters{
             {"INPUT_TYPE", i_dtype},
-            {"OUTPUT_TYPE", o_dtype},
+            {"OUTPUT_TYPE", "char"},
         };
 
         kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
@@ -203,7 +194,7 @@ ConvSolution AnyForward::GetSolution(const ExecutionContext& context,
 
                 auto build_params = KernelBuildParameters{
                     {"INPUT_TYPE", i_dtype},
-                    {"OUTPUT_TYPE", o_dtype},
+                    {"OUTPUT_TYPE", "char"},
                 };
 
                 kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
@@ -234,15 +225,9 @@ ConvSolution AnyForward::GetSolution(const ExecutionContext& context,
             kernel.kernel_file = "MIOpenAny.cpp";
             kernel.kernel_name = "ReduceAny";
 
-            // KernelBuildParameters build_params;
-            // auto build_params = KernelBuildParameters{
-            //     {"INPUT_TYPE", input_dtype},
-            //     {"OUTPUT_TYPE", output_dtype},
-            // };
-
             auto build_params = KernelBuildParameters{
                 {"INPUT_TYPE", i_dtype},
-                {"OUTPUT_TYPE", o_dtype},
+                {"OUTPUT_TYPE", "char"},
             };
 
             kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
@@ -257,74 +242,90 @@ ConvSolution AnyForward::GetSolution(const ExecutionContext& context,
 
             result.construction_params.push_back(kernel);
         }
-    }
-    // End building result.construction_params
+        // End building result.construction_params
 
-    // Start building result.invoker_factory
-    result.invoker_factory = [input_numel](const std::vector<Kernel>& kernels) {
-        return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
-            // decltype(auto) kernel = handle_.Run(kernels.front());
-            decltype(auto) params = raw_params.CastTo<miopen::any::InvokeParams>();
-
-            /* Any Reduction */
-            // auto size = deref?
-            auto size      = deref(params.inputDesc).GetElementSize();
-            auto data_size = get_data_size(miopenFloat);
-            auto wt        = MultiBufferWorkspaceTraits{size * data_size,
-                                                 (size + LOCAL_SIZE - 1) / LOCAL_SIZE * data_size};
-            // auto reduce_in = params.workspace;
-            // auto reduce_out =
-            //     static_cast<Data_t>(static_cast<std::byte*>(params.workspace) + wt.GetOffset(1));
-
-            auto reduce_in = params.input;
-            auto reduce_out =
-                static_cast<Data_t>(static_cast<std::byte*>(params.workspace) + wt.GetOffset(0));
-
-            auto input_tv = get_inner_expanded_tv<5>(deref(params.inputDesc));
-            // auto output_tv = get_inner_expanded_tv<5>(deref(params.outputDesc));
-
-            tensor_view_t<5> output_tv;
-            for(int i = 0; i < 5; i++)
-            {
-                output_tv.size[i]   = 1;
-                output_tv.stride[i] = 1;
-            }
-            // output_tv.off
-
-            auto N = input_numel;
-
-            // int kernelCnt = 0;
-            // for(int i = 0; i < kernelCnt; i++) {
-
-            // }
-            int kernelCnt = 0;
-            for(kernelCnt; kernelCnt < kernels.size(); ++kernelCnt)
-            {
-                decltype(auto) kernel = handle_.Run(kernels[kernelCnt]);
-                kernel(reduce_in,
-                       reduce_out, // scratch_mem
-                       //    params.workspace,
-                       N,
-                       //    K,
-                       //    st,
-                       //    dim,
-                       input_tv,
-                       output_tv);
-                // kernel()
-
-                reduce_in = reduce_out;
-                output_tv = input_tv;
-            }
-
-            /* Last Reduction */
-            {
-                output_tv             = get_inner_expanded_tv<5>(deref(params.outputDesc));
-                decltype(auto) kernel = handle_.Run(kernels[kernelCnt]);
-                kernel(reduce_out, params.output, N, input_tv, output_tv);
-            }
+        auto getBuffPart = [ws = GetMultiBufferWorkspaceTraits(problem.GetInputDesc())](
+                               void* buffer, size_t part_idx) {
+            return static_cast<void*>(static_cast<std::byte*>(buffer) + ws.GetOffset(part_idx));
         };
-    };
-    // End building result.invoker_factory
+
+        // Start building result.invoker_factory
+        result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
+            return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
+                // decltype(auto) kernel = handle_.Run(kernels.front());
+                decltype(auto) params = raw_params.CastTo<miopen::any::InvokeParams>();
+
+                /* Any Reduction */
+                auto size      = deref(params.inputDesc).GetElementSize();
+                auto data_size = get_data_size(miopenFloat);
+                // auto wt        = MultiBufferWorkspaceTraits{
+                //     size * data_size, (size + LOCAL_SIZE - 1) / LOCAL_SIZE * data_size};
+                // auto reduce_in = params.workspace;
+                // auto reduce_out =
+                //     static_cast<Data_t>(static_cast<std::byte*>(params.workspace) +
+                //     wt.GetOffset(1));
+
+                // auto wt =
+                // auto getBuffPart = [ws = GetMultiBufferWorkspaceTraits(problem.GetInputDesc())](
+                //                        void* buffer, size_t part_idx) {
+                //     return static_cast<void*>(static_cast<std::byte*>(buffer) +
+                //                               ws.GetOffset(part_idx));
+                // };
+
+                auto scratch_mem = getBuffPart(params.GetWorkspace(), 0);
+                auto local_mem   = getBuffPart(params.GetWorkspace(), 1);
+
+                auto reduce_in = params.input;
+                // auto reduce_out = static_cast<Data_t>(static_cast<std::byte*>(params.workspace) +
+                //                                       wt.GetOffset(0));
+
+                auto input_tv = get_inner_expanded_tv<5>(deref(params.inputDesc));
+                // auto output_tv = get_inner_expanded_tv<5>(deref(params.outputDesc));
+
+                tensor_view_t<5> output_tv;
+                for(int i = 0; i < 5; i++)
+                {
+                    output_tv.size[i]   = 1;
+                    output_tv.stride[i] = 1;
+                }
+                // output_tv.off
+
+                auto N = input_numel;
+
+                // int kernelCnt = 0;
+                // for(int i = 0; i < kernelCnt; i++) {
+
+                // }
+                int kernelCnt = 0;
+                for(kernelCnt; kernelCnt < kernels.size() - 1; ++kernelCnt)
+                {
+                    decltype(auto) kernel = handle_.Run(kernels[kernelCnt]);
+                    kernel(reduce_in,
+                           scratch_mem, // scratch_mem
+                           local_mem,
+                           //    params.workspace,
+                           N,
+                           //    K,
+                           //    st,
+                           //    dim,
+                           input_tv,
+                           output_tv);
+                    // kernel()
+
+                    reduce_in = scratch_mem;
+                    output_tv = input_tv;
+                }
+
+                /* Last Reduction */
+                {
+                    output_tv             = get_inner_expanded_tv<5>(deref(params.outputDesc));
+                    decltype(auto) kernel = handle_.Run(kernels[kernelCnt]);
+                    kernel(scratch_mem, params.output, local_mem, N, input_tv, output_tv);
+                }
+            };
+        };
+        // End building result.invoker_factory
+    }
 
     return result;
 }
@@ -337,15 +338,23 @@ std::size_t AnyForward::GetWorkspaceSize(const ExecutionContext& /*context*/,
         return 0;
     }
 
-    auto N    = problem.GetInputDesc().GetElementSize();
-    auto size = ((N + LOCAL_SIZE - 1) / LOCAL_SIZE);
+    return GetMultiBufferWorkspaceTraits(problem.GetInputDesc()).GetSize();
 
-    auto dtype = problem.GetInputDesc().GetType();
-    size *= get_data_size(dtype);
-    auto data_size = get_data_size(dtype);
-    return MultiBufferWorkspaceTraits{size * data_size,
-                                      (size + LOCAL_SIZE - 1) / LOCAL_SIZE * data_size}
-        .GetSize();
+    // auto input_numel = problem.GetInputDesc().GetElementSize();
+    // auto size        = ((input_numel + LOCAL_SIZE - 1) / LOCAL_SIZE);
+
+    // auto dtype = problem.GetInputDesc().GetType();
+    // size *= get_data_size(dtype);
+    // size_t data_size      = get_data_size(dtype);
+    // size_t workspace_size = AlignUp(size, LOCAL_SIZE) / LOCAL_SIZE;
+    // size_t ws_scratch_mem = 2 * workspace_size * data_size;
+    // size_t ws_local_mem = LOCAL_SIZE * data_size;
+
+    // // Input and output memories are swapped in each iteration,
+    // // require 2 * workspace_size. Read AnyReduce implementation for more
+    // // information.
+    // // return 2 * workspace_size * data_size;
+    // return MultiBufferWorkspaceTraits
 }
 
 } // namespace any

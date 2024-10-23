@@ -7752,12 +7752,13 @@ MIOPEN_EXPORT miopenStatus_t miopenPReLUBackward(miopenHandle_t handle,
  * @return                         miopenStatus_t
  */
 
-MIOPEN_EXPORT miopenStatus_t miopenGetAnyWorkspaceSize(miopenHandle_t handle,
-                                                       const miopenTensorDescriptor_t inputDesc,
-                                                       int32_t dim,
-                                                       bool keepdim,
-                                                       const miopenTensorDescriptor_t outputDesc,
-                                                       size_t* sizeInBytes);
+MIOPEN_EXPORT miopenStatus_t
+miopenGetAnyForwardWorkspaceSize(miopenHandle_t handle,
+                                 const miopenTensorDescriptor_t inputDesc,
+                                 const int32_t dim,
+                                 const bool keepdim,
+                                 const miopenTensorDescriptor_t outputDesc,
+                                 size_t* sizeInBytes);
 
 /** @brief Execute an any forward layer
  *

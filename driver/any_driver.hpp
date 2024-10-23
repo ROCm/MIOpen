@@ -54,8 +54,7 @@ int32_t mloAnyForwardRunHost(miopenTensorDescriptor_t inputDesc,
                              miopenTensorDescriptor_t outputDesc,
                              const Tgpu* input,
                              Tcheck* outputHost,
-                             int32_t dim
-)
+                             int32_t dim)
 {
     auto input_dims  = miopen::deref(inputDesc).GetLengths();
     auto output_dims = miopen::deref(outputDesc).GetLengths();
@@ -233,13 +232,17 @@ int AnyDriver<Tgpu, Tref>::GetandSetData()
 template <typename Tgpu, typename Tref>
 int AnyDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 {
+    // std::cout << "data_type: " << data_type << std::endl;
     // uint32_t ctx = 0;
 
     // size_t in_sz = GetTensorSpace(inputTensor);
     size_t in_sz  = GetTensorSize(inputDesc);
     size_t out_sz = GetTensorSize(outputDesc);
 
-    miopenGetAnyWorkspaceSize(GetHandle(), inputDesc, dim, keepdim, outputDesc, &ws_sizeInBytes);
+    std::cout << "in_sz: " << in_sz << std::endl;
+
+    miopenGetAnyForwardWorkspaceSize(
+        GetHandle(), inputDesc, dim, keepdim, outputDesc, &ws_sizeInBytes);
 
     if(ws_sizeInBytes == static_cast<size_t>(-1))
         return miopenStatusAllocFailed;
@@ -263,14 +266,40 @@ int AnyDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
     for(int i = 0; i < in_sz; i++)
     {
-        in[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(0), static_cast<Tgpu>(1));
+        in[i] = prng::gen_A_to_B<Tgpu>(std::numeric_limits<Tgpu>::min(),
+                                       std::numeric_limits<Tgpu>::max());
     }
+    in[in_sz - 1] = 0;
+
+    // const bool sign = (prng::gen_0_to_B(1.0) > 0.5) ? true : false;
+    // if(sign)
+    // {
+    //     for(int i = 0; i < in_sz; i++)
+    //     {
+    //         in[i] = prng::gen_A_to_B<Tgpu>(std::numeric_limits<Tgpu>::min(),
+    //                                        std::numeric_limits<Tgpu>::max());
+    //     }
+    //     in[in_sz - 1] = 0;
+    // }
+    // else
+    // {
+    //     // Set all values to 0
+    //     std::fill(in.begin(), in.end(), static_cast<Tgpu>(0));
+    // }
 
     if(in_dev->ToGPU(GetStream(), in.data()) != 0)
         std::cerr << "Error copying (in) to GPU, size: " << in_dev->GetSize() << std::endl;
 
     if(out_dev->ToGPU(GetStream(), out.data()) != 0)
         std::cerr << "Error copying (out) to GPU, size: " << out_dev->GetSize() << std::endl;
+
+    // print input
+    std::cout << "input: ";
+    for(auto i : in)
+    {
+        std::cout << signed(i) << " ";
+    }
+    std::cout << std::endl;
 
     return miopenStatusSuccess;
 }
@@ -325,8 +354,7 @@ int AnyDriver<Tgpu, Tref>::RunForwardGPU()
 template <typename Tgpu, typename Tref>
 int AnyDriver<Tgpu, Tref>::RunForwardCPU()
 {
-    mloAnyForwardRunHost<Tgpu, Tref>(
-        inputDesc, outputDesc, in.data(), outhost.data(), dim);
+    mloAnyForwardRunHost<Tgpu, Tref>(inputDesc, outputDesc, in.data(), outhost.data(), dim);
 
     return miopenStatusSuccess;
 }
@@ -337,6 +365,22 @@ int AnyDriver<Tgpu, Tref>::VerifyForward()
     RunForwardCPU();
     auto error = miopen::rms_range(outhost, out);
 
+    // std::cout << "outhost" <<
+    // print host and outhost
+    std::cout << "outhost: ";
+    for(auto oh : outhost)
+    {
+        std::cout << signed(oh) << " ";
+    }
+
+    std::cout << std::endl;
+    std::cout << "out: ";
+    for(auto o : out)
+    {
+        std::cout << signed(o) << " ";
+    }
+
+    std::cout << std::endl;
     if(!std::isfinite(error) || error != 0)
     {
         std::cout << "Forward Any FAILED: " << error << std::endl;

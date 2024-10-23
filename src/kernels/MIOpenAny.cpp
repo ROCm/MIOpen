@@ -93,28 +93,46 @@ extern "C" __global__ void ReduceAny(const INPUT_TYPE* __restrict__ input,
                                      tensor_view_t<5> input_tv,
                                      tensor_view_t<5> output_tv)
 {
+    // printf("Kernel function\n");
     uint64_t gid = blockIdx.x * blockDim.x + threadIdx.x;
     uint64_t lid = threadIdx.x;
+
+    auto idx = input_tv.get_tensor_view_idx({gid});
+    // printf("idx: %d\n", idx);
+    // printf
+    // printf("N: %d, gid: %d, idx: %d\n", N, gid, idx);
+
+    // printf("Hit here 0");
+
+    // printf("test: %d\n", local_mem[0]);
 
     local_mem[lid] = (gid < N) ? input[input_tv.get_tensor_view_idx({gid})] : 0;
 
     __syncthreads();
-
-    // if(gid >= N)
-    //     return;
 
     for(size_t i = blockDim.x / 2; i > 0; i >>= 1)
     {
         if(lid < i)
         {
             local_mem[lid] = local_mem[lid] || local_mem[lid + i];
+            // printf("Hit here 2");
         }
         __syncthreads();
     }
 
+    // printf("lid: %d\n", lid);
+
     if(lid == 0)
     {
+        printf("Notice");
         output[output_tv.get_tensor_view_idx({blockIdx.x})] = local_mem[0];
+        // printf("Hit here 3");
+        printf("gid: %d, idx: %d, blockIdx.x: %d, output: %d",
+               gid,
+               idx,
+               blockIdx.x,
+               output[output_tv.get_tensor_view_idx({blockIdx.x})]);
+        // printf("output: %d\n", output[output_tv.get_tensor_view_idx({blockIdx.x})]);
     }
 
     // size_t input_idx = input_tv.get_tensor_view_idx({gid});

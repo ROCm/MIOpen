@@ -55,6 +55,11 @@ struct ProblemDescription : ProblemDescriptionBase
         {
             MIOPEN_THROW(miopenStatusBadParm, "Any: The input and output dim size don't match.");
         }
+
+        // if(!IsAllPacked())
+        // {
+        //     MIOPEN_THROW(miopenStatusBadParm, "Any: The input or output tensor is not packed.");
+        // }
     }
 
     const TensorDescriptor& GetInputDesc() const { return inputDesc; }
@@ -119,7 +124,7 @@ struct ProblemDescription : ProblemDescriptionBase
 
     bool IsAllPacked() const
     {
-        if(!inputDesc.IsPacked() || !outputDesc.IsPacked())
+        if(!(inputDesc.IsPacked() && outputDesc.IsPacked()))
         {
             return false;
         }

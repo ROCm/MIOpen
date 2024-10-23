@@ -23,7 +23,6 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-
 #pragma once
 
 // #include "miopen/execution_context.hpp"

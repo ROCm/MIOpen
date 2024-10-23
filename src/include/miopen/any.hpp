@@ -33,11 +33,11 @@ namespace miopen {
 struct Handle;
 struct TensorDescriptor;
 
-MIOPEN_INTERNALS_EXPORT std::size_t GetAnyWorkspaceSize(Handle& handle,
-                           const TensorDescriptor& inputDesc,
-                           const TensorDescriptor& outputDesc,
-                           int32_t dim,
-                           bool keepdim);
+MIOPEN_INTERNALS_EXPORT std::size_t GetAnyForwardWorkspaceSize(Handle& handle,
+                                                               const TensorDescriptor& inputDesc,
+                                                               const TensorDescriptor& outputDesc,
+                                                               int32_t dim,
+                                                               bool keepdim);
 
 MIOPEN_INTERNALS_EXPORT miopenStatus_t AnyForward(Handle& handle,
                                                   Data_t workspace,
