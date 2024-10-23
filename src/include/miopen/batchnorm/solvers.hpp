@@ -128,6 +128,7 @@ struct BnFwdInference final : BatchnormSolver
 
     bool IsApplicable(const ExecutionContext& context,
                       const miopen::batchnorm::ProblemDescription& problem) const override;
+    bool IsDynamic() const override { return true; }
     ConvSolution GetSolution(const ExecutionContext& context,
                              const miopen::batchnorm::ProblemDescription& problem) const override;
 };
@@ -138,6 +139,7 @@ struct BnCKFwdInference final : BatchnormSolver
 
     bool IsApplicable(const ExecutionContext& context,
                       const miopen::batchnorm::ProblemDescription& problem) const override;
+    bool IsDynamic() const override { return true; }
     ConvSolution GetSolution(const ExecutionContext& context,
                              const miopen::batchnorm::ProblemDescription& problem) const override;
 };
@@ -148,6 +150,7 @@ struct BnCKBwdBackward final : BatchnormSolver
 
     bool IsApplicable(const ExecutionContext& context,
                       const miopen::batchnorm::ProblemDescription& problem) const override;
+    bool IsDynamic() const override { return true; }
     ConvSolution GetSolution(const ExecutionContext& context,
                              const miopen::batchnorm::ProblemDescription& problem) const override;
 };
@@ -158,6 +161,7 @@ struct BnCKFwdTraining final : BatchnormSolver
 
     bool IsApplicable(const ExecutionContext& context,
                       const miopen::batchnorm::ProblemDescription& problem) const override;
+    bool IsDynamic() const override { return true; }
     ConvSolution GetSolution(const ExecutionContext& context,
                              const miopen::batchnorm::ProblemDescription& problem) const override;
 };
