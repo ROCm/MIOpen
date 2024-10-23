@@ -82,17 +82,21 @@ void cpu_unfold_fwd_4d(tensor<T> input_tensor,
         if(n >= N)
             return;
 
-        int64_t lh = l / LW, lw = l % LW;                       // sliding window position
-        int64_t ph = p / kernel_size_w, pw = p % kernel_size_w; // position inside kernel
-        int64_t h = lh * stride_h - padding_h + ph * dilation_h;
-        int64_t w = lw * stride_w - padding_w + pw * dilation_w;
+        uint64_t lh = l / LW, lw = l % LW;                       // sliding window position
+        uint64_t ph = p / kernel_size_w, pw = p % kernel_size_w; // position inside kernel
 
         T x = static_cast<T>(0.0f);
-        if(0 <= h && h < H && 0 <= w && w < W)
+        if(lh * stride_h >= padding_h + ph * dilation_h &&
+           lw * stride_w >= padding_w + pw * dilation_w)
         {
-            long input_idx = input_tv.stride[3] * w + input_tv.stride[2] * h +
-                             input_tv.stride[1] * c + input_tv.stride[0] * n;
-            x = input[input_idx];
+            uint64_t h = lh * stride_h - padding_h + ph * dilation_h;
+            uint64_t w = lw * stride_w - padding_w + pw * dilation_w;
+            if(h < H && w < W)
+            {
+                long input_idx = input_tv.stride[3] * w + input_tv.stride[2] * h +
+                                 input_tv.stride[1] * c + input_tv.stride[0] * n;
+                x = input[input_idx];
+            }
         }
 
         long output_idx =
@@ -161,17 +165,21 @@ void cpu_unfold_bwd_4d(tensor<T>& ref_dinput_tensor,
         {
             for(uint64_t pw = 0; pw < kernel_size_w; ++pw)
             {
-                int64_t lhsh = h - ph * dilation_h + padding_h;
-                int64_t lwsw = w - pw * dilation_w + padding_w;
+                if(h < ph * dilation_h + padding_h)
+                    continue;
+                if(w < pw * dilation_w + padding_w)
+                    continue;
+                uint64_t lhsh = h - ph * dilation_h + padding_h;
+                uint64_t lwsw = w - pw * dilation_w + padding_w;
                 if(lhsh % stride_h != 0)
                     continue;
                 if(lwsw % stride_w != 0)
                     continue;
-                int64_t lh = lhsh / stride_h;
-                int64_t lw = lwsw / stride_w;
-                if(lh < 0 || LH <= lh)
+                uint64_t lh = lhsh / stride_h;
+                uint64_t lw = lwsw / stride_w;
+                if(LH <= lh)
                     continue;
-                if(lw < 0 || LW <= lw)
+                if(LW <= lw)
                     continue;
                 long output_grad_idx =
                     output_grad_tv.stride[2] * (lh * LW + lw) +

@@ -68,16 +68,19 @@ __device__ void unfoldForward4D(const DTYPE* __restrict__ input,
     if(n >= N)
         return;
 
-    int64_t lh = l / LW, lw = l % LW;                       // sliding window position
-    int64_t ph = p / kernel_size_w, pw = p % kernel_size_w; // position inside kernel
-    int64_t h = lh * stride_h - padding_h + ph * dilation_h;
-    int64_t w = lw * stride_w - padding_w + pw * dilation_w;
+    uint64_t lh = l / LW, lw = l % LW;                       // sliding window position
+    uint64_t ph = p / kernel_size_w, pw = p % kernel_size_w; // position inside kernel
 
     DTYPE x = 0;
-    if(0 <= h && h < H && 0 <= w && w < W)
+    if(lh * stride_h >= padding_h + ph * dilation_h && lw * stride_w >= padding_w + pw * dilation_w)
     {
-        tensor_layout_t<4> input_layout({n, c, h, w});
-        x = input[input_tv.get_tensor_view_idx(input_layout)];
+        uint64_t h = lh * stride_h - padding_h + ph * dilation_h;
+        uint64_t w = lw * stride_w - padding_w + pw * dilation_w;
+        if(h < H && w < W)
+        {
+            tensor_layout_t<4> input_layout({n, c, h, w});
+            x = input[input_tv.get_tensor_view_idx(input_layout)];
+        }
     }
     tensor_layout_t<3> output_layout({n, c * P + p, l});
     output[output_tv.get_tensor_view_idx(output_layout)] = x;
@@ -167,17 +170,21 @@ __device__ void unfoldBackward4D(const DTYPE* __restrict__ output_grad,
     {
         for(uint64_t pw = 0; pw < kernel_size_w; ++pw)
         {
-            int64_t lhsh = h - ph * dilation_h + padding_h;
-            int64_t lwsw = w - pw * dilation_w + padding_w;
+            if(h < ph * dilation_h + padding_h)
+                continue;
+            if(w < pw * dilation_w + padding_w)
+                continue;
+            uint64_t lhsh = h - ph * dilation_h + padding_h;
+            uint64_t lwsw = w - pw * dilation_w + padding_w;
             if(lhsh % stride_h != 0)
                 continue;
             if(lwsw % stride_w != 0)
                 continue;
-            int64_t lh = lhsh / stride_h;
-            int64_t lw = lwsw / stride_w;
-            if(lh < 0 || LH <= lh)
+            uint64_t lh = lhsh / stride_h;
+            uint64_t lw = lwsw / stride_w;
+            if(LH <= lh)
                 continue;
-            if(lw < 0 || LW <= lw)
+            if(LW <= lw)
                 continue;
             tensor_layout_t<3> output_grad_layout(
                 {n, c * P + (ph * kernel_size_w + pw), lh * LW + lw});
