@@ -136,7 +136,7 @@ void BatchNormForwardTraining(Handle& handle,
                           : AlgorithmName{"miopenBatchNormForwardTrainingPerActivation"};
 
     const auto invoke_params = [&]() {
-        auto tmp                  = batchnorm::InvokeParams{};
+        auto tmp                  = miopen::batchnorm::FwdTrainInvokeParams{};
         tmp.type                  = InvokeType::Run;
         tmp.x                     = x;
         tmp.y                     = y;
