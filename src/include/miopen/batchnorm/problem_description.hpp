@@ -52,6 +52,9 @@ struct ProblemDescriptionTag
 {
 };
 
+using index_t                           = int32_t;
+constexpr index_t NumBatchNormReduceDim = 3;
+
 struct MIOPEN_INTERNALS_EXPORT ProblemDescription : ProblemDescriptionBase,
                                                     ProblemDescriptionTag
 #if MIOPEN_ENABLE_SQLITE
@@ -179,11 +182,7 @@ struct MIOPEN_INTERNALS_EXPORT ProblemDescription : ProblemDescriptionBase,
         return scaleDesc;
     }
 
-    const TensorDescriptor& GetScaleBiasDiffDesc() const
-    {
-        assert(direction == Direction::Backward);
-        return scaleDesc;
-    }
+    const TensorDescriptor& GetScaleBiasDiffDesc() const { return scaleDesc; }
 
     bool GetResultSave() const
     {
@@ -215,6 +214,20 @@ struct MIOPEN_INTERNALS_EXPORT ProblemDescription : ProblemDescriptionBase,
 
         return xDesc.GetLengths().size() == 4 ? ((in_layout == "NHWC") && (out_layout == "NHWC"))
                                               : ((in_layout == "NDHWC") && (out_layout == "NDHWC"));
+    }
+
+    bool IsLayoutNCHW() const
+    {
+        if(direction == Direction::Backward)
+        {
+            return xDesc.GetLengths().size() == 4
+                       ? ((in_layout == "NCHW") && (out_layout == "NCHW") && (din_layout == "NCHW"))
+                       : ((in_layout == "NCDHW") && (out_layout == "NCDHW") &&
+                          (din_layout == "NCDHW"));
+        }
+
+        return xDesc.GetLengths().size() == 4 ? ((in_layout == "NCHW") && (out_layout == "NCHW"))
+                                              : ((in_layout == "NCDHW") && (out_layout == "NCDHW"));
     }
 
     bool Is2D() const { return xDesc.GetLengths().size() == 4; }
@@ -307,7 +320,17 @@ private:
     NetworkConfig MakeForwardInferenceNetworkConfig() const;
     NetworkConfig MakeBackwardNetworkConfig() const;
 
-    std::string ComputeLayout(const TensorDescriptor& td) const { return td.GetLayout_str(); }
+    std::string ComputeLayout(const TensorDescriptor& td) const
+    {
+        if(spatial_dim == 2)
+        {
+            return td.GetLayout("NCHW");
+        }
+        else
+        {
+            return td.GetLayout("NCDHW");
+        }
+    }
     std::string ComputeInLayout() const { return ComputeLayout(xDesc); }
     std::string ComputeOutLayout() const { return ComputeLayout(yOrDyDesc); }
     std::string ComputeDinLayout() const { return ComputeLayout(dxDesc); }
