@@ -209,6 +209,8 @@ bool BnCKFwdTraining::IsApplicable(
         return false;
     if(bn_problem.GetMode() != miopenBNSpatial)
         return false;
+    if(bn_problem.GetXDesc().GetType() != bn_problem.GetScaleBiasDiffDesc().GetType())
+        return false;
 
     switch(bn_problem.GetXDesc().GetType())
     {

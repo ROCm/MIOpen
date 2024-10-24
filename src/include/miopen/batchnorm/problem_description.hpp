@@ -177,11 +177,7 @@ struct MIOPEN_INTERNALS_EXPORT ProblemDescription : ProblemDescriptionBase, Prob
         return scaleDesc;
     }
 
-    const TensorDescriptor& GetScaleBiasDiffDesc() const
-    {
-        assert(direction == Direction::Backward);
-        return scaleDesc;
-    }
+    const TensorDescriptor& GetScaleBiasDiffDesc() const { return scaleDesc; }
 
     bool GetResultSave() const
     {
