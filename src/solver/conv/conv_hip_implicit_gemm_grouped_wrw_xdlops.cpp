@@ -91,7 +91,7 @@ struct CKArgs
             // On a backward pass, problem.GetIn() means y(or out),
             // and problem.GetOut means x(or in)
             /// \todo remove this when we stop swapping in and out tensors/descriptors
-            std::swap(in_strides, out_strides);
+            //std::swap(in_strides, out_strides);
 
             // Now compute G's stride
             in_strides[0]  = C;
@@ -571,21 +571,29 @@ bool ConvHipImplicitGemmGroupWrwXdlops::IsApplicable(
         return false;
     if(env::enabled(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC))
         return false;
+    std::cout<<"111111"<<std::endl;
     if(problem.HasMixedDataTypes())
         return false;
+    std::cout<<"222222"<<std::endl;
     if(!problem.AllTensorsDimsFitIntoInt())
         return false;
+    std::cout<<"333"<<std::endl;
     if(!problem.IsDirectionBackwardWrW())
         return false;
+    std::cout<<"444"<<std::endl;
     if(!problem.Is2d())
         return false;
+    std::cout<<"555"<<std::endl;
     if(!(problem.IsLayoutNHWC() || problem.IsLayoutDefault()))
         return false;
+    std::cout<<"666"<<std::endl;
     // needed because layout transpose kernel does not support non-packed tensors
     if(problem.IsLayoutDefault() && problem.HasNonPackedTensors())
         return false;
+    std::cout<<"777"<<std::endl;
     if(!ck_utility::is_ck_whitelist(ctx.GetStream().GetDeviceName()))
         return false;
+    std::cout<<"88"<<std::endl;
     switch(problem.GetInDataType())
     {
     case miopenHalf: return CheckCKApplicability<ck::half_t>(problem);
@@ -598,6 +606,7 @@ bool ConvHipImplicitGemmGroupWrwXdlops::IsApplicable(
     case miopenBFloat8:
     case miopenDouble: break;
     }
+    std::cout<<"999"<<std::endl;
 #endif
     return false;
 }

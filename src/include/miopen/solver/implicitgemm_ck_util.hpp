@@ -134,6 +134,7 @@ bool IsCKArgsSupported(const ProblemDescriptionType& problem, const std::string&
     if(!kernel_id.empty())
     {
         auto conv_ptrs = DeviceOpType::GetInstances();
+        std::cout<<"~~~~~~ CK intances conv_ptrs.size(): "<<conv_ptrs.size()<<std::endl;
         if constexpr(std::is_same_v<DeviceOpType, conv::DeviceOpGWrwPtrs<ck::half_t>> ||
                      std::is_same_v<DeviceOpType, conv::DeviceOpGWrwPtrs<float>> ||
                      std::is_same_v<DeviceOpType, conv::DeviceOpGWrwPtrs<int8_t>> ||
@@ -163,6 +164,7 @@ bool IsCKApplicable(const ProblemDescriptionType& problem)
     const auto args = CKArgsType{problem};
 
     const auto ptrs = DeviceOpType::GetInstances();
+    std::cout<<"~~~~~~ ck instances vector size : "<<ptrs.size()<<std::endl;
     return std::any_of(
         ptrs.begin(), ptrs.end(), [&args](auto& ptr) { return args.IsSupportedBy(ptr); });
 }
