@@ -207,6 +207,8 @@ bool BnCKFwdTraining::IsApplicable(
         return false;
     if(bn_problem.GetDirection() != miopen::batchnorm::Direction::ForwardTraining)
         return false;
+    if(bn_problem.GetMode() != miopenBNSpatial)
+        return false;
 
     switch(bn_problem.GetXDesc().GetType())
     {
