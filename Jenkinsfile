@@ -356,7 +356,6 @@ def RunPerfTest(Map conf=[:]){
                 {
                     sh "export LD_LIBRARY_PATH=${ld_lib} && ${env.WORKSPACE}/opt/rocm/bin/test_perf.py  --filename ${filename} --install_path ${env.WORKSPACE}/opt/rocm"
                 }
-                sh "export LD_LIBRARY_PATH=${ld_lib} && ${env.WORKSPACE}/opt/rocm/bin/test_perf.py  --filename ${filename} --install_path ${env.WORKSPACE}/opt/rocm"
                 jenkins_url = "${env.artifact_path}/${env.MIOPEN_GOLDEN_PERF_BRANCH}/lastSuccessfulBuild/artifact"
                 try {
                     sh "rm -rf ${env.WORKSPACE}/opt/rocm/bin/old_results/"
@@ -516,19 +515,19 @@ pipeline {
             description: "")
         booleanParam(
             name: "PERF_TEST",
-            defaultValue: false,
+            defaultValue: true,
             description: "Enable performance testing stages")
         booleanParam(
             name: "PERF_TEST_FP16",
-            defaultValue: false,
+            defaultValue: true,
             description: "Enable performance testing stages")
         booleanParam(
             name: "PERF_TEST_FP32",
-            defaultValue: false,
+            defaultValue: true,
             description: "Enable performance testing stages")
         booleanParam(
             name: "PERF_TEST_BRANCH_OVERRIDE",
-            defaultValue: false,
+            defaultValue: true,
             description: "Enable performance testing stages")
         booleanParam(
             name: "DBSYNC_TEST",
