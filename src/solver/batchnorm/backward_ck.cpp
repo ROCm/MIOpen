@@ -86,7 +86,21 @@ struct CKArgsBNormBwd
 
         // prep for CK
         std::sort(in_strides.begin(), in_strides.end(), std::greater<>());
-        std::rotate(lens.begin() + 1, lens.begin() + 2, lens.end());
+
+        if(problem.IsLayoutNHWC())
+        {
+            std::rotate(lens.begin() + 1, lens.begin() + 2, lens.end());
+            reduceDims = {0, 1, 2};
+        }
+        else if(problem.IsLayoutNCHW())
+        {
+            reduceDims = {0, 2, 3};
+        }
+        else
+        {
+            MIOPEN_THROW(miopenStatusInternalError,
+                         "BnCKBwd operation does not support this data layout");
+        }
     }
 
     CKArgsBNormBwd(const CKArgsBNormBwd&) = default;
@@ -132,7 +146,7 @@ struct CKArgsBNormBwd
     std::array<index_t, Rank - NumBatchNormReduceDim> arrScaleBiasMeanVarStrides;
 
     double epsilon = 1e-5;
-    std::array<int, NumBatchNormReduceDim> reduceDims{0, 1, 2};
+    std::array<int, NumBatchNormReduceDim> reduceDims;
 };
 
 template <typename XDataType,
@@ -193,7 +207,7 @@ bool BnCKBwdBackward::IsApplicable(
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
     if(env::disabled(MIOPEN_DEBUG_CONV_CK_BN_BACK))
         return false;
-    if(!bn_problem.IsLayoutNHWC())
+    if(!bn_problem.IsLayoutNHWC() && !bn_problem.IsLayoutNCHW())
         return false;
     if(!ck_utility::is_ck_supported_hardware(context.GetStream()))
         return false;
