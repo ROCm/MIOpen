@@ -112,6 +112,8 @@ set( MIOpen_Source
     convolution_api.cpp
     ctc.cpp
     ctc_api.cpp
+    cumulative_reduction/problem_description.cpp
+    cumulative_reduction_api.cpp
     db.cpp
     db_record.cpp
     driver_arguments.cpp
@@ -302,6 +304,8 @@ set( MIOpen_Source
     solver/conv_ck_igemm_fwd_bias_res_add_activ_fused.cpp
     solver/conv_ocl_dir2Dfwd_fused.cpp
     solver/conv_winoRxS_fused.cpp
+    solver/cumulative_reduction/forward_cumulative_reduction_contiguous_lastdim.cpp
+    solver/cumulative_reduction/utils.cpp
     solver/glu/backward_glu.cpp
     solver/glu/forward_glu.cpp
     solver/groupnorm/forward_groupnorm.cpp
@@ -473,6 +477,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/Conv_Winograd_v30_3_1_metadata.inc
         kernels/MIOpenReduceCalculation.hpp
         kernels/MIOpenReduceExtreme.hpp
+        kernels/MIOpenCumulativeReduction.hpp
         kernels/bfloat16_dev.hpp
         kernels/block_reduce.hpp
         kernels/conv_common.inc
@@ -531,6 +536,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenConvDirUni.cl
         kernels/MIOpenConvDirBatchNormActiv.cl
         kernels/MIOpenConvDirGenFwd.cl
+        kernels/MIOpenCumulativeReduction.cpp
         kernels/MIOpenGLU.cpp
         kernels/MIOpenGroupNorm.cpp
         kernels/MIOpenGetitem.cpp
@@ -669,6 +675,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         adam.cpp
         addlayernorm.cpp
         cat.cpp
+        cumulative_reduction.cpp
         exec_utils.cpp
         groupnorm.cpp
         getitem.cpp
