@@ -5130,6 +5130,100 @@ private:
     bool CheckCKApplicability(const miopen::conv::ProblemDescription&) const;
 };
 
+struct PerformanceConfigHipImplicitGemmGroupWrwNCHWXdlops
+    : PerfConfigBaseCK<PerformanceConfigHipImplicitGemmGroupWrwNCHWXdlops>
+{
+    int index;
+    int split_k;
+    std::string kernel_id;
+    std::vector<std::string> valid_kernels;
+    PerformanceConfigHipImplicitGemmGroupWrwNCHWXdlops(int idx, std::string kernl_id)
+        : index(idx), kernel_id(kernl_id)
+    {
+    }
+    PerformanceConfigHipImplicitGemmGroupWrwNCHWXdlops()
+        : PerformanceConfigHipImplicitGemmGroupWrwNCHWXdlops(0, "")
+    {
+    }
+    PerformanceConfigHipImplicitGemmGroupWrwNCHWXdlops(bool)
+        : PerformanceConfigHipImplicitGemmGroupWrwNCHWXdlops(0, "")
+    {
+    }
+    MIOPEN_INTERNALS_EXPORT void HeuristicInit(const ExecutionContext&,
+                                               const miopen::conv::ProblemDescription&);
+    MIOPEN_INTERNALS_EXPORT bool SetNextValue(const miopen::conv::ProblemDescription&);
+    MIOPEN_INTERNALS_EXPORT bool IsValidValue() const;
+    bool IsValid(const ExecutionContext&, const miopen::conv::ProblemDescription& problem) const
+    {
+        return IsValid(problem);
+    }
+    MIOPEN_INTERNALS_EXPORT bool IsValid(const miopen::conv::ProblemDescription&) const;
+    MIOPEN_INTERNALS_EXPORT bool
+    operator==(const PerformanceConfigHipImplicitGemmGroupWrwNCHWXdlops& other) const;
+    MIOPEN_INTERNALS_EXPORT bool
+    IsModelApplicable(const ExecutionContext& ctx,
+                      const miopen::conv::ProblemDescription& problem) const;
+
+private:
+#if MIOPEN_ENABLE_AI_KERNEL_TUNING
+    std::vector<int> heuristic_indexes;
+    std::unordered_map<int, std::vector<std::string>> heuristic_kernels;
+    template <typename DataType>
+    bool RunParameterPredictionModel(const ExecutionContext& ctx,
+                                     const miopen::conv::ProblemDescription& problem);
+    void InitHeuristicKernelIDs(const std::string& type);
+    bool ModelApplyToken(int idx,
+                         std::string value,
+                         const std::string& arch,
+                         const miopen::conv::ProblemDescription& problem);
+#endif
+    template <typename DataType>
+    void Init(const miopen::conv::ProblemDescription&);
+    template <typename DataType>
+    bool CheckIsSupportCKArgs(const miopen::conv::ProblemDescription&) const;
+};
+
+struct ConvHipImplicitGemmGroupWrwNCHWXdlops final
+    : ConvTunableSolver<PerformanceConfigHipImplicitGemmGroupWrwNCHWXdlops>
+{
+    const std::string& SolverDbId() const override
+    {
+        return GetSolverDbId<ConvHipImplicitGemmGroupWrwNCHWXdlops>();
+    }
+
+    MIOPEN_INTERNALS_EXPORT PerformanceConfigHipImplicitGemmGroupWrwNCHWXdlops
+    GetDefaultPerformanceConfig(const ExecutionContext&,
+                                const miopen::conv::ProblemDescription&) const override;
+    MIOPEN_INTERNALS_EXPORT bool
+    IsValidPerformanceConfig(const ExecutionContext&,
+                             const miopen::conv::ProblemDescription&,
+                             const PerformanceConfigHipImplicitGemmGroupWrwNCHWXdlops&) const override;
+    MIOPEN_INTERNALS_EXPORT PerformanceConfigHipImplicitGemmGroupWrwNCHWXdlops
+    Search(const ExecutionContext&,
+           const miopen::conv::ProblemDescription&,
+           const AnyInvokeParams& invoke_ctx) const override;
+    MIOPEN_INTERNALS_EXPORT bool
+    IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    bool IsDynamic() const override { return true; }
+    MIOPEN_INTERNALS_EXPORT ConvSolution
+    GetSolution(const ExecutionContext&,
+                const miopen::conv::ProblemDescription&,
+                const PerformanceConfigHipImplicitGemmGroupWrwNCHWXdlops&) const override;
+    /// \ref igemm_get_wti_magic_number
+    float GetWti(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override
+    {
+        return 0.02f;
+    };
+
+    MIOPEN_INTERNALS_EXPORT size_t GetWorkspaceSize(
+        const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    bool MayNeedWorkspace() const override { return true; }
+
+private:
+    template <typename DataType>
+    bool CheckCKApplicability(const miopen::conv::ProblemDescription&) const;
+};
+
 } // namespace conv
 } // namespace solver
 } // namespace miopen
