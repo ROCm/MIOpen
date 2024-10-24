@@ -26,7 +26,7 @@
 #ifndef GUARD_CPU_REDUCE_UTIL_HPP
 #define GUARD_CPU_REDUCE_UTIL_HPP
 
-#include <half/half.hpp>
+#include <half.hpp>
 #include <limits>
 #include <cmath>
 #include <cassert>

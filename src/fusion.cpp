@@ -46,7 +46,7 @@
 #include <ios>
 #include <algorithm>
 #include <string>
-#include <half/half.hpp>
+#include <half.hpp>
 
 #define MIOPEN_CHECK(x)          \
     if(x != miopenStatusSuccess) \
