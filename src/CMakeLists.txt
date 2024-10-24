@@ -122,6 +122,8 @@ set( MIOpen_Source
     expanduser.cpp
     find_controls.cpp
     find_db.cpp
+    fold_api.cpp
+    fold/problem_description.cpp
     fused_api.cpp
     fusion.cpp
     fusion/problem_description.cpp
@@ -304,6 +306,10 @@ set( MIOpen_Source
     solver/conv_winoRxS_fused.cpp
     solver/glu/backward_glu.cpp
     solver/glu/forward_glu.cpp
+    solver/fold/fold_forward.cpp
+    solver/fold/fold_backward.cpp
+    solver/fold/unfold_forward.cpp
+    solver/fold/unfold_backward.cpp
     solver/groupnorm/forward_groupnorm.cpp
     solver/getitem/backward_getitem.cpp
     solver/kthvalue/forward_kthvalue.cpp
@@ -587,6 +593,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/conv7x7c3h224w224k64u2v2p3q3f1.s
         kernels/xform_out.s
         kernels/gcnAsmBNBwdTrainSpatial.s
+        kernels/MIOpenUnfold.cpp
         kernels/MIOpenTensorKernels.cl
         kernels/MIOpenTensorKernelsHip.cpp
         kernels/MIOpenSubTensorOpWithScalarKernel.cl
@@ -670,6 +677,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         addlayernorm.cpp
         cat.cpp
         exec_utils.cpp
+        fold.cpp
         groupnorm.cpp
         getitem.cpp
         glu.cpp

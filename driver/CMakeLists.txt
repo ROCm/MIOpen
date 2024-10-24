@@ -62,6 +62,8 @@ add_executable(MIOpenDriver
     dm_t5layernorm.cpp
     dm_tensorop.cpp
     dm_transformers_adam_w.cpp
+    dm_fold.cpp
+    dm_unfold.cpp
     main.cpp
     registry_driver_maker.cpp
     rocrand_wrapper.cpp)
