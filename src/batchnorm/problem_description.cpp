@@ -138,6 +138,7 @@ NetworkConfig ProblemDescription::MakeForwardTrainingNetworkConfig() const
             ss << "fp32" << static_cast<int>(IsFp32());
             ss << "fp64" << static_cast<int>(IsFp64());
             ss << "fbf16" << static_cast<int>(IsBfp16());
+            ss << "fmix" << static_cast<int>(IsMix());
             ss << "c" << c;
         }
         else
@@ -154,6 +155,7 @@ NetworkConfig ProblemDescription::MakeForwardTrainingNetworkConfig() const
             ss << "fp32" << static_cast<int>(IsFp32());
             ss << "fp64" << static_cast<int>(IsFp64());
             ss << "fbf16" << static_cast<int>(IsBfp16());
+            ss << "fmix" << static_cast<int>(IsMix());
             ss << "single" << static_cast<int>(single);
             ss << "n" << n;
             ss << "c" << c;
@@ -172,6 +174,7 @@ NetworkConfig ProblemDescription::MakeForwardTrainingNetworkConfig() const
         ss << "fp32" << static_cast<int>(IsFp32());
         ss << "fp64" << static_cast<int>(IsFp64());
         ss << "fbf16" << static_cast<int>(IsBfp16());
+        ss << "fmix" << static_cast<int>(IsMix());
         ss << "gx" << xgridsize;
         ss << "gy" << ygridsize;
         ss << "lx" << xlocalsize;
@@ -201,6 +204,7 @@ NetworkConfig ProblemDescription::MakeForwardInferenceNetworkConfig() const
     ss << "fp32" << static_cast<int>(IsFp32());
     ss << "fp64" << static_cast<int>(IsFp64());
     ss << "fbf16" << static_cast<int>(IsBfp16());
+    ss << "fmix" << static_cast<int>(IsMix());
     ss << "mode" << bn_mode;
     ss << "HWdims" << in_cstride;
     ss << "C" << c;
@@ -308,6 +312,7 @@ NetworkConfig ProblemDescription::MakeBackwardNetworkConfig() const
         ss << "fp32" << static_cast<int>(IsFp32());
         ss << "fp64" << static_cast<int>(IsFp64());
         ss << "fbf16" << static_cast<int>(IsBfp16());
+        ss << "fmix" << static_cast<int>(IsMix());
         ss << "single" << static_cast<int>(single);
         ss << "gcn" << ldsgcn;
     }
@@ -330,6 +335,7 @@ NetworkConfig ProblemDescription::MakeBackwardNetworkConfig() const
         ss << "fp32" << static_cast<int>(IsFp32());
         ss << "fp64" << static_cast<int>(IsFp64());
         ss << "fbf16" << static_cast<int>(IsBfp16());
+        ss << "fmix" << static_cast<int>(IsMix());
         ss << "nhw" << in_nhw;
     }
     ss << "layout" << in_layout;

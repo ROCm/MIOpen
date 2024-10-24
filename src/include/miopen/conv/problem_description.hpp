@@ -32,7 +32,6 @@
 #include <miopen/scalar.hpp>
 
 #include <miopen/problem_description_base.hpp>
-#include <miopen/tensor.hpp>
 #include <miopen/convolution.hpp>
 
 #if MIOPEN_ENABLE_SQLITE
@@ -99,36 +98,6 @@ template <class TElement>
 constexpr TElement GetWofCHWN(const std::vector<TElement>& data)
 {
     return std::get<2>(GetCHWN(data));
-}
-
-template <class TElement>
-constexpr TElement GetN5(unsigned spatial_dims, const std::vector<TElement>& data)
-{
-    return std::get<0>(GetNCDHW(spatial_dims, data));
-}
-
-template <class TElement>
-constexpr TElement GetC5(unsigned spatial_dims, const std::vector<TElement>& data)
-{
-    return std::get<1>(GetNCDHW(spatial_dims, data));
-}
-
-template <class TElement>
-constexpr TElement GetD5(unsigned spatial_dims, const std::vector<TElement>& data)
-{
-    return std::get<2>(GetNCDHW(spatial_dims, data));
-}
-
-template <class TElement>
-constexpr TElement GetH5(unsigned spatial_dims, const std::vector<TElement>& data)
-{
-    return std::get<3>(GetNCDHW(spatial_dims, data));
-}
-
-template <class TElement>
-constexpr TElement GetW5(unsigned spatial_dims, const std::vector<TElement>& data)
-{
-    return std::get<4>(GetNCDHW(spatial_dims, data));
 }
 
 namespace conv {
@@ -390,10 +359,6 @@ struct MIOPEN_INTERNALS_EXPORT ProblemDescription : ProblemDescriptionBase
         obj.Serialize(os);
         return os;
     }
-
-#if MIOPEN_ENABLE_SQLITE
-    static std::string table_name() { return "config"; }
-#endif
 
     template <class Self>
     static void Visit(Self&& self, std::function<void(int64_t, std::string)> f)
