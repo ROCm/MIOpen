@@ -28,14 +28,18 @@
 
 #include <miopen/db_record.hpp>
 #include <miopen/filesystem.hpp>
+#include <miopen/stop_token.hpp>
 
 #include <boost/optional.hpp>
 
 #include <unordered_map>
 #include <string>
 #include <sstream>
+#include <map>
 
 namespace miopen {
+
+struct DbPreloadStates;
 
 namespace debug {
 MIOPEN_INTERNALS_EXPORT bool& rordb_embed_fs_override();
@@ -46,8 +50,18 @@ class MIOPEN_INTERNALS_EXPORT ReadonlyRamDb
 public:
     ReadonlyRamDb(DbKinds db_kind_, const fs::path& path) : db_kind(db_kind_), db_path(path) {}
 
-    static ReadonlyRamDb&
-    GetCached(DbKinds db_kind_, const fs::path& path, bool warn_if_unreadable);
+    struct Instances
+    {
+        std::map<fs::path, std::unique_ptr<ReadonlyRamDb>> dbs;
+        std::shared_ptr<DbPreloadStates> states;
+    };
+
+    static auto GetInstances() -> Instances&;
+
+    static ReadonlyRamDb& GetCached(DbKinds db_kind_,
+                                    const fs::path& path,
+                                    bool warn_if_unreadable,
+                                    Instances& instances = GetInstances());
 
     boost::optional<DbRecord> FindRecord(const std::string& problem) const
     {
@@ -97,6 +111,8 @@ public:
 
     const std::unordered_map<std::string, CacheItem>& GetCacheMap() const { return cache; }
 
+    void Prefetch(bool warn_if_unreadable = true, stop_token stop = {});
+
 private:
     DbKinds db_kind;
     fs::path db_path;
@@ -107,8 +123,8 @@ private:
     ReadonlyRamDb& operator=(const ReadonlyRamDb&) = default;
     ReadonlyRamDb& operator=(ReadonlyRamDb&&) = default;
 
-    void Prefetch(bool warn_if_unreadable);
-    void ParseAndLoadDb(std::istream& input_stream, bool warn_if_unreadable);
+    void
+    ParseAndLoadDb(std::istream& input_stream, bool warn_if_unreadable, stop_token const& stop);
 };
 
 } // namespace miopen

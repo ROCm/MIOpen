@@ -313,6 +313,9 @@ Handle::Handle(miopenAcceleratorQueue_t stream) : impl(std::make_unique<HandleIm
     this->impl->hip_blasLt_handle = CreateHipblasLtHandle();
 #endif
     this->impl->target_properties.Init(this);
+
+    TryStartPreloadingDbs();
+
     MIOPEN_LOG_NQI(*this);
 }
 
@@ -340,6 +343,9 @@ Handle::Handle() : impl(std::make_unique<HandleImpl>())
     this->impl->hip_blasLt_handle = CreateHipblasLtHandle();
 #endif
     this->impl->target_properties.Init(this);
+
+    TryStartPreloadingDbs();
+
     MIOPEN_LOG_NQI(*this);
 }
 
