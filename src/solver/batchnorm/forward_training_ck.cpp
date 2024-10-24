@@ -85,7 +85,21 @@ struct CKArgsBNormFwdTraining
 
         // prep for CK
         std::sort(xyStrides.begin(), xyStrides.end(), std::greater<>());
-        std::rotate(xyLengths.begin() + 1, xyLengths.begin() + 2, xyLengths.end());
+
+        if(problem.IsLayoutNHWC())
+        {
+            std::rotate(xyLengths.begin() + 1, xyLengths.begin() + 2, xyLengths.end());
+            reduceDims = {0, 1, 2};
+        }
+        else if(problem.IsLayoutNCHW())
+        {
+            reduceDims = {0, 2, 3};
+        }
+        else
+        {
+            MIOPEN_THROW(miopenStatusInternalError,
+                         "BnCKFwdTraining operation does not support this data layout");
+        }
     }
 
     CKArgsBNormFwdTraining(const CKArgsBNormFwdTraining&) = default;
@@ -130,7 +144,7 @@ struct CKArgsBNormFwdTraining
     std::array<index_t, Rank - NumBatchNormReduceDim> arrScaleBiasMeanVarLengths;
     std::array<index_t, Rank - NumBatchNormReduceDim> arrScaleBiasMeanVarStrides;
 
-    std::array<int, NumBatchNormReduceDim> reduceDims{0, 1, 2};
+    std::array<int, NumBatchNormReduceDim> reduceDims;
 };
 
 template <typename XDataType,
@@ -185,7 +199,7 @@ bool BnCKFwdTraining::IsApplicable(
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
     if(env::disabled(MIOPEN_DEBUG_CONV_CK_BN_FWD_TRAINING))
         return false;
-    if(!bn_problem.IsLayoutNHWC())
+    if(!bn_problem.IsLayoutNHWC() && !bn_problem.IsLayoutNCHW())
         return false;
     if(!ck_utility::is_ck_supported_hardware(context.GetStream()))
         return false;
