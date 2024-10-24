@@ -201,6 +201,8 @@ bool BnCKBwdBackward::IsApplicable(
         return false;
     if(bn_problem.GetDirection() != miopen::batchnorm::Direction::Backward)
         return false;
+    if(bn_problem.GetMode() != miopenBNSpatial)
+        return false;
     if(!bn_problem.Is2D())
         return false;
     switch(bn_problem.GetXDesc().GetType())

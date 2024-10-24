@@ -67,6 +67,7 @@ struct CKArgsBNormFwd
 {
     CKArgsBNormFwd(const miopen::batchnorm::ProblemDescription& problem)
     {
+
         std::copy(problem.GetXDesc().GetLengths().begin(),
                   problem.GetXDesc().GetLengths().end(),
                   xyLengths.begin());
@@ -76,12 +77,29 @@ struct CKArgsBNormFwd
                   xyStrides.begin());
         // prep for CK
         std::sort(xyStrides.begin(), xyStrides.end(), std::greater<>());
-        std::rotate(xyLengths.begin() + 1, xyLengths.begin() + 2, xyLengths.end());
 
-        aligned_scaleBiasMeanVarStrides[0] = 0;
-        aligned_scaleBiasMeanVarStrides[1] = 0;
-        aligned_scaleBiasMeanVarStrides[2] = 0;
-        aligned_scaleBiasMeanVarStrides[3] = 1;
+        if(problem.IsLayoutNHWC())
+        {
+            std::rotate(xyLengths.begin() + 1, xyLengths.begin() + 2, xyLengths.end());
+            reduceDims                         = {0, 1, 2};
+            aligned_scaleBiasMeanVarStrides[0] = 0;
+            aligned_scaleBiasMeanVarStrides[1] = 0;
+            aligned_scaleBiasMeanVarStrides[2] = 0;
+            aligned_scaleBiasMeanVarStrides[3] = 1;
+        }
+        else if(problem.IsLayoutNCHW())
+        {
+            reduceDims                         = {0, 2, 3};
+            aligned_scaleBiasMeanVarStrides[0] = 0;
+            aligned_scaleBiasMeanVarStrides[1] = 1;
+            aligned_scaleBiasMeanVarStrides[2] = 0;
+            aligned_scaleBiasMeanVarStrides[3] = 0;
+        }
+        else
+        {
+            MIOPEN_THROW(miopenStatusInternalError,
+                         "BnCKFwdInference operation does not support this data layout");
+        }
     }
 
     std::array<ck::index_t, Rank> xyLengths;
@@ -89,8 +107,9 @@ struct CKArgsBNormFwd
     std::vector<int> invariantDims;
 
     std::array<index_t, Rank> aligned_scaleBiasMeanVarStrides{3};
+    std::array<index_t, Rank - NumBatchNormReduceDim> arrScaleBiasMeanVarStrides;
 
-    std::array<int, NumBatchNormReduceDim> reduceDims{0, 1, 2};
+    std::array<int, NumBatchNormReduceDim> reduceDims;
 
     template <typename InvokerPtr, typename InvokerParams>
     auto MakeArgPtr(const InvokerPtr& invoker_ptr, const InvokerParams& data_ctx) const
@@ -153,7 +172,7 @@ template <typename XDataType,
           typename ScaleDataType,
           typename BiasDataType,
           typename MeanVarDataType>
-ConvSolution InvokerFactoryMakerNHWC(const miopen::batchnorm::ProblemDescription& bn_problem)
+ConvSolution InvokerFactoryMaker(const miopen::batchnorm::ProblemDescription& bn_problem)
 {
     ConvSolution result;
     const auto kernel_index = CheckCKApplicability<XDataType,
@@ -201,13 +220,15 @@ bool BnCKFwdInference::IsApplicable(
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
     if(env::disabled(MIOPEN_DEBUG_CONV_CK_BN_INFER))
         return false;
-    if(!bn_problem.IsLayoutNHWC())
+    if(!bn_problem.IsLayoutNHWC() && !bn_problem.IsLayoutNCHW())
         return false;
     if(!ck_utility::is_ck_supported_hardware(context.GetStream()))
         return false;
     if(!bn_problem.Is2D())
         return false;
     if(bn_problem.GetDirection() != miopen::batchnorm::Direction::ForwardInference)
+        return false;
+    if(bn_problem.GetMode() != miopenBNSpatial)
         return false;
 
     switch(bn_problem.GetXDesc().GetType())
@@ -228,30 +249,23 @@ bool BnCKFwdInference::IsApplicable(
     return false;
 }
 
-template <typename InvokerFactoryMakerNHWC>
+template <typename InvokerFactoryMaker>
 ConvSolution MakeAnyInvokerFactory(const miopen::batchnorm::ProblemDescription& problem,
-                                   InvokerFactoryMakerNHWC&& invoker_factory_maker_nhwc)
+                                   InvokerFactoryMaker&& invoker_factory_maker)
 {
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
-    if(problem.IsLayoutNHWC())
+
+    switch(problem.GetXDesc().GetType())
     {
-        switch(problem.GetXDesc().GetType())
-        {
-        case miopenFloat: return invoker_factory_maker_nhwc(F32{});
-        case miopenDouble: return invoker_factory_maker_nhwc(F64{});
-        case miopenHalf: return invoker_factory_maker_nhwc(F16{});
-        case miopenBFloat16: return invoker_factory_maker_nhwc(BF16{});
-        default:
-            MIOPEN_THROW(miopenStatusInternalError,
-                         "BnCKFwdInference operation does not support this data type");
-        }
-    }
-    // Todo: problem.IsLayoutDefault()
-    else
-    {
+    case miopenFloat: return invoker_factory_maker(F32{});
+    case miopenDouble: return invoker_factory_maker(F64{});
+    case miopenHalf: return invoker_factory_maker(F16{});
+    case miopenBFloat16: return invoker_factory_maker(BF16{});
+    default:
         MIOPEN_THROW(miopenStatusInternalError,
-                     "BnCKFwdInference operation does not support this data layout");
+                     "BnCKFwdInference operation does not support this data type");
     }
+
 #else
     return {};
 #endif
@@ -270,7 +284,7 @@ ConvSolution BnCKFwdInference::GetSolution(
             using AccTy = std::conditional_t<std::is_same_v<T, F64>,
                                              T,    // T==F64
                                              F32>; // T==F32
-            return InvokerFactoryMakerNHWC<T, T, AccTy, T, T, AccTy>(bn_problem);
+            return InvokerFactoryMaker<T, T, AccTy, T, T, AccTy>(bn_problem);
         }
         // Todo: InvokerFactoryMakerNCHW
     );

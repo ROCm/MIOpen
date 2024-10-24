@@ -212,6 +212,20 @@ struct MIOPEN_INTERNALS_EXPORT ProblemDescription : ProblemDescriptionBase, Prob
                                               : ((in_layout == "NDHWC") && (out_layout == "NDHWC"));
     }
 
+    bool IsLayoutNCHW() const
+    {
+        if(direction == Direction::Backward)
+        {
+            return xDesc.GetLengths().size() == 4
+                       ? ((in_layout == "NCHW") && (out_layout == "NCHW") && (din_layout == "NCHW"))
+                       : ((in_layout == "NCDHW") && (out_layout == "NCDHW") &&
+                          (din_layout == "NCDHW"));
+        }
+
+        return xDesc.GetLengths().size() == 4 ? ((in_layout == "NCHW") && (out_layout == "NCHW"))
+                                              : ((in_layout == "NCDHW") && (out_layout == "NCDHW"));
+    }
+
     bool Is2D() const { return xDesc.GetLengths().size() == 4; }
     bool Is3D() const { return xDesc.GetLengths().size() == 5; }
 
