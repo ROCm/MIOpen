@@ -210,6 +210,25 @@ bool PerformanceConfigBnCKBwdBackward::CheckIsSupportCKArgs(
                                                MeanVarDataType>,
                              CKArgsBNormBwd>(problem, this->kernel_id);
 }
+
+template <typename XDataType,
+          typename DxDataType,
+          typename DyDataType,
+          typename AccDataType,
+          typename ScaleDataType,
+          typename DscaleDbiasDataType,
+          typename MeanVarDataType>
+static bool CheckCKApplicability(const miopen::batchnorm::ProblemDescription& problem)
+{
+    return IsCKApplicable<DeviceOpBNBwdPtrs<XDataType,
+                                            DxDataType,
+                                            DyDataType,
+                                            AccDataType,
+                                            ScaleDataType,
+                                            DscaleDbiasDataType,
+                                            MeanVarDataType>,
+                          CKArgsBNormBwd>(problem);
+}
 #endif
 
 void PerformanceConfigBnCKBwdBackward::HeuristicInit(
@@ -292,25 +311,6 @@ bool PerformanceConfigBnCKBwdBackward::operator==(
     const PerformanceConfigBnCKBwdBackward& other) const
 {
     return this->kernel_id == other.kernel_id;
-}
-
-template <typename XDataType,
-          typename DxDataType,
-          typename DyDataType,
-          typename AccDataType,
-          typename ScaleDataType,
-          typename DscaleDbiasDataType,
-          typename MeanVarDataType>
-static bool CheckCKApplicability(const miopen::batchnorm::ProblemDescription& problem)
-{
-    return IsCKApplicable<DeviceOpBNBwdPtrs<XDataType,
-                                            DxDataType,
-                                            DyDataType,
-                                            AccDataType,
-                                            ScaleDataType,
-                                            DscaleDbiasDataType,
-                                            MeanVarDataType>,
-                          CKArgsBNormBwd>(problem);
 }
 
 PerformanceConfigBnCKBwdBackward BnCKBwdBackward::GetDefaultPerformanceConfig(

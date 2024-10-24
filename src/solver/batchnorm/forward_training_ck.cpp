@@ -204,6 +204,23 @@ bool PerformanceConfigBnCKFwdTraining::CheckIsSupportCKArgs(
                                                        MeanVarDataType>,
                              CKArgsBNormFwdTraining>(problem, this->kernel_id);
 }
+
+template <typename XDataType,
+          typename YDataType,
+          typename AccDataType,
+          typename ScaleDataType,
+          typename BiasDataType,
+          typename MeanVarDataType>
+static bool CheckCKApplicability(const miopen::batchnorm::ProblemDescription& problem)
+{
+    return IsCKApplicable<DeviceOpBNFwdTrainingPtrs<XDataType,
+                                                    YDataType,
+                                                    AccDataType,
+                                                    ScaleDataType,
+                                                    BiasDataType,
+                                                    MeanVarDataType>,
+                          CKArgsBNormFwdTraining>(problem);
+}
 #endif
 
 void PerformanceConfigBnCKFwdTraining::HeuristicInit(
@@ -286,23 +303,6 @@ bool PerformanceConfigBnCKFwdTraining::operator==(
     const PerformanceConfigBnCKFwdTraining& other) const
 {
     return this->kernel_id == other.kernel_id;
-}
-
-template <typename XDataType,
-          typename YDataType,
-          typename AccDataType,
-          typename ScaleDataType,
-          typename BiasDataType,
-          typename MeanVarDataType>
-static bool CheckCKApplicability(const miopen::batchnorm::ProblemDescription& problem)
-{
-    return IsCKApplicable<DeviceOpBNFwdTrainingPtrs<XDataType,
-                                                    YDataType,
-                                                    AccDataType,
-                                                    ScaleDataType,
-                                                    BiasDataType,
-                                                    MeanVarDataType>,
-                          CKArgsBNormFwdTraining>(problem);
 }
 
 PerformanceConfigBnCKFwdTraining BnCKFwdTraining::GetDefaultPerformanceConfig(
