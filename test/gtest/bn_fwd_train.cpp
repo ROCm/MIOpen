@@ -86,44 +86,6 @@ TEST_P(GPU_BN_FWD_Train_Large_FP32, BnV2LargeFWD_TrainCKfp32) {}
 TEST_P(GPU_BN_FWD_Train_Small_FP64, BnV1SmallFWD_TrainCKfp64) {}
 TEST_P(GPU_BN_FWD_Train_Large_FP64, BnV2LargeFWD_TrainCKfp64) {}
 
-// Assuming miopenTensorLayout_t and testAPI_t are the types of your enums
-std::string LayoutToString(int tensor_format)
-{
-    switch(tensor_format)
-    {
-    case miopenTensorNCHW: return "NCHW";
-    case miopenTensorNHWC: return "NHWC";
-    default: return "UnknownTensorFormat";
-    }
-}
-
-std::string ApiVerisonToString(int api_version)
-{
-    switch(api_version)
-    {
-    case testBNAPIV1: return "testBNAPIV1";
-    case testBNAPIV2: return "testBNAPIV2";
-    default: return "UnknownAPIVersion";
-    }
-}
-
-// Custom test name generator to handle enums
-struct TestNameGenerator
-{
-    std::string operator()(
-        const testing::TestParamInfo<std::tuple<BNTestCase, miopenTensorLayout_t, BNApiType>>& info)
-        const
-    {
-        const auto& layout_type = std::get<1>(info.param);
-        const auto& api_type    = std::get<2>(info.param);
-
-        std::string tensor_name = LayoutToString(layout_type);
-        std::string api_name    = ApiVerisonToString(api_type);
-
-        return tensor_name + "_" + api_name + "_" + std::to_string(info.index);
-    }
-};
-
 // fp16
 INSTANTIATE_TEST_SUITE_P(Smoke,
                          GPU_BN_FWD_Train_Small_FP16,
