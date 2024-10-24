@@ -244,7 +244,7 @@ BnFwdTrainingSpatialSingle::GetSolution(const ExecutionContext& context,
     result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
             decltype(auto) kernel = handle_.Run(kernels.front());
-            decltype(auto) params = raw_params.CastTo<miopen::batchnorm::InvokeParams>();
+            decltype(auto) params = raw_params.CastTo<miopen::batchnorm::FwdTrainInvokeParams>();
             const auto resultsave =
                 params.resultSaveMean != nullptr && params.resultSaveInvVariance != nullptr;
             const auto resultrunning =
