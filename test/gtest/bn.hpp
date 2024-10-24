@@ -40,7 +40,7 @@ enum BNApiType
 };
 
 // Assuming miopenTensorLayout_t and testAPI_t are the types of your enums
-std::string LayoutToString(int tensor_format)
+static std::string LayoutToString(int tensor_format)
 {
     switch(tensor_format)
     {
@@ -50,7 +50,7 @@ std::string LayoutToString(int tensor_format)
     }
 }
 
-std::string ApiVerisonToString(int api_version)
+static std::string ApiVerisonToString(int api_version)
 {
     switch(api_version)
     {
