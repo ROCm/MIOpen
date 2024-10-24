@@ -438,41 +438,6 @@ struct SolverContainer
         return res;
     }
 
-    // Search for all applicable solutions among many solvers
-    template <class Context, class Problem>
-    bool IsAnySolverApplicable(const Context& ctx, const Problem& problem) const
-    {
-        const auto find_only = GetEnvFindOnlySolver();
-        auto found           = false;
-
-        miopen::each_args(
-            [&](auto solver) {
-                if(found || (find_only && (std::find(find_only->begin(),
-                                                     find_only->end(),
-                                                     Id{solver.SolverDbId()}) == find_only->end())))
-                    return;
-
-                // For better performance, check IsDynamic() first, because
-                // it is much faster than IsApplicable().
-                if(ctx.use_dynamic_solutions_only && !solver.IsDynamic())
-                {
-                    MIOPEN_LOG_I2(solver.SolverDbId() << ": Skipped (non-dynamic)");
-                    return;
-                }
-
-                if(solver.IsApplicable(ctx, problem))
-                {
-                    found = true;
-                    return;
-                }
-
-                MIOPEN_LOG_I2(solver.SolverDbId() << ": Not applicable");
-            },
-            Solvers{}...);
-
-        return found;
-    }
-
     template <class Problem>
     void ExecutePrimitive(const ExecutionContext& ctx,
                           const Problem& problem,

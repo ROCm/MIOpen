@@ -79,6 +79,9 @@ struct SolverBase
         return null_id;
     }
 
+    /// Returns true for tunable solvers
+    virtual bool IsTunable() const = 0;
+
     /// [Informative as of Sep 2020] The minimum requirement for Dynamic Solvers:
     /// Batch size and input picture size (N, W, H) must NOT be compiled into the
     /// kernel(s) that consist a Solution. These must go into the kernel as a
@@ -159,6 +162,8 @@ struct SolverInterfaceTunable : SolverInterface<Context, Problem>
 template <class Context, class Problem>
 struct SolverBaseNonTunable : SolverInterfaceNonTunable<Context, Problem>
 {
+    bool IsTunable() const final { return false; };
+
     InvokerFactory GetInvokerFactory(const Context& ctx, const Problem& problem) const
     {
         const auto solution = this->GetSolution(ctx, problem);
@@ -174,6 +179,8 @@ struct TunableSolverTrait
 template <class Context, class Problem, class PerformanceConfig>
 struct SolverBaseTunable : SolverInterfaceTunable<Context, Problem>, TunableSolverTrait
 {
+    bool IsTunable() const final { return true; };
+
     /// Initializes performance config to the default values.
     /// The function may involve some heuristic to guess the best solution
     /// configuration. It is assumed that the function takes constant time

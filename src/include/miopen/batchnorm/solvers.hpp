@@ -133,6 +133,7 @@ struct BnFwdInference final : BatchnormSolver
 
     bool IsApplicable(const ExecutionContext& context,
                       const miopen::batchnorm::ProblemDescription& problem) const override;
+    bool IsDynamic() const override { return true; }
     ConvSolution GetSolution(const ExecutionContext& context,
                              const miopen::batchnorm::ProblemDescription& problem) const override;
 };
@@ -255,6 +256,7 @@ struct BnCKBwdBackward final : BatchNormTunableSolver<PerformanceConfigBnCKBwdBa
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<BnCKBwdBackward>(); }
 
+<<<<<<< HEAD
     MIOPEN_INTERNALS_EXPORT PerformanceConfigBnCKBwdBackward GetDefaultPerformanceConfig(
         const ExecutionContext& ctx,
         const miopen::batchnorm::ProblemDescription& problem_desc) const override;
@@ -273,6 +275,13 @@ struct BnCKBwdBackward final : BatchNormTunableSolver<PerformanceConfigBnCKBwdBa
     GetSolution(const ExecutionContext& ctx,
                 const miopen::batchnorm::ProblemDescription& problem_desc,
                 const PerformanceConfigBnCKBwdBackward& config) const override;
+=======
+    bool IsApplicable(const ExecutionContext& context,
+                      const miopen::batchnorm::ProblemDescription& problem) const override;
+    bool IsDynamic() const override { return true; }
+    ConvSolution GetSolution(const ExecutionContext& context,
+                             const miopen::batchnorm::ProblemDescription& problem) const override;
+>>>>>>> origin/ea_interface_for_fin
 };
 
 struct PerformanceConfigBnCKFwdTraining : PerfConfigBase<PerformanceConfigBnCKFwdTraining>
@@ -323,6 +332,7 @@ struct BnCKFwdTraining final : BatchNormTunableSolver<PerformanceConfigBnCKFwdTr
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<BnCKFwdTraining>(); }
 
+<<<<<<< HEAD
     MIOPEN_INTERNALS_EXPORT PerformanceConfigBnCKFwdTraining GetDefaultPerformanceConfig(
         const ExecutionContext& ctx,
         const miopen::batchnorm::ProblemDescription& problem_desc) const override;
@@ -341,6 +351,13 @@ struct BnCKFwdTraining final : BatchNormTunableSolver<PerformanceConfigBnCKFwdTr
     GetSolution(const ExecutionContext& ctx,
                 const miopen::batchnorm::ProblemDescription& problem_desc,
                 const PerformanceConfigBnCKFwdTraining& config) const override;
+=======
+    bool IsApplicable(const ExecutionContext& context,
+                      const miopen::batchnorm::ProblemDescription& problem) const override;
+    bool IsDynamic() const override { return true; }
+    ConvSolution GetSolution(const ExecutionContext& context,
+                             const miopen::batchnorm::ProblemDescription& problem) const override;
+>>>>>>> origin/ea_interface_for_fin
 };
 
 } // namespace batchnorm
