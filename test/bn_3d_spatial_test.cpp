@@ -1203,6 +1203,8 @@ struct batch_norm_3d_spatial_driver : test_driver
     batch_norm_3d_spatial_driver()
     {
         this->batch_factor = 4;
+        this->tolerance =
+            4e-3 / std::numeric_limits<T>::epsilon(); // ck solver has tolerance of 4e-3
         add(input,
             "input",
             get_3d_bn_spatial_input_tensor(

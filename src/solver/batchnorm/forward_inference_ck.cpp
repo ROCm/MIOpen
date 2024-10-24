@@ -209,6 +209,8 @@ bool BnCKFwdInference::IsApplicable(
         return false;
     if(bn_problem.GetDirection() != miopen::batchnorm::Direction::ForwardInference)
         return false;
+    if(bn_problem.GetMode() != miopenBNSpatial)
+        return false;
 
     switch(bn_problem.GetXDesc().GetType())
     {
