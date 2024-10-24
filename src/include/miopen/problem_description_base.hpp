@@ -92,6 +92,9 @@ struct ProblemDescriptionBase
     ProblemDescriptionBase& operator=(const ProblemDescriptionBase&) = default;
 
     [[nodiscard]] virtual NetworkConfig MakeNetworkConfig() const = 0;
+#if MIOPEN_ENABLE_SQLITE
+    static std::string table_name() { return "config"; }
+#endif
 };
 
 } // namespace miopen

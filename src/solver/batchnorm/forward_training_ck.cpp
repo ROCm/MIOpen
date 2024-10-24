@@ -205,6 +205,24 @@ bool PerformanceConfigBnCKFwdTraining::CheckIsSupportCKArgs(
                              CKArgsBNormFwdTraining>(problem, this->kernel_id);
 }
 
+template <typename XDataType,
+          typename YDataType,
+          typename AccDataType,
+          typename ScaleDataType,
+          typename BiasDataType,
+          typename MeanVarDataType>
+static bool CheckCKApplicability(const miopen::batchnorm::ProblemDescription& problem)
+{
+    return IsCKApplicable<DeviceOpBNFwdTrainingPtrs<XDataType,
+                                                    YDataType,
+                                                    AccDataType,
+                                                    ScaleDataType,
+                                                    BiasDataType,
+                                                    MeanVarDataType>,
+                          CKArgsBNormFwdTraining>(problem);
+}
+#endif
+
 void PerformanceConfigBnCKFwdTraining::HeuristicInit(
     const miopen::batchnorm::ProblemDescription& problem_desc)
 {
@@ -286,25 +304,6 @@ bool PerformanceConfigBnCKFwdTraining::operator==(
 {
     return this->kernel_id == other.kernel_id;
 }
-
-template <typename XDataType,
-          typename YDataType,
-          typename AccDataType,
-          typename ScaleDataType,
-          typename BiasDataType,
-          typename MeanVarDataType>
-static bool CheckCKApplicability(const miopen::batchnorm::ProblemDescription& problem)
-{
-    return IsCKApplicable<DeviceOpBNFwdTrainingPtrs<XDataType,
-                                                    YDataType,
-                                                    AccDataType,
-                                                    ScaleDataType,
-                                                    BiasDataType,
-                                                    MeanVarDataType>,
-                          CKArgsBNormFwdTraining>(problem);
-}
-
-#endif
 
 PerformanceConfigBnCKFwdTraining BnCKFwdTraining::GetDefaultPerformanceConfig(
     const ExecutionContext&, const miopen::batchnorm::ProblemDescription& problem_desc) const

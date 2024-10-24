@@ -211,6 +211,26 @@ bool PerformanceConfigBnCKBwdBackward::CheckIsSupportCKArgs(
                              CKArgsBNormBwd>(problem, this->kernel_id);
 }
 
+template <typename XDataType,
+          typename DxDataType,
+          typename DyDataType,
+          typename AccDataType,
+          typename ScaleDataType,
+          typename DscaleDbiasDataType,
+          typename MeanVarDataType>
+static bool CheckCKApplicability(const miopen::batchnorm::ProblemDescription& problem)
+{
+    return IsCKApplicable<DeviceOpBNBwdPtrs<XDataType,
+                                            DxDataType,
+                                            DyDataType,
+                                            AccDataType,
+                                            ScaleDataType,
+                                            DscaleDbiasDataType,
+                                            MeanVarDataType>,
+                          CKArgsBNormBwd>(problem);
+}
+#endif
+
 void PerformanceConfigBnCKBwdBackward::HeuristicInit(
     const miopen::batchnorm::ProblemDescription& problem_desc)
 {
@@ -292,27 +312,6 @@ bool PerformanceConfigBnCKBwdBackward::operator==(
 {
     return this->kernel_id == other.kernel_id;
 }
-
-template <typename XDataType,
-          typename DxDataType,
-          typename DyDataType,
-          typename AccDataType,
-          typename ScaleDataType,
-          typename DscaleDbiasDataType,
-          typename MeanVarDataType>
-static bool CheckCKApplicability(const miopen::batchnorm::ProblemDescription& problem)
-{
-    return IsCKApplicable<DeviceOpBNBwdPtrs<XDataType,
-                                            DxDataType,
-                                            DyDataType,
-                                            AccDataType,
-                                            ScaleDataType,
-                                            DscaleDbiasDataType,
-                                            MeanVarDataType>,
-                          CKArgsBNormBwd>(problem);
-}
-
-#endif
 
 PerformanceConfigBnCKBwdBackward BnCKBwdBackward::GetDefaultPerformanceConfig(
     const ExecutionContext&, const miopen::batchnorm::ProblemDescription& problem_desc) const

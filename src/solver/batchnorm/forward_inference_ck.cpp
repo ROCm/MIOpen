@@ -175,6 +175,20 @@ bool PerformanceConfigBnCKFwdInference::CheckIsSupportCKArgs(
         CKArgsBNormFwd>(problem, this->kernel_id);
 }
 
+template <typename XDataType,
+          typename YDataType,
+          typename AccDataType,
+          typename ScaleDataType,
+          typename BiasDataType,
+          typename MeanVarDataType>
+static bool CheckCKApplicability(const miopen::batchnorm::ProblemDescription& problem)
+{
+    return IsCKApplicable<
+        DeviceOpBnFwdInfPtrs<XDataType, YDataType, ScaleDataType, BiasDataType, MeanVarDataType>,
+        CKArgsBNormFwd>(problem);
+}
+#endif
+
 void PerformanceConfigBnCKFwdInference::HeuristicInit(
     const miopen::batchnorm::ProblemDescription& problem_desc)
 {
@@ -258,21 +272,6 @@ bool PerformanceConfigBnCKFwdInference::operator==(
 {
     return this->kernel_id == other.kernel_id;
 }
-
-template <typename XDataType,
-          typename YDataType,
-          typename AccDataType,
-          typename ScaleDataType,
-          typename BiasDataType,
-          typename MeanVarDataType>
-static bool CheckCKApplicability(const miopen::batchnorm::ProblemDescription& problem)
-{
-    return IsCKApplicable<
-        DeviceOpBnFwdInfPtrs<XDataType, YDataType, ScaleDataType, BiasDataType, MeanVarDataType>,
-        CKArgsBNormFwd>(problem);
-}
-
-#endif
 
 PerformanceConfigBnCKFwdInference BnCKFwdInference::GetDefaultPerformanceConfig(
     const ExecutionContext&, const miopen::batchnorm::ProblemDescription& problem_desc) const

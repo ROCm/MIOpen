@@ -360,10 +360,6 @@ struct MIOPEN_INTERNALS_EXPORT ProblemDescription : ProblemDescriptionBase
         return os;
     }
 
-#if MIOPEN_ENABLE_SQLITE
-    static std::string table_name() { return "config"; }
-#endif
-
     template <class Self>
     static void Visit(Self&& self, std::function<void(int64_t, std::string)> f)
     {
