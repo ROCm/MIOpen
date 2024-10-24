@@ -219,8 +219,7 @@ bool BnCKBwdBackward::IsApplicable(
         return false;
     if(!bn_problem.Is2D())
         return false;
-    if(bn_problem.GetMode() != miopenBNSpatial)
-        return false;
+
     switch(bn_problem.GetXDesc().GetType())
     {
     case miopenFloat: return CheckCKApplicability<F32, F32, F32, F32, F32, F32, F32>(bn_problem);
