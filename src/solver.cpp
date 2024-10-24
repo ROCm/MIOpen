@@ -24,7 +24,6 @@
  *
  *******************************************************************************/
 
-#include "miopen/any/solvers.hpp"
 #include <miopen/solver.hpp>
 
 #include <miopen/activ/solvers.hpp>
@@ -41,6 +40,7 @@
 #include <miopen/rope/solvers.hpp>
 #include <miopen/mha/solvers.hpp>
 #include <miopen/softmax/solvers.hpp>
+#include "miopen/any/solvers.hpp"
 
 #include <miopen/conv_algo_name.hpp>
 #include <miopen/db.hpp>
@@ -681,7 +681,6 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
     Register(registry, ++id, Primitive::ReLU, prelu::MultiWeightsBackward{}.SolverDbId());
     Register(registry, ++id, Primitive::ReLU, prelu::SingleWeightBackward{}.SolverDbId());
     Register(registry, ++id, Primitive::Any, any::AnyForward{}.SolverDbId());
-
     // IMPORTANT: New solvers should be added to the end of the function!
 }
 

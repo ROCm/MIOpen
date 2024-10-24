@@ -25,12 +25,9 @@
  *******************************************************************************/
 #pragma once
 
-// #include "miopen/execution_context.hpp"
 #include "miopen/execution_context.hpp"
 #include <miopen/any/problem_description.hpp>
 #include <miopen/solver.hpp>
-
-// #include <utility>
 
 namespace miopen {
 
@@ -54,28 +51,6 @@ struct AnyForward final : AnySolver
 };
 
 } // namespace any
-
-// TODO(anhduong): Add additional solver for ReduceAny
-// namespace forward_reduce {
-// using ReduceAnyForwardSolver =
-//     NonTunableSolverBase<ExecutionContext, miopen::forward_reduce::ProblemDescription>
-
-//     struct ReduceAnyForward final : ReduceAnyForwardSolver
-// {
-//     const std::string& SolverDbId() const override { return GetSolverDbId<ReduceAnyForward>(); }
-
-//     bool IsApplicable(const ExecutionContext& context,
-//                       const miopen::forward_reduce::ProblemDescription& problem) const override;
-//     ConvSolution
-//     GetSolution(const ExecutionContext& context,
-//                 const miopen::forward_reduce::ProblemDescription& problem) const override;
-//     std::size_t
-//     GetWorkspaceSize(const ExecutionContext& context,
-//                      const miopen::forward_reduce::ProblemDescription& problem) const override;
-//     // bool MayNeedWorkspace() const override { return true; }
-// };
-
-// } // namespace forward_reduce
 
 } // namespace solver
 

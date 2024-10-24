@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2017 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -62,11 +62,6 @@ int32_t mloAnyForwardRunHost(miopenTensorDescriptor_t inputDesc,
     auto reduce_size  = input_dims[dim];
     auto output_numel = miopen::deref(outputDesc).GetElementSize();
     auto input_numel  = miopen::deref(inputDesc).GetElementSize();
-
-    // QUES: Can I directly use input[x] instead of i_tv.get_tensor_view_idx(idx)? -> it seems like
-    // I can in case input tensor is contiguous but for non-contiguous tensor, it seems like I
-    // should use tensor_view instead auto input_tv =
-    // miopen::get_inner_expanded_tv<5>(miopen::deref(inputDesc));
 
     auto inner_size = 1ULL;
     for(int32_t i = dim + 1; i < input_dims.size(); i++)
@@ -149,7 +144,7 @@ private:
     std::unique_ptr<GPUMem> workspace_dev;
 
     std::vector<Tgpu> in;
-    std::vector<Tgpu> out;
+    std::vector<unsigned char> out;
     std::vector<Tref> outhost;
 
     size_t ws_sizeInBytes;
@@ -163,7 +158,7 @@ int AnyDriver<Tgpu, Tref>::AddCmdLineArgs()
 {
     inflags.AddInputFlag("forw", 'F', "1", "Run only Forward LPPool (Default=1)", "int");
     inflags.AddTensorFlag(
-        "dim_lengths", 'L', "3x4x5", "The dimensional lengths of the input tensor");
+        "input", 'D', "3x4x5", "The dimensional lengths of the input tensor (Default=3x4x5)");
     inflags.AddInputFlag("dim", 'd', "-1", "the dimension to reduce (Default=None)", "int");
     inflags.AddInputFlag("keepdim", 'k', "0", "Keep the reduced dimension (Default=0)", "int");
     inflags.AddInputFlag("iter", 'i', "10", "Number of Iterations (Default=10)", "int");
@@ -179,16 +174,6 @@ int AnyDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
 {
     inflags.Parse(argc, argv);
 
-    // QUES: Is this check necessary?
-    // auto dim     = inflags.GetValueInt("dim");
-    // auto keepdim = inflags.GetValueInt("keepdim");
-
-    // if(dim == -1 && keepdim == 1)
-    // {
-    //     // NOTE: keepdim is not supported when dim is None
-    //     return miopenStatusInvalidValue;
-    // }
-
     if(inflags.GetValueInt("time") == 1)
     {
         miopenEnableProfiling(GetHandle(), true);
@@ -200,7 +185,7 @@ int AnyDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
 template <typename Tgpu, typename Tref>
 int AnyDriver<Tgpu, Tref>::GetandSetData()
 {
-    std::vector<int> in_len = inflags.GetValueTensor("dim_lengths").lengths;
+    std::vector<int> in_len = inflags.GetValueTensor("input").lengths;
     dim                     = inflags.GetValueInt("dim");
     keepdim                 = inflags.GetValueInt("keepdim");
 
@@ -232,10 +217,6 @@ int AnyDriver<Tgpu, Tref>::GetandSetData()
 template <typename Tgpu, typename Tref>
 int AnyDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 {
-    // std::cout << "data_type: " << data_type << std::endl;
-    // uint32_t ctx = 0;
-
-    // size_t in_sz = GetTensorSpace(inputTensor);
     size_t in_sz  = GetTensorSize(inputDesc);
     size_t out_sz = GetTensorSize(outputDesc);
 
@@ -259,7 +240,7 @@ int AnyDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
     // GPU host allocation
     in  = std::vector<Tgpu>(in_sz, static_cast<Tgpu>(0));
-    out = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
+    out = std::vector<unsigned char>(out_sz, static_cast<Tgpu>(0));
 
     // CPU allocation
     outhost = std::vector<Tref>(out_sz, static_cast<Tref>(0));
@@ -269,23 +250,6 @@ int AnyDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         in[i] = prng::gen_A_to_B<Tgpu>(std::numeric_limits<Tgpu>::min(),
                                        std::numeric_limits<Tgpu>::max());
     }
-    in[in_sz - 1] = 0;
-
-    // const bool sign = (prng::gen_0_to_B(1.0) > 0.5) ? true : false;
-    // if(sign)
-    // {
-    //     for(int i = 0; i < in_sz; i++)
-    //     {
-    //         in[i] = prng::gen_A_to_B<Tgpu>(std::numeric_limits<Tgpu>::min(),
-    //                                        std::numeric_limits<Tgpu>::max());
-    //     }
-    //     in[in_sz - 1] = 0;
-    // }
-    // else
-    // {
-    //     // Set all values to 0
-    //     std::fill(in.begin(), in.end(), static_cast<Tgpu>(0));
-    // }
 
     if(in_dev->ToGPU(GetStream(), in.data()) != 0)
         std::cerr << "Error copying (in) to GPU, size: " << in_dev->GetSize() << std::endl;
@@ -294,12 +258,12 @@ int AnyDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         std::cerr << "Error copying (out) to GPU, size: " << out_dev->GetSize() << std::endl;
 
     // print input
-    std::cout << "input: ";
-    for(auto i : in)
-    {
-        std::cout << signed(i) << " ";
-    }
-    std::cout << std::endl;
+    // std::cout << "input: ";
+    // for(auto i : in)
+    // {
+    //     std::cout << signed(i) << " ";
+    // }
+    // std::cout << std::endl;
 
     return miopenStatusSuccess;
 }
@@ -363,32 +327,33 @@ template <typename Tgpu, typename Tref>
 int AnyDriver<Tgpu, Tref>::VerifyForward()
 {
     RunForwardCPU();
-    auto error = miopen::rms_range(outhost, out);
 
-    // std::cout << "outhost" <<
-    // print host and outhost
-    std::cout << "outhost: ";
-    for(auto oh : outhost)
-    {
-        std::cout << signed(oh) << " ";
-    }
+    auto is_equal = (outhost == out);
 
-    std::cout << std::endl;
-    std::cout << "out: ";
-    for(auto o : out)
-    {
-        std::cout << signed(o) << " ";
-    }
+    // std::cout << "outhost: ";
+    // for(auto oh : outhost)
+    // {
+    //     std::cout << signed(oh) << " ";
+    // }
 
-    std::cout << std::endl;
-    if(!std::isfinite(error) || error != 0)
+    // std::cout << std::endl;
+    // std::cout << "out: ";
+    // for(auto o : out)
+    // {
+    //     std::cout << signed(o) << " ";
+    // }
+
+    // std::cout << std::endl;
+
+    if(!is_equal)
     {
-        std::cout << "Forward Any FAILED: " << error << std::endl;
+        std::cout << "Forward Any FAILED: is_equal = " << is_equal << std::endl;
         return EC_VerifyFwd;
     }
     else
     {
-        std::cout << "Forward Any Verifies OK on CPU reference (" << error << ")" << std::endl;
+        std::cout << "Forward Any Verifies OK on CPU reference (is_equal = " << is_equal << ")"
+                  << std::endl;
     }
 
     return miopenStatusSuccess;

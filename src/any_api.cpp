@@ -64,10 +64,12 @@ LogCmdAny(const miopenTensorDescriptor_t inputDesc, const int32_t dim, const boo
             ss << "anyfp64";
         }
 
-        // int32_t size = {0};
-
-        // miopenGetTensorDescriptorSize(inputDesc, &size);
-        // ss << "-n " << miopen::deref(inputDesc).GetLengths()[0] << " -c " << size;
+        ss << "-shape ( ";
+        for(unsigned long i : miopen::deref(inputDesc).GetLengths())
+        {
+            ss << i << " ";
+        }
+        ss << ")";
 
         ss << " -dim " << dim;
         ss << " -keepdim " << keepdim;
@@ -100,7 +102,7 @@ extern "C" miopenStatus_t miopenAnyForward(miopenHandle_t handle,
                                            void* workspace,
                                            size_t workspaceSizeInBytes,
                                            const miopenTensorDescriptor_t inputDesc,
-                                           const void* input,
+                                           void* input,
                                            const int32_t dim,
                                            const bool keepdim,
                                            const miopenTensorDescriptor_t outputDesc,

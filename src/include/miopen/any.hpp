@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -43,7 +43,7 @@ MIOPEN_INTERNALS_EXPORT miopenStatus_t AnyForward(Handle& handle,
                                                   Data_t workspace,
                                                   size_t workspaceSizeInBytes,
                                                   const TensorDescriptor& inputDesc,
-                                                  ConstData_t input,
+                                                  Data_t input,
                                                   int32_t dim,
                                                   bool keepdim,
                                                   const TensorDescriptor& outputDesc,

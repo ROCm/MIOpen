@@ -28,24 +28,12 @@
 
 static Driver* makeDriver(const std::string& base_arg)
 {
-    // NOTE: there's no bool dtype in miopen_type so I commented out the support for bool.
-    // if(base_arg == "any")
-    //     return new AnyDriver<float, bool>();
-    // if(base_arg == "anyfp16")
-    //     return new AnyDriver<float16, bool>();
-    // if(base_arg == "anybfp16")
-    //     return new AnyDriver<bfloat16, bool>();
-    // if(base_arg == "anyint32")
-    //     return new AnyDriver<int32_t, bool>();
-    // if(base_arg == "anyint16")
-    //     return new AnyDriver<int16_t, bool>();
-    if(base_arg == "anyuint8")
-        return new AnyDriver<uint8_t, uint8_t>();
-    // NOTE: It seems like MIOpen doesn't support for miopen dtype bool yet (?) so I commented out the support for bool.
-    // if(base_arg == "anybool")
-    //     return new AnyDriver<bool, bool>();
+    // TODO: Add support for uint8, bool and other dtype
+    // OUTPUT_DTYPE should be "bool" but use "char" instead to be able to get data using vector's
+    // .data() method
+    if(base_arg == "anyint8")
+        return new AnyDriver<int8_t, unsigned char>();
     return nullptr;
 }
 
-// REGISTER_DRIVER_MAKER(makeDriver);
 REGISTER_DRIVER_MAKER(makeDriver);

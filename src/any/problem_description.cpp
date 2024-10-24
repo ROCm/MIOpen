@@ -47,12 +47,6 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
     ss << "keepdim" << keepdim;
     ss << "output_numel" << output_numel;
 
-    // if(keepdim)
-    // {
-    //     auto reduce_size = input_length[dim];
-    //     ss << "reduce_size" << reduce_size;
-    // }
-
     return NetworkConfig(ss.str());
 }
 
