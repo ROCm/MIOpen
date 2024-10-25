@@ -1157,26 +1157,18 @@ struct batch_norm_spatial_driver : test_driver
         miopen::DeriveBNTensorDescriptor(derivedBnDesc, input.desc, miopenBNSpatial);
         std::tie(ssn, ssc, ssh, ssw) = miopen::tien<4>(derivedBnDesc.GetLengths());
 
-        if(input.desc.GetType() == miopenFloat)
-        {
-            scale = tensor<PREC_TYPE>{ssn, ssc, ssh, ssw}.generate(tensor_elem_gen_integer{17});
-            shift = tensor<PREC_TYPE>{ssn, ssc, ssh, ssw}.generate(tensor_elem_gen_integer{17});
-        }
-        else
-        {
-            scale = tensor<PREC_TYPE>{ssn, ssc, ssh, ssw};
-            shift = tensor<PREC_TYPE>{ssn, ssc, ssh, ssw};
+        scale                   = tensor<PREC_TYPE>{ssn, ssc, ssh, ssw};
+        shift                   = tensor<PREC_TYPE>{ssn, ssc, ssh, ssw};
+        const double Data_scale = 1e-4;
 
-            const double Data_scale = 1e-4;
-            for(std::size_t i = 0; i < scale.desc.GetElementSize(); i++)
-            {
-                scale[i] = prng::gen_descreet_uniform_sign<PREC_TYPE>(Data_scale, 100);
-                shift[i] = prng::gen_descreet_uniform_sign<PREC_TYPE>(Data_scale, 100);
-            }
-            for(std::size_t i = 0; i < input.desc.GetElementSize(); i++)
-            {
-                input[i] = prng::gen_descreet_uniform_sign<T>(1e-5, 100);
-            }
+        for(std::size_t i = 0; i < scale.desc.GetElementSize(); i++)
+        {
+            scale[i] = prng::gen_descreet_uniform_sign<PREC_TYPE>(Data_scale, 100);
+            shift[i] = prng::gen_descreet_uniform_sign<PREC_TYPE>(Data_scale, 100);
+        }
+        for(std::size_t i = 0; i < input.desc.GetElementSize(); i++)
+        {
+            input[i] = prng::gen_descreet_uniform_sign<T>(1e-5, 100);
         }
 
 // train

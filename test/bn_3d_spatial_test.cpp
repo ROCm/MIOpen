@@ -1235,34 +1235,18 @@ struct batch_norm_3d_spatial_driver : test_driver
         miopen::DeriveBNTensorDescriptor(derivedBnDesc, input.desc, miopenBNSpatial);
         std::tie(ssn, ssc, ssd, ssh, ssw) = miopen::tien<5>(derivedBnDesc.GetLengths());
 
-        if(input.desc.GetType() == miopenFloat)
-        {
-            scale =
-                tensor<PREC_TYPE>{ssn, ssc, ssd, ssh, ssw}.generate(tensor_elem_gen_integer{17});
-            shift =
-                tensor<PREC_TYPE>{ssn, ssc, ssd, ssh, ssw}.generate(tensor_elem_gen_integer{17});
+        scale                   = tensor<PREC_TYPE>{ssn, ssc, ssd, ssh, ssw};
+        shift                   = tensor<PREC_TYPE>{ssn, ssc, ssd, ssh, ssw};
+        const double Data_scale = 1e-4;
 
-            if(d * h * w < 3072)
-            {
-                std::cout << "Choosing smaller input values for low dims" << std::endl;
-                input = tensor<T>{n, c, d, h, w}.generate(tensor_elem_gen_integer{7});
-            }
+        for(std::size_t i = 0; i < scale.desc.GetElementSize(); i++)
+        {
+            scale[i] = prng::gen_descreet_uniform_sign<PREC_TYPE>(Data_scale, 100);
+            shift[i] = prng::gen_descreet_uniform_sign<PREC_TYPE>(Data_scale, 100);
         }
-        else
+        for(std::size_t i = 0; i < input.desc.GetElementSize(); i++)
         {
-            scale = tensor<PREC_TYPE>{ssn, ssc, ssd, ssh, ssw};
-            shift = tensor<PREC_TYPE>{ssn, ssc, ssd, ssh, ssw};
-
-            const double Data_scale = 1e-4;
-            for(std::size_t i = 0; i < scale.desc.GetElementSize(); i++)
-            {
-                scale[i] = prng::gen_descreet_uniform_sign<PREC_TYPE>(Data_scale, 100);
-                shift[i] = prng::gen_descreet_uniform_sign<PREC_TYPE>(Data_scale, 100);
-            }
-            for(std::size_t i = 0; i < input.desc.GetElementSize(); i++)
-            {
-                input[i] = prng::gen_descreet_uniform_sign<T>(1e-5, 100);
-            }
+            input[i] = prng::gen_descreet_uniform_sign<T>(1e-5, 100);
         }
 
 // train
