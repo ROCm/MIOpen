@@ -71,7 +71,6 @@ using OUTPUT_TYPE = unsigned char;
 #include <cstdio>
 #endif
 
-// #include "float_types.h"
 #include "tensor_view.hpp"
 
 extern "C" __global__ void AnyForward(const INPUT_TYPE* __restrict__ input,
@@ -88,8 +87,10 @@ extern "C" __global__ void AnyForward(const INPUT_TYPE* __restrict__ input,
     if(gid >= N)
         return;
 
-    size_t idx       = (gid / st) * st * K + gid % st;
-    size_t input_idx = input_tv.get_tensor_view_idx({idx});
+    size_t idx = (gid / st) * st * K + gid % st;
+
+    auto i_tl      = tensor_layout_t<5>(input_tv, idx);
+    auto input_idx = input_tv.get_tensor_view_idx(i_tl);
 
     OUTPUT_TYPE any = 0;
     for(size_t k = 0; k < K; ++k)
@@ -98,7 +99,10 @@ extern "C" __global__ void AnyForward(const INPUT_TYPE* __restrict__ input,
         input_idx += input_tv.stride[reduce_dim];
     }
 
-    output[output_tv.get_tensor_view_idx({gid})] = any;
+    auto o_tl       = tensor_layout_t<5>(output_tv, gid);
+    auto output_idx = output_tv.get_tensor_view_idx(o_tl);
+
+    output[output_idx] = static_cast<OUTPUT_TYPE>(any);
 }
 
 extern "C" __global__ void ReduceAny(INPUT_TYPE* __restrict__ input,
@@ -108,26 +112,15 @@ extern "C" __global__ void ReduceAny(INPUT_TYPE* __restrict__ input,
                                      tensor_view_t<5> input_tv,
                                      tensor_view_t<5> output_tv)
 {
-    // printf("Running kernel\n");
-    // uint64_t gid = blockIdx.x * blockDim.x + threadIdx.x;
     uint64_t gid = blockIdx.x * blockDim.x + threadIdx.x;
     uint64_t lid = threadIdx.x;
 
-    // tensor_layout_t input_layout = tensor_layout_t(input_tv, gid);
-
-    // tensor layout
     auto i_tl      = tensor_layout_t(input_tv, gid);
     auto input_idx = input_tv.get_tensor_view_idx(i_tl);
 
     local_mem[lid] = (gid < N) ? input[input_idx] : 0;
 
-    // local_mem[lid] = (gid < N) ? input[tensor_layout] : 0;
-    // local_mem[lid] = ()
-    // local_mem[lid] = (gid < N) ? input[gid] : 0;
-
     __syncthreads();
-
-    // printf("local_mem[0]: %u\n", (unsigned char)local_mem[0]);
 
     for(size_t i = blockDim.x / 2; i > 0; i >>= 1)
     {
@@ -140,31 +133,8 @@ extern "C" __global__ void ReduceAny(INPUT_TYPE* __restrict__ input,
 
     if(lid == 0)
     {
-        // auto o_tl = tensor_layout_t(output_tv, blockIdx.x);
         auto o_tl          = tensor_layout_t<5>(output_tv, blockIdx.x);
         auto output_idx    = output_tv.get_tensor_view_idx(o_tl);
         output[output_idx] = static_cast<OUTPUT_TYPE>(local_mem[0]);
-        // printf("gid: %d, lid: %d, local_mem[0]: %d\n", gid, lid, local_mem[0]);
-        // printf("Hit here;\n");
-
-        // printf("Hit here\n");
-        // printf("[Set output] blockDim.x: %d, blockIdx: %d, threadIdx: %d, gid: %d, lid: %d\n",
-        //    blockDim.x,
-        //    blockIdx.x,
-        //    threadIdx.x,
-        //    gid,
-        //    lid);
-        // printf("[Set output] blockDim.x: %d, blockIdx: %d, threadIdx: %d, gid: %d, lid: %d, "
-        //        "local_mem[0]: %u\n",
-        //        blockDim.x,
-        //        blockIdx.x,
-        //        threadIdx.x,
-        //        gid,
-        //        lid,
-        //        (unsigned char)local_mem[0]);
-        // OUTPUT_TYPE val                                     =
-        // static_cast<OUTPUT_TYPE>(local_mem[0]); output[blockIdx.x] = val;
-        // output[output_tv.get_tensor_view_idx({blockIdx.x})] = val;
-        // printf("local_mem[0]: %d", local_mem[0]);
     }
 }

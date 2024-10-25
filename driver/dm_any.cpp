@@ -28,7 +28,7 @@
 
 static Driver* makeDriver(const std::string& base_arg)
 {
-    // TODO: Add support for uint8, bool and other dtype
+    // TODO: Add support for uint8, bool, fp16, int16, fp32, int32
     // OUTPUT_DTYPE should be "bool" but use "char" instead to be able to get data using vector's
     // .data() method
     if(base_arg == "anyint8")

@@ -98,7 +98,7 @@ struct ProblemDescription : ProblemDescriptionBase
             }
             else
             {
-                if(inputDesc.GetNumDims() != outputDesc.GetNumDims() - 1)
+                if(inputDesc.GetNumDims() - 1 != outputDesc.GetNumDims())
                 {
                     return false;
                 }
@@ -128,6 +128,8 @@ struct ProblemDescription : ProblemDescriptionBase
         {
             return false;
         }
+
+        return true;
     }
 
     NetworkConfig MakeNetworkConfig() const override;

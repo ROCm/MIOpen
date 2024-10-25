@@ -30,13 +30,10 @@
 #include "tensor_driver.hpp"
 #include "timer.hpp"
 #include "random.hpp"
-// #include "mloAnyForward.hpp"
 
 #include <cstdint>
 #include <cstdlib>
-// #include <limits>
 #include <memory>
-// #include <stdexcept>
 #include <vector>
 
 #include <miopen/tensor_view_utils.hpp>
@@ -63,14 +60,14 @@ int32_t mloAnyForwardRunHost(miopenTensorDescriptor_t inputDesc,
     auto output_numel = miopen::deref(outputDesc).GetElementSize();
     auto input_numel  = miopen::deref(inputDesc).GetElementSize();
 
-    auto inner_size = 1ULL;
-    for(int32_t i = dim + 1; i < input_dims.size(); i++)
-    {
-        inner_size *= input_dims[i];
-    }
-
     if(dim != -1)
     {
+        auto inner_size = 1ULL;
+        for(int32_t i = dim + 1; i < input_dims.size(); i++)
+        {
+            inner_size *= input_dims[i];
+        }
+
         for(size_t o = 0; o < output_numel; o++)
         {
             size_t input_idx = (o / inner_size) * inner_size * reduce_size + o % inner_size;
@@ -209,6 +206,13 @@ int AnyDriver<Tgpu, Tref>::GetandSetData()
         out_len = {1};
     }
 
+    std::cout << "out_len: ";
+    for(auto ol : out_len)
+    {
+        std::cout << ol << " ";
+    }
+    std::cout << std::endl;
+
     SetTensorNd(outputDesc, out_len, data_type);
 
     return miopenStatusSuccess;
@@ -250,20 +254,20 @@ int AnyDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         in[i] = prng::gen_A_to_B<Tgpu>(std::numeric_limits<Tgpu>::min(),
                                        std::numeric_limits<Tgpu>::max());
     }
+    // Temporary set those values to force the output any to be 0
+    // size: 3x4x5
+    // reduce_dim: 1
+    in[1]                     = 0;
+    in[0 * 4 * 5 + 1 * 5 + 1] = 0;
+    in[0 * 4 * 5 + 2 * 5 + 1] = 0;
+    in[0 * 4 * 5 + 3 * 5 + 1] = 0;
+    in[0 * 4 * 5 + 4 * 5 + 1] = 0;
 
     if(in_dev->ToGPU(GetStream(), in.data()) != 0)
         std::cerr << "Error copying (in) to GPU, size: " << in_dev->GetSize() << std::endl;
 
     if(out_dev->ToGPU(GetStream(), out.data()) != 0)
         std::cerr << "Error copying (out) to GPU, size: " << out_dev->GetSize() << std::endl;
-
-    // print input
-    // std::cout << "input: ";
-    // for(auto i : in)
-    // {
-    //     std::cout << signed(i) << " ";
-    // }
-    // std::cout << std::endl;
 
     return miopenStatusSuccess;
 }
@@ -281,7 +285,8 @@ int AnyDriver<Tgpu, Tref>::RunForwardGPU()
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
         miopenAnyForward(GetHandle(),
-                         workspace_dev->GetMem(),
+                         //  workspace_dev->GetMem(),
+                         (dim == -1) ? workspace_dev->GetMem() : nullptr,
                          ws_sizeInBytes,
                          inputDesc,
                          in_dev->GetMem(),
@@ -329,21 +334,6 @@ int AnyDriver<Tgpu, Tref>::VerifyForward()
     RunForwardCPU();
 
     auto is_equal = (outhost == out);
-
-    // std::cout << "outhost: ";
-    // for(auto oh : outhost)
-    // {
-    //     std::cout << signed(oh) << " ";
-    // }
-
-    // std::cout << std::endl;
-    // std::cout << "out: ";
-    // for(auto o : out)
-    // {
-    //     std::cout << signed(o) << " ";
-    // }
-
-    // std::cout << std::endl;
 
     if(!is_equal)
     {

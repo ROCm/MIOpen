@@ -73,12 +73,12 @@ MultiBufferWorkspaceTraits GetMultiBufferWorkspaceTraits(const TensorDescriptor&
 bool AnyForward::IsApplicable(const ExecutionContext& context,
                               const miopen::any::ProblemDescription& problem) const
 {
-    // std::ignore = context;
+    std::ignore = context;
 
-    // if(!problem.IsAllPacked())
-    // {
-    //     return false;
-    // }
+    if(!problem.IsAllPacked())
+    {
+        return false;
+    }
 
     return true;
 }
@@ -86,7 +86,7 @@ bool AnyForward::IsApplicable(const ExecutionContext& context,
 ConvSolution AnyForward::GetSolution(const ExecutionContext& context,
                                      const miopen::any::ProblemDescription& problem) const
 {
-    // std::ignore = context;
+    std::ignore = context;
 
     auto result = ConvSolution{miopenStatusSuccess};
 
@@ -97,24 +97,9 @@ ConvSolution AnyForward::GetSolution(const ExecutionContext& context,
     auto input_dims  = problem.GetInputDesc().GetLengths();
     auto output_dims = problem.GetOutputDesc().GetLengths();
     auto dim         = problem.GetDim();
-    auto keep_dim    = problem.GetKeepDim();
 
     auto input_numel  = problem.GetInputDesc().GetElementSize();
     auto output_numel = problem.GetOutputDesc().GetElementSize();
-
-    std::string i_dtype = input_dtype;
-    std::string o_dtype = output_dtype;
-
-    if(input_dtype == "int8_t")
-    {
-        i_dtype = "char";
-    }
-    else if(input_dtype == "bfloat16")
-    {
-        i_dtype = "ushort";
-    }
-
-    std::cout << "input_dtype: " << input_dtype << ", i_dtype: " << i_dtype << std::endl;
 
     if(dim != -1)
     {
@@ -129,10 +114,12 @@ ConvSolution AnyForward::GetSolution(const ExecutionContext& context,
         kernel.kernel_file = "MIOpenAny.cpp";
         kernel.kernel_name = "AnyForward";
 
-        // MIOpen doesn't support for bool so I have to use char instead
         auto build_params = KernelBuildParameters{
-            {"INPUT_TYPE", i_dtype},
-            {"OUTPUT_TYPE", "char"},
+            {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
+            {"MIOPEN_USE_FP16", static_cast<int>(dtype == miopenHalf)},
+            {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
+            {"MIOPEN_USE_INT8", static_cast<int>(dtype == miopenInt8)},
+            {"MIOPEN_USE_INT32", static_cast<int>(dtype == miopenInt32)},
         };
 
         kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
@@ -156,22 +143,14 @@ ConvSolution AnyForward::GetSolution(const ExecutionContext& context,
                 auto output_tv = get_inner_expanded_tv<5>(deref(params.outputDesc));
 
                 auto N    = output_numel;
-                auto K    = problem.GetOutputDesc().GetLengths()[dim];
+                auto K    = problem.GetInputDesc().GetLengths()[dim];
                 size_t st = 1;
-                for(int i = dim + 1; i < output_dims.size(); i++)
+                for(int i = dim + 1; i < input_dims.size(); i++)
                 {
-                    st *= output_dims[i];
+                    st *= input_dims[i];
                 }
 
-                kernel(params.input,
-                       params.output,
-                       //    params.workspace,
-                       N,
-                       K,
-                       st,
-                       dim,
-                       input_tv,
-                       output_tv);
+                kernel(params.input, params.output, N, K, st, dim, input_tv, output_tv);
             };
         };
     }
@@ -200,7 +179,6 @@ ConvSolution AnyForward::GetSolution(const ExecutionContext& context,
                     {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
                     {"MIOPEN_USE_INT8", static_cast<int>(dtype == miopenInt8)},
                     {"MIOPEN_USE_INT32", static_cast<int>(dtype == miopenInt32)},
-                    // {}
                 };
 
                 kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
@@ -214,7 +192,6 @@ ConvSolution AnyForward::GetSolution(const ExecutionContext& context,
                 kernel.g_wk.push_back(zgridsize);
 
                 result.construction_params.push_back(kernel);
-                // N = DivCeil(N, LOCAL_SIZE);
                 N = AlignUp(N, LOCAL_SIZE) / LOCAL_SIZE;
             }
         }
@@ -249,11 +226,6 @@ ConvSolution AnyForward::GetSolution(const ExecutionContext& context,
             kernel.g_wk.push_back(xgridsize);
             kernel.g_wk.push_back(ygridsize);
             kernel.g_wk.push_back(zgridsize);
-
-            // Print local work size
-            printf("local_size(x, y, z) = (%d, %d, %d)\n", xlocalsize, ylocalsize, zlocalsize);
-            // Print global work size
-            printf("grid_size(x, y, z) = (%d, %d, %d)\n", xgridsize, ygridsize, zgridsize);
 
             result.construction_params.push_back(kernel);
         }
