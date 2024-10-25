@@ -23,42 +23,42 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#include <cpu_any.hpp>
+#include <get_handle.hpp>
+#include <random.hpp>
+#include <tensor_holder.hpp>
+#include <verify.hpp>
 
-// #include "cpu_any.hpp"
-#include "get_handle.hpp"
-#include "tensor_holder.hpp"
-#include "verify.hpp"
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <gtest/gtest.h>
 #include <miopen/miopen.h>
 #include <miopen/any.hpp>
-#include <type_traits>
-#include <vector>
 
 struct AnyTestCase
 {
-    std::vector<size_t> dims;
+    std::vector<size_t> input_shape;
     int32_t dim;
     bool keepdim;
 
     friend std::ostream& operator<<(std::ostream& os, const AnyTestCase& tc)
     {
         os << "dims: ";
-        for(auto dim_size : tc.dims)
+        for(auto dim_size : tc.input_shape)
         {
             os << dim_size << " ";
         }
-        return os << "dim: " << tc.dim << " keepdim: " << tc.keepdim;
+        os << "dim: " << tc.dim << " keepdim: " << tc.keepdim;
+        return os;
     }
 
-    std::vector<size_t> GetDims() const { return dims; }
+    std::vector<size_t> GetInputShape() const { return input_shape; }
 
     AnyTestCase() {}
 
-    AnyTestCase(std::vector<size_t> dims_, size_t dim_ = -1, bool keepdim_ = false)
-        : dims(dims_), dim(dim_), keepdim(keepdim_)
+    AnyTestCase(std::vector<size_t> input_shape_, size_t dim_ = -1, bool keepdim_ = false)
+        : input_shape(input_shape_), dim(dim_), keepdim(keepdim_)
     {
     }
 };
@@ -66,9 +66,10 @@ struct AnyTestCase
 inline std::vector<AnyTestCase> AnyTestConfigs()
 {
     return {
+        {{3, 4, 5}, -1, false},
         {{4, 5, 7, 8}},          // test any reduce
-        {{4, 5, 7, 8}, 0},       // test dim zero
-        {{4, 5, 7, 8}, 0, true}, // test dim zero and keepdim
+        {{4, 5, 7, 8}, 0},       // test reduce_dim=0
+        {{4, 5, 7, 8}, 0, true}, // test reduce_dim=0 and keepdim=True
         {{5}},
         {{4, 5}},
         {{4, 5, 7}},
@@ -78,9 +79,8 @@ inline std::vector<AnyTestCase> AnyTestConfigs()
         {{4, 5, 7}, 1, true},
         {{4, 5, 7}, 2},
         {{4, 5, 7}, 2, true},
-        {{4, 5, 7}, 3},
-        {{4, 5, 7}, 3, true},
-        // {{5}, 0, false},
+        {{4, 5, 7, 8}, 3},
+        {{4, 5, 7, 8}, 3, true},
     };
 }
 
@@ -93,34 +93,19 @@ protected:
         auto&& handle = get_handle();
         any_config    = GetParam();
 
-        // auto gen_value
-        auto in_dims = any_config.GetDims();
+        auto in_dims = any_config.GetInputShape();
         dim          = any_config.dim;
         keepdim      = any_config.keepdim;
 
         auto gen_in_value = [](auto...) {
-            if(std::is_same<T, bool>::value)
-            {
-                // return prng::gen_0_to_B<T>(1);
-                return prng::gen_A_to_B<bool>(false, true);
-            }
-            else if(std::is_same<T, uint8_t>::value)
-            {
-                return prng::gen_A_to_B<uint8_t>(0, 255);
-            }
-            else
-            {
-                return prng::gen_A_to_B<T>(-127, 127);
-            }
+            return prng::gen_A_to_B<T>(std::numeric_limits<T>::min(),
+                                       std::numeric_limits<T>::max());
         };
 
-        // input     = tensor<T>{in_dims}.generate(gen_in_value);
-        input = tensor<T>{in_dims};
-        std::generate(input.begin(), input.end(), gen_in_value);
+        input     = tensor<T>{in_dims}.generate(gen_in_value);
         input_dev = handle.Write(input.data);
 
-        std::vector<size_t> out_dims = in_dims;
-
+        std::vector<size_t> out_dims(in_dims);
         if(dim != -1)
         {
             if(keepdim)
@@ -134,29 +119,22 @@ protected:
         }
         else
         {
-            // Reduction to single element tensor
             out_dims = {1};
         }
 
-        output = tensor<T>{out_dims};
-        std::fill(output.begin(),
-                  output.end(),
-                  std::numeric_limits<T>::quiet_NaN()); // Should I fill it with
-                                                        // std::numeric_limits<T>::quiet_NaN() or 0?
+        output = tensor<uint8_t>{out_dims};
+        std::fill(output.begin(), output.end(), 0);
 
-        ref_output = tensor<T>{out_dims};
-        std::fill(ref_output.begin(), ref_output.end(), std::numeric_limits<T>::quiet_NaN());
+        ref_output = tensor<uint8_t>{out_dims};
+        std::fill(ref_output.begin(), ref_output.end(), 0);
 
         output_dev = handle.Write(output.data);
 
-        // Get workspace size
-        // ws_sizeInBytes = miopen::GetAnyForwardWorkspaceSize(
-        //     handle, input.desc, dim, keepdim, input, output.desc, output);
         ws_sizeInBytes =
             miopen::GetAnyForwardWorkspaceSize(handle, input.desc, output.desc, dim, keepdim);
 
         if(ws_sizeInBytes == static_cast<size_t>(-1))
-            GTEST_FAIL() << "Call GetMultiMarginLossForwardWorkspaceSize failed!";
+            GTEST_FAIL() << "Call GetAnyForwardWorkspaceSize failed!";
 
         if(ws_sizeInBytes > 0)
         {
@@ -178,41 +156,40 @@ protected:
         cpu_any_forward<T>(input, ref_output, dim, keepdim);
 
         miopenStatus_t status;
+
         // Run kernel
         status = miopen::AnyForward(handle,
                                     workspace_dev.get(),
                                     ws_sizeInBytes,
                                     input.desc,
                                     input_dev.get(),
-                                    // dim,
+                                    dim,
+                                    keepdim,
                                     output.desc,
                                     output_dev.get());
         EXPECT_EQ(status, miopenStatusSuccess);
 
         // Copy output data from device to host
-        output.data = handle.Read<T>(output_dev, output.data.size());
+        output.data = handle.Read<uint8_t>(output_dev, output.data.size());
     }
 
     void Verify()
     {
-        // How to compare exactly? (No tolerance)?
-
-        auto error = miopen::rms_range(ref_output, output);
+        auto is_equal = (ref_output.data == output.data);
 
         EXPECT_TRUE(miopen::range_distance(ref_output) == miopen::range_distance(output));
-        EXPECT_TRUE(error == 0);
+        EXPECT_TRUE(is_equal);
     }
 
-    // attributes
     AnyTestCase any_config;
 
-    tensor<T> input; // input on CPU mem
-    tensor<T> output;
-    tensor<float> workspace; // Why workspace is float?
+    tensor<T> input;
+    tensor<uint8_t> output;
+    tensor<float> workspace;
 
-    tensor<T> ref_output;
+    tensor<uint8_t> ref_output;
 
-    miopen::Allocator::ManageDataPtr input_dev; // input on GPU mem
+    miopen::Allocator::ManageDataPtr input_dev;
     miopen::Allocator::ManageDataPtr output_dev;
     miopen::Allocator::ManageDataPtr workspace_dev;
 

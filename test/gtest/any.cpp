@@ -23,25 +23,18 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-
-#include <any.hpp>
-#include "gtest/gtest.h"
+#include <gtest/any.hpp>
+#include <gtest/gtest.h>
 #include <miopen/env.hpp>
 
-using GPU_Any_fwd_bool  = AnyTest<bool>;
-using GPU_Any_fwd_uint8 = AnyTest<uint8_t>;
+using GPU_Any_int8 = AnyTest<int8_t>;
 
-TEST_P(GPU_Any_fwd_bool, Test)
+TEST_P(GPU_Any_int8, Test)
 {
     RunTest();
     Verify();
 };
 
-TEST_P(GPU_Any_fwd_uint8, Test)
-{
-    RunTest();
-    Verify();
-};
-
-INSTANTIATE_TEST_SUITE_P(Full, GPU_Any_fwd_bool, testing::ValuesIn(AnyTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(Full, GPU_Any_fwd_uint8, testing::ValuesIn(AnyTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Any_int8, testing::ValuesIn(AnyTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_Any_int8, testing::ValuesIn(AnyTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Perf, GPU_Any_int8, testing::ValuesIn(AnyTestConfigs()));

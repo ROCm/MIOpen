@@ -189,7 +189,6 @@ int AnyDriver<Tgpu, Tref>::GetandSetData()
     SetTensorNd(inputDesc, in_len, data_type);
 
     std::vector<int> out_len(in_len);
-
     if(dim != -1)
     {
         if(keepdim)
