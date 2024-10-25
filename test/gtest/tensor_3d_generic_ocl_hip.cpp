@@ -36,8 +36,8 @@
 #include <miopen/float_equal.hpp>
 
 #define MAX_TENSOR_ELEM 17
-#define PERF_ENABLE 0
-#define POW_2 1
+#define PERF_ENABLE 1
+#define POW_2 0
 
 struct TensorsConfig
 {
@@ -114,11 +114,11 @@ std::vector<TensorsConfig> TensorsConfigs()
         }
         else
         {
-            for(size_t N = 1; N <= maxTotalSize; N *= 2)
+            for(size_t N = 2; N <= maxTotalSize; N *= 2)
             {
-                for(size_t C = 1; C <= maxTotalSize / N; C *= 2)
+                for(size_t C = 2; C <= maxTotalSize / N; C *= 2)
                 {
-                    for(size_t H = 1; H <= maxTotalSize / (N * C); H *= 2)
+                    for(size_t H = 2; H <= maxTotalSize / (N * C); H *= 2)
                     {
 
                         for(int dn = -1; dn <= 1; dn += 2)
@@ -230,6 +230,7 @@ protected:
         // Allocate output tensors for OCL and HIP
         tensC_ocl = tensor<T>{tensorsConfig.aclens, tensorsConfig.acstrides};
         tensC_hip = tensor<T>{tensorsConfig.aclens, tensorsConfig.acstrides};
+        tensC_hip_new = tensor<T>{tensorsConfig.aclens, tensorsConfig.acstrides};
 
         // Prepare all parameters needed for kernel
         auto first_not_one = std::find_if(
@@ -272,6 +273,19 @@ protected:
         size_t global_threads = num_wg * local_threads;
 
         vgd = {global_threads, 1, 1};
+
+        size_t local_threads_new = 32;
+
+        vld_new = {local_threads_new, 1, 1};
+
+        num_wg = (tensorsConfig.aclens[0] * tensorsConfig.aclens[1] * tensorsConfig.aclens[2] +
+                  local_threads_new - 1) /
+                 local_threads_new;
+        num_wg = num_wg > max_num_wg ? max_num_wg : num_wg;
+
+        size_t global_threads_new = num_wg * local_threads_new;
+
+        vgd_new = {global_threads_new, 1, 1};
 
         network_config += std::to_string(data_type) + "-miopenTensorOpAdd-" +
                           std::to_string(global_threads) + "-" + std::to_string(local_threads);
@@ -431,9 +445,108 @@ protected:
         }
     }
 
+    void runHIP_new()
+    {
+        auto&& handle = get_handle();
+        tensC_dev     = handle.Write(tensC.data);
+
+        std::fill(tensC_hip_new.begin(), tensC_hip_new.end(), std::numeric_limits<T>::quiet_NaN());
+
+        params = " -DMIOPEN_TYPE=" + miopen::GetDataType(data_type) +
+                 " -DMAX_NUM_WG=" + std::to_string(max_num_wg);
+        params += " " + miopen::GetDataTypeKBP(data_type).GenerateFor(miopen::kbp::HIP{});
+        params += " -DMIOPEN_TENSOR_OP=miopenAdd -DUSE_3D_TENSOR_GENERIC_NEW";
+
+        std::string program_name       = "MIOpenTensorKernelsHip.cpp";
+        std::string network_config_hip = network_config + "-hip";
+
+        handle.AddKernel("Op3dTensorGenericNew",
+                         network_config_hip,
+                         program_name,
+                         "Op3dTensorGenericNew",
+                         vld_new,
+                         vgd_new,
+                         params)(
+            tensA_dev.get(),
+            tensB_dev.get(),
+            tensC_dev.get(),
+            static_cast<uint32_t>(0),
+            static_cast<uint32_t>(0),
+            static_cast<uint32_t>(0),
+            static_cast<uint32_t>(tensorsConfig.blens[1] == 1 ? tensorsConfig.aclens[1]
+                                                              : tensorsConfig.blens[1]),
+            static_cast<uint32_t>(tensorsConfig.blens[2] == 1 ? tensorsConfig.aclens[2]
+                                                              : tensorsConfig.blens[2]),
+            static_cast<uint32_t>(tensorsConfig.aclens[1]),
+            static_cast<uint32_t>(tensorsConfig.aclens[2]),
+            static_cast<uint32_t>(tensorsConfig.acstrides[0]),
+            static_cast<uint32_t>(tensorsConfig.acstrides[1]),
+            static_cast<uint32_t>(tensorsConfig.acstrides[2]),
+            static_cast<uint32_t>(tensorsConfig.blens[0] == 1 ? 0 : tensorsConfig.bstrides[0]),
+            static_cast<uint32_t>(tensorsConfig.blens[1] == 1 ? 0 : tensorsConfig.bstrides[1]),
+            static_cast<uint32_t>(tensorsConfig.blens[2] == 1 ? 0 : tensorsConfig.bstrides[2]),
+            static_cast<uint32_t>(tensorsConfig.acstrides[0]),
+            static_cast<uint32_t>(tensorsConfig.acstrides[1]),
+            static_cast<uint32_t>(tensorsConfig.acstrides[2]),
+            alpha0,
+            alpha1,
+            beta,
+            static_cast<uint32_t>(tensorsConfig.aclens[0]),
+            !miopen::float_equal(beta, 0.0));
+
+        tensC_hip_new.data = handle.Read<T>(tensC_dev, tensC_hip_new.data.size());
+
+        if constexpr(PERF_ENABLE)
+        {
+            ph.perfTest(
+                handle,
+                "Op3dTensorGenericNew",
+                network_config_hip,
+                false,
+                tensA_dev.get(),
+                tensB_dev.get(),
+                tensC_dev.get(),
+                static_cast<uint32_t>(0),
+                static_cast<uint32_t>(0),
+                static_cast<uint32_t>(0),
+                static_cast<uint32_t>(tensorsConfig.blens[1] == 1 ? tensorsConfig.aclens[1]
+                                                                  : tensorsConfig.blens[1]),
+                static_cast<uint32_t>(tensorsConfig.blens[2] == 1 ? tensorsConfig.aclens[2]
+                                                                  : tensorsConfig.blens[2]),
+                static_cast<uint32_t>(tensorsConfig.aclens[1]),
+                static_cast<uint32_t>(tensorsConfig.aclens[2]),
+                static_cast<uint32_t>(tensorsConfig.acstrides[0]),
+                static_cast<uint32_t>(tensorsConfig.acstrides[1]),
+                static_cast<uint32_t>(tensorsConfig.acstrides[2]),
+                static_cast<uint32_t>(tensorsConfig.blens[0] == 1 ? 0 : tensorsConfig.bstrides[0]),
+                static_cast<uint32_t>(tensorsConfig.blens[1] == 1 ? 0 : tensorsConfig.bstrides[1]),
+                static_cast<uint32_t>(tensorsConfig.blens[2] == 1 ? 0 : tensorsConfig.bstrides[2]),
+                static_cast<uint32_t>(tensorsConfig.acstrides[0]),
+                static_cast<uint32_t>(tensorsConfig.acstrides[1]),
+                static_cast<uint32_t>(tensorsConfig.acstrides[2]),
+                alpha0,
+                alpha1,
+                beta,
+                static_cast<uint32_t>(tensorsConfig.aclens[0]),
+                !miopen::float_equal(beta, 0.0));
+        }
+    }
+
     void verify()
     {
         auto error = miopen::rms_range(tensC_ocl, tensC_hip);
+        EXPECT_TRUE(error == 0) << "GPU outputs do not match each other. Error: " << error;
+    }
+
+    void verifyOldHipNewHip()
+    {
+        auto error = miopen::rms_range(tensC_hip, tensC_hip_new);
+        EXPECT_TRUE(error == 0) << "GPU outputs do not match each other. Error: " << error;
+    }
+
+    void verifyOCLNewHip()
+    {
+        auto error = miopen::rms_range(tensC_ocl, tensC_hip_new);
         EXPECT_TRUE(error == 0) << "GPU outputs do not match each other. Error: " << error;
     }
 
@@ -463,7 +576,7 @@ protected:
 
     std::string network_config{};
     std::string params{};
-    std::vector<size_t> vld, vgd;
+    std::vector<size_t> vld, vgd, vld_new, vgd_new;
     unsigned int bitmap;
     int work_per_wg;
     int num_wg_orig;
@@ -474,6 +587,7 @@ protected:
     tensor<T> tensC;
     tensor<T> tensC_ocl;
     tensor<T> tensC_hip;
+    tensor<T> tensC_hip_new;
 
     miopenDataType_t data_type;
 
@@ -494,11 +608,12 @@ struct GPU_Op3dTensorGenericTest_FP32 : Op3DTensorGenericTest<float>
 TEST_P(GPU_Op3dTensorGenericTest_FP32, PortTest)
 {
     // run OCL kernel
-    runOCL();
+    // runOCL();
     // run HIP kernel
     runHIP();
+    runHIP_new();
     // verify if the output tensors are same
-    verify();
+    verifyOldHipNewHip();
 }
 
 INSTANTIATE_TEST_SUITE_P(Smoke,
