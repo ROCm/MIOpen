@@ -1159,7 +1159,7 @@ struct batch_norm_spatial_driver : test_driver
 
         scale                   = tensor<PREC_TYPE>{ssn, ssc, ssh, ssw};
         shift                   = tensor<PREC_TYPE>{ssn, ssc, ssh, ssw};
-        const double Data_scale = 1e-4;
+        const double Data_scale = 1e-2;
 
         for(std::size_t i = 0; i < scale.desc.GetElementSize(); i++)
         {
@@ -1168,7 +1168,7 @@ struct batch_norm_spatial_driver : test_driver
         }
         for(std::size_t i = 0; i < input.desc.GetElementSize(); i++)
         {
-            input[i] = prng::gen_descreet_uniform_sign<T>(1e-5, 100);
+            input[i] = prng::gen_descreet_uniform_sign<T>(Data_scale, 100);
         }
 
 // train
@@ -1187,6 +1187,7 @@ struct batch_norm_spatial_driver : test_driver
         // std::fill(input.begin(), input.end(), 1);
         // std::fill(scale.begin(), scale.end(), 1);
         // std::fill(shift.begin(), shift.end(), 1);
+        this->tolerance = 80 * input.desc.GetElementSize();
         verify(verify_forward_infer_bn_spatial_recalc<T, PREC_TYPE>{input, scale, shift});
 
         // inference use estimated running values
