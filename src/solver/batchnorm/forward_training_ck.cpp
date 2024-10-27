@@ -86,7 +86,21 @@ struct CKArgsBNormFwdTraining
 
         // prep for CK
         std::sort(xyStrides.begin(), xyStrides.end(), std::greater<>());
-        std::rotate(xyLengths.begin() + 1, xyLengths.begin() + 2, xyLengths.end());
+
+        if(problem.IsLayoutNHWC())
+        {
+            std::rotate(xyLengths.begin() + 1, xyLengths.begin() + 2, xyLengths.end());
+            reduceDims = {0, 1, 2};
+        }
+        else if(problem.IsLayoutNCHW())
+        {
+            reduceDims = {0, 2, 3};
+        }
+        else
+        {
+            MIOPEN_THROW(miopenStatusInternalError,
+                         "BnCKFwdTraining operation does not support this data layout");
+        }
     }
 
     CKArgsBNormFwdTraining(const CKArgsBNormFwdTraining&) = default;
@@ -131,7 +145,7 @@ struct CKArgsBNormFwdTraining
     std::array<index_t, Rank - NumBatchNormReduceDim> arrScaleBiasMeanVarLengths;
     std::array<index_t, Rank - NumBatchNormReduceDim> arrScaleBiasMeanVarStrides;
 
-    std::array<int, NumBatchNormReduceDim> reduceDims{0, 1, 2};
+    std::array<int, NumBatchNormReduceDim> reduceDims;
 };
 
 template <typename XDataType,
@@ -337,13 +351,17 @@ bool BnCKFwdTraining::IsApplicable(
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
     if(env::disabled(MIOPEN_DEBUG_CK_BN_FWD_TRAINING))
         return false;
-    if(!bn_problem.IsLayoutNHWC())
+    if(!bn_problem.IsLayoutNHWC() && !bn_problem.IsLayoutNCHW())
         return false;
     if(!ck_utility::is_ck_supported_hardware(context.GetStream()))
         return false;
     if(!bn_problem.Is2D())
         return false;
     if(bn_problem.GetDirection() != miopen::batchnorm::Direction::ForwardTraining)
+        return false;
+    if(bn_problem.GetMode() != miopenBNSpatial)
+        return false;
+    if(bn_problem.GetXDesc().GetType() != bn_problem.GetScaleBiasDiffDesc().GetType())
         return false;
 
     switch(bn_problem.GetXDesc().GetType())
@@ -367,24 +385,15 @@ ConvSolution MakeAnyInvokerFactory(const miopen::batchnorm::ProblemDescription& 
                                    InvokerFactoryMakerNHWC&& invoker_factory_maker_nhwc)
 {
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
-    if(problem.IsLayoutNHWC())
+    switch(problem.GetXDesc().GetType())
     {
-        switch(problem.GetXDesc().GetType())
-        {
-        case miopenFloat: return invoker_factory_maker_nhwc(F32{});
-        case miopenDouble: return invoker_factory_maker_nhwc(F64{});
-        case miopenHalf: return invoker_factory_maker_nhwc(F16{});
-        case miopenBFloat16: return invoker_factory_maker_nhwc(BF16{});
-        default:
-            MIOPEN_THROW(miopenStatusInternalError,
-                         "BnCKFwdTraining operation does not support this data type");
-        }
-    }
-    // Todo: problem.IsLayoutDefault()
-    else
-    {
+    case miopenFloat: return invoker_factory_maker_nhwc(F32{});
+    case miopenDouble: return invoker_factory_maker_nhwc(F64{});
+    case miopenHalf: return invoker_factory_maker_nhwc(F16{});
+    case miopenBFloat16: return invoker_factory_maker_nhwc(BF16{});
+    default:
         MIOPEN_THROW(miopenStatusInternalError,
-                     "BnCKFwdTraining operation does not support this data layout");
+                     "BnCKFwdTraining operation does not support this data type");
     }
 #else
     return {};

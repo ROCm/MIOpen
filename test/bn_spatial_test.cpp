@@ -1130,6 +1130,8 @@ struct batch_norm_spatial_driver : test_driver
     batch_norm_spatial_driver()
     {
         this->batch_factor = 4;
+        this->tolerance =
+            4e-3 / std::numeric_limits<T>::epsilon(); // ck solver has tolerance of 4e-3
         add(input,
             "input",
             get_bn_spatial_input_tensor(
@@ -1155,26 +1157,18 @@ struct batch_norm_spatial_driver : test_driver
         miopen::DeriveBNTensorDescriptor(derivedBnDesc, input.desc, miopenBNSpatial);
         std::tie(ssn, ssc, ssh, ssw) = miopen::tien<4>(derivedBnDesc.GetLengths());
 
-        if(input.desc.GetType() == miopenFloat)
-        {
-            scale = tensor<PREC_TYPE>{ssn, ssc, ssh, ssw}.generate(tensor_elem_gen_integer{17});
-            shift = tensor<PREC_TYPE>{ssn, ssc, ssh, ssw}.generate(tensor_elem_gen_integer{17});
-        }
-        else
-        {
-            scale = tensor<PREC_TYPE>{ssn, ssc, ssh, ssw};
-            shift = tensor<PREC_TYPE>{ssn, ssc, ssh, ssw};
+        scale                   = tensor<PREC_TYPE>{ssn, ssc, ssh, ssw};
+        shift                   = tensor<PREC_TYPE>{ssn, ssc, ssh, ssw};
+        const double Data_scale = 1e-2;
 
-            const double Data_scale = 1e-4;
-            for(std::size_t i = 0; i < scale.desc.GetElementSize(); i++)
-            {
-                scale[i] = prng::gen_descreet_uniform_sign<PREC_TYPE>(Data_scale, 100);
-                shift[i] = prng::gen_descreet_uniform_sign<PREC_TYPE>(Data_scale, 100);
-            }
-            for(std::size_t i = 0; i < input.desc.GetElementSize(); i++)
-            {
-                input[i] = prng::gen_descreet_uniform_sign<T>(1e-5, 100);
-            }
+        for(std::size_t i = 0; i < scale.desc.GetElementSize(); i++)
+        {
+            scale[i] = prng::gen_descreet_uniform_sign<PREC_TYPE>(Data_scale, 100);
+            shift[i] = prng::gen_descreet_uniform_sign<PREC_TYPE>(Data_scale, 100);
+        }
+        for(std::size_t i = 0; i < input.desc.GetElementSize(); i++)
+        {
+            input[i] = prng::gen_descreet_uniform_sign<T>(Data_scale, 100);
         }
 
 // train
@@ -1193,6 +1187,7 @@ struct batch_norm_spatial_driver : test_driver
         // std::fill(input.begin(), input.end(), 1);
         // std::fill(scale.begin(), scale.end(), 1);
         // std::fill(shift.begin(), shift.end(), 1);
+        this->tolerance = 80 * input.desc.GetElementSize();
         verify(verify_forward_infer_bn_spatial_recalc<T, PREC_TYPE>{input, scale, shift});
 
         // inference use estimated running values

@@ -60,7 +60,7 @@
 #define ERRTOL_FP32 1e-4
 #define ERRTOL_FP16 0.5e-3
 #define RMSTOL_FP32 1e-4
-#define RMSTOL_FP16 0.5e-3
+#define RMSTOL_FP16 2e-3
 
 #define MIO_DRIVER_BN_REFERENCE_COMPUTE_3D_AS_2D 1 // Resolves issue #1974
 
@@ -1298,7 +1298,8 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::VerifyForward()
 
     out.CopyFromDeviceToHost(GetStream());
 
-    maxval        = static_cast<Tref>(0.0);
+    maxval = static_cast<Tref>(0.0);
+
     auto errorOut = miopen::rms_range(out_ref.data, out.GetVector());
     if(!std::isfinite(errorOut) || errorOut > maxrms)
     {

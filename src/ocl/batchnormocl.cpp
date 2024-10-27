@@ -250,8 +250,8 @@ void BatchNormForwardInference(Handle& handle,
         }();
 
         const auto algo    = AlgorithmName{"miopenBatchNormalizationForwardInference"};
-        const auto solvers = solver::SolverContainer<solver::batchnorm::BnFwdInference,
-                                                     solver::batchnorm::BnCKFwdInference>{};
+        const auto solvers = solver::SolverContainer<solver::batchnorm::BnCKFwdInference,
+                                                     solver::batchnorm::BnFwdInference>{};
 
         solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
     }
