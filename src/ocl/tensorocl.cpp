@@ -168,9 +168,8 @@ void OpTensor3d(const Handle& handle,
     printf("work_per_wg: %d, num_wg: %d\n", work_per_wg, num_wg);
 #endif
 
-    int num_wg_orig = num_wg;
-    int max_num_wg  = 4096;
-    num_wg          = num_wg > max_num_wg ? max_num_wg : num_wg;
+    int max_num_wg = 4096;
+    num_wg         = num_wg > max_num_wg ? max_num_wg : num_wg;
 
     size_t local_threads = 256;
 
@@ -286,27 +285,29 @@ void OpTensor3d(const Handle& handle,
                 auto kernel = kernels.front();
 
                 kernel(ATensor,
-                       static_cast<int>(astrides[0]), // a_nstride,
-                       static_cast<int>(astrides[1]), // a_cstride,
                        BTensor,
-                       static_cast<int>(blens[1]),    // b_c,
-                       static_cast<int>(blens[2]),    // b_h,
-                       static_cast<int>(bstrides[0]), // b_nstride,
-                       static_cast<int>(bstrides[1]), // b_cstride,
                        CTensor,
-                       static_cast<int>(clens[1]),    // c_c,
-                       static_cast<int>(clens[2]),    // c_h,
-                       static_cast<int>(cstrides[0]), // c_nstride,
-                       static_cast<int>(cstrides[1]), // c_cstride,
+                       static_cast<uint64_t>(Aoffset),
+                       static_cast<uint64_t>(Boffset),
+                       static_cast<uint64_t>(Coffset),
+                       static_cast<uint32_t>(blens[1] == 1 ? clens[1] : blens[1]), // b_c,
+                       static_cast<uint32_t>(blens[2] == 1 ? clens[2] : blens[2]), // b_h,
+                       static_cast<uint32_t>(clens[1]),                            // c_c,
+                       static_cast<uint32_t>(clens[2]),                            // c_h,
+                       static_cast<uint32_t>(astrides[0]),                         // a_nstride,
+                       static_cast<uint32_t>(astrides[1]),                         // a_cstride,
+                       static_cast<uint32_t>(astrides[2]),                         // a_hstride,
+                       static_cast<uint32_t>(blens[0] == 1 ? 0 : bstrides[0]),     // b_nstride,
+                       static_cast<uint32_t>(blens[1] == 1 ? 0 : bstrides[1]),     // b_cstride,
+                       static_cast<uint32_t>(blens[2] == 1 ? 0 : bstrides[2]),     // b_hstride,
+                       static_cast<uint32_t>(cstrides[0]),                         // c_nstride,
+                       static_cast<uint32_t>(cstrides[1]),                         // c_cstride,
+                       static_cast<uint32_t>(cstrides[2]),                         // c_hstride,
                        miopen_alpha0,
                        miopen_alpha1,
                        miopen_beta,
-                       bitmap,
-                       work_per_wg,
-                       static_cast<int64_t>(Aoffset),
-                       static_cast<int64_t>(Boffset),
-                       static_cast<int64_t>(Coffset),
-                       static_cast<int>(num_wg_orig));
+                       static_cast<uint32_t>(clens[0]),
+                       !float_equal(miopen_beta, 0.0));
 
                 return;
             }
@@ -326,13 +327,12 @@ void OpTensor3d(const Handle& handle,
         }
         std::string program_name = "MIOpenTensorKernels.cl";
 
-        const std::vector<size_t> vld{local_threads, 1, 1};
-
         if(lite_applicable && is_lite)
         {
             parms += " -DUSE_2D_TENSOR_LITE";
             parms += " -DRD_BLCK=" + std::to_string(RD_BLCK) + " -DREAD_TYPE=" + READ_TYPE;
 
+            const std::vector<size_t> vld{local_threads, 1, 1};
             const std::vector<size_t> vgd1{glb_sz, glb_sz2, 1};
 
             handle.AddKernel(
@@ -359,6 +359,7 @@ void OpTensor3d(const Handle& handle,
             parms += " -DUSE_2D_TENSOR_SQUASH";
             parms += " -DRD_BLCK=" + std::to_string(RD_BLCK) + " -DREAD_TYPE=" + READ_TYPE;
 
+            const std::vector<size_t> vld{local_threads, 1, 1};
             const std::vector<size_t> vgd1{glb_sz, 1, 1};
 
             handle.AddKernel("Op2dTensorSquash",
@@ -386,12 +387,18 @@ void OpTensor3d(const Handle& handle,
         else
         {
             // Special case for adding tensors in place
+            program_name  = "MIOpenTensorKernelsHip.cpp";
+            local_threads = 32;
+            num_wg        = std::clamp(
+                (clens[0] * clens[1] * clens[2]) / local_threads, size_t(1), size_t(max_num_wg));
+            num_wg = num_wg > max_num_wg ? max_num_wg : num_wg;
+
             size_t global_threads;
             global_threads = num_wg * local_threads;
+            const std::vector<size_t> vld{local_threads, 1, 1};
             const std::vector<size_t> vgd{global_threads, 1, 1};
 
             parms += " -DUSE_3D_TENSOR_GENERIC";
-            parms += " -DMAX_NUM_WG=" + std::to_string(max_num_wg);
 
             handle.AddKernel("Op3dTensorGeneric",
                              network_config,
@@ -399,28 +406,31 @@ void OpTensor3d(const Handle& handle,
                              "Op3dTensorGeneric",
                              vld,
                              vgd,
-                             parms)(ATensor,
-                                    static_cast<int>(astrides[0]), // a_nstride,
-                                    static_cast<int>(astrides[1]), // a_cstride,
-                                    BTensor,
-                                    static_cast<int>(blens[1]),    // b_c,
-                                    static_cast<int>(blens[2]),    // b_h,
-                                    static_cast<int>(bstrides[0]), // b_nstride,
-                                    static_cast<int>(bstrides[1]), // b_cstride,
-                                    CTensor,
-                                    static_cast<int>(clens[1]),    // c_c,
-                                    static_cast<int>(clens[2]),    // c_h,
-                                    static_cast<int>(cstrides[0]), // c_nstride,
-                                    static_cast<int>(cstrides[1]), // c_cstride,
-                                    miopen_alpha0,
-                                    miopen_alpha1,
-                                    miopen_beta,
-                                    bitmap,
-                                    work_per_wg,
-                                    static_cast<int64_t>(Aoffset),
-                                    static_cast<int64_t>(Boffset),
-                                    static_cast<int64_t>(Coffset),
-                                    static_cast<int>(num_wg_orig));
+                             parms)(
+                ATensor,
+                BTensor,
+                CTensor,
+                static_cast<uint64_t>(Aoffset),
+                static_cast<uint64_t>(Boffset),
+                static_cast<uint64_t>(Coffset),
+                static_cast<uint32_t>(blens[1] == 1 ? clens[1] : blens[1]), // b_c,
+                static_cast<uint32_t>(blens[2] == 1 ? clens[2] : blens[2]), // b_h,
+                static_cast<uint32_t>(clens[1]),                            // c_c,
+                static_cast<uint32_t>(clens[2]),                            // c_h,
+                static_cast<uint32_t>(astrides[0]),                         // a_nstride,
+                static_cast<uint32_t>(astrides[1]),                         // a_cstride,
+                static_cast<uint32_t>(astrides[2]),                         // a_hstride,
+                static_cast<uint32_t>(blens[0] == 1 ? 0 : bstrides[0]),     // b_nstride,
+                static_cast<uint32_t>(blens[1] == 1 ? 0 : bstrides[1]),     // b_cstride,
+                static_cast<uint32_t>(blens[2] == 1 ? 0 : bstrides[2]),     // b_hstride,
+                static_cast<uint32_t>(cstrides[0]),                         // c_nstride,
+                static_cast<uint32_t>(cstrides[1]),                         // c_cstride,
+                static_cast<uint32_t>(cstrides[2]),                         // c_hstride,
+                miopen_alpha0,
+                miopen_alpha1,
+                miopen_beta,
+                static_cast<uint32_t>(clens[0]),
+                !float_equal(miopen_beta, 0.0));
         }
     });
 }
