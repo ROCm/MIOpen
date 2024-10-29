@@ -58,7 +58,8 @@ constexpr uint64_t DivCeil(uint64_t numer, uint64_t denom) { return (numer + den
 MultiBufferWorkspaceTraits GetMultiBufferWorkspaceTraits(const TensorDescriptor& inputDesc)
 {
     auto input_numel = inputDesc.GetElementSize();
-    auto size        = ((input_numel + LOCAL_SIZE - 1) / LOCAL_SIZE);
+    printf("input_numel: %d\n", input_numel);
+    auto size = ((input_numel + LOCAL_SIZE - 1) / LOCAL_SIZE);
 
     auto dtype = inputDesc.GetType();
     size *= get_data_size(dtype);
@@ -74,11 +75,6 @@ bool AnyForward::IsApplicable(const ExecutionContext& context,
                               const miopen::any::ProblemDescription& problem) const
 {
     std::ignore = context;
-
-    if(!problem.IsAllPacked())
-    {
-        return false;
-    }
 
     return true;
 }

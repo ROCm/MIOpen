@@ -27,6 +27,7 @@
 
 #include "InputFlags.hpp"
 #include "driver.hpp"
+#include "miopen/mlo_internal.hpp"
 #include "tensor_driver.hpp"
 #include "timer.hpp"
 #include "random.hpp"
@@ -106,6 +107,9 @@ public:
 
         data_type = miopen_type<Tgpu>{};
     }
+
+    std::vector<int> ComputeStrides(std::vector<int> input);
+    std::vector<int> ComputeContiguousStrides(std::vector<int> input);
     int AddCmdLineArgs() override;
     int ParseCmdLineArgs(int argc, char* argv[]) override;
     InputFlags& GetInputFlags() override { return inflags; }
@@ -148,6 +152,23 @@ private:
 
     int32_t dim;
     bool keepdim;
+
+    bool isContiguous;
+};
+
+// Equivalent to: tensor.tranpose(0, -1).contiguous().tranpose(0, -1) incase contiguous = False
+template <typename Tgpu, typename Tref>
+std::vector<int> AnyDriver<Tgpu, Tref>::ComputeStrides(std::vector<int> inputDim)
+{
+    if(!isContiguous)
+        std::swap(inputDim.front(), inputDim.back());
+    std::vector<int> strides(inputDim.size());
+    strides.back() = 1;
+    for(int i = inputDim.size() - 2; i >= 0; --i)
+        strides[i] = strides[i + 1] * inputDim[i + 1];
+    if(!isContiguous)
+        std::swap(strides.front(), strides.back());
+    return strides;
 };
 
 template <typename Tgpu, typename Tref>
@@ -155,12 +176,13 @@ int AnyDriver<Tgpu, Tref>::AddCmdLineArgs()
 {
     inflags.AddInputFlag("forw", 'F', "1", "Run only Forward LPPool (Default=1)", "int");
     inflags.AddTensorFlag(
-        "input", 'D', "3x4x5", "The dimensional lengths of the input tensor (Default=3x4x5)");
+        "input-dims", 'D', "3x4x5", "The dimensional lengths of the input tensor (Default=3x4x5)");
+    inflags.AddInputFlag("contiguous", 'C', "1", "Tensor is contiguous or not (Default=1)", "int");
     inflags.AddInputFlag("dim", 'd', "-1", "the dimension to reduce (Default=None)", "int");
     inflags.AddInputFlag("keepdim", 'k', "0", "Keep the reduced dimension (Default=0)", "int");
     inflags.AddInputFlag("iter", 'i', "10", "Number of Iterations (Default=10)", "int");
     inflags.AddInputFlag("verify", 'V', "1", "Verify Each Layer (Default=1)", "int");
-    inflags.AddInputFlag("time", 't', "0", "Time Each Layer (Default=0)", "int");
+    inflags.AddInputFlag("time", 't', "1", "Time Each Layer (Default=0)", "int");
     inflags.AddInputFlag(
         "wall", 'w', "0", "Wall-clock Time Each Layer, Requires time == 1 (Default=0)", "int");
     return miopenStatusSuccess;
@@ -170,6 +192,9 @@ template <typename Tgpu, typename Tref>
 int AnyDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
 {
     inflags.Parse(argc, argv);
+    isContiguous = (inflags.GetValueInt("contiguous") != 0);
+    dim          = inflags.GetValueInt("dim");
+    keepdim      = (inflags.GetValueInt("keepdim") != 0);
 
     if(inflags.GetValueInt("time") == 1)
     {
@@ -182,13 +207,29 @@ int AnyDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
 template <typename Tgpu, typename Tref>
 int AnyDriver<Tgpu, Tref>::GetandSetData()
 {
-    std::vector<int> in_len = inflags.GetValueTensor("input").lengths;
-    dim                     = inflags.GetValueInt("dim");
-    keepdim                 = inflags.GetValueInt("keepdim");
+    auto in_dims = inflags.GetValueTensor("input-dims").lengths;
 
-    SetTensorNd(inputDesc, in_len, data_type);
+    if(isContiguous)
+    {
+        SetTensorNd(inputDesc, in_dims, data_type);
+    }
+    else
+    {
+        std::vector<int> in_strides(in_dims.size());
+        in_strides.back() = 1;
+        for(int i = in_dims.size() - 2; i >= 0; --i)
+        {
+            in_strides[i] = in_strides[i + 1] * in_dims[i + 1];
+        }
+        in_strides[0] *= 2;
+        SetTensorNd(inputDesc, in_dims, in_strides, data_type);
+    }
 
-    std::vector<int> out_len(in_len);
+    // auto in_strides = ComputeStrides(in_dims);
+
+    // SetTensorNd(inputDesc, in_dims, in_strides, data_type);
+
+    std::vector<int> out_len(in_dims);
     if(dim != -1)
     {
         if(keepdim)
@@ -205,13 +246,6 @@ int AnyDriver<Tgpu, Tref>::GetandSetData()
         out_len = {1};
     }
 
-    std::cout << "out_len: ";
-    for(auto ol : out_len)
-    {
-        std::cout << ol << " ";
-    }
-    std::cout << std::endl;
-
     SetTensorNd(outputDesc, out_len, data_type);
 
     return miopenStatusSuccess;
@@ -220,10 +254,10 @@ int AnyDriver<Tgpu, Tref>::GetandSetData()
 template <typename Tgpu, typename Tref>
 int AnyDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 {
-    size_t in_sz  = GetTensorSize(inputDesc);
-    size_t out_sz = GetTensorSize(outputDesc);
-
-    std::cout << "in_sz: " << in_sz << std::endl;
+    // Use GetTensorSpace instead of GetTensor size to handle both packed and non-packed input
+    // params
+    size_t in_sz  = GetTensorSpace(inputDesc);
+    size_t out_sz = GetTensorSpace(outputDesc);
 
     miopenGetAnyForwardWorkspaceSize(
         GetHandle(), inputDesc, dim, keepdim, outputDesc, &ws_sizeInBytes);

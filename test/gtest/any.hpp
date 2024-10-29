@@ -42,6 +42,8 @@ struct AnyTestCase
     int32_t dim;
     bool keepdim;
 
+    // bool is_contiguous;
+
     friend std::ostream& operator<<(std::ostream& os, const AnyTestCase& tc)
     {
         os << "dims: ";
