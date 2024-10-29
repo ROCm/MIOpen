@@ -137,7 +137,7 @@ struct BnFwdInference final : BatchnormSolver
                              const miopen::batchnorm::ProblemDescription& problem) const override;
 };
 
-struct PerformanceConfigBnCKFwdInference : PerfConfigBase<PerformanceConfigBnCKFwdInference>
+struct PerformanceConfigBnCKFwdInference : PerfConfigBaseCK<PerformanceConfigBnCKFwdInference>
 {
     int index;
     std::string kernel_id;
@@ -205,7 +205,7 @@ struct BnCKFwdInference final : BatchNormTunableSolver<PerformanceConfigBnCKFwdI
                 const PerformanceConfigBnCKFwdInference& config) const override;
 };
 
-struct PerformanceConfigBnCKBwdBackward : PerfConfigBase<PerformanceConfigBnCKBwdBackward>
+struct PerformanceConfigBnCKBwdBackward : PerfConfigBaseCK<PerformanceConfigBnCKBwdBackward>
 {
     int index;
     std::string kernel_id;
@@ -275,7 +275,7 @@ struct BnCKBwdBackward final : BatchNormTunableSolver<PerformanceConfigBnCKBwdBa
                 const PerformanceConfigBnCKBwdBackward& config) const override;
 };
 
-struct PerformanceConfigBnCKFwdTraining : PerfConfigBase<PerformanceConfigBnCKFwdTraining>
+struct PerformanceConfigBnCKFwdTraining : PerfConfigBaseCK<PerformanceConfigBnCKFwdTraining>
 {
     int index;
     std::string kernel_id;
