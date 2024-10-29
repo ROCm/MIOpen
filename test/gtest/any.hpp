@@ -42,16 +42,18 @@ struct AnyTestCase
     int32_t dim;
     bool keepdim;
 
-    // bool is_contiguous;
+    bool is_contiguous;
 
     friend std::ostream& operator<<(std::ostream& os, const AnyTestCase& tc)
     {
-        os << "dims: ";
+        os << "dims: (";
         for(auto dim_size : tc.input_shape)
         {
             os << dim_size << " ";
         }
-        os << "dim: " << tc.dim << " keepdim: " << tc.keepdim;
+        os << ") ";
+        os << "is_contiguous: " << tc.is_contiguous << " reduce_dim: " << tc.dim
+           << " keepdim: " << tc.keepdim;
         return os;
     }
 
@@ -59,8 +61,11 @@ struct AnyTestCase
 
     AnyTestCase() {}
 
-    AnyTestCase(std::vector<size_t> input_shape_, size_t dim_ = -1, bool keepdim_ = false)
-        : input_shape(input_shape_), dim(dim_), keepdim(keepdim_)
+    AnyTestCase(std::vector<size_t> input_shape_,
+                size_t dim_         = -1,
+                bool keepdim_       = false,
+                bool is_contiguous_ = true)
+        : input_shape(input_shape_), dim(dim_), keepdim(keepdim_), is_contiguous(is_contiguous_)
     {
     }
 };
@@ -68,21 +73,25 @@ struct AnyTestCase
 inline std::vector<AnyTestCase> AnyTestConfigs()
 {
     return {
-        {{3, 4, 5}, -1, false},
-        {{4, 5, 7, 8}},          // test any reduce
-        {{4, 5, 7, 8}, 0},       // test reduce_dim=0
-        {{4, 5, 7, 8}, 0, true}, // test reduce_dim=0 and keepdim=True
-        {{5}},
-        {{4, 5}},
-        {{4, 5, 7}},
-        {{4, 5, 7}, 0},
-        {{4, 5, 7}, 0, true},
-        {{4, 5, 7}, 1},
-        {{4, 5, 7}, 1, true},
-        {{4, 5, 7}, 2},
-        {{4, 5, 7}, 2, true},
-        {{4, 5, 7, 8}, 3},
-        {{4, 5, 7, 8}, 3, true},
+        // TODO: Handle cases where input params has zero dim(s)
+        // AnyTestCase({3, 0, 4, 5}),
+        AnyTestCase({3, 4, 5}, -1, false),
+        AnyTestCase({3, 4, 5}, -1, false, false),
+        AnyTestCase({4, 5, 7, 8}),
+        AnyTestCase({4, 5, 7, 8}, -1, false, false),
+        AnyTestCase({4, 5, 7, 8}, 0),
+        AnyTestCase({4, 5, 7, 8}, 0, true),
+        AnyTestCase({5}),
+        AnyTestCase({4, 5}),
+        AnyTestCase({4, 5, 7}),
+        AnyTestCase({4, 5, 7}, 0),
+        AnyTestCase({4, 5, 7}, 0, true),
+        AnyTestCase({4, 5, 7}, 1),
+        AnyTestCase({4, 5, 7}, 1, true),
+        AnyTestCase({4, 5, 7}, 2),
+        AnyTestCase({4, 5, 7}, 2, true),
+        AnyTestCase({4, 5, 7, 8}, 3),
+        AnyTestCase({4, 5, 7, 8}, 3, true),
     };
 }
 
@@ -104,7 +113,20 @@ protected:
                                        std::numeric_limits<T>::max());
         };
 
-        input     = tensor<T>{in_dims}.generate(gen_in_value);
+        if(any_config.is_contiguous)
+        {
+            input = tensor<T>{in_dims}.generate(gen_in_value);
+        }
+        else
+        {
+            std::vector<size_t> in_strides(in_dims.size());
+            in_strides.back() = 1;
+            for(int i = in_dims.size() - 2; i >= 0; --i)
+                in_strides[i] = in_strides[i + 1] * in_dims[i + 1];
+            in_strides[0] *= 2;
+            input = tensor<T>{in_dims, in_strides}.generate(gen_in_value);
+        }
+
         input_dev = handle.Write(input.data);
 
         std::vector<size_t> out_dims(in_dims);

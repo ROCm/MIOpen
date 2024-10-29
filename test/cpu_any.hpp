@@ -25,19 +25,9 @@
  *******************************************************************************/
 #pragma once
 
-// #include "any.hpp"
-// #include <../test/gtest/any.hpp>
 #include <ford.hpp>
 #include <tensor_holder.hpp>
 #include <miopen/tensor_view_utils.hpp>
-
-// #include "cpu_any.hpp"
-// #include "get_handle.hpp"
-// #include "tensor_holder.hpp"
-// #include "verify.hpp"
-// #include <gtest/gtest.h>
-// #include <miopen/nllloss.hpp>
-// #include <miopen/miopen.h>
 
 template <class T>
 void cpu_any_forward(tensor<T> input, tensor<uint8_t>& ref_output, size_t dim, bool keepdim)
@@ -62,13 +52,11 @@ void cpu_any_forward(tensor<T> input, tensor<uint8_t>& ref_output, size_t dim, b
     if(dim != -1)
     {
         par_ford(output_numel)([&](size_t o) {
-            // size_t input_idx = (o / input_numel) * input_numel * reduce_size + o % input_numel;
             size_t input_idx = (o / inner_size) * inner_size * reduce_size + o % inner_size;
             T any            = 0;
             ford(reduce_size)([&](size_t o) {
                 T val = input[input_idx];
-                // any   = any || input[input_idx + o * inner_size];
-                any = any || val;
+                any   = any || val;
                 input_idx += inner_size;
             });
             ref_output[o] = static_cast<uint8_t>(any);
@@ -78,25 +66,6 @@ void cpu_any_forward(tensor<T> input, tensor<uint8_t>& ref_output, size_t dim, b
     {
         T any = 0;
         par_ford(input_numel)([&](size_t i) { any = any || input[i]; });
-        // ref_output[0] = any;
         ref_output[0] = static_cast<uint8_t>(any);
     }
-
-    // auto N = input.desc.GetElementSize();
-    // auto K = input.desc.GetLengths()[dim];
-    // auto st = input.desc.GetStrides()[dim];
-    // auto reduce_dim = dim;
-
-    // for (size_t gid = 0; gid < N; ++gid) {
-    // 		size_t idx = (gid / st) * st * K + gid % st;
-    // 		size_t input_idx = input_tv.get_tensor_view_idx({idx});
-
-    // 		T any = 0;
-    // 		for (size_t k = 0; k < K; ++k) {
-    // 				any = any || input[input_tv.get_tensor_view_idx({idx})];
-    // 				input_idx += input_tv.stride[reduce_dim];
-    // 		}
-
-    // 		ref_output[output_tv.get_tensor_view_idx({gid})] = any;
-    // }
 }
