@@ -189,6 +189,22 @@ MIOPEN_INTERNALS_EXPORT void OpTensor(const Handle& handle,
                                       size_t Coffset         = 0,
                                       bool nonStandardSquash = false);
 
+MIOPEN_INTERNALS_EXPORT void OpTensorNew(Handle& handle,
+                                         miopenTensorOp_t tensorOp,
+                                         const void* alpha0,
+                                         const TensorDescriptor& aTensorDesc,
+                                         ConstData_t ATensor,
+                                         const void* alpha1,
+                                         const TensorDescriptor& bTensorDesc,
+                                         ConstData_t BTensor,
+                                         const void* beta,
+                                         const TensorDescriptor& cTensorDesc,
+                                         Data_t CTensor,
+                                         size_t Aoffset         = 0,
+                                         size_t Boffset         = 0,
+                                         size_t Coffset         = 0,
+                                         bool nonStandardSquash = false);
+
 MIOPEN_INTERNALS_EXPORT void CopyTensor(const Handle& handle,
                                         const TensorDescriptor& srcDesc,
                                         ConstData_t src,

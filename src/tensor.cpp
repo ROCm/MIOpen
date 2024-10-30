@@ -28,6 +28,10 @@
 #include <miopen/errors.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/tensor_layout.hpp>
+#include <miopen/handle.hpp>
+#include <miopen/tensor/invoke_params.hpp>
+#include <miopen/tensor/solvers.hpp>
+#include <miopen/find_solution.hpp>
 
 #include <nlohmann/json.hpp>
 
@@ -866,6 +870,55 @@ void from_json(const nlohmann::json& j, TensorDescriptor& descriptor)
     j.at("strides").get_to(descriptor.strides);
     j.at("packed").get_to(descriptor.packed);
     j.at("type").get_to(descriptor.type);
+}
+
+void OpTensorNew(Handle& handle,
+                 miopenTensorOp_t tensorOp,
+                 const void* alpha0,
+                 const TensorDescriptor& aTensorDesc,
+                 ConstData_t ATensor,
+                 const void* alpha1,
+                 const TensorDescriptor& bTensorDesc,
+                 ConstData_t BTensor,
+                 const void* beta,
+                 const TensorDescriptor& cTensorDesc,
+                 Data_t CTensor,
+                 const size_t Aoffset,
+                 const size_t Boffset,
+                 const size_t Coffset,
+                 bool nonStandardSquash)
+{
+    if(ATensor == nullptr || BTensor == nullptr || CTensor == nullptr)
+    {
+        MIOPEN_THROW(miopenStatusBadParm);
+    }
+
+    const auto problem = tensor::ProblemDescription{
+        tensorOp, alpha0, alpha1, beta, aTensorDesc, bTensorDesc, cTensorDesc, nonStandardSquash};
+
+    const auto invoke_params = tensor::InvokeParams{tensorOp,
+                                                    alpha0,
+                                                    aTensorDesc,
+                                                    ATensor,
+                                                    alpha1,
+                                                    bTensorDesc,
+                                                    BTensor,
+                                                    beta,
+                                                    cTensorDesc,
+                                                    CTensor,
+                                                    Aoffset,
+                                                    Boffset,
+                                                    Coffset,
+                                                    nonStandardSquash};
+
+    const auto tensor_dim = aTensorDesc.GetLengths().size();
+
+    if(tensor_dim == 1)
+    {
+        const auto algo    = AlgorithmName{"Op1dTensorGeneric"};
+        const auto solvers = solver::SolverContainer<solver::tensor::Op1dTensorGeneric>{};
+        solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
+    }
 }
 
 } // namespace miopen
