@@ -337,7 +337,7 @@ set( MIOpen_Source
     solver/softmarginloss/forward_softmarginloss.cpp
     solver/softmax/attn_softmax.cpp
     solver/softmax/softmax.cpp
-    solver/tensor/TensorOp1dGeneric.cpp
+    solver/tensor/Op1dTensorGeneric.cpp
     subbuffers.cpp
     t5layernorm_api.cpp
     target_properties.cpp
