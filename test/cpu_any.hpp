@@ -30,7 +30,7 @@
 #include <miopen/tensor_view_utils.hpp>
 
 template <class T>
-void cpu_any_forward(tensor<T> input, tensor<T>& ref_output, size_t dim, bool keepdim)
+void cpu_any_forward(tensor<T> input, tensor<unsigned char>& ref_output, size_t dim, bool keepdim)
 {
     auto input_tv  = miopen::get_inner_expanded_tv<5>(input.desc);
     auto output_tv = miopen::get_inner_expanded_tv<5>(ref_output.desc);
@@ -52,11 +52,12 @@ void cpu_any_forward(tensor<T> input, tensor<T>& ref_output, size_t dim, bool ke
     if(dim != -1)
     {
         par_ford(output_numel)([&](size_t o) {
-            size_t input_idx = (o / inner_size) * inner_size * reduce_size + o % inner_size;
-            T any            = 0;
+            size_t input_idx  = (o / inner_size) * inner_size * reduce_size + o % inner_size;
+            unsigned char any = 0;
             ford(reduce_size)([&](size_t o) {
-                T val = input[input_idx];
-                any   = any || val;
+                // T val = input[input_idx];
+                unsigned char val = input[input_idx] != 0;
+                any               = any || val;
                 input_idx += inner_size;
             });
             ref_output[o] = any;
@@ -64,8 +65,11 @@ void cpu_any_forward(tensor<T> input, tensor<T>& ref_output, size_t dim, bool ke
     }
     else
     {
-        T any = 0;
-        par_ford(input_numel)([&](size_t i) { any = any || input[i]; });
+        unsigned char any = 0;
+        par_ford(input_numel)([&](size_t i) {
+            unsigned char val = input[i] != 0;
+            any               = any || val;
+        });
         ref_output[0] = any;
     }
 }

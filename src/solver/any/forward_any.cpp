@@ -108,6 +108,8 @@ ConvSolution AnyForward::GetSolution(const ExecutionContext& context,
     //     in_dtype = "ushort";
     // }
 
+    std::cout << "input_dtype: " << input_dtype << std::endl;
+
     if(dim != -1)
     {
         size_t xlocalsize = LOCAL_SIZE;
@@ -204,6 +206,7 @@ ConvSolution AnyForward::GetSolution(const ExecutionContext& context,
                         {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
                         {"MIOPEN_USE_FP16", static_cast<int>(dtype == miopenHalf)},
                         {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
+                        {"MIOPEN_USE_INT8", static_cast<int>(dtype == miopenInt8)},
                         {"INPUT_TYPE", input_dtype == "bfloat16" ? "ushort" : input_dtype}};
                 }
 

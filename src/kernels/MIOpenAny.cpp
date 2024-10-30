@@ -39,8 +39,8 @@
 using INPUT_TYPE = signed char;
 #endif
 
-template <typename INPUT_TYPE>
-__device__ void any_forward(const INPUT_TYPE* __restrict__ input,
+template <typename DTYPE>
+__device__ void any_forward(const DTYPE* __restrict__ input,
                             unsigned char* __restrict__ output,
                             uint64_t N,
                             uint64_t K,
@@ -77,8 +77,8 @@ __device__ void any_forward(const INPUT_TYPE* __restrict__ input,
     output[output_idx] = any;
 }
 
-template <typename INPUT_TYPE>
-__device__ void reduce_any(INPUT_TYPE* __restrict__ input,
+template <typename DTYPE>
+__device__ void reduce_any(DTYPE* __restrict__ input,
                            unsigned char* __restrict__ output,
                            unsigned char* local_mem,
                            uint64_t N,

@@ -23,18 +23,52 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#include "gtest/gtest.h"
 #include <gtest/any.hpp>
 #include <gtest/gtest.h>
 #include <miopen/env.hpp>
+using float16 = half_float::half;
 
-using GPU_Any_int8 = AnyTest<int8_t>;
+using GPU_Any_INT8  = AnyTest<int8_t>;
+using GPU_Any_FP32  = AnyTest<float>;
+using GPU_Any_FP16  = AnyTest<float16>;
+using GPU_Any_BFP16 = AnyTest<bfloat16>;
 
-TEST_P(GPU_Any_int8, Test)
+TEST_P(GPU_Any_INT8, Test)
 {
     RunTest();
     Verify();
 };
 
-INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Any_int8, testing::ValuesIn(AnyTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(Full, GPU_Any_int8, testing::ValuesIn(AnyTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(Perf, GPU_Any_int8, testing::ValuesIn(AnyTestConfigs()));
+TEST_P(GPU_Any_FP32, Test)
+{
+    RunTest();
+    Verify();
+};
+
+TEST_P(GPU_Any_FP16, Test)
+{
+    RunTest();
+    Verify();
+};
+
+TEST_P(GPU_Any_BFP16, Test)
+{
+    RunTest();
+    Verify();
+}
+
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Any_INT8, testing::ValuesIn(AnyTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Any_FP16, testing::ValuesIn(AnyTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Any_BFP16, testing::ValuesIn(AnyTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Any_FP32, testing::ValuesIn(AnyTestConfigs()));
+
+INSTANTIATE_TEST_SUITE_P(Full, GPU_Any_INT8, testing::ValuesIn(AnyTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_Any_FP16, testing::ValuesIn(AnyTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_Any_BFP16, testing::ValuesIn(AnyTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_Any_FP32, testing::ValuesIn(AnyTestConfigs()));
+
+INSTANTIATE_TEST_SUITE_P(Perf, GPU_Any_INT8, testing::ValuesIn(AnyTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Perf, GPU_Any_FP16, testing::ValuesIn(AnyTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Perf, GPU_Any_BFP16, testing::ValuesIn(AnyTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Perf, GPU_Any_FP32, testing::ValuesIn(AnyTestConfigs()));
