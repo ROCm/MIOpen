@@ -66,7 +66,11 @@
 
 //#define BN_RUNFOR_PROFILER
 
-template <typename Tgpu, typename Tref, typename Tmix = Tgpu>
+template <typename Tgpu,
+          typename Tref,
+          typename Tmix      = Tgpu,
+          typename TEspmix   = Tgpu,
+          typename TCKOCLmix = Tgpu>
 class BatchNormDriver : public Driver
 {
 public:
@@ -133,8 +137,8 @@ private:
     tensor<Tref> out_ref;
 
     // forward
-    GpumemTensor<Tgpu> scale;
-    GpumemTensor<Tgpu> bias;
+    GpumemTensor<TEspmix> scale;
+    GpumemTensor<TEspmix> bias;
 
     // forward inference
     GpumemTensor<Tmix> estMean;
@@ -153,14 +157,14 @@ private:
     tensor<Tref> runVariance_ref;
 
     // backward needed different type for bwd.
-    GpumemTensor<Tmix> out_bwd;
+    GpumemTensor<TCKOCLmix> out_bwd;
 
-    GpumemTensor<Tgpu> bnScale;
+    GpumemTensor<TEspmix> bnScale;
     GpumemTensor<Tmix> dScale;
     GpumemTensor<Tmix> dBias;
     // savedMean declared above as Tmix as well
     GpumemTensor<Tmix> savedInvVar;
-    GpumemTensor<Tmix> dy;
+    GpumemTensor<TCKOCLmix> dy;
 
     tensor<Tref> dBias_ref;
     tensor<Tref> dScale_ref;
@@ -170,8 +174,8 @@ private:
     miopenTensorLayout_t bn_layout;
 };
 
-template <typename Tgpu, typename Tref, typename Tmix>
-int BatchNormDriver<Tgpu, Tref, Tmix>::ParseCmdLineArgs(int argc, char* argv[])
+template <typename Tgpu, typename Tref, typename Tmix, typename TEspmix, typename TCKOCLmix>
+int BatchNormDriver<Tgpu, Tref, Tmix, TEspmix, TCKOCLmix>::ParseCmdLineArgs(int argc, char* argv[])
 {
     inflags.Parse(argc, argv);
 
@@ -183,8 +187,8 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::ParseCmdLineArgs(int argc, char* argv[])
     return miopenStatusSuccess;
 }
 
-template <typename Tgpu, typename Tref, typename Tmix>
-int BatchNormDriver<Tgpu, Tref, Tmix>::GetandSetData()
+template <typename Tgpu, typename Tref, typename Tmix, typename TEspmix, typename TCKOCLmix>
+int BatchNormDriver<Tgpu, Tref, Tmix, TEspmix, TCKOCLmix>::GetandSetData()
 {
 
     std::vector<int> in_len = GetInputTensorLengthsFromCmdLine();
@@ -201,8 +205,8 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::GetandSetData()
     if(isFwdInfer || isFwdTrain)
     {
         out.AllocOnHost(tensor<Tgpu>{bn_layout, in_len});
-        scale.AllocOnHost(tensor<Tgpu>{bn_layout, derivedBnDesc.GetLengths()});
-        bias.AllocOnHost(tensor<Tgpu>{bn_layout, derivedBnDesc.GetLengths()});
+        scale.AllocOnHost(tensor<TEspmix>{bn_layout, derivedBnDesc.GetLengths()});
+        bias.AllocOnHost(tensor<TEspmix>{bn_layout, derivedBnDesc.GetLengths()});
 
         auto gen_value_scale_bias = [](auto...) {
             return prng::gen_descreet_uniform_sign<Tgpu>(1e-2, 100);
@@ -236,13 +240,13 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::GetandSetData()
     }
     else if(isBwd)
     {
-        out_bwd.AllocOnHost(tensor<Tmix>{bn_layout, in_len});
+        out_bwd.AllocOnHost(tensor<TCKOCLmix>{bn_layout, in_len});
 
-        bnScale.AllocOnHost(tensor<Tgpu>{bn_layout, derivedBnDesc.GetLengths()});
-        dy.AllocOnHost(tensor<Tmix>{bn_layout, in_len});
+        bnScale.AllocOnHost(tensor<TEspmix>{bn_layout, derivedBnDesc.GetLengths()});
+        dy.AllocOnHost(tensor<TCKOCLmix>{bn_layout, in_len});
 
         auto gen_var_bwd = [](auto...) {
-            return static_cast<Tmix>(1e-2 * (prng::gen_0_to_B(100) + 1));
+            return static_cast<TCKOCLmix>(1e-2 * (prng::gen_0_to_B(100) + 1));
         };
         dy.InitHostData(dy.GetTensor().desc.GetElementSize(), true, gen_var_bwd);
 
@@ -269,8 +273,8 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::GetandSetData()
     return miopenStatusSuccess;
 }
 
-template <typename Tgpu, typename Tref, typename Tmix>
-int BatchNormDriver<Tgpu, Tref, Tmix>::AddCmdLineArgs()
+template <typename Tgpu, typename Tref, typename Tmix, typename TEspmix, typename TCKOCLmix>
+int BatchNormDriver<Tgpu, Tref, Tmix, TEspmix, TCKOCLmix>::AddCmdLineArgs()
 {
     inflags.AddInputFlag(
         "forw",
@@ -321,8 +325,9 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::AddCmdLineArgs()
     return miopenStatusSuccess;
 }
 
-template <typename Tgpu, typename Tref, typename Tmix>
-std::vector<int> BatchNormDriver<Tgpu, Tref, Tmix>::GetInputTensorLengthsFromCmdLine()
+template <typename Tgpu, typename Tref, typename Tmix, typename TEspmix, typename TCKOCLmix>
+std::vector<int>
+BatchNormDriver<Tgpu, Tref, Tmix, TEspmix, TCKOCLmix>::GetInputTensorLengthsFromCmdLine()
 {
     int in_n = inflags.GetValueInt("batchsize");
     int in_c = inflags.GetValueInt("in_channels");
@@ -344,8 +349,8 @@ std::vector<int> BatchNormDriver<Tgpu, Tref, Tmix>::GetInputTensorLengthsFromCmd
     }
 }
 
-template <typename Tgpu, typename Tref, typename Tmix>
-bool BatchNormDriver<Tgpu, Tref, Tmix>::ChkLayout_ShortName()
+template <typename Tgpu, typename Tref, typename Tmix, typename TEspmix, typename TCKOCLmix>
+bool BatchNormDriver<Tgpu, Tref, Tmix, TEspmix, TCKOCLmix>::ChkLayout_ShortName()
 {
     // check for short name of layout type
     if(inflags.FindShortName("layout") == 'L')
@@ -361,8 +366,9 @@ bool BatchNormDriver<Tgpu, Tref, Tmix>::ChkLayout_ShortName()
     }
 }
 
-template <typename Tgpu, typename Tref, typename Tmix>
-void BatchNormDriver<Tgpu, Tref, Tmix>::ValidateLayoutInputParameters(std::string layout_value)
+template <typename Tgpu, typename Tref, typename Tmix, typename TEspmix, typename TCKOCLmix>
+void BatchNormDriver<Tgpu, Tref, Tmix, TEspmix, TCKOCLmix>::ValidateLayoutInputParameters(
+    std::string layout_value)
 {
     if(!ChkLayout_ShortName())
     {
@@ -377,8 +383,8 @@ void BatchNormDriver<Tgpu, Tref, Tmix>::ValidateLayoutInputParameters(std::strin
     }
 }
 
-template <typename Tgpu, typename Tref, typename Tmix>
-int BatchNormDriver<Tgpu, Tref, Tmix>::SetBNParametersFromCmdLineArgs()
+template <typename Tgpu, typename Tref, typename Tmix, typename TEspmix, typename TCKOCLmix>
+int BatchNormDriver<Tgpu, Tref, Tmix, TEspmix, TCKOCLmix>::SetBNParametersFromCmdLineArgs()
 {
 
     //    	double bnAlpha = inflags.GetValueDouble("alpha");
@@ -510,8 +516,8 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::SetBNParametersFromCmdLineArgs()
     return miopenStatusSuccess;
 }
 
-template <typename Tgpu, typename Tref, typename Tmix>
-int BatchNormDriver<Tgpu, Tref, Tmix>::AllocateBuffersAndCopy()
+template <typename Tgpu, typename Tref, typename Tmix, typename TEspmix, typename TCKOCLmix>
+int BatchNormDriver<Tgpu, Tref, Tmix, TEspmix, TCKOCLmix>::AllocateBuffersAndCopy()
 {
     status_t status = STATUS_SUCCESS;
     DEFINE_CONTEXT(ctx);
@@ -596,8 +602,10 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::AllocateBuffersAndCopy()
     return miopenStatusSuccess;
 }
 
-template <typename Tgpu, typename Tref, typename Tmix>
-void BatchNormDriver<Tgpu, Tref, Tmix>::runGPUFwdInference(Tref epsilon, float alpha, float beta)
+template <typename Tgpu, typename Tref, typename Tmix, typename TEspmix, typename TCKOCLmix>
+void BatchNormDriver<Tgpu, Tref, Tmix, TEspmix, TCKOCLmix>::runGPUFwdInference(Tref epsilon,
+                                                                               float alpha,
+                                                                               float beta)
 {
 
     if(keepRunningMeanVar)
@@ -644,11 +652,11 @@ void BatchNormDriver<Tgpu, Tref, Tmix>::runGPUFwdInference(Tref epsilon, float a
     return;
 }
 
-template <typename Tgpu, typename Tref, typename Tmix>
-void BatchNormDriver<Tgpu, Tref, Tmix>::runGPUFwdTrain(Tref epsilon,
-                                                       Tref eAF,
-                                                       float alpha,
-                                                       float beta)
+template <typename Tgpu, typename Tref, typename Tmix, typename TEspmix, typename TCKOCLmix>
+void BatchNormDriver<Tgpu, Tref, Tmix, TEspmix, TCKOCLmix>::runGPUFwdTrain(Tref epsilon,
+                                                                           Tref eAF,
+                                                                           float alpha,
+                                                                           float beta)
 {
     if(saveMeanVar && keepRunningMeanVar)
     {
@@ -767,8 +775,8 @@ void BatchNormDriver<Tgpu, Tref, Tmix>::runGPUFwdTrain(Tref epsilon,
 #endif
 }
 
-template <typename Tgpu, typename Tref, typename Tmix>
-int BatchNormDriver<Tgpu, Tref, Tmix>::RunForwardGPU()
+template <typename Tgpu, typename Tref, typename Tmix, typename TEspmix, typename TCKOCLmix>
+int BatchNormDriver<Tgpu, Tref, Tmix, TEspmix, TCKOCLmix>::RunForwardGPU()
 {
 
     float alpha = static_cast<float>(1), beta = static_cast<float>(0);
@@ -867,8 +875,8 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::RunForwardGPU()
     return miopenStatusSuccess;
 }
 
-template <typename Tgpu, typename Tref, typename Tmix>
-void BatchNormDriver<Tgpu, Tref, Tmix>::runCPUFwdInference(Tref epsilon)
+template <typename Tgpu, typename Tref, typename Tmix, typename TEspmix, typename TCKOCLmix>
+void BatchNormDriver<Tgpu, Tref, Tmix, TEspmix, TCKOCLmix>::runCPUFwdInference(Tref epsilon)
 {
     int size{0};
     miopenGetTensorDescriptorSize(&in.GetTensor().desc, &size);
@@ -916,8 +924,8 @@ void BatchNormDriver<Tgpu, Tref, Tmix>::runCPUFwdInference(Tref epsilon)
     return;
 }
 
-template <typename Tgpu, typename Tref, typename Tmix>
-void BatchNormDriver<Tgpu, Tref, Tmix>::runCPUFwdTrain(Tref epsilon, Tref eAF)
+template <typename Tgpu, typename Tref, typename Tmix, typename TEspmix, typename TCKOCLmix>
+void BatchNormDriver<Tgpu, Tref, Tmix, TEspmix, TCKOCLmix>::runCPUFwdTrain(Tref epsilon, Tref eAF)
 {
     int size{0};
     miopenGetTensorDescriptorSize(&in.GetTensor().desc, &size);
@@ -985,8 +993,8 @@ void BatchNormDriver<Tgpu, Tref, Tmix>::runCPUFwdTrain(Tref epsilon, Tref eAF)
     }
 }
 
-template <typename Tgpu, typename Tref, typename Tmix>
-int BatchNormDriver<Tgpu, Tref, Tmix>::RunForwardCPU()
+template <typename Tgpu, typename Tref, typename Tmix, typename TEspmix, typename TCKOCLmix>
+int BatchNormDriver<Tgpu, Tref, Tmix, TEspmix, TCKOCLmix>::RunForwardCPU()
 {
     //	T alpha = 0., beta  = 0.;
     Tref epsilon = static_cast<Tref>(EPSILON);
@@ -1014,8 +1022,8 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::RunForwardCPU()
     return miopenStatusSuccess;
 }
 
-template <typename Tgpu, typename Tref, typename Tmix>
-int BatchNormDriver<Tgpu, Tref, Tmix>::RunBackwardGPU()
+template <typename Tgpu, typename Tref, typename Tmix, typename TEspmix, typename TCKOCLmix>
+int BatchNormDriver<Tgpu, Tref, Tmix, TEspmix, TCKOCLmix>::RunBackwardGPU()
 {
     if(!back)
         return miopenStatusSuccess;
@@ -1134,8 +1142,8 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::RunBackwardGPU()
     return miopenStatusSuccess;
 }
 
-template <typename Tgpu, typename Tref, typename Tmix>
-int BatchNormDriver<Tgpu, Tref, Tmix>::VerifyForward()
+template <typename Tgpu, typename Tref, typename Tmix, typename TEspmix, typename TCKOCLmix>
+int BatchNormDriver<Tgpu, Tref, Tmix, TEspmix, TCKOCLmix>::VerifyForward()
 {
 
     // jump out since we are forcing forward off when doing backwards.
@@ -1350,8 +1358,8 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::VerifyForward()
     return miopenStatusSuccess;
 }
 
-template <typename Tgpu, typename Tref, typename Tmix>
-int BatchNormDriver<Tgpu, Tref, Tmix>::RunBackwardCPU()
+template <typename Tgpu, typename Tref, typename Tmix, typename TEspmix, typename TCKOCLmix>
+int BatchNormDriver<Tgpu, Tref, Tmix, TEspmix, TCKOCLmix>::RunBackwardCPU()
 {
 
     if(!back)
@@ -1439,8 +1447,8 @@ int BatchNormDriver<Tgpu, Tref, Tmix>::RunBackwardCPU()
     return miopenStatusSuccess;
 }
 
-template <typename Tgpu, typename Tref, typename Tmix>
-int BatchNormDriver<Tgpu, Tref, Tmix>::VerifyBackward()
+template <typename Tgpu, typename Tref, typename Tmix, typename TEspmix, typename TCKOCLmix>
+int BatchNormDriver<Tgpu, Tref, Tmix, TEspmix, TCKOCLmix>::VerifyBackward()
 {
 
     if(!back)
