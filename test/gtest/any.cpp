@@ -36,5 +36,5 @@ TEST_P(GPU_Any_int8, Test)
 };
 
 INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Any_int8, testing::ValuesIn(AnyTestConfigs()));
-// INSTANTIATE_TEST_SUITE_P(Full, GPU_Any_int8, testing::ValuesIn(AnyTestConfigs()));
-// INSTANTIATE_TEST_SUITE_P(Perf, GPU_Any_int8, testing::ValuesIn(AnyTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_Any_int8, testing::ValuesIn(AnyTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Perf, GPU_Any_int8, testing::ValuesIn(AnyTestConfigs()));

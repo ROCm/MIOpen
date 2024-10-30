@@ -58,8 +58,7 @@ constexpr uint64_t DivCeil(uint64_t numer, uint64_t denom) { return (numer + den
 MultiBufferWorkspaceTraits GetMultiBufferWorkspaceTraits(const TensorDescriptor& inputDesc)
 {
     auto input_numel = inputDesc.GetElementSize();
-    printf("input_numel: %d\n", input_numel);
-    auto size = ((input_numel + LOCAL_SIZE - 1) / LOCAL_SIZE);
+    auto size        = ((input_numel + LOCAL_SIZE - 1) / LOCAL_SIZE);
 
     auto dtype = inputDesc.GetType();
     size *= get_data_size(dtype);
@@ -90,12 +89,24 @@ ConvSolution AnyForward::GetSolution(const ExecutionContext& context,
     auto input_dtype  = miopen::GetDataType(problem.GetInputDesc().GetType());
     auto output_dtype = miopen::GetDataType(problem.GetOutputDesc().GetType());
 
+    std::cout << "input_dtype: " << input_dtype << std::endl;
+
     auto input_dims  = problem.GetInputDesc().GetLengths();
     auto output_dims = problem.GetOutputDesc().GetLengths();
     auto dim         = problem.GetDim();
 
     auto input_numel  = problem.GetInputDesc().GetElementSize();
     auto output_numel = problem.GetOutputDesc().GetElementSize();
+
+    // auto in_dtype = input_dtype;
+    // if(in_dtype == "int8_t")
+    // {
+    //     in_dtype = "signed char";
+    // }
+    // else if(in_dtype == "bfloat16")
+    // {
+    //     in_dtype = "ushort";
+    // }
 
     if(dim != -1)
     {
@@ -110,13 +121,24 @@ ConvSolution AnyForward::GetSolution(const ExecutionContext& context,
         kernel.kernel_file = "MIOpenAny.cpp";
         kernel.kernel_name = "AnyForward";
 
-        auto build_params = KernelBuildParameters{
-            {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
-            {"MIOPEN_USE_FP16", static_cast<int>(dtype == miopenHalf)},
-            {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
-            {"MIOPEN_USE_INT8", static_cast<int>(dtype == miopenInt8)},
-            {"MIOPEN_USE_INT32", static_cast<int>(dtype == miopenInt32)},
-        };
+        KernelBuildParameters build_params;
+
+        // Awkward way to handle different input types
+        // TODO: Find other elegant way to handle this
+        if(input_dtype == "int8_t")
+        {
+            build_params = KernelBuildParameters{
+                {"MIOPEN_USE_INT8", static_cast<int>(dtype == miopenInt8)},
+            };
+        }
+        else
+        {
+            build_params = KernelBuildParameters{
+                {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
+                {"MIOPEN_USE_FP16", static_cast<int>(dtype == miopenHalf)},
+                {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
+                {"INPUT_TYPE", input_dtype == "bfloat16" ? "ushort" : input_dtype}};
+        }
 
         kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
 
@@ -169,13 +191,21 @@ ConvSolution AnyForward::GetSolution(const ExecutionContext& context,
                 kernel.kernel_file = "MIOpenAny.cpp";
                 kernel.kernel_name = "ReduceAny";
 
-                auto build_params = KernelBuildParameters{
-                    {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
-                    {"MIOPEN_USE_FP16", static_cast<int>(dtype == miopenHalf)},
-                    {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
-                    {"MIOPEN_USE_INT8", static_cast<int>(dtype == miopenInt8)},
-                    {"MIOPEN_USE_INT32", static_cast<int>(dtype == miopenInt32)},
-                };
+                KernelBuildParameters build_params;
+                if(input_dtype == "int8_t")
+                {
+                    build_params = KernelBuildParameters{
+                        {"MIOPEN_USE_INT8", static_cast<int>(dtype == miopenInt8)},
+                    };
+                }
+                else
+                {
+                    build_params = KernelBuildParameters{
+                        {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
+                        {"MIOPEN_USE_FP16", static_cast<int>(dtype == miopenHalf)},
+                        {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
+                        {"INPUT_TYPE", input_dtype == "bfloat16" ? "ushort" : input_dtype}};
+                }
 
                 kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
 
@@ -205,13 +235,21 @@ ConvSolution AnyForward::GetSolution(const ExecutionContext& context,
             kernel.kernel_file = "MIOpenAny.cpp";
             kernel.kernel_name = "ReduceAny";
 
-            auto build_params = KernelBuildParameters{
-                {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
-                {"MIOPEN_USE_FP16", static_cast<int>(dtype == miopenHalf)},
-                {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
-                {"MIOPEN_USE_INT8", static_cast<int>(dtype == miopenInt8)},
-                {"MIOPEN_USE_INT32", static_cast<int>(dtype == miopenInt32)},
-            };
+            KernelBuildParameters build_params;
+            if(input_dtype == "int8_t")
+            {
+                build_params = KernelBuildParameters{
+                    {"MIOPEN_USE_INT8", 1},
+                };
+            }
+            else
+            {
+                build_params = KernelBuildParameters{
+                    {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
+                    {"MIOPEN_USE_FP16", static_cast<int>(dtype == miopenHalf)},
+                    {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
+                    {"INPUT_TYPE", input_dtype == "bfloat16" ? "ushort" : input_dtype}};
+            }
 
             kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
 

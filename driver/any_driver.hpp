@@ -61,6 +61,9 @@ int32_t mloAnyForwardRunHost(miopenTensorDescriptor_t inputDesc,
     auto output_numel = miopen::deref(outputDesc).GetElementSize();
     auto input_numel  = miopen::deref(inputDesc).GetElementSize();
 
+    // float a = 0;
+    // std::cout << "(a == 0): " << (a == 0) << std::endl;
+
     if(dim != -1)
     {
         auto inner_size = 1ULL;
@@ -77,7 +80,7 @@ int32_t mloAnyForwardRunHost(miopenTensorDescriptor_t inputDesc,
             for(size_t i = 0; i < reduce_size; i++)
             {
                 Tcheck val = static_cast<Tcheck>(input[input_idx]);
-                any        = any || val;
+                any        = (any || val) != 0;
                 input_idx += inner_size;
             }
             outputHost[o] = any;
@@ -88,7 +91,7 @@ int32_t mloAnyForwardRunHost(miopenTensorDescriptor_t inputDesc,
         Tcheck any = 0;
         for(size_t i = 0; i < input_numel; i++)
         {
-            any = any || input[i];
+            any = (any || input[i]) != 0;
         }
         outputHost[0] = any;
     }
@@ -287,7 +290,7 @@ int AnyDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         in[i] = prng::gen_A_to_B<Tgpu>(std::numeric_limits<Tgpu>::min(),
                                        std::numeric_limits<Tgpu>::max());
     }
-    // Temporary set those values to force the output any to be 0
+    // Temporary set those values to force the output[x][x][1] any to be 0
     // size: 3x4x5
     // reduce_dim: 1
     in[1]                     = 0;
@@ -295,6 +298,12 @@ int AnyDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     in[0 * 4 * 5 + 2 * 5 + 1] = 0;
     in[0 * 4 * 5 + 3 * 5 + 1] = 0;
     in[0 * 4 * 5 + 4 * 5 + 1] = 0;
+
+    // std::cout << "in: ";
+    // for(auto i : in) {
+    //     std::cout << signed(i) << " ";
+    // }
+    // std::cout << std::endl;
 
     if(in_dev->ToGPU(GetStream(), in.data()) != 0)
         std::cerr << "Error copying (in) to GPU, size: " << in_dev->GetSize() << std::endl;
@@ -365,6 +374,20 @@ template <typename Tgpu, typename Tref>
 int AnyDriver<Tgpu, Tref>::VerifyForward()
 {
     RunForwardCPU();
+
+    // std::cout << "outhost: ";
+    // for(auto i : outhost)
+    // {
+    //     std::cout << signed(i) << " ";
+    // }
+    // std::cout << std::endl;
+
+    // std::cout << "out: ";
+    // for(auto i : out)
+    // {
+    //     std::cout << signed(i) << " ";
+    // }
+    // std::cout << std::endl;
 
     auto is_equal = (outhost == out);
 

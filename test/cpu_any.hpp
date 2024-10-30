@@ -30,7 +30,7 @@
 #include <miopen/tensor_view_utils.hpp>
 
 template <class T>
-void cpu_any_forward(tensor<T> input, tensor<uint8_t>& ref_output, size_t dim, bool keepdim)
+void cpu_any_forward(tensor<T> input, tensor<T>& ref_output, size_t dim, bool keepdim)
 {
     auto input_tv  = miopen::get_inner_expanded_tv<5>(input.desc);
     auto output_tv = miopen::get_inner_expanded_tv<5>(ref_output.desc);
@@ -59,13 +59,13 @@ void cpu_any_forward(tensor<T> input, tensor<uint8_t>& ref_output, size_t dim, b
                 any   = any || val;
                 input_idx += inner_size;
             });
-            ref_output[o] = static_cast<uint8_t>(any);
+            ref_output[o] = any;
         });
     }
     else
     {
         T any = 0;
         par_ford(input_numel)([&](size_t i) { any = any || input[i]; });
-        ref_output[0] = static_cast<uint8_t>(any);
+        ref_output[0] = any;
     }
 }

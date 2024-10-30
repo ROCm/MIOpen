@@ -146,10 +146,10 @@ protected:
             out_dims = {1};
         }
 
-        output = tensor<uint8_t>{out_dims};
+        output = tensor<T>{out_dims};
         std::fill(output.begin(), output.end(), 0);
 
-        ref_output = tensor<uint8_t>{out_dims};
+        ref_output = tensor<T>{out_dims};
         std::fill(ref_output.begin(), ref_output.end(), 0);
 
         output_dev = handle.Write(output.data);
@@ -194,7 +194,7 @@ protected:
         EXPECT_EQ(status, miopenStatusSuccess);
 
         // Copy output data from device to host
-        output.data = handle.Read<uint8_t>(output_dev, output.data.size());
+        output.data = handle.Read<T>(output_dev, output.data.size());
     }
 
     void Verify()
@@ -208,10 +208,10 @@ protected:
     AnyTestCase any_config;
 
     tensor<T> input;
-    tensor<uint8_t> output;
+    tensor<T> output;
     tensor<float> workspace;
 
-    tensor<uint8_t> ref_output;
+    tensor<T> ref_output;
 
     miopen::Allocator::ManageDataPtr input_dev;
     miopen::Allocator::ManageDataPtr output_dev;
