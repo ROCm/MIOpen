@@ -26,25 +26,29 @@
 #include "miopen/bfloat16.hpp"
 #include "registry_driver_maker.hpp"
 #include "any_driver.hpp"
+#include <cstdint>
 
 static Driver* makeDriver(const std::string& base_arg)
 {
-    // TODO: Add support for uint8, bool, fp16, int16, fp32, int32
     // Tref cannot be "bool". Being bool dtype make it unable to use outhost.data()
+    // Use int8_t to present bool instead
     if(base_arg == "anychar") // signed char
-                              // template <typename Tgpu, typename Tref>
         return new AnyDriver<signed char, uint8_t>();
-    // if(base_arg == "anyuchar")
-    // return new AnyDriver<unsigned char, uint8_t>(); // uint8_t is actually the same with int8_t
-    //                                                 // as MIOpen automatically convert to int8_t
-    //                                                 // if dtype input is uint8_t
-    // if(base_arg == "any")                               // float
-    //     return new AnyDriver<float, uint8_t>();
-    // TODO: Add conversion for those half dtype in kernel function
+    if(base_arg == "anyuchar")
+        return new AnyDriver<unsigned char, uint8_t>(); // uint8_t is actually the same with int8_t
+                                                        // as MIOpen automatically convert input
+                                                        // dtype uint8_t to int8_t
     if(base_arg == "anyfp16")
         return new AnyDriver<float16, uint8_t>();
-    // if(base_arg == "anybfp16")
-    //     return new AnyDriver<bfloat16, float>;
+    if(base_arg == "anybfp16")
+        return new AnyDriver<bfloat16, uint8_t>;
+    // TODO: MIOpen seems to not support int16 (?)
+    // if(base_arg == "anyint16")
+    //     return new AnyDriver<int16_t, uint8_t>();
+    if(base_arg == "any")
+        return new AnyDriver<float, uint8_t>();
+    if(base_arg == "anyint32")
+        return new AnyDriver<int32_t, uint8_t>();
 
     return nullptr;
 }
