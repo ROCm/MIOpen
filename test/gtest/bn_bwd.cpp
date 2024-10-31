@@ -36,12 +36,6 @@ struct GPU_BN_BWD_Large_FP16
 {
 };
 
-// bf16 NHWC solver accepts is only on CK solver
-// XDataType       : bfloat16
-// YDataYype       : bfloat16
-// ScaleDataType   : bfloat16
-// BiasDataType    : bfloat16
-// MeanVarDataType : float
 struct GPU_BN_BWD_Small_BFP16 : BNBwdTest<bfloat16, float, float, float, bfloat16, float, float>
 {
 };
