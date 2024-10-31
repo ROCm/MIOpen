@@ -37,8 +37,8 @@
 #include <miopen/par_for.hpp>
 
 #define LOCAL_SIZE_BWD 256
-#define TILE_SIZE 32
-// #define TILE_SIZE 16
+// #define TILE_SIZE 32
+#define TILE_SIZE 16
 
 namespace miopen {
 
