@@ -23,66 +23,72 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include "avgpool.hpp"
+#include "cartesianprod.hpp"
 #include "gtest/gtest.h"
 using float16 = half_float::half;
 
 // FORWARD TEST
-using GPU_Avgpool_fwd_FP32  = AvgPoolTestFwd<float>;
-using GPU_Avgpool_fwd_FP16  = AvgPoolTestFwd<float16>;
-using GPU_Avgpool_fwd_BFP16 = AvgPoolTestFwd<bfloat16>;
+using GPU_CartesianProd_fwd_FP32  = CartesianProdTestFwd<float>;
+using GPU_CartesianProd_fwd_FP16  = CartesianProdTestFwd<float16>;
+using GPU_CartesianProd_fwd_BFP16 = CartesianProdTestFwd<bfloat16>;
 
-TEST_P(GPU_Avgpool_fwd_FP32, AvgPoolTestFwd)
+TEST_P(GPU_CartesianProd_fwd_FP32, CartesianProdTestFwd)
 {
     RunTest();
     Verify();
 };
 
-TEST_P(GPU_Avgpool_fwd_FP16, AvgPoolTestFwd)
+TEST_P(GPU_CartesianProd_fwd_FP16, CartesianProdTestFwd)
 {
     RunTest();
     Verify();
 };
 
-TEST_P(GPU_Avgpool_fwd_BFP16, AvgPoolTestFwd)
+TEST_P(GPU_CartesianProd_fwd_BFP16, CartesianProdTestFwd)
 {
     RunTest();
     Verify();
 };
 
-INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Avgpool_fwd_FP32, testing::ValuesIn(AvgPoolTestConfigsFwd()));
-INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Avgpool_fwd_FP16, testing::ValuesIn(AvgPoolTestConfigsFwd()));
-INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Avgpool_fwd_BFP16, testing::ValuesIn(AvgPoolTestConfigsFwd()));
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_CartesianProd_fwd_FP32,
+                         testing::ValuesIn(CartesianProdTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_CartesianProd_fwd_FP16,
+                         testing::ValuesIn(CartesianProdTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_CartesianProd_fwd_BFP16,
+                         testing::ValuesIn(CartesianProdTestConfigs()));
 
 // BACKWARD TEST
-using GPU_Avgpool_bwd_FP32  = AvgPoolTestBwd<float>;
-using GPU_Avgpool_bwd_FP16  = AvgPoolTestBwd<float16>;
-using GPU_Avgpool_bwd_BFP16 = AvgPoolTestBwd<bfloat16>;
+using GPU_CartesianProd_bwd_FP32  = CartesianProdTestBwd<float>;
+using GPU_CartesianProd_bwd_FP16  = CartesianProdTestBwd<float16>;
+using GPU_CartesianProd_bwd_BFP16 = CartesianProdTestBwd<bfloat16>;
 
-TEST_P(GPU_Avgpool_bwd_FP32, AvgPoolTestBwd)
+TEST_P(GPU_CartesianProd_bwd_FP32, CartesianProdTestBwd)
 {
     RunTest();
     Verify();
 };
 
-TEST_P(GPU_Avgpool_bwd_FP16, AvgPoolTestBwd)
+TEST_P(GPU_CartesianProd_bwd_FP16, CartesianProdTestBwd)
 {
     RunTest();
     Verify();
 };
 
-TEST_P(GPU_Avgpool_bwd_BFP16, AvgPoolTestBwd)
+TEST_P(GPU_CartesianProd_bwd_BFP16, CartesianProdTestBwd)
 {
     RunTest();
     Verify();
 };
 
 INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_Avgpool_bwd_FP32,
-                         testing::ValuesIn(AvgPoolTestConfigsBwdFp32()));
+                         GPU_CartesianProd_bwd_FP32,
+                         testing::ValuesIn(CartesianProdTestConfigs()));
 INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_Avgpool_bwd_FP16,
-                         testing::ValuesIn(AvgPoolTestConfigsBwdFp16BFp16()));
+                         GPU_CartesianProd_bwd_FP16,
+                         testing::ValuesIn(CartesianProdTestConfigs()));
 INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_Avgpool_bwd_BFP16,
-                         testing::ValuesIn(AvgPoolTestConfigsBwdFp16BFp16()));
+                         GPU_CartesianProd_bwd_BFP16,
+                         testing::ValuesIn(CartesianProdTestConfigs()));

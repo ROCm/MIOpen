@@ -89,12 +89,12 @@ set( MIOpen_Source
     adam_api.cpp
     addlayernorm_api.cpp
     api/find2_0_commons.cpp
-    avgpool_api.cpp
-    avgpool/problem_description.cpp
     batch_norm.cpp
     batch_norm_api.cpp
     batchnorm/problem_description.cpp
     buffer_info.cpp
+    cartesianprod_api.cpp
+    cartesianprod/problem_description.cpp
     cat_api.cpp
     cat/problem_description.cpp
     check_numerics.cpp
@@ -203,10 +203,6 @@ set( MIOpen_Source
     solver/activ/fwd_1.cpp
     solver/adam/adam.cpp
     solver/adam/transformers_adam_w.cpp
-    solver/avgpool/backward_avgpool_2d.cpp
-    solver/avgpool/backward_avgpool_3d.cpp
-    solver/avgpool/forward_avgpool_2d.cpp
-    solver/avgpool/forward_avgpool_3d.cpp
     solver/batchnorm/backward_ck.cpp
     solver/batchnorm/backward_per_activation.cpp
     solver/batchnorm/backward_per_activation_fused.cpp
@@ -220,6 +216,8 @@ set( MIOpen_Source
     solver/batchnorm/forward_spatial_multiple.cpp
     solver/batchnorm/forward_spatial_single.cpp
     solver/batchnorm/forward_training_ck.cpp
+    solver/cartesianprod/backward_cartesianprod.cpp
+    solver/cartesianprod/forward_cartesianprod.cpp
     solver/cat/forward_cat.cpp
     solver/conv/conv_asm_1x1u.cpp
     solver/conv/conv_asm_1x1u_stride2.cpp
@@ -508,7 +506,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         ${GPU_BATCHED_TRANSPOSE_KERNEL_HIP}
         ${GPU_GENERAL_TENSOR_REORDER_KERNEL_HIP_SOURCE}
         kernels/MIOpenAdam.cpp
-        kernels/MIOpenAvgPool.cpp
+        kernels/MIOpenCartesianProd.cpp
         kernels/MIOpenCat.cpp
         kernels/MIOpenCheckNumerics.cpp
         kernels/MIOpenBatchNormActivBwdPerAct.cl
@@ -658,7 +656,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         activ.cpp
         adam.cpp
         addlayernorm.cpp
-        avgpool.cpp
+        cartesianprod.cpp
         cat.cpp
         groupnorm.cpp
         getitem.cpp

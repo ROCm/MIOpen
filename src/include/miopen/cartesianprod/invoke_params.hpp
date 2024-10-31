@@ -32,33 +32,35 @@
 
 namespace miopen {
 
-namespace avgpool {
+namespace cartesianprod {
 
 struct FwdInvokeParams : public miopen::InvokeParams
 {
 
     FwdInvokeParams() = default;
 
-    const TensorDescriptor* inputDesc  = nullptr;
-    const TensorDescriptor* outputDesc = nullptr;
+    const TensorDescriptor* const* inputDescs = nullptr;
+    const TensorDescriptor* outputDesc        = nullptr;
 
-    ConstData_t input = nullptr;
-    Data_t output     = nullptr;
+    size_t inputCount   = 0;
+    ConstData_t* inputs = nullptr;
+    Data_t output       = nullptr;
 
-    int64_t KD               = 0;
-    int64_t KH               = 0;
-    int64_t KW               = 0;
-    int64_t SD               = 0;
-    int64_t SH               = 0;
-    int64_t SW               = 0;
-    int64_t PD               = 0;
-    int64_t PH               = 0;
-    int64_t PW               = 0;
-    bool count_include_pad   = false;
-    int64_t divisor_override = 0;
+    const void* GetInput(size_t inputIndex) const
+    {
+        return inputIndex < inputCount ? inputs[inputIndex] : nullptr;
+    }
 
-    std::size_t GetWorkspaceSize() const { return 0; }
-    Data_t GetWorkspace() const { return nullptr; }
+    const TensorDescriptor* GetInputDesc(size_t inputIndex) const
+    {
+        return inputIndex < inputCount ? inputDescs[inputIndex] : nullptr;
+    }
+
+    std::size_t workspaceSize = 0;
+    Data_t workspace          = nullptr;
+
+    std::size_t GetWorkspaceSize() const { return workspaceSize; }
+    Data_t GetWorkspace() const { return workspace; }
 };
 
 struct BwdInvokeParams : public miopen::InvokeParams
@@ -66,28 +68,27 @@ struct BwdInvokeParams : public miopen::InvokeParams
 
     BwdInvokeParams() = default;
 
-    const TensorDescriptor* outputGradDesc = nullptr;
-    const TensorDescriptor* inputGradDesc  = nullptr;
+    const TensorDescriptor* outputGradDesc        = nullptr;
+    const TensorDescriptor* const* inputGradDescs = nullptr;
 
+    size_t inputCount       = 0;
     ConstData_t output_grad = nullptr;
-    Data_t input_grad       = nullptr;
+    Data_t* input_grads     = nullptr;
 
-    int64_t KD               = 0;
-    int64_t KH               = 0;
-    int64_t KW               = 0;
-    int64_t SD               = 0;
-    int64_t SH               = 0;
-    int64_t SW               = 0;
-    int64_t PD               = 0;
-    int64_t PH               = 0;
-    int64_t PW               = 0;
-    bool count_include_pad   = false;
-    int64_t divisor_override = 0;
+    void* GetInputGrad(size_t inputIndex) const
+    {
+        return inputIndex < inputCount ? input_grads[inputIndex] : nullptr;
+    }
+
+    const TensorDescriptor* GetInputGradDesc(size_t inputIndex) const
+    {
+        return inputIndex < inputCount ? inputGradDescs[inputIndex] : nullptr;
+    }
 
     std::size_t GetWorkspaceSize() const { return 0; }
     Data_t GetWorkspace() const { return nullptr; }
 };
 
-} // namespace avgpool
+} // namespace cartesianprod
 
 } // namespace miopen

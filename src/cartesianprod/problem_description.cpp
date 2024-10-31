@@ -24,12 +24,14 @@
  *
  *******************************************************************************/
 
-#include <miopen/avgpool/problem_description.hpp>
+#include <miopen/cartesianprod/problem_description.hpp>
 #include <miopen/names.hpp>
+
+#include <sstream>
 
 namespace miopen {
 
-namespace avgpool {
+namespace cartesianprod {
 
 inline std::ostream& operator<<(std::ostream& os, const std::vector<size_t>& v)
 {
@@ -46,16 +48,19 @@ inline std::ostream& operator<<(std::ostream& os, const std::vector<size_t>& v)
 
 NetworkConfig FwdProblemDescription::MakeNetworkConfig() const
 {
-    auto input_size  = inputDesc.GetLengths();
     auto output_size = outputDesc.GetLengths();
 
-    auto input_dtype = inputDesc.GetType();
+    auto dtype = outputDesc.GetType();
 
     std::ostringstream ss;
 
-    ss << "avgpool_fwd";
-    ss << "-input_dtype" << input_dtype;
-    ss << "-Is" << input_size;
+    ss << "cartesianprod_fwd";
+    ss << "-dtype" << dtype;
+    ss << "-Is";
+    for(int i = 0; i < inputCount; i++)
+    {
+        ss << "_" << inputDescs[i]->GetLengths();
+    }
     ss << "-Os" << output_size;
     ss << "-Ic" << IsAllContiguous();
 
@@ -64,22 +69,25 @@ NetworkConfig FwdProblemDescription::MakeNetworkConfig() const
 
 NetworkConfig BwdProblemDescription::MakeNetworkConfig() const
 {
-    auto input_grad_size  = inputGradDesc.GetLengths();
     auto output_grad_size = outputGradDesc.GetLengths();
 
-    auto input_dtype = inputGradDesc.GetType();
+    auto dtype = outputGradDesc.GetType();
 
     std::ostringstream ss;
 
-    ss << "avgpool_bwd";
-    ss << "-input_dtype" << input_dtype;
-    ss << "-dIs" << input_grad_size;
+    ss << "cartesianprod_bwd";
+    ss << "-dtype" << dtype;
+    ss << "-dIs";
+    for(int i = 0; i < inputCount; i++)
+    {
+        ss << "_" << inputGradDescs[i]->GetLengths();
+    }
     ss << "-dOs" << output_grad_size;
     ss << "-Ic" << IsAllContiguous();
 
     return NetworkConfig{ss.str()};
 }
 
-} // namespace avgpool
+} // namespace cartesianprod
 
 } // namespace miopen

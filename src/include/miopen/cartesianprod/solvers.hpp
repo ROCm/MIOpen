@@ -29,7 +29,7 @@
 #include <miopen/conv_solution.hpp>
 #include <miopen/execution_context.hpp>
 #include <miopen/solver.hpp>
-#include <miopen/avgpool/problem_description.hpp>
+#include <miopen/cartesianprod/problem_description.hpp>
 #include <miopen/kernel_build_params.hpp>
 #include <miopen/kernel_info.hpp>
 #include <miopen/mlo_internal.hpp>
@@ -38,7 +38,7 @@ namespace miopen {
 
 namespace solver {
 
-namespace avgpool {
+namespace cartesianprod {
 
 const auto make_hip_kernel = [](std::vector<size_t> localsize,
                                 std::vector<size_t> gridsize,
@@ -55,59 +55,48 @@ const auto make_hip_kernel = [](std::vector<size_t> localsize,
         build_params.GenerateFor(kbp::HIP{}), localsize, gridsize, kernel_file, kernel_name};
 };
 
-using AvgPoolForward =
-    NonTunableSolverBase<ExecutionContext, miopen::avgpool::FwdProblemDescription>;
+using CartesianProdForwardSolver =
+    NonTunableSolverBase<ExecutionContext, miopen::cartesianprod::FwdProblemDescription>;
 
-using AvgPoolBackward =
-    NonTunableSolverBase<ExecutionContext, miopen::avgpool::BwdProblemDescription>;
+using CartesianProdBackwardSolver =
+    NonTunableSolverBase<ExecutionContext, miopen::cartesianprod::BwdProblemDescription>;
 
 // FORWARD
-struct AvgPoolForward2d final : AvgPoolForward
+struct CartesianProdForward final : CartesianProdForwardSolver
 {
-    const std::string& SolverDbId() const override { return GetSolverDbId<AvgPoolForward2d>(); }
+    const std::string& SolverDbId() const override { return GetSolverDbId<CartesianProdForward>(); }
 
     bool IsApplicable(const ExecutionContext& context,
-                      const miopen::avgpool::FwdProblemDescription& problem) const override;
+                      const miopen::cartesianprod::FwdProblemDescription& problem) const override;
 
-    ConvSolution GetSolution(const ExecutionContext& context,
-                             const miopen::avgpool::FwdProblemDescription& problem) const override;
-};
+    ConvSolution
+    GetSolution(const ExecutionContext& context,
+                const miopen::cartesianprod::FwdProblemDescription& problem) const override;
 
-struct AvgPoolForward3d final : AvgPoolForward
-{
-    const std::string& SolverDbId() const override { return GetSolverDbId<AvgPoolForward3d>(); }
+    bool MayNeedWorkspace() const override { return true; }
 
-    bool IsApplicable(const ExecutionContext& context,
-                      const miopen::avgpool::FwdProblemDescription& problem) const override;
-
-    ConvSolution GetSolution(const ExecutionContext& context,
-                             const miopen::avgpool::FwdProblemDescription& problem) const override;
+    std::size_t
+    GetWorkspaceSize(const ExecutionContext& context,
+                     const miopen::cartesianprod::FwdProblemDescription& problem) const override;
 };
 
 // BACKWARD
-struct AvgPoolBackward2d final : AvgPoolBackward
+struct CartesianProdBackward final : CartesianProdBackwardSolver
 {
-    const std::string& SolverDbId() const override { return GetSolverDbId<AvgPoolBackward2d>(); }
+    const std::string& SolverDbId() const override
+    {
+        return GetSolverDbId<CartesianProdBackward>();
+    }
 
     bool IsApplicable(const ExecutionContext& context,
-                      const miopen::avgpool::BwdProblemDescription& problem) const override;
+                      const miopen::cartesianprod::BwdProblemDescription& problem) const override;
 
-    ConvSolution GetSolution(const ExecutionContext& context,
-                             const miopen::avgpool::BwdProblemDescription& problem) const override;
+    ConvSolution
+    GetSolution(const ExecutionContext& context,
+                const miopen::cartesianprod::BwdProblemDescription& problem) const override;
 };
 
-struct AvgPoolBackward3d final : AvgPoolBackward
-{
-    const std::string& SolverDbId() const override { return GetSolverDbId<AvgPoolBackward3d>(); }
-
-    bool IsApplicable(const ExecutionContext& context,
-                      const miopen::avgpool::BwdProblemDescription& problem) const override;
-
-    ConvSolution GetSolution(const ExecutionContext& context,
-                             const miopen::avgpool::BwdProblemDescription& problem) const override;
-};
-
-} // namespace avgpool
+} // namespace cartesianprod
 
 } // namespace solver
 

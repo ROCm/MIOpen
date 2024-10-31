@@ -23,18 +23,40 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include "registry_driver_maker.hpp"
-#include "avgpool_driver.hpp"
+#pragma once
+#include <miopen/common.hpp>
 
-static Driver* makeDriver(const std::string& base_arg)
-{
-    if(base_arg == "avgpool")
-        return new AvgPoolDriver<float, float>();
-    if(base_arg == "avgpoolfp16")
-        return new AvgPoolDriver<float16, float>();
-    if(base_arg == "avgpoolbfp16")
-        return new AvgPoolDriver<bfloat16, float>();
-    return nullptr;
-}
+namespace miopen {
 
-REGISTER_DRIVER_MAKER(makeDriver);
+struct Handle;
+struct TensorDescriptor;
+
+namespace cartesianprod {
+
+MIOPEN_INTERNALS_EXPORT size_t
+GetCartesianProdForwardWorkspaceSize(Handle& handle,
+                                     size_t inputCount,
+                                     const TensorDescriptor* const* inputDescs,
+                                     const TensorDescriptor& outputDesc);
+
+MIOPEN_INTERNALS_EXPORT miopenStatus_t
+CartesianProdForward(Handle& handle,
+                     Data_t workspace,
+                     size_t workspaceSizeInBytes,
+                     size_t inputCount,
+                     const TensorDescriptor* const* inputDescs,
+                     ConstData_t* inputs,
+                     const TensorDescriptor& outputDesc,
+                     Data_t output);
+
+MIOPEN_INTERNALS_EXPORT miopenStatus_t
+CartesianProdBackward(Handle& handle,
+                      size_t inputCount,
+                      const TensorDescriptor& outputGradDesc,
+                      ConstData_t output_grad,
+                      const TensorDescriptor* const* inputGradDescs,
+                      Data_t* input_grads);
+
+} // namespace cartesianprod
+
+} // namespace miopen
