@@ -174,9 +174,8 @@ private:
     miopenTensorLayout_t bn_layout;
 };
 
-template <typename TInput, typename Tref, typename TAcc, typename TScaleBias, typename TCKOCLmix>
-int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TCKOCLmix>::ParseCmdLineArgs(int argc,
-                                                                                 char* argv[])
+template <typename TInput, typename Tref, typename TAcc, typename TScaleBias, typename TOut>
+int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::ParseCmdLineArgs(int argc, char* argv[])
 {
     inflags.Parse(argc, argv);
 
@@ -188,8 +187,8 @@ int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TCKOCLmix>::ParseCmdLineArgs
     return miopenStatusSuccess;
 }
 
-template <typename TInput, typename Tref, typename TAcc, typename TScaleBias, typename TCKOCLmix>
-int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TCKOCLmix>::GetandSetData()
+template <typename TInput, typename Tref, typename TAcc, typename TScaleBias, typename TOut>
+int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::GetandSetData()
 {
 
     std::vector<int> in_len = GetInputTensorLengthsFromCmdLine();
@@ -241,13 +240,13 @@ int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TCKOCLmix>::GetandSetData()
     }
     else if(isBwd)
     {
-        out_bwd.AllocOnHost(tensor<TCKOCLmix>{bn_layout, in_len});
+        out_bwd.AllocOnHost(tensor<TOut>{bn_layout, in_len});
 
         bnScale.AllocOnHost(tensor<TScaleBias>{bn_layout, derivedBnDesc.GetLengths()});
-        dy.AllocOnHost(tensor<TCKOCLmix>{bn_layout, in_len});
+        dy.AllocOnHost(tensor<TOut>{bn_layout, in_len});
 
         auto gen_var_bwd = [](auto...) {
-            return static_cast<TCKOCLmix>(1e-2 * (prng::gen_0_to_B(100) + 1));
+            return static_cast<TOut>(1e-2 * (prng::gen_0_to_B(100) + 1));
         };
         dy.InitHostData(dy.GetTensor().desc.GetElementSize(), true, gen_var_bwd);
 
@@ -258,11 +257,10 @@ int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TCKOCLmix>::GetandSetData()
 
         bnScale.InitHostData(bnScale.GetTensor().desc.GetElementSize(), true, gen_value);
 
-        savedMean.InitHostData(savedMean.GetTensor().desc.GetElementSize(), true, gen_var_bwd);
-
         auto gen_in_var = [](auto...) {
             return static_cast<TAcc>(1e-2 * (prng::gen_0_to_B(100) + 1));
         };
+        savedMean.InitHostData(savedMean.GetTensor().desc.GetElementSize(), true, gen_in_var);
         savedInvVar.InitHostData(savedInvVar.GetTensor().desc.GetElementSize(), true, gen_in_var);
     }
     else
@@ -274,8 +272,8 @@ int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TCKOCLmix>::GetandSetData()
     return miopenStatusSuccess;
 }
 
-template <typename TInput, typename Tref, typename TAcc, typename TScaleBias, typename TCKOCLmix>
-int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TCKOCLmix>::AddCmdLineArgs()
+template <typename TInput, typename Tref, typename TAcc, typename TScaleBias, typename TOut>
+int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::AddCmdLineArgs()
 {
     inflags.AddInputFlag(
         "forw",
@@ -326,9 +324,9 @@ int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TCKOCLmix>::AddCmdLineArgs()
     return miopenStatusSuccess;
 }
 
-template <typename TInput, typename Tref, typename TAcc, typename TScaleBias, typename TCKOCLmix>
+template <typename TInput, typename Tref, typename TAcc, typename TScaleBias, typename TOut>
 std::vector<int>
-BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TCKOCLmix>::GetInputTensorLengthsFromCmdLine()
+BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::GetInputTensorLengthsFromCmdLine()
 {
     int in_n = inflags.GetValueInt("batchsize");
     int in_c = inflags.GetValueInt("in_channels");
@@ -350,8 +348,8 @@ BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TCKOCLmix>::GetInputTensorLength
     }
 }
 
-template <typename TInput, typename Tref, typename TAcc, typename TScaleBias, typename TCKOCLmix>
-bool BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TCKOCLmix>::ChkLayout_ShortName()
+template <typename TInput, typename Tref, typename TAcc, typename TScaleBias, typename TOut>
+bool BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::ChkLayout_ShortName()
 {
     // check for short name of layout type
     if(inflags.FindShortName("layout") == 'L')
@@ -367,8 +365,8 @@ bool BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TCKOCLmix>::ChkLayout_Short
     }
 }
 
-template <typename TInput, typename Tref, typename TAcc, typename TScaleBias, typename TCKOCLmix>
-void BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TCKOCLmix>::ValidateLayoutInputParameters(
+template <typename TInput, typename Tref, typename TAcc, typename TScaleBias, typename TOut>
+void BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::ValidateLayoutInputParameters(
     std::string layout_value)
 {
     if(!ChkLayout_ShortName())
@@ -384,8 +382,8 @@ void BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TCKOCLmix>::ValidateLayoutI
     }
 }
 
-template <typename TInput, typename Tref, typename TAcc, typename TScaleBias, typename TCKOCLmix>
-int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TCKOCLmix>::SetBNParametersFromCmdLineArgs()
+template <typename TInput, typename Tref, typename TAcc, typename TScaleBias, typename TOut>
+int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::SetBNParametersFromCmdLineArgs()
 {
 
     //    	double bnAlpha = inflags.GetValueDouble("alpha");
@@ -517,8 +515,8 @@ int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TCKOCLmix>::SetBNParametersF
     return miopenStatusSuccess;
 }
 
-template <typename TInput, typename Tref, typename TAcc, typename TScaleBias, typename TCKOCLmix>
-int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TCKOCLmix>::AllocateBuffersAndCopy()
+template <typename TInput, typename Tref, typename TAcc, typename TScaleBias, typename TOut>
+int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::AllocateBuffersAndCopy()
 {
     status_t status = STATUS_SUCCESS;
     DEFINE_CONTEXT(ctx);
@@ -603,10 +601,10 @@ int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TCKOCLmix>::AllocateBuffersA
     return miopenStatusSuccess;
 }
 
-template <typename TInput, typename Tref, typename TAcc, typename TScaleBias, typename TCKOCLmix>
-void BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TCKOCLmix>::runGPUFwdInference(Tref epsilon,
-                                                                                    float alpha,
-                                                                                    float beta)
+template <typename TInput, typename Tref, typename TAcc, typename TScaleBias, typename TOut>
+void BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::runGPUFwdInference(Tref epsilon,
+                                                                               float alpha,
+                                                                               float beta)
 {
 
     if(keepRunningMeanVar)
@@ -653,11 +651,11 @@ void BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TCKOCLmix>::runGPUFwdInfere
     return;
 }
 
-template <typename TInput, typename Tref, typename TAcc, typename TScaleBias, typename TCKOCLmix>
-void BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TCKOCLmix>::runGPUFwdTrain(Tref epsilon,
-                                                                                Tref eAF,
-                                                                                float alpha,
-                                                                                float beta)
+template <typename TInput, typename Tref, typename TAcc, typename TScaleBias, typename TOut>
+void BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::runGPUFwdTrain(Tref epsilon,
+                                                                           Tref eAF,
+                                                                           float alpha,
+                                                                           float beta)
 {
     if(saveMeanVar && keepRunningMeanVar)
     {
@@ -776,8 +774,8 @@ void BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TCKOCLmix>::runGPUFwdTrain(
 #endif
 }
 
-template <typename TInput, typename Tref, typename TAcc, typename TScaleBias, typename TCKOCLmix>
-int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TCKOCLmix>::RunForwardGPU()
+template <typename TInput, typename Tref, typename TAcc, typename TScaleBias, typename TOut>
+int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::RunForwardGPU()
 {
 
     float alpha = static_cast<float>(1), beta = static_cast<float>(0);
@@ -876,8 +874,8 @@ int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TCKOCLmix>::RunForwardGPU()
     return miopenStatusSuccess;
 }
 
-template <typename TInput, typename Tref, typename TAcc, typename TScaleBias, typename TCKOCLmix>
-void BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TCKOCLmix>::runCPUFwdInference(Tref epsilon)
+template <typename TInput, typename Tref, typename TAcc, typename TScaleBias, typename TOut>
+void BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::runCPUFwdInference(Tref epsilon)
 {
     int size{0};
     miopenGetTensorDescriptorSize(&in.GetTensor().desc, &size);
@@ -925,9 +923,8 @@ void BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TCKOCLmix>::runCPUFwdInfere
     return;
 }
 
-template <typename TInput, typename Tref, typename TAcc, typename TScaleBias, typename TCKOCLmix>
-void BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TCKOCLmix>::runCPUFwdTrain(Tref epsilon,
-                                                                                Tref eAF)
+template <typename TInput, typename Tref, typename TAcc, typename TScaleBias, typename TOut>
+void BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::runCPUFwdTrain(Tref epsilon, Tref eAF)
 {
     int size{0};
     miopenGetTensorDescriptorSize(&in.GetTensor().desc, &size);
@@ -995,8 +992,8 @@ void BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TCKOCLmix>::runCPUFwdTrain(
     }
 }
 
-template <typename TInput, typename Tref, typename TAcc, typename TScaleBias, typename TCKOCLmix>
-int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TCKOCLmix>::RunForwardCPU()
+template <typename TInput, typename Tref, typename TAcc, typename TScaleBias, typename TOut>
+int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::RunForwardCPU()
 {
     //	T alpha = 0., beta  = 0.;
     Tref epsilon = static_cast<Tref>(EPSILON);
@@ -1024,8 +1021,8 @@ int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TCKOCLmix>::RunForwardCPU()
     return miopenStatusSuccess;
 }
 
-template <typename TInput, typename Tref, typename TAcc, typename TScaleBias, typename TCKOCLmix>
-int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TCKOCLmix>::RunBackwardGPU()
+template <typename TInput, typename Tref, typename TAcc, typename TScaleBias, typename TOut>
+int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::RunBackwardGPU()
 {
     if(!back)
         return miopenStatusSuccess;
@@ -1144,8 +1141,8 @@ int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TCKOCLmix>::RunBackwardGPU()
     return miopenStatusSuccess;
 }
 
-template <typename TInput, typename Tref, typename TAcc, typename TScaleBias, typename TCKOCLmix>
-int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TCKOCLmix>::VerifyForward()
+template <typename TInput, typename Tref, typename TAcc, typename TScaleBias, typename TOut>
+int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::VerifyForward()
 {
 
     // jump out since we are forcing forward off when doing backwards.
@@ -1360,8 +1357,8 @@ int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TCKOCLmix>::VerifyForward()
     return miopenStatusSuccess;
 }
 
-template <typename TInput, typename Tref, typename TAcc, typename TScaleBias, typename TCKOCLmix>
-int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TCKOCLmix>::RunBackwardCPU()
+template <typename TInput, typename Tref, typename TAcc, typename TScaleBias, typename TOut>
+int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::RunBackwardCPU()
 {
 
     if(!back)
@@ -1449,8 +1446,8 @@ int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TCKOCLmix>::RunBackwardCPU()
     return miopenStatusSuccess;
 }
 
-template <typename TInput, typename Tref, typename TAcc, typename TScaleBias, typename TCKOCLmix>
-int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TCKOCLmix>::VerifyBackward()
+template <typename TInput, typename Tref, typename TAcc, typename TScaleBias, typename TOut>
+int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::VerifyBackward()
 {
 
     if(!back)
@@ -1481,14 +1478,14 @@ int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TCKOCLmix>::VerifyBackward()
 #if(MIO_BN_DEBUG == 1)
         for(int i = 0; i < out_ref.data.size() && i < MIO_BN_MAX_DEBUGLOOP; i++)
         {
-            diff   = fabs(TInput(fabs(out_ref.data[i]) - fabs(out_bwd.GetVector()[i])));
+            diff   = fabs(TOut(fabs(out_ref.data[i]) - fabs(out_bwd.GetVector()[i])));
             maxval = maxval < diff ? diff : maxval;
             if(!std::isfinite(diff) || diff > tolerance)
             {
                 std::cout << "out_ref[" << i << "]: " << out_ref.data[i];
                 std::cout << "\tout_bwd.GetVector()[" << i << "]: " << out_bwd.GetVector()[i];
                 std::cout << "\tdiff[" << i
-                          << "]: " << TInput(fabs(out_ref.data[i]) - fabs(out_bwd.GetVector()[i]));
+                          << "]: " << TOut(fabs(out_ref.data[i]) - fabs(out_bwd.GetVector()[i]));
                 std::cout << "\tratioH: "
                           << fabs(fabs(out_ref.data[i]) - fabs(out_bwd.GetVector()[i])) /
                                  fabs(out_bwd.GetVector()[i])
