@@ -338,6 +338,8 @@ set( MIOpen_Source
     solver/softmax/attn_softmax.cpp
     solver/softmax/softmax.cpp
     solver/tensor/Op1dTensorGeneric.cpp
+    solver/tensor/Op2dTensorGeneric.cpp
+    solver/tensor/Op2dTensorLite.cpp
     subbuffers.cpp
     t5layernorm_api.cpp
     target_properties.cpp

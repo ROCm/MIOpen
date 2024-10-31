@@ -911,14 +911,11 @@ void OpTensorNew(Handle& handle,
                                                     Coffset,
                                                     nonStandardSquash};
 
-    const auto tensor_dim = aTensorDesc.GetLengths().size();
-
-    if(tensor_dim == 1)
-    {
-        const auto algo    = AlgorithmName{"Op1dTensorGeneric"};
-        const auto solvers = solver::SolverContainer<solver::tensor::Op1dTensorGeneric>{};
-        solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
-    }
+    const auto algo    = AlgorithmName{"TensorOpSolver"};
+    const auto solvers = solver::SolverContainer<solver::tensor::Op1dTensorGeneric>{} +
+                         solver::SolverContainer<solver::tensor::Op2dTensorGeneric>{} +
+                         solver::SolverContainer<solver::tensor::Op2dTensorLite>{};
+    solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
 }
 
 } // namespace miopen

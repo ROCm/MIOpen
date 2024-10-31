@@ -241,7 +241,7 @@ struct tensor_ops_driver : test_driver
 
     std::vector<std::vector<int>> get_sub_tensor_a()
     {
-        return {/*{32, 16, 8, 4, 4}, {16, 20, 16, 8}, {20, 16, 8}, {1, 16, 8}, {16, 8},*/ {8}};
+        return {/*{32, 16, 8, 4, 4}, {16, 20, 16, 8}, {20, 16, 8}, {1, 16, 8},*/ {16, 8}, {8}};
     }
 
     std::vector<std::vector<int>> get_sub_tensor_b()
@@ -263,10 +263,10 @@ struct tensor_ops_driver : test_driver
                 {20, 16, 1},
                 {1, 16, 8},
                 {1, 16, 1},
-                {20, 1, 1},
+                {20, 1, 1},*/
                 {16, 8},
                 {16, 1},
-                {1, 8},*/
+                {1, 8},
                 {8},
                 {1}};
     }

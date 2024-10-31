@@ -55,6 +55,38 @@ struct Op1dTensorGeneric final : TensorOpSolver
     bool MayNeedWorkspace() const override { return false; }
 };
 
+struct Op2dTensorGeneric final : TensorOpSolver
+{
+    const std::string& SolverDbId() const override { return GetSolverDbId<Op2dTensorGeneric>(); }
+
+    bool IsApplicable(const ExecutionContext& context,
+                      const miopen::tensor::ProblemDescription& problem) const override;
+
+    ConvSolution GetSolution(const ExecutionContext& context,
+                             const miopen::tensor::ProblemDescription& problem) const override;
+
+    std::size_t GetWorkspaceSize(const ExecutionContext& context,
+                                 const miopen::tensor::ProblemDescription& problem) const override;
+
+    bool MayNeedWorkspace() const override { return false; }
+};
+
+struct Op2dTensorLite final : TensorOpSolver
+{
+    const std::string& SolverDbId() const override { return GetSolverDbId<Op2dTensorLite>(); }
+
+    bool IsApplicable(const ExecutionContext& context,
+                      const miopen::tensor::ProblemDescription& problem) const override;
+
+    ConvSolution GetSolution(const ExecutionContext& context,
+                             const miopen::tensor::ProblemDescription& problem) const override;
+
+    std::size_t GetWorkspaceSize(const ExecutionContext& context,
+                                 const miopen::tensor::ProblemDescription& problem) const override;
+
+    bool MayNeedWorkspace() const override { return false; }
+};
+
 } // namespace tensor
 
 } // namespace solver
