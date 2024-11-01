@@ -371,7 +371,7 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
         index = nidx * MIO_BN_CHW + chwid + hwidx;
 #endif
         out[index] =
-            FLOATPREC2FLOAT(mad(pvscale, ((FLOAT2FLOATPREC(*(in + index)) - mean) * invVariance, pvbias));
+            FLOATPREC2FLOAT(mad(pvscale, (FLOAT2FLOATPREC(*(in + index)) - mean) * invVariance, pvbias));
     } // end for
 #else
     _FLOAT_PREC xhat[MIO_MAX_READ];
