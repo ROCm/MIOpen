@@ -108,7 +108,7 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
 
     if(lid < MIO_BN_SEGMENT)
     {
-#if (MIOPEN_USE_FP16 == 1))
+#if MIOPEN_USE_FP16 == 1
         __attribute__((opencl_unroll_hint(2)))
 #endif
         for(unsigned int n = 0; n < MIO_BN_NLOOPM; ++n)
@@ -153,7 +153,7 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
         //==== CALC NORM =======================
         _FLOAT_ACCUM inhat = (_FLOAT_ACCUM)0.;
 
-#if (MIOPEN_USE_FP16 == 1))
+#if MIOPEN_USE_FP16 == 1
         __attribute__((opencl_unroll_hint(2)))
 #endif
         for(unsigned int n = 0; n < MIO_BN_NLOOPM; n++)
