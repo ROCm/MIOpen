@@ -24,6 +24,7 @@
  *
  *******************************************************************************/
 
+#include "miopen/miopen.h"
 #include <cstdio>
 #include <miopen/conv_solution.hpp>
 #include <miopen/execution_context.hpp>
@@ -50,8 +51,7 @@ bool CartesianProdForward::IsApplicable(
     const ExecutionContext&, const miopen::cartesianprod::FwdProblemDescription& problem) const
 {
     if(!(problem.GetOutputDesc().GetType() == miopenHalf ||
-         problem.GetOutputDesc().GetType() == miopenFloat ||
-         problem.GetOutputDesc().GetType() == miopenBFloat16))
+         problem.GetOutputDesc().GetType() == miopenFloat))
     {
         return false;
     }

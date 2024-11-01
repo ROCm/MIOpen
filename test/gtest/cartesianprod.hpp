@@ -86,8 +86,8 @@ struct CartesianProdTestCase
 inline std::vector<CartesianProdTestCase> CartesianProdTestConfigs()
 {
     return {
-        {{{5}, {7}, {11}}, true},
-        {{{6}, {4}, {12}}, false},
+        {{{5}, {7}, {9}}, true},
+        {{{6}, {4}, {9}}, false},
     };
 }
 

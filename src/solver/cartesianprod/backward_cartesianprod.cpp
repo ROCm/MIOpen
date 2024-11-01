@@ -47,21 +47,14 @@ namespace cartesianprod {
 
 bool IsOverRocmBwd(const miopen::cartesianprod::BwdProblemDescription& problem)
 {
-    if(problem.GetOutputGradDesc().GetType() == miopenBFloat16)
+    for(size_t i = 0; i < problem.GetInputCount(); i++)
     {
-        return true;
-    }
-    else
-    {
-        for(size_t i = 0; i < problem.GetInputCount(); i++)
+        if(problem.GetInputGradDesc(i).GetElementSize() > 10)
         {
-            if(problem.GetInputGradDesc(i).GetElementSize() > 10)
-            {
-                return false;
-            }
+            return false;
         }
-        return true;
     }
+    return true;
 }
 
 bool CartesianProdBackward::IsApplicable(
