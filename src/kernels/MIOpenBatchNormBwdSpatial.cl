@@ -522,7 +522,7 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
     barrier(CLK_LOCAL_MEM_FENCE);
     if(lid == 0)
     {
-#if (MIOPEN_USE_FP16 == 1))
+#if (MIOPEN_USE_FP16 == 1)
         *(dbias + grpid)  = (temp_db >= (float)MAX_VAL) ? MAX_VAL : db;
         *(dscale + grpid) = (temp_ds >= (float)MAX_VAL || temp_ds < 0) ? MAX_VAL : ds;
 #else
