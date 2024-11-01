@@ -37,8 +37,7 @@
 #include <miopen/target_properties.hpp>
 #include <miopen/par_for.hpp>
 
-#define LOCAL_SIZE_FWD 256
-// #define TILE_SIZE 32
+#define LOCAL_SIZE_FWD 128
 #define TILE_SIZE 16
 
 namespace miopen {
@@ -46,34 +45,6 @@ namespace miopen {
 namespace solver {
 
 namespace cartesianprod {
-
-bool IsOverRocmFwd(const miopen::cartesianprod::FwdProblemDescription& problem)
-{
-    // if(problem.IsAllContiguous())
-    //     return true;
-    // else
-    // {
-    //     auto dtype       = problem.GetInputDesc().GetType();
-    //     auto in_nelems   = problem.GetInputDesc().GetElementSize();
-    //     auto out_nelems  = problem.GetOutputDesc().GetElementSize();
-    //     auto in_over_out = static_cast<float>(in_nelems) / out_nelems;
-    //     if(dtype == miopenFloat)
-    //     {
-    //         if(out_nelems <= 9633792 && in_over_out >= 4)
-    //         {
-    //             return true;
-    //         }
-    //     }
-    //     else if(dtype == miopenHalf || dtype == miopenBFloat16)
-    //     {
-    //         if(out_nelems <= 3311616 && in_over_out >= 4)
-    //         {
-    //             return true;
-    //         }
-    //     }
-    // }
-    return true;
-}
 
 bool CartesianProdForward::IsApplicable(
     const ExecutionContext&, const miopen::cartesianprod::FwdProblemDescription& problem) const
@@ -85,10 +56,6 @@ bool CartesianProdForward::IsApplicable(
         return false;
     }
     if(!problem.IsAllPacked())
-    {
-        return false;
-    }
-    if(!IsOverRocmFwd(problem))
     {
         return false;
     }

@@ -37,7 +37,6 @@
 #include <miopen/par_for.hpp>
 
 #define LOCAL_SIZE_BWD 256
-// #define TILE_SIZE 32
 #define TILE_SIZE 16
 
 namespace miopen {
@@ -48,15 +47,21 @@ namespace cartesianprod {
 
 bool IsOverRocmBwd(const miopen::cartesianprod::BwdProblemDescription& problem)
 {
-    // auto in_nelems   = problem.GetInputGradDesc().GetElementSize();
-    // auto out_nelems  = problem.GetOutputGradDesc().GetElementSize();
-    // auto in_over_out = static_cast<float>(in_nelems) / out_nelems;
-
-    // if(in_over_out == 4)
-    // {
-    //     return true;
-    // }
-    return true;
+    if(problem.GetOutputGradDesc().GetType() == miopenBFloat16)
+    {
+        return true;
+    }
+    else
+    {
+        for(size_t i = 0; i < problem.GetInputCount(); i++)
+        {
+            if(problem.GetInputGradDesc(i).GetElementSize() > 10)
+            {
+                return false;
+            }
+        }
+        return true;
+    }
 }
 
 bool CartesianProdBackward::IsApplicable(
