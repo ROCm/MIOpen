@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,9 +24,9 @@
  *
  *******************************************************************************/
 
-#include <miopen/tensor/solvers.hpp>
+#include <miopen/tensorOp/solvers.hpp>
 
-#include <miopen/tensor/invoke_params.hpp>
+#include <miopen/tensorOp/invoke_params.hpp>
 #include <miopen/tensor.hpp>
 #include <miopen/kernel_build_params.hpp>
 #include <miopen/float_equal.hpp>
@@ -36,10 +36,10 @@ namespace miopen {
 
 namespace solver {
 
-namespace tensor {
+namespace tensorOp {
 
 bool Op2dTensorGeneric::IsApplicable(const ExecutionContext& context,
-                                     const miopen::tensor::ProblemDescription& problem) const
+                                     const miopen::tensorOp::ProblemDescription& problem) const
 {
     auto aTensorDesc = problem.GetATensorDesc();
     auto bTensorDesc = problem.GetBTensorDesc();
@@ -58,13 +58,14 @@ bool Op2dTensorGeneric::IsApplicable(const ExecutionContext& context,
 
 std::size_t
 Op2dTensorGeneric::GetWorkspaceSize(const ExecutionContext& context,
-                                    const miopen::tensor::ProblemDescription& problem) const
+                                    const miopen::tensorOp::ProblemDescription& problem) const
 {
     return 0;
 }
 
-ConvSolution Op2dTensorGeneric::GetSolution(const ExecutionContext& context,
-                                            const miopen::tensor::ProblemDescription& problem) const
+ConvSolution
+Op2dTensorGeneric::GetSolution(const ExecutionContext& context,
+                               const miopen::tensorOp::ProblemDescription& problem) const
 {
     auto result = ConvSolution{miopenStatusSuccess};
 
@@ -86,8 +87,6 @@ ConvSolution Op2dTensorGeneric::GetSolution(const ExecutionContext& context,
 
     KernelBuildParameters build_params =
         KernelBuildParameters{{"MIOPEN_TYPE", GetDataType(bTensorDesc.GetType())}};
-
-    // build_params.Define("MIOPEN_TENSOR_OP", std::to_string(problem.GetTensorOp()));
 
     switch(problem.GetTensorOp())
     {
@@ -125,7 +124,7 @@ ConvSolution Op2dTensorGeneric::GetSolution(const ExecutionContext& context,
     result.invoker_factory = [=](const std::vector<Kernel> kernels) {
         return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
             decltype(auto) kernel = handle_.Run(kernels.front());
-            decltype(auto) params = raw_params.CastTo<miopen::tensor::InvokeParams>();
+            decltype(auto) params = raw_params.CastTo<miopen::tensorOp::InvokeParams>();
 
             visit_float(bTensorDesc.GetType(), [&](auto as_float) {
                 auto miopen_alpha0 = as_float(*(static_cast<const float*>(params.alpha0)));
@@ -166,7 +165,7 @@ ConvSolution Op2dTensorGeneric::GetSolution(const ExecutionContext& context,
     return result;
 }
 
-} // namespace tensor
+} // namespace tensorOp
 
 } // namespace solver
 

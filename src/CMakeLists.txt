@@ -337,15 +337,16 @@ set( MIOpen_Source
     solver/softmarginloss/forward_softmarginloss.cpp
     solver/softmax/attn_softmax.cpp
     solver/softmax/softmax.cpp
-    solver/tensor/Op1dTensorGeneric.cpp
-    solver/tensor/Op2dTensorGeneric.cpp
-    solver/tensor/Op2dTensorLite.cpp
+    solver/tensorOp/Op1dTensorGeneric.cpp
+    solver/tensorOp/Op2dTensorGeneric.cpp
+    solver/tensorOp/Op2dTensorLite.cpp
+    solver/tensorOp/Op2dTensorSquash.cpp
     subbuffers.cpp
     t5layernorm_api.cpp
     target_properties.cpp
     temp_file.cpp
     tensor.cpp
-    tensor/problem_description.cpp
+    tensorOp/problem_description.cpp
     tensor_api.cpp
     transformers_adam_w_api.cpp
     seq_tensor.cpp

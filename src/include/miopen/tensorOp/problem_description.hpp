@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -33,13 +33,11 @@ namespace miopen {
 
 struct NetworkConfig;
 
-namespace tensor {
+namespace tensorOp {
 
 struct ProblemDescription : ProblemDescriptionBase
 {
     ProblemDescription(const miopenTensorOp_t tensorOp_,
-                       const void* alpha0_,
-                       const void* alpha1_,
                        const void* beta_,
                        const TensorDescriptor& aTensorDesc_,
                        const TensorDescriptor& bTensorDesc_,
@@ -51,7 +49,11 @@ struct ProblemDescription : ProblemDescriptionBase
           cTensorDesc(cTensorDesc_),
           nonStandardSquash(nonStandardSquash_)
     {
-        CheckAndAssignAlphaBeta(alpha0_, alpha1_, beta_);
+        if(beta_ == nullptr)
+        {
+            MIOPEN_THROW(miopenStatusBadParm, "Beta value is nullptr");
+        }
+        beta = *(static_cast<const float*>(beta_));
 
         if(aTensorDesc.GetElementSize() != cTensorDesc.GetElementSize())
         {
@@ -101,9 +103,7 @@ struct ProblemDescription : ProblemDescriptionBase
 
     const miopenTensorOp_t GetTensorOp() const { return tensorOp; }
 
-    const void* GetAlpha0() const { return alpha0; }
-    const void* GetAlpha1() const { return alpha1; }
-    const void* GetBeta() const { return beta; }
+    float GetBeta() const { return beta; }
 
     const TensorDescriptor& GetATensorDesc() const { return aTensorDesc; }
     const TensorDescriptor& GetBTensorDesc() const { return bTensorDesc; }
@@ -114,31 +114,9 @@ struct ProblemDescription : ProblemDescriptionBase
     NetworkConfig MakeNetworkConfig() const override;
 
 private:
-    void CheckAndAssignAlphaBeta(const void* alpha0_, const void* alpha1_, const void* beta_)
-    {
-        if(alpha0_ == nullptr)
-        {
-            MIOPEN_THROW(miopenStatusBadParm, "Alpha0 value is nullptr");
-        }
-        if(alpha1_ == nullptr)
-        {
-            MIOPEN_THROW(miopenStatusBadParm, "Alpha1 value is nullptr");
-        }
-        if(beta_ == nullptr)
-        {
-            MIOPEN_THROW(miopenStatusBadParm, "Beta value is nullptr");
-        }
-
-        alpha0 = alpha0_;
-        alpha1 = alpha1_;
-        beta   = beta_;
-    }
-
     const miopenTensorOp_t tensorOp;
 
-    const void* alpha0;
-    const void* alpha1;
-    const void* beta;
+    float beta;
 
     const TensorDescriptor& aTensorDesc;
     const TensorDescriptor& bTensorDesc;
@@ -147,6 +125,6 @@ private:
     const bool nonStandardSquash;
 };
 
-} // namespace tensor
+} // namespace tensorOp
 
 } // namespace miopen

@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,9 +24,9 @@
  *
  *******************************************************************************/
 
-#include <miopen/tensor/solvers.hpp>
+#include <miopen/tensorOp/solvers.hpp>
 
-#include <miopen/tensor/invoke_params.hpp>
+#include <miopen/tensorOp/invoke_params.hpp>
 #include <miopen/tensor.hpp>
 #include <miopen/kernel_build_params.hpp>
 #include <miopen/float_equal.hpp>
@@ -36,16 +36,21 @@ namespace miopen {
 
 namespace solver {
 
-namespace tensor {
+namespace tensorOp {
 
 bool Op1dTensorGeneric::IsApplicable(const ExecutionContext& context,
-                                     const miopen::tensor::ProblemDescription& problem) const
+                                     const miopen::tensorOp::ProblemDescription& problem) const
 {
     auto aTensorDesc = problem.GetATensorDesc();
     auto bTensorDesc = problem.GetBTensorDesc();
     auto alens       = aTensorDesc.GetLengths();
     auto blens       = bTensorDesc.GetLengths();
     auto asize       = alens.size();
+
+    if(GetDataType(aTensorDesc.GetType()) == "double")
+    {
+        return false;
+    }
 
     if(asize == 1)
     {
@@ -66,21 +71,22 @@ bool Op1dTensorGeneric::IsApplicable(const ExecutionContext& context,
 
 std::size_t
 Op1dTensorGeneric::GetWorkspaceSize(const ExecutionContext& context,
-                                    const miopen::tensor::ProblemDescription& problem) const
+                                    const miopen::tensorOp::ProblemDescription& problem) const
 {
     return 0;
 }
 
-ConvSolution Op1dTensorGeneric::GetSolution(const ExecutionContext& context,
-                                            const miopen::tensor::ProblemDescription& problem) const
+ConvSolution
+Op1dTensorGeneric::GetSolution(const ExecutionContext& context,
+                               const miopen::tensorOp::ProblemDescription& problem) const
 {
     auto result = ConvSolution{miopenStatusSuccess};
 
-    auto aTensorDesc = problem.GetATensorDesc();
-    auto bTensorDesc = problem.GetBTensorDesc();
-    auto cTensorDesc = problem.GetCTensorDesc();
+    const auto& aTensorDesc = problem.GetATensorDesc();
+    const auto& bTensorDesc = problem.GetBTensorDesc();
+    const auto& cTensorDesc = problem.GetCTensorDesc();
 
-    auto clens = cTensorDesc.GetLengths();
+    const auto& clens = cTensorDesc.GetLengths();
 
     size_t local_threads = 256;
     size_t max_num_wg    = 4096;
@@ -89,13 +95,11 @@ ConvSolution Op1dTensorGeneric::GetSolution(const ExecutionContext& context,
     num_wg                = num_wg > max_num_wg ? max_num_wg : num_wg;
     size_t global_threads = num_wg * local_threads;
 
-    const std::vector<size_t> vld{local_threads, 1, 1};
-    const std::vector<size_t> vgd{global_threads, 1, 1};
+    const std::array<size_t, 3> vld{local_threads, 1, 1};
+    const std::array<size_t, 3> vgd{global_threads, 1, 1};
 
     KernelBuildParameters build_params =
         KernelBuildParameters{{"MIOPEN_TYPE", GetDataType(bTensorDesc.GetType())}};
-
-    // build_params.Define("MIOPEN_TENSOR_OP", std::to_string(problem.GetTensorOp()));
 
     switch(problem.GetTensorOp())
     {
@@ -118,35 +122,34 @@ ConvSolution Op1dTensorGeneric::GetSolution(const ExecutionContext& context,
 
     auto kernel = KernelInfo{};
 
-    kernel.comp_options = build_params.GenerateFor(
-        kbp::HIP{}); // GetDataTypeKBP(aTensorDesc.GetType()).GenerateFor(kbp::HIP{});
+    kernel.comp_options = build_params.GenerateFor(kbp::HIP{}); //
+    GetDataTypeKBP(aTensorDesc.GetType()).GenerateFor(kbp::HIP{});
     kernel.kernel_file = "MIOpenTensorKernelsHip.cpp";
     kernel.kernel_name = "Op1dTensorGeneric";
 
-    for(uint32_t i = 0; i <= 2; i++)
-    {
-        kernel.l_wk.push_back(vld[i]);
-        kernel.g_wk.push_back(vgd[i]);
-    }
+    using std::begin, std::end;
 
-    result.invoker_factory = [=](const std::vector<Kernel> kernels) {
+    kernel.l_wk.insert(end(kernel.l_wk), begin(vld), end(vld));
+    kernel.g_wk.insert(end(kernel.g_wk), begin(vgd), end(vgd));
+
+    result.invoker_factory = [](const std::vector<Kernel> kernels) {
         return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
             decltype(auto) kernel = handle_.Run(kernels.front());
-            decltype(auto) params = raw_params.CastTo<miopen::tensor::InvokeParams>();
+            decltype(auto) params = raw_params.CastTo<miopen::tensorOp::InvokeParams>();
 
-            visit_float(bTensorDesc.GetType(), [&](auto as_float) {
+            visit_float(params.bTensorDesc.GetType(), [&](auto as_float) {
                 auto miopen_alpha0 = as_float(*(static_cast<const float*>(params.alpha0)));
                 auto miopen_alpha1 = as_float(*(static_cast<const float*>(params.alpha1)));
                 auto miopen_beta   = as_float(*(static_cast<const float*>(params.beta)));
 
-                auto blens = params.bTensorDesc.GetLengths();
-                auto clens = params.cTensorDesc.GetLengths();
+                const auto& blens = params.bTensorDesc.GetLengths();
+                const auto& clens = params.cTensorDesc.GetLengths();
 
-                auto astrides = params.aTensorDesc.GetStrides();
-                auto bstrides = params.bTensorDesc.GetStrides();
-                auto cstrides = params.cTensorDesc.GetStrides();
+                const auto& astrides = params.aTensorDesc.GetStrides();
+                const auto& bstrides = params.bTensorDesc.GetStrides();
+                const auto& cstrides = params.cTensorDesc.GetStrides();
 
-                if(aTensorDesc.AllDimsFitIntoInt())
+                if(params.aTensorDesc.AllDimsFitIntoInt())
                 { // change offsets to 64bit after PR is merged
                     kernel(params.ATensor,
                            params.BTensor,
@@ -188,7 +191,7 @@ ConvSolution Op1dTensorGeneric::GetSolution(const ExecutionContext& context,
     return result;
 }
 
-} // namespace tensor
+} // namespace tensorOp
 
 } // namespace solver
 

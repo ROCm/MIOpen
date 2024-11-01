@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,9 +24,9 @@
  *
  *******************************************************************************/
 
-#include <miopen/tensor/solvers.hpp>
+#include <miopen/tensorOp/solvers.hpp>
 
-#include <miopen/tensor/invoke_params.hpp>
+#include <miopen/tensorOp/invoke_params.hpp>
 #include <miopen/tensor.hpp>
 #include <miopen/kernel_build_params.hpp>
 #include <miopen/float_equal.hpp>
@@ -36,10 +36,10 @@ namespace miopen {
 
 namespace solver {
 
-namespace tensor {
+namespace tensorOp {
 
-bool Op2dTensorLite::IsApplicable(const ExecutionContext& context,
-                                  const miopen::tensor::ProblemDescription& problem) const
+bool Op2dTensorSquash::IsApplicable(const ExecutionContext& context,
+                                    const miopen::tensorOp::ProblemDescription& problem) const
 {
     auto aTensorDesc = problem.GetATensorDesc();
     auto bTensorDesc = problem.GetBTensorDesc();
@@ -51,21 +51,18 @@ bool Op2dTensorLite::IsApplicable(const ExecutionContext& context,
 
     auto asize = alens.size();
 
-    size_t local_threads = 256;
-    int max_num_wg       = 4096;
-
-    // for naive tensor ops
-    size_t RD_BLCK    = (clens[2] % 4 == 0) ? 4 : (clens[2] % 2 == 0) ? 2 : 1;
-    size_t total_work = std::max(clens[2] / RD_BLCK, size_t(1));
-    size_t grp_sz     = (total_work + local_threads - 1) / local_threads;
-
-    // opencl kernels are no longer supported, fallback to generic case
-    bool lite_applicable = grp_sz <= size_t(max_num_wg);
+    if(asize < 3)
+    {
+        return false;
+    }
 
     bool is_lite = clens[0] == 1 && blens[0] == 1 && alens[0] == 1 &&
                    (blens[1] == clens[1] || blens[1] == 1) && blens[2] == clens[2];
 
-    if(asize == 3 && lite_applicable && is_lite)
+    bool is_squashed = problem.GetNonStandardSquash() && !is_lite &&
+                       (blens[0] == 1 && clens[0] == 1 && clens[1] == 1 && blens[2] == clens[2]);
+
+    if(asize == 3 && is_squashed)
     {
         return true;
     }
@@ -74,14 +71,15 @@ bool Op2dTensorLite::IsApplicable(const ExecutionContext& context,
 }
 
 std::size_t
-Op2dTensorLite::GetWorkspaceSize(const ExecutionContext& context,
-                                 const miopen::tensor::ProblemDescription& problem) const
+Op2dTensorSquash::GetWorkspaceSize(const ExecutionContext& context,
+                                   const miopen::tensorOp::ProblemDescription& problem) const
 {
     return 0;
 }
 
-ConvSolution Op2dTensorLite::GetSolution(const ExecutionContext& context,
-                                         const miopen::tensor::ProblemDescription& problem) const
+ConvSolution
+Op2dTensorSquash::GetSolution(const ExecutionContext& context,
+                              const miopen::tensorOp::ProblemDescription& problem) const
 {
     auto result = ConvSolution{miopenStatusSuccess};
 
@@ -129,19 +127,11 @@ ConvSolution Op2dTensorLite::GetSolution(const ExecutionContext& context,
     grp_sz        = std::min(size_t(max_num_wg), grp_sz);
     size_t glb_sz = local_threads * grp_sz;
 
-    size_t local_threads2 = 64;
-    size_t total_work2    = clens[1];
-    size_t grp_sz2        = (total_work2 + local_threads2 - 1) / local_threads2;
-    grp_sz2               = std::min(size_t(max_num_wg / grp_sz), grp_sz2);
-    size_t glb_sz2        = local_threads2 * grp_sz2;
-
     const std::vector<size_t> vld{local_threads, 1, 1};
-    const std::vector<size_t> vgd{glb_sz, glb_sz2, 1};
+    const std::vector<size_t> vgd{glb_sz, 1, 1};
 
     KernelBuildParameters build_params =
         KernelBuildParameters{{"MIOPEN_TYPE", GetDataType(bTensorDesc.GetType())}};
-
-    // build_params.Define("MIOPEN_TENSOR_OP", std::to_string(problem.GetTensorOp()));
 
     switch(problem.GetTensorOp())
     {
@@ -151,26 +141,15 @@ ConvSolution Op2dTensorLite::GetSolution(const ExecutionContext& context,
     case 3: build_params.Define("MIOPEN_TENSOR_OP", "miopenMax"); break;
     }
 
-    // support for 64bit still not merged
-    // if(aTensorDesc.AllDimsFitIntoInt())
-    // {
-    //     build_params.Define("DIM_TYPE", "uint32_t");
-    // }
-    // else
-    // {
-    //     build_params.Define("DIM_TYPE", "uint64_t");
-    // }
-
-    build_params.Define("USE_2D_TENSOR_LITE");
+    build_params.Define("USE_2D_TENSOR_SQUASH");
     build_params.Define("RD_BLCK", std::to_string(RD_BLCK));
     build_params.Define("READ_TYPE", READ_TYPE);
 
     auto kernel = KernelInfo{};
 
-    kernel.comp_options = build_params.GenerateFor(
-        kbp::HIP{}); // GetDataTypeKBP(aTensorDesc.GetType()).GenerateFor(kbp::HIP{});
-    kernel.kernel_file = "MIOpenTensorKernels.cl";
-    kernel.kernel_name = "Op2dTensorLite";
+    kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
+    kernel.kernel_file  = "MIOpenTensorKernels.cl";
+    kernel.kernel_name  = "Op2dTensorSquash";
 
     for(uint32_t i = 0; i <= 2; i++)
     {
@@ -181,7 +160,7 @@ ConvSolution Op2dTensorLite::GetSolution(const ExecutionContext& context,
     result.invoker_factory = [=](const std::vector<Kernel> kernels) {
         return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
             decltype(auto) kernel = handle_.Run(kernels.front());
-            decltype(auto) params = raw_params.CastTo<miopen::tensor::InvokeParams>();
+            decltype(auto) params = raw_params.CastTo<miopen::tensorOp::InvokeParams>();
 
             visit_float(bTensorDesc.GetType(), [&](auto as_float) {
                 auto miopen_alpha0 = as_float(*(static_cast<const float*>(params.alpha0)));
@@ -189,19 +168,20 @@ ConvSolution Op2dTensorLite::GetSolution(const ExecutionContext& context,
                 auto miopen_beta   = as_float(*(static_cast<const float*>(params.beta)));
 
                 kernel(params.ATensor,
-                       static_cast<int>(astrides[1]),
                        params.BTensor,
+                       static_cast<int>(blens[1]),
                        static_cast<int>(bstrides[1]),
                        params.CTensor,
-                       static_cast<int>(cstrides[1]),
                        miopen_alpha0,
                        miopen_alpha1,
                        miopen_beta,
                        static_cast<int64_t>(params.Aoffset),
                        static_cast<int64_t>(params.Boffset),
                        static_cast<int64_t>(params.Coffset),
-                       static_cast<int>(!float_equal(miopen_beta, 0.0)),
-                       static_cast<int>(blens[1] == 1));
+                       static_cast<int64_t>(total_work),
+                       static_cast<int>(!float_equal(miopen_alpha0, 0.0)),
+                       static_cast<int>(!float_equal(miopen_alpha1, 0.0)),
+                       static_cast<int>(!float_equal(miopen_beta, 0.0)));
             });
         };
     };
@@ -210,7 +190,7 @@ ConvSolution Op2dTensorLite::GetSolution(const ExecutionContext& context,
     return result;
 }
 
-} // namespace tensor
+} // namespace tensorOp
 
 } // namespace solver
 

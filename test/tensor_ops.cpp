@@ -181,24 +181,24 @@ struct verify_tensor_ops
         auto a_dev = handle.Write(a.data);
         auto b_dev = handle.Write(b.data);
 
-        miopen::OpTensorNew(handle,
-                            // miopenTensorOpAdd,
-                            // miopenTensorOpMax,
-                            // miopenTensorOpMin,
-                            miopenTensorOpMul,
-                            &alpha0,
-                            a.desc,
-                            a_dev.get(),
-                            &alpha1,
-                            b.desc,
-                            b_dev.get(),
-                            &beta,
-                            c.desc,
-                            c_dev.get(),
-                            Aoffset,
-                            Boffset,
-                            Coffset,
-                            false); // it does not verify non-standard behaviour
+        miopen::OpTensor2(handle,
+                          // miopenTensorOpAdd,
+                          // miopenTensorOpMax,
+                          // miopenTensorOpMin,
+                          miopenTensorOpMul,
+                          &alpha0,
+                          a.desc,
+                          a_dev.get(),
+                          &alpha1,
+                          b.desc,
+                          b_dev.get(),
+                          &beta,
+                          c.desc,
+                          c_dev.get(),
+                          Aoffset,
+                          Boffset,
+                          Coffset,
+                          false); // it does not verify non-standard behaviour
 
         if(not no_validate)
         {

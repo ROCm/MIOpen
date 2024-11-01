@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -27,7 +27,7 @@
 #pragma once
 
 #include <miopen/solver.hpp>
-#include <miopen/tensor/problem_description.hpp>
+#include <miopen/tensorOp/problem_description.hpp>
 
 #include <utility>
 
@@ -35,22 +35,23 @@ namespace miopen {
 
 namespace solver {
 
-namespace tensor {
+namespace tensorOp {
 
-using TensorOpSolver = NonTunableSolverBase<ExecutionContext, miopen::tensor::ProblemDescription>;
+using TensorOpSolver = NonTunableSolverBase<ExecutionContext, miopen::tensorOp::ProblemDescription>;
 
 struct Op1dTensorGeneric final : TensorOpSolver
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<Op1dTensorGeneric>(); }
 
     bool IsApplicable(const ExecutionContext& context,
-                      const miopen::tensor::ProblemDescription& problem) const override;
+                      const miopen::tensorOp::ProblemDescription& problem) const override;
 
     ConvSolution GetSolution(const ExecutionContext& context,
-                             const miopen::tensor::ProblemDescription& problem) const override;
+                             const miopen::tensorOp::ProblemDescription& problem) const override;
 
-    std::size_t GetWorkspaceSize(const ExecutionContext& context,
-                                 const miopen::tensor::ProblemDescription& problem) const override;
+    std::size_t
+    GetWorkspaceSize(const ExecutionContext& context,
+                     const miopen::tensorOp::ProblemDescription& problem) const override;
 
     bool MayNeedWorkspace() const override { return false; }
 };
@@ -60,13 +61,14 @@ struct Op2dTensorGeneric final : TensorOpSolver
     const std::string& SolverDbId() const override { return GetSolverDbId<Op2dTensorGeneric>(); }
 
     bool IsApplicable(const ExecutionContext& context,
-                      const miopen::tensor::ProblemDescription& problem) const override;
+                      const miopen::tensorOp::ProblemDescription& problem) const override;
 
     ConvSolution GetSolution(const ExecutionContext& context,
-                             const miopen::tensor::ProblemDescription& problem) const override;
+                             const miopen::tensorOp::ProblemDescription& problem) const override;
 
-    std::size_t GetWorkspaceSize(const ExecutionContext& context,
-                                 const miopen::tensor::ProblemDescription& problem) const override;
+    std::size_t
+    GetWorkspaceSize(const ExecutionContext& context,
+                     const miopen::tensorOp::ProblemDescription& problem) const override;
 
     bool MayNeedWorkspace() const override { return false; }
 };
@@ -76,18 +78,36 @@ struct Op2dTensorLite final : TensorOpSolver
     const std::string& SolverDbId() const override { return GetSolverDbId<Op2dTensorLite>(); }
 
     bool IsApplicable(const ExecutionContext& context,
-                      const miopen::tensor::ProblemDescription& problem) const override;
+                      const miopen::tensorOp::ProblemDescription& problem) const override;
 
     ConvSolution GetSolution(const ExecutionContext& context,
-                             const miopen::tensor::ProblemDescription& problem) const override;
+                             const miopen::tensorOp::ProblemDescription& problem) const override;
 
-    std::size_t GetWorkspaceSize(const ExecutionContext& context,
-                                 const miopen::tensor::ProblemDescription& problem) const override;
+    std::size_t
+    GetWorkspaceSize(const ExecutionContext& context,
+                     const miopen::tensorOp::ProblemDescription& problem) const override;
 
     bool MayNeedWorkspace() const override { return false; }
 };
 
-} // namespace tensor
+struct Op2dTensorSquash final : TensorOpSolver
+{
+    const std::string& SolverDbId() const override { return GetSolverDbId<Op2dTensorSquash>(); }
+
+    bool IsApplicable(const ExecutionContext& context,
+                      const miopen::tensorOp::ProblemDescription& problem) const override;
+
+    ConvSolution GetSolution(const ExecutionContext& context,
+                             const miopen::tensorOp::ProblemDescription& problem) const override;
+
+    std::size_t
+    GetWorkspaceSize(const ExecutionContext& context,
+                     const miopen::tensorOp::ProblemDescription& problem) const override;
+
+    bool MayNeedWorkspace() const override { return false; }
+};
+
+} // namespace tensorOp
 
 } // namespace solver
 

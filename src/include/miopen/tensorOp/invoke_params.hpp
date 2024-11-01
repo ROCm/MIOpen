@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -31,7 +31,7 @@
 
 namespace miopen {
 
-namespace tensor {
+namespace tensorOp {
 
 struct InvokeParams : public miopen::InvokeParams
 {
@@ -52,7 +52,7 @@ struct InvokeParams : public miopen::InvokeParams
         : alpha0(alpha0_),
           alpha1(alpha1_),
           beta(beta_),
-          tensorOp(tensorOp_),
+          tensorOperation(tensorOp_),
           aTensorDesc(aTensorDesc_),
           ATensor(ATensor_),
           bTensorDesc(bTensorDesc_),
@@ -74,7 +74,7 @@ public:
     const void* alpha1;
     const void* beta;
 
-    miopenTensorOp_t tensorOp;
+    miopenTensorOp_t tensorOperation;
 
     TensorDescriptor aTensorDesc;
     ConstData_t ATensor;
@@ -92,6 +92,6 @@ public:
     bool nonStandardSquash;
 };
 
-} // namespace tensor
+} // namespace tensorOp
 
 } // namespace miopen
