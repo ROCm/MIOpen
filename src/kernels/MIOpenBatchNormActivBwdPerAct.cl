@@ -110,8 +110,15 @@ MIOpenBatchNormActivBwdPerActivation(const __global _FLOAT* __restrict x_in,
                 act_dyin = FLOAT2FLOATPREC(*(dy_in + index));
                 act_out  = FLOAT2FLOATPREC(*(y_in + index));
                 bn_out   = mad(xhat, pvt_scale, pvt_bias);
-                ActivationFunction_Diff(
-                    1, &bn_dyin, &act_dyin, &bn_out, &act_out, FLOAT2FLOATPREC(diff_scale), FLOAT2FLOATPREC(gamma), FLOAT2FLOATPREC(beta), FLOAT2FLOATPREC(alpha));
+                ActivationFunction_Diff(1,
+                                        &bn_dyin,
+                                        &act_dyin,
+                                        &bn_out,
+                                        &act_out,
+                                        FLOAT2FLOATPREC(diff_scale),
+                                        FLOAT2FLOATPREC(gamma),
+                                        FLOAT2FLOATPREC(beta),
+                                        FLOAT2FLOATPREC(alpha));
 #if MIO_BN_CBA_WRITE_INTERMEDIATE
                 // for debugging
                 bn_out_dev[index]  = FLOATPREC2FLOAT(bn_out);
@@ -133,8 +140,15 @@ MIOpenBatchNormActivBwdPerActivation(const __global _FLOAT* __restrict x_in,
                 bn_out   = mad(xhat, pvt_scale, pvt_bias);
                 act_dyin = FLOAT2FLOAPREC(*(dy_in + index));
                 act_out  = FLOAT2FLOATPREC(*(y_in + index));
-                ActivationFunction_Diff(
-                    1, &bn_dyin, &act_dyin, &bn_out, &act_out, FLOAT2FLOATPREC(diff_scale), FLOAT2FLOATPREC(gamma), FLOAT2FLOATPREC(beta), FLOAT2FLOATPREC(alpha));
+                ActivationFunction_Diff(1,
+                                        &bn_dyin,
+                                        &act_dyin,
+                                        &bn_out,
+                                        &act_out,
+                                        FLOAT2FLOATPREC(diff_scale),
+                                        FLOAT2FLOATPREC(gamma),
+                                        FLOAT2FLOATPREC(beta),
+                                        FLOAT2FLOATPREC(alpha));
                 tmp2          = mad((_FLOAT_PREC)MIO_BN_N, bn_dyin * pvt_scale, -tmp1);
                 tmp3          = invVar / ((_FLOAT_PREC)MIO_BN_N);
                 dx_out[index] = FLOATPREC2FLOAT(tmp3 * tmp2);

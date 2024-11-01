@@ -109,7 +109,7 @@ MIOpenBatchNormActivFwdTrainSpatial(float INHW,
 
     if(lid < MIO_BN_SEGMENT)
     {
-#if (MIOPEN_USE_FP16 == 0))
+#if(MIOPEN_USE_FP16 == 0))
         __attribute__((opencl_unroll_hint(2)))
 #endif
         for(unsigned int n = 0; n < MIO_BN_NLOOPM; ++n)
@@ -155,7 +155,12 @@ MIOpenBatchNormActivFwdTrainSpatial(float INHW,
             nid    = n * MIO_BN_SEGIHW + lidihw;
             index  = nid * MIO_BN_CHW + chwid;
             bn_out = mad(pvscale, inhat, pvbias);
-            ActivationFunction(1, &act_out, &bn_out, FLOAT2FLOATPREC(gamma), FLOAT2FLOATPREC(beta), FLOAT2FLOATPREC(alpha));
+            ActivationFunction(1,
+                               &act_out,
+                               &bn_out,
+                               FLOAT2FLOATPREC(gamma),
+                               FLOAT2FLOATPREC(beta),
+                               FLOAT2FLOATPREC(alpha));
             out[index] = FLOATPREC2FLOAT(act_out);
         } // end for
 
@@ -166,7 +171,12 @@ MIOpenBatchNormActivFwdTrainSpatial(float INHW,
         if(index < MIO_BN_NCHW)
         {
             bn_out = mad(pvscale, inhat, pvbias);
-            ActivationFunction(1, &act_out, &bn_out, FLOAT2FLOATPREC(gamma), FLOAT2FLOATPREC(beta), FLOAT2FLOATPREC(alpha));
+            ActivationFunction(1,
+                               &act_out,
+                               &bn_out,
+                               FLOAT2FLOATPREC(gamma),
+                               FLOAT2FLOATPREC(beta),
+                               FLOAT2FLOATPREC(alpha));
             out[index] = FLOATPREC2FLOAT(act_out);
         }
     }
@@ -318,7 +328,7 @@ MIOpenBatchNormActivFwdTrainSpatial(
         nidx                = remkey / MIO_BN_HW;
         hwidx               = remkey - (nidx * MIO_BN_HW);
         index               = nidx * MIO_BN_CHW + chwid + hwidx;
-        _FLOAT_PREC xin     = (index < MIO_BN_NCHW) ? FLOAT2FLOATPREC(*(in + index)) : (_FLOAT_PREC)0.;
+        _FLOAT_PREC xin = (index < MIO_BN_NCHW) ? FLOAT2FLOATPREC(*(in + index)) : (_FLOAT_PREC)0.;
         mean += xin;
         variance = mad(xin, xin, variance);
     }
@@ -352,7 +362,12 @@ MIOpenBatchNormActivFwdTrainSpatial(
         hwidx  = k - (nidx * MIO_BN_HW);
         index  = nidx * MIO_BN_CHW + chwid + hwidx;
         bn_out = mad(pvscale, (*(in + index) - mean) * invVariance, pvbias);
-        ActivationFunction(1, &act_out, &bn_out, FLOAT2FLOATPREC(gamma), FLOAT2FLOATPREC(beta), FLOAT2FLOATPREC(alpha));
+        ActivationFunction(1,
+                           &act_out,
+                           &bn_out,
+                           FLOAT2FLOATPREC(gamma),
+                           FLOAT2FLOATPREC(beta),
+                           FLOAT2FLOATPREC(alpha));
         out[index] = FLOATPREC2FLOAT(act_out);
 
     } // end for
@@ -378,7 +393,12 @@ MIOpenBatchNormActivFwdTrainSpatial(
             hwidx          = l - (nidx * MIO_BN_HW);
             index          = nidx * MIO_BN_CHW + chwid + hwidx;
             bn_out         = mad(pvscale, xhat[j], pvbias);
-            ActivationFunction(1, &act_out, &bn_out, FLOAT2FLOATPREC(gamma), FLOAT2FLOATPREC(beta), FLOAT2FLOATPREC(alpha));
+            ActivationFunction(1,
+                               &act_out,
+                               &bn_out,
+                               FLOAT2FLOATPREC(gamma),
+                               FLOAT2FLOATPREC(beta),
+                               FLOAT2FLOATPREC(alpha));
             out[index] = FLOATPREC2FLOAT(act_out);
         }
     } // end for
@@ -404,7 +424,12 @@ MIOpenBatchNormActivFwdTrainSpatial(
         if(index < MIO_BN_NCHW)
         {
             bn_out = mad(pvscale, xhat[j], pvbias);
-            ActivationFunction(1, &act_out, &bn_out, FLOAT2FLOATPREC(gamma), FLOAT2FLOATPREC(beta), FLOAT2FLOATPREC(alpha));
+            ActivationFunction(1,
+                               &act_out,
+                               &bn_out,
+                               FLOAT2FLOATPREC(gamma),
+                               FLOAT2FLOATPREC(beta),
+                               FLOAT2FLOATPREC(alpha));
             out[index] = FLOATPREC2FLOAT(act_out);
         }
     }
@@ -585,7 +610,12 @@ MIOpenBatchNormActivFwdTrainSpatial(
             inhat = (FLOAT2FLOATPREC(*(in + index)) - mean) * invVariance;
 #endif
             bn_out = mad(pvscale, inhat, pvbias);
-            ActivationFunction(1, &act_out, &bn_out, FLOAT2FLOATPREC(gamma), FLOAT2FLOATPREC(beta), FLOAT2FLOATPREC(alpha));
+            ActivationFunction(1,
+                               &act_out,
+                               &bn_out,
+                               FLOAT2FLOATPREC(gamma),
+                               FLOAT2FLOATPREC(beta),
+                               FLOAT2FLOATPREC(alpha));
             out[index] = FLOATPREC2FLOAT(act_out);
 
         } // end for

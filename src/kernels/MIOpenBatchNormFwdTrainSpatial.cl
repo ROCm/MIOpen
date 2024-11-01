@@ -717,9 +717,10 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
 
         __attribute__((opencl_unroll_hint(2))) for(unsigned int n = 0; n < MIO_BN_N; n++)
         { // apply normalization
-            index      = n * MIO_BN_CHW + cidx + lid;
+            index = n * MIO_BN_CHW + cidx + lid;
 #if(MIO_BN_N < MIO_BN_MAXN)
-            inhat      = (FLOAT2FLOATPREC(minibatch[n]) - mean) * invVariance; // (in[index] - mean) * invVariance;
+            inhat = (FLOAT2FLOATPREC(minibatch[n]) - mean) *
+                    invVariance; // (in[index] - mean) * invVariance;
 #else
             inhat = (FLOAT2FLOATPREC(*(in + index)) - mean) * invVariance;
 #endif

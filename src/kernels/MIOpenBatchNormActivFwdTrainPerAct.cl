@@ -117,7 +117,12 @@ __kernel void MIOpenBatchNormActivFwdTrainPerActivation(
                 index  = MIO_BN_CHW * n + adjIndex;
                 inhat  = (FLOAT2FLOATPREC(*(in + index)) - mean) * invVariance;
                 bn_out = mad(pvt_scale, inhat, pvt_bias);
-                ActivationFunction(1, &act_out, &bn_out, FLOAT2FLOATPREC(gamma), FLOAT2FLOATPREC(beta), FLOAT2FLOATPREC(alpha));
+                ActivationFunction(1,
+                                   &act_out,
+                                   &bn_out,
+                                   FLOAT2FLOATPREC(gamma),
+                                   FLOAT2FLOATPREC(beta),
+                                   FLOAT2FLOATPREC(alpha));
                 out[index] = FLOATPREC2FLOAT(act_out);
             } // end for(n)
         }     // end if(inImgIndex)

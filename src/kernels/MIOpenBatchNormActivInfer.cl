@@ -99,7 +99,12 @@ MIOpenBatchNormActivInferSpatialEst(const _FLOAT alpha,
         _FLOAT_PREC bnRes[MIOPEN_READ_UNIT];
         _FLOAT_PREC actRes[MIOPEN_READ_UNIT];
         BatchNormFunctionSpatial(MIOPEN_READ_UNIT, bnRes, data, pmean, invVariance, pscale, pbias);
-        ActivationFunction(MIOPEN_READ_UNIT, actRes, bnRes, FLOAT2FLOATPREC(gamma), FLOAT2FLOATPREC(beta), FLOAT2FLOATPREC(alpha));
+        ActivationFunction(MIOPEN_READ_UNIT,
+                           actRes,
+                           bnRes,
+                           FLOAT2FLOATPREC(gamma),
+                           FLOAT2FLOATPREC(beta),
+                           FLOAT2FLOATPREC(alpha));
         for(int i = 0; i < MIOPEN_READ_UNIT; i++)
         {
             out[index + i] = FLOATPREC2FLOAT(actRes[i]);
@@ -165,7 +170,12 @@ MIOpenBatchNormActivInferPerActEst(const _FLOAT alpha,
         _FLOAT_PREC bnRes[MIOPEN_READ_UNIT];
         _FLOAT_PREC actRes[MIOPEN_READ_UNIT];
         BatchNormFunctionPerAct(MIOPEN_READ_UNIT, bnRes, data, pmean, invVariance, pscale, pbias);
-        ActivationFunction(MIOPEN_READ_UNIT, actRes, bnRes, FLOAT2FLOATPREC(gamma), FLOAT2FLOATPREC(beta), FLOAT2FLOATPREC(alpha));
+        ActivationFunction(MIOPEN_READ_UNIT,
+                           actRes,
+                           bnRes,
+                           FLOAT2FLOATPREC(gamma),
+                           FLOAT2FLOATPREC(beta),
+                           FLOAT2FLOATPREC(alpha));
         for(int i = 0; i < MIOPEN_READ_UNIT; i++)
         {
             out[index + i] = FLOATPREC2FLOAT(actRes[i]);
