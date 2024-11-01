@@ -216,7 +216,7 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
             tmp1          = mad(NHW, dyvalues[n], -db);
             tmp2          = -batchvalues[n] * ds;
             tmp3          = (pscale * invVariance) * INHW;
-            dx_out[index] = FLOAT2FLOATPREC(tmp3 * (tmp2 + tmp1));
+            dx_out[index] = FLOATPREC2FLOAT(tmp3 * (tmp2 + tmp1));
         } // end for
         nid   = MIO_BN_SNHW + lidihw;
         index = nid * MIO_BN_CHW + chwid;
@@ -225,7 +225,7 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
             tmp1          = mad(NHW, dyvalues[MIO_BN_NLOOPM], -db);
             tmp2          = -batchvalues[MIO_BN_NLOOPM] * ds;
             tmp3          = (pscale * invVariance) * INHW;
-            dx_out[index] = FLOAT2FLOATPREC(tmp3 * (tmp2 + tmp1));
+            dx_out[index] = FLOATPREC2FLOAT(tmp3 * (tmp2 + tmp1));
         }
     }
     if(lid == 0)
@@ -522,7 +522,7 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
     barrier(CLK_LOCAL_MEM_FENCE);
     if(lid == 0)
     {
-#if MIOPEN_USE_FP16 == 1
+#if (MIOPEN_USE_FP16 == 1) || (MIOPEN_USE_BF16 == 1)
         *(dbias + grpid)  = (temp_db >= (float)MAX_VAL) ? MAX_VAL : db;
         *(dscale + grpid) = (temp_ds >= (float)MAX_VAL || temp_ds < 0) ? MAX_VAL : ds;
 #else
@@ -554,7 +554,7 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
 #endif
             dyvalue         = FLOAT2FLOATPREC(*(dy_in + index));
             xhat            = (FLOAT2FLOATPREC(*(x_in + index)) - mean) * invVariance;
-#if MIOPEN_USE_FP16 == 1
+#if (MIOPEN_USE_FP16 == 1) || (MIOPEN_USE_BF16 == 1)
             float temp_tmp1 = mad((float)NHW, (float)dyvalue, -temp_db);
             float temp_tmp2 = -((float)xhat) * temp_ds;
             float temp_vals = (float)tmp3 * (temp_tmp2 + temp_tmp1);

@@ -108,7 +108,7 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
 
     if(lid < MIO_BN_SEGMENT)
     {
-#if MIOPEN_USE_FP16 == 1
+#if (MIOPEN_USE_FP16 == 1) || (MIOPEN_USE_BF16 == 1)
         __attribute__((opencl_unroll_hint(2)))
 #endif
         for(unsigned int n = 0; n < MIO_BN_NLOOPM; ++n)
@@ -153,19 +153,19 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
         //==== CALC NORM =======================
         _FLOAT_ACCUM inhat = (_FLOAT_ACCUM)0.;
 
-#if MIOPEN_USE_FP16 == 1
+#if (MIOPEN_USE_FP16 == 1) || (MIOPEN_USE_BF16 == 1)
         __attribute__((opencl_unroll_hint(2)))
 #endif
         for(unsigned int n = 0; n < MIO_BN_NLOOPM; n++)
         { // apply normalization
-            inhat      = (batchvalues[n] - mean) * invVariance;
+            inhat      = (FLOAT2ACCUM(batchvalues[n]) - mean) * invVariance;
             nid        = n * MIO_BN_SEGIHW + lidihw;
             index      = nid * MIO_BN_CHW + chwid;
             out[index] = ACCUM2FLOAT(mad(pvscale, inhat, pvbias));
         } // end for
 
         // Tail of loop
-        inhat = (batchvalues[MIO_BN_NLOOPM] - mean) * invVariance;
+        inhat = (FLOAT2ACCUM(batchvalues[MIO_BN_NLOOPM]) - mean) * invVariance;
         nid   = MIO_BN_SNHW + lidihw;
         index = nid * MIO_BN_CHW + chwid;
         if(index < MIO_BN_NCHW)
@@ -719,7 +719,7 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
         { // apply normalization
             index      = n * MIO_BN_CHW + cidx + lid;
 #if(MIO_BN_N < MIO_BN_MAXN)
-            inhat      = (minibatch[n] - mean) * invVariance; // (in[index] - mean) * invVariance;
+            inhat      = (FLOAT2FLOATPREC(minibatch[n]) - mean) * invVariance; // (in[index] - mean) * invVariance;
 #else
             inhat = (FLOAT2FLOATPREC(*(in + index)) - mean) * invVariance;
 #endif
