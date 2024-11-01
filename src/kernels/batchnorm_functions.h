@@ -11,6 +11,10 @@
 #define MIOPEN_USE_FPMIX 0
 #endif
 
+#ifndef MIOPEN_USE_BFPMIX
+#define MIOPEN_USE_BFPMIX 0
+#endif
+
 #define _FLOAT_ACCUM float
 #if MIOPEN_USE_FP16 == 1
 #define MIO_BN_NODPP 1
