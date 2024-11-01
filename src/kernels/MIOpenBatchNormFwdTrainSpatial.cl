@@ -363,15 +363,15 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
 #endif
     __attribute__((opencl_unroll_hint(2))) for(unsigned int k = lid; k < k_limit; k += MIO_BN_GRP0)
     {
-        nidx  = k / MIO_BN_HW;
-        hwidx = k - (nidx * MIO_BN_HW);
+        nidx       = k / MIO_BN_HW;
+        hwidx      = k - (nidx * MIO_BN_HW);
 #if MIO_LAYOUT_NHWC
-        index = nidx * MIO_BN_CHW + hwidx * MIO_BN_C + grpid;
+        index      = nidx * MIO_BN_CHW + hwidx * MIO_BN_C + grpid;
 #else
         index = nidx * MIO_BN_CHW + chwid + hwidx;
 #endif
-        out[index] =
-            FLOATPREC2FLOAT(mad(pvscale, (FLOAT2FLOATPREC(*(in + index)) - mean) * invVariance, pvbias));
+        out[index] = FLOATPREC2FLOAT(
+            mad(pvscale, (FLOAT2FLOATPREC(*(in + index)) - mean) * invVariance, pvbias));
     } // end for
 #else
     _FLOAT_PREC xhat[MIO_MAX_READ];
@@ -516,9 +516,9 @@ MIOpenBatchNormFwdTrainSpatialFinalMeanVariance(
 #endif
 )
 {
-    _FLOAT_PREC variance             = (_FLOAT_PREC)0.;
-    _FLOAT_PREC invVariance          = (_FLOAT_PREC)0.;
-    _FLOAT_PREC mean                 = (_FLOAT_PREC)0.;
+    _FLOAT_PREC variance        = (_FLOAT_PREC)0.;
+    _FLOAT_PREC invVariance     = (_FLOAT_PREC)0.;
+    _FLOAT_PREC mean            = (_FLOAT_PREC)0.;
     unsigned int lid            = get_local_id(1);
     unsigned int ygrp_id        = get_group_id(1);
     unsigned int xgid           = get_global_id(0);
@@ -593,9 +593,9 @@ MIOpenBatchNormFwdTrainSpatialMeanVariance(const __global _FLOAT* __restrict in,
     unsigned int cidx      = xgid * MIO_BN_HW;
     unsigned int meanindex = cidx + ygrp_sz * ygrp_id;
     unsigned int varindex  = meanindex + 2;
-    _FLOAT_ACCUM mean            = (_FLOAT_ACCUM)0.;
-    _FLOAT_ACCUM variance        = (_FLOAT_ACCUM)0.;
-    _FLOAT_ACCUM value           = (_FLOAT_ACCUM)0.;
+    _FLOAT_ACCUM mean      = (_FLOAT_ACCUM)0.;
+    _FLOAT_ACCUM variance  = (_FLOAT_ACCUM)0.;
+    _FLOAT_ACCUM value     = (_FLOAT_ACCUM)0.;
 
     if(ygid < MIO_BN_HW)
     {
