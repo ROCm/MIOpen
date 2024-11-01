@@ -158,8 +158,8 @@ BnFwdTrainingSpatialSingle::GetSolution(const ExecutionContext& context,
         {
             // clang-format off
             if( (in_nhw < 33554432 && in_cstride > 1024) ||
-                    ((n >= 256) && (in_cstride > 60) && bfpmixparm) ||
-                    ((in_cstride > 512) && bfpmixparm))
+                    ((n >= 256) && (in_cstride > 60) && (bfpmixparm || bbfpmixparam)) ||
+                    ((in_cstride > 512) && (bfpmixparm || bbfpmixparam)))
             {
                 variant = 1;
             }
