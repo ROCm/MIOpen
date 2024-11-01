@@ -45,7 +45,7 @@ bool BnFwdInference::IsApplicable(const ExecutionContext&,
         return false;
     if(problem.GetDirection() != miopen::batchnorm::Direction::ForwardInference)
         return false;
-    if(!(problem.IsFp32() or problem.IsFp16()))
+    if(!(problem.IsFp32() or problem.IsFp16() || problem.IsBfp16()))
         return false;
     if(!problem.Is2D())
         return false;
@@ -57,9 +57,10 @@ ConvSolution BnFwdInference::GetSolution(const ExecutionContext& context,
 {
     const auto& handle = context.GetStream();
 
-    bool bfpmixparm = false;
-    bool bfp16parm  = false;
-    bool bfp32parm  = true;
+    bool bfpmixparm   = false;
+    bool bbfpmixparam = false;
+    bool bfp16parm    = false;
+    bool bfp32parm    = true;
     if(problem.GetXDesc().GetType() == miopenHalf &&
        problem.GetBnScaleBiasMeanVarDesc().GetType() == miopenHalf)
     {
@@ -71,6 +72,12 @@ ConvSolution BnFwdInference::GetSolution(const ExecutionContext& context,
     {
         bfpmixparm = true;
         bfp32parm  = false;
+    }
+    else if(problem.GetXDesc().GetType() == miopenBFloat16 &&
+            problem.GetBnScaleBiasMeanVarDesc().GetType() == miopenFloat)
+    {
+        bbfpmixparam = true;
+        bfp32parm    = false;
     }
 
     int n, c, h, w;
@@ -107,6 +114,7 @@ ConvSolution BnFwdInference::GetSolution(const ExecutionContext& context,
             {"MIOPEN_USE_FP16", static_cast<int>(bfp16parm)},
             {"MIOPEN_USE_FP32", static_cast<int>(bfp32parm)},
             {"MIOPEN_USE_FPMIX", static_cast<int>(bfpmixparm)},
+            {"MIOPEN_USE_BFPMIX", static_cast<int>(bbfpmixparam)},
             {"MIO_BN_GRP0", xlocalsize},
             {"MIO_BN_GRP1", ylocalsize},
             {"MIO_BN_GRP2", zlocalsize},

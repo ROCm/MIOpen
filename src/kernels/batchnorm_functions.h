@@ -1,4 +1,5 @@
 
+#include "bfloat16_dev.hpp"
 
 #define PPCAT_NX(A, B) A##B
 #define PPCAT(A, B) PPCAT_NX(A, B)
@@ -52,6 +53,31 @@
 #endif
 #define EPSILON (_FLOAT)0.000001
 
+#endif
+
+#if MIOPEN_USE_BFPMIX == 1
+#define _FLOAT ushort
+#ifdef _FLOAT_PREC
+#undef _FLOAT_PREC
+#endif
+#define _FLOAT_PREC float
+
+#ifdef EPSILON
+#undef EPSILON
+#endif
+#define EPSILON (_FLOAT)0.00781250
+
+#define MAX_VAL 0x7F7F
+
+#define FLOAT2FLOATPREC(x) (bfloat16_to_float(x))
+#define FLOATPREC2FLOAT(x) (float_to_bfloat16(x))
+#define FLOAT2ACCUM(x) (FLOAT2FLOATPREC(x))
+#define ACCUM2FLOAT(x) (FLOATPREC2FLOAT(x))
+#else
+#define FLOAT2FLOATPREC(x) ((_FLOAT_PREC)(x))
+#define FLOATPREC2FLOAT(x) ((_FLOAT)(x))
+#define FLOAT2ACCUM(x) ((_FLOAT_ACCUM)(x))
+#define ACCUM2FLOAT(x) ((_FLOAT)(x))
 #endif
 
 #define _FLOAT2 PPCAT(_FLOAT, TWO)
