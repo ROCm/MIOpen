@@ -91,7 +91,7 @@ __kernel void MIOpenBatchNormBwdPerActivationSaved(const __global _FLOAT* in,
             index         = in_nstride * n + adjIndex;
             xhat          = (FLOAT2FLOATPREC(in[index]) - mean) * invVar;
             tmp1          = mad(xhat, dxhathat, dxhat);
-            tmp2          = mad((_FLOATPREC)N, FLOAT2FLOATPREC(dy_in[index]) * pvt_scale, -tmp1);
+            tmp2          = mad((_FLOAT_PREC)N, FLOAT2FLOATPREC(dy_in[index]) * pvt_scale, -tmp1);
             tmp3          = invVar / ((_FLOAT_PREC)N);
             dx_out[index] = FLOATPREC2FLOAT(tmp3 * tmp2);
         }
