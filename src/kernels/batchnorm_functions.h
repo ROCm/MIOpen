@@ -61,6 +61,12 @@
 
 #if MIOPEN_USE_BFPMIX == 1
 #define _FLOAT ushort
+
+#ifdef MIO_BN_NODPP
+#undef MIO_BN_NODPP
+#define MIO_BN_NODPP 0
+#endif
+
 #ifdef _FLOAT_PREC
 #undef _FLOAT_PREC
 #endif
@@ -69,15 +75,15 @@
 #ifdef EPSILON
 #undef EPSILON
 #endif
-#define EPSILON (_FLOAT)0.00781250
-
-#define MAX_VAL 0x7F7F
+#define EPSILON (_FLOAT_PREC)0.000001
 
 #define FLOAT2FLOATPREC(x) (bfloat16_to_float(x))
 #define FLOATPREC2FLOAT(x) (float_to_bfloat16(x))
 #define FLOAT2ACCUM(x) (FLOAT2FLOATPREC(x))
 #define ACCUM2FLOAT(x) (FLOATPREC2FLOAT(x))
+
 #else
+
 #define FLOAT2FLOATPREC(x) ((_FLOAT_PREC)(x))
 #define FLOATPREC2FLOAT(x) ((_FLOAT)(x))
 #define FLOAT2ACCUM(x) ((_FLOAT_ACCUM)(x))
