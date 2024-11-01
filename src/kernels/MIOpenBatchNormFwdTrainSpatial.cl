@@ -145,8 +145,8 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
         variance = 0;
     }
     invVariance = rsqrt(variance + (_FLOAT_ACCUM)epsilon);
-    pvscale     =  (_FLOAT_ACCUM)(lcl_scale);
-    pvbias      =  (_FLOAT_ACCUM)(lcl_bias);
+    pvscale     = (_FLOAT_ACCUM)(lcl_scale);
+    pvbias      = (_FLOAT_ACCUM)(lcl_bias);
 
     if(lid < MIO_BN_SEGMENT)
     {
