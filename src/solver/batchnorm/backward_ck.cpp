@@ -367,11 +367,24 @@ bool BnCKBwdBackward::IsApplicable(
         return false;
     if(bn_problem.GetDirection() != miopen::batchnorm::Direction::Backward)
         return false;
-    if(bn_problem.GetXDesc().GetType() != bn_problem.GetScaleBiasDiffDesc().GetType())
-        return false;
     if(bn_problem.GetMode() != miopenBNSpatial)
         return false;
     if(!bn_problem.Is2D())
+        return false;
+    // case 1 : fp16 or bfp16
+    if(!((::miopen::batchnorm::is_fp16_or_bfp16(bn_problem.GetXDesc().GetType()) &&
+          bn_problem.GetDXDesc().GetType() == miopenFloat &&
+          ::miopen::batchnorm::is_fp16_or_bfp16(bn_problem.GetBnScale().GetType()) &&
+          bn_problem.GetDYDesc().GetType() == miopenFloat &&
+          bn_problem.GetBnSMean().GetType() == miopenFloat &&
+          bn_problem.GetBnSVar().GetType() == miopenFloat) ||
+         // case 1 : fp32 or fp64
+         (::miopen::batchnorm::is_fp32_or_fp64(bn_problem.GetXDesc().GetType()) &&
+          ::miopen::batchnorm::is_fp32_or_fp64(bn_problem.GetYDesc().GetType()) &&
+          ::miopen::batchnorm::is_fp32_or_fp64(bn_problem.GetBnScale().GetType()) &&
+          ::miopen::batchnorm::is_fp32_or_fp64(bn_problem.GetBnBias().GetType()) &&
+          ::miopen::batchnorm::is_fp32_or_fp64(bn_problem.GetBnSMean().GetType()) &&
+          ::miopen::batchnorm::is_fp32_or_fp64(bn_problem.GetBnSVar().GetType()))))
         return false;
 
     switch(bn_problem.GetXDesc().GetType())

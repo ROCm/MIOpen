@@ -61,7 +61,7 @@ BnFwdTrainingPerActivation::GetSolution(const ExecutionContext& context,
 
     {
         decltype(auto) handle                 = context.GetStream();
-        decltype(auto) bnScaleBiasMeanVarDesc = problem.GetBnScaleBiasMeanVarDesc();
+        decltype(auto) bnScaleBiasMeanVarDesc = problem.GetBnScale();
 
         unsigned int in_nhw  = n * in_cstride;
         unsigned int in_nchw = n * in_nstride;

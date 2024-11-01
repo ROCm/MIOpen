@@ -39,16 +39,29 @@ namespace solver {
 namespace batchnorm {
 
 bool BnFwdInference::IsApplicable(const ExecutionContext&,
-                                  const miopen::batchnorm::ProblemDescription& problem) const
+                                  const miopen::batchnorm::ProblemDescription& bn_problem) const
 {
-    if(problem.IsLayoutNHWC())
+    if(bn_problem.IsLayoutNHWC())
         return false;
-    if(problem.GetDirection() != miopen::batchnorm::Direction::ForwardInference)
+    if(bn_problem.GetDirection() != miopen::batchnorm::Direction::ForwardInference)
         return false;
-    if(!(problem.IsFp32() or problem.IsFp16()))
+    if(!(bn_problem.IsFp32() or bn_problem.IsFp16()))
         return false;
-    if(!problem.Is2D())
+    if(!bn_problem.Is2D())
         return false;
+
+    // case 1 : mix type
+    if(!((bn_problem.GetXDesc().GetType() == miopenHalf &&
+          bn_problem.GetYDesc().GetType() == miopenHalf &&
+          bn_problem.GetBnScale().GetType() == miopenFloat &&
+          bn_problem.GetBnBias().GetType() == miopenFloat) ||
+         // case 2 : float type
+         (bn_problem.GetXDesc().GetType() == miopenFloat &&
+          bn_problem.GetYDesc().GetType() == miopenFloat &&
+          bn_problem.GetBnScale().GetType() == miopenFloat &&
+          bn_problem.GetBnBias().GetType() == miopenFloat)))
+        return false;
+
     return true;
 }
 
@@ -60,14 +73,13 @@ ConvSolution BnFwdInference::GetSolution(const ExecutionContext& context,
     bool bfpmixparm = false;
     bool bfp16parm  = false;
     bool bfp32parm  = true;
-    if(problem.GetXDesc().GetType() == miopenHalf &&
-       problem.GetBnScaleBiasMeanVarDesc().GetType() == miopenHalf)
+    if(problem.GetXDesc().GetType() == miopenHalf && problem.GetBnScale().GetType() == miopenHalf)
     {
         bfp16parm = true;
         bfp32parm = false;
     }
     else if(problem.GetXDesc().GetType() == miopenHalf &&
-            problem.GetBnScaleBiasMeanVarDesc().GetType() == miopenFloat)
+            problem.GetBnScale().GetType() == miopenFloat)
     {
         bfpmixparm = true;
         bfp32parm  = false;

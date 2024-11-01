@@ -55,7 +55,7 @@ ConvSolution BnFwdTrainingSpatialMultiple::GetSolution(
 {
     const auto& handle                 = context.GetStream();
     const auto& xDesc                  = problem.GetXDesc();
-    const auto& bnScaleBiasMeanVarDesc = problem.GetBnScaleBiasMeanVarDesc();
+    const auto& bnScaleBiasMeanVarDesc = problem.GetBnScale();
 
     int n, c, h, w;
     std::tie(n, c, h, w) = tien<4>(xDesc.GetLengths());

@@ -67,7 +67,7 @@ NetworkConfig ProblemDescription::MakeForwardTrainingNetworkConfig() const
     size_t ygridsize = 1;
 
     bool bfpmixparm = false;
-    if(xDesc.GetType() == miopenHalf && GetBnScaleBiasMeanVarDesc().GetType() == miopenFloat)
+    if(IsMix())
     {
         bfpmixparm = true;
     }
@@ -137,7 +137,7 @@ NetworkConfig ProblemDescription::MakeForwardTrainingNetworkConfig() const
             ss << "fp16" << static_cast<int>(IsFp16());
             ss << "fp32" << static_cast<int>(IsFp32());
             ss << "fp64" << static_cast<int>(IsFp64());
-            ss << "fbf16" << static_cast<int>(IsBfp16());
+            ss << "fbf16" << static_cast<int>(IsBFp16());
             ss << "fmix" << static_cast<int>(IsMix());
             ss << "c" << c;
         }
@@ -154,7 +154,7 @@ NetworkConfig ProblemDescription::MakeForwardTrainingNetworkConfig() const
             ss << "fp16" << static_cast<int>(IsFp16());
             ss << "fp32" << static_cast<int>(IsFp32());
             ss << "fp64" << static_cast<int>(IsFp64());
-            ss << "fbf16" << static_cast<int>(IsBfp16());
+            ss << "fbf16" << static_cast<int>(IsBFp16());
             ss << "fmix" << static_cast<int>(IsMix());
             ss << "single" << static_cast<int>(single);
             ss << "n" << n;
@@ -173,7 +173,7 @@ NetworkConfig ProblemDescription::MakeForwardTrainingNetworkConfig() const
         ss << "fp16" << static_cast<int>(IsFp16());
         ss << "fp32" << static_cast<int>(IsFp32());
         ss << "fp64" << static_cast<int>(IsFp64());
-        ss << "fbf16" << static_cast<int>(IsBfp16());
+        ss << "fbf16" << static_cast<int>(IsBFp16());
         ss << "fmix" << static_cast<int>(IsMix());
         ss << "gx" << xgridsize;
         ss << "gy" << ygridsize;
@@ -203,7 +203,7 @@ NetworkConfig ProblemDescription::MakeForwardInferenceNetworkConfig() const
     ss << "fp16" << static_cast<int>(IsFp16());
     ss << "fp32" << static_cast<int>(IsFp32());
     ss << "fp64" << static_cast<int>(IsFp64());
-    ss << "fbf16" << static_cast<int>(IsBfp16());
+    ss << "fbf16" << static_cast<int>(IsBFp16());
     ss << "fmix" << static_cast<int>(IsMix());
     ss << "mode" << bn_mode;
     ss << "HWdims" << in_cstride;
@@ -218,7 +218,7 @@ NetworkConfig ProblemDescription::MakeBackwardNetworkConfig() const
     std::ostringstream ss;
 
     bool bfpmixparm = false;
-    if(xDesc.GetType() == miopenHalf && GetScaleBiasDiffDesc().GetType() == miopenFloat)
+    if(xDesc.GetType() == miopenHalf && GetBnScale().GetType() == miopenFloat)
     {
         bfpmixparm = true;
     }
@@ -311,7 +311,7 @@ NetworkConfig ProblemDescription::MakeBackwardNetworkConfig() const
         ss << "fp16" << static_cast<int>(IsFp16());
         ss << "fp32" << static_cast<int>(IsFp32());
         ss << "fp64" << static_cast<int>(IsFp64());
-        ss << "fbf16" << static_cast<int>(IsBfp16());
+        ss << "fbf16" << static_cast<int>(IsBFp16());
         ss << "fmix" << static_cast<int>(IsMix());
         ss << "single" << static_cast<int>(single);
         ss << "gcn" << ldsgcn;
@@ -334,7 +334,7 @@ NetworkConfig ProblemDescription::MakeBackwardNetworkConfig() const
         ss << "fp16" << static_cast<int>(IsFp16());
         ss << "fp32" << static_cast<int>(IsFp32());
         ss << "fp64" << static_cast<int>(IsFp64());
-        ss << "fbf16" << static_cast<int>(IsBfp16());
+        ss << "fbf16" << static_cast<int>(IsBFp16());
         ss << "fmix" << static_cast<int>(IsMix());
         ss << "nhw" << in_nhw;
     }
