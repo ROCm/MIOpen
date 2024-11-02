@@ -295,6 +295,8 @@ NetworkConfig ProblemDescription::MakeForwardTrainingNetworkConfig() const
         ss << "hw" << in_cstride;
     }
     ss << "layout" << in_layout;
+    ss << "scaleType" << static_cast<int>(IsScaleFp16());
+    ss << "scaleType" << static_cast<int>(IsScaleFp32());
 
     return NetworkConfig{ss.str()};
 }
@@ -317,6 +319,8 @@ NetworkConfig ProblemDescription::MakeForwardInferenceNetworkConfig() const
     ss << "HWdims" << in_cstride;
     ss << "C" << c;
     ss << "layout" << in_layout;
+    ss << "scaleType" << static_cast<int>(IsScaleFp16());
+    ss << "scaleType" << static_cast<int>(IsScaleFp32());
 
     return NetworkConfig{ss.str()};
 }
@@ -447,6 +451,8 @@ NetworkConfig ProblemDescription::MakeBackwardNetworkConfig() const
         ss << "nhw" << in_nhw;
     }
     ss << "layout" << in_layout;
+    ss << "scaleType" << static_cast<int>(IsScaleFp16());
+    ss << "scaleType" << static_cast<int>(IsScaleFp32());
 
     return NetworkConfig{ss.str()};
 }

@@ -238,6 +238,8 @@ struct MIOPEN_INTERNALS_EXPORT ProblemDescription : ProblemDescriptionBase,
     bool IsFp16() const { return xDesc.GetType() == miopenHalf; }
     bool IsBFp16() const { return xDesc.GetType() == miopenBFloat16; }
     bool IsMix() const { return (IsFp16() || IsBFp16()) && sMeanDesc.GetType() == miopenFloat; }
+    bool IsScaleFp16() const { return scaleDesc.GetType() == miopenHalf; }
+    bool IsScaleFp32() const { return scaleDesc.GetType() == miopenFloat; }
 
     void Serialize(std::ostream& stream) const { stream << MakeNetworkConfig().ToString(); }
 
