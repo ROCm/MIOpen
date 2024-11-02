@@ -46,16 +46,7 @@ bool BnFwdTrainingSpatialSingle::IsApplicable(
        bn_problem.GetMode() != miopenBNSpatial)
         return false;
 
-    // case 1 : mix type
-    if(!((::miopen::batchnorm::is_fp16_or_bfp16(bn_problem.GetXDesc().GetType()) &&
-          ::miopen::batchnorm::is_fp16_or_bfp16(bn_problem.GetYDesc().GetType()) &&
-          bn_problem.GetBnScale().GetType() == miopenFloat &&
-          bn_problem.GetBnBias().GetType() == miopenFloat) ||
-         // case 2 : float type
-         (bn_problem.GetXDesc().GetType() == miopenFloat &&
-          bn_problem.GetYDesc().GetType() == miopenFloat &&
-          bn_problem.GetBnScale().GetType() == miopenFloat &&
-          bn_problem.GetBnBias().GetType() == miopenFloat)))
+    if(!IsOCLFwdTrainTypeValid(bn_problem))
         return false;
 
     int n, c, h, w;

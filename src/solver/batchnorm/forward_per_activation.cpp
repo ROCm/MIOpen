@@ -41,8 +41,12 @@ namespace batchnorm {
 bool BnFwdTrainingPerActivation::IsApplicable(
     const ExecutionContext&, const miopen::batchnorm::ProblemDescription& problem) const
 {
-    return problem.GetDirection() == miopen::batchnorm::Direction::ForwardTraining ||
-           problem.GetMode() == miopenBNPerActivation;
+    if(problem.GetDirection() != miopen::batchnorm::Direction::ForwardTraining ||
+       problem.GetMode() != miopenBNPerActivation)
+        return false;
+    if(!IsOCLFwdTrainTypeValid(problem))
+        return false;
+    return true;
 }
 
 ConvSolution

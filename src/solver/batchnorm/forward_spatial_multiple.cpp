@@ -47,6 +47,9 @@ bool BnFwdTrainingSpatialMultiple::IsApplicable(
        problem.GetMode() != miopenBNSpatial)
         return false;
 
+    if(!IsOCLFwdTrainTypeValid(problem))
+        return false;
+
     return !BnFwdTrainingSpatialSingle{}.IsApplicable(context, problem);
 }
 

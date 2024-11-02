@@ -58,21 +58,7 @@ bool BnBwdTrainingSpatialSingle::IsApplicable(
         return false;
     }
 #endif
-
-    // case 1 : fp16 or bfp16
-    if(!((::miopen::batchnorm::is_fp16_or_bfp16(bn_problem.GetXDesc().GetType()) &&
-          ::miopen::batchnorm::is_fp16_or_bfp16(bn_problem.GetDXDesc().GetType()) &&
-          ::miopen::batchnorm::is_fp16_or_bfp16(bn_problem.GetDYDesc().GetType()) &&
-          bn_problem.GetBnScale().GetType() == miopenFloat &&
-          bn_problem.GetBnSMean().GetType() == miopenFloat &&
-          bn_problem.GetBnSVar().GetType() == miopenFloat) ||
-         // case 1 : fp32 or fp64
-         (::miopen::batchnorm::is_fp32_or_fp64(bn_problem.GetXDesc().GetType()) &&
-          ::miopen::batchnorm::is_fp32_or_fp64(bn_problem.GetYDesc().GetType()) &&
-          ::miopen::batchnorm::is_fp32_or_fp64(bn_problem.GetBnScale().GetType()) &&
-          ::miopen::batchnorm::is_fp32_or_fp64(bn_problem.GetBnBias().GetType()) &&
-          ::miopen::batchnorm::is_fp32_or_fp64(bn_problem.GetBnSMean().GetType()) &&
-          ::miopen::batchnorm::is_fp32_or_fp64(bn_problem.GetBnSVar().GetType()))))
+    if(!IsOCLBwdTypeValid(bn_problem))
         return false;
 
     int n, c, h, w;

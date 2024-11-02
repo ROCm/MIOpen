@@ -52,15 +52,8 @@ struct ProblemDescriptionTag
 {
 };
 
-inline bool is_fp16_or_bfp16(miopenDataType_t type)
-{
-    return ((type == miopenHalf) || (type == miopenBFloat16));
-}
-
-inline bool is_fp32_or_fp64(miopenDataType_t type)
-{
-    return ((type == miopenFloat) || (type == miopenDouble));
-}
+bool is_fp16_or_bfp16(miopenDataType_t type);
+bool is_fp32_or_fp64(miopenDataType_t type);
 
 struct MIOPEN_INTERNALS_EXPORT ProblemDescription : ProblemDescriptionBase,
                                                     ProblemDescriptionTag
@@ -362,6 +355,15 @@ private:
         }
     }
 };
+
+bool IsOCLInferTypeValid(const ProblemDescription& bn_problem);
+bool IsCKInferTypeValid(const ProblemDescription& bn_problem);
+
+bool IsOCLFwdTrainTypeValid(const ProblemDescription& bn_problem);
+bool IsCKFwdTrainTypeValid(const ProblemDescription& bn_problem);
+
+bool IsOCLBwdTypeValid(const ProblemDescription& bn_problem);
+bool IsCKBwdTypeValid(const ProblemDescription& bn_problem);
 
 } // namespace batchnorm
 

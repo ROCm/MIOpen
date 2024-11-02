@@ -48,6 +48,8 @@ bool BnBwdTrainingSpatialMultiple::IsApplicable(
     {
         return false;
     }
+    if(!IsOCLBwdTypeValid(problem))
+        return false;
 
 #if WORKAROUND_ISSUE_1549_FP16_BUILD_ERROR
     if(problem.GetXDesc().GetType() == miopenHalf && problem.GetBnScale().GetType() == miopenHalf)
