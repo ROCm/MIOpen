@@ -154,8 +154,7 @@ void BatchNormForwardTraining(Handle& handle,
     const auto solvers = solver::SolverContainer<solver::batchnorm::BnFwdTrainingSpatialSingle,
                                                  solver::batchnorm::BnCKFwdTraining,
                                                  solver::batchnorm::BnFwdTrainingSpatialMultiple,
-                                                 solver::batchnorm::BnFwdTrainingPerActivation
-                                                 >{};
+                                                 solver::batchnorm::BnFwdTrainingPerActivation>{};
 
     solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
 
