@@ -287,7 +287,7 @@ MIOpenBatchNormActivFwdTrainSpatial(
         variance = mad(FLOAT2FLOATPREC(read4.x), FLOAT2FLOATPREC(read4.x), variance);
         variance = mad(FLOAT2FLOATPREC(read4.y), FLOAT2FLOATPREC(read4.y), variance);
         variance = mad(FLOAT2FLOATPREC(read4.z), FLOAT2FLOATPREC(read4.z), variance);
-        variance = mad(FLOAT2FLOATPREC(read4.w), FLOAT2FLOATPREV(read4.w), variance);
+        variance = mad(FLOAT2FLOATPREC(read4.w), FLOAT2FLOATPREC(read4.w), variance);
     }
 
 #if(MIO_BN_REM4)
@@ -305,7 +305,7 @@ MIOpenBatchNormActivFwdTrainSpatial(
         variance = mad(FLOAT2FLOATPREC(read4.x), FLOAT2FLOATPREC(read4.x), variance);
         variance = mad(FLOAT2FLOATPREC(read4.y), FLOAT2FLOATPREC(read4.y), variance);
         variance = mad(FLOAT2FLOATPREC(read4.z), FLOAT2FLOATPREC(read4.z), variance);
-        variance = mad(FLOAT2FLOATPREC(read4.w), FLOAT2FLOATPREV(read4.w), variance);
+        variance = mad(FLOAT2FLOATPREC(read4.w), FLOAT2FLOATPREC(read4.w), variance);
     }
 
 #endif
