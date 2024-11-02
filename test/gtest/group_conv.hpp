@@ -34,6 +34,7 @@
 
 #include "../driver/tensor_driver.hpp"
 #include "conv_common.hpp"
+#include "gtest_common.hpp"
 
 namespace group_conv {
 
@@ -425,6 +426,15 @@ public:
 protected:
     void SetUp() override
     {
+        if constexpr(CONV_DIR == Direction::BackwardWeights)
+        {
+            if(!IsTestSupportedByDevice(Gpu::gfx94X) && std::is_same<T, bfloat16>::value)
+            {
+                test_skipped = true;
+                GTEST_SKIP() << "bf16 tests skipped on this hardware.";
+            }
+        }
+
         float alpha_val;
         float beta_val;
         test_skipped                                              = false;
