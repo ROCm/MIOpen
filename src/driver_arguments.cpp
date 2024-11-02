@@ -102,37 +102,6 @@ void BnDataType(std::stringstream& ss,
             ss << "bnorm";
         }
     }
-    else if(bn_mode == BatchNormDirection_t::ForwardTraining)
-    {
-        if(xDesc.GetType() == miopenHalf && yDesc.GetType() == miopenHalf &&
-           scaleDesc.GetType() == miopenFloat && biasDesc.GetType() == miopenFloat &&
-           sMeanDesc.GetType() == miopenFloat)
-        {
-            ss << "bnormfp16";
-        }
-        else if(xDesc.GetType() == miopenBFloat16 && yDesc.GetType() == miopenBFloat16 &&
-                scaleDesc.GetType() == miopenFloat && biasDesc.GetType() == miopenFloat &&
-                sMeanDesc.GetType() == miopenFloat)
-        {
-            ss << "bnormbfp16";
-        }
-        else if(xDesc.GetType() == miopenHalf && yDesc.GetType() == miopenHalf &&
-                scaleDesc.GetType() == miopenHalf && biasDesc.GetType() == miopenHalf &&
-                sMeanDesc.GetType() == miopenFloat)
-        {
-            ss << "bnormfp16fp32";
-        }
-        else if(xDesc.GetType() == miopenBFloat16 && yDesc.GetType() == miopenBFloat16 &&
-                scaleDesc.GetType() == miopenBFloat16 && biasDesc.GetType() == miopenBFloat16 &&
-                sMeanDesc.GetType() == miopenFloat)
-        {
-            ss << "bnormbfp16fp32";
-        }
-        else
-        {
-            ss << "bnorm";
-        }
-    }
     else if(bn_mode == BatchNormDirection_t::Backward)
     {
         if(xDesc.GetType() == miopenHalf && yDesc.GetType() == miopenHalf &&
@@ -163,6 +132,10 @@ void BnDataType(std::stringstream& ss,
         {
             ss << "bnorm";
         }
+    }
+    else
+    {
+        MIOPEN_THROW("Bad Op direction");
     }
 }
 
