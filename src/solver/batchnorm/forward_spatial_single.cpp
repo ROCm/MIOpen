@@ -40,17 +40,17 @@ namespace solver {
 namespace batchnorm {
 
 bool BnFwdTrainingSpatialSingle::IsApplicable(
-    const ExecutionContext&, const miopen::batchnorm::ProblemDescription& problem) const
+    const ExecutionContext&, const miopen::batchnorm::ProblemDescription& bn_problem) const
 {
-    if(problem.GetDirection() != miopen::batchnorm::Direction::ForwardTraining ||
-       problem.GetMode() != miopenBNSpatial)
+    if(bn_problem.GetDirection() != miopen::batchnorm::Direction::ForwardTraining ||
+       bn_problem.GetMode() != miopenBNSpatial)
         return false;
 
-    if(problem.IsLayoutNHWC())
-        return true;
+    if(!IsOCLFwdTrainTypeValid(bn_problem))
+        return false;
 
     int n, c, h, w;
-    std::tie(n, c, h, w) = tien<4>(problem.GetXDesc().GetLengths());
+    std::tie(n, c, h, w) = tien<4>(bn_problem.GetXDesc().GetLengths());
 
     unsigned int in_cstride = h * w;
     unsigned int in_nhw     = n * in_cstride;
@@ -58,14 +58,14 @@ bool BnFwdTrainingSpatialSingle::IsApplicable(
     bool bfpmixparm = false;
     bool bfp32parm  = true;
 
-    if(problem.GetXDesc().GetType() == miopenHalf &&
-       problem.GetBnScaleBiasMeanVarDesc().GetType() == miopenHalf)
+    if(bn_problem.GetXDesc().GetType() == miopenHalf &&
+       bn_problem.GetBnScale().GetType() == miopenHalf)
     {
         bfp32parm = false;
     }
-    else if((problem.GetXDesc().GetType() == miopenHalf ||
-             problem.GetXDesc().GetType() == miopenBFloat16) &&
-            problem.GetBnScaleBiasMeanVarDesc().GetType() == miopenFloat)
+    else if((bn_problem.GetXDesc().GetType() == miopenHalf ||
+             bn_problem.GetXDesc().GetType() == miopenBFloat16) &&
+            bn_problem.GetBnScale().GetType() == miopenFloat)
     {
         bfpmixparm = true;
         bfp32parm  = false;
@@ -99,20 +99,19 @@ BnFwdTrainingSpatialSingle::GetSolution(const ExecutionContext& context,
     bool bfp16parm    = false;
     bool bfp32parm    = true;
 
-    if(problem.GetXDesc().GetType() == miopenHalf &&
-       problem.GetBnScaleBiasMeanVarDesc().GetType() == miopenHalf)
+    if(problem.GetXDesc().GetType() == miopenHalf && problem.GetBnScale().GetType() == miopenHalf)
     {
         bfp16parm = true;
         bfp32parm = false;
     }
     else if(problem.GetXDesc().GetType() == miopenHalf &&
-            problem.GetBnScaleBiasMeanVarDesc().GetType() == miopenFloat)
+            problem.GetBnScale().GetType() == miopenFloat)
     {
         bfpmixparm = true;
         bfp32parm  = false;
     }
     else if(problem.GetXDesc().GetType() == miopenBFloat16 &&
-            problem.GetBnScaleBiasMeanVarDesc().GetType() == miopenFloat)
+            problem.GetBnScale().GetType() == miopenFloat)
     {
         bbfpmixparam = true;
         bfp32parm    = false;
@@ -247,7 +246,7 @@ BnFwdTrainingSpatialSingle::GetSolution(const ExecutionContext& context,
         result.construction_params.push_back(kernel);
     }
 
-    const auto dtype = problem.GetBnScaleBiasMeanVarDesc().GetType();
+    const auto dtype = problem.GetBnScale().GetType();
     const auto vn4   = (variant != 4);
 
     result.invoker_factory = [=](const std::vector<Kernel>& kernels) {

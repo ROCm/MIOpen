@@ -152,9 +152,9 @@ void BatchNormForwardTraining(Handle& handle,
     }();
 
     const auto solvers = solver::SolverContainer<solver::batchnorm::BnFwdTrainingSpatialSingle,
+                                                //  solver::batchnorm::BnCKFwdTraining,
                                                  solver::batchnorm::BnFwdTrainingSpatialMultiple,
-                                                 solver::batchnorm::BnFwdTrainingPerActivation,
-                                                 solver::batchnorm::BnCKFwdTraining>{};
+                                                 solver::batchnorm::BnFwdTrainingPerActivation>{};
 
     solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
 
@@ -250,8 +250,9 @@ void BatchNormForwardInference(Handle& handle,
         }();
 
         const auto algo    = AlgorithmName{"miopenBatchNormalizationForwardInference"};
-        const auto solvers = solver::SolverContainer<solver::batchnorm::BnFwdInference,
-                                                     solver::batchnorm::BnCKFwdInference>{};
+        const auto solvers = solver::SolverContainer<solver::batchnorm::BnFwdInference
+                                                    //  solver::batchnorm::BnCKFwdInference
+                                                     >{};
 
         solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
     }
@@ -394,9 +395,9 @@ void BatchNormBackward(Handle& handle,
     }();
 
     const auto solvers = solver::SolverContainer<solver::batchnorm::BnBwdTrainingSpatialSingle,
+                                                //  solver::batchnorm::BnCKBwdBackward,
                                                  solver::batchnorm::BnBwdTrainingSpatialMultiple,
-                                                 solver::batchnorm::BnBwdTrainingPerActivation,
-                                                 solver::batchnorm::BnCKBwdBackward>{};
+                                                 solver::batchnorm::BnBwdTrainingPerActivation>{};
 
     solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
 

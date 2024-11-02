@@ -41,8 +41,12 @@ namespace batchnorm {
 bool BnFwdTrainingPerActivation::IsApplicable(
     const ExecutionContext&, const miopen::batchnorm::ProblemDescription& problem) const
 {
-    return problem.GetDirection() == miopen::batchnorm::Direction::ForwardTraining ||
-           problem.GetMode() == miopenBNPerActivation;
+    if(problem.GetDirection() != miopen::batchnorm::Direction::ForwardTraining ||
+       problem.GetMode() != miopenBNPerActivation)
+        return false;
+    if(!IsOCLFwdTrainTypeValid(problem))
+        return false;
+    return true;
 }
 
 ConvSolution
@@ -61,7 +65,7 @@ BnFwdTrainingPerActivation::GetSolution(const ExecutionContext& context,
 
     {
         decltype(auto) handle                 = context.GetStream();
-        decltype(auto) bnScaleBiasMeanVarDesc = problem.GetBnScaleBiasMeanVarDesc();
+        decltype(auto) bnScaleBiasMeanVarDesc = problem.GetBnScale();
 
         unsigned int in_nhw  = n * in_cstride;
         unsigned int in_nchw = n * in_nstride;
@@ -81,7 +85,7 @@ BnFwdTrainingPerActivation::GetSolution(const ExecutionContext& context,
             bfp32parm  = false;
         }
         else if(problem.GetXDesc().GetType() == miopenBFloat16 &&
-                problem.GetBnScaleBiasMeanVarDesc().GetType() == miopenFloat)
+                problem.GetBnScale().GetType() == miopenFloat)
         {
             bbfpmixparam = true;
             bfp32parm    = false;

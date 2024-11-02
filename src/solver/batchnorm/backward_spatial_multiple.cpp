@@ -48,10 +48,11 @@ bool BnBwdTrainingSpatialMultiple::IsApplicable(
     {
         return false;
     }
+    if(!IsOCLBwdTypeValid(problem))
+        return false;
 
 #if WORKAROUND_ISSUE_1549_FP16_BUILD_ERROR
-    if(problem.GetXDesc().GetType() == miopenHalf &&
-       problem.GetScaleBiasDiffDesc().GetType() == miopenHalf)
+    if(problem.GetXDesc().GetType() == miopenHalf && problem.GetBnScale().GetType() == miopenHalf)
     {
         // bfp16parm = true;
         // Unsupported kernel mode, error in kernel code
@@ -73,20 +74,19 @@ ConvSolution BnBwdTrainingSpatialMultiple::GetSolution(
     bool bfp16parm    = false;
     bool bfp32parm    = true;
 
-    if(problem.GetXDesc().GetType() == miopenHalf &&
-       problem.GetScaleBiasDiffDesc().GetType() == miopenHalf)
+    if(problem.GetXDesc().GetType() == miopenHalf && problem.GetBnScale().GetType() == miopenHalf)
     {
         bfp16parm = true;
         bfp32parm = false;
     }
     else if(problem.GetXDesc().GetType() == miopenHalf &&
-            problem.GetScaleBiasDiffDesc().GetType() == miopenFloat)
+            problem.GetBnScale().GetType() == miopenFloat)
     {
         bfpmixparm = true;
         bfp32parm  = false;
     }
     else if(problem.GetXDesc().GetType() == miopenBFloat16 &&
-            problem.GetScaleBiasDiffDesc().GetType() == miopenFloat)
+            problem.GetBnScale().GetType() == miopenFloat)
     {
         bbfpmixparam = true;
         bfp32parm    = false;
@@ -282,7 +282,7 @@ ConvSolution BnBwdTrainingSpatialMultiple::GetSolution(
         }
     }
 
-    const auto dtype    = problem.GetScaleBiasDiffDesc().GetType();
+    const auto dtype    = problem.GetBnScale().GetType();
     const auto useSaved = problem.UseSaved();
 
     result.invoker_factory = [=](const std::vector<Kernel>& kernels) {

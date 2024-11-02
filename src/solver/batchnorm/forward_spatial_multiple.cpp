@@ -47,6 +47,9 @@ bool BnFwdTrainingSpatialMultiple::IsApplicable(
        problem.GetMode() != miopenBNSpatial)
         return false;
 
+    if(!IsOCLFwdTrainTypeValid(problem))
+        return false;
+
     return !BnFwdTrainingSpatialSingle{}.IsApplicable(context, problem);
 }
 
@@ -55,7 +58,7 @@ ConvSolution BnFwdTrainingSpatialMultiple::GetSolution(
 {
     const auto& handle                 = context.GetStream();
     const auto& xDesc                  = problem.GetXDesc();
-    const auto& bnScaleBiasMeanVarDesc = problem.GetBnScaleBiasMeanVarDesc();
+    const auto& bnScaleBiasMeanVarDesc = problem.GetBnScale();
 
     int n, c, h, w;
     std::tie(n, c, h, w) = tien<4>(xDesc.GetLengths());
@@ -90,7 +93,7 @@ ConvSolution BnFwdTrainingSpatialMultiple::GetSolution(
         bfp32parm  = false;
     }
     else if(problem.GetXDesc().GetType() == miopenBFloat16 &&
-            problem.GetBnScaleBiasMeanVarDesc().GetType() == miopenFloat)
+            problem.GetBnScale().GetType() == miopenFloat)
     {
         bbfpmixparam = true;
         bfp32parm    = false;
