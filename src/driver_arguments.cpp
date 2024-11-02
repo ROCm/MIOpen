@@ -282,7 +282,7 @@ std::string BnormArgsForMIOpenDriver(const miopenTensorDescriptor_t xDesc,
                                      const miopenTensorDescriptor_t yDesc,
                                      const miopenTensorDescriptor_t scaleDesc,
                                      const miopenTensorDescriptor_t biasDesc,
-                                     const miopenTensorDescriptor_t sMeanDesc,
+                                     const miopenTensorDescriptor_t saveMeanDesc,
                                      miopenBatchNormMode_t bn_mode,
                                      const void* resultRunningMean,
                                      const void* resultRunningVariance,
@@ -295,13 +295,15 @@ std::string BnormArgsForMIOpenDriver(const miopenTensorDescriptor_t xDesc,
     miopenGetTensorDescriptorSize(xDesc, &size);
     std::stringstream ss;
     if(print_for_bn_driver)
+    {
         BnDataType(ss,
                    miopen::deref(xDesc),
                    miopen::deref(yDesc),
                    miopen::deref(scaleDesc),
                    miopen::deref(biasDesc),
-                   miopen::deref(sMeanDesc),
+                   miopen::deref(saveMeanDesc),
                    dir);
+    }
 
     ss << " -n " << miopen::deref(xDesc).GetLengths()[0] // clang-format off
             << " -c " << miopen::deref(xDesc).GetLengths()[1];
