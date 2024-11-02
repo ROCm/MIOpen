@@ -51,8 +51,8 @@ bool BnFwdInference::IsApplicable(const ExecutionContext&,
         return false;
 
     // case 1 : mix type
-    if(!((bn_problem.GetXDesc().GetType() == miopenHalf &&
-          bn_problem.GetYDesc().GetType() == miopenHalf &&
+    if(!((::miopen::batchnorm::is_fp16_or_bfp16(bn_problem.GetXDesc().GetType()) &&
+          ::miopen::batchnorm::is_fp16_or_bfp16(bn_problem.GetYDesc().GetType()) &&
           bn_problem.GetBnScale().GetType() == miopenFloat &&
           bn_problem.GetBnBias().GetType() == miopenFloat) ||
          // case 2 : float type
@@ -74,8 +74,7 @@ ConvSolution BnFwdInference::GetSolution(const ExecutionContext& context,
     bool bbfpmixparam = false;
     bool bfp16parm    = false;
     bool bfp32parm    = true;
-    if(problem.GetXDesc().GetType() == miopenHalf &&
-       problem.GetBnScale().GetType() == miopenHalf)
+    if(problem.GetXDesc().GetType() == miopenHalf && problem.GetBnScale().GetType() == miopenHalf)
     {
         bfp16parm = true;
         bfp32parm = false;

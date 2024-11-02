@@ -59,9 +59,6 @@ bool BnBwdTrainingSpatialSingle::IsApplicable(
     }
 #endif
 
-    if(bn_problem.IsLayoutNHWC())
-        return true;
-
     // case 1 : fp16 or bfp16
     if(!((::miopen::batchnorm::is_fp16_or_bfp16(bn_problem.GetXDesc().GetType()) &&
           ::miopen::batchnorm::is_fp16_or_bfp16(bn_problem.GetDXDesc().GetType()) &&
