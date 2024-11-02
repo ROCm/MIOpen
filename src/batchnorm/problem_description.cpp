@@ -46,18 +46,18 @@ bool is_fp32_or_fp64(miopenDataType_t type)
     return ((type == miopenFloat) || (type == miopenDouble));
 }
 
+bool is_fp32(miopenDataType_t type) { return (type == miopenFloat); }
+
 bool IsOCLInferTypeValid(const ProblemDescription& bn_problem)
 {
     // case 1 : mix type
-    return ((is_fp16_or_bfp16(bn_problem.GetXDesc().GetType()) &&
-             is_fp16_or_bfp16(bn_problem.GetYDesc().GetType()) &&
-             bn_problem.GetBnScale().GetType() == miopenFloat &&
-             bn_problem.GetBnBias().GetType() == miopenFloat) ||
-            // case 2 : float type
-            (bn_problem.GetXDesc().GetType() == miopenFloat &&
-             bn_problem.GetYDesc().GetType() == miopenFloat &&
-             bn_problem.GetBnScale().GetType() == miopenFloat &&
-             bn_problem.GetBnBias().GetType() == miopenFloat));
+    return (
+        (is_fp16_or_bfp16(bn_problem.GetXDesc().GetType()) &&
+         is_fp16_or_bfp16(bn_problem.GetYDesc().GetType()) &&
+         is_fp32(bn_problem.GetBnScale().GetType()) && is_fp32(bn_problem.GetBnBias().GetType())) ||
+        // case 2 : float type
+        (is_fp32(bn_problem.GetXDesc().GetType()) && is_fp32(bn_problem.GetYDesc().GetType()) &&
+         is_fp32(bn_problem.GetBnScale().GetType()) && is_fp32(bn_problem.GetBnBias().GetType())));
 }
 
 bool IsCKInferTypeValid(const ProblemDescription& bn_problem)
@@ -67,8 +67,8 @@ bool IsCKInferTypeValid(const ProblemDescription& bn_problem)
              is_fp16_or_bfp16(bn_problem.GetYDesc().GetType()) &&
              is_fp16_or_bfp16(bn_problem.GetBnScale().GetType()) &&
              is_fp16_or_bfp16(bn_problem.GetBnBias().GetType()) &&
-             bn_problem.GetBnSMean().GetType() == miopenFloat &&
-             bn_problem.GetBnSVar().GetType() == miopenFloat) ||
+             is_fp32(bn_problem.GetBnSMean().GetType()) &&
+             is_fp32(bn_problem.GetBnSVar().GetType())) ||
             // case 2 : fp32 or fp64
             (is_fp32_or_fp64(bn_problem.GetXDesc().GetType()) &&
              is_fp32_or_fp64(bn_problem.GetYDesc().GetType()) &&
@@ -81,15 +81,13 @@ bool IsCKInferTypeValid(const ProblemDescription& bn_problem)
 bool IsOCLFwdTrainTypeValid(const ProblemDescription& bn_problem)
 {
     // case 1 : mix type
-    return ((is_fp16_or_bfp16(bn_problem.GetXDesc().GetType()) &&
-             is_fp16_or_bfp16(bn_problem.GetYDesc().GetType()) &&
-             bn_problem.GetBnScale().GetType() == miopenFloat &&
-             bn_problem.GetBnBias().GetType() == miopenFloat) ||
-            // case 2 : float type
-            (bn_problem.GetXDesc().GetType() == miopenFloat &&
-             bn_problem.GetYDesc().GetType() == miopenFloat &&
-             bn_problem.GetBnScale().GetType() == miopenFloat &&
-             bn_problem.GetBnBias().GetType() == miopenFloat));
+    return (
+        (is_fp16_or_bfp16(bn_problem.GetXDesc().GetType()) &&
+         is_fp16_or_bfp16(bn_problem.GetYDesc().GetType()) &&
+         is_fp32(bn_problem.GetBnScale().GetType()) && is_fp32(bn_problem.GetBnBias().GetType())) ||
+        // case 2 : float type
+        (is_fp32(bn_problem.GetXDesc().GetType()) && is_fp32(bn_problem.GetYDesc().GetType()) &&
+         is_fp32(bn_problem.GetBnScale().GetType()) && is_fp32(bn_problem.GetBnBias().GetType())));
 }
 
 bool IsCKFwdTrainTypeValid(const ProblemDescription& bn_problem)
@@ -99,8 +97,8 @@ bool IsCKFwdTrainTypeValid(const ProblemDescription& bn_problem)
              is_fp16_or_bfp16(bn_problem.GetYDesc().GetType()) &&
              is_fp16_or_bfp16(bn_problem.GetBnScale().GetType()) &&
              is_fp16_or_bfp16(bn_problem.GetBnBias().GetType()) &&
-             bn_problem.GetBnSMean().GetType() == miopenFloat &&
-             bn_problem.GetBnSVar().GetType() == miopenFloat) ||
+             is_fp32(bn_problem.GetBnSMean().GetType()) &&
+             is_fp32(bn_problem.GetBnSVar().GetType())) ||
             // case 2 : fp32 or fp64
             (is_fp32_or_fp64(bn_problem.GetXDesc().GetType()) &&
              is_fp32_or_fp64(bn_problem.GetYDesc().GetType()) &&
@@ -112,19 +110,16 @@ bool IsCKFwdTrainTypeValid(const ProblemDescription& bn_problem)
 
 bool IsOCLBwdTypeValid(const ProblemDescription& bn_problem)
 {
-    return ((is_fp16_or_bfp16(bn_problem.GetXDesc().GetType()) &&
-             is_fp16_or_bfp16(bn_problem.GetDXDesc().GetType()) &&
-             is_fp16_or_bfp16(bn_problem.GetDYDesc().GetType()) &&
-             bn_problem.GetBnScale().GetType() == miopenFloat &&
-             bn_problem.GetBnSMean().GetType() == miopenFloat &&
-             bn_problem.GetBnSVar().GetType() == miopenFloat) ||
-            // case 1 : fp32 or fp64
-            (is_fp32_or_fp64(bn_problem.GetXDesc().GetType()) &&
-             is_fp32_or_fp64(bn_problem.GetYDesc().GetType()) &&
-             is_fp32_or_fp64(bn_problem.GetBnScale().GetType()) &&
-             is_fp32_or_fp64(bn_problem.GetBnBias().GetType()) &&
-             is_fp32_or_fp64(bn_problem.GetBnSMean().GetType()) &&
-             is_fp32_or_fp64(bn_problem.GetBnSVar().GetType())));
+    return (
+        (is_fp16_or_bfp16(bn_problem.GetXDesc().GetType()) &&
+         is_fp16_or_bfp16(bn_problem.GetDXDesc().GetType()) &&
+         is_fp16_or_bfp16(bn_problem.GetDYDesc().GetType()) &&
+         is_fp32(bn_problem.GetBnScale().GetType()) && is_fp32(bn_problem.GetBnSMean().GetType()) &&
+         is_fp32(bn_problem.GetBnSVar().GetType())) ||
+        // case 1 : fp32
+        (is_fp32(bn_problem.GetXDesc().GetType()) && is_fp32(bn_problem.GetDXDesc().GetType()) &&
+         is_fp32(bn_problem.GetBnScale().GetType()) && is_fp32(bn_problem.GetBnBias().GetType()) &&
+         is_fp32(bn_problem.GetBnSMean().GetType()) && is_fp32(bn_problem.GetBnSVar().GetType())));
 }
 
 bool IsCKBwdTypeValid(const ProblemDescription& bn_problem)
@@ -137,7 +132,7 @@ bool IsCKBwdTypeValid(const ProblemDescription& bn_problem)
              bn_problem.GetBnSVar().GetType() == miopenFloat) ||
             // case 1 : fp32 or fp64
             (is_fp32_or_fp64(bn_problem.GetXDesc().GetType()) &&
-             is_fp32_or_fp64(bn_problem.GetYDesc().GetType()) &&
+             is_fp32_or_fp64(bn_problem.GetDXDesc().GetType()) &&
              is_fp32_or_fp64(bn_problem.GetBnScale().GetType()) &&
              is_fp32_or_fp64(bn_problem.GetBnBias().GetType()) &&
              is_fp32_or_fp64(bn_problem.GetBnSMean().GetType()) &&
