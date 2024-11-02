@@ -45,7 +45,7 @@ bool BnFwdInference::IsApplicable(const ExecutionContext&,
         return false;
     if(bn_problem.GetDirection() != miopen::batchnorm::Direction::ForwardInference)
         return false;
-    if(!(bn_problem.IsFp32() or bn_problem.IsFp16() || bn_problem.IsBFp16()))
+    if(!(bn_problem.IsFp32() or bn_problem.IsFp16() or bn_problem.IsBFp16()))
         return false;
     if(!bn_problem.Is2D())
         return false;
