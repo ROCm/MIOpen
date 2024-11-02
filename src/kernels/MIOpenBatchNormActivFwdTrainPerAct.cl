@@ -93,7 +93,7 @@ __kernel void MIOpenBatchNormActivFwdTrainPerActivation(
             for(unsigned int n = 0; n < MIO_BN_N; n++)
             {
                 index           = MIO_BN_CHW * n + adjIndex;
-                _FLOAT_PREC xin = (_FLOAT_PREC)(*(in + index));
+                _FLOAT_PREC xin = FLOAT2FLOATPREC(*(in + index));
                 mean += xin;
                 variance = mad(xin, xin, variance);
             } // end for(n)
@@ -115,10 +115,15 @@ __kernel void MIOpenBatchNormActivFwdTrainPerActivation(
             for(unsigned int n = 0; n < MIO_BN_N; n++)
             { // per (x-dims) channel load a block of data unsigned into LDS
                 index  = MIO_BN_CHW * n + adjIndex;
-                inhat  = ((_FLOAT_PREC)(*(in + index)) - mean) * invVariance;
+                inhat  = (FLOAT2FLOATPREC(*(in + index)) - mean) * invVariance;
                 bn_out = mad(pvt_scale, inhat, pvt_bias);
-                ActivationFunction(1, &act_out, &bn_out, gamma, beta, alpha);
-                out[index] = (_FLOAT)act_out;
+                ActivationFunction(1,
+                                   &act_out,
+                                   &bn_out,
+                                   FLOAT2FLOATPREC(gamma),
+                                   FLOAT2FLOATPREC(beta),
+                                   FLOAT2FLOATPREC(alpha));
+                out[index] = FLOATPREC2FLOAT(act_out);
             } // end for(n)
         }     // end if(inImgIndex)
     }         // end for(img_offset) //image mini_batch is processed

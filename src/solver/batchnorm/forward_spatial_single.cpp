@@ -75,7 +75,8 @@ bool BnFwdTrainingSpatialSingle::IsApplicable(
     {
         bfp32parm = false;
     }
-    else if(bn_problem.GetXDesc().GetType() == miopenHalf &&
+    else if((bn_problem.GetXDesc().GetType() == miopenHalf ||
+             bn_problem.GetXDesc().GetType() == miopenBFloat16) &&
             bn_problem.GetBnScale().GetType() == miopenFloat)
     {
         bfpmixparm = true;
@@ -105,9 +106,10 @@ BnFwdTrainingSpatialSingle::GetSolution(const ExecutionContext& context,
 {
     const auto& handle = context.GetStream();
 
-    bool bfpmixparm = false;
-    bool bfp16parm  = false;
-    bool bfp32parm  = true;
+    bool bfpmixparm   = false;
+    bool bbfpmixparam = false;
+    bool bfp16parm    = false;
+    bool bfp32parm    = true;
 
     if(problem.GetXDesc().GetType() == miopenHalf && problem.GetBnScale().GetType() == miopenHalf)
     {
@@ -119,6 +121,12 @@ BnFwdTrainingSpatialSingle::GetSolution(const ExecutionContext& context,
     {
         bfpmixparm = true;
         bfp32parm  = false;
+    }
+    else if(problem.GetXDesc().GetType() == miopenBFloat16 &&
+            problem.GetBnScale().GetType() == miopenFloat)
+    {
+        bbfpmixparam = true;
+        bfp32parm    = false;
     }
 
     int n, c, h, w;
@@ -161,8 +169,8 @@ BnFwdTrainingSpatialSingle::GetSolution(const ExecutionContext& context,
         {
             // clang-format off
             if( (in_nhw < 33554432 && in_cstride > 1024) ||
-                    ((n >= 256) && (in_cstride > 60) && bfpmixparm) ||
-                    ((in_cstride > 512) && bfpmixparm))
+                    ((n >= 256) && (in_cstride > 60) && (bfpmixparm || bbfpmixparam)) ||
+                    ((in_cstride > 512) && (bfpmixparm || bbfpmixparam)))
             {
                 variant = 1;
             }
@@ -212,6 +220,7 @@ BnFwdTrainingSpatialSingle::GetSolution(const ExecutionContext& context,
             {"MIOPEN_USE_FP16", static_cast<int>(bfp16parm)},
             {"MIOPEN_USE_FP32", static_cast<int>(bfp32parm)},
             {"MIOPEN_USE_FPMIX", static_cast<int>(bfpmixparm)},
+            {"MIOPEN_USE_BFPMIX", static_cast<int>(bbfpmixparam)},
             {"MIO_SAVE_MEAN_VARIANCE", static_cast<int>(problem.GetResultSave())},
             {"MIO_RUNNING_RESULT", static_cast<int>(problem.GetResultRunning())},
             {"MIO_BN_VARIANT", variant},
