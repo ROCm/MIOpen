@@ -331,16 +331,17 @@ inline std::string ParseBaseArg(int argc, char* argv[])
     if(arg != "conv" && arg != "convfp16" && arg != "convint8" && arg != "convbfp16" &&
        arg != "pool" && arg != "poolfp16" && arg != "lrn" && arg != "lrnfp16" && arg != "activ" &&
        arg != "activfp16" && arg != "softmax" && arg != "softmaxfp16" && arg != "bnorm" &&
-       arg != "bnormfp16" && arg != "bnormfp16fp32" && arg != "bnormbfp16fp32" && arg != "rnn" &&
-       arg != "rnnfp16" && arg != "rnn_seq" && arg != "rnn_seqfp16" && arg != "gemm" &&
-       arg != "gemmfp16" && arg != "ctc" && arg != "dropout" && arg != "dropoutfp16" &&
-       arg != "tensorop" && arg != "reduce" && arg != "reducefp16" && arg != "reducefp64" &&
-       arg != "layernorm" && arg != "layernormfp16" && arg != "layernormbfp16" && arg != "sum" &&
-       arg != "sumfp16" && arg != "sumbfp16" && arg != "groupnorm" && arg != "groupnormfp16" &&
-       arg != "groupnormbfp16" && arg != "cat" && arg != "catfp16" && arg != "catbfp16" &&
-       arg != "addlayernorm" && arg != "addlayernormfp16" && arg != "addlayernormbfp16" &&
-       arg != "t5layernorm" && arg != "t5layernormfp16" && arg != "t5layernormbfp16" &&
-       arg != "adam" && arg != "adamfp16" && arg != "ampadam" && arg != "reduceextreme" &&
+       arg != "bnormfp16" && arg != "bnormbfp16" && arg != "bnormfp16fp32" &&
+       arg != "bnormbfp16fp32" && arg != "rnn" && arg != "rnnfp16" && arg != "rnn_seq" &&
+       arg != "rnn_seqfp16" && arg != "gemm" && arg != "gemmfp16" && arg != "ctc" &&
+       arg != "dropout" && arg != "dropoutfp16" && arg != "tensorop" && arg != "reduce" &&
+       arg != "reducefp16" && arg != "reducefp64" && arg != "layernorm" && arg != "layernormfp16" &&
+       arg != "layernormbfp16" && arg != "sum" && arg != "sumfp16" && arg != "sumbfp16" &&
+       arg != "groupnorm" && arg != "groupnormfp16" && arg != "groupnormbfp16" && arg != "cat" &&
+       arg != "catfp16" && arg != "catbfp16" && arg != "addlayernorm" &&
+       arg != "addlayernormfp16" && arg != "addlayernormbfp16" && arg != "t5layernorm" &&
+       arg != "t5layernormfp16" && arg != "t5layernormbfp16" && arg != "adam" &&
+       arg != "adamfp16" && arg != "ampadam" && arg != "reduceextreme" &&
        arg != "reduceextremefp16" && arg != "reduceextremebfp16" && arg != "adamw" &&
        arg != "adamwfp16" && arg != "ampadamw" && arg != "transformersadamw" &&
        arg != "transformersadamwfp16" && arg != "transformersampadamw" && arg != "getitem" &&

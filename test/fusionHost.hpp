@@ -285,13 +285,14 @@ void batchNormSpatialHostFwdTrain(const tensor<T>& input,
 }
 
 template <typename XDataType,
+          typename DxDataType,
           typename DyDataType,
           typename ScaleDataType,
           typename AccDataType,
           typename RefDataType>
 void batchNormSpatialHostBwdTrain(const tensor<XDataType>& x_input,
                                   const tensor<DyDataType>& dy_input,
-                                  tensor<RefDataType>& dx_out,
+                                  tensor<DxDataType>& dx_out,
                                   const tensor<ScaleDataType>& bnScale,
                                   tensor<RefDataType>& dscale,
                                   tensor<RefDataType>& dbias,

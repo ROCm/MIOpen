@@ -334,7 +334,7 @@ bool BnCKFwdInference::IsApplicable(
         return false;
     if(bn_problem.GetMode() != miopenBNSpatial)
         return false;
-    if(bn_problem.GetXDesc().GetType() != bn_problem.GetScaleBiasDiffDesc().GetType())
+    if(!IsCKInferTypeValid(bn_problem))
         return false;
 
     switch(bn_problem.GetXDesc().GetType())
