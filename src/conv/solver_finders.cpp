@@ -274,7 +274,7 @@ static std::vector<Solution> EvaluateInvokers(Handle& handle,
                 invoker(handle, invoke_ctx);
                 elapsed += handle.GetKernelTime();
                 if(i < N_RUNS_DISCARD)
-                    first_elapsed += elapsed;
+                    first_elapsed = elapsed;
                 ++i;
             }
             // If the execution time was not too long,
