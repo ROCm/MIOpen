@@ -33,6 +33,8 @@ static Driver* makeDriver(const std::string& base_arg)
     //  <Tgpu, Tref, TAcc, TScaleBias, TOut>
     if(base_arg == "bnormfp16")
         return new BatchNormDriver<float16, double, float, float, float16>();
+    if(base_arg == "bnormbfp16")
+        return new BatchNormDriver<bfloat16, double, float, float, bfloat16>();
     if(base_arg == "bnormfp16fp32")
         return new BatchNormDriver<float16, double, float, float16, float>();
     if(base_arg == "bnormbfp16fp32")
