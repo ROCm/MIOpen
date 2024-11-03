@@ -619,7 +619,7 @@ function(unpack_db db_bzip2_file)
     set(__fname ${__fname} PARENT_SCOPE)
 endfunction()
 
-file(GLOB PERF_DB_BZIP_FILES CONFIGURE_DEPENDS "${KERNELS_SOURCE_DIR}/*.db.bz2")
+file(GLOB PERF_DB_BZIP_FILES CONFIGURE_DEPENDS "${KERNELS_SOURCE_DIR}/*.db.bz2" "${KERNELS_SOURCE_DIR}/*.db.txt.bz2")
 file(GLOB FIND_DB_BZIP_FILES CONFIGURE_DEPENDS "${KERNELS_SOURCE_DIR}/*.fdb.txt.bz2")
 
 foreach(DB_BZIP_FILE ${PERF_DB_BZIP_FILES} ${FIND_DB_BZIP_FILES})
