@@ -23,9 +23,9 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#include "tensor_op_helpers.hpp"
 
 #include <miopen/tensorOp/solvers.hpp>
-
 #include <miopen/tensorOp/invoke_params.hpp>
 #include <miopen/tensor.hpp>
 #include <miopen/kernel_build_params.hpp>
@@ -41,15 +41,20 @@ namespace tensorOp {
 bool Op2dTensorLite::IsApplicable(const ExecutionContext& context,
                                   const miopen::tensorOp::ProblemDescription& problem) const
 {
-    auto aTensorDesc = problem.GetATensorDesc();
-    auto bTensorDesc = problem.GetBTensorDesc();
-    auto cTensorDesc = problem.GetCTensorDesc();
+    const auto& aTensorDesc = problem.GetATensorDesc();
+    const auto& bTensorDesc = problem.GetBTensorDesc();
+    const auto& cTensorDesc = problem.GetCTensorDesc();
 
-    auto alens = aTensorDesc.GetLengths();
-    auto blens = bTensorDesc.GetLengths();
-    auto clens = cTensorDesc.GetLengths();
+    const auto& alens = aTensorDesc.GetLengths();
+    const auto& blens = bTensorDesc.GetLengths();
+    const auto& clens = cTensorDesc.GetLengths();
 
     auto asize = alens.size();
+
+    if(GetDataType(aTensorDesc.GetType()) == "double")
+    {
+        return false;
+    }
 
     if(asize < 3)
     {
@@ -90,17 +95,11 @@ ConvSolution Op2dTensorLite::GetSolution(const ExecutionContext& context,
 {
     auto result = ConvSolution{miopenStatusSuccess};
 
-    auto aTensorDesc = problem.GetATensorDesc();
-    auto bTensorDesc = problem.GetBTensorDesc();
-    auto cTensorDesc = problem.GetCTensorDesc();
+    const auto& bTensorDesc = problem.GetBTensorDesc();
+    const auto& cTensorDesc = problem.GetCTensorDesc();
 
-    auto alens = aTensorDesc.GetLengths();
-    auto blens = bTensorDesc.GetLengths();
-    auto clens = cTensorDesc.GetLengths();
-
-    auto astrides = aTensorDesc.GetStrides();
-    auto bstrides = bTensorDesc.GetStrides();
-    auto cstrides = cTensorDesc.GetStrides();
+    const auto& blens = bTensorDesc.GetLengths();
+    const auto& clens = cTensorDesc.GetLengths();
 
     // first_not_one is incorrect if btensor size equal to 1
     auto first_not_one = std::find_if(blens.rbegin(), blens.rend(), [](int i) { return i != 1; });
@@ -124,9 +123,9 @@ ConvSolution Op2dTensorLite::GetSolution(const ExecutionContext& context,
     size_t local_threads = 256;
 
     // for naive tensor ops
-    size_t RD_BLCK              = (clens[2] % 4 == 0) ? 4 : (clens[2] % 2 == 0) ? 2 : 1;
-    const std::string data_type = GetDataType(bTensorDesc.GetType());
-    const std::string READ_TYPE = (RD_BLCK == 1) ? data_type : data_type + std::to_string(RD_BLCK);
+    size_t RD_BLCK        = size_t(1);
+    std::string READ_TYPE = "";
+    GetRDBLCKandREADTYPE(clens[2], bTensorDesc.GetType(), RD_BLCK, READ_TYPE);
 
     size_t total_work = std::max(clens[2] / RD_BLCK, size_t(1));
     size_t grp_sz     = (total_work + local_threads - 1) / local_threads;
@@ -140,19 +139,12 @@ ConvSolution Op2dTensorLite::GetSolution(const ExecutionContext& context,
     grp_sz2               = std::min(size_t(max_num_wg / grp_sz), grp_sz2);
     size_t glb_sz2        = local_threads2 * grp_sz2;
 
-    const std::vector<size_t> vld{local_threads, 1, 1};
-    const std::vector<size_t> vgd{glb_sz, glb_sz2, 1};
+    const std::array<size_t, 3> vld{local_threads, 1, 1};
+    const std::array<size_t, 3> vgd{glb_sz, glb_sz2, 1};
 
-    KernelBuildParameters build_params =
-        KernelBuildParameters{{"MIOPEN_TYPE", GetDataType(bTensorDesc.GetType())}};
+    KernelBuildParameters build_params = KernelBuildParameters{};
 
-    switch(problem.GetTensorOp())
-    {
-    case 0: build_params.Define("MIOPEN_TENSOR_OP", "miopenAdd"); break;
-    case 1: build_params.Define("MIOPEN_TENSOR_OP", "miopenMul"); break;
-    case 2: build_params.Define("MIOPEN_TENSOR_OP", "miopenMin"); break;
-    case 3: build_params.Define("MIOPEN_TENSOR_OP", "miopenMax"); break;
-    }
+    GetCommonParams(build_params, problem, false);
 
     build_params.Define("USE_2D_TENSOR_LITE");
     build_params.Define("RD_BLCK", std::to_string(RD_BLCK));
@@ -160,25 +152,30 @@ ConvSolution Op2dTensorLite::GetSolution(const ExecutionContext& context,
 
     auto kernel = KernelInfo{};
 
-    kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
+    kernel.comp_options = build_params.GenerateFor(kbp::OpenCL{});
     kernel.kernel_file  = "MIOpenTensorKernels.cl";
     kernel.kernel_name  = "Op2dTensorLite";
 
-    for(uint32_t i = 0; i <= 2; i++)
-    {
-        kernel.l_wk.push_back(vld[i]);
-        kernel.g_wk.push_back(vgd[i]);
-    }
+    using std::begin, std::end;
 
-    result.invoker_factory = [=](const std::vector<Kernel> kernels) {
+    kernel.l_wk.insert(end(kernel.l_wk), begin(vld), end(vld));
+    kernel.g_wk.insert(end(kernel.g_wk), begin(vgd), end(vgd));
+
+    result.invoker_factory = [total_work, total_work2](const std::vector<Kernel> kernels) {
         return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
             decltype(auto) kernel = handle_.Run(kernels.front());
             decltype(auto) params = raw_params.CastTo<miopen::tensorOp::InvokeParams>();
 
-            visit_float(bTensorDesc.GetType(), [&](auto as_float) {
+            visit_float(params.bTensorDesc.GetType(), [&](auto as_float) {
                 auto miopen_alpha0 = as_float(*(static_cast<const float*>(params.alpha0)));
                 auto miopen_alpha1 = as_float(*(static_cast<const float*>(params.alpha1)));
                 auto miopen_beta   = as_float(*(static_cast<const float*>(params.beta)));
+
+                const auto& blens = params.bTensorDesc.GetLengths();
+
+                const auto& astrides = params.aTensorDesc.GetStrides();
+                const auto& bstrides = params.bTensorDesc.GetStrides();
+                const auto& cstrides = params.cTensorDesc.GetStrides();
 
                 kernel(params.ATensor,
                        static_cast<int>(astrides[1]),
@@ -192,6 +189,8 @@ ConvSolution Op2dTensorLite::GetSolution(const ExecutionContext& context,
                        static_cast<int64_t>(params.Aoffset),
                        static_cast<int64_t>(params.Boffset),
                        static_cast<int64_t>(params.Coffset),
+                       static_cast<int64_t>(total_work),
+                       static_cast<int64_t>(total_work2),
                        static_cast<int>(!float_equal(miopen_beta, 0.0)),
                        static_cast<int>(blens[1] == 1));
             });

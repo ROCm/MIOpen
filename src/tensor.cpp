@@ -925,7 +925,8 @@ void OpTensor2(Handle& handle,
     const auto solvers = solver::SolverContainer<solver::tensorOp::Op2dTensorLite>{} +
                          solver::SolverContainer<solver::tensorOp::Op2dTensorSquash>{} +
                          solver::SolverContainer<solver::tensorOp::Op1dTensorGeneric>{} +
-                         solver::SolverContainer<solver::tensorOp::Op2dTensorGeneric>{};
+                         solver::SolverContainer<solver::tensorOp::Op2dTensorGeneric>{} +
+                         solver::SolverContainer<solver::tensorOp::Op3dTensorGeneric>{};
     solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
 }
 

@@ -24,8 +24,8 @@
  *
  *******************************************************************************/
 
+#include "tensor_op_helpers.hpp"
 #include <miopen/tensorOp/solvers.hpp>
-
 #include <miopen/tensorOp/invoke_params.hpp>
 #include <miopen/tensor.hpp>
 #include <miopen/kernel_build_params.hpp>
@@ -41,10 +41,10 @@ namespace tensorOp {
 bool Op1dTensorGeneric::IsApplicable(const ExecutionContext& context,
                                      const miopen::tensorOp::ProblemDescription& problem) const
 {
-    auto aTensorDesc = problem.GetATensorDesc();
-    auto bTensorDesc = problem.GetBTensorDesc();
-    auto alens       = aTensorDesc.GetLengths();
-    auto blens       = bTensorDesc.GetLengths();
+    const auto& aTensorDesc = problem.GetATensorDesc();
+    // const auto& bTensorDesc = problem.GetBTensorDesc();
+    const auto& alens = aTensorDesc.GetLengths();
+    // const auto& blens       = bTensorDesc.GetLengths();
     auto asize       = alens.size();
 
     if(GetDataType(aTensorDesc.GetType()) == "double")
@@ -82,8 +82,6 @@ Op1dTensorGeneric::GetSolution(const ExecutionContext& context,
 {
     auto result = ConvSolution{miopenStatusSuccess};
 
-    const auto& aTensorDesc = problem.GetATensorDesc();
-    const auto& bTensorDesc = problem.GetBTensorDesc();
     const auto& cTensorDesc = problem.GetCTensorDesc();
 
     const auto& clens = cTensorDesc.GetLengths();
@@ -98,32 +96,15 @@ Op1dTensorGeneric::GetSolution(const ExecutionContext& context,
     const std::array<size_t, 3> vld{local_threads, 1, 1};
     const std::array<size_t, 3> vgd{global_threads, 1, 1};
 
-    KernelBuildParameters build_params =
-        KernelBuildParameters{{"MIOPEN_TYPE", GetDataType(bTensorDesc.GetType())}};
+    KernelBuildParameters build_params = KernelBuildParameters{};
 
-    switch(problem.GetTensorOp())
-    {
-    case 0: build_params.Define("MIOPEN_TENSOR_OP", "miopenAdd"); break;
-    case 1: build_params.Define("MIOPEN_TENSOR_OP", "miopenMul"); break;
-    case 2: build_params.Define("MIOPEN_TENSOR_OP", "miopenMin"); break;
-    case 3: build_params.Define("MIOPEN_TENSOR_OP", "miopenMax"); break;
-    }
-
-    if(aTensorDesc.AllDimsFitIntoInt())
-    {
-        build_params.Define("DIM_TYPE", "uint32_t");
-    }
-    else
-    {
-        build_params.Define("DIM_TYPE", "uint64_t");
-    }
+    GetCommonParams(build_params, problem, true);
 
     build_params.Define("USE_1D_TENSOR_GENERIC");
 
     auto kernel = KernelInfo{};
 
-    kernel.comp_options = build_params.GenerateFor(kbp::HIP{}); //
-    GetDataTypeKBP(aTensorDesc.GetType()).GenerateFor(kbp::HIP{});
+    kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
     kernel.kernel_file = "MIOpenTensorKernelsHip.cpp";
     kernel.kernel_name = "Op1dTensorGeneric";
 

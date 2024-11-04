@@ -341,6 +341,7 @@ set( MIOpen_Source
     solver/tensorOp/Op2dTensorGeneric.cpp
     solver/tensorOp/Op2dTensorLite.cpp
     solver/tensorOp/Op2dTensorSquash.cpp
+    solver/tensorOp/Op3dTensorGeneric.cpp
     subbuffers.cpp
     t5layernorm_api.cpp
     target_properties.cpp

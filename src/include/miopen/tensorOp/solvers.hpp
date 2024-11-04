@@ -107,6 +107,23 @@ struct Op2dTensorSquash final : TensorOpSolver
     bool MayNeedWorkspace() const override { return false; }
 };
 
+struct Op3dTensorGeneric final : TensorOpSolver
+{
+    const std::string& SolverDbId() const override { return GetSolverDbId<Op3dTensorGeneric>(); }
+
+    bool IsApplicable(const ExecutionContext& context,
+                      const miopen::tensorOp::ProblemDescription& problem) const override;
+
+    ConvSolution GetSolution(const ExecutionContext& context,
+                             const miopen::tensorOp::ProblemDescription& problem) const override;
+
+    std::size_t
+    GetWorkspaceSize(const ExecutionContext& context,
+                     const miopen::tensorOp::ProblemDescription& problem) const override;
+
+    bool MayNeedWorkspace() const override { return false; }
+};
+
 } // namespace tensorOp
 
 } // namespace solver
