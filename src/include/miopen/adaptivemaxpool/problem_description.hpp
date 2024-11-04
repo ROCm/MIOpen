@@ -74,7 +74,7 @@ struct FwdProblemDescription : ProblemDescriptionBase
             }
         }
 
-        if(indicesDesc.GetElementSize() != 1)
+        if(!indicesDesc.GetLengths().empty())
         {
             if(outputDesc.GetLengths() != indicesDesc.GetLengths())
             {
@@ -99,7 +99,12 @@ struct FwdProblemDescription : ProblemDescriptionBase
 
     bool IsAllContiguous() const
     {
-        return inputDesc.IsContiguous() && outputDesc.IsContiguous() && indicesDesc.IsContiguous();
+        bool isAllContiguous = inputDesc.IsContiguous() && outputDesc.IsContiguous();
+        if(!indicesDesc.GetLengths().empty())
+        {
+            isAllContiguous &= indicesDesc.IsContiguous();
+        }
+        return isAllContiguous;
     }
 
     bool IsSameType() const
@@ -115,12 +120,16 @@ struct FwdProblemDescription : ProblemDescriptionBase
 
     bool IsValidType() const
     {
-        if(indicesDesc.GetType() != miopenInt64)
+        if(!indicesDesc.GetLengths().empty())
         {
-            MIOPEN_THROW(miopenStatusBadParm, "AdaptiveMaxPool: Indices tensor should be int64.");
+            if(indicesDesc.GetType() != miopenInt64)
+                MIOPEN_THROW(miopenStatusBadParm,
+                             "AdaptiveMaxPool: Indices tensor should be int64.");
         }
         return true;
     }
+
+    bool IsUseIndices() const { return !indicesDesc.GetLengths().empty(); }
 
     NetworkConfig MakeNetworkConfig() const override;
 
@@ -169,13 +178,10 @@ struct BwdProblemDescription : ProblemDescriptionBase
             }
         }
 
-        if(indicesDesc.GetElementSize() != 1)
+        if(outputGradDesc.GetLengths() != indicesDesc.GetLengths())
         {
-            if(outputGradDesc.GetLengths() != indicesDesc.GetLengths())
-            {
-                MIOPEN_THROW(miopenStatusBadParm,
-                             "AdaptiveMaxPool: Indices and output grad tensor sizes do not match.");
-            }
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "AdaptiveMaxPool: Indices and output grad tensor sizes do not match.");
         }
 
         return true;

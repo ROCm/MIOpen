@@ -68,6 +68,7 @@ ConvSolution AdaptiveMaxPoolForward2d::GetSolution(
     auto output_dtype = miopen::GetDataType(problem.GetOutputDesc().GetType());
     auto dtype        = problem.GetOutputDesc().GetType();
     uint64_t N_total  = problem.GetNtotal();
+    bool use_indices  = problem.IsUseIndices();
     float infinity    = std::numeric_limits<float>::max();
 
     auto build_params = KernelBuildParameters{
@@ -86,15 +87,17 @@ ConvSolution AdaptiveMaxPoolForward2d::GetSolution(
                                                          "AdaptiveMaxPoolForward2d",
                                                          build_params));
 
-    result.invoker_factory = [](const std::vector<Kernel>& kernels) {
+    result.invoker_factory = [use_indices](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
             decltype(auto) params = raw_params.CastTo<miopen::adaptivemaxpool::FwdInvokeParams>();
 
             decltype(auto) kernel = handle_.Run(kernels.front());
 
-            auto input_tv   = get_inner_expanded_tv<4>(deref(params.inputDesc));
-            auto output_tv  = get_inner_expanded_tv<4>(deref(params.outputDesc));
-            auto indices_tv = get_inner_expanded_tv<4>(deref(params.indicesDesc));
+            auto input_tv  = get_inner_expanded_tv<4>(deref(params.inputDesc));
+            auto output_tv = get_inner_expanded_tv<4>(deref(params.outputDesc));
+            tensor_view_t<4> indices_tv;
+            if(use_indices)
+                indices_tv = get_inner_expanded_tv<4>(deref(params.indicesDesc));
 
             uint64_t N  = deref(params.inputDesc).GetLengths()[0];
             uint64_t C  = deref(params.inputDesc).GetLengths()[1];

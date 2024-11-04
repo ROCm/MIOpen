@@ -46,7 +46,6 @@ inline std::ostream& operator<<(std::ostream& os, const std::vector<size_t>& v)
 
 static void LogCmdAdaptiveMaxPool(const miopenTensorDescriptor_t xDesc,
                                   const miopenTensorDescriptor_t oDesc,
-                                  const miopenTensorDescriptor_t iDesc,
                                   const bool is_fwd)
 {
     if(miopen::IsLoggingCmd())
@@ -69,15 +68,15 @@ static void LogCmdAdaptiveMaxPool(const miopenTensorDescriptor_t xDesc,
         MIOPEN_LOG_FUNCTION(xDesc, oDesc, is_fwd);
         ss << " -Xs " << miopen::deref(xDesc).GetLengths();
         ss << " -Os " << miopen::deref(oDesc).GetLengths();
-        ss << " -Is " << miopen::deref(iDesc).GetLengths();
         ss << " -Sx " << miopen::deref(xDesc).GetStrides();
         ss << " -So " << miopen::deref(oDesc).GetStrides();
-        ss << " -Si " << miopen::deref(iDesc).GetStrides();
         ss << " -F " << ((is_fwd) ? "1" : "2");
 
         MIOPEN_LOG_DRIVER_CMD(ss.str());
     }
 }
+
+#define CHECK_DESC_EXIST(desc) (((desc) != nullptr) ? miopen::deref(desc) : dummyDesc)
 
 extern "C" miopenStatus_t miopenAdaptiveMaxPoolForward(miopenHandle_t handle,
                                                        const miopenTensorDescriptor_t inputDesc,
@@ -89,14 +88,15 @@ extern "C" miopenStatus_t miopenAdaptiveMaxPoolForward(miopenHandle_t handle,
 {
     MIOPEN_LOG_FUNCTION(handle, inputDesc, input, outputDesc, output, indicesDesc, indices);
 
-    LogCmdAdaptiveMaxPool(inputDesc, outputDesc, indicesDesc, true);
+    const miopen::TensorDescriptor dummyDesc;
+    LogCmdAdaptiveMaxPool(inputDesc, outputDesc, true);
     return miopen::try_([&] {
         miopen::adaptivemaxpool::AdaptiveMaxPoolForward(miopen::deref(handle),
                                                         miopen::deref(inputDesc),
                                                         DataCast(input),
                                                         miopen::deref(outputDesc),
                                                         DataCast(output),
-                                                        miopen::deref(indicesDesc),
+                                                        CHECK_DESC_EXIST(indicesDesc),
                                                         DataCast(indices));
     });
 }
@@ -113,7 +113,7 @@ miopenAdaptiveMaxPoolBackward(miopenHandle_t handle,
     MIOPEN_LOG_FUNCTION(
         handle, indicesDesc, indices, outputGradDesc, output_grad, inputGradDesc, input_grad);
 
-    LogCmdAdaptiveMaxPool(inputGradDesc, outputGradDesc, indicesDesc, false);
+    LogCmdAdaptiveMaxPool(inputGradDesc, outputGradDesc, false);
     return miopen::try_([&] {
         miopen::adaptivemaxpool::AdaptiveMaxPoolBackward(miopen::deref(handle),
                                                          miopen::deref(indicesDesc),

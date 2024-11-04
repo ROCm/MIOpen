@@ -52,13 +52,12 @@ struct AdaptiveMaxPoolTestCase
 {
     std::vector<size_t> input_dims;
     std::vector<size_t> output_dims;
-    bool use_indices   = true;
     bool is_contiguous = true;
 
     friend std::ostream& operator<<(std::ostream& os, const AdaptiveMaxPoolTestCase& tc)
     {
         return os << " input_dims:" << tc.input_dims << " output_dims:" << tc.output_dims
-                  << " use_indices:" << tc.use_indices << "is_contiguous:" << tc.is_contiguous;
+                  << "is_contiguous:" << tc.is_contiguous;
     }
 
     std::vector<size_t> GetInput() const { return input_dims; }
@@ -81,48 +80,48 @@ struct AdaptiveMaxPoolTestCase
 inline std::vector<AdaptiveMaxPoolTestCase> AdaptiveMaxPoolTestConfigsFwd()
 {
     return {
-        {{64, 768, 17}, {10}, false, false},
-        {{64, 768, 17}, {10}, false, true},
-        {{64, 78, 17, 17}, {10, 10}, false, false},
-        {{64, 78, 17, 17}, {10, 10}, false, true},
-        {{6, 18, 18, 18, 18}, {5, 5, 5}, false, false},
-        {{6, 18, 18, 18, 18}, {5, 5, 5}, false, true},
-        {{64, 768, 17}, {10}, true, false},
-        {{64, 768, 17}, {10}, true, true},
-        {{64, 78, 17, 17}, {10, 10}, true, false},
-        {{64, 78, 17, 17}, {10, 10}, true, true},
-        {{6, 18, 18, 18, 18}, {5, 5, 5}, true, false},
-        {{6, 18, 18, 18, 18}, {5, 5, 5}, true, true},
+        {{64, 768, 17}, {10}, false},
+        {{64, 768, 17}, {10}, true},
+        {{64, 78, 17, 17}, {10, 10}, false},
+        {{64, 78, 17, 17}, {10, 10}, true},
+        {{6, 18, 18, 18, 18}, {5, 5, 5}, false},
+        {{6, 18, 18, 18, 18}, {5, 5, 5}, true},
+        {{64, 768, 17}, {10}, false},
+        {{64, 768, 17}, {10}, true},
+        {{64, 78, 17, 17}, {10, 10}, false},
+        {{64, 78, 17, 17}, {10, 10}, true},
+        {{6, 18, 18, 18, 18}, {5, 5, 5}, false},
+        {{6, 18, 18, 18, 18}, {5, 5, 5}, true},
     };
 }
 
 inline std::vector<AdaptiveMaxPoolTestCase> AdaptiveMaxPoolTestConfigsBwdFp32()
 {
     return {
-        {{64, 768, 17}, {10}, true, false},
-        {{64, 768, 17}, {10}, true, true},
-        {{64, 206, 17, 17}, {10, 10}, true, false},
-        {{6, 18, 18, 18, 18}, {5, 5, 5}, true, false},
+        {{64, 768, 17}, {10}, false},
+        {{64, 768, 17}, {10}, true},
+        {{64, 206, 17, 17}, {10, 10}, false},
+        {{6, 18, 18, 18, 18}, {5, 5, 5}, false},
     };
 }
 
 inline std::vector<AdaptiveMaxPoolTestCase> AdaptiveMaxPoolTestConfigsBwdFp16()
 {
     return {
-        {{64, 768, 17}, {10}, true, false},
-        {{64, 768, 17}, {10}, true, true},
-        {{64, 28, 35, 35}, {35, 35}, true, false},
-        {{6, 28, 35, 35, 35}, {10, 10, 10}, true, false},
+        {{64, 768, 17}, {10}, false},
+        {{64, 768, 17}, {10}, true},
+        {{64, 28, 35, 35}, {35, 35}, false},
+        {{6, 28, 35, 35, 35}, {10, 10, 10}, false},
     };
 }
 
 inline std::vector<AdaptiveMaxPoolTestCase> AdaptiveMaxPoolTestConfigsBwdBfp16()
 {
     return {
-        {{64, 768, 17}, {10}, true, false},
-        {{64, 768, 17}, {10}, true, true},
-        {{64, 208, 9, 9}, {7, 7}, true, false},
-        {{6, 18, 12, 12, 12}, {5, 5, 5}, true, false},
+        {{64, 768, 17}, {10}, false},
+        {{64, 768, 17}, {10}, true},
+        {{64, 208, 9, 9}, {7, 7}, false},
+        {{6, 18, 12, 12, 12}, {5, 5, 5}, false},
     };
 }
 
@@ -135,7 +134,6 @@ protected:
     {
         auto&& handle                     = get_handle();
         adaptivemaxpool_config            = GetParam();
-        use_indices                       = adaptivemaxpool_config.use_indices;
         auto in_dim                       = adaptivemaxpool_config.GetInput();
         auto in_strides                   = adaptivemaxpool_config.ComputeStrides(in_dim);
         auto out_dim                      = adaptivemaxpool_config.GetOutput();
@@ -190,27 +188,16 @@ protected:
         ref_output = tensor<T>{out_dim_final};
         std::fill(ref_output.begin(), ref_output.end(), std::numeric_limits<T>::quiet_NaN());
 
-        if(use_indices)
-        {
-            indices = tensor<int64_t>{out_dim_final};
-            std::fill(indices.begin(), indices.end(), std::numeric_limits<int64_t>::quiet_NaN());
+        indices = tensor<int64_t>{out_dim_final};
+        std::fill(indices.begin(), indices.end(), std::numeric_limits<int64_t>::quiet_NaN());
 
-            ref_indices = tensor<int64_t>{out_dim_final};
-            std::fill(
-                ref_indices.begin(), ref_indices.end(), std::numeric_limits<int64_t>::quiet_NaN());
-        }
-        else
-        {
-            indices     = tensor<int64_t>{1};
-            ref_indices = tensor<int64_t>{1};
-        }
+        ref_indices = tensor<int64_t>{out_dim_final};
+        std::fill(
+            ref_indices.begin(), ref_indices.end(), std::numeric_limits<int64_t>::quiet_NaN());
 
-        input_dev  = handle.Write(input.data);
-        output_dev = handle.Write(output.data);
-        if(use_indices)
-        {
-            indices_dev = handle.Write(indices.data);
-        }
+        input_dev   = handle.Write(input.data);
+        output_dev  = handle.Write(output.data);
+        indices_dev = handle.Write(indices.data);
     }
 
     void RunTest()
@@ -241,11 +228,8 @@ protected:
                                                                  indices_dev.get());
         ASSERT_EQ(status, miopenStatusSuccess);
 
-        output.data = handle.Read<T>(output_dev, output.data.size());
-        if(use_indices)
-        {
-            indices.data = handle.Read<int64_t>(indices_dev, indices.data.size());
-        }
+        output.data  = handle.Read<T>(output_dev, output.data.size());
+        indices.data = handle.Read<int64_t>(indices_dev, indices.data.size());
     }
 
     void Verify()
@@ -258,14 +242,11 @@ protected:
             << "Error forward Output beyond 10xthreshold : " << error_output
             << " Tolerance: " << threshold * 10;
 
-        if(use_indices)
-        {
-            double threshold_indices = std::numeric_limits<int64_t>::epsilon();
-            auto error_indices       = miopen::rms_range(ref_indices, indices);
+        double threshold_indices = std::numeric_limits<int64_t>::epsilon();
+        auto error_indices       = miopen::rms_range(ref_indices, indices);
 
-            ASSERT_EQ(miopen::range_distance(ref_indices), miopen::range_distance(indices));
-            EXPECT_EQ(error_indices, threshold_indices) << "Error forward Indices";
-        }
+        ASSERT_EQ(miopen::range_distance(ref_indices), miopen::range_distance(indices));
+        EXPECT_EQ(error_indices, threshold_indices) << "Error forward Indices";
     }
     AdaptiveMaxPoolTestCase adaptivemaxpool_config;
 
@@ -276,7 +257,6 @@ protected:
     tensor<int64_t> ref_indices;
 
     size_t N, C, D, H, W, OD, OH, OW;
-    bool use_indices;
 
     miopen::Allocator::ManageDataPtr input_dev;
     miopen::Allocator::ManageDataPtr output_dev;

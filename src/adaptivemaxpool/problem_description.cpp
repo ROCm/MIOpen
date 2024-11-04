@@ -47,10 +47,7 @@ inline std::ostream& operator<<(std::ostream& os, const std::vector<size_t>& v)
 
 NetworkConfig FwdProblemDescription::MakeNetworkConfig() const
 {
-    auto input_size   = inputDesc.GetLengths();
-    auto output_size  = outputDesc.GetLengths();
-    auto indices_size = indicesDesc.GetLengths();
-
+    auto output_size = outputDesc.GetLengths();
     auto input_dtype = inputDesc.GetType();
 
     std::ostringstream ss;
@@ -65,11 +62,8 @@ NetworkConfig FwdProblemDescription::MakeNetworkConfig() const
 
 NetworkConfig BwdProblemDescription::MakeNetworkConfig() const
 {
-    auto indices_size     = indicesDesc.GetLengths();
-    auto input_grad_size  = inputGradDesc.GetLengths();
-    auto output_grad_size = outputGradDesc.GetLengths();
-
-    auto input_dtype = inputGradDesc.GetType();
+    auto input_grad_size = inputGradDesc.GetLengths();
+    auto input_dtype     = inputGradDesc.GetType();
 
     std::ostringstream ss;
 

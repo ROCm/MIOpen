@@ -51,7 +51,10 @@ public:
         miopenCreateTensorDescriptor(&outputDesc);
         miopenCreateTensorDescriptor(&inputGradDesc);
         miopenCreateTensorDescriptor(&outputGradDesc);
-        miopenCreateTensorDescriptor(&indicesDesc);
+        if(use_indices)
+        {
+            miopenCreateTensorDescriptor(&indicesDesc);
+        }
 
         data_type = miopen_type<Tgpu>{};
     }
@@ -80,17 +83,20 @@ public:
         miopenDestroyTensorDescriptor(outputDesc);
         miopenDestroyTensorDescriptor(inputGradDesc);
         miopenDestroyTensorDescriptor(outputGradDesc);
-        miopenDestroyTensorDescriptor(indicesDesc);
+        if(indicesDesc != nullptr)
+            miopenDestroyTensorDescriptor(indicesDesc);
     }
 
 private:
     InputFlags inflags;
 
+    int forw = 1;
+
     miopenTensorDescriptor_t inputDesc;
     miopenTensorDescriptor_t outputDesc;
     miopenTensorDescriptor_t inputGradDesc;
     miopenTensorDescriptor_t outputGradDesc;
-    miopenTensorDescriptor_t indicesDesc;
+    miopenTensorDescriptor_t indicesDesc = nullptr;
 
     std::unique_ptr<GPUMem> input_dev;
     std::unique_ptr<GPUMem> output_dev;
@@ -111,6 +117,7 @@ private:
 
     std::vector<int> in_dim;
     std::vector<int> out_dim;
+    bool use_indices = true;
     bool isContiguous;
 };
 
@@ -130,9 +137,14 @@ int AdaptiveMaxPoolDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
 template <typename Tgpu, typename Tref>
 int AdaptiveMaxPoolDriver<Tgpu, Tref>::GetandSetData()
 {
+    forw                       = inflags.GetValueInt("forw");
     in_dim                     = inflags.GetValueTensor("input_dims").lengths;
     std::vector<int> in_stride = ComputeStrides(in_dim);
     out_dim                    = inflags.GetValueTensor("output_dims").lengths;
+    if(forw == 1)
+    {
+        use_indices = inflags.GetValueInt("use_indices") == 1 ? true : false;
+    }
 
     if(in_dim.size() != out_dim.size() + 2)
     {
@@ -176,8 +188,13 @@ int AdaptiveMaxPoolDriver<Tgpu, Tref>::GetandSetData()
     std::vector<int> out_grad_stride = ComputeStrides(out_dim_final);
     std::vector<int> indices_dim     = out_dim_final;
 
-    if(SetTensorNd(indicesDesc, indices_dim, miopen_type<int64_t>{}) != miopenStatusSuccess)
-        MIOPEN_THROW("Error parsing indices tensor: " + inflags.GetValueStr("indices_dim") + ".");
+    if(use_indices)
+    {
+
+        if(SetTensorNd(indicesDesc, indices_dim, miopen_type<int64_t>{}) != miopenStatusSuccess)
+            MIOPEN_THROW("Error parsing indices tensor: " + inflags.GetValueStr("indices_dim") +
+                         ".");
+    }
     if(SetTensorNd(inputDesc, in_dim, in_stride, data_type) != miopenStatusSuccess)
         MIOPEN_THROW("Error parsing input tensor: " + inflags.GetValueStr("input_dims") + ".");
     if(SetTensorNd(outputDesc, out_dim_final, data_type) != miopenStatusSuccess)
@@ -214,13 +231,20 @@ int AdaptiveMaxPoolDriver<Tgpu, Tref>::AddCmdLineArgs()
     inflags.AddTensorFlag(
         "input_dims",
         'D',
-        "2x3x7x9x9",
-        "The dimensional lengths of the input tensor: N,C,D,H,W... Example: 2x3x7x9x9.");
+        "64x768x17",
+        "The dimensional lengths of the input tensor: N,C,D,H,W... Example: 64x768x17.");
     inflags.AddTensorFlag(
         "output_dims",
         'S',
-        "5x5x5",
-        "The dimensional lengths of the output tensor: OD,OH,OW,... Example: 5x5x5.");
+        "10",
+        "The dimensional lengths of the output tensor: OD,OH,OW,... Example: 10.");
+    inflags.AddInputFlag("use_indices",
+                         'I',
+                         "1",
+                         "whether to use indices for Forward operation. use_indices will always be "
+                         "1 when -F 0 or -F 2 is "
+                         "in use (Default=1).",
+                         "int");
     inflags.AddInputFlag("is-contiguous", 'c', "1", "is-contiguous (Default=1)", "int");
     inflags.AddInputFlag("iter", 'i', "10", "Number of Iterations (Default=10)", "int");
     inflags.AddInputFlag("verify", 'V', "1", "Verify (Default=1)", "int");
@@ -236,7 +260,7 @@ int AdaptiveMaxPoolDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 {
     size_t input_sz   = GetTensorSize(inputDesc);
     size_t output_sz  = GetTensorSize(outputDesc);
-    size_t indices_sz = GetTensorSize(indicesDesc);
+    size_t indices_sz = 0;
 
     uint32_t ctx = 0;
 
@@ -244,8 +268,14 @@ int AdaptiveMaxPoolDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     output_dev      = std::unique_ptr<GPUMem>(new GPUMem(ctx, output_sz, sizeof(Tgpu)));
     input_grad_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, input_sz, sizeof(Tgpu)));
     output_grad_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, output_sz, sizeof(Tgpu)));
-    indices_dev     = std::unique_ptr<GPUMem>(new GPUMem(ctx, indices_sz, sizeof(int64_t)));
 
+    if(use_indices)
+    {
+        indices_sz   = GetTensorSize(indicesDesc);
+        indices_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, indices_sz, sizeof(int64_t)));
+        indices      = std::vector<int64_t>(indices_sz, static_cast<int64_t>(0));
+        indices_host = std::vector<int64_t>(indices_sz, static_cast<int64_t>(0));
+    }
     input       = std::vector<Tgpu>(input_sz, static_cast<Tgpu>(0));
     output      = std::vector<Tgpu>(output_sz, static_cast<Tgpu>(0));
     output_host = std::vector<Tref>(output_sz, static_cast<Tref>(0));
@@ -253,9 +283,6 @@ int AdaptiveMaxPoolDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     input_grad      = std::vector<Tgpu>(input_sz, static_cast<Tgpu>(0));
     input_grad_host = std::vector<Tref>(input_sz, static_cast<Tref>(0));
     output_grad     = std::vector<Tgpu>(output_sz, static_cast<Tgpu>(0));
-
-    indices      = std::vector<int64_t>(indices_sz, static_cast<int64_t>(0));
-    indices_host = std::vector<int64_t>(indices_sz, static_cast<int64_t>(0));
 
     int status;
 
@@ -275,11 +302,15 @@ int AdaptiveMaxPoolDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     }
     status |= output_grad_dev->ToGPU(q, output_grad.data());
 
-    for(int i = 0; i < indices_sz; i++)
+    if(use_indices)
     {
-        indices[i] = prng::gen_A_to_B<int64_t>(static_cast<int64_t>(0), static_cast<int64_t>(10));
+        for(int i = 0; i < indices_sz; i++)
+        {
+            indices[i] =
+                prng::gen_A_to_B<int64_t>(static_cast<int64_t>(0), static_cast<int64_t>(10));
+        }
+        status |= indices_dev->ToGPU(q, indices.data());
     }
-    status |= indices_dev->ToGPU(q, indices.data());
 
     if(status != 0)
     {
@@ -307,7 +338,7 @@ int AdaptiveMaxPoolDriver<Tgpu, Tref>::RunForwardGPU()
                                                    outputDesc,
                                                    output_dev->GetMem(),
                                                    indicesDesc,
-                                                   indices_dev->GetMem());
+                                                   use_indices ? indices_dev->GetMem() : nullptr);
         MIOPEN_THROW_IF(status != miopenStatusSuccess, "Error in miopenAdaptiveMaxPoolForward");
 
         float time = 0.0;
@@ -337,7 +368,15 @@ int AdaptiveMaxPoolDriver<Tgpu, Tref>::RunForwardGPU()
                   << std::endl;
         return miopenStatusInternalError;
     }
-
+    if(use_indices)
+    {
+        if(indices_dev->FromGPU(GetStream(), indices.data()) != 0)
+        {
+            std::cerr << "Error copying (indices_dev) from GPU, size: " << indices_dev->GetSize()
+                      << std::endl;
+            return miopenStatusInternalError;
+        }
+    }
     return miopenStatusSuccess;
 }
 
@@ -345,7 +384,6 @@ template <typename Tgpu, typename Tref>
 int AdaptiveMaxPoolDriver<Tgpu, Tref>::RunForwardCPU()
 {
     int status = miopenStatusSuccess;
-
     if(in_dim.size() == 3)
     {
         status = mloAdaptiveMaxPoolForward1dRunHost<Tgpu, Tref>(inputDesc,
@@ -357,7 +395,8 @@ int AdaptiveMaxPoolDriver<Tgpu, Tref>::RunForwardCPU()
                                                                 N,
                                                                 C,
                                                                 H,
-                                                                OH);
+                                                                OH,
+                                                                use_indices);
         MIOPEN_THROW_IF(status != miopenStatusSuccess,
                         "Error in mloAdaptiveMaxPoolForward1dRunHost");
     }
@@ -374,7 +413,8 @@ int AdaptiveMaxPoolDriver<Tgpu, Tref>::RunForwardCPU()
                                                                 H,
                                                                 W,
                                                                 OH,
-                                                                OW);
+                                                                OW,
+                                                                use_indices);
         MIOPEN_THROW_IF(status != miopenStatusSuccess,
                         "Error in mloAdaptiveMaxPoolForward2dRunHost");
     }
@@ -393,7 +433,8 @@ int AdaptiveMaxPoolDriver<Tgpu, Tref>::RunForwardCPU()
                                                                 W,
                                                                 OD,
                                                                 OH,
-                                                                OW);
+                                                                OW,
+                                                                use_indices);
         MIOPEN_THROW_IF(status != miopenStatusSuccess,
                         "Error in mloAdaptiveMaxPoolForward3dRunHost");
     }

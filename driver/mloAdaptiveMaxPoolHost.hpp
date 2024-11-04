@@ -39,14 +39,17 @@ int32_t mloAdaptiveMaxPoolForward1dRunHost(const miopenTensorDescriptor_t inputD
                                            uint64_t N,
                                            uint64_t C,
                                            uint64_t H,
-                                           uint64_t OH)
+                                           uint64_t OH,
+                                           bool use_indices)
 {
     auto dims  = miopen::deref(inputDesc).GetLengths();
     auto numel = miopen::deref(outputDesc).GetElementSize();
 
-    auto input_tv   = miopen::get_inner_expanded_tv<3>(miopen::deref(inputDesc));
-    auto output_tv  = miopen::get_inner_expanded_tv<3>(miopen::deref(outputDesc));
-    auto indices_tv = miopen::get_inner_expanded_tv<3>(miopen::deref(indicesDesc));
+    auto input_tv  = miopen::get_inner_expanded_tv<3>(miopen::deref(inputDesc));
+    auto output_tv = miopen::get_inner_expanded_tv<3>(miopen::deref(outputDesc));
+    tensor_view_t<3> indices_tv;
+    if(use_indices)
+        indices_tv = miopen::get_inner_expanded_tv<3>(miopen::deref(indicesDesc));
 
     par_ford(numel)([&](uint64_t gid) {
         uint64_t nc = gid / OH, oh = gid % OH;
@@ -56,7 +59,7 @@ int32_t mloAdaptiveMaxPoolForward1dRunHost(const miopenTensorDescriptor_t inputD
         uint64_t kh = ((oh + 1) * H + OH - 1) / OH;
 
         float m = -std::numeric_limits<float>::max();
-        if(miopen::deref(indicesDesc).GetElementSize() == 0)
+        if(!use_indices)
         {
             for(uint64_t ih = h; ih < kh; ++ih)
             {
@@ -95,14 +98,17 @@ int32_t mloAdaptiveMaxPoolForward2dRunHost(const miopenTensorDescriptor_t inputD
                                            uint64_t H,
                                            uint64_t W,
                                            uint64_t OH,
-                                           uint64_t OW)
+                                           uint64_t OW,
+                                           bool use_indices)
 {
     auto dims  = miopen::deref(inputDesc).GetLengths();
     auto numel = miopen::deref(outputDesc).GetElementSize();
 
-    auto input_tv   = miopen::get_inner_expanded_tv<4>(miopen::deref(inputDesc));
-    auto output_tv  = miopen::get_inner_expanded_tv<4>(miopen::deref(outputDesc));
-    auto indices_tv = miopen::get_inner_expanded_tv<4>(miopen::deref(indicesDesc));
+    auto input_tv  = miopen::get_inner_expanded_tv<4>(miopen::deref(inputDesc));
+    auto output_tv = miopen::get_inner_expanded_tv<4>(miopen::deref(outputDesc));
+    tensor_view_t<4> indices_tv;
+    if(use_indices)
+        indices_tv = miopen::get_inner_expanded_tv<4>(miopen::deref(indicesDesc));
 
     par_ford(numel)([&](uint64_t gid) {
         uint64_t ncoh = gid / OW, ow = gid % OW;
@@ -116,7 +122,7 @@ int32_t mloAdaptiveMaxPoolForward2dRunHost(const miopenTensorDescriptor_t inputD
         uint64_t kw = ((ow + 1) * W + OW - 1) / OW;
 
         float m = -std::numeric_limits<float>::max();
-        if(miopen::deref(indicesDesc).GetElementSize() == 0)
+        if(!use_indices)
         {
             for(uint64_t ih = h; ih < kh; ++ih)
             {
@@ -165,14 +171,17 @@ int32_t mloAdaptiveMaxPoolForward3dRunHost(const miopenTensorDescriptor_t inputD
                                            uint64_t W,
                                            uint64_t OD,
                                            uint64_t OH,
-                                           uint64_t OW)
+                                           uint64_t OW,
+                                           bool use_indices)
 {
     auto dims  = miopen::deref(inputDesc).GetLengths();
     auto numel = miopen::deref(outputDesc).GetElementSize();
 
-    auto input_tv   = miopen::get_inner_expanded_tv<5>(miopen::deref(inputDesc));
-    auto output_tv  = miopen::get_inner_expanded_tv<5>(miopen::deref(outputDesc));
-    auto indices_tv = miopen::get_inner_expanded_tv<5>(miopen::deref(indicesDesc));
+    auto input_tv  = miopen::get_inner_expanded_tv<5>(miopen::deref(inputDesc));
+    auto output_tv = miopen::get_inner_expanded_tv<5>(miopen::deref(outputDesc));
+    tensor_view_t<5> indices_tv;
+    if(use_indices)
+        indices_tv = miopen::get_inner_expanded_tv<5>(miopen::deref(indicesDesc));
 
     par_ford(numel)([&](uint64_t gid) {
         uint64_t ncodoh = gid / OW, ow = gid % OW;
@@ -190,7 +199,7 @@ int32_t mloAdaptiveMaxPoolForward3dRunHost(const miopenTensorDescriptor_t inputD
         uint64_t kw = ((ow + 1) * W + OW - 1) / OW;
 
         float m = -std::numeric_limits<float>::max();
-        if(miopen::deref(indicesDesc).GetElementSize() == 0)
+        if(!use_indices)
         {
             for(uint64_t id = d; id < kd; ++id)
             {
