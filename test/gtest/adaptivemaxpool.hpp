@@ -78,43 +78,7 @@ struct AdaptiveMaxPoolTestCase
     }
 };
 
-inline std::vector<AdaptiveMaxPoolTestCase> AdaptiveMaxPoolTestConfigsFwdFp32()
-{
-    return {
-        {{64, 768, 17}, {10}, false, false},
-        {{64, 768, 17}, {10}, false, true},
-        {{64, 78, 17, 17}, {10, 10}, false, false},
-        {{64, 78, 17, 17}, {10, 10}, false, true},
-        {{6, 18, 18, 18, 18}, {5, 5, 5}, false, false},
-        {{6, 18, 18, 18, 18}, {5, 5, 5}, false, true},
-        {{64, 768, 17}, {10}, true, false},
-        {{64, 768, 17}, {10}, true, true},
-        {{64, 78, 17, 17}, {10, 10}, true, false},
-        {{64, 78, 17, 17}, {10, 10}, true, true},
-        {{6, 18, 18, 18, 18}, {5, 5, 5}, true, false},
-        {{6, 18, 18, 18, 18}, {5, 5, 5}, true, true},
-    };
-}
-
-inline std::vector<AdaptiveMaxPoolTestCase> AdaptiveMaxPoolTestConfigsFwdFp16()
-{
-    return {
-        {{64, 768, 17}, {10}, false, false},
-        {{64, 768, 17}, {10}, false, true},
-        {{64, 78, 17, 17}, {10, 10}, false, false},
-        {{64, 78, 17, 17}, {10, 10}, false, true},
-        {{6, 18, 18, 18, 18}, {5, 5, 5}, false, false},
-        {{6, 18, 18, 18, 18}, {5, 5, 5}, false, true},
-        {{64, 768, 17}, {10}, true, false},
-        {{64, 768, 17}, {10}, true, true},
-        {{64, 78, 17, 17}, {10, 10}, true, false},
-        {{64, 78, 17, 17}, {10, 10}, true, true},
-        {{6, 18, 18, 18, 18}, {5, 5, 5}, true, false},
-        {{6, 18, 18, 18, 18}, {5, 5, 5}, true, true},
-    };
-}
-
-inline std::vector<AdaptiveMaxPoolTestCase> AdaptiveMaxPoolTestConfigsFwdBfp16()
+inline std::vector<AdaptiveMaxPoolTestCase> AdaptiveMaxPoolTestConfigsFwd()
 {
     return {
         {{64, 768, 17}, {10}, false, false},

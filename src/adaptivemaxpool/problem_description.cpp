@@ -57,9 +57,7 @@ NetworkConfig FwdProblemDescription::MakeNetworkConfig() const
 
     ss << "adaptivemaxpool_fwd";
     ss << "-input_dtype" << input_dtype;
-    ss << "-Xs" << input_size;
     ss << "-Os" << output_size;
-    ss << "-Is" << indices_size;
     ss << "-Con" << IsAllContiguous();
 
     return NetworkConfig{ss.str()};
@@ -77,9 +75,7 @@ NetworkConfig BwdProblemDescription::MakeNetworkConfig() const
 
     ss << "adaptivemaxpool_bwd";
     ss << "-input_dtype" << input_dtype;
-    ss << "-Is" << indices_size;
     ss << "-dXs" << input_grad_size;
-    ss << "-dOs" << output_grad_size;
     ss << "-Con" << IsAllContiguous();
 
     return NetworkConfig{ss.str()};

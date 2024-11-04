@@ -52,13 +52,13 @@ TEST_P(GPU_AdaptiveMaxpool_fwd_BFP16, AdaptiveMaxPoolTestFwd)
 
 INSTANTIATE_TEST_SUITE_P(Smoke,
                          GPU_AdaptiveMaxpool_fwd_FP32,
-                         testing::ValuesIn(AdaptiveMaxPoolTestConfigsFwdFp32()));
+                         testing::ValuesIn(AdaptiveMaxPoolTestConfigsFwd()));
 INSTANTIATE_TEST_SUITE_P(Smoke,
                          GPU_AdaptiveMaxpool_fwd_FP16,
-                         testing::ValuesIn(AdaptiveMaxPoolTestConfigsFwdFp16()));
+                         testing::ValuesIn(AdaptiveMaxPoolTestConfigsFwd()));
 INSTANTIATE_TEST_SUITE_P(Smoke,
                          GPU_AdaptiveMaxpool_fwd_BFP16,
-                         testing::ValuesIn(AdaptiveMaxPoolTestConfigsFwdBfp16()));
+                         testing::ValuesIn(AdaptiveMaxPoolTestConfigsFwd()));
 
 // BACKWARD TEST
 using GPU_AdaptiveMaxpool_bwd_FP32  = AdaptiveMaxPoolTestBwd<float>;

@@ -7806,6 +7806,8 @@ MIOPEN_EXPORT miopenStatus_t miopenPReLUBackward(miopenHandle_t handle,
  * @param input                    Data tensor input (input)
  * @param outputDesc               Tensor descriptor for output tensor (input)
  * @param output                   Data tensor output (output)
+ * @param indicesDesc              Tensor descriptor for indices tensor (input)
+ * @param indices                  Data tensor indices (output)
  * @return                         miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t
@@ -7820,6 +7822,8 @@ miopenAdaptiveMaxPoolForward(miopenHandle_t handle,
 /*! @brief Execute an adaptivemaxpool backward layer
  *
  * @param handle                   MIOpen handle (input)
+ * @param indicesDesc              Tensor descriptor for indices tensor (input)
+ * @param indices                  Data tensor indices (input)
  * @param outputGradDesc           Tensor descriptor for output grad tensor (input)
  * @param output_grad              Data tensor output grad (input)
  * @param inputGradDesc            Tensor descriptor for input grad tensor (input)

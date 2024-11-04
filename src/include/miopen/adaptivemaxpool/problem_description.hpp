@@ -46,10 +46,11 @@ struct FwdProblemDescription : ProblemDescriptionBase
         IsValidLength();
         IsValidDims();
         IsSameType();
+        IsValidType();
     }
 
-    auto GetInputDesc() const { return inputDesc; }
-    auto GetOutputDesc() const { return outputDesc; }
+    const TensorDescriptor& GetInputDesc() const { return inputDesc; }
+    const TensorDescriptor& GetOutputDesc() const { return outputDesc; }
     auto GetNtotal() const { return outputDesc.GetElementSize(); }
 
     bool IsValidLength() const
@@ -63,36 +64,16 @@ struct FwdProblemDescription : ProblemDescriptionBase
                          "AdaptiveMaxPool: Input and output tensor sizes do not match.");
         }
 
-        if(input_dims == 3)
+        for(auto i = 2; i < input_dims; i++)
         {
-            if(outputDesc.GetLengths()[2] > inputDesc.GetLengths()[2])
+            if(outputDesc.GetLengths()[i] > inputDesc.GetLengths()[i])
             {
                 MIOPEN_THROW(miopenStatusBadParm,
                              "AdaptiveMaxPool: Input tensor sizes are too small compare to output "
                              "tensor sizes.");
             }
         }
-        else if(input_dims == 4)
-        {
-            if(outputDesc.GetLengths()[2] > inputDesc.GetLengths()[2] ||
-               outputDesc.GetLengths()[3] > inputDesc.GetLengths()[3])
-            {
-                MIOPEN_THROW(miopenStatusBadParm,
-                             "AdaptiveMaxPool: Input tensor sizes are too small compare to output "
-                             "tensor sizes.");
-            }
-        }
-        else if(input_dims == 5)
-        {
-            if(outputDesc.GetLengths()[2] > inputDesc.GetLengths()[2] ||
-               outputDesc.GetLengths()[3] > inputDesc.GetLengths()[3] ||
-               outputDesc.GetLengths()[4] > inputDesc.GetLengths()[4])
-            {
-                MIOPEN_THROW(miopenStatusBadParm,
-                             "AdaptiveMaxPool: Input tensor sizes are too small compare to output "
-                             "tensor sizes.");
-            }
-        }
+
         if(indicesDesc.GetElementSize() != 1)
         {
             if(outputDesc.GetLengths() != indicesDesc.GetLengths())
@@ -116,7 +97,10 @@ struct FwdProblemDescription : ProblemDescriptionBase
         return true;
     }
 
-    bool IsAllContiguous() const { return inputDesc.IsContiguous() && outputDesc.IsContiguous(); }
+    bool IsAllContiguous() const
+    {
+        return inputDesc.IsContiguous() && outputDesc.IsContiguous() && indicesDesc.IsContiguous();
+    }
 
     bool IsSameType() const
     {
@@ -126,6 +110,15 @@ struct FwdProblemDescription : ProblemDescriptionBase
                          "AdaptiveMaxPool: Input and output tensor types do not match.");
         }
 
+        return true;
+    }
+
+    bool IsValidType() const
+    {
+        if(indicesDesc.GetType() != miopenInt64)
+        {
+            MIOPEN_THROW(miopenStatusBadParm, "AdaptiveMaxPool: Indices tensor should be int64.");
+        }
         return true;
     }
 
@@ -147,10 +140,11 @@ struct BwdProblemDescription : ProblemDescriptionBase
         IsValidLength();
         IsValidDims();
         IsSameType();
+        IsValidType();
     }
 
-    auto GetOutputGradDesc() const { return outputGradDesc; }
-    auto GetInputGradDesc() const { return inputGradDesc; }
+    const TensorDescriptor& GetOutputGradDesc() const { return outputGradDesc; }
+    const TensorDescriptor& GetInputGradDesc() const { return inputGradDesc; }
     auto GetNtotal() const { return inputGradDesc.GetElementSize(); }
 
     bool IsValidLength() const
@@ -164,36 +158,17 @@ struct BwdProblemDescription : ProblemDescriptionBase
                          "AdaptiveMaxPool: Input grad and output grad tensor sizes do not match.");
         }
 
-        if(input_dims == 3)
+        for(auto i = 2; i < input_dims; i++)
         {
-            if(outputGradDesc.GetLengths()[2] > inputGradDesc.GetLengths()[2])
+            if(outputGradDesc.GetLengths()[i] > inputGradDesc.GetLengths()[i])
             {
-                MIOPEN_THROW(miopenStatusBadParm,
-                             "AdaptiveMaxPool: Input grad tensor sizes are too small compare to "
-                             "output grad tensor sizes.");
+                MIOPEN_THROW(
+                    miopenStatusBadParm,
+                    "AdaptiveMaxPool: Input grad tensor sizes are too small compare to output grad "
+                    "tensor sizes.");
             }
         }
-        else if(input_dims == 4)
-        {
-            if(outputGradDesc.GetLengths()[2] > inputGradDesc.GetLengths()[2] ||
-               outputGradDesc.GetLengths()[3] > inputGradDesc.GetLengths()[3])
-            {
-                MIOPEN_THROW(miopenStatusBadParm,
-                             "AdaptiveMaxPool: Input grad tensor sizes are too small compare to "
-                             "output grad tensor sizes.");
-            }
-        }
-        else if(input_dims == 5)
-        {
-            if(outputGradDesc.GetLengths()[2] > inputGradDesc.GetLengths()[2] ||
-               outputGradDesc.GetLengths()[3] > inputGradDesc.GetLengths()[3] ||
-               outputGradDesc.GetLengths()[4] > inputGradDesc.GetLengths()[4])
-            {
-                MIOPEN_THROW(miopenStatusBadParm,
-                             "AdaptiveMaxPool: Input grad tensor sizes are too small compare to "
-                             "output grad tensor sizes.");
-            }
-        }
+
         if(indicesDesc.GetElementSize() != 1)
         {
             if(outputGradDesc.GetLengths() != indicesDesc.GetLengths())
@@ -219,7 +194,8 @@ struct BwdProblemDescription : ProblemDescriptionBase
 
     bool IsAllContiguous() const
     {
-        return inputGradDesc.IsContiguous() && outputGradDesc.IsContiguous();
+        return inputGradDesc.IsContiguous() && outputGradDesc.IsContiguous() &&
+               indicesDesc.IsContiguous();
     }
 
     bool IsSameType() const
@@ -230,6 +206,15 @@ struct BwdProblemDescription : ProblemDescriptionBase
                          "AdaptiveMaxPool: Input grad and output grad tensor types do not match.");
         }
 
+        return true;
+    }
+
+    bool IsValidType() const
+    {
+        if(indicesDesc.GetType() != miopenInt64)
+        {
+            MIOPEN_THROW(miopenStatusBadParm, "AdaptiveMaxPool: Indices tensor should be int64.");
+        }
         return true;
     }
 

@@ -111,7 +111,7 @@ miopenAdaptiveMaxPoolBackward(miopenHandle_t handle,
                               void* input_grad)
 {
     MIOPEN_LOG_FUNCTION(
-        handle, inputGradDesc, indices, outputGradDesc, output_grad, inputGradDesc, input_grad);
+        handle, indicesDesc, indices, outputGradDesc, output_grad, inputGradDesc, input_grad);
 
     LogCmdAdaptiveMaxPool(inputGradDesc, outputGradDesc, indicesDesc, false);
     return miopen::try_([&] {
