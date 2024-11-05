@@ -922,11 +922,16 @@ void OpTensor2(Handle& handle,
                                                       nonStandardSquash};
 
     const auto algo    = AlgorithmName{"TensorOpSolver"};
-    const auto solvers = solver::SolverContainer<solver::tensorOp::Op2dTensorLite>{} +
+    const auto solvers = solver::SolverContainer<solver::tensorOp::OpTensorFwdBias>{} +
+                         solver::SolverContainer<solver::tensorOp::Op4dTensorLite>{} +
+                         solver::SolverContainer<solver::tensorOp::OpTensorLeadingOnes>{} +
+                         solver::SolverContainer<solver::tensorOp::Op2dTensorLite>{} +
                          solver::SolverContainer<solver::tensorOp::Op2dTensorSquash>{} +
-                         solver::SolverContainer<solver::tensorOp::Op1dTensorGeneric>{} +
+                         solver::SolverContainer<solver::tensorOp::Op5dTensorGeneric>{} +
+                         solver::SolverContainer<solver::tensorOp::Op4dTensorGeneric>{} +
+                         solver::SolverContainer<solver::tensorOp::Op3dTensorGeneric>{} +
                          solver::SolverContainer<solver::tensorOp::Op2dTensorGeneric>{} +
-                         solver::SolverContainer<solver::tensorOp::Op3dTensorGeneric>{};
+                         solver::SolverContainer<solver::tensorOp::Op1dTensorGeneric>{};
     solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
 }
 

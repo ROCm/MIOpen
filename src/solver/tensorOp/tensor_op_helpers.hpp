@@ -57,9 +57,6 @@ inline void GetCommonParams(KernelBuildParameters& build_params,
     {
         build_params.Define("DIM_TYPE", "uint64_t");
     }
-    // current workaround
-    build_params.Define("MIOPEN_USE_FP16", std::to_string(0));
-    build_params.Define("MIOPEN_USE_FP32", std::to_string(1));
 }
 
 inline void
@@ -68,6 +65,149 @@ GetRDBLCKandREADTYPE(size_t len, miopenDataType_t type, size_t& RD_BLCK, std::st
     RD_BLCK                     = (len % 4 == 0) ? 4 : (len % 2 == 0) ? 2 : 1;
     const std::string data_type = GetDataType(type);
     READ_TYPE                   = (RD_BLCK == 1) ? data_type : data_type + std::to_string(RD_BLCK);
+}
+
+inline void GetBitmapAndWgInfo(const std::vector<size_t>& blens,
+                               const std::vector<size_t>& clens,
+                               int& num_wg,
+                               int& work_per_wg,
+                               unsigned int& bitmap)
+{
+    // first_not_one is incorrect if btensor size equal to 1
+    auto first_not_one = std::find_if(blens.rbegin(), blens.rend(), [](int i) { return i != 1; });
+    auto d             = std::distance(blens.begin(), first_not_one.base());
+
+    // quick fix
+    num_wg = first_not_one != blens.rend()
+                 ? static_cast<int>(*first_not_one == 0 ? 1 : *first_not_one)
+                 : 1;
+
+    work_per_wg = std::accumulate(clens.begin() + d, clens.end(), 1, std::multiplies<int>());
+
+    // update bitmap for first_not_one
+    bitmap |= (1 << (blens.size() - d));
+
+    for(int i = (d - 2); i >= 0; i--)
+    {
+        if(blens[i] != 1)
+        {
+            bitmap |= (1 << (blens.size() - (i + 1)));
+            num_wg *= blens[i];
+        }
+        else
+        {
+            work_per_wg *= clens[i];
+        }
+    }
+}
+
+inline void
+IsBitmapLeadingOnes(unsigned int bitmap, int n_size, int first_not_one, bool& leading_ones)
+{
+    for(int i = first_not_one; i >= 0; i--)
+    {
+        bool is_one = (bitmap & (1 << (n_size - 1 - i))) != 0u;
+        leading_ones &= is_one;
+    }
+}
+
+inline void Get4dParams(const miopen::tensorOp::ProblemDescription& problem,
+                        bool is4dLite,
+                        int& num_wg_orig,
+                        int& work_per_wg,
+                        int& incr_wg,
+                        unsigned int& bitmap,
+                        size_t& local_threads,
+                        size_t& global_threads)
+{
+    const auto& bTensorDesc = problem.GetBTensorDesc();
+    const auto& cTensorDesc = problem.GetCTensorDesc();
+
+    const auto& blens = bTensorDesc.GetLengths();
+    const auto& clens = cTensorDesc.GetLengths();
+
+    auto dims = clens.size();
+
+    // first_not_one is incorrect if btensor size equal to 1
+    auto first_not_one = std::find_if(blens.rbegin(), blens.rend(), [](int i) { return i != 1; });
+    auto d             = std::distance(blens.begin(), first_not_one.base());
+
+    // quick fix
+    int num_wg = first_not_one != blens.rend()
+                     ? static_cast<int>(*first_not_one == 0 ? 1 : *first_not_one)
+                     : 1;
+
+    work_per_wg = std::accumulate(clens.begin() + d, clens.end(), 1, std::multiplies<int>());
+
+    // update bitmap for first_not_one
+    bitmap |= (1 << (blens.size() - d));
+
+    for(int i = (d - 2); i >= 0; i--)
+    {
+        if(blens[i] != 1)
+        {
+            bitmap |= (1 << (blens.size() - (i + 1)));
+            num_wg *= blens[i];
+        }
+        else
+        {
+            work_per_wg *= clens[i];
+        }
+    }
+
+    // quick fix for btensor = <1, 1, 1, 1>
+    if(bTensorDesc.GetElementSize() == 1)
+        bitmap = 4;
+
+    // Forward Convolution Bias specialization
+    // for fwd-bias, bitmap looks like <0, 1, 0, 0>
+    // Is the no. of work-groups and the work for each wg balanced?
+    auto fwd_conv_bias = bitmap == (1 << 2) ? 1 : 0;
+    // This block gives off indexing for 5d tensors, skipping
+    if(fwd_conv_bias == 1 && dims < 5 && num_wg < 640 && work_per_wg > 256 && clens[0] > 0)
+    { // 640 workgroups of size 256 needed to completely fill the GPU
+
+        work_per_wg /= clens[0]; // c_n;
+        num_wg *= clens[0];      // c_n;
+        incr_wg = 1;
+    }
+
+    num_wg_orig    = num_wg;
+    int max_num_wg = 4096;
+    num_wg         = num_wg > max_num_wg ? max_num_wg : num_wg;
+
+    local_threads = 256;
+
+    bool leading_ones = true;
+    IsBitmapLeadingOnes(bitmap, clens.size(), static_cast<int>(d - 2), leading_ones);
+
+    if(leading_ones && work_per_wg < 64)
+    {
+        local_threads = 64;
+    }
+
+    // Special case for adding tensors in place
+    global_threads =
+        (static_cast<int>(leading_ones) == 1 && (d - 1) == 3) ? num_wg : num_wg * local_threads;
+    global_threads = (global_threads < local_threads) ? local_threads : global_threads;
+
+    if(is4dLite)
+    {
+        // for naive tensor ops
+        const std::string data_type = GetDataType(bTensorDesc.GetType());
+
+        size_t TENS_LEN = cTensorDesc.GetElementSize();
+        size_t RD_BLCK  = (TENS_LEN % 4 == 0) ? 4 : (TENS_LEN % 2 == 0) ? 2 : 1;
+        const std::string READ_TYPE =
+            (RD_BLCK == 1) ? data_type : data_type + std::to_string(RD_BLCK);
+
+        size_t total_work = std::max(TENS_LEN / RD_BLCK, size_t(1));
+        size_t grp_sz     = (total_work + local_threads - 1) / local_threads;
+        grp_sz            = std::min(size_t(max_num_wg), grp_sz);
+        size_t glb_sz     = local_threads * grp_sz;
+
+        global_threads = glb_sz;
+    }
 }
 
 } // namespace tensorOp

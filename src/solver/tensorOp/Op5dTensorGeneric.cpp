@@ -23,6 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+
 #include "tensor_op_helpers.hpp"
 #include <miopen/tensorOp/solvers.hpp>
 #include <miopen/tensorOp/invoke_params.hpp>
@@ -37,7 +38,7 @@ namespace solver {
 
 namespace tensorOp {
 
-bool Op3dTensorGeneric::IsApplicable(const ExecutionContext& context,
+bool Op5dTensorGeneric::IsApplicable(const ExecutionContext& context,
                                      const miopen::tensorOp::ProblemDescription& problem) const
 {
     const auto& aTensorDesc = problem.GetATensorDesc();
@@ -49,29 +50,28 @@ bool Op3dTensorGeneric::IsApplicable(const ExecutionContext& context,
         return false;
     }
 
-    if(asize == 3)
+    if(asize == 5)
     {
         return true;
     }
-
     return false;
 }
 
 std::size_t
-Op3dTensorGeneric::GetWorkspaceSize(const ExecutionContext& context,
+Op5dTensorGeneric::GetWorkspaceSize(const ExecutionContext& context,
                                     const miopen::tensorOp::ProblemDescription& problem) const
 {
     return 0;
 }
 
 ConvSolution
-Op3dTensorGeneric::GetSolution(const ExecutionContext& context,
+Op5dTensorGeneric::GetSolution(const ExecutionContext& context,
                                const miopen::tensorOp::ProblemDescription& problem) const
 {
     auto result = ConvSolution{miopenStatusSuccess};
 
-    const auto& bTensorDesc = problem.GetBTensorDesc();
     const auto& cTensorDesc = problem.GetCTensorDesc();
+    const auto& bTensorDesc = problem.GetBTensorDesc();
 
     const auto& blens = bTensorDesc.GetLengths();
     const auto& clens = cTensorDesc.GetLengths();
@@ -96,14 +96,14 @@ Op3dTensorGeneric::GetSolution(const ExecutionContext& context,
 
     GetCommonParams(build_params, problem, false);
 
-    build_params.Define("USE_3D_TENSOR_GENERIC");
+    build_params.Define("USE_5D_TENSOR_GENERIC");
     build_params.Define("MAX_NUM_WG", std::to_string(max_num_wg));
 
     auto kernel = KernelInfo{};
 
     kernel.comp_options = build_params.GenerateFor(kbp::OpenCL{});
     kernel.kernel_file  = "MIOpenTensorKernels.cl";
-    kernel.kernel_name  = "Op3dTensorGeneric";
+    kernel.kernel_name  = "Op5dTensorGeneric";
 
     using std::begin, std::end;
 
@@ -130,16 +130,26 @@ Op3dTensorGeneric::GetSolution(const ExecutionContext& context,
                 kernel(params.ATensor,
                        static_cast<int>(astrides[0]),
                        static_cast<int>(astrides[1]),
+                       static_cast<int>(astrides[2]),
+                       static_cast<int>(astrides[3]),
                        params.BTensor,
-                       static_cast<int>(blens[1]),
-                       static_cast<int>(blens[2]),
-                       static_cast<int>(bstrides[0]),
-                       static_cast<int>(bstrides[1]),
+                       static_cast<int>(blens[1]),    // b_c,
+                       static_cast<int>(blens[2]),    // b_d,
+                       static_cast<int>(blens[3]),    // b_h,
+                       static_cast<int>(blens[4]),    // b_w,
+                       static_cast<int>(bstrides[0]), // b_nstride,
+                       static_cast<int>(bstrides[1]), // b_cstride,
+                       static_cast<int>(bstrides[2]), // b_dstride,
+                       static_cast<int>(bstrides[3]), // b_hstride,
                        params.CTensor,
-                       static_cast<int>(clens[1]),
-                       static_cast<int>(clens[2]),
-                       static_cast<int>(cstrides[0]),
-                       static_cast<int>(cstrides[1]),
+                       static_cast<int>(clens[1]),    // c_c,
+                       static_cast<int>(clens[2]),    // c_d,
+                       static_cast<int>(clens[3]),    // c_h,
+                       static_cast<int>(clens[4]),    // c_w,
+                       static_cast<int>(cstrides[0]), // c_nstride,
+                       static_cast<int>(cstrides[1]), // c_cstride,
+                       static_cast<int>(cstrides[2]), // c_dstride,
+                       static_cast<int>(cstrides[3]), // c_hstride,
                        miopen_alpha0,
                        miopen_alpha1,
                        miopen_beta,

@@ -37,19 +37,47 @@ namespace solver {
 
 namespace tensorOp {
 
-bool Op3dTensorGeneric::IsApplicable(const ExecutionContext& context,
-                                     const miopen::tensorOp::ProblemDescription& problem) const
+bool Op4dTensorLite::IsApplicable(const ExecutionContext& context,
+                                  const miopen::tensorOp::ProblemDescription& problem) const
 {
     const auto& aTensorDesc = problem.GetATensorDesc();
-    const auto& alens       = aTensorDesc.GetLengths();
-    auto asize              = alens.size();
+    const auto& bTensorDesc = problem.GetBTensorDesc();
+    const auto& cTensorDesc = problem.GetCTensorDesc();
+
+    const auto& alens = aTensorDesc.GetLengths();
+    const auto& blens = bTensorDesc.GetLengths();
+    const auto& clens = cTensorDesc.GetLengths();
+
+    auto asize = alens.size();
+
+    int num_wg          = 0;
+    int work_per_wg     = 0;
+    unsigned int bitmap = 0;
+
+    GetBitmapAndWgInfo(blens, clens, num_wg, work_per_wg, bitmap);
+
+    // quick fix for btensor = <1, 1, 1, 1>
+    if(bTensorDesc.GetElementSize() == 1)
+        bitmap = 4;
+
+    auto fwd_conv_bias = bitmap == (1 << 2) ? 1 : 0;
+
+    bool packed_tensor = true;
+
+    // auto alens = aTensorDesc.GetLengths();
+    packed_tensor &= aTensorDesc.IsPacked();
+    packed_tensor &= bTensorDesc.IsPacked();
+    packed_tensor &= cTensorDesc.IsPacked();
+
+    bool packed_equal_tensor =
+        packed_tensor && (bTensorDesc.GetElementSize() == cTensorDesc.GetElementSize());
 
     if(GetDataType(aTensorDesc.GetType()) == "double")
     {
         return false;
     }
 
-    if(asize == 3)
+    if(asize == 4 && fwd_conv_bias == 0 && packed_equal_tensor)
     {
         return true;
     }
@@ -58,36 +86,36 @@ bool Op3dTensorGeneric::IsApplicable(const ExecutionContext& context,
 }
 
 std::size_t
-Op3dTensorGeneric::GetWorkspaceSize(const ExecutionContext& context,
-                                    const miopen::tensorOp::ProblemDescription& problem) const
+Op4dTensorLite::GetWorkspaceSize(const ExecutionContext& context,
+                                 const miopen::tensorOp::ProblemDescription& problem) const
 {
     return 0;
 }
 
-ConvSolution
-Op3dTensorGeneric::GetSolution(const ExecutionContext& context,
-                               const miopen::tensorOp::ProblemDescription& problem) const
+ConvSolution Op4dTensorLite::GetSolution(const ExecutionContext& context,
+                                         const miopen::tensorOp::ProblemDescription& problem) const
 {
     auto result = ConvSolution{miopenStatusSuccess};
 
     const auto& bTensorDesc = problem.GetBTensorDesc();
     const auto& cTensorDesc = problem.GetCTensorDesc();
 
-    const auto& blens = bTensorDesc.GetLengths();
-    const auto& clens = cTensorDesc.GetLengths();
-
-    int num_wg          = 0;
+    int num_wg_orig     = 0;
     int work_per_wg     = 0;
+    int incr_wg         = 0;
     unsigned int bitmap = 0;
 
-    GetBitmapAndWgInfo(blens, clens, num_wg, work_per_wg, bitmap);
+    size_t local_threads  = 0;
+    size_t global_threads = 0;
 
-    int num_wg_orig = num_wg;
-    int max_num_wg  = 4096;
-    num_wg          = num_wg > max_num_wg ? max_num_wg : num_wg;
+    Get4dParams(
+        problem, true, num_wg_orig, work_per_wg, incr_wg, bitmap, local_threads, global_threads);
 
-    size_t local_threads  = 256;
-    size_t global_threads = num_wg * local_threads;
+    size_t RD_BLCK        = size_t(1);
+    std::string READ_TYPE = "";
+    GetRDBLCKandREADTYPE(cTensorDesc.GetElementSize(), bTensorDesc.GetType(), RD_BLCK, READ_TYPE);
+
+    size_t total_work = std::max(cTensorDesc.GetElementSize() / RD_BLCK, size_t(1));
 
     const std::array<size_t, 3> vld{local_threads, 1, 1};
     const std::array<size_t, 3> vgd{global_threads, 1, 1};
@@ -96,21 +124,22 @@ Op3dTensorGeneric::GetSolution(const ExecutionContext& context,
 
     GetCommonParams(build_params, problem, false);
 
-    build_params.Define("USE_3D_TENSOR_GENERIC");
-    build_params.Define("MAX_NUM_WG", std::to_string(max_num_wg));
+    build_params.Define("USE_4D_TENSOR_LITE");
+    build_params.Define("RD_BLCK", std::to_string(RD_BLCK));
+    build_params.Define("READ_TYPE", READ_TYPE);
 
     auto kernel = KernelInfo{};
 
     kernel.comp_options = build_params.GenerateFor(kbp::OpenCL{});
     kernel.kernel_file  = "MIOpenTensorKernels.cl";
-    kernel.kernel_name  = "Op3dTensorGeneric";
+    kernel.kernel_name  = "Op4dTensorLite";
 
     using std::begin, std::end;
 
     kernel.l_wk.insert(end(kernel.l_wk), begin(vld), end(vld));
     kernel.g_wk.insert(end(kernel.g_wk), begin(vgd), end(vgd));
 
-    result.invoker_factory = [bitmap, work_per_wg, num_wg_orig](const std::vector<Kernel> kernels) {
+    result.invoker_factory = [total_work](const std::vector<Kernel> kernels) {
         return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
             decltype(auto) kernel = handle_.Run(kernels.front());
             decltype(auto) params = raw_params.CastTo<miopen::tensorOp::InvokeParams>();
@@ -120,35 +149,17 @@ Op3dTensorGeneric::GetSolution(const ExecutionContext& context,
                 auto miopen_alpha1 = as_float(*(static_cast<const float*>(params.alpha1)));
                 auto miopen_beta   = as_float(*(static_cast<const float*>(params.beta)));
 
-                const auto& blens = params.bTensorDesc.GetLengths();
-                const auto& clens = params.cTensorDesc.GetLengths();
-
-                const auto& astrides = params.aTensorDesc.GetStrides();
-                const auto& bstrides = params.bTensorDesc.GetStrides();
-                const auto& cstrides = params.cTensorDesc.GetStrides();
-
                 kernel(params.ATensor,
-                       static_cast<int>(astrides[0]),
-                       static_cast<int>(astrides[1]),
                        params.BTensor,
-                       static_cast<int>(blens[1]),
-                       static_cast<int>(blens[2]),
-                       static_cast<int>(bstrides[0]),
-                       static_cast<int>(bstrides[1]),
                        params.CTensor,
-                       static_cast<int>(clens[1]),
-                       static_cast<int>(clens[2]),
-                       static_cast<int>(cstrides[0]),
-                       static_cast<int>(cstrides[1]),
                        miopen_alpha0,
                        miopen_alpha1,
                        miopen_beta,
-                       bitmap,
-                       work_per_wg,
                        static_cast<int64_t>(params.Aoffset),
                        static_cast<int64_t>(params.Boffset),
                        static_cast<int64_t>(params.Coffset),
-                       static_cast<int>(num_wg_orig));
+                       static_cast<int64_t>(total_work),
+                       static_cast<int>(!float_equal(miopen_beta, 0.0)));
             });
         };
     };

@@ -93,22 +93,12 @@ Op2dTensorSquash::GetSolution(const ExecutionContext& context,
     const auto& blens = bTensorDesc.GetLengths();
     const auto& clens = cTensorDesc.GetLengths();
 
-    // first_not_one is incorrect if btensor size equal to 1
-    auto first_not_one = std::find_if(blens.rbegin(), blens.rend(), [](int i) { return i != 1; });
-    auto d             = std::distance(blens.begin(), first_not_one.base());
+    int num_wg          = 0;
+    int work_per_wg     = 0;
+    unsigned int bitmap = 0;
 
-    // quick fix
-    int num_wg = first_not_one != blens.rend()
-                     ? static_cast<int>(*first_not_one == 0 ? 1 : *first_not_one)
-                     : 1;
+    GetBitmapAndWgInfo(blens, clens, num_wg, work_per_wg, bitmap);
 
-    for(int i = (d - 2); i >= 0; i--)
-    {
-        if(blens[i] != 1)
-        {
-            num_wg *= blens[i];
-        }
-    }
     int max_num_wg = 4096;
     num_wg         = num_wg > max_num_wg ? max_num_wg : num_wg;
 

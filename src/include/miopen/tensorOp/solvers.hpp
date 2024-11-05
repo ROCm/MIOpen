@@ -124,6 +124,91 @@ struct Op3dTensorGeneric final : TensorOpSolver
     bool MayNeedWorkspace() const override { return false; }
 };
 
+struct OpTensorFwdBias final : TensorOpSolver
+{
+    const std::string& SolverDbId() const override { return GetSolverDbId<OpTensorFwdBias>(); }
+
+    bool IsApplicable(const ExecutionContext& context,
+                      const miopen::tensorOp::ProblemDescription& problem) const override;
+
+    ConvSolution GetSolution(const ExecutionContext& context,
+                             const miopen::tensorOp::ProblemDescription& problem) const override;
+
+    std::size_t
+    GetWorkspaceSize(const ExecutionContext& context,
+                     const miopen::tensorOp::ProblemDescription& problem) const override;
+
+    bool MayNeedWorkspace() const override { return false; }
+};
+
+struct Op4dTensorLite final : TensorOpSolver
+{
+    const std::string& SolverDbId() const override { return GetSolverDbId<Op4dTensorLite>(); }
+
+    bool IsApplicable(const ExecutionContext& context,
+                      const miopen::tensorOp::ProblemDescription& problem) const override;
+
+    ConvSolution GetSolution(const ExecutionContext& context,
+                             const miopen::tensorOp::ProblemDescription& problem) const override;
+
+    std::size_t
+    GetWorkspaceSize(const ExecutionContext& context,
+                     const miopen::tensorOp::ProblemDescription& problem) const override;
+
+    bool MayNeedWorkspace() const override { return false; }
+};
+
+struct OpTensorLeadingOnes final : TensorOpSolver
+{
+    const std::string& SolverDbId() const override { return GetSolverDbId<OpTensorLeadingOnes>(); }
+
+    bool IsApplicable(const ExecutionContext& context,
+                      const miopen::tensorOp::ProblemDescription& problem) const override;
+
+    ConvSolution GetSolution(const ExecutionContext& context,
+                             const miopen::tensorOp::ProblemDescription& problem) const override;
+
+    std::size_t
+    GetWorkspaceSize(const ExecutionContext& context,
+                     const miopen::tensorOp::ProblemDescription& problem) const override;
+
+    bool MayNeedWorkspace() const override { return false; }
+};
+
+struct Op4dTensorGeneric final : TensorOpSolver
+{
+    const std::string& SolverDbId() const override { return GetSolverDbId<Op4dTensorGeneric>(); }
+
+    bool IsApplicable(const ExecutionContext& context,
+                      const miopen::tensorOp::ProblemDescription& problem) const override;
+
+    ConvSolution GetSolution(const ExecutionContext& context,
+                             const miopen::tensorOp::ProblemDescription& problem) const override;
+
+    std::size_t
+    GetWorkspaceSize(const ExecutionContext& context,
+                     const miopen::tensorOp::ProblemDescription& problem) const override;
+
+    bool MayNeedWorkspace() const override { return false; }
+};
+
+struct Op5dTensorGeneric final : TensorOpSolver
+{
+    const std::string& SolverDbId() const override { return GetSolverDbId<Op5dTensorGeneric>(); }
+
+    bool IsApplicable(const ExecutionContext& context,
+                      const miopen::tensorOp::ProblemDescription& problem) const override;
+
+    ConvSolution GetSolution(const ExecutionContext& context,
+                             const miopen::tensorOp::ProblemDescription& problem) const override;
+
+    std::size_t
+    GetWorkspaceSize(const ExecutionContext& context,
+                     const miopen::tensorOp::ProblemDescription& problem) const override;
+
+    bool MayNeedWorkspace() const override { return false; }
+};
+
 } // namespace tensorOp
 
 } // namespace solver
