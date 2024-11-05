@@ -140,9 +140,8 @@ int CartesianProdDriver<Tgpu, Tref>::GetandSetData()
     for(auto in_len : in_lens)
     {
         std::vector<uint64_t> in_dim    = {static_cast<uint64_t>(in_len)};
-        std::vector<uint64_t> in_stride = ComputeStrides(in_dim);
         miopenCreateTensorDescriptor(&inputDesc);
-        if(SetTensorNd(inputDesc, in_dim, in_stride, data_type) != miopenStatusSuccess)
+        if(SetTensorNd(inputDesc, in_dim, data_type) != miopenStatusSuccess)
             MIOPEN_THROW("Error parsing input tensor: " + inflags.GetValueStr("input_dims") + ".");
         inputDescs.push_back(inputDesc);
 
@@ -159,10 +158,10 @@ int CartesianProdDriver<Tgpu, Tref>::GetandSetData()
         num_out *= in_len;
     }
     std::vector<uint64_t> out_dim         = {num_out, in_lens.size()};
-    std::vector<uint64_t> out_grad_stride = ComputeStrides(out_dim);
-    if(SetTensorNd(outputDesc, out_dim, data_type) != miopenStatusSuccess)
+    std::vector<uint64_t> out_stride = ComputeStrides(out_dim);
+    if(SetTensorNd(outputDesc, out_dim, out_stride, data_type) != miopenStatusSuccess)
         MIOPEN_THROW("Error parsing output tensor: " + inflags.GetValueStr("output_dims") + ".");
-    if(SetTensorNd(outputGradDesc, out_dim, out_grad_stride, data_type) != miopenStatusSuccess)
+    if(SetTensorNd(outputGradDesc, out_dim, out_stride, data_type) != miopenStatusSuccess)
         MIOPEN_THROW("Error parsing output grad tensor: " + inflags.GetValueStr("output_dims") +
                      ".");
     return miopenStatusSuccess;
