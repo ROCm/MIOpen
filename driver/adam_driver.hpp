@@ -27,6 +27,7 @@
 
 #include "InputFlags.hpp"
 #include "driver.hpp"
+#include "miopen/errors.hpp"
 #include "random.hpp"
 #include "tensor_driver.hpp"
 #include "timer.hpp"
@@ -525,6 +526,7 @@ int AdamDriver<Tgpu, Tref, Tgrad>::RunForwardGPU()
                                                 grad_scale_ptr,
                                                 foundInfDesc,
                                                 found_inf_ptr);
+        MIOPEN_THROW_IF(status != miopenStatusSuccess, "Error in miopenFusedAdamWithOutput");
 
         float time = 0.0;
         miopenGetKernelTime(GetHandle(), &time);
