@@ -96,7 +96,7 @@ CartesianProdForward::GetSolution(const ExecutionContext& context,
 
     result.invoker_factory = [inputCount](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
-            size_t stride = 1;
+            uint64_t stride = 1;
             HipEventPtr start, stop;
             bool profiling = handle_.IsProfilingEnabled();
             if(profiling)
@@ -115,14 +115,14 @@ CartesianProdForward::GetSolution(const ExecutionContext& context,
             for(int i = inputCount - 1; i >= 0; i--)
             {
                 auto input_tv =
-                    get_inner_expanded_tv<1>(deref(params.GetInputDesc(static_cast<size_t>(i))));
-                kernel(params.GetInput(static_cast<size_t>(i)),
+                    get_inner_expanded_tv<1>(deref(params.GetInputDesc(static_cast<uint64_t>(i))));
+                kernel(params.GetInput(static_cast<uint64_t>(i)),
                        params.workspace,
                        input_tv,
                        output_tv,
                        stride,
-                       static_cast<size_t>(i));
-                stride *= params.GetInputDesc(static_cast<size_t>(i))->GetElementSize();
+                       static_cast<uint64_t>(i));
+                stride *= params.GetInputDesc(static_cast<uint64_t>(i))->GetElementSize();
             }
 
             kernel = handle_.Run(kernels[1]);
@@ -147,7 +147,7 @@ CartesianProdForward::GetSolution(const ExecutionContext& context,
     return result;
 };
 
-std::size_t CartesianProdForward::GetWorkspaceSize(
+std::uint64_t CartesianProdForward::GetWorkspaceSize(
     const ExecutionContext& /*context*/,
     const miopen::cartesianprod::FwdProblemDescription& problem) const
 {

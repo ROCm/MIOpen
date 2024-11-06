@@ -27,9 +27,7 @@
 #include "get_handle.hpp"
 #include "tensor_holder.hpp"
 #include "verify.hpp"
-#include <cstdio>
 #include <gtest/gtest.h>
-#include <iostream>
 #include <miopen/cartesianprod.hpp>
 #include <miopen/miopen.h>
 
@@ -49,31 +47,19 @@ inline std::ostream& operator<<(std::ostream& os, const std::vector<T>& v)
 
 struct CartesianProdTestCase
 {
-    std::vector<std::vector<size_t>> inputs_dims;
+    std::vector<uint64_t> inputs_dims;
     bool is_contiguous = true;
     friend std::ostream& operator<<(std::ostream& os, const CartesianProdTestCase& tc)
     {
-        os << " input_dims:";
-        for(int i = 0; i < tc.inputs_dims.size(); i++)
-        {
-            auto input = tc.inputs_dims[i];
-            if(i != 0)
-                os << ",";
-            os << input[0];
-            for(int j = 1; j < input.size(); j++)
-            {
-                os << "x" << input[j];
-            }
-        }
-        return os << " is_contiguous:" << tc.is_contiguous;
+        return os << " input_dims:" << tc.inputs_dims << " is_contiguous:" << tc.is_contiguous;
     }
 
-    const std::vector<std::vector<size_t>>& GetInputs() const { return inputs_dims; }
-    std::vector<size_t> ComputeStrides(std::vector<size_t> inputDim) const
+    const std::vector<uint64_t>& GetInputs() const { return inputs_dims; }
+    std::vector<uint64_t> ComputeStrides(std::vector<uint64_t> inputDim) const
     {
         if(!is_contiguous)
             std::swap(inputDim.front(), inputDim.back());
-        std::vector<size_t> strides(inputDim.size());
+        std::vector<uint64_t> strides(inputDim.size());
         strides.back() = 1;
         for(int i = inputDim.size() - 2; i >= 0; --i)
             strides[i] = strides[i + 1] * inputDim[i + 1];
@@ -86,8 +72,8 @@ struct CartesianProdTestCase
 inline std::vector<CartesianProdTestCase> CartesianProdTestConfigs()
 {
     return {
-        {{{5}, {7}, {9}}, true},
-        {{{6}, {4}, {9}}, false},
+        {{{5, 7, 9}}, true},
+        {{{6, 4, 9}}, false},
     };
 }
 
@@ -98,15 +84,15 @@ struct CartesianProdTestFwd : public ::testing::TestWithParam<CartesianProdTestC
 protected:
     void SetUp() override
     {
-        auto&& handle                            = get_handle();
-        cartesianprod_config                     = GetParam();
-        std::vector<std::vector<size_t>> ins_dim = cartesianprod_config.GetInputs();
-        size_t num_out                           = 1;
+        auto&& handle                 = get_handle();
+        cartesianprod_config          = GetParam();
+        std::vector<uint64_t> ins_dim = cartesianprod_config.GetInputs();
+        uint64_t num_out              = 1;
         for(auto in_dim : ins_dim)
         {
-            num_out *= in_dim[0];
+            num_out *= in_dim;
         }
-        std::vector<size_t> out_dim = {num_out, ins_dim.size()};
+        std::vector<uint64_t> out_dim = {num_out, ins_dim.size()};
 
         auto gen_input_value = [](auto...) {
             return prng::gen_A_to_B<T>(static_cast<T>(-10.0f), static_cast<T>(10.0f));
@@ -114,8 +100,10 @@ protected:
 
         for(auto in_dim : ins_dim)
         {
-            std::vector<size_t> in_strides = cartesianprod_config.ComputeStrides(in_dim);
-            inputs.push_back(tensor<T>{in_dim, in_strides}.generate(gen_input_value));
+            std::vector<uint64_t> in_strides =
+                cartesianprod_config.ComputeStrides(std::vector<uint64_t>{in_dim});
+            inputs.push_back(
+                tensor<T>{std::vector<uint64_t>{in_dim}, in_strides}.generate(gen_input_value));
         }
 
         output = tensor<T>{out_dim};
@@ -141,12 +129,12 @@ protected:
 
         ws_sizeInBytes = miopen::cartesianprod::GetCartesianProdForwardWorkspaceSize(
             handle, ins_dim.size(), inputDescs.data(), output.desc);
-        if(ws_sizeInBytes == static_cast<size_t>(-1))
+        if(ws_sizeInBytes == static_cast<uint64_t>(-1))
             GTEST_SKIP();
 
         if(ws_sizeInBytes != 0)
         {
-            std::vector<size_t> workspace_dims;
+            std::vector<uint64_t> workspace_dims;
             workspace_dims.push_back(ws_sizeInBytes / sizeof(float));
 
             workspace = tensor<T>{workspace_dims};
@@ -182,7 +170,8 @@ protected:
         auto error = miopen::rms_range(ref_output, output);
 
         ASSERT_EQ(miopen::range_distance(ref_output), miopen::range_distance(output));
-        EXPECT_LT(error, threshold * 10);
+        EXPECT_LT(error, threshold * 10) << "Error forward Output beyond 10xthreshold : " << error
+                                         << " Tolerance: " << threshold * 10;
     }
     CartesianProdTestCase cartesianprod_config;
 
@@ -197,7 +186,7 @@ protected:
 
     std::vector<miopen::TensorDescriptor*> inputDescs;
     std::vector<ConstData_t> inputsData;
-    size_t ws_sizeInBytes;
+    uint64_t ws_sizeInBytes;
 };
 
 // BACKWARD TEST
@@ -213,9 +202,9 @@ protected:
         auto num_out         = 1;
         for(auto in_dim : in_grads_dim)
         {
-            num_out *= in_dim[0];
+            num_out *= in_dim;
         }
-        std::vector<size_t> out_grad_dim = {num_out, in_grads_dim.size()};
+        std::vector<uint64_t> out_grad_dim = {num_out, in_grads_dim.size()};
 
         auto gen_output_grad_value = [](auto...) {
             return prng::gen_A_to_B<T>(static_cast<T>(-10.0f), static_cast<T>(10.0f));
@@ -286,7 +275,9 @@ protected:
 
             auto error = miopen::rms_range(ref_input_grad, input_grad);
             ASSERT_EQ(miopen::range_distance(ref_input_grad), miopen::range_distance(input_grad));
-            EXPECT_LT(error, threshold * 10);
+            EXPECT_LT(error, threshold * 10)
+                << "Error backward Input grad beyond 10xthreshold : " << error
+                << " Tolerance: " << threshold * 10;
         }
     }
     CartesianProdTestCase cartesianprod_config;

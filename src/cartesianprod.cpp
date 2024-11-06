@@ -35,10 +35,10 @@ namespace miopen {
 
 namespace cartesianprod {
 
-size_t GetCartesianProdForwardWorkspaceSize(Handle& handle,
-                                            const size_t inputCount,
-                                            const TensorDescriptor* const* inputDescs,
-                                            const TensorDescriptor& outputDesc)
+uint64_t GetCartesianProdForwardWorkspaceSize(Handle& handle,
+                                              const uint64_t inputCount,
+                                              const TensorDescriptor* const* inputDescs,
+                                              const TensorDescriptor& outputDesc)
 {
     auto ctx           = ExecutionContext{&handle};
     const auto problem = cartesianprod::FwdProblemDescription{inputCount, inputDescs, outputDesc};
@@ -47,13 +47,13 @@ size_t GetCartesianProdForwardWorkspaceSize(Handle& handle,
 
     auto pair_size_vector = solvers.GetWorkspaceSizes(ctx, problem);
 
-    return pair_size_vector.empty() ? static_cast<size_t>(-1) : pair_size_vector.front().second;
+    return pair_size_vector.empty() ? static_cast<uint64_t>(-1) : pair_size_vector.front().second;
 }
 
 miopenStatus_t CartesianProdForward(Handle& handle,
                                     Data_t workspace,
-                                    const size_t workspaceSizeInBytes,
-                                    const size_t inputCount,
+                                    const uint64_t workspaceSizeInBytes,
+                                    const uint64_t inputCount,
                                     const TensorDescriptor* const* inputDescs,
                                     ConstData_t* inputs,
                                     const TensorDescriptor& outputDesc,
@@ -79,7 +79,7 @@ miopenStatus_t CartesianProdForward(Handle& handle,
 }
 
 miopenStatus_t CartesianProdBackward(Handle& handle,
-                                     const size_t inputCount,
+                                     const uint64_t inputCount,
                                      const TensorDescriptor& outputGradDesc,
                                      ConstData_t output_grad,
                                      const TensorDescriptor* const* inputGradDescs,

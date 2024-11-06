@@ -42,24 +42,24 @@ struct FwdInvokeParams : public miopen::InvokeParams
     const TensorDescriptor* const* inputDescs = nullptr;
     const TensorDescriptor* outputDesc        = nullptr;
 
-    size_t inputCount   = 0;
+    uint64_t inputCount = 0;
     ConstData_t* inputs = nullptr;
     Data_t output       = nullptr;
 
-    const void* GetInput(size_t inputIndex) const
+    const void* GetInput(uint64_t inputIndex) const
     {
         return inputIndex < inputCount ? inputs[inputIndex] : nullptr;
     }
 
-    const TensorDescriptor* GetInputDesc(size_t inputIndex) const
+    const TensorDescriptor* GetInputDesc(uint64_t inputIndex) const
     {
         return inputIndex < inputCount ? inputDescs[inputIndex] : nullptr;
     }
 
-    std::size_t workspaceSize = 0;
-    Data_t workspace          = nullptr;
+    std::uint64_t workspaceSize = 0;
+    Data_t workspace            = nullptr;
 
-    std::size_t GetWorkspaceSize() const { return workspaceSize; }
+    std::uint64_t GetWorkspaceSize() const { return workspaceSize; }
     Data_t GetWorkspace() const { return workspace; }
 };
 
@@ -71,21 +71,21 @@ struct BwdInvokeParams : public miopen::InvokeParams
     const TensorDescriptor* outputGradDesc        = nullptr;
     const TensorDescriptor* const* inputGradDescs = nullptr;
 
-    size_t inputCount       = 0;
+    uint64_t inputCount     = 0;
     ConstData_t output_grad = nullptr;
     Data_t* input_grads     = nullptr;
 
-    void* GetInputGrad(size_t inputIndex) const
+    void* GetInputGrad(uint64_t inputIndex) const
     {
         return inputIndex < inputCount ? input_grads[inputIndex] : nullptr;
     }
 
-    const TensorDescriptor* GetInputGradDesc(size_t inputIndex) const
+    const TensorDescriptor* GetInputGradDesc(uint64_t inputIndex) const
     {
         return inputIndex < inputCount ? inputGradDescs[inputIndex] : nullptr;
     }
 
-    std::size_t GetWorkspaceSize() const { return 0; }
+    std::uint64_t GetWorkspaceSize() const { return 0; }
     Data_t GetWorkspace() const { return nullptr; }
 };
 

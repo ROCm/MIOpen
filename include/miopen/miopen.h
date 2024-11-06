@@ -7810,10 +7810,10 @@ MIOPEN_EXPORT miopenStatus_t miopenPReLUBackward(miopenHandle_t handle,
  */
 MIOPEN_EXPORT miopenStatus_t
 miopenGetCartesianProdForwardWorkspaceSize(miopenHandle_t handle,
-                                           const size_t inputCount,
+                                           const uint64_t inputCount,
                                            const miopenTensorDescriptor_t* inputDescs,
                                            const miopenTensorDescriptor_t outputDesc,
-                                           size_t* sizeInBytes);
+                                           uint64_t* sizeInBytes);
 
 /*! @brief Execute an cartesianprod forward layer
  *
@@ -7829,8 +7829,8 @@ miopenGetCartesianProdForwardWorkspaceSize(miopenHandle_t handle,
  */
 MIOPEN_EXPORT miopenStatus_t miopenCartesianProdForward(miopenHandle_t handle,
                                                         void* workspace,
-                                                        const size_t workspaceSizeInBytes,
-                                                        const size_t inputCount,
+                                                        const uint64_t workspaceSizeInBytes,
+                                                        const uint64_t inputCount,
                                                         const miopenTensorDescriptor_t* inputDescs,
                                                         const void* const* inputs,
                                                         const miopenTensorDescriptor_t outputDesc,
@@ -7848,7 +7848,7 @@ MIOPEN_EXPORT miopenStatus_t miopenCartesianProdForward(miopenHandle_t handle,
  */
 MIOPEN_EXPORT miopenStatus_t
 miopenCartesianProdBackward(miopenHandle_t handle,
-                            const size_t inputCount,
+                            const uint64_t inputCount,
                             const miopenTensorDescriptor_t outputGradDesc,
                             const void* output_grad,
                             const miopenTensorDescriptor_t* inputGradDescs,

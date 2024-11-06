@@ -49,7 +49,7 @@ namespace {
 
 bool IsOverRocmBwd(const miopen::cartesianprod::BwdProblemDescription& problem)
 {
-    for(size_t i = 0; i < problem.GetInputCount(); i++)
+    for(uint64_t i = 0; i < problem.GetInputCount(); i++)
     {
         if(problem.GetInputGradDesc(i).GetElementSize() > 10)
         {
@@ -116,7 +116,7 @@ ConvSolution CartesianProdBackward::GetSolution(
 
     result.invoker_factory = [inputCount](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
-            size_t stride         = 1;
+            uint64_t stride       = 1;
             int kernelCnt         = 0;
             decltype(auto) params = raw_params.CastTo<miopen::cartesianprod::BwdInvokeParams>();
             auto output_grad_tv   = get_inner_expanded_tv<2>(deref(params.outputGradDesc));
@@ -136,11 +136,11 @@ ConvSolution CartesianProdBackward::GetSolution(
                 decltype(auto) kernel = handle_.Run(kernels[kernelCnt++]);
                 auto input_grad_tv    = get_inner_expanded_tv<1>(deref(params.GetInputGradDesc(i)));
                 kernel(params.output_grad,
-                       params.GetInputGrad(static_cast<size_t>(i)),
+                       params.GetInputGrad(static_cast<uint64_t>(i)),
                        output_grad_tv,
                        input_grad_tv,
                        stride,
-                       static_cast<size_t>(i));
+                       static_cast<uint64_t>(i));
                 stride *= params.GetInputGradDesc(i)->GetElementSize();
             }
 

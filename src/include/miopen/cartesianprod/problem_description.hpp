@@ -38,7 +38,7 @@ namespace cartesianprod {
 
 struct FwdProblemDescription : ProblemDescriptionBase
 {
-    FwdProblemDescription(size_t inputCount_,
+    FwdProblemDescription(uint64_t inputCount_,
                           const TensorDescriptor* const* inputDescs_,
                           const TensorDescriptor& outputDesc_)
         : inputDescs(inputDescs_), outputDesc(outputDesc_), inputCount(inputCount_)
@@ -49,7 +49,7 @@ struct FwdProblemDescription : ProblemDescriptionBase
         IsAllPacked();
     }
 
-    const TensorDescriptor& GetInputDesc(size_t i) const
+    const TensorDescriptor& GetInputDesc(uint64_t i) const
     {
         if(i >= inputCount)
         {
@@ -58,7 +58,7 @@ struct FwdProblemDescription : ProblemDescriptionBase
         return deref(inputDescs[i]);
     }
     const TensorDescriptor& GetOutputDesc() const { return outputDesc; }
-    size_t GetInputCount() const { return inputCount; }
+    uint64_t GetInputCount() const { return inputCount; }
 
     bool IsValidNumInputs() const
     {
@@ -106,7 +106,7 @@ struct FwdProblemDescription : ProblemDescriptionBase
             {
                 MIOPEN_THROW(miopenStatusBadParm, "CartesianProdForward: Invalid output dim.");
             }
-            size_t outputDim0 = 1;
+            uint64_t outputDim0 = 1;
             for(int i = 0; i < inputCount; i++)
             {
                 outputDim0 *= GetInputDesc(i).GetLengths()[0];
@@ -142,12 +142,12 @@ struct FwdProblemDescription : ProblemDescriptionBase
 private:
     const TensorDescriptor* const* inputDescs = nullptr;
     TensorDescriptor outputDesc{};
-    size_t inputCount = 0;
+    uint64_t inputCount = 0;
 };
 
 struct BwdProblemDescription : ProblemDescriptionBase
 {
-    BwdProblemDescription(size_t inputCount_,
+    BwdProblemDescription(uint64_t inputCount_,
                           const TensorDescriptor& outputGradDesc_,
                           const TensorDescriptor* const* inputGradDescs_)
         : outputGradDesc(outputGradDesc_), inputGradDescs(inputGradDescs_), inputCount(inputCount_)
@@ -158,7 +158,7 @@ struct BwdProblemDescription : ProblemDescriptionBase
         IsAllPacked();
     }
 
-    const TensorDescriptor& GetInputGradDesc(size_t i) const
+    const TensorDescriptor& GetInputGradDesc(uint64_t i) const
     {
         if(i >= inputCount)
         {
@@ -167,7 +167,7 @@ struct BwdProblemDescription : ProblemDescriptionBase
         return deref(inputGradDescs[i]);
     }
     const TensorDescriptor& GetOutputGradDesc() const { return outputGradDesc; }
-    size_t GetInputCount() const { return inputCount; }
+    uint64_t GetInputCount() const { return inputCount; }
 
     bool IsValidNumInputs() const
     {
@@ -217,7 +217,7 @@ struct BwdProblemDescription : ProblemDescriptionBase
                 MIOPEN_THROW(miopenStatusBadParm,
                              "CartesianProdBackward: Invalid output grad dim.");
             }
-            size_t outputDim0 = 1;
+            uint64_t outputDim0 = 1;
             for(int i = 0; i < inputCount; i++)
             {
                 outputDim0 *= GetInputGradDesc(i).GetLengths()[0];
@@ -255,7 +255,7 @@ struct BwdProblemDescription : ProblemDescriptionBase
 private:
     TensorDescriptor outputGradDesc{};
     const TensorDescriptor* const* inputGradDescs = nullptr;
-    size_t inputCount                             = 0;
+    uint64_t inputCount                           = 0;
 };
 
 } // namespace cartesianprod

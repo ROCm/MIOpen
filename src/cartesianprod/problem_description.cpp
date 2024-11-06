@@ -24,6 +24,7 @@
  *
  *******************************************************************************/
 
+#include "miopen/errors.hpp"
 #include <miopen/cartesianprod/problem_description.hpp>
 #include <miopen/names.hpp>
 
@@ -33,7 +34,7 @@ namespace miopen {
 
 namespace cartesianprod {
 
-inline std::ostream& operator<<(std::ostream& os, const std::vector<size_t>& v)
+inline std::ostream& operator<<(std::ostream& os, const std::vector<uint64_t>& v)
 {
     os << '{';
     for(int i = 0; i < v.size(); ++i)
@@ -59,7 +60,7 @@ NetworkConfig FwdProblemDescription::MakeNetworkConfig() const
     ss << "-Is";
     for(int i = 0; i < inputCount; i++)
     {
-        ss << "_" << inputDescs[i]->GetLengths();
+        ss << "_" << deref(inputDescs[i]).GetLengths();
     }
     ss << "-Os" << output_size;
     ss << "-Ic" << IsAllPacked();
@@ -80,7 +81,7 @@ NetworkConfig BwdProblemDescription::MakeNetworkConfig() const
     ss << "-dIs";
     for(int i = 0; i < inputCount; i++)
     {
-        ss << "_" << inputGradDescs[i]->GetLengths();
+        ss << "_" << deref(inputGradDescs[i]).GetLengths();
     }
     ss << "-dOs" << output_grad_size;
     ss << "-Ic" << IsAllPacked();

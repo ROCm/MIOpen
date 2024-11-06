@@ -35,24 +35,24 @@ void cpu_cartesianprod_forward(const std::vector<tensor<T>> inputs, tensor<T>& o
     auto output_tv = miopen::get_inner_expanded_tv<2>(output.desc);
 
     tensor<T> output_ws(output.desc);
-    size_t stride = 1;
-    for(int dim1_idx = inputs.size() - 1; dim1_idx >= 0; --dim1_idx)
-    {
+    uint64_t stride = 1;
+    par_ford(inputs.size())([&](int dim1_idx) {
+        dim1_idx      = inputs.size() - 1 - dim1_idx;
         auto input_tv = miopen::get_inner_expanded_tv<1>(inputs[dim1_idx].desc);
         auto numel    = output.desc.GetLengths()[0];
 
-        ford(numel)([&](size_t gid) {
+        par_ford(numel)([&](uint64_t gid) {
             if(gid >= output_tv.size[0])
                 return;
 
             output_ws[output_tv.size[0] * dim1_idx + gid] =
-                inputs[dim1_idx][(gid / stride) % input_tv.size[0]];
+                inputs[dim1_idx][input_tv.get_tensor_view_idx({(gid / stride) % input_tv.size[0]})];
         });
         stride *= inputs[dim1_idx].desc.GetElementSize();
-    }
+    });
 
-    par_ford(output_tv.size[1])([&](size_t dim1_idx) {
-        ford(output_tv.size[0])([&](size_t dim0_idx) {
+    par_ford(output_tv.size[1])([&](uint64_t dim1_idx) {
+        par_ford(output_tv.size[0])([&](uint64_t dim0_idx) {
             output[output_tv.get_tensor_view_idx({dim0_idx, dim1_idx})] =
                 output_ws[output_tv.size[0] * dim1_idx + dim0_idx];
         });
@@ -63,29 +63,29 @@ template <class T>
 void cpu_cartesianprod_backward(const tensor<T> output_grad, std::vector<tensor<T>>& input_grads)
 {
     auto output_grad_tv = miopen::get_inner_expanded_tv<2>(output_grad.desc);
-    size_t stride       = 1;
-    for(int dim1_idx = input_grads.size() - 1; dim1_idx >= 0; --dim1_idx)
-    {
+    uint64_t stride     = 1;
+    par_ford(input_grads.size())([&](int dim1_idx) {
+        dim1_idx           = input_grads.size() - 1 - dim1_idx;
         auto input_grad_tv = miopen::get_inner_expanded_tv<1>(input_grads[dim1_idx].desc);
         auto numel         = input_grads[dim1_idx].desc.GetElementSize();
 
-        ford(numel)([&](size_t gid) {
+        par_ford(numel)([&](uint64_t gid) {
             if(gid >= input_grad_tv.size[0])
                 return;
-            float sum = 0;
-            for(size_t offset = 0; offset < output_grad_tv.size[0];
-                offset += (stride * input_grad_tv.size[0]))
-            {
-                for(size_t i = 0; i < stride; ++i)
-                {
-                    size_t dim0_idx = offset + gid * stride + i;
-                    sum += static_cast<float>(
+            std::vector<double> buffer(output_grad_tv.size[0], 0);
+            par_ford((output_grad_tv.size[0] + stride * input_grad_tv.size[0] - 1) /
+                     (stride * input_grad_tv.size[0]))([&](uint64_t offset) {
+                offset *= (stride * input_grad_tv.size[0]);
+                par_ford(stride)([&](uint64_t i) {
+                    uint64_t dim0_idx = offset + gid * stride + i;
+                    buffer[offset] += static_cast<double>(
                         output_grad[output_grad_tv.get_tensor_view_idx({dim0_idx, dim1_idx})]);
-                }
-            }
+                });
+            });
+            auto sum = std::accumulate(buffer.begin(), buffer.end(), 0.0);
 
             input_grads[dim1_idx][input_grad_tv.get_tensor_view_idx({gid})] = static_cast<T>(sum);
         });
         stride *= numel;
-    }
+    });
 }

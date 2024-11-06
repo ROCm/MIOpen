@@ -111,7 +111,7 @@ private:
     std::vector<Tgpu*> inputs_ptr;
     std::vector<Tref*> input_grads_host_ptr;
     bool isContiguous;
-    size_t ws_sizeInBytes;
+    uint64_t ws_sizeInBytes;
 };
 
 template <typename Tgpu, typename Tref>
@@ -137,7 +137,7 @@ int CartesianProdDriver<Tgpu, Tref>::GetandSetData()
 
     for(auto in_len : in_lens)
     {
-        std::vector<uint64_t> in_dim    = {static_cast<uint64_t>(in_len)};
+        std::vector<uint64_t> in_dim = {static_cast<uint64_t>(in_len)};
         miopenCreateTensorDescriptor(&inputDesc);
         if(SetTensorNd(inputDesc, in_dim, data_type) != miopenStatusSuccess)
             MIOPEN_THROW("Error parsing input tensor: " + inflags.GetValueStr("input_dims") + ".");
@@ -153,9 +153,9 @@ int CartesianProdDriver<Tgpu, Tref>::GetandSetData()
     uint64_t num_out = 1;
     for(auto in_len : in_lens)
     {
-        num_out *= in_len;
+        num_out *= static_cast<uint64_t>(in_len);
     }
-    std::vector<uint64_t> out_dim         = {num_out, in_lens.size()};
+    std::vector<uint64_t> out_dim    = {num_out, in_lens.size()};
     std::vector<uint64_t> out_stride = ComputeStrides(out_dim);
     if(SetTensorNd(outputDesc, out_dim, out_stride, data_type) != miopenStatusSuccess)
         MIOPEN_THROW("Error parsing output tensor: " + inflags.GetValueStr("output_dims") + ".");
@@ -204,12 +204,12 @@ int CartesianProdDriver<Tgpu, Tref>::AddCmdLineArgs()
 template <typename Tgpu, typename Tref>
 int CartesianProdDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 {
-    size_t output_sz = GetTensorSize(outputDesc);
+    uint64_t output_sz = GetTensorSize(outputDesc);
 
     miopenGetCartesianProdForwardWorkspaceSize(
         GetHandle(), inputDescs.size(), inputDescs.data(), outputDesc, &ws_sizeInBytes);
 
-    if(ws_sizeInBytes == static_cast<size_t>(-1))
+    if(ws_sizeInBytes == static_cast<uint64_t>(-1))
         return miopenStatusAllocFailed;
 
     uint32_t ctx = 0;

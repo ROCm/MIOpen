@@ -30,7 +30,7 @@
 #include <miopen/logger.hpp>
 #include <miopen/tensor_ops.hpp>
 
-inline std::ostream& operator<<(std::ostream& os, const std::vector<size_t>& v)
+inline std::ostream& operator<<(std::ostream& os, const std::vector<uint64_t>& v)
 {
     os << '{';
     for(int i = 0; i < v.size(); ++i)
@@ -43,8 +43,9 @@ inline std::ostream& operator<<(std::ostream& os, const std::vector<size_t>& v)
     return os;
 }
 
-inline void
-LogCmdCartesianProd(const miopenTensorDescriptor_t* iDescs, const uint64_t iCount, const bool is_fwd)
+inline void LogCmdCartesianProd(const miopenTensorDescriptor_t* iDescs,
+                                const uint64_t iCount,
+                                const bool is_fwd)
 {
     if(miopen::IsLoggingCmd())
     {
@@ -76,10 +77,10 @@ LogCmdCartesianProd(const miopenTensorDescriptor_t* iDescs, const uint64_t iCoun
 
 extern "C" miopenStatus_t
 miopenGetCartesianProdForwardWorkspaceSize(miopenHandle_t handle,
-                                           const size_t inputCount,
+                                           const uint64_t inputCount,
                                            const miopenTensorDescriptor_t* inputDescs,
                                            const miopenTensorDescriptor_t outputDesc,
-                                           size_t* sizeInBytes)
+                                           uint64_t* sizeInBytes)
 {
     MIOPEN_LOG_FUNCTION(handle, inputCount, inputDescs, outputDesc, sizeInBytes);
     return miopen::try_([&] {
@@ -95,8 +96,8 @@ miopenGetCartesianProdForwardWorkspaceSize(miopenHandle_t handle,
 
 extern "C" miopenStatus_t miopenCartesianProdForward(miopenHandle_t handle,
                                                      void* workspace,
-                                                     const size_t workspaceSizeInBytes,
-                                                     const size_t inputCount,
+                                                     const uint64_t workspaceSizeInBytes,
+                                                     const uint64_t inputCount,
                                                      const miopenTensorDescriptor_t* inputDescs,
                                                      const void* const* inputs,
                                                      const miopenTensorDescriptor_t outputDesc,
@@ -129,7 +130,7 @@ extern "C" miopenStatus_t miopenCartesianProdForward(miopenHandle_t handle,
 
 extern "C" miopenStatus_t
 miopenCartesianProdBackward(miopenHandle_t handle,
-                            const size_t inputCount,
+                            const uint64_t inputCount,
                             const miopenTensorDescriptor_t outputGradDesc,
                             const void* output_grad,
                             const miopenTensorDescriptor_t* inputGradDescs,
