@@ -72,8 +72,10 @@ struct CartesianProdTestCase
 inline std::vector<CartesianProdTestCase> CartesianProdTestConfigs()
 {
     return {
-        {{{5, 7, 9}}, true},
-        {{{6, 4, 9}}, false},
+        {{5, 7, 9}, true},
+        {{6, 4, 9}, false},
+        {{6}, true},
+        {{6}, false},
     };
 }
 
@@ -92,7 +94,16 @@ protected:
         {
             num_out *= in_dim;
         }
-        std::vector<uint64_t> out_dim = {num_out, ins_dim.size()};
+        std::vector<uint64_t> out_dim;
+        if(ins_dim.size() == 1)
+        {
+
+            out_dim = {num_out};
+        }
+        else
+        {
+            out_dim = {num_out, ins_dim.size()};
+        }
 
         auto gen_input_value = [](auto...) {
             return prng::gen_A_to_B<T>(static_cast<T>(-10.0f), static_cast<T>(10.0f));
@@ -149,7 +160,14 @@ protected:
         auto&& handle = get_handle();
         miopenStatus_t status;
 
-        cpu_cartesianprod_forward<T>(inputs, ref_output);
+        if(inputs.size() == 1)
+        {
+            ref_output = inputs[0];
+        }
+        else
+        {
+            cpu_cartesianprod_forward<T>(inputs, ref_output);
+        }
 
         status = miopen::cartesianprod::CartesianProdForward(handle,
                                                              workspace_dev.get(),
@@ -204,7 +222,15 @@ protected:
         {
             num_out *= in_dim;
         }
-        std::vector<uint64_t> out_grad_dim = {num_out, in_grads_dim.size()};
+        std::vector<uint64_t> out_grad_dim;
+        if(in_grads_dim.size() == 1)
+        {
+            out_grad_dim = {num_out};
+        }
+        else
+        {
+            out_grad_dim = {num_out, in_grads_dim.size()};
+        }
 
         auto gen_output_grad_value = [](auto...) {
             return prng::gen_A_to_B<T>(static_cast<T>(-10.0f), static_cast<T>(10.0f));
@@ -236,7 +262,14 @@ protected:
         auto&& handle = get_handle();
 
         miopenStatus_t status;
-        cpu_cartesianprod_backward<T>(output_grad, ref_input_grads);
+        if(input_grads.size() == 1)
+        {
+            ref_input_grads[0] = output_grad;
+        }
+        else
+        {
+            cpu_cartesianprod_backward<T>(output_grad, ref_input_grads);
+        }
         std::vector<miopen::TensorDescriptor*> inputGradDescs;
         std::vector<Data_t> inputGradsData;
         std::transform(input_grads.begin(),

@@ -24,6 +24,7 @@
  *
  *******************************************************************************/
 
+#include "miopen/errors.hpp"
 #include <miopen/conv_solution.hpp>
 #include <miopen/execution_context.hpp>
 #include <miopen/invoke_params.hpp>
@@ -70,79 +71,117 @@ CartesianProdForward::GetSolution(const ExecutionContext& context,
     auto dtype        = problem.GetOutputDesc().GetType();
     auto inputCount   = problem.GetInputCount();
 
-    auto build_params =
-        KernelBuildParameters{{"MIOPEN_USE_FP16", static_cast<int>(dtype == miopenHalf)},
-                              {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
-                              {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
-                              {"TILE_SIZE", TILE_SIZE},
-                              {"D_TYPE", output_dtype == "bfloat16" ? "ushort" : output_dtype}};
-
-    if(inputCount == 1)
+    auto result = ConvSolution{miopenStatusSuccess};
+    if(inputCount != 1)
     {
-        return ConvSolution{miopenStatusNotImplemented};
-    }
-    auto output_dims = problem.GetOutputDesc().GetLengths();
-    auto result      = ConvSolution{miopenStatusSuccess};
-    result.construction_params.push_back(make_hip_kernel({LOCAL_SIZE_FWD},
-                                                         {output_dims[0]},
-                                                         "MIOpenCartesianProd.cpp",
-                                                         "CartesianProdForward",
-                                                         build_params));
-    result.construction_params.push_back(make_hip_kernel({TILE_SIZE, TILE_SIZE},
-                                                         {output_dims[0], output_dims[1]},
-                                                         "MIOpenCartesianProd.cpp",
-                                                         "CartesianProdTranspose",
-                                                         build_params));
+        auto build_params =
+            KernelBuildParameters{{"MIOPEN_USE_FP16", static_cast<int>(dtype == miopenHalf)},
+                                  {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
+                                  {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
+                                  {"TILE_SIZE", TILE_SIZE},
+                                  {"D_TYPE", output_dtype == "bfloat16" ? "ushort" : output_dtype}};
 
-    result.invoker_factory = [inputCount](const std::vector<Kernel>& kernels) {
-        return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
-            uint64_t stride = 1;
-            HipEventPtr start, stop;
-            bool profiling = handle_.IsProfilingEnabled();
-            if(profiling)
-            {
-                handle_.EnableProfiling(false);
-                hipStreamSynchronize(handle_.GetStream());
-                start = miopen::make_hip_event();
-                stop  = miopen::make_hip_event();
-                hipEventRecord(start.get(), handle_.GetStream());
-            }
+        auto output_dims = problem.GetOutputDesc().GetLengths();
+        result.construction_params.push_back(make_hip_kernel({LOCAL_SIZE_FWD},
+                                                             {output_dims[0]},
+                                                             "MIOpenCartesianProd.cpp",
+                                                             "CartesianProdForward",
+                                                             build_params));
+        result.construction_params.push_back(make_hip_kernel({TILE_SIZE, TILE_SIZE},
+                                                             {output_dims[0], output_dims[1]},
+                                                             "MIOpenCartesianProd.cpp",
+                                                             "CartesianProdTranspose",
+                                                             build_params));
 
-            decltype(auto) kernel = handle_.Run(kernels[0]);
-            decltype(auto) params = raw_params.CastTo<miopen::cartesianprod::FwdInvokeParams>();
-            auto output_tv        = get_inner_expanded_tv<2>(deref(params.outputDesc));
+        result.invoker_factory = [inputCount](const std::vector<Kernel>& kernels) {
+            return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
+                uint64_t stride = 1;
+                HipEventPtr start, stop;
+                bool profiling = handle_.IsProfilingEnabled();
+                if(profiling)
+                {
+                    handle_.EnableProfiling(false);
+                    hipStreamSynchronize(handle_.GetStream());
+                    start = miopen::make_hip_event();
+                    stop  = miopen::make_hip_event();
+                    hipEventRecord(start.get(), handle_.GetStream());
+                }
 
-            for(int i = inputCount - 1; i >= 0; i--)
-            {
-                auto input_tv =
-                    get_inner_expanded_tv<1>(deref(params.GetInputDesc(static_cast<uint64_t>(i))));
-                kernel(params.GetInput(static_cast<uint64_t>(i)),
-                       params.workspace,
-                       input_tv,
-                       output_tv,
-                       stride,
-                       static_cast<uint64_t>(i));
-                stride *= params.GetInputDesc(static_cast<uint64_t>(i))->GetElementSize();
-            }
+                decltype(auto) kernel = handle_.Run(kernels[0]);
+                decltype(auto) params = raw_params.CastTo<miopen::cartesianprod::FwdInvokeParams>();
+                auto output_tv        = get_inner_expanded_tv<2>(deref(params.outputDesc));
 
-            kernel = handle_.Run(kernels[1]);
-            kernel(params.workspace, params.output, output_tv);
+                for(int i = inputCount - 1; i >= 0; i--)
+                {
+                    auto input_tv = get_inner_expanded_tv<1>(
+                        deref(params.GetInputDesc(static_cast<uint64_t>(i))));
+                    kernel(params.GetInput(static_cast<uint64_t>(i)),
+                           params.workspace,
+                           input_tv,
+                           output_tv,
+                           stride,
+                           static_cast<uint64_t>(i));
+                    stride *= params.GetInputDesc(static_cast<uint64_t>(i))->GetElementSize();
+                }
 
-            if(profiling)
-            {
-                float elapsed = 0.0f;
-                hipEventRecord(stop.get(), handle_.GetStream());
-                handle_.EnableProfiling(true);
-                hipEventSynchronize(stop.get());
-                hipEventElapsedTime(&elapsed, start.get(), stop.get());
-                // Clean up
-                hipEventDestroy(start.get());
-                hipEventDestroy(stop.get());
-                handle_.ResetKernelTime();
-                handle_.AccumKernelTime(elapsed);
+                kernel = handle_.Run(kernels[1]);
+                kernel(params.workspace, params.output, output_tv);
+
+                if(profiling)
+                {
+                    float elapsed = 0.0f;
+                    hipEventRecord(stop.get(), handle_.GetStream());
+                    handle_.EnableProfiling(true);
+                    hipEventSynchronize(stop.get());
+                    hipEventElapsedTime(&elapsed, start.get(), stop.get());
+                    // Clean up
+                    hipEventDestroy(start.get());
+                    hipEventDestroy(stop.get());
+                    handle_.ResetKernelTime();
+                    handle_.AccumKernelTime(elapsed);
+                };
             };
         };
-    };
+    }
+    else
+    {
+        result.invoker_factory = [=](const std::vector<Kernel>&) {
+            return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
+                HipEventPtr start, stop;
+                bool profiling = handle_.IsProfilingEnabled();
+                if(profiling)
+                {
+                    handle_.EnableProfiling(false);
+                    hipStreamSynchronize(handle_.GetStream());
+                    start = miopen::make_hip_event();
+                    stop  = miopen::make_hip_event();
+                    hipEventRecord(start.get(), handle_.GetStream());
+                }
+
+                decltype(auto) params = raw_params.CastTo<miopen::cartesianprod::FwdInvokeParams>();
+
+                hipMemcpyAsync(params.output,
+                               params.GetInput(static_cast<uint64_t>(0)),
+                               deref(params.outputDesc).GetElementSize() * get_data_size(dtype),
+                               hipMemcpyDeviceToDevice,
+                               handle_.GetStream());
+
+                if(profiling)
+                {
+                    float elapsed = 0.0f;
+                    hipEventRecord(stop.get(), handle_.GetStream());
+                    handle_.EnableProfiling(true);
+                    hipEventSynchronize(stop.get());
+                    hipEventElapsedTime(&elapsed, start.get(), stop.get());
+                    // Clean up
+                    hipEventDestroy(start.get());
+                    hipEventDestroy(stop.get());
+                    handle_.ResetKernelTime();
+                    handle_.AccumKernelTime(elapsed);
+                };
+            };
+        };
+    }
 
     return result;
 };

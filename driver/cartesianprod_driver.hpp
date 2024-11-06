@@ -155,7 +155,15 @@ int CartesianProdDriver<Tgpu, Tref>::GetandSetData()
     {
         num_out *= static_cast<uint64_t>(in_len);
     }
-    std::vector<uint64_t> out_dim    = {num_out, in_lens.size()};
+    std::vector<uint64_t> out_dim;
+    if(in_lens.size() == 1)
+    {
+        out_dim = {num_out};
+    }
+    else
+    {
+        out_dim = {num_out, in_lens.size()};
+    }
     std::vector<uint64_t> out_stride = ComputeStrides(out_dim);
     if(SetTensorNd(outputDesc, out_dim, out_stride, data_type) != miopenStatusSuccess)
         MIOPEN_THROW("Error parsing output tensor: " + inflags.GetValueStr("output_dims") + ".");
@@ -333,9 +341,17 @@ int CartesianProdDriver<Tgpu, Tref>::RunForwardCPU()
 {
     int status = miopenStatusSuccess;
 
-    status = mloCartesianProdForwardRunHost<Tgpu, Tref>(
-        inputDescs, outputDesc, inputs_ptr, output_host.data());
-    MIOPEN_THROW_IF(status != miopenStatusSuccess, "Error in mloCartesianProdForwardRunHost");
+    if(inputDescs.size() == 1)
+    {
+        std::vector<Tref> inputs_converted(inputs[0].begin(), inputs[0].end());
+        output_host = inputs_converted;
+    }
+    else
+    {
+        status = mloCartesianProdForwardRunHost<Tgpu, Tref>(
+            inputDescs, outputDesc, inputs_ptr, output_host.data());
+        MIOPEN_THROW_IF(status != miopenStatusSuccess, "Error in mloCartesianProdForwardRunHost");
+    }
 
     return status;
 }
@@ -400,9 +416,17 @@ int CartesianProdDriver<Tgpu, Tref>::RunBackwardCPU()
 {
     int status = miopenStatusSuccess;
 
-    status = mloCartesianProdBackwardRunHost<Tgpu, Tref>(
-        outputGradDesc, inputGradDescs, output_grad.data(), input_grads_host_ptr);
-    MIOPEN_THROW_IF(status != miopenStatusSuccess, "Error in mloCartesianProdBackwardRunHost");
+    if(inputGradDescs.size() == 1)
+    {
+        std::vector<Tref> output_grad_converted(output_grad.begin(), output_grad.end());
+        input_grads_host[0] = output_grad_converted;
+    }
+    else
+    {
+        status = mloCartesianProdBackwardRunHost<Tgpu, Tref>(
+            outputGradDesc, inputGradDescs, output_grad.data(), input_grads_host_ptr);
+        MIOPEN_THROW_IF(status != miopenStatusSuccess, "Error in mloCartesianProdBackwardRunHost");
+    }
     return status;
 }
 

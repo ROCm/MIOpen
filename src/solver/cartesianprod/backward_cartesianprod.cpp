@@ -90,75 +90,113 @@ ConvSolution CartesianProdBackward::GetSolution(
     auto dtype        = problem.GetOutputGradDesc().GetType();
     auto output_dtype = miopen::GetDataType(dtype);
     auto inputCount   = problem.GetInputCount();
+    auto result       = ConvSolution{miopenStatusSuccess};
 
-    auto build_params =
-        KernelBuildParameters{{"MIOPEN_USE_FP16", static_cast<int>(dtype == miopenHalf)},
-                              {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
-                              {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
-                              {"TILE_SIZE", TILE_SIZE},
-                              {"D_TYPE", output_dtype == "bfloat16" ? "ushort" : output_dtype}};
-
-    if(inputCount == 1)
+    if(inputCount != 1)
     {
-        return ConvSolution{miopenStatusNotImplemented};
-    }
+        auto build_params =
+            KernelBuildParameters{{"MIOPEN_USE_FP16", static_cast<int>(dtype == miopenHalf)},
+                                  {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
+                                  {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
+                                  {"TILE_SIZE", TILE_SIZE},
+                                  {"D_TYPE", output_dtype == "bfloat16" ? "ushort" : output_dtype}};
 
-    auto result = ConvSolution{miopenStatusSuccess};
-    for(int i = inputCount - 1; i >= 0; i--)
-    {
-        auto input_grad_size = problem.GetInputGradDesc(i).GetElementSize();
-        result.construction_params.push_back(make_hip_kernel({LOCAL_SIZE_BWD},
-                                                             {input_grad_size},
-                                                             "MIOpenCartesianProd.cpp",
-                                                             "CartesianProdBackward",
-                                                             build_params));
-    }
+        for(int i = inputCount - 1; i >= 0; i--)
+        {
+            auto input_grad_size = problem.GetInputGradDesc(i).GetElementSize();
+            result.construction_params.push_back(make_hip_kernel({LOCAL_SIZE_BWD},
+                                                                 {input_grad_size},
+                                                                 "MIOpenCartesianProd.cpp",
+                                                                 "CartesianProdBackward",
+                                                                 build_params));
+        }
 
-    result.invoker_factory = [inputCount](const std::vector<Kernel>& kernels) {
-        return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
-            uint64_t stride       = 1;
-            int kernelCnt         = 0;
-            decltype(auto) params = raw_params.CastTo<miopen::cartesianprod::BwdInvokeParams>();
-            auto output_grad_tv   = get_inner_expanded_tv<2>(deref(params.outputGradDesc));
-            HipEventPtr start, stop;
-            bool profiling = handle_.IsProfilingEnabled();
-            if(profiling)
-            {
-                handle_.EnableProfiling(false);
-                hipStreamSynchronize(handle_.GetStream());
-                start = miopen::make_hip_event();
-                stop  = miopen::make_hip_event();
-                hipEventRecord(start.get(), handle_.GetStream());
-            }
+        result.invoker_factory = [inputCount](const std::vector<Kernel>& kernels) {
+            return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
+                uint64_t stride       = 1;
+                int kernelCnt         = 0;
+                decltype(auto) params = raw_params.CastTo<miopen::cartesianprod::BwdInvokeParams>();
+                auto output_grad_tv   = get_inner_expanded_tv<2>(deref(params.outputGradDesc));
+                HipEventPtr start, stop;
+                bool profiling = handle_.IsProfilingEnabled();
+                if(profiling)
+                {
+                    handle_.EnableProfiling(false);
+                    hipStreamSynchronize(handle_.GetStream());
+                    start = miopen::make_hip_event();
+                    stop  = miopen::make_hip_event();
+                    hipEventRecord(start.get(), handle_.GetStream());
+                }
 
-            for(int i = inputCount - 1; i >= 0; i--)
-            {
-                decltype(auto) kernel = handle_.Run(kernels[kernelCnt++]);
-                auto input_grad_tv    = get_inner_expanded_tv<1>(deref(params.GetInputGradDesc(i)));
-                kernel(params.output_grad,
-                       params.GetInputGrad(static_cast<uint64_t>(i)),
-                       output_grad_tv,
-                       input_grad_tv,
-                       stride,
-                       static_cast<uint64_t>(i));
-                stride *= params.GetInputGradDesc(i)->GetElementSize();
-            }
+                for(int i = inputCount - 1; i >= 0; i--)
+                {
+                    decltype(auto) kernel = handle_.Run(kernels[kernelCnt++]);
+                    auto input_grad_tv =
+                        get_inner_expanded_tv<1>(deref(params.GetInputGradDesc(i)));
+                    kernel(params.output_grad,
+                           params.GetInputGrad(static_cast<uint64_t>(i)),
+                           output_grad_tv,
+                           input_grad_tv,
+                           stride,
+                           static_cast<uint64_t>(i));
+                    stride *= params.GetInputGradDesc(i)->GetElementSize();
+                }
 
-            if(profiling)
-            {
-                float elapsed = 0.0f;
-                hipEventRecord(stop.get(), handle_.GetStream());
-                handle_.EnableProfiling(true);
-                hipEventSynchronize(stop.get());
-                hipEventElapsedTime(&elapsed, start.get(), stop.get());
-                // Clean up
-                hipEventDestroy(start.get());
-                hipEventDestroy(stop.get());
-                handle_.ResetKernelTime();
-                handle_.AccumKernelTime(elapsed);
+                if(profiling)
+                {
+                    float elapsed = 0.0f;
+                    hipEventRecord(stop.get(), handle_.GetStream());
+                    handle_.EnableProfiling(true);
+                    hipEventSynchronize(stop.get());
+                    hipEventElapsedTime(&elapsed, start.get(), stop.get());
+                    // Clean up
+                    hipEventDestroy(start.get());
+                    hipEventDestroy(stop.get());
+                    handle_.ResetKernelTime();
+                    handle_.AccumKernelTime(elapsed);
+                };
             };
         };
-    };
+    }
+    else
+    {
+        result.invoker_factory = [=](const std::vector<Kernel>&) {
+            return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
+                HipEventPtr start, stop;
+                bool profiling = handle_.IsProfilingEnabled();
+                if(profiling)
+                {
+                    handle_.EnableProfiling(false);
+                    hipStreamSynchronize(handle_.GetStream());
+                    start = miopen::make_hip_event();
+                    stop  = miopen::make_hip_event();
+                    hipEventRecord(start.get(), handle_.GetStream());
+                }
+
+                decltype(auto) params = raw_params.CastTo<miopen::cartesianprod::BwdInvokeParams>();
+
+                hipMemcpyAsync(params.GetInputGrad(static_cast<uint64_t>(0)),
+                               params.output_grad,
+                               deref(params.outputGradDesc).GetElementSize() * get_data_size(dtype),
+                               hipMemcpyDeviceToDevice,
+                               handle_.GetStream());
+
+                if(profiling)
+                {
+                    float elapsed = 0.0f;
+                    hipEventRecord(stop.get(), handle_.GetStream());
+                    handle_.EnableProfiling(true);
+                    hipEventSynchronize(stop.get());
+                    hipEventElapsedTime(&elapsed, start.get(), stop.get());
+                    // Clean up
+                    hipEventDestroy(start.get());
+                    hipEventDestroy(stop.get());
+                    handle_.ResetKernelTime();
+                    handle_.AccumKernelTime(elapsed);
+                };
+            };
+        };
+    }
 
     return result;
 }
