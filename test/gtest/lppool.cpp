@@ -77,10 +77,10 @@ TEST_P(GPU_LPPool_bwd_BFP16, LPPoolTestBwd)
     Verify();
 };
 
-INSTANTIATE_TEST_SUITE_P(Smoke, GPU_LPPool_bwd_FP32, testing::ValuesIn(LPPoolTestConfigsBwdFp32()));
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_LPPool_bwd_FP32, testing::ValuesIn(LPPoolTestConfigsBwd()));
 INSTANTIATE_TEST_SUITE_P(Smoke,
                          GPU_LPPool_bwd_FP16,
-                         testing::ValuesIn(LPPoolTestConfigsBwdFp16BFp16()));
+                         testing::ValuesIn(LPPoolTestConfigsBwd()));
 INSTANTIATE_TEST_SUITE_P(Smoke,
                          GPU_LPPool_bwd_BFP16,
-                         testing::ValuesIn(LPPoolTestConfigsBwdFp16BFp16()));
+                         testing::ValuesIn(LPPoolTestConfigsBwd()));

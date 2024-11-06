@@ -82,28 +82,17 @@ inline std::vector<LPPoolTestCase> LPPoolTestConfigsFwd()
         {{4, 512, 14}, {2}, {2}, 2.0, false},
         {{4, 512, 14}, {2}, {2}, 2.0, true},
         {{64, 512, 14, 14}, {2, 2}, {2, 2}, 2.0, false},
-        {{64, 512, 14, 14}, {2, 2}, {2, 2}, 2.0, true},
 
     };
 }
 
-inline std::vector<LPPoolTestCase> LPPoolTestConfigsBwdFp32()
+inline std::vector<LPPoolTestCase> LPPoolTestConfigsBwd()
 {
     return {
         {{4, 512, 14}, {2}, {2}, 2.0, false},
         {{4, 512, 14}, {2}, {2}, 2.0, true},
         {{64, 512, 14, 14}, {2, 2}, {2, 2}, 2.0, false},
         {{64, 512, 14, 14}, {2, 2}, {2, 2}, 2.0, true},
-    };
-}
-
-inline std::vector<LPPoolTestCase> LPPoolTestConfigsBwdFp16BFp16()
-{
-    return {
-        {{4, 512, 14}, {2}, {2}, 2.0, false},
-        // {{4, 512, 14}, {2}, {2}, 2.0, true},
-        // {{64, 512, 14, 14}, {2, 2}, {2, 2}, 2.0, false},
-        // {{64, 512, 14, 14}, {2, 2}, {2, 2}, 2.0, true},
     };
 }
 

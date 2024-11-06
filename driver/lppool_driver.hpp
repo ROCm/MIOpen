@@ -246,7 +246,7 @@ int LPPoolDriver<Tgpu, Tref>::AddCmdLineArgs()
         "Type of normalization, represents p in the formula, can not be 0 (Default = 1.0).",
         "float");
 
-    inflags.AddInputFlag("is-contiguous", 'C', "1", "is-contiguous (Default=1)", "int");
+    inflags.AddInputFlag("is-contiguous", 'C', "0", "is-contiguous (Default=0)", "int");
     inflags.AddInputFlag("iter", 'i', "10", "Number of Iterations (Default=10)", "int");
     inflags.AddInputFlag("verify", 'V', "1", "Verify (Default=1)", "int");
     inflags.AddInputFlag("time", 't', "1", "Time (Default=1)", "int");
