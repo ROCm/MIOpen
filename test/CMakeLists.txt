@@ -288,7 +288,7 @@ endif()
 if(MIOPEN_NO_GPU)
     set(SKIP_ALL_EXCEPT_TESTS
             test_tensor_test test_sqlite_perfdb
-            test_pooling3d test_perfdb)
+            test_perfdb)
 endif()
 
 #TODO WORKAROUND_ISSUE_1424
@@ -433,6 +433,7 @@ set(LONG_TESTS
     test_conv3d_extra
     test_conv_3d
     test_pooling2d
+    test_pooling3d
     test_conv_ck_igemm_fwd_v6r1_dlops_nchw
     )
 
