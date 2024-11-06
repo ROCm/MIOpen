@@ -286,7 +286,7 @@ if(${CODECOV_TEST})
 endif()
 
 if(MIOPEN_NO_GPU)
-    set(SKIP_ALL_EXCEPT_TESTS test_include_inliner
+    set(SKIP_ALL_EXCEPT_TESTS
             test_tensor_test test_sqlite_perfdb
             test_pooling3d test_perfdb)
 endif()
