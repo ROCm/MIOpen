@@ -132,11 +132,8 @@ OpTensorLeadingOnes::GetSolution(const ExecutionContext& context,
     GetCommonParams(build_params, problem, false);
 
     build_params.Define("MAX_NUM_WG", std::to_string(max_num_wg));
-
     auto kernel = KernelInfo{};
 
-    kernel.comp_options = build_params.GenerateFor(kbp::OpenCL{});
-    kernel.kernel_file  = "MIOpenTensorKernels.cl";
     if(packed_tensor)
     {
         build_params.Define("USE_LEADING_ONES");
@@ -147,6 +144,9 @@ OpTensorLeadingOnes::GetSolution(const ExecutionContext& context,
         build_params.Define("USE_LEADING_ONES_GENERIC");
         kernel.kernel_name = "OpTensorLeadingOnesGeneric";
     }
+
+    kernel.comp_options = build_params.GenerateFor(kbp::OpenCL{});
+    kernel.kernel_file  = "MIOpenTensorKernels.cl";
 
     using std::begin, std::end;
 

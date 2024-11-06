@@ -119,8 +119,6 @@ ConvSolution OpTensorFwdBias::GetSolution(const ExecutionContext& context,
 
     auto kernel = KernelInfo{};
 
-    kernel.comp_options = build_params.GenerateFor(kbp::OpenCL{});
-    kernel.kernel_file  = "MIOpenTensorKernels.cl";
     if(packed_tensor)
     {
         build_params.Define("USE_FWD_BIAS");
@@ -131,6 +129,9 @@ ConvSolution OpTensorFwdBias::GetSolution(const ExecutionContext& context,
         build_params.Define("USE_FWD_BIAS_GENERIC");
         kernel.kernel_name = "OpTensorFwdBiasGeneric";
     }
+
+    kernel.comp_options = build_params.GenerateFor(kbp::OpenCL{});
+    kernel.kernel_file  = "MIOpenTensorKernels.cl";
 
     using std::begin, std::end;
 
