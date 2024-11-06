@@ -255,10 +255,14 @@ miopenBatchNormalizationForwardInference_V2(miopenHandle_t handle,
             (size == 5) ? miopen::BuildReshaped4DTensorDescriptor(miopen::deref(yDesc))
                         : miopen::deref(yDesc),
             DataCast(y),
-            miopen::deref(scaleDesc),
-            miopen::deref(BiasDesc),
-            miopen::deref(estMeanDesc),
-            miopen::deref(estVarianceDesc),
+            (size == 5) ? miopen::BuildReshaped4DTensorDescriptor(miopen::deref(scaleDesc))
+                        : miopen::deref(scaleDesc),
+            (size == 5) ? miopen::BuildReshaped4DTensorDescriptor(miopen::deref(biasDesc))
+                        : miopen::deref(biasDesc),
+            (size == 5) ? miopen::BuildReshaped4DTensorDescriptor(miopen::deref(estMeanDesc))
+                        : miopen::deref(estMeanDesc),
+            (size == 5) ? miopen::BuildReshaped4DTensorDescriptor(miopen::deref(estVarianceDesc))
+                        : miopen::deref(estVarianceDesc),
             DataCast(bnScale),
             DataCast(bnBias),
             DataCast(estimatedMean),
@@ -331,10 +335,14 @@ miopenBatchNormalizationForwardTraining_V2(miopenHandle_t handle,
             (size == 5) ? miopen::BuildReshaped4DTensorDescriptor(miopen::deref(yDesc))
                         : miopen::deref(yDesc),
             DataCast(y),
-            miopen::deref(scaleDesc),
-            miopen::deref(BiasDesc),
-            miopen::deref(savedMeanDesc),
-            miopen::deref(savedVarianceDesc),
+            (size == 5) ? miopen::BuildReshaped4DTensorDescriptor(miopen::deref(scaleDesc))
+                        : miopen::deref(scaleDesc),
+            (size == 5) ? miopen::BuildReshaped4DTensorDescriptor(miopen::deref(biasDesc))
+                        : miopen::deref(biasDesc),
+            (size == 5) ? miopen::BuildReshaped4DTensorDescriptor(miopen::deref(savedMeanDesc))
+                        : miopen::deref(savedMeanDesc),
+            (size == 5) ? miopen::BuildReshaped4DTensorDescriptor(miopen::deref(savedVarianceDesc))
+                        : miopen::deref(savedVarianceDesc),
             DataCast(bnScale),
             DataCast(bnBias),
             expAvgFactor,
@@ -416,10 +424,14 @@ miopenBatchNormalizationBackward_V2(miopenHandle_t handle,
             (size == 5) ? miopen::BuildReshaped4DTensorDescriptor(miopen::deref(dxDesc))
                         : miopen::deref(dxDesc),
             DataCast(dx),
-            miopen::deref(scaleDesc),
-            miopen::deref(BiasDesc),
-            miopen::deref(savedMeanDesc),
-            miopen::deref(savedVarianceDesc),
+            (size == 5) ? miopen::BuildReshaped4DTensorDescriptor(miopen::deref(scaleDesc))
+                        : miopen::deref(scaleDesc),
+            (size == 5) ? miopen::BuildReshaped4DTensorDescriptor(miopen::deref(biasDesc))
+                        : miopen::deref(biasDesc),
+            (size == 5) ? miopen::BuildReshaped4DTensorDescriptor(miopen::deref(savedMeanDesc))
+                        : miopen::deref(savedMeanDesc),
+            (size == 5) ? miopen::BuildReshaped4DTensorDescriptor(miopen::deref(savedVarianceDesc))
+                        : miopen::deref(savedVarianceDesc),
             DataCast(bnScale),
             DataCast(resultBnScaleDiff),
             DataCast(resultBnBiasDiff),
