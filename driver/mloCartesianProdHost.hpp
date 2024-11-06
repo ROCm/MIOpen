@@ -39,12 +39,13 @@ int32_t mloCartesianProdForwardRunHost(std::vector<miopenTensorDescriptor_t> inp
 
     Tcheck* output_ws = new Tcheck[output_tv.size[0] * output_tv.size[1]];
     size_t stride     = 1;
-    for(int dim1_idx = inputs.size() - 1; dim1_idx >= 0; --dim1_idx)
+    par_ford(inputs.size())([&](size_t dim1_idx) 
     {
+        dim1_idx = inputs.size() - 1 - dim1_idx;
         auto input_tv = miopen::get_inner_expanded_tv<1>(miopen::deref(inputDescs[dim1_idx]));
         auto numel    = miopen::deref(outputDesc).GetLengths()[0];
 
-        ford(numel)([&](size_t gid) {
+        par_ford(numel)([&](size_t gid) {
             if(gid >= output_tv.size[0])
                 return;
 
@@ -52,10 +53,10 @@ int32_t mloCartesianProdForwardRunHost(std::vector<miopenTensorDescriptor_t> inp
                 inputs[dim1_idx][(gid / stride) % input_tv.size[0]];
         });
         stride *= miopen::deref(inputDescs[dim1_idx]).GetElementSize();
-    }
+    });
 
     par_ford(output_tv.size[1])([&](size_t dim1_idx) {
-        ford(output_tv.size[0])([&](size_t dim0_idx) {
+        par_ford(output_tv.size[0])([&](size_t dim0_idx) {
             output[output_tv.get_tensor_view_idx({dim0_idx, dim1_idx})] =
                 output_ws[output_tv.size[0] * dim1_idx + dim0_idx];
         });
@@ -72,13 +73,14 @@ int32_t mloCartesianProdBackwardRunHost(const miopenTensorDescriptor_t outputGra
 {
     auto output_grad_tv = miopen::get_inner_expanded_tv<2>(miopen::deref(outputGradDesc));
     size_t stride       = 1;
-    for(int dim1_idx = input_grads.size() - 1; dim1_idx >= 0; --dim1_idx)
+    par_ford(input_grads.size())([&](size_t dim1_idx) 
     {
+        dim1_idx = input_grads.size() - 1 - dim1_idx;
         auto input_grad_tv =
             miopen::get_inner_expanded_tv<1>(miopen::deref(inputGradDescs[dim1_idx]));
         auto numel = miopen::deref(inputGradDescs[dim1_idx]).GetElementSize();
 
-        ford(numel)([&](size_t gid) {
+        par_ford(numel)([&](size_t gid) {
             if(gid >= input_grad_tv.size[0])
                 return;
             float sum = 0;
@@ -97,6 +99,6 @@ int32_t mloCartesianProdBackwardRunHost(const miopenTensorDescriptor_t outputGra
                 static_cast<Tcheck>(sum);
         });
         stride *= numel;
-    }
+    });
     return miopenStatusSuccess;
 }

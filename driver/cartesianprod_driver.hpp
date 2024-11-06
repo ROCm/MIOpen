@@ -35,8 +35,6 @@
 #include <../test/tensor_holder.hpp>
 #include <../test/verify.hpp>
 
-#include <cstdint>
-#include <iostream>
 #include <miopen/env.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/miopen.h>
