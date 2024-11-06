@@ -112,10 +112,10 @@ CartesianProdForward::GetSolution(const ExecutionContext& context,
             decltype(auto) params = raw_params.CastTo<miopen::cartesianprod::FwdInvokeParams>();
             auto output_tv        = get_inner_expanded_tv<2>(deref(params.outputDesc));
 
-            par_for(inputCount, [&](auto i) {
-                i = inputCount - 1 - i;
+            for(int i = inputCount - 1; i >= 0; i--)
+            {
                 auto input_tv =
-                    get_inner_expanded_tv<1>(*params.GetInputDesc(static_cast<size_t>(i)));
+                    get_inner_expanded_tv<1>(deref(params.GetInputDesc(static_cast<size_t>(i))));
                 kernel(params.GetInput(static_cast<size_t>(i)),
                        params.workspace,
                        input_tv,
@@ -123,7 +123,8 @@ CartesianProdForward::GetSolution(const ExecutionContext& context,
                        stride,
                        static_cast<size_t>(i));
                 stride *= params.GetInputDesc(static_cast<size_t>(i))->GetElementSize();
-            });
+            }
+
             kernel = handle_.Run(kernels[1]);
             kernel(params.workspace, params.output, output_tv);
 

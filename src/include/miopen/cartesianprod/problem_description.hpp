@@ -55,7 +55,7 @@ struct FwdProblemDescription : ProblemDescriptionBase
         {
             MIOPEN_THROW(miopenStatusBadParm, "CartesianProdForward: Invalid tensor index.");
         }
-        return *inputDescs[i];
+        return deref(inputDescs[i]);
     }
     const TensorDescriptor& GetOutputDesc() const { return outputDesc; }
     size_t GetInputCount() const { return inputCount; }
@@ -75,7 +75,7 @@ struct FwdProblemDescription : ProblemDescriptionBase
         const auto dtype = outputDesc.GetType();
         for(int i = 0; i < inputCount; i++)
         {
-            if(inputDescs[i]->GetType() != dtype)
+            if(GetInputDesc(i).GetType() != dtype)
             {
                 MIOPEN_THROW(miopenStatusBadParm,
                              "CartesianProdForward: Tensor types do not match.");
@@ -88,7 +88,7 @@ struct FwdProblemDescription : ProblemDescriptionBase
     {
         for(int i = 0; i < inputCount; i++)
         {
-            if(inputDescs[i]->GetLengths().size() != 1)
+            if(GetInputDesc(i).GetLengths().size() != 1)
             {
                 MIOPEN_THROW(miopenStatusBadParm, "CartesianProdForward: Invalid input dim.");
             }
@@ -109,7 +109,7 @@ struct FwdProblemDescription : ProblemDescriptionBase
             size_t outputDim0 = 1;
             for(int i = 0; i < inputCount; i++)
             {
-                outputDim0 *= inputDescs[i]->GetLengths()[0];
+                outputDim0 *= GetInputDesc(i).GetLengths()[0];
             }
             if(outputDesc.GetLengths()[0] != outputDim0 || outputDesc.GetLengths()[1] != inputCount)
             {
@@ -120,28 +120,11 @@ struct FwdProblemDescription : ProblemDescriptionBase
         return true;
     }
 
-    bool IsAllContiguous() const
-    {
-        for(int i = 0; i < inputCount; i++)
-        {
-            if(!inputDescs[i]->IsContiguous())
-            {
-                return false;
-            }
-        }
-
-        if(!outputDesc.IsContiguous())
-        {
-            return false;
-        }
-        return true;
-    }
-
     bool IsAllPacked() const
     {
         for(int i = 0; i < inputCount; i++)
         {
-            if(!inputDescs[i]->IsPacked())
+            if(!GetInputDesc(i).IsPacked())
             {
                 return false;
             }
@@ -181,7 +164,7 @@ struct BwdProblemDescription : ProblemDescriptionBase
         {
             MIOPEN_THROW(miopenStatusBadParm, "CartesianProdBackward: Invalid tensor index.");
         }
-        return *inputGradDescs[i];
+        return deref(inputGradDescs[i]);
     }
     const TensorDescriptor& GetOutputGradDesc() const { return outputGradDesc; }
     size_t GetInputCount() const { return inputCount; }
@@ -201,7 +184,7 @@ struct BwdProblemDescription : ProblemDescriptionBase
         const auto dtype = outputGradDesc.GetType();
         for(int i = 0; i < inputCount; i++)
         {
-            if(inputGradDescs[i]->GetType() != dtype)
+            if(GetInputGradDesc(i).GetType() != dtype)
             {
                 MIOPEN_THROW(miopenStatusBadParm,
                              "CartesianProdBackward: Tensor types do not match.");
@@ -214,7 +197,7 @@ struct BwdProblemDescription : ProblemDescriptionBase
     {
         for(int i = 0; i < inputCount; i++)
         {
-            if(inputGradDescs[i]->GetLengths().size() != 1)
+            if(GetInputGradDesc(i).GetLengths().size() != 1)
             {
                 MIOPEN_THROW(miopenStatusBadParm, "CartesianProdBackward: Invalid input grad dim.");
             }
@@ -237,7 +220,7 @@ struct BwdProblemDescription : ProblemDescriptionBase
             size_t outputDim0 = 1;
             for(int i = 0; i < inputCount; i++)
             {
-                outputDim0 *= inputGradDescs[i]->GetLengths()[0];
+                outputDim0 *= GetInputGradDesc(i).GetLengths()[0];
             }
             if(outputGradDesc.GetLengths()[0] != outputDim0 ||
                outputGradDesc.GetLengths()[1] != inputCount)
@@ -250,28 +233,11 @@ struct BwdProblemDescription : ProblemDescriptionBase
         return true;
     }
 
-    bool IsAllContiguous() const
-    {
-        for(int i = 0; i < inputCount; i++)
-        {
-            if(!inputGradDescs[i]->IsContiguous())
-            {
-                return false;
-            }
-        }
-
-        if(!outputGradDesc.IsContiguous())
-        {
-            return false;
-        }
-        return true;
-    }
-
     bool IsAllPacked() const
     {
         for(int i = 0; i < inputCount; i++)
         {
-            if(!inputGradDescs[i]->IsPacked())
+            if(!GetInputGradDesc(i).IsPacked())
             {
                 return false;
             }

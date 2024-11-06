@@ -45,6 +45,8 @@ namespace solver {
 
 namespace cartesianprod {
 
+namespace {
+
 bool IsOverRocmBwd(const miopen::cartesianprod::BwdProblemDescription& problem)
 {
     for(size_t i = 0; i < problem.GetInputCount(); i++)
@@ -56,6 +58,8 @@ bool IsOverRocmBwd(const miopen::cartesianprod::BwdProblemDescription& problem)
     }
     return true;
 }
+
+} // namespace
 
 bool CartesianProdBackward::IsApplicable(
     const ExecutionContext&, const miopen::cartesianprod::BwdProblemDescription& problem) const
@@ -127,19 +131,18 @@ ConvSolution CartesianProdBackward::GetSolution(
                 hipEventRecord(start.get(), handle_.GetStream());
             }
 
-            par_for(inputCount, [&](auto i) {
-                i = inputCount - 1 - i;
-
+            for(int i = inputCount - 1; i >= 0; i--)
+            {
                 decltype(auto) kernel = handle_.Run(kernels[kernelCnt++]);
-                auto input_grad_tv    = get_inner_expanded_tv<1>(*params.GetInputGradDesc(i));
+                auto input_grad_tv    = get_inner_expanded_tv<1>(deref(params.GetInputGradDesc(i)));
                 kernel(params.output_grad,
-                       params.GetInputGrad(i),
+                       params.GetInputGrad(static_cast<size_t>(i)),
                        output_grad_tv,
                        input_grad_tv,
                        stride,
                        static_cast<size_t>(i));
                 stride *= params.GetInputGradDesc(i)->GetElementSize();
-            });
+            }
 
             if(profiling)
             {

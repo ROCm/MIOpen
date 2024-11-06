@@ -62,7 +62,7 @@ NetworkConfig FwdProblemDescription::MakeNetworkConfig() const
         ss << "_" << inputDescs[i]->GetLengths();
     }
     ss << "-Os" << output_size;
-    ss << "-Ic" << IsAllContiguous();
+    ss << "-Ic" << IsAllPacked();
 
     return NetworkConfig{ss.str()};
 }
@@ -83,7 +83,7 @@ NetworkConfig BwdProblemDescription::MakeNetworkConfig() const
         ss << "_" << inputGradDescs[i]->GetLengths();
     }
     ss << "-dOs" << output_grad_size;
-    ss << "-Ic" << IsAllContiguous();
+    ss << "-Ic" << IsAllPacked();
 
     return NetworkConfig{ss.str()};
 }

@@ -43,8 +43,8 @@ inline std::ostream& operator<<(std::ostream& os, const std::vector<size_t>& v)
     return os;
 }
 
-static void
-LogCmdCartesianProd(const miopenTensorDescriptor_t* iDescs, const int32_t iCount, const bool is_fwd)
+inline void
+LogCmdCartesianProd(const miopenTensorDescriptor_t* iDescs, const uint64_t iCount, const bool is_fwd)
 {
     if(miopen::IsLoggingCmd())
     {
