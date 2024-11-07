@@ -64,7 +64,7 @@ bool OpTensorLeadingOnes::IsApplicable(const ExecutionContext& context,
         if(bTensorDesc.GetElementSize() == 1)
             bitmap = 4;
 
-        bool fwd_conv_bias = bitmap == (1 << 2) ? 1 : 0;
+        bool fwd_conv_bias = (bitmap == (1 << 2));
 
         bool packed_tensor = true;
         packed_tensor &= aTensorDesc.IsPacked();
@@ -81,7 +81,7 @@ bool OpTensorLeadingOnes::IsApplicable(const ExecutionContext& context,
 
         bool leading_ones = IsBitmapLeadingOnes(bitmap, clens.size(), static_cast<int>(d - 2));
 
-        if(fwd_conv_bias == 0 && !packed_equal_tensor && leading_ones)
+        if(!fwd_conv_bias && !packed_equal_tensor && leading_ones)
         {
             return true;
         }

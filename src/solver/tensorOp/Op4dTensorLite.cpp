@@ -63,7 +63,7 @@ bool Op4dTensorLite::IsApplicable(const ExecutionContext& context,
         if(bTensorDesc.GetElementSize() == 1)
             bitmap = 4;
 
-        bool fwd_conv_bias = bitmap == (1 << 2) ? 1 : 0;
+        bool fwd_conv_bias = (bitmap == (1 << 2));
 
         bool packed_tensor = true;
         packed_tensor &= aTensorDesc.IsPacked();
@@ -73,7 +73,7 @@ bool Op4dTensorLite::IsApplicable(const ExecutionContext& context,
         bool packed_equal_tensor =
             packed_tensor && (bTensorDesc.GetElementSize() == cTensorDesc.GetElementSize());
 
-        if(fwd_conv_bias == 0 && packed_equal_tensor)
+        if(!fwd_conv_bias && packed_equal_tensor)
         {
             return true;
         }

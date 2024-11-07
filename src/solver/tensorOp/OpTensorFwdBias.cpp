@@ -63,9 +63,9 @@ bool OpTensorFwdBias::IsApplicable(const ExecutionContext& context,
         if(bTensorDesc.GetElementSize() == 1)
             bitmap = 4;
 
-        bool fwd_conv_bias = bitmap == (1 << 2) ? 1 : 0;
+        bool fwd_conv_bias = (bitmap == (1 << 2));
 
-        if(fwd_conv_bias != 0)
+        if(fwd_conv_bias)
         {
             return true;
         }
