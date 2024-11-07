@@ -41,12 +41,10 @@ bool Op2dTensorGeneric::IsApplicable(const ExecutionContext& context,
                                      const miopen::tensorOp::ProblemDescription& problem) const
 {
     const auto& aTensorDesc = problem.GetATensorDesc();
-    // const auto& bTensorDesc = problem.GetBTensorDesc();
-    const auto& alens = aTensorDesc.GetLengths();
-    // const auto& blens       = bTensorDesc.GetLengths();
+    const auto& alens       = aTensorDesc.GetLengths();
     auto asize       = alens.size();
 
-    if(GetDataType(aTensorDesc.GetType()) == "double")
+    if(aTensorDesc.GetType() == miopenDouble)
     {
         return false;
     }
@@ -55,7 +53,6 @@ bool Op2dTensorGeneric::IsApplicable(const ExecutionContext& context,
     {
         return true;
     }
-    // add applicable when asize == 3 and some special cases for b dimensions
 
     return false;
 }

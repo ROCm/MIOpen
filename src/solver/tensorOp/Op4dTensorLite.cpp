@@ -50,36 +50,33 @@ bool Op4dTensorLite::IsApplicable(const ExecutionContext& context,
 
     auto asize = alens.size();
 
-    int num_wg          = 0;
-    int work_per_wg     = 0;
-    unsigned int bitmap = 0;
-
-    GetBitmapAndWgInfo(blens, clens, num_wg, work_per_wg, bitmap);
-
-    // quick fix for btensor = <1, 1, 1, 1>
-    if(bTensorDesc.GetElementSize() == 1)
-        bitmap = 4;
-
-    auto fwd_conv_bias = bitmap == (1 << 2) ? 1 : 0;
-
-    bool packed_tensor = true;
-
-    // auto alens = aTensorDesc.GetLengths();
-    packed_tensor &= aTensorDesc.IsPacked();
-    packed_tensor &= bTensorDesc.IsPacked();
-    packed_tensor &= cTensorDesc.IsPacked();
-
-    bool packed_equal_tensor =
-        packed_tensor && (bTensorDesc.GetElementSize() == cTensorDesc.GetElementSize());
-
-    if(GetDataType(aTensorDesc.GetType()) == "double")
+    if(aTensorDesc.GetType() == miopenDouble)
     {
         return false;
     }
 
-    if(asize == 4 && fwd_conv_bias == 0 && packed_equal_tensor)
+    if(asize == 4)
     {
-        return true;
+        auto&& [num_wg, work_per_wg, bitmap] = GetBitmapAndWgInfo(blens, clens);
+
+        // quick fix for btensor = <1, 1, 1, 1>
+        if(bTensorDesc.GetElementSize() == 1)
+            bitmap = 4;
+
+        bool fwd_conv_bias = bitmap == (1 << 2) ? 1 : 0;
+
+        bool packed_tensor = true;
+        packed_tensor &= aTensorDesc.IsPacked();
+        packed_tensor &= bTensorDesc.IsPacked();
+        packed_tensor &= cTensorDesc.IsPacked();
+
+        bool packed_equal_tensor =
+            packed_tensor && (bTensorDesc.GetElementSize() == cTensorDesc.GetElementSize());
+
+        if(fwd_conv_bias == 0 && packed_equal_tensor)
+        {
+            return true;
+        }
     }
 
     return false;
@@ -100,20 +97,11 @@ ConvSolution Op4dTensorLite::GetSolution(const ExecutionContext& context,
     const auto& bTensorDesc = problem.GetBTensorDesc();
     const auto& cTensorDesc = problem.GetCTensorDesc();
 
-    int num_wg_orig     = 0;
-    int work_per_wg     = 0;
-    int incr_wg         = 0;
-    unsigned int bitmap = 0;
+    auto&& [num_wg_orig, work_per_wg, incr_wg, bitmap, local_threads, global_threads] =
+        Get4dParams(problem, true);
 
-    size_t local_threads  = 0;
-    size_t global_threads = 0;
-
-    Get4dParams(
-        problem, true, num_wg_orig, work_per_wg, incr_wg, bitmap, local_threads, global_threads);
-
-    size_t RD_BLCK        = size_t(1);
-    std::string READ_TYPE = "";
-    GetRDBLCKandREADTYPE(cTensorDesc.GetElementSize(), bTensorDesc.GetType(), RD_BLCK, READ_TYPE);
+    auto&& [RD_BLCK, READ_TYPE] =
+        GetRDBLCKandREADTYPE(cTensorDesc.GetElementSize(), bTensorDesc.GetType());
 
     size_t total_work = std::max(cTensorDesc.GetElementSize() / RD_BLCK, size_t(1));
 

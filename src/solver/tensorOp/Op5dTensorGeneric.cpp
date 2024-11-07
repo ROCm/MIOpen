@@ -45,7 +45,7 @@ bool Op5dTensorGeneric::IsApplicable(const ExecutionContext& context,
     const auto& alens       = aTensorDesc.GetLengths();
     auto asize              = alens.size();
 
-    if(GetDataType(aTensorDesc.GetType()) == "double")
+    if(aTensorDesc.GetType() == miopenDouble)
     {
         return false;
     }
@@ -54,6 +54,7 @@ bool Op5dTensorGeneric::IsApplicable(const ExecutionContext& context,
     {
         return true;
     }
+
     return false;
 }
 
@@ -76,11 +77,7 @@ Op5dTensorGeneric::GetSolution(const ExecutionContext& context,
     const auto& blens = bTensorDesc.GetLengths();
     const auto& clens = cTensorDesc.GetLengths();
 
-    int num_wg          = 0;
-    int work_per_wg     = 0;
-    unsigned int bitmap = 0;
-
-    GetBitmapAndWgInfo(blens, clens, num_wg, work_per_wg, bitmap);
+    auto&& [num_wg, work_per_wg, bitmap] = GetBitmapAndWgInfo(blens, clens);
 
     int num_wg_orig = num_wg;
     int max_num_wg  = 4096;

@@ -51,33 +51,31 @@ bool Op2dTensorLite::IsApplicable(const ExecutionContext& context,
 
     auto asize = alens.size();
 
-    if(GetDataType(aTensorDesc.GetType()) == "double")
+    if(aTensorDesc.GetType() == miopenDouble)
     {
         return false;
     }
 
-    if(asize < 3)
+    if(asize == 3)
     {
-        return false;
-    }
+        size_t local_threads = 256;
+        int max_num_wg       = 4096;
 
-    size_t local_threads = 256;
-    int max_num_wg       = 4096;
+        // for naive tensor ops
+        size_t RD_BLCK    = (clens[2] % 4 == 0) ? 4 : (clens[2] % 2 == 0) ? 2 : 1;
+        size_t total_work = std::max(clens[2] / RD_BLCK, size_t(1));
+        size_t grp_sz     = (total_work + local_threads - 1) / local_threads;
 
-    // for naive tensor ops
-    size_t RD_BLCK    = (clens[2] % 4 == 0) ? 4 : (clens[2] % 2 == 0) ? 2 : 1;
-    size_t total_work = std::max(clens[2] / RD_BLCK, size_t(1));
-    size_t grp_sz     = (total_work + local_threads - 1) / local_threads;
+        // opencl kernels are no longer supported, fallback to generic case
+        bool lite_applicable = grp_sz <= size_t(max_num_wg);
 
-    // opencl kernels are no longer supported, fallback to generic case
-    bool lite_applicable = grp_sz <= size_t(max_num_wg);
+        bool is_lite = clens[0] == 1 && blens[0] == 1 && alens[0] == 1 &&
+                       (blens[1] == clens[1] || blens[1] == 1) && blens[2] == clens[2];
 
-    bool is_lite = clens[0] == 1 && blens[0] == 1 && alens[0] == 1 &&
-                   (blens[1] == clens[1] || blens[1] == 1) && blens[2] == clens[2];
-
-    if(asize == 3 && lite_applicable && is_lite)
-    {
-        return true;
+        if(lite_applicable && is_lite)
+        {
+            return true;
+        }
     }
 
     return false;
@@ -101,11 +99,7 @@ ConvSolution Op2dTensorLite::GetSolution(const ExecutionContext& context,
     const auto& blens = bTensorDesc.GetLengths();
     const auto& clens = cTensorDesc.GetLengths();
 
-    int num_wg          = 0;
-    int work_per_wg     = 0;
-    unsigned int bitmap = 0;
-
-    GetBitmapAndWgInfo(blens, clens, num_wg, work_per_wg, bitmap);
+    auto&& [num_wg, work_per_wg, bitmap] = GetBitmapAndWgInfo(blens, clens);
 
     int max_num_wg = 4096;
     num_wg         = num_wg > max_num_wg ? max_num_wg : num_wg;
@@ -113,9 +107,7 @@ ConvSolution Op2dTensorLite::GetSolution(const ExecutionContext& context,
     size_t local_threads = 256;
 
     // for naive tensor ops
-    size_t RD_BLCK        = size_t(1);
-    std::string READ_TYPE = "";
-    GetRDBLCKandREADTYPE(clens[2], bTensorDesc.GetType(), RD_BLCK, READ_TYPE);
+    auto&& [RD_BLCK, READ_TYPE] = GetRDBLCKandREADTYPE(clens[2], bTensorDesc.GetType());
 
     size_t total_work = std::max(clens[2] / RD_BLCK, size_t(1));
     size_t grp_sz     = (total_work + local_threads - 1) / local_threads;

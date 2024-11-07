@@ -42,12 +42,10 @@ bool Op1dTensorGeneric::IsApplicable(const ExecutionContext& context,
                                      const miopen::tensorOp::ProblemDescription& problem) const
 {
     const auto& aTensorDesc = problem.GetATensorDesc();
-    // const auto& bTensorDesc = problem.GetBTensorDesc();
-    const auto& alens = aTensorDesc.GetLengths();
-    // const auto& blens       = bTensorDesc.GetLengths();
+    const auto& alens       = aTensorDesc.GetLengths();
     auto asize       = alens.size();
 
-    if(GetDataType(aTensorDesc.GetType()) == "double")
+    if(aTensorDesc.GetType() == miopenDouble)
     {
         return false;
     }
@@ -56,16 +54,7 @@ bool Op1dTensorGeneric::IsApplicable(const ExecutionContext& context,
     {
         return true;
     }
-    // add support for this later
-    // if(asize == 2 && ((blens[0] == 1 && blens[1] == 1) || (blens[0] > 1 && blens[1] > 1)))
-    // {
-    //     return true;
-    // }
-    // if(asize == 3 && ((blens[0] == 1 && blens[1] == 1 && blens[2] == 1) ||
-    //                   (blens[0] > 1 && blens[1] > 1 && blens[2] > 1)))
-    // {
-    //     return true;
-    // }
+
     return false;
 }
 

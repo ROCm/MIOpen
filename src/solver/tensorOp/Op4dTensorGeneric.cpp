@@ -44,7 +44,7 @@ bool Op4dTensorGeneric::IsApplicable(const ExecutionContext& context,
     const auto& alens       = aTensorDesc.GetLengths();
     auto asize              = alens.size();
 
-    if(GetDataType(aTensorDesc.GetType()) == "double")
+    if(aTensorDesc.GetType() == miopenDouble)
     {
         return false;
     }
@@ -71,16 +71,9 @@ Op4dTensorGeneric::GetSolution(const ExecutionContext& context,
     auto result = ConvSolution{miopenStatusSuccess};
 
     int max_num_wg      = 4096;
-    int num_wg_orig     = 0;
-    int work_per_wg     = 0;
-    int incr_wg         = 0;
-    unsigned int bitmap = 0;
 
-    size_t local_threads  = 0;
-    size_t global_threads = 0;
-
-    Get4dParams(
-        problem, false, num_wg_orig, work_per_wg, incr_wg, bitmap, local_threads, global_threads);
+    auto&& [num_wg_orig, work_per_wg, incr_wg, bitmap, local_threads, global_threads] = Get4dParams(
+        problem, false);
 
     const std::array<size_t, 3> vld{local_threads, 1, 1};
     const std::array<size_t, 3> vgd{global_threads, 1, 1};

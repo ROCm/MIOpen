@@ -29,6 +29,8 @@
 #include <miopen/kernel_build_params.hpp>
 #include <miopen/datatype.hpp>
 
+#include <tuple>
+
 namespace miopen {
 
 namespace solver {
@@ -36,7 +38,7 @@ namespace solver {
 namespace tensorOp {
 
 inline void GetCommonParams(KernelBuildParameters& build_params,
-                            miopen::tensorOp::ProblemDescription problem,
+                            const miopen::tensorOp::ProblemDescription& problem,
                             bool is64bSupported)
 {
     build_params.Define("MIOPEN_TYPE", miopen::GetDataType(problem.GetBTensorDesc().GetType()));
@@ -59,31 +61,29 @@ inline void GetCommonParams(KernelBuildParameters& build_params,
     }
 }
 
-inline void
-GetRDBLCKandREADTYPE(size_t len, miopenDataType_t type, size_t& RD_BLCK, std::string& READ_TYPE)
+inline std::tuple<size_t, std::string> GetRDBLCKandREADTYPE(size_t len, miopenDataType_t type)
 {
-    RD_BLCK                     = (len % 4 == 0) ? 4 : (len % 2 == 0) ? 2 : 1;
     const std::string data_type = GetDataType(type);
-    READ_TYPE                   = (RD_BLCK == 1) ? data_type : data_type + std::to_string(RD_BLCK);
+    size_t RD_BLCK              = (len % 4 == 0) ? 4 : (len % 2 == 0) ? 2 : 1;
+    return std::make_tuple(RD_BLCK,
+                           (RD_BLCK == 1) ? data_type : data_type + std::to_string(RD_BLCK));
 }
 
-inline void GetBitmapAndWgInfo(const std::vector<size_t>& blens,
-                               const std::vector<size_t>& clens,
-                               int& num_wg,
-                               int& work_per_wg,
-                               unsigned int& bitmap)
+inline std::tuple<int, int, unsigned int> GetBitmapAndWgInfo(const std::vector<size_t>& blens,
+                                                             const std::vector<size_t>& clens)
 {
     // first_not_one is incorrect if btensor size equal to 1
     auto first_not_one = std::find_if(blens.rbegin(), blens.rend(), [](int i) { return i != 1; });
     auto d             = std::distance(blens.begin(), first_not_one.base());
 
     // quick fix
-    num_wg = first_not_one != blens.rend()
-                 ? static_cast<int>(*first_not_one == 0 ? 1 : *first_not_one)
-                 : 1;
+    int num_wg = first_not_one != blens.rend()
+                     ? static_cast<int>(*first_not_one == 0 ? 1 : *first_not_one)
+                     : 1;
 
-    work_per_wg = std::accumulate(clens.begin() + d, clens.end(), 1, std::multiplies<int>());
+    int work_per_wg = std::accumulate(clens.begin() + d, clens.end(), 1, std::multiplies<int>());
 
+    unsigned int bitmap = 0;
     // update bitmap for first_not_one
     bitmap |= (1 << (blens.size() - d));
 
@@ -99,26 +99,23 @@ inline void GetBitmapAndWgInfo(const std::vector<size_t>& blens,
             work_per_wg *= clens[i];
         }
     }
+
+    return std::make_tuple(num_wg, work_per_wg, bitmap);
 }
 
-inline void
-IsBitmapLeadingOnes(unsigned int bitmap, int n_size, int first_not_one, bool& leading_ones)
+inline bool IsBitmapLeadingOnes(unsigned int bitmap, int n_size, int first_not_one)
 {
+    bool leading_ones = true;
     for(int i = first_not_one; i >= 0; i--)
     {
         bool is_one = (bitmap & (1 << (n_size - 1 - i))) != 0u;
         leading_ones &= is_one;
     }
+    return leading_ones;
 }
 
-inline void Get4dParams(const miopen::tensorOp::ProblemDescription& problem,
-                        bool is4dLite,
-                        int& num_wg_orig,
-                        int& work_per_wg,
-                        int& incr_wg,
-                        unsigned int& bitmap,
-                        size_t& local_threads,
-                        size_t& global_threads)
+inline std::tuple<int, int, int, unsigned int, size_t, size_t> Get4dParams(const miopen::tensorOp::ProblemDescription& problem,
+                        bool is4dLite)
 {
     const auto& bTensorDesc = problem.GetBTensorDesc();
     const auto& cTensorDesc = problem.GetCTensorDesc();
@@ -137,8 +134,9 @@ inline void Get4dParams(const miopen::tensorOp::ProblemDescription& problem,
                      ? static_cast<int>(*first_not_one == 0 ? 1 : *first_not_one)
                      : 1;
 
-    work_per_wg = std::accumulate(clens.begin() + d, clens.end(), 1, std::multiplies<int>());
+    int work_per_wg = std::accumulate(clens.begin() + d, clens.end(), 1, std::multiplies<int>());
 
+    unsigned int bitmap = 0;
     // update bitmap for first_not_one
     bitmap |= (1 << (blens.size() - d));
 
@@ -159,6 +157,7 @@ inline void Get4dParams(const miopen::tensorOp::ProblemDescription& problem,
     if(bTensorDesc.GetElementSize() == 1)
         bitmap = 4;
 
+    int incr_wg = 0;
     // Forward Convolution Bias specialization
     // for fwd-bias, bitmap looks like <0, 1, 0, 0>
     // Is the no. of work-groups and the work for each wg balanced?
@@ -172,14 +171,13 @@ inline void Get4dParams(const miopen::tensorOp::ProblemDescription& problem,
         incr_wg = 1;
     }
 
-    num_wg_orig    = num_wg;
+    int num_wg_orig    = num_wg;
     int max_num_wg = 4096;
     num_wg         = num_wg > max_num_wg ? max_num_wg : num_wg;
 
-    local_threads = 256;
+    size_t local_threads = 256;
 
-    bool leading_ones = true;
-    IsBitmapLeadingOnes(bitmap, clens.size(), static_cast<int>(d - 2), leading_ones);
+    bool leading_ones = IsBitmapLeadingOnes(bitmap, clens.size(), static_cast<int>(d - 2));
 
     if(leading_ones && work_per_wg < 64)
     {
@@ -187,7 +185,7 @@ inline void Get4dParams(const miopen::tensorOp::ProblemDescription& problem,
     }
 
     // Special case for adding tensors in place
-    global_threads =
+    size_t global_threads =
         (static_cast<int>(leading_ones) == 1 && (d - 1) == 3) ? num_wg : num_wg * local_threads;
     global_threads = (global_threads < local_threads) ? local_threads : global_threads;
 
@@ -208,6 +206,8 @@ inline void Get4dParams(const miopen::tensorOp::ProblemDescription& problem,
 
         global_threads = glb_sz;
     }
+
+    return std::make_tuple(num_wg_orig, work_per_wg, incr_wg, bitmap, local_threads, global_threads);
 }
 
 } // namespace tensorOp

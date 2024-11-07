@@ -50,28 +50,26 @@ bool OpTensorFwdBias::IsApplicable(const ExecutionContext& context,
 
     auto asize = alens.size();
 
-    int num_wg          = 0;
-    int work_per_wg     = 0;
-    unsigned int bitmap = 0;
-
-    GetBitmapAndWgInfo(blens, clens, num_wg, work_per_wg, bitmap);
-
-    // quick fix for btensor = <1, 1, 1, 1>
-    if(bTensorDesc.GetElementSize() == 1)
-        bitmap = 4;
-
-    auto fwd_conv_bias = bitmap == (1 << 2) ? 1 : 0;
-
-    if(GetDataType(aTensorDesc.GetType()) == "double")
+    if(aTensorDesc.GetType() == miopenDouble)
     {
         return false;
     }
 
-    if(asize == 4 && fwd_conv_bias != 0)
+    if(asize == 4)
     {
-        return true;
-    }
+        auto&& [num_wg, work_per_wg, bitmap] = GetBitmapAndWgInfo(blens, clens);
 
+        // quick fix for btensor = <1, 1, 1, 1>
+        if(bTensorDesc.GetElementSize() == 1)
+            bitmap = 4;
+
+        bool fwd_conv_bias = bitmap == (1 << 2) ? 1 : 0;
+
+        if(fwd_conv_bias != 0)
+        {
+            return true;
+        }
+    }
     return false;
 }
 
@@ -92,16 +90,9 @@ ConvSolution OpTensorFwdBias::GetSolution(const ExecutionContext& context,
     const auto& cTensorDesc = problem.GetCTensorDesc();
 
     int max_num_wg      = 4096;
-    int num_wg_orig     = 0;
-    int work_per_wg     = 0;
-    int incr_wg         = 0;
-    unsigned int bitmap = 0;
 
-    size_t local_threads  = 0;
-    size_t global_threads = 0;
-
-    Get4dParams(
-        problem, false, num_wg_orig, work_per_wg, incr_wg, bitmap, local_threads, global_threads);
+    auto&& [num_wg_orig, work_per_wg, incr_wg, bitmap, local_threads, global_threads] =
+        Get4dParams(problem, false);
 
     const std::array<size_t, 3> vld{local_threads, 1, 1};
     const std::array<size_t, 3> vgd{global_threads, 1, 1};

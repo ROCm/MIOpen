@@ -50,25 +50,24 @@ bool Op2dTensorSquash::IsApplicable(const ExecutionContext& context,
 
     auto asize = alens.size();
 
-    if(GetDataType(aTensorDesc.GetType()) == "double")
+    if(aTensorDesc.GetType() == miopenDouble)
     {
         return false;
     }
 
-    if(asize < 3)
+    if(asize == 3)
     {
-        return false;
-    }
+        bool is_lite = clens[0] == 1 && blens[0] == 1 && alens[0] == 1 &&
+                       (blens[1] == clens[1] || blens[1] == 1) && blens[2] == clens[2];
 
-    bool is_lite = clens[0] == 1 && blens[0] == 1 && alens[0] == 1 &&
-                   (blens[1] == clens[1] || blens[1] == 1) && blens[2] == clens[2];
+        bool is_squashed =
+            problem.GetNonStandardSquash() && !is_lite &&
+            (blens[0] == 1 && clens[0] == 1 && clens[1] == 1 && blens[2] == clens[2]);
 
-    bool is_squashed = problem.GetNonStandardSquash() && !is_lite &&
-                       (blens[0] == 1 && clens[0] == 1 && clens[1] == 1 && blens[2] == clens[2]);
-
-    if(asize == 3 && is_squashed)
-    {
-        return true;
+        if(is_squashed)
+        {
+            return true;
+        }
     }
 
     return false;
@@ -93,11 +92,7 @@ Op2dTensorSquash::GetSolution(const ExecutionContext& context,
     const auto& blens = bTensorDesc.GetLengths();
     const auto& clens = cTensorDesc.GetLengths();
 
-    int num_wg          = 0;
-    int work_per_wg     = 0;
-    unsigned int bitmap = 0;
-
-    GetBitmapAndWgInfo(blens, clens, num_wg, work_per_wg, bitmap);
+    auto&& [num_wg, work_per_wg, bitmap] = GetBitmapAndWgInfo(blens, clens);
 
     int max_num_wg = 4096;
     num_wg         = num_wg > max_num_wg ? max_num_wg : num_wg;
@@ -105,9 +100,7 @@ Op2dTensorSquash::GetSolution(const ExecutionContext& context,
     size_t local_threads = 256;
 
     // for naive tensor ops
-    size_t RD_BLCK        = size_t(1);
-    std::string READ_TYPE = "";
-    GetRDBLCKandREADTYPE(clens[2], bTensorDesc.GetType(), RD_BLCK, READ_TYPE);
+    auto&& [RD_BLCK, READ_TYPE] = GetRDBLCKandREADTYPE(clens[2], bTensorDesc.GetType());
 
     size_t total_work = std::max(clens[2] / RD_BLCK, size_t(1));
     size_t grp_sz     = (total_work + local_threads - 1) / local_threads;

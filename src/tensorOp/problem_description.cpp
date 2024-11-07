@@ -26,6 +26,7 @@
 
 #include <miopen/tensorOp/problem_description.hpp>
 #include <miopen/names.hpp>
+#include <miopen/float_equal.hpp>
 
 namespace miopen {
 
@@ -42,33 +43,27 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
     auto bstrides = bTensorDesc.GetStrides();
     auto cstrides = cTensorDesc.GetStrides();
 
-    std::string alens_str{};
-    std::string blens_str{};
-    std::string astrides_str{};
-    std::string bstrides_str{};
-    std::string cstrides_str{};
-
-    for(uint32_t i = 0; i < alens.size(); i++)
-    {
-        alens_str += std::to_string(alens[i]);
-        blens_str += std::to_string(blens[i]);
-        astrides_str += std::to_string(astrides[i]);
-        bstrides_str += std::to_string(bstrides[i]);
-        cstrides_str += std::to_string(cstrides[i]);
-
-        if(i != (alens.size() - 1))
+    auto printDims = [&ss](const auto& dim) {
+        for(uint32_t i = 0; i < dim.size(); i++)
         {
-            alens_str += "x";
-            blens_str += "x";
-            astrides_str += "x";
-            bstrides_str += "x";
-            cstrides_str += "x";
+            ss << dim[i];
+            if(i != (dim.size() - 1))
+            {
+                ss << "x";
+            }
         }
-    }
+        ss << "-";
+    };
 
-    ss << std::to_string(aTensorDesc.GetType()) << "-" << std::to_string(tensorOp) << "-"
-       << alens_str << "-" << blens_str << "-" << astrides_str << "-" << bstrides_str << "-"
-       << cstrides_str << "-" << std::to_string((beta == 0));
+    ss << std::to_string(aTensorDesc.GetType()) << "-" << std::to_string(tensorOp) << "-";
+
+    printDims(alens);
+    printDims(blens);
+    printDims(astrides);
+    printDims(bstrides);
+    printDims(cstrides);
+
+    ss << (float_equal(beta, 0.0f) ? "1" : "0");
 
     return NetworkConfig{ss.str()};
 }

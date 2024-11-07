@@ -50,41 +50,41 @@ bool OpTensorLeadingOnes::IsApplicable(const ExecutionContext& context,
 
     auto asize = alens.size();
 
-    int num_wg          = 0;
-    int work_per_wg     = 0;
-    unsigned int bitmap = 0;
-
-    GetBitmapAndWgInfo(blens, clens, num_wg, work_per_wg, bitmap);
-
-    // quick fix for btensor = <1, 1, 1, 1>
-    if(bTensorDesc.GetElementSize() == 1)
-        bitmap = 4;
-
-    auto fwd_conv_bias = bitmap == (1 << 2) ? 1 : 0;
-
-    bool packed_tensor = true;
-    packed_tensor &= aTensorDesc.IsPacked();
-    packed_tensor &= bTensorDesc.IsPacked();
-    packed_tensor &= cTensorDesc.IsPacked();
-
-    bool packed_equal_tensor =
-        packed_tensor && (bTensorDesc.GetElementSize() == cTensorDesc.GetElementSize());
-
-    bool leading_ones = true;
-    // first_not_one is incorrect if btensor size equal to 1
-    auto first_not_one = std::find_if(blens.rbegin(), blens.rend(), [](int i) { return i != 1; });
-    auto d             = std::distance(blens.begin(), first_not_one.base());
-
-    IsBitmapLeadingOnes(bitmap, clens.size(), static_cast<int>(d - 2), leading_ones);
-
-    if(GetDataType(aTensorDesc.GetType()) == "double")
+    if(aTensorDesc.GetType() == miopenDouble)
     {
         return false;
     }
 
-    if(asize == 4 && fwd_conv_bias == 0 && !packed_equal_tensor && leading_ones)
+    if(asize == 4)
     {
-        return true;
+
+        auto&& [num_wg, work_per_wg, bitmap] = GetBitmapAndWgInfo(blens, clens);
+
+        // quick fix for btensor = <1, 1, 1, 1>
+        if(bTensorDesc.GetElementSize() == 1)
+            bitmap = 4;
+
+        bool fwd_conv_bias = bitmap == (1 << 2) ? 1 : 0;
+
+        bool packed_tensor = true;
+        packed_tensor &= aTensorDesc.IsPacked();
+        packed_tensor &= bTensorDesc.IsPacked();
+        packed_tensor &= cTensorDesc.IsPacked();
+
+        bool packed_equal_tensor =
+            packed_tensor && (bTensorDesc.GetElementSize() == cTensorDesc.GetElementSize());
+
+        // first_not_one is incorrect if btensor size equal to 1
+        auto first_not_one =
+            std::find_if(blens.rbegin(), blens.rend(), [](int i) { return i != 1; });
+        auto d = std::distance(blens.begin(), first_not_one.base());
+
+        bool leading_ones = IsBitmapLeadingOnes(bitmap, clens.size(), static_cast<int>(d - 2));
+
+        if(fwd_conv_bias == 0 && !packed_equal_tensor && leading_ones)
+        {
+            return true;
+        }
     }
 
     return false;
@@ -108,16 +108,9 @@ OpTensorLeadingOnes::GetSolution(const ExecutionContext& context,
     const auto& cTensorDesc = problem.GetCTensorDesc();
 
     int max_num_wg      = 4096;
-    int num_wg_orig     = 0;
-    int work_per_wg     = 0;
-    int incr_wg         = 0;
-    unsigned int bitmap = 0;
 
-    size_t local_threads  = 0;
-    size_t global_threads = 0;
-
-    Get4dParams(
-        problem, false, num_wg_orig, work_per_wg, incr_wg, bitmap, local_threads, global_threads);
+    auto&& [num_wg_orig, work_per_wg, incr_wg, bitmap, local_threads, global_threads] =
+        Get4dParams(problem, false);
 
     const std::array<size_t, 3> vld{local_threads, 1, 1};
     const std::array<size_t, 3> vgd{global_threads, 1, 1};
