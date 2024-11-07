@@ -89,7 +89,7 @@ ConvSolution OpTensorFwdBias::GetSolution(const ExecutionContext& context,
     const auto& bTensorDesc = problem.GetBTensorDesc();
     const auto& cTensorDesc = problem.GetCTensorDesc();
 
-    int max_num_wg      = 4096;
+    int max_num_wg = 4096;
 
     auto&& [num_wg_orig, work_per_wg, incr_wg, bitmap, local_threads, global_threads] =
         Get4dParams(problem, false);
@@ -148,7 +148,7 @@ ConvSolution OpTensorFwdBias::GetSolution(const ExecutionContext& context,
                     const auto& cstrides = params.cTensorDesc.GetStrides();
 
                     if(packed_tensor)
-                    {
+                    { // OpTensorFwdBias
                         kernel(params.ATensor,
                                params.BTensor,
                                static_cast<int>(blens[1]),
@@ -167,7 +167,7 @@ ConvSolution OpTensorFwdBias::GetSolution(const ExecutionContext& context,
                                static_cast<int>(incr_wg));
                     }
                     else
-                    {
+                    { // OpTensorFwdBiasGeneric
                         kernel(params.ATensor,
                                static_cast<int>(astrides[0]),
                                static_cast<int>(astrides[1]),

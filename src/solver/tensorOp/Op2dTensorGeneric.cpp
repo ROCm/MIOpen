@@ -42,7 +42,7 @@ bool Op2dTensorGeneric::IsApplicable(const ExecutionContext& context,
 {
     const auto& aTensorDesc = problem.GetATensorDesc();
     const auto& alens       = aTensorDesc.GetLengths();
-    auto asize       = alens.size();
+    auto asize              = alens.size();
 
     if(aTensorDesc.GetType() == miopenDouble)
     {
@@ -93,8 +93,8 @@ Op2dTensorGeneric::GetSolution(const ExecutionContext& context,
     auto kernel = KernelInfo{};
 
     kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
-    kernel.kernel_file = "MIOpenTensorKernelsHip.cpp";
-    kernel.kernel_name = "Op2dTensorGeneric";
+    kernel.kernel_file  = "MIOpenTensorKernelsHip.cpp";
+    kernel.kernel_name  = "Op2dTensorGeneric";
 
     using std::begin, std::end;
 

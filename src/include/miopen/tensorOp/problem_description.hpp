@@ -53,6 +53,7 @@ struct ProblemDescription : ProblemDescriptionBase
         {
             MIOPEN_THROW(miopenStatusBadParm, "Beta value is nullptr");
         }
+
         beta = *(static_cast<const float*>(beta_));
 
         if(aTensorDesc.GetElementSize() != cTensorDesc.GetElementSize())
@@ -67,6 +68,7 @@ struct ProblemDescription : ProblemDescriptionBase
 
         auto blens = bTensorDesc.GetLengths();
         auto clens = cTensorDesc.GetLengths();
+
         if(clens.size() > 5)
         {
             MIOPEN_THROW("Tensor dimension larger than 5: " + std::to_string(clens.size()));

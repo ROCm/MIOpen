@@ -70,10 +70,10 @@ Op4dTensorGeneric::GetSolution(const ExecutionContext& context,
 {
     auto result = ConvSolution{miopenStatusSuccess};
 
-    int max_num_wg      = 4096;
+    int max_num_wg = 4096;
 
-    auto&& [num_wg_orig, work_per_wg, incr_wg, bitmap, local_threads, global_threads] = Get4dParams(
-        problem, false);
+    auto&& [num_wg_orig, work_per_wg, incr_wg, bitmap, local_threads, global_threads] =
+        Get4dParams(problem, false);
 
     const std::array<size_t, 3> vld{local_threads, 1, 1};
     const std::array<size_t, 3> vgd{global_threads, 1, 1};

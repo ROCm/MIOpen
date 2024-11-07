@@ -114,8 +114,8 @@ inline bool IsBitmapLeadingOnes(unsigned int bitmap, int n_size, int first_not_o
     return leading_ones;
 }
 
-inline std::tuple<int, int, int, unsigned int, size_t, size_t> Get4dParams(const miopen::tensorOp::ProblemDescription& problem,
-                        bool is4dLite)
+inline std::tuple<int, int, int, unsigned int, size_t, size_t>
+Get4dParams(const miopen::tensorOp::ProblemDescription& problem, bool is4dLite)
 {
     const auto& bTensorDesc = problem.GetBTensorDesc();
     const auto& cTensorDesc = problem.GetCTensorDesc();
@@ -171,9 +171,9 @@ inline std::tuple<int, int, int, unsigned int, size_t, size_t> Get4dParams(const
         incr_wg = 1;
     }
 
-    int num_wg_orig    = num_wg;
-    int max_num_wg = 4096;
-    num_wg         = num_wg > max_num_wg ? max_num_wg : num_wg;
+    int num_wg_orig = num_wg;
+    int max_num_wg  = 4096;
+    num_wg          = num_wg > max_num_wg ? max_num_wg : num_wg;
 
     size_t local_threads = 256;
 
@@ -207,7 +207,8 @@ inline std::tuple<int, int, int, unsigned int, size_t, size_t> Get4dParams(const
         global_threads = glb_sz;
     }
 
-    return std::make_tuple(num_wg_orig, work_per_wg, incr_wg, bitmap, local_threads, global_threads);
+    return std::make_tuple(
+        num_wg_orig, work_per_wg, incr_wg, bitmap, local_threads, global_threads);
 }
 
 } // namespace tensorOp
