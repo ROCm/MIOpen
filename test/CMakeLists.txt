@@ -287,7 +287,7 @@ endif()
 
 if(MIOPEN_NO_GPU)
     set(SKIP_ALL_EXCEPT_TESTS
-            test_tensor_test test_sqlite_perfdb
+            test_sqlite_perfdb
             test_perfdb)
 endif()
 
