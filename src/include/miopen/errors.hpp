@@ -54,8 +54,8 @@ struct Exception : std::exception
     const char* what() const noexcept override { return message.c_str(); }
 };
 
-std::string OpenCLErrorMessage(int error, const std::string& msg = "");
-std::string HIPErrorMessage(int error, const std::string& msg = "");
+MIOPEN_EXPORT std::string OpenCLErrorMessage(int error, const std::string& msg = "");
+MIOPEN_EXPORT std::string HIPErrorMessage(int error, const std::string& msg = "");
 
 template <class... Params>
 [[noreturn]] void MIOpenThrow(const std::string& file, int line, Params&&... args)
@@ -126,6 +126,19 @@ auto deref(T&& x, [[maybe_unused]] miopenStatus_t err = miopenStatusBadParm)
 
 template <class... Ts>
 auto tie_deref(Ts&... xs) MIOPEN_RETURNS(std::tie(miopen::deref(xs)...));
+
+template <typename Ptr>
+Ptr checkPtr(Ptr ptr, [[maybe_unused]] miopenStatus_t err = miopenStatusBadParm)
+{
+    if(ptr != nullptr)
+    {
+        return ptr;
+    }
+    else
+    {
+        MIOPEN_THROW(err, "Passing nullptr");
+    }
+}
 
 } // namespace miopen
 

@@ -31,8 +31,10 @@
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_DEEPBENCH)
 
+namespace env = miopen::env;
+
 namespace deepbench_gru {
-static bool SkipTest(void) { return !miopen::IsEnabled(ENV(MIOPEN_TEST_DEEPBENCH)); }
+static bool SkipTest(void) { return !env::enabled(MIOPEN_TEST_DEEPBENCH); }
 
 void GetArgs(const std::string& param, std::vector<std::string>& tokens)
 {
@@ -43,13 +45,13 @@ void GetArgs(const std::string& param, std::vector<std::string>& tokens)
         tokens.push_back(*begin++);
 }
 
-class DeepBenchGRUConfigWithFloat : public testing::TestWithParam<std::vector<std::string>>
+class GPU_DeepBenchGRU_FP32 : public testing::TestWithParam<std::vector<std::string>>
 {
 };
 
 void Run2dDriverFloat(void)
 {
-    std::vector<std::string> params = DeepBenchGRUConfigWithFloat::GetParam();
+    std::vector<std::string> params = GPU_DeepBenchGRU_FP32::GetParam();
 
     for(const auto& test_value : params)
     {
@@ -62,15 +64,15 @@ void Run2dDriverFloat(void)
         });
 
         testing::internal::CaptureStderr();
-        test_drive<gru_driver>(ptrs.size(), ptrs.data());
+        test_drive<gru_driver>(ptrs.size(), ptrs.data(), "deepbench_gru");
         auto capture = testing::internal::GetCapturedStderr();
         std::cout << capture;
     }
 };
 
-std::vector<std::string> GetTestCases(void)
+std::vector<std::string> GetTestCases(const std::string& precision)
 {
-    std::string flags = " --verbose";
+    std::string flags = " --verbose " + precision;
     std::string commonFlags =
         " --num-layers 1 --in-mode 1 --bias-mode 0 -dir-mode 0 --rnn-mode 0 --flat-batch-fill";
 
@@ -105,7 +107,7 @@ std::vector<std::string> GetTestCases(void)
 
 using namespace deepbench_gru;
 
-TEST_P(DeepBenchGRUConfigWithFloat, FloatTest_deepbench_gru)
+TEST_P(GPU_DeepBenchGRU_FP32, FloatTest_deepbench_gru)
 {
     if(SkipTest())
     {
@@ -117,4 +119,4 @@ TEST_P(DeepBenchGRUConfigWithFloat, FloatTest_deepbench_gru)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(ConvTrans, DeepBenchGRUConfigWithFloat, testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_DeepBenchGRU_FP32, testing::Values(GetTestCases("--float")));

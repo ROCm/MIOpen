@@ -3,7 +3,25 @@
 
 Full documentation for MIOpen is available [here](https://rocm.docs.amd.com/projects/MIOpen/en/latest/)
 
-## (Unreleased) MIOpen-3.1.0 for ROCm 6.1.0
+## MIOpen-3.2.0 for ROCm 6.2.0
+### Added
+- [Conv] bilinear (alpha beta) solvers
+- [Conv] enable bf16 for ck-based solvers
+- [Conv] Add split_k tuning to 2d wrw ck-based solver
+- [MHA] graph API fp8 fwd
+- [RNN] multi-stream as default solution.
+- TunaNetv2.0 for MI300
+- Added adam and amp adam optimizer
+
+### Fixed
+- Memory access fault caused by GemmBwdRest
+- Context configuration in GetWorkSpaceSize
+- Fixes to support huge tensors
+
+### Performance
+- Find: Improve precision of benchmarking
+
+## MIOpen-3.1.0 for ROCm 6.1.0
 ### Added
 - CK-based 2d/3d convolution solvers to support nchw/ncdhw layout
 - Fused solver for Fwd Convolution with Residual, Bias and activation

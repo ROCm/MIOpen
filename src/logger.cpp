@@ -31,6 +31,7 @@
 #include <chrono>
 #include <ios>
 #include <iomanip>
+#include <sstream>
 
 #ifdef __linux__
 #include <unistd.h>
@@ -119,22 +120,22 @@ inline float GetTimeDiff()
 
 bool IsLoggingDebugQuiet()
 {
-    return debug::LoggingQuiet && !miopen::IsEnabled(ENV(MIOPEN_DEBUG_LOGGING_QUIETING_DISABLE));
+    return debug::LoggingQuiet && !env::enabled(MIOPEN_DEBUG_LOGGING_QUIETING_DISABLE);
 }
 
 bool IsLoggingFunctionCalls()
 {
-    return miopen::IsEnabled(ENV(MIOPEN_ENABLE_LOGGING)) && !IsLoggingDebugQuiet();
+    return env::enabled(MIOPEN_ENABLE_LOGGING) && !IsLoggingDebugQuiet();
 }
 
 bool IsLoggingToRoctx()
 {
-    return miopen::IsEnabled(ENV(MIOPEN_ENABLE_LOGGING_ROCTX)) && !IsLoggingDebugQuiet();
+    return env::enabled(MIOPEN_ENABLE_LOGGING_ROCTX) && !IsLoggingDebugQuiet();
 }
 
 bool IsLogging(const LoggingLevel level, const bool disableQuieting)
 {
-    auto enabled_level = miopen::Value(ENV(MIOPEN_LOG_LEVEL));
+    auto enabled_level = env::value(MIOPEN_LOG_LEVEL);
     if(IsLoggingDebugQuiet() && !disableQuieting)
     {
         // Disable all levels higher than fatal.
@@ -148,6 +149,13 @@ bool IsLogging(const LoggingLevel level, const bool disableQuieting)
 #else
     return LoggingLevel::Info >= level;
 #endif
+}
+
+std::string LoggingLevelToCustomString(const LoggingLevel level, const char* custom)
+{
+    std::ostringstream oss;
+    oss << custom << " " << LoggingLevelToCString(level);
+    return oss.str();
 }
 
 const char* LoggingLevelToCString(const LoggingLevel level)
@@ -165,15 +173,13 @@ const char* LoggingLevelToCString(const LoggingLevel level)
     default: return "<Unknown>";
     }
 }
-bool IsLoggingCmd()
-{
-    return miopen::IsEnabled(ENV(MIOPEN_ENABLE_LOGGING_CMD)) && !IsLoggingDebugQuiet();
-}
+
+bool IsLoggingCmd() { return env::enabled(MIOPEN_ENABLE_LOGGING_CMD) && !IsLoggingDebugQuiet(); }
 
 std::string LoggingPrefix()
 {
     std::stringstream ss;
-    if(miopen::IsEnabled(ENV(MIOPEN_ENABLE_LOGGING_MPMT)))
+    if(env::enabled(MIOPEN_ENABLE_LOGGING_MPMT))
     {
         ss << GetProcessAndThreadId() << ' ';
     }
@@ -183,7 +189,7 @@ std::string LoggingPrefix()
 #elif MIOPEN_BACKEND_HIP
     ss << "(HIP)";
 #endif
-    if(miopen::IsEnabled(ENV(MIOPEN_ENABLE_LOGGING_ELAPSED_TIME)))
+    if(env::enabled(MIOPEN_ENABLE_LOGGING_ELAPSED_TIME))
     {
         ss << std::fixed << std::setprecision(3) << std::setw(8) << GetTimeDiff();
     }

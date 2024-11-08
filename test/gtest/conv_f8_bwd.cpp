@@ -24,6 +24,7 @@
  *
  *******************************************************************************/
 #include <gtest/gtest.h>
+#include <miopen/conv/solvers.hpp>
 #include <miopen/miopen.h>
 #include <miopen/solver_id.hpp>
 #include <serialize.hpp>
@@ -35,15 +36,17 @@
 namespace conv_f8_bwd {
 
 std::vector<Conv3DTestCase> ConvTestConfigs()
-{ // g    n   c   d    h   w   k   z  y  x pad_x pad_y pad_z stri_x stri_y stri_z dia_x dia_y dia_z
-    return {{1, 16, 16, 1, 14, 14, 16, 1, 3, 3, 1, 1, 0, 1, 1, 1, 1, 1, 1, miopenConvolution},
-            {1, 128, 64, 1, 28, 28, 64, 1, 3, 3, 1, 1, 0, 1, 1, 1, 1, 1, 1, miopenConvolution},
-            {1, 64, 32, 1, 28, 28, 32, 1, 3, 3, 1, 1, 0, 1, 1, 1, 1, 1, 1, miopenConvolution},
-            {32, 128, 32, 1, 28, 28, 32, 1, 3, 3, 1, 1, 0, 1, 1, 1, 1, 1, 1, miopenConvolution},
-            {16, 128, 16, 1, 28, 28, 16, 1, 3, 3, 1, 1, 0, 1, 1, 1, 1, 1, 1, miopenConvolution},
-            {8, 128, 8, 1, 28, 28, 8, 1, 3, 3, 1, 1, 0, 1, 1, 1, 1, 1, 1, miopenConvolution},
-            {4, 128, 4, 1, 28, 28, 4, 1, 3, 3, 1, 1, 0, 1, 1, 1, 1, 1, 1, miopenConvolution},
-            {2, 128, 2, 1, 28, 28, 2, 1, 3, 3, 1, 1, 0, 1, 1, 1, 1, 1, 1, miopenConvolution}};
+{ // g   n   c   k   image   filter   pad   stride   dilation
+    // clang-format off
+    return {{1, 16, 16, 16, {1, 14, 14}, {1, 3, 3}, {0, 1, 1}, {1, 1, 1}, {1, 1, 1}, miopenConvolution},
+            {1, 128, 64, 64, {1, 28, 28}, {1, 3, 3}, {0, 1, 1}, {1, 1, 1}, {1, 1, 1}, miopenConvolution},
+            {1, 64, 32, 32, {1, 28, 28}, {1, 3, 3}, {0, 1, 1}, {1, 1, 1}, {1, 1, 1}, miopenConvolution},
+            {32, 128, 32, 32, {1, 28, 28}, {1, 3, 3}, {0, 1, 1}, {1, 1, 1}, {1, 1, 1}, miopenConvolution},
+            {16, 128, 16, 16, {1, 28, 28}, {1, 3, 3}, {0, 1, 1}, {1, 1, 1}, {1, 1, 1}, miopenConvolution},
+            {8, 128, 8, 8, {1, 28, 28}, {1, 3, 3}, {0, 1, 1}, {1, 1, 1}, {1, 1, 1}, miopenConvolution},
+            {4, 128, 4, 4, {1, 28, 28}, {1, 3, 3}, {0, 1, 1}, {1, 1, 1}, {1, 1, 1}, miopenConvolution},
+            {2, 128, 2, 2, {1, 28, 28}, {1, 3, 3}, {0, 1, 1}, {1, 1, 1}, {1, 1, 1}, miopenConvolution}};
+    // clang-format on
 }
 
 template <typename T = float>
@@ -130,7 +133,7 @@ protected:
     miopenTensorLayout_t tensor_layout;
 };
 
-struct ConvBwdSolverTestF8 : ConvBwdSolverTest<half_float::half>
+struct GPU_ConvBwdSolver_FP8 : ConvBwdSolverTest<half_float::half>
 {
 };
 
@@ -179,7 +182,7 @@ void SolverBwd(const miopen::TensorDescriptor& inputDesc,
 } // namespace conv_f8_bwd
 using namespace conv_f8_bwd;
 
-TEST_P(ConvBwdSolverTestF8, CKConvF8Bwd)
+TEST_P(GPU_ConvBwdSolver_FP8, CKConvF8Bwd)
 {
     SolverBwd<miopen::solver::conv::ConvHipImplicitGemmF16F8F16BwdXdlops>(input.desc,
                                                                           in_dev.get(),
@@ -192,8 +195,8 @@ TEST_P(ConvBwdSolverTestF8, CKConvF8Bwd)
                                                                           test_skipped);
 }
 
-INSTANTIATE_TEST_SUITE_P(ConvBwdTest,
-                         ConvBwdSolverTestF8,
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_ConvBwdSolver_FP8,
                          testing::Combine(testing::Values(miopenConvolutionBwdDataAlgoImplicitGEMM),
                                           testing::ValuesIn(ConvTestConfigs()),
                                           testing::Values(miopenTensorNDHWC)));

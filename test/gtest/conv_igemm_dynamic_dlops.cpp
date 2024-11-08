@@ -36,10 +36,9 @@ namespace {
 
 auto GetTestCases()
 {
-    const auto env_fwd =
-        std::tuple{std::pair{ENV(MIOPEN_FIND_MODE), std::string_view("normal")},
-                   std::pair{ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER),
-                             std::string_view("ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC")}};
+    const auto env_fwd = std::tuple{
+        std::pair{MIOPEN_FIND_MODE, "normal"},
+        std::pair{MIOPEN_DEBUG_FIND_ONLY_SOLVER, "ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC"}};
 
     const std::string v           = " --verbose";
     const std::string dis_bk_data = " --disable-backward-data";
@@ -145,7 +144,7 @@ auto GetTestCases()
 
 using TestCase = decltype(GetTestCases())::value_type;
 
-bool SkipTest() { return get_handle_xnack() || miopen::IsDisabled(ENV(MIOPEN_TEST_ALL)); }
+bool SkipTest() { return get_handle_xnack() || env::disabled(MIOPEN_TEST_ALL); }
 
 bool IsTestSupportedForDevice()
 {
@@ -156,15 +155,15 @@ bool IsTestSupportedForDevice()
 
 } // namespace
 
-class Conv2dDefaultHalf : public HalfTestCase<std::vector<TestCase>>
+class GPU_Conv2dDefault_FP16 : public HalfTestCase<std::vector<TestCase>>
 {
 };
 
-TEST_P(Conv2dDefaultHalf, HalfTest_conv_igemm_dynamic_dlops)
+TEST_P(GPU_Conv2dDefault_FP16, HalfTest_conv_igemm_dynamic_dlops)
 {
     if(IsTestSupportedForDevice() && !SkipTest())
     {
-        invoke_with_params<conv2d_driver, Conv2dDefaultHalf>(default_check);
+        invoke_with_params<conv2d_driver, GPU_Conv2dDefault_FP16>(default_check);
     }
     else
     {
@@ -172,6 +171,4 @@ TEST_P(Conv2dDefaultHalf, HalfTest_conv_igemm_dynamic_dlops)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(ConvIgemmDynamicDlopsFwd,
-                         Conv2dDefaultHalf,
-                         testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_Conv2dDefault_FP16, testing::Values(GetTestCases()));

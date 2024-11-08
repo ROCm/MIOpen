@@ -48,38 +48,36 @@ std::vector<std::string> GetTestCases(const std::string& precision)
 
     // clang-format off
     return std::vector<std::string>{
-        {cmd + " --scales 1 0 --CompType 1 --D 8 2 1 --I 0 --N 1 ---ReduceOp 0 --R 0 1 2"},
-        {cmd + " --scales 1 0 --CompType 1 --D 160 10 1 --I 0 --N 1 ---ReduceOp 0 --R 0 1 2"},
-        {cmd + " --scales 1 0 --CompType 1 --D 7 1024 1 --I 0 --N 1 ---ReduceOp 0 --R 0 1 2"},
-        {cmd + " --scales 1 0 --CompType 1 --D 3 1 1 --I 0 --N 1 ---ReduceOp 0 --R 0 1 2"},
-        {cmd + " --scales 1 0 --CompType 1 --D 3 1 1 --I 0 --N 1 ---ReduceOp 1 --R 0 1 2"},
-        {cmd + " --scales 1 0 --CompType 1 --D 3 1 1 --I 1 --N 1 ---ReduceOp 3 --R 0 1 2"},
-        {cmd + " --scales 1 0 --CompType 1 --D 3 2 1 --I 1 --N 1 ---ReduceOp 3 --R 1 2"},
-        {cmd + " --scales 1 0 --CompType 1 --D 6 2 1 --I 0 --N 1 ---ReduceOp 3 --R 1 2"},
-        {cmd + " --scales 1 0 --CompType 1 --D 6 2 1 --I 0 --N 1 ---ReduceOp 2 --R 1 2"},
-        {cmd + " --scales 1 0 --CompType 1 --D 2 2 1 --I 0 --N 1 ---ReduceOp 0 --R 1 2"},
-        {cmd + " --scales 1 0 --CompType 1 --D 4 3 1 --I 0 --N 1 ---ReduceOp 3 --R 1 2"},
-        {cmd + " --scales 1 0 --CompType 1 --D 3 4 1 --I 0 --N 1 ---ReduceOp 3 --R 1 2"},
-        {cmd + " --scales 1 0 --CompType 1 --D 3 4 1 --I 0 --N 1 ---ReduceOp 3 --R 0 2"},
-        {cmd + " --scales 1 0 --CompType 1 --D 2048 32 1 --I 0 --N 1 ---ReduceOp 3 --R 0 2"},
-        {cmd + " --scales 1 0 --CompType 1 --D 4 3 1 --I 0 --N 1 ---ReduceOp 2 --R 1 2"},
-        {cmd + " --scales 1 0 --CompType 1 --D 3 4 1 --I 0 --N 1 ---ReduceOp 2 --R 0 2"},
-        {cmd + " --scales 1 0 --CompType 1 --D 2048 32 1 --I 0 --N 1 ---ReduceOp 2 --R 0 2"},
-        {cmd + " --scales 1 0 --CompType 1 --D 3 4 1 --I 0 --N 1 ---ReduceOp 2 --R 0 2"},
-        {cmd + " --scales 1 0 --CompType 1 --D 12 11 1 --I 0 --N 1 ---ReduceOp 0 --R 0 1 2"},
-        {cmd + " --scales 1 0 --CompType 1 --D 13 4 7 7 --I 0 --N 1 ---ReduceOp 0 --R 0 1 2 3"},
+        {cmd + " --scales 1 0 --CompType 1 --D 8 2 1 --I 0 --N 1 --ReduceOp 0 --R 0 1 2"},
+        {cmd + " --scales 1 0 --CompType 1 --D 160 10 1 --I 0 --N 1 --ReduceOp 0 --R 0 1 2"},
+        {cmd + " --scales 1 0 --CompType 1 --D 7 1024 1 --I 0 --N 1 --ReduceOp 0 --R 0 1 2"},
+        {cmd + " --scales 1 0 --CompType 1 --D 3 1 1 --I 0 --N 1 --ReduceOp 0 --R 0 1 2"},
+        {cmd + " --scales 1 0 --CompType 1 --D 3 1 1 --I 0 --N 1 --ReduceOp 1 --R 0 1 2"},
+        {cmd + " --scales 1 0 --CompType 1 --D 3 1 1 --I 1 --N 1 --ReduceOp 3 --R 0 1 2"},
+        {cmd + " --scales 1 0 --CompType 1 --D 3 2 1 --I 1 --N 1 --ReduceOp 3 --R 1 2"},
+        {cmd + " --scales 1 0 --CompType 1 --D 6 2 1 --I 0 --N 1 --ReduceOp 3 --R 1 2"},
+        {cmd + " --scales 1 0 --CompType 1 --D 6 2 1 --I 0 --N 1 --ReduceOp 2 --R 1 2"},
+        {cmd + " --scales 1 0 --CompType 1 --D 2 2 1 --I 0 --N 1 --ReduceOp 0 --R 1 2"},
+        {cmd + " --scales 1 0 --CompType 1 --D 4 3 1 --I 0 --N 1 --ReduceOp 3 --R 1 2"},
+        {cmd + " --scales 1 0 --CompType 1 --D 3 4 1 --I 0 --N 1 --ReduceOp 3 --R 1 2"},
+        {cmd + " --scales 1 0 --CompType 1 --D 3 4 1 --I 0 --N 1 --ReduceOp 3 --R 0 2"},
+        {cmd + " --scales 1 0 --CompType 1 --D 2048 32 1 --I 0 --N 1 --ReduceOp 3 --R 0 2"},
+        {cmd + " --scales 1 0 --CompType 1 --D 4 3 1 --I 0 --N 1 --ReduceOp 2 --R 1 2"},
+        {cmd + " --scales 1 0 --CompType 1 --D 3 4 1 --I 0 --N 1 --ReduceOp 2 --R 0 2"},
+        {cmd + " --scales 1 0 --CompType 1 --D 2048 32 1 --I 0 --N 1 --ReduceOp 2 --R 0 2"},
+        {cmd + " --scales 1 0 --CompType 1 --D 3 4 1 --I 0 --N 1 --ReduceOp 2 --R 0 2"},
+        {cmd + " --scales 1 0 --CompType 1 --D 12 11 1 --I 0 --N 1 --ReduceOp 0 --R 0 1 2"},
+        {cmd + " --scales 1 0 --CompType 1 --D 13 4 7 7 --I 0 --N 1 --ReduceOp 0 --R 0 1 2 3"},
         {cmd + " --scales 1 0 --CompType 1 --D 64 3 280 81 --I 0 --N 0 --ReduceOp 0 --R 0"}
     };
     // clang-format on
 }
 
-class ConfigWithFloat_reduce_custom_fp32_fp16
-    : public testing::TestWithParam<std::vector<std::string>>
+class GPU_reduce_custom_fp32_fp16_FP32 : public testing::TestWithParam<std::vector<std::string>>
 {
 };
 
-class ConfigWithHalf_reduce_custom_fp32_fp16
-    : public testing::TestWithParam<std::vector<std::string>>
+class GPU_reduce_custom_fp32_fp16_FP16 : public testing::TestWithParam<std::vector<std::string>>
 {
 };
 
@@ -95,11 +93,12 @@ void Run2dDriver(miopenDataType_t prec)
     std::vector<std::string> params;
     switch(prec)
     {
-    case miopenFloat: params = ConfigWithFloat_reduce_custom_fp32_fp16::GetParam(); break;
-    case miopenHalf: params = ConfigWithHalf_reduce_custom_fp32_fp16::GetParam(); break;
+    case miopenFloat: params = GPU_reduce_custom_fp32_fp16_FP32::GetParam(); break;
+    case miopenHalf: params = GPU_reduce_custom_fp32_fp16_FP16::GetParam(); break;
     case miopenInt8:
     case miopenBFloat16:
     case miopenInt32:
+    case miopenInt64:
     case miopenDouble:
     case miopenFloat8:
     case miopenBFloat8:
@@ -127,12 +126,12 @@ void Run2dDriver(miopenDataType_t prec)
 } // namespace reduce_custom_fp32_fp16
 using namespace reduce_custom_fp32_fp16;
 
-TEST_P(ConfigWithFloat_reduce_custom_fp32_fp16, FloatTest_reduce_custom_fp32_fp16)
+TEST_P(GPU_reduce_custom_fp32_fp16_FP32, FloatTest_reduce_custom_fp32_fp16)
 {
-    if(!(IsTestSupportedForDevice()                      //
-         && (miopen::IsUnset(ENV(MIOPEN_TEST_ALL))       // standalone run
-             || (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) // or --float full tests enabled
-                 && miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG)) == "--float"))))
+    if(!(IsTestSupportedForDevice()            //
+         && (!MIOPEN_TEST_ALL                  // standalone run
+             || (env::enabled(MIOPEN_TEST_ALL) // or --float full tests enabled
+                 && env::value(MIOPEN_TEST_FLOAT_ARG) == "--float"))))
     {
         GTEST_SKIP();
     }
@@ -140,12 +139,12 @@ TEST_P(ConfigWithFloat_reduce_custom_fp32_fp16, FloatTest_reduce_custom_fp32_fp1
     Run2dDriver(miopenFloat);
 };
 
-TEST_P(ConfigWithHalf_reduce_custom_fp32_fp16, HalfTest_reduce_custom_fp32_fp16)
+TEST_P(GPU_reduce_custom_fp32_fp16_FP16, HalfTest_reduce_custom_fp32_fp16)
 {
-    if(!(IsTestSupportedForDevice()                      //
-         && (miopen::IsUnset(ENV(MIOPEN_TEST_ALL))       // standalone run
-             || (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) // or --half full tests enabled
-                 && miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG)) == "--half"))))
+    if(!(IsTestSupportedForDevice()            //
+         && (!MIOPEN_TEST_ALL                  // standalone run
+             || (env::enabled(MIOPEN_TEST_ALL) // or --half full tests enabled
+                 && env::value(MIOPEN_TEST_FLOAT_ARG) == "--half"))))
     {
         GTEST_SKIP();
     }
@@ -153,10 +152,10 @@ TEST_P(ConfigWithHalf_reduce_custom_fp32_fp16, HalfTest_reduce_custom_fp32_fp16)
     Run2dDriver(miopenHalf);
 };
 
-INSTANTIATE_TEST_SUITE_P(ReduceCustomFp32,
-                         ConfigWithFloat_reduce_custom_fp32_fp16,
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_reduce_custom_fp32_fp16_FP32,
                          testing::Values(GetTestCases("--float")));
 
-INSTANTIATE_TEST_SUITE_P(ReduceCustomFp32,
-                         ConfigWithHalf_reduce_custom_fp32_fp16,
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_reduce_custom_fp32_fp16_FP16,
                          testing::Values(GetTestCases("--half")));

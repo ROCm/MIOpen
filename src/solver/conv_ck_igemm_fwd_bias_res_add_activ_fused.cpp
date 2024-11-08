@@ -29,7 +29,6 @@
 #include <cstdint>
 
 #include <miopen/check_numerics.hpp>
-#include <miopen/solver.hpp>
 #include <miopen/fusion/solvers.hpp>
 #include <miopen/generic_search.hpp>
 #include <miopen/conv/data_invoke_params.hpp>
@@ -283,6 +282,7 @@ void PerfConfigConvCKIgemmFwdBiasResAddActivFused::HeuristicInit(
     case miopenFloat8:
     case miopenBFloat8:
     case miopenInt32:
+    case miopenInt64:
     case miopenDouble:
     default: MIOPEN_THROW("Unsupported datatype");
     }
@@ -337,6 +337,7 @@ bool PerfConfigConvCKIgemmFwdBiasResAddActivFused::IsValid(
     case miopenFloat8:
     case miopenBFloat8:
     case miopenInt32:
+    case miopenInt64:
     case miopenDouble:
     default: MIOPEN_THROW("Unsupported datatype");
     }
@@ -388,7 +389,7 @@ bool ConvCKIgemmFwdBiasResAddActivFused::IsApplicable(const FusionContext& ctx,
     {
         MIOPEN_THROW(miopenStatusInternalError, "desc.op_map.empty()");
     }
-    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_CK_IGEMM_FWD_BIAS_RES_ADD_ACTIV)))
+    if(env::disabled(MIOPEN_DEBUG_CONV_CK_IGEMM_FWD_BIAS_RES_ADD_ACTIV))
         return false;
     // check the sequence of prims
     if(desc.op_map.size() != 4)
@@ -432,6 +433,7 @@ bool ConvCKIgemmFwdBiasResAddActivFused::IsApplicable(const FusionContext& ctx,
     case miopenFloat8:
     case miopenBFloat8:
     case miopenInt32:
+    case miopenInt64:
     case miopenDouble:
     default: MIOPEN_THROW("Unsupported datatype");
     }
@@ -468,6 +470,7 @@ ConvSolution ConvCKIgemmFwdBiasResAddActivFused::GetSolution(
             conv_problem, config.kernel_id);
 
     case miopenInt32:
+    case miopenInt64:
     case miopenDouble:
     case miopenFloat8:
     case miopenBFloat8:

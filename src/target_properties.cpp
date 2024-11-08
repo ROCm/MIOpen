@@ -55,7 +55,7 @@ static std::string GetDeviceNameFromMap(const std::string& in)
         {"10.3.0 Sienna_Cichlid 18", "gfx1030"},
     };
 
-    const auto& dev_str = miopen::GetStringEnv(ENV(MIOPEN_DEBUG_ENFORCE_DEVICE));
+    const auto& dev_str = env::value(MIOPEN_DEBUG_ENFORCE_DEVICE);
     if(!dev_str.empty())
         return dev_str;
 
@@ -76,7 +76,7 @@ const std::size_t TargetProperties::MaxLocalMemorySize = static_cast<const std::
 void TargetProperties::Init(const Handle* const handle)
 {
     const auto rawName = [&]() -> std::string {
-        const auto& arch = miopen::GetStringEnv(ENV(MIOPEN_DEVICE_ARCH));
+        const auto& arch = env::value(MIOPEN_DEVICE_ARCH);
         if(!arch.empty())
             return arch;
         return handle->GetDeviceNameImpl();

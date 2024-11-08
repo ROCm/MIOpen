@@ -14,20 +14,24 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
     gnupg2 \
     wget
 
+RUN apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
+    "linux-headers-$(uname -r)" "linux-modules-extra-$(uname -r)"
+
 #Add gpg keys
 ENV APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE=DontWarn
 RUN curl -fsSL https://repo.radeon.com/rocm/rocm.gpg.key | gpg --dearmor -o /etc/apt/trusted.gpg.d/rocm-keyring.gpg
 
-RUN wget https://repo.radeon.com/amdgpu-install/.6.1/ubuntu/jammy/amdgpu-install_6.1.60100-1_all.deb --no-check-certificate
+RUN wget https://repo.radeon.com/amdgpu-install/6.2/ubuntu/jammy/amdgpu-install_6.2.60200-1_all.deb --no-check-certificate
 RUN apt-get update && \
 DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
-    ./amdgpu-install_6.1.60100-1_all.deb
+    ./amdgpu-install_6.2.60200-1_all.deb
 
 # Add rocm repository
-RUN export ROCM_APT_VER=6.1;\
+RUN export ROCM_APT_VER=6.2;\
 echo $ROCM_APT_VER &&\
-sh -c 'echo deb [arch=amd64 signed-by=/etc/apt/trusted.gpg.d/rocm-keyring.gpg] https://repo.radeon.com/amdgpu/.$ROCM_APT_VER/ubuntu jammy main > /etc/apt/sources.list.d/amdgpu.list' &&\
-sh -c 'echo deb [arch=amd64 signed-by=/etc/apt/trusted.gpg.d/rocm-keyring.gpg] https://repo.radeon.com/rocm/apt/.apt_$ROCM_APT_VER jammy main > /etc/apt/sources.list.d/rocm.list'
+sh -c 'echo deb [arch=amd64 signed-by=/etc/apt/trusted.gpg.d/rocm-keyring.gpg] https://repo.radeon.com/amdgpu/$ROCM_APT_VER/ubuntu jammy main > /etc/apt/sources.list.d/amdgpu.list' &&\
+sh -c 'echo deb [arch=amd64 signed-by=/etc/apt/trusted.gpg.d/rocm-keyring.gpg] https://repo.radeon.com/rocm/apt/$ROCM_APT_VER jammy main > /etc/apt/sources.list.d/rocm.list'
 RUN sh -c "echo deb http://mirrors.kernel.org/ubuntu jammy main universe | tee -a /etc/apt/sources.list"
 
 RUN amdgpu-install -y --usecase=rocm --no-dkms
@@ -84,6 +88,7 @@ ADD dev-requirements.txt /dev-requirements.txt
 # Install dependencies
 # TODO: Add --std=c++14
 ARG GPU_ARCH=";"
+# install to /opt/rocm will cause permission issue
 ARG PREFIX=/usr/local
 ARG USE_FIN="OFF"
 ARG CCACHE_SECONDARY_STORAGE=""
@@ -100,14 +105,18 @@ RUN ccache -s
 
 # purge existing composable kernel installed with ROCm
 # hence cannot use autoremove since it will remove more components
+# even purge will remove some other components which is not ideal
 RUN apt-get update && \
 DEBIAN_FRONTEND=noninteractive apt-get purge -y --allow-unauthenticated \
-    composablekernel-dev
+    composablekernel-dev \
+    miopen-hip
+
 ARG COMPILER_LAUNCHER=""
+# rbuild is used to trigger build of requirements.txt, dev-requirements.txt
 RUN if [ "$USE_FIN" = "ON" ]; then \
-        rbuild prepare -s fin -d $PREFIX -DGPU_TARGETS=${GPU_ARCH} -DCMAKE_CXX_COMPILER_LAUNCHER="${COMPILER_LAUNCHER}"; \
+        rbuild prepare -s fin -d $PREFIX -DCMAKE_CXX_COMPILER_LAUNCHER="${COMPILER_LAUNCHER}"; \
     else \
-        rbuild prepare -s develop -d $PREFIX -DGPU_TARGETS=${GPU_ARCH} -DCMAKE_CXX_COMPILER_LAUNCHER="${COMPILER_LAUNCHER}"; \
+        rbuild prepare -s develop -d $PREFIX -DCMAKE_CXX_COMPILER_LAUNCHER="${COMPILER_LAUNCHER}"; \
     fi
 
 RUN ccache -s 
@@ -118,4 +127,7 @@ RUN pip3 install -r /doc-requirements.txt
 # Composable Kernel requires this version cmake
 RUN pip3 install --upgrade cmake==3.27.5
 
+# groupadd can add one group a time
 RUN groupadd -f render
+RUN groupadd -f video
+RUN usermod -a -G render,video root

@@ -36,7 +36,7 @@ MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLAGS_ARGS)
 
 namespace immed_conv2d_codecov {
 
-static bool SkipTest(void) { return !miopen::IsEnabled(ENV(CODECOV_TEST)); }
+static bool SkipTest(void) { return !env::enabled(CODECOV_TEST); }
 
 void GetArgs(const std::string& param, std::vector<std::string>& tokens)
 {
@@ -47,19 +47,20 @@ void GetArgs(const std::string& param, std::vector<std::string>& tokens)
         tokens.push_back(*begin++);
 }
 
-class Conv2dFloat_immed_conv2d_codecov : public testing::TestWithParam<std::vector<std::string>>
+class GPU_Conv2d_immed_conv2d_codecov_FP32 : public testing::TestWithParam<std::vector<std::string>>
 {
 };
 
-class Conv2dHalf_immed_conv2d_codecov : public testing::TestWithParam<std::vector<std::string>>
+class GPU_Conv2d_immed_conv2d_codecov_FP16 : public testing::TestWithParam<std::vector<std::string>>
 {
 };
 
-class Conv2dBFloat16_immed_conv2d_codecov : public testing::TestWithParam<std::vector<std::string>>
+class GPU_Conv2d_immed_conv2d_codecov_BFP16
+    : public testing::TestWithParam<std::vector<std::string>>
 {
 };
 
-class Conv2dInt8_immed_conv2d_codecov : public testing::TestWithParam<std::vector<std::string>>
+class GPU_Conv2d_immed_conv2d_codecov_I8 : public testing::TestWithParam<std::vector<std::string>>
 {
 };
 
@@ -69,19 +70,20 @@ void Run2dDriver(miopenDataType_t prec)
     std::vector<std::string> params;
     switch(prec)
     {
-    case miopenHalf: params = Conv2dHalf_immed_conv2d_codecov::GetParam(); break;
-    case miopenBFloat16: params = Conv2dBFloat16_immed_conv2d_codecov::GetParam(); break;
-    case miopenFloat: params = Conv2dFloat_immed_conv2d_codecov::GetParam(); break;
-    case miopenInt8: params = Conv2dInt8_immed_conv2d_codecov::GetParam(); break;
+    case miopenHalf: params = GPU_Conv2d_immed_conv2d_codecov_FP16::GetParam(); break;
+    case miopenBFloat16: params = GPU_Conv2d_immed_conv2d_codecov_BFP16::GetParam(); break;
+    case miopenFloat: params = GPU_Conv2d_immed_conv2d_codecov_FP32::GetParam(); break;
+    case miopenInt8: params = GPU_Conv2d_immed_conv2d_codecov_I8::GetParam(); break;
     case miopenFloat8:
     case miopenBFloat8:
     case miopenInt32:
+    case miopenInt64:
     case miopenDouble:
         FAIL() << "miopenInt32, miopenDouble, miopenFloat8, miopenBFloat8 "
                   "data type not supported by "
                   "immed_conv2d_codecov test";
 
-    default: params = Conv2dFloat_immed_conv2d_codecov::GetParam();
+    default: params = GPU_Conv2d_immed_conv2d_codecov_FP32::GetParam();
     }
 
     for(const auto& test_value : params)
@@ -105,11 +107,11 @@ bool IsTestSupportedForDevice(const miopen::Handle& handle) { return true; }
 
 std::vector<std::string> GetTestCases(const std::string& precision)
 {
-    const auto& flag_arg = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLAGS_ARGS));
+    const auto& flag_arg = env::value(MIOPEN_TEST_FLAGS_ARGS);
 
     const std::vector<std::string> test_cases = {
         // clang-format off
-    {"test_immed_conv2d " + precision + " --input  2 2 14 14 --weights 8 2 3 3 --pads_strides_dilations 0 0 1 1 1 1 "+flag_arg}
+    {"test_immed_conv2d " + precision + " --input  2 2 14 14 --weights 8 2 3 3 --pads_strides_dilations 0 0 1 1 1 1 " + flag_arg}
         // clang-format on
     };
 
@@ -119,7 +121,7 @@ std::vector<std::string> GetTestCases(const std::string& precision)
 } // namespace immed_conv2d_codecov
 using namespace immed_conv2d_codecov;
 
-TEST_P(Conv2dFloat_immed_conv2d_codecov, FloatTest)
+TEST_P(GPU_Conv2d_immed_conv2d_codecov_FP32, FloatTest)
 {
     const auto& handle = get_handle();
     if(IsTestSupportedForDevice(handle) && !SkipTest() && IsTestRunWith("--float"))
@@ -132,7 +134,7 @@ TEST_P(Conv2dFloat_immed_conv2d_codecov, FloatTest)
     }
 };
 
-TEST_P(Conv2dHalf_immed_conv2d_codecov, HalfTest)
+TEST_P(GPU_Conv2d_immed_conv2d_codecov_FP16, HalfTest)
 {
     const auto& handle = get_handle();
     if(IsTestSupportedForDevice(handle) && !SkipTest() && IsTestRunWith("--half"))
@@ -145,7 +147,7 @@ TEST_P(Conv2dHalf_immed_conv2d_codecov, HalfTest)
     }
 };
 
-TEST_P(Conv2dBFloat16_immed_conv2d_codecov, BFloat16Test)
+TEST_P(GPU_Conv2d_immed_conv2d_codecov_BFP16, BFloat16Test)
 {
     const auto& handle = get_handle();
     if(IsTestSupportedForDevice(handle) && !SkipTest() && IsTestRunWith("--bfloat16"))
@@ -158,7 +160,7 @@ TEST_P(Conv2dBFloat16_immed_conv2d_codecov, BFloat16Test)
     }
 };
 
-TEST_P(Conv2dInt8_immed_conv2d_codecov, Int8Test)
+TEST_P(GPU_Conv2d_immed_conv2d_codecov_I8, Int8Test)
 {
     const auto& handle = get_handle();
     if(IsTestSupportedForDevice(handle) && !SkipTest() && IsTestRunWith("--int8"))
@@ -171,18 +173,18 @@ TEST_P(Conv2dInt8_immed_conv2d_codecov, Int8Test)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(ImmedConv2D,
-                         Conv2dFloat_immed_conv2d_codecov,
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_Conv2d_immed_conv2d_codecov_FP32,
                          testing::Values(GetTestCases("--float")));
 
-INSTANTIATE_TEST_SUITE_P(ImmedConv2D,
-                         Conv2dHalf_immed_conv2d_codecov,
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_Conv2d_immed_conv2d_codecov_FP16,
                          testing::Values(GetTestCases("--half")));
 
-INSTANTIATE_TEST_SUITE_P(ImmedConv2D,
-                         Conv2dBFloat16_immed_conv2d_codecov,
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_Conv2d_immed_conv2d_codecov_BFP16,
                          testing::Values(GetTestCases("--bfloat16")));
 
-INSTANTIATE_TEST_SUITE_P(ImmedConv2D,
-                         Conv2dInt8_immed_conv2d_codecov,
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_Conv2d_immed_conv2d_codecov_I8,
                          testing::Values(GetTestCases("--int8")));

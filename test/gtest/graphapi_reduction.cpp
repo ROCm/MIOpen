@@ -40,23 +40,23 @@ using miopen::graphapi::ReductionBuilder;
 
 } // namespace
 
-class GraphApiReductionBuilder : public testing::TestWithParam<DescriptorTuple>
+class CPU_GraphApiReductionBuilder_NONE : public testing::TestWithParam<DescriptorTuple>
 {
 protected:
-    miopenReduceTensorOp_t reductionOperator;
-    miopenDataType_t compType;
+    miopenReduceTensorOp_t mReductionOperator;
+    miopenDataType_t mCompType;
 
-    void SetUp() override { std::tie(reductionOperator, compType) = GetParam(); }
+    void SetUp() override { std::tie(mReductionOperator, mCompType) = GetParam(); }
 };
 
-TEST_P(GraphApiReductionBuilder, MissingSetter)
+TEST_P(CPU_GraphApiReductionBuilder_NONE, MissingSetter)
 {
     EXPECT_NO_THROW({
-        ReductionBuilder().setReductionOperator(reductionOperator).setCompType(compType).build();
+        ReductionBuilder().setReductionOperator(mReductionOperator).setCompType(mCompType).build();
     }) << "Builder failed on valid attributes";
-    EXPECT_ANY_THROW({ ReductionBuilder().setCompType(compType).build(); })
+    EXPECT_ANY_THROW({ ReductionBuilder().setCompType(mCompType).build(); })
         << "Builder validated attributes despite missing setReductionOperator() call";
-    EXPECT_ANY_THROW({ ReductionBuilder().setReductionOperator(reductionOperator).build(); })
+    EXPECT_ANY_THROW({ ReductionBuilder().setReductionOperator(mReductionOperator).build(); })
         << "Builder validated attributes despite missing setCompType() call";
 }
 
@@ -68,14 +68,15 @@ using miopen::graphapi::GTestGraphApiExecute;
 
 } // namespace
 
-class GraphApiReduction : public testing::TestWithParam<DescriptorTuple>
+class CPU_GraphApiReduction_NONE : public testing::TestWithParam<DescriptorTuple>
 {
-protected:
-    GTestGraphApiExecute<GTestDescriptorAttribute*> execute;
-
-    // Pointers to these are stored inside 'execute' object (above)
+private:
+    // Pointers to these are stored inside 'mExecute' object (below)
     GTestDescriptorSingleValueAttribute<miopenReduceTensorOp_t, char> mReductionOperator;
     GTestDescriptorSingleValueAttribute<miopenDataType_t, char> mCompType;
+
+protected:
+    GTestGraphApiExecute<GTestDescriptorAttribute*> mExecute;
 
     void SetUp() override
     {
@@ -97,19 +98,19 @@ protected:
                      2,
                      compType};
 
-        execute.descriptor.attributes = {&mReductionOperator, &mCompType};
+        mExecute.descriptor.attributes = {&mReductionOperator, &mCompType};
 
-        execute.descriptor.attrsValid = true;
-        execute.descriptor.textName   = "MIOPEN_BACKEND_REDUCTION_DESCRIPTOR";
-        execute.descriptor.type       = MIOPEN_BACKEND_REDUCTION_DESCRIPTOR;
+        mExecute.descriptor.attrsValid = true;
+        mExecute.descriptor.textName   = "MIOPEN_BACKEND_REDUCTION_DESCRIPTOR";
+        mExecute.descriptor.type       = MIOPEN_BACKEND_REDUCTION_DESCRIPTOR;
     }
 };
 
-TEST_P(GraphApiReduction, CFunctions) { execute(); }
+TEST_P(CPU_GraphApiReduction_NONE, CFunctions) { mExecute(); }
 
 static auto testCases =
     testing::Combine(testing::Values(MIOPEN_REDUCE_TENSOR_ADD, MIOPEN_REDUCE_TENSOR_MUL),
                      testing::Values(miopenFloat, miopenHalf));
 
-INSTANTIATE_TEST_SUITE_P(TestCases, GraphApiReductionBuilder, testCases);
-INSTANTIATE_TEST_SUITE_P(TestCases, GraphApiReduction, testCases);
+INSTANTIATE_TEST_SUITE_P(Unit, CPU_GraphApiReductionBuilder_NONE, testCases);
+INSTANTIATE_TEST_SUITE_P(Unit, CPU_GraphApiReduction_NONE, testCases);

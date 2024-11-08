@@ -29,32 +29,32 @@
 
 namespace miopen {
 
-boost::optional<const Invoker&> InvokerCache::operator[](const Key& key) const
+std::optional<Invoker> InvokerCache::operator[](const Key& key) const
 {
     const auto item = invokers.find(key.first);
     if(item == invokers.end())
-        return boost::none;
+        return std::nullopt;
     const auto& item_invokers = item->second.invokers;
     const auto invoker        = item_invokers.find(key.second);
     if(invoker == item_invokers.end())
-        return boost::none;
+        return std::nullopt;
     return invoker->second;
 }
 
-boost::optional<const Invoker&> InvokerCache::GetFound1_0(const std::string& network_config,
-                                                          const std::string& algorithm) const
+std::optional<Invoker> InvokerCache::GetFound1_0(const std::string& network_config,
+                                                 const std::string& algorithm) const
 {
     const auto item = invokers.find(network_config);
     if(item == invokers.end())
     {
         MIOPEN_LOG_I2("No invokers found for " << network_config);
-        return boost::none;
+        return std::nullopt;
     }
     if(item->second.found_1_0.empty())
     {
         MIOPEN_LOG_I2("Invokers found for " << network_config
                                             << " but there is no find 1.0 result.");
-        return boost::none;
+        return std::nullopt;
     }
     const auto& item_invokers = item->second.invokers;
     const auto& found_1_0_ids = item->second.found_1_0;
@@ -63,7 +63,7 @@ boost::optional<const Invoker&> InvokerCache::GetFound1_0(const std::string& net
     {
         MIOPEN_LOG_I2("Invokers found for "
                       << network_config << " but there is no one with an algorithm " << algorithm);
-        return boost::none;
+        return std::nullopt;
     }
     const auto invoker = item_invokers.find(found_1_0_id->second);
     if(invoker == item_invokers.end())
@@ -74,21 +74,20 @@ boost::optional<const Invoker&> InvokerCache::GetFound1_0(const std::string& net
     return invoker->second;
 }
 
-boost::optional<const std::string&>
-InvokerCache::GetFound1_0SolverId(const std::string& network_config,
-                                  const std::string& algorithm) const
+std::optional<std::string> InvokerCache::GetFound1_0SolverId(const std::string& network_config,
+                                                             const std::string& algorithm) const
 {
     const auto item = invokers.find(network_config);
     if(item == invokers.end())
     {
         MIOPEN_LOG_I2("No invokers found for " << network_config);
-        return boost::none;
+        return std::nullopt;
     }
     if(item->second.found_1_0.empty())
     {
         MIOPEN_LOG_I2("Invokers found for " << network_config
                                             << " but there is no find 1.0 result.");
-        return boost::none;
+        return std::nullopt;
     }
     const auto& found_1_0_ids = item->second.found_1_0;
     const auto found_1_0_id   = found_1_0_ids.find(algorithm);
@@ -96,7 +95,7 @@ InvokerCache::GetFound1_0SolverId(const std::string& network_config,
     {
         MIOPEN_LOG_I2("Invokers found for "
                       << network_config << " but there is no one with an algorithm " << algorithm);
-        return boost::none;
+        return std::nullopt;
     }
     return found_1_0_id->second;
 }
