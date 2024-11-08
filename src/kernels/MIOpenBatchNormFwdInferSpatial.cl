@@ -67,8 +67,8 @@ MIOpenBatchNormFwdInferSpatialEst(const __global _FLOAT* __restrict in, /* x inp
         for(int n = 0; n < batchSize; n++)
         {
             index      = (n * batchStride) + (xgid * imageDims) + idx;
-            inhat      = ((_FLOAT_PREC)(*(in + index)) - mean) * invVariance;
-            out[index] = (_FLOAT)(mad(pscale, inhat, pbias));
+            inhat      = (FLOAT2FLOATPREC(*(in + index)) - mean) * invVariance;
+            out[index] = FLOATPREC2FLOAT(mad(pscale, inhat, pbias));
         }
     }
 } // end spatial norm

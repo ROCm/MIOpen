@@ -205,6 +205,6 @@ const char* getOffloadBundlerBinPath();
 #include <hip/hip_version.h>
 #endif
 
-#define MIOPEN_GOLDEN_DB_VERSION 20
+#define MIOPEN_GOLDEN_DB_VERSION 21
 
 #endif // GUARD_CONFIG_H_IN

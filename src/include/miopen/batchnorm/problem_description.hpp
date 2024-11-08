@@ -52,6 +52,9 @@ struct ProblemDescriptionTag
 {
 };
 
+bool is_fp16_or_bfp16(miopenDataType_t type);
+bool is_fp32_or_fp64(miopenDataType_t type);
+
 struct MIOPEN_INTERNALS_EXPORT ProblemDescription : ProblemDescriptionBase,
                                                     ProblemDescriptionTag
 #if MIOPEN_ENABLE_SQLITE
@@ -173,13 +176,13 @@ struct MIOPEN_INTERNALS_EXPORT ProblemDescription : ProblemDescriptionBase,
         return dxDesc;
     }
 
-    const TensorDescriptor& GetBnScaleBiasMeanVarDesc() const
-    {
-        assert(direction == Direction::ForwardTraining || direction == Direction::ForwardInference);
-        return scaleDesc;
-    }
+    const TensorDescriptor& GetBnScale() const { return scaleDesc; }
 
-    const TensorDescriptor& GetScaleBiasDiffDesc() const { return scaleDesc; }
+    const TensorDescriptor& GetBnBias() const { return biasDesc; }
+
+    const TensorDescriptor& GetBnSMean() const { return sMeanDesc; }
+
+    const TensorDescriptor& GetBnSVar() const { return sVarianceDesc; }
 
     bool GetResultSave() const
     {
@@ -233,11 +236,10 @@ struct MIOPEN_INTERNALS_EXPORT ProblemDescription : ProblemDescriptionBase,
     bool IsFp64() const { return xDesc.GetType() == miopenDouble; }
     bool IsFp32() const { return xDesc.GetType() == miopenFloat; }
     bool IsFp16() const { return xDesc.GetType() == miopenHalf; }
-    bool IsMix() const
-    {
-        return xDesc.GetType() == miopenHalf && sMeanDesc.GetType() == miopenFloat;
-    }
-    bool IsBfp16() const { return xDesc.GetType() == miopenBFloat16; }
+    bool IsBFp16() const { return xDesc.GetType() == miopenBFloat16; }
+    bool IsMix() const { return (IsFp16() || IsBFp16()) && sMeanDesc.GetType() == miopenFloat; }
+    bool IsScaleFp16() const { return scaleDesc.GetType() == miopenHalf; }
+    bool IsScaleFp32() const { return scaleDesc.GetType() == miopenFloat; }
 
     void Serialize(std::ostream& stream) const { stream << MakeNetworkConfig().ToString(); }
 
@@ -355,6 +357,15 @@ private:
         }
     }
 };
+
+bool IsOCLInferTypeValid(const ProblemDescription& bn_problem);
+bool IsCKInferTypeValid(const ProblemDescription& bn_problem);
+
+bool IsOCLFwdTrainTypeValid(const ProblemDescription& bn_problem);
+bool IsCKFwdTrainTypeValid(const ProblemDescription& bn_problem);
+
+bool IsOCLBwdTypeValid(const ProblemDescription& bn_problem);
+bool IsCKBwdTypeValid(const ProblemDescription& bn_problem);
 
 } // namespace batchnorm
 

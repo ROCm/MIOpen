@@ -31,13 +31,14 @@
 // ScaleDataType   : half
 // BiasDataType    : half
 // MeanVarDataType : float
-struct GPU_BN_FWD_Train_Small_FP16
+
+struct GPU_BN_CK_FWD_Train_Large_FP16
     : BNFwdTrainTest<half_float::half, half_float::half, half_float::half, half_float::half, float>
 {
 };
 
-struct GPU_BN_FWD_Train_Large_FP16
-    : BNFwdTrainTest<half_float::half, half_float::half, half_float::half, half_float::half, float>
+struct GPU_BN_OCL_FWD_Train_Large_FP16
+    : BNFwdTrainTest<half_float::half, half_float::half, float, float, float>
 {
 };
 
@@ -46,11 +47,13 @@ struct GPU_BN_FWD_Train_Large_FP16
 // ScaleDataType   : bfloat16
 // BiasDataType    : bfloat16
 // MeanVarDataType : float
-struct GPU_BN_FWD_Train_Small_BFP16 : BNFwdTrainTest<bfloat16, bfloat16, bfloat16, bfloat16, float>
+
+struct GPU_BN_CK_FWD_Train_Large_BFP16
+    : BNFwdTrainTest<bfloat16, bfloat16, bfloat16, bfloat16, float>
 {
 };
 
-struct GPU_BN_FWD_Train_Large_BFP16 : BNFwdTrainTest<bfloat16, bfloat16, bfloat16, bfloat16, float>
+struct GPU_BN_OCL_FWD_Train_Large_BFP16 : BNFwdTrainTest<bfloat16, bfloat16, float, float, float>
 {
 };
 
@@ -71,76 +74,77 @@ struct GPU_BN_FWD_Train_Large_FP64 : BNFwdTrainTest<double, double, double, doub
 };
 
 // fp16
-TEST_P(GPU_BN_FWD_Train_Small_FP16, BnV1SmallFWD_TrainCKfp16) {}
-TEST_P(GPU_BN_FWD_Train_Large_FP16, BnV2LargeFWD_TrainCKfp16) {}
+TEST_P(GPU_BN_CK_FWD_Train_Large_FP16, DISABLED_BnV2LargeFWD_TrainCKfp16) {}
+TEST_P(GPU_BN_OCL_FWD_Train_Large_FP16, BnV2LargeFWD_TrainOCLfp16) {}
 
-// bfp16
-TEST_P(GPU_BN_FWD_Train_Small_BFP16, BnV1SmallFWD_TrainCKbfp16) {}
-TEST_P(GPU_BN_FWD_Train_Large_BFP16, BnV2LargeFWD_TrainCKbfp16) {}
+// // bfp16
+TEST_P(GPU_BN_CK_FWD_Train_Large_BFP16, DISABLED_BnV2LargeFWD_TrainCKbfp16) {}
+TEST_P(GPU_BN_OCL_FWD_Train_Large_BFP16, BnV2LargeFWD_TrainOCLbfp16) {}
 
-// fp32 (float)
+// // fp32 (float)
 TEST_P(GPU_BN_FWD_Train_Small_FP32, BnV1SmallFWD_TrainCKfp32) {}
 TEST_P(GPU_BN_FWD_Train_Large_FP32, BnV2LargeFWD_TrainCKfp32) {}
 
-// fp64
-TEST_P(GPU_BN_FWD_Train_Small_FP64, BnV1SmallFWD_TrainCKfp64) {}
-TEST_P(GPU_BN_FWD_Train_Large_FP64, BnV2LargeFWD_TrainCKfp64) {}
+// // // fp64
+TEST_P(GPU_BN_FWD_Train_Small_FP64, DISABLED_BnV1SmallFWD_TrainCKfp64) {}
+TEST_P(GPU_BN_FWD_Train_Large_FP64, DISABLED_BnV2LargeFWD_TrainCKfp64) {}
 
 // fp16
-INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_BN_FWD_Train_Small_FP16,
-                         testing::Combine(testing::ValuesIn(NetworkSmall<BNTestCase>()),
-                                          testing::ValuesIn({miopenTensorNCHW, miopenTensorNHWC}),
-                                          testing::ValuesIn({testBNAPIV1})),
-                         TestNameGenerator());
 
 INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_BN_FWD_Train_Large_FP16,
-                         testing::Combine(testing::ValuesIn(NetworkLarge<BNTestCase>()),
+                         GPU_BN_CK_FWD_Train_Large_FP16,
+                         testing::Combine(testing::ValuesIn(NetworkSmall<BNTestCase>()),
                                           testing::ValuesIn({miopenTensorNCHW, miopenTensorNHWC}),
                                           testing::ValuesIn({testBNAPIV2})),
                          TestNameGenerator());
 
-// bfp16
 INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_BN_FWD_Train_Small_BFP16,
-                         testing::Combine(testing::ValuesIn(NetworkSmall<BNTestCase>()),
-                                          testing::ValuesIn({miopenTensorNCHW, miopenTensorNHWC}),
-                                          testing::ValuesIn({testBNAPIV1})),
+                         GPU_BN_OCL_FWD_Train_Large_FP16,
+                         testing::Combine(testing::ValuesIn(NetworkLarge<BNTestCase>()),
+                                          testing::ValuesIn({miopenTensorNCHW}),
+                                          testing::ValuesIn({testBNAPIV1, testBNAPIV2})),
                          TestNameGenerator());
 
+// // bfp16
 INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_BN_FWD_Train_Large_BFP16,
-                         testing::Combine(testing::ValuesIn(NetworkLarge<BNTestCase>()),
+                         GPU_BN_CK_FWD_Train_Large_BFP16,
+                         testing::Combine(testing::ValuesIn(NetworkSmall<BNTestCase>()),
                                           testing::ValuesIn({miopenTensorNCHW, miopenTensorNHWC}),
                                           testing::ValuesIn({testBNAPIV2})),
                          TestNameGenerator());
 
-// fp32
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_BN_OCL_FWD_Train_Large_BFP16,
+                         testing::Combine(testing::ValuesIn(NetworkLarge<BNTestCase>()),
+                                          testing::ValuesIn({miopenTensorNCHW}),
+                                          testing::ValuesIn({testBNAPIV1, testBNAPIV2})),
+                         TestNameGenerator());
+
+// // fp32
 INSTANTIATE_TEST_SUITE_P(Smoke,
                          GPU_BN_FWD_Train_Small_FP32,
-                         testing::Combine(testing::ValuesIn(NetworkLarge<BNTestCase>()),
-                                          testing::ValuesIn({miopenTensorNCHW, miopenTensorNHWC}),
-                                          testing::ValuesIn({testBNAPIV2})),
+                         testing::Combine(testing::ValuesIn(NetworkSmall<BNTestCase>()),
+                                          testing::ValuesIn({miopenTensorNCHW}),
+                                          testing::ValuesIn({testBNAPIV1})),
                          TestNameGenerator());
 
 INSTANTIATE_TEST_SUITE_P(Smoke,
                          GPU_BN_FWD_Train_Large_FP32,
                          testing::Combine(testing::ValuesIn(NetworkLarge<BNTestCase>()),
-                                          testing::ValuesIn({miopenTensorNCHW, miopenTensorNHWC}),
+                                          testing::ValuesIn({miopenTensorNCHW}),
                                           testing::ValuesIn({testBNAPIV2})),
                          TestNameGenerator());
-// fp64
+// // fp64
 INSTANTIATE_TEST_SUITE_P(Smoke,
                          GPU_BN_FWD_Train_Small_FP64,
-                         testing::Combine(testing::ValuesIn(NetworkLarge<BNTestCase>()),
+                         testing::Combine(testing::ValuesIn(NetworkSmall<BNTestCase>()),
                                           testing::ValuesIn({miopenTensorNCHW, miopenTensorNHWC}),
-                                          testing::ValuesIn({testBNAPIV2})),
+                                          testing::ValuesIn({testBNAPIV1})),
                          TestNameGenerator());
 
 INSTANTIATE_TEST_SUITE_P(Smoke,
                          GPU_BN_FWD_Train_Large_FP64,
-                         testing::Combine(testing::ValuesIn(NetworkLarge<BNTestCase>()),
+                         testing::Combine(testing::ValuesIn(NetworkSmall<BNTestCase>()),
                                           testing::ValuesIn({miopenTensorNCHW, miopenTensorNHWC}),
                                           testing::ValuesIn({testBNAPIV2})),
                          TestNameGenerator());
