@@ -638,6 +638,7 @@ inline size_t GetWorkspaceSizeLayoutTransformConv(const miopen::conv::ProblemDes
 inline void
 ZeroOutTensor(const Handle& handle, const TensorDescriptor& tensorDesc, Data_t tensorData)
 {
+#if MIOPEN_BACKEND_HIP
     // SetTensor is required for non-packed tensors, but is also slower.
     // Use faster clear if possible.
     if(tensorDesc.IsPacked())
@@ -649,6 +650,7 @@ ZeroOutTensor(const Handle& handle, const TensorDescriptor& tensorDesc, Data_t t
         }
     }
     else
+#endif
     {
         auto zero = 0.0f;
         SetTensor(handle, tensorDesc, tensorData, &zero);
