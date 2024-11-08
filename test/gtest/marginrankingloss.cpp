@@ -23,155 +23,71 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-
 #include "marginrankingloss.hpp"
-#include "../tensor_holder.hpp"
-#include <miopen/env.hpp>
-
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
-
-namespace marginrankingloss {
-
-std::string GetFloatArg()
-{
-    const auto& tmp = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
-    if(tmp.empty())
-    {
-        return "";
-    }
-    return tmp;
-}
-
-struct MarginRankingLossTestFloat : MarginRankingLossFwdTest<float>
-{
-};
-
-struct MarginRankingLossTestHalf : MarginRankingLossFwdTest<half>
-{
-};
-
-struct MarginRankingLossTestBFloat16 : MarginRankingLossFwdTest<bfloat16>
-{
-};
-
-struct MarginRankingLossTestFloatBwd : MarginRankingLossBwdTest<float>
-{
-};
-
-struct MarginRankingLossTestHalfBwd : MarginRankingLossBwdTest<half>
-{
-};
-
-struct MarginRankingLossTestBFloat16Bwd : MarginRankingLossBwdTest<bfloat16>
-{
-};
-
-} // namespace marginrankingloss
-using namespace marginrankingloss;
+using float16 = half_float::half;
 
 // FORWARD TEST
-TEST_P(MarginRankingLossTestFloat, MarginRankingLossTest)
+using GPU_MarginRankingLoss_fwd_FP32  = MarginRankingLossTestFwd<float>;
+using GPU_MarginRankingLoss_fwd_FP16  = MarginRankingLossTestFwd<float16>;
+using GPU_MarginRankingLoss_fwd_BFP16 = MarginRankingLossTestFwd<bfloat16>;
+
+TEST_P(GPU_MarginRankingLoss_fwd_FP32, MarginRankingLossTest)
 {
-    if((miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && GetFloatArg() == "--float") ||
-       GetFloatArg() == "--testall")
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 };
 
-TEST_P(MarginRankingLossTestHalf, MarginRankingLossTest)
+TEST_P(GPU_MarginRankingLoss_fwd_FP16, MarginRankingLossTest)
 {
-    if((miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && GetFloatArg() == "--half") ||
-       GetFloatArg() == "--testall")
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 };
 
-TEST_P(MarginRankingLossTestBFloat16, MarginRankingLossTest)
+TEST_P(GPU_MarginRankingLoss_fwd_BFP16, MarginRankingLossTest)
 {
-    if((miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && GetFloatArg() == "--bfloat16") ||
-       GetFloatArg() == "--testall")
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 };
 
 INSTANTIATE_TEST_SUITE_P(MarginRankingLossTestSet,
-                         MarginRankingLossTestFloat,
+                         GPU_MarginRankingLoss_fwd_FP32,
                          testing::ValuesIn(MarginRankingLossTestConfigs()));
 INSTANTIATE_TEST_SUITE_P(MarginRankingLossTestSet,
-                         MarginRankingLossTestHalf,
+                         GPU_MarginRankingLoss_fwd_FP16,
                          testing::ValuesIn(MarginRankingLossTestConfigs()));
 INSTANTIATE_TEST_SUITE_P(MarginRankingLossTestSet,
-                         MarginRankingLossTestBFloat16,
+                         GPU_MarginRankingLoss_fwd_BFP16,
                          testing::ValuesIn(MarginRankingLossTestConfigs()));
 
 // BACKWARD TEST
-TEST_P(MarginRankingLossTestFloatBwd, MarginRankingLossTestBwd)
+using GPU_MarginRankingLoss_bwd_FP32  = MarginRankingLossTestBwd<float>;
+using GPU_MarginRankingLoss_bwd_FP16  = MarginRankingLossTestBwd<float16>;
+using GPU_MarginRankingLoss_bwd_BFP16 = MarginRankingLossTestBwd<bfloat16>;
+
+TEST_P(GPU_MarginRankingLoss_bwd_FP32, MarginRankingLossTestBwd)
 {
-    if((miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && GetFloatArg() == "--float") ||
-       GetFloatArg() == "--testall")
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 };
 
-TEST_P(MarginRankingLossTestHalfBwd, MarginRankingLossTestBwd)
+TEST_P(GPU_MarginRankingLoss_bwd_FP16, MarginRankingLossTestBwd)
 {
-    if((miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && GetFloatArg() == "--half") ||
-       GetFloatArg() == "--testall")
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 };
 
-TEST_P(MarginRankingLossTestBFloat16Bwd, MarginRankingLossTestBwd)
+TEST_P(GPU_MarginRankingLoss_bwd_BFP16, MarginRankingLossTestBwd)
 {
-    if((miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && GetFloatArg() == "--bfloat16") ||
-       GetFloatArg() == "--testall")
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 };
 
 INSTANTIATE_TEST_SUITE_P(MarginRankingLossTestSet,
-                         MarginRankingLossTestFloatBwd,
+                         GPU_MarginRankingLoss_bwd_FP32,
                          testing::ValuesIn(MarginRankingLossTestConfigs()));
 INSTANTIATE_TEST_SUITE_P(MarginRankingLossTestSet,
-                         MarginRankingLossTestHalfBwd,
+                         GPU_MarginRankingLoss_bwd_FP16,
                          testing::ValuesIn(MarginRankingLossTestConfigs()));
 INSTANTIATE_TEST_SUITE_P(MarginRankingLossTestSet,
-                         MarginRankingLossTestBFloat16Bwd,
+                         GPU_MarginRankingLoss_bwd_BFP16,
                          testing::ValuesIn(MarginRankingLossTestConfigs()));

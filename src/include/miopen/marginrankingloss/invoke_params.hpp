@@ -25,14 +25,12 @@
  *******************************************************************************/
 #pragma once
 
-#include "miopen/common.hpp"
-#include "miopen/invoke_params.hpp"
-#include "miopen/miopen.h"
-#include "miopen/tensor.hpp"
-
-#include <cstddef>
+#include <miopen/common.hpp>
+#include <miopen/invoke_params.hpp>
+#include <miopen/tensor.hpp>
 
 namespace miopen {
+
 namespace marginrankingloss {
 
 struct FwdInvokeParams : public miopen::InvokeParams

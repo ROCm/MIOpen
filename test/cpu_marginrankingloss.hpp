@@ -23,9 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-
-#ifndef GUARD_CPU_MARGINRANKINGLOSS_HPP
-#define GUARD_CPU_MARGINRANKINGLOSS_HPP
+#pragma once
 
 #include "tensor_holder.hpp"
 #include <miopen/tensor_view.hpp>
@@ -171,5 +169,3 @@ void cpu_marginrankingloss_unreduced_backward_5d(tensor<T> input1,
         }
     }
 }
-
-#endif

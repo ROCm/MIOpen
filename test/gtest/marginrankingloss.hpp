@@ -86,7 +86,7 @@ inline std::vector<MarginRankingLossTestCase> MarginRankingLossTestConfigs()
 }
 
 template <typename T>
-struct MarginRankingLossFwdTest : public ::testing::TestWithParam<MarginRankingLossTestCase>
+struct MarginRankingLossTestFwd : public ::testing::TestWithParam<MarginRankingLossTestCase>
 {
 protected:
     void SetUp() override
@@ -197,7 +197,7 @@ protected:
 };
 
 template <typename T>
-struct MarginRankingLossBwdTest : public ::testing::TestWithParam<MarginRankingLossTestCase>
+struct MarginRankingLossTestBwd : public ::testing::TestWithParam<MarginRankingLossTestCase>
 {
 protected:
     void SetUp() override

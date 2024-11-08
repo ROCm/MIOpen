@@ -2627,91 +2627,6 @@ MIOPEN_EXPORT miopenStatus_t miopenLayerNormForward(miopenHandle_t handle,
 #endif
 
 #ifdef MIOPEN_BETA_API
-// MarginRankingLoss APIs
-/** @addtogroup marginrankingloss
- *
- *  @{
- */
-
-typedef enum
-{
-    MIOPEN_MARGINRANKINGLOSS_REDUCTION_NONE = 0, /*!< output tensor elements are not reduced */
-    MIOPEN_MARGINRANKINGLOSS_REDUCTION_SUM  = 1, /*!< output tensor elements are summed up */
-    MIOPEN_MARGINRANKINGLOSS_REDUCTION_MEAN =
-        2, /*!< output tensor elements are summed up and divided with total number of elements to
-              get mean value */
-} miopenMarginRakningLossReductionMode_t;
-
-/*! @brief Execute a marginrankingloss forward layer
- *
- * @param handle                   MIOpen Handle (input)
- * @param workspace                Address of the allocated workspace data (input)
- * @param workspaceSizeInBytes     Size in bytes of the allocated workspace data (input)
- * @param input1Desc               Tensor descriptor for the first input tensor (input)
- * @param input1                   Data tensor first input (input)
- * @param input2Desc               Tensor descriptor for the second input tensor (input)
- * @param input2                   Data tensor second input (input)
- * @param targetDesc               Tensor descriptor for the target tensor (input)
- * @param target                   Data tensor target (input)
- * @param outputDesc               Tensor descriptor for the output tensor (output)
- * @param output                   Data tensor output (output)
- * @param margin                   Margin value (input)
- * @param reduction_mode           Reduction mode (input)
- * @return                         miopenStatus_t
- */
-MIOPEN_EXPORT miopenStatus_t
-miopenMarginRankingLossForward(miopenHandle_t handle,
-                               const miopenTensorDescriptor_t input1Desc,
-                               const void* input1,
-                               const miopenTensorDescriptor_t input2Desc,
-                               const void* input2,
-                               const miopenTensorDescriptor_t targetDesc,
-                               const void* target,
-                               const miopenTensorDescriptor_t outputDesc,
-                               void* output,
-                               float margin,
-                               miopenMarginRakningLossReductionMode_t reduction_mode);
-/*! @brief Execute a marginrankingloss backward layer
- *
- * @param handle                   MIOpen Handle (input)
- * @param input1Desc               Tensor descriptor for the first input tensor (input)
- * @param input1                   Data tensor first input (input)
- * @param input2Desc               Tensor descriptor for the second input tensor (input)
- * @param input2                   Data tensor second input (input)
- * @param targetDesc               Tensor descriptor for the target tensor (input)
- * @param target                   Data tensor target (input)
- * @param outGradDesc              Tensor descriptor for the output gradient tensor (output)
- * @param outGrad                  Data tensor output gradient (output)
- * @param in1GradDesc              Tensor descriptor for the first input gradient tensor (input)
- * @param in1Grad                  Data tensor first input gradient (output)
- * @param in2GradDesc              Tensor descriptor for the second input gradient tensor (input)
- * @param in2Grad                  Data tensor second input gradient (input)
- * @param margin                   Margin value (input)
- * @param reduction_mode           Reduction mode (input)
- * @return                         miopenStatus_t
- */
-MIOPEN_EXPORT miopenStatus_t
-miopenMarginRankingLossBackward(miopenHandle_t handle,
-                                const miopenTensorDescriptor_t input1Desc,
-                                const void* input1,
-                                const miopenTensorDescriptor_t input2Desc,
-                                const void* input2,
-                                const miopenTensorDescriptor_t targetDesc,
-                                const void* target,
-                                const miopenTensorDescriptor_t outGradDesc,
-                                void* outGrad,
-                                const miopenTensorDescriptor_t in1GradDesc,
-                                void* in1Grad,
-                                const miopenTensorDescriptor_t in2GradDesc,
-                                void* in2Grad,
-                                float margin,
-                                miopenMarginRakningLossReductionMode_t reduction_mode);
-/** @} */
-// CLOSEOUT marginrankingloss DOXYGEN GROUP
-
-#endif // MIOPEN_BETA_API
-
-#ifdef MIOPEN_BETA_API
 // Cat APIs
 /** @addtogroup cat
  *
@@ -7874,6 +7789,92 @@ MIOPEN_EXPORT miopenStatus_t miopenPReLUBackward(miopenHandle_t handle,
 
 /** @} */
 // CLOSEOUT RELU DOXYGEN GROUP
+#endif // MIOPEN_BETA_API
+
+#ifdef MIOPEN_BETA_API
+// MarginRankingLoss APIs
+/** @addtogroup LossFunction
+ *
+ *  @{
+ */
+
+typedef enum
+{
+    MIOPEN_MARGINRANKINGLOSS_REDUCTION_NONE = 0, /*!< output tensor elements are not reduced */
+    MIOPEN_MARGINRANKINGLOSS_REDUCTION_SUM  = 1, /*!< output tensor elements are summed up */
+    MIOPEN_MARGINRANKINGLOSS_REDUCTION_MEAN =
+        2, /*!< output tensor elements are summed up and divided with total number of elements to
+              get mean value */
+} miopenMarginRakningLossReductionMode_t;
+
+/*! @brief Execute a marginrankingloss forward layer
+ *
+ * @param handle                   MIOpen Handle (input)
+ * @param workspace                Address of the allocated workspace data (input)
+ * @param workspaceSizeInBytes     Size in bytes of the allocated workspace data (input)
+ * @param input1Desc               Tensor descriptor for the first input tensor (input)
+ * @param input1                   Data tensor first input (input)
+ * @param input2Desc               Tensor descriptor for the second input tensor (input)
+ * @param input2                   Data tensor second input (input)
+ * @param targetDesc               Tensor descriptor for the target tensor (input)
+ * @param target                   Data tensor target (input)
+ * @param outputDesc               Tensor descriptor for the output tensor (output)
+ * @param output                   Data tensor output (output)
+ * @param margin                   Margin value (input)
+ * @param reduction_mode           Reduction mode (input)
+ * @return                         miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenMarginRankingLossForward(miopenHandle_t handle,
+                               const miopenTensorDescriptor_t input1Desc,
+                               const void* input1,
+                               const miopenTensorDescriptor_t input2Desc,
+                               const void* input2,
+                               const miopenTensorDescriptor_t targetDesc,
+                               const void* target,
+                               const miopenTensorDescriptor_t outputDesc,
+                               void* output,
+                               float margin,
+                               miopenMarginRakningLossReductionMode_t reduction_mode);
+
+/*! @brief Execute a marginrankingloss backward layer
+ *
+ * @param handle                   MIOpen Handle (input)
+ * @param input1Desc               Tensor descriptor for the first input tensor (input)
+ * @param input1                   Data tensor first input (input)
+ * @param input2Desc               Tensor descriptor for the second input tensor (input)
+ * @param input2                   Data tensor second input (input)
+ * @param targetDesc               Tensor descriptor for the target tensor (input)
+ * @param target                   Data tensor target (input)
+ * @param outGradDesc              Tensor descriptor for the output gradient tensor (output)
+ * @param outGrad                  Data tensor output gradient (output)
+ * @param in1GradDesc              Tensor descriptor for the first input gradient tensor (input)
+ * @param in1Grad                  Data tensor first input gradient (output)
+ * @param in2GradDesc              Tensor descriptor for the second input gradient tensor (input)
+ * @param in2Grad                  Data tensor second input gradient (input)
+ * @param margin                   Margin value (input)
+ * @param reduction_mode           Reduction mode (input)
+ * @return                         miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenMarginRankingLossBackward(miopenHandle_t handle,
+                                const miopenTensorDescriptor_t input1Desc,
+                                const void* input1,
+                                const miopenTensorDescriptor_t input2Desc,
+                                const void* input2,
+                                const miopenTensorDescriptor_t targetDesc,
+                                const void* target,
+                                const miopenTensorDescriptor_t outGradDesc,
+                                void* outGrad,
+                                const miopenTensorDescriptor_t in1GradDesc,
+                                void* in1Grad,
+                                const miopenTensorDescriptor_t in2GradDesc,
+                                void* in2Grad,
+                                float margin,
+                                miopenMarginRakningLossReductionMode_t reduction_mode);
+/** @} */
+// CLOSEOUT LossFunction DOXYGEN GROUP
+
 #endif // MIOPEN_BETA_API
 
 #ifdef __cplusplus

@@ -24,20 +24,16 @@
  *
  *******************************************************************************/
 
-#include "miopen/conv_solution.hpp"
-#include "miopen/convolution.hpp"
-#include "miopen/execution_context.hpp"
-#include "miopen/invoke_params.hpp"
-#include "miopen/marginrankingloss/problem_description.hpp"
-#include "miopen/marginrankingloss/solvers.hpp"
+#include <miopen/conv_solution.hpp>
+#include <miopen/execution_context.hpp>
+#include <miopen/invoke_params.hpp>
+#include <miopen/tensor_view_utils.hpp>
+#include <miopen/marginrankingloss/solvers.hpp>
 
-#include "miopen/marginrankingloss/invoke_params.hpp"
-#include "miopen/datatype.hpp"
-#include "miopen/marginrankingloss.hpp"
-#include "miopen/miopen.h"
-#include "miopen/target_properties.hpp"
-#include "miopen/tensor_view.hpp"
-#include <tuple>
+#include <miopen/marginrankingloss/invoke_params.hpp>
+#include <miopen/datatype.hpp>
+#include <miopen/marginrankingloss.hpp>
+#include <miopen/target_properties.hpp>
 
 #define LOCAL_SIZE 256
 
@@ -51,7 +47,9 @@ bool MarginRankingLossBackward::IsApplicable(
     [[maybe_unused]] const ExecutionContext& context,
     const miopen::marginrankingloss::ProblemDescriptionBackward& problem) const
 {
-    if(!problem.IsSameType() || !problem.IsSameLength() || !problem.IsAllApplicableDims())
+    if(!(problem.GetOutGradDesc().GetType() == miopenHalf ||
+         problem.GetOutGradDesc().GetType() == miopenFloat ||
+         problem.GetOutGradDesc().GetType() == miopenBFloat16))
     {
         return false;
     }
@@ -110,12 +108,12 @@ ConvSolution MarginRankingLossBackward::GetSolution(
                 decltype(auto) kernel = handle_.Run(kernels.front());
                 decltype(auto) params =
                     raw_params.CastTo<miopen::marginrankingloss::BwdInvokeParams>();
-                auto input1_tv  = get_inner_expanded_tv_5d(deref(params.input1Desc));
-                auto input2_tv  = get_inner_expanded_tv_5d(deref(params.input2Desc));
-                auto target_tv  = get_inner_expanded_tv_5d(deref(params.targetDesc));
-                auto outGrad_tv = get_inner_expanded_tv_5d(deref(params.outGradDesc));
-                auto in1Grad_tv = get_inner_expanded_tv_5d(deref(params.in1GradDesc));
-                auto in2Grad_tv = get_inner_expanded_tv_5d(deref(params.in2GradDesc));
+                auto input1_tv  = get_inner_expanded_tv<5>(deref(params.input1Desc));
+                auto input2_tv  = get_inner_expanded_tv<5>(deref(params.input2Desc));
+                auto target_tv  = get_inner_expanded_tv<5>(deref(params.targetDesc));
+                auto outGrad_tv = get_inner_expanded_tv<5>(deref(params.outGradDesc));
+                auto in1Grad_tv = get_inner_expanded_tv<5>(deref(params.in1GradDesc));
+                auto in2Grad_tv = get_inner_expanded_tv<5>(deref(params.in2GradDesc));
 
                 kernel(params.input1,
                        params.input2,
@@ -142,12 +140,12 @@ ConvSolution MarginRankingLossBackward::GetSolution(
                 decltype(auto) kernel = handle_.Run(kernels.front());
                 decltype(auto) params =
                     raw_params.CastTo<miopen::marginrankingloss::BwdInvokeParams>();
-                auto input1_tv  = get_inner_expanded_tv_5d(deref(params.input1Desc));
-                auto input2_tv  = get_inner_expanded_tv_5d(deref(params.input2Desc));
-                auto target_tv  = get_inner_expanded_tv_5d(deref(params.targetDesc));
-                auto outGrad_tv = get_inner_expanded_tv_5d(deref(params.outGradDesc));
-                auto in1Grad_tv = get_inner_expanded_tv_5d(deref(params.in1GradDesc));
-                auto in2Grad_tv = get_inner_expanded_tv_5d(deref(params.in2GradDesc));
+                auto input1_tv  = get_inner_expanded_tv<5>(deref(params.input1Desc));
+                auto input2_tv  = get_inner_expanded_tv<5>(deref(params.input2Desc));
+                auto target_tv  = get_inner_expanded_tv<5>(deref(params.targetDesc));
+                auto outGrad_tv = get_inner_expanded_tv<5>(deref(params.outGradDesc));
+                auto in1Grad_tv = get_inner_expanded_tv<5>(deref(params.in1GradDesc));
+                auto in2Grad_tv = get_inner_expanded_tv<5>(deref(params.in2GradDesc));
 
                 kernel(params.input1,
                        params.input2,

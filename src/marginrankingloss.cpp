@@ -23,8 +23,6 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include "miopen/marginrankingloss/problem_description.hpp"
-#include "miopen/names.hpp"
 #include <miopen/marginrankingloss.hpp>
 #include <miopen/kernel_cache.hpp>
 #include <miopen/float_equal.hpp>
@@ -34,6 +32,8 @@
 #include <miopen/find_solution.hpp>
 
 namespace miopen {
+
+namespace marginrankingloss {
 
 miopenStatus_t MarginRankingLossForward(Handle& handle,
                                         const TensorDescriptor& input1Desc,
@@ -122,5 +122,7 @@ miopenStatus_t MarginRankingLossBackward(Handle& handle,
     solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
     return miopenStatusSuccess;
 }
+
+} // namespace marginrankingloss
 
 } // namespace miopen

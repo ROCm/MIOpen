@@ -24,21 +24,16 @@
  *
  *******************************************************************************/
 
-#include "miopen/conv_solution.hpp"
-#include "miopen/convolution.hpp"
-#include "miopen/execution_context.hpp"
-#include "miopen/invoke_params.hpp"
-#include "miopen/marginrankingloss/problem_description.hpp"
-#include "miopen/marginrankingloss/solvers.hpp"
+#include <miopen/conv_solution.hpp>
+#include <miopen/execution_context.hpp>
+#include <miopen/invoke_params.hpp>
+#include <miopen/tensor_view_utils.hpp>
+#include <miopen/marginrankingloss/solvers.hpp>
 
-#include "miopen/marginrankingloss/invoke_params.hpp"
-#include "miopen/datatype.hpp"
-#include "miopen/marginrankingloss.hpp"
-#include "miopen/miopen.h"
-#include "miopen/target_properties.hpp"
-#include "miopen/tensor_view.hpp"
-#include <cstdio>
-#include <tuple>
+#include <miopen/marginrankingloss/invoke_params.hpp>
+#include <miopen/datatype.hpp>
+#include <miopen/marginrankingloss.hpp>
+#include <miopen/target_properties.hpp>
 
 #define LOCAL_SIZE 256
 
@@ -52,7 +47,9 @@ bool MarginRankingLossForward::IsApplicable(
     [[maybe_unused]] const ExecutionContext& context,
     const miopen::marginrankingloss::ProblemDescriptionForward& problem) const
 {
-    if(!problem.IsSameType() || !problem.IsSameLength() || !problem.IsAllApplicableDims())
+    if(!(problem.GetOutputDesc().GetType() == miopenHalf ||
+         problem.GetOutputDesc().GetType() == miopenFloat ||
+         problem.GetOutputDesc().GetType() == miopenBFloat16))
     {
         return false;
     }
@@ -111,10 +108,10 @@ ConvSolution MarginRankingLossForward::GetSolution(
                 decltype(auto) kernel = handle_.Run(kernels.front());
                 decltype(auto) params =
                     raw_params.CastTo<miopen::marginrankingloss::FwdInvokeParams>();
-                auto input1_tv = get_inner_expanded_tv_5d(deref(params.input1Desc));
-                auto input2_tv = get_inner_expanded_tv_5d(deref(params.input2Desc));
-                auto target_tv = get_inner_expanded_tv_5d(deref(params.targetDesc));
-                auto output_tv = get_inner_expanded_tv_5d(deref(params.outputDesc));
+                auto input1_tv = get_inner_expanded_tv<5>(deref(params.input1Desc));
+                auto input2_tv = get_inner_expanded_tv<5>(deref(params.input2Desc));
+                auto target_tv = get_inner_expanded_tv<5>(deref(params.targetDesc));
+                auto output_tv = get_inner_expanded_tv<5>(deref(params.outputDesc));
 
                 kernel(params.input1,
                        params.input2,
@@ -137,10 +134,10 @@ ConvSolution MarginRankingLossForward::GetSolution(
                 decltype(auto) kernel = handle_.Run(kernels.front());
                 decltype(auto) params =
                     raw_params.CastTo<miopen::marginrankingloss::FwdInvokeParams>();
-                auto input1_tv = get_inner_expanded_tv_5d(deref(params.input1Desc));
-                auto input2_tv = get_inner_expanded_tv_5d(deref(params.input2Desc));
-                auto target_tv = get_inner_expanded_tv_5d(deref(params.targetDesc));
-                auto output_tv = get_inner_expanded_tv_5d(deref(params.outputDesc));
+                auto input1_tv = get_inner_expanded_tv<5>(deref(params.input1Desc));
+                auto input2_tv = get_inner_expanded_tv<5>(deref(params.input2Desc));
+                auto target_tv = get_inner_expanded_tv<5>(deref(params.targetDesc));
+                auto output_tv = get_inner_expanded_tv<5>(deref(params.outputDesc));
 
                 kernel(params.input1,
                        params.input2,

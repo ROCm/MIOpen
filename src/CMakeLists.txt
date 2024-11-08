@@ -663,8 +663,8 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernel_cache.cpp
         layernorm.cpp
         lrn.cpp
-        mlo_dir_conv.cpp
         marginrankingloss.cpp
+        mlo_dir_conv.cpp
         exec_utils.cpp
         ocl/activ_ocl.cpp
         ocl/batchnormocl.cpp

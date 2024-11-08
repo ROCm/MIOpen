@@ -24,13 +24,11 @@
  *
  *******************************************************************************/
 
-#include "miopen/miopen.h"
 #include "miopen/marginrankingloss.hpp"
 #include "miopen/errors.hpp"
 #include "miopen/handle.hpp"
 #include "miopen/logger.hpp"
 #include "miopen/tensor_ops.hpp"
-#include <sstream>
 
 inline std::ostream& operator<<(std::ostream& os, const std::vector<size_t>& v)
 {
@@ -45,7 +43,7 @@ inline std::ostream& operator<<(std::ostream& os, const std::vector<size_t>& v)
     return os;
 }
 
-static void LogCmdMarginRankingLoss(bool isForward,
+inline void LogCmdMarginRankingLoss(bool isForward,
                                     const miopenTensorDescriptor_t targetDesc,
                                     float margin,
                                     miopenMarginRakningLossReductionMode_t reduction_mode)
@@ -70,7 +68,7 @@ static void LogCmdMarginRankingLoss(bool isForward,
         ss << " -dims " << miopen::deref(targetDesc).GetLengths();
         ss << " -M " << margin;
         ss << " -F " << ((isForward) ? "1" : "2");
-        ss << " -R " << static_cast<int>(reduction_mode);
+        ss << " -R " << reduction_mode;
         MIOPEN_LOG_DRIVER_CMD(ss.str());
     }
 }
@@ -92,17 +90,17 @@ miopenMarginRankingLossForward(miopenHandle_t handle,
         handle, input1Desc, input2Desc, targetDesc, outputDesc, margin, reduction_mode);
     LogCmdMarginRankingLoss(true, targetDesc, margin, reduction_mode);
     return miopen::try_([&] {
-        miopen::MarginRankingLossForward(miopen::deref(handle),
-                                         miopen::deref(input1Desc),
-                                         DataCast(input1),
-                                         miopen::deref(input2Desc),
-                                         DataCast(input2),
-                                         miopen::deref(targetDesc),
-                                         DataCast(target),
-                                         miopen::deref(outputDesc),
-                                         DataCast(output),
-                                         margin,
-                                         reduction_mode);
+        miopen::marginrankingloss::MarginRankingLossForward(miopen::deref(handle),
+                                                            miopen::deref(input1Desc),
+                                                            DataCast(input1),
+                                                            miopen::deref(input2Desc),
+                                                            DataCast(input2),
+                                                            miopen::deref(targetDesc),
+                                                            DataCast(target),
+                                                            miopen::deref(outputDesc),
+                                                            DataCast(output),
+                                                            margin,
+                                                            reduction_mode);
     });
 }
 
@@ -134,20 +132,20 @@ miopenMarginRankingLossBackward(miopenHandle_t handle,
                         reduction_mode);
     LogCmdMarginRankingLoss(false, targetDesc, margin, reduction_mode);
     return miopen::try_([&] {
-        miopen::MarginRankingLossBackward(miopen::deref(handle),
-                                          miopen::deref(input1Desc),
-                                          DataCast(input1),
-                                          miopen::deref(input2Desc),
-                                          DataCast(input2),
-                                          miopen::deref(targetDesc),
-                                          DataCast(target),
-                                          miopen::deref(outGradDesc),
-                                          DataCast(outGrad),
-                                          miopen::deref(in1GradDesc),
-                                          DataCast(in1Grad),
-                                          miopen::deref(in2GradDesc),
-                                          DataCast(in2Grad),
-                                          margin,
-                                          reduction_mode);
+        miopen::marginrankingloss::MarginRankingLossBackward(miopen::deref(handle),
+                                                             miopen::deref(input1Desc),
+                                                             DataCast(input1),
+                                                             miopen::deref(input2Desc),
+                                                             DataCast(input2),
+                                                             miopen::deref(targetDesc),
+                                                             DataCast(target),
+                                                             miopen::deref(outGradDesc),
+                                                             DataCast(outGrad),
+                                                             miopen::deref(in1GradDesc),
+                                                             DataCast(in1Grad),
+                                                             miopen::deref(in2GradDesc),
+                                                             DataCast(in2Grad),
+                                                             margin,
+                                                             reduction_mode);
     });
 }

@@ -656,14 +656,6 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
 
     Register(registry, ++id, Primitive::Softmax, softmax::Softmax{}.SolverDbId());
     Register(registry, ++id, Primitive::Softmax, softmax::AttnSoftmax{}.SolverDbId());
-    Register(registry,
-             ++id,
-             Primitive::MarginRankingLoss,
-             marginrankingloss::MarginRankingLossForward{}.SolverDbId());
-    Register(registry,
-             ++id,
-             Primitive::MarginRankingLoss,
-             marginrankingloss::MarginRankingLossBackward{}.SolverDbId());
 
     Register(registry, ++id, Primitive::Reduce, reduce::ArgminForward{}.SolverDbId());
     Register(registry, ++id, Primitive::Reduce, reduce::MaxForward{}.SolverDbId());
@@ -692,6 +684,14 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
     Register(registry, ++id, Primitive::Activation, glu::GLUForward{}.SolverDbId());
     Register(registry, ++id, Primitive::Activation, glu::GLUBackward{}.SolverDbId());
 
+    Register(registry,
+             ++id,
+             Primitive::MarginRankingLoss,
+             marginrankingloss::MarginRankingLossForward{}.SolverDbId());
+    Register(registry,
+             ++id,
+             Primitive::MarginRankingLoss,
+             marginrankingloss::MarginRankingLossBackward{}.SolverDbId());
     // IMPORTANT: New solvers should be added to the end of the function!
 }
 
