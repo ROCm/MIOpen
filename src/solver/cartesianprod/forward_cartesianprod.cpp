@@ -161,7 +161,7 @@ CartesianProdForward::GetSolution(const ExecutionContext& context,
                 decltype(auto) params = raw_params.CastTo<miopen::cartesianprod::FwdInvokeParams>();
 
                 hipMemcpyAsync(params.output,
-                               params.GetInput(static_cast<uint64_t>(0)),
+                               params.GetInput(0),
                                deref(params.outputDesc).GetElementSize() * get_data_size(dtype),
                                hipMemcpyDeviceToDevice,
                                handle_.GetStream());

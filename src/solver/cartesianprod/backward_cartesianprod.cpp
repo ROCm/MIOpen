@@ -175,7 +175,7 @@ ConvSolution CartesianProdBackward::GetSolution(
 
                 decltype(auto) params = raw_params.CastTo<miopen::cartesianprod::BwdInvokeParams>();
 
-                hipMemcpyAsync(params.GetInputGrad(static_cast<uint64_t>(0)),
+                hipMemcpyAsync(params.GetInputGrad(0),
                                params.output_grad,
                                deref(params.outputGradDesc).GetElementSize() * get_data_size(dtype),
                                hipMemcpyDeviceToDevice,
