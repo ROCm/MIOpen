@@ -37,7 +37,7 @@ namespace solver {
 
 namespace tensorOp {
 
-bool Op2dTensorSquash::IsApplicable(const ExecutionContext& context,
+bool Op2dTensorSquash::IsApplicable([[maybe unused]] const ExecutionContext& context,
                                     const miopen::tensorOp::ProblemDescription& problem) const
 {
     const auto& aTensorDesc = problem.GetATensorDesc();
@@ -73,16 +73,16 @@ bool Op2dTensorSquash::IsApplicable(const ExecutionContext& context,
     return false;
 }
 
-std::size_t
-Op2dTensorSquash::GetWorkspaceSize(const ExecutionContext& context,
-                                   const miopen::tensorOp::ProblemDescription& problem) const
+std::size_t Op2dTensorSquash::GetWorkspaceSize(
+    [[maybe unused]] const ExecutionContext& context,
+    [[maybe unused]] const miopen::tensorOp::ProblemDescription& problem) const
 {
     return 0;
 }
 
 ConvSolution
-Op2dTensorSquash::GetSolution(const ExecutionContext& context,
-                              const miopen::tensorOp::ProblemDescription& problem) const
+    Op2dTensorSquash::GetSolution([[maybe unused]] const ExecutionContext& context,
+                                  const miopen::tensorOp::ProblemDescription& problem) const
 {
     auto result = ConvSolution{miopenStatusSuccess};
 

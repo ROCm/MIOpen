@@ -37,7 +37,7 @@ namespace solver {
 
 namespace tensorOp {
 
-bool OpTensorFwdBias::IsApplicable(const ExecutionContext& context,
+bool OpTensorFwdBias::IsApplicable([[maybe unused]] const ExecutionContext& context,
                                    const miopen::tensorOp::ProblemDescription& problem) const
 {
     const auto& aTensorDesc = problem.GetATensorDesc();
@@ -73,14 +73,14 @@ bool OpTensorFwdBias::IsApplicable(const ExecutionContext& context,
     return false;
 }
 
-std::size_t
-OpTensorFwdBias::GetWorkspaceSize(const ExecutionContext& context,
-                                  const miopen::tensorOp::ProblemDescription& problem) const
+std::size_t OpTensorFwdBias::GetWorkspaceSize(
+    [[maybe unused]] const ExecutionContext& context,
+    [[maybe unused]] const miopen::tensorOp::ProblemDescription& problem) const
 {
     return 0;
 }
 
-ConvSolution OpTensorFwdBias::GetSolution(const ExecutionContext& context,
+ConvSolution OpTensorFwdBias::GetSolution([[maybe unused]] const ExecutionContext& context,
                                           const miopen::tensorOp::ProblemDescription& problem) const
 {
     auto result = ConvSolution{miopenStatusSuccess};

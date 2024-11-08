@@ -103,7 +103,7 @@ struct ProblemDescription : ProblemDescriptionBase
         }
     }
 
-    const miopenTensorOp_t GetTensorOp() const { return tensorOp; }
+    miopenTensorOp_t GetTensorOp() const { return tensorOp; }
 
     float GetBeta() const { return beta; }
 
@@ -111,7 +111,7 @@ struct ProblemDescription : ProblemDescriptionBase
     const TensorDescriptor& GetBTensorDesc() const { return bTensorDesc; }
     const TensorDescriptor& GetCTensorDesc() const { return cTensorDesc; }
 
-    const bool GetNonStandardSquash() const { return nonStandardSquash; }
+    bool GetNonStandardSquash() const { return nonStandardSquash; }
 
     NetworkConfig MakeNetworkConfig() const override;
 
