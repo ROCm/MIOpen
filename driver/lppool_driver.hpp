@@ -286,7 +286,7 @@ int LPPoolDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     }
     status = input_dev->ToGPU(q, input.data());
 
-    if(forw == 0)
+    if(forw == 2)
     {
         for(int i = 0; i < output_sz; i++)
         {
@@ -329,9 +329,9 @@ int LPPoolDriver<Tgpu, Tref>::RunForwardGPU()
                                           outputDesc,
                                           output_dev->GetMem(),
                                           ksize[0],
-                                          ksize.size() == 4 ? ksize[1] : 1,
+                                          ksize.size() == 2 ? ksize[1] : 1,
                                           stride[0],
-                                          stride.size() == 4 ? stride[1] : 1,
+                                          stride.size() == 2 ? stride[1] : 1,
                                           norm_type);
         MIOPEN_THROW_IF(status != miopenStatusSuccess, "Error in miopenLPPoolForward");
 
@@ -427,9 +427,9 @@ int LPPoolDriver<Tgpu, Tref>::RunBackwardGPU()
                                            inputGradDesc,
                                            input_grad_dev->GetMem(),
                                            ksize[0],
-                                           ksize.size() == 4 ? ksize[1] : 1,
+                                           ksize.size() == 2 ? ksize[1] : 1,
                                            stride[0],
-                                           stride.size() == 4 ? stride[1] : 1,
+                                           stride.size() == 2 ? stride[1] : 1,
                                            norm_type);
         MIOPEN_THROW_IF(status != miopenStatusSuccess, "Error in miopenLPPoolBackward");
 
