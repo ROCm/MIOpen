@@ -38,7 +38,7 @@ namespace solver {
 
 namespace tensorOp {
 
-bool Op5dTensorGeneric::IsApplicable([[maybe unused]] const ExecutionContext& context,
+bool Op5dTensorGeneric::IsApplicable([[maybe_unused]] const ExecutionContext& context,
                                      const miopen::tensorOp::ProblemDescription& problem) const
 {
     const auto& aTensorDesc = problem.GetATensorDesc();
@@ -59,8 +59,8 @@ bool Op5dTensorGeneric::IsApplicable([[maybe unused]] const ExecutionContext& co
 }
 
 std::size_t Op5dTensorGeneric::GetWorkspaceSize(
-    [[maybe unused]] const ExecutionContext& context,
-    [[maybe unused]] const miopen::tensorOp::ProblemDescription& problem) const
+    [[maybe_unused]] const ExecutionContext& context,
+    [[maybe_unused]] const miopen::tensorOp::ProblemDescription& problem) const
 {
     return 0;
 }

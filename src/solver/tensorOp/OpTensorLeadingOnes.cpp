@@ -37,7 +37,7 @@ namespace solver {
 
 namespace tensorOp {
 
-bool OpTensorLeadingOnes::IsApplicable([[maybe unused]] const ExecutionContext& context,
+bool OpTensorLeadingOnes::IsApplicable([[maybe_unused]] const ExecutionContext& context,
                                        const miopen::tensorOp::ProblemDescription& problem) const
 {
     const auto& aTensorDesc = problem.GetATensorDesc();
@@ -91,15 +91,15 @@ bool OpTensorLeadingOnes::IsApplicable([[maybe unused]] const ExecutionContext& 
 }
 
 std::size_t OpTensorLeadingOnes::GetWorkspaceSize(
-    [[maybe unused]] const ExecutionContext& context,
-    [[maybe unused]] const miopen::tensorOp::ProblemDescription& problem) const
+    [[maybe_unused]] const ExecutionContext& context,
+    [[maybe_unused]] const miopen::tensorOp::ProblemDescription& problem) const
 {
     return 0;
 }
 
 ConvSolution
-    OpTensorLeadingOnes::GetSolution([[maybe unused]] const ExecutionContext& context,
-                                     const miopen::tensorOp::ProblemDescription& problem) const
+OpTensorLeadingOnes::GetSolution([[maybe_unused]] const ExecutionContext& context,
+                                 const miopen::tensorOp::ProblemDescription& problem) const
 {
     auto result = ConvSolution{miopenStatusSuccess};
 

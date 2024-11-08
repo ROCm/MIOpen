@@ -38,7 +38,7 @@ namespace solver {
 
 namespace tensorOp {
 
-bool Op2dTensorLite::IsApplicable([[maybe unused]] const ExecutionContext& context,
+bool Op2dTensorLite::IsApplicable([[maybe_unused]] const ExecutionContext& context,
                                   const miopen::tensorOp::ProblemDescription& problem) const
 {
     const auto& aTensorDesc = problem.GetATensorDesc();
@@ -82,13 +82,13 @@ bool Op2dTensorLite::IsApplicable([[maybe unused]] const ExecutionContext& conte
 }
 
 std::size_t Op2dTensorLite::GetWorkspaceSize(
-    [[maybe unused]] const ExecutionContext& context,
-    [[maybe unused]] const miopen::tensorOp::ProblemDescription& problem) const
+    [[maybe_unused]] const ExecutionContext& context,
+    [[maybe_unused]] const miopen::tensorOp::ProblemDescription& problem) const
 {
     return 0;
 }
 
-ConvSolution Op2dTensorLite::GetSolution([[maybe unused]] const ExecutionContext& context,
+ConvSolution Op2dTensorLite::GetSolution([[maybe_unused]] const ExecutionContext& context,
                                          const miopen::tensorOp::ProblemDescription& problem) const
 {
     auto result = ConvSolution{miopenStatusSuccess};
