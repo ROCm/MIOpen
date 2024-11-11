@@ -927,7 +927,8 @@ ConvSolution InitInvokerFactoryNHWC(const ExecutionContext&,
                 auto invoker_ptr     = sh_conv_ptr->MakeInvokerPointer();
                 HipEventProfiler pfr(handle);
 
-                // Zero out the buffer for BWDs data since it won't always write all output values.
+                // Zero out the buffer for output data since it won't always write all output
+                // values.
                 if constexpr(std::is_same_v<CastType, miopen::conv::DataInvokeParams>)
                 {
                     ZeroOutTensor(handle, data_ctx.tensors.outDesc, data_ctx.tensors.out);
