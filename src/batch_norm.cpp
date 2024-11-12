@@ -66,27 +66,34 @@ void DeriveBNTensorDescriptor(TensorDescriptor& derivedBnDesc,
 
 TensorDescriptor BuildReshaped4DTensorDescriptor(const miopen::TensorDescriptor& tDesc)
 {
+    std::vector<size_t> dims(tDesc.GetLengths());
+
     auto dataType = tDesc.GetType();
     auto layout   = tDesc.GetLayout_t();
     if(layout == miopenTensorNCDHW)
     {
         layout = miopenTensorNCHW;
+
+        // NxCxDxHxW -> NxCx(D*H)xW
+        dims[2] *= dims[3];
+        dims[3] = dims[4];
+        dims.pop_back();
     }
     else if(layout == miopenTensorNDHWC)
     {
         layout = miopenTensorNHWC;
+
+        // NxDxHxWxC -> Nx(D*H)xWxC
+        dims[1] *= dims[2];
+        dims[2] = dims[3];
+        dims[3] = dims[4];
+        dims.pop_back();
     }
     else
     {
         std::cout << "Cannot handle layout : " << layout << "\n";
         exit(EXIT_FAILURE); // NOLINT (concurrency-mt-unsafe)
     }
-    std::vector<size_t> dims(tDesc.GetLengths());
-
-    // NxCxDxHxW -> NxCx(D*H)xW
-    dims[2] *= dims[3];
-    dims[3] = dims[4];
-    dims.pop_back();
 
     return {dataType, layout, dims};
 }
