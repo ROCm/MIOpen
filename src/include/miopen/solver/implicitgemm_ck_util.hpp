@@ -635,6 +635,28 @@ inline size_t GetWorkspaceSizeLayoutTransformConv(const miopen::conv::ProblemDes
     return wt.GetSize();
 }
 
+inline void
+ZeroOutTensor(const Handle& handle, const TensorDescriptor& tensorDesc, Data_t tensorData)
+{
+#if MIOPEN_BACKEND_HIP
+    // SetTensor is required for non-packed tensors, but is also slower.
+    // Use faster clear if possible.
+    if(tensorDesc.IsPacked())
+    {
+        auto status = hipMemsetAsync(tensorData, 0, tensorDesc.GetNumBytes(), handle.GetStream());
+        if(status != hipSuccess)
+        {
+            MIOPEN_THROW_HIP_STATUS(status, "hipMemsetAsync() failed");
+        }
+    }
+    else
+#endif
+    {
+        auto zero = 0.0f;
+        SetTensor(handle, tensorDesc, tensorData, &zero);
+    }
+}
+
 template <typename DeviceOpType,
           typename CKArgsType,
           typename CastType,
@@ -735,7 +757,9 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
             output_init_tr_inst.ConvertFrom(handle, kernels, conv_tensors);
 
             /// \todo: Will need SetTensor() to properly zero out non-packed tensors
-            if(output_tr_inst.GetConvOperandTag() == internal::ConvOperandTag::Weights)
+            /// Note: Need to clear buffer memory for BWD data since all values may not be set.
+            if(output_tr_inst.GetConvOperandTag() == internal::ConvOperandTag::Weights ||
+               output_tr_inst.GetConvOperandTag() == internal::ConvOperandTag::Input)
             {
                 output_tr_inst.ZeroOutBuffer(handle);
             }
@@ -868,9 +892,7 @@ ConvSolution InitInvokerFactoryNHWC(const ExecutionContext&,
 
                 if(alpha_beta_case == DEFAULT)
                 {
-                    auto zero           = 0.0f;
-                    const auto& tensors = data_ctx.tensors;
-                    SetTensor(handle, tensors.dwDesc, tensors.dw, &zero);
+                    ZeroOutTensor(handle, data_ctx.tensors.dwDesc, data_ctx.tensors.dw);
                 }
                 // use captured value, other wise getting warning
                 // "lambda capture is not used" since this variable is only used in assert.
@@ -903,6 +925,13 @@ ConvSolution InitInvokerFactoryNHWC(const ExecutionContext&,
                                                        data_ctx.beta.GetAsFloat());
                 auto invoker_ptr     = sh_conv_ptr->MakeInvokerPointer();
                 HipEventProfiler pfr(handle);
+
+                // Zero out the buffer for BWDs data since it won't always write all output values.
+                if constexpr(std::is_same_v<CastType, miopen::conv::DataInvokeParams>)
+                {
+                    ZeroOutTensor(handle, data_ctx.tensors.outDesc, data_ctx.tensors.out);
+                }
+
                 invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), false});
             };
         };
