@@ -81,11 +81,7 @@ function(add_gtest TEST_NAME TEST_CPP)
     if (NOT MIOPEN_TEST_DEEPBENCH)
         add_gtest_negative_filter("*DeepBench*")
     endif()
-
-    if (NOT CODECOV_TEST)
-        add_gtest_negative_filter("*CodecovTest*")
-    endif()
-
+    
     if (NOT MIOPEN_TEST_CONV)
         add_gtest_negative_filter("*MIOpenTestConv*")
     endif()
