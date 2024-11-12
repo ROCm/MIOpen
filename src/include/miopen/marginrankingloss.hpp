@@ -33,8 +33,18 @@ struct TensorDescriptor;
 
 namespace marginrankingloss {
 
+MIOPEN_INTERNALS_EXPORT std::size_t
+GetMarginRankingLossForwardWorkspaceSize(Handle& handle,
+                                         const TensorDescriptor& input1Desc,
+                                         const TensorDescriptor& input2Desc,
+                                         const TensorDescriptor& targetDesc,
+                                         const TensorDescriptor& outputDesc,
+                                         miopenMarginRakningLossReductionMode_t reduction);
+
 MIOPEN_INTERNALS_EXPORT miopenStatus_t
 MarginRankingLossForward(Handle& handle,
+                         Data_t workspace,
+                         size_t workspaceSizeInBytes,
                          const TensorDescriptor& input1Desc,
                          ConstData_t input1,
                          const TensorDescriptor& input2Desc,

@@ -24,8 +24,8 @@
  *
  *******************************************************************************/
 
-#include "miopen/marginrankingloss/problem_description.hpp"
-#include "miopen/names.hpp"
+#include <miopen/marginrankingloss/problem_description.hpp>
+#include <miopen/names.hpp>
 
 #include <sstream>
 
@@ -45,8 +45,7 @@ NetworkConfig ProblemDescriptionForward::MakeNetworkConfig() const
     ss << "lengths";
     for(auto length : lengths)
         ss << length << ',';
-    ss << "margin" << margin;
-    ss << "reduction" << (int)reduction_mode;
+    ss << "reduction" << static_cast<int>(reduction_mode);
 
     return NetworkConfig{ss.str()};
 }
@@ -63,8 +62,7 @@ NetworkConfig ProblemDescriptionBackward::MakeNetworkConfig() const
     ss << "lengths";
     for(auto length : lengths)
         ss << length << ',';
-    ss << "margin" << margin;
-    ss << "reduction" << (int)reduction_mode;
+    ss << "reduction" << static_cast<int>(reduction_mode);
 
     return NetworkConfig{ss.str()};
 }

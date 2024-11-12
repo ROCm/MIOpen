@@ -23,8 +23,8 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include "registry_driver_maker.hpp"
 #include "marginrankingloss_driver.hpp"
+#include "registry_driver_maker.hpp"
 
 static Driver* makeDriver(const std::string& base_arg)
 {

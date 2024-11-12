@@ -7807,21 +7807,48 @@ typedef enum
               get mean value */
 } miopenMarginRakningLossReductionMode_t;
 
+/*! @brief Helper function to query the minimum workspace size required by the
+MarginRankingLoss call
+ *
+ * @param [in]  handle              MIOpen Handle (input)
+ * @param [in]  input1Desc          Tensor descriptor for input 1 tensor (input)
+ * @param [in]  input2Desc          Tensor descriptor for input 1 tensor (input)
+ * @param [in]  targetDesc          Tensor descriptor for target tensor (input)
+ * @param [in]  outputDesc          Tensor descriptor for output tensor (input)
+*  @param [in]  reduction           Reduction mode (sum, mean). For none reduction we don't need to
+use this function (input)
+ * @param [out] sizeInBytes         Pointer to data to return the minimum workspace size (output)
+ * @return                          miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenGetMarginRankingLossForwardWorkspaceSize(
+    miopenHandle_t handle,
+    const miopenTensorDescriptor_t input1Desc,
+    const miopenTensorDescriptor_t input2Desc,
+    const miopenTensorDescriptor_t targetDesc,
+    const miopenTensorDescriptor_t outputDesc,
+    const miopenMarginRakningLossReductionMode_t reduction,
+    size_t* sizeInBytes);
+
 /*! @brief Execute a marginrankingloss forward layer
  *
- * @param handle                   MIOpen Handle (input)
- * @param workspace                Address of the allocated workspace data (input)
- * @param workspaceSizeInBytes     Size in bytes of the allocated workspace data (input)
- * @param input1Desc               Tensor descriptor for the first input tensor (input)
- * @param input1                   Data tensor first input (input)
- * @param input2Desc               Tensor descriptor for the second input tensor (input)
- * @param input2                   Data tensor second input (input)
- * @param targetDesc               Tensor descriptor for the target tensor (input)
- * @param target                   Data tensor target (input)
- * @param outputDesc               Tensor descriptor for the output tensor (output)
- * @param output                   Data tensor output (output)
- * @param margin                   Margin value (input)
- * @param reduction_mode           Reduction mode (input)
+ * @param handle                  MIOpen Handle (input)
+ * @param workspace               Address of the allocated workspace data (input)
+ * @param workspaceSizeInBytes    Size in bytes of the allocated workspace data (input)
+ * @param input1Desc              Tensor descriptor for the first input tensor (input)
+ * @param input1                  Data tensor first input (input)
+ * @param input2Desc              Tensor descriptor for the second input tensor (input)
+ * @param input2                  Data tensor second input (input)
+ * @param targetDesc              Tensor descriptor for the target tensor (input)
+ * @param target                  Data tensor target (input)
+ * @param outputDesc              Tensor descriptor for the output tensor (output)
+ * @param output                  Data tensor output (output)
+ * @param margin                  Margin value (input)
+ * @param reduction_mode          Reduction mode. If reduction mode is mean or sum, you must provide
+ * param workspace and workspaceSizeInBytes. Call miopenGetMarginRankingLossForwardWorkspaceSize to
+ * get workspaceSizeInBytes (input)
+ * @param workspace               Address of the allocated workspace data (Default = null) (input)
+ * @param workspaceSizeInBytes    Size in bytes of the allocated workspace data (Default = 0)
+ * (input)
  * @return                         miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t
@@ -7835,7 +7862,9 @@ miopenMarginRankingLossForward(miopenHandle_t handle,
                                const miopenTensorDescriptor_t outputDesc,
                                void* output,
                                float margin,
-                               miopenMarginRakningLossReductionMode_t reduction_mode);
+                               miopenMarginRakningLossReductionMode_t reduction_mode,
+                               void* workspace             = nullptr,
+                               size_t workspaceSizeInBytes = 0);
 
 /*! @brief Execute a marginrankingloss backward layer
  *

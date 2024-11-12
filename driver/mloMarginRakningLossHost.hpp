@@ -23,196 +23,134 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-
-#ifndef MLO_MARGINRANKINGLOSS_MHOST_H_
-#define MLO_MARGINRANKINGLOSS_MHOST_H_
+#pragma once
 
 #include <miopen/tensor.hpp>
-#include <miopen/tensor_view.hpp>
+#include <miopen/tensor_view_utils.hpp>
+#include <../test/ford.hpp>
 
 template <typename Tgpu, typename Tcheck>
-int32_t mloMarginRankingLossReducedForwardRunHost(const miopenTensorDescriptor_t input1Desc,
-                                                  const Tgpu* input1,
-                                                  const miopenTensorDescriptor_t input2Desc,
-                                                  const Tgpu* input2,
-                                                  const miopenTensorDescriptor_t targetDesc,
-                                                  const Tgpu* target,
-                                                  const miopenTensorDescriptor_t outputDesc,
-                                                  Tcheck* output,
-                                                  float margin,
-                                                  float divisor)
+int32_t mloMarginRankingLossForwardRunHost(const miopenTensorDescriptor_t input1Desc,
+                                           const Tgpu* input1,
+                                           const miopenTensorDescriptor_t input2Desc,
+                                           const Tgpu* input2,
+                                           const miopenTensorDescriptor_t targetDesc,
+                                           const Tgpu* target,
+                                           const miopenTensorDescriptor_t outputDesc,
+                                           Tcheck* output,
+                                           float margin,
+                                           float divisor,
+                                           miopenMarginRakningLossReductionMode_t reduction_mode)
 {
-    tensor_view_5d_t I1_tv = get_inner_expanded_tv_5d(miopen::deref(input1Desc));
-    tensor_view_5d_t I2_tv = get_inner_expanded_tv_5d(miopen::deref(input2Desc));
-    tensor_view_5d_t T_tv  = get_inner_expanded_tv_5d(miopen::deref(targetDesc));
-    tensor_view_5d_t O_tv  = get_inner_expanded_tv_5d(miopen::deref(outputDesc));
-    size_t tensor_size     = miopen::deref(targetDesc).GetElementSize();
-    size_t n[5];
+    tensor_view_t<5> I1_tv = get_inner_expanded_tv<5>(miopen::deref(input1Desc));
+    tensor_view_t<5> I2_tv = get_inner_expanded_tv<5>(miopen::deref(input2Desc));
+    tensor_view_t<5> T_tv  = get_inner_expanded_tv<5>(miopen::deref(targetDesc));
+    tensor_view_t<5> O_tv  = get_inner_expanded_tv<5>(miopen::deref(outputDesc));
+    uint64_t tensor_size   = miopen::deref(targetDesc).GetElementSize();
+    float sum_loss         = 0;
 
-    for(size_t idx = 0; idx < tensor_size; ++idx)
+    for(uint64_t gid = 0; gid < tensor_size; ++gid)
     {
-        GET_NCDHW(n[0], n[1], n[2], n[3], n[4], idx, T_tv)
-        size_t I1idx = TV5D_IDX(I1_tv, n[0], n[1], n[2], n[3], n[4]);
-        size_t I2idx = TV5D_IDX(I2_tv, n[0], n[1], n[2], n[3], n[4]);
-        size_t Tidx  = TV5D_IDX(T_tv, n[0], n[1], n[2], n[3], n[4]);
-        size_t Oidx  = TV5D_IDX(O_tv, n[0], n[1], n[2], n[3], n[4]);
+        uint64_t n0123 = gid / I1_tv.size[4], n4 = gid % I1_tv.size[4];
+        uint64_t n012 = n0123 / I1_tv.size[3], n3 = n0123 % I1_tv.size[3];
+        uint64_t n01 = n012 / I1_tv.size[2], n2 = n012 % I1_tv.size[2];
+        uint64_t n0 = n01 / I1_tv.size[1], n1 = n01 % I1_tv.size[1];
 
-        output[Oidx] = static_cast<Tcheck>(-target[Tidx]) * (static_cast<Tcheck>(input1[I1idx]) -
-                                                             static_cast<Tcheck>(input2[I2idx])) +
-                       margin;
-        if(output[Oidx] < 0)
-            output[Oidx] = 0.0f;
-        output[Oidx] /= divisor;
-    }
+        if(!(n0 < I1_tv.size[0]))
+            return 0;
 
-    return 0;
-}
+        uint64_t I1idx = I1_tv.get_tensor_view_idx({n0, n1, n2, n3, n4});
+        uint64_t I2idx = I2_tv.get_tensor_view_idx({n0, n1, n2, n3, n4});
+        uint64_t Tidx  = T_tv.get_tensor_view_idx({n0, n1, n2, n3, n4});
 
-template <typename Tgpu, typename Tcheck>
-int32_t mloMarginRankingLossReducedBackwardRunHost(const miopenTensorDescriptor_t input1Desc,
-                                                   const Tgpu* input1,
-                                                   const miopenTensorDescriptor_t input2Desc,
-                                                   const Tgpu* input2,
-                                                   const miopenTensorDescriptor_t targetDesc,
-                                                   const Tgpu* target,
-                                                   const miopenTensorDescriptor_t outGradDesc,
-                                                   const Tgpu* outGrad,
-                                                   const miopenTensorDescriptor_t in1GradDesc,
-                                                   Tcheck* in1Grad,
-                                                   const miopenTensorDescriptor_t in2GradDesc,
-                                                   Tcheck* in2Grad,
-                                                   float margin,
-                                                   float divisor)
-{
-    tensor_view_5d_t I1_tv  = get_inner_expanded_tv_5d(miopen::deref(input1Desc));
-    tensor_view_5d_t I2_tv  = get_inner_expanded_tv_5d(miopen::deref(input2Desc));
-    tensor_view_5d_t T_tv   = get_inner_expanded_tv_5d(miopen::deref(targetDesc));
-    tensor_view_5d_t dO_tv  = get_inner_expanded_tv_5d(miopen::deref(outGradDesc));
-    tensor_view_5d_t dI1_tv = get_inner_expanded_tv_5d(miopen::deref(in1GradDesc));
-    tensor_view_5d_t dI2_tv = get_inner_expanded_tv_5d(miopen::deref(in2GradDesc));
-    size_t tensor_size      = miopen::deref(targetDesc).GetElementSize();
-    size_t n[5];
+        float output_accum =
+            -static_cast<float>(target[Tidx]) *
+                (static_cast<float>(input1[I1idx]) - static_cast<float>(input2[I2idx])) +
+            margin;
+        if(output_accum < 0.0f)
+            output_accum = 0.0f;
 
-    for(size_t idx = 0; idx < tensor_size; ++idx)
-    {
-        GET_NCDHW(n[0], n[1], n[2], n[3], n[4], idx, T_tv)
-        size_t I1idx  = TV5D_IDX(I1_tv, n[0], n[1], n[2], n[3], n[4]);
-        size_t I2idx  = TV5D_IDX(I2_tv, n[0], n[1], n[2], n[3], n[4]);
-        size_t Tidx   = TV5D_IDX(T_tv, n[0], n[1], n[2], n[3], n[4]);
-        size_t dOidx  = TV5D_IDX(dO_tv, n[0], n[1], n[2], n[3], n[4]);
-        size_t dI1idx = TV5D_IDX(dI1_tv, n[0], n[1], n[2], n[3], n[4]);
-        size_t dI2idx = TV5D_IDX(dI2_tv, n[0], n[1], n[2], n[3], n[4]);
-
-        Tgpu t = -target[Tidx] * (input1[I1idx] - input2[I2idx]) + static_cast<Tgpu>(margin);
-
-        if(t < 0)
+        if(reduction_mode == MIOPEN_MARGINRANKINGLOSS_REDUCTION_NONE)
         {
-            if(in1Grad)
-                in1Grad[dI1idx] = 0.0f;
-            if(in2Grad)
-                in2Grad[dI2idx] = 0.0f;
+            uint64_t Oidx = O_tv.get_tensor_view_idx({n0, n1, n2, n3, n4});
+            output[Oidx]  = static_cast<Tcheck>(output_accum);
         }
         else
         {
-            if(in1Grad)
-                in1Grad[dI1idx] = -target[Tidx] * outGrad[dOidx] / divisor;
-            if(in2Grad)
-                in2Grad[dI2idx] = target[Tidx] * outGrad[dOidx] / divisor;
+            sum_loss += (output_accum / divisor);
         }
     }
-
-    return 0;
-}
-
-template <typename Tgpu, typename Tcheck>
-int32_t mloMarginRankingLossUnreducedForwardRunHost(const miopenTensorDescriptor_t input1Desc,
-                                                    const Tgpu* input1,
-                                                    const miopenTensorDescriptor_t input2Desc,
-                                                    const Tgpu* input2,
-                                                    const miopenTensorDescriptor_t targetDesc,
-                                                    const Tgpu* target,
-                                                    const miopenTensorDescriptor_t outputDesc,
-                                                    Tcheck* output,
-                                                    float margin)
-{
-    tensor_view_5d_t I1_tv = get_inner_expanded_tv_5d(miopen::deref(input1Desc));
-    tensor_view_5d_t I2_tv = get_inner_expanded_tv_5d(miopen::deref(input2Desc));
-    tensor_view_5d_t T_tv  = get_inner_expanded_tv_5d(miopen::deref(targetDesc));
-    tensor_view_5d_t O_tv  = get_inner_expanded_tv_5d(miopen::deref(outputDesc));
-    size_t tensor_size     = miopen::deref(targetDesc).GetElementSize();
-    size_t n[5];
-
-    for(size_t idx = 0; idx < tensor_size; ++idx)
+    if(reduction_mode != MIOPEN_MARGINRANKINGLOSS_REDUCTION_NONE)
     {
-        GET_NCDHW(n[0], n[1], n[2], n[3], n[4], idx, T_tv)
-        size_t I1idx = TV5D_IDX(I1_tv, n[0], n[1], n[2], n[3], n[4]);
-        size_t I2idx = TV5D_IDX(I2_tv, n[0], n[1], n[2], n[3], n[4]);
-        size_t Tidx  = TV5D_IDX(T_tv, n[0], n[1], n[2], n[3], n[4]);
-        size_t Oidx  = TV5D_IDX(O_tv, n[0], n[1], n[2], n[3], n[4]);
-
-        output[Oidx] = static_cast<Tcheck>(-target[Tidx]) * (static_cast<Tcheck>(input1[I1idx]) -
-                                                             static_cast<Tcheck>(input2[I2idx])) +
-                       margin;
-        if(output[Oidx] < 0)
-            output[Oidx] = 0.0f;
+        output[0] = static_cast<Tcheck>(sum_loss);
     }
 
     return 0;
 }
 
 template <typename Tgpu, typename Tcheck>
-int32_t mloMarginRankingLossUnreducedBackwardRunHost(const miopenTensorDescriptor_t input1Desc,
-                                                     const Tgpu* input1,
-                                                     const miopenTensorDescriptor_t input2Desc,
-                                                     const Tgpu* input2,
-                                                     const miopenTensorDescriptor_t targetDesc,
-                                                     const Tgpu* target,
-                                                     const miopenTensorDescriptor_t outGradDesc,
-                                                     const Tgpu* outGrad,
-                                                     const miopenTensorDescriptor_t in1GradDesc,
-                                                     Tcheck* in1Grad,
-                                                     const miopenTensorDescriptor_t in2GradDesc,
-                                                     Tcheck* in2Grad,
-                                                     float margin)
+int32_t mloMarginRankingLossBackwardRunHost(const miopenTensorDescriptor_t input1Desc,
+                                            const Tgpu* input1,
+                                            const miopenTensorDescriptor_t input2Desc,
+                                            const Tgpu* input2,
+                                            const miopenTensorDescriptor_t targetDesc,
+                                            const Tgpu* target,
+                                            const miopenTensorDescriptor_t outGradDesc,
+                                            const Tgpu* outGrad,
+                                            const miopenTensorDescriptor_t in1GradDesc,
+                                            Tcheck* in1Grad,
+                                            const miopenTensorDescriptor_t in2GradDesc,
+                                            Tcheck* in2Grad,
+                                            float margin,
+                                            float divisor,
+                                            miopenMarginRakningLossReductionMode_t reduction_mode)
 {
-    tensor_view_5d_t I1_tv  = get_inner_expanded_tv_5d(miopen::deref(input1Desc));
-    tensor_view_5d_t I2_tv  = get_inner_expanded_tv_5d(miopen::deref(input2Desc));
-    tensor_view_5d_t T_tv   = get_inner_expanded_tv_5d(miopen::deref(targetDesc));
-    tensor_view_5d_t dO_tv  = get_inner_expanded_tv_5d(miopen::deref(outGradDesc));
-    tensor_view_5d_t dI1_tv = get_inner_expanded_tv_5d(miopen::deref(in1GradDesc));
-    tensor_view_5d_t dI2_tv = get_inner_expanded_tv_5d(miopen::deref(in2GradDesc));
-    size_t tensor_size      = miopen::deref(targetDesc).GetElementSize();
-    size_t n[5];
+    tensor_view_t<5> I1_tv  = get_inner_expanded_tv<5>(miopen::deref(input1Desc));
+    tensor_view_t<5> I2_tv  = get_inner_expanded_tv<5>(miopen::deref(input2Desc));
+    tensor_view_t<5> T_tv   = get_inner_expanded_tv<5>(miopen::deref(targetDesc));
+    tensor_view_t<5> dO_tv  = get_inner_expanded_tv<5>(miopen::deref(outGradDesc));
+    tensor_view_t<5> dI1_tv = get_inner_expanded_tv<5>(miopen::deref(in1GradDesc));
+    tensor_view_t<5> dI2_tv = get_inner_expanded_tv<5>(miopen::deref(in2GradDesc));
+    uint64_t tensor_size    = miopen::deref(targetDesc).GetElementSize();
 
-    for(size_t idx = 0; idx < tensor_size; ++idx)
-    {
-        GET_NCDHW(n[0], n[1], n[2], n[3], n[4], idx, T_tv)
-        size_t I1idx  = TV5D_IDX(I1_tv, n[0], n[1], n[2], n[3], n[4]);
-        size_t I2idx  = TV5D_IDX(I2_tv, n[0], n[1], n[2], n[3], n[4]);
-        size_t Tidx   = TV5D_IDX(T_tv, n[0], n[1], n[2], n[3], n[4]);
-        size_t dOidx  = TV5D_IDX(dO_tv, n[0], n[1], n[2], n[3], n[4]);
-        size_t dI1idx = TV5D_IDX(dI1_tv, n[0], n[1], n[2], n[3], n[4]);
-        size_t dI2idx = TV5D_IDX(dI2_tv, n[0], n[1], n[2], n[3], n[4]);
+    par_ford(tensor_size)([&](uint64_t gid) {
+        uint64_t n0123 = gid / I1_tv.size[4], n4 = gid % I1_tv.size[4];
+        uint64_t n012 = n0123 / I1_tv.size[3], n3 = n0123 % I1_tv.size[3];
+        uint64_t n01 = n012 / I1_tv.size[2], n2 = n012 % I1_tv.size[2];
+        uint64_t n0 = n01 / I1_tv.size[1], n1 = n01 % I1_tv.size[1];
+        uint64_t dOidx = 0;
 
-        Tgpu t = -target[Tidx] * (input1[I1idx] - input2[I2idx]) + static_cast<Tgpu>(margin);
+        if(!(n0 < I1_tv.size[0]))
+            return;
+
+        uint64_t I1idx  = I1_tv.get_tensor_view_idx({n0, n1, n2, n3, n4});
+        uint64_t I2idx  = I2_tv.get_tensor_view_idx({n0, n1, n2, n3, n4});
+        uint64_t dI1idx = dI1_tv.get_tensor_view_idx({n0, n1, n2, n3, n4});
+        uint64_t dI2idx = dI2_tv.get_tensor_view_idx({n0, n1, n2, n3, n4});
+        uint64_t Tidx   = T_tv.get_tensor_view_idx({n0, n1, n2, n3, n4});
+
+        float t = -static_cast<float>(target[Tidx]) *
+                      (static_cast<float>(input1[I1idx]) - static_cast<float>(input2[I2idx])) +
+                  margin;
 
         if(t < 0)
         {
-            if(in1Grad)
-                in1Grad[dI1idx] = 0.0f;
-            if(in2Grad)
-                in2Grad[dI2idx] = 0.0f;
+            in1Grad[dI1idx] = 0.0f;
+            in2Grad[dI2idx] = 0.0f;
         }
         else
         {
-            if(in1Grad)
-                in1Grad[dI1idx] = -target[Tidx] * outGrad[dOidx];
-            if(in2Grad)
-                in2Grad[dI2idx] = target[Tidx] * outGrad[dOidx];
+            if(reduction_mode == MIOPEN_MARGINRANKINGLOSS_REDUCTION_NONE)
+            {
+                dOidx   = dO_tv.get_tensor_view_idx({n0, n1, n2, n3, n4});
+                divisor = 1;
+            }
+            float d_accum =
+                static_cast<float>(target[Tidx]) * static_cast<float>(outGrad[dOidx]) / divisor;
+            in1Grad[dI1idx] = static_cast<Tcheck>(-d_accum);
+            in2Grad[dI2idx] = static_cast<Tcheck>(d_accum);
         }
-    }
+    });
 
     return 0;
 }
-
-#endif // MLO_MARGINRANKINGLOSS_MHOST_H_

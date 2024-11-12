@@ -24,16 +24,14 @@
  *
  *******************************************************************************/
 
-#include <miopen/conv_solution.hpp>
-#include <miopen/execution_context.hpp>
-#include <miopen/invoke_params.hpp>
-#include <miopen/tensor_view_utils.hpp>
-#include <miopen/marginrankingloss/solvers.hpp>
-
-#include <miopen/marginrankingloss/invoke_params.hpp>
 #include <miopen/datatype.hpp>
+#include <miopen/kernel_build_params.hpp>
 #include <miopen/marginrankingloss.hpp>
+#include <miopen/marginrankingloss/invoke_params.hpp>
+#include <miopen/marginrankingloss/solvers.hpp>
+#include <miopen/mlo_internal.hpp>
 #include <miopen/target_properties.hpp>
+#include <miopen/tensor_view_utils.hpp>
 
 #define LOCAL_SIZE 256
 
@@ -73,6 +71,8 @@ ConvSolution MarginRankingLossBackward::GetSolution(
         {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
         {"MIOPEN_USE_FP64", static_cast<int>(dtype == miopenDouble)},
         {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
+        {"DTYPE", miopen::GetDataType(dtype) == "bfloat16" ? "ushort" : miopen::GetDataType(dtype)},
+        {"REDUCTION_TYPE", static_cast<int>(problem.GetReductionMode())},
     };
 
     size_t xlocalsize = LOCAL_SIZE;
@@ -94,75 +94,40 @@ ConvSolution MarginRankingLossBackward::GetSolution(
     kernel.g_wk.push_back(ygridsize);
     kernel.g_wk.push_back(zgridsize);
 
-    if(problem.GetReductionMode() != MIOPEN_MARGINRANKINGLOSS_REDUCTION_NONE)
+    float divisor = 1.0f;
+    if(problem.GetReductionMode() == MIOPEN_MARGINRANKINGLOSS_REDUCTION_MEAN)
     {
-        float divisor = 1.0f;
-        if(problem.GetReductionMode() == MIOPEN_MARGINRANKINGLOSS_REDUCTION_MEAN)
-        {
-            divisor = static_cast<float>(problem.GetTargetDesc().GetElementSize());
-        }
-
-        kernel.kernel_name     = "MarginRankingLossReducedBackward5d";
-        result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
-            return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
-                decltype(auto) kernel = handle_.Run(kernels.front());
-                decltype(auto) params =
-                    raw_params.CastTo<miopen::marginrankingloss::BwdInvokeParams>();
-                auto input1_tv  = get_inner_expanded_tv<5>(deref(params.input1Desc));
-                auto input2_tv  = get_inner_expanded_tv<5>(deref(params.input2Desc));
-                auto target_tv  = get_inner_expanded_tv<5>(deref(params.targetDesc));
-                auto outGrad_tv = get_inner_expanded_tv<5>(deref(params.outGradDesc));
-                auto in1Grad_tv = get_inner_expanded_tv<5>(deref(params.in1GradDesc));
-                auto in2Grad_tv = get_inner_expanded_tv<5>(deref(params.in2GradDesc));
-
-                kernel(params.input1,
-                       params.input2,
-                       params.target,
-                       params.outGrad,
-                       params.in1Grad,
-                       params.in2Grad,
-                       params.margin,
-                       divisor,
-                       input1_tv,
-                       input2_tv,
-                       target_tv,
-                       outGrad_tv,
-                       in1Grad_tv,
-                       in2Grad_tv);
-            };
-        };
+        divisor = static_cast<float>(problem.GetTargetDesc().GetElementSize());
     }
-    else
-    {
-        kernel.kernel_name     = "MarginRankingLossUnreducedBackward5d";
-        result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
-            return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
-                decltype(auto) kernel = handle_.Run(kernels.front());
-                decltype(auto) params =
-                    raw_params.CastTo<miopen::marginrankingloss::BwdInvokeParams>();
-                auto input1_tv  = get_inner_expanded_tv<5>(deref(params.input1Desc));
-                auto input2_tv  = get_inner_expanded_tv<5>(deref(params.input2Desc));
-                auto target_tv  = get_inner_expanded_tv<5>(deref(params.targetDesc));
-                auto outGrad_tv = get_inner_expanded_tv<5>(deref(params.outGradDesc));
-                auto in1Grad_tv = get_inner_expanded_tv<5>(deref(params.in1GradDesc));
-                auto in2Grad_tv = get_inner_expanded_tv<5>(deref(params.in2GradDesc));
 
-                kernel(params.input1,
-                       params.input2,
-                       params.target,
-                       params.outGrad,
-                       params.in1Grad,
-                       params.in2Grad,
-                       params.margin,
-                       input1_tv,
-                       input2_tv,
-                       target_tv,
-                       outGrad_tv,
-                       in1Grad_tv,
-                       in2Grad_tv);
-            };
+    kernel.kernel_name     = "MarginRankingLossBackward5d";
+    result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
+        return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
+            decltype(auto) kernel = handle_.Run(kernels.front());
+            decltype(auto) params = raw_params.CastTo<miopen::marginrankingloss::BwdInvokeParams>();
+            auto input1_tv        = get_inner_expanded_tv<5>(deref(params.input1Desc));
+            auto input2_tv        = get_inner_expanded_tv<5>(deref(params.input2Desc));
+            auto target_tv        = get_inner_expanded_tv<5>(deref(params.targetDesc));
+            auto outGrad_tv       = get_inner_expanded_tv<5>(deref(params.outGradDesc));
+            auto in1Grad_tv       = get_inner_expanded_tv<5>(deref(params.in1GradDesc));
+            auto in2Grad_tv       = get_inner_expanded_tv<5>(deref(params.in2GradDesc));
+
+            kernel(params.input1,
+                   params.input2,
+                   params.target,
+                   params.outGrad,
+                   params.in1Grad,
+                   params.in2Grad,
+                   params.margin,
+                   divisor,
+                   input1_tv,
+                   input2_tv,
+                   target_tv,
+                   outGrad_tv,
+                   in1Grad_tv,
+                   in2Grad_tv);
         };
-    }
+    };
 
     result.construction_params.push_back(kernel);
     return result;

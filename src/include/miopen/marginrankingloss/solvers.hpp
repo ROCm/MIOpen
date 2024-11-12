@@ -26,13 +26,8 @@
 
 #pragma once
 
-#include "miopen/conv_solution.hpp"
-#include "miopen/execution_context.hpp"
-#include "miopen/solver.hpp"
-#include "miopen/marginrankingloss/problem_description.hpp"
-#include "miopen/kernel_build_params.hpp"
-#include "miopen/kernel_info.hpp"
-#include "miopen/mlo_internal.hpp"
+#include <miopen/marginrankingloss/problem_description.hpp>
+#include <miopen/solver.hpp>
 
 namespace miopen {
 
@@ -61,15 +56,11 @@ struct MarginRankingLossForward : MarginRankingLossForwardSolver
     GetSolution(const ExecutionContext& context,
                 const miopen::marginrankingloss::ProblemDescriptionForward& problem) const override;
 
-    std::size_t
-    GetWorkspaceSize([[maybe_unused]] const ExecutionContext& context,
-                     [[maybe_unused]] const miopen::marginrankingloss::ProblemDescriptionForward&
-                         problem) const override
-    {
-        return 0;
-    }
+    std::size_t GetWorkspaceSize(
+        const ExecutionContext& context,
+        const miopen::marginrankingloss::ProblemDescriptionForward& problem) const override;
 
-    bool MayNeedWorkspace() const override { return false; }
+    bool MayNeedWorkspace() const override { return true; }
 };
 
 struct MarginRankingLossBackward : MarginRankingLossBackwardSolver

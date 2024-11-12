@@ -32,10 +32,9 @@
 #include <gtest/gtest.h>
 #include <miopen/marginrankingloss.hpp>
 #include <miopen/miopen.h>
-#include <numeric>
-#include <ostream>
 
-inline std::ostream& operator<<(std::ostream& os, const std::vector<size_t>& v)
+template <class T>
+inline std::ostream& operator<<(std::ostream& os, const std::vector<T>& v)
 {
     os << '{';
     for(int i = 0; i < v.size(); ++i)
@@ -94,41 +93,57 @@ protected:
         auto&& handle = get_handle();
         config        = GetParam();
 
-        auto input1_gen_value = [](auto...) {
-            return prng::gen_descreet_uniform_sign<T>(1e-2, 100);
-        };
-        auto input2_gen_value = [](auto...) {
-            return prng::gen_descreet_uniform_sign<T>(1e-2, 100);
-        };
+        auto input1_gen_value = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1, 100); };
+        auto input2_gen_value = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1, 50); };
         auto target_gen_value = [](auto...) {
             return static_cast<T>(prng::gen_A_to_B<int>(0, 2) * 2 - 1);
         }; // 1 or -1
         auto dims = config.GetDims();
 
-        input1     = tensor<T>{dims}.generate(input1_gen_value);
-        input2     = tensor<T>{dims}.generate(input2_gen_value);
-        target     = tensor<T>{dims}.generate(target_gen_value);
-        output     = tensor<T>{dims};
-        ref_output = tensor<T>{dims};
-        std::fill(output.begin(), output.end(), 0);
-        std::fill(ref_output.begin(), ref_output.end(), 0);
+        input1 = tensor<T>{dims}.generate(input1_gen_value);
+        input2 = tensor<T>{dims}.generate(input2_gen_value);
+        target = tensor<T>{dims}.generate(target_gen_value);
 
         margin = config.margin;
         if(config.reduction_mode_id == 0) // None
         {
             reduction_mode = MIOPEN_MARGINRANKINGLOSS_REDUCTION_NONE;
             divisor        = 0;
+            output         = tensor<T>{dims};
+            ref_output     = tensor<T>{dims};
         }
         if(config.reduction_mode_id == 1) // Sum
         {
             reduction_mode = MIOPEN_MARGINRANKINGLOSS_REDUCTION_SUM;
             divisor        = 1;
+            output         = tensor<T>{std::vector<size_t>{1}};
+            ref_output     = tensor<T>{std::vector<size_t>{1}};
         }
         if(config.reduction_mode_id == 2) // Mean
         {
             reduction_mode = MIOPEN_MARGINRANKINGLOSS_REDUCTION_MEAN;
             divisor        = static_cast<float>(
                 std::accumulate(dims.begin(), dims.end(), 1L, std::multiplies<size_t>()));
+            output     = tensor<T>{std::vector<size_t>{1}};
+            ref_output = tensor<T>{std::vector<size_t>{1}};
+        }
+        std::fill(output.begin(), output.end(), 0);
+        std::fill(ref_output.begin(), ref_output.end(), 0);
+
+        ws_sizeInBytes = miopen::marginrankingloss::GetMarginRankingLossForwardWorkspaceSize(
+            handle, input1.desc, input2.desc, target.desc, output.desc, reduction_mode);
+        if(ws_sizeInBytes == static_cast<size_t>(-1))
+            GTEST_FAIL() << "Call GetMarginRankingLossForwardWorkspaceSize failed!";
+
+        if(ws_sizeInBytes > 0)
+        {
+            workspace = tensor<float>{std::vector<size_t>{ws_sizeInBytes / sizeof(float)}};
+            std::fill(workspace.begin(), workspace.end(), 0);
+            workspace_dev = handle.Write(workspace.data);
+        }
+        else
+        {
+            workspace_dev = nullptr;
         }
 
         input1_dev = handle.Write(input1.data);
@@ -142,30 +157,24 @@ protected:
         auto&& handle = get_handle();
         miopenStatus_t status;
 
-        status = miopen::MarginRankingLossForward(handle,
-                                                  input1.desc,
-                                                  input1_dev.get(),
-                                                  input2.desc,
-                                                  input2_dev.get(),
-                                                  target.desc,
-                                                  target_dev.get(),
-                                                  output.desc,
-                                                  output_dev.get(),
-                                                  margin,
-                                                  reduction_mode);
+        status = miopen::marginrankingloss::MarginRankingLossForward(handle,
+                                                                     workspace_dev.get(),
+                                                                     ws_sizeInBytes,
+                                                                     input1.desc,
+                                                                     input1_dev.get(),
+                                                                     input2.desc,
+                                                                     input2_dev.get(),
+                                                                     target.desc,
+                                                                     target_dev.get(),
+                                                                     output.desc,
+                                                                     output_dev.get(),
+                                                                     margin,
+                                                                     reduction_mode);
 
-        if(divisor != 0) // reduced
-        {
-            cpu_marginrankingloss_reduced_forward_5d<T>(
-                input1, input2, target, ref_output, margin, divisor);
-        }
-        else // unreduced
-        {
-            cpu_marginrankingloss_unreduced_forward_5d<T>(
-                input1, input2, target, ref_output, margin);
-        }
+        cpu_marginrankingloss_forward_5d<T>(
+            input1, input2, target, ref_output, margin, divisor, reduction_mode);
 
-        EXPECT_EQ(status, miopenStatusSuccess);
+        ASSERT_EQ(status, miopenStatusSuccess);
         output.data = handle.Read<T>(output_dev, output.data.size());
     }
 
@@ -174,9 +183,9 @@ protected:
         double threshold = std::numeric_limits<T>::epsilon();
         auto error       = miopen::rms_range(ref_output, output);
 
-        EXPECT_TRUE(miopen::range_distance(ref_output) == miopen::range_distance(output));
-        EXPECT_TRUE(error < threshold * 10) << "Error output beyond tolerance Error: " << error
-                                            << ",  Thresholdx10: " << threshold * 10;
+        ASSERT_EQ(miopen::range_distance(ref_output), miopen::range_distance(output));
+        EXPECT_LT(error, threshold * 10) << "Error output beyond tolerance Error: " << error
+                                         << ",  Tolerance: " << threshold * 10;
     }
 
     MarginRankingLossTestCase config;
@@ -185,13 +194,16 @@ protected:
     tensor<T> input2;
     tensor<T> target;
     tensor<T> output;
+    tensor<float> workspace;
     miopen::Allocator::ManageDataPtr input1_dev;
     miopen::Allocator::ManageDataPtr input2_dev;
     miopen::Allocator::ManageDataPtr target_dev;
     miopen::Allocator::ManageDataPtr output_dev;
+    miopen::Allocator::ManageDataPtr workspace_dev;
     float margin;
     miopenMarginRakningLossReductionMode_t reduction_mode;
     float divisor;
+    size_t ws_sizeInBytes;
 
     tensor<T> ref_output;
 };
@@ -205,24 +217,17 @@ protected:
         auto&& handle = get_handle();
         config        = GetParam();
 
-        auto input1_gen_value = [](auto...) {
-            return prng::gen_descreet_uniform_sign<T>(1e-2, 100);
-        };
-        auto input2_gen_value = [](auto...) {
-            return prng::gen_descreet_uniform_sign<T>(1e-2, 100);
-        };
+        auto input1_gen_value = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1, 100); };
+        auto input2_gen_value = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1, 50); };
         auto target_gen_value = [](auto...) {
             return static_cast<T>(prng::gen_A_to_B<int>(0, 2) * 2 - 1);
         }; // 1 or -1
-        auto out_gd_gen_value = [](auto...) {
-            return prng::gen_descreet_uniform_sign<T>(1e-2, 100);
-        };
-        auto dims = config.GetDims();
+        auto out_gd_gen_value = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1, 100); };
+        auto dims             = config.GetDims();
 
         input1      = tensor<T>{dims}.generate(input1_gen_value);
         input2      = tensor<T>{dims}.generate(input2_gen_value);
         target      = tensor<T>{dims}.generate(target_gen_value);
-        outGrad     = tensor<T>{dims}.generate(out_gd_gen_value);
         in1Grad     = tensor<T>{dims};
         in2Grad     = tensor<T>{dims};
         ref_in1Grad = tensor<T>{dims};
@@ -237,17 +242,20 @@ protected:
         {
             reduction_mode = MIOPEN_MARGINRANKINGLOSS_REDUCTION_NONE;
             divisor        = 0;
+            outGrad        = tensor<T>{dims}.generate(out_gd_gen_value);
         }
         if(config.reduction_mode_id == 1) // Sum
         {
             reduction_mode = MIOPEN_MARGINRANKINGLOSS_REDUCTION_SUM;
             divisor        = 1;
+            outGrad        = tensor<T>{std::vector<size_t>{1}}.generate(out_gd_gen_value);
         }
         if(config.reduction_mode_id == 2) // Mean
         {
             reduction_mode = MIOPEN_MARGINRANKINGLOSS_REDUCTION_MEAN;
             divisor        = static_cast<float>(
                 std::accumulate(dims.begin(), dims.end(), 1L, std::multiplies<size_t>()));
+            outGrad = tensor<T>{std::vector<size_t>{1}}.generate(out_gd_gen_value);
         }
 
         input1_dev  = handle.Write(input1.data);
@@ -263,32 +271,31 @@ protected:
         auto&& handle = get_handle();
         miopenStatus_t status;
 
-        status = miopen::MarginRankingLossBackward(handle,
-                                                   input1.desc,
-                                                   input1_dev.get(),
-                                                   input2.desc,
-                                                   input2_dev.get(),
-                                                   target.desc,
-                                                   target_dev.get(),
-                                                   outGrad.desc,
-                                                   outGrad_dev.get(),
-                                                   in1Grad.desc,
-                                                   in1Grad_dev.get(),
-                                                   in2Grad.desc,
-                                                   in2Grad_dev.get(),
-                                                   margin,
-                                                   reduction_mode);
+        status = miopen::marginrankingloss::MarginRankingLossBackward(handle,
+                                                                      input1.desc,
+                                                                      input1_dev.get(),
+                                                                      input2.desc,
+                                                                      input2_dev.get(),
+                                                                      target.desc,
+                                                                      target_dev.get(),
+                                                                      outGrad.desc,
+                                                                      outGrad_dev.get(),
+                                                                      in1Grad.desc,
+                                                                      in1Grad_dev.get(),
+                                                                      in2Grad.desc,
+                                                                      in2Grad_dev.get(),
+                                                                      margin,
+                                                                      reduction_mode);
 
-        if(divisor != 0) // reduced
-        {
-            cpu_marginrankingloss_reduced_backward_5d<T>(
-                input1, input2, target, outGrad, ref_in1Grad, ref_in2Grad, margin, divisor);
-        }
-        else // unreduced
-        {
-            cpu_marginrankingloss_unreduced_backward_5d<T>(
-                input1, input2, target, outGrad, ref_in1Grad, ref_in2Grad, margin);
-        }
+        cpu_marginrankingloss_backward_5d<T>(input1,
+                                             input2,
+                                             target,
+                                             outGrad,
+                                             ref_in1Grad,
+                                             ref_in2Grad,
+                                             margin,
+                                             divisor,
+                                             reduction_mode);
 
         EXPECT_EQ(status, miopenStatusSuccess);
         in1Grad.data = handle.Read<T>(in1Grad_dev, in1Grad.data.size());
@@ -301,14 +308,14 @@ protected:
         auto in1Grad_error = miopen::rms_range(ref_in1Grad, in1Grad);
         auto in2Grad_error = miopen::rms_range(ref_in2Grad, in2Grad);
 
-        EXPECT_TRUE(miopen::range_distance(ref_in1Grad) == miopen::range_distance(in1Grad));
-        EXPECT_TRUE(in1Grad_error < threshold * 10)
+        ASSERT_EQ(miopen::range_distance(ref_in1Grad), miopen::range_distance(in1Grad));
+        EXPECT_LT(in1Grad_error, threshold * 10)
             << "Error input 1 gradient beyond tolerance Error: " << in1Grad_error
-            << ",  Thresholdx10: " << threshold * 10;
-        EXPECT_TRUE(miopen::range_distance(ref_in2Grad) == miopen::range_distance(in2Grad));
-        EXPECT_TRUE(in2Grad_error < threshold * 10)
+            << ",  Tolerance: " << threshold * 10;
+        ASSERT_EQ(miopen::range_distance(ref_in2Grad), miopen::range_distance(in2Grad));
+        EXPECT_LT(in2Grad_error, threshold * 10)
             << "Error input 2 gradient beyond tolerance Error: " << in2Grad_error
-            << ",  Thresholdx10: " << threshold * 10;
+            << ",  Tolerance: " << threshold * 10;
     }
 
     MarginRankingLossTestCase config;

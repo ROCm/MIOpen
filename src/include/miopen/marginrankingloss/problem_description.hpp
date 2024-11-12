@@ -25,8 +25,9 @@
  *******************************************************************************/
 #pragma once
 
-#include <miopen/problem_description_base.hpp>
+#include <miopen/miopen.h>
 #include <miopen/activ.hpp>
+#include <miopen/problem_description_base.hpp>
 #include <miopen/tensor.hpp>
 
 namespace miopen {
@@ -52,7 +53,7 @@ struct ProblemDescriptionForward : ProblemDescriptionBase
     {
         IsSameLength();
         IsSameType();
-        IsAllApplicableDims();
+        IsApplicableDims();
     }
 
     const TensorDescriptor& GetInput1Desc() const { return input1Desc; }
@@ -72,7 +73,8 @@ struct ProblemDescriptionForward : ProblemDescriptionBase
         auto targetLengths = targetDesc.GetLengths();
         auto outputLengths = outputDesc.GetLengths();
         if((input1Lengths != input2Lengths) || (input2Lengths != targetLengths) ||
-           (targetLengths != outputLengths))
+           (GetReductionMode() == MIOPEN_MARGINRANKINGLOSS_REDUCTION_NONE &&
+            outputLengths != targetLengths))
         {
             MIOPEN_THROW(
                 miopenStatusBadParm,
@@ -93,27 +95,19 @@ struct ProblemDescriptionForward : ProblemDescriptionBase
         return true;
     }
 
-    bool IsAllApplicableDims() const
+    bool IsApplicableDims() const
     {
-        auto isApplicableDims = [](std::vector<std::size_t> dims) {
-            size_t total_elements =
-                std::accumulate(dims.begin(), dims.end(), 1, std::multiplies<size_t>());
-            for(size_t dim : dims)
-            {
-                if(total_elements == dim)
-                {
-                    return false;
-                }
-            }
-            return true;
-        };
-        if(!isApplicableDims(input1Desc.GetLengths()) ||
-           !isApplicableDims(input2Desc.GetLengths()) ||
-           !isApplicableDims(targetDesc.GetLengths()) || !isApplicableDims(outputDesc.GetLengths()))
+        auto dims = input1Desc.GetLengths();
+        size_t total_elements =
+            std::accumulate(dims.begin(), dims.end(), 1, std::multiplies<size_t>());
+        for(size_t dim : dims)
         {
-            MIOPEN_THROW(miopenStatusBadParm,
-                         "MarginRankingLossForward: Only one dim is greater than 1, there "
-                         "should be at least two dims greater than 1.");
+            if(total_elements == dim)
+            {
+                MIOPEN_THROW(miopenStatusBadParm,
+                             "MarginRankingLossForward: Only one dim is greater than 1, there "
+                             "should be at least two dims greater than 1.");
+            }
         }
         return true;
     }
@@ -152,7 +146,7 @@ struct ProblemDescriptionBackward : ProblemDescriptionBase
     {
         IsSameLength();
         IsSameType();
-        IsAllApplicableDims();
+        IsApplicableDims();
     }
 
     const TensorDescriptor& GetInput1Desc() const { return input1Desc; }
@@ -176,8 +170,9 @@ struct ProblemDescriptionBackward : ProblemDescriptionBase
         auto in1GradLengths = in1GradDesc.GetLengths();
         auto in2GradLengths = in2GradDesc.GetLengths();
         if((input1Lengths != input2Lengths) || (input2Lengths != targetLengths) ||
-           (targetLengths != outGradLengths) || (outGradLengths != in1GradLengths) ||
-           (in1GradLengths != in2GradLengths))
+           (targetLengths != in1GradLengths) || (in1GradLengths != in2GradLengths) ||
+           (GetReductionMode() == MIOPEN_MARGINRANKINGLOSS_REDUCTION_NONE &&
+            outGradLengths != in1GradLengths))
         {
             MIOPEN_THROW(
                 miopenStatusBadParm,
@@ -200,30 +195,19 @@ struct ProblemDescriptionBackward : ProblemDescriptionBase
         return true;
     }
 
-    bool IsAllApplicableDims() const
+    bool IsApplicableDims() const
     {
-        auto isApplicableDims = [](std::vector<std::size_t> dims) {
-            size_t total_elements =
-                std::accumulate(dims.begin(), dims.end(), 1, std::multiplies<size_t>());
-            for(size_t dim : dims)
-            {
-                if(total_elements == dim)
-                {
-                    return false;
-                }
-            }
-            return true;
-        };
-        if(!isApplicableDims(input1Desc.GetLengths()) ||
-           !isApplicableDims(input2Desc.GetLengths()) ||
-           !isApplicableDims(targetDesc.GetLengths()) ||
-           !isApplicableDims(outGradDesc.GetLengths()) ||
-           !isApplicableDims(in1GradDesc.GetLengths()) ||
-           !isApplicableDims(in2GradDesc.GetLengths()))
+        auto dims = in1GradDesc.GetLengths();
+        size_t total_elements =
+            std::accumulate(dims.begin(), dims.end(), 1, std::multiplies<size_t>());
+        for(size_t dim : dims)
         {
-            MIOPEN_THROW(miopenStatusBadParm,
-                         "MarginRankingLossBackward: Only one dim is greater than 1, there "
-                         "should be at least two dims greater than 1.");
+            if(total_elements == dim)
+            {
+                MIOPEN_THROW(miopenStatusBadParm,
+                             "MarginRankingLossBackward: Only one dim is greater than 1, there "
+                             "should be at least two dims greater than 1.");
+            }
         }
         return true;
     }

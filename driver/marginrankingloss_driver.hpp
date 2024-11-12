@@ -23,8 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef GUARD_MIOPEN_MARGINRANKINGLOSS_DRIVER_HPP
-#define GUARD_MIOPEN_MARGINRANKINGLOSS_DRIVER_HPP
+#pragma once
 
 #include "InputFlags.hpp"
 #include "driver.hpp"
@@ -32,12 +31,10 @@
 #include "random.hpp"
 #include "tensor_driver.hpp"
 #include "timer.hpp"
-#include "util_driver.hpp"
 
 #include <../test/tensor_holder.hpp>
 #include <../test/verify.hpp>
 
-#include <cstdio>
 #include <miopen/env.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/miopen.h>
@@ -61,6 +58,7 @@ public:
         data_type = miopen_type<Tgpu>{};
     }
 
+    std::vector<int> ComputeStrides(std::vector<int> input);
     int AddCmdLineArgs() override;
     int ParseCmdLineArgs(int argc, char* argv[]) override;
     InputFlags& GetInputFlags() override { return inflags; }
@@ -108,6 +106,7 @@ private:
     std::unique_ptr<GPUMem> outGrad_dev;
     std::unique_ptr<GPUMem> in1Grad_dev;
     std::unique_ptr<GPUMem> in2Grad_dev;
+    std::unique_ptr<GPUMem> workspace_dev;
 
     std::vector<Tgpu> input1;
     std::vector<Tgpu> input2;
@@ -124,14 +123,17 @@ private:
     std::vector<int> dims;
     float margin;
     float divisor;
-    bool is_forward;
+    int is_forward;
     miopenMarginRakningLossReductionMode_t reduction_mode;
+    bool isContiguous;
+    size_t ws_sizeInBytes;
 };
 
 template <typename Tgpu, typename Tref>
 int MarginRankingLossDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
 {
     inflags.Parse(argc, argv);
+    isContiguous = inflags.GetValueInt("is-contiguous") == 1 ? true : false;
 
     if(inflags.GetValueInt("time") == 1)
     {
@@ -141,39 +143,37 @@ int MarginRankingLossDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[]
 }
 
 template <typename Tgpu, typename Tref>
-std::vector<int> MarginRankingLossDriver<Tgpu, Tref>::GetTensorDimsFromCmd()
-{
-    auto tensor                 = inflags.GetValueTensor("dims");
-    std::vector<int> input_dims = tensor.lengths;
-    std::vector<int> ret(5 - input_dims.size(), 1);
-    // return a 5D array
-    ret.insert(ret.end(), input_dims.begin(), input_dims.end());
-    return ret;
-}
-
-template <typename Tgpu, typename Tref>
 int MarginRankingLossDriver<Tgpu, Tref>::GetandSetData()
 {
-    dims = GetTensorDimsFromCmd();
-    SetTensorNd(input1Desc, dims, data_type);
-    SetTensorNd(input2Desc, dims, data_type);
-    SetTensorNd(targetDesc, dims, data_type);
+    dims = inflags.GetValueTensor("dims").lengths;
+    std::vector<int> output_dims;
+    std::vector<int> stride = ComputeStrides(dims);
+
+    if(SetTensorNd(input1Desc, dims, stride, data_type) != miopenStatusSuccess)
+        MIOPEN_THROW("Error parsing input1 tensor: " + inflags.GetValueStr("dims") + ".");
+    if(SetTensorNd(input2Desc, dims, stride, data_type) != miopenStatusSuccess)
+        MIOPEN_THROW("Error parsing input2 tensor: " + inflags.GetValueStr("dims") + ".");
+    if(SetTensorNd(targetDesc, dims, stride, data_type) != miopenStatusSuccess)
+        MIOPEN_THROW("Error parsing target tensor: " + inflags.GetValueStr("dims") + ".");
 
     auto reduction_mode_string = inflags.GetValueStr("reduction");
     if(reduction_mode_string == "none")
     {
         reduction_mode = MIOPEN_MARGINRANKINGLOSS_REDUCTION_NONE;
         divisor        = 0.0f;
+        output_dims    = dims;
     }
     else if(reduction_mode_string == "sum")
     {
         reduction_mode = MIOPEN_MARGINRANKINGLOSS_REDUCTION_SUM;
         divisor        = 1.0f;
+        output_dims    = {1};
     }
     else if(reduction_mode_string == "mean")
     {
         reduction_mode = MIOPEN_MARGINRANKINGLOSS_REDUCTION_MEAN;
         divisor        = static_cast<float>(miopen::deref(input1Desc).GetElementSize());
+        output_dims    = {1};
     }
     else
     {
@@ -181,31 +181,47 @@ int MarginRankingLossDriver<Tgpu, Tref>::GetandSetData()
     }
 
     margin     = inflags.GetValueDouble("margin");
-    is_forward = static_cast<bool>(inflags.GetValueInt("forw"));
+    is_forward = inflags.GetValueInt("forw");
 
-    if(is_forward)
+    if(is_forward == 0 || is_forward == 1)
     {
-        SetTensorNd(outputDesc, dims, data_type);
+        if(SetTensorNd(outputDesc, output_dims, data_type) != miopenStatusSuccess)
+            MIOPEN_THROW("Error parsing output tensor: " + inflags.GetValueStr("dims") + ".");
     }
-    else
+    if(is_forward == 0 || is_forward == 2)
     {
-        SetTensorNd(outGradDesc, dims, data_type);
-        SetTensorNd(in1GradDesc, dims, data_type);
-        SetTensorNd(in2GradDesc, dims, data_type);
+        if(SetTensorNd(outGradDesc, output_dims, data_type) != miopenStatusSuccess)
+            MIOPEN_THROW("Error parsing output grad tensor: " + inflags.GetValueStr("dims") + ".");
+        if(SetTensorNd(in1GradDesc, dims, data_type) != miopenStatusSuccess)
+            MIOPEN_THROW("Error parsing input1 grad tensor: " + inflags.GetValueStr("dims") + ".");
+        if(SetTensorNd(in2GradDesc, dims, data_type) != miopenStatusSuccess)
+            MIOPEN_THROW("Error parsing input2 grad tensor: " + inflags.GetValueStr("dims") + ".");
     }
 
     return miopenStatusSuccess;
+}
+
+// Equivalent to: tensor.tranpose(0, -1).contiguous().tranpose(0, -1) incase contiguous = False
+template <typename Tgpu, typename Tref>
+std::vector<int> MarginRankingLossDriver<Tgpu, Tref>::ComputeStrides(std::vector<int> inputDim)
+{
+    if(!isContiguous)
+        std::swap(inputDim.front(), inputDim.back());
+    std::vector<int> strides(inputDim.size());
+    strides.back() = 1;
+    for(int i = inputDim.size() - 2; i >= 0; --i)
+        strides[i] = strides[i + 1] * inputDim[i + 1];
+    if(!isContiguous)
+        std::swap(strides.front(), strides.back());
+    return strides;
 }
 
 template <typename Tgpu, typename Tref>
 int MarginRankingLossDriver<Tgpu, Tref>::AddCmdLineArgs()
 {
     inflags.AddInputFlag("forw", 'F', "1", "MarginRankingLoss direction (Default=1)", "int");
-    inflags.AddInputFlag("dims",
-                         'd',
-                         "16x3x64x64x2",
-                         "The params tensor dims: N,C,H,W,D (Default=16,3,64,64,2)",
-                         "string");
+    inflags.AddTensorFlag(
+        "dims", 'd', "16x3x64x64x2", "The params tensor dims: N,C,H,W,D (Default=16x3x64x64x2).");
     inflags.AddInputFlag(
         "reduction",
         'R',
@@ -213,7 +229,7 @@ int MarginRankingLossDriver<Tgpu, Tref>::AddCmdLineArgs()
         "Specifies the reduction to apply to the output ('none'|'mean'|'sum') (Default=none)",
         "string");
     inflags.AddInputFlag("margin", 'M', "0", "Margin value (Default=0)", "string");
-
+    inflags.AddInputFlag("is-contiguous", 'C', "1", "is-contiguous (Default=1)", "int");
     inflags.AddInputFlag("iter", 'i', "10", "Number of Iterations (Default=10)", "int");
     inflags.AddInputFlag("verify", 'V', "1", "Verify (Default=1)", "int");
     inflags.AddInputFlag("time", 't', "1", "Time (Default=1)", "int");
@@ -227,26 +243,28 @@ template <typename Tgpu, typename Tref>
 int MarginRankingLossDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 {
     size_t element_size = miopen::deref(input1Desc).GetElementSize();
+    size_t out_element_size =
+        reduction_mode == MIOPEN_MARGINRANKINGLOSS_REDUCTION_NONE ? element_size : 1;
 
     uint32_t ctx = 0;
 
     input1_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, element_size, sizeof(Tgpu)));
     input2_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, element_size, sizeof(Tgpu)));
     target_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, element_size, sizeof(Tgpu)));
-    output_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, element_size, sizeof(Tgpu)));
-    outGrad_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, element_size, sizeof(Tgpu)));
+    output_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_element_size, sizeof(Tgpu)));
+    outGrad_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_element_size, sizeof(Tgpu)));
     in1Grad_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, element_size, sizeof(Tgpu)));
     in2Grad_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, element_size, sizeof(Tgpu)));
 
     input1  = std::vector<Tgpu>(element_size, static_cast<Tgpu>(0));
     input2  = std::vector<Tgpu>(element_size, static_cast<Tgpu>(0));
     target  = std::vector<Tgpu>(element_size, static_cast<Tgpu>(0));
-    output  = std::vector<Tgpu>(element_size, static_cast<Tgpu>(0));
-    outGrad = std::vector<Tgpu>(element_size, static_cast<Tgpu>(0));
+    output  = std::vector<Tgpu>(out_element_size, static_cast<Tgpu>(0));
+    outGrad = std::vector<Tgpu>(out_element_size, static_cast<Tgpu>(0));
     in1Grad = std::vector<Tgpu>(element_size, static_cast<Tgpu>(0));
     in2Grad = std::vector<Tgpu>(element_size, static_cast<Tgpu>(0));
 
-    out_host     = std::vector<Tref>(element_size, static_cast<Tref>(0));
+    out_host     = std::vector<Tref>(out_element_size, static_cast<Tref>(0));
     in1Grad_host = std::vector<Tref>(element_size, static_cast<Tref>(0));
     in2Grad_host = std::vector<Tref>(element_size, static_cast<Tref>(0));
 
@@ -257,35 +275,69 @@ int MarginRankingLossDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         target[i] = static_cast<Tgpu>(prng::gen_A_to_B<int>(0, 2) * 2 - 1); // 1 or -1
     }
     if(input1_dev->ToGPU(GetStream(), input1.data()) != 0)
-        std::cerr << "Error copying (input1) to GPU, size: " << input1_dev->GetSize() << std::endl;
-    if(input2_dev->ToGPU(GetStream(), input2.data()) != 0)
-        std::cerr << "Error copying (input2) to GPU, size: " << input2_dev->GetSize() << std::endl;
-    if(target_dev->ToGPU(GetStream(), target.data()) != 0)
-        std::cerr << "Error copying (target) to GPU, size: " << target_dev->GetSize() << std::endl;
-
-    if(is_forward)
     {
+        std::cerr << "Error copying (input1) to GPU, size: " << input1_dev->GetSize() << std::endl;
+        return miopenStatusInternalError;
+    }
+    if(input2_dev->ToGPU(GetStream(), input2.data()) != 0)
+    {
+        std::cerr << "Error copying (input2) to GPU, size: " << input2_dev->GetSize() << std::endl;
+        return miopenStatusInternalError;
+    }
+    if(target_dev->ToGPU(GetStream(), target.data()) != 0)
+    {
+        std::cerr << "Error copying (target) to GPU, size: " << target_dev->GetSize() << std::endl;
+        return miopenStatusInternalError;
+    }
+
+    if(is_forward == 0 || is_forward == 1)
+    {
+        miopenGetMarginRankingLossForwardWorkspaceSize(GetHandle(),
+                                                       input1Desc,
+                                                       input2Desc,
+                                                       targetDesc,
+                                                       outputDesc,
+                                                       reduction_mode,
+                                                       &ws_sizeInBytes);
+        if(ws_sizeInBytes == static_cast<size_t>(-1))
+        {
+            return miopenStatusAllocFailed;
+        }
+        workspace_dev = std::make_unique<GPUMem>(ctx, ws_sizeInBytes, sizeof(std::byte));
+
         fill(output.begin(), output.end(), static_cast<Tgpu>(0));
         if(output_dev->ToGPU(GetStream(), output.data()) != 0)
+        {
             std::cerr << "Error copying (out) to GPU, size: " << output_dev->GetSize() << std::endl;
+            return miopenStatusInternalError;
+        }
     }
-    else
+    if(is_forward == 0 || is_forward == 2)
     {
-        for(int i = 0; i < element_size; i++)
+        for(int i = 0; i < out_element_size; i++)
         {
             outGrad[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
         }
         fill(in1Grad.begin(), in1Grad.end(), static_cast<Tgpu>(0));
         fill(in2Grad.begin(), in2Grad.end(), static_cast<Tgpu>(0));
         if(outGrad_dev->ToGPU(GetStream(), outGrad.data()) != 0)
+        {
             std::cerr << "Error copying (outGrad) to GPU, size: " << outGrad_dev->GetSize()
                       << std::endl;
+            return miopenStatusInternalError;
+        }
         if(in1Grad_dev->ToGPU(GetStream(), in1Grad.data()) != 0)
+        {
             std::cerr << "Error copying (in1Grad) to GPU, size: " << in1Grad_dev->GetSize()
                       << std::endl;
+            return miopenStatusInternalError;
+        }
         if(in2Grad_dev->ToGPU(GetStream(), in2Grad.data()) != 0)
+        {
             std::cerr << "Error copying (in2Grad) to GPU, size: " << in2Grad_dev->GetSize()
                       << std::endl;
+            return miopenStatusInternalError;
+        }
     }
 
     return miopenStatusSuccess;
@@ -302,17 +354,21 @@ int MarginRankingLossDriver<Tgpu, Tref>::RunForwardGPU()
 
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
-        miopenMarginRankingLossForward(GetHandle(),
-                                       input1Desc,
-                                       input1_dev->GetMem(),
-                                       input2Desc,
-                                       input2_dev->GetMem(),
-                                       targetDesc,
-                                       target_dev->GetMem(),
-                                       outputDesc,
-                                       output_dev->GetMem(),
-                                       margin,
-                                       reduction_mode);
+        auto status = miopenMarginRankingLossForward(GetHandle(),
+                                                     input1Desc,
+                                                     input1_dev->GetMem(),
+                                                     input2Desc,
+                                                     input2_dev->GetMem(),
+                                                     targetDesc,
+                                                     target_dev->GetMem(),
+                                                     outputDesc,
+                                                     output_dev->GetMem(),
+                                                     margin,
+                                                     reduction_mode,
+                                                     workspace_dev->GetMem(),
+                                                     ws_sizeInBytes);
+        MIOPEN_THROW_IF(status != miopenStatusSuccess, "Error in miopenMarginRankingLossForward");
+
         float time = 0.0;
         miopenGetKernelTime(GetHandle(), &time);
         kernel_total_time += time;
@@ -337,6 +393,7 @@ int MarginRankingLossDriver<Tgpu, Tref>::RunForwardGPU()
     {
         std::cerr << "Error copying (output_dev) from GPU, size: " << output_dev->GetSize()
                   << std::endl;
+        return miopenStatusInternalError;
     }
 
     return miopenStatusSuccess;
@@ -353,21 +410,23 @@ int MarginRankingLossDriver<Tgpu, Tref>::RunBackwardGPU()
 
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
-        miopenMarginRankingLossBackward(GetHandle(),
-                                        input1Desc,
-                                        input1_dev->GetMem(),
-                                        input2Desc,
-                                        input2_dev->GetMem(),
-                                        targetDesc,
-                                        target_dev->GetMem(),
-                                        outGradDesc,
-                                        outGrad_dev->GetMem(),
-                                        in1GradDesc,
-                                        in1Grad_dev->GetMem(),
-                                        in2GradDesc,
-                                        in2Grad_dev->GetMem(),
-                                        margin,
-                                        reduction_mode);
+        auto status = miopenMarginRankingLossBackward(GetHandle(),
+                                                      input1Desc,
+                                                      input1_dev->GetMem(),
+                                                      input2Desc,
+                                                      input2_dev->GetMem(),
+                                                      targetDesc,
+                                                      target_dev->GetMem(),
+                                                      outGradDesc,
+                                                      outGrad_dev->GetMem(),
+                                                      in1GradDesc,
+                                                      in1Grad_dev->GetMem(),
+                                                      in2GradDesc,
+                                                      in2Grad_dev->GetMem(),
+                                                      margin,
+                                                      reduction_mode);
+        MIOPEN_THROW_IF(status != miopenStatusSuccess, "Error in miopenMarginRankingLossBackward");
+
         float time = 0.0;
         miopenGetKernelTime(GetHandle(), &time);
         kernel_total_time += time;
@@ -388,8 +447,18 @@ int MarginRankingLossDriver<Tgpu, Tref>::RunBackwardGPU()
         printf("GPU Kernel Time Backward MarginRankingLoss Elapsed: %f ms\n", kernel_average_time);
     }
 
-    in1Grad_dev->FromGPU(GetStream(), in1Grad.data());
-    in2Grad_dev->FromGPU(GetStream(), in2Grad.data());
+    if(in1Grad_dev->FromGPU(GetStream(), in1Grad.data()) != 0)
+    {
+        std::cerr << "Error copying (in1Grad_dev) from GPU, size: " << in1Grad_dev->GetSize()
+                  << std::endl;
+        return miopenStatusInternalError;
+    }
+    if(in2Grad_dev->FromGPU(GetStream(), in2Grad.data()) != 0)
+    {
+        std::cerr << "Error copying (in2Grad_dev) from GPU, size: " << in2Grad_dev->GetSize()
+                  << std::endl;
+        return miopenStatusInternalError;
+    }
 
     return miopenStatusSuccess;
 }
@@ -397,84 +466,52 @@ int MarginRankingLossDriver<Tgpu, Tref>::RunBackwardGPU()
 template <typename Tgpu, typename Tref>
 int MarginRankingLossDriver<Tgpu, Tref>::RunForwardCPU()
 {
-    if(reduction_mode != MIOPEN_MARGINRANKINGLOSS_REDUCTION_NONE)
-    {
-        mloMarginRankingLossReducedForwardRunHost<Tgpu, Tref>(input1Desc,
-                                                              input1.data(),
-                                                              input2Desc,
-                                                              input2.data(),
-                                                              targetDesc,
-                                                              target.data(),
-                                                              outputDesc,
-                                                              out_host.data(),
-                                                              margin,
-                                                              divisor);
-    }
-    else
-    {
-        mloMarginRankingLossUnreducedForwardRunHost<Tgpu, Tref>(input1Desc,
-                                                                input1.data(),
-                                                                input2Desc,
-                                                                input2.data(),
-                                                                targetDesc,
-                                                                target.data(),
-                                                                outputDesc,
-                                                                out_host.data(),
-                                                                margin);
-    }
+    int status = miopenStatusSuccess;
+    status     = mloMarginRankingLossForwardRunHost<Tgpu, Tref>(input1Desc,
+                                                            input1.data(),
+                                                            input2Desc,
+                                                            input2.data(),
+                                                            targetDesc,
+                                                            target.data(),
+                                                            outputDesc,
+                                                            out_host.data(),
+                                                            margin,
+                                                            divisor,
+                                                            reduction_mode);
 
-    return miopenStatusSuccess;
+    MIOPEN_THROW_IF(status != miopenStatusSuccess, "Error in mloMarginRankingLossForwardRunHost");
+
+    return status;
 }
 
 template <typename Tgpu, typename Tref>
 int MarginRankingLossDriver<Tgpu, Tref>::RunBackwardCPU()
 {
-    if(reduction_mode != MIOPEN_MARGINRANKINGLOSS_REDUCTION_NONE)
-    {
-        mloMarginRankingLossReducedBackwardRunHost<Tgpu, Tref>(input1Desc,
-                                                               input1.data(),
-                                                               input2Desc,
-                                                               input2.data(),
-                                                               targetDesc,
-                                                               target.data(),
-                                                               outGradDesc,
-                                                               outGrad.data(),
-                                                               in1GradDesc,
-                                                               in1Grad_host.data(),
-                                                               in2GradDesc,
-                                                               in2Grad_host.data(),
-                                                               margin,
-                                                               divisor);
-    }
-    else
-    {
-        mloMarginRankingLossUnreducedBackwardRunHost<Tgpu, Tref>(input1Desc,
-                                                                 input1.data(),
-                                                                 input2Desc,
-                                                                 input2.data(),
-                                                                 targetDesc,
-                                                                 target.data(),
-                                                                 outGradDesc,
-                                                                 outGrad.data(),
-                                                                 in1GradDesc,
-                                                                 in1Grad_host.data(),
-                                                                 in2GradDesc,
-                                                                 in2Grad_host.data(),
-                                                                 margin);
-    }
-    return miopenStatusSuccess;
+    int status = miopenStatusSuccess;
+    status     = mloMarginRankingLossBackwardRunHost<Tgpu, Tref>(input1Desc,
+                                                             input1.data(),
+                                                             input2Desc,
+                                                             input2.data(),
+                                                             targetDesc,
+                                                             target.data(),
+                                                             outGradDesc,
+                                                             outGrad.data(),
+                                                             in1GradDesc,
+                                                             in1Grad_host.data(),
+                                                             in2GradDesc,
+                                                             in2Grad_host.data(),
+                                                             margin,
+                                                             divisor,
+                                                             reduction_mode);
+    MIOPEN_THROW_IF(status != miopenStatusSuccess, "Error in mloMarginRankingLossBackwardRunHost");
+
+    return status;
 }
 
 template <typename Tgpu, typename Tref>
 Tref MarginRankingLossDriver<Tgpu, Tref>::GetTolerance()
 {
-    // Computation error of fp16 is ~2^13 (=8192) bigger than
-    // the one of fp32 because mantissa is shorter by 13 bits.
-    auto tolerance = std::is_same<Tgpu, float>::value ? 1.5e-6 : 8.2e-3;
-
-    // bf16 mantissa has 7 bits, by 3 bits shorter than fp16.
-    if(std::is_same<Tgpu, bfloat16>::value)
-        tolerance *= 8.0;
+    Tref tolerance = std::numeric_limits<Tgpu>::epsilon() * 10;
     return tolerance;
 }
 
@@ -487,12 +524,13 @@ int MarginRankingLossDriver<Tgpu, Tref>::VerifyForward()
 
     if(!std::isfinite(error) || error > tolerance)
     {
-        std::cout << "Forward MarginRankingLoss FAILED: error=" << error << std::endl;
+        std::cout << "Forward MarginRankingLoss FAILED: " << error << std::endl;
         return EC_VerifyFwd;
     }
     else
     {
-        printf("Forward MarginRankingLoss Verifies on CPU and GPU (err=%f)\n", error);
+        std::cout << "Forward MarginRankingLoss Verifies on CPU and GPU (err=" << error << ")"
+                  << std::endl;
     }
 
     return miopenStatusSuccess;
@@ -509,21 +547,17 @@ int MarginRankingLossDriver<Tgpu, Tref>::VerifyBackward()
     if(!std::isfinite(in1Grad_error) || in1Grad_error > tolerance)
     {
         std::cout << "Backward MarginRankingLoss (in1Grad) FAILED: " << in1Grad_error << std::endl;
-        return EC_VerifyFwd;
+        return EC_VerifyBwd;
     }
     else if(!std::isfinite(in2Grad_error) || in2Grad_error > tolerance)
     {
         std::cout << "Backward MarginRankingLoss (in2Grad) FAILED: " << in2Grad_error << std::endl;
-        return EC_VerifyFwd;
+        return EC_VerifyBwd;
     }
     else
     {
-        printf("Backward MarginRankingLoss Verifies on CPU and GPU (in1Grad_error=%f, "
-               "in2Grad_error=%f)\n",
-               in1Grad_error,
-               in2Grad_error);
+        std::cout << "Backward MarginRankingLoss Verifies on CPU and GPU (in1Grad_error="
+                  << in1Grad_error << ", in2Grad_error=" << in2Grad_error << ")" << std::endl;
     }
     return miopenStatusSuccess;
 }
-
-#endif // GUARD_MIOPEN_MARGINRANKINGLOSS_DRIVER_HPP

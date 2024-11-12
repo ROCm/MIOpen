@@ -25,7 +25,6 @@
  *******************************************************************************/
 #pragma once
 
-#include <miopen/common.hpp>
 #include <miopen/invoke_params.hpp>
 #include <miopen/tensor.hpp>
 
@@ -49,8 +48,10 @@ struct FwdInvokeParams : public miopen::InvokeParams
     float margin       = 0;
     miopenMarginRakningLossReductionMode_t reduction_mode;
 
-    size_t GetWorkspaceSize() const { return 0; }
-    Data_t GetWorkspace() const { return nullptr; }
+    Data_t workspace      = nullptr;
+    size_t workspace_size = 0;
+    size_t GetWorkspaceSize() const { return workspace_size; }
+    Data_t GetWorkspace() const { return workspace; }
 };
 
 struct BwdInvokeParams : public miopen::InvokeParams

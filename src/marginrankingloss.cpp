@@ -35,7 +35,28 @@ namespace miopen {
 
 namespace marginrankingloss {
 
+std::size_t
+GetMarginRankingLossForwardWorkspaceSize(Handle& handle,
+                                         const TensorDescriptor& input1Desc,
+                                         const TensorDescriptor& input2Desc,
+                                         const TensorDescriptor& targetDesc,
+                                         const TensorDescriptor& outputDesc,
+                                         const miopenMarginRakningLossReductionMode_t reduction)
+{
+    auto ctx           = ExecutionContext{&handle};
+    const auto problem = marginrankingloss::ProblemDescriptionForward{
+        input1Desc, input2Desc, targetDesc, outputDesc, 0, reduction};
+
+    const auto solvers =
+        solver::SolverContainer<solver::marginrankingloss::MarginRankingLossForward>{};
+
+    auto pair_size_vector = solvers.GetWorkspaceSizes(ctx, problem);
+    return pair_size_vector.empty() ? static_cast<size_t>(-1) : pair_size_vector.front().second;
+}
+
 miopenStatus_t MarginRankingLossForward(Handle& handle,
+                                        Data_t workspace,
+                                        size_t workspaceSizeInBytes,
                                         const TensorDescriptor& input1Desc,
                                         ConstData_t input1,
                                         const TensorDescriptor& input2Desc,
@@ -62,6 +83,8 @@ miopenStatus_t MarginRankingLossForward(Handle& handle,
         tmp.output         = output;
         tmp.margin         = margin;
         tmp.reduction_mode = reduction_mode;
+        tmp.workspace      = workspace;
+        tmp.workspace_size = workspaceSizeInBytes;
         return tmp;
     }();
 

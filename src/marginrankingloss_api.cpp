@@ -73,6 +73,28 @@ inline void LogCmdMarginRankingLoss(bool isForward,
     }
 }
 
+extern "C" miopenStatus_t miopenGetMarginRankingLossForwardWorkspaceSize(
+    miopenHandle_t handle,
+    const miopenTensorDescriptor_t input1Desc,
+    const miopenTensorDescriptor_t input2Desc,
+    const miopenTensorDescriptor_t targetDesc,
+    const miopenTensorDescriptor_t outputDesc,
+    const miopenMarginRakningLossReductionMode_t reduction,
+    size_t* sizeInBytes)
+{
+    MIOPEN_LOG_FUNCTION(handle, input1Desc, input2Desc, targetDesc, outputDesc, reduction);
+    return miopen::try_([&] {
+        miopen::deref(sizeInBytes) =
+            miopen::marginrankingloss::GetMarginRankingLossForwardWorkspaceSize(
+                miopen::deref(handle),
+                miopen::deref(input1Desc),
+                miopen::deref(input2Desc),
+                miopen::deref(targetDesc),
+                miopen::deref(outputDesc),
+                reduction);
+    });
+}
+
 extern "C" miopenStatus_t
 miopenMarginRankingLossForward(miopenHandle_t handle,
                                const miopenTensorDescriptor_t input1Desc,
@@ -84,13 +106,24 @@ miopenMarginRankingLossForward(miopenHandle_t handle,
                                const miopenTensorDescriptor_t outputDesc,
                                void* output,
                                float margin,
-                               miopenMarginRakningLossReductionMode_t reduction_mode)
+                               miopenMarginRakningLossReductionMode_t reduction_mode,
+                               void* workspace,
+                               const size_t workspaceSizeInBytes)
 {
-    MIOPEN_LOG_FUNCTION(
-        handle, input1Desc, input2Desc, targetDesc, outputDesc, margin, reduction_mode);
+    MIOPEN_LOG_FUNCTION(handle,
+                        workspace,
+                        workspaceSizeInBytes,
+                        input1Desc,
+                        input2Desc,
+                        targetDesc,
+                        outputDesc,
+                        margin,
+                        reduction_mode);
     LogCmdMarginRankingLoss(true, targetDesc, margin, reduction_mode);
     return miopen::try_([&] {
         miopen::marginrankingloss::MarginRankingLossForward(miopen::deref(handle),
+                                                            DataCast(workspace),
+                                                            workspaceSizeInBytes,
                                                             miopen::deref(input1Desc),
                                                             DataCast(input1),
                                                             miopen::deref(input2Desc),
