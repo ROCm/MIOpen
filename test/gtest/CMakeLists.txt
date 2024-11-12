@@ -80,17 +80,22 @@ function(add_gtest TEST_NAME TEST_CPP)
 
     if (NOT MIOPEN_TEST_DEEPBENCH)
         add_gtest_negative_filter("*DeepBench*")
-    endif()      
+    endif()
 
     if (NOT CODECOV_TEST)
         add_gtest_negative_filter("*CodecovTest*")
-    endif()      
+    endif()
 
     if (NOT MIOPEN_TEST_CONV)
         add_gtest_negative_filter("*MIOpenTestConv*")
-    endif()      
+    endif()
 
-    set(MIOPEN_GTEST_FILTER "${MIOPEN_GTEST_PREFIX}*${MIOPEN_GTEST_SUFFIX}*${MIOPEN_GTEST_FILTER_NEGATIVE}")
+    if(MIOPEN_NO_GPU)
+        add_gtest_negative_filter("*GPU*")
+    endif()
+
+    # NONE datatype is explicitly enabled for all the state, all the NONE tests take 4 seconds to complete.
+    set(MIOPEN_GTEST_FILTER "${MIOPEN_GTEST_PREFIX}*${MIOPEN_GTEST_SUFFIX}*:${MIOPEN_GTEST_PREFIX}*NONE*${MIOPEN_GTEST_FILTER_NEGATIVE}")
 
     #it prints the message only once
     set(TMPFNAME _dummy_static_variable_${name})
