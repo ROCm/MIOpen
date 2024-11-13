@@ -1,20 +1,39 @@
-#include "miopen/sgd/problem_description.hpp"
-#include "miopen/invoke_params.hpp"
-#include "miopen/miopen.h"
-#include "miopen/names.hpp"
-#include "miopen/reduce/invoke_params.hpp"
-#include "miopen/reducetensor.hpp"
+/*******************************************************************************
+ *
+ * MIT License
+ *
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ *******************************************************************************/
 #include <miopen/sgd.hpp>
 #include <miopen/kernel_cache.hpp>
 #include <miopen/float_equal.hpp>
-#include <miopen/check_numerics.hpp>
 #include <miopen/tensor.hpp>
-#include <miopen/datatype.hpp>
 #include <miopen/sgd/invoke_params.hpp>
 #include <miopen/sgd/solvers.hpp>
 #include <miopen/find_solution.hpp>
 
 namespace miopen {
+
+namespace SGD {
 
 miopenStatus_t SGDForward(Handle& handle,
                           const TensorDescriptor& paramInDesc,
@@ -31,28 +50,11 @@ miopenStatus_t SGDForward(Handle& handle,
                           double momentum,
                           double dampening,
                           double weightDecay,
-                          char nesterov,
-                          char momentum_initialized)
+                          bool nesterov,
+                          bool momentum_initialized)
 {
-    const auto problem = SGD::ProblemDescription{paramInDesc,
-                                                 paramOutDesc,
-                                                 gradDesc,
-                                                 momentumBufferInDesc,
-                                                 momentumBufferOutDesc,
-                                                 lr,
-                                                 momentum,
-                                                 dampening,
-                                                 weightDecay,
-                                                 nesterov,
-                                                 momentum_initialized};
-
-    std::vector<size_t> dims_h                  = paramInDesc.GetLengths();
-    miopen::Allocator::ManageDataPtr dims_d_ptr = handle.Write(dims_h);
-    ConstData_t dims_d                          = dims_d_ptr.get();
-
-    std::vector<size_t> strides_h                  = paramInDesc.GetStrides();
-    miopen::Allocator::ManageDataPtr strides_d_ptr = handle.Write(strides_h);
-    ConstData_t stride_d                           = strides_d_ptr.get();
+    const auto problem = SGD::ProblemDescription{
+        paramInDesc, paramOutDesc, gradDesc, momentumBufferInDesc, momentumBufferOutDesc};
 
     const auto invoke_params = [&]() {
         auto tmp                  = SGD::InvokeParams{};
@@ -73,8 +75,6 @@ miopenStatus_t SGDForward(Handle& handle,
         tmp.weightDecay           = weightDecay;
         tmp.nesterov              = nesterov;
         tmp.momentum_initialized  = momentum_initialized;
-        tmp.dims                  = dims_d;
-        tmp.strides               = stride_d;
         return tmp;
     }();
 
@@ -84,5 +84,7 @@ miopenStatus_t SGDForward(Handle& handle,
 
     return miopenStatusSuccess;
 }
+
+} // namespace SGD
 
 } // namespace miopen

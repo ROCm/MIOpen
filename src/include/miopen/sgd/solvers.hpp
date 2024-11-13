@@ -23,16 +23,15 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-
 #pragma once
 
 #include <miopen/solver.hpp>
 #include <miopen/sgd/problem_description.hpp>
 
-#include <utility>
-
 namespace miopen {
+
 namespace solver {
+
 namespace SGD {
 
 using SGDSolver = NonTunableSolverBase<ExecutionContext, miopen::SGD::ProblemDescription>;
@@ -55,5 +54,7 @@ struct SGDForward final : SGDSolver
 };
 
 } // namespace SGD
+
 } // namespace solver
+
 } // namespace miopen

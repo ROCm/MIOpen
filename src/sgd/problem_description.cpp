@@ -27,34 +27,25 @@
 #include <miopen/sgd/problem_description.hpp>
 #include <miopen/names.hpp>
 
-#include <sstream>
-
 namespace miopen {
+
 namespace SGD {
 
 NetworkConfig ProblemDescription::MakeNetworkConfig() const
 {
     auto dtype   = paramInDesc.GetType();
     auto lengths = paramInDesc.GetLengths();
-    auto strides = paramInDesc.GetStrides();
 
     std::ostringstream ss;
     ss << "dtype" << dtype;
-    ss << "lr" << lr;
-    ss << "momentum" << momentum;
-    ss << "dampening" << dampening;
-    ss << "weight_decay" << weightDecay;
-    ss << "nesterov" << (int)nesterov;
-    ss << "momentum_initialized" << (int)momentumInitialized;
     ss << "lengths";
     for(auto length : lengths)
         ss << length << ',';
-    ss << "strides";
-    for(auto stride : strides)
-        ss << stride << ',';
+    ss << "isAllContiguous" << IsAllContiguous();
 
     return NetworkConfig{ss.str()};
 }
 
 } // namespace SGD
+
 } // namespace miopen

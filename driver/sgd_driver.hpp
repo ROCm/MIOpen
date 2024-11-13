@@ -23,92 +23,87 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#pragma once
 
-#ifndef GUARD_MIOPEN_SGD_DRIVER_HPP
-#define GUARD_MIOPEN_SGD_DRIVER_HPP
+#include <cmath>
+#include <miopen/tensor.hpp>
+#include <miopen/tensor_view_utils.hpp>
+#include <../test/ford.hpp>
 
 #include "InputFlags.hpp"
 #include "driver.hpp"
+#include "random.hpp"
 #include "tensor_driver.hpp"
 #include "timer.hpp"
-#include "random.hpp"
-#include <cfloat>
-#include <cstdlib>
-#include <memory>
-#include <miopen/miopen.h>
-#include <miopen/tensor.hpp>
-#include <numeric>
-#include <vector>
+
 #include <../test/tensor_holder.hpp>
 #include <../test/verify.hpp>
 
-#ifndef MLO_SGDHOST_H_
-#define MLO_SGDHOST_H_
+#include <miopen/env.hpp>
+#include <miopen/handle.hpp>
+#include <miopen/miopen.h>
+#include <vector>
 
 template <typename Tgpu, typename Tcheck>
 int32_t mloSGDForwardRunHost(miopenTensorDescriptor_t paramInputDesc,
-                             Tgpu* paramInput,
+                             Tgpu* param_in,
                              miopenTensorDescriptor_t paramOutputDesc,
-                             Tcheck* paramOutputHost,
+                             Tcheck* param_out,
                              miopenTensorDescriptor_t gradDesc,
                              Tgpu* grad,
                              miopenTensorDescriptor_t momentumBufferInputDesc,
-                             Tgpu* momentumBufferInput,
+                             Tgpu* momentum_buffer_in,
                              miopenTensorDescriptor_t momentumBufferOutputDesc,
-                             Tcheck* momentumBufferOutputHost,
+                             Tcheck* momentum_buffer_out,
                              double lr,
                              double momentum,
                              double dampening,
-                             double weightDecay,
-                             char nesterov,
-                             char momentumInitialized)
+                             double weight_decay,
+                             bool nesterov,
+                             bool momentum_initialized)
 {
-    auto dims         = miopen::deref(paramInputDesc).GetLengths();
-    auto strides      = miopen::deref(paramInputDesc).GetStrides();
-    size_t param_size = std::accumulate(dims.begin(), dims.end(), 1ULL, std::multiplies<size_t>());
+    uint64_t param_size = miopen::deref(paramOutputDesc).GetElementSize();
+    auto param_in_tv    = miopen::get_inner_expanded_tv<4>(miopen::deref(paramInputDesc));
+    auto param_out_tv   = miopen::get_inner_expanded_tv<4>(miopen::deref(paramOutputDesc));
+    auto grad_tv        = miopen::get_inner_expanded_tv<4>(miopen::deref(gradDesc));
+    auto momentum_buffer_in_tv =
+        miopen::get_inner_expanded_tv<4>(miopen::deref(momentumBufferInputDesc));
+    auto momentum_buffer_out_tv =
+        miopen::get_inner_expanded_tv<4>(miopen::deref(momentumBufferOutputDesc));
 
-    int32_t ret = 0;
+    par_ford(param_size)([&](auto gid) {
+        uint64_t nch = gid / param_out_tv.size[3], w = gid % param_out_tv.size[3];
+        uint64_t nc = nch / param_out_tv.size[2], h = nch % param_out_tv.size[2];
+        uint64_t n = nc / param_out_tv.size[1], c = nc % param_out_tv.size[1];
 
-    for(int i = 0; i < param_size; ++i)
-    {
-        size_t id = 0;
-        size_t ii = i;
-        for(int j = dims.size() - 1; j >= 0; --j)
+        double param = static_cast<double>(param_in[param_in_tv.get_tensor_view_idx({n, c, h, w})]);
+        double d_p   = static_cast<double>(grad[grad_tv.get_tensor_view_idx({n, c, h, w})]);
+
+        if(weight_decay)
         {
-            size_t striding = strides[j] * (ii % dims[j]);
-            ii /= dims[j];
-            id += striding;
+            d_p += param * static_cast<double>(weight_decay);
         }
 
-        if(id >= param_size)
-            continue;
-
-        Tcheck param = static_cast<Tcheck>(paramInput[id]);
-        Tcheck d_p   = static_cast<Tcheck>(grad[id]);
-
-        if(weightDecay != 0)
+        if(momentum)
         {
-            d_p += param * static_cast<Tcheck>(weightDecay);
-        }
-
-        if(momentum != 0)
-        {
-            Tcheck momentum_v;
-            if(momentumInitialized)
+            double momentum_v;
+            if(momentum_initialized != 0)
             {
-                momentum_v = static_cast<Tcheck>(momentumBufferInput[id]);
-                momentum_v = momentum_v * static_cast<Tcheck>(momentum) +
-                             d_p * static_cast<Tcheck>(1 - dampening);
+                momentum_v = static_cast<double>(
+                    momentum_buffer_in[momentum_buffer_in_tv.get_tensor_view_idx({n, c, h, w})]);
+                momentum_v = momentum_v * static_cast<double>(momentum) +
+                             d_p * static_cast<double>(1 - dampening);
             }
             else
             {
                 momentum_v = d_p;
             }
-            momentumBufferOutputHost[id] = momentum_v;
+            momentum_buffer_out[momentum_buffer_out_tv.get_tensor_view_idx({n, c, h, w})] =
+                static_cast<Tcheck>(momentum_v);
 
-            if(nesterov)
+            if(nesterov != 0)
             {
-                d_p = d_p + momentum_v * static_cast<Tcheck>(momentum);
+                d_p = d_p + momentum_v * static_cast<double>(momentum);
             }
             else
             {
@@ -116,11 +111,11 @@ int32_t mloSGDForwardRunHost(miopenTensorDescriptor_t paramInputDesc,
             }
         }
 
-        paramOutputHost[id] = param - static_cast<Tcheck>(lr) * d_p;
-    }
-    return ret;
+        param_out[param_out_tv.get_tensor_view_idx({n, c, h, w})] =
+            static_cast<Tcheck>(param - static_cast<double>(lr) * d_p);
+    });
+    return miopenStatusSuccess;
 }
-#endif
 
 template <typename Tgpu, typename Tref = Tgpu>
 class SGDDriver : public Driver
@@ -137,13 +132,12 @@ public:
         data_type = miopen_type<Tgpu>{};
     }
 
+    std::vector<int> ComputeStrides(std::vector<int> input);
     int AddCmdLineArgs() override;
     int ParseCmdLineArgs(int argc, char* argv[]) override;
     InputFlags& GetInputFlags() override { return inflags; }
 
     int GetandSetData() override;
-    std::vector<int> GetInputTensorLengthsFromCmdLine();
-    std::vector<int> GetInputTensorStridesFromCmdLine();
 
     int AllocateBuffersAndCopy() override;
 
@@ -192,14 +186,18 @@ private:
     double momentum;
     double dampening;
     double weight_decay;
-    char nesterov;
-    char momentum_initialized;
+    bool nesterov;
+    bool momentum_initialized;
+
+    std::vector<int> input_dims;
+    bool isContiguous;
 };
 
 template <typename Tgpu, typename Tref>
 int SGDDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
 {
     inflags.Parse(argc, argv);
+    isContiguous = inflags.GetValueInt("is-contiguous") == 1 ? true : false;
 
     if(inflags.GetValueInt("time") == 1)
     {
@@ -211,52 +209,54 @@ int SGDDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
 template <typename Tgpu, typename Tref>
 int SGDDriver<Tgpu, Tref>::GetandSetData()
 {
-    std::vector<int> dims    = GetInputTensorLengthsFromCmdLine();
-    std::vector<int> strides = GetInputTensorStridesFromCmdLine();
+    input_dims               = inflags.GetValueTensor("input_dims").lengths;
+    std::vector<int> strides = ComputeStrides(input_dims);
 
     lr                   = inflags.GetValueDouble("lr");
     momentum             = inflags.GetValueDouble("momentum");
     dampening            = inflags.GetValueDouble("dampening");
     weight_decay         = inflags.GetValueDouble("weight_decay");
-    nesterov             = inflags.GetValueInt("nesterov");
-    momentum_initialized = inflags.GetValueInt("momentum_initialized");
+    nesterov             = static_cast<bool>(inflags.GetValueInt("nesterov"));
+    momentum_initialized = static_cast<bool>(inflags.GetValueInt("momentum_initialized"));
 
-    if(strides.empty())
-    {
-        SetTensorNd(paramInDesc, dims, data_type);
-        SetTensorNd(paramOutDesc, dims, data_type);
-        SetTensorNd(gradDesc, dims, data_type);
-        SetTensorNd(momentumBufferInDesc, dims, data_type);
-        SetTensorNd(momentumBufferOutDesc, dims, data_type);
-    }
-    else
-    {
-        SetTensorNd(paramInDesc, dims, strides, data_type);
-        SetTensorNd(paramOutDesc, dims, strides, data_type);
-        SetTensorNd(gradDesc, dims, strides, data_type);
-        SetTensorNd(momentumBufferInDesc, dims, strides, data_type);
-        SetTensorNd(momentumBufferOutDesc, dims, strides, data_type);
-    }
-
+    if(SetTensorNd(paramInDesc, input_dims, strides, data_type) != miopenStatusSuccess)
+        MIOPEN_THROW("Error parsing input tensor: " + inflags.GetValueStr("input_dims") + ".");
+    if(SetTensorNd(paramOutDesc, input_dims, strides, data_type) != miopenStatusSuccess)
+        MIOPEN_THROW("Error parsing output tensor: " + inflags.GetValueStr("input_dims") + ".");
+    if(SetTensorNd(gradDesc, input_dims, strides, data_type) != miopenStatusSuccess)
+        MIOPEN_THROW("Error parsing grad tensor: " + inflags.GetValueStr("input_dims") + ".");
+    if(SetTensorNd(momentumBufferInDesc, input_dims, strides, data_type) != miopenStatusSuccess)
+        MIOPEN_THROW("Error parsing momentumBuffer input tensor: " +
+                     inflags.GetValueStr("input_dims") + ".");
+    if(SetTensorNd(momentumBufferOutDesc, input_dims, strides, data_type) != miopenStatusSuccess)
+        MIOPEN_THROW("Error parsing momentumBuffer output tensor: " +
+                     inflags.GetValueStr("input_dims") + ".");
     return 0;
+}
+
+// Equivalent to: tensor.tranpose(0, -1).contiguous().tranpose(0, -1) incase contiguous = False
+template <typename Tgpu, typename Tref>
+std::vector<int> SGDDriver<Tgpu, Tref>::ComputeStrides(std::vector<int> inputDim)
+{
+    if(!isContiguous)
+        std::swap(inputDim.front(), inputDim.back());
+    std::vector<int> strides(inputDim.size());
+    strides.back() = 1;
+    for(int i = inputDim.size() - 2; i >= 0; --i)
+        strides[i] = strides[i + 1] * inputDim[i + 1];
+    if(!isContiguous)
+        std::swap(strides.front(), strides.back());
+    return strides;
 }
 
 template <typename Tgpu, typename Tref>
 int SGDDriver<Tgpu, Tref>::AddCmdLineArgs()
 {
     inflags.AddInputFlag("forw", 'F', "1", "Run only Forward SGD (Default=1)", "int");
-    inflags.AddInputFlag("batchsize", 'n', "0", "Mini-batch size (Default=0)", "int");
-    inflags.AddInputFlag("in_channels", 'c', "0", "Number of Input Channels (Default=0)", "int");
-    inflags.AddInputFlag("in_h", 'H', "0", "Input Height (Default=0)", "int");
-    inflags.AddInputFlag("in_w", 'W', "0", "Input Width (Default=0)", "int");
-    inflags.AddInputFlag("in_d", 'D', "0", "Input Depth (Default=0)", "int");
-
-    inflags.AddInputFlag("strides",
-                         'S',
-                         "",
-                         "The jump necessary to go from one element to the next one in the "
-                         "specified dimension (Default=Based on dimensions)",
-                         "string");
+    inflags.AddTensorFlag("input_dims",
+                          'D',
+                          "2x3x7",
+                          "The dimensional lengths of the input tensor: N,C,D,H Example: 2x3x7.");
 
     inflags.AddInputFlag("lr", 'l', "0.01", "Learning rate (Default=0.01)", "double");
     inflags.AddInputFlag("momentum", 'm', "0.9", "Momentum factor (Default=0.9)", "double");
@@ -266,6 +266,7 @@ int SGDDriver<Tgpu, Tref>::AddCmdLineArgs()
     inflags.AddInputFlag(
         "momentum_initialized", 'M', "0", "Is momentum initiated (Default=0)", "int");
 
+    inflags.AddInputFlag("is-contiguous", 'C', "1", "is-contiguous (Default=1)", "int");
     inflags.AddInputFlag("iter", 'i', "10", "Number of Iterations (Default=10)", "int");
     inflags.AddInputFlag("verify", 'V', "1", "Verify Each Layer (Default=1)", "int");
     inflags.AddInputFlag("time", 't', "0", "Time Each Layer (Default=0)", "int");
@@ -273,69 +274,6 @@ int SGDDriver<Tgpu, Tref>::AddCmdLineArgs()
         "wall", 'w', "0", "Wall-clock Time Each Layer, Requires time == 1 (Default=0)", "int");
 
     return miopenStatusSuccess;
-}
-
-template <typename Tgpu, typename Tref>
-std::vector<int> SGDDriver<Tgpu, Tref>::GetInputTensorLengthsFromCmdLine()
-{
-    int in_n = inflags.GetValueInt("batchsize");
-    int in_c = inflags.GetValueInt("in_channels");
-    int in_w = inflags.GetValueInt("in_w");
-    int in_h = inflags.GetValueInt("in_h");
-    int in_d = inflags.GetValueInt("in_d");
-
-    std::vector<int> dims;
-    if(in_n != 0)
-        dims.push_back(in_n);
-    if(in_c != 0)
-        dims.push_back(in_c);
-    if(in_w != 0)
-        dims.push_back(in_w);
-    if(in_h != 0)
-        dims.push_back(in_h);
-    if(in_d != 0)
-        dims.push_back(in_d);
-
-    if(dims.empty())
-    {
-        std::cout << "Error Input Tensor Lengths\n" << std::endl;
-        return std::vector<int>({0});
-    }
-
-    return dims;
-}
-
-template <typename Tgpu, typename Tref>
-std::vector<int> SGDDriver<Tgpu, Tref>::GetInputTensorStridesFromCmdLine()
-{
-    std::string strides_str = inflags.GetValueStr("strides");
-    std::vector<int> strides;
-
-    if(strides_str != "")
-    {
-        std::size_t pos = 0;
-        std::size_t new_pos;
-
-        new_pos = strides_str.find(',', pos);
-        while(new_pos != std::string::npos)
-        {
-            std::string stride_str = strides_str.substr(pos, new_pos - pos);
-
-            int stride = std::stoi(stride_str);
-
-            strides.push_back(stride);
-
-            pos     = new_pos + 1;
-            new_pos = strides_str.find(',', pos);
-        };
-
-        std::string stride_str = strides_str.substr(pos);
-        int stride             = std::stoi(stride_str);
-
-        strides.push_back(stride);
-    }
-
-    return strides;
 }
 
 template <typename Tgpu, typename Tref>
@@ -370,19 +308,34 @@ int SGDDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     }
 
     if(param_in_dev->ToGPU(GetStream(), param_in.data()) != 0)
+    {
         std::cerr << "Error copying param (in) to GPU, size: " << param_in_dev->GetSize()
                   << std::endl;
+        return miopenStatusInternalError;
+    }
     if(param_out_dev->ToGPU(GetStream(), param_out.data()) != 0)
+    {
         std::cerr << "Error copying param (out) to GPU, size: " << param_out_dev->GetSize()
                   << std::endl;
+        return miopenStatusInternalError;
+    }
     if(grad_dev->ToGPU(GetStream(), grad.data()) != 0)
+    {
         std::cerr << "Error copying grad (in) to GPU, size: " << grad_dev->GetSize() << std::endl;
+        return miopenStatusInternalError;
+    }
     if(momentum_buffer_in_dev->ToGPU(GetStream(), momentum_buffer_in.data()) != 0)
+    {
         std::cerr << "Error copying momentum buffer (in) to GPU, size: "
                   << momentum_buffer_in_dev->GetSize() << std::endl;
+        return miopenStatusInternalError;
+    }
     if(momentum_buffer_out_dev->ToGPU(GetStream(), momentum_buffer_out.data()) != 0)
+    {
         std::cerr << "Error copying momentum buffer (out) to GPU, size: "
                   << momentum_buffer_out_dev->GetSize() << std::endl;
+        return miopenStatusInternalError;
+    }
 
     return miopenStatusSuccess;
 }
@@ -398,23 +351,24 @@ int SGDDriver<Tgpu, Tref>::RunForwardGPU()
 
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
-        miopenSGDForward(GetHandle(),
-                         paramInDesc,
-                         param_in_dev->GetMem(),
-                         paramOutDesc,
-                         param_out_dev->GetMem(),
-                         gradDesc,
-                         grad_dev->GetMem(),
-                         momentumBufferInDesc,
-                         momentum_buffer_in_dev->GetMem(),
-                         momentumBufferOutDesc,
-                         momentum_buffer_out_dev->GetMem(),
-                         lr,
-                         momentum,
-                         dampening,
-                         weight_decay,
-                         nesterov,
-                         momentum_initialized);
+        auto status = miopenSGDForward(GetHandle(),
+                                       paramInDesc,
+                                       param_in_dev->GetMem(),
+                                       paramOutDesc,
+                                       param_out_dev->GetMem(),
+                                       gradDesc,
+                                       grad_dev->GetMem(),
+                                       momentumBufferInDesc,
+                                       momentum_buffer_in_dev->GetMem(),
+                                       momentumBufferOutDesc,
+                                       momentum_buffer_out_dev->GetMem(),
+                                       lr,
+                                       momentum,
+                                       dampening,
+                                       weight_decay,
+                                       nesterov,
+                                       momentum_initialized);
+        MIOPEN_THROW_IF(status != miopenStatusSuccess, "Error in miopenSGDForward");
 
         float time = 0.0;
         miopenGetKernelTime(GetHandle(), &time);
@@ -437,12 +391,18 @@ int SGDDriver<Tgpu, Tref>::RunForwardGPU()
     }
 
     if(param_out_dev->FromGPU(GetStream(), param_out.data()) != 0)
+    {
         std::cerr << "Error copying (param_out_dev) from GPU, size: " << param_out_dev->GetSize()
                   << std::endl;
+        return miopenStatusInternalError;
+    }
 
     if(momentum_buffer_out_dev->FromGPU(GetStream(), momentum_buffer_out.data()) != 0)
+    {
         std::cerr << "Error copying (momentum_buffer_out_dev) from GPU, size: "
                   << momentum_buffer_out_dev->GetSize() << std::endl;
+        return miopenStatusInternalError;
+    }
 
     return miopenStatusSuccess;
 }
@@ -450,23 +410,27 @@ int SGDDriver<Tgpu, Tref>::RunForwardGPU()
 template <typename Tgpu, typename Tref>
 int SGDDriver<Tgpu, Tref>::RunForwardCPU()
 {
-    mloSGDForwardRunHost<Tgpu, Tref>(paramInDesc,
-                                     param_in.data(),
-                                     paramOutDesc,
-                                     param_outhost.data(),
-                                     gradDesc,
-                                     grad.data(),
-                                     momentumBufferInDesc,
-                                     momentum_buffer_in.data(),
-                                     momentumBufferOutDesc,
-                                     momentum_buffer_outhost.data(),
-                                     lr,
-                                     momentum,
-                                     dampening,
-                                     weight_decay,
-                                     nesterov,
-                                     momentum_initialized);
-    return miopenStatusSuccess;
+    int status = miopenStatusSuccess;
+
+    status = mloSGDForwardRunHost<Tgpu, Tref>(paramInDesc,
+                                              param_in.data(),
+                                              paramOutDesc,
+                                              param_outhost.data(),
+                                              gradDesc,
+                                              grad.data(),
+                                              momentumBufferInDesc,
+                                              momentum_buffer_in.data(),
+                                              momentumBufferOutDesc,
+                                              momentum_buffer_outhost.data(),
+                                              lr,
+                                              momentum,
+                                              dampening,
+                                              weight_decay,
+                                              nesterov,
+                                              momentum_initialized);
+    MIOPEN_THROW_IF(status != miopenStatusSuccess, "Error in mloSGDForwardRunHost");
+
+    return status;
 }
 
 template <typename Tgpu, typename Tref>
@@ -478,13 +442,7 @@ int SGDDriver<Tgpu, Tref>::RunBackwardGPU()
 template <typename Tgpu, typename Tref>
 Tref SGDDriver<Tgpu, Tref>::GetTolerance()
 {
-    // Computation error of fp16 is ~2^13 (=8192) bigger than
-    // the one of fp32 because mantissa is shorter by 13 bits.
-    auto tolerance = std::is_same<Tgpu, float>::value ? 1.5e-6 : 8.2e-3;
-
-    // bf16 mantissa has 7 bits, by 3 bits shorter than fp16.
-    if(std::is_same<Tgpu, bfloat16>::value)
-        tolerance *= 8.0;
+    Tref tolerance = std::numeric_limits<Tgpu>::epsilon() * 10;
     return tolerance;
 }
 
@@ -510,10 +468,9 @@ int SGDDriver<Tgpu, Tref>::VerifyForward()
     }
     else
     {
-        std::cout << "Forward SGD Verifies OK on CPU reference "
-                  << "(param_error:" << param_error << " < " << tolerance << ", "
-                  << "momentum_buffer_error:" << momentum_buffer_error << " < " << tolerance << ')'
-                  << std::endl;
+        std::cout << "Forward SGD Verifies OK on CPU reference " << "(param_error:" << param_error
+                  << " < " << tolerance << ", " << "momentum_buffer_error:" << momentum_buffer_error
+                  << " < " << tolerance << ')' << std::endl;
     }
 
     return miopenStatusSuccess;
@@ -524,5 +481,3 @@ int SGDDriver<Tgpu, Tref>::VerifyBackward()
 {
     return miopenStatusSuccess;
 }
-
-#endif // GUARD_MIOPEN_SGD_DRIVER_HPP

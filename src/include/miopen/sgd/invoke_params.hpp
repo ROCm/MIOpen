@@ -30,6 +30,7 @@
 #include <miopen/tensor.hpp>
 
 namespace miopen {
+
 namespace SGD {
 
 struct InvokeParams : public miopen::InvokeParams
@@ -50,14 +51,13 @@ struct InvokeParams : public miopen::InvokeParams
     double momentum                               = 0;
     double dampening                              = 0;
     double weightDecay                            = 0;
-    char nesterov                                 = 0;
-    char momentum_initialized                     = 0;
-    ConstData_t dims                              = nullptr;
-    ConstData_t strides                           = nullptr;
+    bool nesterov                                 = false;
+    bool momentum_initialized                     = false;
 
     std::size_t GetWorkspaceSize() const { return 0; }
     Data_t GetWorkspace() const { return nullptr; }
 };
 
 } // namespace SGD
+
 } // namespace miopen

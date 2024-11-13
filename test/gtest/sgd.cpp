@@ -23,25 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-
 #include "sgd.hpp"
-#include "../tensor_holder.hpp"
-#include <miopen/env.hpp>
-
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
-
-namespace SGD {
-
-std::string GetFloatArg()
-{
-    const auto& tmp = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
-    if(tmp.empty())
-    {
-        return "";
-    }
-    return tmp;
-}
 
 struct SGDTestFloat : SGDTest<float>
 {
@@ -55,50 +37,24 @@ struct SGDTestBFloat16 : SGDTest<bfloat16>
 {
 };
 
-} // namespace SGD
-using namespace SGD;
-
 TEST_P(SGDTestFloat, SGDTestFw)
 {
-    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 };
 
 TEST_P(SGDTestHalf, SGDTestFw)
 {
-    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--half"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 };
 
 TEST_P(SGDTestBFloat16, SGDTestFw)
 {
-    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--bfloat16"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 };
 
 INSTANTIATE_TEST_SUITE_P(SGDTestSet, SGDTestFloat, testing::ValuesIn(SGDTestConfigs()));
-
 INSTANTIATE_TEST_SUITE_P(SGDTestSet, SGDTestHalf, testing::ValuesIn(SGDTestConfigs()));
-
 INSTANTIATE_TEST_SUITE_P(SGDTestSet, SGDTestBFloat16, testing::ValuesIn(SGDTestConfigs()));

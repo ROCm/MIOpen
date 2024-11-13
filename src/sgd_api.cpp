@@ -23,19 +23,13 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-
-#include "miopen/common.hpp"
-#include "miopen/tensor.hpp"
-#include <algorithm>
 #include <miopen/sgd.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/tensor_ops.hpp>
-#include <sstream>
-#include <string>
 
-static void LogCmdSGD(const miopenTensorDescriptor_t& praramInDesc, bool is_fwd)
+inline void LogCmdSGD(const miopenTensorDescriptor_t& praramInDesc, bool is_fwd)
 {
     if(miopen::IsLoggingCmd())
     {
@@ -82,8 +76,8 @@ extern "C" miopenStatus_t miopenSGDForward(miopenHandle_t handle,
                                            const double momentum,
                                            const double dampening,
                                            const double weightDecay,
-                                           const char nesterov,
-                                           const char momentumInitialized)
+                                           const bool nesterov,
+                                           const bool momentum_initialized)
 {
     MIOPEN_LOG_FUNCTION(handle,
                         paramInDesc,
@@ -96,27 +90,27 @@ extern "C" miopenStatus_t miopenSGDForward(miopenHandle_t handle,
                         dampening,
                         weightDecay,
                         (int)nesterov,
-                        (int)momentumInitialized);
+                        (int)momentum_initialized);
     LogCmdSGD(paramInDesc, true);
     return miopen::try_([&] {
         std::vector<ConstData_t> xCast;
         std::vector<miopen::TensorDescriptor*> xDescCast;
-        miopen::SGDForward(miopen::deref(handle),
-                           miopen::deref(paramInDesc),
-                           DataCast(paramIn),
-                           miopen::deref(paramOutDesc),
-                           DataCast(paramOut),
-                           miopen::deref(gradDesc),
-                           DataCast(grad),
-                           miopen::deref(momentumBufferInDesc),
-                           DataCast(momentumBufferIn),
-                           miopen::deref(momentumBufferOutDesc),
-                           DataCast(momentumBufferOut),
-                           lr,
-                           momentum,
-                           dampening,
-                           weightDecay,
-                           nesterov,
-                           momentumInitialized);
+        miopen::SGD::SGDForward(miopen::deref(handle),
+                                miopen::deref(paramInDesc),
+                                DataCast(paramIn),
+                                miopen::deref(paramOutDesc),
+                                DataCast(paramOut),
+                                miopen::deref(gradDesc),
+                                DataCast(grad),
+                                miopen::deref(momentumBufferInDesc),
+                                DataCast(momentumBufferIn),
+                                miopen::deref(momentumBufferOutDesc),
+                                DataCast(momentumBufferOut),
+                                lr,
+                                momentum,
+                                dampening,
+                                weightDecay,
+                                nesterov,
+                                momentum_initialized);
     });
 }

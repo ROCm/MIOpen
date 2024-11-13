@@ -8625,7 +8625,7 @@ MIOPEN_EXPORT miopenStatus_t miopenPReLUBackward(miopenHandle_t handle,
  * @param dampening                Dampening for momentum (input)
  * @param weightDecay              Weight decay (input)
  * @param nesterov                 Enables Nesterow momentum (input)
- * @param momentumInitialized      Is momentum initiated (input)
+ * @param momentum_initialized     Is momentum initiated (input)
  * @return                         miopenStatus_t
  */
 
@@ -8644,8 +8644,8 @@ MIOPEN_EXPORT miopenStatus_t miopenSGDForward(miopenHandle_t handle,
                                               const double momentum,
                                               const double dampening,
                                               const double weightDecay,
-                                              const char nesterov,
-                                              const char momentumInitialized);
+                                              const bool nesterov,
+                                              const bool momentum_initialized);
 
 /** @} */
 // CLOSEOUT SGD DOXYGEN GROUP

@@ -30,9 +30,6 @@
 #include <miopen/problem_description_base.hpp>
 #include <miopen/tensor.hpp>
 
-#include <cassert>
-#include <string>
-
 namespace miopen {
 
 struct NetworkConfig;
@@ -45,25 +42,16 @@ struct ProblemDescription : ProblemDescriptionBase
                        const TensorDescriptor& paramOutDesc_,
                        const TensorDescriptor& gradDesc_,
                        const TensorDescriptor& momentumBufferInDesc_,
-                       const TensorDescriptor& momentumBufferOutDesc_,
-                       double lr_,
-                       double momentum_,
-                       double dampening_,
-                       double weightDecay_,
-                       char nesterov_,
-                       char momentumInitialized_)
+                       const TensorDescriptor& momentumBufferOutDesc_)
         : paramInDesc(paramInDesc_),
           paramOutDesc(paramOutDesc_),
           gradDesc(gradDesc_),
           momentumBufferInDesc(momentumBufferInDesc_),
-          momentumBufferOutDesc(momentumBufferOutDesc_),
-          lr(lr_),
-          momentum(momentum_),
-          dampening(dampening_),
-          weightDecay(weightDecay_),
-          nesterov(nesterov_),
-          momentumInitialized(momentumInitialized_)
+          momentumBufferOutDesc(momentumBufferOutDesc_)
     {
+        IsSameType();
+        IsSameLength();
+        IsValidLength();
     }
 
     const TensorDescriptor& GetParamInDesc() const { return paramInDesc; }
@@ -74,97 +62,47 @@ struct ProblemDescription : ProblemDescriptionBase
 
     bool IsSameType() const
     {
-        if(paramInDesc.GetType() != paramOutDesc.GetType())
+        if(paramInDesc.GetType() != paramOutDesc.GetType() ||
+           paramOutDesc.GetType() != gradDesc.GetType() ||
+           gradDesc.GetType() != momentumBufferInDesc.GetType() ||
+           momentumBufferInDesc.GetType() != momentumBufferOutDesc.GetType())
         {
-            return false;
-        }
-        if(paramOutDesc.GetType() != gradDesc.GetType())
-        {
-            return false;
-        }
-        if(gradDesc.GetType() != momentumBufferInDesc.GetType())
-        {
-            return false;
-        }
-        if(momentumBufferInDesc.GetType() != momentumBufferOutDesc.GetType())
-        {
-            return false;
+            MIOPEN_THROW(miopenStatusBadParm, "SGDForward: Tensor types do not match.");
         }
         return true;
     }
 
-    bool IsRightLength() const
+    bool IsSameLength() const
     {
         for(int32_t i = 0; i < paramInDesc.GetLengths().size(); ++i)
         {
             size_t len = paramInDesc.GetLengths()[i];
-            if(paramOutDesc.GetLengths()[i] != len)
+            if(paramOutDesc.GetLengths()[i] != len || gradDesc.GetLengths()[i] != len ||
+               momentumBufferInDesc.GetLengths()[i] != len ||
+               momentumBufferOutDesc.GetLengths()[i] != len)
             {
-                return false;
-            }
-            if(gradDesc.GetLengths()[i] != len)
-            {
-                return false;
-            }
-            if(momentumBufferInDesc.GetLengths()[i] != len)
-            {
-                return false;
-            }
-            if(momentumBufferOutDesc.GetLengths()[i] != len)
-            {
-                return false;
+                MIOPEN_THROW(miopenStatusBadParm, "SGDForward: Tensor lengths do not match.");
             }
         }
         return true;
     }
 
-    bool IsContiguous(const TensorDescriptor& tensor) const
+    bool IsValidLength() const
     {
-        std::vector<size_t> lengths = tensor.GetLengths();
-        std::vector<size_t> strides = tensor.GetStrides();
-        size_t n_dims               = lengths.size();
-
-        size_t expected_stride = 1;
-
-        for(int i = n_dims - 1; i >= 0; --i)
+        auto input_dims = paramInDesc.GetLengths().size();
+        if(input_dims > 4)
         {
-            if(strides[i] != expected_stride)
-            {
-                return false;
-            }
-            expected_stride *= lengths[i];
+            MIOPEN_THROW(miopenStatusBadParm, "SGDForward: Only <= 4D tensors are supported.");
         }
-
         return true;
     }
 
-    bool IsSameStrides() const
+    bool IsAllContiguous() const
     {
-        std::vector<size_t> paramInStrides           = paramInDesc.GetStrides();
-        std::vector<size_t> paramOutStrides          = paramOutDesc.GetStrides();
-        std::vector<size_t> gradStrides              = gradDesc.GetStrides();
-        std::vector<size_t> momentumBufferInStrides  = momentumBufferInDesc.GetStrides();
-        std::vector<size_t> momentumBufferOutStrides = momentumBufferOutDesc.GetStrides();
-
-        if(paramInStrides != paramOutStrides)
-        {
-            return false;
-        }
-        if(paramOutStrides != gradStrides)
-        {
-            return false;
-        }
-        if(gradStrides != momentumBufferInStrides)
-        {
-            return false;
-        }
-        if(momentumBufferInStrides != momentumBufferOutStrides)
-        {
-            return false;
-        }
-        return true;
+        return paramInDesc.IsContiguous() && paramOutDesc.IsContiguous() &&
+               gradDesc.IsContiguous() && momentumBufferInDesc.IsContiguous() &&
+               momentumBufferOutDesc.IsContiguous();
     }
-
     NetworkConfig MakeNetworkConfig() const override;
 
 private:
@@ -173,12 +111,6 @@ private:
     TensorDescriptor gradDesc;
     TensorDescriptor momentumBufferInDesc;
     TensorDescriptor momentumBufferOutDesc;
-    double lr                = 0;
-    double momentum          = 0;
-    double dampening         = 0;
-    double weightDecay       = 0;
-    char nesterov            = 0;
-    char momentumInitialized = 0;
 
     NetworkConfig MakeForwardNetworkConfig() const;
 };
