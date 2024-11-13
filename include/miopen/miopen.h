@@ -2600,56 +2600,6 @@ MIOPEN_EXPORT miopenStatus_t miopenCatForward(miopenHandle_t handle,
 // CLOSEOUT CAT DOXYGEN GROUP
 #endif
 
-#ifdef MIOPEN_BETA_API
-// SGD APIs
-/** @addtogroup sgd
- *
- * @{
- */
-/*! @brief Execute a SGD forward layer
- *
- * @param handle                   MIOpen handle (input)
- * @param paramInDesc              Tensor descriptor for paramIn (input)
- * @param paramIn                  Input parameters to optimize (input)
- * @param paramOutDesc             Tensor descriptor for paramOut (input)
- * @param paramOut                 Output parameters to optimize (output)
- * @param gradDesc                 Tensor descriptor for grad (input)
- * @param grad                     Gradient for each parameter (input)
- * @param momentumBufferInDesc     Tensor descriptor for momentumBufferIn (input)
- * @param momentumBufferIn         Input momentum buffer for each parameter (input)
- * @param momentumBufferOutDesc    Tensor descriptor for momentumBufferOut (input)
- * @param momentumBufferOut        Output momentum buffer for each parameter (output)
- * @param lr                       Learning rate (input)
- * @param momentum                 Momentum factor (input)
- * @param dampening                Dampening for momentum (input)
- * @param weightDecay              Weight decay (input)
- * @param nesterov                 Enables Nesterow momentum (input)
- * @param momentumInitialized      Is momentum initiated (input)
- * @return                         miopenStatus_t
- */
-
-MIOPEN_EXPORT miopenStatus_t miopenSGDForward(miopenHandle_t handle,
-                                              const miopenTensorDescriptor_t paramInDesc,
-                                              const void* paramIn,
-                                              const miopenTensorDescriptor_t paramOutDesc,
-                                              void* paramOut,
-                                              const miopenTensorDescriptor_t gradDesc,
-                                              const void* grad,
-                                              const miopenTensorDescriptor_t momentumBufferInDesc,
-                                              const void* momentumBufferIn,
-                                              const miopenTensorDescriptor_t momentumBufferOutDesc,
-                                              void* momentumBufferOut,
-                                              const double lr,
-                                              const double momentum,
-                                              const double dampening,
-                                              const double weightDecay,
-                                              const char nesterov,
-                                              const char momentumInitialized);
-
-/** @} */
-// CLOSEOUT SGD DOXYGEN GROUP
-#endif
-
 // Batch-Normalization APIs
 /** @addtogroup batchnorm
  *
@@ -6632,6 +6582,56 @@ MIOPEN_EXPORT miopenStatus_t miopenBackendInitialize(miopenBackendDescriptor_t d
 /** @} */
 // CLOSEOUT BackendAPI DOXYGEN GROUP
 #endif // MIOPEN_BETA_API
+
+#ifdef MIOPEN_BETA_API
+// SGD APIs
+/** @addtogroup sgd
+ *
+ * @{
+ */
+/*! @brief Execute a SGD forward layer
+ *
+ * @param handle                   MIOpen handle (input)
+ * @param paramInDesc              Tensor descriptor for paramIn (input)
+ * @param paramIn                  Input parameters to optimize (input)
+ * @param paramOutDesc             Tensor descriptor for paramOut (input)
+ * @param paramOut                 Output parameters to optimize (output)
+ * @param gradDesc                 Tensor descriptor for grad (input)
+ * @param grad                     Gradient for each parameter (input)
+ * @param momentumBufferInDesc     Tensor descriptor for momentumBufferIn (input)
+ * @param momentumBufferIn         Input momentum buffer for each parameter (input)
+ * @param momentumBufferOutDesc    Tensor descriptor for momentumBufferOut (input)
+ * @param momentumBufferOut        Output momentum buffer for each parameter (output)
+ * @param lr                       Learning rate (input)
+ * @param momentum                 Momentum factor (input)
+ * @param dampening                Dampening for momentum (input)
+ * @param weightDecay              Weight decay (input)
+ * @param nesterov                 Enables Nesterow momentum (input)
+ * @param momentumInitialized      Is momentum initiated (input)
+ * @return                         miopenStatus_t
+ */
+
+MIOPEN_EXPORT miopenStatus_t miopenSGDForward(miopenHandle_t handle,
+                                              const miopenTensorDescriptor_t paramInDesc,
+                                              const void* paramIn,
+                                              const miopenTensorDescriptor_t paramOutDesc,
+                                              void* paramOut,
+                                              const miopenTensorDescriptor_t gradDesc,
+                                              const void* grad,
+                                              const miopenTensorDescriptor_t momentumBufferInDesc,
+                                              const void* momentumBufferIn,
+                                              const miopenTensorDescriptor_t momentumBufferOutDesc,
+                                              void* momentumBufferOut,
+                                              const double lr,
+                                              const double momentum,
+                                              const double dampening,
+                                              const double weightDecay,
+                                              const char nesterov,
+                                              const char momentumInitialized);
+
+/** @} */
+// CLOSEOUT SGD DOXYGEN GROUP
+#endif
 
 #ifdef __cplusplus
 }
