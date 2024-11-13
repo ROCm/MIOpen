@@ -59,35 +59,35 @@ INSTANTIATE_TEST_SUITE_P(MarginRankingLossTestSet,
                          GPU_MarginRankingLoss_fwd_BFP16,
                          testing::ValuesIn(MarginRankingLossTestConfigs()));
 
-// // BACKWARD TEST
-// using GPU_MarginRankingLoss_bwd_FP32  = MarginRankingLossTestBwd<float>;
-// using GPU_MarginRankingLoss_bwd_FP16  = MarginRankingLossTestBwd<float16>;
-// using GPU_MarginRankingLoss_bwd_BFP16 = MarginRankingLossTestBwd<bfloat16>;
+// BACKWARD TEST
+using GPU_MarginRankingLoss_bwd_FP32  = MarginRankingLossTestBwd<float>;
+using GPU_MarginRankingLoss_bwd_FP16  = MarginRankingLossTestBwd<float16>;
+using GPU_MarginRankingLoss_bwd_BFP16 = MarginRankingLossTestBwd<bfloat16>;
 
-// TEST_P(GPU_MarginRankingLoss_bwd_FP32, MarginRankingLossTestBwd)
-// {
-//     RunTest();
-//     Verify();
-// };
+TEST_P(GPU_MarginRankingLoss_bwd_FP32, MarginRankingLossTestBwd)
+{
+    RunTest();
+    Verify();
+};
 
-// TEST_P(GPU_MarginRankingLoss_bwd_FP16, MarginRankingLossTestBwd)
-// {
-//     RunTest();
-//     Verify();
-// };
+TEST_P(GPU_MarginRankingLoss_bwd_FP16, MarginRankingLossTestBwd)
+{
+    RunTest();
+    Verify();
+};
 
-// TEST_P(GPU_MarginRankingLoss_bwd_BFP16, MarginRankingLossTestBwd)
-// {
-//     RunTest();
-//     Verify();
-// };
+TEST_P(GPU_MarginRankingLoss_bwd_BFP16, MarginRankingLossTestBwd)
+{
+    RunTest();
+    Verify();
+};
 
-// INSTANTIATE_TEST_SUITE_P(MarginRankingLossTestSet,
-//                          GPU_MarginRankingLoss_bwd_FP32,
-//                          testing::ValuesIn(MarginRankingLossTestConfigs()));
-// INSTANTIATE_TEST_SUITE_P(MarginRankingLossTestSet,
-//                          GPU_MarginRankingLoss_bwd_FP16,
-//                          testing::ValuesIn(MarginRankingLossTestConfigs()));
-// INSTANTIATE_TEST_SUITE_P(MarginRankingLossTestSet,
-//                          GPU_MarginRankingLoss_bwd_BFP16,
-//                          testing::ValuesIn(MarginRankingLossTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(MarginRankingLossTestSet,
+                         GPU_MarginRankingLoss_bwd_FP32,
+                         testing::ValuesIn(MarginRankingLossTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(MarginRankingLossTestSet,
+                         GPU_MarginRankingLoss_bwd_FP16,
+                         testing::ValuesIn(MarginRankingLossTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(MarginRankingLossTestSet,
+                         GPU_MarginRankingLoss_bwd_BFP16,
+                         testing::ValuesIn(MarginRankingLossTestConfigs()));

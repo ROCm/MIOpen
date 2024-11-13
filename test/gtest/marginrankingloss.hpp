@@ -93,8 +93,8 @@ protected:
         auto&& handle = get_handle();
         config        = GetParam();
 
-        auto input1_gen_value = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1, 100); };
-        auto input2_gen_value = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1, 50); };
+        auto input1_gen_value = [](auto...) { return prng::gen_descreet_uniform_sign<T>(500, 20); };
+        auto input2_gen_value = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1, 10); };
         auto target_gen_value = [](auto...) {
             return static_cast<T>(prng::gen_A_to_B<int>(0, 2) * 2 - 1);
         }; // 1 or -1

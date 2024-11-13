@@ -42,7 +42,7 @@ void cpu_marginrankingloss_forward_5d(tensor<T> input1,
     tensor_view_t<5> T_tv  = get_inner_expanded_tv<5>(target.desc);
     tensor_view_t<5> O_tv  = get_inner_expanded_tv<5>(output.desc);
     uint64_t tensor_size   = target.desc.GetElementSize();
-    float sum_loss         = 0;
+    double sum_loss        = 0;
 
     for(uint64_t gid = 0; gid < tensor_size; ++gid)
     {
@@ -58,10 +58,10 @@ void cpu_marginrankingloss_forward_5d(tensor<T> input1,
         uint64_t I2idx = I2_tv.get_tensor_view_idx({n0, n1, n2, n3, n4});
         uint64_t Tidx  = T_tv.get_tensor_view_idx({n0, n1, n2, n3, n4});
 
-        float output_accum =
-            -static_cast<float>(target[Tidx]) *
-                (static_cast<float>(input1[I1idx]) - static_cast<float>(input2[I2idx])) +
-            margin;
+        double output_accum =
+            -static_cast<double>(target[Tidx]) *
+                (static_cast<double>(input1[I1idx]) - static_cast<double>(input2[I2idx])) +
+            static_cast<double>(margin);
         if(output_accum < 0.0f)
             output_accum = 0.0f;
 
@@ -70,9 +70,13 @@ void cpu_marginrankingloss_forward_5d(tensor<T> input1,
             uint64_t Oidx = O_tv.get_tensor_view_idx({n0, n1, n2, n3, n4});
             output[Oidx]  = static_cast<T>(output_accum);
         }
-        else
+        else if(reduction_mode == MIOPEN_MARGINRANKINGLOSS_REDUCTION_MEAN)
         {
-            sum_loss += (output_accum / divisor);
+            sum_loss += output_accum / static_cast<double>(divisor);
+        }
+        else if(reduction_mode == MIOPEN_MARGINRANKINGLOSS_REDUCTION_SUM)
+        {
+            sum_loss += output_accum;
         }
     }
     if(reduction_mode != MIOPEN_MARGINRANKINGLOSS_REDUCTION_NONE)
