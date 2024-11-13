@@ -37,13 +37,12 @@ auto GetTestCases()
     // MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1=1 is necessary due to
     // WORKAROUND_SWDEV_229277_227616_229195, which disables ConvHipImplicitGemmBwdDataV4R1, but we
     // still want to check that the solver is not broken.
-    const auto env_bwd = std::tuple{
-        std::pair{ENV(MIOPEN_FIND_ENFORCE), std::string_view("SEARCH_DB_UPDATE")},
-        std::pair{ENV(MIOPEN_DEBUG_TUNING_ITERATIONS_MAX), std::string_view("5")},
-        std::pair{ENV(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1), std::string_view("1")},
-        std::pair{ENV(MIOPEN_FIND_MODE), std::string_view("normal")},
-        std::pair{ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER),
-                  std::string_view("ConvHipImplicitGemmBwdDataV4R1")}};
+    const auto env_bwd =
+        std::tuple{std::pair{MIOPEN_FIND_ENFORCE, "SEARCH_DB_UPDATE"},
+                   std::pair{MIOPEN_DEBUG_TUNING_ITERATIONS_MAX, 5},
+                   std::pair{MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1, true},
+                   std::pair{MIOPEN_FIND_MODE, "normal"},
+                   std::pair{MIOPEN_DEBUG_FIND_ONLY_SOLVER, "ConvHipImplicitGemmBwdDataV4R1"}};
 
     const std::string vb = " --verbose --disable-forward --disable-backward-weights";
 
@@ -65,15 +64,15 @@ bool IsTestSupportedForDevice()
 
 } // namespace
 
-class Conv2dTuningV4R1BWDFloat : public FloatTestCase<std::vector<TestCase>>
+class GPU_Conv2dTuningV4R1BWD_FP32 : public FloatTestCase<std::vector<TestCase>>
 {
 };
 
-TEST_P(Conv2dTuningV4R1BWDFloat, FloatTest_smoke_solver_ConvHipImplicitGemmBwdDataV4R1)
+TEST_P(GPU_Conv2dTuningV4R1BWD_FP32, FloatTest_smoke_solver_ConvHipImplicitGemmBwdDataV4R1)
 {
     if(IsTestSupportedForDevice())
     {
-        invoke_with_params<conv2d_driver, Conv2dTuningV4R1BWDFloat>(tuning_check);
+        invoke_with_params<conv2d_driver, GPU_Conv2dTuningV4R1BWD_FP32>(tuning_check);
     }
     else
     {
@@ -81,6 +80,4 @@ TEST_P(Conv2dTuningV4R1BWDFloat, FloatTest_smoke_solver_ConvHipImplicitGemmBwdDa
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(SmokeSolverConvHipImplicitGemmBwdDataV4R1,
-                         Conv2dTuningV4R1BWDFloat,
-                         testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Conv2dTuningV4R1BWD_FP32, testing::Values(GetTestCases()));

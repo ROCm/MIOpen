@@ -65,7 +65,7 @@ struct c_array_view
 
 void profileRNNkernels(const Handle& handle, unsigned char select, float& ctime);
 
-struct RNNDescriptor : miopenRNNDescriptor
+struct MIOPEN_INTERNALS_EXPORT RNNDescriptor : miopenRNNDescriptor
 {
 
     RNNDescriptor();
@@ -120,6 +120,11 @@ struct RNNDescriptor : miopenRNNDescriptor
                                                        int vectorSize,
                                                        const int* lensPerSeq,
                                                        const void* padding_marker_ptr);
+
+    static SeqTensorDescriptor makeSeqTensorDescriptor(
+        c_array_view<const miopenTensorDescriptor_t> descs,
+        size_t seq_len,
+        miopenRNNBaseLayout_t layout = miopenRNNBaseLayout_t::miopenRNNDataSeqMajorNotPadded);
 
     static void SeqTensorToTensorDescArray(const SeqTensorDescriptor& desc,
                                            std::vector<miopen::TensorDescriptor>& td,
@@ -364,6 +369,38 @@ private:
     size_t RNNTransformerWorkspaceSize(const SeqTensorDescriptor& xDesc,
                                        miopenRNNFWDMode_t fwdMode) const;
 
+    // TODO rename
+    void ModularBackward(Handle& handle,
+                         const SeqTensorDescriptor& yDesc,
+                         ConstData_t dy,
+                         const TensorDescriptor& hDesc,
+                         ConstData_t hx,
+                         ConstData_t dhy,
+                         Data_t dhx,
+                         const TensorDescriptor& cDesc,
+                         ConstData_t cx,
+                         ConstData_t dcy,
+                         Data_t dcx,
+                         const SeqTensorDescriptor& xDesc,
+                         Data_t dx,
+                         ConstData_t w,
+                         Data_t workSpace,
+                         size_t workSpaceSize,
+                         Data_t reserveSpace,
+                         size_t reserveSpaceSize) const;
+
+    void ModularBackwardWeights(Handle& handle,
+                                const SeqTensorDescriptor& xDesc,
+                                ConstData_t x,
+                                const TensorDescriptor& hDesc,
+                                ConstData_t hx,
+                                const SeqTensorDescriptor& yDesc,
+                                Data_t w,
+                                Data_t workSpace,
+                                size_t workSpaceSize,
+                                ConstData_t reserveSpace,
+                                size_t /*reserveSpaceSize*/) const;
+
     void RNNTransformerForward(Handle& handle,
                                miopenRNNFWDMode_t fwdMode,
                                ConstData_t w,
@@ -552,7 +589,7 @@ private:
                                          size_t reserveSpaceSize) const;
 };
 
-std::ostream& operator<<(std::ostream& stream, const RNNDescriptor& r);
+MIOPEN_INTERNALS_EXPORT std::ostream& operator<<(std::ostream& stream, const RNNDescriptor& r);
 
 } // namespace miopen
 MIOPEN_DEFINE_OBJECT(miopenRNNDescriptor, miopen::RNNDescriptor);

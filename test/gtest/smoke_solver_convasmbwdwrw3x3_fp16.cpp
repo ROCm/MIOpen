@@ -34,11 +34,10 @@ namespace {
 
 auto GetTestCases()
 {
-    const auto env_wrw = std::tuple{
-        std::pair{ENV(MIOPEN_FIND_ENFORCE), std::string_view("SEARCH_DB_UPDATE")},
-        std::pair{ENV(MIOPEN_DEBUG_TUNING_ITERATIONS_MAX), std::string_view("5")},
-        std::pair{ENV(MIOPEN_FIND_MODE), std::string_view("normal")},
-        std::pair{ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER), std::string_view("ConvAsmBwdWrW3x3")}};
+    const auto env_wrw = std::tuple{std::pair{MIOPEN_FIND_ENFORCE, "SEARCH_DB_UPDATE"},
+                                    std::pair{MIOPEN_DEBUG_TUNING_ITERATIONS_MAX, 5},
+                                    std::pair{MIOPEN_FIND_MODE, "normal"},
+                                    std::pair{MIOPEN_DEBUG_FIND_ONLY_SOLVER, "ConvAsmBwdWrW3x3"}};
 
     const std::string vw = " --verbose --disable-forward --disable-backward-data";
 
@@ -62,15 +61,15 @@ bool IsTestSupportedForDevice()
 
 } // namespace
 
-class Conv2dTuningHalf : public HalfTestCase<std::vector<TestCase>>
+class GPU_Conv2dTuning_FP16 : public HalfTestCase<std::vector<TestCase>>
 {
 };
 
-TEST_P(Conv2dTuningHalf, HalfTest_smoke_solver_convasmbwdwrw3x3_fp16)
+TEST_P(GPU_Conv2dTuning_FP16, HalfTest_smoke_solver_convasmbwdwrw3x3_fp16)
 {
     if(IsTestSupportedForDevice() && !SkipTest())
     {
-        invoke_with_params<conv2d_driver, Conv2dTuningHalf>(tuning_check);
+        invoke_with_params<conv2d_driver, GPU_Conv2dTuning_FP16>(tuning_check);
     }
     else
     {
@@ -78,6 +77,4 @@ TEST_P(Conv2dTuningHalf, HalfTest_smoke_solver_convasmbwdwrw3x3_fp16)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(SmokeSolverConvAsmBwdWrw3x3Fp16,
-                         Conv2dTuningHalf,
-                         testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Conv2dTuning_FP16, testing::Values(GetTestCases()));

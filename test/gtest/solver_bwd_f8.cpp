@@ -25,45 +25,48 @@
  *******************************************************************************/
 #include "solver_bwd.hpp"
 
-struct ConvBwdFp8 : ConvBwdSolverTest<float8, float, true>
+struct GPU_ConvBwd_FP8 : ConvBwdSolverTest<float8, float, true>
 {
 };
 
-struct ConvBwdFp8Naive : ConvBwdSolverTest<float8, float, true>
+struct GPU_ConvBwdNaive_FP8 : ConvBwdSolverTest<float8, float, true>
 {
 };
 
-TEST_P(ConvBwdFp8, DISABLED_GemmBwd1x1_stride2)
+TEST_P(GPU_ConvBwd_FP8, DISABLED_GemmBwd1x1_stride2)
 {
     miopen::solver::conv::GemmBwd1x1_stride2 solv{};
     SolverBwd(solv);
 }
 
-TEST_P(ConvBwdFp8, DISABLED_GemmBwd1x1_stride1)
+TEST_P(GPU_ConvBwd_FP8, DISABLED_GemmBwd1x1_stride1)
 {
     miopen::solver::conv::GemmBwd1x1_stride1 solv{};
     SolverBwd(solv);
 }
 
-TEST_P(ConvBwdFp8, DISABLED_GemmBwdRest)
+TEST_P(GPU_ConvBwd_FP8, DISABLED_GemmBwdRest)
 {
     miopen::solver::conv::GemmBwdRest solv{};
     SolverBwd(solv);
 }
 
-TEST_P(ConvBwdFp8Naive, DISABLED_Bwd)
+TEST_P(GPU_ConvBwdNaive_FP8, DISABLED_Bwd)
 {
     miopen::solver::conv::ConvDirectNaiveConvBwd solv{};
     SolverBwd(solv);
 }
 
-INSTANTIATE_TEST_SUITE_P(ConvBwdTest,
-                         ConvBwdFp8,
-                         testing::Combine(testing::Values(miopenConvolutionAlgoGEMM),
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_ConvBwd_FP8,
+                         testing::Combine(testing::Values(Gpu::All),
+                                          testing::Values(miopenConvolutionAlgoGEMM),
                                           testing::ValuesIn(GetNetwork1<ConvTestCaseBase>())));
+
 // Since NaiveConv is verified against the CPU, we are conservative in the number and type
 // of test cases we instantiate
-INSTANTIATE_TEST_SUITE_P(ConvBwdTest,
-                         ConvBwdFp8Naive,
-                         testing::Combine(testing::Values(miopenConvolutionAlgoGEMM),
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_ConvBwdNaive_FP8,
+                         testing::Combine(testing::Values(Gpu::All),
+                                          testing::Values(miopenConvolutionAlgoGEMM),
                                           testing::ValuesIn(ConvTestConfigs<ConvTestCaseBase>())));

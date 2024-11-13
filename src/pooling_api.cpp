@@ -41,13 +41,14 @@ inline void Pooling_logging_cmd(const miopenPoolingDescriptor_t poolDesc,
 {
     if(miopen::IsLoggingCmd())
     {
-        auto tensor_dim = miopen::deref(tensorDesc).GetSize();
+        auto tensor_dim = miopen::deref(tensorDesc).GetNumDims();
         std::stringstream ss;
 
         switch(miopen::deref(tensorDesc).GetType())
         {
         case miopenHalf: ss << "poolfp16"; break;
         case miopenFloat: ss << "pool"; break;
+        case miopenInt64:
         case miopenInt32:
         case miopenInt8:
         case miopenBFloat16:
@@ -124,7 +125,10 @@ inline void Pooling_logging_cmd(const miopenPoolingDescriptor_t poolDesc,
 extern "C" miopenStatus_t miopenCreatePoolingDescriptor(miopenPoolingDescriptor_t* poolDesc)
 {
     MIOPEN_LOG_FUNCTION(poolDesc);
-    return miopen::try_([&] { miopen::deref(poolDesc) = new miopen::PoolingDescriptor(); });
+    return miopen::try_([&] {
+        auto& desc = miopen::deref(poolDesc);
+        desc       = new miopen::PoolingDescriptor();
+    });
 }
 
 extern "C" miopenStatus_t miopenSetPoolingIndexType(miopenPoolingDescriptor_t poolDesc,

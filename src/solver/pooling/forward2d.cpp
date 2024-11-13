@@ -30,6 +30,7 @@
 #include <miopen/datatype.hpp>
 #include <miopen/pooling.hpp>
 #include <miopen/kernel_build_params.hpp>
+#include <miopen/mlo_internal.hpp>
 
 namespace miopen {
 
@@ -136,12 +137,12 @@ bool PoolingForward2d::IsApplicable(const ExecutionContext& context,
                                     const miopen::pooling::ProblemDescription& problem) const
 {
     return problem.GetDirection() == miopen::pooling::Direction::Forward &&
-           problem.GetXDesc().GetSize() == 4 &&
+           problem.GetXDesc().GetNumDims() == 4 &&
            problem.GetXDesc().GetType() == problem.GetYDesc().GetType() &&
            (problem.GetXDesc().GetType() == miopenFloat ||
             problem.GetXDesc().GetType() == miopenHalf) &&
-           problem.GetXDesc().GetLayout("NCHW") == "NCHW" &&
-           problem.GetYDesc().GetLayout("NCHW") == "NCHW" &&
+           problem.GetXDesc().IsPossibleLayout4D5D("NCHW") &&
+           problem.GetYDesc().IsPossibleLayout4D5D("NCHW") &&
            sizeof_private_memory(problem) <=
                TargetProperties::GetMaxWaveScratchSize() / context.GetStream().GetWavefrontWidth();
 }

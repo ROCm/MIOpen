@@ -28,10 +28,10 @@
 #include "driver.hpp"
 #include "get_handle.hpp"
 #include "workspace.hpp"
-#include "env_utils.hpp"
 
 #include <miopen/convolution.hpp>
 #include <miopen/conv/problem_description.hpp>
+#include <miopen/env.hpp>
 #include <miopen/execution_context.hpp>
 #include <miopen/find_db.hpp>
 #include <miopen/logger.hpp>
@@ -40,6 +40,8 @@
 
 #include <chrono>
 #include <functional>
+
+namespace env = miopen::env;
 
 namespace miopen {
 
@@ -224,8 +226,9 @@ private:
 
 int main(int argc, const char* argv[])
 {
-    setEnvironmentVariable("MIOPEN_LOG_LEVEL", "6");
-    setEnvironmentVariable("MIOPEN_COMPILE_PARALLEL_LEVEL", "1");
-    setEnvironmentVariable("MIOPEN_ENABLE_LOGGING_ELAPSED_TIME", "1");
+    env::setEnvironmentVariable("MIOPEN_ENABLE_LOGGING_ELAPSED_TIME", "1");
+    env::setEnvironmentVariable("MIOPEN_LOG_LEVEL", "6");
+    env::setEnvironmentVariable("MIOPEN_COMPILE_PARALLEL_LEVEL", "1");
+
     test_drive<miopen::FindDbTest>(argc, argv);
 }

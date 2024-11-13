@@ -34,17 +34,16 @@ namespace {
 
 auto GetTestCases()
 {
-    const auto env_fwd = std::tuple{
-        std::pair{ENV(MIOPEN_FIND_MODE), std::string_view("normal")},
-        std::pair{ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER), std::string_view("ConvOclDirectFwd11x11")}};
+    const auto env_fwd =
+        std::tuple{std::pair{MIOPEN_FIND_MODE, "normal"},
+                   std::pair{MIOPEN_DEBUG_FIND_ONLY_SOLVER, "ConvOclDirectFwd11x11"}};
 
-    const auto env_fwd_gen = std::tuple{
-        std::pair{ENV(MIOPEN_FIND_MODE), std::string_view("normal")},
-        std::pair{ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER), std::string_view("ConvOclDirectFwdGen")}};
+    const auto env_fwd_gen =
+        std::tuple{std::pair{MIOPEN_FIND_MODE, "normal"},
+                   std::pair{MIOPEN_DEBUG_FIND_ONLY_SOLVER, "ConvOclDirectFwdGen"}};
 
-    const auto env_wrw = std::tuple{
-        std::pair{ENV(MIOPEN_FIND_MODE), std::string_view("normal")},
-        std::pair{ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER), std::string_view("ConvOclBwdWrW53")}};
+    const auto env_wrw = std::tuple{std::pair{MIOPEN_FIND_MODE, "normal"},
+                                    std::pair{MIOPEN_DEBUG_FIND_ONLY_SOLVER, "ConvOclBwdWrW53"}};
 
     const std::string vf = " --verbose --disable-backward-data --disable-backward-weights";
     const std::string vw = " --verbose --disable-forward --disable-backward-data";
@@ -69,23 +68,23 @@ bool IsTestSupportedForDevice()
 
 } // namespace
 
-class Conv2dDefaultFloat : public FloatTestCase<std::vector<TestCase>>
+class GPU_Conv2dDefault_FP32 : public FloatTestCase<std::vector<TestCase>>
 {
 };
 
-class Conv2dDefaultHalf : public HalfTestCase<std::vector<TestCase>>
+class GPU_Conv2dDefault_FP16 : public HalfTestCase<std::vector<TestCase>>
 {
 };
 
-class Conv2dDefaultBf16 : public Bf16TestCase<std::vector<TestCase>>
+class GPU_Conv2dDefault_BFP16 : public Bf16TestCase<std::vector<TestCase>>
 {
 };
 
-TEST_P(Conv2dDefaultFloat, FloatTest_smoke_solver_ConvOcl_Fwd11x11_FwdGen_WrW53)
+TEST_P(GPU_Conv2dDefault_FP32, FloatTest_smoke_solver_ConvOcl_Fwd11x11_FwdGen_WrW53)
 {
     if(IsTestSupportedForDevice())
     {
-        invoke_with_params<conv2d_driver, Conv2dDefaultFloat>(default_check);
+        invoke_with_params<conv2d_driver, GPU_Conv2dDefault_FP32>(default_check);
     }
     else
     {
@@ -93,11 +92,11 @@ TEST_P(Conv2dDefaultFloat, FloatTest_smoke_solver_ConvOcl_Fwd11x11_FwdGen_WrW53)
     }
 };
 
-TEST_P(Conv2dDefaultHalf, HalftTest_smoke_solver_ConvOcl_Fwd11x11_FwdGen_WrW53)
+TEST_P(GPU_Conv2dDefault_FP16, HalftTest_smoke_solver_ConvOcl_Fwd11x11_FwdGen_WrW53)
 {
     if(IsTestSupportedForDevice())
     {
-        invoke_with_params<conv2d_driver, Conv2dDefaultHalf>(default_check);
+        invoke_with_params<conv2d_driver, GPU_Conv2dDefault_FP16>(default_check);
     }
     else
     {
@@ -105,11 +104,11 @@ TEST_P(Conv2dDefaultHalf, HalftTest_smoke_solver_ConvOcl_Fwd11x11_FwdGen_WrW53)
     }
 };
 
-TEST_P(Conv2dDefaultBf16, Bf16Test_smoke_solver_ConvOcl_Fwd11x11_FwdGen_WrW53)
+TEST_P(GPU_Conv2dDefault_BFP16, Bf16Test_smoke_solver_ConvOcl_Fwd11x11_FwdGen_WrW53)
 {
     if(IsTestSupportedForDevice())
     {
-        invoke_with_params<conv2d_driver, Conv2dDefaultBf16>(default_check);
+        invoke_with_params<conv2d_driver, GPU_Conv2dDefault_BFP16>(default_check);
     }
     else
     {
@@ -117,12 +116,6 @@ TEST_P(Conv2dDefaultBf16, Bf16Test_smoke_solver_ConvOcl_Fwd11x11_FwdGen_WrW53)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(SmokeSolverConvOclFwd11x11FwdGenWrW53,
-                         Conv2dDefaultFloat,
-                         testing::Values(GetTestCases()));
-INSTANTIATE_TEST_SUITE_P(SmokeSolverConvOclFwd11x11FwdGenWrW53,
-                         Conv2dDefaultHalf,
-                         testing::Values(GetTestCases()));
-INSTANTIATE_TEST_SUITE_P(SmokeSolverConvOclFwd11x11FwdGenWrW53,
-                         Conv2dDefaultBf16,
-                         testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Conv2dDefault_FP32, testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Conv2dDefault_FP16, testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Conv2dDefault_BFP16, testing::Values(GetTestCases()));

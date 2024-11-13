@@ -34,11 +34,10 @@ namespace {
 
 auto GetTestCases()
 {
-    const auto env_w1 = std::tuple{
-        std::pair{ENV(MIOPEN_FIND_ENFORCE), std::string_view("SEARCH_DB_UPDATE")},
-        std::pair{ENV(MIOPEN_DEBUG_TUNING_ITERATIONS_MAX), std::string_view("5")},
-        std::pair{ENV(MIOPEN_FIND_MODE), std::string_view("normal")},
-        std::pair{ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER), std::string_view("ConvAsmBwdWrW1x1")}};
+    const auto env_w1 = std::tuple{std::pair{MIOPEN_FIND_ENFORCE, "SEARCH_DB_UPDATE"},
+                                   std::pair{MIOPEN_DEBUG_TUNING_ITERATIONS_MAX, 5},
+                                   std::pair{MIOPEN_FIND_MODE, "normal"},
+                                   std::pair{MIOPEN_DEBUG_FIND_ONLY_SOLVER, "ConvAsmBwdWrW1x1"}};
 
     const std::string vw = " --verbose --disable-forward --disable-backward-data";
 
@@ -62,23 +61,23 @@ bool IsTestSupportedForDevice()
 
 } // namespace
 
-class Conv2dTuningFloat : public FloatTestCase<std::vector<TestCase>>
+class GPU_Conv2dTuning_FP32 : public FloatTestCase<std::vector<TestCase>>
 {
 };
 
-class Conv2dTuningHalf : public HalfTestCase<std::vector<TestCase>>
+class GPU_Conv2dTuning_FP16 : public HalfTestCase<std::vector<TestCase>>
 {
 };
 
-class Conv2dTuningBf16 : public Bf16TestCase<std::vector<TestCase>>
+class GPU_Conv2dTuning_BFP16 : public Bf16TestCase<std::vector<TestCase>>
 {
 };
 
-TEST_P(Conv2dTuningFloat, FloatTest_smoke_solver_convasmbwdwrw)
+TEST_P(GPU_Conv2dTuning_FP32, FloatTest_smoke_solver_convasmbwdwrw)
 {
     if(IsTestSupportedForDevice() && !SkipTest())
     {
-        invoke_with_params<conv2d_driver, Conv2dTuningFloat>(tuning_check);
+        invoke_with_params<conv2d_driver, GPU_Conv2dTuning_FP32>(tuning_check);
     }
     else
     {
@@ -86,11 +85,11 @@ TEST_P(Conv2dTuningFloat, FloatTest_smoke_solver_convasmbwdwrw)
     }
 };
 
-TEST_P(Conv2dTuningHalf, HalfTest_smoke_solver_convasmbwdwrw)
+TEST_P(GPU_Conv2dTuning_FP16, HalfTest_smoke_solver_convasmbwdwrw)
 {
     if(IsTestSupportedForDevice() && !SkipTest())
     {
-        invoke_with_params<conv2d_driver, Conv2dTuningHalf>(tuning_check);
+        invoke_with_params<conv2d_driver, GPU_Conv2dTuning_FP16>(tuning_check);
     }
     else
     {
@@ -98,11 +97,11 @@ TEST_P(Conv2dTuningHalf, HalfTest_smoke_solver_convasmbwdwrw)
     }
 };
 
-TEST_P(Conv2dTuningBf16, Bf16Test_smoke_solver_convasmbwdwrw)
+TEST_P(GPU_Conv2dTuning_BFP16, Bf16Test_smoke_solver_convasmbwdwrw)
 {
     if(IsTestSupportedForDevice() && !SkipTest())
     {
-        invoke_with_params<conv2d_driver, Conv2dTuningBf16>(tuning_check);
+        invoke_with_params<conv2d_driver, GPU_Conv2dTuning_BFP16>(tuning_check);
     }
     else
     {
@@ -110,6 +109,6 @@ TEST_P(Conv2dTuningBf16, Bf16Test_smoke_solver_convasmbwdwrw)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(SmokeSolverConvAsmBwd, Conv2dTuningFloat, testing::Values(GetTestCases()));
-INSTANTIATE_TEST_SUITE_P(SmokeSolverConvAsmBwd, Conv2dTuningHalf, testing::Values(GetTestCases()));
-INSTANTIATE_TEST_SUITE_P(SmokeSolverConvAsmBwd, Conv2dTuningBf16, testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Conv2dTuning_FP32, testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Conv2dTuning_FP16, testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Conv2dTuning_BFP16, testing::Values(GetTestCases()));

@@ -43,6 +43,9 @@ inline int pick_batch_size(int x, int y)
         return x / y;
 }
 
+// Reduce tests execution time
+#define MIOPEN_TESTS_GET_INPUTS_ENABLE_HUGE_TENSORS 1
+
 inline std::set<std::vector<int>> get_inputs(int n = MIOPEN_TEST_DEFAULT_BATCH_SIZE_FACTOR)
 {
     // clang-format off
@@ -51,7 +54,9 @@ inline std::set<std::vector<int>> get_inputs(int n = MIOPEN_TEST_DEFAULT_BATCH_S
         { pick_batch_size(32,  n), 1,    14,  14  },
         { pick_batch_size(100, n), 1,    8,   8   },
         { pick_batch_size(256, n), 1,    27,  27  },
+#if MIOPEN_TESTS_GET_INPUTS_ENABLE_HUGE_TENSORS
         { pick_batch_size(64, n), 19,   1024,2048},
+#endif
         { pick_batch_size(100, n), 3,    32,  32  },
         { pick_batch_size(100, n), 32,   16,  16  },
         { pick_batch_size(100, n), 32,   8,   8   },
@@ -88,9 +93,11 @@ inline std::set<std::vector<int>> get_inputs(int n = MIOPEN_TEST_DEFAULT_BATCH_S
         { pick_batch_size(32, n),  576,  4,   4   },
         { pick_batch_size(32, n),  1056, 7,   7   },
         { pick_batch_size(32, n),  2048, 11,  11  },
+#if MIOPEN_TESTS_GET_INPUTS_ENABLE_HUGE_TENSORS
         { pick_batch_size(32, n),  16,   2048, 2048 },
         { pick_batch_size(32, n),  16,   3072, 3072 },
         { pick_batch_size(32, n),  16,   4096, 4096 },
+#endif
         { 1,                       1,    1,   1   }
     };
     // clang-format on

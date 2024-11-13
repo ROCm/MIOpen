@@ -82,9 +82,9 @@ auto GetTestCases()
 
 using TestCase = decltype(GetTestCases())::value_type;
 
-bool SkipTest() { return miopen::IsDisabled(ENV(MIOPEN_TEST_DEEPBENCH)); }
+bool SkipTest() { return env::disabled(MIOPEN_TEST_DEEPBENCH); }
 
-class Conv2dFloat_deepbench : public FloatTestCase<std::vector<TestCase>>
+class GPU_Conv2d_deepbench_FP32 : public FloatTestCase<std::vector<TestCase>>
 {
 };
 
@@ -97,11 +97,11 @@ bool IsTestSupportedForDevice()
 } // namespace deepbench_conv
 using namespace deepbench_conv;
 
-TEST_P(Conv2dFloat_deepbench, FloatTest_deepbench_conv)
+TEST_P(GPU_Conv2d_deepbench_FP32, FloatTest_deepbench_conv)
 {
     if(IsTestSupportedForDevice() && !SkipTest())
     {
-        invoke_with_params<conv2d_driver, Conv2dFloat_deepbench>(default_check);
+        invoke_with_params<conv2d_driver, GPU_Conv2d_deepbench_FP32>(default_check);
     }
     else
     {
@@ -109,4 +109,4 @@ TEST_P(Conv2dFloat_deepbench, FloatTest_deepbench_conv)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(DeepbenchConv, Conv2dFloat_deepbench, testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_Conv2d_deepbench_FP32, testing::Values(GetTestCases()));

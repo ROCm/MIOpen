@@ -24,6 +24,7 @@
  *
  *******************************************************************************/
 #include "include_inliner.hpp"
+#include "miopen/filesystem.hpp"
 #include <algorithm>
 #include <fstream>
 #include <iomanip>
@@ -31,6 +32,9 @@
 #include <memory>
 #include <sstream>
 #include <string>
+#include <vector>
+
+namespace fs = miopen::fs;
 
 void Bin2Hex(std::istream& source,
              std::ostream& target,
@@ -47,10 +51,10 @@ void Bin2Hex(std::istream& source,
     if(variable.length() != 0)
     {
         target << "extern const size_t " << variable << "_SIZE;" << std::endl;
-        target << "extern const unsigned char " << variable << "[];" << std::endl;
+        target << "extern const char " << variable << "[];" << std::endl;
         target << "const size_t " << variable << "_SIZE = " << std::setbase(10) << sourceSize << ";"
                << std::endl;
-        target << "const unsigned char " << variable << "[] = {" << std::endl;
+        target << "const char " << variable << "[] = {" << std::endl;
     }
 
     target << std::setbase(16) << std::setfill('0');
@@ -108,16 +112,15 @@ void PrintHelp()
               << std::endl;
 }
 
-[[noreturn]] void WrongUsage(const std::string& error)
+[[noreturn]] void WrongUsage(std::string_view error)
 {
-    std::cout << "Wrong usage: " << error << std::endl;
-    std::cout << std::endl;
+    std::cout << "Wrong usage: " << error << "\n" << std::endl;
     PrintHelp();
     // NOLINTNEXTLINE (concurrency-mt-unsafe)
     std::exit(1);
 }
 
-[[noreturn]] void UnknownArgument(const std::string& arg)
+[[noreturn]] void UnknownArgument(const std::string_view arg)
 {
     std::ostringstream ss;
     ss << "unknown argument - " << arg;
@@ -200,81 +203,70 @@ void Process(const fs::path& sourcePath,
     Bin2Hex(*source, target, variable, true, bufferSize, lineSize);
 }
 
-int main(int argsn, char** args)
+int main(int argc, char* argv[])
 {
-    if(argsn == 1)
+    if(argc == 1)
     {
         PrintHelp();
         return 2;
     }
 
+    // The configuration to establish with command line options
+    // before running the algorithm.
+
     std::string guard;
     size_t bufferSize = 512;
     size_t lineSize   = 16;
 
-    std::ofstream targetFile;
-    std::ostream* target = &std::cout;
-    bool recurse         = true;
-    bool as_extern       = false;
-    bool mark_includes   = false;
+    std::string targetFile;
+    std::vector<fs::path> sourceFiles;
+
+    bool recurse       = true;
+    bool as_extern     = false;
+    bool mark_includes = false;
+
+    // Parse command line options to establish configuration
 
     int i = 0;
-    while(++i < argsn && **args != '-')
+    while(++i < argc)
     {
-        std::string arg(args[i] + 1);
+        std::string arg(argv[i]);
         std::transform(arg.begin(), arg.end(), arg.begin(), ::tolower);
 
-        if(arg == "s" || arg == "source")
+        if(arg == "-s" || arg == "-source")
         {
-            if(guard.length() > 0)
-            {
-                *target << "#ifndef " << guard << std::endl;
-                *target << "#define " << guard << std::endl;
-            }
-
-            *target << "#ifndef MIOPEN_USE_CLANG_TIDY" << std::endl;
-            *target << "#include <cstddef>" << std::endl;
-
-            while(++i < argsn)
-            {
-                Process(args[i], *target, bufferSize, lineSize, recurse, as_extern, mark_includes);
-            }
-
-            *target << "#endif" << std::endl;
-
-            if(guard.length() > 0)
-            {
-                *target << "#endif" << std::endl;
-            }
-
-            return 0;
+            while(++i < argc && *argv[i] != '-')
+                sourceFiles.emplace_back(argv[i]);
         }
-        else if(arg == "t" || arg == "target")
+        else if(arg == "-t" || arg == "-target")
         {
-            targetFile.open(args[++i], std::ios::out);
-            target = &targetFile;
+            std::string outputFile{argv[++i]};
+            if(!targetFile.empty())
+                std::cerr << "Warning: overriding output file\n    '" << targetFile
+                          << "'\nwith\n    '" << outputFile << "'\n";
+            targetFile = outputFile;
         }
-        else if(arg == "l" || arg == "line-size")
+        else if(arg == "-l" || arg == "-line-size")
         {
-            lineSize = std::stol(args[++i]);
+            lineSize = std::stol(argv[++i]);
         }
-        else if(arg == "b" || arg == "buffer")
+        else if(arg == "-b" || arg == "-buffer")
         {
-            bufferSize = std::stol(args[++i]);
+            bufferSize = std::stol(argv[++i]);
         }
-        else if(arg == "g" || arg == "guard")
+        else if(arg == "-g" || arg == "-guard")
         {
-            guard = args[++i];
+            guard = argv[++i];
         }
-        else if(arg == "n" || arg == "no-recurse")
+        else if(arg == "-n" || arg == "-no-recurse")
         {
             recurse = false;
         }
-        else if(arg == "m" || arg == "mark-includes")
+        else if(arg == "-m" || arg == "-mark-includes")
         {
             mark_includes = true;
         }
-        else if(arg == "e" || arg == "extern")
+        else if(arg == "-e" || arg == "-extern")
         {
             as_extern = true;
         }
@@ -284,5 +276,48 @@ int main(int argsn, char** args)
         }
     }
 
-    WrongUsage("source key is required");
+    // Execute the algorithm on the established configuration
+
+    if(sourceFiles.empty())
+        WrongUsage("'source' option is required");
+
+    std::stringstream ss;
+    if(guard.length() > 0)
+    {
+        ss << "#ifndef " << guard << "\n#define " << guard << "\n";
+    }
+
+    ss << "#ifndef MIOPEN_USE_CLANG_TIDY\n"
+          "#include <cstddef>\n";
+
+    for(const auto& file : sourceFiles)
+    {
+        Process(file, ss, bufferSize, lineSize, recurse, as_extern, mark_includes);
+    }
+
+    ss << "#endif\n";
+
+    if(guard.length() > 0)
+    {
+        ss << "#endif\n";
+    }
+
+    auto sourceCode = ss.str();
+
+    if(targetFile.empty())
+    {
+        std::cout << sourceCode << std::flush;
+    }
+    else
+    {
+        std::ofstream file{targetFile};
+        if(!file.is_open())
+        {
+            std::cerr << "failure opening file: " << targetFile << "\n";
+            return 1;
+        }
+        file.write(sourceCode.data(), sourceCode.length());
+    }
+
+    return 0;
 }

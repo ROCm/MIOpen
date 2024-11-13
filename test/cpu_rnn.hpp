@@ -88,14 +88,14 @@ void LSTMFwdCPUVerify(miopen::Handle& handle,
     int wei_shift_bias = (in_h + hy_h + (bi * hy_h + hy_h) * (numlayer - 1)) * wei_stride;
 
     // initial dropoput
-    std::vector<prngStates> dropout_states_host;
+    std::vector<rocrand_state_xorwow> dropout_states_host;
     std::vector<unsigned char> dropout_reservespace_host;
     std::vector<T> dropout_hid_state;
     miopenTensorDescriptor_t dropout_inputTensor{}, dropout_outputTensor{};
     if(use_dropout)
     {
-        size_t states_size  = dropoutDesc.stateSizeInBytes / sizeof(prngStates);
-        dropout_states_host = std::vector<prngStates>(states_size);
+        size_t states_size  = dropoutDesc.stateSizeInBytes / sizeof(rocrand_state_xorwow);
+        dropout_states_host = std::vector<rocrand_state_xorwow>(states_size);
         InitKernelStateEmulator(dropout_states_host, dropoutDesc);
 
         std::array<int, 2> drop_in_len  = {{batch_n_cpu, hy_h * bi}};
@@ -1617,14 +1617,14 @@ void RNNFwdTrainCPUVerify(miopen::Handle& handle,
     int wei_shift_bias = ((in_h + hy_h) * bi + (bi * hy_h + hy_h) * bi * (numlayer - 1)) * hy_h;
 
     // initial dropoput
-    std::vector<prngStates> dropout_states_host;
+    std::vector<rocrand_state_xorwow> dropout_states_host;
     std::vector<unsigned char> dropout_reservespace_host;
     std::vector<T> dropout_hid_state;
     miopenTensorDescriptor_t dropout_inputTensor{}, dropout_outputTensor{};
     if(use_dropout)
     {
-        size_t states_size  = dropoutDesc.stateSizeInBytes / sizeof(prngStates);
-        dropout_states_host = std::vector<prngStates>(states_size);
+        size_t states_size  = dropoutDesc.stateSizeInBytes / sizeof(rocrand_state_xorwow);
+        dropout_states_host = std::vector<rocrand_state_xorwow>(states_size);
         InitKernelStateEmulator(dropout_states_host, dropoutDesc);
 
         std::array<int, 2> drop_in_len  = {{batch_n, hy_h * bi}};
@@ -2782,14 +2782,14 @@ void GRUFwdCPUVerify(miopen::Handle& handle,
     int wei_shift_bias = (in_h + hy_h + (bi * hy_h + hy_h) * (numlayer - 1)) * wei_stride;
 
     // initial dropoput
-    std::vector<prngStates> dropout_states_host;
+    std::vector<rocrand_state_xorwow> dropout_states_host;
     std::vector<unsigned char> dropout_reservespace_host;
     std::vector<T> dropout_hid_state;
     miopenTensorDescriptor_t dropout_inputTensor{}, dropout_outputTensor{};
     if(use_dropout)
     {
-        size_t states_size  = dropoutDesc.stateSizeInBytes / sizeof(prngStates);
-        dropout_states_host = std::vector<prngStates>(states_size);
+        size_t states_size  = dropoutDesc.stateSizeInBytes / sizeof(rocrand_state_xorwow);
+        dropout_states_host = std::vector<rocrand_state_xorwow>(states_size);
         InitKernelStateEmulator(dropout_states_host, dropoutDesc);
 
         std::array<int, 2> drop_in_len  = {{batch_n, hy_h * bi}};

@@ -45,7 +45,7 @@ using GraphApiConvolutionTuple = std::tuple<bool,
                                             std::vector<int64_t>,
                                             std::vector<int64_t>>;
 
-class GraphApiConvolution : public testing::TestWithParam<GraphApiConvolutionTuple>
+class CPU_GraphApiConvolution_NONE : public testing::TestWithParam<GraphApiConvolutionTuple>
 {
 protected:
     void SetUp() override
@@ -69,7 +69,7 @@ protected:
     bool attrsValid;
 };
 
-TEST_P(GraphApiConvolution, BuilderValidateAttributes)
+TEST_P(CPU_GraphApiConvolution_NONE, BuilderValidateAttributes)
 {
     bool thrown = false;
     try
@@ -110,7 +110,7 @@ TEST_P(GraphApiConvolution, BuilderValidateAttributes)
     EXPECT_NE(thrown, attrsValid) << "L-value builder failure";
 }
 
-TEST_P(GraphApiConvolution, RVBuilderMissingSetter)
+TEST_P(CPU_GraphApiConvolution_NONE, RVBuilderMissingSetter)
 {
     EXPECT_ANY_THROW({
         auto conv = miopen::graphapi::ConvolutionBuilder()
@@ -197,7 +197,7 @@ TEST_P(GraphApiConvolution, RVBuilderMissingSetter)
           "graphapi::ConvolutionBuilder::setPostPaddings() call";
 }
 
-TEST_P(GraphApiConvolution, LVBuilderMissingSetter)
+TEST_P(CPU_GraphApiConvolution_NONE, LVBuilderMissingSetter)
 {
     EXPECT_ANY_THROW({
         miopen::graphapi::ConvolutionBuilder builder;
@@ -284,7 +284,7 @@ TEST_P(GraphApiConvolution, LVBuilderMissingSetter)
           "graphapi::ConvolutionBuilder::setPostPaddings() call";
 }
 
-TEST_P(GraphApiConvolution, BuilderCopyValues)
+TEST_P(CPU_GraphApiConvolution_NONE, BuilderCopyValues)
 {
     auto srcDilations     = dilations;
     auto srcFilterStrides = filterStrides;
@@ -344,7 +344,7 @@ TEST_P(GraphApiConvolution, BuilderCopyValues)
         << "graphapi::ConvolutionBuilder::setPostPaddings unexpectedly moved the parameter";
 }
 
-TEST_P(GraphApiConvolution, BuilderMoveValues)
+TEST_P(CPU_GraphApiConvolution_NONE, BuilderMoveValues)
 {
     auto srcDilations     = dilations;
     auto srcFilterStrides = filterStrides;
@@ -404,7 +404,7 @@ TEST_P(GraphApiConvolution, BuilderMoveValues)
         << "graphapi::ConvolutionBuilder::setPostPaddings didn't move the parameter";
 }
 
-TEST_P(GraphApiConvolution, CFunctions)
+TEST_P(CPU_GraphApiConvolution_NONE, CFunctions)
 {
     // clang-format off
     // Create Desctiptor
@@ -670,8 +670,8 @@ TEST_P(GraphApiConvolution, CFunctions)
 }
 
 INSTANTIATE_TEST_SUITE_P(
-    GraphApiConvolution,
-    GraphApiConvolution,
+    Unit,
+    CPU_GraphApiConvolution_NONE,
     testing::Values(
         GraphApiConvolutionTuple{
             true, miopenInt8, miopenConvolution, 2, {5, 6}, {20, 21}, {3, 4}, {1, 2}},
@@ -695,7 +695,7 @@ INSTANTIATE_TEST_SUITE_P(
             false, miopenInt8, miopenConvolution, 2, {1, 1}, {1, 1}, {0, 0}, {0, -1}}));
 
 template <typename T>
-class GraphApiOperationConvolutionBuilder : public testing::Test
+class CPU_GraphApiOperationConvolutionBuilder_NONE : public testing::Test
 {
 protected:
     using TestCase = std::tuple<bool,
@@ -731,9 +731,10 @@ using GraphApiOperationConvolutionBuilderClasses =
                    miopen::graphapi::OperationConvolutionBackwardDataBuilder,
                    miopen::graphapi::OperationConvolutionBackwardFilterBuilder>;
 
-TYPED_TEST_SUITE(GraphApiOperationConvolutionBuilder, GraphApiOperationConvolutionBuilderClasses);
+TYPED_TEST_SUITE(CPU_GraphApiOperationConvolutionBuilder_NONE,
+                 GraphApiOperationConvolutionBuilderClasses);
 
-TYPED_TEST(GraphApiOperationConvolutionBuilder, ValidateAttributes)
+TYPED_TEST(CPU_GraphApiOperationConvolutionBuilder_NONE, ValidateAttributes)
 {
     for(auto [attrsValid, convolution, x, y, w, message] : this->testCases)
     {
@@ -767,7 +768,7 @@ TYPED_TEST(GraphApiOperationConvolutionBuilder, ValidateAttributes)
     }
 }
 
-TYPED_TEST(GraphApiOperationConvolutionBuilder, MissingSetter)
+TYPED_TEST(CPU_GraphApiOperationConvolutionBuilder_NONE, MissingSetter)
 {
     for(auto [attrsValid, convolution, x, y, w, message] : this->testCases)
     {
@@ -975,11 +976,11 @@ private:
 
 } // namespace
 
-class GraphApiOperationConvolution : public testing::TestWithParam<GTestDescriptor>
+class CPU_GraphApiOperationConvolution_NONE : public testing::TestWithParam<GTestDescriptor>
 {
 };
 
-TEST_P(GraphApiOperationConvolution, CFuntions)
+TEST_P(CPU_GraphApiOperationConvolution_NONE, CFuntions)
 {
     auto [descrTextName, descrType, attrsValid, attributes] = GetParam();
 
@@ -1150,8 +1151,8 @@ TEST_P(GraphApiOperationConvolution, CFuntions)
 // TODO: Use testing::Combine to make
 //       this list concise
 INSTANTIATE_TEST_SUITE_P(
-    GraphApiOperationConvolution,
-    GraphApiOperationConvolution,
+    Unit,
+    CPU_GraphApiOperationConvolution_NONE,
     testing::Values(
 
         // Forward valid

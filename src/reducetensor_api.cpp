@@ -50,6 +50,7 @@ static void LogCmdRedux(const miopen::ReduceTensorDescriptor reduceTensorDesc,
         case miopenDouble: ss << "reducefp64"; break;
         case miopenFloat8: ss << "reducefp8"; break;
         case miopenBFloat8: ss << "reducebfp8"; break;
+        case miopenInt64:
         default: ss << "reduce";
         }
 
@@ -89,8 +90,10 @@ extern "C" miopenStatus_t
 miopenCreateReduceTensorDescriptor(miopenReduceTensorDescriptor_t* reduceTensorDesc)
 {
     MIOPEN_LOG_FUNCTION(reduceTensorDesc);
-    return miopen::try_(
-        [&] { miopen::deref(reduceTensorDesc) = new miopen::ReduceTensorDescriptor(); });
+    return miopen::try_([&] {
+        auto& desc = miopen::deref(reduceTensorDesc);
+        desc       = new miopen::ReduceTensorDescriptor();
+    });
 };
 
 extern "C" miopenStatus_t
