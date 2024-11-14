@@ -86,7 +86,7 @@ struct ProblemDescription : ProblemDescriptionBase
         return true;
     }
 
-    bool IsValidLength() const
+    bool IsLessThan5dLength() const
     {
         auto input_dims = paramInDesc.GetLengths().size();
         if(input_dims > 4)

@@ -44,7 +44,7 @@ namespace SGD {
 bool SGDForward::IsApplicable([[maybe_unused]] const ExecutionContext& constext,
                               const miopen::SGD::ProblemDescription& problem) const
 {
-    if(!problem.IsValidLength())
+    if(!problem.IsLessThan5dLength())
         return false;
     if(!(problem.GetParamInDesc().GetType() == miopenFloat ||
          problem.GetParamInDesc().GetType() == miopenHalf ||
