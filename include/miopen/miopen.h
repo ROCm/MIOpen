@@ -8010,15 +8010,6 @@ MIOPEN_EXPORT miopenStatus_t miopenMultiMarginLossForward(miopenHandle_t handle,
  *  @{
  */
 
-typedef enum
-{
-    MIOPEN_MARGINRANKINGLOSS_REDUCTION_NONE = 0, /*!< output tensor elements are not reduced */
-    MIOPEN_MARGINRANKINGLOSS_REDUCTION_SUM  = 1, /*!< output tensor elements are summed up */
-    MIOPEN_MARGINRANKINGLOSS_REDUCTION_MEAN =
-        2, /*!< output tensor elements are summed up and divided with total number of elements to
-              get mean value */
-} miopenMarginRakningLossReductionMode_t;
-
 /*! @brief Helper function to query the minimum workspace size required by the
 MarginRankingLoss call
  *
@@ -8032,14 +8023,14 @@ use this function (input)
  * @param [out] sizeInBytes         Pointer to data to return the minimum workspace size (output)
  * @return                          miopenStatus_t
  */
-MIOPEN_EXPORT miopenStatus_t miopenGetMarginRankingLossForwardWorkspaceSize(
-    miopenHandle_t handle,
-    const miopenTensorDescriptor_t input1Desc,
-    const miopenTensorDescriptor_t input2Desc,
-    const miopenTensorDescriptor_t targetDesc,
-    const miopenTensorDescriptor_t outputDesc,
-    const miopenMarginRakningLossReductionMode_t reduction,
-    size_t* sizeInBytes);
+MIOPEN_EXPORT miopenStatus_t
+miopenGetMarginRankingLossForwardWorkspaceSize(miopenHandle_t handle,
+                                               const miopenTensorDescriptor_t input1Desc,
+                                               const miopenTensorDescriptor_t input2Desc,
+                                               const miopenTensorDescriptor_t targetDesc,
+                                               const miopenTensorDescriptor_t outputDesc,
+                                               const miopenLossReductionMode_t reduction,
+                                               size_t* sizeInBytes);
 
 /*! @brief Execute a marginrankingloss forward layer
  *
@@ -8074,7 +8065,7 @@ miopenMarginRankingLossForward(miopenHandle_t handle,
                                const miopenTensorDescriptor_t outputDesc,
                                void* output,
                                float margin,
-                               miopenMarginRakningLossReductionMode_t reduction_mode,
+                               miopenLossReductionMode_t reduction_mode,
                                void* workspace             = nullptr,
                                size_t workspaceSizeInBytes = 0);
 
@@ -8112,7 +8103,7 @@ miopenMarginRankingLossBackward(miopenHandle_t handle,
                                 const miopenTensorDescriptor_t in2GradDesc,
                                 void* in2Grad,
                                 float margin,
-                                miopenMarginRakningLossReductionMode_t reduction_mode);
+                                miopenLossReductionMode_t reduction_mode);
 /** @} */
 // CLOSEOUT LossFunction DOXYGEN GROUP
 

@@ -35,13 +35,12 @@ namespace miopen {
 
 namespace marginrankingloss {
 
-std::size_t
-GetMarginRankingLossForwardWorkspaceSize(Handle& handle,
-                                         const TensorDescriptor& input1Desc,
-                                         const TensorDescriptor& input2Desc,
-                                         const TensorDescriptor& targetDesc,
-                                         const TensorDescriptor& outputDesc,
-                                         const miopenMarginRakningLossReductionMode_t reduction)
+std::size_t GetMarginRankingLossForwardWorkspaceSize(Handle& handle,
+                                                     const TensorDescriptor& input1Desc,
+                                                     const TensorDescriptor& input2Desc,
+                                                     const TensorDescriptor& targetDesc,
+                                                     const TensorDescriptor& outputDesc,
+                                                     const miopenLossReductionMode_t reduction)
 {
     auto ctx           = ExecutionContext{&handle};
     const auto problem = marginrankingloss::ProblemDescriptionForward{
@@ -65,8 +64,8 @@ miopenStatus_t MarginRankingLossForward(Handle& handle,
                                         ConstData_t target,
                                         const TensorDescriptor& outputDesc,
                                         Data_t output,
-                                        float margin,
-                                        miopenMarginRakningLossReductionMode_t reduction_mode)
+                                        const float margin,
+                                        const miopenLossReductionMode_t reduction_mode)
 {
     const auto problem = marginrankingloss::ProblemDescriptionForward{
         input1Desc, input2Desc, targetDesc, outputDesc, margin, reduction_mode};
@@ -108,8 +107,8 @@ miopenStatus_t MarginRankingLossBackward(Handle& handle,
                                          Data_t in1Grad,
                                          const TensorDescriptor& in2GradDesc,
                                          Data_t in2Grad,
-                                         float margin,
-                                         miopenMarginRakningLossReductionMode_t reduction_mode)
+                                         const float margin,
+                                         const miopenLossReductionMode_t reduction_mode)
 {
     const auto problem = marginrankingloss::ProblemDescriptionBackward{input1Desc,
                                                                        input2Desc,

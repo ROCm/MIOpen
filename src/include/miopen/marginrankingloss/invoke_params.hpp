@@ -46,7 +46,7 @@ struct FwdInvokeParams : public miopen::InvokeParams
     ConstData_t target = nullptr;
     Data_t output      = nullptr;
     float margin       = 0;
-    miopenMarginRakningLossReductionMode_t reduction_mode;
+    miopenLossReductionMode_t reduction_mode;
 
     Data_t workspace      = nullptr;
     size_t workspace_size = 0;
@@ -72,7 +72,7 @@ struct BwdInvokeParams : public miopen::InvokeParams
     Data_t in1Grad      = nullptr;
     Data_t in2Grad      = nullptr;
     float margin        = 0;
-    miopenMarginRakningLossReductionMode_t reduction_mode;
+    miopenLossReductionMode_t reduction_mode;
 
     size_t GetWorkspaceSize() const { return 0; }
     Data_t GetWorkspace() const { return nullptr; }

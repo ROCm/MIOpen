@@ -37,26 +37,21 @@ __device__ void marginRankingLossForward5d(const DT* __restrict__ I1,
                                            const DT* __restrict__ I2,
                                            const DT* __restrict__ T,
                                            void* __restrict__ O,
-                                           float margin,
-                                           float divisor,
+                                           const float margin,
+                                           const uint64_t divisor,
                                            tensor_view_t<5> I1_tv,
                                            tensor_view_t<5> I2_tv,
                                            tensor_view_t<5> T_tv,
                                            tensor_view_t<5> O_tv)
 {
-    uint64_t gid = threadIdx.x + blockIdx.x * blockDim.x;
-
-    uint64_t n0123 = gid / I1_tv.size[4], n4 = gid % I1_tv.size[4];
-    uint64_t n012 = n0123 / I1_tv.size[3], n3 = n0123 % I1_tv.size[3];
-    uint64_t n01 = n012 / I1_tv.size[2], n2 = n012 % I1_tv.size[2];
-    uint64_t n0 = n01 / I1_tv.size[1], n1 = n01 % I1_tv.size[1];
-
-    if(!(n0 < I1_tv.size[0]))
+    uint64_t gid       = threadIdx.x + blockIdx.x * blockDim.x;
+    auto tensor_layout = tensor_layout_t<5>(I1_tv, gid);
+    if(!(tensor_layout.layout[0] < I1_tv.size[0]))
         return;
 
-    uint64_t I1idx = I1_tv.get_tensor_view_idx({n0, n1, n2, n3, n4});
-    uint64_t I2idx = I2_tv.get_tensor_view_idx({n0, n1, n2, n3, n4});
-    uint64_t Tidx  = T_tv.get_tensor_view_idx({n0, n1, n2, n3, n4});
+    uint64_t I1idx = I1_tv.get_tensor_view_idx(tensor_layout);
+    uint64_t I2idx = I2_tv.get_tensor_view_idx(tensor_layout);
+    uint64_t Tidx  = T_tv.get_tensor_view_idx(tensor_layout);
 
     FLOAT_ACCUM output_accum =
         -CVT_FLOAT2ACCUM(T[Tidx]) * (CVT_FLOAT2ACCUM(I1[I1idx]) - CVT_FLOAT2ACCUM(I2[I2idx])) +
@@ -67,7 +62,7 @@ __device__ void marginRankingLossForward5d(const DT* __restrict__ I1,
     switch(REDUCTION_T)
     {
     case 0: {
-        uint64_t Oidx             = O_tv.get_tensor_view_idx({n0, n1, n2, n3, n4});
+        uint64_t Oidx             = O_tv.get_tensor_view_idx(tensor_layout);
         static_cast<DT*>(O)[Oidx] = CVT_ACCUM2FLOAT(output_accum);
         break;
     }
@@ -87,8 +82,8 @@ extern "C" __global__ void MarginRankingLossForward5d(const DTYPE* __restrict__ 
                                                       const DTYPE* __restrict__ I2,
                                                       const DTYPE* __restrict__ T,
                                                       DTYPE* __restrict__ O,
-                                                      float margin,
-                                                      float divisor,
+                                                      const float margin,
+                                                      const uint64_t divisor,
                                                       tensor_view_t<5> I1_tv,
                                                       tensor_view_t<5> I2_tv,
                                                       tensor_view_t<5> T_tv,
@@ -105,8 +100,8 @@ __device__ void marginRankingLossBackward5d(const DT* __restrict__ I1,
                                             const DT* __restrict__ dO,
                                             DT* __restrict__ dI1,
                                             DT* __restrict__ dI2,
-                                            float margin,
-                                            float divisor,
+                                            const float margin,
+                                            const uint64_t divisor,
                                             tensor_view_t<5> I1_tv,
                                             tensor_view_t<5> I2_tv,
                                             tensor_view_t<5> T_tv,
@@ -114,21 +109,16 @@ __device__ void marginRankingLossBackward5d(const DT* __restrict__ I1,
                                             tensor_view_t<5> dI1_tv,
                                             tensor_view_t<5> dI2_tv)
 {
-    uint64_t gid = threadIdx.x + blockIdx.x * blockDim.x;
-
-    uint64_t n0123 = gid / I1_tv.size[4], n4 = gid % I1_tv.size[4];
-    uint64_t n012 = n0123 / I1_tv.size[3], n3 = n0123 % I1_tv.size[3];
-    uint64_t n01 = n012 / I1_tv.size[2], n2 = n012 % I1_tv.size[2];
-    uint64_t n0 = n01 / I1_tv.size[1], n1 = n01 % I1_tv.size[1];
-
-    if(!(n0 < I1_tv.size[0]))
+    uint64_t gid       = threadIdx.x + blockIdx.x * blockDim.x;
+    auto tensor_layout = tensor_layout_t<5>(I1_tv, gid);
+    if(!(tensor_layout.layout[0] < I1_tv.size[0]))
         return;
 
-    uint64_t I1idx  = I1_tv.get_tensor_view_idx({n0, n1, n2, n3, n4});
-    uint64_t I2idx  = I2_tv.get_tensor_view_idx({n0, n1, n2, n3, n4});
-    uint64_t dI1idx = dI1_tv.get_tensor_view_idx({n0, n1, n2, n3, n4});
-    uint64_t dI2idx = dI2_tv.get_tensor_view_idx({n0, n1, n2, n3, n4});
-    uint64_t Tidx   = T_tv.get_tensor_view_idx({n0, n1, n2, n3, n4});
+    uint64_t I1idx  = I1_tv.get_tensor_view_idx(tensor_layout);
+    uint64_t I2idx  = I2_tv.get_tensor_view_idx(tensor_layout);
+    uint64_t dI1idx = dI1_tv.get_tensor_view_idx(tensor_layout);
+    uint64_t dI2idx = dI2_tv.get_tensor_view_idx(tensor_layout);
+    uint64_t Tidx   = T_tv.get_tensor_view_idx(tensor_layout);
 
     FLOAT_ACCUM t =
         -CVT_FLOAT2ACCUM(T[Tidx]) * (CVT_FLOAT2ACCUM(I1[I1idx]) - CVT_FLOAT2ACCUM(I2[I2idx])) +
@@ -145,7 +135,7 @@ __device__ void marginRankingLossBackward5d(const DT* __restrict__ I1,
         switch(REDUCTION_T)
         {
         case 0: {
-            uint64_t dOidx = dO_tv.get_tensor_view_idx({n0, n1, n2, n3, n4});
+            uint64_t dOidx = dO_tv.get_tensor_view_idx(tensor_layout);
             d_accum        = CVT_FLOAT2ACCUM(T[Tidx]) * CVT_FLOAT2ACCUM(dO[dOidx]);
             break;
         }
@@ -171,8 +161,8 @@ extern "C" __global__ void MarginRankingLossBackward5d(const DTYPE* __restrict__
                                                        const DTYPE* __restrict__ dO,
                                                        DTYPE* __restrict__ dI1,
                                                        DTYPE* __restrict__ dI2,
-                                                       float margin,
-                                                       float divisor,
+                                                       const float margin,
+                                                       const uint64_t divisor,
                                                        tensor_view_t<5> I1_tv,
                                                        tensor_view_t<5> I2_tv,
                                                        tensor_view_t<5> T_tv,

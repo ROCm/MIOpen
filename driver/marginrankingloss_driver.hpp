@@ -122,9 +122,8 @@ private:
 
     std::vector<int> dims;
     float margin;
-    float divisor;
     int is_forward;
-    miopenMarginRakningLossReductionMode_t reduction_mode;
+    miopenLossReductionMode_t reduction_mode;
     bool isContiguous;
     size_t ws_sizeInBytes;
 };
@@ -159,20 +158,17 @@ int MarginRankingLossDriver<Tgpu, Tref>::GetandSetData()
     auto reduction_mode_string = inflags.GetValueStr("reduction");
     if(reduction_mode_string == "none")
     {
-        reduction_mode = MIOPEN_MARGINRANKINGLOSS_REDUCTION_NONE;
-        divisor        = 0.0f;
+        reduction_mode = MIOPEN_LOSS_REDUCTION_NONE;
         output_dims    = dims;
     }
     else if(reduction_mode_string == "sum")
     {
-        reduction_mode = MIOPEN_MARGINRANKINGLOSS_REDUCTION_SUM;
-        divisor        = 1.0f;
+        reduction_mode = MIOPEN_LOSS_REDUCTION_SUM;
         output_dims    = {1};
     }
     else if(reduction_mode_string == "mean")
     {
-        reduction_mode = MIOPEN_MARGINRANKINGLOSS_REDUCTION_MEAN;
-        divisor        = static_cast<float>(miopen::deref(input1Desc).GetElementSize());
+        reduction_mode = MIOPEN_LOSS_REDUCTION_MEAN;
         output_dims    = {1};
     }
     else
@@ -242,9 +238,8 @@ int MarginRankingLossDriver<Tgpu, Tref>::AddCmdLineArgs()
 template <typename Tgpu, typename Tref>
 int MarginRankingLossDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 {
-    size_t element_size = miopen::deref(input1Desc).GetElementSize();
-    size_t out_element_size =
-        reduction_mode == MIOPEN_MARGINRANKINGLOSS_REDUCTION_NONE ? element_size : 1;
+    size_t element_size     = miopen::deref(input1Desc).GetElementSize();
+    size_t out_element_size = reduction_mode == MIOPEN_LOSS_REDUCTION_NONE ? element_size : 1;
 
     uint32_t ctx = 0;
 
@@ -381,12 +376,13 @@ int MarginRankingLossDriver<Tgpu, Tref>::RunForwardGPU()
         STOP_TIME
         int iter = inflags.GetValueInt("iter");
         if(WALL_CLOCK)
-            printf("Wall-clock Time Forward MarginRankingLoss Elapsed: %f ms\n",
-                   t.gettime_ms() / iter);
+            std::cout << "Wall-clock Time Forward MarginRankingLoss Elapsed: "
+                      << t.gettime_ms() / iter << " ms\n";
 
         float kernel_average_time =
             iter > 1 ? (kernel_total_time - kernel_first_time) / (iter - 1) : kernel_first_time;
-        printf("GPU Kernel Time Forward MarginRankingLoss Elapsed: %f ms\n", kernel_average_time);
+        std::cout << "GPU Kernel Time Forward MarginRankingLoss Elapsed: " << kernel_average_time
+                  << " ms\n";
     }
 
     if(output_dev->FromGPU(GetStream(), output.data()) != 0)
@@ -439,12 +435,13 @@ int MarginRankingLossDriver<Tgpu, Tref>::RunBackwardGPU()
         STOP_TIME
         int iter = inflags.GetValueInt("iter");
         if(WALL_CLOCK)
-            printf("Wall-clock Time Backward MarginRankingLoss Elapsed: %f ms\n",
-                   t.gettime_ms() / iter);
+            std::cout << "Wall-clock Time Backward MarginRankingLoss Elapsed: "
+                      << t.gettime_ms() / iter << " ms\n";
 
         float kernel_average_time =
             iter > 1 ? (kernel_total_time - kernel_first_time) / (iter - 1) : kernel_first_time;
-        printf("GPU Kernel Time Backward MarginRankingLoss Elapsed: %f ms\n", kernel_average_time);
+        std::cout << "GPU Kernel Time Backward MarginRankingLoss Elapsed: " << kernel_average_time
+                  << " ms\n";
     }
 
     if(in1Grad_dev->FromGPU(GetStream(), in1Grad.data()) != 0)
@@ -476,7 +473,6 @@ int MarginRankingLossDriver<Tgpu, Tref>::RunForwardCPU()
                                                             outputDesc,
                                                             out_host.data(),
                                                             margin,
-                                                            divisor,
                                                             reduction_mode);
 
     MIOPEN_THROW_IF(status != miopenStatusSuccess, "Error in mloMarginRankingLossForwardRunHost");
@@ -501,7 +497,6 @@ int MarginRankingLossDriver<Tgpu, Tref>::RunBackwardCPU()
                                                              in2GradDesc,
                                                              in2Grad_host.data(),
                                                              margin,
-                                                             divisor,
                                                              reduction_mode);
     MIOPEN_THROW_IF(status != miopenStatusSuccess, "Error in mloMarginRankingLossBackwardRunHost");
 

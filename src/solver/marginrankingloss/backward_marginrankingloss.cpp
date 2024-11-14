@@ -94,10 +94,10 @@ ConvSolution MarginRankingLossBackward::GetSolution(
     kernel.g_wk.push_back(ygridsize);
     kernel.g_wk.push_back(zgridsize);
 
-    float divisor = 1.0f;
-    if(problem.GetReductionMode() == MIOPEN_MARGINRANKINGLOSS_REDUCTION_MEAN)
+    uint64_t divisor = 1;
+    if(problem.GetReductionMode() == MIOPEN_LOSS_REDUCTION_MEAN)
     {
-        divisor = static_cast<float>(problem.GetTargetDesc().GetElementSize());
+        divisor = problem.GetTargetDesc().GetElementSize();
     }
 
     kernel.kernel_name     = "MarginRankingLossBackward5d";

@@ -33,30 +33,27 @@ void cpu_marginrankingloss_forward_5d(tensor<T> input1,
                                       tensor<T> input2,
                                       tensor<T> target,
                                       tensor<T>& output,
-                                      float margin,
-                                      float divisor,
-                                      miopenMarginRakningLossReductionMode_t reduction_mode)
+                                      const float margin,
+                                      const miopenLossReductionMode_t reduction_mode)
 {
     tensor_view_t<5> I1_tv = get_inner_expanded_tv<5>(input1.desc);
     tensor_view_t<5> I2_tv = get_inner_expanded_tv<5>(input2.desc);
     tensor_view_t<5> T_tv  = get_inner_expanded_tv<5>(target.desc);
     tensor_view_t<5> O_tv  = get_inner_expanded_tv<5>(output.desc);
     uint64_t tensor_size   = target.desc.GetElementSize();
-    double sum_loss        = 0;
 
-    for(uint64_t gid = 0; gid < tensor_size; ++gid)
-    {
-        uint64_t n0123 = gid / I1_tv.size[4], n4 = gid % I1_tv.size[4];
-        uint64_t n012 = n0123 / I1_tv.size[3], n3 = n0123 % I1_tv.size[3];
-        uint64_t n01 = n012 / I1_tv.size[2], n2 = n012 % I1_tv.size[2];
-        uint64_t n0 = n01 / I1_tv.size[1], n1 = n01 % I1_tv.size[1];
+    std::vector<double> buffer;
+    if(reduction_mode != MIOPEN_LOSS_REDUCTION_NONE)
+        buffer.assign(tensor_size, 0);
 
-        if(!(n0 < I1_tv.size[0]))
+    par_ford(tensor_size)([&](uint64_t gid) {
+        auto tensor_layout = tensor_layout_t<5>(I1_tv, gid);
+        if(!(tensor_layout.layout[0] < I1_tv.size[0]))
             return;
 
-        uint64_t I1idx = I1_tv.get_tensor_view_idx({n0, n1, n2, n3, n4});
-        uint64_t I2idx = I2_tv.get_tensor_view_idx({n0, n1, n2, n3, n4});
-        uint64_t Tidx  = T_tv.get_tensor_view_idx({n0, n1, n2, n3, n4});
+        uint64_t I1idx = I1_tv.get_tensor_view_idx(tensor_layout);
+        uint64_t I2idx = I2_tv.get_tensor_view_idx(tensor_layout);
+        uint64_t Tidx  = T_tv.get_tensor_view_idx(tensor_layout);
 
         double output_accum =
             -static_cast<double>(target[Tidx]) *
@@ -65,24 +62,23 @@ void cpu_marginrankingloss_forward_5d(tensor<T> input1,
         if(output_accum < 0.0f)
             output_accum = 0.0f;
 
-        if(reduction_mode == MIOPEN_MARGINRANKINGLOSS_REDUCTION_NONE)
+        if(reduction_mode == MIOPEN_LOSS_REDUCTION_NONE)
         {
-            uint64_t Oidx = O_tv.get_tensor_view_idx({n0, n1, n2, n3, n4});
+            uint64_t Oidx = O_tv.get_tensor_view_idx(tensor_layout);
             output[Oidx]  = static_cast<T>(output_accum);
         }
-        else if(reduction_mode == MIOPEN_MARGINRANKINGLOSS_REDUCTION_MEAN)
+        else
         {
-            sum_loss += output_accum / static_cast<double>(divisor);
+            buffer[gid] = output_accum;
         }
-        else if(reduction_mode == MIOPEN_MARGINRANKINGLOSS_REDUCTION_SUM)
-        {
-            sum_loss += output_accum;
-        }
-    }
-    if(reduction_mode != MIOPEN_MARGINRANKINGLOSS_REDUCTION_NONE)
-    {
-        output[0] = static_cast<T>(sum_loss);
-    }
+    });
+
+    auto loss_sum = std::accumulate(buffer.begin(), buffer.end(), 0.0);
+
+    if(reduction_mode == MIOPEN_LOSS_REDUCTION_MEAN)
+        loss_sum /= tensor_size;
+    if(reduction_mode != MIOPEN_LOSS_REDUCTION_NONE)
+        output[0] = static_cast<T>(loss_sum);
 }
 
 template <class T>
@@ -92,9 +88,8 @@ void cpu_marginrankingloss_backward_5d(tensor<T> input1,
                                        tensor<T> outGrad,
                                        tensor<T>& in1Grad,
                                        tensor<T>& in2Grad,
-                                       float margin,
-                                       float divisor,
-                                       miopenMarginRakningLossReductionMode_t reduction_mode)
+                                       const float margin,
+                                       const miopenLossReductionMode_t reduction_mode)
 {
     tensor_view_t<5> I1_tv  = get_inner_expanded_tv<5>(input1.desc);
     tensor_view_t<5> I2_tv  = get_inner_expanded_tv<5>(input2.desc);
@@ -105,24 +100,20 @@ void cpu_marginrankingloss_backward_5d(tensor<T> input1,
     uint64_t tensor_size    = target.desc.GetElementSize();
 
     par_ford(tensor_size)([&](uint64_t gid) {
-        uint64_t n0123 = gid / I1_tv.size[4], n4 = gid % I1_tv.size[4];
-        uint64_t n012 = n0123 / I1_tv.size[3], n3 = n0123 % I1_tv.size[3];
-        uint64_t n01 = n012 / I1_tv.size[2], n2 = n012 % I1_tv.size[2];
-        uint64_t n0 = n01 / I1_tv.size[1], n1 = n01 % I1_tv.size[1];
-        uint64_t dOidx = 0;
-
-        if(!(n0 < I1_tv.size[0]))
+        auto tensor_layout = tensor_layout_t<5>(I1_tv, gid);
+        uint64_t dOidx     = 0;
+        if(!(tensor_layout.layout[0] < I1_tv.size[0]))
             return;
 
-        uint64_t I1idx  = I1_tv.get_tensor_view_idx({n0, n1, n2, n3, n4});
-        uint64_t I2idx  = I2_tv.get_tensor_view_idx({n0, n1, n2, n3, n4});
-        uint64_t dI1idx = dI1_tv.get_tensor_view_idx({n0, n1, n2, n3, n4});
-        uint64_t dI2idx = dI2_tv.get_tensor_view_idx({n0, n1, n2, n3, n4});
-        uint64_t Tidx   = T_tv.get_tensor_view_idx({n0, n1, n2, n3, n4});
+        uint64_t I1idx  = I1_tv.get_tensor_view_idx(tensor_layout);
+        uint64_t I2idx  = I2_tv.get_tensor_view_idx(tensor_layout);
+        uint64_t dI1idx = dI1_tv.get_tensor_view_idx(tensor_layout);
+        uint64_t dI2idx = dI2_tv.get_tensor_view_idx(tensor_layout);
+        uint64_t Tidx   = T_tv.get_tensor_view_idx(tensor_layout);
 
-        float t = -static_cast<float>(target[Tidx]) *
-                      (static_cast<float>(input1[I1idx]) - static_cast<float>(input2[I2idx])) +
-                  margin;
+        double t = -static_cast<double>(target[Tidx]) *
+                       (static_cast<double>(input1[I1idx]) - static_cast<double>(input2[I2idx])) +
+                   static_cast<double>(margin);
 
         if(t < 0)
         {
@@ -131,13 +122,19 @@ void cpu_marginrankingloss_backward_5d(tensor<T> input1,
         }
         else
         {
-            if(reduction_mode == MIOPEN_MARGINRANKINGLOSS_REDUCTION_NONE)
+            double d_accum;
+            if(reduction_mode == MIOPEN_LOSS_REDUCTION_NONE)
             {
-                dOidx   = dO_tv.get_tensor_view_idx({n0, n1, n2, n3, n4});
-                divisor = 1;
+                dOidx = dO_tv.get_tensor_view_idx(tensor_layout);
             }
-            float d_accum =
-                static_cast<float>(target[Tidx]) * static_cast<float>(outGrad[dOidx]) / divisor;
+
+            d_accum = static_cast<double>(target[Tidx]) * static_cast<double>(outGrad[dOidx]);
+
+            if(reduction_mode == MIOPEN_LOSS_REDUCTION_MEAN)
+            {
+                d_accum = d_accum / static_cast<double>(tensor_size);
+            }
+
             in1Grad[dI1idx] = static_cast<T>(-d_accum);
             in2Grad[dI2idx] = static_cast<T>(d_accum);
         }

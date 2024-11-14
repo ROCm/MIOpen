@@ -107,25 +107,21 @@ protected:
         margin = config.margin;
         if(config.reduction_mode_id == 0) // None
         {
-            reduction_mode = MIOPEN_MARGINRANKINGLOSS_REDUCTION_NONE;
-            divisor        = 0;
+            reduction_mode = MIOPEN_LOSS_REDUCTION_NONE;
             output         = tensor<T>{dims};
             ref_output     = tensor<T>{dims};
         }
         if(config.reduction_mode_id == 1) // Sum
         {
-            reduction_mode = MIOPEN_MARGINRANKINGLOSS_REDUCTION_SUM;
-            divisor        = 1;
+            reduction_mode = MIOPEN_LOSS_REDUCTION_SUM;
             output         = tensor<T>{std::vector<size_t>{1}};
             ref_output     = tensor<T>{std::vector<size_t>{1}};
         }
         if(config.reduction_mode_id == 2) // Mean
         {
-            reduction_mode = MIOPEN_MARGINRANKINGLOSS_REDUCTION_MEAN;
-            divisor        = static_cast<float>(
-                std::accumulate(dims.begin(), dims.end(), 1L, std::multiplies<size_t>()));
-            output     = tensor<T>{std::vector<size_t>{1}};
-            ref_output = tensor<T>{std::vector<size_t>{1}};
+            reduction_mode = MIOPEN_LOSS_REDUCTION_MEAN;
+            output         = tensor<T>{std::vector<size_t>{1}};
+            ref_output     = tensor<T>{std::vector<size_t>{1}};
         }
         std::fill(output.begin(), output.end(), 0);
         std::fill(ref_output.begin(), ref_output.end(), 0);
@@ -172,7 +168,7 @@ protected:
                                                                      reduction_mode);
 
         cpu_marginrankingloss_forward_5d<T>(
-            input1, input2, target, ref_output, margin, divisor, reduction_mode);
+            input1, input2, target, ref_output, margin, reduction_mode);
 
         ASSERT_EQ(status, miopenStatusSuccess);
         output.data = handle.Read<T>(output_dev, output.data.size());
@@ -201,8 +197,7 @@ protected:
     miopen::Allocator::ManageDataPtr output_dev;
     miopen::Allocator::ManageDataPtr workspace_dev;
     float margin;
-    miopenMarginRakningLossReductionMode_t reduction_mode;
-    float divisor;
+    miopenLossReductionMode_t reduction_mode;
     size_t ws_sizeInBytes;
 
     tensor<T> ref_output;
@@ -240,22 +235,18 @@ protected:
         margin = config.margin;
         if(config.reduction_mode_id == 0) // None
         {
-            reduction_mode = MIOPEN_MARGINRANKINGLOSS_REDUCTION_NONE;
-            divisor        = 0;
+            reduction_mode = MIOPEN_LOSS_REDUCTION_NONE;
             outGrad        = tensor<T>{dims}.generate(out_gd_gen_value);
         }
         if(config.reduction_mode_id == 1) // Sum
         {
-            reduction_mode = MIOPEN_MARGINRANKINGLOSS_REDUCTION_SUM;
-            divisor        = 1;
+            reduction_mode = MIOPEN_LOSS_REDUCTION_SUM;
             outGrad        = tensor<T>{std::vector<size_t>{1}}.generate(out_gd_gen_value);
         }
         if(config.reduction_mode_id == 2) // Mean
         {
-            reduction_mode = MIOPEN_MARGINRANKINGLOSS_REDUCTION_MEAN;
-            divisor        = static_cast<float>(
-                std::accumulate(dims.begin(), dims.end(), 1L, std::multiplies<size_t>()));
-            outGrad = tensor<T>{std::vector<size_t>{1}}.generate(out_gd_gen_value);
+            reduction_mode = MIOPEN_LOSS_REDUCTION_MEAN;
+            outGrad        = tensor<T>{std::vector<size_t>{1}}.generate(out_gd_gen_value);
         }
 
         input1_dev  = handle.Write(input1.data);
@@ -287,15 +278,8 @@ protected:
                                                                       margin,
                                                                       reduction_mode);
 
-        cpu_marginrankingloss_backward_5d<T>(input1,
-                                             input2,
-                                             target,
-                                             outGrad,
-                                             ref_in1Grad,
-                                             ref_in2Grad,
-                                             margin,
-                                             divisor,
-                                             reduction_mode);
+        cpu_marginrankingloss_backward_5d<T>(
+            input1, input2, target, outGrad, ref_in1Grad, ref_in2Grad, margin, reduction_mode);
 
         EXPECT_EQ(status, miopenStatusSuccess);
         in1Grad.data = handle.Read<T>(in1Grad_dev, in1Grad.data.size());
@@ -333,8 +317,7 @@ protected:
     miopen::Allocator::ManageDataPtr in1Grad_dev;
     miopen::Allocator::ManageDataPtr in2Grad_dev;
     float margin;
-    miopenMarginRakningLossReductionMode_t reduction_mode;
-    float divisor;
+    miopenLossReductionMode_t reduction_mode;
 
     tensor<T> ref_in1Grad;
     tensor<T> ref_in2Grad;

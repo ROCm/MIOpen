@@ -45,8 +45,8 @@ inline std::ostream& operator<<(std::ostream& os, const std::vector<size_t>& v)
 
 inline void LogCmdMarginRankingLoss(bool isForward,
                                     const miopenTensorDescriptor_t targetDesc,
-                                    float margin,
-                                    miopenMarginRakningLossReductionMode_t reduction_mode)
+                                    const float margin,
+                                    const miopenLossReductionMode_t reduction_mode)
 {
     if(miopen::IsLoggingCmd())
     {
@@ -73,14 +73,14 @@ inline void LogCmdMarginRankingLoss(bool isForward,
     }
 }
 
-extern "C" miopenStatus_t miopenGetMarginRankingLossForwardWorkspaceSize(
-    miopenHandle_t handle,
-    const miopenTensorDescriptor_t input1Desc,
-    const miopenTensorDescriptor_t input2Desc,
-    const miopenTensorDescriptor_t targetDesc,
-    const miopenTensorDescriptor_t outputDesc,
-    const miopenMarginRakningLossReductionMode_t reduction,
-    size_t* sizeInBytes)
+extern "C" miopenStatus_t
+miopenGetMarginRankingLossForwardWorkspaceSize(miopenHandle_t handle,
+                                               const miopenTensorDescriptor_t input1Desc,
+                                               const miopenTensorDescriptor_t input2Desc,
+                                               const miopenTensorDescriptor_t targetDesc,
+                                               const miopenTensorDescriptor_t outputDesc,
+                                               const miopenLossReductionMode_t reduction,
+                                               size_t* sizeInBytes)
 {
     MIOPEN_LOG_FUNCTION(handle, input1Desc, input2Desc, targetDesc, outputDesc, reduction);
     return miopen::try_([&] {
@@ -105,8 +105,8 @@ miopenMarginRankingLossForward(miopenHandle_t handle,
                                const void* target,
                                const miopenTensorDescriptor_t outputDesc,
                                void* output,
-                               float margin,
-                               miopenMarginRakningLossReductionMode_t reduction_mode,
+                               const float margin,
+                               const miopenLossReductionMode_t reduction_mode,
                                void* workspace,
                                const size_t workspaceSizeInBytes)
 {
@@ -151,8 +151,8 @@ miopenMarginRankingLossBackward(miopenHandle_t handle,
                                 void* in1Grad,
                                 const miopenTensorDescriptor_t in2GradDesc,
                                 void* in2Grad,
-                                float margin,
-                                miopenMarginRakningLossReductionMode_t reduction_mode)
+                                const float margin,
+                                const miopenLossReductionMode_t reduction_mode)
 {
     MIOPEN_LOG_FUNCTION(handle,
                         input1Desc,

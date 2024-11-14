@@ -39,7 +39,7 @@ GetMarginRankingLossForwardWorkspaceSize(Handle& handle,
                                          const TensorDescriptor& input2Desc,
                                          const TensorDescriptor& targetDesc,
                                          const TensorDescriptor& outputDesc,
-                                         miopenMarginRakningLossReductionMode_t reduction);
+                                         miopenLossReductionMode_t reduction);
 
 MIOPEN_INTERNALS_EXPORT miopenStatus_t
 MarginRankingLossForward(Handle& handle,
@@ -54,7 +54,7 @@ MarginRankingLossForward(Handle& handle,
                          const TensorDescriptor& outputDesc,
                          Data_t output,
                          float margin,
-                         miopenMarginRakningLossReductionMode_t reduction_mode);
+                         miopenLossReductionMode_t reduction_mode);
 
 MIOPEN_INTERNALS_EXPORT miopenStatus_t
 MarginRankingLossBackward(Handle& handle,
@@ -71,7 +71,7 @@ MarginRankingLossBackward(Handle& handle,
                           const TensorDescriptor& in2GradDesc,
                           Data_t in2Grad,
                           float margin,
-                          miopenMarginRakningLossReductionMode_t reduction_mode);
+                          miopenLossReductionMode_t reduction_mode);
 
 } // namespace marginrankingloss
 

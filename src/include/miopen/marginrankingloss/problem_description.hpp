@@ -42,8 +42,8 @@ struct ProblemDescriptionForward : ProblemDescriptionBase
                               const TensorDescriptor& input2Desc_,
                               const TensorDescriptor& targetDesc_,
                               const TensorDescriptor& outputDesc_,
-                              float margin_,
-                              miopenMarginRakningLossReductionMode_t reduction_mode_)
+                              const float margin_,
+                              const miopenLossReductionMode_t reduction_mode_)
         : input1Desc(input1Desc_),
           input2Desc(input2Desc_),
           targetDesc(targetDesc_),
@@ -53,17 +53,13 @@ struct ProblemDescriptionForward : ProblemDescriptionBase
     {
         IsSameLength();
         IsSameType();
-        IsApplicableDims();
     }
 
     const TensorDescriptor& GetInput1Desc() const { return input1Desc; }
     const TensorDescriptor& GetInput2Desc() const { return input2Desc; }
     const TensorDescriptor& GetTargetDesc() const { return targetDesc; }
     const TensorDescriptor& GetOutputDesc() const { return outputDesc; }
-    const miopenMarginRakningLossReductionMode_t& GetReductionMode() const
-    {
-        return reduction_mode;
-    }
+    const miopenLossReductionMode_t& GetReductionMode() const { return reduction_mode; }
     const float& GetMargin() const { return margin; }
 
     bool IsSameLength() const
@@ -73,8 +69,7 @@ struct ProblemDescriptionForward : ProblemDescriptionBase
         auto targetLengths = targetDesc.GetLengths();
         auto outputLengths = outputDesc.GetLengths();
         if((input1Lengths != input2Lengths) || (input2Lengths != targetLengths) ||
-           (GetReductionMode() == MIOPEN_MARGINRANKINGLOSS_REDUCTION_NONE &&
-            outputLengths != targetLengths))
+           (GetReductionMode() == MIOPEN_LOSS_REDUCTION_NONE && outputLengths != targetLengths))
         {
             MIOPEN_THROW(
                 miopenStatusBadParm,
@@ -120,7 +115,7 @@ private:
     TensorDescriptor targetDesc;
     TensorDescriptor outputDesc;
     float margin;
-    miopenMarginRakningLossReductionMode_t reduction_mode;
+    miopenLossReductionMode_t reduction_mode;
 
     NetworkConfig MakeForwardNetworkConfig() const;
 };
@@ -133,8 +128,8 @@ struct ProblemDescriptionBackward : ProblemDescriptionBase
                                const TensorDescriptor& outGradDesc_,
                                const TensorDescriptor& in1GradDesc_,
                                const TensorDescriptor& in2GradDesc_,
-                               float margin_,
-                               miopenMarginRakningLossReductionMode_t reduction_mode_)
+                               const float margin_,
+                               const miopenLossReductionMode_t reduction_mode_)
         : input1Desc(input1Desc_),
           input2Desc(input2Desc_),
           targetDesc(targetDesc_),
@@ -146,7 +141,6 @@ struct ProblemDescriptionBackward : ProblemDescriptionBase
     {
         IsSameLength();
         IsSameType();
-        IsApplicableDims();
     }
 
     const TensorDescriptor& GetInput1Desc() const { return input1Desc; }
@@ -155,10 +149,7 @@ struct ProblemDescriptionBackward : ProblemDescriptionBase
     const TensorDescriptor& GetOutGradDesc() const { return outGradDesc; }
     const TensorDescriptor& GetIn1GradDesc() const { return in1GradDesc; }
     const TensorDescriptor& GetIn2GradDesc() const { return in2GradDesc; }
-    const miopenMarginRakningLossReductionMode_t& GetReductionMode() const
-    {
-        return reduction_mode;
-    }
+    const miopenLossReductionMode_t& GetReductionMode() const { return reduction_mode; }
     const float& GetMargin() const { return margin; }
 
     bool IsSameLength() const
@@ -171,8 +162,7 @@ struct ProblemDescriptionBackward : ProblemDescriptionBase
         auto in2GradLengths = in2GradDesc.GetLengths();
         if((input1Lengths != input2Lengths) || (input2Lengths != targetLengths) ||
            (targetLengths != in1GradLengths) || (in1GradLengths != in2GradLengths) ||
-           (GetReductionMode() == MIOPEN_MARGINRANKINGLOSS_REDUCTION_NONE &&
-            outGradLengths != in1GradLengths))
+           (GetReductionMode() == MIOPEN_LOSS_REDUCTION_NONE && outGradLengths != in1GradLengths))
         {
             MIOPEN_THROW(
                 miopenStatusBadParm,
@@ -222,7 +212,7 @@ private:
     TensorDescriptor in1GradDesc;
     TensorDescriptor in2GradDesc;
     float margin;
-    miopenMarginRakningLossReductionMode_t reduction_mode;
+    miopenLossReductionMode_t reduction_mode;
 
     NetworkConfig MakeForwardNetworkConfig() const;
 };

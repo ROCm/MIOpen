@@ -24,7 +24,7 @@
  *
  *******************************************************************************/
 
-#include "miopen/marginrankingloss/problem_description.hpp"
+#include <miopen/marginrankingloss/problem_description.hpp>
 #include <miopen/buffer_info.hpp>
 #include <miopen/datatype.hpp>
 #include <miopen/kernel_build_params.hpp>
@@ -106,7 +106,7 @@ ConvSolution MarginRankingLossForward::GetSolution(
         result.construction_params.push_back(kernel);
     }
 
-    if(problem.GetReductionMode() != MIOPEN_MARGINRANKINGLOSS_REDUCTION_NONE)
+    if(problem.GetReductionMode() != MIOPEN_LOSS_REDUCTION_NONE)
     {
         // If Reduction != NONE, then we should run second kernel to calculate mean/sum of result
         // from first kernel above
@@ -173,8 +173,8 @@ ConvSolution MarginRankingLossForward::GetSolution(
     // End building result.construction_params
 
     // Start building result.invoker_factory
-    float divisor = 1.0f;
-    if(problem.GetReductionMode() == MIOPEN_MARGINRANKINGLOSS_REDUCTION_NONE)
+    uint64_t divisor = 1;
+    if(problem.GetReductionMode() == MIOPEN_LOSS_REDUCTION_NONE)
     {
         // Reduction = None -> invoke 1 kernel
         result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
@@ -203,9 +203,9 @@ ConvSolution MarginRankingLossForward::GetSolution(
     }
     else
     {
-        if(problem.GetReductionMode() == MIOPEN_MARGINRANKINGLOSS_REDUCTION_MEAN)
+        if(problem.GetReductionMode() == MIOPEN_LOSS_REDUCTION_MEAN)
         {
-            divisor = static_cast<float>(input_numel);
+            divisor = input_numel;
         }
         // Reduction != None -> invoke 2 kernels
         result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
@@ -291,7 +291,7 @@ std::size_t MarginRankingLossForward::GetWorkspaceSize(
     const ExecutionContext& /*context*/,
     const miopen::marginrankingloss::ProblemDescriptionForward& problem) const
 {
-    if(problem.GetReductionMode() == MIOPEN_MARGINRANKINGLOSS_REDUCTION_NONE)
+    if(problem.GetReductionMode() == MIOPEN_LOSS_REDUCTION_NONE)
         return 0;
 
     auto size      = problem.GetInput1Desc().GetElementSize();
