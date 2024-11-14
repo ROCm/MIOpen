@@ -92,7 +92,7 @@ struct ProblemDescription : ProblemDescriptionBase
         auto input_dims = paramInDesc.GetLengths().size();
         if(input_dims > 4)
         {
-            MIOPEN_THROW(miopenStatusBadParm, "SGDForward: Only <= 4D tensors are supported.");
+            return false;
         }
         return true;
     }
