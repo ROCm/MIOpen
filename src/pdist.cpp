@@ -24,9 +24,9 @@
  *
  *******************************************************************************/
 #include <miopen/pdist.hpp>
-// #include <miopen/pdist/invoke_params.hpp>
-// #include <miopen/pdist/solvers.hpp>
-// #include <miopen/pdist/problem_description.hpp>
+#include <miopen/pdist/invoke_params.hpp>
+#include <miopen/pdist/solvers.hpp>
+#include <miopen/pdist/problem_description.hpp>
 
 #include <miopen/execution_context.hpp>
 #include <miopen/miopen.h>
@@ -39,12 +39,19 @@
 
 namespace miopen {
 
-std::size_t GetPdistBackwardWorkspaceSize(Handle& handle, const TensorDescriptor& inputDesc)
+std::size_t GetPdistBackwardWorkspaceSize(Handle& handle,
+                                          const TensorDescriptor& inputDesc,
+                                          const TensorDescriptor& outputDesc,
+                                          const TensorDescriptor& douputDesc,
+                                          const TensorDescriptor& dinputDesc,
+                                          const double p)
 {
     // auto ctx = ExecutionContext(&handle);
     auto ctx = ExecutionContext{&handle};
 
-    const auto problem = pdist::BackwardProblemDescription(inputDesc);
+    // const auto problem = pdist::BackwardProblemDescription(inputDesc);
+    const auto problem =
+        pdist::BackwardProblemDescription{inputDesc, outputDesc, douputDesc, dinputDesc, p};
     const auto solvers = solver::SolverContainer<solver::pdist::PdistBackward>{};
 
     auto pair_size_vector = solvers.GetWorkspaceSizes(ctx, problem);
@@ -60,25 +67,27 @@ miopenStatus_t PdistBackward(Handle& handle,
                              const TensorDescriptor& outputDesc,
                              ConstData_t output,
                              const TensorDescriptor& douputDesc,
-                             ConstData_t douput,
+                             ConstData_t doutput,
                              const TensorDescriptor& dinputDesc,
                              Data_t dinput,
                              const double p)
 {
     const auto problem =
-        pdist::BackwardProblemDescription(inputDesc, outputDesc, douputDesc, dinputDesc, p);
+        pdist::BackwardProblemDescription{inputDesc, outputDesc, douputDesc, dinputDesc, p};
 
     const auto invoke_params = [&]() {
-        auto tmp       = pdist::BackwardInvokeParams{};
-        tmp.inputDesc  = inputDesc;
-        tmp.input      = input;
-        tmp.outputDesc = outputDesc;
-        tmp.output     = output;
-        tmp.douputDesc = douputDesc;
-        tmp.doutput    = douput;
-        tmp.dinputDesc = dinputDesc;
-        tmp.dinput     = dinput;
-        tmp.p          = p;
+        auto tmp = pdist::BackwardInvokeParams{};
+        // tmp.type           = InvokeType::Run;
+
+        tmp.inputDesc   = &inputDesc;
+        tmp.outputDesc  = &outputDesc;
+        tmp.doutputDesc = &douputDesc;
+        tmp.dinputDesc  = &dinputDesc;
+        tmp.input       = input;
+        tmp.output      = output;
+        tmp.doutput     = doutput;
+        tmp.dinput      = dinput;
+        tmp.p           = p;
 
         tmp.workspace      = workspace;
         tmp.workspace_size = workspaceSizeInBytes;
@@ -86,7 +95,7 @@ miopenStatus_t PdistBackward(Handle& handle,
         return tmp;
     }();
 
-    const auto algo    = AlgorithmName("PdistBackward");
+    const auto algo    = AlgorithmName{"PdistBackward"};
     const auto solvers = solver::SolverContainer<solver::pdist::PdistBackward>{};
 
     solvers.ExecutePrimitive(handle, problem, algo, invoke_params);

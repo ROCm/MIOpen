@@ -31,14 +31,25 @@
 #include <miopen/logger.hpp>
 #include <miopen/tensor_ops.hpp>
 
-extern "C" miopenStatus_t miopenGetPdistBackwardWorkspaceSize(
-    miopenHandle_t handle, const miopenTensorDescriptor_t inputDesc, size_t* sizeInBytes)
+extern "C" miopenStatus_t
+miopenGetPdistBackwardWorkspaceSize(miopenHandle_t handle,
+                                    const miopenTensorDescriptor_t inputDesc,
+                                    const miopenTensorDescriptor_t outputDesc,
+                                    const miopenTensorDescriptor_t doutputDesc,
+                                    const miopenTensorDescriptor_t dinputDesc,
+                                    const double p,
+                                    size_t* sizeInBytes)
 {
     MIOPEN_LOG_FUNCTION(handle, inputDesc, sizeInBytes);
 
     return miopen::try_([&] {
         miopen::deref(sizeInBytes) =
-            miopen::GetPdistBackwardWorkspaceSize(miopen::deref(handle), miopen::deref(inputDesc));
+            miopen::GetPdistBackwardWorkspaceSize(miopen::deref(handle),
+                                                  miopen::deref(inputDesc),
+                                                  miopen::deref(outputDesc),
+                                                  miopen::deref(doutputDesc),
+                                                  miopen::deref(dinputDesc),
+                                                  p);
     });
 };
 

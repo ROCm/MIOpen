@@ -33,7 +33,12 @@ struct Handle;
 struct TensorDescriptor;
 
 MIOPEN_INTERNALS_EXPORT std::size_t
-GetPdistBackwardWorkspaceSize(Handle& handle, const TensorDescriptor& inputDesc);
+GetPdistBackwardWorkspaceSize(Handle& handle,
+                              const TensorDescriptor& inputDesc,
+                              const TensorDescriptor& outputDesc,
+                              const TensorDescriptor& douputDesc,
+                              const TensorDescriptor& dinputDesc,
+                              const double p);
 
 MIOPEN_INTERNALS_EXPORT miopenStatus_t PdistBackward(Handle& handle,
                                                      Data_t workspace,

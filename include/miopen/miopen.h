@@ -7803,12 +7803,22 @@ MIOPEN_EXPORT miopenStatus_t miopenPReLUBackward(miopenHandle_t handle,
  *
  * @param handle                   MIOpen Handle (input)
  * @param inputDesc                Tensor descriptor for input tensor (input)
+ * @param outputDesc               Tensor descriptor for output tensor (input)
+ * @param doutputDesc              Tensor descriptor for output gradient (input)
+ * @param dinputDesc               Tensor descriptor for input gradient (input)
+ * @param p                        P-norm distance (input)
  * @param sizeInBytes              Pointer to data to return the minimum workspace size (output)
  * @return                         miopenStatus_t
  */
 
-MIOPEN_EXPORT miopenStatus_t miopenGetPdistBackwardWorkspaceSize(
-    miopenHandle_t handle, const miopenTensorDescriptor_t inputDesc, size_t* sizeInBytes);
+MIOPEN_EXPORT miopenStatus_t
+miopenGetPdistBackwardWorkspaceSize(miopenHandle_t handle,
+                                    const miopenTensorDescriptor_t inputDesc,
+                                    const miopenTensorDescriptor_t outputDesc,
+                                    const miopenTensorDescriptor_t doutputDesc,
+                                    const miopenTensorDescriptor_t dinputDesc,
+                                    const double p,
+                                    size_t* sizeInBytes);
 
 /*! @brief Execute a Pdist backward layer
  *

@@ -39,9 +39,9 @@ namespace pdist {
 using PdistBackwardSolver =
     NonTunableSolverBase<ExecutionContext, miopen::pdist::BackwardProblemDescription>;
 
-struct PdistBackward final : PdistBackwardSolver
+struct PdistBackward : PdistBackwardSolver
 {
-    const std::string& SolverDbId() const override { return GetSolverDbId<PdistBackward>(); }
+    const std::string& SolverDbId() const override { return GetSolverDbId<PdistBackwardSolver>(); }
 
     bool IsApplicable(const ExecutionContext& context,
                       const miopen::pdist::BackwardProblemDescription& problem) const override;

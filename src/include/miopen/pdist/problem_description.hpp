@@ -25,6 +25,7 @@
  *******************************************************************************/
 #pragma once
 
+#include <cstddef>
 #include <miopen/errors.hpp>
 #include <miopen/miopen.h>
 #include <miopen/problem_description_base.hpp>
@@ -91,12 +92,24 @@ struct BackwardProblemDescription : public ProblemDescriptionBase
             return false;
         }
 
-        auto N            = inputDesc.GetLengths()[0];
-        auto output_shape = N * (N - 1) / 2;
+        auto N           = inputDesc.GetLengths()[0];
+        auto output_size = N * (N - 1) / 2;
 
-        if(!(outputDesc.GetNumDims() == 1 && outputDesc.GetLengths()[0] == output_shape))
+        if(!(outputDesc.GetNumDims() == 1 && outputDesc.GetLengths()[0] == output_size))
         {
-            MIOPEN_THROW(miopenStatusBadParm, "PdistBackward: Output tensor shape is incorrect.");
+            std::size_t expected_num_dims = 1;
+            std::size_t expected_size     = output_size;
+            std::size_t actual_num_dims   = outputDesc.GetNumDims();
+            std::size_t actual_size       = outputDesc.GetLengths()[0];
+
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "PdistBackward: Output tensor shape is incorrect. Expected: " +
+                             std::to_string(expected_num_dims) + "D tensor of size " +
+                             std::to_string(expected_size) +
+                             ". Got: " + std::to_string(actual_num_dims) + "D tensor of size " +
+                             std::to_string(actual_size) + ".");
+            // MIOPEN_THROW(miopenStatusBadParm, "PdistBackward: Output tensor shape is
+            // incorrect.");
             return false;
         }
 

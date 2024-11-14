@@ -42,9 +42,9 @@ struct BackwardInvokeParams : public miopen::InvokeParams
     const TensorDescriptor* doutputDesc = nullptr;
     const TensorDescriptor* dinputDesc  = nullptr;
 
-    Data_t input               = nullptr;
-    Data_t output              = nullptr;
-    Data_t doutput             = nullptr;
+    ConstData_t input          = nullptr;
+    ConstData_t output         = nullptr;
+    ConstData_t doutput        = nullptr;
     Data_t dinput              = nullptr;
     Data_t workspace           = nullptr;
     std::size_t workspace_size = 0;

@@ -23,7 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <cmath>
+// #include <cmath>
 #ifndef MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS
 #include <hip/hip_fp16.h>
 #include <hip/hip_runtime.h>
@@ -34,17 +34,17 @@
 
 __device__ inline FLOAT_ACCUM sign_(FLOAT_ACCUM val) { return (0 < val) - (val < 0); }
 
-__device__ inline FLOAT_ACCUM backward(const FLOAT_ACCUM diff,
-                                       const FLOAT_ACCUM grad,
-                                       const FLOAT_ACCUM dist,
-                                       const FLOAT_ACCUM p)
+__device__ inline FLOAT_ACCUM
+backward(const FLOAT_ACCUM diff, const FLOAT_ACCUM grad, const FLOAT_ACCUM dist, const double p)
 {
+    // printf("p: %f\n", p);
     if(p == 1.f)
     { // one
         return grad * sign_(diff);
     }
     else if(p < 2.f)
     { // lt_two
+
         return (dist == 0.0 || (diff == 0.0 && p < 1))
                    ? 0
                    // TODO: Check logic of using sign_() and sign()
@@ -52,6 +52,7 @@ __device__ inline FLOAT_ACCUM backward(const FLOAT_ACCUM diff,
     }
     else if(p == 2.f)
     { // two
+        printf("hit here");
         return dist == 0.0 ? 0 : grad * diff / dist;
     }
     else if(isinf(p))
@@ -69,7 +70,7 @@ __device__ void pdist_backward(const DTYPE* __restrict__ input,
                                const DTYPE* __restrict__ output,
                                const DTYPE* __restrict__ grad, // output_grad
                                DTYPE* __restrict__ input_grad,
-                               DTYPE p_,
+                               double p_,
                                double n2,
                                double n2_squared_minus_1,
                                tensor_view_t<2> input_tv,
@@ -85,23 +86,35 @@ __device__ void pdist_backward(const DTYPE* __restrict__ input,
     // output = {NO}
     // grad = {NO}
     // input_grad = {N - 1, N, M} = {NO * 2, M}
+    // input_grad[0][j] = pair(A,x)
 
     const uint64_t gid = blockIdx.x * blockDim.x + threadIdx.x;
 
+    // TODO: pass those values as params to avoid redundant calculations
     long N  = input_tv.size[0];
     long NO = output_tv.size[0];
     long M  = input_tv.size[1];
 
     auto i_tl = tensor_layout_t<2>(input_tv, gid);
 
-    auto k = i_tl.layout[0];
-    auto m = i_tl.layout[1];
+    auto k = i_tl.layout[0]; // output_pair_index
+    auto m = i_tl.layout[1]; // column_index
 
     if(k >= NO)
         return;
 
-    long i  = n2 - sqrt(n2_squared_minus_1 - 2 * k);
-    long j  = k - N * i + i * (i + 1) / 2 + i + 1;
+    // printf("gid: %ld, k: %ld, m: %ld\n", gid, k, m);
+    // pair(row_i, row_j) corresponding to output[k]
+    // e.g. pair(point_A, point_B)
+    long i = n2 - sqrt(n2_squared_minus_1 - 2 * k);
+    long j = k - N * i + i * (i + 1) / 2 + i + 1;
+    // printf("")
+    // printf("gid: %ld, k: %ld, m: %ld, i: %ld, j: %ld\n", gid, k, m, i, j);
+
+    // Pair of gradients corresponding to pair(i,j)
+    // e.g. pair(input_grad(A,B), input_grad(B,A))
+    // those 2 elements in pair have opposite signs
+    // just similar to dist(A,B) vs. dist(B,A)
     long ib = j - i - 1;
     long jb = N - 2 - i;
 
@@ -112,52 +125,62 @@ __device__ void pdist_backward(const DTYPE* __restrict__ input,
     auto grad_idx   = grad_tv.get_tensor_view_idx(grad_tl);
     auto output_idx = output_tv.get_tensor_view_idx(output_tl);
 
+    // printf("gid: %ld, grad_idx: %ld, output_idx: %ld\n", gid, grad_idx, output_idx);
+
     // DTYPE grad_k   = grad[grad_idx];
     // DTYPE output_k = output[output_idx];
     FLOAT_ACCUM grad_k   = CVT_FLOAT2ACCUM(grad[grad_idx]);
     FLOAT_ACCUM output_k = CVT_FLOAT2ACCUM(output[output_idx]);
 
+    // printf("output_idx: %ld, grad_k: %f, output_k: %f\n", output_idx, grad_k, output_k);
+
     // i_tl =
     auto input_idx_0 = input_tv.get_tensor_view_idx({i, m});
     auto input_idx_1 = input_tv.get_tensor_view_idx({j, m});
 
+    // printf("gid: %ld. input_idx_0: %ld, input_idx_1: %ld\n", gid, input_idx_0, input_idx_1);
+
     FLOAT_ACCUM diff = CVT_FLOAT2ACCUM(input[input_idx_0]) - CVT_FLOAT2ACCUM(input[input_idx_1]);
 
+    // printf("gid: %ld. input_idx_0: %ld, input_idx_1: %ld, input[input_idx_0]: %f,
+    // input[input_idx_1]: %f\n", gid, input_idx_0, input_idx_1,
+    // CVT_FLOAT2ACCUM(input[input_idx_0]), CVT_FLOAT2ACCUM(input[input_idx_1]));
+
     // FLOAT_ACCUM res = backward(diff, grad_k, output_k, p_);
-    DTYPE res = CVT_ACCUM2FLOAT(backward(diff, grad_k, output_k, CVT_FLOAT2ACCUM(p_)));
+    DTYPE res = CVT_ACCUM2FLOAT(backward(diff, grad_k, output_k, p_));
 
     // auto input_grad_idx_0 = input_grad_tv.get_tensor_view_idx({ib, i, m});
     // auto input_grad_idx_1 = input_grad_tv.get_tensor_view_idx({jb, j, m});
 
     // input_grad[input_grad_idx_0] = res;
     // input_grad[input_grad_idx_1] = -res;
-    input_grad[ib * N * M + i * M + m] = res;
-    input_grad[jb * N * M + j * M + m] = -res;
-    // input_grad[ib * N * M + i * M + m] = CVT_ACCUM2FLOAT(res);
-    // input_grad[jb * N * M + j * M + m] = -CVT_ACCUM2FLOAT(res);
+    // printf("gid: %ld, k: %ld, input_idx_0: %ld, input_idx_1: %ld, input_grad_idx_0: %ld,
+    // input_grad_idx_1: %ld, res: %f\n", gid, k, input_idx_0, input_idx_1, ib * N * M + i * M + m,
+    // jb * N * M + j * M + m, res);
+    input_grad[ib * N * M + i * M + m] = res;  // dist(i,j)
+    input_grad[jb * N * M + j * M + m] = -res; // dist(j,i)
+
+    // printf("gid: %ld, k: %ld, input_grad_idx_0: %ld, input_grad_idx_1, res: %f\n", gid, k, ib * N
+    // * M + i * M + m, jb * N * M + j * M + m, res); input_grad[ib * N * M + i * M + m] =
+    // CVT_ACCUM2FLOAT(res); input_grad[jb * N * M + j * M + m] = -CVT_ACCUM2FLOAT(res);
 }
 
 extern "C" __global__ void PdistBackward(const INPUT_TYPE* __restrict__ input,
-                                         const OUTPUT_TYPE* __restrict__ output,
-                                         const OUTPUT_TYPE* __restrict__ grad, // output_grad
+                                         const INPUT_TYPE* __restrict__ output,
+                                         const INPUT_TYPE* __restrict__ grad, // output_grad
                                          INPUT_TYPE* __restrict__ input_grad,
-                                         INPUT_TYPE p_,
+                                         double p_,
                                          double n2,
                                          double n2_squared_minus_1,
                                          tensor_view_t<2> input_tv,
                                          tensor_view_t<1> output_tv,
-                                         tensor_view_t<1> grad_tv,
-                                         tensor_view_t<3> input_grad_tv)
+                                         tensor_view_t<1> grad_tv
+                                         //  tensor_view_t<3> input_grad_tv
+)
 {
-    pdist_backward<INPUT_TYPE>(input,
-                               output,
-                               grad,
-                               input_grad,
-                               p_,
-                               n2,
-                               n2_squared_minus_1,
-                               input_tv,
-                               output_tv,
-                               grad_tv,
-                               input_grad_tv);
+    // printf("p_: %f\n", p_);
+    pdist_backward<INPUT_TYPE>(
+        input, output, grad, input_grad, p_, n2, n2_squared_minus_1, input_tv, output_tv, grad_tv
+        //    input_grad_tv
+    );
 }

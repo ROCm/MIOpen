@@ -110,10 +110,12 @@ PdistBackward::GetSolution(const ExecutionContext& context,
     auto output_dtype = miopen::GetDataType(problem.GetdOutputDesc().GetType());
     auto dinput_dtype = miopen::GetDataType(problem.GetdInputDesc().GetType());
 
+    // auto dinput_numel = problem.GetdInputDesc().GetElementSize();
     auto dinput_numel = problem.GetdInputDesc().GetElementSize();
 
     auto input_lengths  = problem.GetInputDesc().GetLengths();
     auto output_lengths = problem.GetOutputDesc().GetLengths();
+    auto dinput_dims    = problem.GetdInputDesc().GetLengths();
 
     auto N = input_lengths[0];
     auto M = input_lengths[1];
@@ -139,7 +141,6 @@ PdistBackward::GetSolution(const ExecutionContext& context,
             {"MIOPEN_USE_FP64", static_cast<int>(dtype == miopenDouble)},
             {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
             {"INPUT_TYPE", input_dtype == "bfloat16" ? "unsigned char" : input_dtype},
-            // {"OUTPUT_TYPE", output_dtype == "bfloat16" ? "ushort" : output_dtype},
         };
 
         kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
@@ -160,7 +161,6 @@ PdistBackward::GetSolution(const ExecutionContext& context,
     // input: ws_dinput (shape=[N-1,N,M])
     // reduce_dim: 0
     // output: dinput (shape=[N,M])
-    auto reduce_size = N - 1;
     // auto reqd_work_item_cnt = get_reqd_work_item_cnt(context);
     {
 
@@ -232,22 +232,24 @@ PdistBackward::GetSolution(const ExecutionContext& context,
                 auto input_tv   = get_inner_expanded_tv<2>(deref(params.inputDesc));
                 auto output_tv  = get_inner_expanded_tv<1>(deref(params.outputDesc));
                 auto doutput_tv = get_inner_expanded_tv<1>(deref(params.doutputDesc));
-                auto dinput_tv  = get_inner_expanded_tv<2>(deref(params.dinputDesc));
+                // auto dinput_tv  = get_inner_expanded_tv<2>(deref(params.dinputDesc));
                 // auto ws_dinput_tv = get_inner_expanded_tv<3>()
 
                 decltype(auto) kernel = handle_.Run(kernels[0]);
-
+                double p              = params.p;
+                // std::cout << "[Out kernel] p = " << p << std::endl;
                 kernel(params.input,
                        params.output,
                        params.doutput,
                        ws_dinput,
-                       params.p,
+                       p,
                        n2,
                        n2_squared_minus_1,
                        input_tv,
                        output_tv,
-                       doutput_tv,
-                       dinput_tv);
+                       doutput_tv
+                       //    dinput_tv
+                );
             }
 
             /* Phrase 2: Accumulate gradients for each element in the input tensor */
@@ -258,7 +260,14 @@ PdistBackward::GetSolution(const ExecutionContext& context,
             {
                 // TODO: Add paralellism for efficiency if needed
                 decltype(auto) kernel = handle_.Run(kernels[1]);
-                auto inner_size       = (N - 1) * N * M; // ws_dinput numel
+                // uint64_t dim = 0;
+                auto reduce_size = N - 1;
+
+                // auto inner_size = N * M; // ws_dinput numel
+                auto inner_size = N * M;
+
+                // print ws_dinput
+                // for()
 
                 kernel(ws_dinput,
                        params.dinput,
@@ -267,6 +276,8 @@ PdistBackward::GetSolution(const ExecutionContext& context,
                        inner_size,
                        true // Set default nanPropagation=True
                 );
+
+                // print params.dinput
             }
 
             if(profiling)
@@ -284,6 +295,8 @@ PdistBackward::GetSolution(const ExecutionContext& context,
             };
         };
     };
+
+    return result;
 }
 
 std::size_t
