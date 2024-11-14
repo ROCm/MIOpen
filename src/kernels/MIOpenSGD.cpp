@@ -31,12 +31,12 @@
 #include "float_types.h"
 #include "tensor_view.hpp"
 
-template <typename TI, typename TO>
-__device__ void sgdFwd(const TI* __restrict__ param_in,
-                       TO* __restrict__ param_out,
-                       const TI* __restrict__ grad,
-                       const TI* __restrict__ momentum_buffer_in,
-                       TO* __restrict__ momentum_buffer_out,
+template <typename TIO>
+__device__ void sgdFwd(const TIO* __restrict__ param_in,
+                       TIO* __restrict__ param_out,
+                       const TIO* __restrict__ grad,
+                       const TIO* __restrict__ momentum_buffer_in,
+                       TIO* __restrict__ momentum_buffer_out,
                        double lr,
                        double momentum,
                        double dampening,
@@ -54,12 +54,9 @@ __device__ void sgdFwd(const TI* __restrict__ param_in,
     if(gid >= param_size)
         return;
 
-    uint64_t nch = gid / param_in_tv.size[3], w = gid % param_in_tv.size[3];
-    uint64_t nc = nch / param_in_tv.size[2], h = nch % param_in_tv.size[2];
-    uint64_t n = nc / param_in_tv.size[1], c = nc % param_in_tv.size[1];
-
-    FLOAT_ACCUM param = CVT_FLOAT2ACCUM(param_in[param_in_tv.get_tensor_view_idx({n, c, h, w})]);
-    FLOAT_ACCUM d_p   = CVT_FLOAT2ACCUM(grad[grad_tv.get_tensor_view_idx({n, c, h, w})]);
+    auto tensor_layout = tensor_layout_t<4>(param_in_tv, gid);
+    FLOAT_ACCUM param  = CVT_FLOAT2ACCUM(param_in[param_in_tv.get_tensor_view_idx(tensor_layout)]);
+    FLOAT_ACCUM d_p    = CVT_FLOAT2ACCUM(grad[grad_tv.get_tensor_view_idx(tensor_layout)]);
 
     if(weight_decay)
     {
@@ -72,7 +69,7 @@ __device__ void sgdFwd(const TI* __restrict__ param_in,
         if(momentum_initialized != 0)
         {
             momentum_v = CVT_FLOAT2ACCUM(
-                momentum_buffer_in[momentum_buffer_in_tv.get_tensor_view_idx({n, c, h, w})]);
+                momentum_buffer_in[momentum_buffer_in_tv.get_tensor_view_idx(tensor_layout)]);
             momentum_v = momentum_v * static_cast<FLOAT_ACCUM>(momentum) +
                          d_p * static_cast<FLOAT_ACCUM>(1 - dampening);
         }
@@ -80,7 +77,7 @@ __device__ void sgdFwd(const TI* __restrict__ param_in,
         {
             momentum_v = d_p;
         }
-        momentum_buffer_out[momentum_buffer_out_tv.get_tensor_view_idx({n, c, h, w})] =
+        momentum_buffer_out[momentum_buffer_out_tv.get_tensor_view_idx(tensor_layout)] =
             CVT_ACCUM2FLOAT(momentum_v);
 
         if(nesterov != 0)
@@ -93,15 +90,15 @@ __device__ void sgdFwd(const TI* __restrict__ param_in,
         }
     }
 
-    param_out[param_out_tv.get_tensor_view_idx({n, c, h, w})] =
+    param_out[param_out_tv.get_tensor_view_idx(tensor_layout)] =
         CVT_ACCUM2FLOAT(param - static_cast<FLOAT_ACCUM>(lr) * d_p);
 }
 
-extern "C" __global__ void SGDFwd(const INPUT_TYPE* __restrict__ param_in,
-                                  OUTPUT_TYPE* __restrict__ param_out,
-                                  const INPUT_TYPE* __restrict__ grad,
-                                  const INPUT_TYPE* __restrict__ momentum_buffer_in,
-                                  OUTPUT_TYPE* __restrict__ momentum_buffer_out,
+extern "C" __global__ void SGDFwd(const D_TYPE* __restrict__ param_in,
+                                  D_TYPE* __restrict__ param_out,
+                                  const D_TYPE* __restrict__ grad,
+                                  const D_TYPE* __restrict__ momentum_buffer_in,
+                                  D_TYPE* __restrict__ momentum_buffer_out,
                                   double lr,
                                   double momentum,
                                   double dampening,
@@ -115,31 +112,31 @@ extern "C" __global__ void SGDFwd(const INPUT_TYPE* __restrict__ param_in,
                                   tensor_view_t<4> momentum_buffer_in_tv,
                                   tensor_view_t<4> momentum_buffer_out_tv)
 {
-    sgdFwd<INPUT_TYPE, OUTPUT_TYPE>(param_in,
-                                    param_out,
-                                    grad,
-                                    momentum_buffer_in,
-                                    momentum_buffer_out,
-                                    lr,
-                                    momentum,
-                                    dampening,
-                                    weight_decay,
-                                    nesterov,
-                                    momentum_initialized,
-                                    param_size,
-                                    param_in_tv,
-                                    param_out_tv,
-                                    grad_tv,
-                                    momentum_buffer_in_tv,
-                                    momentum_buffer_out_tv);
+    sgdFwd<D_TYPE>(param_in,
+                   param_out,
+                   grad,
+                   momentum_buffer_in,
+                   momentum_buffer_out,
+                   lr,
+                   momentum,
+                   dampening,
+                   weight_decay,
+                   nesterov,
+                   momentum_initialized,
+                   param_size,
+                   param_in_tv,
+                   param_out_tv,
+                   grad_tv,
+                   momentum_buffer_in_tv,
+                   momentum_buffer_out_tv);
 }
 
-template <typename TI, typename TO>
-__device__ void sgdFwdContiguous(const TI* __restrict__ param_in,
-                                 TO* __restrict__ param_out,
-                                 const TI* __restrict__ grad,
-                                 const TI* __restrict__ momentum_buffer_in,
-                                 TO* __restrict__ momentum_buffer_out,
+template <typename TIO>
+__device__ void sgdFwdContiguous(const TIO* __restrict__ param_in,
+                                 TIO* __restrict__ param_out,
+                                 const TIO* __restrict__ grad,
+                                 const TIO* __restrict__ momentum_buffer_in,
+                                 TIO* __restrict__ momentum_buffer_out,
                                  double lr,
                                  double momentum,
                                  double dampening,
@@ -188,11 +185,11 @@ __device__ void sgdFwdContiguous(const TI* __restrict__ param_in,
     param_out[gid] = CVT_ACCUM2FLOAT(param - static_cast<FLOAT_ACCUM>(lr) * d_p);
 }
 
-extern "C" __global__ void SGDFwdContiguous(const INPUT_TYPE* __restrict__ param_in,
-                                            OUTPUT_TYPE* __restrict__ param_out,
-                                            const INPUT_TYPE* __restrict__ grad,
-                                            const INPUT_TYPE* __restrict__ momentum_buffer_in,
-                                            OUTPUT_TYPE* __restrict__ momentum_buffer_out,
+extern "C" __global__ void SGDFwdContiguous(const D_TYPE* __restrict__ param_in,
+                                            D_TYPE* __restrict__ param_out,
+                                            const D_TYPE* __restrict__ grad,
+                                            const D_TYPE* __restrict__ momentum_buffer_in,
+                                            D_TYPE* __restrict__ momentum_buffer_out,
                                             double lr,
                                             double momentum,
                                             double dampening,
@@ -201,16 +198,16 @@ extern "C" __global__ void SGDFwdContiguous(const INPUT_TYPE* __restrict__ param
                                             bool momentum_initialized,
                                             uint64_t param_size)
 {
-    sgdFwdContiguous<INPUT_TYPE, OUTPUT_TYPE>(param_in,
-                                              param_out,
-                                              grad,
-                                              momentum_buffer_in,
-                                              momentum_buffer_out,
-                                              lr,
-                                              momentum,
-                                              dampening,
-                                              weight_decay,
-                                              nesterov,
-                                              momentum_initialized,
-                                              param_size);
+    sgdFwdContiguous<D_TYPE>(param_in,
+                             param_out,
+                             grad,
+                             momentum_buffer_in,
+                             momentum_buffer_out,
+                             lr,
+                             momentum,
+                             dampening,
+                             weight_decay,
+                             nesterov,
+                             momentum_initialized,
+                             param_size);
 }

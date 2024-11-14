@@ -60,10 +60,9 @@ ConvSolution SGDForward::GetSolution([[maybe_unused]] const ExecutionContext& co
 {
     auto result = ConvSolution{miopenStatusSuccess};
 
-    auto dtype        = problem.GetParamInDesc().GetType();
-    auto dims         = problem.GetParamInDesc().GetLengths();
-    auto input_dtype  = miopen::GetDataType(problem.GetParamInDesc().GetType());
-    auto output_dtype = miopen::GetDataType(problem.GetParamOutDesc().GetType());
+    auto dtype   = problem.GetParamInDesc().GetType();
+    auto d_dtype = miopen::GetDataType(dtype);
+    auto dims    = problem.GetParamInDesc().GetLengths();
 
     bool is_contiguous = problem.IsAllContiguous();
 
@@ -74,8 +73,7 @@ ConvSolution SGDForward::GetSolution([[maybe_unused]] const ExecutionContext& co
         {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
         {"MIOPEN_USE_FP64", static_cast<int>(dtype == miopenDouble)},
         {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
-        {"INPUT_TYPE", input_dtype == "bfloat16" ? "ushort" : input_dtype},
-        {"OUTPUT_TYPE", output_dtype == "bfloat16" ? "ushort" : output_dtype},
+        {"D_TYPE", d_dtype == "bfloat16" ? "ushort" : d_dtype},
     };
 
     size_t xlocalsize = LOCAL_SIZE;

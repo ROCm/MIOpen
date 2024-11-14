@@ -50,12 +50,10 @@ void cpu_SGD_forward(tensor<T> param_in,
     auto momentum_buffer_out_tv = miopen::get_inner_expanded_tv<4>(momentum_buffer_out.desc);
 
     par_ford(param_size)([&](auto gid) {
-        uint64_t nch = gid / param_out_tv.size[3], w = gid % param_out_tv.size[3];
-        uint64_t nc = nch / param_out_tv.size[2], h = nch % param_out_tv.size[2];
-        uint64_t n = nc / param_out_tv.size[1], c = nc % param_out_tv.size[1];
-
-        double param = static_cast<double>(param_in[param_in_tv.get_tensor_view_idx({n, c, h, w})]);
-        double d_p   = static_cast<double>(grad[grad_tv.get_tensor_view_idx({n, c, h, w})]);
+        auto tensor_layout = tensor_layout_t<4>(param_in_tv, gid);
+        double param =
+            static_cast<double>(param_in[param_in_tv.get_tensor_view_idx(tensor_layout)]);
+        double d_p = static_cast<double>(grad[grad_tv.get_tensor_view_idx(tensor_layout)]);
 
         if(weight_decay)
         {
@@ -68,7 +66,7 @@ void cpu_SGD_forward(tensor<T> param_in,
             if(momentum_initialized != 0)
             {
                 momentum_v = static_cast<double>(
-                    momentum_buffer_in[momentum_buffer_in_tv.get_tensor_view_idx({n, c, h, w})]);
+                    momentum_buffer_in[momentum_buffer_in_tv.get_tensor_view_idx(tensor_layout)]);
                 momentum_v = momentum_v * static_cast<double>(momentum) +
                              d_p * static_cast<double>(1 - dampening);
             }
@@ -76,7 +74,7 @@ void cpu_SGD_forward(tensor<T> param_in,
             {
                 momentum_v = d_p;
             }
-            momentum_buffer_out[momentum_buffer_out_tv.get_tensor_view_idx({n, c, h, w})] =
+            momentum_buffer_out[momentum_buffer_out_tv.get_tensor_view_idx(tensor_layout)] =
                 static_cast<T>(momentum_v);
 
             if(nesterov != 0)
@@ -89,7 +87,7 @@ void cpu_SGD_forward(tensor<T> param_in,
             }
         }
 
-        param_out[param_out_tv.get_tensor_view_idx({n, c, h, w})] =
+        param_out[param_out_tv.get_tensor_view_idx(tensor_layout)] =
             static_cast<T>(param - static_cast<double>(lr) * d_p);
     });
 }
