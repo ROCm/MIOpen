@@ -65,10 +65,8 @@ struct SGDTestCase
                   << " Dampening:" << tc.dampening << " WeightDecay:" << tc.weightDecay
                   << " Nesterov:" << (int)tc.nesterov
                   << " MomentumInitialized:" << (int)tc.momentumInitialized
-                  << "is_contiguous:" << tc.is_contiguous;
+                  << " is_contiguous:" << tc.is_contiguous;
     }
-
-    std::vector<size_t> GetDims() const { return dims; }
 
     std::vector<size_t> ComputeStrides(std::vector<size_t> inputDim) const
     {
@@ -127,7 +125,7 @@ protected:
         nesterov             = SGD_config.nesterov;
         momentum_initialized = SGD_config.momentumInitialized;
 
-        auto dims    = SGD_config.GetDims();
+        auto dims    = SGD_config.dims;
         auto strides = SGD_config.ComputeStrides(dims);
 
         param_input                = tensor<T>{dims, strides}.generate(gen_value);
@@ -159,6 +157,7 @@ protected:
                            weight_decay,
                            nesterov,
                            momentum_initialized);
+
         miopenStatus_t status = miopenStatusSuccess;
 
         status = miopen::SGD::SGDForward(handle,
