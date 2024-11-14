@@ -194,10 +194,11 @@ int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::GetandSetData()
     std::vector<int> in_len = GetInputTensorLengthsFromCmdLine();
     SetBNParametersFromCmdLineArgs();
 
-    auto gen_value = [](auto...) { return prng::gen_descreet_uniform_sign<TInput>(1e-2, 100); };
-
     in.AllocOnHost(tensor<TInput>{bn_layout, in_len});
-    in.InitHostData(in.GetTensor().desc.GetElementSize(), true, gen_value);
+    for(size_t i = 0; i < in.GetVector().size(); i++)
+    {
+        in.GetVector()[i] = prng::gen_canonical<TInput>();
+    }
 
     auto derivedBnDesc = miopen::TensorDescriptor{};
     miopen::DeriveBNTensorDescriptor(derivedBnDesc, in.GetTensor().desc, bn_mode);
@@ -208,21 +209,18 @@ int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::GetandSetData()
         scale.AllocOnHost(tensor<TScaleBias>{bn_layout, derivedBnDesc.GetLengths()});
         bias.AllocOnHost(tensor<TScaleBias>{bn_layout, derivedBnDesc.GetLengths()});
 
-        auto gen_value_scale_bias = [](auto...) {
-            return prng::gen_descreet_uniform_sign<TInput>(1e-2, 100);
-        };
-
-        scale.InitHostData(scale.GetTensor().desc.GetElementSize(), true, gen_value_scale_bias);
-        bias.InitHostData(bias.GetTensor().desc.GetElementSize(), true, gen_value_scale_bias);
+        for(int i = 0; i < scale.GetVector().size(); i++)
+        {
+            scale.GetVector()[i] = prng::gen_canonical<TInput>();
+            bias.GetVector()[i]  = prng::gen_canonical<TInput>();
+        }
     }
     if(isFwdInfer)
     {
         estMean.AllocOnHost(tensor<TAcc>{bn_layout, derivedBnDesc.GetLengths()});
         estVariance.AllocOnHost(tensor<TAcc>{bn_layout, derivedBnDesc.GetLengths()});
 
-        auto gen_value_emean = [](auto...) {
-            return prng::gen_descreet_uniform_sign<TAcc>(1e-2, 100);
-        };
+        auto gen_value_emean = [](auto...) { return prng::gen_descreet_unsigned<TAcc>(1e-2, 100); };
         estMean.InitHostData(estMean.GetTensor().desc.GetElementSize(), true, gen_value_emean);
     }
     else if(isFwdTrain)
@@ -232,11 +230,11 @@ int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::GetandSetData()
         runMean.AllocOnHost(tensor<TAcc>{bn_layout, derivedBnDesc.GetLengths()});
         runVariance.AllocOnHost(tensor<TAcc>{bn_layout, derivedBnDesc.GetLengths()});
 
-        auto gen_var = [](auto...) {
-            return static_cast<TAcc>(1e-2 * (prng::gen_0_to_B(100) + 1));
-        };
-        runMean.InitHostData(runMean.GetTensor().desc.GetElementSize(), true, gen_var);
-        runVariance.InitHostData(runVariance.GetTensor().desc.GetElementSize(), true, gen_var);
+        for(int i = 0; i < runVariance.GetVector().size(); i++)
+        {
+            runMean.GetVector()[i]     = prng::gen_canonical<TAcc>();
+            runVariance.GetVector()[i] = prng::gen_canonical<TAcc>();
+        }
     }
     else if(isBwd)
     {
@@ -248,6 +246,7 @@ int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::GetandSetData()
         auto gen_var_bwd = [](auto...) {
             return static_cast<TOut>(1e-2 * (prng::gen_0_to_B(100) + 1));
         };
+
         dy.InitHostData(dy.GetTensor().desc.GetElementSize(), true, gen_var_bwd);
 
         dScale.AllocOnHost(tensor<TAcc>{bn_layout, derivedBnDesc.GetLengths()});
@@ -255,6 +254,7 @@ int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::GetandSetData()
         savedMean.AllocOnHost(tensor<TAcc>{bn_layout, derivedBnDesc.GetLengths()});
         savedInvVar.AllocOnHost(tensor<TAcc>{bn_layout, derivedBnDesc.GetLengths()});
 
+        auto gen_value = [](auto...) { return prng::gen_descreet_unsigned<TScaleBias>(1e-2, 100); };
         bnScale.InitHostData(bnScale.GetTensor().desc.GetElementSize(), true, gen_value);
 
         auto gen_in_var = [](auto...) {
