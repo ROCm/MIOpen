@@ -577,17 +577,18 @@ void RNNBackwardDataModularAlgo::PropHiddenDy(const Handle& handle,
                                  layer * drop_rsv_size;
 
         miopen::deref(rnnDesc.dropoutDesc)
-            .DropoutBackward(handle,
-                             drop_in_desc,
-                             drop_in_desc,
-                             workSpace,
-                             drop_in_desc,
-                             workSpace,
-                             reserveSpace,
-                             drop_rsv_size,
-                             dst_data_offset,
-                             dst_data_offset,
-                             drop_rsv_offset);
+            .Dropout(handle,
+                     drop_in_desc,
+                     drop_in_desc,
+                     workSpace,
+                     drop_in_desc,
+                     workSpace,
+                     reserveSpace,
+                     drop_rsv_size,
+                     dst_data_offset,
+                     dst_data_offset,
+                     drop_rsv_offset,
+                     true /* is_backward */);
     }
 }
 

@@ -65,10 +65,9 @@ To install the kernels package for your GPU architecture, use the following comm
 
 .. code:: shell
 
-  apt-get install miopenkernels-<arch>-<num cu>
+  apt-get install miopen-hip-<arch>kdb
 
-Where ``<arch>`` is the GPU architecture (e.g., ``gfx900``, ``gfx906``, ``gfx1030`` ) and ``<num cu>`` is the
-number of CUs available in the GPU (e.g., ``56``, ``64``).
+Where ``<arch>`` is the GPU architecture (e.g., ``gfx900``, ``gfx906``, ``gfx1030`` ).
 
 .. note::
 
