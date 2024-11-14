@@ -163,6 +163,8 @@ set( MIOpen_Source
     op_args.cpp
     operator.cpp
     performance_config.cpp
+    pdist_api.cpp
+    pdist/problem_description.cpp
     pooling/problem_description.cpp
     pooling_api.cpp
     prelu/problem_description.cpp
@@ -306,6 +308,7 @@ set( MIOpen_Source
     solver/layernorm/forward_t5layernorm.cpp
     solver/mha/mha_solver_backward.cpp
     solver/mha/mha_solver_forward.cpp
+    solver/pdist/backward_pdist.cpp
     solver/pooling/forward2d.cpp
     solver/pooling/forwardNaive.cpp
     solver/pooling/forwardNd.cpp
@@ -524,6 +527,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenLRNBwd.cl
         kernels/MIOpenLRNFwd.cl
         kernels/MIOpenNeuron.cl
+        kernels/MIOpenPdist.cpp
         kernels/MIOpenPReLU.cpp
         kernels/MIOpenPooling.cl
         kernels/MIOpenPoolingBwd.cl
@@ -676,6 +680,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         hip/hip_build_utils.cpp
         hip/batched_transpose_sol.cpp
         hip/general_tensor_reorder_sol.cpp
+        pdist.cpp
         pooling.cpp
         t5layernorm.cpp
         ocl/fusionopconvocl.cpp

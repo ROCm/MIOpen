@@ -34,6 +34,7 @@
 #include <miopen/groupnorm/solvers.hpp>
 #include <miopen/getitem/solvers.hpp>
 #include <miopen/layernorm/solvers.hpp>
+#include "miopen/pdist/solvers.hpp"
 #include <miopen/pooling/solvers.hpp>
 #include <miopen/prelu/solvers.hpp>
 #include <miopen/reduce/solvers.hpp>
@@ -682,7 +683,7 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
 
     Register(registry, ++id, Primitive::Activation, glu::GLUForward{}.SolverDbId());
     Register(registry, ++id, Primitive::Activation, glu::GLUBackward{}.SolverDbId());
-
+    Register(registry, ++id, Primitive::Pdist, pdist::PdistBackward{}.SolverDbId());
     // IMPORTANT: New solvers should be added to the end of the function!
 }
 

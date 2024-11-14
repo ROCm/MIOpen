@@ -72,6 +72,7 @@
  * @defgroup ReduceCalculation
  * @defgroup RotaryPositionalEmbeddings
  * @defgroup ReLU
+ * @defgroup pdist
  *
  */
 
@@ -7789,6 +7790,58 @@ MIOPEN_EXPORT miopenStatus_t miopenPReLUBackward(miopenHandle_t handle,
 
 /** @} */
 // CLOSEOUT RELU DOXYGEN GROUP
+#endif // MIOPEN_BETA_API
+
+#ifdef MIOPEN_BETA_API
+// Pdist APIs
+/** @addtogroup pdist
+ *
+ *  @{
+ */
+
+/*! @brief Helper function to query the minimum workspace size required by the PdistBackward call
+ *
+ * @param handle                   MIOpen Handle (input)
+ * @param inputDesc                Tensor descriptor for input tensor (input)
+ * @param sizeInBytes              Pointer to data to return the minimum workspace size (output)
+ * @return                         miopenStatus_t
+ */
+
+MIOPEN_EXPORT miopenStatus_t miopenGetPdistBackwardWorkspaceSize(
+    miopenHandle_t handle, const miopenTensorDescriptor_t inputDesc, size_t* sizeInBytes);
+
+/*! @brief Execute a Pdist backward layer
+ *
+ * @param handle                   MIOpen handle (input)
+ * @param workspace                Address of the allocated workspace data (input)
+ * @param workspaceSizeInBytes     Size in bytes of the allocated workspace data (input)
+ * @param inputDesc                Tensor descriptor for input tensor (input)
+ * @param input                    Data tensor input (input)
+ * @param outputDesc               Tensor descriptor for output tensor (input)
+ * @param output                   Data tensor output (input)
+ * @param doutputDesc              Tensor descriptor for output gradient (input)
+ * @param doutput                  Data tensor output gradient (input)
+ * @param dinputDesc               Tensor descriptor for input gradient (input)
+ * @param dinput                   Gradient of input (output)
+ * @param p                        P-norm distance (input)
+ * @return                         miopenStatus_t
+ */
+
+MIOPEN_EXPORT miopenStatus_t miopenPdistBackward(miopenHandle_t handle,
+                                                 void* workspace,
+                                                 size_t workspaceSizeInBytes,
+                                                 const miopenTensorDescriptor_t inputDesc,
+                                                 const void* input,
+                                                 const miopenTensorDescriptor_t outputDesc,
+                                                 const void* output,
+                                                 const miopenTensorDescriptor_t doutputDesc,
+                                                 const void* doutput,
+                                                 const miopenTensorDescriptor_t dinputDesc,
+                                                 void* dinput,
+                                                 const double p);
+
+/** @} */
+// CLOSEOUT PDIST DOXYGEN GROUP
 #endif // MIOPEN_BETA_API
 
 #ifdef __cplusplus

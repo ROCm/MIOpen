@@ -1,0 +1,163 @@
+/*******************************************************************************
+ *
+ * MIT License
+ *
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ *******************************************************************************/
+#include <cmath>
+#ifndef MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS
+#include <hip/hip_fp16.h>
+#include <hip/hip_runtime.h>
+#endif
+
+#include "float_types.h"
+#include "tensor_view.hpp"
+
+__device__ inline FLOAT_ACCUM sign_(FLOAT_ACCUM val) { return (0 < val) - (val < 0); }
+
+__device__ inline FLOAT_ACCUM backward(const FLOAT_ACCUM diff,
+                                       const FLOAT_ACCUM grad,
+                                       const FLOAT_ACCUM dist,
+                                       const FLOAT_ACCUM p)
+{
+    if(p == 1.f)
+    { // one
+        return grad * sign_(diff);
+    }
+    else if(p < 2.f)
+    { // lt_two
+        return (dist == 0.0 || (diff == 0.0 && p < 1))
+                   ? 0
+                   // TODO: Check logic of using sign_() and sign()
+                   : (sign_(diff) * pow(fabs(diff), p - 1) * grad / pow(dist, p - 1));
+    }
+    else if(p == 2.f)
+    { // two
+        return dist == 0.0 ? 0 : grad * diff / dist;
+    }
+    else if(isinf(p))
+    { // inf
+        return grad * sign_(diff) * (fabs(diff) == dist);
+    }
+    else
+    { // p
+        return dist == 0.0 ? 0 : diff * pow(fabs(diff), p - 2) * grad / pow(dist, p - 1);
+    }
+}
+
+template <typename DTYPE>
+__device__ void pdist_backward(const DTYPE* __restrict__ input,
+                               const DTYPE* __restrict__ output,
+                               const DTYPE* __restrict__ grad, // output_grad
+                               DTYPE* __restrict__ input_grad,
+                               DTYPE p_,
+                               double n2,
+                               double n2_squared_minus_1,
+                               tensor_view_t<2> input_tv,
+                               tensor_view_t<1> output_tv,
+                               tensor_view_t<1> grad_tv
+                               //  tensor_view_t<3> input_grad_tv
+)
+
+{
+    // NO = N(N-1)/2
+    // gws = {NO * M}
+    // input = {N, M}
+    // output = {NO}
+    // grad = {NO}
+    // input_grad = {N - 1, N, M} = {NO * 2, M}
+
+    const uint64_t gid = blockIdx.x * blockDim.x + threadIdx.x;
+
+    long N  = input_tv.size[0];
+    long NO = output_tv.size[0];
+    long M  = input_tv.size[1];
+
+    auto i_tl = tensor_layout_t<2>(input_tv, gid);
+
+    auto k = i_tl.layout[0];
+    auto m = i_tl.layout[1];
+
+    if(k >= NO)
+        return;
+
+    long i  = n2 - sqrt(n2_squared_minus_1 - 2 * k);
+    long j  = k - N * i + i * (i + 1) / 2 + i + 1;
+    long ib = j - i - 1;
+    long jb = N - 2 - i;
+
+    auto grad_tl   = tensor_layout_t<1>(grad_tv, k);
+    auto output_tl = tensor_layout_t<1>(output_tv, k);
+
+    // auto input_idx = input_tv.get_tensor_view_idx(i_tl);
+    auto grad_idx   = grad_tv.get_tensor_view_idx(grad_tl);
+    auto output_idx = output_tv.get_tensor_view_idx(output_tl);
+
+    // DTYPE grad_k   = grad[grad_idx];
+    // DTYPE output_k = output[output_idx];
+    FLOAT_ACCUM grad_k   = CVT_FLOAT2ACCUM(grad[grad_idx]);
+    FLOAT_ACCUM output_k = CVT_FLOAT2ACCUM(output[output_idx]);
+
+    // i_tl =
+    auto input_idx_0 = input_tv.get_tensor_view_idx({i, m});
+    auto input_idx_1 = input_tv.get_tensor_view_idx({j, m});
+
+    FLOAT_ACCUM diff = CVT_FLOAT2ACCUM(input[input_idx_0]) - CVT_FLOAT2ACCUM(input[input_idx_1]);
+
+    // FLOAT_ACCUM res = backward(diff, grad_k, output_k, p_);
+    DTYPE res = CVT_ACCUM2FLOAT(backward(diff, grad_k, output_k, CVT_FLOAT2ACCUM(p_)));
+
+    // auto input_grad_idx_0 = input_grad_tv.get_tensor_view_idx({ib, i, m});
+    // auto input_grad_idx_1 = input_grad_tv.get_tensor_view_idx({jb, j, m});
+
+    // input_grad[input_grad_idx_0] = res;
+    // input_grad[input_grad_idx_1] = -res;
+    input_grad[ib * N * M + i * M + m] = res;
+    input_grad[jb * N * M + j * M + m] = -res;
+    // input_grad[ib * N * M + i * M + m] = CVT_ACCUM2FLOAT(res);
+    // input_grad[jb * N * M + j * M + m] = -CVT_ACCUM2FLOAT(res);
+}
+
+extern "C" __global__ void PdistBackward(const INPUT_TYPE* __restrict__ input,
+                                         const OUTPUT_TYPE* __restrict__ output,
+                                         const OUTPUT_TYPE* __restrict__ grad, // output_grad
+                                         INPUT_TYPE* __restrict__ input_grad,
+                                         INPUT_TYPE p_,
+                                         double n2,
+                                         double n2_squared_minus_1,
+                                         tensor_view_t<2> input_tv,
+                                         tensor_view_t<1> output_tv,
+                                         tensor_view_t<1> grad_tv,
+                                         tensor_view_t<3> input_grad_tv)
+{
+    pdist_backward<INPUT_TYPE>(input,
+                               output,
+                               grad,
+                               input_grad,
+                               p_,
+                               n2,
+                               n2_squared_minus_1,
+                               input_tv,
+                               output_tv,
+                               grad_tv,
+                               input_grad_tv);
+}
