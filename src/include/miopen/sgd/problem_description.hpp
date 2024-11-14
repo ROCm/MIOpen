@@ -51,7 +51,6 @@ struct ProblemDescription : ProblemDescriptionBase
     {
         IsSameType();
         IsSameLength();
-        IsValidLength();
     }
 
     const TensorDescriptor& GetParamInDesc() const { return paramInDesc; }
