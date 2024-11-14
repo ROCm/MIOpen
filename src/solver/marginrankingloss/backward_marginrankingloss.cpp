@@ -41,17 +41,36 @@ namespace solver {
 
 namespace marginrankingloss {
 
+namespace {
+
+bool IsOverRocmBwd(const miopen::marginrankingloss::ProblemDescriptionBackward& problem)
+{
+    auto dims             = problem.GetInput1Desc().GetLengths();
+    size_t total_elements = std::accumulate(dims.begin(), dims.end(), 1, std::multiplies<size_t>());
+    for(size_t dim : dims)
+    {
+        if(total_elements == dim)
+            return false;
+    }
+    return true;
+}
+
+} // namespace
+
 bool MarginRankingLossBackward::IsApplicable(
     [[maybe_unused]] const ExecutionContext& context,
     const miopen::marginrankingloss::ProblemDescriptionBackward& problem) const
 {
+    if(!IsOverRocmBwd(problem))
+    {
+        return false;
+    }
     if(!(problem.GetOutGradDesc().GetType() == miopenHalf ||
          problem.GetOutGradDesc().GetType() == miopenFloat ||
          problem.GetOutGradDesc().GetType() == miopenBFloat16))
     {
         return false;
     }
-
     return true;
 }
 

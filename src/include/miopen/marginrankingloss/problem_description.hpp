@@ -69,7 +69,7 @@ struct ProblemDescriptionForward : ProblemDescriptionBase
         auto targetLengths = targetDesc.GetLengths();
         auto outputLengths = outputDesc.GetLengths();
         if((input1Lengths != input2Lengths) || (input2Lengths != targetLengths) ||
-           (GetReductionMode() == MIOPEN_LOSS_REDUCTION_NONE && outputLengths != targetLengths))
+           (reduction_mode == MIOPEN_LOSS_REDUCTION_NONE && outputLengths != targetLengths))
         {
             MIOPEN_THROW(
                 miopenStatusBadParm,
@@ -90,23 +90,6 @@ struct ProblemDescriptionForward : ProblemDescriptionBase
         return true;
     }
 
-    bool IsApplicableDims() const
-    {
-        auto dims = input1Desc.GetLengths();
-        size_t total_elements =
-            std::accumulate(dims.begin(), dims.end(), 1, std::multiplies<size_t>());
-        for(size_t dim : dims)
-        {
-            if(total_elements == dim)
-            {
-                MIOPEN_THROW(miopenStatusBadParm,
-                             "MarginRankingLossForward: Only one dim is greater than 1, there "
-                             "should be at least two dims greater than 1.");
-            }
-        }
-        return true;
-    }
-
     NetworkConfig MakeNetworkConfig() const override;
 
 private:
@@ -116,8 +99,6 @@ private:
     TensorDescriptor outputDesc;
     float margin;
     miopenLossReductionMode_t reduction_mode;
-
-    NetworkConfig MakeForwardNetworkConfig() const;
 };
 
 struct ProblemDescriptionBackward : ProblemDescriptionBase
@@ -162,7 +143,7 @@ struct ProblemDescriptionBackward : ProblemDescriptionBase
         auto in2GradLengths = in2GradDesc.GetLengths();
         if((input1Lengths != input2Lengths) || (input2Lengths != targetLengths) ||
            (targetLengths != in1GradLengths) || (in1GradLengths != in2GradLengths) ||
-           (GetReductionMode() == MIOPEN_LOSS_REDUCTION_NONE && outGradLengths != in1GradLengths))
+           (reduction_mode == MIOPEN_LOSS_REDUCTION_NONE && outGradLengths != in1GradLengths))
         {
             MIOPEN_THROW(
                 miopenStatusBadParm,
@@ -185,23 +166,6 @@ struct ProblemDescriptionBackward : ProblemDescriptionBase
         return true;
     }
 
-    bool IsApplicableDims() const
-    {
-        auto dims = in1GradDesc.GetLengths();
-        size_t total_elements =
-            std::accumulate(dims.begin(), dims.end(), 1, std::multiplies<size_t>());
-        for(size_t dim : dims)
-        {
-            if(total_elements == dim)
-            {
-                MIOPEN_THROW(miopenStatusBadParm,
-                             "MarginRankingLossBackward: Only one dim is greater than 1, there "
-                             "should be at least two dims greater than 1.");
-            }
-        }
-        return true;
-    }
-
     NetworkConfig MakeNetworkConfig() const override;
 
 private:
@@ -213,8 +177,6 @@ private:
     TensorDescriptor in2GradDesc;
     float margin;
     miopenLossReductionMode_t reduction_mode;
-
-    NetworkConfig MakeForwardNetworkConfig() const;
 };
 
 } // namespace marginrankingloss
