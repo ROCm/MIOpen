@@ -31,7 +31,6 @@
 #include "../conv2d.hpp"
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_MLIR)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 
 namespace {
 
@@ -61,7 +60,7 @@ auto GetTestCases()
 
 using TestCase = decltype(GetTestCases())::value_type;
 
-bool SkipTest() { return !env::enabled(MIOPEN_TEST_MLIR) || env::disabled(MIOPEN_TEST_ALL); }
+bool SkipTest() { return !env::enabled(MIOPEN_TEST_MLIR); }
 
 bool IsTestSupportedForDevice()
 {

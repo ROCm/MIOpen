@@ -58,7 +58,7 @@ void RunMIOpenDriver()
 {
     using e_mask = enabled<Gpu::gfx94X, Gpu::gfx103X>;
     using d_mask = disabled<Gpu::gfx900, Gpu::gfx906, Gpu::gfx908>;
-    if(!ShouldRunMIOpenDriverTest<d_mask, e_mask>("--float", true))
+    if(!ShouldRunMIOpenDriverTest<d_mask, e_mask>())
     {
         GTEST_SKIP();
     }

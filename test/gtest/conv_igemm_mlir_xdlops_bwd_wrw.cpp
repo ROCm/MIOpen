@@ -32,7 +32,6 @@
 #include "../conv2d.hpp"
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_MLIR)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 
 namespace {
 
@@ -77,7 +76,7 @@ auto GetTestCases()
 
 using TestCase = decltype(GetTestCases())::value_type;
 
-bool SkipTest() { return !env::enabled(MIOPEN_TEST_MLIR) || env::disabled(MIOPEN_TEST_ALL); }
+bool SkipTest() { return !env::enabled(MIOPEN_TEST_MLIR); }
 
 bool IsTestSupportedForDevice()
 {
@@ -88,15 +87,15 @@ bool IsTestSupportedForDevice()
 
 } // namespace
 
-class GPU_Conv2dDefault_FP16 : public FloatTestCase<std::vector<TestCase>>
+class GPU_Conv2dDefault_FP32 : public FloatTestCase<std::vector<TestCase>>
 {
 };
 
-TEST_P(GPU_Conv2dDefault_FP16, HalfTest_conv_igemm_mlir_xdlops_bwd_wrw)
+TEST_P(GPU_Conv2dDefault_FP32, FloatTest_conv_igemm_mlir_xdlops_bwd_wrw)
 {
     if(IsTestSupportedForDevice() && !SkipTest())
     {
-        invoke_with_params<conv2d_driver, GPU_Conv2dDefault_FP16>(db_check);
+        invoke_with_params<conv2d_driver, GPU_Conv2dDefault_FP32>(db_check);
     }
     else
     {
@@ -105,4 +104,4 @@ TEST_P(GPU_Conv2dDefault_FP16, HalfTest_conv_igemm_mlir_xdlops_bwd_wrw)
 };
 
 // Half for FWD, BWD, WRW
-INSTANTIATE_TEST_SUITE_P(Full, GPU_Conv2dDefault_FP16, testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_Conv2dDefault_FP32, testing::Values(GetTestCases()));
