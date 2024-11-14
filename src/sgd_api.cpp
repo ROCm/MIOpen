@@ -93,8 +93,6 @@ extern "C" miopenStatus_t miopenSGDForward(miopenHandle_t handle,
                         (int)momentum_initialized);
     LogCmdSGD(paramInDesc, true);
     return miopen::try_([&] {
-        std::vector<ConstData_t> xCast;
-        std::vector<miopen::TensorDescriptor*> xDescCast;
         miopen::SGD::SGDForward(miopen::deref(handle),
                                 miopen::deref(paramInDesc),
                                 DataCast(paramIn),

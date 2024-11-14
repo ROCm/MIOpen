@@ -25,36 +25,36 @@
  *******************************************************************************/
 #include "sgd.hpp"
 
-struct SGDTestFloat : SGDTest<float>
+struct GPU_SGD_fwd_FP32 : SGDTestFwd<float>
 {
 };
 
-struct SGDTestHalf : SGDTest<half>
+struct GPU_SGD_fwd_FP16 : SGDTestFwd<half>
 {
 };
 
-struct SGDTestBFloat16 : SGDTest<bfloat16>
+struct GPU_SGD_fwd_BFP16 : SGDTestFwd<bfloat16>
 {
 };
 
-TEST_P(SGDTestFloat, SGDTestFw)
-{
-    RunTest();
-    Verify();
-};
-
-TEST_P(SGDTestHalf, SGDTestFw)
+TEST_P(GPU_SGD_fwd_FP32, SGDTestFwd)
 {
     RunTest();
     Verify();
 };
 
-TEST_P(SGDTestBFloat16, SGDTestFw)
+TEST_P(GPU_SGD_fwd_FP16, SGDTestFwd)
 {
     RunTest();
     Verify();
 };
 
-INSTANTIATE_TEST_SUITE_P(SGDTestSet, SGDTestFloat, testing::ValuesIn(SGDTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(SGDTestSet, SGDTestHalf, testing::ValuesIn(SGDTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(SGDTestSet, SGDTestBFloat16, testing::ValuesIn(SGDTestConfigs()));
+TEST_P(GPU_SGD_fwd_BFP16, SGDTestFwd)
+{
+    RunTest();
+    Verify();
+};
+
+INSTANTIATE_TEST_SUITE_P(Full, GPU_SGD_fwd_FP32, testing::ValuesIn(SGDTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_SGD_fwd_FP16, testing::ValuesIn(SGDTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_SGD_fwd_BFP16, testing::ValuesIn(SGDTestConfigs()));

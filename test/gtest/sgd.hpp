@@ -111,7 +111,7 @@ inline std::vector<SGDTestCase> SGDTestConfigs()
 }
 
 template <typename T = float>
-struct SGDTest : public ::testing::TestWithParam<SGDTestCase>
+struct SGDTestFwd : public ::testing::TestWithParam<SGDTestCase>
 {
 protected:
     void SetUp() override

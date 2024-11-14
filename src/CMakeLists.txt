@@ -332,11 +332,11 @@ set( MIOpen_Source
     solver/reduce/forward_sum.cpp
     solver/rope/backward_rope.cpp
     solver/rope/forward_rope.cpp
+    solver/sgd/forward_sgd.cpp
     solver/softmarginloss/backward_softmarginloss.cpp
     solver/softmarginloss/forward_softmarginloss.cpp
     solver/softmax/attn_softmax.cpp
     solver/softmax/softmax.cpp
-    solver/sgd/forward_sgd.cpp
     subbuffers.cpp
     t5layernorm_api.cpp
     target_properties.cpp

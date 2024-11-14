@@ -628,7 +628,6 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
         registry, ++id, Primitive::Normalization, layernorm::Layernorm4DCKForward{}.SolverDbId());
     Register(registry, ++id, Primitive::Normalization, layernorm::LayernormForward{}.SolverDbId());
     Register(registry, ++id, Primitive::Reduce, reduce::SumForward{}.SolverDbId());
-    Register(registry, ++id, Primitive::SGD, SGD::SGDForward{}.SolverDbId());
     RegisterWithSolver(registry,
                        ++id,
                        conv::ConvHipImplicitGemmF16F8F16FwdXdlops{},
@@ -701,6 +700,7 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
              ++id,
              Primitive::MultiMarginLoss,
              multimarginloss::MultiMarginLossForward{}.SolverDbId());
+    Register(registry, ++id, Primitive::SGD, SGD::SGDForward{}.SolverDbId());
 
     // IMPORTANT: New solvers should be added to the end of the function!
 }

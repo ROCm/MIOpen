@@ -231,7 +231,7 @@ int SGDDriver<Tgpu, Tref>::GetandSetData()
     if(SetTensorNd(momentumBufferOutDesc, input_dims, strides, data_type) != miopenStatusSuccess)
         MIOPEN_THROW("Error parsing momentumBuffer output tensor: " +
                      inflags.GetValueStr("input_dims") + ".");
-    return 0;
+    return miopenStatusSuccess;
 }
 
 // Equivalent to: tensor.tranpose(0, -1).contiguous().tranpose(0, -1) incase contiguous = False

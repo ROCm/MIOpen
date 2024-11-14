@@ -44,13 +44,6 @@ struct SGDForward final : SGDSolver
                       const miopen::SGD::ProblemDescription& problem) const override;
     ConvSolution GetSolution(const ExecutionContext& context,
                              const miopen::SGD::ProblemDescription& problem) const override;
-    std::size_t
-    GetWorkspaceSize([[maybe_unused]] const ExecutionContext& context,
-                     [[maybe_unused]] const miopen::SGD::ProblemDescription& problem) const override
-    {
-        return 0;
-    }
-    bool MayNeedWorkspace() const override { return false; }
 };
 
 } // namespace SGD
