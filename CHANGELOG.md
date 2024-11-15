@@ -26,7 +26,6 @@ Full documentation for MIOpen is available [here](https://rocm.docs.amd.com/proj
 - [RNN] multi-stream as default solution.
 - TunaNetv2.0 for MI300
 - Added adam and amp adam optimizer
-
 ### Fixed
 - Memory access fault caused by GemmBwdRest
 - Context configuration in GetWorkSpaceSize
