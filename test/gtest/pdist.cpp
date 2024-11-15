@@ -33,15 +33,23 @@ using float16 = half_float::half;
 // using GPU_MarginRankingLoss_bwd_FP32  = MarginRankingLossTestBwd<float>;
 // using GPU_MarginRankingLoss_bwd_FP16  = MarginRankingLossTestBwd<float16>;
 // using GPU_MarginRankingLoss_bwd_BFP16 = MarginRankingLossTestBwd<bfloat16>;
-using GPU_Pdist_bwd_FP32 = PdistTestBackward<float>;
-// using GPU_Pdist_bwd_FP16  = PdistTestBackward<float16>;
-// using GPU_Pdist_bwd_BFP16 = PdistTestBackward<bfloat16>;
+using GPU_Pdist_bwd_FP32  = PdistTestBackward<float>;
+using GPU_Pdist_bwd_FP16  = PdistTestBackward<float16>;
+using GPU_Pdist_bwd_BFP16 = PdistTestBackward<bfloat16>;
 
-TEST_P(GPU_Pdist_bwd_FP32, PdistTestBackward)
+// TEST_P(GPU_Pdist_bwd_FP32, PdistTestBackward)
+// {
+//     RunTest();
+//     Verify();
+// };
+
+TEST_P(GPU_Pdist_bwd_FP16, PdistTestBackward)
 {
     RunTest();
     Verify();
 };
 
+// INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Pdist_bwd_FP32, testing::ValuesIn(PdistTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Pdist_bwd_FP16, testing::ValuesIn(PdistTestConfigs()));
+
 // INSTANTIATE_TEST_SUITE_P(Full, GPU_Pdist_bwd_FP32, testing::ValuesIn(PdistTestConfigs());
-INSTANTIATE_TEST_SUITE_P(Full, GPU_Pdist_bwd_FP32, testing::ValuesIn(PdistTestConfigs()));

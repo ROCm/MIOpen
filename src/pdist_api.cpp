@@ -23,13 +23,50 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include "miopen/common.hpp"
-#include "miopen/miopen.h"
+#include <miopen/common.hpp>
+#include <miopen/miopen.h>
 #include <miopen/pdist.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/tensor_ops.hpp>
+
+static void LogCmdPdistBackward(const miopenTensorDescriptor_t inputDesc, const double p)
+{
+    if(miopen::IsLoggingCmd())
+    {
+        std::stringstream ss;
+        auto dtype = miopen::deref(inputDesc).GetType();
+
+        if(dtype == miopenDouble)
+        {
+            ss << "pdistbwdfp64";
+        }
+        else if(dtype == miopenFloat)
+        {
+            ss << "pdistbwdfp32";
+        }
+        else if(dtype == miopenHalf)
+        {
+            ss << "pdistbwdfp16";
+        }
+        else if(dtype == miopenBFloat16)
+        {
+            ss << "pdistbwdbfp16";
+        }
+
+        ss << "-dims ( ";
+        for(unsigned long i : miopen::deref(inputDesc).GetLengths())
+        {
+            ss << i << " ";
+        }
+        ss << ")";
+
+        ss << " -p " << p;
+
+        MIOPEN_LOG_DRIVER_CMD(ss.str());
+    }
+}
 
 extern "C" miopenStatus_t
 miopenGetPdistBackwardWorkspaceSize(miopenHandle_t handle,
@@ -40,7 +77,7 @@ miopenGetPdistBackwardWorkspaceSize(miopenHandle_t handle,
                                     const double p,
                                     size_t* sizeInBytes)
 {
-    MIOPEN_LOG_FUNCTION(handle, inputDesc, sizeInBytes);
+    MIOPEN_LOG_FUNCTION(handle, inputDesc, outputDesc, doutputDesc, dinputDesc, p, sizeInBytes);
 
     return miopen::try_([&] {
         miopen::deref(sizeInBytes) =
@@ -78,6 +115,9 @@ extern "C" miopenStatus_t miopenPdistBackward(miopenHandle_t handle,
                         dinputDesc,
                         dinput,
                         p);
+
+    LogCmdPdistBackward(inputDesc, p);
+
     return miopen::try_([&] {
         miopen::PdistBackward(miopen::deref(handle),
                               DataCast(workspace),

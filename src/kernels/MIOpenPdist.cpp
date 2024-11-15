@@ -52,12 +52,17 @@ backward(const FLOAT_ACCUM diff, const FLOAT_ACCUM grad, const FLOAT_ACCUM dist,
     }
     else if(p == 2.f)
     { // two
-        printf("hit here");
+        // printf("hit here");
         return dist == 0.0 ? 0 : grad * diff / dist;
     }
     else if(isinf(p))
     { // inf
-        return grad * sign_(diff) * (fabs(diff) == dist);
+        // printf("[Kernel] Hit here infinity\n");
+        printf("[Kernel] diff: %f, dist: %f, fabs(diff) == dist: %f\n",
+               diff,
+               dist,
+               static_cast<FLOAT_ACCUM>(fabs(diff) == dist));
+        return grad * sign_(diff) * static_cast<FLOAT_ACCUM>(fabs(diff) == dist);
     }
     else
     { // p
@@ -109,7 +114,15 @@ __device__ void pdist_backward(const DTYPE* __restrict__ input,
     long i = n2 - sqrt(n2_squared_minus_1 - 2 * k);
     long j = k - N * i + i * (i + 1) / 2 + i + 1;
     // printf("")
-    // printf("gid: %ld, k: %ld, m: %ld, i: %ld, j: %ld\n", gid, k, m, i, j);
+    // printf("gid: %ld, N: %ld, n2: %f, n2_squared_minus_1: %f, k: %ld, m: %ld, i: %ld, j: %ld\n",
+    //        gid,
+    //        N,
+    //        n2,
+    //        n2_squared_minus_1,
+    //        k,
+    //        m,
+    //        i,
+    //        j);
 
     // Pair of gradients corresponding to pair(i,j)
     // e.g. pair(input_grad(A,B), input_grad(B,A))
@@ -138,6 +151,14 @@ __device__ void pdist_backward(const DTYPE* __restrict__ input,
     auto input_idx_0 = input_tv.get_tensor_view_idx({i, m});
     auto input_idx_1 = input_tv.get_tensor_view_idx({j, m});
 
+    // printf("gid: %ld, i: %ld, j: %ld, m: %ld, input_idx_0: %ld, input_idx_1: %ld\n",
+    //        gid,
+    //        i,
+    //        j,
+    //        m,
+    //        input_idx_0,
+    //        input_idx_1);
+
     // printf("gid: %ld. input_idx_0: %ld, input_idx_1: %ld\n", gid, input_idx_0, input_idx_1);
 
     FLOAT_ACCUM diff = CVT_FLOAT2ACCUM(input[input_idx_0]) - CVT_FLOAT2ACCUM(input[input_idx_1]);
@@ -160,8 +181,15 @@ __device__ void pdist_backward(const DTYPE* __restrict__ input,
     input_grad[ib * N * M + i * M + m] = res;  // dist(i,j)
     input_grad[jb * N * M + j * M + m] = -res; // dist(j,i)
 
-    // printf("gid: %ld, k: %ld, input_grad_idx_0: %ld, input_grad_idx_1, res: %f\n", gid, k, ib * N
-    // * M + i * M + m, jb * N * M + j * M + m, res); input_grad[ib * N * M + i * M + m] =
+    // printf("[Kernel] ib: %d, i: %d, jb: %d, j: %d, m: %d, res: %f\n", ib, i, jb, j, m, res);
+
+    // printf("gid: %ld, k: %ld, input_grad_idx_0: %ld, input_grad_idx_1, res: %f\n",
+    //        gid,
+    //        k,
+    //        ib * N * M + i * M + m,
+    //        jb * N * M + j * M + m,
+    //        res);
+    // input_grad[ib * N * M + i * M + m] =
     // CVT_ACCUM2FLOAT(res); input_grad[jb * N * M + j * M + m] = -CVT_ACCUM2FLOAT(res);
 }
 

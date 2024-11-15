@@ -25,22 +25,33 @@
  *******************************************************************************/
 #pragma once
 
-// #include "tensor_view.hpp"
-#include <algorithm>
-#include <math.h>
-// #include <ford.hpp>
-#include "tensor_holder.hpp"
+#include <miopen/tensor.hpp>
 #include <miopen/tensor_view_utils.hpp>
+#include <../test/ford.hpp>
 
-template <class T>
-void cpu_pdist_forward_contiguous(const tensor<T> input,
-                                  const tensor<T> output,
-                                  const tensor<T> output_grad,
-                                  tensor<T>& ref_input_grad,
-                                  const double p)
+#include <math.h>
+
+template <typename Tgpu, typename Tcheck>
+int32_t mloPdistBackwardRunHost(const miopenTensorDescriptor_t inputDesc,
+                                const miopenTensorDescriptor_t outputDesc,
+                                const miopenTensorDescriptor_t doutputDesc,
+                                const miopenTensorDescriptor_t dinputDesc,
+                                const Tgpu* input,
+                                const Tgpu* output,
+                                const Tgpu* doutput,
+                                Tcheck* dinputHost,
+                                const double p)
 {
-    std::fill(ref_input_grad.begin(), ref_input_grad.end(), static_cast<T>(0));
-    // TODO: Move those function to a separate helper file
+    auto input_numel = miopen::deref(inputDesc).GetElementSize();
+    auto N           = miopen::deref(inputDesc).GetLengths()[0];
+    auto M           = miopen::deref(inputDesc).GetLengths()[1];
+
+    // Fill dinputHost with zeros
+    for(size_t i = 0; i < input_numel; i++)
+    {
+        dinputHost[i] = 0;
+    }
+
     auto sign_ = [](double val) { return (0 < val) - (val < 0); };
 
     auto backward = [&](double diff, double grad, double dist, double p) -> double {
@@ -73,9 +84,9 @@ void cpu_pdist_forward_contiguous(const tensor<T> input,
 
     // double p_ = static_cast<double>(p);
 
-    auto N = input.desc.GetLengths()[0];
-    // auto NO = output.desc.GetLengths()[0];
-    auto M = input.desc.GetLengths()[1];
+    // auto N = input.desc.GetLengths()[0];
+    // // auto NO = output.desc.GetLengths()[0];
+    // auto M = input.desc.GetLengths()[1];
 
     // int idx = 0;
     for(int i = 0; i < N; ++i)
@@ -88,7 +99,7 @@ void cpu_pdist_forward_contiguous(const tensor<T> input,
             // T output_k = output[k];
             // T grad_k   = output_grad[k];
             // std::cout << "k: " << k << std::endl;
-            double grad_k   = static_cast<double>(output_grad[k]);
+            double grad_k   = static_cast<double>(doutput[k]);
             double output_k = static_cast<double>(output[k]);
 
             for(int m = 0; m < M; ++m)
@@ -101,16 +112,18 @@ void cpu_pdist_forward_contiguous(const tensor<T> input,
                 // std::cout << "diff: " << diff << std::endl;
 
                 // T res = backward(diff, grad_k, output_k, p);
-                T res = static_cast<T>(backward(diff, grad_k, output_k, p));
+                Tcheck res = static_cast<Tcheck>(backward(diff, grad_k, output_k, p));
 
                 // std::cout << "res: " << res << std::endl;
 
                 // printf("[Outside kernel] k: %d, i: %d, j: %d, m: %d, res: %f\n", k, i, j, m,
                 // res);
 
-                ref_input_grad[i * M + m] += res;
-                ref_input_grad[j * M + m] -= res;
+                dinputHost[i * M + m] += res;
+                dinputHost[j * M + m] -= res;
             }
         }
     }
+
+    return miopenStatusSuccess;
 }
