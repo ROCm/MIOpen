@@ -134,35 +134,35 @@ Op2dTensorSquash::GetSolution([[maybe_unused]] const ExecutionContext& context,
     kernel.l_wk.insert(end(kernel.l_wk), begin(vld), end(vld));
     kernel.g_wk.insert(end(kernel.g_wk), begin(vgd), end(vgd));
 
-    result.invoker_factory = [data_type, b_c = blens[1], b_nstride, total_work](
-                                 const std::vector<Kernel> kernels) {
-        return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
-            decltype(auto) kernel = handle_.Run(kernels.front());
-            decltype(auto) params = raw_params.CastTo<miopen::tensorOp::InvokeParams>();
+    result.invoker_factory =
+        [data_type, b_c = blens[1], b_nstride, total_work](const std::vector<Kernel> kernels) {
+            return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
+                decltype(auto) kernel = handle_.Run(kernels.front());
+                decltype(auto) params = raw_params.CastTo<miopen::tensorOp::InvokeParams>();
 
-            visit_float(data_type, [&](auto as_float) {
-                auto miopen_alpha0 = as_float(*(static_cast<const float*>(params.alpha0)));
-                auto miopen_alpha1 = as_float(*(static_cast<const float*>(params.alpha1)));
-                auto miopen_beta   = as_float(*(static_cast<const float*>(params.beta)));
+                visit_float(data_type, [&](auto as_float) {
+                    auto miopen_alpha0 = as_float(*(static_cast<const float*>(params.alpha0)));
+                    auto miopen_alpha1 = as_float(*(static_cast<const float*>(params.alpha1)));
+                    auto miopen_beta   = as_float(*(static_cast<const float*>(params.beta)));
 
-                kernel(params.ATensor,
-                       params.BTensor,
-                       static_cast<int>(b_c),
-                       static_cast<int>(b_nstride),
-                       params.CTensor,
-                       miopen_alpha0,
-                       miopen_alpha1,
-                       miopen_beta,
-                       static_cast<int64_t>(params.Aoffset),
-                       static_cast<int64_t>(params.Boffset),
-                       static_cast<int64_t>(params.Coffset),
-                       static_cast<int64_t>(total_work),
-                       static_cast<int>(!float_equal(miopen_alpha0, 0.0)),
-                       static_cast<int>(!float_equal(miopen_alpha1, 0.0)),
-                       static_cast<int>(!float_equal(miopen_beta, 0.0)));
-            });
+                    kernel(params.ATensor,
+                           params.BTensor,
+                           static_cast<int>(b_c),
+                           static_cast<int>(b_nstride),
+                           params.CTensor,
+                           miopen_alpha0,
+                           miopen_alpha1,
+                           miopen_beta,
+                           static_cast<int64_t>(params.Aoffset),
+                           static_cast<int64_t>(params.Boffset),
+                           static_cast<int64_t>(params.Coffset),
+                           static_cast<int64_t>(total_work),
+                           static_cast<int>(!float_equal(miopen_alpha0, 0.0)),
+                           static_cast<int>(!float_equal(miopen_alpha1, 0.0)),
+                           static_cast<int>(!float_equal(miopen_beta, 0.0)));
+                });
+            };
         };
-    };
     result.construction_params.push_back(kernel);
 
     return result;

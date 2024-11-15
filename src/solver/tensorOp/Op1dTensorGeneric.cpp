@@ -112,55 +112,55 @@ Op1dTensorGeneric::GetSolution([[maybe_unused]] const ExecutionContext& context,
     kernel.l_wk.insert(end(kernel.l_wk), begin(vld), end(vld));
     kernel.g_wk.insert(end(kernel.g_wk), begin(vgd), end(vgd));
 
-    result
-        .invoker_factory = [data_type, fit_into_int, b_n, c_n, a_nstrides, b_nstrides, c_nstrides](
-                               const std::vector<Kernel> kernels) {
-        return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
-            decltype(auto) kernel = handle_.Run(kernels.front());
-            decltype(auto) params = raw_params.CastTo<miopen::tensorOp::InvokeParams>();
+    result.invoker_factory =
+        [data_type, fit_into_int, b_n, c_n, a_nstrides, b_nstrides, c_nstrides](
+            const std::vector<Kernel> kernels) {
+            return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
+                decltype(auto) kernel = handle_.Run(kernels.front());
+                decltype(auto) params = raw_params.CastTo<miopen::tensorOp::InvokeParams>();
 
-            visit_float(data_type, [&](auto as_float) {
-                auto miopen_alpha0 = as_float(*(static_cast<const float*>(params.alpha0)));
-                auto miopen_alpha1 = as_float(*(static_cast<const float*>(params.alpha1)));
-                auto miopen_beta   = as_float(*(static_cast<const float*>(params.beta)));
+                visit_float(data_type, [&](auto as_float) {
+                    auto miopen_alpha0 = as_float(*(static_cast<const float*>(params.alpha0)));
+                    auto miopen_alpha1 = as_float(*(static_cast<const float*>(params.alpha1)));
+                    auto miopen_beta   = as_float(*(static_cast<const float*>(params.beta)));
 
-                if(fit_into_int)
-                {
-                    kernel(params.ATensor,
-                           params.BTensor,
-                           params.CTensor,
-                           static_cast<uint32_t>(params.Aoffset),
-                           static_cast<uint32_t>(params.Boffset),
-                           static_cast<uint32_t>(params.Coffset),
-                           static_cast<uint32_t>(a_nstrides),
-                           static_cast<uint32_t>(b_n == 1 ? 0 : b_nstrides),
-                           static_cast<uint32_t>(c_nstrides),
-                           miopen_alpha0,
-                           miopen_alpha1,
-                           miopen_beta,
-                           static_cast<uint32_t>(c_n),
-                           !float_equal(miopen_beta, 0.0));
-                }
-                else
-                {
-                    kernel(params.ATensor,
-                           params.BTensor,
-                           params.CTensor,
-                           static_cast<uint64_t>(params.Aoffset),
-                           static_cast<uint64_t>(params.Boffset),
-                           static_cast<uint64_t>(params.Coffset),
-                           static_cast<uint64_t>(a_nstrides),
-                           static_cast<uint64_t>(b_n == 1 ? 0 : b_nstrides),
-                           static_cast<uint64_t>(c_nstrides),
-                           miopen_alpha0,
-                           miopen_alpha1,
-                           miopen_beta,
-                           static_cast<uint64_t>(c_n),
-                           !float_equal(miopen_beta, 0.0));
-                }
-            });
+                    if(fit_into_int)
+                    {
+                        kernel(params.ATensor,
+                               params.BTensor,
+                               params.CTensor,
+                               static_cast<uint32_t>(params.Aoffset),
+                               static_cast<uint32_t>(params.Boffset),
+                               static_cast<uint32_t>(params.Coffset),
+                               static_cast<uint32_t>(a_nstrides),
+                               static_cast<uint32_t>(b_n == 1 ? 0 : b_nstrides),
+                               static_cast<uint32_t>(c_nstrides),
+                               miopen_alpha0,
+                               miopen_alpha1,
+                               miopen_beta,
+                               static_cast<uint32_t>(c_n),
+                               !float_equal(miopen_beta, 0.0));
+                    }
+                    else
+                    {
+                        kernel(params.ATensor,
+                               params.BTensor,
+                               params.CTensor,
+                               static_cast<uint64_t>(params.Aoffset),
+                               static_cast<uint64_t>(params.Boffset),
+                               static_cast<uint64_t>(params.Coffset),
+                               static_cast<uint64_t>(a_nstrides),
+                               static_cast<uint64_t>(b_n == 1 ? 0 : b_nstrides),
+                               static_cast<uint64_t>(c_nstrides),
+                               miopen_alpha0,
+                               miopen_alpha1,
+                               miopen_beta,
+                               static_cast<uint64_t>(c_n),
+                               !float_equal(miopen_beta, 0.0));
+                    }
+                });
+            };
         };
-    };
     result.construction_params.push_back(kernel);
 
     return result;
