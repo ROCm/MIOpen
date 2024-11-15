@@ -24,28 +24,53 @@
  *
  *******************************************************************************/
 
-#include <miopen/sgd/problem_description.hpp>
+#include <miopen/unsortedsegmentsum/problem_description.hpp>
 #include <miopen/names.hpp>
+
+#include <sstream>
 
 namespace miopen {
 
-namespace SGD {
+namespace UnsortedSegmentSum {
 
-NetworkConfig ProblemDescription::MakeNetworkConfig() const
+NetworkConfig FwdProblemDescription::MakeNetworkConfig() const
 {
-    auto dtype   = paramInDesc.GetType();
-    auto lengths = paramInDesc.GetLengths();
+    auto dtype          = InputDesc.GetType();
+    auto input_lengths  = InputDesc.GetLengths();
+    auto output_lengths = OutputDesc.GetLengths();
 
     std::ostringstream ss;
     ss << "dtype" << dtype;
-    ss << "lengths";
-    for(auto length : lengths)
+    ss << "input_lengths";
+    for(auto length : input_lengths)
+        ss << length << ',';
+    ss << "output_lengths";
+    for(auto length : output_lengths)
         ss << length << ',';
     ss << "isAllContiguous" << IsAllContiguous();
 
     return NetworkConfig{ss.str()};
 }
 
-} // namespace SGD
+NetworkConfig BwdProblemDescription::MakeNetworkConfig() const
+{
+    auto dtype               = InputGradDesc.GetType();
+    auto input_grad_lengths  = InputGradDesc.GetLengths();
+    auto output_grad_lengths = OutputGradDesc.GetLengths();
+
+    std::ostringstream ss;
+    ss << "dtype" << dtype;
+    ss << "input_grad_lengths";
+    for(auto length : input_grad_lengths)
+        ss << length << ',';
+    ss << "output_grad_lengths";
+    for(auto length : output_grad_lengths)
+        ss << length << ',';
+    ss << "isAllContiguous" << IsAllContiguous();
+
+    return NetworkConfig{ss.str()};
+}
+
+} // namespace UnsortedSegmentSum
 
 } // namespace miopen

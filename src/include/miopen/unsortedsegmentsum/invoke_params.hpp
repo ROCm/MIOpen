@@ -26,38 +26,46 @@
 
 #pragma once
 
+#include <cstdint>
 #include <miopen/invoke_params.hpp>
 #include <miopen/tensor.hpp>
 
 namespace miopen {
 
-namespace SGD {
+namespace UnsortedSegmentSum {
 
-struct InvokeParams : public miopen::InvokeParams
+struct FwdInvokeParams : public miopen::InvokeParams
 {
-    InvokeParams() = default;
+    FwdInvokeParams() = default;
 
-    const TensorDescriptor* paramInDesc           = nullptr;
-    ConstData_t paramIn                           = nullptr;
-    const TensorDescriptor* paramOutDesc          = nullptr;
-    Data_t paramOut                               = nullptr;
-    const TensorDescriptor* gradDesc              = nullptr;
-    ConstData_t grad                              = nullptr;
-    const TensorDescriptor* momentumBufferInDesc  = nullptr;
-    ConstData_t momentumBufferIn                  = nullptr;
-    const TensorDescriptor* momentumBufferOutDesc = nullptr;
-    Data_t momentumBufferOut                      = nullptr;
-    double lr                                     = 0;
-    double momentum                               = 0;
-    double dampening                              = 0;
-    double weightDecay                            = 0;
-    bool nesterov                                 = false;
-    bool momentum_initialized                     = false;
+    const TensorDescriptor* InputDesc      = nullptr;
+    ConstData_t Input                      = nullptr;
+    const TensorDescriptor* OutputDesc     = nullptr;
+    Data_t Output                          = nullptr;
+    const TensorDescriptor* SegmentIdsDesc = nullptr;
+    ConstData_t segment_ids                = nullptr;
+    uint64_t num_segments                  = 0;
 
     std::size_t GetWorkspaceSize() const { return 0; }
     Data_t GetWorkspace() const { return nullptr; }
 };
 
-} // namespace SGD
+struct BwdInvokeParams : public miopen::InvokeParams
+{
+    BwdInvokeParams() = default;
+
+    const TensorDescriptor* OutputGradDesc = nullptr;
+    ConstData_t OutputGrad                 = nullptr;
+    const TensorDescriptor* InputGradDesc  = nullptr;
+    Data_t InputGrad                       = nullptr;
+    const TensorDescriptor* SegmentIdsDesc = nullptr;
+    ConstData_t segment_ids                = nullptr;
+    uint64_t num_segments                  = 0;
+
+    std::size_t GetWorkspaceSize() const { return 0; }
+    Data_t GetWorkspace() const { return nullptr; }
+};
+
+} // namespace UnsortedSegmentSum
 
 } // namespace miopen

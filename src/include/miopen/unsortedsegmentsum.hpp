@@ -32,26 +32,28 @@ namespace miopen {
 struct Handle;
 struct TensorDescriptor;
 
-namespace SGD {
+namespace UnsortedSegmentSum {
 
-MIOPEN_INTERNALS_EXPORT miopenStatus_t SGDForward(Handle& handle,
-                                                  const TensorDescriptor& paramInDesc,
-                                                  ConstData_t paramIn,
-                                                  const TensorDescriptor& paramOutDesc,
-                                                  Data_t paramOut,
-                                                  const TensorDescriptor& gradDesc,
-                                                  ConstData_t grad,
-                                                  const TensorDescriptor& momentumBufferInDesc,
-                                                  ConstData_t momentumBufferIn,
-                                                  const TensorDescriptor& momentumBufferOutDesc,
-                                                  Data_t momentumBufferOut,
-                                                  double lr,
-                                                  double momentum,
-                                                  double dampening,
-                                                  double weightDecay,
-                                                  bool nesterov,
-                                                  bool momentum_initialized);
+MIOPEN_INTERNALS_EXPORT miopenStatus_t
+UnsortedSegmentSumForward(Handle& handle,
+                          const TensorDescriptor& InputDesc,
+                          ConstData_t Input,
+                          const TensorDescriptor& OutputDesc,
+                          Data_t Output,
+                          const TensorDescriptor& SegmentIdsDesc,
+                          ConstData_t segment_ids,
+                          uint64_t num_segments);
 
-} // namespace SGD
+MIOPEN_INTERNALS_EXPORT miopenStatus_t
+UnsortedSegmentSumBackward(Handle& handle,
+                           const TensorDescriptor& OutputGradDesc,
+                           ConstData_t OutputGrad,
+                           const TensorDescriptor& InputGradDesc,
+                           Data_t InputGrad,
+                           const TensorDescriptor& SegmentIdsDesc,
+                           ConstData_t segment_ids,
+                           uint64_t num_segments);
+
+} // namespace UnsortedSegmentSum
 
 } // namespace miopen

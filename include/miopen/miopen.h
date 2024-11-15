@@ -26,6 +26,7 @@
 #ifndef MIOPEN_GUARD_MIOPEN_H_
 #define MIOPEN_GUARD_MIOPEN_H_
 
+#include <cstdint>
 #ifdef __clang__
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wextern-c-compat"
@@ -72,6 +73,7 @@
  * @defgroup ReduceCalculation
  * @defgroup RotaryPositionalEmbeddings
  * @defgroup ReLU
+ * @defgroup UnsortedSegmentSum
  *
  */
 
@@ -8004,53 +8006,61 @@ MIOPEN_EXPORT miopenStatus_t miopenMultiMarginLossForward(miopenHandle_t handle,
 #endif // MIOPEN_BETA_API
 
 #ifdef MIOPEN_BETA_API
-// SGD APIs
-/** @addtogroup sgd
+// UnsortedSegmentSum APIs
+/** @addtogroup UnsortedSegmentSum
  *
  * @{
  */
-/*! @brief Execute a SGD forward layer
+/*! @brief Execute a UnsortedSegmentSum forward layer
  *
  * @param handle                   MIOpen handle (input)
- * @param paramInDesc              Tensor descriptor for paramIn (input)
- * @param paramIn                  Input parameters to optimize (input)
- * @param paramOutDesc             Tensor descriptor for paramOut (input)
- * @param paramOut                 Output parameters to optimize (output)
- * @param gradDesc                 Tensor descriptor for grad (input)
- * @param grad                     Gradient for each parameter (input)
- * @param momentumBufferInDesc     Tensor descriptor for momentumBufferIn (input)
- * @param momentumBufferIn         Input momentum buffer for each parameter (input)
- * @param momentumBufferOutDesc    Tensor descriptor for momentumBufferOut (input)
- * @param momentumBufferOut        Output momentum buffer for each parameter (output)
- * @param lr                       Learning rate (input)
- * @param momentum                 Momentum factor (input)
- * @param dampening                Dampening for momentum (input)
- * @param weightDecay              Weight decay (input)
- * @param nesterov                 Enables Nesterow momentum (input)
- * @param momentum_initialized     Is momentum initiated (input)
+ * @param InputDesc                Tensor descriptor for input tensor (input)
+ * @param Input                    Data tensor input (input)
+ * @param OutputDesc               Tensor descriptor for output tensor (input)
+ * @param Output                   Data tensor output (output)
+ * @param SegmentIdsDesc           Tensor descriptor for segment_ids tensor (input)
+ * @param segment_ids              A tensor whose shape is a prefix of input shape. The values must
+ * be less than num_segments (input)
+ * @param num_segments             Number of segments (input)
  * @return                         miopenStatus_t
  */
 
-MIOPEN_EXPORT miopenStatus_t miopenSGDForward(miopenHandle_t handle,
-                                              const miopenTensorDescriptor_t paramInDesc,
-                                              const void* paramIn,
-                                              const miopenTensorDescriptor_t paramOutDesc,
-                                              void* paramOut,
-                                              const miopenTensorDescriptor_t gradDesc,
-                                              const void* grad,
-                                              const miopenTensorDescriptor_t momentumBufferInDesc,
-                                              const void* momentumBufferIn,
-                                              const miopenTensorDescriptor_t momentumBufferOutDesc,
-                                              void* momentumBufferOut,
-                                              const double lr,
-                                              const double momentum,
-                                              const double dampening,
-                                              const double weightDecay,
-                                              const bool nesterov,
-                                              const bool momentum_initialized);
+MIOPEN_EXPORT miopenStatus_t
+miopenUnsortedSegmentSumForward(miopenHandle_t handle,
+                                const miopenTensorDescriptor_t InputDesc,
+                                const void* Input,
+                                const miopenTensorDescriptor_t OutputDesc,
+                                void* Output,
+                                const miopenTensorDescriptor_t SegmentIdsDesc,
+                                const void* segment_ids,
+                                const uint64_t num_segments);
+
+/*! @brief Execute a UnsortedSegmentSum forward layer
+ *
+ * @param handle                   MIOpen handle (input)
+ * @param OutputGradDesc           Tensor descriptor for output grad tensor (input)
+ * @param OutputGrad               Data tensor output grad (input)
+ * @param InputGradDesc            Tensor descriptor for input grad tensor (input)
+ * @param InputGrad                Data tensor input grad (output)
+ * @param SegmentIdsDesc           Tensor descriptor for segment_ids tensor (input)
+ * @param segment_ids              A tensor whose shape is a prefix of input shape. The values must
+ * be less than num_segments (input)
+ * @param num_segments             Number of segments (input)
+ * @return                         miopenStatus_t
+ */
+
+MIOPEN_EXPORT miopenStatus_t
+miopenUnsortedSegmentSumBackward(miopenHandle_t handle,
+                                 const miopenTensorDescriptor_t OutputGradDesc,
+                                 const void* OutputGrad,
+                                 const miopenTensorDescriptor_t InputGradDesc,
+                                 void* InputGrad,
+                                 const miopenTensorDescriptor_t SegmentIdsDesc,
+                                 const void* segment_ids,
+                                 const uint64_t num_segments);
 
 /** @} */
-// CLOSEOUT SGD DOXYGEN GROUP
+// CLOSEOUT UnsortedSegmentSum DOXYGEN GROUP
 #endif
 
 #ifdef __cplusplus
