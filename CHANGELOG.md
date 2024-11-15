@@ -2,20 +2,22 @@
 # Change Log for MIOpen
 
 Full documentation for MIOpen is available [here](https://rocm.docs.amd.com/projects/MIOpen/en/latest/)
-
 ## MIOpen 3.3.0 for ROCm 6.3.0
 ### Added
-- [RNN] LSTM fwd
-- [Mha] Mask is added for Forward pass 
-- [GLU] Gated Linear Unit (experimental)
-- [PReLU] Implement PReLU backward (experimental)
 
-### Fixed
-- Fixed stream not being set when calling hipMemsetAsync
-- Fixed memory leak issue caused by incorrect transpose in find 2.0 (#3285)
-- Fixed memcopy data race by replacing hipMemcpy with hipMemcpyWithStream
-## Perfomance
+* [RNN] LSTM fwd
+* [Mha] Mask is added for Forward pass 
+* [GLU] Gated Linear Unit (this is an experimental feature)
+* [PReLU] Implemented PReLU bwd (this is an experimental feature)
+### Optimized
+
 - MI300 TunaNet Update: CK FWD and WRW Solvers Updated 
+### Resolved issues
+
+- Fixed unset stream when calling `hipMemsetAsync`
+- Fixed a memory leak issue caused by an incorrect transpose in find 2.0 (see PR #3285 on GitHub)
+- Fixed a `memcopy` data race by replacing `hipMemcpy` with `hipMemcpyWithStream`
+
 
 ## MIOpen 3.2.0 for ROCm 6.2.0
 ### Added
