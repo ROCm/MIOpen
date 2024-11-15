@@ -66,16 +66,29 @@ std::size_t Op5dTensorGeneric::GetWorkspaceSize(
 }
 
 ConvSolution
-Op5dTensorGeneric::GetSolution(const ExecutionContext& context,
+Op5dTensorGeneric::GetSolution([[maybe_unused]] const ExecutionContext& context,
                                const miopen::tensorOp::ProblemDescription& problem) const
 {
     auto result = ConvSolution{miopenStatusSuccess};
 
-    const auto& cTensorDesc = problem.GetCTensorDesc();
+    const auto& aTensorDesc = problem.GetATensorDesc();
     const auto& bTensorDesc = problem.GetBTensorDesc();
+    const auto& cTensorDesc = problem.GetCTensorDesc();
 
     const auto& blens = bTensorDesc.GetLengths();
     const auto& clens = cTensorDesc.GetLengths();
+
+    std::array<size_t, 5> astrides;
+    std::array<size_t, 5> bstrides;
+    std::array<size_t, 5> cstrides;
+    std::tie(astrides[0], astrides[1], astrides[2], astrides[3], astrides[4]) =
+        miopen::tien<5>(aTensorDesc.GetStrides());
+    std::tie(bstrides[0], bstrides[1], bstrides[2], bstrides[3], bstrides[4]) =
+        miopen::tien<5>(bTensorDesc.GetStrides());
+    std::tie(cstrides[0], cstrides[1], cstrides[2], cstrides[3], cstrides[4]) =
+        miopen::tien<5>(cTensorDesc.GetStrides());
+
+    miopenDataType_t data_type = bTensorDesc.GetType();
 
     auto&& [num_wg, work_per_wg, bitmap] = GetBitmapAndWgInfo(blens, clens);
 
@@ -107,58 +120,53 @@ Op5dTensorGeneric::GetSolution(const ExecutionContext& context,
     kernel.l_wk.insert(end(kernel.l_wk), begin(vld), end(vld));
     kernel.g_wk.insert(end(kernel.g_wk), begin(vgd), end(vgd));
 
-    result.invoker_factory = [bitmap, work_per_wg, num_wg_orig](const std::vector<Kernel> kernels) {
-        return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
-            decltype(auto) kernel = handle_.Run(kernels.front());
-            decltype(auto) params = raw_params.CastTo<miopen::tensorOp::InvokeParams>();
+    result.invoker_factory =
+        [data_type, blens, clens, astrides, bstrides, cstrides, bitmap, work_per_wg, num_wg_orig](
+            const std::vector<Kernel> kernels) {
+            return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
+                decltype(auto) kernel = handle_.Run(kernels.front());
+                decltype(auto) params = raw_params.CastTo<miopen::tensorOp::InvokeParams>();
 
-            visit_float(params.bTensorDesc.GetType(), [&](auto as_float) {
-                auto miopen_alpha0 = as_float(*(static_cast<const float*>(params.alpha0)));
-                auto miopen_alpha1 = as_float(*(static_cast<const float*>(params.alpha1)));
-                auto miopen_beta   = as_float(*(static_cast<const float*>(params.beta)));
+                visit_float(data_type, [&](auto as_float) {
+                    auto miopen_alpha0 = as_float(*(static_cast<const float*>(params.alpha0)));
+                    auto miopen_alpha1 = as_float(*(static_cast<const float*>(params.alpha1)));
+                    auto miopen_beta   = as_float(*(static_cast<const float*>(params.beta)));
 
-                const auto& blens = params.bTensorDesc.GetLengths();
-                const auto& clens = params.cTensorDesc.GetLengths();
-
-                const auto& astrides = params.aTensorDesc.GetStrides();
-                const auto& bstrides = params.bTensorDesc.GetStrides();
-                const auto& cstrides = params.cTensorDesc.GetStrides();
-
-                kernel(params.ATensor,
-                       static_cast<int>(astrides[0]),
-                       static_cast<int>(astrides[1]),
-                       static_cast<int>(astrides[2]),
-                       static_cast<int>(astrides[3]),
-                       params.BTensor,
-                       static_cast<int>(blens[1]),    // b_c,
-                       static_cast<int>(blens[2]),    // b_d,
-                       static_cast<int>(blens[3]),    // b_h,
-                       static_cast<int>(blens[4]),    // b_w,
-                       static_cast<int>(bstrides[0]), // b_nstride,
-                       static_cast<int>(bstrides[1]), // b_cstride,
-                       static_cast<int>(bstrides[2]), // b_dstride,
-                       static_cast<int>(bstrides[3]), // b_hstride,
-                       params.CTensor,
-                       static_cast<int>(clens[1]),    // c_c,
-                       static_cast<int>(clens[2]),    // c_d,
-                       static_cast<int>(clens[3]),    // c_h,
-                       static_cast<int>(clens[4]),    // c_w,
-                       static_cast<int>(cstrides[0]), // c_nstride,
-                       static_cast<int>(cstrides[1]), // c_cstride,
-                       static_cast<int>(cstrides[2]), // c_dstride,
-                       static_cast<int>(cstrides[3]), // c_hstride,
-                       miopen_alpha0,
-                       miopen_alpha1,
-                       miopen_beta,
-                       bitmap,
-                       work_per_wg,
-                       static_cast<int64_t>(params.Aoffset),
-                       static_cast<int64_t>(params.Boffset),
-                       static_cast<int64_t>(params.Coffset),
-                       static_cast<int>(num_wg_orig));
-            });
+                    kernel(params.ATensor,
+                           static_cast<int>(astrides[0]),
+                           static_cast<int>(astrides[1]),
+                           static_cast<int>(astrides[2]),
+                           static_cast<int>(astrides[3]),
+                           params.BTensor,
+                           static_cast<int>(blens[1]),    // b_c,
+                           static_cast<int>(blens[2]),    // b_d,
+                           static_cast<int>(blens[3]),    // b_h,
+                           static_cast<int>(blens[4]),    // b_w,
+                           static_cast<int>(bstrides[0]), // b_nstride,
+                           static_cast<int>(bstrides[1]), // b_cstride,
+                           static_cast<int>(bstrides[2]), // b_dstride,
+                           static_cast<int>(bstrides[3]), // b_hstride,
+                           params.CTensor,
+                           static_cast<int>(clens[1]),    // c_c,
+                           static_cast<int>(clens[2]),    // c_d,
+                           static_cast<int>(clens[3]),    // c_h,
+                           static_cast<int>(clens[4]),    // c_w,
+                           static_cast<int>(cstrides[0]), // c_nstride,
+                           static_cast<int>(cstrides[1]), // c_cstride,
+                           static_cast<int>(cstrides[2]), // c_dstride,
+                           static_cast<int>(cstrides[3]), // c_hstride,
+                           miopen_alpha0,
+                           miopen_alpha1,
+                           miopen_beta,
+                           bitmap,
+                           work_per_wg,
+                           static_cast<int64_t>(params.Aoffset),
+                           static_cast<int64_t>(params.Boffset),
+                           static_cast<int64_t>(params.Coffset),
+                           static_cast<int>(num_wg_orig));
+                });
+            };
         };
-    };
     result.construction_params.push_back(kernel);
 
     return result;

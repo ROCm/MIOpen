@@ -70,11 +70,21 @@ Op3dTensorGeneric::GetSolution([[maybe_unused]] const ExecutionContext& context,
 {
     auto result = ConvSolution{miopenStatusSuccess};
 
+    const auto& aTensorDesc = problem.GetATensorDesc();
     const auto& bTensorDesc = problem.GetBTensorDesc();
     const auto& cTensorDesc = problem.GetCTensorDesc();
 
     const auto& blens = bTensorDesc.GetLengths();
     const auto& clens = cTensorDesc.GetLengths();
+
+    std::array<size_t, 3> astrides;
+    std::array<size_t, 3> bstrides;
+    std::array<size_t, 3> cstrides;
+    std::tie(astrides[0], astrides[1], astrides[2]) = miopen::tien<3>(aTensorDesc.GetStrides());
+    std::tie(bstrides[0], bstrides[1], bstrides[2]) = miopen::tien<3>(bTensorDesc.GetStrides());
+    std::tie(cstrides[0], cstrides[1], cstrides[2]) = miopen::tien<3>(cTensorDesc.GetStrides());
+
+    miopenDataType_t data_type = bTensorDesc.GetType();
 
     auto&& [num_wg, work_per_wg, bitmap] = GetBitmapAndWgInfo(blens, clens);
 
@@ -106,22 +116,23 @@ Op3dTensorGeneric::GetSolution([[maybe_unused]] const ExecutionContext& context,
     kernel.l_wk.insert(end(kernel.l_wk), begin(vld), end(vld));
     kernel.g_wk.insert(end(kernel.g_wk), begin(vgd), end(vgd));
 
-    result.invoker_factory = [bitmap, work_per_wg, num_wg_orig](const std::vector<Kernel> kernels) {
+    result.invoker_factory = [data_type,
+                              blens,
+                              clens,
+                              astrides,
+                              bstrides,
+                              cstrides,
+                              bitmap,
+                              work_per_wg,
+                              num_wg_orig](const std::vector<Kernel> kernels) {
         return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
             decltype(auto) kernel = handle_.Run(kernels.front());
             decltype(auto) params = raw_params.CastTo<miopen::tensorOp::InvokeParams>();
 
-            visit_float(params.bTensorDesc.GetType(), [&](auto as_float) {
+            visit_float(data_type, [&](auto as_float) {
                 auto miopen_alpha0 = as_float(*(static_cast<const float*>(params.alpha0)));
                 auto miopen_alpha1 = as_float(*(static_cast<const float*>(params.alpha1)));
                 auto miopen_beta   = as_float(*(static_cast<const float*>(params.beta)));
-
-                const auto& blens = params.bTensorDesc.GetLengths();
-                const auto& clens = params.cTensorDesc.GetLengths();
-
-                const auto& astrides = params.aTensorDesc.GetStrides();
-                const auto& bstrides = params.bTensorDesc.GetStrides();
-                const auto& cstrides = params.cTensorDesc.GetStrides();
 
                 kernel(params.ATensor,
                        static_cast<int>(astrides[0]),

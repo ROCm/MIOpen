@@ -71,14 +71,24 @@ Op1dTensorGeneric::GetSolution([[maybe_unused]] const ExecutionContext& context,
 {
     auto result = ConvSolution{miopenStatusSuccess};
 
+    const auto& aTensorDesc = problem.GetATensorDesc();
+    const auto& bTensorDesc = problem.GetBTensorDesc();
     const auto& cTensorDesc = problem.GetCTensorDesc();
 
-    const auto& clens = cTensorDesc.GetLengths();
+    const size_t b_n = bTensorDesc.GetLengths()[0];
+    const size_t c_n = cTensorDesc.GetLengths()[0];
+
+    const size_t a_nstrides = aTensorDesc.GetStrides()[0];
+    const size_t b_nstrides = bTensorDesc.GetStrides()[0];
+    const size_t c_nstrides = cTensorDesc.GetStrides()[0];
+
+    miopenDataType_t data_type = bTensorDesc.GetType();
+    bool fit_into_int          = aTensorDesc.AllDimsFitIntoInt();
 
     size_t local_threads = 256;
     size_t max_num_wg    = 4096;
 
-    auto num_wg           = std::clamp(clens[0] / local_threads, size_t(1), size_t(max_num_wg));
+    auto num_wg           = std::clamp(c_n / local_threads, size_t(1), size_t(max_num_wg));
     num_wg                = num_wg > max_num_wg ? max_num_wg : num_wg;
     size_t global_threads = num_wg * local_threads;
 
@@ -102,41 +112,19 @@ Op1dTensorGeneric::GetSolution([[maybe_unused]] const ExecutionContext& context,
     kernel.l_wk.insert(end(kernel.l_wk), begin(vld), end(vld));
     kernel.g_wk.insert(end(kernel.g_wk), begin(vgd), end(vgd));
 
-    result.invoker_factory = [](const std::vector<Kernel> kernels) {
+    result
+        .invoker_factory = [data_type, fit_into_int, b_n, c_n, a_nstrides, b_nstrides, c_nstrides](
+                               const std::vector<Kernel> kernels) {
         return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
             decltype(auto) kernel = handle_.Run(kernels.front());
             decltype(auto) params = raw_params.CastTo<miopen::tensorOp::InvokeParams>();
 
-            visit_float(params.bTensorDesc.GetType(), [&](auto as_float) {
+            visit_float(data_type, [&](auto as_float) {
                 auto miopen_alpha0 = as_float(*(static_cast<const float*>(params.alpha0)));
                 auto miopen_alpha1 = as_float(*(static_cast<const float*>(params.alpha1)));
                 auto miopen_beta   = as_float(*(static_cast<const float*>(params.beta)));
 
-                const auto& blens = params.bTensorDesc.GetLengths();
-                const auto& clens = params.cTensorDesc.GetLengths();
-
-                const auto& astrides = params.aTensorDesc.GetStrides();
-                const auto& bstrides = params.bTensorDesc.GetStrides();
-                const auto& cstrides = params.cTensorDesc.GetStrides();
-
-                if(params.aTensorDesc.AllDimsFitIntoInt())
-                { // change offsets to 64bit after PR is merged
-                    kernel(params.ATensor,
-                           params.BTensor,
-                           params.CTensor,
-                           static_cast<uint32_t>(params.Aoffset),
-                           static_cast<uint32_t>(params.Boffset),
-                           static_cast<uint32_t>(params.Coffset),
-                           static_cast<uint32_t>(astrides[0]),
-                           static_cast<uint32_t>(blens[0] == 1 ? 0 : bstrides[0]),
-                           static_cast<uint32_t>(cstrides[0]),
-                           miopen_alpha0,
-                           miopen_alpha1,
-                           miopen_beta,
-                           static_cast<uint32_t>(clens[0]),
-                           !float_equal(miopen_beta, 0.0));
-                }
-                else
+                if(fit_into_int)
                 {
                     kernel(params.ATensor,
                            params.BTensor,
@@ -144,13 +132,30 @@ Op1dTensorGeneric::GetSolution([[maybe_unused]] const ExecutionContext& context,
                            static_cast<uint32_t>(params.Aoffset),
                            static_cast<uint32_t>(params.Boffset),
                            static_cast<uint32_t>(params.Coffset),
-                           static_cast<uint64_t>(astrides[0]),
-                           static_cast<uint64_t>(blens[0] == 1 ? 0 : bstrides[0]),
-                           static_cast<uint64_t>(cstrides[0]),
+                           static_cast<uint32_t>(a_nstrides),
+                           static_cast<uint32_t>(b_n == 1 ? 0 : b_nstrides),
+                           static_cast<uint32_t>(c_nstrides),
                            miopen_alpha0,
                            miopen_alpha1,
                            miopen_beta,
-                           static_cast<uint64_t>(clens[0]),
+                           static_cast<uint32_t>(c_n),
+                           !float_equal(miopen_beta, 0.0));
+                }
+                else
+                {
+                    kernel(params.ATensor,
+                           params.BTensor,
+                           params.CTensor,
+                           static_cast<uint64_t>(params.Aoffset),
+                           static_cast<uint64_t>(params.Boffset),
+                           static_cast<uint64_t>(params.Coffset),
+                           static_cast<uint64_t>(a_nstrides),
+                           static_cast<uint64_t>(b_n == 1 ? 0 : b_nstrides),
+                           static_cast<uint64_t>(c_nstrides),
+                           miopen_alpha0,
+                           miopen_alpha1,
+                           miopen_beta,
+                           static_cast<uint64_t>(c_n),
                            !float_equal(miopen_beta, 0.0));
                 }
             });

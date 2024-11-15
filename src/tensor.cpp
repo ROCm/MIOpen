@@ -906,20 +906,8 @@ void OpTensor2(Handle& handle,
     const auto problem = tensorOp::ProblemDescription{
         tensorOp, beta, aTensorDesc, bTensorDesc, cTensorDesc, nonStandardSquash};
 
-    const auto invoke_params = tensorOp::InvokeParams{tensorOp,
-                                                      alpha0,
-                                                      aTensorDesc,
-                                                      ATensor,
-                                                      alpha1,
-                                                      bTensorDesc,
-                                                      BTensor,
-                                                      beta,
-                                                      cTensorDesc,
-                                                      CTensor,
-                                                      Aoffset,
-                                                      Boffset,
-                                                      Coffset,
-                                                      nonStandardSquash};
+    const auto invoke_params = tensorOp::InvokeParams{
+        alpha0, ATensor, alpha1, BTensor, beta, CTensor, Aoffset, Boffset, Coffset};
 
     const auto algo    = AlgorithmName{"TensorOpSolver"};
     const auto solvers = solver::SolverContainer<solver::tensorOp::OpTensorFwdBias>{} +

@@ -66,8 +66,8 @@ struct ProblemDescription : ProblemDescriptionBase
             MIOPEN_THROW("Datatypes for B and C tensors do not match !");
         }
 
-        auto blens = bTensorDesc.GetLengths();
-        auto clens = cTensorDesc.GetLengths();
+        const auto& blens = bTensorDesc.GetLengths();
+        const auto& clens = cTensorDesc.GetLengths();
 
         if(clens.size() > 5)
         {
@@ -82,14 +82,12 @@ struct ProblemDescription : ProblemDescriptionBase
 
         if(!nonStandardSquash)
         {
-            for(std::size_t i = 0; i < clens.size(); i++)
-            {
-                if(blens[i] != 1 && blens[i] != clens[i])
-                {
-                    MIOPEN_THROW("BTensor dim != 1 && BTensor dim != CTensor dim: " +
-                                 std::to_string(i));
-                }
-            }
+            constexpr auto comparator = [](size_t c, size_t b) { return b == 1 || b == c; };
+            const auto [c_diff, b_diff] =
+                std::mismatch(clens.begin(), clens.end(), blens.begin(), comparator);
+            if(c_diff != clens.end())
+                MIOPEN_THROW("BTensor dim != 1 && BTensor dim != CTensor dim:" +
+                             std::to_string(std::distance(clens.begin(), c_diff)));
         }
         else
         {
@@ -120,9 +118,9 @@ private:
 
     float beta;
 
-    const TensorDescriptor& aTensorDesc;
-    const TensorDescriptor& bTensorDesc;
-    const TensorDescriptor& cTensorDesc;
+    TensorDescriptor aTensorDesc;
+    TensorDescriptor bTensorDesc;
+    TensorDescriptor cTensorDesc;
 
     const bool nonStandardSquash;
 };

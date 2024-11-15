@@ -97,6 +97,8 @@ ConvSolution Op4dTensorLite::GetSolution([[maybe_unused]] const ExecutionContext
     const auto& bTensorDesc = problem.GetBTensorDesc();
     const auto& cTensorDesc = problem.GetCTensorDesc();
 
+    miopenDataType_t data_type = bTensorDesc.GetType();
+
     auto&& [num_wg_orig, work_per_wg, incr_wg, bitmap, local_threads, global_threads] =
         Get4dParams(problem, true);
 
@@ -127,12 +129,12 @@ ConvSolution Op4dTensorLite::GetSolution([[maybe_unused]] const ExecutionContext
     kernel.l_wk.insert(end(kernel.l_wk), begin(vld), end(vld));
     kernel.g_wk.insert(end(kernel.g_wk), begin(vgd), end(vgd));
 
-    result.invoker_factory = [total_work](const std::vector<Kernel> kernels) {
+    result.invoker_factory = [data_type, total_work](const std::vector<Kernel> kernels) {
         return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
             decltype(auto) kernel = handle_.Run(kernels.front());
             decltype(auto) params = raw_params.CastTo<miopen::tensorOp::InvokeParams>();
 
-            visit_float(params.bTensorDesc.GetType(), [&](auto as_float) {
+            visit_float(data_type, [&](auto as_float) {
                 auto miopen_alpha0 = as_float(*(static_cast<const float*>(params.alpha0)));
                 auto miopen_alpha1 = as_float(*(static_cast<const float*>(params.alpha1)));
                 auto miopen_beta   = as_float(*(static_cast<const float*>(params.beta)));

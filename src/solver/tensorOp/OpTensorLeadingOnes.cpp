@@ -107,6 +107,21 @@ OpTensorLeadingOnes::GetSolution([[maybe_unused]] const ExecutionContext& contex
     const auto& bTensorDesc = problem.GetBTensorDesc();
     const auto& cTensorDesc = problem.GetCTensorDesc();
 
+    std::array<size_t, 4> clens;
+    std::tie(clens[0], clens[1], clens[2], clens[3]) = miopen::tien<4>(cTensorDesc.GetLengths());
+
+    std::array<size_t, 4> astrides;
+    std::array<size_t, 4> bstrides;
+    std::array<size_t, 4> cstrides;
+    std::tie(astrides[0], astrides[1], astrides[2], astrides[3]) =
+        miopen::tien<4>(aTensorDesc.GetStrides());
+    std::tie(bstrides[0], bstrides[1], bstrides[2], bstrides[3]) =
+        miopen::tien<4>(bTensorDesc.GetStrides());
+    std::tie(cstrides[0], cstrides[1], cstrides[2], cstrides[3]) =
+        miopen::tien<4>(cTensorDesc.GetStrides());
+
+    miopenDataType_t data_type = bTensorDesc.GetType();
+
     int max_num_wg = 4096;
 
     auto&& [num_wg_orig, work_per_wg, incr_wg, bitmap, local_threads, global_threads] =
@@ -147,21 +162,23 @@ OpTensorLeadingOnes::GetSolution([[maybe_unused]] const ExecutionContext& contex
     kernel.g_wk.insert(end(kernel.g_wk), begin(vgd), end(vgd));
 
     result.invoker_factory =
-        [work_per_wg, num_wg_orig, bitmap, packed_tensor](const std::vector<Kernel> kernels) {
+        [data_type,
+         clens,
+         astrides,
+         bstrides,
+         cstrides,
+         work_per_wg,
+         num_wg_orig,
+         bitmap,
+         packed_tensor](const std::vector<Kernel> kernels) {
             return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
                 decltype(auto) kernel = handle_.Run(kernels.front());
                 decltype(auto) params = raw_params.CastTo<miopen::tensorOp::InvokeParams>();
 
-                visit_float(params.bTensorDesc.GetType(), [&](auto as_float) {
+                visit_float(data_type, [&](auto as_float) {
                     auto miopen_alpha0 = as_float(*(static_cast<const float*>(params.alpha0)));
                     auto miopen_alpha1 = as_float(*(static_cast<const float*>(params.alpha1)));
                     auto miopen_beta   = as_float(*(static_cast<const float*>(params.beta)));
-
-                    const auto& clens = params.cTensorDesc.GetLengths();
-
-                    const auto& astrides = params.aTensorDesc.GetStrides();
-                    const auto& bstrides = params.bTensorDesc.GetStrides();
-                    const auto& cstrides = params.cTensorDesc.GetStrides();
 
                     if(packed_tensor)
                     { // OpTensorLeadingOnes

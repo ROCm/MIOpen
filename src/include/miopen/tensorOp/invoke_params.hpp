@@ -35,34 +35,24 @@ namespace tensorOp {
 
 struct InvokeParams : public miopen::InvokeParams
 {
-    InvokeParams(miopenTensorOp_t tensorOp_,
-                 const void* alpha0_,
-                 const TensorDescriptor& aTensorDesc_,
+    InvokeParams(const void* alpha0_,
                  ConstData_t ATensor_,
                  const void* alpha1_,
-                 const TensorDescriptor& bTensorDesc_,
                  ConstData_t BTensor_,
                  const void* beta_,
-                 const TensorDescriptor& cTensorDesc_,
                  Data_t CTensor_,
                  const size_t Aoffset_,
                  const size_t Boffset_,
-                 const size_t Coffset_,
-                 const bool nonStandardSquash_)
+                 const size_t Coffset_)
         : alpha0(alpha0_),
           alpha1(alpha1_),
           beta(beta_),
-          tensorOperation(tensorOp_),
-          aTensorDesc(aTensorDesc_),
           ATensor(ATensor_),
-          bTensorDesc(bTensorDesc_),
           BTensor(BTensor_),
-          cTensorDesc(cTensorDesc_),
           CTensor(CTensor_),
           Aoffset(Aoffset_),
           Boffset(Boffset_),
-          Coffset(Coffset_),
-          nonStandardSquash(nonStandardSquash_)
+          Coffset(Coffset_)
     {
     }
 
@@ -74,22 +64,13 @@ public:
     const void* alpha1;
     const void* beta;
 
-    miopenTensorOp_t tensorOperation;
-
-    TensorDescriptor aTensorDesc;
     ConstData_t ATensor;
-
-    TensorDescriptor bTensorDesc;
     ConstData_t BTensor;
-
-    TensorDescriptor cTensorDesc;
     Data_t CTensor;
 
     size_t Aoffset;
     size_t Boffset;
     size_t Coffset;
-
-    bool nonStandardSquash;
 };
 
 } // namespace tensorOp

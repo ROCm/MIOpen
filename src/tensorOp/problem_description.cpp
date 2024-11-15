@@ -34,28 +34,31 @@ namespace tensorOp {
 
 NetworkConfig ProblemDescription::MakeNetworkConfig() const
 {
-    std::ostringstream ss;
+    std::string ss;
 
-    auto alens = aTensorDesc.GetLengths();
-    auto blens = bTensorDesc.GetLengths();
+    const auto& alens = aTensorDesc.GetLengths();
+    const auto& blens = bTensorDesc.GetLengths();
 
-    auto astrides = aTensorDesc.GetStrides();
-    auto bstrides = bTensorDesc.GetStrides();
-    auto cstrides = cTensorDesc.GetStrides();
+    const auto& astrides = aTensorDesc.GetStrides();
+    const auto& bstrides = bTensorDesc.GetStrides();
+    const auto& cstrides = cTensorDesc.GetStrides();
 
-    auto printDims = [&ss](const auto& dim) {
-        for(uint32_t i = 0; i < dim.size(); i++)
+    auto printDims = [&ss, dims = alens.size() - 1](const auto& dim) {
+        for(uint32_t i = 0; i < dims; i++)
         {
-            ss << dim[i];
-            if(i != (dim.size() - 1))
-            {
-                ss << "x";
-            }
+            ss.append(std::to_string(dim[i]));
+            ss += 'x';
         }
-        ss << "-";
+        ss += std::to_string(dim.back());
+        ss += '-';
     };
 
-    ss << std::to_string(aTensorDesc.GetType()) << "-" << std::to_string(tensorOp) << "-";
+    ss.reserve(1024);
+    ss.append(std::string_view("TensorOp-"));
+    ss += std::to_string(aTensorDesc.GetType());
+    ss += '-';
+    ss += std::to_string(tensorOp);
+    ss += '-';
 
     printDims(alens);
     printDims(blens);
@@ -63,9 +66,9 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
     printDims(bstrides);
     printDims(cstrides);
 
-    ss << (float_equal(beta, 0.0f) ? "1" : "0");
+    ss += (float_equal(beta, 0.0f) ? '1' : '0');
 
-    return NetworkConfig{ss.str()};
+    return NetworkConfig(std::move(ss));
 }
 
 } // namespace tensorOp

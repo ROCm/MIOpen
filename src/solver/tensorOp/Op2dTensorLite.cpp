@@ -93,11 +93,18 @@ ConvSolution Op2dTensorLite::GetSolution([[maybe_unused]] const ExecutionContext
 {
     auto result = ConvSolution{miopenStatusSuccess};
 
+    const auto& aTensorDesc = problem.GetATensorDesc();
     const auto& bTensorDesc = problem.GetBTensorDesc();
     const auto& cTensorDesc = problem.GetCTensorDesc();
 
     const auto& blens = bTensorDesc.GetLengths();
     const auto& clens = cTensorDesc.GetLengths();
+
+    const size_t a_cstride = aTensorDesc.GetStrides()[1];
+    const size_t b_cstride = bTensorDesc.GetStrides()[1];
+    const size_t c_cstride = cTensorDesc.GetStrides()[1];
+
+    miopenDataType_t data_type = bTensorDesc.GetType();
 
     auto&& [num_wg, work_per_wg, bitmap] = GetBitmapAndWgInfo(blens, clens);
 
@@ -107,7 +114,7 @@ ConvSolution Op2dTensorLite::GetSolution([[maybe_unused]] const ExecutionContext
     size_t local_threads = 256;
 
     // for naive tensor ops
-    auto&& [RD_BLCK, READ_TYPE] = GetRDBLCKandREADTYPE(clens[2], bTensorDesc.GetType());
+    auto&& [RD_BLCK, READ_TYPE] = GetRDBLCKandREADTYPE(clens[2], data_type);
 
     size_t total_work = std::max(clens[2] / RD_BLCK, size_t(1));
     size_t grp_sz     = (total_work + local_threads - 1) / local_threads;
@@ -143,28 +150,28 @@ ConvSolution Op2dTensorLite::GetSolution([[maybe_unused]] const ExecutionContext
     kernel.l_wk.insert(end(kernel.l_wk), begin(vld), end(vld));
     kernel.g_wk.insert(end(kernel.g_wk), begin(vgd), end(vgd));
 
-    result.invoker_factory = [total_work, total_work2](const std::vector<Kernel> kernels) {
+    result.invoker_factory = [data_type,
+                              b_c = blens[1],
+                              a_cstride,
+                              b_cstride,
+                              c_cstride,
+                              total_work,
+                              total_work2](const std::vector<Kernel> kernels) {
         return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
             decltype(auto) kernel = handle_.Run(kernels.front());
             decltype(auto) params = raw_params.CastTo<miopen::tensorOp::InvokeParams>();
 
-            visit_float(params.bTensorDesc.GetType(), [&](auto as_float) {
+            visit_float(data_type, [&](auto as_float) {
                 auto miopen_alpha0 = as_float(*(static_cast<const float*>(params.alpha0)));
                 auto miopen_alpha1 = as_float(*(static_cast<const float*>(params.alpha1)));
                 auto miopen_beta   = as_float(*(static_cast<const float*>(params.beta)));
 
-                const auto& blens = params.bTensorDesc.GetLengths();
-
-                const auto& astrides = params.aTensorDesc.GetStrides();
-                const auto& bstrides = params.bTensorDesc.GetStrides();
-                const auto& cstrides = params.cTensorDesc.GetStrides();
-
                 kernel(params.ATensor,
-                       static_cast<int>(astrides[1]),
+                       static_cast<int>(a_cstride),
                        params.BTensor,
-                       static_cast<int>(bstrides[1]),
+                       static_cast<int>(b_cstride),
                        params.CTensor,
-                       static_cast<int>(cstrides[1]),
+                       static_cast<int>(c_cstride),
                        miopen_alpha0,
                        miopen_alpha1,
                        miopen_beta,
@@ -174,7 +181,7 @@ ConvSolution Op2dTensorLite::GetSolution([[maybe_unused]] const ExecutionContext
                        static_cast<int64_t>(total_work),
                        static_cast<int64_t>(total_work2),
                        static_cast<int>(!float_equal(miopen_beta, 0.0)),
-                       static_cast<int>(blens[1] == 1));
+                       static_cast<int>(b_c == 1));
             });
         };
     };
