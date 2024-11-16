@@ -34,6 +34,11 @@ static Driver* makeDriver(const std::string& base_arg)
 {
     if(base_arg == "pdist")
         return new PdistDriver<float, float>();
+    if(base_arg == "pdistfp16")
+        return new PdistDriver<float16, float>();
+    if(base_arg == "pdistbfp16")
+        return new PdistDriver<bfloat16, float>();
+    return nullptr;
 }
 
 REGISTER_DRIVER_MAKER(makeDriver);

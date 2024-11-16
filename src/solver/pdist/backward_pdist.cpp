@@ -32,7 +32,7 @@
 #include <miopen/pdist.hpp>
 #include <miopen/pdist/solvers.hpp>
 #include <miopen/pdist/invoke_params.hpp>
-#include "miopen/common.hpp"
+// #include "miopen/common.hpp"
 #include "miopen/conv_solution.hpp"
 #include "miopen/pdist/problem_description.hpp"
 
@@ -140,7 +140,7 @@ PdistBackward::GetSolution(const ExecutionContext& context,
             {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
             {"MIOPEN_USE_FP64", static_cast<int>(dtype == miopenDouble)},
             {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
-            {"INPUT_TYPE", input_dtype == "bfloat16" ? "unsigned char" : input_dtype},
+            {"INPUT_TYPE", input_dtype == "bfloat16" ? "ushort" : input_dtype},
         };
 
         kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
@@ -161,7 +161,6 @@ PdistBackward::GetSolution(const ExecutionContext& context,
     // input: ws_dinput (shape=[N-1,N,M])
     // reduce_dim: 0
     // output: dinput (shape=[N,M])
-    // auto reqd_work_item_cnt = get_reqd_work_item_cnt(context);
     {
 
         // TODO: Add paralellism for efficiency if needed
@@ -182,7 +181,7 @@ PdistBackward::GetSolution(const ExecutionContext& context,
             {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
             {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
             {"INPUT_TYPE", input_dtype == "bfloat16" ? "ushort" : input_dtype},
-            {"OUTPUT_TYPE", dinput_dtype == "bfloat16" ? "ushort" : output_dtype},
+            {"OUTPUT_TYPE", input_dtype == "bfloat16" ? "ushort" : output_dtype},
             {"OP_TYPE", "ReduceCalculationOp_t::Sum"},
             {"MIOPEN_REDUCE_CALCULATION_PROD", MIOPEN_REDUCE_CALCULATION_PROD},
             {"MIOPEN_REDUCE_CALCULATION_SUM", MIOPEN_REDUCE_CALCULATION_SUM}};

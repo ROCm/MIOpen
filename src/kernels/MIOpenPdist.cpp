@@ -24,6 +24,7 @@
  *
  *******************************************************************************/
 // #include <cmath>
+#include <cstdio>
 #ifndef MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS
 #include <hip/hip_fp16.h>
 #include <hip/hip_runtime.h>
@@ -32,12 +33,19 @@
 #include "float_types.h"
 #include "tensor_view.hpp"
 
-__device__ inline FLOAT_ACCUM sign_(FLOAT_ACCUM val) { return (0 < val) - (val < 0); }
+// __device__ inline FLOAT_ACCUM sign_(FLOAT_ACCUM val) { return (0 < val) - (val < 0); }
+__device__ inline FLOAT_ACCUM sign_(FLOAT_ACCUM val)
+{
+    return static_cast<FLOAT_ACCUM>(0 < val) - static_cast<FLOAT_ACCUM>(val < 0);
+}
 
-__device__ inline FLOAT_ACCUM
-backward(const FLOAT_ACCUM diff, const FLOAT_ACCUM grad, const FLOAT_ACCUM dist, const double p)
+__device__ inline FLOAT_ACCUM backward(const FLOAT_ACCUM diff,
+                                       const FLOAT_ACCUM grad,
+                                       const FLOAT_ACCUM dist,
+                                       const FLOAT_ACCUM p)
 {
     // printf("p: %f\n", p);
+
     if(p == 1.f)
     { // one
         return grad * sign_(diff);
@@ -47,25 +55,30 @@ backward(const FLOAT_ACCUM diff, const FLOAT_ACCUM grad, const FLOAT_ACCUM dist,
 
         return (dist == 0.0 || (diff == 0.0 && p < 1))
                    ? 0
-                   // TODO: Check logic of using sign_() and sign()
                    : (sign_(diff) * pow(fabs(diff), p - 1) * grad / pow(dist, p - 1));
     }
     else if(p == 2.f)
     { // two
-        // printf("hit here");
         return dist == 0.0 ? 0 : grad * diff / dist;
     }
     else if(isinf(p))
     { // inf
         // printf("[Kernel] Hit here infinity\n");
-        printf("[Kernel] diff: %f, dist: %f, fabs(diff) == dist: %f\n",
-               diff,
-               dist,
-               static_cast<FLOAT_ACCUM>(fabs(diff) == dist));
+        // printf("[Kernel] diff: %f, dist: %f, fabs(diff) == dist: %f\n",
+        //        diff,
+        //        dist,
+        //        static_cast<FLOAT_ACCUM>(fabs(diff) == dist));
         return grad * sign_(diff) * static_cast<FLOAT_ACCUM>(fabs(diff) == dist);
     }
     else
     { // p
+        // printf("diff: %f, dist: %f, grad: %f, pow(fabs(diff), p - 2): %f, pow(dist, p - 1):
+        // %f\n",
+        //        diff,
+        //        dist,
+        //        grad,
+        //        pow(fabs(diff), p - 2),
+        //        pow(dist, p - 1));
         return dist == 0.0 ? 0 : diff * pow(fabs(diff), p - 2) * grad / pow(dist, p - 1);
     }
 }
@@ -75,7 +88,7 @@ __device__ void pdist_backward(const DTYPE* __restrict__ input,
                                const DTYPE* __restrict__ output,
                                const DTYPE* __restrict__ grad, // output_grad
                                DTYPE* __restrict__ input_grad,
-                               double p_,
+                               double p,
                                double n2,
                                double n2_squared_minus_1,
                                tensor_view_t<2> input_tv,
@@ -168,7 +181,12 @@ __device__ void pdist_backward(const DTYPE* __restrict__ input,
     // CVT_FLOAT2ACCUM(input[input_idx_0]), CVT_FLOAT2ACCUM(input[input_idx_1]));
 
     // FLOAT_ACCUM res = backward(diff, grad_k, output_k, p_);
-    DTYPE res = CVT_ACCUM2FLOAT(backward(diff, grad_k, output_k, p_));
+
+    FLOAT_ACCUM p_ = static_cast<FLOAT_ACCUM>(p);
+    // DTYPE res      = CVT_ACCUM2FLOAT(backward(diff, grad_k, output_k, p_));
+
+    // input_grad[ib * N * M + i * M + m] = res;  // dist(i,j)
+    // input_grad[jb * N * M + j * M + m] = -res; // dist(j,i)
 
     // auto input_grad_idx_0 = input_grad_tv.get_tensor_view_idx({ib, i, m});
     // auto input_grad_idx_1 = input_grad_tv.get_tensor_view_idx({jb, j, m});
@@ -178,8 +196,6 @@ __device__ void pdist_backward(const DTYPE* __restrict__ input,
     // printf("gid: %ld, k: %ld, input_idx_0: %ld, input_idx_1: %ld, input_grad_idx_0: %ld,
     // input_grad_idx_1: %ld, res: %f\n", gid, k, input_idx_0, input_idx_1, ib * N * M + i * M + m,
     // jb * N * M + j * M + m, res);
-    input_grad[ib * N * M + i * M + m] = res;  // dist(i,j)
-    input_grad[jb * N * M + j * M + m] = -res; // dist(j,i)
 
     // printf("[Kernel] ib: %d, i: %d, jb: %d, j: %d, m: %d, res: %f\n", ib, i, jb, j, m, res);
 
@@ -191,13 +207,33 @@ __device__ void pdist_backward(const DTYPE* __restrict__ input,
     //        res);
     // input_grad[ib * N * M + i * M + m] =
     // CVT_ACCUM2FLOAT(res); input_grad[jb * N * M + j * M + m] = -CVT_ACCUM2FLOAT(res);
+
+    FLOAT_ACCUM res = backward(diff, grad_k, output_k, p_);
+
+    // if(isinf(res)) {
+    //     printf("res is inf\n");
+    //     printf("res: %f\n", res);
+    // }
+
+    // auto tmp = CVT_ACCUM2FLOAT(res);
+    // auto tmp_check = CVT_FLOAT2ACCUM(tmp);
+
+    // if (isinf(tmp_check)) {
+    //     printf("converted res is inf\n");
+    //     printf("diff: %f, grad_k: %f, output_k: %f, original_res: %f\n", diff, grad_k, output_k,
+    //     res);
+    //     // printf("converted res: %f\n", tmp_check);
+    // }
+
+    input_grad[ib * N * M + i * M + m] = CVT_ACCUM2FLOAT(res);  // dist(i,j)
+    input_grad[jb * N * M + j * M + m] = CVT_ACCUM2FLOAT(-res); // dist(j,i)
 }
 
 extern "C" __global__ void PdistBackward(const INPUT_TYPE* __restrict__ input,
                                          const INPUT_TYPE* __restrict__ output,
                                          const INPUT_TYPE* __restrict__ grad, // output_grad
                                          INPUT_TYPE* __restrict__ input_grad,
-                                         double p_,
+                                         double p,
                                          double n2,
                                          double n2_squared_minus_1,
                                          tensor_view_t<2> input_tv,
@@ -208,7 +244,7 @@ extern "C" __global__ void PdistBackward(const INPUT_TYPE* __restrict__ input,
 {
     // printf("p_: %f\n", p_);
     pdist_backward<INPUT_TYPE>(
-        input, output, grad, input_grad, p_, n2, n2_squared_minus_1, input_tv, output_tv, grad_tv
+        input, output, grad, input_grad, p, n2, n2_squared_minus_1, input_tv, output_tv, grad_tv
         //    input_grad_tv
     );
 }

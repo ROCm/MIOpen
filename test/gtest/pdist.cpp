@@ -37,11 +37,11 @@ using GPU_Pdist_bwd_FP32  = PdistTestBackward<float>;
 using GPU_Pdist_bwd_FP16  = PdistTestBackward<float16>;
 using GPU_Pdist_bwd_BFP16 = PdistTestBackward<bfloat16>;
 
-// TEST_P(GPU_Pdist_bwd_FP32, PdistTestBackward)
-// {
-//     RunTest();
-//     Verify();
-// };
+TEST_P(GPU_Pdist_bwd_FP32, PdistTestBackward)
+{
+    RunTest();
+    Verify();
+};
 
 TEST_P(GPU_Pdist_bwd_FP16, PdistTestBackward)
 {
@@ -49,7 +49,20 @@ TEST_P(GPU_Pdist_bwd_FP16, PdistTestBackward)
     Verify();
 };
 
-// INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Pdist_bwd_FP32, testing::ValuesIn(PdistTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Pdist_bwd_FP16, testing::ValuesIn(PdistTestConfigs()));
+TEST_P(GPU_Pdist_bwd_BFP16, PdistTestBackward)
+{
+    RunTest();
+    Verify();
+};
 
-// INSTANTIATE_TEST_SUITE_P(Full, GPU_Pdist_bwd_FP32, testing::ValuesIn(PdistTestConfigs());
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Pdist_bwd_FP32, testing::ValuesIn(PdistTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Pdist_bwd_FP16, testing::ValuesIn(PdistFp16TestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Pdist_bwd_BFP16, testing::ValuesIn(PdistTestConfigs()));
+
+INSTANTIATE_TEST_SUITE_P(Full, GPU_Pdist_bwd_FP32, testing::ValuesIn(PdistTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_Pdist_bwd_FP16, testing::ValuesIn(PdistFp16TestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_Pdist_bwd_BFP16, testing::ValuesIn(PdistTestConfigs()));
+
+INSTANTIATE_TEST_SUITE_P(Perf, GPU_Pdist_bwd_FP32, testing::ValuesIn(PdistTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Perf, GPU_Pdist_bwd_FP16, testing::ValuesIn(PdistFp16TestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Perf, GPU_Pdist_bwd_BFP16, testing::ValuesIn(PdistTestConfigs()));
