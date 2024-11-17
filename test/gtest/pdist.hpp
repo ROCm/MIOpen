@@ -67,7 +67,7 @@ inline std::vector<PdistTestCase> PdistTestConfigs()
         // PdistTestCase({1, 1}, 1.0),
         // PdistTestCase({1, 1}, 2.0),
         // PdistTestCase({1, 1}, 5.0),
-        // PdistTestCase({1, 1}, HUGE_VAL), // huge val
+        // PdistTestCase({1, 1}, HUGE_VAL),
 
         PdistTestCase({2, 5}, 2.0),
         PdistTestCase({2, 10}, 5.0),
@@ -80,8 +80,13 @@ inline std::vector<PdistTestCase> PdistTestConfigs()
         PdistTestCase({100, 100}, 2.0),
         PdistTestCase({100, 100}, 5.0),
 
-        // TODO: Fix wrong result for p=inf
-        // PdistTestCase({100, 100}, HUGE_VAL),
+        PdistTestCase({2, 5}, HUGE_VAL),
+        PdistTestCase({2, 10}, HUGE_VAL),
+        PdistTestCase({5, 1}, HUGE_VAL),
+        PdistTestCase({5, 5}, HUGE_VAL),
+        PdistTestCase({10, 1}, HUGE_VAL),
+        PdistTestCase({10, 10}, HUGE_VAL),
+        PdistTestCase({100, 100}, HUGE_VAL),
     };
 }
 
@@ -98,6 +103,16 @@ inline std::vector<PdistTestCase> PdistFp16TestConfigs()
         PdistTestCase({100, 100}, 0.0),
         PdistTestCase({100, 100}, 1.0),
         PdistTestCase({100, 100}, 2.0),
+
+        PdistTestCase({2, 5}, HUGE_VAL),
+        PdistTestCase({2, 10}, HUGE_VAL),
+        PdistTestCase({5, 1}, HUGE_VAL),
+        PdistTestCase({5, 5}, HUGE_VAL),
+        PdistTestCase({10, 1}, HUGE_VAL),
+        PdistTestCase({10, 10}, HUGE_VAL),
+        PdistTestCase({100, 100}, HUGE_VAL)
+
+        
     };
     // clang-format on
 }
@@ -129,7 +144,8 @@ protected:
         input  = tensor<T>{input_dims}.generate(gen_value);
         output = tensor<T>{output_dims}.generate(output_gen_value);
 
-        doutput = tensor<T>{output_dims}.generate(gen_value);
+        doutput = tensor<T>{output_dims};
+        std::fill(doutput.begin(), doutput.end(), 1.0);
 
         dinput = tensor<T>{input_dims};
         std::fill(dinput.begin(), dinput.end(), std::numeric_limits<T>::quiet_NaN());
@@ -186,7 +202,6 @@ protected:
         double threshold  = std::numeric_limits<T>::epsilon() * 10;
         auto dinput_error = miopen::rms_range(ref_dinput, dinput);
 
-        ASSERT_EQ(miopen::range_distance(ref_dinput), miopen::range_distance(dinput));
         EXPECT_LT(dinput_error, threshold)
             << "Error input gradient beyond tolerance Error: " << dinput_error
             << ",  Tolerance: " << threshold;

@@ -33,6 +33,10 @@
 
 __device__ inline FLOAT_ACCUM sign_(FLOAT_ACCUM val) { return (0 < val) - (val < 0); }
 
+__device__ inline bool is_approx_equal(FLOAT_ACCUM a, FLOAT_ACCUM b, FLOAT_ACCUM tolerance = 1e-6)
+{
+    return (fabs(a - b) < tolerance);
+}
 __device__ inline FLOAT_ACCUM backward(const FLOAT_ACCUM diff,
                                        const FLOAT_ACCUM grad,
                                        const FLOAT_ACCUM dist,
@@ -44,7 +48,6 @@ __device__ inline FLOAT_ACCUM backward(const FLOAT_ACCUM diff,
     }
     else if(p < 2.f)
     { // lt_two
-
         return (dist == 0.0 || (diff == 0.0 && p < 1))
                    ? 0
                    : (sign_(diff) * pow(fabs(diff), p - 1) * grad / pow(dist, p - 1));
@@ -55,7 +58,7 @@ __device__ inline FLOAT_ACCUM backward(const FLOAT_ACCUM diff,
     }
     else if(isinf(p))
     { // inf
-        return grad * sign_(diff) * static_cast<FLOAT_ACCUM>(fabs(diff) == dist);
+        return grad * sign_(diff) * is_approx_equal(fabs(diff), dist, 1e-6);
     }
     else
     { // p

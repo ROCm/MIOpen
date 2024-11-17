@@ -31,14 +31,14 @@ namespace miopen {
 namespace solver {
 namespace pdist {
 
-template <typename T>
-T sign_(T val)
+inline bool is_approx_equal(double a, double b, double tolerance = 1e-6)
 {
-    return (0 < val) - (val < 0);
+    return (fabs(a - b) < tolerance);
 }
 
-template <typename T>
-T backward(const T diff, const T grad, const T dist, const T p)
+inline double sign_(double val) { return (0 < val) - (val < 0); }
+
+inline double backward(const double diff, const double grad, const double dist, const double p)
 {
     if(p == 1.f)
     { // one
@@ -56,7 +56,7 @@ T backward(const T diff, const T grad, const T dist, const T p)
     }
     else if(isinf(p))
     { // inf
-        return grad * sign_(diff) * (fabs(diff) == dist);
+        return grad * sign_(diff) * is_approx_equal(fabs(diff), dist);
     }
     else
     { // p
