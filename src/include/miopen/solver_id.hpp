@@ -62,7 +62,7 @@ enum class Primitive
     Item,
     RoPE,
     ReLU,
-    Pdist,
+    Pdist
 };
 
 struct MIOPEN_INTERNALS_EXPORT Id

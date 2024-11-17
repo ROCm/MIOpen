@@ -25,14 +25,6 @@
  *******************************************************************************/
 #pragma once
 
-#include "mloPdistHost.hpp"
-#include "InputFlags.hpp"
-#include "driver.hpp"
-// #include "miopen/mlo_internal.hpp"
-#include "tensor_driver.hpp"
-#include "timer.hpp"
-#include "random.hpp"
-
 #include <cstdint>
 #include <cstdlib>
 #include <iostream>
@@ -47,6 +39,13 @@
 #include <miopen/tensor_view_utils.hpp>
 #include <../test/tensor_holder.hpp>
 #include <../test/verify.hpp>
+
+#include "InputFlags.hpp"
+#include "driver.hpp"
+#include "tensor_driver.hpp"
+#include "timer.hpp"
+#include "random.hpp"
+#include "mloPdistHost.hpp"
 
 template <typename Tgpu, typename Tref>
 class PdistDriver : public Driver
@@ -112,7 +111,7 @@ private:
 
     size_t ws_sizeInBytes;
 
-    double p = 2.0; // Default value
+    double p;
 };
 
 template <typename Tgpu, typename Tref>
@@ -123,9 +122,9 @@ int PdistDriver<Tgpu, Tref>::AddCmdLineArgs()
         "dims", 'd', "3x4", "The dimensional lengths of the input tensor (Default=3x4)");
     inflags.AddInputFlag("power",
                          'p',
-                         "2.0",
+                         "2",
                          "p value for the p-norm distance to calculate between each vector pair, "
-                         "value in range [0, inf] (Default=2.0)",
+                         "value in range [0, inf] (Default=2)",
                          "double");
 
     inflags.AddInputFlag("iter", 'i', "10", "Number of Iterations (Default=10)", "int");
@@ -140,11 +139,14 @@ template <typename Tgpu, typename Tref>
 int PdistDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
 {
     inflags.Parse(argc, argv);
+
     p = inflags.GetValueDouble("power");
+
     if(inflags.GetValueInt("time") == 1)
     {
         miopenEnableProfiling(GetHandle(), true);
     }
+
     return miopenStatusSuccess;
 }
 
@@ -158,6 +160,7 @@ int PdistDriver<Tgpu, Tref>::GetandSetData()
 
     if(SetTensorNd(inputDesc, in_dims, data_type) != miopenStatusSuccess)
         MIOPEN_THROW("Error parsing input tensor: " + inflags.GetValueStr("dims") + ".");
+
     if(SetTensorNd(outputDesc, output_dims, data_type) != miopenStatusSuccess)
         MIOPEN_THROW("Error parsing output tensor: {" + std::to_string(output_dim_size) + "}.");
 
@@ -165,7 +168,7 @@ int PdistDriver<Tgpu, Tref>::GetandSetData()
         MIOPEN_THROW("Error parsing doutput tensor: {" + std::to_string(output_dim_size) + "}.");
 
     if(SetTensorNd(dinputDesc, in_dims, data_type) != miopenStatusSuccess)
-        MIOPEN_THROW("Error parsing dinput tensor: " + inflags.GetValueStr("ddims") + ".");
+        MIOPEN_THROW("Error parsing dinput tensor: " + inflags.GetValueStr("dims") + ".");
 
     return miopenStatusSuccess;
 }
@@ -193,8 +196,6 @@ int PdistDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     dinput_dev  = std::make_unique<GPUMem>(ctx, dinput_size, sizeof(Tgpu));
 
     workspace_dev = std::make_unique<GPUMem>(ctx, ws_sizeInBytes, sizeof(std::byte));
-    // input_dev = std::make_unique(ctx, input_size, sizeof(Tgpu));
-    // output_dev = std::make_unique(ctx, output_size, sizeof(Tgpu));
 
     // GPU host allocation
     input   = std::vector<Tgpu>(input_size);
@@ -284,11 +285,6 @@ int PdistDriver<Tgpu, Tref>::RunBackwardGPU()
 
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
-        // auto status = miopenPdistBackward(miopenHandle_t handle, void *workspace, size_t
-        // workspaceSizeInBytes, const miopenTensorDescriptor_t inputDesc, const void *input, const
-        // miopenTensorDescriptor_t outputDesc, const void *output, const miopenTensorDescriptor_t
-        // doutputDesc, const void *doutput, const miopenTensorDescriptor_t dinputDesc, void
-        // *dinput, const double p)
         auto status = miopenPdistBackward(GetHandle(),
                                           workspace_dev->GetMem(),
                                           ws_sizeInBytes,
@@ -338,15 +334,8 @@ int PdistDriver<Tgpu, Tref>::RunBackwardGPU()
 template <typename Tgpu, typename Tref>
 int PdistDriver<Tgpu, Tref>::RunBackwardCPU()
 {
-    auto status = mloPdistBackwardRunHost<Tgpu, Tref>(inputDesc,
-                                                      outputDesc,
-                                                      doutputDesc,
-                                                      dinputDesc,
-                                                      input.data(),
-                                                      output.data(),
-                                                      doutput.data(),
-                                                      dinputHost.data(),
-                                                      p);
+    auto status = mloPdistBackwardRunHost<Tgpu, Tref>(
+        inputDesc, input.data(), output.data(), doutput.data(), dinputHost.data(), p);
 
     MIOPEN_THROW_IF(status != miopenStatusSuccess, "Error in mloPdistBackwardRunHost");
 
@@ -357,9 +346,10 @@ template <typename Tgpu, typename Tref>
 int PdistDriver<Tgpu, Tref>::VerifyBackward()
 {
     RunBackwardCPU();
-    const Tref tolerance = GetTolerance();
 
-    auto dinput_error = miopen::rms_range(dinputHost, dinput);
+    const Tref tolerance = GetTolerance();
+    auto dinput_error    = miopen::rms_range(dinputHost, dinput);
+
     if(!std::isfinite(dinput_error) || dinput_error > tolerance)
     {
         std::cout << "Backward Pdist FAILED: " << dinput_error << std::endl;

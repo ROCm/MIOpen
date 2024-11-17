@@ -23,10 +23,6 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-// #include <miopen/bfloat16.hpp>
-// #include "registry_driver_maker.hpp"
-// #include "pdist_driver.hpp"
-// #include <cstdint>
 #include "pdist_driver.hpp"
 #include "registry_driver_maker.hpp"
 

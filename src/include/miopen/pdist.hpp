@@ -38,7 +38,7 @@ GetPdistBackwardWorkspaceSize(Handle& handle,
                               const TensorDescriptor& outputDesc,
                               const TensorDescriptor& douputDesc,
                               const TensorDescriptor& dinputDesc,
-                              const double p);
+                              double p);
 
 MIOPEN_INTERNALS_EXPORT miopenStatus_t PdistBackward(Handle& handle,
                                                      Data_t workspace,

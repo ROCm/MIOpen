@@ -25,17 +25,15 @@
  *******************************************************************************/
 #pragma once
 
+#include <math.h>
+
 #include <miopen/tensor.hpp>
 #include <miopen/tensor_view_utils.hpp>
+#include <miopen/pdist/utils.hpp>
 #include <../test/ford.hpp>
-
-#include <math.h>
 
 template <typename Tgpu, typename Tcheck>
 int32_t mloPdistBackwardRunHost(const miopenTensorDescriptor_t inputDesc,
-                                const miopenTensorDescriptor_t outputDesc,
-                                const miopenTensorDescriptor_t doutputDesc,
-                                const miopenTensorDescriptor_t dinputDesc,
                                 const Tgpu* input,
                                 const Tgpu* output,
                                 const Tgpu* doutput,
@@ -52,53 +50,11 @@ int32_t mloPdistBackwardRunHost(const miopenTensorDescriptor_t inputDesc,
         dinputHost[i] = 0;
     }
 
-    auto sign_ = [](double val) { return (0 < val) - (val < 0); };
-
-    auto backward = [&](double diff, double grad, double dist, double p) -> double {
-        if(p == 1.f)
-        { // one
-            return grad * sign_(diff);
-        }
-        else if(p < 2.f)
-        { // lt_two
-            return (dist == 0.0 || (diff == 0.0 && p < 1))
-                       ? 0
-                       : (sign_(diff) * pow(fabs(diff), p - 1) * grad / pow(dist, p - 1));
-        }
-        else if(p == 2.f)
-        { // two
-            return dist == 0.0 ? 0 : grad * diff / dist;
-        }
-        else if(isinf(p))
-        { // inf
-            // std::cout << "[Outside kernel] Hit here infinity\n";
-            // printf("[Outside Kernel] diff: %f, dist: %f, fabs(diff) == dist: %f\n",
-            // diff, dist, static_cast<double>(fabs(diff) == dist));
-            return grad * sign_(diff) * (fabs(diff) == dist);
-        }
-        else
-        { // general p
-            return dist == 0.0 ? 0 : diff * pow(fabs(diff), p - 2) * grad / pow(dist, p - 1);
-        }
-    };
-
-    // double p_ = static_cast<double>(p);
-
-    // auto N = input.desc.GetLengths()[0];
-    // // auto NO = output.desc.GetLengths()[0];
-    // auto M = input.desc.GetLengths()[1];
-
-    // int idx = 0;
     for(int i = 0; i < N; ++i)
     {
         for(int j = i + 1; j < N; ++j)
         {
-            long k = j + N * i - i * (i + 1) / 2 - i - 1;
-            // long k = (2 * N - i - 1) * i / 2 + (j - i - 1);
-            // std::cout << "k: " << k << std::endl;
-            // T output_k = output[k];
-            // T grad_k   = output_grad[k];
-            // std::cout << "k: " << k << std::endl;
+            long k          = j + N * i - i * (i + 1) / 2 - i - 1;
             double grad_k   = static_cast<double>(doutput[k]);
             double output_k = static_cast<double>(output[k]);
 
@@ -106,18 +62,10 @@ int32_t mloPdistBackwardRunHost(const miopenTensorDescriptor_t inputDesc,
             {
                 double input_first  = static_cast<double>(input[i * M + m]);
                 double input_second = static_cast<double>(input[j * M + m]);
-                // T diff     = input[i * M + m] - input[j * M + m];
-                double diff = input_first - input_second;
+                double diff         = input_first - input_second;
 
-                // std::cout << "diff: " << diff << std::endl;
-
-                // T res = backward(diff, grad_k, output_k, p);
-                Tcheck res = static_cast<Tcheck>(backward(diff, grad_k, output_k, p));
-
-                // std::cout << "res: " << res << std::endl;
-
-                // printf("[Outside kernel] k: %d, i: %d, j: %d, m: %d, res: %f\n", k, i, j, m,
-                // res);
+                Tcheck res =
+                    static_cast<Tcheck>(miopen::solver::pdist::backward(diff, grad_k, output_k, p));
 
                 dinputHost[i * M + m] += res;
                 dinputHost[j * M + m] -= res;

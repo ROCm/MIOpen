@@ -23,40 +23,47 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include "pdist.hpp"
-using float16 = half_float::half;
+#pragma once
 
-// BACKWARD TEST
-using GPU_Pdist_bwd_FP32  = PdistTestBackward<float>;
-using GPU_Pdist_bwd_FP16  = PdistTestBackward<float16>;
-using GPU_Pdist_bwd_BFP16 = PdistTestBackward<bfloat16>;
+#include <math.h>
 
-TEST_P(GPU_Pdist_bwd_FP32, PdistTestBackward)
+namespace miopen {
+namespace solver {
+namespace pdist {
+
+template <typename T>
+T sign_(T val)
 {
-    RunTest();
-    Verify();
-};
+    return (0 < val) - (val < 0);
+}
 
-TEST_P(GPU_Pdist_bwd_FP16, PdistTestBackward)
+template <typename T>
+T backward(const T diff, const T grad, const T dist, const T p)
 {
-    RunTest();
-    Verify();
-};
+    if(p == 1.f)
+    { // one
+        return grad * sign_(diff);
+    }
+    else if(p < 2.f)
+    { // lt_two
+        return (dist == 0.0 || (diff == 0.0 && p < 1))
+                   ? 0
+                   : (sign_(diff) * pow(fabs(diff), p - 1) * grad / pow(dist, p - 1));
+    }
+    else if(p == 2.f)
+    { // two
+        return dist == 0.0 ? 0 : grad * diff / dist;
+    }
+    else if(isinf(p))
+    { // inf
+        return grad * sign_(diff) * (fabs(diff) == dist);
+    }
+    else
+    { // p
+        return dist == 0.0 ? 0 : diff * pow(fabs(diff), p - 2) * grad / pow(dist, p - 1);
+    }
+}
 
-TEST_P(GPU_Pdist_bwd_BFP16, PdistTestBackward)
-{
-    RunTest();
-    Verify();
-};
-
-INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Pdist_bwd_FP32, testing::ValuesIn(PdistTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Pdist_bwd_FP16, testing::ValuesIn(PdistFp16TestConfigs()));
-INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Pdist_bwd_BFP16, testing::ValuesIn(PdistTestConfigs()));
-
-INSTANTIATE_TEST_SUITE_P(Full, GPU_Pdist_bwd_FP32, testing::ValuesIn(PdistTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(Full, GPU_Pdist_bwd_FP16, testing::ValuesIn(PdistFp16TestConfigs()));
-INSTANTIATE_TEST_SUITE_P(Full, GPU_Pdist_bwd_BFP16, testing::ValuesIn(PdistTestConfigs()));
-
-INSTANTIATE_TEST_SUITE_P(Perf, GPU_Pdist_bwd_FP32, testing::ValuesIn(PdistTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(Perf, GPU_Pdist_bwd_FP16, testing::ValuesIn(PdistFp16TestConfigs()));
-INSTANTIATE_TEST_SUITE_P(Perf, GPU_Pdist_bwd_BFP16, testing::ValuesIn(PdistTestConfigs()));
+} // namespace pdist
+} // namespace solver
+} // namespace miopen

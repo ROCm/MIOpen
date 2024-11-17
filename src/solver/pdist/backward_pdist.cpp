@@ -23,20 +23,10 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-// #include <cstddef>
-// #include <cstdint>
-
-#include <numeric>
 #include <vector>
 
-#include <miopen/pdist.hpp>
-#include <miopen/pdist/solvers.hpp>
-#include <miopen/pdist/invoke_params.hpp>
-// #include "miopen/common.hpp"
+#include <miopen/miopen.h>
 #include "miopen/conv_solution.hpp"
-#include "miopen/pdist/problem_description.hpp"
-
-#include "miopen/miopen.h"
 #include <miopen/datatype.hpp>
 #include <miopen/kernel_build_params.hpp>
 #include <miopen/kernel_info.hpp>
@@ -48,12 +38,14 @@
 #include "miopen/invoke_params.hpp"
 #include "miopen/tensor.hpp"
 #include "miopen/tensor_view_utils.hpp"
-
 #include <miopen/reduce/utils.hpp>
 
-#define LOCAL_SIZE 256
+#include <miopen/pdist.hpp>
+#include <miopen/pdist/solvers.hpp>
+#include <miopen/pdist/invoke_params.hpp>
+#include "miopen/pdist/problem_description.hpp"
 
-using namespace miopen::solver::reduce;
+#define LOCAL_SIZE 256
 
 namespace miopen {
 
@@ -67,17 +59,6 @@ MultiBufferWorkspaceTraits GetMultiBufferWorkspaceTraits(const TensorDescriptor&
     auto M = inputDesc.GetLengths()[1];
 
     auto input_dtype = inputDesc.GetType();
-    // std::size_t ws_dinput_size = (N - 1) * N * M * get_data_size(input_dtype);
-
-    // std::size_t ws_
-
-    // auto input_numel = inputDesc.GetElementSize();
-
-    // auto dtype            = inputDesc.GetType();
-    // size_t data_size      = get_data_size(dtype);
-    // size_t workspace_size = AlignUp(input_numel, LOCAL_SIZE) / LOCAL_SIZE;
-    // size_t ws_scratch_mem = 2 * workspace_size * data_size;
-    // size_t ws_local_mem   = LOCAL_SIZE * data_size;
 
     return MultiBufferWorkspaceTraits{(N - 1) * N * M * get_data_size(input_dtype)};
 }
@@ -87,14 +68,23 @@ bool PdistBackward::IsApplicable(const ExecutionContext& context,
 {
     std::ignore = context;
 
-    // problem.IsSameType();
-    // problem.IsRightLength();
-    // problem.IsAllContiguous();
-
     if(!problem.IsAllContiguous())
     {
         return false;
     }
+
+    if(!problem.IsAllPacked())
+    {
+        return false;
+    }
+
+    if(!(problem.GetInputDesc().GetType() == miopenFloat ||
+         problem.GetInputDesc().GetType() == miopenHalf ||
+         problem.GetInputDesc().GetType() == miopenBFloat16))
+    {
+        return false;
+    }
+
     return true;
 }
 
@@ -110,22 +100,22 @@ PdistBackward::GetSolution(const ExecutionContext& context,
     auto output_dtype = miopen::GetDataType(problem.GetdOutputDesc().GetType());
     auto dinput_dtype = miopen::GetDataType(problem.GetdInputDesc().GetType());
 
-    // auto dinput_numel = problem.GetdInputDesc().GetElementSize();
     auto dinput_numel = problem.GetdInputDesc().GetElementSize();
 
     auto input_lengths  = problem.GetInputDesc().GetLengths();
     auto output_lengths = problem.GetOutputDesc().GetLengths();
     auto dinput_dims    = problem.GetdInputDesc().GetLengths();
 
-    auto N = input_lengths[0];
-    auto M = input_lengths[1];
+    auto N  = input_lengths[0];
+    auto NO = N * (N - 1) / 2;
+    auto M  = input_lengths[1];
 
     // Start building result.construction_params
 
     /* Phrase 1: Calculate gradients for each pair of elements in the input tensor */
     {
         size_t xlocalsize = LOCAL_SIZE;
-        size_t xgridsize  = AlignUp(output_lengths[0] * input_lengths[1], xlocalsize);
+        size_t xgridsize  = AlignUp(NO * M, xlocalsize);
         size_t ylocalsize = 1;
         size_t ygridsize  = 1;
         size_t zlocalsize = 1;
@@ -162,7 +152,6 @@ PdistBackward::GetSolution(const ExecutionContext& context,
     // reduce_dim: 0
     // output: dinput (shape=[N,M])
     {
-
         // TODO: Add paralellism for efficiency if needed
         size_t xlocalsize = LOCAL_SIZE;
         size_t xgridsize  = AlignUp(dinput_numel, xlocalsize);
@@ -210,6 +199,17 @@ PdistBackward::GetSolution(const ExecutionContext& context,
         return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
             decltype(auto) params = raw_params.CastTo<miopen::pdist::BackwardInvokeParams>();
 
+            double p       = params.p;
+            auto ws_dinput = getBuffPart(params.GetWorkspace(), 0);
+
+            auto input_tv   = get_inner_expanded_tv<2>(deref(params.inputDesc));
+            auto output_tv  = get_inner_expanded_tv<1>(deref(params.outputDesc));
+            auto doutput_tv = get_inner_expanded_tv<1>(deref(params.doutputDesc));
+
+            // Prepare some constants
+            double n2                 = N - 0.5;
+            double n2_squared_minus_1 = n2 * n2 - 1;
+
             HipEventPtr start, stop;
             bool profiling = handle_.IsProfilingEnabled();
             if(profiling)
@@ -221,22 +221,9 @@ PdistBackward::GetSolution(const ExecutionContext& context,
                 hipEventRecord(start.get(), handle_.GetStream());
             }
 
-            auto ws_dinput = getBuffPart(params.GetWorkspace(), 0);
-
             /* Phrase 1: Calculate gradients for each pair of elements in the input tensor */
             {
-                double n2                 = input_lengths[0] - 0.5;
-                double n2_squared_minus_1 = n2 * n2 - 1;
-
-                auto input_tv   = get_inner_expanded_tv<2>(deref(params.inputDesc));
-                auto output_tv  = get_inner_expanded_tv<1>(deref(params.outputDesc));
-                auto doutput_tv = get_inner_expanded_tv<1>(deref(params.doutputDesc));
-                // auto dinput_tv  = get_inner_expanded_tv<2>(deref(params.dinputDesc));
-                // auto ws_dinput_tv = get_inner_expanded_tv<3>()
-
                 decltype(auto) kernel = handle_.Run(kernels[0]);
-                double p              = params.p;
-                // std::cout << "[Out kernel] p = " << p << std::endl;
                 kernel(params.input,
                        params.output,
                        params.doutput,
@@ -246,9 +233,7 @@ PdistBackward::GetSolution(const ExecutionContext& context,
                        n2_squared_minus_1,
                        input_tv,
                        output_tv,
-                       doutput_tv
-                       //    dinput_tv
-                );
+                       doutput_tv);
             }
 
             /* Phrase 2: Accumulate gradients for each element in the input tensor */
@@ -259,24 +244,14 @@ PdistBackward::GetSolution(const ExecutionContext& context,
             {
                 // TODO: Add paralellism for efficiency if needed
                 decltype(auto) kernel = handle_.Run(kernels[1]);
-                // uint64_t dim = 0;
-                auto reduce_size = N - 1;
-
-                // auto inner_size = N * M; // ws_dinput numel
-                auto inner_size = N * M;
-
-                // print ws_dinput
-                // for()
 
                 kernel(ws_dinput,
                        params.dinput,
                        dinput_numel, // output numel
-                       reduce_size,
-                       inner_size,
-                       true // Set default nanPropagation=True
+                       N - 1,        // reduce_size
+                       N * M,        // inner_size
+                       true          // Default nanPropagation=True
                 );
-
-                // print params.dinput
             }
 
             if(profiling)
@@ -286,6 +261,7 @@ PdistBackward::GetSolution(const ExecutionContext& context,
                 handle_.EnableProfiling(true);
                 hipEventSynchronize(stop.get());
                 hipEventElapsedTime(&elapsed, start.get(), stop.get());
+
                 // Clean up
                 hipEventDestroy(start.get());
                 hipEventDestroy(stop.get());

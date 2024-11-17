@@ -23,11 +23,6 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <miopen/pdist.hpp>
-#include <miopen/pdist/invoke_params.hpp>
-#include <miopen/pdist/solvers.hpp>
-#include <miopen/pdist/problem_description.hpp>
-
 #include <miopen/execution_context.hpp>
 #include <miopen/miopen.h>
 #include <miopen/names.hpp>
@@ -36,6 +31,11 @@
 #include <miopen/float_equal.hpp>
 #include <miopen/kernel_cache.hpp>
 #include <miopen/tensor.hpp>
+
+#include <miopen/pdist.hpp>
+#include <miopen/pdist/invoke_params.hpp>
+#include <miopen/pdist/solvers.hpp>
+#include <miopen/pdist/problem_description.hpp>
 
 namespace miopen {
 
@@ -46,10 +46,8 @@ std::size_t GetPdistBackwardWorkspaceSize(Handle& handle,
                                           const TensorDescriptor& dinputDesc,
                                           const double p)
 {
-    // auto ctx = ExecutionContext(&handle);
     auto ctx = ExecutionContext{&handle};
 
-    // const auto problem = pdist::BackwardProblemDescription(inputDesc);
     const auto problem =
         pdist::BackwardProblemDescription{inputDesc, outputDesc, douputDesc, dinputDesc, p};
     const auto solvers = solver::SolverContainer<solver::pdist::PdistBackward>{};
@@ -77,18 +75,17 @@ miopenStatus_t PdistBackward(Handle& handle,
 
     const auto invoke_params = [&]() {
         auto tmp = pdist::BackwardInvokeParams{};
-        // tmp.type           = InvokeType::Run;
 
-        tmp.inputDesc   = &inputDesc;
-        tmp.outputDesc  = &outputDesc;
-        tmp.doutputDesc = &douputDesc;
-        tmp.dinputDesc  = &dinputDesc;
-        tmp.input       = input;
-        tmp.output      = output;
-        tmp.doutput     = doutput;
-        tmp.dinput      = dinput;
-        tmp.p           = p;
-
+        tmp.type           = InvokeType::Run;
+        tmp.inputDesc      = &inputDesc;
+        tmp.outputDesc     = &outputDesc;
+        tmp.doutputDesc    = &douputDesc;
+        tmp.dinputDesc     = &dinputDesc;
+        tmp.input          = input;
+        tmp.output         = output;
+        tmp.doutput        = doutput;
+        tmp.dinput         = dinput;
+        tmp.p              = p;
         tmp.workspace      = workspace;
         tmp.workspace_size = workspaceSizeInBytes;
 

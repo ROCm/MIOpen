@@ -25,11 +25,11 @@
  *******************************************************************************/
 #include <miopen/common.hpp>
 #include <miopen/miopen.h>
-#include <miopen/pdist.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/tensor_ops.hpp>
+#include <miopen/pdist.hpp>
 
 static void LogCmdPdistBackward(const miopenTensorDescriptor_t inputDesc, const double p)
 {

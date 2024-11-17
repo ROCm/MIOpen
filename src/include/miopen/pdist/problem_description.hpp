@@ -26,6 +26,7 @@
 #pragma once
 
 #include <cstddef>
+
 #include <miopen/errors.hpp>
 #include <miopen/miopen.h>
 #include <miopen/problem_description_base.hpp>
@@ -58,8 +59,6 @@ struct BackwardProblemDescription : public ProblemDescriptionBase
 
         IsSameType();
         IsRightLength();
-        // IsAllContiguous();
-        // IsAllPacked();
     }
 
     const TensorDescriptor& GetInputDesc() const { return inputDesc; }
@@ -70,16 +69,13 @@ struct BackwardProblemDescription : public ProblemDescriptionBase
 
     bool IsSameType() const
     {
-        if(inputDesc.GetType() != dinputDesc.GetType())
+        if((inputDesc.GetType() != outputDesc.GetType()) ||
+           (outputDesc.GetType() != doutputDesc.GetType()) ||
+           (dinputDesc.GetType() != inputDesc.GetType()))
         {
             MIOPEN_THROW(miopenStatusBadParm, "PdistBackward: Tensor types do not match.");
             return false;
         }
-        // if(dinputDesc.GetType() != doutputDesc.GetType())
-        // {
-        //     // MIOPEN_THROW(miopenStatusBadParm, "PdistBackward: Tensor types do not match.");
-        //     return false;
-        // }
 
         return true;
     }
@@ -108,8 +104,6 @@ struct BackwardProblemDescription : public ProblemDescriptionBase
                              std::to_string(expected_size) +
                              ". Got: " + std::to_string(actual_num_dims) + "D tensor of size " +
                              std::to_string(actual_size) + ".");
-            // MIOPEN_THROW(miopenStatusBadParm, "PdistBackward: Output tensor shape is
-            // incorrect.");
             return false;
         }
 

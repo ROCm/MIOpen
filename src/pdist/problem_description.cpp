@@ -23,10 +23,10 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#include <sstream>
+
 #include <miopen/pdist/problem_description.hpp>
 #include <miopen/names.hpp>
-
-#include <sstream>
 
 namespace miopen {
 

@@ -27,8 +27,8 @@
 
 #include "miopen/conv_solution.hpp"
 #include <miopen/execution_context.hpp>
-#include <miopen/pdist/problem_description.hpp>
 #include <miopen/solver.hpp>
+#include <miopen/pdist/problem_description.hpp>
 
 namespace miopen {
 
@@ -42,7 +42,6 @@ using PdistBackwardSolver =
 struct PdistBackward : PdistBackwardSolver
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<PdistBackwardSolver>(); }
-
     bool IsApplicable(const ExecutionContext& context,
                       const miopen::pdist::BackwardProblemDescription& problem) const override;
     ConvSolution
