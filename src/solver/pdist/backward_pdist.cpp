@@ -123,7 +123,7 @@ PdistBackward::GetSolution(const ExecutionContext& context,
 
         auto kernel        = KernelInfo{};
         kernel.kernel_file = "MIOpenPdist.cpp";
-        kernel.kernel_name = "PdistBackward";
+        kernel.kernel_name = "PdistBackwardContiguous";
 
         auto build_params = KernelBuildParameters{
             {"MIOPEN_USE_FP16", static_cast<int>(dtype == miopenHalf)},
@@ -202,10 +202,6 @@ PdistBackward::GetSolution(const ExecutionContext& context,
             double p       = params.p;
             auto ws_dinput = getBuffPart(params.GetWorkspace(), 0);
 
-            auto input_tv   = get_inner_expanded_tv<2>(deref(params.inputDesc));
-            auto output_tv  = get_inner_expanded_tv<1>(deref(params.outputDesc));
-            auto doutput_tv = get_inner_expanded_tv<1>(deref(params.doutputDesc));
-
             // Prepare some constants
             double n2                 = N - 0.5;
             double n2_squared_minus_1 = n2 * n2 - 1;
@@ -231,9 +227,9 @@ PdistBackward::GetSolution(const ExecutionContext& context,
                        p,
                        n2,
                        n2_squared_minus_1,
-                       input_tv,
-                       output_tv,
-                       doutput_tv);
+                       N,
+                       NO,
+                       M);
             }
 
             /* Phrase 2: Accumulate gradients for each element in the input tensor */
