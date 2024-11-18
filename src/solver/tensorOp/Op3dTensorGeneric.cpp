@@ -88,7 +88,6 @@ Op3dTensorGeneric::GetSolution([[maybe_unused]] const ExecutionContext& context,
 
     auto&& [num_wg, work_per_wg, bitmap] = GetBitmapAndWgInfo(blens, clens);
 
-    int num_wg_orig = num_wg;
     int max_num_wg  = 4096;
     num_wg          = num_wg > max_num_wg ? max_num_wg : num_wg;
 
