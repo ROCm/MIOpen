@@ -88,8 +88,8 @@ Op3dTensorGeneric::GetSolution([[maybe_unused]] const ExecutionContext& context,
 
     auto&& [num_wg, work_per_wg, bitmap] = GetBitmapAndWgInfo(blens, clens);
 
-    int max_num_wg  = 4096;
-    num_wg          = num_wg > max_num_wg ? max_num_wg : num_wg;
+    int max_num_wg = 4096;
+    num_wg         = num_wg > max_num_wg ? max_num_wg : num_wg;
 
     size_t local_threads  = 256;
     size_t global_threads = num_wg * local_threads;
