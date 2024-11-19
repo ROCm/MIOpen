@@ -112,7 +112,7 @@ ConvSolution Op4dTensorLite::GetSolution([[maybe_unused]] const ExecutionContext
 
     KernelBuildParameters build_params = KernelBuildParameters{};
 
-    GetCommonParams(build_params, problem, false);
+    GetCommonParams(build_params, problem, true, false);
 
     build_params.Define("USE_4D_TENSOR_LITE");
     build_params.Define("RD_BLCK", std::to_string(RD_BLCK));

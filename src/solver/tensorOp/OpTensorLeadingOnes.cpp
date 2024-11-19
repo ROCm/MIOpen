@@ -137,7 +137,7 @@ OpTensorLeadingOnes::GetSolution([[maybe_unused]] const ExecutionContext& contex
 
     KernelBuildParameters build_params = KernelBuildParameters{};
 
-    GetCommonParams(build_params, problem, false);
+    GetCommonParams(build_params, problem, true, false);
 
     build_params.Define("MAX_NUM_WG", std::to_string(max_num_wg));
     auto kernel = KernelInfo{};

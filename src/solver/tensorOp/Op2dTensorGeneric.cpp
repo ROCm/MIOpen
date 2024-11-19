@@ -101,7 +101,7 @@ Op2dTensorGeneric::GetSolution([[maybe_unused]] const ExecutionContext& context,
 
     KernelBuildParameters build_params = KernelBuildParameters{};
 
-    GetCommonParams(build_params, problem, true);
+    GetCommonParams(build_params, problem, false, true);
 
     build_params.Define("USE_2D_TENSOR_GENERIC");
 

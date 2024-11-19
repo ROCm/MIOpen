@@ -117,7 +117,7 @@ Op2dTensorSquash::GetSolution([[maybe_unused]] const ExecutionContext& context,
 
     KernelBuildParameters build_params = KernelBuildParameters{};
 
-    GetCommonParams(build_params, problem, false);
+    GetCommonParams(build_params, problem, true, false);
 
     build_params.Define("USE_2D_TENSOR_SQUASH");
     build_params.Define("RD_BLCK", std::to_string(RD_BLCK));
