@@ -133,7 +133,7 @@ ConvSolution Op2dTensorLite::GetSolution([[maybe_unused]] const ExecutionContext
 
     KernelBuildParameters build_params = KernelBuildParameters{};
 
-    GetCommonParams(build_params, problem, true, false);
+    GetCommonParams(build_params, problem, false);
 
     build_params.Define("USE_2D_TENSOR_LITE");
     build_params.Define("RD_BLCK", std::to_string(RD_BLCK));

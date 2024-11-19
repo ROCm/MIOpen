@@ -104,7 +104,7 @@ Op5dTensorGeneric::GetSolution([[maybe_unused]] const ExecutionContext& context,
 
     KernelBuildParameters build_params = KernelBuildParameters{};
 
-    GetCommonParams(build_params, problem, true, false);
+    GetCommonParams(build_params, problem, false);
 
     build_params.Define("USE_5D_TENSOR_GENERIC");
     build_params.Define("MAX_NUM_WG", std::to_string(max_num_wg));

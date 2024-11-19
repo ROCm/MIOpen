@@ -97,7 +97,7 @@ Op1dTensorGeneric::GetSolution([[maybe_unused]] const ExecutionContext& context,
 
     KernelBuildParameters build_params = KernelBuildParameters{};
 
-    GetCommonParams(build_params, problem, false, true);
+    GetCommonParams(build_params, problem, true);
 
     build_params.Define("USE_1D_TENSOR_GENERIC");
 

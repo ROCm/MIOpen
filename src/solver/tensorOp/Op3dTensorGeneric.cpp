@@ -99,7 +99,7 @@ Op3dTensorGeneric::GetSolution([[maybe_unused]] const ExecutionContext& context,
 
     KernelBuildParameters build_params = KernelBuildParameters{};
 
-    GetCommonParams(build_params, problem, false, false);
+    GetCommonParams(build_params, problem, false);
 
     build_params.Define("USE_3D_TENSOR_GENERIC");
 

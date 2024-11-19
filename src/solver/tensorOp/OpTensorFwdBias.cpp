@@ -121,7 +121,7 @@ ConvSolution OpTensorFwdBias::GetSolution([[maybe_unused]] const ExecutionContex
 
     KernelBuildParameters build_params = KernelBuildParameters{};
 
-    GetCommonParams(build_params, problem, true, false);
+    GetCommonParams(build_params, problem, false);
 
     build_params.Define("MAX_NUM_WG", std::to_string(max_num_wg));
 
