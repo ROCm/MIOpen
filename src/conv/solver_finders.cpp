@@ -273,7 +273,7 @@ static std::vector<Solution> EvaluateInvokers(Handle& handle,
             {
                 invoker(handle, invoke_ctx);
                 elapsed += handle.GetKernelTime();
-                if(i < N_RUNS_DISCARD)
+                if(i == (N_RUNS_DISCARD - 1))
                     first_elapsed = elapsed;
                 ++i;
             }
@@ -287,6 +287,8 @@ static std::vector<Solution> EvaluateInvokers(Handle& handle,
             {
                 elapsed /= i;
             }
+
+            MIOPEN_THROW_IF(elapsed <= 0, "Invalid elapsed time detected in EvaluateInvokers");
 
             MIOPEN_LOG_I(sol << ": " << elapsed << (elapsed < best ? " < " : " >= ") << best);
             if(elapsed < best)
