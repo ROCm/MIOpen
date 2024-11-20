@@ -93,7 +93,6 @@ Op2dTensorGeneric::GetSolution([[maybe_unused]] const ExecutionContext& context,
     size_t max_num_wg    = 4096;
 
     auto num_wg = std::clamp((clens[0] * clens[1]) / local_threads, size_t(1), size_t(max_num_wg));
-    num_wg      = num_wg > max_num_wg ? max_num_wg : num_wg;
     size_t global_threads = num_wg * local_threads;
 
     const std::array<size_t, 3> vld{local_threads, 1, 1};
