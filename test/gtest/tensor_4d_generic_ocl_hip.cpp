@@ -32,11 +32,13 @@
 #include <miopen/kernel_build_params.hpp>
 #include <gtest/gtest.h>
 
+#include <tensor_util.hpp>
+
 #include "perf_helper.hpp"
 #include <miopen/float_equal.hpp>
 
 #define MAX_TENSOR_ELEM 17
-#define PERF_ENABLE 0
+#define PERF_ENABLE 1
 #define POW_2 1
 
 struct TensorsConfig
@@ -127,11 +129,11 @@ std::vector<TensorsConfig> TensorsConfigs()
         {
             for(size_t N = 1; N <= maxTotalSize; N *= 2)
             {
-                for(size_t C = 1; C <= maxTotalSize / N; C *= 2)
+                for(size_t C = 1; C <= maxTotalSize / N; C *= 8)
                 {
-                    for(size_t H = 1; H <= maxTotalSize / (N * C); H *= 2)
+                    for(size_t H = 1; H <= maxTotalSize / (N * C); H *= 8)
                     {
-                        for(size_t W = 1; W <= maxTotalSize / (N * C * H); W *= 2)
+                        for(size_t W = 1; W <= maxTotalSize / (N * C * H); W *= 16)
                         {
                             size_t totalSize = N * C * H * W;
                             // Ensure the total size does not exceed the maximum limit
@@ -185,10 +187,10 @@ std::vector<TensorsConfig> TensorsConfigs()
     }
     else
     {
-        size_t N = 32;
-        size_t C = 16;
-        size_t H = 8;
-        size_t W = 4;
+        size_t N = 1;
+        size_t C = 1;
+        size_t H = 1;
+        size_t W = 1;
         insertTestCase(N, C, H, W);
         C = 20;
         H = 16;
@@ -222,6 +224,10 @@ protected:
         tensC = tensor<T>{tensorsConfig.aclens, tensorsConfig.acstrides}.generate(
             tensor_elem_gen_integer{MAX_TENSOR_ELEM});
 
+        // print_tensor(tensA, "A", 1);
+        // print_tensor(tensB, "B", 1);
+        // print_tensor(tensC, "C", 1);
+
         // Write the device tensors
         tensA_dev = handle.Write(tensA.data);
         tensB_dev = handle.Write(tensB.data);
@@ -229,6 +235,7 @@ protected:
         // Allocate output tensors for OCL and HIP
         tensC_ocl = tensor<T>{tensorsConfig.aclens, tensorsConfig.acstrides};
         tensC_hip = tensor<T>{tensorsConfig.aclens, tensorsConfig.acstrides};
+        tensC_cpu = tensor<T>{tensorsConfig.aclens, tensorsConfig.acstrides};
 
         // Prepare all parameters needed for kernel
         auto first_not_one = std::find_if(
@@ -267,15 +274,15 @@ protected:
         {
             bitmap = 4;
         }
-        auto fwd_conv_bias = bitmap == (1 << 2) ? 1 : 0;
-        // This block gives off indexing for 5d tensors, skipping
-        if(fwd_conv_bias == 1 && tensorsConfig.aclens.size() < 5 && num_wg < 640 &&
-           work_per_wg > 256 && tensorsConfig.aclens[0] > 0)
-        { // 640 workgroups of size 256 needed to completely fill the GPU
+        // auto fwd_conv_bias = bitmap == (1 << 2) ? 1 : 0;
+        // // This block gives off indexing for 5d tensors, skipping
+        // if(fwd_conv_bias == 1 && tensorsConfig.aclens.size() < 5 && num_wg < 640 &&
+        //    work_per_wg > 256 && tensorsConfig.aclens[0] > 0)
+        // { // 640 workgroups of size 256 needed to completely fill the GPU
 
-            work_per_wg /= tensorsConfig.aclens[0]; // c_n;
-            num_wg *= tensorsConfig.aclens[0];      // c_n;
-        }
+        //     work_per_wg /= tensorsConfig.aclens[0]; // c_n;
+        //     num_wg *= tensorsConfig.aclens[0];      // c_n;
+        // }
 
         num_wg_orig = num_wg;
         max_num_wg  = 4096;
@@ -283,22 +290,23 @@ protected:
 
         size_t local_threads = 256;
 
-        bool leading_ones = true;
+        // bool leading_ones = true;
 
-        for(int i = (d - 2); i >= 0; i--)
-        {
-            bool is_one = (bitmap & (1 << (tensorsConfig.aclens.size() - 1 - i))) != 0u;
-            leading_ones &= is_one;
-        }
+        // for(int i = (d - 2); i >= 0; i--)
+        // {
+        //     bool is_one = (bitmap & (1 << (tensorsConfig.aclens.size() - 1 - i))) != 0u;
+        //     leading_ones &= is_one;
+        // }
 
-        if(leading_ones && work_per_wg < 64)
-        {
-            local_threads = 64;
-        }
+        // if(leading_ones && work_per_wg < 64)
+        // {
+        //     local_threads = 64;
+        // }
 
         size_t global_threads;
         global_threads =
-            (static_cast<int>(leading_ones) == 1 && (d - 1) == 3) ? num_wg : num_wg * local_threads;
+            /*(static_cast<int>(leading_ones) == 1 && (d - 1) == 3) ? num_wg : */ num_wg *
+            local_threads;
         global_threads = (global_threads < local_threads) ? local_threads : global_threads;
 
         vld = {local_threads, 1, 1};
@@ -314,6 +322,69 @@ protected:
                   << std::to_string(tensorsConfig.blens[1]) << "x"
                   << std::to_string(tensorsConfig.blens[2]) << "x"
                   << std::to_string(tensorsConfig.blens[3]) << std::endl;
+    }
+
+    void runCPU()
+    {
+
+        std::vector<T> A = tensA.data;
+        std::vector<T> B = tensB.data;
+        std::vector<T> C = tensC.data;
+
+        size_t a_n = tensorsConfig.aclens[0];
+        size_t a_c = tensorsConfig.aclens[1];
+        size_t a_h = tensorsConfig.aclens[2];
+        size_t a_w = tensorsConfig.aclens[3];
+
+        size_t a_nstride = tensorsConfig.acstrides[0];
+        size_t a_cstride = tensorsConfig.acstrides[1];
+        size_t a_hstride = tensorsConfig.acstrides[2];
+        size_t a_wstride = tensorsConfig.acstrides[3];
+
+        size_t b_c = tensorsConfig.blens[1] == 1 ? a_c : tensorsConfig.blens[1];
+        size_t b_h = tensorsConfig.blens[2] == 1 ? a_h : tensorsConfig.blens[2];
+        size_t b_w = tensorsConfig.blens[3] == 1 ? a_w : tensorsConfig.blens[3];
+
+        size_t b_nstride = tensorsConfig.blens[0] == 1 ? 0 : tensorsConfig.bstrides[0];
+        size_t b_cstride = tensorsConfig.blens[1] == 1 ? 0 : tensorsConfig.bstrides[1];
+        size_t b_hstride = tensorsConfig.blens[2] == 1 ? 0 : tensorsConfig.bstrides[2];
+        size_t b_wstride = tensorsConfig.blens[3] == 1 ? 0 : tensorsConfig.bstrides[3];
+
+        // std::cout << b_wstride << std::endl;
+
+        int tid = 0;
+
+        for(int i = 0; i < a_n; i++)
+        {
+            for(int j = 0; j < a_c; j++)
+            {
+                for(int k = 0; k < a_h; k++)
+                {
+                    for(int l = 0; l < a_w; l++)
+                    {
+                        // int a_index = (tid / (a_c * a_h * a_w)) * a_nstride +
+                        //               ((tid % (a_c * a_h * a_w)) / (a_h * a_w)) * a_cstride +
+                        //               ((tid % (a_h * a_w)) / a_w) * a_hstride +
+                        //               (tid % a_w) * a_wstride;
+                        // int b_index = (tid / (b_c * b_h * b_w)) * b_nstride +
+                        //               ((tid % (b_c * b_h * b_w)) / (b_h * b_w)) * b_cstride +
+                        //               ((tid % (b_h * b_w)) / b_w) * b_hstride +
+                        //               (tid % b_w) * b_wstride;
+                        int a_index = i * a_nstride + j * a_cstride + k * a_hstride + l * a_wstride;
+                        int b_index = i * b_nstride + j * b_cstride + k * b_hstride + l * b_wstride;
+                        C[a_index]  = alpha0 * A[a_index] + alpha1 * B[b_index] + beta * C[a_index];
+                        // std::cout << "C[" << a_index << "] (" << C[a_index] << ") = A[" <<
+                        // a_index
+                        //           << "] (" << A[a_index] << ") + B[" << b_index << "] ("
+                        //           << B[b_index] << ")" << std::endl;
+
+                        tid += 1;
+                    }
+                }
+            }
+        }
+        tensC_cpu.data = C;
+        // print_tensor(tensC_cpu, "C cpu", 1);
     }
 
     void runOCL()
@@ -366,26 +437,31 @@ protected:
                                  static_cast<int>(num_wg_orig));
 
         tensC_ocl.data = handle.Read<T>(tensC_dev, tensC_ocl.data.size());
-
+        // print_tensor(tensC_ocl, "C ocl", 1);
         if constexpr(PERF_ENABLE)
         {
             ph.perfTest(handle,
-                        "Op3dTensorGeneric",
+                        "Op4dTensorGeneric",
                         network_config_ocl,
                         false,
                         tensA_dev.get(),
                         static_cast<int>(tensorsConfig.acstrides[0]),
                         static_cast<int>(tensorsConfig.acstrides[1]),
+                        static_cast<int>(tensorsConfig.acstrides[2]),
                         tensB_dev.get(),
                         static_cast<int>(tensorsConfig.blens[1]),
                         static_cast<int>(tensorsConfig.blens[2]),
+                        static_cast<int>(tensorsConfig.blens[3]),
                         static_cast<int>(tensorsConfig.bstrides[0]),
                         static_cast<int>(tensorsConfig.bstrides[1]),
+                        static_cast<int>(tensorsConfig.bstrides[2]),
                         tensC_dev.get(),
                         static_cast<int>(tensorsConfig.aclens[1]),
                         static_cast<int>(tensorsConfig.aclens[2]),
+                        static_cast<int>(tensorsConfig.aclens[3]),
                         static_cast<int>(tensorsConfig.acstrides[0]),
                         static_cast<int>(tensorsConfig.acstrides[1]),
+                        static_cast<int>(tensorsConfig.acstrides[2]),
                         alpha0,
                         alpha1,
                         beta,
@@ -452,22 +528,27 @@ protected:
         if constexpr(PERF_ENABLE)
         {
             ph.perfTest(handle,
-                        "Op3dTensorGeneric",
+                        "Op4dTensorGeneric",
                         network_config_hip,
                         false,
                         tensA_dev.get(),
                         static_cast<int>(tensorsConfig.acstrides[0]),
                         static_cast<int>(tensorsConfig.acstrides[1]),
+                        static_cast<int>(tensorsConfig.acstrides[2]),
                         tensB_dev.get(),
                         static_cast<int>(tensorsConfig.blens[1]),
                         static_cast<int>(tensorsConfig.blens[2]),
+                        static_cast<int>(tensorsConfig.blens[3]),
                         static_cast<int>(tensorsConfig.bstrides[0]),
                         static_cast<int>(tensorsConfig.bstrides[1]),
+                        static_cast<int>(tensorsConfig.bstrides[2]),
                         tensC_dev.get(),
                         static_cast<int>(tensorsConfig.aclens[1]),
                         static_cast<int>(tensorsConfig.aclens[2]),
+                        static_cast<int>(tensorsConfig.aclens[3]),
                         static_cast<int>(tensorsConfig.acstrides[0]),
                         static_cast<int>(tensorsConfig.acstrides[1]),
+                        static_cast<int>(tensorsConfig.acstrides[2]),
                         alpha0,
                         alpha1,
                         beta,
@@ -486,6 +567,12 @@ protected:
         EXPECT_TRUE(error == 0) << "GPU outputs do not match each other. Error: " << error;
     }
 
+    void verifyCPU()
+    {
+        auto error = miopen::rms_range(tensC_hip, tensC_cpu);
+        EXPECT_TRUE(error == 0) << "GPU outputs do not match each other. Error: " << error;
+    }
+
     void TearDown() override
     {
         if constexpr(PERF_ENABLE)
@@ -493,20 +580,24 @@ protected:
             std::string stats{};
             stats += "_aclens_" + std::to_string(tensorsConfig.aclens[0]) + "_" +
                      std::to_string(tensorsConfig.aclens[1]) + "_" +
-                     std::to_string(tensorsConfig.aclens[2]) + "_acstrides_" +
+                     std::to_string(tensorsConfig.aclens[2]) + "_" +
+                     std::to_string(tensorsConfig.aclens[3]) + "_acstrides_" +
                      std::to_string(tensorsConfig.acstrides[0]) + "_" +
                      std::to_string(tensorsConfig.acstrides[1]) + "_" +
-                     std::to_string(tensorsConfig.acstrides[2]);
+                     std::to_string(tensorsConfig.acstrides[2]) + "_" +
+                     std::to_string(tensorsConfig.acstrides[3]);
             stats += "_blens_" + std::to_string(tensorsConfig.blens[0]) + "_" +
                      std::to_string(tensorsConfig.blens[1]) + "_" +
-                     std::to_string(tensorsConfig.blens[2]) + "_bstrides_" +
+                     std::to_string(tensorsConfig.blens[2]) + "_" +
+                     std::to_string(tensorsConfig.blens[3]) + "_bstrides_" +
                      std::to_string(tensorsConfig.bstrides[0]) + "_" +
                      std::to_string(tensorsConfig.bstrides[1]) + "_" +
-                     std::to_string(tensorsConfig.bstrides[2]);
+                     std::to_string(tensorsConfig.bstrides[2]) + "_" +
+                     std::to_string(tensorsConfig.bstrides[3]);
             stats += "_alpha0_" + std::to_string(alpha0) + "_alpha1_" + std::to_string(alpha1) +
                      "_beta_" + std::to_string(beta) + "_" + miopen::GetDataType(data_type);
 
-            ph.writeStatsToCSV("tensor_3d.csv", stats);
+            ph.writeStatsToCSV("tensor_4d.csv", stats);
         }
     }
 
@@ -523,6 +614,7 @@ protected:
     tensor<T> tensC;
     tensor<T> tensC_ocl;
     tensor<T> tensC_hip;
+    tensor<T> tensC_cpu;
 
     miopenDataType_t data_type;
 
@@ -546,6 +638,7 @@ TEST_P(GPU_Op4dTensorGenericTest_FP32, PortTest)
     runOCL();
     // run HIP kernel
     runHIP();
+    // runCPU();
     // verify if the output tensors are same
     verify();
 }
