@@ -94,6 +94,8 @@ def parse_tests(args):
                 mismatches[line] += " Hw"
             if not datatype:
                 mismatches[line] += " Datatype"
+            if hw and hw.group() == "GPU" and datatype and ("NONE" in datatype.group()):
+                mismatches[line] += " Hw and Datatype combination (GPU+NONE)"
 
         for l, k in mismatches.items():
             logger.warning("Name: " + l + " Mismatch types:" + k)
