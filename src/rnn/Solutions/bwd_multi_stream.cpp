@@ -172,7 +172,7 @@ bool RNNModularMultiStreamBWD::ChunkDispatch(const runtimeArgsBwd& args,
                                              size_t chunk_layer_offset) const
 {
     constexpr auto seq_dir = rnn_base::SequenceDirection::Forward;
-    const Handle& handle   = *args.handle;
+    Handle& handle         = *args.handle;
 
     if(chunk_time_offset >= max_seq_len)
         return false;

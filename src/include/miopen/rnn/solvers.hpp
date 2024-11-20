@@ -171,9 +171,9 @@ public:
     // base API
     void PrepareWriteBuffers(const Handle& handle, const runtimeArgsFwd& runtimeArgs) const;
 
-    void PropX(const Handle& handle, const runtimeArgsFwd& runtimeArgs) const;
+    void PropX(Handle& handle, const runtimeArgsFwd& runtimeArgs) const;
 
-    void AddBias(const Handle& handle, const runtimeArgsFwd& runtimeArgs) const;
+    void AddBias(Handle& handle, const runtimeArgsFwd& runtimeArgs) const;
     void PropHxCx(const Handle& handle,
                   const runtimeArgsFwd& runtimeArgs,
                   unsigned int layer,
@@ -206,7 +206,7 @@ public:
     void PropY(const Handle& handle, const runtimeArgsFwd& runtimeArgs) const;
 
     // ext API
-    void PropX(const Handle& handle,
+    void PropX(Handle& handle,
                const runtimeArgsFwd& runtimeArgs,
                size_t gemm_batch_offset,
                size_t gemm_batch_size) const;
@@ -340,7 +340,7 @@ class RNNBackwardDataModularAlgo : RNNModuleAlgoBase
 public:
     void PrepareWriteBuffers(const Handle& handle, Data_t dhx, Data_t dcx, Data_t workSpace) const;
 
-    void PropDhy(const Handle& handle,
+    void PropDhy(Handle& handle,
                  ConstData_t dhy,
                  Data_t workSpace,
                  unsigned int layer,
@@ -364,7 +364,7 @@ public:
                                 const SequenceIterator& seq,
                                 SequenceDirection direction) const;
 
-    void PropDhxDcx(const Handle& handle,
+    void PropDhxDcx(Handle& handle,
                     ConstData_t w,
                     Data_t dhx,
                     Data_t dcx,
@@ -625,7 +625,7 @@ public:
 
     struct runtimeArgsBwd
     {
-        const Handle* handle;
+        Handle* handle;
         ConstData_t dy;
         ConstData_t dhy;
         Data_t dhx;
@@ -728,11 +728,8 @@ public:
                              ConstData_t reserveSpace,
                              size_t layer) const;
 
-    void BiasUpdate(const Handle& handle,
-                    Data_t dw,
-                    Data_t workSpace,
-                    size_t layer,
-                    size_t workSpaceSize) const;
+    void BiasUpdate(
+        Handle& handle, Data_t dw, Data_t workSpace, size_t layer, size_t workSpaceSize) const;
 
     void HiddenHStateWeights(const Handle& handle,
                              Data_t dw,
@@ -1027,7 +1024,7 @@ public:
     // TODO
     static size_t GetWsSize() { return 0; };
 
-    void Compute(const Handle& handle,
+    void Compute(Handle& handle,
                  ConstData_t x,
                  ConstData_t hx,
                  Data_t dw,
@@ -1076,7 +1073,7 @@ public:
         ConstData_t reserveSpace;
     };
 
-    void Compute(const Handle& handle,
+    void Compute(Handle& handle,
                  ConstData_t x,
                  ConstData_t hx,
                  Data_t dw,

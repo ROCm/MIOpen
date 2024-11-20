@@ -62,7 +62,7 @@ void RNNBackwardDataModularAlgo::PrepareWriteBuffers(const Handle& handle,
     }
 }
 
-void RNNBackwardDataModularAlgo::PropDhy(const Handle& handle,
+void RNNBackwardDataModularAlgo::PropDhy(Handle& handle,
                                          ConstData_t dhy,
                                          Data_t workSpace,
                                          unsigned int layer,
@@ -295,7 +295,7 @@ void RNNBackwardDataModularAlgo::UpdateHStatePerTimeSeq(const Handle& handle,
     }
 }
 
-void RNNBackwardDataModularAlgo::PropDhxDcx(const Handle& handle,
+void RNNBackwardDataModularAlgo::PropDhxDcx(Handle& handle,
                                             ConstData_t w,
                                             Data_t dhx,
                                             Data_t dcx,

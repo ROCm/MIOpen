@@ -29,7 +29,7 @@ namespace miopen {
 
 namespace rnn_base {
 
-void RNNModularSingleStreamBWWeights::Compute(const Handle& handle,
+void RNNModularSingleStreamBWWeights::Compute(Handle& handle,
                                               ConstData_t x,
                                               ConstData_t hx,
                                               Data_t dw,
