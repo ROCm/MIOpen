@@ -23,38 +23,18 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include "sgd.hpp"
+#include "registry_driver_maker.hpp"
+#include "unsortedsegmentsum_driver.hpp"
 
-struct GPU_SGD_fwd_FP32 : SGDTestFwd<float>
+static Driver* makeDriver(const std::string& base_arg)
 {
-};
+    if(base_arg == "unsortedsegmentsum")
+        return new UnsortedSegmentSumDriver<float, float>();
+    if(base_arg == "unsortedsegmentsumfp16")
+        return new UnsortedSegmentSumDriver<float16, float>();
+    if(base_arg == "unsortedsegmentsumbfp16")
+        return new UnsortedSegmentSumDriver<bfloat16, float>();
+    return nullptr;
+}
 
-struct GPU_SGD_fwd_FP16 : SGDTestFwd<half>
-{
-};
-
-struct GPU_SGD_fwd_BFP16 : SGDTestFwd<bfloat16>
-{
-};
-
-TEST_P(GPU_SGD_fwd_FP32, SGDTestFwd)
-{
-    RunTest();
-    Verify();
-};
-
-TEST_P(GPU_SGD_fwd_FP16, SGDTestFwd)
-{
-    RunTest();
-    Verify();
-};
-
-TEST_P(GPU_SGD_fwd_BFP16, SGDTestFwd)
-{
-    RunTest();
-    Verify();
-};
-
-INSTANTIATE_TEST_SUITE_P(Full, GPU_SGD_fwd_FP32, testing::ValuesIn(SGDTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(Full, GPU_SGD_fwd_FP16, testing::ValuesIn(SGDTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(Full, GPU_SGD_fwd_BFP16, testing::ValuesIn(SGDTestConfigs()));
+REGISTER_DRIVER_MAKER(makeDriver);

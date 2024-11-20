@@ -24,7 +24,6 @@
  *
  *******************************************************************************/
 #pragma once
-
 #include <miopen/common.hpp>
 
 namespace miopen {
@@ -41,8 +40,7 @@ UnsortedSegmentSumForward(Handle& handle,
                           const TensorDescriptor& OutputDesc,
                           Data_t Output,
                           const TensorDescriptor& SegmentIdsDesc,
-                          ConstData_t segment_ids,
-                          uint64_t num_segments);
+                          ConstData_t segment_ids);
 
 MIOPEN_INTERNALS_EXPORT miopenStatus_t
 UnsortedSegmentSumBackward(Handle& handle,
@@ -51,8 +49,7 @@ UnsortedSegmentSumBackward(Handle& handle,
                            const TensorDescriptor& InputGradDesc,
                            Data_t InputGrad,
                            const TensorDescriptor& SegmentIdsDesc,
-                           ConstData_t segment_ids,
-                           uint64_t num_segments);
+                           ConstData_t segment_ids);
 
 } // namespace UnsortedSegmentSum
 

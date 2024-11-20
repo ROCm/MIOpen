@@ -41,22 +41,16 @@ miopenStatus_t UnsortedSegmentSumForward(Handle& handle,
                                          const TensorDescriptor& OutputDesc,
                                          Data_t Output,
                                          const TensorDescriptor& SegmentIdsDesc,
-                                         ConstData_t segment_ids,
-                                         const uint64_t num_segments)
+                                         ConstData_t segment_ids)
 {
-    const auto problem = UnsortedSegmentSum::FwdProblemDescription{
-        InputDesc, OutputDesc, SegmentIdsDesc, num_segments};
+    const auto problem =
+        UnsortedSegmentSum::FwdProblemDescription{InputDesc, OutputDesc, SegmentIdsDesc};
 
     const auto invoke_params = [&]() {
-        auto tmp           = UnsortedSegmentSum::FwdInvokeParams{};
-        tmp.type           = InvokeType::Run;
-        tmp.InputDesc      = &InputDesc;
-        tmp.Input          = Input;
-        tmp.OutputDesc     = &OutputDesc;
-        tmp.Output         = Output;
-        tmp.SegmentIdsDesc = &SegmentIdsDesc;
-        tmp.segment_ids    = segment_ids;
-        tmp.num_segments   = num_segments;
+        auto tmp        = UnsortedSegmentSum::FwdInvokeParams{};
+        tmp.Input       = Input;
+        tmp.Output      = Output;
+        tmp.segment_ids = segment_ids;
         return tmp;
     }();
 
@@ -74,22 +68,16 @@ miopenStatus_t UnsortedSegmentSumBackward(Handle& handle,
                                           const TensorDescriptor& InputGradDesc,
                                           Data_t InputGrad,
                                           const TensorDescriptor& SegmentIdsDesc,
-                                          ConstData_t segment_ids,
-                                          const uint64_t num_segments)
+                                          ConstData_t segment_ids)
 {
-    const auto problem = UnsortedSegmentSum::BwdProblemDescription{
-        OutputGradDesc, InputGradDesc, SegmentIdsDesc, num_segments};
+    const auto problem =
+        UnsortedSegmentSum::BwdProblemDescription{OutputGradDesc, InputGradDesc, SegmentIdsDesc};
 
     const auto invoke_params = [&]() {
-        auto tmp           = UnsortedSegmentSum::BwdInvokeParams{};
-        tmp.type           = InvokeType::Run;
-        tmp.OutputGradDesc = &OutputGradDesc;
-        tmp.OutputGrad     = OutputGrad;
-        tmp.InputGradDesc  = &InputGradDesc;
-        tmp.InputGrad      = InputGrad;
-        tmp.SegmentIdsDesc = &SegmentIdsDesc;
-        tmp.segment_ids    = segment_ids;
-        tmp.num_segments   = num_segments;
+        auto tmp        = UnsortedSegmentSum::BwdInvokeParams{};
+        tmp.OutputGrad  = OutputGrad;
+        tmp.InputGrad   = InputGrad;
+        tmp.segment_ids = segment_ids;
         return tmp;
     }();
 

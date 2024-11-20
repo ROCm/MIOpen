@@ -29,8 +29,21 @@
 #include <miopen/logger.hpp>
 #include <miopen/tensor_ops.hpp>
 
+inline std::ostream& operator<<(std::ostream& os, const std::vector<size_t>& v)
+{
+    os << '{';
+    for(int i = 0; i < v.size(); ++i)
+    {
+        if(i != 0)
+            os << ',';
+        os << v[i];
+    }
+    os << '}';
+    return os;
+}
+
 inline void LogCmdUnsortedSegmentSum(const miopenTensorDescriptor_t& InputDesc,
-                                     const uint64_t num_segments,
+                                     const miopenTensorDescriptor_t& OutputDesc,
                                      const bool is_fwd)
 {
     if(miopen::IsLoggingCmd())
@@ -49,17 +62,9 @@ inline void LogCmdUnsortedSegmentSum(const miopenTensorDescriptor_t& InputDesc,
         {
             ss << "unsortedsegmentsumbf16";
         }
-        std::string batch_sz;
-        auto dims = miopen::deref(InputDesc).GetLengths();
-        for(auto dim : dims)
-        {
-            batch_sz += std::to_string(dim);
-            batch_sz += ",";
-        }
-        ss << " -dims " << batch_sz;
-        ss << " -num_segments " << num_segments;
+        ss << " -in_dims " << miopen::deref(InputDesc).GetLengths();
+        ss << " -out_dims " << miopen::deref(OutputDesc).GetLengths();
         ss << " -F " << ((is_fwd) ? "1" : "2");
-
         MIOPEN_LOG_DRIVER_CMD(ss.str());
     }
 }
@@ -71,11 +76,10 @@ miopenUnsortedSegmentSumForward(miopenHandle_t handle,
                                 const miopenTensorDescriptor_t OutputDesc,
                                 void* Output,
                                 const miopenTensorDescriptor_t SegmentIdsDesc,
-                                const void* segment_ids,
-                                const uint64_t num_segments)
+                                const void* segment_ids)
 {
-    MIOPEN_LOG_FUNCTION(handle, InputDesc, OutputDesc, SegmentIdsDesc, num_segments);
-    LogCmdUnsortedSegmentSum(InputDesc, num_segments, true);
+    MIOPEN_LOG_FUNCTION(handle, InputDesc, OutputDesc, SegmentIdsDesc);
+    LogCmdUnsortedSegmentSum(InputDesc, OutputDesc, true);
     return miopen::try_([&] {
         miopen::UnsortedSegmentSum::UnsortedSegmentSumForward(miopen::deref(handle),
                                                               miopen::deref(InputDesc),
@@ -83,8 +87,7 @@ miopenUnsortedSegmentSumForward(miopenHandle_t handle,
                                                               miopen::deref(OutputDesc),
                                                               DataCast(Output),
                                                               miopen::deref(SegmentIdsDesc),
-                                                              DataCast(segment_ids),
-                                                              num_segments);
+                                                              DataCast(segment_ids));
     });
 }
 
@@ -95,11 +98,10 @@ miopenUnsortedSegmentSumBackward(miopenHandle_t handle,
                                  const miopenTensorDescriptor_t InputGradDesc,
                                  void* InputGrad,
                                  const miopenTensorDescriptor_t SegmentIdsDesc,
-                                 const void* segment_ids,
-                                 const uint64_t num_segments)
+                                 const void* segment_ids)
 {
-    MIOPEN_LOG_FUNCTION(handle, InputGradDesc, OutputGradDesc, SegmentIdsDesc, num_segments);
-    LogCmdUnsortedSegmentSum(InputGradDesc, num_segments, false);
+    MIOPEN_LOG_FUNCTION(handle, InputGradDesc, OutputGradDesc, SegmentIdsDesc);
+    LogCmdUnsortedSegmentSum(InputGradDesc, OutputGradDesc, false);
     return miopen::try_([&] {
         miopen::UnsortedSegmentSum::UnsortedSegmentSumBackward(miopen::deref(handle),
                                                                miopen::deref(OutputGradDesc),
@@ -107,7 +109,6 @@ miopenUnsortedSegmentSumBackward(miopenHandle_t handle,
                                                                miopen::deref(InputGradDesc),
                                                                DataCast(InputGrad),
                                                                miopen::deref(SegmentIdsDesc),
-                                                               DataCast(segment_ids),
-                                                               num_segments);
+                                                               DataCast(segment_ids));
     });
 }

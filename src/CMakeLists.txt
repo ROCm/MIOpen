@@ -194,8 +194,6 @@ set( MIOpen_Source
     rope_api.cpp
     rope/problem_description.cpp
     scalar.cpp
-    sgd_api.cpp
-    sgd/problem_description.cpp
     softmarginloss/problem_description.cpp 
     softmarginloss_api.cpp
     softmax.cpp
@@ -332,11 +330,12 @@ set( MIOpen_Source
     solver/reduce/forward_sum.cpp
     solver/rope/backward_rope.cpp
     solver/rope/forward_rope.cpp
-    solver/sgd/forward_sgd.cpp
     solver/softmarginloss/backward_softmarginloss.cpp
     solver/softmarginloss/forward_softmarginloss.cpp
     solver/softmax/attn_softmax.cpp
     solver/softmax/softmax.cpp
+    solver/unsortedsegmentsum/backward_unsortedsegmentsum.cpp
+    solver/unsortedsegmentsum/forward_unsortedsegmentsum.cpp
     subbuffers.cpp
     t5layernorm_api.cpp
     target_properties.cpp
@@ -345,6 +344,8 @@ set( MIOpen_Source
     tensor_api.cpp
     transformers_adam_w_api.cpp
     seq_tensor.cpp
+    unsortedsegmentsum_api.cpp
+    unsortedsegmentsum/problem_description.cpp
 )
 
 if(MIOPEN_ENABLE_AI_KERNEL_TUNING OR MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK)
@@ -559,6 +560,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenUtilKernels3.cl
         kernels/MIOpenUtilKernels4.cl
         kernels/MIOpenUtilKernels5.cl
+        kernels/MIOpenUnsortedSegmentSum.cpp
         kernels/MIOpenVecAdd.cpp
         kernels/MIOpenVecAddOCL.cl
         kernels/MIOpenIm2d2Col.cl
@@ -574,7 +576,6 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenConvFwd_LxL_11.cl
         kernels/MIOpenConvFFT.cl
         kernels/MIOpenRNNHiddenStateUpdate.cl
-        kernels/MIOpenSGD.cpp
         kernels/bugzilla_34765_detect.s
         kernels/dummy_kernel.s
         kernels/conv3x3.s
@@ -704,9 +705,9 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         reducecalculation.cpp
         reduceextreme.cpp
         rope.cpp
-        sgd.cpp
         softmarginloss.cpp
         transformers_adam_w.cpp
+        unsortedsegmentsum.cpp
         ${PROJECT_BINARY_DIR}/db_path.cpp
         )
 

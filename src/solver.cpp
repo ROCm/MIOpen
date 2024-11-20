@@ -40,10 +40,10 @@
 #include <miopen/reduce/solvers.hpp>
 #include <miopen/rope/solvers.hpp>
 #include <miopen/mha/solvers.hpp>
-#include <miopen/sgd/solvers.hpp>
 #include <miopen/softmarginloss/solvers.hpp>
 #include <miopen/softmax/solvers.hpp>
 #include <miopen/multimarginloss/solvers.hpp>
+#include <miopen/unsortedsegmentsum/solvers.hpp>
 
 #include <miopen/conv_algo_name.hpp>
 #include <miopen/db.hpp>
@@ -700,8 +700,14 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
              ++id,
              Primitive::MultiMarginLoss,
              multimarginloss::MultiMarginLossForward{}.SolverDbId());
-    Register(registry, ++id, Primitive::SGD, SGD::SGDForward{}.SolverDbId());
-
+    Register(registry,
+             ++id,
+             Primitive::UnsortedSegmentSum,
+             UnsortedSegmentSum::UnsortedSegmentSumForward{}.SolverDbId());
+    Register(registry,
+             ++id,
+             Primitive::UnsortedSegmentSum,
+             UnsortedSegmentSum::UnsortedSegmentSumBackward{}.SolverDbId());
     // IMPORTANT: New solvers should be added to the end of the function!
 }
 

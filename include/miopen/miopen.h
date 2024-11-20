@@ -8020,8 +8020,7 @@ MIOPEN_EXPORT miopenStatus_t miopenMultiMarginLossForward(miopenHandle_t handle,
  * @param Output                   Data tensor output (output)
  * @param SegmentIdsDesc           Tensor descriptor for segment_ids tensor (input)
  * @param segment_ids              A tensor whose shape is a prefix of input shape. The values must
- * be less than num_segments (input)
- * @param num_segments             Number of segments (input)
+ * be less than number of segments (output's first dimension) (input)
  * @return                         miopenStatus_t
  */
 
@@ -8032,8 +8031,7 @@ miopenUnsortedSegmentSumForward(miopenHandle_t handle,
                                 const miopenTensorDescriptor_t OutputDesc,
                                 void* Output,
                                 const miopenTensorDescriptor_t SegmentIdsDesc,
-                                const void* segment_ids,
-                                const uint64_t num_segments);
+                                const void* segment_ids);
 
 /*! @brief Execute a UnsortedSegmentSum forward layer
  *
@@ -8044,8 +8042,7 @@ miopenUnsortedSegmentSumForward(miopenHandle_t handle,
  * @param InputGrad                Data tensor input grad (output)
  * @param SegmentIdsDesc           Tensor descriptor for segment_ids tensor (input)
  * @param segment_ids              A tensor whose shape is a prefix of input shape. The values must
- * be less than num_segments (input)
- * @param num_segments             Number of segments (input)
+ * be less than number of segments (output's first dimension) (input)
  * @return                         miopenStatus_t
  */
 
@@ -8056,8 +8053,7 @@ miopenUnsortedSegmentSumBackward(miopenHandle_t handle,
                                  const miopenTensorDescriptor_t InputGradDesc,
                                  void* InputGrad,
                                  const miopenTensorDescriptor_t SegmentIdsDesc,
-                                 const void* segment_ids,
-                                 const uint64_t num_segments);
+                                 const void* segment_ids);
 
 /** @} */
 // CLOSEOUT UnsortedSegmentSum DOXYGEN GROUP

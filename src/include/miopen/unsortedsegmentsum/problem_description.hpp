@@ -26,7 +26,7 @@
 
 #pragma once
 
-#include <cstdint>
+#include "miopen/miopen.h"
 #include <miopen/activ.hpp>
 #include <miopen/problem_description_base.hpp>
 #include <miopen/tensor.hpp>
@@ -41,20 +41,17 @@ struct FwdProblemDescription : ProblemDescriptionBase
 {
     FwdProblemDescription(const TensorDescriptor& InputDesc_,
                           const TensorDescriptor& OutputDesc_,
-                          const TensorDescriptor& SegmentIdsDesc_,
-                          const uint64_t num_segments_)
-        : InputDesc(InputDesc_),
-          OutputDesc(OutputDesc_),
-          SegmentIdsDesc(SegmentIdsDesc_),
-          num_segments(num_segments_)
+                          const TensorDescriptor& SegmentIdsDesc_)
+        : InputDesc(InputDesc_), OutputDesc(OutputDesc_), SegmentIdsDesc(SegmentIdsDesc_)
     {
         IsSameType();
+        IsAllContiguous();
+        IsValidType();
     }
 
     const TensorDescriptor& GetInputDesc() const { return InputDesc; }
     const TensorDescriptor& GetOutputDesc() const { return OutputDesc; }
     const TensorDescriptor& GetSegmentIdsDesc() const { return SegmentIdsDesc; }
-    uint64_t GetNumSegments() const { return num_segments; }
 
     bool IsSameType() const
     {
@@ -66,10 +63,26 @@ struct FwdProblemDescription : ProblemDescriptionBase
         return true;
     }
 
+    bool IsValidType() const
+    {
+        if(SegmentIdsDesc.GetType() != miopenInt32 && SegmentIdsDesc.GetType() != miopenInt64)
+        {
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "UnsortedSegmentSumForward: SegmentIds tensor must be int32, "
+                         "unsign int32, or unsign int64 tensor.");
+        }
+        return true;
+    }
+
     bool IsAllContiguous() const
     {
-        return InputDesc.IsContiguous() && OutputDesc.IsContiguous() &&
-               SegmentIdsDesc.IsContiguous();
+        if(!(InputDesc.IsContiguous() && OutputDesc.IsContiguous() &&
+             SegmentIdsDesc.IsContiguous()))
+        {
+            MIOPEN_THROW(miopenStatusNotImplemented,
+                         "UnsortedSegmentSumForward: Only contiguous tensors are supported.");
+        }
+        return true;
     }
     NetworkConfig MakeNetworkConfig() const override;
 
@@ -77,50 +90,64 @@ private:
     TensorDescriptor InputDesc;
     TensorDescriptor OutputDesc;
     TensorDescriptor SegmentIdsDesc;
-    uint64_t num_segments;
 };
 
 struct BwdProblemDescription : ProblemDescriptionBase
 {
     BwdProblemDescription(const TensorDescriptor& OutputGradDesc_,
                           const TensorDescriptor& InputGradDesc_,
-                          const TensorDescriptor& SegmentIdsDesc_,
-                          const uint64_t num_segments_)
+                          const TensorDescriptor& SegmentIdsDesc_)
         : OutputGradDesc(OutputGradDesc_),
           InputGradDesc(InputGradDesc_),
-          SegmentIdsDesc(SegmentIdsDesc_),
-          num_segments(num_segments_)
+          SegmentIdsDesc(SegmentIdsDesc_)
     {
         IsSameType();
+        IsAllContiguous();
+        IsValidType();
     }
 
     const TensorDescriptor& GetInputGradDesc() const { return InputGradDesc; }
     const TensorDescriptor& GetOutputGradDesc() const { return OutputGradDesc; }
     const TensorDescriptor& GetSegmentIdsDesc() const { return SegmentIdsDesc; }
-    uint64_t GetNumSegments() const { return num_segments; }
 
     bool IsSameType() const
     {
         if(InputGradDesc.GetType() != OutputGradDesc.GetType())
         {
             MIOPEN_THROW(miopenStatusBadParm,
-                         "UnsortedSegmentSumForward: Tensor types do not match.");
+                         "UnsortedSegmentSumBackward: Tensor types do not match.");
+        }
+        return true;
+    }
+
+    bool IsValidType() const
+    {
+        if(SegmentIdsDesc.GetType() != miopenInt32 && SegmentIdsDesc.GetType() != miopenInt64)
+        {
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "UnsortedSegmentSumBackward: SegmentIds tensor must be int32, "
+                         "int64, unsign int32, or unsign int64 tensor.");
         }
         return true;
     }
 
     bool IsAllContiguous() const
     {
-        return InputGradDesc.IsContiguous() && OutputGradDesc.IsContiguous() &&
-               SegmentIdsDesc.IsContiguous();
+        if(!(InputGradDesc.IsContiguous() && OutputGradDesc.IsContiguous() &&
+             SegmentIdsDesc.IsContiguous()))
+        {
+            MIOPEN_THROW(miopenStatusNotImplemented,
+                         "UnsortedSegmentSumBackward: Only contiguous tensors are supported.");
+        }
+        return true;
     }
+
     NetworkConfig MakeNetworkConfig() const override;
 
 private:
     TensorDescriptor OutputGradDesc;
     TensorDescriptor InputGradDesc;
     TensorDescriptor SegmentIdsDesc;
-    uint64_t num_segments;
 };
 
 } // namespace UnsortedSegmentSum

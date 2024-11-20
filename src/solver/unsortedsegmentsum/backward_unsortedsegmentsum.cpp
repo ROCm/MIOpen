@@ -60,11 +60,14 @@ ConvSolution UnsortedSegmentSumBackward::GetSolution(
 {
     auto result = ConvSolution{miopenStatusSuccess};
 
-    auto dtype   = problem.GetInputGradDesc().GetType();
-    auto d_dtype = miopen::GetDataType(dtype);
-    auto dims    = problem.GetInputGradDesc().GetLengths();
+    auto dtype    = problem.GetInputGradDesc().GetType();
+    auto d_dtype  = miopen::GetDataType(dtype);
+    auto seg_type = miopen::GetDataType(problem.GetSegmentIdsDesc().GetType());
+    auto dims     = problem.GetInputGradDesc().GetLengths();
+    auto nelems   = problem.GetInputGradDesc().GetElementSize();
 
-    size_t param_size = std::accumulate(dims.begin(), dims.end(), 1ULL, std::multiplies<size_t>());
+    size_t inner_dim_size = nelems / dims[0];
+    size_t num_segments   = problem.GetOutputGradDesc().GetLengths()[0];
 
     const auto build_params = KernelBuildParameters{
         {"MIOPEN_USE_FP16", static_cast<int>(dtype == miopenHalf)},
@@ -72,10 +75,11 @@ ConvSolution UnsortedSegmentSumBackward::GetSolution(
         {"MIOPEN_USE_FP64", static_cast<int>(dtype == miopenDouble)},
         {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
         {"D_TYPE", d_dtype == "bfloat16" ? "ushort" : d_dtype},
+        {"SEG_TYPE", seg_type},
     };
 
     size_t xlocalsize = LOCAL_SIZE;
-    size_t xgridsize  = AlignUp(param_size, xlocalsize);
+    size_t xgridsize  = AlignUp(nelems, xlocalsize);
     size_t ylocalsize = 1;
     size_t ygridsize  = 1;
     size_t zlocalsize = 1;
@@ -93,16 +97,22 @@ ConvSolution UnsortedSegmentSumBackward::GetSolution(
     kernel.g_wk.push_back(ygridsize);
     kernel.g_wk.push_back(zgridsize);
 
-    kernel.kernel_name     = "UnsortedSegmentSumBwd";
-    result.invoker_factory = [](const std::vector<Kernel>& kernels) {
-        return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
-            decltype(auto) kernel = handle_.Run(kernels.front());
-            decltype(auto) params =
-                raw_params.CastTo<miopen::UnsortedSegmentSum::BwdInvokeParams>();
+    kernel.kernel_name = "UnsortedSegmentSumBwd";
+    result.invoker_factory =
+        [nelems, inner_dim_size, num_segments](const std::vector<Kernel>& kernels) {
+            return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
+                decltype(auto) kernel = handle_.Run(kernels.front());
+                decltype(auto) params =
+                    raw_params.CastTo<miopen::UnsortedSegmentSum::BwdInvokeParams>();
 
-            kernel(params.OutputGrad, params.InputGrad, params.segment_ids, params.num_segments);
+                kernel(params.OutputGrad,
+                       params.InputGrad,
+                       params.segment_ids,
+                       nelems,
+                       inner_dim_size,
+                       num_segments);
+            };
         };
-    };
     result.construction_params.push_back(kernel);
     return result;
 }

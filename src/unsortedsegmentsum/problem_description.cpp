@@ -35,38 +35,28 @@ namespace UnsortedSegmentSum {
 
 NetworkConfig FwdProblemDescription::MakeNetworkConfig() const
 {
-    auto dtype          = InputDesc.GetType();
-    auto input_lengths  = InputDesc.GetLengths();
-    auto output_lengths = OutputDesc.GetLengths();
+    auto dtype         = InputDesc.GetType();
+    auto input_lengths = InputDesc.GetLengths();
 
     std::ostringstream ss;
     ss << "dtype" << dtype;
     ss << "input_lengths";
     for(auto length : input_lengths)
         ss << length << ',';
-    ss << "output_lengths";
-    for(auto length : output_lengths)
-        ss << length << ',';
-    ss << "isAllContiguous" << IsAllContiguous();
 
     return NetworkConfig{ss.str()};
 }
 
 NetworkConfig BwdProblemDescription::MakeNetworkConfig() const
 {
-    auto dtype               = InputGradDesc.GetType();
-    auto input_grad_lengths  = InputGradDesc.GetLengths();
-    auto output_grad_lengths = OutputGradDesc.GetLengths();
+    auto dtype              = InputGradDesc.GetType();
+    auto input_grad_lengths = InputGradDesc.GetLengths();
 
     std::ostringstream ss;
     ss << "dtype" << dtype;
     ss << "input_grad_lengths";
     for(auto length : input_grad_lengths)
         ss << length << ',';
-    ss << "output_grad_lengths";
-    for(auto length : output_grad_lengths)
-        ss << length << ',';
-    ss << "isAllContiguous" << IsAllContiguous();
 
     return NetworkConfig{ss.str()};
 }

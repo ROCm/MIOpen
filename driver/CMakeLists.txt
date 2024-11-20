@@ -57,12 +57,12 @@ add_executable(MIOpenDriver
     dm_reducecalculation.cpp
     dm_rnn.cpp
     dm_rope.cpp
-    dm_sgd.cpp
     dm_softmarginloss.cpp
     dm_softmax.cpp
     dm_t5layernorm.cpp
     dm_tensorop.cpp
     dm_transformers_adam_w.cpp
+    dm_unsortedsegmentsum.cpp
     main.cpp
     registry_driver_maker.cpp
     rocrand_wrapper.cpp)
