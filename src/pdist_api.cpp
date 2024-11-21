@@ -56,7 +56,7 @@ static void LogCmdPdistBackward(const miopenTensorDescriptor_t inputDesc, const 
         }
 
         ss << "-dims ( ";
-        for(unsigned long i : miopen::deref(inputDesc).GetLengths())
+        for(size_t i : miopen::deref(inputDesc).GetLengths())
         {
             ss << i << " ";
         }
@@ -81,12 +81,12 @@ miopenGetPdistBackwardWorkspaceSize(miopenHandle_t handle,
 
     return miopen::try_([&] {
         miopen::deref(sizeInBytes) =
-            miopen::GetPdistBackwardWorkspaceSize(miopen::deref(handle),
-                                                  miopen::deref(inputDesc),
-                                                  miopen::deref(outputDesc),
-                                                  miopen::deref(doutputDesc),
-                                                  miopen::deref(dinputDesc),
-                                                  p);
+            miopen::pdist::GetPdistBackwardWorkspaceSize(miopen::deref(handle),
+                                                         miopen::deref(inputDesc),
+                                                         miopen::deref(outputDesc),
+                                                         miopen::deref(doutputDesc),
+                                                         miopen::deref(dinputDesc),
+                                                         p);
     });
 };
 
@@ -119,17 +119,17 @@ extern "C" miopenStatus_t miopenPdistBackward(miopenHandle_t handle,
     LogCmdPdistBackward(inputDesc, p);
 
     return miopen::try_([&] {
-        miopen::PdistBackward(miopen::deref(handle),
-                              DataCast(workspace),
-                              workspaceSizeInBytes,
-                              miopen::deref(inputDesc),
-                              DataCast(input),
-                              miopen::deref(outputDesc),
-                              DataCast(output),
-                              miopen::deref(doutputDesc),
-                              DataCast(doutput),
-                              miopen::deref(dinputDesc),
-                              DataCast(dinput),
-                              p);
+        miopen::pdist::PdistBackward(miopen::deref(handle),
+                                     DataCast(workspace),
+                                     workspaceSizeInBytes,
+                                     miopen::deref(inputDesc),
+                                     DataCast(input),
+                                     miopen::deref(outputDesc),
+                                     DataCast(output),
+                                     miopen::deref(doutputDesc),
+                                     DataCast(doutput),
+                                     miopen::deref(dinputDesc),
+                                     DataCast(dinput),
+                                     p);
     });
 };

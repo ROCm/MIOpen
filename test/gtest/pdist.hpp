@@ -153,7 +153,7 @@ protected:
         ref_dinput = tensor<T>{input_dims};
         std::fill(ref_dinput.begin(), ref_dinput.end(), std::numeric_limits<T>::quiet_NaN());
 
-        ws_sizeInBytes = miopen::GetPdistBackwardWorkspaceSize(
+        ws_sizeInBytes = miopen::pdist::GetPdistBackwardWorkspaceSize(
             handle, input.desc, output.desc, doutput.desc, dinput.desc, p);
 
         if(ws_sizeInBytes <= 0)
@@ -178,18 +178,18 @@ protected:
         cpu_pdist_forward_contiguous<T>(input, output, doutput, ref_dinput, p);
 
         // Run kernel
-        status = miopen::PdistBackward(handle,
-                                       workspace_dev.get(),
-                                       ws_sizeInBytes,
-                                       input.desc,
-                                       input_dev.get(),
-                                       output.desc,
-                                       output_dev.get(),
-                                       doutput.desc,
-                                       doutput_dev.get(),
-                                       dinput.desc,
-                                       dinput_dev.get(),
-                                       p);
+        status = miopen::pdist::PdistBackward(handle,
+                                              workspace_dev.get(),
+                                              ws_sizeInBytes,
+                                              input.desc,
+                                              input_dev.get(),
+                                              output.desc,
+                                              output_dev.get(),
+                                              doutput.desc,
+                                              doutput_dev.get(),
+                                              dinput.desc,
+                                              dinput_dev.get(),
+                                              p);
 
         EXPECT_EQ(status, miopenStatusSuccess);
 

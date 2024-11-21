@@ -28,7 +28,9 @@
 #include <math.h>
 
 namespace miopen {
+
 namespace solver {
+
 namespace pdist {
 
 inline bool is_approx_equal(double a, double b, double tolerance = 1e-6)
@@ -65,5 +67,7 @@ inline double backward(const double diff, const double grad, const double dist, 
 }
 
 } // namespace pdist
+
 } // namespace solver
+
 } // namespace miopen

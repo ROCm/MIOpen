@@ -23,21 +23,17 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <miopen/execution_context.hpp>
-#include <miopen/miopen.h>
-#include <miopen/names.hpp>
-#include <miopen/datatype.hpp>
 #include <miopen/find_solution.hpp>
-#include <miopen/float_equal.hpp>
 #include <miopen/kernel_cache.hpp>
-#include <miopen/tensor.hpp>
-
 #include <miopen/pdist.hpp>
 #include <miopen/pdist/invoke_params.hpp>
 #include <miopen/pdist/solvers.hpp>
 #include <miopen/pdist/problem_description.hpp>
+#include <miopen/tensor.hpp>
 
 namespace miopen {
+
+namespace pdist {
 
 std::size_t GetPdistBackwardWorkspaceSize(Handle& handle,
                                           const TensorDescriptor& inputDesc,
@@ -99,5 +95,7 @@ miopenStatus_t PdistBackward(Handle& handle,
 
     return miopenStatusSuccess;
 }
+
+} // namespace pdist
 
 } // namespace miopen

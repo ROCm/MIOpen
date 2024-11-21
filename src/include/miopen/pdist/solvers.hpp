@@ -25,10 +25,10 @@
  *******************************************************************************/
 #pragma once
 
-#include "miopen/conv_solution.hpp"
+#include <miopen/conv_solution.hpp>
 #include <miopen/execution_context.hpp>
-#include <miopen/solver.hpp>
 #include <miopen/pdist/problem_description.hpp>
+#include <miopen/solver.hpp>
 
 namespace miopen {
 

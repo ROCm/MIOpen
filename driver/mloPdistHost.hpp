@@ -41,24 +41,21 @@ int32_t mloPdistBackwardRunHost(const miopenTensorDescriptor_t inputDesc,
                                 const double p)
 {
     auto input_numel = miopen::deref(inputDesc).GetElementSize();
-    auto N           = miopen::deref(inputDesc).GetLengths()[0];
-    auto M           = miopen::deref(inputDesc).GetLengths()[1];
+    size_t N         = miopen::deref(inputDesc).GetLengths()[0];
+    size_t M         = miopen::deref(inputDesc).GetLengths()[1];
 
     // Fill dinputHost with zeros
-    for(size_t i = 0; i < input_numel; i++)
-    {
-        dinputHost[i] = 0;
-    }
+    std::fill(dinputHost, dinputHost + input_numel, static_cast<Tcheck>(0));
 
-    for(int i = 0; i < N; ++i)
+    for(size_t i = 0; i < N - 1; ++i)
     {
-        for(int j = i + 1; j < N; ++j)
+        for(size_t j = i + 1; j < N; ++j)
         {
-            long k          = j + N * i - i * (i + 1) / 2 - i - 1;
+            size_t k        = j + N * i - i * (i + 1) / 2 - i - 1;
             double grad_k   = static_cast<double>(doutput[k]);
             double output_k = static_cast<double>(output[k]);
 
-            for(int m = 0; m < M; ++m)
+            for(size_t m = 0; m < M; ++m)
             {
                 double input_first  = static_cast<double>(input[i * M + m]);
                 double input_second = static_cast<double>(input[j * M + m]);

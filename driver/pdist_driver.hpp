@@ -25,11 +25,15 @@
  *******************************************************************************/
 #pragma once
 
-#include <cstdint>
-#include <cstdlib>
-#include <iostream>
-#include <memory>
-#include <vector>
+#include "InputFlags.hpp"
+#include "driver.hpp"
+#include "mloPdistHost.hpp"
+#include "tensor_driver.hpp"
+#include "timer.hpp"
+#include "random.hpp"
+
+#include <../test/tensor_holder.hpp>
+#include <../test/verify.hpp>
 
 #include <miopen/errors.hpp>
 #include <miopen/miopen.h>
@@ -37,15 +41,6 @@
 #include <miopen/handle.hpp>
 #include <miopen/tensor.hpp>
 #include <miopen/tensor_view_utils.hpp>
-#include <../test/tensor_holder.hpp>
-#include <../test/verify.hpp>
-
-#include "InputFlags.hpp"
-#include "driver.hpp"
-#include "tensor_driver.hpp"
-#include "timer.hpp"
-#include "random.hpp"
-#include "mloPdistHost.hpp"
 
 template <typename Tgpu, typename Tref>
 class PdistDriver : public Driver
@@ -117,7 +112,7 @@ private:
 template <typename Tgpu, typename Tref>
 int PdistDriver<Tgpu, Tref>::AddCmdLineArgs()
 {
-    inflags.AddInputFlag("forw", 'F', "0", "Run only Pdist Backward (Default=0)", "int");
+    inflags.AddInputFlag("forw", 'F', "2", "Run only Pdist Backward (Default=2)", "int");
     inflags.AddTensorFlag(
         "dims", 'd', "3x4", "The dimensional lengths of the input tensor (Default=3x4)");
     inflags.AddInputFlag("power",

@@ -32,6 +32,8 @@ namespace miopen {
 struct Handle;
 struct TensorDescriptor;
 
+namespace pdist {
+
 MIOPEN_INTERNALS_EXPORT std::size_t
 GetPdistBackwardWorkspaceSize(Handle& handle,
                               const TensorDescriptor& inputDesc,
@@ -52,4 +54,7 @@ MIOPEN_INTERNALS_EXPORT miopenStatus_t PdistBackward(Handle& handle,
                                                      const TensorDescriptor& dinputDesc,
                                                      Data_t dinput,
                                                      double p);
+
+} // namespace pdist
+
 } // namespace miopen

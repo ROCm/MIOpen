@@ -23,27 +23,21 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <vector>
-
-#include <miopen/miopen.h>
-#include "miopen/conv_solution.hpp"
+#include <miopen/buffer_info.hpp>
+#include <miopen/conv_solution.hpp>
 #include <miopen/datatype.hpp>
+#include <miopen/execution_context.hpp>
+#include <miopen/invoke_params.hpp>
+#include <miopen/miopen.h>
 #include <miopen/kernel_build_params.hpp>
 #include <miopen/kernel_info.hpp>
 #include <miopen/mlo_internal.hpp>
-#include <miopen/target_properties.hpp>
-#include "miopen/buffer_info.hpp"
-#include "miopen/errors.hpp"
-#include "miopen/execution_context.hpp"
-#include "miopen/invoke_params.hpp"
-#include "miopen/tensor.hpp"
-#include "miopen/tensor_view_utils.hpp"
-#include <miopen/reduce/utils.hpp>
-
 #include <miopen/pdist.hpp>
 #include <miopen/pdist/solvers.hpp>
 #include <miopen/pdist/invoke_params.hpp>
-#include "miopen/pdist/problem_description.hpp"
+#include <miopen/pdist/problem_description.hpp>
+#include <miopen/target_properties.hpp>
+#include <miopen/reduce/utils.hpp>
 
 #define LOCAL_SIZE 256
 
@@ -73,11 +67,6 @@ bool PdistBackward::IsApplicable(const ExecutionContext& context,
         return false;
     }
 
-    if(!problem.IsAllPacked())
-    {
-        return false;
-    }
-
     if(!(problem.GetInputDesc().GetType() == miopenFloat ||
          problem.GetInputDesc().GetType() == miopenHalf ||
          problem.GetInputDesc().GetType() == miopenBFloat16))
@@ -89,7 +78,7 @@ bool PdistBackward::IsApplicable(const ExecutionContext& context,
 }
 
 ConvSolution
-PdistBackward::GetSolution(const ExecutionContext& context,
+PdistBackward::GetSolution(const ExecutionContext& /* context */,
                            const miopen::pdist::BackwardProblemDescription& problem) const
 {
     auto result = ConvSolution{miopenStatusSuccess};

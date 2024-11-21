@@ -25,12 +25,10 @@
  *******************************************************************************/
 #pragma once
 
-#include <cstddef>
-
+#include <miopen/activ.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/miopen.h>
 #include <miopen/problem_description_base.hpp>
-#include <miopen/activ.hpp>
 #include <miopen/tensor.hpp>
 
 namespace miopen {
@@ -52,11 +50,7 @@ struct BackwardProblemDescription : public ProblemDescriptionBase
           dinputDesc(dinputDesc_),
           p(p_)
     {
-        if(p < 0)
-        {
-            MIOPEN_THROW(miopenStatusBadParm, "PdistBackward: p must be non-negative.");
-        }
-
+        IsValidPValue();
         IsSameType();
         IsRightLength();
     }
@@ -67,6 +61,15 @@ struct BackwardProblemDescription : public ProblemDescriptionBase
     const TensorDescriptor& GetdInputDesc() const { return dinputDesc; }
     double GetPValue() const { return p; }
 
+    bool IsValidPValue() const
+    {
+        if(p < 0)
+        {
+            MIOPEN_THROW(miopenStatusBadParm, "PdistBackward: p must be non-negative.");
+        }
+        return true;
+    }
+
     bool IsSameType() const
     {
         if((inputDesc.GetType() != outputDesc.GetType()) ||
@@ -74,7 +77,6 @@ struct BackwardProblemDescription : public ProblemDescriptionBase
            (dinputDesc.GetType() != inputDesc.GetType()))
         {
             MIOPEN_THROW(miopenStatusBadParm, "PdistBackward: Tensor types do not match.");
-            return false;
         }
 
         return true;
@@ -104,7 +106,6 @@ struct BackwardProblemDescription : public ProblemDescriptionBase
                              std::to_string(expected_size) +
                              ". Got: " + std::to_string(actual_num_dims) + "D tensor of size " +
                              std::to_string(actual_size) + ".");
-            return false;
         }
 
         return true;
@@ -112,25 +113,14 @@ struct BackwardProblemDescription : public ProblemDescriptionBase
 
     bool IsAllContiguous() const
     {
-        if(!(inputDesc.IsContiguous() && outputDesc.IsContiguous() && doutputDesc.IsContiguous() &&
-             dinputDesc.IsContiguous()))
-        {
-            MIOPEN_THROW(miopenStatusBadParm, "PdistBackward: Uncontiguous tensors not supported.");
-            return false;
-        }
-        return true;
+        return (inputDesc.IsContiguous() && outputDesc.IsContiguous() &&
+                doutputDesc.IsContiguous() && dinputDesc.IsContiguous());
     }
 
     bool IsAllPacked() const
     {
-        if(!(inputDesc.IsPacked() && outputDesc.IsPacked() && doutputDesc.IsPacked() &&
-             dinputDesc.IsPacked()))
-        {
-            MIOPEN_THROW(miopenStatusBadParm, "PdistBackward: Unpacked tensors not supported.");
-            return false;
-        }
-
-        return true;
+        return (inputDesc.IsPacked() && outputDesc.IsPacked() && doutputDesc.IsPacked() &&
+                dinputDesc.IsPacked());
     }
 
     NetworkConfig MakeNetworkConfig() const override;

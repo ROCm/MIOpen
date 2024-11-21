@@ -35,7 +35,7 @@
 #include <miopen/getitem/solvers.hpp>
 #include <miopen/kthvalue/solvers.hpp>
 #include <miopen/layernorm/solvers.hpp>
-#include "miopen/pdist/solvers.hpp"
+#include <miopen/pdist/solvers.hpp>
 #include <miopen/pooling/solvers.hpp>
 #include <miopen/prelu/solvers.hpp>
 #include <miopen/reduce/solvers.hpp>
