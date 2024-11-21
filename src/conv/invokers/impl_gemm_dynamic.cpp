@@ -178,9 +178,9 @@ InvokerFactory MakeImplGemmDynamicBackwardDataInvokerFactory(const ProblemDescri
         const int gemm_k_gid = k * y_dot_slice_gid[gemm_id] * x_dot_slice_gid[gemm_id];
         is_gemm_not_empty.emplace_back(gemm_k_gid > 0);
     }
-    bool need_set_zero = false;
-    if(y < stride_h || x < stride_w || dilation_h != 1 || dilation_w != 1)
-        need_set_zero = true;
+    bool need_set_zero = true;
+    // if(y < stride_h || x < stride_w || dilation_h != 1 || dilation_w != 1)
+    //    need_set_zero = true;
 
     return [=](const std::vector<Kernel>& kernels) {
         const auto kernel = kernels[0];
@@ -315,9 +315,9 @@ MakeImplGemmDynamicBackwardDataInvokerFactory(const ProblemDescription& problem,
         const int gemm_k_gid = k * y_dot_slice_gid[gemm_id] * x_dot_slice_gid[gemm_id];
         is_gemm_not_empty.emplace_back(gemm_k_gid > 0);
     }
-    bool need_set_zero = false;
-    if(y < stride_h || x < stride_w || dilation_h != 1 || dilation_w != 1)
-        need_set_zero = true;
+    bool need_set_zero = true;
+    // if(y < stride_h || x < stride_w || dilation_h != 1 || dilation_w != 1)
+    //    need_set_zero = true;
 
     int nxb = cfg.nxb;
     int b   = h_tilda_slice * w_tilda_slice;
@@ -496,7 +496,9 @@ InvokerFactory MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(
         shift_pack_1 = 0;
     }
 
-    bool need_set_zero                 = config.gemm_k_global_split > 0;
+    // Clear buffer for all condition to resolve the NaN issue.
+    // bool need_set_zero                 = config.gemm_k_global_split > 0;
+    bool need_set_zero                 = true;
     bool use_fp32_global_split_on_fp16 = config.vector_store == 1 && config.gemm_k_global_split > 0;
 
     std::vector<OpKernelArg> opArgs;
@@ -797,11 +799,11 @@ InvokerFactory MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(
     int dtile_h  = num_of_gemms > 1 ? static_cast<int>(mdiv_group_mn.magic) : h_tilda;
     int dtile_w  = num_of_gemms > 1 ? static_cast<int>(mdiv_group_mn.shift) : w_tilda;
 
-    bool need_set_zero                 = false;
+    bool need_set_zero                 = true;
     bool use_fp32_global_split_on_fp16 = config.vector_store == 1 && config.gemm_k_global_split > 0;
-    if(y < stride_h || x < stride_w || dilation_h != 1 || dilation_w != 1)
-        need_set_zero = true;
-    need_set_zero |= config.gemm_k_global_split > 0;
+    // if(y < stride_h || x < stride_w || dilation_h != 1 || dilation_w != 1)
+    //    need_set_zero = true;
+    // need_set_zero |= config.gemm_k_global_split > 0;
 
     std::vector<OpKernelArg> opArgs;
     opArgs.emplace_back(0); // placeholder
