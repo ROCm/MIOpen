@@ -322,6 +322,7 @@ set( MIOpen_Source
     solver/prelu/backward_prelu_multi_weights.cpp
     solver/prelu/backward_prelu_single_weight.cpp
     solver/prelu/utils.cpp
+    solver/reduce/forward_any.cpp
     solver/reduce/forward_argmax.cpp
     solver/reduce/forward_argmin.cpp
     solver/reduce/forward_max.cpp
@@ -547,6 +548,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenConv1x1J1.cl
         kernels/MIOpenConv1x1J1_stride.cl
         kernels/MIOpenReduceCalculation.cpp
+        kernels/MIOpenReduceLogicalCalculation.cpp
         kernels/MIOpenReduceExtreme.cpp
         kernels/MIOpenReduceSum.cpp
         kernels/MIOpenRoPE.cpp

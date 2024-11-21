@@ -34,6 +34,18 @@ static Driver* makeDriver(const std::string& base_arg)
         return new ReduceCalculationDriver<float16, float>();
     if(base_arg == "reducecalculationbfp16")
         return new ReduceCalculationDriver<bfloat16, float>();
+
+    // Logical reduce calculation
+    if(base_arg == "lreducecalculation")
+        // <Tgpu, Tref, T_out>
+        return new ReduceCalculationDriver<float, uint8_t, uint8_t>(true);
+    if(base_arg == "lreducecalculationfp16")
+        return new ReduceCalculationDriver<float16, uint8_t, uint8_t>(true);
+    if(base_arg == "lreducecalculationbfp16")
+        return new ReduceCalculationDriver<bfloat16, uint8_t, uint8_t>(true);
+    if(base_arg == "lreducecalculationint8")
+        return new ReduceCalculationDriver<int8_t, uint8_t, uint8_t>(true);
+
     return nullptr;
 }
 

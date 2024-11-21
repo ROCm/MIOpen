@@ -5936,6 +5936,8 @@ typedef enum
         1, /*!< the operation is multiplying the values of the reduced elements */
     MIOPEN_REDUCE_CALCULATION_SUM =
         2, /*!< the operation is adding the values of the reduced elements */
+    MIOPEN_REDUCE_CALCULATION_ANY =
+        3, /*!< the operation is logical OR of the values of the reduced elements */
 } miopenReduceCalculationOp_t;
 
 /*! @brief Helper function to query the minimum workspace size required by the ReduceTensor call

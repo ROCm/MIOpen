@@ -28,15 +28,17 @@
 
 enum class ReduceCalculationOp_t
 {
-    Prod = 1,
+    First_ = 1,
+    Prod   = First_,
     Sum,
-    First_ = Prod,
-    Last_  = Sum,
+    Any,
+    Last_ = Any,
 };
 
 #ifndef __HIP_DEVICE_COMPILE__
 static_assert(MIOPEN_REDUCE_CALCULATION_PROD == static_cast<int>(ReduceCalculationOp_t::Prod));
 static_assert(MIOPEN_REDUCE_CALCULATION_SUM == static_cast<int>(ReduceCalculationOp_t::Sum));
+static_assert(MIOPEN_REDUCE_CALCULATION_ANY == static_cast<int>(ReduceCalculationOp_t::Any));
 #endif
 
 template <typename T, ReduceCalculationOp_t op>
@@ -55,6 +57,12 @@ template <typename T>
 struct reduce_func<T, ReduceCalculationOp_t::Sum>
 {
     inline constexpr void calculate(T& a, T b) const { a += b; }
+};
+
+template <typename T>
+struct reduce_func<T, ReduceCalculationOp_t::Any>
+{
+    inline constexpr void calculate(T& a, T b) const { a = a || b; }
 };
 
 #endif // GUARD_GUARD_KERNELS_MIOPENREDUCEEXTREME_HPP

@@ -67,6 +67,18 @@ std::size_t GetReduceCalculationWorkspaceSize(Handle& handle,
 
         return pair_size_vector.empty() ? static_cast<size_t>(-1) : pair_size_vector.front().second;
     }
+    else if(reduceCalculationOp == MIOPEN_REDUCE_CALCULATION_ANY)
+    {
+        auto ctx           = ExecutionContext{&handle};
+        const auto problem = reduce::ProblemDescriptionCalculation{
+            MIOPEN_REDUCE_CALCULATION_NOT_PROPAGATE_NAN, xDesc, yDesc, dim, reduceCalculationOp};
+        const auto algo = AlgorithmName{"AnyForward"};
+
+        const auto solvers    = solver::SolverContainer<solver::reduce::AnyForward>{};
+        auto pair_size_vector = solvers.GetWorkspaceSizes(ctx, problem);
+
+        return pair_size_vector.empty() ? static_cast<size_t>(-1) : pair_size_vector.front().second;
+    }
 
     return static_cast<size_t>(-1);
 }
@@ -130,6 +142,32 @@ miopenStatus_t ReduceCalculationForward(Handle& handle,
 
         const auto algo    = AlgorithmName{"ProdForward"};
         const auto solvers = solver::SolverContainer<solver::reduce::ProdForward>{};
+
+        solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
+
+        return miopenStatusSuccess;
+    }
+    else if(reduceCalculationOp == MIOPEN_REDUCE_CALCULATION_ANY)
+    {
+        const auto problem = reduce::ProblemDescriptionCalculation{
+            nanPropagation, xDesc, yDesc, dim, reduceCalculationOp};
+
+        const auto invoke_params = [&]() {
+            auto tmp           = reduce::CalculationInvokeParams{};
+            tmp.type           = InvokeType::Run;
+            tmp.xDesc          = &xDesc;
+            tmp.yDesc          = &yDesc;
+            tmp.x              = x;
+            tmp.y              = y;
+            tmp.workspace      = workspace;
+            tmp.workspace_size = workspaceSizeInBytes;
+            tmp.nanPropagation = nanPropagation;
+            tmp.dim            = dim;
+            return tmp;
+        }();
+
+        const auto algo    = AlgorithmName{"AnyForward"};
+        const auto solvers = solver::SolverContainer<solver::reduce::AnyForward>{};
 
         solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
 

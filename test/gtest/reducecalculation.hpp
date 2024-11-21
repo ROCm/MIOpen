@@ -34,40 +34,8 @@
 #include <miopen/miopen.h>
 #include <miopen/reducecalculation.hpp>
 
-template <typename T, ReduceCalculationOp_t op>
-void cpu_calculation_forward(tensor<T> input,
-                             tensor<T>& ref_output,
-                             int32_t dim,
-                             miopenReduceCalculationNanPropagation_t nanPropagation)
-{
-    auto input_dims  = input.desc.GetLengths();
-    auto output_dims = ref_output.desc.GetLengths();
-
-    auto reduce_size = input_dims[dim];
-    auto output_numel =
-        std::accumulate(output_dims.begin(), output_dims.end(), 1LL, std::multiplies<int64_t>());
-
-    auto inner_size = std::accumulate(
-        input_dims.begin() + dim + 1, input_dims.end(), 1ULL, std::multiplies<uint64_t>());
-
-    par_ford(output_numel)([&](size_t o) {
-        size_t input_idx = (o / inner_size) * inner_size * reduce_size + o % inner_size;
-
-        T calculation = static_cast<T>(0);
-
-        ford(reduce_size)([&](size_t i) {
-            T val = input[input_idx];
-            if(nanPropagation && std::isnan(val))
-            {
-                val = static_cast<T>(0.0);
-            }
-            reduce_func<T, op>{}.calculate(calculation, val);
-            input_idx += inner_size;
-        });
-
-        ref_output[o] = calculation;
-    });
-}
+#include <cpu_reducecalculation.hpp>
+#include <type_traits>
 
 struct ReduceCalculationTestCase
 {
@@ -153,12 +121,24 @@ ReduceCalculationTestConfigs(miopenReduceCalculationOp_t reduceCalculationOp)
             { 16, 311,    0,  98,  512,   2 , MIOPEN_REDUCE_CALCULATION_NOT_PROPAGATE_NAN, MIOPEN_REDUCE_CALCULATION_PROD},  //rnnt
             { 16, 311,    0,  98,  512,   2 , MIOPEN_REDUCE_CALCULATION_PROPAGATE_NAN, MIOPEN_REDUCE_CALCULATION_PROD}
         };
-    }
+    
+    } else if(reduceCalculationOp == MIOPEN_REDUCE_CALCULATION_ANY)
+    {
+        return {
+            { 8,    120,  0,  0,   1,     0 , MIOPEN_REDUCE_CALCULATION_PROPAGATE_NAN, MIOPEN_REDUCE_CALCULATION_ANY},
+            { 8,    1023, 0,  0,   1,     0 , MIOPEN_REDUCE_CALCULATION_PROPAGATE_NAN, MIOPEN_REDUCE_CALCULATION_ANY},
+            { 8,    1024, 0,  0,   768,   0 , MIOPEN_REDUCE_CALCULATION_PROPAGATE_NAN, MIOPEN_REDUCE_CALCULATION_ANY},
+            { 16,   1024, 0,  0,   768,   0 , MIOPEN_REDUCE_CALCULATION_PROPAGATE_NAN, MIOPEN_REDUCE_CALCULATION_ANY},
+            { 48,   8,    0,  512, 512,   0 , MIOPEN_REDUCE_CALCULATION_PROPAGATE_NAN, MIOPEN_REDUCE_CALCULATION_ANY},
+            { 16, 311,    0,  98,  512,   2 , MIOPEN_REDUCE_CALCULATION_PROPAGATE_NAN, MIOPEN_REDUCE_CALCULATION_ANY}
+        };
+    
+    } 
     return {};
     // clang-format on
 }
 
-template <typename T = float>
+template <typename T = float, typename T_out = T>
 struct ReduceCalculationTest : public ::testing::TestWithParam<ReduceCalculationTestCase>
 {
 protected:
@@ -167,14 +147,24 @@ protected:
         auto&& handle            = get_handle();
         reducecalculation_config = GetParam();
         auto gen_value = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1e-2, 100); };
+        auto gen_between_values = [](auto...) {
+            return prng::gen_A_to_B(std::numeric_limits<T>::min(), std::numeric_limits<T>::max());
+        };
 
         dim                 = reducecalculation_config.dim;
         nanPropagation      = reducecalculation_config.nanPropagation;
         reduceCalculationOp = reducecalculation_config.reduceCalculationOp;
 
-        auto in_dims = reducecalculation_config.GetInput();
+        if(reduceCalculationOp == MIOPEN_REDUCE_CALCULATION_ANY)
+        {
+            // Check condition
+            bool is_out_uint8 = std::is_same<T_out, uint8_t>::value;
+            ASSERT_TRUE(is_out_uint8) << "Output type should be uint8_t for logical calculation";
 
-        input = tensor<T>{in_dims}.generate(gen_value);
+            isLogicalCalculation = true;
+        }
+
+        auto in_dims = reducecalculation_config.GetInput();
 
         std::vector<size_t> out_dims;
 
@@ -186,11 +176,22 @@ protected:
             }
         }
 
-        output = tensor<T>{out_dims};
-        std::fill(output.begin(), output.end(), std::numeric_limits<T>::quiet_NaN());
+        output     = tensor<T_out>{out_dims};
+        ref_output = tensor<T_out>{out_dims};
 
-        ref_output = tensor<T>{out_dims};
-        std::fill(ref_output.begin(), ref_output.end(), std::numeric_limits<T>::quiet_NaN());
+        if(std::is_same<T, int8_t>::value)
+        {
+            input = tensor<T>{in_dims}.generate(gen_between_values);
+            std::fill(output.begin(), output.end(), 0);
+            std::fill(ref_output.begin(), ref_output.end(), 0);
+        }
+        else
+        {
+            input = tensor<T>{in_dims}.generate(gen_value);
+            std::fill(output.begin(), output.end(), std::numeric_limits<T_out>::quiet_NaN());
+            std::fill(
+                ref_output.begin(), ref_output.end(), std::numeric_limits<T_out>::quiet_NaN());
+        }
 
         std::vector<size_t> workspace_dims;
         ws_sizeInBytes = miopen::GetReduceCalculationWorkspaceSize(
@@ -215,13 +216,18 @@ protected:
 
         if(reduceCalculationOp == MIOPEN_REDUCE_CALCULATION_SUM)
         {
-            cpu_calculation_forward<T, ReduceCalculationOp_t::Sum>(
+            cpu_calculation_forward<T, T_out, ReduceCalculationOp_t::Sum>(
                 input, ref_output, dim, nanPropagation);
         }
         else if(reduceCalculationOp == MIOPEN_REDUCE_CALCULATION_PROD)
         {
-            cpu_calculation_forward<T, ReduceCalculationOp_t::Prod>(
+            cpu_calculation_forward<T, T_out, ReduceCalculationOp_t::Prod>(
                 input, ref_output, dim, nanPropagation);
+        }
+        else if(reduceCalculationOp == MIOPEN_REDUCE_CALCULATION_ANY)
+        {
+            cpu_logical_calculation_forward<T, T_out, ReduceCalculationOp_t::Any>(
+                input, ref_output, dim);
         }
 
         miopenStatus_t status;
@@ -239,31 +245,40 @@ protected:
 
         EXPECT_EQ(status, miopenStatusSuccess);
 
-        output.data = handle.Read<T>(output_dev, output.data.size());
+        output.data = handle.Read<T_out>(output_dev, output.data.size());
     }
 
     void Verify()
     {
-        // Computation error of fp16 is ~2^13 (=8192) bigger than
-        // the one of fp32 because mantissa is shorter by 13 bits.
-        auto threshold = std::is_same<T, float>::value ? 1.5e-5 : 8.2e-2;
+        if(isLogicalCalculation)
+        {
+            bool is_equal = ref_output.data == output.data;
 
-        // bf16 mantissa has 7 bits, by 3 bits shorter than fp16.
-        if(std::is_same<T, bfloat16>::value)
-            threshold *= 80.0;
-        auto error = miopen::rms_range(ref_output, output);
+            EXPECT_TRUE(is_equal) << "Logical calculation failed";
+        }
+        else
+        {
+            // Computation error of fp16 is ~2^13 (=8192) bigger than
+            // the one of fp32 because mantissa is shorter by 13 bits.
+            auto threshold = std::is_same<T, float>::value ? 1.5e-5 : 8.2e-2;
 
-        EXPECT_TRUE(miopen::range_distance(ref_output) == miopen::range_distance(output));
-        EXPECT_TRUE(error < threshold * 10) << "Error output beyond tolerance Error:" << error
-                                            << ",  Thresholdx10: " << threshold * 10;
+            // bf16 mantissa has 7 bits, by 3 bits shorter than fp16.
+            if(std::is_same<T, bfloat16>::value)
+                threshold *= 80.0;
+            auto error = miopen::rms_range(ref_output, output);
+
+            EXPECT_TRUE(miopen::range_distance(ref_output) == miopen::range_distance(output));
+            EXPECT_TRUE(error < threshold * 10) << "Error output beyond tolerance Error: " << error
+                                                << ",  Thresholdx10: " << threshold * 10;
+        }
     }
     ReduceCalculationTestCase reducecalculation_config;
 
     tensor<T> input;
-    tensor<T> output;
+    tensor<T_out> output;
     tensor<T> workspace;
 
-    tensor<T> ref_output;
+    tensor<T_out> ref_output;
 
     miopen::Allocator::ManageDataPtr input_dev;
     miopen::Allocator::ManageDataPtr output_dev;
@@ -274,4 +289,6 @@ protected:
     int32_t dim;
     miopenReduceCalculationNanPropagation_t nanPropagation;
     miopenReduceCalculationOp_t reduceCalculationOp;
+
+    bool isLogicalCalculation = false;
 };
