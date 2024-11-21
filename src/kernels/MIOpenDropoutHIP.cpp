@@ -46,10 +46,6 @@
 #define FP_TYPE float
 #endif
 
-#ifndef RUN_FORWARD
-#define RUN_FORWARD 0
-#endif
-
 #ifndef RUN_INIT_PRNG
 #define RUN_INIT_PRNG 0
 #endif
@@ -84,46 +80,29 @@ InitKernelStateHIP(rocrand_state_xorwow* state, ulong prng_seed, ulong states_nu
 
 #if !RUN_INIT_PRNG
 
-#if RUN_FORWARD
-#ifndef USE_MASK
-#define USE_MASK 0
-#endif
-
-#ifndef USE_RSVSP
-#define USE_RSVSP 0
-#endif
-
-// Dropout Forward
-/**
- * @brief Data is loaded into registers from the input.
- * The mask is either generated and saved in the reserved space, or an existing mask is loaded into
- * registers from the reserved space. The loaded mask is applied to the data in the registers. The
- * processed data is then written to the output. Reading and writing of input data can be performed
- * as vectorized operations, with the extent of vectorization determined by `#RD_BLOCK`.
- */
 template <typename F, typename T, typename B, bool MASK = false, bool RSVSP = false>
-__forceinline__ __device__ void dropoutfw(const rocrand_state_xorwow* state,
-                                          float dropout,
-                                          float scale,
-                                          int dim1,
-                                          int dim2,
-                                          int dim3,
-                                          int dim4,
-                                          F* y,
-                                          int out_str0,
-                                          int out_str1,
-                                          int out_str2,
-                                          int out_str3,
-                                          const F* x,
-                                          int in_str0,
-                                          int in_str1,
-                                          int in_str2,
-                                          int in_str3,
-                                          uchar* reserveSpace,
-                                          unsigned int total_work,
-                                          unsigned int in_offset,
-                                          unsigned int out_offset,
-                                          unsigned int rsvsp_offset)
+__forceinline__ __device__ void dropout_kernel(const rocrand_state_xorwow* state,
+                                               float dropout,
+                                               float scale,
+                                               int dim1,
+                                               int dim2,
+                                               int dim3,
+                                               int dim4,
+                                               F* y,
+                                               int out_str0,
+                                               int out_str1,
+                                               int out_str2,
+                                               int out_str3,
+                                               const F* x,
+                                               int in_str0,
+                                               int in_str1,
+                                               int in_str2,
+                                               int in_str3,
+                                               uchar* reserveSpace,
+                                               unsigned int total_work,
+                                               unsigned int in_offset,
+                                               unsigned int out_offset,
+                                               unsigned int rsvsp_offset)
 {
     F dat_blk[RD_BLCK];     // Register space to read the input data
     uchar is_kept[RD_BLCK]; // Register space to store the mask for the dropout
@@ -185,193 +164,51 @@ __forceinline__ __device__ void dropoutfw(const rocrand_state_xorwow* state,
     }
 }
 
-extern "C" __global__ void DropoutFW(const rocrand_state_xorwow* state,
-                                     float dropout,
-                                     float scale,
-                                     int dim1,
-                                     int dim2,
-                                     int dim3,
-                                     int dim4,
-                                     FP_TYPE* y,
-                                     int out_str0,
-                                     int out_str1,
-                                     int out_str2,
-                                     int out_str3,
-                                     const FP_TYPE* x,
-                                     int in_str0,
-                                     int in_str1,
-                                     int in_str2,
-                                     int in_str3,
-                                     uchar* reserveSpace,
-                                     unsigned int total_work,
-                                     unsigned int in_offset,
-                                     unsigned int out_offset,
-                                     unsigned int rsvsp_offset)
+extern "C" __global__ void DropoutKernel(const rocrand_state_xorwow* state,
+                                         float dropout,
+                                         float scale,
+                                         int dim1,
+                                         int dim2,
+                                         int dim3,
+                                         int dim4,
+                                         FP_TYPE* y,
+                                         int out_str0,
+                                         int out_str1,
+                                         int out_str2,
+                                         int out_str3,
+                                         const FP_TYPE* x,
+                                         int in_str0,
+                                         int in_str1,
+                                         int in_str2,
+                                         int in_str3,
+                                         uchar* reserveSpace,
+                                         unsigned int total_work,
+                                         unsigned int in_offset,
+                                         unsigned int out_offset,
+                                         unsigned int rsvsp_offset)
 {
-    dropoutfw<FP_TYPE, READ_DAT_TYPE, READ_BOOL_TYPE, USE_MASK, USE_RSVSP>(state,
-                                                                           dropout,
-                                                                           scale,
-                                                                           dim1,
-                                                                           dim2,
-                                                                           dim3,
-                                                                           dim4,
-                                                                           y,
-                                                                           out_str0,
-                                                                           out_str1,
-                                                                           out_str2,
-                                                                           out_str3,
-                                                                           x,
-                                                                           in_str0,
-                                                                           in_str1,
-                                                                           in_str2,
-                                                                           in_str3,
-                                                                           reserveSpace,
-                                                                           total_work,
-                                                                           in_offset,
-                                                                           out_offset,
-                                                                           rsvsp_offset);
-}
-#endif
-
-// Dropout Backward
-#if !RUN_FORWARD
-
-#ifndef USE_PRNG
-#define USE_PRNG 0
-#endif
-
-/**
- * @brief Applies dropout backward operation to the input data.
- * The mask is either generated or an existing mask is loaded into
- * registers from the reserveSpace. The loaded mask is applied to the data in the registers. The
- * processed data is then written to the output. Reading and writing of input data can be performed
- * as vectorized operations, with the extent of vectorization determined by #RD_BLOCK.
- */
-template <typename F, typename T, typename B, bool PRNG = false>
-__forceinline__ __device__ void dropoutbw(const rocrand_state_xorwow* state,
-                                          float dropout,
-                                          float scale,
-                                          int dim1,
-                                          int dim2,
-                                          int dim3,
-                                          int dim4,
-                                          const F* y,
-                                          int out_str0,
-                                          int out_str1,
-                                          int out_str2,
-                                          int out_str3,
-                                          F* x,
-                                          int in_str0,
-                                          int in_str1,
-                                          int in_str2,
-                                          int in_str3,
-                                          uchar* reserveSpace,
-                                          unsigned int total_work,
-                                          unsigned int in_offset,
-                                          unsigned int out_offset,
-                                          unsigned int rsvsp_offset)
-{
-    F dat_blk[RD_BLCK];     // Read in the input data into the register space
-    uchar is_kept[RD_BLCK]; // is_kept holds the mask for the dropout
-
-    uint sid = threadIdx.x + blockIdx.x * blockDim.x;
-    rocrand_state_xorwow cur_state;
-    cur_state = state[sid];
-
-    for(uint gid = threadIdx.x + blockIdx.x * blockDim.x; gid < total_work;
-        gid += blockDim.x * gridDim.x)
-    {
-        uint i0    = gid / (dim1 * dim2 * dim3 * dim4);
-        uint i1    = (gid / (dim2 * dim3 * dim4)) % dim1;
-        uint i2    = (gid / (dim3 * dim4)) % dim2;
-        uint i3    = (gid / dim4) % dim3;
-        uint i4    = gid % dim4;
-        uint i4_rd = i4 / RD_BLCK;
-
-        uint x_idx = i0 * in_str0 + i1 * in_str1 + i2 * in_str2 + i3 * in_str3 +
-                     i4_rd * RD_BLCK; // Calculate the index of the output tensor
-        uint y_idx = i0 * out_str0 + i1 * out_str1 + i2 * out_str2 + i3 * out_str3 +
-                     i4_rd * RD_BLCK; // Calculate the index of the input tensor
-
-        // Read RD_BLCK number of FP_TYPE data from y and store it in dat_blk
-        *(reinterpret_cast<T*>(dat_blk)) = *(reinterpret_cast<const T*>(y + out_offset + y_idx));
-
-        // If PRNG is enabled then generate the mask for the dropout
-        if constexpr(PRNG)
-        {
-// Generate mask for RD_BLCK number of elements when it is a vectorized read.
-#pragma unroll
-            for(uint i = 0; i < RD_BLCK; ++i)
-            {
-
-                is_kept[i] = static_cast<uchar>(prng::xorwow_uniform(&cur_state) > dropout);
-            }
-        }
-        else
-        {
-            // If PRNG is not enabled, then do a vectorized read of the mask from the reserveSpace
-            *(reinterpret_cast<B*>(is_kept)) = *(reinterpret_cast<const B*>(
-                reserveSpace + rsvsp_offset + gid - i4 + i4_rd * RD_BLCK));
-        }
-
-// Iterate over the RD_BLCK number of elements and apply the mask to the data
-#pragma unroll
-        for(uint i = 0; i < RD_BLCK; ++i)
-        {
-            // If the element is retained then scale it with the scale factor
-            dat_blk[i] = static_cast<bool>(is_kept[i]) ? dat_blk[i] * static_cast<F>(scale)
-                                                       : static_cast<F>(0);
-        }
-        // Write RD_BLCK number of FP_TYPE elements to the output in case of a vectorized write
-        *(reinterpret_cast<T*>(x + in_offset + x_idx)) = *(reinterpret_cast<T*>(dat_blk));
-    }
+    dropout_kernel<FP_TYPE, READ_DAT_TYPE, READ_BOOL_TYPE, USE_MASK, USE_RSVSP>(state,
+                                                                                dropout,
+                                                                                scale,
+                                                                                dim1,
+                                                                                dim2,
+                                                                                dim3,
+                                                                                dim4,
+                                                                                y,
+                                                                                out_str0,
+                                                                                out_str1,
+                                                                                out_str2,
+                                                                                out_str3,
+                                                                                x,
+                                                                                in_str0,
+                                                                                in_str1,
+                                                                                in_str2,
+                                                                                in_str3,
+                                                                                reserveSpace,
+                                                                                total_work,
+                                                                                in_offset,
+                                                                                out_offset,
+                                                                                rsvsp_offset);
 }
 
-extern "C" __global__ void DropoutBW(const rocrand_state_xorwow* state,
-                                     float dropout,
-                                     float scale,
-                                     int dim1,
-                                     int dim2,
-                                     int dim3,
-                                     int dim4,
-                                     const FP_TYPE* y,
-                                     int out_str0,
-                                     int out_str1,
-                                     int out_str2,
-                                     int out_str3,
-                                     FP_TYPE* x,
-                                     int in_str0,
-                                     int in_str1,
-                                     int in_str2,
-                                     int in_str3,
-                                     uchar* reserveSpace,
-                                     unsigned int total_work,
-                                     unsigned int in_offset,
-                                     unsigned int out_offset,
-                                     unsigned int rsvsp_offset)
-{
-    dropoutbw<FP_TYPE, READ_DAT_TYPE, READ_BOOL_TYPE, USE_PRNG>(state,
-                                                                dropout,
-                                                                scale,
-                                                                dim1,
-                                                                dim2,
-                                                                dim3,
-                                                                dim4,
-                                                                y,
-                                                                out_str0,
-                                                                out_str1,
-                                                                out_str2,
-                                                                out_str3,
-                                                                x,
-                                                                in_str0,
-                                                                in_str1,
-                                                                in_str2,
-                                                                in_str3,
-                                                                reserveSpace,
-                                                                total_work,
-                                                                in_offset,
-                                                                out_offset,
-                                                                rsvsp_offset);
-}
-#endif
 #endif

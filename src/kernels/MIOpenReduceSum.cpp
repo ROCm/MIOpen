@@ -30,7 +30,6 @@
 
 #include "float_types.h"
 #include "tensor_view.hpp"
-#include "warp_reduce.hpp"
 #include "block_reduce.hpp"
 
 template <typename TO>
@@ -47,12 +46,12 @@ ReduceSum(const FLOAT_ACCUM* input, TO* output, uint64_t N, tensor_view_t<1> out
 }
 
 extern "C" __global__ void ReduceSum(const FLOAT_ACCUM* __restrict__ input,
-                                     OUTPUT_TYPE* __restrict__ output,
+                                     FLOAT* __restrict__ output,
                                      uint64_t N,
                                      tensor_view_t<1> output_tv)
 {
     // instantiate the kernel
-    ReduceSum<OUTPUT_TYPE>(input, output, N, output_tv);
+    ReduceSum<FLOAT>(input, output, N, output_tv);
 }
 
 extern "C" __global__ void ReduceSumFLOATACCUM(const FLOAT_ACCUM* __restrict__ input,
@@ -93,12 +92,12 @@ __device__ void Reduce1dSum(const FLOAT_ACCUM* __restrict__ input,
 }
 
 extern "C" __global__ void Reduce1dSum(const FLOAT_ACCUM* __restrict__ input,
-                                       OUTPUT_TYPE* __restrict__ output,
+                                       FLOAT* __restrict__ output,
                                        uint64_t output_numel,
                                        uint64_t inner_size,
                                        uint64_t outer_size,
                                        tensor_view_t<1> output_tv)
 {
     // instantiate the kernel
-    Reduce1dSum<OUTPUT_TYPE>(input, output, output_numel, inner_size, outer_size, output_tv);
+    Reduce1dSum<FLOAT>(input, output, output_numel, inner_size, outer_size, output_tv);
 }
