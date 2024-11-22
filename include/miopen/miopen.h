@@ -72,7 +72,6 @@
  * @defgroup ReduceCalculation
  * @defgroup RotaryPositionalEmbeddings
  * @defgroup ReLU
- * @defgroup cartesianprod
  *
  */
 
@@ -8005,68 +8004,58 @@ MIOPEN_EXPORT miopenStatus_t miopenMultiMarginLossForward(miopenHandle_t handle,
 #endif // MIOPEN_BETA_API
 
 #ifdef MIOPEN_BETA_API
-// cartesianprod APIs
-/** @addtogroup cartesianprod
+// SparseSoftmaxCrossEntropyWithLogits APIs
+/** @addtogroup LossFunction
  *
  *  @{
  */
 
-/*! @brief Helper function to query the minimum workspace size required by the CartesianProd forward
- * call
+/*! @brief Execute a sparsesoftmaxcrossentropywithlogits forward layer
  *
- * @param handle                   MIOpen Handle (input)
- * @param inputDescs               Tensor descriptor for input tensor (input)
- * @param outputDesc               Tensor descriptor for output tensor (input)
- * @param sizeInBytes              Pointer to data to return the minimum workspace size (output)
- * @return                         miopenStatus_t
+ * @param handle                MIOpen handle (input)
+ * @param inputDesc             Tensor descriptor for input  tensor (input)
+ * @param input                 Data tensor input  (input)
+ * @param targetDesc            Tensor descriptor for target tensor (input)
+ * @param target                Data tensor target (input)
+ * @param outputDesc            Tensor descriptor for output tensor (input)
+ * @param output                Data tensor output (output)
+ * @param backpropDesc          Tensor descriptor for backprop tensor (input)
+ * @param backprop              Data tensor backprop (output)
+ * @return                      miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t
-miopenGetCartesianProdForwardWorkspaceSize(miopenHandle_t handle,
-                                           const uint64_t inputCount,
-                                           const miopenTensorDescriptor_t* inputDescs,
-                                           const miopenTensorDescriptor_t outputDesc,
-                                           uint64_t* sizeInBytes);
+miopenSparseSoftmaxCrossEntropyWithLogitsForward(miopenHandle_t handle,
+                                                 const miopenTensorDescriptor_t inputDesc,
+                                                 const void* input,
+                                                 const miopenTensorDescriptor_t targetDesc,
+                                                 const void* target,
+                                                 const miopenTensorDescriptor_t outputDesc,
+                                                 void* output,
+                                                 const miopenTensorDescriptor_t backpropDesc,
+                                                 void* backprop);
 
-/*! @brief Execute an cartesianprod forward layer
+/*! @brief Execute a sparsesoftmaxcrossentropywithlogits backward layer
  *
- * @param handle                   MIOpen handle (input)
- * @param workspace                Address of the allocated workspace data (input)
- * @param workspaceSizeInBytes     Size in bytes of the allocated workspace data (input)
- * @param inputCount               Number of input tensors (input)
- * @param inputDescs               Tensor descriptor for input tensor (input)
- * @param inputs                   Data tensor input (input)
- * @param outputDesc               Tensor descriptor for output tensor (input)
- * @param output                   Data tensor output (output)
- * @return                         miopenStatus_t
- */
-MIOPEN_EXPORT miopenStatus_t miopenCartesianProdForward(miopenHandle_t handle,
-                                                        void* workspace,
-                                                        const uint64_t workspaceSizeInBytes,
-                                                        const uint64_t inputCount,
-                                                        const miopenTensorDescriptor_t* inputDescs,
-                                                        const void* const* inputs,
-                                                        const miopenTensorDescriptor_t outputDesc,
-                                                        void* output);
-
-/*! @brief Execute an cartesianprod backward layer
- *
- * @param handle                   MIOpen handle (input)
- * @param inputCount               Number of input tensors (input)
- * @param outputGradDesc           Tensor descriptor for output grad tensor (input)
- * @param output_grad              Data tensor output grad (input)
- * @param inputGradDescs           Tensor descriptor for input grad tensor (input)
- * @param input_grads              Data tensor input grad (output)
- * @return                         miopenStatus_t
+ * @param handle                MIOpen handle (input)
+ * @param outputGradDesc        Tensor descriptor for output grad tensor (input)
+ * @param output_grad           Data tensor output grad (input)
+ * @param backpropDesc          Tensor descriptor for backprop tensor (input)
+ * @param backprop              Data tensor backprop (input)
+ * @param inputGradDesc         Tensor descriptor for input grad tensor (input)
+ * @param input_grad            Data tensor input grad (output)
+ * @return                      miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t
-miopenCartesianProdBackward(miopenHandle_t handle,
-                            const uint64_t inputCount,
-                            const miopenTensorDescriptor_t outputGradDesc,
-                            const void* output_grad,
-                            const miopenTensorDescriptor_t* inputGradDescs,
-                            void** input_grads);
+miopenSparseSoftmaxCrossEntropyWithLogitsBackward(miopenHandle_t handle,
+                                                  const miopenTensorDescriptor_t outputGradDesc,
+                                                  const void* output_grad,
+                                                  const miopenTensorDescriptor_t backpropDesc,
+                                                  const void* backprop,
+                                                  const miopenTensorDescriptor_t inputGradDesc,
+                                                  void* input_grad);
+
 /** @} */
-// CLOSEOUT cartesianprod DOXYGEN GROUP
+// CLOSEOUT LossFunction DOXYGEN GROUP
 #endif // MIOPEN_BETA_API
 
 #ifdef __cplusplus

@@ -93,8 +93,6 @@ set( MIOpen_Source
     batch_norm_api.cpp
     batchnorm/problem_description.cpp
     buffer_info.cpp
-    cartesianprod_api.cpp
-    cartesianprod/problem_description.cpp
     cat_api.cpp
     cat/problem_description.cpp
     check_numerics.cpp
@@ -196,6 +194,8 @@ set( MIOpen_Source
     rope_api.cpp
     rope/problem_description.cpp
     scalar.cpp
+    sparsesoftmaxcrossentropywithlogits_api.cpp
+    sparsesoftmaxcrossentropywithlogits/problem_description.cpp
     softmarginloss/problem_description.cpp 
     softmarginloss_api.cpp
     softmax.cpp
@@ -222,8 +222,6 @@ set( MIOpen_Source
     solver/batchnorm/forward_spatial_multiple.cpp
     solver/batchnorm/forward_spatial_single.cpp
     solver/batchnorm/forward_training_ck.cpp
-    solver/cartesianprod/backward_cartesianprod.cpp
-    solver/cartesianprod/forward_cartesianprod.cpp
     solver/cat/forward_cat.cpp
     solver/conv/conv_asm_1x1u.cpp
     solver/conv/conv_asm_1x1u_stride2.cpp
@@ -334,6 +332,8 @@ set( MIOpen_Source
     solver/reduce/forward_sum.cpp
     solver/rope/backward_rope.cpp
     solver/rope/forward_rope.cpp
+    solver/sparsesoftmaxcrossentropywithlogits/backward_sparsesoftmaxcrossentropywithlogits.cpp
+    solver/sparsesoftmaxcrossentropywithlogits/forward_sparsesoftmaxcrossentropywithlogits.cpp
     solver/softmarginloss/backward_softmarginloss.cpp
     solver/softmarginloss/forward_softmarginloss.cpp
     solver/softmax/attn_softmax.cpp
@@ -517,7 +517,6 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         ${GPU_BATCHED_TRANSPOSE_KERNEL_HIP}
         ${GPU_GENERAL_TENSOR_REORDER_KERNEL_HIP_SOURCE}
         kernels/MIOpenAdam.cpp
-        kernels/MIOpenCartesianProd.cpp
         kernels/MIOpenCat.cpp
         kernels/MIOpenCheckNumerics.cpp
         kernels/MIOpenBatchNormActivBwdPerAct.cl
@@ -555,6 +554,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenReduceExtreme.cpp
         kernels/MIOpenReduceSum.cpp
         kernels/MIOpenRoPE.cpp
+        kernels/MIOpenSparseSoftmaxCrossEntropyWithLogits.cpp
         kernels/MIOpenSoftMarginLoss.cpp
         kernels/MIOpenSoftmax.cl
         kernels/MIOpenSoftmaxAttn.cpp
@@ -670,7 +670,6 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         activ.cpp
         adam.cpp
         addlayernorm.cpp
-        cartesianprod.cpp
         cat.cpp
         exec_utils.cpp
         groupnorm.cpp
@@ -706,6 +705,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         reducecalculation.cpp
         reduceextreme.cpp
         rope.cpp
+        sparsesoftmaxcrossentropywithlogits.cpp
         softmarginloss.cpp
         transformers_adam_w.cpp
         ${PROJECT_BINARY_DIR}/db_path.cpp

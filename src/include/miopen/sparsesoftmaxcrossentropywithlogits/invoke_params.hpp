@@ -32,35 +32,25 @@
 
 namespace miopen {
 
-namespace cartesianprod {
+namespace sparsesoftmaxcrossentropywithlogits {
 
 struct FwdInvokeParams : public miopen::InvokeParams
 {
 
     FwdInvokeParams() = default;
 
-    const TensorDescriptor* const* inputDescs = nullptr;
-    const TensorDescriptor* outputDesc        = nullptr;
+    const TensorDescriptor* inputDesc    = nullptr;
+    const TensorDescriptor* targetDesc   = nullptr;
+    const TensorDescriptor* outputDesc   = nullptr;
+    const TensorDescriptor* backpropDesc = nullptr;
 
-    uint64_t inputCount = 0;
-    ConstData_t* inputs = nullptr;
-    Data_t output       = nullptr;
+    ConstData_t input  = nullptr;
+    ConstData_t target = nullptr;
+    Data_t output      = nullptr;
+    Data_t backprop    = nullptr;
 
-    const void* GetInput(uint64_t inputIndex) const
-    {
-        return inputIndex < inputCount ? inputs[inputIndex] : nullptr;
-    }
-
-    const TensorDescriptor* GetInputDesc(uint64_t inputIndex) const
-    {
-        return inputIndex < inputCount ? inputDescs[inputIndex] : nullptr;
-    }
-
-    std::uint64_t workspaceSize = 0;
-    Data_t workspace            = nullptr;
-
-    std::uint64_t GetWorkspaceSize() const { return workspaceSize; }
-    Data_t GetWorkspace() const { return workspace; }
+    std::uint64_t GetWorkspaceSize() const { return 0; }
+    Data_t GetWorkspace() const { return nullptr; }
 };
 
 struct BwdInvokeParams : public miopen::InvokeParams
@@ -68,27 +58,18 @@ struct BwdInvokeParams : public miopen::InvokeParams
 
     BwdInvokeParams() = default;
 
-    const TensorDescriptor* outputGradDesc        = nullptr;
-    const TensorDescriptor* const* inputGradDescs = nullptr;
+    const TensorDescriptor* outputGradDesc = nullptr;
+    const TensorDescriptor* backpropDesc   = nullptr;
+    const TensorDescriptor* inputGradDesc  = nullptr;
 
-    uint64_t inputCount     = 0;
     ConstData_t output_grad = nullptr;
-    Data_t* input_grads     = nullptr;
-
-    void* GetInputGrad(uint64_t inputIndex) const
-    {
-        return inputIndex < inputCount ? input_grads[inputIndex] : nullptr;
-    }
-
-    const TensorDescriptor* GetInputGradDesc(uint64_t inputIndex) const
-    {
-        return inputIndex < inputCount ? inputGradDescs[inputIndex] : nullptr;
-    }
+    ConstData_t backprop    = nullptr;
+    Data_t input_grad       = nullptr;
 
     std::uint64_t GetWorkspaceSize() const { return 0; }
     Data_t GetWorkspace() const { return nullptr; }
 };
 
-} // namespace cartesianprod
+} // namespace sparsesoftmaxcrossentropywithlogits
 
 } // namespace miopen

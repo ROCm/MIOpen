@@ -64,7 +64,7 @@ enum class Primitive
     Kthvalue,
     SoftMarginLoss,
     MultiMarginLoss,
-    CartesianProd,
+    SparseSoftmaxCrossEntropyWithLogits,
 };
 
 struct MIOPEN_INTERNALS_EXPORT Id

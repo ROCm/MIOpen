@@ -29,7 +29,7 @@
 #include <miopen/conv_solution.hpp>
 #include <miopen/execution_context.hpp>
 #include <miopen/solver.hpp>
-#include <miopen/cartesianprod/problem_description.hpp>
+#include <miopen/sparsesoftmaxcrossentropywithlogits/problem_description.hpp>
 #include <miopen/kernel_build_params.hpp>
 #include <miopen/kernel_info.hpp>
 #include <miopen/mlo_internal.hpp>
@@ -38,7 +38,7 @@ namespace miopen {
 
 namespace solver {
 
-namespace cartesianprod {
+namespace sparsesoftmaxcrossentropywithlogits {
 
 const auto make_hip_kernel = [](std::vector<size_t> localsize,
                                 std::vector<size_t> gridsize,
@@ -55,48 +55,53 @@ const auto make_hip_kernel = [](std::vector<size_t> localsize,
         build_params.GenerateFor(kbp::HIP{}), localsize, gridsize, kernel_file, kernel_name};
 };
 
-using CartesianProdForwardSolver =
-    NonTunableSolverBase<ExecutionContext, miopen::cartesianprod::FwdProblemDescription>;
+using SparseSoftmaxCrossEntropyWithLogitsForwardSolver =
+    NonTunableSolverBase<ExecutionContext,
+                         miopen::sparsesoftmaxcrossentropywithlogits::FwdProblemDescription>;
 
-using CartesianProdBackwardSolver =
-    NonTunableSolverBase<ExecutionContext, miopen::cartesianprod::BwdProblemDescription>;
+using SparseSoftmaxCrossEntropyWithLogitsBackwardSolver =
+    NonTunableSolverBase<ExecutionContext,
+                         miopen::sparsesoftmaxcrossentropywithlogits::BwdProblemDescription>;
 
 // FORWARD
-struct CartesianProdForward final : CartesianProdForwardSolver
-{
-    const std::string& SolverDbId() const override { return GetSolverDbId<CartesianProdForward>(); }
-
-    bool IsApplicable(const ExecutionContext& context,
-                      const miopen::cartesianprod::FwdProblemDescription& problem) const override;
-
-    ConvSolution
-    GetSolution(const ExecutionContext& context,
-                const miopen::cartesianprod::FwdProblemDescription& problem) const override;
-
-    bool MayNeedWorkspace() const override { return true; }
-
-    std::size_t
-    GetWorkspaceSize(const ExecutionContext& context,
-                     const miopen::cartesianprod::FwdProblemDescription& problem) const override;
-};
-
-// BACKWARD
-struct CartesianProdBackward final : CartesianProdBackwardSolver
+struct SparseSoftmaxCrossEntropyWithLogitsForward final
+    : SparseSoftmaxCrossEntropyWithLogitsForwardSolver
 {
     const std::string& SolverDbId() const override
     {
-        return GetSolverDbId<CartesianProdBackward>();
+        return GetSolverDbId<SparseSoftmaxCrossEntropyWithLogitsForward>();
     }
 
     bool IsApplicable(const ExecutionContext& context,
-                      const miopen::cartesianprod::BwdProblemDescription& problem) const override;
+                      const miopen::sparsesoftmaxcrossentropywithlogits::FwdProblemDescription&
+                          problem) const override;
 
     ConvSolution
     GetSolution(const ExecutionContext& context,
-                const miopen::cartesianprod::BwdProblemDescription& problem) const override;
+                const miopen::sparsesoftmaxcrossentropywithlogits::FwdProblemDescription& problem)
+        const override;
 };
 
-} // namespace cartesianprod
+// BACKWARD
+struct SparseSoftmaxCrossEntropyWithLogitsBackward final
+    : SparseSoftmaxCrossEntropyWithLogitsBackwardSolver
+{
+    const std::string& SolverDbId() const override
+    {
+        return GetSolverDbId<SparseSoftmaxCrossEntropyWithLogitsBackward>();
+    }
+
+    bool IsApplicable(const ExecutionContext& context,
+                      const miopen::sparsesoftmaxcrossentropywithlogits::BwdProblemDescription&
+                          problem) const override;
+
+    ConvSolution
+    GetSolution(const ExecutionContext& context,
+                const miopen::sparsesoftmaxcrossentropywithlogits::BwdProblemDescription& problem)
+        const override;
+};
+
+} // namespace sparsesoftmaxcrossentropywithlogits
 
 } // namespace solver
 

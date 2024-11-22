@@ -23,40 +23,55 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#pragma once
-#include <miopen/common.hpp>
+
+#include <miopen/sparsesoftmaxcrossentropywithlogits/problem_description.hpp>
+#include <miopen/names.hpp>
+
+#include <sstream>
 
 namespace miopen {
 
-struct Handle;
-struct TensorDescriptor;
+namespace sparsesoftmaxcrossentropywithlogits {
 
-namespace cartesianprod {
+inline std::ostream& operator<<(std::ostream& os, const std::vector<uint64_t>& v)
+{
+    os << '{';
+    for(int i = 0; i < v.size(); ++i)
+    {
+        if(i != 0)
+            os << ',';
+        os << v[i];
+    }
+    os << '}';
+    return os;
+}
 
-MIOPEN_INTERNALS_EXPORT size_t
-GetCartesianProdForwardWorkspaceSize(Handle& handle,
-                                     size_t inputCount,
-                                     const TensorDescriptor* const* inputDescs,
-                                     const TensorDescriptor& outputDesc);
+NetworkConfig FwdProblemDescription::MakeNetworkConfig() const
+{
+    auto dtype = outputDesc.GetType();
+    std::ostringstream ss;
 
-MIOPEN_INTERNALS_EXPORT miopenStatus_t
-CartesianProdForward(Handle& handle,
-                     Data_t workspace,
-                     size_t workspaceSizeInBytes,
-                     size_t inputCount,
-                     const TensorDescriptor* const* inputDescs,
-                     ConstData_t* inputs,
-                     const TensorDescriptor& outputDesc,
-                     Data_t output);
+    ss << "sparsesoftmaxcrossentropywithlogits_fwd";
+    ss << "-dtype" << dtype;
+    ss << "-Is" << inputDesc.GetLengths();
+    ss << "-IsContiguous" << IsAllContiguous();
 
-MIOPEN_INTERNALS_EXPORT miopenStatus_t
-CartesianProdBackward(Handle& handle,
-                      size_t inputCount,
-                      const TensorDescriptor& outputGradDesc,
-                      ConstData_t output_grad,
-                      const TensorDescriptor* const* inputGradDescs,
-                      Data_t* input_grads);
+    return NetworkConfig{ss.str()};
+}
 
-} // namespace cartesianprod
+NetworkConfig BwdProblemDescription::MakeNetworkConfig() const
+{
+    auto dtype = outputGradDesc.GetType();
+    std::ostringstream ss;
+
+    ss << "sparsesoftmaxcrossentropywithlogits_bwd";
+    ss << "-dtype" << dtype;
+    ss << "-dIs" << inputGradDesc.GetLengths();
+    ss << "-IsContiguous" << IsAllContiguous();
+
+    return NetworkConfig{ss.str()};
+}
+
+} // namespace sparsesoftmaxcrossentropywithlogits
 
 } // namespace miopen
