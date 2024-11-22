@@ -24,16 +24,16 @@
  *
  *******************************************************************************/
 #include "registry_driver_maker.hpp"
-#include "cartesianprod_driver.hpp"
+#include "sparsesoftmaxcrossentropywithlogits_driver.hpp"
 
 static Driver* makeDriver(const std::string& base_arg)
 {
-    if(base_arg == "cartesianprod")
-        return new CartesianProdDriver<float, float>();
-    if(base_arg == "cartesianprodfp16")
-        return new CartesianProdDriver<float16, float>();
-    if(base_arg == "cartesianprodbfp16")
-        return new CartesianProdDriver<bfloat16, float>();
+    if(base_arg == "sparsesoftmaxcrossentropywithlogits")
+        return new SparseSoftmaxCrossEntropyWithLogitsDriver<float, float>();
+    if(base_arg == "sparsesoftmaxcrossentropywithlogitsfp16")
+        return new SparseSoftmaxCrossEntropyWithLogitsDriver<float16, float>();
+    if(base_arg == "sparsesoftmaxcrossentropywithlogitsbfp16")
+        return new SparseSoftmaxCrossEntropyWithLogitsDriver<bfloat16, float>();
     return nullptr;
 }
 

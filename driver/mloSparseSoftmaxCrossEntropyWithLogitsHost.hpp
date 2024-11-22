@@ -25,23 +25,28 @@
  *******************************************************************************/
 #pragma once
 
-#include "tensor_holder.hpp"
+#include <miopen/tensor.hpp>
 #include <miopen/tensor_view_utils.hpp>
-#include "ford.hpp"
+#include <../test/ford.hpp>
 
-template <class T, class Ta>
-void cpu_sparsesoftmaxcrossentropywithlogits_forward(const tensor<T> input,
-                                                     const tensor<Ta> target,
-                                                     tensor<T>& output,
-                                                     tensor<T>& backprop,
+template <typename Tgpu, typename Tcheck, typename Ta>
+int32_t
+mloSparseSoftmaxCrossEntropyWithLogitsForwardRunHost(const miopenTensorDescriptor_t inputDesc,
+                                                     const Tgpu* input,
+                                                     const miopenTensorDescriptor_t targetDesc,
+                                                     const Ta* target,
+                                                     const miopenTensorDescriptor_t outputDesc,
+                                                     Tcheck* output,
+                                                     const miopenTensorDescriptor_t backpropDesc,
+                                                     Tcheck* backprop,
                                                      const uint64_t num_class)
 {
-    auto input_tv    = miopen::get_inner_expanded_tv<2>(input.desc);
-    auto target_tv   = miopen::get_inner_expanded_tv<1>(target.desc);
-    auto output_tv   = miopen::get_inner_expanded_tv<1>(output.desc);
-    auto backprop_tv = miopen::get_inner_expanded_tv<2>(backprop.desc);
+    auto input_tv    = miopen::get_inner_expanded_tv<2>(miopen::deref(inputDesc));
+    auto target_tv   = miopen::get_inner_expanded_tv<1>(miopen::deref(targetDesc));
+    auto output_tv   = miopen::get_inner_expanded_tv<1>(miopen::deref(outputDesc));
+    auto backprop_tv = miopen::get_inner_expanded_tv<2>(miopen::deref(backpropDesc));
 
-    par_ford(input.desc.GetLengths()[0])([&](auto gid) {
+    par_ford(miopen::deref(inputDesc).GetLengths()[0])([&](auto gid) {
         double lmax    = std::numeric_limits<double>::lowest();
         double lsum    = 0.0f;
         uint64_t label = static_cast<uint64_t>(target[target_tv.get_tensor_view_idx({gid})]);
@@ -57,29 +62,35 @@ void cpu_sparsesoftmaxcrossentropywithlogits_forward(const tensor<T> input,
         });
 
         double val = static_cast<double>(input[input_tv.get_tensor_view_idx({gid, label})]);
-        output[output_tv.get_tensor_view_idx({gid})] = static_cast<T>(log(lsum) - val + lmax);
+        output[output_tv.get_tensor_view_idx({gid})] = static_cast<Tcheck>(log(lsum) - val + lmax);
 
         ford(num_class)([&](uint64_t j) {
             double val = static_cast<double>(input[input_tv.get_tensor_view_idx({gid, j})]);
             double backprop_val =
                 (j == label) ? exp(val - lmax) / lsum - 1.0f : exp(val - lmax) / lsum;
 
-            backprop[backprop_tv.get_tensor_view_idx({gid, j})] = static_cast<T>(backprop_val);
+            backprop[backprop_tv.get_tensor_view_idx({gid, j})] = static_cast<Tcheck>(backprop_val);
         });
     });
+
+    return miopenStatusSuccess;
 }
 
-template <class T>
-void cpu_sparsesoftmaxcrossentropywithlogits_backward(tensor<T> output_grad,
-                                                      tensor<T> backprop,
-                                                      tensor<T>& input_grad,
+template <typename Tgpu, typename Tcheck>
+int32_t
+mloSparseSoftmaxCrossEntropyWithLogitsBackwardRunHost(const miopenTensorDescriptor_t outputGradDesc,
+                                                      const Tgpu* output_grad,
+                                                      const miopenTensorDescriptor_t backpropDesc,
+                                                      const Tgpu* backprop,
+                                                      const miopenTensorDescriptor_t inputGradDesc,
+                                                      Tcheck* input_grad,
                                                       const uint64_t num_class)
 {
-    auto output_grad_tv = miopen::get_inner_expanded_tv<1>(output_grad.desc);
-    auto backprop_tv    = miopen::get_inner_expanded_tv<2>(backprop.desc);
-    auto input_grad_tv  = miopen::get_inner_expanded_tv<2>(input_grad.desc);
+    auto output_grad_tv = miopen::get_inner_expanded_tv<1>(miopen::deref(outputGradDesc));
+    auto backprop_tv    = miopen::get_inner_expanded_tv<2>(miopen::deref(backpropDesc));
+    auto input_grad_tv  = miopen::get_inner_expanded_tv<2>(miopen::deref(inputGradDesc));
 
-    par_ford(output_grad.desc.GetLengths()[0])([&](auto gid) {
+    par_ford(miopen::deref(outputGradDesc).GetLengths()[0])([&](auto gid) {
         double output_grad_val =
             static_cast<double>(output_grad[output_grad_tv.get_tensor_view_idx({gid})]);
 
@@ -88,7 +99,8 @@ void cpu_sparsesoftmaxcrossentropywithlogits_backward(tensor<T> output_grad,
                 static_cast<double>(backprop[backprop_tv.get_tensor_view_idx({gid, j})]);
 
             input_grad[input_grad_tv.get_tensor_view_idx({gid, j})] =
-                static_cast<T>(output_grad_val * backprop_val);
+                static_cast<Tcheck>(output_grad_val * backprop_val);
         });
     });
+    return miopenStatusSuccess;
 }
