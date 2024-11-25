@@ -7811,7 +7811,6 @@ MIOPEN_EXPORT miopenStatus_t miopenPReLUBackward(miopenHandle_t handle,
  * @param SD                       Stride size in dimension D (input)
  * @param SH                       Stride size in dimension H (input)
  * @param norm_type                Norm type (input)
- * use the number of elements in the pooling window (input)
  * @return                         miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t miopenLPPoolForward(miopenHandle_t handle,
@@ -7841,7 +7840,6 @@ MIOPEN_EXPORT miopenStatus_t miopenLPPoolForward(miopenHandle_t handle,
  * @param SD                       Stride size in dimension D (input)
  * @param SH                       Stride size in dimension H (input)
  * @param norm_type                Norm type (input)
- * use the number of elements in the pooling window (input)
  * @return                         miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t miopenLPPoolBackward(miopenHandle_t handle,

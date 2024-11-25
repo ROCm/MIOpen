@@ -53,7 +53,7 @@ bool IsOverRocmFwd2d(const miopen::lppool::FwdProblemDescription& problem)
 bool LPPoolForward2d::IsApplicable(const ExecutionContext&,
                                    const miopen::lppool::FwdProblemDescription& problem) const
 {
-    if(problem.GetInputDesc().GetNumDims() != 4 || problem.GetOutputDesc().GetNumDims() != 4)
+    if(problem.GetInputDesc().GetNumDims() != 4)
     {
         return false;
     }

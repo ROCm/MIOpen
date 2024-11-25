@@ -309,12 +309,6 @@ protected:
         double threshold = std::numeric_limits<T>::epsilon();
         auto error       = miopen::rms_range(ref_input_grad, input_grad);
 
-        // for(int i = -10; i < -1; ++i)
-        // {
-        //     std::cout << "ref_input_grad[" << i << "] = " << ref_input_grad[i] << std::endl;
-        //     std::cout << "input_grad[" << i << "] = " << input_grad[i] << std::endl;
-        // }
-
         ASSERT_EQ(miopen::range_distance(ref_input_grad), miopen::range_distance(input_grad));
         EXPECT_LT(error, threshold * 10);
     }

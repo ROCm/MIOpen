@@ -46,7 +46,7 @@ namespace lppool {
 bool LPPoolForward1d::IsApplicable(const ExecutionContext&,
                                    const miopen::lppool::FwdProblemDescription& problem) const
 {
-    if(problem.GetInputDesc().GetNumDims() != 3 || problem.GetOutputDesc().GetNumDims() != 3)
+    if(problem.GetInputDesc().GetNumDims() != 3)
     {
         return false;
     }

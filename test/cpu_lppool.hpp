@@ -30,15 +30,15 @@
 #include "ford.hpp"
 
 template <class T>
-void cpu_lppool_forward_1d(tensor<T> input,
+void cpu_lppool_forward_1d(const tensor<T> input,
                            tensor<T>& output,
-                           int64_t N,
-                           int64_t C,
-                           int64_t D,
-                           int64_t OD,
-                           tensor<int64_t> ksize,
-                           tensor<int64_t> stride,
-                           float norm_type)
+                           const int64_t N,
+                           const int64_t C,
+                           const int64_t D,
+                           const int64_t OD,
+                           const tensor<int64_t> ksize,
+                           const tensor<int64_t> stride,
+                           const float norm_type)
 {
     auto dims  = input.desc.GetLengths();
     auto numel = output.desc.GetElementSize();
@@ -72,17 +72,17 @@ void cpu_lppool_forward_1d(tensor<T> input,
 }
 
 template <class T>
-void cpu_lppool_forward_2d(tensor<T> input,
+void cpu_lppool_forward_2d(const tensor<T> input,
                            tensor<T>& output,
-                           int64_t N,
-                           int64_t C,
-                           int64_t H,
-                           int64_t W,
-                           int64_t OH,
-                           int64_t OW,
-                           tensor<int64_t> ksize,
-                           tensor<int64_t> stride,
-                           float norm_type)
+                           const int64_t N,
+                           const int64_t C,
+                           const int64_t H,
+                           const int64_t W,
+                           const int64_t OH,
+                           const int64_t OW,
+                           const tensor<int64_t> ksize,
+                           const tensor<int64_t> stride,
+                           const float norm_type)
 {
     auto dims  = input.desc.GetLengths();
     auto numel = output.desc.GetElementSize();
@@ -126,17 +126,17 @@ void cpu_lppool_forward_2d(tensor<T> input,
 }
 
 template <class T>
-void cpu_lppool_backward_1d(tensor<T> input,
-                            tensor<T> output,
-                            tensor<T> output_grad,
+void cpu_lppool_backward_1d(const tensor<T> input,
+                            const tensor<T> output,
+                            const tensor<T> output_grad,
                             tensor<T>& input_grad,
-                            int64_t N,
-                            int64_t C,
-                            int64_t D,
-                            int64_t OD,
-                            tensor<int64_t> ksize,
-                            tensor<int64_t> stride,
-                            float norm_type)
+                            const int64_t N,
+                            const int64_t C,
+                            const int64_t D,
+                            const int64_t OD,
+                            const tensor<int64_t> ksize,
+                            const tensor<int64_t> stride,
+                            const float norm_type)
 {
     auto dims  = input_grad.desc.GetLengths();
     auto numel = input_grad.desc.GetElementSize();
@@ -178,19 +178,19 @@ void cpu_lppool_backward_1d(tensor<T> input,
 }
 
 template <class T>
-void cpu_lppool_backward_2d(tensor<T> input,
-                            tensor<T> output,
-                            tensor<T> output_grad,
+void cpu_lppool_backward_2d(const tensor<T> input,
+                            const tensor<T> output,
+                            const tensor<T> output_grad,
                             tensor<T>& input_grad,
-                            int64_t N,
-                            int64_t C,
-                            int64_t H,
-                            int64_t W,
-                            int64_t OH,
-                            int64_t OW,
-                            tensor<int64_t> ksize,
-                            tensor<int64_t> stride,
-                            float norm_type)
+                            const int64_t N,
+                            const int64_t C,
+                            const int64_t H,
+                            const int64_t W,
+                            const int64_t OH,
+                            const int64_t OW,
+                            const tensor<int64_t> ksize,
+                            const tensor<int64_t> stride,
+                            const float norm_type)
 {
     auto dims  = input_grad.desc.GetLengths();
     auto numel = input_grad.desc.GetElementSize();
