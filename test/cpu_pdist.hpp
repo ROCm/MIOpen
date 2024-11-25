@@ -60,7 +60,7 @@ void cpu_pdist_forward_contiguous(const tensor<T> input,
                 double input_second = static_cast<double>(input[j * M + m]);
                 double diff         = input_first - input_second;
 
-                T res = static_cast<T>(miopen::solver::pdist::backward(diff, grad_k, output_k, p));
+                T res = static_cast<T>(miopen::pdist::backward(diff, grad_k, output_k, p));
 
                 ref_input_grad[i * M + m] += res;
                 ref_input_grad[j * M + m] -= res;

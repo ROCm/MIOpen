@@ -62,11 +62,6 @@ bool PdistBackward::IsApplicable(const ExecutionContext& context,
 {
     std::ignore = context;
 
-    if(!problem.IsAllContiguous())
-    {
-        return false;
-    }
-
     if(!(problem.GetInputDesc().GetType() == miopenFloat ||
          problem.GetInputDesc().GetType() == miopenHalf ||
          problem.GetInputDesc().GetType() == miopenBFloat16))
@@ -85,8 +80,7 @@ PdistBackward::GetSolution(const ExecutionContext& /* context */,
 
     auto dtype = problem.GetInputDesc().GetType();
 
-    auto input_dtype  = miopen::GetDataType(problem.GetdInputDesc().GetType());
-    auto output_dtype = miopen::GetDataType(problem.GetdOutputDesc().GetType());
+    auto input_dtype  = miopen::GetDataType(problem.GetInputDesc().GetType());
     auto dinput_dtype = miopen::GetDataType(problem.GetdInputDesc().GetType());
 
     auto dinput_numel = problem.GetdInputDesc().GetElementSize();
@@ -141,7 +135,6 @@ PdistBackward::GetSolution(const ExecutionContext& /* context */,
     // reduce_dim: 0
     // output: dinput (shape=[N,M])
     {
-        // TODO: Add paralellism for efficiency if needed
         size_t xlocalsize = LOCAL_SIZE;
         size_t xgridsize  = AlignUp(dinput_numel, xlocalsize);
         size_t ylocalsize = 1;
@@ -159,7 +152,7 @@ PdistBackward::GetSolution(const ExecutionContext& /* context */,
             {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
             {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
             {"INPUT_TYPE", input_dtype == "bfloat16" ? "ushort" : input_dtype},
-            {"OUTPUT_TYPE", input_dtype == "bfloat16" ? "ushort" : output_dtype},
+            {"OUTPUT_TYPE", dinput_dtype == "bfloat16" ? "ushort" : dinput_dtype},
             {"OP_TYPE", "ReduceCalculationOp_t::Sum"},
             {"MIOPEN_REDUCE_CALCULATION_PROD", MIOPEN_REDUCE_CALCULATION_PROD},
             {"MIOPEN_REDUCE_CALCULATION_SUM", MIOPEN_REDUCE_CALCULATION_SUM}};
@@ -227,7 +220,6 @@ PdistBackward::GetSolution(const ExecutionContext& /* context */,
             // reduce_dim: 0
             // output: dinput
             {
-                // TODO: Add paralellism for efficiency if needed
                 decltype(auto) kernel = handle_.Run(kernels[1]);
 
                 kernel(ws_dinput,

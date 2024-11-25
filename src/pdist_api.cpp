@@ -31,7 +31,7 @@
 #include <miopen/tensor_ops.hpp>
 #include <miopen/pdist.hpp>
 
-static void LogCmdPdistBackward(const miopenTensorDescriptor_t inputDesc, const double p)
+inline void LogCmdPdistBackward(const miopenTensorDescriptor_t inputDesc, const double p)
 {
     if(miopen::IsLoggingCmd())
     {
@@ -92,7 +92,7 @@ miopenGetPdistBackwardWorkspaceSize(miopenHandle_t handle,
 
 extern "C" miopenStatus_t miopenPdistBackward(miopenHandle_t handle,
                                               void* workspace,
-                                              size_t workspaceSizeInBytes,
+                                              const size_t workspaceSizeInBytes,
                                               const miopenTensorDescriptor_t inputDesc,
                                               const void* input,
                                               const miopenTensorDescriptor_t outputDesc,

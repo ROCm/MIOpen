@@ -29,18 +29,22 @@
 
 namespace miopen {
 
-namespace solver {
-
 namespace pdist {
 
-inline bool is_approx_equal(double a, double b, double tolerance = 1e-6)
+template <typename T = double>
+inline bool is_approx_equal(T a, T b, T tolerance = 1e-6)
 {
     return (fabs(a - b) < tolerance);
 }
 
-inline double sign_(double val) { return (0 < val) - (val < 0); }
+template <typename T = double>
+inline T sign_(T val)
+{
+    return (0 < val) - (val < 0);
+}
 
-inline double backward(const double diff, const double grad, const double dist, const double p)
+template <typename T = double>
+inline T backward(const T diff, const T grad, const T dist, const T p)
 {
     if(p == 1.f)
     { // one
@@ -67,7 +71,5 @@ inline double backward(const double diff, const double grad, const double dist, 
 }
 
 } // namespace pdist
-
-} // namespace solver
 
 } // namespace miopen

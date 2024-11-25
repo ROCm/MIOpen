@@ -62,7 +62,7 @@ int32_t mloPdistBackwardRunHost(const miopenTensorDescriptor_t inputDesc,
                 double diff         = input_first - input_second;
 
                 Tcheck res =
-                    static_cast<Tcheck>(miopen::solver::pdist::backward(diff, grad_k, output_k, p));
+                    static_cast<Tcheck>(miopen::pdist::backward(diff, grad_k, output_k, p));
 
                 dinputHost[i * M + m] += res;
                 dinputHost[j * M + m] -= res;

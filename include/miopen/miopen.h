@@ -8051,7 +8051,7 @@ miopenGetPdistBackwardWorkspaceSize(miopenHandle_t handle,
 
 MIOPEN_EXPORT miopenStatus_t miopenPdistBackward(miopenHandle_t handle,
                                                  void* workspace,
-                                                 size_t workspaceSizeInBytes,
+                                                 const size_t workspaceSizeInBytes,
                                                  const miopenTensorDescriptor_t inputDesc,
                                                  const void* input,
                                                  const miopenTensorDescriptor_t outputDesc,

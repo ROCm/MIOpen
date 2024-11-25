@@ -34,14 +34,11 @@ namespace pdist {
 
 NetworkConfig BackwardProblemDescription::MakeNetworkConfig() const
 {
-    auto input_dtype = inputDesc.GetType();
-    auto input_dims  = inputDesc.GetLengths();
-
     std::ostringstream ss;
 
     ss << "pdist_backward";
-    ss << "dtype" << input_dtype;
-    ss << "dims" << input_dims[0] << "x" << input_dims[1];
+    ss << "dtype" << inputDesc.GetType();
+    ss << "dims" << inputDesc.GetLengths()[0] << "x" << inputDesc.GetLengths()[1];
 
     return NetworkConfig{ss.str()};
 }

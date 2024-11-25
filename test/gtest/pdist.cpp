@@ -49,14 +49,6 @@ TEST_P(GPU_Pdist_bwd_BFP16, PdistTestBackward)
     Verify();
 };
 
-INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Pdist_bwd_FP32, testing::ValuesIn(PdistTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Pdist_bwd_FP16, testing::ValuesIn(PdistFp16TestConfigs()));
-INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Pdist_bwd_BFP16, testing::ValuesIn(PdistTestConfigs()));
-
 INSTANTIATE_TEST_SUITE_P(Full, GPU_Pdist_bwd_FP32, testing::ValuesIn(PdistTestConfigs()));
 INSTANTIATE_TEST_SUITE_P(Full, GPU_Pdist_bwd_FP16, testing::ValuesIn(PdistFp16TestConfigs()));
 INSTANTIATE_TEST_SUITE_P(Full, GPU_Pdist_bwd_BFP16, testing::ValuesIn(PdistTestConfigs()));
-
-INSTANTIATE_TEST_SUITE_P(Perf, GPU_Pdist_bwd_FP32, testing::ValuesIn(PdistTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(Perf, GPU_Pdist_bwd_FP16, testing::ValuesIn(PdistFp16TestConfigs()));
-INSTANTIATE_TEST_SUITE_P(Perf, GPU_Pdist_bwd_BFP16, testing::ValuesIn(PdistTestConfigs()));

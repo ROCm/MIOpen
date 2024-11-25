@@ -50,6 +50,7 @@ struct BackwardProblemDescription : public ProblemDescriptionBase
           dinputDesc(dinputDesc_),
           p(p_)
     {
+        IsAllContiguous();
         IsValidPValue();
         IsSameType();
         IsRightLength();
@@ -87,7 +88,6 @@ struct BackwardProblemDescription : public ProblemDescriptionBase
         if(inputDesc.GetNumDims() != 2)
         {
             MIOPEN_THROW(miopenStatusBadParm, "PdistBackward: Input tensor must be 2D.");
-            return false;
         }
 
         auto N           = inputDesc.GetLengths()[0];
@@ -113,14 +113,13 @@ struct BackwardProblemDescription : public ProblemDescriptionBase
 
     bool IsAllContiguous() const
     {
-        return (inputDesc.IsContiguous() && outputDesc.IsContiguous() &&
-                doutputDesc.IsContiguous() && dinputDesc.IsContiguous());
-    }
+        if(!(inputDesc.IsContiguous() && outputDesc.IsContiguous() && doutputDesc.IsContiguous() &&
+             dinputDesc.IsContiguous()))
+        {
+            MIOPEN_THROW(miopenStatusBadParm, "PdistBackward: All tensors must be contiguous.");
+        }
 
-    bool IsAllPacked() const
-    {
-        return (inputDesc.IsPacked() && outputDesc.IsPacked() && doutputDesc.IsPacked() &&
-                dinputDesc.IsPacked());
+        return true;
     }
 
     NetworkConfig MakeNetworkConfig() const override;

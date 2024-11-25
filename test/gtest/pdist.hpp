@@ -191,7 +191,7 @@ protected:
                                               dinput_dev.get(),
                                               p);
 
-        EXPECT_EQ(status, miopenStatusSuccess);
+        ASSERT_EQ(status, miopenStatusSuccess);
 
         // Copy output data from device to host
         dinput.data = handle.Read<T>(dinput_dev, dinput.data.size());
@@ -202,6 +202,7 @@ protected:
         double threshold  = std::numeric_limits<T>::epsilon() * 10;
         auto dinput_error = miopen::rms_range(ref_dinput, dinput);
 
+        ASSERT_EQ(miopen::range_distance(ref_dinput), miopen::range_distance(dinput));
         EXPECT_LT(dinput_error, threshold)
             << "Error input gradient beyond tolerance Error: " << dinput_error
             << ",  Tolerance: " << threshold;
