@@ -342,11 +342,11 @@ set( MIOpen_Source
     solver/tensorOp/Op2dTensorLite.cpp
     solver/tensorOp/Op2dTensorSquash.cpp
     solver/tensorOp/Op3dTensorGeneric.cpp
-    solver/tensorOp/OpTensorFwdBias.cpp
-    solver/tensorOp/Op4dTensorLite.cpp
-    solver/tensorOp/OpTensorLeadingOnes.cpp
     solver/tensorOp/Op4dTensorGeneric.cpp
+    solver/tensorOp/Op4dTensorLite.cpp
     solver/tensorOp/Op5dTensorGeneric.cpp
+    solver/tensorOp/OpTensorFwdBias.cpp
+    solver/tensorOp/OpTensorLeadingOnes.cpp
     subbuffers.cpp
     t5layernorm_api.cpp
     target_properties.cpp
