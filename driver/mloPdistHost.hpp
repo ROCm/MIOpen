@@ -25,6 +25,7 @@
  *******************************************************************************/
 #pragma once
 
+#include "miopen/miopen.h"
 #include <math.h>
 
 #include <miopen/tensor.hpp>
@@ -34,12 +35,20 @@
 
 template <typename Tgpu, typename Tcheck>
 int32_t mloPdistBackwardRunHost(const miopenTensorDescriptor_t inputDesc,
+                                const miopenTensorDescriptor_t outputDesc,
+                                const miopenTensorDescriptor_t doutputDesc,
+                                const miopenTensorDescriptor_t dinputDesc,
                                 const Tgpu* input,
                                 const Tgpu* output,
                                 const Tgpu* doutput,
                                 Tcheck* dinputHost,
                                 const double p)
 {
+    auto input_tv   = miopen::get_inner_expanded_tv<2>(miopen::deref(inputDesc));
+    auto output_tv  = miopen::get_inner_expanded_tv<1>(miopen::deref(outputDesc));
+    auto doutput_tv = miopen::get_inner_expanded_tv<1>(miopen::deref(doutputDesc));
+    auto dinput_tv  = miopen::get_inner_expanded_tv<2>(miopen::deref(dinputDesc));
+
     auto input_numel = miopen::deref(inputDesc).GetElementSize();
     size_t N         = miopen::deref(inputDesc).GetLengths()[0];
     size_t M         = miopen::deref(inputDesc).GetLengths()[1];
@@ -52,20 +61,22 @@ int32_t mloPdistBackwardRunHost(const miopenTensorDescriptor_t inputDesc,
         for(size_t j = i + 1; j < N; ++j)
         {
             size_t k        = j + N * i - i * (i + 1) / 2 - i - 1;
-            double grad_k   = static_cast<double>(doutput[k]);
-            double output_k = static_cast<double>(output[k]);
+            double grad_k   = static_cast<double>(doutput[doutput_tv.get_tensor_view_idx({k})]);
+            double output_k = static_cast<double>(output[output_tv.get_tensor_view_idx({k})]);
 
             for(size_t m = 0; m < M; ++m)
             {
-                double input_first  = static_cast<double>(input[i * M + m]);
-                double input_second = static_cast<double>(input[j * M + m]);
-                double diff         = input_first - input_second;
+                double input_first =
+                    static_cast<double>(input[input_tv.get_tensor_view_idx({i, m})]);
+                double input_second =
+                    static_cast<double>(input[input_tv.get_tensor_view_idx({j, m})]);
+                double diff = input_first - input_second;
 
                 Tcheck res =
                     static_cast<Tcheck>(miopen::pdist::backward(diff, grad_k, output_k, p));
 
-                dinputHost[i * M + m] += res;
-                dinputHost[j * M + m] -= res;
+                dinputHost[dinput_tv.get_tensor_view_idx({i, m})] += res;
+                dinputHost[dinput_tv.get_tensor_view_idx({j, m})] -= res;
             }
         }
     }

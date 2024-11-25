@@ -34,13 +34,18 @@
 #include "tensor_holder.hpp"
 
 template <class T>
-void cpu_pdist_forward_contiguous(const tensor<T> input,
-                                  const tensor<T> output,
-                                  const tensor<T> output_grad,
-                                  tensor<T>& ref_input_grad,
-                                  const double p)
+void cpu_pdist_backward(const tensor<T> input,
+                        const tensor<T> output,
+                        const tensor<T> output_grad,
+                        tensor<T>& ref_input_grad,
+                        const double p)
 {
     std::fill(ref_input_grad.begin(), ref_input_grad.end(), static_cast<T>(0));
+
+    auto input_tv       = miopen::get_inner_expanded_tv<2>(input.desc);
+    auto output_tv      = miopen::get_inner_expanded_tv<1>(output.desc);
+    auto output_grad_tv = miopen::get_inner_expanded_tv<1>(output_grad.desc);
+    auto input_grad_tv  = miopen::get_inner_expanded_tv<2>(ref_input_grad.desc);
 
     auto N = input.desc.GetLengths()[0];
     auto M = input.desc.GetLengths()[1];
@@ -51,19 +56,23 @@ void cpu_pdist_forward_contiguous(const tensor<T> input,
         {
             long k = j + N * i - i * (i + 1) / 2 - i - 1;
 
-            double grad_k   = static_cast<double>(output_grad[k]);
-            double output_k = static_cast<double>(output[k]);
+            double grad_k =
+                static_cast<double>(output_grad[output_grad_tv.get_tensor_view_idx({k})]);
+            double output_k = static_cast<double>(output[output_tv.get_tensor_view_idx({k})]);
 
             for(int m = 0; m < M; ++m)
             {
-                double input_first  = static_cast<double>(input[i * M + m]);
-                double input_second = static_cast<double>(input[j * M + m]);
-                double diff         = input_first - input_second;
+
+                double input_first =
+                    static_cast<double>(input[input_tv.get_tensor_view_idx({i, m})]);
+                double input_second =
+                    static_cast<double>(input[input_tv.get_tensor_view_idx({j, m})]);
+                double diff = input_first - input_second;
 
                 T res = static_cast<T>(miopen::pdist::backward(diff, grad_k, output_k, p));
 
-                ref_input_grad[i * M + m] += res;
-                ref_input_grad[j * M + m] -= res;
+                ref_input_grad[input_grad_tv.get_tensor_view_idx({i, m})] += res;
+                ref_input_grad[input_grad_tv.get_tensor_view_idx({j, m})] -= res;
             }
         }
     }

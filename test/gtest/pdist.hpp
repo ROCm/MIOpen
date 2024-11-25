@@ -166,7 +166,7 @@ protected:
         miopenStatus_t status;
 
         // Run cpu
-        cpu_pdist_forward_contiguous<T>(input, output, doutput, ref_dinput, p);
+        cpu_pdist_backward<T>(input, output, doutput, ref_dinput, p);
 
         // Run kernel
         status = miopen::pdist::PdistBackward(handle,

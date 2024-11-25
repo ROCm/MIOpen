@@ -336,8 +336,15 @@ int PdistDriver<Tgpu, Tref>::RunBackwardGPU()
 template <typename Tgpu, typename Tref>
 int PdistDriver<Tgpu, Tref>::RunBackwardCPU()
 {
-    auto status = mloPdistBackwardRunHost<Tgpu, Tref>(
-        inputDesc, input.data(), output.data(), doutput.data(), dinputHost.data(), p);
+    auto status = mloPdistBackwardRunHost<Tgpu, Tref>(inputDesc,
+                                                      outputDesc,
+                                                      doutputDesc,
+                                                      dinputDesc,
+                                                      input.data(),
+                                                      output.data(),
+                                                      doutput.data(),
+                                                      dinputHost.data(),
+                                                      p);
 
     MIOPEN_THROW_IF(status != miopenStatusSuccess, "Error in mloPdistBackwardRunHost");
 
