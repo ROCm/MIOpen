@@ -47,6 +47,7 @@ struct FwdProblemDescription : ProblemDescriptionBase
         IsSameType();
         IsAllContiguous();
         IsValidType();
+        IsValidDims();
     }
 
     const TensorDescriptor& GetInputDesc() const { return InputDesc; }
@@ -70,6 +71,17 @@ struct FwdProblemDescription : ProblemDescriptionBase
             MIOPEN_THROW(miopenStatusBadParm,
                          "UnsortedSegmentSumForward: SegmentIds tensor must be int32, "
                          "unsign int32, or unsign int64 tensor.");
+        }
+        return true;
+    }
+
+    bool IsValidDims() const
+    {
+        if(InputDesc.GetLengths()[0] != SegmentIdsDesc.GetElementSize())
+        {
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "UnsortedSegmentSumForward: SegmentIds tensor must have the same size as "
+                         "the first dimension of the input tensor.");
         }
         return true;
     }
@@ -104,6 +116,7 @@ struct BwdProblemDescription : ProblemDescriptionBase
         IsSameType();
         IsAllContiguous();
         IsValidType();
+        IsValidDims();
     }
 
     const TensorDescriptor& GetInputGradDesc() const { return InputGradDesc; }
@@ -127,6 +140,17 @@ struct BwdProblemDescription : ProblemDescriptionBase
             MIOPEN_THROW(miopenStatusBadParm,
                          "UnsortedSegmentSumBackward: SegmentIds tensor must be int32, "
                          "int64, unsign int32, or unsign int64 tensor.");
+        }
+        return true;
+    }
+
+    bool IsValidDims() const
+    {
+        if(InputGradDesc.GetLengths()[0] != SegmentIdsDesc.GetElementSize())
+        {
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "UnsortedSegmentSumBackward: SegmentIds tensor must have the same size as "
+                         "the first dimension of the input tensor.");
         }
         return true;
     }

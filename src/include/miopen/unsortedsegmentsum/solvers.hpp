@@ -46,7 +46,7 @@ struct UnsortedSegmentSumForward final : UnsortedSegmentSumForwardSolver
         return GetSolverDbId<UnsortedSegmentSumForward>();
     }
     bool
-    IsApplicable(const ExecutionContext& constext,
+    IsApplicable(const ExecutionContext& context,
                  const miopen::UnsortedSegmentSum::FwdProblemDescription& problem) const override;
     ConvSolution
     GetSolution(const ExecutionContext& context,
@@ -60,7 +60,7 @@ struct UnsortedSegmentSumBackward final : UnsortedSegmentSumBackwardSolver
         return GetSolverDbId<UnsortedSegmentSumBackward>();
     }
     bool
-    IsApplicable(const ExecutionContext& constext,
+    IsApplicable(const ExecutionContext& context,
                  const miopen::UnsortedSegmentSum::BwdProblemDescription& problem) const override;
     ConvSolution
     GetSolution(const ExecutionContext& context,

@@ -44,7 +44,7 @@ namespace solver {
 namespace UnsortedSegmentSum {
 
 bool UnsortedSegmentSumForward::IsApplicable(
-    [[maybe_unused]] const ExecutionContext& constext,
+    [[maybe_unused]] const ExecutionContext& context,
     const miopen::UnsortedSegmentSum::FwdProblemDescription& problem) const
 {
     if(!(problem.GetInputDesc().GetType() == miopenFloat ||
