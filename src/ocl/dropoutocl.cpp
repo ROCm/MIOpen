@@ -294,6 +294,15 @@ void DropoutDescriptor::Dropout(const Handle& handle,
                 wk_grp_num) /* + "-noise" + std::to_string(noise_shape.GetLengths()[0])*/;
     }
 
+    if(xDesc.AllDimsFitIntoInt())
+    {
+        network_config += "-32bit";
+    }
+    else
+    {
+        network_config += "-64bit";
+    }
+
     // TODO: Add noise shape
     // for(int i = 1; i < noise_shape.GetNumDims(); i++)
     //    network_config += "x" + std::to_string(noise_shape.GetLengths()[i]);
@@ -303,28 +312,56 @@ void DropoutDescriptor::Dropout(const Handle& handle,
     float amp_scale = float_equal(dropout, 1.0) ? 0 : 1 / (1 - dropout);
     if(!kernels.empty())
     {
-        kernels.front()(pstates,
-                        dropout,
-                        amp_scale,
-                        static_cast<int>(in_len[1]),
-                        static_cast<int>(in_len[2]),
-                        static_cast<int>(in_len[3]),
-                        static_cast<int>(in_len[4]),
-                        y,
-                        static_cast<int>(out_str[0]),
-                        static_cast<int>(out_str[1]),
-                        static_cast<int>(out_str[2]),
-                        static_cast<int>(out_str[3]),
-                        x,
-                        static_cast<int>(in_str[0]),
-                        static_cast<int>(in_str[1]),
-                        static_cast<int>(in_str[2]),
-                        static_cast<int>(in_str[3]),
-                        reserveSpace,
-                        static_cast<unsigned>(total_work),
-                        static_cast<unsigned>(in_offset),
-                        static_cast<unsigned>(out_offset),
-                        static_cast<unsigned>(rsvsp_offset));
+        if(xDesc.AllDimsFitIntoInt())
+        {
+            kernels.front()(pstates,
+                            dropout,
+                            amp_scale,
+                            static_cast<uint32_t>(in_len[1]),
+                            static_cast<uint32_t>(in_len[2]),
+                            static_cast<uint32_t>(in_len[3]),
+                            static_cast<uint32_t>(in_len[4]),
+                            y,
+                            static_cast<uint32_t>(out_str[0]),
+                            static_cast<uint32_t>(out_str[1]),
+                            static_cast<uint32_t>(out_str[2]),
+                            static_cast<uint32_t>(out_str[3]),
+                            x,
+                            static_cast<uint32_t>(in_str[0]),
+                            static_cast<uint32_t>(in_str[1]),
+                            static_cast<uint32_t>(in_str[2]),
+                            static_cast<uint32_t>(in_str[3]),
+                            reserveSpace,
+                            static_cast<uint32_t>(total_work),
+                            static_cast<uint64_t>(in_offset),
+                            static_cast<uint64_t>(out_offset),
+                            static_cast<uint64_t>(rsvsp_offset));
+        }
+        else
+        {
+            kernels.front()(pstates,
+                            dropout,
+                            amp_scale,
+                            static_cast<uint64_t>(in_len[1]),
+                            static_cast<uint64_t>(in_len[2]),
+                            static_cast<uint64_t>(in_len[3]),
+                            static_cast<uint64_t>(in_len[4]),
+                            y,
+                            static_cast<uint64_t>(out_str[0]),
+                            static_cast<uint64_t>(out_str[1]),
+                            static_cast<uint64_t>(out_str[2]),
+                            static_cast<uint64_t>(out_str[3]),
+                            x,
+                            static_cast<uint64_t>(in_str[0]),
+                            static_cast<uint64_t>(in_str[1]),
+                            static_cast<uint64_t>(in_str[2]),
+                            static_cast<uint64_t>(in_str[3]),
+                            reserveSpace,
+                            static_cast<uint64_t>(total_work),
+                            static_cast<uint64_t>(in_offset),
+                            static_cast<uint64_t>(out_offset),
+                            static_cast<uint64_t>(rsvsp_offset));
+        }
     }
     else
     {
@@ -339,6 +376,15 @@ void DropoutDescriptor::Dropout(const Handle& handle,
                   std::string(RD_BLCK == 4   ? "uint"
                               : RD_BLCK == 2 ? "ushort"
                                              : "uchar");
+
+        if(xDesc.AllDimsFitIntoInt())
+        {
+            params += " -DDIM_TYPE=uint32_t";
+        }
+        else
+        {
+            params += " -DDIM_TYPE=uint64_t";
+        }
 
         if(xDesc.GetType() == miopenHalf)
             params += " -DMIOPEN_USE_FP16=1";
@@ -361,29 +407,60 @@ void DropoutDescriptor::Dropout(const Handle& handle,
         const std::vector<size_t> vld{256, 1, 1};
         const std::vector<size_t> vgd{wk_grp_num * 256, 1, 1};
 
-        handle.AddKernel(kernel_name, network_config, program_name, kernel_name, vld, vgd, params)(
-            pstates,
-            dropout,
-            amp_scale,
-            static_cast<int>(in_len[1]),
-            static_cast<int>(in_len[2]),
-            static_cast<int>(in_len[3]),
-            static_cast<int>(in_len[4]),
-            y,
-            static_cast<int>(out_str[0]),
-            static_cast<int>(out_str[1]),
-            static_cast<int>(out_str[2]),
-            static_cast<int>(out_str[3]),
-            x,
-            static_cast<int>(in_str[0]),
-            static_cast<int>(in_str[1]),
-            static_cast<int>(in_str[2]),
-            static_cast<int>(in_str[3]),
-            reserveSpace,
-            static_cast<unsigned>(total_work),
-            static_cast<unsigned>(in_offset),
-            static_cast<unsigned>(out_offset),
-            static_cast<unsigned>(rsvsp_offset));
+        if(xDesc.AllDimsFitIntoInt())
+        {
+            handle.AddKernel(
+                kernel_name, network_config, program_name, kernel_name, vld, vgd, params)(
+                pstates,
+                dropout,
+                amp_scale,
+                static_cast<uint32_t>(in_len[1]),
+                static_cast<uint32_t>(in_len[2]),
+                static_cast<uint32_t>(in_len[3]),
+                static_cast<uint32_t>(in_len[4]),
+                y,
+                static_cast<uint32_t>(out_str[0]),
+                static_cast<uint32_t>(out_str[1]),
+                static_cast<uint32_t>(out_str[2]),
+                static_cast<uint32_t>(out_str[3]),
+                x,
+                static_cast<uint32_t>(in_str[0]),
+                static_cast<uint32_t>(in_str[1]),
+                static_cast<uint32_t>(in_str[2]),
+                static_cast<uint32_t>(in_str[3]),
+                reserveSpace,
+                static_cast<uint32_t>(total_work),
+                static_cast<uint64_t>(in_offset),
+                static_cast<uint64_t>(out_offset),
+                static_cast<uint64_t>(rsvsp_offset));
+        }
+        else
+        {
+            handle.AddKernel(
+                kernel_name, network_config, program_name, kernel_name, vld, vgd, params)(
+                pstates,
+                dropout,
+                amp_scale,
+                static_cast<uint64_t>(in_len[1]),
+                static_cast<uint64_t>(in_len[2]),
+                static_cast<uint64_t>(in_len[3]),
+                static_cast<uint64_t>(in_len[4]),
+                y,
+                static_cast<uint64_t>(out_str[0]),
+                static_cast<uint64_t>(out_str[1]),
+                static_cast<uint64_t>(out_str[2]),
+                static_cast<uint64_t>(out_str[3]),
+                x,
+                static_cast<uint64_t>(in_str[0]),
+                static_cast<uint64_t>(in_str[1]),
+                static_cast<uint64_t>(in_str[2]),
+                static_cast<uint64_t>(in_str[3]),
+                reserveSpace,
+                static_cast<uint64_t>(total_work),
+                static_cast<uint64_t>(in_offset),
+                static_cast<uint64_t>(out_offset),
+                static_cast<uint64_t>(rsvsp_offset));
+        }
     }
 
     if(miopen::CheckNumericsEnabled())

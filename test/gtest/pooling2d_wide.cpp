@@ -27,7 +27,6 @@
 #include <gtest/gtest.h>
 #include <miopen/env.hpp>
 #include "get_handle.hpp"
-#include "test_env.hpp"
 
 #include "pooling2d.hpp"
 
@@ -72,7 +71,7 @@ void Run2dDriver(miopenDataType_t prec)
         FAIL()
             << "miopenBFloat16, miopenInt8, miopenInt32, miopenDouble, miopenFloat8, miopenBFloat8 "
                "data type not supported by "
-               "immed_conv2d_codecov test";
+               "pooling2d_wide test";
 
     default: params = GPU_Pooling2d_FP32::GetParam();
     }

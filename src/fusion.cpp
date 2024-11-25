@@ -390,13 +390,17 @@ std::string LogCmdBnormFusion(const miopenFusionPlanDescriptor_t fusePlanDesc, i
     if(bn_op != nullptr)
     {
         str += BnormArgsForMIOpenDriver(&bn_op->input_desc,
+                                        nullptr,
+                                        nullptr,
+                                        nullptr,
+                                        nullptr,
                                         bn_op->mode,
                                         nullptr,
                                         nullptr,
                                         nullptr,
                                         nullptr,
                                         miopen::debug::BatchNormDirection_t::ForwardInference,
-                                        false);
+                                        false); // having false allows safe handling of nullptrs
     }
     else
     {

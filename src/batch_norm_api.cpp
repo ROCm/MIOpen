@@ -50,6 +50,10 @@ namespace miopen {
 namespace debug {
 
 void LogCmdBNorm(const miopenTensorDescriptor_t xDesc,
+                 const miopenTensorDescriptor_t yDesc,
+                 const miopenTensorDescriptor_t scaleDesc,
+                 const miopenTensorDescriptor_t biasDesc,
+                 const miopenTensorDescriptor_t saveMeanDesc,
                  miopenBatchNormMode_t bn_mode,
                  const void* resultRunningMean,
                  const void* resultRunningVariance,
@@ -60,6 +64,10 @@ void LogCmdBNorm(const miopenTensorDescriptor_t xDesc,
     if(miopen::IsLoggingCmd())
     {
         const std::string& str = BnormArgsForMIOpenDriver(xDesc,
+                                                          yDesc,
+                                                          scaleDesc,
+                                                          biasDesc,
+                                                          saveMeanDesc,
                                                           bn_mode,
                                                           resultRunningMean,
                                                           resultRunningVariance,
@@ -89,50 +97,23 @@ miopenBatchNormalizationForwardInference(miopenHandle_t handle,
                                          void* estimatedVariance,
                                          double epsilon)
 {
-    MIOPEN_LOG_FUNCTION(handle,
-                        bn_mode,
-                        xDesc,
-                        x,
-                        yDesc,
-                        y,
-                        bnScaleBiasMeanVarDesc,
-                        bnScale,
-                        bnBias,
-                        estimatedMean,
-                        estimatedVariance,
-                        epsilon);
-
-    miopen::debug::LogCmdBNorm(xDesc,
-                               bn_mode,
-                               estimatedMean,
-                               estimatedVariance,
-                               nullptr,
-                               nullptr,
-                               miopen::debug::BatchNormDirection_t::ForwardInference);
-    // In case of NxCxDxHxW
-    int size{0};
-    miopenGetTensorDescriptorSize(xDesc, &size);
-    return miopen::try_([&] {
-        miopen::BatchNormForwardInference(
-            miopen::deref(handle),
-            bn_mode,
-            alpha,
-            beta,
-            (size == 5) ? miopen::BuildReshaped4DTensorDescriptor(miopen::deref(xDesc))
-                        : miopen::deref(xDesc),
-            DataCast(x),
-            (size == 5) ? miopen::BuildReshaped4DTensorDescriptor(miopen::deref(yDesc))
-                        : miopen::deref(yDesc),
-            DataCast(y),
-            (size == 5)
-                ? miopen::BuildReshaped4DTensorDescriptor(miopen::deref(bnScaleBiasMeanVarDesc))
-                : miopen::deref(bnScaleBiasMeanVarDesc),
-            DataCast(bnScale),
-            DataCast(bnBias),
-            DataCast(estimatedMean),
-            DataCast(estimatedVariance),
-            epsilon);
-    });
+    return miopenBatchNormalizationForwardInference_V2(handle,
+                                                       bn_mode,
+                                                       alpha,
+                                                       beta,
+                                                       xDesc,
+                                                       x,
+                                                       yDesc,
+                                                       y,
+                                                       bnScaleBiasMeanVarDesc,
+                                                       bnScaleBiasMeanVarDesc,
+                                                       bnScaleBiasMeanVarDesc,
+                                                       bnScaleBiasMeanVarDesc,
+                                                       bnScale,
+                                                       bnBias,
+                                                       estimatedMean,
+                                                       estimatedVariance,
+                                                       epsilon);
 }
 
 extern "C" miopenStatus_t
@@ -154,57 +135,26 @@ miopenBatchNormalizationForwardTraining(miopenHandle_t handle,
                                         void* resultSaveMean,
                                         void* resultSaveInvVariance)
 {
-
-    MIOPEN_LOG_FUNCTION(handle,
-                        bn_mode,
-                        xDesc,
-                        x,
-                        yDesc,
-                        y,
-                        bnScaleBiasMeanVarDesc,
-                        bnScale,
-                        bnBias,
-                        expAvgFactor,
-                        resultRunningMean,
-                        resultRunningVariance,
-                        epsilon,
-                        resultSaveMean,
-                        resultSaveInvVariance);
-
-    miopen::debug::LogCmdBNorm(xDesc,
-                               bn_mode,
-                               resultRunningMean,
-                               resultRunningVariance,
-                               resultSaveMean,
-                               resultSaveInvVariance,
-                               miopen::debug::BatchNormDirection_t::ForwardTraining);
-    // In case of NxCxDxHxW
-    int size{0};
-    miopenGetTensorDescriptorSize(xDesc, &size);
-    return miopen::try_([&] {
-        miopen::BatchNormForwardTraining(
-            miopen::deref(handle),
-            bn_mode,
-            alpha,
-            beta,
-            (size == 5) ? miopen::BuildReshaped4DTensorDescriptor(miopen::deref(xDesc))
-                        : miopen::deref(xDesc),
-            DataCast(x),
-            (size == 5) ? miopen::BuildReshaped4DTensorDescriptor(miopen::deref(yDesc))
-                        : miopen::deref(yDesc),
-            DataCast(y),
-            (size == 5)
-                ? miopen::BuildReshaped4DTensorDescriptor(miopen::deref(bnScaleBiasMeanVarDesc))
-                : miopen::deref(bnScaleBiasMeanVarDesc),
-            DataCast(bnScale),
-            DataCast(bnBias),
-            expAvgFactor,
-            DataCast(resultRunningMean),
-            DataCast(resultRunningVariance),
-            epsilon,
-            DataCast(resultSaveMean),
-            DataCast(resultSaveInvVariance));
-    });
+    return miopenBatchNormalizationForwardTraining_V2(handle,
+                                                      bn_mode,
+                                                      alpha,
+                                                      beta,
+                                                      xDesc,
+                                                      x,
+                                                      yDesc,
+                                                      y,
+                                                      bnScaleBiasMeanVarDesc,
+                                                      bnScaleBiasMeanVarDesc,
+                                                      bnScaleBiasMeanVarDesc,
+                                                      bnScaleBiasMeanVarDesc,
+                                                      bnScale,
+                                                      bnBias,
+                                                      expAvgFactor,
+                                                      resultRunningMean,
+                                                      resultRunningVariance,
+                                                      epsilon,
+                                                      resultSaveMean,
+                                                      resultSaveInvVariance);
 }
 
 extern "C" miopenStatus_t
@@ -228,7 +178,212 @@ miopenBatchNormalizationBackward(miopenHandle_t handle,
                                  const void* savedMean,
                                  const void* savedInvVariance)
 {
+    return miopenBatchNormalizationBackward_V2(handle,
+                                               bn_mode,
+                                               alphaDataDiff,
+                                               betaDataDiff,
+                                               alphaParamDiff,
+                                               betaParamDiff,
+                                               xDesc,
+                                               x,
+                                               dyDesc,
+                                               dy,
+                                               dxDesc,
+                                               dx,
+                                               bnScaleBiasDiffDesc,
+                                               bnScaleBiasDiffDesc,
+                                               bnScaleBiasDiffDesc,
+                                               bnScaleBiasDiffDesc,
+                                               bnScale,
+                                               resultBnScaleDiff,
+                                               resultBnBiasDiff,
+                                               epsilon,
+                                               savedMean,
+                                               savedInvVariance);
+}
 
+extern "C" miopenStatus_t
+miopenBatchNormalizationForwardInference_V2(miopenHandle_t handle,
+                                            miopenBatchNormMode_t bn_mode,
+                                            void* alpha,
+                                            void* beta,
+                                            const miopenTensorDescriptor_t xDesc,
+                                            const void* x,
+                                            const miopenTensorDescriptor_t yDesc,
+                                            void* y,
+                                            const miopenTensorDescriptor_t scaleDesc,
+                                            const miopenTensorDescriptor_t biasDesc,
+                                            const miopenTensorDescriptor_t estMeanDesc,
+                                            const miopenTensorDescriptor_t estVarianceDesc,
+                                            void* bnScale,
+                                            void* bnBias,
+                                            void* estimatedMean,
+                                            void* estimatedVariance,
+                                            double epsilon)
+{
+    MIOPEN_LOG_FUNCTION(handle,
+                        bn_mode,
+                        xDesc,
+                        x,
+                        yDesc,
+                        y,
+                        scaleDesc,
+                        biasDesc,
+                        estMeanDesc,
+                        estVarianceDesc,
+                        bnScale,
+                        bnBias,
+                        estimatedMean,
+                        estimatedVariance,
+                        epsilon);
+
+    miopen::debug::LogCmdBNorm(xDesc,
+                               yDesc,
+                               scaleDesc,
+                               biasDesc,
+                               estMeanDesc,
+                               bn_mode,
+                               nullptr,
+                               nullptr,
+                               estMeanDesc,
+                               estimatedVariance,
+                               miopen::debug::BatchNormDirection_t::ForwardInference);
+    int size{0};
+    miopenGetTensorDescriptorSize(xDesc, &size);
+    // In case of NxCxDxHxW
+    auto ReshapeIfNeeded = [size](const auto desc) {
+        return (size == 5) ? miopen::BuildReshaped4DTensorDescriptor(miopen::deref(desc))
+                           : miopen::deref(desc);
+    };
+    return miopen::try_([&] {
+        miopen::BatchNormForwardInference(miopen::deref(handle),
+                                          bn_mode,
+                                          alpha,
+                                          beta,
+                                          ReshapeIfNeeded(xDesc),
+                                          DataCast(x),
+                                          ReshapeIfNeeded(yDesc),
+                                          DataCast(y),
+                                          ReshapeIfNeeded(scaleDesc),
+                                          ReshapeIfNeeded(biasDesc),
+                                          ReshapeIfNeeded(estMeanDesc),
+                                          ReshapeIfNeeded(estVarianceDesc),
+                                          DataCast(bnScale),
+                                          DataCast(bnBias),
+                                          DataCast(estimatedMean),
+                                          DataCast(estimatedVariance),
+                                          epsilon);
+    });
+}
+
+extern "C" miopenStatus_t
+miopenBatchNormalizationForwardTraining_V2(miopenHandle_t handle,
+                                           miopenBatchNormMode_t bn_mode,
+                                           void* alpha,
+                                           void* beta,
+                                           const miopenTensorDescriptor_t xDesc,
+                                           const void* x,
+                                           const miopenTensorDescriptor_t yDesc,
+                                           void* y,
+                                           const miopenTensorDescriptor_t scaleDesc,
+                                           const miopenTensorDescriptor_t biasDesc,
+                                           const miopenTensorDescriptor_t savedMeanDesc,
+                                           const miopenTensorDescriptor_t savedVarianceDesc,
+                                           void* bnScale,
+                                           void* bnBias,
+                                           double expAvgFactor,
+                                           void* resultRunningMean,
+                                           void* resultRunningVariance,
+                                           double epsilon,
+                                           void* resultSaveMean,
+                                           void* resultSaveInvVariance)
+{
+    MIOPEN_LOG_FUNCTION(handle,
+                        bn_mode,
+                        xDesc,
+                        x,
+                        yDesc,
+                        y,
+                        scaleDesc,
+                        biasDesc,
+                        savedMeanDesc,
+                        savedVarianceDesc,
+                        bnScale,
+                        bnBias,
+                        expAvgFactor,
+                        resultRunningMean,
+                        resultRunningVariance,
+                        epsilon,
+                        resultSaveMean,
+                        resultSaveInvVariance);
+
+    miopen::debug::LogCmdBNorm(xDesc,
+                               yDesc,
+                               scaleDesc,
+                               biasDesc,
+                               savedMeanDesc,
+                               bn_mode,
+                               resultRunningMean,
+                               resultRunningVariance,
+                               resultSaveMean,
+                               resultSaveInvVariance,
+                               miopen::debug::BatchNormDirection_t::ForwardTraining);
+
+    int size{0};
+    miopenGetTensorDescriptorSize(xDesc, &size);
+    // In case of NxCxDxHxW
+    auto ReshapeIfNeeded = [size](const auto desc) {
+        return (size == 5) ? miopen::BuildReshaped4DTensorDescriptor(miopen::deref(desc))
+                           : miopen::deref(desc);
+    };
+    return miopen::try_([&] {
+        miopen::BatchNormForwardTraining(miopen::deref(handle),
+                                         bn_mode,
+                                         alpha,
+                                         beta,
+                                         ReshapeIfNeeded(xDesc),
+                                         DataCast(x),
+                                         ReshapeIfNeeded(yDesc),
+                                         DataCast(y),
+                                         ReshapeIfNeeded(scaleDesc),
+                                         ReshapeIfNeeded(biasDesc),
+                                         ReshapeIfNeeded(savedMeanDesc),
+                                         ReshapeIfNeeded(savedVarianceDesc),
+                                         DataCast(bnScale),
+                                         DataCast(bnBias),
+                                         expAvgFactor,
+                                         DataCast(resultRunningMean),
+                                         DataCast(resultRunningVariance),
+                                         epsilon,
+                                         DataCast(resultSaveMean),
+                                         DataCast(resultSaveInvVariance));
+    });
+}
+
+extern "C" miopenStatus_t
+miopenBatchNormalizationBackward_V2(miopenHandle_t handle,
+                                    miopenBatchNormMode_t bn_mode,
+                                    const void* alphaDataDiff,
+                                    const void* betaDataDiff,
+                                    const void* alphaParamDiff,
+                                    const void* betaParamDiff,
+                                    const miopenTensorDescriptor_t xDesc,
+                                    const void* x,
+                                    const miopenTensorDescriptor_t dyDesc,
+                                    const void* dy,
+                                    const miopenTensorDescriptor_t dxDesc,
+                                    void* dx,
+                                    const miopenTensorDescriptor_t scaleDesc,
+                                    const miopenTensorDescriptor_t biasDesc,
+                                    const miopenTensorDescriptor_t savedMeanDesc,
+                                    const miopenTensorDescriptor_t savedVarianceDesc,
+                                    const void* bnScale,
+                                    void* resultBnScaleDiff,
+                                    void* resultBnBiasDiff,
+                                    double epsilon,
+                                    const void* savedMean,
+                                    const void* savedInvVariance)
+{
     MIOPEN_LOG_FUNCTION(handle,
                         bn_mode,
                         xDesc,
@@ -237,7 +392,10 @@ miopenBatchNormalizationBackward(miopenHandle_t handle,
                         dy,
                         dxDesc,
                         dx,
-                        bnScaleBiasDiffDesc,
+                        scaleDesc,
+                        biasDesc,
+                        savedMeanDesc,
+                        savedVarianceDesc,
                         bnScale,
                         resultBnScaleDiff,
                         resultBnBiasDiff,
@@ -245,40 +403,45 @@ miopenBatchNormalizationBackward(miopenHandle_t handle,
                         savedMean,
                         savedInvVariance);
     miopen::debug::LogCmdBNorm(xDesc,
+                               dyDesc,
+                               scaleDesc,
+                               biasDesc,
+                               savedMeanDesc,
                                bn_mode,
                                nullptr,
                                nullptr,
                                savedMean,
                                savedInvVariance,
                                miopen::debug::BatchNormDirection_t::Backward);
-    // In case of NxCxDxHxW
     int size{0};
     miopenGetTensorDescriptorSize(xDesc, &size);
+    // In case of NxCxDxHxW
+    auto ReshapeIfNeeded = [size](const auto desc) {
+        return (size == 5) ? miopen::BuildReshaped4DTensorDescriptor(miopen::deref(desc))
+                           : miopen::deref(desc);
+    };
     return miopen::try_([&] {
-        miopen::BatchNormBackward(
-            miopen::deref(handle),
-            bn_mode,
-            alphaDataDiff,
-            betaDataDiff,
-            alphaParamDiff,
-            betaParamDiff,
-            (size == 5) ? miopen::BuildReshaped4DTensorDescriptor(miopen::deref(xDesc))
-                        : miopen::deref(xDesc),
-            DataCast(x),
-            (size == 5) ? miopen::BuildReshaped4DTensorDescriptor(miopen::deref(dyDesc))
-                        : miopen::deref(dyDesc),
-            DataCast(dy),
-            (size == 5) ? miopen::BuildReshaped4DTensorDescriptor(miopen::deref(dxDesc))
-                        : miopen::deref(dxDesc),
-            DataCast(dx),
-            (size == 5)
-                ? miopen::BuildReshaped4DTensorDescriptor(miopen::deref(bnScaleBiasDiffDesc))
-                : miopen::deref(bnScaleBiasDiffDesc),
-            DataCast(bnScale),
-            DataCast(resultBnScaleDiff),
-            DataCast(resultBnBiasDiff),
-            epsilon,
-            DataCast(savedMean),
-            DataCast(savedInvVariance));
+        miopen::BatchNormBackward(miopen::deref(handle),
+                                  bn_mode,
+                                  alphaDataDiff,
+                                  betaDataDiff,
+                                  alphaParamDiff,
+                                  betaParamDiff,
+                                  ReshapeIfNeeded(xDesc),
+                                  DataCast(x),
+                                  ReshapeIfNeeded(dyDesc),
+                                  DataCast(dy),
+                                  ReshapeIfNeeded(dxDesc),
+                                  DataCast(dx),
+                                  ReshapeIfNeeded(scaleDesc),
+                                  ReshapeIfNeeded(biasDesc),
+                                  ReshapeIfNeeded(savedMeanDesc),
+                                  ReshapeIfNeeded(savedVarianceDesc),
+                                  DataCast(bnScale),
+                                  DataCast(resultBnScaleDiff),
+                                  DataCast(resultBnBiasDiff),
+                                  epsilon,
+                                  DataCast(savedMean),
+                                  DataCast(savedInvVariance));
     });
 }
