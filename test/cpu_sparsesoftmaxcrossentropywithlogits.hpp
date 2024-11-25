@@ -27,7 +27,6 @@
 
 #include "tensor_holder.hpp"
 #include <miopen/tensor_view_utils.hpp>
-#include "ford.hpp"
 
 template <class T, class Ta>
 void cpu_sparsesoftmaxcrossentropywithlogits_forward(const tensor<T> input,

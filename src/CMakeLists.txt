@@ -194,8 +194,6 @@ set( MIOpen_Source
     rope_api.cpp
     rope/problem_description.cpp
     scalar.cpp
-    sparsesoftmaxcrossentropywithlogits_api.cpp
-    sparsesoftmaxcrossentropywithlogits/problem_description.cpp
     softmarginloss/problem_description.cpp 
     softmarginloss_api.cpp
     softmax.cpp
@@ -332,12 +330,14 @@ set( MIOpen_Source
     solver/reduce/forward_sum.cpp
     solver/rope/backward_rope.cpp
     solver/rope/forward_rope.cpp
-    solver/sparsesoftmaxcrossentropywithlogits/backward_sparsesoftmaxcrossentropywithlogits.cpp
-    solver/sparsesoftmaxcrossentropywithlogits/forward_sparsesoftmaxcrossentropywithlogits.cpp
     solver/softmarginloss/backward_softmarginloss.cpp
     solver/softmarginloss/forward_softmarginloss.cpp
     solver/softmax/attn_softmax.cpp
     solver/softmax/softmax.cpp
+    solver/sparsesoftmaxcrossentropywithlogits/backward_sparsesoftmaxcrossentropywithlogits.cpp
+    solver/sparsesoftmaxcrossentropywithlogits/forward_sparsesoftmaxcrossentropywithlogits.cpp
+    sparsesoftmaxcrossentropywithlogits_api.cpp
+    sparsesoftmaxcrossentropywithlogits/problem_description.cpp
     subbuffers.cpp
     t5layernorm_api.cpp
     target_properties.cpp
@@ -705,8 +705,8 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         reducecalculation.cpp
         reduceextreme.cpp
         rope.cpp
-        sparsesoftmaxcrossentropywithlogits.cpp
         softmarginloss.cpp
+        sparsesoftmaxcrossentropywithlogits.cpp
         transformers_adam_w.cpp
         ${PROJECT_BINARY_DIR}/db_path.cpp
         )

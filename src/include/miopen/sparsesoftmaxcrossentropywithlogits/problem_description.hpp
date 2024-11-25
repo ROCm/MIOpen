@@ -25,8 +25,7 @@
  *******************************************************************************/
 #pragma once
 
-#include "miopen/errors.hpp"
-#include "miopen/miopen.h"
+#include <miopen/miopen.h>
 #include <miopen/problem_description_base.hpp>
 #include <miopen/activ.hpp>
 #include <miopen/tensor.hpp>
@@ -69,7 +68,7 @@ struct FwdProblemDescription : ProblemDescriptionBase
 
     bool IsValidType() const
     {
-        if(targetDesc.GetType() != miopenInt32 && targetDesc.GetType() != miopenInt64)
+        if(targetDesc.GetType() != miopenInt32)
         {
             MIOPEN_THROW(miopenStatusBadParm,
                          "SparseSoftmaxCrossEntropyWithLogitsForward: target tensor must be int32, "

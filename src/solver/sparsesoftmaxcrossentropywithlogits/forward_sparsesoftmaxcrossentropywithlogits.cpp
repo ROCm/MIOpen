@@ -24,19 +24,15 @@
  *
  *******************************************************************************/
 
-#include <miopen/conv_solution.hpp>
-#include <miopen/execution_context.hpp>
-#include <miopen/invoke_params.hpp>
-#include <miopen/tensor_view_utils.hpp>
-#include <miopen/sparsesoftmaxcrossentropywithlogits/solvers.hpp>
-
-#include <miopen/sparsesoftmaxcrossentropywithlogits/invoke_params.hpp>
 #include <miopen/datatype.hpp>
 #include <miopen/sparsesoftmaxcrossentropywithlogits.hpp>
+#include <miopen/sparsesoftmaxcrossentropywithlogits/invoke_params.hpp>
+#include <miopen/sparsesoftmaxcrossentropywithlogits/solvers.hpp>
+#include <miopen/mlo_internal.hpp>
 #include <miopen/target_properties.hpp>
-#include <miopen/par_for.hpp>
+#include <miopen/tensor_view_utils.hpp>
 
-#define LOCAL_SIZE_FWD 128
+#define LOCAL_SIZE_FWD 256
 
 namespace miopen {
 
@@ -48,12 +44,12 @@ bool SparseSoftmaxCrossEntropyWithLogitsForward::IsApplicable(
     const ExecutionContext&,
     const miopen::sparsesoftmaxcrossentropywithlogits::FwdProblemDescription& problem) const
 {
-    // if(!(problem.GetOutputDesc().GetType() == miopenHalf ||
-    //      problem.GetOutputDesc().GetType() == miopenFloat ||
-    //      problem.GetOutputDesc().GetType() == miopenBFloat16))
-    // {
-    //     return false;
-    // }
+    if(!(problem.GetOutputDesc().GetType() == miopenHalf ||
+         problem.GetOutputDesc().GetType() == miopenFloat ||
+         problem.GetOutputDesc().GetType() == miopenBFloat16))
+    {
+        return false;
+    }
     return true;
 }
 

@@ -35,7 +35,6 @@
 #include <../test/tensor_holder.hpp>
 #include <../test/verify.hpp>
 
-#include <memory>
 #include <miopen/env.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/miopen.h>
@@ -182,7 +181,7 @@ int SparseSoftmaxCrossEntropyWithLogitsDriver<Tgpu, Tref>::AddCmdLineArgs()
                          "Run only Forward SparseSoftmaxCrossEntropyWithLogits (Default=1)",
                          "int");
     inflags.AddTensorFlag("input_dim",
-                          'D',
+                          'd',
                           "7x9",
                           "The dimensional lengths of the input tensors: NxC. Example: 7x9.");
 
@@ -221,14 +220,35 @@ int SparseSoftmaxCrossEntropyWithLogitsDriver<Tgpu, Tref>::AllocateBuffersAndCop
     backprop_host   = std::vector<Tref>(input_sz, static_cast<Tref>(0));
     input_grad_host = std::vector<Tref>(input_sz, static_cast<Tref>(0));
 
-    for(int i = 0; i < input_sz; i++)
+    if(forw == 0 || forw == 1)
     {
-        input[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
-    }
+        for(int i = 0; i < input_sz; i++)
+        {
+            input[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
+        }
 
-    for(int i = 0; i < output_sz; i++)
-    {
-        target[i] = prng::gen_A_to_B<int>(0, in_len[1] - 1);
+        for(int i = 0; i < output_sz; i++)
+        {
+            target[i] = prng::gen_A_to_B<int>(0, in_len[1] - 1);
+        }
+        if(input_dev->ToGPU(GetStream(), input.data()) != 0)
+        {
+            std::cerr << "Error copying (input) to GPU, size: " << input_dev->GetSize()
+                      << std::endl;
+            return miopenStatusInternalError;
+        }
+        if(target_dev->ToGPU(GetStream(), target.data()) != 0)
+        {
+            std::cerr << "Error copying (target) to GPU, size: " << target_dev->GetSize()
+                      << std::endl;
+            return miopenStatusInternalError;
+        }
+        if(output_dev->ToGPU(GetStream(), output.data()) != 0)
+        {
+            std::cerr << "Error copying (output) to GPU, size: " << output_dev->GetSize()
+                      << std::endl;
+            return miopenStatusInternalError;
+        }
     }
 
     if(forw == 0 || forw == 2)
@@ -238,38 +258,23 @@ int SparseSoftmaxCrossEntropyWithLogitsDriver<Tgpu, Tref>::AllocateBuffersAndCop
             output_grad[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
             backprop[i]    = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
         }
+        if(input_grad_dev->ToGPU(GetStream(), input_grad.data()) != 0)
+        {
+            std::cerr << "Error copying (input grad) to GPU, size: " << input_grad_dev->GetSize()
+                      << std::endl;
+            return miopenStatusInternalError;
+        }
+        if(output_grad_dev->ToGPU(GetStream(), output_grad.data()) != 0)
+        {
+            std::cerr << "Error copying (output grad) to GPU, size: " << output_grad_dev->GetSize()
+                      << std::endl;
+            return miopenStatusInternalError;
+        }
     }
 
-    if(input_dev->ToGPU(GetStream(), input.data()) != 0)
-    {
-        std::cerr << "Error copying (input) to GPU, size: " << input_dev->GetSize() << std::endl;
-        return miopenStatusInternalError;
-    }
-    if(input_grad_dev->ToGPU(GetStream(), input_grad.data()) != 0)
-    {
-        std::cerr << "Error copying (input grad) to GPU, size: " << input_grad_dev->GetSize()
-                  << std::endl;
-        return miopenStatusInternalError;
-    }
-    if(target_dev->ToGPU(GetStream(), target.data()) != 0)
-    {
-        std::cerr << "Error copying (target) to GPU, size: " << target_dev->GetSize() << std::endl;
-        return miopenStatusInternalError;
-    }
     if(backprop_dev->ToGPU(GetStream(), backprop.data()) != 0)
     {
         std::cerr << "Error copying (backprop) to GPU, size: " << backprop_dev->GetSize()
-                  << std::endl;
-        return miopenStatusInternalError;
-    }
-    if(output_dev->ToGPU(GetStream(), output.data()) != 0)
-    {
-        std::cerr << "Error copying (output) to GPU, size: " << output_dev->GetSize() << std::endl;
-        return miopenStatusInternalError;
-    }
-    if(output_grad_dev->ToGPU(GetStream(), output_grad.data()) != 0)
-    {
-        std::cerr << "Error copying (output grad) to GPU, size: " << output_grad_dev->GetSize()
                   << std::endl;
         return miopenStatusInternalError;
     }
@@ -440,19 +445,34 @@ int SparseSoftmaxCrossEntropyWithLogitsDriver<Tgpu, Tref>::VerifyForward()
 {
     RunForwardCPU();
     const Tref tolerance = GetTolerance();
-    auto error           = miopen::rms_range(output_host, output);
 
+    auto error = miopen::rms_range(output_host, output);
     if(!std::isfinite(error) || error > tolerance)
     {
-        std::cout << "Forward SparseSoftmaxCrossEntropyWithLogits FAILED: " << error << std::endl;
+        std::cout << "Forward SparseSoftmaxCrossEntropyWithLogits Output FAILED: " << error
+                  << std::endl;
         return EC_VerifyFwd;
     }
     else
     {
-        std::cout << "Forward SparseSoftmaxCrossEntropyWithLogits Verifies on CPU and GPU (err="
-                  << error << ")" << std::endl;
+        std::cout
+            << "Forward SparseSoftmaxCrossEntropyWithLogits Output Verifies on CPU and GPU (err="
+            << error << ")" << std::endl;
     }
-    // dealocate memory
+
+    auto error_backprop = miopen::rms_range(backprop_host, backprop);
+    if(!std::isfinite(error_backprop) || error_backprop > tolerance)
+    {
+        std::cout << "Forward SparseSoftmaxCrossEntropyWithLogits Backprop FAILED: "
+                  << error_backprop << std::endl;
+        return EC_VerifyFwd;
+    }
+    else
+    {
+        std::cout << "Forward SparseSoftmaxCrossEntropyWithLogits Backprop Verifies on CPU and GPU "
+                     "(err="
+                  << error_backprop << ")" << std::endl;
+    }
 
     return miopenStatusSuccess;
 }
