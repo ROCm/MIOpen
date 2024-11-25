@@ -40,7 +40,7 @@ template <typename T = float, typename Tref = float, bool use_cpu_ref = false>
 struct ConvBwdSolverTest
     : public ::testing::TestWithParam<std::tuple<Gpu, miopenConvAlgorithm_t, ConvTestCaseBase>>
 {
-    void SolverBwd(const miopen::solver::conv::ConvSolverBase& solv)
+    void SolverBwd(const miopen::solver::conv::ConvSolverInterface& solv)
     {
         auto&& handle = get_handle();
 

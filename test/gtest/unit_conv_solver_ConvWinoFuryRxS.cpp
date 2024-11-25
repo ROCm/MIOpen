@@ -52,7 +52,14 @@ auto GetConvTestCasesWrw(miopenDataType_t datatype)
     };
 }
 
-Gpu GetSupportedDevices() { return Gpu::gfx110X; }
+const auto& GetTestParams()
+{
+    static const auto params = [] {
+        auto p = miopen::unit_tests::UnitTestConvSolverParams(Gpu::gfx110X);
+        return p;
+    }();
+    return params;
+}
 
 } // namespace
 
@@ -79,24 +86,24 @@ TEST_P(CPU_UnitTestConvSolverDevApplicabilityFwd_NONE, ConvWinoFuryRxSf2x3)
 // Smoke tests
 INSTANTIATE_TEST_SUITE_P(Smoke,
                          GPU_UnitTestConvSolverFwd_FP16,
-                         testing::Combine(testing::Values(GetSupportedDevices()),
+                         testing::Combine(testing::Values(GetTestParams()),
                                           testing::Values(miopenConvolutionAlgoWinograd),
                                           testing::ValuesIn(GetConvTestCases(miopenHalf))));
 
 INSTANTIATE_TEST_SUITE_P(Smoke,
                          GPU_UnitTestConvSolverBwd_FP16,
-                         testing::Combine(testing::Values(GetSupportedDevices()),
+                         testing::Combine(testing::Values(GetTestParams()),
                                           testing::Values(miopenConvolutionAlgoWinograd),
                                           testing::ValuesIn(GetConvTestCases(miopenHalf))));
 
 INSTANTIATE_TEST_SUITE_P(Smoke,
                          GPU_UnitTestConvSolverWrw_FP16,
-                         testing::Combine(testing::Values(GetSupportedDevices()),
+                         testing::Combine(testing::Values(GetTestParams()),
                                           testing::Values(miopenConvolutionAlgoWinograd),
                                           testing::ValuesIn(GetConvTestCasesWrw(miopenHalf))));
 
 // Device applicability test
 INSTANTIATE_TEST_SUITE_P(Smoke,
                          CPU_UnitTestConvSolverDevApplicabilityFwd_NONE,
-                         testing::Combine(testing::Values(GetSupportedDevices()),
+                         testing::Combine(testing::Values(GetTestParams()),
                                           testing::Values(GetConvTestCases(miopenHalf)[0])));
