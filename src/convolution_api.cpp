@@ -237,7 +237,8 @@ miopenConvolutionABBackwardWeightsGetWorkSpaceSize(const miopenAlphaBetaCase_t a
             size_t K_per_group = K / G;
 
             return (alpha_beta_case == BILINEAR || alpha_beta_case == SCALE) ||
-                   (data_type == miopenHalf && (is_odd(C_per_group) || is_odd(K_per_group)));
+                   ((data_type == miopenHalf || data_type == miopenBFloat16) &&
+                    (is_odd(C_per_group) || is_odd(K_per_group)));
         };
 
         size_t output_tensor_size = miopen::deref(outputTensorDesc).GetElementSize();

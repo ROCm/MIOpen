@@ -49,6 +49,7 @@
 #cmakedefine01 MIOPEN_ENABLE_SQLITE_BACKOFF
 #cmakedefine01 MIOPEN_USE_MLIR
 #cmakedefine01 MIOPEN_USE_COMPOSABLEKERNEL
+#cmakedefine01 MIOPEN_BUILD_DRIVER
 #cmakedefine01 MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK
 #cmakedefine01 MIOPEN_ENABLE_AI_KERNEL_TUNING
 #cmakedefine01 MIOPEN_HIP_COMPILER_HAS_OPTION_OFFLOAD_UNIFORM_BLOCK
@@ -204,6 +205,6 @@ const char* getOffloadBundlerBinPath();
 #include <hip/hip_version.h>
 #endif
 
-#define MIOPEN_GOLDEN_DB_VERSION 20
+#define MIOPEN_GOLDEN_DB_VERSION 21
 
 #endif // GUARD_CONFIG_H_IN

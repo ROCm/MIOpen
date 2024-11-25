@@ -28,7 +28,9 @@
 
 #include <miopen/miopen.h>
 #include <miopen/names.hpp>
+#include <miopen/tensor.hpp>
 
+#include <vector>
 #include <string>
 
 namespace miopen {
@@ -51,6 +53,36 @@ inline std::string GetDataTypeName(miopenDataType_t data_type)
     return "Unknown(" + std::to_string(data_type) + ")";
 }
 
+template <class TElement>
+constexpr TElement GetN5(unsigned spatial_dims, const std::vector<TElement>& data)
+{
+    return std::get<0>(GetNCDHW(spatial_dims, data));
+}
+
+template <class TElement>
+constexpr TElement GetC5(unsigned spatial_dims, const std::vector<TElement>& data)
+{
+    return std::get<1>(GetNCDHW(spatial_dims, data));
+}
+
+template <class TElement>
+constexpr TElement GetD5(unsigned spatial_dims, const std::vector<TElement>& data)
+{
+    return std::get<2>(GetNCDHW(spatial_dims, data));
+}
+
+template <class TElement>
+constexpr TElement GetH5(unsigned spatial_dims, const std::vector<TElement>& data)
+{
+    return std::get<3>(GetNCDHW(spatial_dims, data));
+}
+
+template <class TElement>
+constexpr TElement GetW5(unsigned spatial_dims, const std::vector<TElement>& data)
+{
+    return std::get<4>(GetNCDHW(spatial_dims, data));
+}
+
 struct ProblemDescriptionBase
 {
     ProblemDescriptionBase()                              = default;
@@ -60,6 +92,9 @@ struct ProblemDescriptionBase
     ProblemDescriptionBase& operator=(const ProblemDescriptionBase&) = default;
 
     [[nodiscard]] virtual NetworkConfig MakeNetworkConfig() const = 0;
+#if MIOPEN_ENABLE_SQLITE
+    static std::string table_name() { return "config"; }
+#endif
 };
 
 } // namespace miopen
