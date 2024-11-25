@@ -249,8 +249,8 @@ void PerformanceConfigBnCKFwdTraining::HeuristicInit(
     case miopenBFloat16: Init<BF16, BF16, F32, BF16, BF16, F32>(problem_desc); break;
     case miopenFloat: Init<F32, F32, F32, F32, F32, F32>(problem_desc); break;
     case miopenDouble: Init<F64, F64, F64, F64, F64, F64>(problem_desc); break;
-    case miopenFloat8:
-    case miopenBFloat8:
+    case miopenFloat8_fnuz:
+    case miopenBFloat8_fnuz:
     case miopenInt8:
     case miopenInt32:
     case miopenInt64:
@@ -302,8 +302,8 @@ bool PerformanceConfigBnCKFwdTraining::IsValid(
         return CheckIsSupportCKArgs<BF16, BF16, F32, BF16, BF16, F32>(problem_desc);
     case miopenFloat: return CheckIsSupportCKArgs<F32, F32, F32, F32, F32, F32>(problem_desc);
     case miopenDouble: return CheckIsSupportCKArgs<F64, F64, F64, F64, F64, F64>(problem_desc);
-    case miopenFloat8:
-    case miopenBFloat8:
+    case miopenFloat8_fnuz:
+    case miopenBFloat8_fnuz:
     case miopenInt8:
     case miopenInt32:
     case miopenInt64:
