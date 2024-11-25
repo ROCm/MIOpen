@@ -34,20 +34,19 @@ using GPU_SparseSoftmaxCrossEntropyWithLogits_fwd_FP16 =
 using GPU_SparseSoftmaxCrossEntropyWithLogits_fwd_BFP16 =
     SparseSoftmaxCrossEntropyWithLogitsTestFwd<bfloat16>;
 
-TEST_P(GPU_SparseSoftmaxCrossEntropyWithLogits_fwd_FP32, SparseSoftmaxCrossEntropyWithLogitsTestFwd)
+TEST_P(GPU_SparseSoftmaxCrossEntropyWithLogits_fwd_FP32, Test)
 {
     RunTest();
     Verify();
 };
 
-TEST_P(GPU_SparseSoftmaxCrossEntropyWithLogits_fwd_FP16, SparseSoftmaxCrossEntropyWithLogitsTestFwd)
+TEST_P(GPU_SparseSoftmaxCrossEntropyWithLogits_fwd_FP16, Test)
 {
     RunTest();
     Verify();
 };
 
-TEST_P(GPU_SparseSoftmaxCrossEntropyWithLogits_fwd_BFP16,
-       SparseSoftmaxCrossEntropyWithLogitsTestFwd)
+TEST_P(GPU_SparseSoftmaxCrossEntropyWithLogits_fwd_BFP16, Test)
 {
     RunTest();
     Verify();
@@ -71,20 +70,19 @@ using GPU_SparseSoftmaxCrossEntropyWithLogits_bwd_FP16 =
 using GPU_SparseSoftmaxCrossEntropyWithLogits_bwd_BFP16 =
     SparseSoftmaxCrossEntropyWithLogitsTestBwd<bfloat16>;
 
-TEST_P(GPU_SparseSoftmaxCrossEntropyWithLogits_bwd_FP32, SparseSoftmaxCrossEntropyWithLogitsTestBwd)
+TEST_P(GPU_SparseSoftmaxCrossEntropyWithLogits_bwd_FP32, Test)
 {
     RunTest();
     Verify();
 };
 
-TEST_P(GPU_SparseSoftmaxCrossEntropyWithLogits_bwd_FP16, SparseSoftmaxCrossEntropyWithLogitsTestBwd)
+TEST_P(GPU_SparseSoftmaxCrossEntropyWithLogits_bwd_FP16, Test)
 {
     RunTest();
     Verify();
 };
 
-TEST_P(GPU_SparseSoftmaxCrossEntropyWithLogits_bwd_BFP16,
-       SparseSoftmaxCrossEntropyWithLogitsTestBwd)
+TEST_P(GPU_SparseSoftmaxCrossEntropyWithLogits_bwd_BFP16, Test)
 {
     RunTest();
     Verify();
