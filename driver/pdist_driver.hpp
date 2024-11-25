@@ -151,6 +151,13 @@ int PdistDriver<Tgpu, Tref>::GetandSetData()
     auto in_dims         = inflags.GetValueTensor("dims").lengths;
     auto N               = in_dims[0];
     auto output_dim_size = N * (N - 1) / 2;
+
+    if(output_dim_size == 0)
+    {
+        MIOPEN_THROW("Invalid input tensor dimensions: MIOpen doesn't handle for empty tensors "
+                     "yet, hence input.shape[0] cannot be {0, 1}.");
+    }
+
     std::vector<int> output_dims({output_dim_size});
 
     if(SetTensorNd(inputDesc, in_dims, data_type) != miopenStatusSuccess)

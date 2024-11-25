@@ -62,30 +62,21 @@ struct PdistTestCase
 inline std::vector<PdistTestCase> PdistTestConfigs()
 {
     return {
-        // TODO: How to test when expected output=tensor([])?
-        // PdistTestCase({1, 1}, 0.0),
-        // PdistTestCase({1, 1}, 1.0),
-        // PdistTestCase({1, 1}, 2.0),
-        // PdistTestCase({1, 1}, 5.0),
-        // PdistTestCase({1, 1}, HUGE_VAL),
+        // Currently, MIOpen doesn't support for empty tensors, so skip those tests where
+        // input.shape[0] == 0 || input.shape[0] == 1
+        PdistTestCase({1, 1}, 0.0),          PdistTestCase({1, 1}, 1.0),
+        PdistTestCase({1, 1}, 2.0),          PdistTestCase({1, 1}, 5.0),
+        PdistTestCase({1, 1}, HUGE_VAL),
 
-        PdistTestCase({2, 5}, 2.0),
-        PdistTestCase({2, 10}, 5.0),
-        PdistTestCase({5, 1}, 0.0),
-        PdistTestCase({5, 5}, 0.0),
-        PdistTestCase({10, 1}, 1.0),
-        PdistTestCase({10, 10}, 0.0),
-        PdistTestCase({100, 100}, 0.0),
-        PdistTestCase({100, 100}, 1.0),
-        PdistTestCase({100, 100}, 2.0),
-        PdistTestCase({100, 100}, 5.0),
+        PdistTestCase({2, 5}, 2.0),          PdistTestCase({2, 10}, 5.0),
+        PdistTestCase({5, 1}, 0.0),          PdistTestCase({5, 5}, 0.0),
+        PdistTestCase({10, 1}, 1.0),         PdistTestCase({10, 10}, 0.0),
+        PdistTestCase({100, 100}, 0.0),      PdistTestCase({100, 100}, 1.0),
+        PdistTestCase({100, 100}, 2.0),      PdistTestCase({100, 100}, 5.0),
 
-        PdistTestCase({2, 5}, HUGE_VAL),
-        PdistTestCase({2, 10}, HUGE_VAL),
-        PdistTestCase({5, 1}, HUGE_VAL),
-        PdistTestCase({5, 5}, HUGE_VAL),
-        PdistTestCase({10, 1}, HUGE_VAL),
-        PdistTestCase({10, 10}, HUGE_VAL),
+        PdistTestCase({2, 5}, HUGE_VAL),     PdistTestCase({2, 10}, HUGE_VAL),
+        PdistTestCase({5, 1}, HUGE_VAL),     PdistTestCase({5, 5}, HUGE_VAL),
+        PdistTestCase({10, 1}, HUGE_VAL),    PdistTestCase({10, 10}, HUGE_VAL),
         PdistTestCase({100, 100}, HUGE_VAL),
     };
 }
