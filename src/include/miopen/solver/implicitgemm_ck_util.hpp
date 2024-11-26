@@ -140,7 +140,24 @@ bool IsCKArgsSupported(const ProblemDescriptionType& problem, const std::string&
                      std::is_same_v<DeviceOpType, conv::DeviceOpGWrwPtrs<ck::bhalf_t>>)
         {
             auto pos      = kernel_id.find_last_of('+');
-            int split_k   = std::stoi(kernel_id.substr(pos + 1));
+            if(pos == string::npos)
+            {
+                MIOPEN_LOG_I2("Unable to parse split_k from kernel_id for wrw: " << kernel_id);
+                return false;
+            }
+
+            int split_k = 1;
+            try
+            {
+                split_k   = std::stoi(kernel_id.substr(pos + 1));
+            }
+            catch(std::exception& e)
+            {
+                MIOPEN_LOG_I2("Unable to parse split_k from kernel_id for wrw: " << kernel_id << " : "
+                                                    << e.what());
+                return false;
+            }
+
             auto ptr_iter = FindConvPtrByID(conv_ptrs, kernel_id.substr(0, pos));
             return (ptr_iter != conv_ptrs.end()) &&
                    CKArgsType{problem}.IsSupportedBySplitK(*ptr_iter, split_k);
