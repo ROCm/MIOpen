@@ -711,7 +711,6 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
              Primitive::SparseSoftmaxCrossEntropyWithLogits,
              sparsesoftmaxcrossentropywithlogits::SparseSoftmaxCrossEntropyWithLogitsBackward{}
                  .SolverDbId());
-
     // IMPORTANT: New solvers should be added to the end of the function!
 }
 
