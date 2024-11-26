@@ -179,8 +179,6 @@ InvokerFactory MakeImplGemmDynamicBackwardDataInvokerFactory(const ProblemDescri
         is_gemm_not_empty.emplace_back(gemm_k_gid > 0);
     }
     bool need_set_zero = true;
-    // if(y < stride_h || x < stride_w || dilation_h != 1 || dilation_w != 1)
-    //    need_set_zero = true;
 
     return [=](const std::vector<Kernel>& kernels) {
         const auto kernel = kernels[0];
@@ -316,12 +314,9 @@ MakeImplGemmDynamicBackwardDataInvokerFactory(const ProblemDescription& problem,
         is_gemm_not_empty.emplace_back(gemm_k_gid > 0);
     }
     bool need_set_zero = true;
-    // if(y < stride_h || x < stride_w || dilation_h != 1 || dilation_w != 1)
-    //    need_set_zero = true;
-
-    int nxb = cfg.nxb;
-    int b   = h_tilda_slice * w_tilda_slice;
-    b       = (cfg.nxe == 0) ? (b) : ((b + nxb - 1) / nxb) * nxb; // pad to nxb modulo when nxe != 0
+    int nxb            = cfg.nxb;
+    int b              = h_tilda_slice * w_tilda_slice;
+    b = (cfg.nxe == 0) ? (b) : ((b + nxb - 1) / nxb) * nxb; // pad to nxb modulo when nxe != 0
 
     uint32_t nb_n0          = cfg.tensor_b_cluster_lengths[2] * cfg.tensor_b_thread_lengths[2];
     uint32_t nb_n1b         = cfg.tensor_b_cluster_lengths[3] * cfg.tensor_b_thread_lengths[3];
@@ -497,7 +492,6 @@ InvokerFactory MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(
     }
 
     // Clear buffer for all condition to resolve the NaN issue.
-    // bool need_set_zero                 = config.gemm_k_global_split > 0;
     bool need_set_zero                 = true;
     bool use_fp32_global_split_on_fp16 = config.vector_store == 1 && config.gemm_k_global_split > 0;
 
@@ -801,9 +795,6 @@ InvokerFactory MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(
 
     bool need_set_zero                 = true;
     bool use_fp32_global_split_on_fp16 = config.vector_store == 1 && config.gemm_k_global_split > 0;
-    // if(y < stride_h || x < stride_w || dilation_h != 1 || dilation_w != 1)
-    //    need_set_zero = true;
-    // need_set_zero |= config.gemm_k_global_split > 0;
 
     std::vector<OpKernelArg> opArgs;
     opArgs.emplace_back(0); // placeholder
