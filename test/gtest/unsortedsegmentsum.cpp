@@ -37,19 +37,19 @@ struct GPU_UnsortedSegmentSum_fwd_BFP16 : UnsortedSegmentSumTestFwd<bfloat16>
 {
 };
 
-TEST_P(GPU_UnsortedSegmentSum_fwd_FP32, UnsortedSegmentSumTestFwd)
+TEST_P(GPU_UnsortedSegmentSum_fwd_FP32, Test)
 {
     RunTest();
     Verify();
 };
 
-TEST_P(GPU_UnsortedSegmentSum_fwd_FP16, UnsortedSegmentSumTestFwd)
+TEST_P(GPU_UnsortedSegmentSum_fwd_FP16, Test)
 {
     RunTest();
     Verify();
 };
 
-TEST_P(GPU_UnsortedSegmentSum_fwd_BFP16, UnsortedSegmentSumTestFwd)
+TEST_P(GPU_UnsortedSegmentSum_fwd_BFP16, Test)
 {
     RunTest();
     Verify();
@@ -77,19 +77,19 @@ struct GPU_UnsortedSegmentSum_bwd_BFP16 : UnsortedSegmentSumTestBwd<bfloat16>
 {
 };
 
-TEST_P(GPU_UnsortedSegmentSum_bwd_FP32, UnsortedSegmentSumTestBwd)
+TEST_P(GPU_UnsortedSegmentSum_bwd_FP32, Test)
 {
     RunTest();
     Verify();
 };
 
-TEST_P(GPU_UnsortedSegmentSum_bwd_FP16, UnsortedSegmentSumTestBwd)
+TEST_P(GPU_UnsortedSegmentSum_bwd_FP16, Test)
 {
     RunTest();
     Verify();
 };
 
-TEST_P(GPU_UnsortedSegmentSum_bwd_BFP16, UnsortedSegmentSumTestBwd)
+TEST_P(GPU_UnsortedSegmentSum_bwd_BFP16, Test)
 {
     RunTest();
     Verify();

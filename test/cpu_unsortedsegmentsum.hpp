@@ -31,7 +31,7 @@
 template <class T, class TS>
 void cpu_UnsortedSegmentSum_forward(const tensor<T>& input,
                                     tensor<T>& output,
-                                    const tensor<TS> segment_ids,
+                                    const tensor<TS>& segment_ids,
                                     const uint64_t num_segments)
 {
     uint64_t N              = input.desc.GetElementSize();
@@ -53,7 +53,7 @@ void cpu_UnsortedSegmentSum_forward(const tensor<T>& input,
 template <class T, class TS>
 void cpu_UnsortedSegmentSum_backward(const tensor<T>& output_grad,
                                      tensor<T>& input_grad,
-                                     const tensor<TS> segment_ids,
+                                     const tensor<TS>& segment_ids,
                                      const uint64_t num_segments)
 {
     uint64_t N              = input_grad.desc.GetElementSize();
