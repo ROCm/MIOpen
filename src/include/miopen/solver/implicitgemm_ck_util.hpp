@@ -142,7 +142,7 @@ bool IsCKArgsSupported(const ProblemDescriptionType& problem, const std::string&
             auto pos = kernel_id.find_last_of('+');
             if(pos == std::string::npos)
             {
-                MIOPEN_LOG_I2("Unable to parse split_k from kernel_id for wrw: " << kernel_id);
+                MIOPEN_LOG_WE("Unable to parse split_k from kernel_id for wrw: " << kernel_id);
                 return false;
             }
 
@@ -153,7 +153,7 @@ bool IsCKArgsSupported(const ProblemDescriptionType& problem, const std::string&
             }
             catch(std::exception& e)
             {
-                MIOPEN_LOG_I2("Unable to parse split_k from kernel_id for wrw: "
+                MIOPEN_LOG_WE("Unable to parse split_k from kernel_id for wrw: "
                               << kernel_id << " : " << e.what());
                 return false;
             }
