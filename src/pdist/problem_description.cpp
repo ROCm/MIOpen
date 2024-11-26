@@ -37,8 +37,9 @@ NetworkConfig BackwardProblemDescription::MakeNetworkConfig() const
     std::ostringstream ss;
 
     ss << "pdist_backward";
-    ss << "dtype" << inputDesc.GetType();
-    ss << "dims" << inputDesc.GetLengths()[0] << "x" << inputDesc.GetLengths()[1];
+    ss << "-dtype" << inputDesc.GetType();
+    ss << "-dims" << inputDesc.GetLengths()[0] << "x" << inputDesc.GetLengths()[1];
+    ss << "-is_all_contiguous" << IsAllContiguous();
 
     return NetworkConfig{ss.str()};
 }

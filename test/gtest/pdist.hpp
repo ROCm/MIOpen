@@ -37,6 +37,7 @@ struct PdistTestCase
 {
     std::vector<size_t> dims;
     double p;
+    bool is_contiguous;
 
     friend std::ostream& operator<<(std::ostream& os, const PdistTestCase& tc)
     {
@@ -45,8 +46,9 @@ struct PdistTestCase
         {
             os << d << " ";
         }
-        os << ") ";
-        os << "p: " << tc.p;
+        os << ")";
+        os << " is_contiguous: " << tc.is_contiguous;
+        os << " p: " << tc.p;
 
         return os;
     }
@@ -56,7 +58,24 @@ struct PdistTestCase
 
     PdistTestCase() {}
 
-    PdistTestCase(std::vector<size_t> dims_, double p_) : dims(dims_), p(p_) {}
+    PdistTestCase(std::vector<size_t> dims_, double p_, bool is_contiguous_)
+        : dims(dims_), p(p_), is_contiguous(is_contiguous_)
+    {
+    }
+
+    std::vector<size_t> ComputeStrides() const
+    {
+        std::vector<size_t> inputDim = dims;
+        if(!is_contiguous)
+            std::swap(inputDim.front(), inputDim.back());
+        std::vector<size_t> strides(inputDim.size());
+        strides.back() = 1;
+        for(int i = inputDim.size() - 2; i >= 0; --i)
+            strides[i] = strides[i + 1] * inputDim[i + 1];
+        if(!is_contiguous)
+            std::swap(strides.front(), strides.back());
+        return strides;
+    }
 };
 
 inline std::vector<PdistTestCase> PdistTestConfigs()
@@ -64,20 +83,36 @@ inline std::vector<PdistTestCase> PdistTestConfigs()
     return {
         // Currently, MIOpen doesn't support for empty tensors, so skip those tests where
         // input.shape[0] == 0 || input.shape[0] == 1
-        PdistTestCase({1, 1}, 0.0),          PdistTestCase({1, 1}, 1.0),
-        PdistTestCase({1, 1}, 2.0),          PdistTestCase({1, 1}, 5.0),
-        PdistTestCase({1, 1}, HUGE_VAL),
+        // PdistTestCase({1, 1}, 0.0, true),          PdistTestCase({1, 1}, 1.0, true),
+        // PdistTestCase({1, 1}, 2.0, true),          PdistTestCase({1, 1}, 5.0, true),
+        // PdistTestCase({1, 1}, HUGE_VAL, true),
 
-        PdistTestCase({2, 5}, 2.0),          PdistTestCase({2, 10}, 5.0),
-        PdistTestCase({5, 1}, 0.0),          PdistTestCase({5, 5}, 0.0),
-        PdistTestCase({10, 1}, 1.0),         PdistTestCase({10, 10}, 0.0),
-        PdistTestCase({100, 100}, 0.0),      PdistTestCase({100, 100}, 1.0),
-        PdistTestCase({100, 100}, 2.0),      PdistTestCase({100, 100}, 5.0),
+        PdistTestCase({2, 5}, 2.0, true),
+        PdistTestCase({2, 5}, 2.0, false),
+        PdistTestCase({2, 10}, 5.0, true),
+        PdistTestCase({2, 10}, 5.0, false),
+        PdistTestCase({5, 1}, 0.0, true),
+        PdistTestCase({5, 1}, 0.0, false),
+        PdistTestCase({5, 5}, 0.0, true),          
+        PdistTestCase({5, 5}, 0.0, false),          
+        PdistTestCase({10, 1}, 1.0, true),
+        PdistTestCase({10, 1}, 1.0, false),
+        PdistTestCase({10, 10}, 0.0, true),        
+        PdistTestCase({100, 100}, 0.0, true),
+        PdistTestCase({100, 100}, 1.0, true),      
+        PdistTestCase({100, 100}, 2.0, true),
+        PdistTestCase({100, 100}, 5.0, true),
+        PdistTestCase({100, 100}, 5.0, false),
 
-        PdistTestCase({2, 5}, HUGE_VAL),     PdistTestCase({2, 10}, HUGE_VAL),
-        PdistTestCase({5, 1}, HUGE_VAL),     PdistTestCase({5, 5}, HUGE_VAL),
-        PdistTestCase({10, 1}, HUGE_VAL),    PdistTestCase({10, 10}, HUGE_VAL),
-        PdistTestCase({100, 100}, HUGE_VAL),
+        PdistTestCase({2, 5}, HUGE_VAL, true),     
+        PdistTestCase({2, 10}, HUGE_VAL, true),
+        PdistTestCase({5, 1}, HUGE_VAL, true),     
+        PdistTestCase({5, 5}, HUGE_VAL, true),
+        PdistTestCase({10, 1}, HUGE_VAL, true),    
+        PdistTestCase({10, 1}, HUGE_VAL, false),    
+        PdistTestCase({10, 10}, HUGE_VAL, true),
+        PdistTestCase({100, 100}, HUGE_VAL, true),
+        PdistTestCase({100, 100}, HUGE_VAL, false),
     };
 }
 
@@ -86,26 +121,53 @@ inline std::vector<PdistTestCase> PdistFp16TestConfigs()
 {
     // clang-format off
     return {
-        PdistTestCase({2, 5}, 2.0),
-        PdistTestCase({5, 1}, 0.0),
-        PdistTestCase({5, 5}, 0.0),
-        PdistTestCase({10, 1}, 1.0),
-        PdistTestCase({10, 10}, 0.0),
-        PdistTestCase({100, 100}, 0.0),
-        PdistTestCase({100, 100}, 1.0),
-        PdistTestCase({100, 100}, 2.0),
+        PdistTestCase({2, 5}, 2.0, true),
+        PdistTestCase({2, 5}, 2.0, false),
+        PdistTestCase({5, 1}, 0.0, true),
+        PdistTestCase({5, 5}, 0.0, true),
+        PdistTestCase({10, 1}, 1.0, true),
+        PdistTestCase({10, 1}, 1.0, false),
+        PdistTestCase({10, 10}, 0.0, true),
+        PdistTestCase({100, 100}, 0.0, true),
+        PdistTestCase({100, 100}, 1.0, true),
+        PdistTestCase({100, 100}, 2.0, true),
+        PdistTestCase({100, 100}, 2.0, false),
 
-        PdistTestCase({2, 5}, HUGE_VAL),
-        PdistTestCase({2, 10}, HUGE_VAL),
-        PdistTestCase({5, 1}, HUGE_VAL),
-        PdistTestCase({5, 5}, HUGE_VAL),
-        PdistTestCase({10, 1}, HUGE_VAL),
-        PdistTestCase({10, 10}, HUGE_VAL),
-        PdistTestCase({100, 100}, HUGE_VAL)
+        PdistTestCase({2, 5}, HUGE_VAL, true),
+        PdistTestCase({2, 5}, HUGE_VAL, false),
+        PdistTestCase({2, 10}, HUGE_VAL, true),
+        PdistTestCase({5, 1}, HUGE_VAL, true),
+        PdistTestCase({5, 5}, HUGE_VAL, true),
+        PdistTestCase({5, 5}, HUGE_VAL, false),
+        PdistTestCase({10, 1}, HUGE_VAL, true),
+        PdistTestCase({10, 10}, HUGE_VAL, true),
+        PdistTestCase({100, 100}, HUGE_VAL, true),
+        PdistTestCase({100, 100}, HUGE_VAL, false),
 
         
     };
     // clang-format on
+}
+
+template <typename T>
+void print_tensor(const tensor<T>& t, const std::vector<size_t>& dims, const std::vector<size_t>& strides, size_t dim = 0, std::vector<size_t> indices = {})
+{
+    if(dim == dims.size())
+    {
+        std::cout << t(indices) << " ";
+        return;
+    }
+
+    for(size_t i = 0; i < dims[dim]; ++i)
+    {
+        indices.push_back(i);
+        print_tensor(t, dims, strides, dim + 1, indices);
+        indices.pop_back();
+        if(dim == dims.size() - 1)
+        {
+            std::cout << std::endl;
+        }
+    }
 }
 
 template <typename T>
@@ -114,9 +176,27 @@ struct PdistTestBackward : public ::testing::TestWithParam<PdistTestCase>
 protected:
     void SetUp() override
     {
-        auto&& handle        = get_handle();
-        pdist_config         = GetParam();
-        auto input_dims      = pdist_config.GetDims();
+        auto&& handle = get_handle();
+        pdist_config  = GetParam();
+
+        auto input_dims    = pdist_config.GetDims();
+        auto input_strides = pdist_config.ComputeStrides();
+
+        // print input_dims
+        // std::cout << "input_dims: ";
+        // for(auto i : input_dims)
+        // {
+        //     std::cout << i << " ";
+        // }
+        // std::cout << std::endl;
+
+        // std::cout  << "input_strides: ";
+        // for(auto i : input_strides)
+        // {
+        //     std::cout << i << " ";
+        // }
+        // std::cout << std::endl;
+
         p                    = pdist_config.GetP();
         auto N               = input_dims[0];
         auto output_dim_size = N * (N - 1) / 2;
@@ -125,6 +205,7 @@ protected:
         {
             GTEST_SKIP();
         }
+
         std::vector<size_t> output_dims({N * (N - 1) / 2});
 
         auto gen_value = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1e-2, 100); };
@@ -132,8 +213,15 @@ protected:
             return prng::gen_descreet_uniform_sign<T>(1e-2, 200);
         };
 
-        input  = tensor<T>{input_dims}.generate(gen_value);
+        input  = tensor<T>{input_dims, input_strides}.generate(gen_value);
         output = tensor<T>{output_dims}.generate(output_gen_value);
+
+        output[0] = 0.9261;
+
+        // print input
+        // std::cout << "input: ";
+        // print_tensor(input, input_dims, input_strides);
+
 
         doutput = tensor<T>{output_dims};
         std::fill(doutput.begin(), doutput.end(), 1.0);
@@ -192,6 +280,21 @@ protected:
     {
         double threshold  = std::numeric_limits<T>::epsilon() * 10;
         auto dinput_error = miopen::rms_range(ref_dinput, dinput);
+
+        // print out
+        // std::cout << "ref_dinput: ";
+        // for(auto i : ref_dinput)
+        // {
+        //     std::cout << i << " ";
+        // }
+        // std::cout << std::endl;
+        // // print outhost
+        // std::cout << "dinput: ";
+        // for(auto i : dinput)
+        // {
+        //     std::cout << i << " ";
+        // }
+        // std::cout << std::endl;
 
         ASSERT_EQ(miopen::range_distance(ref_dinput), miopen::range_distance(dinput));
         EXPECT_LT(dinput_error, threshold)

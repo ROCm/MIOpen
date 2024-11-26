@@ -56,6 +56,7 @@ public:
         data_type = miopen_type<Tgpu>();
     }
 
+    std::vector<int> ComputeStrides(std::vector<int> inputDim);
     int AddCmdLineArgs() override;
     int ParseCmdLineArgs(int argc, char* argv[]) override;
     InputFlags& GetInputFlags() override { return inflags; }
@@ -107,7 +108,24 @@ private:
     size_t ws_sizeInBytes;
 
     double p;
+
+    bool is_contiguous;
 };
+
+// Equivalent tensor.transpose(0, -1).contiguous().transpose(0, -1)
+template <typename Tgpu, typename Tref>
+std::vector<int> PdistDriver<Tgpu, Tref>::ComputeStrides(std::vector<int> inputDim)
+{
+    if(!is_contiguous)
+        std::swap(inputDim.front(), inputDim.back());
+    std::vector<int> strides(inputDim.size());
+    strides.back() = 1;
+    for(int i = inputDim.size() - 2; i >= 0; --i)
+        strides[i] = strides[i + 1] * inputDim[i + 1];
+    if(!is_contiguous)
+        std::swap(strides.front(), strides.back());
+    return strides;
+}
 
 template <typename Tgpu, typename Tref>
 int PdistDriver<Tgpu, Tref>::AddCmdLineArgs()
@@ -115,6 +133,11 @@ int PdistDriver<Tgpu, Tref>::AddCmdLineArgs()
     inflags.AddInputFlag("forw", 'F', "2", "Run only Pdist Backward (Default=2)", "int");
     inflags.AddTensorFlag(
         "dims", 'd', "3x4", "The dimensional lengths of the input tensor (Default=3x4)");
+    inflags.AddInputFlag("contiguous",
+                         'C',
+                         "1",
+                         "Tensor is contiguous or not (Default=1 for contiguous tensor)",
+                         "int");
     inflags.AddInputFlag("power",
                          'p',
                          "2",
@@ -135,6 +158,8 @@ int PdistDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
 {
     inflags.Parse(argc, argv);
 
+    is_contiguous = inflags.GetValueInt("contiguous") > 0 ? true : false;
+
     p = inflags.GetValueDouble("power");
 
     if(inflags.GetValueInt("time") == 1)
@@ -149,6 +174,7 @@ template <typename Tgpu, typename Tref>
 int PdistDriver<Tgpu, Tref>::GetandSetData()
 {
     auto in_dims         = inflags.GetValueTensor("dims").lengths;
+    auto in_strides = ComputeStrides(in_dims);
     auto N               = in_dims[0];
     auto output_dim_size = N * (N - 1) / 2;
 
@@ -160,7 +186,7 @@ int PdistDriver<Tgpu, Tref>::GetandSetData()
 
     std::vector<int> output_dims({output_dim_size});
 
-    if(SetTensorNd(inputDesc, in_dims, data_type) != miopenStatusSuccess)
+    if(SetTensorNd(inputDesc, in_dims, in_strides, data_type) != miopenStatusSuccess)
         MIOPEN_THROW("Error parsing input tensor: " + inflags.GetValueStr("dims") + ".");
 
     if(SetTensorNd(outputDesc, output_dims, data_type) != miopenStatusSuccess)

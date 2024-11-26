@@ -50,7 +50,7 @@ struct BackwardProblemDescription : public ProblemDescriptionBase
           dinputDesc(dinputDesc_),
           p(p_)
     {
-        IsAllContiguous();
+        // IsAllContiguous();
         IsValidPValue();
         IsSameType();
         IsRightLength();
@@ -116,7 +116,8 @@ struct BackwardProblemDescription : public ProblemDescriptionBase
         if(!(inputDesc.IsContiguous() && outputDesc.IsContiguous() && doutputDesc.IsContiguous() &&
              dinputDesc.IsContiguous()))
         {
-            MIOPEN_THROW(miopenStatusBadParm, "PdistBackward: All tensors must be contiguous.");
+            // MIOPEN_THROW(miopenStatusBadParm, "PdistBackward: All tensors must be contiguous.");
+            return false;
         }
 
         return true;
