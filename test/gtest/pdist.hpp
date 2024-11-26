@@ -150,27 +150,6 @@ inline std::vector<PdistTestCase> PdistFp16TestConfigs()
 }
 
 template <typename T>
-void print_tensor(const tensor<T>& t, const std::vector<size_t>& dims, const std::vector<size_t>& strides, size_t dim = 0, std::vector<size_t> indices = {})
-{
-    if(dim == dims.size())
-    {
-        std::cout << t(indices) << " ";
-        return;
-    }
-
-    for(size_t i = 0; i < dims[dim]; ++i)
-    {
-        indices.push_back(i);
-        print_tensor(t, dims, strides, dim + 1, indices);
-        indices.pop_back();
-        if(dim == dims.size() - 1)
-        {
-            std::cout << std::endl;
-        }
-    }
-}
-
-template <typename T>
 struct PdistTestBackward : public ::testing::TestWithParam<PdistTestCase>
 {
 protected:
@@ -181,21 +160,6 @@ protected:
 
         auto input_dims    = pdist_config.GetDims();
         auto input_strides = pdist_config.ComputeStrides();
-
-        // print input_dims
-        // std::cout << "input_dims: ";
-        // for(auto i : input_dims)
-        // {
-        //     std::cout << i << " ";
-        // }
-        // std::cout << std::endl;
-
-        // std::cout  << "input_strides: ";
-        // for(auto i : input_strides)
-        // {
-        //     std::cout << i << " ";
-        // }
-        // std::cout << std::endl;
 
         p                    = pdist_config.GetP();
         auto N               = input_dims[0];
@@ -215,13 +179,6 @@ protected:
 
         input  = tensor<T>{input_dims, input_strides}.generate(gen_value);
         output = tensor<T>{output_dims}.generate(output_gen_value);
-
-        output[0] = 0.9261;
-
-        // print input
-        // std::cout << "input: ";
-        // print_tensor(input, input_dims, input_strides);
-
 
         doutput = tensor<T>{output_dims};
         std::fill(doutput.begin(), doutput.end(), 1.0);
@@ -280,21 +237,6 @@ protected:
     {
         double threshold  = std::numeric_limits<T>::epsilon() * 10;
         auto dinput_error = miopen::rms_range(ref_dinput, dinput);
-
-        // print out
-        // std::cout << "ref_dinput: ";
-        // for(auto i : ref_dinput)
-        // {
-        //     std::cout << i << " ";
-        // }
-        // std::cout << std::endl;
-        // // print outhost
-        // std::cout << "dinput: ";
-        // for(auto i : dinput)
-        // {
-        //     std::cout << i << " ";
-        // }
-        // std::cout << std::endl;
 
         ASSERT_EQ(miopen::range_distance(ref_dinput), miopen::range_distance(dinput));
         EXPECT_LT(dinput_error, threshold)
