@@ -75,7 +75,7 @@ ConvSolution UnsortedSegmentSumForward::GetSolution(
         {"MIOPEN_USE_FP64", static_cast<int>(dtype == miopenDouble)},
         {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
         {"D_TYPE", d_dtype == "bfloat16" ? "ushort" : d_dtype},
-        {"SEG_TYPE", seg_type},
+        {"SEG_TYPE", seg_type == "int64" ? "size_t" : seg_type},
     };
 
     size_t xlocalsize = LOCAL_SIZE;

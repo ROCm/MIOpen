@@ -66,11 +66,11 @@ struct FwdProblemDescription : ProblemDescriptionBase
 
     bool IsValidType() const
     {
-        if(SegmentIdsDesc.GetType() != miopenInt32)
+        if(SegmentIdsDesc.GetType() != miopenInt32 && SegmentIdsDesc.GetType() != miopenInt64)
         {
             MIOPEN_THROW(miopenStatusBadParm,
                          "UnsortedSegmentSumForward: SegmentIds tensor must be int32, "
-                         "unsign int32, or unsign int64 tensor.");
+                         "or int64 tensor.");
         }
         return true;
     }
@@ -135,11 +135,11 @@ struct BwdProblemDescription : ProblemDescriptionBase
 
     bool IsValidType() const
     {
-        if(SegmentIdsDesc.GetType() != miopenInt32)
+        if(SegmentIdsDesc.GetType() != miopenInt32 && SegmentIdsDesc.GetType() != miopenInt64)
         {
             MIOPEN_THROW(miopenStatusBadParm,
                          "UnsortedSegmentSumBackward: SegmentIds tensor must be int32, "
-                         "int64, unsign int32, or unsign int64 tensor.");
+                         "or int64 tensor.");
         }
         return true;
     }
