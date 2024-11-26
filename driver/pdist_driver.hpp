@@ -174,7 +174,7 @@ template <typename Tgpu, typename Tref>
 int PdistDriver<Tgpu, Tref>::GetandSetData()
 {
     auto in_dims         = inflags.GetValueTensor("dims").lengths;
-    auto in_strides = ComputeStrides(in_dims);
+    auto in_strides      = ComputeStrides(in_dims);
     auto N               = in_dims[0];
     auto output_dim_size = N * (N - 1) / 2;
 

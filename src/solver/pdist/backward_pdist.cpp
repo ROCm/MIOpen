@@ -63,6 +63,11 @@ bool PdistBackward::IsApplicable(const ExecutionContext& context,
 {
     std::ignore = context;
 
+    if(!problem.IsAllContiguous())
+    {
+        return false;
+    }
+
     if(!(problem.GetInputDesc().GetType() == miopenFloat ||
          problem.GetInputDesc().GetType() == miopenHalf ||
          problem.GetInputDesc().GetType() == miopenBFloat16))
@@ -306,8 +311,6 @@ PdistBackward::GetSolution(const ExecutionContext& /* context */,
 
             auto kernel = KernelInfo{};
 
-            // kernel.kernel_file = "MIOpenReduceCalculation.cpp";
-            // kernel.kernel_name = "CalculationFwdContiguous";
             kernel.kernel_file = "MIOpenSumForward.cpp";
             kernel.kernel_name = "Sum1dForward";
 
@@ -317,7 +320,8 @@ PdistBackward::GetSolution(const ExecutionContext& /* context */,
                 {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
                 {"INPUT_TYPE", input_dtype == "bfloat16" ? "ushort" : input_dtype},
                 {"OUTPUT_TYPE", dinput_dtype == "bfloat16" ? "ushort" : dinput_dtype},
-                {"VIEW_DIMS", 3},
+                {"IN_VIEW_DIMS", 3},
+                {"OUT_VIEW_DIMS", 2},
             };
 
             kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
@@ -391,20 +395,13 @@ PdistBackward::GetSolution(const ExecutionContext& /* context */,
                 {
                     decltype(auto) kernel = handle_.Run(kernels[1]);
 
-                    // kernel(ws_dinput,
-                    //        params.dinput,
-                    //        dinput_numel, // output numel
-                    //        N - 1,        // reduce_size
-                    //        N * M,        // inner_size
-                    //        true          // Default nanPropagation=True
-                    // );
                     kernel(ws_dinput,
                            params.dinput,
                            dinput_numel,
-                           N - 1, // reduce_size
-                           N * M, // inner_size
-                           static_cast<uint64_t>(0),
-                           true, // Default nanPropagation=True,
+                           N - 1,                    // reduce_size
+                           N * M,                    // inner_size
+                           static_cast<uint64_t>(0), // reduce_dim
+                           true,                     // Default nanPropagation=True,
                            ws_dinput_tv,
                            dinput_tv);
                 }

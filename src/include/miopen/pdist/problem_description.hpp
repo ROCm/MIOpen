@@ -50,7 +50,6 @@ struct BackwardProblemDescription : public ProblemDescriptionBase
           dinputDesc(dinputDesc_),
           p(p_)
     {
-        // IsAllContiguous();
         IsValidPValue();
         IsSameType();
         IsRightLength();

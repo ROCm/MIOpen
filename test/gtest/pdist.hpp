@@ -81,38 +81,25 @@ struct PdistTestCase
 inline std::vector<PdistTestCase> PdistTestConfigs()
 {
     return {
-        // Currently, MIOpen doesn't support for empty tensors, so skip those tests where
-        // input.shape[0] == 0 || input.shape[0] == 1
-        // PdistTestCase({1, 1}, 0.0, true),          PdistTestCase({1, 1}, 1.0, true),
-        // PdistTestCase({1, 1}, 2.0, true),          PdistTestCase({1, 1}, 5.0, true),
-        // PdistTestCase({1, 1}, HUGE_VAL, true),
 
         PdistTestCase({2, 5}, 2.0, true),
-        PdistTestCase({2, 5}, 2.0, false),
         PdistTestCase({2, 10}, 5.0, true),
-        PdistTestCase({2, 10}, 5.0, false),
         PdistTestCase({5, 1}, 0.0, true),
-        PdistTestCase({5, 1}, 0.0, false),
-        PdistTestCase({5, 5}, 0.0, true),          
-        PdistTestCase({5, 5}, 0.0, false),          
+        PdistTestCase({5, 5}, 0.0, true),
         PdistTestCase({10, 1}, 1.0, true),
-        PdistTestCase({10, 1}, 1.0, false),
-        PdistTestCase({10, 10}, 0.0, true),        
+        PdistTestCase({10, 10}, 0.0, true),
         PdistTestCase({100, 100}, 0.0, true),
-        PdistTestCase({100, 100}, 1.0, true),      
+        PdistTestCase({100, 100}, 1.0, true),
         PdistTestCase({100, 100}, 2.0, true),
         PdistTestCase({100, 100}, 5.0, true),
-        PdistTestCase({100, 100}, 5.0, false),
 
-        PdistTestCase({2, 5}, HUGE_VAL, true),     
+        PdistTestCase({2, 5}, HUGE_VAL, true),
         PdistTestCase({2, 10}, HUGE_VAL, true),
-        PdistTestCase({5, 1}, HUGE_VAL, true),     
+        PdistTestCase({5, 1}, HUGE_VAL, true),
         PdistTestCase({5, 5}, HUGE_VAL, true),
-        PdistTestCase({10, 1}, HUGE_VAL, true),    
-        PdistTestCase({10, 1}, HUGE_VAL, false),    
+        PdistTestCase({10, 1}, HUGE_VAL, true),
         PdistTestCase({10, 10}, HUGE_VAL, true),
         PdistTestCase({100, 100}, HUGE_VAL, true),
-        PdistTestCase({100, 100}, HUGE_VAL, false),
     };
 }
 
@@ -122,27 +109,21 @@ inline std::vector<PdistTestCase> PdistFp16TestConfigs()
     // clang-format off
     return {
         PdistTestCase({2, 5}, 2.0, true),
-        PdistTestCase({2, 5}, 2.0, false),
         PdistTestCase({5, 1}, 0.0, true),
         PdistTestCase({5, 5}, 0.0, true),
         PdistTestCase({10, 1}, 1.0, true),
-        PdistTestCase({10, 1}, 1.0, false),
         PdistTestCase({10, 10}, 0.0, true),
         PdistTestCase({100, 100}, 0.0, true),
         PdistTestCase({100, 100}, 1.0, true),
         PdistTestCase({100, 100}, 2.0, true),
-        PdistTestCase({100, 100}, 2.0, false),
 
         PdistTestCase({2, 5}, HUGE_VAL, true),
-        PdistTestCase({2, 5}, HUGE_VAL, false),
         PdistTestCase({2, 10}, HUGE_VAL, true),
         PdistTestCase({5, 1}, HUGE_VAL, true),
         PdistTestCase({5, 5}, HUGE_VAL, true),
-        PdistTestCase({5, 5}, HUGE_VAL, false),
         PdistTestCase({10, 1}, HUGE_VAL, true),
         PdistTestCase({10, 10}, HUGE_VAL, true),
         PdistTestCase({100, 100}, HUGE_VAL, true),
-        PdistTestCase({100, 100}, HUGE_VAL, false),
 
         
     };
@@ -161,14 +142,8 @@ protected:
         auto input_dims    = pdist_config.GetDims();
         auto input_strides = pdist_config.ComputeStrides();
 
-        p                    = pdist_config.GetP();
-        auto N               = input_dims[0];
-        auto output_dim_size = N * (N - 1) / 2;
-
-        if(output_dim_size == 0)
-        {
-            GTEST_SKIP();
-        }
+        p      = pdist_config.GetP();
+        auto N = input_dims[0];
 
         std::vector<size_t> output_dims({N * (N - 1) / 2});
 
