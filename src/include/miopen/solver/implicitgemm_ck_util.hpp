@@ -140,7 +140,7 @@ bool IsCKArgsSupported(const ProblemDescriptionType& problem, const std::string&
                      std::is_same_v<DeviceOpType, conv::DeviceOpGWrwPtrs<ck::bhalf_t>>)
         {
             auto pos = kernel_id.find_last_of('+');
-            if(pos == string::npos)
+            if(pos == std::string::npos)
             {
                 MIOPEN_LOG_I2("Unable to parse split_k from kernel_id for wrw: " << kernel_id);
                 return false;
