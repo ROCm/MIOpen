@@ -83,6 +83,7 @@ public:
 
 private:
     InputFlags inflags;
+    int forw;
 
     miopenTensorDescriptor_t inputDesc;
     miopenTensorDescriptor_t outputDesc;
@@ -116,6 +117,7 @@ int LPPoolDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
 {
     inflags.Parse(argc, argv);
     isContiguous = inflags.GetValueInt("is-contiguous") == 1 ? true : false;
+    forw         = inflags.GetValueInt("forw");
 
     if(inflags.GetValueInt("time") == 1)
     {
@@ -278,7 +280,6 @@ int LPPoolDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     output_grad     = std::vector<Tgpu>(output_sz, static_cast<Tgpu>(0));
 
     int status;
-    int forw = inflags.GetValueInt("forw");
 
     for(int i = 0; i < input_sz; i++)
     {
