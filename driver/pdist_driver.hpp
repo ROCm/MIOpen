@@ -36,9 +36,9 @@
 #include <../test/verify.hpp>
 
 #include <miopen/errors.hpp>
-#include <miopen/miopen.h>
 #include <miopen/env.hpp>
 #include <miopen/handle.hpp>
+#include <miopen/miopen.h>
 #include <miopen/tensor.hpp>
 #include <miopen/tensor_view_utils.hpp>
 

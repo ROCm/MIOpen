@@ -31,9 +31,10 @@
 #include "float_types.h"
 #include "tensor_view.hpp"
 
-__device__ inline FLOAT_ACCUM sign_(FLOAT_ACCUM val) { return (0 < val) - (val < 0); }
+__device__ inline FLOAT_ACCUM sign_(const FLOAT_ACCUM val) { return (0 < val) - (val < 0); }
 
-__device__ inline bool is_approx_equal(FLOAT_ACCUM a, FLOAT_ACCUM b, FLOAT_ACCUM tolerance = 1e-6)
+__device__ inline bool
+is_approx_equal(const FLOAT_ACCUM a, const FLOAT_ACCUM b, const FLOAT_ACCUM tolerance = 1e-6)
 {
     return (fabs(a - b) < tolerance);
 }
@@ -71,9 +72,9 @@ __device__ void pdist_backward(const DTYPE* __restrict__ input,
                                const DTYPE* __restrict__ output,
                                const DTYPE* __restrict__ grad, // output_grad
                                DTYPE* __restrict__ input_grad,
-                               double p,
-                               double n2,
-                               double n2_squared_minus_1,
+                               const double p,
+                               const double n2,
+                               const double n2_squared_minus_1,
                                tensor_view_t<2> input_tv,
                                tensor_view_t<1> output_tv,
                                tensor_view_t<1> grad_tv)
@@ -89,9 +90,9 @@ __device__ void pdist_backward(const DTYPE* __restrict__ input,
     const uint64_t gid = blockIdx.x * blockDim.x + threadIdx.x;
 
     // TODO: pass those values as params to avoid redundant calculations
-    long N  = input_tv.size[0];
-    long NO = output_tv.size[0];
-    long M  = input_tv.size[1];
+    uint64_t N  = input_tv.size[0];
+    uint64_t NO = output_tv.size[0];
+    uint64_t M  = input_tv.size[1];
 
     auto i_tl = tensor_layout_t<2>(input_tv, gid);
 
@@ -103,15 +104,15 @@ __device__ void pdist_backward(const DTYPE* __restrict__ input,
 
     // pair(row_i, row_j) corresponding to output[k]
     // e.g. pair(point_A, point_B)
-    long i = n2 - sqrt(n2_squared_minus_1 - 2 * k);
-    long j = k - N * i + i * (i + 1) / 2 + i + 1;
+    uint64_t i = n2 - sqrt(n2_squared_minus_1 - 2 * k);
+    uint64_t j = k - N * i + i * (i + 1) / 2 + i + 1;
 
     // Pair of gradients corresponding to pair(i,j)
     // e.g. pair(input_grad(A,B), input_grad(B,A))
     // those 2 elements in pair have opposite signs
     // just similar to dist(A,B) vs. dist(B,A)
-    long ib = j - i - 1;
-    long jb = N - 2 - i;
+    uint64_t ib = j - i - 1;
+    uint64_t jb = N - 2 - i;
 
     auto grad_tl   = tensor_layout_t<1>(grad_tv, k);
     auto output_tl = tensor_layout_t<1>(output_tv, k);
@@ -135,18 +136,18 @@ __device__ void pdist_backward(const DTYPE* __restrict__ input,
     input_grad[jb * N * M + j * M + m] = CVT_ACCUM2FLOAT(-res); // dist(j,i)
 }
 
-extern "C" __global__ void PdistBackward(const INPUT_TYPE* __restrict__ input,
-                                         const INPUT_TYPE* __restrict__ output,
-                                         const INPUT_TYPE* __restrict__ grad, // output_grad
-                                         INPUT_TYPE* __restrict__ input_grad,
-                                         double p,
-                                         double n2,
-                                         double n2_squared_minus_1,
+extern "C" __global__ void PdistBackward(const D_TYPE* __restrict__ input,
+                                         const D_TYPE* __restrict__ output,
+                                         const D_TYPE* __restrict__ grad, // output_grad
+                                         D_TYPE* __restrict__ input_grad,
+                                         const double p,
+                                         const double n2,
+                                         const double n2_squared_minus_1,
                                          tensor_view_t<2> input_tv,
                                          tensor_view_t<1> output_tv,
                                          tensor_view_t<1> grad_tv)
 {
-    pdist_backward<INPUT_TYPE>(
+    pdist_backward<D_TYPE>(
         input, output, grad, input_grad, p, n2, n2_squared_minus_1, input_tv, output_tv, grad_tv);
 }
 
@@ -155,12 +156,12 @@ __device__ void pdist_backward_contiguous(const DTYPE* __restrict__ input,
                                           const DTYPE* __restrict__ output,
                                           const DTYPE* __restrict__ grad, // output_grad
                                           DTYPE* __restrict__ input_grad,
-                                          double p,
-                                          double n2,
-                                          double n2_squared_minus_1,
-                                          long N,
-                                          long NO,
-                                          long M)
+                                          const double p,
+                                          const double n2,
+                                          const double n2_squared_minus_1,
+                                          const uint64_t N,
+                                          const uint64_t NO,
+                                          const uint64_t M)
 
 {
     // NO = N(N-1)/2
@@ -180,15 +181,15 @@ __device__ void pdist_backward_contiguous(const DTYPE* __restrict__ input,
 
     // pair(row_i, row_j) corresponding to output[k]
     // e.g. pair(point_A, point_B)
-    long i = n2 - sqrt(n2_squared_minus_1 - 2 * k);
-    long j = k - N * i + i * (i + 1) / 2 + i + 1;
+    uint64_t i = n2 - sqrt(n2_squared_minus_1 - 2 * k);
+    uint64_t j = k - N * i + i * (i + 1) / 2 + i + 1;
 
     // Pair of gradients corresponding to pair(i,j)
     // e.g. pair(input_grad(A,B), input_grad(B,A))
     // those 2 elements in pair have opposite signs
     // just similar to dist(A,B) vs. dist(B,A)
-    long ib = j - i - 1;
-    long jb = N - 2 - i;
+    uint64_t ib = j - i - 1;
+    uint64_t jb = N - 2 - i;
 
     FLOAT_ACCUM grad_k   = CVT_FLOAT2ACCUM(grad[k]);
     FLOAT_ACCUM output_k = CVT_FLOAT2ACCUM(output[k]);
@@ -203,18 +204,17 @@ __device__ void pdist_backward_contiguous(const DTYPE* __restrict__ input,
     input_grad[jb * N * M + j * M + m] = CVT_ACCUM2FLOAT(-res); // dist(j,i)
 }
 
-extern "C" __global__ void
-PdistBackwardContiguous(const INPUT_TYPE* __restrict__ input,
-                        const INPUT_TYPE* __restrict__ output,
-                        const INPUT_TYPE* __restrict__ grad, // output_grad
-                        INPUT_TYPE* __restrict__ input_grad,
-                        double p,
-                        double n2,
-                        double n2_squared_minus_1,
-                        long N,
-                        long NO,
-                        long M)
+extern "C" __global__ void PdistBackwardContiguous(const D_TYPE* __restrict__ input,
+                                                   const D_TYPE* __restrict__ output,
+                                                   const D_TYPE* __restrict__ grad, // output_grad
+                                                   D_TYPE* __restrict__ input_grad,
+                                                   const double p,
+                                                   const double n2,
+                                                   const double n2_squared_minus_1,
+                                                   const uint64_t N,
+                                                   const uint64_t NO,
+                                                   const uint64_t M)
 {
-    pdist_backward_contiguous<INPUT_TYPE>(
+    pdist_backward_contiguous<D_TYPE>(
         input, output, grad, input_grad, p, n2, n2_squared_minus_1, N, NO, M);
 }

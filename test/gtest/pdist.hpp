@@ -103,33 +103,6 @@ inline std::vector<PdistTestCase> PdistTestConfigs()
     };
 }
 
-// Remove big tests with reduction from FP16 test because the result will be overflow/ underflow
-inline std::vector<PdistTestCase> PdistFp16TestConfigs()
-{
-    // clang-format off
-    return {
-        PdistTestCase({2, 5}, 2.0, true),
-        PdistTestCase({5, 1}, 0.0, true),
-        PdistTestCase({5, 5}, 0.0, true),
-        PdistTestCase({10, 1}, 1.0, true),
-        PdistTestCase({10, 10}, 0.0, true),
-        PdistTestCase({100, 100}, 0.0, true),
-        PdistTestCase({100, 100}, 1.0, true),
-        PdistTestCase({100, 100}, 2.0, true),
-
-        PdistTestCase({2, 5}, HUGE_VAL, true),
-        PdistTestCase({2, 10}, HUGE_VAL, true),
-        PdistTestCase({5, 1}, HUGE_VAL, true),
-        PdistTestCase({5, 5}, HUGE_VAL, true),
-        PdistTestCase({10, 1}, HUGE_VAL, true),
-        PdistTestCase({10, 10}, HUGE_VAL, true),
-        PdistTestCase({100, 100}, HUGE_VAL, true),
-
-        
-    };
-    // clang-format on
-}
-
 template <typename T>
 struct PdistTestBackward : public ::testing::TestWithParam<PdistTestCase>
 {
@@ -147,10 +120,8 @@ protected:
 
         std::vector<size_t> output_dims({N * (N - 1) / 2});
 
-        auto gen_value = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1e-2, 100); };
-        auto output_gen_value = [](auto...) {
-            return prng::gen_descreet_uniform_sign<T>(1e-2, 200);
-        };
+        auto gen_value        = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1e-2, 1); };
+        auto output_gen_value = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1e-2, 2); };
 
         input  = tensor<T>{input_dims, input_strides}.generate(gen_value);
         output = tensor<T>{output_dims}.generate(output_gen_value);

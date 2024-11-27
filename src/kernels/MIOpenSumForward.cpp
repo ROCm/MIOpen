@@ -34,11 +34,11 @@
 template <typename TI, typename TO, uint32_t IN_NDIMS, uint32_t OUT_NDIMS>
 __device__ void sum_1d_forward(const TI* __restrict__ x,
                                TO* __restrict__ y,
-                               uint64_t output_numel,
-                               uint64_t reduce_size,
-                               uint64_t inner_size,
-                               uint64_t reduce_dim,
-                               bool nanPropagation,
+                               const uint64_t output_numel,
+                               const uint64_t reduce_size,
+                               const uint64_t inner_size,
+                               const uint64_t reduce_dim,
+                               const bool nanPropagation,
                                tensor_view_t<IN_NDIMS> input_tv,
                                tensor_view_t<OUT_NDIMS> output_tv)
 {
@@ -71,11 +71,11 @@ __device__ void sum_1d_forward(const TI* __restrict__ x,
 
 extern "C" __global__ void Sum1dForward(const INPUT_TYPE* __restrict__ x,
                                         OUTPUT_TYPE* __restrict__ y,
-                                        uint64_t output_numel,
-                                        uint64_t reduce_size,
-                                        uint64_t inner_size,
-                                        uint64_t reduce_dim,
-                                        bool nanPropagation,
+                                        const uint64_t output_numel,
+                                        const uint64_t reduce_size,
+                                        const uint64_t inner_size,
+                                        const uint64_t reduce_dim,
+                                        const bool nanPropagation,
                                         tensor_view_t<IN_VIEW_DIMS> input_tv,
                                         tensor_view_t<OUT_VIEW_DIMS> output_tv)
 {

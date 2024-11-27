@@ -687,6 +687,7 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
 
     Register(registry, ++id, Primitive::Activation, glu::GLUForward{}.SolverDbId());
     Register(registry, ++id, Primitive::Activation, glu::GLUBackward{}.SolverDbId());
+
     Register(registry,
              ++id,
              Primitive::SoftMarginLoss,

@@ -115,7 +115,6 @@ struct BackwardProblemDescription : public ProblemDescriptionBase
         if(!(inputDesc.IsContiguous() && outputDesc.IsContiguous() && doutputDesc.IsContiguous() &&
              dinputDesc.IsContiguous()))
         {
-            // MIOPEN_THROW(miopenStatusBadParm, "PdistBackward: All tensors must be contiguous.");
             return false;
         }
 

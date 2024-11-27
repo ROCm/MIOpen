@@ -50,17 +50,17 @@ void cpu_pdist_backward(const tensor<T> input,
     auto N = input.desc.GetLengths()[0];
     auto M = input.desc.GetLengths()[1];
 
-    for(int i = 0; i < N; ++i)
+    for(size_t i = 0; i < N; ++i)
     {
-        for(int j = i + 1; j < N; ++j)
+        for(size_t j = i + 1; j < N; ++j)
         {
-            long k = j + N * i - i * (i + 1) / 2 - i - 1;
+            size_t k = j + N * i - i * (i + 1) / 2 - i - 1;
 
             double grad_k =
                 static_cast<double>(output_grad[output_grad_tv.get_tensor_view_idx({k})]);
             double output_k = static_cast<double>(output[output_tv.get_tensor_view_idx({k})]);
 
-            for(int m = 0; m < M; ++m)
+            for(size_t m = 0; m < M; ++m)
             {
 
                 double input_first =

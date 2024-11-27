@@ -23,7 +23,6 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include "miopen/tensor_view_utils.hpp"
 #include <miopen/buffer_info.hpp>
 #include <miopen/conv_solution.hpp>
 #include <miopen/datatype.hpp>
@@ -37,6 +36,7 @@
 #include <miopen/pdist/solvers.hpp>
 #include <miopen/pdist/invoke_params.hpp>
 #include <miopen/pdist/problem_description.hpp>
+#include <miopen/tensor_view_utils.hpp>
 #include <miopen/target_properties.hpp>
 #include <miopen/reduce/utils.hpp>
 
@@ -84,12 +84,8 @@ PdistBackward::GetSolution(const ExecutionContext& /* context */,
 {
     auto result = ConvSolution{miopenStatusSuccess};
 
-    // auto is_contiguous = problem.GetInputDesc().IsContiguous();
-
-    auto dtype = problem.GetInputDesc().GetType();
-
-    auto input_dtype  = miopen::GetDataType(problem.GetInputDesc().GetType());
-    auto dinput_dtype = miopen::GetDataType(problem.GetdInputDesc().GetType());
+    auto dtype     = problem.GetInputDesc().GetType();
+    auto dtype_str = miopen::GetDataType(dtype);
 
     auto dinput_numel = problem.GetdInputDesc().GetElementSize();
 
@@ -123,7 +119,7 @@ PdistBackward::GetSolution(const ExecutionContext& /* context */,
                 {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
                 {"MIOPEN_USE_FP64", static_cast<int>(dtype == miopenDouble)},
                 {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
-                {"INPUT_TYPE", input_dtype == "bfloat16" ? "ushort" : input_dtype},
+                {"D_TYPE", dtype_str == "bfloat16" ? "ushort" : dtype_str},
             };
 
             kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
@@ -161,8 +157,8 @@ PdistBackward::GetSolution(const ExecutionContext& /* context */,
                 {"MIOPEN_USE_FP16", static_cast<int>(dtype == miopenHalf)},
                 {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
                 {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
-                {"INPUT_TYPE", input_dtype == "bfloat16" ? "ushort" : input_dtype},
-                {"OUTPUT_TYPE", dinput_dtype == "bfloat16" ? "ushort" : dinput_dtype},
+                {"INPUT_TYPE", dtype_str == "bfloat16" ? "ushort" : dtype_str},
+                {"OUTPUT_TYPE", dtype_str == "bfloat16" ? "ushort" : dtype_str},
                 {"OP_TYPE", "ReduceCalculationOp_t::Sum"},
                 {"MIOPEN_REDUCE_CALCULATION_PROD", MIOPEN_REDUCE_CALCULATION_PROD},
                 {"MIOPEN_REDUCE_CALCULATION_SUM", MIOPEN_REDUCE_CALCULATION_SUM}};
@@ -280,7 +276,7 @@ PdistBackward::GetSolution(const ExecutionContext& /* context */,
                 {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
                 {"MIOPEN_USE_FP64", static_cast<int>(dtype == miopenDouble)},
                 {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
-                {"INPUT_TYPE", input_dtype == "bfloat16" ? "ushort" : input_dtype},
+                {"D_TYPE", dtype_str == "bfloat16" ? "ushort" : dtype_str},
             };
 
             kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
@@ -318,8 +314,8 @@ PdistBackward::GetSolution(const ExecutionContext& /* context */,
                 {"MIOPEN_USE_FP16", static_cast<int>(dtype == miopenHalf)},
                 {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
                 {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
-                {"INPUT_TYPE", input_dtype == "bfloat16" ? "ushort" : input_dtype},
-                {"OUTPUT_TYPE", dinput_dtype == "bfloat16" ? "ushort" : dinput_dtype},
+                {"INPUT_TYPE", dtype_str == "bfloat16" ? "ushort" : dtype_str},
+                {"OUTPUT_TYPE", dtype_str == "bfloat16" ? "ushort" : dtype_str},
                 {"IN_VIEW_DIMS", 3},
                 {"OUT_VIEW_DIMS", 2},
             };
