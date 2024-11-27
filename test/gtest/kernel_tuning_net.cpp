@@ -94,6 +94,13 @@ std::vector<KernelTuningNetTestCase> GetConvHipIgemmGroupWrwXdlopsTestCases_FP16
          "DeviceGroupedConvBwdWeightTwoStage_Xdl_CShuffle<64, 16, 16, 32, Default, 8, 1, 1, 1, 4, "
          "1, 4, 1, 1, 1, BlkGemmPipelineScheduler: Intrawave, BlkGemmPipelineVersion: v5, 1>+128",
          "gfx942"},
+        {{{1, 2, 2, 1, {9, 1}, {1, 1}, {1, 0}, {3, 1}, {2, 1}},
+          miopen::conv::Direction::BackwardWeights,
+          miopenHalf,
+          miopenTensorNHWC},
+         "DeviceGroupedConvBwdWeightTwoStage_Xdl_CShuffle<64, 16, 16, 32, Default, 8, 1, 1, 1, 4, "
+         "1, 4, 1, 1, 1, BlkGemmPipelineScheduler: Intrawave, BlkGemmPipelineVersion: v5, 1>+128",
+         "gfx942"},
         {{{1, 16, 128, 256, {27, 27}, {3, 3}, {0, 0}, {1, 2}, {1, 1}},
           miopen::conv::Direction::BackwardWeights,
           miopenHalf,
