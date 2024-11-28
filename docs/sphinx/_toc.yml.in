@@ -3,29 +3,19 @@ defaults:
   maxdepth: 6
 root: index
 subtrees:
-- entries:
-  - file: what-is-miopen.rst
-    title: What is MIOpen?
 
 - caption: Install
   entries:
+  - file: install/prerequisites.rst
+    title: MIOpen prerequisites
   - file: install/install.rst
     title: Install MIOpen
+  - file: install/build-source.rst
+    title: Build MIOpen from source
   - file: install/docker-build.rst
     title: Build MIOpen using Docker
   - file: install/embed.rst
     title: Build MIOpen for embedded systems
-
-- caption: Reference
-  entries:
-  - file: reference/index
-    title: API library
-    subtrees:
-    - entries:
-      - file: doxygen/html/modules
-        title: Modules
-      - file: reference/datatypes.rst
-        title: Datatypes
 
 - caption: Conceptual
   entries:
@@ -48,6 +38,18 @@ subtrees:
     title: Log & debug
   - file: how-to/find-and-immediate.rst
     title: Use find APIs & immediate mode
+
+
+- caption: Reference
+  entries:
+  - file: reference/index
+    title: API library
+    subtrees:
+    - entries:
+      - file: doxygen/html/modules
+        title: Modules
+      - file: reference/datatypes.rst
+        title: Datatypes
 
 - caption: About
   entries:
