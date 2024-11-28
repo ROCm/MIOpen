@@ -23,8 +23,6 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-
-#include "miopen/miopen.h"
 #include <miopen/datatype.hpp>
 #include <miopen/kernel_build_params.hpp>
 #include <miopen/mlo_internal.hpp>
@@ -42,8 +40,8 @@ namespace solver {
 
 namespace reduce {
 
-bool AnyForward::IsApplicable(const ExecutionContext& context,
-                              const miopen::reduce::ProblemDescriptionCalculation& problem) const
+bool Any::IsApplicable(const ExecutionContext& context,
+                       const miopen::reduce::ProblemDescriptionCalculation& problem) const
 {
     if(!problem.IsValidDim())
         return false;
@@ -56,18 +54,16 @@ bool AnyForward::IsApplicable(const ExecutionContext& context,
     return true;
 }
 
-ConvSolution
-AnyForward::GetSolution(const ExecutionContext& context,
-                        const miopen::reduce::ProblemDescriptionCalculation& problem) const
+ConvSolution Any::GetSolution(const ExecutionContext& context,
+                              const miopen::reduce::ProblemDescriptionCalculation& problem) const
 {
     auto result = ConvSolution{miopenStatusSuccess};
 
-    auto dtype        = problem.GetXDesc().GetType();
-    auto input_dtype  = miopen::GetDataType(problem.GetXDesc().GetType());
-    auto output_dtype = miopen::GetDataType(problem.GetYDesc().GetType());
-    auto xdims        = problem.GetXDesc().GetLengths();
-    auto ydims        = problem.GetYDesc().GetLengths();
-    auto dim          = problem.GetDim();
+    auto dtype       = problem.GetXDesc().GetType();
+    auto input_dtype = miopen::GetDataType(problem.GetXDesc().GetType());
+    auto xdims       = problem.GetXDesc().GetLengths();
+    auto ydims       = problem.GetYDesc().GetLengths();
+    auto dim         = problem.GetDim();
 
     auto reduce_size = xdims[dim];
     auto output_numel =
@@ -240,8 +236,8 @@ AnyForward::GetSolution(const ExecutionContext& context,
 }
 
 std::size_t
-AnyForward::GetWorkspaceSize(const ExecutionContext& context,
-                             const miopen::reduce::ProblemDescriptionCalculation& problem) const
+Any::GetWorkspaceSize(const ExecutionContext& context,
+                      const miopen::reduce::ProblemDescriptionCalculation& problem) const
 {
     auto xdims = problem.GetXDesc().GetLengths();
     auto ydims = problem.GetYDesc().GetLengths();

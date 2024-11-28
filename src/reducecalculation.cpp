@@ -72,9 +72,9 @@ std::size_t GetReduceCalculationWorkspaceSize(Handle& handle,
         auto ctx           = ExecutionContext{&handle};
         const auto problem = reduce::ProblemDescriptionCalculation{
             MIOPEN_REDUCE_CALCULATION_NOT_PROPAGATE_NAN, xDesc, yDesc, dim, reduceCalculationOp};
-        const auto algo = AlgorithmName{"AnyForward"};
+        const auto algo = AlgorithmName{"Any"};
 
-        const auto solvers    = solver::SolverContainer<solver::reduce::AnyForward>{};
+        const auto solvers    = solver::SolverContainer<solver::reduce::Any>{};
         auto pair_size_vector = solvers.GetWorkspaceSizes(ctx, problem);
 
         return pair_size_vector.empty() ? static_cast<size_t>(-1) : pair_size_vector.front().second;
@@ -166,8 +166,8 @@ miopenStatus_t ReduceCalculationForward(Handle& handle,
             return tmp;
         }();
 
-        const auto algo    = AlgorithmName{"AnyForward"};
-        const auto solvers = solver::SolverContainer<solver::reduce::AnyForward>{};
+        const auto algo    = AlgorithmName{"Any"};
+        const auto solvers = solver::SolverContainer<solver::reduce::Any>{};
 
         solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
 

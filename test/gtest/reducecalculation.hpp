@@ -30,7 +30,7 @@
 #include "random.hpp"
 #include "tensor_holder.hpp"
 #include "verify.hpp"
-#include <gtest/gtest.h>
+#include "gtest/gtest.h"
 #include <miopen/miopen.h>
 #include <miopen/reducecalculation.hpp>
 
@@ -159,7 +159,11 @@ protected:
         {
             // Check condition
             bool is_out_uint8 = std::is_same<T_out, uint8_t>::value;
-            ASSERT_TRUE(is_out_uint8) << "Output type should be uint8_t for logical calculation";
+            if(!is_out_uint8)
+            {
+                GTEST_SKIP_("Wrong output dtype setup: Output type should be uint8_t for logical "
+                            "calculation.");
+            }
 
             isLogicalCalculation = true;
         }
@@ -210,6 +214,7 @@ protected:
         input_dev  = handle.Write(input.data);
         output_dev = handle.Write(output.data);
     }
+
     void RunTest()
     {
         auto&& handle = get_handle();
@@ -243,7 +248,7 @@ protected:
                                                   dim,
                                                   reduceCalculationOp);
 
-        EXPECT_EQ(status, miopenStatusSuccess);
+        ASSERT_EQ(status, miopenStatusSuccess);
 
         output.data = handle.Read<T_out>(output_dev, output.data.size());
     }
@@ -258,18 +263,13 @@ protected:
         }
         else
         {
-            // Computation error of fp16 is ~2^13 (=8192) bigger than
-            // the one of fp32 because mantissa is shorter by 13 bits.
-            auto threshold = std::is_same<T, float>::value ? 1.5e-5 : 8.2e-2;
+            double threshold = std::numeric_limits<T>::epsilon();
 
-            // bf16 mantissa has 7 bits, by 3 bits shorter than fp16.
-            if(std::is_same<T, bfloat16>::value)
-                threshold *= 80.0;
             auto error = miopen::rms_range(ref_output, output);
 
-            EXPECT_TRUE(miopen::range_distance(ref_output) == miopen::range_distance(output));
-            EXPECT_TRUE(error < threshold * 10) << "Error output beyond tolerance Error: " << error
-                                                << ",  Thresholdx10: " << threshold * 10;
+            ASSERT_EQ(miopen::range_distance(ref_output), miopen::range_distance(output));
+            EXPECT_LT(error, threshold * 10) << "Error output beyond tolerance Error: " << error
+                                             << ",  Thresholdx10: " << threshold * 10;
         }
     }
     ReduceCalculationTestCase reducecalculation_config;

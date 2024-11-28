@@ -36,10 +36,10 @@
 template <typename TI, ReduceCalculationOp_t op>
 __device__ void logical_calculationparallelfwdcontiguous(const TI* __restrict__ x,
                                                          uint8_t* __restrict__ y,
-                                                         uint64_t output_numel,
-                                                         uint64_t reduce_size,
-                                                         uint64_t parallelism_size,
-                                                         uint64_t inner_size)
+                                                         const uint64_t output_numel,
+                                                         const uint64_t reduce_size,
+                                                         const uint64_t parallelism_size,
+                                                         const uint64_t inner_size)
 {
     const uint64_t gid = threadIdx.x + blockIdx.x * blockDim.x;
     if(gid >= parallelism_size * output_numel)
@@ -83,10 +83,10 @@ __device__ void logical_calculationparallelfwdcontiguous(const TI* __restrict__ 
 
 extern "C" __global__ void LogicalCalculationParallelFwdContiguous(const INPUT_TYPE* __restrict__ x,
                                                                    uint8_t* __restrict__ y,
-                                                                   uint64_t output_numel,
-                                                                   uint64_t reduce_size,
-                                                                   uint64_t parallelism_size,
-                                                                   uint64_t inner_size)
+                                                                   const uint64_t output_numel,
+                                                                   const uint64_t reduce_size,
+                                                                   const uint64_t parallelism_size,
+                                                                   const uint64_t inner_size)
 {
     // instantiate the kernel
     logical_calculationparallelfwdcontiguous<INPUT_TYPE, OP_TYPE>(
@@ -96,9 +96,9 @@ extern "C" __global__ void LogicalCalculationParallelFwdContiguous(const INPUT_T
 template <typename TI, ReduceCalculationOp_t op>
 __device__ void logical_calculationfwdcontiguous(const TI* __restrict__ x,
                                                  uint8_t* __restrict__ y,
-                                                 uint64_t output_numel,
-                                                 uint64_t reduce_size,
-                                                 uint64_t inner_size)
+                                                 const uint64_t output_numel,
+                                                 const uint64_t reduce_size,
+                                                 const uint64_t inner_size)
 {
     const uint64_t gid = threadIdx.x + blockIdx.x * blockDim.x;
     if(gid >= output_numel)
@@ -134,9 +134,9 @@ __device__ void logical_calculationfwdcontiguous(const TI* __restrict__ x,
 
 extern "C" __global__ void LogicalCalculationFwdContiguous(const INPUT_TYPE* __restrict__ x,
                                                            uint8_t* __restrict__ y,
-                                                           uint64_t output_numel,
-                                                           uint64_t reduce_size,
-                                                           uint64_t inner_size)
+                                                           const uint64_t output_numel,
+                                                           const uint64_t reduce_size,
+                                                           const uint64_t inner_size)
 {
     // instantiate the kernel
     logical_calculationfwdcontiguous<INPUT_TYPE, OP_TYPE>(
