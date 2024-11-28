@@ -85,23 +85,6 @@ struct StubbedDeviceOps
 
 std::vector<std::string> StubbedDeviceOps::deviceOps = {};
 
-struct StubbedWRWCKArgs
-{
-    StubbedWRWCKArgs(const ProblemDescription&) {}
-
-    template <typename ConvPtr>
-    bool IsSupportedBy(const ConvPtr&) const
-    {
-        return true;
-    }
-
-    template <typename ConvPtr>
-    bool IsSupportedBySplitK(const ConvPtr&, int) const
-    {
-        return true;
-    }
-};
-
 struct StubbedCKArgs
 {
     StubbedCKArgs(const ProblemDescription& problem) {}
@@ -115,7 +98,7 @@ struct StubbedCKArgs
     template <typename ConvPtr>
     bool IsSupportedBySplitK(const ConvPtr&, int) const
     {
-        return false;
+        return true;
     }
 };
 
@@ -150,11 +133,10 @@ protected:
 
 using namespace unit_implicitgemm_ck_util_test;
 
-struct CPU_UnitTestImplicitGemmCKUtil_NONE : CKArgParsingTest<StubbedWRWCKArgs, StubbedDeviceOps>
+struct CPU_UnitTestImplicitGemmCKUtil_NONE : CKArgParsingTest<StubbedCKArgs, StubbedDeviceOps>
 {
 };
 
-// TEST_F(CPU_UnitTestImplicitGemmCKUtilWRW_NONE, TestParsing) { TestParsing(); }
 TEST_P(CPU_UnitTestImplicitGemmCKUtil_NONE, TestParsing) { this->TestParsing(); };
 
 INSTANTIATE_TEST_SUITE_P(Smoke,
