@@ -127,7 +127,8 @@ std::vector<std::string> FillValidKernelsIDs(const ProblemDescriptionType& probl
 
 template <typename DeviceOpType,
           typename CKArgsType,
-          typename ProblemDescriptionType = miopen::conv::ProblemDescription>
+          typename ProblemDescriptionType = miopen::conv::ProblemDescription,
+          bool checkSplitK                = false>
 bool IsCKArgsSupported(const ProblemDescriptionType& problem, const std::string& kernel_id)
 {
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
@@ -137,7 +138,8 @@ bool IsCKArgsSupported(const ProblemDescriptionType& problem, const std::string&
         if constexpr(std::is_same_v<DeviceOpType, conv::DeviceOpGWrwPtrs<ck::half_t>> ||
                      std::is_same_v<DeviceOpType, conv::DeviceOpGWrwPtrs<float>> ||
                      std::is_same_v<DeviceOpType, conv::DeviceOpGWrwPtrs<int8_t>> ||
-                     std::is_same_v<DeviceOpType, conv::DeviceOpGWrwPtrs<ck::bhalf_t>>)
+                     std::is_same_v<DeviceOpType, conv::DeviceOpGWrwPtrs<ck::bhalf_t>> ||
+                     checkSplitK)
         {
             auto pos = kernel_id.find_last_of('+');
             if(pos == std::string::npos)
