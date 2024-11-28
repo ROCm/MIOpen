@@ -25,6 +25,7 @@
  *******************************************************************************/
 
 #include <miopen/conv/problem_description.hpp>
+#include <miopen/conv/solvers.hpp>
 #include <miopen/solver/implicitgemm_ck_util.hpp>
 #include <gtest/gtest.h>
 #include <string>
@@ -149,13 +150,13 @@ protected:
 
 using namespace unit_implicitgemm_ck_util_test;
 
-struct CPU_UnitTestImplicitGemmCKUtilWRW_NONE : CKArgParsingTest<StubbedWRWCKArgs, StubbedDeviceOps>
+struct CPU_UnitTestImplicitGemmCKUtil_NONE : CKArgParsingTest<StubbedWRWCKArgs, StubbedDeviceOps>
 {
 };
 
 // TEST_F(CPU_UnitTestImplicitGemmCKUtilWRW_NONE, TestParsing) { TestParsing(); }
-TEST_P(CPU_UnitTestImplicitGemmCKUtilWRW_NONE, TestParsing) { this->TestParsing(); };
+TEST_P(CPU_UnitTestImplicitGemmCKUtil_NONE, TestParsing) { this->TestParsing(); };
 
 INSTANTIATE_TEST_SUITE_P(Smoke,
-                         CPU_UnitTestImplicitGemmCKUtilWRW_NONE,
+                         CPU_UnitTestImplicitGemmCKUtil_NONE,
                          testing::ValuesIn(GetTestCases()));
