@@ -374,8 +374,8 @@ int GradientDescentDriver<Tgpu, Tref>::VerifyForward()
     }
     else
     {
-        std::cout << "Forward GradientDescent Verifies OK on CPU reference (err=" << error << ")"
-                  << std::endl;
+        std::cout << "Forward GradientDescent Verifies OK on CPU reference (err=" << error << " < "
+                  << tolerance << ')' << std::endl;
     }
 
     return miopenStatusSuccess;
