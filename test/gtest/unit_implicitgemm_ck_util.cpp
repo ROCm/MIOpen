@@ -28,9 +28,10 @@
 #include <miopen/conv/solvers.hpp>
 #include <miopen/solver/implicitgemm_ck_util.hpp>
 #include <gtest/gtest.h>
+#include <iostream>
+#include <memory>
 #include <string>
 #include <vector>
-#include <memory>
 
 namespace unit_implicitgemm_ck_util_test {
 struct ParsingTestCase
@@ -39,6 +40,13 @@ struct ParsingTestCase
     std::string suffix;
     bool expectedSupported;
     bool checkSplitK;
+
+    friend std::ostream& operator<<(std::ostream& os, const ParsingTestCase& tc)
+    {
+        return os << "(instanceToCheck: " << tc.instanceToCheck << " suffix: " << tc.suffix
+                  << " expectedSupported: " << tc.expectedSupported
+                  << " checkSplitK: " << tc.checkSplitK << ")";
+    }
 };
 
 static std::vector<ParsingTestCase> GetTestCases()
