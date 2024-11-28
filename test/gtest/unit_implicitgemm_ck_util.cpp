@@ -122,7 +122,7 @@ protected:
         DeviceOpType::deviceOps.clear();
         DeviceOpType::deviceOps.push_back(testCase.instanceToCheck);
 
-        bool success = !testCase.expectedSupported;
+        bool success;
         if(testCase.checkSplitK)
         {
             success = miopen::solver::
