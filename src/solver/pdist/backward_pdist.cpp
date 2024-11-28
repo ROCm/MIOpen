@@ -48,6 +48,22 @@ namespace solver {
 
 namespace pdist {
 
+bool IsImprovementOverROCm(const miopen::pdist::BackwardProblemDescription& problem)
+{
+    auto input_numels = problem.GetInputDesc().GetElementSize();
+
+    // Pdist performs better if total points to calculation is not too large
+    // for non-contiguous inputs
+    bool is_calculation_large = input_numels > 256ULL * 64;
+
+    if(!problem.IsAllContiguous() && is_calculation_large)
+    {
+        return false;
+    }
+
+    return true;
+}
+
 MultiBufferWorkspaceTraits GetMultiBufferWorkspaceTraits(const TensorDescriptor& inputDesc)
 {
     auto N = inputDesc.GetLengths()[0];
@@ -63,7 +79,7 @@ bool PdistBackward::IsApplicable(const ExecutionContext& context,
 {
     std::ignore = context;
 
-    if(!problem.IsAllContiguous())
+    if(!IsImprovementOverROCm(problem))
     {
         return false;
     }
