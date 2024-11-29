@@ -466,7 +466,7 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
                                                  std::size_t max_solutions,
                                                  const Buffers& buffers,
                                                  const ConvolutionDescriptor& conv_desc,
-                                                 Problem const& original) const
+                                                 const Problem& original) const
 {
     if(tensor_descriptors.size() != 3)
     {
